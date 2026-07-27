@@ -32,15 +32,19 @@ plugins, use **claude-craft**.
 | **prompt-align** | Diff a prompt vs its test harness |
 | **prompt-migrate** | TDD-style prompt migration |
 | **prompt-refine** | Audit → remediate → migrate → align workflow |
+| **architect** | Architecture / tech decisions (suite agent dispatch may be host-specific) |
+| **plan-test** | Generate tests (ported from planning-suite `test`) |
+| **compare-prompts** | A/B compare prompt versions |
+| **derive-questions** | Research-derived planning questions library |
+| **question-bench** | Benchmark review-plan question subsets |
+| **improve-system-prompt** | Benchmark system prompt variants (Sheets Chat lineage) |
+| **review-fix-bench** | A/B benchmark code reviewer agent prompts |
 
-Port inventory / backlog: [docs/PORT.md](docs/PORT.md).
+Port inventory: [docs/PORT.md](docs/PORT.md). After editing any skill body, run:
 
 ```sh
-# Install all skills into all four host skill homes
-./install.sh
-
-# One skill + thin agent cards (Claude + Grok) when agents/<leaf>.md exists
-./install.sh --skill skill-interop --agents
+./scripts/sync-plugin-views.sh
+./scripts/sync-plugin-views.sh --check
 ```
 
 ## Install (`install.sh`)

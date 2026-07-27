@@ -1,6 +1,6 @@
 {
   "name": "prompt-migrate",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "TDD-based prompt migration \u2014 given a target agent/skill prompt and a remediation list from prompt-audit, writes failing tests first, then updates the prompt to make them pass, and commits both in a single atomic commit.",
   "author": {
     "name": "whichguy",

@@ -1,0 +1,17 @@
+{
+  "name": "derive-questions",
+  "version": "0.2.2",
+  "description": "Iteratively researches real software project failures and wins, extracts key planning questions via 5-whys analysis, validates them against synthetic test plans, judges their effectiveness via a parallel judge agent, refines them, and persi",
+  "author": {
+    "name": "whichguy",
+    "url": "https://github.com/whichguy"
+  },
+  "homepage": "https://github.com/whichguy/skill-craft",
+  "repository": "https://github.com/whichguy/skill-craft",
+  "license": "MIT",
+  "keywords": [
+    "skill-craft",
+    "derive-questions",
+    "portable-skills"
+  ]
+}

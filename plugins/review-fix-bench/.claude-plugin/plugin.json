@@ -1,0 +1,17 @@
+{
+  "name": "review-fix-bench",
+  "version": "0.2.2",
+  "description": "A/B benchmarking skill for code reviewer agent prompts. Runs two versions of a reviewer agent against fixture ground truth using an LLM judge for semantic evaluation, then compares precision/recall/F1 metrics side-by-side. Defaults to compa",
+  "author": {
+    "name": "whichguy",
+    "url": "https://github.com/whichguy"
+  },
+  "homepage": "https://github.com/whichguy/skill-craft",
+  "repository": "https://github.com/whichguy/skill-craft",
+  "license": "MIT",
+  "keywords": [
+    "skill-craft",
+    "review-fix-bench",
+    "portable-skills"
+  ]
+}

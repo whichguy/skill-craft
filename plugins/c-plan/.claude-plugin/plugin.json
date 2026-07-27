@@ -1,6 +1,6 @@
 {
   "name": "c-plan",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Resolve ambiguous user prompts by choosing whether to answer now, answer with assumptions, ask 1\u20132 high-value clarification questions, replan, or stop. Use when the best response depends on hidden intent, audience, scope, constraints, risk,",
   "author": {
     "name": "whichguy",

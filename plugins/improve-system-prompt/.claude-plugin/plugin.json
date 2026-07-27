@@ -1,0 +1,17 @@
+{
+  "name": "improve-system-prompt",
+  "version": "0.2.2",
+  "description": "Benchmark and compare system prompt variants (V2/V2a/V2b/V2c) for Sheets Chat by running test scenarios through the real GAS-side ClaudeConversation pipeline. Tests both system-placement and user-placement, then evaluates with heuristic sco",
+  "author": {
+    "name": "whichguy",
+    "url": "https://github.com/whichguy"
+  },
+  "homepage": "https://github.com/whichguy/skill-craft",
+  "repository": "https://github.com/whichguy/skill-craft",
+  "license": "MIT",
+  "keywords": [
+    "skill-craft",
+    "improve-system-prompt",
+    "portable-skills"
+  ]
+}

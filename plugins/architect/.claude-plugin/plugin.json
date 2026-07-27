@@ -1,7 +1,7 @@
 {
-  "name": "prompt-audit",
+  "name": "architect",
   "version": "0.2.2",
-  "description": "Audit an agent or skill prompt file for internal inconsistencies (phase numbering, behavioral contracts, terminology, stale references). Produces a Q&A with info-gain scores, a learnings section, and a remediation list. Use before any promp",
+  "description": "Design system architecture and make technology decisions. Dispatches to system-architect agent for comprehensive design work.",
   "author": {
     "name": "whichguy",
     "url": "https://github.com/whichguy"
@@ -11,7 +11,7 @@
   "license": "MIT",
   "keywords": [
     "skill-craft",
-    "prompt-audit",
+    "architect",
     "portable-skills"
   ]
 }
