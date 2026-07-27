@@ -100,3 +100,16 @@ bash test/run-all.sh
 ## License
 
 MIT — see [LICENSE](LICENSE).
+
+## Claude plugin view (optional distribution)
+
+Skill **SoT** is always `skills/<name>/`. For Claude marketplace installs we also ship a thin **plugin view**:
+
+```text
+plugins/skill-interop/
+  .claude-plugin/plugin.json
+  skills/skill-interop → ../../skills/skill-interop   # symlink to SoT
+  agents/… (optional)
+```
+
+`skill-craft-market` pins `path: "plugins/skill-interop"`, not the bare skill leaf.
