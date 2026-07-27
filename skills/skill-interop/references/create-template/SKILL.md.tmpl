@@ -1,0 +1,39 @@
+---
+name: {{NAME}}
+description: >-
+  {{DESCRIPTION}}
+version: 0.1.0
+author: skill-interop scaffold
+license: MIT
+platforms:
+  - linux
+  - macos
+metadata:
+  hermes:
+    category: software-development
+    tags:
+      - portable-skill
+      - multi-host
+---
+
+# {{NAME}}
+
+{{GOALS_SUMMARY}}
+
+## Triggers
+
+- When the user asks to run the **{{NAME}}** workflow
+- When portable, host-agnostic skill behavior is needed across Grok / Claude / Codex / Hermes
+
+## Procedure
+
+1. Load `prompts/main.prompt.md` and fill placeholders (at least `{{INPUT}}`; optional `{{GOALS}}`).
+2. Run the filled prompt on the current host — do **not** require a single host CLI as the only path.
+3. Label outputs honestly (e.g. **native-unvalidated** when no packaging/validation step ran).
+4. Record residual risks or open questions explicitly; never silent empty success.
+
+Host matrix (fill per environment): `references/host-matrix.md`.
+
+## Not for
+
+Tasks outside the scope described in the description and goals above.
