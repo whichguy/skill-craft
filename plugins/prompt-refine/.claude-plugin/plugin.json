@@ -1,0 +1,17 @@
+{
+  "name": "prompt-refine",
+  "version": "0.2.1",
+  "description": "Full prompt-improvement workflow \u2014 runs prompt-audit to find inconsistencies, presents a remediation plan, then runs prompt-migrate to apply fixes and prompt-align to verify harness consistency. Use for any agent or skill prompt that needs ",
+  "author": {
+    "name": "whichguy",
+    "url": "https://github.com/whichguy"
+  },
+  "homepage": "https://github.com/whichguy/skill-craft",
+  "repository": "https://github.com/whichguy/skill-craft",
+  "license": "MIT",
+  "keywords": [
+    "skill-craft",
+    "prompt-refine",
+    "portable-skills"
+  ]
+}

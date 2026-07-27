@@ -22,19 +22,24 @@ This is **not** [claude-craft](https://github.com/whichguy/claude-craft).
 If you want portable skills that work across hosts, use **skill-craft**. If you want Claude Code
 plugins, use **claude-craft**.
 
-## First skill: skill-interop
+## Skills in this monorepo
 
-Author or review skills so they work across **Grok, Claude Code, Codex, and Hermes**:
+| Skill | Purpose |
+|-------|---------|
+| **skill-interop** | Author/review portable multi-host skills; scaffold; install; marketplace facade |
+| **c-plan** | Ambiguous-prompt clarifier (EVQ / FASTPATH) |
+| **prompt-audit** | Audit agent/skill prompts for internal inconsistencies |
+| **prompt-align** | Diff a prompt vs its test harness |
+| **prompt-migrate** | TDD-style prompt migration |
+| **prompt-refine** | Audit → remediate → migrate → align workflow |
 
-- prompt-first design, optional scripts with one CLI contract
-- scaffold a new skill package
-- multi-host install and marketplace facade helpers
+Port inventory / backlog: [docs/PORT.md](docs/PORT.md).
 
 ```sh
-# Install skill-interop into all four host skill homes
-./install.sh --skill skill-interop
+# Install all skills into all four host skill homes
+./install.sh
 
-# Also symlink thin agent cards (Claude + Grok)
+# One skill + thin agent cards (Claude + Grok) when agents/<leaf>.md exists
 ./install.sh --skill skill-interop --agents
 ```
 

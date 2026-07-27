@@ -1,7 +1,7 @@
 {
-  "name": "skill-interop",
+  "name": "prompt-migrate",
   "version": "0.2.1",
-  "description": "Portable multi-host skill create/review + marketplace CLI facade (Grok, Claude, Codex, Hermes).",
+  "description": "TDD-based prompt migration \u2014 given a target agent/skill prompt and a remediation list from prompt-audit, writes failing tests first, then updates the prompt to make them pass, and commits both in a single atomic commit.",
   "author": {
     "name": "whichguy",
     "url": "https://github.com/whichguy"
@@ -11,8 +11,7 @@
   "license": "MIT",
   "keywords": [
     "skill-craft",
-    "skill-interop",
-    "multi-host",
+    "prompt-migrate",
     "portable-skills"
   ]
 }
