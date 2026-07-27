@@ -37,7 +37,7 @@ Review or design **skills** so they work across hosts: **prompt-first**, optiona
 |------|------|-----|
 | **Review** | Existing skill tree needs an interop audit | Follow **Review procedure** below; load `prompts/review-skill.prompt.md` |
 | **Create (prompt-only)** | New portable skill from scratch | Run `scripts/scaffold-skill.sh` (templates under `references/create-template/`) |
-| **Install** | Symlink this package into host skill homes (**skill-dir** side-load) | From repo root: `./install.sh --skill skill-interop` (or `--skill both` / any `skills/<name>` / `--from DIR`); optional `--agents` |
+| **Install** | Symlink this package into host skill homes (**skill-dir** side-load) | From **skill-craft** (or dual-home) repo root: `./install.sh --skill skill-interop` (or `--skill all` / any `skills/<name>` / `--from DIR`); optional `--agents` |
 | **Marketplace** | List/add marketplaces or install/uninstall **plugins** on Claude / Grok / Codex | `scripts/marketplace-run.sh` (see **Marketplace procedure** below) |
 
 Host skill-dir destinations: `references/host-paths.md`.  
@@ -89,11 +89,11 @@ Name rules: `^[a-z0-9]([a-z0-9-]*[a-z0-9])?$`, length 2–64.
 
 ## Install procedure
 
-From the **backchain repo root** (never overwrite foreign trees):
+From the **skill-craft** monorepo root (or dual-home checkout; never overwrite foreign trees):
 
 ```sh
 ./install.sh --skill skill-interop
-# --skill both|backchain|skill-interop|<name>   # any skills/<name> with SKILL.md
+# --skill all|skill-interop|<name>              # any skills/<name> with SKILL.md
 # --from /abs/path/to/skill                     # leaf = basename; exclusive with --skill
 # --agents                                      # thin agents/<leaf>.md for Claude + Grok only
 # host filters: --claude-only | --grok-only | --codex-only | --hermes-only | --all
@@ -103,6 +103,7 @@ From the **backchain repo root** (never overwrite foreign trees):
 See `references/host-paths.md` for skill and agent destinations (Claude, Grok, Codex, Hermes).
 
 This path is **not** the plugin marketplace. For host plugins use **Marketplace** below.
+Marketplace **pins** (no skill bodies) live in sibling **skill-craft-market**.
 
 ## Marketplace procedure
 

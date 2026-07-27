@@ -1,22 +1,32 @@
 #!/usr/bin/env bash
+# Run hermetic skill-craft tests (no network, stubbed host CLIs).
 set -euo pipefail
+
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
-status=0
-for t in \
-  test/skill-interop-frontmatter.test.js \
-  test/skill-interop-hygiene.test.sh \
-  test/scaffold-skill.test.sh \
-  test/marketplace-run.test.sh \
-  test/install-targets.test.sh
-do
-  if [[ ! -e "$root/$t" ]]; then
-    echo "SKIP missing $t"
-    continue
-  fi
-  if [[ "$t" == *.js ]]; then
-    if node "$root/$t"; then echo "PASS $t"; else echo "FAIL $t"; status=1; fi
+cd "$root"
+
+fail=0
+run() {
+  local name="$1"
+  shift
+  printf '==> %s\n' "$name"
+  if "$@"; then
+    printf 'OK  %s\n' "$name"
   else
-    if bash "$root/$t"; then echo "PASS $t"; else echo "FAIL $t"; status=1; fi
+    printf 'FAIL %s\n' "$name" >&2
+    fail=1
   fi
-done
-exit "$status"
+}
+
+run skill-interop-hygiene bash test/skill-interop-hygiene.test.sh
+run skill-interop-frontmatter node test/skill-interop-frontmatter.test.js
+run scaffold-skill bash test/scaffold-skill.test.sh
+run marketplace-run bash test/marketplace-run.test.sh
+run install-targets bash test/install-targets.test.sh
+run install-arbitrary-skill bash test/install-arbitrary-skill.test.sh
+
+if [[ "$fail" -ne 0 ]]; then
+  printf 'run-all.sh: FAILED\n' >&2
+  exit 1
+fi
+printf 'run-all.sh: PASS (all skill-craft hermetic tests)\n'

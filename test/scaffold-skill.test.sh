@@ -13,7 +13,7 @@ fail() {
 
 [[ -x "$scaffold" ]] || fail "scaffold script not executable: $scaffold"
 
-tmpdir="$(mktemp -d "${TMPDIR:-/tmp}/backchain-scaffold.XXXXXX")"
+tmpdir="$(mktemp -d "${TMPDIR:-/tmp}/skill-craft-scaffold.XXXXXX")"
 cleanup() { rm -rf "$tmpdir"; }
 trap cleanup EXIT
 

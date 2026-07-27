@@ -39,7 +39,7 @@ Not a marketplace id. This is the **`./install.sh`** path:
 
 | Form | Example | Effect |
 |------|---------|--------|
-| skill leaf name | `skill-interop`, `backchain` | symlink `skills/<leaf>` into host skill homes |
+| skill leaf name | `skill-interop`, other `skills/<leaf>` | symlink `skills/<leaf>` into host skill homes |
 | `--from DIR` | `--from /path/to/my-skill` | leaf = basename of DIR |
 
 ```sh

@@ -1,12 +1,15 @@
-# Install destinations (skill-interop / backchain)
+# Install destinations (skill-craft)
 
-Repo root `./install.sh` symlinks skill packages into local skill homes.
+Repo root `./install.sh` (skill-craft monorepo) symlinks skill packages into local skill homes.
 Optional `--agents` symlinks thin agent cards for Claude and Grok only.
 Existing destinations are never overwritten.
 
+When this package is dual-homed under **backchain**, use that repo’s `./install.sh`
+(`--skill skill-interop` or product defaults). Destinations are the same.
+
 ## Skills
 
-Per skill leaf (`backchain`, `skill-interop`, or any `skills/<name>` / `--from DIR`):
+Per skill leaf (`skill-interop`, or any `skills/<name>` / `--from DIR`):
 
 | Host | Destination |
 |------|-------------|
@@ -30,11 +33,14 @@ Only when `agents/<leaf>.md` exists in the repo. **Claude + Grok only** — Code
 ## Examples
 
 ```sh
-# Both skills, all four hosts
+# All skills under skills/, all four hosts (skill-craft default)
 ./install.sh
 
 # skill-interop only
 ./install.sh --skill skill-interop
+
+# Explicit all skills
+./install.sh --skill all
 
 # Arbitrary leaf under skills/
 ./install.sh --skill my-skill
@@ -43,7 +49,7 @@ Only when `agents/<leaf>.md` exists in the repo. **Claude + Grok only** — Code
 ./install.sh --from /path/to/sample-skill
 
 # Skills + thin agent cards (Claude/Grok)
-./install.sh --skill both --agents
+./install.sh --skill all --agents
 
 # One host
 ./install.sh --skill skill-interop --claude-only
@@ -55,5 +61,4 @@ Only when `agents/<leaf>.md` exists in the repo. **Claude + Grok only** — Code
 ./install.sh --skill skill-interop --agents --dry-run
 ```
 
-Sources in this repo: `skills/backchain`, `skills/skill-interop`, and any other
-`skills/<name>` with `SKILL.md`. Agent cards: `agents/<leaf>.md`.
+Sources in this repo: every `skills/<name>` with `SKILL.md`. Agent cards: `agents/<leaf>.md`.

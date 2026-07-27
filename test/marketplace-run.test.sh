@@ -13,7 +13,7 @@ fail() {
 
 [[ -x "$mp" ]] || fail "marketplace-run.sh not executable: $mp"
 
-tmpdir="$(mktemp -d "${TMPDIR:-/tmp}/backchain-marketplace.XXXXXX")"
+tmpdir="$(mktemp -d "${TMPDIR:-/tmp}/skill-craft-marketplace.XXXXXX")"
 cleanup() { rm -rf "$tmpdir"; }
 trap cleanup EXIT
 
@@ -411,7 +411,7 @@ out="$(bash "$reloc/skills/skill-interop/scripts/marketplace-run.sh" install-loc
 printf '%s\n' "$out" | grep -qE 'reloc-root/install\.sh' \
   || fail "M11 should resolve install.sh under relocated root: $out"
 printf '%s\n' "$out" | grep -qi 'would-run' || fail "M11 missing would-run: $out"
-# Must not still point at the real backchain repo install.sh
+# Must not still point at the real skill-craft repo install.sh
 if printf '%s\n' "$out" | grep -qF "$root/install.sh"; then
   fail "M11 walk-up must not use repo root install.sh: $out"
 fi

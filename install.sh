@@ -19,8 +19,8 @@ usage() {
   printf '                        # (never clobbers a real file/directory)\n' >&2
   printf '  --dry-run             # print actions only, no writes\n' >&2
   printf '\n' >&2
-  printf 'Default (no host flags): install ALL four hosts. This differs from the\n' >&2
-  printf 'older default (Claude + Hermes only).\n' >&2
+  printf 'Default (no host flags): install ALL four hosts.\n' >&2
+  printf 'Default (no --skill/--from): install every skills/<leaf> with SKILL.md.\n' >&2
   printf '\n' >&2
   printf 'Skill destinations (per skill leaf):\n' >&2
   printf '  Claude:  ~/.claude/skills/<leaf>\n' >&2
@@ -34,13 +34,12 @@ usage() {
   printf '  Grok:    ~/.grok/agents/<leaf>.md\n' >&2
   printf '  Codex/Hermes: skipped (no agent install)\n' >&2
   printf '\n' >&2
-  printf 'skill-craft monorepo installer. Sources: skills/<name>/ or --from DIR.\n' >&2
-  printf 'Not claude-craft (suite plugins). Not backchain product.\n' >&2
+  printf 'Sources: skills/<name> under this repo, or --from DIR.\n' >&2
   printf 'Real file/directory destinations are never overwritten (even with --relink).\n' >&2
   printf 'With --relink, only wrong or dangling symlinks are replaced.\n' >&2
 }
 
-# Safe skill leaf: both (special) OR ^[a-z0-9]([a-z0-9-]*[a-z0-9])?$ length 2–64
+# Safe skill leaf: all|both (special = every skills/*) OR ^[a-z0-9]([a-z0-9-]*[a-z0-9])?$ length 2–64
 is_safe_skill_name() {
   local name="$1"
   if [[ "$name" == "all" || "$name" == "both" ]]; then
@@ -53,6 +52,30 @@ is_safe_skill_name() {
   [[ "$name" =~ ^[a-z0-9]([a-z0-9-]*[a-z0-9])?$ ]]
 }
 
+# Discover skills/<leaf> directories that contain SKILL.md (sorted).
+# Use globs — never parse `ls` (color aliases inject ANSI into names).
+list_repo_skills() {
+  local skills_root="$1"
+  local d leaf
+  local -a leaves=()
+  if [[ ! -d "$skills_root" ]]; then
+    return 0
+  fi
+  shopt -s nullglob
+  for d in "$skills_root"/*/; do
+    leaf="$(basename "$d")"
+    if [[ -f "$skills_root/$leaf/SKILL.md" ]] && is_safe_skill_name "$leaf" && [[ "$leaf" != "all" ]]; then
+      leaves+=("$leaf")
+    fi
+  done
+  shopt -u nullglob
+  if [[ ${#leaves[@]} -eq 0 ]]; then
+    return 0
+  fi
+  # Sort for stable install order
+  printf '%s\n' "${leaves[@]}" | LC_ALL=C sort
+}
+
 repo_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 
 # Host flags: 0 = unset by user, 1 = selected. When none selected, enable all.
@@ -62,8 +85,8 @@ install_codex=0
 install_hermes=0
 host_flag_set=0
 
-skill_mode="all" # all skills under skills/ | named leaf | (unused when --from set)
-skill_from=""     # absolute path when --from used
+skill_mode="all" # all | named leaf | (unused when --from set)
+skill_from=""    # absolute path when --from used
 skill_flag_set=0
 from_flag_set=0
 install_agents=0
@@ -111,7 +134,7 @@ while [[ $# -gt 0 ]]; do
         exit 64
       fi
       if ! is_safe_skill_name "$2"; then
-        printf 'Invalid --skill value: %s (want both or safe leaf 2–64: [a-z0-9][a-z0-9-]*[a-z0-9]?)\n' "$2" >&2
+        printf 'Invalid --skill value: %s (want all or safe leaf 2–64: [a-z0-9][a-z0-9-]*[a-z0-9]?)\n' "$2" >&2
         usage
         exit 64
       fi
@@ -300,7 +323,7 @@ if [[ "$from_flag_set" -eq 1 ]]; then
   fi
   skill_from="$(cd "$skill_from" && pwd -P)"
   leaf="$(basename "$skill_from")"
-  if ! is_safe_skill_name "$leaf" || [[ "$leaf" == "both" || "$leaf" == "all" ]]; then
+  if ! is_safe_skill_name "$leaf" || [[ "$leaf" == "all" || "$leaf" == "both" ]]; then
     printf 'Invalid skill leaf from --from path basename: %s\n' "$leaf" >&2
     exit 64
   fi
@@ -312,22 +335,17 @@ if [[ "$from_flag_set" -eq 1 ]]; then
 else
   case "$skill_mode" in
     all|both)
-      # Install every skills/<leaf>/ with SKILL.md
-      shopt -s nullglob
-      found=0
-      for d in "$repo_dir"/skills/*/; do
-        [[ -f "${d}SKILL.md" ]] || continue
-        leaf="$(basename "$d")"
-        install_pairs+=("${leaf}|${d%/}")
-        found=1
-      done
-      shopt -u nullglob
-      if [[ "$found" -eq 0 ]]; then
-        printf 'No skills/*/SKILL.md found under %s/skills\n' "$repo_dir" >&2
+      while IFS= read -r leaf; do
+        [[ -n "$leaf" ]] || continue
+        install_pairs+=("${leaf}|${repo_dir}/skills/${leaf}")
+      done < <(list_repo_skills "$repo_dir/skills")
+      if [[ ${#install_pairs[@]} -eq 0 ]]; then
+        printf 'No skills found under %s (need skills/<leaf>/SKILL.md)\n' "$repo_dir/skills" >&2
         exit 1
       fi
       ;;
     *)
+      # Named leaf: require skills/NAME/SKILL.md
       source_named="$repo_dir/skills/$skill_mode"
       if [[ ! -f "$source_named/SKILL.md" ]]; then
         printf 'Skill source is missing SKILL.md: %s\n' "$source_named/SKILL.md" >&2
