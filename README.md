@@ -117,8 +117,16 @@ Skill **SoT** is always `skills/<name>/`. For Claude marketplace installs we als
 ```text
 plugins/skill-interop/
   .claude-plugin/plugin.json
-  skills/skill-interop → ../../skills/skill-interop   # symlink to SoT
-  agents/… (optional)
+  skills/skill-interop/   # materialised copy of skills/skill-interop (not a symlink)
+  agents/… (optional real files)
+```
+
+Claude `git-subdir` installs **do not follow** relative symlinks outside the pin path,
+so the plugin view is a **materialised copy**. Keep it in sync:
+
+```sh
+./scripts/sync-plugin-views.sh          # after editing skills/
+./scripts/sync-plugin-views.sh --check  # CI / pre-commit
 ```
 
 `skill-craft-market` pins `path: "plugins/skill-interop"`, not the bare skill leaf.

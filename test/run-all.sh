@@ -19,6 +19,7 @@ run() {
 }
 
 run skill-interop-hygiene bash test/skill-interop-hygiene.test.sh
+run sync-plugin-views bash test/sync-plugin-views.test.sh
 run skill-interop-frontmatter node test/skill-interop-frontmatter.test.js
 run scaffold-skill bash test/scaffold-skill.test.sh
 run marketplace-run bash test/marketplace-run.test.sh
