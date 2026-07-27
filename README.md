@@ -68,14 +68,23 @@ With `--agents`: `~/.claude/agents/<leaf>.md` and `~/.grok/agents/<leaf>.md` whe
 
 ## Marketplace pins (sibling repo)
 
-**skill-craft-market** holds host-facing marketplace adapters that **pin** skills in this repo
-(e.g. Claude `marketplace.json` with `git-subdir` → `whichguy/skill-craft` path
-`skills/skill-interop`). Catalog only — skill prompt bodies stay here.
+**skill-craft-market** holds host-facing marketplace adapters that **pin** skills in this repo.
+Claude pins use the **plugin view** path (`plugins/<name>`), never the bare skill leaf.
+Catalog only — skill prompt bodies stay here.
 
 ```sh
-# Example (after skill-craft-market is published)
-# claude plugin marketplace add whichguy/skill-craft-market  # path faces/claude
+claude plugin marketplace add whichguy/skill-craft-market
+claude plugin install skill-interop@skill-craft-market
 ```
+
+### Install lifecycle
+
+| Mode | Action |
+|------|--------|
+| **Dev (skill-dir)** | `./install.sh --skill <name> [--agents] [--relink]` |
+| **Claude plugin** | install via skill-craft-market (above) |
+| **Upgrade skill-dir** | `git pull` + re-run install; use `--relink` if links point elsewhere |
+| **Uninstall skill-dir** | remove host symlink under `~/.{claude,grok,codex}/skills/<name>` (and Hermes path) |
 
 See the skill-craft-market README for per-host faces.
 
