@@ -38,6 +38,31 @@ rm -f "$TMP"
 
 if ! echo '# bare' | python3 "$CLI" validate - >/dev/null 2>&1; then ok validate_missing; else bad validate_missing; fi
 
+# Unfilled template (incl. example waiver line) must NOT validate as ok
+if ! python3 "$CLI" validate "$ROOT/skills/review-coverage/references/review_coverage.md" >/dev/null 2>&1; then
+  ok template_not_valid_plan
+else
+  bad template_not_valid_plan
+fi
+if ! python3 "$CLI" validate "$ROOT/skills/review-coverage/references/review_coverage.short.md" >/dev/null 2>&1; then
+  ok short_template_not_valid_plan
+else
+  bad short_template_not_valid_plan
+fi
+
+# Real waiver (non-placeholder reason) validates; goal-body refuses with clear err
+TMPW=$(mktemp)
+cat >"$TMPW" <<'EOF'
+## Review Coverage
+
+None — residual loop waived: docs-only one-liner plan
+EOF
+if python3 "$CLI" validate "$TMPW" >/dev/null; then ok waiver_validate; else bad waiver_validate; fi
+# goal-body exits 1 on waiver; capture stderr+stdout without pipefail masking the grep
+gbo=$(python3 "$CLI" goal-body --plan "$TMPW" 2>&1 || true)
+if printf '%s\n' "$gbo" | grep -qi 'waived'; then ok waiver_goal_body_msg; else bad waiver_goal_body_msg; fi
+rm -f "$TMPW"
+
 if [[ -f "$ROOT/plugins/review-coverage/.claude-plugin/plugin.json" ]]; then ok plugin_json; else bad plugin_json; fi
 if "$ROOT/scripts/sync-plugin-views.sh" --check review-coverage 2>/dev/null \
   || "$ROOT/scripts/sync-plugin-views.sh" --check 2>/dev/null | grep -q review-coverage; then

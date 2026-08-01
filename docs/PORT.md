@@ -26,6 +26,9 @@
 | question-bench | review-bench | Wave 2 |
 | improve-system-prompt | review-bench | Wave 2 (Sheets Chat specific) |
 | review-fix-bench | review-bench | Wave 2 |
+| review-coverage | (native) | Post-ship residual×2 directive + CLI |
+| devloop-run | (native) | Hermes devloop engine discovery card |
+| lennox-s40 | (native) | Local LAN Lennox S40 thermostat control |
 
 ## Stay in claude-craft (suite)
 

@@ -21,8 +21,9 @@ LEGACY_HEAD_RE = re.compile(
     r"(?im)^[ \t]{0,3}#{1,6}[ \t]+(?:Post[- ]?Implementation\s+)?Residual\s+Loop\b"
     r"|^[ \t]{0,3}#{1,6}[ \t]+Residual\s+Loop\b"
 )
+# Capture reason; placeholder reasons (e.g. <reason>) are not real waivers.
 WAIVER_RE = re.compile(
-    r"(?is)None\s*[—–-]\s*residual\s+loop\s+waived\s*:\s*\S+"
+    r"(?im)^[ \t]*None\s*[—–-]\s*residual\s+loop\s+waived\s*:\s*(?P<reason>\S.+?)\s*$"
 )
 PLACEHOLDER_RE = re.compile(
     r"(?i)^(tbd|todo|\.\.\.|…|from plan|list concrete|<[^>]+>)$"
@@ -92,6 +93,18 @@ def _is_placeholder(value: str) -> bool:
     return bool(re.fullmatch(r"<[^<>]+>", v))
 
 
+def _waiver_reason(text: str) -> Optional[str]:
+    """Real waiver reason if present; ignore template placeholders like <reason>."""
+    # Prefer the Review Coverage section so fenced examples elsewhere do not count.
+    body = _section_body(text)
+    scan = body if body is not None else text
+    for m in WAIVER_RE.finditer(scan):
+        reason = (m.group("reason") or "").strip()
+        if reason and not _is_placeholder(reason):
+            return reason
+    return None
+
+
 def _positive_label(body: str, label: str) -> bool:
     label_re = re.compile(rf"\b{re.escape(label)}\b", re.I)
     neg = re.compile(rf"\b(?:do\s+not|never|no)\s+{re.escape(label)}\b", re.I)
@@ -102,7 +115,7 @@ def _positive_label(body: str, label: str) -> bool:
 
 
 def validate(text: str) -> Tuple[bool, List[str]]:
-    if WAIVER_RE.search(text):
+    if _waiver_reason(text) is not None:
         return True, []
     body = _section_body(text)
     if body is None:
@@ -151,12 +164,13 @@ def validate(text: str) -> Tuple[bool, List[str]]:
     return (len(gaps) == 0, gaps)
 
 
-def goal_body(text: str, plan_path: str = "") -> Optional[str]:
+def goal_body(text: str, plan_path: str = "") -> Tuple[Optional[str], str]:
+    """Return (body, err). err is empty on success."""
+    if _waiver_reason(text) is not None:
+        return None, "residual waived — no /goal body (intentional)"
     ok, gaps = validate(text)
     if not ok:
-        return None
-    if WAIVER_RE.search(text):
-        return None
+        return None, "plan missing filled Review Coverage: " + "; ".join(gaps)
     body = _section_body(text) or ""
     fields = _fields(body)
     base = fields.get("base ref") or fields.get("base") or "<BASE_REF>"
@@ -176,7 +190,7 @@ def goal_body(text: str, plan_path: str = "") -> Optional[str]:
         "Complete after two consecutive clean rounds with green suite on second clean.\n"
         "stopped(...) is not success. Pathspec commits only; never git add -A.\n"
         "Do not auto-start if the user is not ready to implement residual coverage."
-    )
+    ), ""
 
 
 def cmd_template(short: bool) -> int:
@@ -206,9 +220,9 @@ def cmd_validate(path: Optional[str]) -> int:
 
 def cmd_goal_body(plan: str) -> int:
     text = Path(plan).read_text(encoding="utf-8")
-    body = goal_body(text, plan_path=plan)
+    body, err = goal_body(text, plan_path=plan)
     if body is None:
-        print("error: plan missing filled Review Coverage (or waived)", file=sys.stderr)
+        print(f"error: {err}", file=sys.stderr)
         return 1
     print(body)
     return 0
