@@ -1,0 +1,44 @@
+# Review Converge: review-coverage residual×2 (session plan product residual)
+
+**Target paths:** `skills/review-coverage`, `plugins/review-coverage`, `test/review-coverage.test.sh`
+**Test command:** `bash test/review-coverage.test.sh && bash test/run-all.sh`
+**Started:** 2026-08-01          **Status:** active
+**Round counter:** 1
+**Consecutive clean rounds:** 0
+**Known test-artifact paths:**
+**Plan contract:** `/Users/dadleet/.grok/sessions/%2FUsers%2Fdadleet%2Fsrc%2Fc-thru/019fbdde-bd72-7e43-a662-9a354c377fdc/plan.md`
+**Plan hash:** `0a8135eef3248d30ba8b9b1feadc3aad7d32b77498e2dceddfb8d61397521b9f`
+**Base ref:** `38a8dc60c4467e663b619434440867690c892af0`
+
+## Stop-condition tracking
+- consecutive-no-progress: 0
+- consecutive-same-error: 0 (signature: none)
+
+## Log
+### Round 1 — 2026-08-01
+**Review:** 1 material, 1 minor
+**Material findings:**
+- validate() treated unfilled templates as ok because example line `None — residual loop waived: <reason>` matched WAIVER_RE — false confidence on primary paste path [scripts/review-coverage] — code/logic-flow
+**Deferred (minor/P2):**
+- [ ] P2: A5 verify-by `rg REQUIRE_RESIDUAL_LOOP` still hits host-matrix optional docs — tighten verify-by wording or exclude docs — docs
+**Git-history check:** first residual round on review-coverage after ship 5f14736; dogfood earlier reported complete without catching this validate false-positive
+**Plan:**
+- P0: require real (non-placeholder) waiver reason; scan section body not whole-file examples
+- P0: clearer goal-body errors (waived vs incomplete)
+- P1: pin tests for template-not-valid, real waiver, goal-body waived message
+**Plan review:** native — keep pathspec narrow (exclude concurrent README/run-all dirt from lennox WIP)
+**Implementation:** skills/review-coverage/scripts/review-coverage + plugin sync + test/review-coverage.test.sh via native
+**Lint:** skipped (none configured for these paths)
+**Test result:** PASS
+**Outcome:** fixed
+**Error signature:** none
+**Learnings:** Advisory validate must not short-circuit on template placeholder waiver lines; treat only real waiver reasons as waived. Dogfood residual×2 that only greps suite green can miss false-positive lint paths — pin the anti-pattern.
+**Anchor evidence:**
+- A1 → skills/review-coverage/SKILL.md + references/review_coverage.md exist
+- A2 → H2 ## Review Coverage in template
+- A3 → SKILL says no ExitPlanMode/soft_exit/REQUIRE required
+- A4 → install --skill review-coverage dry-run already-installed paths
+- A5 → product does not require REQUIRE=1 (host-matrix documents optional only)
+**Consecutive clean rounds after this entry:** 0
+**Committed:** yes
+**Notes:** Target paths narrowed vs plan (omitted README.md + test/run-all.sh this campaign — concurrent foreign dirt from lennox-s40 WIP). Pathspec commits only under review-coverage package + its hermetic test.
