@@ -61,11 +61,45 @@ def _section_body(text: str) -> Optional[str]:
     return None
 
 
+# Keys accepted from Field|Value tables and sparse labeled lines (not glossary tables).
+KNOWN_FIELD_KEYS = frozenset(
+    {
+        "base ref",
+        "base",
+        "target paths",
+        "target path",
+        "test command",
+        "driver",
+        "materiality bar",
+        "repo",
+        "plan contract",
+        "specs",
+        "max review-converge rounds",
+        "max rounds",
+    }
+)
+
+
 def _fields(body: str) -> Dict[str, str]:
+    """Parse residual Field|Value tables; skip fenced Objective paste examples.
+
+    Only rows under a ``| Field | Value |`` table populate fields (so glossary
+    two-column tables do not pollute). Labeled ``Key: value`` lines outside
+    fences fill *missing* known keys only — they never overwrite table values.
+    """
     fields: Dict[str, str] = {}
+    labeled: Dict[str, str] = {}
+    in_fence = False
+    in_field_table = False
     for raw in body.splitlines():
+        if FENCE_RE.match(raw):
+            in_fence = not in_fence
+            continue
+        if in_fence:
+            continue
         line = raw.strip()
         if not line:
+            in_field_table = False
             continue
         if line.startswith("|") and line.count("|") >= 2:
             cells = [c.strip().strip("`*") for c in line.strip("|").split("|")]
@@ -73,16 +107,30 @@ def _fields(body: str) -> Dict[str, str]:
                 re.fullmatch(r":?-{3,}:?", c) for c in cells
             ):
                 key = re.sub(r"\s+", " ", cells[0]).lower()
-                if key not in {"field", "key"}:
+                if key in {"field", "key"} and cells[1].lower() in {
+                    "value",
+                    "val",
+                }:
+                    in_field_table = True
+                    continue
+                if key in {"field", "key"}:
+                    continue
+                if in_field_table and key in KNOWN_FIELD_KEYS:
                     fields[key] = cells[1]
             continue
-        labeled = re.sub(r"^[-*+]\s+", "", line).replace("**", "")
+        # left a table
+        in_field_table = False
+        labeled_line = re.sub(r"^[-*+]\s+", "", line).replace("**", "")
         m = re.match(
             r"(?i)^(?P<key>[A-Za-z][A-Za-z ]*?)\s*:\s*(?P<value>.+?)\s*$",
-            labeled,
+            labeled_line,
         )
         if m:
-            fields[re.sub(r"\s+", " ", m.group("key")).lower()] = m.group("value")
+            key = re.sub(r"\s+", " ", m.group("key")).lower()
+            if key in KNOWN_FIELD_KEYS and key not in labeled:
+                labeled[key] = m.group("value")
+    for key, value in labeled.items():
+        fields.setdefault(key, value)
     return fields
 
 
@@ -90,7 +138,17 @@ def _is_placeholder(value: str) -> bool:
     v = re.sub(r"\s+", " ", (value or "").strip().strip("`*")).lower()
     if not v or PLACEHOLDER_RE.fullmatch(v):
         return True
-    return bool(re.fullmatch(r"<[^<>]+>", v))
+    if re.fullmatch(r"<[^<>]+>", v):
+        return True
+    # Angle-bracket tokens with trailing punctuation: <BASE_REF>.  <CMD>.
+    if re.fullmatch(r"<[^<>]+>[\s.:,;!?)/\]'\"…]*", v):
+        return True
+    # Only placeholder tokens + punctuation/spaces (e.g. "<BASE_REF>. Repo: <REPO>.")
+    if "<" in v and re.fullmatch(
+        r"(?:<[^<>]+>|[\s.:,;!?)/\]'\"…—–-]*)+", v
+    ):
+        return True
+    return False
 
 
 def _waiver_reason(text: str) -> Optional[str]:
@@ -199,10 +257,20 @@ def goal_body(text: str, plan_path: str = "") -> Tuple[Optional[str], str]:
     paths = fields.get("target paths") or fields.get("target path") or "<PATHS>"
     cmd = fields.get("test command") or "<CMD>"
     driver = fields.get("driver") or "review-converge under /goal"
+    # Do not double-append if Driver already states one-round-per-turn discipline.
+    if re.search(r"exactly\s+one\s+review-converge\s+round", driver, re.I):
+        driver_line = driver
+    else:
+        driver_line = (
+            f"{driver} — exactly ONE review-converge round per turn "
+            "(or named Driver)"
+        )
     repo = fields.get("repo") or ""
     max_rounds = fields.get("max review-converge rounds") or fields.get("max rounds") or "12"
     # First token if table value is "12 hard cap; ..."
     max_n = re.split(r"\s+", str(max_rounds).strip())[0] or "12"
+    if not re.fullmatch(r"\d+", max_n):
+        max_n = "12"
     label = plan_path or "plan"
     repo_line = f"Repo: {repo}\n" if repo and not _is_placeholder(repo) else ""
     return (
@@ -214,8 +282,7 @@ def goal_body(text: str, plan_path: str = "") -> Tuple[Optional[str], str]:
         f"{repo_line}"
         f"Target paths: {paths}\n"
         f"Test command: {cmd}\n"
-        f"Driver: {driver} — exactly ONE review-converge round per turn "
-        "(or named Driver).\n"
+        f"Driver: {driver_line}.\n"
         "Plan contract: bind absolute path + SHA-256 at start; hash drift → "
         "blocked → stop path.\n"
         f"Max rounds: {max_n}. Same-error×3 and no-progress×3 → stopped. "

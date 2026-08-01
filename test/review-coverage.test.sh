@@ -189,5 +189,81 @@ else
   bad plugin_template_match
 fi
 
+# Field-table values must win over fenced Objective paste examples (no pollution)
+TMPPOL=$(mktemp)
+cat >"$TMPPOL" <<'EOF'
+## Review Coverage
+
+| Field | Value |
+|-------|--------|
+| Base ref | abcdef1234567890deadbeef |
+| Target paths | src/foo.ts |
+| Test command | npm test |
+| Materiality bar | material (P0/P1) |
+| Driver | review-converge under /goal |
+
+### Objective (paste into /goal)
+
+```text
+Base ref: <BASE_REF>.
+Test command: <CMD>.
+Driver: review-converge under /goal — exactly ONE review-converge round per turn
+Forward specs→code.
+Reverse diff vs base.
+two consecutive clean residual rounds
+```
+EOF
+if python3 "$CLI" validate "$TMPPOL" >/dev/null; then ok field_table_wins_validate; else bad field_table_wins_validate; fi
+POL_GB=$(python3 "$CLI" goal-body --plan "$TMPPOL")
+if printf '%s\n' "$POL_GB" | grep -q 'Base ref: abcdef1234567890deadbeef'; then ok field_table_wins_base; else bad field_table_wins_base; fi
+if printf '%s\n' "$POL_GB" | grep -q 'Test command: npm test'; then ok field_table_wins_cmd; else bad field_table_wins_cmd; fi
+# Driver must not double-append the ONE-round phrase
+if ! printf '%s\n' "$POL_GB" | grep -q 'exactly ONE review-converge round per turn — exactly ONE'; then
+  ok driver_no_double_append
+else
+  bad driver_no_double_append
+fi
+rm -f "$TMPPOL"
+
+# Angle-bracket placeholders with trailing punctuation are still placeholders
+TMPP=$(mktemp)
+cat >"$TMPP" <<'EOF'
+## Review Coverage
+
+| Field | Value |
+|-------|--------|
+| Base ref | <BASE_REF>. |
+| Target paths | src/foo.ts |
+| Test command | <CMD>. |
+| Materiality bar | material (P0/P1) |
+| Driver | review-converge under /goal |
+
+1. Forward audit of specs to code.
+2. Reverse audit of code vs base.
+two consecutive clean residual rounds with green suite
+EOF
+if ! python3 "$CLI" validate "$TMPP" >/dev/null 2>&1; then ok placeholder_trailing_punct; else bad placeholder_trailing_punct; fi
+PERR=$(python3 "$CLI" validate "$TMPP" 2>&1 >/dev/null || true)
+if printf '%s\n' "$PERR" | grep -qi 'placeholder'; then ok placeholder_trailing_punct_stderr; else bad placeholder_trailing_punct_stderr; fi
+rm -f "$TMPP"
+
+# Full/short shipped templates must fail closed (never validate ok as filled plans)
+if ! python3 "$CLI" validate "$ROOT/skills/review-coverage/references/review_coverage.md" >/dev/null 2>&1; then
+  ok full_template_fail_closed
+else
+  bad full_template_fail_closed
+fi
+if ! python3 "$CLI" validate "$ROOT/skills/review-coverage/references/review_coverage.short.md" >/dev/null 2>&1; then
+  ok short_template_fail_closed
+else
+  bad short_template_fail_closed
+fi
+# goal-body on templates must fail (not emit polluted placeholders)
+if ! python3 "$CLI" goal-body --plan "$ROOT/skills/review-coverage/references/review_coverage.md" >/dev/null 2>&1; then
+  ok full_template_no_goal_body
+else
+  bad full_template_no_goal_body
+fi
+
 echo "======== review-coverage: PASS=$PASS FAIL=$FAIL ========"
 [[ "$FAIL" -eq 0 ]]
