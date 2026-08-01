@@ -60,7 +60,7 @@ One CLI family per skill; injectable seams; scripts do not re-author planning po
 
 `SKILL.md` is the discovery/router surface. Engines that are CLI-first load this as documentation for chat models, not as the engine’s system prompt.
 
-### Runtime binding — SC-L3 (**implemented** for Hermes materialize + `devloop-run` resolve)
+### Runtime binding — SC-L3 (**implemented** for Hermes materialize + `devloop-run` resolve/bootstrap)
 
 Binding surfaces are **distinct** (do not collapse into one env var). Full multi-transport
 matrix beyond Hermes/`DEVLOOP_HOME` remains **optional**.
@@ -70,8 +70,13 @@ matrix beyond Hermes/`DEVLOOP_HOME` remains **optional**.
 | Package root | Directory containing `SKILL.md` |
 | Runtime home | e.g. Hermes hub / container data root |
 | Write-safe root | Where engines may create workspaces/traces |
+| Host-local engine | `~/.local/share/devloop` (pin+sha bootstrap; marker-owned) |
 | Transport / launcher bins | Overridable (`HERMES_BIN`, `CLAUDE_BIN`, …) |
 | Target repository | Effectful git work for engines |
+
+**devloop-run clean-laptop path:** card installs on Grok/Claude/Codex skill-dir; engine
+materializes host-locally from `references/engine-pin.json` (url+sha256, safe extract,
+mkdir lock). Never clobbers Hermes leaf `devloop`.
 
 **Hermes skill-dir install (implemented):** materialize a **managed copy** under
 `~/.hermes/skills/software-development/<leaf>` with provenance at

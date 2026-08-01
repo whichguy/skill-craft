@@ -65,16 +65,32 @@ engine leaf name `devloop` is never overwritten by this card.
 
 ## Bootstrap (host-local engine)
 
-Default root: `${XDG_DATA_HOME:-$HOME/.local/share}/devloop`.
+Default root: `${DEVLOOP_DATA_HOME:-${XDG_DATA_HOME:-$HOME/.local/share}}/devloop`.
 
-| Source | When |
-|--------|------|
-| Existing valid engine | `DEVLOOP_HOME`, host-local, Hermes, `/opt/data` |
-| `DEVLOOP_BOOTSTRAP_CMD` | Custom installer; tests inject fakes |
-| `DEVLOOP_ENGINE_URL` | `file://` tree/tgz or `https://…tgz` |
-| Seed copy | Copy from Hermes/`/opt/data` engine if present (no network) |
+Pinned release: [references/engine-pin.json](references/engine-pin.json) (`url` + `sha256`).  
+Packaging: `scripts/package-devloop-engine.sh --from DIR --version X.Y.Z`.
 
 See [references/bootstrap.md](references/bootstrap.md) and [references/host-matrix.md](references/host-matrix.md).
+
+## Truth table
+
+| Situation | Result |
+|-----------|--------|
+| Valid `DEVLOOP_HOME` | Use it (no bootstrap) |
+| Host-local engine present | Use `…/devloop` |
+| Hermes / `/opt/data` seed present | Use seed (no clobber of Hermes leaf) |
+| Missing engine + pin URL + matching sha256 | Bootstrap host-local; write marker last |
+| Missing engine + `--no-bootstrap` | Exit **2** |
+| sha256 mismatch | Exit **2**; no partial install |
+| Tarball path escape (`..` / abs) | Exit **2**; refuse extract |
+| `--force-bootstrap` on unmarked tree | Exit **2** unless `--force-hard` |
+| `--setup` | Ensure + print `engine=…` |
+| `--probe` | Resolve only; does not bootstrap |
+| Card copied alone (no monorepo cwd) | Still bootstraps via card-local pin |
+
+**Resolve order:** `DEVLOOP_HOME` → host-local → Hermes/`/opt/data` → bootstrap (unless `--no-bootstrap`).
+
+**Bootstrap sources (first win):** `DEVLOOP_BOOTSTRAP_CMD` → `DEVLOOP_ENGINE_URL` or pin → seed copy.
 
 ## Exit codes (card preflight)
 
@@ -90,5 +106,7 @@ See [references/bootstrap.md](references/bootstrap.md) and [references/host-matr
 |---------|----------------|
 | Prefer engine | `DEVLOOP_HOME` |
 | Host-local engine | `DEVLOOP_DATA_HOME/devloop` → `~/.local/share/devloop` |
-| Bootstrap inject | `DEVLOOP_BOOTSTRAP_CMD`, `DEVLOOP_ENGINE_URL` |
+| Release pin | `DEVLOOP_ENGINE_PIN` → card `references/engine-pin.json` |
+| Override URL/sha | `DEVLOOP_ENGINE_URL`, `DEVLOOP_ENGINE_SHA256` |
+| Bootstrap inject | `DEVLOOP_BOOTSTRAP_CMD` (tests / custom) |
 | Legacy Hermes | `HERMES_HOME/.../devloop`, `~/.hermes/.../devloop` |

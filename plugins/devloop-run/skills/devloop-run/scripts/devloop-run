@@ -3,37 +3,41 @@
 # Exit 2 = needs human / engine missing / bootstrap refused. Engine exit codes otherwise.
 set -euo pipefail
 
+here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+card_root="$(cd "$here/.." && pwd -P)"
+pin_file="${DEVLOOP_ENGINE_PIN:-$card_root/references/engine-pin.json}"
+
 usage() {
   cat <<'EOF'
 Usage: devloop-run [flags] [--] [devloop_cli args...]
 
 Resolve the installed devloop engine and run scripts/devloop_cli.py.
-May bootstrap a host-local engine copy when missing (see --setup).
+May bootstrap a host-local engine when missing (see --setup).
 
 Flags:
   --probe              Print candidates + selected path; do not exec
-                       (exit 0 if engine found, 2 if not)
   --setup              Ensure engine present (bootstrap if needed); print path; exit
   --no-bootstrap       Never download/copy an engine (fail if missing)
   --force-bootstrap    Re-materialize host-local engine even if one exists
+  --force-hard         With --force-bootstrap, allow replacing a tree without our marker
   --strict             If DEVLOOP_HOME is set but invalid, exit 2 (no fallback)
 
 Environment:
-  DEVLOOP_HOME           Prefer this engine root (must contain scripts/devloop_cli.py)
-  DEVLOOP_DATA_HOME      Host-local engine parent (default: $XDG_DATA_HOME or ~/.local/share)
-  DEVLOOP_ENGINE_URL     Optional: file:// or https:// URL to a .tar.gz engine archive
-  DEVLOOP_BOOTSTRAP_CMD  Optional: command that installs engine into $1 (hermetic tests)
-  HERMES_HOME            Hermes data root (legacy search path)
+  DEVLOOP_HOME           Prefer this engine root
+  DEVLOOP_DATA_HOME      Host-local parent (default: $XDG_DATA_HOME or ~/.local/share)
+  DEVLOOP_ENGINE_URL     Override pin URL (file:// or https://…tgz)
+  DEVLOOP_ENGINE_SHA256  Override pin sha256 (required for non-file https unless pin file)
+  DEVLOOP_ENGINE_PIN     Path to engine-pin.json (default: card references/engine-pin.json)
+  DEVLOOP_BOOTSTRAP_CMD  Test seam: command that installs into $1
+  HERMES_HOME            Legacy Hermes data root
 
 Resolve order:
   1. DEVLOOP_HOME (if valid)
-  2. $DEVLOOP_DATA_HOME/devloop  (host-local, default ~/.local/share/devloop)
-  3. $HERMES_HOME/skills/software-development/devloop
-  4. ~/.hermes/skills/software-development/devloop
-  5. /opt/data/skills/software-development/devloop
-  6. Bootstrap into host-local (unless --no-bootstrap)
+  2. Host-local ~/.local/share/devloop (marker + entrypoint)
+  3. Hermes / /opt/data seeds (valid entrypoint)
+  4. Bootstrap (pin / URL / CMD / Hermes seed copy) unless --no-bootstrap
 
-Leaf name: this card is "devloop-run". Never overwrites Hermes engine leaf "devloop".
+Never overwrites Hermes skillhub leaf "devloop".
 EOF
 }
 
@@ -42,6 +46,7 @@ probe=0
 setup=0
 no_bootstrap=0
 force_bootstrap=0
+force_hard=0
 while [[ $# -gt 0 ]]; do
   case "$1" in
     -h|--help) usage; exit 0 ;;
@@ -50,6 +55,7 @@ while [[ $# -gt 0 ]]; do
     --setup) setup=1; shift ;;
     --no-bootstrap) no_bootstrap=1; shift ;;
     --force-bootstrap) force_bootstrap=1; shift ;;
+    --force-hard) force_hard=1; shift ;;
     --) shift; break ;;
     *) break ;;
   esac
@@ -65,70 +71,232 @@ host_local_root() {
   printf '%s/devloop\n' "$data"
 }
 
+host_local_ok() {
+  local d="$1"
+  is_engine_root "$d" || return 1
+  # Prefer marker presence for host-local installs; still accept valid entrypoint
+  return 0
+}
+
 write_engine_marker() {
   local root="$1"
   local source="$2"
   local version="${3:-unknown}"
+  local sha="${4:-}"
+  local ts
+  ts="$(date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || echo unknown)"
   mkdir -p "$root"
-  printf '{"schema":1,"mode":"host-local","source":"%s","version":"%s"}\n' \
-    "$source" "$version" >"$root/.skill-craft-engine.json"
+  python3 - "$root/.skill-craft-engine.json" "$source" "$version" "$sha" "$ts" <<'PY'
+import json, sys
+path, source, version, sha, ts = sys.argv[1:6]
+d = {"schema": 1, "mode": "host-local", "source": source, "version": version, "timestamp": ts}
+if sha:
+    d["sha256"] = sha
+json.dump(d, open(path, "w"), indent=2)
+open(path, "a").write("\n")
+PY
 }
 
-# Bootstrap into host-local path. Injectable via DEVLOOP_BOOTSTRAP_CMD for tests.
+read_pin() {
+  # sets pin_version pin_url pin_sha via stdout as version|url|sha
+  local f="$1"
+  if [[ ! -f "$f" ]]; then
+    printf '||\n'
+    return 0
+  fi
+  python3 - "$f" <<'PY'
+import json, sys
+try:
+    d = json.load(open(sys.argv[1], encoding="utf-8"))
+except Exception:
+    print("||")
+    raise SystemExit(0)
+print("%s|%s|%s" % (d.get("version") or "", d.get("url") or "", d.get("sha256") or ""))
+PY
+}
+
+sha256_file() {
+  shasum -a 256 "$1" | awk '{print $1}'
+}
+
+# Safe extract tar.gz into dest dir (dest must exist empty-ish). Rejects escapes.
+safe_extract_tgz() {
+  local tgz="$1"
+  local dest="$2"
+  python3 - "$tgz" "$dest" <<'PY'
+import os, sys, tarfile
+
+tgz, dest = sys.argv[1], sys.argv[2]
+dest = os.path.realpath(dest)
+os.makedirs(dest, exist_ok=True)
+
+def ok_member(name: str) -> bool:
+    if name.startswith("/") or name.startswith("\\"):
+        return False
+    parts = name.replace("\\", "/").split("/")
+    if any(p == ".." for p in parts):
+        return False
+    return True
+
+with tarfile.open(tgz, "r:gz") as tf:
+    for m in tf.getmembers():
+        if not ok_member(m.name):
+            sys.stderr.write("devloop-run: refused unsafe tar member: %s\n" % m.name)
+            sys.exit(2)
+        if m.issym() or m.islnk():
+            # resolve link target relative; reject absolute / ..
+            link = m.linkname or ""
+            if link.startswith("/") or ".." in link.replace("\\", "/").split("/"):
+                sys.stderr.write("devloop-run: refused unsafe tar link: %s -> %s\n" % (m.name, link))
+                sys.exit(2)
+    # extract with filter if available (py3.12+), else manual
+    if hasattr(tarfile, "data_filter"):
+        tf.extractall(dest, filter="data")
+    else:
+        tf.extractall(dest)
+
+# Flatten one top-level package dir if present (ignore AppleDouble ._ files)
+if not os.path.isfile(os.path.join(dest, "scripts", "devloop_cli.py")):
+    for name in os.listdir(dest):
+        if name.startswith("._"):
+            continue
+        top = os.path.join(dest, name)
+        if os.path.isdir(top) and os.path.isfile(os.path.join(top, "scripts", "devloop_cli.py")):
+            for child in os.listdir(top):
+                if child.startswith("._"):
+                    continue
+                os.rename(os.path.join(top, child), os.path.join(dest, child))
+            # best-effort remove emptied top + appledouble junk
+            for child in list(os.listdir(top)):
+                try:
+                    os.remove(os.path.join(top, child))
+                except IsADirectoryError:
+                    pass
+                except OSError:
+                    pass
+            try:
+                os.rmdir(top)
+            except OSError:
+                pass
+            break
+sys.exit(0)
+PY
+}
+# Also COPYFILE_DISABLE when packaging on macOS to avoid ._ junk
+
+
+download_url_to() {
+  local url="$1"
+  local out="$2"
+  if [[ "$url" == file://* ]]; then
+    local path="${url#file://}"
+    # macOS file:///path
+    path="${path#/}"
+    if [[ -f "/$path" ]]; then
+      path="/$path"
+    fi
+    if [[ -f "$path" ]]; then
+      cp "$path" "$out"
+      return 0
+    fi
+    printf 'devloop-run: file URL not found: %s\n' "$url" >&2
+    return 1
+  fi
+  if command -v curl >/dev/null 2>&1; then
+    curl -fsSL --progress-bar "$url" -o "$out"
+  elif command -v wget >/dev/null 2>&1; then
+    wget -q -O "$out" "$url"
+  else
+    printf 'devloop-run: need curl or wget to download engine\n' >&2
+    printf '  Install curl, or set DEVLOOP_ENGINE_URL=file:///path/to.tgz\n' >&2
+    return 1
+  fi
+}
+
 bootstrap_engine() {
   local dest="$1"
-  local stage parent
+  local parent stage lock
   parent="$(dirname "$dest")"
+  mkdir -p "$parent"
+  lock="$parent/devloop.bootstrap.lock"
   stage="$parent/.devloop-stage.$$"
+
+  # Concurrency: atomic mkdir lock (portable; no bash {fd} / flock required)
+  local lockdir="${lock}.d"
+  local i=0
+  while ! mkdir "$lockdir" 2>/dev/null; do
+    i=$((i + 1))
+    if [[ "$i" -gt 200 ]]; then
+      printf 'devloop-run: timeout waiting for bootstrap lock\n' >&2
+      return 1
+    fi
+    sleep 0.05
+  done
+  # shellcheck disable=SC2064
+  trap 'rmdir "'"$lockdir"'" 2>/dev/null || true' RETURN
+
+  if [[ "$force_bootstrap" -eq 1 && -e "$dest" && ! -f "$dest/.skill-craft-engine.json" && "$force_hard" -eq 0 ]]; then
+    printf 'devloop-run: refusing --force-bootstrap on unmarked engine at %s\n' "$dest" >&2
+    printf '  Use --force-hard if you intend to replace it.\n' >&2
+    return 1
+  fi
+
   rm -rf "$stage"
   mkdir -p "$stage"
 
   printf 'devloop-run: bootstrapping engine into %s\n' "$dest" >&2
 
+  local pin_version pin_url pin_sha
+  IFS='|' read -r pin_version pin_url pin_sha <<<"$(read_pin "$pin_file")"
+
+  local url="${DEVLOOP_ENGINE_URL:-$pin_url}"
+  local sha="${DEVLOOP_ENGINE_SHA256:-$pin_sha}"
+  local version="${pin_version:-unknown}"
+
   if [[ -n "${DEVLOOP_BOOTSTRAP_CMD:-}" ]]; then
-    # Injectable installer: argv1 = stage dir (hermetic tests set this to a script path).
-    # shellcheck disable=SC2086
     if ! "$DEVLOOP_BOOTSTRAP_CMD" "$stage"; then
-      printf 'devloop-run: DEVLOOP_BOOTSTRAP_CMD failed
-' >&2
+      printf 'devloop-run: DEVLOOP_BOOTSTRAP_CMD failed\n' >&2
       rm -rf "$stage"
       return 1
     fi
-  elif [[ -n "${DEVLOOP_ENGINE_URL:-}" ]]; then
-    local url="$DEVLOOP_ENGINE_URL"
-    if [[ "$url" == file://* ]]; then
-      local path="${url#file://}"
-      if [[ -d "$path" && -f "$path/scripts/devloop_cli.py" ]]; then
-        if command -v rsync >/dev/null 2>&1; then
-          rsync -a --delete "$path"/ "$stage"/
-        else
-          cp -R "$path"/. "$stage"/
-        fi
-      elif [[ -f "$path" ]]; then
-        tar -xzf "$path" -C "$stage" --strip-components=1 2>/dev/null \
-          || tar -xzf "$path" -C "$stage"
-      else
-        printf 'devloop-run: DEVLOOP_ENGINE_URL path not usable: %s\n' "$path" >&2
+    write_engine_marker "$stage" "DEVLOOP_BOOTSTRAP_CMD" "$version" ""
+  elif [[ -n "$url" && "$url" != REPLACE_WITH_RELEASE_URL/* && "$url" != *REPLACE_WITH* ]]; then
+    local tgz
+    tgz="$(mktemp "${TMPDIR:-/tmp}/devloop-engine.XXXXXX.tgz")"
+    if ! download_url_to "$url" "$tgz"; then
+      rm -f "$tgz"
+      rm -rf "$stage"
+      return 1
+    fi
+    if [[ -z "$sha" && "$url" != file://* ]]; then
+      printf 'devloop-run: refusing download without sha256 (set DEVLOOP_ENGINE_SHA256 or pin file)\n' >&2
+      rm -f "$tgz"
+      rm -rf "$stage"
+      return 1
+    fi
+    if [[ -n "$sha" ]]; then
+      local got
+      got="$(sha256_file "$tgz")"
+      if [[ "$got" != "$sha" ]]; then
+        printf 'devloop-run: sha256 mismatch\n  expected: %s\n  got:      %s\n' "$sha" "$got" >&2
+        printf '  Fix: re-download pin or set DEVLOOP_ENGINE_URL + DEVLOOP_ENGINE_SHA256\n' >&2
+        rm -f "$tgz"
         rm -rf "$stage"
         return 1
       fi
     else
-      local tmp_tgz
-      tmp_tgz="$(mktemp "${TMPDIR:-/tmp}/devloop-engine.XXXXXX.tgz")"
-      if ! curl -fsSL "$url" -o "$tmp_tgz"; then
-        printf 'devloop-run: failed to download DEVLOOP_ENGINE_URL\n' >&2
-        rm -f "$tmp_tgz"
-        rm -rf "$stage"
-        return 1
-      fi
-      tar -xzf "$tmp_tgz" -C "$stage" --strip-components=1 2>/dev/null \
-        || tar -xzf "$tmp_tgz" -C "$stage"
-      rm -f "$tmp_tgz"
+      printf 'devloop-run: warning: file:// bootstrap without sha256 verification\n' >&2
     fi
+    if ! safe_extract_tgz "$tgz" "$stage"; then
+      rm -f "$tgz"
+      rm -rf "$stage"
+      return 1
+    fi
+    rm -f "$tgz"
+    write_engine_marker "$stage" "$url" "$version" "$sha"
   else
-    # Prefer materializing from an already-valid Hermes (or opt) engine — no network.
-    local seed=""
-    local s
+    # Seed copy from existing Hermes/opt engine (no network)
+    local seed="" s
     for s in \
       "${HERMES_HOME:+$HERMES_HOME/skills/software-development/devloop}" \
       "${HOME}/.hermes/skills/software-development/devloop" \
@@ -141,22 +309,29 @@ bootstrap_engine() {
       fi
     done
     if [[ -z "$seed" ]]; then
-      printf 'devloop-run: no bootstrap source.\n' >&2
-      printf '  Set DEVLOOP_ENGINE_URL (file://dir, file://.tgz, or https://…tgz),\n' >&2
-      printf '  or DEVLOOP_BOOTSTRAP_CMD, or install the Hermes engine once and re-run --setup\n' >&2
-      printf '  (will copy into %s).\n' "$dest" >&2
+      printf 'devloop-run: no bootstrap source on this machine.\n' >&2
+      printf '  Options:\n' >&2
+      printf '    1) bash scripts/devloop-run --setup   # after publishing engine pin\n' >&2
+      if [[ -f "$pin_file" ]]; then
+        printf '    2) Ensure network access to pin URL in %s\n' "$pin_file" >&2
+      else
+        printf '    2) Add references/engine-pin.json with url+sha256\n' >&2
+      fi
+      printf '    3) DEVLOOP_ENGINE_URL=file:///path/to/engine.tgz DEVLOOP_ENGINE_SHA256=...\n' >&2
+      printf '    4) Install Hermes engine once (seed), then re-run --setup\n' >&2
       rm -rf "$stage"
       return 1
     fi
     printf 'devloop-run: seeding host-local engine from %s\n' "$seed" >&2
     if command -v rsync >/dev/null 2>&1; then
       rsync -a --delete --exclude '.venv' --exclude '__pycache__' --exclude '.devloop' \
+        --exclude '.git' --exclude '.mypy_cache' --exclude '.pytest_cache' \
         "$seed"/ "$stage"/
     else
       cp -R "$seed"/. "$stage"/
-      rm -rf "$stage/.venv" "$stage/__pycache__" "$stage/.devloop" 2>/dev/null || true
+      rm -rf "$stage/.venv" "$stage/__pycache__" "$stage/.devloop" "$stage/.git" 2>/dev/null || true
     fi
-    write_engine_marker "$stage" "$seed" "seeded"
+    write_engine_marker "$stage" "$seed" "seeded" ""
   fi
 
   if ! is_engine_root "$stage"; then
@@ -164,19 +339,17 @@ bootstrap_engine() {
     rm -rf "$stage"
     return 1
   fi
-  if [[ ! -f "$stage/.skill-craft-engine.json" ]]; then
-    write_engine_marker "$stage" "${DEVLOOP_ENGINE_URL:-bootstrap}" "unknown"
-  fi
 
-  mkdir -p "$parent"
+  # Marker must be last (rewrite after validation)
+  local src_label="${url:-${DEVLOOP_BOOTSTRAP_CMD:-seed}}"
+  write_engine_marker "$stage" "$src_label" "$version" "$sha"
+
   rm -rf "$dest"
   mv "$stage" "$dest"
   printf 'devloop-run: engine ready at %s\n' "$dest" >&2
   return 0
 }
 
-# Print probe lines to stderr; selected path on stdout when found.
-# Sets global _resolve_via for messages.
 resolve_engine() {
   local cand
   local -a cands=()
@@ -190,15 +363,14 @@ resolve_engine() {
       printf '%s\n' "$(cd "$cand" && pwd -P)"
       return 0
     fi
-    printf 'probe: DEVLOOP_HOME=%s -> invalid (missing scripts/devloop_cli.py)\n' "$cand" >&2
+    printf 'probe: DEVLOOP_HOME=%s -> invalid\n' "$cand" >&2
     if [[ "$strict" -eq 1 ]]; then
-      printf 'devloop-run: DEVLOOP_HOME set but invalid engine root (strict): %s\n' "$cand" >&2
+      printf 'devloop-run: DEVLOOP_HOME invalid (strict). Fix path or unset DEVLOOP_HOME.\n' >&2
       return 1
     fi
-    printf 'probe: falling back to search paths (use --strict to disable)\n' >&2
+    printf 'probe: falling back (use --strict to disable)\n' >&2
   fi
 
-  # Host-local first (marketplace / multi-host default after bootstrap)
   cands+=("$local_root")
   if [[ -n "${HERMES_HOME:-}" ]]; then
     cands+=("${HERMES_HOME}/skills/software-development/devloop")
@@ -241,7 +413,7 @@ ensure_engine() {
     return 1
   fi
 
-  # Auto-bootstrap only for --setup or real invoke (not pure --probe unless setup)
+  # --probe alone does not bootstrap (explicit --setup or real invoke)
   if [[ "$setup" -eq 1 ]] || [[ "$probe" -eq 0 ]]; then
     bootstrap_engine "$local_root" || return 1
     printf '%s\n' "$(cd "$local_root" && pwd -P)"
@@ -253,25 +425,19 @@ ensure_engine() {
 engine_root=""
 if ! engine_root="$(ensure_engine)"; then
   printf 'devloop-run: engine not resolved.\n' >&2
-  printf '  Run:  bash scripts/devloop-run --setup\n' >&2
-  printf '  Or set DEVLOOP_HOME / install Hermes engine / set DEVLOOP_ENGINE_URL.\n' >&2
+  printf '  Next: bash scripts/devloop-run --setup\n' >&2
+  printf '  Or set DEVLOOP_HOME / DEVLOOP_ENGINE_URL+SHA256 / install Hermes seed.\n' >&2
   printf '  Host-local default: %s\n' "$(host_local_root)" >&2
   exit 2
 fi
 
-if [[ "$setup" -eq 1 ]]; then
+if [[ "$setup" -eq 1 || "$probe" -eq 1 ]]; then
   printf 'devloop-run: engine=%s\n' "$engine_root"
   exit 0
 fi
 
-if [[ "$probe" -eq 1 ]]; then
-  printf 'devloop-run: engine=%s\n' "$engine_root"
-  exit 0
-fi
-
-# Soft dep check (do not auto-install models)
 if ! command -v python3 >/dev/null 2>&1; then
-  printf 'devloop-run: python3 not found on PATH\n' >&2
+  printf 'devloop-run: python3 not found on PATH (install Python 3.10+)\n' >&2
   exit 2
 fi
 

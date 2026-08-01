@@ -9,3 +9,4 @@ results/
 
 # local agent/tool scratch (never ship)
 tasks/
+dist/
