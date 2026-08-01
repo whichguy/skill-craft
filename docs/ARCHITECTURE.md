@@ -151,7 +151,7 @@ claude-craft product suites (wiki, gas, async, …) stay host-native. Portable l
 | P2 | Derive `plugin.json` from `SKILL.md` | **done** |
 | P3 | `--status` / `--uninstall` | **done** |
 | P4 | `skills/devloop-run` probe card | **done** |
-| Optional | Market pin retarget after monorepo tag | operational (see skill-craft-market) |
+| Market pins | skill-craft-market → `ref: v0.3.0` (all plugin leaves including `devloop-run`) | **done** |
 
 ### Package-internal symlinks (**implemented**)
 
