@@ -29,28 +29,81 @@ chmod +x "$cli" 2>/dev/null || true
 "$cli" --help >/dev/null || fail "--help"
 pass "cli --help"
 
-# Without setup/deps, control should fail closed with exit 2 (or help path)
+# Config helpers work without thermostat (isolated path — never touch real home config)
+tmpdir="$(mktemp -d)"
+trap 'rm -rf "$tmpdir"' EXIT
+export LENNOX_CONFIG="$tmpdir/config.json"
+unset LENNOX_IP LENNOX_APP_ID || true
+
+cfg_path="$("$cli" config path)"
+[[ "$cfg_path" == "$LENNOX_CONFIG" ]] || fail "config path want $LENNOX_CONFIG got $cfg_path"
+pass "config path ($cfg_path)"
+
+# config show with empty / missing file is non-fatal
+show_out="$("$cli" config show 2>&1)" || fail "config show empty: $show_out"
+pass "config show (empty)"
+
+# Seed a fake running config and verify show/clear hermetically
+printf '%s\n' '{"version":1,"ip":"203.0.113.50","host":"Lennox-S40-TEST.local"}' >"$LENNOX_CONFIG"
+chmod 600 "$LENNOX_CONFIG"
+show_out="$("$cli" config show 2>&1)" || fail "config show seeded: $show_out"
+printf '%s\n' "$show_out" | grep -q '203.0.113.50' || fail "config show missing ip: $show_out"
+pass "config show (seeded)"
+
+"$cli" config clear >/dev/null 2>&1 || fail "config clear"
+[[ ! -e "$LENNOX_CONFIG" ]] || fail "config clear left file"
+pass "config clear"
+
+# SKILL.md documents running config (contract honesty)
+grep -q 'config show' "$skill/SKILL.md" || fail "SKILL.md missing config CLI"
+grep -q 'rediscover\|config' "$skill/SKILL.md" || fail "SKILL.md missing resolve/config narrative"
+pass "SKILL.md config contract"
+
+# No address + --no-rediscover must not mDNS/LAN-scan (hermetic; live unit may exist)
 set +e
-out="$("$cli" status 2>&1)"
+out="$(
+  env -u LENNOX_IP -u LENNOX_APP_ID \
+    LENNOX_CONFIG="$tmpdir/nope.json" \
+    LENNOX_NO_LAN_SCAN=1 \
+    "$cli" --no-rediscover status 2>&1
+)"
 rc=$?
 set -e
-# Either missing deps (2) or missing LENNOX_IP after deps (1/SystemExit) — both fail-closed
 if [[ "$rc" -eq 0 ]]; then
-  fail "status without LENNOX_IP must not succeed"
+  fail "status without address + --no-rediscover must not succeed (out=$out)"
 fi
-pass "status fails closed without config (rc=$rc)"
+printf '%s\n' "$out" | grep -qi 'No thermostat address' || fail "expected no-address message: $out"
+pass "status fails closed without address (rc=$rc)"
+
+# Unreachable explicit IP + no rediscover must fail closed (hermetic; no live unit)
+set +e
+out="$(
+  env -u LENNOX_IP -u LENNOX_APP_ID \
+    LENNOX_CONFIG="$tmpdir/nope.json" \
+    LENNOX_NO_LAN_SCAN=1 \
+    "$cli" --ip 203.0.113.1 --no-rediscover --no-lan-scan status 2>&1
+)"
+rc=$?
+set -e
+if [[ "$rc" -eq 0 ]]; then
+  fail "status with dead --ip --no-rediscover must not succeed (out=$out)"
+fi
+pass "status fails closed on dead IP without rediscover (rc=$rc)"
 
 # Python module syntax without writing __pycache__ into skills/
 python3 -c 'import ast,sys; ast.parse(open(sys.argv[1],encoding="utf-8").read())' "$py" || fail "python parse"
 rm -rf "$(dirname "$py")/__pycache__"
 pass "python syntax"
 
-# Plugin view presence after sync (advisory if not synced yet)
+# Plugin view must track SoT (packaging contract)
+plugin_py="$root/plugins/lennox-s40/skills/lennox-s40/scripts/lennox_s40.py"
 if [[ -f "$root/plugins/lennox-s40/.claude-plugin/plugin.json" ]]; then
   grep -q '"name": "lennox-s40"' "$root/plugins/lennox-s40/.claude-plugin/plugin.json" || fail "plugin.json name"
-  pass "plugin view present"
+  [[ -f "$plugin_py" ]] || fail "plugin missing lennox_s40.py"
+  cmp -s "$py" "$plugin_py" || fail "plugin lennox_s40.py drifted from skills SoT (run sync-plugin-views.sh)"
+  pass "plugin view present + SoT match"
 else
-  printf '  skip plugin view (run scripts/sync-plugin-views.sh)\n'
+  fail "plugin view missing (run scripts/sync-plugin-views.sh)"
 fi
 
 printf 'lennox-s40.test.sh: PASS\n'

@@ -58,6 +58,8 @@ DEFAULT_APP_ID = "mapp079372367644467046827200"
 DEFAULT_TIMEOUT = int(os.environ.get("LENNOX_TIMEOUT", "90"))
 POLL_MAX = int(os.environ.get("LENNOX_POLL_MAX", "80"))
 PROBE_TIMEOUT = float(os.environ.get("LENNOX_PROBE_TIMEOUT", "4"))
+# Set LENNOX_NO_LAN_SCAN=1 to skip /24 Connect sweep (tests / slow networks)
+ENV_NO_LAN_SCAN = os.environ.get("LENNOX_NO_LAN_SCAN", "").strip() in {"1", "true", "yes"}
 
 CONFIG_VERSION = 1
 
@@ -134,17 +136,31 @@ def probe_connect(ip: str, app_id: str, timeout: float = PROBE_TIMEOUT) -> bool:
         return False
 
 
-def _mdns_s40_hosts() -> list[str]:
+def _mdns_s40_hosts(seconds: float = 5.0) -> list[str]:
+    """Browse mDNS; dns-sd streams forever so we sample then kill."""
     hosts: list[str] = []
     try:
-        p = subprocess.run(
+        proc = subprocess.Popen(
             ["dns-sd", "-Z", "_http._tcp", "local."],
-            capture_output=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
             text=True,
-            timeout=6,
         )
-        out = (p.stdout or "") + (p.stderr or "")
-    except (FileNotFoundError, subprocess.TimeoutExpired, OSError):
+    except (FileNotFoundError, OSError):
+        return hosts
+    try:
+        # sample for a few seconds
+        try:
+            out, _ = proc.communicate(timeout=seconds)
+        except subprocess.TimeoutExpired:
+            proc.kill()
+            out, _ = proc.communicate()
+        out = out or ""
+    except Exception:
+        try:
+            proc.kill()
+        except Exception:
+            pass
         return hosts
     for m in re.finditer(r"Lennox-S40-[A-Za-z0-9]+\.local", out, re.I):
         h = m.group(0)
@@ -153,10 +169,56 @@ def _mdns_s40_hosts() -> list[str]:
     return hosts
 
 
+def _local_ipv4_prefixes() -> list[str]:
+    """Best-effort primary interface /24 prefixes for LAN scan fallback."""
+    prefixes: list[str] = []
+    try:
+        # UDP trick: no packets sent
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        ip = s.getsockname()[0]
+        s.close()
+        if _is_ip(ip) and not ip.startswith("127."):
+            parts = ip.split(".")
+            prefixes.append(".".join(parts[:3]) + ".")
+    except OSError:
+        pass
+    return prefixes
+
+
+def _scan_lan_lennox(app_id: str, prefixes: Optional[list[str]] = None) -> list[tuple[str, str]]:
+    """Parallel Connect probe of local /24s — last-resort discovery."""
+    import concurrent.futures
+
+    prefixes = prefixes or _local_ipv4_prefixes()
+    if not prefixes:
+        return []
+    targets: list[str] = []
+    for pref in prefixes:
+        for i in range(1, 255):
+            targets.append(f"{pref}{i}")
+
+    found: list[tuple[str, str]] = []
+
+    def check(ip: str) -> Optional[str]:
+        return ip if probe_connect(ip, app_id, timeout=1.5) else None
+
+    # bounded workers so we don't thrash
+    with concurrent.futures.ThreadPoolExecutor(max_workers=64) as ex:
+        futs = {ex.submit(check, ip): ip for ip in targets}
+        for fut in concurrent.futures.as_completed(futs):
+            ip = fut.result()
+            if ip:
+                found.append((f"lan-scan:{ip}", ip))
+    return found
+
+
 def discover_candidates(
     *,
     prefer: Optional[str] = None,
     cfg: Optional[dict[str, Any]] = None,
+    app_id: str = DEFAULT_APP_ID,
+    allow_lan_scan: bool = True,
 ) -> list[tuple[str, str]]:
     """Return ordered list of (label, resolved_ip) candidates."""
     cfg = cfg or {}
@@ -169,6 +231,11 @@ def discover_candidates(
         v = (cfg.get(key) or "").strip()
         if v and v not in labels:
             labels.append(v)
+    serial = (cfg.get("serial") or "").strip()
+    if serial:
+        mdns = f"Lennox-S40-{serial}.local"
+        if mdns not in labels:
+            labels.append(mdns)
     for h in _mdns_s40_hosts():
         if h not in labels:
             labels.append(h)
@@ -184,6 +251,13 @@ def discover_candidates(
             continue
         seen_ip.add(ip)
         out.append((lab, ip))
+
+    # If nothing resolved (or only dead IPs will fail later), add LAN scan results
+    if allow_lan_scan and not out:
+        for lab, ip in _scan_lan_lennox(app_id):
+            if ip not in seen_ip:
+                seen_ip.add(ip)
+                out.append((lab, ip))
     return out
 
 
@@ -193,19 +267,36 @@ def discover_live(
     prefer: Optional[str] = None,
     cfg: Optional[dict[str, Any]] = None,
     quiet: bool = False,
+    allow_lan_scan: bool = True,
 ) -> Optional[dict[str, str]]:
     """Probe candidates; return {ip, host_label} for first Connect success."""
-    candidates = discover_candidates(prefer=prefer, cfg=cfg)
-    if not candidates:
-        if not quiet:
-            print("No discovery candidates (LAN mDNS empty; set LENNOX_IP or --ip).", file=sys.stderr)
-        return None
+    if ENV_NO_LAN_SCAN:
+        allow_lan_scan = False
+    candidates = discover_candidates(
+        prefer=prefer, cfg=cfg, app_id=app_id, allow_lan_scan=False
+    )
+    # Always try named candidates first; if all fail, optional /24 scan
     for label, ip in candidates:
         ok = probe_connect(ip, app_id)
         if not quiet:
             print(f"  probe {label} -> {ip}: {'OK' if ok else 'fail'}", file=sys.stderr)
         if ok:
-            return {"ip": ip, "host": label if not _is_ip(label) else ""}
+            return {"ip": ip, "host": label if not _is_ip(label) and not label.startswith("lan-scan:") else ""}
+
+    if allow_lan_scan:
+        if not quiet:
+            print("  named candidates failed; scanning local /24 for S40 API…", file=sys.stderr)
+        for label, ip in _scan_lan_lennox(app_id):
+            # scan already probed Connect; trust result
+            if not quiet:
+                print(f"  probe {label} -> {ip}: OK", file=sys.stderr)
+            return {"ip": ip, "host": ""}
+
+    if not quiet and not candidates:
+        print(
+            "No discovery candidates (mDNS empty, no config host; LAN scan found none).",
+            file=sys.stderr,
+        )
     return None
 
 
@@ -255,6 +346,7 @@ def resolve_target(args) -> tuple[str, str, dict[str, Any]]:
     explicit_ip = (getattr(args, "ip", None) or "").strip() or None
     # argparse may set ip from None; treat empty as unset
     rediscover = not getattr(args, "no_rediscover", False)
+    allow_lan = not getattr(args, "no_lan_scan", False) and not ENV_NO_LAN_SCAN
 
     primary_label: Optional[str] = None
     if explicit_ip:
@@ -288,9 +380,21 @@ def resolve_target(args) -> tuple[str, str, dict[str, Any]]:
                 f"lennox-s40: Connect failed for {ip}; rediscovering…",
                 file=sys.stderr,
             )
+    elif not rediscover:
+        # No address known and auto-discover disabled — fail closed (hermetic / offline).
+        raise SystemExit(
+            "No thermostat address. Set --ip, LENNOX_IP, run: lennox-s40 discover\n"
+            f"(or omit --no-rediscover to scan LAN)\nConfig path: {config_path()}"
+        )
 
-    # Full discover (also used when no primary)
-    found = discover_live(app_id, prefer=primary_label, cfg=cfg, quiet=False)
+    # Full discover (no primary with rediscover allowed, or primary failed + rediscover)
+    found = discover_live(
+        app_id,
+        prefer=primary_label,
+        cfg=cfg,
+        quiet=False,
+        allow_lan_scan=allow_lan,
+    )
     if not found:
         raise SystemExit(
             "No reachable S40. Ensure same LAN, then: lennox-s40 discover\n"
@@ -511,14 +615,26 @@ def cmd_discover(args) -> int:
     prefer = (getattr(args, "ip", None) or "").strip() or None
     found_any = False
     first: Optional[dict[str, str]] = None
-    for label, ip in discover_candidates(prefer=prefer, cfg=cfg):
+    # Prefer named + mDNS; print all; fall back to LAN scan if none good
+    candidates = discover_candidates(
+        prefer=prefer, cfg=cfg, app_id=app_id, allow_lan_scan=False
+    )
+    for label, ip in candidates:
         ok = probe_connect(ip, app_id)
         mark = "GOOD" if ok else "fail"
         print(f"  {label} -> {ip}: Connect {mark}")
         if ok:
             found_any = True
             if first is None:
-                first = {"ip": ip, "host": label if not _is_ip(label) else ""}
+                host = label if (not _is_ip(label) and not label.startswith("lan-scan:")) else ""
+                first = {"ip": ip, "host": host}
+    if not first and not getattr(args, "no_lan_scan", False) and not ENV_NO_LAN_SCAN:
+        print("  scanning local /24 for S40 Connect…")
+        for label, ip in _scan_lan_lennox(app_id):
+            print(f"  {label} -> {ip}: Connect GOOD")
+            found_any = True
+            first = {"ip": ip, "host": ""}
+            break
     if first:
         cfg = remember_success(
             cfg,
@@ -568,6 +684,11 @@ def build_parser() -> argparse.ArgumentParser:
         "--no-rediscover",
         action="store_true",
         help="do not auto-discover if last-known IP fails",
+    )
+    p.add_argument(
+        "--no-lan-scan",
+        action="store_true",
+        help="skip local /24 Connect sweep during discovery",
     )
     sub = p.add_subparsers(dest="cmd", required=True)
 

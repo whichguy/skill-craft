@@ -45,37 +45,34 @@ No cloud password. No baked-in home IP — set `LENNOX_IP` after `discover`.
 ## Procedure
 
 1. **One-time deps:** `bash scripts/lennox-s40 --setup`
-2. **Find unit:** `bash scripts/lennox-s40 discover` → `export LENNOX_IP=…`
-3. **Read:** `bash scripts/lennox-s40 status`
-4. **Write** (optional): mode / cool / heat / fan / away with `--zone` as needed
-5. Prefer re-read `status` after writes if the user wants confirmation
+2. **Find unit once:** `bash scripts/lennox-s40 discover` (writes running config)
+3. **Read/write** without re-passing IP — config + auto-rediscover if IP dies
+4. Prefer re-read `status` after writes if the user wants confirmation
 
 ## CLI contract
 
 ```sh
-# Package-relative (preferred)
 bash scripts/lennox-s40 --setup
-bash scripts/lennox-s40 discover
-bash scripts/lennox-s40 --ip "$LENNOX_IP" status
+bash scripts/lennox-s40 discover          # saves ~/.config/lennox-s40/config.json
+bash scripts/lennox-s40 status            # uses config; rediscovers if IP stale
 bash scripts/lennox-s40 mode cool --zone Downstairs
 bash scripts/lennox-s40 cool 76 --zone Downstairs
-bash scripts/lennox-s40 heat 68 --zone Upstairs
-bash scripts/lennox-s40 fan auto --zone 0
-bash scripts/lennox-s40 away off
+bash scripts/lennox-s40 config show
 ```
 
 | Command | Effect |
 |---------|--------|
-| `discover` | mDNS + Connect probe; prints `export LENNOX_IP=…` on success |
-| `status` | JSON: system + zones (temp, humidity, setpoints, mode, fan) |
-| `mode <off\|cool\|heat\|auto>` | HVAC mode (`auto` → Lennox `heat and cool`) |
-| `cool <F>` / `heat <F>` | Setpoint publish |
-| `fan <auto\|on\|circulate>` | Fan mode |
-| `away <on\|off>` | Manual away |
+| `discover` | mDNS + Connect probe; **persist** first good IP to config |
+| `status` | JSON system + zones; updates config on success |
+| `mode` / `cool` / `heat` / `fan` / `away` | control (same resolve path) |
+| `config show\|path\|clear` | inspect or wipe running config |
 
-Exit codes: `0` ok · `1` soft failure (discover miss) · `2` missing deps / config.
+**Resolve order:** `--ip` → `LENNOX_IP` → config → discover.  
+**Stale IP:** Connect fail → rediscover → save → retry (disable with `--no-rediscover`).
 
-Env: `LENNOX_IP`, `LENNOX_APP_ID`, `LENNOX_VENV`, `LENNOX_PYTHON`, `LENNOX_TIMEOUT`.
+Exit codes: `0` ok · `1` soft failure (discover miss) · `2` missing deps.
+
+Env: `LENNOX_IP`, `LENNOX_APP_ID`, `LENNOX_CONFIG`, `LENNOX_VENV`, `LENNOX_PYTHON`, `LENNOX_TIMEOUT`.
 
 ## Protocol (local)
 

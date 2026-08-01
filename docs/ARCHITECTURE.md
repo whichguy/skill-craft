@@ -152,16 +152,17 @@ claude-craft product suites (wiki, gas, async, …) stay host-native. Portable l
 | P2 | Derive `plugin.json` from `SKILL.md` | **done** |
 | P3 | `--status` / `--uninstall` | **done** |
 | P4 | `skills/devloop-run` probe card | **done** |
-| Market pins | skill-craft-market → `ref: v0.3.0` (all plugin leaves including `devloop-run`) | **done** |
+| Market pins | skill-craft-market → tagged `ref: v0.3.0` for released leaves; new leaves may pin `main` until tagged | **done** |
 
 ### Package-internal symlinks (**implemented**)
 
 Hermes materialization **allows** symlinks whose targets resolve under the package root;
 they are **dereferenced** on copy (`rsync -aL` / `cp -R -L`). Escaping symlinks still fail closed.
 
-**skill-craft-market** Claude catalog pins skill-craft `plugins/<leaf>` at **`ref: v0.3.0`**
-(including `devloop-run` and other current leaves). After new packaging releases, retarget
-the catalog ref/tag so marketplace consumers pick up derived `plugin.json` versions.
+**skill-craft-market** Claude catalog pins skill-craft `plugins/<leaf>` at a git **`ref`**
+(currently **`v0.3.0`** for the tagged catalog, or **`main`** for leaves not yet on that
+tag — e.g. `lennox-s40`). After a packaging release, retarget catalog refs/tags so
+marketplace consumers pick up derived `plugin.json` versions.
 
 ## Related files
 

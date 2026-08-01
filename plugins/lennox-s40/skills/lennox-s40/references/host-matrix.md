@@ -11,8 +11,9 @@
 
 | Surface | Env / default |
 |---------|----------------|
-| Thermostat address | `LENNOX_IP` or `--ip` (mDNS `Lennox-S40-*.local` via `discover`) |
-| Client queue id | `LENNOX_APP_ID` (unique per concurrent client) |
+| Thermostat address | `--ip` → `LENNOX_IP` → **running config** → mDNS discover |
+| Running config | `LENNOX_CONFIG` or `~/.config/lennox-s40/config.json` |
+| Client queue id | config `app_id` or `LENNOX_APP_ID` (unique per concurrent client) |
 | Python + deps | `LENNOX_VENV` or `~/.local/share/lennox-s40/venv` via `scripts/lennox-s40 --setup` |
 | Package root | skill leaf containing `SKILL.md` |
 
