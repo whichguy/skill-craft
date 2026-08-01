@@ -3,8 +3,8 @@
 **Target paths:** `skills/review-coverage`, `plugins/review-coverage`, `test/review-coverage.test.sh`
 **Test command:** `bash test/review-coverage.test.sh && bash test/run-all.sh`
 **Started:** 2026-08-01          **Status:** active
-**Round counter:** 1
-**Consecutive clean rounds:** 0
+**Round counter:** 2
+**Consecutive clean rounds:** 1
 **Known test-artifact paths:**
 **Plan contract:** `/Users/dadleet/.grok/sessions/%2FUsers%2Fdadleet%2Fsrc%2Fc-thru/019fbdde-bd72-7e43-a662-9a354c377fdc/plan.md`
 **Plan hash:** `0a8135eef3248d30ba8b9b1feadc3aad7d32b77498e2dceddfb8d61397521b9f`
@@ -41,4 +41,26 @@
 - A5 → product does not require REQUIRE=1 (host-matrix documents optional only)
 **Consecutive clean rounds after this entry:** 0
 **Committed:** yes
-**Notes:** Target paths narrowed vs plan (omitted README.md + test/run-all.sh this campaign — concurrent foreign dirt from lennox-s40 WIP). Pathspec commits only under review-coverage package + its hermetic test.
+**Notes:** Target paths narrowed vs plan (omitted README.md + test/run-all.sh this campaign — concurrent foreign dirt from lennox-s40 WIP). Pathspec commits only under review-coverage package + its hermetic test. Product fix for M1 actually landed in concurrent commit 6b2e4f0 (same waiver harden + tests); this round's commit is ledger confirmation after suite PASS.
+
+### Round 2 — 2026-08-01
+**Review:** 0 material, 1 minor (carried)
+**Material findings:**
+- none
+**Deferred (minor/P2):**
+- [ ] P2: A5 verify-by `rg REQUIRE_RESIDUAL_LOOP` still hits host-matrix optional docs — tighten verify-by wording or exclude docs — docs
+**Git-history check:** Round 1 fixed waiver false-ok; re-checked templates fail validate, real waiver ok, filled plan goal-body ok, session plan validate+goal-body ok; no legacy H2 product, no abs plan-oversight SoT
+**Plan:** n/a (clean)
+**Plan review:** n/a
+**Implementation:** n/a
+**Lint:** n/a
+**Test result:** N/A (clean round)
+**Outcome:** clean
+**Error signature:** none
+**Learnings:** After M1 fix, package meets residual material bar for plan A1–A5 intent; only P2 docs pedantry remains parked.
+**Anchor evidence:**
+- A1–A4 → still hold (package shape, H2, no must-hook, install present)
+- A5 → no REQUIRE=1 product dependency
+**Consecutive clean rounds after this entry:** 1
+**Committed:** yes
+**Notes:** first of two consecutive cleans; suite deferred to second clean.
