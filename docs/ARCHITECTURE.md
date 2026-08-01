@@ -39,7 +39,7 @@ Do **not** renumber legacy Layer 0–2. Skill-interop reviews and checklists alr
 | Skill card (`SKILL.md` router) | review step (not a Layer 1 rename) | **implemented** |
 | Runtime binding | append (**SC-L3**) | **implemented** for Hermes materialize + probe resolve (`devloop-run`); full multi-transport matrix remains optional |
 | Host adapters + distribution | append (**SC-L4 / SC-L5**) | **implemented** (skill-dir install, Claude plugin views, market pins) |
-| Provenance (managed installs) | append | **implemented** — Hermes marker + `--status` / `--uninstall` ownership; full JSON receipts optional later |
+| Provenance (managed installs) | append | **implemented** — schema-2 marker + append-only `receipts.jsonl` + `--status` / `--uninstall` |
 | Operator / CI | control plane (not a runtime layer) | **implemented** — hermetic suite + GitHub Actions |
 
 Optional numbered aliases: `SC-L0`… only when disambiguating from unrelated monorepo “L1/L2” tiers (e.g. question-bench).
@@ -151,7 +151,12 @@ claude-craft product suites (wiki, gas, async, …) stay host-native. Portable l
 | P2 | Derive `plugin.json` from `SKILL.md` | **done** |
 | P3 | `--status` / `--uninstall` | **done** |
 | P4 | `skills/devloop-run` probe card | **done** |
-| Optional | Package-internal symlink support; market pin retarget; full receipt files | open |
+| Optional | Market pin retarget after monorepo tag | operational (see skill-craft-market) |
+
+### Package-internal symlinks (**implemented**)
+
+Hermes materialization **allows** symlinks whose targets resolve under the package root;
+they are **dereferenced** on copy (`rsync -aL` / `cp -R -L`). Escaping symlinks still fail closed.
 
 **skill-craft-market** pins still reference older release tags (e.g. `v0.2.2`); retarget after tagging if marketplace consumers need updated plugin.json versions.
 

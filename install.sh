@@ -260,6 +260,7 @@ install_one() {
       rm -f "$destination"
       mkdir -p "$skills_dir"
       ln -s "$source_dir" "$destination"
+      append_receipt "$skills_dir" "relink" "$leaf" "symlink" "$source_dir" "relinked"
       printf 'Relinked (%s): %s -> %s\n' "$label" "$destination" "$source_dir"
       return 0
     fi
@@ -275,6 +276,7 @@ install_one() {
 
   mkdir -p "$skills_dir"
   ln -s "$source_dir" "$destination"
+  append_receipt "$skills_dir" "install" "$leaf" "symlink" "$source_dir" "created"
   printf 'Installed (%s): %s -> %s\n' "$label" "$destination" "$source_dir"
 }
 
@@ -285,24 +287,121 @@ hermes_marker_path() {
   printf '%s/.skill-craft/%s.json\n' "$skills_dir" "$leaf"
 }
 
+# skill_version from SKILL.md frontmatter (best-effort; empty if missing).
+read_skill_version() {
+  local source_dir="$1"
+  local skill_md="$source_dir/SKILL.md"
+  if [[ ! -f "$skill_md" ]]; then
+    printf ''
+    return 0
+  fi
+  # First version: line in frontmatter only (before second ---)
+  awk '
+    BEGIN { in_fm=0 }
+    /^---[[:space:]]*$/ {
+      if (in_fm==0) { in_fm=1; next }
+      if (in_fm==1) exit
+    }
+    in_fm && /^version:[[:space:]]*/ {
+      sub(/^version:[[:space:]]*/, "")
+      gsub(/[[:space:]]+$/, "")
+      print
+      exit
+    }
+  ' "$skill_md"
+}
+
 write_hermes_marker() {
   local marker="$1"
   local leaf="$2"
   local source_dir="$3"
+  local skill_version
+  skill_version="$(read_skill_version "$source_dir")"
   mkdir -p "$(dirname "$marker")"
-  # Stable key order; no timestamps (byte-identical on unchanged reinstall).
-  printf '{"schema":1,"leaf":"%s","mode":"copy","source":"%s"}\n' "$leaf" "$source_dir" >"$marker"
+  # Schema 2 identity marker — no timestamps (byte-stable for same source).
+  # skill_version may be empty string.
+  printf '{"schema":2,"leaf":"%s","mode":"copy","source":"%s","skill_version":"%s"}\n' \
+    "$leaf" "$source_dir" "$skill_version" >"$marker"
 }
 
-# Refuse packages with any symlink (self-containment for bind-mounted Hermes).
-assert_no_source_symlinks() {
+# Append-only audit log (timestamps ok here; not used for ownership identity).
+append_receipt() {
+  local skills_dir="$1"
+  local action="$2"   # install|update|migrate|relink|uninstall|status-n/a
+  local leaf="$3"
+  local mode="$4"     # copy|symlink
+  local source_dir="$5"
+  local outcome="$6"  # created|updated|migrated|relinked|removed|skipped-foreign|...
+  local craft_dir="$skills_dir/.skill-craft"
+  local receipt_file="$craft_dir/receipts.jsonl"
+  local ts
+  ts="$(date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || printf 'unknown')"
+  if [[ "$dry_run" -eq 1 ]]; then
+    return 0
+  fi
+  mkdir -p "$craft_dir"
+  # Escape minimal JSON specials in paths
+  local esc_source esc_leaf
+  esc_source="${source_dir//\\/\\\\}"
+  esc_source="${esc_source//\"/\\\"}"
+  esc_leaf="${leaf//\\/\\\\}"
+  esc_leaf="${esc_leaf//\"/\\\"}"
+  printf '{"schema":1,"ts":"%s","action":"%s","leaf":"%s","mode":"%s","source":"%s","outcome":"%s"}\n' \
+    "$ts" "$action" "$esc_leaf" "$mode" "$esc_source" "$outcome" >>"$receipt_file"
+}
+
+# Validate package symlinks resolve under package root; refuse escaping links.
+# Prints offending path on failure to stderr.
+validate_package_symlinks() {
   local source_dir="$1"
   local label="$2"
-  local hit
-  hit="$(find "$source_dir" -type l 2>/dev/null | head -n 1 || true)"
-  if [[ -n "$hit" ]]; then
-    printf 'Hermes copy refused (%s): source contains symlink: %s\n' "$label" "$hit" >&2
-    printf 'Packages installed as materializations must be self-contained (no symlinks).\n' >&2
+  python3 - "$source_dir" "$label" <<'PY'
+import os, sys
+root = os.path.realpath(sys.argv[1])
+label = sys.argv[2]
+bad = []
+for dirpath, dirnames, filenames in os.walk(root, followlinks=False):
+    for name in dirnames + filenames:
+        path = os.path.join(dirpath, name)
+        if not os.path.islink(path):
+            continue
+        target = os.path.realpath(path)
+        if target != root and not target.startswith(root + os.sep):
+            bad.append("%s -> %s" % (path, target))
+if bad:
+    sys.stderr.write(
+        "Hermes copy refused (%s): symlink escapes package root:\n  %s\n"
+        % (label, bad[0])
+    )
+    sys.stderr.write(
+        "Only package-internal symlinks are allowed; they are dereferenced on copy.\n"
+    )
+    sys.exit(1)
+sys.exit(0)
+PY
+}
+
+# Copy package into stage, dereferencing internal symlinks (-L).
+copy_package_to_stage() {
+  local source_dir="$1"
+  local stage="$2"
+  local label="$3"
+  validate_package_symlinks "$source_dir" "$label"
+  # -L: follow symlinks (macOS + GNU). Prefer rsync -L when available.
+  if command -v rsync >/dev/null 2>&1; then
+    mkdir -p "$stage"
+    rsync -aL --delete "$source_dir"/ "$stage"/
+  else
+    rm -rf "$stage"
+    # shellcheck disable=SC2086
+    cp -R -L "$source_dir" "$stage"
+  fi
+  rm -rf "$stage/.skill-craft" 2>/dev/null || true
+  # After dereference, stage must contain no symlinks.
+  local leftover
+  leftover="$(find "$stage" -type l 2>/dev/null | head -n 1 || true)"
+  if [[ -n "$leftover" ]]; then
+    printf 'Hermes copy refused (%s): residual symlink after dereference: %s\n' "$label" "$leftover" >&2
     exit 1
   fi
 }
@@ -319,8 +418,15 @@ materialize_hermes_copy() {
   local craft_dir="$skills_dir/.skill-craft"
   local stage="$craft_dir/.tmp-${leaf}.$$"
   local old="$craft_dir/.old-${leaf}.$$"
+  local receipt_action="install"
+  local receipt_outcome="created"
 
-  assert_no_source_symlinks "$source_dir" "$label"
+  case "$verb" in
+    Updated) receipt_action="update"; receipt_outcome="updated" ;;
+    Migrated) receipt_action="migrate"; receipt_outcome="migrated" ;;
+    Relinked) receipt_action="relink"; receipt_outcome="relinked" ;;
+    Installed|*) receipt_action="install"; receipt_outcome="created" ;;
+  esac
 
   mkdir -p "$craft_dir"
   rm -rf "$stage" "$old"
@@ -328,14 +434,14 @@ materialize_hermes_copy() {
   # Best-effort cleanup if we die mid-swap (trap path is absolute).
   trap "rm -rf \"$stage\" \"$old\" 2>/dev/null || true" EXIT
 
-  cp -R "$source_dir" "$stage"
-  rm -rf "$stage/.skill-craft" 2>/dev/null || true
+  copy_package_to_stage "$source_dir" "$stage" "$label"
 
   if [[ -e "$destination" || -L "$destination" ]]; then
     mv "$destination" "$old"
   fi
   mv "$stage" "$destination"
   write_hermes_marker "$marker" "$leaf" "$source_dir"
+  append_receipt "$skills_dir" "$receipt_action" "$leaf" "copy" "$source_dir" "$receipt_outcome"
   rm -rf "$old"
 
   trap - EXIT
@@ -418,8 +524,8 @@ install_hermes_copy() {
   # --- Real directory ---
   if [[ -d "$destination" ]]; then
     if [[ -f "$marker" ]]; then
-      # Managed copy: refresh if drifted.
-      if diff -rq "$source_dir" "$destination" >/dev/null 2>&1; then
+      # Managed copy: refresh if drifted (compare via normalized/dereferenced source).
+      if normalized_trees_match "$source_dir" "$destination" "$label"; then
         printf 'Already installed (up to date) (%s): %s\n' "$label" "$destination"
         return 0
       fi
@@ -547,6 +653,29 @@ install_agent_to_hosts() {
   fi
 }
 
+# Compare source package to installed copy using the same normalize/dereference path.
+normalized_trees_match() {
+  local source_dir="$1"
+  local dest_dir="$2"
+  local label="$3"
+  local skills_dir
+  skills_dir="$(dirname "$dest_dir")"
+  local craft_dir="$skills_dir/.skill-craft"
+  local tmpcmp="$craft_dir/.cmp-$$"
+  mkdir -p "$craft_dir"
+  rm -rf "$tmpcmp"
+  if ! copy_package_to_stage "$source_dir" "$tmpcmp" "$label" 2>/dev/null; then
+    rm -rf "$tmpcmp"
+    return 1
+  fi
+  if diff -rq "$tmpcmp" "$dest_dir" >/dev/null 2>&1; then
+    rm -rf "$tmpcmp"
+    return 0
+  fi
+  rm -rf "$tmpcmp"
+  return 1
+}
+
 # classify_destination SKILLS_DIR LEAF SOURCE_DIR -> prints one outcome token
 # Outcomes: absent | symlink-owned | symlink-wrong | copy-owned | copy-owned-stale | foreign | foreign-file
 classify_destination() {
@@ -573,7 +702,7 @@ classify_destination() {
   fi
   if [[ -d "$destination" ]]; then
     if [[ -f "$marker" ]]; then
-      if diff -rq "$source_dir" "$destination" >/dev/null 2>&1; then
+      if normalized_trees_match "$source_dir" "$destination" "classify/$leaf"; then
         printf 'copy-owned\n'
       else
         printf 'copy-owned-stale\n'
@@ -619,6 +748,7 @@ uninstall_one() {
         return 0
       fi
       rm -f "$destination"
+      append_receipt "$skills_dir" "uninstall" "$leaf" "symlink" "$source_dir" "removed"
       printf 'Uninstalled symlink (%s): %s\n' "$label" "$destination"
       return 0
       ;;
@@ -629,6 +759,7 @@ uninstall_one() {
       fi
       rm -rf "$destination"
       rm -f "$marker"
+      append_receipt "$skills_dir" "uninstall" "$leaf" "copy" "$source_dir" "removed"
       printf 'Uninstalled copy (%s): %s\n' "$label" "$destination"
       return 0
       ;;

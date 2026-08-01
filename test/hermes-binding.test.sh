@@ -35,7 +35,14 @@ assert_copy_tree() {
   [[ ! -L "$dest" ]] || fail "must not be symlink: $dest"
   [[ -f "$marker" ]] || fail "missing marker $marker"
   grep -q '"mode":"copy"' "$marker" || fail "marker mode: $(cat "$marker")"
-  diff -rq "$source" "$dest" >/dev/null || fail "diff -rq failed for $dest"
+  grep -q '"schema":2' "$marker" || fail "marker schema 2: $(cat "$marker")"
+  # Dest is normalized (no symlinks); compare via install path is ownership+content for non-link packages
+  if find "$source" -type l 2>/dev/null | grep -q .; then
+    : # source may contain internal links; dest is dereferenced
+  else
+    diff -rq "$source" "$dest" >/dev/null || fail "diff -rq failed for $dest"
+  fi
+  [[ -f "$(dirname "$marker")/receipts.jsonl" ]] || fail "missing receipts.jsonl next to marker"
 }
 
 # Build a tiny mutable package under tmpdir.
@@ -243,4 +250,38 @@ out15="$("$install_sh" --from "$pkg_abs" --hermes-only 2>&1)" || fail "H15 faile
 printf '%s\n' "$out15" | grep -q 'gitignore' || fail "H15 should print gitignore hint: $out15"
 [[ ! -f "$HOME/.hermes/.gitignore" ]] || fail "H15 must not write .gitignore"
 
-printf 'hermes-binding.test.sh: PASS H1–H15 (Hermes copy lifecycle, foreign skip, symlink refuse, dry-run)\n'
+# ---------------------------------------------------------------------------
+# H16: package-internal symlink is allowed and dereferenced
+# ---------------------------------------------------------------------------
+fresh_home h16
+pkg16="$tmpdir/pkg-int-link"
+make_pkg "$pkg16"
+printf 'target-body\n' >"$pkg16/real.txt"
+ln -s real.txt "$pkg16/alias.txt"
+out16="$("$install_sh" --from "$pkg16" --hermes-only 2>&1)" || fail "H16 failed: $out16"
+dest16="$(hermes_dest hermes-bind-fixture)"
+# leaf is basename of pkg16 path
+dest16="$(hermes_dest pkg-int-link)"
+[[ -f "$dest16/alias.txt" ]] || fail "H16 alias missing"
+[[ ! -L "$dest16/alias.txt" ]] || fail "H16 alias should be dereferenced file"
+[[ "$(cat "$dest16/alias.txt")" == "target-body" ]] || fail "H16 alias content"
+hits16="$(find "$dest16" -type l 2>/dev/null | head -n 1 || true)"
+[[ -z "$hits16" ]] || fail "H16 residual symlink: $hits16"
+# re-run up to date
+out16b="$("$install_sh" --from "$pkg16" --hermes-only 2>&1)" || fail "H16b: $out16b"
+printf '%s\n' "$out16b" | grep -q 'Already installed (up to date)' || fail "H16b: $out16b"
+
+# ---------------------------------------------------------------------------
+# H17: receipts.jsonl appends install + uninstall
+# ---------------------------------------------------------------------------
+fresh_home h17
+"$install_sh" --from "$pkg_abs" --hermes-only >/dev/null
+rcpt="$HOME/.hermes/skills/software-development/.skill-craft/receipts.jsonl"
+[[ -f "$rcpt" ]] || fail "H17 missing receipts"
+grep -q '"action":"install"' "$rcpt" || fail "H17 install action"
+grep -q '"outcome":"created"' "$rcpt" || fail "H17 created"
+"$install_sh" --uninstall --from "$pkg_abs" --hermes-only >/dev/null
+grep -q '"action":"uninstall"' "$rcpt" || fail "H17 uninstall action"
+grep -q '"outcome":"removed"' "$rcpt" || fail "H17 removed"
+
+printf 'hermes-binding.test.sh: PASS H1–H17 (copy lifecycle, internal symlink deref, receipts)\n'
