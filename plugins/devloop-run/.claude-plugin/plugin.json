@@ -1,0 +1,18 @@
+{
+  "name": "devloop-run",
+  "version": "0.1.0",
+  "description": "Use when invoking the Hermes-backed devloop engine for a machine-verifiable build/debug goal: resolve the installed devloop CLI and run it with an explicit --repo or scratch request. Discovery card for all hosts; execution requires a resolved Hermes/devloop engine tree (not multi-host runtime).",
+  "author": {
+    "name": "whichguy",
+    "url": "https://github.com/whichguy"
+  },
+  "homepage": "https://github.com/whichguy/skill-craft",
+  "repository": "https://github.com/whichguy/skill-craft",
+  "license": "MIT",
+  "keywords": [
+    "skill-craft",
+    "devloop-run",
+    "portable-skills",
+    "script-backed"
+  ]
+}

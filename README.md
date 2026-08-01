@@ -67,6 +67,8 @@ Never clobbers a foreign real file/directory. Wrong/dangling symlinks are only r
 ./install.sh --relink                # fix wrong/dangling symlinks
 ./install.sh --copy                  # force copy mode (all hosts)
 ./install.sh --symlink               # force symlink (overrides Hermes copy default)
+./install.sh --status                # report state=… per host (no writes)
+./install.sh --uninstall             # remove only owned installs
 ./install.sh --dry-run               # print actions only
 ```
 

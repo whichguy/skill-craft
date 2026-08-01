@@ -20,10 +20,13 @@ usage() {
   printf '                        # (never clobbers a real file/directory)\n' >&2
   printf '  --copy                # force copy mode for all hosts (Hermes default)\n' >&2
   printf '  --symlink             # force symlink mode for all hosts (overrides Hermes copy)\n' >&2
+  printf '  --status              # report install state (no writes); outcomes per host\n' >&2
+  printf '  --uninstall           # remove only owned installs (symlink-owned or managed copy)\n' >&2
   printf '  --dry-run             # print actions only, no writes\n' >&2
   printf '\n' >&2
   printf 'Default (no host flags): install ALL four hosts.\n' >&2
   printf 'Default (no --skill/--from): install every skills/<leaf> with SKILL.md.\n' >&2
+  printf 'Default action: install. --status / --uninstall are exclusive with each other.\n' >&2
   printf '\n' >&2
   printf 'Skill destinations (per skill leaf):\n' >&2
   printf '  Claude:  ~/.claude/skills/<leaf>  (symlink)\n' >&2
@@ -33,13 +36,16 @@ usage() {
   printf '           (container bind: /opt/data/skills/software-development/<leaf>)\n' >&2
   printf '           Provenance: ~/.hermes/skills/software-development/.skill-craft/<leaf>.json\n' >&2
   printf '\n' >&2
+  printf 'Status outcomes: absent | symlink-owned | symlink-wrong | copy-owned |\n' >&2
+  printf '  copy-owned-stale | foreign | foreign-file\n' >&2
+  printf '\n' >&2
   printf 'Agent destinations (only with --agents; Claude + Grok):\n' >&2
   printf '  Claude:  ~/.claude/agents/<leaf>.md\n' >&2
   printf '  Grok:    ~/.grok/agents/<leaf>.md\n' >&2
   printf '  Codex/Hermes: skipped (no agent install)\n' >&2
   printf '\n' >&2
   printf 'Sources: skills/<name> under this repo, or --from DIR.\n' >&2
-  printf 'Foreign real directories are never overwritten (even with --relink).\n' >&2
+  printf 'Foreign real directories are never overwritten or uninstalled.\n' >&2
   printf 'With --relink, only wrong or dangling symlinks are replaced.\n' >&2
   printf 'Hermes managed copies are refreshed on re-run; foreign trees are skipped.\n' >&2
 }
@@ -99,6 +105,8 @@ dry_run=0
 relink=0
 # force_mode: "" | copy | symlink — empty means host defaults (Hermes=copy, others=symlink)
 force_mode=""
+# action: install | status | uninstall
+action="install"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -176,6 +184,22 @@ while [[ $# -gt 0 ]]; do
       force_mode="symlink"
       shift
       ;;
+    --status)
+      if [[ "$action" != "install" && "$action" != "status" ]]; then
+        printf 'Cannot combine --status with --uninstall\n' >&2
+        exit 64
+      fi
+      action="status"
+      shift
+      ;;
+    --uninstall)
+      if [[ "$action" != "install" && "$action" != "uninstall" ]]; then
+        printf 'Cannot combine --uninstall with --status\n' >&2
+        exit 64
+      fi
+      action="uninstall"
+      shift
+      ;;
     --dry-run)
       dry_run=1
       shift
@@ -191,6 +215,11 @@ done
 if [[ "$skill_flag_set" -eq 1 && "$from_flag_set" -eq 1 ]]; then
   printf 'Cannot combine --skill and --from\n' >&2
   usage
+  exit 64
+fi
+
+if [[ "$action" != "install" && "$install_agents" -eq 1 ]]; then
+  printf '--agents is only valid for install (not --status/--uninstall)\n' >&2
   exit 64
 fi
 
@@ -518,6 +547,136 @@ install_agent_to_hosts() {
   fi
 }
 
+# classify_destination SKILLS_DIR LEAF SOURCE_DIR -> prints one outcome token
+# Outcomes: absent | symlink-owned | symlink-wrong | copy-owned | copy-owned-stale | foreign | foreign-file
+classify_destination() {
+  local skills_dir="$1"
+  local leaf="$2"
+  local source_dir="$3"
+  local destination="$skills_dir/$leaf"
+  local marker
+  marker="$(hermes_marker_path "$skills_dir" "$leaf")"
+
+  if [[ ! -e "$destination" && ! -L "$destination" ]]; then
+    printf 'absent\n'
+    return 0
+  fi
+  if [[ -L "$destination" ]]; then
+    local target
+    target="$(readlink "$destination")"
+    if [[ "$target" == "$source_dir" ]]; then
+      printf 'symlink-owned\n'
+    else
+      printf 'symlink-wrong\n'
+    fi
+    return 0
+  fi
+  if [[ -d "$destination" ]]; then
+    if [[ -f "$marker" ]]; then
+      if diff -rq "$source_dir" "$destination" >/dev/null 2>&1; then
+        printf 'copy-owned\n'
+      else
+        printf 'copy-owned-stale\n'
+      fi
+    else
+      printf 'foreign\n'
+    fi
+    return 0
+  fi
+  printf 'foreign-file\n'
+}
+
+status_one() {
+  local label="$1"
+  local skills_dir="$2"
+  local leaf="$3"
+  local source_dir="$4"
+  local destination="$skills_dir/$leaf"
+  local state
+  state="$(classify_destination "$skills_dir" "$leaf" "$source_dir")"
+  printf 'status (%s): %s  state=%s  path=%s\n' "$label" "$leaf" "$state" "$destination"
+}
+
+uninstall_one() {
+  local label="$1"
+  local skills_dir="$2"
+  local leaf="$3"
+  local source_dir="$4"
+  local destination="$skills_dir/$leaf"
+  local marker
+  marker="$(hermes_marker_path "$skills_dir" "$leaf")"
+  local state
+  state="$(classify_destination "$skills_dir" "$leaf" "$source_dir")"
+
+  case "$state" in
+    absent)
+      printf 'Already absent (%s): %s\n' "$label" "$destination"
+      return 0
+      ;;
+    symlink-owned)
+      if [[ "$dry_run" -eq 1 ]]; then
+        printf 'Would uninstall symlink (%s): %s\n' "$label" "$destination"
+        return 0
+      fi
+      rm -f "$destination"
+      printf 'Uninstalled symlink (%s): %s\n' "$label" "$destination"
+      return 0
+      ;;
+    copy-owned|copy-owned-stale)
+      if [[ "$dry_run" -eq 1 ]]; then
+        printf 'Would uninstall copy (%s): %s\n' "$label" "$destination"
+        return 0
+      fi
+      rm -rf "$destination"
+      rm -f "$marker"
+      printf 'Uninstalled copy (%s): %s\n' "$label" "$destination"
+      return 0
+      ;;
+    foreign|foreign-file|symlink-wrong)
+      printf 'Skipped uninstall (not owned) (%s): %s  state=%s\n' "$label" "$destination" "$state"
+      return 0
+      ;;
+    *)
+      printf 'Skipped uninstall (unknown state) (%s): %s  state=%s\n' "$label" "$destination" "$state" >&2
+      return 0
+      ;;
+  esac
+}
+
+status_skill_to_hosts() {
+  local leaf="$1"
+  local source_dir="$2"
+  if [[ "$install_claude" -eq 1 ]]; then
+    status_one "Claude Code / $leaf" "$HOME/.claude/skills" "$leaf" "$source_dir"
+  fi
+  if [[ "$install_grok" -eq 1 ]]; then
+    status_one "Grok / $leaf" "$HOME/.grok/skills" "$leaf" "$source_dir"
+  fi
+  if [[ "$install_codex" -eq 1 ]]; then
+    status_one "Codex / $leaf" "$HOME/.codex/skills" "$leaf" "$source_dir"
+  fi
+  if [[ "$install_hermes" -eq 1 ]]; then
+    status_one "Hermes skillhub / $leaf" "$HOME/.hermes/skills/software-development" "$leaf" "$source_dir"
+  fi
+}
+
+uninstall_skill_to_hosts() {
+  local leaf="$1"
+  local source_dir="$2"
+  if [[ "$install_claude" -eq 1 ]]; then
+    uninstall_one "Claude Code / $leaf" "$HOME/.claude/skills" "$leaf" "$source_dir"
+  fi
+  if [[ "$install_grok" -eq 1 ]]; then
+    uninstall_one "Grok / $leaf" "$HOME/.grok/skills" "$leaf" "$source_dir"
+  fi
+  if [[ "$install_codex" -eq 1 ]]; then
+    uninstall_one "Codex / $leaf" "$HOME/.codex/skills" "$leaf" "$source_dir"
+  fi
+  if [[ "$install_hermes" -eq 1 ]]; then
+    uninstall_one "Hermes skillhub / $leaf" "$HOME/.hermes/skills/software-development" "$leaf" "$source_dir"
+  fi
+}
+
 # Collect leaves to install as "leaf|source_dir" pairs.
 declare -a install_pairs=()
 
@@ -566,8 +725,18 @@ fi
 for pair in "${install_pairs[@]}"; do
   leaf="${pair%%|*}"
   source_dir="${pair#*|}"
-  install_skill_to_hosts "$leaf" "$source_dir"
-  if [[ "$install_agents" -eq 1 ]]; then
-    install_agent_to_hosts "$leaf"
-  fi
+  case "$action" in
+    status)
+      status_skill_to_hosts "$leaf" "$source_dir"
+      ;;
+    uninstall)
+      uninstall_skill_to_hosts "$leaf" "$source_dir"
+      ;;
+    install|*)
+      install_skill_to_hosts "$leaf" "$source_dir"
+      if [[ "$install_agents" -eq 1 ]]; then
+        install_agent_to_hosts "$leaf"
+      fi
+      ;;
+  esac
 done

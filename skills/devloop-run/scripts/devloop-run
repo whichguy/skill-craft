@@ -1,0 +1,74 @@
+#!/usr/bin/env bash
+# Resolve Hermes-backed devloop CLI and exec, or refuse closed.
+# Exit 2 = needs human / engine missing (preflight). Engine exit codes otherwise.
+set -euo pipefail
+
+usage() {
+  cat <<'EOF'
+Usage: devloop-run [--] [devloop_cli args...]
+
+Resolve the installed devloop engine and run scripts/devloop_cli.py.
+Does not invent multi-host transport. Exit 2 if engine cannot be resolved.
+
+Environment:
+  DEVLOOP_HOME   Absolute path to engine package (directory with scripts/devloop_cli.py)
+  HERMES_HOME    Hermes data root (default search: $HERMES_HOME/skills/software-development/devloop)
+EOF
+}
+
+if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
+  usage
+  exit 0
+fi
+if [[ "${1:-}" == "--" ]]; then
+  shift
+fi
+
+is_engine_root() {
+  local d="$1"
+  [[ -n "$d" && -d "$d" && -f "$d/scripts/devloop_cli.py" ]]
+}
+
+resolve_engine() {
+  local cand
+  if [[ -n "${DEVLOOP_HOME:-}" ]]; then
+    cand="${DEVLOOP_HOME}"
+    if is_engine_root "$cand"; then
+      printf '%s\n' "$(cd "$cand" && pwd -P)"
+      return 0
+    fi
+    printf 'devloop-run: DEVLOOP_HOME set but invalid engine root: %s\n' "$cand" >&2
+    return 1
+  fi
+  local -a cands=()
+  if [[ -n "${HERMES_HOME:-}" ]]; then
+    cands+=("${HERMES_HOME}/skills/software-development/devloop")
+  fi
+  cands+=("${HOME}/.hermes/skills/software-development/devloop")
+  cands+=("/opt/data/skills/software-development/devloop")
+  for cand in "${cands[@]}"; do
+    if is_engine_root "$cand"; then
+      printf '%s\n' "$(cd "$cand" && pwd -P)"
+      return 0
+    fi
+  done
+  return 1
+}
+
+engine_root=""
+if ! engine_root="$(resolve_engine)"; then
+  printf 'devloop-run: engine not resolved (discovery-only host or missing install).\n' >&2
+  printf 'Set DEVLOOP_HOME to the engine package root, or install devloop under Hermes skillhub.\n' >&2
+  printf 'Tried: DEVLOOP_HOME, $HERMES_HOME/skills/software-development/devloop,\n' >&2
+  printf '  ~/.hermes/skills/software-development/devloop, /opt/data/skills/software-development/devloop\n' >&2
+  exit 2
+fi
+
+cli="$engine_root/scripts/devloop_cli.py"
+if [[ -x "$engine_root/.venv/bin/python3" ]]; then
+  exec "$engine_root/.venv/bin/python3" "$cli" "$@"
+fi
+if command -v uv >/dev/null 2>&1; then
+  exec uv run --with pytest python3 "$cli" "$@"
+fi
+exec python3 "$cli" "$@"

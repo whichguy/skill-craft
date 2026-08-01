@@ -26,6 +26,8 @@ run marketplace-run bash test/marketplace-run.test.sh
 run install-targets bash test/install-targets.test.sh
 run install-arbitrary-skill bash test/install-arbitrary-skill.test.sh
 run hermes-binding bash test/hermes-binding.test.sh
+run install-status-uninstall bash test/install-status-uninstall.test.sh
+run devloop-run bash test/devloop-run.test.sh
 
 if [[ "$fail" -ne 0 ]]; then
   printf 'run-all.sh: FAILED\n' >&2

@@ -1,7 +1,24 @@
 # skill-craft architecture
 
 Host-neutral portable skills monorepo. This document is the packaging contract for
-`skills/<leaf>/`, multi-host install, and distribution. Status labels:
+`skills/<leaf>/`, multi-host install, and distribution.
+
+## Learnings (replan)
+
+These drove the final packaging model after advisors review and PR1–P4 landing:
+
+1. **Append, do not renumber** Layer 0/1/2 (contract/prompts/scripts). Silent renumber collides with live checklists and other monorepo “L1/L2” uses.
+2. **Hermes abs-symlink was a production bug**, not a docs gap — checklist already required copy; tests enshrined the wrong behavior.
+3. **Copy without a lifecycle is a regression** — managed copies need a provenance marker + refresh/skip-foreign state machine.
+4. **Frontmatter is the SoT** — optional `skill.manifest.yaml` is dual-SoT; enforce name/version/license/platforms/kind on every leaf first.
+5. **`plugin.json` must derive from frontmatter** or version/description drift (and mid-sentence truncation) is inevitable.
+6. **Enumerate plugin sync from `skills/`**, not `plugins/` — otherwise new leaves never get Claude views and `--check` stays green.
+7. **Discovery ≠ execution** for engines — a four-host skill-dir install is not multi-host runtime.
+8. **Foreign real destinations** (e.g. live Hermes `devloop` engine) must classify as `foreign` and never clobber; thin cards use non-colliding leaves (`devloop-run`).
+9. **Extend `install.sh`**, do not invent `skillctl` as a second install CLI.
+10. **CI is required** — hermetic green alone coexists with broken host binding if nothing runs `--check` / install tests automatically.
+
+## Status labels
 
 | Label | Meaning |
 |-------|---------|
@@ -20,10 +37,10 @@ Do **not** renumber legacy Layer 0–2. Skill-interop reviews and checklists alr
 | Prompts | **Layer 1** | **implemented** |
 | Scripts / CLI | **Layer 2** | **implemented** |
 | Skill card (`SKILL.md` router) | review step (not a Layer 1 rename) | **implemented** |
-| Runtime binding | append (**SC-L3**) | **partial** — Hermes materialize + copy lifecycle **implemented**; multi-binding resolver **proposed** |
+| Runtime binding | append (**SC-L3**) | **implemented** for Hermes materialize + probe resolve (`devloop-run`); full multi-transport matrix remains optional |
 | Host adapters + distribution | append (**SC-L4 / SC-L5**) | **implemented** (skill-dir install, Claude plugin views, market pins) |
-| Provenance (managed installs) | append | **partial** — Hermes `.skill-craft/<leaf>.json` marker **implemented**; full receipts **proposed** |
-| Operator / CI | control plane (not a runtime layer) | **partial** — hermetic `test/run-all.sh` **implemented**; GitHub Actions workflow **implemented** |
+| Provenance (managed installs) | append | **implemented** — Hermes marker + `--status` / `--uninstall` ownership; full JSON receipts optional later |
+| Operator / CI | control plane (not a runtime layer) | **implemented** — hermetic suite + GitHub Actions |
 
 Optional numbered aliases: `SC-L0`… only when disambiguating from unrelated monorepo “L1/L2” tiers (e.g. question-bench).
 
@@ -69,9 +86,11 @@ host checkout into a tree that is bind-mounted into the container as `/opt/data`
 | Claude plugin view `plugins/<leaf>/` via `sync-plugin-views.sh` | **implemented** |
 | `plugin.json` name/version/description/license derived from `SKILL.md` | **implemented** (`scripts/skill-frontmatter-to-plugin-json.js`; sync enumerates from `skills/`) |
 | skill-craft-market pins (catalog only; no skill bodies) | **implemented** |
-| skillctl / full receipts / uninstall | **proposed** |
+| `install.sh --status` / `--uninstall` (owned only) | **implemented** |
+| skillctl | **optional / not planned** (use `install.sh`) |
+| Engine probe card `skills/devloop-run` | **implemented** (discovery all hosts; execution if engine resolves) |
 
-### Operator / CI (**partial**)
+### Operator / CI (**implemented**)
 
 - Hermetic suite: `bash test/run-all.sh` (**implemented**)
 - Plugin view drift: `bash scripts/sync-plugin-views.sh --check` (**implemented**)
@@ -123,18 +142,22 @@ skill-craft/skills/<leaf>/     # SoT (all hosts skill-dir; Grok/Codex/Hermes doc
 
 claude-craft product suites (wiki, gas, async, …) stay host-native. Portable leaves port here; suite hooks/agents may remain in claude-craft.
 
-## Later phases (**proposed**)
+## Phase completion
 
-| Phase | Content |
-|-------|---------|
-| P1 | Frontmatter contract for all skills; kind metadata; no dual manifest |
-| P2 | Derive `plugin.json` metadata from `SKILL.md`; enumerate views from `skills/` |
-| P3 | Full receipts, `--status`, safe uninstall on top of the Hermes marker |
-| P4 | Engine probe canary (non-colliding leaf, refusal codes, Hermes-only runtime) |
-| P5 | Package-internal symlink support if ever required |
+| Phase | Content | Status |
+|-------|---------|--------|
+| PR1 | ARCHITECTURE + Hermes copy lifecycle + CI + honesty | **done** |
+| P1 | Frontmatter contract + kinds | **done** |
+| P2 | Derive `plugin.json` from `SKILL.md` | **done** |
+| P3 | `--status` / `--uninstall` | **done** |
+| P4 | `skills/devloop-run` probe card | **done** |
+| Optional | Package-internal symlink support; market pin retarget; full receipt files | open |
+
+**skill-craft-market** pins still reference older release tags (e.g. `v0.2.2`); retarget after tagging if marketplace consumers need updated plugin.json versions.
 
 ## Related files
 
 - Install: `install.sh`, `skills/skill-interop/references/host-paths.md`
 - Interop review: `skills/skill-interop/references/checklist.md`, `anti-patterns.md`
+- Engine probe: `skills/devloop-run/`
 - Ports inventory: `docs/PORT.md`
