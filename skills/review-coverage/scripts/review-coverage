@@ -12,6 +12,11 @@ SKILL_ROOT = Path(__file__).resolve().parents[1]
 REF_DIR = SKILL_ROOT / "references"
 FULL_TEMPLATE = REF_DIR / "review_coverage.md"
 SHORT_TEMPLATE = REF_DIR / "review_coverage.short.md"
+STATIC_GOAL_LOGIC = (
+    "quality review changes and consider improvements, "
+    "anchoring each spec item in code changes and verify use cases/corner cases, "
+    "complete when only trivial changes remain for 2 consecutive cycles"
+)
 
 HEADING_RE = re.compile(
     r"(?im)^[ \t]{0,3}#{1,6}[ \t]+Review\s+Coverage\b"
@@ -308,41 +313,33 @@ def goal_body(text: str, plan_path: str = "") -> Tuple[Optional[str], str]:
         return None, "residual waived — no /goal body (intentional)"
     body = _section_body(text) or ""
     fields = _fields(body)
-    base = fields.get("base ref") or fields.get("base") or "<BASE_REF>"
-    paths = fields.get("target paths") or fields.get("target path") or "<PATHS>"
-    cmd = fields.get("test command") or "<CMD>"
-    repo = fields.get("repo") or ""
-    max_rounds = (
-        fields.get("max review-converge rounds") or fields.get("max rounds") or "12"
-    )
-    # First token if table value is "12 hard cap; ..."
-    max_n = re.split(r"\s+", str(max_rounds).strip())[0] or "12"
-    if not re.fullmatch(r"\d+", max_n):
-        max_n = "12"
-    repo_line = f"Repo: {repo}\n" if repo and not _is_placeholder(repo) else ""
-    return (
-        "FINITE residual campaign — never infinite.\n"
-        f"Plan: {plan_path}\n"
-        f"Base ref: {base}\n"
-        f"{repo_line}"
-        f"Target paths: {paths}\n"
-        f"Test command: {cmd}\n"
-        "Driver: review-converge under /goal — exactly ONE /review-converge round per outer turn.\n"
-        f"Plan contract: bind {plan_path} + SHA-256 at campaign start; hash drift → blocked → stopped path.\n"
-        f"Max review-converge rounds: {max_n} (default 12).\n"
-        "Host caps: set host max-turns and max-budget before unattended runs; never unlimited ralph (max_iterations must be positive if ralph is used at all — prefer /goal only).\n"
-        "\n"
-        "Ledger: repo-root REVIEW_CONVERGE.md (Status + Log). \"Landed\" means latest Log Committed: yes AND a commit subject matching review-converge: round N — (or legacy grok-review-converge: round N —).\n"
-        "\n"
-        "After EVERY turn, re-read REVIEW_CONVERGE.md Status and choose exactly one branch:\n"
-        "  S1) Status complete AND landed → EXIT SUCCESS (residual×2 met: two consecutive clean rounds; second clean ran Test command PASS).\n"
-        "  S2) Status stopped (...) AND landed → EXIT HALT (not success; still end /goal).\n"
-        f"  S3) Status active AND rounds ≥ {max_n} → force stopped (max-cycles), land Log, EXIT HALT.\n"
-        "  S4) Status terminal but not landed → one ledger-flush only; then EXIT if still not landed (HALT or SUCCESS per Status).\n"
-        "  S5) Else → run exactly one /review-converge for this plan (forward: specs/anchors → code; reverse: diff vs Base ref); land Log; do not start another round this turn.\n"
-        "\n"
-        "Hard rules: never continue after complete or stopped (...); never unlimited outer loop; pathspec commits under Target paths only (never git add -A); do not edit the plan file during cycles; minors → Deferred (P2) only; material (P0/P1) alone blocks clean."
-    ), ""
+    trailer: List[str] = []
+
+    def add(label: str, value: str) -> None:
+        if value and not _is_placeholder(value):
+            trailer.append(f"{label}: {value}")
+
+    if plan_path:
+        trailer.append(f"Plan: {plan_path}")
+    add("Base ref", fields.get("base ref") or fields.get("base") or "")
+    add("Repo", fields.get("repo") or "")
+    add("Paths", fields.get("target paths") or fields.get("target path") or "")
+    add("Test", fields.get("test command") or "")
+
+    max_rounds = fields.get("max review-converge rounds") or fields.get("max rounds") or ""
+    max_token = re.search(r"\d+", str(max_rounds))
+    max_n = max_token.group(0) if max_token else "12"
+    if trailer:
+        trailer.extend(
+            [
+                "Driver: one /review-converge per turn",
+                f"Max rounds: {max_n}",
+            ]
+        )
+
+    if not trailer:
+        return STATIC_GOAL_LOGIC, ""
+    return f"{STATIC_GOAL_LOGIC}. {'. '.join(trailer)}.", ""
 
 
 def _read_plan_path(path: str) -> Tuple[Optional[str], Optional[str]]:

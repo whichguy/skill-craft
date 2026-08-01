@@ -23,6 +23,7 @@ cat >"$TMP" <<'EOF'
 | Field | Value |
 |-------|--------|
 | Base ref | abcdef1234567890deadbeef |
+| Repo | /tmp/review-coverage-repo |
 | Target paths | src/foo.ts |
 | Test command | npm test |
 | Materiality bar | material (P0/P1) |
@@ -34,16 +35,19 @@ two consecutive clean residual rounds with green suite
 EOF
 if python3 "$CLI" validate "$TMP" >/dev/null; then ok validate_ok; else bad validate_ok; fi
 GBO=$(python3 "$CLI" goal-body --plan "$TMP")
-if printf '%s\n' "$GBO" | grep -q 'Base ref:'; then ok goal_body; else bad goal_body; fi
-if printf '%s\n' "$GBO" | grep -q 'FINITE residual'; then ok goal_body_finite; else bad goal_body_finite; fi
-if printf '%s\n' "$GBO" | grep -q 'Status complete AND landed → EXIT SUCCESS'; then ok goal_body_success_exit; else bad goal_body_success_exit; fi
-if printf '%s\n' "$GBO" | grep -q 'stopped (max-cycles)'; then ok goal_body_max_cycles; else bad goal_body_max_cycles; fi
-if printf '%s\n' "$GBO" | grep -qi 'residual×2\|residualx2\|two consecutive clean'; then ok goal_body_residual_x2; else bad goal_body_residual_x2; fi
-if printf '%s\n' "$GBO" | grep -q 'Status stopped (...) AND landed → EXIT HALT'; then ok goal_body_stopped_halt; else bad goal_body_stopped_halt; fi
-if printf '%s\n' "$GBO" | grep -q 'never unlimited ralph'; then ok goal_body_no_unlimited_ralph; else bad goal_body_no_unlimited_ralph; fi
+if [[ "$GBO" == quality\ review\ changes\ and\ consider\ improvements,* ]]; then ok goal_body_static_start; else bad goal_body_static_start; fi
+if printf '%s\n' "$GBO" | grep -q 'complete when only trivial changes remain for 2 consecutive cycles'; then ok goal_body_static_complete; else bad goal_body_static_complete; fi
+if printf '%s\n' "$GBO" | grep -q "Plan: $TMP"; then ok goal_body_plan; else bad goal_body_plan; fi
+if printf '%s\n' "$GBO" | grep -q 'Base ref: abcdef1234567890deadbeef'; then ok goal_body_base; else bad goal_body_base; fi
+if printf '%s\n' "$GBO" | grep -q 'Repo: /tmp/review-coverage-repo'; then ok goal_body_repo; else bad goal_body_repo; fi
+if printf '%s\n' "$GBO" | grep -q 'Paths: src/foo.ts'; then ok goal_body_paths; else bad goal_body_paths; fi
+if printf '%s\n' "$GBO" | grep -q 'Test: npm test'; then ok goal_body_test; else bad goal_body_test; fi
+if printf '%s\n' "$GBO" | grep -q 'Driver: one /review-converge per turn'; then ok goal_body_driver; else bad goal_body_driver; fi
+if printf '%s\n' "$GBO" | grep -q 'Max rounds: 12'; then ok goal_body_max_default; else bad goal_body_max_default; fi
+if ! printf '%s\n' "$GBO" | grep -q 'FINITE residual\|S1)'; then ok goal_body_no_legacy_procedure; else bad goal_body_no_legacy_procedure; fi
 GBO_SLASH=$(python3 "$CLI" goal-body --plan "$TMP" --slash)
-if [[ "$GBO_SLASH" == /goal\ * ]]; then ok goal_body_slash; else bad goal_body_slash; fi
-if [[ "$(python3 "$CLI" goal-body --plan "$TMP" --slash | head -c 20)" == /goal\ * ]]; then ok goal_body_slash_head; else bad goal_body_slash_head; fi
+if [[ "$GBO_SLASH" == /goal\ quality\ review\ changes* ]]; then ok goal_body_slash; else bad goal_body_slash; fi
+if [[ "$(python3 "$CLI" goal-body --plan "$TMP" --slash | head -c 28)" == /goal\ quality\ review\ changes* ]]; then ok goal_body_slash_head; else bad goal_body_slash_head; fi
 if [[ "$GBO" != /goal\ * ]]; then ok goal_body_no_slash; else bad goal_body_no_slash; fi
 rm -f "$TMP"
 
@@ -66,8 +70,7 @@ cat >"$TMPM" <<'EOF'
 two consecutive clean residual rounds with green suite
 EOF
 GBO8=$(python3 "$CLI" goal-body --plan "$TMPM")
-if printf '%s\n' "$GBO8" | grep -q 'Max review-converge rounds: 8'; then ok goal_body_custom_max; else bad goal_body_custom_max; fi
-if printf '%s\n' "$GBO8" | grep -q 'rounds ≥ 8'; then ok goal_body_custom_max_branch; else bad goal_body_custom_max_branch; fi
+if printf '%s\n' "$GBO8" | grep -q 'Max rounds: 8'; then ok goal_body_custom_max; else bad goal_body_custom_max; fi
 rm -f "$TMPM"
 
 if ! echo '# bare' | python3 "$CLI" validate - >/dev/null 2>&1; then ok validate_missing; else bad validate_missing; fi
@@ -98,8 +101,8 @@ if python3 "$CLI" validate "$TMPW" >/dev/null; then ok waiver_validate; else bad
 # goal-body exits 1 on waiver; capture stderr+stdout without pipefail masking the grep
 gbo=$(python3 "$CLI" goal-body --plan "$TMPW" 2>&1 || true)
 if printf '%s\n' "$gbo" | grep -qi 'waived'; then ok waiver_goal_body_msg; else bad waiver_goal_body_msg; fi
-# waived path must not print a goal body (only error)
-if ! printf '%s\n' "$gbo" | grep -q 'FINITE residual'; then ok waiver_no_goal_body; else bad waiver_no_goal_body; fi
+# waived path must not print the static goal body (only error)
+if ! printf '%s\n' "$gbo" | grep -q 'quality review changes and consider improvements'; then ok waiver_no_goal_body; else bad waiver_no_goal_body; fi
 rm -f "$TMPW"
 
 # Invalid Driver must fail validate with clear stderr
@@ -194,7 +197,7 @@ else
   bad plugin_template_match
 fi
 
-# Field-table values must win over fenced Objective paste examples (no pollution)
+# Field-table values must win over fenced /goal command examples (no pollution)
 TMPPOL=$(mktemp)
 cat >"$TMPPOL" <<'EOF'
 ## Review Coverage
@@ -207,7 +210,7 @@ cat >"$TMPPOL" <<'EOF'
 | Materiality bar | material (P0/P1) |
 | Driver | review-converge under /goal |
 
-### Objective (paste into /goal)
+### /goal command (test fixture)
 
 ```text
 Base ref: <BASE_REF>.
@@ -221,9 +224,9 @@ EOF
 if python3 "$CLI" validate "$TMPPOL" >/dev/null; then ok field_table_wins_validate; else bad field_table_wins_validate; fi
 POL_GB=$(python3 "$CLI" goal-body --plan "$TMPPOL")
 if printf '%s\n' "$POL_GB" | grep -q 'Base ref: abcdef1234567890deadbeef'; then ok field_table_wins_base; else bad field_table_wins_base; fi
-if printf '%s\n' "$POL_GB" | grep -q 'Test command: npm test'; then ok field_table_wins_cmd; else bad field_table_wins_cmd; fi
-# Driver is fixed by the literal canonical body, not rebuilt from the field.
-if printf '%s\n' "$POL_GB" | grep -q 'Driver: review-converge under /goal — exactly ONE /review-converge round per outer turn.'; then
+if printf '%s\n' "$POL_GB" | grep -q 'Test: npm test'; then ok field_table_wins_cmd; else bad field_table_wins_cmd; fi
+# Driver is fixed by the canonical binding trailer, not rebuilt from the field.
+if printf '%s\n' "$POL_GB" | grep -q 'Driver: one /review-converge per turn'; then
   ok driver_fixed_canonical
 else
   bad driver_fixed_canonical
@@ -305,7 +308,7 @@ EOF
 if python3 "$CLI" validate "$TMPE" >/dev/null; then ok row_e_validate; else bad row_e_validate; fi
 EGB=$(python3 "$CLI" goal-body --plan "$TMPE" 2>&1) || true
 if python3 "$CLI" goal-body --plan "$TMPE" >/dev/null 2>&1; then ok row_e_goal_body; else bad row_e_goal_body; fi
-if printf '%s\n' "$EGB" | grep -q 'FINITE residual'; then ok row_e_body_text; else bad row_e_body_text; fi
+if printf '%s\n' "$EGB" | grep -q 'quality review changes and consider improvements'; then ok row_e_body_text; else bad row_e_body_text; fi
 if ! printf '%s\n' "$EGB" | grep -qi 'waived'; then ok row_e_not_waived; else bad row_e_not_waived; fi
 rm -f "$TMPE"
 
@@ -339,7 +342,7 @@ EOF
 if python3 "$CLI" validate "$TMPG" >/dev/null; then ok row_g_validate; else bad row_g_validate; fi
 if python3 "$CLI" goal-body --plan "$TMPG" >/dev/null 2>&1; then ok row_g_goal_body; else bad row_g_goal_body; fi
 GGB=$(python3 "$CLI" goal-body --plan "$TMPG")
-if printf '%s\n' "$GGB" | grep -q 'FINITE residual'; then ok row_g_body; else bad row_g_body; fi
+if printf '%s\n' "$GGB" | grep -q 'quality review changes and consider improvements'; then ok row_g_body; else bad row_g_body; fi
 rm -f "$TMPG"
 
 # (h) unfenced in-section waiver AND filled fields → conflict

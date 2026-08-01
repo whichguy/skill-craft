@@ -70,14 +70,18 @@ never continue after complete or stopped (...); max rounds hard wall; pathspec o
 
 ### /goal command (Phase B — paste literally)
 
-Generate and insert the exact command with:
+```text
+/goal quality review changes and consider improvements, anchoring each spec item in code changes and verify use cases/corner cases, complete when only trivial changes remain for 2 consecutive cycles
+```
+
+After the fields are filled:
 
 ```sh
 scripts/review-coverage goal-body --plan <ABS_PLAN> --slash
 ```
 
-**Do not paraphrase; CLI is SoT.** The command emits `/goal <BODY>` with this
-section’s filled bindings.
+Paste the entire CLI output. Do not paraphrase the static sentence; the CLI adds
+the plan bindings after it.
 
 ### Cycle log
 
