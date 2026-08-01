@@ -39,7 +39,7 @@ Never writes into Hermes skillhub leaf `devloop` (foreign engine tree).
 | sha256 | Required for non-file https; mismatch → exit 2, no install |
 | Safe extract | Rejects `..`, absolute paths, unsafe links; flattens one top-level package dir |
 | Marker last | `.skill-craft-engine.json` written after entrypoint validates |
-| Lock | `mkdir` lock dir under data parent (portable; no flock) |
+| Lock | `mkdir` lock dir under data parent (portable; no flock); re-check engine after acquire |
 | Unmarked force | `--force-bootstrap` alone refuses replace without marker; need `--force-hard` |
 
 ## Flags

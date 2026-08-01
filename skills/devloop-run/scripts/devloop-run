@@ -235,6 +235,12 @@ bootstrap_engine() {
   # shellcheck disable=SC2064
   trap 'rmdir "'"$lockdir"'" 2>/dev/null || true' RETURN
 
+  # Double-check after lock: another process may have finished while we waited
+  if [[ "$force_bootstrap" -eq 0 ]] && is_engine_root "$dest"; then
+    printf 'devloop-run: engine already present at %s\n' "$dest" >&2
+    return 0
+  fi
+
   if [[ "$force_bootstrap" -eq 1 && -e "$dest" && ! -f "$dest/.skill-craft-engine.json" && "$force_hard" -eq 0 ]]; then
     printf 'devloop-run: refusing --force-bootstrap on unmarked engine at %s\n' "$dest" >&2
     printf '  Use --force-hard if you intend to replace it.\n' >&2

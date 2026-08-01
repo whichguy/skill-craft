@@ -176,4 +176,24 @@ set -e
 [[ "$rc12" -eq 2 ]] || fail "D12 want 2 got $rc12: $out12"
 printf '%s\n' "$out12" | grep -qi 'force-hard\|unmarked' || fail "D12 message: $out12"
 
-printf 'devloop-run.test.sh: PASS D1–D12\n'
+# D13: concurrent --setup (lock + post-lock re-check) both exit 0
+export DEVLOOP_DATA_HOME="$tmpdir/data-conc"
+rm -rf "$DEVLOOP_DATA_HOME"
+export DEVLOOP_ENGINE_PIN="$fixture_pin"
+unset DEVLOOP_HOME HERMES_HOME DEVLOOP_BOOTSTRAP_CMD DEVLOOP_ENGINE_URL || true
+set +e
+"$run" --setup >/tmp/devloop-conc-a.$$.out 2>&1 &
+pa=$!
+"$run" --setup >/tmp/devloop-conc-b.$$.out 2>&1 &
+pb=$!
+wait "$pa"
+rca=$?
+wait "$pb"
+rcb=$?
+set -e
+[[ "$rca" -eq 0 && "$rcb" -eq 0 ]] || fail "D13 concurrent setup rcs $rca $rcb: $(cat /tmp/devloop-conc-a.$$.out /tmp/devloop-conc-b.$$.out 2>/dev/null)"
+[[ -f "$DEVLOOP_DATA_HOME/devloop/scripts/devloop_cli.py" ]] || fail "D13 missing engine after concurrent setup"
+[[ -f "$DEVLOOP_DATA_HOME/devloop/.skill-craft-engine.json" ]] || fail "D13 missing marker after concurrent setup"
+rm -f /tmp/devloop-conc-a.$$.out /tmp/devloop-conc-b.$$.out
+
+printf 'devloop-run.test.sh: PASS D1–D13\n'
