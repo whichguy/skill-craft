@@ -8,7 +8,7 @@
 |------|---------|
 | **Review Coverage** | This whole H2 block — durable post-ship instructions in the plan. Phase A writes it; Phase B runs it. |
 | **residual** | Post-ship work: **forward** (specs → code) + **reverse** (diff vs Base ref); fix only **material** issues; pathspec commit. |
-| **residual×2** | Success stop rule: Status `complete` only after **two consecutive clean** residual rounds, with the **second** clean running Test command green. Not “run two rounds total.” |
+| **clean / residual×2** | A cycle is **clean** only when it found zero material issues. Success stop rule: Status `complete` only after **two consecutive clean** residual rounds, with the **second** clean running Test command green. Fixing material resets the streak; not “run two rounds total.” |
 | **Driver** | One residual **round** executor — default `/review-converge` under outer `/goal`. |
 | **complete** | residual×2 **success** (objective-met). |
 | **stopped (...)** | Residual **failed closed** (not success; still ends the outer loop). |
@@ -71,17 +71,18 @@ never continue after complete or stopped (...); max rounds hard wall; pathspec o
 ### /goal command (Phase B — paste literally)
 
 ```text
-/goal quality review changes and consider improvements, review the last 10 git commit messages for learnings, anchoring each spec item in code changes and verify use cases/corner cases, git commit between each iteration with a verbose message with key learnings, complete when only trivial changes remain for 2 consecutive cycles
+/goal quality review changes and consider improvements, anchoring each spec item in code changes and verify use cases/corner cases, complete when only trivial changes remain for 2 consecutive cycles
 ```
 
 After the fields are filled:
 
 ```sh
-scripts/review-coverage goal-body --plan <ABS_PLAN> --slash
+scripts/review-coverage run-card --plan <ABS_PLAN> --preflight
 ```
 
-Paste the entire CLI output. Do not paraphrase the static sentence; the CLI adds
-the plan bindings after it.
+Use `run-card` as the operator entrypoint; its first command is the exact host goal.
+`goal-body --plan <ABS_PLAN> --slash` remains valid for direct paste. Do not
+paraphrase the static sentence; the CLI adds the plan bindings after it.
 
 ### Cycle log
 

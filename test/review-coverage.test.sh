@@ -35,17 +35,20 @@ two consecutive clean residual rounds with green suite
 EOF
 if python3 "$CLI" validate "$TMP" >/dev/null; then ok validate_ok; else bad validate_ok; fi
 GBO=$(python3 "$CLI" goal-body --plan "$TMP")
+TMP_ABS=$(python3 -c 'from pathlib import Path; import sys; print(Path(sys.argv[1]).resolve())' "$TMP")
 if [[ "$GBO" == quality\ review\ changes\ and\ consider\ improvements,* ]]; then ok goal_body_static_start; else bad goal_body_static_start; fi
 if printf '%s\n' "$GBO" | grep -q 'complete when only trivial changes remain for 2 consecutive cycles'; then ok goal_body_static_complete; else bad goal_body_static_complete; fi
-if printf '%s\n' "$GBO" | grep -q 'git commit between each iteration with a verbose message with key learnings'; then ok goal_body_commit_each_iteration; else bad goal_body_commit_each_iteration; fi
-if printf '%s\n' "$GBO" | grep -q 'review the last 10 git commit messages for learnings'; then ok goal_body_review_git_learnings; else bad goal_body_review_git_learnings; fi
-if printf '%s\n' "$GBO" | grep -q "Plan: $TMP"; then ok goal_body_plan; else bad goal_body_plan; fi
+if ! printf '%s\n' "$GBO" | grep -q 'git commit between each iteration\|review the last 10 git commit messages'; then ok goal_body_no_removed_static; else bad goal_body_no_removed_static; fi
+if printf '%s\n' "$GBO" | grep -q "Plan: $TMP_ABS"; then ok goal_body_plan_absolute; else bad goal_body_plan_absolute; fi
 if printf '%s\n' "$GBO" | grep -q 'Base ref: abcdef1234567890deadbeef'; then ok goal_body_base; else bad goal_body_base; fi
 if printf '%s\n' "$GBO" | grep -q 'Repo: /tmp/review-coverage-repo'; then ok goal_body_repo; else bad goal_body_repo; fi
-if printf '%s\n' "$GBO" | grep -q 'Paths: src/foo.ts'; then ok goal_body_paths; else bad goal_body_paths; fi
-if printf '%s\n' "$GBO" | grep -q 'Test: npm test'; then ok goal_body_test; else bad goal_body_test; fi
+if printf '%s\n' "$GBO" | grep -q 'Target paths: src/foo.ts'; then ok goal_body_paths; else bad goal_body_paths; fi
+if printf '%s\n' "$GBO" | grep -q 'Test command: npm test'; then ok goal_body_test; else bad goal_body_test; fi
 if printf '%s\n' "$GBO" | grep -q 'Driver: one /review-converge per turn'; then ok goal_body_driver; else bad goal_body_driver; fi
-if printf '%s\n' "$GBO" | grep -q 'Max rounds: 12'; then ok goal_body_max_default; else bad goal_body_max_default; fi
+if printf '%s\n' "$GBO" | grep -q 'Max review-converge rounds: 12'; then ok goal_body_max_default; else bad goal_body_max_default; fi
+if printf '%s\n' "$GBO" | grep -q 'stopped (max-cycles).*EXIT HALT.*same-error ×3.*no-progress ×3'; then ok goal_body_halt_rules; else bad goal_body_halt_rules; fi
+if printf '%s\n' "$GBO" | grep -q 'Ledger: REVIEW_CONVERGE.md.*Log landed'; then ok goal_body_ledger_landed; else bad goal_body_ledger_landed; fi
+if ! printf '%s\n' "$GBO" | grep -qE '(^|[. ])Paths:|(^|[. ])Test:|Max rounds:'; then ok goal_body_no_legacy_labels; else bad goal_body_no_legacy_labels; fi
 if ! printf '%s\n' "$GBO" | grep -q 'FINITE residual\|S1)'; then ok goal_body_no_legacy_procedure; else bad goal_body_no_legacy_procedure; fi
 GBO_SLASH=$(python3 "$CLI" goal-body --plan "$TMP" --slash)
 if [[ "$GBO_SLASH" == /goal\ quality\ review\ changes* ]]; then ok goal_body_slash; else bad goal_body_slash; fi
@@ -72,10 +75,66 @@ cat >"$TMPM" <<'EOF'
 two consecutive clean residual rounds with green suite
 EOF
 GBO8=$(python3 "$CLI" goal-body --plan "$TMPM")
-if printf '%s\n' "$GBO8" | grep -q 'Max rounds: 8'; then ok goal_body_custom_max; else bad goal_body_custom_max; fi
+if printf '%s\n' "$GBO8" | grep -q 'Max review-converge rounds: 8'; then ok goal_body_custom_max; else bad goal_body_custom_max; fi
 rm -f "$TMPM"
 
 if ! echo '# bare' | python3 "$CLI" validate - >/dev/null 2>&1; then ok validate_missing; else bad validate_missing; fi
+
+# preflight and run-card operate on a real local repository without network access.
+PREF_REPO=$(mktemp -d)
+git -C "$PREF_REPO" init -q
+git -C "$PREF_REPO" -c user.name=review-coverage -c user.email=review@example.invalid commit --allow-empty -qm initial
+PREF_BASE=$(git -C "$PREF_REPO" rev-parse HEAD)
+PREF_PLAN=$(mktemp)
+cat >"$PREF_PLAN" <<EOF
+## Review Coverage
+
+| Field | Value |
+|-------|--------|
+| Base ref | $PREF_BASE |
+| Repo | $PREF_REPO |
+| Target paths | src/foo.ts |
+| Test command | npm test |
+| Materiality bar | material (P0/P1) |
+| Driver | review-converge under /goal |
+| Plan contract | $PREF_PLAN |
+| Max review-converge rounds | 7 |
+
+1. Forward audit of specs to code.
+2. Reverse audit of code vs base.
+two consecutive clean residual rounds with green suite
+EOF
+PREF_ABS=$(python3 -c 'from pathlib import Path; import sys; print(Path(sys.argv[1]).resolve())' "$PREF_PLAN")
+PREF_OUT=$(python3 "$CLI" preflight --plan "$PREF_PLAN" 2>&1)
+if [[ "$PREF_OUT" == *'preflight: ok'* && "$PREF_OUT" == *"plan: $PREF_ABS"* \
+  && "$PREF_OUT" == *'validate: ok'* && "$PREF_OUT" == *"base ref: ok ($PREF_BASE)"* \
+  && "$PREF_OUT" == *'ledger: absent'* && "$PREF_OUT" == *'next: scripts/review-coverage run-card --plan'* ]]; then
+  ok preflight_ok
+else
+  bad preflight_ok
+fi
+PREF_MISSING_EC=$(python3 "$CLI" preflight --plan "/nonexistent/preflight-plan-$$.md" >/dev/null 2>&1; echo $?)
+if [[ "$PREF_MISSING_EC" -eq 2 ]]; then ok preflight_missing; else bad preflight_missing; fi
+PREF_WAIVED=$(mktemp)
+cat >"$PREF_WAIVED" <<'EOF'
+## Review Coverage
+
+None — residual loop waived: docs-only plan
+EOF
+PREF_WAIVED_EC=$(python3 "$CLI" preflight --plan "$PREF_WAIVED" >/dev/null 2>&1; echo $?)
+if [[ "$PREF_WAIVED_EC" -eq 1 ]]; then ok preflight_waived; else bad preflight_waived; fi
+CARD=$(python3 "$CLI" run-card --plan "$PREF_PLAN" --preflight)
+PREF_GOAL=$(python3 "$CLI" goal-body --plan "$PREF_PLAN" --slash)
+CARD_GOAL=$(printf '%s\n' "$CARD" | awk '/^### 1\. Open host goal$/{found=1; next} /^### 2\. Each turn$/{exit} found && NF {print; exit}')
+if [[ "$CARD_GOAL" == "$PREF_GOAL" ]]; then ok run_card_goal_matches_goal_body; else bad run_card_goal_matches_goal_body; fi
+if [[ "$CARD" == *'Target paths: src/foo.ts'* && "$CARD" == *'Test command: npm test'* \
+  && "$CARD" == *"Base ref: $PREF_BASE"* && "$CARD" == *'Max review-converge rounds: 7'* ]]; then
+  ok run_card_fields
+else
+  bad run_card_fields
+fi
+rm -f "$PREF_PLAN" "$PREF_WAIVED"
+rm -rf "$PREF_REPO"
 
 # Unfilled template (incl. example waiver line) must NOT validate as ok
 TERR=$(python3 "$CLI" validate "$ROOT/skills/review-coverage/references/review_coverage.md" 2>&1 >/dev/null || true)
@@ -126,8 +185,72 @@ two consecutive clean residual rounds with green suite
 EOF
 DERR=$(python3 "$CLI" validate "$TMPD" 2>&1 >/dev/null || true)
 if ! python3 "$CLI" validate "$TMPD" >/dev/null 2>&1; then ok bad_driver_rejects; else bad bad_driver_rejects; fi
-if printf '%s\n' "$DERR" | grep -qi 'Driver must mention'; then ok bad_driver_stderr; else bad bad_driver_stderr; fi
+if printf '%s\n' "$DERR" | grep -qi 'Driver must mention review-converge'; then ok bad_driver_stderr; else bad bad_driver_stderr; fi
 rm -f "$TMPD"
+
+# improve-loop-only Driver rejected (MVP honesty — goal-body hard-codes review-converge)
+TMPI2=$(mktemp)
+cat >"$TMPI2" <<'EOF'
+## Review Coverage
+
+| Field | Value |
+|-------|--------|
+| Base ref | abcdef1234567890deadbeef |
+| Target paths | src/foo.ts |
+| Test command | npm test |
+| Materiality bar | material (P0/P1) |
+| Driver | improve-loop under /goal |
+
+1. Forward audit of specs to code.
+2. Reverse audit of code vs base.
+two consecutive clean residual rounds with green suite
+EOF
+if ! python3 "$CLI" validate "$TMPI2" >/dev/null 2>&1; then ok improve_loop_driver_rejects; else bad improve_loop_driver_rejects; fi
+rm -f "$TMPI2"
+
+# Max rounds: unlimited / 0 fail closed; valid 12 hard cap ok
+TMPU=$(mktemp)
+cat >"$TMPU" <<'EOF'
+## Review Coverage
+
+| Field | Value |
+|-------|--------|
+| Base ref | abcdef1234567890deadbeef |
+| Target paths | src/foo.ts |
+| Test command | npm test |
+| Materiality bar | material (P0/P1) |
+| Driver | review-converge under /goal |
+| Max review-converge rounds | unlimited |
+
+1. Forward audit of specs to code.
+2. Reverse audit of code vs base.
+two consecutive clean residual rounds with green suite
+EOF
+if ! python3 "$CLI" validate "$TMPU" >/dev/null 2>&1; then ok max_rounds_unlimited_rejects; else bad max_rounds_unlimited_rejects; fi
+rm -f "$TMPU"
+
+TMP0=$(mktemp)
+cat >"$TMP0" <<'EOF'
+## Review Coverage
+
+| Field | Value |
+|-------|--------|
+| Base ref | abcdef1234567890deadbeef |
+| Target paths | src/foo.ts |
+| Test command | npm test |
+| Materiality bar | material (P0/P1) |
+| Driver | review-converge under /goal |
+| Max review-converge rounds | 0 |
+
+1. Forward audit of specs to code.
+2. Reverse audit of code vs base.
+two consecutive clean residual rounds with green suite
+EOF
+if ! python3 "$CLI" validate "$TMP0" >/dev/null 2>&1; then ok max_rounds_zero_rejects; else bad max_rounds_zero_rejects; fi
+rm -f "$TMP0"
+
+# pathspec clause in goal-body
+if printf '%s\n' "$GBO" | grep -qi 'never git add -A\|Pathspec commits only'; then ok goal_body_pathspec; else bad goal_body_pathspec; fi
 
 # Missing forward/reverse instructions must fail validate
 TMPFR=$(mktemp)
@@ -226,7 +349,7 @@ EOF
 if python3 "$CLI" validate "$TMPPOL" >/dev/null; then ok field_table_wins_validate; else bad field_table_wins_validate; fi
 POL_GB=$(python3 "$CLI" goal-body --plan "$TMPPOL")
 if printf '%s\n' "$POL_GB" | grep -q 'Base ref: abcdef1234567890deadbeef'; then ok field_table_wins_base; else bad field_table_wins_base; fi
-if printf '%s\n' "$POL_GB" | grep -q 'Test: npm test'; then ok field_table_wins_cmd; else bad field_table_wins_cmd; fi
+if printf '%s\n' "$POL_GB" | grep -q 'Test command: npm test'; then ok field_table_wins_cmd; else bad field_table_wins_cmd; fi
 # Driver is fixed by the canonical binding trailer, not rebuilt from the field.
 if printf '%s\n' "$POL_GB" | grep -q 'Driver: one /review-converge per turn'; then
   ok driver_fixed_canonical
@@ -275,7 +398,7 @@ else
   bad full_template_no_goal_body
 fi
 
-if grep -q '^version: 0.2.1$' "$ROOT/skills/review-coverage/SKILL.md"; then ok skill_version; else bad skill_version; fi
+if grep -q '^version: 0.2.2$' "$ROOT/skills/review-coverage/SKILL.md"; then ok skill_version; else bad skill_version; fi
 if grep -q -- 'goal-body --plan /path/to/plan.md --slash' "$ROOT/skills/review-coverage/SKILL.md"; then ok skill_slash_docs; else bad skill_slash_docs; fi
 
 # --- Verification rows (e)–(h): section-scoped fence-aware waiver ---

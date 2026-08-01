@@ -8,7 +8,7 @@ description: >
   (forward + reverse). Not for pre-exit plan quality (use review-plan) or
   raw residual×2 engine mechanics alone (use review-converge under /goal).
 allowed-tools: all
-version: 0.2.1
+version: 0.2.2
 license: MIT
 platforms:
   - linux
@@ -42,7 +42,7 @@ required for this skill to work.
 | **Review Coverage** | Durable plan **H2 only** `## Review Coverage` + this skill (H1/H3+ headings are not recognized). It answers: after ship, how do we prove code matches specs and **stop** when proof is stable? |
 | **Status / Log / landed** | When the Driver is `review-converge`, repo-root `REVIEW_CONVERGE.md` is the ledger: Status selects the next branch; Log records each round. **Landed** means latest Log `Committed: yes` and a `review-converge: round N —` commit subject (or legacy `grok-review-converge: round N —`). |
 | **residual** | Post-ship forward (specs→code) + reverse (diff vs Base ref); material fixes only; pathspec commits. |
-| **residual×2** | **Stop rule:** “only trivial changes remain for 2 consecutive cycles.” Material issues block the streak; minors/P2 are trivial. The second clean runs Test command PASS, and any material finding resets the streak. |
+| **clean / residual×2** | A cycle is **clean** only when it finds zero material issues. **Stop rule:** “only trivial changes remain for 2 consecutive cycles.” Fixing a material issue resets the streak; minors/P2 are trivial. The second clean runs Test command PASS. |
 | **`/goal`** | The outer multi-turn driver. It is the **literal paste command** emitted by `scripts/review-coverage goal-body --plan … --slash`; do not paraphrase its body. |
 | **`/review-converge`** | Default inner Driver: exactly **one** residual round per invocation. |
 | **complete** | residual×2 success plus a landed Log. |
@@ -51,7 +51,7 @@ required for this skill to work.
 The static `/goal` logic is byte-exact:
 
 ```text
-/goal quality review changes and consider improvements, review the last 10 git commit messages for learnings, anchoring each spec item in code changes and verify use cases/corner cases, git commit between each iteration with a verbose message with key learnings, complete when only trivial changes remain for 2 consecutive cycles
+/goal quality review changes and consider improvements, anchoring each spec item in code changes and verify use cases/corner cases, complete when only trivial changes remain for 2 consecutive cycles
 ```
 
 ### Nesting
@@ -108,12 +108,13 @@ Heading must be level-2 `## Review Coverage` (not `#` / `###`).
 
 1. Implementation landed; suite green; optional first-pass `/review-fix` done.
 2. Validate the approved plan: `scripts/review-coverage validate <PLAN_PATH>`.
-3. Generate the command: `scripts/review-coverage goal-body --plan <PLAN_PATH> --slash`.
-4. Paste the **exact** CLI output into the host goal, then set host max-turns and
+3. Prefer the operator card: `scripts/review-coverage run-card --plan <PLAN_PATH> --preflight`.
+   `goal-body --slash` remains valid for direct paste.
+4. Paste the card's **exact** host-goal command, then set host max-turns and
    max-budget before unattended work. **Do not paraphrase** its static sentence:
 
    ```text
-   /goal quality review changes and consider improvements, review the last 10 git commit messages for learnings, anchoring each spec item in code changes and verify use cases/corner cases, git commit between each iteration with a verbose message with key learnings, complete when only trivial changes remain for 2 consecutive cycles
+   /goal quality review changes and consider improvements, anchoring each spec item in code changes and verify use cases/corner cases, complete when only trivial changes remain for 2 consecutive cycles
    ```
 
 5. Run exactly one inner `/review-converge` per outer turn. The section’s exit
@@ -135,12 +136,18 @@ Never unlimited ralph. Never continue after complete or stopped (...).
 scripts/review-coverage template
 scripts/review-coverage template --short
 scripts/review-coverage validate /path/to/plan.md
+scripts/review-coverage preflight --plan /path/to/plan.md
+scripts/review-coverage preflight --plan /path/to/plan.md --strict
+scripts/review-coverage run-card --plan /path/to/plan.md --preflight
 scripts/review-coverage goal-body --plan /path/to/plan.md
 scripts/review-coverage goal-body --plan /path/to/plan.md --slash
 ```
 
-`goal-body` emits the static sentence plus available plan bindings. `goal-body --slash`
-prefixes it exactly with `/goal ` for direct paste. Validate is advisory lint for
+`preflight` checks validation, Base ref resolvability, terminal ledgers, and an
+optional Plan contract path; warnings become failures with `--strict`. `run-card`
+is the preferred Phase B entrypoint and includes the byte-identical `goal-body --slash`
+host command. `goal-body` emits the static sentence plus plan bindings;
+`goal-body --slash` prefixes it exactly with `/goal ` for direct paste. Validate is advisory lint for
 agents/humans — not a soft_exit dependency. Unfilled templates (including example
 `None — residual loop waived: <reason>`) **fail** `validate` — a placeholder waiver
 reason is not a real waiver. `goal-body` runs the **same** validation path as

@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""review-coverage CLI — template, goal-body, validate (host-neutral helpers)."""
+"""review-coverage CLI — template, validation, and residual campaign helpers."""
 from __future__ import annotations
 
 import argparse
 import re
+import subprocess
 import sys
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
@@ -14,9 +15,7 @@ FULL_TEMPLATE = REF_DIR / "review_coverage.md"
 SHORT_TEMPLATE = REF_DIR / "review_coverage.short.md"
 STATIC_GOAL_LOGIC = (
     "quality review changes and consider improvements, "
-    "review the last 10 git commit messages for learnings, "
     "anchoring each spec item in code changes and verify use cases/corner cases, "
-    "git commit between each iteration with a verbose message with key learnings, "
     "complete when only trivial changes remain for 2 consecutive cycles"
 )
 
@@ -279,8 +278,17 @@ def validate(text: str) -> Tuple[bool, List[str]]:
     require("Target paths", "target path")
     require("Test command")
     driver = require("Driver")
-    if driver and not re.search(r"review-converge|improve|/goal", driver, re.I):
-        gaps.append("Driver must mention review-converge, improve, or /goal")
+    # MVP: only review-converge is supported as residual Driver (goal-body hard-codes
+    # REVIEW_CONVERGE.md + one /review-converge per turn). improve-loop alone is rejected.
+    if driver and not re.search(r"review-converge", driver, re.I):
+        gaps.append(
+            "Driver must mention review-converge "
+            "(MVP does not support improve-loop or other drivers here)"
+        )
+
+    max_err = _max_rounds_error(fields)
+    if max_err:
+        gaps.append(max_err)
 
     clean = bool(
         re.search(
@@ -303,6 +311,43 @@ def validate(text: str) -> Tuple[bool, List[str]]:
     return (len(gaps) == 0, gaps)
 
 
+def _max_rounds_error(fields: Dict[str, str]) -> Optional[str]:
+    """Return a gap string if Max rounds is present but not a positive integer."""
+    raw = fields.get("max review-converge rounds") or fields.get("max rounds")
+    if raw is None or str(raw).strip() == "":
+        return None  # absent → default 12 at goal-body time
+    if _is_placeholder(str(raw)):
+        return "Max rounds field has placeholder value"
+    text = str(raw).strip()
+    if re.search(r"(?i)\b(unlimited|inf(inity)?|no\s*limit)\b", text):
+        return "Max rounds must be a positive integer (not unlimited)"
+    lead = re.match(r"^(\d+)\b", text)
+    if not lead:
+        return "Max rounds must be a positive integer"
+    if int(lead.group(1)) < 1:
+        return "Max rounds must be a positive integer (>= 1)"
+    return None
+
+
+def _max_review_rounds(fields: Dict[str, str]) -> str:
+    """Return the plan cap, with the documented default when absent.
+
+    Call only after validate() has accepted the plan (or when absent).
+    """
+    value = fields.get("max review-converge rounds") or fields.get("max rounds") or ""
+    if not str(value).strip() or _is_placeholder(str(value)):
+        return "12"
+    match = re.match(r"^(\d+)\b", str(value).strip())
+    if match and int(match.group(1)) >= 1:
+        return match.group(1)
+    return "12"
+
+
+def _resolved_path(path: str) -> Path:
+    """Resolve a user-supplied path without requiring it to exist first."""
+    return Path(path).expanduser().resolve()
+
+
 def goal_body(text: str, plan_path: str = "") -> Tuple[Optional[str], str]:
     """Return (body, err). err is empty on success.
 
@@ -315,32 +360,32 @@ def goal_body(text: str, plan_path: str = "") -> Tuple[Optional[str], str]:
         return None, "residual waived — no /goal body (intentional)"
     body = _section_body(text) or ""
     fields = _fields(body)
-    trailer: List[str] = []
-
-    def add(label: str, value: str) -> None:
-        if value and not _is_placeholder(value):
-            trailer.append(f"{label}: {value}")
-
-    if plan_path:
-        trailer.append(f"Plan: {plan_path}")
-    add("Base ref", fields.get("base ref") or fields.get("base") or "")
-    add("Repo", fields.get("repo") or "")
-    add("Paths", fields.get("target paths") or fields.get("target path") or "")
-    add("Test", fields.get("test command") or "")
-
-    max_rounds = fields.get("max review-converge rounds") or fields.get("max rounds") or ""
-    max_token = re.search(r"\d+", str(max_rounds))
-    max_n = max_token.group(0) if max_token else "12"
-    if trailer:
-        trailer.extend(
-            [
-                "Driver: one /review-converge per turn",
-                f"Max rounds: {max_n}",
-            ]
-        )
-
-    if not trailer:
-        return STATIC_GOAL_LOGIC, ""
+    base_ref = fields.get("base ref") or fields.get("base") or ""
+    target_paths = fields.get("target paths") or fields.get("target path") or ""
+    test_command = fields.get("test command") or ""
+    max_n = _max_review_rounds(fields)
+    trailer = [
+        f"Plan: {_resolved_path(plan_path)}" if plan_path else "Plan: <unspecified>",
+        f"Base ref: {base_ref}",
+        f"Target paths: {target_paths}",
+        f"Test command: {test_command}",
+        "Driver: one /review-converge per turn",
+        (
+            f"Max review-converge rounds: {max_n} — on exceed, land stopped "
+            "(max-cycles) in REVIEW_CONVERGE.md and EXIT HALT. Also EXIT HALT on "
+            "stopped (same-error ×3) or stopped (no-progress ×3) when landed"
+        ),
+        (
+            "Ledger: REVIEW_CONVERGE.md — a cycle counts clean only if Log Outcome "
+            "is clean (zero material findings found this cycle; fixing material resets "
+            "the streak); second clean must run Test command PASS; SUCCESS only when "
+            "Status complete AND Log landed. Never unlimited outer loop"
+        ),
+        "Pathspec commits only under Target paths; never git add -A",
+    ]
+    repo = fields.get("repo") or ""
+    if repo and not _is_placeholder(repo):
+        trailer.append(f"Repo: {repo}")
     return f"{STATIC_GOAL_LOGIC}. {'. '.join(trailer)}.", ""
 
 
@@ -393,11 +438,174 @@ def cmd_goal_body(plan: str, slash: bool = False) -> int:
         print(err, file=sys.stderr)
         return 2
     assert text is not None
-    body, gerr = goal_body(text, plan_path=plan)
+    body, gerr = goal_body(text, plan_path=str(_resolved_path(plan)))
     if body is None:
         print(f"error: {gerr}", file=sys.stderr)
         return 1
     print(f"/goal {body}" if slash else body)
+    return 0
+
+
+def _plan_repo(fields: Dict[str, str], repo_arg: Optional[str]) -> Path:
+    """Choose the git working directory specified by the command/plan/cwd."""
+    if repo_arg:
+        return _resolved_path(repo_arg)
+    repo = fields.get("repo") or ""
+    if repo and not _is_placeholder(repo) and Path(repo).expanduser().is_absolute():
+        return _resolved_path(repo)
+    return Path.cwd().resolve()
+
+
+def _git_output(repo: Path, *args: str) -> Optional[str]:
+    try:
+        result = subprocess.run(
+            ["git", "-C", str(repo), *args],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+    except OSError:
+        return None
+    if result.returncode != 0:
+        return None
+    return result.stdout.strip()
+
+
+def _repo_root(repo: Path) -> Path:
+    root = _git_output(repo, "rev-parse", "--show-toplevel")
+    return Path(root).resolve() if root else repo
+
+
+def _ledger_state(repo_root: Path) -> str:
+    ledger = repo_root / "REVIEW_CONVERGE.md"
+    if not ledger.is_file():
+        return "absent"
+    try:
+        text = ledger.read_text(encoding="utf-8")
+    except OSError:
+        return "active"
+    match = re.search(
+        r"(?im)\bStatus\b[^\n]*(?P<state>stopped\s*\([^\n)]*\)|complete\b|active\b)",
+        text,
+    )
+    if not match:
+        return "active"
+    return match.group("state")
+
+
+def _preflight(
+    plan: str, repo_arg: Optional[str] = None, strict: bool = False
+) -> int:
+    """Check whether a validated residual campaign can be operated safely."""
+    resolved_plan = _resolved_path(plan)
+    text, err = _read_plan_path(str(resolved_plan))
+    if err is not None:
+        print(err, file=sys.stderr)
+        return 2
+    assert text is not None
+
+    ok, gaps = validate(text)
+    waived = _waiver_reason(text) is not None
+    validation_state = "ok" if ok and not waived else "fail"
+    fields = _fields(_section_body(text) or "")
+    repo = _plan_repo(fields, repo_arg)
+    repo_root = _repo_root(repo)
+    warnings: List[str] = []
+    failures: List[str] = []
+
+    if not ok:
+        failures.extend(gaps)
+    elif waived:
+        failures.append("residual waived — preflight requires a runnable campaign")
+
+    base_ref = fields.get("base ref") or fields.get("base") or ""
+    base_ok = bool(base_ref) and _git_output(
+        repo, "rev-parse", "--verify", f"{base_ref}^{{commit}}"
+    ) is not None
+    base_state = f"ok ({base_ref})" if base_ok else f"unresolvable ({base_ref or 'missing'})"
+    if not base_ok:
+        (failures if strict else warnings).append(
+            f"base ref is not git-resolvable in {repo}: {base_ref or 'missing'}"
+        )
+
+    ledger = _ledger_state(repo_root)
+    if ledger == "complete" or ledger.startswith("stopped"):
+        (failures if strict else warnings).append(f"ledger is terminal ({ledger})")
+    ledger_state = f"terminal ({ledger})" if ledger == "complete" or ledger.startswith("stopped") else ledger
+
+    contract = fields.get("plan contract")
+    if contract is not None:
+        contract_path = Path(contract.strip().strip("`*"))
+        if not contract_path.is_absolute():
+            contract_path = resolved_plan.parent / contract_path
+        if not contract_path.exists():
+            (failures if strict else warnings).append(
+                f"plan contract path is missing: {contract_path}"
+            )
+
+    for warning in warnings:
+        print(f"warning: {warning}", file=sys.stderr)
+    for failure in failures:
+        print(f"error: {failure}", file=sys.stderr)
+
+    hard_fail = bool(failures)
+    print(f"preflight: {'fail' if hard_fail else 'ok'}")
+    print(f"plan: {resolved_plan}")
+    print(f"validate: {validation_state}")
+    print(f"base ref: {base_state}")
+    print(f"ledger: {ledger_state}")
+    if hard_fail:
+        print("next: fix the reported plan or campaign blockers, then rerun preflight")
+        return 1
+    print(f"next: scripts/review-coverage run-card --plan {resolved_plan}")
+    return 0
+
+
+def cmd_preflight(plan: str, repo: Optional[str], strict: bool) -> int:
+    return _preflight(plan, repo, strict)
+
+
+def cmd_run_card(plan: str, preflight: bool = False) -> int:
+    """Print a concise operator card using the canonical goal-body output."""
+    resolved_plan = _resolved_path(plan)
+    if preflight:
+        result = _preflight(str(resolved_plan))
+        if result != 0:
+            return result
+    text, err = _read_plan_path(str(resolved_plan))
+    if err is not None:
+        print(err, file=sys.stderr)
+        return 2
+    assert text is not None
+    body, gerr = goal_body(text, plan_path=str(resolved_plan))
+    if body is None:
+        print(f"error: {gerr}", file=sys.stderr)
+        return 1
+    fields = _fields(_section_body(text) or "")
+    base_ref = fields.get("base ref") or fields.get("base") or ""
+    target_paths = fields.get("target paths") or fields.get("target path") or ""
+    test_command = fields.get("test command") or ""
+    max_n = _max_review_rounds(fields)
+    print("### 1. Open host goal")
+    print()
+    print(f"/goal {body}")
+    print()
+    print("### 2. Each turn")
+    print()
+    print("Run one /review-converge per turn.")
+    print(f"Target paths: {target_paths}")
+    print(f"Test command: {test_command}")
+    print(f"Base ref: {base_ref}")
+    print()
+    print("### 3. Stop when")
+    print()
+    print("SUCCESS = Status complete AND Log landed")
+    print("HALT = stopped (...) landed")
+    print()
+    print("### 4. Caps")
+    print()
+    print(f"Max review-converge rounds: {max_n}")
+    print("Set host max-turns and max-budget; never use an unlimited outer loop.")
     return 0
 
 
@@ -422,6 +630,15 @@ def main(argv: Optional[List[str]] = None) -> int:
     g.add_argument("--plan", required=True, help="path to plan.md")
     g.add_argument("--slash", action="store_true", help="prefix the body with '/goal '")
 
+    pf = sub.add_parser("preflight", help="check whether a residual campaign is runnable")
+    pf.add_argument("--plan", required=True, help="path to plan.md")
+    pf.add_argument("--repo", help="git working directory (overrides plan Repo)")
+    pf.add_argument("--strict", action="store_true", help="make warnings fail preflight")
+
+    rc = sub.add_parser("run-card", help="print an operator card for a residual campaign")
+    rc.add_argument("--plan", required=True, help="path to plan.md")
+    rc.add_argument("--preflight", action="store_true", help="run non-strict preflight first")
+
     sub.add_parser("check-install", help="print package paths")
 
     args = p.parse_args(argv)
@@ -431,6 +648,10 @@ def main(argv: Optional[List[str]] = None) -> int:
         return cmd_validate(args.plan)
     if args.cmd == "goal-body":
         return cmd_goal_body(args.plan, args.slash)
+    if args.cmd == "preflight":
+        return cmd_preflight(args.plan, args.repo, args.strict)
+    if args.cmd == "run-card":
+        return cmd_run_card(args.plan, args.preflight)
     if args.cmd == "check-install":
         return cmd_check_install()
     return 2

@@ -9,9 +9,10 @@
 | Test command | `<cmd>` |
 | Materiality bar | material (P0/P1) |
 | Driver | review-converge under /goal |
-| Max rounds | 12 → then `stopped (max-cycles)` |
+| Max review-converge rounds | 12 → then `stopped (max-cycles)` |
 
-**residual×2** = two consecutive clean rounds + suite PASS on second clean → Status `complete`.
+**clean** = zero material findings this cycle; fixing material resets the streak.
+**residual×2** = two consecutive clean rounds + suite PASS on second clean + landed Log → Status `complete`.
 **`stopped (...)`** ends `/goal` without success. Never unlimited ralph.
 
 ### Exit conditions
@@ -31,17 +32,17 @@ Forward: specs/anchors → code. Reverse: diff vs Base ref. Pathspec commits onl
 ### /goal command (Phase B — paste literally)
 
 ```text
-/goal quality review changes and consider improvements, review the last 10 git commit messages for learnings, anchoring each spec item in code changes and verify use cases/corner cases, git commit between each iteration with a verbose message with key learnings, complete when only trivial changes remain for 2 consecutive cycles
+/goal quality review changes and consider improvements, anchoring each spec item in code changes and verify use cases/corner cases, complete when only trivial changes remain for 2 consecutive cycles
 ```
 
 After the fields are filled:
 
 ```sh
-scripts/review-coverage goal-body --plan <ABS_PLAN> --slash
+scripts/review-coverage run-card --plan <ABS_PLAN> --preflight
 ```
 
-Paste the entire CLI output. Do not paraphrase the static sentence; the CLI adds
-the plan bindings after it.
+Use `run-card` as the operator entrypoint; its first command contains the exact
+host goal. `goal-body --plan <ABS_PLAN> --slash` remains valid for direct paste.
 
 ### Waiver
 
