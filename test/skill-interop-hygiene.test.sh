@@ -46,5 +46,11 @@ if grep -qiE 'sonnet|opus|gpt-' "$si/references/create-template/SKILL.md.tmpl" 2
   fail "create-template SKILL.md.tmpl must not pin model names"
 fi
 
+# Reserved engine leaf name must not appear as skill-craft package leaf
+if [[ -d "$root/skills/devloop" ]]; then
+  fail "skills/devloop is reserved (use devloop-run card; engine lives under Hermes skillhub)"
+fi
+grep -q 'devloop-run' "$root/docs/ARCHITECTURE.md" || fail "ARCHITECTURE should mention devloop-run"
+
 printf 'skill-interop-hygiene.test.sh: PASS (prompts, templates, scaffold, anti-patterns, host-paths, no pins)\n'
 exit 0

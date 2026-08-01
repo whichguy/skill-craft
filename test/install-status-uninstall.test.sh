@@ -41,7 +41,11 @@ mkdir -p "$HOME/.hermes/skills/software-development/skill-interop"
 printf 'foreign\n' >"$HOME/.hermes/skills/software-development/skill-interop/SKILL.md"
 out3="$("$install_sh" --status --skill skill-interop --hermes-only 2>&1)" || fail "S3 status: $out3"
 printf '%s\n' "$out3" | grep -q 'state=foreign' || fail "S3 foreign: $out3"
-out3u="$("$install_sh" --uninstall --skill skill-interop --hermes-only 2>&1)" || fail "S3 uninstall: $out3u"
+set +e
+out3u="$("$install_sh" --uninstall --skill skill-interop --hermes-only 2>&1)"
+rc3u=$?
+set -e
+[[ "$rc3u" -eq 3 ]] || fail "S3 uninstall want exit 3 got $rc3u: $out3u"
 printf '%s\n' "$out3u" | grep -q 'Skipped uninstall (not owned)' || fail "S3 skip: $out3u"
 [[ -f "$HOME/.hermes/skills/software-development/skill-interop/SKILL.md" ]] || fail "S3 foreign deleted"
 [[ "$(cat "$HOME/.hermes/skills/software-development/skill-interop/SKILL.md")" == "foreign" ]] || fail "S3 content"
@@ -76,7 +80,11 @@ mkdir -p "$HOME/.claude/skills"
 ln -s "/nonexistent/wrong-target-s7" "$HOME/.claude/skills/skill-interop"
 out7="$("$install_sh" --status --skill skill-interop --claude-only 2>&1)" || fail "S7 status: $out7"
 printf '%s\n' "$out7" | grep -q 'state=symlink-wrong' || fail "S7 symlink-wrong: $out7"
-out7u="$("$install_sh" --uninstall --skill skill-interop --claude-only 2>&1)" || fail "S7 uninstall: $out7u"
+set +e
+out7u="$("$install_sh" --uninstall --skill skill-interop --claude-only 2>&1)"
+rc7u=$?
+set -e
+[[ "$rc7u" -eq 3 ]] || fail "S7 uninstall want exit 3 got $rc7u: $out7u"
 printf '%s\n' "$out7u" | grep -q 'Skipped uninstall (not owned)' || fail "S7 skip: $out7u"
 [[ -L "$HOME/.claude/skills/skill-interop" ]] || fail "S7 wrong symlink must remain"
 
@@ -116,10 +124,18 @@ marker_invalid_case() {
   out_st="$("$install_sh" --status --skill skill-interop --hermes-only 2>&1)" || fail "S$case_id status: $out_st"
   printf '%s\n' "$out_st" | grep -q 'state=foreign' || fail "S$case_id status foreign: $out_st"
 
-  out_in="$("$install_sh" --skill skill-interop --hermes-only 2>&1)" || fail "S$case_id install: $out_in"
+  set +e
+  out_in="$("$install_sh" --skill skill-interop --hermes-only 2>&1)"
+  rc_in=$?
+  set -e
+  [[ "$rc_in" -eq 3 ]] || fail "S$case_id install want exit 3 got $rc_in: $out_in"
   printf '%s\n' "$out_in" | grep -qi 'foreign\|Skipped' || fail "S$case_id install skip: $out_in"
 
-  out_un="$("$install_sh" --uninstall --skill skill-interop --hermes-only 2>&1)" || fail "S$case_id uninstall: $out_un"
+  set +e
+  out_un="$("$install_sh" --uninstall --skill skill-interop --hermes-only 2>&1)"
+  rc_un=$?
+  set -e
+  [[ "$rc_un" -eq 3 ]] || fail "S$case_id uninstall want exit 3 got $rc_un: $out_un"
   printf '%s\n' "$out_un" | grep -q 'Skipped uninstall (not owned)' || fail "S$case_id uninstall skip: $out_un"
 
   [[ -f "$dest/SKILL.md" ]] || fail "S$case_id dest deleted"
@@ -149,4 +165,14 @@ marker_invalid_case 12 '{"schema":2,"leaf":"skill-interop","mode":"symlink","sou
 # S13: non-canonical / wrong source path
 marker_invalid_case 13 '{"schema":2,"leaf":"skill-interop","mode":"copy","source":"/nonexistent/wrong/source/path","skill_version":""}' 'wrong source'
 
-printf 'install-status-uninstall.test.sh: PASS S1–S13\n'
+# S14: uninstall when absent → exit 4
+fresh_home s14
+set +e
+out14="$("$install_sh" --uninstall --skill skill-interop --claude-only 2>&1)"
+rc14=$?
+set -e
+[[ "$rc14" -eq 4 ]] || fail "S14 want exit 4 got $rc14: $out14"
+printf '%s\n' "$out14" | grep -q 'Already absent' || fail "S14 message: $out14"
+pass "S14 absent uninstall exit 4"
+
+printf 'install-status-uninstall.test.sh: PASS S1–S14\n'

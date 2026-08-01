@@ -122,5 +122,39 @@ cleanup_sample
 trap - EXIT
 cleanup_sample
 
-printf 'sync-plugin-views.test.sh: PASS (incl. internal deref + escape refuse)\n'
+
+# --- B1 dest-symlink tripwire (must not follow/delete through symlinked dest entry) ---
+sample_b1="_zz-sync-dest-symlink_"
+cleanup_b1() { rm -rf "skills/$sample_b1" "plugins/$sample_b1" "$root/.tmp-b1-home"; }
+trap 'cleanup_sample; cleanup_b1' EXIT
+cleanup_b1
+mkdir -p "skills/$sample_b1"
+printf -- '---\nname: %s\ndescription: sample\nversion: 0.0.1\nlicense: MIT\nplatforms:\n  - macos\nmetadata:\n  skill_craft:\n    kind: prompt-only\n---\n\n# sample\n' "$sample_b1" >"skills/$sample_b1/SKILL.md"
+printf 'safe-body\n' >"skills/$sample_b1/body.txt"
+# Pre-create plugin view with a symlinked path pointing outside (home fixture)
+mkdir -p "plugins/$sample_b1/skills/$sample_b1" "$root/.tmp-b1-home"
+printf 'DO-NOT-DELETE\n' >"$root/.tmp-b1-home/protected.txt"
+# place symlink as child of dest skill tree
+ln -s "$root/.tmp-b1-home" "plugins/$sample_b1/skills/$sample_b1/outside-link"
+# log rsync implementation
+if command -v rsync >/dev/null 2>&1; then
+  rsync --version 2>&1 | head -1 || true
+fi
+# Sync must succeed (overwrite tree via rm -rf dest then copy) OR fail closed — either way protected must remain
+set +e
+out_b1="$(bash scripts/sync-plugin-views.sh "$sample_b1" 2>&1)"
+rc_b1=$?
+set -e
+[[ -f "$root/.tmp-b1-home/protected.txt" ]] || fail "B1 protected target deleted via symlink (rc=$rc_b1 out=$out_b1)"
+[[ "$(cat "$root/.tmp-b1-home/protected.txt")" == "DO-NOT-DELETE" ]] || fail "B1 protected content changed"
+# After successful sync, outside-link should not remain as a live escape into home
+if [[ "$rc_b1" -eq 0 ]]; then
+  if [[ -L "plugins/$sample_b1/skills/$sample_b1/outside-link" ]]; then
+    fail "B1 residual outside-link symlink after sync"
+  fi
+fi
+pass_sync "dest-symlink tripwire (protected intact; rsync logged)"
+cleanup_b1
+
+printf 'sync-plugin-views.test.sh: PASS (incl. internal deref + escape refuse + B1)\n'
 exit 0

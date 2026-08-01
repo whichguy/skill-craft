@@ -152,7 +152,11 @@ fresh_home h8
 dest8="$(hermes_dest "$leaf")"
 mkdir -p "$dest8"
 printf 'sentinel\n' >"$dest8/SENTINEL"
-out8="$("$install_sh" --from "$pkg_abs" --hermes-only 2>&1)" || fail "H8 failed: $out8"
+set +e
+out8="$("$install_sh" --from "$pkg_abs" --hermes-only 2>&1)"
+rc8=$?
+set -e
+[[ "$rc8" -eq 3 ]] || fail "H8 want exit 3 got $rc8: $out8"
 printf '%s\n' "$out8" | grep -q 'Skipped (foreign)' || fail "H8 foreign: $out8"
 [[ -f "$dest8/SENTINEL" ]] || fail "H8 sentinel lost"
 [[ "$(cat "$dest8/SENTINEL")" == "sentinel" ]] || fail "H8 sentinel content"
@@ -284,4 +288,36 @@ grep -q '"outcome":"created"' "$rcpt" || fail "H17 created"
 grep -q '"action":"uninstall"' "$rcpt" || fail "H17 uninstall action"
 grep -q '"outcome":"removed"' "$rcpt" || fail "H17 removed"
 
-printf 'hermes-binding.test.sh: PASS H1–H17 (copy lifecycle, internal symlink deref, receipts)\n'
+
+# H18: src==dst refused
+fresh_home h18
+# Use --from with destination nested under a temp skill home is hard; instead call install with
+# HERMES skills dir equal to package source by installing into a path that is the source itself.
+# Build a tiny package under HOME and try --copy install with skills_dir parent == source (via --from into hermes using force).
+pkg18="$tmpdir/pkg18"
+mkdir -p "$pkg18"
+printf -- '---\nname: nest-test\ndescription: x\nversion: 0.0.1\nlicense: MIT\nplatforms: [macos]\nmetadata:\n  skill_craft:\n    kind: prompt-only\n---\n# n\n' >"$pkg18/SKILL.md"
+# Point Hermes software-development at a dir that contains the package as the leaf path equal to source:
+# destination = $HOME/.hermes/skills/software-development/nest-test
+# We cannot easily make source==dest with install.sh public API unless --from and we hack.
+# Nest: put source inside destination tree by pre-creating dest as parent of source — not valid for --from.
+# Instead: use --copy --claude-only with skills dir under source (containment).
+# Simpler unit: run bash function via sourcing is not exported.
+# Public path: install_hermes with destination nested under source:
+#   source=$tmpdir/srcleaf, create $tmpdir/srcleaf/nested-dest and... no.
+# Use install --from where we set HOME so hermes dest is under the package dir:
+mkdir -p "$pkg18/skills/software-development"
+# Impossible with normal layout. Call install.sh in a subshell with a wrapper:
+# Create source at $HOME/.hermes/skills/software-development/self and --from that path with hermes-only —
+# then destination is $HOME/.hermes/skills/software-development/self == source.
+self="$HOME/.hermes/skills/software-development/self"
+mkdir -p "$self"
+printf -- '---\nname: self\ndescription: x\nversion: 0.0.1\nlicense: MIT\nplatforms: [macos]\nmetadata:\n  skill_craft:\n    kind: prompt-only\n---\n# s\n' >"$self/SKILL.md"
+set +e
+out18="$("$install_sh" --from "$self" --hermes-only 2>&1)"
+rc18=$?
+set -e
+[[ "$rc18" -ne 0 ]] || fail "H18 want nonzero for src==dst: $out18"
+printf '%s\n' "$out18" | grep -qi 'same path\|nest\|Refused' || fail "H18 message: $out18"
+
+printf 'hermes-binding.test.sh: PASS H1–H18 (copy lifecycle, internal symlink deref, receipts)\n'

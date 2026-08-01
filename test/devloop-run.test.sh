@@ -66,4 +66,20 @@ grep -qi 'discovery' "$root/skills/devloop-run/SKILL.md" || fail "D4 discovery h
 [[ -d "$root/skills/devloop-run" ]]
 [[ ! -d "$root/skills/devloop" ]] || fail "D5 bare skills/devloop must not exist"
 
-printf 'devloop-run.test.sh: PASS D1–D5\n'
+# D6: --probe reports selection
+export DEVLOOP_HOME="$eng"
+out6="$("$run" --probe 2>&1)" || fail "D6 probe: $out6"
+printf '%s\n' "$out6" | grep -q 'selected\|engine=' || fail "D6 probe output: $out6"
+
+# D7: --strict with broken DEVLOOP_HOME does not fall back
+export DEVLOOP_HOME="$tmpdir/not-an-engine"
+mkdir -p "$HOME/.hermes/skills/software-development/devloop/scripts"
+printf 'print(1)\n' >"$HOME/.hermes/skills/software-development/devloop/scripts/devloop_cli.py"
+set +e
+out7="$("$run" --strict hi 2>&1)"
+rc7=$?
+set -e
+[[ "$rc7" -eq 2 ]] || fail "D7 strict want 2 got $rc7: $out7"
+printf '%s\n' "$out7" | grep -qi 'strict\|invalid' || fail "D7 message: $out7"
+
+printf 'devloop-run.test.sh: PASS D1–D7\n'

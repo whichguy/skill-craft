@@ -48,11 +48,23 @@ usage() {
   printf 'Foreign real directories are never overwritten or uninstalled.\n' >&2
   printf 'With --relink, only wrong or dangling symlinks are replaced.\n' >&2
   printf 'Hermes managed copies are refreshed on re-run; foreign trees are skipped.\n' >&2
+  printf '\n' >&2
+  printf 'Exit codes:\n' >&2
+  printf '  0  success (all requested actions completed without refusal)\n' >&2
+  printf '  2  needs human / binding incomplete (reserved; engines)\n' >&2
+  printf '  3  foreign-refused (install/uninstall hit unowned path)\n' >&2
+  printf '  4  absent (uninstall: nothing owned present)\n' >&2
+  printf '  8  drift-blocked (reserved for drift-aware uninstall)\n' >&2
+  printf '  64 usage / flag error\n' >&2
 }
 
 # Safe skill leaf: all|both (special = every skills/*) OR ^[a-z0-9]([a-z0-9-]*[a-z0-9])?$ length 2–64
 is_safe_skill_name() {
   local name="$1"
+  # Reserved: live Hermes engine leaf is "devloop"; skill-craft card is "devloop-run".
+  if [[ "$name" == "devloop" ]]; then
+    return 1
+  fi
   if [[ "$name" == "all" || "$name" == "both" ]]; then
     return 0
   fi
@@ -107,6 +119,16 @@ relink=0
 force_mode=""
 # action: install | status | uninstall
 action="install"
+
+# Aggregate process exit (highest code wins). 0=ok 3=foreign-refused 4=absent 8=drift 64=usage
+worst_exit=0
+note_exit() {
+  local c="${1:-0}"
+  [[ "$c" =~ ^[0-9]+$ ]] || return 0
+  if [[ "$c" -gt "$worst_exit" ]]; then
+    worst_exit="$c"
+  fi
+}
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -447,6 +469,46 @@ copy_package_to_stage() {
   fi
 }
 
+
+# Refuse copy when source and destination are the same tree or nest either way.
+refuse_src_dst_nesting() {
+  local source_dir="$1"
+  local destination="$2"
+  local label="$3"
+  local src_r dst_r
+  src_r="$(cd "$source_dir" && pwd -P)"
+  # destination may not exist yet — resolve parent + basename
+  if [[ -e "$destination" || -L "$destination" ]]; then
+    dst_r="$(cd "$(dirname "$destination")" && pwd -P)/$(basename "$destination")"
+    if [[ -d "$destination" && ! -L "$destination" ]]; then
+      dst_r="$(cd "$destination" && pwd -P)"
+    fi
+  else
+    local parent
+    parent="$(dirname "$destination")"
+    if [[ -d "$parent" ]]; then
+      dst_r="$(cd "$parent" && pwd -P)/$(basename "$destination")"
+    else
+      # Do not create parents (dry-run / absent dest); compare absolute-ish paths
+      if [[ "$parent" == /* ]]; then
+        dst_r="$destination"
+      else
+        dst_r="$(pwd -P)/$destination"
+      fi
+    fi
+  fi
+  if [[ "$src_r" == "$dst_r" ]]; then
+    printf 'Refused (%s): source and destination are the same path\n  source=%s\n  dest=%s\n' \
+      "$label" "$src_r" "$dst_r" >&2
+    exit 1
+  fi
+  if [[ "$dst_r" == "$src_r"/* || "$src_r" == "$dst_r"/* ]]; then
+    printf 'Refused (%s): source and destination nest (containment)\n  source=%s\n  dest=%s\n' \
+      "$label" "$src_r" "$dst_r" >&2
+    exit 1
+  fi
+}
+
 # Atomic materialize: stage under .skill-craft, swap into destination, write marker.
 materialize_hermes_copy() {
   local label="$1"
@@ -475,14 +537,16 @@ materialize_hermes_copy() {
   # Best-effort cleanup if we die mid-swap (trap path is absolute).
   trap "rm -rf \"$stage\" \"$old\" 2>/dev/null || true" EXIT
 
+  refuse_src_dst_nesting "$source_dir" "$destination" "$label"
   copy_package_to_stage "$source_dir" "$stage" "$label"
 
   if [[ -e "$destination" || -L "$destination" ]]; then
     mv "$destination" "$old"
   fi
   mv "$stage" "$destination"
-  write_hermes_marker "$marker" "$leaf" "$source_dir"
+  # Order: tree ready → receipt → marker last (ownership only after durable tree)
   append_receipt "$skills_dir" "$receipt_action" "$leaf" "copy" "$source_dir" "$receipt_outcome"
+  write_hermes_marker "$marker" "$leaf" "$source_dir"
   rm -rf "$old"
 
   trap - EXIT
@@ -508,7 +572,9 @@ materialize_hermes_copy() {
   # Hint only when installing into real ~/.hermes that is a git work tree.
   if [[ "$skills_dir" == "$HOME/.hermes/skills/software-development" ]] \
     && git -C "$HOME/.hermes" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-    printf 'Hint: add '\''skills/software-development/%s/'\'' to ~/.hermes/.gitignore (skill-craft materializations are local, not synced).\n' "$leaf"
+    printf 'Operator cleanup (install never writes ~/.hermes/.gitignore):\n' >&2
+    printf '  git -C ~/.hermes rm -r --cached --ignore-unmatch skills/software-development/%s skills/software-development/.skill-craft\n' "$leaf" >&2
+    printf '  Then gitignore: skills/software-development/%s/ and skills/software-development/.skill-craft/\n' "$leaf" >&2
   fi
 }
 
@@ -527,6 +593,8 @@ install_hermes_copy() {
     printf 'Skill source is missing (%s): %s\n' "$label" "$source_dir/SKILL.md" >&2
     exit 1
   fi
+  # Always refuse identity/nesting (before foreign skip) so src==dst is not silent foreign.
+  refuse_src_dst_nesting "$source_dir" "$destination" "$label"
 
   # --- Absent ---
   if [[ ! -e "$destination" && ! -L "$destination" ]]; then
@@ -580,11 +648,13 @@ install_hermes_copy() {
     fi
     # Foreign real tree (no marker or marker-invalid) — never touch.
     printf 'Skipped (foreign) (%s): %s\n' "$label" "$destination"
+    note_exit 3
     return 0
   fi
 
   # Real non-directory file — treat as foreign skip.
   printf 'Skipped (foreign) (%s): %s\n' "$label" "$destination"
+  note_exit 3
   return 0
 }
 
@@ -784,6 +854,7 @@ uninstall_one() {
   case "$state" in
     absent)
       printf 'Already absent (%s): %s\n' "$label" "$destination"
+      note_exit 4
       return 0
       ;;
     symlink-owned)
@@ -809,10 +880,12 @@ uninstall_one() {
       ;;
     foreign|foreign-file|symlink-wrong)
       printf 'Skipped uninstall (not owned) (%s): %s  state=%s\n' "$label" "$destination" "$state"
+      note_exit 3
       return 0
       ;;
     *)
       printf 'Skipped uninstall (unknown state) (%s): %s  state=%s\n' "$label" "$destination" "$state" >&2
+      note_exit 3
       return 0
       ;;
   esac
@@ -915,3 +988,5 @@ for pair in "${install_pairs[@]}"; do
       ;;
   esac
 done
+
+exit "$worst_exit"

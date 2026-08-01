@@ -169,6 +169,39 @@ tag — e.g. `lennox-s40`). After a packaging release, retarget catalog refs/tag
 marketplace consumers pick up derived `plugin.json` versions.
 
 
+
+## Exit codes (`install.sh`)
+
+| Code | Meaning |
+|------|---------|
+| 0 | Success (no refusals) |
+| 2 | Needs human / binding incomplete (reserved; used by engine cards) |
+| 3 | **Foreign-refused** — install or uninstall hit an unowned path |
+| 4 | **Absent** — uninstall found nothing owned |
+| 8 | **Drift-blocked** (reserved for drift-aware uninstall) |
+| 64 | Usage / flag error |
+
+Foreign trees are never clobbered; refusals are **nonzero** so automation cannot treat a skip as success.
+
+## Residual / quality review discipline
+
+Hermetic residual×2 and similar loops should run in a **detached git worktree** at a pinned SHA (not a dirty shared checkout). Capture suite status mechanically:
+
+```bash
+set -o pipefail
+bash test/run-all.sh 2>&1 | tee run-all.log
+echo "EXIT=${PIPESTATUS[0]}" | tee -a run-all.log
+```
+
+A cycle may not claim PASS without a trailing `EXIT=0` line (or attributed non-packaging failures only).
+
+## Reserved leaf names
+
+| Leaf | Role |
+|------|------|
+| `devloop` | **Reserved** — live Hermes engine under skillhub (`software-development/devloop`). Must not appear as `skills/devloop` in skill-craft. |
+| `devloop-run` | skill-craft discovery/preflight **card** only (does not vendor the engine). |
+
 ## Related files
 
 - Install: `install.sh`, `skills/skill-interop/references/host-paths.md`

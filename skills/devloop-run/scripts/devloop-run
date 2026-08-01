@@ -5,42 +5,58 @@ set -euo pipefail
 
 usage() {
   cat <<'EOF'
-Usage: devloop-run [--] [devloop_cli args...]
+Usage: devloop-run [--probe|--strict] [--] [devloop_cli args...]
 
 Resolve the installed devloop engine and run scripts/devloop_cli.py.
 Does not invent multi-host transport. Exit 2 if engine cannot be resolved.
 
+Flags:
+  --probe    Print candidate paths and selection; do not exec (exit 0 if found, 2 if not)
+  --strict   If DEVLOOP_HOME is set but invalid, exit 2 without searching fallbacks
+
 Environment:
   DEVLOOP_HOME   Absolute path to engine package (directory with scripts/devloop_cli.py)
   HERMES_HOME    Hermes data root (default search: $HERMES_HOME/skills/software-development/devloop)
+
+Leaf name: this card is "devloop-run". The live engine leaf is "devloop" (Hermes skillhub).
 EOF
 }
 
-if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
-  usage
-  exit 0
-fi
-if [[ "${1:-}" == "--" ]]; then
-  shift
-fi
+strict=0
+probe=0
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -h|--help) usage; exit 0 ;;
+    --strict) strict=1; shift ;;
+    --probe) probe=1; shift ;;
+    --) shift; break ;;
+    *) break ;;
+  esac
+done
 
 is_engine_root() {
   local d="$1"
   [[ -n "$d" && -d "$d" && -f "$d/scripts/devloop_cli.py" ]]
 }
 
+# Print probe lines to stderr; selected path on stdout when found.
 resolve_engine() {
   local cand
+  local -a cands=()
   if [[ -n "${DEVLOOP_HOME:-}" ]]; then
     cand="${DEVLOOP_HOME}"
     if is_engine_root "$cand"; then
+      printf 'probe: DEVLOOP_HOME=%s -> selected\n' "$cand" >&2
       printf '%s\n' "$(cd "$cand" && pwd -P)"
       return 0
     fi
-    printf 'devloop-run: DEVLOOP_HOME set but invalid engine root: %s\n' "$cand" >&2
-    return 1
+    printf 'probe: DEVLOOP_HOME=%s -> invalid (missing scripts/devloop_cli.py)\n' "$cand" >&2
+    if [[ "$strict" -eq 1 ]]; then
+      printf 'devloop-run: DEVLOOP_HOME set but invalid engine root (strict): %s\n' "$cand" >&2
+      return 1
+    fi
+    printf 'probe: falling back to search paths (use --strict to disable)\n' >&2
   fi
-  local -a cands=()
   if [[ -n "${HERMES_HOME:-}" ]]; then
     cands+=("${HERMES_HOME}/skills/software-development/devloop")
   fi
@@ -48,9 +64,11 @@ resolve_engine() {
   cands+=("/opt/data/skills/software-development/devloop")
   for cand in "${cands[@]}"; do
     if is_engine_root "$cand"; then
+      printf 'probe: %s -> selected\n' "$cand" >&2
       printf '%s\n' "$(cd "$cand" && pwd -P)"
       return 0
     fi
+    printf 'probe: %s -> missing\n' "$cand" >&2
   done
   return 1
 }
@@ -62,6 +80,11 @@ if ! engine_root="$(resolve_engine)"; then
   printf 'Tried: DEVLOOP_HOME, $HERMES_HOME/skills/software-development/devloop,\n' >&2
   printf '  ~/.hermes/skills/software-development/devloop, /opt/data/skills/software-development/devloop\n' >&2
   exit 2
+fi
+
+if [[ "$probe" -eq 1 ]]; then
+  printf 'devloop-run: engine=%s\n' "$engine_root"
+  exit 0
 fi
 
 cli="$engine_root/scripts/devloop_cli.py"
