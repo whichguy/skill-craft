@@ -51,7 +51,7 @@ required for this skill to work.
 The static `/goal` logic is byte-exact:
 
 ```text
-/goal quality review changes and consider improvements, anchoring each spec item in code changes and verify use cases/corner cases, git commit between each iteration, complete when only trivial changes remain for 2 consecutive cycles
+/goal quality review changes and consider improvements, review the last 10 git commit messages for learnings, anchoring each spec item in code changes and verify use cases/corner cases, git commit between each iteration with a verbose message with key learnings, complete when only trivial changes remain for 2 consecutive cycles
 ```
 
 ### Nesting
@@ -113,7 +113,7 @@ Heading must be level-2 `## Review Coverage` (not `#` / `###`).
    max-budget before unattended work. **Do not paraphrase** its static sentence:
 
    ```text
-   /goal quality review changes and consider improvements, anchoring each spec item in code changes and verify use cases/corner cases, git commit between each iteration, complete when only trivial changes remain for 2 consecutive cycles
+   /goal quality review changes and consider improvements, review the last 10 git commit messages for learnings, anchoring each spec item in code changes and verify use cases/corner cases, git commit between each iteration with a verbose message with key learnings, complete when only trivial changes remain for 2 consecutive cycles
    ```
 
 5. Run exactly one inner `/review-converge` per outer turn. The section’s exit
