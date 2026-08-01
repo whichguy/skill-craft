@@ -15,6 +15,7 @@ SHORT_TEMPLATE = REF_DIR / "review_coverage.short.md"
 STATIC_GOAL_LOGIC = (
     "quality review changes and consider improvements, "
     "anchoring each spec item in code changes and verify use cases/corner cases, "
+    "git commit between each iteration, "
     "complete when only trivial changes remain for 2 consecutive cycles"
 )
 
