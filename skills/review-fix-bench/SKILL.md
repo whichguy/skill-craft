@@ -3,6 +3,14 @@ name: review-fix-bench
 description: A/B benchmarking skill for code reviewer agent prompts. Runs two versions of a reviewer agent against fixture ground truth using an LLM judge for semantic evaluation, then compares precision/recall/F1 metrics side-by-side. Defaults to comparing current agent vs git HEAD~1. Reports IMPROVED / REGRESSED / NEUTRAL verdict on F1.
 argument-hint: "[--candidate <path>] [--agent <name>] [--judge <path>] [--fixtures <dir>] [--runs N] [--label-a NAME] [--label-b NAME]"
 allowed-tools: Bash, Read, Glob, Grep, TaskCreate, TaskGet, TaskOutput, TaskStop
+version: 0.1.0
+license: MIT
+platforms:
+  - linux
+  - macos
+metadata:
+  skill_craft:
+    kind: prompt-only
 ---
 
 > **skill-craft port** of a claude-craft suite skill. Host-neutral: use repo-root search instead of Claude plugin paths. SoT: whichguy/skill-craft `skills/review-fix-bench/`.

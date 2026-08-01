@@ -4,7 +4,8 @@ set -euo pipefail
 usage() {
   printf 'Usage: %s [flags]\n' "${0##*/}" >&2
   printf '\n' >&2
-  printf 'Install skill package(s) via symlink(s) into local skill homes.\n' >&2
+  printf 'Install skill package(s) into local skill homes.\n' >&2
+  printf 'Claude/Grok/Codex: symlink. Hermes: materialized copy (default).\n' >&2
   printf 'Optionally install thin agent cards (Claude + Grok only).\n' >&2
   printf '\n' >&2
   printf 'Flags:\n' >&2
@@ -17,17 +18,20 @@ usage() {
   printf '  --agents              # also symlink agents/<leaf>.md for Claude/Grok\n' >&2
   printf '  --relink | --force    # replace wrong/dangling skill or agent symlinks\n' >&2
   printf '                        # (never clobbers a real file/directory)\n' >&2
+  printf '  --copy                # force copy mode for all hosts (Hermes default)\n' >&2
+  printf '  --symlink             # force symlink mode for all hosts (overrides Hermes copy)\n' >&2
   printf '  --dry-run             # print actions only, no writes\n' >&2
   printf '\n' >&2
   printf 'Default (no host flags): install ALL four hosts.\n' >&2
   printf 'Default (no --skill/--from): install every skills/<leaf> with SKILL.md.\n' >&2
   printf '\n' >&2
   printf 'Skill destinations (per skill leaf):\n' >&2
-  printf '  Claude:  ~/.claude/skills/<leaf>\n' >&2
-  printf '  Grok:    ~/.grok/skills/<leaf>\n' >&2
-  printf '  Codex:   ~/.codex/skills/<leaf>\n' >&2
-  printf '  Hermes:  ~/.hermes/skills/software-development/<leaf>\n' >&2
+  printf '  Claude:  ~/.claude/skills/<leaf>  (symlink)\n' >&2
+  printf '  Grok:    ~/.grok/skills/<leaf>  (symlink)\n' >&2
+  printf '  Codex:   ~/.codex/skills/<leaf>  (symlink)\n' >&2
+  printf '  Hermes:  ~/.hermes/skills/software-development/<leaf>  (copy)\n' >&2
   printf '           (container bind: /opt/data/skills/software-development/<leaf>)\n' >&2
+  printf '           Provenance: ~/.hermes/skills/software-development/.skill-craft/<leaf>.json\n' >&2
   printf '\n' >&2
   printf 'Agent destinations (only with --agents; Claude + Grok):\n' >&2
   printf '  Claude:  ~/.claude/agents/<leaf>.md\n' >&2
@@ -35,8 +39,9 @@ usage() {
   printf '  Codex/Hermes: skipped (no agent install)\n' >&2
   printf '\n' >&2
   printf 'Sources: skills/<name> under this repo, or --from DIR.\n' >&2
-  printf 'Real file/directory destinations are never overwritten (even with --relink).\n' >&2
+  printf 'Foreign real directories are never overwritten (even with --relink).\n' >&2
   printf 'With --relink, only wrong or dangling symlinks are replaced.\n' >&2
+  printf 'Hermes managed copies are refreshed on re-run; foreign trees are skipped.\n' >&2
 }
 
 # Safe skill leaf: all|both (special = every skills/*) OR ^[a-z0-9]([a-z0-9-]*[a-z0-9])?$ length 2–64
@@ -92,6 +97,8 @@ from_flag_set=0
 install_agents=0
 dry_run=0
 relink=0
+# force_mode: "" | copy | symlink — empty means host defaults (Hermes=copy, others=symlink)
+force_mode=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -161,6 +168,14 @@ while [[ $# -gt 0 ]]; do
       relink=1
       shift
       ;;
+    --copy)
+      force_mode="copy"
+      shift
+      ;;
+    --symlink)
+      force_mode="symlink"
+      shift
+      ;;
     --dry-run)
       dry_run=1
       shift
@@ -187,7 +202,7 @@ if [[ "$host_flag_set" -eq 0 ]]; then
 fi
 
 # install_one LABEL SKILLS_DIR LEAF SOURCE_DIR
-# Creates SKILLS_DIR/LEAF -> SOURCE_DIR when missing.
+# Creates SKILLS_DIR/LEAF -> SOURCE_DIR when missing (symlink mode).
 # Skip-if-exists: never replace a foreign real path; report already-correct symlink.
 # With --relink: replace wrong/dangling symlinks only (never clobber real trees).
 install_one() {
@@ -232,6 +247,168 @@ install_one() {
   mkdir -p "$skills_dir"
   ln -s "$source_dir" "$destination"
   printf 'Installed (%s): %s -> %s\n' "$label" "$destination" "$source_dir"
+}
+
+# Provenance marker path (outside the leaf so diff -rq source dest stays exact).
+hermes_marker_path() {
+  local skills_dir="$1"
+  local leaf="$2"
+  printf '%s/.skill-craft/%s.json\n' "$skills_dir" "$leaf"
+}
+
+write_hermes_marker() {
+  local marker="$1"
+  local leaf="$2"
+  local source_dir="$3"
+  mkdir -p "$(dirname "$marker")"
+  # Stable key order; no timestamps (byte-identical on unchanged reinstall).
+  printf '{"schema":1,"leaf":"%s","mode":"copy","source":"%s"}\n' "$leaf" "$source_dir" >"$marker"
+}
+
+# Refuse packages with any symlink (self-containment for bind-mounted Hermes).
+assert_no_source_symlinks() {
+  local source_dir="$1"
+  local label="$2"
+  local hit
+  hit="$(find "$source_dir" -type l 2>/dev/null | head -n 1 || true)"
+  if [[ -n "$hit" ]]; then
+    printf 'Hermes copy refused (%s): source contains symlink: %s\n' "$label" "$hit" >&2
+    printf 'Packages installed as materializations must be self-contained (no symlinks).\n' >&2
+    exit 1
+  fi
+}
+
+# Atomic materialize: stage under .skill-craft, swap into destination, write marker.
+materialize_hermes_copy() {
+  local label="$1"
+  local skills_dir="$2"
+  local leaf="$3"
+  local source_dir="$4"
+  local destination="$5"
+  local marker="$6"
+  local verb="$7" # Installed | Updated | Migrated | Relinked
+  local craft_dir="$skills_dir/.skill-craft"
+  local stage="$craft_dir/.tmp-${leaf}.$$"
+  local old="$craft_dir/.old-${leaf}.$$"
+
+  assert_no_source_symlinks "$source_dir" "$label"
+
+  mkdir -p "$craft_dir"
+  rm -rf "$stage" "$old"
+
+  # Best-effort cleanup if we die mid-swap (trap path is absolute).
+  trap "rm -rf \"$stage\" \"$old\" 2>/dev/null || true" EXIT
+
+  cp -R "$source_dir" "$stage"
+  rm -rf "$stage/.skill-craft" 2>/dev/null || true
+
+  if [[ -e "$destination" || -L "$destination" ]]; then
+    mv "$destination" "$old"
+  fi
+  mv "$stage" "$destination"
+  write_hermes_marker "$marker" "$leaf" "$source_dir"
+  rm -rf "$old"
+
+  trap - EXIT
+
+  case "$verb" in
+    Installed)
+      printf 'Installed (%s): %s (copy)\n' "$label" "$destination"
+      ;;
+    Updated)
+      printf 'Updated (%s): %s\n' "$label" "$destination"
+      ;;
+    Migrated)
+      printf 'Migrated to copy (%s): %s\n' "$label" "$destination"
+      ;;
+    Relinked)
+      printf 'Relinked (%s): %s (copy)\n' "$label" "$destination"
+      ;;
+    *)
+      printf 'Installed (%s): %s (copy)\n' "$label" "$destination"
+      ;;
+  esac
+
+  # Hint only when installing into real ~/.hermes that is a git work tree.
+  if [[ "$skills_dir" == "$HOME/.hermes/skills/software-development" ]] \
+    && git -C "$HOME/.hermes" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    printf 'Hint: add '\''skills/software-development/%s/'\'' to ~/.hermes/.gitignore (skill-craft materializations are local, not synced).\n' "$leaf"
+  fi
+}
+
+# install_hermes_copy LABEL SKILLS_DIR LEAF SOURCE_DIR
+# Materialized copy for Hermes (or --copy override). Marker-backed lifecycle.
+install_hermes_copy() {
+  local label="$1"
+  local skills_dir="$2"
+  local leaf="$3"
+  local source_dir="$4"
+  local destination="$skills_dir/$leaf"
+  local marker
+  marker="$(hermes_marker_path "$skills_dir" "$leaf")"
+
+  if [[ ! -f "$source_dir/SKILL.md" ]]; then
+    printf 'Skill source is missing (%s): %s\n' "$label" "$source_dir/SKILL.md" >&2
+    exit 1
+  fi
+
+  # --- Absent ---
+  if [[ ! -e "$destination" && ! -L "$destination" ]]; then
+    if [[ "$dry_run" -eq 1 ]]; then
+      printf 'Would install (%s): %s (copy)\n' "$label" "$destination"
+      return 0
+    fi
+    materialize_hermes_copy "$label" "$skills_dir" "$leaf" "$source_dir" "$destination" "$marker" "Installed"
+    return 0
+  fi
+
+  # --- Legacy exact symlink → auto-migrate ---
+  if [[ -L "$destination" && "$(readlink "$destination")" == "$source_dir" ]]; then
+    if [[ "$dry_run" -eq 1 ]]; then
+      printf 'Would migrate to copy (%s): %s\n' "$label" "$destination"
+      return 0
+    fi
+    materialize_hermes_copy "$label" "$skills_dir" "$leaf" "$source_dir" "$destination" "$marker" "Migrated"
+    return 0
+  fi
+
+  # --- Wrong or dangling symlink ---
+  if [[ -L "$destination" ]]; then
+    if [[ "$relink" -eq 1 ]]; then
+      if [[ "$dry_run" -eq 1 ]]; then
+        printf 'Would relink (%s): %s (copy)\n' "$label" "$destination"
+        return 0
+      fi
+      materialize_hermes_copy "$label" "$skills_dir" "$leaf" "$source_dir" "$destination" "$marker" "Relinked"
+      return 0
+    fi
+    printf 'Skipped existing path (not replacing it) (%s): %s\n' "$label" "$destination"
+    return 0
+  fi
+
+  # --- Real directory ---
+  if [[ -d "$destination" ]]; then
+    if [[ -f "$marker" ]]; then
+      # Managed copy: refresh if drifted.
+      if diff -rq "$source_dir" "$destination" >/dev/null 2>&1; then
+        printf 'Already installed (up to date) (%s): %s\n' "$label" "$destination"
+        return 0
+      fi
+      if [[ "$dry_run" -eq 1 ]]; then
+        printf 'Would update (%s): %s\n' "$label" "$destination"
+        return 0
+      fi
+      materialize_hermes_copy "$label" "$skills_dir" "$leaf" "$source_dir" "$destination" "$marker" "Updated"
+      return 0
+    fi
+    # Foreign real tree — never touch.
+    printf 'Skipped (foreign) (%s): %s\n' "$label" "$destination"
+    return 0
+  fi
+
+  # Real non-directory file — treat as foreign skip.
+  printf 'Skipped (foreign) (%s): %s\n' "$label" "$destination"
+  return 0
 }
 
 # install_agent_one LABEL AGENTS_DIR LEAF SOURCE_FILE
@@ -279,23 +456,52 @@ install_agent_one() {
   printf 'Installed (%s): %s -> %s\n' "$label" "$destination" "$source_file"
 }
 
+# Host default: Hermes=copy, others=symlink. --copy / --symlink overrides all hosts.
+host_uses_copy() {
+  local host="$1" # claude|grok|codex|hermes
+  if [[ "$force_mode" == "copy" ]]; then
+    return 0
+  fi
+  if [[ "$force_mode" == "symlink" ]]; then
+    return 1
+  fi
+  [[ "$host" == "hermes" ]]
+}
+
 install_skill_to_hosts() {
   local leaf="$1"
   local source_dir="$2"
 
   if [[ "$install_claude" -eq 1 ]]; then
-    install_one "Claude Code / $leaf" "$HOME/.claude/skills" "$leaf" "$source_dir"
+    if host_uses_copy claude; then
+      install_hermes_copy "Claude Code / $leaf" "$HOME/.claude/skills" "$leaf" "$source_dir"
+    else
+      install_one "Claude Code / $leaf" "$HOME/.claude/skills" "$leaf" "$source_dir"
+    fi
   fi
   if [[ "$install_grok" -eq 1 ]]; then
-    install_one "Grok / $leaf" "$HOME/.grok/skills" "$leaf" "$source_dir"
+    if host_uses_copy grok; then
+      install_hermes_copy "Grok / $leaf" "$HOME/.grok/skills" "$leaf" "$source_dir"
+    else
+      install_one "Grok / $leaf" "$HOME/.grok/skills" "$leaf" "$source_dir"
+    fi
   fi
   if [[ "$install_codex" -eq 1 ]]; then
-    install_one "Codex / $leaf" "$HOME/.codex/skills" "$leaf" "$source_dir"
+    if host_uses_copy codex; then
+      install_hermes_copy "Codex / $leaf" "$HOME/.codex/skills" "$leaf" "$source_dir"
+    else
+      install_one "Codex / $leaf" "$HOME/.codex/skills" "$leaf" "$source_dir"
+    fi
   fi
   if [[ "$install_hermes" -eq 1 ]]; then
-    # Peer layout for software-development skills under Hermes skillhub / user-local hub.
-    # Host path ~/.hermes is typically bind-mounted to /opt/data in the hermes container.
-    install_one "Hermes skillhub / $leaf" "$HOME/.hermes/skills/software-development" "$leaf" "$source_dir"
+    # Peer layout under Hermes skillhub. Host ~/.hermes is typically bind-mounted
+    # to /opt/data in the hermes container — abs-symlinks to host checkouts break.
+    # Default: materialize a managed copy with provenance under .skill-craft/.
+    if host_uses_copy hermes; then
+      install_hermes_copy "Hermes skillhub / $leaf" "$HOME/.hermes/skills/software-development" "$leaf" "$source_dir"
+    else
+      install_one "Hermes skillhub / $leaf" "$HOME/.hermes/skills/software-development" "$leaf" "$source_dir"
+    fi
   fi
 }
 

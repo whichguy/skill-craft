@@ -12,6 +12,14 @@ description: |
   NOT for: Running existing tests (use `npm test`)
 argument-hint: "[file-path or function-name]"
 allowed-tools: all
+version: 0.1.0
+license: MIT
+platforms:
+  - linux
+  - macos
+metadata:
+  skill_craft:
+    kind: prompt-only
 ---
 
 > **skill-craft port** of a claude-craft suite skill. Host-neutral: use repo-root search instead of Claude plugin paths. SoT: whichguy/skill-craft `skills/plan-test/`.

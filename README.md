@@ -3,6 +3,8 @@
 **Host-neutral portable skills monorepo.** Skills live under `skills/<leaf>/` and install into
 Claude, Grok, Codex, and Hermes skill directories via `install.sh`.
 
+Architecture (layers, binding, install honesty): [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+
 This is **not** [claude-craft](https://github.com/whichguy/claude-craft).
 
 | Repo | Role |
@@ -49,8 +51,9 @@ Port inventory: [docs/PORT.md](docs/PORT.md). After editing any skill body, run:
 
 ## Install (`install.sh`)
 
-Symlinks `skills/<leaf>` into local skill homes. Never overwrites a real file/directory.
-Wrong/dangling symlinks are only replaced with `--relink`.
+Installs `skills/<leaf>` into local skill homes. Claude/Grok/Codex get **symlinks**.
+Hermes gets a **materialized copy** (refreshable managed install; foreign real trees skipped).
+Never clobbers a foreign real file/directory. Wrong/dangling symlinks are only replaced with `--relink`.
 
 ```sh
 ./install.sh                         # all hosts, every skills/<leaf>
@@ -63,17 +66,20 @@ Wrong/dangling symlinks are only replaced with `--relink`.
 ./install.sh --codex-only
 ./install.sh --hermes-only
 ./install.sh --relink                # fix wrong/dangling symlinks
+./install.sh --copy                  # force copy mode (all hosts)
+./install.sh --symlink               # force symlink (overrides Hermes copy default)
 ./install.sh --dry-run               # print actions only
 ```
 
-| Host | Destination |
-|------|-------------|
-| Claude Code | `~/.claude/skills/<leaf>` |
-| Grok | `~/.grok/skills/<leaf>` |
-| Codex | `~/.codex/skills/<leaf>` |
-| Hermes | `~/.hermes/skills/software-development/<leaf>` |
+| Host | Destination | Mode |
+|------|-------------|------|
+| Claude Code | `~/.claude/skills/<leaf>` | symlink |
+| Grok | `~/.grok/skills/<leaf>` | symlink |
+| Codex | `~/.codex/skills/<leaf>` | symlink |
+| Hermes | `~/.hermes/skills/software-development/<leaf>` | **copy** (+ `.skill-craft/<leaf>.json` marker) |
 
 With `--agents`: `~/.claude/agents/<leaf>.md` and `~/.grok/agents/<leaf>.md` when present.
+Re-running install refreshes managed Hermes copies; foreign Hermes trees print `Skipped (foreign)`.
 
 ## Marketplace pins (sibling repo)
 

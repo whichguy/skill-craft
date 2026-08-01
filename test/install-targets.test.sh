@@ -25,13 +25,26 @@ assert_absent() {
   [[ ! -e "$path" && ! -L "$path" ]] || fail "expected absent: $path"
 }
 
+assert_hermes_copy() {
+  local leaf="$1"
+  local source="$2"
+  local dest="$HOME/.hermes/skills/software-development/$leaf"
+  local marker="$HOME/.hermes/skills/software-development/.skill-craft/$leaf.json"
+  [[ -d "$dest" ]] || fail "expected Hermes real directory at $dest"
+  [[ ! -L "$dest" ]] || fail "Hermes dest must not be a symlink: $dest"
+  [[ -f "$dest/SKILL.md" ]] || fail "Hermes copy missing SKILL.md at $dest"
+  [[ -f "$marker" ]] || fail "Hermes provenance marker missing: $marker"
+  grep -q '"mode":"copy"' "$marker" || fail "marker missing mode=copy: $marker"
+  diff -rq "$source" "$dest" >/dev/null || fail "Hermes copy differs from source: $dest"
+}
+
 assert_all_hosts() {
   local leaf="$1"
   local source="$2"
   assert_symlink "$HOME/.claude/skills/$leaf" "$source"
   assert_symlink "$HOME/.grok/skills/$leaf" "$source"
   assert_symlink "$HOME/.codex/skills/$leaf" "$source"
-  assert_symlink "$HOME/.hermes/skills/software-development/$leaf" "$source"
+  assert_hermes_copy "$leaf" "$source"
 }
 
 assert_no_hosts() {
@@ -131,11 +144,12 @@ assert_absent "$HOME/.grok/skills/skill-interop"
 assert_absent "$HOME/.hermes/skills/software-development/skill-interop"
 
 # ---------------------------------------------------------------------------
-# I9: --hermes-only
+# I9: --hermes-only → materialized copy (not symlink)
 # ---------------------------------------------------------------------------
 fresh_home i9
 out9="$("$install_sh" --hermes-only --skill skill-interop 2>&1)" || fail "I9 failed: $out9"
-assert_symlink "$HOME/.hermes/skills/software-development/skill-interop" "$source_interop"
+assert_hermes_copy "skill-interop" "$source_interop"
+printf '%s\n' "$out9" | grep -q '(copy)' || fail "I9 should report copy install: $out9"
 assert_absent "$HOME/.claude/skills/skill-interop"
 assert_absent "$HOME/.grok/skills/skill-interop"
 assert_absent "$HOME/.codex/skills/skill-interop"

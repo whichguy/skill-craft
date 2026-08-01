@@ -1,0 +1,15 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  hermetic:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Hermetic suite
+        run: bash test/run-all.sh
+      - name: Plugin views in sync
+        run: bash scripts/sync-plugin-views.sh --check

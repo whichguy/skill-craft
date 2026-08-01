@@ -8,3 +8,6 @@
 6. **Scripts re-author policy** — shell reimplements planning rules instead of filling prompt placeholders.  
 7. **Overclaim** — chat JSON called “validated” / “EVSI” without packaging or EVSI backend.  
 8. **Silent empty** — zero work reported as “nothing to do” without `considered`/`kept` or error.  
+9. **Discovery as execution** — skill-dir or plugin install on N hosts claimed as multi-host **runtime** for an engine that only works with one transport (e.g. Hermes-only).  
+10. **Unprovenanced materialization** — real tree under a skill home claimed as “installed by skill-craft” without a managed provenance marker (or equivalent).  
+11. **Symlinks inside a copy-installed package** — package-internal links that escape package root or point at host-only paths after materialization.  

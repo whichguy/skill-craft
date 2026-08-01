@@ -1,6 +1,14 @@
 ---
 name: prompt-refine
 description: Full prompt-improvement workflow — runs prompt-audit to find inconsistencies, presents a remediation plan, then runs prompt-migrate to apply fixes and prompt-align to verify harness consistency. Use for any agent or skill prompt that needs structural repair.
+version: 0.1.0
+license: MIT
+platforms:
+  - linux
+  - macos
+metadata:
+  skill_craft:
+    kind: prompt-only
 ---
 
 > **skill-craft port** of the claude-craft planning-suite skill. Host-neutral: use repo-root search instead of Claude plugin paths. SoT: this package under whichguy/skill-craft.

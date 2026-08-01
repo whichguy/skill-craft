@@ -20,6 +20,14 @@ description: |
 
 argument-hint: "<prompt-file> [inputs-dir | inline text] [prompt-b] [free-form options]"
 allowed-tools: Agent, Task, TaskCreate, TaskGet, TaskList, TaskUpdate, TaskStop, TaskOutput, Bash, Read, Glob, Write
+version: 0.1.0
+license: MIT
+platforms:
+  - linux
+  - macos
+metadata:
+  skill_craft:
+    kind: prompt-only
 ---
 
 # compare-prompts Skill

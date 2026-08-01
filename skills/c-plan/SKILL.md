@@ -6,6 +6,14 @@ description: |
   replan, or stop. Use when the best response depends on hidden intent,
   audience, scope, constraints, risk, output format, or desired depth.
 allowed-tools: all
+version: 0.1.0
+license: MIT
+platforms:
+  - linux
+  - macos
+metadata:
+  skill_craft:
+    kind: prompt-only
 ---
 
 > **skill-craft port** of the claude-craft planning-suite skill. Host-neutral: use repo-root search instead of Claude plugin paths. SoT: this package under whichguy/skill-craft.

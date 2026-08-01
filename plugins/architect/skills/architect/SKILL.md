@@ -11,6 +11,14 @@ description: |
 
   NOT for: Implementation (use superpowers:executing-plans), task breakdown (use superpowers:writing-plans)
 allowed-tools: all
+version: 0.1.0
+license: MIT
+platforms:
+  - linux
+  - macos
+metadata:
+  skill_craft:
+    kind: prompt-only
 ---
 
 # /architect — Architecture & Technology Decisions

@@ -17,6 +17,14 @@ description: |
 
 argument-hint: "[questions-file] [--iterations N | --duration Xm | --tokens N] [--min-q N] [--max-q N] [--research-model MODEL] [--application-model MODEL] [--judge-model MODEL] [--reorganize-every N]"
 allowed-tools: Agent, Bash, Read, Glob, Write, Edit, WebSearch, WebFetch, Skill
+version: 0.1.0
+license: MIT
+platforms:
+  - linux
+  - macos
+metadata:
+  skill_craft:
+    kind: prompt-only
 ---
 
 # derive-questions Skill

@@ -20,11 +20,12 @@ run() {
 
 run skill-interop-hygiene bash test/skill-interop-hygiene.test.sh
 run sync-plugin-views bash test/sync-plugin-views.test.sh
-run skill-interop-frontmatter node test/skill-interop-frontmatter.test.js
+run skill-frontmatter node test/skill-frontmatter.test.js
 run scaffold-skill bash test/scaffold-skill.test.sh
 run marketplace-run bash test/marketplace-run.test.sh
 run install-targets bash test/install-targets.test.sh
 run install-arbitrary-skill bash test/install-arbitrary-skill.test.sh
+run hermes-binding bash test/hermes-binding.test.sh
 
 if [[ "$fail" -ne 0 ]]; then
   printf 'run-all.sh: FAILED\n' >&2

@@ -15,6 +15,14 @@ description: |
   Use /optimize-system-prompt for editing/refining the active prompt.
 model: claude-sonnet-4-6
 allowed-tools: Agent, Task, TaskCreate, TaskGet, TaskList, TaskUpdate, TaskStop, TaskOutput, Bash, Read, Glob, Write, mcp__gas__exec, mcp__gas__ls, mcp__gas__status
+version: 0.1.0
+license: MIT
+platforms:
+  - linux
+  - macos
+metadata:
+  skill_craft:
+    kind: prompt-only
 ---
 
 # improve-system-prompt Skill

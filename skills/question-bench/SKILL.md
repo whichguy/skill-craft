@@ -22,6 +22,14 @@ description: |
 
 argument-hint: "<plan-file|plans-dir> [--reference <known-good>] [--questions <selector>] [--experiments N|\"subset1 | subset2\"] [--dry-run]"
 allowed-tools: Agent, Bash, Read, Glob, Write, Edit
+version: 0.1.0
+license: MIT
+platforms:
+  - linux
+  - macos
+metadata:
+  skill_craft:
+    kind: prompt-only
 ---
 
 # question-bench Skill

@@ -14,6 +14,8 @@ platforms:
   - linux
   - macos
 metadata:
+  skill_craft:
+    kind: script-backed
   hermes:
     category: software-development
     tags:
@@ -56,17 +58,18 @@ Plugin marketplace matrix + id forms: `references/marketplace-hosts.md`, `refere
 
 ## Review procedure
 
-1. **Classify** — reasoning/drafting → prompt-only; deterministic/IO/external API → scripts; mix → both.
+1. **Classify** — reasoning/drafting → prompt-only; deterministic/IO/external API → scripts; mix → both. Engine claims are orthogonal honesty (runtime host matrix), not a silent rename of `mixed`.
 2. **Layer 0 contract** — I/O shapes, artifacts, success/failure (no silent empty).
 3. **Layer 1 prompts** — strip models, paths, “run script X”; placeholders only.
 4. **Layer 2 scripts** — one CLI family, injectable seams, document checkout requirement.
 5. **Skill card** — short router: native default vs script optional; honest claims.
-6. **Host matrix** — fill Grok / Claude Code / Codex / Hermes for prompt-only and scripts.
-7. **Anti-patterns** — fail review if present (see `references/anti-patterns.md`).
-8. **Output** — material/minor findings, proposed tree, migration steps.
+6. **Runtime binding** — package root, write-safe/runtime home/transport bins as separate surfaces; Hermes install is materialize-copy (not abs-symlink to external checkout).
+7. **Host matrix** — fill Grok / Claude Code / Codex / Hermes for prompt-only and scripts; engines: discovery ≠ execution.
+8. **Anti-patterns** — fail review if present (see `references/anti-patterns.md`).
+9. **Output** — material/minor findings, proposed tree, migration steps.
 
 Load `prompts/review-skill.prompt.md` with the skill tree + goals for a structured review.
-Checklist: `references/checklist.md`.
+Checklist: `references/checklist.md`. Packaging model: monorepo `docs/ARCHITECTURE.md`.
 
 ## Create procedure (prompt-only)
 
