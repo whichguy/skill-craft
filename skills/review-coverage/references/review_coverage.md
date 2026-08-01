@@ -11,7 +11,7 @@
 | **residual×2** | Success stop rule: Status `complete` only after **two consecutive clean** residual rounds, with the **second** clean running Test command green. Not “run two rounds total.” |
 | **Driver** | One residual **round** executor — default `/review-converge` under outer `/goal`. |
 | **complete** | residual×2 **success** (objective-met). |
-| **stopped(...)** | residual **failed closed** (not success; still ends the outer loop). |
+| **stopped (...)** | Residual **failed closed** (not success; still ends the outer loop). |
 
 **Run when:** implementation landed, suite green, and any first-pass post-impl
 review is done. Not before.
@@ -19,7 +19,7 @@ review is done. Not before.
 (or you explicitly accept a **stopped** halt).
 
 | Field | Value |
-|-------|--------|
+|-------|-------|
 | Base ref | `<sha before implementation>` |
 | Repo | `<absolute git root>` |
 | Target paths | `<repo-relative pathspecs — no TBD>` |
@@ -38,54 +38,46 @@ review is done. Not before.
 
 ### Exit conditions (anti infinite loop)
 
-After **every** `/review-converge` turn, read `REVIEW_CONVERGE.md` Status and choose **exactly one**:
+After **every** outer `/goal` turn, re-read repo-root `REVIEW_CONVERGE.md` Status
+and choose **exactly one**:
 
-| Status after round | Outer `/goal` | residual×2 success? |
-|--------------------|---------------|----------------------|
-| `complete` + Log **landed** | **EXIT** | YES |
-| `stopped (...)` + Log **landed** | **EXIT** | NO (halt) |
-| `active` and rounds **&lt; Max** | CONTINUE — at most **one** more round, then re-check | n/a |
-| `active` and rounds **≥ Max** | Force `stopped (max-cycles)`, land, **EXIT** | NO |
-| Terminal but not landed | One ledger-flush only; then EXIT if still not landed | NO |
-| Prior campaign already terminal | Do **not** re-open unless user says re-run residual | n/a |
+| Branch | Status after turn | Outer `/goal` action | residual×2 success? |
+|--------|-------------------|----------------------|----------------------|
+| S1 | `complete` AND Log **landed** | **EXIT SUCCESS** | YES |
+| S2 | `stopped (...)` AND Log **landed** | **EXIT HALT** | NO (halt) |
+| S3 | `active` AND rounds **≥ Max** | Force `stopped (max-cycles)`, land Log, **EXIT HALT** | NO |
+| S4 | Terminal but not landed | One ledger-flush only; then EXIT if still not landed (**HALT** or **SUCCESS** per Status) | n/a |
+| S5 | Else | Run exactly **one** `/review-converge`, land Log; do not start another round this turn | n/a |
 
-**There is no “keep going forever while active.”** `active` = at most one more unit of work, then re-evaluate.
+**Landed** means latest Log `Committed: yes` and a commit subject matching
+`review-converge: round N —` (or legacy `grok-review-converge: round N —`).
+**There is no “keep going forever while active.”** `active` = at most one more
+unit of work, then re-evaluate.
 
-**Success (all required):** Status `complete`; two **consecutive** Log rounds Outcome `clean` (zero material; non-clean resets streak); second clean runs Test command PASS; latest Log **landed** (`Committed: yes` + `review-converge: round N —` commit).
+**Success (all required):** Status `complete`; two **consecutive** Log rounds Outcome
+`clean` (zero material; non-clean resets streak); second clean runs Test command PASS;
+latest Log **landed**.
 
-**Unsuccessful halt:** land `stopped (same-error ×3 | no-progress ×3 | max-cycles | plan hash drift | no target paths | no test command | host quota | operator abort)`. **`stopped(...)` is never success.**
+**Unsuccessful halt:** land `stopped (same-error ×3 | no-progress ×3 | max-cycles |
+plan hash drift | no target paths | no test command | host quota | operator abort)`.
+**`stopped (...)` is never success.**
 
-**Non-exits:** suite green alone; one clean only; open material; minors/P2 listed (must not block); unlanded Log; prose without Status complete/stopped.
+**Non-exits:** suite green alone; one clean only; open material; minors/P2 listed
+(must not block); unlanded Log; prose without Status complete/stopped.
 
-**Loop-safety MUST:** one `/review-converge` per outer turn; never unlimited ralph; never continue after complete or stopped; max rounds hard wall; pathspec only.
+**Loop-safety MUST:** one `/review-converge` per outer turn; never unlimited ralph;
+never continue after complete or stopped (...); max rounds hard wall; pathspec only.
 
-### Objective (paste into /goal)
+### /goal command (Phase B — paste literally)
 
-```text
-FINITE residual — never infinite. After every turn re-read REVIEW_CONVERGE.md Status and apply Exit conditions in plan ## Review Coverage.
+Generate and insert the exact command with:
 
-Post-ship review coverage for plan <plan_path> (hash <sha256>).
-Base ref: <BASE_REF>. Repo: <REPO>. Target paths: <PATHS>.
-Test command: <CMD>.
-Driver: review-converge under /goal — exactly ONE review-converge round per turn.
-Plan contract: bind absolute path + SHA-256 at start; hash drift → blocked → stop path.
-Max rounds: 12. Same-error×3 and no-progress×3 → stopped. Host max-turns and max-budget required.
-
-Each turn:
-1) If Status complete+landed → EXIT residual success (residual×2 met).
-2) If Status stopped(...)+landed → EXIT residual unsuccessful halt.
-3) If Status active and rounds ≥ 12 → stopped (max-cycles), land, EXIT.
-4) Else run exactly one /review-converge (forward + reverse), land Log, goto 1.
-
-1. Forward (specs → code): re-read bound plan; fix material drift vs anchors/intent; pathspec commit; evidence in ledger.
-2. Reverse (code → specs): diff vs Base ref; violated anchors, regressions, blast radius; fix or waive with reason.
-
-Do not edit the plan file during cycles. Anchor writeback uses status verified (never proven).
-Minors → Deferred (P2); only material blocks clean.
-stopped(...) is not success. Never unlimited ralph. Never continue after complete or stopped.
-Pathspec commits only; never git add -A.
-Do not auto-start if the user is not ready to implement residual coverage.
+```sh
+scripts/review-coverage goal-body --plan <ABS_PLAN> --slash
 ```
+
+**Do not paraphrase; CLI is SoT.** The command emits `/goal <BODY>` with this
+section’s filled bindings.
 
 ### Cycle log
 

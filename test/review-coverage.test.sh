@@ -36,11 +36,15 @@ if python3 "$CLI" validate "$TMP" >/dev/null; then ok validate_ok; else bad vali
 GBO=$(python3 "$CLI" goal-body --plan "$TMP")
 if printf '%s\n' "$GBO" | grep -q 'Base ref:'; then ok goal_body; else bad goal_body; fi
 if printf '%s\n' "$GBO" | grep -q 'FINITE residual'; then ok goal_body_finite; else bad goal_body_finite; fi
-if printf '%s\n' "$GBO" | grep -q 'complete+landed'; then ok goal_body_success_exit; else bad goal_body_success_exit; fi
+if printf '%s\n' "$GBO" | grep -q 'Status complete AND landed → EXIT SUCCESS'; then ok goal_body_success_exit; else bad goal_body_success_exit; fi
 if printf '%s\n' "$GBO" | grep -q 'stopped (max-cycles)'; then ok goal_body_max_cycles; else bad goal_body_max_cycles; fi
 if printf '%s\n' "$GBO" | grep -qi 'residual×2\|residualx2\|two consecutive clean'; then ok goal_body_residual_x2; else bad goal_body_residual_x2; fi
-if printf '%s\n' "$GBO" | grep -qE 'stopped\s*\(\.\.\.\)\+landed'; then ok goal_body_stopped_halt; else bad goal_body_stopped_halt; fi
-if printf '%s\n' "$GBO" | grep -q 'Never unlimited ralph'; then ok goal_body_no_unlimited_ralph; else bad goal_body_no_unlimited_ralph; fi
+if printf '%s\n' "$GBO" | grep -q 'Status stopped (...) AND landed → EXIT HALT'; then ok goal_body_stopped_halt; else bad goal_body_stopped_halt; fi
+if printf '%s\n' "$GBO" | grep -q 'never unlimited ralph'; then ok goal_body_no_unlimited_ralph; else bad goal_body_no_unlimited_ralph; fi
+GBO_SLASH=$(python3 "$CLI" goal-body --plan "$TMP" --slash)
+if [[ "$GBO_SLASH" == /goal\ * ]]; then ok goal_body_slash; else bad goal_body_slash; fi
+if [[ "$(python3 "$CLI" goal-body --plan "$TMP" --slash | head -c 20)" == /goal\ * ]]; then ok goal_body_slash_head; else bad goal_body_slash_head; fi
+if [[ "$GBO" != /goal\ * ]]; then ok goal_body_no_slash; else bad goal_body_no_slash; fi
 rm -f "$TMP"
 
 # Custom Max review-converge rounds must flow into goal-body (not always default 12)
@@ -62,7 +66,7 @@ cat >"$TMPM" <<'EOF'
 two consecutive clean residual rounds with green suite
 EOF
 GBO8=$(python3 "$CLI" goal-body --plan "$TMPM")
-if printf '%s\n' "$GBO8" | grep -q 'Max rounds: 8'; then ok goal_body_custom_max; else bad goal_body_custom_max; fi
+if printf '%s\n' "$GBO8" | grep -q 'Max review-converge rounds: 8'; then ok goal_body_custom_max; else bad goal_body_custom_max; fi
 if printf '%s\n' "$GBO8" | grep -q 'rounds ≥ 8'; then ok goal_body_custom_max_branch; else bad goal_body_custom_max_branch; fi
 rm -f "$TMPM"
 
@@ -217,11 +221,11 @@ if python3 "$CLI" validate "$TMPPOL" >/dev/null; then ok field_table_wins_valida
 POL_GB=$(python3 "$CLI" goal-body --plan "$TMPPOL")
 if printf '%s\n' "$POL_GB" | grep -q 'Base ref: abcdef1234567890deadbeef'; then ok field_table_wins_base; else bad field_table_wins_base; fi
 if printf '%s\n' "$POL_GB" | grep -q 'Test command: npm test'; then ok field_table_wins_cmd; else bad field_table_wins_cmd; fi
-# Driver must not double-append the ONE-round phrase
-if ! printf '%s\n' "$POL_GB" | grep -q 'exactly ONE review-converge round per turn — exactly ONE'; then
-  ok driver_no_double_append
+# Driver is fixed by the literal canonical body, not rebuilt from the field.
+if printf '%s\n' "$POL_GB" | grep -q 'Driver: review-converge under /goal — exactly ONE /review-converge round per outer turn.'; then
+  ok driver_fixed_canonical
 else
-  bad driver_no_double_append
+  bad driver_fixed_canonical
 fi
 rm -f "$TMPPOL"
 
@@ -264,6 +268,9 @@ if ! python3 "$CLI" goal-body --plan "$ROOT/skills/review-coverage/references/re
 else
   bad full_template_no_goal_body
 fi
+
+if grep -q '^version: 0.2.1$' "$ROOT/skills/review-coverage/SKILL.md"; then ok skill_version; else bad skill_version; fi
+if grep -q -- 'goal-body --plan /path/to/plan.md --slash' "$ROOT/skills/review-coverage/SKILL.md"; then ok skill_slash_docs; else bad skill_slash_docs; fi
 
 echo "======== review-coverage: PASS=$PASS FAIL=$FAIL ========"
 [[ "$FAIL" -eq 0 ]]
