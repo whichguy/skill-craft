@@ -30,6 +30,7 @@ plugins, use **claude-craft**.
 |-------|---------|
 | **skill-interop** | Author/review portable multi-host skills; scaffold; install; marketplace facade |
 | **c-plan** | Ambiguous-prompt clarifier (EVQ / FASTPATH) |
+| **review-coverage** | Post-ship improve-to-exhaustion plan directive (`## Review Coverage`) |
 | **prompt-audit** | Audit agent/skill prompts for internal inconsistencies |
 | **prompt-align** | Diff a prompt vs its test harness |
 | **prompt-migrate** | TDD-style prompt migration |

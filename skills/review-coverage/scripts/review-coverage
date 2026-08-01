@@ -1,0 +1,252 @@
+#!/usr/bin/env python3
+"""review-coverage CLI — template, goal-body, validate (host-neutral helpers)."""
+from __future__ import annotations
+
+import argparse
+import re
+import sys
+from pathlib import Path
+from typing import Dict, List, Optional, Tuple
+
+SKILL_ROOT = Path(__file__).resolve().parents[1]
+REF_DIR = SKILL_ROOT / "references"
+FULL_TEMPLATE = REF_DIR / "review_coverage.md"
+SHORT_TEMPLATE = REF_DIR / "review_coverage.short.md"
+
+HEADING_RE = re.compile(
+    r"(?im)^[ \t]{0,3}#{1,6}[ \t]+Review\s+Coverage\b"
+)
+# Legacy heading still recognized as present (validate only)
+LEGACY_HEAD_RE = re.compile(
+    r"(?im)^[ \t]{0,3}#{1,6}[ \t]+(?:Post[- ]?Implementation\s+)?Residual\s+Loop\b"
+    r"|^[ \t]{0,3}#{1,6}[ \t]+Residual\s+Loop\b"
+)
+WAIVER_RE = re.compile(
+    r"(?is)None\s*[—–-]\s*residual\s+loop\s+waived\s*:\s*\S+"
+)
+PLACEHOLDER_RE = re.compile(
+    r"(?i)^(tbd|todo|\.\.\.|…|from plan|list concrete|<[^>]+>)$"
+)
+FENCE_RE = re.compile(r"^[ \t]{0,3}(```|~~~)")
+
+
+def _section_body(text: str) -> Optional[str]:
+    """Return body under ## Review Coverage (or legacy residual heading), skip fences."""
+    lines = text.splitlines()
+    in_fence = False
+    start: Optional[int] = None
+    start_level = 2
+    for i, line in enumerate(lines):
+        if FENCE_RE.match(line):
+            in_fence = not in_fence
+            continue
+        if in_fence:
+            continue
+        m = re.match(r"^[ \t]{0,3}(#{1,6})[ \t]+(.*)$", line)
+        if not m:
+            continue
+        level, title = len(m.group(1)), m.group(2).strip()
+        if start is None:
+            if re.search(r"(?i)^Review\s+Coverage\b", title) or re.search(
+                r"(?i)^(?:Post[- ]?Implementation\s+)?Residual\s+Loop\b", title
+            ):
+                start = i + 1
+                start_level = level
+            continue
+        if level <= start_level:
+            return "\n".join(lines[start:i])
+    if start is not None:
+        return "\n".join(lines[start:])
+    return None
+
+
+def _fields(body: str) -> Dict[str, str]:
+    fields: Dict[str, str] = {}
+    for raw in body.splitlines():
+        line = raw.strip()
+        if not line:
+            continue
+        if line.startswith("|") and line.count("|") >= 2:
+            cells = [c.strip().strip("`*") for c in line.strip("|").split("|")]
+            if len(cells) == 2 and not all(
+                re.fullmatch(r":?-{3,}:?", c) for c in cells
+            ):
+                key = re.sub(r"\s+", " ", cells[0]).lower()
+                if key not in {"field", "key"}:
+                    fields[key] = cells[1]
+            continue
+        labeled = re.sub(r"^[-*+]\s+", "", line).replace("**", "")
+        m = re.match(
+            r"(?i)^(?P<key>[A-Za-z][A-Za-z ]*?)\s*:\s*(?P<value>.+?)\s*$",
+            labeled,
+        )
+        if m:
+            fields[re.sub(r"\s+", " ", m.group("key")).lower()] = m.group("value")
+    return fields
+
+
+def _is_placeholder(value: str) -> bool:
+    v = re.sub(r"\s+", " ", (value or "").strip().strip("`*")).lower()
+    if not v or PLACEHOLDER_RE.fullmatch(v):
+        return True
+    return bool(re.fullmatch(r"<[^<>]+>", v))
+
+
+def _positive_label(body: str, label: str) -> bool:
+    label_re = re.compile(rf"\b{re.escape(label)}\b", re.I)
+    neg = re.compile(rf"\b(?:do\s+not|never|no)\s+{re.escape(label)}\b", re.I)
+    for line in body.splitlines():
+        if label_re.search(line) and not neg.search(line):
+            return True
+    return False
+
+
+def validate(text: str) -> Tuple[bool, List[str]]:
+    if WAIVER_RE.search(text):
+        return True, []
+    body = _section_body(text)
+    if body is None:
+        return False, ["missing ## Review Coverage section"]
+    fields = _fields(body)
+    gaps: List[str] = []
+
+    def require(label: str, *aliases: str) -> Optional[str]:
+        value = next(
+            (fields[k] for k in (label.lower(), *aliases) if k in fields),
+            None,
+        )
+        if value is None:
+            gaps.append(f"missing {label} field")
+            return None
+        if _is_placeholder(value):
+            gaps.append(f"{label} field has placeholder value")
+            return None
+        return value
+
+    require("Base ref", "base")
+    require("Target paths", "target path")
+    require("Test command")
+    driver = require("Driver")
+    if driver and not re.search(r"review-converge|improve|/goal", driver, re.I):
+        gaps.append("Driver must mention review-converge, improve, or /goal")
+
+    clean = bool(
+        re.search(
+            r"residual\s*[×x]\s*2|2\s+consecutive|two\s+consecutive", body, re.I
+        )
+    )
+    if "materiality bar" in fields:
+        if _is_placeholder(fields["materiality bar"]):
+            gaps.append("Materiality bar field has placeholder value")
+    elif not (clean and re.search(r"\bmaterial\b", body, re.I)):
+        gaps.append("missing Materiality bar field")
+
+    if not _positive_label(body, "forward"):
+        gaps.append("missing positive Forward cycle instruction")
+    if not _positive_label(body, "reverse"):
+        gaps.append("missing positive Reverse cycle instruction")
+    if not clean:
+        gaps.append("missing two consecutive clean residual rounds")
+
+    return (len(gaps) == 0, gaps)
+
+
+def goal_body(text: str, plan_path: str = "") -> Optional[str]:
+    ok, gaps = validate(text)
+    if not ok:
+        return None
+    if WAIVER_RE.search(text):
+        return None
+    body = _section_body(text) or ""
+    fields = _fields(body)
+    base = fields.get("base ref") or fields.get("base") or "<BASE_REF>"
+    paths = fields.get("target paths") or fields.get("target path") or "<PATHS>"
+    cmd = fields.get("test command") or "<CMD>"
+    driver = fields.get("driver") or "review-converge under /goal"
+    label = plan_path or "plan"
+    return (
+        f"Post-ship review coverage for {label}.\n"
+        f"Base ref: {base}\n"
+        f"Target paths: {paths}\n"
+        f"Test command: {cmd}\n"
+        f"Driver: {driver}\n"
+        "Each turn: one /review-converge round (or named Driver).\n"
+        "Forward: specs/anchors → code; pathspec commit material fixes.\n"
+        "Reverse: diff vs Base ref; fix violated anchors and deleterious effects.\n"
+        "Complete after two consecutive clean rounds with green suite on second clean.\n"
+        "stopped(...) is not success. Pathspec commits only; never git add -A.\n"
+        "Do not auto-start if the user is not ready to implement residual coverage."
+    )
+
+
+def cmd_template(short: bool) -> int:
+    path = SHORT_TEMPLATE if short else FULL_TEMPLATE
+    if not path.is_file():
+        print(f"error: missing {path}", file=sys.stderr)
+        return 2
+    sys.stdout.write(path.read_text(encoding="utf-8"))
+    if not path.read_text(encoding="utf-8").endswith("\n"):
+        sys.stdout.write("\n")
+    return 0
+
+
+def cmd_validate(path: Optional[str]) -> int:
+    if path and path != "-":
+        text = Path(path).read_text(encoding="utf-8")
+    else:
+        text = sys.stdin.read()
+    ok, gaps = validate(text)
+    if ok:
+        print("ok")
+        return 0
+    for g in gaps:
+        print(f"Review Coverage: {g}", file=sys.stderr)
+    return 1
+
+
+def cmd_goal_body(plan: str) -> int:
+    text = Path(plan).read_text(encoding="utf-8")
+    body = goal_body(text, plan_path=plan)
+    if body is None:
+        print("error: plan missing filled Review Coverage (or waived)", file=sys.stderr)
+        return 1
+    print(body)
+    return 0
+
+
+def cmd_check_install() -> int:
+    print(f"SKILL_ROOT={SKILL_ROOT}")
+    print(f"FULL_TEMPLATE={FULL_TEMPLATE} exists={FULL_TEMPLATE.is_file()}")
+    print(f"SHORT_TEMPLATE={SHORT_TEMPLATE} exists={SHORT_TEMPLATE.is_file()}")
+    return 0 if FULL_TEMPLATE.is_file() else 2
+
+
+def main(argv: Optional[List[str]] = None) -> int:
+    p = argparse.ArgumentParser(prog="review-coverage")
+    sub = p.add_subparsers(dest="cmd", required=True)
+
+    t = sub.add_parser("template", help="print section template")
+    t.add_argument("--short", action="store_true")
+
+    v = sub.add_parser("validate", help="lint plan for Review Coverage section")
+    v.add_argument("plan", nargs="?", default="-", help="plan.md or - for stdin")
+
+    g = sub.add_parser("goal-body", help="emit /goal paste body from plan")
+    g.add_argument("--plan", required=True, help="path to plan.md")
+
+    sub.add_parser("check-install", help="print package paths")
+
+    args = p.parse_args(argv)
+    if args.cmd == "template":
+        return cmd_template(args.short)
+    if args.cmd == "validate":
+        return cmd_validate(args.plan)
+    if args.cmd == "goal-body":
+        return cmd_goal_body(args.plan)
+    if args.cmd == "check-install":
+        return cmd_check_install()
+    return 2
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
