@@ -183,7 +183,11 @@ def validate(text: str) -> Tuple[bool, List[str]]:
 
 
 def goal_body(text: str, plan_path: str = "") -> Tuple[Optional[str], str]:
-    """Return (body, err). err is empty on success."""
+    """Return (body, err). err is empty on success.
+
+    Emits a finite residual Objective: residual×2 success, stopped halt,
+    max-cycles, and per-turn re-check of REVIEW_CONVERGE.md Status.
+    """
     if _waiver_reason(text) is not None:
         return None, "residual waived — no /goal body (intentional)"
     ok, gaps = validate(text)
@@ -195,18 +199,44 @@ def goal_body(text: str, plan_path: str = "") -> Tuple[Optional[str], str]:
     paths = fields.get("target paths") or fields.get("target path") or "<PATHS>"
     cmd = fields.get("test command") or "<CMD>"
     driver = fields.get("driver") or "review-converge under /goal"
+    repo = fields.get("repo") or ""
+    max_rounds = fields.get("max review-converge rounds") or fields.get("max rounds") or "12"
+    # First token if table value is "12 hard cap; ..."
+    max_n = re.split(r"\s+", str(max_rounds).strip())[0] or "12"
     label = plan_path or "plan"
+    repo_line = f"Repo: {repo}\n" if repo and not _is_placeholder(repo) else ""
     return (
+        "FINITE residual — never infinite. After every turn re-read "
+        "REVIEW_CONVERGE.md Status and apply Exit conditions in plan "
+        "## Review Coverage.\n"
         f"Post-ship review coverage for {label}.\n"
         f"Base ref: {base}\n"
+        f"{repo_line}"
         f"Target paths: {paths}\n"
         f"Test command: {cmd}\n"
-        f"Driver: {driver}\n"
-        "Each turn: one /review-converge round (or named Driver).\n"
+        f"Driver: {driver} — exactly ONE review-converge round per turn "
+        "(or named Driver).\n"
+        "Plan contract: bind absolute path + SHA-256 at start; hash drift → "
+        "blocked → stop path.\n"
+        f"Max rounds: {max_n}. Same-error×3 and no-progress×3 → stopped. "
+        "Host max-turns and max-budget required.\n"
+        "\n"
+        "Each turn:\n"
+        "1) If Status complete+landed → EXIT residual success (residual×2 met: "
+        "two consecutive clean rounds + suite PASS on second clean).\n"
+        "2) If Status stopped(...)+landed → EXIT residual unsuccessful halt "
+        "(not success).\n"
+        f"3) If Status active and rounds ≥ {max_n} → stopped (max-cycles), "
+        "land, EXIT.\n"
+        "4) Else run exactly one residual round (forward + reverse), land Log, "
+        "goto 1.\n"
+        "\n"
         "Forward: specs/anchors → code; pathspec commit material fixes.\n"
         "Reverse: diff vs Base ref; fix violated anchors and deleterious effects.\n"
-        "Complete after two consecutive clean rounds with green suite on second clean.\n"
-        "stopped(...) is not success. Pathspec commits only; never git add -A.\n"
+        "Do not edit the plan file during cycles. Minors → Deferred (P2).\n"
+        "stopped(...) is not success. Never unlimited ralph. Never continue "
+        "after complete or stopped.\n"
+        "Pathspec commits only; never git add -A.\n"
         "Do not auto-start if the user is not ready to implement residual coverage."
     ), ""
 

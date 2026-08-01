@@ -33,7 +33,12 @@ cat >"$TMP" <<'EOF'
 two consecutive clean residual rounds with green suite
 EOF
 if python3 "$CLI" validate "$TMP" >/dev/null; then ok validate_ok; else bad validate_ok; fi
-if python3 "$CLI" goal-body --plan "$TMP" | grep -q 'Base ref:'; then ok goal_body; else bad goal_body; fi
+GBO=$(python3 "$CLI" goal-body --plan "$TMP")
+if printf '%s\n' "$GBO" | grep -q 'Base ref:'; then ok goal_body; else bad goal_body; fi
+if printf '%s\n' "$GBO" | grep -q 'FINITE residual'; then ok goal_body_finite; else bad goal_body_finite; fi
+if printf '%s\n' "$GBO" | grep -q 'complete+landed'; then ok goal_body_success_exit; else bad goal_body_success_exit; fi
+if printf '%s\n' "$GBO" | grep -q 'stopped (max-cycles)'; then ok goal_body_max_cycles; else bad goal_body_max_cycles; fi
+if printf '%s\n' "$GBO" | grep -qi 'residual×2\|residualx2\|two consecutive clean'; then ok goal_body_residual_x2; else bad goal_body_residual_x2; fi
 rm -f "$TMP"
 
 if ! echo '# bare' | python3 "$CLI" validate - >/dev/null 2>&1; then ok validate_missing; else bad validate_missing; fi
