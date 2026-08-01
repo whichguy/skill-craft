@@ -3,8 +3,8 @@
 **Target paths:** `skills/devloop-run`, `plugins/devloop-run`, `scripts/package-devloop-engine.sh`, `test/devloop-run.test.sh`, `test/fixtures`, `docs/ARCHITECTURE.md`, `.gitignore`
 **Test command:** `bash test/devloop-run.test.sh && bash test/run-all.sh`
 **Started:** 2026-08-01          **Status:** active
-**Round counter:** 1
-**Consecutive clean rounds:** 0
+**Round counter:** 2
+**Consecutive clean rounds:** 1
 **Known test-artifact paths:**
 **Plan contract:** `/Users/dadleet/.grok/sessions/%2FUsers%2Fdadleet%2Fsrc%2Fc-thru/019fbde0-486f-7183-9153-ca1ea9f4c9a1/plan.md`
 **Plan hash:** `b1e0fbf4bba0ebb33c4fa8670152f0095aeb4b857676515d2203e951c555742f`
@@ -47,3 +47,26 @@
 **Consecutive clean rounds after this entry:** 0
 **Committed:** yes
 **Notes:** New campaign for clean-laptop plan (supersedes prior review-coverage skill residual ledger Status complete)
+
+### Round 2 — 2026-08-01
+**Review:** 0 material, 2 minor (carried)
+**Material findings:**
+- none
+**Deferred (minor/P2):**
+- [ ] P2: P0-9 market tag-pin is Phase 3 follow-on — not residual of implement ship — docs/process
+- [ ] P2: Plan wording said flock; implementation uses portable mkdir lock (equivalent if double-check present) — docs
+**Git-history check:** Round 1 fixed race + D13 (`7819f99`); re-read anchors P0-1..P0-8 and reverse file list vs Base — no new material; plugin --check OK
+**Plan:** n/a (clean)
+**Plan review:** n/a
+**Implementation:** none
+**Lint:** skipped (none configured)
+**Test result:** N/A (clean round)
+**Outcome:** clean
+**Error signature:** none
+**Learnings:** First clean after race fix: concurrent path and pin integrity hold under re-audit; no new material in code/tests/docs/logic/corners for ship scope. Market pin remains deferred Phase 3.
+**Anchor evidence:**
+- P0-1..P0-8 re-verified; D1–D13 PASS; plan hash unchanged
+**Consecutive clean rounds after this entry:** 1
+**Committed:** yes
+**Notes:** First of two consecutive cleans; suite deferred to second clean
+
