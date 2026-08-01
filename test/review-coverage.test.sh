@@ -39,16 +39,43 @@ if printf '%s\n' "$GBO" | grep -q 'FINITE residual'; then ok goal_body_finite; e
 if printf '%s\n' "$GBO" | grep -q 'complete+landed'; then ok goal_body_success_exit; else bad goal_body_success_exit; fi
 if printf '%s\n' "$GBO" | grep -q 'stopped (max-cycles)'; then ok goal_body_max_cycles; else bad goal_body_max_cycles; fi
 if printf '%s\n' "$GBO" | grep -qi 'residual×2\|residualx2\|two consecutive clean'; then ok goal_body_residual_x2; else bad goal_body_residual_x2; fi
+if printf '%s\n' "$GBO" | grep -qE 'stopped\s*\(\.\.\.\)\+landed'; then ok goal_body_stopped_halt; else bad goal_body_stopped_halt; fi
+if printf '%s\n' "$GBO" | grep -q 'Never unlimited ralph'; then ok goal_body_no_unlimited_ralph; else bad goal_body_no_unlimited_ralph; fi
 rm -f "$TMP"
+
+# Custom Max review-converge rounds must flow into goal-body (not always default 12)
+TMPM=$(mktemp)
+cat >"$TMPM" <<'EOF'
+## Review Coverage
+
+| Field | Value |
+|-------|--------|
+| Base ref | abcdef1234567890deadbeef |
+| Target paths | src/foo.ts |
+| Test command | npm test |
+| Materiality bar | material (P0/P1) |
+| Driver | review-converge under /goal |
+| Max review-converge rounds | 8 hard cap |
+
+1. Forward audit of specs to code.
+2. Reverse audit of code vs base.
+two consecutive clean residual rounds with green suite
+EOF
+GBO8=$(python3 "$CLI" goal-body --plan "$TMPM")
+if printf '%s\n' "$GBO8" | grep -q 'Max rounds: 8'; then ok goal_body_custom_max; else bad goal_body_custom_max; fi
+if printf '%s\n' "$GBO8" | grep -q 'rounds ≥ 8'; then ok goal_body_custom_max_branch; else bad goal_body_custom_max_branch; fi
+rm -f "$TMPM"
 
 if ! echo '# bare' | python3 "$CLI" validate - >/dev/null 2>&1; then ok validate_missing; else bad validate_missing; fi
 
 # Unfilled template (incl. example waiver line) must NOT validate as ok
+TERR=$(python3 "$CLI" validate "$ROOT/skills/review-coverage/references/review_coverage.md" 2>&1 >/dev/null || true)
 if ! python3 "$CLI" validate "$ROOT/skills/review-coverage/references/review_coverage.md" >/dev/null 2>&1; then
   ok template_not_valid_plan
 else
   bad template_not_valid_plan
 fi
+if printf '%s\n' "$TERR" | grep -qi 'placeholder waiver'; then ok template_placeholder_stderr; else bad template_placeholder_stderr; fi
 if ! python3 "$CLI" validate "$ROOT/skills/review-coverage/references/review_coverage.short.md" >/dev/null 2>&1; then
   ok short_template_not_valid_plan
 else
@@ -66,7 +93,73 @@ if python3 "$CLI" validate "$TMPW" >/dev/null; then ok waiver_validate; else bad
 # goal-body exits 1 on waiver; capture stderr+stdout without pipefail masking the grep
 gbo=$(python3 "$CLI" goal-body --plan "$TMPW" 2>&1 || true)
 if printf '%s\n' "$gbo" | grep -qi 'waived'; then ok waiver_goal_body_msg; else bad waiver_goal_body_msg; fi
+# waived path must not print a goal body (only error)
+if ! printf '%s\n' "$gbo" | grep -q 'FINITE residual'; then ok waiver_no_goal_body; else bad waiver_no_goal_body; fi
 rm -f "$TMPW"
+
+# Invalid Driver must fail validate with clear stderr
+TMPD=$(mktemp)
+cat >"$TMPD" <<'EOF'
+## Review Coverage
+
+| Field | Value |
+|-------|--------|
+| Base ref | abcdef1234567890deadbeef |
+| Target paths | src/foo.ts |
+| Test command | npm test |
+| Materiality bar | material (P0/P1) |
+| Driver | some-other-tool-only |
+
+1. Forward audit of specs to code.
+2. Reverse audit of code vs base.
+two consecutive clean residual rounds with green suite
+EOF
+DERR=$(python3 "$CLI" validate "$TMPD" 2>&1 >/dev/null || true)
+if ! python3 "$CLI" validate "$TMPD" >/dev/null 2>&1; then ok bad_driver_rejects; else bad bad_driver_rejects; fi
+if printf '%s\n' "$DERR" | grep -qi 'Driver must mention'; then ok bad_driver_stderr; else bad bad_driver_stderr; fi
+rm -f "$TMPD"
+
+# Missing forward/reverse instructions must fail validate
+TMPFR=$(mktemp)
+cat >"$TMPFR" <<'EOF'
+## Review Coverage
+
+| Field | Value |
+|-------|--------|
+| Base ref | abcdef1234567890deadbeef |
+| Target paths | src/foo.ts |
+| Test command | npm test |
+| Materiality bar | material (P0/P1) |
+| Driver | review-converge under /goal |
+
+two consecutive clean residual rounds with green suite
+EOF
+if ! python3 "$CLI" validate "$TMPFR" >/dev/null 2>&1; then ok missing_forward_reverse; else bad missing_forward_reverse; fi
+rm -f "$TMPFR"
+
+# Fenced-only ## Review Coverage example must not count as a filled section
+TMPF=$(mktemp)
+cat >"$TMPF" <<'EOF'
+# plan
+
+```markdown
+## Review Coverage
+| Base ref | abcdef1234567890deadbeef |
+```
+EOF
+if ! python3 "$CLI" validate "$TMPF" >/dev/null 2>&1; then ok fenced_only_rejects; else bad fenced_only_rejects; fi
+rm -f "$TMPF"
+
+# incomplete plan: goal-body fails closed with clear error (not waived)
+TMPI=$(mktemp)
+echo '# bare plan no section' >"$TMPI"
+IBODY=$(python3 "$CLI" goal-body --plan "$TMPI" 2>&1 || true)
+if printf '%s\n' "$IBODY" | grep -qi 'missing filled Review Coverage\|missing ## Review Coverage'; then ok incomplete_goal_body_err; else bad incomplete_goal_body_err; fi
+rm -f "$TMPI"
+
+# template subcommand prints real SoT H2
+if python3 "$CLI" template | head -1 | grep -q '^## Review Coverage'; then ok template_cmd; else bad template_cmd; fi
+if python3 "$CLI" template --short | head -1 | grep -q '^## Review Coverage'; then ok template_short_cmd; else bad template_short_cmd; fi
 
 if [[ -f "$ROOT/plugins/review-coverage/.claude-plugin/plugin.json" ]]; then ok plugin_json; else bad plugin_json; fi
 if "$ROOT/scripts/sync-plugin-views.sh" --check review-coverage 2>/dev/null \
@@ -75,6 +168,25 @@ if "$ROOT/scripts/sync-plugin-views.sh" --check review-coverage 2>/dev/null \
   [[ -f "$ROOT/plugins/review-coverage/skills/review-coverage/SKILL.md" ]] && ok plugin_synced || bad plugin_synced
 else
   [[ -f "$ROOT/plugins/review-coverage/skills/review-coverage/SKILL.md" ]] && ok plugin_synced || bad plugin_synced
+fi
+# Content equality: plugin view must match source for skill leaf files
+if diff -q "$ROOT/skills/review-coverage/scripts/review-coverage" \
+  "$ROOT/plugins/review-coverage/skills/review-coverage/scripts/review-coverage" >/dev/null; then
+  ok plugin_script_match
+else
+  bad plugin_script_match
+fi
+if diff -q "$ROOT/skills/review-coverage/SKILL.md" \
+  "$ROOT/plugins/review-coverage/skills/review-coverage/SKILL.md" >/dev/null; then
+  ok plugin_skill_match
+else
+  bad plugin_skill_match
+fi
+if diff -q "$ROOT/skills/review-coverage/references/review_coverage.md" \
+  "$ROOT/plugins/review-coverage/skills/review-coverage/references/review_coverage.md" >/dev/null; then
+  ok plugin_template_match
+else
+  bad plugin_template_match
 fi
 
 echo "======== review-coverage: PASS=$PASS FAIL=$FAIL ========"
