@@ -79,7 +79,8 @@ if ! python3 "$CLI" validate "$ROOT/skills/review-coverage/references/review_cov
 else
   bad template_not_valid_plan
 fi
-if printf '%s\n' "$TERR" | grep -qi 'placeholder waiver'; then ok template_placeholder_stderr; else bad template_placeholder_stderr; fi
+# Shipped templates fail closed via placeholder fields and/or unfenced placeholder waiver
+if printf '%s\n' "$TERR" | grep -qiE 'placeholder|missing .+ field'; then ok template_placeholder_stderr; else bad template_placeholder_stderr; fi
 if ! python3 "$CLI" validate "$ROOT/skills/review-coverage/references/review_coverage.short.md" >/dev/null 2>&1; then
   ok short_template_not_valid_plan
 else
@@ -271,6 +272,163 @@ fi
 
 if grep -q '^version: 0.2.1$' "$ROOT/skills/review-coverage/SKILL.md"; then ok skill_version; else bad skill_version; fi
 if grep -q -- 'goal-body --plan /path/to/plan.md --slash' "$ROOT/skills/review-coverage/SKILL.md"; then ok skill_slash_docs; else bad skill_slash_docs; fi
+
+# --- Verification rows (e)–(h): section-scoped fence-aware waiver ---
+FILLED_CORE=$(cat <<'EOF'
+## Review Coverage
+
+| Field | Value |
+|-------|--------|
+| Base ref | abcdef1234567890deadbeef |
+| Target paths | src/foo.ts |
+| Test command | npm test |
+| Materiality bar | material (P0/P1) |
+| Driver | review-converge under /goal |
+
+1. Forward audit of specs to code.
+2. Reverse audit of code vs base.
+two consecutive clean residual rounds with green suite
+EOF
+)
+
+# (e) filled section + fenced waiver example inside section → NOT waived
+TMPE=$(mktemp)
+cat >"$TMPE" <<EOF
+$FILLED_CORE
+
+### Waiver examples (do not activate)
+
+\`\`\`text
+None — residual loop waived: example only ignore me
+\`\`\`
+EOF
+if python3 "$CLI" validate "$TMPE" >/dev/null; then ok row_e_validate; else bad row_e_validate; fi
+EGB=$(python3 "$CLI" goal-body --plan "$TMPE" 2>&1) || true
+if python3 "$CLI" goal-body --plan "$TMPE" >/dev/null 2>&1; then ok row_e_goal_body; else bad row_e_goal_body; fi
+if printf '%s\n' "$EGB" | grep -q 'FINITE residual'; then ok row_e_body_text; else bad row_e_body_text; fi
+if ! printf '%s\n' "$EGB" | grep -qi 'waived'; then ok row_e_not_waived; else bad row_e_not_waived; fi
+rm -f "$TMPE"
+
+# (f) waiver with no Review Coverage section → missing section, not waived
+TMPF=$(mktemp)
+cat >"$TMPF" <<'EOF'
+# some plan
+
+None — residual loop waived: docs-only without a section
+EOF
+FERR=$(python3 "$CLI" validate "$TMPF" 2>&1 >/dev/null || true)
+if ! python3 "$CLI" validate "$TMPF" >/dev/null 2>&1; then ok row_f_validate; else bad row_f_validate; fi
+if printf '%s\n' "$FERR" | grep -qi 'missing ## Review Coverage'; then ok row_f_missing_msg; else bad row_f_missing_msg; fi
+FGB=$(python3 "$CLI" goal-body --plan "$TMPF" 2>&1 || true)
+if ! python3 "$CLI" goal-body --plan "$TMPF" >/dev/null 2>&1; then ok row_f_goal_body; else bad row_f_goal_body; fi
+if printf '%s\n' "$FGB" | grep -qi 'missing ## Review Coverage\|missing filled Review Coverage'; then ok row_f_gb_missing; else bad row_f_gb_missing; fi
+if ! printf '%s\n' "$FGB" | grep -qi 'residual waived'; then ok row_f_not_waived_msg; else bad row_f_not_waived_msg; fi
+rm -f "$TMPF"
+
+# (g) fenced waiver outside section, plan otherwise filled → not a waiver
+TMPG=$(mktemp)
+cat >"$TMPG" <<EOF
+# plan intro
+
+\`\`\`text
+None — residual loop waived: out of section fence
+\`\`\`
+
+$FILLED_CORE
+EOF
+if python3 "$CLI" validate "$TMPG" >/dev/null; then ok row_g_validate; else bad row_g_validate; fi
+if python3 "$CLI" goal-body --plan "$TMPG" >/dev/null 2>&1; then ok row_g_goal_body; else bad row_g_goal_body; fi
+GGB=$(python3 "$CLI" goal-body --plan "$TMPG")
+if printf '%s\n' "$GGB" | grep -q 'FINITE residual'; then ok row_g_body; else bad row_g_body; fi
+rm -f "$TMPG"
+
+# (h) unfenced in-section waiver AND filled fields → conflict
+TMPH=$(mktemp)
+cat >"$TMPH" <<EOF
+$FILLED_CORE
+
+None — residual loop waived: should conflict with filled fields
+EOF
+HERR=$(python3 "$CLI" validate "$TMPH" 2>&1 >/dev/null || true)
+if ! python3 "$CLI" validate "$TMPH" >/dev/null 2>&1; then ok row_h_validate; else bad row_h_validate; fi
+if printf '%s\n' "$HERR" | grep -qi 'conflict'; then ok row_h_conflict_msg; else bad row_h_conflict_msg; fi
+if ! python3 "$CLI" goal-body --plan "$TMPH" >/dev/null 2>&1; then ok row_h_goal_body; else bad row_h_goal_body; fi
+HGB=$(python3 "$CLI" goal-body --plan "$TMPH" 2>&1 || true)
+if printf '%s\n' "$HGB" | grep -qi 'conflict'; then ok row_h_gb_conflict; else bad row_h_gb_conflict; fi
+rm -f "$TMPH"
+
+# --- Rows (i)–(j): unreadable input exit 2 ---
+MISS="/nonexistent/review-coverage-plan-$$.md"
+IERR=$(python3 "$CLI" validate "$MISS" 2>&1 >/dev/null || true)
+IEC=$(python3 "$CLI" validate "$MISS" >/dev/null 2>&1; echo $?)
+if [[ "$IEC" -eq 2 ]]; then ok row_i_validate_exit2; else bad row_i_validate_exit2; fi
+if printf '%s\n' "$IERR" | grep -q "error: cannot read $MISS:"; then ok row_i_validate_msg; else bad row_i_validate_msg; fi
+if ! printf '%s\n' "$IERR" | grep -qi Traceback; then ok row_i_no_traceback; else bad row_i_no_traceback; fi
+IGEC=$(python3 "$CLI" goal-body --plan "$MISS" >/dev/null 2>&1; echo $?)
+if [[ "$IGEC" -eq 2 ]]; then ok row_i_goal_body_exit2; else bad row_i_goal_body_exit2; fi
+
+# directory path
+DIRF=$(mktemp -d)
+JERR=$(python3 "$CLI" validate "$DIRF" 2>&1 >/dev/null || true)
+JEC=$(python3 "$CLI" validate "$DIRF" >/dev/null 2>&1; echo $?)
+if [[ "$JEC" -eq 2 ]]; then ok row_j_validate_exit2; else bad row_j_validate_exit2; fi
+if printf '%s\n' "$JERR" | grep -q "error: cannot read $DIRF:"; then ok row_j_validate_msg; else bad row_j_validate_msg; fi
+if ! printf '%s\n' "$JERR" | grep -qi Traceback; then ok row_j_no_traceback; else bad row_j_no_traceback; fi
+rmdir "$DIRF"
+
+# --- Row (k): H2-only heading contract ---
+TMPH1=$(mktemp)
+cat >"$TMPH1" <<'EOF'
+# Review Coverage
+
+| Field | Value |
+|-------|--------|
+| Base ref | abcdef1234567890deadbeef |
+| Target paths | src/foo.ts |
+| Test command | npm test |
+| Materiality bar | material (P0/P1) |
+| Driver | review-converge under /goal |
+
+1. Forward audit
+2. Reverse audit
+two consecutive clean residual rounds
+EOF
+if ! python3 "$CLI" validate "$TMPH1" >/dev/null 2>&1; then ok row_k_h1_rejects; else bad row_k_h1_rejects; fi
+rm -f "$TMPH1"
+
+TMPH3=$(mktemp)
+cat >"$TMPH3" <<'EOF'
+### Review Coverage
+
+| Field | Value |
+|-------|--------|
+| Base ref | abcdef1234567890deadbeef |
+| Target paths | src/foo.ts |
+| Test command | npm test |
+| Materiality bar | material (P0/P1) |
+| Driver | review-converge under /goal |
+
+1. Forward audit
+2. Reverse audit
+two consecutive clean residual rounds
+EOF
+if ! python3 "$CLI" validate "$TMPH3" >/dev/null 2>&1; then ok row_k_h3_rejects; else bad row_k_h3_rejects; fi
+rm -f "$TMPH3"
+
+# Exit-code contract documented in SKILL.md
+if grep -qE 'exit code 0|exits 0|exit 0' "$ROOT/skills/review-coverage/SKILL.md" \
+  && grep -qE 'exit code 1|exits 1|exit 1' "$ROOT/skills/review-coverage/SKILL.md" \
+  && grep -qE 'exit code 2|exits 2|exit 2' "$ROOT/skills/review-coverage/SKILL.md"; then
+  ok skill_exit_codes_docs
+else
+  bad skill_exit_codes_docs
+fi
+if grep -q '## Review Coverage' "$ROOT/skills/review-coverage/SKILL.md" \
+  && grep -qi 'H2\|level-2\|only.*## ' "$ROOT/skills/review-coverage/SKILL.md"; then
+  ok skill_h2_contract_docs
+else
+  bad skill_h2_contract_docs
+fi
 
 echo "======== review-coverage: PASS=$PASS FAIL=$FAIL ========"
 [[ "$FAIL" -eq 0 ]]

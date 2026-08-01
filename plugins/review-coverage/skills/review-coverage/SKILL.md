@@ -39,7 +39,7 @@ required for this skill to work.
 
 | Term | Meaning |
 |------|---------|
-| **Review Coverage** | Durable plan H2 `## Review Coverage` + this skill. It answers: after ship, how do we prove code matches specs and **stop** when proof is stable? |
+| **Review Coverage** | Durable plan **H2 only** `## Review Coverage` + this skill (H1/H3+ headings are not recognized). It answers: after ship, how do we prove code matches specs and **stop** when proof is stable? |
 | **Status / Log / landed** | Repo-root `REVIEW_CONVERGE.md` is the ledger: Status selects the next branch; Log records each round. **Landed** means latest Log `Committed: yes` and a `review-converge: round N —` commit subject (or legacy `grok-review-converge: round N —`). |
 | **residual** | Post-ship forward (specs→code) + reverse (diff vs Base ref); material fixes only; pathspec commits. |
 | **residual×2** | **Stop rule:** Status `complete` only after **two consecutive clean** residual rounds, with the **second** clean running Test command PASS. Any non-clean resets the streak. |
@@ -81,14 +81,18 @@ Skip pure doc-only one-line plans unless the user asks.
 5. Do **not** use heading `## Post-Implementation Residual Loop` (it collides with
    review-plan Q-E2 “Post-Implementation Workflow or equivalent”).
 
-Waiver (only if residual is intentionally out of scope):
+Waiver (only if residual is intentionally out of scope): **replace the entire
+section body** with one unfenced line (a fenced example does not waive; a waiver
+line outside `## Review Coverage` does not waive; waiver + filled fields is a
+**conflict**):
 
 ```text
 None — residual loop waived: <concrete reason>
 ```
 
 Phase A success: the **approved plan file** contains a filled directive (`validate`
-exit 0) or a real waiver. An example waiver reason is not a waiver.
+exit 0) or a real unfenced in-section waiver. An example waiver reason is not a waiver.
+Heading must be level-2 `## Review Coverage` (not `#` / `###`).
 
 ## Phase B — Post-implement (run residual×2)
 
@@ -124,7 +128,16 @@ scripts/review-coverage goal-body --plan /path/to/plan.md --slash
 with `/goal ` for direct paste. Validate is advisory lint for agents/humans — not a
 soft_exit dependency. Unfilled templates (including example
 `None — residual loop waived: <reason>`) **fail** `validate` — a placeholder waiver
-reason is not a real waiver.
+reason is not a real waiver. `goal-body` runs the **same** validation path as
+`validate` first, so the two commands never disagree on waived vs filled status.
+
+### CLI exit codes
+
+| Code | Meaning |
+|------|---------|
+| **exit 0** | Success: `validate` prints `ok`; `goal-body` prints the paste body |
+| **exit 1** | Invalid plan / refused: missing section, placeholders, conflict, waived for `goal-body`, etc. |
+| **exit 2** | Input unreadable: missing path, directory path, or OS read error — stderr is `error: cannot read <path>: <reason>` (never a Python traceback) |
 
 ## What this skill is not
 

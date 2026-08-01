@@ -31,8 +31,27 @@ PLACEHOLDER_RE = re.compile(
 FENCE_RE = re.compile(r"^[ \t]{0,3}(```|~~~)")
 
 
+def _strip_fences(text: str) -> str:
+    """Remove fenced code regions (``` / ~~~, including indented openers)."""
+    out: List[str] = []
+    in_fence = False
+    for raw in text.splitlines():
+        if FENCE_RE.match(raw):
+            in_fence = not in_fence
+            continue
+        if in_fence:
+            continue
+        out.append(raw)
+    return "\n".join(out)
+
+
 def _section_body(text: str) -> Optional[str]:
-    """Return body under ## Review Coverage (or legacy residual heading), skip fences."""
+    """Return body under a level-2 ``## Review Coverage`` (or legacy residual) heading.
+
+    Only **H2** headings are accepted (SKILL.md durable H2 contract). H1/H3+ are ignored
+    so they surface as a missing section. Fences are skipped when *locating* the heading
+    so a fenced ``## Review Coverage`` example does not open a section.
+    """
     lines = text.splitlines()
     in_fence = False
     start: Optional[int] = None
@@ -48,6 +67,8 @@ def _section_body(text: str) -> Optional[str]:
             continue
         level, title = len(m.group(1)), m.group(2).strip()
         if start is None:
+            if level != 2:
+                continue
             if re.search(r"(?i)^Review\s+Coverage\b", title) or re.search(
                 r"(?i)^(?:Post[- ]?Implementation\s+)?Residual\s+Loop\b", title
             ):
@@ -152,10 +173,16 @@ def _is_placeholder(value: str) -> bool:
 
 
 def _waiver_reason(text: str) -> Optional[str]:
-    """Real waiver reason if present; ignore template placeholders like <reason>."""
-    # Prefer the Review Coverage section so fenced examples elsewhere do not count.
+    """Real unfenced in-section waiver reason, or None.
+
+    Honored only when a ``## Review Coverage`` section exists and the waiver line
+    is unfenced inside that section. No whole-file fallback. Placeholders like
+    ``<reason>`` are not real waivers.
+    """
     body = _section_body(text)
-    scan = body if body is not None else text
+    if body is None:
+        return None
+    scan = _strip_fences(body)
     for m in WAIVER_RE.finditer(scan):
         reason = (m.group("reason") or "").strip()
         if reason and not _is_placeholder(reason):
@@ -173,9 +200,11 @@ def _positive_label(body: str, label: str) -> bool:
 
 
 def _placeholder_waiver_present(text: str) -> bool:
-    """True when a waiver line exists but every match has a placeholder reason."""
+    """True when an unfenced in-section waiver line exists with only placeholder reason."""
     body = _section_body(text)
-    scan = body if body is not None else text
+    if body is None:
+        return False
+    scan = _strip_fences(body)
     saw = False
     for m in WAIVER_RE.finditer(scan):
         saw = True
@@ -185,13 +214,40 @@ def _placeholder_waiver_present(text: str) -> bool:
     return saw
 
 
+def _core_fields_filled(fields: Dict[str, str]) -> bool:
+    """True when Base ref, Target paths, and Test command are non-placeholder."""
+
+    def present(*keys: str) -> bool:
+        for k in keys:
+            if k in fields and not _is_placeholder(fields[k]):
+                return True
+        return False
+
+    return (
+        present("base ref", "base")
+        and present("target paths", "target path")
+        and present("test command")
+    )
+
+
 def validate(text: str) -> Tuple[bool, List[str]]:
-    if _waiver_reason(text) is not None:
-        return True, []
+    """Shared validation path for ``validate`` and ``goal-body``."""
     body = _section_body(text)
     if body is None:
         return False, ["missing ## Review Coverage section"]
+
     fields = _fields(body)
+    waiver = _waiver_reason(text)
+    filled = _core_fields_filled(fields)
+
+    if waiver is not None and filled:
+        return False, [
+            "conflict: unfenced residual waiver and filled coverage fields both present "
+            "(use only the waiver line, or remove the waiver and keep the fields)"
+        ]
+    if waiver is not None:
+        return True, []
+
     gaps: List[str] = []
     if _placeholder_waiver_present(text):
         gaps.append(
@@ -243,13 +299,13 @@ def validate(text: str) -> Tuple[bool, List[str]]:
 def goal_body(text: str, plan_path: str = "") -> Tuple[Optional[str], str]:
     """Return (body, err). err is empty on success.
 
-    Emit the literal, finite /goal paste body from filled Review Coverage fields.
+    Runs the same ``validate()`` path first so validate and goal-body never disagree.
     """
-    if _waiver_reason(text) is not None:
-        return None, "residual waived — no /goal body (intentional)"
     ok, gaps = validate(text)
     if not ok:
         return None, "plan missing filled Review Coverage: " + "; ".join(gaps)
+    if _waiver_reason(text) is not None:
+        return None, "residual waived — no /goal body (intentional)"
     body = _section_body(text) or ""
     fields = _fields(body)
     base = fields.get("base ref") or fields.get("base") or "<BASE_REF>"
@@ -289,6 +345,18 @@ def goal_body(text: str, plan_path: str = "") -> Tuple[Optional[str], str]:
     ), ""
 
 
+def _read_plan_path(path: str) -> Tuple[Optional[str], Optional[str]]:
+    """Load plan text. Returns (text, None) or (None, error_message) for exit 2."""
+    p = Path(path)
+    try:
+        if p.is_dir():
+            return None, f"error: cannot read {path}: Is a directory"
+        return p.read_text(encoding="utf-8"), None
+    except OSError as e:
+        reason = e.strerror or str(e)
+        return None, f"error: cannot read {path}: {reason}"
+
+
 def cmd_template(short: bool) -> int:
     path = SHORT_TEMPLATE if short else FULL_TEMPLATE
     if not path.is_file():
@@ -301,10 +369,15 @@ def cmd_template(short: bool) -> int:
 
 
 def cmd_validate(path: Optional[str]) -> int:
+    """Exit 0 = ok; 1 = invalid plan; 2 = input unreadable."""
     if path and path != "-":
-        text = Path(path).read_text(encoding="utf-8")
+        text, err = _read_plan_path(path)
+        if err is not None:
+            print(err, file=sys.stderr)
+            return 2
     else:
         text = sys.stdin.read()
+    assert text is not None
     ok, gaps = validate(text)
     if ok:
         print("ok")
@@ -315,10 +388,15 @@ def cmd_validate(path: Optional[str]) -> int:
 
 
 def cmd_goal_body(plan: str, slash: bool = False) -> int:
-    text = Path(plan).read_text(encoding="utf-8")
-    body, err = goal_body(text, plan_path=plan)
+    """Exit 0 = body printed; 1 = invalid/waived plan; 2 = input unreadable."""
+    text, err = _read_plan_path(plan)
+    if err is not None:
+        print(err, file=sys.stderr)
+        return 2
+    assert text is not None
+    body, gerr = goal_body(text, plan_path=plan)
     if body is None:
-        print(f"error: {err}", file=sys.stderr)
+        print(f"error: {gerr}", file=sys.stderr)
         return 1
     print(f"/goal {body}" if slash else body)
     return 0
