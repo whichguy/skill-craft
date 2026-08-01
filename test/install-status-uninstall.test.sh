@@ -70,4 +70,25 @@ rc6=$?
 set -e
 [[ "$rc6" -eq 64 ]] || fail "S6 want exit 64 got $rc6"
 
-printf 'install-status-uninstall.test.sh: PASS S1–S6\n'
+# S7: status symlink-wrong (dangling/wrong target) + uninstall refuses to own it
+fresh_home s7
+mkdir -p "$HOME/.claude/skills"
+ln -s "/nonexistent/wrong-target-s7" "$HOME/.claude/skills/skill-interop"
+out7="$("$install_sh" --status --skill skill-interop --claude-only 2>&1)" || fail "S7 status: $out7"
+printf '%s\n' "$out7" | grep -q 'state=symlink-wrong' || fail "S7 symlink-wrong: $out7"
+out7u="$("$install_sh" --uninstall --skill skill-interop --claude-only 2>&1)" || fail "S7 uninstall: $out7u"
+printf '%s\n' "$out7u" | grep -q 'Skipped uninstall (not owned)' || fail "S7 skip: $out7u"
+[[ -L "$HOME/.claude/skills/skill-interop" ]] || fail "S7 wrong symlink must remain"
+
+# S8: status copy-owned-stale after managed install then dest content drift
+fresh_home s8
+"$install_sh" --skill skill-interop --hermes-only >/dev/null
+printf 'drift-s8\n' >>"$HOME/.hermes/skills/software-development/skill-interop/SKILL.md"
+out8="$("$install_sh" --status --skill skill-interop --hermes-only 2>&1)" || fail "S8 status: $out8"
+printf '%s\n' "$out8" | grep -q 'state=copy-owned-stale' || fail "S8 stale: $out8"
+# uninstall still owns stale managed copy
+out8u="$("$install_sh" --uninstall --skill skill-interop --hermes-only 2>&1)" || fail "S8 uninstall: $out8u"
+printf '%s\n' "$out8u" | grep -q 'Uninstalled copy' || fail "S8 uninstall owned: $out8u"
+[[ ! -e "$HOME/.hermes/skills/software-development/skill-interop" ]] || fail "S8 dest remains"
+
+printf 'install-status-uninstall.test.sh: PASS S1–S8\n'

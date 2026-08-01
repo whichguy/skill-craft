@@ -60,9 +60,10 @@ One CLI family per skill; injectable seams; scripts do not re-author planning po
 
 `SKILL.md` is the discovery/router surface. Engines that are CLI-first load this as documentation for chat models, not as the engine’s system prompt.
 
-### Runtime binding — SC-L3 (**partial**)
+### Runtime binding — SC-L3 (**implemented** for Hermes materialize + `devloop-run` resolve)
 
-Binding surfaces are **distinct** (do not collapse into one env var):
+Binding surfaces are **distinct** (do not collapse into one env var). Full multi-transport
+matrix beyond Hermes/`DEVLOOP_HOME` remains **optional**.
 
 | Surface | Role |
 |---------|------|
@@ -102,7 +103,7 @@ host checkout into a tree that is bind-mounted into the container as `/opt/data`
 - Source of truth remains `skill-craft/skills/<leaf>/` (or `--from` path).
 - Re-run `./install.sh` to refresh a **managed** copy (marker present). Foreign real trees (no marker) are never clobbered.
 - Copy mode is keyed on **host** (Hermes default), not on source path.
-- Copied packages must be **self-contained** (no symlinks in the source tree); install refuses otherwise.
+- Package trees may contain **package-internal** symlinks (targets resolve under the package root); install **dereferences** them into real files on materialize. Symlinks that escape the package root are **refused** (fail closed).
 - When `~/.hermes` is a git work tree, install prints a gitignore hint. Operator applies ignore rules; install never writes `~/.hermes/.gitignore`.
 
 ## Package kinds
@@ -158,7 +159,9 @@ claude-craft product suites (wiki, gas, async, …) stay host-native. Portable l
 Hermes materialization **allows** symlinks whose targets resolve under the package root;
 they are **dereferenced** on copy (`rsync -aL` / `cp -R -L`). Escaping symlinks still fail closed.
 
-**skill-craft-market** pins still reference older release tags (e.g. `v0.2.2`); retarget after tagging if marketplace consumers need updated plugin.json versions.
+**skill-craft-market** Claude catalog pins skill-craft `plugins/<leaf>` at **`ref: v0.3.0`**
+(including `devloop-run` and other current leaves). After new packaging releases, retarget
+the catalog ref/tag so marketplace consumers pick up derived `plugin.json` versions.
 
 ## Related files
 
