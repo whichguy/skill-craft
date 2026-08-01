@@ -114,6 +114,19 @@ def _positive_label(body: str, label: str) -> bool:
     return False
 
 
+def _placeholder_waiver_present(text: str) -> bool:
+    """True when a waiver line exists but every match has a placeholder reason."""
+    body = _section_body(text)
+    scan = body if body is not None else text
+    saw = False
+    for m in WAIVER_RE.finditer(scan):
+        saw = True
+        reason = (m.group("reason") or "").strip()
+        if reason and not _is_placeholder(reason):
+            return False
+    return saw
+
+
 def validate(text: str) -> Tuple[bool, List[str]]:
     if _waiver_reason(text) is not None:
         return True, []
@@ -122,6 +135,11 @@ def validate(text: str) -> Tuple[bool, List[str]]:
         return False, ["missing ## Review Coverage section"]
     fields = _fields(body)
     gaps: List[str] = []
+    if _placeholder_waiver_present(text):
+        gaps.append(
+            "placeholder waiver reason is not a real waiver "
+            "(replace <reason> with a concrete reason, or fill residual fields)"
+        )
 
     def require(label: str, *aliases: str) -> Optional[str]:
         value = next(

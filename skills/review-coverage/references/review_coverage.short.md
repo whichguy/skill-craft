@@ -16,4 +16,4 @@ Complete after two consecutive clean rounds with green suite on second clean.
 stopped(...) is not success. Pathspec commits only; never git add -A.
 
 ### Waiver
-None — residual loop waived: <reason>
+Replace body with a real reason (not placeholder): `None — residual loop waived: <reason>`

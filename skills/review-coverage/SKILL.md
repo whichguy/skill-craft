@@ -89,6 +89,8 @@ scripts/review-coverage validate /path/to/plan.md
 ```
 
 Validate is advisory lint for agents/humans — not soft_exit dependency.
+Unfilled templates (including example `None — residual loop waived: <reason>`)
+**fail** `validate` — a placeholder waiver reason is not a real waiver.
 
 ## What this skill is not
 

@@ -51,5 +51,10 @@ Never unlimited ralph. Minors → Deferred (P2).
 
 ### Waiver
 
-Replace the section body with:
-None — residual loop waived: <reason>
+Only when residual is intentionally out of scope: **replace the entire section body**
+with one line and a real reason (not the `<reason>` placeholder — that fails
+`validate`):
+
+```text
+None — residual loop waived: <one-line reason>
+```
