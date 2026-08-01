@@ -1,7 +1,7 @@
 {
   "name": "devloop-run",
-  "version": "0.1.0",
-  "description": "Use when invoking the Hermes-backed devloop engine for a machine-verifiable build/debug goal: resolve the installed devloop CLI and run it with an explicit --repo or scratch request. Discovery card for all hosts; execution requires a resolved Hermes/devloop engine tree (not multi-host runtime).",
+  "version": "0.2.0",
+  "description": "Use when invoking the devloop engine for a machine-verifiable build/debug goal: resolve or bootstrap the engine CLI, then run with an explicit --repo or scratch request. Portable card for Grok, Claude, Codex, and Hermes; first --setup (or first run) can materialize a host-local engine under ~/.local/share/devloop.",
   "author": {
     "name": "whichguy",
     "url": "https://github.com/whichguy"

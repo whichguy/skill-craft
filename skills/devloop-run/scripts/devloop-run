@@ -1,34 +1,55 @@
 #!/usr/bin/env bash
-# Resolve Hermes-backed devloop CLI and exec, or refuse closed.
-# Exit 2 = needs human / engine missing (preflight). Engine exit codes otherwise.
+# Resolve host-local or Hermes devloop engine and exec, or bootstrap / refuse closed.
+# Exit 2 = needs human / engine missing / bootstrap refused. Engine exit codes otherwise.
 set -euo pipefail
 
 usage() {
   cat <<'EOF'
-Usage: devloop-run [--probe|--strict] [--] [devloop_cli args...]
+Usage: devloop-run [flags] [--] [devloop_cli args...]
 
 Resolve the installed devloop engine and run scripts/devloop_cli.py.
-Does not invent multi-host transport. Exit 2 if engine cannot be resolved.
+May bootstrap a host-local engine copy when missing (see --setup).
 
 Flags:
-  --probe    Print candidate paths and selection; do not exec (exit 0 if found, 2 if not)
-  --strict   If DEVLOOP_HOME is set but invalid, exit 2 without searching fallbacks
+  --probe              Print candidates + selected path; do not exec
+                       (exit 0 if engine found, 2 if not)
+  --setup              Ensure engine present (bootstrap if needed); print path; exit
+  --no-bootstrap       Never download/copy an engine (fail if missing)
+  --force-bootstrap    Re-materialize host-local engine even if one exists
+  --strict             If DEVLOOP_HOME is set but invalid, exit 2 (no fallback)
 
 Environment:
-  DEVLOOP_HOME   Absolute path to engine package (directory with scripts/devloop_cli.py)
-  HERMES_HOME    Hermes data root (default search: $HERMES_HOME/skills/software-development/devloop)
+  DEVLOOP_HOME           Prefer this engine root (must contain scripts/devloop_cli.py)
+  DEVLOOP_DATA_HOME      Host-local engine parent (default: $XDG_DATA_HOME or ~/.local/share)
+  DEVLOOP_ENGINE_URL     Optional: file:// or https:// URL to a .tar.gz engine archive
+  DEVLOOP_BOOTSTRAP_CMD  Optional: command that installs engine into $1 (hermetic tests)
+  HERMES_HOME            Hermes data root (legacy search path)
 
-Leaf name: this card is "devloop-run". The live engine leaf is "devloop" (Hermes skillhub).
+Resolve order:
+  1. DEVLOOP_HOME (if valid)
+  2. $DEVLOOP_DATA_HOME/devloop  (host-local, default ~/.local/share/devloop)
+  3. $HERMES_HOME/skills/software-development/devloop
+  4. ~/.hermes/skills/software-development/devloop
+  5. /opt/data/skills/software-development/devloop
+  6. Bootstrap into host-local (unless --no-bootstrap)
+
+Leaf name: this card is "devloop-run". Never overwrites Hermes engine leaf "devloop".
 EOF
 }
 
 strict=0
 probe=0
+setup=0
+no_bootstrap=0
+force_bootstrap=0
 while [[ $# -gt 0 ]]; do
   case "$1" in
     -h|--help) usage; exit 0 ;;
     --strict) strict=1; shift ;;
     --probe) probe=1; shift ;;
+    --setup) setup=1; shift ;;
+    --no-bootstrap) no_bootstrap=1; shift ;;
+    --force-bootstrap) force_bootstrap=1; shift ;;
     --) shift; break ;;
     *) break ;;
   esac
@@ -39,10 +60,129 @@ is_engine_root() {
   [[ -n "$d" && -d "$d" && -f "$d/scripts/devloop_cli.py" ]]
 }
 
+host_local_root() {
+  local data="${DEVLOOP_DATA_HOME:-${XDG_DATA_HOME:-$HOME/.local/share}}"
+  printf '%s/devloop\n' "$data"
+}
+
+write_engine_marker() {
+  local root="$1"
+  local source="$2"
+  local version="${3:-unknown}"
+  mkdir -p "$root"
+  printf '{"schema":1,"mode":"host-local","source":"%s","version":"%s"}\n' \
+    "$source" "$version" >"$root/.skill-craft-engine.json"
+}
+
+# Bootstrap into host-local path. Injectable via DEVLOOP_BOOTSTRAP_CMD for tests.
+bootstrap_engine() {
+  local dest="$1"
+  local stage parent
+  parent="$(dirname "$dest")"
+  stage="$parent/.devloop-stage.$$"
+  rm -rf "$stage"
+  mkdir -p "$stage"
+
+  printf 'devloop-run: bootstrapping engine into %s\n' "$dest" >&2
+
+  if [[ -n "${DEVLOOP_BOOTSTRAP_CMD:-}" ]]; then
+    # Injectable installer: argv1 = stage dir (hermetic tests set this to a script path).
+    # shellcheck disable=SC2086
+    if ! "$DEVLOOP_BOOTSTRAP_CMD" "$stage"; then
+      printf 'devloop-run: DEVLOOP_BOOTSTRAP_CMD failed
+' >&2
+      rm -rf "$stage"
+      return 1
+    fi
+  elif [[ -n "${DEVLOOP_ENGINE_URL:-}" ]]; then
+    local url="$DEVLOOP_ENGINE_URL"
+    if [[ "$url" == file://* ]]; then
+      local path="${url#file://}"
+      if [[ -d "$path" && -f "$path/scripts/devloop_cli.py" ]]; then
+        if command -v rsync >/dev/null 2>&1; then
+          rsync -a --delete "$path"/ "$stage"/
+        else
+          cp -R "$path"/. "$stage"/
+        fi
+      elif [[ -f "$path" ]]; then
+        tar -xzf "$path" -C "$stage" --strip-components=1 2>/dev/null \
+          || tar -xzf "$path" -C "$stage"
+      else
+        printf 'devloop-run: DEVLOOP_ENGINE_URL path not usable: %s\n' "$path" >&2
+        rm -rf "$stage"
+        return 1
+      fi
+    else
+      local tmp_tgz
+      tmp_tgz="$(mktemp "${TMPDIR:-/tmp}/devloop-engine.XXXXXX.tgz")"
+      if ! curl -fsSL "$url" -o "$tmp_tgz"; then
+        printf 'devloop-run: failed to download DEVLOOP_ENGINE_URL\n' >&2
+        rm -f "$tmp_tgz"
+        rm -rf "$stage"
+        return 1
+      fi
+      tar -xzf "$tmp_tgz" -C "$stage" --strip-components=1 2>/dev/null \
+        || tar -xzf "$tmp_tgz" -C "$stage"
+      rm -f "$tmp_tgz"
+    fi
+  else
+    # Prefer materializing from an already-valid Hermes (or opt) engine — no network.
+    local seed=""
+    local s
+    for s in \
+      "${HERMES_HOME:+$HERMES_HOME/skills/software-development/devloop}" \
+      "${HOME}/.hermes/skills/software-development/devloop" \
+      "/opt/data/skills/software-development/devloop"
+    do
+      [[ -n "$s" ]] || continue
+      if is_engine_root "$s"; then
+        seed="$s"
+        break
+      fi
+    done
+    if [[ -z "$seed" ]]; then
+      printf 'devloop-run: no bootstrap source.\n' >&2
+      printf '  Set DEVLOOP_ENGINE_URL (file://dir, file://.tgz, or https://…tgz),\n' >&2
+      printf '  or DEVLOOP_BOOTSTRAP_CMD, or install the Hermes engine once and re-run --setup\n' >&2
+      printf '  (will copy into %s).\n' "$dest" >&2
+      rm -rf "$stage"
+      return 1
+    fi
+    printf 'devloop-run: seeding host-local engine from %s\n' "$seed" >&2
+    if command -v rsync >/dev/null 2>&1; then
+      rsync -a --delete --exclude '.venv' --exclude '__pycache__' --exclude '.devloop' \
+        "$seed"/ "$stage"/
+    else
+      cp -R "$seed"/. "$stage"/
+      rm -rf "$stage/.venv" "$stage/__pycache__" "$stage/.devloop" 2>/dev/null || true
+    fi
+    write_engine_marker "$stage" "$seed" "seeded"
+  fi
+
+  if ! is_engine_root "$stage"; then
+    printf 'devloop-run: bootstrap produced invalid engine (missing scripts/devloop_cli.py)\n' >&2
+    rm -rf "$stage"
+    return 1
+  fi
+  if [[ ! -f "$stage/.skill-craft-engine.json" ]]; then
+    write_engine_marker "$stage" "${DEVLOOP_ENGINE_URL:-bootstrap}" "unknown"
+  fi
+
+  mkdir -p "$parent"
+  rm -rf "$dest"
+  mv "$stage" "$dest"
+  printf 'devloop-run: engine ready at %s\n' "$dest" >&2
+  return 0
+}
+
 # Print probe lines to stderr; selected path on stdout when found.
+# Sets global _resolve_via for messages.
 resolve_engine() {
   local cand
   local -a cands=()
+  local local_root
+  local_root="$(host_local_root)"
+
   if [[ -n "${DEVLOOP_HOME:-}" ]]; then
     cand="${DEVLOOP_HOME}"
     if is_engine_root "$cand"; then
@@ -57,11 +197,15 @@ resolve_engine() {
     fi
     printf 'probe: falling back to search paths (use --strict to disable)\n' >&2
   fi
+
+  # Host-local first (marketplace / multi-host default after bootstrap)
+  cands+=("$local_root")
   if [[ -n "${HERMES_HOME:-}" ]]; then
     cands+=("${HERMES_HOME}/skills/software-development/devloop")
   fi
   cands+=("${HOME}/.hermes/skills/software-development/devloop")
   cands+=("/opt/data/skills/software-development/devloop")
+
   for cand in "${cands[@]}"; do
     if is_engine_root "$cand"; then
       printf 'probe: %s -> selected\n' "$cand" >&2
@@ -73,18 +217,62 @@ resolve_engine() {
   return 1
 }
 
+ensure_engine() {
+  local root=""
+  local local_root
+  local_root="$(host_local_root)"
+
+  if [[ "$force_bootstrap" -eq 1 ]]; then
+    if [[ "$no_bootstrap" -eq 1 ]]; then
+      printf 'devloop-run: --force-bootstrap incompatible with --no-bootstrap\n' >&2
+      exit 2
+    fi
+    bootstrap_engine "$local_root" || exit 2
+    printf '%s\n' "$(cd "$local_root" && pwd -P)"
+    return 0
+  fi
+
+  if root="$(resolve_engine)"; then
+    printf '%s\n' "$root"
+    return 0
+  fi
+
+  if [[ "$no_bootstrap" -eq 1 ]]; then
+    return 1
+  fi
+
+  # Auto-bootstrap only for --setup or real invoke (not pure --probe unless setup)
+  if [[ "$setup" -eq 1 ]] || [[ "$probe" -eq 0 ]]; then
+    bootstrap_engine "$local_root" || return 1
+    printf '%s\n' "$(cd "$local_root" && pwd -P)"
+    return 0
+  fi
+  return 1
+}
+
 engine_root=""
-if ! engine_root="$(resolve_engine)"; then
-  printf 'devloop-run: engine not resolved (discovery-only host or missing install).\n' >&2
-  printf 'Set DEVLOOP_HOME to the engine package root, or install devloop under Hermes skillhub.\n' >&2
-  printf 'Tried: DEVLOOP_HOME, $HERMES_HOME/skills/software-development/devloop,\n' >&2
-  printf '  ~/.hermes/skills/software-development/devloop, /opt/data/skills/software-development/devloop\n' >&2
+if ! engine_root="$(ensure_engine)"; then
+  printf 'devloop-run: engine not resolved.\n' >&2
+  printf '  Run:  bash scripts/devloop-run --setup\n' >&2
+  printf '  Or set DEVLOOP_HOME / install Hermes engine / set DEVLOOP_ENGINE_URL.\n' >&2
+  printf '  Host-local default: %s\n' "$(host_local_root)" >&2
   exit 2
+fi
+
+if [[ "$setup" -eq 1 ]]; then
+  printf 'devloop-run: engine=%s\n' "$engine_root"
+  exit 0
 fi
 
 if [[ "$probe" -eq 1 ]]; then
   printf 'devloop-run: engine=%s\n' "$engine_root"
   exit 0
+fi
+
+# Soft dep check (do not auto-install models)
+if ! command -v python3 >/dev/null 2>&1; then
+  printf 'devloop-run: python3 not found on PATH\n' >&2
+  exit 2
 fi
 
 cli="$engine_root/scripts/devloop_cli.py"

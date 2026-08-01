@@ -89,7 +89,7 @@ host checkout into a tree that is bind-mounted into the container as `/opt/data`
 | skill-craft-market pins (catalog only; no skill bodies) | **implemented** |
 | `install.sh --status` / `--uninstall` (owned only) | **implemented** |
 | skillctl | **optional / not planned** (use `install.sh`) |
-| Engine probe card `skills/devloop-run` | **implemented** (discovery all hosts; execution if engine resolves) |
+| Engine probe card `skills/devloop-run` | **implemented** (discovery all hosts; host-local bootstrap + Hermes/seed resolve) |
 
 ### Operator / CI (**implemented**)
 
@@ -194,6 +194,13 @@ echo "EXIT=${PIPESTATUS[0]}" | tee -a run-all.log
 ```
 
 A cycle may not claim PASS without a trailing `EXIT=0` line (or attributed non-packaging failures only).
+
+## devloop-run bootstrap (host-local)
+
+Portable card on Grok/Claude/Codex/Hermes. Engine materializes under
+`~/.local/share/devloop` (or `$XDG_DATA_HOME/devloop`) via `--setup` / first run
+when missing, without overwriting Hermes skillhub leaf `devloop`. See
+`skills/devloop-run/references/bootstrap.md`.
 
 ## Reserved leaf names
 
