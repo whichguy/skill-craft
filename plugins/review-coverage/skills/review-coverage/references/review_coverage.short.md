@@ -32,7 +32,7 @@ Forward: specs/anchors → code. Reverse: diff vs Base ref. Pathspec commits onl
 ### /goal command (Phase B — paste literally)
 
 ```text
-/goal quality review changes and consider improvements, anchoring each spec item in code changes and verify use cases/corner cases, complete when only trivial changes remain for 2 consecutive cycles
+/goal quality review changes and consider improvements, review the last 10 git commit messages for learnings, anchoring each spec item in code changes and verify use cases/corner cases, git commit between each iteration with a verbose message with key learnings, complete when only trivial changes remain for 2 consecutive cycles
 ```
 
 After the fields are filled:

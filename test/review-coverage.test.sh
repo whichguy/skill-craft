@@ -38,7 +38,8 @@ GBO=$(python3 "$CLI" goal-body --plan "$TMP")
 TMP_ABS=$(python3 -c 'from pathlib import Path; import sys; print(Path(sys.argv[1]).resolve())' "$TMP")
 if [[ "$GBO" == quality\ review\ changes\ and\ consider\ improvements,* ]]; then ok goal_body_static_start; else bad goal_body_static_start; fi
 if printf '%s\n' "$GBO" | grep -q 'complete when only trivial changes remain for 2 consecutive cycles'; then ok goal_body_static_complete; else bad goal_body_static_complete; fi
-if ! printf '%s\n' "$GBO" | grep -q 'git commit between each iteration\|review the last 10 git commit messages'; then ok goal_body_no_removed_static; else bad goal_body_no_removed_static; fi
+if printf '%s\n' "$GBO" | grep -q 'git commit between each iteration with a verbose message with key learnings'; then ok goal_body_commit_each_iteration; else bad goal_body_commit_each_iteration; fi
+if printf '%s\n' "$GBO" | grep -q 'review the last 10 git commit messages for learnings'; then ok goal_body_review_git_learnings; else bad goal_body_review_git_learnings; fi
 if printf '%s\n' "$GBO" | grep -q "Plan: $TMP_ABS"; then ok goal_body_plan_absolute; else bad goal_body_plan_absolute; fi
 if printf '%s\n' "$GBO" | grep -q 'Base ref: abcdef1234567890deadbeef'; then ok goal_body_base; else bad goal_body_base; fi
 if printf '%s\n' "$GBO" | grep -q 'Repo: /tmp/review-coverage-repo'; then ok goal_body_repo; else bad goal_body_repo; fi

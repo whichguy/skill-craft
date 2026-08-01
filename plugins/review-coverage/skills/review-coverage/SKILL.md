@@ -3,10 +3,11 @@ name: review-coverage
 description: >
   Add a post-ship improve-to-exhaustion directive to a plan, or run that
   directive after implementation. Use when: writing or reviewing a plan that
-  needs residual×2 after implement; ensuring the plan carries a /goal-ready
-  Review Coverage section; running coverage after ship against plan specs
-  (forward + reverse). Not for pre-exit plan quality (use review-plan) or
-  raw residual×2 engine mechanics alone (use review-converge under /goal).
+  needs residual×2 after implement; "review-coverage on this plan"; ensuring
+  the plan carries a /goal-ready Review Coverage section; "residual×2 after
+  ship" / running coverage after ship against plan specs (forward + reverse).
+  Not for pre-exit plan quality (use review-plan) or raw residual×2 engine
+  mechanics alone (use review-converge under /goal).
 allowed-tools: all
 version: 0.2.2
 license: MIT
@@ -51,7 +52,7 @@ required for this skill to work.
 The static `/goal` logic is byte-exact:
 
 ```text
-/goal quality review changes and consider improvements, anchoring each spec item in code changes and verify use cases/corner cases, complete when only trivial changes remain for 2 consecutive cycles
+/goal quality review changes and consider improvements, review the last 10 git commit messages for learnings, anchoring each spec item in code changes and verify use cases/corner cases, git commit between each iteration with a verbose message with key learnings, complete when only trivial changes remain for 2 consecutive cycles
 ```
 
 ### Nesting
@@ -114,7 +115,7 @@ Heading must be level-2 `## Review Coverage` (not `#` / `###`).
    max-budget before unattended work. **Do not paraphrase** its static sentence:
 
    ```text
-   /goal quality review changes and consider improvements, anchoring each spec item in code changes and verify use cases/corner cases, complete when only trivial changes remain for 2 consecutive cycles
+   /goal quality review changes and consider improvements, review the last 10 git commit messages for learnings, anchoring each spec item in code changes and verify use cases/corner cases, git commit between each iteration with a verbose message with key learnings, complete when only trivial changes remain for 2 consecutive cycles
    ```
 
 5. Run exactly one inner `/review-converge` per outer turn. The section’s exit

@@ -49,9 +49,20 @@ If (2) is missing: still paste the goal-body objective and run residual **manual
 (review → fix material → pathspec commit with verbose learnings → repeat until two
 trivial-only cycles).
 
+## Residual campaign hygiene
+
+Before claiming a clean residual×2 streak:
+
+1. **Pathspec commits only** under Target paths — never `git add -A` / `.` / `-u`.
+2. After every package edit: `scripts/sync-plugin-views.sh review-coverage` (or full sync)
+   so plugin drift cannot fail the suite mid-streak.
+3. Do not start residual with unfinished WIP in Target paths (plugin/version drift).
+4. Prefer `run-card --preflight` before pasting `/goal`.
+
 ## Optional plan-oversight
 
 If plan-oversight is installed, residual hooks are **optional adapters**. Product success =
 directive in the plan + residual×2 after implement. Prefer hooks that recognize
 `## Review Coverage` and/or call this skill’s CLI — legacy
-`## Post-Implementation Residual Loop` only is incomplete.
+`## Post-Implementation Residual Loop` only is incomplete. Do not claim Review Coverage
+support if the nudge only matches the legacy H2.
