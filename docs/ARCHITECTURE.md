@@ -156,13 +156,18 @@ claude-craft product suites (wiki, gas, async, …) stay host-native. Portable l
 
 ### Package-internal symlinks (**implemented**)
 
-Hermes materialization **allows** symlinks whose targets resolve under the package root;
-they are **dereferenced** on copy (`rsync -aL` / `cp -R -L`). Escaping symlinks still fail closed.
+Package trees may contain **package-internal** symlinks (targets resolve under the package root).
+Both **Hermes materialization** (`install.sh`) and **Claude plugin-view sync**
+(`scripts/sync-plugin-views.sh`) **validate** then **dereference** them into real files
+(`rsync -aL` / `cp -R -L`). Symlinks that **escape** the package root are **refused**
+(fail closed; no partial write). Post-sync / post-materialize trees must contain **no**
+residual symlinks (Claude git-subdir cannot follow them under `plugins/`).
 
 **skill-craft-market** Claude catalog pins skill-craft `plugins/<leaf>` at a git **`ref`**
 (currently **`v0.3.0`** for the tagged catalog, or **`main`** for leaves not yet on that
 tag — e.g. `lennox-s40`). After a packaging release, retarget catalog refs/tags so
 marketplace consumers pick up derived `plugin.json` versions.
+
 
 ## Related files
 

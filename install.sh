@@ -324,6 +324,47 @@ write_hermes_marker() {
     "$leaf" "$source_dir" "$skill_version" >"$marker"
 }
 
+# Returns 0 if marker proves managed ownership for this leaf+source; else 1.
+# Requires ALL of: schema==2, leaf match, mode=="copy", source realpath match.
+# Malformed / wrong-leaf / wrong-mode / wrong-schema / non-canonical source → not owned (foreign).
+hermes_marker_is_owned() {
+  local marker="$1"
+  local leaf="$2"
+  local source_dir="$3"
+  [[ -f "$marker" ]] || return 1
+  python3 - "$marker" "$leaf" "$source_dir" <<'PYMARKER'
+import json
+import os
+import sys
+
+marker_path, want_leaf, want_source = sys.argv[1], sys.argv[2], sys.argv[3]
+try:
+    with open(marker_path, encoding="utf-8") as f:
+        data = json.load(f)
+except (OSError, json.JSONDecodeError, UnicodeError):
+    sys.exit(1)
+if not isinstance(data, dict):
+    sys.exit(1)
+if data.get("schema") != 2:
+    sys.exit(1)
+if data.get("leaf") != want_leaf:
+    sys.exit(1)
+if data.get("mode") != "copy":
+    sys.exit(1)
+src = data.get("source")
+if not isinstance(src, str) or not src.strip():
+    sys.exit(1)
+try:
+    if os.path.realpath(src) != os.path.realpath(want_source):
+        sys.exit(1)
+except OSError:
+    if os.path.normpath(src) != os.path.normpath(want_source):
+        sys.exit(1)
+sys.exit(0)
+PYMARKER
+}
+
+
 # Append-only audit log (timestamps ok here; not used for ownership identity).
 append_receipt() {
   local skills_dir="$1"
@@ -523,7 +564,8 @@ install_hermes_copy() {
 
   # --- Real directory ---
   if [[ -d "$destination" ]]; then
-    if [[ -f "$marker" ]]; then
+    # Managed only when marker proves ownership (schema/leaf/mode/source).
+    if hermes_marker_is_owned "$marker" "$leaf" "$source_dir"; then
       # Managed copy: refresh if drifted (compare via normalized/dereferenced source).
       if normalized_trees_match "$source_dir" "$destination" "$label"; then
         printf 'Already installed (up to date) (%s): %s\n' "$label" "$destination"
@@ -536,7 +578,7 @@ install_hermes_copy() {
       materialize_hermes_copy "$label" "$skills_dir" "$leaf" "$source_dir" "$destination" "$marker" "Updated"
       return 0
     fi
-    # Foreign real tree — never touch.
+    # Foreign real tree (no marker or marker-invalid) — never touch.
     printf 'Skipped (foreign) (%s): %s\n' "$label" "$destination"
     return 0
   fi
@@ -701,13 +743,15 @@ classify_destination() {
     return 0
   fi
   if [[ -d "$destination" ]]; then
-    if [[ -f "$marker" ]]; then
+    # Marker file alone is not ownership — parse schema/leaf/mode/source.
+    if hermes_marker_is_owned "$marker" "$leaf" "$source_dir"; then
       if normalized_trees_match "$source_dir" "$destination" "classify/$leaf"; then
         printf 'copy-owned\n'
       else
         printf 'copy-owned-stale\n'
       fi
     else
+      # No marker, or marker-invalid (malformed / wrong schema/leaf/mode/source)
       printf 'foreign\n'
     fi
     return 0

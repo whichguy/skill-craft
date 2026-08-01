@@ -91,4 +91,62 @@ out8u="$("$install_sh" --uninstall --skill skill-interop --hermes-only 2>&1)" ||
 printf '%s\n' "$out8u" | grep -q 'Uninstalled copy' || fail "S8 uninstall owned: $out8u"
 [[ ! -e "$HOME/.hermes/skills/software-development/skill-interop" ]] || fail "S8 dest remains"
 
-printf 'install-status-uninstall.test.sh: PASS S1–S8\n'
+printf 'install-status-uninstall.test.sh: PASS S1–S8 (continued)\n'
+
+# --- S9–S13: marker-invalid foreign (byte-identical under install/status/uninstall) ---
+# Shared setup: foreign tree + invalid marker for hermes skill-interop leaf.
+
+marker_invalid_case() {
+  local case_id="$1"
+  local marker_body="$2"
+  local expect_snip="$3"
+  fresh_home "mi-$case_id"
+  local dest="$HOME/.hermes/skills/software-development/skill-interop"
+  local mdir="$HOME/.hermes/skills/software-development/.skill-craft"
+  mkdir -p "$dest" "$mdir"
+  printf 'foreign-body-%s\n' "$case_id" >"$dest/SKILL.md"
+  printf 'keep-me\n' >"$dest/extra-$case_id.txt"
+  printf '%s\n' "$marker_body" >"$mdir/skill-interop.json"
+  local before after
+  before="$(find "$dest" -type f -print0 | sort -z | xargs -0 shasum 2>/dev/null | shasum | awk '{print $1}')"
+  # also fingerprint marker
+  local mbefore mafter
+  mbefore="$(shasum "$mdir/skill-interop.json" | awk '{print $1}')"
+
+  out_st="$("$install_sh" --status --skill skill-interop --hermes-only 2>&1)" || fail "S$case_id status: $out_st"
+  printf '%s\n' "$out_st" | grep -q 'state=foreign' || fail "S$case_id status foreign: $out_st"
+
+  out_in="$("$install_sh" --skill skill-interop --hermes-only 2>&1)" || fail "S$case_id install: $out_in"
+  printf '%s\n' "$out_in" | grep -qi 'foreign\|Skipped' || fail "S$case_id install skip: $out_in"
+
+  out_un="$("$install_sh" --uninstall --skill skill-interop --hermes-only 2>&1)" || fail "S$case_id uninstall: $out_un"
+  printf '%s\n' "$out_un" | grep -q 'Skipped uninstall (not owned)' || fail "S$case_id uninstall skip: $out_un"
+
+  [[ -f "$dest/SKILL.md" ]] || fail "S$case_id dest deleted"
+  [[ "$(cat "$dest/SKILL.md")" == "foreign-body-$case_id" ]] || fail "S$case_id content changed"
+  [[ -f "$dest/extra-$case_id.txt" ]] || fail "S$case_id extra deleted"
+  after="$(find "$dest" -type f -print0 | sort -z | xargs -0 shasum 2>/dev/null | shasum | awk '{print $1}')"
+  [[ "$before" == "$after" ]] || fail "S$case_id dest not byte-identical"
+  mafter="$(shasum "$mdir/skill-interop.json" | awk '{print $1}')"
+  [[ "$mbefore" == "$mafter" ]] || fail "S$case_id marker mutated"
+  pass "S$case_id $expect_snip"
+}
+
+pass() { printf '  ok %s\n' "$*"; }
+
+# S9: malformed JSON marker
+marker_invalid_case 9 'not-json{' 'malformed JSON'
+
+# S10: schema != 2
+marker_invalid_case 10 '{"schema":1,"leaf":"skill-interop","mode":"copy","source":"'"$source_interop"'","skill_version":""}' 'schema!=2'
+
+# S11: wrong leaf
+marker_invalid_case 11 '{"schema":2,"leaf":"other-skill","mode":"copy","source":"'"$source_interop"'","skill_version":""}' 'wrong leaf'
+
+# S12: mode != copy
+marker_invalid_case 12 '{"schema":2,"leaf":"skill-interop","mode":"symlink","source":"'"$source_interop"'","skill_version":""}' 'mode!=copy'
+
+# S13: non-canonical / wrong source path
+marker_invalid_case 13 '{"schema":2,"leaf":"skill-interop","mode":"copy","source":"/nonexistent/wrong/source/path","skill_version":""}' 'wrong source'
+
+printf 'install-status-uninstall.test.sh: PASS S1–S13\n'

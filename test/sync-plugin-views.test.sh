@@ -72,5 +72,55 @@ mv "$pj.bak-sync-test" "$pj"
 [[ "$rc_drift" -ne 0 ]] || fail "drifted plugin.json should fail --check: $out_drift"
 bash scripts/sync-plugin-views.sh --check || fail "check failed after drift restore"
 
-printf 'sync-plugin-views.test.sh: PASS\n'
+# base checks ok; continue to SA8 sample-leaf cases
+
+pass_sync() { printf '  ok %s\n' "$*"; }
+
+# --- Internal symlink deref + escape refuse (SA8 sample leaf) ---
+sample="_zz-sync-symlink-sample_"
+cleanup_sample() {
+  rm -rf "skills/$sample" "plugins/$sample"
+}
+trap 'cleanup_sample' EXIT
+
+cleanup_sample
+mkdir -p "skills/$sample/nested"
+printf -- '---\nname: %s\ndescription: sample\nversion: 0.0.1\nlicense: MIT\nplatforms:\n  - macos\nmetadata:\n  skill_craft:\n    kind: prompt-only\n---\n\n# sample\n' "$sample" >"skills/$sample/SKILL.md"
+printf 'target-body\n' >"skills/$sample/nested/real.txt"
+ln -s "nested/real.txt" "skills/$sample/alias.txt"
+
+# Internal link: sync succeeds and dereferences
+bash scripts/sync-plugin-views.sh "$sample" || fail "internal symlink sync failed"
+[[ -f "plugins/$sample/skills/$sample/alias.txt" ]] || fail "alias missing in view"
+[[ ! -L "plugins/$sample/skills/$sample/alias.txt" ]] || fail "alias still symlink in view"
+[[ "$(cat "plugins/$sample/skills/$sample/alias.txt")" == "target-body" ]] || fail "alias content"
+# residual no symlinks under this plugin view
+if find "plugins/$sample" -type l 2>/dev/null | grep -q .; then
+  fail "residual symlink in plugin view after internal deref"
+fi
+pass_sync "internal symlink dereferenced"
+
+# Escaping symlink: refuse, no partial plugin view materialization of the escape
+cleanup_sample
+mkdir -p "skills/$sample"
+printf -- '---\nname: %s\ndescription: sample\nversion: 0.0.1\nlicense: MIT\nplatforms:\n  - macos\nmetadata:\n  skill_craft:\n    kind: prompt-only\n---\n\n# sample\n' "$sample" >"skills/$sample/SKILL.md"
+ln -s "/etc/passwd" "skills/$sample/escape.txt"
+# Capture pre-existing plugins path state
+rm -rf "plugins/$sample"
+set +e
+out_esc="$(bash scripts/sync-plugin-views.sh "$sample" 2>&1)"
+rc_esc=$?
+set -e
+[[ "$rc_esc" -ne 0 ]] || fail "escape symlink should fail sync: $out_esc"
+printf '%s\n' "$out_esc" | grep -qi 'escape\|escapes' || fail "escape message missing: $out_esc"
+# no partial write of the skill tree with the escape file as symlink
+if [[ -e "plugins/$sample/skills/$sample/escape.txt" ]]; then
+  fail "partial write left escape in plugin view"
+fi
+cleanup_sample
+# Restore trap only cleanup
+trap - EXIT
+cleanup_sample
+
+printf 'sync-plugin-views.test.sh: PASS (incl. internal deref + escape refuse)\n'
 exit 0
