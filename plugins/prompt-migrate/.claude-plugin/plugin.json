@@ -1,7 +1,7 @@
 {
   "name": "prompt-migrate",
-  "version": "0.2.2",
-  "description": "TDD-based prompt migration \u2014 given a target agent/skill prompt and a remediation list from prompt-audit, writes failing tests first, then updates the prompt to make them pass, and commits both in a single atomic commit.",
+  "version": "0.1.0",
+  "description": "TDD-based prompt migration — given a target agent/skill prompt and a remediation list from prompt-audit, writes failing tests first, then updates the prompt to make them pass, and commits both in a single atomic commit.",
   "author": {
     "name": "whichguy",
     "url": "https://github.com/whichguy"
@@ -12,6 +12,7 @@
   "keywords": [
     "skill-craft",
     "prompt-migrate",
-    "portable-skills"
+    "portable-skills",
+    "prompt-only"
   ]
 }

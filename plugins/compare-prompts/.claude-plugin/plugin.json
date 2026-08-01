@@ -1,6 +1,6 @@
 {
   "name": "compare-prompts",
-  "version": "0.2.2",
+  "version": "0.1.0",
   "description": "Compare two prompt versions (A vs B) by running both against a directory of test input files, then evaluating results on three dimensions in priority order: quality > tokens > time.",
   "author": {
     "name": "whichguy",
@@ -12,6 +12,7 @@
   "keywords": [
     "skill-craft",
     "compare-prompts",
-    "portable-skills"
+    "portable-skills",
+    "prompt-only"
   ]
 }

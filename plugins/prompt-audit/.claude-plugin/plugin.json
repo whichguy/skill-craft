@@ -1,7 +1,7 @@
 {
   "name": "prompt-audit",
-  "version": "0.2.2",
-  "description": "Audit an agent or skill prompt file for internal inconsistencies (phase numbering, behavioral contracts, terminology, stale references). Produces a Q&A with info-gain scores, a learnings section, and a remediation list. Use before any promp",
+  "version": "0.1.0",
+  "description": "Audit an agent or skill prompt file for internal inconsistencies (phase numbering, behavioral contracts, terminology, stale references). Produces a Q&A with info-gain scores, a learnings section, and a remediation list. Use before any prompt migration.",
   "author": {
     "name": "whichguy",
     "url": "https://github.com/whichguy"
@@ -12,6 +12,7 @@
   "keywords": [
     "skill-craft",
     "prompt-audit",
-    "portable-skills"
+    "portable-skills",
+    "prompt-only"
   ]
 }

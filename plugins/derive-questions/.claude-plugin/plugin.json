@@ -1,7 +1,7 @@
 {
   "name": "derive-questions",
-  "version": "0.2.2",
-  "description": "Iteratively researches real software project failures and wins, extracts key planning questions via 5-whys analysis, validates them against synthetic test plans, judges their effectiveness via a parallel judge agent, refines them, and persi",
+  "version": "0.1.0",
+  "description": "Iteratively researches real software project failures and wins, extracts key planning questions via 5-whys analysis, validates them against synthetic test plans, judges their effectiveness via a parallel judge agent, refines them, and persists to a growing questions library. Builds a curated, language/system-agnostic question library that prevents known failure modes when applied during software planning.",
   "author": {
     "name": "whichguy",
     "url": "https://github.com/whichguy"
@@ -12,6 +12,7 @@
   "keywords": [
     "skill-craft",
     "derive-questions",
-    "portable-skills"
+    "portable-skills",
+    "prompt-only"
   ]
 }

@@ -67,6 +67,7 @@ host checkout into a tree that is bind-mounted into the container as `/opt/data`
 | Skill-dir symlink (Claude, Grok, Codex) | **implemented** |
 | Skill-dir materialized copy (Hermes default) | **implemented** |
 | Claude plugin view `plugins/<leaf>/` via `sync-plugin-views.sh` | **implemented** |
+| `plugin.json` name/version/description/license derived from `SKILL.md` | **implemented** (`scripts/skill-frontmatter-to-plugin-json.js`; sync enumerates from `skills/`) |
 | skill-craft-market pins (catalog only; no skill bodies) | **implemented** |
 | skillctl / full receipts / uninstall | **proposed** |
 

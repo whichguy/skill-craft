@@ -1,6 +1,6 @@
 {
   "name": "architect",
-  "version": "0.2.2",
+  "version": "0.1.0",
   "description": "Design system architecture and make technology decisions. Dispatches to system-architect agent for comprehensive design work.",
   "author": {
     "name": "whichguy",
@@ -12,6 +12,7 @@
   "keywords": [
     "skill-craft",
     "architect",
-    "portable-skills"
+    "portable-skills",
+    "prompt-only"
   ]
 }

@@ -1,6 +1,6 @@
 {
   "name": "plan-test",
-  "version": "0.2.2",
+  "version": "0.1.0",
   "description": "Generate comprehensive tests for code. Dispatches to qa-analyst agent for complex components requiring test architecture decisions.",
   "author": {
     "name": "whichguy",
@@ -12,6 +12,7 @@
   "keywords": [
     "skill-craft",
     "plan-test",
-    "portable-skills"
+    "portable-skills",
+    "prompt-only"
   ]
 }

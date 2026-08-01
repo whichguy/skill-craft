@@ -1,7 +1,7 @@
 {
   "name": "review-fix-bench",
-  "version": "0.2.2",
-  "description": "A/B benchmarking skill for code reviewer agent prompts. Runs two versions of a reviewer agent against fixture ground truth using an LLM judge for semantic evaluation, then compares precision/recall/F1 metrics side-by-side. Defaults to compa",
+  "version": "0.1.0",
+  "description": "A/B benchmarking skill for code reviewer agent prompts. Runs two versions of a reviewer agent against fixture ground truth using an LLM judge for semantic evaluation, then compares precision/recall/F1 metrics side-by-side. Defaults to comparing current agent vs git HEAD~1. Reports IMPROVED / REGRESSED / NEUTRAL verdict on F1.",
   "author": {
     "name": "whichguy",
     "url": "https://github.com/whichguy"
@@ -12,6 +12,7 @@
   "keywords": [
     "skill-craft",
     "review-fix-bench",
-    "portable-skills"
+    "portable-skills",
+    "prompt-only"
   ]
 }

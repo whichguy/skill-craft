@@ -42,13 +42,12 @@ plugins, use **claude-craft**.
 | **improve-system-prompt** | Benchmark system prompt variants (Sheets Chat lineage) |
 | **review-fix-bench** | A/B benchmark code reviewer agent prompts |
 
-Port inventory: [docs/PORT.md](docs/PORT.md). After editing any skill body, run:
+Port inventory: [docs/PORT.md](docs/PORT.md). After editing any skill body (including frontmatter version/description), run:
 
 ```sh
-./scripts/sync-plugin-views.sh
-./scripts/sync-plugin-views.sh --check
+./scripts/sync-plugin-views.sh          # materialise plugins/* + derive plugin.json from SKILL.md
+./scripts/sync-plugin-views.sh --check  # CI / pre-commit; enumerates skills/ SoT
 ```
-
 ## Install (`install.sh`)
 
 Installs `skills/<leaf>` into local skill homes. Claude/Grok/Codex get **symlinks**.

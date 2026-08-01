@@ -25,5 +25,18 @@ fi
 [[ -f plugins/skill-interop/agents/skill-interop.md ]] || fail "missing materialised agent card"
 [[ -f plugins/skill-interop/.claude-plugin/plugin.json ]] || fail "missing plugin.json"
 
+# plugin.json is derived from SKILL.md SoT (version/description/license)
+node scripts/skill-frontmatter-to-plugin-json.js skill-interop --check \
+  || fail "skill-interop plugin.json not derived from frontmatter"
+node scripts/skill-frontmatter-to-plugin-json.js c-plan --check \
+  || fail "c-plan plugin.json not derived from frontmatter"
+
+# Default enumeration is skills/ — every skill leaf must have a plugin view after sync
+for d in skills/*/; do
+  n="$(basename "$d")"
+  [[ -f "skills/$n/SKILL.md" ]] || continue
+  [[ -f "plugins/$n/.claude-plugin/plugin.json" ]] || fail "missing plugin view for skills/$n"
+done
+
 printf 'sync-plugin-views.test.sh: PASS\n'
 exit 0

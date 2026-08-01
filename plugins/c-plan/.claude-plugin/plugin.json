@@ -1,7 +1,7 @@
 {
   "name": "c-plan",
-  "version": "0.2.2",
-  "description": "Resolve ambiguous user prompts by choosing whether to answer now, answer with assumptions, ask 1\u20132 high-value clarification questions, replan, or stop. Use when the best response depends on hidden intent, audience, scope, constraints, risk,",
+  "version": "0.1.0",
+  "description": "Resolve ambiguous user prompts by choosing whether to answer now, answer with assumptions, ask 1–2 high-value clarification questions, replan, or stop. Use when the best response depends on hidden intent, audience, scope, constraints, risk, output format, or desired depth.",
   "author": {
     "name": "whichguy",
     "url": "https://github.com/whichguy"
@@ -12,6 +12,7 @@
   "keywords": [
     "skill-craft",
     "c-plan",
-    "portable-skills"
+    "portable-skills",
+    "prompt-only"
   ]
 }
