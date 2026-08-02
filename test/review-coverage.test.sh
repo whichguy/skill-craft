@@ -36,6 +36,13 @@ EOF
 if python3 "$CLI" validate "$TMP" >/dev/null; then ok validate_ok; else bad validate_ok; fi
 GBO=$(python3 "$CLI" goal-body --plan "$TMP")
 TMP_ABS=$(python3 -c 'from pathlib import Path; import sys; print(Path(sys.argv[1]).resolve())' "$TMP")
+# Exact STATIC from CLI constant (never hand-copy older wording)
+STATIC=$(python3 -c "
+import runpy, sys
+m = runpy.run_path(sys.argv[1], run_name='rc')
+print(m['STATIC_GOAL_LOGIC'], end='')
+" "$CLI")
+if [[ "$GBO" == "$STATIC".* ]]; then ok goal_body_static_exact; else bad goal_body_static_exact; fi
 if [[ "$GBO" == quality\ review\ changes\ and\ consider\ improvements,* ]]; then ok goal_body_static_start; else bad goal_body_static_start; fi
 if printf '%s\n' "$GBO" | grep -q 'complete when only trivial findings remaining for 2 consecutive cycles'; then ok goal_body_static_complete; else bad goal_body_static_complete; fi
 if printf '%s\n' "$GBO" | grep -q 'git commit between each iteration with a verbose message with key learnings'; then ok goal_body_commit_each_iteration; else bad goal_body_commit_each_iteration; fi
@@ -54,6 +61,7 @@ if ! printf '%s\n' "$GBO" | grep -q 'zero material findings'; then ok goal_body_
 if ! printf '%s\n' "$GBO" | grep -qE '(^|[. ])Paths:|(^|[. ])Test:|Max rounds:'; then ok goal_body_no_legacy_labels; else bad goal_body_no_legacy_labels; fi
 if ! printf '%s\n' "$GBO" | grep -q 'FINITE residual\|S1)'; then ok goal_body_no_legacy_procedure; else bad goal_body_no_legacy_procedure; fi
 GBO_SLASH=$(python3 "$CLI" goal-body --plan "$TMP" --slash)
+if [[ "$GBO_SLASH" == "/goal $GBO" ]]; then ok goal_body_slash_exact; else bad goal_body_slash_exact; fi
 if [[ "$GBO_SLASH" == /goal\ quality\ review\ changes* ]]; then ok goal_body_slash; else bad goal_body_slash; fi
 if [[ "$(python3 "$CLI" goal-body --plan "$TMP" --slash | head -c 28)" == /goal\ quality\ review\ changes* ]]; then ok goal_body_slash_head; else bad goal_body_slash_head; fi
 if [[ "$GBO" != /goal\ * ]]; then ok goal_body_no_slash; else bad goal_body_no_slash; fi
@@ -110,7 +118,8 @@ EOF
 PREF_ABS=$(python3 -c 'from pathlib import Path; import sys; print(Path(sys.argv[1]).resolve())' "$PREF_PLAN")
 PREF_OUT=$(python3 "$CLI" preflight --plan "$PREF_PLAN" 2>&1)
 if [[ "$PREF_OUT" == *'preflight: ok'* && "$PREF_OUT" == *"plan: $PREF_ABS"* \
-  && "$PREF_OUT" == *'validate: ok'* && "$PREF_OUT" == *"base ref: ok ($PREF_BASE)"* \
+  && "$PREF_OUT" == *'validate: ok'* && "$PREF_OUT" == *'waived: no'* \
+  && "$PREF_OUT" == *"base ref: ok ($PREF_BASE)"* \
   && "$PREF_OUT" == *'ledger: absent'* && "$PREF_OUT" == *'next: scripts/review-coverage run-card --plan'* ]]; then
   ok preflight_ok
 else
@@ -124,8 +133,10 @@ cat >"$PREF_WAIVED" <<'EOF'
 
 None — residual loop waived: docs-only plan
 EOF
+PREF_WAIVED_OUT=$(python3 "$CLI" preflight --plan "$PREF_WAIVED" 2>&1 || true)
 PREF_WAIVED_EC=$(python3 "$CLI" preflight --plan "$PREF_WAIVED" >/dev/null 2>&1; echo $?)
 if [[ "$PREF_WAIVED_EC" -eq 1 ]]; then ok preflight_waived; else bad preflight_waived; fi
+if printf '%s\n' "$PREF_WAIVED_OUT" | grep -q 'waived: yes'; then ok preflight_waived_line; else bad preflight_waived_line; fi
 CARD=$(python3 "$CLI" run-card --plan "$PREF_PLAN" --preflight)
 PREF_GOAL=$(python3 "$CLI" goal-body --plan "$PREF_PLAN" --slash)
 CARD_GOAL=$(printf '%s\n' "$CARD" | awk '/^### 1\. Open host goal$/{found=1; next} /^### 2\. Each turn$/{exit} found && NF {print; exit}')
@@ -136,6 +147,9 @@ if [[ "$CARD" == *'Target paths: src/foo.ts'* && "$CARD" == *'Test command: npm 
 else
   bad run_card_fields
 fi
+# failed preflight must not emit a run card body
+CARD_FAIL=$(python3 "$CLI" run-card --plan "$PREF_WAIVED" --preflight 2>&1 || true)
+if ! printf '%s\n' "$CARD_FAIL" | grep -q '### 1. Open host goal'; then ok run_card_preflight_fail_no_card; else bad run_card_preflight_fail_no_card; fi
 rm -f "$PREF_PLAN" "$PREF_WAIVED"
 rm -rf "$PREF_REPO"
 
@@ -401,7 +415,7 @@ else
   bad full_template_no_goal_body
 fi
 
-if grep -q '^version: 0.2.3$' "$ROOT/skills/review-coverage/SKILL.md"; then ok skill_version; else bad skill_version; fi
+if grep -q '^version: 0.2.4$' "$ROOT/skills/review-coverage/SKILL.md"; then ok skill_version; else bad skill_version; fi
 # Skill-first invoke (primary); CLI remains optional helper
 if grep -qE '/review-coverage|## Invocation' "$ROOT/skills/review-coverage/SKILL.md" \
   && grep -qiE 'not the primary|optional CLI helpers|not a script-first' "$ROOT/skills/review-coverage/SKILL.md"; then
@@ -410,6 +424,12 @@ else
   bad skill_invoke_docs
 fi
 if grep -q -- 'goal-body --plan /path/to/plan.md --slash' "$ROOT/skills/review-coverage/SKILL.md"; then ok skill_slash_docs; else bad skill_slash_docs; fi
+if grep -qiE 'goal-body --plan.*--slash|Prefer CLI when available' "$ROOT/skills/review-coverage/SKILL.md" \
+  && grep -qi 'hard stop' "$ROOT/skills/review-coverage/SKILL.md"; then
+  ok skill_phase_b_cli_prefer
+else
+  bad skill_phase_b_cli_prefer
+fi
 
 # --- Verification rows (e)–(h): section-scoped fence-aware waiver ---
 FILLED_CORE=$(cat <<'EOF'

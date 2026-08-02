@@ -61,10 +61,12 @@ Optional CLI: `scripts/review-coverage preflight --plan <plan>` / `goal-body --s
 Before claiming a clean residual×2 streak:
 
 1. **Pathspec commits only** under Target paths — never `git add -A` / `.` / `-u`.
-2. After every package edit: `scripts/sync-plugin-views.sh review-coverage` (or full sync)
-   so plugin drift cannot fail the suite mid-streak.
+2. After package edit: prefer **scoped** `./scripts/sync-plugin-views.sh review-coverage`
+   (not bare global sync mid-residual — that can delete foreign skills). Then
+   `git status` for unexpected deletes.
 3. Do not start residual with unfinished WIP in Target paths (plugin/version drift).
-4. Prefer skill Phase B preflight, or optional `run-card --preflight` for humans.
+4. Prefer skill Phase B preflight (hard stop on foreign terminal ledger), or optional
+   `run-card --preflight` for humans.
 
 ## Optional plan-oversight
 

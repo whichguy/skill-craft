@@ -62,7 +62,7 @@ Do **not** require the user to run shell scripts to use this skill.
 | **Review Coverage** | Durable plan **H2 only** `## Review Coverage` + this skill (H1/H3+ are not recognized). After ship: prove code matches specs and **stop** when proof is stable. |
 | **Status / Log / landed** | Driver ledger at repo-root `REVIEW_CONVERGE.md`. **Landed** = latest Log `Committed: yes` and `review-converge: round N —` (or legacy `grok-review-converge: round N —`). |
 | **residual** | Forward (specs→code) + reverse (diff vs Base ref); material fixes only; pathspec commits. |
-| **clean / residual×2** | Clean = **only trivial findings remaining this cycle** (synonym: zero material findings *found* this cycle — not “fixed some material and left minors”). Success = two consecutive cleans; second clean runs Test command PASS. Fixing material resets the streak. |
+| **clean / residual×2** | Clean = **only trivial findings remaining this cycle** (not “fixed some material and left minors”). Success = two consecutive cleans; second clean runs Test command PASS. Fixing material resets the streak. |
 | **`/goal` body** | Outer multi-turn objective: **static complete-when sentence** + plan bindings (see below). Do not paraphrase the static sentence. |
 | **`/review-converge`** | Default Driver: **one** residual round per outer turn. |
 | **complete** | residual×2 success + landed Log. |
@@ -76,13 +76,17 @@ quality review changes and consider improvements, review the last 10 git commit 
 
 ### Host `/goal` line the agent opens
 
-Compose one line (static sentence + bindings from the plan):
+**Prefer CLI when available** (avoids compose drift):
 
-```text
-/goal <STATIC>. Plan: <ABS_PLAN>. Base ref: <SHA>. Target paths: <PATHS>. Test command: <CMD>. Driver: one /review-converge per turn. Max review-converge rounds: <N> — on exceed, land stopped (max-cycles) in REVIEW_CONVERGE.md and EXIT HALT. Also EXIT HALT on stopped (same-error ×3) or stopped (no-progress ×3) when landed. Ledger: REVIEW_CONVERGE.md — a cycle counts clean only if Log Outcome is clean (only trivial findings remaining this cycle; fixing material resets the streak); second clean must run Test command PASS; SUCCESS only when Status complete AND Log landed. Never unlimited outer loop. Pathspec commits only under Target paths; never git add -A.
+```sh
+scripts/review-coverage goal-body --plan <ABS_PLAN> --slash
 ```
 
-Include `Repo: <ABS>` when the plan has it. Use absolute plan path. Default **N** = 12.
+Paste that output byte-for-byte. Fallback only if the CLI is missing: STATIC + the
+same trailer fields/order as `goal_body()` (Plan absolute, Base ref, Target paths,
+Test command, Driver one round, Max rounds + halt rules, Ledger clean = only
+trivial findings remaining this cycle + landed SUCCESS, pathspec). Include
+`Repo:` when set. Default max rounds **N** = 12.
 
 ### Nesting
 

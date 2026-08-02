@@ -554,6 +554,7 @@ def _preflight(
     print(f"preflight: {'fail' if hard_fail else 'ok'}")
     print(f"plan: {resolved_plan}")
     print(f"validate: {validation_state}")
+    print(f"waived: {'yes' if waived else 'no'}")
     print(f"base ref: {base_state}")
     print(f"ledger: {ledger_state}")
     if hard_fail:
