@@ -5,7 +5,9 @@ description: >-
   resolve or bootstrap the engine CLI, then run with an explicit --repo or scratch
   request. Portable card for Grok, Claude, Codex, and Hermes; first --setup (or
   first run) can materialize a host-local engine under ~/.local/share/devloop.
-version: 0.2.0
+  Setup/probe are multi-host; full autonomous engine loops still default to Hermes
+  transport until a non-Hermes runtime ships.
+version: 0.3.0
 license: MIT
 platforms:
   - linux
@@ -59,16 +61,28 @@ After skill-dir install, package root is `~/.grok/skills/devloop-run` (Grok),
 | Codex | skill-dir install | same |
 | Hermes | skill-dir card (`devloop-run`); engine leaf stays `devloop` | yes when engine resolves |
 
-**Honesty:** Installing the card on three hosts is multi-host **discovery**. Multi-host
-**runtime** requires a successful resolve/bootstrap **on that machine**. The Hermes
-engine leaf name `devloop` is never overwritten by this card.
+**Honesty:**
+- Installing the card on three hosts is multi-host **discovery**.
+- **`--setup` / `--probe`** are multi-host (bootstrap host-local engine from pin or seed).
+- **Full autonomous engine runs** still use a **Hermes-default** model transport
+  (`HERMES_BIN`, write-safe roots). Claude/Codex/Grok can run the card and bootstrap
+  the tree; completing a real devloop goal without Hermes needs a future portability
+  transport (not this card alone).
+- Multi-host runtime still requires successful resolve/bootstrap **on that machine**.
+- The Hermes skillhub leaf name `devloop` is never overwritten by this card.
 
 ## Bootstrap (host-local engine)
 
 Default root: `${DEVLOOP_DATA_HOME:-${XDG_DATA_HOME:-$HOME/.local/share}}/devloop`.
 
 Pinned release: [references/engine-pin.json](references/engine-pin.json) (`url` + `sha256`).  
-Packaging: `scripts/package-devloop-engine.sh --from DIR --version X.Y.Z`.
+Publish surface: GitHub Release assets on **skill-craft** (`devloop-engine-v*`), not a
+dedicated engine monorepo (unless that is chosen later).  
+Packaging: `scripts/package-devloop-engine.sh --from DIR --version X.Y.Z` (deny-check
+fails on host-absolute path / home-PII leakage).
+
+Requires **Python 3** on PATH for setup (marker + safe extract). Prefer `curl` or
+`wget` for HTTPS pin download, and `shasum` for verification.
 
 See [references/bootstrap.md](references/bootstrap.md) and [references/host-matrix.md](references/host-matrix.md).
 

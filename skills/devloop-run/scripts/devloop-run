@@ -61,6 +61,27 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+# Setup/bootstrap needs python3 early (marker JSON + safe extract). Fail closed exit 2.
+require_python3() {
+  if command -v python3 >/dev/null 2>&1; then
+    return 0
+  fi
+  printf 'devloop-run: python3 not found on PATH (install Python 3.10+)\n' >&2
+  printf '  Next: install python3, then re-run: bash scripts/devloop-run --setup\n' >&2
+  exit 2
+}
+
+# Probe can list paths without python; setup / bootstrap / invoke need it.
+if [[ "$setup" -eq 1 || "$force_bootstrap" -eq 1 || ( "$probe" -eq 0 && "$setup" -eq 0 ) ]]; then
+  # Always require for real invoke; for setup/bootstrap too. Skip only pure --probe
+  # when we will not bootstrap (probe alone). If probe and missing engine, ensure may bootstrap.
+  if [[ "$probe" -eq 1 && "$setup" -eq 0 && "$force_bootstrap" -eq 0 ]]; then
+    :
+  else
+    require_python3
+  fi
+fi
+
 is_engine_root() {
   local d="$1"
   [[ -n "$d" && -d "$d" && -f "$d/scripts/devloop_cli.py" ]]
@@ -442,10 +463,7 @@ if [[ "$setup" -eq 1 || "$probe" -eq 1 ]]; then
   exit 0
 fi
 
-if ! command -v python3 >/dev/null 2>&1; then
-  printf 'devloop-run: python3 not found on PATH (install Python 3.10+)\n' >&2
-  exit 2
-fi
+require_python3
 
 cli="$engine_root/scripts/devloop_cli.py"
 if [[ -x "$engine_root/.venv/bin/python3" ]]; then

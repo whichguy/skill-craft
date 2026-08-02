@@ -69,8 +69,18 @@ Host-local installs write `.skill-craft-engine.json` (schema 1) for provenance:
 
 ## Packaging a release
 
+Default publish surface: **skill-craft** GitHub Release tags `devloop-engine-v*`
+(not a separate `devloop-engine` repo unless deliberately migrated).
+
 ```sh
-./scripts/package-devloop-engine.sh --from /path/to/engine --version 0.1.0 --out dist
-# → dist/devloop-engine-0.1.0.tar.gz + .sha256 + pin fragment
+./scripts/package-devloop-engine.sh --from /path/to/engine --version 0.1.1 --out dist
+# → dist/devloop-engine-0.1.1.tar.gz + .sha256 + pin fragment
+# Deny-check fails if staged tree contains /Users/, /home/, .hermes/profiles, etc.
 # Publish tarball as a GitHub Release asset; update references/engine-pin.json url+sha256
 ```
+
+## Runtime honesty
+
+Card bootstrap/probe is multi-host. Full engine model dispatch currently defaults to
+Hermes (`HERMES_BIN`, write-safe root). Non-Hermes host CLIs are not a drop-in full
+loop until a transport portability slice lands.

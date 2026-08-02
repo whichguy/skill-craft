@@ -196,4 +196,52 @@ set -e
 [[ -f "$DEVLOOP_DATA_HOME/devloop/.skill-craft-engine.json" ]] || fail "D13 missing marker after concurrent setup"
 rm -f /tmp/devloop-conc-a.$$.out /tmp/devloop-conc-b.$$.out
 
-printf 'devloop-run.test.sh: PASS D1–D13\n'
+# D14: package deny-check rejects host-absolute path leakage
+pkg="$root/scripts/package-devloop-engine.sh"
+[[ -x "$pkg" ]] || fail "D14 missing package-devloop-engine.sh"
+bad_tree="$tmpdir/engine-leaky"
+rm -rf "$bad_tree"
+mkdir -p "$bad_tree/scripts" "$bad_tree/references"
+printf 'print("ok")\n' >"$bad_tree/scripts/devloop_cli.py"
+printf 'path /Users/someone/secret/docs\n' >"$bad_tree/references/leak.md"
+set +e
+out14="$("$pkg" --from "$bad_tree" --version 0.0.0-test --out "$tmpdir/pkg-out" 2>&1)"
+rc14=$?
+set -e
+[[ "$rc14" -ne 0 ]] || fail "D14 want non-zero package exit: $out14"
+printf '%s\n' "$out14" | grep -qi 'deny-check' || fail "D14 message: $out14"
+# clean mini tree packages ok
+clean_tree="$tmpdir/engine-clean"
+rm -rf "$clean_tree"
+mkdir -p "$clean_tree/scripts"
+printf 'print("ok")\n' >"$clean_tree/scripts/devloop_cli.py"
+out14b="$("$pkg" --from "$clean_tree" --version 0.0.0-ok --out "$tmpdir/pkg-out" 2>&1)" || fail "D14 clean package: $out14b"
+[[ -f "$tmpdir/pkg-out/devloop-engine-0.0.0-ok.tar.gz" ]] || fail "D14 missing tgz"
+
+# D15: --setup without python3 → exit 2 (not bare 127)
+export DEVLOOP_DATA_HOME="$tmpdir/data-nopy"
+export DEVLOOP_ENGINE_PIN="$fixture_pin"
+unset DEVLOOP_HOME HERMES_HOME || true
+# PATH with only coreutils-ish bins; no python3
+nopy_bin="$tmpdir/nopy-bin"
+mkdir -p "$nopy_bin"
+for c in bash sh mkdir cat cp rm mv ls true false grep awk sed env; do
+  if command -v "$c" >/dev/null 2>&1; then
+    ln -sf "$(command -v "$c")" "$nopy_bin/$c" 2>/dev/null || true
+  fi
+done
+# ensure python3 not present
+[[ ! -e "$nopy_bin/python3" ]] || rm -f "$nopy_bin/python3"
+set +e
+out15="$(PATH="$nopy_bin" "$run" --setup 2>&1)"
+rc15=$?
+set -e
+[[ "$rc15" -eq 2 ]] || fail "D15 want 2 got $rc15: $out15"
+printf '%s\n' "$out15" | grep -qi 'python3' || fail "D15 message: $out15"
+
+# D16: honesty / version
+grep -q 'Hermes-default\|Hermes-default' "$root/skills/devloop-run/SKILL.md" \
+  || grep -qi 'Hermes' "$root/skills/devloop-run/SKILL.md" || fail "D16 honesty Hermes"
+grep -E '^version: 0\.3\.' "$root/skills/devloop-run/SKILL.md" || fail "D16 version 0.3.x"
+
+printf 'devloop-run.test.sh: PASS D1–D16\n'

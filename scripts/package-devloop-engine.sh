@@ -2,9 +2,10 @@
 # Package a sanitized devloop engine tree into a versioned .tar.gz + .sha256
 #
 # Usage:
-#   ./scripts/package-devloop-engine.sh --from DIR --version 0.1.0 [--out DIR]
+#   ./scripts/package-devloop-engine.sh --from DIR --version 0.1.1 [--out DIR]
 #
-# Excludes: .venv, __pycache__, .devloop, .git, caches, *.pyc
+# Excludes: .venv, __pycache__, .devloop, .git, caches, *.pyc, and known path-leaking
+# reference docs. After stage: deny-check fails on host-absolute paths / home PII.
 set -euo pipefail
 
 from=""
@@ -42,6 +43,7 @@ cleanup() { rm -rf "$stage"; }
 trap cleanup EXIT
 
 # Copy with excludes (rsync preferred)
+# Also drop known path-leaking reference docs from Hermes export trees.
 if command -v rsync >/dev/null 2>&1; then
   rsync -a \
     --exclude '.venv/' \
@@ -53,13 +55,73 @@ if command -v rsync >/dev/null 2>&1; then
     --exclude '.ruff_cache/' \
     --exclude '*.pyc' \
     --exclude '.DS_Store' \
+    --exclude 'references/archive-verification.md' \
+    --exclude 'references/prompt-iteration-loop.md' \
+    --exclude 'references/retirement-readiness-2026-06-30.md' \
     "$from"/ "$stage"/
 else
   cp -R "$from"/. "$stage"/
   rm -rf "$stage/.venv" "$stage/__pycache__" "$stage/.devloop" "$stage/.git" \
     "$stage/.mypy_cache" "$stage/.pytest_cache" "$stage/.ruff_cache" 2>/dev/null || true
+  rm -f "$stage/references/archive-verification.md" \
+    "$stage/references/prompt-iteration-loop.md" \
+    "$stage/references/retirement-readiness-2026-06-30.md" 2>/dev/null || true
   find "$stage" -name '*.pyc' -delete 2>/dev/null || true
 fi
+
+# Deny-check: no host-absolute paths / home PII / hermes profile tree in file *contents*
+# (text files only; binary skipped). Exit 1 on first hit.
+python3 - "$stage" <<'PY'
+import os, re, sys
+
+root = sys.argv[1]
+# Patterns that must not appear in a public engine release
+PATTERNS = [
+    re.compile(r"/Users/[A-Za-z0-9._-]+"),
+    re.compile(r"/home/[A-Za-z0-9._-]+"),
+    re.compile(r"\.hermes/profiles/"),
+    re.compile(r"AKIA[0-9A-Z]{16}"),
+    re.compile(r"ghp_[A-Za-z0-9]{36}"),
+    re.compile(r"sk-[A-Za-z0-9]{20,}"),
+    re.compile(r"AIza[0-9A-Za-z_-]{35}"),
+]
+# Skip binary-ish extensions
+SKIP_EXT = {".pyc", ".png", ".jpg", ".jpeg", ".gif", ".webp", ".ico", ".woff", ".woff2", ".pdf", ".zip", ".tgz", ".gz"}
+
+hits = []
+for dirpath, _, files in os.walk(root):
+    for name in files:
+        path = os.path.join(dirpath, name)
+        ext = os.path.splitext(name)[1].lower()
+        if ext in SKIP_EXT:
+            continue
+        try:
+            data = open(path, "rb").read(2_000_000)
+        except OSError:
+            continue
+        if b"\0" in data[:4096]:
+            continue
+        try:
+            text = data.decode("utf-8", errors="replace")
+        except Exception:
+            continue
+        for pat in PATTERNS:
+            m = pat.search(text)
+            if m:
+                rel = os.path.relpath(path, root)
+                hits.append("%s: %s" % (rel, m.group(0)[:80]))
+                break
+
+if hits:
+    sys.stderr.write("package-devloop-engine: deny-check FAILED (%d hit(s))\n" % len(hits))
+    for h in hits[:30]:
+        sys.stderr.write("  %s\n" % h)
+    if len(hits) > 30:
+        sys.stderr.write("  ... +%d more\n" % (len(hits) - 30))
+    sys.stderr.write("  Scrub host paths / PII before packaging, or exclude leaking files.\n")
+    sys.exit(1)
+sys.stderr.write("package-devloop-engine: deny-check OK\n")
+PY
 
 # Top-level directory name inside tarball for strip-friendly extract
 inner="devloop-engine-${version}"
@@ -89,7 +151,6 @@ pin="$out_dir/engine-pin-${version}.json"
 python3 - "$version" "$sha" "$(basename "$tgz")" "$pin" <<'PY'
 import json, sys
 version, sha, name, out = sys.argv[1:5]
-# URL filled later by release step; file:// for local pin override in tests
 d = {
     "version": version,
     "url": f"REPLACE_WITH_RELEASE_URL/{name}",
