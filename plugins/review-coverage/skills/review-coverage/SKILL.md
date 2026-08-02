@@ -43,7 +43,7 @@ required for this skill to work.
 | **Review Coverage** | Durable plan **H2 only** `## Review Coverage` + this skill (H1/H3+ headings are not recognized). It answers: after ship, how do we prove code matches specs and **stop** when proof is stable? |
 | **Status / Log / landed** | When the Driver is `review-converge`, repo-root `REVIEW_CONVERGE.md` is the ledger: Status selects the next branch; Log records each round. **Landed** means latest Log `Committed: yes` and a `review-converge: round N —` commit subject (or legacy `grok-review-converge: round N —`). |
 | **residual** | Post-ship forward (specs→code) + reverse (diff vs Base ref); material fixes only; pathspec commits. |
-| **clean / residual×2** | A cycle is **clean** only when it finds zero material issues. **Stop rule:** “only trivial changes remain for 2 consecutive cycles.” Fixing a material issue resets the streak; minors/P2 are trivial. The second clean runs Test command PASS. |
+| **clean / residual×2** | A cycle is **clean** only when only trivial findings remain. **Stop rule:** “only trivial findings remaining for 2 consecutive cycles.” Fixing a material issue resets the streak; minors/P2 are trivial. The second clean runs Test command PASS. |
 | **`/goal`** | The outer multi-turn driver. It is the **literal paste command** emitted by `scripts/review-coverage goal-body --plan … --slash`; do not paraphrase its body. |
 | **`/review-converge`** | Default inner Driver: exactly **one** residual round per invocation. |
 | **complete** | residual×2 success plus a landed Log. |
@@ -52,7 +52,7 @@ required for this skill to work.
 The static `/goal` logic is byte-exact:
 
 ```text
-/goal quality review changes and consider improvements, review the last 10 git commit messages for learnings, anchoring each spec item in code changes and verify use cases/corner cases, git commit between each iteration with a verbose message with key learnings, complete when only trivial changes remain for 2 consecutive cycles
+/goal quality review changes and consider improvements, review the last 10 git commit messages for learnings, anchoring each spec item in code changes and verify use cases/corner cases, git commit between each iteration with a verbose message with key learnings, complete when only trivial findings remaining for 2 consecutive cycles
 ```
 
 ### Nesting
@@ -115,7 +115,7 @@ Heading must be level-2 `## Review Coverage` (not `#` / `###`).
    max-budget before unattended work. **Do not paraphrase** its static sentence:
 
    ```text
-   /goal quality review changes and consider improvements, review the last 10 git commit messages for learnings, anchoring each spec item in code changes and verify use cases/corner cases, git commit between each iteration with a verbose message with key learnings, complete when only trivial changes remain for 2 consecutive cycles
+   /goal quality review changes and consider improvements, review the last 10 git commit messages for learnings, anchoring each spec item in code changes and verify use cases/corner cases, git commit between each iteration with a verbose message with key learnings, complete when only trivial findings remaining for 2 consecutive cycles
    ```
 
 5. Run exactly one inner `/review-converge` per outer turn. The section’s exit

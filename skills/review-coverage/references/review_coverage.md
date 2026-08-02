@@ -8,7 +8,7 @@
 |------|---------|
 | **Review Coverage** | This whole H2 block — durable post-ship instructions in the plan. Phase A writes it; Phase B runs it. |
 | **residual** | Post-ship work: **forward** (specs → code) + **reverse** (diff vs Base ref); fix only **material** issues; pathspec commit. |
-| **clean / residual×2** | A cycle is **clean** only when it found zero material issues. Success stop rule: Status `complete` only after **two consecutive clean** residual rounds, with the **second** clean running Test command green. Fixing material resets the streak; not “run two rounds total.” |
+| **clean / residual×2** | A cycle is **clean** only when only trivial findings remain. Success stop rule: Status `complete` only after **two consecutive clean** residual rounds, with the **second** clean running Test command green. Fixing material resets the streak; not “run two rounds total.” |
 | **Driver** | One residual **round** executor — default `/review-converge` under outer `/goal`. |
 | **complete** | residual×2 **success** (objective-met). |
 | **stopped (...)** | Residual **failed closed** (not success; still ends the outer loop). |
@@ -55,7 +55,7 @@ and choose **exactly one**:
 unit of work, then re-evaluate.
 
 **Success (all required):** Status `complete`; two **consecutive** Log rounds Outcome
-`clean` (zero material; non-clean resets streak); second clean runs Test command PASS;
+`clean` (only trivial findings remaining; non-clean resets streak); second clean runs Test command PASS;
 latest Log **landed**.
 
 **Unsuccessful halt:** land `stopped (same-error ×3 | no-progress ×3 | max-cycles |
@@ -71,7 +71,7 @@ never continue after complete or stopped (...); max rounds hard wall; pathspec o
 ### /goal command (Phase B — paste literally)
 
 ```text
-/goal quality review changes and consider improvements, review the last 10 git commit messages for learnings, anchoring each spec item in code changes and verify use cases/corner cases, git commit between each iteration with a verbose message with key learnings, complete when only trivial changes remain for 2 consecutive cycles
+/goal quality review changes and consider improvements, review the last 10 git commit messages for learnings, anchoring each spec item in code changes and verify use cases/corner cases, git commit between each iteration with a verbose message with key learnings, complete when only trivial findings remaining for 2 consecutive cycles
 ```
 
 After the fields are filled:

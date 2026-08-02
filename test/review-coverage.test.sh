@@ -37,7 +37,7 @@ if python3 "$CLI" validate "$TMP" >/dev/null; then ok validate_ok; else bad vali
 GBO=$(python3 "$CLI" goal-body --plan "$TMP")
 TMP_ABS=$(python3 -c 'from pathlib import Path; import sys; print(Path(sys.argv[1]).resolve())' "$TMP")
 if [[ "$GBO" == quality\ review\ changes\ and\ consider\ improvements,* ]]; then ok goal_body_static_start; else bad goal_body_static_start; fi
-if printf '%s\n' "$GBO" | grep -q 'complete when only trivial changes remain for 2 consecutive cycles'; then ok goal_body_static_complete; else bad goal_body_static_complete; fi
+if printf '%s\n' "$GBO" | grep -q 'complete when only trivial findings remaining for 2 consecutive cycles'; then ok goal_body_static_complete; else bad goal_body_static_complete; fi
 if printf '%s\n' "$GBO" | grep -q 'git commit between each iteration with a verbose message with key learnings'; then ok goal_body_commit_each_iteration; else bad goal_body_commit_each_iteration; fi
 if printf '%s\n' "$GBO" | grep -q 'review the last 10 git commit messages for learnings'; then ok goal_body_review_git_learnings; else bad goal_body_review_git_learnings; fi
 if printf '%s\n' "$GBO" | grep -q "Plan: $TMP_ABS"; then ok goal_body_plan_absolute; else bad goal_body_plan_absolute; fi
@@ -49,6 +49,8 @@ if printf '%s\n' "$GBO" | grep -q 'Driver: one /review-converge per turn'; then 
 if printf '%s\n' "$GBO" | grep -q 'Max review-converge rounds: 12'; then ok goal_body_max_default; else bad goal_body_max_default; fi
 if printf '%s\n' "$GBO" | grep -q 'stopped (max-cycles).*EXIT HALT.*same-error ×3.*no-progress ×3'; then ok goal_body_halt_rules; else bad goal_body_halt_rules; fi
 if printf '%s\n' "$GBO" | grep -q 'Ledger: REVIEW_CONVERGE.md.*Log landed'; then ok goal_body_ledger_landed; else bad goal_body_ledger_landed; fi
+if printf '%s\n' "$GBO" | grep -q 'only trivial findings remaining'; then ok goal_body_clean_trivial; else bad goal_body_clean_trivial; fi
+if ! printf '%s\n' "$GBO" | grep -q 'zero material findings'; then ok goal_body_no_zero_material; else bad goal_body_no_zero_material; fi
 if ! printf '%s\n' "$GBO" | grep -qE '(^|[. ])Paths:|(^|[. ])Test:|Max rounds:'; then ok goal_body_no_legacy_labels; else bad goal_body_no_legacy_labels; fi
 if ! printf '%s\n' "$GBO" | grep -q 'FINITE residual\|S1)'; then ok goal_body_no_legacy_procedure; else bad goal_body_no_legacy_procedure; fi
 GBO_SLASH=$(python3 "$CLI" goal-body --plan "$TMP" --slash)
