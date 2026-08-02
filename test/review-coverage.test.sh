@@ -568,5 +568,23 @@ else
   bad skill_h2_contract_docs
 fi
 
+# Skill-first compose example must match CLI exit wording (no "zero material findings")
+if ! grep -q 'zero material findings' "$ROOT/skills/review-coverage/SKILL.md"; then
+  ok skill_md_no_zero_material
+else
+  bad skill_md_no_zero_material
+fi
+if grep -q 'only trivial findings remaining this cycle' "$ROOT/skills/review-coverage/SKILL.md"; then
+  ok skill_md_trivial_findings_ledger
+else
+  bad skill_md_trivial_findings_ledger
+fi
+if grep -q 'Post-Implementation Residual Loop' "$ROOT/skills/review-coverage/SKILL.md" \
+  && grep -qiE 'rewrite|migrate|legacy' "$ROOT/skills/review-coverage/SKILL.md"; then
+  ok skill_md_migrate_legacy_h2
+else
+  bad skill_md_migrate_legacy_h2
+fi
+
 echo "======== review-coverage: PASS=$PASS FAIL=$FAIL ========"
 [[ "$FAIL" -eq 0 ]]

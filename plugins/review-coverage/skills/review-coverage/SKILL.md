@@ -8,7 +8,7 @@ description: >
   (use review-plan) or raw residual×2 engine mechanics alone (use
   review-converge under /goal).
 allowed-tools: all
-version: 0.2.3
+version: 0.2.4
 license: MIT
 platforms:
   - linux
@@ -62,7 +62,7 @@ Do **not** require the user to run shell scripts to use this skill.
 | **Review Coverage** | Durable plan **H2 only** `## Review Coverage` + this skill (H1/H3+ are not recognized). After ship: prove code matches specs and **stop** when proof is stable. |
 | **Status / Log / landed** | Driver ledger at repo-root `REVIEW_CONVERGE.md`. **Landed** = latest Log `Committed: yes` and `review-converge: round N —` (or legacy `grok-review-converge: round N —`). |
 | **residual** | Forward (specs→code) + reverse (diff vs Base ref); material fixes only; pathspec commits. |
-| **clean / residual×2** | Clean = only trivial findings remaining this cycle. Success = two consecutive cleans; second clean runs Test command PASS. Fixing material resets the streak. |
+| **clean / residual×2** | Clean = **only trivial findings remaining this cycle** (synonym: zero material findings *found* this cycle — not “fixed some material and left minors”). Success = two consecutive cleans; second clean runs Test command PASS. Fixing material resets the streak. |
 | **`/goal` body** | Outer multi-turn objective: **static complete-when sentence** + plan bindings (see below). Do not paraphrase the static sentence. |
 | **`/review-converge`** | Default Driver: **one** residual round per outer turn. |
 | **complete** | residual×2 success + landed Log. |
@@ -79,7 +79,7 @@ quality review changes and consider improvements, review the last 10 git commit 
 Compose one line (static sentence + bindings from the plan):
 
 ```text
-/goal <STATIC>. Plan: <ABS_PLAN>. Base ref: <SHA>. Target paths: <PATHS>. Test command: <CMD>. Driver: one /review-converge per turn. Max review-converge rounds: <N> — on exceed, land stopped (max-cycles) in REVIEW_CONVERGE.md and EXIT HALT. Also EXIT HALT on stopped (same-error ×3) or stopped (no-progress ×3) when landed. Ledger: REVIEW_CONVERGE.md — a cycle counts clean only if Log Outcome is clean (zero material findings found this cycle; fixing material resets the streak); second clean must run Test command PASS; SUCCESS only when Status complete AND Log landed. Never unlimited outer loop. Pathspec commits only under Target paths; never git add -A.
+/goal <STATIC>. Plan: <ABS_PLAN>. Base ref: <SHA>. Target paths: <PATHS>. Test command: <CMD>. Driver: one /review-converge per turn. Max review-converge rounds: <N> — on exceed, land stopped (max-cycles) in REVIEW_CONVERGE.md and EXIT HALT. Also EXIT HALT on stopped (same-error ×3) or stopped (no-progress ×3) when landed. Ledger: REVIEW_CONVERGE.md — a cycle counts clean only if Log Outcome is clean (only trivial findings remaining this cycle; fixing material resets the streak); second clean must run Test command PASS; SUCCESS only when Status complete AND Log landed. Never unlimited outer loop. Pathspec commits only under Target paths; never git add -A.
 ```
 
 Include `Repo: <ABS>` when the plan has it. Use absolute plan path. Default **N** = 12.
@@ -118,6 +118,9 @@ Skip pure doc-only one-line plans unless the user asks.
    - **Specs** — anchors / intent questions for forward audit
 5. Heading must be level-2 `## Review Coverage` only — not `#` / `###`, and not
    `## Post-Implementation Residual Loop` (collides with review-plan Q-E2).
+   **If the plan still has legacy `## Post-Implementation Residual Loop`:** rewrite
+   it to `## Review Coverage` (same fields; Driver `review-converge under /goal`).
+   Do not leave dual residual H2s.
 
 **Filled** means: Base ref, Target paths, Test command, Driver are present and not
 placeholders; Materiality or material+residual×2 language present; positive Forward
@@ -138,15 +141,25 @@ waiver. Report what you wrote; do not require the user to run a CLI.
 
 1. Preconditions: implementation landed; suite green; optional first-pass
    `/review-fix` done.
-2. **Preflight (agent judgment — no script required):**
-   - Plan has filled `## Review Coverage` (or refuse and run Phase A).
+2. **Preflight (hard stops — do not open `/goal` if any fail):**
+   - Plan has filled `## Review Coverage` (or run Phase A first).
    - Not waived (if waived, stop — no residual campaign).
-   - Base ref looks like a real ref; if in a git repo, prefer resolvable.
-   - If `REVIEW_CONVERGE.md` is already terminal for another campaign, warn and
-     ask to archive/rename before starting (do not auto-delete).
-3. Compose the **host `/goal` line** from the static sentence + plan fields (see
-   Definitions). **Do not paraphrase** the static sentence.
-4. Open / paste that line into the host goal facility. Set host **max-turns** and
+   - Base ref looks real; if git repo available, prefer resolvable.
+   - If repo-root `REVIEW_CONVERGE.md` (or legacy `GROK_CONVERGE.md`) is
+     **terminal** (`complete` / `stopped`) for a **different** plan contract,
+     plan hash, or campaign scope → **hard stop**: archive/rename the ledger
+     first (do not auto-delete). Same plan + re-run only if operator explicitly
+     requests re-open residual.
+   - If `git status --porcelain -- <Target paths>` shows foreign dirt under
+     Target paths (excluding the ledger), **warn**; refuse unattended start
+     until paths are clean or dirt is confirmed in-scope.
+   - Optional: `scripts/review-coverage preflight --plan ABS` (use `--strict`
+     in CI). Prefer when the CLI is on PATH.
+3. **Emit host `/goal` line:** if `scripts/review-coverage` exists, run
+   `goal-body --plan <ABS> --slash` and paste the **exact** stdout. **Do not
+   paraphrase.** Only if CLI is missing, compose from Definitions (STATIC +
+   trailer rules matching CLI).
+4. Open that line in the host goal facility. Set host **max-turns** and
    **max-budget** before unattended work. Prefer `/goal` over unlimited ralph.
 5. **Each outer turn:** run exactly **one** `/review-converge` for the plan’s
    target paths and test command (forward + reverse). Then re-read

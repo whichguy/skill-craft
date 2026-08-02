@@ -1,6 +1,6 @@
 {
   "name": "review-coverage",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "Add a post-ship improve-to-exhaustion directive to a plan, or run that directive after implementation. Invoke like any skill: /review-coverage, \"review-coverage on this plan\", residual×2 after ship, or ensure the plan has a /goal-ready ## Review Coverage section. Not for pre-exit plan quality (use review-plan) or raw residual×2 engine mechanics alone (use review-converge under /goal).",
   "author": {
     "name": "whichguy",
