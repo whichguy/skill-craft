@@ -28,26 +28,33 @@ includes current `main` product; skill-dir install tracks the skill-craft checko
 
 | Phase | What | Supported where |
 |-------|------|-----------------|
-| **A — Plan authoring** | Edit plan to add filled `## Review Coverage`; `validate` / `template` / `goal-body` | **All hosts** with skill-dir or Claude plugin install |
-| **B — Post-ship residual** | Paste `/goal` from `goal-body --slash`; each turn one **`/review-converge`**; residual×2 | **Claude** when review-converge is available. **Grok / Codex / Hermes**: only if `/review-converge` (or equivalent skill) is installed on that host; otherwise run residual manually using the `/goal` text |
+| **A — Plan authoring** | Skill invoke: agent edits plan to add filled `## Review Coverage` | **All hosts** with skill-dir or Claude plugin install |
+| **B — Post-ship residual** | Skill invoke: agent composes `/goal` + one **`/review-converge`** per turn; residual×2 | **Claude** when review-converge is available. **Grok / Codex / Hermes**: if `/review-converge` (or equivalent) is installed; else residual manually from the composed `/goal` text |
 
-### Mid-session invoke
+### Mid-session invoke (primary)
 
-Yes — name **review-coverage** in the prompt (e.g. “add Review Coverage to this plan”,
-“run review-coverage residual after ship”). Requires skill on the host skill path
-(skill-dir or marketplace install). Not auto-run on every message.
+Yes — invoke like any skill:
 
-### Phase B preflight
+```text
+/review-coverage
+/review-coverage path/to/plan.md
+add Review Coverage to this plan
+run residual×2 / post-ship coverage for this plan
+```
 
-Before residual×2, confirm:
+Requires skill on the host skill path (skill-dir or marketplace install). Not auto-run on
+every message. **Do not** require the user to shell `scripts/review-coverage …` as the
+entrypoint; CLI helpers are optional lint/print only.
 
-1. `scripts/review-coverage validate <plan>` exits 0 (or skill path under `~/*/.skills/review-coverage/scripts/review-coverage`).
-2. A residual driver is available: skill **review-converge** (or host equivalent).
+### Phase B preflight (agent judgment)
+
+Before residual×2, the skill agent confirms (no script required):
+
+1. Plan has filled `## Review Coverage` (or run Phase A).
+2. Residual driver available: skill **review-converge** (or host equivalent).
 3. Host can run `/goal` with max-turns / max-budget (or manual multi-turn).
 
-If (2) is missing: still paste the goal-body objective and run residual **manually**
-(review → fix material → pathspec commit with verbose learnings → repeat until two
-trivial-only cycles).
+Optional CLI: `scripts/review-coverage preflight --plan <plan>` / `goal-body --slash`.
 
 ## Residual campaign hygiene
 
@@ -57,7 +64,7 @@ Before claiming a clean residual×2 streak:
 2. After every package edit: `scripts/sync-plugin-views.sh review-coverage` (or full sync)
    so plugin drift cannot fail the suite mid-streak.
 3. Do not start residual with unfinished WIP in Target paths (plugin/version drift).
-4. Prefer `run-card --preflight` before pasting `/goal`.
+4. Prefer skill Phase B preflight, or optional `run-card --preflight` for humans.
 
 ## Optional plan-oversight
 

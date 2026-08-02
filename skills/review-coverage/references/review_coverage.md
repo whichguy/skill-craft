@@ -68,21 +68,25 @@ plan hash drift | no target paths | no test command | host quota | operator abor
 **Loop-safety MUST:** one `/review-converge` per outer turn; never unlimited ralph;
 never continue after complete or stopped (...); max rounds hard wall; pathspec only.
 
-### /goal command (Phase B — paste literally)
+### /goal command (Phase B — skill compose / paste literally)
+
+Static complete-when (do not paraphrase):
 
 ```text
-/goal quality review changes and consider improvements, review the last 10 git commit messages for learnings, anchoring each spec item in code changes and verify use cases/corner cases, git commit between each iteration with a verbose message with key learnings, complete when only trivial findings remaining for 2 consecutive cycles
+quality review changes and consider improvements, review the last 10 git commit messages for learnings, anchoring each spec item in code changes and verify use cases/corner cases, git commit between each iteration with a verbose message with key learnings, complete when only trivial findings remaining for 2 consecutive cycles
 ```
 
-After the fields are filled:
+**Primary:** invoke the **review-coverage skill** (`/review-coverage` on this plan).
+The agent composes:
 
-```sh
-scripts/review-coverage run-card --plan <ABS_PLAN> --preflight
+```text
+/goal <static>. Plan: <ABS_PLAN>. Base ref: …. Target paths: …. Test command: …. Driver: one /review-converge per turn. Max review-converge rounds: N — … halt/ledger trailer …
 ```
 
-Use `run-card` as the operator entrypoint; its first command is the exact host goal.
-`goal-body --plan <ABS_PLAN> --slash` remains valid for direct paste. Do not
-paraphrase the static sentence; the CLI adds the plan bindings after it.
+…opens that host goal, then runs **one** `/review-converge` per outer turn.
+
+Optional human/CI helper only: `scripts/review-coverage goal-body --plan <ABS_PLAN> --slash`
+(or `run-card --preflight`). Do not treat the CLI as the skill entrypoint.
 
 ### Cycle log
 

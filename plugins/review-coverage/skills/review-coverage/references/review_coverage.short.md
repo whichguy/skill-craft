@@ -29,20 +29,19 @@ After every outer `/goal` turn, re-read `REVIEW_CONVERGE.md` Status and choose e
 
 Forward: specs/anchors → code. Reverse: diff vs Base ref. Pathspec commits only.
 
-### /goal command (Phase B — paste literally)
+### /goal command (Phase B — skill compose / paste literally)
+
+Static complete-when (do not paraphrase):
 
 ```text
-/goal quality review changes and consider improvements, review the last 10 git commit messages for learnings, anchoring each spec item in code changes and verify use cases/corner cases, git commit between each iteration with a verbose message with key learnings, complete when only trivial findings remaining for 2 consecutive cycles
+quality review changes and consider improvements, review the last 10 git commit messages for learnings, anchoring each spec item in code changes and verify use cases/corner cases, git commit between each iteration with a verbose message with key learnings, complete when only trivial findings remaining for 2 consecutive cycles
 ```
 
-After the fields are filled:
+**Primary:** invoke skill `/review-coverage` (or “run residual on this plan”) — the
+agent composes `/goal <static>. Plan: … Base ref: … Target paths: … Test command: …`
+plus halt/ledger trailer, opens host goal, then one `/review-converge` per turn.
 
-```sh
-scripts/review-coverage run-card --plan <ABS_PLAN> --preflight
-```
-
-Use `run-card` as the operator entrypoint; its first command contains the exact
-host goal. `goal-body --plan <ABS_PLAN> --slash` remains valid for direct paste.
+Optional human/CI helper (not required): `scripts/review-coverage goal-body --plan <ABS_PLAN> --slash`
 
 ### Waiver
 

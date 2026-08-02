@@ -2,14 +2,13 @@
 name: review-coverage
 description: >
   Add a post-ship improve-to-exhaustion directive to a plan, or run that
-  directive after implementation. Use when: writing or reviewing a plan that
-  needs residual×2 after implement; "review-coverage on this plan"; ensuring
-  the plan carries a /goal-ready Review Coverage section; "residual×2 after
-  ship" / running coverage after ship against plan specs (forward + reverse).
-  Not for pre-exit plan quality (use review-plan) or raw residual×2 engine
-  mechanics alone (use review-converge under /goal).
+  directive after implementation. Invoke like any skill: /review-coverage,
+  "review-coverage on this plan", residual×2 after ship, or ensure the plan
+  has a /goal-ready ## Review Coverage section. Not for pre-exit plan quality
+  (use review-plan) or raw residual×2 engine mechanics alone (use
+  review-converge under /goal).
 allowed-tools: all
-version: 0.2.2
+version: 0.2.3
 license: MIT
 platforms:
   - linux
@@ -21,119 +20,159 @@ metadata:
 
 # Review Coverage
 
-**Plan directive** for post-implementation improve-to-exhaustion — not an exit hook
-and not a second review-plan. Residual campaigns are **finite** (residual×2 success
-or stopped halt) — never open loops.
+**Plan directive + post-ship residual campaign** — not an exit hook and not a
+second review-plan. Residual campaigns are **finite** (residual×2 success or
+stopped halt) — never open loops.
 
 ```text
 review-plan      →  plan quality (pre-exit)
-review-coverage  →  plan directive: residual×2 after implement   ← THIS SKILL
-review-converge  →  default residual×2 engine (driver only)
+review-coverage  →  plan directive + residual×2 after implement   ← THIS SKILL
+review-converge  →  default residual×2 engine (one round / turn)
 review-fix       →  optional first-pass code review before coverage
 improve-loop     →  optional broader improve campaign
 ```
 
-Center of gravity: **the plan body**. Hooks are optional sugar; they are not
-required for this skill to work.
+**Primary interface:** invoke this skill like any other skill. The agent follows
+Phase A or Phase B below. Optional CLI helpers exist for humans/CI lint; they
+are **not** required to run the skill.
+
+## Invocation
+
+```text
+/review-coverage
+/review-coverage <path-to-plan.md>
+review-coverage on this plan
+add Review Coverage to the plan
+run residual×2 / post-ship coverage for this plan
+```
+
+| Situation | Mode |
+|-----------|------|
+| Plan exists, no filled `## Review Coverage` (or user asks to add/waive it) | **Phase A** |
+| Implementation landed / user asks to run residual / improve-to-exhaustion | **Phase B** |
+| Section already filled and user only wants status | Report filled/waived; offer Phase B if shipped |
+
+Resolve the plan path from the invocation, the current session plan, or ask once.
+Do **not** require the user to run shell scripts to use this skill.
 
 ## Definitions
 
 | Term | Meaning |
 |------|---------|
-| **Review Coverage** | Durable plan **H2 only** `## Review Coverage` + this skill (H1/H3+ headings are not recognized). It answers: after ship, how do we prove code matches specs and **stop** when proof is stable? |
-| **Status / Log / landed** | When the Driver is `review-converge`, repo-root `REVIEW_CONVERGE.md` is the ledger: Status selects the next branch; Log records each round. **Landed** means latest Log `Committed: yes` and a `review-converge: round N —` commit subject (or legacy `grok-review-converge: round N —`). |
-| **residual** | Post-ship forward (specs→code) + reverse (diff vs Base ref); material fixes only; pathspec commits. |
-| **clean / residual×2** | A cycle is **clean** only when only trivial findings remain. **Stop rule:** “only trivial findings remaining for 2 consecutive cycles.” Fixing a material issue resets the streak; minors/P2 are trivial. The second clean runs Test command PASS. |
-| **`/goal`** | The outer multi-turn driver. It is the **literal paste command** emitted by `scripts/review-coverage goal-body --plan … --slash`; do not paraphrase its body. |
-| **`/review-converge`** | Default inner Driver: exactly **one** residual round per invocation. |
-| **complete** | residual×2 success plus a landed Log. |
-| **stopped (...)** | Terminal halt without residual×2 success; it still ends `/goal` so the campaign cannot spin forever. |
+| **Review Coverage** | Durable plan **H2 only** `## Review Coverage` + this skill (H1/H3+ are not recognized). After ship: prove code matches specs and **stop** when proof is stable. |
+| **Status / Log / landed** | Driver ledger at repo-root `REVIEW_CONVERGE.md`. **Landed** = latest Log `Committed: yes` and `review-converge: round N —` (or legacy `grok-review-converge: round N —`). |
+| **residual** | Forward (specs→code) + reverse (diff vs Base ref); material fixes only; pathspec commits. |
+| **clean / residual×2** | Clean = only trivial findings remaining this cycle. Success = two consecutive cleans; second clean runs Test command PASS. Fixing material resets the streak. |
+| **`/goal` body** | Outer multi-turn objective: **static complete-when sentence** + plan bindings (see below). Do not paraphrase the static sentence. |
+| **`/review-converge`** | Default Driver: **one** residual round per outer turn. |
+| **complete** | residual×2 success + landed Log. |
+| **stopped (...)** | Terminal halt without residual×2 success; still ends `/goal`. |
 
-The static `/goal` logic is byte-exact:
+### Static complete-when (byte-exact — do not paraphrase)
 
 ```text
-/goal quality review changes and consider improvements, review the last 10 git commit messages for learnings, anchoring each spec item in code changes and verify use cases/corner cases, git commit between each iteration with a verbose message with key learnings, complete when only trivial findings remaining for 2 consecutive cycles
+quality review changes and consider improvements, review the last 10 git commit messages for learnings, anchoring each spec item in code changes and verify use cases/corner cases, git commit between each iteration with a verbose message with key learnings, complete when only trivial findings remaining for 2 consecutive cycles
 ```
+
+### Host `/goal` line the agent opens
+
+Compose one line (static sentence + bindings from the plan):
+
+```text
+/goal <STATIC>. Plan: <ABS_PLAN>. Base ref: <SHA>. Target paths: <PATHS>. Test command: <CMD>. Driver: one /review-converge per turn. Max review-converge rounds: <N> — on exceed, land stopped (max-cycles) in REVIEW_CONVERGE.md and EXIT HALT. Also EXIT HALT on stopped (same-error ×3) or stopped (no-progress ×3) when landed. Ledger: REVIEW_CONVERGE.md — a cycle counts clean only if Log Outcome is clean (zero material findings found this cycle; fixing material resets the streak); second clean must run Test command PASS; SUCCESS only when Status complete AND Log landed. Never unlimited outer loop. Pathspec commits only under Target paths; never git add -A.
+```
+
+Include `Repo: <ABS>` when the plan has it. Use absolute plan path. Default **N** = 12.
 
 ### Nesting
 
 ```text
-## Review Coverage (plan text)
-  → outer /goal: static complete-when sentence + plan bindings
-    → each turn: one /review-converge
+/review-coverage (this skill)
+  → Phase A: edit plan ## Review Coverage
+  → Phase B: open host /goal with composed line
+       → each turn: one /review-converge
 ```
 
 ## When to use
 
 - Non-trivial **code** plans about to be approved — ensure `## Review Coverage` is in the plan.
-- After implementation is green — run the section’s `/goal` residual×2 campaign.
-- User asks for residual / improve-to-exhaustion / post-ship coverage of the plan.
+- After implementation is green — run residual×2 under `/goal`.
+- User asks for residual / improve-to-exhaustion / post-ship coverage.
 
 Skip pure doc-only one-line plans unless the user asks.
 
-## Phase A — Plan authoring / review (edit the plan)
+## Phase A — Plan authoring / review (agent edits the plan)
 
-1. Read the host-neutral plan path supplied for the work (it need not live in a
-   Claude-specific plans directory).
-2. If `## Review Coverage` already present and filled (`scripts/review-coverage validate <PLAN_PATH>` exits 0) or truly waived → stop Phase A.
-3. Otherwise **edit the plan** to insert the section from
-   `references/review_coverage.md` (or `scripts/review-coverage template`).
+1. Read the plan path (invocation, session plan, or ask once — host-neutral).
+2. If `## Review Coverage` is already **filled** (required fields real, non-placeholder; or real waiver) → stop Phase A and say so.
+3. Otherwise **edit the plan**: insert the section from `references/review_coverage.md` (or the short template). Prefer reading the reference file in this skill package over shelling out.
 4. Fill when known:
    - **Base ref** — commit SHA before implement
    - **Target paths** — concrete pathspecs (no TBD)
    - **Test command** — exact suite command
-   - **Materiality bar** — material P0/P1 blocks a clean cycle; minors/P2 are trivial
+   - **Materiality bar** — material P0/P1 blocks clean; minors/P2 are trivial
    - **Driver** — default `review-converge under /goal`
-   - **Max review-converge rounds** — default 12 (anti-loop hard wall)
+   - **Max review-converge rounds** — default 12
    - **Repo** — optional absolute git root
-   - **Plan contract** — absolute plan path bound with SHA-256 at campaign start
-   - **Specs** — anchors and implementation-intent questions for the forward audit
-5. Do **not** use heading `## Post-Implementation Residual Loop` (it collides with
-   review-plan Q-E2 “Post-Implementation Workflow or equivalent”).
+   - **Plan contract** — absolute plan path (SHA-256 at campaign start)
+   - **Specs** — anchors / intent questions for forward audit
+5. Heading must be level-2 `## Review Coverage` only — not `#` / `###`, and not
+   `## Post-Implementation Residual Loop` (collides with review-plan Q-E2).
 
-Waiver (only if residual is intentionally out of scope): **replace the entire
-section body** with one unfenced line (a fenced example does not waive; a waiver
-line outside `## Review Coverage` does not waive; waiver + filled fields is a
-**conflict**):
+**Filled** means: Base ref, Target paths, Test command, Driver are present and not
+placeholders; Materiality or material+residual×2 language present; positive Forward
+and Reverse instructions present; residual×2 / two consecutive clean language present.
+
+**Waiver** (only if residual intentionally out of scope): replace the **entire
+section body** with one unfenced line (fenced examples do not waive; outside the
+H2 does not waive; waiver + filled fields = **conflict**):
 
 ```text
 None — residual loop waived: <concrete reason>
 ```
 
-Phase A success: the **approved plan file** contains a filled directive
-(`scripts/review-coverage validate <PLAN_PATH>` exit 0) or a real unfenced
-in-section waiver. An example waiver reason is not a waiver.
-Heading must be level-2 `## Review Coverage` (not `#` / `###`).
+Phase A success: plan file contains a filled directive or a real unfenced in-section
+waiver. Report what you wrote; do not require the user to run a CLI.
 
-## Phase B — Post-implement (run residual×2)
+## Phase B — Post-implement residual (agent runs the campaign)
 
-1. Implementation landed; suite green; optional first-pass `/review-fix` done.
-2. Validate the approved plan: `scripts/review-coverage validate <PLAN_PATH>`.
-3. Prefer the operator card: `scripts/review-coverage run-card --plan <PLAN_PATH> --preflight`.
-   `goal-body --slash` remains valid for direct paste.
-4. Paste the card's **exact** host-goal command, then set host max-turns and
-   max-budget before unattended work. **Do not paraphrase** its static sentence:
-
-   ```text
-   /goal quality review changes and consider improvements, review the last 10 git commit messages for learnings, anchoring each spec item in code changes and verify use cases/corner cases, git commit between each iteration with a verbose message with key learnings, complete when only trivial findings remaining for 2 consecutive cycles
-   ```
-
-5. Run exactly one inner `/review-converge` per outer turn. The section’s exit
-   table remains the operator procedure for terminal or capped states; it is not
-   the `/goal` body text.
-6. The one inner round does both:
+1. Preconditions: implementation landed; suite green; optional first-pass
+   `/review-fix` done.
+2. **Preflight (agent judgment — no script required):**
+   - Plan has filled `## Review Coverage` (or refuse and run Phase A).
+   - Not waived (if waived, stop — no residual campaign).
+   - Base ref looks like a real ref; if in a git repo, prefer resolvable.
+   - If `REVIEW_CONVERGE.md` is already terminal for another campaign, warn and
+     ask to archive/rename before starting (do not auto-delete).
+3. Compose the **host `/goal` line** from the static sentence + plan fields (see
+   Definitions). **Do not paraphrase** the static sentence.
+4. Open / paste that line into the host goal facility. Set host **max-turns** and
+   **max-budget** before unattended work. Prefer `/goal` over unlimited ralph.
+5. **Each outer turn:** run exactly **one** `/review-converge` for the plan’s
+   target paths and test command (forward + reverse). Then re-read
+   `REVIEW_CONVERGE.md` Status:
+   - `complete` + landed → **EXIT SUCCESS** (residual×2 met)
+   - `stopped (...)` + landed → **EXIT HALT** (not success)
+   - `active` and rounds ≥ Max → force `stopped (max-cycles)`, land, EXIT HALT
+   - terminal but not landed → one ledger-flush; then EXIT per Status
+   - else → next turn, one more converge only
+6. Every converge round does both:
    - **Forward:** specs / anchors / intent → code; pathspec commit material fixes.
-   - **Reverse:** diff vs **Base ref**; regressions, violated anchors, side effects;
-     fix or record the result in the ledger.
+   - **Reverse:** diff vs Base ref; regressions / violated anchors; fix or ledger.
+   - Per static sentence: review last 10 commit messages for learnings; verbose
+     pathspec commits with key learnings between iterations.
 
-Success is only Status **`complete`** after two consecutive clean rounds, the second
-clean ran Test command successfully, and Log landed. **`stopped (...)` is not success.**
-Never unlimited ralph. Never continue after complete or stopped (...).
+Success is only Status **`complete`** after two consecutive clean rounds, second
+clean Test PASS, Log landed. **`stopped (...)` is not success.** Never unlimited
+ralph. Never continue after complete or stopped (...).
 
-## Helpers (optional)
+## Optional CLI helpers (not the primary invoke)
+
+Humans or CI may lint/print without loading the agent skill. Agents may use these
+when convenient; **skill Phase A/B above is authoritative**.
 
 ```sh
-# From skill package root (after install.sh or in a skill-craft clone)
+# From skill package root (install.sh or skill-craft clone)
 scripts/review-coverage template
 scripts/review-coverage template --short
 scripts/review-coverage validate /path/to/plan.md
@@ -144,17 +183,18 @@ scripts/review-coverage goal-body --plan /path/to/plan.md
 scripts/review-coverage goal-body --plan /path/to/plan.md --slash
 ```
 
-`preflight` checks validation, Base ref resolvability, terminal ledgers, and an
-optional Plan contract path; warnings become failures with `--strict`. `run-card`
-is the preferred Phase B entrypoint and includes the byte-identical `goal-body --slash`
-host command. `goal-body` emits the static sentence plus plan bindings;
-`goal-body --slash` prefixes it exactly with `/goal ` for direct paste. Validate is advisory lint for
-agents/humans — not a soft_exit dependency. Unfilled templates (including example
-`None — residual loop waived: <reason>`) **fail** `validate` — a placeholder waiver
-reason is not a real waiver. `goal-body` runs the **same** validation path as
-`validate` first, so the two commands never disagree on waived vs filled status.
+| Helper | Role |
+|--------|------|
+| `validate` | Lint filled vs waived vs broken (same rules Phase A “filled”) |
+| `goal-body` / `--slash` | Emit the composed `/goal` line (same contract as Phase B compose) |
+| `preflight` | Extra checks (base ref resolve, terminal ledger) |
+| `run-card` | Print operator card (goal line + each-turn converge reminder) |
+| `template` | Print section markdown for paste |
 
-### CLI exit codes
+When the agent composes the `/goal` line natively, it must match the CLI contract
+(static sentence + required trailer fields and halt/ledger clauses).
+
+### CLI exit codes (helpers only)
 
 | Code | Meaning |
 |------|---------|
@@ -162,21 +202,22 @@ reason is not a real waiver. `goal-body` runs the **same** validation path as
 | **exit 1** | Invalid plan / refused: missing section, placeholders, conflict, waived for `goal-body`, etc. |
 | **exit 2** | Input unreadable: missing path, directory path, or OS read error — stderr is `error: cannot read <path>: <reason>` (never a Python traceback) |
 
+Unfilled templates (including example `None — residual loop waived: <reason>`)
+**fail** `validate`. `goal-body` uses the same validation path as `validate`.
+
 ## What this skill is not
 
 - Not review-plan (pre-exit quality gates).
 - Not a forced ExitPlanMode hook product.
-- Not review-converge itself (that is the default **driver** named in the section).
-- Not an infinite residual loop — always residual×2 success or stopped halt.
+- Not review-converge itself (default **driver** for each residual round).
+- Not a script-first workflow — invoke the **skill**; CLI is optional lint/print.
+- Not an infinite residual loop — residual×2 success or stopped halt.
 
 ## Install
 
 ```sh
-# skill-craft clone
 ./install.sh --skill review-coverage
-
-# Claude plugin (after marketplace pin)
-# claude plugin install review-coverage@skill-craft-market
+# → host skill dir (symlink). Then: /review-coverage …
 ```
 
 See `references/host-matrix.md`.
