@@ -38,6 +38,10 @@ usage() {
   printf '\n' >&2
   printf 'Status outcomes: absent | symlink-owned | symlink-wrong | copy-owned |\n' >&2
   printf '  copy-owned-stale | foreign | foreign-file\n' >&2
+  printf 'When Claude plugin inventory is available, --status also reports plugin-track\n' >&2
+  printf 'and warns on double-install (skill-dir present + plugin installed for same leaf).\n' >&2
+  printf 'Override inventory path: CLAUDE_INSTALLED_PLUGINS_JSON (default\n' >&2
+  printf '~/.claude/plugins/installed_plugins.json). Set empty to skip plugin probe.\n' >&2
   printf '\n' >&2
   printf 'Agent destinations (only with --agents; Claude + Grok):\n' >&2
   printf '  Claude:  ~/.claude/agents/<leaf>.md\n' >&2
@@ -840,6 +844,102 @@ status_one() {
   printf 'status (%s): %s  state=%s  path=%s\n' "$label" "$leaf" "$state" "$destination"
 }
 
+# Claude plugin-track probe for double-install detect (skill-dir + marketplace plugin).
+# Reads installed_plugins.json (no claude CLI required). Injectable for tests:
+#   CLAUDE_INSTALLED_PLUGINS_JSON=/path/to/file.json  — use that file
+#   CLAUDE_INSTALLED_PLUGINS_JSON=                    — skip probe (empty string)
+# Unset → default $HOME/.claude/plugins/installed_plugins.json
+#
+# Prints one line to stdout when a plugin id matches leaf@* :
+#   plugin-track: <id>  version=<v>  enabled=<true|false|unknown>
+# Returns 0 if a plugin track is present for leaf, 1 otherwise.
+claude_plugin_track_line() {
+  local leaf="$1"
+  local inv_path
+  if [[ -n "${CLAUDE_INSTALLED_PLUGINS_JSON+x}" ]]; then
+    inv_path="${CLAUDE_INSTALLED_PLUGINS_JSON}"
+    [[ -n "$inv_path" ]] || return 1
+  else
+    inv_path="${HOME}/.claude/plugins/installed_plugins.json"
+  fi
+  [[ -f "$inv_path" ]] || return 1
+
+  # python3 always available in this stack; parse inventory without jq.
+  CLAUDE_PLUGIN_INV_PATH="$inv_path" CLAUDE_PLUGIN_LEAF="$leaf" python3 - <<'PY' || return 1
+import json, os, sys
+from pathlib import Path
+
+path = Path(os.environ["CLAUDE_PLUGIN_INV_PATH"])
+leaf = os.environ["CLAUDE_PLUGIN_LEAF"]
+try:
+    data = json.loads(path.read_text())
+except Exception:
+    sys.exit(1)
+
+plugins = data.get("plugins", data) if isinstance(data, dict) else data
+found = []
+
+def consider(plugin_id, meta):
+    if not isinstance(plugin_id, str) or "@" not in plugin_id:
+        return
+    name = plugin_id.split("@", 1)[0]
+    if name != leaf:
+        return
+    version = ""
+    enabled = "unknown"
+    if isinstance(meta, list) and meta:
+        meta0 = meta[0] if isinstance(meta[0], dict) else {}
+        version = str(meta0.get("version") or "")
+        if "enabled" in meta0:
+            enabled = "true" if meta0.get("enabled") else "false"
+    elif isinstance(meta, dict):
+        version = str(meta.get("version") or "")
+        if "enabled" in meta:
+            enabled = "true" if meta.get("enabled") else "false"
+    found.append((plugin_id, version, enabled))
+
+if isinstance(plugins, dict):
+    for pid, meta in plugins.items():
+        consider(pid, meta)
+elif isinstance(plugins, list):
+    for item in plugins:
+        if not isinstance(item, dict):
+            continue
+        pid = item.get("id") or item.get("name") or ""
+        consider(pid, item)
+
+if not found:
+    sys.exit(1)
+# Prefer skill-craft-market when multiple markets install the same leaf name
+found.sort(key=lambda t: (0 if t[0].endswith("@skill-craft-market") else 1, t[0]))
+pid, version, enabled = found[0]
+ver_s = version if version else "?"
+print(f"plugin-track: {pid}  version={ver_s}  enabled={enabled}")
+sys.exit(0)
+PY
+}
+
+# After Claude skill-dir status, report plugin-track and double-install when both present.
+status_claude_plugin_overlay() {
+  local leaf="$1"
+  local skill_state="$2"
+  local line
+  if ! line="$(claude_plugin_track_line "$leaf")"; then
+    return 0
+  fi
+  printf 'status (Claude plugin / %s): %s\n' "$leaf" "$line"
+  case "$skill_state" in
+    absent)
+      # plugin-only track is fine
+      ;;
+    *)
+      printf 'warn (Claude / %s): double-install — skill-dir state=%s AND %s\n' \
+        "$leaf" "$skill_state" "$line" >&2
+      printf '  pick one track: skill-dir (install.sh) OR plugin (plugin install …@market); not both\n' >&2
+      ;;
+  esac
+}
+
 uninstall_one() {
   local label="$1"
   local skills_dir="$2"
@@ -894,8 +994,11 @@ uninstall_one() {
 status_skill_to_hosts() {
   local leaf="$1"
   local source_dir="$2"
+  local claude_state=""
   if [[ "$install_claude" -eq 1 ]]; then
     status_one "Claude Code / $leaf" "$HOME/.claude/skills" "$leaf" "$source_dir"
+    claude_state="$(classify_destination "$HOME/.claude/skills" "$leaf" "$source_dir")"
+    status_claude_plugin_overlay "$leaf" "$claude_state"
   fi
   if [[ "$install_grok" -eq 1 ]]; then
     status_one "Grok / $leaf" "$HOME/.grok/skills" "$leaf" "$source_dir"

@@ -175,4 +175,64 @@ set -e
 printf '%s\n' "$out14" | grep -q 'Already absent' || fail "S14 message: $out14"
 pass "S14 absent uninstall exit 4"
 
-printf 'install-status-uninstall.test.sh: PASS S1–S14\n'
+# S15: double-install warn when skill-dir owned + plugin inventory lists same leaf
+fresh_home s15
+"$install_sh" --skill skill-interop --claude-only >/dev/null
+inv15="$tmpdir/inv-s15.json"
+cat >"$inv15" <<'JSON'
+{
+  "version": 2,
+  "plugins": {
+    "skill-interop@skill-craft-market": [
+      {"scope": "user", "version": "0.2.2", "enabled": true}
+    ]
+  }
+}
+JSON
+out15="$(
+  CLAUDE_INSTALLED_PLUGINS_JSON="$inv15" \
+    "$install_sh" --status --skill skill-interop --claude-only 2>&1
+)" || fail "S15 status: $out15"
+printf '%s\n' "$out15" | grep -q 'state=symlink-owned' || fail "S15 skill-dir: $out15"
+printf '%s\n' "$out15" | grep -q 'plugin-track: skill-interop@skill-craft-market' || fail "S15 plugin-track: $out15"
+printf '%s\n' "$out15" | grep -q 'double-install' || fail "S15 double-install warn: $out15"
+pass "S15 double-install warn"
+
+# S16: plugin-only (skill-dir absent) reports plugin-track, no double-install
+fresh_home s16
+inv16="$tmpdir/inv-s16.json"
+cat >"$inv16" <<'JSON'
+{
+  "version": 2,
+  "plugins": {
+    "skill-interop@skill-craft-market": [
+      {"scope": "user", "version": "0.2.2"}
+    ]
+  }
+}
+JSON
+out16="$(
+  CLAUDE_INSTALLED_PLUGINS_JSON="$inv16" \
+    "$install_sh" --status --skill skill-interop --claude-only 2>&1
+)" || fail "S16 status: $out16"
+printf '%s\n' "$out16" | grep -q 'state=absent' || fail "S16 absent: $out16"
+printf '%s\n' "$out16" | grep -q 'plugin-track: skill-interop@skill-craft-market' || fail "S16 plugin-track: $out16"
+printf '%s\n' "$out16" | grep -q 'double-install' && fail "S16 unexpected double-install: $out16"
+pass "S16 plugin-only no double-install"
+
+# S17: CLAUDE_INSTALLED_PLUGINS_JSON="" skips probe even if default file would exist
+fresh_home s17
+"$install_sh" --skill skill-interop --claude-only >/dev/null
+mkdir -p "$HOME/.claude/plugins"
+cat >"$HOME/.claude/plugins/installed_plugins.json" <<'JSON'
+{"plugins":{"skill-interop@skill-craft-market":[{"version":"9.9.9"}]}}
+JSON
+out17="$(
+  CLAUDE_INSTALLED_PLUGINS_JSON= \
+    "$install_sh" --status --skill skill-interop --claude-only 2>&1
+)" || fail "S17 status: $out17"
+printf '%s\n' "$out17" | grep -q 'plugin-track' && fail "S17 probe should skip: $out17"
+printf '%s\n' "$out17" | grep -q 'double-install' && fail "S17 no warn: $out17"
+pass "S17 empty inv env skips probe"
+
+printf 'install-status-uninstall.test.sh: PASS S1–S17\n'
