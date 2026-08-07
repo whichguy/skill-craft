@@ -28,7 +28,8 @@
 | review-fix-bench | review-bench | Wave 2 |
 | review-coverage | (native) | Post-ship residual×2 directive + CLI |
 | devloop-run | (native) | Hermes devloop engine discovery card |
-| lennox-s40 | (native) | Local LAN Lennox S40 thermostat control |
+
+**External (not monorepo):** [lennox-s40](https://github.com/whichguy/lennox-s40) — local LAN thermostat control; skill-craft-market pins the standalone repo.
 
 ## Stay in claude-craft (suite)
 
@@ -45,6 +46,6 @@ optimize-system-prompt, ablate-review-plan, validate-questions, compare-question
 1. Copy `claude-craft/plugins/<suite>/skills/<leaf>/` → `skill-craft/skills/<leaf>/`
 2. Neutralize `CLAUDE_PLUGIN_*` paths
 3. Add `plugins/<leaf>/.claude-plugin/plugin.json` then `./scripts/sync-plugin-views.sh`
-4. Pin in skill-craft-market (root + faces/claude)
-5. Tag skill-craft; flip market `ref`
+4. Pin in skill-craft-market root `.claude-plugin/marketplace.json` only (no faces/* catalog)
+5. Tag skill-craft; flip market `ref` only when that leaf’s content/version changes
 6. Optional claude-craft SoT note

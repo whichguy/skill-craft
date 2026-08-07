@@ -169,9 +169,10 @@ Both **Hermes materialization** (`install.sh`) and **Claude plugin-view sync**
 residual symlinks (Claude git-subdir cannot follow them under `plugins/`).
 
 **skill-craft-market** Claude catalog pins skill-craft `plugins/<leaf>` at a git **`ref`**
-(currently **`v0.3.0`** for the tagged catalog, or **`main`** for leaves not yet on that
-tag — e.g. `lennox-s40`). After a packaging release, retarget catalog refs/tags so
-marketplace consumers pick up derived `plugin.json` versions.
+(release tags such as **`v0.3.0`** / **`v0.3.3`** per leaf). External leaves (e.g.
+**lennox-s40**) pin a **standalone** repo URL — this monorepo must not also ship
+`skills/<same-name>/`. Advance a pin only when that leaf’s content or package version
+changes at a released tag (no bulk retarget of content-identical pins).
 
 
 

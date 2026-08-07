@@ -42,7 +42,8 @@ plugins, use **claude-craft**.
 | **question-bench** | Benchmark review-plan question subsets |
 | **improve-system-prompt** | Benchmark system prompt variants (Sheets Chat lineage) |
 | **review-fix-bench** | A/B benchmark code reviewer agent prompts |
-| **lennox-s40** | Local LAN control for Lennox S40 thermostat (status/mode/setpoints/fan/away) |
+
+**External (not in this monorepo):** [lennox-s40](https://github.com/whichguy/lennox-s40) — thermostat skill; install from that clone. Catalog pin remains in skill-craft-market.
 
 Port inventory: [docs/PORT.md](docs/PORT.md). After editing any skill body (including frontmatter version/description), run:
 

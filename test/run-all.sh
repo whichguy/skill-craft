@@ -29,7 +29,7 @@ run hermes-binding bash test/hermes-binding.test.sh
 run install-status-uninstall bash test/install-status-uninstall.test.sh
 run devloop-run bash test/devloop-run.test.sh
 run review-coverage bash test/review-coverage.test.sh
-run lennox-s40 bash test/lennox-s40.test.sh
+run dual-body-guard bash test/dual-body-guard.test.sh
 
 if [[ "$fail" -ne 0 ]]; then
   printf 'run-all.sh: FAILED\n' >&2
