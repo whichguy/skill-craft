@@ -21,6 +21,7 @@ grep -q 'name: devloop-native' "$root/skills/devloop-native/SKILL.md" || fail "f
 if rg -n 'HERMES_BIN|hermes chat|devloop-run|codex exec' "$root/skills/devloop-native/scripts" 2>/dev/null; then
   fail "purity: forbidden transport tokens in scripts"
 fi
+printf 'LAYER simple: entry+structure+purity OK\n'
 
 tmpdir="$(mktemp -d "${TMPDIR:-/tmp}/devloop-native-test.XXXXXX")"
 cleanup() { rm -rf "$tmpdir"; }
@@ -29,6 +30,7 @@ trap cleanup EXIT
 # --- self-check ---
 out="$("$cli" self-check)"
 printf '%s\n' "$out" | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d["ok"] and d["mode"]=="native"' || fail "self-check"
+printf 'LAYER simple: self-check OK\n'
 
 # --- happy path: red then green ---
 repo="$tmpdir/repo-happy"
@@ -81,6 +83,7 @@ python3 -c 'import json; d=json.load(open("'"$run"'/prove.json")); assert d["cha
   || fail "sticky red lost after green re-prove"
 "$cli" stop --run-dir "$run" >/dev/null || fail "stop green"
 python3 -c 'import json; d=json.load(open("'"$run"'/receipt.json")); assert d["status"]=="PASS" and d["mode"]=="native"' || fail "receipt"
+printf 'LAYER e2e: freeze→prove(red)→build→prove(sticky)→stop PASS OK\n'
 
 # charter content drift after freeze
 repo_d="$tmpdir/repo-charter-drift"
@@ -574,5 +577,38 @@ linkroot="$tmpdir/link-home/skills"
 mkdir -p "$linkroot"
 ln -s "$root/skills/devloop-native" "$linkroot/devloop-native"
 "$linkroot/devloop-native/scripts/devloop-native" self-check >/dev/null || fail "symlink self-check"
+printf 'LAYER integration: copy+symlink package layouts OK\n'
+
+# --- mock-host e2e: single charter file, agent-like argv sequence ---
+repo_e2e="$tmpdir/mock-host-e2e"
+mkdir -p "$repo_e2e"
+cat >"$repo_e2e/charter.json" <<'JSON'
+{
+  "goal": "mock host e2e marker",
+  "criteria": [{
+    "id": "E1",
+    "role": "change",
+    "outcome": "result.txt is ready",
+    "verifier": {
+      "argv": ["python3", "-c", "import pathlib,sys; p=pathlib.Path('result.txt'); sys.exit(0 if p.is_file() and p.read_text()=='devloop-ok\\n' else 1)"],
+      "expected_exit": 0,
+      "timeout_seconds": 15,
+      "guard_paths": []
+    }
+  }]
+}
+JSON
+run_e2e="$repo_e2e/.devloop-native/run"
+"$cli" freeze --charter "$repo_e2e/charter.json" --repo "$repo_e2e" --run-dir "$run_e2e" >/dev/null
+set +e
+"$cli" prove --run-dir "$run_e2e" >/dev/null
+rc=$?
+set -e
+[[ "$rc" -eq 1 ]] || fail "mock-host prove red want 1 got $rc"
+printf 'devloop-ok\n' >"$repo_e2e/result.txt"
+"$cli" stop --run-dir "$run_e2e" >/dev/null || fail "mock-host stop"
+python3 -c 'import json; d=json.load(open("'"$run_e2e"'/receipt.json")); assert d["status"]=="PASS" and d["mode"]=="native" and d.get("goal")' \
+  || fail "mock-host receipt"
+printf 'LAYER e2e: mock-host freeze/prove/edit/stop OK\n'
 
 printf 'devloop-native.test.sh: PASS\n'

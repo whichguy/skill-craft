@@ -41,7 +41,9 @@ out1="$("$run" --help 2>&1)"
 rc1=$?
 set -e
 [[ "$rc1" -eq 0 ]] || fail "D1 --help should exit 0 (got $rc1): $out1"
-printf '%s\n' "$out1" | grep -q 'Truth table\|--setup\|Resolve order\|bootstrap' || true
+printf '%s\n' "$out1" | grep -qE 'Truth table|--setup|Resolve order|bootstrap' \
+  || fail "D1 help missing expected sections: $out1"
+printf 'LAYER simple: D1 help OK\n'
 
 # D1b: no engine + --no-bootstrap → exit 2
 set +e
@@ -49,6 +51,7 @@ out1b="$("$run" --no-bootstrap "noop" 2>&1)"
 rc1b=$?
 set -e
 [[ "$rc1b" -eq 2 ]] || fail "D1b want exit 2 got $rc1b: $out1b"
+printf 'LAYER simple: D1b no-bootstrap refuse OK\n'
 
 # D2: DEVLOOP_HOME fake engine
 eng="$tmpdir/fake-engine"
@@ -61,6 +64,7 @@ PY
 export DEVLOOP_HOME="$eng"
 out2="$("$run" -- hello --repo /tmp/x 2>&1)" || fail "D2: $out2"
 printf '%s\n' "$out2" | grep -q 'STUB_CLI hello --repo /tmp/x' || fail "D2 stub: $out2"
+printf 'LAYER simple: D2 DEVLOOP_HOME exec OK\n'
 
 # D3: strict invalid DEVLOOP_HOME
 export DEVLOOP_HOME="$tmpdir/not-an-engine"
@@ -105,6 +109,7 @@ out8="$("$run" --setup 2>&1)" || fail "D8 setup: $out8"
 out8p="$("$run" --probe --no-bootstrap 2>&1)" || fail "D8 probe: $out8p"
 out8r="$("$run" -- hi 2>&1)" || fail "D8 run: $out8r"
 printf '%s\n' "$out8r" | grep -q 'FIXTURE_ENGINE' || fail "D8 fixture run: $out8r"
+printf 'LAYER integration: D8 setup+probe+exec fixture OK\n'
 
 # D9: sha mismatch fails closed
 export DEVLOOP_DATA_HOME="$tmpdir/data-badsha"
@@ -323,5 +328,6 @@ printf '%s\n' "$out21" | grep -qi 'seed' || fail "D21 setup should seed-copy: $o
 unset HERMES_HOME
 out21r="$("$run" --no-bootstrap -- hi 2>&1)" || fail "D21 run host-local: $out21r"
 printf '%s\n' "$out21r" | grep -q 'SEED_COPY_ENGINE' || fail "D21 host-local run: $out21r"
+printf 'LAYER e2e: D21 force-bootstrap seed-copy + host-local exec OK\n'
 
 printf 'devloop-run.test.sh: PASS D1–D21\n'
