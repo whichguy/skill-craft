@@ -260,8 +260,7 @@ chmod +x "$DEVLOOP_BOOTSTRAP_CMD"
 out17="$("$run" --setup 2>&1)" || fail "D17 setup: $out17"
 [[ -f "$DEVLOOP_DATA_HOME/devloop/scripts/devloop_cli.py" ]] || fail "D17 engine missing"
 out17r="$("$run" --no-bootstrap -- hi 2>&1)" || fail "D17 run: $out17r"
-# stub engine is just print in file — exec runs python3 on it; FIXTURE not required
-printf '%s\n' "$out17r" | grep -q 'BOOTSTRAP_CMD_ENGINE\|STUB\|print' || true
+printf '%s\n' "$out17r" | grep -q 'BOOTSTRAP_CMD_ENGINE' || fail "D17 run output: $out17r"
 
 # D18: DEVLOOP_BOOTSTRAP_CMD fail → exit 2
 export DEVLOOP_DATA_HOME="$tmpdir/data-cmd-fail"
@@ -306,4 +305,23 @@ printf '%s\n' "$out20p" | grep -q 'hermes-seed\|SEED\|devloop' || fail "D20 prob
 out20r="$("$run" --no-bootstrap -- hi 2>&1)" || fail "D20 run: $out20r"
 printf '%s\n' "$out20r" | grep -q 'SEED_ENGINE' || fail "D20 run output: $out20r"
 
-printf 'devloop-run.test.sh: PASS D1–D20\n'
+# D21: bootstrap_engine seed-copy path (--force-bootstrap with REPLACE pin + HERMES seed)
+# Resolve would find the seed; force-bootstrap skips resolve and seed-copies into host-local.
+export DEVLOOP_DATA_HOME="$tmpdir/data-seed-copy"
+rm -rf "$DEVLOOP_DATA_HOME"
+unset DEVLOOP_HOME DEVLOOP_BOOTSTRAP_CMD DEVLOOP_ENGINE_URL || true
+export HERMES_HOME="$tmpdir/hermes-seed-copy"
+mkdir -p "$HERMES_HOME/skills/software-development/devloop/scripts"
+printf 'print("SEED_COPY_ENGINE")\n' >"$HERMES_HOME/skills/software-development/devloop/scripts/devloop_cli.py"
+export DEVLOOP_ENGINE_PIN="$tmpdir/replace-pin.json"
+printf '%s\n' '{"version":"seed","url":"REPLACE_WITH_RELEASE_URL/x.tgz","sha256":""}' >"$DEVLOOP_ENGINE_PIN"
+out21="$("$run" --force-bootstrap --force-hard --setup 2>&1)" || fail "D21 seed-copy setup: $out21"
+printf '%s\n' "$out21" | grep -qi 'seed' || fail "D21 setup should seed-copy: $out21"
+[[ -f "$DEVLOOP_DATA_HOME/devloop/scripts/devloop_cli.py" ]] || fail "D21 host-local engine missing after seed-copy"
+[[ -f "$DEVLOOP_DATA_HOME/devloop/.skill-craft-engine.json" ]] || fail "D21 marker missing after seed-copy"
+# Must run from host-local, not only via resolve to HERMES_HOME
+unset HERMES_HOME
+out21r="$("$run" --no-bootstrap -- hi 2>&1)" || fail "D21 run host-local: $out21r"
+printf '%s\n' "$out21r" | grep -q 'SEED_COPY_ENGINE' || fail "D21 host-local run: $out21r"
+
+printf 'devloop-run.test.sh: PASS D1–D21\n'

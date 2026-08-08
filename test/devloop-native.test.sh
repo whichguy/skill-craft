@@ -450,7 +450,22 @@ set -e
 [[ "$rc" -eq 64 ]] || fail "duplicate id want 64 got $rc: $out"
 
 out="$("$cli" doctor)" || fail "doctor exit"
-printf '%s\n' "$out" | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d["ok"] and d["mode"]=="native"' || fail "doctor json"
+printf '%s\n' "$out" | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d["ok"] and d["mode"]=="native" and d.get("issues")==[]' || fail "doctor json"
+
+# doctor purity fail-closed: dirty *copy* of package (do not pollute SoT)
+dirty_pkg="$tmpdir/dirty-pkg"
+rm -rf "$dirty_pkg"
+cp -R "$root/skills/devloop-native" "$dirty_pkg"
+chmod +x "$dirty_pkg/scripts/devloop-native"
+# Inject banned transport token into a sibling script file (token assembled in test only)
+python3 -c 'open("'"$dirty_pkg"'/scripts/pollute.txt","w").write("pollute " + "HERMES" + "_BIN" + "\n")'
+set +e
+out="$("$dirty_pkg/scripts/devloop-native" doctor 2>&1)"
+rc=$?
+set -e
+[[ "$rc" -eq 2 ]] || fail "doctor dirty want exit 2 got $rc: $out"
+printf '%s\n' "$out" | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d.get("ok") is False and d.get("issues") and any("purity" in i for i in d["issues"])' \
+  || fail "doctor dirty issues: $out"
 
 # timeout
 repo_t="$tmpdir/repo-timeout"
