@@ -454,14 +454,35 @@ def cmd_stop(args: argparse.Namespace) -> None:
 
 
 def cmd_doctor(args: argparse.Namespace) -> None:
-    issues = []
+    issues: list[str] = []
     if args.repo:
         repo = resolve_repo(Path(args.repo))
     else:
         repo = None
+    # Purity: scripts must not embed peer-harness transport tokens (split so
+    # this source file itself does not contain the banned literals).
+    banned = (
+        "HERMES" + "_BIN",
+        "hermes" + " chat",
+        "devloop" + "-run",
+        "codex" + " exec",
+    )
+    scripts_dir = PACKAGE_ROOT / "scripts"
+    if scripts_dir.is_dir():
+        for path in sorted(scripts_dir.iterdir()):
+            if not path.is_file():
+                continue
+            try:
+                body = path.read_text(encoding="utf-8", errors="replace")
+            except OSError as exc:
+                issues.append(f"unreadable:{path.name}:{exc}")
+                continue
+            for tok in banned:
+                if tok in body:
+                    issues.append(f"purity:{path.name}:contains:{tok}")
     out_json(
         {
-            "ok": True,
+            "ok": len(issues) == 0,
             "package_root": str(PACKAGE_ROOT),
             "version": VERSION,
             "mode": "native",
@@ -470,6 +491,8 @@ def cmd_doctor(args: argparse.Namespace) -> None:
             "note": "On Hermes, bare /devloop is the engine skill; use this package leaf or say DevLoop native.",
         }
     )
+    if issues:
+        raise SystemExit(EXIT_BLOCKED)
 
 
 def main(argv: list[str] | None = None) -> None:

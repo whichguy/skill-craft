@@ -180,6 +180,7 @@ out="$("$cli" freeze --charter "$repo3/charter.json" --repo "$root/skills/devloo
 rc=$?
 set -e
 [[ "$rc" -eq 2 ]] || fail "package root refuse want 2 got $rc: $out"
+printf '%s\n' "$out" | grep -q package_root_write || fail "package_root_write reason: $out"
 
 # --- shell -c rejected (bare name and path form) ---
 cat >"$tmpdir/bad-charter.json" <<'JSON'
@@ -417,6 +418,134 @@ out="$("$cli" freeze --charter "$repo3/charter.json" --repo "$repo3" --run-dir "
 rc=$?
 set -e
 [[ "$rc" -eq 64 ]] || fail "run-dir outside want 64 got $rc: $out"
+
+
+# --- not_frozen / invalid JSON / empty criteria / duplicate id / doctor / timeout / missing_repo / missing_cwd ---
+set +e
+out="$("$cli" prove --run-dir "$tmpdir/no-such-run" 2>&1)"
+rc=$?
+set -e
+[[ "$rc" -eq 2 ]] || fail "not_frozen want 2 got $rc: $out"
+printf '%s\n' "$out" | grep -q not_frozen || fail "not_frozen reason: $out"
+
+printf 'not-json\n' >"$tmpdir/bad.json"
+set +e
+out="$("$cli" freeze --charter "$tmpdir/bad.json" --repo "$repo3" 2>&1)"
+rc=$?
+set -e
+[[ "$rc" -eq 64 ]] || fail "invalid json want 64 got $rc: $out"
+
+printf '{"criteria":[]}\n' >"$tmpdir/empty-crit.json"
+set +e
+out="$("$cli" freeze --charter "$tmpdir/empty-crit.json" --repo "$repo3" 2>&1)"
+rc=$?
+set -e
+[[ "$rc" -eq 64 ]] || fail "empty criteria want 64 got $rc: $out"
+
+printf '{"criteria":[{"id":"A","role":"regression","outcome":"o","verifier":{"argv":["python3","-c","raise SystemExit(0)"]}},{"id":"A","role":"regression","outcome":"o2","verifier":{"argv":["python3","-c","raise SystemExit(0)"]}}]}\n' >"$tmpdir/dup.json"
+set +e
+out="$("$cli" freeze --charter "$tmpdir/dup.json" --repo "$repo3" 2>&1)"
+rc=$?
+set -e
+[[ "$rc" -eq 64 ]] || fail "duplicate id want 64 got $rc: $out"
+
+out="$("$cli" doctor)" || fail "doctor exit"
+printf '%s\n' "$out" | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d["ok"] and d["mode"]=="native"' || fail "doctor json"
+
+# timeout
+repo_t="$tmpdir/repo-timeout"
+mkdir -p "$repo_t"
+cat >"$repo_t/charter.json" <<'JSON'
+{
+  "goal": "timeout",
+  "criteria": [{
+    "id": "T1",
+    "role": "regression",
+    "outcome": "sleep",
+    "verifier": {
+      "argv": ["python3", "-c", "import time; time.sleep(5)"],
+      "expected_exit": 0,
+      "timeout_seconds": 1,
+      "guard_paths": []
+    }
+  }]
+}
+JSON
+run_t="$repo_t/.devloop-native/run"
+"$cli" freeze --charter "$repo_t/charter.json" --repo "$repo_t" --run-dir "$run_t" >/dev/null
+set +e
+out="$("$cli" prove --run-dir "$run_t" 2>&1)"
+rc=$?
+set -e
+[[ "$rc" -eq 2 ]] || fail "timeout want 2 got $rc: $out"
+printf '%s\n' "$out" | grep -q timeout || fail "timeout reason: $out"
+
+# missing_repo: freeze then remove repo path while keeping run dir copy
+repo_m="$tmpdir/repo-missing"
+mkdir -p "$repo_m"
+cat >"$repo_m/charter.json" <<'JSON'
+{
+  "goal": "g",
+  "criteria": [{
+    "id": "R",
+    "role": "regression",
+    "outcome": "o",
+    "verifier": {
+      "argv": ["python3", "-c", "raise SystemExit(0)"],
+      "expected_exit": 0,
+      "timeout_seconds": 5,
+      "guard_paths": []
+    }
+  }]
+}
+JSON
+run_m="$repo_m/.devloop-native/run"
+"$cli" freeze --charter "$repo_m/charter.json" --repo "$repo_m" --run-dir "$run_m" >/dev/null
+orphan_run="$tmpdir/orphan-run"
+cp -R "$run_m" "$orphan_run"
+rm -rf "$repo_m"
+set +e
+out="$("$cli" prove --run-dir "$orphan_run" 2>&1)"
+rc=$?
+set -e
+[[ "$rc" -eq 2 ]] || fail "missing_repo want 2 got $rc: $out"
+printf '%s\n' "$out" | grep -q missing_repo || fail "missing_repo reason: $out"
+
+# missing_cwd
+repo_c="$tmpdir/repo-missing-cwd"
+mkdir -p "$repo_c"
+cat >"$repo_c/charter.json" <<'JSON'
+{
+  "goal": "g",
+  "criteria": [{
+    "id": "R",
+    "role": "regression",
+    "outcome": "o",
+    "verifier": {
+      "argv": ["python3", "-c", "raise SystemExit(0)"],
+      "cwd": "no_such_subdir",
+      "expected_exit": 0,
+      "timeout_seconds": 5,
+      "guard_paths": []
+    }
+  }]
+}
+JSON
+run_c="$repo_c/.devloop-native/run"
+"$cli" freeze --charter "$repo_c/charter.json" --repo "$repo_c" --run-dir "$run_c" >/dev/null
+set +e
+out="$("$cli" prove --run-dir "$run_c" 2>&1)"
+rc=$?
+set -e
+[[ "$rc" -eq 2 ]] || fail "missing_cwd want 2 got $rc: $out"
+printf '%s\n' "$out" | grep -q missing_cwd || fail "missing_cwd reason: $out"
+
+# charter not found
+set +e
+out="$("$cli" freeze --charter "$tmpdir/no-charter-file.json" --repo "$repo_c" 2>&1)"
+rc=$?
+set -e
+[[ "$rc" -eq 64 ]] || fail "charter not found want 64 got $rc: $out"
 
 # --- copy layout: run CLI from a copied package tree ---
 copy="$tmpdir/pkg-copy"

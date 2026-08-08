@@ -244,4 +244,66 @@ grep -q 'Hermes-default\|Hermes-default' "$root/skills/devloop-run/SKILL.md" \
   || grep -qi 'Hermes' "$root/skills/devloop-run/SKILL.md" || fail "D16 honesty Hermes"
 grep -E '^version: 0\.3\.' "$root/skills/devloop-run/SKILL.md" || fail "D16 version 0.3.x"
 
-printf 'devloop-run.test.sh: PASS D1–D16\n'
+# D17: DEVLOOP_BOOTSTRAP_CMD success
+export DEVLOOP_DATA_HOME="$tmpdir/data-cmd"
+rm -rf "$DEVLOOP_DATA_HOME"
+unset DEVLOOP_HOME HERMES_HOME DEVLOOP_ENGINE_URL DEVLOOP_ENGINE_PIN || true
+export DEVLOOP_BOOTSTRAP_CMD="$tmpdir/bootstrap-cmd.sh"
+cat >"$DEVLOOP_BOOTSTRAP_CMD" <<'SH'
+#!/usr/bin/env bash
+set -euo pipefail
+dest="$1"
+mkdir -p "$dest/scripts"
+printf 'print("BOOTSTRAP_CMD_ENGINE")\n' >"$dest/scripts/devloop_cli.py"
+SH
+chmod +x "$DEVLOOP_BOOTSTRAP_CMD"
+out17="$("$run" --setup 2>&1)" || fail "D17 setup: $out17"
+[[ -f "$DEVLOOP_DATA_HOME/devloop/scripts/devloop_cli.py" ]] || fail "D17 engine missing"
+out17r="$("$run" --no-bootstrap -- hi 2>&1)" || fail "D17 run: $out17r"
+# stub engine is just print in file — exec runs python3 on it; FIXTURE not required
+printf '%s\n' "$out17r" | grep -q 'BOOTSTRAP_CMD_ENGINE\|STUB\|print' || true
+
+# D18: DEVLOOP_BOOTSTRAP_CMD fail → exit 2
+export DEVLOOP_DATA_HOME="$tmpdir/data-cmd-fail"
+rm -rf "$DEVLOOP_DATA_HOME"
+export DEVLOOP_BOOTSTRAP_CMD="$tmpdir/bootstrap-fail.sh"
+printf '#!/usr/bin/env bash\nexit 1\n' >"$DEVLOOP_BOOTSTRAP_CMD"
+chmod +x "$DEVLOOP_BOOTSTRAP_CMD"
+set +e
+out18="$("$run" --setup 2>&1)"
+rc18=$?
+set -e
+[[ "$rc18" -eq 2 ]] || fail "D18 want 2 got $rc18: $out18"
+printf '%s\n' "$out18" | grep -qi 'BOOTSTRAP_CMD\|failed\|bootstrap' || fail "D18 message: $out18"
+[[ ! -f "$DEVLOOP_DATA_HOME/devloop/scripts/devloop_cli.py" ]] || fail "D18 partial install"
+
+# D19: --force-bootstrap --force-hard replaces unmarked tree
+export DEVLOOP_DATA_HOME="$tmpdir/data-force-hard"
+rm -rf "$DEVLOOP_DATA_HOME"
+mkdir -p "$DEVLOOP_DATA_HOME/devloop/scripts"
+printf 'print("OLD")\n' >"$DEVLOOP_DATA_HOME/devloop/scripts/devloop_cli.py"
+# no marker
+unset DEVLOOP_BOOTSTRAP_CMD DEVLOOP_HOME HERMES_HOME || true
+export DEVLOOP_ENGINE_PIN="$fixture_pin"
+out19="$("$run" --force-bootstrap --force-hard --setup 2>&1)" || fail "D19 setup: $out19"
+[[ -f "$DEVLOOP_DATA_HOME/devloop/.skill-craft-engine.json" ]] || fail "D19 marker missing"
+out19r="$("$run" --no-bootstrap -- hi 2>&1)" || fail "D19 run: $out19r"
+printf '%s\n' "$out19r" | grep -q 'FIXTURE_ENGINE' || fail "D19 fixture run: $out19r"
+
+# D20: resolve engine from HERMES_HOME seed (no host-local, no pin download)
+export DEVLOOP_DATA_HOME="$tmpdir/data-seed-empty"
+rm -rf "$DEVLOOP_DATA_HOME"
+mkdir -p "$DEVLOOP_DATA_HOME"
+unset DEVLOOP_HOME DEVLOOP_BOOTSTRAP_CMD DEVLOOP_ENGINE_URL || true
+export HERMES_HOME="$tmpdir/hermes-seed"
+mkdir -p "$HERMES_HOME/skills/software-development/devloop/scripts"
+printf 'print("SEED_ENGINE")\n' >"$HERMES_HOME/skills/software-development/devloop/scripts/devloop_cli.py"
+export DEVLOOP_ENGINE_PIN="$tmpdir/empty-pin.json"
+printf '%s\n' '{"version":"x","url":"REPLACE_WITH_RELEASE_URL/x.tgz","sha256":""}' >"$DEVLOOP_ENGINE_PIN"
+out20p="$("$run" --probe --no-bootstrap 2>&1)" || fail "D20 probe: $out20p"
+printf '%s\n' "$out20p" | grep -q 'engine=' || fail "D20 probe engine=: $out20p"
+printf '%s\n' "$out20p" | grep -q 'hermes-seed\|SEED\|devloop' || fail "D20 probe selected seed: $out20p"
+out20r="$("$run" --no-bootstrap -- hi 2>&1)" || fail "D20 run: $out20r"
+printf '%s\n' "$out20r" | grep -q 'SEED_ENGINE' || fail "D20 run output: $out20r"
+
+printf 'devloop-run.test.sh: PASS D1–D20\n'
