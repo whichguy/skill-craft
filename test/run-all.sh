@@ -28,6 +28,7 @@ run install-arbitrary-skill bash test/install-arbitrary-skill.test.sh
 run hermes-binding bash test/hermes-binding.test.sh
 run install-status-uninstall bash test/install-status-uninstall.test.sh
 run devloop-run bash test/devloop-run.test.sh
+run devloop-native bash test/devloop-native.test.sh
 run review-coverage bash test/review-coverage.test.sh
 run dual-body-guard bash test/dual-body-guard.test.sh
 

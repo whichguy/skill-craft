@@ -1,0 +1,18 @@
+{
+  "name": "devloop-native",
+  "version": "0.1.0",
+  "description": "DevLoop: host-native DEFINE→PROVE→BUILD→STOP using the current agent's tools and optional local verify gates. Use when the user says devloop, DevLoop, host-native loop, or /devloop-native. NOT the Hermes engine leaf \"devloop\", NOT the engine launcher skill, NOT peer-harness transport.",
+  "author": {
+    "name": "whichguy",
+    "url": "https://github.com/whichguy"
+  },
+  "homepage": "https://github.com/whichguy/skill-craft",
+  "repository": "https://github.com/whichguy/skill-craft",
+  "license": "MIT",
+  "keywords": [
+    "skill-craft",
+    "devloop-native",
+    "portable-skills",
+    "script-backed"
+  ]
+}
