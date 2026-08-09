@@ -6,7 +6,9 @@
 #   DEVLOOP_LIVE_WEATHER=0  — hermetic wiring only (probe + offline contract on existing files)
 #   DEVLOOP_WEATHER_REPO    — absolute repo path (default: ~/src/gas-weather-devloop-e2e)
 #   DEVLOOP_HOME            — engine root
-#   SCRATCH / GROK_GOAL_SCRATCH — log dir (writes devloop-weather-native.log)
+#   SCRATCH / GROK_GOAL_SCRATCH — log dir
+#     LIVE=1 → devloop-weather-native.log (canonical LIVE proof; never clobbered by hermetic)
+#     LIVE=0 → devloop-weather-native-hermetic.log
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
@@ -17,10 +19,15 @@ if [[ -z "$scratch_default" ]]; then
   scratch_default="$(mktemp -d "${TMPDIR:-/tmp}/devloop-weather-XXXXXX")"
 fi
 mkdir -p "$scratch_default"
-log="$scratch_default/devloop-weather-native.log"
 repo="${DEVLOOP_WEATHER_REPO:-$HOME/src/gas-weather-devloop-e2e}"
 engine="${DEVLOOP_HOME:-$HOME/.hermes/skills/software-development/devloop}"
 live="${DEVLOOP_LIVE_WEATHER:-1}"
+# Keep LIVE and hermetic logs distinct so a later LIVE=0 run cannot erase LIVE proof.
+if [[ "$live" == "1" ]]; then
+  log="$scratch_default/devloop-weather-native.log"
+else
+  log="$scratch_default/devloop-weather-native-hermetic.log"
+fi
 
 fail() { printf 'devloop-gas-weather-native: FAIL %s\n' "$*" | tee -a "$log" >&2; exit 1; }
 
