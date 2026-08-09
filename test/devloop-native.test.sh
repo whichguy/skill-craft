@@ -32,6 +32,15 @@ out="$("$cli" self-check)"
 printf '%s\n' "$out" | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d["ok"] and d["mode"]=="native"' || fail "self-check"
 printf 'LAYER simple: self-check OK\n'
 
+# --- usage fail-closed: no subcommand ---
+set +e
+out_usage="$("$cli" 2>&1)"
+rc_usage=$?
+set -e
+[[ "$rc_usage" -ne 0 ]] || fail "no-cmd usage want non-zero got $rc_usage: $out_usage"
+printf '%s\n' "$out_usage" | grep -qiE 'usage|required|cmd' || fail "no-cmd usage text: $out_usage"
+printf 'LAYER simple: no-cmd usage fail-closed OK\n'
+
 # --- happy path: red then green ---
 repo="$tmpdir/repo-happy"
 mkdir -p "$repo"
@@ -454,6 +463,7 @@ set -e
 
 out="$("$cli" doctor)" || fail "doctor exit"
 printf '%s\n' "$out" | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d["ok"] and d["mode"]=="native" and d.get("issues")==[]' || fail "doctor json"
+printf 'LAYER simple: doctor clean OK\n'
 
 # doctor purity fail-closed: dirty *copy* of package (do not pollute SoT)
 dirty_pkg="$tmpdir/dirty-pkg"
@@ -469,6 +479,7 @@ set -e
 [[ "$rc" -eq 2 ]] || fail "doctor dirty want exit 2 got $rc: $out"
 printf '%s\n' "$out" | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d.get("ok") is False and d.get("issues") and any("purity" in i for i in d["issues"])' \
   || fail "doctor dirty issues: $out"
+printf 'LAYER simple: doctor purity fail-closed OK\n'
 
 # timeout
 repo_t="$tmpdir/repo-timeout"

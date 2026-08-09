@@ -87,6 +87,7 @@ grep -q 'Truth table' "$root/skills/devloop-run/SKILL.md" || fail "D4 truth tabl
 export DEVLOOP_HOME="$eng"
 out6="$("$run" --probe 2>&1)" || fail "D6: $out6"
 printf '%s\n' "$out6" | grep -q 'engine=' || fail "D6: $out6"
+printf 'LAYER simple: D6 probe OK\n'
 
 # D7: strict broken home
 export DEVLOOP_HOME="$tmpdir/not-an-engine"
