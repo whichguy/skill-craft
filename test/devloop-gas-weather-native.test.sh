@@ -53,11 +53,33 @@ from __future__ import annotations
 import json, re, unittest
 from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
+# common-js/ is reserved for GAS CommonJS modules only — never tests.
+_TESTISH = re.compile(r"(^|[/\\])(test_|.*_test\.|.*\.test\.|.*_spec\.|.*\.spec\.)", re.I)
 
 class WeatherContractTest(unittest.TestCase):
     def test_required_paths(self) -> None:
         for rel in ("common-js/weather.gs", "appsscript.json", "tests/test_weather_contract.py"):
             self.assertTrue((ROOT / rel).is_file(), f"missing {rel}")
+        # Contract itself must live under tests/, not common-js/
+        self.assertTrue(str(Path(__file__).resolve()).endswith(
+            str(Path("tests") / "test_weather_contract.py")
+        ) or Path(__file__).resolve().parent.name == "tests")
+
+    def test_common_js_reserved_no_tests(self) -> None:
+        cjs = ROOT / "common-js"
+        if not cjs.is_dir():
+            return
+        bad = []
+        for p in cjs.rglob("*"):
+            if not p.is_file():
+                continue
+            rel = p.relative_to(ROOT).as_posix()
+            name = p.name
+            if name.endswith(".py") or name.endswith(".pyc"):
+                bad.append(rel)
+            elif _TESTISH.search(rel) or name.startswith("test") and name.endswith((".gs", ".js", ".ts")):
+                bad.append(rel)
+        self.assertEqual(bad, [], f"common-js is reserved for GAS modules; remove test files: {bad}")
 
     def test_weather_module(self) -> None:
         text = (ROOT / "common-js/weather.gs").read_text(encoding="utf-8")
@@ -144,7 +166,7 @@ if [[ "$live" == "1" ]]; then
     --lang command \
     --json \
     --timeout "${DEVLOOP_WEATHER_TIMEOUT_S:-2400}" \
-    "Create a small Google Apps Script weather web app for San Ramon CA. Files: common-js/weather.gs (Open-Meteo open-meteo.com, UrlFetchApp, temperature_2m, HtmlService, CommonJS module.exports.__events__ doGet:handleGet, loadNow true, no top-level function doGet) and appsscript.json with oauthScopes including script.external_request. Acceptance: regression_cmd is exactly the argv list python3 -m unittest discover -s tests -v (expected_exit 0). tests/test_weather_contract.py already defines the offline contract." \
+    "Create a small Google Apps Script weather web app for San Ramon CA. Files: common-js/weather.gs (Open-Meteo open-meteo.com, UrlFetchApp, temperature_2m, HtmlService, CommonJS module.exports.__events__ doGet:handleGet, loadNow true, no top-level function doGet) and appsscript.json with oauthScopes including script.external_request. common-js/ is reserved for GAS CommonJS modules only — never place tests, specs, or .py under common-js/; offline tests live only under tests/ (tests/test_weather_contract.py already defines the offline contract). Acceptance: regression_cmd is exactly the argv list python3 -m unittest discover -s tests -v (expected_exit 0)." \
     2>&1 | tee -a "$log" | tee "$engine_json"
   engine_exit=${PIPESTATUS[0]}
   set -e
@@ -165,6 +187,12 @@ if [[ "$live" == "1" ]]; then
   fi
   [[ -f "$repo/common-js/weather.gs" ]] || fail "LIVE=1 engine did not produce common-js/weather.gs"
   [[ -f "$repo/appsscript.json" ]] || fail "LIVE=1 engine did not produce appsscript.json"
+  # common-js is reserved for GAS modules — never tests (shell guard + contract).
+  if find "$repo/common-js" -type f \( -name '*.py' -o -name 'test_*' -o -name '*_test.*' -o -name '*.test.*' -o -name '*_spec.*' -o -name '*.spec.*' \) 2>/dev/null | grep -q .; then
+    fail "LIVE=1 put test-like files under common-js/ (reserved for GAS modules only)"
+  fi
+  [[ -f "$repo/tests/test_weather_contract.py" ]] || fail "offline contract must stay under tests/"
+  [[ ! -f "$repo/common-js/test_weather_contract.py" ]] || fail "test file must not live under common-js/"
 else
   echo "=== live engine skipped (DEVLOOP_LIVE_WEATHER=$live) hermetic wiring ===" | tee -a "$log"
   write_offline_contract_tests

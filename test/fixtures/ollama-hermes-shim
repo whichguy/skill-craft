@@ -56,9 +56,11 @@ def weather_charter_json() -> str:
                 "criterion": (
                     "common-js/weather.gs fetches San Ramon weather from open-meteo.com "
                     "and serves HtmlService with temperature_2m; registers doGet via "
-                    "__events__ with loadNow true; no top-level function doGet"
+                    "__events__ with loadNow true; no top-level function doGet; "
+                    "common-js is reserved for GAS modules only (no tests under common-js); "
+                    "offline contract stays under tests/"
                 ),
-                "verify_intent": "offline weather contract tests pass",
+                "verify_intent": "offline weather contract tests under tests/ pass",
                 "tier": "unit",
                 "verify_cmd": [
                     "python3",
@@ -188,6 +190,8 @@ def weather_contract_covers_criterion(test_body: str, prompt: str) -> bool:
         and "san ramon" in body
         and "__events__" in test_body
         and "unittest" in body
+        # Contract must police reserved common-js (no tests there).
+        and ("common_js_reserved" in body or "reserved for gas" in body)
         and ("verify" in pl or "criterion" in pl or "tests:" in pl)
         and ("weather.gs" in pl or "open-meteo" in pl or "san ramon" in pl)
     )
