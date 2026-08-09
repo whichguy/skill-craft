@@ -61,3 +61,16 @@ to `devloop-native`.
   nonzero function return aborting preflight as exit 1 — fix with `set +e` around
   capability probe.
 - Advisors “Open Unknowns: None” was itself a plan bug; keep load-bearing U-list.
+
+## Remote delivery surfaces (2026-08-09)
+
+Local unit/`unittest` COMPLETE is **not** product-on-host when the request names a
+hosted runtime, deploy/publish/push, or live web app URL.
+
+- **Engine (general):** charter/refine/advisor prompts + `remote_delivery_named` /
+  `require_remote_delivery_integration` admission (twin of external CLI check).
+- **Proof:** integration `verify_cmd` must be a real CLI/HTTP check (e.g. `clasp push`,
+  `scripts/gas-verify`), not only offline tests.
+- **MCP:** fine for operators and for implementing verify_cmd; engine does not speak MCP.
+- **Anti-pattern:** host silently pushes after COMPLETE to “finish” DevLoop delivery.
+

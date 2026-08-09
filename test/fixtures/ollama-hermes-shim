@@ -44,11 +44,16 @@ def parse_argv(argv: list[str]) -> tuple[str, str, str]:
 
 
 def weather_charter_json() -> str:
-    """Canonical command-mode charter for San Ramon GAS weather DoD."""
+    """Canonical command-mode charter: local unit + remote delivery (integration)."""
+    gas_verify = [
+        "bash",
+        "scripts/gas-verify",
+    ]
     charter = {
         "interpreted_intent": (
             "Create common-js/weather.gs Open-Meteo San Ramon weather web app "
-            "with CommonJS __events__ doGet and appsscript external_request."
+            "with CommonJS __events__ doGet and appsscript external_request, "
+            "proven offline and pushed to the bound Apps Script project."
         ),
         "dod": [
             {
@@ -71,25 +76,32 @@ def weather_charter_json() -> str:
                     "tests",
                     "-v",
                 ],
-            }
+            },
+            {
+                "id": "c2",
+                "criterion": (
+                    "bound Google Apps Script project receives the product sources "
+                    "(clasp/gas-verify push exits 0) — remote delivery surface, not local-only"
+                ),
+                "verify_intent": "scripts/gas-verify push exits 0",
+                "tier": "integration",
+                "verify_cmd": gas_verify + ["push"],
+            },
         ],
         "assumptions": [
             {
                 "text": "Open-Meteo is reachable from GAS UrlFetchApp",
                 "blocking": False,
                 "confidence": 0.9,
-            }
+            },
+            {
+                "text": ".clasp.json is bound and clasp is authenticated for non-interactive push",
+                "blocking": False,
+                "confidence": 0.85,
+            },
         ],
         "open_questions": [],
-        "regression_cmd": [
-            "python3",
-            "-m",
-            "unittest",
-            "discover",
-            "-s",
-            "tests",
-            "-v",
-        ],
+        "regression_cmd": gas_verify + ["all"],
     }
     return json.dumps(charter, indent=2)
 
@@ -223,6 +235,13 @@ def judge_weather_contract(prompt: str) -> str | None:
         except OSError:
             continue
         if weather_contract_covers_criterion(body, prompt):
+            return "YES"
+        # Design-time integration oracles: explicit push/smoke verify commands.
+        pl = prompt.lower()
+        if ("gas-verify" in pl or ("clasp" in pl and "push" in pl)) and (
+            os.path.isfile(os.path.join(root, "scripts", "gas-verify"))
+            or os.path.isfile(os.path.join(root, ".clasp.json"))
+        ):
             return "YES"
         # Found the contract file but it does not encode this criterion — keep
         # searching other roots before failing closed.
