@@ -79,11 +79,14 @@ See `references/loop.md` and `references/charter-v1.schema.json`.
 Package-root relative (works under symlink install and Hermes copy):
 
 ```sh
-bash "$SKILL_ROOT/scripts/devloop-native" self-check
-bash "$SKILL_ROOT/scripts/devloop-native" freeze --charter CHARTER.json --repo REPO [--run-dir REPO/.devloop-native/run]
-bash "$SKILL_ROOT/scripts/devloop-native" prove  --run-dir …
-bash "$SKILL_ROOT/scripts/devloop-native" stop   --run-dir …
-bash "$SKILL_ROOT/scripts/devloop-native" doctor [--repo REPO]
+# Python entrypoint (do NOT wrap with `bash` — bash ignores the shebang)
+CLI="$SKILL_ROOT/scripts/devloop-native"
+python3 "$CLI" self-check
+# or, if +x: "$CLI" self-check
+python3 "$CLI" freeze --charter CHARTER.json --repo REPO [--run-dir REPO/.devloop-native/run]
+python3 "$CLI" prove  --run-dir …
+python3 "$CLI" stop   --run-dir …
+python3 "$CLI" doctor [--repo REPO]
 ```
 
 Resolve `SKILL_ROOT` from the installed skill directory that contains this `SKILL.md`.

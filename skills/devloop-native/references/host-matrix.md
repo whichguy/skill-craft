@@ -4,7 +4,7 @@
 
 | Host | Install | Discovery path | Invoke (typical) | Runtime smoke |
 |------|---------|----------------|------------------|---------------|
-| Grok | symlink | `~/.grok/skills/devloop-native` | NL “devloop” / `/devloop-native` | pending |
+| Grok | symlink | `~/.grok/skills/devloop-native` | NL “devloop” / `/devloop-native` | **PASS** 2026-08-09 — live `grok -p` smoke `~/src/devloop-grok-smoke` receipt mode=native status=PASS |
 | Claude Code | symlink + plugin view | `~/.claude/skills/devloop-native` | `/devloop-native` (skill-dir smoke only) | pending |
 | Hermes | materialize-copy | `~/.hermes/skills/software-development/devloop-native` | `/devloop-native` (not bare `/devloop`) | pending |
 | Codex | symlink | `~/.codex/skills/devloop-native` | discovery-ok | deferred |
