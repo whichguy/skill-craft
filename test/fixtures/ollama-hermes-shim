@@ -1,0 +1,119 @@
+#!/usr/bin/env python3
+"""Minimal Hermes-chat-compatible shim for DevLoop multi-model runs without Hermes.
+
+Invoked as: HERMES_BIN=./ollama-hermes-shim
+  ollama-hermes-shim chat -q PROMPT -m MODEL -Q --yolo [-t toolsets]
+
+- Text roles (no -t / empty toolsets): ollama run MODEL with prompt via stdin.
+- Tool roles (-t present): optional GROK_BIN for file-capable work; else ollama still used
+  with a note that tools are unavailable (engine may repair).
+
+Exit codes mirror a failed/success model call.
+"""
+from __future__ import annotations
+
+import os
+import subprocess
+import sys
+
+
+def parse_argv(argv: list[str]) -> tuple[str, str, str]:
+    """Return (prompt, model, toolsets)."""
+    prompt = ""
+    model = "qwen3:1.7b"
+    toolsets = ""
+    i = 0
+    # skip leading "chat"
+    if argv and argv[0] == "chat":
+        i = 1
+    while i < len(argv):
+        a = argv[i]
+        if a == "-q" and i + 1 < len(argv):
+            prompt = argv[i + 1]
+            i += 2
+            continue
+        if a == "-m" and i + 1 < len(argv):
+            model = argv[i + 1]
+            i += 2
+            continue
+        if a == "-t" and i + 1 < len(argv):
+            toolsets = argv[i + 1]
+            i += 2
+            continue
+        i += 1
+    return prompt, model, toolsets
+
+
+def run_ollama(model: str, prompt: str) -> tuple[str, int]:
+    # Non-interactive: ollama run prints response to stdout
+    env = os.environ.copy()
+    # Avoid interactive spinner noise where possible
+    cmd = ["ollama", "run", model, prompt]
+    try:
+        proc = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=int(os.environ.get("OLLAMA_SHIM_TIMEOUT_S", "600")),
+            env=env,
+        )
+    except FileNotFoundError:
+        sys.stderr.write("ollama-hermes-shim: ollama not on PATH\n")
+        return "", 1
+    except subprocess.TimeoutExpired:
+        sys.stderr.write("ollama-hermes-shim: ollama timed out\n")
+        return "", 1
+    out = (proc.stdout or "") + (("\n" + proc.stderr) if proc.stderr else "")
+    # Strip thinking markers noise lightly
+    return out, proc.returncode
+
+
+def run_grok(model: str, prompt: str, toolsets: str) -> tuple[str, int]:
+    grok = os.environ.get("GROK_BIN") or "grok"
+    cmd = [
+        grok,
+        "-p",
+        prompt,
+        "-m",
+        model if model.startswith("grok") else "grok-4.5",
+        "--output-format",
+        "plain",
+        "--no-subagents",
+        "--no-memory",
+        "--disable-web-search",
+        "--always-approve",
+        "--max-turns",
+        "30",
+    ]
+    try:
+        proc = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=int(os.environ.get("GROK_SHIM_TIMEOUT_S", "1200")),
+        )
+    except FileNotFoundError:
+        sys.stderr.write("ollama-hermes-shim: grok not found; falling back to ollama\n")
+        return run_ollama(model if ":" in model else "qwen3:1.7b", prompt)
+    except subprocess.TimeoutExpired:
+        sys.stderr.write("ollama-hermes-shim: grok timed out\n")
+        return "", 1
+    return (proc.stdout or ""), proc.returncode
+
+
+def main() -> int:
+    prompt, model, toolsets = parse_argv(sys.argv[1:])
+    if not prompt:
+        sys.stderr.write("ollama-hermes-shim: missing -q prompt\n")
+        return 2
+    if toolsets.strip():
+        # Prefer Grok for tool-enabled implementer roles when available
+        out, code = run_grok(model, prompt, toolsets)
+    else:
+        out, code = run_ollama(model, prompt)
+    sys.stdout.write(out if out.endswith("\n") else out + "\n")
+    return 0 if code == 0 and out.strip() else (code or 1)
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
