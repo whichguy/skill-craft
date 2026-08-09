@@ -17,6 +17,24 @@ fail() {
 [[ ! -d "$root/skills/devloop" ]] || fail "reserved skills/devloop must not exist"
 grep -q 'kind: script-backed' "$root/skills/devloop-native/SKILL.md" || fail "frontmatter kind"
 grep -q 'name: devloop-native' "$root/skills/devloop-native/SKILL.md" || fail "frontmatter name"
+# Demoted: description must not own bare "devloop" as primary product trigger
+skill_md="$root/skills/devloop-native/SKILL.md"
+# Extract YAML description block (folded >- lines under description:)
+desc="$(awk '
+  /^description:[[:space:]]*>-/ {grab=1; next}
+  grab && /^  / {print; next}
+  grab && /^[^ ]/ {exit}
+' "$skill_md")"
+[[ -n "$desc" ]] || fail "no description block"
+printf '%s\n' "$desc" | grep -qi 'devloop-run' || fail "description must redirect to devloop-run"
+printf '%s\n' "$desc" | grep -qiE '/devloop-native|offline evidence|freeze prove stop|evidence gates' \
+  || fail "description must use demoted triggers"
+# Frontmatter description must not claim bare NL "user says devloop"
+if printf '%s\n' "$desc" | grep -qiE 'user says devloop|says devloop, DevLoop'; then
+  fail "description must not claim bare devloop trigger"
+fi
+grep -qiE 'Not the default DevLoop|not the default DevLoop|demoted' \
+  "$skill_md" || fail "body must demote default claim"
 # purity: no peer harness transport tokens in scripts
 if rg -n 'HERMES_BIN|hermes chat|devloop-run|codex exec' "$root/skills/devloop-native/scripts" 2>/dev/null; then
   fail "purity: forbidden transport tokens in scripts"

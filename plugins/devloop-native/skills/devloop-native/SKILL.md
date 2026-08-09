@@ -1,12 +1,13 @@
 ---
 name: devloop-native
 description: >-
-  DevLoop: host-native DEFINE→PROVE→BUILD→STOP using the current agent's tools
-  and optional local verify gates. Use when the user says devloop, DevLoop,
-  host-native loop, or /devloop-native. NOT the Hermes engine leaf "devloop",
-  NOT the engine launcher skill, NOT peer-harness transport.
+  Optional offline evidence gates (freeze/prove/stop with guard digests) for
+  machine-checkable red→green contracts without the autonomous engine. Use when
+  the user says /devloop-native, offline evidence gates, freeze prove stop, or
+  host-native verify gates. NOT default DevLoop — for autonomous
+  machine-verifiable builds use the engine via devloop-run.
 allowed-tools: all
-version: 0.1.0
+version: 0.1.1
 license: MIT
 platforms:
   - linux
@@ -19,39 +20,41 @@ metadata:
     tags:
       - portable-skill
       - multi-host
-      - devloop
+      - evidence-gates
 ---
 
-# DevLoop
+# DevLoop evidence gates (optional, demoted)
 
-**Package leaf:** `devloop-native` (install path; not the Hermes engine).
+**Package leaf:** `devloop-native`  
+**Status:** **Not** the default DevLoop product.
 
-Host-native **DEFINE → PROVE → BUILD → STOP**. The **current host agent** is the
-loop. Optional CLI helpers only freeze and re-run evidence.
+Default DevLoop is the **engine** via **`devloop-run`** (DEFINE → PROVE → BUILD →
+DELIVER+LEARN). This package only freezes charters and re-runs argv verifiers.
 
-**Primary interface:** invoke this skill like any other skill (say **devloop** /
-**DevLoop**). Do **not** require the user to run shell scripts. CLI gates are
-optional hard evidence for COMPLETE.
+Host-native **DEFINE → PROVE → BUILD → STOP** evidence loop. The **current host
+agent** may implement BUILD; scripts only say yes/no with **guard digests**.
+
+**Primary interface:** `/devloop-native` or explicit “offline evidence gates.”
+Do **not** treat bare “devloop” as this skill.
 
 **Invariant:** the script may say **no**, but it may never **do the work** — and
 what it says yes to must include **guard file digests**, not only command lines.
 
 ## Not for
 
-- Hermes engine skill leaf `devloop` (different product; do not fall back)
-- Engine launcher / bootstrap skill that shells to another runtime
-- Cross-harness transport (calling another host’s CLI as the loop)
+- User asks for **DevLoop** / autonomous machine-verifiable **build** → use
+  **`devloop-run`** / engine (never substitute this skill as DevLoop)
+- Hermes engine skill leaf `devloop` (different product)
+- Cross-harness transport as the loop
 - Subjective design-only work with no machine-checkable verifier
 
 ## Step 0 — banner
 
-First line of a DevLoop run:
-
 ```text
-DevLoop — mode=native host=<this-host> root=<package-root> charter=<path-or-pending>
+DevLoop-evidence — mode=native host=<this-host> root=<package-root> charter=<path-or-pending>
 ```
 
-No banner ⇒ this skill did not run (possible misroute to the engine).
+(First line must make clear this is **not** default DevLoop / mode=engine.)
 
 ## Phases
 
@@ -76,13 +79,9 @@ See `references/loop.md` and `references/charter-v1.schema.json`.
 
 ## CLI (optional hard gates)
 
-Package-root relative (works under symlink install and Hermes copy):
-
 ```sh
-# Python entrypoint (do NOT wrap with `bash` — bash ignores the shebang)
 CLI="$SKILL_ROOT/scripts/devloop-native"
 python3 "$CLI" self-check
-# or, if +x: "$CLI" self-check
 python3 "$CLI" freeze --charter CHARTER.json --repo REPO [--run-dir REPO/.devloop-native/run]
 python3 "$CLI" prove  --run-dir …
 python3 "$CLI" stop   --run-dir …
@@ -102,13 +101,13 @@ State lives under the **target repo** (default `.devloop-native/`), never inside
 
 ## Procedure (agent)
 
-1. Emit banner. Load `references/loop.md` if detail needed.
+1. Emit banner (evidence / mode=native — not mode=engine).
 2. **DEFINE** — charter with checkable criteria; freeze.
-3. **PROVE** — run prove; if all `change` criteria are green, stop with already-green / redefine (do not fake BUILD).
-4. **BUILD** — implement with host tools until verifiers can pass; do not edit frozen charter or weaken guard files (redefine instead).
-5. **STOP** — stop CLI; report receipt. If exit ≠ 0, fix or HUMAN_REVIEW with real reason.
+3. **PROVE** — run prove; if all `change` criteria are green, stop with already-green / redefine.
+4. **BUILD** — implement with host tools until verifiers can pass.
+5. **STOP** — stop CLI; report receipt.
 
-Never suggest peer harness CLIs or the engine launcher as a fallback for this skill.
+If the user wanted full DevLoop, redirect to **`devloop-run`** instead of completing this path.
 
 ## Host matrix
 

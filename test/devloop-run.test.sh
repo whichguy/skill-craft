@@ -33,7 +33,8 @@ cleanup() { rm -rf "$tmpdir"; }
 trap cleanup EXIT
 
 # D1: --help
-unset DEVLOOP_HOME HERMES_HOME DEVLOOP_BOOTSTRAP_CMD DEVLOOP_ENGINE_URL DEVLOOP_DATA_HOME DEVLOOP_ENGINE_PIN DEVLOOP_ENGINE_SHA256 || true
+unset DEVLOOP_HOME HERMES_HOME DEVLOOP_BOOTSTRAP_CMD DEVLOOP_ENGINE_URL DEVLOOP_DATA_HOME DEVLOOP_ENGINE_PIN DEVLOOP_ENGINE_SHA256 \
+  DEVLOOP_HOST DEVLOOP_ALLOW_HERMES_SEED DEVLOOP_ALLOW_LEGACY_ENGINE DEVLOOP_DEPTH DEVLOOP_NESTING DEVLOOP_TRANSPORT GROK_BIN || true
 export HOME="$tmpdir/empty-home"
 mkdir -p "$HOME"
 set +e
@@ -245,10 +246,13 @@ set -e
 [[ "$rc15" -eq 2 ]] || fail "D15 want 2 got $rc15: $out15"
 printf '%s\n' "$out15" | grep -qi 'python3' || fail "D15 message: $out15"
 
-# D16: honesty / version
-grep -q 'Hermes-default\|Hermes-default' "$root/skills/devloop-run/SKILL.md" \
-  || grep -qi 'Hermes' "$root/skills/devloop-run/SKILL.md" || fail "D16 honesty Hermes"
-grep -E '^version: 0\.3\.' "$root/skills/devloop-run/SKILL.md" || fail "D16 version 0.3.x"
+# D16: honesty / version — strict shim, default DevLoop ownership
+grep -qi 'Hermes' "$root/skills/devloop-run/SKILL.md" || fail "D16 honesty Hermes host"
+grep -qi 'mode=engine' "$root/skills/devloop-run/SKILL.md" || fail "D16 mode=engine banner"
+grep -qi 'Forbidden' "$root/skills/devloop-run/SKILL.md" || fail "D16 forbids host loop"
+grep -qi 'devloop-native' "$root/skills/devloop-run/SKILL.md" || fail "D16 mentions demoted native"
+grep -E '^version: 0\.4\.' "$root/skills/devloop-run/SKILL.md" || fail "D16 version 0.4.x"
+[[ -f "$root/skills/devloop-run/references/product-default.md" ]] || fail "D16 product-default.md"
 
 # D17: DEVLOOP_BOOTSTRAP_CMD success
 export DEVLOOP_DATA_HOME="$tmpdir/data-cmd"
@@ -331,4 +335,72 @@ out21r="$("$run" --no-bootstrap -- hi 2>&1)" || fail "D21 run host-local: $out21
 printf '%s\n' "$out21r" | grep -q 'SEED_COPY_ENGINE' || fail "D21 host-local run: $out21r"
 printf 'LAYER e2e: D21 force-bootstrap seed-copy + host-local exec OK\n'
 
-printf 'devloop-run.test.sh: PASS D1–D21\n'
+# D22: dual-install affinity — host=grok must NOT select Hermes leaf when host-local empty
+unset DEVLOOP_HOME DEVLOOP_BOOTSTRAP_CMD DEVLOOP_ENGINE_URL DEVLOOP_ALLOW_HERMES_SEED || true
+export DEVLOOP_DATA_HOME="$tmpdir/data-dual-empty"
+rm -rf "$DEVLOOP_DATA_HOME"
+mkdir -p "$DEVLOOP_DATA_HOME"
+export HERMES_HOME="$tmpdir/hermes-dual"
+mkdir -p "$HERMES_HOME/skills/software-development/devloop/scripts"
+printf 'print("HERMES_LEAF")\n' >"$HERMES_HOME/skills/software-development/devloop/scripts/devloop_cli.py"
+export DEVLOOP_ENGINE_PIN="$tmpdir/empty-pin-dual.json"
+printf '%s\n' '{"version":"x","url":"REPLACE_WITH_RELEASE_URL/x.tgz","sha256":""}' >"$DEVLOOP_ENGINE_PIN"
+set +e
+out22="$("$run" --host grok --probe --no-bootstrap 2>&1)"
+rc22=$?
+set -e
+[[ "$rc22" -eq 2 ]] || fail "D22 want exit 2 (no host-local, hermes disallowed) got $rc22: $out22"
+printf '%s\n' "$out22" | grep -qi 'skipping Hermes\|hermes_seed_allowed=0\|engine not resolved\|not resolved' \
+  || fail "D22 should skip Hermes seed: $out22"
+# Same machine with auto host still may select seed (legacy)
+out22b="$("$run" --host auto --probe --no-bootstrap 2>&1)" || fail "D22b auto probe: $out22b"
+printf '%s\n' "$out22b" | grep -q 'engine=' || fail "D22b auto should resolve: $out22b"
+printf 'LAYER integration: D22 dual-install grok affinity OK\n'
+
+# D23: nesting refuse
+export DEVLOOP_HOME="$eng"
+unset HERMES_HOME || true
+export DEVLOOP_DEPTH=1
+set +e
+out23="$("$run" --host auto -- hi 2>&1)"
+rc23=$?
+set -e
+[[ "$rc23" -eq 2 ]] || fail "D23 want 2 got $rc23: $out23"
+printf '%s\n' "$out23" | grep -qi 'nested\|NESTING\|DEPTH' || fail "D23 message: $out23"
+printf '%s\n' "$out23" | grep -qi 'devloop-native' || fail "D23 must mention not native fallback: $out23"
+unset DEVLOOP_DEPTH DEVLOOP_NESTING || true
+printf 'LAYER simple: D23 nesting refuse OK\n'
+
+# D24: full engine without capabilities + host=grok → exit 2 (honesty)
+full_eng="$tmpdir/full-engine-no-cap"
+rm -rf "$full_eng"
+mkdir -p "$full_eng/scripts" "$full_eng/devloop_core"
+printf 'print("FULL")\n' >"$full_eng/scripts/devloop_cli.py"
+printf '# stub\n' >"$full_eng/dispatch.py"
+printf '# stub\n' >"$full_eng/devloop_bridge.py"
+export DEVLOOP_HOME="$full_eng"
+# Provide fake grok so binary preflight passes
+fake_grok="$tmpdir/fake-grok"
+printf '#!/usr/bin/env bash\necho fake-grok\n' >"$fake_grok"
+chmod +x "$fake_grok"
+export GROK_BIN="$fake_grok"
+set +e
+out24="$("$run" --host grok -- hi 2>&1)"
+rc24=$?
+set -e
+[[ "$rc24" -eq 2 ]] || fail "D24 want 2 got $rc24: $out24"
+printf '%s\n' "$out24" | grep -qi 'capability\|transports\|Grok parity\|ALLOW_LEGACY' \
+  || fail "D24 capability message: $out24"
+# Legacy allow still runs stub
+out24b="$(DEVLOOP_ALLOW_LEGACY_ENGINE=1 "$run" --host grok -- hi 2>&1)" || fail "D24b legacy: $out24b"
+printf '%s\n' "$out24b" | grep -q 'FULL' || fail "D24b: $out24b"
+printf 'LAYER integration: D24 grok capability preflight OK\n'
+
+# D25: bootstrap.md honesty + host affinity docs
+grep -qi 'DEVLOOP_HOST\|host affinity\|ALLOW_HERMES_SEED' "$root/skills/devloop-run/references/bootstrap.md" \
+  || fail "D25 bootstrap affinity docs"
+grep -qi 'fail closed\|Do not use devloop-native' "$root/skills/devloop-run/references/bootstrap.md" \
+  || fail "D25 bootstrap fail-closed docs"
+printf 'LAYER simple: D25 bootstrap honesty OK\n'
+
+printf 'devloop-run.test.sh: PASS D1–D25\n'

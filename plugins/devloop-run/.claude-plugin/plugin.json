@@ -1,7 +1,7 @@
 {
   "name": "devloop-run",
-  "version": "0.3.0",
-  "description": "Use when invoking the devloop engine for a machine-verifiable build/debug goal: resolve or bootstrap the engine CLI, then run with an explicit --repo or scratch request. Portable card for Grok, Claude, Codex, and Hermes; first --setup (or first run) can materialize a host-local engine under ~/.local/share/devloop. Setup/probe are multi-host; full autonomous engine loops still default to Hermes transport until a non-Hermes runtime ships.",
+  "version": "0.4.1",
+  "description": "DevLoop (default): invoke the autonomous devloop engine for a machine-verifiable build or debug goal. Use when the user says devloop, DevLoop, or wants an isolated fail-closed build with executable tests. Thin shim only — resolve or bootstrap the engine, then exec scripts/devloop-run. Portable on Grok, Claude, Codex, and Hermes. NOT the demoted offline evidence skill devloop-native. NOT host-agent reimplementation of DEFINE/PROVE/BUILD.",
   "author": {
     "name": "whichguy",
     "url": "https://github.com/whichguy"

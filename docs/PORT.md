@@ -27,7 +27,8 @@
 | improve-system-prompt | review-bench | Wave 2 (Sheets Chat specific) |
 | review-fix-bench | review-bench | Wave 2 |
 | review-coverage | (native) | Post-ship residual×2 directive + CLI |
-| devloop-run | (native) | Hermes devloop engine discovery card |
+| devloop-run | (native) | **Default DevLoop** — thin engine shim (resolve/bootstrap/exec); bare “devloop” routes here |
+| devloop-native | (native) | **Demoted** optional offline freeze/prove/stop evidence gates — not default DevLoop |
 
 **External (not monorepo):** [lennox-s40](https://github.com/whichguy/lennox-s40) — local LAN thermostat control; skill-craft-market pins the standalone repo.
 

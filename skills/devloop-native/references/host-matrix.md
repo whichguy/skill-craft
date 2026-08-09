@@ -1,18 +1,23 @@
-# DevLoop host matrix
+# Evidence-gates host matrix (`devloop-native`)
 
-**Honesty:** discovery (skill installed) ≠ execution (loop completed with native receipt).
+**Status:** demoted optional toolkit — **not** default DevLoop.
+
+Default DevLoop: package **`devloop-run`** → engine. See that card’s
+`references/product-default.md`.
+
+**Honesty:** discovery (skill installed) ≠ execution (native receipt PASS).
 
 | Host | Install | Discovery path | Invoke (typical) | Runtime smoke |
 |------|---------|----------------|------------------|---------------|
-| Grok | symlink | `~/.grok/skills/devloop-native` | NL “devloop” / `/devloop-native` | **PASS** 2026-08-09 — live `grok -p` smoke `~/src/devloop-grok-smoke` receipt mode=native status=PASS |
-| Claude Code | symlink + plugin view | `~/.claude/skills/devloop-native` | `/devloop-native` (skill-dir smoke only) | pending |
-| Hermes | materialize-copy | `~/.hermes/skills/software-development/devloop-native` | `/devloop-native` (not bare `/devloop`) | pending |
+| Grok | symlink | `~/.grok/skills/devloop-native` | `/devloop-native` only (not bare “devloop”) | historical: 2026-08-09 native smoke only |
+| Claude Code | symlink + plugin view | `~/.claude/skills/devloop-native` | `/devloop-native` | pending |
+| Hermes | materialize-copy | `…/software-development/devloop-native` | `/devloop-native` (not bare `/devloop`) | pending |
 | Codex | symlink | `~/.codex/skills/devloop-native` | discovery-ok | deferred |
 
-User-facing name: **DevLoop**. Package leaf: **devloop-native** (avoids reserved engine leaf `devloop`).
+Package leaf: **devloop-native** (avoids reserved engine leaf `devloop`).
 
 | Claim | Requires |
 |-------|----------|
 | Packaged multi-host | install + hermetic tests green |
-| Runtime verified on H | smoke on H with PASS receipt |
-| Harness-native on three | smokes on Grok + Claude + Hermes |
+| Runtime verified on H | smoke on H with PASS native receipt |
+| Default DevLoop | **never** this package — use `devloop-run` |

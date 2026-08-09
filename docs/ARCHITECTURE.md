@@ -37,7 +37,7 @@ Do **not** renumber legacy Layer 0–2. Skill-interop reviews and checklists alr
 | Prompts | **Layer 1** | **implemented** |
 | Scripts / CLI | **Layer 2** | **implemented** |
 | Skill card (`SKILL.md` router) | review step (not a Layer 1 rename) | **implemented** |
-| Runtime binding | append (**SC-L3**) | **implemented** for Hermes materialize + probe resolve (`devloop-run`); full multi-transport matrix remains optional |
+| Runtime binding | append (**SC-L3**) | **implemented** for Hermes materialize + `devloop-run` resolve/bootstrap; **Grok multi-transport required for Grok parity** (in progress); Claude/Codex transport optional |
 | Host adapters + distribution | append (**SC-L4 / SC-L5**) | **implemented** (skill-dir install, Claude plugin views, market pins) |
 | Provenance (managed installs) | append | **implemented** — schema-2 marker + append-only `receipts.jsonl` + `--status` / `--uninstall` |
 | Operator / CI | control plane (not a runtime layer) | **implemented** — hermetic suite + GitHub Actions |
@@ -62,8 +62,12 @@ One CLI family per skill; injectable seams; scripts do not re-author planning po
 
 ### Runtime binding — SC-L3 (**implemented** for Hermes materialize + `devloop-run` resolve/bootstrap)
 
-Binding surfaces are **distinct** (do not collapse into one env var). Full multi-transport
-matrix beyond Hermes/`DEVLOOP_HOME` remains **optional**.
+Binding surfaces are **distinct** (do not collapse into one env var).
+
+**Product default:** bare **DevLoop / devloop** = engine via **`skills/devloop-run`**
+(shim only). Harnesses must not reimplement the loop. Optional offline freeze/prove/stop
+is **`devloop-native`** (demoted; not default). See
+`skills/devloop-run/references/product-default.md`.
 
 | Surface | Role |
 |---------|------|
@@ -71,8 +75,13 @@ matrix beyond Hermes/`DEVLOOP_HOME` remains **optional**.
 | Runtime home | e.g. Hermes hub / container data root |
 | Write-safe root | Where engines may create workspaces/traces |
 | Host-local engine | `~/.local/share/devloop` (pin+sha bootstrap; marker-owned) |
-| Transport / launcher bins | Overridable (`HERMES_BIN`, `CLAUDE_BIN`, …) |
+| Transport / launcher bins | Overridable (`HERMES_BIN`, `GROK_BIN`, `DEVLOOP_TRANSPORT`, …) |
 | Target repository | Effectful git work for engines |
+
+**Transport honesty:** Hermes host uses Hermes chat transport. **Grok parity** requires
+engine Grok transport with **no Hermes runtime dependency** (host-local engine +
+`GROK_BIN`). Until that ships in the engine pin, Grok must fail closed at the card —
+not fall back to host-agent DevLoop improvisation.
 
 **devloop-run clean-laptop path:** card installs on Grok/Claude/Codex skill-dir; engine
 materializes host-locally from `references/engine-pin.json` (url+sha256, safe extract,
@@ -94,7 +103,9 @@ host checkout into a tree that is bind-mounted into the container as `/opt/data`
 | skill-craft-market pins (catalog only; no skill bodies) | **implemented** |
 | `install.sh --status` / `--uninstall` (owned only) | **implemented** |
 | skillctl | **optional / not planned** (use `install.sh`) |
-| Engine probe card `skills/devloop-run` | **implemented** (discovery all hosts; host-local bootstrap + Hermes/seed resolve) |
+| Default DevLoop card `skills/devloop-run` | **implemented** (discovery all hosts; host-local bootstrap + Hermes/seed resolve; strict shim SKILL) |
+| Demoted evidence gates `skills/devloop-native` | **implemented** (offline freeze/prove/stop; not default DevLoop) |
+| Grok engine transport (no Hermes) | **in progress** (parity hard requirement) |
 
 ### Operator / CI (**implemented**)
 
@@ -213,7 +224,8 @@ when missing, without overwriting Hermes skillhub leaf `devloop`. See
 | Leaf | Role |
 |------|------|
 | `devloop` | **Reserved** — live Hermes engine under skillhub (`software-development/devloop`). Must not appear as `skills/devloop` in skill-craft. |
-| `devloop-run` | skill-craft discovery/preflight **card** only (does not vendor the engine). |
+| `devloop-run` | **Default DevLoop** multi-host **shim card** (does not vendor the engine; resolve/bootstrap/exec only). |
+| `devloop-native` | Demoted offline evidence gates; must not steal bare “devloop” discovery. |
 
 ## Related files
 

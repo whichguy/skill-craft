@@ -1,7 +1,7 @@
 {
   "name": "devloop-native",
-  "version": "0.1.0",
-  "description": "DevLoop: host-native DEFINE→PROVE→BUILD→STOP using the current agent's tools and optional local verify gates. Use when the user says devloop, DevLoop, host-native loop, or /devloop-native. NOT the Hermes engine leaf \"devloop\", NOT the engine launcher skill, NOT peer-harness transport.",
+  "version": "0.1.1",
+  "description": "Optional offline evidence gates (freeze/prove/stop with guard digests) for machine-checkable red→green contracts without the autonomous engine. Use when the user says /devloop-native, offline evidence gates, freeze prove stop, or host-native verify gates. NOT default DevLoop — for autonomous machine-verifiable builds use the engine via devloop-run.",
   "author": {
     "name": "whichguy",
     "url": "https://github.com/whichguy"

@@ -21,6 +21,8 @@ Flags:
   --force-bootstrap    Re-materialize host-local engine even if one exists
   --force-hard         With --force-bootstrap, allow replacing a tree without our marker
   --strict             If DEVLOOP_HOME is set but invalid, exit 2 (no fallback)
+  --host NAME          Force host affinity: grok|hermes|claude|codex|auto (default auto)
+  --allow-hermes-seed  On non-Hermes hosts, allow resolve/bootstrap via Hermes leaf seed
 
 Environment:
   DEVLOOP_HOME           Prefer this engine root
@@ -29,13 +31,24 @@ Environment:
   DEVLOOP_ENGINE_SHA256  Override pin sha256 (required for non-file https unless pin file)
   DEVLOOP_ENGINE_PIN     Path to engine-pin.json (default: card references/engine-pin.json)
   DEVLOOP_BOOTSTRAP_CMD  Test seam: command that installs into $1
+  DEVLOOP_HOST           Host affinity (grok|hermes|claude|codex); exported to engine
+  DEVLOOP_TRANSPORT      Default model transport for engine (exported when set by preflight)
+  DEVLOOP_ALLOW_HERMES_SEED  If 1, non-Hermes hosts may use Hermes leaf as seed/resolve
+  DEVLOOP_ALLOW_LEGACY_ENGINE  If 1, skip capability transport preflight (stubs/tests)
+  DEVLOOP_DEPTH / DEVLOOP_NESTING  If nonzero on invoke → exit 2 (anti-reentry)
+  GROK_BIN               Grok CLI for host=grok preflight (default: grok on PATH)
   HERMES_HOME            Legacy Hermes data root
 
-Resolve order:
+Resolve order (host=hermes or allow-hermes-seed):
   1. DEVLOOP_HOME (if valid)
-  2. Host-local ~/.local/share/devloop (marker + entrypoint)
-  3. Hermes / /opt/data seeds (valid entrypoint)
-  4. Bootstrap (pin / URL / CMD / Hermes seed copy) unless --no-bootstrap
+  2. Host-local …/devloop
+  3. Hermes / /opt/data seeds
+  4. Bootstrap (pin / URL / CMD / seed copy)
+
+Resolve order (host=grok|claude|codex, default):
+  1. DEVLOOP_HOME
+  2. Host-local only
+  3. Bootstrap from pin/URL/CMD (Hermes seed only if DEVLOOP_ALLOW_HERMES_SEED=1)
 
 Never overwrites Hermes skillhub leaf "devloop".
 EOF
@@ -47,6 +60,8 @@ setup=0
 no_bootstrap=0
 force_bootstrap=0
 force_hard=0
+host_flag=""
+allow_hermes_seed="${DEVLOOP_ALLOW_HERMES_SEED:-0}"
 while [[ $# -gt 0 ]]; do
   case "$1" in
     -h|--help) usage; exit 0 ;;
@@ -56,10 +71,46 @@ while [[ $# -gt 0 ]]; do
     --no-bootstrap) no_bootstrap=1; shift ;;
     --force-bootstrap) force_bootstrap=1; shift ;;
     --force-hard) force_hard=1; shift ;;
+    --host)
+      host_flag="${2:-}"
+      [[ -n "$host_flag" ]] || { printf 'devloop-run: --host requires NAME\n' >&2; exit 64; }
+      shift 2
+      ;;
+    --allow-hermes-seed) allow_hermes_seed=1; shift ;;
     --) shift; break ;;
     *) break ;;
   esac
 done
+
+# Host affinity: explicit flag > env > auto from card install path
+detect_host() {
+  if [[ -n "$host_flag" && "$host_flag" != "auto" ]]; then
+    printf '%s\n' "$host_flag"
+    return 0
+  fi
+  if [[ -n "${DEVLOOP_HOST:-}" ]]; then
+    printf '%s\n' "$DEVLOOP_HOST"
+    return 0
+  fi
+  case "$card_root" in
+    */.grok/skills/*|*/.grok/skills) printf 'grok\n' ;;
+    */.claude/skills/*|*/.claude/plugins/*) printf 'claude\n' ;;
+    */.codex/skills/*) printf 'codex\n' ;;
+    */.hermes/*|/opt/data/*|/opt/hermes/*) printf 'hermes\n' ;;
+    *) printf 'auto\n' ;;
+  esac
+}
+
+DEVLOOP_HOST="$(detect_host)"
+export DEVLOOP_HOST
+allow_hermes_seed_effective=0
+if [[ "$allow_hermes_seed" == "1" || "${DEVLOOP_ALLOW_HERMES_SEED:-0}" == "1" ]]; then
+  allow_hermes_seed_effective=1
+fi
+if [[ "$DEVLOOP_HOST" == "hermes" || "$DEVLOOP_HOST" == "auto" ]]; then
+  # auto keeps legacy resolve (Hermes seed allowed) for backward compat / unknown installs
+  allow_hermes_seed_effective=1
+fi
 
 # Setup/bootstrap needs python3 early (marker JSON + safe extract). Fail closed exit 2.
 require_python3() {
@@ -322,30 +373,46 @@ bootstrap_engine() {
     rm -f "$tgz"
     write_engine_marker "$stage" "$url" "$version" "$sha"
   else
-    # Seed copy from existing Hermes/opt engine (no network)
+    # Seed copy from existing Hermes/opt engine (no network) — only if allowed
     local seed="" s
-    for s in \
-      "${HERMES_HOME:+$HERMES_HOME/skills/software-development/devloop}" \
-      "${HOME}/.hermes/skills/software-development/devloop" \
-      "/opt/data/skills/software-development/devloop"
-    do
-      [[ -n "$s" ]] || continue
-      if is_engine_root "$s"; then
-        seed="$s"
-        break
-      fi
-    done
+    if [[ "$allow_hermes_seed_effective" -eq 1 ]]; then
+      for s in \
+        "${HERMES_HOME:+$HERMES_HOME/skills/software-development/devloop}" \
+        "${HOME}/.hermes/skills/software-development/devloop" \
+        "/opt/data/skills/software-development/devloop"
+      do
+        [[ -n "$s" ]] || continue
+        if is_engine_root "$s"; then
+          seed="$s"
+          break
+        fi
+      done
+    fi
     if [[ -z "$seed" ]]; then
-      printf 'devloop-run: no bootstrap source on this machine.\n' >&2
-      printf '  Options:\n' >&2
-      printf '    1) bash scripts/devloop-run --setup   # after publishing engine pin\n' >&2
-      if [[ -f "$pin_file" ]]; then
-        printf '    2) Ensure network access to pin URL in %s\n' "$pin_file" >&2
+      if [[ "$allow_hermes_seed_effective" -eq 0 ]]; then
+        printf 'devloop-run: no pin/URL bootstrap and Hermes seed disallowed (host=%s).\n' "$DEVLOOP_HOST" >&2
+        printf '  Options:\n' >&2
+        printf '    1) Publish/fetch engine pin (DEVLOOP_ENGINE_PIN / network)\n' >&2
+        printf '    2) DEVLOOP_ENGINE_URL=file:///path/to/engine.tgz DEVLOOP_ENGINE_SHA256=...\n' >&2
+        printf '    3) DEVLOOP_ALLOW_HERMES_SEED=1 to allow one-time seed from Hermes leaf\n' >&2
+        printf '  Do not use devloop-native as DevLoop.\n' >&2
       else
-        printf '    2) Add references/engine-pin.json with url+sha256\n' >&2
+        printf 'devloop-run: no bootstrap source on this machine.\n' >&2
+        printf '  Options:\n' >&2
+        printf '    1) bash scripts/devloop-run --setup   # after publishing engine pin\n' >&2
+        if [[ -f "$pin_file" ]]; then
+          printf '    2) Ensure network access to pin URL in %s\n' "$pin_file" >&2
+        else
+          printf '    2) Add references/engine-pin.json with url+sha256\n' >&2
+        fi
+        printf '    3) DEVLOOP_ENGINE_URL=file:///path/to/engine.tgz DEVLOOP_ENGINE_SHA256=...\n' >&2
+        printf '    4) Install Hermes engine once (seed), then re-run --setup\n' >&2
       fi
-      printf '    3) DEVLOOP_ENGINE_URL=file:///path/to/engine.tgz DEVLOOP_ENGINE_SHA256=...\n' >&2
-      printf '    4) Install Hermes engine once (seed), then re-run --setup\n' >&2
+      rm -rf "$stage"
+      return 1
+    fi
+    if [[ "$allow_hermes_seed_effective" -eq 0 ]]; then
+      printf 'devloop-run: internal error: seed set while hermes seed disallowed\n' >&2
       rm -rf "$stage"
       return 1
     fi
@@ -371,10 +438,78 @@ bootstrap_engine() {
   local src_label="${url:-${DEVLOOP_BOOTSTRAP_CMD:-seed}}"
   write_engine_marker "$stage" "$src_label" "$version" "$sha"
 
-  rm -rf "$dest"
-  mv "$stage" "$dest"
+  # Atomic swap: keep previous generation until mv succeeds
+  local prev=""
+  if [[ -d "$dest" ]]; then
+    prev="${dest}.prev.$$"
+    rm -rf "$prev"
+    if ! mv "$dest" "$prev"; then
+      printf 'devloop-run: failed to park previous engine at %s\n' "$prev" >&2
+      rm -rf "$stage"
+      return 1
+    fi
+  fi
+  if ! mv "$stage" "$dest"; then
+    printf 'devloop-run: failed to install staged engine at %s\n' "$dest" >&2
+    if [[ -n "$prev" && -d "$prev" ]]; then
+      mv "$prev" "$dest" 2>/dev/null || true
+      printf 'devloop-run: restored previous engine generation\n' >&2
+    fi
+    rm -rf "$stage"
+    return 1
+  fi
+  if [[ -n "$prev" && -d "$prev" ]]; then
+    rm -rf "$prev"
+  fi
   printf 'devloop-run: engine ready at %s\n' "$dest" >&2
   return 0
+}
+
+# Full product engine (not hermetic stub fixture)
+is_full_engine() {
+  local d="$1"
+  [[ -f "$d/dispatch.py" || -f "$d/devloop_bridge.py" || -f "$d/devloop_core/dispatch_transport.py" ]]
+}
+
+engine_declares_transport() {
+  # exit 0 if engine capabilities JSON lists transport; 1 if missing list; 2 if list without transport
+  local d="$1"
+  local want="$2"
+  local cap=""
+  for cap in "$d/engine-capabilities.json" "$d/.skill-craft-capabilities.json" "$d/references/capabilities.json"; do
+    if [[ -f "$cap" ]]; then
+      python3 - "$cap" "$want" <<'PY'
+import json, sys
+path, want = sys.argv[1], sys.argv[2]
+try:
+    d = json.load(open(path, encoding="utf-8"))
+except Exception:
+    sys.exit(1)
+trans = d.get("transports")
+if not isinstance(trans, list):
+    sys.exit(1)
+sys.exit(0 if want in trans else 2)
+PY
+      return $?
+    fi
+  done
+  # marker may grow transports later
+  if [[ -f "$d/.skill-craft-engine.json" ]]; then
+    python3 - "$d/.skill-craft-engine.json" "$want" <<'PY'
+import json, sys
+path, want = sys.argv[1], sys.argv[2]
+try:
+    d = json.load(open(path, encoding="utf-8"))
+except Exception:
+    sys.exit(1)
+trans = d.get("transports")
+if not isinstance(trans, list):
+    sys.exit(1)
+sys.exit(0 if want in trans else 2)
+PY
+    return $?
+  fi
+  return 1
 }
 
 resolve_engine() {
@@ -382,6 +517,8 @@ resolve_engine() {
   local -a cands=()
   local local_root
   local_root="$(host_local_root)"
+
+  printf 'probe: DEVLOOP_HOST=%s hermes_seed_allowed=%s\n' "$DEVLOOP_HOST" "$allow_hermes_seed_effective" >&2
 
   if [[ -n "${DEVLOOP_HOME:-}" ]]; then
     cand="${DEVLOOP_HOME}"
@@ -399,11 +536,15 @@ resolve_engine() {
   fi
 
   cands+=("$local_root")
-  if [[ -n "${HERMES_HOME:-}" ]]; then
-    cands+=("${HERMES_HOME}/skills/software-development/devloop")
+  if [[ "$allow_hermes_seed_effective" -eq 1 ]]; then
+    if [[ -n "${HERMES_HOME:-}" ]]; then
+      cands+=("${HERMES_HOME}/skills/software-development/devloop")
+    fi
+    cands+=("${HOME}/.hermes/skills/software-development/devloop")
+    cands+=("/opt/data/skills/software-development/devloop")
+  else
+    printf 'probe: skipping Hermes/opt seed candidates (host=%s; set DEVLOOP_ALLOW_HERMES_SEED=1 to allow)\n' "$DEVLOOP_HOST" >&2
   fi
-  cands+=("${HOME}/.hermes/skills/software-development/devloop")
-  cands+=("/opt/data/skills/software-development/devloop")
 
   for cand in "${cands[@]}"; do
     if is_engine_root "$cand"; then
@@ -414,6 +555,85 @@ resolve_engine() {
     printf 'probe: %s -> missing\n' "$cand" >&2
   done
   return 1
+}
+
+preflight_invoke() {
+  local engine="$1"
+
+  # Nesting / re-entry guard (shim-side)
+  local depth="${DEVLOOP_DEPTH:-${DEVLOOP_NESTING:-0}}"
+  if [[ "$depth" != "0" && "$depth" != "" ]]; then
+    printf 'devloop-run: nested invoke refused (DEVLOOP_DEPTH/NESTING=%s).\n' "$depth" >&2
+    printf '  DevLoop must not re-enter via a child agent. Do not use devloop-native as a fallback.\n' >&2
+    exit 2
+  fi
+  export DEVLOOP_DEPTH=0
+  export DEVLOOP_NESTING=0
+
+  # Host-affinity transport defaults (shim-driven; engine may refine)
+  case "$DEVLOOP_HOST" in
+    grok)
+      export DEVLOOP_TRANSPORT="${DEVLOOP_TRANSPORT:-grok}"
+      local gbin="${GROK_BIN:-}"
+      if [[ -z "$gbin" ]]; then
+        gbin="$(command -v grok 2>/dev/null || true)"
+      fi
+      if [[ -z "$gbin" || ! -x "$gbin" ]]; then
+        if ! command -v grok >/dev/null 2>&1; then
+          printf 'devloop-run: host=grok but GROK_BIN/grok not found on PATH.\n' >&2
+          printf '  Next: install/sign in to Grok CLI, or set GROK_BIN.\n' >&2
+          printf '  Do not use devloop-native as DevLoop.\n' >&2
+          exit 2
+        fi
+        gbin="$(command -v grok)"
+      fi
+      export GROK_BIN="$gbin"
+      ;;
+    hermes)
+      export DEVLOOP_TRANSPORT="${DEVLOOP_TRANSPORT:-hermes}"
+      ;;
+    claude|codex)
+      export DEVLOOP_TRANSPORT="${DEVLOOP_TRANSPORT:-$DEVLOOP_HOST}"
+      ;;
+    auto)
+      : # leave transport unset for engine auto
+      ;;
+  esac
+
+  # Capability / honesty preflight for product engines on non-Hermes hosts
+  if [[ "${DEVLOOP_ALLOW_LEGACY_ENGINE:-0}" == "1" ]]; then
+    return 0
+  fi
+  if ! is_full_engine "$engine"; then
+    # Stub/fixture engines (tests)
+    return 0
+  fi
+  if [[ "$DEVLOOP_HOST" == "grok" || "$DEVLOOP_HOST" == "claude" || "$DEVLOOP_HOST" == "codex" ]]; then
+    local want="$DEVLOOP_HOST"
+    [[ "$want" == "claude" || "$want" == "codex" ]] && want="hermes" # until ports exist, require explicit allow
+    # For grok specifically require declared grok transport when capabilities exist
+    if [[ "$DEVLOOP_HOST" == "grok" ]]; then
+      local ec=0
+      set +e
+      engine_declares_transport "$engine" "grok"
+      ec=$?
+      set -e
+      if [[ $ec -eq 2 ]]; then
+        printf 'devloop-run: engine at %s does not declare transports including "grok".\n' "$engine" >&2
+        printf '  Upgrade host-local pin after Grok transport ships, or set DEVLOOP_HOME to a capable engine.\n' >&2
+        printf '  Do not use devloop-native as DevLoop.\n' >&2
+        exit 2
+      fi
+      if [[ $ec -eq 1 ]]; then
+        # No capabilities file yet (current pins) — fail closed on product engines
+        printf 'devloop-run: full engine lacks transports[] capability manifest (Grok parity not declared).\n' >&2
+        printf '  Next: install a pin that declares transports:["hermes","grok"] (post W4), or\n' >&2
+        printf '  DEVLOOP_ALLOW_LEGACY_ENGINE=1 to force (unsupported; may still call Hermes).\n' >&2
+        printf '  Do not use devloop-native as DevLoop.\n' >&2
+        exit 2
+      fi
+    fi
+  fi
 }
 
 ensure_engine() {
@@ -459,11 +679,16 @@ if ! engine_root="$(ensure_engine)"; then
 fi
 
 if [[ "$setup" -eq 1 || "$probe" -eq 1 ]]; then
-  printf 'devloop-run: engine=%s\n' "$engine_root"
+  printf 'devloop-run: engine=%s host=%s\n' "$engine_root" "$DEVLOOP_HOST"
   exit 0
 fi
 
 require_python3
+preflight_invoke "$engine_root"
+
+# Increment depth for any child processes the engine may spawn that re-enter the card
+export DEVLOOP_DEPTH=1
+export DEVLOOP_NESTING=1
 
 cli="$engine_root/scripts/devloop_cli.py"
 if [[ -x "$engine_root/.venv/bin/python3" ]]; then

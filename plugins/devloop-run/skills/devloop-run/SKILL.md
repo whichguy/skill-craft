@@ -1,13 +1,13 @@
 ---
 name: devloop-run
 description: >-
-  Use when invoking the devloop engine for a machine-verifiable build/debug goal:
-  resolve or bootstrap the engine CLI, then run with an explicit --repo or scratch
-  request. Portable card for Grok, Claude, Codex, and Hermes; first --setup (or
-  first run) can materialize a host-local engine under ~/.local/share/devloop.
-  Setup/probe are multi-host; full autonomous engine loops still default to Hermes
-  transport until a non-Hermes runtime ships.
-version: 0.3.0
+  DevLoop (default): invoke the autonomous devloop engine for a machine-verifiable
+  build or debug goal. Use when the user says devloop, DevLoop, or wants an isolated
+  fail-closed build with executable tests. Thin shim only — resolve or bootstrap the
+  engine, then exec scripts/devloop-run. Portable on Grok, Claude, Codex, and Hermes.
+  NOT the demoted offline evidence skill devloop-native. NOT host-agent reimplementation
+  of DEFINE/PROVE/BUILD.
+version: 0.4.1
 license: MIT
 platforms:
   - linux
@@ -23,21 +23,55 @@ metadata:
       - codex
 ---
 
-# devloop-run
+# DevLoop (engine shim)
 
-Thin **router + preflight + optional bootstrap** for the autonomous **devloop** engine.
-This package does **not** vendor the full engine in git. It installs as a portable
-skill card on each host; the engine is resolved or materialised **host-locally**.
+**Package leaf:** `devloop-run`  
+**User-facing name:** **DevLoop** / **devloop**
+
+This card does **not** implement the loop. It **resolves / bootstraps / execs** the
+same engine as Hermes (`scripts/devloop_cli.py` → DEFINE → PROVE → BUILD →
+DELIVER+LEARN). See [references/product-default.md](references/product-default.md).
 
 ## When to use
 
 - One coherent build or debug goal with machine-checkable success (tests / commands)
 - Prefer isolated worktree loop + fail-closed delivery over hand-editing
+- User says **devloop**, **DevLoop**, or “run the engine on …”
 
 ## When not to use
 
 - Prompt/content optimization, subjective design, trivial one-line edits
-- Expecting the engine without bootstrap or a seed source on a fresh machine
+- Offline freeze/prove/stop **only** without the engine → optional demoted
+  **`devloop-native`** (not this skill; not “DevLoop”)
+- Expecting the engine without bootstrap or a pin/seed on a fresh machine
+
+## Step 0 — banner
+
+First line of a DevLoop run:
+
+```text
+DevLoop — mode=engine host=<this-host> engine=<resolved-or-pending>
+```
+
+No banner ⇒ this skill did not run.
+
+## Agent procedure (strict)
+
+1. Emit the banner.
+2. Resolve package root (directory containing this `SKILL.md`).
+3. Ensure engine:  
+   `bash "$SKILL_ROOT/scripts/devloop-run" --setup`  
+   On exit **2**, report the script’s next steps (install pin, auth, transport) —
+   **do not** implement phases yourself and **do not** fall back to `devloop-native`
+   as DevLoop.
+4. Invoke:  
+   `bash "$SKILL_ROOT/scripts/devloop-run" -- --repo <ABS_PATH> "<goal>"`  
+   (omit `--repo` only when a scratch workspace is the deliverable; pass through
+   other engine flags the user requested, e.g. `--json`, `--keep-branch`).
+5. Report **engine** stdout and exit code. COMPLETE only when the engine exits **0**
+   and (if `--json`) delivery/terminal fields match the engine contract.
+6. **Forbidden:** host agent inventing charter/phases/BUILD; rewriting acceptance
+   tests outside the engine; claiming `mode: native` receipts as DevLoop success.
 
 ## Canonical invoke
 
@@ -56,35 +90,34 @@ After skill-dir install, package root is `~/.grok/skills/devloop-run` (Grok),
 
 | Host | Discovery (skill card) | Execution |
 |------|------------------------|-----------|
-| Grok | skill-dir install | yes after engine resolves or `--setup` bootstrap |
-| Claude Code | skill-dir and/or marketplace plugin | same |
-| Codex | skill-dir install | same |
-| Hermes | skill-dir card (`devloop-run`); engine leaf stays `devloop` | yes when engine resolves |
+| Grok | skill-dir install | host-local engine + **Grok transport** (no Hermes required for parity target) |
+| Claude Code | skill-dir and/or marketplace plugin | resolve/bootstrap; transport matrix TBD |
+| Codex | skill-dir install | resolve/bootstrap; transport matrix TBD |
+| Hermes | card optional; engine leaf stays `devloop` | Hermes transport default |
 
 **Honesty:**
-- Installing the card on three hosts is multi-host **discovery**.
+
+- Card install ≠ engine install ≠ successful COMPLETE.
 - **`--setup` / `--probe`** are multi-host (bootstrap host-local engine from pin or seed).
-- **Full autonomous engine runs** still use a **Hermes-default** model transport
-  (`HERMES_BIN`, write-safe roots). Claude/Codex/Grok can run the card and bootstrap
-  the tree; completing a real devloop goal without Hermes needs a future portability
-  transport (not this card alone).
-- Multi-host runtime still requires successful resolve/bootstrap **on that machine**.
-- The Hermes skillhub leaf name `devloop` is never overwritten by this card.
+- **Hermes host:** Hermes model transport (`HERMES_BIN`) is the default for engine roles.
+- **Grok host (parity target):** Grok model transport; Hermes must **not** be required.
+  Until the engine pin includes Grok transport, fail closed (exit 2) with next steps —
+  never reimplement the loop in the host agent.
+- Hermes skillhub leaf name `devloop` is never overwritten by this card.
+
+See [references/host-matrix.md](references/host-matrix.md) and
+[references/bootstrap.md](references/bootstrap.md).
 
 ## Bootstrap (host-local engine)
 
 Default root: `${DEVLOOP_DATA_HOME:-${XDG_DATA_HOME:-$HOME/.local/share}}/devloop`.
 
 Pinned release: [references/engine-pin.json](references/engine-pin.json) (`url` + `sha256`).  
-Publish surface: GitHub Release assets on **skill-craft** (`devloop-engine-v*`), not a
-dedicated engine monorepo (unless that is chosen later).  
-Packaging: `scripts/package-devloop-engine.sh --from DIR --version X.Y.Z` (deny-check
-fails on host-absolute path / home-PII leakage).
+Publish surface: GitHub Release assets on **skill-craft** (`devloop-engine-v*`).  
+Packaging: `scripts/package-devloop-engine.sh --from DIR --version X.Y.Z`.
 
 Requires **Python 3** on PATH for setup (marker + safe extract). Prefer `curl` or
 `wget` for HTTPS pin download, and `shasum` for verification.
-
-See [references/bootstrap.md](references/bootstrap.md) and [references/host-matrix.md](references/host-matrix.md).
 
 ## Truth table
 
@@ -110,8 +143,8 @@ See [references/bootstrap.md](references/bootstrap.md) and [references/host-matr
 
 | Exit | Meaning |
 |------|---------|
-| 0 | Probe/setup ok, or engine invoked |
-| 2 | Engine missing / bootstrap refused / needs human |
+| 0 | Probe/setup ok, or engine invoked successfully (engine exit 0) |
+| 2 | Engine missing / bootstrap refused / needs human / transport missing |
 | other | Pass-through from engine CLI |
 
 ## Binding surfaces
@@ -123,4 +156,5 @@ See [references/bootstrap.md](references/bootstrap.md) and [references/host-matr
 | Release pin | `DEVLOOP_ENGINE_PIN` → card `references/engine-pin.json` |
 | Override URL/sha | `DEVLOOP_ENGINE_URL`, `DEVLOOP_ENGINE_SHA256` |
 | Bootstrap inject | `DEVLOOP_BOOTSTRAP_CMD` (tests / custom) |
-| Legacy Hermes | `HERMES_HOME/.../devloop`, `~/.hermes/.../devloop` |
+| Legacy Hermes seed | `HERMES_HOME/.../devloop`, `~/.hermes/.../devloop` |
+| Model transport | Engine: `DEVLOOP_TRANSPORT`, `GROK_BIN`, `HERMES_BIN` (see engine config) |
