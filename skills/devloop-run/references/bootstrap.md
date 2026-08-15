@@ -86,7 +86,15 @@ Host-local installs write `.skill-craft-engine.json` (schema 1) for provenance:
 }
 ```
 
-Future pins may add `"transports": ["hermes", "grok"]` for capability preflight.
+Pins that ship Grok parity **must** include `"transports": ["hermes", "grok"]`.
+The card refuses `host=grok` bootstrap when the pin lists transports without `grok`.
+
+## Host detection (skill-dir symlinks)
+
+`install.sh` puts a **symlink** at `~/.grok/skills/devloop-run`. File lookup uses
+`pwd -P` (physical checkout). Host affinity uses the **logical** invoke path
+(`BASH_SOURCE` / `pwd` without `-P`) so Grok skill-dir installs detect `host=grok`
+and skip Hermes seed. Tests: D26 in `test/devloop-run.test.sh`.
 
 ## Packaging a release
 
@@ -105,7 +113,7 @@ Default publish surface: **skill-craft** GitHub Release tags `devloop-engine-v*`
 | Host | Model transport |
 |------|-----------------|
 | Hermes | Hermes chat (`HERMES_BIN`) — default on that host |
-| Grok | **Grok transport required** for parity (engine pin must declare it). Hermes must **not** be required. Until the pin includes Grok transport, the card fails closed at invoke with exit 2 rather than reimplementing the loop in the host agent. |
+| Grok | **Grok transport required** (`transports` includes `grok` in pin 0.2.0). Hermes must **not** be required. Missing grok transport → exit 2, never reimplement the loop in the host agent. |
 | Claude/Codex | Resolve/bootstrap multi-host; transport matrix TBD |
 
 Card bootstrap/probe is multi-host. Completing a full engine loop without the matching

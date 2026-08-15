@@ -17,7 +17,7 @@ fail() {
 [[ -f "$root/skills/devloop-run/references/bootstrap.md" ]] || fail "missing bootstrap.md"
 [[ -f "$root/skills/devloop-run/references/engine-pin.json" ]] || fail "missing engine-pin.json"
 [[ -f "$fixture_tgz" ]] || fail "missing fixture tgz"
-python3 -c 'import json;d=json.load(open("'"$root"'/skills/devloop-run/references/engine-pin.json")); assert "version" in d and "url" in d and "sha256" in d' \
+python3 -c 'import json;d=json.load(open("'"$root"'/skills/devloop-run/references/engine-pin.json")); assert "version" in d and "url" in d and "sha256" in d; assert "grok" in d.get("transports", [])' \
   || fail "engine-pin.json schema"
 
 # Refresh fixture pin absolute path + sha
@@ -252,6 +252,8 @@ grep -qi 'mode=engine' "$root/skills/devloop-run/SKILL.md" || fail "D16 mode=eng
 grep -qi 'Forbidden' "$root/skills/devloop-run/SKILL.md" || fail "D16 forbids host loop"
 grep -qi 'devloop-native' "$root/skills/devloop-run/SKILL.md" || fail "D16 mentions demoted native"
 grep -E '^version: 0\.4\.' "$root/skills/devloop-run/SKILL.md" || fail "D16 version 0.4.x"
+grep -q 'SKILL_ROOT' "$root/skills/devloop-run/SKILL.md" || fail "D16 SKILL_ROOT"
+grep -q -- '--host grok' "$root/skills/devloop-run/SKILL.md" || fail "D16 --host grok"
 [[ -f "$root/skills/devloop-run/references/product-default.md" ]] || fail "D16 product-default.md"
 
 # D17: DEVLOOP_BOOTSTRAP_CMD success
@@ -403,4 +405,63 @@ grep -qi 'fail closed\|Do not use devloop-native' "$root/skills/devloop-run/refe
   || fail "D25 bootstrap fail-closed docs"
 printf 'LAYER simple: D25 bootstrap honesty OK\n'
 
-printf 'devloop-run.test.sh: PASS D1–D25\n'
+# D26: invoke via ~/.grok/skills symlink (logical path) with no --host / DEVLOOP_HOST.
+# Physical pwd -P must not hide Grok affinity or select a Hermes leaf.
+unset DEVLOOP_HOME DEVLOOP_HOST DEVLOOP_BOOTSTRAP_CMD DEVLOOP_ENGINE_URL DEVLOOP_ALLOW_HERMES_SEED \
+  DEVLOOP_ALLOW_LEGACY_ENGINE DEVLOOP_TRANSPORT GROK_BIN || true
+d26_home="$tmpdir/d26-home"
+rm -rf "$d26_home"
+mkdir -p "$d26_home/.grok/skills"
+ln -s "$root/skills/devloop-run" "$d26_home/.grok/skills/devloop-run"
+export HOME="$d26_home"
+export DEVLOOP_DATA_HOME="$tmpdir/data-d26-empty"
+rm -rf "$DEVLOOP_DATA_HOME"
+mkdir -p "$DEVLOOP_DATA_HOME"
+export HERMES_HOME="$tmpdir/hermes-d26"
+mkdir -p "$HERMES_HOME/skills/software-development/devloop/scripts"
+printf 'print("HERMES_HIJACK")\n' >"$HERMES_HOME/skills/software-development/devloop/scripts/devloop_cli.py"
+export DEVLOOP_ENGINE_PIN="$tmpdir/empty-pin-d26.json"
+printf '%s\n' '{"version":"x","url":"REPLACE_WITH_RELEASE_URL/x.tgz","sha256":""}' >"$DEVLOOP_ENGINE_PIN"
+d26_run="$d26_home/.grok/skills/devloop-run/scripts/devloop-run"
+[[ -x "$d26_run" ]] || fail "D26 symlink invoke path missing: $d26_run"
+set +e
+out26="$("$d26_run" --probe --no-bootstrap 2>&1)"
+rc26=$?
+set -e
+[[ "$rc26" -eq 2 ]] || fail "D26 want exit 2 (grok symlink, no host-local) got $rc26: $out26"
+printf '%s\n' "$out26" | grep -q 'DEVLOOP_HOST=grok' \
+  || fail "D26 symlink probe must detect host=grok: $out26"
+printf '%s\n' "$out26" | grep -qi 'skipping Hermes\|hermes_seed_allowed=0' \
+  || fail "D26 must skip Hermes seed: $out26"
+printf '%s\n' "$out26" | grep -qi 'HERMES_HIJACK\|engine=.*/hermes-d26' \
+  && fail "D26 must not select Hermes leaf: $out26"
+printf 'LAYER integration: D26 grok skill-dir symlink host detect OK\n'
+
+# D27: pin transports omit grok → host=grok bootstrap refuses (before extract)
+unset DEVLOOP_HOME DEVLOOP_HOST DEVLOOP_ALLOW_HERMES_SEED DEVLOOP_ALLOW_LEGACY_ENGINE || true
+export DEVLOOP_DATA_HOME="$tmpdir/data-d27"
+rm -rf "$DEVLOOP_DATA_HOME"
+mkdir -p "$DEVLOOP_DATA_HOME"
+export DEVLOOP_ENGINE_PIN="$tmpdir/pin-no-grok.json"
+python3 - "$DEVLOOP_ENGINE_PIN" "$fixture_tgz" <<'PY'
+import hashlib, json, pathlib, sys
+pin, tgz = pathlib.Path(sys.argv[1]), pathlib.Path(sys.argv[2])
+sha = hashlib.sha256(tgz.read_bytes()).hexdigest()
+pin.write_text(json.dumps({
+    "version": "fixture",
+    "url": f"file://{tgz.resolve()}",
+    "sha256": sha,
+    "transports": ["hermes"],
+}, indent=2) + "\n")
+PY
+set +e
+out27="$("$run" --host grok --force-bootstrap --force-hard --setup 2>&1)"
+rc27=$?
+set -e
+[[ "$rc27" -eq 2 ]] || fail "D27 want exit 2 got $rc27: $out27"
+printf '%s\n' "$out27" | grep -qi 'transports without "grok"\|declares transports without' \
+  || fail "D27 pin transports message: $out27"
+[[ ! -f "$DEVLOOP_DATA_HOME/devloop/scripts/devloop_cli.py" ]] || fail "D27 must not install"
+printf 'LAYER integration: D27 pin without grok transport refused OK\n'
+
+printf 'devloop-run.test.sh: PASS D1–D27\n'

@@ -30,9 +30,9 @@ selects the live Hermes leaf unless `DEVLOOP_ALLOW_HERMES_SEED=1`. Nested invoke
 (`DEVLOOP_DEPTH`≠0) exits 2. Full engines without a declared `grok` transport
 capability fail closed at invoke (override: `DEVLOOP_ALLOW_LEGACY_ENGINE=1`).
 
-Until Grok transport ships in the engine pin, the card must fail closed with
-exit **2** and next steps — not fall back to host-agent improvisation or
-`devloop-native`.
+Pin 0.2.0 declares `transports: ["hermes","grok"]`. Until a matching host-local
+engine is bootstrapped, the card must fail closed with exit **2** and next steps —
+not fall back to host-agent improvisation or `devloop-native`.
 
 **Write-safe:** prefer `DEVLOOP_WRITE_SAFE_ROOT`; host-local default under
 `$XDG_STATE_HOME/devloop` (not `/opt/data` unless that path is a writable container root).
@@ -40,9 +40,11 @@ exit **2** and next steps — not fall back to host-agent improvisation or
 ## Agent procedure (card)
 
 1. Banner: `DevLoop — mode=engine host=<host> engine=<path-or-pending>`
-2. `bash scripts/devloop-run --setup` (or probe + clear failure)
-3. `bash scripts/devloop-run -- [engine args…] "<goal>"`
-4. Report engine stdout/JSON + exit code only
+2. `SKILL_ROOT` = directory containing the installed `SKILL.md` (logical skill-dir path)
+3. Grok: `bash "$SKILL_ROOT/scripts/devloop-run" --host grok --setup`
+4. Grok: `bash "$SKILL_ROOT/scripts/devloop-run" --host grok -- [engine args…] "<goal>"`
+5. Report engine stdout/JSON + exit code only. COMPLETE only on engine exit 0
+   (and matching `--json` delivery/terminal). Exit 2 is not success.
 
 **Forbidden:** host-written charters as the acceptance path; host BUILD;
 suggesting `devloop-native` as “DevLoop.”

@@ -105,7 +105,7 @@ host checkout into a tree that is bind-mounted into the container as `/opt/data`
 | skillctl | **optional / not planned** (use `install.sh`) |
 | Default DevLoop card `skills/devloop-run` | **implemented** (discovery all hosts; host-local bootstrap + Hermes/seed resolve; strict shim SKILL) |
 | Demoted evidence gates `skills/devloop-native` | **implemented** (offline freeze/prove/stop; not default DevLoop) |
-| Grok engine transport (no Hermes) | **in progress** (parity hard requirement) |
+| Grok engine transport (no Hermes) | **implemented** (card host affinity + pin `transports: [hermes, grok]`; GitHub Release publish of `devloop-engine-v0.2.0` is operator follow-up when `gh` auth is valid) |
 
 ### Operator / CI (**implemented**)
 

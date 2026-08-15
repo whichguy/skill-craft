@@ -156,6 +156,7 @@ d = {
     "url": f"REPLACE_WITH_RELEASE_URL/{name}",
     "sha256": sha,
     "tarball": name,
+    "transports": ["hermes", "grok"],
 }
 json.dump(d, open(out, "w"), indent=2)
 open(out, "a").write("\n")

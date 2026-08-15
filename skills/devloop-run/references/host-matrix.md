@@ -2,7 +2,7 @@
 
 | Host | Skill card install | Scripts | Runtime |
 |------|-------------------|---------|---------|
-| Grok | `./install.sh --skill devloop-run --grok-only` → `~/.grok/skills/devloop-run` | `scripts/devloop-run` | host-local engine + **Grok transport** (parity target: no Hermes required) |
+| Grok | `./install.sh --skill devloop-run --grok-only` → `~/.grok/skills/devloop-run` (symlink; detect host from **logical** path) | `scripts/devloop-run --host grok` | host-local engine + **Grok transport** (no Hermes required). Pin 0.2.0 declares `grok`. |
 | Claude Code | skill-dir and/or marketplace `plugins/devloop-run` | same | resolve/bootstrap; transport TBD |
 | Codex | `./install.sh --skill devloop-run --codex-only` | same | resolve/bootstrap; transport TBD |
 | Hermes | optional card leaf `devloop-run` (copy); engine remains `devloop` | same | Hermes transport; engine leaf accepted as seed |

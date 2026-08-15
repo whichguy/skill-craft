@@ -5,6 +5,11 @@ set -euo pipefail
 
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 card_root="$(cd "$here/.." && pwd -P)"
+# Logical path (no -P): skill-dir installs are symlinks; physical card_root is the
+# skill-craft checkout and must not hide ~/.grok|claude|codex/skills host affinity.
+here_logical="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+card_root_logical="$(cd "$here_logical/.." && pwd)"
+invoke_logical="${BASH_SOURCE[0]}"
 pin_file="${DEVLOOP_ENGINE_PIN:-$card_root/references/engine-pin.json}"
 
 usage() {
@@ -82,7 +87,7 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-# Host affinity: explicit flag > env > auto from card install path
+# Host affinity: explicit flag > env > logical install path (symlink-aware) > physical
 detect_host() {
   if [[ -n "$host_flag" && "$host_flag" != "auto" ]]; then
     printf '%s\n' "$host_flag"
@@ -92,13 +97,28 @@ detect_host() {
     printf '%s\n' "$DEVLOOP_HOST"
     return 0
   fi
-  case "$card_root" in
-    */.grok/skills/*|*/.grok/skills) printf 'grok\n' ;;
-    */.claude/skills/*|*/.claude/plugins/*) printf 'claude\n' ;;
-    */.codex/skills/*) printf 'codex\n' ;;
-    */.hermes/*|/opt/data/*|/opt/hermes/*) printf 'hermes\n' ;;
-    *) printf 'auto\n' ;;
-  esac
+  local p
+  for p in "$card_root_logical" "$here_logical" "$invoke_logical" "$card_root"; do
+    case "$p" in
+      */.grok/skills/*|*/.grok/skills|*/.grok/plugins/*)
+        printf 'grok\n'
+        return 0
+        ;;
+      */.claude/skills/*|*/.claude/skills|*/.claude/plugins/*)
+        printf 'claude\n'
+        return 0
+        ;;
+      */.codex/skills/*|*/.codex/skills)
+        printf 'codex\n'
+        return 0
+        ;;
+      */.hermes/*|/opt/data/*|/opt/hermes/*)
+        printf 'hermes\n'
+        return 0
+        ;;
+    esac
+  done
+  printf 'auto\n'
 }
 
 DEVLOOP_HOST="$(detect_host)"
@@ -173,7 +193,7 @@ read_pin() {
   # sets pin_version pin_url pin_sha via stdout as version|url|sha
   local f="$1"
   if [[ ! -f "$f" ]]; then
-    printf '||\n'
+    printf '|||\n'
     return 0
   fi
   python3 - "$f" <<'PY'
@@ -181,9 +201,14 @@ import json, sys
 try:
     d = json.load(open(sys.argv[1], encoding="utf-8"))
 except Exception:
-    print("||")
+    print("|||")
     raise SystemExit(0)
-print("%s|%s|%s" % (d.get("version") or "", d.get("url") or "", d.get("sha256") or ""))
+print("%s|%s|%s|%s" % (
+    d.get("version") or "",
+    d.get("url") or "",
+    d.get("sha256") or "",
+    ",".join(str(x) for x in d["transports"]) if isinstance(d.get("transports"), list) else "",
+))
 PY
 }
 
@@ -324,8 +349,15 @@ bootstrap_engine() {
 
   printf 'devloop-run: bootstrapping engine into %s\n' "$dest" >&2
 
-  local pin_version pin_url pin_sha
-  IFS='|' read -r pin_version pin_url pin_sha <<<"$(read_pin "$pin_file")"
+  local pin_version pin_url pin_sha pin_transports
+  IFS='|' read -r pin_version pin_url pin_sha pin_transports <<<"$(read_pin "$pin_file")"
+  if [[ "$DEVLOOP_HOST" == "grok" && -n "$pin_transports" && ",$pin_transports," != *",grok,"* ]]; then
+    printf 'devloop-run: pin at %s declares transports without "grok" (%s).\n' "$pin_file" "$pin_transports" >&2
+    printf '  Upgrade the pin to transports including grok, or set a Grok-capable DEVLOOP_HOME.\n' >&2
+    printf '  Do not use devloop-native as DevLoop.\n' >&2
+    rm -rf "$stage"
+    return 1
+  fi
 
   local url="${DEVLOOP_ENGINE_URL:-$pin_url}"
   local sha="${DEVLOOP_ENGINE_SHA256:-$pin_sha}"
