@@ -10,7 +10,7 @@ If you are asked only to reason over spliced evidence JSON:
 
 1. If the evidence is still pending (not under `processed/`), claim it with
    `scripts/prompt-on-change claim` using the env already set (`POC_STATE_DIR`).
-2. Report previous → new price in plain language.
+2. Report previous → new clock time in plain language (the known target is 16:53).
 3. End with one fenced `json outcome` block:
 
 ```json outcome

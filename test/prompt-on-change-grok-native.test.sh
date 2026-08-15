@@ -2,7 +2,8 @@
 # Gated Grok Build headless coverage for prompt-on-change issue --exec.
 #
 #   POC_GROK_LIVE=0  (default) — probe only, exit 0 with SKIP live
-#   POC_GROK_LIVE=1  — fail if grok missing; run promote via issue --exec
+#   POC_GROK_LIVE=1  — fail if grok missing; time-hit + issue --exec
+# Optional: POC_GROK_KEEP=DIR keeps fixture/state/prompt-runs after exit.
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
@@ -53,7 +54,12 @@ if [[ -z "$grok" ]] || { [[ ! -x "$grok" ]] && ! command -v "$grok" >/dev/null 2
   fail "POC_GROK_LIVE=1 but grok missing (set GROK_BIN)"
 fi
 
-tmpdir="$(mktemp -d "${TMPDIR:-/tmp}/poc-grok.XXXXXX")"
+if [[ -n "${POC_GROK_KEEP:-}" ]]; then
+  tmpdir="$POC_GROK_KEEP"
+  mkdir -p "$tmpdir"
+else
+  tmpdir="$(mktemp -d "${TMPDIR:-/tmp}/poc-grok.XXXXXX")"
+fi
 www="$tmpdir/www"
 cfgdir="$tmpdir/cfg"
 mkdir -p "$www" "$cfgdir"
@@ -71,7 +77,9 @@ cleanup() {
     kill "$http_pid" 2>/dev/null || true
     wait "$http_pid" 2>/dev/null || true
   fi
-  rm -rf "$tmpdir"
+  if [[ -z "${POC_GROK_KEEP:-}" ]]; then
+    rm -rf "$tmpdir"
+  fi
 }
 trap cleanup EXIT
 
@@ -85,12 +93,14 @@ if ! "$python_bin" -c "import httpx, pydantic, yaml, jsonpath_ng, selectolax" 2>
 fi
 export PYTHON="$python_bin"
 
+# Simple site clock: fire when the displayed time equals a known target.
+TARGET_TIME="16:53"
 write_page() {
-  printf '<html><body><span class="price">%s</span></body></html>\n' "$1" >"$www/index.html"
+  printf '<html><body><time class="clock">%s</time></body></html>\n' "$1" >"$www/index.html"
 }
 
 port="$("$python_bin" -c 'import socket; s=socket.socket(); s.bind(("127.0.0.1",0)); print(s.getsockname()[1]); s.close()')"
-write_page 100
+write_page "15:00"
 "$python_bin" -m http.server "$port" --bind 127.0.0.1 --directory "$www" >/dev/null 2>&1 &
 http_pid=$!
 for _ in 1 2 3 4 5 6 7 8 9 10; do
@@ -101,31 +111,36 @@ for _ in 1 2 3 4 5 6 7 8 9 10; do
 done
 
 cat >"$cfgdir/local-http-promote.yaml" <<YAML
-name: grok-native-promote
+name: grok-native-time-hit
 enabled: true
 seed_mode: true
 sources:
   - id: page
     url: "http://127.0.0.1:${port}/index.html"
     extract:
-      - id: price
+      - id: clock
         type: css
-        selector: ".price"
+        selector: "time.clock"
         transform: text
 conditions:
-  - id: price_changed
-    field: price
-    op: changed
+  - id: time_hits_known
+    field: clock
+    op: eq
+    value: "${TARGET_TIME}"
 groups:
   - name: promote
-    any: [price_changed]
+    any: [time_hits_known]
 llm_escalation:
   trigger_groups: [promote]
   fire_once: true
+  prompt: |
+    Clock hit the known time.
+    Previous: {{ previous_value }} → New: {{ new_value }}
+    Reason: {{ match_reason }}
 state:
   file: state.json
   initial:
-    price: ""
+    clock: ""
 YAML
 cfg="$cfgdir/local-http-promote.yaml"
 
@@ -134,7 +149,7 @@ printf '%s\n' "$seed" | grep -q 'SEED_OK:' || fail "seed token: $seed"
 exp="$("$wrapper" explain --config "$cfg")" || fail "explain after seed"
 printf '%s\n' "$exp" | grep -q '"would_escalate": false' || fail "seed explain: $exp"
 
-write_page 40
+write_page "$TARGET_TIME"
 promote="$("$wrapper" run --config "$cfg")" || fail "promote: $promote"
 printf '%s\n' "$promote" | grep -q 'LLM_ESCALATION:' || fail "promote missing escalation: $promote"
 
@@ -156,9 +171,9 @@ prev = str(outcome.get("previous_value", ""))
 new = str(outcome.get("new_value", ""))
 if log.get("parse_error"):
     text = open(log["stdout_path"], encoding="utf-8", errors="replace").read()
-    assert "100" in text and "40" in text, (log.get("parse_error"), text[-2000:])
+    assert "15:00" in text and "16:53" in text, (log.get("parse_error"), text[-2000:])
 else:
-    assert prev == "100" and new == "40", outcome
+    assert prev == "15:00" and new == "16:53", outcome
     assert "calendar" not in str(outcome.get("residual", "")).lower() or True
 print("outcome ok")
 PY
