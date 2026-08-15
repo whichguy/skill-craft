@@ -1,6 +1,6 @@
 [project]
 name = "prompt-on-change"
-version = "1.8.0"
+version = "1.9.0"
 description = "Portable URL change-detection engine with prompt-event promotion"
 requires-python = ">=3.12"
 dependencies = [

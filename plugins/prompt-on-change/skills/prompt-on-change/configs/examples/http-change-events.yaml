@@ -1,0 +1,70 @@
+# Example: promote when HTTP status or selected headers change.
+#
+# 4xx/5xx responses are evaluable change events. Transport failures
+# (timeout/connect) still hard-fail a required source.
+#
+# This config has no calendar actions. Copy it, set url, and point
+# DETECT_DIR at the directory that contains this file.
+
+name: "Example HTTP change events"
+enabled: true
+seed_mode: true
+
+sources:
+  - id: page
+    url: "https://example.com/item/123"
+    extract:
+      - id: headline
+        type: css
+        selector: "h1"
+        transform: text
+
+conditions:
+  - id: went_missing
+    field: http.page.status
+    op: eq
+    value: 404
+  - id: client_error
+    field: http.page.status
+    op: between
+    min: 400
+    max: 499
+  - id: etag_moved
+    field: http.page.etag
+    op: changed
+  - id: status_and_cache_header
+    delta:
+      http:
+        source: page
+        status_changed: true
+        headers: [etag, location]
+  - id: gone_and_not_html
+    delta:
+      http:
+        source: page
+        status_in: [404, 410]
+        header_not_matches: {name: content-type, pattern: "text/html"}
+
+groups:
+  - name: promote
+    any:
+      - went_missing
+      - client_error
+      - etag_moved
+      - status_and_cache_header
+      - gone_and_not_html
+
+llm_escalation:
+  trigger_groups: [promote]
+  fire_once: true
+  prompt: |
+    {{ config_name }} fired {{ condition_id }}.
+    Previous: {{ previous_value }} → New: {{ new_value }}
+    HTTP: {{ http }}
+    Changed fields: {{ changed_fields }}
+    Reason: {{ match_reason }}
+
+state:
+  file: "state/http_change_events.json"
+  initial:
+    headline: ""

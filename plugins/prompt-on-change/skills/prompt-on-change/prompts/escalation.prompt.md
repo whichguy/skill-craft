@@ -29,12 +29,13 @@ Otherwise, for each top-level `*.json` file:
 2. Read the claimed file. Use these fields as ground truth:
    - `config_name`, `condition_id`, `match_reason`
    - `previous_value` → `new_value` (and `numeric_delta` when present)
-   - `previous_state` / `current_state` / `delta` / `changed_fields`
+   - `previous_state` / `current_state` / `delta` / `changed_fields` / `http`
    - `actions_taken` (already done — never redo or retry them)
    - `prompt` (engine-rendered instruction)
 3. Decide what the change means. Call out whether the delta is a range move,
-   a date inside/outside a window, a regex match or non-match, an emptying, a
-   compound any/all match, or a failure (`escalation_type`).
+   a date inside/outside a window, a regex match or non-match, an HTTP
+   status/header change, an emptying, a compound any/all match, or a failure
+   (`escalation_type`).
 4. Report in plain language. Do **not** patch calendars, send mail, or mutate
    the watched system. Do **not** write a new detect config unless the user
    later asks.

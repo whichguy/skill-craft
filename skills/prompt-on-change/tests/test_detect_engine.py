@@ -144,6 +144,21 @@ def run_engine_with_mock_json(config_path, payload, dry_run=False):
         return run_engine(str(config_path), dry_run=dry_run)
 
 
+def run_engine_with_mock_http(config_path, *, status=200, headers=None, body="{}", dry_run=False):
+    """Run the engine with one mocked HTTP response (status + headers + body)."""
+    with patch("detect_engine.httpx.Client") as mock_cls:
+        mock_client = MagicMock()
+        mock_cls.return_value.__enter__ = MagicMock(return_value=mock_client)
+        mock_cls.return_value.__exit__ = MagicMock(return_value=False)
+        mock_resp = MagicMock()
+        mock_resp.status_code = status
+        mock_resp.headers = headers or {}
+        mock_resp.text = body
+        mock_resp.request = None
+        mock_client.request.return_value = mock_resp
+        return run_engine(str(config_path), dry_run=dry_run)
+
+
 class TempStateDir:
     """Context manager for temp state directory."""
     def __init__(self):
@@ -2494,10 +2509,16 @@ def test_fetch_ok_property():
     """FetchResult.ok property — True for 200, False for 500 and errors."""
     ok_result = FetchResult(200, {}, "body")
     assert ok_result.ok, "200 should be ok"
+    assert ok_result.got_response, "200 is a response"
     err_result = FetchResult(500, {}, "error body")
     assert not err_result.ok, "500 should not be ok"
+    assert err_result.got_response, "500 is still a response"
+    not_found = FetchResult(404, {}, "missing")
+    assert not not_found.ok
+    assert not_found.got_response
     fail_result = FetchResult(0, {}, "", error="timeout")
     assert not fail_result.ok, "Error result should not be ok"
+    assert not fail_result.got_response, "transport failure is not a response"
 
 def test_write_health():
     """write_health writes valid JSON to disk."""
@@ -7579,6 +7600,260 @@ runner.run("TC-NOT-MATCHES-CAP: input cap treated as miss", test_not_matches_res
 runner.run("TC-DELTA-DATE-REGEX: date_in AND not_matches", test_delta_date_in_and_not_matches)
 runner.run("TC-DELTA-DATE-OUT: compound date_out", test_delta_date_out)
 runner.run("TC-EVIDENCE-DATE-REGEX: involved date/regex fields promoted", test_compound_evidence_includes_date_and_regex_fields)
+
+
+# ═══════════════════════════════════════════════════════════════
+#  HTTP change events
+# ═══════════════════════════════════════════════════════════════
+
+def _http_monitor_config(tmpdir: Path, extra_conditions: str, extra_groups: str = "") -> Path:
+    config_path = tmpdir / "config.yaml"
+    groups = extra_groups or "    any: [gone]"
+    config_path.write_text(f"""
+name: http monitor
+seed_mode: false
+sources:
+  - id: page
+    url: https://example.com
+    required: true
+    retry: {{count: 0}}
+    extract:
+      - id: x
+        type: jsonpath
+        path: $.x
+conditions:
+{extra_conditions}
+groups:
+  - name: promote
+{groups}
+llm_escalation:
+  trigger_groups: [promote]
+  fire_once: true
+state:
+  file: state.json
+  initial: {{x: ""}}
+""")
+    (tmpdir / "state.json").write_text(json.dumps({
+        "x": "old",
+        "http.page.status": 200,
+        "http.page.etag": '"v1"',
+        "http.page.last_modified": "",
+        "http.page.location": "",
+        "http.page.content_type": "text/html",
+        "http.page.content_length": "",
+        "last_checked": "2026-07-08T00:00:00Z",
+        "acknowledged": {},
+        "first_seen": {},
+        "last_fired": {},
+    }))
+    return config_path
+
+
+def test_http_required_404_is_evaluable():
+    with tempfile.TemporaryDirectory() as tmpdir:
+        root = Path(tmpdir)
+        config_path = _http_monitor_config(root, """
+  - id: gone
+    field: http.page.status
+    op: eq
+    value: 404
+""")
+        original_esc = _detect_engine_mod.ESCALATION_DIR
+        _detect_engine_mod.ESCALATION_DIR = root / "escalations"
+        try:
+            output = StringIO()
+            with redirect_stdout(output):
+                rc = run_engine_with_mock_http(
+                    config_path, status=404, headers={"Content-Type": "text/plain"},
+                    body="missing",
+                )
+            assert rc == 0, rc
+            assert "LLM_ESCALATION:" in output.getvalue()
+            state = json.loads((root / "state.json").read_text())
+            assert state["http.page.status"] == 404
+            assert state["http.page.content_type"] == "text/plain"
+        finally:
+            _detect_engine_mod.ESCALATION_DIR = original_esc
+
+
+def test_http_required_timeout_still_exits_1():
+    with tempfile.TemporaryDirectory() as tmpdir:
+        root = Path(tmpdir)
+        config_path = _http_monitor_config(root, """
+  - id: gone
+    field: http.page.status
+    op: eq
+    value: 404
+""")
+        before = json.loads((root / "state.json").read_text())
+        with patch("detect_engine.httpx.Client") as mock_cls:
+            mock_client = MagicMock()
+            mock_cls.return_value.__enter__ = MagicMock(return_value=mock_client)
+            mock_cls.return_value.__exit__ = MagicMock(return_value=False)
+            mock_client.request.side_effect = httpx.TimeoutException("timeout")
+            rc = run_engine(str(config_path))
+        assert rc == 1
+        after = json.loads((root / "state.json").read_text())
+        assert after["http.page.status"] == 200
+        assert after["http.page.status"] == before["http.page.status"]
+
+
+def test_http_etag_and_location_change():
+    trigger = TriggerAgent(
+        {"http.page.etag": '"v1"', "http.page.location": "/old"},
+        {"http.page.etag": '"v2"', "http.page.location": "/new"},
+        {},
+    )
+    etag = Condition(id="e", field="http.page.etag", op="changed")
+    loc = Condition(id="l", field="http.page.location", op="changed")
+    assert trigger.evaluate(etag).matched
+    assert trigger.evaluate(loc).matched
+    same = TriggerAgent(
+        {"http.page.etag": '"v1"'},
+        {"http.page.etag": '"v1"'},
+        {},
+    )
+    assert not same.evaluate(etag).matched
+
+
+def test_http_status_between_and_eq():
+    trigger = TriggerAgent(
+        {"http.page.status": 200},
+        {"http.page.status": 404},
+        {},
+    )
+    band = Condition(id="b", field="http.page.status", op="between", min=400, max=499)
+    eq = Condition(id="e", field="http.page.status", op="eq", value=404)
+    assert trigger.evaluate(band).matched
+    assert trigger.evaluate(eq).matched
+
+
+def test_delta_http_status_in_and_headers():
+    prev = {"http.page.status": 200, "http.page.etag": '"v1"', "http.page.location": ""}
+    current = {"http.page.status": 404, "http.page.etag": '"v2"', "http.page.location": ""}
+    trigger = TriggerAgent(prev, current, {})
+    cond = Condition(
+        id="combo",
+        delta={
+            "http": {
+                "source": "page",
+                "status_in": [404, 410],
+                "headers": ["etag", "location"],
+            }
+        },
+    )
+    result = trigger.evaluate(cond)
+    assert result.matched, result.reason
+    still = TriggerAgent(
+        prev,
+        {"http.page.status": 404, "http.page.etag": '"v1"', "http.page.location": ""},
+        {},
+    )
+    assert not still.evaluate(cond).matched
+
+
+def test_delta_http_header_matches():
+    trigger = TriggerAgent(
+        {"http.page.content_type": "text/html"},
+        {"http.page.content_type": "application/json"},
+        {},
+    )
+    cond = Condition(
+        id="json",
+        delta={"http": {"source": "page", "header_matches": {"name": "content-type", "pattern": "json"}}},
+    )
+    assert trigger.evaluate(cond).matched
+    miss = Condition(
+        id="html",
+        delta={"http": {"source": "page", "header_not_matches": {"name": "content-type", "pattern": "json"}}},
+    )
+    assert not trigger.evaluate(miss).matched
+
+
+def test_http_reserved_extract_id_rejected():
+    config = DetectConfig(
+        name="t",
+        sources=[Source(
+            id="page",
+            url="https://example.com",
+            extract=[ExtractSpec(id="http.foo", type="header", name="ETag")],
+        )],
+    )
+    errors = validate_config_cross_refs(config)
+    assert any("reserved" in e for e in errors), errors
+
+
+def test_http_set_cookie_not_stored():
+    with tempfile.TemporaryDirectory() as tmpdir:
+        root = Path(tmpdir)
+        config_path = _http_monitor_config(root, """
+  - id: gone
+    field: http.page.status
+    op: changed
+""")
+        original_esc = _detect_engine_mod.ESCALATION_DIR
+        _detect_engine_mod.ESCALATION_DIR = root / "escalations"
+        try:
+            rc = run_engine_with_mock_http(
+                config_path,
+                status=200,
+                headers={
+                    "ETag": '"v2"',
+                    "Set-Cookie": "secret=1; HttpOnly",
+                    "Authorization": "Bearer leaked",
+                    "Cookie": "session=abc",
+                },
+                body='{"x":"old"}',
+            )
+            assert rc == 0
+            state = json.loads((root / "state.json").read_text())
+            dumped = json.dumps(state)
+            assert "secret=1" not in dumped
+            assert "Bearer leaked" not in dumped
+            assert "session=abc" not in dumped
+            assert state["http.page.etag"] == '"v2"'
+        finally:
+            _detect_engine_mod.ESCALATION_DIR = original_esc
+
+
+def test_http_evidence_payload():
+    config = DetectConfig(name="HTTP")
+    prev = {"http.page.status": 200, "http.page.etag": '"v1"', "x": "a"}
+    current = {"http.page.status": 404, "http.page.etag": '"v2"', "x": "a"}
+    cond = Condition(id="gone", field="http.page.status", op="eq", value=404)
+    result = ConditionResult(True, "http.page.status == 404")
+    evidence = LLMEscalationAgent(config, prev, current, [])._build_evidence(
+        "gone", result, cond,
+    )
+    assert "http" in evidence
+    assert evidence["http"]["page"]["previous"]["status"] == 200
+    assert evidence["http"]["page"]["new"]["status"] == 404
+    assert "status" in evidence["http"]["page"]["changed"]
+    assert "etag" in evidence["http"]["page"]["changed"]
+
+
+def test_delta_http_requires_source_when_ambiguous():
+    trigger = TriggerAgent(
+        {"http.a.status": 200, "http.b.status": 200},
+        {"http.a.status": 404, "http.b.status": 200},
+        {},
+    )
+    cond = Condition(id="amb", delta={"http": {"status_changed": True}})
+    result = trigger.evaluate(cond)
+    assert not result.matched
+    assert "source required" in result.reason
+
+
+runner.run("TC-HTTP-404: required source 404 is evaluable", test_http_required_404_is_evaluable)
+runner.run("TC-HTTP-TIMEOUT: required timeout still exits 1", test_http_required_timeout_still_exits_1)
+runner.run("TC-HTTP-HEADERS: etag and location changed", test_http_etag_and_location_change)
+runner.run("TC-HTTP-STATUS-OPS: between and eq on status", test_http_status_between_and_eq)
+runner.run("TC-HTTP-DELTA: status_in AND headers any-changed", test_delta_http_status_in_and_headers)
+runner.run("TC-HTTP-DELTA-MATCH: header_matches / not_matches", test_delta_http_header_matches)
+runner.run("TC-HTTP-RESERVED: extract id http.* rejected", test_http_reserved_extract_id_rejected)
+runner.run("TC-HTTP-COOKIE: Set-Cookie / Authorization not stored", test_http_set_cookie_not_stored)
+runner.run("TC-HTTP-EVIDENCE: payload includes http envelope", test_http_evidence_payload)
+runner.run("TC-HTTP-AMBIGUOUS: delta.http needs source with two envelopes", test_delta_http_requires_source_when_ambiguous)
 
 
 # ═══════════════════════════════════════════════════════════════

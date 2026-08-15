@@ -47,7 +47,7 @@ state:
 | `jsonpath_from_html` | `path` | JSON-LD `<script>` tags |
 | `css` | `selector`, `transform` | `text`, `text\|upper`, `attr:href` |
 | `regex` | `pattern` | optional `group` |
-| `header` | `name` | header or `status_code` |
+| `header` | `name` | header or `status_code` (manual; the engine also auto-projects `http.<source>.*`) |
 
 ## Operators
 
@@ -110,6 +110,43 @@ across their lists. `delta.range` is a numeric `(new-prev)` band. `delta.date_in
 / `date_out` are the same windows as `date_between` / `date_outside`.
 `delta.matches` / `not_matches` take `field` plus `pattern` (or `value`).
 
+## HTTP change events
+
+Every successful HTTP **response** (including 4xx/5xx after the retry budget)
+is projected into reserved flat fields. Transport failures (timeout, connect)
+still hard-fail a `required` source and may write `fetch_failure` evidence.
+`escalate_on_failure` is transport-only so a 404 is not double-emitted.
+
+Reserved keys (do not use these as extract ids):
+
+- `http.<source_id>.status`
+- `http.<source_id>.etag`
+- `http.<source_id>.last_modified`
+- `http.<source_id>.location`
+- `http.<source_id>.content_type`
+- `http.<source_id>.content_length`
+
+`Set-Cookie`, `Cookie`, `Authorization`, `Proxy-Authorization`, and
+`WWW-Authenticate` are never persisted. Existing ops work on these fields
+(`changed`, `eq`, `between`, `matches`, `not_matches`).
+
+Compound sugar:
+
+```yaml
+- id: http_shift
+  delta:
+    http:
+      source: page                 # required when more than one source
+      status_changed: true
+      status_in: [404, 410]
+      status_between: {min: 500, max: 599}
+      headers: [etag, location]    # any of these changed
+      header_matches: {name: content-type, pattern: "json"}
+      header_not_matches: {name: location, pattern: "^https://evil"}
+```
+
+Evidence always includes `http.<source>.{previous,new,changed}`.
+
 Groups:
 
 ```yaml
@@ -131,6 +168,7 @@ On match the engine writes JSON under `DETECT_ENGINE_ESCALATION_DIR` and prints
 - `previous_state` / `current_state`
 - `delta.fields.<name>.{previous,new,numeric_delta,became_empty,became_nonempty}`
 - `changed_fields`
+- `http` (per-source previous/new/changed status and headers)
 - `prompt` (rendered)
 
 No-change: exit 0, empty stdout.

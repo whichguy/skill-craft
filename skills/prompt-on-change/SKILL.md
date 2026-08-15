@@ -3,10 +3,11 @@ name: prompt-on-change
 description: >-
   Detect URL/HTML/JSON field changes and promote a prompt event with previous
   and new state. Use when polling a page or API, watching a CSS/JSONPath/regex
-  field, firing on change, numeric or date range (inside/outside), regex
-  match/non-match, empty, or compound delta (any/all/when empty). Script-backed
-  detect engine; calendar actions optional.
-version: 1.8.0
+  field or HTTP status/headers, firing on change, numeric or date range
+  (inside/outside), regex match/non-match, empty, or compound delta
+  (any/all/when empty/http). Script-backed detect engine; calendar actions
+  optional.
+version: 1.9.0
 license: MIT
 platforms:
   - linux
@@ -41,8 +42,9 @@ and is optional.
 - Poll an HTML field or JSON path and notify only when it changes
 - Promote an agent prompt with previous → new state
 - Fire on a numeric range, a date range (inside or outside), a regex match or
-  non-match, a numeric delta range, empty / became-empty, or a compound delta
-  (`any` / `all` / `empty` / `became_empty` / `date_in` / `not_matches`)
+  non-match, HTTP status/header change, a numeric delta range, empty /
+  became-empty, or a compound delta (`any` / `all` / `empty` / `became_empty` /
+  `date_in` / `not_matches` / `http`)
 - Watch flight status, prices, package tracking, status pages, advisories
 
 ## Not for
@@ -55,7 +57,8 @@ and is optional.
 
 1. Author a YAML config (see `references/config-schema.md` and
    `configs/examples/price-range-delta.yaml` /
-   `configs/examples/date-regex-delta.yaml`).
+   `configs/examples/date-regex-delta.yaml` /
+   `configs/examples/http-change-events.yaml`).
 2. Validate: `python3 scripts/detect_engine.py --config PATH --validate`
 3. Dry-run: `python3 scripts/detect_engine.py --config PATH --dry-run`
 4. Live run (or `scripts/detect_runner.sh` over a config directory).
@@ -89,8 +92,9 @@ state dirs. Do not clobber `~/.hermes/skills/productivity/prompt-on-change`.
 ## Promote conditions (prev → new)
 
 Evidence always includes `previous_value`, `new_value`, `previous_state`,
-`current_state`, `delta.fields`, and `changed_fields`. Custom prompts may use
-`{{ previous_value }}`, `{{ new_value }}`, `{{ delta }}`, `{{ changed_fields }}`.
+`current_state`, `delta.fields`, `changed_fields`, and `http` (per-source
+status/header envelope). Custom prompts may use `{{ previous_value }}`,
+`{{ new_value }}`, `{{ delta }}`, `{{ changed_fields }}`, `{{ http }}`.
 
 | Form | When it fires |
 |------|----------------|
@@ -102,7 +106,8 @@ Evidence always includes `previous_value`, `new_value`, `previous_state`,
 | `op: date_between` / `date_outside` + `min`/`max` | current date inside or outside inclusive range |
 | `op: matches` / `not_matches` + `value` | regex search hits, or does not hit |
 | `op: any_changed` / `all_changed` + `fields:` | compound field list |
-| `delta: { any, all, empty, nonempty, became_empty, became_nonempty, range, date_in, date_out, matches, not_matches }` | AND of those clauses |
+| `field: http.<source>.status` / `.etag` / … | reserved HTTP envelope (auto-projected) |
+| `delta.http: { status_changed, status_in, status_between, headers, header_matches, header_not_matches }` | AND of HTTP envelope clauses |
 
 Groups still support `any:` / `all:` over named conditions. Nested `and` / `or`
 / `not` / `unless` are unchanged. Full schema: `references/config-schema.md`.

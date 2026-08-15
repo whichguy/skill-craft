@@ -19,6 +19,8 @@ grep -q 'name: prompt-on-change' "$pkg/SKILL.md" || fail "frontmatter name"
 grep -q 'delta_between' "$pkg/SKILL.md" || fail "card must mention delta_between"
 grep -q 'date_between' "$pkg/SKILL.md" || fail "card must mention date_between"
 grep -q 'not_matches' "$pkg/SKILL.md" || fail "card must mention not_matches"
+grep -q 'http.' "$pkg/SKILL.md" || fail "card must mention http. envelope fields"
+grep -q 'delta.http' "$pkg/SKILL.md" || fail "card must mention delta.http"
 grep -q 'LLM_ESCALATION' "$pkg/SKILL.md" || fail "card must document prompt-event contract"
 if grep -qiE 'sonnet|opus|gpt-4|claude-3' "$pkg/prompts/escalation.prompt.md" "$pkg/SKILL.md"; then
   fail "prompts must not pin model names"
@@ -33,6 +35,8 @@ example="$pkg/configs/examples/price-range-delta.yaml"
 [[ -f "$example" ]] || fail "missing example config"
 date_example="$pkg/configs/examples/date-regex-delta.yaml"
 [[ -f "$date_example" ]] || fail "missing date-regex example config"
+http_example="$pkg/configs/examples/http-change-events.yaml"
+[[ -f "$http_example" ]] || fail "missing http-change-events example config"
 
 tmpdir="$(mktemp -d "${TMPDIR:-/tmp}/poc-test.XXXXXX")"
 cleanup() { rm -rf "$tmpdir"; }
@@ -56,6 +60,8 @@ fi
   || fail "example --validate"
 "$python_bin" "$pkg/scripts/detect_engine.py" --config "$date_example" --validate \
   || fail "date-regex example --validate"
+"$python_bin" "$pkg/scripts/detect_engine.py" --config "$http_example" --validate \
+  || fail "http-change-events example --validate"
 printf 'LAYER simple: example validate OK\n'
 
 # Runner self-check against the examples dir (no live fetches)

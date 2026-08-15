@@ -97,6 +97,33 @@ DEFAULT_TZ = ZoneInfo("America/Los_Angeles")
 BASELINE_UNAVAILABLE = object()
 # Optional-source fetch failures shadow stale state for this poll only.
 VALUE_UNAVAILABLE = object()
+# Reserved flat keys: http.<source_id>.<attr>. Never persist auth/cookie headers.
+HTTP_FIELD_PREFIX = "http."
+HTTP_ENVELOPE_ATTRS = (
+    "status", "etag", "last_modified", "location", "content_type", "content_length",
+)
+HTTP_HEADER_TO_ATTR = {
+    "etag": "etag",
+    "last-modified": "last_modified",
+    "last_modified": "last_modified",
+    "location": "location",
+    "content-type": "content_type",
+    "content_type": "content_type",
+    "content-length": "content_length",
+    "content_length": "content_length",
+}
+HTTP_NEVER_PERSIST_HEADERS = frozenset({
+    "set-cookie", "cookie", "authorization",
+    "proxy-authorization", "www-authenticate",
+})
+HTTP_DELTA_KEYS = frozenset({
+    "source", "status_changed", "status_in", "status_between",
+    "headers", "header_matches", "header_not_matches",
+})
+HTTP_DELTA_CLAUSES = frozenset({
+    "status_changed", "status_in", "status_between",
+    "headers", "header_matches", "header_not_matches",
+})
 
 
 class UnavailableTemplateVar(Exception):
@@ -198,7 +225,7 @@ class Condition(BaseModel):
     DATE_RANGE_OPS: ClassVar[set[str]] = {"date_between", "date_outside"}
     DELTA_CLAUSE_KEYS: ClassVar[frozenset[str]] = frozenset({
         "any", "all", "empty", "nonempty", "became_empty", "became_nonempty",
-        "range", "date_in", "date_out", "matches", "not_matches",
+        "range", "date_in", "date_out", "matches", "not_matches", "http",
     })
 
     @field_validator("op")
@@ -230,7 +257,7 @@ class Condition(BaseModel):
             if not has_clause:
                 raise ValueError(
                     "delta: needs at least one of any/all/empty/nonempty/"
-                    "became_empty/became_nonempty/range/date_in/date_out/matches/not_matches"
+                    "became_empty/became_nonempty/range/date_in/date_out/matches/not_matches/http"
                 )
             range_spec = self.delta.get("range")
             if range_spec is not None:
@@ -255,6 +282,9 @@ class Condition(BaseModel):
                 pattern = spec.get("pattern", spec.get("value"))
                 if pattern is None or str(pattern) == "":
                     raise ValueError(f"delta.{regex_key} requires pattern")
+            http_spec = self.delta.get("http")
+            if http_spec is not None:
+                _validate_delta_http(http_spec)
         return self
 
 
@@ -351,6 +381,10 @@ def _collect_leaf_fields(cond: Condition) -> list[str]:
                 spec = c.delta.get(key)
                 if isinstance(spec, dict):
                     add(spec.get("field"))
+            http_spec = c.delta.get("http")
+            if isinstance(http_spec, dict):
+                for name in _http_delta_fields(http_spec):
+                    add(name)
         for kids in (c.and_, c.or_, c.not_):
             if kids:
                 for raw in kids:
@@ -388,6 +422,127 @@ def _numeric_delta(previous: Any, current: Any) -> Optional[float]:
     if prev_n is None or new_n is None:
         return None
     return new_n - prev_n
+
+
+def _http_field(source_id: str, attr: str) -> str:
+    return f"{HTTP_FIELD_PREFIX}{source_id}.{attr}"
+
+
+def _http_attr_from_name(name: Any) -> Optional[str]:
+    if not name:
+        return None
+    raw = str(name).strip().lower()
+    if raw in HTTP_HEADER_TO_ATTR:
+        return HTTP_HEADER_TO_ATTR[raw]
+    return HTTP_HEADER_TO_ATTR.get(raw.replace("_", "-"))
+
+
+def _header_lookup(headers: dict, name: str) -> str:
+    wanted = name.lower()
+    for key, val in (headers or {}).items():
+        if str(key).lower() == wanted:
+            return "" if val is None else str(val)
+    return ""
+
+
+def _http_envelope(source_id: str, result: "FetchResult") -> dict[str, Any]:
+    """Project status + a small header set into reserved http.<source>.* keys."""
+    envelope = { _http_field(source_id, attr): "" for attr in HTTP_ENVELOPE_ATTRS }
+    envelope[_http_field(source_id, "status")] = result.status_code
+    for key, val in (result.headers or {}).items():
+        lk = str(key).lower()
+        if lk in HTTP_NEVER_PERSIST_HEADERS:
+            continue
+        attr = HTTP_HEADER_TO_ATTR.get(lk)
+        if attr:
+            envelope[_http_field(source_id, attr)] = "" if val is None else str(val)
+    return envelope
+
+
+def _http_source_ids_from_maps(*maps: dict) -> list[str]:
+    ids: list[str] = []
+    suffix = ".status"
+    for mapping in maps:
+        for key in mapping:
+            if (
+                isinstance(key, str)
+                and key.startswith(HTTP_FIELD_PREFIX)
+                and key.endswith(suffix)
+            ):
+                sid = key[len(HTTP_FIELD_PREFIX):-len(suffix)]
+                if sid and sid not in ids:
+                    ids.append(sid)
+    return ids
+
+
+def _http_delta_fields(spec: dict[str, Any]) -> list[str]:
+    source = spec.get("source")
+    if not source:
+        return []
+    names: list[str] = []
+    if spec.get("status_changed") or spec.get("status_in") or spec.get("status_between"):
+        names.append(_http_field(source, "status"))
+    for header_name in spec.get("headers") or []:
+        attr = _http_attr_from_name(header_name)
+        if attr:
+            names.append(_http_field(source, attr))
+    for key in ("header_matches", "header_not_matches"):
+        hm = spec.get(key)
+        if isinstance(hm, dict):
+            attr = _http_attr_from_name(hm.get("name"))
+            if attr:
+                names.append(_http_field(source, attr))
+    return names
+
+
+def _validate_delta_http(spec: Any) -> None:
+    if not isinstance(spec, dict):
+        raise ValueError("delta.http must be a mapping")
+    unknown = set(spec) - HTTP_DELTA_KEYS
+    if unknown:
+        raise ValueError(f"delta.http unknown keys {sorted(unknown)}")
+    if not any(spec.get(k) for k in HTTP_DELTA_CLAUSES):
+        raise ValueError(
+            "delta.http needs at least one of status_changed/status_in/"
+            "status_between/headers/header_matches/header_not_matches"
+        )
+    status_in = spec.get("status_in")
+    if status_in is not None and (not isinstance(status_in, list) or not status_in):
+        raise ValueError("delta.http.status_in must be a non-empty list")
+    status_between = spec.get("status_between")
+    if status_between is not None:
+        if not isinstance(status_between, dict):
+            raise ValueError("delta.http.status_between requires min and max")
+        if status_between.get("min") is None or status_between.get("max") is None:
+            raise ValueError("delta.http.status_between requires min and max")
+    headers = spec.get("headers")
+    if headers is not None and not isinstance(headers, list):
+        raise ValueError("delta.http.headers must be a list")
+    for key in ("header_matches", "header_not_matches"):
+        hm = spec.get(key)
+        if hm is None:
+            continue
+        if not isinstance(hm, dict) or not hm.get("name"):
+            raise ValueError(f"delta.http.{key} requires name")
+        pattern = hm.get("pattern", hm.get("value"))
+        if pattern is None or str(pattern) == "":
+            raise ValueError(f"delta.http.{key} requires pattern")
+
+
+def _http_evidence(prev_state: dict, current_state: dict) -> dict[str, Any]:
+    """Per-source previous/new/changed HTTP envelope for the evidence payload."""
+    ids = _http_source_ids_from_maps(prev_state, current_state)
+    out: dict[str, Any] = {}
+    for sid in ids:
+        previous = {
+            attr: prev_state.get(_http_field(sid, attr)) for attr in HTTP_ENVELOPE_ATTRS
+        }
+        new = {
+            attr: current_state.get(_http_field(sid, attr)) for attr in HTTP_ENVELOPE_ATTRS
+        }
+        changed = [attr for attr in HTTP_ENVELOPE_ATTRS if previous.get(attr) != new.get(attr)]
+        out[sid] = {"previous": previous, "new": new, "changed": changed}
+    return out
 
 
 def _is_date_only_string(val: Any) -> bool:
@@ -806,6 +961,11 @@ class FetchResult:
     @property
     def ok(self) -> bool:
         return self.error == "" and self.status_code < 400
+
+    @property
+    def got_response(self) -> bool:
+        """True when the server answered (including 4xx/5xx). False on transport failure."""
+        return self.error == "" and self.status_code > 0
 
 
 def _is_retryable_http_status(status_code: int) -> bool:
@@ -1700,9 +1860,116 @@ class TriggerAgent:
                 result.submatches,
                 indeterminate=result.indeterminate,
             ))
+        http_spec = spec.get("http")
+        if http_spec:
+            clause_results.append(self._eval_delta_http(http_spec))
         if not clause_results:
             return ConditionResult(False, "delta: no clauses")
         return self._combine_all(clause_results, "delta")
+
+    def _eval_delta_http(self, spec: dict[str, Any]) -> ConditionResult:
+        requested = spec.get("source")
+        ids = [requested] if requested else _http_source_ids_from_maps(
+            self.current_values, self.prev_state,
+        )
+        if not ids or not ids[0]:
+            return ConditionResult(False, "delta.http: no http envelope")
+        if not requested and len(ids) > 1:
+            return ConditionResult(
+                False, "delta.http: source required when more than one source",
+            )
+        sid = ids[0]
+        clause_results: list[ConditionResult] = []
+        status_field = _http_field(sid, "status")
+
+        if spec.get("status_changed"):
+            clause_results.append(self._field_changed(status_field))
+
+        if spec.get("status_in"):
+            actual = self._get_value(status_field)
+            if actual is VALUE_UNAVAILABLE:
+                clause_results.append(ConditionResult(
+                    False, f"{status_field}: source unavailable", indeterminate=True,
+                ))
+            else:
+                wanted = {_as_float(v) for v in spec["status_in"]}
+                status = _as_float(actual)
+                matched = status is not None and status in wanted
+                clause_results.append(ConditionResult(
+                    matched,
+                    f"{status_field} in {spec['status_in']}: {actual}"
+                    if matched else f"{status_field} {actual} not in {spec['status_in']}",
+                ))
+
+        if spec.get("status_between"):
+            actual = self._get_value(status_field)
+            if actual is VALUE_UNAVAILABLE:
+                clause_results.append(ConditionResult(
+                    False, f"{status_field}: source unavailable", indeterminate=True,
+                ))
+            else:
+                sb = spec["status_between"]
+                number = _as_float(actual)
+                lo = _as_float(sb.get("min"))
+                hi = _as_float(sb.get("max"))
+                if number is None or lo is None or hi is None:
+                    clause_results.append(ConditionResult(
+                        False, f"{status_field} status_between: non-numeric operand",
+                    ))
+                else:
+                    if lo > hi:
+                        lo, hi = hi, lo
+                    matched = lo <= number <= hi
+                    clause_results.append(ConditionResult(
+                        matched,
+                        f"{status_field} between {lo} and {hi}: {number}" if matched
+                        else f"{status_field} {number} not in [{lo}, {hi}]",
+                    ))
+
+        header_names = spec.get("headers") or []
+        if header_names:
+            header_results = []
+            for header_name in header_names:
+                attr = _http_attr_from_name(header_name)
+                if not attr:
+                    header_results.append(ConditionResult(
+                        False, f"delta.http: unknown header {header_name!r}",
+                    ))
+                    continue
+                header_results.append(self._field_changed(_http_field(sid, attr)))
+            clause_results.append(self._combine_any(header_results, "delta.http.headers"))
+
+        for key, invert in (("header_matches", False), ("header_not_matches", True)):
+            hm = spec.get(key)
+            if not hm:
+                continue
+            attr = _http_attr_from_name(hm.get("name"))
+            if not attr:
+                clause_results.append(ConditionResult(
+                    False, f"delta.http.{key}: unknown header {hm.get('name')!r}",
+                ))
+                continue
+            field = _http_field(sid, attr)
+            actual = self._get_value(field)
+            if actual is VALUE_UNAVAILABLE:
+                clause_results.append(ConditionResult(
+                    False, f"{field}: source unavailable", indeterminate=True,
+                ))
+                continue
+            pattern = hm.get("pattern", hm.get("value"))
+            op = "not_matches" if invert else "matches"
+            fake = Condition(id=key, field=field, op=op, value=pattern)
+            result = self._eval_regex_op(fake, actual, invert=invert)
+            clause_results.append(ConditionResult(
+                result.matched,
+                f"delta.http.{key}: {result.reason}",
+                result.submatches,
+                indeterminate=result.indeterminate,
+            ))
+
+        if not clause_results:
+            return ConditionResult(False, "delta.http: no clauses")
+        return self._combine_all(clause_results, "delta.http")
 
     def _get_value(self, field: str) -> Any:
         """Get a field value — from current extracted values, falling back to prev_state."""
@@ -2025,6 +2292,7 @@ class LLMEscalationAgent:
         prev_snapshot = {k: v for k, v in self.prev_state.items() if k not in internal_keys}
         current_snapshot = {k: v for k, v in self.current_state.items() if k not in internal_keys}
         delta = _state_delta(prev_snapshot, current_snapshot)
+        http_ev = _http_evidence(self.prev_state, self.current_state)
 
         evidence = {
             "escalation_type": "condition_matched",
@@ -2045,6 +2313,7 @@ class LLMEscalationAgent:
             "current_state": current_snapshot,
             "delta": delta,
             "changed_fields": list(delta["fields"].keys()),
+            "http": http_ev,
             # Calendar context — start/end may be null or non-dict (malformed gws
             # payload); never chain .get on a present-but-wrong-type value
             # (``ev.get("start", {}).get(...)`` still crashes when start is None).
@@ -2055,7 +2324,9 @@ class LLMEscalationAgent:
             # What was already done about it
             "actions_taken": self.actions_taken,
             # The LLM prompt
-            "prompt": self._render_prompt(cond_id, result, prev_value, new_value, delta),
+            "prompt": self._render_prompt(
+                cond_id, result, prev_value, new_value, delta, http_ev,
+            ),
         }
         return evidence
 
@@ -2074,7 +2345,8 @@ class LLMEscalationAgent:
 
     def _render_prompt(self, cond_id: str, result: ConditionResult,
                        prev_value: Any = None, new_value: Any = None,
-                       delta: Optional[dict] = None) -> str:
+                       delta: Optional[dict] = None,
+                       http_ev: Optional[dict] = None) -> str:
         """Render the LLM prompt template with condition-specific values."""
         template = self.config.llm_escalation.prompt if self.config.llm_escalation else ""
         delta = delta or {"fields": {}, "changed_fields": []}
@@ -2097,6 +2369,17 @@ class LLMEscalationAgent:
                         f"    {name}: {item.get('previous')} → {item.get('new')}"
                         + (f" (Δ {item['numeric_delta']})" if item.get("numeric_delta") is not None else "")
                     )
+            http_ev = http_ev or {}
+            http_changed = [
+                (sid, info) for sid, info in http_ev.items() if info.get("changed")
+            ]
+            if http_changed:
+                lines.append("  HTTP:")
+                for sid, info in http_changed:
+                    lines.append(
+                        f"    {sid}: {', '.join(info['changed'])} "
+                        f"({info.get('previous', {}).get('status')} → {info.get('new', {}).get('status')})"
+                    )
             if self.actions_taken:
                 lines.append(f"  Actions already taken: {', '.join(self.actions_taken)}")
             lines.append("")
@@ -2115,6 +2398,7 @@ class LLMEscalationAgent:
             "current_state": json.dumps(self.current_state, default=str, sort_keys=True),
             "delta": json.dumps(delta, default=str, sort_keys=True),
             "changed_fields": ", ".join(changed_fields),
+            "http": json.dumps(http_ev or {}, default=str, sort_keys=True),
         })
         return _render_template_vars(template, context)
 
@@ -2712,6 +2996,11 @@ def validate_config_cross_refs(config: DetectConfig) -> list[str]:
     seen_extract_ids: set[str] = set()
     for source in config.sources:
         for spec in source.extract:
+            if spec.id.startswith(HTTP_FIELD_PREFIX):
+                errors.append(
+                    f"extract id '{spec.id}' is reserved "
+                    f"({HTTP_FIELD_PREFIX}* is the HTTP envelope)"
+                )
             if spec.id in seen_extract_ids:
                 errors.append(
                     f"duplicate extract id '{spec.id}' across sources "
@@ -2840,10 +3129,10 @@ def run_engine(config_path: str, dry_run: bool = False) -> int:
 
     for source in config.sources:
         result = fetcher.fetch(source)
-        if not result.ok:
+        if not result.got_response:
             retry_cfg = source.retry or RetryConfig()
 
-            # Write LLM escalation if configured
+            # Transport failure only — HTTP 4xx/5xx are evaluable change events.
             if (not dry_run and retry_cfg.escalate_on_failure
                     and _escalation_backoff_allows(config.name, "fetch_failure", escalation_backoff)):
                 esc_path = write_fetch_failure_escalation(source, result, config.name)
@@ -2870,6 +3159,7 @@ def run_engine(config_path: str, dry_run: bool = False) -> int:
                 continue
 
         extracted = extractor.extract(result, source.extract)
+        extracted.update(_http_envelope(source.id, result))
         all_extracted[source.id] = extracted
         # NOTE: Do NOT update state with extracted values yet —
         # conditions must be evaluated against PREVIOUS state (anti-bounce)
