@@ -1,15 +1,18 @@
 # Host matrix — prompt-on-change
 
-**Honesty:** discovery (skill installed) ≠ execution (CLI ran and printed
-`LLM_ESCALATION:` or the documented empty stdout).
+**Honesty:** discovery (skill installed) ≠ execution (wrapper ran and printed
+`LLM_ESCALATION:` or the documented empty stdout / `CLAIM_EMPTY`).
 
-| Host | Prompt | Scripts | Install | Runtime |
-|------|--------|---------|---------|---------|
-| Grok Build | escalation prompt portable | CLI | symlink `~/.grok/skills/prompt-on-change` | CLI; schedule is host-local |
-| Claude Code | same prompt file | CLI | symlink `~/.claude/skills/prompt-on-change` + plugin view | CLI |
-| Codex | same prompt file | CLI | symlink `~/.codex/skills/prompt-on-change` | CLI |
-| Hermes | same prompt file | CLI | managed **copy** `~/.hermes/skills/software-development/prompt-on-change` | proven historically under foreign `productivity/` leaf; do not clobber that tree |
-| Cursor | same prompt file | CLI | extra symlink `~/.cursor/skills/prompt-on-change` (`install.sh` has no Cursor host yet) | CLI or `/loop`; do not claim Automations as runtime |
+Native default is the author + same-turn escalation prompts. The wrapper CLI
+is optional and only a runtime when Python deps resolve.
+
+| Host | Prompts | Scripts | Install | Agent card | Plugin | Runtime |
+|------|---------|---------|---------|------------|--------|---------|
+| Grok Build | author + escalation + schedule | `scripts/prompt-on-change` | symlink `~/.grok/skills/prompt-on-change` | `~/.grok/agents/prompt-on-change.md` (`--agents`) | git URL or local path to `plugins/prompt-on-change` — **never** `name@marketplace` | CLI when Python resolves; else native-unvalidated YAML |
+| Claude Code | same prompt files | same wrapper | symlink `~/.claude/skills/prompt-on-change` + plugin view | `~/.claude/agents/prompt-on-change.md` | Claude marketplace pin (after main ship) | CLI when Python resolves |
+| Codex | same prompt files | same wrapper | symlink `~/.codex/skills/prompt-on-change` | none | `name@marketplace` when pinned | CLI when Python resolves |
+| Hermes | same prompt files | same wrapper | managed **copy** `~/.hermes/skills/software-development/prompt-on-change` | none | skill-dir only | proven historically under foreign `productivity/` leaf; do not clobber that tree |
+| Cursor | same prompt files | same wrapper | symlink `~/.cursor/skills/prompt-on-change` | none | n/a | CLI or `/loop`; do **not** claim Automations as runtime |
 
 Hermes materialization is a copy with provenance
 `~/.hermes/skills/software-development/.skill-craft/prompt-on-change.json`.
@@ -17,3 +20,10 @@ The live productivity leaf is a **foreign** tree — skip it forever.
 
 Live Hermes 5m runner (`detect_runner.sh`, `no_agent`) stays on its current
 `DETECT_DIR` until env is retargeted after a healthy cycle.
+
+Grok plugin install examples (path / git only):
+
+```sh
+grok plugin install /path/to/skill-craft/plugins/prompt-on-change
+grok plugin install whichguy/skill-craft
+```

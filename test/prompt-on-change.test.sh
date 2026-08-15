@@ -11,18 +11,33 @@ fail() {
 }
 
 [[ -f "$pkg/SKILL.md" ]] || fail "missing SKILL.md"
+[[ -f "$pkg/prompts/author.prompt.md" ]] || fail "missing author prompt"
+[[ -f "$pkg/prompts/schedule.prompt.md" ]] || fail "missing schedule prompt"
 [[ -f "$pkg/prompts/escalation.prompt.md" ]] || fail "missing escalation prompt"
 [[ -x "$pkg/scripts/detect_runner.sh" ]] || fail "runner not executable"
+[[ -x "$pkg/scripts/prompt-on-change" ]] || fail "wrapper not executable"
 [[ -f "$pkg/scripts/detect_engine.py" ]] || fail "missing detect_engine.py"
+[[ -f "$root/agents/prompt-on-change.md" ]] || fail "missing agents/prompt-on-change.md"
+grep -q 'prompt-on-change' "$root/agents/prompt-on-change.md" || fail "agent card must point at the skill"
 grep -q 'kind: script-backed' "$pkg/SKILL.md" || fail "frontmatter kind"
 grep -q 'name: prompt-on-change' "$pkg/SKILL.md" || fail "frontmatter name"
+grep -q 'version: 2.0.0' "$pkg/SKILL.md" || fail "card version must be 2.0.0"
 grep -q 'delta_between' "$pkg/SKILL.md" || fail "card must mention delta_between"
 grep -q 'date_between' "$pkg/SKILL.md" || fail "card must mention date_between"
 grep -q 'not_matches' "$pkg/SKILL.md" || fail "card must mention not_matches"
 grep -q 'http.' "$pkg/SKILL.md" || fail "card must mention http. envelope fields"
 grep -q 'delta.http' "$pkg/SKILL.md" || fail "card must mention delta.http"
 grep -q 'LLM_ESCALATION' "$pkg/SKILL.md" || fail "card must document prompt-event contract"
-if grep -qiE 'sonnet|opus|gpt-4|claude-3' "$pkg/prompts/escalation.prompt.md" "$pkg/SKILL.md"; then
+# Native router: author prompt is the procedure before the engine CLI.
+author_line="$(grep -n 'author.prompt.md' "$pkg/SKILL.md" | head -1 | cut -d: -f1)"
+cli_line="$(grep -n 'scripts/prompt-on-change' "$pkg/SKILL.md" | head -1 | cut -d: -f1)"
+[[ -n "$author_line" && -n "$cli_line" ]] || fail "SKILL procedure must name author.prompt.md and wrapper CLI"
+[[ "$author_line" -lt "$cli_line" ]] || fail "SKILL must name author.prompt.md before the engine CLI"
+if grep -qiE 'sonnet|opus|gpt-4|claude-3' \
+  "$pkg/prompts/author.prompt.md" \
+  "$pkg/prompts/schedule.prompt.md" \
+  "$pkg/prompts/escalation.prompt.md" \
+  "$pkg/SKILL.md"; then
   fail "prompts must not pin model names"
 fi
 # Portable defaults: engine/runner must not require /opt/data
@@ -63,6 +78,14 @@ fi
 "$python_bin" "$pkg/scripts/detect_engine.py" --config "$http_example" --validate \
   || fail "http-change-events example --validate"
 printf 'LAYER simple: example validate OK\n'
+
+wrapper="$pkg/scripts/prompt-on-change"
+claim_out="$(PYTHON="$python_bin" "$wrapper" claim)" || fail "wrapper claim on empty dir"
+printf '%s\n' "$claim_out" | grep -q 'CLAIM_EMPTY' || fail "empty claim must print CLAIM_EMPTY (not silent success): $claim_out"
+printf '%s\n' "$claim_out" | grep -q '\[SILENT\]' || fail "empty claim must print [SILENT]: $claim_out"
+self_out="$(PYTHON="$python_bin" "$wrapper" self-check)" || fail "wrapper self-check failed: $self_out"
+printf '%s\n' "$self_out" | grep -q 'example validate: ok' || fail "self-check missing validate ok: $self_out"
+printf 'LAYER simple: wrapper claim/self-check OK\n'
 
 # Runner self-check against the examples dir (no live fetches)
 DETECT_DIR="$pkg/configs/examples" \

@@ -2,12 +2,12 @@
 name: prompt-on-change
 description: >-
   Detect URL/HTML/JSON field changes and promote a prompt event with previous
-  and new state. Use when polling a page or API, watching a CSS/JSONPath/regex
-  field or HTTP status/headers, firing on change, numeric or date range
-  (inside/outside), regex match/non-match, empty, or compound delta
-  (any/all/when empty/http). Script-backed detect engine; calendar actions
-  optional.
-version: 1.9.0
+  and new state. Use when the user says watch this page, notify me when a
+  price or status changes, or poll a CSS/JSONPath/regex/HTTP field. Native
+  path authors YAML in-chat; the detect CLI is optional. Fires on change,
+  numeric or date range, regex match/non-match, empty, HTTP status/headers,
+  or compound delta. Calendar actions optional.
+version: 2.0.0
 license: MIT
 platforms:
   - linux
@@ -26,68 +26,93 @@ metadata:
 
 # prompt-on-change
 
-Config-driven URL monitor. A deterministic engine fetches, extracts, and
-compares state. It stays silent when nothing matched. On a match it writes
-evidence JSON (previous value, new value, full state delta) and prints
-`LLM_ESCALATION: <path>` so any harness can promote a prompt event.
+Config-driven URL monitor. A harness that has loaded this skill can finish
+“watch this URL / tell me when it changes” in-chat. Prompts author the
+config and reason over evidence. A deterministic engine (optional) fetches,
+extracts, and compares state. It stays silent when nothing matched. On a
+match it writes evidence JSON and prints `LLM_ESCALATION: <path>`.
 
 **Package leaf:** `prompt-on-change`  
-**Primary interface:** YAML config + `scripts/detect_engine.py`  
-**Honesty:** installing this skill is discovery. Runtime is the CLI (and
-whatever scheduler the host uses). Calendar patch/delete needs a `gws` binary
-and is optional.
+**Native default:** `prompts/author.prompt.md` then, on match,
+`prompts/escalation.prompt.md` in the **same turn**  
+**Script optional:** `scripts/prompt-on-change` (one CLI family)  
+**Honesty:** installing this skill is discovery. Runtime is the CLI when
+Python deps resolve. Do not claim four-host install as proven runtime.
+Calendar patch/delete needs a `gws` binary and is optional.
+
+This skill does **not** mean the host model fetches the page itself. The
+cheap engine does that. If this host cannot exec Python, hand back the YAML
+and label it **native-unvalidated**.
 
 ## Triggers
 
-- Poll an HTML field or JSON path and notify only when it changes
-- Promote an agent prompt with previous → new state
-- Fire on a numeric range, a date range (inside or outside), a regex match or
-  non-match, HTTP status/header change, a numeric delta range, empty /
-  became-empty, or a compound delta (`any` / `all` / `empty` / `became_empty` /
-  `date_in` / `not_matches` / `http`)
+- Watch this page / notify me when the price or status changes
+- Poll an HTML field, JSON path, regex, or HTTP status/header
+- Promote a prompt event with previous → new state
+- Fire on a numeric range, a date range (inside or outside), a regex match
+  or non-match, HTTP status/header change, empty / became-empty, or a
+  compound delta (`any` / `all` / `empty` / `date_in` / `not_matches` / `http`)
 - Watch flight status, prices, package tracking, status pages, advisories
 
 ## Not for
 
 - Continuous LLM polling of an unchanged page (the engine is the cheap layer)
 - Host-only “open Claude and…” as the sole procedure
-- Claiming four-host install as proven runtime on every host
+- Claiming skill-dir install as proven runtime on every host
+- Cursor Automations as the documented scheduler
 
 ## Procedure
 
-1. Author a YAML config (see `references/config-schema.md` and
-   `configs/examples/price-range-delta.yaml` /
-   `configs/examples/date-regex-delta.yaml` /
-   `configs/examples/http-change-events.yaml`).
-2. Validate: `python3 scripts/detect_engine.py --config PATH --validate`
-3. Dry-run: `python3 scripts/detect_engine.py --config PATH --dry-run`
-4. Live run (or `scripts/detect_runner.sh` over a config directory).
-5. **No-change contract:** exit 0 and empty stdout. That is the documented
+Native default (any harness, including Grok):
+
+1. Load `prompts/author.prompt.md`. Fill `{{URL}}`, `{{GOAL}}`, `{{FIELDS}}`,
+   `{{SKILL_ROOT}}` (directory of this `SKILL.md`). Interview only what is
+   missing. Emit a complete YAML config.
+2. If this host **cannot** exec Python: stop. Hand back the YAML labeled
+   **native-unvalidated**. That is a valid native outcome.
+3. If this host **can** exec: optional `prompts/schedule.prompt.md` for
+   host-local repeat (cron, launchd, or “run again when I ask”).
+
+Script optional (same Layer-0 contracts):
+
+4. `scripts/prompt-on-change bootstrap` once (venv under `$POC_STATE_DIR`,
+   never inside the skill tree).
+5. `scripts/prompt-on-change validate --config PATH` then
+   `scripts/prompt-on-change run --config PATH`.
+6. **No-change contract:** exit 0 and empty stdout. That is the documented
    empty outcome, not silent success.
-6. **Match contract:** write evidence JSON and print `LLM_ESCALATION: <abs-path>`.
-7. Load `prompts/escalation.prompt.md`, claim the file first, reason over
-   previous/new/delta, and **never re-act** on the world.
+7. **Match contract:** write evidence JSON and print `LLM_ESCALATION: <abs-path>`.
+   Immediately load `prompts/escalation.prompt.md` in this same turn
+   (or `scripts/prompt-on-change claim`). Do **not** wait for a Hermes cron.
+   Claim first, reason over previous/new/delta/http, **never re-act**.
 
 Package root is the directory that contains this `SKILL.md`. Runtime state
 defaults to `$POC_STATE_DIR` or `$XDG_STATE_HOME/prompt-on-change` (fallback
 `~/.local/state/prompt-on-change`). Do not hardcode `/opt/data`.
 
-Host matrix: `references/host-matrix.md`.
+Host matrix: `references/host-matrix.md`.  
+Schema: `references/config-schema.md`.  
+Examples: `configs/examples/price-range-delta.yaml`,
+`date-regex-delta.yaml`, `http-change-events.yaml`.
 
 ## CLI
 
+One family. Do not document `detect_engine.py` as the invoke.
+
 ```sh
-python3 scripts/detect_engine.py --config configs/examples/price-range-delta.yaml --validate
-python3 scripts/detect_engine.py --config configs/examples/price-range-delta.yaml --dry-run
-python3 scripts/detect_engine.py --config configs/examples/price-range-delta.yaml
-bash scripts/detect_runner.sh --self-check
+scripts/prompt-on-change bootstrap
+scripts/prompt-on-change validate --config configs/examples/price-range-delta.yaml
+scripts/prompt-on-change run --config configs/examples/price-range-delta.yaml
+scripts/prompt-on-change claim
+scripts/prompt-on-change self-check
 ```
 
 Env: `SKILL_ROOT`, `POC_STATE_DIR`, `DETECT_DIR`, `DETECT_ENGINE_HEALTH_DIR`,
-`DETECT_ENGINE_ESCALATION_DIR`, `DETECT_ENGINE_LOG_FILE`, `PYTHON`, `ENGINE`.
+`DETECT_ENGINE_ESCALATION_DIR`, `DETECT_ENGINE_LOG_FILE`, `PYTHON`.
 
-Hermes adapter (existing 5m runner): set those env vars to the live config and
-state dirs. Do not clobber `~/.hermes/skills/productivity/prompt-on-change`.
+Grok plugin install is a git URL or local path to `plugins/prompt-on-change`,
+never `name@marketplace`. Hermes adapter: set the env vars above; do not
+clobber `~/.hermes/skills/productivity/prompt-on-change`.
 
 ## Promote conditions (prev → new)
 

@@ -3,6 +3,10 @@
 Host-agnostic Layer-1 prompt. Fill placeholders, then run on the current host.
 Do not pin a model. Do not require a single host CLI as the only path.
 
+**Same-turn default:** if the detect CLI just printed `LLM_ESCALATION: <path>`,
+claim and reason in this turn. Do not wait for a Hermes cron (or any other
+host scheduler). `scripts/prompt-on-change claim` is an equivalent claim step.
+
 ## Input
 
 Escalation directory: `{{ESCALATION_DIR}}`  

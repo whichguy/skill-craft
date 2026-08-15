@@ -1,0 +1,192 @@
+#!/usr/bin/env bash
+# One CLI family for prompt-on-change. Resolves SKILL_ROOT from this script
+# (physical path) so Grok/Claude skill-dir symlinks still find the engine.
+set -euo pipefail
+
+here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+SKILL_ROOT="${SKILL_ROOT:-$(cd "$here/.." && pwd -P)}"
+poc_state_default="${XDG_STATE_HOME:-$HOME/.local/state}/prompt-on-change"
+POC_STATE_DIR="${POC_STATE_DIR:-$poc_state_default}"
+DETECT_ENGINE_ESCALATION_DIR="${DETECT_ENGINE_ESCALATION_DIR:-$POC_STATE_DIR/escalations}"
+DETECT_ENGINE_HEALTH_DIR="${DETECT_ENGINE_HEALTH_DIR:-$POC_STATE_DIR}"
+DETECT_ENGINE_LOG_FILE="${DETECT_ENGINE_LOG_FILE:-$POC_STATE_DIR/detect-engine.log}"
+VENV_DIR="${POC_VENV_DIR:-$POC_STATE_DIR/.venv}"
+ENGINE="${ENGINE:-$SKILL_ROOT/scripts/detect_engine.py}"
+
+export SKILL_ROOT POC_STATE_DIR
+export DETECT_ENGINE_ESCALATION_DIR DETECT_ENGINE_HEALTH_DIR DETECT_ENGINE_LOG_FILE
+
+usage() {
+  printf 'Usage: %s <bootstrap|validate|run|claim|self-check> [flags]\n' "${0##*/}" >&2
+  printf '  bootstrap\n' >&2
+  printf '  validate --config PATH\n' >&2
+  printf '  run --config PATH [--dry-run]\n' >&2
+  printf '  claim\n' >&2
+  printf '  self-check\n' >&2
+}
+
+resolve_python() {
+  if [[ -n "${PYTHON:-}" ]]; then
+    printf '%s\n' "$PYTHON"
+    return
+  fi
+  if [[ -x "$VENV_DIR/bin/python" ]]; then
+    printf '%s\n' "$VENV_DIR/bin/python"
+    return
+  fi
+  printf '%s\n' "python3"
+}
+
+refuse_venv_inside_skill() {
+  local state_real skill_real
+  mkdir -p "$POC_STATE_DIR"
+  state_real="$(cd "$POC_STATE_DIR" && pwd -P)"
+  skill_real="$SKILL_ROOT"
+  case "$state_real" in
+    "$skill_real"|"$skill_real"/*)
+      printf 'bootstrap: refuse venv inside skill package (%s)\n' "$state_real" >&2
+      exit 1
+      ;;
+  esac
+}
+
+cmd_bootstrap() {
+  refuse_venv_inside_skill
+  local pyproject="$SKILL_ROOT/pyproject.toml"
+  [[ -f "$pyproject" ]] || { printf 'bootstrap: missing %s\n' "$pyproject" >&2; exit 1; }
+  python3 -m venv "$VENV_DIR"
+  # Runtime deps from pyproject.toml (no editable install — no build-system).
+  local deps
+  deps="$(python3 -c "
+import pathlib, sys
+try:
+    import tomllib
+except ImportError:
+    import tomli as tomllib
+p = tomllib.loads(pathlib.Path(sys.argv[1]).read_text())
+print('\\n'.join(p['project']['dependencies']))
+" "$pyproject")" || { printf 'bootstrap: could not read pyproject.toml deps\n' >&2; exit 1; }
+  # shellcheck disable=SC2086
+  printf '%s\n' "$deps" | "$VENV_DIR/bin/pip" install -q -r /dev/stdin
+  printf 'bootstrap: venv at %s\n' "$VENV_DIR"
+}
+
+parse_config_args() {
+  config=""
+  dry_run=0
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --config)
+        [[ $# -ge 2 ]] || { printf 'missing --config PATH\n' >&2; exit 64; }
+        config="$2"
+        shift 2
+        ;;
+      --dry-run)
+        dry_run=1
+        shift
+        ;;
+      -h|--help)
+        usage
+        exit 0
+        ;;
+      *)
+        printf 'unknown flag: %s\n' "$1" >&2
+        usage
+        exit 64
+        ;;
+    esac
+  done
+  [[ -n "$config" ]] || { printf 'validate/run require --config PATH\n' >&2; usage; exit 64; }
+}
+
+run_engine() {
+  local python_bin
+  python_bin="$(resolve_python)"
+  [[ -f "$ENGINE" ]] || { printf 'engine missing: %s\n' "$ENGINE" >&2; exit 1; }
+  if [[ "$dry_run" -eq 1 ]]; then
+    exec "$python_bin" "$ENGINE" --config "$config" --dry-run
+  fi
+  exec "$python_bin" "$ENGINE" --config "$config" "$@"
+}
+
+cmd_validate() {
+  parse_config_args "$@"
+  local python_bin
+  python_bin="$(resolve_python)"
+  [[ -f "$ENGINE" ]] || { printf 'engine missing: %s\n' "$ENGINE" >&2; exit 1; }
+  exec "$python_bin" "$ENGINE" --config "$config" --validate
+}
+
+cmd_run() {
+  parse_config_args "$@"
+  run_engine
+}
+
+cmd_claim() {
+  local esc="$DETECT_ENGINE_ESCALATION_DIR"
+  mkdir -p "$esc/processed"
+  local found=0
+  local f base dest
+  shopt -s nullglob
+  for f in "$esc"/*.json; do
+    [[ -f "$f" ]] || continue
+    [[ "$(basename "$f")" == *.tmp ]] && continue
+    found=1
+    base="$(basename "$f")"
+    dest="$esc/processed/$base"
+    if ! mv "$f" "$dest" 2>/dev/null; then
+      printf 'CLAIM_SKIP: already claimed or gone: %s\n' "$f"
+      continue
+    fi
+    printf 'CLAIMED: %s\n' "$dest"
+    printf '---\n'
+    cat "$dest"
+    printf '\n---\n'
+  done
+  shopt -u nullglob
+  if [[ "$found" -eq 0 ]]; then
+    printf 'CLAIM_EMPTY: no pending evidence under %s\n' "$esc"
+    printf '[SILENT]\n'
+  fi
+}
+
+cmd_self_check() {
+  local python_bin
+  python_bin="$(resolve_python)"
+  printf 'prompt-on-change self-check:\n'
+  printf '  SKILL_ROOT: %s\n' "$SKILL_ROOT"
+  printf '  ENGINE: %s\n' "$ENGINE"
+  [[ -f "$SKILL_ROOT/SKILL.md" ]] || { printf '  missing SKILL.md\n' >&2; exit 1; }
+  [[ -f "$ENGINE" ]] || { printf '  engine missing\n' >&2; exit 1; }
+  if ! "$python_bin" -c "import sys; sys.path.insert(0, r'''$here'''); import detect_engine" 2>/dev/null; then
+    printf '  engine import failed (run bootstrap)\n' >&2
+    exit 1
+  fi
+  printf '  engine import: ok\n'
+  local example="$SKILL_ROOT/configs/examples/price-range-delta.yaml"
+  [[ -f "$example" ]] || { printf '  missing example config\n' >&2; exit 1; }
+  "$python_bin" "$ENGINE" --config "$example" --validate \
+    || { printf '  example validate failed\n' >&2; exit 1; }
+  printf '  example validate: ok\n'
+}
+
+if [[ $# -lt 1 ]]; then
+  usage
+  exit 64
+fi
+
+cmd="$1"
+shift
+case "$cmd" in
+  bootstrap) cmd_bootstrap "$@" ;;
+  validate) cmd_validate "$@" ;;
+  run) cmd_run "$@" ;;
+  claim) cmd_claim "$@" ;;
+  self-check) cmd_self_check "$@" ;;
+  -h|--help) usage; exit 0 ;;
+  *)
+    printf 'unknown command: %s\n' "$cmd" >&2
+    usage
+    exit 64
+    ;;
+esac
