@@ -2,13 +2,16 @@
 
 **Honesty:** discovery (skill installed) ≠ execution (wrapper ran and printed
 `LLM_ESCALATION:` or the documented empty stdout / `CLAIM_EMPTY`).
+Grok runtime is proven only when `test/prompt-on-change-grok-native.test.sh`
+ran with `POC_GROK_LIVE=1`, not from skill-dir install.
 
-Native default is the author + same-turn escalation prompts. The wrapper CLI
-is optional and only a runtime when Python deps resolve.
+Native default is the author + same-turn escalation prompts. Debug/issue verbs
+(`status`, `explain`, `issue`, `issue --exec`) are host-visible lifecycle.
+The wrapper CLI is optional and only a runtime when Python deps resolve.
 
 | Host | Prompts | Scripts | Install | Agent card | Plugin | Runtime |
 |------|---------|---------|---------|------------|--------|---------|
-| Grok Build | author + escalation + schedule | `scripts/prompt-on-change` | symlink `~/.grok/skills/prompt-on-change` | `~/.grok/agents/prompt-on-change.md` (`--agents`) | git URL or local path to `plugins/prompt-on-change` — **never** `name@marketplace` | CLI when Python resolves; else native-unvalidated YAML |
+| Grok Build | author + escalation + schedule | `scripts/prompt-on-change` (`status` / `explain` / `issue --exec`) | symlink `~/.grok/skills/prompt-on-change` | `~/.grok/agents/prompt-on-change.md` (`--agents`) | git URL or local path to `plugins/prompt-on-change` — **never** `name@marketplace` | CLI when Python resolves; live headless proven only by `POC_GROK_LIVE=1` |
 | Claude Code | same prompt files | same wrapper | symlink `~/.claude/skills/prompt-on-change` + plugin view | `~/.claude/agents/prompt-on-change.md` | Claude marketplace pin (after main ship) | CLI when Python resolves |
 | Codex | same prompt files | same wrapper | symlink `~/.codex/skills/prompt-on-change` | none | `name@marketplace` when pinned | CLI when Python resolves |
 | Hermes | same prompt files | same wrapper | managed **copy** `~/.hermes/skills/software-development/prompt-on-change` | none | skill-dir only | proven historically under foreign `productivity/` leaf; do not clobber that tree |

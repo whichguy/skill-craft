@@ -3041,13 +3041,119 @@ def validate_config_cross_refs(config: DetectConfig) -> list[str]:
     return errors
 
 
-def run_engine(config_path: str, dry_run: bool = False) -> int:
+def _gated_by_from_reason(reason: str) -> Optional[str]:
+    """Map an evaluation reason to a stable gate name for explain output."""
+    if reason.startswith("duration gate"):
+        return "for"
+    if reason.startswith("refire_after"):
+        return "refire_after"
+    if reason.startswith("fire_once"):
+        return "fire_once"
+    return None
+
+
+def _explain_payload(
+    config: "DetectConfig",
+    *,
+    seed: bool,
+    prev_state: dict,
+    current_state: dict,
+    condition_results: Optional[dict[str, "ConditionResult"]] = None,
+    gated_by: Optional[dict[str, Optional[str]]] = None,
+    matched_groups: Optional[list] = None,
+) -> dict[str, Any]:
+    """Read-only trigger trace. Never includes cookie / authorization headers."""
+    internal_keys = {"acknowledged", "first_seen", "last_fired", "last_checked"}
+    prev_snap = {k: v for k, v in prev_state.items() if k not in internal_keys}
+    curr_snap = {k: v for k, v in current_state.items() if k not in internal_keys}
+    delta = _state_delta(prev_snap, curr_snap)
+    http_ev = _http_evidence(prev_snap, curr_snap)
+    trigger_groups = []
+    if config.llm_escalation and config.llm_escalation.trigger_groups:
+        trigger_groups = list(config.llm_escalation.trigger_groups)
+
+    conditions_out: list[dict[str, Any]] = []
+    if seed:
+        for cond in config.conditions:
+            conditions_out.append({
+                "id": cond.id,
+                "matched": False,
+                "gated_by": "seed",
+                "reason": "seed_mode first run",
+            })
+    elif condition_results:
+        for cond in config.conditions:
+            result = condition_results.get(cond.id)
+            reason = result.reason if result else ""
+            gate = (gated_by or {}).get(cond.id)
+            if gate is None:
+                gate = _gated_by_from_reason(reason)
+            conditions_out.append({
+                "id": cond.id,
+                "matched": bool(result.matched) if result else False,
+                "gated_by": gate,
+                "reason": reason,
+            })
+
+    groups_out: list[dict[str, Any]] = []
+    matched_ids_by_name: dict[str, list[str]] = {}
+    if matched_groups:
+        for group, ids in matched_groups:
+            matched_ids_by_name[group.name] = list(ids)
+    for group in config.groups:
+        groups_out.append({
+            "name": group.name,
+            "matched": group.name in matched_ids_by_name,
+            "in_trigger_groups": group.name in trigger_groups,
+            "matched_ids": matched_ids_by_name.get(group.name, []),
+        })
+
+    would_escalate = False
+    if not seed:
+        for g in groups_out:
+            if g["matched"] and g["in_trigger_groups"]:
+                would_escalate = True
+                break
+
+    involved: list[str] = []
+    for cond in config.conditions:
+        for field in _collect_leaf_fields(cond):
+            if field not in involved:
+                involved.append(field)
+    changed_fields = list(delta.get("fields", {}).keys()) if isinstance(delta, dict) else []
+    focus = involved[0] if involved else (changed_fields[0] if changed_fields else None)
+
+    return {
+        "config_name": config.name,
+        "seed": seed,
+        "would_escalate": would_escalate,
+        "conditions": conditions_out,
+        "groups": groups_out,
+        "field": focus,
+        "fields": involved,
+        "previous_value": prev_snap.get(focus) if focus else None,
+        "new_value": curr_snap.get(focus) if focus else None,
+        "changed_fields": changed_fields,
+        "http": http_ev,
+    }
+
+
+def _print_explain(payload: dict[str, Any]) -> None:
+    print(json.dumps(payload, indent=2, default=str))
+
+
+def run_engine(config_path: str, dry_run: bool = False, explain: bool = False) -> int:
     """Main engine flow. Returns exit code (0 = ok, 1 = error).
 
     Steps: load → check enabled/expires → load state → fetch → extract
     → fetch calendar events → evaluate conditions → evaluate groups
     → (no match: save+exit) | (match: execute actions → acknowledge → escalate → save)
+
+    ``explain=True`` is read-only (same side-effect gate as dry-run) and prints
+    a JSON trigger trace instead of the Layer-0 stdout contract.
     """
+    if explain:
+        dry_run = True
     # ── Step 0: Guard empty inputs ──
     if not config_path:
         log.error("run_engine: empty config_path")
@@ -3233,15 +3339,27 @@ def run_engine(config_path: str, dry_run: bool = False) -> int:
             if health_path is not None:
                 write_health(health_path, "ok", config.name, "seed mode: initial state saved")
         # R9: seed exit previously dropped optional-source fetch-failure stdout pointers.
+        if explain:
+            current_seed = dict(prev_state_snapshot)
+            for extracted in all_extracted.values():
+                current_seed.update(extracted)
+            _print_explain(_explain_payload(
+                config,
+                seed=True,
+                prev_state=prev_state_snapshot,
+                current_state=current_seed,
+            ))
+            return 0
         for esc_path in fetch_failure_escalations:
             print(f"LLM_ESCALATION: {esc_path}")
-        print(f"🌱 {config.name}: seed mode — initial state saved, actions deferred to next poll")
+        print(f"SEED_OK: {config.name}")
         return 0
 
     # ── Step 7: Evaluate conditions (changed/eq/matches/not_matches/date_between/delta/…) ──
     # Duration gate, fire_once, refire_after applied here. Anti-bounce: prune stale acks.
     trigger = TriggerAgent(sm.state, eval_context, calendar_events)
     condition_results: dict[str, ConditionResult] = {}  # State: {} (no conditions) | {cond.id: result}
+    gated_by: dict[str, Optional[str]] = {}
     # F4.1 FIX: Hold field baselines when a matched condition is temporarily suppressed.
     held_extracted_fields: set[str] = set()
 
@@ -3259,6 +3377,7 @@ def run_engine(config_path: str, dry_run: bool = False) -> int:
                 sm.set_first_seen(cond.id)
                 result.matched = False
                 result.reason = f"duration gate: first seen, waiting {cond.for_}"
+                gated_by[cond.id] = "for"
                 held_extracted_fields.update(_fields_to_hold(cond))
             else:
                 elapsed = datetime.now(timezone.utc) - first_seen
@@ -3266,6 +3385,7 @@ def run_engine(config_path: str, dry_run: bool = False) -> int:
                 if elapsed < duration:
                     result.matched = False
                     result.reason = f"duration gate: {elapsed} < {cond.for_}"
+                    gated_by[cond.id] = "for"
                     held_extracted_fields.update(_fields_to_hold(cond))
         elif cond.for_ and result.indeterminate:
             # An unavailable baseline is unknown, not a definite recovery.
@@ -3297,11 +3417,13 @@ def run_engine(config_path: str, dry_run: bool = False) -> int:
                     if elapsed < duration:
                         result.matched = False
                         result.reason = f"refire_after: {elapsed} < {cond.refire_after}"
+                        gated_by[cond.id] = "refire_after"
                         held_extracted_fields.update(_fields_to_hold(cond))
             elif _fire_once_enabled(config):
                 if sm.is_acknowledged(cond.id, current_value):
                     result.matched = False
                     result.reason = "fire_once: acknowledged with same value"
+                    gated_by[cond.id] = "fire_once"
 
     # ── Step 8: Evaluate groups (any/all over condition IDs) ──
     # matched_groups State: [] (no match) | [(group, [cond_ids])]
@@ -3330,6 +3452,17 @@ def run_engine(config_path: str, dry_run: bool = False) -> int:
                 return 1
             if health_path is not None:
                 write_health(health_path, "ok", config.name, "no changes")
+        if explain:
+            _print_explain(_explain_payload(
+                config,
+                seed=False,
+                prev_state=prev_state_snapshot,
+                current_state=eval_context,
+                condition_results=condition_results,
+                gated_by=gated_by,
+                matched_groups=[],
+            ))
+            return 0
         for esc_path in fetch_failure_escalations:
             print(f"LLM_ESCALATION: {esc_path}")
         return 0
@@ -3476,6 +3609,17 @@ def run_engine(config_path: str, dry_run: bool = False) -> int:
         detail = f"[DRY-RUN] {sum(len(m) for _, m in matched_groups)} conditions matched"
 
     # Output — fetch-failure escalations are output first, then condition escalations
+    if explain:
+        _print_explain(_explain_payload(
+            config,
+            seed=False,
+            prev_state=prev_state_snapshot,
+            current_state=eval_context,
+            condition_results=condition_results,
+            gated_by=gated_by,
+            matched_groups=matched_groups,
+        ))
+        return 0
     all_escalations = fetch_failure_escalations + escalation_files
     if all_escalations:
         for fpath in all_escalations:
@@ -3497,6 +3641,7 @@ def main():
     parser = argparse.ArgumentParser(description="Universal Change-Detection Guard Engine")
     parser.add_argument("--config", required=True, help="Path to YAML config file")
     parser.add_argument("--dry-run", action="store_true", help="Don't execute actions, just print what would happen")
+    parser.add_argument("--explain", action="store_true", help="Read-only trigger trace JSON (no state/evidence writes)")
     parser.add_argument("--validate", action="store_true", help="Validate config and exit")
     args = parser.parse_args()
 
@@ -3535,7 +3680,7 @@ def main():
             print(f"❌ Config invalid: {exc}", file=sys.stderr)
             return 1
 
-    return run_engine(args.config, dry_run=args.dry_run)
+    return run_engine(args.config, dry_run=args.dry_run, explain=args.explain)
 
 
 if __name__ == "__main__":

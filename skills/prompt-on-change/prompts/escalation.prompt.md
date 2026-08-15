@@ -54,3 +54,23 @@ Markdown with one section per claimed file:
 - Residual risk or recommended human follow-up
 
 If every file was skipped as already-claimed, reply `[SILENT]`.
+
+## Outcome
+
+After the human report (or instead of it when silent), emit **one** fenced block
+whose info string is `json outcome` (not a model pin — a log contract):
+
+```json outcome
+{
+  "silent": false,
+  "claimed": [],
+  "condition_id": "",
+  "previous_value": "",
+  "new_value": "",
+  "residual": ""
+}
+```
+
+Set `silent` true when the reply is `[SILENT]`. `claimed` is the processed
+path(s) you moved or replayed. Leave values empty when unknown. This fence is
+how hosts debug prompt execution.

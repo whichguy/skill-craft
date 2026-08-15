@@ -13,5 +13,6 @@ or the installed `prompt-on-change` skill). Do not re-author the procedure here.
 
 - Native default: `prompts/author.prompt.md`, then same-turn
   `prompts/escalation.prompt.md` if the detect CLI prints `LLM_ESCALATION:`.
-- Optional CLI: `scripts/prompt-on-change` (bootstrap / validate / run / claim).
+- Optional CLI: `scripts/prompt-on-change` (bootstrap / validate / run /
+  explain / status / claim / issue / issue --exec).
 - Install this card: `./install.sh --skill prompt-on-change --agents`.

@@ -21,7 +21,11 @@ fail() {
 grep -q 'prompt-on-change' "$root/agents/prompt-on-change.md" || fail "agent card must point at the skill"
 grep -q 'kind: script-backed' "$pkg/SKILL.md" || fail "frontmatter kind"
 grep -q 'name: prompt-on-change' "$pkg/SKILL.md" || fail "frontmatter name"
-grep -q 'version: 2.0.0' "$pkg/SKILL.md" || fail "card version must be 2.0.0"
+grep -q 'version: 2.1.0' "$pkg/SKILL.md" || fail "card version must be 2.1.0"
+grep -q 'status' "$pkg/SKILL.md" || fail "card must document status"
+grep -q 'explain' "$pkg/SKILL.md" || fail "card must document explain"
+grep -q 'PROMPT_ISSUED\|issue --exec' "$pkg/SKILL.md" || fail "card must document issue"
+grep -q 'SEED_OK' "$pkg/SKILL.md" || fail "card must document SEED_OK"
 grep -q 'delta_between' "$pkg/SKILL.md" || fail "card must mention delta_between"
 grep -q 'date_between' "$pkg/SKILL.md" || fail "card must mention date_between"
 grep -q 'not_matches' "$pkg/SKILL.md" || fail "card must mention not_matches"
@@ -33,6 +37,7 @@ author_line="$(grep -n 'author.prompt.md' "$pkg/SKILL.md" | head -1 | cut -d: -f
 cli_line="$(grep -n 'scripts/prompt-on-change' "$pkg/SKILL.md" | head -1 | cut -d: -f1)"
 [[ -n "$author_line" && -n "$cli_line" ]] || fail "SKILL procedure must name author.prompt.md and wrapper CLI"
 [[ "$author_line" -lt "$cli_line" ]] || fail "SKILL must name author.prompt.md before the engine CLI"
+grep -q 'json outcome' "$pkg/prompts/escalation.prompt.md" || fail "escalation prompt must define outcome fence"
 if grep -qiE 'sonnet|opus|gpt-4|claude-3' \
   "$pkg/prompts/author.prompt.md" \
   "$pkg/prompts/schedule.prompt.md" \
@@ -102,5 +107,16 @@ if ! "$python_bin" "$pkg/tests/test_detect_engine.py"; then
   fail "test_detect_engine.py"
 fi
 printf 'LAYER e2e: engine tests OK\n'
+
+# Lifecycle fixture (local HTTP, wrapper verbs). Reuses PYTHON + POC_* dirs.
+export PYTHON="$python_bin"
+bash "$root/test/prompt-on-change-lifecycle.test.sh" \
+  || fail "lifecycle tests"
+printf 'LAYER e2e: lifecycle OK\n'
+
+# Probe only — never inherit a live Grok run into the hermetic suite.
+POC_GROK_LIVE=0 bash "$root/test/prompt-on-change-grok-native.test.sh" \
+  || fail "grok-native probe"
+printf 'LAYER simple: grok-native probe OK\n'
 
 printf 'prompt-on-change.test.sh: PASS\n'

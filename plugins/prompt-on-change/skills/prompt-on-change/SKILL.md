@@ -7,7 +7,7 @@ description: >-
   path authors YAML in-chat; the detect CLI is optional. Fires on change,
   numeric or date range, regex match/non-match, empty, HTTP status/headers,
   or compound delta. Calendar actions optional.
-version: 2.0.0
+version: 2.1.0
 license: MIT
 platforms:
   - linux
@@ -72,6 +72,7 @@ Native default (any harness, including Grok):
    **native-unvalidated**. That is a valid native outcome.
 3. If this host **can** exec: optional `prompts/schedule.prompt.md` for
    host-local repeat (cron, launchd, or “run again when I ask”).
+   First successful `run` on a `seed_mode` config prints `SEED_OK: <name>`.
 
 Script optional (same Layer-0 contracts):
 
@@ -83,8 +84,12 @@ Script optional (same Layer-0 contracts):
    empty outcome, not silent success.
 7. **Match contract:** write evidence JSON and print `LLM_ESCALATION: <abs-path>`.
    Immediately load `prompts/escalation.prompt.md` in this same turn
-   (or `scripts/prompt-on-change claim`). Do **not** wait for a Hermes cron.
+   (or `scripts/prompt-on-change claim` / `issue`). Do **not** wait for a Hermes cron.
    Claim first, reason over previous/new/delta/http, **never re-act**.
+8. **Debug:** `explain --config PATH` prints a read-only trigger trace (why a
+   poll stayed silent). `status` lists pending/processed. `issue` fills the
+   escalation prompt from evidence; `issue --exec` runs Grok headless and
+   writes a prompt-run outcome log. `issue` does not re-fetch the page.
 
 Package root is the directory that contains this `SKILL.md`. Runtime state
 defaults to `$POC_STATE_DIR` or `$XDG_STATE_HOME/prompt-on-change` (fallback
@@ -103,12 +108,17 @@ One family. Do not document `detect_engine.py` as the invoke.
 scripts/prompt-on-change bootstrap
 scripts/prompt-on-change validate --config configs/examples/price-range-delta.yaml
 scripts/prompt-on-change run --config configs/examples/price-range-delta.yaml
+scripts/prompt-on-change explain --config configs/examples/price-range-delta.yaml
+scripts/prompt-on-change status
 scripts/prompt-on-change claim
+scripts/prompt-on-change issue
+scripts/prompt-on-change issue --last
+scripts/prompt-on-change issue --exec
 scripts/prompt-on-change self-check
 ```
 
 Env: `SKILL_ROOT`, `POC_STATE_DIR`, `DETECT_DIR`, `DETECT_ENGINE_HEALTH_DIR`,
-`DETECT_ENGINE_ESCALATION_DIR`, `DETECT_ENGINE_LOG_FILE`, `PYTHON`.
+`DETECT_ENGINE_ESCALATION_DIR`, `DETECT_ENGINE_LOG_FILE`, `PYTHON`, `GROK_BIN`.
 
 Grok plugin install is a git URL or local path to `plugins/prompt-on-change`,
 never `name@marketplace`. Hermes adapter: set the env vars above; do not

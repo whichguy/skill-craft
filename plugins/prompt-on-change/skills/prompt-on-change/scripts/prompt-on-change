@@ -12,16 +12,20 @@ DETECT_ENGINE_HEALTH_DIR="${DETECT_ENGINE_HEALTH_DIR:-$POC_STATE_DIR}"
 DETECT_ENGINE_LOG_FILE="${DETECT_ENGINE_LOG_FILE:-$POC_STATE_DIR/detect-engine.log}"
 VENV_DIR="${POC_VENV_DIR:-$POC_STATE_DIR/.venv}"
 ENGINE="${ENGINE:-$SKILL_ROOT/scripts/detect_engine.py}"
+ESCALATION_PROMPT="${ESCALATION_PROMPT:-$SKILL_ROOT/prompts/escalation.prompt.md}"
 
 export SKILL_ROOT POC_STATE_DIR
 export DETECT_ENGINE_ESCALATION_DIR DETECT_ENGINE_HEALTH_DIR DETECT_ENGINE_LOG_FILE
 
 usage() {
-  printf 'Usage: %s <bootstrap|validate|run|claim|self-check> [flags]\n' "${0##*/}" >&2
+  printf 'Usage: %s <bootstrap|validate|run|explain|status|claim|issue|self-check> [flags]\n' "${0##*/}" >&2
   printf '  bootstrap\n' >&2
   printf '  validate --config PATH\n' >&2
   printf '  run --config PATH [--dry-run]\n' >&2
+  printf '  explain --config PATH\n' >&2
+  printf '  status\n' >&2
   printf '  claim\n' >&2
+  printf '  issue [--evidence PATH|--last] [--exec]\n' >&2
   printf '  self-check\n' >&2
 }
 
@@ -35,6 +39,22 @@ resolve_python() {
     return
   fi
   printf '%s\n' "python3"
+}
+
+resolve_grok() {
+  if [[ -n "${GROK_BIN:-}" ]]; then
+    printf '%s\n' "$GROK_BIN"
+    return
+  fi
+  if command -v grok >/dev/null 2>&1; then
+    command -v grok
+    return
+  fi
+  if [[ -x "${HOME}/.local/bin/grok" ]]; then
+    printf '%s\n' "${HOME}/.local/bin/grok"
+    return
+  fi
+  printf '%s\n' "grok"
 }
 
 refuse_venv_inside_skill() {
@@ -66,7 +86,6 @@ except ImportError:
 p = tomllib.loads(pathlib.Path(sys.argv[1]).read_text())
 print('\\n'.join(p['project']['dependencies']))
 " "$pyproject")" || { printf 'bootstrap: could not read pyproject.toml deps\n' >&2; exit 1; }
-  # shellcheck disable=SC2086
   printf '%s\n' "$deps" | "$VENV_DIR/bin/pip" install -q -r /dev/stdin
   printf 'bootstrap: venv at %s\n' "$VENV_DIR"
 }
@@ -96,7 +115,7 @@ parse_config_args() {
         ;;
     esac
   done
-  [[ -n "$config" ]] || { printf 'validate/run require --config PATH\n' >&2; usage; exit 64; }
+  [[ -n "$config" ]] || { printf 'validate/run/explain require --config PATH\n' >&2; usage; exit 64; }
 }
 
 run_engine() {
@@ -122,6 +141,90 @@ cmd_run() {
   run_engine
 }
 
+cmd_explain() {
+  parse_config_args "$@"
+  local python_bin
+  python_bin="$(resolve_python)"
+  [[ -f "$ENGINE" ]] || { printf 'engine missing: %s\n' "$ENGINE" >&2; exit 1; }
+  exec "$python_bin" "$ENGINE" --config "$config" --explain
+}
+
+pending_evidence() {
+  local esc="$DETECT_ENGINE_ESCALATION_DIR"
+  local f
+  shopt -s nullglob
+  for f in "$esc"/*.json; do
+    [[ -f "$f" ]] || continue
+    [[ "$(basename "$f")" == *.tmp ]] && continue
+    printf '%s\n' "$f"
+  done
+  shopt -u nullglob
+}
+
+newest_file() {
+  local newest="" newest_m=0 m f
+  for f in "$@"; do
+    [[ -f "$f" ]] || continue
+    m="$(stat -f %m "$f" 2>/dev/null || stat -c %Y "$f" 2>/dev/null || echo 0)"
+    if [[ "$m" -ge "$newest_m" ]]; then
+      newest_m="$m"
+      newest="$f"
+    fi
+  done
+  printf '%s\n' "$newest"
+}
+
+cmd_status() {
+  local esc="$DETECT_ENGINE_ESCALATION_DIR"
+  mkdir -p "$esc/processed"
+  local -a pending=()
+  local f
+  while IFS= read -r f; do
+    [[ -n "$f" ]] && pending+=("$f")
+  done < <(pending_evidence)
+  local -a processed=()
+  shopt -s nullglob
+  for f in "$esc/processed"/*.json; do
+    [[ -f "$f" ]] && processed+=("$f")
+  done
+  shopt -u nullglob
+
+  printf 'status:\n'
+  printf '  pending: %s\n' "${#pending[@]}"
+  if [[ "${#pending[@]}" -eq 0 ]]; then
+    printf '  CLAIM_EMPTY: no pending evidence under %s\n' "$esc"
+  else
+    for f in "${pending[@]}"; do
+      printf '  pending_path: %s\n' "$f"
+    done
+  fi
+  printf '  processed: %s\n' "${#processed[@]}"
+  for f in "${processed[@]}"; do
+    printf '  processed_path: %s\n' "$f"
+  done
+
+  local health
+  shopt -s nullglob
+  for health in "$DETECT_ENGINE_HEALTH_DIR"/*-health.json "$DETECT_ENGINE_HEALTH_DIR"/*_health.json; do
+    [[ -f "$health" ]] || continue
+    printf '  health: %s\n' "$health"
+    python3 -c '
+import json,sys
+p=sys.argv[1]
+try:
+    d=json.loads(open(p,encoding="utf-8").read())
+except Exception as e:
+    print("    parse_error:", e)
+    raise SystemExit(0)
+print("    config:", d.get("config",""))
+print("    status:", d.get("status",""))
+print("    timestamp:", d.get("timestamp",""))
+print("    detail:", d.get("detail",""))
+' "$health" || true
+  done
+  shopt -u nullglob
+}
+
 cmd_claim() {
   local esc="$DETECT_ENGINE_ESCALATION_DIR"
   mkdir -p "$esc/processed"
@@ -139,14 +242,208 @@ cmd_claim() {
       continue
     fi
     printf 'CLAIMED: %s\n' "$dest"
-    printf '---\n'
+    printf '%s\n' '---'
     cat "$dest"
-    printf '\n---\n'
+    printf '\n%s\n' '---'
   done
   shopt -u nullglob
   if [[ "$found" -eq 0 ]]; then
     printf 'CLAIM_EMPTY: no pending evidence under %s\n' "$esc"
     printf '[SILENT]\n'
+  fi
+}
+
+fill_issued_prompt() {
+  local evidence_path="$1"
+  local dest="$2"
+  local replay="$3"
+  local python_bin
+  python_bin="$(resolve_python)"
+  "$python_bin" - "$ESCALATION_PROMPT" "$evidence_path" "$dest" "$DETECT_ENGINE_ESCALATION_DIR" "$replay" <<'PY'
+import pathlib, sys
+prompt_path, evidence_path, dest, esc_dir, replay = sys.argv[1:6]
+text = pathlib.Path(prompt_path).read_text(encoding="utf-8")
+body = pathlib.Path(evidence_path).read_text(encoding="utf-8")
+text = text.replace("{{ESCALATION_DIR}}", esc_dir)
+text = text.replace("{{EVIDENCE_FILES}}", evidence_path)
+mode = "replay (already in processed/; do not claim again)" if replay == "1" else "pending (claim first if still top-level)"
+filled = (
+    text
+    + "\n\n## Spliced evidence\n\n"
+    + f"Evidence path: {evidence_path}\n"
+    + f"Mode: {mode}\n\n"
+    + "```json\n"
+    + body.rstrip()
+    + "\n```\n"
+)
+pathlib.Path(dest).parent.mkdir(parents=True, exist_ok=True)
+pathlib.Path(dest).write_text(filled, encoding="utf-8")
+PY
+}
+
+parse_outcome_and_log() {
+  local prompt_path="$1"
+  local evidence_path="$2"
+  local stdout_path="$3"
+  local stderr_path="$4"
+  local grok_exit="$5"
+  local duration_ms="$6"
+  local log_path="$7"
+  local python_bin
+  python_bin="$(resolve_python)"
+  "$python_bin" - "$prompt_path" "$evidence_path" "$stdout_path" "$stderr_path" \
+    "$grok_exit" "$duration_ms" "$log_path" <<'PY'
+import json, pathlib, re, sys
+prompt_path, evidence_path, stdout_path, stderr_path, grok_exit, duration_ms, log_path = sys.argv[1:8]
+text = pathlib.Path(stdout_path).read_text(encoding="utf-8", errors="replace")
+outcome = None
+parse_error = None
+m = re.search(r"```(?:json)?[ \t]*outcome[ \t]*\n(.*?)```", text, re.S | re.I)
+if not m:
+    m = re.search(r"```json[ \t]*\n(\s*\{.*?\})\s*```", text, re.S)
+if m:
+    try:
+        outcome = json.loads(m.group(1))
+    except Exception as exc:
+        parse_error = str(exc)
+else:
+    parse_error = "no outcome fence"
+silent = False
+if isinstance(outcome, dict) and "silent" in outcome:
+    silent = bool(outcome.get("silent"))
+elif "[SILENT]" in text:
+    silent = True
+log = {
+    "prompt_path": prompt_path,
+    "evidence_path": evidence_path,
+    "grok_exit": int(grok_exit),
+    "duration_ms": int(duration_ms),
+    "stdout_path": stdout_path,
+    "stderr_path": stderr_path,
+    "outcome": outcome,
+    "parse_error": parse_error,
+    "silent": silent,
+}
+pathlib.Path(log_path).parent.mkdir(parents=True, exist_ok=True)
+pathlib.Path(log_path).write_text(json.dumps(log, indent=2) + "\n", encoding="utf-8")
+print(json.dumps({"silent": silent, "parse_error": parse_error}, default=str))
+PY
+}
+
+exec_issued_prompt() {
+  local prompt_path="$1"
+  local evidence_path="$2"
+  local grok
+  grok="$(resolve_grok)"
+  if [[ ! -x "$grok" ]] && ! command -v "$grok" >/dev/null 2>&1; then
+    printf 'issue --exec: grok binary missing (%s). Set GROK_BIN.\n' "$grok" >&2
+    exit 1
+  fi
+  local stamp
+  stamp="$(date -u +%Y%m%dT%H%M%S)"
+  local run_dir="$POC_STATE_DIR/prompt-runs"
+  mkdir -p "$run_dir"
+  local stdout_path="$run_dir/${stamp}.stdout"
+  local stderr_path="$run_dir/${stamp}.stderr"
+  local log_path="$run_dir/${stamp}.json"
+  local start end duration
+  start="$(python3 -c 'import time; print(int(time.time()*1000))')"
+  set +e
+  "$grok" --prompt-file "$prompt_path" \
+    --cwd "${POC_ISSUE_CWD:-$SKILL_ROOT}" \
+    --output-format plain \
+    --yolo --permission-mode bypassPermissions \
+    --no-subagents --no-memory --disable-web-search --no-auto-update \
+    --disallowed-tools "web_search,web_fetch,Agent" \
+    --max-turns "${POC_GROK_MAX_TURNS:-24}" \
+    >"$stdout_path" 2>"$stderr_path"
+  local rc=$?
+  set -e
+  end="$(python3 -c 'import time; print(int(time.time()*1000))')"
+  duration=$((end - start))
+  parse_outcome_and_log "$prompt_path" "$evidence_path" "$stdout_path" "$stderr_path" \
+    "$rc" "$duration" "$log_path" >/dev/null
+  printf 'PROMPT_RUN: %s\n' "$log_path"
+  if [[ "$rc" -ne 0 ]]; then
+    printf 'issue --exec: grok exit %s (see %s)\n' "$rc" "$stderr_path" >&2
+    return "$rc"
+  fi
+}
+
+cmd_issue() {
+  local evidence=""
+  local use_last=0
+  local do_exec=0
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --evidence)
+        [[ $# -ge 2 ]] || { printf 'missing --evidence PATH\n' >&2; exit 64; }
+        evidence="$2"
+        shift 2
+        ;;
+      --last)
+        use_last=1
+        shift
+        ;;
+      --exec)
+        do_exec=1
+        shift
+        ;;
+      -h|--help)
+        usage
+        exit 0
+        ;;
+      *)
+        printf 'unknown flag: %s\n' "$1" >&2
+        usage
+        exit 64
+        ;;
+    esac
+  done
+
+  local esc="$DETECT_ENGINE_ESCALATION_DIR"
+  mkdir -p "$esc/processed" "$POC_STATE_DIR/issued"
+  local replay=0
+  if [[ -n "$evidence" ]]; then
+    [[ -f "$evidence" ]] || { printf 'issue: evidence not found: %s\n' "$evidence" >&2; exit 1; }
+    case "$evidence" in
+      */processed/*) replay=1 ;;
+    esac
+  elif [[ "$use_last" -eq 1 ]]; then
+    local -a processed=()
+    local f
+    shopt -s nullglob
+    processed=("$esc/processed"/*.json)
+    shopt -u nullglob
+    evidence="$(newest_file "${processed[@]:-}")"
+    if [[ -z "$evidence" ]]; then
+      printf 'CLAIM_EMPTY: no processed evidence under %s/processed\n' "$esc"
+      printf '[SILENT]\n'
+      return 0
+    fi
+    replay=1
+  else
+    local -a pending=()
+    local f
+    while IFS= read -r f; do
+      [[ -n "$f" ]] && pending+=("$f")
+    done < <(pending_evidence)
+    evidence="$(newest_file "${pending[@]:-}")"
+    if [[ -z "$evidence" ]]; then
+      printf 'CLAIM_EMPTY: no pending evidence under %s\n' "$esc"
+      printf '[SILENT]\n'
+      return 0
+    fi
+  fi
+
+  [[ -f "$ESCALATION_PROMPT" ]] || { printf 'issue: missing %s\n' "$ESCALATION_PROMPT" >&2; exit 1; }
+  local stamp dest
+  stamp="$(date -u +%Y%m%dT%H%M%S)"
+  dest="$POC_STATE_DIR/issued/${stamp}.prompt.md"
+  fill_issued_prompt "$evidence" "$dest" "$replay"
+  printf 'PROMPT_ISSUED: %s\n' "$dest"
+  if [[ "$do_exec" -eq 1 ]]; then
+    exec_issued_prompt "$dest" "$evidence"
   fi
 }
 
@@ -181,7 +478,10 @@ case "$cmd" in
   bootstrap) cmd_bootstrap "$@" ;;
   validate) cmd_validate "$@" ;;
   run) cmd_run "$@" ;;
+  explain) cmd_explain "$@" ;;
+  status) cmd_status "$@" ;;
   claim) cmd_claim "$@" ;;
+  issue) cmd_issue "$@" ;;
   self-check) cmd_self_check "$@" ;;
   -h|--help) usage; exit 0 ;;
   *)
