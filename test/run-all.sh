@@ -31,6 +31,7 @@ run devloop-run bash test/devloop-run.test.sh
 run devloop-gas-weather-native env DEVLOOP_LIVE_WEATHER=0 bash test/devloop-gas-weather-native.test.sh
 run devloop-native bash test/devloop-native.test.sh
 run review-coverage bash test/review-coverage.test.sh
+run prompt-on-change bash test/prompt-on-change.test.sh
 run dual-body-guard bash test/dual-body-guard.test.sh
 
 if [[ "$fail" -ne 0 ]]; then

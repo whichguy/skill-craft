@@ -1,0 +1,13 @@
+[project]
+name = "prompt-on-change"
+version = "1.7.0"
+description = "Portable URL change-detection engine with prompt-event promotion"
+requires-python = ">=3.12"
+dependencies = [
+    "pyyaml>=6.0",
+    "pydantic>=2.0",
+    "httpx>=0.27",
+    "jsonpath-ng>=1.6",
+    "selectolax>=0.3",
+    "pytest>=8.0",
+]

@@ -1,0 +1,45 @@
+# Test config: transitions shortcut — compiles to conditions + groups
+name: "Transitions Test"
+enabled: true
+expires: "2099-01-01T00:00:00Z"
+
+sources:
+  - id: test_source
+    url: "https://example.com/api"
+    extract:
+      - id: dep_time
+        type: jsonpath
+        path: "$.dep_time"
+      - id: status
+        type: jsonpath
+        path: "$.status"
+
+transitions:
+  - field: dep_time
+    on_change: [patch_flight, patch_uber]
+  - field: status
+    on_change: [patch_flight]
+    when: {op: eq, value: "Delayed"}
+    unless:
+      field: cal_title
+      op: contains
+      value: "DELAYED"
+    refire_after: "30m"
+
+actions:
+  patch_flight:
+    type: calendar_patch
+    event_id: "evt1"
+    fields:
+      summary: "Test Flight"
+  patch_uber:
+    type: calendar_patch
+    event_id: "evt2"
+    fields:
+      summary: "Test Uber"
+
+state:
+  file: "state/transitions_test.json"
+  initial:
+    dep_time: ""
+    status: ""

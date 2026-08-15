@@ -1,0 +1,63 @@
+# Example: promote a prompt when price moves into a drop band
+# or any of status/headline change, including headline becoming empty.
+#
+# This config has no calendar actions. Copy it, set url/extract, and point
+# DETECT_DIR at the directory that contains this file.
+
+name: "Example price range delta"
+enabled: true
+seed_mode: true
+
+sources:
+  - id: product
+    url: "https://example.com/product/123"
+    extract:
+      - id: price
+        type: css
+        selector: ".price"
+        transform: text
+      - id: status
+        type: css
+        selector: ".availability"
+        transform: text
+      - id: headline
+        type: css
+        selector: "h1"
+        transform: text
+
+conditions:
+  - id: price_drop_band
+    field: price
+    op: delta_between
+    min: -50
+    max: -5
+  - id: price_in_sale_range
+    field: price
+    op: between
+    min: 10
+    max: 50
+  - id: any_copy_moved
+    delta:
+      any: [status, headline]
+      became_empty: [headline]
+
+groups:
+  - name: promote
+    any: [price_drop_band, price_in_sale_range, any_copy_moved]
+
+llm_escalation:
+  trigger_groups: [promote]
+  fire_once: true
+  prompt: |
+    {{ config_name }} fired {{ condition_id }}.
+    Previous: {{ previous_value }} → New: {{ new_value }}
+    Changed fields: {{ changed_fields }}
+    Delta JSON: {{ delta }}
+    Reason: {{ match_reason }}
+
+state:
+  file: "state/price_range_delta.json"
+  initial:
+    price: ""
+    status: ""
+    headline: ""

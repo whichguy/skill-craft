@@ -1,0 +1,209 @@
+# ═══════════════════════════════════════════════════════════════
+#  Generic Flight Monitor Config Template
+# ═══════════════════════════════════════════════════════════════
+# 
+# Usage: Copy this file, fill in the variables below, drop in configs/.
+# The detect runner picks it up automatically on the next 5m tick.
+#
+# Required inputs:
+#   FLIGHT_NUMBER  — e.g. "AS706" (without "AS" prefix for URL)
+#   FLIGHT_DATE     — e.g. "2026-07-15" (ISO format)
+#   AIRLINE_NAME    — e.g. "Alaska Airlines"
+#   AIRLINE_URL     — e.g. "https://www.alaskaair.com/status/706/2026-07-15"
+#   FLIGHT_EVENT_ID — Google Calendar event ID for the flight
+#   UBER_EVENT_ID   — Google Calendar event ID for the Uber (omit patch_uber
+#                     from on_change lists to skip Uber patching entirely)
+#   UBER_OFFSET_MIN — Minutes after arrival for Uber pickup (default: 17)
+#   TIMEZONE        — IANA tz for calendar events, e.g. "America/Los_Angeles"
+#   EXPIRES         — ISO datetime, typically 1h after scheduled arrival
+#
+# The engine extracts ALL fields from the airline's JSON-LD:
+#   dep_time, arr_time, scheduled_dep, scheduled_arr, dep_iata, arr_iata,
+#   dep_gate, arr_gate, tail_number, status, boarding_time
+#
+# seed_mode: true ensures first poll observes only — no false "changed" fires.
+# preserve_from_desc keeps Gmail booking links across patches.
+# transitions: shortcut replaces verbose conditions: + groups: sections.
+# ═══════════════════════════════════════════════════════════════
+
+name: "FLIGHT_NUMBER Flight Status Monitor"
+enabled: true
+seed_mode: true
+expires: "EXPIRES"  # e.g. "2026-07-15T20:30:00-07:00" — 1h after scheduled arrival
+
+sources:
+  - id: airline_status
+    url: "AIRLINE_URL"  # e.g. "https://www.alaskaair.com/status/706/2026-07-15"
+    required: true
+    retry:
+      count: 3
+      backoff: 5  # seconds, exponential: 5, 10, 20...
+    extract:
+      # ── Actual times (from JSON-LD) ──
+      - id: dep_time
+        type: jsonpath_from_html
+        path: "$.departureTime"
+      - id: arr_time
+        type: jsonpath_from_html
+        path: "$.arrivalTime"
+      # ── Scheduled times (original booking times) ──
+      - id: scheduled_dep
+        type: jsonpath_from_html
+        path: "$.scheduledDepartureTime"
+      - id: scheduled_arr
+        type: jsonpath_from_html
+        path: "$.scheduledArrivalTime"
+      # ── Airports (extracted from page, NOT hardcoded) ──
+      - id: dep_iata
+        type: jsonpath_from_html
+        path: "$.departureAirport"
+      - id: arr_iata
+        type: jsonpath_from_html
+        path: "$.arrivalAirport"
+      # ── Gate info ──
+      - id: dep_gate
+        type: regex
+        pattern: 'departureGate":"([^"]*)"'
+        group: 1
+      - id: arr_gate
+        type: regex
+        pattern: 'arrivalGate":"([^"]*)"'
+        group: 1
+      # ── Other flight details ──
+      - id: tail_number
+        type: regex
+        pattern: 'equipmentNumber":"([^"]*)"'
+        group: 1
+      - id: status
+        type: regex
+        pattern: 'flightStatus">([^<]*)<'
+        group: 1
+      - id: boarding_time
+        type: regex
+        pattern: 'boardingTime":"([^"]*)"'
+        group: 1
+
+transitions:
+  # Departure or arrival time changed → patch flight + Uber
+  - field: dep_time
+    on_change: [patch_flight, patch_uber]
+    refire_after: "30m"
+  - field: arr_time
+    on_change: [patch_flight, patch_uber]
+    refire_after: "30m"
+  # Status changed to Delayed → patch flight title + escalate
+  - field: status
+    on_change: [patch_flight]
+    when: {op: contains, value: "Delay"}
+    unless:
+      field: cal_title
+      op: contains
+      value: "DELAYED"
+    refire_after: "30m"
+  # Gate changed → patch flight description only
+  - field: dep_gate
+    on_change: [patch_flight_gate]
+
+actions:
+  # ── Patch flight event: summary, times, description ──
+  patch_flight:
+    type: calendar_patch
+    event_id: "FLIGHT_EVENT_ID"
+    preserve_from_desc:
+      - as: gmail_link
+        pattern: '<a href="https://mail\.google\.com/[^"]+">[^<]*</a>'
+    fields:
+      summary: "✈️ FLIGHT_NUMBER: {{ dep_iata | default:TBD }} → {{ arr_iata | default:TBD }}"
+      start:
+        dateTime: "{{ dep_time }}"
+        timeZone: "TIMEZONE"
+      end:
+        dateTime: "{{ arr_time }}"
+        timeZone: "TIMEZONE"
+      description: |
+        AIRLINE_NAME FLIGHT_NUMBER · {{ tail_number | default:N/A }} | {{ dep_iata | default:TBD }} → {{ arr_iata | default:TBD }}
+        Depart: {{ dep_time | fmt_time }} | Arrive: {{ arr_time | fmt_time }}
+        
+        Original schedule: Depart {{ scheduled_dep | fmt_time }} → Arrive {{ scheduled_arr | fmt_time }}
+        Updated schedule: Depart {{ dep_time | fmt_time }} → Arrive {{ arr_time | fmt_time }}
+        
+        Boarding: {{ boarding_time | default:TBD }} | Gate: {{ dep_gate | default:TBD }} ({{ dep_iata | default:TBD }}) → {{ arr_gate | default:TBD }} ({{ arr_iata | default:TBD }})
+        Status: {{ status | default:On time }}
+        
+        <a href="AIRLINE_URL">🔗 Live flight status</a>
+        {{ gmail_link | if_present }}
+
+  # ── Patch Uber event: shift pickup to arrival + offset ──
+  # To skip Uber patching: remove "patch_uber" from all on_change lists above.
+  patch_uber:
+    type: calendar_patch
+    event_id: "UBER_EVENT_ID"
+    fields:
+      summary: "🚗 Uber: {{ arr_iata | default:TBD }} → destination (updated)"
+      start:
+        dateTime: "{{ arr_time | add_minutes: UBER_OFFSET_MIN }}"
+        timeZone: "TIMEZONE"
+      end:
+        dateTime: "{{ arr_time | add_minutes: 65 }}"
+        timeZone: "TIMEZONE"
+      description: |
+        Uber from {{ arr_iata | default:TBD }} airport to destination.
+        Book Uber after landing at {{ arr_iata | default:TBD }} at {{ arr_time | fmt_time }}.
+        Pickup ~{{ UBER_OFFSET_MIN }} min after arrival (deplane + walk to rideshare).
+        
+        <a href="AIRLINE_URL">🔗 Live flight status</a>
+
+  # ── Patch flight gate only (lighter update, doesn't change times) ──
+  patch_flight_gate:
+    type: calendar_patch
+    event_id: "FLIGHT_EVENT_ID"
+    preserve_from_desc:
+      - as: gmail_link
+        pattern: '<a href="https://mail\.google\.com/[^"]+">[^<]*</a>'
+      - as: original_schedule
+        pattern: 'Original schedule: [^\n]+'
+      - as: updated_schedule
+        pattern: 'Updated schedule: [^\n]+'
+    fields:
+      description: |
+        AIRLINE_NAME FLIGHT_NUMBER · {{ tail_number | default:N/A }} | {{ dep_iata | default:TBD }} → {{ arr_iata | default:TBD }}
+        Depart: {{ dep_time | fmt_time }} | Arrive: {{ arr_time | fmt_time }}
+        
+        {{ original_schedule | if_present }}
+        {{ updated_schedule | if_present }}
+        
+        Boarding: {{ boarding_time | default:TBD }} | Gate: {{ dep_gate | default:TBD }} ({{ dep_iata | default:TBD }}) → {{ arr_gate | default:TBD }} ({{ arr_iata | default:TBD }})
+        Status: {{ status | default:On time }}
+        
+        <a href="AIRLINE_URL">🔗 Live flight status</a>
+        {{ gmail_link | if_present }}
+
+state:
+  file: "state/FLIGHT_NUMBER_FLIGHT_DATE.json"  # e.g. state/AS706_2026-07-15.json
+  initial:
+    dep_time: ""
+    arr_time: ""
+    scheduled_dep: ""
+    scheduled_arr: ""
+    dep_iata: ""
+    arr_iata: ""
+    dep_gate: ""
+    arr_gate: ""
+    status: ""
+    tail_number: ""
+    boarding_time: ""
+
+llm_escalation:
+  trigger_groups: ["transition_dep_time_group", "transition_arr_time_group", "transition_status_group"]
+  prompt: |
+    Flight FLIGHT_NUMBER ({{ dep_iata }} → {{ arr_iata }}) has changed:
+    
+    Departure: {{ scheduled_dep | fmt_time }} → {{ dep_time | fmt_time }}
+    Arrival: {{ scheduled_arr | fmt_time }} → {{ arr_time | fmt_time }}
+    Status: {{ status | default:On time }}
+    Gate: {{ dep_gate | default:TBD }}
+    
+    Calendar has been updated. Check if Jim needs to take action:
+    1. Is the delay significant enough to notify?
+    2. Are there downstream impacts (hotel checkout, meetings, pickup)?
+    3. Does the Uber pickup time need manual adjustment?

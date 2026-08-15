@@ -42,6 +42,7 @@ plugins, use **claude-craft**.
 | **question-bench** | Benchmark review-plan question subsets |
 | **improve-system-prompt** | Benchmark system prompt variants (Sheets Chat lineage) |
 | **review-fix-bench** | A/B benchmark code reviewer agent prompts |
+| **prompt-on-change** | Poll URL/HTML/JSON fields; promote a prompt event on change, range, or compound delta |
 
 **External (not in this monorepo):** [lennox-s40](https://github.com/whichguy/lennox-s40) — thermostat skill; install from that clone. Catalog pin remains in skill-craft-market.
 

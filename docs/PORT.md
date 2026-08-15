@@ -27,6 +27,7 @@
 | improve-system-prompt | review-bench | Wave 2 (Sheets Chat specific) |
 | review-fix-bench | review-bench | Wave 2 |
 | review-coverage | (native) | Post-ship residual×2 directive + CLI |
+| prompt-on-change | Hermes productivity | Script-backed URL monitor + prompt event; range/compound delta |
 | devloop-run | (native) | **Default DevLoop** — thin engine shim (resolve/bootstrap/exec); bare “devloop” routes here |
 | devloop-native | (native) | **Demoted** optional offline freeze/prove/stop evidence gates — not default DevLoop |
 
