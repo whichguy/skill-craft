@@ -54,17 +54,21 @@ state:
 | Operator | Required | Meaning |
 |----------|----------|---------|
 | `changed` | field | differs from previous state (or `baseline`) |
-| `eq` / `ne` / `contains` / `matches` | field + `value` | string compare / regex |
+| `eq` / `ne` / `contains` | field + `value` | string compare |
 | `exists` | field | not None, not whitespace-only |
 | `empty` | field | None, whitespace, or empty collection |
 | `became_empty` | field | previous nonempty, now empty |
 | `became_nonempty` | field | previous empty, now nonempty |
 | `gt` `gte` `lt` `lte` | field + `value` | numeric compare of **current** value |
 | `between` | field + `min` + `max` | inclusive numeric band on **current** value |
+| `date_between` | field + `min` + `max` | inclusive date/datetime window on **current** value |
+| `date_outside` | field + `min` + `max` | current value strictly outside that same window |
 | `delta_gt` `delta_gte` `delta_lt` `delta_lte` | field + `value` | signed `(new - prev)` vs threshold |
 | `delta_between` | field + `min` + `max` | inclusive band on `(new - prev)` |
 | `time_diff_gt` / `time_diff_lt` | field + `value` + `compared_to` | absolute minutes |
 | `time_shift_gt` / `time_shift_lt` | field + `value` + `compared_to` | signed minutes |
+| `matches` | field + `value` | regex **search** hits (input capped) |
+| `not_matches` | field + `value` | regex search does **not** hit (empty counts as no-hit) |
 | `any_changed` / `all_changed` | `fields` | compound change list |
 | `any_empty` / `all_empty` | `fields` | current emptiness |
 | `any_became_empty` / `all_became_empty` | `fields` | emptiness transitions |
@@ -72,6 +76,13 @@ state:
 
 `between` / `delta_between` swap bounds if `min > max`. Non-numeric operands
 do not match (not a crash). Unavailable sources are **indeterminate**.
+
+`date_between` / `date_outside` parse ISO datetimes plus date-only
+(`YYYY-MM-DD`, `MM/DD/YYYY`) and common display dates (`Aug 15, 2026`).
+Date-only `min` is start of that day; date-only `max` is end of that day.
+Naive bounds inherit the actual value's timezone. Unparseable dates do not
+match. `matches` / `not_matches` use Python `re.search` on a length-capped
+input; invalid patterns fail closed (no promote).
 
 ## Compound `delta:` block
 
@@ -88,10 +99,16 @@ fields moved, and that one became empty, and price dropped by $5–$50”:
     became_empty: [headline]
     became_nonempty: []
     range: {field: price, min: -50, max: -5}
+    date_in: {field: dep_time, min: "2026-08-01", max: "2026-08-31"}
+    date_out: {field: expires, min: "2026-01-01", max: "2026-12-31"}
+    matches: {field: status, pattern: "Delayed|Cancelled"}
+    not_matches: {field: status, pattern: "On time"}
 ```
 
 `delta.any` is OR across that list. `delta.all` / `empty` / `became_*` are AND
-across their lists. `delta.range` is a numeric `(new-prev)` band.
+across their lists. `delta.range` is a numeric `(new-prev)` band. `delta.date_in`
+/ `date_out` are the same windows as `date_between` / `date_outside`.
+`delta.matches` / `not_matches` take `field` plus `pattern` (or `value`).
 
 Groups:
 

@@ -80,8 +80,13 @@ HEALTH_DIR = Path(os.environ.get("DETECT_ENGINE_HEALTH_DIR", str(_STATE_DIR)))
 ESCALATION_DIR = Path(os.environ.get("DETECT_ENGINE_ESCALATION_DIR", str(_STATE_DIR / "escalations")))
 # Cap for regex-scanned text (extract body, preserve_from_desc) to limit ReDoS.
 REGEX_INPUT_CAP = 100000
-# Cap for condition-op `matches` scanned value (same ReDoS class as REGEX_INPUT_CAP).
+# Cap for condition-op `matches` / `not_matches` scanned value (same ReDoS class).
 MATCHES_INPUT_CAP = 10000
+_DATE_ONLY_PATTERNS = (
+    re.compile(r"^\d{4}-\d{2}-\d{2}$"),
+    re.compile(r"^\d{1,2}/\d{1,2}/\d{4}$"),
+    re.compile(r"^\d{4}/\d{1,2}/\d{1,2}$"),
+)
 # Persisted timestamps farther ahead than this are treated as invalid clock skew.
 CLOCK_SKEW_TOLERANCE = timedelta(seconds=60)
 # Max and:/or:/not:/unless: nesting under a top-level condition (cross-ref + evaluate).
@@ -167,9 +172,10 @@ class Condition(BaseModel):
 
     # ── Validate op values ──
     VALID_OPS: ClassVar[set[str]] = {
-        "changed", "eq", "ne", "contains", "exists", "matches", "empty",
-        "became_empty", "became_nonempty",
+        "changed", "eq", "ne", "contains", "exists", "matches", "not_matches",
+        "empty", "became_empty", "became_nonempty",
         "gt", "gte", "lt", "lte", "between",
+        "date_between", "date_outside",
         "delta_gt", "delta_gte", "delta_lt", "delta_lte", "delta_between",
         "time_diff_gt", "time_diff_lt",
         "time_shift_gt", "time_shift_lt",
@@ -182,10 +188,18 @@ class Condition(BaseModel):
         "any_became_empty", "all_became_empty",
         "any_became_nonempty", "all_became_nonempty",
     }
-    RANGE_OPS: ClassVar[set[str]] = {"between", "delta_between"}
+    RANGE_OPS: ClassVar[set[str]] = {
+        "between", "delta_between", "date_between", "date_outside",
+    }
     DELTA_OPS: ClassVar[set[str]] = {
         "delta_gt", "delta_gte", "delta_lt", "delta_lte", "delta_between",
     }
+    REGEX_OPS: ClassVar[set[str]] = {"matches", "not_matches"}
+    DATE_RANGE_OPS: ClassVar[set[str]] = {"date_between", "date_outside"}
+    DELTA_CLAUSE_KEYS: ClassVar[frozenset[str]] = frozenset({
+        "any", "all", "empty", "nonempty", "became_empty", "became_nonempty",
+        "range", "date_in", "date_out", "matches", "not_matches",
+    })
 
     @field_validator("op")
     @classmethod
@@ -204,30 +218,43 @@ class Condition(BaseModel):
                 raise ValueError(f"op '{op}' requires min and max")
         if op in self.DELTA_OPS and op != "delta_between" and self.value is None:
             raise ValueError(f"op '{op}' requires value")
+        if op == "not_matches" and (self.value is None or str(self.value) == ""):
+            raise ValueError("op 'not_matches' requires value (regex pattern)")
         if self.delta is not None:
             if not isinstance(self.delta, dict):
                 raise ValueError("delta: must be a mapping")
-            allowed = {
-                "any", "all", "empty", "nonempty", "became_empty",
-                "became_nonempty", "range",
-            }
-            unknown = set(self.delta) - allowed
+            unknown = set(self.delta) - self.DELTA_CLAUSE_KEYS
             if unknown:
                 raise ValueError(f"delta: unknown keys {sorted(unknown)}")
-            has_clause = any(
-                self.delta.get(k) for k in (
-                    "any", "all", "empty", "nonempty",
-                    "became_empty", "became_nonempty", "range",
-                )
-            )
+            has_clause = any(self.delta.get(k) for k in self.DELTA_CLAUSE_KEYS)
             if not has_clause:
-                raise ValueError("delta: needs at least one of any/all/empty/nonempty/became_empty/became_nonempty/range")
+                raise ValueError(
+                    "delta: needs at least one of any/all/empty/nonempty/"
+                    "became_empty/became_nonempty/range/date_in/date_out/matches/not_matches"
+                )
             range_spec = self.delta.get("range")
             if range_spec is not None:
                 if not isinstance(range_spec, dict) or not range_spec.get("field"):
                     raise ValueError("delta.range requires field")
                 if range_spec.get("min") is None or range_spec.get("max") is None:
                     raise ValueError("delta.range requires min and max")
+            for date_key in ("date_in", "date_out"):
+                spec = self.delta.get(date_key)
+                if spec is None:
+                    continue
+                if not isinstance(spec, dict) or not spec.get("field"):
+                    raise ValueError(f"delta.{date_key} requires field")
+                if spec.get("min") is None or spec.get("max") is None:
+                    raise ValueError(f"delta.{date_key} requires min and max")
+            for regex_key in ("matches", "not_matches"):
+                spec = self.delta.get(regex_key)
+                if spec is None:
+                    continue
+                if not isinstance(spec, dict) or not spec.get("field"):
+                    raise ValueError(f"delta.{regex_key} requires field")
+                pattern = spec.get("pattern", spec.get("value"))
+                if pattern is None or str(pattern) == "":
+                    raise ValueError(f"delta.{regex_key} requires pattern")
         return self
 
 
@@ -320,6 +347,10 @@ def _collect_leaf_fields(cond: Condition) -> list[str]:
             range_spec = c.delta.get("range") or {}
             if isinstance(range_spec, dict):
                 add(range_spec.get("field"))
+            for key in ("date_in", "date_out", "matches", "not_matches"):
+                spec = c.delta.get(key)
+                if isinstance(spec, dict):
+                    add(spec.get("field"))
         for kids in (c.and_, c.or_, c.not_):
             if kids:
                 for raw in kids:
@@ -357,6 +388,82 @@ def _numeric_delta(previous: Any, current: Any) -> Optional[float]:
     if prev_n is None or new_n is None:
         return None
     return new_n - prev_n
+
+
+def _is_date_only_string(val: Any) -> bool:
+    if val is None:
+        return False
+    return any(p.match(str(val).strip()) for p in _DATE_ONLY_PATTERNS)
+
+
+def _parse_datetime_flexible(val: Any) -> Optional[datetime]:
+    """ISO plus common date-only and display formats used in HTML extracts."""
+    if val is None or val is VALUE_UNAVAILABLE:
+        return None
+    dt = _parse_datetime_iso(val)
+    if dt is not None:
+        return dt
+    s = str(val).strip()
+    for fmt in (
+        "%m/%d/%Y",
+        "%Y/%m/%d",
+        "%d %b %Y",
+        "%d %B %Y",
+        "%b %d, %Y",
+        "%B %d, %Y",
+    ):
+        try:
+            return datetime.strptime(s, fmt)
+        except ValueError:
+            continue
+    return None
+
+
+def _align_to_ref_tz(dt: datetime, ref: datetime) -> datetime:
+    """Make ``dt`` comparable to ``ref`` (naive bounds inherit the actual's tz)."""
+    if dt.tzinfo is None and ref.tzinfo is not None:
+        return dt.replace(tzinfo=ref.tzinfo)
+    if dt.tzinfo is not None and ref.tzinfo is None:
+        try:
+            return dt.astimezone(timezone.utc).replace(tzinfo=None)
+        except Exception:
+            return dt.replace(tzinfo=None)
+    return dt
+
+
+def _date_window(
+    min_value: Any, max_value: Any, actual: datetime,
+) -> Optional[tuple[datetime, datetime]]:
+    """Inclusive [min, max]. Date-only max is end-of-day; swapped bounds are ordered."""
+    lo_raw, hi_raw = min_value, max_value
+    lo = _parse_datetime_flexible(lo_raw)
+    hi = _parse_datetime_flexible(hi_raw)
+    if lo is None or hi is None:
+        return None
+    lo_cmp = _align_to_ref_tz(lo, actual)
+    hi_cmp = _align_to_ref_tz(hi, actual)
+    if lo_cmp > hi_cmp:
+        lo_raw, hi_raw = hi_raw, lo_raw
+        lo, hi = hi, lo
+    if _is_date_only_string(lo_raw):
+        lo = lo.replace(hour=0, minute=0, second=0, microsecond=0)
+    if _is_date_only_string(hi_raw):
+        hi = hi.replace(hour=23, minute=59, second=59, microsecond=999999)
+    return _align_to_ref_tz(lo, actual), _align_to_ref_tz(hi, actual)
+
+
+def _regex_search(actual: Any, pattern: Any) -> tuple[Optional[bool], str]:
+    """Search ``actual`` with ``pattern``. ``None`` matched means unevaluable."""
+    if pattern is None or str(pattern) == "":
+        return None, "missing pattern"
+    try:
+        regex = re.compile(str(pattern))
+    except re.error as exc:
+        return None, f"invalid regex '{pattern}': {exc}"
+    if actual is None:
+        return False, "None operand"
+    input_str = str(actual)[:MATCHES_INPUT_CAP]
+    return bool(regex.search(input_str)), ""
 
 
 def _state_delta(prev_snapshot: dict, current_snapshot: dict) -> dict:
@@ -1274,18 +1381,8 @@ class TriggerAgent:
             matched = actual is not None and (actual.strip() != "" if isinstance(actual, str) else True)
             return ConditionResult(matched, f"{cond.field} exists: {matched}")
 
-        elif op == "matches":
-            if not expected or not actual:
-                return ConditionResult(False, f"{cond.field} matches: None operand")
-            # H4 FIX: Pre-compile regex to catch invalid patterns; cap input length to mitigate ReDoS
-            try:
-                regex = re.compile(str(expected))
-            except re.error as exc:
-                log.warning(f"TriggerAgent: invalid matches regex '{expected}': {exc}")
-                return ConditionResult(False, f"matches: invalid regex '{expected}'")
-            input_str = str(actual)[:MATCHES_INPUT_CAP]  # cap input to prevent catastrophic backtracking
-            matched = bool(regex.search(input_str))
-            return ConditionResult(matched, f"{cond.field} matches '{expected}': {matched}")
+        elif op in Condition.REGEX_OPS:
+            return self._eval_regex_op(cond, actual, invert=(op == "not_matches"))
 
         elif op == "empty":
             matched = _is_empty_value(actual)
@@ -1328,10 +1425,70 @@ class TriggerAgent:
                 else f"{cond.field} {number} not in [{lo}, {hi}]",
             )
 
+        elif op in Condition.DATE_RANGE_OPS:
+            return self._eval_date_range_op(cond, actual, inside=(op == "date_between"))
+
         elif op in Condition.DELTA_OPS:
             return self._eval_numeric_delta(cond, actual)
 
         return ConditionResult(False, f"unknown op: {op}")
+
+    def _eval_regex_op(self, cond: Condition, actual: Any, invert: bool) -> ConditionResult:
+        pattern = cond.value
+        found, detail = _regex_search(actual, pattern)
+        label = "not_matches" if invert else "matches"
+        if found is None:
+            log.warning(f"TriggerAgent: {label} {detail}")
+            return ConditionResult(False, f"{label}: {detail}")
+        if not invert and not actual:
+            return ConditionResult(False, f"{cond.field} matches: None operand")
+        if invert and actual is None:
+            return ConditionResult(True, f"{cond.field} not_matches '{pattern}': empty value")
+        matched = (not found) if invert else found
+        verb = "does not match" if invert else "matches"
+        return ConditionResult(
+            matched,
+            f"{cond.field} {verb} '{pattern}': {matched}",
+        )
+
+    def _eval_date_range_op(
+        self, cond: Condition, actual: Any, inside: bool,
+    ) -> ConditionResult:
+        return self._eval_date_window(
+            cond.field or "", actual, cond.min_value, cond.max_value, inside=inside,
+        )
+
+    def _eval_date_window(
+        self,
+        field: str,
+        actual: Any,
+        min_value: Any,
+        max_value: Any,
+        inside: bool,
+    ) -> ConditionResult:
+        label = "date_between" if inside else "date_outside"
+        actual_dt = _parse_datetime_flexible(actual)
+        if actual_dt is None:
+            return ConditionResult(False, f"{field} {label}: unparseable date {actual!r}")
+        window = _date_window(min_value, max_value, actual_dt)
+        if window is None:
+            return ConditionResult(
+                False, f"{field} {label}: unparseable bounds {min_value!r} .. {max_value!r}",
+            )
+        lo, hi = window
+        in_range = lo <= actual_dt <= hi
+        matched = in_range if inside else not in_range
+        bounds = f"[{lo.isoformat()} .. {hi.isoformat()}]"
+        where = "inside" if in_range else "outside"
+        if matched:
+            return ConditionResult(
+                True, f"{field} {label}: {actual_dt.isoformat()} {where} {bounds}",
+            )
+        return ConditionResult(
+            False,
+            f"{field} {label}: {actual_dt.isoformat()} not "
+            f"{'inside' if inside else 'outside'} {bounds}",
+        )
 
     def _previous_value(self, field: str) -> Any:
         """Previous-poll value for delta ops. Does not fall back to current."""
@@ -1502,6 +1659,47 @@ class TriggerAgent:
                         if matched else
                         f"delta.range {field} {delta} not in [{lo}, {hi}] ({previous} → {actual})",
                     ))
+        for date_key, inside in (("date_in", True), ("date_out", False)):
+            date_spec = spec.get(date_key)
+            if not date_spec:
+                continue
+            field = date_spec.get("field")
+            actual = self._get_value(field)
+            if actual is VALUE_UNAVAILABLE:
+                clause_results.append(
+                    ConditionResult(False, f"{field}: source unavailable", indeterminate=True)
+                )
+            else:
+                result = self._eval_date_window(
+                    field, actual, date_spec.get("min"), date_spec.get("max"), inside=inside,
+                )
+                result = ConditionResult(
+                    result.matched,
+                    f"delta.{date_key}: {result.reason}",
+                    result.submatches,
+                    indeterminate=result.indeterminate,
+                )
+                clause_results.append(result)
+        for regex_key, invert in (("matches", False), ("not_matches", True)):
+            regex_spec = spec.get(regex_key)
+            if not regex_spec:
+                continue
+            field = regex_spec.get("field")
+            pattern = regex_spec.get("pattern", regex_spec.get("value"))
+            actual = self._get_value(field)
+            if actual is VALUE_UNAVAILABLE:
+                clause_results.append(
+                    ConditionResult(False, f"{field}: source unavailable", indeterminate=True)
+                )
+                continue
+            fake = Condition(id=regex_key, field=field, op=regex_key, value=pattern)
+            result = self._eval_regex_op(fake, actual, invert=invert)
+            clause_results.append(ConditionResult(
+                result.matched,
+                f"delta.{regex_key}: {result.reason}",
+                result.submatches,
+                indeterminate=result.indeterminate,
+            ))
         if not clause_results:
             return ConditionResult(False, "delta: no clauses")
         return self._combine_all(clause_results, "delta")
@@ -2750,7 +2948,7 @@ def run_engine(config_path: str, dry_run: bool = False) -> int:
         print(f"🌱 {config.name}: seed mode — initial state saved, actions deferred to next poll")
         return 0
 
-    # ── Step 7: Evaluate conditions (changed/eq/ne/gt/lt/exists/matches/time_diff) ──
+    # ── Step 7: Evaluate conditions (changed/eq/matches/not_matches/date_between/delta/…) ──
     # Duration gate, fire_once, refire_after applied here. Anti-bounce: prune stale acks.
     trigger = TriggerAgent(sm.state, eval_context, calendar_events)
     condition_results: dict[str, ConditionResult] = {}  # State: {} (no conditions) | {cond.id: result}

@@ -3,9 +3,10 @@ name: prompt-on-change
 description: >-
   Detect URL/HTML/JSON field changes and promote a prompt event with previous
   and new state. Use when polling a page or API, watching a CSS/JSONPath/regex
-  field, firing only on change, range, empty, or compound delta (any/all/when
-  empty). Script-backed detect engine; calendar actions optional.
-version: 1.7.0
+  field, firing on change, numeric or date range (inside/outside), regex
+  match/non-match, empty, or compound delta (any/all/when empty). Script-backed
+  detect engine; calendar actions optional.
+version: 1.8.0
 license: MIT
 platforms:
   - linux
@@ -39,8 +40,9 @@ and is optional.
 
 - Poll an HTML field or JSON path and notify only when it changes
 - Promote an agent prompt with previous → new state
-- Fire on a numeric range, a numeric delta range, empty / became-empty, or a
-  compound delta (`any` / `all` / `empty` / `became_empty`)
+- Fire on a numeric range, a date range (inside or outside), a regex match or
+  non-match, a numeric delta range, empty / became-empty, or a compound delta
+  (`any` / `all` / `empty` / `became_empty` / `date_in` / `not_matches`)
 - Watch flight status, prices, package tracking, status pages, advisories
 
 ## Not for
@@ -52,7 +54,8 @@ and is optional.
 ## Procedure
 
 1. Author a YAML config (see `references/config-schema.md` and
-   `configs/examples/price-range-delta.yaml`).
+   `configs/examples/price-range-delta.yaml` /
+   `configs/examples/date-regex-delta.yaml`).
 2. Validate: `python3 scripts/detect_engine.py --config PATH --validate`
 3. Dry-run: `python3 scripts/detect_engine.py --config PATH --dry-run`
 4. Live run (or `scripts/detect_runner.sh` over a config directory).
@@ -96,8 +99,10 @@ Evidence always includes `previous_value`, `new_value`, `previous_state`,
 | `op: delta_between` + `min`/`max` | `(new - prev)` in inclusive range |
 | `op: delta_gt` / `delta_lt` | signed numeric delta vs `value` |
 | `op: empty` / `became_empty` / `became_nonempty` | emptiness vs previous |
+| `op: date_between` / `date_outside` + `min`/`max` | current date inside or outside inclusive range |
+| `op: matches` / `not_matches` + `value` | regex search hits, or does not hit |
 | `op: any_changed` / `all_changed` + `fields:` | compound field list |
-| `delta: { any, all, empty, nonempty, became_empty, became_nonempty, range }` | AND of those clauses |
+| `delta: { any, all, empty, nonempty, became_empty, became_nonempty, range, date_in, date_out, matches, not_matches }` | AND of those clauses |
 
 Groups still support `any:` / `all:` over named conditions. Nested `and` / `or`
 / `not` / `unless` are unchanged. Full schema: `references/config-schema.md`.

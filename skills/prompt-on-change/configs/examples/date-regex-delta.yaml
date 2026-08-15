@@ -1,0 +1,76 @@
+# Example: promote when a date sits inside or outside a window,
+# or when a status regex hits / misses.
+#
+# This config has no calendar actions. Copy it, set url/extract, and point
+# DETECT_DIR at the directory that contains this file.
+
+name: "Example date and regex delta"
+enabled: true
+seed_mode: true
+
+sources:
+  - id: event
+    url: "https://example.com/event/123"
+    extract:
+      - id: dep_time
+        type: css
+        selector: ".departure"
+        transform: text
+      - id: expires
+        type: css
+        selector: ".expires"
+        transform: text
+      - id: status
+        type: css
+        selector: ".status"
+        transform: text
+
+conditions:
+  - id: departure_in_window
+    field: dep_time
+    op: date_between
+    min: "2026-08-01"
+    max: "2026-08-31"
+  - id: expired_outside_year
+    field: expires
+    op: date_outside
+    min: "2026-01-01"
+    max: "2026-12-31"
+  - id: status_is_disrupted
+    field: status
+    op: matches
+    value: "Delayed|Cancelled|Diverted"
+  - id: status_not_on_time
+    field: status
+    op: not_matches
+    value: "On time"
+  - id: window_and_not_on_time
+    delta:
+      date_in: {field: dep_time, min: "2026-08-01", max: "2026-08-31"}
+      not_matches: {field: status, pattern: "On time"}
+
+groups:
+  - name: promote
+    any:
+      - departure_in_window
+      - expired_outside_year
+      - status_is_disrupted
+      - status_not_on_time
+      - window_and_not_on_time
+
+llm_escalation:
+  trigger_groups: [promote]
+  fire_once: true
+  prompt: |
+    {{ config_name }} fired {{ condition_id }}.
+    Previous: {{ previous_value }} → New: {{ new_value }}
+    Changed fields: {{ changed_fields }}
+    Delta JSON: {{ delta }}
+    Reason: {{ match_reason }}
+
+state:
+  file: "state/date_regex_delta.json"
+  initial:
+    dep_time: ""
+    expires: ""
+    status: ""

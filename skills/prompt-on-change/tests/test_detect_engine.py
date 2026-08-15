@@ -2538,7 +2538,7 @@ def test_config_invalid_op():
 
 def test_config_valid_op():
     """Valid op strings are accepted."""
-    for op in ["changed", "eq", "ne", "contains", "exists", "matches", "gt", "lt"]:
+    for op in ["changed", "eq", "ne", "contains", "exists", "matches", "not_matches", "gt", "lt"]:
         cond = Condition(id="test", field="x", op=op, value="y")
         assert cond.op == op, f"Valid op '{op}' should be accepted"
 
@@ -7418,6 +7418,167 @@ runner.run("TC-DELTA-RANGE: compound delta.range on numeric change", test_delta_
 runner.run("TC-ANY-ALL-EMPTY: empty field lists", test_any_empty_and_all_empty)
 runner.run("TC-EVIDENCE-DELTA: promotion payload has prev/new/delta", test_evidence_includes_prev_new_delta)
 runner.run("TC-EVIDENCE-COMPOUND: involved fields promoted", test_compound_evidence_promotes_all_involved_fields)
+
+
+def test_date_between_inclusive_date_only():
+    trigger = TriggerAgent({}, {"dep_time": "2026-08-15T17:20:00-07:00"}, {})
+    cond = Condition(id="win", field="dep_time", op="date_between", min="2026-08-01", max="2026-08-31")
+    result = trigger.evaluate(cond)
+    assert result.matched, result.reason
+    trigger = TriggerAgent({}, {"dep_time": "2026-09-01T00:00:00-07:00"}, {})
+    assert not trigger.evaluate(cond).matched
+    # Date-only max includes end of that day.
+    trigger = TriggerAgent({}, {"dep_time": "2026-08-31T23:59:00-07:00"}, {})
+    assert trigger.evaluate(cond).matched, trigger.evaluate(cond).reason
+
+
+def test_date_between_swapped_bounds():
+    trigger = TriggerAgent({}, {"dep_time": "2026-08-15"}, {})
+    cond = Condition(id="win", field="dep_time", op="date_between", min="2026-08-31", max="2026-08-01")
+    assert trigger.evaluate(cond).matched, trigger.evaluate(cond).reason
+
+
+def test_date_outside():
+    trigger = TriggerAgent({}, {"expires": "2027-01-02"}, {})
+    cond = Condition(id="out", field="expires", op="date_outside", min="2026-01-01", max="2026-12-31")
+    assert trigger.evaluate(cond).matched, trigger.evaluate(cond).reason
+    trigger = TriggerAgent({}, {"expires": "2026-06-15"}, {})
+    assert not trigger.evaluate(cond).matched
+
+
+def test_date_between_unparseable_does_not_match():
+    trigger = TriggerAgent({}, {"dep_time": "TBD"}, {})
+    cond = Condition(id="win", field="dep_time", op="date_between", min="2026-08-01", max="2026-08-31")
+    result = trigger.evaluate(cond)
+    assert not result.matched
+    assert "unparseable" in result.reason
+
+
+def test_date_between_display_format():
+    trigger = TriggerAgent({}, {"dep_time": "Aug 15, 2026"}, {})
+    cond = Condition(id="win", field="dep_time", op="date_between", min="08/01/2026", max="08/31/2026")
+    assert trigger.evaluate(cond).matched, trigger.evaluate(cond).reason
+
+
+def test_date_between_requires_min_max():
+    try:
+        Condition(id="win", field="dep_time", op="date_between", min="2026-08-01")
+        assert False, "date_between without max should fail"
+    except ValidationError:
+        pass
+
+
+def test_not_matches_fires_when_pattern_misses():
+    trigger = TriggerAgent({"status": "On time"}, {"status": "Delayed"}, {})
+    cond = Condition(id="miss", field="status", op="not_matches", value="On time")
+    assert trigger.evaluate(cond).matched, trigger.evaluate(cond).reason
+    trigger = TriggerAgent({"status": "On time"}, {"status": "On time, enroute."}, {})
+    assert not trigger.evaluate(cond).matched
+
+
+def test_not_matches_empty_value_counts_as_miss():
+    trigger = TriggerAgent({"status": "On time"}, {"status": ""}, {})
+    cond = Condition(id="miss", field="status", op="not_matches", value="On time")
+    assert trigger.evaluate(cond).matched, trigger.evaluate(cond).reason
+    none_trigger = TriggerAgent({"status": "On time"}, {"status": None}, {})
+    assert none_trigger.evaluate(cond).matched
+
+
+def test_not_matches_requires_pattern():
+    try:
+        Condition(id="miss", field="status", op="not_matches")
+        assert False, "not_matches without value should fail"
+    except ValidationError:
+        pass
+
+
+def test_not_matches_invalid_regex_fail_closed():
+    trigger = TriggerAgent({}, {"status": "Delayed"}, {})
+    cond = Condition(id="miss", field="status", op="not_matches", value="(")
+    result = trigger.evaluate(cond)
+    assert not result.matched
+    assert "invalid regex" in result.reason
+
+
+def test_not_matches_respects_input_cap():
+    from detect_engine import MATCHES_INPUT_CAP
+    huge = ("A" * MATCHES_INPUT_CAP) + "NEEDLE"
+    cond = Condition(id="m", field="blob", op="not_matches", value="NEEDLE")
+    result = TriggerAgent({}, {"blob": huge}, {}).evaluate(cond)
+    assert result.matched is True, "needle past cap is a miss, so not_matches fires"
+
+
+def test_delta_date_in_and_not_matches():
+    prev = {"dep_time": "2026-07-01T10:00:00-07:00", "status": "On time"}
+    current = {"dep_time": "2026-08-15T17:20:00-07:00", "status": "Delayed"}
+    trigger = TriggerAgent(prev, current, {})
+    cond = Condition(
+        id="combo",
+        delta={
+            "date_in": {"field": "dep_time", "min": "2026-08-01", "max": "2026-08-31"},
+            "not_matches": {"field": "status", "pattern": "On time"},
+        },
+    )
+    result = trigger.evaluate(cond)
+    assert result.matched, result.reason
+    still_on_time = Condition(
+        id="combo",
+        delta={
+            "date_in": {"field": "dep_time", "min": "2026-08-01", "max": "2026-08-31"},
+            "not_matches": {"field": "status", "pattern": "On time"},
+        },
+    )
+    trigger = TriggerAgent(prev, {"dep_time": current["dep_time"], "status": "On time"}, {})
+    assert not trigger.evaluate(still_on_time).matched
+
+
+def test_delta_date_out():
+    trigger = TriggerAgent(
+        {"expires": "2026-06-01"},
+        {"expires": "2027-02-01"},
+        {},
+    )
+    cond = Condition(
+        id="out",
+        delta={"date_out": {"field": "expires", "min": "2026-01-01", "max": "2026-12-31"}},
+    )
+    assert trigger.evaluate(cond).matched, trigger.evaluate(cond).reason
+
+
+def test_compound_evidence_includes_date_and_regex_fields():
+    config = DetectConfig(name="DateRegex")
+    prev = {"dep_time": "2026-07-01", "status": "On time"}
+    current = {"dep_time": "2026-08-15", "status": "Delayed"}
+    cond = Condition(
+        id="combo",
+        delta={
+            "date_in": {"field": "dep_time", "min": "2026-08-01", "max": "2026-08-31"},
+            "not_matches": {"field": "status", "pattern": "On time"},
+        },
+    )
+    result = ConditionResult(True, "delta: all matched")
+    evidence = LLMEscalationAgent(config, prev, current, [])._build_evidence(
+        "combo", result, cond,
+    )
+    assert set(evidence["fields"]) == {"dep_time", "status"}
+    assert evidence["delta"]["fields"]["dep_time"]["new"] == "2026-08-15"
+    assert evidence["delta"]["fields"]["status"]["new"] == "Delayed"
+
+
+runner.run("TC-DATE-BETWEEN: inclusive date-only window", test_date_between_inclusive_date_only)
+runner.run("TC-DATE-BETWEEN-SWAP: swapped min/max still ordered", test_date_between_swapped_bounds)
+runner.run("TC-DATE-OUTSIDE: fires when current date is outside window", test_date_outside)
+runner.run("TC-DATE-UNPARSEABLE: bad date does not match", test_date_between_unparseable_does_not_match)
+runner.run("TC-DATE-DISPLAY: Aug 15, 2026 and MM/DD/YYYY bounds", test_date_between_display_format)
+runner.run("TC-DATE-VALIDATE: date_between requires min and max", test_date_between_requires_min_max)
+runner.run("TC-NOT-MATCHES: regex miss promotes", test_not_matches_fires_when_pattern_misses)
+runner.run("TC-NOT-MATCHES-EMPTY: empty value is a miss", test_not_matches_empty_value_counts_as_miss)
+runner.run("TC-NOT-MATCHES-VALIDATE: pattern required", test_not_matches_requires_pattern)
+runner.run("TC-NOT-MATCHES-BAD-RE: invalid pattern fail closed", test_not_matches_invalid_regex_fail_closed)
+runner.run("TC-NOT-MATCHES-CAP: input cap treated as miss", test_not_matches_respects_input_cap)
+runner.run("TC-DELTA-DATE-REGEX: date_in AND not_matches", test_delta_date_in_and_not_matches)
+runner.run("TC-DELTA-DATE-OUT: compound date_out", test_delta_date_out)
+runner.run("TC-EVIDENCE-DATE-REGEX: involved date/regex fields promoted", test_compound_evidence_includes_date_and_regex_fields)
 
 
 # ═══════════════════════════════════════════════════════════════

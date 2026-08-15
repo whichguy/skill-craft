@@ -1,7 +1,7 @@
 {
   "name": "prompt-on-change",
-  "version": "1.7.0",
-  "description": "Detect URL/HTML/JSON field changes and promote a prompt event with previous and new state. Use when polling a page or API, watching a CSS/JSONPath/regex field, firing only on change, range, empty, or compound delta (any/all/when empty). Script-backed detect engine; calendar actions optional.",
+  "version": "1.8.0",
+  "description": "Detect URL/HTML/JSON field changes and promote a prompt event with previous and new state. Use when polling a page or API, watching a CSS/JSONPath/regex field, firing on change, numeric or date range (inside/outside), regex match/non-match, empty, or compound delta (any/all/when empty). Script-backed detect engine; calendar actions optional.",
   "author": {
     "name": "whichguy",
     "url": "https://github.com/whichguy"
