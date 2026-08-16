@@ -56,6 +56,17 @@ Resolve order (host=grok|claude|codex, default):
   3. Bootstrap from pin/URL/CMD (Hermes seed only if DEVLOOP_ALLOW_HERMES_SEED=1)
 
 Never overwrites Hermes skillhub leaf "devloop".
+
+New-repo designation (one signal, no fuzzy guessing):
+  --repo PATH given                -> that path always wins.
+  --repo omitted + goal designates -> --repo stays omitted (scratch mechanism
+    a new repo (phrases: "new repo",   is unchanged); shim prints
+    "new repository", "separate repo", "STATE target=scratch reason=new_repo_designated".
+    "fresh repo", "create a repo",
+    "newly created repo")
+  --repo omitted, no designation   -> unchanged default; shim prints
+                                       "STATE target=scratch reason=default".
+  Never reuses a previous --repo path and never infers cwd as the target.
 EOF
 }
 
@@ -86,6 +97,58 @@ while [[ $# -gt 0 ]]; do
     *) break ;;
   esac
 done
+
+# Binding lifecycle (stderr). Identity + BEFORE/AFTER/STATE. Do not print secrets.
+trace_before() { printf '[devloop-run] BEFORE %s\n' "$1" >&2; }
+trace_after() { printf '[devloop-run] AFTER  %s\n' "$*" >&2; }
+trace_state() { printf '[devloop-run] STATE  life=%s\n' "$1" >&2; }
+emit_identity() {
+  printf 'DevLoop — mode=engine host=%s engine=%s\n' "${DEVLOOP_HOST:-pending}" "${1:-pending}" >&2
+}
+fail_closed() {
+  trace_state fail-closed
+  exit 2
+}
+
+# New-repo designation (host signal only; one conservative rule, no fuzzy guessing).
+# Omitting --repo already creates a scratch git repo under the write-safe root and
+# worktrees it (see ensure_target_repo in the engine) — that scratch IS the new-repo
+# deliverable. This detector never changes routing; it only labels *why* --repo was
+# omitted so hosts stop inventing --repo paths or inferring cwd. Case-insensitive
+# substring match against the args forwarded to devloop_cli.py (goal text included).
+new_repo_designation_phrases=(
+  "new repo"
+  "new repository"
+  "separate repo"
+  "fresh repo"
+  "create a repo"
+  "newly created repo"
+)
+
+args_have_repo_flag() {
+  local a
+  for a in "$@"; do
+    case "$a" in
+      --repo|--repo=*) return 0 ;;
+    esac
+  done
+  return 1
+}
+
+designates_new_repo() {
+  local joined phrase
+  joined="$(printf '%s ' "$@" | tr '[:upper:]' '[:lower:]')"
+  for phrase in "${new_repo_designation_phrases[@]}"; do
+    if [[ "$joined" == *"$phrase"* ]]; then
+      return 0
+    fi
+  done
+  return 1
+}
+
+trace_repo_target() {
+  printf '[devloop-run] STATE target=%s reason=%s\n' "$1" "$2" >&2
+}
 
 # Host affinity: explicit flag > env > logical install path (symlink-aware) > physical
 detect_host() {
@@ -121,6 +184,7 @@ detect_host() {
   printf 'auto\n'
 }
 
+trace_before detect_host
 DEVLOOP_HOST="$(detect_host)"
 export DEVLOOP_HOST
 allow_hermes_seed_effective=0
@@ -131,6 +195,9 @@ if [[ "$DEVLOOP_HOST" == "hermes" || "$DEVLOOP_HOST" == "auto" ]]; then
   # auto keeps legacy resolve (Hermes seed allowed) for backward compat / unknown installs
   allow_hermes_seed_effective=1
 fi
+trace_after detect_host "host=$DEVLOOP_HOST hermes_seed=$allow_hermes_seed_effective"
+trace_state detect
+emit_identity pending
 
 # Setup/bootstrap needs python3 early (marker JSON + safe extract). Fail closed exit 2.
 require_python3() {
@@ -139,7 +206,7 @@ require_python3() {
   fi
   printf 'devloop-run: python3 not found on PATH (install Python 3.10+)\n' >&2
   printf '  Next: install python3, then re-run: bash scripts/devloop-run --setup\n' >&2
-  exit 2
+  fail_closed
 }
 
 # Probe can list paths without python; setup / bootstrap / invoke need it.
@@ -597,7 +664,8 @@ preflight_invoke() {
   if [[ "$depth" != "0" && "$depth" != "" ]]; then
     printf 'devloop-run: nested invoke refused (DEVLOOP_DEPTH/NESTING=%s).\n' "$depth" >&2
     printf '  DevLoop must not re-enter via a child agent. Do not use devloop-native as a fallback.\n' >&2
-    exit 2
+    trace_after preflight_invoke FAILED
+    fail_closed
   fi
   export DEVLOOP_DEPTH=0
   export DEVLOOP_NESTING=0
@@ -615,7 +683,8 @@ preflight_invoke() {
           printf 'devloop-run: host=grok but GROK_BIN/grok not found on PATH.\n' >&2
           printf '  Next: install/sign in to Grok CLI, or set GROK_BIN.\n' >&2
           printf '  Do not use devloop-native as DevLoop.\n' >&2
-          exit 2
+          trace_after preflight_invoke FAILED
+          fail_closed
         fi
         gbin="$(command -v grok)"
       fi
@@ -654,7 +723,8 @@ preflight_invoke() {
         printf 'devloop-run: engine at %s does not declare transports including "grok".\n' "$engine" >&2
         printf '  Upgrade host-local pin after Grok transport ships, or set DEVLOOP_HOME to a capable engine.\n' >&2
         printf '  Do not use devloop-native as DevLoop.\n' >&2
-        exit 2
+        trace_after preflight_invoke FAILED
+        fail_closed
       fi
       if [[ $ec -eq 1 ]]; then
         # No capabilities file yet (current pins) — fail closed on product engines
@@ -662,7 +732,8 @@ preflight_invoke() {
         printf '  Next: install a pin that declares transports:["hermes","grok"] (post W4), or\n' >&2
         printf '  DEVLOOP_ALLOW_LEGACY_ENGINE=1 to force (unsupported; may still call Hermes).\n' >&2
         printf '  Do not use devloop-native as DevLoop.\n' >&2
-        exit 2
+        trace_after preflight_invoke FAILED
+        fail_closed
       fi
     fi
   fi
@@ -676,17 +747,27 @@ ensure_engine() {
   if [[ "$force_bootstrap" -eq 1 ]]; then
     if [[ "$no_bootstrap" -eq 1 ]]; then
       printf 'devloop-run: --force-bootstrap incompatible with --no-bootstrap\n' >&2
-      exit 2
+      return 1
     fi
-    bootstrap_engine "$local_root" || exit 2
+    trace_before bootstrap_engine
+    if ! bootstrap_engine "$local_root"; then
+      trace_after bootstrap_engine FAILED
+      return 1
+    fi
+    trace_after bootstrap_engine "dest=$local_root"
+    trace_state resolve
     printf '%s\n' "$(cd "$local_root" && pwd -P)"
     return 0
   fi
 
+  trace_before resolve_engine
   if root="$(resolve_engine)"; then
+    trace_after resolve_engine "selected=$root"
+    trace_state resolve
     printf '%s\n' "$root"
     return 0
   fi
+  trace_after resolve_engine FAILED
 
   if [[ "$no_bootstrap" -eq 1 ]]; then
     return 1
@@ -694,7 +775,13 @@ ensure_engine() {
 
   # --probe alone does not bootstrap (explicit --setup or real invoke)
   if [[ "$setup" -eq 1 ]] || [[ "$probe" -eq 0 ]]; then
-    bootstrap_engine "$local_root" || return 1
+    trace_before bootstrap_engine
+    if ! bootstrap_engine "$local_root"; then
+      trace_after bootstrap_engine FAILED
+      return 1
+    fi
+    trace_after bootstrap_engine "dest=$local_root"
+    trace_state resolve
     printf '%s\n' "$(cd "$local_root" && pwd -P)"
     return 0
   fi
@@ -707,8 +794,11 @@ if ! engine_root="$(ensure_engine)"; then
   printf '  Next: bash scripts/devloop-run --setup\n' >&2
   printf '  Or set DEVLOOP_HOME / DEVLOOP_ENGINE_URL+SHA256 / install Hermes seed.\n' >&2
   printf '  Host-local default: %s\n' "$(host_local_root)" >&2
-  exit 2
+  emit_identity pending
+  fail_closed
 fi
+
+emit_identity "$engine_root"
 
 if [[ "$setup" -eq 1 || "$probe" -eq 1 ]]; then
   printf 'devloop-run: engine=%s host=%s\n' "$engine_root" "$DEVLOOP_HOST"
@@ -716,17 +806,51 @@ if [[ "$setup" -eq 1 || "$probe" -eq 1 ]]; then
 fi
 
 require_python3
+trace_before preflight_invoke
 preflight_invoke "$engine_root"
+trace_after preflight_invoke "transport=${DEVLOOP_TRANSPORT:-unset} grok_bin=${GROK_BIN:-}"
+trace_state exec
+
+# --repo PATH always wins (explicit host target). Otherwise --repo stays omitted
+# (scratch mechanism unchanged); the designation only changes the printed reason
+# so hosts relay it instead of inventing a --repo path or a previous/cwd guess.
+repo_target="scratch"
+repo_reason="default"
+if args_have_repo_flag "$@"; then
+  repo_target="explicit"
+  repo_reason="repo_flag"
+elif designates_new_repo "$@"; then
+  repo_target="scratch"
+  repo_reason="new_repo_designated"
+fi
+trace_repo_target "$repo_target" "$repo_reason"
 
 # Increment depth for any child processes the engine may spawn that re-enter the card
 export DEVLOOP_DEPTH=1
 export DEVLOOP_NESTING=1
+if [[ -z "${DEVLOOP_PROGRESS:-}" ]]; then
+  export DEVLOOP_PROGRESS=verbose
+fi
 
 cli="$engine_root/scripts/devloop_cli.py"
+trace_before exec
+set +e
 if [[ -x "$engine_root/.venv/bin/python3" ]]; then
-  exec "$engine_root/.venv/bin/python3" "$cli" "$@"
+  "$engine_root/.venv/bin/python3" "$cli" "$@"
+  ec=$?
+elif command -v uv >/dev/null 2>&1; then
+  uv run --with pytest python3 "$cli" "$@"
+  ec=$?
+else
+  python3 "$cli" "$@"
+  ec=$?
 fi
-if command -v uv >/dev/null 2>&1; then
-  exec uv run --with pytest python3 "$cli" "$@"
+set -e
+if [[ "$ec" -eq 0 ]]; then
+  trace_after exec "exit=0"
+  trace_state complete
+else
+  trace_after exec "exit=$ec FAILED"
+  trace_state fail-closed
 fi
-exec python3 "$cli" "$@"
+exit "$ec"

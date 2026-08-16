@@ -13,10 +13,11 @@ Default: card-local `references/engine-pin.json` (override with `DEVLOOP_ENGINE_
 
 ```json
 {
-  "version": "0.1.0",
-  "url": "https://…/devloop-engine-0.1.0.tar.gz",
+  "version": "0.2.0",
+  "url": "https://github.com/whichguy/skill-craft/releases/download/devloop-engine-v0.2.0/devloop-engine-0.2.0.tar.gz",
   "sha256": "<hex>",
-  "tarball": "devloop-engine-0.1.0.tar.gz"
+  "tarball": "devloop-engine-0.2.0.tar.gz",
+  "transports": ["hermes", "grok"]
 }
 ```
 
