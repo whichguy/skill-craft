@@ -150,13 +150,11 @@ exp="$("$wrapper" explain --config "$cfg")" || fail "explain after seed"
 printf '%s\n' "$exp" | grep -q '"would_escalate": false' || fail "seed explain: $exp"
 
 write_page "$TARGET_TIME"
-promote="$("$wrapper" run --config "$cfg")" || fail "promote: $promote"
+promote="$("$wrapper" run --config "$cfg" --exec)" || fail "promote: $promote"
 printf '%s\n' "$promote" | grep -q 'LLM_ESCALATION:' || fail "promote missing escalation: $promote"
-
-issue_out="$("$wrapper" issue --exec)" || fail "issue --exec failed: $issue_out"
-printf '%s\n' "$issue_out" | grep -q 'PROMPT_ISSUED:' || fail "PROMPT_ISSUED: $issue_out"
-printf '%s\n' "$issue_out" | grep -q 'PROMPT_RUN:' || fail "PROMPT_RUN: $issue_out"
-run_log="$(printf '%s\n' "$issue_out" | sed -n 's/^PROMPT_RUN: //p' | head -1)"
+printf '%s\n' "$promote" | grep -q 'PROMPT_ISSUED:' || fail "promote must issue a prompt: $promote"
+printf '%s\n' "$promote" | grep -q 'PROMPT_RUN:' || fail "promote must exec the prompt: $promote"
+run_log="$(printf '%s\n' "$promote" | sed -n 's/^PROMPT_RUN: //p' | head -1)"
 [[ -f "$run_log" ]] || fail "missing prompt-run log: $run_log"
 
 "$python_bin" - "$run_log" <<'PY' || fail "outcome log assertions"

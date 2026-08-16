@@ -119,8 +119,12 @@ for clock in "${clocks[@]}"; do
   want="${expect[$i]}"
   i=$((i + 1))
   write_clock "$clock"
+  run_args=(run --config "$cfg")
+  if [[ "$live" == "1" ]]; then
+    run_args+=(--exec)
+  fi
   set +e
-  out="$("$wrapper" run --config "$cfg" 2>"$tmpdir/run.err")"
+  out="$("$wrapper" "${run_args[@]}" 2>"$tmpdir/run.err")"
   rc=$?
   set -e
   class="other"
@@ -152,11 +156,12 @@ print(json.dumps({
     fail "poll $i clock=$clock want=$want got=$class out=[$out] err=$(cat "$tmpdir/run.err")"
   fi
 
-  if [[ "$class" == "escalate" && "$escalations" -eq 1 && "$live" == "1" ]]; then
-    issue_out="$("$wrapper" issue --exec)" || fail "issue --exec: $issue_out"
-    printf '%s\n' "$issue_out" | grep -q 'PROMPT_RUN:' || fail "missing PROMPT_RUN: $issue_out"
-    run_log="$(printf '%s\n' "$issue_out" | sed -n 's/^PROMPT_RUN: //p' | head -1)"
-    "$python_bin" - "$run_log" "$target" <<'PY' || fail "grok outcome"
+  if [[ "$class" == "escalate" ]]; then
+    printf '%s\n' "$out" | grep -q '^PROMPT_ISSUED:' || fail "match must issue a prompt: $out"
+    if [[ "$live" == "1" ]]; then
+      printf '%s\n' "$out" | grep -q '^PROMPT_RUN:' || fail "match must exec the prompt: $out"
+      run_log="$(printf '%s\n' "$out" | sed -n 's/^PROMPT_RUN: //p' | head -1)"
+      "$python_bin" - "$run_log" "$target" <<'PY' || fail "grok outcome"
 import json,sys
 log=json.loads(open(sys.argv[1],encoding="utf-8").read())
 target=sys.argv[2]
@@ -169,8 +174,9 @@ else:
     assert str(out.get("new_value"))==target, out
 print("grok outcome ok")
 PY
-  elif [[ "$class" == "escalate" ]]; then
-    "$wrapper" claim >/dev/null || fail "claim after escalate"
+    else
+      "$wrapper" claim >/dev/null || fail "claim after issued prompt"
+    fi
   fi
 done
 

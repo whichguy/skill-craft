@@ -79,17 +79,18 @@ Script optional (same Layer-0 contracts):
 4. `scripts/prompt-on-change bootstrap` once (venv under `$POC_STATE_DIR`,
    never inside the skill tree).
 5. `scripts/prompt-on-change validate --config PATH` then
-   `scripts/prompt-on-change run --config PATH`.
+   `scripts/prompt-on-change run --config PATH` (add `--exec` to run the
+   issued prompt on Grok in the same command).
 6. **No-change contract:** exit 0 and empty stdout. That is the documented
    empty outcome, not silent success.
-7. **Match contract:** write evidence JSON and print `LLM_ESCALATION: <abs-path>`.
-   Immediately load `prompts/escalation.prompt.md` in this same turn
-   (or `scripts/prompt-on-change claim` / `issue`). Do **not** wait for a Hermes cron.
+7. **Match contract (the product):** write evidence, print `LLM_ESCALATION:`,
+   then **issue the escalation prompt** (`PROMPT_ISSUED:`). That filled
+   prompt is the point of the skill. `--exec` also runs it (`PROMPT_RUN:`).
+   `--no-issue` is engine-only. Do **not** wait for a Hermes cron.
    Claim first, reason over previous/new/delta/http, **never re-act**.
 8. **Debug:** `explain --config PATH` prints a read-only trigger trace (why a
-   poll stayed silent). `status` lists pending/processed. `issue` fills the
-   escalation prompt from evidence; `issue --exec` runs Grok headless and
-   writes a prompt-run outcome log. `issue` does not re-fetch the page.
+   poll stayed silent). `status` lists pending/processed. `issue` / `issue --exec`
+   re-issue a pending or `--last` processed event without re-fetching.
 
 Package root is the directory that contains this `SKILL.md`. Runtime state
 defaults to `$POC_STATE_DIR` or `$XDG_STATE_HOME/prompt-on-change` (fallback
@@ -108,6 +109,7 @@ One family. Do not document `detect_engine.py` as the invoke.
 scripts/prompt-on-change bootstrap
 scripts/prompt-on-change validate --config configs/examples/price-range-delta.yaml
 scripts/prompt-on-change run --config configs/examples/price-range-delta.yaml
+scripts/prompt-on-change run --config configs/examples/price-range-delta.yaml --exec
 scripts/prompt-on-change explain --config configs/examples/price-range-delta.yaml
 scripts/prompt-on-change status
 scripts/prompt-on-change claim

@@ -21,7 +21,8 @@ usage() {
   printf 'Usage: %s <bootstrap|validate|run|explain|status|claim|issue|self-check> [flags]\n' "${0##*/}" >&2
   printf '  bootstrap\n' >&2
   printf '  validate --config PATH\n' >&2
-  printf '  run --config PATH [--dry-run]\n' >&2
+  printf '  run --config PATH [--dry-run] [--no-issue] [--exec]\n' >&2
+  printf '      # match issues the escalation prompt (PROMPT_ISSUED); --exec runs it\n' >&2
   printf '  explain --config PATH\n' >&2
   printf '  status\n' >&2
   printf '  claim\n' >&2
@@ -93,6 +94,8 @@ print('\\n'.join(p['project']['dependencies']))
 parse_config_args() {
   config=""
   dry_run=0
+  no_issue=0
+  do_exec=0
   while [[ $# -gt 0 ]]; do
     case "$1" in
       --config)
@@ -102,6 +105,14 @@ parse_config_args() {
         ;;
       --dry-run)
         dry_run=1
+        shift
+        ;;
+      --no-issue)
+        no_issue=1
+        shift
+        ;;
+      --exec)
+        do_exec=1
         shift
         ;;
       -h|--help)
@@ -138,7 +149,32 @@ cmd_validate() {
 
 cmd_run() {
   parse_config_args "$@"
-  run_engine
+  local python_bin
+  python_bin="$(resolve_python)"
+  [[ -f "$ENGINE" ]] || { printf 'engine missing: %s\n' "$ENGINE" >&2; exit 1; }
+  local -a eng=("$python_bin" "$ENGINE" --config "$config")
+  if [[ "$dry_run" -eq 1 ]]; then
+    eng+=(--dry-run)
+  fi
+  local out rc
+  set +e
+  out="$("${eng[@]}")"
+  rc=$?
+  set -e
+  if [[ -n "$out" ]]; then
+    printf '%s\n' "$out"
+  fi
+  if [[ "$rc" -ne 0 ]]; then
+    return "$rc"
+  fi
+  # Product outcome: a match issues the Layer-1 prompt. --no-issue is engine-only.
+  if [[ "$no_issue" -eq 0 && "$dry_run" -eq 0 ]] && printf '%s\n' "$out" | grep -q '^LLM_ESCALATION:'; then
+    if [[ "$do_exec" -eq 1 ]]; then
+      cmd_issue --exec
+    else
+      cmd_issue
+    fi
+  fi
 }
 
 cmd_explain() {
