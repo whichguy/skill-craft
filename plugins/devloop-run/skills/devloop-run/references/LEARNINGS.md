@@ -33,11 +33,11 @@ host-affinity + Grok `chat_raw` (2026-08-09).
 2. **Distinct models (honest, not silent 5×).** On Grok transport, skip
    `assert_distinct_models` and record `model_identity: {policy: grok-host-single,
    distinct: false, model: grok-4.6}`. Do not claim five roles ran.
-3. **Pin lag.** Pin 0.2.0 declares `transports: ["hermes","grok"]`. GitHub Release
-   `devloop-engine-v0.2.0` still needs operator `gh` publish; until then bootstrap with
-   `DEVLOOP_ENGINE_URL=file:///abs/path/devloop-engine-0.2.0.tar.gz` matching the pin sha256
-   (`62ec01f3969ed48def0abfe9bd08bf67ed0f50ba1fb5a0a8981fa48a6fc95c57` for the 0.2.0 tarball
-   in skill-craft `dist/`).
+3. **Pin 0.2.0 published.** GitHub Release `devloop-engine-v0.2.0` is live
+   (`https://github.com/whichguy/skill-craft/releases/tag/devloop-engine-v0.2.0`).
+   `--host grok --setup` bootstraps from the pin URL+sha256
+   (`62ec01f3969ed48def0abfe9bd08bf67ed0f50ba1fb5a0a8981fa48a6fc95c57`).
+   Local `file://` URL remains valid for offline/air-gapped machines.
 4. **Judge stdout (shipped predicates).** `_is_yes` strips Grok banners
    (`You are using XAI_API_KEY.`, `Default model:`, `Available models:`). Ambiguity
    still fail-closes.

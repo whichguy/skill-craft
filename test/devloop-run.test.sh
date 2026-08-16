@@ -79,7 +79,7 @@ set -e
 # D4: frontmatter / honesty
 grep -q 'kind: script-backed' "$root/skills/devloop-run/SKILL.md" || fail "D4 kind"
 grep -qi 'bootstrap' "$root/skills/devloop-run/SKILL.md" || fail "D4 bootstrap"
-grep -q 'Truth table' "$root/skills/devloop-run/SKILL.md" || fail "D4 truth table"
+grep -q 'references/bootstrap.md' "$root/skills/devloop-run/SKILL.md" || fail "D4 bootstrap pointer"
 
 # D5: no bare skills/devloop
 [[ ! -d "$root/skills/devloop" ]] || fail "D5 bare skills/devloop"
@@ -251,9 +251,9 @@ grep -qi 'Hermes' "$root/skills/devloop-run/SKILL.md" || fail "D16 honesty Herme
 grep -qi 'mode=engine' "$root/skills/devloop-run/SKILL.md" || fail "D16 mode=engine banner"
 grep -qi 'Forbidden' "$root/skills/devloop-run/SKILL.md" || fail "D16 forbids host loop"
 grep -qi 'devloop-native' "$root/skills/devloop-run/SKILL.md" || fail "D16 mentions demoted native"
-grep -E '^version: 0\.4\.' "$root/skills/devloop-run/SKILL.md" || fail "D16 version 0.4.x"
+grep -E '^version: 0\.4\.4' "$root/skills/devloop-run/SKILL.md" || fail "D16 version 0.4.4"
 grep -q 'SKILL_ROOT' "$root/skills/devloop-run/SKILL.md" || fail "D16 SKILL_ROOT"
-grep -q -- '--host grok' "$root/skills/devloop-run/SKILL.md" || fail "D16 --host grok"
+grep -qi 'BEFORE\|STATE\|stderr' "$root/skills/devloop-run/SKILL.md" || fail "D16 inspection/stderr"
 [[ -f "$root/skills/devloop-run/references/product-default.md" ]] || fail "D16 product-default.md"
 
 # D17: DEVLOOP_BOOTSTRAP_CMD success
@@ -464,4 +464,69 @@ printf '%s\n' "$out27" | grep -qi 'transports without "grok"\|declares transport
 [[ ! -f "$DEVLOOP_DATA_HOME/devloop/scripts/devloop_cli.py" ]] || fail "D27 must not install"
 printf 'LAYER integration: D27 pin without grok transport refused OK\n'
 
-printf 'devloop-run.test.sh: PASS D1–D27\n'
+# D28: identity banner + BEFORE/AFTER/STATE on probe success and fail-closed
+unset DEVLOOP_HOME DEVLOOP_HOST DEVLOOP_BOOTSTRAP_CMD DEVLOOP_ENGINE_URL DEVLOOP_ALLOW_HERMES_SEED \
+  DEVLOOP_ALLOW_LEGACY_ENGINE DEVLOOP_TRANSPORT GROK_BIN || true
+export DEVLOOP_HOME="$eng"
+out28="$("$run" --probe --no-bootstrap 2>&1)" || fail "D28 probe: $out28"
+printf '%s\n' "$out28" | grep -q 'DevLoop — mode=engine' || fail "D28 identity: $out28"
+printf '%s\n' "$out28" | grep -q '\[devloop-run\] BEFORE detect_host' || fail "D28 BEFORE detect: $out28"
+printf '%s\n' "$out28" | grep -q '\[devloop-run\] AFTER  detect_host' || fail "D28 AFTER detect: $out28"
+printf '%s\n' "$out28" | grep -q '\[devloop-run\] BEFORE resolve_engine' || fail "D28 BEFORE resolve: $out28"
+printf '%s\n' "$out28" | grep -q '\[devloop-run\] AFTER  resolve_engine' || fail "D28 AFTER resolve: $out28"
+printf '%s\n' "$out28" | grep -q '\[devloop-run\] STATE  life=resolve' || fail "D28 STATE resolve: $out28"
+unset DEVLOOP_HOME || true
+export DEVLOOP_DATA_HOME="$tmpdir/data-d28-empty"
+rm -rf "$DEVLOOP_DATA_HOME"
+mkdir -p "$DEVLOOP_DATA_HOME"
+export DEVLOOP_ENGINE_PIN="$tmpdir/empty-pin-d28.json"
+printf '%s\n' '{"version":"x","url":"REPLACE_WITH_RELEASE_URL/x.tgz","sha256":""}' >"$DEVLOOP_ENGINE_PIN"
+set +e
+out28b="$("$run" --host grok --probe --no-bootstrap 2>&1)"
+rc28b=$?
+set -e
+[[ "$rc28b" -eq 2 ]] || fail "D28b want exit 2 got $rc28b: $out28b"
+printf '%s\n' "$out28b" | grep -q 'DevLoop — mode=engine' || fail "D28b identity: $out28b"
+printf '%s\n' "$out28b" | grep -q '\[devloop-run\] STATE  life=fail-closed' \
+  || fail "D28b STATE fail-closed: $out28b"
+printf 'LAYER integration: D28 identity+lifecycle traces OK\n'
+
+# D29: new-repo designation — --repo flag always wins, even with designation text present
+unset DEVLOOP_HOME DEVLOOP_HOST DEVLOOP_DATA_HOME DEVLOOP_ENGINE_PIN DEVLOOP_ENGINE_URL \
+  DEVLOOP_BOOTSTRAP_CMD DEVLOOP_ALLOW_HERMES_SEED DEVLOOP_ALLOW_LEGACY_ENGINE \
+  DEVLOOP_TRANSPORT GROK_BIN HERMES_HOME || true
+export DEVLOOP_HOME="$eng"
+out29="$("$run" -- --repo /tmp/x "start a new repo for this" 2>&1)" || fail "D29: $out29"
+printf '%s\n' "$out29" | grep -q 'STATE target=explicit reason=repo_flag' || fail "D29 repo_flag: $out29"
+printf 'LAYER simple: D29 --repo wins over designation text OK\n'
+
+# D30: no --repo + designation phrase -> scratch + new_repo_designated (positive, case-insensitive)
+for phrase in "new repo" "NEW REPO" "new repository" "separate repo" "fresh repo" "create a repo" "newly created repo"; do
+  out30="$("$run" -- "please set up a ${phrase} for this feature" 2>&1)" || fail "D30 ($phrase): $out30"
+  printf '%s\n' "$out30" | grep -q 'STATE target=scratch reason=new_repo_designated' \
+    || fail "D30 ($phrase) missing designation STATE: $out30"
+done
+printf 'LAYER simple: D30 new-repo phrase detection (positive) OK\n'
+
+# D31: no --repo + no designation -> unchanged default (still scratch, reason=default)
+out31="$("$run" -- "fix the bug in the parser" 2>&1)" || fail "D31: $out31"
+printf '%s\n' "$out31" | grep -q 'STATE target=scratch reason=default' || fail "D31 default: $out31"
+printf 'LAYER simple: D31 default scratch reason OK\n'
+
+# D32: negative phrases must NOT trigger designation (conservative detector, no fuzzy match)
+for phrase in "existing repo" "repository survey" "the repo is old" "reporting new results"; do
+  out32="$("$run" -- "please work in the ${phrase}" 2>&1)" || fail "D32 ($phrase): $out32"
+  printf '%s\n' "$out32" | grep -q 'STATE target=scratch reason=default' \
+    || fail "D32 ($phrase) should stay default: $out32"
+  printf '%s\n' "$out32" | grep -q 'new_repo_designated' \
+    && fail "D32 ($phrase) falsely designated: $out32"
+done
+printf 'LAYER simple: D32 negative phrase guard OK\n'
+
+# D33: card documents the new-repo designation (no fuzzy cwd/last-path guessing)
+grep -qi 'new-repo designation' "$root/skills/devloop-run/SKILL.md" || fail "D33 SKILL.md designation section"
+grep -q 'new_repo_designated' "$root/skills/devloop-run/SKILL.md" || fail "D33 SKILL.md STATE line"
+grep -qi 'do not infer cwd' "$root/skills/devloop-run/SKILL.md" || fail "D33 SKILL.md no-infer-cwd"
+printf 'LAYER simple: D33 SKILL.md designation docs OK\n'
+
+printf 'devloop-run.test.sh: PASS D1–D33\n'

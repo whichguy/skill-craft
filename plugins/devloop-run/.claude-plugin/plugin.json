@@ -1,7 +1,7 @@
 {
   "name": "devloop-run",
-  "version": "0.4.2",
-  "description": "DevLoop (default): invoke the autonomous devloop engine for a machine-verifiable build or debug goal. Use when the user says devloop, DevLoop, or wants an isolated fail-closed build with executable tests. Thin shim only — resolve or bootstrap the engine, then exec scripts/devloop-run. Portable on Grok, Claude, Codex, and Hermes. NOT the demoted offline evidence skill devloop-native. NOT host-agent reimplementation of DEFINE/PROVE/BUILD.",
+  "version": "0.4.4",
+  "description": "DevLoop (default): invoke the autonomous engine for a machine-verifiable build or debug goal. Use when the user says devloop, DevLoop, /devloop-run, or (on Grok) /devloop, or wants an isolated fail-closed build with executable tests. Thin shim: resolve or bootstrap the engine, then exec scripts/devloop-run. Runtime hosts: Grok and Hermes. Claude/Codex: discovery and bootstrap only (transport TBD). NOT the demoted offline skill devloop-native. NOT host-agent DEFINE/PROVE/BUILD.",
   "author": {
     "name": "whichguy",
     "url": "https://github.com/whichguy"
