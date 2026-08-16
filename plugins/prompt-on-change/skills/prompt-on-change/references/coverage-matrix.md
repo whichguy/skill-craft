@@ -8,7 +8,8 @@ Owner scripts live under repo `test/`. Gate `always` runs from
 `test/prompt-on-change.test.sh` with `POC_E2E=0 POC_GROK_LIVE=0
 POC_LIVE_SITE=0` (no public web, no live Grok, no live TUI).
 
-Live token contract: [e2e-success.md](e2e-success.md).
+Live token contract: [e2e-success.md](e2e-success.md). Bare
+`test/prompt-on-change-e2e.test.sh` is live (`POC_E2E=1`); hermetic pins `0`.
 
 ## CLI verbs
 

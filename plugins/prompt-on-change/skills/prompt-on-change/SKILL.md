@@ -97,8 +97,9 @@ Script optional (same Layer-0 contracts):
    poll stayed silent). `status` lists pending/processed. `issue` / `issue --exec`
    re-issue a pending or `--last` processed event without re-fetching.
    `issue --exec --to grok:<uuid> --evidence PATH` replays delivery.
-   End-to-end card: `test/prompt-on-change-e2e.test.sh` (offline by default;
-   `POC_E2E=1` adds real Grok + time.is). Success report:
+   End-to-end card: `test/prompt-on-change-e2e.test.sh` (live Grok + time.is
+   by default; `POC_E2E=0` is offline). The hermetic suite pins `POC_E2E=0`.
+   Success report:
    `references/e2e-success.md`. Coverage inventory:
    `references/coverage-matrix.md`.
 

@@ -1,20 +1,21 @@
 #!/usr/bin/env bash
 # End-to-end verification + success report for prompt-on-change delivery.
 #
-#   POC_E2E=0  (default) — offline local multi-poll / multi-condition only
-#   POC_E2E=1  — also real Grok --to (local fixture + time.is all-group)
+#   POC_E2E=1  (default) — real Grok --to (local fixture + time.is all-group + lifecycle-to)
+#   POC_E2E=0  — offline local multi-poll / multi-condition only (hermetic pin)
 #   POC_GROK_LIVE=1 / POC_LIVE_SITE=1 — same live cases (E2E=1 implies both)
-#   POC_E2E_CASES=offline,local-to,external-multi — subset
+#   POC_E2E_CASES=offline,local-to,external-multi,lifecycle-to — subset
 #   POC_GROK_KEEP=DIR — keep state + SUCCESS.md / scorecard.json
 #
-# Default suite never hits the public web or a live TUI. Live cases use a
-# throwaway grok:<uuid> and --assume-idle on resume only.
+# Bare invoke is the live card. Hermetic `prompt-on-change.test.sh` pins
+# POC_E2E=0. Live cases use a throwaway grok:<uuid> and --assume-idle on
+# resume only. Do not point --to at an open TUI uuid.
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 pkg="$root/skills/prompt-on-change"
 wrapper="$pkg/scripts/prompt-on-change"
-want_e2e="${POC_E2E:-0}"
+want_e2e="${POC_E2E:-1}"
 if [[ "$want_e2e" == "1" ]]; then
   live_grok=1
   live_site=1
