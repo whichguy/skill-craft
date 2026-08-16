@@ -90,6 +90,11 @@ hosted runtime, deploy/publish/push, or live web app URL.
   `require_remote_delivery_integration` admission (twin of external CLI check).
 - **Proof:** integration `verify_cmd` must be a real CLI/HTTP check (e.g. `clasp push`,
   `scripts/gas-verify`), not only offline tests.
-- **MCP:** fine for operators and for implementing verify_cmd; engine does not speak MCP.
+- **MCP:** host inventories session MCP **before the engine plans**
+  (read-capable bar; not product-specific) and prints `mcp-considered`.
+  Engine does not speak MCP. COMPLETE stays `AFTER exec exit=0`. If a
+  pre-existing MCP-backed CLI exists, that is `verify_cmd`; otherwise
+  fold a *concrete* constraint (`do not write new operator tooling`) —
+  do not invent a new committed harness or a second host COMPLETE gate.
 - **Anti-pattern:** host silently pushes after COMPLETE to “finish” DevLoop delivery.
 

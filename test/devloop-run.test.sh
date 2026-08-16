@@ -256,11 +256,11 @@ grep -qi 'Hermes' "$root/skills/devloop-run/SKILL.md" || fail "D16 honesty Herme
 grep -qi 'mode=engine' "$root/skills/devloop-run/SKILL.md" || fail "D16 mode=engine banner"
 grep -qi 'Forbidden' "$root/skills/devloop-run/SKILL.md" || fail "D16 forbids host loop"
 grep -qi 'devloop-native' "$root/skills/devloop-run/SKILL.md" || fail "D16 mentions demoted native"
-grep -E '^version: 0\.4\.8' "$root/skills/devloop-run/SKILL.md" || fail "D16 version 0.4.8"
+grep -E '^version: 0\.4\.10' "$root/skills/devloop-run/SKILL.md" || fail "D16 version 0.4.10"
 grep -q 'SKILL_ROOT' "$root/skills/devloop-run/SKILL.md" || fail "D16 SKILL_ROOT"
 grep -qi 'BEFORE\|STATE\|stderr' "$root/skills/devloop-run/SKILL.md" || fail "D16 inspection/stderr"
 [[ -f "$root/skills/devloop-run/references/product-default.md" ]] || fail "D16 product-default.md"
-printf 'LAYER simple: D16 version 0.4.8 + ownership docs OK\n'
+printf 'LAYER simple: D16 version 0.4.10 + ownership docs OK\n'
 
 # D17: DEVLOOP_BOOTSTRAP_CMD success
 export DEVLOOP_DATA_HOME="$tmpdir/data-cmd"
@@ -577,16 +577,20 @@ printf '%s\n' "$(grep -c "grok -p '/loop" "$root/skills/devloop-run/SKILL.md" ||
   || fail "D37 SKILL.md must not invoke /loop"
 printf 'LAYER simple: D37 SKILL.md interpolation procedure docs OK\n'
 
-# D39: slim interpolate table — three argv pieces only; no host SETUP compile.
+# D39: flags-free parse + hosted-identity setup exactly in the request string.
 card="$root/skills/devloop-run/SKILL.md"
-grep -qi '### 1. Interpolate' "$card" || fail "D39 SKILL.md interpolate step"
+grep -qi 'flags-free' "$card" || fail "D39 SKILL.md flags-free default"
+grep -qi 'parse that text' "$card" || grep -qi 'Interpolate and print' "$card" \
+  || fail "D39 SKILL.md parse skill argument"
+grep -qi 'not required to type' "$card" \
+  || fail "D39 SKILL.md user not required to type flags"
 grep -q -- '--repo' "$card" && grep -q -- '--lang' "$card" \
   && grep -q 'verify_cmd exactly' "$card" \
   || fail "D39 SKILL.md names repo/lang/verify_cmd"
-grep -q -- '--setup-spec' "$card" && fail "D39 SKILL.md must not invent --setup-spec"
-grep -qi 'setup exactly' "$card" && fail "D39 SKILL.md must not compile setup exactly"
+grep -qi 'setup exactly' "$card" || fail "D39 SKILL.md must fold setup exactly"
+grep -qi 'hosted project' "$card" || fail "D39 SKILL.md hosted-identity fold"
 grep -qi 'print the interpolation' "$card" || fail "D39 SKILL.md prints interpolation"
-printf 'LAYER simple: D39 SKILL.md slim interpolate table (no SETUP) OK\n'
+printf 'LAYER simple: D39 SKILL.md flags-free parse + hosted-identity setup exactly OK\n'
 
 # D40: no host phase complete-when table (engine owns DEFINE/PROVE/BUILD).
 grep -q '| DEFINE |' "$card" && fail "D40 SKILL.md must not host-compile DEFINE complete-when"
@@ -669,4 +673,40 @@ printf '%s\n' "$out42" | grep -qi 'HERMES_HIJACK\|engine=.*/hermes-d42' \
   && fail "D42 must not select Hermes leaf: $out42"
 printf 'LAYER integration: D42 cursor skill-dir symlink host detect OK\n'
 
-printf 'devloop-run.test.sh: PASS D1–D42\n'
+# D43: MCP-first card contract (hermetic greps + fixture table; no live MCP).
+# Orientation is session-MCP-before-plan, not a product-specific (GAS) path.
+card="$root/skills/devloop-run/SKILL.md"
+learnings="$root/skills/devloop-run/references/LEARNINGS.md"
+prod="$root/skills/devloop-run/references/product-default.md"
+grep -qi 'Review session MCP before planning' "$card" \
+  || fail "D43 SKILL.md review session MCP before planning"
+grep -qi 'Inventory' "$card" || fail "D43 SKILL.md inventory"
+grep -qi 'read-capable' "$card" || fail "D43 SKILL.md read-capable bar"
+grep -qi 'do not invent a new harness' "$card" || fail "D43 SKILL.md do not invent a new harness"
+grep -qi 'Observe, not act' "$card" || fail "D43 SKILL.md observe-not-act"
+grep -q 'mcp-considered' "$card" || fail "D43 SKILL.md print mcp-considered"
+grep -q 'none(' "$card" || fail "D43 SKILL.md reason-required none("
+grep -qi 'before interpolating or planning' "$prod" \
+  || fail "D43 product-default before interpolating or planning"
+grep -q 'mcp-considered' "$prod" || fail "D43 product-default mcp-considered"
+# Fixture (i): hosted ask + matching read MCP (GAS is the example) → non-empty considered
+grep -q 'mcp-considered: mcp-gas-deploy(list,read)' "$card" \
+  || fail "D43 fixture hosted/mcp-gas-deploy considered"
+printf '%s\n' "$(grep -c 'scripts/gas-verify' "$card" || true)" | grep -q '^0$' \
+  || fail "D43 fixture must not invent a *verify* script name"
+# Fixture (ii): empty session → none(
+grep -qi 'empty session' "$card" || fail "D43 fixture empty session row"
+# Fixture (iii): fs-only MCP → still none(
+grep -qi 'fs-only' "$card" || fail "D43 fixture fs-only row"
+printf '%s\n' "$(grep -c 'mcp-considered: none(no read-capable session tool matched done-sentence)' "$card" || true)" \
+  | grep -qE '^[2-9]$|^[1-9][0-9]+$' \
+  || fail "D43 empty + fs-only fixtures must print none("
+printf '%s\n' "$(grep -c "grok -p '/goal" "$card" || true)" | grep -q '^0$' \
+  || fail "D43 SKILL.md must not invoke grok -p /goal"
+grep -qi 'host inventories' "$learnings" || fail "D43 LEARNINGS host inventories"
+grep -qi 'before the engine plans' "$learnings" || fail "D43 LEARNINGS before the engine plans"
+grep -qi 'concrete' "$learnings" || fail "D43 LEARNINGS concrete constraint"
+grep -qi 'COMPLETE stays' "$learnings" || fail "D43 LEARNINGS COMPLETE unchanged"
+printf 'LAYER simple: D43 MCP-first inventory + fixture table OK\n'
+
+printf 'devloop-run.test.sh: PASS D1–D43\n'

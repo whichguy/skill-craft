@@ -12,7 +12,7 @@ when-to-use: >-
   fail-closed loop with tests. Do not use for prompt tuning, visual design, or
   offline freeze/prove/stop (that is devloop-native).
 argument-hint: plain-English goal
-version: 0.4.8
+version: 0.4.10
 license: MIT
 platforms:
   - linux
@@ -47,97 +47,112 @@ or plugin path, not the physical checkout behind a symlink).
 - Offline freeze/prove/stop only → **`devloop-native`** (not DevLoop)
 - Expecting the engine without `--setup` / pin on a fresh machine
 
-## Procedure
+## Handshake
 
-User-facing form is `/devloop <plain English>`. Do **not** invent
-DEFINE/PROVE/BUILD or lifecycle lines. The host **interpolates** argv from the
-plain text, **prints the interpolation**, then execs the shim and relays
-**stderr**.
+**Default is flags-free.** The skill argument is the rest of the line after
+`/devloop`. **Parse that text** — do **not** require the user to pass
+`--repo`, `--lang`, `verify_cmd exactly`, or `--setup-spec`. The user is
+**not required to type** those. **Print the interpolation**, then exec the
+shim and relay **stderr**.
+
+**Every run is an independent worktree.** Omit `--repo` unless the user
+named a path (scratch). The engine always cuts a unique worktree — never
+edit cwd, the last `--repo`, or a prior checkout. Never infer cwd.
 
 ```text
 /devloop <goal>
-```
-
-Headless:
-
-```text
 grok -p '/devloop <goal>' --always-approve
 ```
 
-### 1. Interpolate
+### 1. Consider session MCP
 
-Read the plain-English request and fill in only these argv pieces — never
-invent a fourth, and never write product files (that is **not** BUILD):
+**Review session MCP before planning.** **Inventory** this session (no
+catalog, no install). Prefer a matching **read-capable** tool over inventing
+operator tooling. Read-capable = observes the *external* truth in the
+done-sentence (deployed URL, live exec, hosted artifact, remote API). A
+generic **fs-only** MCP seeing `result.txt` does **not** count. Transient
+errors: retry once, then unmatched. Never silent-skip a match.
 
-| Text signal | Host fills in |
+Reuse a pre-existing CLI/wrapper. **Do not invent a new harness**
+(`scripts/*.mjs`). If none: local content-checking `verify_cmd` plus a
+concrete request constraint, or fail-closed and ask for a checkable CLI.
+
+**Observe, not act.** Do not implement the product through MCP. Never
+fix-then-recheck on the host. **New operator tooling** = committed harness
+scripts. Inline `test "$(cat result.txt)" = …` is not tooling.
+
+Print **always**, first matching read-capable tool in session order:
+
+```text
+mcp-considered: <server>(<first-matching-read-tool>) | none(<reason>)
+mcp-considered: mcp-gas-deploy(list,read) | none(no read-capable session tool matched done-sentence)
+```
+
+If a wrapper was chosen: `verify_cmd is the existing MCP-backed CLI <name>; do not write new operator tooling`.
+If none: only `do not write new operator tooling` — no generic "prefer MCP".
+
+| Ask | Session MCP | mcp-considered | verify_cmd |
+|---|---|---|---|
+| hosted/external ask + matching read MCP (e.g. GAS / mcp-gas) | mcp-gas-deploy (list, read) | `mcp-considered: mcp-gas-deploy(list,read)` | existing wrapper if any; else local content check — no new `*verify*` script |
+| `result.txt` / empty session | (empty) | `mcp-considered: none(no read-capable session tool matched done-sentence)` | local content check |
+| `result.txt` | fs-only MCP | `mcp-considered: none(no read-capable session tool matched done-sentence)` | local content check |
+
+### 2. Interpolate and print
+
+Fill in only these argv pieces — never a fourth *kind*, never write product
+files (**not** BUILD):
+
+| Parsed from skill arguments | Host interpolates |
 |---|---|
 | `new repo` / `new repository` / `separate repo` / `fresh repo` / `create a repo` / `newly created repo` / no path named | omit `--repo` (scratch) |
 | an absolute path the user named | `--repo PATH` |
-| a checkable "done" sentence | `verify_cmd exactly [...]`; prefer a **content-checking** oracle (not existence-only) when the sentence names exact file contents — e.g. `["bash","-c","test \"$(cat FILE)\" = VALUE"]`, not just `["test","-f","FILE"]`; add `--lang command` when that oracle is a shell/node argv list |
-| the user already typed `--repo` / `--lang` / `verify_cmd exactly` | those win verbatim — do not re-derive them |
+| a checkable "done" sentence, or a product they described (file + contents, hosted module + live oracle) | `verify_cmd exactly [...]`; prefer a **content-checking** oracle when the sentence names exact file contents — e.g. `["bash","-c","test \"$(cat FILE)\" = VALUE"]`, not just `["test","-f","FILE"]`; add `--lang command` when that oracle is a shell/node argv list |
+| the ask names a hosted project, session MCP already has an identity/create tool, and they did not type `setup exactly:` or `--setup-spec` | fold `setup exactly: {…}` **inside the request string** so engine SETUP seeds identity/oracle only. Do not write the product. Typed `--setup-spec` is pass-through only |
+| the user already typed `--repo` / `--lang` / `verify_cmd exactly` / `--setup-spec` / `setup exactly:` | those win verbatim — do not re-derive them |
 
-**Fail-closed:** no machine-checkable done in the request → **stop and ask**
-for one. Do not invent `pytest`, a path, or a cwd to make something checkable.
-Never infer cwd or reuse the last `--repo` path.
+**Fail-closed:** still no **checkable done** → **stop and ask** (not for
+flags). Do not invent `pytest`, a path, or a cwd. Never infer cwd or reuse
+the last `--repo` path.
 
-### 2. Print the interpolation
-
-Before exec, print the exact argv constructed, e.g.:
+Print before exec:
 
 ```text
-interpolated: --lang command "new repo. Create result.txt containing exactly one line: devloop-ok verify_cmd exactly [\"bash\",\"-c\",\"test \\\"$(cat result.txt)\\\" = devloop-ok\"]"
+interpolated: --lang command "new repo. Create result.txt containing exactly one line: devloop-ok do not write new operator tooling verify_cmd exactly [\"bash\",\"-c\",\"test \\\"$(cat result.txt)\\\" = devloop-ok\"]"
+mcp-considered: none(no read-capable session tool matched done-sentence)
 ```
 
-An existence-only oracle (`["test","-f","result.txt"]`) does **not** satisfy an
-exact-content done sentence — the engine's judge will fail-closed on it
-(`HUMAN_REVIEW`: test fault, not a re-IMPLEMENT bug). Interpolate content
-checks, not just existence, whenever the sentence names a value.
+An existence-only oracle does **not** satisfy an exact-content done sentence.
 
-### 3. Exec
-
-`SKILL_ROOT` is the directory containing this SKILL.md. Exec:
+### 3. Exec and relay
 
 ```text
 bash "$SKILL_ROOT/scripts/devloop-run" -- --lang command "<goal + verify_cmd exactly [...]>"
 ```
 
-Omit `--lang` / `--repo` from the exec line when step 1 said to omit them.
-Pass through only flags the user typed plus what step 1 interpolated
-(`--repo`, `--lang`, `--keep-branch`, `--json`). `--setup` once on a fresh
-machine. `--host grok` is an override, not required from a Grok skill-dir
-path. Shim STATE lines (`target=scratch reason=new_repo_designated`,
-`lang=… reason=explicit|none`) label what the shim received — they do not
-re-derive argv; that already happened in step 1.
+Omit `--lang` / `--repo` when step 2 said to omit them. Pass through only
+flags the user typed plus what step 2 interpolated (`--repo`, `--lang`,
+`--keep-branch`, `--json`, typed `--setup-spec`). `--setup` once on a fresh
+machine (engine **install**). `--host grok` is an override. Shim STATE
+(`target=scratch reason=new_repo_designated`, `lang=… reason=explicit|none`)
+labels what the shim received.
 
-### 4. Relay, don't re-run the loop
+Relay `[devloop-run] BEFORE` / `AFTER` / `STATE` as-is. Cite identity
+(`DevLoop — mode=engine …`), last `STATE`, and exit code. **COMPLETE** only
+if `AFTER exec exit=0`. Exit **2** = stop. No `[devloop-run]` lines → this
+skill did not run.
 
-- Relay `[devloop-run] BEFORE` / `AFTER` / `STATE` as-is.
-- Cite identity (`DevLoop — mode=engine …`), last `STATE`, and exit code.
-- **COMPLETE** only if `AFTER exec exit=0`. Exit **2** = stop.
-- If the stream has no `[devloop-run]` lines, this skill did not run.
-
-Host matrix, bootstrap, and resolve order:
-[references/host-matrix.md](references/host-matrix.md),
+Host matrix / bootstrap: [references/host-matrix.md](references/host-matrix.md),
 [references/bootstrap.md](references/bootstrap.md).
-Consumer-channel COMPLETE is engine policy (`references/consumer-channel-verification.md`
-under the engine tree).
-
-## One controller, not Grok `/goal`
-
-DevLoop is **one controller**: the engine owns DEFINE → PROVE → BUILD. This
-card and its `/devloop` alias must **not** invoke Grok `/goal` or `/loop` —
-`/goal` retries exit 2 and erase `HUMAN_REVIEW`. Goal-engineering shape
-(objective + done) lives *in* the `/devloop` prompt text, not as a second
-slash. Keep `disable-model-invocation: true` on the Grok `/devloop` alias.
-The shim's re-entry guard (`DEVLOOP_DEPTH` / `DEVLOOP_NESTING`) refuses
-nested invokes.
 
 ## Forbidden
 
-Host agent inventing charter/phases/BUILD; interpolating a fourth argv piece
-beyond `--repo`/`--lang`/`verify_cmd`; invoking Grok `/goal` or `/loop`;
-rewriting acceptance tests outside the engine; claiming `mode: native`
-receipts as DevLoop; silently pushing after COMPLETE; falling back to
-**devloop-native** as DevLoop; inventing a `--repo` path (last-used,
-`~/src/<slug>`, or cwd) when the user designated a new repo; declaring
-COMPLETE without both engine exit 0 and `AFTER exec exit=0`.
+One controller: engine owns DEFINE → PROVE → BUILD. Do not invent
+charter/phases/BUILD or a fourth argv piece; `setup exactly:` lives in the
+request string. Do not invoke Grok `/goal` or `/loop`. Do not rewrite
+acceptance tests, claim `mode: native` as DevLoop, silently push after
+COMPLETE, fall back to **devloop-native**, invent a `--repo` path, reuse cwd or a
+prior worktree, write the product on the host, invent a new harness
+instead of reviewing session MCP first, add a second COMPLETE gate, or
+emit a generic "prefer MCP" constraint. Goal-engineering shape lives *in* the `/devloop` prompt.
+`disable-model-invocation: true` on the Grok alias. Nested invoke
+(`DEVLOOP_DEPTH` / `DEVLOOP_NESTING`) is refused.

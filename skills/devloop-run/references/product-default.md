@@ -40,10 +40,10 @@ not fall back to host-agent improvisation or `devloop-native`.
 
 ## Agent procedure (card)
 
-Follow [SKILL.md](../SKILL.md): interpolate `--repo` / `--lang` /
-`verify_cmd exactly [...]` from plain English, **print the interpolation**,
-then exec `bash "$SKILL_ROOT/scripts/devloop-run" -- …`. Do not compile
-phase complete-whens or `setup exactly` on the host (pin 0.2.0 has no SETUP).
+The handshake is [SKILL.md](../SKILL.md): review session MCP for a
+read-capable oracle **before interpolating or planning**, print
+`mcp-considered`, interpolate argv, exec the shim. Every run is an
+independent engine worktree. COMPLETE is `AFTER exec exit=0` only.
 
 1. Banner: `DevLoop — mode=engine host=<host> engine=<path-or-pending>`
 2. `SKILL_ROOT` = directory containing the installed `SKILL.md`
