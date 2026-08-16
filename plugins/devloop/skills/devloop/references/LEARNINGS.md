@@ -89,8 +89,9 @@ hosted runtime, deploy/publish/push, or live web app URL.
 
 - **Engine (general):** charter/refine/advisor prompts + `remote_delivery_named` /
   `require_remote_delivery_integration` admission (twin of external CLI check).
-- **Proof:** integration `verify_cmd` must be a real CLI/HTTP check (e.g. `clasp push`,
-  `scripts/gas-verify`), not only offline tests.
+- **Proof:** integration `verify_cmd` must be a real CLI/HTTP check that
+  observes the hosted surface, not only offline tests. Instance bindings
+  (how one dest claims inbound work) live in `destination-instances.md`.
 - **MCP:** host inventories session MCP **before the engine plans**
   (read-capable bar; not product-specific) and prints `mcp-considered`.
   Engine does not speak MCP. COMPLETE stays `AFTER exec exit=0`. If a

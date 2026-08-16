@@ -121,9 +121,9 @@ env-discovered: none(no hosted destination)
 to `verify_cmd exactly` / `setup exactly`. Not a fourth argv kind. Typed
 user text still wins.
 
-| Ask | Session MCP | mcp-considered | verify_cmd |
+| Ask | Session MCP | mcp-considered (oracle *consider*, not dest-contract) | verify_cmd |
 |---|---|---|---|
-| hosted/external ask + matching read MCP (e.g. GAS / mcp-gas) | mcp-gas-deploy (list, read) | `mcp-considered: mcp-gas-deploy(list,read)` | existing wrapper if any; else local content check — no new `*verify*` script |
+| hosted/external ask + matching read MCP (example dest: mcp-gas-deploy) | mcp-gas-deploy (list, read) | `mcp-considered: mcp-gas-deploy(list,read)` | existing wrapper if any; else local content check — no new `*verify*` script |
 | `result.txt` / empty session | (empty) | `mcp-considered: none(no read-capable session tool matched done-sentence)` | local content check |
 | `result.txt` | fs-only MCP | `mcp-considered: none(no read-capable session tool matched done-sentence)` | local content check |
 
@@ -144,11 +144,16 @@ files (**not** BUILD):
 flags). Do not invent `pytest`, a path, or a cwd. Never infer cwd or reuse
 the last `--repo` path.
 
-Print before exec:
+Print before exec (both shapes):
 
 ```text
 interpolated: --lang command "new repo. Create result.txt containing exactly one line: devloop-ok do not write new operator tooling verify_cmd exactly [\"bash\",\"-c\",\"test \\\"$(cat result.txt)\\\" = devloop-ok\"]"
 mcp-considered: none(no read-capable session tool matched done-sentence)
+env-discovered: none(no hosted destination)
+
+interpolated: --lang command "<hosted goal + folded contract + verify_cmd exactly [...]>"
+mcp-considered: <server>(<read-tool>)
+env-discovered: <dest-class>: identity=…; claim=…; reserved=…; success=…; misread=…
 ```
 
 An existence-only oracle does **not** satisfy an exact-content done sentence.

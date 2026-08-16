@@ -633,6 +633,8 @@ grep -qi 'print the interpolated argv' "$alias_md" \
   || grep -qi 'print the interpolation' "$alias_md" \
   || fail "D41 alias must print interpolation: $alias_md"
 grep -qi 'interpolate' "$alias_md" || fail "D41 alias interpolate: $alias_md"
+grep -q 'env-discovered' "$alias_md" \
+  || fail "D41 alias must print env-discovered: $alias_md"
 grep -qi 'complete-when' "$alias_md" && fail "D41 alias must not restate phase table: $alias_md"
 grep -qi 'setup exactly' "$alias_md" && fail "D41 alias must not compile setup exactly: $alias_md"
 grep -qi 'skill `devloop-run`' "$alias_md" \
@@ -714,6 +716,12 @@ printf 'LAYER simple: D43 MCP-first inventory + fixture table OK\n'
 grep -qi 'Discover destination contract' "$card" \
   || fail "D44 SKILL.md discover destination contract"
 grep -q 'env-discovered' "$card" || fail "D44 SKILL.md print env-discovered"
+grep -q 'env-discovered: none(no hosted destination)' "$card" \
+  || fail "D44 SKILL.md local print example env-discovered none"
+grep -q 'identity=' "$card" && grep -q 'claim=' "$card" \
+  && grep -q 'reserved=' "$card" && grep -q 'success=' "$card" \
+  && grep -q 'misread=' "$card" \
+  || fail "D44 SKILL.md hosted print example five slots"
 grep -qi 'identity' "$card" && grep -qi 'claim' "$card" \
   && grep -qi 'reserved' "$card" && grep -qi 'success' "$card" \
   && grep -qi 'misread' "$card" \
