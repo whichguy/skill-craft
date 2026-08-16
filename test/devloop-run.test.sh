@@ -617,8 +617,8 @@ printf 'LAYER simple: D38 STATE lang always emitted OK\n'
 # override: DEVLOOP_ALIAS_MD. Distinct from the card so alias drift fails here.
 alias_md="${DEVLOOP_ALIAS_MD:-}"
 if [[ -z "$alias_md" ]]; then
-  if [[ -f "$root/../grok-build-additions/commands/devloop.md" ]]; then
-    alias_md="$root/../grok-build-additions/commands/devloop.md"
+  if [[ -f "$root/skills/devloop-run/commands/devloop.md" ]]; then
+    alias_md="$root/skills/devloop-run/commands/devloop.md"
   elif [[ -f "${HOME}/.grok/commands/devloop.md" ]]; then
     alias_md="${HOME}/.grok/commands/devloop.md"
   fi

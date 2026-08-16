@@ -259,6 +259,8 @@ assert_absent "$HOME/.grok/skills/devloop-run"
 assert_absent "$HOME/.codex/skills/devloop-run"
 assert_absent "$HOME/.cursor/skills/devloop-run"
 assert_absent "$HOME/.hermes/skills/software-development/devloop"
+assert_symlink "$HOME/.grok/commands/devloop.md" "$source_devloop/commands/devloop.md"
+assert_absent "$HOME/.claude/commands/devloop.md"
 
 # ---------------------------------------------------------------------------
 # I17: leftover owned symlink at old dest …/devloop-run is removed

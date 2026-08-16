@@ -39,6 +39,7 @@ usage() {
   printf '  dest = leaf, except source leaf devloop-run → dest devloop on\n' >&2
   printf '  Claude/Grok/Codex/Cursor (Hermes dest stays devloop-run; engine owns devloop).\n' >&2
   printf '  --skill devloop is rejected (source leaf is reserved); use --skill devloop-run.\n' >&2
+  printf '  Grok slash: skills/devloop-run/commands/devloop.md → ~/.grok/commands/devloop.md\n' >&2
   printf '\n' >&2
   printf 'Status outcomes: absent | symlink-owned | symlink-wrong | copy-owned |\n' >&2
   printf '  copy-owned-stale | foreign | foreign-file\n' >&2
@@ -796,6 +797,10 @@ install_skill_to_hosts() {
   fi
   if [[ "$install_grok" -eq 1 ]]; then
     install_host_skill grok "Grok" "$HOME/.grok/skills" "$leaf" "$source_dir"
+    if [[ "$leaf" == "devloop-run" ]]; then
+      install_agent_one "Grok command /devloop" "$HOME/.grok/commands" "devloop" \
+        "$source_dir/commands/devloop.md"
+    fi
   fi
   if [[ "$install_codex" -eq 1 ]]; then
     install_host_skill codex "Codex" "$HOME/.codex/skills" "$leaf" "$source_dir"
@@ -1110,6 +1115,18 @@ uninstall_skill_to_hosts() {
   fi
   if [[ "$install_grok" -eq 1 ]]; then
     uninstall_host_skill grok "Grok" "$HOME/.grok/skills" "$leaf" "$source_dir"
+    if [[ "$leaf" == "devloop-run" ]]; then
+      local cmd_src="$source_dir/commands/devloop.md"
+      local cmd_dest="$HOME/.grok/commands/devloop.md"
+      if [[ -L "$cmd_dest" && "$(readlink "$cmd_dest")" == "$cmd_src" ]]; then
+        if [[ "$dry_run" -eq 1 ]]; then
+          printf 'Would uninstall symlink (Grok command /devloop): %s\n' "$cmd_dest"
+        else
+          rm -f "$cmd_dest"
+          printf 'Uninstalled symlink (Grok command /devloop): %s\n' "$cmd_dest"
+        fi
+      fi
+    fi
   fi
   if [[ "$install_codex" -eq 1 ]]; then
     uninstall_host_skill codex "Codex" "$HOME/.codex/skills" "$leaf" "$source_dir"

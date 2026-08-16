@@ -44,6 +44,8 @@ The handshake is [SKILL.md](../SKILL.md): review session MCP for a
 read-capable oracle **before interpolating or planning**, print
 `mcp-considered`, interpolate argv, exec the shim. Every run is an
 independent engine worktree. COMPLETE is `AFTER exec exit=0` only.
+The Grok `/devloop` slash is [commands/devloop.md](../commands/devloop.md)
+(installed to `~/.grok/commands/devloop.md`).
 
 1. Banner: `DevLoop — mode=engine host=<host> engine=<path-or-pending>`
 2. `SKILL_ROOT` = directory containing the installed `SKILL.md`
