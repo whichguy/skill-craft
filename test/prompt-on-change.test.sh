@@ -114,6 +114,10 @@ bash "$root/test/prompt-on-change-lifecycle.test.sh" \
   || fail "lifecycle tests"
 printf 'LAYER e2e: lifecycle OK\n'
 
+POC_GROK_LIVE=0 POC_GROK_KEEP= bash "$root/test/prompt-on-change-poll-effectiveness.test.sh" \
+  || fail "poll effectiveness"
+printf 'LAYER e2e: poll effectiveness OK\n'
+
 # Probe only — never inherit a live Grok run into the hermetic suite.
 POC_GROK_LIVE=0 bash "$root/test/prompt-on-change-grok-native.test.sh" \
   || fail "grok-native probe"
