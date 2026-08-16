@@ -448,6 +448,66 @@ YAML
   record "{\"case\":\"live-external-multi\",\"status\":\"PASS\",\"site\":\"$site_url\",\"session\":\"$sid\",\"target\":\"$target_hm\",\"silent_polls\":$silent_n,\"escalations\":4,\"issues\":1,\"conditions\":[\"time_hits_known\",\"clock_moved\",\"page_ok\",\"has_date\"],\"prompt_run\":true,\"prompt_resume\":true,\"detail\":\"real GET + all-group + Grok --to\"}"
 }
 
+# --- live local: explain → seed → silent → --to → fire_once → status → claim → --last --to ---
+case_lifecycle_to() {
+  want_case lifecycle-to || return 0
+  if [[ "$live_grok" != "1" ]]; then
+    record '{"case":"lifecycle-to","status":"SKIP","detail":"POC_E2E=0 / POC_GROK_LIVE=0"}'
+    return 0
+  fi
+  local grok
+  grok="$(resolve_grok)"
+  [[ -n "$grok" ]] || fail "POC_E2E/POC_GROK_LIVE=1 but grok missing"
+  unset GROK_BIN
+  export GROK_BIN="$grok"
+  if [[ -z "${http_pid:-}" ]] || ! kill -0 "$http_pid" 2>/dev/null; then
+    start_local_http
+  fi
+  printf '<html><body><span class="price">100</span><span class="status">ok</span></body></html>\n' \
+    >"$tmpdir/www/index.html"
+  write_local_config e2e-lifecycle-to
+  local cfg="$tmpdir/cfg/e2e-lifecycle-to.yaml"
+  reset_monitor_state
+  local sid pre seed silent promotable promote esc_n issue_n fire st claim1 claim2 last_out last_issued
+  sid="$(uuidgen | tr '[:upper:]' '[:lower:]')"
+  pre="$("$wrapper" explain --config "$cfg")" || fail "lifecycle-to explain seed: $pre"
+  printf '%s\n' "$pre" | grep -q '"seed": true' || fail "lifecycle-to explain seed true"
+  printf '%s\n' "$pre" | grep -q '"would_escalate": false' || fail "lifecycle-to pre would_escalate"
+  seed="$("$wrapper" run --config "$cfg")" || fail "lifecycle-to seed: $seed"
+  printf '%s\n' "$seed" | grep -q '^SEED_OK:' || fail "lifecycle-to seed token"
+  silent="$("$wrapper" run --config "$cfg")" || fail "lifecycle-to silent"
+  [[ -z "$silent" ]] || fail "lifecycle-to no-change must be empty: [$silent]"
+  printf '<html><body><span class="price">40</span><span class="status">sale</span></body></html>\n' \
+    >"$tmpdir/www/index.html"
+  promotable="$("$wrapper" explain --config "$cfg")" || fail "lifecycle-to explain rewrite"
+  printf '%s\n' "$promotable" | grep -q '"would_escalate": true' \
+    || fail "lifecycle-to would_escalate true"
+  promote="$("$wrapper" run --config "$cfg" --to "grok:$sid")" || fail "lifecycle-to --to: $promote"
+  esc_n="$(count_token LLM_ESCALATION "$promote")"
+  issue_n="$(count_token PROMPT_ISSUED "$promote")"
+  [[ "$esc_n" -eq 2 ]] || fail "lifecycle-to expected 2 LLM_ESCALATION got $esc_n"
+  [[ "$issue_n" -eq 1 ]] || fail "lifecycle-to expected 1 PROMPT_ISSUED"
+  printf '%s\n' "$promote" | grep -q '^PROMPT_RUN:' || fail "lifecycle-to missing PROMPT_RUN"
+  fire="$("$wrapper" run --config "$cfg")" || fail "lifecycle-to fire_once"
+  printf '%s\n' "$fire" | grep -q 'LLM_ESCALATION:' && fail "lifecycle-to fire_once re-escalated"
+  st="$("$wrapper" status)" || fail "lifecycle-to status"
+  printf '%s\n' "$st" | grep -q 'processed:\|pending:' || fail "lifecycle-to status lines: $st"
+  claim1="$("$wrapper" claim)" || fail "lifecycle-to claim"
+  if printf '%s\n' "$claim1" | grep -q '^CLAIMED:'; then
+    claim2="$("$wrapper" claim)" || fail "lifecycle-to second claim"
+    printf '%s\n' "$claim2" | grep -q 'CLAIM_EMPTY' || fail "lifecycle-to claim empty: $claim2"
+  else
+    printf '%s\n' "$claim1" | grep -q 'CLAIM_EMPTY' \
+      || fail "lifecycle-to claim token: $claim1"
+  fi
+  last_out="$("$wrapper" issue --last --exec --to "grok:$sid" --assume-idle")" \
+    || fail "lifecycle-to --last --to: $last_out"
+  printf '%s\n' "$last_out" | grep -q '^PROMPT_RESUME:' || fail "lifecycle-to missing PROMPT_RESUME"
+  last_issued="$(first_token PROMPT_ISSUED "$last_out")"
+  grep -q 'async event' "$last_issued" || fail "lifecycle-to --last should use event.prompt.md"
+  record "{\"case\":\"lifecycle-to\",\"status\":\"PASS\",\"site\":\"127.0.0.1\",\"session\":\"$sid\",\"silent_polls\":1,\"escalations\":2,\"issues\":1,\"conditions\":[\"price_changed\",\"status_changed\"],\"prompt_run\":true,\"prompt_resume\":true,\"detail\":\"explain + seed + --to + fire_once + claim + issue --last --to\"}"
+}
+
 write_success_doc() {
   "$python_bin" - "$score" "$tmpdir/report/SUCCESS.md" "$tmpdir/report/scorecard.json" <<'PY'
 import json, pathlib, sys
@@ -513,6 +573,7 @@ PY
 case_offline
 case_local_to
 case_external_multi
+case_lifecycle_to
 write_success_doc
 
 if [[ -n "${POC_GROK_KEEP:-}" ]]; then

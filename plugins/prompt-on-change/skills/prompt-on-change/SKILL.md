@@ -99,13 +99,15 @@ Script optional (same Layer-0 contracts):
    `issue --exec --to grok:<uuid> --evidence PATH` replays delivery.
    End-to-end card: `test/prompt-on-change-e2e.test.sh` (offline by default;
    `POC_E2E=1` adds real Grok + time.is). Success report:
-   `references/e2e-success.md`.
+   `references/e2e-success.md`. Coverage inventory:
+   `references/coverage-matrix.md`.
 
 Package root is the directory that contains this `SKILL.md`. Runtime state
 defaults to `$POC_STATE_DIR` or `$XDG_STATE_HOME/prompt-on-change` (fallback
 `~/.local/state/prompt-on-change`). Do not hardcode `/opt/data`.
 
 Host matrix: `references/host-matrix.md`.  
+Coverage: `references/coverage-matrix.md`.  
 Schema: `references/config-schema.md`.  
 Examples: `configs/examples/price-range-delta.yaml`,
 `date-regex-delta.yaml`, `http-change-events.yaml`,
@@ -164,6 +166,9 @@ Groups still support `any:` / `all:` over named conditions. Nested `and` / `or`
 
 ## Later
 
+- **Coverage:** public CLI / HTTP / delivery rows live in
+  `references/coverage-matrix.md`. Live tokens stay in
+  `references/e2e-success.md`.
 - **PDF / binary URL watch:** detect a changed PDF with HTTP validators
   (`HEAD` or conditional `GET`: `ETag`, `Last-Modified`, `Content-Length`,
   `304`). Do not download or parse the PDF body. Author path should emit

@@ -26,10 +26,15 @@ export DETECT_ENGINE_LOG_FILE="$POC_STATE_DIR/engine.log"
 mkdir -p "$POC_STATE_DIR" "$DETECT_ENGINE_ESCALATION_DIR"
 
 http_pid=""
+post_pid=""
 cleanup() {
   if [[ -n "$http_pid" ]] && kill -0 "$http_pid" 2>/dev/null; then
     kill "$http_pid" 2>/dev/null || true
     wait "$http_pid" 2>/dev/null || true
+  fi
+  if [[ -n "${post_pid:-}" ]] && kill -0 "$post_pid" 2>/dev/null; then
+    kill "$post_pid" 2>/dev/null || true
+    wait "$post_pid" 2>/dev/null || true
   fi
   rm -rf "$tmpdir"
 }
@@ -129,6 +134,14 @@ write_page 40
 promotable="$(explain_json)" || fail "explain after rewrite"
 printf '%s\n' "$promotable" | grep -q '"would_escalate": true' || fail "rewrite explain would_escalate: $promotable"
 
+# 5b. --dry-run must not write evidence, issue, or advance fire_once
+dry="$("$wrapper" run --config "$cfg" --dry-run")" || fail "dry-run: $dry"
+printf '%s\n' "$dry" | grep -q 'LLM_ESCALATION:' && fail "dry-run must not escalate: $dry"
+printf '%s\n' "$dry" | grep -q 'PROMPT_ISSUED:' && fail "dry-run must not issue: $dry"
+still_promotable="$(explain_json)" || fail "explain after dry-run"
+printf '%s\n' "$still_promotable" | grep -q '"would_escalate": true' \
+  || fail "dry-run must leave would_escalate true: $still_promotable"
+
 # 6. Promote run
 promote="$("$wrapper" run --config "$cfg")" || fail "promote run: $promote"
 printf '%s\n' "$promote" | grep -q 'LLM_ESCALATION:' || fail "promote missing LLM_ESCALATION: $promote"
@@ -179,5 +192,248 @@ printf '%s\n' "$st" | grep -q 'CLAIM_EMPTY' || fail "status empty pending: $st"
 # Empty issue
 empty_issue="$("$wrapper" issue)" || fail "issue empty pending"
 printf '%s\n' "$empty_issue" | grep -q 'CLAIM_EMPTY' || fail "empty issue: $empty_issue"
+
+# --- usage / bootstrap / validate rejects ---
+set +e
+"$wrapper" >/dev/null 2>"$tmpdir/usage.err"
+usage_rc=$?
+"$wrapper" not-a-command >/dev/null 2>"$tmpdir/unk.err"
+unk_rc=$?
+"$wrapper" run >/dev/null 2>"$tmpdir/noconfig.err"
+noconfig_rc=$?
+set -e
+[[ "$usage_rc" -eq 64 ]] || fail "no-args exit 64 got $usage_rc"
+[[ "$unk_rc" -eq 64 ]] || fail "unknown cmd exit 64 got $unk_rc"
+grep -qi 'unknown command' "$tmpdir/unk.err" || fail "unknown cmd message"
+[[ "$noconfig_rc" -eq 64 ]] || fail "run without --config exit 64 got $noconfig_rc"
+
+set +e
+POC_STATE_DIR="$pkg" "$wrapper" bootstrap >/dev/null 2>"$tmpdir/boot.err"
+boot_rc=$?
+set -e
+[[ "$boot_rc" -ne 0 ]] || fail "bootstrap inside skill must refuse"
+grep -qi 'refuse venv' "$tmpdir/boot.err" || fail "bootstrap refuse: $(cat "$tmpdir/boot.err")"
+
+write_bad_cfg() {
+  local name="$1"
+  cat >"$cfgdir/${name}.yaml"
+}
+
+write_bad_cfg get-form <<YAML
+name: get-form
+enabled: true
+sources:
+  - id: page
+    url: "http://127.0.0.1:${port}/index.html"
+    method: GET
+    form: {q: x}
+    extract:
+      - id: price
+        type: css
+        selector: ".price"
+        transform: text
+conditions:
+  - {id: c, field: price, op: changed}
+groups:
+  - {name: g, any: [c]}
+state:
+  file: state-get-form.json
+  initial: {price: ""}
+YAML
+write_bad_cfg head-body <<YAML
+name: head-body
+enabled: true
+sources:
+  - id: page
+    url: "http://127.0.0.1:${port}/index.html"
+    method: HEAD
+    body: "x"
+    headers: {Content-Type: text/plain}
+    extract:
+      - {id: st, type: header, name: status_code}
+conditions:
+  - {id: c, field: st, op: changed}
+groups:
+  - {name: g, any: [c]}
+state:
+  file: state-head-body.json
+  initial: {st: ""}
+YAML
+write_bad_cfg put-method <<YAML
+name: put-method
+enabled: true
+sources:
+  - id: page
+    url: "http://127.0.0.1:${port}/index.html"
+    method: PUT
+    extract:
+      - id: price
+        type: css
+        selector: ".price"
+        transform: text
+conditions:
+  - {id: c, field: price, op: changed}
+groups:
+  - {name: g, any: [c]}
+state:
+  file: state-put.json
+  initial: {price: ""}
+YAML
+write_bad_cfg form-json <<YAML
+name: form-json
+enabled: true
+sources:
+  - id: page
+    url: "http://127.0.0.1:${port}/index.html"
+    method: POST
+    form: {q: a}
+    json: {q: b}
+    extract:
+      - id: price
+        type: css
+        selector: ".price"
+        transform: text
+conditions:
+  - {id: c, field: price, op: changed}
+groups:
+  - {name: g, any: [c]}
+state:
+  file: state-form-json.json
+  initial: {price: ""}
+YAML
+for bad in get-form head-body put-method form-json; do
+  set +e
+  "$wrapper" validate --config "$cfgdir/${bad}.yaml" >/dev/null 2>"$tmpdir/${bad}.err"
+  bad_rc=$?
+  set -e
+  [[ "$bad_rc" -ne 0 ]] || fail "validate must reject ${bad}"
+done
+
+# --- --no-issue then later issue; CLAIM_SKIP ---
+cat >"$cfgdir/local-no-issue.yaml" <<YAML
+name: local-no-issue
+enabled: true
+seed_mode: true
+sources:
+  - id: page
+    url: "http://127.0.0.1:${port}/index.html"
+    extract:
+      - id: price
+        type: css
+        selector: ".price"
+        transform: text
+conditions:
+  - id: price_changed
+    field: price
+    op: changed
+groups:
+  - name: promote
+    any: [price_changed]
+llm_escalation:
+  trigger_groups: [promote]
+  fire_once: false
+  prompt: |
+    {{ config_name }} {{ condition_id }}
+state:
+  file: state-no-issue.json
+  initial:
+    price: ""
+YAML
+write_page 100
+"$wrapper" run --config "$cfgdir/local-no-issue.yaml" >/dev/null || fail "no-issue seed"
+write_page 41
+no_issue="$("$wrapper" run --config "$cfgdir/local-no-issue.yaml" --no-issue")" \
+  || fail "no-issue run: $no_issue"
+printf '%s\n' "$no_issue" | grep -q 'LLM_ESCALATION:' || fail "no-issue missing escalation: $no_issue"
+printf '%s\n' "$no_issue" | grep -q 'PROMPT_ISSUED:' && fail "no-issue must not issue: $no_issue"
+later_issue="$("$wrapper" issue)" || fail "issue after --no-issue"
+printf '%s\n' "$later_issue" | grep -q 'PROMPT_ISSUED:' || fail "later issue: $later_issue"
+
+skip_name="claim-skip-probe.json"
+printf '%s\n' '{"config_name":"local-no-issue","condition_id":"price_changed","escalation_type":"condition_matched"}' \
+  >"$DETECT_ENGINE_ESCALATION_DIR/$skip_name"
+mkdir -p "$DETECT_ENGINE_ESCALATION_DIR/processed"
+chmod a-w "$DETECT_ENGINE_ESCALATION_DIR/processed"
+set +e
+skip_out="$("$wrapper" claim)"
+skip_rc=$?
+set -e
+chmod u+w "$DETECT_ENGINE_ESCALATION_DIR/processed"
+[[ "$skip_rc" -eq 0 ]] || fail "CLAIM_SKIP claim rc: $skip_rc $skip_out"
+printf '%s\n' "$skip_out" | grep -q 'CLAIM_SKIP:' || fail "CLAIM_SKIP token: $skip_out"
+rm -f "$DETECT_ENGINE_ESCALATION_DIR/$skip_name"
+
+# --- POST form through the wrapper ---
+post_port="$("$python_bin" -c 'import socket; s=socket.socket(); s.bind(("127.0.0.1",0)); print(s.getsockname()[1]); s.close()')"
+printf '<html><body><span class="headline">old</span></body></html>\n' >"$www/post.html"
+"$python_bin" - "$post_port" "$www/post.html" <<'PY' &
+import sys
+from http.server import BaseHTTPRequestHandler, HTTPServer
+from pathlib import Path
+
+port = int(sys.argv[1])
+page = Path(sys.argv[2])
+
+class H(BaseHTTPRequestHandler):
+    def do_POST(self):
+        body = page.read_bytes()
+        self.send_response(200)
+        self.send_header("Content-Type", "text/html; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+    def log_message(self, fmt, *args):
+        return
+
+HTTPServer(("127.0.0.1", port), H).serve_forever()
+PY
+post_pid=$!
+for _ in 1 2 3 4 5 6 7 8 9 10; do
+  if "$python_bin" -c "import httpx; r=httpx.post('http://127.0.0.1:${post_port}/search', data={'q':'x'}, timeout=0.4); r.raise_for_status()" 2>/dev/null; then
+    break
+  fi
+  sleep 0.1
+done
+cat >"$cfgdir/local-post-form.yaml" <<YAML
+name: local-post-form
+enabled: true
+seed_mode: true
+sources:
+  - id: search
+    url: "http://127.0.0.1:${post_port}/search"
+    method: POST
+    form:
+      q: widget
+    extract:
+      - id: headline
+        type: css
+        selector: ".headline"
+        transform: text
+conditions:
+  - id: headline_changed
+    field: headline
+    op: changed
+groups:
+  - name: promote
+    any: [headline_changed]
+llm_escalation:
+  trigger_groups: [promote]
+  fire_once: true
+  prompt: |
+    {{ config_name }} {{ condition_id }}
+state:
+  file: state-post.json
+  initial:
+    headline: ""
+YAML
+"$wrapper" validate --config "$cfgdir/local-post-form.yaml" >/dev/null || fail "post validate"
+post_seed="$("$wrapper" run --config "$cfgdir/local-post-form.yaml")" || fail "post seed: $post_seed"
+printf '%s\n' "$post_seed" | grep -q 'SEED_OK:' || fail "post seed token: $post_seed"
+printf '<html><body><span class="headline">new</span></body></html>\n' >"$www/post.html"
+post_hit="$("$wrapper" run --config "$cfgdir/local-post-form.yaml" --no-issue")" \
+  || fail "post promote: $post_hit"
+printf '%s\n' "$post_hit" | grep -q 'LLM_ESCALATION:' || fail "post missing escalation: $post_hit"
+kill "$post_pid" 2>/dev/null || true
+wait "$post_pid" 2>/dev/null || true
 
 printf 'prompt-on-change-lifecycle.test.sh: PASS\n'

@@ -16,6 +16,11 @@ fail() {
 [[ -f "$pkg/prompts/escalation.prompt.md" ]] || fail "missing escalation prompt"
 [[ -f "$pkg/prompts/event.prompt.md" ]] || fail "missing event prompt"
 [[ -f "$pkg/references/e2e-success.md" ]] || fail "missing e2e-success reference"
+[[ -f "$pkg/references/coverage-matrix.md" ]] || fail "missing coverage-matrix reference"
+grep -q 'lifecycle-to' "$pkg/references/coverage-matrix.md" \
+  || fail "coverage-matrix must list lifecycle-to"
+grep -q 'CLAIM_SKIP' "$pkg/references/coverage-matrix.md" \
+  || fail "coverage-matrix must list CLAIM_SKIP"
 [[ -x "$root/test/prompt-on-change-e2e.test.sh" ]] || fail "e2e suite not executable"
 [[ -x "$pkg/scripts/detect_runner.sh" ]] || fail "runner not executable"
 [[ -x "$pkg/scripts/prompt-on-change" ]] || fail "wrapper not executable"

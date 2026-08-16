@@ -20,9 +20,10 @@ POC_E2E=1 POC_GROK_KEEP=/tmp/poc-e2e-keep/suite \
   bash test/prompt-on-change-e2e.test.sh
 ```
 
-Subset: `POC_E2E_CASES=offline,local-to,external-multi`.  
+Subset: `POC_E2E_CASES=offline,local-to,external-multi,lifecycle-to`.  
 Live site URL: `POC_LIVE_SITE_URL` (default `https://time.is/Los_Angeles`).  
 Do **not** point `--to` at an open TUI uuid. Resume uses `--assume-idle`.
+Public-surface inventory: `references/coverage-matrix.md`.
 
 ## Cases
 
@@ -31,6 +32,7 @@ Do **not** point `--to` at an open TUI uuid. Resume uses `--assume-idle`.
 | `offline-local-multi` | 127.0.0.1 | no | seed → one empty poll → two `LLM_ESCALATION:` (`price_changed`, `status_changed`) → **one** `PROMPT_ISSUED:` containing both. No `PROMPT_RUN`. |
 | `live-local-to` | 127.0.0.1 | yes | same two-condition poll with `--to grok:<uuid>` → `PROMPT_RUN:` then `issue --evidence` ×2 → `PROMPT_RESUME:` and `event.prompt.md`. |
 | `live-external-multi` | time.is | yes | silent polls until `#clock` enters the next minute; `all:` of `time_hits_known`, `clock_moved`, `page_ok`, `has_date` → **four** escalations, **one** issue, `PROMPT_RUN:` then resume. |
+| `lifecycle-to` | 127.0.0.1 | yes | explain → seed → silent → `--to` match → fire_once silent → status → claim → `issue --last --to` resume. Refuse / `--force-new` / isolated `--exec` stay on delivery + grok-native. |
 
 Skipped live rows (`SKIP`) are success for the default/hermetic invoke. `FAIL` fails the script.
 

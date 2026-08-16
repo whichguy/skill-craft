@@ -174,6 +174,44 @@ set -e
 [[ "$host_rc" -ne 0 ]] || fail "wrapper unknown host must fail"
 grep -qi 'unknown host' "$tmpdir/host.err" || fail "wrapper host err: $(cat "$tmpdir/host.err")"
 
+set +e
+"$wrapper" issue --exec --to "cursor:$sid" --evidence "$ev1" >/dev/null 2>"$tmpdir/cursor.err"
+cursor_rc=$?
+set -e
+[[ "$cursor_rc" -ne 0 ]] || fail "wrapper cursor host must fail"
+grep -qi 'unknown host' "$tmpdir/cursor.err" || fail "cursor host err: $(cat "$tmpdir/cursor.err")"
+
+# --- missing --to value ---
+set +e
+"$wrapper" issue --exec --to >/dev/null 2>"$tmpdir/miss-to.err"
+missto_rc=$?
+set -e
+[[ "$missto_rc" -eq 64 ]] || fail "missing --to value exit 64 got $missto_rc"
+
+# --- uppercase UUID is lowercased ---
+: >"$GROK_ARGV_FILE"
+rm -f "$GROK_HOME/active_sessions.json"
+rm -rf "$GROK_HOME/sessions/$enc/$sid"
+upper="$(printf '%s' "$sid" | tr '[:lower:]' '[:upper:]')"
+out="$("$wrapper" issue --exec --to "grok:$upper" --evidence "$ev1")" \
+  || fail "uppercase uuid: $out"
+printf '%s\n' "$out" | grep -q '^PROMPT_RUN:' || fail "uppercase new: $out"
+grep -q -- "--session-id $sid" "$GROK_ARGV_FILE" || fail "uppercase lowercased argv: $(cat "$GROK_ARGV_FILE")"
+issued="$(printf '%s\n' "$out" | sed -n 's/^PROMPT_ISSUED: //p' | head -1)"
+grep -q "$sid" <<<"$issued" || fail "uppercase dest stamp: $issued"
+
+# --- --cwd disagrees with session dir ---
+mkdir -p "$sess_dir"
+: >"$GROK_ARGV_FILE"
+set +e
+"$wrapper" issue --exec --to "grok:$sid" --cwd /tmp/poc-wrong-cwd --evidence "$ev1" \
+  >/dev/null 2>"$tmpdir/cwd.err"
+cwd_rc=$?
+set -e
+[[ "$cwd_rc" -ne 0 ]] || fail "cwd mismatch must fail"
+grep -qi 'disagrees' "$tmpdir/cwd.err" || fail "cwd mismatch message: $(cat "$tmpdir/cwd.err")"
+[[ ! -s "$GROK_ARGV_FILE" ]] || fail "cwd mismatch must not invoke grok"
+
 # --- this-poll two condition_matched → one issue containing both ---
 rm -f "$GROK_HOME/active_sessions.json"
 rm -rf "$GROK_HOME/sessions/$enc/$other"
@@ -316,5 +354,61 @@ set +e
 bad_rc=$?
 set -e
 [[ "$bad_rc" -ne 0 ]] || fail "missing config must fail"
+
+# --- run --no-issue --to then issue --to then issue --last --to ---
+cat >"$cfgdir/no-issue-to.yaml" <<YAML
+name: no-issue-to
+enabled: true
+seed_mode: true
+sources:
+  - id: page
+    url: "http://127.0.0.1:${port}/index.html"
+    extract:
+      - id: price
+        type: css
+        selector: ".price"
+        transform: text
+conditions:
+  - id: price_changed
+    field: price
+    op: changed
+groups:
+  - name: promote
+    any: [price_changed]
+llm_escalation:
+  trigger_groups: [promote]
+  fire_once: false
+  prompt: |
+    {{ config_name }} {{ condition_id }}
+state:
+  file: state-no-issue-to.json
+  initial:
+    price: ""
+YAML
+printf '<html><body><span class="price">100</span><span class="status">ok</span></body></html>\n' >"$www/index.html"
+"$wrapper" run --config "$cfgdir/no-issue-to.yaml" >/dev/null || fail "no-issue-to seed"
+printf '<html><body><span class="price">40</span><span class="status">ok</span></body></html>\n' >"$www/index.html"
+last_sid="dddddddd-eeee-4fff-8000-111111111111"
+: >"$GROK_ARGV_FILE"
+no_to="$("$wrapper" run --config "$cfgdir/no-issue-to.yaml" --no-issue --to "grok:$last_sid")" \
+  || fail "run --no-issue --to: $no_to"
+printf '%s\n' "$no_to" | grep -q 'LLM_ESCALATION:' || fail "no-issue --to missing esc: $no_to"
+printf '%s\n' "$no_to" | grep -q 'PROMPT_RUN:\|PROMPT_ISSUED:' && fail "no-issue --to must not deliver: $no_to"
+[[ ! -s "$GROK_ARGV_FILE" ]] || fail "no-issue --to must not invoke grok"
+ev_no="$(printf '%s\n' "$no_to" | sed -n 's/^LLM_ESCALATION: //p' | head -1)"
+[[ -f "$ev_no" ]] || fail "no-issue evidence missing: $ev_no"
+: >"$GROK_ARGV_FILE"
+iss_to="$("$wrapper" issue --exec --to "grok:$last_sid" --evidence "$ev_no")" \
+  || fail "issue --to after no-issue: $iss_to"
+printf '%s\n' "$iss_to" | grep -q '^PROMPT_RUN:' || fail "issue --to after no-issue RUN: $iss_to"
+enc_last="$(python3 -c 'from urllib.parse import quote; print(quote("/tmp/poc-session-cwd", safe=""))')"
+mkdir -p "$GROK_HOME/sessions/$enc_last/$last_sid"
+"$wrapper" claim >/dev/null || fail "claim after no-issue --to"
+: >"$GROK_ARGV_FILE"
+last_to="$("$wrapper" issue --last --exec --to "grok:$last_sid")" \
+  || fail "issue --last --to: $last_to"
+printf '%s\n' "$last_to" | grep -q '^PROMPT_RESUME:' || fail "issue --last --to resume: $last_to"
+last_issued="$(printf '%s\n' "$last_to" | sed -n 's/^PROMPT_ISSUED: //p' | head -1)"
+grep -q 'async event' "$last_issued" || fail "issue --last --to uses event prompt: $last_issued"
 
 printf 'prompt-on-change-delivery.test.sh: PASS\n'
