@@ -325,9 +325,11 @@ cmd_status() {
     done
   fi
   printf '  processed: %s\n' "${#processed[@]}"
-  for f in "${processed[@]}"; do
-    printf '  processed_path: %s\n' "$f"
-  done
+  if [[ "${#processed[@]}" -gt 0 ]]; then
+    for f in "${processed[@]}"; do
+      printf '  processed_path: %s\n' "$f"
+    done
+  fi
 
   local health
   shopt -s nullglob
@@ -640,7 +642,10 @@ cmd_issue() {
     shopt -s nullglob
     processed=("$esc/processed"/*.json)
     shopt -u nullglob
-    evidence="$(newest_file "${processed[@]:-}")"
+    evidence=""
+    if [[ "${#processed[@]}" -gt 0 ]]; then
+      evidence="$(newest_file "${processed[@]}")"
+    fi
     if [[ -z "$evidence" ]]; then
       printf 'CLAIM_EMPTY: no processed evidence under %s/processed\n' "$esc"
       printf '[SILENT]\n'

@@ -104,6 +104,10 @@ YAML
 cfg="$cfgdir/local-http-promote.yaml"
 "$wrapper" validate --config "$cfg" >/dev/null || fail "fixture validate"
 
+st0="$("$wrapper" status)" || fail "status on empty processed: $st0"
+printf '%s\n' "$st0" | grep -q 'pending: 0' || fail "fresh status pending: $st0"
+printf '%s\n' "$st0" | grep -q 'processed: 0' || fail "fresh status processed: $st0"
+
 explain_json() {
   "$wrapper" explain --config "$cfg"
 }
