@@ -12,7 +12,7 @@
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
-run="$root/skills/devloop-run/scripts/devloop-run"
+run="$root/skills/devloop/scripts/devloop-run"
 shim="$root/test/fixtures/ollama-hermes-shim"
 scratch_default="${GROK_GOAL_SCRATCH:-${SCRATCH:-}}"
 if [[ -z "$scratch_default" ]]; then

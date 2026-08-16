@@ -237,28 +237,25 @@ assert_absent "$HOME/.codex/skills/skill-interop"
 assert_absent "$HOME/.hermes/skills/software-development/skill-interop"
 
 # ---------------------------------------------------------------------------
-# I16: source leaf devloop-run → dest alias devloop on Claude/Grok/Codex/Cursor;
-# Hermes dest stays devloop-run. --skill devloop is rejected.
+# I16: --skill devloop is identity install on Claude/Grok/Codex/Cursor.
+# Hermes card install is skipped (engine owns software-development/devloop).
 # ---------------------------------------------------------------------------
-source_devloop="$root/skills/devloop-run"
-[[ -f "$source_devloop/SKILL.md" ]] || fail "I16 missing skills/devloop-run/SKILL.md"
+source_devloop="$root/skills/devloop"
+[[ -f "$source_devloop/SKILL.md" ]] || fail "I16 missing skills/devloop/SKILL.md"
 fresh_home i16
-set +e
-"$install_sh" --skill devloop --claude-only >/dev/null 2>&1
-rc16=$?
-set -e
-[[ "$rc16" -eq 64 ]] || fail "I16 --skill devloop should exit 64 (got $rc16)"
-out16="$("$install_sh" --skill devloop-run 2>&1)" || fail "I16 install failed: $out16"
+out16="$("$install_sh" --skill devloop 2>&1)" || fail "I16 install failed: $out16"
 assert_symlink "$HOME/.claude/skills/devloop" "$source_devloop"
 assert_symlink "$HOME/.grok/skills/devloop" "$source_devloop"
 assert_symlink "$HOME/.codex/skills/devloop" "$source_devloop"
 assert_symlink "$HOME/.cursor/skills/devloop" "$source_devloop"
-assert_hermes_copy "devloop-run" "$source_devloop"
+assert_absent "$HOME/.hermes/skills/software-development/devloop"
+assert_absent "$HOME/.hermes/skills/software-development/devloop-run"
 assert_absent "$HOME/.claude/skills/devloop-run"
 assert_absent "$HOME/.grok/skills/devloop-run"
 assert_absent "$HOME/.codex/skills/devloop-run"
 assert_absent "$HOME/.cursor/skills/devloop-run"
-assert_absent "$HOME/.hermes/skills/software-development/devloop"
+printf '%s\n' "$out16" | grep -qi 'Skipped Hermes card install' \
+  || fail "I16 should skip Hermes card: $out16"
 assert_symlink "$HOME/.grok/commands/devloop.md" "$source_devloop/commands/devloop.md"
 assert_absent "$HOME/.claude/commands/devloop.md"
 
@@ -268,7 +265,7 @@ assert_absent "$HOME/.claude/commands/devloop.md"
 fresh_home i17
 mkdir -p "$HOME/.grok/skills"
 ln -s "$source_devloop" "$HOME/.grok/skills/devloop-run"
-out17="$("$install_sh" --grok-only --skill devloop-run 2>&1)" || fail "I17 failed: $out17"
+out17="$("$install_sh" --grok-only --skill devloop 2>&1)" || fail "I17 failed: $out17"
 assert_symlink "$HOME/.grok/skills/devloop" "$source_devloop"
 assert_absent "$HOME/.grok/skills/devloop-run"
 printf '%s\n' "$out17" | grep -q 'Removed leftover dest' || fail "I17 should report leftover removal: $out17"
@@ -283,4 +280,4 @@ rc=$?
 set -e
 [[ "$rc" -eq 64 ]] || fail "invalid flag should exit 64 (got $rc)"
 
-printf 'install-targets.test.sh: PASS I1–I17 (skill-craft install, 5 hosts, dest alias, flags, dry-run, skip-if-exists, --relink, --agents)\n'
+printf 'install-targets.test.sh: PASS I1–I17 (skill-craft install, 5 hosts, identity dest, flags, dry-run, skip-if-exists, --relink, --agents)\n'

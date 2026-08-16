@@ -1,6 +1,6 @@
 # Review Converge: clean-laptop devloop pin+sha bootstrap residual×2
 
-**Target paths:** `skills/devloop-run`, `plugins/devloop-run`, `scripts/package-devloop-engine.sh`, `test/devloop-run.test.sh`, `test/fixtures`, `docs/ARCHITECTURE.md`, `.gitignore`
+**Target paths:** `skills/devloop`, `plugins/devloop`, `scripts/package-devloop-engine.sh`, `test/devloop-run.test.sh`, `test/fixtures`, `docs/ARCHITECTURE.md`, `.gitignore`
 **Test command:** `bash test/devloop-run.test.sh && bash test/run-all.sh`
 **Started:** 2026-08-01          **Status:** complete
 **Round counter:** 3

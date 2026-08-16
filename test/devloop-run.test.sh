@@ -3,7 +3,7 @@
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
-run="$root/skills/devloop-run/scripts/devloop-run"
+run="$root/skills/devloop/scripts/devloop-run"
 fixture_tgz="$root/test/fixtures/devloop-engine-fixture.tar.gz"
 fixture_pin="$root/test/fixtures/engine-pin-fixture.json"
 
@@ -13,11 +13,11 @@ fail() {
 }
 
 [[ -x "$run" ]] || fail "scripts/devloop-run not executable"
-[[ -f "$root/skills/devloop-run/SKILL.md" ]] || fail "missing SKILL.md"
-[[ -f "$root/skills/devloop-run/references/bootstrap.md" ]] || fail "missing bootstrap.md"
-[[ -f "$root/skills/devloop-run/references/engine-pin.json" ]] || fail "missing engine-pin.json"
+[[ -f "$root/skills/devloop/SKILL.md" ]] || fail "missing SKILL.md"
+[[ -f "$root/skills/devloop/references/bootstrap.md" ]] || fail "missing bootstrap.md"
+[[ -f "$root/skills/devloop/references/engine-pin.json" ]] || fail "missing engine-pin.json"
 [[ -f "$fixture_tgz" ]] || fail "missing fixture tgz"
-python3 -c 'import json;d=json.load(open("'"$root"'/skills/devloop-run/references/engine-pin.json")); assert "version" in d and "url" in d and "sha256" in d; assert "grok" in d.get("transports", [])' \
+python3 -c 'import json;d=json.load(open("'"$root"'/skills/devloop/references/engine-pin.json")); assert "version" in d and "url" in d and "sha256" in d; assert "grok" in d.get("transports", [])' \
   || fail "engine-pin.json schema"
 
 # Refresh fixture pin absolute path + sha
@@ -77,15 +77,16 @@ set -e
 [[ "$rc3" -eq 2 ]] || fail "D3 want 2 got $rc3: $out3"
 
 # D4: frontmatter / honesty
-grep -q 'kind: script-backed' "$root/skills/devloop-run/SKILL.md" || fail "D4 kind"
-grep -qi 'bootstrap' "$root/skills/devloop-run/SKILL.md" || fail "D4 bootstrap"
-grep -q 'references/bootstrap.md' "$root/skills/devloop-run/SKILL.md" || fail "D4 bootstrap pointer"
+grep -q 'kind: script-backed' "$root/skills/devloop/SKILL.md" || fail "D4 kind"
+grep -qi 'bootstrap' "$root/skills/devloop/SKILL.md" || fail "D4 bootstrap"
+grep -q 'references/bootstrap.md' "$root/skills/devloop/SKILL.md" || fail "D4 bootstrap pointer"
 
-# D5: no bare skills/devloop (Hermes engine leaf). User-facing name is dest alias.
-[[ ! -d "$root/skills/devloop" ]] || fail "D5 bare skills/devloop"
-grep -E '^name: devloop$' "$root/skills/devloop-run/SKILL.md" || fail "D5 SKILL.md name: devloop"
-grep -q 'scripts/devloop-run' "$root/skills/devloop-run/SKILL.md" || fail "D5 SKILL.md must cite scripts/devloop-run"
-if grep -n '/devloop-run' "$root/skills/devloop-run/SKILL.md" | grep -v 'scripts/devloop-run' | grep -q .; then
+# D5: package must be skills/devloop; user-facing name is dest = leaf.
+[[ -d "$root/skills/devloop" ]] || fail "D5 package must be skills/devloop"
+[[ ! -d "$root/skills/devloop-run" ]] || fail "D5 leftover skills/devloop-run"
+grep -E '^name: devloop$' "$root/skills/devloop/SKILL.md" || fail "D5 SKILL.md name: devloop"
+grep -q 'scripts/devloop-run' "$root/skills/devloop/SKILL.md" || fail "D5 SKILL.md must cite scripts/devloop-run"
+if grep -n '/devloop-run' "$root/skills/devloop/SKILL.md" | grep -v 'scripts/devloop-run' | grep -q .; then
   fail "D5 user-facing /devloop-run remains in SKILL.md"
 fi
 
@@ -165,7 +166,7 @@ set -e
 export DEVLOOP_DATA_HOME="$tmpdir/data-copy"
 card_copy="$tmpdir/card-copy"
 rm -rf "$card_copy"
-cp -R "$root/skills/devloop-run" "$card_copy"
+cp -R "$root/skills/devloop" "$card_copy"
 # point pin to fixture
 cp "$fixture_pin" "$card_copy/references/engine-pin.json"
 unset DEVLOOP_ENGINE_PIN
@@ -252,15 +253,15 @@ set -e
 printf '%s\n' "$out15" | grep -qi 'python3' || fail "D15 message: $out15"
 
 # D16: honesty / version — strict shim, default DevLoop ownership
-grep -qi 'Hermes' "$root/skills/devloop-run/SKILL.md" || fail "D16 honesty Hermes host"
-grep -qi 'mode=engine' "$root/skills/devloop-run/SKILL.md" || fail "D16 mode=engine banner"
-grep -qi 'Forbidden' "$root/skills/devloop-run/SKILL.md" || fail "D16 forbids host loop"
-grep -qi 'devloop-native' "$root/skills/devloop-run/SKILL.md" || fail "D16 mentions demoted native"
-grep -E '^version: 0\.4\.10' "$root/skills/devloop-run/SKILL.md" || fail "D16 version 0.4.10"
-grep -q 'SKILL_ROOT' "$root/skills/devloop-run/SKILL.md" || fail "D16 SKILL_ROOT"
-grep -qi 'BEFORE\|STATE\|stderr' "$root/skills/devloop-run/SKILL.md" || fail "D16 inspection/stderr"
-[[ -f "$root/skills/devloop-run/references/product-default.md" ]] || fail "D16 product-default.md"
-printf 'LAYER simple: D16 version 0.4.10 + ownership docs OK\n'
+grep -qi 'Hermes' "$root/skills/devloop/SKILL.md" || fail "D16 honesty Hermes host"
+grep -qi 'mode=engine' "$root/skills/devloop/SKILL.md" || fail "D16 mode=engine banner"
+grep -qi 'Forbidden' "$root/skills/devloop/SKILL.md" || fail "D16 forbids host loop"
+grep -qi 'evidence-gates' "$root/skills/devloop/SKILL.md" || fail "D16 mentions demoted evidence-gates"
+grep -E '^version: 0\.5\.0' "$root/skills/devloop/SKILL.md" || fail "D16 version 0.5.0"
+grep -q 'SKILL_ROOT' "$root/skills/devloop/SKILL.md" || fail "D16 SKILL_ROOT"
+grep -qi 'BEFORE\|STATE\|stderr' "$root/skills/devloop/SKILL.md" || fail "D16 inspection/stderr"
+[[ -f "$root/skills/devloop/references/product-default.md" ]] || fail "D16 product-default.md"
+printf 'LAYER simple: D16 version 0.5.0 + ownership docs OK\n'
 
 # D17: DEVLOOP_BOOTSTRAP_CMD success
 export DEVLOOP_DATA_HOME="$tmpdir/data-cmd"
@@ -375,7 +376,7 @@ rc23=$?
 set -e
 [[ "$rc23" -eq 2 ]] || fail "D23 want 2 got $rc23: $out23"
 printf '%s\n' "$out23" | grep -qi 'nested\|NESTING\|DEPTH' || fail "D23 message: $out23"
-printf '%s\n' "$out23" | grep -qi 'devloop-native' || fail "D23 must mention not native fallback: $out23"
+printf '%s\n' "$out23" | grep -qi 'evidence-gates' || fail "D23 must mention not evidence-gates fallback: $out23"
 unset DEVLOOP_DEPTH DEVLOOP_NESTING || true
 printf 'LAYER simple: D23 nesting refuse OK\n'
 
@@ -405,9 +406,9 @@ printf '%s\n' "$out24b" | grep -q 'FULL' || fail "D24b: $out24b"
 printf 'LAYER integration: D24 grok capability preflight OK\n'
 
 # D25: bootstrap.md honesty + host affinity docs
-grep -qi 'DEVLOOP_HOST\|host affinity\|ALLOW_HERMES_SEED' "$root/skills/devloop-run/references/bootstrap.md" \
+grep -qi 'DEVLOOP_HOST\|host affinity\|ALLOW_HERMES_SEED' "$root/skills/devloop/references/bootstrap.md" \
   || fail "D25 bootstrap affinity docs"
-grep -qi 'fail closed\|Do not use devloop-native' "$root/skills/devloop-run/references/bootstrap.md" \
+grep -qi 'fail closed\|Do not use evidence-gates' "$root/skills/devloop/references/bootstrap.md" \
   || fail "D25 bootstrap fail-closed docs"
 printf 'LAYER simple: D25 bootstrap honesty OK\n'
 
@@ -418,7 +419,7 @@ unset DEVLOOP_HOME DEVLOOP_HOST DEVLOOP_BOOTSTRAP_CMD DEVLOOP_ENGINE_URL DEVLOOP
 d26_home="$tmpdir/d26-home"
 rm -rf "$d26_home"
 mkdir -p "$d26_home/.grok/skills"
-ln -s "$root/skills/devloop-run" "$d26_home/.grok/skills/devloop-run"
+ln -s "$root/skills/devloop" "$d26_home/.grok/skills/devloop"
 export HOME="$d26_home"
 export DEVLOOP_DATA_HOME="$tmpdir/data-d26-empty"
 rm -rf "$DEVLOOP_DATA_HOME"
@@ -428,7 +429,7 @@ mkdir -p "$HERMES_HOME/skills/software-development/devloop/scripts"
 printf 'print("HERMES_HIJACK")\n' >"$HERMES_HOME/skills/software-development/devloop/scripts/devloop_cli.py"
 export DEVLOOP_ENGINE_PIN="$tmpdir/empty-pin-d26.json"
 printf '%s\n' '{"version":"x","url":"REPLACE_WITH_RELEASE_URL/x.tgz","sha256":""}' >"$DEVLOOP_ENGINE_PIN"
-d26_run="$d26_home/.grok/skills/devloop-run/scripts/devloop-run"
+d26_run="$d26_home/.grok/skills/devloop/scripts/devloop-run"
 [[ -x "$d26_run" ]] || fail "D26 symlink invoke path missing: $d26_run"
 set +e
 out26="$("$d26_run" --probe --no-bootstrap 2>&1)"
@@ -530,10 +531,10 @@ done
 printf 'LAYER simple: D32 negative phrase guard OK\n'
 
 # D33: card documents new-repo + /devloop prompt form (no fuzzy cwd/last-path guessing)
-grep -qi 'new repo' "$root/skills/devloop-run/SKILL.md" || fail "D33 SKILL.md new repo"
-grep -q 'new_repo_designated' "$root/skills/devloop-run/SKILL.md" || fail "D33 SKILL.md STATE line"
-grep -qi 'infer cwd' "$root/skills/devloop-run/SKILL.md" || fail "D33 SKILL.md no-infer-cwd"
-grep -q "grok -p '/devloop" "$root/skills/devloop-run/SKILL.md" || fail "D33 SKILL.md grok -p /devloop"
+grep -qi 'new repo' "$root/skills/devloop/SKILL.md" || fail "D33 SKILL.md new repo"
+grep -q 'new_repo_designated' "$root/skills/devloop/SKILL.md" || fail "D33 SKILL.md STATE line"
+grep -qi 'infer cwd' "$root/skills/devloop/SKILL.md" || fail "D33 SKILL.md no-infer-cwd"
+grep -q "grok -p '/devloop" "$root/skills/devloop/SKILL.md" || fail "D33 SKILL.md grok -p /devloop"
 printf 'LAYER simple: D33 SKILL.md designation docs OK\n'
 
 # D34: verify_cmd exactly [ with no --lang -> shim must NOT auto-prepend --lang
@@ -565,20 +566,20 @@ printf 'LAYER simple: D36 no verify_cmd leaves lang alone, STATE lang=none OK\n'
 
 # D37: SKILL.md hermetic string checks — /devloop + interpolate procedure,
 # COMPLETE = AFTER exec exit=0, no /goal or /loop invoke.
-grep -qi 'interpolate' "$root/skills/devloop-run/SKILL.md" || fail "D37 SKILL.md mentions interpolate"
-grep -qi 'print the interpolation' "$root/skills/devloop-run/SKILL.md" || fail "D37 SKILL.md prints interpolation"
-grep -qi 'fail-closed' "$root/skills/devloop-run/SKILL.md" || fail "D37 SKILL.md fail-closed"
-grep -qi 'checkable done' "$root/skills/devloop-run/SKILL.md" || fail "D37 SKILL.md checkable-done language"
-grep -q 'AFTER exec exit=0' "$root/skills/devloop-run/SKILL.md" || fail "D37 SKILL.md COMPLETE = AFTER exec exit=0"
-grep -q "grok -p '/devloop" "$root/skills/devloop-run/SKILL.md" || fail "D37 SKILL.md grok -p /devloop"
-printf '%s\n' "$(grep -c "grok -p '/goal" "$root/skills/devloop-run/SKILL.md" || true)" | grep -q '^0$' \
+grep -qi 'interpolate' "$root/skills/devloop/SKILL.md" || fail "D37 SKILL.md mentions interpolate"
+grep -qi 'print the interpolation' "$root/skills/devloop/SKILL.md" || fail "D37 SKILL.md prints interpolation"
+grep -qi 'fail-closed' "$root/skills/devloop/SKILL.md" || fail "D37 SKILL.md fail-closed"
+grep -qi 'checkable done' "$root/skills/devloop/SKILL.md" || fail "D37 SKILL.md checkable-done language"
+grep -q 'AFTER exec exit=0' "$root/skills/devloop/SKILL.md" || fail "D37 SKILL.md COMPLETE = AFTER exec exit=0"
+grep -q "grok -p '/devloop" "$root/skills/devloop/SKILL.md" || fail "D37 SKILL.md grok -p /devloop"
+printf '%s\n' "$(grep -c "grok -p '/goal" "$root/skills/devloop/SKILL.md" || true)" | grep -q '^0$' \
   || fail "D37 SKILL.md must not invoke /goal"
-printf '%s\n' "$(grep -c "grok -p '/loop" "$root/skills/devloop-run/SKILL.md" || true)" | grep -q '^0$' \
+printf '%s\n' "$(grep -c "grok -p '/loop" "$root/skills/devloop/SKILL.md" || true)" | grep -q '^0$' \
   || fail "D37 SKILL.md must not invoke /loop"
 printf 'LAYER simple: D37 SKILL.md interpolation procedure docs OK\n'
 
 # D39: flags-free parse + hosted-identity setup exactly in the request string.
-card="$root/skills/devloop-run/SKILL.md"
+card="$root/skills/devloop/SKILL.md"
 grep -qi 'flags-free' "$card" || fail "D39 SKILL.md flags-free default"
 grep -qi 'parse that text' "$card" || grep -qi 'Interpolate and print' "$card" \
   || fail "D39 SKILL.md parse skill argument"
@@ -617,8 +618,8 @@ printf 'LAYER simple: D38 STATE lang always emitted OK\n'
 # override: DEVLOOP_ALIAS_MD. Distinct from the card so alias drift fails here.
 alias_md="${DEVLOOP_ALIAS_MD:-}"
 if [[ -z "$alias_md" ]]; then
-  if [[ -f "$root/skills/devloop-run/commands/devloop.md" ]]; then
-    alias_md="$root/skills/devloop-run/commands/devloop.md"
+  if [[ -f "$root/skills/devloop/commands/devloop.md" ]]; then
+    alias_md="$root/skills/devloop/commands/devloop.md"
   elif [[ -f "${HOME}/.grok/commands/devloop.md" ]]; then
     alias_md="${HOME}/.grok/commands/devloop.md"
   fi
@@ -648,7 +649,7 @@ unset DEVLOOP_HOME DEVLOOP_HOST DEVLOOP_BOOTSTRAP_CMD DEVLOOP_ENGINE_URL DEVLOOP
 d42_home="$tmpdir/d42-home"
 rm -rf "$d42_home"
 mkdir -p "$d42_home/.cursor/skills"
-ln -s "$root/skills/devloop-run" "$d42_home/.cursor/skills/devloop"
+ln -s "$root/skills/devloop" "$d42_home/.cursor/skills/devloop"
 export HOME="$d42_home"
 export DEVLOOP_DATA_HOME="$tmpdir/data-d42-empty"
 rm -rf "$DEVLOOP_DATA_HOME"
@@ -675,9 +676,9 @@ printf 'LAYER integration: D42 cursor skill-dir symlink host detect OK\n'
 
 # D43: MCP-first card contract (hermetic greps + fixture table; no live MCP).
 # Orientation is session-MCP-before-plan, not a product-specific (GAS) path.
-card="$root/skills/devloop-run/SKILL.md"
-learnings="$root/skills/devloop-run/references/LEARNINGS.md"
-prod="$root/skills/devloop-run/references/product-default.md"
+card="$root/skills/devloop/SKILL.md"
+learnings="$root/skills/devloop/references/LEARNINGS.md"
+prod="$root/skills/devloop/references/product-default.md"
 grep -qi 'Review session MCP before planning' "$card" \
   || fail "D43 SKILL.md review session MCP before planning"
 grep -qi 'Inventory' "$card" || fail "D43 SKILL.md inventory"
@@ -709,4 +710,26 @@ grep -qi 'concrete' "$learnings" || fail "D43 LEARNINGS concrete constraint"
 grep -qi 'COMPLETE stays' "$learnings" || fail "D43 LEARNINGS COMPLETE unchanged"
 printf 'LAYER simple: D43 MCP-first inventory + fixture table OK\n'
 
-printf 'devloop-run.test.sh: PASS D1–D43\n'
+# D44: destination-contract protocol (generic slots), not a vendor hook list.
+grep -qi 'Discover destination contract' "$card" \
+  || fail "D44 SKILL.md discover destination contract"
+grep -q 'env-discovered' "$card" || fail "D44 SKILL.md print env-discovered"
+grep -qi 'identity' "$card" && grep -qi 'claim' "$card" \
+  && grep -qi 'reserved' "$card" && grep -qi 'success' "$card" \
+  && grep -qi 'misread' "$card" \
+  || fail "D44 SKILL.md five protocol slots"
+instances="$root/skills/devloop/references/destination-instances.md"
+[[ -f "$instances" ]] || fail "D44 missing destination-instances.md"
+grep -qi 'mcp-gas-deploy' "$instances" || fail "D44 instances table names mcp-gas-deploy"
+# Protocol card must not require GAS nouns (those belong in instances only).
+if grep -n 'loadNow\|__events__\|?page=game' "$card" | grep -v destination-instances | grep -q .; then
+  fail "D44 SKILL.md must not require GAS instance nouns (use destination-instances.md)"
+fi
+grep -qi 'claimer' "$learnings" || fail "D44 LEARNINGS claimer vs down"
+grep -q 'env-discovered' "$prod" || fail "D44 product-default env-discovered"
+printf '%s\n' "$(grep -c "grok -p '/goal" "$card" || true)" | grep -q '^0$' \
+  || fail "D44 SKILL.md must not invoke grok -p /goal"
+grep -q '| DEFINE |' "$card" && fail "D44 must not add host phase table"
+printf 'LAYER simple: D44 destination-contract protocol (not vendor nouns) OK\n'
+
+printf 'devloop-run.test.sh: PASS D1–D44\n'

@@ -1,0 +1,898 @@
+#!/usr/bin/env bash
+# Resolve host-local or Hermes devloop engine and exec, or bootstrap / refuse closed.
+# Exit 2 = needs human / engine missing / bootstrap refused. Engine exit codes otherwise.
+set -euo pipefail
+
+here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+card_root="$(cd "$here/.." && pwd -P)"
+# Logical path (no -P): skill-dir installs are symlinks; physical card_root is the
+# skill-craft checkout and must not hide ~/.grok|claude|codex/skills host affinity.
+here_logical="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+card_root_logical="$(cd "$here_logical/.." && pwd)"
+invoke_logical="${BASH_SOURCE[0]}"
+pin_file="${DEVLOOP_ENGINE_PIN:-$card_root/references/engine-pin.json}"
+
+usage() {
+  cat <<'EOF'
+Usage: devloop-run [flags] [--] [devloop_cli args...]
+
+Resolve the installed devloop engine and run scripts/devloop_cli.py.
+May bootstrap a host-local engine when missing (see --setup).
+
+Flags:
+  --probe              Print candidates + selected path; do not exec
+  --setup              Ensure engine present (bootstrap if needed); print path; exit
+  --no-bootstrap       Never download/copy an engine (fail if missing)
+  --force-bootstrap    Re-materialize host-local engine even if one exists
+  --force-hard         With --force-bootstrap, allow replacing a tree without our marker
+  --strict             If DEVLOOP_HOME is set but invalid, exit 2 (no fallback)
+  --host NAME          Force host affinity: grok|hermes|claude|codex|auto (default auto)
+  --allow-hermes-seed  On non-Hermes hosts, allow resolve/bootstrap via Hermes leaf seed
+
+Environment:
+  DEVLOOP_HOME           Prefer this engine root
+  DEVLOOP_DATA_HOME      Host-local parent (default: $XDG_DATA_HOME or ~/.local/share)
+  DEVLOOP_ENGINE_URL     Override pin URL (file:// or https://…tgz)
+  DEVLOOP_ENGINE_SHA256  Override pin sha256 (required for non-file https unless pin file)
+  DEVLOOP_ENGINE_PIN     Path to engine-pin.json (default: card references/engine-pin.json)
+  DEVLOOP_BOOTSTRAP_CMD  Test seam: command that installs into $1
+  DEVLOOP_HOST           Host affinity (grok|hermes|claude|codex); exported to engine
+  DEVLOOP_TRANSPORT      Default model transport for engine (exported when set by preflight)
+  DEVLOOP_ALLOW_HERMES_SEED  If 1, non-Hermes hosts may use Hermes leaf as seed/resolve
+  DEVLOOP_ALLOW_LEGACY_ENGINE  If 1, skip capability transport preflight (stubs/tests)
+  DEVLOOP_DEPTH / DEVLOOP_NESTING  If nonzero on invoke → exit 2 (anti-reentry)
+  GROK_BIN               Grok CLI for host=grok preflight (default: grok on PATH)
+  HERMES_HOME            Legacy Hermes data root
+
+Resolve order (host=hermes or allow-hermes-seed):
+  1. DEVLOOP_HOME (if valid)
+  2. Host-local …/devloop
+  3. Hermes / /opt/data seeds
+  4. Bootstrap (pin / URL / CMD / seed copy)
+
+Resolve order (host=grok|claude|codex, default):
+  1. DEVLOOP_HOME
+  2. Host-local only
+  3. Bootstrap from pin/URL/CMD (Hermes seed only if DEVLOOP_ALLOW_HERMES_SEED=1)
+
+Never overwrites Hermes skillhub leaf "devloop".
+
+New-repo designation (one signal, no fuzzy guessing):
+  --repo PATH given                -> that path always wins.
+  --repo omitted + goal designates -> --repo stays omitted (scratch mechanism
+    a new repo (phrases: "new repo",   is unchanged); shim prints
+    "new repository", "separate repo", "STATE target=scratch reason=new_repo_designated".
+    "fresh repo", "create a repo",
+    "newly created repo")
+  --repo omitted, no designation   -> unchanged default; shim prints
+                                       "STATE target=scratch reason=default".
+  Never reuses a previous --repo path and never infers cwd as the target.
+EOF
+}
+
+strict=0
+probe=0
+setup=0
+no_bootstrap=0
+force_bootstrap=0
+force_hard=0
+host_flag=""
+allow_hermes_seed="${DEVLOOP_ALLOW_HERMES_SEED:-0}"
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -h|--help) usage; exit 0 ;;
+    --strict) strict=1; shift ;;
+    --probe) probe=1; shift ;;
+    --setup) setup=1; shift ;;
+    --no-bootstrap) no_bootstrap=1; shift ;;
+    --force-bootstrap) force_bootstrap=1; shift ;;
+    --force-hard) force_hard=1; shift ;;
+    --host)
+      host_flag="${2:-}"
+      [[ -n "$host_flag" ]] || { printf 'devloop-run: --host requires NAME\n' >&2; exit 64; }
+      shift 2
+      ;;
+    --allow-hermes-seed) allow_hermes_seed=1; shift ;;
+    --) shift; break ;;
+    *) break ;;
+  esac
+done
+
+# Binding lifecycle (stderr). Identity + BEFORE/AFTER/STATE. Do not print secrets.
+trace_before() { printf '[devloop-run] BEFORE %s\n' "$1" >&2; }
+trace_after() { printf '[devloop-run] AFTER  %s\n' "$*" >&2; }
+trace_state() { printf '[devloop-run] STATE  life=%s\n' "$1" >&2; }
+emit_identity() {
+  printf 'DevLoop — mode=engine host=%s engine=%s\n' "${DEVLOOP_HOST:-pending}" "${1:-pending}" >&2
+}
+fail_closed() {
+  trace_state fail-closed
+  exit 2
+}
+
+# New-repo designation (host signal only; one conservative rule, no fuzzy guessing).
+# Omitting --repo already creates a scratch git repo under the write-safe root and
+# worktrees it (see ensure_target_repo in the engine) — that scratch IS the new-repo
+# deliverable. This detector never changes routing; it only labels *why* --repo was
+# omitted so hosts stop inventing --repo paths or inferring cwd. Case-insensitive
+# substring match against the args forwarded to devloop_cli.py (goal text included).
+new_repo_designation_phrases=(
+  "new repo"
+  "new repository"
+  "separate repo"
+  "fresh repo"
+  "create a repo"
+  "newly created repo"
+)
+
+args_have_repo_flag() {
+  local a
+  for a in "$@"; do
+    case "$a" in
+      --repo|--repo=*) return 0 ;;
+    esac
+  done
+  return 1
+}
+
+args_have_lang_flag() {
+  local a
+  for a in "$@"; do
+    case "$a" in
+      --lang|--lang=*) return 0 ;;
+    esac
+  done
+  return 1
+}
+
+extract_lang_value() {
+  local prev="" a
+  for a in "$@"; do
+    if [[ "$prev" == "--lang" ]]; then
+      printf '%s\n' "$a"
+      return 0
+    fi
+    case "$a" in
+      --lang=*) printf '%s\n' "${a#--lang=}"; return 0 ;;
+    esac
+    prev="$a"
+  done
+  printf 'none\n'
+}
+
+designates_new_repo() {
+  local joined phrase
+  joined="$(printf '%s ' "$@" | tr '[:upper:]' '[:lower:]')"
+  for phrase in "${new_repo_designation_phrases[@]}"; do
+    if [[ "$joined" == *"$phrase"* ]]; then
+      return 0
+    fi
+  done
+  return 1
+}
+
+trace_repo_target() {
+  printf '[devloop-run] STATE target=%s reason=%s\n' "$1" "$2" >&2
+}
+
+trace_lang_state() {
+  printf '[devloop-run] STATE lang=%s reason=%s\n' "$1" "$2" >&2
+}
+
+# Host affinity: explicit flag > env > logical install path (symlink-aware) > physical
+detect_host() {
+  if [[ -n "$host_flag" && "$host_flag" != "auto" ]]; then
+    printf '%s\n' "$host_flag"
+    return 0
+  fi
+  if [[ -n "${DEVLOOP_HOST:-}" ]]; then
+    printf '%s\n' "$DEVLOOP_HOST"
+    return 0
+  fi
+  local p
+  for p in "$card_root_logical" "$here_logical" "$invoke_logical" "$card_root"; do
+    case "$p" in
+      */.grok/skills/*|*/.grok/skills|*/.grok/plugins/*)
+        printf 'grok\n'
+        return 0
+        ;;
+      */.claude/skills/*|*/.claude/skills|*/.claude/plugins/*)
+        printf 'claude\n'
+        return 0
+        ;;
+      */.codex/skills/*|*/.codex/skills)
+        printf 'codex\n'
+        return 0
+        ;;
+      */.cursor/skills/*|*/.cursor/skills)
+        printf 'cursor\n'
+        return 0
+        ;;
+      */.hermes/*|/opt/data/*|/opt/hermes/*)
+        printf 'hermes\n'
+        return 0
+        ;;
+    esac
+  done
+  printf 'auto\n'
+}
+
+trace_before detect_host
+DEVLOOP_HOST="$(detect_host)"
+export DEVLOOP_HOST
+allow_hermes_seed_effective=0
+if [[ "$allow_hermes_seed" == "1" || "${DEVLOOP_ALLOW_HERMES_SEED:-0}" == "1" ]]; then
+  allow_hermes_seed_effective=1
+fi
+if [[ "$DEVLOOP_HOST" == "hermes" || "$DEVLOOP_HOST" == "auto" ]]; then
+  # auto keeps legacy resolve (Hermes seed allowed) for backward compat / unknown installs
+  allow_hermes_seed_effective=1
+fi
+trace_after detect_host "host=$DEVLOOP_HOST hermes_seed=$allow_hermes_seed_effective"
+trace_state detect
+emit_identity pending
+
+# Setup/bootstrap needs python3 early (marker JSON + safe extract). Fail closed exit 2.
+require_python3() {
+  if command -v python3 >/dev/null 2>&1; then
+    return 0
+  fi
+  printf 'devloop-run: python3 not found on PATH (install Python 3.10+)\n' >&2
+  printf '  Next: install python3, then re-run: bash scripts/devloop-run --setup\n' >&2
+  fail_closed
+}
+
+# Probe can list paths without python; setup / bootstrap / invoke need it.
+if [[ "$setup" -eq 1 || "$force_bootstrap" -eq 1 || ( "$probe" -eq 0 && "$setup" -eq 0 ) ]]; then
+  # Always require for real invoke; for setup/bootstrap too. Skip only pure --probe
+  # when we will not bootstrap (probe alone). If probe and missing engine, ensure may bootstrap.
+  if [[ "$probe" -eq 1 && "$setup" -eq 0 && "$force_bootstrap" -eq 0 ]]; then
+    :
+  else
+    require_python3
+  fi
+fi
+
+is_engine_root() {
+  local d="$1"
+  [[ -n "$d" && -d "$d" && -f "$d/scripts/devloop_cli.py" ]]
+}
+
+host_local_root() {
+  local data="${DEVLOOP_DATA_HOME:-${XDG_DATA_HOME:-$HOME/.local/share}}"
+  printf '%s/devloop\n' "$data"
+}
+
+host_local_ok() {
+  local d="$1"
+  is_engine_root "$d" || return 1
+  # Prefer marker presence for host-local installs; still accept valid entrypoint
+  return 0
+}
+
+write_engine_marker() {
+  local root="$1"
+  local source="$2"
+  local version="${3:-unknown}"
+  local sha="${4:-}"
+  local ts
+  ts="$(date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || echo unknown)"
+  mkdir -p "$root"
+  python3 - "$root/.skill-craft-engine.json" "$source" "$version" "$sha" "$ts" <<'PY'
+import json, sys
+path, source, version, sha, ts = sys.argv[1:6]
+d = {"schema": 1, "mode": "host-local", "source": source, "version": version, "timestamp": ts}
+if sha:
+    d["sha256"] = sha
+json.dump(d, open(path, "w"), indent=2)
+open(path, "a").write("\n")
+PY
+}
+
+read_pin() {
+  # sets pin_version pin_url pin_sha via stdout as version|url|sha
+  local f="$1"
+  if [[ ! -f "$f" ]]; then
+    printf '|||\n'
+    return 0
+  fi
+  python3 - "$f" <<'PY'
+import json, sys
+try:
+    d = json.load(open(sys.argv[1], encoding="utf-8"))
+except Exception:
+    print("|||")
+    raise SystemExit(0)
+print("%s|%s|%s|%s" % (
+    d.get("version") or "",
+    d.get("url") or "",
+    d.get("sha256") or "",
+    ",".join(str(x) for x in d["transports"]) if isinstance(d.get("transports"), list) else "",
+))
+PY
+}
+
+sha256_file() {
+  shasum -a 256 "$1" | awk '{print $1}'
+}
+
+# Safe extract tar.gz into dest dir (dest must exist empty-ish). Rejects escapes.
+safe_extract_tgz() {
+  local tgz="$1"
+  local dest="$2"
+  python3 - "$tgz" "$dest" <<'PY'
+import os, sys, tarfile
+
+tgz, dest = sys.argv[1], sys.argv[2]
+dest = os.path.realpath(dest)
+os.makedirs(dest, exist_ok=True)
+
+def ok_member(name: str) -> bool:
+    if name.startswith("/") or name.startswith("\\"):
+        return False
+    parts = name.replace("\\", "/").split("/")
+    if any(p == ".." for p in parts):
+        return False
+    return True
+
+with tarfile.open(tgz, "r:gz") as tf:
+    for m in tf.getmembers():
+        if not ok_member(m.name):
+            sys.stderr.write("devloop-run: refused unsafe tar member: %s\n" % m.name)
+            sys.exit(2)
+        if m.issym() or m.islnk():
+            # resolve link target relative; reject absolute / ..
+            link = m.linkname or ""
+            if link.startswith("/") or ".." in link.replace("\\", "/").split("/"):
+                sys.stderr.write("devloop-run: refused unsafe tar link: %s -> %s\n" % (m.name, link))
+                sys.exit(2)
+    # extract with filter if available (py3.12+), else manual
+    if hasattr(tarfile, "data_filter"):
+        tf.extractall(dest, filter="data")
+    else:
+        tf.extractall(dest)
+
+# Flatten one top-level package dir if present (ignore AppleDouble ._ files)
+if not os.path.isfile(os.path.join(dest, "scripts", "devloop_cli.py")):
+    for name in os.listdir(dest):
+        if name.startswith("._"):
+            continue
+        top = os.path.join(dest, name)
+        if os.path.isdir(top) and os.path.isfile(os.path.join(top, "scripts", "devloop_cli.py")):
+            for child in os.listdir(top):
+                if child.startswith("._"):
+                    continue
+                os.rename(os.path.join(top, child), os.path.join(dest, child))
+            # best-effort remove emptied top + appledouble junk
+            for child in list(os.listdir(top)):
+                try:
+                    os.remove(os.path.join(top, child))
+                except IsADirectoryError:
+                    pass
+                except OSError:
+                    pass
+            try:
+                os.rmdir(top)
+            except OSError:
+                pass
+            break
+sys.exit(0)
+PY
+}
+# Also COPYFILE_DISABLE when packaging on macOS to avoid ._ junk
+
+
+download_url_to() {
+  local url="$1"
+  local out="$2"
+  if [[ "$url" == file://* ]]; then
+    local path="${url#file://}"
+    # macOS file:///path
+    path="${path#/}"
+    if [[ -f "/$path" ]]; then
+      path="/$path"
+    fi
+    if [[ -f "$path" ]]; then
+      cp "$path" "$out"
+      return 0
+    fi
+    printf 'devloop-run: file URL not found: %s\n' "$url" >&2
+    return 1
+  fi
+  if command -v curl >/dev/null 2>&1; then
+    curl -fsSL --progress-bar "$url" -o "$out"
+  elif command -v wget >/dev/null 2>&1; then
+    wget -q -O "$out" "$url"
+  else
+    printf 'devloop-run: need curl or wget to download engine\n' >&2
+    printf '  Install curl, or set DEVLOOP_ENGINE_URL=file:///path/to.tgz\n' >&2
+    return 1
+  fi
+}
+
+bootstrap_engine() {
+  local dest="$1"
+  local parent stage lock
+  parent="$(dirname "$dest")"
+  mkdir -p "$parent"
+  lock="$parent/devloop.bootstrap.lock"
+  stage="$parent/.devloop-stage.$$"
+
+  # Concurrency: atomic mkdir lock (portable; no bash {fd} / flock required)
+  local lockdir="${lock}.d"
+  local i=0
+  while ! mkdir "$lockdir" 2>/dev/null; do
+    i=$((i + 1))
+    if [[ "$i" -gt 200 ]]; then
+      printf 'devloop-run: timeout waiting for bootstrap lock\n' >&2
+      return 1
+    fi
+    sleep 0.05
+  done
+  # shellcheck disable=SC2064
+  trap 'rmdir "'"$lockdir"'" 2>/dev/null || true' RETURN
+
+  # Double-check after lock: another process may have finished while we waited
+  if [[ "$force_bootstrap" -eq 0 ]] && is_engine_root "$dest"; then
+    printf 'devloop-run: engine already present at %s\n' "$dest" >&2
+    return 0
+  fi
+
+  if [[ "$force_bootstrap" -eq 1 && -e "$dest" && ! -f "$dest/.skill-craft-engine.json" && "$force_hard" -eq 0 ]]; then
+    printf 'devloop-run: refusing --force-bootstrap on unmarked engine at %s\n' "$dest" >&2
+    printf '  Use --force-hard if you intend to replace it.\n' >&2
+    return 1
+  fi
+
+  rm -rf "$stage"
+  mkdir -p "$stage"
+
+  printf 'devloop-run: bootstrapping engine into %s\n' "$dest" >&2
+
+  local pin_version pin_url pin_sha pin_transports
+  IFS='|' read -r pin_version pin_url pin_sha pin_transports <<<"$(read_pin "$pin_file")"
+  if [[ "$DEVLOOP_HOST" == "grok" && -n "$pin_transports" && ",$pin_transports," != *",grok,"* ]]; then
+    printf 'devloop-run: pin at %s declares transports without "grok" (%s).\n' "$pin_file" "$pin_transports" >&2
+    printf '  Upgrade the pin to transports including grok, or set a Grok-capable DEVLOOP_HOME.\n' >&2
+    printf '  Do not use evidence-gates as DevLoop.\n' >&2
+    rm -rf "$stage"
+    return 1
+  fi
+
+  local url="${DEVLOOP_ENGINE_URL:-$pin_url}"
+  local sha="${DEVLOOP_ENGINE_SHA256:-$pin_sha}"
+  local version="${pin_version:-unknown}"
+
+  if [[ -n "${DEVLOOP_BOOTSTRAP_CMD:-}" ]]; then
+    if ! "$DEVLOOP_BOOTSTRAP_CMD" "$stage"; then
+      printf 'devloop-run: DEVLOOP_BOOTSTRAP_CMD failed\n' >&2
+      rm -rf "$stage"
+      return 1
+    fi
+    write_engine_marker "$stage" "DEVLOOP_BOOTSTRAP_CMD" "$version" ""
+  elif [[ -n "$url" && "$url" != REPLACE_WITH_RELEASE_URL/* && "$url" != *REPLACE_WITH* ]]; then
+    local tgz
+    tgz="$(mktemp "${TMPDIR:-/tmp}/devloop-engine.XXXXXX.tgz")"
+    if ! download_url_to "$url" "$tgz"; then
+      rm -f "$tgz"
+      rm -rf "$stage"
+      return 1
+    fi
+    if [[ -z "$sha" && "$url" != file://* ]]; then
+      printf 'devloop-run: refusing download without sha256 (set DEVLOOP_ENGINE_SHA256 or pin file)\n' >&2
+      rm -f "$tgz"
+      rm -rf "$stage"
+      return 1
+    fi
+    if [[ -n "$sha" ]]; then
+      local got
+      got="$(sha256_file "$tgz")"
+      if [[ "$got" != "$sha" ]]; then
+        printf 'devloop-run: sha256 mismatch\n  expected: %s\n  got:      %s\n' "$sha" "$got" >&2
+        printf '  Fix: re-download pin or set DEVLOOP_ENGINE_URL + DEVLOOP_ENGINE_SHA256\n' >&2
+        rm -f "$tgz"
+        rm -rf "$stage"
+        return 1
+      fi
+    else
+      printf 'devloop-run: warning: file:// bootstrap without sha256 verification\n' >&2
+    fi
+    if ! safe_extract_tgz "$tgz" "$stage"; then
+      rm -f "$tgz"
+      rm -rf "$stage"
+      return 1
+    fi
+    rm -f "$tgz"
+    write_engine_marker "$stage" "$url" "$version" "$sha"
+  else
+    # Seed copy from existing Hermes/opt engine (no network) — only if allowed
+    local seed="" s
+    if [[ "$allow_hermes_seed_effective" -eq 1 ]]; then
+      for s in \
+        "${HERMES_HOME:+$HERMES_HOME/skills/software-development/devloop}" \
+        "${HOME}/.hermes/skills/software-development/devloop" \
+        "/opt/data/skills/software-development/devloop"
+      do
+        [[ -n "$s" ]] || continue
+        if is_engine_root "$s"; then
+          seed="$s"
+          break
+        fi
+      done
+    fi
+    if [[ -z "$seed" ]]; then
+      if [[ "$allow_hermes_seed_effective" -eq 0 ]]; then
+        printf 'devloop-run: no pin/URL bootstrap and Hermes seed disallowed (host=%s).\n' "$DEVLOOP_HOST" >&2
+        printf '  Options:\n' >&2
+        printf '    1) Publish/fetch engine pin (DEVLOOP_ENGINE_PIN / network)\n' >&2
+        printf '    2) DEVLOOP_ENGINE_URL=file:///path/to/engine.tgz DEVLOOP_ENGINE_SHA256=...\n' >&2
+        printf '    3) DEVLOOP_ALLOW_HERMES_SEED=1 to allow one-time seed from Hermes leaf\n' >&2
+        printf '  Do not use evidence-gates as DevLoop.\n' >&2
+      else
+        printf 'devloop-run: no bootstrap source on this machine.\n' >&2
+        printf '  Options:\n' >&2
+        printf '    1) bash scripts/devloop-run --setup   # after publishing engine pin\n' >&2
+        if [[ -f "$pin_file" ]]; then
+          printf '    2) Ensure network access to pin URL in %s\n' "$pin_file" >&2
+        else
+          printf '    2) Add references/engine-pin.json with url+sha256\n' >&2
+        fi
+        printf '    3) DEVLOOP_ENGINE_URL=file:///path/to/engine.tgz DEVLOOP_ENGINE_SHA256=...\n' >&2
+        printf '    4) Install Hermes engine once (seed), then re-run --setup\n' >&2
+      fi
+      rm -rf "$stage"
+      return 1
+    fi
+    if [[ "$allow_hermes_seed_effective" -eq 0 ]]; then
+      printf 'devloop-run: internal error: seed set while hermes seed disallowed\n' >&2
+      rm -rf "$stage"
+      return 1
+    fi
+    printf 'devloop-run: seeding host-local engine from %s\n' "$seed" >&2
+    if command -v rsync >/dev/null 2>&1; then
+      rsync -a --delete --exclude '.venv' --exclude '__pycache__' --exclude '.devloop' \
+        --exclude '.git' --exclude '.mypy_cache' --exclude '.pytest_cache' \
+        "$seed"/ "$stage"/
+    else
+      cp -R "$seed"/. "$stage"/
+      rm -rf "$stage/.venv" "$stage/__pycache__" "$stage/.devloop" "$stage/.git" 2>/dev/null || true
+    fi
+    write_engine_marker "$stage" "$seed" "seeded" ""
+  fi
+
+  if ! is_engine_root "$stage"; then
+    printf 'devloop-run: bootstrap produced invalid engine (missing scripts/devloop_cli.py)\n' >&2
+    rm -rf "$stage"
+    return 1
+  fi
+
+  # Marker must be last (rewrite after validation)
+  local src_label="${url:-${DEVLOOP_BOOTSTRAP_CMD:-seed}}"
+  write_engine_marker "$stage" "$src_label" "$version" "$sha"
+
+  # Atomic swap: keep previous generation until mv succeeds
+  local prev=""
+  if [[ -d "$dest" ]]; then
+    prev="${dest}.prev.$$"
+    rm -rf "$prev"
+    if ! mv "$dest" "$prev"; then
+      printf 'devloop-run: failed to park previous engine at %s\n' "$prev" >&2
+      rm -rf "$stage"
+      return 1
+    fi
+  fi
+  if ! mv "$stage" "$dest"; then
+    printf 'devloop-run: failed to install staged engine at %s\n' "$dest" >&2
+    if [[ -n "$prev" && -d "$prev" ]]; then
+      mv "$prev" "$dest" 2>/dev/null || true
+      printf 'devloop-run: restored previous engine generation\n' >&2
+    fi
+    rm -rf "$stage"
+    return 1
+  fi
+  if [[ -n "$prev" && -d "$prev" ]]; then
+    rm -rf "$prev"
+  fi
+  printf 'devloop-run: engine ready at %s\n' "$dest" >&2
+  return 0
+}
+
+# Full product engine (not hermetic stub fixture)
+is_full_engine() {
+  local d="$1"
+  [[ -f "$d/dispatch.py" || -f "$d/devloop_bridge.py" || -f "$d/devloop_core/dispatch_transport.py" ]]
+}
+
+engine_declares_transport() {
+  # exit 0 if engine capabilities JSON lists transport; 1 if missing list; 2 if list without transport
+  local d="$1"
+  local want="$2"
+  local cap=""
+  for cap in "$d/engine-capabilities.json" "$d/.skill-craft-capabilities.json" "$d/references/capabilities.json"; do
+    if [[ -f "$cap" ]]; then
+      python3 - "$cap" "$want" <<'PY'
+import json, sys
+path, want = sys.argv[1], sys.argv[2]
+try:
+    d = json.load(open(path, encoding="utf-8"))
+except Exception:
+    sys.exit(1)
+trans = d.get("transports")
+if not isinstance(trans, list):
+    sys.exit(1)
+sys.exit(0 if want in trans else 2)
+PY
+      return $?
+    fi
+  done
+  # marker may grow transports later
+  if [[ -f "$d/.skill-craft-engine.json" ]]; then
+    python3 - "$d/.skill-craft-engine.json" "$want" <<'PY'
+import json, sys
+path, want = sys.argv[1], sys.argv[2]
+try:
+    d = json.load(open(path, encoding="utf-8"))
+except Exception:
+    sys.exit(1)
+trans = d.get("transports")
+if not isinstance(trans, list):
+    sys.exit(1)
+sys.exit(0 if want in trans else 2)
+PY
+    return $?
+  fi
+  return 1
+}
+
+resolve_engine() {
+  local cand
+  local -a cands=()
+  local local_root
+  local_root="$(host_local_root)"
+
+  printf 'probe: DEVLOOP_HOST=%s hermes_seed_allowed=%s\n' "$DEVLOOP_HOST" "$allow_hermes_seed_effective" >&2
+
+  if [[ -n "${DEVLOOP_HOME:-}" ]]; then
+    cand="${DEVLOOP_HOME}"
+    if is_engine_root "$cand"; then
+      printf 'probe: DEVLOOP_HOME=%s -> selected\n' "$cand" >&2
+      printf '%s\n' "$(cd "$cand" && pwd -P)"
+      return 0
+    fi
+    printf 'probe: DEVLOOP_HOME=%s -> invalid\n' "$cand" >&2
+    if [[ "$strict" -eq 1 ]]; then
+      printf 'devloop-run: DEVLOOP_HOME invalid (strict). Fix path or unset DEVLOOP_HOME.\n' >&2
+      return 1
+    fi
+    printf 'probe: falling back (use --strict to disable)\n' >&2
+  fi
+
+  cands+=("$local_root")
+  if [[ "$allow_hermes_seed_effective" -eq 1 ]]; then
+    if [[ -n "${HERMES_HOME:-}" ]]; then
+      cands+=("${HERMES_HOME}/skills/software-development/devloop")
+    fi
+    cands+=("${HOME}/.hermes/skills/software-development/devloop")
+    cands+=("/opt/data/skills/software-development/devloop")
+  else
+    printf 'probe: skipping Hermes/opt seed candidates (host=%s; set DEVLOOP_ALLOW_HERMES_SEED=1 to allow)\n' "$DEVLOOP_HOST" >&2
+  fi
+
+  for cand in "${cands[@]}"; do
+    if is_engine_root "$cand"; then
+      printf 'probe: %s -> selected\n' "$cand" >&2
+      printf '%s\n' "$(cd "$cand" && pwd -P)"
+      return 0
+    fi
+    printf 'probe: %s -> missing\n' "$cand" >&2
+  done
+  return 1
+}
+
+preflight_invoke() {
+  local engine="$1"
+
+  # Nesting / re-entry guard (shim-side)
+  local depth="${DEVLOOP_DEPTH:-${DEVLOOP_NESTING:-0}}"
+  if [[ "$depth" != "0" && "$depth" != "" ]]; then
+    printf 'devloop-run: nested invoke refused (DEVLOOP_DEPTH/NESTING=%s).\n' "$depth" >&2
+    printf '  DevLoop must not re-enter via a child agent. Do not use evidence-gates as a fallback.\n' >&2
+    trace_after preflight_invoke FAILED
+    fail_closed
+  fi
+  export DEVLOOP_DEPTH=0
+  export DEVLOOP_NESTING=0
+
+  # Host-affinity transport defaults (shim-driven; engine may refine)
+  case "$DEVLOOP_HOST" in
+    grok)
+      export DEVLOOP_TRANSPORT="${DEVLOOP_TRANSPORT:-grok}"
+      local gbin="${GROK_BIN:-}"
+      if [[ -z "$gbin" ]]; then
+        gbin="$(command -v grok 2>/dev/null || true)"
+      fi
+      if [[ -z "$gbin" || ! -x "$gbin" ]]; then
+        if ! command -v grok >/dev/null 2>&1; then
+          printf 'devloop-run: host=grok but GROK_BIN/grok not found on PATH.\n' >&2
+          printf '  Next: install/sign in to Grok CLI, or set GROK_BIN.\n' >&2
+          printf '  Do not use evidence-gates as DevLoop.\n' >&2
+          trace_after preflight_invoke FAILED
+          fail_closed
+        fi
+        gbin="$(command -v grok)"
+      fi
+      export GROK_BIN="$gbin"
+      ;;
+    hermes)
+      export DEVLOOP_TRANSPORT="${DEVLOOP_TRANSPORT:-hermes}"
+      ;;
+    claude|codex)
+      export DEVLOOP_TRANSPORT="${DEVLOOP_TRANSPORT:-$DEVLOOP_HOST}"
+      ;;
+    auto)
+      : # leave transport unset for engine auto
+      ;;
+  esac
+
+  # Capability / honesty preflight for product engines on non-Hermes hosts
+  if [[ "${DEVLOOP_ALLOW_LEGACY_ENGINE:-0}" == "1" ]]; then
+    return 0
+  fi
+  if ! is_full_engine "$engine"; then
+    # Stub/fixture engines (tests)
+    return 0
+  fi
+  if [[ "$DEVLOOP_HOST" == "grok" || "$DEVLOOP_HOST" == "claude" || "$DEVLOOP_HOST" == "codex" ]]; then
+    local want="$DEVLOOP_HOST"
+    [[ "$want" == "claude" || "$want" == "codex" ]] && want="hermes" # until ports exist, require explicit allow
+    # For grok specifically require declared grok transport when capabilities exist
+    if [[ "$DEVLOOP_HOST" == "grok" ]]; then
+      local ec=0
+      set +e
+      engine_declares_transport "$engine" "grok"
+      ec=$?
+      set -e
+      if [[ $ec -eq 2 ]]; then
+        printf 'devloop-run: engine at %s does not declare transports including "grok".\n' "$engine" >&2
+        printf '  Upgrade host-local pin after Grok transport ships, or set DEVLOOP_HOME to a capable engine.\n' >&2
+        printf '  Do not use evidence-gates as DevLoop.\n' >&2
+        trace_after preflight_invoke FAILED
+        fail_closed
+      fi
+      if [[ $ec -eq 1 ]]; then
+        # No capabilities file yet (current pins) — fail closed on product engines
+        printf 'devloop-run: full engine lacks transports[] capability manifest (Grok parity not declared).\n' >&2
+        printf '  Next: install a pin that declares transports:["hermes","grok"] (post W4), or\n' >&2
+        printf '  DEVLOOP_ALLOW_LEGACY_ENGINE=1 to force (unsupported; may still call Hermes).\n' >&2
+        printf '  Do not use evidence-gates as DevLoop.\n' >&2
+        trace_after preflight_invoke FAILED
+        fail_closed
+      fi
+    fi
+  fi
+}
+
+ensure_engine() {
+  local root=""
+  local local_root
+  local_root="$(host_local_root)"
+
+  if [[ "$force_bootstrap" -eq 1 ]]; then
+    if [[ "$no_bootstrap" -eq 1 ]]; then
+      printf 'devloop-run: --force-bootstrap incompatible with --no-bootstrap\n' >&2
+      return 1
+    fi
+    trace_before bootstrap_engine
+    if ! bootstrap_engine "$local_root"; then
+      trace_after bootstrap_engine FAILED
+      return 1
+    fi
+    trace_after bootstrap_engine "dest=$local_root"
+    trace_state resolve
+    printf '%s\n' "$(cd "$local_root" && pwd -P)"
+    return 0
+  fi
+
+  trace_before resolve_engine
+  if root="$(resolve_engine)"; then
+    trace_after resolve_engine "selected=$root"
+    trace_state resolve
+    printf '%s\n' "$root"
+    return 0
+  fi
+  trace_after resolve_engine FAILED
+
+  if [[ "$no_bootstrap" -eq 1 ]]; then
+    return 1
+  fi
+
+  # --probe alone does not bootstrap (explicit --setup or real invoke)
+  if [[ "$setup" -eq 1 ]] || [[ "$probe" -eq 0 ]]; then
+    trace_before bootstrap_engine
+    if ! bootstrap_engine "$local_root"; then
+      trace_after bootstrap_engine FAILED
+      return 1
+    fi
+    trace_after bootstrap_engine "dest=$local_root"
+    trace_state resolve
+    printf '%s\n' "$(cd "$local_root" && pwd -P)"
+    return 0
+  fi
+  return 1
+}
+
+engine_root=""
+if ! engine_root="$(ensure_engine)"; then
+  printf 'devloop-run: engine not resolved.\n' >&2
+  printf '  Next: bash scripts/devloop-run --setup\n' >&2
+  printf '  Or set DEVLOOP_HOME / DEVLOOP_ENGINE_URL+SHA256 / install Hermes seed.\n' >&2
+  printf '  Host-local default: %s\n' "$(host_local_root)" >&2
+  emit_identity pending
+  fail_closed
+fi
+
+emit_identity "$engine_root"
+
+if [[ "$setup" -eq 1 || "$probe" -eq 1 ]]; then
+  printf 'devloop-run: engine=%s host=%s\n' "$engine_root" "$DEVLOOP_HOST"
+  exit 0
+fi
+
+require_python3
+trace_before preflight_invoke
+preflight_invoke "$engine_root"
+trace_after preflight_invoke "transport=${DEVLOOP_TRANSPORT:-unset} grok_bin=${GROK_BIN:-}"
+trace_state exec
+
+# --repo PATH always wins (explicit host target). Otherwise --repo stays omitted
+# (scratch mechanism unchanged); the designation only changes the printed reason
+# so hosts relay it instead of inventing a --repo path or a previous/cwd guess.
+repo_target="scratch"
+repo_reason="default"
+if args_have_repo_flag "$@"; then
+  repo_target="explicit"
+  repo_reason="repo_flag"
+elif designates_new_repo "$@"; then
+  repo_target="scratch"
+  repo_reason="new_repo_designated"
+fi
+trace_repo_target "$repo_target" "$repo_reason"
+
+# --lang is host-interpolation only: the shim never scrapes prose to prepend
+# --lang. It only labels whatever actually reached the CLI, so hosts do not
+# have to guess whether a --lang flag was honored.
+if args_have_lang_flag "$@"; then
+  trace_lang_state "$(extract_lang_value "$@")" explicit
+else
+  trace_lang_state none none
+fi
+
+# Increment depth for any child processes the engine may spawn that re-enter the card
+export DEVLOOP_DEPTH=1
+export DEVLOOP_NESTING=1
+if [[ -z "${DEVLOOP_PROGRESS:-}" ]]; then
+  export DEVLOOP_PROGRESS=verbose
+fi
+
+cli="$engine_root/scripts/devloop_cli.py"
+trace_before exec
+set +e
+if [[ -x "$engine_root/.venv/bin/python3" ]]; then
+  "$engine_root/.venv/bin/python3" "$cli" "$@"
+  ec=$?
+elif command -v uv >/dev/null 2>&1; then
+  uv run --with pytest python3 "$cli" "$@"
+  ec=$?
+else
+  python3 "$cli" "$@"
+  ec=$?
+fi
+set -e
+if [[ "$ec" -eq 0 ]]; then
+  trace_after exec "exit=0"
+  trace_state complete
+else
+  trace_after exec "exit=$ec FAILED"
+  trace_state fail-closed
+fi
+exit "$ec"

@@ -56,8 +56,8 @@ Port inventory: [docs/PORT.md](docs/PORT.md). After editing any skill body (incl
 Installs `skills/<leaf>` into local skill homes. Claude/Grok/Codex/Cursor get **symlinks**.
 Hermes gets a **materialized copy** (refreshable managed install; foreign real trees skipped).
 Never clobbers a foreign real file/directory. Wrong/dangling symlinks are only replaced with `--relink`.
-Source leaf `devloop-run` installs as user-facing `devloop` on Claude/Grok/Codex/Cursor
-(Hermes dest stays `devloop-run`; the engine owns `devloop`).
+Source leaf `devloop` installs as dest `devloop` on Claude/Grok/Codex/Cursor.
+Hermes card install is skipped (the engine owns `software-development/devloop`).
 
 ```sh
 ./install.sh                         # all hosts, every skills/<leaf>
@@ -86,7 +86,7 @@ Source leaf `devloop-run` installs as user-facing `devloop` on Claude/Grok/Codex
 | Cursor | `~/.cursor/skills/<dest>` | symlink (never `~/.cursor/skills-cursor`) |
 | Hermes | `~/.hermes/skills/software-development/<dest>` | **copy** (+ `.skill-craft/<dest>.json` marker) |
 
-`dest` is the source leaf, except `devloop-run` → `devloop` on Claude/Grok/Codex/Cursor.
+`dest` is the source leaf. Leaf `devloop` skips Hermes so it cannot overwrite the engine.
 
 With `--agents`: `~/.claude/agents/<leaf>.md` and `~/.grok/agents/<leaf>.md` when present.
 Re-running install refreshes managed Hermes copies; foreign Hermes trees print `Skipped (foreign)`.

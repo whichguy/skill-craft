@@ -1,0 +1,18 @@
+{
+  "name": "evidence-gates",
+  "version": "0.2.0",
+  "description": "Optional offline evidence gates (freeze/prove/stop with guard digests) for machine-checkable red→green contracts without the autonomous engine. Use when the user says evidence-gates, offline evidence gates, freeze prove stop, or host-native verify gates. NOT the autonomous engine product.",
+  "author": {
+    "name": "whichguy",
+    "url": "https://github.com/whichguy"
+  },
+  "homepage": "https://github.com/whichguy/skill-craft",
+  "repository": "https://github.com/whichguy/skill-craft",
+  "license": "MIT",
+  "keywords": [
+    "skill-craft",
+    "evidence-gates",
+    "portable-skills",
+    "script-backed"
+  ]
+}

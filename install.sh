@@ -36,10 +36,9 @@ usage() {
   printf '  Hermes:  ~/.hermes/skills/software-development/<dest>  (copy)\n' >&2
   printf '           (container bind: /opt/data/skills/software-development/<dest>)\n' >&2
   printf '           Provenance: ~/.hermes/skills/software-development/.skill-craft/<dest>.json\n' >&2
-  printf '  dest = leaf, except source leaf devloop-run → dest devloop on\n' >&2
-  printf '  Claude/Grok/Codex/Cursor (Hermes dest stays devloop-run; engine owns devloop).\n' >&2
-  printf '  --skill devloop is rejected (source leaf is reserved); use --skill devloop-run.\n' >&2
-  printf '  Grok slash: skills/devloop-run/commands/devloop.md → ~/.grok/commands/devloop.md\n' >&2
+  printf '  dest = leaf. Leaf devloop skips Hermes (engine owns software-development/devloop).\n' >&2
+  printf '  Leftover dest devloop-run is removed on Claude/Grok/Codex/Cursor.\n' >&2
+  printf '  Grok slash: skills/devloop/commands/devloop.md → ~/.grok/commands/devloop.md\n' >&2
   printf '\n' >&2
   printf 'Status outcomes: absent | symlink-owned | symlink-wrong | copy-owned |\n' >&2
   printf '  copy-owned-stale | foreign | foreign-file\n' >&2
@@ -70,10 +69,6 @@ usage() {
 # Safe skill leaf: all|both (special = every skills/*) OR ^[a-z0-9]([a-z0-9-]*[a-z0-9])?$ length 2–64
 is_safe_skill_name() {
   local name="$1"
-  # Reserved: live Hermes engine leaf is "devloop"; skill-craft card is "devloop-run".
-  if [[ "$name" == "devloop" ]]; then
-    return 1
-  fi
   if [[ "$name" == "all" || "$name" == "both" ]]; then
     return 0
   fi
@@ -269,30 +264,32 @@ if [[ "$host_flag_set" -eq 0 ]]; then
   install_cursor=1
 fi
 
-# User-facing dest name. Source leaf "devloop-run" installs as "devloop"
-# on Claude/Grok/Codex/Cursor. Hermes keeps "devloop-run" (engine owns "devloop").
+# User-facing dest name is the source leaf. Leaf "devloop" skips Hermes
+# (engine owns software-development/devloop); leftover dest "devloop-run"
+# is still removed on symlink hosts.
 dest_leaf() {
-  local host="$1"
+  local _host="$1"
   local leaf="$2"
-  if [[ "$leaf" == "devloop-run" && "$host" != "hermes" ]]; then
-    printf 'devloop\n'
-  else
-    printf '%s\n' "$leaf"
-  fi
+  printf '%s\n' "$leaf"
 }
 
-# If dest name differs from source leaf, remove an owned leftover symlink at
-# the old source-leaf dest so hosts do not see two cards.
+# Remove an owned leftover symlink at a prior dest name so hosts do not
+# see two cards. Identity dest still drops leftover "devloop-run".
 remove_legacy_source_dest() {
   local label="$1"
   local skills_dir="$2"
   local source_leaf="$3"
   local dest="$4"
   local source_dir="$5"
-  if [[ "$dest" == "$source_leaf" ]]; then
+  local legacy_leaf=""
+  if [[ "$dest" != "$source_leaf" ]]; then
+    legacy_leaf="$source_leaf"
+  elif [[ "$source_leaf" == "devloop" ]]; then
+    legacy_leaf="devloop-run"
+  else
     return 0
   fi
-  local legacy="$skills_dir/$source_leaf"
+  local legacy="$skills_dir/$legacy_leaf"
   if [[ ! -L "$legacy" ]]; then
     return 0
   fi
@@ -797,7 +794,7 @@ install_skill_to_hosts() {
   fi
   if [[ "$install_grok" -eq 1 ]]; then
     install_host_skill grok "Grok" "$HOME/.grok/skills" "$leaf" "$source_dir"
-    if [[ "$leaf" == "devloop-run" ]]; then
+    if [[ "$leaf" == "devloop" ]]; then
       install_agent_one "Grok command /devloop" "$HOME/.grok/commands" "devloop" \
         "$source_dir/commands/devloop.md"
     fi
@@ -812,8 +809,12 @@ install_skill_to_hosts() {
     # Peer layout under Hermes skillhub. Host ~/.hermes is typically bind-mounted
     # to /opt/data in the hermes container — abs-symlinks to host checkouts break.
     # Default: materialize a managed copy with provenance under .skill-craft/.
-    # Dest stays source leaf (devloop-run); never alias to devloop (engine owns it).
-    install_host_skill hermes "Hermes skillhub" "$HOME/.hermes/skills/software-development" "$leaf" "$source_dir"
+    # Leaf "devloop" skips Hermes — the engine owns software-development/devloop.
+    if [[ "$leaf" == "devloop" ]]; then
+      printf 'Skipped Hermes card install for leaf devloop (engine owns software-development/devloop)\n'
+    else
+      install_host_skill hermes "Hermes skillhub" "$HOME/.hermes/skills/software-development" "$leaf" "$source_dir"
+    fi
   fi
 }
 
@@ -1072,12 +1073,18 @@ uninstall_host_skill() {
   local dest
   dest="$(dest_leaf "$host" "$leaf")"
   uninstall_one "$label / $dest" "$skills_dir" "$dest" "$source_dir"
-  # Owned leftover at the source-leaf dest (pre-alias install). Absent leftover
-  # must not flip uninstall to exit 4 after a successful dest removal.
+  # Owned leftover at a prior dest name. Absent leftover must not flip
+  # uninstall to exit 4 after a successful dest removal.
+  local leftover=""
   if [[ "$dest" != "$leaf" ]]; then
-    local legacy="$skills_dir/$leaf"
+    leftover="$leaf"
+  elif [[ "$leaf" == "devloop" ]]; then
+    leftover="devloop-run"
+  fi
+  if [[ -n "$leftover" ]]; then
+    local legacy="$skills_dir/$leftover"
     if [[ -L "$legacy" || -e "$legacy" ]]; then
-      uninstall_one "$label leftover / $leaf" "$skills_dir" "$leaf" "$source_dir"
+      uninstall_one "$label leftover / $leftover" "$skills_dir" "$leftover" "$source_dir"
     fi
   fi
 }
@@ -1103,7 +1110,11 @@ status_skill_to_hosts() {
     status_host_skill cursor "Cursor" "$HOME/.cursor/skills" "$leaf" "$source_dir"
   fi
   if [[ "$install_hermes" -eq 1 ]]; then
-    status_host_skill hermes "Hermes skillhub" "$HOME/.hermes/skills/software-development" "$leaf" "$source_dir"
+    if [[ "$leaf" == "devloop" ]]; then
+      printf 'Skipped Hermes card status for leaf devloop (engine owns software-development/devloop)\n'
+    else
+      status_host_skill hermes "Hermes skillhub" "$HOME/.hermes/skills/software-development" "$leaf" "$source_dir"
+    fi
   fi
 }
 
@@ -1115,7 +1126,7 @@ uninstall_skill_to_hosts() {
   fi
   if [[ "$install_grok" -eq 1 ]]; then
     uninstall_host_skill grok "Grok" "$HOME/.grok/skills" "$leaf" "$source_dir"
-    if [[ "$leaf" == "devloop-run" ]]; then
+    if [[ "$leaf" == "devloop" ]]; then
       local cmd_src="$source_dir/commands/devloop.md"
       local cmd_dest="$HOME/.grok/commands/devloop.md"
       if [[ -L "$cmd_dest" && "$(readlink "$cmd_dest")" == "$cmd_src" ]]; then
@@ -1135,7 +1146,11 @@ uninstall_skill_to_hosts() {
     uninstall_host_skill cursor "Cursor" "$HOME/.cursor/skills" "$leaf" "$source_dir"
   fi
   if [[ "$install_hermes" -eq 1 ]]; then
-    uninstall_host_skill hermes "Hermes skillhub" "$HOME/.hermes/skills/software-development" "$leaf" "$source_dir"
+    if [[ "$leaf" == "devloop" ]]; then
+      printf 'Skipped Hermes card uninstall for leaf devloop (engine owns software-development/devloop)\n'
+    else
+      uninstall_host_skill hermes "Hermes skillhub" "$HOME/.hermes/skills/software-development" "$leaf" "$source_dir"
+    fi
   fi
 }
 
