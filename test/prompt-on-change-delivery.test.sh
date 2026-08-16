@@ -63,7 +63,7 @@ fake_grok="$tmpdir/bin/fake-grok"
 cat >"$fake_grok" <<'SH'
 #!/usr/bin/env bash
 set -euo pipefail
-printf '%s\n' "$@" >"${GROK_ARGV_FILE:?}"
+printf '%s\n' "$*" >"${GROK_ARGV_FILE:?}"
 if [[ -n "${GROK_SLEEP:-}" ]]; then
   sleep "$GROK_SLEEP"
 fi

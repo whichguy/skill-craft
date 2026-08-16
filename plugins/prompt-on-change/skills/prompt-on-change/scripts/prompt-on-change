@@ -104,6 +104,9 @@ new_uuid() {
   uuidgen | tr '[:upper:]' '[:lower:]'
 }
 
+# Sets to_spec / force_new / assume_idle / issue_cwd / do_exec.
+# Returns consume-count (1 or 2). Callers must use `|| consumed=$?`
+# so `set -e` does not treat a consume-count of 1 as a script failure.
 parse_delivery_flag() {
   case "$1" in
     --to)
@@ -158,8 +161,7 @@ parse_config_args() {
         ;;
       --to|--force-new|--assume-idle|--exec|--cwd)
         local consumed=0
-        parse_delivery_flag "$@"
-        consumed=$?
+        parse_delivery_flag "$@" || consumed=$?
         if [[ "$consumed" -eq 2 ]]; then
           shift 2
         elif [[ "$consumed" -eq 1 ]]; then
@@ -587,8 +589,7 @@ cmd_issue() {
         ;;
       --to|--force-new|--assume-idle|--exec|--cwd)
         local consumed=0
-        parse_delivery_flag "$@"
-        consumed=$?
+        parse_delivery_flag "$@" || consumed=$?
         if [[ "$consumed" -eq 2 ]]; then
           shift 2
         elif [[ "$consumed" -eq 1 ]]; then
@@ -764,14 +765,14 @@ cmd_locked_deliver() {
   local evidence="${evidence_paths[0]:-}"
   local python_bin
   python_bin="$(resolve_python)"
-  local decide_flags=()
+  local -a decide_flags=()
   [[ "$force_new" -eq 1 ]] && decide_flags+=(--force-new)
   [[ "$assume_idle" -eq 1 ]] && decide_flags+=(--assume-idle)
-  if [[ -n "${POC_ISSUE_CWD:-}" ]]; then
-    decide_flags+=(--cwd "$POC_ISSUE_CWD")
-  fi
+  [[ -n "${POC_ISSUE_CWD:-}" ]] && decide_flags+=(--cwd "$POC_ISSUE_CWD")
   local decision
+  set +u
   decision="$("$python_bin" "$DELIVERY_HELPER" decide --to "$to_spec" "${decide_flags[@]}")"
+  set -u
   local dec reason session_cwd ident cwd
   dec="$("$python_bin" -c 'import json,sys; print(json.loads(sys.argv[1]).get("decision",""))' "$decision")"
   reason="$("$python_bin" -c 'import json,sys; print(json.loads(sys.argv[1]).get("reason",""))' "$decision")"
