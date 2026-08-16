@@ -1,0 +1,52 @@
+# Example: POST a search form and watch an extract.
+#
+# One unauthenticated request. No cookie jar. Pair the extract with a
+# sentinel so a 200 login page is not a false `changed`.
+#
+# Copy it, set url/form, and point DETECT_DIR at this directory.
+
+name: "Example HTTP POST form"
+enabled: true
+seed_mode: true
+
+sources:
+  - id: search
+    url: "https://example.com/search"
+    method: POST
+    form:
+      q: "widget"
+    extract:
+      - id: search_hits
+        type: css
+        selector: ".count"
+        transform: text
+      - id: results_marker
+        type: css
+        selector: ".results"
+        transform: text
+
+conditions:
+  - id: has_results_ui
+    field: results_marker
+    op: exists
+  - id: hits_changed
+    field: search_hits
+    op: changed
+
+groups:
+  - name: promote
+    all: [has_results_ui, hits_changed]
+
+llm_escalation:
+  trigger_groups: [promote]
+  fire_once: true
+  prompt: |
+    {{ config_name }} fired {{ condition_id }}.
+    Previous: {{ previous_value }} → New: {{ new_value }}
+    Changed fields: {{ changed_fields }}
+
+state:
+  file: "state/http_post_form.json"
+  initial:
+    search_hits: ""
+    results_marker: ""

@@ -9,6 +9,13 @@ Native default is the author + same-turn escalation prompts. Debug/issue verbs
 (`status`, `explain`, `issue`, `issue --exec`) are host-visible lifecycle.
 The wrapper CLI is optional and only a runtime when Python deps resolve.
 
+Session delivery (2.2.0) is Grok-only: `run --to grok:<uuid>` resumes that
+id if a local session dir exists and is not live, starts it if missing, and
+refuses (issues the file, no Grok) when live or uncertain. Claude Channels,
+Codex/Hermes/Cursor inject, and Cursor Automations are not this slice.
+Hermes stays file-claim. Cursor stays issue-the-file. An open Grok session
+may `/loop` a config itself; that is not wrapper inject.
+
 | Host | Prompts | Scripts | Install | Agent card | Plugin | Runtime |
 |------|---------|---------|---------|------------|--------|---------|
 | Grok Build | author + escalation + schedule | `scripts/prompt-on-change` (`status` / `explain` / `issue --exec`) | symlink `~/.grok/skills/prompt-on-change` | `~/.grok/agents/prompt-on-change.md` (`--agents`) | git URL or local path to `plugins/prompt-on-change` — **never** `name@marketplace` | CLI when Python resolves; live headless proven only by `POC_GROK_LIVE=1` |

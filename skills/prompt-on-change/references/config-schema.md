@@ -13,6 +13,8 @@ expires: "2026-12-31T00:00:00-08:00"
 sources:
   - id: page
     url: "https://example.com"
+    method: GET            # GET | HEAD | POST. Default GET.
+    # Exactly one of form, json, body, or none. GET/HEAD cannot carry a body.
     extract:
       - id: price
         type: css
@@ -38,6 +40,26 @@ state:
 ```
 
 `state.file` must stay inside the config directory.
+
+## HTTP request bodies
+
+One unauthenticated request per source. No cookie jar, no CSRF chain, no
+`delivery:` block (delivery is `run --to grok:<uuid>` on the wrapper).
+
+| Field | Meaning |
+|-------|---------|
+| `method` | `GET` (default), `HEAD`, or `POST`. PUT/PATCH/CONNECT/TRACE rejected. |
+| `form` | `application/x-www-form-urlencoded` via httpx `data=` |
+| `json` | JSON body via httpx `json=` |
+| `body` | raw `content=`; requires an explicit `Content-Type` header |
+| `params` | query string (any method). Do not put tokens in `?q=` / `?t=`. |
+| `follow_redirects` | GET/HEAD default on; body-bearing default off |
+| `retry.count` | body-bearing / POST default `0` |
+
+Missing `{{env:VAR}}` in url / params / headers / form / json / body fails
+the source before any request. Request bodies are never written to state,
+health, or evidence. Secondary POST legs in an `any` group should set
+`required: false` and pair extracts with a sentinel (`op: exists`).
 
 ## Extraction types
 

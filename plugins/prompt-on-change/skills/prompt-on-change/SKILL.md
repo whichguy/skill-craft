@@ -7,7 +7,7 @@ description: >-
   path authors YAML in-chat; the detect CLI is optional. Fires on change,
   numeric or date range, regex match/non-match, empty, HTTP status/headers,
   or compound delta. Calendar actions optional.
-version: 2.1.0
+version: 2.2.0
 license: MIT
 platforms:
   - linux
@@ -80,17 +80,23 @@ Script optional (same Layer-0 contracts):
    never inside the skill tree).
 5. `scripts/prompt-on-change validate --config PATH` then
    `scripts/prompt-on-change run --config PATH` (add `--exec` to run the
-   issued prompt on Grok in the same command).
+   issued prompt on Grok in a new isolated session). Add
+   `--to grok:<uuid>` to resume that conversation if it exists on disk
+   and is not live; otherwise start that uuid. Live or uncertain →
+   `PROMPT_ISSUED:` only and a replay line. `--assume-idle` asserts the
+   TUI is closed. `--force-new` starts a fresh uuid.
 6. **No-change contract:** exit 0 and empty stdout. That is the documented
    empty outcome, not silent success.
 7. **Match contract (the product):** write evidence, print `LLM_ESCALATION:`,
    then **issue the escalation prompt** (`PROMPT_ISSUED:`). That filled
    prompt is the point of the skill. `--exec` also runs it (`PROMPT_RUN:`).
-   `--no-issue` is engine-only. Do **not** wait for a Hermes cron.
-   Claim first, reason over previous/new/delta/http, **never re-act**.
+   `--to` resume prints `PROMPT_RESUME:`. `--no-issue` is engine-only. Do
+   **not** wait for a Hermes cron. Reserved evidence paths are this poll’s
+   `condition_matched` files (`matches[]`). **Never re-act**.
 8. **Debug:** `explain --config PATH` prints a read-only trigger trace (why a
    poll stayed silent). `status` lists pending/processed. `issue` / `issue --exec`
    re-issue a pending or `--last` processed event without re-fetching.
+   `issue --exec --to grok:<uuid> --evidence PATH` replays delivery.
 
 Package root is the directory that contains this `SKILL.md`. Runtime state
 defaults to `$POC_STATE_DIR` or `$XDG_STATE_HOME/prompt-on-change` (fallback
@@ -99,7 +105,8 @@ defaults to `$POC_STATE_DIR` or `$XDG_STATE_HOME/prompt-on-change` (fallback
 Host matrix: `references/host-matrix.md`.  
 Schema: `references/config-schema.md`.  
 Examples: `configs/examples/price-range-delta.yaml`,
-`date-regex-delta.yaml`, `http-change-events.yaml`.
+`date-regex-delta.yaml`, `http-change-events.yaml`,
+`http-post-form.yaml`, `multi-post-any-all.yaml`.
 
 ## CLI
 
@@ -110,17 +117,20 @@ scripts/prompt-on-change bootstrap
 scripts/prompt-on-change validate --config configs/examples/price-range-delta.yaml
 scripts/prompt-on-change run --config configs/examples/price-range-delta.yaml
 scripts/prompt-on-change run --config configs/examples/price-range-delta.yaml --exec
+scripts/prompt-on-change run --config configs/examples/price-range-delta.yaml --to grok:<uuid>
 scripts/prompt-on-change explain --config configs/examples/price-range-delta.yaml
 scripts/prompt-on-change status
 scripts/prompt-on-change claim
 scripts/prompt-on-change issue
 scripts/prompt-on-change issue --last
 scripts/prompt-on-change issue --exec
+scripts/prompt-on-change issue --exec --to grok:<uuid> --evidence PATH
 scripts/prompt-on-change self-check
 ```
 
 Env: `SKILL_ROOT`, `POC_STATE_DIR`, `DETECT_DIR`, `DETECT_ENGINE_HEALTH_DIR`,
-`DETECT_ENGINE_ESCALATION_DIR`, `DETECT_ENGINE_LOG_FILE`, `PYTHON`, `GROK_BIN`.
+`DETECT_ENGINE_ESCALATION_DIR`, `DETECT_ENGINE_LOG_FILE`, `PYTHON`, `GROK_BIN`,
+`POC_ISSUE_CWD`, `POC_ASSUME_IDLE`.
 
 Grok plugin install is a git URL or local path to `plugins/prompt-on-change`,
 never `name@marketplace`. Hermes adapter: set the env vars above; do not

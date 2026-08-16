@@ -1,6 +1,6 @@
 {
   "name": "prompt-on-change",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "description": "Detect URL/HTML/JSON field changes and promote a prompt event with previous and new state. Use when the user says watch this page, notify me when a price or status changes, or poll a CSS/JSONPath/regex/HTTP field. Native path authors YAML in-chat; the detect CLI is optional. Fires on change, numeric or date range, regex match/non-match, empty, HTTP status/headers, or compound delta. Calendar actions optional.",
   "author": {
     "name": "whichguy",

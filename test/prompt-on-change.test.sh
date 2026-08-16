@@ -14,6 +14,7 @@ fail() {
 [[ -f "$pkg/prompts/author.prompt.md" ]] || fail "missing author prompt"
 [[ -f "$pkg/prompts/schedule.prompt.md" ]] || fail "missing schedule prompt"
 [[ -f "$pkg/prompts/escalation.prompt.md" ]] || fail "missing escalation prompt"
+[[ -f "$pkg/prompts/event.prompt.md" ]] || fail "missing event prompt"
 [[ -x "$pkg/scripts/detect_runner.sh" ]] || fail "runner not executable"
 [[ -x "$pkg/scripts/prompt-on-change" ]] || fail "wrapper not executable"
 [[ -f "$pkg/scripts/detect_engine.py" ]] || fail "missing detect_engine.py"
@@ -21,7 +22,7 @@ fail() {
 grep -q 'prompt-on-change' "$root/agents/prompt-on-change.md" || fail "agent card must point at the skill"
 grep -q 'kind: script-backed' "$pkg/SKILL.md" || fail "frontmatter kind"
 grep -q 'name: prompt-on-change' "$pkg/SKILL.md" || fail "frontmatter name"
-grep -q 'version: 2.1.0' "$pkg/SKILL.md" || fail "card version must be 2.1.0"
+grep -q 'version: 2.2.0' "$pkg/SKILL.md" || fail "card version must be 2.2.0"
 grep -q 'status' "$pkg/SKILL.md" || fail "card must document status"
 grep -q 'explain' "$pkg/SKILL.md" || fail "card must document explain"
 grep -q 'PROMPT_ISSUED' "$pkg/SKILL.md" || fail "card must document PROMPT_ISSUED"
@@ -42,6 +43,7 @@ if grep -qiE 'sonnet|opus|gpt-4|claude-3' \
   "$pkg/prompts/author.prompt.md" \
   "$pkg/prompts/schedule.prompt.md" \
   "$pkg/prompts/escalation.prompt.md" \
+  "$pkg/prompts/event.prompt.md" \
   "$pkg/SKILL.md"; then
   fail "prompts must not pin model names"
 fi
@@ -57,6 +59,10 @@ date_example="$pkg/configs/examples/date-regex-delta.yaml"
 [[ -f "$date_example" ]] || fail "missing date-regex example config"
 http_example="$pkg/configs/examples/http-change-events.yaml"
 [[ -f "$http_example" ]] || fail "missing http-change-events example config"
+post_example="$pkg/configs/examples/http-post-form.yaml"
+[[ -f "$post_example" ]] || fail "missing http-post-form example config"
+multi_post_example="$pkg/configs/examples/multi-post-any-all.yaml"
+[[ -f "$multi_post_example" ]] || fail "missing multi-post-any-all example config"
 
 tmpdir="$(mktemp -d "${TMPDIR:-/tmp}/poc-test.XXXXXX")"
 cleanup() { rm -rf "$tmpdir"; }
@@ -82,6 +88,10 @@ fi
   || fail "date-regex example --validate"
 "$python_bin" "$pkg/scripts/detect_engine.py" --config "$http_example" --validate \
   || fail "http-change-events example --validate"
+"$python_bin" "$pkg/scripts/detect_engine.py" --config "$post_example" --validate \
+  || fail "http-post-form example --validate"
+"$python_bin" "$pkg/scripts/detect_engine.py" --config "$multi_post_example" --validate \
+  || fail "multi-post-any-all example --validate"
 printf 'LAYER simple: example validate OK\n'
 
 wrapper="$pkg/scripts/prompt-on-change"
@@ -113,6 +123,10 @@ export PYTHON="$python_bin"
 bash "$root/test/prompt-on-change-lifecycle.test.sh" \
   || fail "lifecycle tests"
 printf 'LAYER e2e: lifecycle OK\n'
+
+bash "$root/test/prompt-on-change-delivery.test.sh" \
+  || fail "delivery tests"
+printf 'LAYER e2e: delivery OK\n'
 
 POC_GROK_LIVE=0 POC_GROK_KEEP= bash "$root/test/prompt-on-change-poll-effectiveness.test.sh" \
   || fail "poll effectiveness"

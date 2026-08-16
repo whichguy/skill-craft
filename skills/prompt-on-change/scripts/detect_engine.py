@@ -161,19 +161,69 @@ class RetryConfig(BaseModel):
     escalate_on_failure: bool = False
 
 
+ALLOWED_HTTP_METHODS = frozenset({"GET", "HEAD", "POST"})
+# GET/HEAD must not carry a body. POST may.
+BODY_FORBIDDEN_METHODS = frozenset({"GET", "HEAD"})
+
+
+class EnvUnresolved(ValueError):
+    """Missing {{env:VAR}} — fail closed before any request."""
+
+
 class Source(BaseModel):
     # State: Pydantic schema for one URL source
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
     id: str
     url: str
+    type: Optional[str] = None  # legacy YAML; ignored
     method: str = "GET"
     headers: dict[str, str] = {}
     params: dict[str, str] = {}
+    form: Optional[dict[str, Any]] = None
+    json_body: Optional[Any] = Field(default=None, alias="json")
+    body: Optional[str] = None
+    follow_redirects: Optional[bool] = None
     required: bool = True
     timeout: int = 15
     retry: Optional[RetryConfig] = None
     extract: list[ExtractSpec] = []
     # Allow per-source LLM prompt for fetch-failure escalation
     failure_prompt: Optional[str] = None
+
+    @field_validator("method")
+    @classmethod
+    def validate_method(cls, v: str) -> str:
+        if v is None or str(v).strip() == "":
+            raise ValueError("method must not be empty")
+        method = str(v).strip().upper()
+        if method in {"CONNECT", "TRACE", "PUT", "PATCH", "DELETE", "OPTIONS"}:
+            raise ValueError(
+                f"method '{method}' is not allowed — use GET, HEAD, or POST"
+            )
+        if method not in ALLOWED_HTTP_METHODS:
+            raise ValueError(
+                f"invalid method '{method}' — must be one of {sorted(ALLOWED_HTTP_METHODS)}"
+            )
+        return method
+
+    @model_validator(mode="after")
+    def validate_body_xor_and_method(self):
+        bodies = [self.form is not None, self.json_body is not None, self.body is not None]
+        if sum(1 for flag in bodies if flag) > 1:
+            raise ValueError("source may set only one of form, json, or body")
+        if self.method in BODY_FORBIDDEN_METHODS and any(bodies):
+            raise ValueError(
+                f"method {self.method} cannot carry form/json/body"
+            )
+        if self.body is not None:
+            headers = {str(k).lower(): v for k, v in (self.headers or {}).items()}
+            if "content-type" not in headers or not str(headers["content-type"]).strip():
+                raise ValueError("body: requires an explicit Content-Type header")
+        return self
+
+    def has_request_body(self) -> bool:
+        return self.form is not None or self.json_body is not None or self.body is not None
 
 
 class Condition(BaseModel):
@@ -977,17 +1027,29 @@ class FetchAgent:
     # Called by: run_engine step 4. Calls: httpx.Client.request. Returns: FetchResult.
     def fetch(self, source: Source) -> FetchResult:
         """Fetch a URL with retry/backoff. Returns FetchResult with attempt details."""
-        retry_cfg = source.retry or RetryConfig()
-        env_params = self._resolve_env_vars(source.params)
-        # P2: also resolve {{env:VAR}} in headers and URL (params already supported).
-        env_headers = self._resolve_env_vars(source.headers)
-        env_url = self._resolve_env_string(source.url)
+        if source.retry is not None:
+            retry_cfg = source.retry
+        elif source.has_request_body() or source.method == "POST":
+            retry_cfg = RetryConfig(count=0)
+        else:
+            retry_cfg = RetryConfig()
+        try:
+            env_params = self._resolve_env_vars(source.params)
+            env_headers = self._resolve_env_vars(source.headers)
+            env_url = self._resolve_env_string(source.url)
+            request_kwargs = self._request_body_kwargs(source)
+        except EnvUnresolved as exc:
+            log.error(f"FetchAgent({source.id}): {exc}")
+            return FetchResult(0, {}, "", str(exc), attempts=0, last_error_type="EnvUnresolved")
         total_attempts = retry_cfg.count + 1
+        if source.follow_redirects is not None:
+            follow = source.follow_redirects
+        else:
+            # GET/HEAD: follow so a 3xx is not an empty "ok" body.
+            # Body-bearing POST: default off (307/308 would replay method+body).
+            follow = not source.has_request_body()
 
-        # httpx 0.28+ defaults follow_redirects=False; without following, a 3xx is
-        # status<400 so FetchResult.ok is True with an empty/redirect body and
-        # extraction silently returns None (state clobber risk on successful polls).
-        with httpx.Client(timeout=source.timeout, follow_redirects=True) as client:
+        with httpx.Client(timeout=source.timeout, follow_redirects=follow) as client:
             for attempt in range(total_attempts):
                 try:
                     resp = client.request(
@@ -995,9 +1057,11 @@ class FetchAgent:
                         env_url,
                         headers=env_headers,
                         params=env_params,
+                        **request_kwargs,
                     )
                     # Retry transient HTTP statuses (CDN 503/502, rate-limit 429, request timeout 408).
                     # Fail-fast on other 4xx (including intentional non-retry of 404).
+                    # Body-bearing methods default retry.count=0 so a 503 is not a double submit.
                     if _is_retryable_http_status(resp.status_code) and attempt < retry_cfg.count:
                         wait = retry_cfg.backoff * (2 ** attempt)
                         log.warning(
@@ -1030,8 +1094,18 @@ class FetchAgent:
                                        attempts=attempt + 1, last_error_type=error_type)
         return FetchResult(0, {}, "", "unreachable", attempts=total_attempts, last_error_type="Unreachable")
 
+    def _request_body_kwargs(self, source: Source) -> dict[str, Any]:
+        """Build httpx request kwargs for form/json/body. Never log the values."""
+        if source.form is not None:
+            return {"data": self._resolve_env_vars(source.form)}
+        if source.json_body is not None:
+            return {"json": self._resolve_env_value(source.json_body)}
+        if source.body is not None:
+            return {"content": self._resolve_env_string(source.body)}
+        return {}
+
     def _resolve_env_string(self, value: str) -> str:
-        """Resolve {{env:VAR_NAME}} patterns in a single string (supports mixed strings)."""
+        """Resolve {{env:VAR_NAME}} patterns. Missing vars fail closed."""
         if not isinstance(value, str) or "{{env:" not in value:
             return value
         pattern = re.compile(r"\{\{env:(\w+)\}\}")
@@ -1040,23 +1114,27 @@ class FetchAgent:
             var = m.group(1)
             val = os.environ.get(var)
             if val is None:
-                log.warning(f"FetchAgent: env var '{var}' not found, using empty string")
-                return ""
+                raise EnvUnresolved(f"env var '{var}' not found")
             return val
 
         return pattern.sub(repl, value)
 
+    def _resolve_env_value(self, value: Any) -> Any:
+        if isinstance(value, str):
+            return self._resolve_env_string(value)
+        if isinstance(value, dict):
+            return {k: self._resolve_env_value(v) for k, v in value.items()}
+        if isinstance(value, list):
+            return [self._resolve_env_value(v) for v in value]
+        return value
+
     def _resolve_env_vars(self, params: dict) -> dict:
-        """Resolve {{env:VAR_NAME}} patterns in a string-valued dict (params/headers)."""
+        """Resolve {{env:VAR_NAME}} patterns in a string-valued dict (params/headers/form)."""
         if not params:
             return {}
         resolved = {}
         for k, v in params.items():
-            if isinstance(v, str):
-                # H6 FIX: Use re.sub to interpolate env vars in mixed strings
-                resolved[k] = self._resolve_env_string(v)
-            else:
-                resolved[k] = v
+            resolved[k] = self._resolve_env_value(v)
         return resolved
 
 
@@ -3009,6 +3087,27 @@ def validate_config_cross_refs(config: DetectConfig) -> list[str]:
             else:
                 seen_extract_ids.add(spec.id)
 
+    # Only when extracts exist: catch typo'd field names (hedline vs headline).
+    # Calendar-only configs have no extracts and use state/calendar fields.
+    if seen_extract_ids:
+        known_fields = set(seen_extract_ids)
+        known_fields.update(config.state.initial.keys() if config.state else [])
+        known_fields.add("cal_title")
+        for source in config.sources:
+            for attr in HTTP_ENVELOPE_ATTRS:
+                known_fields.add(_http_field(source.id, attr))
+        for cond in config.conditions:
+            for fname in _collect_leaf_fields(cond):
+                if not fname:
+                    continue
+                if fname.startswith(HTTP_FIELD_PREFIX) or fname.startswith("cal_"):
+                    continue
+                if fname not in known_fields:
+                    label = cond.id or "?"
+                    errors.append(
+                        f"condition '{label}' references unknown field '{fname}'"
+                    )
+
     # Check group condition references
     for group in config.groups:
         for cid in group.any + group.all:
@@ -3262,6 +3361,9 @@ def run_engine(config_path: str, dry_run: bool = False, explain: bool = False) -
                 log.warning(f"Engine: optional source '{source.id}' failed after {result.attempts} "
                             f"attempts ({result.last_error_type}), continuing with partial data")
                 unavailable_fields.update(spec.id for spec in source.extract)
+                unavailable_fields.update(
+                    _http_field(source.id, attr) for attr in HTTP_ENVELOPE_ATTRS
+                )
                 continue
 
         extracted = extractor.extract(result, source.extract)

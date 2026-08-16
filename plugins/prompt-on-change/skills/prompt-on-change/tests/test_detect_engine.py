@@ -2134,11 +2134,15 @@ def test_corner_env_var_interpolation():
 
 
 def test_corner_env_var_missing():
-    """_resolve_env_vars with missing env var returns empty string."""
+    """_resolve_env_vars with missing env var fails closed."""
+    from detect_engine import EnvUnresolved
     fetcher = FetchAgent()
     params = {"api_key": "{{env:NONEXISTENT_VAR}}"}
-    resolved = fetcher._resolve_env_vars(params)
-    assert resolved["api_key"] == "", "Missing env var should resolve to empty string"
+    try:
+        fetcher._resolve_env_vars(params)
+        raise AssertionError("missing env must fail closed")
+    except EnvUnresolved as exc:
+        assert "NONEXISTENT_VAR" in str(exc)
 
 
 def test_corner_group_empty_any_all():
@@ -2170,7 +2174,7 @@ runner.run("TC-CORNER-NETWORK-ERROR: httpx.NetworkError is retried", test_corner
 runner.run("TC-CORNER-PARSE-DT: _parse_dt on invalid datetime doesn't crash", test_corner_parse_dt_failure)
 runner.run("TC-CORNER-TIME-DIFF-DIRECT: _time_diff_minutes computes correctly", test_corner_time_diff_minutes_direct)
 runner.run("TC-CORNER-ENV-VAR: Env var interpolation works", test_corner_env_var_interpolation)
-runner.run("TC-CORNER-ENV-MISSING: Missing env var resolves to empty string", test_corner_env_var_missing)
+runner.run("TC-CORNER-ENV-MISSING: Missing env var fails closed", test_corner_env_var_missing)
 runner.run("TC-CORNER-GROUP-EMPTY: Group with empty any+all doesn't match", test_corner_group_empty_any_all)
 
 
@@ -7854,6 +7858,278 @@ runner.run("TC-HTTP-RESERVED: extract id http.* rejected", test_http_reserved_ex
 runner.run("TC-HTTP-COOKIE: Set-Cookie / Authorization not stored", test_http_set_cookie_not_stored)
 runner.run("TC-HTTP-EVIDENCE: payload includes http envelope", test_http_evidence_payload)
 runner.run("TC-HTTP-AMBIGUOUS: delta.http needs source with two envelopes", test_delta_http_requires_source_when_ambiguous)
+
+
+# ═══════════════════════════════════════════════════════════════
+#  2.2.0 pull-http: POST body, env fail-closed, redirects, envelope
+# ═══════════════════════════════════════════════════════════════
+
+def test_source_extra_forbid_typo():
+    try:
+        Source(id="s", url="https://example.com", forms={"q": "x"})  # type: ignore[call-arg]
+        raise AssertionError("typo forms: must fail extra=forbid")
+    except ValidationError as exc:
+        assert "forms" in str(exc) or "extra" in str(exc).lower()
+
+
+def test_source_body_xor_and_method():
+    try:
+        Source(id="s", url="https://example.com", method="POST", form={"q": "a"}, json={"q": "b"})
+        raise AssertionError("form+json must fail")
+    except ValidationError:
+        pass
+    try:
+        Source(id="s", url="https://example.com", method="GET", form={"q": "a"})
+        raise AssertionError("GET+form must fail")
+    except ValidationError:
+        pass
+    try:
+        Source(id="s", url="https://example.com", method="HEAD", body="x", headers={"Content-Type": "text/plain"})
+        raise AssertionError("HEAD+body must fail")
+    except ValidationError:
+        pass
+    try:
+        Source(id="s", url="https://example.com", method="PUT")
+        raise AssertionError("PUT must fail")
+    except ValidationError:
+        pass
+    try:
+        Source(id="s", url="https://example.com", method="POST", body="<xml/>")
+        raise AssertionError("raw body without Content-Type must fail")
+    except ValidationError:
+        pass
+    ok = Source(
+        id="s",
+        url="https://example.com",
+        method="POST",
+        body="<xml/>",
+        headers={"Content-Type": "application/xml"},
+    )
+    assert ok.has_request_body()
+
+
+def test_source_json_alias():
+    src = Source.model_validate({
+        "id": "s",
+        "url": "https://example.com/quote",
+        "method": "POST",
+        "json": {"sku": "A"},
+    })
+    assert src.json_body == {"sku": "A"}
+    assert src.has_request_body()
+
+
+def test_post_sends_form_and_defaults_no_redirect_no_retry():
+    fetcher = FetchAgent()
+    source = Source(
+        id="search",
+        url="https://example.com/search",
+        method="POST",
+        form={"q": "widget", "token": "{{env:SEARCH_TOKEN}}"},
+    )
+    os.environ["SEARCH_TOKEN"] = "secret-token"
+    try:
+        with patch("detect_engine.httpx.Client") as mock_cls:
+            mock_client = MagicMock()
+            mock_cls.return_value.__enter__ = MagicMock(return_value=mock_client)
+            mock_cls.return_value.__exit__ = MagicMock(return_value=False)
+            mock_client.request.return_value = MagicMock(
+                status_code=503, headers={}, text="down",
+            )
+            result = fetcher.fetch(source)
+        assert result.status_code == 503
+        assert result.attempts == 1
+        _, kwargs = mock_cls.call_args
+        assert kwargs.get("follow_redirects") is False
+        _args, req_kwargs = mock_client.request.call_args
+        assert req_kwargs.get("data") == {"q": "widget", "token": "secret-token"}
+    finally:
+        os.environ.pop("SEARCH_TOKEN", None)
+
+
+def test_missing_env_fails_before_request():
+    fetcher = FetchAgent()
+    source = Source(
+        id="search",
+        url="https://example.com/search",
+        method="POST",
+        form={"token": "{{env:POC_MISSING_TOKEN_XYZ}}"},
+    )
+    os.environ.pop("POC_MISSING_TOKEN_XYZ", None)
+    with patch("detect_engine.httpx.Client") as mock_cls:
+        result = fetcher.fetch(source)
+    assert not result.ok
+    assert result.last_error_type == "EnvUnresolved"
+    assert mock_cls.call_count == 0
+
+
+def test_get_still_follows_redirects():
+    fetcher = FetchAgent()
+    source = Source(id="page", url="https://example.com/", retry={"count": 0, "backoff": 0})
+    with patch("detect_engine.httpx.Client") as mock_cls:
+        mock_client = MagicMock()
+        mock_cls.return_value.__enter__ = MagicMock(return_value=mock_client)
+        mock_cls.return_value.__exit__ = MagicMock(return_value=False)
+        mock_client.request.return_value = MagicMock(status_code=200, headers={}, text="ok")
+        fetcher.fetch(source)
+    _, kwargs = mock_cls.call_args
+    assert kwargs.get("follow_redirects") is True
+
+
+def test_optional_source_marks_http_envelope_unavailable():
+    with tempfile.TemporaryDirectory() as tmpdir:
+        root = Path(tmpdir)
+        cfg = root / "watch.yaml"
+        cfg.write_text("""
+name: opt-post
+seed_mode: false
+sources:
+  - id: home
+    url: "https://example.com/"
+    extract:
+      - {id: headline, type: css, selector: h1, transform: text}
+  - id: search
+    url: "https://example.com/search"
+    method: POST
+    required: false
+    form: {q: widget}
+    extract:
+      - {id: search_hits, type: css, selector: ".count", transform: text}
+conditions:
+  - {id: home_delta, field: headline, op: changed}
+  - {id: search_status, field: http.search.status, op: changed}
+groups:
+  - name: promote
+    any: [home_delta, search_status]
+llm_escalation:
+  trigger_groups: [promote]
+  fire_once: false
+state:
+  file: state.json
+  initial: {headline: "old", "http.search.status": 200}
+""", encoding="utf-8")
+        calls = {"n": 0}
+
+        def fake_fetch(self, source):
+            if source.id == "home":
+                return FetchResult(200, {}, "<h1>new</h1>")
+            return FetchResult(0, {}, "", "timeout", attempts=1, last_error_type="TimeoutException")
+
+        original_esc = _detect_engine_mod.ESCALATION_DIR
+        _detect_engine_mod.ESCALATION_DIR = root / "escalations"
+        try:
+            with patch.object(FetchAgent, "fetch", fake_fetch):
+                buf = StringIO()
+                with redirect_stdout(buf):
+                    rc = run_engine(str(cfg), dry_run=False)
+            assert rc == 0
+            out = buf.getvalue()
+            # home changed should escalate; search envelope must not fire from stale 200
+            assert "LLM_ESCALATION:" in out
+            esc_files = list((root / "escalations").glob("*.json"))
+            bodies = [json.loads(p.read_text()) for p in esc_files]
+            cond_ids = {b.get("condition_id") for b in bodies if b.get("escalation_type") == "condition_matched"}
+            assert "search_status" not in cond_ids
+            dumped = json.dumps(bodies)
+            assert "widget" not in dumped
+        finally:
+            _detect_engine_mod.ESCALATION_DIR = original_esc
+
+
+def test_condition_unknown_field_rejected():
+    config = DetectConfig(
+        name="typo field",
+        sources=[
+            Source(
+                id="s",
+                url="https://example.com",
+                extract=[ExtractSpec(id="headline", type="css", selector="h1", transform="text")],
+            ),
+        ],
+        conditions=[Condition(id="c1", field="hedline", op="changed")],
+        groups=[Group(name="g", any=["c1"], actions=[])],
+        state=StateConfig(initial={"headline": ""}),
+    )
+    errors = validate_config_cross_refs(config)
+    assert any("unknown field 'hedline'" in e for e in errors), errors
+
+
+def test_two_post_any_vs_all():
+    """Two POST sources: any fires on one body change; all waits for both."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        root = Path(tmpdir)
+
+        def write_cfg(group_yaml: str) -> Path:
+            p = root / "watch.yaml"
+            p.write_text(f"""
+name: two-post
+seed_mode: false
+sources:
+  - id: search
+    url: "https://example.com/search"
+    method: POST
+    form: {{q: widget}}
+    extract:
+      - {{id: search_hits, type: css, selector: ".count", transform: text}}
+  - id: quote
+    url: "https://example.com/quote"
+    method: POST
+    json: {{sku: A}}
+    extract:
+      - {{id: quote_price, type: css, selector: ".price", transform: text}}
+conditions:
+  - {{id: search_delta, field: search_hits, op: changed}}
+  - {{id: quote_delta, field: quote_price, op: changed}}
+groups:
+  - name: promote
+    {group_yaml}
+llm_escalation:
+  trigger_groups: [promote]
+  fire_once: false
+state:
+  file: state.json
+  initial: {{search_hits: "1", quote_price: "$1"}}
+""", encoding="utf-8")
+            return p
+
+        def fake_fetch(self, source):
+            if source.id == "search":
+                return FetchResult(200, {}, '<span class="count">2</span>')
+            return FetchResult(200, {}, '<span class="price">$1</span>')
+
+        original_esc = _detect_engine_mod.ESCALATION_DIR
+        _detect_engine_mod.ESCALATION_DIR = root / "escalations"
+        try:
+            write_cfg("any: [search_delta, quote_delta]")
+            with patch.object(FetchAgent, "fetch", fake_fetch):
+                buf = StringIO()
+                with redirect_stdout(buf):
+                    rc = run_engine(str(root / "watch.yaml"), dry_run=False)
+            assert rc == 0
+            assert "LLM_ESCALATION:" in buf.getvalue()
+
+            for p in (root / "escalations").glob("*.json"):
+                p.unlink()
+            write_cfg("all: [search_delta, quote_delta]")
+            with patch.object(FetchAgent, "fetch", fake_fetch):
+                buf = StringIO()
+                with redirect_stdout(buf):
+                    rc = run_engine(str(root / "watch.yaml"), dry_run=False)
+            assert rc == 0
+            assert "LLM_ESCALATION:" not in buf.getvalue()
+        finally:
+            _detect_engine_mod.ESCALATION_DIR = original_esc
+
+
+runner.run("TC-POST-FORBID: extra source key rejected", test_source_extra_forbid_typo)
+runner.run("TC-POST-XOR: form/json/body xor and method rules", test_source_body_xor_and_method)
+runner.run("TC-POST-JSON-ALIAS: yaml json: maps to json_body", test_source_json_alias)
+runner.run("TC-POST-FORM: form sent, no redirect, no 503 retry", test_post_sends_form_and_defaults_no_redirect_no_retry)
+runner.run("TC-POST-ENV: missing env fails before request", test_missing_env_fails_before_request)
+runner.run("TC-POST-GET-REDIR: GET still follows redirects", test_get_still_follows_redirects)
+runner.run("TC-POST-OPT-ENV: optional POST marks http.* unavailable", test_optional_source_marks_http_envelope_unavailable)
+runner.run("TC-POST-FIELD: unknown condition field rejected", test_condition_unknown_field_rejected)
+runner.run("TC-POST-ANY-ALL: two-POST any vs all", test_two_post_any_vs_all)
 
 
 # ═══════════════════════════════════════════════════════════════

@@ -12,7 +12,9 @@ DETECT_ENGINE_HEALTH_DIR="${DETECT_ENGINE_HEALTH_DIR:-$POC_STATE_DIR}"
 DETECT_ENGINE_LOG_FILE="${DETECT_ENGINE_LOG_FILE:-$POC_STATE_DIR/detect-engine.log}"
 VENV_DIR="${POC_VENV_DIR:-$POC_STATE_DIR/.venv}"
 ENGINE="${ENGINE:-$SKILL_ROOT/scripts/detect_engine.py}"
+DELIVERY_HELPER="${DELIVERY_HELPER:-$SKILL_ROOT/scripts/poc_delivery.py}"
 ESCALATION_PROMPT="${ESCALATION_PROMPT:-$SKILL_ROOT/prompts/escalation.prompt.md}"
+EVENT_PROMPT="${EVENT_PROMPT:-$SKILL_ROOT/prompts/event.prompt.md}"
 
 export SKILL_ROOT POC_STATE_DIR
 export DETECT_ENGINE_ESCALATION_DIR DETECT_ENGINE_HEALTH_DIR DETECT_ENGINE_LOG_FILE
@@ -22,11 +24,14 @@ usage() {
   printf '  bootstrap\n' >&2
   printf '  validate --config PATH\n' >&2
   printf '  run --config PATH [--dry-run] [--no-issue] [--exec]\n' >&2
+  printf '      [--to grok:<uuid>] [--force-new] [--assume-idle] [--cwd PATH]\n' >&2
   printf '      # match issues the escalation prompt (PROMPT_ISSUED); --exec runs it\n' >&2
+  printf '      # --to grok:<uuid> resumes or starts that session (refuse if live)\n' >&2
   printf '  explain --config PATH\n' >&2
   printf '  status\n' >&2
   printf '  claim\n' >&2
-  printf '  issue [--evidence PATH|--last] [--exec]\n' >&2
+  printf '  issue [--evidence PATH ...] [--last] [--exec]\n' >&2
+  printf '        [--to grok:<uuid>] [--force-new] [--assume-idle] [--cwd PATH]\n' >&2
   printf '  self-check\n' >&2
 }
 
@@ -91,11 +96,51 @@ print('\\n'.join(p['project']['dependencies']))
   printf 'bootstrap: venv at %s\n' "$VENV_DIR"
 }
 
+new_stamp() {
+  python3 -c 'import uuid; from datetime import datetime, timezone; print(datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S") + "-" + str(uuid.uuid4()))'
+}
+
+new_uuid() {
+  uuidgen | tr '[:upper:]' '[:lower:]'
+}
+
+parse_delivery_flag() {
+  case "$1" in
+    --to)
+      [[ $# -ge 2 ]] || { printf 'missing --to grok:<uuid>\n' >&2; exit 64; }
+      to_spec="$2"
+      return 2
+      ;;
+    --force-new)
+      force_new=1
+      return 1
+      ;;
+    --assume-idle)
+      assume_idle=1
+      return 1
+      ;;
+    --cwd)
+      [[ $# -ge 2 ]] || { printf 'missing --cwd PATH\n' >&2; exit 64; }
+      issue_cwd="$2"
+      return 2
+      ;;
+    --exec)
+      do_exec=1
+      return 1
+      ;;
+  esac
+  return 0
+}
+
 parse_config_args() {
   config=""
   dry_run=0
   no_issue=0
   do_exec=0
+  to_spec=""
+  force_new=0
+  assume_idle=0
+  issue_cwd=""
   while [[ $# -gt 0 ]]; do
     case "$1" in
       --config)
@@ -111,9 +156,19 @@ parse_config_args() {
         no_issue=1
         shift
         ;;
-      --exec)
-        do_exec=1
-        shift
+      --to|--force-new|--assume-idle|--exec|--cwd)
+        local consumed=0
+        parse_delivery_flag "$@"
+        consumed=$?
+        if [[ "$consumed" -eq 2 ]]; then
+          shift 2
+        elif [[ "$consumed" -eq 1 ]]; then
+          shift
+        else
+          printf 'unknown flag: %s\n' "$1" >&2
+          usage
+          exit 64
+        fi
         ;;
       -h|--help)
         usage
@@ -147,6 +202,19 @@ cmd_validate() {
   exec "$python_bin" "$ENGINE" --config "$config" --validate
 }
 
+collect_escalation_paths() {
+  local line path
+  while IFS= read -r line; do
+    case "$line" in
+      LLM_ESCALATION:*)
+        path="${line#LLM_ESCALATION:}"
+        path="${path# }"
+        [[ -n "$path" ]] && printf '%s\n' "$path"
+        ;;
+    esac
+  done
+}
+
 cmd_run() {
   parse_config_args "$@"
   local python_bin
@@ -167,14 +235,34 @@ cmd_run() {
   if [[ "$rc" -ne 0 ]]; then
     return "$rc"
   fi
-  # Product outcome: a match issues the Layer-1 prompt. --no-issue is engine-only.
-  if [[ "$no_issue" -eq 0 && "$dry_run" -eq 0 ]] && printf '%s\n' "$out" | grep -q '^LLM_ESCALATION:'; then
-    if [[ "$do_exec" -eq 1 ]]; then
-      cmd_issue --exec
-    else
-      cmd_issue
-    fi
+  if [[ "$no_issue" -eq 1 || "$dry_run" -eq 1 ]]; then
+    return 0
   fi
+  local -a esc_paths=()
+  local p
+  while IFS= read -r p; do
+    [[ -n "$p" ]] && esc_paths+=("$p")
+  done < <(printf '%s\n' "$out" | collect_escalation_paths)
+  if [[ "${#esc_paths[@]}" -eq 0 ]]; then
+    return 0
+  fi
+  local -a issue_args=()
+  for p in "${esc_paths[@]}"; do
+    issue_args+=(--evidence "$p")
+  done
+  if [[ -n "$to_spec" ]]; then
+    issue_args+=(--to "$to_spec")
+    [[ "$force_new" -eq 1 ]] && issue_args+=(--force-new)
+    [[ "$assume_idle" -eq 1 ]] && issue_args+=(--assume-idle)
+    [[ -n "$issue_cwd" ]] && issue_args+=(--cwd "$issue_cwd")
+    issue_args+=(--exec)
+    cmd_issue "${issue_args[@]}"
+    return
+  fi
+  if [[ "$do_exec" -eq 1 ]]; then
+    issue_args+=(--exec)
+  fi
+  cmd_issue "${issue_args[@]}"
 }
 
 cmd_explain() {
@@ -290,31 +378,52 @@ cmd_claim() {
 }
 
 fill_issued_prompt() {
-  local evidence_path="$1"
+  local prompt_path="$1"
   local dest="$2"
   local replay="$3"
+  shift 3
+  local -a evidence_paths=("$@")
   local python_bin
   python_bin="$(resolve_python)"
-  "$python_bin" - "$ESCALATION_PROMPT" "$evidence_path" "$dest" "$DETECT_ENGINE_ESCALATION_DIR" "$replay" <<'PY'
-import pathlib, sys
-prompt_path, evidence_path, dest, esc_dir, replay = sys.argv[1:6]
+  local list_file
+  list_file="$(mktemp)"
+  printf '%s\n' "${evidence_paths[@]}" >"$list_file"
+  "$python_bin" - "$prompt_path" "$dest" "$DETECT_ENGINE_ESCALATION_DIR" "$replay" "$list_file" <<'PY'
+import json, pathlib, sys
+prompt_path, dest, esc_dir, replay, list_file = sys.argv[1:6]
+paths = [p for p in pathlib.Path(list_file).read_text(encoding="utf-8").splitlines() if p]
 text = pathlib.Path(prompt_path).read_text(encoding="utf-8")
-body = pathlib.Path(evidence_path).read_text(encoding="utf-8")
 text = text.replace("{{ESCALATION_DIR}}", esc_dir)
-text = text.replace("{{EVIDENCE_FILES}}", evidence_path)
-mode = "replay (already in processed/; do not claim again)" if replay == "1" else "pending (claim first if still top-level)"
-filled = (
-    text
-    + "\n\n## Spliced evidence\n\n"
-    + f"Evidence path: {evidence_path}\n"
-    + f"Mode: {mode}\n\n"
-    + "```json\n"
-    + body.rstrip()
-    + "\n```\n"
-)
+text = text.replace("{{EVIDENCE_FILES}}", "\n".join(paths))
+matches = []
+chunks = []
+for evidence_path in paths:
+    body = pathlib.Path(evidence_path).read_text(encoding="utf-8")
+    try:
+        data = json.loads(body)
+    except Exception:
+        data = {}
+    matches.append({
+        "evidence_path": evidence_path,
+        "escalation_type": data.get("escalation_type"),
+        "config_name": data.get("config_name"),
+        "condition_id": data.get("condition_id"),
+        "field": data.get("field"),
+        "previous_value": data.get("previous_value"),
+        "new_value": data.get("new_value"),
+        "changed_fields": data.get("changed_fields"),
+        "match_reason": data.get("match_reason"),
+    })
+    mode = "replay (already in processed/; do not claim again)" if replay == "1" else "reserved (do not scan or move)"
+    chunks.append(
+        f"Evidence path: {evidence_path}\nMode: {mode}\n\n```json\n{body.rstrip()}\n```\n"
+    )
+text = text.replace("{{MATCHES_JSON}}", json.dumps(matches, indent=2, default=str))
+filled = text + "\n\n## Spliced evidence\n\n" + "\n".join(chunks)
 pathlib.Path(dest).parent.mkdir(parents=True, exist_ok=True)
 pathlib.Path(dest).write_text(filled, encoding="utf-8")
 PY
+  rm -f "$list_file"
 }
 
 parse_outcome_and_log() {
@@ -366,9 +475,34 @@ print(json.dumps({"silent": silent, "parse_error": parse_error}, default=str))
 PY
 }
 
+write_delivery_record() {
+  local host="$1" id="$2" cwd="$3" rung="$4" config_name="$5"
+  local dest_dir="$POC_STATE_DIR/delivery"
+  mkdir -p "$dest_dir"
+  local dest="$dest_dir/${config_name:-unknown}.json"
+  python3 - "$dest" "$host" "$id" "$cwd" "$rung" "$config_name" <<'PY'
+import json, pathlib, sys
+from datetime import datetime, timezone
+dest, host, ident, cwd, rung, config_name = sys.argv[1:7]
+path = pathlib.Path(dest)
+tmp = path.with_suffix(path.suffix + ".tmp")
+tmp.write_text(json.dumps({
+    "host": host,
+    "id": ident,
+    "cwd": cwd,
+    "config_name": config_name,
+    "last_rung": rung,
+    "updated_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+}, indent=2) + "\n", encoding="utf-8")
+tmp.replace(path)
+PY
+}
+
 exec_issued_prompt() {
   local prompt_path="$1"
   local evidence_path="$2"
+  local mode="${3:-legacy}"   # legacy | resume | new
+  local session_id="${4:-}"
   local grok
   grok="$(resolve_grok)"
   if [[ ! -x "$grok" ]] && ! command -v "$grok" >/dev/null 2>&1; then
@@ -376,7 +510,7 @@ exec_issued_prompt() {
     exit 1
   fi
   local stamp
-  stamp="$(date -u +%Y%m%dT%H%M%S)"
+  stamp="$(new_stamp)"
   local run_dir="$POC_STATE_DIR/prompt-runs"
   mkdir -p "$run_dir"
   local stdout_path="$run_dir/${stamp}.stdout"
@@ -384,22 +518,48 @@ exec_issued_prompt() {
   local log_path="$run_dir/${stamp}.json"
   local start end duration
   start="$(python3 -c 'import time; print(int(time.time()*1000))')"
+  local cwd="${POC_ISSUE_CWD:-}"
+  if [[ "$mode" == "legacy" && -z "$cwd" ]]; then
+    cwd="$SKILL_ROOT"
+  elif [[ -z "$cwd" ]]; then
+    cwd="$PWD"
+  fi
+  local -a grok_args=(
+    --prompt-file "$prompt_path"
+    --cwd "$cwd"
+    --output-format plain
+    --no-subagents --no-memory --disable-web-search --no-auto-update
+    --disallowed-tools "web_search,web_fetch,Agent"
+    --max-turns "${POC_GROK_MAX_TURNS:-24}"
+  )
+  if [[ "$mode" == "legacy" ]]; then
+    grok_args+=(--yolo --permission-mode bypassPermissions)
+  else
+    grok_args+=(--permission-mode dontAsk)
+  fi
+  if [[ "$mode" == "resume" ]]; then
+    grok_args+=(--resume "$session_id")
+  elif [[ "$mode" == "new" ]]; then
+    grok_args+=(--session-id "$session_id" --sandbox read-only)
+  fi
+  if [[ -n "$session_id" && "$mode" != "legacy" ]]; then
+    stdout_path="$run_dir/${stamp}-${session_id}.stdout"
+    stderr_path="$run_dir/${stamp}-${session_id}.stderr"
+    log_path="$run_dir/${stamp}-${session_id}.json"
+  fi
   set +e
-  "$grok" --prompt-file "$prompt_path" \
-    --cwd "${POC_ISSUE_CWD:-$SKILL_ROOT}" \
-    --output-format plain \
-    --yolo --permission-mode bypassPermissions \
-    --no-subagents --no-memory --disable-web-search --no-auto-update \
-    --disallowed-tools "web_search,web_fetch,Agent" \
-    --max-turns "${POC_GROK_MAX_TURNS:-24}" \
-    >"$stdout_path" 2>"$stderr_path"
+  "$grok" "${grok_args[@]}" >"$stdout_path" 2>"$stderr_path"
   local rc=$?
   set -e
   end="$(python3 -c 'import time; print(int(time.time()*1000))')"
   duration=$((end - start))
   parse_outcome_and_log "$prompt_path" "$evidence_path" "$stdout_path" "$stderr_path" \
     "$rc" "$duration" "$log_path" >/dev/null
-  printf 'PROMPT_RUN: %s\n' "$log_path"
+  if [[ "$mode" == "resume" ]]; then
+    printf 'PROMPT_RESUME: %s\n' "$log_path"
+  else
+    printf 'PROMPT_RUN: %s\n' "$log_path"
+  fi
   if [[ "$rc" -ne 0 ]]; then
     printf 'issue --exec: grok exit %s (see %s)\n' "$rc" "$stderr_path" >&2
     return "$rc"
@@ -407,23 +567,37 @@ exec_issued_prompt() {
 }
 
 cmd_issue() {
-  local evidence=""
+  local -a evidence_paths=()
   local use_last=0
   local do_exec=0
+  local to_spec=""
+  local force_new=0
+  local assume_idle=0
+  local issue_cwd="${POC_ISSUE_CWD:-}"
   while [[ $# -gt 0 ]]; do
     case "$1" in
       --evidence)
         [[ $# -ge 2 ]] || { printf 'missing --evidence PATH\n' >&2; exit 64; }
-        evidence="$2"
+        evidence_paths+=("$2")
         shift 2
         ;;
       --last)
         use_last=1
         shift
         ;;
-      --exec)
-        do_exec=1
-        shift
+      --to|--force-new|--assume-idle|--exec|--cwd)
+        local consumed=0
+        parse_delivery_flag "$@"
+        consumed=$?
+        if [[ "$consumed" -eq 2 ]]; then
+          shift 2
+        elif [[ "$consumed" -eq 1 ]]; then
+          shift
+        else
+          printf 'unknown flag: %s\n' "$1" >&2
+          usage
+          exit 64
+        fi
         ;;
       -h|--help)
         usage
@@ -436,15 +610,29 @@ cmd_issue() {
         ;;
     esac
   done
+  if [[ "${POC_ASSUME_IDLE:-}" == "1" ]]; then
+    assume_idle=1
+  fi
+  if [[ -n "$issue_cwd" ]]; then
+    export POC_ISSUE_CWD="$issue_cwd"
+  fi
 
   local esc="$DETECT_ENGINE_ESCALATION_DIR"
   mkdir -p "$esc/processed" "$POC_STATE_DIR/issued"
   local replay=0
-  if [[ -n "$evidence" ]]; then
-    [[ -f "$evidence" ]] || { printf 'issue: evidence not found: %s\n' "$evidence" >&2; exit 1; }
+  local evidence=""
+  if [[ "${#evidence_paths[@]}" -gt 0 ]]; then
+    local ep
+    for ep in "${evidence_paths[@]}"; do
+      [[ -f "$ep" ]] || { printf 'issue: evidence not found: %s\n' "$ep" >&2; exit 1; }
+    done
+    evidence="${evidence_paths[0]}"
     case "$evidence" in
       */processed/*) replay=1 ;;
     esac
+  elif [[ -n "$to_spec" && "$use_last" -eq 0 ]]; then
+    printf 'issue --to requires --evidence PATH (this-poll files) or --last\n' >&2
+    exit 64
   elif [[ "$use_last" -eq 1 ]]; then
     local -a processed=()
     local f
@@ -457,6 +645,7 @@ cmd_issue() {
       printf '[SILENT]\n'
       return 0
     fi
+    evidence_paths=("$evidence")
     replay=1
   else
     local -a pending=()
@@ -470,17 +659,178 @@ cmd_issue() {
       printf '[SILENT]\n'
       return 0
     fi
+    evidence_paths=("$evidence")
   fi
 
-  [[ -f "$ESCALATION_PROMPT" ]] || { printf 'issue: missing %s\n' "$ESCALATION_PROMPT" >&2; exit 1; }
+  local python_bin
+  python_bin="$(resolve_python)"
+  local typed
+  typed="$("$python_bin" "$DELIVERY_HELPER" escalation-types "${evidence_paths[@]}")"
+  local -a matched_paths=()
+  while IFS= read -r f; do
+    [[ -n "$f" ]] && matched_paths+=("$f")
+  done < <("$python_bin" -c 'import json,sys; d=json.loads(sys.argv[1]); print("\n".join(d.get("condition_matched") or []))' "$typed")
+  if [[ -n "$to_spec" ]]; then
+    if [[ "${#matched_paths[@]}" -eq 0 ]]; then
+      to_spec=""
+    else
+      evidence_paths=("${matched_paths[@]}")
+      evidence="${evidence_paths[0]}"
+      filter_evidence_to_config "$python_bin" "${evidence_paths[@]}"
+    fi
+  fi
+
+  if [[ -n "$to_spec" ]]; then
+    deliver_to_grok "$to_spec" "$force_new" "$assume_idle" "$do_exec" "$replay" "${evidence_paths[@]}"
+    return
+  fi
+
+  local prompt_src="$ESCALATION_PROMPT"
+  [[ -f "$prompt_src" ]] || { printf 'issue: missing %s\n' "$prompt_src" >&2; exit 1; }
   local stamp dest
-  stamp="$(date -u +%Y%m%dT%H%M%S)"
+  stamp="$(new_stamp)"
   dest="$POC_STATE_DIR/issued/${stamp}.prompt.md"
-  fill_issued_prompt "$evidence" "$dest" "$replay"
+  fill_issued_prompt "$prompt_src" "$dest" "$replay" "${evidence_paths[@]}"
   printf 'PROMPT_ISSUED: %s\n' "$dest"
   if [[ "$do_exec" -eq 1 ]]; then
-    exec_issued_prompt "$dest" "$evidence"
+    exec_issued_prompt "$dest" "$evidence" legacy
   fi
+}
+
+filter_evidence_to_config() {
+  local python_bin="$1"
+  shift
+  local kept
+  kept="$("$python_bin" - "$@" <<'PY'
+import json, pathlib, re, sys
+paths = sys.argv[1:]
+kept = []
+slug = None
+for raw in paths:
+    p = pathlib.Path(raw)
+    try:
+        data = json.loads(p.read_text(encoding="utf-8"))
+    except Exception:
+        continue
+    name = str(data.get("config_name") or "")
+    this = re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")[:80].rstrip("-") or "unnamed"
+    if slug is None:
+        slug = this
+    if this != slug:
+        continue
+    if not (p.name.startswith(slug + "_") or p.name.startswith(slug + "-")):
+        continue
+    kept.append(str(p))
+print("\n".join(kept))
+PY
+)"
+  evidence_paths=()
+  local f
+  while IFS= read -r f; do
+    [[ -n "$f" ]] && evidence_paths+=("$f")
+  done < <(printf '%s\n' "$kept")
+  if [[ "${#evidence_paths[@]}" -eq 0 ]]; then
+    printf 'issue --to: no reserved evidence matched this config_name slug\n' >&2
+    exit 1
+  fi
+  evidence="${evidence_paths[0]}"
+}
+
+deliver_to_grok() {
+  local to_spec="$1" force_new="$2" assume_idle="$3" do_exec="$4" replay="$5"
+  shift 5
+  local -a evidence_paths=("$@")
+  local python_bin
+  python_bin="$(resolve_python)"
+  [[ -f "$DELIVERY_HELPER" ]] || { printf 'issue: missing %s\n' "$DELIVERY_HELPER" >&2; exit 1; }
+  local parsed
+  parsed="$("$python_bin" "$DELIVERY_HELPER" parse-to --to "$to_spec")" || return 64
+  local host ident
+  host="$("$python_bin" -c 'import json,sys; print(json.loads(sys.argv[1])["host"])' "$parsed")"
+  ident="$("$python_bin" -c 'import json,sys; print(json.loads(sys.argv[1])["id"])' "$parsed")"
+  local lock="$POC_STATE_DIR/locks/${host}-${ident}.lock"
+  mkdir -p "$POC_STATE_DIR/locks"
+  "$python_bin" "$DELIVERY_HELPER" with-lock --lock "$lock" -- \
+    "$0" _locked-deliver "$to_spec" "$force_new" "$assume_idle" "$do_exec" "$replay" -- "${evidence_paths[@]}"
+}
+
+cmd_locked_deliver() {
+  local to_spec="$1" force_new="$2" assume_idle="$3" do_exec="$4" replay="$5"
+  shift 5
+  if [[ "${1:-}" == "--" ]]; then
+    shift
+  fi
+  local -a evidence_paths=("$@")
+  local evidence="${evidence_paths[0]:-}"
+  local python_bin
+  python_bin="$(resolve_python)"
+  local decide_flags=()
+  [[ "$force_new" -eq 1 ]] && decide_flags+=(--force-new)
+  [[ "$assume_idle" -eq 1 ]] && decide_flags+=(--assume-idle)
+  if [[ -n "${POC_ISSUE_CWD:-}" ]]; then
+    decide_flags+=(--cwd "$POC_ISSUE_CWD")
+  fi
+  local decision
+  decision="$("$python_bin" "$DELIVERY_HELPER" decide --to "$to_spec" "${decide_flags[@]}")"
+  local dec reason session_cwd ident cwd
+  dec="$("$python_bin" -c 'import json,sys; print(json.loads(sys.argv[1]).get("decision",""))' "$decision")"
+  reason="$("$python_bin" -c 'import json,sys; print(json.loads(sys.argv[1]).get("reason",""))' "$decision")"
+  session_cwd="$("$python_bin" -c 'import json,sys; print(json.loads(sys.argv[1]).get("session_cwd") or "")' "$decision")"
+  ident="$("$python_bin" -c 'import json,sys; print(json.loads(sys.argv[1]).get("id",""))' "$decision")"
+  if [[ -n "${POC_ISSUE_CWD:-}" ]]; then
+    cwd="$POC_ISSUE_CWD"
+  elif [[ -n "$session_cwd" ]]; then
+    cwd="$session_cwd"
+  else
+    cwd="$PWD"
+  fi
+  export POC_ISSUE_CWD="$cwd"
+
+  local prompt_src="$ESCALATION_PROMPT"
+  if [[ "$dec" == "resume" && -f "$EVENT_PROMPT" ]]; then
+    prompt_src="$EVENT_PROMPT"
+  fi
+  [[ -f "$prompt_src" ]] || { printf 'issue: missing %s\n' "$prompt_src" >&2; exit 1; }
+  local stamp dest
+  stamp="$(new_stamp)"
+  dest="$POC_STATE_DIR/issued/${stamp}-${ident}.prompt.md"
+  fill_issued_prompt "$prompt_src" "$dest" "$replay" "${evidence_paths[@]}"
+  printf 'PROMPT_ISSUED: %s\n' "$dest"
+
+  if [[ "$dec" == "refuse" ]]; then
+    printf 'delivery refuse: %s\n' "$reason" >&2
+    printf 'replay: %s issue --exec --to %s --assume-idle --evidence %s\n' \
+      "$0" "$to_spec" "$evidence" >&2
+    return 1
+  fi
+  if [[ "$do_exec" -ne 1 ]]; then
+    return 0
+  fi
+  local mode="new" sid="$ident"
+  if [[ "$dec" == "force-new" ]]; then
+    sid="$(new_uuid)"
+    mode="new"
+  elif [[ "$dec" == "resume" ]]; then
+    mode="resume"
+  else
+    mode="new"
+  fi
+  set +e
+  exec_issued_prompt "$dest" "$evidence" "$mode" "$sid"
+  local rc=$?
+  set -e
+  if [[ "$rc" -eq 0 ]]; then
+    local cfg_name host
+    host="$("$python_bin" -c 'import json,sys; print(json.loads(sys.argv[1]).get("host","grok"))' "$decision")"
+    cfg_name="$("$python_bin" -c 'import json,sys; print(json.load(open(sys.argv[1])).get("config_name","unknown"))' "$evidence" 2>/dev/null || echo unknown)"
+    write_delivery_record "$host" "$sid" "$cwd" "$mode" "$cfg_name"
+  fi
+  return "$rc"
+}
+
+cmd_exec_deliver() {
+  [[ $# -ge 4 ]] || { printf '_exec-deliver usage: dest evidence mode sid\n' >&2; exit 64; }
+  exec_issued_prompt "$@"
 }
 
 cmd_self_check() {
@@ -518,6 +868,8 @@ case "$cmd" in
   status) cmd_status "$@" ;;
   claim) cmd_claim "$@" ;;
   issue) cmd_issue "$@" ;;
+  _locked-deliver) cmd_locked_deliver "$@" ;;
+  _exec-deliver) cmd_exec_deliver "$@" ;;
   self-check) cmd_self_check "$@" ;;
   -h|--help) usage; exit 0 ;;
   *)

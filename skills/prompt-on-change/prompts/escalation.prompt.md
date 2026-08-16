@@ -5,12 +5,23 @@ Do not pin a model. Do not require a single host CLI as the only path.
 
 **Same-turn default:** if the detect CLI just printed `LLM_ESCALATION: <path>`,
 claim and reason in this turn. Do not wait for a Hermes cron (or any other
-host scheduler). `scripts/prompt-on-change claim` is an equivalent claim step.
+host scheduler). `scripts/prompt-on-change claim` is an equivalent claim step
+only when this prompt still has an unsubstituted evidence-file placeholder.
 
 ## Input
 
 Escalation directory: `{{ESCALATION_DIR}}`  
-Evidence files (optional precheck list): `{{EVIDENCE_FILES}}`
+Evidence files (reserved list when the wrapper filled this prompt):
+
+```
+{{EVIDENCE_FILES}}
+```
+
+Matches (when filled; `previous_value` / `new_value` may be null):
+
+```json
+{{MATCHES_JSON}}
+```
 
 Each evidence JSON was written by the detect engine after a condition matched
 or an action/fetch failed. Layer-0 (the engine) already executed any configured
@@ -18,10 +29,15 @@ actions. This prompt is reasoning and reporting only.
 
 ## Task
 
-If there are no pending `{{ESCALATION_DIR}}/*.json` files (ignore `.tmp`),
-reply with exactly `[SILENT]` — that is the documented empty outcome.
+**Reserved-path mode** — if `{{EVIDENCE_FILES}}` lists one or more real paths
+(the placeholder was replaced): operate on **exactly those files**. Do not
+scan `{{ESCALATION_DIR}}`. Do not move or claim files. Do not reply `[SILENT]`
+because a directory scan was empty. Read the reserved JSON and reason.
 
-Otherwise, for each top-level `*.json` file:
+**Native scan mode** — if `{{EVIDENCE_FILES}}` is empty or still the literal
+placeholder: if there are no pending `{{ESCALATION_DIR}}/*.json` files
+(ignore `.tmp`), reply with exactly `[SILENT]`. Otherwise, for each top-level
+`*.json` file:
 
 1. **Claim first**, before reading: move
    `{{ESCALATION_DIR}}/<filename>`
@@ -30,9 +46,13 @@ Otherwise, for each top-level `*.json` file:
    If the move fails because the file is gone, another run already claimed it;
    skip it. A crash after the claim leaves the file in `processed/` instead of
    re-firing it.
-2. Read the claimed file. Use these fields as ground truth:
+
+Then, for each reserved or claimed file:
+
+2. Read the file. Use these fields as ground truth:
    - `config_name`, `condition_id`, `match_reason`
-   - `previous_value` → `new_value` (and `numeric_delta` when present)
+   - `previous_value` → `new_value` (and `numeric_delta` when present; both
+     may be null on multi-field / `delta` matches)
    - `previous_state` / `current_state` / `delta` / `changed_fields` / `http`
    - `actions_taken` (already done — never redo or retry them)
    - `prompt` (engine-rendered instruction)
@@ -42,18 +62,19 @@ Otherwise, for each top-level `*.json` file:
    (`escalation_type`).
 4. Report in plain language. Do **not** patch calendars, send mail, or mutate
    the watched system. Do **not** write a new detect config unless the user
-   later asks.
+   later asks. Do **not** fetch the watched URL.
 
 ## Output
 
-Markdown with one section per claimed file:
+Markdown with one section per reserved or claimed file:
 
 - What changed (`previous` → `new`, plus numeric delta when it exists)
 - Why the condition fired
 - What the engine already did
 - Residual risk or recommended human follow-up
 
-If every file was skipped as already-claimed, reply `[SILENT]`.
+If every file was skipped as already-claimed in native scan mode, reply
+`[SILENT]`. Do not use `[SILENT]` in reserved-path mode.
 
 ## Outcome
 
@@ -72,5 +93,5 @@ whose info string is `json outcome` (not a model pin — a log contract):
 ```
 
 Set `silent` true when the reply is `[SILENT]`. `claimed` is the processed
-path(s) you moved or replayed. Leave values empty when unknown. This fence is
-how hosts debug prompt execution.
+path(s) you moved or replayed; leave it empty in reserved-path mode. Leave
+values empty when unknown. This fence is how hosts debug prompt execution.

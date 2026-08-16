@@ -1,0 +1,75 @@
+# Example: two POST sources. `any` promotes when either search moves.
+# Swap the group to `all:` if both must agree. Secondary legs are
+# required: false so one transport failure does not abort the poll.
+
+name: "Example multi-POST any/all"
+enabled: true
+seed_mode: true
+
+sources:
+  - id: primary
+    url: "https://example.com/search"
+    method: POST
+    form:
+      q: "widget"
+    extract:
+      - id: primary_hits
+        type: css
+        selector: ".count"
+        transform: text
+      - id: primary_marker
+        type: css
+        selector: ".results"
+        transform: text
+  - id: secondary
+    url: "https://example.com/search-alt"
+    method: POST
+    required: false
+    form:
+      q: "widget"
+    extract:
+      - id: secondary_hits
+        type: css
+        selector: ".count"
+        transform: text
+      - id: secondary_marker
+        type: css
+        selector: ".results"
+        transform: text
+
+conditions:
+  - id: primary_alive
+    field: primary_marker
+    op: exists
+  - id: primary_moved
+    field: primary_hits
+    op: changed
+  - id: secondary_alive
+    field: secondary_marker
+    op: exists
+  - id: secondary_moved
+    field: secondary_hits
+    op: changed
+
+groups:
+  - name: promote
+    any:
+      - primary_moved
+      - secondary_moved
+    # all: [primary_moved, secondary_moved]  # both must agree
+
+llm_escalation:
+  trigger_groups: [promote]
+  fire_once: true
+  prompt: |
+    {{ config_name }} fired {{ condition_id }}.
+    Previous: {{ previous_value }} → New: {{ new_value }}
+    Changed fields: {{ changed_fields }}
+
+state:
+  file: "state/multi_post_any_all.json"
+  initial:
+    primary_hits: ""
+    primary_marker: ""
+    secondary_hits: ""
+    secondary_marker: ""

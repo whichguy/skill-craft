@@ -17,8 +17,16 @@ Propose **one** host-local way to re-run the detect CLI. Pick from:
 1. **Ask again** — the user re-invokes this skill; no scheduler.
 2. **cron** (Linux/macOS) — `scripts/prompt-on-change run --config {{CONFIG}}`
    on an interval. Use `$POC_STATE_DIR` / `$SKILL_ROOT`; never `/opt/data`
-   as the only recipe.
+   as the only recipe. To continue a known Grok conversation, add
+   `--to grok:<uuid>` and run from that session’s cwd (or pass `--cwd`).
+   Resume is a **new headless turn with history**, not mid-turn steer.
+   If `active_sessions.json` is stale but the grok pid is still alive, the
+   operator must pass `--assume-idle` (or `POC_ASSUME_IDLE=1`) after
+   confirming the TUI is closed. `--force-new` starts an isolated uuid.
 3. **launchd** (macOS) — same command, same env binding.
+
+An already-open Grok session may `/loop` the config itself. That is the
+session subscribing, not wrapper inject.
 
 Do not invent a Hermes cron, a Cursor Automation, or a cloud webhook.
 

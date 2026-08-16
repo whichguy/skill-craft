@@ -16,7 +16,8 @@ Fields or signals already named (optional): `{{FIELDS}}`
 1. Interview **only** what is missing. If `{{URL}}` or `{{GOAL}}` is empty, ask
    one or two questions. Do not ask for calendar/`gws` setup.
 2. Read `{{SKILL_ROOT}}/references/config-schema.md` and the examples under
-   `{{SKILL_ROOT}}/configs/examples/` (price-range, date-regex, http-change).
+   `{{SKILL_ROOT}}/configs/examples/` (price-range, date-regex, http-change,
+   http-post-form, multi-post-any-all).
 3. Emit one complete YAML monitor that uses the existing condition language:
    `changed`, numeric `between` / `delta_*`, `date_between` / `date_outside`,
    `matches` / `not_matches`, `empty` / `became_empty`, field-list any/all,
@@ -25,9 +26,18 @@ Fields or signals already named (optional): `{{FIELDS}}`
    status or header change. PDF / binary URLs are **later** work: prefer
    HTTP validators (`HEAD` or conditional `GET`, `ETag` / `Last-Modified` /
    `Content-Length` / `304`) and do not invent a PDF-body extract.
-4. Prefer `seed_mode: true`. Do not add `calendar_patch` / `calendar_delete`
+4. Ask `method` / `form` / `json` / `body` **only** when the user said POST
+   or form. Default remains GET. Exactly one of `form`, `json`, `body`, or
+   none. If several URLs, ask one question: any-delta vs all-agree (default
+   `any`). Secondary POST legs in an `any` group should be `required: false`.
+   Pair every POST-body extract with a sentinel (`op: exists` on a stable
+   marker, or suppress `became_empty`) so a 200 login page is not a false
+   `changed`. Do not put tokens in `?q=` / `?t=`. This engine is one
+   unauthenticated request per source: no cookie jar, no CSRF chain, no
+   multi-step login, no webhooks.
+5. Prefer `seed_mode: true`. Do not add `calendar_patch` / `calendar_delete`
    unless the user explicitly asked for calendar writes.
-5. `state.file` must stay inside the config directory.
+6. `state.file` must stay inside the config directory.
 
 ## Output
 
