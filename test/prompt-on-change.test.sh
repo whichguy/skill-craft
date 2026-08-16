@@ -123,4 +123,9 @@ POC_GROK_LIVE=0 bash "$root/test/prompt-on-change-grok-native.test.sh" \
   || fail "grok-native probe"
 printf 'LAYER simple: grok-native probe OK\n'
 
+# Probe only — never inherit a public-site scrape into the hermetic suite.
+POC_LIVE_SITE=0 bash "$root/test/prompt-on-change-live-site.test.sh" \
+  || fail "live-site probe"
+printf 'LAYER simple: live-site probe OK\n'
+
 printf 'prompt-on-change.test.sh: PASS\n'
