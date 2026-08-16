@@ -22,7 +22,9 @@ Fields or signals already named (optional): `{{FIELDS}}`
    `matches` / `not_matches`, `empty` / `became_empty`, field-list any/all,
    compound `delta:` (`any` / `all` / `empty` / `date_in` / `not_matches` /
    `http`), and reserved `http.<source>.*` fields when the goal is an HTTP
-   status or header change.
+   status or header change. PDF / binary URLs are **later** work: prefer
+   HTTP validators (`HEAD` or conditional `GET`, `ETag` / `Last-Modified` /
+   `Content-Length` / `304`) and do not invent a PDF-body extract.
 4. Prefer `seed_mode: true`. Do not add `calendar_patch` / `calendar_delete`
    unless the user explicitly asked for calendar writes.
 5. `state.file` must stay inside the config directory.

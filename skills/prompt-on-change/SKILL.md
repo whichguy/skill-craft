@@ -148,3 +148,11 @@ status/header envelope). Custom prompts may use `{{ previous_value }}`,
 
 Groups still support `any:` / `all:` over named conditions. Nested `and` / `or`
 / `not` / `unless` are unchanged. Full schema: `references/config-schema.md`.
+
+## Later
+
+- **PDF / binary URL watch:** detect a changed PDF with HTTP validators
+  (`HEAD` or conditional `GET`: `ETag`, `Last-Modified`, `Content-Length`,
+  `304`). Do not download or parse the PDF body. Author path should emit
+  `http.<source>.etag` / `.last_modified` / `.content_length` conditions,
+  not CSS/regex extracts.
