@@ -50,20 +50,28 @@ Happy path is **host-local** (`~/.local/share/devloop` after `--setup`), never
 `DEVLOOP_HOME` pointed at the live Hermes leaf (that is the dual-install hijack).
 
 ```sh
-export DEVLOOP_HOST=grok
-export DEVLOOP_TRANSPORT=grok
-export GROK_BIN="$(command -v grok)"
-# optional: DEVLOOP_WRITE_SAFE_ROOT=$HOME/.local/state/devloop
-# optional: DEVLOOP_HOME=$HOME/.local/share/devloop   # only if already bootstrapped
-bash ~/.grok/skills/devloop-run/scripts/devloop-run --host grok --setup
-bash ~/.grok/skills/devloop-run/scripts/devloop-run --host grok -- \
-  --repo /abs/repo --lang command \
-  'Create result.txt containing exactly: devloop-ok\n'
+# once on a fresh machine
+bash ~/.grok/skills/devloop-run/scripts/devloop-run --setup
+
+# interactive or headless — prompt, not flag soup
+grok -p '/devloop new repo. Create result.txt containing exactly one line: devloop-ok. verify_cmd exactly ["bash", "-c", "test \"$(cat result.txt)\" = devloop-ok"]' --always-approve
 ```
 
 Without a Grok-capable engine tree, the card exits **2** and must not fall back
 to `devloop-native`. `DEVLOOP_ALLOW_HERMES_SEED=1` is an unsupported escape hatch,
 not the Grok happy path.
+
+## Interpolation, not shim prose-scraping (0.4.5)
+
+The card's `/devloop` procedure now interpolates `--repo` / `--lang` /
+`verify_cmd exactly [...]` from plain English **host-side**, prints the
+interpolation, then execs the shim with explicit argv. The shim itself no
+longer auto-prepends `--lang command` from a raw `verify_cmd exactly [` in
+argv — that was a second, silent profile selector. The shim only labels
+whatever actually reached the CLI (`STATE lang=<value> reason=explicit` or
+`STATE lang=none reason=none`). Do not invoke Grok `/goal` or `/loop` from
+this card or its alias; goal-engineering shape lives in the `/devloop` prompt
+text itself.
 
 ## Process learnings
 

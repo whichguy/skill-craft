@@ -135,6 +135,31 @@ args_have_repo_flag() {
   return 1
 }
 
+args_have_lang_flag() {
+  local a
+  for a in "$@"; do
+    case "$a" in
+      --lang|--lang=*) return 0 ;;
+    esac
+  done
+  return 1
+}
+
+extract_lang_value() {
+  local prev="" a
+  for a in "$@"; do
+    if [[ "$prev" == "--lang" ]]; then
+      printf '%s\n' "$a"
+      return 0
+    fi
+    case "$a" in
+      --lang=*) printf '%s\n' "${a#--lang=}"; return 0 ;;
+    esac
+    prev="$a"
+  done
+  printf 'none\n'
+}
+
 designates_new_repo() {
   local joined phrase
   joined="$(printf '%s ' "$@" | tr '[:upper:]' '[:lower:]')"
@@ -148,6 +173,10 @@ designates_new_repo() {
 
 trace_repo_target() {
   printf '[devloop-run] STATE target=%s reason=%s\n' "$1" "$2" >&2
+}
+
+trace_lang_state() {
+  printf '[devloop-run] STATE lang=%s reason=%s\n' "$1" "$2" >&2
 }
 
 # Host affinity: explicit flag > env > logical install path (symlink-aware) > physical
@@ -824,6 +853,15 @@ elif designates_new_repo "$@"; then
   repo_reason="new_repo_designated"
 fi
 trace_repo_target "$repo_target" "$repo_reason"
+
+# --lang is host-interpolation only: the shim never scrapes prose to prepend
+# --lang. It only labels whatever actually reached the CLI, so hosts do not
+# have to guess whether a --lang flag was honored.
+if args_have_lang_flag "$@"; then
+  trace_lang_state "$(extract_lang_value "$@")" explicit
+else
+  trace_lang_state none none
+fi
 
 # Increment depth for any child processes the engine may spawn that re-enter the card
 export DEVLOOP_DEPTH=1

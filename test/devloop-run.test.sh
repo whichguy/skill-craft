@@ -251,7 +251,7 @@ grep -qi 'Hermes' "$root/skills/devloop-run/SKILL.md" || fail "D16 honesty Herme
 grep -qi 'mode=engine' "$root/skills/devloop-run/SKILL.md" || fail "D16 mode=engine banner"
 grep -qi 'Forbidden' "$root/skills/devloop-run/SKILL.md" || fail "D16 forbids host loop"
 grep -qi 'devloop-native' "$root/skills/devloop-run/SKILL.md" || fail "D16 mentions demoted native"
-grep -E '^version: 0\.4\.4' "$root/skills/devloop-run/SKILL.md" || fail "D16 version 0.4.4"
+grep -E '^version: 0\.4\.5' "$root/skills/devloop-run/SKILL.md" || fail "D16 version 0.4.5"
 grep -q 'SKILL_ROOT' "$root/skills/devloop-run/SKILL.md" || fail "D16 SKILL_ROOT"
 grep -qi 'BEFORE\|STATE\|stderr' "$root/skills/devloop-run/SKILL.md" || fail "D16 inspection/stderr"
 [[ -f "$root/skills/devloop-run/references/product-default.md" ]] || fail "D16 product-default.md"
@@ -523,10 +523,61 @@ for phrase in "existing repo" "repository survey" "the repo is old" "reporting n
 done
 printf 'LAYER simple: D32 negative phrase guard OK\n'
 
-# D33: card documents the new-repo designation (no fuzzy cwd/last-path guessing)
-grep -qi 'new-repo designation' "$root/skills/devloop-run/SKILL.md" || fail "D33 SKILL.md designation section"
+# D33: card documents new-repo + /devloop prompt form (no fuzzy cwd/last-path guessing)
+grep -qi 'new repo' "$root/skills/devloop-run/SKILL.md" || fail "D33 SKILL.md new repo"
 grep -q 'new_repo_designated' "$root/skills/devloop-run/SKILL.md" || fail "D33 SKILL.md STATE line"
-grep -qi 'do not infer cwd' "$root/skills/devloop-run/SKILL.md" || fail "D33 SKILL.md no-infer-cwd"
+grep -qi 'infer cwd' "$root/skills/devloop-run/SKILL.md" || fail "D33 SKILL.md no-infer-cwd"
+grep -q "grok -p '/devloop" "$root/skills/devloop-run/SKILL.md" || fail "D33 SKILL.md grok -p /devloop"
 printf 'LAYER simple: D33 SKILL.md designation docs OK\n'
 
-printf 'devloop-run.test.sh: PASS D1–D33\n'
+# D34: verify_cmd exactly [ with no --lang -> shim must NOT auto-prepend --lang
+# command. Host interpolation, not shim prose-scraping, decides --lang.
+out34="$("$run" -- 'new repo. verify_cmd exactly ["test", "-f", "result.txt"]' 2>&1)" || fail "D34: $out34"
+printf '%s\n' "$out34" | grep -q 'STATE lang=command reason=verify_cmd_exactly' \
+  && fail "D34 must not auto-prepend --lang from prose: $out34"
+printf '%s\n' "$out34" | grep -q 'STUB_CLI --lang command' \
+  && fail "D34 must not prepend --lang command: $out34"
+printf '%s\n' "$out34" | grep -q 'STATE lang=none reason=none' \
+  || fail "D34 missing STATE lang=none when no --lang passed: $out34"
+printf 'LAYER simple: D34 no auto --lang from verify_cmd exactly (host must pass --lang) OK\n'
+
+# D35: explicit --lang always wins and is forwarded; STATE reflects it verbatim.
+out35="$("$run" -- --lang python 'verify_cmd exactly ["true"]' 2>&1)" || fail "D35: $out35"
+printf '%s\n' "$out35" | grep -q 'STATE lang=python reason=explicit' \
+  || fail "D35 missing explicit lang STATE: $out35"
+printf '%s\n' "$out35" | grep -q 'STUB_CLI --lang python' \
+  || fail "D35 lost explicit --lang: $out35"
+printf 'LAYER simple: D35 explicit --lang wins + STATE lang=<value> reason=explicit OK\n'
+
+# D36: no verify_cmd / no --lang -> do not invent --lang; STATE lang=none reason=none
+out36="$("$run" -- "fix the bug in the parser" 2>&1)" || fail "D36: $out36"
+printf '%s\n' "$out36" | grep -q 'STATE lang=none reason=none' \
+  || fail "D36 missing STATE lang=none: $out36"
+printf '%s\n' "$out36" | grep -q 'STUB_CLI --lang' \
+  && fail "D36 forwarded --lang without a signal: $out36"
+printf 'LAYER simple: D36 no verify_cmd leaves lang alone, STATE lang=none OK\n'
+
+# D37: SKILL.md hermetic string checks — /devloop + interpolate procedure,
+# COMPLETE = AFTER exec exit=0, no /goal or /loop invoke.
+grep -qi 'interpolate' "$root/skills/devloop-run/SKILL.md" || fail "D37 SKILL.md mentions interpolate"
+grep -qi 'print the interpolation' "$root/skills/devloop-run/SKILL.md" || fail "D37 SKILL.md prints interpolation"
+grep -qi 'fail-closed' "$root/skills/devloop-run/SKILL.md" || fail "D37 SKILL.md fail-closed"
+grep -qi 'checkable done' "$root/skills/devloop-run/SKILL.md" || fail "D37 SKILL.md checkable-done language"
+grep -q 'AFTER exec exit=0' "$root/skills/devloop-run/SKILL.md" || fail "D37 SKILL.md COMPLETE = AFTER exec exit=0"
+grep -q "grok -p '/devloop" "$root/skills/devloop-run/SKILL.md" || fail "D37 SKILL.md grok -p /devloop"
+printf '%s\n' "$(grep -c "grok -p '/goal" "$root/skills/devloop-run/SKILL.md" || true)" | grep -q '^0$' \
+  || fail "D37 SKILL.md must not invoke /goal"
+printf '%s\n' "$(grep -c "grok -p '/loop" "$root/skills/devloop-run/SKILL.md" || true)" | grep -q '^0$' \
+  || fail "D37 SKILL.md must not invoke /loop"
+printf 'LAYER simple: D37 SKILL.md interpolation procedure docs OK\n'
+
+# D38: STATE lang=... is always emitted, whatever reached the CLI.
+out38a="$("$run" -- "no signals here" 2>&1)" || fail "D38a: $out38a"
+printf '%s\n' "$out38a" | grep -q 'STATE lang=none reason=none' \
+  || fail "D38a no-lang invoke must print STATE lang=none reason=none: $out38a"
+out38b="$("$run" -- --lang command "verify_cmd exactly [\"true\"]" 2>&1)" || fail "D38b: $out38b"
+printf '%s\n' "$out38b" | grep -q 'STATE lang=command reason=explicit' \
+  || fail "D38b explicit --lang command must print STATE lang=command reason=explicit: $out38b"
+printf 'LAYER simple: D38 STATE lang always emitted OK\n'
+
+printf 'devloop-run.test.sh: PASS D1–D38\n'

@@ -12,8 +12,8 @@ when-to-use: >-
   User says devloop or DevLoop, runs /devloop-run or Grok /devloop, or asks for
   an isolated fail-closed loop with tests. Do not use for prompt tuning, visual
   design, or offline freeze/prove/stop (that is devloop-native).
-argument-hint: repo path and goal
-version: 0.4.4
+argument-hint: goal
+version: 0.4.5
 license: MIT
 platforms:
   - linux
@@ -50,32 +50,66 @@ or plugin path, not the physical checkout behind a symlink).
 
 ## Procedure
 
-Do **not** invent the identity banner or lifecycle lines. Run the script; relay **stderr**.
+User-facing form is `/devloop <plain English>`. Do **not** invent
+DEFINE/PROVE/BUILD or lifecycle lines. The host **interpolates** argv from the
+plain text, **prints the interpolation**, then execs the shim and relays
+**stderr**.
 
 ```text
-SKILL_ROOT = directory containing this SKILL.md
-bash "$SKILL_ROOT/scripts/devloop-run" --setup
-bash "$SKILL_ROOT/scripts/devloop-run" -- --repo <ABS_PATH> "<goal>"
+/devloop <goal>
 ```
 
-Omit `--repo` only when a scratch workspace is the deliverable. Pass through
-engine flags the user requested (`--json`, `--keep-branch`). `--host grok` is an
-override, not required when invoking via a Grok skill-dir path.
+Headless:
 
-**New-repo designation — one signal, no guessing.** `--repo PATH` always wins.
-If `--repo` is omitted and the goal designates a new repo (case-insensitive:
-`new repo`, `new repository`, `separate repo`, `fresh repo`, `create a repo`,
-`newly created repo`), still **omit** `--repo` — the shim's existing scratch
-mechanism (a fresh git repo under the write-safe root, worktreed) *is* the
-new-repo deliverable. Do not reuse the last `--repo` path, do not infer cwd,
-do not invent `~/src/<slug>`. The shim prints
-`[devloop-run] STATE target=scratch reason=new_repo_designated` (or
-`reason=default` when there is no designation) so relay that line as-is.
+```text
+grok -p '/devloop <goal>' --always-approve
+```
 
-- Relay stderr. Do not rewrite `[devloop-run] BEFORE` / `AFTER` / `STATE` lines.
-- Cite identity line (`DevLoop — mode=engine …`), last `STATE`, and exit code.
-- **COMPLETE** only if `AFTER exec exit=0` (engine exit 0). Exit **2** = stop;
-  report last `STATE` and the script’s next steps.
+### 1. Interpolate
+
+Read the plain-English request and fill in only these argv pieces — never
+invent a fourth, and never write product files (that is **not** BUILD):
+
+| Text signal | Host fills in |
+|---|---|
+| `new repo` / `new repository` / `separate repo` / `fresh repo` / `create a repo` / `newly created repo` / no path named | omit `--repo` (scratch) |
+| an absolute path the user named | `--repo PATH` |
+| a checkable "done" sentence | `verify_cmd exactly [...]`; add `--lang command` when that oracle is a shell/node argv list |
+| the user already typed `--repo` / `--lang` / `verify_cmd exactly` | those win verbatim — do not re-derive them |
+
+**Fail-closed:** no machine-checkable done in the request → **stop and ask**
+for one. Do not invent `pytest`, a path, or a cwd to make something checkable.
+Never infer cwd or reuse the last `--repo` path.
+
+### 2. Print the interpolation
+
+Before exec, print the exact argv constructed, e.g.:
+
+```text
+interpolated: --lang command "new repo. Create result.txt containing exactly one line: devloop-ok verify_cmd exactly [\"test\",\"-f\",\"result.txt\"]"
+```
+
+### 3. Exec
+
+`SKILL_ROOT` is the directory containing this SKILL.md. Exec:
+
+```text
+bash "$SKILL_ROOT/scripts/devloop-run" -- --lang command "<goal + verify_cmd exactly [...]>"
+```
+
+Omit `--lang` / `--repo` from the exec line when step 1 said to omit them.
+Pass through only flags the user typed plus what step 1 interpolated
+(`--repo`, `--lang`, `--keep-branch`, `--json`). `--setup` once on a fresh
+machine. `--host grok` is an override, not required from a Grok skill-dir
+path. Shim STATE lines (`target=scratch reason=new_repo_designated`,
+`lang=… reason=explicit|none`) label what the shim received — they do not
+re-derive argv; that already happened in step 1.
+
+### 4. Relay, don't re-run the loop
+
+- Relay `[devloop-run] BEFORE` / `AFTER` / `STATE` as-is.
+- Cite identity (`DevLoop — mode=engine …`), last `STATE`, and exit code.
+- **COMPLETE** only if `AFTER exec exit=0`. Exit **2** = stop.
 - If the stream has no `[devloop-run]` lines, this skill did not run.
 
 Host matrix, bootstrap, and resolve order:
@@ -84,9 +118,24 @@ Host matrix, bootstrap, and resolve order:
 Consumer-channel COMPLETE is engine policy (`references/consumer-channel-verification.md`
 under the engine tree).
 
+## One controller, not Grok `/goal`
+
+DevLoop is **one controller**: the engine owns DEFINE → PROVE → BUILD. This
+card and its `/devloop` alias must **not** invoke Grok `/goal` or `/loop` —
+`/goal` retries exit 2 and erase `HUMAN_REVIEW`, duplicating the engine's own
+retry ladder. Goal-engineering shape (objective + done) lives *in* the
+`/devloop` prompt text, not as a second slash. Keep
+`disable-model-invocation: true` on the Grok `/devloop` alias. The shim's own
+re-entry guard (`DEVLOOP_DEPTH` / `DEVLOOP_NESTING`; see
+`scripts/devloop-run --help`) refuses nested invokes — interpolation happens
+once, host-side, before that guard is ever reached.
+
 ## Forbidden
 
-Host agent inventing charter/phases/BUILD; rewriting acceptance tests outside
-the engine; claiming `mode: native` receipts as DevLoop; silently pushing after
-COMPLETE; falling back to **devloop-native** as DevLoop; inventing a `--repo`
-path (last-used, `~/src/<slug>`, or cwd) when the user designated a new repo.
+Host agent inventing charter/phases/BUILD; interpolating a fourth argv piece
+beyond `--repo`/`--lang`/`verify_cmd`; invoking Grok `/goal` or `/loop`;
+rewriting acceptance tests outside the engine; claiming `mode: native`
+receipts as DevLoop; silently pushing after COMPLETE; falling back to
+**devloop-native** as DevLoop; inventing a `--repo` path (last-used,
+`~/src/<slug>`, or cwd) when the user designated a new repo; declaring
+COMPLETE without both engine exit 0 and `AFTER exec exit=0`.
