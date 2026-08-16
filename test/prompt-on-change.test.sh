@@ -150,7 +150,7 @@ POC_LIVE_SITE=0 bash "$root/test/prompt-on-change-live-site.test.sh" \
 printf 'LAYER simple: live-site probe OK\n'
 
 # Offline e2e card (local HTTP multi-condition). Live Grok/site stay skipped.
-POC_E2E=0 POC_GROK_LIVE=0 POC_LIVE_SITE=0 bash "$root/test/prompt-on-change-e2e.test.sh" \
+POC_E2E=0 POC_GROK_LIVE=0 POC_LIVE_SITE=0 POC_GROK_KEEP= bash "$root/test/prompt-on-change-e2e.test.sh" \
   || fail "e2e offline"
 printf 'LAYER e2e: e2e offline OK\n'
 

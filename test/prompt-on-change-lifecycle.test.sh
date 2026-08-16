@@ -135,7 +135,7 @@ promotable="$(explain_json)" || fail "explain after rewrite"
 printf '%s\n' "$promotable" | grep -q '"would_escalate": true' || fail "rewrite explain would_escalate: $promotable"
 
 # 5b. --dry-run must not write evidence, issue, or advance fire_once
-dry="$("$wrapper" run --config "$cfg" --dry-run")" || fail "dry-run: $dry"
+dry="$("$wrapper" run --config "$cfg" --dry-run)" || fail "dry-run: $dry"
 printf '%s\n' "$dry" | grep -q 'LLM_ESCALATION:' && fail "dry-run must not escalate: $dry"
 printf '%s\n' "$dry" | grep -q 'PROMPT_ISSUED:' && fail "dry-run must not issue: $dry"
 still_promotable="$(explain_json)" || fail "explain after dry-run"
@@ -342,7 +342,7 @@ YAML
 write_page 100
 "$wrapper" run --config "$cfgdir/local-no-issue.yaml" >/dev/null || fail "no-issue seed"
 write_page 41
-no_issue="$("$wrapper" run --config "$cfgdir/local-no-issue.yaml" --no-issue")" \
+no_issue="$("$wrapper" run --config "$cfgdir/local-no-issue.yaml" --no-issue)" \
   || fail "no-issue run: $no_issue"
 printf '%s\n' "$no_issue" | grep -q 'LLM_ESCALATION:' || fail "no-issue missing escalation: $no_issue"
 printf '%s\n' "$no_issue" | grep -q 'PROMPT_ISSUED:' && fail "no-issue must not issue: $no_issue"
@@ -430,7 +430,7 @@ YAML
 post_seed="$("$wrapper" run --config "$cfgdir/local-post-form.yaml")" || fail "post seed: $post_seed"
 printf '%s\n' "$post_seed" | grep -q 'SEED_OK:' || fail "post seed token: $post_seed"
 printf '<html><body><span class="headline">new</span></body></html>\n' >"$www/post.html"
-post_hit="$("$wrapper" run --config "$cfgdir/local-post-form.yaml" --no-issue")" \
+post_hit="$("$wrapper" run --config "$cfgdir/local-post-form.yaml" --no-issue)" \
   || fail "post promote: $post_hit"
 printf '%s\n' "$post_hit" | grep -q 'LLM_ESCALATION:' || fail "post missing escalation: $post_hit"
 kill "$post_pid" 2>/dev/null || true

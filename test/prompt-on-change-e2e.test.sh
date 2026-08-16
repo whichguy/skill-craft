@@ -500,7 +500,7 @@ case_lifecycle_to() {
     printf '%s\n' "$claim1" | grep -q 'CLAIM_EMPTY' \
       || fail "lifecycle-to claim token: $claim1"
   fi
-  last_out="$("$wrapper" issue --last --exec --to "grok:$sid" --assume-idle")" \
+  last_out="$("$wrapper" issue --last --exec --to "grok:$sid" --assume-idle)" \
     || fail "lifecycle-to --last --to: $last_out"
   printf '%s\n' "$last_out" | grep -q '^PROMPT_RESUME:' || fail "lifecycle-to missing PROMPT_RESUME"
   last_issued="$(first_token PROMPT_ISSUED "$last_out")"
