@@ -571,6 +571,37 @@ printf '%s\n' "$(grep -c "grok -p '/loop" "$root/skills/devloop-run/SKILL.md" ||
   || fail "D37 SKILL.md must not invoke /loop"
 printf 'LAYER simple: D37 SKILL.md interpolation procedure docs OK\n'
 
+# D39: flags-free default — parse skill argument, interpolate argv; user not
+# required to pass the four engine flags. Distinct greps so one revert fails.
+card="$root/skills/devloop-run/SKILL.md"
+grep -qi 'flags-free' "$card" || fail "D39 SKILL.md flags-free default"
+grep -qi 'parse that text' "$card" || grep -qi 'parses skill arguments' "$card" \
+  || fail "D39 SKILL.md parse skill argument"
+grep -qi 'interpolate' "$card" || fail "D39 SKILL.md interpolate"
+grep -q -- '--repo' "$card" && grep -q -- '--lang' "$card" \
+  && grep -q 'verify_cmd exactly' "$card" && grep -q -- '--setup-spec' "$card" \
+  || fail "D39 SKILL.md names the four optional flags"
+grep -qi 'not required to type any of these' "$card" \
+  || grep -qi 'do not require the user to pass' "$card" \
+  || fail "D39 SKILL.md user not required to pass flags"
+printf 'LAYER simple: D39 SKILL.md flags-free parse/interpolate OK\n'
+
+# D40: /goal-shaped phase complete-whens (directives, not harness). SETUP gated.
+grep -q '| DEFINE |' "$card" || fail "D40 SKILL.md DEFINE complete-when"
+grep -q '| PROVE |' "$card" || fail "D40 SKILL.md PROVE complete-when"
+grep -q '| BUILD |' "$card" || fail "D40 SKILL.md BUILD complete-when"
+grep -q '| DELIVER |' "$card" || fail "D40 SKILL.md DELIVER complete-when"
+grep -qi 'complete-when' "$card" || grep -qi 'Complete when' "$card" \
+  || fail "D40 SKILL.md complete-when dialect"
+grep -qi 'only if user named new GAS' "$card" \
+  || grep -qi 'SETUP (only if user named new GAS' "$card" \
+  || fail "D40 SKILL.md SETUP gated on new GAS/mcp/hosted"
+printf '%s\n' "$(grep -c "grok -p '/goal" "$card" || true)" | grep -q '^0$' \
+  || fail "D40 SKILL.md must not invoke grok -p /goal"
+printf '%s\n' "$(grep -c "grok -p '/loop" "$card" || true)" | grep -q '^0$' \
+  || fail "D40 SKILL.md must not invoke grok -p /loop"
+printf 'LAYER simple: D40 SKILL.md phase complete-whens + no harness invoke OK\n'
+
 # D38: STATE lang=... is always emitted, whatever reached the CLI.
 out38a="$("$run" -- "no signals here" 2>&1)" || fail "D38a: $out38a"
 printf '%s\n' "$out38a" | grep -q 'STATE lang=none reason=none' \
@@ -580,4 +611,28 @@ printf '%s\n' "$out38b" | grep -q 'STATE lang=command reason=explicit' \
   || fail "D38b explicit --lang command must print STATE lang=command reason=explicit: $out38b"
 printf 'LAYER simple: D38 STATE lang always emitted OK\n'
 
-printf 'devloop-run.test.sh: PASS D1–D38\n'
+# D41: Grok /devloop alias stays aligned (file Grok loads). Optional path
+# override: DEVLOOP_ALIAS_MD. Distinct from the card so alias drift fails here.
+alias_md="${DEVLOOP_ALIAS_MD:-}"
+if [[ -z "$alias_md" ]]; then
+  if [[ -f "$root/../grok-build-additions/commands/devloop.md" ]]; then
+    alias_md="$root/../grok-build-additions/commands/devloop.md"
+  elif [[ -f "${HOME}/.grok/commands/devloop.md" ]]; then
+    alias_md="${HOME}/.grok/commands/devloop.md"
+  fi
+fi
+if [[ -z "$alias_md" || ! -f "$alias_md" ]]; then
+  fail "D41 /devloop alias file not found (set DEVLOOP_ALIAS_MD)"
+fi
+grep -qi 'do not mandate engine flags' "$alias_md" \
+  || grep -qi 'do not require flags' "$alias_md" \
+  || fail "D41 alias flags-free: $alias_md"
+grep -qi 'skill argument' "$alias_md" || fail "D41 alias skill-argument parse: $alias_md"
+grep -qi 'interpolate' "$alias_md" || fail "D41 alias interpolate: $alias_md"
+grep -qi 'do not invoke the host goal harness' "$alias_md" \
+  || fail "D41 alias no-host-goal-harness-as-loop: $alias_md"
+printf '%s\n' "$(grep -c "grok -p '/goal" "$alias_md" || true)" | grep -q '^0$' \
+  || fail "D41 alias must not invoke grok -p /goal"
+printf 'LAYER simple: D41 /devloop alias alignment OK (%s)\n' "$alias_md"
+
+printf 'devloop-run.test.sh: PASS D1–D41\n'
