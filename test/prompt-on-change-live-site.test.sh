@@ -235,6 +235,10 @@ done
 
 printf '%s\n' "$hit" | grep -q '^PROMPT_ISSUED:' || fail "match must issue a prompt: $hit"
 ev="$(printf '%s\n' "$hit" | sed -n 's/^LLM_ESCALATION: //p' | head -1)"
+if [[ ! -f "$ev" ]]; then
+  # issue / issue --exec claims the file into processed/.
+  ev="$(dirname "$ev")/processed/$(basename "$ev")"
+fi
 [[ -f "$ev" ]] || fail "missing evidence: $ev"
 "$python_bin" - "$ev" "$target_hm" "$site_url" <<'PY' || fail "evidence from live site"
 import json, sys
