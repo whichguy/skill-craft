@@ -5,13 +5,13 @@ usage() {
   printf 'Usage: %s [flags]\n' "${0##*/}" >&2
   printf '\n' >&2
   printf 'Install skill package(s) into local skill homes.\n' >&2
-  printf 'Claude/Grok/Codex: symlink. Hermes: materialized copy (default).\n' >&2
+  printf 'Claude/Grok/Codex/Cursor: symlink. Hermes: materialized copy (default).\n' >&2
   printf 'Optionally install thin agent cards (Claude + Grok only).\n' >&2
   printf '\n' >&2
   printf 'Flags:\n' >&2
   printf '  --help | -h\n' >&2
-  printf '  --claude-only | --grok-only | --codex-only | --hermes-only\n' >&2
-  printf '  --all                 # all four hosts (Claude, Grok, Codex, Hermes)\n' >&2
+  printf '  --claude-only | --grok-only | --codex-only | --hermes-only | --cursor-only\n' >&2
+  printf '  --all                 # all five hosts (Claude, Grok, Codex, Hermes, Cursor)\n' >&2
   printf '  --skill NAME          # all (default) | any skills/<name> with SKILL.md\n' >&2
   printf '  --from DIR            # install only basename(DIR) from that path\n' >&2
   printf '                        # (must contain SKILL.md); exclusive with --skill\n' >&2
@@ -24,17 +24,21 @@ usage() {
   printf '  --uninstall           # remove only owned installs (symlink-owned or managed copy)\n' >&2
   printf '  --dry-run             # print actions only, no writes\n' >&2
   printf '\n' >&2
-  printf 'Default (no host flags): install ALL four hosts.\n' >&2
+  printf 'Default (no host flags): install ALL five hosts.\n' >&2
   printf 'Default (no --skill/--from): install every skills/<leaf> with SKILL.md.\n' >&2
   printf 'Default action: install. --status / --uninstall are exclusive with each other.\n' >&2
   printf '\n' >&2
   printf 'Skill destinations (per skill leaf):\n' >&2
-  printf '  Claude:  ~/.claude/skills/<leaf>  (symlink)\n' >&2
-  printf '  Grok:    ~/.grok/skills/<leaf>  (symlink)\n' >&2
-  printf '  Codex:   ~/.codex/skills/<leaf>  (symlink)\n' >&2
-  printf '  Hermes:  ~/.hermes/skills/software-development/<leaf>  (copy)\n' >&2
-  printf '           (container bind: /opt/data/skills/software-development/<leaf>)\n' >&2
-  printf '           Provenance: ~/.hermes/skills/software-development/.skill-craft/<leaf>.json\n' >&2
+  printf '  Claude:  ~/.claude/skills/<dest>  (symlink)\n' >&2
+  printf '  Grok:    ~/.grok/skills/<dest>  (symlink)\n' >&2
+  printf '  Codex:   ~/.codex/skills/<dest>  (symlink)\n' >&2
+  printf '  Cursor:  ~/.cursor/skills/<dest>  (symlink; never ~/.cursor/skills-cursor)\n' >&2
+  printf '  Hermes:  ~/.hermes/skills/software-development/<dest>  (copy)\n' >&2
+  printf '           (container bind: /opt/data/skills/software-development/<dest>)\n' >&2
+  printf '           Provenance: ~/.hermes/skills/software-development/.skill-craft/<dest>.json\n' >&2
+  printf '  dest = leaf, except source leaf devloop-run → dest devloop on\n' >&2
+  printf '  Claude/Grok/Codex/Cursor (Hermes dest stays devloop-run; engine owns devloop).\n' >&2
+  printf '  --skill devloop is rejected (source leaf is reserved); use --skill devloop-run.\n' >&2
   printf '\n' >&2
   printf 'Status outcomes: absent | symlink-owned | symlink-wrong | copy-owned |\n' >&2
   printf '  copy-owned-stale | foreign | foreign-file\n' >&2
@@ -110,6 +114,7 @@ install_claude=0
 install_grok=0
 install_codex=0
 install_hermes=0
+install_cursor=0
 host_flag_set=0
 
 skill_mode="all" # all | named leaf | (unused when --from set)
@@ -160,11 +165,17 @@ while [[ $# -gt 0 ]]; do
       host_flag_set=1
       shift
       ;;
+    --cursor-only)
+      install_cursor=1
+      host_flag_set=1
+      shift
+      ;;
     --all)
       install_claude=1
       install_grok=1
       install_codex=1
       install_hermes=1
+      install_cursor=1
       host_flag_set=1
       shift
       ;;
@@ -254,7 +265,48 @@ if [[ "$host_flag_set" -eq 0 ]]; then
   install_grok=1
   install_codex=1
   install_hermes=1
+  install_cursor=1
 fi
+
+# User-facing dest name. Source leaf "devloop-run" installs as "devloop"
+# on Claude/Grok/Codex/Cursor. Hermes keeps "devloop-run" (engine owns "devloop").
+dest_leaf() {
+  local host="$1"
+  local leaf="$2"
+  if [[ "$leaf" == "devloop-run" && "$host" != "hermes" ]]; then
+    printf 'devloop\n'
+  else
+    printf '%s\n' "$leaf"
+  fi
+}
+
+# If dest name differs from source leaf, remove an owned leftover symlink at
+# the old source-leaf dest so hosts do not see two cards.
+remove_legacy_source_dest() {
+  local label="$1"
+  local skills_dir="$2"
+  local source_leaf="$3"
+  local dest="$4"
+  local source_dir="$5"
+  if [[ "$dest" == "$source_leaf" ]]; then
+    return 0
+  fi
+  local legacy="$skills_dir/$source_leaf"
+  if [[ ! -L "$legacy" ]]; then
+    return 0
+  fi
+  local target
+  target="$(readlink "$legacy")"
+  if [[ "$target" != "$source_dir" ]]; then
+    return 0
+  fi
+  if [[ "$dry_run" -eq 1 ]]; then
+    printf 'Would remove leftover dest (%s): %s\n' "$label" "$legacy"
+    return 0
+  fi
+  rm -f "$legacy"
+  printf 'Removed leftover dest (%s): %s\n' "$label" "$legacy"
+}
 
 # install_one LABEL SKILLS_DIR LEAF SOURCE_DIR
 # Creates SKILLS_DIR/LEAF -> SOURCE_DIR when missing (symlink mode).
@@ -709,7 +761,7 @@ install_agent_one() {
 
 # Host default: Hermes=copy, others=symlink. --copy / --symlink overrides all hosts.
 host_uses_copy() {
-  local host="$1" # claude|grok|codex|hermes
+  local host="$1" # claude|grok|codex|hermes|cursor
   if [[ "$force_mode" == "copy" ]]; then
     return 0
   fi
@@ -719,40 +771,44 @@ host_uses_copy() {
   [[ "$host" == "hermes" ]]
 }
 
+install_host_skill() {
+  local host="$1"
+  local label="$2"
+  local skills_dir="$3"
+  local leaf="$4"
+  local source_dir="$5"
+  local dest
+  dest="$(dest_leaf "$host" "$leaf")"
+  if host_uses_copy "$host"; then
+    install_hermes_copy "$label / $dest" "$skills_dir" "$dest" "$source_dir"
+  else
+    install_one "$label / $dest" "$skills_dir" "$dest" "$source_dir"
+  fi
+  remove_legacy_source_dest "$label" "$skills_dir" "$leaf" "$dest" "$source_dir"
+}
+
 install_skill_to_hosts() {
   local leaf="$1"
   local source_dir="$2"
 
   if [[ "$install_claude" -eq 1 ]]; then
-    if host_uses_copy claude; then
-      install_hermes_copy "Claude Code / $leaf" "$HOME/.claude/skills" "$leaf" "$source_dir"
-    else
-      install_one "Claude Code / $leaf" "$HOME/.claude/skills" "$leaf" "$source_dir"
-    fi
+    install_host_skill claude "Claude Code" "$HOME/.claude/skills" "$leaf" "$source_dir"
   fi
   if [[ "$install_grok" -eq 1 ]]; then
-    if host_uses_copy grok; then
-      install_hermes_copy "Grok / $leaf" "$HOME/.grok/skills" "$leaf" "$source_dir"
-    else
-      install_one "Grok / $leaf" "$HOME/.grok/skills" "$leaf" "$source_dir"
-    fi
+    install_host_skill grok "Grok" "$HOME/.grok/skills" "$leaf" "$source_dir"
   fi
   if [[ "$install_codex" -eq 1 ]]; then
-    if host_uses_copy codex; then
-      install_hermes_copy "Codex / $leaf" "$HOME/.codex/skills" "$leaf" "$source_dir"
-    else
-      install_one "Codex / $leaf" "$HOME/.codex/skills" "$leaf" "$source_dir"
-    fi
+    install_host_skill codex "Codex" "$HOME/.codex/skills" "$leaf" "$source_dir"
+  fi
+  if [[ "$install_cursor" -eq 1 ]]; then
+    install_host_skill cursor "Cursor" "$HOME/.cursor/skills" "$leaf" "$source_dir"
   fi
   if [[ "$install_hermes" -eq 1 ]]; then
     # Peer layout under Hermes skillhub. Host ~/.hermes is typically bind-mounted
     # to /opt/data in the hermes container — abs-symlinks to host checkouts break.
     # Default: materialize a managed copy with provenance under .skill-craft/.
-    if host_uses_copy hermes; then
-      install_hermes_copy "Hermes skillhub / $leaf" "$HOME/.hermes/skills/software-development" "$leaf" "$source_dir"
-    else
-      install_one "Hermes skillhub / $leaf" "$HOME/.hermes/skills/software-development" "$leaf" "$source_dir"
-    fi
+    # Dest stays source leaf (devloop-run); never alias to devloop (engine owns it).
+    install_host_skill hermes "Hermes skillhub" "$HOME/.hermes/skills/software-development" "$leaf" "$source_dir"
   fi
 }
 
@@ -991,23 +1047,58 @@ uninstall_one() {
   esac
 }
 
+status_host_skill() {
+  local host="$1"
+  local label="$2"
+  local skills_dir="$3"
+  local leaf="$4"
+  local source_dir="$5"
+  local dest
+  dest="$(dest_leaf "$host" "$leaf")"
+  status_one "$label / $dest" "$skills_dir" "$dest" "$source_dir"
+}
+
+uninstall_host_skill() {
+  local host="$1"
+  local label="$2"
+  local skills_dir="$3"
+  local leaf="$4"
+  local source_dir="$5"
+  local dest
+  dest="$(dest_leaf "$host" "$leaf")"
+  uninstall_one "$label / $dest" "$skills_dir" "$dest" "$source_dir"
+  # Owned leftover at the source-leaf dest (pre-alias install). Absent leftover
+  # must not flip uninstall to exit 4 after a successful dest removal.
+  if [[ "$dest" != "$leaf" ]]; then
+    local legacy="$skills_dir/$leaf"
+    if [[ -L "$legacy" || -e "$legacy" ]]; then
+      uninstall_one "$label leftover / $leaf" "$skills_dir" "$leaf" "$source_dir"
+    fi
+  fi
+}
+
 status_skill_to_hosts() {
   local leaf="$1"
   local source_dir="$2"
   local claude_state=""
+  local claude_dest
   if [[ "$install_claude" -eq 1 ]]; then
-    status_one "Claude Code / $leaf" "$HOME/.claude/skills" "$leaf" "$source_dir"
-    claude_state="$(classify_destination "$HOME/.claude/skills" "$leaf" "$source_dir")"
+    claude_dest="$(dest_leaf claude "$leaf")"
+    status_host_skill claude "Claude Code" "$HOME/.claude/skills" "$leaf" "$source_dir"
+    claude_state="$(classify_destination "$HOME/.claude/skills" "$claude_dest" "$source_dir")"
     status_claude_plugin_overlay "$leaf" "$claude_state"
   fi
   if [[ "$install_grok" -eq 1 ]]; then
-    status_one "Grok / $leaf" "$HOME/.grok/skills" "$leaf" "$source_dir"
+    status_host_skill grok "Grok" "$HOME/.grok/skills" "$leaf" "$source_dir"
   fi
   if [[ "$install_codex" -eq 1 ]]; then
-    status_one "Codex / $leaf" "$HOME/.codex/skills" "$leaf" "$source_dir"
+    status_host_skill codex "Codex" "$HOME/.codex/skills" "$leaf" "$source_dir"
+  fi
+  if [[ "$install_cursor" -eq 1 ]]; then
+    status_host_skill cursor "Cursor" "$HOME/.cursor/skills" "$leaf" "$source_dir"
   fi
   if [[ "$install_hermes" -eq 1 ]]; then
-    status_one "Hermes skillhub / $leaf" "$HOME/.hermes/skills/software-development" "$leaf" "$source_dir"
+    status_host_skill hermes "Hermes skillhub" "$HOME/.hermes/skills/software-development" "$leaf" "$source_dir"
   fi
 }
 
@@ -1015,16 +1106,19 @@ uninstall_skill_to_hosts() {
   local leaf="$1"
   local source_dir="$2"
   if [[ "$install_claude" -eq 1 ]]; then
-    uninstall_one "Claude Code / $leaf" "$HOME/.claude/skills" "$leaf" "$source_dir"
+    uninstall_host_skill claude "Claude Code" "$HOME/.claude/skills" "$leaf" "$source_dir"
   fi
   if [[ "$install_grok" -eq 1 ]]; then
-    uninstall_one "Grok / $leaf" "$HOME/.grok/skills" "$leaf" "$source_dir"
+    uninstall_host_skill grok "Grok" "$HOME/.grok/skills" "$leaf" "$source_dir"
   fi
   if [[ "$install_codex" -eq 1 ]]; then
-    uninstall_one "Codex / $leaf" "$HOME/.codex/skills" "$leaf" "$source_dir"
+    uninstall_host_skill codex "Codex" "$HOME/.codex/skills" "$leaf" "$source_dir"
+  fi
+  if [[ "$install_cursor" -eq 1 ]]; then
+    uninstall_host_skill cursor "Cursor" "$HOME/.cursor/skills" "$leaf" "$source_dir"
   fi
   if [[ "$install_hermes" -eq 1 ]]; then
-    uninstall_one "Hermes skillhub / $leaf" "$HOME/.hermes/skills/software-development" "$leaf" "$source_dir"
+    uninstall_host_skill hermes "Hermes skillhub" "$HOME/.hermes/skills/software-development" "$leaf" "$source_dir"
   fi
 }
 

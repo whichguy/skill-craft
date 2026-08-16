@@ -99,7 +99,7 @@ From the **skill-craft** monorepo root (or dual-home checkout; never overwrite f
 # --skill all|skill-interop|<name>              # any skills/<name> with SKILL.md
 # --from /abs/path/to/skill                     # leaf = basename; exclusive with --skill
 # --agents                                      # thin agents/<leaf>.md for Claude + Grok only
-# host filters: --claude-only | --grok-only | --codex-only | --hermes-only | --all
+# host filters: --claude-only | --grok-only | --codex-only | --hermes-only | --cursor-only | --all
 # preview: --dry-run
 ```
 

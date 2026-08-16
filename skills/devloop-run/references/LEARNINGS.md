@@ -51,7 +51,7 @@ Happy path is **host-local** (`~/.local/share/devloop` after `--setup`), never
 
 ```sh
 # once on a fresh machine
-bash ~/.grok/skills/devloop-run/scripts/devloop-run --setup
+bash ~/.grok/skills/devloop/scripts/devloop-run --setup
 
 # interactive or headless — prompt, not flag soup
 grok -p '/devloop new repo. Create result.txt containing exactly one line: devloop-ok. verify_cmd exactly ["bash", "-c", "test \"$(cat result.txt)\" = devloop-ok"]' --always-approve

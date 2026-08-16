@@ -2,8 +2,8 @@
 
 Repo root `./install.sh` (skill-craft monorepo) installs skill packages into local skill homes:
 
-- **Claude / Grok / Codex:** symlink into skill homes  
-- **Hermes:** **materialized copy** (default), not an abs-symlink to an external checkout  
+- **Claude / Grok / Codex / Cursor:** symlink into skill homes
+- **Hermes:** **materialized copy** (default), not an abs-symlink to an external checkout
 
 Optional `--agents` symlinks thin agent cards for Claude and Grok only.
 Foreign real destinations are never overwritten.
@@ -20,6 +20,7 @@ Per skill leaf (`skill-interop`, or any `skills/<name>` / `--from DIR`):
 | Claude Code | `~/.claude/skills/<leaf>` | symlink |
 | Grok Build | `~/.grok/skills/<leaf>` | symlink |
 | Codex | `~/.codex/skills/<leaf>` | symlink |
+| Cursor | `~/.cursor/skills/<leaf>` | symlink |
 | Hermes (host) | `~/.hermes/skills/software-development/<leaf>` | **copy** |
 | Hermes (Docker bind) | `/opt/data/skills/software-development/<leaf>` when `~/.hermes` is mounted at `/opt/data` | same tree as host |
 
@@ -51,7 +52,7 @@ Only when `agents/<leaf>.md` exists in the repo. **Claude + Grok only** — Code
 ## Examples
 
 ```sh
-# All skills under skills/, all four hosts (skill-craft default)
+# All skills under skills/, all five hosts (skill-craft default)
 ./install.sh
 
 # skill-interop only
@@ -74,6 +75,7 @@ Only when `agents/<leaf>.md` exists in the repo. **Claude + Grok only** — Code
 ./install.sh --skill skill-interop --grok-only
 ./install.sh --skill skill-interop --codex-only
 ./install.sh --skill skill-interop --hermes-only
+./install.sh --skill skill-interop --cursor-only
 
 # Force modes
 ./install.sh --skill skill-interop --symlink   # all hosts symlink (overrides Hermes copy)

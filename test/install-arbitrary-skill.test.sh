@@ -45,6 +45,7 @@ assert_all_hosts() {
   assert_symlink "$HOME/.claude/skills/$leaf" "$source"
   assert_symlink "$HOME/.grok/skills/$leaf" "$source"
   assert_symlink "$HOME/.codex/skills/$leaf" "$source"
+  assert_symlink "$HOME/.cursor/skills/$leaf" "$source"
   assert_hermes_copy "$leaf" "$source"
 }
 
@@ -53,6 +54,7 @@ assert_no_hosts() {
   assert_absent "$HOME/.claude/skills/$leaf"
   assert_absent "$HOME/.grok/skills/$leaf"
   assert_absent "$HOME/.codex/skills/$leaf"
+  assert_absent "$HOME/.cursor/skills/$leaf"
   assert_absent "$HOME/.hermes/skills/software-development/$leaf"
 }
 
@@ -68,7 +70,7 @@ trap cleanup EXIT
 [[ -f "$fixture_sample/SKILL.md" ]] || fail "missing frozen fixture: $fixture_sample/SKILL.md"
 
 # ---------------------------------------------------------------------------
-# E1: --from fixture sample-skill → all 4 hosts get sample-skill symlink
+# E1: --from fixture sample-skill → all 5 hosts get sample-skill symlink
 # ---------------------------------------------------------------------------
 fresh_home e1
 fixture_abs="$(cd "$fixture_sample" && pwd -P)"

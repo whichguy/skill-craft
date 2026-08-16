@@ -92,7 +92,8 @@ The card refuses `host=grok` bootstrap when the pin lists transports without `gr
 
 ## Host detection (skill-dir symlinks)
 
-`install.sh` puts a **symlink** at `~/.grok/skills/devloop-run`. File lookup uses
+`install.sh` puts a **symlink** at `~/.grok/skills/devloop` (source leaf
+`devloop-run`). File lookup uses
 `pwd -P` (physical checkout). Host affinity uses the **logical** invoke path
 (`BASH_SOURCE` / `pwd` without `-P`) so Grok skill-dir installs detect `host=grok`
 and skip Hermes seed. Tests: D26 in `test/devloop-run.test.sh`.

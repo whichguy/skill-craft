@@ -2,10 +2,10 @@
 
 ## Rule
 
-**Default DevLoop** = the **engine** via the multi-host card `devloop-run`
-(`scripts/devloop-run` → `scripts/devloop_cli.py`).
+**Default DevLoop** = the **engine** via the user-facing skill **`devloop`**
+(package leaf `devloop-run`; `scripts/devloop-run` → `scripts/devloop_cli.py`).
 
-Harnesses (Grok, Claude, Codex, Hermes chat) are **shims only**: resolve,
+Harnesses (Grok, Claude, Codex, Cursor, Hermes chat) are **shims only**: resolve,
 bootstrap if needed, exec the engine, report exit codes and receipts.
 They must **not** reimplement DEFINE / PROVE / BUILD / DELIVER+LEARN.
 
@@ -13,8 +13,9 @@ They must **not** reimplement DEFINE / PROVE / BUILD / DELIVER+LEARN.
 
 | Leaf | Role |
 |------|------|
-| `devloop-run` | **Default** portable card for bare “devloop” / DevLoop / machine-verifiable build goals |
-| `devloop` | **Reserved** Hermes skillhub engine path — never a skill-craft `skills/devloop` package |
+| `devloop` | **User-facing** skill / slash on Grok, Claude, Codex, Cursor (`~/.<host>/skills/devloop`) |
+| `devloop-run` | **Source** portable card + shim (`skills/devloop-run`, `scripts/devloop-run`). Hermes card dest stays this name |
+| `devloop` (Hermes engine) | **Reserved** Hermes skillhub engine path — never a skill-craft `skills/devloop` package |
 | `devloop-native` | **Demoted** optional offline evidence gates (freeze/prove/stop). Not DevLoop default |
 
 ## Grok parity (target)
@@ -39,30 +40,18 @@ not fall back to host-agent improvisation or `devloop-native`.
 
 ## Agent procedure (card)
 
+Follow [SKILL.md](../SKILL.md): interpolate `--repo` / `--lang` /
+`verify_cmd exactly [...]` from plain English, **print the interpolation**,
+then exec `bash "$SKILL_ROOT/scripts/devloop-run" -- …`. Do not compile
+phase complete-whens or `setup exactly` on the host (pin 0.2.0 has no SETUP).
+
 1. Banner: `DevLoop — mode=engine host=<host> engine=<path-or-pending>`
-2. `SKILL_ROOT` = directory containing the installed `SKILL.md` (logical skill-dir path)
-3. Grok user form: `/devloop <plain English>` (headless:
-   `grok -p '/devloop <plain English>' --always-approve`). Advertise `/devloop`
-   only — never a second `skills/devloop`. Do not drive the loop with the
-   host goal harness or `/loop`.
-4. Host **parses the skill argument** (plain English; flags are optional
-   overrides, never required). **Compile** `/goal`-shaped phase
-   complete-whens into the request blob, then **interpolate** `--repo` /
-   `--lang` / `verify_cmd exactly [...]` **values** from that parse (never
-   invent a fourth *kind* of argv; typed `--setup-spec` is pass-through),
-   then **print the interpolation** before exec. Fail-closed (stop and ask
-   for what “done” looks like, not for flags) when the parsed argument
-   still has no machine-checkable done — never invent `pytest`, a path, or
-   a cwd.
-5. Host exec: `bash "$SKILL_ROOT/scripts/devloop-run" -- --lang command "<goal + verify_cmd exactly [...]>"`
-   (omit `--lang` / `--repo` when interpolation says so; pass through only
-   flags the user typed plus what step 4 interpolated, including
-   `--setup-spec`).
-6. Report engine stdout/JSON + exit code only. **COMPLETE** only when engine
-   exit is 0 **and** the shim printed `AFTER exec exit=0` (and matching
-   `--json` delivery/terminal). Exit 2 is not success. Residual host
-   campaigns only after that.
+2. `SKILL_ROOT` = directory containing the installed `SKILL.md`
+3. User form: `/devloop <plain English>` (headless:
+   `grok -p '/devloop <plain English>' --always-approve`)
+4. **COMPLETE** only when engine exit is 0 **and** the shim printed
+   `AFTER exec exit=0`. Exit 2 is not success.
 
 **Forbidden:** host-written charters as the acceptance path; host BUILD;
-interpolating a fourth argv piece; invoking the host goal harness or `/loop`
+inventing a fourth argv piece; invoking the host goal harness or `/loop`
 to drive DevLoop; suggesting `devloop-native` as “DevLoop.”

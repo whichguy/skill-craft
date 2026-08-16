@@ -53,9 +53,11 @@ Port inventory: [docs/PORT.md](docs/PORT.md). After editing any skill body (incl
 ```
 ## Install (`install.sh`)
 
-Installs `skills/<leaf>` into local skill homes. Claude/Grok/Codex get **symlinks**.
+Installs `skills/<leaf>` into local skill homes. Claude/Grok/Codex/Cursor get **symlinks**.
 Hermes gets a **materialized copy** (refreshable managed install; foreign real trees skipped).
 Never clobbers a foreign real file/directory. Wrong/dangling symlinks are only replaced with `--relink`.
+Source leaf `devloop-run` installs as user-facing `devloop` on Claude/Grok/Codex/Cursor
+(Hermes dest stays `devloop-run`; the engine owns `devloop`).
 
 ```sh
 ./install.sh                         # all hosts, every skills/<leaf>
@@ -67,6 +69,7 @@ Never clobbers a foreign real file/directory. Wrong/dangling symlinks are only r
 ./install.sh --grok-only
 ./install.sh --codex-only
 ./install.sh --hermes-only
+./install.sh --cursor-only
 ./install.sh --relink                # fix wrong/dangling symlinks
 ./install.sh --copy                  # force copy mode (all hosts)
 ./install.sh --symlink               # force symlink (overrides Hermes copy default)
@@ -77,10 +80,13 @@ Never clobbers a foreign real file/directory. Wrong/dangling symlinks are only r
 
 | Host | Destination | Mode |
 |------|-------------|------|
-| Claude Code | `~/.claude/skills/<leaf>` | symlink |
-| Grok | `~/.grok/skills/<leaf>` | symlink |
-| Codex | `~/.codex/skills/<leaf>` | symlink |
-| Hermes | `~/.hermes/skills/software-development/<leaf>` | **copy** (+ `.skill-craft/<leaf>.json` marker) |
+| Claude Code | `~/.claude/skills/<dest>` | symlink |
+| Grok | `~/.grok/skills/<dest>` | symlink |
+| Codex | `~/.codex/skills/<dest>` | symlink |
+| Cursor | `~/.cursor/skills/<dest>` | symlink (never `~/.cursor/skills-cursor`) |
+| Hermes | `~/.hermes/skills/software-development/<dest>` | **copy** (+ `.skill-craft/<dest>.json` marker) |
+
+`dest` is the source leaf, except `devloop-run` → `devloop` on Claude/Grok/Codex/Cursor.
 
 With `--agents`: `~/.claude/agents/<leaf>.md` and `~/.grok/agents/<leaf>.md` when present.
 Re-running install refreshes managed Hermes copies; foreign Hermes trees print `Skipped (foreign)`.

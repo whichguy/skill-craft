@@ -73,9 +73,13 @@ function kindFromFm(fm) {
   return m ? m[1] : null;
 }
 
+// User-facing dest name may differ from the source leaf. Plugin id stays the leaf.
+const DEST_NAME_ALIASES = { "devloop-run": "devloop" };
+
 function buildPlugin(leaf, fm) {
   const name = scalar(fm, "name") || leaf;
-  if (name !== leaf) {
+  const allowed = name === leaf || DEST_NAME_ALIASES[leaf] === name;
+  if (!allowed) {
     fail(`frontmatter name ${name} != leaf ${leaf}`);
   }
   const version = scalar(fm, "version");

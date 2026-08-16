@@ -77,7 +77,8 @@ for (const leaf of leaves) {
   const text = fs.readFileSync(skillPath, "utf8");
   const { fm } = parseFrontmatter(text, leaf);
 
-  requireLine(fm, leaf, new RegExp(`^name:\\s*${leaf}\\s*$`, "m"), `name: ${leaf}`);
+  const destName = leaf === "devloop-run" ? "devloop" : leaf;
+  requireLine(fm, leaf, new RegExp(`^name:\\s*${destName}\\s*$`, "m"), `name: ${destName}`);
   requireLine(fm, leaf, /^description:\s/m, "description");
   descriptionNonEmpty(fm, leaf);
   requireLine(fm, leaf, /^version:\s*\S+/m, "version");

@@ -204,6 +204,10 @@ detect_host() {
         printf 'codex\n'
         return 0
         ;;
+      */.cursor/skills/*|*/.cursor/skills)
+        printf 'cursor\n'
+        return 0
+        ;;
       */.hermes/*|/opt/data/*|/opt/hermes/*)
         printf 'hermes\n'
         return 0

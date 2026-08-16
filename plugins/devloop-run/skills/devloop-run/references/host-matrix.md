@@ -1,10 +1,14 @@
-# Host matrix — devloop-run (default DevLoop)
+# Host matrix — skill `devloop` (package leaf `devloop-run`)
+
+User-facing skill / slash is **`devloop`**. Source package stays `skills/devloop-run`
+(never a repo leaf `skills/devloop` — Hermes engine owns that name).
 
 | Host | Skill card install | Scripts | Runtime |
 |------|-------------------|---------|---------|
-| Grok | `./install.sh --skill devloop-run --grok-only` → `~/.grok/skills/devloop-run` (symlink; detect host from **logical** path) | `scripts/devloop-run --host grok` | host-local engine + **Grok transport** (no Hermes required). Pin 0.2.0 declares `grok`. |
-| Claude Code | skill-dir and/or marketplace `plugins/devloop-run` | same | resolve/bootstrap; transport TBD |
-| Codex | `./install.sh --skill devloop-run --codex-only` | same | resolve/bootstrap; transport TBD |
+| Grok | `./install.sh --skill devloop-run --grok-only` → `~/.grok/skills/devloop` (symlink; detect host from **logical** path) | `scripts/devloop-run --host grok` | host-local engine + **Grok transport** (no Hermes required). Pin 0.2.0 declares `grok`. |
+| Claude Code | skill-dir `~/.claude/skills/devloop` and/or marketplace `plugins/devloop-run` | same | resolve/bootstrap; transport TBD |
+| Codex | `./install.sh --skill devloop-run --codex-only` → `~/.codex/skills/devloop` | same | resolve/bootstrap; transport TBD |
+| Cursor | `./install.sh --skill devloop-run --cursor-only` → `~/.cursor/skills/devloop` (never `~/.cursor/skills-cursor`) | same | resolve/bootstrap; transport TBD |
 | Hermes | optional card leaf `devloop-run` (copy); engine remains `devloop` | same | Hermes transport; engine leaf accepted as seed |
 
 ## Binding surfaces (do not collapse)

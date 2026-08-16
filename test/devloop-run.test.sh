@@ -81,8 +81,13 @@ grep -q 'kind: script-backed' "$root/skills/devloop-run/SKILL.md" || fail "D4 ki
 grep -qi 'bootstrap' "$root/skills/devloop-run/SKILL.md" || fail "D4 bootstrap"
 grep -q 'references/bootstrap.md' "$root/skills/devloop-run/SKILL.md" || fail "D4 bootstrap pointer"
 
-# D5: no bare skills/devloop
+# D5: no bare skills/devloop (Hermes engine leaf). User-facing name is dest alias.
 [[ ! -d "$root/skills/devloop" ]] || fail "D5 bare skills/devloop"
+grep -E '^name: devloop$' "$root/skills/devloop-run/SKILL.md" || fail "D5 SKILL.md name: devloop"
+grep -q 'scripts/devloop-run' "$root/skills/devloop-run/SKILL.md" || fail "D5 SKILL.md must cite scripts/devloop-run"
+if grep -n '/devloop-run' "$root/skills/devloop-run/SKILL.md" | grep -v 'scripts/devloop-run' | grep -q .; then
+  fail "D5 user-facing /devloop-run remains in SKILL.md"
+fi
 
 # D6: probe
 export DEVLOOP_HOME="$eng"
@@ -251,11 +256,11 @@ grep -qi 'Hermes' "$root/skills/devloop-run/SKILL.md" || fail "D16 honesty Herme
 grep -qi 'mode=engine' "$root/skills/devloop-run/SKILL.md" || fail "D16 mode=engine banner"
 grep -qi 'Forbidden' "$root/skills/devloop-run/SKILL.md" || fail "D16 forbids host loop"
 grep -qi 'devloop-native' "$root/skills/devloop-run/SKILL.md" || fail "D16 mentions demoted native"
-grep -E '^version: 0\.4\.7' "$root/skills/devloop-run/SKILL.md" || fail "D16 version 0.4.7"
+grep -E '^version: 0\.4\.8' "$root/skills/devloop-run/SKILL.md" || fail "D16 version 0.4.8"
 grep -q 'SKILL_ROOT' "$root/skills/devloop-run/SKILL.md" || fail "D16 SKILL_ROOT"
 grep -qi 'BEFORE\|STATE\|stderr' "$root/skills/devloop-run/SKILL.md" || fail "D16 inspection/stderr"
 [[ -f "$root/skills/devloop-run/references/product-default.md" ]] || fail "D16 product-default.md"
-printf 'LAYER simple: D16 version 0.4.7 + ownership docs OK\n'
+printf 'LAYER simple: D16 version 0.4.8 + ownership docs OK\n'
 
 # D17: DEVLOOP_BOOTSTRAP_CMD success
 export DEVLOOP_DATA_HOME="$tmpdir/data-cmd"
@@ -572,36 +577,28 @@ printf '%s\n' "$(grep -c "grok -p '/loop" "$root/skills/devloop-run/SKILL.md" ||
   || fail "D37 SKILL.md must not invoke /loop"
 printf 'LAYER simple: D37 SKILL.md interpolation procedure docs OK\n'
 
-# D39: flags-free default — parse skill argument, interpolate argv; user not
-# required to pass the four engine flags. Distinct greps so one revert fails.
+# D39: slim interpolate table — three argv pieces only; no host SETUP compile.
 card="$root/skills/devloop-run/SKILL.md"
-grep -qi 'flags-free' "$card" || fail "D39 SKILL.md flags-free default"
-grep -qi 'parse that text' "$card" || grep -qi 'parses skill arguments' "$card" \
-  || fail "D39 SKILL.md parse skill argument"
-grep -qi 'interpolate' "$card" || fail "D39 SKILL.md interpolate"
+grep -qi '### 1. Interpolate' "$card" || fail "D39 SKILL.md interpolate step"
 grep -q -- '--repo' "$card" && grep -q -- '--lang' "$card" \
-  && grep -q 'verify_cmd exactly' "$card" && grep -q -- '--setup-spec' "$card" \
-  || fail "D39 SKILL.md names the four optional flags"
-grep -qi 'not required to type any of these' "$card" \
-  || grep -qi 'do not require the user to pass' "$card" \
-  || fail "D39 SKILL.md user not required to pass flags"
-printf 'LAYER simple: D39 SKILL.md flags-free parse/interpolate OK\n'
+  && grep -q 'verify_cmd exactly' "$card" \
+  || fail "D39 SKILL.md names repo/lang/verify_cmd"
+grep -q -- '--setup-spec' "$card" && fail "D39 SKILL.md must not invent --setup-spec"
+grep -qi 'setup exactly' "$card" && fail "D39 SKILL.md must not compile setup exactly"
+grep -qi 'print the interpolation' "$card" || fail "D39 SKILL.md prints interpolation"
+printf 'LAYER simple: D39 SKILL.md slim interpolate table (no SETUP) OK\n'
 
-# D40: /goal-shaped phase complete-whens (directives, not harness). SETUP gated.
-grep -q '| DEFINE |' "$card" || fail "D40 SKILL.md DEFINE complete-when"
-grep -q '| PROVE |' "$card" || fail "D40 SKILL.md PROVE complete-when"
-grep -q '| BUILD |' "$card" || fail "D40 SKILL.md BUILD complete-when"
-grep -q '| DELIVER |' "$card" || fail "D40 SKILL.md DELIVER complete-when"
-grep -qi 'complete-when' "$card" || grep -qi 'Complete when' "$card" \
-  || fail "D40 SKILL.md complete-when dialect"
-grep -qi 'only if user named new GAS' "$card" \
-  || grep -qi 'SETUP (only if user named new GAS' "$card" \
-  || fail "D40 SKILL.md SETUP gated on new GAS/mcp/hosted"
+# D40: no host phase complete-when table (engine owns DEFINE/PROVE/BUILD).
+grep -q '| DEFINE |' "$card" && fail "D40 SKILL.md must not host-compile DEFINE complete-when"
+grep -q '| PROVE |' "$card" && fail "D40 SKILL.md must not host-compile PROVE complete-when"
+grep -q '| BUILD |' "$card" && fail "D40 SKILL.md must not host-compile BUILD complete-when"
+grep -q '| DELIVER |' "$card" && fail "D40 SKILL.md must not host-compile DELIVER complete-when"
+grep -qi 'phase complete-when' "$card" && fail "D40 SKILL.md must not teach host phase compile"
 printf '%s\n' "$(grep -c "grok -p '/goal" "$card" || true)" | grep -q '^0$' \
   || fail "D40 SKILL.md must not invoke grok -p /goal"
 printf '%s\n' "$(grep -c "grok -p '/loop" "$card" || true)" | grep -q '^0$' \
   || fail "D40 SKILL.md must not invoke grok -p /loop"
-printf 'LAYER simple: D40 SKILL.md phase complete-whens + no harness invoke OK\n'
+printf 'LAYER simple: D40 SKILL.md no host phase-table + no harness invoke OK\n'
 
 # D38: STATE lang=... is always emitted, whatever reached the CLI.
 out38a="$("$run" -- "no signals here" 2>&1)" || fail "D38a: $out38a"
@@ -625,15 +622,51 @@ fi
 if [[ -z "$alias_md" || ! -f "$alias_md" ]]; then
   fail "D41 /devloop alias file not found (set DEVLOOP_ALIAS_MD)"
 fi
-grep -qi 'do not mandate engine flags' "$alias_md" \
-  || grep -qi 'do not require flags' "$alias_md" \
-  || fail "D41 alias flags-free: $alias_md"
-grep -qi 'skill argument' "$alias_md" || fail "D41 alias skill-argument parse: $alias_md"
+grep -qi 'Follow skill `devloop`' "$alias_md" \
+  || fail "D41 alias must follow skill devloop: $alias_md"
+grep -qi 'print the interpolated argv' "$alias_md" \
+  || grep -qi 'print the interpolation' "$alias_md" \
+  || fail "D41 alias must print interpolation: $alias_md"
 grep -qi 'interpolate' "$alias_md" || fail "D41 alias interpolate: $alias_md"
-grep -qi 'do not invoke the host goal harness' "$alias_md" \
-  || fail "D41 alias no-host-goal-harness-as-loop: $alias_md"
+grep -qi 'complete-when' "$alias_md" && fail "D41 alias must not restate phase table: $alias_md"
+grep -qi 'setup exactly' "$alias_md" && fail "D41 alias must not compile setup exactly: $alias_md"
+grep -qi 'skill `devloop-run`' "$alias_md" \
+  && fail "D41 alias must not follow skill devloop-run: $alias_md"
 printf '%s\n' "$(grep -c "grok -p '/goal" "$alias_md" || true)" | grep -q '^0$' \
   || fail "D41 alias must not invoke grok -p /goal"
+printf '%s\n' "$(grep -c "grok -p '/loop" "$alias_md" || true)" | grep -q '^0$' \
+  || fail "D41 alias must not invoke grok -p /loop"
 printf 'LAYER simple: D41 /devloop alias alignment OK (%s)\n' "$alias_md"
 
-printf 'devloop-run.test.sh: PASS D1–D41\n'
+# D42: ~/.cursor/skills/devloop logical path detects host=cursor (no Hermes seed)
+unset DEVLOOP_HOME DEVLOOP_HOST DEVLOOP_BOOTSTRAP_CMD DEVLOOP_ENGINE_URL DEVLOOP_ALLOW_HERMES_SEED \
+  DEVLOOP_ALLOW_LEGACY_ENGINE DEVLOOP_TRANSPORT GROK_BIN || true
+d42_home="$tmpdir/d42-home"
+rm -rf "$d42_home"
+mkdir -p "$d42_home/.cursor/skills"
+ln -s "$root/skills/devloop-run" "$d42_home/.cursor/skills/devloop"
+export HOME="$d42_home"
+export DEVLOOP_DATA_HOME="$tmpdir/data-d42-empty"
+rm -rf "$DEVLOOP_DATA_HOME"
+mkdir -p "$DEVLOOP_DATA_HOME"
+export HERMES_HOME="$tmpdir/hermes-d42"
+mkdir -p "$HERMES_HOME/skills/software-development/devloop/scripts"
+printf 'print("HERMES_HIJACK")\n' >"$HERMES_HOME/skills/software-development/devloop/scripts/devloop_cli.py"
+export DEVLOOP_ENGINE_PIN="$tmpdir/empty-pin-d42.json"
+printf '%s\n' '{"version":"x","url":"REPLACE_WITH_RELEASE_URL/x.tgz","sha256":""}' >"$DEVLOOP_ENGINE_PIN"
+d42_run="$d42_home/.cursor/skills/devloop/scripts/devloop-run"
+[[ -x "$d42_run" ]] || fail "D42 symlink invoke path missing: $d42_run"
+set +e
+out42="$("$d42_run" --probe --no-bootstrap 2>&1)"
+rc42=$?
+set -e
+[[ "$rc42" -eq 2 ]] || fail "D42 want exit 2 (cursor symlink, no host-local) got $rc42: $out42"
+printf '%s\n' "$out42" | grep -q 'DEVLOOP_HOST=cursor' \
+  || fail "D42 symlink probe must detect host=cursor: $out42"
+printf '%s\n' "$out42" | grep -qi 'skipping Hermes\|hermes_seed_allowed=0' \
+  || fail "D42 must skip Hermes seed: $out42"
+printf '%s\n' "$out42" | grep -qi 'HERMES_HIJACK\|engine=.*/hermes-d42' \
+  && fail "D42 must not select Hermes leaf: $out42"
+printf 'LAYER integration: D42 cursor skill-dir symlink host detect OK\n'
+
+printf 'devloop-run.test.sh: PASS D1–D42\n'

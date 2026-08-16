@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Hermetic install.sh coverage for skill-craft: four hosts × repo skills, flags, skip-if-exists, dry-run, --relink.
+# Hermetic install.sh coverage for skill-craft: five hosts × repo skills, flags, skip-if-exists, dry-run, --relink.
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
@@ -44,6 +44,7 @@ assert_all_hosts() {
   assert_symlink "$HOME/.claude/skills/$leaf" "$source"
   assert_symlink "$HOME/.grok/skills/$leaf" "$source"
   assert_symlink "$HOME/.codex/skills/$leaf" "$source"
+  assert_symlink "$HOME/.cursor/skills/$leaf" "$source"
   assert_hermes_copy "$leaf" "$source"
 }
 
@@ -52,6 +53,7 @@ assert_no_hosts() {
   assert_absent "$HOME/.claude/skills/$leaf"
   assert_absent "$HOME/.grok/skills/$leaf"
   assert_absent "$HOME/.codex/skills/$leaf"
+  assert_absent "$HOME/.cursor/skills/$leaf"
   assert_absent "$HOME/.hermes/skills/software-development/$leaf"
 }
 
@@ -77,6 +79,7 @@ printf '%s\n' "$out" | grep -q 'Claude Code' || fail "I1 stdout missing Claude i
 printf '%s\n' "$out" | grep -q 'Grok' || fail "I1 stdout missing Grok install line"
 printf '%s\n' "$out" | grep -q 'Codex' || fail "I1 stdout missing Codex install line"
 printf '%s\n' "$out" | grep -q 'Hermes' || fail "I1 stdout missing Hermes install line"
+printf '%s\n' "$out" | grep -q 'Cursor' || fail "I1 stdout missing Cursor install line"
 # Must NOT install product leaves that are not in this monorepo
 assert_no_hosts "backchain"
 
@@ -121,6 +124,7 @@ out6="$("$install_sh" --claude-only --skill skill-interop 2>&1)" || fail "I6 fai
 assert_symlink "$HOME/.claude/skills/skill-interop" "$source_interop"
 assert_absent "$HOME/.grok/skills/skill-interop"
 assert_absent "$HOME/.codex/skills/skill-interop"
+assert_absent "$HOME/.cursor/skills/skill-interop"
 assert_absent "$HOME/.hermes/skills/software-development/skill-interop"
 
 # ---------------------------------------------------------------------------
@@ -131,6 +135,7 @@ out7="$("$install_sh" --grok-only --skill skill-interop 2>&1)" || fail "I7 faile
 assert_symlink "$HOME/.grok/skills/skill-interop" "$source_interop"
 assert_absent "$HOME/.claude/skills/skill-interop"
 assert_absent "$HOME/.codex/skills/skill-interop"
+assert_absent "$HOME/.cursor/skills/skill-interop"
 assert_absent "$HOME/.hermes/skills/software-development/skill-interop"
 
 # ---------------------------------------------------------------------------
@@ -141,6 +146,7 @@ out8="$("$install_sh" --codex-only --skill skill-interop 2>&1)" || fail "I8 fail
 assert_symlink "$HOME/.codex/skills/skill-interop" "$source_interop"
 assert_absent "$HOME/.claude/skills/skill-interop"
 assert_absent "$HOME/.grok/skills/skill-interop"
+assert_absent "$HOME/.cursor/skills/skill-interop"
 assert_absent "$HOME/.hermes/skills/software-development/skill-interop"
 
 # ---------------------------------------------------------------------------
@@ -153,6 +159,7 @@ printf '%s\n' "$out9" | grep -q '(copy)' || fail "I9 should report copy install:
 assert_absent "$HOME/.claude/skills/skill-interop"
 assert_absent "$HOME/.grok/skills/skill-interop"
 assert_absent "$HOME/.codex/skills/skill-interop"
+assert_absent "$HOME/.cursor/skills/skill-interop"
 
 # ---------------------------------------------------------------------------
 # I10: --dry-run creates no files
@@ -164,6 +171,7 @@ assert_no_hosts "skill-interop"
 [[ ! -d "$HOME/.claude" ]] || fail "I10 dry-run must not create ~/.claude"
 [[ ! -d "$HOME/.grok" ]] || fail "I10 dry-run must not create ~/.grok"
 [[ ! -d "$HOME/.codex" ]] || fail "I10 dry-run must not create ~/.codex"
+[[ ! -d "$HOME/.cursor" ]] || fail "I10 dry-run must not create ~/.cursor"
 [[ ! -d "$HOME/.hermes" ]] || fail "I10 dry-run must not create ~/.hermes"
 
 # ---------------------------------------------------------------------------
@@ -217,6 +225,52 @@ assert_symlink "$HOME/.claude/agents/skill-interop.md" "$agent_src"
 assert_symlink "$HOME/.grok/agents/skill-interop.md" "$agent_src"
 assert_absent "$HOME/.codex/agents/skill-interop.md"
 
+# ---------------------------------------------------------------------------
+# I15: --cursor-only
+# ---------------------------------------------------------------------------
+fresh_home i15
+out15="$("$install_sh" --cursor-only --skill skill-interop 2>&1)" || fail "I15 failed: $out15"
+assert_symlink "$HOME/.cursor/skills/skill-interop" "$source_interop"
+assert_absent "$HOME/.claude/skills/skill-interop"
+assert_absent "$HOME/.grok/skills/skill-interop"
+assert_absent "$HOME/.codex/skills/skill-interop"
+assert_absent "$HOME/.hermes/skills/software-development/skill-interop"
+
+# ---------------------------------------------------------------------------
+# I16: source leaf devloop-run → dest alias devloop on Claude/Grok/Codex/Cursor;
+# Hermes dest stays devloop-run. --skill devloop is rejected.
+# ---------------------------------------------------------------------------
+source_devloop="$root/skills/devloop-run"
+[[ -f "$source_devloop/SKILL.md" ]] || fail "I16 missing skills/devloop-run/SKILL.md"
+fresh_home i16
+set +e
+"$install_sh" --skill devloop --claude-only >/dev/null 2>&1
+rc16=$?
+set -e
+[[ "$rc16" -eq 64 ]] || fail "I16 --skill devloop should exit 64 (got $rc16)"
+out16="$("$install_sh" --skill devloop-run 2>&1)" || fail "I16 install failed: $out16"
+assert_symlink "$HOME/.claude/skills/devloop" "$source_devloop"
+assert_symlink "$HOME/.grok/skills/devloop" "$source_devloop"
+assert_symlink "$HOME/.codex/skills/devloop" "$source_devloop"
+assert_symlink "$HOME/.cursor/skills/devloop" "$source_devloop"
+assert_hermes_copy "devloop-run" "$source_devloop"
+assert_absent "$HOME/.claude/skills/devloop-run"
+assert_absent "$HOME/.grok/skills/devloop-run"
+assert_absent "$HOME/.codex/skills/devloop-run"
+assert_absent "$HOME/.cursor/skills/devloop-run"
+assert_absent "$HOME/.hermes/skills/software-development/devloop"
+
+# ---------------------------------------------------------------------------
+# I17: leftover owned symlink at old dest …/devloop-run is removed
+# ---------------------------------------------------------------------------
+fresh_home i17
+mkdir -p "$HOME/.grok/skills"
+ln -s "$source_devloop" "$HOME/.grok/skills/devloop-run"
+out17="$("$install_sh" --grok-only --skill devloop-run 2>&1)" || fail "I17 failed: $out17"
+assert_symlink "$HOME/.grok/skills/devloop" "$source_devloop"
+assert_absent "$HOME/.grok/skills/devloop-run"
+printf '%s\n' "$out17" | grep -q 'Removed leftover dest' || fail "I17 should report leftover removal: $out17"
+
 # --help exits 0
 "$install_sh" --help >/dev/null
 
@@ -227,4 +281,4 @@ rc=$?
 set -e
 [[ "$rc" -eq 64 ]] || fail "invalid flag should exit 64 (got $rc)"
 
-printf 'install-targets.test.sh: PASS I1–I14 (skill-craft install, 4 hosts, flags, dry-run, skip-if-exists, --relink, --agents)\n'
+printf 'install-targets.test.sh: PASS I1–I17 (skill-craft install, 5 hosts, dest alias, flags, dry-run, skip-if-exists, --relink, --agents)\n'
