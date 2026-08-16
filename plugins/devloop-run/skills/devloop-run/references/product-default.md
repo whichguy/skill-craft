@@ -43,18 +43,26 @@ not fall back to host-agent improvisation or `devloop-native`.
 2. `SKILL_ROOT` = directory containing the installed `SKILL.md` (logical skill-dir path)
 3. Grok user form: `/devloop <plain English>` (headless:
    `grok -p '/devloop <plain English>' --always-approve`). Advertise `/devloop`
-   only — never a second `skills/devloop`, never Grok `/goal` or `/loop`.
-4. Host **interpolates** `--repo` / `--lang` / `verify_cmd exactly [...]` from
-   the plain text (never a fourth argv piece), then **prints the
-   interpolation** before exec. Fail-closed (stop and ask) when there is no
-   machine-checkable done — never invent `pytest`, a path, or a cwd.
+   only — never a second `skills/devloop`. Do not drive the loop with the
+   host goal harness or `/loop`.
+4. Host **parses the skill argument** (plain English; flags are optional
+   overrides, never required). **Compile** `/goal`-shaped phase
+   complete-whens into the request blob, then **interpolate** `--repo` /
+   `--lang` / `verify_cmd exactly [...]` **values** from that parse (never
+   invent a fourth *kind* of argv; typed `--setup-spec` is pass-through),
+   then **print the interpolation** before exec. Fail-closed (stop and ask
+   for what “done” looks like, not for flags) when the parsed argument
+   still has no machine-checkable done — never invent `pytest`, a path, or
+   a cwd.
 5. Host exec: `bash "$SKILL_ROOT/scripts/devloop-run" -- --lang command "<goal + verify_cmd exactly [...]>"`
    (omit `--lang` / `--repo` when interpolation says so; pass through only
-   flags the user typed plus what step 4 interpolated).
+   flags the user typed plus what step 4 interpolated, including
+   `--setup-spec`).
 6. Report engine stdout/JSON + exit code only. **COMPLETE** only when engine
    exit is 0 **and** the shim printed `AFTER exec exit=0` (and matching
-   `--json` delivery/terminal). Exit 2 is not success.
+   `--json` delivery/terminal). Exit 2 is not success. Residual host
+   campaigns only after that.
 
 **Forbidden:** host-written charters as the acceptance path; host BUILD;
-interpolating a fourth argv piece; invoking Grok `/goal` or `/loop`;
-suggesting `devloop-native` as “DevLoop.”
+interpolating a fourth argv piece; invoking the host goal harness or `/loop`
+to drive DevLoop; suggesting `devloop-native` as “DevLoop.”

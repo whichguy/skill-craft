@@ -251,7 +251,7 @@ grep -qi 'Hermes' "$root/skills/devloop-run/SKILL.md" || fail "D16 honesty Herme
 grep -qi 'mode=engine' "$root/skills/devloop-run/SKILL.md" || fail "D16 mode=engine banner"
 grep -qi 'Forbidden' "$root/skills/devloop-run/SKILL.md" || fail "D16 forbids host loop"
 grep -qi 'devloop-native' "$root/skills/devloop-run/SKILL.md" || fail "D16 mentions demoted native"
-grep -E '^version: 0\.4\.5' "$root/skills/devloop-run/SKILL.md" || fail "D16 version 0.4.5"
+grep -E '^version: 0\.4\.7' "$root/skills/devloop-run/SKILL.md" || fail "D16 version 0.4.7"
 grep -q 'SKILL_ROOT' "$root/skills/devloop-run/SKILL.md" || fail "D16 SKILL_ROOT"
 grep -qi 'BEFORE\|STATE\|stderr' "$root/skills/devloop-run/SKILL.md" || fail "D16 inspection/stderr"
 [[ -f "$root/skills/devloop-run/references/product-default.md" ]] || fail "D16 product-default.md"
