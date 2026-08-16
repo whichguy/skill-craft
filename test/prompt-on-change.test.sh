@@ -15,6 +15,8 @@ fail() {
 [[ -f "$pkg/prompts/schedule.prompt.md" ]] || fail "missing schedule prompt"
 [[ -f "$pkg/prompts/escalation.prompt.md" ]] || fail "missing escalation prompt"
 [[ -f "$pkg/prompts/event.prompt.md" ]] || fail "missing event prompt"
+[[ -f "$pkg/references/e2e-success.md" ]] || fail "missing e2e-success reference"
+[[ -x "$root/test/prompt-on-change-e2e.test.sh" ]] || fail "e2e suite not executable"
 [[ -x "$pkg/scripts/detect_runner.sh" ]] || fail "runner not executable"
 [[ -x "$pkg/scripts/prompt-on-change" ]] || fail "wrapper not executable"
 [[ -f "$pkg/scripts/detect_engine.py" ]] || fail "missing detect_engine.py"
@@ -141,5 +143,10 @@ printf 'LAYER simple: grok-native probe OK\n'
 POC_LIVE_SITE=0 bash "$root/test/prompt-on-change-live-site.test.sh" \
   || fail "live-site probe"
 printf 'LAYER simple: live-site probe OK\n'
+
+# Offline e2e card (local HTTP multi-condition). Live Grok/site stay skipped.
+POC_E2E=0 POC_GROK_LIVE=0 POC_LIVE_SITE=0 bash "$root/test/prompt-on-change-e2e.test.sh" \
+  || fail "e2e offline"
+printf 'LAYER e2e: e2e offline OK\n'
 
 printf 'prompt-on-change.test.sh: PASS\n'

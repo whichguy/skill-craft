@@ -3,7 +3,9 @@
 **Honesty:** discovery (skill installed) ≠ execution (wrapper ran and printed
 `LLM_ESCALATION:` or the documented empty stdout / `CLAIM_EMPTY`).
 Grok runtime is proven only when `test/prompt-on-change-grok-native.test.sh`
-ran with `POC_GROK_LIVE=1`, not from skill-dir install.
+ran with `POC_GROK_LIVE=1`, or `test/prompt-on-change-e2e.test.sh` with
+`POC_E2E=1`, not from skill-dir install. Success tokens:
+`references/e2e-success.md`.
 
 Native default is the author + same-turn escalation prompts. Debug/issue verbs
 (`status`, `explain`, `issue`, `issue --exec`) are host-visible lifecycle.

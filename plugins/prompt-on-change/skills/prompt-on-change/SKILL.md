@@ -97,6 +97,9 @@ Script optional (same Layer-0 contracts):
    poll stayed silent). `status` lists pending/processed. `issue` / `issue --exec`
    re-issue a pending or `--last` processed event without re-fetching.
    `issue --exec --to grok:<uuid> --evidence PATH` replays delivery.
+   End-to-end card: `test/prompt-on-change-e2e.test.sh` (offline by default;
+   `POC_E2E=1` adds real Grok + time.is). Success report:
+   `references/e2e-success.md`.
 
 Package root is the directory that contains this `SKILL.md`. Runtime state
 defaults to `$POC_STATE_DIR` or `$XDG_STATE_HOME/prompt-on-change` (fallback
