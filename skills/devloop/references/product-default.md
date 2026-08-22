@@ -42,7 +42,9 @@ not fall back to host-agent improvisation or `evidence-gates`.
 The handshake is [SKILL.md](../SKILL.md): review session MCP for a
 read-capable oracle **before interpolating or planning**, print
 `mcp-considered`, then **discover the destination contract** on hosted
-asks (`env-discovered`), interpolate argv, exec the shim. Every run is an
+asks (`env-discovered`), interpolate argv, exec the shim **in the
+foreground** (do not background). On `HUMAN_REVIEW` / `NEEDS YOUR INPUT`
+/ exit 2, prompt the user with the engine reason. Every run is an
 independent engine worktree. COMPLETE is `AFTER exec exit=0` only.
 The Grok `/devloop` slash is [commands/devloop.md](../commands/devloop.md)
 (installed to `~/.grok/commands/devloop.md`).

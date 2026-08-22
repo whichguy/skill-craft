@@ -112,3 +112,12 @@ request` with `totalHandlers>0` / `failedCount=0` is missing **claimer**
 (handlers yielded), not platform down. Bindings:
 [destination-instances.md](destination-instances.md).
 
+## Foreground + prompt on HUMAN_REVIEW (2026-08-17)
+
+A host that backgrounds `devloop-run` hides `[devloop]` status and turns
+exit 2 into a late postmortem. The operator never sees `NEEDS YOUR INPUT`
+in time to answer. Card 0.5.1: do **not** background the shim; on the
+first `HUMAN_REVIEW` / `NEEDS YOUR INPUT` / `AFTER exec exit=2`, **prompt
+the user** with the engine reason and `— ANSWERS:`. Do not wait out
+further automatic attempts in silence.
+

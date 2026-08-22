@@ -257,11 +257,11 @@ grep -qi 'Hermes' "$root/skills/devloop/SKILL.md" || fail "D16 honesty Hermes ho
 grep -qi 'mode=engine' "$root/skills/devloop/SKILL.md" || fail "D16 mode=engine banner"
 grep -qi 'Forbidden' "$root/skills/devloop/SKILL.md" || fail "D16 forbids host loop"
 grep -qi 'evidence-gates' "$root/skills/devloop/SKILL.md" || fail "D16 mentions demoted evidence-gates"
-grep -E '^version: 0\.5\.0' "$root/skills/devloop/SKILL.md" || fail "D16 version 0.5.0"
+grep -E '^version: 0\.5\.1' "$root/skills/devloop/SKILL.md" || fail "D16 version 0.5.1"
 grep -q 'SKILL_ROOT' "$root/skills/devloop/SKILL.md" || fail "D16 SKILL_ROOT"
 grep -qi 'BEFORE\|STATE\|stderr' "$root/skills/devloop/SKILL.md" || fail "D16 inspection/stderr"
 [[ -f "$root/skills/devloop/references/product-default.md" ]] || fail "D16 product-default.md"
-printf 'LAYER simple: D16 version 0.5.0 + ownership docs OK\n'
+printf 'LAYER simple: D16 version 0.5.1 + ownership docs OK\n'
 
 # D17: DEVLOOP_BOOTSTRAP_CMD success
 export DEVLOOP_DATA_HOME="$tmpdir/data-cmd"
@@ -740,4 +740,23 @@ printf '%s\n' "$(grep -c "grok -p '/goal" "$card" || true)" | grep -q '^0$' \
 grep -q '| DEFINE |' "$card" && fail "D44 must not add host phase table"
 printf 'LAYER simple: D44 destination-contract protocol (not vendor nouns) OK\n'
 
-printf 'devloop-run.test.sh: PASS D1–D44\n'
+# D45: host must not background the shim; first HUMAN_REVIEW prompts the user.
+grep -qi 'do not background' "$card" \
+  || fail "D45 SKILL.md do not background the shim"
+grep -qi 'NEEDS YOUR INPUT' "$card" \
+  || fail "D45 SKILL.md NEEDS YOUR INPUT"
+grep -qi 'prompt the user' "$card" \
+  || fail "D45 SKILL.md prompt the user"
+grep -qi 'do not background' "$alias_md" \
+  || fail "D45 alias do not background: $alias_md"
+grep -qi 'NEEDS YOUR INPUT' "$alias_md" \
+  || fail "D45 alias NEEDS YOUR INPUT: $alias_md"
+grep -qi 'prompt the user' "$alias_md" \
+  || fail "D45 alias prompt the user: $alias_md"
+grep -qi 'do not background' "$prod" \
+  || fail "D45 product-default do not background"
+grep -qi 'NEEDS YOUR INPUT' "$learnings" \
+  || fail "D45 LEARNINGS NEEDS YOUR INPUT"
+printf 'LAYER simple: D45 foreground shim + prompt on HUMAN_REVIEW OK\n'
+
+printf 'devloop-run.test.sh: PASS D1–D45\n'

@@ -12,7 +12,7 @@ when-to-use: >-
   fail-closed loop with tests. Do not use for prompt tuning, visual design, or
   offline freeze/prove/stop (that is evidence-gates).
 argument-hint: plain-English goal
-version: 0.5.0
+version: 0.5.1
 license: MIT
 platforms:
   - linux
@@ -176,6 +176,12 @@ Relay `[devloop-run] BEFORE` / `AFTER` / `STATE` as-is. Cite identity
 if `AFTER exec exit=0`. Exit **2** = stop. No `[devloop-run]` lines → this
 skill did not run.
 
+**Foreground + prompt.** Do not background the shim or hide `[devloop]`
+status in a side log. Keep the exec in this conversation. On the first
+`HUMAN_REVIEW` / `NEEDS YOUR INPUT` / `AFTER exec exit=2`, stop and prompt the user
+with the engine's reason and the `— ANSWERS:` block. Do not wait
+out further automatic attempts in silence, and do not only post a postmortem.
+
 Host matrix / bootstrap: [references/host-matrix.md](references/host-matrix.md),
 [references/bootstrap.md](references/bootstrap.md).
 
@@ -189,7 +195,8 @@ COMPLETE, fall back to **evidence-gates**, invent a `--repo` path, reuse cwd or 
 prior worktree, write the product on the host, invent a new harness
 instead of reviewing session MCP first, add a second COMPLETE gate, or
 emit a generic "prefer MCP" constraint, or treat one vendor hook as the
-handshake (instance answers live in `references/destination-instances.md`).
+handshake (instance answers live in `references/destination-instances.md`),
+or background the shim, or swallow `HUMAN_REVIEW` without prompting.
 Goal-engineering shape lives *in* the `/devloop` prompt.
 `disable-model-invocation: true` on the Grok alias. Nested invoke
 (`DEVLOOP_DEPTH` / `DEVLOOP_NESTING`) is refused.
