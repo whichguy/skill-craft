@@ -2,9 +2,9 @@
 
 **Target paths:** `skills/steer`, `plugins/steer`, `skills/steer-next`, `plugins/steer-next`, `test/steer.test.sh`, `test/steer-next.test.sh`, `test/fixtures/steer`, `test/run-all.sh`, `docs/LOOP-ENGINEERING.md`, `skills/devloop/references/loop-engineering.md`
 **Test command:** `bash test/steer.test.sh && bash test/steer-next.test.sh && bash test/devloop-run.test.sh && bash test/review-coverage.test.sh && node test/skill-frontmatter.test.js && bash scripts/sync-plugin-views.sh --check`
-**Started:** 2026-08-23          **Status:** active
-**Round counter:** 2
-**Consecutive clean rounds:** 1
+**Started:** 2026-08-23          **Status:** complete
+**Round counter:** 3
+**Consecutive clean rounds:** 2
 **Known test-artifact paths:**
 **Plan contract:** `/Users/dadleet/.cursor/plans/steer_backchain_dag_14e32013.plan.md`
 **Plan hash:** `c4d9793cbcce7858d729063dd88fa3fc2f69e11920531ca1c14cc92f1a3bf248`
@@ -116,3 +116,31 @@
 **Consecutive clean rounds after this entry:** 1
 **Committed:** yes
 **Notes:** First of two consecutive cleans; suite deferred to second clean. Pathspec ledger-only.
+
+### Round 3 — 2026-08-23
+**Review:** 0 material, 7 minor (carried)
+**Material findings:**
+- none
+**Deferred (minor/P2):**
+- [ ] P2: TAB (`\x09`) is omitted from `CONTROL_RE` — packet-only, no behavioral gate miss beyond A33's named newline/`/devloop` cases — corner-case
+- [ ] P2: `interpolate` can substitute a value that itself contains a later `{{KEY}}` — packet text only — corner-case
+- [ ] P2: `objective.lstrip().startswith("/devloop")` never fires because the objective is prefixed with `step ` — `goal_field` already rejects `/devloop` in parts — code
+- [ ] P2: `turn-packet.md` lists step status `blocked` but `classify_steps` emits done/running/ready/todo — docs
+- [ ] P2: `--to halted` accepts header `stopped` without latest-round landed proof (A37 is explicit for `--to done`; residual.md treats halted as the stopped closer, not success) — logic-flow
+- [ ] P2: empty `inputs: []` is treated as a root and skips inv-7 — corner-case
+- [ ] P2: `steer-next` SKILL.md names refuse of `update` / `complete-step` / `start-step`; the wrapper also refuses `clear-step` / `capture` / `init` — docs
+**Git-history check:** Two consecutive cleans after Round 1 (`a4e6c5a` / `5834c11`). Last 10: first-clean ledger; fail-closed hashes; product land of steer 0.2.0; compose overlays / keep `/goal` out of the build loop; dest-contract generic; one product name; in-repo Grok `/devloop`; three-step handshake; interpolate-print-exec. No reintroduction of missing-file fail-open, dual-drift wedge, uncheckable implement, or vacuous absence greps. Foreign dirty trees still unstaged.
+**Plan:** n/a (clean)
+**Plan review:** n/a
+**Implementation:** none
+**Lint:** skipped (none configured)
+**Test result:** PASS (terminal clean)
+**Outcome:** clean
+**Error signature:** none
+**Learnings:** Second clean. Recorded Test command PASS (steer, steer-next, devloop-run D1–D48, review-coverage 114, frontmatter, sync --check). PRE/POST suite porcelain under Target paths was empty — no new test artifacts. residual×2 met: two latest Log outcomes are `clean`, suite green on this round, Status complete. Parked P2s remain notes-only.
+**Anchor evidence:**
+- A16 → this round's Test command PASS
+- A1–A40 → suite layers still fire; no product edit this round
+**Consecutive clean rounds after this entry:** 2
+**Committed:** yes
+**Notes:** artifact failed: Artifact tool unavailable in this host. Second clean + suite PASS; pathspec ledger-only.
