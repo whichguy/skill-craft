@@ -1,0 +1,18 @@
+{
+  "name": "steer-next",
+  "version": "0.1.0",
+  "description": "Reprint the steer session packet (and claim newly ready step ids as running). Use after every steer increment or when context was wiped. Thin wrapper around steer next. No update, no complete-step, no product-tree edits. Not DevLoop.",
+  "author": {
+    "name": "whichguy",
+    "url": "https://github.com/whichguy"
+  },
+  "homepage": "https://github.com/whichguy/skill-craft",
+  "repository": "https://github.com/whichguy/skill-craft",
+  "license": "MIT",
+  "keywords": [
+    "skill-craft",
+    "steer-next",
+    "portable-skills",
+    "script-backed"
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "goal": "result.txt contains exactly one line: ok",
+  "initial_state": ["repo exists"],
+  "steps": [
+    {
+      "id": "S1",
+      "statement": "write the file",
+      "produces": ["result.txt exists"],
+      "origin": "seed",
+      "inputs": [{"need": "repo exists", "from": null}]
+    },
+    {
+      "id": "S2",
+      "statement": "confirm the file",
+      "produces": ["result.txt validated"],
+      "origin": "seed",
+      "inputs": [{"need": "result.txt exists", "from": "S1"}]
+    }
+  ],
+  "parallel_groups": [],
+  "unresolved": []
+}

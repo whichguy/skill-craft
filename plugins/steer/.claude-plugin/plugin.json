@@ -1,0 +1,18 @@
+{
+  "name": "steer",
+  "version": "0.2.0",
+  "description": "Session harness (not DevLoop): spec once, one backchain sequence plan, then walk ready steps by emitting a paste-ready /goal per running id. Use when the user says steer, session harness, or what's the next step. Never invoke /devloop. After every increment invoke skill steer-next — do not rely on chat memory.",
+  "author": {
+    "name": "whichguy",
+    "url": "https://github.com/whichguy"
+  },
+  "homepage": "https://github.com/whichguy/skill-craft",
+  "repository": "https://github.com/whichguy/skill-craft",
+  "license": "MIT",
+  "keywords": [
+    "skill-craft",
+    "steer",
+    "portable-skills",
+    "script-backed"
+  ]
+}

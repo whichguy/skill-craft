@@ -1,0 +1,15 @@
+{
+  "goal": "result.txt contains exactly one line: ok",
+  "initial_state": ["repo exists"],
+  "steps": [
+    {
+      "id": "../S1",
+      "statement": "bad",
+      "produces": ["x"],
+      "origin": "seed",
+      "inputs": [{"need": "repo exists", "from": null}]
+    }
+  ],
+  "parallel_groups": [],
+  "unresolved": []
+}

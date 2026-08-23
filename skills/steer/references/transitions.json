@@ -1,0 +1,28 @@
+{
+  "phases": [
+    "intake",
+    "validate-spec",
+    "plan",
+    "implement",
+    "residual",
+    "done",
+    "halted",
+    "blocked"
+  ],
+  "edges": [
+    {"from": "intake", "to": "validate-spec", "need": "prompt"},
+    {"from": "validate-spec", "to": "plan", "need": "spec_checkable"},
+    {"from": "validate-spec", "to": "blocked", "need": "spec_uncheckable"},
+    {"from": "plan", "to": "implement", "need": "plan"},
+    {"from": "plan", "to": "blocked", "need": "reason"},
+    {"from": "implement", "to": "residual", "need": "steps_drained"},
+    {"from": "implement", "to": "blocked", "need": "reason"},
+    {"from": "residual", "to": "done", "need": "residual_success"},
+    {"from": "residual", "to": "halted", "need": "residual_stopped"},
+    {"from": "residual", "to": "blocked", "need": "reason"},
+    {"from": "blocked", "to": "validate-spec", "need": "reason"},
+    {"from": "blocked", "to": "plan", "need": "reason"},
+    {"from": "blocked", "to": "implement", "need": "reason"},
+    {"from": "blocked", "to": "residual", "need": "steps_drained"}
+  ]
+}
