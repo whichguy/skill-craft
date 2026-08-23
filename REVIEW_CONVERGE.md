@@ -3,8 +3,8 @@
 **Target paths:** `skills/steer`, `plugins/steer`, `skills/steer-next`, `plugins/steer-next`, `test/steer.test.sh`, `test/steer-next.test.sh`, `test/fixtures/steer`, `test/run-all.sh`, `docs/LOOP-ENGINEERING.md`, `skills/devloop/references/loop-engineering.md`
 **Test command:** `bash test/steer.test.sh && bash test/steer-next.test.sh && bash test/devloop-run.test.sh && bash test/review-coverage.test.sh && node test/skill-frontmatter.test.js && bash scripts/sync-plugin-views.sh --check`
 **Started:** 2026-08-23          **Status:** active
-**Round counter:** 1
-**Consecutive clean rounds:** 0
+**Round counter:** 2
+**Consecutive clean rounds:** 1
 **Known test-artifact paths:**
 **Plan contract:** `/Users/dadleet/.cursor/plans/steer_backchain_dag_14e32013.plan.md`
 **Plan hash:** `c4d9793cbcce7858d729063dd88fa3fc2f69e11920531ca1c14cc92f1a3bf248`
@@ -88,3 +88,31 @@
 **Consecutive clean rounds after this entry:** 0
 **Committed:** yes
 **Notes:** Product land `29b86d1` preceded this round so Phase 0 dirty-tree could start. Pathspec only. post-PASS hygiene: considered docs + repo cleanup; no extra product edits.
+
+### Round 2 — 2026-08-23
+**Review:** 0 material, 7 minor (6 carried + 1 new)
+**Material findings:**
+- none
+**Deferred (minor/P2):**
+- [ ] P2: TAB (`\x09`) is omitted from `CONTROL_RE` — packet-only, no behavioral gate miss beyond A33's named newline/`/devloop` cases — corner-case
+- [ ] P2: `interpolate` can substitute a value that itself contains a later `{{KEY}}` — packet text only — corner-case
+- [ ] P2: `objective.lstrip().startswith("/devloop")` never fires because the objective is prefixed with `step ` — `goal_field` already rejects `/devloop` in parts — code
+- [ ] P2: `turn-packet.md` lists step status `blocked` but `classify_steps` emits done/running/ready/todo — docs
+- [ ] P2: `--to halted` accepts header `stopped` without latest-round landed proof (A37 is explicit for `--to done`; residual.md treats halted as the stopped closer, not success) — logic-flow
+- [ ] P2: empty `inputs: []` is treated as a root and skips inv-7 — corner-case
+- [ ] P2: `steer-next` SKILL.md names refuse of `update` / `complete-step` / `start-step`; the wrapper also refuses `clear-step` / `capture` / `init` — docs
+**Git-history check:** Round 1 (`a4e6c5a`) closed the fail-open missing-file hashes, dual-drift rebind wedge, uncheckable implement, statement injection-after-claim, and vacuous `grep -qv` / `|| true` tests. Re-read those sites plus A1–A40 evidence; no regression and no new P0/P1. Last 10 subjects still teach one controller, no second COMPLETE, and tests that can fail their claim. Foreign dirty trees remain unstaged. Do not re-raise Round 1 P2s as material.
+**Plan:** n/a (clean)
+**Plan review:** n/a
+**Implementation:** none
+**Lint:** skipped (none configured)
+**Test result:** N/A (clean round)
+**Outcome:** clean
+**Error signature:** none
+**Learnings:** First clean after the fail-closed hash/checkable/test-honesty fix. Re-audit of `check_frozen_hashes`, `dag_gaps` goal/statement gates, `need=plan` checkable, pre-claim `goal_line`, plugin/LOOP copies, and implement/validate-spec activities found no new material. Parked P2s stay parked: TAB, interpolate nesting, dead `/devloop` prefix, packet `blocked` label, unlanded `--to halted`, empty inputs, steer-next refuse-list docs.
+**Anchor evidence:**
+- A1–A40 → unchanged from Round 1 landed tests; `diff -q` skill vs plugin `steer` script and LOOP copies still match
+- A4/A18/A33/A35 → Round 1 code still at `dag_gaps` / `missing_for` / `check_frozen_hashes`; no revert in `a4e6c5a`..HEAD
+**Consecutive clean rounds after this entry:** 1
+**Committed:** yes
+**Notes:** First of two consecutive cleans; suite deferred to second clean. Pathspec ledger-only.
