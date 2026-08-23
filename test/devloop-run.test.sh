@@ -257,11 +257,11 @@ grep -qi 'Hermes' "$root/skills/devloop/SKILL.md" || fail "D16 honesty Hermes ho
 grep -qi 'mode=engine' "$root/skills/devloop/SKILL.md" || fail "D16 mode=engine banner"
 grep -qi 'Forbidden' "$root/skills/devloop/SKILL.md" || fail "D16 forbids host loop"
 grep -qi 'evidence-gates' "$root/skills/devloop/SKILL.md" || fail "D16 mentions demoted evidence-gates"
-grep -E '^version: 0\.5\.1' "$root/skills/devloop/SKILL.md" || fail "D16 version 0.5.1"
+grep -E '^version: 0\.5\.2' "$root/skills/devloop/SKILL.md" || fail "D16 version 0.5.2"
 grep -q 'SKILL_ROOT' "$root/skills/devloop/SKILL.md" || fail "D16 SKILL_ROOT"
 grep -qi 'BEFORE\|STATE\|stderr' "$root/skills/devloop/SKILL.md" || fail "D16 inspection/stderr"
 [[ -f "$root/skills/devloop/references/product-default.md" ]] || fail "D16 product-default.md"
-printf 'LAYER simple: D16 version 0.5.1 + ownership docs OK\n'
+printf 'LAYER simple: D16 version 0.5.2 + ownership docs OK\n'
 
 # D17: DEVLOOP_BOOTSTRAP_CMD success
 export DEVLOOP_DATA_HOME="$tmpdir/data-cmd"
@@ -576,6 +576,12 @@ printf '%s\n' "$(grep -c "grok -p '/goal" "$root/skills/devloop/SKILL.md" || tru
   || fail "D37 SKILL.md must not invoke /goal"
 printf '%s\n' "$(grep -c "grok -p '/loop" "$root/skills/devloop/SKILL.md" || true)" | grep -q '^0$' \
   || fail "D37 SKILL.md must not invoke /loop"
+grep -qi 'review-coverage' "$root/skills/devloop/SKILL.md" \
+  || fail "D37 SKILL.md names after-path review-coverage"
+grep -qi 'under `/goal`\|under /goal' "$root/skills/devloop/SKILL.md" \
+  || fail "D37 SKILL.md after-path under /goal"
+grep -qi 'review-coverage' "$root/skills/devloop/references/product-default.md" \
+  || fail "D37 product-default names after-path review-coverage"
 printf 'LAYER simple: D37 SKILL.md interpolation procedure docs OK\n'
 
 # D39: flags-free parse + hosted-identity setup exactly in the request string.
@@ -676,32 +682,32 @@ printf '%s\n' "$out42" | grep -qi 'HERMES_HIJACK\|engine=.*/hermes-d42' \
   && fail "D42 must not select Hermes leaf: $out42"
 printf 'LAYER integration: D42 cursor skill-dir symlink host detect OK\n'
 
-# D43: MCP-first card contract (hermetic greps + fixture table; no live MCP).
-# Orientation is session-MCP-before-plan, not a product-specific (GAS) path.
+# D43: MCP-first contract lives in references/mcp-consider.md (not more SKILL.md prose).
 card="$root/skills/devloop/SKILL.md"
+mcp_ref="$root/skills/devloop/references/mcp-consider.md"
 learnings="$root/skills/devloop/references/LEARNINGS.md"
 prod="$root/skills/devloop/references/product-default.md"
-grep -qi 'Review session MCP before planning' "$card" \
-  || fail "D43 SKILL.md review session MCP before planning"
-grep -qi 'Inventory' "$card" || fail "D43 SKILL.md inventory"
-grep -qi 'read-capable' "$card" || fail "D43 SKILL.md read-capable bar"
-grep -qi 'do not invent a new harness' "$card" || fail "D43 SKILL.md do not invent a new harness"
-grep -qi 'Observe, not act' "$card" || fail "D43 SKILL.md observe-not-act"
+[[ -f "$mcp_ref" ]] || fail "D43 missing mcp-consider.md"
+grep -qi 'mcp-consider' "$card" || fail "D43 SKILL.md points at mcp-consider"
 grep -q 'mcp-considered' "$card" || fail "D43 SKILL.md print mcp-considered"
-grep -q 'none(' "$card" || fail "D43 SKILL.md reason-required none("
+grep -qi 'Review session MCP before planning' "$mcp_ref" \
+  || fail "D43 mcp-consider review session MCP before planning"
+grep -qi 'Inventory' "$mcp_ref" || fail "D43 mcp-consider inventory"
+grep -qi 'read-capable' "$mcp_ref" || fail "D43 mcp-consider read-capable bar"
+grep -qi 'do not invent a new harness' "$mcp_ref" || fail "D43 mcp-consider do not invent a new harness"
+grep -qi 'Observe, not act' "$mcp_ref" || fail "D43 mcp-consider observe-not-act"
+grep -q 'mcp-considered' "$mcp_ref" || fail "D43 mcp-consider print mcp-considered"
+grep -q 'none(' "$mcp_ref" || fail "D43 mcp-consider reason-required none("
 grep -qi 'before interpolating or planning' "$prod" \
   || fail "D43 product-default before interpolating or planning"
 grep -q 'mcp-considered' "$prod" || fail "D43 product-default mcp-considered"
-# Fixture (i): hosted ask + matching read MCP (GAS is the example) → non-empty considered
-grep -q 'mcp-considered: mcp-gas-deploy(list,read)' "$card" \
+grep -q 'mcp-considered: mcp-gas-deploy(list,read)' "$mcp_ref" \
   || fail "D43 fixture hosted/mcp-gas-deploy considered"
-printf '%s\n' "$(grep -c 'scripts/gas-verify' "$card" || true)" | grep -q '^0$' \
+printf '%s\n' "$(grep -c 'scripts/gas-verify' "$mcp_ref" || true)" | grep -q '^0$' \
   || fail "D43 fixture must not invent a *verify* script name"
-# Fixture (ii): empty session → none(
-grep -qi 'empty session' "$card" || fail "D43 fixture empty session row"
-# Fixture (iii): fs-only MCP → still none(
-grep -qi 'fs-only' "$card" || fail "D43 fixture fs-only row"
-printf '%s\n' "$(grep -c 'mcp-considered: none(no read-capable session tool matched done-sentence)' "$card" || true)" \
+grep -qi 'empty session' "$mcp_ref" || fail "D43 fixture empty session row"
+grep -qi 'fs-only' "$mcp_ref" || fail "D43 fixture fs-only row"
+printf '%s\n' "$(grep -c 'mcp-considered: none(no read-capable session tool matched done-sentence)' "$mcp_ref" || true)" \
   | grep -qE '^[2-9]$|^[1-9][0-9]+$' \
   || fail "D43 empty + fs-only fixtures must print none("
 printf '%s\n' "$(grep -c "grok -p '/goal" "$card" || true)" | grep -q '^0$' \
@@ -712,26 +718,28 @@ grep -qi 'concrete' "$learnings" || fail "D43 LEARNINGS concrete constraint"
 grep -qi 'COMPLETE stays' "$learnings" || fail "D43 LEARNINGS COMPLETE unchanged"
 printf 'LAYER simple: D43 MCP-first inventory + fixture table OK\n'
 
-# D44: destination-contract protocol (generic slots), not a vendor hook list.
-grep -qi 'Discover destination contract' "$card" \
-  || fail "D44 SKILL.md discover destination contract"
+# D44: destination-contract protocol lives in references/destination-contract.md.
+dest_ref="$root/skills/devloop/references/destination-contract.md"
+[[ -f "$dest_ref" ]] || fail "D44 missing destination-contract.md"
+grep -qi 'destination-contract' "$card" || fail "D44 SKILL.md points at destination-contract"
+grep -qi 'Discover destination contract' "$dest_ref" \
+  || fail "D44 destination-contract discover destination contract"
 grep -q 'env-discovered' "$card" || fail "D44 SKILL.md print env-discovered"
-grep -q 'env-discovered: none(no hosted destination)' "$card" \
-  || fail "D44 SKILL.md local print example env-discovered none"
-grep -q 'identity=' "$card" && grep -q 'claim=' "$card" \
-  && grep -q 'reserved=' "$card" && grep -q 'success=' "$card" \
-  && grep -q 'misread=' "$card" \
-  || fail "D44 SKILL.md hosted print example five slots"
-grep -qi 'identity' "$card" && grep -qi 'claim' "$card" \
-  && grep -qi 'reserved' "$card" && grep -qi 'success' "$card" \
-  && grep -qi 'misread' "$card" \
-  || fail "D44 SKILL.md five protocol slots"
+grep -q 'env-discovered: none(no hosted destination)' "$dest_ref" \
+  || fail "D44 destination-contract local print example env-discovered none"
+grep -q 'identity=' "$dest_ref" && grep -q 'claim=' "$dest_ref" \
+  && grep -q 'reserved=' "$dest_ref" && grep -q 'success=' "$dest_ref" \
+  && grep -q 'misread=' "$dest_ref" \
+  || fail "D44 destination-contract hosted print example five slots"
+grep -qi 'identity' "$dest_ref" && grep -qi 'claim' "$dest_ref" \
+  && grep -qi 'reserved' "$dest_ref" && grep -qi 'success' "$dest_ref" \
+  && grep -qi 'misread' "$dest_ref" \
+  || fail "D44 destination-contract five protocol slots"
 instances="$root/skills/devloop/references/destination-instances.md"
 [[ -f "$instances" ]] || fail "D44 missing destination-instances.md"
 grep -qi 'mcp-gas-deploy' "$instances" || fail "D44 instances table names mcp-gas-deploy"
-# Protocol card must not require GAS nouns (those belong in instances only).
-if grep -n 'loadNow\|__events__\|?page=game' "$card" | grep -v destination-instances | grep -q .; then
-  fail "D44 SKILL.md must not require GAS instance nouns (use destination-instances.md)"
+if grep -n 'loadNow\|__events__\|?page=game' "$card" "$dest_ref" | grep -v destination-instances | grep -q .; then
+  fail "D44 protocol must not require GAS instance nouns (use destination-instances.md)"
 fi
 grep -qi 'claimer' "$learnings" || fail "D44 LEARNINGS claimer vs down"
 grep -q 'env-discovered' "$prod" || fail "D44 product-default env-discovered"
@@ -759,4 +767,20 @@ grep -qi 'NEEDS YOUR INPUT' "$learnings" \
   || fail "D45 LEARNINGS NEEDS YOUR INPUT"
 printf 'LAYER simple: D45 foreground shim + prompt on HUMAN_REVIEW OK\n'
 
-printf 'devloop-run.test.sh: PASS D1–D45\n'
+# D46: loop-engineering SoT + prompt-align harness (no new SKILL.md greps for prose).
+le_docs="$root/docs/LOOP-ENGINEERING.md"
+le_card="$root/skills/devloop/references/loop-engineering.md"
+[[ -f "$le_docs" ]] || fail "D46 missing docs/LOOP-ENGINEERING.md"
+[[ -f "$le_card" ]] || fail "D46 missing references/loop-engineering.md"
+cmp -s "$le_docs" "$le_card" || fail "D46 loop-engineering copies must be identical"
+grep -qi 'prompt-align' "$le_docs" || fail "D46 LOOP-ENGINEERING names prompt-align"
+grep -qi 'review-coverage' "$le_docs" || fail "D46 LOOP-ENGINEERING names after-path"
+grep -qi 'loop-engineering' "$card" || fail "D46 SKILL.md points at loop-engineering"
+grep -qi 'LOOP-ENGINEERING' "$root/skills/evidence-gates/SKILL.md" \
+  || fail "D46 evidence-gates points at LOOP-ENGINEERING"
+grep -qi 'LOOP-ENGINEERING' "$root/skills/review-coverage/SKILL.md" \
+  || fail "D46 review-coverage points at LOOP-ENGINEERING"
+grep -qi 'prompt-align' "$learnings" || fail "D46 LEARNINGS names prompt-align"
+printf 'LAYER simple: D46 loop-engineering SoT + prompt-align OK\n'
+
+printf 'devloop-run.test.sh: PASS D1–D46\n'

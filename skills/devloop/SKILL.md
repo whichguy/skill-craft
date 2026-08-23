@@ -12,7 +12,7 @@ when-to-use: >-
   fail-closed loop with tests. Do not use for prompt tuning, visual design, or
   offline freeze/prove/stop (that is evidence-gates).
 argument-hint: plain-English goal
-version: 0.5.1
+version: 0.5.2
 license: MIT
 platforms:
   - linux
@@ -31,6 +31,7 @@ metadata:
 
 Shim only. The engine does DEFINE → PROVE → BUILD → DELIVER+LEARN.
 See [references/product-default.md](references/product-default.md).
+Practices: [references/loop-engineering.md](references/loop-engineering.md).
 
 `SKILL_ROOT` is the directory containing **this** `SKILL.md` (installed skill-dir
 or plugin path, not the physical checkout behind a symlink).
@@ -47,17 +48,23 @@ or plugin path, not the physical checkout behind a symlink).
 - Offline freeze/prove/stop only → **`evidence-gates`** (not DevLoop)
 - Expecting the engine without `--setup` / pin on a fresh machine
 
+## Compose
+
+- **Before:** `c-plan` (optional `define-done` / `backchain`) when there is no
+  checkable done — stop and ask; do not invent an oracle.
+- **During:** this skill only. Do not invoke Grok `/goal` or `/loop` in-loop.
+- **After:** `/review-coverage` under `/goal` for residual×2 — not `/devloop`
+  again, not `/loop`.
+
 ## Handshake
 
 **Default is flags-free.** The skill argument is the rest of the line after
-`/devloop`. **Parse that text** — do **not** require the user to pass
-`--repo`, `--lang`, `verify_cmd exactly`, or `--setup-spec`. The user is
-**not required to type** those. **Print the interpolation**, then exec the
-shim and relay **stderr**.
+`/devloop`. **Parse that text** — the user is **not required to type**
+`--repo`, `--lang`, `verify_cmd exactly`, or `--setup-spec`. **Print the interpolation**,
+then exec the shim and relay **stderr**.
 
 **Every run is an independent worktree.** Omit `--repo` unless the user
-named a path (scratch). The engine always cuts a unique worktree — never
-edit cwd, the last `--repo`, or a prior checkout. Never infer cwd.
+named a path (scratch). Never infer cwd.
 
 ```text
 /devloop <goal>
@@ -66,66 +73,13 @@ grok -p '/devloop <goal>' --always-approve
 
 ### 1. Consider session MCP
 
-**Review session MCP before planning.** **Inventory** this session (no
-catalog, no install). Prefer a matching **read-capable** tool over inventing
-operator tooling. Read-capable = observes the *external* truth in the
-done-sentence (deployed URL, live exec, hosted artifact, remote API). A
-generic **fs-only** MCP seeing `result.txt` does **not** count. Transient
-errors: retry once, then unmatched. Never silent-skip a match.
-
-Reuse a pre-existing CLI/wrapper. **Do not invent a new harness**
-(`scripts/*.mjs`). If none: local content-checking `verify_cmd` plus a
-concrete request constraint, or fail-closed and ask for a checkable CLI.
-
-**Observe, not act.** Do not implement the product through MCP. Never
-fix-then-recheck on the host. **New operator tooling** = committed harness
-scripts. Inline `test "$(cat result.txt)" = …` is not tooling.
-
-Print **always**, first matching read-capable tool in session order:
-
-```text
-mcp-considered: <server>(<first-matching-read-tool>) | none(<reason>)
-mcp-considered: mcp-gas-deploy(list,read) | none(no read-capable session tool matched done-sentence)
-```
-
-If a wrapper was chosen: `verify_cmd is the existing MCP-backed CLI <name>; do not write new operator tooling`.
-If none: only `do not write new operator tooling` — no generic "prefer MCP".
+Follow [references/mcp-consider.md](references/mcp-consider.md). Print
+`mcp-considered` before interpolating.
 
 ### 1b. Discover destination contract
 
-When the ask is **hosted** (deploy, live URL, web app, remote runtime),
-answer these five slots from discovery — **do not invent a vendor hook**.
-Read-only. Do not write the product to “fix” a live error.
-
-1. **identity** — how is a new environment created or selected?
-2. **claim** — how does product code attach so inbound work is claimed?
-3. **reserved** — which routes / methods / names does the platform already own?
-4. **success** — what does a claimed response look like vs yield / empty?
-5. **misread** — how do you tell “handlers ran, none claimed” from “platform down”?
-
-**Read** (session order; first hits win): user text → matching session MCP
-descriptions / `llmGuidance` → provisioned tree (runtime/bootstrap/README)
-→ optional live `status` / HEAD. Unanswered slot = `unknown` or fail-closed
-and ask. Worked instances (one destination’s answers) live in
-[references/destination-instances.md](references/destination-instances.md),
-not as this handshake.
-
-**Print always when hosted:**
-
-```text
-env-discovered: <dest-class>: identity=…; claim=…; reserved=…; success=…; misread=…
-env-discovered: none(no hosted destination)
-```
-
-**Fold** the five bindings into the request string (BUILD constraints), next
-to `verify_cmd exactly` / `setup exactly`. Not a fourth argv kind. Typed
-user text still wins.
-
-| Ask | Session MCP | mcp-considered (oracle *consider*, not dest-contract) | verify_cmd |
-|---|---|---|---|
-| hosted/external ask + matching read MCP (example dest: mcp-gas-deploy) | mcp-gas-deploy (list, read) | `mcp-considered: mcp-gas-deploy(list,read)` | existing wrapper if any; else local content check — no new `*verify*` script |
-| `result.txt` / empty session | (empty) | `mcp-considered: none(no read-capable session tool matched done-sentence)` | local content check |
-| `result.txt` | fs-only MCP | `mcp-considered: none(no read-capable session tool matched done-sentence)` | local content check |
+Follow [references/destination-contract.md](references/destination-contract.md).
+Print `env-discovered` (or `env-discovered: none(...)`).
 
 ### 2. Interpolate and print
 
@@ -141,8 +95,7 @@ files (**not** BUILD):
 | the user already typed `--repo` / `--lang` / `verify_cmd exactly` / `--setup-spec` / `setup exactly:` | those win verbatim — do not re-derive them |
 
 **Fail-closed:** still no **checkable done** → **stop and ask** (not for
-flags). Do not invent `pytest`, a path, or a cwd. Never infer cwd or reuse
-the last `--repo` path.
+flags). Do not invent `pytest`, a path, or a cwd.
 
 Print before exec (both shapes):
 
@@ -189,7 +142,8 @@ Host matrix / bootstrap: [references/host-matrix.md](references/host-matrix.md),
 
 One controller: engine owns DEFINE → PROVE → BUILD. Do not invent
 charter/phases/BUILD or a fourth argv piece; `setup exactly:` lives in the
-request string. Do not invoke Grok `/goal` or `/loop`. Do not rewrite
+request string. Do not invoke Grok `/goal` or `/loop` **in-loop**. After
+COMPLETE, residual is `/review-coverage` under `/goal`. Do not rewrite
 acceptance tests, claim `mode: native` as DevLoop, silently push after
 COMPLETE, fall back to **evidence-gates**, invent a `--repo` path, reuse cwd or a
 prior worktree, write the product on the host, invent a new harness

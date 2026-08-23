@@ -1,9 +1,10 @@
 # Destination contract instances
 
 The `/devloop` handshake asks five **protocol** slots (identity, claim,
-reserved, success, misread). This file binds **answers** for destinations
-we have already inspected. Do not copy these nouns into the skill as
-required handshake text.
+reserved, success, misread) — see
+[destination-contract.md](destination-contract.md). This file binds
+**answers** for destinations we have already inspected. Do not copy these
+nouns into the skill as required handshake text.
 
 | dest-class | identity | claim | reserved | success | misread |
 |---|---|---|---|---|---|

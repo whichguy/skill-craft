@@ -67,7 +67,9 @@ Binding surfaces are **distinct** (do not collapse into one env var).
 **Product default:** bare **DevLoop / devloop** = engine via **`skills/devloop`**
 (shim only). Harnesses must not reimplement the loop. Optional offline freeze/prove/stop
 is **`evidence-gates`** (demoted; not default). See
-`skills/devloop/references/product-default.md`.
+`skills/devloop/references/product-default.md`. Host overlay compose
+(before / during / after) and the practice list:
+[LOOP-ENGINEERING.md](LOOP-ENGINEERING.md).
 
 | Surface | Role |
 |---------|------|

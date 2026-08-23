@@ -37,6 +37,17 @@ not fall back to host-agent improvisation or `evidence-gates`.
 **Write-safe:** prefer `DEVLOOP_WRITE_SAFE_ROOT`; host-local default under
 `$XDG_STATE_HOME/devloop` (not `/opt/data` unless that path is a writable container root).
 
+## Compose
+
+Overlays sit **around** DevLoop, not inside it. Full list:
+[loop-engineering.md](loop-engineering.md).
+
+| When | Overlay |
+|------|---------|
+| **Before** | `c-plan` (optional `define-done` / `backchain`) when there is no checkable done |
+| **During** | this card only — do not invoke `/goal` or `/loop` to drive DevLoop |
+| **After** | `/review-coverage` under `/goal` for residual×2 |
+
 ## Agent procedure (card)
 
 The handshake is [SKILL.md](../SKILL.md): review session MCP for a
@@ -59,3 +70,4 @@ The Grok `/devloop` slash is [commands/devloop.md](../commands/devloop.md)
 **Forbidden:** host-written charters as the acceptance path; host BUILD;
 inventing a fourth argv piece; invoking the host goal harness or `/loop`
 to drive DevLoop; suggesting `evidence-gates` as “DevLoop.”
+After COMPLETE, residual is `/review-coverage` under `/goal`.

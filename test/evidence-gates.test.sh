@@ -35,6 +35,10 @@ if printf '%s\n' "$desc" | grep -qiE 'user says devloop|says devloop, DevLoop'; 
 fi
 grep -qiE 'Not the default DevLoop|not the default DevLoop|demoted' \
   "$skill_md" || fail "body must demote default claim"
+grep -q 'DEFINE → PROVE → BUILD' "$skill_md" \
+  && fail "SKILL.md must not use DevLoop DEFINE/PROVE/BUILD labels"
+grep -qi 'build-on-host' "$skill_md" || fail "SKILL.md must use build-on-host"
+grep -qi 'LOOP-ENGINEERING' "$skill_md" || fail "SKILL.md must point at LOOP-ENGINEERING"
 # purity: no peer harness transport tokens in scripts
 if rg -n 'HERMES_BIN|hermes chat|devloop-run|codex exec' "$root/skills/evidence-gates/scripts" 2>/dev/null; then
   fail "purity: forbidden transport tokens in scripts"

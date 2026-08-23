@@ -28,7 +28,10 @@
 | review-fix-bench | review-bench | Wave 2 |
 | review-coverage | (native) | Post-ship residual×2 directive + CLI |
 | devloop | (native) | **Default DevLoop** — thin engine shim (resolve/bootstrap/exec); bare “devloop” routes here |
-| evidence-gates | (native) | **Demoted** optional offline freeze/prove/stop evidence gates — not DevLoop |
+| evidence-gates | (native) | **Demoted** optional offline freeze/prove/build-on-host/stop evidence gates — not DevLoop |
+
+Host overlay compose (before / during / after DevLoop) and the practice list:
+[LOOP-ENGINEERING.md](LOOP-ENGINEERING.md).
 
 **External (not monorepo):** [lennox-s40](https://github.com/whichguy/lennox-s40) — local LAN thermostat control; skill-craft-market pins the standalone repo.
 

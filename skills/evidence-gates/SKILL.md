@@ -6,7 +6,7 @@ description: >-
   the user says evidence-gates, offline evidence gates, freeze prove stop, or
   host-native verify gates. NOT the autonomous engine product.
 allowed-tools: all
-version: 0.2.0
+version: 0.2.1
 license: MIT
 platforms:
   - linux
@@ -30,8 +30,10 @@ metadata:
 Default DevLoop is the **engine** via skill **`devloop`**. This package only
 freezes charters and re-runs argv verifiers.
 
-Host-native **DEFINE → PROVE → BUILD → STOP** evidence loop. The **current host
-agent** may implement BUILD; scripts only say yes/no with **guard digests**.
+Host-native **freeze → prove → build-on-host → stop** evidence loop. The
+**current host agent** may implement build-on-host; scripts only say yes/no
+with **guard digests**. Practices: skill-craft `docs/LOOP-ENGINEERING.md`
+(same text as skill `devloop` `references/loop-engineering.md`).
 
 **Primary interface:** `/evidence-gates` or explicit “offline evidence gates.”
 Do **not** treat bare “devloop” as this skill.
@@ -59,10 +61,10 @@ evidence-gates — mode=native host=<this-host> root=<package-root> charter=<pat
 
 | Phase | Actor | Gate |
 |-------|--------|------|
-| **DEFINE** | Agent writes charter JSON | `scripts/evidence-gates freeze --charter … --repo …` |
-| **PROVE** | Agent orchestrates | `… prove --run-dir …` — baseline; **change** criteria must be observed **red** |
-| **BUILD** | Agent + **this host’s** tools only | No CLI `build` / `run` |
-| **STOP** | Agent requests evidence | `… stop --run-dir …` — re-check digests; re-run **all** verifiers; script writes receipt |
+| **freeze** | Agent writes charter JSON | `scripts/evidence-gates freeze --charter … --repo …` |
+| **prove** | Agent orchestrates | `… prove --run-dir …` — baseline; **change** criteria must be observed **red** |
+| **build-on-host** | Agent + **this host’s** tools only | No CLI `build` / `run` |
+| **stop** | Agent requests evidence | `… stop --run-dir …` — re-check digests; re-run **all** verifiers; script writes receipt |
 
 Labels: `native-complete` | `native-blocked` | `native-aborted` | `misrouted`.
 
@@ -101,10 +103,10 @@ State lives under the **target repo** (default `.evidence-gates/`), never inside
 ## Procedure (agent)
 
 1. Emit banner (evidence / mode=native — not mode=engine).
-2. **DEFINE** — charter with checkable criteria; freeze.
-3. **PROVE** — run prove; if all `change` criteria are green, stop with already-green / redefine.
-4. **BUILD** — implement with host tools until verifiers can pass.
-5. **STOP** — stop CLI; report receipt.
+2. **freeze** — charter with checkable criteria; freeze CLI.
+3. **prove** — run prove; if all `change` criteria are green, stop with already-green / redefine.
+4. **build-on-host** — implement with host tools until verifiers can pass.
+5. **stop** — stop CLI; report receipt.
 
 If the user wanted full DevLoop, redirect to skill **`devloop`** instead of completing this path.
 

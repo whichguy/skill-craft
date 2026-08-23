@@ -4,6 +4,8 @@
 Claude, Grok, Codex, and Hermes skill directories via `install.sh`.
 
 Architecture (layers, binding, install honesty): [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+Loop-engineering compose (before / during / after DevLoop):
+[docs/LOOP-ENGINEERING.md](docs/LOOP-ENGINEERING.md).
 
 This is **not** [claude-craft](https://github.com/whichguy/claude-craft).
 

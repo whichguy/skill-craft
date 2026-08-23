@@ -21,5 +21,6 @@ and `— ANSWERS:` — do not only post a postmortem.
 
 Do not invent DEFINE/PROVE/BUILD or write product files — interpolating argv
 is not BUILD. Do not add a fourth argv piece beyond `--repo`/`--lang`/
-`verify_cmd`. Do not invoke Grok `/goal` or `/loop`. Do not use
+`verify_cmd`. Do not invoke Grok `/goal` or `/loop` **in-loop**. After
+COMPLETE, residual is `/review-coverage` under `/goal`. Do not use
 `evidence-gates` as DevLoop.

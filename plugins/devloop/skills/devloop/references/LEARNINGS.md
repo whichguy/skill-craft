@@ -112,6 +112,22 @@ request` with `totalHandlers>0` / `failedCount=0` is missing **claimer**
 (handlers yielded), not platform down. Bindings:
 [destination-instances.md](destination-instances.md).
 
+## Overlay compose (2026-08-22)
+
+Card 0.5.2 names the compose graph and thins the handshake:
+
+- **Before** `/devloop`: `c-plan` (optional `define-done` / `backchain`)
+  when there is no checkable done.
+- **During:** engine only. Still do not invoke Grok `/goal` or `/loop`.
+- **After** COMPLETE: `/review-coverage` under `/goal` for residual×2.
+
+MCP consider and destination-contract procedures live in
+[mcp-consider.md](mcp-consider.md) and
+[destination-contract.md](destination-contract.md). Portable practices:
+[loop-engineering.md](loop-engineering.md). Maintain the card with
+`prompt-align` against `test/devloop-run.test.sh` (D37–D46); do not add
+SKILL.md greps for prose that already lives in a reference.
+
 ## Foreground + prompt on HUMAN_REVIEW (2026-08-17)
 
 A host that backgrounds `devloop-run` hides `[devloop]` status and turns

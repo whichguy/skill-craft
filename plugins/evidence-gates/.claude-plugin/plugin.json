@@ -1,6 +1,6 @@
 {
   "name": "evidence-gates",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Optional offline evidence gates (freeze/prove/stop with guard digests) for machine-checkable red→green contracts without the autonomous engine. Use when the user says evidence-gates, offline evidence gates, freeze prove stop, or host-native verify gates. NOT the autonomous engine product.",
   "author": {
     "name": "whichguy",
