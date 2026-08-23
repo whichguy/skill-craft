@@ -529,7 +529,9 @@ def dag_gaps(run_dir: Path, spec: Optional[Dict[str, Any]]) -> List[str]:
         gaps.append("unresolved must be empty to enter implement")
     goal = data.get("goal")
     spec_ds = (spec or {}).get("done_sentence")
-    if isinstance(goal, str) and spec_ds is not None and goal != spec_ds:
+    if not isinstance(goal, str) or not goal.strip():
+        gaps.append("backchain.goal must be a nonempty string equal to spec.done_sentence")
+    elif spec_ds is not None and goal != spec_ds:
         gaps.append("backchain.goal must equal spec.done_sentence")
     initial = data.get("initial_state")
     if not isinstance(initial, list):
@@ -554,6 +556,11 @@ def dag_gaps(run_dir: Path, spec: Optional[Dict[str, Any]]) -> List[str]:
             gaps.append(f"duplicate step id {sid}")
         seen.add(sid)
         ids.append(sid)
+        statement = step.get("statement")
+        if not isinstance(statement, str) or not statement.strip():
+            gaps.append(f"{sid} statement must be a nonempty string")
+        elif CONTROL_RE.search(statement) or "/devloop" in statement:
+            gaps.append(f"{sid} statement contains a newline, control, or /devloop")
         produces = step.get("produces")
         texts = produces_texts(produces)
         if texts is None:
@@ -757,16 +764,22 @@ def check_frozen_hashes(state: Dict[str, Any], run_dir: Path, dest: Optional[str
     if dest == "blocked":
         return
     spec_h = str(state.get("spec_sha256") or "")
+    # dest plan / validate-spec rebind the spec (write or clear the hash).
     if spec_h and dest not in ("plan", "validate-spec"):
-        if (run_dir / "spec.md").is_file() and (run_dir / "spec.json").is_file():
-            if spec_pair_sha256(run_dir) != spec_h:
-                die(EXIT_BLOCKED, "spec hash drift; rebind via blocked → validate-spec")
+        md = run_dir / "spec.md"
+        js = run_dir / "spec.json"
+        if not md.is_file() or not js.is_file():
+            die(EXIT_BLOCKED, "spec hash bound but spec files missing; rebind via blocked → validate-spec")
+        if spec_pair_sha256(run_dir) != spec_h:
+            die(EXIT_BLOCKED, "spec hash drift; rebind via blocked → validate-spec")
     plan_h = str(state.get("plan_sha256") or "")
-    # dest plan rebinds the DAG (writes a new hash later). dest implement
-    # compares when a hash is already stored so a mutated DAG cannot sneak in.
-    if plan_h and dest != "plan":
+    # dest plan rebinds the DAG. dest validate-spec also rebinds (clears
+    # plan_sha256) so a drifted DAG must not wedge blocked → validate-spec.
+    if plan_h and dest not in ("plan", "validate-spec"):
         path = canonical_backchain(run_dir)
-        if path.is_file() and sha256_file(path) != plan_h:
+        if not path.is_file():
+            die(EXIT_BLOCKED, "plan hash bound but backchain/plan.json missing; rebind via blocked → plan")
+        if sha256_file(path) != plan_h:
             die(EXIT_BLOCKED, "plan hash drift; rebind via blocked → plan")
 
 
@@ -894,6 +907,8 @@ def missing_for(state: Dict[str, Any], run_dir: Path, dest: Optional[str]) -> Li
     elif need == "plan":
         spec, sg = spec_pair(run_dir)
         gaps.extend(sg)
+        if spec and spec.get("checkable") is not True:
+            gaps.append("spec.json.checkable is not true")
         gaps.extend(wrapper_pair(run_dir, spec))
         gaps.extend(dag_gaps(run_dir, spec))
         if not deps.get("backchain"):
@@ -1206,6 +1221,12 @@ def cmd_next(args: argparse.Namespace) -> int:
         prior = set()
         if str(state.get("phase")) == "implement":
             prior = {sid for sid, k in classify_steps(run_dir, state).items() if k == "running"}
+            spec, _ = spec_pair(run_dir)
+            ds = str((spec or {}).get("done_sentence") or "")
+            by_id = steps_by_id(run_dir)
+            for sid, kind in classify_steps(run_dir, state).items():
+                if kind in ("ready", "running") and sid in by_id:
+                    goal_line(by_id[sid], ds)
             claimed = claim_ready(run_dir, state)
             if claimed:
                 save_state(run_dir, state, event="next:claim")

@@ -74,7 +74,9 @@ printf '%s\n' "$out_m" | grep -q 'dep_roots.steer' || fail "missing steer messag
 export STEER_ROOT="$root/skills/steer"
 out2="$(env HOME="$tmpdir/empty-home-2" STEER_ROOT="$root/skills/steer" \
   python3 "$next" --run-dir "$run")"
-printf '%s\n' "$out2" | grep -qxF '## You are here' || fail "temp HOME missing headings"
+while IFS= read -r h; do
+  printf '%s\n' "$out2" | grep -qxF "$h" || fail "temp HOME missing heading $h"
+done <<<"$HEADINGS"
 
 # implement fixture contains /goal
 python3 "$steer" update --run-dir "$run" --to validate-spec >/dev/null
@@ -88,5 +90,8 @@ printf 'done_sentence: %s\n' "$DS" >"$run/plan.md"
 python3 "$steer" update --run-dir "$run" --to implement >/dev/null
 out3="$(python3 "$next" --run-dir "$run")"
 printf '%s\n' "$out3" | grep -q '/goal ' || fail "implement packet missing /goal"
+while IFS= read -r h; do
+  printf '%s\n' "$out3" | grep -qxF "$h" || fail "implement missing heading $h"
+done <<<"$HEADINGS"
 
 printf 'steer-next.test.sh: PASS\n'

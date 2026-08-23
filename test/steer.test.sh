@@ -43,7 +43,8 @@ grep -q 'does not rewrite the spec' "$le_docs" || fail "LOOP-ENGINEERING missing
 if grep -qi 'c-plan' <<<"$(sed -n '/^## Compose graph$/,/^## Practices$/p' "$le_docs")"; then
   fail "compose graph must not name c-plan"
 fi
-grep -q '.steer/' "$root/.gitignore" || fail ".gitignore missing .steer/"
+grep -q 'emits a `/goal`' "$le_docs" || fail "LOOP-ENGINEERING missing emits a /goal"
+grep -Eiq 'Never.+invoke' "$root/skills/steer/SKILL.md" || fail "SKILL.md missing Never invoke"
 
 tmpdir="$(mktemp -d "${TMPDIR:-/tmp}/steer-test.XXXXXX")"
 cleanup() { rm -rf "$tmpdir"; }
@@ -58,9 +59,25 @@ HEADINGS='## You are here
 
 assert_headings() {
   local out="$1"
+  local prev=""
   while IFS= read -r h; do
     printf '%s\n' "$out" | grep -qxF "$h" || fail "missing heading $h"
+    if [[ -n "$prev" ]]; then
+      awk -v a="$prev" -v b="$h" '
+        $0==a {seen=1; next}
+        seen && $0==b {found=1; exit}
+        END {exit found?0:1}
+      ' <<<"$out" || fail "heading order: $prev then $h"
+    fi
+    prev="$h"
   done <<<"$HEADINGS"
+}
+
+assert_absent() {
+  local out="$1" pat="$2" msg="$3"
+  if printf '%s\n' "$out" | grep -q -- "$pat"; then
+    fail "$msg"
+  fi
 }
 
 run_cli() { python3 "$cli" "$@"; }
@@ -169,8 +186,9 @@ assert_headings "$out_vs"
 printf '%s\n' "$out_vs" | grep -q 'intake: done' || fail "intake done"
 printf '%s\n' "$out_vs" | grep -q 'validate-spec: current' || fail "vs current"
 printf '%s\n' "$out_vs" | grep -q 'not written yet' || fail "spec not written yet pointer"
-printf '%s\n' "$out_vs" | grep -qv 'VALIDATE_SPEC_PATH' || fail "packet leaked VALIDATE_SPEC_PATH"
-printf '%s\n' "$out_vs" | grep -qv 'missing dep_roots.devloop' || fail "devloop required at validate-spec"
+assert_absent "$out_vs" 'VALIDATE_SPEC_PATH' "packet leaked VALIDATE_SPEC_PATH"
+assert_absent "$out_vs" 'missing dep_roots.devloop' "devloop required at validate-spec"
+assert_absent "$out_vs" '/goal ' "validate-spec packet emitted implement /goal"
 printf 'LAYER: intake->validate-spec OK\n'
 
 # --- empty spec.json rejected ---
@@ -200,14 +218,21 @@ printf 'done_sentence: need a checkable done\n\nmore spec prose that must not be
 run_cli update --run-dir "$run" --to blocked --reason "what is the oracle?" --resume-to validate-spec >/dev/null
 out_blk="$(run_cli next --run-dir "$run")"
 printf '%s\n' "$out_blk" | grep -q 'blocked: current' || fail "blocked current: $out_blk"
-printf '%s\n' "$out_blk" | grep -qv 'more spec prose that must not be dumped later' \
-  || fail "reminder dumped spec body"
+assert_absent "$out_blk" 'more spec prose that must not be dumped later' "reminder dumped spec body"
+set +e
+out_jumpvs="$(run_cli update --run-dir "$run" --to implement 2>&1)"
+rc_jumpvs=$?
+set -e
+[[ "$rc_jumpvs" -eq 2 ]] || fail "blocked validate-spec resume jumped to implement: $out_jumpvs"
 run_cli update --run-dir "$run" --to validate-spec --reason "user answered" >/dev/null
 printf 'LAYER: checkable false -> blocked OK\n'
 
 # --- happy spec + thin plan cannot implement ---
 write_spec "$run"
 run_cli update --run-dir "$run" --to plan >/dev/null
+out_plan="$(run_cli next --run-dir "$run")"
+assert_headings "$out_plan"
+assert_absent "$out_plan" '/goal ' "plan packet emitted implement /goal"
 printf '%s\n' "{\"done_sentence\":\"$DS\"}" >"$run/plan.json"
 printf 'done_sentence: %s\n\nsteps: write file\n' "$DS" >"$run/plan.md"
 set +e
@@ -228,11 +253,18 @@ printf '%s\n' "$out_imp" | grep -q '/goal ' || fail "missing /goal"
 printf '%s\n' "$out_imp" | grep -Eiq 'test' || fail "missing test token"
 printf '%s\n' "$out_imp" | grep -Eiq 'run' || fail "missing run token"
 printf '%s\n' "$out_imp" | grep -Eiq 'fix' || fail "missing fix token"
-printf '%s\n' "$out_imp" | grep -qv 'refine the spec' || fail "implement said refine"
-printf '%s\n' "$out_imp" | grep -qv 'steps: write file' || fail "dumped plan body"
+assert_absent "$out_imp" 'refine the spec' "implement said refine"
+assert_absent "$out_imp" 'steps: write file' "dumped plan body"
 printf '%s\n' "$out_imp" | grep -q 'S1: running' || fail "S1 not running"
+printf '%s\n' "$out_imp" | grep -q 'S2: todo' || fail "S2 should wait"
 printf '%s\n' "$out_imp" | grep -q 'complete-step' || fail "when done missing complete-step"
-printf '%s\n' "$out_imp" | grep -qv -- '--to residual' || fail "mid-graph residual present"
+printf '%s\n' "$out_imp" | grep -q -- '--id S1' || fail "when done missing --id S1"
+assert_absent "$out_imp" '--to residual' "mid-graph residual present"
+set +e
+out_midres="$(run_cli update --run-dir "$run" --to residual 2>&1)"
+rc_midres=$?
+set -e
+[[ "$rc_midres" -eq 2 ]] || fail "mid-graph --to residual want 2: $out_midres"
 printf 'LAYER: linear implement packet OK\n'
 
 # --- S2 waits for S1 ---
@@ -502,6 +534,9 @@ run = Path(sys.argv[1])
 impl = json.loads((run / "implement.json").read_text())
 assert impl["writer"] == "steer.steps"
 assert sorted(impl["complete"]) == ["S1", "S2"], impl
+for sid in ("S1", "S2"):
+    rec = json.loads((run / "steps" / f"{sid}.json").read_text())
+    assert rec["status"] == "complete", rec
 PY
 printf 'LAYER: concurrent complete-step OK\n'
 
@@ -526,6 +561,7 @@ reject_dag cycle
 reject_dag unsafe-id
 reject_dag goal-mismatch
 reject_dag missing-initial
+reject_dag goal-not-string
 printf 'LAYER: DAG rejects OK\n'
 
 # --- hash drift ---
@@ -559,6 +595,32 @@ out_pd="$(run_cli next --run-dir "$runh" 2>&1)"
 rc_pd=$?
 set -e
 [[ "$rc_pd" -eq 2 ]] || fail "plan drift want 2: $out_pd"
+# restore DAG, mutate spec.json only, next + complete-step must fail
+python3 - "$runh/backchain/plan.json" <<'PY'
+import json, sys
+from pathlib import Path
+p = Path(sys.argv[1])
+d = json.loads(p.read_text())
+d["steps"][0]["statement"] = "write the file"
+p.write_text(json.dumps(d, indent=2) + "\n")
+PY
+python3 - "$runh/spec.json" <<'PY'
+import json, sys
+from pathlib import Path
+p = Path(sys.argv[1])
+d = json.loads(p.read_text())
+d["checkable"] = True
+d["note"] = "mutated-json"
+p.write_text(json.dumps(d) + "\n")
+PY
+set +e
+out_sj="$(run_cli next --run-dir "$runh" 2>&1)"
+rc_sj=$?
+out_csd="$(run_cli complete-step --run-dir "$runh" --id S1 2>&1)"
+rc_csd=$?
+set -e
+[[ "$rc_sj" -eq 2 ]] || fail "spec.json drift next want 2: $out_sj"
+[[ "$rc_csd" -eq 2 ]] || fail "spec.json drift complete-step want 2: $out_csd"
 printf 'LAYER: hash drift OK\n'
 
 # --- init --force cannot reuse prior DAG ---
@@ -577,6 +639,11 @@ out_fi="$(run_cli update --run-dir "$runf" --to implement 2>&1)"
 rc_fi=$?
 set -e
 [[ "$rc_fi" -eq 2 ]] || fail "force then implement want 2: $out_fi"
+set +e
+out_fcs="$(run_cli complete-step --run-dir "$runf" --id S1 2>&1)"
+rc_fcs=$?
+set -e
+[[ "$rc_fcs" -eq 2 ]] || fail "force then complete-step want 2: $out_fcs"
 printf 'LAYER: init --force wipe OK\n'
 
 # --- injection ---
@@ -598,16 +665,8 @@ set +e
 out_inj="$(run_cli update --run-dir "$runi" --to implement 2>&1)"
 rc_inj=$?
 set -e
-# update implement succeeds (DAG keys ok); next interpolating /goal must fail
-if [[ "$rc_inj" -eq 0 ]]; then
-  set +e
-  out_inj2="$(run_cli next --run-dir "$runi" 2>&1)"
-  rc_inj2=$?
-  set -e
-  [[ "$rc_inj2" -eq 2 ]] || fail "injection next want 2: $out_inj2"
-else
-  printf '%s\n' "$out_inj" | grep -qi 'newline\|control\|devloop' || fail "injection message: $out_inj"
-fi
+[[ "$rc_inj" -eq 2 ]] || fail "injection --to implement want 2: $out_inj"
+printf '%s\n' "$out_inj" | grep -qi 'newline\|control\|devloop\|statement' || fail "injection message: $out_inj"
 printf 'LAYER: injection reject OK\n'
 
 # --- blocked CLI + residual -> blocked + resume reclaim ---
@@ -645,6 +704,13 @@ from pathlib import Path
 d = json.loads((Path(sys.argv[1]) / "state.json").read_text())
 assert d["phase"] == "blocked"
 assert d["resume_to"] == "residual"
+PY
+run_cli update --run-dir "$runb" --to residual --reason "suite green" >/dev/null
+python3 - "$runb" <<'PY'
+import json, sys
+from pathlib import Path
+d = json.loads((Path(sys.argv[1]) / "state.json").read_text())
+assert d["phase"] == "residual", d["phase"]
 PY
 printf 'LAYER: blocked CLI + reclaim OK\n'
 
@@ -720,6 +786,25 @@ run_cli complete-step --run-dir "$runr" --id S1 >/dev/null
 run_cli update --run-dir "$runr" --to blocked --resume-to plan --reason "replan" >/dev/null
 run_cli update --run-dir "$runr" --to plan --reason "replan" >/dev/null
 [[ ! -e "$runr/steps/S1.json" ]] || fail "replan left S1 receipt"
+# wrapper step_ids are not SoT: stale list must not hide S2
+runsot="$tmpdir/sot/.steer"
+reposot="$tmpdir/sot/repo"
+mkdir -p "$reposot"
+advance_to_plan "$runsot" "$reposot" "$planf"
+install_dag "$runsot" linear.json
+run_cli update --run-dir "$runsot" --to implement >/dev/null
+python3 - "$runsot/plan.json" <<'PY'
+import json, sys
+from pathlib import Path
+p = Path(sys.argv[1])
+d = json.loads(p.read_text())
+d["step_ids"] = ["S1"]
+p.write_text(json.dumps(d, indent=2) + "\n")
+PY
+run_cli next --run-dir "$runsot" >/dev/null
+run_cli complete-step --run-dir "$runsot" --id S1 >/dev/null
+out_sot="$(run_cli next --run-dir "$runsot")"
+printf '%s\n' "$out_sot" | grep -q 'S2: running' || fail "stale wrapper step_ids hid S2"
 printf 'LAYER: replan clears receipts OK\n'
 
 # --- string produces still accepted ---
@@ -777,6 +862,23 @@ d = json.loads((Path(sys.argv[1]) / "state.json").read_text())
 assert d["phase"] == "blocked", d["phase"]
 assert d["resume_to"] == "validate-spec"
 PY
+python3 - "$rund/backchain/plan.json" <<'PY'
+import json, sys
+from pathlib import Path
+p = Path(sys.argv[1])
+d = json.loads(p.read_text())
+d["steps"][0]["statement"] = "also-mutated-dag"
+p.write_text(json.dumps(d, indent=2) + "\n")
+PY
+run_cli update --run-dir "$rund" --to validate-spec --reason "rebind after dual drift" >/dev/null
+python3 - "$rund" <<'PY'
+import json, sys
+from pathlib import Path
+d = json.loads((Path(sys.argv[1]) / "state.json").read_text())
+assert d["phase"] == "validate-spec", d["phase"]
+assert not d.get("spec_sha256")
+assert not d.get("plan_sha256")
+PY
 printf 'LAYER: drift --to blocked OK\n'
 
 # --- clear-step invalidates descendants ---
@@ -793,26 +895,113 @@ run_cli complete-step --run-dir "$runc" --id S2 >/dev/null
 run_cli clear-step --run-dir "$runc" --id S1 >/dev/null
 [[ ! -e "$runc/steps/S1.json" ]] || fail "S1 receipt remained"
 [[ ! -e "$runc/steps/S2.json" ]] || fail "descendant S2 receipt remained"
+set +e
+out_clr="$(run_cli update --run-dir "$runc" --to residual 2>&1)"
+rc_clr=$?
+set -e
+[[ "$rc_clr" -eq 2 ]] || fail "clear then residual want 2: $out_clr"
 printf 'LAYER: clear-step descendants OK\n'
 
-# --- symlink escape ---
-if ln -sf /etc/hosts "$run/evil.json" 2>/dev/null; then
-  rm -f "$run/implement.json"
-  ln -s /etc/hosts "$run/implement.json"
-  python3 - "$run" <<'PY'
+# --- checkable:false cannot --to implement after plan rebind ---
+runcf="$tmpdir/checkimpl/.steer"
+repocf="$tmpdir/checkimpl/repo"
+mkdir -p "$repocf"
+advance_to_plan "$runcf" "$repocf" "$planf"
+install_dag "$runcf" linear.json
+run_cli update --run-dir "$runcf" --to blocked --resume-to plan --reason "rebind uncheckable" >/dev/null
+printf '%s\n' '{"done_sentence":"need a checkable done","checkable":false,"ask_user":"what is the oracle?"}' >"$runcf/spec.json"
+printf 'done_sentence: need a checkable done\n' >"$runcf/spec.md"
+run_cli update --run-dir "$runcf" --to plan --reason "rebind" >/dev/null
+set +e
+out_cf="$(run_cli update --run-dir "$runcf" --to implement 2>&1)"
+rc_cf=$?
+set -e
+[[ "$rc_cf" -eq 2 ]] || fail "checkable false implement want 2: $out_cf"
+printf '%s\n' "$out_cf" | grep -qi 'checkable' || fail "checkable message: $out_cf"
+printf 'LAYER: checkable false implement refuse OK\n'
+
+# --- missing frozen files fail closed; --to blocked still works ---
+runmf="$tmpdir/missfiles/.steer"
+repomf="$tmpdir/missfiles/repo"
+mkdir -p "$repomf"
+advance_to_plan "$runmf" "$repomf" "$planf"
+install_dag "$runmf" linear.json
+run_cli update --run-dir "$runmf" --to implement >/dev/null
+run_cli next --run-dir "$runmf" >/dev/null
+rm -f "$runmf/spec.md"
+set +e
+out_ms="$(run_cli next --run-dir "$runmf" 2>&1)"
+rc_ms=$?
+set -e
+[[ "$rc_ms" -eq 2 ]] || fail "missing spec.md want 2: $out_ms"
+write_spec "$runmf"
+rm -f "$runmf/backchain/plan.json"
+set +e
+out_mp="$(run_cli next --run-dir "$runmf" 2>&1)"
+rc_mp=$?
+set -e
+[[ "$rc_mp" -eq 2 ]] || fail "missing plan.json want 2: $out_mp"
+run_cli update --run-dir "$runmf" --to blocked --resume-to plan --reason "files gone" >/dev/null
+printf 'LAYER: missing frozen files fail-closed OK\n'
+
+# --- planted S2 running without S1 complete is supplier-not-ready ---
+runsup="$tmpdir/supplier/.steer"
+reposup="$tmpdir/supplier/repo"
+mkdir -p "$reposup"
+advance_to_plan "$runsup" "$reposup" "$planf"
+install_dag "$runsup" linear.json
+run_cli update --run-dir "$runsup" --to implement >/dev/null
+run_cli next --run-dir "$runsup" >/dev/null
+python3 - "$runsup" <<'PY'
 import json, sys
 from pathlib import Path
-p = Path(sys.argv[1]) / "state.json"
+run = Path(sys.argv[1])
+st = json.loads((run / "state.json").read_text())
+rec = {
+    "writer": "steer.start-step",
+    "run_id": st["run_id"],
+    "id": "S2",
+    "status": "running",
+    "plan_sha256": st["plan_sha256"],
+}
+(run / "steps" / "S2.json").write_text(json.dumps(rec, indent=2) + "\n")
+PY
+set +e
+out_sup="$(run_cli complete-step --run-dir "$runsup" --id S2 2>&1)"
+rc_sup=$?
+set -e
+[[ "$rc_sup" -eq 2 ]] || fail "supplier-not-ready want 2: $out_sup"
+printf '%s\n' "$out_sup" | grep -qi 'supplier' || fail "supplier message: $out_sup"
+# hash-mismatch running receipt
+python3 - "$runsup" <<'PY'
+import json, sys
+from pathlib import Path
+p = Path(sys.argv[1]) / "steps" / "S1.json"
 d = json.loads(p.read_text())
-d["phase"] = "implement"
+d["plan_sha256"] = "0" * 64
 p.write_text(json.dumps(d, indent=2) + "\n")
 PY
-  set +e
-  out_sy="$(run_cli next --run-dir "$run" 2>&1)"
-  rc_sy=$?
-  set -e
-  [[ "$rc_sy" -eq 2 ]] || true
-fi
+set +e
+out_hm="$(run_cli complete-step --run-dir "$runsup" --id S1 2>&1)"
+rc_hm=$?
+set -e
+[[ "$rc_hm" -eq 2 ]] || fail "hash-mismatch complete want 2: $out_hm"
+printf 'LAYER: supplier-not-ready + hash-mismatch OK\n'
+
+# --- symlink escape on canonical DAG ---
+runsy="$tmpdir/symlink/.steer"
+reposy="$tmpdir/symlink/repo"
+mkdir -p "$reposy"
+advance_to_plan "$runsy" "$reposy" "$planf"
+install_dag "$runsy" linear.json
+rm -f "$runsy/backchain/plan.json"
+ln -s /etc/hosts "$runsy/backchain/plan.json"
+set +e
+out_sy="$(run_cli update --run-dir "$runsy" --to implement 2>&1)"
+rc_sy=$?
+set -e
+[[ "$rc_sy" -eq 2 ]] || fail "symlink DAG want 2: $out_sy"
+printf '%s\n' "$out_sy" | grep -qi 'symlink' || fail "symlink message: $out_sy"
 printf 'LAYER: symlink escape OK\n'
 
 printf 'steer.test.sh: PASS\n'
