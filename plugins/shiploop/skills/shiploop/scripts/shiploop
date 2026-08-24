@@ -22,9 +22,22 @@ EXIT_BLOCKED = 2
 EXIT_USAGE = 64
 
 PACKAGE_ROOT = Path(__file__).resolve().parents[1]
-VERSION = "0.7.0"
+VERSION = "0.7.1"
 REF_DIR = PACKAGE_ROOT / "references"
 WT_DIRNAME = ".worktrees"
+# Printed in ## Progress and the implement Next envelope. Do not splice into
+# stored implement prompts. Same wording lives in SKILL.md + turn-packet.md.
+HOST_WORKTREE_FLAG = (
+    "HOST FLAG — extra folder (do not re-root):",
+    "ShipLoop creates another folder: a per-step worktree under "
+    "<repo>/.worktrees/shiploop/<run_id>/<id> on branch shiploop/<run_id>/<id>.",
+    "Implementation work happens IN that worktree, not in the session checkout.",
+    "Do not move_agent_to_root / re-root the host chat into that folder or the "
+    "product repo unless the user asked.",
+    "The session checkout stays the merge dest; do not edit it during implement.",
+    "After /shiploop complete, the host merges the kept branch into session HEAD; "
+    "the next packet names the next worktree.",
+)
 TRANSITIONS_PATH = REF_DIR / "transitions.json"
 ACTIVITIES_DIR = REF_DIR / "activities"
 
@@ -1507,6 +1520,41 @@ def activity_title(phase: str) -> str:
     return titles.get(phase, phase)
 
 
+# Verbosity for ## Progress (session phases). Implement uses per-step text.
+PHASE_BEGIN = {
+    "intake": "Write the original ask to prompt.md. Do not invent a done sentence.",
+    "validate-spec": (
+        "Survey the bound repo and this session's tools, write environment.md "
+        "(survey then practices), then write spec.md."
+    ),
+    "plan": (
+        "Call backchain once, persist backchain/plan.json, then write plan.md "
+        "and the plan.json wrapper. Do not rewrite the frozen spec."
+    ),
+    "implement": "Walk ready DAG steps via /goal in per-step worktrees.",
+    "residual": (
+        "Run review-coverage Phase B for the bound plan, or dest blocked if "
+        "there is no Test command / bound plan."
+    ),
+    "blocked": "Stop. Ask the user. No product edits until they answer.",
+    "done": "Session success. Stop. Do not dest further.",
+    "halted": "Session halted. Stop. Do not dest further.",
+}
+PHASE_FINISH = {
+    "intake": "Invoke /shiploop complete. The harness dests validate-spec.",
+    "validate-spec": "Invoke /shiploop complete. The harness dests plan (or blocked).",
+    "plan": "Invoke /shiploop complete. The harness dests implement and claims ready ids.",
+    "implement": (
+        "After each /goal: commit on that step's worktree, merge the branch "
+        "into the session checkout, invoke /shiploop complete."
+    ),
+    "residual": "When the ledger is complete+landed (or waived), write recap.html, then /shiploop complete.",
+    "blocked": "When they answer: /shiploop update --to <resume_to> --reason <answer>, then /shiploop next.",
+    "done": "stop — no update",
+    "halted": "stop — no update",
+}
+
+
 def diag_text(value: Any) -> str:
     text = " ".join(str(value or "").split())
     if not text:
@@ -1646,6 +1694,101 @@ def print_diagnosis(run_dir: Path, state: Dict[str, Any]) -> None:
         print("    (none)")
 
 
+def print_host_worktree_flag() -> None:
+    for line in HOST_WORKTREE_FLAG:
+        print(line)
+
+
+def print_progress(
+    run_dir: Path, state: Dict[str, Any], *, prior_running: Optional[Set[str]] = None
+) -> None:
+    """Verbose begin / finish / worktree progression. Not a new SM phase."""
+    phase = str(state.get("phase"))
+    print("## Progress")
+    print_host_worktree_flag()
+    print(f"Session phase: {phase} — {activity_title(phase)}.")
+    repo = repo_of(state)
+    repo_s = str(repo.resolve()) if repo.exists() else str(repo)
+    if phase != "implement":
+        print(f"Beginning this phase: {PHASE_BEGIN.get(phase, activity_title(phase))}")
+        print(f"Finish this phase: {PHASE_FINISH.get(phase, 'invoke /shiploop complete')}")
+        if phase not in ("done", "halted", "blocked"):
+            dest = forward_dest(state, run_dir)
+            if dest:
+                print(f"After it finishes: dest {dest} — {activity_title(dest)}.")
+        if phase in ("intake", "validate-spec", "plan", "residual"):
+            print(f"Work in the session checkout (no per-step worktree yet): {repo_s}")
+            print(f"Run dir: {run_dir.resolve()}")
+        if phase == "blocked":
+            print(f"blocked_from: {diag_text(state.get('blocked_from'))}")
+            print(f"resume_to: {diag_text(state.get('resume_to'))}")
+            print(f"ask_user: {diag_text(state.get('ask_user') or state.get('blocked_reason'))}")
+        return
+    if steps_drained(run_dir, state):
+        print("Beginning this phase: all DAG steps are done (drained).")
+        print("Finish this phase: invoke /shiploop complete (does not auto-dest residual).")
+        print("After it finishes: dest residual — run bound review-coverage Phase B.")
+        print(f"Session checkout: {repo_s}")
+        print(f"Run dir: {run_dir.resolve()}")
+        return
+    classes = classify_steps(run_dir, state)
+    by_id = steps_by_id(run_dir)
+    ids = recomputed_step_ids(run_dir)
+    done = [sid for sid in ids if classes.get(sid) == "done"]
+    running = [sid for sid in ids if classes.get(sid) == "running"]
+    ready = [sid for sid in ids if classes.get(sid) == "ready"]
+    waiting = [sid for sid in ids if classes.get(sid) == "todo"]
+    total = len(ids) or 0
+    print(
+        f"Walk: {len(done)}/{total} steps done, {len(running)} running, "
+        f"{len(ready)} ready, {len(waiting)} waiting."
+    )
+    print(f"Session checkout (merge target — do not edit during a /goal): {repo_s}")
+    print(f"Run dir: {run_dir.resolve()}")
+    already = prior_running or set()
+    for sid in ids:
+        if classes.get(sid) != "running":
+            continue
+        step = by_id.get(sid) or {}
+        stmt = diag_text(step.get("statement"))
+        texts = produces_texts(step.get("produces")) or []
+        produces = diag_text("; ".join(texts)) if texts else "(none)"
+        rec = load_receipt(run_dir, sid)
+        wt, br = isolation_for(state, sid, rec)
+        kind = "Continuing" if sid in already else "Beginning"
+        print(f"{kind} step {sid} of {total} — {stmt}.")
+        print(f"  This step does: make true: {produces}.")
+        need = _diag_supplier_suffix(step)
+        if need:
+            print(f"  {need}.")
+        if wt:
+            print(f"  Work in this worktree folder (cwd for /goal): {wt}")
+        if br:
+            print(f"  Branch: {br}")
+        print(
+            f"  Finish {_step_label(run_dir, sid)}: when the /goal is done, commit on that worktree, "
+            f"merge the branch into the session checkout "
+            f"(git -C {repo_s} merge --no-ff --no-edit {br or '<branch>'}), "
+            f"then invoke /shiploop complete."
+        )
+        print(
+            f"  After {sid} finishes: the closer marks it done and claims newly "
+            f"ready ids (or dest residual when the walk is drained)."
+        )
+    if ready:
+        print("Ready next (not claimed yet):")
+        for sid in ready:
+            stmt = diag_text((by_id.get(sid) or {}).get("statement"))
+            print(f"  {sid} — {stmt}")
+    if waiting:
+        print("Waiting on suppliers:")
+        for sid in waiting:
+            stmt = diag_text((by_id.get(sid) or {}).get("statement"))
+            need = _diag_supplier_suffix(by_id.get(sid) or {})
+            extra = f" ({need})" if need else ""
+            print(f"  {sid} — {stmt}{extra}")
+
+
 def interpolate(template: str, mapping: Dict[str, str]) -> str:
     out = template
     for key, val in mapping.items():
@@ -1728,6 +1871,93 @@ def map_line(phase: str, state: Dict[str, Any], run_dir: Path) -> str:
     return f"{phase}: todo"
 
 
+def _phase_status_word(line: str) -> str:
+    if ": current" in line:
+        return "current"
+    if ": done" in line or ": skipped" in line:
+        return "done"
+    if ": blocked" in line:
+        return "blocked"
+    return "todo"
+
+
+def _step_statement(run_dir: Path, sid: str) -> str:
+    step = steps_by_id(run_dir).get(sid) or {}
+    return (step.get("statement") or "").strip()
+
+
+def _step_label(run_dir: Path, sid: str) -> str:
+    stmt = _step_statement(run_dir, sid)
+    return f"{sid} ({stmt})" if stmt else sid
+
+
+def _walk_waiting_on(
+    step: Dict[str, Any], by_id: Dict[str, Dict[str, Any]], classes: Dict[str, str]
+) -> str:
+    waiting: List[str] = []
+    for inp in step.get("inputs") or []:
+        if not isinstance(inp, dict):
+            continue
+        fr = inp.get("from")
+        if fr is None:
+            continue
+        dep = str(fr)
+        if classes.get(dep) == "done":
+            continue
+        dep_step = by_id.get(dep) or {}
+        stmt = (dep_step.get("statement") or "").strip()
+        waiting.append(f"{dep} {stmt}".rstrip())
+    return ", ".join(waiting)
+
+
+def print_session_rail(run_dir: Path, state: Dict[str, Any]) -> None:
+    marks = []
+    for phase in MAP_PHASES:
+        word = _phase_status_word(map_line(phase, state, run_dir))
+        if word == "done":
+            mark = "●"
+        elif word == "current":
+            mark = "▶"
+        elif word == "blocked":
+            mark = "✗"
+        else:
+            mark = "○"
+        marks.append(f"{mark} {phase}")
+    print("Session  " + "  ".join(marks))
+
+
+def print_walk_rail(run_dir: Path, state: Dict[str, Any]) -> None:
+    ids = recomputed_step_ids(run_dir)
+    if not ids:
+        return
+    by_id = steps_by_id(run_dir)
+    classes = classify_steps(run_dir, state)
+    n_done = sum(1 for sid in ids if classes.get(sid) == "done")
+    n_run = sum(1 for sid in ids if classes.get(sid) == "running")
+    n_ready = sum(1 for sid in ids if classes.get(sid) == "ready")
+    n_wait = sum(1 for sid in ids if classes.get(sid) == "todo")
+    print(
+        f"Walk  {n_done}/{len(ids)} done · {n_run} running · "
+        f"{n_ready} ready · {n_wait} waiting"
+    )
+    for sid in ids:
+        klass = classes.get(sid, "todo")
+        step = by_id.get(sid) or {}
+        if klass == "done":
+            mark = "●"
+        elif klass in ("running", "ready"):
+            mark = "▶"
+        else:
+            mark = "○"
+        stmt = (step.get("statement") or "").strip()
+        line = f"  {mark} {sid}  {stmt}  {sid}: {klass}".rstrip()
+        if klass == "todo":
+            waiting = _walk_waiting_on(step, by_id, classes)
+            if waiting:
+                line += f"  waiting on {waiting}"
+        print(line)
+
+
 def look_here_lines(run_dir: Path, state: Dict[str, Any], phase: str) -> List[str]:
     lines: List[str] = []
 
@@ -1775,7 +2005,9 @@ def look_here_lines(run_dir: Path, state: Dict[str, Any], phase: str) -> List[st
                 add("required", receipt_path(run_dir, sid), f"{sid} running receipt")
                 wt, _br = isolation_for(state, sid, rec)
                 if wt:
-                    lines.append(f"required  {wt}     {sid} worktree — cwd here")
+                    stmt = _step_statement(run_dir, sid)
+                    extra = f" — {stmt}" if stmt else ""
+                    lines.append(f"required  {wt}     {sid} worktree{extra} — cwd here")
         add("required", act, "current activity")
     elif phase == "residual":
         repo = repo_of(state)
@@ -1812,6 +2044,7 @@ def print_packet(run_dir: Path, state: Dict[str, Any], *, prior_running: Optiona
     spec, _ = load_spec(run_dir)
     print("shiploop — session harness (not DevLoop)")
     print("## You are here")
+    print_session_rail(run_dir, state)
     for p in MAP_PHASES:
         print(map_line(p, state, run_dir))
     if phase == "blocked":
@@ -1819,11 +2052,11 @@ def print_packet(run_dir: Path, state: Dict[str, Any], *, prior_running: Optiona
     if phase == "halted":
         print("halted: current — residual stopped")
     if phase == "implement":
-        classes = classify_steps(run_dir, state)
-        for sid in recomputed_step_ids(run_dir):
-            print(f"{sid}: {classes.get(sid, 'todo')}")
+        print_walk_rail(run_dir, state)
     print()
     print_diagnosis(run_dir, state)
+    print()
+    print_progress(run_dir, state, prior_running=prior_running)
     print()
     print("## Reminder")
     print(f"Ask: {ask_line}")
@@ -1856,7 +2089,15 @@ def print_packet(run_dir: Path, state: Dict[str, Any], *, prior_running: Optiona
                 continue
             step = by_id.get(sid) or {"id": sid, "statement": "", "prompt": ""}
             prefix = "In flight — do not open a second /goal. " if sid in already else ""
+            rec = load_receipt(run_dir, sid)
+            wt, br = isolation_for(state, sid, rec)
             print(f"{prefix}Step `{sid}` — `{step.get('statement') or ''}`.")
+            if wt:
+                print(f"Work in this worktree folder: {wt}")
+            if br:
+                print(f"Branch: {br}")
+            print("Do not edit the session checkout during this /goal.")
+            print_host_worktree_flag()
             print(str(step.get("prompt") or "").rstrip())
     else:
         print(activity_body(phase, run_dir, state))
@@ -1872,13 +2113,13 @@ def print_packet(run_dir: Path, state: Dict[str, Any], *, prior_running: Optiona
         for sid in running:
             rec = load_receipt(run_dir, sid)
             _wt, br = isolation_for(state, sid, rec)
-            print(f"After /goal for {sid} succeeds: commit on the worktree")
+            print(f"Finish {_step_label(run_dir, sid)}: after /goal succeeds, commit on the worktree")
             if br:
                 print(
-                    f"then merge into the session checkout: "
+                    f"then merge that branch into the session checkout: "
                     f"git -C {repo_s} merge --no-ff --no-edit {br}"
                 )
-            print("then invoke /shiploop complete")
+            print("then invoke /shiploop complete (marks this step done and claims the next)")
         print("on /goal failure: invoke /shiploop complete --clear")
         print("hard stop: invoke /shiploop complete --blocked --reason <text>")
     elif dest:

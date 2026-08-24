@@ -52,8 +52,8 @@ grep -q 'researches applicable practices' "$root/skills/shiploop/README.md" \
   || fail "README missing practices research"
 grep -q 'recap.html' "$root/skills/shiploop/README.md" \
   || fail "README missing recap.html"
-grep -q '^VERSION = "0.7.0"$' "$cli" || fail "script VERSION is not 0.7.0"
-grep -q '^version: 0.7.0$' "$root/skills/shiploop/SKILL.md" || fail "SKILL.md version is not 0.7.0"
+grep -q '^VERSION = "0.7.1"$' "$cli" || fail "script VERSION is not 0.7.1"
+grep -q '^version: 0.7.1$' "$root/skills/shiploop/SKILL.md" || fail "SKILL.md version is not 0.7.1"
 grep -q 'init --force --prompt' "$root/skills/shiploop/SKILL.md" \
   || fail "SKILL.md missing three-branch init --force --prompt"
 grep -q 'init --force --prompt' "$root/skills/shiploop/README.md" \
@@ -127,11 +127,29 @@ cleanup() { rm -rf "$tmpdir"; }
 trap cleanup EXIT
 
 HEADINGS='## You are here
+## Progress
 ## Reminder
 ## Look here
 ## Next prompt
 ## When done invoke
 ## Missing'
+
+HOST_FLAG_LINES='HOST FLAG — extra folder (do not re-root):
+ShipLoop creates another folder: a per-step worktree under <repo>/.worktrees/shiploop/<run_id>/<id> on branch shiploop/<run_id>/<id>.
+Implementation work happens IN that worktree, not in the session checkout.
+Do not move_agent_to_root / re-root the host chat into that folder or the product repo unless the user asked.
+The session checkout stays the merge dest; do not edit it during implement.
+After /shiploop complete, the host merges the kept branch into session HEAD; the next packet names the next worktree.'
+
+assert_host_flag() {
+  local haystack="$1" label="$2"
+  while IFS= read -r line; do
+    printf '%s\n' "$haystack" | grep -qF "$line" || fail "$label missing host flag line: $line"
+  done <<<"$HOST_FLAG_LINES"
+}
+
+assert_host_flag "$(cat "$root/skills/shiploop/SKILL.md")" "SKILL.md"
+assert_host_flag "$(cat "$root/skills/shiploop/references/turn-packet.md")" "turn-packet.md"
 
 assert_headings() {
   local out="$1"
@@ -324,6 +342,11 @@ printf '%s\n' "$out_init" | grep -q 'now' || fail "init diagnosis now"
 printf '%s\n' "$out_init" | grep -q 'intake  record the original ask' || fail "init now intake"
 awk '/^Diagnosis$/{d=1} d && /^## Reminder$/{found=1} END{exit found?0:1}' <<<"$out_init" \
   || fail "Diagnosis must precede Reminder"
+printf '%s\n' "$out_init" | grep -qx '## Progress' || fail "init missing Progress"
+printf '%s\n' "$out_init" | grep -q 'Beginning this phase:' || fail "init Progress missing begin"
+printf '%s\n' "$out_init" | grep -q 'Finish this phase:' || fail "init Progress missing finish"
+printf '%s\n' "$out_init" | grep -q 'session checkout' || fail "init Progress missing checkout"
+assert_host_flag "$out_init" "init Progress"
 printf 'LAYER: init packet OK\n'
 
 # --- init reuse vs force ---
@@ -491,6 +514,14 @@ assert_absent "$out_imp" 'refine the spec' "implement said refine"
 assert_absent "$out_imp" 'steps: write file' "dumped plan body"
 printf '%s\n' "$out_imp" | grep -q 'S1: running' || fail "S1 not running"
 printf '%s\n' "$out_imp" | grep -q 'S2: todo' || fail "S2 should wait"
+printf '%s\n' "$out_imp" | grep -q 'Session  ● intake' || fail "session rail missing intake done"
+printf '%s\n' "$out_imp" | grep -q '▶ implement' || fail "session rail missing implement current"
+printf '%s\n' "$out_imp" | grep -q '○ residual' || fail "session rail missing residual left"
+printf '%s\n' "$out_imp" | grep -q '▶ S1  write the file' || fail "walk rail missing S1 statement"
+printf '%s\n' "$out_imp" | grep -q '○ S2  confirm the file' || fail "walk rail missing S2 statement"
+printf '%s\n' "$out_imp" | grep -q 'waiting on S1 write the file' || fail "walk rail missing waiting-on"
+printf '%s\n' "$out_imp" | grep -q 'Finish S1 (write the file):' || fail "labeled Finish S1 missing"
+printf '%s\n' "$out_imp" | grep -q 'S1 worktree — write the file' || fail "look here missing S1 statement"
 printf '%s\n' "$out_imp" | grep -qx 'Diagnosis' || fail "implement missing Diagnosis"
 printf '%s\n' "$out_imp" | grep -q 'stand      implement — 0/2 steps done' || fail "implement stand"
 printf '%s\n' "$out_imp" | grep -q 'serving frozen spec' || fail "implement stand missing spec insight"
@@ -502,6 +533,15 @@ assert_absent "$out_imp" 'complete-step --' "when done leaked complete-step argv
 assert_absent "$out_imp" '--id S1' "when done leaked --id S1"
 printf '%s\n' "$out_imp" | grep -q 'commit on the worktree' || fail "when done missing commit"
 printf '%s\n' "$out_imp" | grep -q 'merge --no-ff' || fail "when done missing host merge"
+printf '%s\n' "$out_imp" | grep -qx '## Progress' || fail "implement missing Progress"
+printf '%s\n' "$out_imp" | grep -Eq '^(Beginning|Continuing) step S1 of 2' \
+  || fail "implement Progress missing S1 begin/continue"
+printf '%s\n' "$out_imp" | grep -q 'Work in this worktree folder' || fail "implement Progress missing worktree"
+printf '%s\n' "$out_imp" | grep -q 'Finish S1:' || fail "implement Progress missing finish S1"
+printf '%s\n' "$out_imp" | grep -q 'Do not edit the session checkout' || fail "implement next missing checkout guard"
+assert_host_flag "$out_imp" "implement packet"
+flag_n="$(printf '%s\n' "$out_imp" | grep -cF 'HOST FLAG — extra folder (do not re-root):' || true)"
+[[ "$flag_n" -ge 2 ]] || fail "implement packet should print HOST FLAG in Progress and Next envelope (got $flag_n)"
 printf '%s\n' "$out_imp" | grep -q 'checkable=true' || fail "implement reminder checkable"
 assert_absent "$out_imp" '--to residual' "mid-graph residual present"
 set +e
@@ -1382,7 +1422,9 @@ out_wt="$(run_cli next --run-dir "$runwt")"
 printf '%s\n' "$out_wt" | grep -q '.worktrees' || fail "goal missing .worktrees: $out_wt"
 printf '%s\n' "$out_wt" | grep -q 'shiploop/' || fail "goal missing shiploop/ path or branch"
 printf '%s\n' "$out_wt" | grep -q 'worktree — cwd here' || fail "look here missing cwd isolate instruction"
-printf '%s\n' "$out_wt" | grep -q 'merge into the session checkout' || fail "when-done missing session checkout merge instruction"
+printf '%s\n' "$out_wt" | grep -q 'merge that branch into the session checkout' \
+  || fail "when-done missing session checkout merge instruction"
+assert_host_flag "$out_wt" "worktree isolation packet"
 ridwt="$(python3 -c "import json; print(json.load(open('$runwt/state.json'))['run_id'])")"
 wt1="$(python3 -c "import json; print(json.load(open('$runwt/steps/S1.json'))['worktree'])")"
 wt2="$(python3 -c "import json; print(json.load(open('$runwt/steps/S2.json'))['worktree'])")"

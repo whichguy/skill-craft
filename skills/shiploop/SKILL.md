@@ -8,7 +8,7 @@ description: >-
   After every increment invoke /shiploop complete — do not rely on chat
   memory. Lost context without completing → /shiploop next.
 allowed-tools: all
-version: 0.7.0
+version: 0.7.1
 license: MIT
 platforms:
   - linux
@@ -90,7 +90,8 @@ Human overview: [README.md](README.md).
    `complete`, then the next packet). Do not type `complete-step --id` or
    `update --to` unless this card named an override (`--clear`,
    `--blocked --reason`, `--id` when several steps are running). Empty or
-   unmerged branches are refused. ShipLoop does not auto-merge.
+   unmerged branches are refused. ShipLoop does not auto-merge. See
+   **Host flag — extra folder** before any implement `/goal`.
 6. Repeat until the packet says stop. Lost context without completing
    anything → invoke **`/shiploop next`** (reprint / claim only).
 7. Mid-implement, discovered intermediate work → `inject-step` (see
@@ -98,6 +99,23 @@ Human overview: [README.md](README.md).
    [references/activities/implement.md](references/activities/implement.md)).
 8. **Never** invoke skill `devloop`, slash `/devloop`, or `shiploop capture` of
    `devloop-run`.
+
+## Host flag — extra folder (do not re-root)
+
+ShipLoop creates another folder for implement `/goal`s. Work there. The
+session checkout stays the merge dest. Do not re-root the host chat into
+that folder or the product repo unless the user asked. Printed packets
+repeat this block in **Progress** and the implement Next envelope
+(stored `prompt`s stay verbatim):
+
+```text
+HOST FLAG — extra folder (do not re-root):
+ShipLoop creates another folder: a per-step worktree under <repo>/.worktrees/shiploop/<run_id>/<id> on branch shiploop/<run_id>/<id>.
+Implementation work happens IN that worktree, not in the session checkout.
+Do not move_agent_to_root / re-root the host chat into that folder or the product repo unless the user asked.
+The session checkout stays the merge dest; do not edit it during implement.
+After /shiploop complete, the host merges the kept branch into session HEAD; the next packet names the next worktree.
+```
 
 ## Closer (`/shiploop complete`)
 

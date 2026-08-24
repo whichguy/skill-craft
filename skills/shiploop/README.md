@@ -9,7 +9,7 @@ This is **not** DevLoop. `/devloop` still means skill `devloop`. ShipLoop never
 invokes it, never captures `devloop-run`, never auto-merges, and never claims
 engine `COMPLETE`.
 
-Package leaf: `skills/shiploop`. Invoke: `/shiploop`. Version: **0.7.0**.
+Package leaf: `skills/shiploop`. Invoke: `/shiploop`. Version: **0.7.1**.
 
 Canonical companions (do not duplicate their contracts here):
 
@@ -303,7 +303,8 @@ banner `shiploop — session harness (not DevLoop)`:
 
 | H2 | What it is |
 |----|------------|
-| **You are here** | Session phases + implement step statuses (`todo` / `ready` / `running` / `done`). Then Diagnosis. |
+| **You are here** | Session rail + phase lines, then (in implement) a walk rail of each step's statement and `todo` / `ready` / `running` / `done`. Then Diagnosis. |
+| **Progress** | HOST FLAG (extra worktree folder — do not re-root), then begin/finish this phase or running step: worktree folder, branch, session checkout, what complete does next. |
 | **Reminder** | Ask one-liner + frozen `done_sentence`. No body dump. |
 | **Look here** | First line `Reference only — not the next action.` Phase-scoped paths only. |
 | **Next prompt** | First line `Use this prompt as much as possible.` Then the stored prompt or the activity file. |
