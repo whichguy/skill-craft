@@ -37,23 +37,29 @@ product duty is a README create (if absent) or revise (if present) — tell
 backchain to add that as a late DAG successor in `plan`, not here.
 
 While expanding the spec, answer these three questions in `{{SPEC_MD}}`
-(prose is enough; do not invent new required labels):
+(prose is enough; do not invent new required labels). Survey already owns
+`initiation` / `create` handles — question 1 is deploy *readiness*, not a
+second project-create survey.
 
 1. **Deploy preparation before the walk?** Does this increment need
-   credentials, project create, store listing, web-app manifest, or other
-   deploy config *before* the feature steps? If yes, say what so `plan` can
-   put it first. If no, say deploy preparation is none.
+   credentials, store listing, web-app manifest, or other deploy config
+   *before* the feature steps? If yes, say what. If no, say deploy
+   preparation is none. `plan` turns a yes into the early **prep** DAG
+   step (not a second unnamed prep).
 2. **Deploy / publish after the walk?** Once the feature work is done, does
    someone still need to deploy or publish? Record one of: **outer-loop**
-   (residual owns it after the walk — not a DAG step), **dag** (a real
-   sequence step), or **none**.
+   (residual, after review-coverage — not a DAG step), **dag** (one
+   sequence step; that *is* the plan's intermediate/late deploy), or
+   **none**.
 3. **Quality test/fix on outer-loop completion?** After residual
    review-coverage, should the host run a `/goal` quality test-and-fix pass
    on the completed product before dest done? Record yes (and what to
-   check) or no.
+   check) or no. Residual treats that answer as frozen: yes runs it, no
+   skips it.
 
-Do not run that `/goal` here. Residual owns it. Do not invent a new
-state-machine phase.
+Do not run that `/goal` here. Do not publish here. Do not invent a new
+state-machine phase. Ownership: Q1 and Q2=`dag` → `plan`; Q2=`outer-loop`
+and Q3 → residual.
 
 If not checkable, or a handle needs the user: set `checkable: false` and a
 labeled `ask_user: <question>`, then `/shiploop complete --blocked

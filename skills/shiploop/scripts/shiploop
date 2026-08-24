@@ -2024,7 +2024,7 @@ PHASE_FINISH = {
         "After each /goal: commit on that step's worktree, merge the branch "
         "into the session checkout, invoke /shiploop complete."
     ),
-    "residual": "When the ledger is complete+landed (or waived), consider a quality /goal and any outer-loop publish the spec named, then invoke /shiploop complete — dest done writes recap.html.",
+    "residual": "When the ledger is complete+landed (or waived), do the spec's quality /goal and outer-loop publish if named, then invoke /shiploop complete — dest done writes recap.html.",
     "blocked": "When they answer: /shiploop update --to <resume_to> --reason <answer>, then /shiploop next.",
     "done": "stop — no update",
     "halted": "stop — no update",

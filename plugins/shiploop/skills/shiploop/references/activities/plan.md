@@ -1,14 +1,21 @@
-The spec is **frozen**. Read `{{SPEC_MD}}` (done sentence, checkable) and
-`{{ENV_MD}}` (frozen survey). Do not rewrite either.
+The spec is **frozen**. Read `{{SPEC_MD}}` (done sentence, checkable, and
+the three placement answers) and `{{ENV_MD}}` (frozen survey). Do not
+rewrite either.
 
 Call the installed **backchain** skill **once** to write the sequence DAG.
-Include, when the frozen spec implies them, **prep**, **intermediate deploy**,
-and **cleanup** as real DAG steps (postconditions), not as a second spec.
-If the spec named **deploy preparation before the walk**, that is an early
-DAG step (same grain as prep). If it named **deploy/publish as an
-outer-loop** activity, do **not** put that publish in the DAG — residual
-owns it after the walk. If it named a **quality `/goal` on outer-loop
-completion**, do not fold that into a DAG step either.
+Place work from those answers — do not invent a second spec or a second
+copy of the same step:
+
+- **prep** — if the spec named **deploy preparation before the walk**, that
+  *is* the early prep step. If it said none, omit deploy-prep; still add
+  other implied prep.
+- **intermediate deploy** — if the spec named **deploy/publish** as
+  **dag**, that *is* the deploy/publish sequence step. If it named
+  **outer-loop**, do **not** put that publish in the DAG — residual owns
+  it after the walk. If it said **none**, omit a deploy/publish step.
+- **cleanup** — when implied, as a real DAG step (postcondition).
+- A **quality `/goal` on outer-loop completion** is never a DAG step.
+
 Include a **README create or revise** as a **late DAG successor** after the
 feature work it documents — same grain as cleanup, not a new state-machine
 phase. It must record what the app is, how to run it, and what this

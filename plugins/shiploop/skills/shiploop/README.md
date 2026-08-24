@@ -207,9 +207,11 @@ must have:
 
 Each `prompt` must cite the practice `references` from `environment.md` that
 that step must use. Include prep / intermediate deploy / cleanup when implied,
-and a **README create/revise as a late successor**. Deploy preparation
-named by the spec is an early DAG step; **outer-loop** publish and a
-quality `/goal` stay out of the DAG (residual owns them). Then write `plan.md` /
+and a **README create/revise as a late successor**. The spec's three
+placement answers decide which of those fire: deploy preparation *is* the
+early prep step; **dag** publish *is* the deploy step; **outer-loop**
+publish and a quality `/goal` stay out of the DAG (residual owns them).
+Then write `plan.md` /
 `plan.json` wrappers (`done_sentence` must equal the spec). The wrapper
 `step_ids` is a copy, not SoT.
 
@@ -290,11 +292,11 @@ Session closer only. Run review-coverage Phase B for the bound plan under
 `REVIEW_CONVERGE.md`. Do not treat a foreign or unlanded ledger as success.
 
 When the ledger is `complete` and landed (or the plan has a real residual
-waiver), consider a `/goal` quality test-and-fix pass if the spec asked
-for one, then do any **outer-loop** deploy/publish the spec named, then
-dest `done`. When the ledger is `stopped (...)`, dest `halted`. Those
-dests write `.shiploop/recap.html` from the run files. Do not
-hand-author it.
+waiver), do only what the frozen spec named: a `/goal` quality test-and-fix
+pass if it said yes (skip if no), then **outer-loop** deploy/publish if it
+said outer-loop (skip if dag or none), then dest `done`. When the ledger
+is `stopped (...)`, dest `halted`. Those dests write `.shiploop/recap.html`
+from the run files. Do not hand-author it.
 
 ### 6. Done (or halted)
 

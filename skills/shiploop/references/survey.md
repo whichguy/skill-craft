@@ -31,7 +31,9 @@ its output is `{{ENV_MD}}`.
   the `dest blocked` hatch below.
 - **initiation** — `none` (nothing to create), `needed` (one-time project
   creation is part of this increment; requires at least one `create` handle),
-  or `done` (already created in a prior increment).
+  or `done` (already created in a prior increment). Deploy *readiness*
+  (manifest, store listing, first publish) is a spec-expansion question,
+  not a second initiation value — see `validate-spec.md`.
 - **ui / ui_craft** — whether this increment touches user-facing surface, and
   if so, which design/UX skill was invoked (`none(reason)` when `ui` is
   false).
