@@ -60,19 +60,26 @@ git worktrees under `<repo>/.worktrees/`.
 flowchart TB
   user[Host slash or CLI]
   card[SKILL.md and command cards]
-  wrap[shiploop-next / shiploop-complete]
+  wrap["shiploop-next / shiploop-complete leaf wrappers"]
   harness[scripts/shiploop]
   state[".shiploop/ state files"]
   packet[Turn packet]
-  goal[Host /goal in a worktree]
   user --> card
-  card --> wrap
-  wrap --> harness
+  card -->|next, complete| wrap
+  card -->|init, inject-step| harness
+  wrap -->|execv| harness
   harness --> state
   harness --> packet
-  packet --> goal
-  goal --> card
 ```
+
+**What this is:** the four routes from the ASCII list above, collapsed to
+one picture. `init` and `inject-step` call the harness directly; only
+`next` and `complete` pass through a leaf wrapper first (`refuse` the wrong
+subcommand, then `execv`). The packet is a printout — implement and
+residual may paste into `/goal`, but that is host work after the packet,
+not a fifth route and not what every phase does. **What this is not:**
+there is no second SM between the wrapper and the harness —
+`scripts/shiploop` is the only state machine in this package.
 
 ---
 
@@ -83,6 +90,32 @@ phase):
 
 `intake → validate-spec → plan → implement → residual → done`
 (or `halted` from residual). Any working phase can dest `blocked`.
+
+```mermaid
+flowchart TD
+  intake -->|prompt| validateSpec[validate-spec]
+  validateSpec -->|spec_checkable| plan
+  validateSpec -->|spec_uncheckable| blocked
+  plan -->|plan| implement
+  plan -->|reason| blocked
+  implement -->|steps_drained| residual
+  implement -->|reason| blocked
+  residual -->|residual_success| done
+  residual -->|residual_stopped| halted
+  residual -->|reason| blocked
+  blocked -->|reason, resume_to=validate-spec| validateSpec
+  blocked -->|reason, resume_to=plan| plan
+  blocked -->|reason, resume_to=implement| implement
+  blocked -->|steps_drained, resume_to=residual| residual
+```
+
+**What this is:** every legal edge in `references/transitions.json`, the
+only phase list the script (`PHASES` / `forward_dest` / `legal_edge`) knows.
+**What this is not:** there is no `survey`, `setup`, `initiation`, or
+`inject` box — those are jobs/CLI verbs inside `validate-spec` and
+`implement`, not phases. `blocked` can resume to exactly the phase named in
+`state.resume_to` (`apply_update` refuses any other resume target); the four
+`blocked → *` edges above are the only four legal resumes.
 
 ### 0. Start or resume (three-branch init)
 
@@ -128,6 +161,29 @@ One phase, **three jobs in order**. Guide: `references/survey.md`. Activity:
    `checkable: true|false` exactly once at line start, outside fences. The
    spec’s **final product duty** is a README create (absent) or revise
    (present) — as a late DAG step in **plan**, not a validate-spec write.
+
+```mermaid
+flowchart TD
+  enter([enter validate-spec]) --> survey[1 Survey repo_root + tools]
+  survey --> envWrite["Write environment.md — prose then one '## machine' JSON fence"]
+  envWrite --> practices[2 Research practices from the ask + inventory]
+  practices --> envAppend[Append references into the SAME environment.md]
+  envAppend --> specWrite[3 Write spec.md — done_sentence + checkable: true]
+  specWrite --> toPlan([dest plan])
+  enter -->|hatch anytime: checkable false + ask_user| specBlocked[Write spec.md — checkable: false + ask_user]
+  specBlocked --> toBlocked(["dest blocked — resume_to validate-spec"])
+```
+
+**What this is:** the three jobs inside **one** SM phase, in the order
+`validate-spec.md` / `survey.md` require (survey → practices → spec).
+`dest plan` is what `load_environment()` / `load_spec()` /
+`handles_block_plan()` gate. `dest blocked` is the hatch (`forward_dest`
+returns `"blocked"` when `checkable is False`) and does **not** require
+`environment.md` — that is why the hatch is drawn from enter, not after
+`envAppend`. **What this is not:** survey and practices are not separate
+phases or a second SoT file — both write into the same `environment.md`.
+A `list`/`ask` handle does **not** auto-dest `blocked`; it fails `dest
+plan` unless the host uses this hatch (`create` is dest-plan-legal).
 
 **Blocked hatch (no new edges):** if a handle/UI question must be asked first,
 write `spec.md` with `checkable: false` and `ask_user:`, then dest `blocked`
@@ -186,6 +242,40 @@ state last. Then `/shiploop next`.
 
 When every step is `done`, implement is **drained** (a diagnosis, not a
 phase). Next complete dests `residual`.
+
+```mermaid
+flowchart TD
+  next["/shiploop next — claim_ready(): ready ids to running,\ngit worktree add -b per id"] --> printed["Packet Next prompt: each running step's stored prompt, verbatim"]
+  printed --> gwork["Host cd's into that step's worktree, pastes into /goal"]
+  gwork -->|goal succeeds| cm["Host commits on the worktree, then\ngit merge --no-ff into session HEAD"]
+  cm --> complete["/shiploop complete — apply_complete_receipt() marks the step complete,\nthen re-claims any newly-ready ids in the same call"]
+  complete -->|another id now running| printed
+  complete -->|all steps done| drained["drained (diagnosis, not a phase)"]
+  drained -->|one more /shiploop complete, nothing running| residual([dest residual])
+  gwork -->|goal fails| clear["/shiploop complete --clear"]
+  clear --> printed
+  gwork -.->|discovers intermediate work| inject["inject-step — side door CLI,\norigin: discovered, rebinds plan_sha256 only"]
+  inject -.->|current /goal continues; new id is not started| gwork
+  inject -.->|claim the new id later| next
+```
+
+**What this is:** the loop `apply_complete_receipt` / `claim_ready` /
+`create_step_worktree` actually run, plus `inject-step` as a CLI call inside
+implement (dashed — it is a mid-loop side door, not a state or a second
+phase). `complete`'s own `claim_and_print()` re-runs `claim_ready()` before
+printing, so a completed step's newly-ready dependents are claimed and
+printed in that **same** `/shiploop complete` call. `--clear` also
+`claim_and_print()`s (the cleared id is ready again and is re-claimed in
+that same call). `inject-step` does **not** claim the new id — that is the
+one case that still needs `/shiploop next` (or the next `complete`) to
+`claim_ready()`. Otherwise a separate `/shiploop next` is only a reprint
+after lost context.
+Draining takes **two** `/shiploop complete` calls: one completes the last
+running step, a second (with nothing running) is the one that dests
+`residual` — `implement-drained.md` says this explicitly: *"ShipLoop does not
+auto-`--to residual` when the last step completes."* **What this is not:**
+there is no auto-merge (`complete` refuses a branch that is not yet an
+ancestor of `HEAD`) and no nested `/goal` inside implement's `/goal`.
 
 ### 5. Residual
 
@@ -265,6 +355,30 @@ There is **no** `environment.json`, `spec.json`, or `implement.json`.
 - `environment_sha256 = sha256(environment.md)`
 - `spec_sha256 = sha256(spec.md)`
 - `plan_sha256 = sha256(backchain/plan.json)` (wrapper unhashed)
+
+```mermaid
+flowchart LR
+  prompt["prompt.md"] -.->|not hashed| intake(("intake"))
+  env["environment.md"] -->|"dest plan: write if empty, else verify"| envHash["environment_sha256"]
+  spec["spec.md"] -->|"dest plan: write if empty, else verify"| specHash["spec_sha256"]
+  dag["backchain/plan.json"] -->|"dest implement: bind"| planHash["plan_sha256"]
+  inject["inject-step"] -.->|"rebinds plan_sha256 only,\nstamps existing receipts"| planHash
+  recap["recap.html"] -.->|not hashed; required for dest done| done(("done"))
+```
+
+**What this is:** the three real hashes and what binds/clears them. **What
+this is not**: `plan_sha256` clears on `dest plan` (replan hatch) and rebinds
+only on `dest implement` or `inject-step` — it does not track `environment.md`
+or `spec.md`, which is why editing either after bind requires
+`blocked → validate-spec` to clear all three. Two grandfather cases keep old
+runs from wedging: an **empty** `environment_sha256` is skipped by
+`check_frozen_hashes` (`if env_h`) until `dest plan` writes it via
+`bind_or_verify_hash` (pre-0.7 run, or a run that never reached `dest plan`);
+a **leftover** `spec.json` twin is still accepted if the stored `spec_sha256`
+equals the legacy pair hash `sha256(spec.md + \0 + spec.json)`, until
+`blocked → validate-spec` clears the hashes and the next `dest plan` rebinds
+to `sha256(spec.md)` alone. `recap.html` is never hashed — `dest done` only
+checks it exists, is HTML, and has the five briefing words.
 
 After first bind, editing spec or environment requires `blocked → validate-spec`
 (clears all three hashes and receipts). `inject-step` rebinds `plan_sha256`
