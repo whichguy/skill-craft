@@ -16,6 +16,8 @@ other than newline, no `/devloop`). `statement` stays the short diagnosis
 label; `prompt` is what gets pasted, not composed later. Each `prompt` must
 cite the concrete practice references from `{{ENV_MD}}` (`references[].path`
 URLs or repo paths) that that step must use, so implement reprints them.
+`dest implement` and `inject-step` refuse a DAG whose stored `prompt` omits
+any of those paths.
 
 Persist the backchain document to `{{BACKCHAIN_JSON}}` (canonical). Then
 write:

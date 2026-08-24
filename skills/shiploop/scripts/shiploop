@@ -370,10 +370,14 @@ def validate_machine(m: Dict[str, Any]) -> List[str]:
         gaps.append("machine.augment must be a bool")
     elif kind == "greenfield" and augment is not False:
         gaps.append("machine.augment must be false when kind is greenfield")
+    elif kind == "brownfield" and augment is not True:
+        gaps.append("machine.augment must be true when kind is brownfield")
     refs = m.get("references")
     if not isinstance(refs, list):
         gaps.append("machine.references must be a list")
     else:
+        if kind == "brownfield" and not refs:
+            gaps.append("machine.references must be nonempty when kind is brownfield")
         for i, r in enumerate(refs):
             ok = (
                 isinstance(r, dict)
@@ -768,6 +772,14 @@ def dag_gaps(run_dir: Path, spec: Optional[Dict[str, Any]]) -> List[str]:
         gaps.append("initial_state must be a list")
         initial = []
     initial_set = {x for x in initial if isinstance(x, str)}
+    ref_paths: List[str] = []
+    env, _ = load_environment(run_dir)
+    if isinstance(env, dict):
+        for r in env.get("references") or []:
+            if isinstance(r, dict):
+                rp = r.get("path")
+                if isinstance(rp, str) and rp.strip():
+                    ref_paths.append(rp.strip())
     ids: List[str] = []
     seen: Set[str] = set()
     graph: Dict[str, List[str]] = {}
@@ -796,6 +808,10 @@ def dag_gaps(run_dir: Path, spec: Optional[Dict[str, Any]]) -> List[str]:
             gaps.append(f"{sid} prompt must be a nonempty string")
         elif PROMPT_CONTROL_RE.search(prompt) or "/devloop" in prompt:
             gaps.append(f"{sid} prompt contains a disallowed control character or /devloop")
+        elif ref_paths:
+            for rp in ref_paths:
+                if rp not in prompt:
+                    gaps.append(f"{sid} prompt must cite environment reference {rp}")
         produces = step.get("produces")
         texts = produces_texts(produces)
         if texts is None:

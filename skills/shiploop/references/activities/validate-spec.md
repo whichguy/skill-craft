@@ -7,7 +7,8 @@ DevLoop overlay. State files: `{{SURVEY_GUIDE}}` and
 Inventory this session against `{{SURVEY_GUIDE}}`: kind/augment, references
 (read `{{REPO_ROOT}}/README.md` if it exists and cite it — do **not** write
 or rewrite it here), tools, mcp, mcp_considered, handles, initiation,
-ui/ui_craft. Write `{{ENV_MD}}`: a prose brief, then a unique H2 titled
+ui/ui_craft. `kind` and `augment` must match (`greenfield`/`false`,
+`brownfield`/`true`); brownfield `references` must be nonempty. Write `{{ENV_MD}}`: a prose brief, then a unique H2 titled
 exactly `machine` with one fenced JSON object. Any handle resolved `list` or
 `ask` will block `dest plan` later — resolve it now or use the blocked hatch
 below.

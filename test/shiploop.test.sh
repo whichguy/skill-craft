@@ -52,6 +52,49 @@ grep -q 'researches applicable practices' "$root/skills/shiploop/README.md" \
   || fail "README missing practices research"
 grep -q 'recap.html' "$root/skills/shiploop/README.md" \
   || fail "README missing recap.html"
+grep -q '^VERSION = "0.7.0"$' "$cli" || fail "script VERSION is not 0.7.0"
+grep -q '^version: 0.7.0$' "$root/skills/shiploop/SKILL.md" || fail "SKILL.md version is not 0.7.0"
+grep -q 'init --force --prompt' "$root/skills/shiploop/SKILL.md" \
+  || fail "SKILL.md missing three-branch init --force --prompt"
+grep -q 'init --force --prompt' "$root/skills/shiploop/README.md" \
+  || fail "README missing Session B init --force --prompt"
+if grep -E 'ENV_JSON|SPEC_JSON|IMPLEMENT_JSON|goal_line' "$cli" \
+  "$root/skills/shiploop/references/activities/"*.md \
+  "$root/skills/shiploop/references/turn-packet.md"; then
+  fail "dropped interpolators or goal_line leaked back in"
+fi
+[[ -f "$fix/existing-app/app.py" ]] || fail "missing existing-app fixture"
+[[ -f "$fix/existing-app/README.md" ]] || fail "missing existing-app README"
+python3 - "$cli" "$root/skills/shiploop/references/transitions.json" <<'PY' || fail "forbidden phase name"
+import ast, json, sys
+from pathlib import Path
+banned = {"survey", "setup", "initiation", "inject"}
+mod = ast.parse(Path(sys.argv[1]).read_text(encoding="utf-8"))
+for node in mod.body:
+    if not isinstance(node, ast.Assign):
+        continue
+    for t in node.targets:
+        if isinstance(t, ast.Name) and t.id in ("PHASES", "MAP_PHASES"):
+            vals = set(ast.literal_eval(node.value))
+            leak = banned & vals
+            if leak:
+                raise SystemExit(f"{t.id} contains {sorted(leak)}")
+tj = json.loads(Path(sys.argv[2]).read_text(encoding="utf-8"))
+leak = banned & set(tj.get("phases") or [])
+if leak:
+    raise SystemExit(f"transitions.json phases contains {sorted(leak)}")
+for e in tj.get("edges") or []:
+    for key in ("from", "to"):
+        if e.get(key) in banned:
+            raise SystemExit(f"transitions.json edge {key}={e.get(key)}")
+src = Path(sys.argv[1]).read_text(encoding="utf-8")
+start = src.index("def resolve_dep_roots")
+end = src.index("\n\n", start)
+body = src[start:end]
+for tok in ("frontend-design", "web-design-guidelines", "environment-analyst"):
+    if tok in body:
+        raise SystemExit(f"resolve_dep_roots names {tok}")
+PY
 grep -q 'RECAP_HTML' "$root/skills/shiploop/references/activities/residual.md" \
   || fail "residual.md missing RECAP_HTML"
 grep -q 'RECAP_HTML' "$root/skills/shiploop/references/activities/done.md" \
@@ -179,6 +222,29 @@ Session survey brief for the test harness.
  "handles": [], "initiation": "none", "ui": false, "ui_craft": "none(no UI in scope)"}
 \`\`\`
 MD
+}
+
+write_machine() {
+  local run="$1"
+  local json="$2"
+  cat >"$run/environment.md" <<MD
+Session survey brief for the test harness.
+
+## machine
+\`\`\`json
+${json}
+\`\`\`
+MD
+}
+
+fresh_vs() {
+  local run="$1" repo="$2"
+  mkdir -p "$repo"
+  init_git_repo "$repo"
+  run_cli init --prompt "create result.txt containing exactly one line: ok" \
+    --run-dir "$run" --bound-plan "$planf" --repo "$repo" >/dev/null
+  run_cli update --run-dir "$run" --to validate-spec >/dev/null
+  write_spec "$run"
 }
 
 write_wrapper() {
@@ -311,6 +377,15 @@ printf '%s\n' "$out_vs" | grep -q 'not written yet' || fail "spec not written ye
 assert_absent "$out_vs" 'VALIDATE_SPEC_PATH' "packet leaked VALIDATE_SPEC_PATH"
 assert_absent "$out_vs" 'missing dep_roots.devloop' "devloop required at validate-spec"
 assert_absent "$out_vs" '/goal ' "validate-spec packet emitted implement /goal"
+printf '%s\n' "$out_vs" | grep -q 'references/survey.md' \
+  || fail "validate-spec packet missing interpolated SURVEY_GUIDE path"
+printf '%s\n' "$out_vs" | grep -q 'environment.md' \
+  || fail "validate-spec packet missing interpolated ENV_MD path"
+printf '%s\n' "$out_vs" | grep -qF "$(cd "$repo" && pwd -P)" \
+  || fail "validate-spec packet missing interpolated REPO_ROOT"
+assert_absent "$out_vs" '{{SURVEY_GUIDE}}' "packet leaked {{SURVEY_GUIDE}}"
+assert_absent "$out_vs" '{{ENV_MD}}' "packet leaked {{ENV_MD}}"
+assert_absent "$out_vs" '{{REPO_ROOT}}' "packet leaked {{REPO_ROOT}}"
 printf 'LAYER: intake->validate-spec OK\n'
 
 # --- empty spec.md rejected (no labels at all) ---
@@ -849,6 +924,49 @@ out_gf="$(run_cli next --run-dir "$rungf")"
 printf '%s\n' "$out_gf" | grep -q '/goal ' || fail "grandfathered empty environment_sha256 should not drift: $out_gf"
 printf 'LAYER: environment grandfather OK\n'
 
+# --- A21 leftover spec.json pair-hash + empty environment_sha256 ---
+runv2="$tmpdir/pairhash/.shiploop"
+repov2="$tmpdir/pairhash/repo"
+mkdir -p "$repov2"
+advance_to_plan "$runv2" "$repov2" "$planf"
+install_dag "$runv2" linear.json
+run_cli update --run-dir "$runv2" --to implement >/dev/null
+write_spec "$runv2"
+printf '%s\n' "{\"done_sentence\":\"$DS\",\"checkable\":true}" >"$runv2/spec.json"
+python3 - "$runv2" <<'PY'
+import hashlib, json, sys
+from pathlib import Path
+run = Path(sys.argv[1])
+md = (run / "spec.md").read_bytes()
+js = (run / "spec.json").read_bytes()
+pair = hashlib.sha256(md + b"\0" + js).hexdigest()
+md_only = hashlib.sha256(md).hexdigest()
+assert pair != md_only, "pair hash must differ from md-only"
+state = json.loads((run / "state.json").read_text())
+state["spec_sha256"] = pair
+state["environment_sha256"] = ""
+(run / "state.json").write_text(json.dumps(state, indent=2) + "\n")
+PY
+out_v2="$(run_cli next --run-dir "$runv2")"
+printf '%s\n' "$out_v2" | grep -q '/goal ' || fail "pair-hash grandfather next: $out_v2"
+run_cli update --run-dir "$runv2" --to blocked --resume-to validate-spec --reason "rebind pair hash" >/dev/null
+run_cli update --run-dir "$runv2" --to validate-spec --reason "rebind pair hash" >/dev/null
+write_spec "$runv2"
+write_environment "$runv2"
+run_cli update --run-dir "$runv2" --to plan >/dev/null
+python3 - "$runv2" <<'PY'
+import hashlib, json, sys
+from pathlib import Path
+run = Path(sys.argv[1])
+want = hashlib.sha256((run / "spec.md").read_bytes()).hexdigest()
+state = json.loads((run / "state.json").read_text())
+assert state["spec_sha256"] == want, (state["spec_sha256"], want)
+assert state["environment_sha256"] == hashlib.sha256(
+    (run / "environment.md").read_bytes()
+).hexdigest()
+PY
+printf 'LAYER: leftover spec.json pair-hash OK\n'
+
 # --- init --force cannot reuse prior DAG ---
 runf="$tmpdir/force/.shiploop"
 repof="$tmpdir/force/repo"
@@ -1129,6 +1247,7 @@ d = json.loads((Path(sys.argv[1]) / "state.json").read_text())
 assert d["phase"] == "validate-spec", d["phase"]
 assert not d.get("spec_sha256")
 assert not d.get("plan_sha256")
+assert not d.get("environment_sha256")
 PY
 printf 'LAYER: drift --to blocked OK\n'
 
@@ -1465,5 +1584,323 @@ for cmd in next update complete complete-step start-step; do
   [[ "$rc" -eq 2 ]] || fail "complete wrapper refuse $cmd want 2: $bad"
 done
 printf 'LAYER: same-leaf wrappers OK\n'
+
+# --- A3/A13/A14/A15 machine shape + handle/initiation/UI gates ---
+runm="$tmpdir/machine/.shiploop"
+repom="$tmpdir/machine/repo"
+fresh_vs "$runm" "$repom"
+
+printf 'brief only, no machine heading\n' >"$runm/environment.md"
+set +e
+out_nf="$(run_cli update --run-dir "$runm" --to plan 2>&1)"
+rc_nf=$?
+set -e
+[[ "$rc_nf" -eq 2 ]] || fail "missing machine fence want 2: $out_nf"
+printf '%s\n' "$out_nf" | grep -qi 'machine' || fail "missing machine fence message: $out_nf"
+
+write_machine "$runm" '{"kind": "greenfield", "augment": true, "references": [], "tools": [], "mcp": [],
+ "mcp_considered": "none(x)", "handles": [], "initiation": "none", "ui": false, "ui_craft": "none(no UI)"}'
+set +e
+out_ka="$(run_cli update --run-dir "$runm" --to plan 2>&1)"
+rc_ka=$?
+set -e
+[[ "$rc_ka" -eq 2 ]] || fail "greenfield+augment true want 2: $out_ka"
+
+write_machine "$runm" '{"kind": "brownfield", "augment": false, "references": [{"path": "x", "why": "y"}], "tools": [], "mcp": [],
+ "mcp_considered": "none(x)", "handles": [], "initiation": "none", "ui": false, "ui_craft": "none(no UI)"}'
+set +e
+out_bf="$(run_cli update --run-dir "$runm" --to plan 2>&1)"
+rc_bf=$?
+set -e
+[[ "$rc_bf" -eq 2 ]] || fail "brownfield+augment false want 2: $out_bf"
+
+write_machine "$runm" '{"kind": "brownfield", "augment": true, "references": [], "tools": [], "mcp": [],
+ "mcp_considered": "none(x)", "handles": [], "initiation": "none", "ui": false, "ui_craft": "none(no UI)"}'
+set +e
+out_br="$(run_cli update --run-dir "$runm" --to plan 2>&1)"
+rc_br=$?
+set -e
+[[ "$rc_br" -eq 2 ]] || fail "brownfield empty references want 2: $out_br"
+
+write_machine "$runm" '{"kind": "greenfield", "augment": false, "references": [], "tools": [], "mcp": [],
+ "mcp_considered": "none(x)",
+ "handles": [{"source": "gh", "need": "repo id", "resolve": "ask", "value": ""}],
+ "initiation": "none", "ui": false, "ui_craft": "none(no UI)"}'
+set +e
+out_ask="$(run_cli update --run-dir "$runm" --to plan 2>&1)"
+rc_ask=$?
+set -e
+[[ "$rc_ask" -eq 2 ]] || fail "handle ask blocks plan want 2: $out_ask"
+printf '%s\n' "$out_ask" | grep -qi 'blocks dest plan' || fail "handle ask message: $out_ask"
+
+write_machine "$runm" '{"kind": "greenfield", "augment": false, "references": [], "tools": [], "mcp": [],
+ "mcp_considered": "none(x)",
+ "handles": [{"source": "gh", "need": "repo id", "resolve": "inspect", "value": ""}],
+ "initiation": "none", "ui": false, "ui_craft": "none(no UI)"}'
+set +e
+out_iv="$(run_cli update --run-dir "$runm" --to plan 2>&1)"
+rc_iv=$?
+set -e
+[[ "$rc_iv" -eq 2 ]] || fail "inspect missing value want 2: $out_iv"
+
+write_machine "$runm" '{"kind": "greenfield", "augment": false, "references": [], "tools": [], "mcp": [],
+ "mcp_considered": "none(x)",
+ "handles": [{"source": "gh", "need": "credential", "resolve": "inspect", "value": "secret"}],
+ "initiation": "none", "ui": false, "ui_craft": "none(no UI)"}'
+set +e
+out_cv="$(run_cli update --run-dir "$runm" --to plan 2>&1)"
+rc_cv=$?
+set -e
+[[ "$rc_cv" -eq 2 ]] || fail "credential inspect with value want 2: $out_cv"
+
+write_machine "$runm" '{"kind": "greenfield", "augment": false, "references": [], "tools": [], "mcp": [],
+ "mcp_considered": "none(x)", "handles": [], "initiation": "needed", "ui": false, "ui_craft": "none(no UI)"}'
+set +e
+out_in="$(run_cli update --run-dir "$runm" --to plan 2>&1)"
+rc_in=$?
+set -e
+[[ "$rc_in" -eq 2 ]] || fail "initiation needed without create want 2: $out_in"
+
+write_machine "$runm" '{"kind": "greenfield", "augment": false, "references": [], "tools": [], "mcp": [],
+ "mcp_considered": "none(x)",
+ "handles": [{"source": "gh", "need": "repo id", "resolve": "create", "value": ""}],
+ "initiation": "none", "ui": false, "ui_craft": "none(no UI)"}'
+set +e
+out_ic="$(run_cli update --run-dir "$runm" --to plan 2>&1)"
+rc_ic=$?
+set -e
+[[ "$rc_ic" -eq 2 ]] || fail "initiation none with create want 2: $out_ic"
+
+write_machine "$runm" '{"kind": "greenfield", "augment": false, "references": [], "tools": [], "mcp": [],
+ "mcp_considered": "none(x)",
+ "handles": [{"source": "gh", "need": "repo id", "resolve": "create", "value": ""}],
+ "initiation": "done", "ui": false, "ui_craft": "none(no UI)"}'
+set +e
+out_id="$(run_cli update --run-dir "$runm" --to plan 2>&1)"
+rc_id=$?
+set -e
+[[ "$rc_id" -eq 2 ]] || fail "initiation done with create want 2: $out_id"
+
+write_machine "$runm" '{"kind": "greenfield", "augment": false, "references": [], "tools": [], "mcp": [],
+ "mcp_considered": "none(x)", "handles": [], "initiation": "none", "ui": true, "ui_craft": "none(no skill)"}'
+set +e
+out_ui="$(run_cli update --run-dir "$runm" --to plan 2>&1)"
+rc_ui=$?
+set -e
+[[ "$rc_ui" -eq 2 ]] || fail "ui true + ui_craft none want 2: $out_ui"
+
+write_machine "$runm" '{"kind": "greenfield", "augment": false, "references": [], "tools": [], "mcp": [],
+ "mcp_considered": "none(x)", "handles": [], "initiation": "none", "ui": false, "ui_craft": "frontend-design"}'
+set +e
+out_uf="$(run_cli update --run-dir "$runm" --to plan 2>&1)"
+rc_uf=$?
+set -e
+[[ "$rc_uf" -eq 2 ]] || fail "ui false + named ui_craft want 2: $out_uf"
+
+write_machine "$runm" '{"kind": "greenfield", "augment": false, "references": [], "tools": [], "mcp": [],
+ "mcp_considered": "none(x)",
+ "handles": [{"source": "gh", "need": "repo id", "resolve": "inspect", "value": "abc"}],
+ "initiation": "none", "ui": true, "ui_craft": "frontend-design"}'
+run_cli update --run-dir "$runm" --to plan >/dev/null
+printf 'LAYER: machine shape + handle/initiation/UI OK\n'
+
+# --- A7/A12 brownfield existing-app + --force keeps product file ---
+applife="$fix/existing-app/app.py"
+runlife="$tmpdir/life/.shiploop"
+repolife="$tmpdir/life/repo"
+mkdir -p "$repolife"
+init_git_repo "$repolife"
+cp "$applife" "$repolife/app.py"
+git -C "$repolife" add app.py
+git -C "$repolife" commit -m "session A app" >/dev/null
+advance_to_plan "$runlife" "$repolife" "$planf"
+run_cli init --force --prompt "add undo to the existing app" \
+  --run-dir "$runlife" --bound-plan "$planf" --repo "$repolife" >/dev/null
+[[ -f "$repolife/app.py" ]] || fail "--force deleted product app.py"
+[[ -f "$repolife/README" ]] || fail "--force deleted seed README"
+run_cli update --run-dir "$runlife" --to validate-spec >/dev/null
+write_spec "$runlife"
+write_machine "$runlife" "{\"kind\": \"brownfield\", \"augment\": true, \"references\": [{\"path\": \"$applife\", \"why\": \"Session A product\"}], \"tools\": [], \"mcp\": [],
+ \"mcp_considered\": \"none(x)\", \"handles\": [], \"initiation\": \"none\", \"ui\": false, \"ui_craft\": \"none(no UI)\"}"
+run_cli update --run-dir "$runlife" --to plan >/dev/null
+python3 - "$runlife/environment.md" "$applife" <<'PY' || fail "brownfield env did not cite existing-app"
+import sys
+from pathlib import Path
+text = Path(sys.argv[1]).read_text(encoding="utf-8")
+if sys.argv[2] not in text:
+    raise SystemExit("existing-app path missing from environment.md")
+PY
+printf 'LAYER: brownfield existing-app + force keeps app OK\n'
+
+# --- A19 first-bind via blocked → plan, then drift ---
+runfb="$tmpdir/firstbind/.shiploop"
+repofb="$tmpdir/firstbind/repo"
+fresh_vs "$runfb" "$repofb"
+write_environment "$runfb"
+printf 'done_sentence: %s\ncheckable: false\nask_user: hold for first bind\n' "$DS" >"$runfb/spec.md"
+run_cli update --run-dir "$runfb" --to blocked --resume-to plan --reason "hold for bind" >/dev/null
+python3 - "$runfb" <<'PY'
+import json, sys
+from pathlib import Path
+d = json.loads((Path(sys.argv[1]) / "state.json").read_text())
+assert d["phase"] == "blocked", d["phase"]
+assert not d.get("spec_sha256")
+assert not d.get("environment_sha256")
+PY
+write_spec "$runfb"
+run_cli update --run-dir "$runfb" --to plan --reason "first bind" >/dev/null
+python3 - "$runfb" <<'PY'
+import json, sys
+from pathlib import Path
+d = json.loads((Path(sys.argv[1]) / "state.json").read_text())
+assert d["phase"] == "plan", d["phase"]
+assert d.get("spec_sha256")
+assert d.get("environment_sha256")
+PY
+run_cli update --run-dir "$runfb" --to blocked --resume-to plan --reason "re-check" >/dev/null
+printf 'mutated-env\n' >>"$runfb/environment.md"
+set +e
+out_fbd="$(run_cli update --run-dir "$runfb" --to plan --reason "drift" 2>&1)"
+rc_fbd=$?
+set -e
+[[ "$rc_fbd" -eq 2 ]] || fail "blocked→plan after env edit want 2: $out_fbd"
+printf 'LAYER: blocked→plan first-bind + drift OK\n'
+
+# --- A25 empty prompt refuses dest implement; A27 refs must be cited ---
+runpr="$tmpdir/promptref/.shiploop"
+repopr="$tmpdir/promptref/repo"
+advance_to_plan "$runpr" "$repopr" "$planf"
+install_dag "$runpr" missing-prompt.json
+set +e
+out_mp="$(run_cli update --run-dir "$runpr" --to implement 2>&1)"
+rc_mp=$?
+set -e
+[[ "$rc_mp" -eq 2 ]] || fail "missing-prompt dest implement want 2: $out_mp"
+printf '%s\n' "$out_mp" | grep -qi 'prompt' || fail "missing-prompt message: $out_mp"
+
+refpath="$fix/existing-app/README.md"
+write_machine "$runpr" "{\"kind\": \"greenfield\", \"augment\": false, \"references\": [{\"path\": \"$refpath\", \"why\": \"practice\"}], \"tools\": [], \"mcp\": [],
+ \"mcp_considered\": \"none(x)\", \"handles\": [], \"initiation\": \"none\", \"ui\": false, \"ui_craft\": \"none(no UI)\"}"
+# dest plan already happened; hashes bound to prior env. Rebind via blocked → validate-spec → plan.
+run_cli update --run-dir "$runpr" --to blocked --resume-to validate-spec --reason "add practice refs" >/dev/null
+run_cli update --run-dir "$runpr" --to validate-spec --reason "rebind refs" >/dev/null
+write_spec "$runpr"
+write_machine "$runpr" "{\"kind\": \"greenfield\", \"augment\": false, \"references\": [{\"path\": \"$refpath\", \"why\": \"practice\"}], \"tools\": [], \"mcp\": [],
+ \"mcp_considered\": \"none(x)\", \"handles\": [], \"initiation\": \"none\", \"ui\": false, \"ui_craft\": \"none(no UI)\"}"
+run_cli update --run-dir "$runpr" --to plan >/dev/null
+install_dag "$runpr" linear.json
+set +e
+out_cite="$(run_cli update --run-dir "$runpr" --to implement 2>&1)"
+rc_cite=$?
+set -e
+[[ "$rc_cite" -eq 2 ]] || fail "uncited reference dest implement want 2: $out_cite"
+printf '%s\n' "$out_cite" | grep -qi 'reference' || fail "uncited reference message: $out_cite"
+python3 - "$runpr/backchain/plan.json" "$refpath" <<'PY'
+import json, sys
+from pathlib import Path
+p = Path(sys.argv[1])
+ref = sys.argv[2]
+d = json.loads(p.read_text())
+for step in d["steps"]:
+    step["prompt"] = step["prompt"] + " cite " + ref
+p.write_text(json.dumps(d, indent=2) + "\n")
+PY
+run_cli update --run-dir "$runpr" --to implement >/dev/null
+out_cited="$(run_cli next --run-dir "$runpr")"
+printf '%s\n' "$out_cited" | grep -qF "$refpath" || fail "next did not reprint cited reference"
+printf 'LAYER: empty prompt + reference citation OK\n'
+
+# --- A16/A18/A22 inject-step ---
+runinj="$tmpdir/inject/.shiploop"
+repoinj="$tmpdir/inject/repo"
+advance_to_plan "$runinj" "$repoinj" "$planf"
+install_dag "$runinj" linear.json
+run_cli update --run-dir "$runinj" --to implement >/dev/null
+run_cli next --run-dir "$runinj" >/dev/null
+set +e
+out_ib="$(run_cli inject-step --run-dir "$runinj" --statement "mid" --prompt "/goal injected mid" --produces "mid exists" --before S1 2>&1)"
+rc_ib=$?
+set -e
+[[ "$rc_ib" -eq 2 ]] || fail "inject --before running want 2: $out_ib"
+set +e
+out_ip="$(run_cli inject-step --run-dir "$runinj" --statement "mid" --prompt "" --produces "mid exists" --before S2 2>&1)"
+rc_ip=$?
+set -e
+[[ "$rc_ip" -eq 2 ]] || fail "inject empty --prompt want 2: $out_ip"
+out_iok="$(run_cli inject-step --run-dir "$runinj" --statement "mid bind" --prompt "/goal injected mid bind" --produces "mid exists" --before S2 --id S3)"
+printf '%s\n' "$out_iok" | grep -q 'injected S3' || fail "inject add: $out_iok"
+python3 - "$runinj" <<'PY'
+import json, hashlib, sys
+from pathlib import Path
+run = Path(sys.argv[1])
+dag = json.loads((run / "backchain" / "plan.json").read_text())
+by_id = {s["id"]: s for s in dag["steps"]}
+assert by_id["S3"]["origin"] == "discovered", by_id["S3"]
+assert by_id["S3"]["prompt"] == "/goal injected mid bind"
+assert any(i.get("from") == "S3" and i.get("need") == "mid exists" for i in by_id["S2"]["inputs"])
+state = json.loads((run / "state.json").read_text())
+assert state["phase"] == "implement", state["phase"]
+digest = hashlib.sha256((run / "backchain" / "plan.json").read_bytes()).hexdigest()
+assert state["plan_sha256"] == digest
+wrapper = json.loads((run / "plan.json").read_text())
+assert wrapper.get("plan_sha256") == digest
+for rec_path in sorted((run / "steps").glob("*.json")):
+    rec = json.loads(rec_path.read_text())
+    if rec.get("plan_sha256"):
+        assert rec["plan_sha256"] == digest, rec_path
+s1 = json.loads((run / "steps" / "S1.json").read_text())
+assert s1.get("status") == "running", s1
+PY
+[[ ! -f "$runinj/implement.json" ]] || fail "inject-step wrote implement.json"
+# hand-edit DAG then inject must refuse
+python3 - "$runinj/backchain/plan.json" <<'PY'
+import json, sys
+from pathlib import Path
+p = Path(sys.argv[1])
+d = json.loads(p.read_text())
+d["steps"][0]["statement"] = "hand-edited"
+p.write_text(json.dumps(d, indent=2) + "\n")
+PY
+set +e
+out_ih="$(run_cli inject-step --run-dir "$runinj" --statement "after edit" --prompt "/goal no" --produces "x" 2>&1)"
+rc_ih=$?
+set -e
+[[ "$rc_ih" -eq 2 ]] || fail "inject after hand-edit want 2: $out_ih"
+printf '%s\n' "$out_ih" | grep -qi 'hash' || fail "inject hash-drift message: $out_ih"
+
+# restore DAG hash by re-reading from a fresh drained session
+rundr="$tmpdir/inject-drain/.shiploop"
+repodr="$tmpdir/inject-drain/repo"
+advance_to_plan "$rundr" "$repodr" "$planf"
+install_dag "$rundr" linear.json
+run_cli update --run-dir "$rundr" --to implement >/dev/null
+run_cli next --run-dir "$rundr" >/dev/null
+complete_ok "$rundr" S1
+run_cli next --run-dir "$rundr" >/dev/null
+complete_ok "$rundr" S2
+out_drained="$(run_cli next --run-dir "$rundr")"
+printf '%s\n' "$out_drained" | grep -q 'drained — next residual' || fail "pre-inject not drained: $out_drained"
+set +e
+out_idone="$(run_cli inject-step --run-dir "$rundr" --statement "late" --prompt "/goal late" --produces "late exists" --before S2 2>&1)"
+rc_idone=$?
+set -e
+[[ "$rc_idone" -eq 2 ]] || fail "inject --before done want 2: $out_idone"
+out_idrain="$(run_cli inject-step --run-dir "$rundr" --statement "late" --prompt "/goal late discovered" --produces "late exists" --id S9)"
+printf '%s\n' "$out_idrain" | grep -q 'injected S9' || fail "inject on drained: $out_idrain"
+out_after="$(run_cli next --run-dir "$rundr")"
+printf '%s\n' "$out_after" | grep -q '/goal late discovered' || fail "drained inject did not reprint new prompt: $out_after"
+assert_absent "$out_after" 'drained — next residual' "session still drained after inject"
+python3 - "$rundr" <<'PY'
+import json, sys
+from pathlib import Path
+run = Path(sys.argv[1])
+s1 = json.loads((run / "steps" / "S1.json").read_text())
+s2 = json.loads((run / "steps" / "S2.json").read_text())
+assert s1.get("status") == "complete", s1
+assert s2.get("status") == "complete", s2
+state = json.loads((run / "state.json").read_text())
+assert state["phase"] == "implement", state["phase"]
+PY
+printf 'LAYER: inject-step add/refuse/drained OK\n'
 
 printf 'shiploop.test.sh: PASS\n'
