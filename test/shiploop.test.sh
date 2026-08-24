@@ -32,6 +32,20 @@ grep -q 'VALIDATE_SPEC_PATH' "$root/skills/shiploop/references/activities/valida
 for tok in prep "intermediate deploy" cleanup; do
   grep -q "$tok" "$root/skills/shiploop/references/activities/plan.md" || fail "plan.md missing $tok"
 done
+grep -q 'outer-loop' "$root/skills/shiploop/references/activities/plan.md" \
+  || fail "plan.md missing outer-loop publish placement"
+grep -q 'Deploy preparation before the walk' "$root/skills/shiploop/references/activities/validate-spec.md" \
+  || fail "validate-spec.md missing deploy-prep question"
+grep -q 'Deploy / publish after the walk' "$root/skills/shiploop/references/activities/validate-spec.md" \
+  || fail "validate-spec.md missing deploy/publish question"
+grep -q 'Quality test/fix on outer-loop completion' "$root/skills/shiploop/references/activities/validate-spec.md" \
+  || fail "validate-spec.md missing quality /goal question"
+grep -q '/goal' "$root/skills/shiploop/references/activities/validate-spec.md" \
+  || fail "validate-spec.md missing /goal in quality question"
+grep -q 'Quality test/fix' "$root/skills/shiploop/references/activities/residual.md" \
+  || fail "residual.md missing quality /goal closer"
+grep -q 'Outer-loop deploy/publish' "$root/skills/shiploop/references/activities/residual.md" \
+  || fail "residual.md missing outer-loop deploy/publish"
 chmod +x "$cli"
 
 le_docs="$root/docs/LOOP-ENGINEERING.md"
@@ -42,6 +56,8 @@ grep -q '/shiploop next' "$le_docs" || fail "LOOP-ENGINEERING missing /shiploop 
 grep -q '/shiploop complete' "$le_docs" || fail "LOOP-ENGINEERING missing /shiploop complete"
 grep -q 'research practices' "$le_docs" || fail "LOOP-ENGINEERING missing practices research"
 grep -q 'recap.html' "$le_docs" || fail "LOOP-ENGINEERING missing recap.html"
+grep -q 'quality test-and-fix' "$le_docs" || fail "LOOP-ENGINEERING missing quality /goal"
+grep -q 'outer-loop' "$le_docs" || fail "LOOP-ENGINEERING missing outer-loop publish"
 grep -q 'Best-practice research' "$root/skills/shiploop/references/activities/validate-spec.md" \
   || fail "validate-spec.md missing practices job"
 grep -q 'best-practice' "$root/skills/shiploop/references/survey.md" \
@@ -52,8 +68,8 @@ grep -q 'researches applicable practices' "$root/skills/shiploop/README.md" \
   || fail "README missing practices research"
 grep -q 'recap.html' "$root/skills/shiploop/README.md" \
   || fail "README missing recap.html"
-grep -q '^VERSION = "0.8.0"$' "$cli" || fail "script VERSION is not 0.8.0"
-grep -q '^version: 0.8.0$' "$root/skills/shiploop/SKILL.md" || fail "SKILL.md version is not 0.8.0"
+grep -q '^VERSION = "0.8.1"$' "$cli" || fail "script VERSION is not 0.8.1"
+grep -q '^version: 0.8.1$' "$root/skills/shiploop/SKILL.md" || fail "SKILL.md version is not 0.8.1"
 grep -q 'init --force --prompt' "$root/skills/shiploop/SKILL.md" \
   || fail "SKILL.md missing three-branch init --force --prompt"
 grep -q 'init --force --prompt' "$root/skills/shiploop/README.md" \

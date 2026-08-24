@@ -4,6 +4,11 @@ The spec is **frozen**. Read `{{SPEC_MD}}` (done sentence, checkable) and
 Call the installed **backchain** skill **once** to write the sequence DAG.
 Include, when the frozen spec implies them, **prep**, **intermediate deploy**,
 and **cleanup** as real DAG steps (postconditions), not as a second spec.
+If the spec named **deploy preparation before the walk**, that is an early
+DAG step (same grain as prep). If it named **deploy/publish as an
+outer-loop** activity, do **not** put that publish in the DAG — residual
+owns it after the walk. If it named a **quality `/goal` on outer-loop
+completion**, do not fold that into a DAG step either.
 Include a **README create or revise** as a **late DAG successor** after the
 feature work it documents — same grain as cleanup, not a new state-machine
 phase. It must record what the app is, how to run it, and what this

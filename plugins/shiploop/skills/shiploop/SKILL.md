@@ -8,7 +8,7 @@ description: >-
   After every increment invoke /shiploop complete — do not rely on chat
   memory. Lost context without completing → /shiploop next.
 allowed-tools: all
-version: 0.8.0
+version: 0.8.1
 license: MIT
 platforms:
   - linux

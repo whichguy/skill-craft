@@ -36,6 +36,25 @@ once, outside fences/blockquotes). Derive a machine-checkable
 product duty is a README create (if absent) or revise (if present) — tell
 backchain to add that as a late DAG successor in `plan`, not here.
 
+While expanding the spec, answer these three questions in `{{SPEC_MD}}`
+(prose is enough; do not invent new required labels):
+
+1. **Deploy preparation before the walk?** Does this increment need
+   credentials, project create, store listing, web-app manifest, or other
+   deploy config *before* the feature steps? If yes, say what so `plan` can
+   put it first. If no, say deploy preparation is none.
+2. **Deploy / publish after the walk?** Once the feature work is done, does
+   someone still need to deploy or publish? Record one of: **outer-loop**
+   (residual owns it after the walk — not a DAG step), **dag** (a real
+   sequence step), or **none**.
+3. **Quality test/fix on outer-loop completion?** After residual
+   review-coverage, should the host run a `/goal` quality test-and-fix pass
+   on the completed product before dest done? Record yes (and what to
+   check) or no.
+
+Do not run that `/goal` here. Residual owns it. Do not invent a new
+state-machine phase.
+
 If not checkable, or a handle needs the user: set `checkable: false` and a
 labeled `ask_user: <question>`, then `/shiploop complete --blocked
 --resume-to validate-spec --reason <ask_user>`. This hatch does not require

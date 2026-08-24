@@ -9,7 +9,7 @@ This is **not** DevLoop. `/devloop` still means skill `devloop`. ShipLoop never
 invokes it, never captures `devloop-run`, never auto-merges, and never claims
 engine `COMPLETE`.
 
-Package leaf: `skills/shiploop`. Invoke: `/shiploop`. Version: **0.8.0**.
+Package leaf: `skills/shiploop`. Invoke: `/shiploop`. Version: **0.8.1**.
 
 Canonical companions (do not duplicate their contracts here):
 
@@ -161,6 +161,10 @@ One phase, **three jobs in order**. Guide: `references/survey.md`. Activity:
    `checkable: true|false` exactly once at line start, outside fences. The
    spec’s **final product duty** is a README create (absent) or revise
    (present) — as a late DAG step in **plan**, not a validate-spec write.
+   While expanding the spec, also answer: deploy preparation before the
+   walk (yes/what or none); deploy/publish after the walk (**outer-loop**,
+   **dag**, or **none**); and whether residual should run a `/goal`
+   quality test-and-fix pass on outer-loop completion.
 
 ```mermaid
 flowchart TD
@@ -203,7 +207,9 @@ must have:
 
 Each `prompt` must cite the practice `references` from `environment.md` that
 that step must use. Include prep / intermediate deploy / cleanup when implied,
-and a **README create/revise as a late successor**. Then write `plan.md` /
+and a **README create/revise as a late successor**. Deploy preparation
+named by the spec is an early DAG step; **outer-loop** publish and a
+quality `/goal` stay out of the DAG (residual owns them). Then write `plan.md` /
 `plan.json` wrappers (`done_sentence` must equal the spec). The wrapper
 `step_ids` is a copy, not SoT.
 
@@ -284,8 +290,10 @@ Session closer only. Run review-coverage Phase B for the bound plan under
 `REVIEW_CONVERGE.md`. Do not treat a foreign or unlanded ledger as success.
 
 When the ledger is `complete` and landed (or the plan has a real residual
-waiver), dest `done`. When the ledger is `stopped (...)`, dest `halted`.
-Those dests write `.shiploop/recap.html` from the run files. Do not
+waiver), consider a `/goal` quality test-and-fix pass if the spec asked
+for one, then do any **outer-loop** deploy/publish the spec named, then
+dest `done`. When the ledger is `stopped (...)`, dest `halted`. Those
+dests write `.shiploop/recap.html` from the run files. Do not
 hand-author it.
 
 ### 6. Done (or halted)
