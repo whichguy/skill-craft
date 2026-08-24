@@ -70,9 +70,11 @@ interpolation, then execs the shim with explicit argv. The shim itself no
 longer auto-prepends `--lang command` from a raw `verify_cmd exactly [` in
 argv — that was a second, silent profile selector. The shim only labels
 whatever actually reached the CLI (`STATE lang=<value> reason=explicit` or
-`STATE lang=none reason=none`). Do not invoke Grok `/goal` or `/loop` from
-this card or its alias; goal-engineering shape lives in the `/devloop` prompt
-text itself.
+`STATE lang=none reason=none`). `STATE target=` is the `--repo` flag only
+(`explicit` / `repo_flag` vs `scratch` / `default`) — designation phrases
+live on the card interpolate table, not in bash. Do not invoke Grok `/goal`
+or `/loop` from this card or its alias; goal-engineering shape lives in the
+`/devloop` prompt text itself.
 
 ## Process learnings
 
@@ -112,12 +114,23 @@ request` with `totalHandlers>0` / `failedCount=0` is missing **claimer**
 (handlers yielded), not platform down. Bindings:
 [destination-instances.md](destination-instances.md).
 
+## No auto-Hermes on invoke-host (2026-08-23)
+
+Cursor/Claude/Codex (and `auto` + a full engine) must not fall through to
+`hermes chat` when `DEVLOOP_TRANSPORT` is unset. The engine’s
+`resolve_transport` still defaults to Hermes; the shim fail-closes first
+unless the operator sets `DEVLOOP_TRANSPORT=grok` or `=hermes`. `auto` no
+longer allows Hermes seed. `DEVLOOP_HOME` pointed at the live Hermes leaf
+is still an explicit package override (warn only).
+
 ## Overlay compose (2026-08-22)
 
 Card 0.5.2 names the compose graph and thins the handshake:
 
-- **Before** `/devloop`: `c-plan` (optional `define-done` / `backchain`)
-  when there is no checkable done.
+- **Before** `/devloop`: validate the spec
+  ([validate-spec.md](validate-spec.md); optional `define-done` /
+  `backchain`) when done is not machine-checkable. Not `c-plan`, not
+  c-thru `/cplan`. Handshake step 0, then MCP → dest → interpolate.
 - **During:** engine only. Still do not invoke Grok `/goal` or `/loop`.
 - **After** COMPLETE: `/review-coverage` under `/goal` for residual×2.
 
@@ -125,7 +138,7 @@ MCP consider and destination-contract procedures live in
 [mcp-consider.md](mcp-consider.md) and
 [destination-contract.md](destination-contract.md). Portable practices:
 [loop-engineering.md](loop-engineering.md). Maintain the card with
-`prompt-align` against `test/devloop-run.test.sh` (D37–D46); do not add
+`prompt-align` against `test/devloop-run.test.sh` (D37–D48); do not add
 SKILL.md greps for prose that already lives in a reference.
 
 ## Foreground + prompt on HUMAN_REVIEW (2026-08-17)

@@ -44,13 +44,14 @@ Overlays sit **around** DevLoop, not inside it. Full list:
 
 | When | Overlay |
 |------|---------|
-| **Before** | `c-plan` (optional `define-done` / `backchain`) when there is no checkable done |
+| **Before** | Validate the spec ([validate-spec.md](validate-spec.md)) — optional `define-done` / `backchain` when done is not machine-checkable |
 | **During** | this card only — do not invoke `/goal` or `/loop` to drive DevLoop |
 | **After** | `/review-coverage` under `/goal` for residual×2 |
 
 ## Agent procedure (card)
 
-The handshake is [SKILL.md](../SKILL.md): review session MCP for a
+The handshake is [SKILL.md](../SKILL.md): **validate the spec** first
+([validate-spec.md](validate-spec.md)), then review session MCP for a
 read-capable oracle **before interpolating or planning**, print
 `mcp-considered`, then **discover the destination contract** on hosted
 asks (`env-discovered`), interpolate argv, exec the shim **in the

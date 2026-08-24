@@ -26,7 +26,7 @@ Flags:
   --force-bootstrap    Re-materialize host-local engine even if one exists
   --force-hard         With --force-bootstrap, allow replacing a tree without our marker
   --strict             If DEVLOOP_HOME is set but invalid, exit 2 (no fallback)
-  --host NAME          Force host affinity: grok|hermes|claude|codex|auto (default auto)
+  --host NAME          Force host affinity: grok|hermes|claude|codex|cursor|auto (default auto)
   --allow-hermes-seed  On non-Hermes hosts, allow resolve/bootstrap via Hermes leaf seed
 
 Environment:
@@ -36,7 +36,7 @@ Environment:
   DEVLOOP_ENGINE_SHA256  Override pin sha256 (required for non-file https unless pin file)
   DEVLOOP_ENGINE_PIN     Path to engine-pin.json (default: card references/engine-pin.json)
   DEVLOOP_BOOTSTRAP_CMD  Test seam: command that installs into $1
-  DEVLOOP_HOST           Host affinity (grok|hermes|claude|codex); exported to engine
+  DEVLOOP_HOST           Host affinity (grok|hermes|claude|codex|cursor|auto); exported to engine
   DEVLOOP_TRANSPORT      Default model transport for engine (exported when set by preflight)
   DEVLOOP_ALLOW_HERMES_SEED  If 1, non-Hermes hosts may use Hermes leaf as seed/resolve
   DEVLOOP_ALLOW_LEGACY_ENGINE  If 1, skip capability transport preflight (stubs/tests)
@@ -50,23 +50,19 @@ Resolve order (host=hermes or allow-hermes-seed):
   3. Hermes / /opt/data seeds
   4. Bootstrap (pin / URL / CMD / seed copy)
 
-Resolve order (host=grok|claude|codex, default):
+Resolve order (host=grok|claude|codex|cursor|auto, default):
   1. DEVLOOP_HOME
   2. Host-local only
   3. Bootstrap from pin/URL/CMD (Hermes seed only if DEVLOOP_ALLOW_HERMES_SEED=1)
+  Invoke on cursor/claude/codex (and auto + full engine) requires an explicit
+  DEVLOOP_TRANSPORT=grok|hermes — Hermes is never the implicit default.
 
 Never overwrites Hermes skillhub leaf "devloop".
 
-New-repo designation (one signal, no fuzzy guessing):
-  --repo PATH given                -> that path always wins.
-  --repo omitted + goal designates -> --repo stays omitted (scratch mechanism
-    a new repo (phrases: "new repo",   is unchanged); shim prints
-    "new repository", "separate repo", "STATE target=scratch reason=new_repo_designated".
-    "fresh repo", "create a repo",
-    "newly created repo")
-  --repo omitted, no designation   -> unchanged default; shim prints
-                                       "STATE target=scratch reason=default".
-  Never reuses a previous --repo path and never infers cwd as the target.
+Repo target (flag only; the card interpolates phrases):
+  --repo PATH given  -> STATE target=explicit reason=repo_flag
+  --repo omitted     -> STATE target=scratch reason=default
+  Never scrapes goal prose. Never reuses a previous --repo path or infers cwd.
 EOF
 }
 
@@ -110,21 +106,6 @@ fail_closed() {
   exit 2
 }
 
-# New-repo designation (host signal only; one conservative rule, no fuzzy guessing).
-# Omitting --repo already creates a scratch git repo under the write-safe root and
-# worktrees it (see ensure_target_repo in the engine) — that scratch IS the new-repo
-# deliverable. This detector never changes routing; it only labels *why* --repo was
-# omitted so hosts stop inventing --repo paths or inferring cwd. Case-insensitive
-# substring match against the args forwarded to devloop_cli.py (goal text included).
-new_repo_designation_phrases=(
-  "new repo"
-  "new repository"
-  "separate repo"
-  "fresh repo"
-  "create a repo"
-  "newly created repo"
-)
-
 args_have_repo_flag() {
   local a
   for a in "$@"; do
@@ -158,17 +139,6 @@ extract_lang_value() {
     prev="$a"
   done
   printf 'none\n'
-}
-
-designates_new_repo() {
-  local joined phrase
-  joined="$(printf '%s ' "$@" | tr '[:upper:]' '[:lower:]')"
-  for phrase in "${new_repo_designation_phrases[@]}"; do
-    if [[ "$joined" == *"$phrase"* ]]; then
-      return 0
-    fi
-  done
-  return 1
 }
 
 trace_repo_target() {
@@ -224,8 +194,7 @@ allow_hermes_seed_effective=0
 if [[ "$allow_hermes_seed" == "1" || "${DEVLOOP_ALLOW_HERMES_SEED:-0}" == "1" ]]; then
   allow_hermes_seed_effective=1
 fi
-if [[ "$DEVLOOP_HOST" == "hermes" || "$DEVLOOP_HOST" == "auto" ]]; then
-  # auto keeps legacy resolve (Hermes seed allowed) for backward compat / unknown installs
+if [[ "$DEVLOOP_HOST" == "hermes" ]]; then
   allow_hermes_seed_effective=1
 fi
 trace_after detect_host "host=$DEVLOOP_HOST hermes_seed=$allow_hermes_seed_effective"
@@ -656,6 +625,14 @@ resolve_engine() {
     cand="${DEVLOOP_HOME}"
     if is_engine_root "$cand"; then
       printf 'probe: DEVLOOP_HOME=%s -> selected\n' "$cand" >&2
+      if [[ "$DEVLOOP_HOST" != "hermes" ]]; then
+        case "$cand" in
+          */.hermes/skills/software-development/devloop|*/.hermes/skills/software-development/devloop/)
+            printf 'devloop-run: warning: DEVLOOP_HOME is the live Hermes engine leaf (host=%s).\n' "$DEVLOOP_HOST" >&2
+            printf '  That selects the package tree only. Model transport still needs an explicit grok|hermes value on this host.\n' >&2
+            ;;
+        esac
+      fi
       printf '%s\n' "$(cd "$cand" && pwd -P)"
       return 0
     fi
@@ -703,34 +680,61 @@ preflight_invoke() {
   export DEVLOOP_DEPTH=0
   export DEVLOOP_NESTING=0
 
-  # Host-affinity transport defaults (shim-driven; engine may refine)
+  # Host-affinity transport defaults (shim-driven; engine may refine).
+  # cursor/claude/codex never default to Hermes. auto + full engine neither.
+  require_explicit_transport() {
+    local t="${DEVLOOP_TRANSPORT:-}"
+    case "$t" in
+      grok|hermes) return 0 ;;
+    esac
+    printf 'devloop-run: host=%s has no DevLoop transport (DEVLOOP_TRANSPORT=%s).\n' \
+      "$DEVLOOP_HOST" "${t:-unset}" >&2
+    printf '  This host does not auto-select Hermes. Use Grok /devloop, or set\n' >&2
+    printf '  DEVLOOP_TRANSPORT=grok (and GROK_BIN) or DEVLOOP_TRANSPORT=hermes explicitly.\n' >&2
+    printf '  Do not use evidence-gates as DevLoop.\n' >&2
+    trace_after preflight_invoke FAILED
+    fail_closed
+  }
+
+  require_grok_bin() {
+    local gbin="${GROK_BIN:-}"
+    if [[ -z "$gbin" ]]; then
+      gbin="$(command -v grok 2>/dev/null || true)"
+    fi
+    if [[ -z "$gbin" || ! -x "$gbin" ]]; then
+      if ! command -v grok >/dev/null 2>&1; then
+        printf 'devloop-run: DEVLOOP_TRANSPORT=grok but GROK_BIN/grok not found on PATH.\n' >&2
+        printf '  Next: install/sign in to Grok CLI, or set GROK_BIN.\n' >&2
+        printf '  Do not use evidence-gates as DevLoop.\n' >&2
+        trace_after preflight_invoke FAILED
+        fail_closed
+      fi
+      gbin="$(command -v grok)"
+    fi
+    export GROK_BIN="$gbin"
+  }
+
   case "$DEVLOOP_HOST" in
     grok)
       export DEVLOOP_TRANSPORT="${DEVLOOP_TRANSPORT:-grok}"
-      local gbin="${GROK_BIN:-}"
-      if [[ -z "$gbin" ]]; then
-        gbin="$(command -v grok 2>/dev/null || true)"
-      fi
-      if [[ -z "$gbin" || ! -x "$gbin" ]]; then
-        if ! command -v grok >/dev/null 2>&1; then
-          printf 'devloop-run: host=grok but GROK_BIN/grok not found on PATH.\n' >&2
-          printf '  Next: install/sign in to Grok CLI, or set GROK_BIN.\n' >&2
-          printf '  Do not use evidence-gates as DevLoop.\n' >&2
-          trace_after preflight_invoke FAILED
-          fail_closed
-        fi
-        gbin="$(command -v grok)"
-      fi
-      export GROK_BIN="$gbin"
+      require_grok_bin
       ;;
     hermes)
       export DEVLOOP_TRANSPORT="${DEVLOOP_TRANSPORT:-hermes}"
       ;;
-    claude|codex)
-      export DEVLOOP_TRANSPORT="${DEVLOOP_TRANSPORT:-$DEVLOOP_HOST}"
+    cursor|claude|codex)
+      require_explicit_transport
+      if [[ "${DEVLOOP_TRANSPORT:-}" == "grok" ]]; then
+        require_grok_bin
+      fi
       ;;
     auto)
-      : # leave transport unset for engine auto
+      if is_full_engine "$engine"; then
+        require_explicit_transport
+        if [[ "${DEVLOOP_TRANSPORT:-}" == "grok" ]]; then
+          require_grok_bin
+        fi
+      fi
       ;;
   esac
 
@@ -845,16 +849,13 @@ trace_after preflight_invoke "transport=${DEVLOOP_TRANSPORT:-unset} grok_bin=${G
 trace_state exec
 
 # --repo PATH always wins (explicit host target). Otherwise --repo stays omitted
-# (scratch mechanism unchanged); the designation only changes the printed reason
-# so hosts relay it instead of inventing a --repo path or a previous/cwd guess.
+# (scratch mechanism unchanged). Phrase lists live on the card; the shim only
+# labels whether the flag reached argv so hosts do not invent a path or cwd.
 repo_target="scratch"
 repo_reason="default"
 if args_have_repo_flag "$@"; then
   repo_target="explicit"
   repo_reason="repo_flag"
-elif designates_new_repo "$@"; then
-  repo_target="scratch"
-  repo_reason="new_repo_designated"
 fi
 trace_repo_target "$repo_target" "$repo_reason"
 

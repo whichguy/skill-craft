@@ -38,13 +38,17 @@ Never writes into Hermes skillhub leaf `devloop` (foreign engine tree).
 
 | Host (`DEVLOOP_HOST` / `--host`) | Hermes leaf in resolve | Hermes seed bootstrap |
 |----------------------------------|------------------------|------------------------|
-| `grok`, `claude`, `codex` | **No** (default) | Only with allow flag |
-| `hermes`, `auto` | Yes | Yes |
+| `grok`, `claude`, `codex`, `cursor`, `auto` | **No** (default) | Only with allow flag |
+| `hermes` | Yes | Yes |
 
 On **invoke** (not `--setup`/`--probe`):
 
 - Nonzero `DEVLOOP_DEPTH` / `DEVLOOP_NESTING` → exit **2** (anti re-entry).
 - `host=grok` requires `GROK_BIN` or `grok` on PATH; exports `DEVLOOP_TRANSPORT=grok`.
+- `host=cursor|claude|codex` (and `auto` + a full engine) require an **explicit**
+  `DEVLOOP_TRANSPORT=grok` or `=hermes`. Unset transport does **not** fall through
+  to Hermes chat. Use Grok `/devloop`, or set transport + `GROK_BIN` / Hermes
+  explicitly.
 - Full engines without declared `transports` including `grok` → exit **2** until a
   Grok-capable pin ships (override: `DEVLOOP_ALLOW_LEGACY_ENGINE=1`, unsupported).
 - Error text must **not** suggest `evidence-gates` as DevLoop.
@@ -69,7 +73,7 @@ On **invoke** (not `--setup`/`--probe`):
 | `--force-bootstrap` | Rebuild host-local tree (marker-owned only) |
 | `--force-hard` | Allow replace of unmarked host-local tree |
 | `--probe` | Resolve only (no bootstrap); use `--setup` to materialize |
-| `--host NAME` | Force affinity: `grok\|hermes\|claude\|codex\|auto` |
+| `--host NAME` | Force affinity: `grok\|hermes\|claude\|codex\|cursor\|auto` |
 | `--allow-hermes-seed` | Allow Hermes leaf seed on non-Hermes hosts |
 
 ## Marker
@@ -116,7 +120,7 @@ Default publish surface: **skill-craft** GitHub Release tags `devloop-engine-v*`
 |------|-----------------|
 | Hermes | Hermes chat (`HERMES_BIN`) — default on that host |
 | Grok | **Grok transport required** (`transports` includes `grok` in pin 0.2.0). Hermes must **not** be required. Missing grok transport → exit 2, never reimplement the loop in the host agent. |
-| Claude/Codex | Resolve/bootstrap multi-host; transport matrix TBD |
+| Claude/Codex/Cursor | Resolve/bootstrap; invoke without explicit `DEVLOOP_TRANSPORT=grok\|hermes` → exit 2 (no auto-Hermes) |
 
 Card bootstrap/probe is multi-host. Completing a full engine loop without the matching
 transport is a **fail-closed** state — never fall back to `evidence-gates` as DevLoop.

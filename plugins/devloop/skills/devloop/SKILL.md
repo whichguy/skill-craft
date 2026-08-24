@@ -12,7 +12,7 @@ when-to-use: >-
   fail-closed loop with tests. Do not use for prompt tuning, visual design, or
   offline freeze/prove/stop (that is evidence-gates).
 argument-hint: plain-English goal
-version: 0.5.2
+version: 0.5.4
 license: MIT
 platforms:
   - linux
@@ -50,8 +50,9 @@ or plugin path, not the physical checkout behind a symlink).
 
 ## Compose
 
-- **Before:** `c-plan` (optional `define-done` / `backchain`) when there is no
-  checkable done — stop and ask; do not invent an oracle.
+- **Before:** validate the spec — is the done sentence machine-checkable?
+  Follow [references/validate-spec.md](references/validate-spec.md).
+  Optional `define-done` / `backchain`. Stop and ask; do not invent an oracle.
 - **During:** this skill only. Do not invoke Grok `/goal` or `/loop` in-loop.
 - **After:** `/review-coverage` under `/goal` for residual×2 — not `/devloop`
   again, not `/loop`.
@@ -70,6 +71,11 @@ named a path (scratch). Never infer cwd.
 /devloop <goal>
 grok -p '/devloop <goal>' --always-approve
 ```
+
+### 0. Validate the spec
+
+Follow [references/validate-spec.md](references/validate-spec.md).
+No machine-checkable done → **stop and ask**. Do not invent an oracle.
 
 ### 1. Consider session MCP
 
@@ -121,8 +127,9 @@ Omit `--lang` / `--repo` when step 2 said to omit them. Pass through only
 flags the user typed plus what step 2 interpolated (`--repo`, `--lang`,
 `--keep-branch`, `--json`, typed `--setup-spec`). `--setup` once on a fresh
 machine (engine **install**). `--host grok` is an override. Shim STATE
-(`target=scratch reason=new_repo_designated`, `lang=… reason=explicit|none`)
-labels what the shim received.
+(`target=explicit reason=repo_flag` vs `target=scratch reason=default`,
+`lang=… reason=explicit|none`) labels what the shim received — it does
+not scrape goal phrases.
 
 Relay `[devloop-run] BEFORE` / `AFTER` / `STATE` as-is. Cite identity
 (`DevLoop — mode=engine …`), last `STATE`, and exit code. **COMPLETE** only
@@ -150,7 +157,9 @@ prior worktree, write the product on the host, invent a new harness
 instead of reviewing session MCP first, add a second COMPLETE gate, or
 emit a generic "prefer MCP" constraint, or treat one vendor hook as the
 handshake (instance answers live in `references/destination-instances.md`),
-or background the shim, or swallow `HUMAN_REVIEW` without prompting.
+or background the shim, or swallow `HUMAN_REVIEW` without prompting,
+or invoke `c-plan` / `/cplan` as the Before overlay (that overlay is
+validate the spec).
 Goal-engineering shape lives *in* the `/devloop` prompt.
 `disable-model-invocation: true` on the Grok alias. Nested invoke
 (`DEVLOOP_DEPTH` / `DEVLOOP_NESTING`) is refused.

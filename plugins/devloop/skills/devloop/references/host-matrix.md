@@ -6,9 +6,9 @@ Hermes card install is skipped — the engine owns `software-development/devloop
 | Host | Skill card install | Scripts | Runtime |
 |------|-------------------|---------|---------|
 | Grok | `./install.sh --skill devloop --grok-only` → `~/.grok/skills/devloop` (symlink; detect host from **logical** path). Slash `/devloop` is `skills/devloop/commands/devloop.md` → `~/.grok/commands/devloop.md` | `scripts/devloop-run --host grok` | host-local engine + **Grok transport** (no Hermes required). Pin 0.2.0 declares `grok`. |
-| Claude Code | skill-dir `~/.claude/skills/devloop` and/or marketplace `plugins/devloop` | same | resolve/bootstrap; transport TBD |
-| Codex | `./install.sh --skill devloop --codex-only` → `~/.codex/skills/devloop` | same | resolve/bootstrap; transport TBD |
-| Cursor | `./install.sh --skill devloop --cursor-only` → `~/.cursor/skills/devloop` (never `~/.cursor/skills-cursor`) | same | resolve/bootstrap; transport TBD |
+| Claude Code | skill-dir `~/.claude/skills/devloop` and/or marketplace `plugins/devloop` | same | resolve/bootstrap; invoke needs explicit `DEVLOOP_TRANSPORT=grok\|hermes` (no auto-Hermes) |
+| Codex | `./install.sh --skill devloop --codex-only` → `~/.codex/skills/devloop` | same | resolve/bootstrap; invoke needs explicit `DEVLOOP_TRANSPORT=grok\|hermes` (no auto-Hermes) |
+| Cursor | `./install.sh --skill devloop --cursor-only` → `~/.cursor/skills/devloop` (never `~/.cursor/skills-cursor`) | same | resolve/bootstrap; invoke needs explicit `DEVLOOP_TRANSPORT=grok\|hermes` (no auto-Hermes) |
 | Hermes | **skip** card install (engine leaf is foreign) | same | Hermes transport; engine leaf accepted as seed |
 
 ## Binding surfaces (do not collapse)

@@ -257,11 +257,11 @@ grep -qi 'Hermes' "$root/skills/devloop/SKILL.md" || fail "D16 honesty Hermes ho
 grep -qi 'mode=engine' "$root/skills/devloop/SKILL.md" || fail "D16 mode=engine banner"
 grep -qi 'Forbidden' "$root/skills/devloop/SKILL.md" || fail "D16 forbids host loop"
 grep -qi 'evidence-gates' "$root/skills/devloop/SKILL.md" || fail "D16 mentions demoted evidence-gates"
-grep -E '^version: 0\.5\.2' "$root/skills/devloop/SKILL.md" || fail "D16 version 0.5.2"
+grep -E '^version: 0\.5\.4' "$root/skills/devloop/SKILL.md" || fail "D16 version 0.5.4"
 grep -q 'SKILL_ROOT' "$root/skills/devloop/SKILL.md" || fail "D16 SKILL_ROOT"
 grep -qi 'BEFORE\|STATE\|stderr' "$root/skills/devloop/SKILL.md" || fail "D16 inspection/stderr"
 [[ -f "$root/skills/devloop/references/product-default.md" ]] || fail "D16 product-default.md"
-printf 'LAYER simple: D16 version 0.5.2 + ownership docs OK\n'
+printf 'LAYER simple: D16 version 0.5.4 + ownership docs OK\n'
 
 # D17: DEVLOOP_BOOTSTRAP_CMD success
 export DEVLOOP_DATA_HOME="$tmpdir/data-cmd"
@@ -308,7 +308,7 @@ out19="$("$run" --force-bootstrap --force-hard --setup 2>&1)" || fail "D19 setup
 out19r="$("$run" --no-bootstrap -- hi 2>&1)" || fail "D19 run: $out19r"
 printf '%s\n' "$out19r" | grep -q 'FIXTURE_ENGINE' || fail "D19 fixture run: $out19r"
 
-# D20: resolve engine from HERMES_HOME seed (no host-local, no pin download)
+# D20: resolve engine from HERMES_HOME seed (explicit host=hermes only)
 export DEVLOOP_DATA_HOME="$tmpdir/data-seed-empty"
 rm -rf "$DEVLOOP_DATA_HOME"
 mkdir -p "$DEVLOOP_DATA_HOME"
@@ -318,10 +318,10 @@ mkdir -p "$HERMES_HOME/skills/software-development/devloop/scripts"
 printf 'print("SEED_ENGINE")\n' >"$HERMES_HOME/skills/software-development/devloop/scripts/devloop_cli.py"
 export DEVLOOP_ENGINE_PIN="$tmpdir/empty-pin.json"
 printf '%s\n' '{"version":"x","url":"REPLACE_WITH_RELEASE_URL/x.tgz","sha256":""}' >"$DEVLOOP_ENGINE_PIN"
-out20p="$("$run" --probe --no-bootstrap 2>&1)" || fail "D20 probe: $out20p"
+out20p="$("$run" --host hermes --probe --no-bootstrap 2>&1)" || fail "D20 probe: $out20p"
 printf '%s\n' "$out20p" | grep -q 'engine=' || fail "D20 probe engine=: $out20p"
 printf '%s\n' "$out20p" | grep -q 'hermes-seed\|SEED\|devloop' || fail "D20 probe selected seed: $out20p"
-out20r="$("$run" --no-bootstrap -- hi 2>&1)" || fail "D20 run: $out20r"
+out20r="$("$run" --host hermes --no-bootstrap -- hi 2>&1)" || fail "D20 run: $out20r"
 printf '%s\n' "$out20r" | grep -q 'SEED_ENGINE' || fail "D20 run output: $out20r"
 
 # D21: bootstrap_engine seed-copy path (--force-bootstrap with REPLACE pin + HERMES seed)
@@ -334,7 +334,7 @@ mkdir -p "$HERMES_HOME/skills/software-development/devloop/scripts"
 printf 'print("SEED_COPY_ENGINE")\n' >"$HERMES_HOME/skills/software-development/devloop/scripts/devloop_cli.py"
 export DEVLOOP_ENGINE_PIN="$tmpdir/replace-pin.json"
 printf '%s\n' '{"version":"seed","url":"REPLACE_WITH_RELEASE_URL/x.tgz","sha256":""}' >"$DEVLOOP_ENGINE_PIN"
-out21="$("$run" --force-bootstrap --force-hard --setup 2>&1)" || fail "D21 seed-copy setup: $out21"
+out21="$("$run" --host hermes --force-bootstrap --force-hard --setup 2>&1)" || fail "D21 seed-copy setup: $out21"
 printf '%s\n' "$out21" | grep -qi 'seed' || fail "D21 setup should seed-copy: $out21"
 [[ -f "$DEVLOOP_DATA_HOME/devloop/scripts/devloop_cli.py" ]] || fail "D21 host-local engine missing after seed-copy"
 [[ -f "$DEVLOOP_DATA_HOME/devloop/.skill-craft-engine.json" ]] || fail "D21 marker missing after seed-copy"
@@ -361,9 +361,14 @@ set -e
 [[ "$rc22" -eq 2 ]] || fail "D22 want exit 2 (no host-local, hermes disallowed) got $rc22: $out22"
 printf '%s\n' "$out22" | grep -qi 'skipping Hermes\|hermes_seed_allowed=0\|engine not resolved\|not resolved' \
   || fail "D22 should skip Hermes seed: $out22"
-# Same machine with auto host still may select seed (legacy)
-out22b="$("$run" --host auto --probe --no-bootstrap 2>&1)" || fail "D22b auto probe: $out22b"
-printf '%s\n' "$out22b" | grep -q 'engine=' || fail "D22b auto should resolve: $out22b"
+# auto must not silently seed from Hermes either
+set +e
+out22b="$("$run" --host auto --probe --no-bootstrap 2>&1)"
+rc22b=$?
+set -e
+[[ "$rc22b" -eq 2 ]] || fail "D22b auto want exit 2 (no Hermes seed) got $rc22b: $out22b"
+printf '%s\n' "$out22b" | grep -qi 'skipping Hermes\|hermes_seed_allowed=0\|engine not resolved\|not resolved' \
+  || fail "D22b auto should skip Hermes seed: $out22b"
 printf 'LAYER integration: D22 dual-install grok affinity OK\n'
 
 # D23: nesting refuse
@@ -410,6 +415,9 @@ grep -qi 'DEVLOOP_HOST\|host affinity\|ALLOW_HERMES_SEED' "$root/skills/devloop/
   || fail "D25 bootstrap affinity docs"
 grep -qi 'fail closed\|Do not use evidence-gates' "$root/skills/devloop/references/bootstrap.md" \
   || fail "D25 bootstrap fail-closed docs"
+grep -qi 'explicit' "$root/skills/devloop/references/bootstrap.md" \
+  && grep -qi 'cursor' "$root/skills/devloop/references/bootstrap.md" \
+  || fail "D25 bootstrap no-auto-Hermes on cursor"
 printf 'LAYER simple: D25 bootstrap honesty OK\n'
 
 # D26: invoke via ~/.grok/skills symlink (logical path) with no --host / DEVLOOP_HOST.
@@ -498,43 +506,53 @@ printf '%s\n' "$out28b" | grep -q '\[devloop-run\] STATE  life=fail-closed' \
   || fail "D28b STATE fail-closed: $out28b"
 printf 'LAYER integration: D28 identity+lifecycle traces OK\n'
 
-# D29: new-repo designation — --repo flag always wins, even with designation text present
+# D29: --repo flag → explicit (goal prose must not change that)
 unset DEVLOOP_HOME DEVLOOP_HOST DEVLOOP_DATA_HOME DEVLOOP_ENGINE_PIN DEVLOOP_ENGINE_URL \
   DEVLOOP_BOOTSTRAP_CMD DEVLOOP_ALLOW_HERMES_SEED DEVLOOP_ALLOW_LEGACY_ENGINE \
   DEVLOOP_TRANSPORT GROK_BIN HERMES_HOME || true
 export DEVLOOP_HOME="$eng"
 out29="$("$run" -- --repo /tmp/x "start a new repo for this" 2>&1)" || fail "D29: $out29"
 printf '%s\n' "$out29" | grep -q 'STATE target=explicit reason=repo_flag' || fail "D29 repo_flag: $out29"
-printf 'LAYER simple: D29 --repo wins over designation text OK\n'
+printf 'LAYER simple: D29 --repo flag → explicit OK\n'
 
-# D30: no --repo + designation phrase -> scratch + new_repo_designated (positive, case-insensitive)
-for phrase in "new repo" "NEW REPO" "new repository" "separate repo" "fresh repo" "create a repo" "newly created repo"; do
-  out30="$("$run" -- "please set up a ${phrase} for this feature" 2>&1)" || fail "D30 ($phrase): $out30"
-  printf '%s\n' "$out30" | grep -q 'STATE target=scratch reason=new_repo_designated' \
-    || fail "D30 ($phrase) missing designation STATE: $out30"
+# D30: card documents designation phrases; shim does not scrape them
+card="$root/skills/devloop/SKILL.md"
+for phrase in "new repo" "new repository" "separate repo" "fresh repo" "create a repo" "newly created repo"; do
+  grep -qi "$phrase" "$card" || fail "D30 card missing designation phrase: $phrase"
 done
-printf 'LAYER simple: D30 new-repo phrase detection (positive) OK\n'
+grep -q 'omit `--repo`' "$card" || fail "D30 card missing omit --repo row"
+out30="$("$run" -- "please set up a new repo for this feature" 2>&1)" || fail "D30: $out30"
+printf '%s\n' "$out30" | grep -q 'STATE target=scratch reason=default' \
+  || fail "D30 shim must not scrape phrases (expected default): $out30"
+printf '%s\n' "$out30" | grep -q 'new_repo_designated' \
+  && fail "D30 shim must not emit new_repo_designated: $out30"
+grep -q 'new_repo_designated' "$run" \
+  && fail "D30 shim script must not contain new_repo_designated"
+printf 'LAYER simple: D30 card-documented designation (shim does not scrape) OK\n'
 
-# D31: no --repo + no designation -> unchanged default (still scratch, reason=default)
+# D31: no --repo → scratch default
 out31="$("$run" -- "fix the bug in the parser" 2>&1)" || fail "D31: $out31"
 printf '%s\n' "$out31" | grep -q 'STATE target=scratch reason=default' || fail "D31 default: $out31"
 printf 'LAYER simple: D31 default scratch reason OK\n'
 
-# D32: negative phrases must NOT trigger designation (conservative detector, no fuzzy match)
+# D32: card omit-repo row is conservative; negative phrases are not designation triggers
+omit_row="$(grep -F 'omit `--repo`' "$card" || true)"
+[[ -n "$omit_row" ]] || fail "D32 missing omit --repo interpolate row"
 for phrase in "existing repo" "repository survey" "the repo is old" "reporting new results"; do
+  printf '%s\n' "$omit_row" | grep -qi "$phrase" \
+    && fail "D32 omit-repo row must not list negative phrase: $phrase"
   out32="$("$run" -- "please work in the ${phrase}" 2>&1)" || fail "D32 ($phrase): $out32"
   printf '%s\n' "$out32" | grep -q 'STATE target=scratch reason=default' \
     || fail "D32 ($phrase) should stay default: $out32"
-  printf '%s\n' "$out32" | grep -q 'new_repo_designated' \
-    && fail "D32 ($phrase) falsely designated: $out32"
 done
-printf 'LAYER simple: D32 negative phrase guard OK\n'
+printf 'LAYER simple: D32 card conservative phrases + shim flag-only OK\n'
 
 # D33: card documents new-repo + /devloop prompt form (no fuzzy cwd/last-path guessing)
-grep -qi 'new repo' "$root/skills/devloop/SKILL.md" || fail "D33 SKILL.md new repo"
-grep -q 'new_repo_designated' "$root/skills/devloop/SKILL.md" || fail "D33 SKILL.md STATE line"
-grep -qi 'infer cwd' "$root/skills/devloop/SKILL.md" || fail "D33 SKILL.md no-infer-cwd"
-grep -q "grok -p '/devloop" "$root/skills/devloop/SKILL.md" || fail "D33 SKILL.md grok -p /devloop"
+grep -qi 'new repo' "$card" || fail "D33 SKILL.md new repo"
+grep -q 'target=explicit reason=repo_flag' "$card" || fail "D33 SKILL.md STATE explicit"
+grep -q 'target=scratch reason=default' "$card" || fail "D33 SKILL.md STATE default"
+grep -qi 'infer cwd' "$card" || fail "D33 SKILL.md no-infer-cwd"
+grep -q "grok -p '/devloop" "$card" || fail "D33 SKILL.md grok -p /devloop"
 printf 'LAYER simple: D33 SKILL.md designation docs OK\n'
 
 # D34: verify_cmd exactly [ with no --lang -> shim must NOT auto-prepend --lang
@@ -635,6 +653,8 @@ if [[ -z "$alias_md" || ! -f "$alias_md" ]]; then
 fi
 grep -qi 'Follow skill `devloop`' "$alias_md" \
   || fail "D41 alias must follow skill devloop: $alias_md"
+grep -qi 'validate the spec' "$alias_md" \
+  || fail "D41 alias must validate the spec: $alias_md"
 grep -qi 'print the interpolated argv' "$alias_md" \
   || grep -qi 'print the interpolation' "$alias_md" \
   || fail "D41 alias must print interpolation: $alias_md"
@@ -681,6 +701,41 @@ printf '%s\n' "$out42" | grep -qi 'skipping Hermes\|hermes_seed_allowed=0' \
 printf '%s\n' "$out42" | grep -qi 'HERMES_HIJACK\|engine=.*/hermes-d42' \
   && fail "D42 must not select Hermes leaf: $out42"
 printf 'LAYER integration: D42 cursor skill-dir symlink host detect OK\n'
+
+# D47: cursor invoke + full engine + unset transport → exit 2 (no auto-Hermes).
+# Explicit DEVLOOP_TRANSPORT=hermes still execs.
+unset DEVLOOP_HOST DEVLOOP_BOOTSTRAP_CMD DEVLOOP_ENGINE_URL DEVLOOP_ALLOW_HERMES_SEED \
+  DEVLOOP_ALLOW_LEGACY_ENGINE DEVLOOP_TRANSPORT GROK_BIN || true
+d47_home="$tmpdir/d47-home"
+rm -rf "$d47_home"
+mkdir -p "$d47_home/.cursor/skills"
+ln -s "$root/skills/devloop" "$d47_home/.cursor/skills/devloop"
+export HOME="$d47_home"
+export DEVLOOP_DATA_HOME="$tmpdir/data-d47-empty"
+rm -rf "$DEVLOOP_DATA_HOME"
+mkdir -p "$DEVLOOP_DATA_HOME"
+d47_eng="$tmpdir/d47-full-engine"
+rm -rf "$d47_eng"
+mkdir -p "$d47_eng/scripts" "$d47_eng/devloop_core"
+printf 'print("D47_CLI")\n' >"$d47_eng/scripts/devloop_cli.py"
+printf '# stub\n' >"$d47_eng/dispatch.py"
+export DEVLOOP_HOME="$d47_eng"
+d47_run="$d47_home/.cursor/skills/devloop/scripts/devloop-run"
+[[ -x "$d47_run" ]] || fail "D47 symlink invoke path missing: $d47_run"
+set +e
+out47="$("$d47_run" -- hi 2>&1)"
+rc47=$?
+set -e
+[[ "$rc47" -eq 2 ]] || fail "D47 want exit 2 (cursor, unset transport) got $rc47: $out47"
+printf '%s\n' "$out47" | grep -qi 'no DevLoop transport\|DEVLOOP_TRANSPORT=unset\|does not auto-select Hermes' \
+  || fail "D47 must refuse implicit Hermes: $out47"
+printf '%s\n' "$out47" | grep -qi 'evidence-gates' || fail "D47 must mention not evidence-gates: $out47"
+printf '%s\n' "$out47" | grep -qi 'hermes chat' && fail "D47 must not invoke hermes chat: $out47"
+printf '%s\n' "$out47" | grep -q 'D47_CLI' && fail "D47 must not exec engine: $out47"
+out47b="$(DEVLOOP_TRANSPORT=hermes "$d47_run" -- hi 2>&1)" || fail "D47b explicit hermes: $out47b"
+printf '%s\n' "$out47b" | grep -q 'D47_CLI' || fail "D47b explicit hermes must exec: $out47b"
+printf '%s\n' "$out47b" | grep -qi 'hermes chat' && fail "D47b stub must not invoke hermes chat: $out47b"
+printf 'LAYER integration: D47 cursor unset transport fail-closed + explicit hermes OK\n'
 
 # D43: MCP-first contract lives in references/mcp-consider.md (not more SKILL.md prose).
 card="$root/skills/devloop/SKILL.md"
@@ -783,4 +838,21 @@ grep -qi 'LOOP-ENGINEERING' "$root/skills/review-coverage/SKILL.md" \
 grep -qi 'prompt-align' "$learnings" || fail "D46 LEARNINGS names prompt-align"
 printf 'LAYER simple: D46 loop-engineering SoT + prompt-align OK\n'
 
-printf 'devloop-run.test.sh: PASS D1–D46\n'
+# D48: validate-spec is the Before overlay (reference + handshake step 0).
+vs_ref="$root/skills/devloop/references/validate-spec.md"
+[[ -f "$vs_ref" ]] || fail "D48 missing validate-spec.md"
+grep -qi 'machine-checkable' "$vs_ref" || fail "D48 validate-spec names machine-checkable"
+grep -qi 'stop and ask' "$vs_ref" || fail "D48 validate-spec names stop and ask"
+grep -qi 'not.*c-plan' "$vs_ref" || fail "D48 validate-spec disambiguates c-plan"
+grep -qi 'validate-spec' "$card" || fail "D48 SKILL.md points at validate-spec"
+grep -q '### 0. Validate the spec' "$card" || fail "D48 handshake step 0"
+sed -n '/^## Compose$/,/^## Handshake$/p' "$card" | grep -qi 'validate the spec' \
+  || fail "D48 compose Before is validate the spec"
+sed -n '/^## Compose$/,/^## Handshake$/p' "$card" | grep -qi 'c-plan' \
+  && fail "D48 compose must not name c-plan"
+grep -qi 'validate the spec' "$alias_md" || fail "D48 alias validate the spec"
+grep -qi 'validate-spec.md' "$le_docs" || fail "D48 LOOP-ENGINEERING names validate-spec.md"
+grep -qi 'validate the spec' "$prod" || fail "D48 product-default names validate the spec"
+printf 'LAYER simple: D48 validate-spec Before overlay OK\n'
+
+printf 'devloop-run.test.sh: PASS D1–D48\n'

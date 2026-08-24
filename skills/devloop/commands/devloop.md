@@ -9,7 +9,8 @@ disable-model-invocation: true
 
 This slash is **DevLoop**. The rest of the line is the goal in plain English.
 
-Follow skill `devloop` (read its `SKILL.md`). Parse the skill argument
+Follow skill `devloop` (read its `SKILL.md`). Validate the spec first
+(machine-checkable done). Parse the skill argument
 (flags-free). Interpolate `--repo` / `--lang` / `verify_cmd exactly [...]`
 from the plain text per that card's table, **print the interpolated argv**,
 `mcp-considered`, and `env-discovered` (or `env-discovered: none(...)`),
