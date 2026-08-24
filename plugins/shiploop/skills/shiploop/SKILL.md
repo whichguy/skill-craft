@@ -66,22 +66,25 @@ Human overview: [README.md](README.md).
 2. `SKILL_ROOT` = directory containing this `SKILL.md`.
 3. **Three-branch init** — check for a live `.shiploop/state.json` first:
    - **No state.json (fresh session):** run
-     `python3 "$SKILL_ROOT/scripts/shiploop" init --prompt "…" --run-dir DIR`
+     `python3 "$SKILL_ROOT/scripts/shiploop" init --prompt "…" --repo PATH`
      once. `--implementer host` is the default; `--implementer devloop` fails
      closed.
-   - **state.json exists, phase is not `blocked`:** do not `init` again.
-     Invoke `/shiploop next` (or `/shiploop complete` if an increment just
-     finished) to reprint and continue where the session left off.
+   - **New ask on an existing run:** `init --force --prompt "…" --repo PATH`.
+     Empty `--force` is refused before any wipe. `--force` does not delete
+     the product tree. Then follow the new packet.
+   - **state.json exists, same ask, phase is not `blocked`:** do not `init`
+     again. Invoke `/shiploop next` (or `/shiploop complete` if an increment
+     just finished) to reprint and continue.
    - **state.json exists, phase is `blocked`:** read `ask_user` /
-     `blocked_reason` / `resume_to` from the packet's `## Reminder` /
-     `## Look here`, resolve whatever it asked, then
+     `blocked_reason` / `resume_to` from the packet, resolve whatever it
+     asked, then
      `python3 "$SKILL_ROOT/scripts/shiploop" update --to <resume_to>
      --reason "…"` to resume.
 4. Follow the whole packet. Read **Diagnosis**. Do only the **Next prompt**
-   (its first line tells you whether to paste the printed prompt as-is or
-   follow the printed activity). Implement steps name a per-step worktree
-   and branch in **Look here** / **Diagnosis** — work there; do not edit the
-   session checkout or reuse a prior worktree.
+   (first line is `Use this prompt as much as possible.` — paste the printed
+   body). Implement steps name a per-step worktree and branch in
+   **Look here** / **Diagnosis** — work there; do not edit the session
+   checkout or reuse a prior worktree. Full workflow: [README.md](README.md).
 5. When the increment is done: invoke **`/shiploop complete`**. That command
    owns the closer (commit + merge if this was a `/goal`, then harness
    `complete`, then the next packet). Do not type `complete-step --id` or

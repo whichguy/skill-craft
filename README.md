@@ -30,7 +30,7 @@ plugins, use **claude-craft**.
 
 | Skill | Purpose |
 |-------|---------|
-| **shiploop** | Session harness (not DevLoop): spec once, walk ready steps via `/goal`, ship the project |
+| **shiploop** | Session harness (not DevLoop): survey → practices → spec, walk stored `/goal` prompts, recap at done. Human overview: [skills/shiploop/README.md](skills/shiploop/README.md) |
 | **skill-interop** | Author/review portable multi-host skills; scaffold; install; marketplace facade |
 | **c-plan** | Ambiguous-prompt clarifier (EVQ / FASTPATH) |
 | **review-coverage** | Post-ship improve-to-exhaustion plan directive (`## Review Coverage`) |
