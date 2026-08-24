@@ -25,8 +25,10 @@ anticipate, add it with `scripts/shiploop inject-step --statement <label>
 [--before <id>...]`. Legal only in phase `implement` (including drained).
 It refuses on plan-hash drift (a hand-edit is not an inject), refuses
 `--before` a step that is not `todo`/`ready`, and rebinds `plan_sha256` only
-— it never re-runs `dest plan` or clears existing receipts. See
-`commands/shiploop-inject.md`.
+— it never re-runs `dest plan` or clears existing receipts. Unlike a seed
+step's `prompt`, a discovered step's `--prompt` does **not** need to cite
+`{{ENV_MD}}`'s practice references — it is an ad-hoc fix, not researched
+practice work. See `commands/shiploop-inject.md`.
 
 After a `/goal` succeeds: invoke `/shiploop complete`.
 After a `/goal` fails and the session can continue: invoke `/shiploop complete --clear`.

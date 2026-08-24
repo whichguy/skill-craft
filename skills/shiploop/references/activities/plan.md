@@ -13,11 +13,14 @@ inventory, or session hashes (those stay in `{{ENV_MD}}`).
 Every seed step must carry a nonempty `prompt` — the exact string the host
 will paste into that step's inner loop (newlines allowed, no control chars
 other than newline, no `/devloop`). `statement` stays the short diagnosis
-label; `prompt` is what gets pasted, not composed later. Each `prompt` must
-cite the concrete practice references from `{{ENV_MD}}` (`references[].path`
-URLs or repo paths) that that step must use, so implement reprints them.
-`dest implement` and `inject-step` refuse a DAG whose stored `prompt` omits
-any of those paths.
+label; `prompt` is what gets pasted, not composed later. Every **seed**
+step's `prompt` must cite the concrete practice references from `{{ENV_MD}}`
+(`references[].path` URLs or repo paths) that that step must use, so
+implement reprints them; `dest implement` refuses a DAG whose stored seed
+`prompt` omits any of those paths. `inject-step`'s own discovered steps
+still need a nonempty `prompt` (same missing-prompt gate) but are exempt
+from that citation requirement — they are ad-hoc mid-implement fixes, not
+researched practice work; see `implement.md`.
 
 Persist the backchain document to `{{BACKCHAIN_JSON}}` (canonical). Then
 write:

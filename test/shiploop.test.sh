@@ -1810,6 +1810,20 @@ out_cited="$(run_cli next --run-dir "$runpr")"
 printf '%s\n' "$out_cited" | grep -qF "$refpath" || fail "next did not reprint cited reference"
 printf 'LAYER: empty prompt + reference citation OK\n'
 
+# --- A27 scope: inject-step's discovered steps are exempt from citation ---
+out_inj_nocite="$(run_cli inject-step --run-dir "$runpr" --statement "ad hoc bind" --prompt "no citation needed for a discovered step" --produces "bind exists" --before S2)"
+printf '%s\n' "$out_inj_nocite" | grep -q 'injected S' || fail "inject without citation should succeed: $out_inj_nocite"
+python3 - "$runpr" <<'PY'
+import json, sys
+from pathlib import Path
+run = Path(sys.argv[1])
+dag = json.loads((run / "backchain" / "plan.json").read_text())
+new = [s for s in dag["steps"] if s["origin"] == "discovered"]
+assert new, "expected a discovered step"
+assert all(s["prompt"] == "no citation needed for a discovered step" for s in new), new
+PY
+printf 'LAYER: inject-step exempt from reference citation OK\n'
+
 # --- A16/A18/A22 inject-step ---
 runinj="$tmpdir/inject/.shiploop"
 repoinj="$tmpdir/inject/repo"

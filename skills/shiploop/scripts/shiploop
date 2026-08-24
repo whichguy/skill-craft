@@ -808,7 +808,13 @@ def dag_gaps(run_dir: Path, spec: Optional[Dict[str, Any]]) -> List[str]:
             gaps.append(f"{sid} prompt must be a nonempty string")
         elif PROMPT_CONTROL_RE.search(prompt) or "/devloop" in prompt:
             gaps.append(f"{sid} prompt contains a disallowed control character or /devloop")
-        elif ref_paths:
+        elif ref_paths and step.get("origin") == "seed":
+            # Only seed steps (written at plan time, from the researched
+            # environment) must cite practice references. A discovered step
+            # (inject-step) is an ad-hoc mid-implement fix unrelated to that
+            # research — requiring it to also quote every environment.md
+            # reference path verbatim would block the documented inject-step
+            # workflow on any session that has references at all.
             for rp in ref_paths:
                 if rp not in prompt:
                     gaps.append(f"{sid} prompt must cite environment reference {rp}")

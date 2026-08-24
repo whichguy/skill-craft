@@ -3,4 +3,6 @@ Add a discovered intermediate step to the running DAG. Exec harness
 [--need <n> --from <id>] [--before <id>...]` only. Legal only in phase
 `implement`. Refuses on plan-hash drift, unsafe/duplicate id, or a
 `--before` target that is not `todo`/`ready`. Does not re-run `dest plan`,
-clear receipts, or start the new step. Not `/devloop`.
+clear receipts, or start the new step. `--prompt` is not required to cite
+`environment.md` practice references (that citation gate applies to seed
+steps only). Not `/devloop`.
