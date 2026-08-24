@@ -41,6 +41,8 @@ quality review changes and consider improvements, review the last 10 git commit 
 agent composes `/goal <static>. Plan: … Base ref: … Target paths: … Test command: …`
 plus halt/ledger trailer, opens host goal, then one `/review-converge` per turn.
 
+Printer trailer (halt/ledger slots) lives in `review_coverage.md` — do not paraphrase it here.
+
 Optional human/CI helper (not required): `scripts/review-coverage goal-body --plan <ABS_PLAN> --slash`
 
 ### Waiver

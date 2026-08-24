@@ -36,12 +36,17 @@ EOF
 if python3 "$CLI" validate "$TMP" >/dev/null; then ok validate_ok; else bad validate_ok; fi
 GBO=$(python3 "$CLI" goal-body --plan "$TMP")
 TMP_ABS=$(python3 -c 'from pathlib import Path; import sys; print(Path(sys.argv[1]).resolve())' "$TMP")
-# Exact STATIC from CLI constant (never hand-copy older wording)
+# Exact STATIC from the reference (CLI must not own the sentence)
+REF="$ROOT/skills/review-coverage/references/review_coverage.md"
 STATIC=$(python3 -c "
-import runpy, sys
-m = runpy.run_path(sys.argv[1], run_name='rc')
-print(m['STATIC_GOAL_LOGIC'], end='')
-" "$CLI")
+import re, pathlib, sys
+text = pathlib.Path(sys.argv[1]).read_text()
+idx = text.find('Static complete-when')
+assert idx >= 0, 'Static complete-when missing'
+m = re.search(r'\`\`\`(?:text)?\n(.*?)\n\`\`\`', text[idx:], re.S)
+assert m, 'static fence missing'
+print(m.group(1).strip(), end='')
+" "$REF")
 if [[ "$GBO" == "$STATIC".* ]]; then ok goal_body_static_exact; else bad goal_body_static_exact; fi
 if [[ "$GBO" == quality\ review\ changes\ and\ consider\ improvements,* ]]; then ok goal_body_static_start; else bad goal_body_static_start; fi
 if printf '%s\n' "$GBO" | grep -q 'complete when only trivial findings remaining for 2 consecutive cycles'; then ok goal_body_static_complete; else bad goal_body_static_complete; fi
@@ -65,6 +70,40 @@ if [[ "$GBO_SLASH" == "/goal $GBO" ]]; then ok goal_body_slash_exact; else bad g
 if [[ "$GBO_SLASH" == /goal\ quality\ review\ changes* ]]; then ok goal_body_slash; else bad goal_body_slash; fi
 if [[ "$(python3 "$CLI" goal-body --plan "$TMP" --slash | head -c 28)" == /goal\ quality\ review\ changes* ]]; then ok goal_body_slash_head; else bad goal_body_slash_head; fi
 if [[ "$GBO" != /goal\ * ]]; then ok goal_body_no_slash; else bad goal_body_no_slash; fi
+if grep -q 'Printer trailer' "$REF" && grep -q '{plan}' "$REF"; then ok ref_printer_trailer; else bad ref_printer_trailer; fi
+if ! grep -q 'quality review changes and consider improvements' "$CLI"; then ok cli_no_static_prose; else bad cli_no_static_prose; fi
+if ! grep -q 'Never unlimited outer loop' "$CLI"; then ok cli_no_halt_prose; else bad cli_no_halt_prose; fi
+if ! grep -q 'land stopped (max-cycles)' "$CLI"; then ok cli_no_halt_author; else bad cli_no_halt_author; fi
+SKILL_STATIC=$(python3 -c "
+import re, pathlib, sys
+text = pathlib.Path(sys.argv[1]).read_text()
+idx = text.find('Static complete-when')
+m = re.search(r'\`\`\`(?:text)?\n(.*?)\n\`\`\`', text[idx:], re.S)
+print(m.group(1).strip(), end='')
+" "$ROOT/skills/review-coverage/SKILL.md")
+SHORT_STATIC=$(python3 -c "
+import re, pathlib, sys
+text = pathlib.Path(sys.argv[1]).read_text()
+idx = text.find('Static complete-when')
+m = re.search(r'\`\`\`(?:text)?\n(.*?)\n\`\`\`', text[idx:], re.S)
+print(m.group(1).strip(), end='')
+" "$ROOT/skills/review-coverage/references/review_coverage.short.md")
+if [[ "$STATIC" == "$SKILL_STATIC" && "$STATIC" == "$SHORT_STATIC" ]]; then ok static_copies_match; else bad static_copies_match; fi
+FILL=$(python3 -c "
+import runpy, sys
+m = runpy.run_path(sys.argv[1], run_name='rc')
+body, err = m['_fill_slots']('Plan: {plan}.', {'plan':'x','base_ref':'','target_paths':'','test_command':'','max_n':'','repo_clause':''})
+print(err if body is None else 'unexpected-ok')
+" "$CLI")
+if printf '%s\n' "$FILL" | grep -q 'missing slots'; then ok fill_slots_presence; else bad fill_slots_presence; fi
+FENCE=$(python3 -c '
+import runpy, sys
+m = runpy.run_path(sys.argv[1], run_name="rc")
+stolen = m["_fence_after"]("Static complete-when:\n\nSee example:\n\n```text\nSTEAL\n```\n", "Static complete-when")
+ok = m["_fence_after"]("Static complete-when:\n\n```text\nREAL\n```\n", "Static complete-when")
+print("stolen" if stolen is not None else "refuse", ok)
+' "$CLI")
+if [[ "$FENCE" == 'refuse REAL' ]]; then ok fence_immediate_only; else bad fence_immediate_only; fi
 rm -f "$TMP"
 
 # Custom Max review-converge rounds must flow into goal-body (not always default 12)
@@ -147,6 +186,9 @@ if [[ "$CARD" == *'Target paths: src/foo.ts'* && "$CARD" == *'Test command: npm 
 else
   bad run_card_fields
 fi
+if printf '%s\n' "$CARD" | grep -q 'references/review_coverage.md'; then ok run_card_points_at_ref; else bad run_card_points_at_ref; fi
+CARD_STOP=$(printf '%s\n' "$CARD" | awk '/^### 3\. Stop and caps$/{found=1} found {print}')
+if ! printf '%s\n' "$CARD_STOP" | grep -qE 'SUCCESS =|HALT = stopped|unlimited outer loop'; then ok run_card_no_halt_author; else bad run_card_no_halt_author; fi
 # failed preflight must not emit a run card body
 CARD_FAIL=$(python3 "$CLI" run-card --plan "$PREF_WAIVED" --preflight 2>&1 || true)
 if ! printf '%s\n' "$CARD_FAIL" | grep -q '### 1. Open host goal'; then ok run_card_preflight_fail_no_card; else bad run_card_preflight_fail_no_card; fi
@@ -604,6 +646,41 @@ if grep -q 'Post-Implementation Residual Loop' "$ROOT/skills/review-coverage/SKI
   ok skill_md_migrate_legacy_h2
 else
   bad skill_md_migrate_legacy_h2
+fi
+
+# Cursor skill-dir import (skip when this host has not installed the skill)
+CURSOR_RC="$HOME/.cursor/skills/review-coverage"
+if [[ -f "$CURSOR_RC/SKILL.md" && -f "$CURSOR_RC/scripts/review-coverage" ]]; then
+  python3 "$CURSOR_RC/scripts/review-coverage" check-install >/dev/null \
+    && ok cursor_check_install || bad cursor_check_install
+  CURSOR_PLAN=$(mktemp)
+  cat >"$CURSOR_PLAN" <<'EOF'
+## Review Coverage
+
+| Field | Value |
+|-------|--------|
+| Base ref | abcdef1234567890deadbeef |
+| Repo | /tmp/review-coverage-repo |
+| Target paths | src/foo.ts |
+| Test command | npm test |
+| Materiality bar | material (P0/P1) |
+| Driver | review-converge under /goal |
+
+1. Forward audit of specs to code.
+2. Reverse audit of code vs base.
+two consecutive clean residual rounds with green suite
+EOF
+  if python3 "$CURSOR_RC/scripts/review-coverage" validate "$CURSOR_PLAN" >/dev/null; then
+    ok cursor_validate_ok
+  else
+    bad cursor_validate_ok
+  fi
+  rm -f "$CURSOR_PLAN"
+  CURSOR_SRC="$(python3 -c 'from pathlib import Path; import sys; print(Path(sys.argv[1]).resolve())' "$CURSOR_RC")"
+  REPO_SRC="$(python3 -c 'from pathlib import Path; import sys; print(Path(sys.argv[1]).resolve())' "$ROOT/skills/review-coverage")"
+  [[ "$CURSOR_SRC" == "$REPO_SRC" ]] && ok cursor_symlink_source || bad cursor_symlink_source
+else
+  echo "SKIP cursor import checks (review-coverage not in ~/.cursor/skills)"
 fi
 
 echo "======== review-coverage: PASS=$PASS FAIL=$FAIL ========"

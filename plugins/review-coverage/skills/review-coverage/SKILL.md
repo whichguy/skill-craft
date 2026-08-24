@@ -83,10 +83,11 @@ scripts/review-coverage goal-body --plan <ABS_PLAN> --slash
 ```
 
 Paste that output byte-for-byte. Fallback only if the CLI is missing: STATIC + the
-same trailer fields/order as `goal_body()` (Plan absolute, Base ref, Target paths,
-Test command, Driver one round, Max rounds + halt rules, Ledger clean = only
-trivial findings remaining this cycle + landed SUCCESS, pathspec). Include
-`Repo:` when set. Default max rounds **N** = 12.
+same trailer fields/order as `references/review_coverage.md` (Plan absolute, Base
+ref, Target paths, Test command, Driver one round, Max rounds + halt rules,
+Ledger clean = only trivial findings remaining this cycle + landed SUCCESS,
+pathspec). Include `Repo:` when set. Default max rounds **N** = 12. The CLI
+fills those slots and prints; it does not author the sentence.
 
 ### Nesting
 
@@ -208,8 +209,9 @@ scripts/review-coverage goal-body --plan /path/to/plan.md --slash
 | `run-card` | Print operator card (goal line + each-turn converge reminder) |
 | `template` | Print section markdown for paste |
 
-When the agent composes the `/goal` line natively, it must match the CLI contract
-(static sentence + required trailer fields and halt/ledger clauses).
+When the agent composes the `/goal` line natively, it must match
+`references/review_coverage.md` (static sentence + printer trailer). The CLI
+only fills slots and prints.
 
 ### CLI exit codes (helpers only)
 

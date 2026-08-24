@@ -76,14 +76,15 @@ Static complete-when (do not paraphrase):
 quality review changes and consider improvements, review the last 10 git commit messages for learnings, anchoring each spec item in code changes and verify use cases/corner cases, git commit between each iteration with a verbose message with key learnings, complete when only trivial findings remaining for 2 consecutive cycles
 ```
 
-**Primary:** invoke the **review-coverage skill** (`/review-coverage` on this plan).
-The agent composes:
+Printer trailer (CLI fills slots only):
 
 ```text
-/goal <static>. Plan: <ABS_PLAN>. Base ref: …. Target paths: …. Test command: …. Driver: one /review-converge per turn. Max review-converge rounds: N — … halt/ledger trailer …
+Plan: {plan}. Base ref: {base_ref}. Target paths: {target_paths}. Test command: {test_command}. Driver: one /review-converge per turn. Max review-converge rounds: {max_n} — on exceed, land stopped (max-cycles) in REVIEW_CONVERGE.md and EXIT HALT. Also EXIT HALT on stopped (same-error ×3) or stopped (no-progress ×3) when landed. Ledger: REVIEW_CONVERGE.md — a cycle counts clean only if Log Outcome is clean (only trivial findings remaining this cycle; fixing material resets the streak); second clean must run Test command PASS; SUCCESS only when Status complete AND Log landed. Never unlimited outer loop. Pathspec commits only under Target paths; never git add -A{repo_clause}.
 ```
 
-…opens that host goal, then runs **one** `/review-converge` per outer turn.
+**Primary:** invoke the **review-coverage skill** (`/review-coverage` on this plan).
+The agent composes `/goal` + the static sentence + the filled printer trailer,
+opens that host goal, then runs **one** `/review-converge` per outer turn.
 
 Optional human/CI helper only: `scripts/review-coverage goal-body --plan <ABS_PLAN> --slash`
 (or `run-card --preflight`). Do not treat the CLI as the skill entrypoint.

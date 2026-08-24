@@ -13,13 +13,8 @@ SKILL_ROOT = Path(__file__).resolve().parents[1]
 REF_DIR = SKILL_ROOT / "references"
 FULL_TEMPLATE = REF_DIR / "review_coverage.md"
 SHORT_TEMPLATE = REF_DIR / "review_coverage.short.md"
-STATIC_GOAL_LOGIC = (
-    "quality review changes and consider improvements, "
-    "review the last 10 git commit messages for learnings, "
-    "anchoring each spec item in code changes and verify use cases/corner cases, "
-    "git commit between each iteration with a verbose message with key learnings, "
-    "complete when only trivial findings remaining for 2 consecutive cycles"
-)
+_STATIC_MARK = "Static complete-when"
+_TRAILER_MARK = "Printer trailer"
 
 HEADING_RE = re.compile(
     r"(?im)^[ \t]{0,3}#{1,6}[ \t]+Review\s+Coverage\b"
@@ -280,8 +275,8 @@ def validate(text: str) -> Tuple[bool, List[str]]:
     require("Target paths", "target path")
     require("Test command")
     driver = require("Driver")
-    # MVP: only review-converge is supported as residual Driver (goal-body hard-codes
-    # REVIEW_CONVERGE.md + one /review-converge per turn). improve-loop alone is rejected.
+    # MVP: only review-converge is supported as residual Driver (the reference
+    # trailer names the default driver). improve-loop alone is rejected.
     if driver and not re.search(r"review-converge", driver, re.I):
         gaps.append(
             "Driver must mention review-converge "
@@ -350,45 +345,105 @@ def _resolved_path(path: str) -> Path:
     return Path(path).expanduser().resolve()
 
 
+def _fence_after(text: str, mark: str) -> Optional[str]:
+    """Return the fenced body that immediately follows ``mark``.
+
+    Only blank lines may sit between the mark line and the opening fence.
+    A later fence (after prose or another block) is not used.
+    """
+    idx = text.find(mark)
+    if idx < 0:
+        return None
+    line_end = text.find("\n", idx)
+    if line_end < 0:
+        return None
+    match = re.match(r"\s*```(?:text)?\n(.*?)\n```", text[line_end + 1 :], re.S)
+    if not match:
+        return None
+    return match.group(1).strip()
+
+
+_REQUIRED_TRAILER_SLOTS = (
+    "plan",
+    "base_ref",
+    "target_paths",
+    "test_command",
+    "max_n",
+    "repo_clause",
+)
+
+
+def _fill_slots(template: str, slots: Dict[str, str]) -> Tuple[Optional[str], str]:
+    """Replace ``{key}`` slots. Checks presence; does not invent policy text."""
+    missing = [k for k in _REQUIRED_TRAILER_SLOTS if "{" + k + "}" not in template]
+    if missing:
+        return None, "printer trailer missing slots: " + ", ".join(missing)
+    filled = template
+    for key, value in slots.items():
+        filled = filled.replace("{" + key + "}", value)
+    leftover = [
+        k
+        for k in _REQUIRED_TRAILER_SLOTS
+        if "{" + k + "}" in filled and "{" + k + "}" not in str(slots.get(k, ""))
+    ]
+    if leftover:
+        return None, "printer trailer unfilled slots: " + ", ".join(leftover)
+    return filled, ""
+
+
+def _printer_parts() -> Tuple[Optional[str], Optional[str], str]:
+    """Load static sentence + trailer template from the reference. Policy is not authored here."""
+    try:
+        ref = FULL_TEMPLATE.read_text(encoding="utf-8")
+    except OSError as exc:
+        return None, None, f"cannot read {FULL_TEMPLATE}: {exc}"
+    static = _fence_after(ref, _STATIC_MARK)
+    trailer = _fence_after(ref, _TRAILER_MARK)
+    if not static:
+        return None, None, f"{FULL_TEMPLATE.name} missing Static complete-when fence"
+    if not trailer:
+        return None, None, f"{FULL_TEMPLATE.name} missing Printer trailer fence"
+    return static, trailer, ""
+
+
 def goal_body(text: str, plan_path: str = "") -> Tuple[Optional[str], str]:
     """Return (body, err). err is empty on success.
 
-    Runs the same ``validate()`` path first so validate and goal-body never disagree.
+    Validates H2 fields, then concatenates the reference-owned static sentence
+    and filled printer trailer. Does not author planning policy.
     """
     ok, gaps = validate(text)
     if not ok:
         return None, "plan missing filled Review Coverage: " + "; ".join(gaps)
     if _waiver_reason(text) is not None:
         return None, "residual waived — no /goal body (intentional)"
+    static, trailer, load_err = _printer_parts()
+    if load_err:
+        return None, load_err
+    assert static is not None and trailer is not None
     body = _section_body(text) or ""
     fields = _fields(body)
     base_ref = fields.get("base ref") or fields.get("base") or ""
     target_paths = fields.get("target paths") or fields.get("target path") or ""
     test_command = fields.get("test command") or ""
     max_n = _max_review_rounds(fields)
-    trailer = [
-        f"Plan: {_resolved_path(plan_path)}" if plan_path else "Plan: <unspecified>",
-        f"Base ref: {base_ref}",
-        f"Target paths: {target_paths}",
-        f"Test command: {test_command}",
-        "Driver: one /review-converge per turn",
-        (
-            f"Max review-converge rounds: {max_n} — on exceed, land stopped "
-            "(max-cycles) in REVIEW_CONVERGE.md and EXIT HALT. Also EXIT HALT on "
-            "stopped (same-error ×3) or stopped (no-progress ×3) when landed"
-        ),
-        (
-            "Ledger: REVIEW_CONVERGE.md — a cycle counts clean only if Log Outcome "
-            "is clean (only trivial findings remaining this cycle; fixing material resets "
-            "the streak); second clean must run Test command PASS; SUCCESS only when "
-            "Status complete AND Log landed. Never unlimited outer loop"
-        ),
-        "Pathspec commits only under Target paths; never git add -A",
-    ]
     repo = fields.get("repo") or ""
-    if repo and not _is_placeholder(repo):
-        trailer.append(f"Repo: {repo}")
-    return f"{STATIC_GOAL_LOGIC}. {'. '.join(trailer)}.", ""
+    repo_clause = f". Repo: {repo}" if repo and not _is_placeholder(repo) else ""
+    filled, fill_err = _fill_slots(
+        trailer,
+        {
+            "plan": str(_resolved_path(plan_path)) if plan_path else "<unspecified>",
+            "base_ref": base_ref,
+            "target_paths": target_paths,
+            "test_command": test_command,
+            "max_n": max_n,
+            "repo_clause": repo_clause,
+        },
+    )
+    if fill_err:
+        return None, fill_err
+    assert filled is not None
+    return f"{static}. {filled}", ""
 
 
 def _read_plan_path(path: str) -> Tuple[Optional[str], Optional[str]]:
@@ -595,20 +650,14 @@ def cmd_run_card(plan: str, preflight: bool = False) -> int:
     print()
     print("### 2. Each turn")
     print()
-    print("Run one /review-converge per turn.")
     print(f"Target paths: {target_paths}")
     print(f"Test command: {test_command}")
     print(f"Base ref: {base_ref}")
     print()
-    print("### 3. Stop when")
-    print()
-    print("SUCCESS = Status complete AND Log landed")
-    print("HALT = stopped (...) landed")
-    print()
-    print("### 4. Caps")
+    print("### 3. Stop and caps")
     print()
     print(f"Max review-converge rounds: {max_n}")
-    print("Set host max-turns and max-budget; never use an unlimited outer loop.")
+    print("Stop rules: references/review_coverage.md (Exit conditions).")
     return 0
 
 
