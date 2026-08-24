@@ -124,8 +124,24 @@ DS='result.txt contains exactly one line: ok'
 
 write_spec() {
   local run="$1"
-  printf '%s\n' "{\"done_sentence\":\"$DS\",\"checkable\":true}" >"$run/spec.json"
-  printf 'done_sentence: %s\n' "$DS" >"$run/spec.md"
+  printf 'done_sentence: %s\ncheckable: true\n' "$DS" >"$run/spec.md"
+  rm -f "$run/spec.json"
+}
+
+write_environment() {
+  local run="$1"
+  local kind="${2:-greenfield}"
+  local augment="${3:-false}"
+  cat >"$run/environment.md" <<MD
+Session survey brief for the test harness.
+
+## machine
+\`\`\`json
+{"kind": "$kind", "augment": $augment, "references": [], "tools": [], "mcp": [],
+ "mcp_considered": "none(no read-capable session tool matched done-sentence)",
+ "handles": [], "initiation": "none", "ui": false, "ui_craft": "none(no UI in scope)"}
+\`\`\`
+MD
 }
 
 write_wrapper() {
@@ -162,6 +178,7 @@ advance_to_plan() {
   run_cli init --prompt "create result.txt containing exactly one line: ok" \
     --run-dir "$run" --bound-plan "$planf" --repo "$repo" >/dev/null
   run_cli update --run-dir "$run" --to validate-spec >/dev/null
+  write_environment "$run"
   write_spec "$run"
   run_cli update --run-dir "$run" --to plan >/dev/null
 }
@@ -191,9 +208,11 @@ printf '%s\n' "$out_init" | grep -q 'initialized' || fail "init: $out_init"
 assert_headings "$out_init"
 printf '%s\n' "$out_init" | grep -q 'intake: current' || fail "map current intake"
 printf '%s\n' "$out_init" | grep -q 'validate-spec: todo' || fail "map todo"
-printf '%s\n' "$out_init" | grep -E 'spec\.md|plan\.md' >/dev/null || fail "look here spec/plan paths"
+printf '%s\n' "$out_init" | grep -q 'prompt\.md' || fail "look here intake prompt.md path"
 printf '%s\n' "$out_init" | grep -q 'invoke /shiploop complete' || fail "when done closer"
 printf '%s\n' "$out_init" | grep -q 'shiploop — session harness (not DevLoop)' || fail "init missing harness banner"
+printf '%s\n' "$out_init" | grep -qF 'Reference only — not the next action.' || fail "look here missing reference-only line"
+printf '%s\n' "$out_init" | grep -qF 'Use this prompt as much as possible.' || fail "next prompt missing banner line"
 assert_absent "$out_init" 'shiploop update --run-dir' "init When done leaked update argv"
 printf '%s\n' "$out_init" | grep -q 'Ask: create result.txt' || fail "reminder ask"
 printf '%s\n' "$out_init" | grep -qx 'Diagnosis' || fail "init missing Diagnosis"
@@ -257,30 +276,28 @@ assert_absent "$out_vs" 'missing dep_roots.devloop' "devloop required at validat
 assert_absent "$out_vs" '/goal ' "validate-spec packet emitted implement /goal"
 printf 'LAYER: intake->validate-spec OK\n'
 
-# --- empty spec.json rejected ---
-printf '%s\n' '{}' >"$run/spec.json"
+# --- empty spec.md rejected (no labels at all) ---
 printf 'body\n' >"$run/spec.md"
 set +e
 out_es="$(run_cli update --run-dir "$run" --to plan 2>&1)"
 rc_es=$?
 set -e
 [[ "$rc_es" -eq 2 ]] || fail "empty spec want 2: $out_es"
-printf 'LAYER: empty spec.json reject OK\n'
+printf 'LAYER: empty spec.md reject OK\n'
 
-# --- labeled done_sentence mismatch ---
-printf '%s\n' '{"done_sentence":"alpha","checkable":true}' >"$run/spec.json"
-printf 'done_sentence: beta\n' >"$run/spec.md"
+# --- duplicate done_sentence label rejected ---
+printf 'done_sentence: alpha\ncheckable: true\ndone_sentence: beta\n' >"$run/spec.md"
 set +e
 out_mm="$(run_cli update --run-dir "$run" --to plan 2>&1)"
 rc_mm=$?
 set -e
 [[ "$rc_mm" -eq 2 ]] || fail "mismatch want 2: $out_mm"
 printf '%s\n' "$out_mm" | grep -qi 'done_sentence' || fail "mismatch message: $out_mm"
-printf 'LAYER: labeled mismatch reject OK\n'
+printf 'LAYER: labeled once-only reject OK\n'
 
-# --- checkable false -> blocked ---
-printf '%s\n' '{"done_sentence":"need a checkable done","checkable":false,"ask_user":"what is the oracle?"}' >"$run/spec.json"
-printf 'done_sentence: need a checkable done\n\nmore spec prose that must not be dumped later\n' >"$run/spec.md"
+# --- checkable false -> blocked (dest blocked hatch does not require environment.md) ---
+rm -f "$run/environment.md"
+printf 'done_sentence: need a checkable done\ncheckable: false\nask_user: what is the oracle?\n\nmore spec prose that must not be dumped later\n' >"$run/spec.md"
 run_cli update --run-dir "$run" --to blocked --reason "what is the oracle?" --resume-to validate-spec >/dev/null
 out_blk="$(run_cli next --run-dir "$run")"
 printf '%s\n' "$out_blk" | grep -q 'blocked: current' || fail "blocked current: $out_blk"
@@ -293,9 +310,49 @@ set -e
 run_cli update --run-dir "$run" --to validate-spec --reason "user answered" >/dev/null
 printf 'LAYER: checkable false -> blocked OK\n'
 
-# --- happy spec + thin plan cannot implement ---
+# --- missing environment.md blocks dest plan even with a checkable spec ---
 write_spec "$run"
+set +e
+out_noenv="$(run_cli update --run-dir "$run" --to plan 2>&1)"
+rc_noenv=$?
+set -e
+[[ "$rc_noenv" -eq 2 ]] || fail "missing environment.md want 2: $out_noenv"
+printf '%s\n' "$out_noenv" | grep -qi 'environment.md' || fail "missing environment.md message: $out_noenv"
+printf 'LAYER: missing environment.md blocks plan OK\n'
+
+# --- handle resolve=list/ask blocks dest plan; create is dest-plan-legal ---
+cat >"$run/environment.md" <<'MD'
+Brief.
+
+## machine
+```json
+{"kind": "greenfield", "augment": false, "references": [], "tools": [], "mcp": [],
+ "mcp_considered": "none(no read-capable session tool matched done-sentence)",
+ "handles": [{"source": "gh", "need": "repo id", "resolve": "list", "value": ""}],
+ "initiation": "none", "ui": false, "ui_craft": "none(no UI in scope)"}
+```
+MD
+set +e
+out_handle="$(run_cli update --run-dir "$run" --to plan 2>&1)"
+rc_handle=$?
+set -e
+[[ "$rc_handle" -eq 2 ]] || fail "handle list blocks plan want 2: $out_handle"
+printf '%s\n' "$out_handle" | grep -qi 'blocks dest plan' || fail "handle block message: $out_handle"
+cat >"$run/environment.md" <<'MD'
+Brief.
+
+## machine
+```json
+{"kind": "greenfield", "augment": false, "references": [], "tools": [], "mcp": [],
+ "mcp_considered": "none(no read-capable session tool matched done-sentence)",
+ "handles": [{"source": "gh", "need": "repo id", "resolve": "create", "value": ""}],
+ "initiation": "needed", "ui": false, "ui_craft": "none(no UI in scope)"}
+```
+MD
 run_cli update --run-dir "$run" --to plan >/dev/null
+printf 'LAYER: handle resolve gates OK\n'
+
+# --- happy spec + thin plan cannot implement ---
 out_plan="$(run_cli next --run-dir "$run")"
 assert_headings "$out_plan"
 assert_absent "$out_plan" '/goal ' "plan packet emitted implement /goal"
@@ -373,14 +430,14 @@ assert_absent "$out_dr" 'shiploop update --run-dir' "drained leaked update argv"
 run_cli update --run-dir "$run" --to residual >/dev/null
 printf 'LAYER: linear drain OK\n'
 
-# --- capture fail-closed and does not clobber ---
-printf '%s\n' '{"writer":"shiploop.steps","run_id":"keep","complete":["S1","S2"]}' >"$run/implement.json"
+# --- capture fail-closed (no implement.json in 0.7; receipts are the SoT) ---
+[[ ! -f "$run/implement.json" ]] || fail "shiploop must not write implement.json"
 set +e
 out_cap="$(run_cli capture --run-dir "$run" -- echo hi 2>&1)"
 rc_cap=$?
 set -e
 [[ "$rc_cap" -eq 2 ]] || fail "capture want 2: $out_cap"
-grep -q 'shiploop.steps' "$run/implement.json" || fail "capture overwrote implement.json"
+printf '%s\n' "$out_cap" | grep -qi 'not a host-session gate' || fail "capture message: $out_cap"
 printf 'LAYER: capture fail-closed OK\n'
 
 # --- residual ledger tests ---
@@ -614,13 +671,11 @@ python3 "$cli" complete-step --run-dir "$run3" --id S2 >/tmp/shiploop-c2.out 2>&
 p2=$!
 wait "$p1" || fail "concurrent S1"
 wait "$p2" || fail "concurrent S2"
+[[ ! -f "$run3/implement.json" ]] || fail "concurrent complete-step wrote implement.json"
 python3 - "$run3" <<'PY'
 import json, sys
 from pathlib import Path
 run = Path(sys.argv[1])
-impl = json.loads((run / "implement.json").read_text())
-assert impl["writer"] == "shiploop.steps"
-assert sorted(impl["complete"]) == ["S1", "S2"], impl
 for sid in ("S1", "S2"):
     rec = json.loads((run / "steps" / f"{sid}.json").read_text())
     assert rec["status"] == "complete", rec
@@ -682,7 +737,7 @@ out_pd="$(run_cli next --run-dir "$runh" 2>&1)"
 rc_pd=$?
 set -e
 [[ "$rc_pd" -eq 2 ]] || fail "plan drift want 2: $out_pd"
-# restore DAG, mutate spec.json only, next + complete-step must fail
+# restore DAG; a leftover, irrelevant spec.json must not affect the spec.md-only hash
 python3 - "$runh/backchain/plan.json" <<'PY'
 import json, sys
 from pathlib import Path
@@ -691,24 +746,47 @@ d = json.loads(p.read_text())
 d["steps"][0]["statement"] = "write the file"
 p.write_text(json.dumps(d, indent=2) + "\n")
 PY
-python3 - "$runh/spec.json" <<'PY'
+printf '%s\n' '{"leftover":"from a pre-0.7 run","note":"irrelevant now"}' >"$runh/spec.json"
+out_leftover="$(run_cli next --run-dir "$runh")"
+printf '%s\n' "$out_leftover" | grep -q '/goal ' || fail "leftover spec.json should not cause drift: $out_leftover"
+rm -f "$runh/spec.json"
+printf 'LAYER: hash drift OK\n'
+
+# --- environment.md drift is fail-closed once frozen ---
+runenv="$tmpdir/envdrift/.shiploop"
+repoenv="$tmpdir/envdrift/repo"
+mkdir -p "$repoenv"
+advance_to_plan "$runenv" "$repoenv" "$planf"
+install_dag "$runenv" linear.json
+run_cli update --run-dir "$runenv" --to implement >/dev/null
+printf 'mutated brief.\n\n## machine\n```json\n{"kind": "greenfield"}\n```\n' >"$runenv/environment.md"
+set +e
+out_envd="$(run_cli next --run-dir "$runenv" 2>&1)"
+rc_envd=$?
+set -e
+[[ "$rc_envd" -eq 2 ]] || fail "environment drift want 2: $out_envd"
+printf '%s\n' "$out_envd" | grep -qi 'environment' || fail "environment drift message: $out_envd"
+printf 'LAYER: environment hash drift OK\n'
+
+# --- empty environment_sha256 is grandfathered (pre-0.7 run) ---
+rungf="$tmpdir/envgf/.shiploop"
+repogf="$tmpdir/envgf/repo"
+mkdir -p "$repogf"
+advance_to_plan "$rungf" "$repogf" "$planf"
+install_dag "$rungf" linear.json
+run_cli update --run-dir "$rungf" --to implement >/dev/null
+python3 - "$rungf" <<'PY'
 import json, sys
 from pathlib import Path
-p = Path(sys.argv[1])
+p = Path(sys.argv[1]) / "state.json"
 d = json.loads(p.read_text())
-d["checkable"] = True
-d["note"] = "mutated-json"
-p.write_text(json.dumps(d) + "\n")
+d["environment_sha256"] = ""
+p.write_text(json.dumps(d, indent=2) + "\n")
 PY
-set +e
-out_sj="$(run_cli next --run-dir "$runh" 2>&1)"
-rc_sj=$?
-out_csd="$(run_cli complete-step --run-dir "$runh" --id S1 2>&1)"
-rc_csd=$?
-set -e
-[[ "$rc_sj" -eq 2 ]] || fail "spec.json drift next want 2: $out_sj"
-[[ "$rc_csd" -eq 2 ]] || fail "spec.json drift complete-step want 2: $out_csd"
-printf 'LAYER: hash drift OK\n'
+rm -f "$rungf/environment.md"
+out_gf="$(run_cli next --run-dir "$rungf")"
+printf '%s\n' "$out_gf" | grep -q '/goal ' || fail "grandfathered empty environment_sha256 should not drift: $out_gf"
+printf 'LAYER: environment grandfather OK\n'
 
 # --- init --force cannot reuse prior DAG ---
 runf="$tmpdir/force/.shiploop"
@@ -819,6 +897,7 @@ mkdir -p "$repom"
   init_git_repo "$repom"
   python3 "$cli" init --prompt "x" --run-dir "$runm" --bound-plan "$planf" --repo "$repom" >/dev/null
   python3 "$cli" update --run-dir "$runm" --to validate-spec >/dev/null
+  write_environment "$runm"
   write_spec "$runm"
   python3 "$cli" update --run-dir "$runm" --to plan >/dev/null
   install_dag "$runm" linear.json
@@ -862,6 +941,7 @@ printf 'LAYER: plan -> blocked OK\n'
   init_git_repo "$rp"
   python3 "$cli" init --prompt "x" --run-dir "$r" --bound-plan "$planf" --repo "$rp" >/dev/null
   python3 "$cli" update --run-dir "$r" --to validate-spec >/dev/null
+  write_environment "$r"
   write_spec "$r"
   python3 "$cli" update --run-dir "$r" --to plan >/dev/null
   install_dag "$r" linear.json
@@ -924,6 +1004,7 @@ doc = {
   "steps": [{
     "id": "S1",
     "statement": "write the file",
+    "prompt": "/goal from initial_state to result.txt exists via write the file",
     "produces": "result.txt exists",
     "origin": "seed",
     "inputs": [{"need": "repo exists", "from": None}],
@@ -1002,23 +1083,21 @@ set -e
 [[ "$rc_clr" -eq 2 ]] || fail "clear then residual want 2: $out_clr"
 printf 'LAYER: clear-step descendants OK\n'
 
-# --- checkable:false cannot --to implement after plan rebind ---
+# --- checkable:false spec.md cannot --to plan, even on a blocked rebind ---
 runcf="$tmpdir/checkimpl/.shiploop"
 repocf="$tmpdir/checkimpl/repo"
 mkdir -p "$repocf"
 advance_to_plan "$runcf" "$repocf" "$planf"
 install_dag "$runcf" linear.json
 run_cli update --run-dir "$runcf" --to blocked --resume-to plan --reason "rebind uncheckable" >/dev/null
-printf '%s\n' '{"done_sentence":"need a checkable done","checkable":false,"ask_user":"what is the oracle?"}' >"$runcf/spec.json"
-printf 'done_sentence: need a checkable done\n' >"$runcf/spec.md"
-run_cli update --run-dir "$runcf" --to plan --reason "rebind" >/dev/null
+printf 'done_sentence: need a checkable done\ncheckable: false\nask_user: what is the oracle?\n' >"$runcf/spec.md"
 set +e
-out_cf="$(run_cli update --run-dir "$runcf" --to implement 2>&1)"
+out_cf="$(run_cli update --run-dir "$runcf" --to plan --reason "rebind" 2>&1)"
 rc_cf=$?
 set -e
-[[ "$rc_cf" -eq 2 ]] || fail "checkable false implement want 2: $out_cf"
+[[ "$rc_cf" -eq 2 ]] || fail "checkable false plan rebind want 2: $out_cf"
 printf '%s\n' "$out_cf" | grep -qi 'checkable' || fail "checkable message: $out_cf"
-printf 'LAYER: checkable false implement refuse OK\n'
+printf 'LAYER: checkable false plan rebind refuse OK\n'
 
 # --- missing frozen files fail closed; --to blocked still works ---
 runmf="$tmpdir/missfiles/.shiploop"
@@ -1113,13 +1192,15 @@ run_cli update --run-dir "$runwt" --to implement >/dev/null
 out_wt="$(run_cli next --run-dir "$runwt")"
 printf '%s\n' "$out_wt" | grep -q '.worktrees' || fail "goal missing .worktrees: $out_wt"
 printf '%s\n' "$out_wt" | grep -q 'shiploop/' || fail "goal missing shiploop/ path or branch"
-printf '%s\n' "$out_wt" | grep -q 'do not edit the session checkout' || fail "goal missing isolate instruction"
+printf '%s\n' "$out_wt" | grep -q 'worktree — cwd here' || fail "look here missing cwd isolate instruction"
+printf '%s\n' "$out_wt" | grep -q 'merge into the session checkout' || fail "when-done missing session checkout merge instruction"
 ridwt="$(python3 -c "import json; print(json.load(open('$runwt/state.json'))['run_id'])")"
 wt1="$(python3 -c "import json; print(json.load(open('$runwt/steps/S1.json'))['worktree'])")"
 wt2="$(python3 -c "import json; print(json.load(open('$runwt/steps/S2.json'))['worktree'])")"
 [[ -n "$wt1" && -n "$wt2" && "$wt1" != "$wt2" ]] || fail "receipt worktrees not distinct"
-printf '%s\n' "$out_wt" | grep '^/goal ' | grep -F -q "$wt1" || fail "S1 /goal missing its worktree"
-printf '%s\n' "$out_wt" | grep '^/goal ' | grep -F -q "$wt2" || fail "S2 /goal missing its worktree"
+printf '%s\n' "$out_wt" | grep -F -q "$wt1" || fail "look here missing S1 worktree path"
+printf '%s\n' "$out_wt" | grep -F -q "$wt2" || fail "look here missing S2 worktree path"
+assert_absent "$out_wt" "^/goal .*\\.worktrees" "worktree path spliced into /goal prompt line"
 [[ -d "$wt1" ]] || fail "S1 worktree missing"
 [[ -d "$wt2" ]] || fail "S2 worktree missing"
 if [[ -f "$repowt/.gitignore" ]] && grep -q '.worktrees' "$repowt/.gitignore"; then
@@ -1155,6 +1236,7 @@ mkdir -p "$repong"
 run_cli init --prompt "create result.txt containing exactly one line: ok" \
   --run-dir "$runng" --bound-plan "$planf" --repo "$repong" >/dev/null
 run_cli update --run-dir "$runng" --to validate-spec >/dev/null
+write_environment "$runng"
 write_spec "$runng"
 run_cli update --run-dir "$runng" --to plan >/dev/null
 install_dag "$runng" linear.json
@@ -1248,6 +1330,7 @@ run_cli init --prompt "create result.txt containing exactly one line: ok" \
 out_w1="$(cd "$repow" && run_cli complete)"
 printf '%s\n' "$out_w1" | grep -q 'validate-spec: current' || fail "closer walk not validate-spec: $out_w1"
 printf '%s\n' "$out_w1" | grep -q 'invoke /shiploop complete' || fail "closer walk missing skill"
+write_environment "$runw"
 write_spec "$runw"
 out_w2="$(run_cli complete --run-dir "$runw")"
 printf '%s\n' "$out_w2" | grep -q 'plan: current' || fail "closer walk not plan: $out_w2"

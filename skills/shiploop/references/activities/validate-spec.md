@@ -1,10 +1,26 @@
-Write the spec **this once** from `{{PROMPT_PATH}}` (and the bound repo if present). This is not c-plan. Do not follow a DevLoop overlay.
+**Survey, then spec.** This is not c-plan. Do not follow a DevLoop overlay.
+State files: `{{SURVEY_GUIDE}}` and `references/state-files.md`.
 
-Write:
+## 1. Survey (once)
 
-- `{{SPEC_MD}}` with a labeled line `done_sentence: <exact sentence>`
-- `{{SPEC_JSON}}` with keys `done_sentence` (string), `checkable` (bool), optional `verify_hint`, optional `ask_user`
+Inventory this session against `{{SURVEY_GUIDE}}`: kind/augment, references
+(read `{{REPO_ROOT}}/README.md` if it exists and cite it — do **not** write
+or rewrite it here), tools, mcp, mcp_considered, handles, initiation,
+ui/ui_craft. Write `{{ENV_MD}}`: a prose brief, then a unique H2 titled
+exactly `machine` with one fenced JSON object. Any handle resolved `list` or
+`ask` will block `dest plan` later — resolve it now or use the blocked hatch
+below.
 
-Derive a machine-checkable `done_sentence`. Do not invent pytest, a path, or a cwd.
+## 2. Spec (once)
 
-If not checkable: set `checkable` false, set `ask_user` to the question, then `/shiploop complete --blocked --resume-to validate-spec --reason <ask_user>`.
+Write `{{SPEC_MD}}` with a labeled line `done_sentence: <exact sentence>`
+and a labeled line `checkable: true` or `checkable: false` (each exactly
+once, outside fences/blockquotes). Derive a machine-checkable
+`done_sentence`. Do not invent pytest, a path, or a cwd. The spec's final
+product duty is a README create (if absent) or revise (if present) — tell
+backchain to add that as a late DAG successor in `plan`, not here.
+
+If not checkable, or a handle needs the user: set `checkable: false` and a
+labeled `ask_user: <question>`, then `/shiploop complete --blocked
+--resume-to validate-spec --reason <ask_user>`. This hatch does not require
+`{{ENV_MD}}` to be finished first.

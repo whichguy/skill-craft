@@ -38,7 +38,7 @@ User invoked `/shiploop` / skill `shiploop`.
 
 | When | Overlay | Role |
 |------|---------|------|
-| **Before** | **spec once**, then **sequence plan once** (backchain) | Frozen `done_sentence`. Prep / intermediate deploy / cleanup are DAG steps when implied. |
+| **Before** | **survey once** (session kind/handles/MCP/initiation/UI → `environment.md`), then **spec once**, then **sequence plan once** (backchain) | Survey is a required prefix inside `validate-spec`, not a new phase. Frozen `done_sentence`. Prep / intermediate deploy / cleanup / a README create-or-revise are DAG steps when implied — brownfield augments an existing tree (`augment: true`) rather than replacing it. |
 | **During** | `/shiploop next` emits a `/goal` per running step (cwd is that step's worktree). `/shiploop complete` closes the increment (commit + host merge + next packet). | Host DAG walk. **Not** `/devloop`. **Not** a spec rewrite. |
 | **After** | session residual under `/goal` once `steps_drained` | No engine `COMPLETE`. |
 

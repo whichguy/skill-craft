@@ -1,0 +1,59 @@
+# Survey (inside validate-spec)
+
+Survey is a **required prefix inside `validate-spec`** — not a new state-machine
+phase, not a new transition edge. It runs once, before the spec is written, and
+its output is `{{ENV_MD}}`.
+
+## What to inventory
+
+- **kind** — `greenfield` (no product tree yet) or `brownfield` (a tree already
+  exists at `{{REPO_ROOT}}`).
+- **augment** — `true` only when this increment adds to an existing brownfield
+  tree without replacing it. Greenfield is always `augment: false`.
+- **references** — concrete paths already in the repo that inform this
+  increment (existing `README.md`, prior specs, adjacent modules), each with a
+  one-line `why`. If a product `README.md` exists, **read it and cite it
+  here**. Do not rewrite it during survey — see "README is not survey's to
+  write" below.
+- **tools / mcp** — CLIs and MCP servers actually available this session.
+  Inventory, do not install or catalog.
+- **mcp_considered** — first matching read-capable session MCP tool, printed
+  as `server(tool)`, or `none(reason)` when nothing matched. See
+  `../../devloop/references/mcp-consider.md` for the same discipline shared
+  with DevLoop.
+- **handles** — external resources this increment needs (credentials,
+  hosted ids, service endpoints), each resolved as `list` (enumerate
+  candidates), `inspect` (read a concrete value — empty for credentials),
+  `ask` (must ask the user), or `create` (this increment provisions it).
+  Any `list` or `ask` handle blocks `dest plan` — resolve it first, or use
+  the `dest blocked` hatch below.
+- **initiation** — `none` (nothing to create), `needed` (one-time project
+  creation is part of this increment; requires at least one `create` handle),
+  or `done` (already created in a prior increment).
+- **ui / ui_craft** — whether this increment touches user-facing surface, and
+  if so, which design/UX skill was invoked (`none(reason)` when `ui` is
+  false).
+
+## Write it once
+
+Write `{{ENV_MD}}`: a short prose brief, then a unique H2 titled exactly
+`machine`, immediately followed by one fenced JSON object with the keys above.
+This file becomes hashed and frozen at `dest plan` (`environment_sha256`) —
+same discipline as the frozen spec. Do not write `environment.json`.
+
+## The `dest blocked` hatch
+
+If a handle needs the user (`ask`) or a design/UX question can't be resolved
+here, write `{{SPEC_MD}}` with `checkable: false` and `ask_user: <question>`,
+then `/shiploop complete --blocked --resume-to validate-spec --reason
+<ask_user>`. `dest blocked` does not require `environment.md` to be written
+first — the survey can be incomplete when you stop to ask.
+
+## README is not survey's to write
+
+Survey **reads** `README.md` if it exists (cite it in `references`) but must
+**not** write or rewrite it. Mutating the product tree before the spec is
+frozen is a spec-adjacent action, not a survey action. The README create (if
+absent) or revise (if present) is the increment's **final product duty**,
+written from `{{SPEC_MD}}` and executed as a late DAG successor during
+`plan` — see `plan.md`.

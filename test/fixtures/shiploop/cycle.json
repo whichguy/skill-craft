@@ -1,20 +1,38 @@
 {
   "goal": "result.txt contains exactly one line: ok",
-  "initial_state": ["repo exists"],
+  "initial_state": [
+    "repo exists"
+  ],
   "steps": [
     {
       "id": "S1",
       "statement": "one",
-      "produces": ["a"],
+      "produces": [
+        "a"
+      ],
       "origin": "seed",
-      "inputs": [{"need": "b", "from": "S2"}]
+      "inputs": [
+        {
+          "need": "b",
+          "from": "S2"
+        }
+      ],
+      "prompt": "/goal step S1: one; produces a; suppliers b from S2"
     },
     {
       "id": "S2",
       "statement": "two",
-      "produces": ["b"],
+      "produces": [
+        "b"
+      ],
       "origin": "seed",
-      "inputs": [{"need": "a", "from": "S1"}]
+      "inputs": [
+        {
+          "need": "a",
+          "from": "S1"
+        }
+      ],
+      "prompt": "/goal step S2: two; produces b; suppliers a from S1"
     }
   ],
   "parallel_groups": [],

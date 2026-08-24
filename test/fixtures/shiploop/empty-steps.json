@@ -1,6 +1,8 @@
 {
   "goal": "result.txt contains exactly one line: ok",
-  "initial_state": ["repo exists"],
+  "initial_state": [
+    "repo exists"
+  ],
   "steps": [],
   "parallel_groups": [],
   "unresolved": []

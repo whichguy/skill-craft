@@ -8,7 +8,7 @@ description: >-
   After every increment invoke /shiploop complete — do not rely on chat
   memory. Lost context without completing → /shiploop next.
 allowed-tools: all
-version: 0.6.0
+version: 0.7.0
 license: MIT
 platforms:
   - linux
@@ -42,6 +42,8 @@ Reprint and closer live on this leaf (`/shiploop next`, `/shiploop complete`).
 There are no sibling marketplace skills for those verbs.
 
 Practices: skill-craft `docs/LOOP-ENGINEERING.md` (ShipLoop session track).
+State files: [references/state-files.md](references/state-files.md).
+Survey guide: [references/survey.md](references/survey.md).
 Human overview: [README.md](README.md).
 
 ## When to use
@@ -62,12 +64,24 @@ Human overview: [README.md](README.md).
 
 1. Print the banner `shiploop — session harness (not DevLoop)`.
 2. `SKILL_ROOT` = directory containing this `SKILL.md`.
-3. `python3 "$SKILL_ROOT/scripts/shiploop" init --prompt "…" --run-dir DIR` once
-   if there is no live `state.json`. `--implementer host` is the default.
-   `--implementer devloop` fails closed.
-4. Follow the whole packet. Read **Diagnosis**. Do only the **Next prompt**.
-   Implement `/goal`s name a per-step worktree and branch — work there; do not
-   edit the session checkout or reuse a prior worktree.
+3. **Three-branch init** — check for a live `.shiploop/state.json` first:
+   - **No state.json (fresh session):** run
+     `python3 "$SKILL_ROOT/scripts/shiploop" init --prompt "…" --run-dir DIR`
+     once. `--implementer host` is the default; `--implementer devloop` fails
+     closed.
+   - **state.json exists, phase is not `blocked`:** do not `init` again.
+     Invoke `/shiploop next` (or `/shiploop complete` if an increment just
+     finished) to reprint and continue where the session left off.
+   - **state.json exists, phase is `blocked`:** read `ask_user` /
+     `blocked_reason` / `resume_to` from the packet's `## Reminder` /
+     `## Look here`, resolve whatever it asked, then
+     `python3 "$SKILL_ROOT/scripts/shiploop" update --to <resume_to>
+     --reason "…"` to resume.
+4. Follow the whole packet. Read **Diagnosis**. Do only the **Next prompt**
+   (its first line tells you whether to paste the printed prompt as-is or
+   follow the printed activity). Implement steps name a per-step worktree
+   and branch in **Look here** / **Diagnosis** — work there; do not edit the
+   session checkout or reuse a prior worktree.
 5. When the increment is done: invoke **`/shiploop complete`**. That command
    owns the closer (commit + merge if this was a `/goal`, then harness
    `complete`, then the next packet). Do not type `complete-step --id` or
@@ -76,7 +90,10 @@ Human overview: [README.md](README.md).
    unmerged branches are refused. ShipLoop does not auto-merge.
 6. Repeat until the packet says stop. Lost context without completing
    anything → invoke **`/shiploop next`** (reprint / claim only).
-7. **Never** invoke skill `devloop`, slash `/devloop`, or `shiploop capture` of
+7. Mid-implement, discovered intermediate work → `inject-step` (see
+   [commands/shiploop-inject.md](commands/shiploop-inject.md) and
+   [references/activities/implement.md](references/activities/implement.md)).
+8. **Never** invoke skill `devloop`, slash `/devloop`, or `shiploop capture` of
    `devloop-run`.
 
 ## Closer (`/shiploop complete`)
@@ -107,6 +124,8 @@ python3 "$CLI" status [--run-dir DIR]
 python3 "$CLI" start-step [--run-dir DIR] --id ID
 python3 "$CLI" complete-step [--run-dir DIR] [--id ID]
 python3 "$CLI" clear-step [--run-dir DIR] [--id ID]
+python3 "$CLI" inject-step [--run-dir DIR] --statement TEXT --prompt TEXT --produces TEXT \
+  [--id Sn] [--need NEED --from ID] [--before ID ...]
 ```
 
 The host closer is **`/shiploop complete`** (it execs `complete`).

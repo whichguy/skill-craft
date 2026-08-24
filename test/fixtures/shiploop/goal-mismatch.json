@@ -1,13 +1,23 @@
 {
   "goal": "some other goal",
-  "initial_state": ["repo exists"],
+  "initial_state": [
+    "repo exists"
+  ],
   "steps": [
     {
       "id": "S1",
       "statement": "write the file",
-      "produces": ["result.txt exists"],
+      "produces": [
+        "result.txt exists"
+      ],
       "origin": "seed",
-      "inputs": [{"need": "repo exists", "from": null}]
+      "inputs": [
+        {
+          "need": "repo exists",
+          "from": null
+        }
+      ],
+      "prompt": "/goal step S1: write the file; produces result.txt exists; suppliers repo exists from initial_state"
     }
   ],
   "parallel_groups": [],

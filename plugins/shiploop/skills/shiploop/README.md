@@ -11,10 +11,14 @@ Package leaf: `skills/shiploop`. Invoke: `/shiploop`.
 
 ## What it does
 
-1. **Intake → validate-spec → plan** — freeze a checkable `done_sentence`, then
-   one backchain DAG (requires sibling skill `backchain`).
-2. **Implement** — claim each ready step, emit a paste-ready `/goal` whose cwd
-   is that step’s git worktree and branch (`shiploop/<run_id>/<id>`).
+1. **Intake → validate-spec → plan** — validate-spec runs a **survey first**
+   (session kind/handles/MCP/initiation/UI, written to `environment.md`),
+   then freezes a checkable `done_sentence` (`spec.md`). `plan` calls
+   backchain once for the sequence DAG (requires sibling skill `backchain`),
+   including a README create/revise as a late DAG successor.
+2. **Implement** — claim each ready step, print its **stored** `prompt`
+   verbatim (paste-ready; the script does not compose it) whose cwd is that
+   step’s git worktree and branch (`shiploop/<run_id>/<id>`).
 3. **Close each increment** — you commit on the worktree, merge the kept branch
    into the session checkout, then `/shiploop complete`. The next worktree
    forks `HEAD`.
@@ -22,7 +26,16 @@ Package leaf: `skills/shiploop`. Invoke: `/shiploop`.
    Stop when the packet says stop.
 
 State lives in the bound repo’s `.shiploop/` (walked from cwd). Not inside this
-package.
+package. File-by-file map: [references/state-files.md](references/state-files.md).
+
+## Session A vs Session B
+
+| | Session A — greenfield | Session B — brownfield |
+|---|---|---|
+| `environment.md` | `kind: greenfield`, `augment: false`, no product `README.md` to cite yet | `kind: brownfield`; cites the existing `README.md` (and other read paths) in `references` |
+| Product `README.md` | created as the **last** product DAG step | revised as the **last** product DAG step — survey read it but never rewrote it |
+| `initiation` | often `needed` (one-time project creation, needs a `create` handle) | often `none` or `done` |
+| Everything else | same state machine, same hashes, same per-step worktrees | same |
 
 ## Commands (same leaf)
 
