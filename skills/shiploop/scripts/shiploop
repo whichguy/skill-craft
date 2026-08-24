@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import fcntl
 import hashlib
+import html
 import json
 import os
 import re
@@ -22,7 +23,7 @@ EXIT_BLOCKED = 2
 EXIT_USAGE = 64
 
 PACKAGE_ROOT = Path(__file__).resolve().parents[1]
-VERSION = "0.7.1"
+VERSION = "0.8.0"
 REF_DIR = PACKAGE_ROOT / "references"
 WT_DIRNAME = ".worktrees"
 # Printed in ## Progress and the implement Next envelope. Do not splice into
@@ -732,11 +733,297 @@ def recap_gaps(run_dir: Path) -> List[str]:
     low = text.lower()
     if "<html" not in low and "<!doctype html" not in low:
         return ["recap.html is not HTML"]
-    needed = ("intent", "accomplish", "changed", "outcome", "verif")
+    needed = (
+        "intent",
+        "accomplish",
+        "changed",
+        "outcome",
+        "verif",
+        "original spec",
+        "end result",
+    )
     missing = [word for word in needed if word not in low]
     if missing:
         return [f"recap.html missing briefing: {', '.join(missing)}"]
     return []
+
+
+def _html_text(value: Any) -> str:
+    return html.escape(diag_text(value))
+
+
+def _html_pre(text: str) -> str:
+    raw = (text or "").rstrip()
+    if not raw:
+        return '<p class="empty">(not written)</p>'
+    return f"<pre>{html.escape(raw)}</pre>"
+
+
+def _environment_brief(run_dir: Path) -> str:
+    text = read_text(run_dir / "environment.md") or ""
+    if "## machine" in text:
+        text = text.split("## machine", 1)[0]
+    return text.strip()
+
+
+def _history_events(run_dir: Path) -> List[str]:
+    path = run_dir / "history.jsonl"
+    if not path.is_file():
+        return []
+    rows: List[str] = []
+    try:
+        lines = path.read_text(encoding="utf-8").splitlines()
+    except OSError:
+        return []
+    for line in lines[-24:]:
+        if not line.strip():
+            continue
+        try:
+            rec = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if not isinstance(rec, dict):
+            continue
+        event = diag_text(rec.get("event"))
+        ts = diag_text(rec.get("ts"))
+        phase = diag_text(rec.get("phase"))
+        rows.append(f"{ts}  {event}  ({phase})")
+    return rows
+
+
+def render_recap_html(run_dir: Path, state: Dict[str, Any], *, dest: str) -> str:
+    spec, _ = load_spec(run_dir)
+    prompt = (read_text(run_dir / "prompt.md") or str(state.get("prompt") or "")).strip()
+    spec_md = (read_text(run_dir / "spec.md") or "").strip()
+    plan_md = (read_text(run_dir / "plan.md") or "").strip()
+    env_brief = _environment_brief(run_dir)
+    done_sentence = (spec or {}).get("done_sentence") if spec else ""
+    checkable = (spec or {}).get("checkable") if spec else None
+    waiver = plan_waiver(state)
+    repo = repo_of(state)
+    ledger = ledger_report(repo, state) if repo.exists() else {}
+    ids = recomputed_step_ids(run_dir)
+    by_id = steps_by_id(run_dir)
+    classes = classify_steps(run_dir, state) if ids else {}
+    n_done = sum(1 for sid in ids if classes.get(sid) == "done")
+    drained = bool(ids) and n_done == len(ids)
+    if dest == "halted":
+        stamp = "HALTED"
+        outcome = "Session halted. Residual stopped before a landed complete."
+    elif waiver:
+        stamp = "WAIVED"
+        outcome = f"Session closed with a residual waiver: {waiver}"
+    else:
+        stamp = "CLOSED"
+        outcome = "Session success. Residual complete and landed."
+    if dest == "halted":
+        rail = (
+            "● intake  ● validate-spec  ● plan  ● implement  ● residual  ○ done  ✗ halted"
+        )
+    else:
+        rail = "● intake  ● validate-spec  ● plan  ● implement  ● residual  ▶ done"
+    walk_rows = []
+    for sid in ids:
+        step = by_id.get(sid) or {}
+        klass = classes.get(sid, "todo")
+        mark = "●" if klass == "done" else "○"
+        stmt = diag_text(step.get("statement"))
+        texts = produces_texts(step.get("produces")) or []
+        produces = diag_text("; ".join(texts)) if texts else "—"
+        walk_rows.append(
+            "<tr>"
+            f"<td>{html.escape(mark)}</td>"
+            f"<td>{_html_text(sid)}</td>"
+            f"<td>{_html_text(stmt)}</td>"
+            f"<td>{_html_text(klass)}</td>"
+            f"<td>{_html_text(produces)}</td>"
+            "</tr>"
+        )
+    if walk_rows:
+        walk_html = (
+            "<table><thead><tr>"
+            "<th></th><th>id</th><th>statement</th><th>status</th><th>produces</th>"
+            "</tr></thead><tbody>"
+            + "".join(walk_rows)
+            + "</tbody></table>"
+        )
+    else:
+        walk_html = "<p class=\"empty\">(no sequence plan)</p>"
+    hist = _history_events(run_dir)
+    if hist:
+        hist_html = "<ol class=\"log\">" + "".join(
+            f"<li><code>{_html_text(row)}</code></li>" for row in hist
+        ) + "</ol>"
+    else:
+        hist_html = "<p class=\"empty\">(no history.jsonl)</p>"
+    ledger_status = diag_text(ledger.get("status")) if ledger else "(none)"
+    landed = "yes" if ledger.get("landed") else "no"
+    bound = "yes" if ledger.get("bound") else "no"
+    end_result = done_sentence or "(no frozen done_sentence)"
+    if dest == "halted":
+        end_bits = (
+            f"The walk ended in residual without a landed complete. "
+            f"Ledger status: {ledger_status}."
+        )
+    elif drained:
+        end_bits = (
+            f"All {len(ids)} sequence steps completed. "
+            f"The frozen done_sentence is the end result."
+        )
+    else:
+        end_bits = (
+            f"{n_done}/{len(ids) or 0} sequence steps completed. "
+            f"The frozen done_sentence is still the contracted end result."
+        )
+    checkable_s = "true" if checkable is True else "false" if checkable is False else "(unset)"
+    run_id = diag_text(state.get("run_id"))
+    repo_s = diag_text(str(repo.resolve()) if repo.exists() else repo)
+    return f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ShipLoop recap — { _html_text(stamp) }</title>
+<style>
+:root {{
+  --stock: #d5e3ea;
+  --ink: #16202b;
+  --rule: #5d7d8c;
+  --stamp: #b42318;
+  --closed: #245c4a;
+  --paper: #f4f8fa;
+  --muted: #4d6270;
+}}
+html, body {{ margin: 0; padding: 0; background: var(--stock); color: var(--ink); }}
+body {{
+  font-family: "IBM Plex Sans", "Avenir Next Condensed", "Arial Narrow", sans-serif;
+  line-height: 1.45;
+}}
+.jacket {{
+  max-width: 52rem;
+  margin: 1.5rem auto 3rem;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  box-shadow: 6px 8px 0 rgba(22, 32, 43, 0.08);
+  position: relative;
+  padding: 1.25rem 1.5rem 2rem;
+}}
+.routing {{
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.7rem;
+  border-bottom: 2px dashed var(--rule);
+  padding: 0 0 0.85rem;
+  margin: 0 0 1.1rem;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}}
+.stamp {{
+  position: absolute;
+  top: 1.1rem;
+  right: 1.2rem;
+  border: 4px solid var(--stamp);
+  color: var(--stamp);
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  padding: 0.2rem 0.55rem;
+  transform: rotate(-8deg);
+  background: rgba(244, 248, 250, 0.92);
+}}
+.stamp.closed, .stamp.waived {{ border-color: var(--closed); color: var(--closed); }}
+h1 {{
+  font-family: "Iowan Old Style", Palatino, "Palatino Linotype", serif;
+  font-size: 1.8rem;
+  margin: 0.2rem 0 0.35rem;
+}}
+.meta, .empty, caption, th {{ color: var(--muted); }}
+.meta {{ margin: 0 0 1rem; font-size: 0.92rem; }}
+h2 {{
+  font-size: 0.82rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  border-top: 1px solid var(--rule);
+  padding-top: 0.85rem;
+  margin: 1.4rem 0 0.55rem;
+}}
+pre, table, code {{
+  font-family: "IBM Plex Mono", Menlo, Consolas, monospace;
+  font-size: 0.86rem;
+}}
+pre {{
+  white-space: pre-wrap;
+  background: #e7eef2;
+  padding: 0.75rem 0.85rem;
+  border-left: 3px solid var(--rule);
+}}
+table {{ width: 100%; border-collapse: collapse; }}
+th, td {{ text-align: left; vertical-align: top; padding: 0.28rem 0.4rem 0.28rem 0; }}
+th {{ font-weight: 600; font-size: 0.75rem; letter-spacing: 0.08em; text-transform: uppercase; }}
+.log {{ padding-left: 1.1rem; }}
+.log li {{ margin: 0.2rem 0; }}
+.done-sentence {{
+  font-size: 1.15rem;
+  font-family: "Iowan Old Style", Palatino, "Palatino Linotype", serif;
+  margin: 0.2rem 0 0.6rem;
+}}
+@media (prefers-reduced-motion: reduce) {{ .stamp {{ transform: none; }} }}
+</style>
+</head>
+<body>
+<!-- writer: shiploop.recap -->
+<article class="jacket">
+<p class="stamp {html.escape(stamp.lower())}">{_html_text(stamp)}</p>
+<p class="routing">{html.escape(rail)}</p>
+<h1>ShipLoop recap</h1>
+<p class="meta">Run {_html_text(run_id)} · repo {_html_text(repo_s)}</p>
+
+<h2>Intent</h2>
+<p>The original ask that opened this session.</p>
+{_html_pre(prompt)}
+
+<h2>Original spec</h2>
+<p class="done-sentence">{_html_text(done_sentence or "(no done_sentence)")}</p>
+<p>checkable={_html_text(checkable_s)}. Frozen spec.md is the contracted original spec.</p>
+{_html_pre(spec_md)}
+
+<h2>Survey brief</h2>
+{_html_pre(env_brief)}
+
+<h2>Accomplished</h2>
+<p>Walk {n_done}/{len(ids) or 0} steps done.</p>
+{walk_html}
+
+<h2>Sequence plan</h2>
+{_html_pre(plan_md)}
+
+<h2>Materially changed</h2>
+<p>Harness events that moved the session (latest first-in-file order, last 24).</p>
+{hist_html}
+
+<h2>End result</h2>
+<p class="done-sentence">{_html_text(end_result)}</p>
+<p>{_html_text(end_bits)}</p>
+
+<h2>Outcome</h2>
+<p>{_html_text(outcome)}</p>
+
+<h2>Verified</h2>
+<p>Ledger status {_html_text(ledger_status)}; bound={_html_text(bound)}; landed={_html_text(landed)}.
+Spec frozen={"yes" if state.get("spec_sha256") else "no"}.
+Walk drained={"yes" if drained else "no"}.</p>
+</article>
+</body>
+</html>
+"""
+
+
+def write_recap_html(run_dir: Path, state: Dict[str, Any], *, dest: str) -> Path:
+    path = run_dir / "recap.html"
+    try:
+        path.write_text(render_recap_html(run_dir, state, dest=dest), encoding="utf-8")
+    except OSError as exc:
+        die(EXIT_BLOCKED, f"cannot write recap.html: {exc}")
+    return path
 
 
 def load_dag(run_dir: Path) -> Optional[Dict[str, Any]]:
@@ -1548,7 +1835,7 @@ PHASE_FINISH = {
         "After each /goal: commit on that step's worktree, merge the branch "
         "into the session checkout, invoke /shiploop complete."
     ),
-    "residual": "When the ledger is complete+landed (or waived), write recap.html, then /shiploop complete.",
+    "residual": "When the ledger is complete+landed (or waived), invoke /shiploop complete — dest done writes recap.html.",
     "blocked": "When they answer: /shiploop update --to <resume_to> --reason <answer>, then /shiploop next.",
     "done": "stop — no update",
     "halted": "stop — no update",
@@ -2020,7 +2307,7 @@ def look_here_lines(run_dir: Path, state: Dict[str, Any], phase: str) -> List[st
         add("required", run_dir / "spec.md", "frozen spec")
         if deps.get("review-coverage"):
             add("required", Path(deps["review-coverage"]) / "SKILL.md", "review-coverage Phase B")
-        add("required", run_dir / "recap.html", "end-of-run walk-back (create)", missing_ok=True)
+        add("required", run_dir / "recap.html", "end-of-run walk-back (written at dest done)", missing_ok=True)
     elif phase == "done":
         add("required", run_dir / "recap.html", "end-of-run walk-back")
         add("required", run_dir / "spec.md", "frozen spec")
@@ -2262,6 +2549,8 @@ def apply_update(
     if src == "blocked" and dest != state.get("resume_to"):
         die(EXIT_BLOCKED, f"blocked may only resume to {state.get('resume_to')}")
     check_frozen_hashes(state, run_dir, dest)
+    if dest in ("done", "halted") and not residual_gaps(state, dest):
+        write_recap_html(run_dir, state, dest=dest)
     gaps = missing_for(state, run_dir, dest)
     if dest == "blocked":
         resume = (resume_to or "").strip()

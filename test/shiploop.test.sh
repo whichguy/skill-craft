@@ -52,8 +52,8 @@ grep -q 'researches applicable practices' "$root/skills/shiploop/README.md" \
   || fail "README missing practices research"
 grep -q 'recap.html' "$root/skills/shiploop/README.md" \
   || fail "README missing recap.html"
-grep -q '^VERSION = "0.7.1"$' "$cli" || fail "script VERSION is not 0.7.1"
-grep -q '^version: 0.7.1$' "$root/skills/shiploop/SKILL.md" || fail "SKILL.md version is not 0.7.1"
+grep -q '^VERSION = "0.8.0"$' "$cli" || fail "script VERSION is not 0.8.0"
+grep -q '^version: 0.8.0$' "$root/skills/shiploop/SKILL.md" || fail "SKILL.md version is not 0.8.0"
 grep -q 'init --force --prompt' "$root/skills/shiploop/SKILL.md" \
   || fail "SKILL.md missing three-branch init --force --prompt"
 grep -q 'init --force --prompt' "$root/skills/shiploop/README.md" \
@@ -656,29 +656,20 @@ cat >"$repo/REVIEW_CONVERGE.md" <<MD
 review-converge: round 2 —
 **Committed:** yes
 MD
-set +e
-out_nr="$(run_cli update --run-dir "$run" --to done 2>&1)"
-rc_nr=$?
-set -e
-[[ "$rc_nr" -eq 2 ]] || fail "missing recap want 2: $out_nr"
-printf '%s\n' "$out_nr" | grep -qi 'recap.html' || fail "missing recap message: $out_nr"
-printf 'LAYER: dest done missing recap.html refuse OK\n'
 printf 'not html\n' >"$run/recap.html"
-set +e
-out_badhtml="$(run_cli update --run-dir "$run" --to done 2>&1)"
-rc_badhtml=$?
-set -e
-[[ "$rc_badhtml" -eq 2 ]] || fail "non-html recap want 2: $out_badhtml"
-printf '<html><body>no briefing words</body></html>\n' >"$run/recap.html"
-set +e
-out_thin="$(run_cli update --run-dir "$run" --to done 2>&1)"
-rc_thin=$?
-set -e
-[[ "$rc_thin" -eq 2 ]] || fail "thin recap want 2: $out_thin"
-printf '%s\n' "$out_thin" | grep -qi 'briefing' || fail "thin recap message: $out_thin"
-printf 'LAYER: recap.html shape OK\n'
-write_recap "$run"
-run_cli update --run-dir "$run" --to done >/dev/null
+out_nr="$(run_cli update --run-dir "$run" --to done 2>&1)"
+printf '%s\n' "$out_nr" | grep -q 'updated residual -> done' || fail "dest done should write recap: $out_nr"
+[[ -f "$run/recap.html" ]] || fail "dest done did not write recap.html"
+grep -q '<html' "$run/recap.html" || fail "generated recap is not HTML"
+grep -qi 'Original spec' "$run/recap.html" || fail "generated recap missing Original spec"
+grep -qi 'End result' "$run/recap.html" || fail "generated recap missing End result"
+grep -qi 'Intent' "$run/recap.html" || fail "generated recap missing Intent"
+grep -q 'result.txt contains exactly one line: ok' "$run/recap.html" \
+  || fail "generated recap missing frozen done_sentence"
+grep -q 'write the file' "$run/recap.html" || fail "generated recap missing S1 statement"
+grep -q 'confirm the file' "$run/recap.html" || fail "generated recap missing S2 statement"
+grep -q 'writer: shiploop.recap' "$run/recap.html" || fail "generated recap missing writer stamp"
+printf 'LAYER: dest done writes recap.html OK\n'
 out_done="$(run_cli next --run-dir "$run")"
 printf '%s\n' "$out_done" | grep -q 'stop — no update' || fail "done stop: $out_done"
 printf '%s\n' "$out_done" | grep -q 'recap.html' || fail "done Look here missing recap.html: $out_done"
@@ -718,6 +709,8 @@ d = json.loads((Path(sys.argv[1]) / "state.json").read_text())
 assert d["phase"] == "halted", d["phase"]
 assert d["terminal"] == "halted"
 PY
+grep -q 'HALTED' "$run/recap.html" || fail "halted recap missing HALTED stamp"
+grep -qi 'End result' "$run/recap.html" || fail "halted recap missing End result"
 printf 'LAYER: stopped -> halted OK\n'
 
 # --- plan H2 waiver accept ---

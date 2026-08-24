@@ -9,7 +9,7 @@ This is **not** DevLoop. `/devloop` still means skill `devloop`. ShipLoop never
 invokes it, never captures `devloop-run`, never auto-merges, and never claims
 engine `COMPLETE`.
 
-Package leaf: `skills/shiploop`. Invoke: `/shiploop`. Version: **0.7.1**.
+Package leaf: `skills/shiploop`. Invoke: `/shiploop`. Version: **0.8.0**.
 
 Canonical companions (do not duplicate their contracts here):
 
@@ -284,15 +284,16 @@ Session closer only. Run review-coverage Phase B for the bound plan under
 `REVIEW_CONVERGE.md`. Do not treat a foreign or unlanded ledger as success.
 
 When the ledger is `complete` and landed (or the plan has a real residual
-waiver), write `.shiploop/recap.html`, then dest `done`. When the ledger is
-`stopped (...)`, dest `halted`.
+waiver), dest `done`. When the ledger is `stopped (...)`, dest `halted`.
+Those dests write `.shiploop/recap.html` from the run files. Do not
+hand-author it.
 
 ### 6. Done (or halted)
 
-`recap.html` is the walk-back for someone who left and came back: **intent,
-accomplished, materially changed, outcome, verified**. dest `done` refuses
-a missing, empty, non-HTML, or briefing-thin file. `--force` unlinks it.
-The file is **not** hashed.
+`recap.html` is the harness-written walk-back for someone who left and came
+back: **intent, original spec, accomplished, materially changed, end result,
+outcome, verified**. dest `done` refuses a missing, empty, non-HTML, or
+briefing-thin file. `--force` unlinks it. The file is **not** hashed.
 
 ---
 
@@ -320,7 +321,7 @@ Look-here matrix (absolute path + one-line why):
 | plan | frozen spec + environment, `backchain/plan.json` (create), `plan.md` / `plan.json`, backchain SKILL |
 | implement | frozen spec, DAG, running `steps/<id>.json` + worktree, activity; environment / `plan.md` if-needed |
 | implement-drained | spec, DAG, `implement-drained.md` |
-| residual | ledger, bound plan, spec, review-coverage SKILL, `recap.html` (create) |
+| residual | ledger, bound plan, spec, review-coverage SKILL, `recap.html` (written at dest done) |
 | done | `recap.html`, spec |
 | blocked | `state.json` (ask/reason/resume), activity |
 
@@ -343,7 +344,7 @@ Everything below is under the **run dir** (default: walk from cwd to
 | `plan.json` | host / inject | wrapper only (`done_sentence`, `backchain` path, `step_ids` copy) |
 | `steps/<id>.json` | `start-step` / complete / inject stamp | receipt: `running` or `complete`, worktree, branch, `plan_sha256` |
 | `history.jsonl` | every command | append-only event log |
-| `recap.html` | host before dest done | walk-back briefing (not hashed) |
+| `recap.html` | dest done / dest halted | walk-back briefing from run files (not hashed) |
 
 There is **no** `environment.json`, `spec.json`, or `implement.json`.
 
@@ -364,7 +365,7 @@ flowchart LR
   spec["spec.md"] -->|"dest plan: write if empty, else verify"| specHash["spec_sha256"]
   dag["backchain/plan.json"] -->|"dest implement: bind"| planHash["plan_sha256"]
   inject["inject-step"] -.->|"rebinds plan_sha256 only,\nstamps existing receipts"| planHash
-  recap["recap.html"] -.->|not hashed; required for dest done| done(("done"))
+  recap["recap.html"] -.->|not hashed; dest done writes it| done(("done"))
 ```
 
 **What this is:** the three real hashes and what binds/clears them. **What
@@ -378,8 +379,10 @@ runs from wedging: an **empty** `environment_sha256` is skipped by
 a **leftover** `spec.json` twin is still accepted if the stored `spec_sha256`
 equals the legacy pair hash `sha256(spec.md + \0 + spec.json)`, until
 `blocked → validate-spec` clears the hashes and the next `dest plan` rebinds
-to `sha256(spec.md)` alone. `recap.html` is never hashed — `dest done` only
-checks it exists, is HTML, and has the five briefing words.
+to `sha256(spec.md)` alone. `recap.html` is never hashed — dest `done` /
+`halted` write it from the run files, then dest `done` checks it is HTML
+and has the briefing words (intent, original spec, accomplished, changed,
+end result, outcome, verified).
 
 After first bind, editing spec or environment requires `blocked → validate-spec`
 (clears all three hashes and receipts). `inject-step` rebinds `plan_sha256`

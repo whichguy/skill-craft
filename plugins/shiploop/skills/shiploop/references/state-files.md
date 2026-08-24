@@ -13,7 +13,7 @@ Everything below lives under the **run dir** (default: walked from cwd to
 | `plan.md` / `plan.json` | `plan` | pointer + thin wrapper (`done_sentence`, `backchain` path, `step_ids` — not SoT, recomputed from the DAG) |
 | `steps/<id>.json` | `implement` | per-step receipt (`status`, `plan_sha256`, `worktree`, `branch`, `base_sha`) |
 | `history.jsonl` | every command | append-only event log |
-| `recap.html` | residual → done | end-of-run walk-back HTML (intent, accomplished, changed, outcome, verified) |
+| `recap.html` | dest done / dest halted | harness-written walk-back HTML (intent, original spec, accomplished, changed, end result, outcome, verified) |
 
 There is **no** `environment.json`, `spec.json`, or `implement.json`. Each
 artifact above has exactly one file as its source of truth; the script never
@@ -46,6 +46,9 @@ in `environment.md`. `init --force` never deletes it.
 
 ## End-of-run `recap.html`
 
-Host-written before dest `done`. Not hashed. `--force` unlinks it. The script
-refuses dest `done` when the file is missing, empty, not HTML, or missing the
-briefing words `intent`, `accomplish`, `changed`, `outcome`, and `verif`.
+The harness writes this file on dest `done` and dest `halted` from the run
+files (prompt, frozen spec, DAG/receipts, plan, survey prose, history,
+ledger). Not hashed. `--force` unlinks it. The script refuses dest `done`
+when the file is missing, empty, not HTML, or missing the briefing words
+`intent`, `accomplish`, `changed`, `outcome`, `verif`, `original spec`, and
+`end result`. The host does not hand-author it.
