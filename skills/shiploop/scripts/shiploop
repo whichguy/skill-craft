@@ -2007,7 +2007,7 @@ def look_here_lines(run_dir: Path, state: Dict[str, Any], phase: str) -> List[st
                 if wt:
                     stmt = _step_statement(run_dir, sid)
                     extra = f" — {stmt}" if stmt else ""
-                    lines.append(f"required  {wt}     {sid} worktree{extra} — cwd here")
+                    lines.append(f"required  {wt}     {sid} worktree — cwd here{extra}")
         add("required", act, "current activity")
     elif phase == "residual":
         repo = repo_of(state)
