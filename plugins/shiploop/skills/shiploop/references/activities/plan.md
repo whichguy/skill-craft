@@ -13,7 +13,9 @@ inventory, or session hashes (those stay in `{{ENV_MD}}`).
 Every seed step must carry a nonempty `prompt` — the exact string the host
 will paste into that step's inner loop (newlines allowed, no control chars
 other than newline, no `/devloop`). `statement` stays the short diagnosis
-label; `prompt` is what gets pasted, not composed later.
+label; `prompt` is what gets pasted, not composed later. Each `prompt` must
+cite the concrete practice references from `{{ENV_MD}}` (`references[].path`
+URLs or repo paths) that that step must use, so implement reprints them.
 
 Persist the backchain document to `{{BACKCHAIN_JSON}}` (canonical). Then
 write:

@@ -40,6 +40,27 @@ diff -q "$le_docs" "$le_skill" >/dev/null || fail "LOOP-ENGINEERING copies drift
 grep -q 'ShipLoop session' "$le_docs" || fail "LOOP-ENGINEERING missing ShipLoop session track"
 grep -q '/shiploop next' "$le_docs" || fail "LOOP-ENGINEERING missing /shiploop next"
 grep -q '/shiploop complete' "$le_docs" || fail "LOOP-ENGINEERING missing /shiploop complete"
+grep -q 'research practices' "$le_docs" || fail "LOOP-ENGINEERING missing practices research"
+grep -q 'recap.html' "$le_docs" || fail "LOOP-ENGINEERING missing recap.html"
+grep -q 'Best-practice research' "$root/skills/shiploop/references/activities/validate-spec.md" \
+  || fail "validate-spec.md missing practices job"
+grep -q 'best-practice' "$root/skills/shiploop/references/survey.md" \
+  || fail "survey.md missing practices research"
+grep -q 'practice references' "$root/skills/shiploop/references/activities/plan.md" \
+  || fail "plan.md missing practice references in step prompts"
+grep -q 'researches applicable practices' "$root/skills/shiploop/README.md" \
+  || fail "README missing practices research"
+grep -q 'recap.html' "$root/skills/shiploop/README.md" \
+  || fail "README missing recap.html"
+grep -q 'RECAP_HTML' "$root/skills/shiploop/references/activities/residual.md" \
+  || fail "residual.md missing RECAP_HTML"
+grep -q 'RECAP_HTML' "$root/skills/shiploop/references/activities/done.md" \
+  || fail "done.md missing RECAP_HTML"
+if grep -q '/speckit' "$root/skills/shiploop/references/survey.md" \
+  "$root/skills/shiploop/references/activities/validate-spec.md" \
+  "$root/skills/shiploop/references/activities/plan.md"; then
+  fail "survey/validate-spec/plan must not name /speckit"
+fi
 grep -q 'does not rewrite the spec' "$le_docs" || fail "LOOP-ENGINEERING missing no-spec-rewrite"
 if grep -qi 'c-plan' <<<"$(sed -n '/^## Compose graph$/,/^## Practices$/p' "$le_docs")"; then
   fail "compose graph must not name c-plan"
@@ -126,6 +147,22 @@ write_spec() {
   local run="$1"
   printf 'done_sentence: %s\ncheckable: true\n' "$DS" >"$run/spec.md"
   rm -f "$run/spec.json"
+}
+
+write_recap() {
+  local run="$1"
+  cat >"$run/recap.html" <<'HTML'
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><title>ShipLoop recap</title></head>
+<body>
+<h1>Walk-back</h1>
+<h2>Intent</h2><p>Create result.txt with one line ok.</p>
+<h2>Accomplished</h2><p>The increment shipped.</p>
+<h2>Materially changed</h2><p>result.txt and the session DAG.</p>
+<h2>Outcome</h2><p>done_sentence holds.</p>
+<h2>Verified</h2><p>shiploop hermetic layers plus the bound test command.</p>
+</body></html>
+HTML
 }
 
 write_environment() {
@@ -504,9 +541,32 @@ cat >"$repo/REVIEW_CONVERGE.md" <<MD
 review-converge: round 2 —
 **Committed:** yes
 MD
+set +e
+out_nr="$(run_cli update --run-dir "$run" --to done 2>&1)"
+rc_nr=$?
+set -e
+[[ "$rc_nr" -eq 2 ]] || fail "missing recap want 2: $out_nr"
+printf '%s\n' "$out_nr" | grep -qi 'recap.html' || fail "missing recap message: $out_nr"
+printf 'LAYER: dest done missing recap.html refuse OK\n'
+printf 'not html\n' >"$run/recap.html"
+set +e
+out_badhtml="$(run_cli update --run-dir "$run" --to done 2>&1)"
+rc_badhtml=$?
+set -e
+[[ "$rc_badhtml" -eq 2 ]] || fail "non-html recap want 2: $out_badhtml"
+printf '<html><body>no briefing words</body></html>\n' >"$run/recap.html"
+set +e
+out_thin="$(run_cli update --run-dir "$run" --to done 2>&1)"
+rc_thin=$?
+set -e
+[[ "$rc_thin" -eq 2 ]] || fail "thin recap want 2: $out_thin"
+printf '%s\n' "$out_thin" | grep -qi 'briefing' || fail "thin recap message: $out_thin"
+printf 'LAYER: recap.html shape OK\n'
+write_recap "$run"
 run_cli update --run-dir "$run" --to done >/dev/null
 out_done="$(run_cli next --run-dir "$run")"
 printf '%s\n' "$out_done" | grep -q 'stop — no update' || fail "done stop: $out_done"
+printf '%s\n' "$out_done" | grep -q 'recap.html' || fail "done Look here missing recap.html: $out_done"
 python3 - "$run" <<'PY'
 import json, sys
 from pathlib import Path
@@ -575,6 +635,7 @@ cat >"$repo/REVIEW_CONVERGE.md" <<'MD'
 **Status:** active
 **Plan contract:** `/nope`
 MD
+write_recap "$run"
 run_cli update --run-dir "$run" --to done >/dev/null
 python3 - "$run" <<'PY'
 import json, sys
@@ -799,8 +860,17 @@ run_cli next --run-dir "$runf" >/dev/null
 ridf="$(python3 -c "import json; print(json.load(open('$runf/state.json'))['run_id'])")"
 [[ -d "$repof/.worktrees/shiploop/$ridf/S1" ]] || fail "force fixture missing S1 worktree"
 git -C "$repof" rev-parse --verify "shiploop/$ridf/S1" >/dev/null || fail "force fixture missing S1 branch"
+write_recap "$runf"
+set +e
+out_ef="$(run_cli init --force --run-dir "$runf" --bound-plan "$planf" --repo "$repof" 2>&1)"
+rc_ef=$?
+set -e
+[[ "$rc_ef" -eq 2 ]] || fail "empty --force want 2: $out_ef"
+[[ -f "$runf/recap.html" ]] || fail "empty --force wiped recap.html"
+[[ -d "$repof/.worktrees/shiploop/$ridf/S1" ]] || fail "empty --force wiped worktree"
 run_cli init --force --prompt "fresh" --run-dir "$runf" --bound-plan "$planf" --repo "$repof" >/dev/null
 [[ ! -f "$runf/backchain/plan.json" ]] || fail "force left backchain"
+[[ ! -f "$runf/recap.html" ]] || fail "force left recap.html"
 [[ ! -d "$runf/steps" ]] || [[ -z "$(ls -A "$runf/steps" 2>/dev/null || true)" ]] || fail "force left steps"
 [[ ! -d "$repof/.worktrees/shiploop/$ridf" ]] || fail "force left run worktrees"
 if git -C "$repof" rev-parse --verify "shiploop/$ridf/S1" >/dev/null 2>&1; then

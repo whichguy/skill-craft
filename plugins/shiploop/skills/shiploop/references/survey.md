@@ -10,11 +10,13 @@ its output is `{{ENV_MD}}`.
   exists at `{{REPO_ROOT}}`).
 - **augment** — `true` only when this increment adds to an existing brownfield
   tree without replacing it. Greenfield is always `augment: false`.
-- **references** — concrete paths already in the repo that inform this
-  increment (existing `README.md`, prior specs, adjacent modules), each with a
-  one-line `why`. If a product `README.md` exists, **read it and cite it
-  here**. Do not rewrite it during survey — see "README is not survey's to
-  write" below.
+- **references** — concrete paths **or URLs** that inform this increment,
+  each with a one-line `why`. Include existing `README.md` (read it; do not
+  rewrite it — see below), prior specs, ADRs, official docs, skill/reference
+  files, and MCP resource URIs. After the first inventory, run **best-practice
+  research** (validate-spec job 2) and append those findings here before
+  writing the spec. If an observed MCP server or its tools document how to
+  use them, that text is a reference — inventory alone is not enough.
 - **tools / mcp** — CLIs and MCP servers actually available this session.
   Inventory, do not install or catalog.
 - **mcp_considered** — first matching read-capable session MCP tool, printed
@@ -38,8 +40,11 @@ its output is `{{ENV_MD}}`.
 
 Write `{{ENV_MD}}`: a short prose brief, then a unique H2 titled exactly
 `machine`, immediately followed by one fenced JSON object with the keys above.
-This file becomes hashed and frozen at `dest plan` (`environment_sha256`) —
-same discipline as the frozen spec. Do not write `environment.json`.
+After inventory, **before the spec**, research applicable practices and fold
+them into the same file (more prose + `references`). This file becomes hashed
+and frozen at `dest plan` (`environment_sha256`) — same discipline as the
+frozen spec. Do not write `environment.json`. Do not add a second practices
+file. Do not add research skills to `dep_roots`.
 
 ## The `dest blocked` hatch
 

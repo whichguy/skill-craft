@@ -7,12 +7,13 @@ Everything below lives under the **run dir** (default: walked from cwd to
 |------|-----------------|----------------------|
 | `state.json` | every command | phase, hashes, `dep_roots`, blocked/resume |
 | `prompt.md` | `init` | the original ask |
-| `environment.md` | `validate-spec` (survey) | session survey: prose brief + `## machine` fenced JSON |
+| `environment.md` | `validate-spec` (survey + practices) | session survey: prose brief + `## machine` fenced JSON; practice references live here |
 | `spec.md` | `validate-spec` | labeled `done_sentence:` and `checkable: true\|false` (each exactly once); `ask_user:` when `checkable: false` |
 | `backchain/plan.json` | `plan` | canonical sequence DAG (steps carry `statement`, `prompt`, `produces`, `inputs`, `origin`) |
 | `plan.md` / `plan.json` | `plan` | pointer + thin wrapper (`done_sentence`, `backchain` path, `step_ids` — not SoT, recomputed from the DAG) |
 | `steps/<id>.json` | `implement` | per-step receipt (`status`, `plan_sha256`, `worktree`, `branch`, `base_sha`) |
 | `history.jsonl` | every command | append-only event log |
+| `recap.html` | residual → done | end-of-run walk-back HTML (intent, accomplished, changed, outcome, verified) |
 
 There is **no** `environment.json`, `spec.json`, or `implement.json`. Each
 artifact above has exactly one file as its source of truth; the script never
@@ -42,3 +43,9 @@ never writes it. The spec's final product duty is a README create/revise as
 a late DAG successor (see `plan.md`, `survey.md`). It must never contain
 machine JSON, handles, tokens, MCP inventory, or session hashes — those stay
 in `environment.md`. `init --force` never deletes it.
+
+## End-of-run `recap.html`
+
+Host-written before dest `done`. Not hashed. `--force` unlinks it. The script
+refuses dest `done` when the file is missing, empty, not HTML, or missing the
+briefing words `intent`, `accomplish`, `changed`, `outcome`, and `verif`.

@@ -1,5 +1,6 @@
-**Survey, then spec.** This is not c-plan. Do not follow a DevLoop overlay.
-State files: `{{SURVEY_GUIDE}}` and `references/state-files.md`.
+**Survey, then practices, then spec.** This is not c-plan. Do not follow a
+DevLoop overlay. State files: `{{SURVEY_GUIDE}}` and
+`references/state-files.md`.
 
 ## 1. Survey (once)
 
@@ -11,7 +12,21 @@ exactly `machine` with one fenced JSON object. Any handle resolved `list` or
 `ask` will block `dest plan` later — resolve it now or use the blocked hatch
 below.
 
-## 2. Spec (once)
+## 2. Best-practice research (once, before the spec)
+
+From `{{ENV_MD}}` (kind, tools, mcp, ui, initiation, handles) and
+`{{PROMPT_PATH}}`, decide which practices apply. Pull concrete references
+implement steps must use: URLs, in-repo paths, ADRs, official docs, skill
+or reference files, MCP resource URIs. If an observed MCP server or its
+tools describe how to use them (tool descriptions, resources, prompts, or
+a query that returns practice guidance), record that text as a reference —
+inventory alone is not enough. Write the findings **into** `{{ENV_MD}}`
+(more prose plus `references[{path, why}]`; `path` may be a URL or repo
+path). Do not invent a second SoT file. Do not persist secrets. Do not
+write the product README. Do not add research skills to `dep_roots`. Those
+references must later appear in each DAG step's stored `prompt`.
+
+## 3. Spec (once)
 
 Write `{{SPEC_MD}}` with a labeled line `done_sentence: <exact sentence>`
 and a labeled line `checkable: true` or `checkable: false` (each exactly

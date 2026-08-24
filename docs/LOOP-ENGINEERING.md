@@ -38,9 +38,9 @@ User invoked `/shiploop` / skill `shiploop`.
 
 | When | Overlay | Role |
 |------|---------|------|
-| **Before** | **survey once** (session kind/handles/MCP/initiation/UI → `environment.md`), then **spec once**, then **sequence plan once** (backchain) | Survey is a required prefix inside `validate-spec`, not a new phase. Frozen `done_sentence`. Prep / intermediate deploy / cleanup / a README create-or-revise are DAG steps when implied — brownfield augments an existing tree (`augment: true`) rather than replacing it. |
+| **Before** | **survey once** (session kind/handles/MCP/initiation/UI → `environment.md`), **research practices** into that same file, then **spec once**, then **sequence plan once** (backchain) | Survey is a required prefix inside `validate-spec`, not a new phase. Frozen `done_sentence`. Prep / intermediate deploy / cleanup / a README create-or-revise are DAG steps when implied — brownfield augments an existing tree (`augment: true`) rather than replacing it. Step prompts cite those practice references. |
 | **During** | `/shiploop next` emits a `/goal` per running step (cwd is that step's worktree). `/shiploop complete` closes the increment (commit + host merge + next packet). | Host DAG walk. **Not** `/devloop`. **Not** a spec rewrite. |
-| **After** | session residual under `/goal` once `steps_drained` | No engine `COMPLETE`. |
+| **After** | session residual under `/goal` once `steps_drained`, then host writes `.shiploop/recap.html` before dest `done` | No engine `COMPLETE`. Recap is the walk-back (intent, accomplished, changed, outcome, verified). |
 
 ShipLoop owns per-step git worktree/branch isolation (checkout disposable;
 branch kept on complete; host merges before `/shiploop complete`). It does **not** inherit

@@ -231,6 +231,7 @@ def default_state(
             "plan_md": str(run_dir / "plan.md"),
             "plan_json": str(run_dir / "plan.json"),
             "backchain": str(run_dir / "backchain" / "plan.json"),
+            "recap_html": str(run_dir / "recap.html"),
         },
         "blocked_reason": None,
         "blocked_from": None,
@@ -699,6 +700,26 @@ def residual_gaps(state: Dict[str, Any], dest: str) -> List[str]:
             return [f"ledger status {status!r} is not stopped"]
         return []
     return ["residual not terminal"]
+
+
+def recap_gaps(run_dir: Path) -> List[str]:
+    path = run_dir / "recap.html"
+    if not path.is_file():
+        return ["missing recap.html"]
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError as exc:
+        return [f"cannot read recap.html: {exc}"]
+    if not text.strip():
+        return ["recap.html is empty"]
+    low = text.lower()
+    if "<html" not in low and "<!doctype html" not in low:
+        return ["recap.html is not HTML"]
+    needed = ("intent", "accomplish", "changed", "outcome", "verif")
+    missing = [word for word in needed if word not in low]
+    if missing:
+        return [f"recap.html missing briefing: {', '.join(missing)}"]
+    return []
 
 
 def load_dag(run_dir: Path) -> Optional[Dict[str, Any]]:
@@ -1399,6 +1420,7 @@ def missing_for(state: Dict[str, Any], run_dir: Path, dest: Optional[str]) -> Li
             gaps.append("steps not drained")
     elif need == "residual_success":
         gaps.extend(residual_gaps(state, "done"))
+        gaps.extend(recap_gaps(run_dir))
     elif need == "residual_stopped":
         gaps.extend(residual_gaps(state, "halted"))
     elif need == "reason":
@@ -1635,6 +1657,7 @@ def activity_body(phase: str, run_dir: Path, state: Dict[str, Any]) -> str:
         "RESUME_TO": str(state.get("resume_to") or "validate-spec"),
         "REPO_ROOT": str(state.get("repo_root") or ""),
         "SURVEY_GUIDE": str(REF_DIR / "survey.md"),
+        "RECAP_HTML": str(run_dir / "recap.html"),
     }
     return interpolate(path.read_text(encoding="utf-8"), mapping).rstrip()
 
@@ -1743,6 +1766,10 @@ def look_here_lines(run_dir: Path, state: Dict[str, Any], phase: str) -> List[st
         add("required", run_dir / "spec.md", "frozen spec")
         if deps.get("review-coverage"):
             add("required", Path(deps["review-coverage"]) / "SKILL.md", "review-coverage Phase B")
+        add("required", run_dir / "recap.html", "end-of-run walk-back (create)", missing_ok=True)
+    elif phase == "done":
+        add("required", run_dir / "recap.html", "end-of-run walk-back")
+        add("required", run_dir / "spec.md", "frozen spec")
     elif phase == "blocked":
         add("required", run_dir / "state.json", "ask_user / reason / resume_to")
         add("required", act, "current activity")
@@ -1857,6 +1884,7 @@ def force_wipe(run_dir: Path) -> None:
         "plan.md",
         "plan.json",
         "implement.json",
+        "recap.html",
     ):
         p = run_dir / name
         if p.is_file() or p.is_symlink():

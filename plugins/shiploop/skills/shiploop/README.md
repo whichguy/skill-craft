@@ -13,9 +13,14 @@ Package leaf: `skills/shiploop`. Invoke: `/shiploop`.
 
 1. **Intake → validate-spec → plan** — validate-spec runs a **survey first**
    (session kind/handles/MCP/initiation/UI, written to `environment.md`),
-   then freezes a checkable `done_sentence` (`spec.md`). `plan` calls
-   backchain once for the sequence DAG (requires sibling skill `backchain`),
-   including a README create/revise as a late DAG successor.
+   then **researches applicable practices** into that same file (URLs, in-repo
+   paths, ADRs, official docs, skill/reference files, MCP practice text —
+   inventory is not enough when the tool documents how to use it), then
+   freezes a checkable `done_sentence` (`spec.md`). `plan` calls backchain
+   once for the sequence DAG (requires sibling skill `backchain`), including
+   a README create/revise as a late DAG successor. Each step `prompt` cites
+   those `environment.md` references. No `/speckit`. No research skills in
+   `dep_roots`.
 2. **Implement** — claim each ready step, print its **stored** `prompt`
    verbatim (paste-ready; the script does not compose it) whose cwd is that
    step’s git worktree and branch (`shiploop/<run_id>/<id>`).
@@ -23,6 +28,8 @@ Package leaf: `skills/shiploop`. Invoke: `/shiploop`.
    into the session checkout, then `/shiploop complete`. The next worktree
    forks `HEAD`.
 4. **Residual** — after `steps_drained`, review-coverage Phase B under `/goal`.
+   When residual is terminal, write `.shiploop/recap.html` (intent,
+   accomplished, materially changed, outcome, verified) before dest `done`.
    Stop when the packet says stop.
 
 State lives in the bound repo’s `.shiploop/` (walked from cwd). Not inside this
