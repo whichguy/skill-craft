@@ -520,7 +520,7 @@ printf '%s\n' "$out_imp" | grep -q '○ residual' || fail "session rail missing 
 printf '%s\n' "$out_imp" | grep -q '▶ S1  write the file' || fail "walk rail missing S1 statement"
 printf '%s\n' "$out_imp" | grep -q '○ S2  confirm the file' || fail "walk rail missing S2 statement"
 printf '%s\n' "$out_imp" | grep -q 'waiting on S1 write the file' || fail "walk rail missing waiting-on"
-printf '%s\n' "$out_imp" | grep -q 'Finish S1 (write the file):' || fail "labeled Finish S1 missing"
+printf '%s\n' "$out_imp" | grep -q 'Finish S1: write the file' || fail "labeled Finish S1 missing"
 printf '%s\n' "$out_imp" | grep -q 'S1 worktree — write the file' || fail "look here missing S1 statement"
 printf '%s\n' "$out_imp" | grep -qx 'Diagnosis' || fail "implement missing Diagnosis"
 printf '%s\n' "$out_imp" | grep -q 'stand      implement — 0/2 steps done' || fail "implement stand"

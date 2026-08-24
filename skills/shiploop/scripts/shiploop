@@ -1766,7 +1766,7 @@ def print_progress(
         if br:
             print(f"  Branch: {br}")
         print(
-            f"  Finish {_step_label(run_dir, sid)}: when the /goal is done, commit on that worktree, "
+            f"  Finish {_finish_label(run_dir, sid)} — when the /goal is done, commit on that worktree, "
             f"merge the branch into the session checkout "
             f"(git -C {repo_s} merge --no-ff --no-edit {br or '<branch>'}), "
             f"then invoke /shiploop complete."
@@ -1886,9 +1886,9 @@ def _step_statement(run_dir: Path, sid: str) -> str:
     return (step.get("statement") or "").strip()
 
 
-def _step_label(run_dir: Path, sid: str) -> str:
+def _finish_label(run_dir: Path, sid: str) -> str:
     stmt = _step_statement(run_dir, sid)
-    return f"{sid} ({stmt})" if stmt else sid
+    return f"{sid}: {stmt}" if stmt else f"{sid}:"
 
 
 def _walk_waiting_on(
@@ -2113,7 +2113,7 @@ def print_packet(run_dir: Path, state: Dict[str, Any], *, prior_running: Optiona
         for sid in running:
             rec = load_receipt(run_dir, sid)
             _wt, br = isolation_for(state, sid, rec)
-            print(f"Finish {_step_label(run_dir, sid)}: after /goal succeeds, commit on the worktree")
+            print(f"Finish {_finish_label(run_dir, sid)} — after /goal succeeds, commit on the worktree")
             if br:
                 print(
                     f"then merge that branch into the session checkout: "
