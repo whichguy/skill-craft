@@ -20,7 +20,8 @@ grep -q 'shiploop — session harness' "$root/skills/shiploop/SKILL.md" || fail 
 if grep -q 'DEFINE → PROVE → BUILD' "$root/skills/shiploop/SKILL.md"; then
   fail "SKILL.md must not own DEFINE/PROVE/BUILD"
 fi
-if grep -RqiE 'devloop' "$root/skills/shiploop" "$root/agents/shiploop.md"; then
+if grep -RqiE 'devloop' --exclude-dir=__pycache__ \
+  "$root/skills/shiploop" "$root/agents/shiploop.md"; then
   fail "shiploop skill must not mention DevLoop"
 fi
 if grep -E 'shiploop capture|devloop-run' "$root/skills/shiploop/references/activities/implement.md"; then
