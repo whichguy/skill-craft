@@ -10,3 +10,6 @@ results/
 # local agent/tool scratch (never ship)
 tasks/
 dist/
+.shiploop/
+.steer/
+REVIEW_CONVERGE.archived-*.md
