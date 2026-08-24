@@ -291,9 +291,11 @@ hand-author it.
 ### 6. Done (or halted)
 
 `recap.html` is the harness-written walk-back for someone who left and came
-back: **intent, original spec, accomplished, materially changed, end result,
-outcome, verified**. dest `done` refuses a missing, empty, non-HTML, or
-briefing-thin file. `--force` unlinks it. The file is **not** hashed.
+back. It opens as a reveal of **key accomplishments** and a diagram of
+**implementation outcomes**, then **intent, original spec, materially
+changed, end result, outcome, verified**. dest `done` refuses a missing,
+empty, non-HTML, or briefing-thin file. `--force` unlinks it. The file is
+**not** hashed.
 
 ---
 

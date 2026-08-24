@@ -669,6 +669,10 @@ grep -q 'result.txt contains exactly one line: ok' "$run/recap.html" \
 grep -q 'write the file' "$run/recap.html" || fail "generated recap missing S1 statement"
 grep -q 'confirm the file' "$run/recap.html" || fail "generated recap missing S2 statement"
 grep -q 'writer: shiploop.recap' "$run/recap.html" || fail "generated recap missing writer stamp"
+grep -qi 'Key accomplishments' "$run/recap.html" || fail "generated recap missing Key accomplishments"
+grep -qi 'Implementation outcomes' "$run/recap.html" || fail "generated recap missing outcomes diagram"
+grep -q 'class="river"' "$run/recap.html" || fail "generated recap missing river diagram"
+grep -q 'Made true:' "$run/recap.html" || fail "generated recap missing made-true accomplishments"
 printf 'LAYER: dest done writes recap.html OK\n'
 out_done="$(run_cli next --run-dir "$run")"
 printf '%s\n' "$out_done" | grep -q 'stop — no update' || fail "done stop: $out_done"

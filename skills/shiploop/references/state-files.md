@@ -48,7 +48,9 @@ in `environment.md`. `init --force` never deletes it.
 
 The harness writes this file on dest `done` and dest `halted` from the run
 files (prompt, frozen spec, DAG/receipts, plan, survey prose, history,
-ledger). Not hashed. `--force` unlinks it. The script refuses dest `done`
-when the file is missing, empty, not HTML, or missing the briefing words
-`intent`, `accomplish`, `changed`, `outcome`, `verif`, `original spec`, and
-`end result`. The host does not hand-author it.
+ledger). The top of the page is a reveal: key accomplishments and a
+diagram of implementation outcomes (starting facts → each step's
+`produces` → frozen done_sentence). Not hashed. `--force` unlinks it. The
+script refuses dest `done` when the file is missing, empty, not HTML, or
+missing the briefing words `intent`, `accomplish`, `changed`, `outcome`,
+`verif`, `original spec`, and `end result`. The host does not hand-author it.

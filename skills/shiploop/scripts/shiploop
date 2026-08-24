@@ -791,6 +791,117 @@ def _history_events(run_dir: Path) -> List[str]:
     return rows
 
 
+def _step_suppliers(step: Dict[str, Any]) -> List[str]:
+    out: List[str] = []
+    for inp in step.get("inputs") or []:
+        if isinstance(inp, dict) and inp.get("from") is not None:
+            out.append(str(inp["from"]))
+    return out
+
+
+def _walk_layers(ids: List[str], by_id: Dict[str, Dict[str, Any]]) -> List[List[str]]:
+    known = set(ids)
+    remaining = set(ids)
+    placed: Set[str] = set()
+    layers: List[List[str]] = []
+    while remaining:
+        ready = [
+            sid
+            for sid in ids
+            if sid in remaining
+            and all(dep in placed for dep in _step_suppliers(by_id.get(sid) or {}) if dep in known)
+        ]
+        if not ready:
+            layers.append([sid for sid in ids if sid in remaining])
+            break
+        layers.append(ready)
+        for sid in ready:
+            remaining.discard(sid)
+            placed.add(sid)
+    return layers
+
+
+def _recap_chip(text: str, *, kind: str = "chip") -> str:
+    return f'<span class="{kind}">{_html_text(text)}</span>'
+
+
+def _recap_river_html(
+    ids: List[str],
+    by_id: Dict[str, Dict[str, Any]],
+    classes: Dict[str, str],
+    initial_state: List[str],
+    done_sentence: str,
+) -> str:
+    if not ids and not initial_state and not done_sentence:
+        return '<p class="empty">(no sequence plan)</p>'
+    parts: List[str] = ['<div class="river" role="img" aria-label="Implementation outcomes">']
+    sources = [diag_text(item) for item in initial_state if diag_text(item) != "(none)"]
+    if sources:
+        parts.append('<div class="layer sources">')
+        parts.append('<p class="layer-label">Started from</p>')
+        parts.append('<div class="row">')
+        parts.extend(_recap_chip(item, kind="chip source") for item in sources)
+        parts.append("</div></div>")
+        parts.append('<div class="flow-arrow" aria-hidden="true"></div>')
+    for layer in _walk_layers(ids, by_id):
+        parts.append('<div class="layer">')
+        parts.append('<p class="layer-label">Made true</p>')
+        parts.append('<div class="row">')
+        for sid in layer:
+            step = by_id.get(sid) or {}
+            klass = classes.get(sid, "todo")
+            stmt = diag_text(step.get("statement"))
+            texts = produces_texts(step.get("produces")) or []
+            produces = "".join(_recap_chip(t, kind="chip out") for t in texts) or (
+                '<span class="chip out">—</span>'
+            )
+            parts.append(
+                f'<article class="node {html.escape(klass)}">'
+                f'<span class="nid">{_html_text(sid)}</span>'
+                f"<h3>{_html_text(stmt)}</h3>"
+                f'<p class="made">Implementation outcome</p>'
+                f'<div class="outs">{produces}</div>'
+                "</article>"
+            )
+        parts.append("</div></div>")
+        parts.append('<div class="flow-arrow" aria-hidden="true"></div>')
+    if done_sentence:
+        parts.append('<div class="layer sink">')
+        parts.append('<p class="layer-label">End result</p>')
+        parts.append(f'<p class="sink-line">{_html_text(done_sentence)}</p>')
+        parts.append("</div>")
+    elif parts and parts[-1] == '<div class="flow-arrow" aria-hidden="true"></div>':
+        parts.pop()
+    parts.append("</div>")
+    return "".join(parts)
+
+
+def _recap_accomplishment_cards(
+    ids: List[str],
+    by_id: Dict[str, Dict[str, Any]],
+    classes: Dict[str, str],
+) -> str:
+    cards: List[str] = []
+    for sid in ids:
+        step = by_id.get(sid) or {}
+        klass = classes.get(sid, "todo")
+        stmt = diag_text(step.get("statement"))
+        texts = produces_texts(step.get("produces")) or []
+        produces = "; ".join(diag_text(t) for t in texts) if texts else "—"
+        mark = "landed" if klass == "done" else klass
+        cards.append(
+            "<li>"
+            f'<span class="nid">{_html_text(sid)}</span>'
+            f"<strong>{_html_text(stmt)}</strong>"
+            f'<span class="made">Made true: {_html_text(produces)}</span>'
+            f'<span class="mark">{_html_text(mark)}</span>'
+            "</li>"
+        )
+    if not cards:
+        return '<p class="empty">(no sequence plan)</p>'
+    return '<ol class="accomplishments">' + "".join(cards) + "</ol>"
+
+
 def render_recap_html(run_dir: Path, state: Dict[str, Any], *, dest: str) -> str:
     spec, _ = load_spec(run_dir)
     prompt = (read_text(run_dir / "prompt.md") or str(state.get("prompt") or "")).strip()
@@ -822,33 +933,14 @@ def render_recap_html(run_dir: Path, state: Dict[str, Any], *, dest: str) -> str
         )
     else:
         rail = "● intake  ● validate-spec  ● plan  ● implement  ● residual  ▶ done"
-    walk_rows = []
-    for sid in ids:
-        step = by_id.get(sid) or {}
-        klass = classes.get(sid, "todo")
-        mark = "●" if klass == "done" else "○"
-        stmt = diag_text(step.get("statement"))
-        texts = produces_texts(step.get("produces")) or []
-        produces = diag_text("; ".join(texts)) if texts else "—"
-        walk_rows.append(
-            "<tr>"
-            f"<td>{html.escape(mark)}</td>"
-            f"<td>{_html_text(sid)}</td>"
-            f"<td>{_html_text(stmt)}</td>"
-            f"<td>{_html_text(klass)}</td>"
-            f"<td>{_html_text(produces)}</td>"
-            "</tr>"
-        )
-    if walk_rows:
-        walk_html = (
-            "<table><thead><tr>"
-            "<th></th><th>id</th><th>statement</th><th>status</th><th>produces</th>"
-            "</tr></thead><tbody>"
-            + "".join(walk_rows)
-            + "</tbody></table>"
-        )
-    else:
-        walk_html = "<p class=\"empty\">(no sequence plan)</p>"
+    dag = load_dag(run_dir) or {}
+    initial_state = [
+        str(item).strip()
+        for item in (dag.get("initial_state") or [])
+        if isinstance(item, str) and item.strip()
+    ]
+    river_html = _recap_river_html(ids, by_id, classes, initial_state, str(done_sentence or ""))
+    accomplishments_html = _recap_accomplishment_cards(ids, by_id, classes)
     hist = _history_events(run_dir)
     if hist:
         hist_html = "<ol class=\"log\">" + "".join(
@@ -886,13 +978,15 @@ def render_recap_html(run_dir: Path, state: Dict[str, Any], *, dest: str) -> str
 <title>ShipLoop recap — { _html_text(stamp) }</title>
 <style>
 :root {{
-  --stock: #d5e3ea;
+  --stock: #c9dbe4;
   --ink: #16202b;
   --rule: #5d7d8c;
   --stamp: #b42318;
   --closed: #245c4a;
   --paper: #f4f8fa;
   --muted: #4d6270;
+  --node: #e8f1f5;
+  --node-done: #d7ebe3;
 }}
 html, body {{ margin: 0; padding: 0; background: var(--stock); color: var(--ink); }}
 body {{
@@ -900,7 +994,7 @@ body {{
   line-height: 1.45;
 }}
 .jacket {{
-  max-width: 52rem;
+  max-width: 58rem;
   margin: 1.5rem auto 3rem;
   background: var(--paper);
   border: 1px solid var(--rule);
@@ -936,7 +1030,7 @@ h1 {{
   font-size: 1.8rem;
   margin: 0.2rem 0 0.35rem;
 }}
-.meta, .empty, caption, th {{ color: var(--muted); }}
+.meta, .empty, caption, th, .layer-label, .made, .mark {{ color: var(--muted); }}
 .meta {{ margin: 0 0 1rem; font-size: 0.92rem; }}
 h2 {{
   font-size: 0.82rem;
@@ -946,7 +1040,8 @@ h2 {{
   padding-top: 0.85rem;
   margin: 1.4rem 0 0.55rem;
 }}
-pre, table, code {{
+.reveal h2:first-child {{ border-top: 0; padding-top: 0; }}
+pre, table, code, .nid {{
   font-family: "IBM Plex Mono", Menlo, Consolas, monospace;
   font-size: 0.86rem;
 }}
@@ -956,15 +1051,102 @@ pre {{
   padding: 0.75rem 0.85rem;
   border-left: 3px solid var(--rule);
 }}
-table {{ width: 100%; border-collapse: collapse; }}
-th, td {{ text-align: left; vertical-align: top; padding: 0.28rem 0.4rem 0.28rem 0; }}
-th {{ font-weight: 600; font-size: 0.75rem; letter-spacing: 0.08em; text-transform: uppercase; }}
+.thesis {{
+  font-size: 1.35rem;
+  font-family: "Iowan Old Style", Palatino, "Palatino Linotype", serif;
+  margin: 0 0 1rem;
+}}
+.river {{
+  background: linear-gradient(#e7eef2, #e7eef2) 50% 0 / 3px 100% no-repeat;
+  padding: 0.4rem 0 0.2rem;
+}}
+.layer {{ margin: 0; }}
+.layer-label {{
+  margin: 0 0 0.35rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-align: center;
+}}
+.row {{
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.7rem;
+}}
+.node {{
+  background: var(--node);
+  border: 1px solid var(--rule);
+  min-width: 12rem;
+  max-width: 18rem;
+  padding: 0.55rem 0.7rem 0.7rem;
+}}
+.node.done {{ background: var(--node-done); }}
+.node h3 {{ margin: 0.15rem 0 0.4rem; font-size: 1.02rem; overflow-wrap: anywhere; }}
+.nid {{
+  display: inline-block;
+  letter-spacing: 0.06em;
+  font-weight: 700;
+}}
+.made {{ margin: 0 0 0.25rem; font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase; }}
+.chip {{
+  display: inline-block;
+  border: 1px solid var(--rule);
+  padding: 0.15rem 0.4rem;
+  margin: 0.1rem 0.15rem 0.1rem 0;
+  background: #f4f8fa;
+  font-size: 0.84rem;
+}}
+.chip.source {{ background: #e4edc8; }}
+.chip.out {{ background: #d7ebe3; }}
+.sink-line {{
+  margin: 0 auto;
+  max-width: 36rem;
+  padding: 0.7rem 0.9rem;
+  border: 2px solid var(--closed);
+  background: var(--node-done);
+  text-align: center;
+  font-family: "Iowan Old Style", Palatino, "Palatino Linotype", serif;
+  font-size: 1.05rem;
+}}
+.flow-arrow {{
+  height: 1.35rem;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+}}
+.flow-arrow::after {{
+  content: "";
+  width: 0;
+  height: 0;
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+  border-top: 12px solid var(--rule);
+}}
+.accomplishments {{ list-style: none; padding: 0; margin: 0; }}
+.accomplishments li {{
+  display: grid;
+  grid-template-columns: 3rem 1fr auto;
+  grid-template-rows: auto auto;
+  column-gap: 0.7rem;
+  padding: 0.65rem 0;
+  border-bottom: 1px dashed var(--rule);
+}}
+.accomplishments .nid {{ grid-row: 1 / span 2; align-self: center; }}
+.accomplishments strong {{ font-size: 1.05rem; }}
+.accomplishments .made {{ grid-column: 2; }}
+.accomplishments .mark {{ grid-column: 3; grid-row: 1 / span 2; align-self: center; }}
 .log {{ padding-left: 1.1rem; }}
 .log li {{ margin: 0.2rem 0; }}
 .done-sentence {{
   font-size: 1.15rem;
   font-family: "Iowan Old Style", Palatino, "Palatino Linotype", serif;
   margin: 0.2rem 0 0.6rem;
+}}
+@media (max-width: 640px) {{
+  .accomplishments li {{ grid-template-columns: 3rem 1fr; }}
+  .accomplishments .mark {{ grid-column: 2; grid-row: auto; }}
+  .stamp {{ position: static; display: inline-block; transform: none; }}
 }}
 @media (prefers-reduced-motion: reduce) {{ .stamp {{ transform: none; }} }}
 </style>
@@ -976,6 +1158,24 @@ th {{ font-weight: 600; font-size: 0.75rem; letter-spacing: 0.08em; text-transfo
 <p class="routing">{html.escape(rail)}</p>
 <h1>ShipLoop recap</h1>
 <p class="meta">Run {_html_text(run_id)} · repo {_html_text(repo_s)}</p>
+
+<section class="reveal">
+<h2>Key accomplishments</h2>
+<p class="thesis">{_html_text(end_result)}</p>
+<p>Walk {n_done}/{len(ids) or 0} steps done. Each card is what that increment made true.</p>
+{accomplishments_html}
+
+<h2>Implementation outcomes</h2>
+<p>How those increments connect: starting facts, each step's outcome, then the end result.</p>
+{river_html}
+</section>
+
+<h2>End result</h2>
+<p class="done-sentence">{_html_text(end_result)}</p>
+<p>{_html_text(end_bits)}</p>
+
+<h2>Outcome</h2>
+<p>{_html_text(outcome)}</p>
 
 <h2>Intent</h2>
 <p>The original ask that opened this session.</p>
@@ -989,23 +1189,12 @@ th {{ font-weight: 600; font-size: 0.75rem; letter-spacing: 0.08em; text-transfo
 <h2>Survey brief</h2>
 {_html_pre(env_brief)}
 
-<h2>Accomplished</h2>
-<p>Walk {n_done}/{len(ids) or 0} steps done.</p>
-{walk_html}
-
 <h2>Sequence plan</h2>
 {_html_pre(plan_md)}
 
 <h2>Materially changed</h2>
-<p>Harness events that moved the session (latest first-in-file order, last 24).</p>
+<p>Harness events that moved the session (file order, last 24).</p>
 {hist_html}
-
-<h2>End result</h2>
-<p class="done-sentence">{_html_text(end_result)}</p>
-<p>{_html_text(end_bits)}</p>
-
-<h2>Outcome</h2>
-<p>{_html_text(outcome)}</p>
 
 <h2>Verified</h2>
 <p>Ledger status {_html_text(ledger_status)}; bound={_html_text(bound)}; landed={_html_text(landed)}.
