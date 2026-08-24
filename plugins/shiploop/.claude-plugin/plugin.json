@@ -1,0 +1,18 @@
+{
+  "name": "shiploop",
+  "version": "0.6.0",
+  "description": "Session harness (not DevLoop): spec once, one backchain sequence plan, then walk ready steps by emitting a paste-ready /goal per running id in a per-step git worktree/branch. Use when the user says shiploop, ship the project, session harness, or what's the next step. Never invoke /devloop. After every increment invoke /shiploop complete — do not rely on chat memory. Lost context without completing → /shiploop next.",
+  "author": {
+    "name": "whichguy",
+    "url": "https://github.com/whichguy"
+  },
+  "homepage": "https://github.com/whichguy/skill-craft",
+  "repository": "https://github.com/whichguy/skill-craft",
+  "license": "MIT",
+  "keywords": [
+    "skill-craft",
+    "shiploop",
+    "portable-skills",
+    "script-backed"
+  ]
+}

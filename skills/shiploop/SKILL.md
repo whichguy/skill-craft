@@ -1,0 +1,131 @@
+---
+name: shiploop
+description: >-
+  Session harness (not DevLoop): spec once, one backchain sequence plan, then
+  walk ready steps by emitting a paste-ready /goal per running id in a
+  per-step git worktree/branch. Use when the user says shiploop, ship the
+  project, session harness, or what's the next step. Never invoke /devloop.
+  After every increment invoke /shiploop complete — do not rely on chat
+  memory. Lost context without completing → /shiploop next.
+allowed-tools: all
+version: 0.6.0
+license: MIT
+platforms:
+  - linux
+  - macos
+metadata:
+  skill_craft:
+    kind: script-backed
+  hermes:
+    category: software-development
+    tags:
+      - portable-skill
+      - multi-host
+      - session-sm
+---
+
+# ShipLoop (session harness, not DevLoop)
+
+**Package leaf:** `shiploop`
+
+Banner (first line of any invoke):
+
+```text
+shiploop — session harness (not DevLoop)
+```
+
+`shiploop` owns session state. It does not implement the product, does not
+claim DevLoop COMPLETE, and must not invoke `/devloop`. Planning requires the
+sibling **backchain** skill (fail-closed via `dep_roots.backchain`).
+
+Reprint and closer live on this leaf (`/shiploop next`, `/shiploop complete`).
+There are no sibling marketplace skills for those verbs.
+
+Practices: skill-craft `docs/LOOP-ENGINEERING.md` (ShipLoop session track).
+Human overview: [README.md](README.md).
+
+## When to use
+
+- User says **shiploop** or wants an artifact-backed next step that ships
+- A run already has `.shiploop/` and context may be gone
+- Spec once → sequence plan once → walk via `/goal` → session residual
+
+## When not to use
+
+- Bare **devloop** / DevLoop → skill **`devloop`**
+- Offline freeze/prove/stop → **`evidence-gates`**
+- Packet reprint only → `/shiploop next` (same leaf)
+- Increment finished, want the next packet → `/shiploop complete` (same leaf)
+- Residual×2 engine alone → **`review-coverage`** / **`review-converge`**
+
+## Procedure
+
+1. Print the banner `shiploop — session harness (not DevLoop)`.
+2. `SKILL_ROOT` = directory containing this `SKILL.md`.
+3. `python3 "$SKILL_ROOT/scripts/shiploop" init --prompt "…" --run-dir DIR` once
+   if there is no live `state.json`. `--implementer host` is the default.
+   `--implementer devloop` fails closed.
+4. Follow the whole packet. Read **Diagnosis**. Do only the **Next prompt**.
+   Implement `/goal`s name a per-step worktree and branch — work there; do not
+   edit the session checkout or reuse a prior worktree.
+5. When the increment is done: invoke **`/shiploop complete`**. That command
+   owns the closer (commit + merge if this was a `/goal`, then harness
+   `complete`, then the next packet). Do not type `complete-step --id` or
+   `update --to` unless this card named an override (`--clear`,
+   `--blocked --reason`, `--id` when several steps are running). Empty or
+   unmerged branches are refused. ShipLoop does not auto-merge.
+6. Repeat until the packet says stop. Lost context without completing
+   anything → invoke **`/shiploop next`** (reprint / claim only).
+7. **Never** invoke skill `devloop`, slash `/devloop`, or `shiploop capture` of
+   `devloop-run`.
+
+## Closer (`/shiploop complete`)
+
+This is not a reprint. Invoking it means the current increment finished (or
+failed). Follow [commands/shiploop-complete.md](commands/shiploop-complete.md):
+
+- **Success (default):** Next prompt is done. If that work was an implement
+  `/goal`: commit on that worktree if it is not committed; merge the kept
+  branch into the session checkout if it is not in `HEAD`. Do not skip the
+  merge; the next worktree forks `HEAD`.
+- **`/goal` failed**, session can continue: `--clear` (add `--id` only when
+  several steps are running and cwd is not that worktree).
+- **Hard stop:** `--blocked --reason <text>` (required). `--resume-to` only
+  if the packet named it.
+
+Then exec the leaf CLI (`complete`) and follow the whole packet that prints.
+
+## CLI
+
+```sh
+CLI="$SKILL_ROOT/scripts/shiploop"
+python3 "$CLI" init [--prompt TEXT] [--run-dir DIR] [--implementer host] [--force] [--bound-plan PATH] [--repo PATH]
+python3 "$CLI" next [--run-dir DIR]
+python3 "$CLI" complete [--id ID] [--run-dir DIR] [--clear] [--blocked --reason TEXT]
+python3 "$CLI" update [--run-dir DIR] --to PHASE [--reason TEXT] [--resume-to PHASE]
+python3 "$CLI" status [--run-dir DIR]
+python3 "$CLI" start-step [--run-dir DIR] --id ID
+python3 "$CLI" complete-step [--run-dir DIR] [--id ID]
+python3 "$CLI" clear-step [--run-dir DIR] [--id ID]
+```
+
+The host closer is **`/shiploop complete`** (it execs `complete`).
+`complete` infers the unique running id or the happy-path `--to` from
+`.shiploop/` files, then prints the next packet. `complete-step` /
+`update --to` / `--id` are overrides.
+
+| Exit | Meaning |
+|------|---------|
+| 0 | Success |
+| 2 | Blocked (illegal transition, missing artifact, hash drift, unsupported implementer) |
+| 64 | Usage |
+
+State lives under the **run dir** (default: walk from cwd to `.shiploop`), never
+inside this package. `--to implement` and claiming a step require `repo_root`
+to be a git repository with `HEAD` so each running id can get a unique
+`shiploop/<run_id>/<id>` worktree under `<repo>/.worktrees/` (hidden via
+`.git/info/exclude`, not a tracked `.gitignore`).
+
+## Host matrix
+
+See [references/host-matrix.md](references/host-matrix.md). Discovery ≠ execution.

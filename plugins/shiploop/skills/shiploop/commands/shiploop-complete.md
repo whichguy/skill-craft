@@ -1,0 +1,11 @@
+The current ShipLoop increment is finished. This command **is** the closer, not a reprint.
+
+**Success (default):** if this was an implement `/goal`, commit on that worktree if needed, then merge the kept branch into the session checkout (`git merge --no-ff`). Do not skip the merge; the next worktree forks `HEAD`. ShipLoop does not auto-merge.
+
+Then exec `python3 "$SKILL_ROOT/scripts/shiploop" complete` (or the leaf wrapper `scripts/shiploop-complete`) so the harness prints the next packet.
+
+- `/goal` failed, session continues: `--clear`
+- Hard stop: `--blocked --reason <text>`
+- `--id` only when several steps are running and cwd is not that worktree
+
+Follow the whole packet that prints. Not `/devloop`. Not `/shiploop next`.

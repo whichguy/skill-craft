@@ -32,18 +32,20 @@ One controller = `/devloop`. Do not grow a host BUILD path on this track.
 Frozen oracle, isolated worktree, and `COMPLETE` = `AFTER exec exit=0` apply
 **here only**.
 
-### Steer session
+### ShipLoop session
 
-User invoked `steer` / skill `steer`.
+User invoked `/shiploop` / skill `shiploop`.
 
 | When | Overlay | Role |
 |------|---------|------|
 | **Before** | **spec once**, then **sequence plan once** (backchain) | Frozen `done_sentence`. Prep / intermediate deploy / cleanup are DAG steps when implied. |
-| **During** | `steer-next` emits a `/goal` per running step (inner TDD + any prep/deploy/cleanup that step names) | Host DAG walk. **Not** `/devloop`. **Not** a spec rewrite. |
+| **During** | `/shiploop next` emits a `/goal` per running step (cwd is that step's worktree). `/shiploop complete` closes the increment (commit + host merge + next packet). | Host DAG walk. **Not** `/devloop`. **Not** a spec rewrite. |
 | **After** | session residual under `/goal` once `steps_drained` | No engine `COMPLETE`. |
 
-Steer does **not** inherit DevLoop’s frozen-oracle, worktree, or COMPLETE
-guarantees. It must not claim engine `COMPLETE`.
+ShipLoop owns per-step git worktree/branch isolation (checkout disposable;
+branch kept on complete; host merges before `/shiploop complete`). It does **not** inherit
+DevLoop’s frozen-oracle or COMPLETE guarantees, and must not import
+`worktree.py`, auto-merge, or claim engine `COMPLETE`.
 
 ## Practices
 
@@ -53,22 +55,26 @@ guarantees. It must not claim engine `COMPLETE`.
 | Fail-closed (no invented oracle / cwd / `--repo`) | Card interpolate + engine admission | `/goal` “best effort” complete |
 | COMPLETE = `AFTER exec exit=0` only | Card + `test/devloop-run.test.sh` D37 | Second host gate (silent push, `/goal` verify, evidence-gates receipt) |
 | Isolated worktree every run | Shim + engine | Review-converge sticky target, cwd reuse |
+| Per-step worktree (ShipLoop) | shiploop claim / complete-step / clear-step | DevLoop `worktree.py` import, auto-merge, second COMPLETE |
 | Frozen oracle | Engine PROVE/BUILD | Host rewrite of tests |
 | Consumer-channel + `require_*` family | Engine `admission_gates.py` | Host skill / destination-contract nouns |
 | Checkable done sentence | `/devloop <goal>` text | Host DEFINE/PROVE/BUILD complete-when table |
-| residual×2 | `review-coverage` after DevLoop `COMPLETE`, or after Steer `steps_drained` | Engine (≤3 attempt retry is a different grain) |
+| residual×2 | `review-coverage` after DevLoop `COMPLETE`, or after ShipLoop `steps_drained` | Engine (≤3 attempt retry is a different grain) |
 | Learning after outcome | Engine DELIVER+LEARN | Host commit to “finish” delivery |
 | MCP observe-not-act | Card (`references/mcp-consider.md`) | Engine (does not speak MCP) |
 
 `evidence-gates` is offline freeze / prove / build-on-host / stop — **not**
 DevLoop. Never fall back to it when the user asked for DevLoop.
 
-`steer` is a **session harness**, not a second DevLoop. It reads artifacts and
-prints the next packet. During a Steer session, `steer-next` emits a `/goal`
-for ready steps and does not rewrite the spec. It must not invoke `/devloop`,
-must not capture `devloop-run`, and must not claim COMPLETE. Bare “devloop”
-still routes to skill `devloop`. `.steer/plan.md` is a pointer; the sequence
-plan is `.steer/backchain/plan.json`.
+`shiploop` is a **session harness**, not a second DevLoop. It reads artifacts and
+prints the next packet. During a ShipLoop session, `/shiploop next` emits a `/goal`
+for ready steps (cwd on that step's worktree) and does not rewrite the spec.
+The host closer is `/shiploop complete` (procedure on the shiploop card;
+the harness script infers the unique running id or happy-path `--to`).
+It must not invoke `/devloop`, must not
+capture `devloop-run`, must not auto-merge, and must not claim COMPLETE. Bare
+“devloop” still routes to skill `devloop`. `.shiploop/plan.md` is a pointer; the
+sequence plan is `.shiploop/backchain/plan.json`.
 
 ## Prompt-driven, script-enforced (three grains)
 
