@@ -1,14 +1,14 @@
 ---
 name: shiploop
 description: >-
-  Session harness (not DevLoop): spec once, one backchain sequence plan, then
-  walk ready steps by emitting a paste-ready /goal per running id in a
-  per-step git worktree/branch. Use when the user says shiploop, ship the
-  project, session harness, or what's the next step. Never invoke /devloop.
-  After every increment invoke /shiploop complete — do not rely on chat
-  memory. Lost context without completing → /shiploop next.
+  Session harness: spec once, one backchain sequence plan, then walk ready
+  steps by emitting a paste-ready /goal per running id in a per-step git
+  worktree/branch. Use when the user says shiploop, ship the project,
+  session harness, or what's the next step. After every increment invoke
+  /shiploop complete — do not rely on chat memory. Lost context without
+  completing → /shiploop next.
 allowed-tools: all
-version: 0.8.1
+version: 0.8.2
 license: MIT
 platforms:
   - linux
@@ -24,19 +24,19 @@ metadata:
       - session-sm
 ---
 
-# ShipLoop (session harness, not DevLoop)
+# ShipLoop (session harness)
 
 **Package leaf:** `shiploop`
 
 Banner (first line of any invoke):
 
 ```text
-shiploop — session harness (not DevLoop)
+shiploop — session harness
 ```
 
-`shiploop` owns session state. It does not implement the product, does not
-claim DevLoop COMPLETE, and must not invoke `/devloop`. Planning requires the
-sibling **backchain** skill (fail-closed via `dep_roots.backchain`).
+`shiploop` owns session state. It does not implement the product. Planning
+requires the sibling **backchain** skill (fail-closed via
+`dep_roots.backchain`).
 
 Reprint and closer live on this leaf (`/shiploop next`, `/shiploop complete`).
 There are no sibling marketplace skills for those verbs.
@@ -54,7 +54,6 @@ Human overview: [README.md](README.md).
 
 ## When not to use
 
-- Bare **devloop** / DevLoop → skill **`devloop`**
 - Offline freeze/prove/stop → **`evidence-gates`**
 - Packet reprint only → `/shiploop next` (same leaf)
 - Increment finished, want the next packet → `/shiploop complete` (same leaf)
@@ -62,13 +61,15 @@ Human overview: [README.md](README.md).
 
 ## Procedure
 
-1. Print the banner `shiploop — session harness (not DevLoop)`.
+1. Print the banner `shiploop — session harness`.
 2. `SKILL_ROOT` = directory containing this `SKILL.md`.
-3. **Three-branch init** — check for a live `.shiploop/state.json` first:
+3. **Three-branch init** — check for a live `.shiploop/state.json` first.
+   `init --repo PATH` with no `--run-dir` writes `PATH/.shiploop` (not
+   `$PWD/.shiploop`). Exec the CLI with process cwd = that repo (or the
+   running step worktree), not `$HOME`.
    - **No state.json (fresh session):** run
      `python3 "$SKILL_ROOT/scripts/shiploop" init --prompt "…" --repo PATH`
-     once. `--implementer host` is the default; `--implementer devloop` fails
-     closed.
+     once. `--implementer host` is the only legal implementer.
    - **New ask on an existing run:** `init --force --prompt "…" --repo PATH`.
      Empty `--force` is refused before any wipe. `--force` does not delete
      the product tree. Then follow the new packet.
@@ -80,11 +81,15 @@ Human overview: [README.md](README.md).
      asked, then
      `python3 "$SKILL_ROOT/scripts/shiploop" update --to <resume_to>
      --reason "…"` to resume.
-4. Follow the whole packet. Read **Diagnosis**. Do only the **Next prompt**
-   (first line is `Use this prompt as much as possible.` — paste the printed
-   body). Implement steps name a per-step worktree and branch in
-   **Look here** / **Diagnosis** — work there; do not edit the session
-   checkout or reuse a prior worktree. Full workflow: [README.md](README.md).
+4. Follow the whole packet. After every packet (`init` / `next` /
+   `complete`), echo the printed `## You are here` block and the Diagnosis
+   **now** / **pending** lines back to the user — do not summarize them
+   away. That is the live session rail (`status --human` reprints it).
+   Do only the **Next prompt** (first line is `Use this prompt as much as
+   possible.` — paste the printed body). Implement steps name a per-step
+   worktree and branch in **Look here** / **Diagnosis** — work there; do
+   not edit the session checkout or reuse a prior worktree. Full workflow:
+   [README.md](README.md).
 5. When the increment is done: invoke **`/shiploop complete`**. That command
    owns the closer (commit + merge if this was a `/goal`, then harness
    `complete`, then the next packet). Do not type `complete-step --id` or
@@ -97,8 +102,7 @@ Human overview: [README.md](README.md).
 7. Mid-implement, discovered intermediate work → `inject-step` (see
    [commands/shiploop-inject.md](commands/shiploop-inject.md) and
    [references/activities/implement.md](references/activities/implement.md)).
-8. **Never** invoke skill `devloop`, slash `/devloop`, or `shiploop capture` of
-   `devloop-run`.
+8. **Never** invoke `shiploop capture`.
 
 ## Host flag — extra folder (do not re-root)
 
@@ -141,7 +145,7 @@ python3 "$CLI" init [--prompt TEXT] [--run-dir DIR] [--implementer host] [--forc
 python3 "$CLI" next [--run-dir DIR]
 python3 "$CLI" complete [--id ID] [--run-dir DIR] [--clear] [--blocked --reason TEXT]
 python3 "$CLI" update [--run-dir DIR] --to PHASE [--reason TEXT] [--resume-to PHASE]
-python3 "$CLI" status [--run-dir DIR]
+python3 "$CLI" status [--run-dir DIR] [--human]
 python3 "$CLI" start-step [--run-dir DIR] --id ID
 python3 "$CLI" complete-step [--run-dir DIR] [--id ID]
 python3 "$CLI" clear-step [--run-dir DIR] [--id ID]
@@ -160,7 +164,8 @@ The host closer is **`/shiploop complete`** (it execs `complete`).
 | 2 | Blocked (illegal transition, missing artifact, hash drift, unsupported implementer) |
 | 64 | Usage |
 
-State lives under the **run dir** (default: walk from cwd to `.shiploop`), never
+State lives under the **run dir** (default: `<repo>/.shiploop` when `init`
+was given `--repo`, otherwise walk from cwd to `.shiploop`), never
 inside this package. `--to implement` and claiming a step require `repo_root`
 to be a git repository with `HEAD` so each running id can get a unique
 `shiploop/<run_id>/<id>` worktree under `<repo>/.worktrees/` (hidden via

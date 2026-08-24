@@ -8,4 +8,4 @@ Then exec `python3 "$SKILL_ROOT/scripts/shiploop" complete` (or the leaf wrapper
 - Hard stop: `--blocked --reason <text>`
 - `--id` only when several steps are running and cwd is not that worktree
 
-Follow the whole packet that prints. Not `/devloop`. Not `/shiploop next`.
+Follow the whole packet that prints. Echo `## You are here` and Diagnosis now/pending. Not `/shiploop next`.

@@ -1,6 +1,5 @@
-**Survey, then practices, then spec.** This is not c-plan. Do not follow a
-DevLoop overlay. State files: `{{SURVEY_GUIDE}}` and
-`references/state-files.md`.
+**Survey, then practices, then spec.** This is not c-plan. State files:
+`{{SURVEY_GUIDE}}` and `references/state-files.md`.
 
 ## 1. Survey (once)
 

@@ -16,14 +16,24 @@ fail() {
 [[ ! -d "$root/skills/shiploop/prompts" ]] || fail "prompts/ must not exist"
 grep -q 'kind: script-backed' "$root/skills/shiploop/SKILL.md" || fail "frontmatter kind"
 grep -q 'name: shiploop' "$root/skills/shiploop/SKILL.md" || fail "frontmatter name"
-grep -q 'shiploop — session harness (not DevLoop)' "$root/skills/shiploop/SKILL.md" || fail "banner"
+grep -q 'shiploop — session harness' "$root/skills/shiploop/SKILL.md" || fail "banner"
 if grep -q 'DEFINE → PROVE → BUILD' "$root/skills/shiploop/SKILL.md"; then
   fail "SKILL.md must not own DEFINE/PROVE/BUILD"
 fi
-grep -qi 'not DevLoop' "$root/skills/shiploop/SKILL.md" || fail "must demote DevLoop"
-if grep -E 'shiploop capture|devloop-run' "$root/skills/shiploop/references/activities/implement.md"; then
-  fail "implement activity still captures /devloop"
+if grep -RqiE 'devloop' "$root/skills/shiploop" "$root/agents/shiploop.md"; then
+  fail "shiploop skill must not mention DevLoop"
 fi
+if grep -E 'shiploop capture|devloop-run' "$root/skills/shiploop/references/activities/implement.md"; then
+  fail "implement activity still captures a foreign runner"
+fi
+grep -q 'echo the printed' "$root/skills/shiploop/SKILL.md" \
+  || fail "SKILL.md missing echo You are here / Diagnosis"
+grep -q 'status --human' "$root/skills/shiploop/SKILL.md" \
+  || fail "SKILL.md missing status --human"
+grep -q 'PATH/.shiploop' "$root/skills/shiploop/SKILL.md" \
+  || fail "SKILL.md missing init --repo run-dir default"
+grep -q 'working directory' "$root/skills/shiploop/references/host-matrix.md" \
+  || fail "host-matrix.md missing CLI working directory"
 [[ -f "$root/skills/shiploop/references/host-matrix.md" ]] || fail "missing host-matrix.md"
 [[ -f "$root/skills/shiploop/references/ledger-contract.md" ]] || fail "missing ledger-contract.md"
 grep -q 'copied, not imported' "$root/skills/shiploop/references/ledger-contract.md" || fail "ledger-contract copy note"
@@ -68,8 +78,8 @@ grep -q 'researches applicable practices' "$root/skills/shiploop/README.md" \
   || fail "README missing practices research"
 grep -q 'recap.html' "$root/skills/shiploop/README.md" \
   || fail "README missing recap.html"
-grep -q '^VERSION = "0.8.1"$' "$cli" || fail "script VERSION is not 0.8.1"
-grep -q '^version: 0.8.1$' "$root/skills/shiploop/SKILL.md" || fail "SKILL.md version is not 0.8.1"
+grep -q '^VERSION = "0.8.2"$' "$cli" || fail "script VERSION is not 0.8.2"
+grep -q '^version: 0.8.2$' "$root/skills/shiploop/SKILL.md" || fail "SKILL.md version is not 0.8.2"
 grep -q 'init --force --prompt' "$root/skills/shiploop/SKILL.md" \
   || fail "SKILL.md missing three-branch init --force --prompt"
 grep -q 'init --force --prompt' "$root/skills/shiploop/README.md" \
@@ -320,13 +330,14 @@ advance_to_plan() {
   run_cli update --run-dir "$run" --to plan >/dev/null
 }
 
-# --- devloop implementer refused; host default ---
+# --- non-host implementer refused; host default ---
 set +e
-out_dl="$(run_cli init --implementer devloop --run-dir "$tmpdir/nope" 2>&1)"
+out_dl="$(run_cli init --implementer other --run-dir "$tmpdir/nope" 2>&1)"
 rc_dl=$?
 set -e
-[[ "$rc_dl" -eq 2 ]] || fail "devloop implementer want 2 got $rc_dl: $out_dl"
-printf 'LAYER: devloop implementer refused OK\n'
+[[ "$rc_dl" -eq 2 ]] || fail "non-host implementer want 2 got $rc_dl: $out_dl"
+printf '%s\n' "$out_dl" | grep -qi 'implementer must be host' || fail "non-host implementer message: $out_dl"
+printf 'LAYER: non-host implementer refused OK\n'
 
 # --- init + packet headings ---
 repo="$tmpdir/repo"
@@ -347,7 +358,8 @@ printf '%s\n' "$out_init" | grep -q 'intake: current' || fail "map current intak
 printf '%s\n' "$out_init" | grep -q 'validate-spec: todo' || fail "map todo"
 printf '%s\n' "$out_init" | grep -q 'prompt\.md' || fail "look here intake prompt.md path"
 printf '%s\n' "$out_init" | grep -q 'invoke /shiploop complete' || fail "when done closer"
-printf '%s\n' "$out_init" | grep -q 'shiploop — session harness (not DevLoop)' || fail "init missing harness banner"
+printf '%s\n' "$out_init" | grep -q 'shiploop — session harness' || fail "init missing harness banner"
+assert_absent "$out_init" 'DevLoop' "init banner named a foreign product"
 printf '%s\n' "$out_init" | grep -qF 'Reference only — not the next action.' || fail "look here missing reference-only line"
 printf '%s\n' "$out_init" | grep -qF 'Use this prompt as much as possible.' || fail "next prompt missing banner line"
 assert_absent "$out_init" 'shiploop update --run-dir' "init When done leaked update argv"
@@ -364,6 +376,30 @@ printf '%s\n' "$out_init" | grep -q 'Finish this phase:' || fail "init Progress 
 printf '%s\n' "$out_init" | grep -q 'session checkout' || fail "init Progress missing checkout"
 assert_host_flag "$out_init" "init Progress"
 printf 'LAYER: init packet OK\n'
+
+# --- init --repo defaults run dir to PATH/.shiploop ---
+othercwd="$tmpdir/other-cwd"
+mkdir -p "$othercwd"
+repodef="$tmpdir/repodefault/repo"
+init_git_repo "$repodef"
+(
+  cd "$othercwd"
+  python3 "$cli" init --prompt "x" --repo "$repodef" >/dev/null
+)
+[[ -f "$repodef/.shiploop/state.json" ]] || fail "init --repo did not write PATH/.shiploop"
+[[ ! -d "$othercwd/.shiploop" ]] || fail "init --repo wrote cwd/.shiploop"
+printf 'LAYER: init --repo run-dir default OK\n'
+
+# --- status --human compact rail ---
+out_h="$(run_cli status --run-dir "$run" --human)"
+printf '%s\n' "$out_h" | grep -q '## You are here' || fail "status --human missing You are here: $out_h"
+printf '%s\n' "$out_h" | grep -qx 'Diagnosis' || fail "status --human missing Diagnosis: $out_h"
+printf '%s\n' "$out_h" | grep -q 'now' || fail "status --human missing now: $out_h"
+printf '%s\n' "$out_h" | grep -q 'pending' || fail "status --human missing pending: $out_h"
+assert_absent "$out_h" '"phase"' "status --human printed JSON"
+out_sj="$(run_cli status --run-dir "$run")"
+printf '%s\n' "$out_sj" | grep -q '"phase"' || fail "status default missing JSON phase"
+printf 'LAYER: status --human OK\n'
 
 # --- init reuse vs force ---
 out_re="$(run_cli init --run-dir "$run")"
@@ -597,6 +633,43 @@ assert_absent "$out_dr" '/goal ' "drained implement still emitted /goal"
 assert_absent "$out_dr" 'shiploop update --run-dir' "drained leaked update argv"
 run_cli update --run-dir "$run" --to residual >/dev/null
 printf 'LAYER: linear drain OK\n'
+
+# --- dest residual binds empty bound_plan or fails closed ---
+runub="$tmpdir/unbound-res/.shiploop"
+repoub="$tmpdir/unbound-res/repo"
+init_git_repo "$repoub"
+run_cli init --prompt "create result.txt containing exactly one line: ok" \
+  --run-dir "$runub" --repo "$repoub" >/dev/null
+run_cli update --run-dir "$runub" --to validate-spec >/dev/null
+write_environment "$runub"
+write_spec "$runub"
+run_cli update --run-dir "$runub" --to plan >/dev/null
+install_dag "$runub" linear.json
+run_cli update --run-dir "$runub" --to implement >/dev/null
+run_cli next --run-dir "$runub" >/dev/null
+complete_ok "$runub" S1
+run_cli next --run-dir "$runub" >/dev/null
+complete_ok "$runub" S2
+set +e
+out_ub="$(run_cli update --run-dir "$runub" --to residual 2>&1)"
+rc_ub=$?
+set -e
+[[ "$rc_ub" -eq 2 ]] || fail "unbound dest residual want 2: $out_ub"
+printf '%s\n' "$out_ub" | grep -qi 'bound_plan empty' || fail "unbound residual message: $out_ub"
+printf '\n## Review Coverage\nauto-bind this session plan\n' >>"$runub/plan.md"
+out_bd="$(run_cli update --run-dir "$runub" --to residual)"
+printf '%s\n' "$out_bd" | grep -q 'residual: current' || fail "auto-bind dest residual: $out_bd"
+python3 - "$runub" <<'PY'
+import json, sys
+from pathlib import Path
+run = Path(sys.argv[1])
+d = json.loads((run / "state.json").read_text())
+assert d["phase"] == "residual", d["phase"]
+assert d.get("bound_plan"), d
+assert Path(d["bound_plan"]).resolve() == (run / "plan.md").resolve()
+assert d.get("bound_plan_hash")
+PY
+printf 'LAYER: dest residual bound_plan bind OK\n'
 
 # --- capture fail-closed (no implement.json in 0.7; receipts are the SoT) ---
 [[ ! -f "$run/implement.json" ]] || fail "shiploop must not write implement.json"
@@ -1079,7 +1152,7 @@ out_inj="$(run_cli update --run-dir "$runi" --to implement 2>&1)"
 rc_inj=$?
 set -e
 [[ "$rc_inj" -eq 2 ]] || fail "injection --to implement want 2: $out_inj"
-printf '%s\n' "$out_inj" | grep -qi 'newline\|control\|devloop\|statement' || fail "injection message: $out_inj"
+printf '%s\n' "$out_inj" | grep -qi 'newline\|control\|slash\|statement' || fail "injection message: $out_inj"
 printf 'LAYER: injection reject OK\n'
 
 # --- blocked CLI + residual -> blocked + resume reclaim ---
@@ -1618,7 +1691,8 @@ run_cli init --prompt "create result.txt containing exactly one line: ok" \
   --run-dir "$runwrap" --bound-plan "$planf" --repo "$repowrap" >/dev/null
 out_n="$(python3 "$nextw" --run-dir "$runwrap")"
 printf '%s\n' "$out_n" | grep -q 'shiploop next — reprint the packet' || fail "next wrapper banner: $out_n"
-printf '%s\n' "$out_n" | grep -q 'shiploop — session harness (not DevLoop)' || fail "next wrapper missing harness banner"
+printf '%s\n' "$out_n" | grep -q 'shiploop — session harness' || fail "next wrapper missing harness banner"
+assert_absent "$out_n" 'DevLoop' "next wrapper banner named a foreign product"
 for cmd in update complete complete-step start-step; do
   set +e
   bad="$(python3 "$nextw" "$cmd" --run-dir "$runwrap" 2>&1)"

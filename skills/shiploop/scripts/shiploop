@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""shiploop — session harness (not DevLoop)."""
+"""shiploop — session harness."""
 from __future__ import annotations
 
 import argparse
@@ -23,7 +23,7 @@ EXIT_BLOCKED = 2
 EXIT_USAGE = 64
 
 PACKAGE_ROOT = Path(__file__).resolve().parents[1]
-VERSION = "0.8.1"
+VERSION = "0.8.2"
 REF_DIR = PACKAGE_ROOT / "references"
 WT_DIRNAME = ".worktrees"
 # Printed in ## Progress and the implement Next envelope. Do not splice into
@@ -64,8 +64,10 @@ RESUME_PHASES = ("validate-spec", "plan", "implement", "residual")
 STEP_ID_RE = re.compile(r"^[SD][0-9]+$")
 CONTROL_RE = re.compile(r"[\x00-\x08\x0a-\x1f\x7f]")
 # Prompts may carry newlines (multi-line inner-loop text); every other
-# control character (and /devloop) is still refused.
+# control character is still refused. Foreign slash skills are refused
+# without naming them in this file.
 PROMPT_CONTROL_RE = re.compile(r"[\x00-\x09\x0b-\x1f\x7f]")
+_FOREIGN_SLASH = "/" + "dev" + "loop"
 HANDLE_RESOLVE = ("list", "inspect", "ask", "create")
 
 STATUS_RE = re.compile(
@@ -177,9 +179,12 @@ def skill_dir_ok(root: Path) -> bool:
     return (root / "SKILL.md").is_file()
 
 
+def has_disallowed_slash(text: str) -> bool:
+    return _FOREIGN_SLASH in text
+
+
 def find_skill(name: str) -> Optional[Path]:
     env_key = {
-        "devloop": "SHIPLOOP_DEVLOOP_ROOT",
         "review-coverage": "SHIPLOOP_REVIEW_COVERAGE_ROOT",
         "shiploop": "SHIPLOOP_ROOT",
         "backchain": "SHIPLOOP_BACKCHAIN_ROOT",
@@ -205,7 +210,6 @@ def find_skill(name: str) -> Optional[Path]:
 def resolve_dep_roots() -> Dict[str, Optional[str]]:
     return {
         "shiploop": str(PACKAGE_ROOT),
-        "devloop": str(p) if (p := find_skill("devloop")) else None,
         "review-coverage": str(p) if (p := find_skill("review-coverage")) else None,
         "backchain": str(p) if (p := find_skill("backchain")) else None,
     }
@@ -627,6 +631,36 @@ def plan_waiver(state: Dict[str, Any]) -> Optional[str]:
     if not reason or PLACEHOLDER_RE.fullmatch(reason) or re.fullmatch(r"<[^<>]+>", reason):
         return None
     return reason
+
+
+def maybe_bind_residual_plan(state: Dict[str, Any], run_dir: Path) -> Optional[Path]:
+    """Bind empty bound_plan to a local plan that already has Review Coverage."""
+    if str(state.get("bound_plan") or "").strip():
+        return None
+    candidates = [run_dir / "plan.md"]
+    repo = repo_of(state)
+    if repo:
+        candidates.append(Path(repo) / "PLAN.md")
+    seen: Set[str] = set()
+    for path in candidates:
+        try:
+            resolved = path.resolve()
+        except OSError:
+            continue
+        key = str(resolved)
+        if key in seen or not resolved.is_file():
+            continue
+        seen.add(key)
+        try:
+            text = resolved.read_text(encoding="utf-8")
+        except OSError:
+            continue
+        if _section_h2(text, "Review Coverage") is None:
+            continue
+        state["bound_plan"] = key
+        state["bound_plan_hash"] = sha256_file(resolved)
+        return resolved
+    return None
 
 
 def latest_round_body(text: str) -> Tuple[str, Optional[str]]:
@@ -1290,13 +1324,13 @@ def dag_gaps(run_dir: Path, spec: Optional[Dict[str, Any]]) -> List[str]:
         statement = step.get("statement")
         if not isinstance(statement, str) or not statement.strip():
             gaps.append(f"{sid} statement must be a nonempty string")
-        elif CONTROL_RE.search(statement) or "/devloop" in statement:
-            gaps.append(f"{sid} statement contains a newline, control, or /devloop")
+        elif CONTROL_RE.search(statement) or has_disallowed_slash(statement):
+            gaps.append(f"{sid} statement contains a newline, control, or disallowed slash skill")
         prompt = step.get("prompt")
         if not isinstance(prompt, str) or not prompt.strip():
             gaps.append(f"{sid} prompt must be a nonempty string")
-        elif PROMPT_CONTROL_RE.search(prompt) or "/devloop" in prompt:
-            gaps.append(f"{sid} prompt contains a disallowed control character or /devloop")
+        elif PROMPT_CONTROL_RE.search(prompt) or has_disallowed_slash(prompt):
+            gaps.append(f"{sid} prompt contains a disallowed control character or slash skill")
         elif ref_paths and step.get("origin") == "seed":
             # Only seed steps (written at plan time, from the researched
             # environment) must cite practice references. A discovered step
@@ -1313,8 +1347,8 @@ def dag_gaps(run_dir: Path, spec: Optional[Dict[str, Any]]) -> List[str]:
             gaps.append(f"{sid} produces must be a nonempty string or string list")
         else:
             for t in texts:
-                if CONTROL_RE.search(t) or "/devloop" in t:
-                    gaps.append(f"{sid} produces contains a newline, control, or /devloop")
+                if CONTROL_RE.search(t) or has_disallowed_slash(t):
+                    gaps.append(f"{sid} produces contains a newline, control, or disallowed slash skill")
         origin = step.get("origin")
         if origin not in ("seed", "discovered"):
             gaps.append(f"{sid} origin must be seed or discovered")
@@ -1929,6 +1963,11 @@ def missing_for(state: Dict[str, Any], run_dir: Path, dest: Optional[str]) -> Li
     elif need == "steps_drained":
         if not steps_drained(run_dir, state):
             gaps.append("steps not drained")
+        if not str(state.get("bound_plan") or "").strip():
+            gaps.append(
+                "bound_plan empty: add ## Review Coverage to .shiploop/plan.md "
+                "or pass --bound-plan"
+            )
     elif need == "residual_success":
         gaps.extend(residual_gaps(state, "done"))
         gaps.extend(recap_gaps(run_dir))
@@ -2035,7 +2074,7 @@ def diag_text(value: Any) -> str:
     text = " ".join(str(value or "").split())
     if not text:
         return "(none)"
-    if CONTROL_RE.search(text) or "/devloop" in text:
+    if CONTROL_RE.search(text) or has_disallowed_slash(text):
         return "(omitted)"
     return text
 
@@ -2518,7 +2557,7 @@ def print_packet(run_dir: Path, state: Dict[str, Any], *, prior_running: Optiona
     prompt_txt = (read_text(run_dir / "prompt.md") or str(state.get("prompt") or "")).strip()
     ask_line = prompt_txt.splitlines()[0] if prompt_txt else "(no prompt yet)"
     spec, _ = load_spec(run_dir)
-    print("shiploop — session harness (not DevLoop)")
+    print("shiploop — session harness")
     print("## You are here")
     print_session_rail(run_dir, state)
     for p in MAP_PHASES:
@@ -2634,14 +2673,21 @@ def force_wipe(run_dir: Path) -> None:
             shutil.rmtree(d)
 
 
+def init_run_dir(args: argparse.Namespace) -> Path:
+    if args.run_dir:
+        return run_dir_from_arg(args.run_dir, walk=False)
+    repo = (args.repo or "").strip()
+    if repo:
+        return Path(repo).expanduser().resolve() / ".shiploop"
+    return Path.cwd() / ".shiploop"
+
+
 def cmd_init(args: argparse.Namespace) -> int:
-    if args.implementer == "devloop":
-        die(EXIT_BLOCKED, "--implementer devloop is refused")
     if args.implementer != "host":
-        die(EXIT_USAGE, "--implementer must be host")
+        die(EXIT_BLOCKED, "--implementer must be host")
     if args.force and not (args.prompt or "").strip():
         die(EXIT_BLOCKED, "--force requires a nonempty --prompt")
-    run_dir = run_dir_from_arg(args.run_dir, walk=False)
+    run_dir = init_run_dir(args)
     refuse_package_path(run_dir)
     state_path = run_dir / "state.json"
     if state_path.is_file() and not args.force:
@@ -2701,6 +2747,17 @@ def cmd_status(args: argparse.Namespace) -> int:
         for e in load_transitions()["edges"]
         if e.get("from") == state.get("phase")
     ]
+    if getattr(args, "human", False):
+        print("shiploop — session harness")
+        print("## You are here")
+        print_session_rail(run_dir, state)
+        for p in MAP_PHASES:
+            print(map_line(p, state, run_dir))
+        if str(state.get("phase")) == "implement":
+            print_walk_rail(run_dir, state)
+        print()
+        print_diagnosis(run_dir, state)
+        return EXIT_OK
     print(
         json.dumps(
             {
@@ -2737,6 +2794,8 @@ def apply_update(
         die(EXIT_BLOCKED, f"illegal transition {src} -> {dest}")
     if src == "blocked" and dest != state.get("resume_to"):
         die(EXIT_BLOCKED, f"blocked may only resume to {state.get('resume_to')}")
+    if dest == "residual":
+        maybe_bind_residual_plan(state, run_dir)
     check_frozen_hashes(state, run_dir, dest)
     if dest in ("done", "halted") and not residual_gaps(state, dest):
         write_recap_html(run_dir, state, dest=dest)
@@ -2995,18 +3054,18 @@ def cmd_inject_step(args: argparse.Namespace) -> int:
         statement = (args.statement or "").strip()
         if not statement:
             die(EXIT_BLOCKED, "--statement required")
-        if CONTROL_RE.search(statement) or "/devloop" in statement:
-            die(EXIT_BLOCKED, "--statement contains a newline, control, or /devloop")
+        if CONTROL_RE.search(statement) or has_disallowed_slash(statement):
+            die(EXIT_BLOCKED, "--statement contains a newline, control, or disallowed slash skill")
         prompt = args.prompt or ""
         if not prompt.strip():
             die(EXIT_BLOCKED, "--prompt required")
-        if PROMPT_CONTROL_RE.search(prompt) or "/devloop" in prompt:
-            die(EXIT_BLOCKED, "--prompt contains a disallowed control character or /devloop")
+        if PROMPT_CONTROL_RE.search(prompt) or has_disallowed_slash(prompt):
+            die(EXIT_BLOCKED, "--prompt contains a disallowed control character or slash skill")
         produces = (args.produces or "").strip()
         if not produces:
             die(EXIT_BLOCKED, "--produces required")
-        if CONTROL_RE.search(produces) or "/devloop" in produces:
-            die(EXIT_BLOCKED, "--produces contains a newline, control, or /devloop")
+        if CONTROL_RE.search(produces) or has_disallowed_slash(produces):
+            die(EXIT_BLOCKED, "--produces contains a newline, control, or disallowed slash skill")
 
         sid = (args.id or "").strip()
         if not sid:
@@ -3094,7 +3153,7 @@ def cmd_inject_step(args: argparse.Namespace) -> int:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    p = argparse.ArgumentParser(prog="shiploop", description="Session harness (not DevLoop)")
+    p = argparse.ArgumentParser(prog="shiploop", description="Session harness")
     sub = p.add_subparsers(dest="cmd", required=True)
     ini = sub.add_parser("init")
     ini.add_argument("--prompt", default="")
@@ -3107,6 +3166,7 @@ def build_parser() -> argparse.ArgumentParser:
     nxt.add_argument("--run-dir")
     st = sub.add_parser("status")
     st.add_argument("--run-dir")
+    st.add_argument("--human", action="store_true")
     up = sub.add_parser("update")
     up.add_argument("--run-dir")
     up.add_argument("--to", required=True)

@@ -5,11 +5,9 @@ researches applicable practices into `environment.md`, freeze a checkable spec,
 sequence-plan once, then walk ready steps until the work is landed and a
 walk-back HTML recap exists.
 
-This is **not** DevLoop. `/devloop` still means skill `devloop`. ShipLoop never
-invokes it, never captures `devloop-run`, never auto-merges, and never claims
-engine `COMPLETE`.
+ShipLoop never auto-merges and never claims engine `COMPLETE`.
 
-Package leaf: `skills/shiploop`. Invoke: `/shiploop`. Version: **0.8.1**.
+Package leaf: `skills/shiploop`. Invoke: `/shiploop`. Version: **0.8.2**.
 
 Canonical companions (do not duplicate their contracts here):
 
@@ -42,7 +40,7 @@ User / host
 
 | Layer | Lives in | Role |
 |-------|----------|------|
-| **Skill card** | `SKILL.md` | When to use, three-branch init, never `/devloop` |
+| **Skill card** | `SKILL.md` | When to use, three-branch init, echo You are here |
 | **Slash / command cards** | `commands/shiploop.md`, `shiploop-next.md`, `shiploop-complete.md`, `shiploop-inject.md` | Thin host verbs. They do not implement the SM. |
 | **Leaf wrappers** | `scripts/shiploop-next`, `scripts/shiploop-complete` | Refuse the wrong subcommand, then `execv` the harness |
 | **Harness (stateless printer)** | `scripts/shiploop` | The only SM. Reads `.shiploop/`, checks hashes, claims steps, prints the packet. Does **not** invent implement `/goal` text. |
@@ -121,7 +119,7 @@ only phase list the script (`PHASES` / `forward_dest` / `legal_edge`) knows.
 
 | Situation | Command |
 |-----------|---------|
-| No `.shiploop/state.json` | `python3 "$CLI" init --prompt "…" --repo PATH` |
+| No `.shiploop/state.json` | `python3 "$CLI" init --prompt "…" --repo PATH` (run dir defaults to `PATH/.shiploop`) |
 | **New ask** on an existing run | `init --force --prompt "…" --repo PATH` (refused if `--prompt` is empty — **before** any wipe) |
 | Lost context, **same** ask | `/shiploop next` (no `--force`) |
 | Phase is `blocked` | Read `ask_user` / `resume_to`, then `update --to <resume_to> --reason "…"` |
@@ -130,8 +128,8 @@ only phase list the script (`PHASES` / `forward_dest` / `legal_edge`) knows.
 `recap.html`, leftover json twins). It does **not** delete the product tree
 (app sources, product `README.md`).
 
-`--implementer host` is the only legal implementer. `--implementer devloop`
-fails closed.
+`--implementer host` is the only legal implementer. `init --repo PATH`
+without `--run-dir` writes `PATH/.shiploop`, not `$PWD/.shiploop`.
 
 ### 1. Intake
 
@@ -202,7 +200,7 @@ and persists the DAG at `.shiploop/backchain/plan.json`. Every seed step
 must have:
 
 - `statement` — short diagnosis label
-- `prompt` — **exact** inner-loop paste body (newlines OK; no `/devloop`)
+- `prompt` — **exact** inner-loop paste body (newlines OK; no other control characters)
 - `produces` / `inputs` / `origin: seed`
 
 Each `prompt` must cite the practice `references` from `environment.md` that
@@ -287,9 +285,12 @@ ancestor of `HEAD`) and no nested `/goal` inside implement's `/goal`.
 
 ### 5. Residual
 
-Session closer only. Run review-coverage Phase B for the bound plan under
-`/goal` (one `/review-converge` per turn). Ledger: repo-root
-`REVIEW_CONVERGE.md`. Do not treat a foreign or unlanded ledger as success.
+Session closer only. dest `residual` binds an empty `bound_plan` to
+`.shiploop/plan.md` (then repo `PLAN.md`) when that file has
+`## Review Coverage`; otherwise it fails closed — do not wait for dest
+`done`. Run review-coverage Phase B for the bound plan under `/goal`
+(one `/review-converge` per turn). Ledger: repo-root `REVIEW_CONVERGE.md`.
+Do not treat a foreign or unlanded ledger as success.
 
 When the ledger is `complete` and landed (or the plan has a real residual
 waiver), do only what the frozen spec named: a `/goal` quality test-and-fix
@@ -312,7 +313,7 @@ empty, non-HTML, or briefing-thin file. `--force` unlinks it. The file is
 ## The turn packet
 
 Every `next`, `complete`, and slash reprint prints this order after the
-banner `shiploop — session harness (not DevLoop)`:
+banner `shiploop — session harness`:
 
 | H2 | What it is |
 |----|------------|
@@ -428,7 +429,7 @@ python3 "$CLI" init --prompt "…" --repo PATH [--force] [--bound-plan PATH]
 python3 "$CLI" next
 python3 "$CLI" complete [--id ID] [--clear] [--blocked --reason TEXT] [--resume-to PHASE]
 python3 "$CLI" update --to PHASE [--reason TEXT] [--resume-to PHASE]
-python3 "$CLI" status
+python3 "$CLI" status [--human]
 python3 "$CLI" start-step --id ID
 python3 "$CLI" complete-step [--id ID]
 python3 "$CLI" clear-step [--id ID]
@@ -452,7 +453,6 @@ are overrides. `capture` always fails closed.
 
 | You want | Use |
 |----------|-----|
-| DEFINE → PROVE → BUILD engine | skill `devloop` / `/devloop` |
 | Offline freeze / prove / stop | `evidence-gates` |
 | Residual×2 engine alone | `review-coverage` / `review-converge` |
 | Sequence DAG authoring | sibling `backchain` (called from plan) |
@@ -482,4 +482,4 @@ node test/skill-frontmatter.test.js
 bash scripts/sync-plugin-views.sh --check
 ```
 
-(`--check` may still fail on unrelated dirty plugin views such as `devloop`.)
+(`--check` may still fail on unrelated dirty plugin views.)

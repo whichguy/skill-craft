@@ -5,4 +5,4 @@ Add a discovered intermediate step to the running DAG. Exec harness
 `--before` target that is not `todo`/`ready`. Does not re-run `dest plan`,
 clear receipts, or start the new step. `--prompt` is not required to cite
 `environment.md` practice references (that citation gate applies to seed
-steps only). Not `/devloop`.
+steps only).

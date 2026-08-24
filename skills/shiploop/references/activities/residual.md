@@ -1,5 +1,5 @@
 Session closer only. The spec is still **frozen**. Do not rewrite it. Do not
-invoke `/devloop`. Do not invent a new state-machine phase.
+invent a new state-machine phase.
 
 Follow this order. Each `/goal` below is a new outer-loop turn, not a nested
 `/goal` and not a DAG step.

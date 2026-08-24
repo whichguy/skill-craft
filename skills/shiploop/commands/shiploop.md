@@ -1,1 +1,1 @@
-Start or resume the ShipLoop session harness (`init` if needed), then follow the packet. After each increment invoke `/shiploop complete`. Lost context without completing → `/shiploop next`. Not `/devloop`.
+Start or resume the ShipLoop session harness (`init` if needed), then follow the packet. After each increment invoke `/shiploop complete`. Lost context without completing → `/shiploop next`. Echo `## You are here` and Diagnosis now/pending after every packet.

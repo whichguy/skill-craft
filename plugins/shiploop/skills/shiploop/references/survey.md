@@ -20,9 +20,7 @@ its output is `{{ENV_MD}}`.
 - **tools / mcp** — CLIs and MCP servers actually available this session.
   Inventory, do not install or catalog.
 - **mcp_considered** — first matching read-capable session MCP tool, printed
-  as `server(tool)`, or `none(reason)` when nothing matched. See
-  `../../devloop/references/mcp-consider.md` for the same discipline shared
-  with DevLoop.
+  as `server(tool)`, or `none(reason)` when nothing matched.
 - **handles** — external resources this increment needs (credentials,
   hosted ids, service endpoints), each resolved as `list` (enumerate
   candidates), `inspect` (read a concrete value — empty for credentials),

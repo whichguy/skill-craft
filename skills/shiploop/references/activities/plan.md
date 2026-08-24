@@ -24,7 +24,7 @@ inventory, or session hashes (those stay in `{{ENV_MD}}`).
 
 Every seed step must carry a nonempty `prompt` — the exact string the host
 will paste into that step's inner loop (newlines allowed, no control chars
-other than newline, no `/devloop`). `statement` stays the short diagnosis
+other than newline). `statement` stays the short diagnosis
 label; `prompt` is what gets pasted, not composed later. Every **seed**
 step's `prompt` must cite the concrete practice references from `{{ENV_MD}}`
 (`references[].path` URLs or repo paths) that that step must use, so

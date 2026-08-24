@@ -10,7 +10,7 @@ step's worktree and branch are named in **Look here** / **Diagnosis**, not
 spliced into the prompt — `cd` there before pasting; do not edit the session
 checkout or reuse a prior worktree.
 
-Do **not** invoke `/devloop`. Do not nest a second `/goal` inside the first.
+Do not nest a second `/goal` inside the first.
 If a `/goal` for an id is already open, do not open a second one. When the
 `/goal` is done, invoke **`/shiploop complete`** — that command commits,
 merges the kept branch into the session checkout, and prints the next

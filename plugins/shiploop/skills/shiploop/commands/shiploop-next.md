@@ -1,1 +1,1 @@
-Reprint the ShipLoop packet and claim newly ready ids. Exec harness `next` only. Do not complete, update, or edit the product tree. When the increment is done, invoke `/shiploop complete`. Not `/devloop`.
+Reprint the ShipLoop packet and claim newly ready ids. Exec harness `next` only. Do not complete, update, or edit the product tree. When the increment is done, invoke `/shiploop complete`. Echo `## You are here` and Diagnosis now/pending.
