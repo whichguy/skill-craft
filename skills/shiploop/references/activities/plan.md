@@ -22,17 +22,56 @@ phase. It must record what the app is, how to run it, and what this
 increment changed; it must never contain machine JSON, handles, tokens, MCP
 inventory, or session hashes (those stay in `{{ENV_MD}}`).
 
+Call backchain with the frozen done sentence **and** the full `{{ENV_MD}}`
+(machine JSON plus dest notes in the brief). Ask it once whether the goal
+needs an existing repo, a data migration, a CI/CD gate, docs, or a system
+that is not there yet. A real missing precondition becomes a seed step. An
+unanswerable question is dest **blocked** with `--reason`. Never leave a
+nonempty `unresolved` list.
+
 Every seed step must carry a nonempty `prompt` — the exact string the host
 will paste into that step's inner loop (newlines allowed, no control chars
 other than newline). `statement` stays the short diagnosis
 label; `prompt` is what gets pasted, not composed later. Every **seed**
-step's `prompt` must cite the concrete practice references from `{{ENV_MD}}`
-(`references[].path` URLs or repo paths) that that step must use, so
-implement reprints them; `dest implement` refuses a DAG whose stored seed
-`prompt` omits any of those paths. `inject-step`'s own discovered steps
-still need a nonempty `prompt` (same missing-prompt gate) but are exempt
-from that citation requirement — they are ad-hoc mid-implement fixes, not
-researched practice work; see `implement.md`.
+step's `prompt` must cite the practice references from `{{ENV_MD}}`
+(`references[].path` URLs or repo paths). It must also end with a `Tools:` block. This session
+`plan.md` pointer must never contain machine JSON, handles, tokens, or MCP
+inventory — those stay in `{{ENV_MD}}`. Seed **prompts** (the `/goal` body)
+must carry the frozen `mcp_considered` token.
+
+Label meanings (host judgment — the script does not check these words):
+
+- **Watch with:** the exact frozen `mcp_considered` string, including `none(reason)`.
+- **Use:** existing non-MCP tools this step runs.
+- **Don't use:** unauthenticated, deferred, or wrong-for-this-step tools/MCP.
+- **Assume:** relevant frozen handles, initiation, and dest notes already in the brief — never newly invented facts.
+
+```text
+Tools:
+Watch with: cursor-ide-browser(browser_snapshot)
+Use: clasp
+Don't use: Drive MCP (not signed in); browser MCP (later quality check)
+Assume: clasp is already logged in; create a new script; do not write a new test harness
+```
+
+When nothing matched:
+
+```text
+Tools:
+Watch with: none(no read-capable session tool matched done-sentence)
+Use: git
+Don't use: none
+Assume: this increment stays local
+```
+
+`dest implement` refuses a seed `prompt` that omits any researched path, that
+has no line starting with `Tools:`, or that omits the frozen
+`mcp_considered` token (even on README / omit-MCP steps). In-flight
+pre-0.8.4 runs: dest **blocked** then dest **plan**, rewrite seed prompts
+(do not hand-edit `plan.json`). `inject-step` discovered steps still need
+a nonempty `prompt` but are exempt from citation and the Tools: gate;
+the implement envelope still reprints frozen tools/MCP for those `/goal`s.
+See `implement.md`.
 
 Persist the backchain document to `{{BACKCHAIN_JSON}}` (canonical). Then
 write:

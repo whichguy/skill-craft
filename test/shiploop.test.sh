@@ -79,8 +79,8 @@ grep -q 'researches applicable practices' "$root/skills/shiploop/README.md" \
   || fail "README missing practices research"
 grep -q 'recap.html' "$root/skills/shiploop/README.md" \
   || fail "README missing recap.html"
-grep -q '^VERSION = "0.8.2"$' "$cli" || fail "script VERSION is not 0.8.2"
-grep -q '^version: 0.8.2$' "$root/skills/shiploop/SKILL.md" || fail "SKILL.md version is not 0.8.2"
+grep -q '^VERSION = "0.8.4"$' "$cli" || fail "script VERSION is not 0.8.4"
+grep -q '^version: 0.8.4$' "$root/skills/shiploop/SKILL.md" || fail "SKILL.md version is not 0.8.4"
 grep -q 'init --force --prompt' "$root/skills/shiploop/SKILL.md" \
   || fail "SKILL.md missing three-branch init --force --prompt"
 grep -q 'init --force --prompt' "$root/skills/shiploop/README.md" \
@@ -124,6 +124,10 @@ for tok in ("frontend-design", "web-design-guidelines", "environment-analyst"):
 PY
 grep -q 'RECAP_HTML' "$root/skills/shiploop/references/activities/residual.md" \
   || fail "residual.md missing RECAP_HTML"
+grep -q 'RECAP_HTML' "$root/skills/shiploop/references/activities/residual-waived.md" \
+  || fail "residual-waived.md missing RECAP_HTML"
+grep -q 'waived' "$root/skills/shiploop/references/activities/residual-waived.md" \
+  || fail "residual-waived.md missing waived"
 grep -q 'RECAP_HTML' "$root/skills/shiploop/references/activities/done.md" \
   || fail "done.md missing RECAP_HTML"
 if grep -q '/speckit' "$root/skills/shiploop/references/survey.md" \
@@ -544,6 +548,14 @@ printf 'LAYER: handle resolve gates OK\n'
 out_plan="$(run_cli next --run-dir "$run")"
 assert_headings "$out_plan"
 assert_absent "$out_plan" '/goal ' "plan packet emitted implement /goal"
+printf '%s\n' "$out_plan" | grep -q 'After it finishes: dest implement' \
+  || fail "plan-before-DAG dest should be implement: $out_plan"
+printf '%s\n' "$out_plan" | awk '/^## When done invoke$/,/^## Missing$/' \
+  | grep -q 'complete --blocked' \
+  && fail "plan-before-DAG When done dest blocked: $out_plan"
+printf '%s\n' "$out_plan" | grep -qx 'invoke /shiploop complete' \
+  || fail "plan-before-DAG When done should be complete: $out_plan"
+printf 'LAYER: plan-before-DAG dest implement OK\n'
 printf '%s\n' "{\"done_sentence\":\"$DS\"}" >"$run/plan.json"
 printf 'done_sentence: %s\n\nsteps: write file\n' "$DS" >"$run/plan.md"
 set +e
@@ -552,6 +564,29 @@ rc_thin=$?
 set -e
 [[ "$rc_thin" -eq 2 ]] || fail "thin plan want 2: $out_thin"
 printf 'LAYER: thin plan reject OK\n'
+
+# --- dest implement names a missing HEAD on a git repo with no commits ---
+eh="$tmpdir/empty-head"
+mkdir -p "$eh"
+git -C "$eh" init >/dev/null
+git -C "$eh" config user.email "shiploop-test@example.com"
+git -C "$eh" config user.name "ShipLoop Test"
+git -C "$eh" config commit.gpgsign false
+run_cli init --prompt "create result.txt containing exactly one line: ok" \
+  --run-dir "$eh/.shiploop" --repo "$eh" >/dev/null
+write_spec "$eh/.shiploop"
+write_environment "$eh/.shiploop"
+run_cli update --run-dir "$eh/.shiploop" --to validate-spec >/dev/null
+run_cli update --run-dir "$eh/.shiploop" --to plan >/dev/null
+install_dag "$eh/.shiploop" linear.json
+set +e
+out_eh="$(run_cli update --run-dir "$eh/.shiploop" --to implement 2>&1)"
+rc_eh=$?
+set -e
+[[ "$rc_eh" -eq 2 ]] || fail "empty HEAD want 2: $out_eh"
+printf '%s\n' "$out_eh" | grep -q 'repo has no HEAD commit' \
+  || fail "empty HEAD message: $out_eh"
+printf 'LAYER: empty HEAD dest implement message OK\n'
 
 # --- linear DAG implement + /goal + frozen ---
 install_dag "$run" linear.json
@@ -595,6 +630,22 @@ printf '%s\n' "$out_imp" | grep -q 'Do not edit the session checkout' || fail "i
 assert_host_flag "$out_imp" "implement packet"
 flag_n="$(printf '%s\n' "$out_imp" | grep -cF 'HOST FLAG — extra folder (do not re-root):' || true)"
 [[ "$flag_n" -ge 2 ]] || fail "implement packet should print HOST FLAG in Progress and Next envelope (got $flag_n)"
+printf '%s\n' "$out_imp" | grep -E 'required  .+/environment.md' \
+  || fail "implement Look here missing required environment.md"
+printf '%s\n' "$out_imp" | grep -q 'mcp-considered: none(no read-capable session tool matched done-sentence)' \
+  || fail "implement Next missing frozen mcp-considered: $out_imp"
+printf '%s\n' "$out_imp" | grep -q 'tools: (none)' || fail "implement Next missing tools: (none)"
+printf '%s\n' "$out_imp" | grep -q 'mcp: (none)' || fail "implement Next missing mcp: (none)"
+python3 -c '
+import sys
+p = sys.argv[1]
+host = p.find("HOST FLAG — extra folder")
+# last HOST FLAG is the Next envelope (Progress prints one first)
+host = p.rfind("HOST FLAG — extra folder")
+mcp = p.find("mcp-considered:", host)
+prompt = p.find("/goal step S1:", host)
+assert host != -1 and mcp != -1 and prompt != -1 and host < mcp < prompt, (host, mcp, prompt)
+' "$out_imp" || fail "envelope order: HOST FLAG then mcp-considered then stored prompt"
 printf '%s\n' "$out_imp" | grep -q 'checkable=true' || fail "implement reminder checkable"
 assert_absent "$out_imp" '--to residual' "mid-graph residual present"
 set +e
@@ -630,6 +681,10 @@ complete_ok "$run" S2
 out_dr="$(run_cli next --run-dir "$run")"
 printf '%s\n' "$out_dr" | grep -q 'invoke /shiploop complete' || fail "drained missing closer"
 printf '%s\n' "$out_dr" | grep -q 'drained — next residual' || fail "drained stand"
+printf '%s\n' "$out_dr" | grep -q 'After it finishes: dest residual — run bound review-coverage Phase B' \
+  || fail "drained dest residual default stand: $out_dr"
+printf '%s\n' "$out_dr" | grep -q 'waived closer' \
+  || fail "drained Next prompt missing waiver hatch: $out_dr"
 assert_absent "$out_dr" '/goal ' "drained implement still emitted /goal"
 assert_absent "$out_dr" 'shiploop update --run-dir' "drained leaked update argv"
 run_cli update --run-dir "$run" --to residual >/dev/null
@@ -833,6 +888,18 @@ d["bound_plan_hash"] = sys.argv[2]
 d["bound_plan"] = sys.argv[3]
 p.write_text(json.dumps(d, indent=2) + "\n")
 PY
+out_waive="$(run_cli next --run-dir "$run")"
+printf '%s\n' "$out_waive" | grep -q 'residual waived — quality/publish then dest done' \
+  || fail "waived residual Diagnosis missing waived stand: $out_waive"
+assert_absent "$out_waive" 'run bound review-coverage Phase B' \
+  "waived residual still said run Phase B"
+printf '%s\n' "$out_waive" | grep -q 'Review-coverage is waived on the bound plan' \
+  || fail "waived residual Progress missing waived begin: $out_waive"
+printf '%s\n' "$out_waive" | awk '/^## Next prompt$/,/^## When done invoke$/' \
+  | grep -q 'run review-coverage Phase B' \
+  && fail "waived residual Next prompt still ran Phase B: $out_waive"
+printf '%s\n' "$out_waive" | grep -q 'residual-waived.md' \
+  || fail "waived residual Look here missing residual-waived.md: $out_waive"
 cat >"$repo/REVIEW_CONVERGE.md" <<'MD'
 **Status:** active
 **Plan contract:** `/nope`
@@ -890,6 +957,8 @@ out_tr="$(run_cli next --run-dir "$run2")"
 printf '%s\n' "$out_tr" | grep -q 'S1: running' || fail "two-root S1"
 printf '%s\n' "$out_tr" | grep -q 'S2: running' || fail "two-root S2"
 printf '%s\n' "$out_tr" | grep -c '^/goal ' | grep -qx 2 || fail "want two /goal lines"
+printf '%s\n' "$out_tr" | grep -c 'mcp-considered:' | grep -qx 2 \
+  || fail "two-root want two mcp-considered envelopes"
 set +e
 out_ss="$(run_cli start-step --run-dir "$run2" --id S1 2>&1)"
 rc_ss=$?
@@ -1319,7 +1388,7 @@ doc = {
   "steps": [{
     "id": "S1",
     "statement": "write the file",
-    "prompt": "/goal from initial_state to result.txt exists via write the file",
+    "prompt": "/goal from initial_state to result.txt exists via write the file\nTools:\nWatch with: none(no read-capable session tool matched done-sentence)\nUse: git\nDon't use: none\nAssume: test harness",
     "produces": "result.txt exists",
     "origin": "seed",
     "inputs": [{"need": "repo exists", "from": None}],
@@ -1896,6 +1965,70 @@ set -e
 [[ "$rc_fbd" -eq 2 ]] || fail "blocked→plan after env edit want 2: $out_fbd"
 printf 'LAYER: blocked→plan first-bind + drift OK\n'
 
+# --- Tools: seed gate is independent of references ---
+runtg="$tmpdir/toolsgate/.shiploop"
+repotg="$tmpdir/toolsgate/repo"
+advance_to_plan "$runtg" "$repotg" "$planf"
+write_seed_dag() {
+  local run="$1" prompt="$2"
+  python3 - "$run" "$DS" "$prompt" <<'PY'
+import json, sys
+from pathlib import Path
+run = Path(sys.argv[1])
+ds, prompt = sys.argv[2], sys.argv[3]
+(run / "backchain").mkdir(exist_ok=True)
+doc = {
+  "goal": ds,
+  "initial_state": ["repo exists"],
+  "steps": [{
+    "id": "S1",
+    "statement": "write the file",
+    "prompt": prompt,
+    "produces": ["result.txt exists"],
+    "origin": "seed",
+    "inputs": [{"need": "repo exists", "from": None}],
+  }],
+  "parallel_groups": [],
+  "unresolved": [],
+}
+(run / "backchain" / "plan.json").write_text(json.dumps(doc, indent=2) + "\n")
+(run / "plan.json").write_text(json.dumps({"done_sentence": ds}) + "\n")
+(run / "plan.md").write_text("done_sentence: %s\n" % ds)
+PY
+}
+DEFAULT_MC='none(no read-capable session tool matched done-sentence)'
+write_seed_dag "$runtg" "/goal no tools header"
+set +e
+out_tg1="$(run_cli update --run-dir "$runtg" --to implement 2>&1)"
+rc_tg1=$?
+set -e
+[[ "$rc_tg1" -eq 2 ]] || fail "empty-refs no Tools: want 2: $out_tg1"
+printf '%s\n' "$out_tg1" | grep -q 'line starting with Tools:' || fail "empty-refs Tools: message: $out_tg1"
+write_seed_dag "$runtg" "See Tools: below
+Watch with: ${DEFAULT_MC}"
+set +e
+out_tg2="$(run_cli update --run-dir "$runtg" --to implement 2>&1)"
+rc_tg2=$?
+set -e
+[[ "$rc_tg2" -eq 2 ]] || fail "mid-line Tools: want 2: $out_tg2"
+printf '%s\n' "$out_tg2" | grep -q 'line starting with Tools:' || fail "mid-line Tools: message: $out_tg2"
+write_seed_dag "$runtg" "Tools:
+Use: git
+Don't use: none"
+set +e
+out_tg3="$(run_cli update --run-dir "$runtg" --to implement 2>&1)"
+rc_tg3=$?
+set -e
+[[ "$rc_tg3" -eq 2 ]] || fail "Tools: without token want 2: $out_tg3"
+printf '%s\n' "$out_tg3" | grep -q "mcp_considered ${DEFAULT_MC}" || fail "missing token message: $out_tg3"
+write_seed_dag "$runtg" "Tools:
+Watch with: ${DEFAULT_MC}
+Use: git
+Don't use: none
+Assume: test harness"
+run_cli update --run-dir "$runtg" --to implement >/dev/null
+printf 'LAYER: Tools: seed gate OK\n'
+
 # --- A25 empty prompt refuses dest implement; A27 refs must be cited ---
 runpr="$tmpdir/promptref/.shiploop"
 repopr="$tmpdir/promptref/repo"
@@ -1932,7 +2065,12 @@ p = Path(sys.argv[1])
 ref = sys.argv[2]
 d = json.loads(p.read_text())
 for step in d["steps"]:
-    step["prompt"] = step["prompt"] + " cite " + ref
+    step["prompt"] = (
+        step["prompt"]
+        + " cite "
+        + ref
+        + "\nTools:\nWatch with: none(x)\nUse: git\nDon't use: none\nAssume: test harness"
+    )
 p.write_text(json.dumps(d, indent=2) + "\n")
 PY
 run_cli update --run-dir "$runpr" --to implement >/dev/null
@@ -1953,6 +2091,12 @@ assert new, "expected a discovered step"
 assert all(s["prompt"] == "no citation needed for a discovered step" for s in new), new
 PY
 printf 'LAYER: inject-step exempt from reference citation OK\n'
+complete_ok "$runpr" S1
+out_inj_env="$(run_cli next --run-dir "$runpr")"
+printf '%s\n' "$out_inj_env" | grep -q 'ad hoc bind' || fail "discovered step not running: $out_inj_env"
+printf '%s\n' "$out_inj_env" | grep -q 'mcp-considered: none(x)' \
+  || fail "injected-step packet missing frozen envelope: $out_inj_env"
+printf 'LAYER: inject-step envelope reprint OK\n'
 
 # --- A16/A18/A22 inject-step ---
 runinj="$tmpdir/inject/.shiploop"

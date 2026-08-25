@@ -9,7 +9,7 @@ Everything below lives under the **run dir** (default: walked from cwd to
 | `prompt.md` | `init` | the original ask |
 | `environment.md` | `validate-spec` (survey + practices) | session survey: prose brief + `## machine` fenced JSON; practice references live here |
 | `spec.md` | `validate-spec` | labeled `done_sentence:` and `checkable: true\|false` (each exactly once); `ask_user:` when `checkable: false` |
-| `backchain/plan.json` | `plan` | canonical sequence DAG (steps carry `statement`, `prompt`, `produces`, `inputs`, `origin`) |
+| `backchain/plan.json` | `plan` | canonical sequence DAG (steps carry `statement`, `prompt`, `produces`, `inputs`, `origin`; every seed `prompt` cites `environment.md` `references[].path` and a `Tools:` block) |
 | `plan.md` / `plan.json` | `plan` | pointer + thin wrapper (`done_sentence`, `backchain` path, `step_ids` — not SoT, recomputed from the DAG) |
 | `steps/<id>.json` | `implement` | per-step receipt (`status`, `plan_sha256`, `worktree`, `branch`, `base_sha`) |
 | `history.jsonl` | every command | append-only event log |

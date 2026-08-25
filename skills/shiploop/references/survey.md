@@ -40,13 +40,18 @@ its output is `{{ENV_MD}}`.
 
 Write `{{ENV_MD}}`: a short prose brief, then a unique H2 titled exactly
 `machine`, immediately followed by one fenced JSON object with the keys above.
-After inventory, **before the spec**, research applicable practices and fold
+Put dest notes (existing repo, migration, CI/CD, missing systems) in that
+brief. Record unauthenticated, deferred, or wrong-for-this-increment MCP
+servers in the brief too — they are later **Don't use** lines, not machine
+keys. After inventory, **before the spec**, research applicable practices and fold
 them into the same file (more prose + `references`). `kind: brownfield`
 requires `augment: true` and a nonempty `references` list (cite the bound-repo
 README if it exists, plus any other files or URLs the increment depends on).
-This file becomes hashed and frozen at `dest plan` (`environment_sha256`) —
-same discipline as the frozen spec. Do not write `environment.json`. Do not add a second practices
-file. Do not add research skills to `dep_roots`.
+Those `references[].path` values later appear in every seed `prompt` together
+with a `Tools:` block. This file becomes hashed and frozen at `dest plan`
+(`environment_sha256`) — same discipline as the frozen spec. Do not write
+`environment.json`. Do not add a second practices file. Do not add research
+skills to `dep_roots`.
 
 ## The `dest blocked` hatch
 

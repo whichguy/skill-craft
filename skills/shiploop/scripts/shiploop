@@ -23,7 +23,7 @@ EXIT_BLOCKED = 2
 EXIT_USAGE = 64
 
 PACKAGE_ROOT = Path(__file__).resolve().parents[1]
-VERSION = "0.8.2"
+VERSION = "0.8.4"
 REF_DIR = PACKAGE_ROOT / "references"
 WT_DIRNAME = ".worktrees"
 # Printed in ## Progress and the implement Next envelope. Do not splice into
@@ -1297,7 +1297,11 @@ def dag_gaps(run_dir: Path, spec: Optional[Dict[str, Any]]) -> List[str]:
     initial_set = {x for x in initial if isinstance(x, str)}
     ref_paths: List[str] = []
     env, _ = load_environment(run_dir)
+    mcp_considered = ""
     if isinstance(env, dict):
+        mc = env.get("mcp_considered")
+        if isinstance(mc, str) and mc.strip():
+            mcp_considered = mc.strip()
         for r in env.get("references") or []:
             if isinstance(r, dict):
                 rp = r.get("path")
@@ -1331,16 +1335,26 @@ def dag_gaps(run_dir: Path, spec: Optional[Dict[str, Any]]) -> List[str]:
             gaps.append(f"{sid} prompt must be a nonempty string")
         elif PROMPT_CONTROL_RE.search(prompt) or has_disallowed_slash(prompt):
             gaps.append(f"{sid} prompt contains a disallowed control character or slash skill")
-        elif ref_paths and step.get("origin") == "seed":
-            # Only seed steps (written at plan time, from the researched
-            # environment) must cite practice references. A discovered step
-            # (inject-step) is an ad-hoc mid-implement fix unrelated to that
-            # research — requiring it to also quote every environment.md
-            # reference path verbatim would block the documented inject-step
-            # workflow on any session that has references at all.
-            for rp in ref_paths:
-                if rp not in prompt:
-                    gaps.append(f"{sid} prompt must cite environment reference {rp}")
+        elif step.get("origin") == "seed":
+            # Citation stays behind nonempty ref_paths. Tools:/token is a
+            # sibling seed-only gate — greenfield references: [] still
+            # requires it. inject-step (origin discovered) is exempt.
+            if ref_paths:
+                for rp in ref_paths:
+                    if rp not in prompt:
+                        gaps.append(f"{sid} prompt must cite environment reference {rp}")
+            if not any(re.match(r"^[ \t]*Tools:", line) for line in prompt.splitlines()):
+                gaps.append(
+                    f"{sid} prompt must have a line starting with Tools:; "
+                    "in-flight pre-0.8.4 runs: dest blocked then dest plan, "
+                    "rewrite seed prompts (do not hand-edit plan.json)"
+                )
+            if mcp_considered and mcp_considered not in prompt:
+                gaps.append(
+                    f"{sid} prompt must cite mcp_considered {mcp_considered}; "
+                    "in-flight pre-0.8.4 runs: dest blocked then dest plan, "
+                    "rewrite seed prompts (do not hand-edit plan.json)"
+                )
         produces = step.get("produces")
         texts = produces_texts(produces)
         if texts is None:
@@ -1921,7 +1935,17 @@ def missing_for(state: Dict[str, Any], run_dir: Path, dest: Optional[str]) -> Li
                 if "missing dep_roots.backchain" not in gaps:
                     gaps.append("missing dep_roots.backchain")
             if not git_repo_ready(repo_of(state)):
-                gaps.append("repo_root is not a git repository with HEAD (worktree isolation)")
+                repo = repo_of(state)
+                inside = git_run(repo, "rev-parse", "--is-inside-work-tree")
+                if repo.is_dir() and inside.returncode == 0 and inside.stdout.strip() == "true":
+                    gaps.append(
+                        "repo has no HEAD commit; create an initial commit so "
+                        "implement can isolate worktrees"
+                    )
+                else:
+                    gaps.append(
+                        "repo_root is not a git repository with HEAD (worktree isolation)"
+                    )
     if dest is None:
         if phase == "plan" and not deps.get("backchain"):
             gaps.append("missing dep_roots.backchain")
@@ -1989,6 +2013,11 @@ def forward_dest(state: Dict[str, Any], run_dir: Path) -> Optional[str]:
         return "plan"
     if phase == "plan":
         spec, _ = load_spec(run_dir)
+        # A missing DAG is the normal start of plan — dest implement and
+        # list the files in Missing. dest blocked only when a written DAG
+        # is illegal (otherwise When done invoke tells the host --blocked).
+        if not canonical_backchain(run_dir).is_file():
+            return "implement"
         if dag_gaps(run_dir, spec):
             return "blocked"
         return "implement"
@@ -2021,7 +2050,9 @@ def _checkable_token(spec: Optional[Dict[str, Any]]) -> str:
     return diag_text(flag)
 
 
-def activity_title(phase: str) -> str:
+def activity_title(phase: str, state: Optional[Dict[str, Any]] = None) -> str:
+    if phase == "residual" and state and plan_waiver(state):
+        return "residual waived — quality/publish then dest done"
     titles = {
         "intake": "record the original ask",
         "validate-spec": "survey, then write a machine-checkable spec",
@@ -2033,6 +2064,24 @@ def activity_title(phase: str) -> str:
         "halted": "session halted — stop",
     }
     return titles.get(phase, phase)
+
+
+def phase_begin_text(phase: str, state: Optional[Dict[str, Any]] = None) -> str:
+    if phase == "residual" and state and plan_waiver(state):
+        return (
+            "Review-coverage is waived on the bound plan. Do the spec's quality "
+            "/goal and outer-loop publish if named, then dest done."
+        )
+    return PHASE_BEGIN.get(phase, activity_title(phase, state))
+
+
+def phase_finish_text(phase: str, state: Optional[Dict[str, Any]] = None) -> str:
+    if phase == "residual" and state and plan_waiver(state):
+        return (
+            "After the spec's quality /goal and outer-loop publish (if named), "
+            "invoke /shiploop complete — dest done writes recap.html."
+        )
+    return PHASE_FINISH.get(phase, "invoke /shiploop complete")
 
 
 # Verbosity for ## Progress (session phases). Implement uses per-step text.
@@ -2183,7 +2232,7 @@ def print_diagnosis(run_dir: Path, state: Dict[str, Any]) -> None:
         else:
             print("    (none)")
         return
-    print(f"  stand      {phase} — {activity_title(phase)}")
+    print(f"  stand      {phase} — {activity_title(phase, state)}")
     completed: List[str] = []
     pending: List[str] = []
     for p in MAP_PHASES:
@@ -2197,11 +2246,11 @@ def print_diagnosis(run_dir: Path, state: Dict[str, Any]) -> None:
     print("  completed")
     if completed:
         for p in completed:
-            print(f"    {p}  {activity_title(p)}")
+            print(f"    {p}  {activity_title(p, state)}")
     else:
         print("    (none)")
     print("  now")
-    print(f"    {phase}  {activity_title(phase)}")
+    print(f"    {phase}  {activity_title(phase, state)}")
     print("  pending")
     if pending:
         print("    " + " → ".join(pending))
@@ -2214,6 +2263,31 @@ def print_host_worktree_flag() -> None:
         print(line)
 
 
+def _join_env_list(values: Any) -> str:
+    if not isinstance(values, list) or not values:
+        return "(none)"
+    parts = [str(v) for v in values if str(v).strip()]
+    return ", ".join(parts) if parts else "(none)"
+
+
+def print_frozen_session_env(run_dir: Path) -> None:
+    """Reprint frozen tools/MCP above the stored prompt. Do not compose it."""
+    print(
+        "Frozen session environment (do not re-survey; "
+        "do not implement the product through MCP):"
+    )
+    env, gaps = load_environment(run_dir)
+    if gaps or not isinstance(env, dict):
+        for g in gaps or ["environment.md missing or invalid"]:
+            print(g)
+        return
+    mc = env.get("mcp_considered")
+    print(f"mcp-considered: {mc if isinstance(mc, str) and mc.strip() else '(none)'}")
+    print(f"tools: {_join_env_list(env.get('tools'))}")
+    print(f"mcp: {_join_env_list(env.get('mcp'))}")
+    print(f"See: {(run_dir / 'environment.md').resolve()}")
+
+
 def print_progress(
     run_dir: Path, state: Dict[str, Any], *, prior_running: Optional[Set[str]] = None
 ) -> None:
@@ -2221,16 +2295,16 @@ def print_progress(
     phase = str(state.get("phase"))
     print("## Progress")
     print_host_worktree_flag()
-    print(f"Session phase: {phase} — {activity_title(phase)}.")
+    print(f"Session phase: {phase} — {activity_title(phase, state)}.")
     repo = repo_of(state)
     repo_s = str(repo.resolve()) if repo.exists() else str(repo)
     if phase != "implement":
-        print(f"Beginning this phase: {PHASE_BEGIN.get(phase, activity_title(phase))}")
-        print(f"Finish this phase: {PHASE_FINISH.get(phase, 'invoke /shiploop complete')}")
+        print(f"Beginning this phase: {phase_begin_text(phase, state)}")
+        print(f"Finish this phase: {phase_finish_text(phase, state)}")
         if phase not in ("done", "halted", "blocked"):
             dest = forward_dest(state, run_dir)
             if dest:
-                print(f"After it finishes: dest {dest} — {activity_title(dest)}.")
+                print(f"After it finishes: dest {dest} — {activity_title(dest, state)}.")
         if phase in ("intake", "validate-spec", "plan", "residual"):
             print(f"Work in the session checkout (no per-step worktree yet): {repo_s}")
             print(f"Run dir: {run_dir.resolve()}")
@@ -2242,7 +2316,7 @@ def print_progress(
     if steps_drained(run_dir, state):
         print("Beginning this phase: all DAG steps are done (drained).")
         print("Finish this phase: invoke /shiploop complete (does not auto-dest residual).")
-        print("After it finishes: dest residual — run bound review-coverage Phase B.")
+        print(f"After it finishes: dest residual — {activity_title('residual', state)}.")
         print(f"Session checkout: {repo_s}")
         print(f"Run dir: {run_dir.resolve()}")
         return
@@ -2317,6 +2391,10 @@ def activity_body(phase: str, run_dir: Path, state: Dict[str, Any]) -> str:
         drain = ACTIVITIES_DIR / "implement-drained.md"
         if drain.is_file():
             path = drain
+    elif phase == "residual" and plan_waiver(state):
+        waived = ACTIVITIES_DIR / "residual-waived.md"
+        if waived.is_file():
+            path = waived
     if not path.is_file():
         return f"(no activity file for {phase})"
     mapping = {
@@ -2490,6 +2568,10 @@ def look_here_lines(run_dir: Path, state: Dict[str, Any], phase: str) -> List[st
         drain = ACTIVITIES_DIR / "implement-drained.md"
         if drain.is_file():
             act = drain
+    elif phase == "residual" and plan_waiver(state):
+        waived = ACTIVITIES_DIR / "residual-waived.md"
+        if waived.is_file():
+            act = waived
 
     if phase == "intake":
         add("required", run_dir / "state.json", "session state")
@@ -2512,7 +2594,7 @@ def look_here_lines(run_dir: Path, state: Dict[str, Any], phase: str) -> List[st
     elif phase == "implement":
         add("required", run_dir / "spec.md", "frozen spec — do not rewrite")
         add("required", canonical_backchain(run_dir), "canonical backchain DAG")
-        add("if-needed", run_dir / "environment.md", "survey context")
+        add("required", run_dir / "environment.md", "frozen survey")
         add("if-needed", run_dir / "plan.md", "sequence plan pointer")
         for sid in recomputed_step_ids(run_dir):
             if classify_steps(run_dir, state).get(sid) == "running":
@@ -2525,15 +2607,21 @@ def look_here_lines(run_dir: Path, state: Dict[str, Any], phase: str) -> List[st
                     lines.append(f"required  {wt}     {sid} worktree — cwd here{extra}")
         add("required", act, "current activity")
     elif phase == "residual":
+        waived = bool(plan_waiver(state))
         repo = repo_of(state)
         ledger = repo / "REVIEW_CONVERGE.md" if str(repo) else None
         if ledger:
-            add("required", ledger, "residual ledger")
+            add(
+                "if-needed" if waived else "required",
+                ledger,
+                "residual ledger (waived)" if waived else "residual ledger",
+            )
         bound = str(state.get("bound_plan") or "")
         if bound:
             add("required", Path(bound), "bound plan (residual contract)")
         add("required", run_dir / "spec.md", "frozen spec")
-        if deps.get("review-coverage"):
+        add("required", act, "current activity")
+        if deps.get("review-coverage") and not waived:
             add("required", Path(deps["review-coverage"]) / "SKILL.md", "review-coverage Phase B")
         add("required", run_dir / "recap.html", "end-of-run walk-back (written at dest done)", missing_ok=True)
     elif phase == "done":
@@ -2582,7 +2670,7 @@ def print_packet(run_dir: Path, state: Dict[str, Any], *, prior_running: Optiona
             print(f"checkable={token}")
         if state.get("spec_sha256") and phase != "validate-spec":
             print("spec: frozen")
-    doing = activity_title(phase)
+    doing = activity_title(phase, state)
     if phase == "implement" and steps_drained(run_dir, state):
         doing = "steps drained — enter residual"
     print(f"You are doing {phase}: {doing}.")
@@ -2613,6 +2701,7 @@ def print_packet(run_dir: Path, state: Dict[str, Any], *, prior_running: Optiona
                 print(f"Branch: {br}")
             print("Do not edit the session checkout during this /goal.")
             print_host_worktree_flag()
+            print_frozen_session_env(run_dir)
             print(str(step.get("prompt") or "").rstrip())
     else:
         print(activity_body(phase, run_dir, state))

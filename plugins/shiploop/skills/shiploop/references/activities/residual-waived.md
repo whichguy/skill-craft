@@ -1,19 +1,18 @@
 Session closer only. The spec is still **frozen**. Do not rewrite it. Do not
 invent a new state-machine phase.
 
+Review-coverage is **waived** on the bound plan `{{BOUND_PLAN}}`. Do not open
+`/review-converge`. Do not treat a missing `{{LEDGER_PATH}}` as failure.
+
 Follow this order. Each `/goal` below is a new outer-loop turn, not a nested
 `/goal` and not a DAG step.
 
 1. Do not open `/goal` until the bound repo’s Test command is green and the
    implementation commits are landed. Otherwise `/shiploop complete --blocked
    --resume-to residual --reason …`.
-2. When green and landed, run review-coverage Phase B for the bound plan
-   `{{BOUND_PLAN}}` under host `/goal`. One `/review-converge` per outer
-   turn. Ledger: repo-root `{{LEDGER_PATH}}`. Do not treat a foreign or
-   unlanded ledger as success.
-3. When the bound ledger is `complete` and landed, or the bound plan H2 has
-   a real residual waiver, read the frozen spec's three placement answers
-   and finish only what it named:
+2. Skip review-coverage Phase B (waiver).
+3. Read the frozen spec's three placement answers and finish only what it
+   named:
 
    1. **Quality test/fix `/goal`.** If the spec said yes on outer-loop
       completion, run one host `/goal` to test and fix the completed
@@ -27,5 +26,3 @@ Follow this order. Each `/goal` below is a new outer-loop turn, not a nested
       original spec, what was accomplished, what materially changed, the
       end result, the final outcome, and what was verified). Do not
       hand-author that file.
-
-When the bound ledger is `stopped (...)`, invoke `--to halted`.

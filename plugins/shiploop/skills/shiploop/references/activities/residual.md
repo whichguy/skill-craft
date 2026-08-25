@@ -22,7 +22,7 @@ Follow this order. Each `/goal` below is a new outer-loop turn, not a nested
    2. **Outer-loop deploy/publish.** If the spec named deploy/publish as
       **outer-loop**, do that now. If it said **dag** or **none**, skip
       (dag already ran in the walk). Do not open a new DAG step.
-   3. Then go to When done invoke `--to done`. dest `done` writes the
+   3. Then invoke `/shiploop complete`. dest `done` writes the
       end-of-run walk-back at `{{RECAP_HTML}}` (HTML covering intent, the
       original spec, what was accomplished, what materially changed, the
       end result, the final outcome, and what was verified). Do not

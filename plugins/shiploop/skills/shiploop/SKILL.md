@@ -8,7 +8,7 @@ description: >-
   /shiploop complete — do not rely on chat memory. Lost context without
   completing → /shiploop next.
 allowed-tools: all
-version: 0.8.2
+version: 0.8.4
 license: MIT
 platforms:
   - linux
@@ -86,7 +86,9 @@ Human overview: [README.md](README.md).
    **now** / **pending** lines back to the user — do not summarize them
    away. That is the live session rail (`status --human` reprints it).
    Do only the **Next prompt** (first line is `Use this prompt as much as
-   possible.` — paste the printed body). Implement steps name a per-step
+   possible.`). On implement, paste the **Frozen session environment**
+   block together with the stored prompt into `/goal`. Do not paste
+   worktree, branch, or HOST FLAG. Implement steps name a per-step
    worktree and branch in **Look here** / **Diagnosis** — work there; do
    not edit the session checkout or reuse a prior worktree. Full workflow:
    [README.md](README.md).

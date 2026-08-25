@@ -7,7 +7,8 @@ Inventory this session against `{{SURVEY_GUIDE}}`: kind/augment, references
 (read `{{REPO_ROOT}}/README.md` if it exists and cite it — do **not** write
 or rewrite it here), tools, mcp, mcp_considered, handles, initiation,
 ui/ui_craft. `kind` and `augment` must match (`greenfield`/`false`,
-`brownfield`/`true`); brownfield `references` must be nonempty. Write `{{ENV_MD}}`: a prose brief, then a unique H2 titled
+`brownfield`/`true`); brownfield `references` must be nonempty. Write `{{ENV_MD}}`: a prose brief (dest notes and unauthenticated or deferred
+MCP belong here, not in machine JSON), then a unique H2 titled
 exactly `machine` with one fenced JSON object. Any handle resolved `list` or
 `ask` will block `dest plan` later — resolve it now or use the blocked hatch
 below.
@@ -24,7 +25,8 @@ inventory alone is not enough. Write the findings **into** `{{ENV_MD}}`
 (more prose plus `references[{path, why}]`; `path` may be a URL or repo
 path). Do not invent a second SoT file. Do not persist secrets. Do not
 write the product README. Do not add research skills to `dep_roots`. Those
-references must later appear in each DAG step's stored `prompt`.
+references must later appear in each seed step's stored `prompt` together
+with a `Tools:` block that carries the frozen `mcp_considered` token.
 
 ## 3. Spec (once)
 

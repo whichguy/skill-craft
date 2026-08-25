@@ -7,7 +7,7 @@ walk-back HTML recap exists.
 
 ShipLoop never auto-merges and never claims engine `COMPLETE`.
 
-Package leaf: `skills/shiploop`. Invoke: `/shiploop`. Version: **0.8.2**.
+Package leaf: `skills/shiploop`. Invoke: `/shiploop`. Version: **0.8.4**.
 
 Canonical companions (do not duplicate their contracts here):
 
@@ -203,8 +203,9 @@ must have:
 - `prompt` — **exact** inner-loop paste body (newlines OK; no other control characters)
 - `produces` / `inputs` / `origin: seed`
 
-Each `prompt` must cite the practice `references` from `environment.md` that
-that step must use. Include prep / intermediate deploy / cleanup when implied,
+Each `prompt` must cite every `references[].path` from `environment.md` that
+the increment researched, and end with a `Tools:` block (Watch with / Use /
+Don't use / Assume) that includes the frozen `mcp_considered` token. Include prep / intermediate deploy / cleanup when implied,
 and a **README create/revise as a late successor**. The spec's three
 placement answers decide which of those fire: deploy preparation *is* the
 early prep step; **dag** publish *is* the deploy step; **outer-loop**
@@ -217,6 +218,12 @@ dest `plan` **writes** `environment_sha256` / `spec_sha256` when empty (first
 bind) and **verifies** them when set. It always clears `plan_sha256` and
 receipts (replan hatch).
 
+While `backchain/plan.json` is not written yet, the packet dest is
+`implement` (Missing lists the plan files; When done invoke is
+`/shiploop complete`). dest `blocked` is only for a **written** illegal
+DAG — not the empty start of plan. dest `implement` also requires a git
+`HEAD` so worktrees can fork; an empty repo needs an initial commit first.
+
 ### 4. Implement
 
 `/shiploop next` (and complete after a step) **claims** newly ready ids
@@ -224,11 +231,13 @@ receipts (replan hatch).
 `<repo>/.worktrees/` (hidden via `.git/info/exclude`).
 
 **Next prompt** always starts with `Use this prompt as much as possible.`
-Then the harness prints each **running** step’s stored `prompt` **verbatim**.
-It does not compose a `/goal` from `statement` / `produces` / suppliers /
-worktree. Worktree and branch appear only in **Look here** / **Diagnosis**.
-`cd` there, paste the printed prompt into host `/goal`, do not edit the
-session checkout.
+Then the harness prints worktree / branch / HOST FLAG, a **Frozen session
+environment** block (`mcp-considered` / `tools` / `mcp`), then each
+**running** step’s stored `prompt` **verbatim**. Paste the Frozen block
+together with the stored prompt into host `/goal`. Do not paste worktree,
+branch, or HOST FLAG. The script does not compose a `/goal` from
+`statement` / `produces` / suppliers / worktree. `cd` to the worktree
+named in Look here; do not edit the session checkout.
 
 Inner loop (host, not a phase): green-first or TDD (failing test first),
 prefer `/goal`, then a verbose pathspec commit that records a **learning**.
@@ -251,8 +260,8 @@ phase). Next complete dests `residual`.
 
 ```mermaid
 flowchart TD
-  next["/shiploop next — claim_ready(): ready ids to running,\ngit worktree add -b per id"] --> printed["Packet Next prompt: each running step's stored prompt, verbatim"]
-  printed --> gwork["Host cd's into that step's worktree, pastes into /goal"]
+  next["/shiploop next — claim_ready(): ready ids to running,\ngit worktree add -b per id"] --> printed["Packet Next prompt: Frozen session environment + stored prompt"]
+  printed --> gwork["Host cd's into that step's worktree, pastes Frozen block + stored prompt into /goal"]
   gwork -->|goal succeeds| cm["Host commits on the worktree, then\ngit merge --no-ff into session HEAD"]
   cm --> complete["/shiploop complete — apply_complete_receipt() marks the step complete,\nthen re-claims any newly-ready ids in the same call"]
   complete -->|another id now running| printed
@@ -295,7 +304,10 @@ Do not treat a foreign or unlanded ledger as success.
 When the ledger is `complete` and landed (or the plan has a real residual
 waiver), do only what the frozen spec named: a `/goal` quality test-and-fix
 pass if it said yes (skip if no), then **outer-loop** deploy/publish if it
-said outer-loop (skip if dag or none), then dest `done`. When the ledger
+said outer-loop (skip if dag or none), then dest `done`. A real waiver
+changes Diagnosis / Progress from “run Phase B” to “residual waived —
+quality/publish then dest done”, and Next prompt uses `residual-waived.md`
+instead of `residual.md`. When the ledger
 is `stopped (...)`, dest `halted`. Those dests write `.shiploop/recap.html`
 from the run files. Do not hand-author it.
 
@@ -321,7 +333,7 @@ banner `shiploop — session harness`:
 | **Progress** | HOST FLAG (extra worktree folder — do not re-root), then begin/finish this phase or running step: worktree folder, branch, session checkout, what complete does next. |
 | **Reminder** | Ask one-liner + frozen `done_sentence`. No body dump. |
 | **Look here** | First line `Reference only — not the next action.` Phase-scoped paths only. |
-| **Next prompt** | First line `Use this prompt as much as possible.` Then the stored prompt or the activity file. |
+| **Next prompt** | First line `Use this prompt as much as possible.` Implement: Frozen session environment, then the stored prompt. Other phases: the activity file. |
 | **When done invoke** | `invoke /shiploop complete` (plus `--clear` / `--blocked` when that is the hatch). |
 | **Missing** | Same gaps `update` would refuse. |
 
@@ -332,7 +344,7 @@ Look-here matrix (absolute path + one-line why):
 | intake | `state.json`, `prompt.md` (create), activity |
 | validate-spec | prompt, `environment.md` (create), `survey.md`, `spec.md` (create), `state.json` |
 | plan | frozen spec + environment, `backchain/plan.json` (create), `plan.md` / `plan.json`, backchain SKILL |
-| implement | frozen spec, DAG, running `steps/<id>.json` + worktree, activity; environment / `plan.md` if-needed |
+| implement | frozen spec, DAG, required `environment.md` (frozen survey), running `steps/<id>.json` + worktree, activity; `plan.md` if-needed |
 | implement-drained | spec, DAG, `implement-drained.md` |
 | residual | ledger, bound plan, spec, review-coverage SKILL, `recap.html` (written at dest done) |
 | done | `recap.html`, spec |
