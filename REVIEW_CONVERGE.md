@@ -2,9 +2,9 @@
 
 **Target paths:** `skills/shiploop`, `docs/LOOP-ENGINEERING.md`, `skills/devloop/references/loop-engineering.md`, `plugins/devloop/skills/devloop/references/loop-engineering.md`, `test/shiploop.test.sh`, `test/fixtures/shiploop`, `plugins/shiploop`, `plugins/devloop`
 **Test command:** `bash test/shiploop.test.sh`
-**Started:** 2026-08-25          **Status:** active
-**Round counter:** 1
-**Consecutive clean rounds:** 1
+**Started:** 2026-08-25          **Status:** complete
+**Round counter:** 2
+**Consecutive clean rounds:** 2
 **Known test-artifact paths:**
 **Plan contract:** `/Users/dadleet/.cursor/plans/env_mcp_per_iteration_8bb8291b.plan.md`
 **Plan hash:** `e72f04f0bd647625a0fc3b72ce57db846965cac952274dd382c676b77e72768a`
@@ -52,3 +52,38 @@
 **Consecutive clean rounds after this entry:** 1
 **Committed:** yes
 **Notes:** Fresh ledger for plan `env_mcp_per_iteration_8bb8291b` bound at campaign start (SHA-256 `e72f04f0…768a`). Prior foreign terminal ledger (survey-before-spec, Status `complete` at `671cc06`) archived to `REVIEW_CONVERGE.archived-survey-before-spec-20260825.md` (gitignored; not committed). First of two consecutive cleans; suite deferred to the second clean per Phase 2. Pathspec-only commit of this ledger; no `git add -A`. Implementation already landed as `be554b7` so Target paths were clean at Phase 0. Exactly one `/review-converge` this turn.
+
+### Round 2 — 2026-08-25
+**Review:** 0 material, 0 minor (new)
+**Material findings:**
+- none
+**Deferred (minor/P2):**
+- [ ] P2: `forward_dest`'s `residual` branch has a dead conditional — `if plan_waiver(state): return "done"` is immediately followed by an unconditional `return "done"`, so the waiver check changes nothing about the returned destination (the real done-gate is still enforced downstream by `residual_gaps` / `recap_gaps` via `missing_for`) [skills/shiploop/scripts/shiploop:forward_dest] — code. Carried from R1 / archived survey-before-spec campaign; still present, still untouched, still not newly material.
+- [ ] P2: plan §4 asked README / turn-packet to note in-flight `blocked → plan` recovery; that recovery lives in `plan.md` and in `dag_gaps` gap text, but README and turn-packet only describe the happy-path paste contract — docs. Re-checked this round: `transitions.json` has `blocked → plan` (`need: reason`), so the CLI recovery is a real edge, not a lie. Still not material: Missing already prints it.
+- [ ] P2: the Tools:-header gap names the missing line and the recovery, but not the exact `mcp_considered` token (the sibling token gap does). Carried from R1; still accurate; still not material.
+**Git-history check:** Diff vs Base ref is still `9a1d4e5..be554b7` plus R1's ledger commit `5688d36`. No product-path commit landed between R1 and this review (`git diff --stat 5688d36 HEAD -- <Target paths>` empty). Last 10 subjects unchanged except R1 now sits on top (`5688d36`, `be554b7`, `9a1d4e5`, `df22fc7`, `5584548`, `5f487ca`, `e04b930`, `092d05e`, `c2d503d`, `305a5a6`). Prior converge history (`671cc06` / `c433018` / `802aa8e`) already settled seed-only citation; this round does not re-raise that. **Forward (re-derived from the bound plan, not from R1's restated wording):** plan §3 requires `print_packet` to reprint frozen env via `load_environment` and still print the stored prompt if the file is invalid — `print_frozen_session_env` prints the Frozen header + gap lines then returns, and the caller still prints `step["prompt"]`. Plan §4 requires a sibling `origin == seed` Tools: line match plus literal `mcp_considered in prompt`, inject-step exempt — `dag_gaps` 1338–1357 and `inject-step` `origin: discovered` still match. Plan §4 recovery `blocked then dest plan` is a legal transition (not invented). dest_contract is still absent. Intent Q1–Q4 still hold on the same files R1 named. **Reverse:** `git diff 9a1d4e5..be554b7` is the intended combined 0.8.3+0.8.4 ship; no new regression surface since R1. Section 5's "all refs + token, no Tools: line" combo is not a dedicated fixture — it is the same Tools: branch A10 already exercises with empty refs; not a new material gap.
+**Plan:** n/a (clean)
+**Plan review:** n/a
+**Implementation:** none
+**Lint:** skipped (none configured)
+**Test result:** PASS (terminal clean)
+**Outcome:** clean
+**Error signature:** none
+**Learnings:** The thesis that R1 was an honest first clean, not a rubber stamp waiting to be undone, held: an independent re-read of the bound plan against `dag_gaps` / `print_frozen_session_env` / `transitions.json` found the same contract, and `bash test/shiploop.test.sh` PASSed (Tools: seed gate, citation, inject-step exemption, inject envelope reprint, linear/two-root packets). Surprising-but-settling: the in-flight recovery sentence is not documentation theater — `blocked → plan` is a first-class edge — so leaving it out of README remains a P2, not a broken hatch. No Outcome: fixed in this campaign; residual×2 completed on two consecutive cleans.
+**Anchor evidence:**
+- A1 → this turn's suite `LAYER: Tools: seed gate OK`
+- A2 → `LAYER: empty prompt + reference citation OK`
+- A3 → `LAYER: inject-step exempt from reference citation OK`
+- A4 → linear + two-root layers in the same PASS
+- A5 → implement Look here `required  …/environment.md` still printed in linear packet
+- A6 → `git grep dest_contract -- skills/shiploop test/shiploop.test.sh plugins/shiploop` empty; machine-shape layer still in PASS
+- A7 → `plan.md` still has Watch with / Use / Don't use / Assume
+- A8 → `diff -q` docs vs skills/devloop vs plugin twin: equal
+- A9 → SKILL.md `0.8.4`; sync-plugin-views not re-run (no product edit this round); R1 already CHECK OK and tree unchanged
+- A10 → empty-refs no Tools: still in Tools: seed gate layer
+- A11 → implement.md / SKILL.md paste Frozen + stored prompt
+- A12 → `LAYER: inject-step envelope reprint OK`
+- IQ1–IQ4 → re-derived above; no drift
+**Consecutive clean rounds after this entry:** 2
+**Committed:** yes
+**Notes:** Second consecutive clean; recorded Test command PASS (`bash test/shiploop.test.sh`, EXIT 0, no TARGET_PATHS porcelain delta). Status `complete`. artifact failed: Artifact publish tool not available on this host. Pathspec-only commit of this ledger; no `git add -A`. Exactly one `/review-converge` this turn.
