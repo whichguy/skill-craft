@@ -23,17 +23,18 @@ does not auto-merge.
 ## Discovered work mid-implement: `inject-step`
 
 If a running `/goal` surfaces intermediate work the frozen DAG did not
-anticipate, add it with `scripts/shiploop inject-step --statement <label>
---prompt <text> --produces <text> [--id Sn] [--need <n> --from <id>]
-[--before <id>...]`. Legal only in phase `implement` (including drained).
-It refuses on plan-hash drift (a hand-edit is not an inject), refuses
-`--before` a step that is not `todo`/`ready`, and rebinds `plan_sha256` only
-— it never re-runs `dest plan` or clears existing receipts. Unlike a seed
-step's `prompt`, a discovered step's `--prompt` does **not** need to cite
-`{{ENV_MD}}`'s practice references or carry a `Tools:` block — it is an
-ad-hoc fix, not researched practice work. The Next envelope still reprints
-frozen tools/MCP above that stored prompt; paste that Frozen block with
-the discovered prompt. See `commands/shiploop-inject.md`.
+anticipate, add it with `inject-step`. **Look here** lists the harness CLI
+and the inject-step card as absolute paths. Pass `--statement`, `--prompt`,
+`--produces`, optional `--id Sn`, `--need`/`--from`, `--before`. Legal only
+in phase `implement` (including drained). It refuses on plan-hash drift (a
+hand-edit is not an inject), refuses `--before` a step that is not
+`todo`/`ready`, and rebinds `plan_sha256` only — it never re-runs `dest
+plan` or clears existing receipts. Unlike a seed step's `prompt`, a
+discovered step's `--prompt` does **not** need to cite `{{ENV_MD}}`'s
+practice references or carry a `Tools:` block — it is an ad-hoc fix, not
+researched practice work. The Next envelope still reprints frozen
+tools/MCP above that stored prompt; paste that Frozen block with the
+discovered prompt.
 
 After a `/goal` succeeds: invoke `/shiploop complete`.
 After a `/goal` fails and the session can continue: invoke `/shiploop complete --clear`.

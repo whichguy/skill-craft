@@ -23,7 +23,7 @@ EXIT_BLOCKED = 2
 EXIT_USAGE = 64
 
 PACKAGE_ROOT = Path(__file__).resolve().parents[1]
-VERSION = "0.8.4"
+VERSION = "0.8.5"
 REF_DIR = PACKAGE_ROOT / "references"
 WT_DIRNAME = ".worktrees"
 # Printed in ## Progress and the implement Next envelope. Do not splice into
@@ -800,6 +800,30 @@ def _environment_brief(run_dir: Path) -> str:
     return text.strip()
 
 
+RECAP_QUALITY_HOST_OWNED = (
+    "Quality /goal and outer-loop publish are host-owned. "
+    "This recap does not witness them and does not treat the frozen "
+    "done_sentence as harness-verified."
+)
+
+
+def _recap_coverage_line(waiver: Optional[str], ledger: Dict[str, Any], dest: str) -> str:
+    if dest == "halted":
+        return "review-coverage stopped before a landed complete"
+    if waiver:
+        return f"review-coverage waived: {waiver}"
+    status = diag_text(ledger.get("status")) if ledger else "(none)"
+    landed = bool(ledger.get("landed"))
+    bound = bool(ledger.get("bound"))
+    if status == "complete" and landed and bound:
+        return "review-coverage complete and landed"
+    return (
+        f"review-coverage ledger {status}; "
+        f"bound={'yes' if bound else 'no'}; "
+        f"landed={'yes' if landed else 'no'}"
+    )
+
+
 def _history_events(run_dir: Path) -> List[str]:
     path = run_dir / "history.jsonl"
     if not path.is_file():
@@ -901,7 +925,7 @@ def _recap_river_html(
         parts.append('<div class="flow-arrow" aria-hidden="true"></div>')
     if done_sentence:
         parts.append('<div class="layer sink">')
-        parts.append('<p class="layer-label">End result</p>')
+        parts.append('<p class="layer-label">Contracted end result</p>')
         parts.append(f'<p class="sink-line">{_html_text(done_sentence)}</p>')
         parts.append("</div>")
     elif parts and parts[-1] == '<div class="flow-arrow" aria-hidden="true"></div>':
@@ -954,13 +978,22 @@ def render_recap_html(run_dir: Path, state: Dict[str, Any], *, dest: str) -> str
     drained = bool(ids) and n_done == len(ids)
     if dest == "halted":
         stamp = "HALTED"
-        outcome = "Session halted. Residual stopped before a landed complete."
+        outcome = (
+            "Session halted. Residual stopped before a landed complete. "
+            + RECAP_QUALITY_HOST_OWNED
+        )
     elif waiver:
-        stamp = "WAIVED"
-        outcome = f"Session closed with a residual waiver: {waiver}"
+        stamp = "CLOSED"
+        outcome = (
+            f"Session closed. Review-coverage was waived: {waiver} "
+            + RECAP_QUALITY_HOST_OWNED
+        )
     else:
         stamp = "CLOSED"
-        outcome = "Session success. Residual complete and landed."
+        outcome = (
+            "Session closed. Review-coverage is complete and landed. "
+            + RECAP_QUALITY_HOST_OWNED
+        )
     if dest == "halted":
         rail = (
             "● intake  ● validate-spec  ● plan  ● implement  ● residual  ○ done  ✗ halted"
@@ -985,21 +1018,25 @@ def render_recap_html(run_dir: Path, state: Dict[str, Any], *, dest: str) -> str
     ledger_status = diag_text(ledger.get("status")) if ledger else "(none)"
     landed = "yes" if ledger.get("landed") else "no"
     bound = "yes" if ledger.get("bound") else "no"
+    coverage = _recap_coverage_line(waiver, ledger, dest)
     end_result = done_sentence or "(no frozen done_sentence)"
     if dest == "halted":
         end_bits = (
             f"The walk ended in residual without a landed complete. "
-            f"Ledger status: {ledger_status}."
+            f"The frozen done_sentence stays the contracted end result, "
+            f"not a harness-verified claim."
         )
     elif drained:
         end_bits = (
             f"All {len(ids)} sequence steps completed. "
-            f"The frozen done_sentence is the end result."
+            f"The frozen done_sentence is the contracted end result, "
+            f"not a harness-verified claim."
         )
     else:
         end_bits = (
             f"{n_done}/{len(ids) or 0} sequence steps completed. "
-            f"The frozen done_sentence is still the contracted end result."
+            f"The frozen done_sentence is still the contracted end result, "
+            f"not a harness-verified claim."
         )
     checkable_s = "true" if checkable is True else "false" if checkable is False else "(unset)"
     run_id = diag_text(state.get("run_id"))
@@ -1196,11 +1233,12 @@ pre {{
 <section class="reveal">
 <h2>Key accomplishments</h2>
 <p class="thesis">{_html_text(end_result)}</p>
+<p class="meta">Contracted end result — not harness-verified. See Verified for review-coverage vs host-owned quality.</p>
 <p>Walk {n_done}/{len(ids) or 0} steps done. Each card is what that increment made true.</p>
 {accomplishments_html}
 
 <h2>Implementation outcomes</h2>
-<p>How those increments connect: starting facts, each step's outcome, then the end result.</p>
+<p>How those increments connect: starting facts, each step's outcome, then the contracted end result.</p>
 {river_html}
 </section>
 
@@ -1231,6 +1269,8 @@ pre {{
 {hist_html}
 
 <h2>Verified</h2>
+<p>{_html_text(coverage)}.</p>
+<p>{_html_text(RECAP_QUALITY_HOST_OWNED)}</p>
 <p>Ledger status {_html_text(ledger_status)}; bound={_html_text(bound)}; landed={_html_text(landed)}.
 Spec frozen={"yes" if state.get("spec_sha256") else "no"}.
 Walk drained={"yes" if drained else "no"}.</p>
@@ -1931,9 +1971,6 @@ def missing_for(state: Dict[str, Any], run_dir: Path, dest: Optional[str]) -> Li
             if not deps.get("backchain"):
                 gaps.append("missing dep_roots.backchain")
         if dest == "implement":
-            if not deps.get("backchain"):
-                if "missing dep_roots.backchain" not in gaps:
-                    gaps.append("missing dep_roots.backchain")
             if not git_repo_ready(repo_of(state)):
                 repo = repo_of(state)
                 inside = git_run(repo, "rev-parse", "--is-inside-work-tree")
@@ -2031,8 +2068,6 @@ def forward_dest(state: Dict[str, Any], run_dir: Path) -> Optional[str]:
             rep = ledger_report(repo, state)
             if (rep.get("status") or "").startswith("stopped") and rep.get("bound"):
                 return "halted"
-        if plan_waiver(state):
-            return "done"
         return "done"
     if phase == "blocked":
         return str(state.get("resume_to") or "") or None
@@ -2053,6 +2088,10 @@ def _checkable_token(spec: Optional[Dict[str, Any]]) -> str:
 def activity_title(phase: str, state: Optional[Dict[str, Any]] = None) -> str:
     if phase == "residual" and state and plan_waiver(state):
         return "residual waived — quality/publish then dest done"
+    if phase == "done" and state and plan_waiver(state):
+        return (
+            "session closed — residual waived; quality/publish were host-owned — stop"
+        )
     titles = {
         "intake": "record the original ask",
         "validate-spec": "survey, then write a machine-checkable spec",
@@ -2060,7 +2099,10 @@ def activity_title(phase: str, state: Optional[Dict[str, Any]] = None) -> str:
         "implement": "walk ready steps via /goal",
         "residual": "run bound review-coverage Phase B",
         "blocked": "stop and ask the user",
-        "done": "session success — stop",
+        "done": (
+            "session closed — review-coverage complete; "
+            "quality/publish were host-owned — stop"
+        ),
         "halted": "session halted — stop",
     }
     return titles.get(phase, phase)
@@ -2101,7 +2143,11 @@ PHASE_BEGIN = {
         "there is no Test command / bound plan."
     ),
     "blocked": "Stop. Ask the user. No product edits until they answer.",
-    "done": "Session success. Stop. Do not dest further.",
+    "done": (
+        "Session closed. Stop. Do not dest further. Recap reports walk "
+        "outcomes and review-coverage; it does not witness host-owned "
+        "quality/publish."
+    ),
     "halted": "Session halted. Stop. Do not dest further.",
 }
 PHASE_FINISH = {
@@ -2113,7 +2159,7 @@ PHASE_FINISH = {
         "into the session checkout, invoke /shiploop complete."
     ),
     "residual": "When the ledger is complete+landed (or waived), do the spec's quality /goal and outer-loop publish if named, then invoke /shiploop complete — dest done writes recap.html.",
-    "blocked": "When they answer: /shiploop update --to <resume_to> --reason <answer>, then /shiploop next.",
+    "blocked": "When they answer: invoke /shiploop complete --reason <answer> (resumes to resume_to).",
     "done": "stop — no update",
     "halted": "stop — no update",
 }
@@ -2415,6 +2461,8 @@ def activity_body(phase: str, run_dir: Path, state: Dict[str, Any]) -> str:
         "RESUME_TO": str(state.get("resume_to") or "validate-spec"),
         "REPO_ROOT": str(state.get("repo_root") or ""),
         "SURVEY_GUIDE": str(REF_DIR / "survey.md"),
+        "STATE_FILES": str(REF_DIR / "state-files.md"),
+        "IMPLEMENT_ACTIVITY": str(ACTIVITIES_DIR / "implement.md"),
         "RECAP_HTML": str(run_dir / "recap.html"),
     }
     return interpolate(path.read_text(encoding="utf-8"), mapping).rstrip()
@@ -2554,11 +2602,19 @@ def print_walk_rail(run_dir: Path, state: Dict[str, Any]) -> None:
 def look_here_lines(run_dir: Path, state: Dict[str, Any], phase: str) -> List[str]:
     lines: List[str] = []
 
-    def add(kind: str, path: Path, why: str, *, missing_ok: bool = False) -> None:
+    def add(
+        kind: str,
+        path: Path,
+        why: str,
+        *,
+        missing_ok: bool = False,
+        why_missing: Optional[str] = None,
+    ) -> None:
         if path.is_file():
             lines.append(f"{kind}  {path.resolve()}     {why}")
         elif missing_ok:
-            lines.append(f"{kind}  {path.resolve()}     not written yet — create at this path")
+            extra = why_missing or "not written yet — create at this path"
+            lines.append(f"{kind}  {path.resolve()}     {extra}")
         else:
             lines.append(f"{kind}  {path.resolve()}     {why} (missing)")
 
@@ -2605,7 +2661,18 @@ def look_here_lines(run_dir: Path, state: Dict[str, Any], phase: str) -> List[st
                     stmt = _step_statement(run_dir, sid)
                     extra = f" — {stmt}" if stmt else ""
                     lines.append(f"required  {wt}     {sid} worktree — cwd here{extra}")
-        add("required", act, "current activity")
+        drained = steps_drained(run_dir, state)
+        add(
+            "required",
+            act,
+            "current activity" if drained else "inject-step sidecar (not the stored prompt)",
+        )
+        add("if-needed", PACKAGE_ROOT / "scripts" / "shiploop", "harness CLI for inject-step")
+        add(
+            "if-needed",
+            PACKAGE_ROOT / "commands" / "shiploop-inject.md",
+            "inject-step card",
+        )
     elif phase == "residual":
         waived = bool(plan_waiver(state))
         repo = repo_of(state)
@@ -2623,10 +2690,24 @@ def look_here_lines(run_dir: Path, state: Dict[str, Any], phase: str) -> List[st
         add("required", act, "current activity")
         if deps.get("review-coverage") and not waived:
             add("required", Path(deps["review-coverage"]) / "SKILL.md", "review-coverage Phase B")
-        add("required", run_dir / "recap.html", "end-of-run walk-back (written at dest done)", missing_ok=True)
+        add(
+            "required",
+            run_dir / "recap.html",
+            "end-of-run walk-back (harness writes at dest done — do not hand-author)",
+            missing_ok=True,
+            why_missing=(
+                "harness writes this at dest done — do not hand-author"
+            ),
+        )
     elif phase == "done":
         add("required", run_dir / "recap.html", "end-of-run walk-back")
         add("required", run_dir / "spec.md", "frozen spec")
+    elif phase == "halted":
+        add("required", run_dir / "recap.html", "end-of-run walk-back")
+        add("required", run_dir / "spec.md", "frozen spec")
+        repo = repo_of(state)
+        if str(repo):
+            add("if-needed", repo / "REVIEW_CONVERGE.md", "why this halted")
     elif phase == "blocked":
         add("required", run_dir / "state.json", "ask_user / reason / resume_to")
         add("required", act, "current activity")
@@ -2637,6 +2718,11 @@ def print_packet(run_dir: Path, state: Dict[str, Any], *, prior_running: Optiona
     phase = str(state.get("phase"))
     dest = forward_dest(state, run_dir)
     missing = missing_for(state, run_dir, dest)
+    if dest == "blocked" and phase == "plan":
+        spec, _ = load_spec(run_dir)
+        for g in dag_gaps(run_dir, spec):
+            if g not in missing:
+                missing.append(g)
     if dest == "blocked" and phase == "validate-spec":
         pass
     elif dest and legal_edge(phase, dest) == "reason" and dest == "blocked":
@@ -2727,7 +2813,12 @@ def print_packet(run_dir: Path, state: Dict[str, Any], *, prior_running: Optiona
         print("on /goal failure: invoke /shiploop complete --clear")
         print("hard stop: invoke /shiploop complete --blocked --reason <text>")
     elif dest:
-        if dest == "blocked" or phase == "blocked":
+        if phase == "blocked":
+            resume = str(state.get("resume_to") or "").strip()
+            print("invoke /shiploop complete --reason <answer>")
+            if resume:
+                print(f"(resumes to {resume})")
+        elif dest == "blocked":
             print("invoke /shiploop complete --blocked --reason <text>")
         else:
             print("invoke /shiploop complete")
@@ -2794,7 +2885,6 @@ def cmd_init(args: argparse.Namespace) -> int:
                     wipe_run_worktrees(repo_of(old), str(old.get("run_id") or ""))
             force_wipe(run_dir)
         run_dir.mkdir(parents=True, exist_ok=True)
-        (run_dir / "receipts").mkdir(exist_ok=True)
         if prompt:
             (run_dir / "prompt.md").write_text(prompt.rstrip() + "\n", encoding="utf-8")
         state = default_state(
@@ -2964,6 +3054,8 @@ def apply_update(
         state["terminal"] = "halted"
     state["phase"] = dest
     save_state(run_dir, state, event=f"update:{src}->{dest}")
+    if dest in ("done", "halted"):
+        write_recap_html(run_dir, state, dest=dest)
     return dest
 
 

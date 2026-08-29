@@ -1,5 +1,5 @@
-**Survey, then practices, then spec.** This is not c-plan. State files:
-`{{SURVEY_GUIDE}}` and `references/state-files.md`.
+**Survey, then practices, then spec.** Write `environment.md` then `spec.md`.
+State files: `{{SURVEY_GUIDE}}` and `{{STATE_FILES}}`.
 
 ## 1. Survey (once)
 

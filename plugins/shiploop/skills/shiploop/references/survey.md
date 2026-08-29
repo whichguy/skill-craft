@@ -2,12 +2,12 @@
 
 Survey is a **required prefix inside `validate-spec`** — not a new state-machine
 phase, not a new transition edge. It runs once, before the spec is written, and
-its output is `{{ENV_MD}}`.
+its output is `environment.md` (Look here names the absolute path).
 
 ## What to inventory
 
 - **kind** — `greenfield` (no product tree yet) or `brownfield` (a tree already
-  exists at `{{REPO_ROOT}}`).
+  exists at the bound repo root).
 - **augment** — `true` only when this increment adds to an existing brownfield
   tree without replacing it. Greenfield is always `augment: false`.
 - **references** — concrete paths **or URLs** that inform this increment,
@@ -38,7 +38,7 @@ its output is `{{ENV_MD}}`.
 
 ## Write it once
 
-Write `{{ENV_MD}}`: a short prose brief, then a unique H2 titled exactly
+Write `environment.md`: a short prose brief, then a unique H2 titled exactly
 `machine`, immediately followed by one fenced JSON object with the keys above.
 Put dest notes (existing repo, migration, CI/CD, missing systems) in that
 brief. Record unauthenticated, deferred, or wrong-for-this-increment MCP
@@ -56,7 +56,7 @@ skills to `dep_roots`.
 ## The `dest blocked` hatch
 
 If a handle needs the user (`ask`) or a design/UX question can't be resolved
-here, write `{{SPEC_MD}}` with `checkable: false` and `ask_user: <question>`,
+here, write `spec.md` with `checkable: false` and `ask_user: <question>`,
 then `/shiploop complete --blocked --resume-to validate-spec --reason
 <ask_user>`. `dest blocked` does not require `environment.md` to be written
 first — the survey can be incomplete when you stop to ask.
@@ -67,5 +67,5 @@ Survey **reads** `README.md` if it exists (cite it in `references`) but must
 **not** write or rewrite it. Mutating the product tree before the spec is
 frozen is a spec-adjacent action, not a survey action. The README create (if
 absent) or revise (if present) is the increment's **final product duty**,
-written from `{{SPEC_MD}}` and executed as a late DAG successor during
-`plan` — see `plan.md`.
+written from `spec.md` and executed as a late DAG successor during
+`plan`.

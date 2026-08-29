@@ -8,9 +8,9 @@ Follow this order. Each `/goal` below is a new outer-loop turn, not a nested
    implementation commits are landed. Otherwise `/shiploop complete --blocked
    --resume-to residual --reason …`.
 2. When green and landed, run review-coverage Phase B for the bound plan
-   `{{BOUND_PLAN}}` under host `/goal`. One `/review-converge` per outer
-   turn. Ledger: repo-root `{{LEDGER_PATH}}`. Do not treat a foreign or
-   unlanded ledger as success.
+   `{{BOUND_PLAN}}` under host `/goal`. Follow the review-coverage skill
+   (Look here). Ledger: repo-root `{{LEDGER_PATH}}`. Do not treat a foreign
+   or unlanded ledger as success.
 3. When the bound ledger is `complete` and landed, or the bound plan H2 has
    a real residual waiver, read the frozen spec's three placement answers
    and finish only what it named:
@@ -25,7 +25,9 @@ Follow this order. Each `/goal` below is a new outer-loop turn, not a nested
    3. Then invoke `/shiploop complete`. dest `done` writes the
       end-of-run walk-back at `{{RECAP_HTML}}` (HTML covering intent, the
       original spec, what was accomplished, what materially changed, the
-      end result, the final outcome, and what was verified). Do not
+      end result, the final outcome, and what was verified). Recap
+      Verified reports review-coverage; it does not witness this quality
+      `/goal` or treat `done_sentence` as harness-verified. Do not
       hand-author that file.
 
-When the bound ledger is `stopped (...)`, invoke `--to halted`.
+When the bound ledger is `stopped (...)`, invoke `/shiploop complete` (harness dests halted).

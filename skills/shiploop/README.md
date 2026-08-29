@@ -7,7 +7,7 @@ walk-back HTML recap exists.
 
 ShipLoop never auto-merges and never claims engine `COMPLETE`.
 
-Package leaf: `skills/shiploop`. Invoke: `/shiploop`. Version: **0.8.4**.
+Package leaf: `skills/shiploop`. Invoke: `/shiploop`. Version: **0.8.5**.
 
 Canonical companions (do not duplicate their contracts here):
 
@@ -122,7 +122,7 @@ only phase list the script (`PHASES` / `forward_dest` / `legal_edge`) knows.
 | No `.shiploop/state.json` | `python3 "$CLI" init --prompt "…" --repo PATH` (run dir defaults to `PATH/.shiploop`) |
 | **New ask** on an existing run | `init --force --prompt "…" --repo PATH` (refused if `--prompt` is empty — **before** any wipe) |
 | Lost context, **same** ask | `/shiploop next` (no `--force`) |
-| Phase is `blocked` | Read `ask_user` / `resume_to`, then `update --to <resume_to> --reason "…"` |
+| Phase is `blocked` | Read `ask_user` / `resume_to`, then `/shiploop complete --reason "…"` |
 
 `--force` wipes **session** files (`environment.md`, `spec.md`, DAG, receipts,
 `recap.html`, leftover json twins). It does **not** delete the product tree
@@ -309,7 +309,11 @@ changes Diagnosis / Progress from “run Phase B” to “residual waived —
 quality/publish then dest done”, and Next prompt uses `residual-waived.md`
 instead of `residual.md`. When the ledger
 is `stopped (...)`, dest `halted`. Those dests write `.shiploop/recap.html`
-from the run files. Do not hand-author it.
+from the run files after the dest event is appended to `history.jsonl`.
+The recap's **Verified** section reports review-coverage (complete+landed,
+waived, or stopped) and states that quality `/goal` and outer-loop publish
+are host-owned — dest done does not witness them and does not treat the
+frozen `done_sentence` as harness-verified. Do not hand-author the recap.
 
 ### 6. Done (or halted)
 
@@ -360,7 +364,7 @@ Everything below is under the **run dir** (default: walk from cwd to
 
 | File | Who writes | What it is SoT for |
 |------|------------|--------------------|
-| `state.json` | every harness command | phase, `run_id`, `repo_root`, hashes, `dep_roots`, blocked/resume, bound plan |
+| `state.json` | every harness command | phase, `run_id`, `repo_root`, hashes, `dep_roots`, blocked/resume, bound plan, `terminal` (review-coverage close mode: `success` / `waived` / `halted`) |
 | `prompt.md` | `init` | original ask |
 | `environment.md` | host during validate-spec | survey + practices (prose + `## machine` JSON). Hashed as the whole file. |
 | `spec.md` | host during validate-spec | labeled `done_sentence` / `checkable` / optional `ask_user`. Hashed as the whole file. |

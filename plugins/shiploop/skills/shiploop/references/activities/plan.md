@@ -71,7 +71,7 @@ pre-0.8.4 runs: dest **blocked** then dest **plan**, rewrite seed prompts
 (do not hand-edit `plan.json`). `inject-step` discovered steps still need
 a nonempty `prompt` but are exempt from citation and the Tools: gate;
 the implement envelope still reprints frozen tools/MCP for those `/goal`s.
-See `implement.md`.
+See `{{IMPLEMENT_ACTIVITY}}`.
 
 Persist the backchain document to `{{BACKCHAIN_JSON}}` (canonical). Then
 write:

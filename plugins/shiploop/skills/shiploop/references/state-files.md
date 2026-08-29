@@ -5,7 +5,7 @@ Everything below lives under the **run dir** (default: walked from cwd to
 
 | File | Written during | Source of truth for |
 |------|-----------------|----------------------|
-| `state.json` | every command | phase, hashes, `dep_roots`, blocked/resume |
+| `state.json` | every command | phase, hashes, `dep_roots`, blocked/resume, `terminal` |
 | `prompt.md` | `init` | the original ask |
 | `environment.md` | `validate-spec` (survey + practices) | session survey: prose brief + `## machine` fenced JSON; practice references live here |
 | `spec.md` | `validate-spec` | labeled `done_sentence:` and `checkable: true\|false` (each exactly once); `ask_user:` when `checkable: false` |
@@ -48,9 +48,29 @@ in `environment.md`. `init --force` never deletes it.
 
 The harness writes this file on dest `done` and dest `halted` from the run
 files (prompt, frozen spec, DAG/receipts, plan, survey prose, history,
-ledger). The top of the page is a reveal: key accomplishments and a
-diagram of implementation outcomes (starting facts → each step's
-`produces` → frozen done_sentence). Not hashed. `--force` unlinks it. The
-script refuses dest `done` when the file is missing, empty, not HTML, or
-missing the briefing words `intent`, `accomplish`, `changed`, `outcome`,
-`verif`, `original spec`, and `end result`. The host does not hand-author it.
+ledger). dest appends `history.jsonl` first, then rewrites the recap so
+**Materially changed** includes the dest event. The top of the page is a
+reveal: key accomplishments and a diagram of implementation outcomes
+(starting facts → each step's `produces` → frozen done_sentence).
+**Verified** reports review-coverage status and that quality `/goal` /
+outer-loop publish are host-owned (not harness-verified). Not hashed.
+`--force` unlinks it. The script refuses dest `done` when the file is
+missing, empty, not HTML, or missing the briefing words `intent`,
+`accomplish`, `changed`, `outcome`, `verif`, `original spec`, and
+`end result`. The host does not hand-author it.
+
+## `state.json` `terminal`
+
+Unset (`null`) until dest `done` or dest `halted`. This is the
+review-coverage close mode, not a claim that quality `/goal` or
+outer-loop publish ran:
+
+| Value | Meaning |
+|-------|---------|
+| `success` | dest `done`; review-coverage complete and landed |
+| `waived` | dest `done`; review-coverage waived on the bound plan |
+| `halted` | dest `halted`; bound residual ledger is `stopped (...)` |
+
+Quality `/goal` and outer-loop publish stay host-owned on every row.
+Packet Diagnosis and recap Verified say that; `terminal` does not
+witness them.

@@ -2,7 +2,7 @@ Session closer only. The spec is still **frozen**. Do not rewrite it. Do not
 invent a new state-machine phase.
 
 Review-coverage is **waived** on the bound plan `{{BOUND_PLAN}}`. Do not open
-`/review-converge`. Do not treat a missing `{{LEDGER_PATH}}` as failure.
+review-coverage Phase B. Do not treat a missing `{{LEDGER_PATH}}` as failure.
 
 Follow this order. Each `/goal` below is a new outer-loop turn, not a nested
 `/goal` and not a DAG step.
@@ -24,5 +24,7 @@ Follow this order. Each `/goal` below is a new outer-loop turn, not a nested
    3. Then invoke `/shiploop complete`. dest `done` writes the
       end-of-run walk-back at `{{RECAP_HTML}}` (HTML covering intent, the
       original spec, what was accomplished, what materially changed, the
-      end result, the final outcome, and what was verified). Do not
+      end result, the final outcome, and what was verified). Recap
+      Verified reports the waiver; it does not witness this quality
+      `/goal` or treat `done_sentence` as harness-verified. Do not
       hand-author that file.

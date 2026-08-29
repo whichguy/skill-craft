@@ -8,7 +8,7 @@ description: >-
   /shiploop complete — do not rely on chat memory. Lost context without
   completing → /shiploop next.
 allowed-tools: all
-version: 0.8.4
+version: 0.8.5
 license: MIT
 platforms:
   - linux
@@ -78,9 +78,8 @@ Human overview: [README.md](README.md).
      just finished) to reprint and continue.
    - **state.json exists, phase is `blocked`:** read `ask_user` /
      `blocked_reason` / `resume_to` from the packet, resolve whatever it
-     asked, then
-     `python3 "$SKILL_ROOT/scripts/shiploop" update --to <resume_to>
-     --reason "…"` to resume.
+     asked, then invoke `/shiploop complete --reason "…"` to resume.
+     Wrappers refuse `update`; do not type `update --to`.
 4. Follow the whole packet. After every packet (`init` / `next` /
    `complete`), echo the printed `## You are here` block and the Diagnosis
    **now** / **pending** lines back to the user — do not summarize them

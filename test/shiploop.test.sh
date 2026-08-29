@@ -73,18 +73,42 @@ grep -q 'Best-practice research' "$root/skills/shiploop/references/activities/va
   || fail "validate-spec.md missing practices job"
 grep -q 'best-practice' "$root/skills/shiploop/references/survey.md" \
   || fail "survey.md missing practices research"
+if grep -q '{{' "$root/skills/shiploop/references/survey.md"; then
+  fail "survey.md must not contain interpolation tokens (Look-here is not interpolated)"
+fi
 grep -q 'practice references' "$root/skills/shiploop/references/activities/plan.md" \
   || fail "plan.md missing practice references in step prompts"
 grep -q 'researches applicable practices' "$root/skills/shiploop/README.md" \
   || fail "README missing practices research"
 grep -q 'recap.html' "$root/skills/shiploop/README.md" \
   || fail "README missing recap.html"
-grep -q '^VERSION = "0.8.4"$' "$cli" || fail "script VERSION is not 0.8.4"
-grep -q '^version: 0.8.4$' "$root/skills/shiploop/SKILL.md" || fail "SKILL.md version is not 0.8.4"
+grep -q 'host-owned' "$root/skills/shiploop/references/activities/done.md" \
+  || fail "done.md missing host-owned quality"
+if grep -q 'already ran' "$root/skills/shiploop/references/activities/done.md"; then
+  fail "done.md must not claim quality already ran"
+fi
+grep -q '`success`' "$root/skills/shiploop/references/state-files.md" \
+  || fail "state-files.md missing terminal success"
+grep -q '`waived`' "$root/skills/shiploop/references/state-files.md" \
+  || fail "state-files.md missing terminal waived"
+grep -q '`halted`' "$root/skills/shiploop/references/state-files.md" \
+  || fail "state-files.md missing terminal halted"
+grep -q '^VERSION = "0.8.5"$' "$cli" || fail "script VERSION is not 0.8.5"
+grep -q '^version: 0.8.5$' "$root/skills/shiploop/SKILL.md" || fail "SKILL.md version is not 0.8.5"
 grep -q 'init --force --prompt' "$root/skills/shiploop/SKILL.md" \
   || fail "SKILL.md missing three-branch init --force --prompt"
 grep -q 'init --force --prompt' "$root/skills/shiploop/README.md" \
   || fail "README missing Session B init --force --prompt"
+grep -q '/shiploop complete --reason' "$root/skills/shiploop/SKILL.md" \
+  || fail "SKILL.md missing blocked resume complete --reason"
+grep -q '/shiploop complete --reason' "$root/skills/shiploop/README.md" \
+  || fail "README missing blocked resume complete --reason"
+if grep -F 'update --to <resume_to>' \
+  "$root/skills/shiploop/SKILL.md" \
+  "$root/skills/shiploop/README.md" \
+  "$le_docs" "$le_skill"; then
+  fail "stale blocked resume update --to <resume_to>"
+fi
 if grep -E 'ENV_JSON|SPEC_JSON|IMPLEMENT_JSON|goal_line' "$cli" \
   "$root/skills/shiploop/references/activities/"*.md \
   "$root/skills/shiploop/references/turn-packet.md"; then
@@ -110,6 +134,37 @@ tj = json.loads(Path(sys.argv[2]).read_text(encoding="utf-8"))
 leak = banned & set(tj.get("phases") or [])
 if leak:
     raise SystemExit(f"transitions.json phases contains {sorted(leak)}")
+phases = tuple(tj.get("phases") or [])
+py_phases = None
+py_map = None
+py_resume = None
+for node in mod.body:
+    if not isinstance(node, ast.Assign):
+        continue
+    for t in node.targets:
+        if not isinstance(t, ast.Name):
+            continue
+        if t.id == "PHASES":
+            py_phases = tuple(ast.literal_eval(node.value))
+        elif t.id == "MAP_PHASES":
+            py_map = tuple(ast.literal_eval(node.value))
+        elif t.id == "RESUME_PHASES":
+            py_resume = tuple(ast.literal_eval(node.value))
+if py_phases != phases:
+    raise SystemExit(f"PHASES {py_phases!r} != json phases {phases!r}")
+expect_map = tuple(p for p in phases if p not in ("halted", "blocked"))
+if py_map != expect_map:
+    raise SystemExit(f"MAP_PHASES {py_map!r} != {expect_map!r}")
+blocked_to = []
+seen = set()
+for e in tj.get("edges") or []:
+    if e.get("from") == "blocked":
+        dest = e.get("to")
+        if dest not in seen:
+            seen.add(dest)
+            blocked_to.append(dest)
+if py_resume != tuple(blocked_to):
+    raise SystemExit(f"RESUME_PHASES {py_resume!r} != blocked edges {tuple(blocked_to)!r}")
 for e in tj.get("edges") or []:
     for key in ("from", "to"):
         if e.get(key) in banned:
@@ -181,6 +236,21 @@ assert_host_flag() {
 
 assert_host_flag "$(cat "$root/skills/shiploop/SKILL.md")" "SKILL.md"
 assert_host_flag "$(cat "$root/skills/shiploop/references/turn-packet.md")" "turn-packet.md"
+script_flag="$(python3 - "$cli" <<'PY'
+import ast, sys
+from pathlib import Path
+mod = ast.parse(Path(sys.argv[1]).read_text(encoding="utf-8"))
+for node in mod.body:
+    if not isinstance(node, ast.Assign):
+        continue
+    for t in node.targets:
+        if isinstance(t, ast.Name) and t.id == "HOST_WORKTREE_FLAG":
+            print("\n".join(ast.literal_eval(node.value)), end="")
+            raise SystemExit(0)
+raise SystemExit("HOST_WORKTREE_FLAG missing")
+PY
+)"
+[[ "$script_flag" == "$HOST_FLAG_LINES" ]] || fail "HOST_WORKTREE_FLAG != HOST_FLAG_LINES"
 
 assert_headings() {
   local out="$1"
@@ -466,6 +536,10 @@ printf '%s\n' "$out_vs" | grep -qF "$(cd "$repo" && pwd -P)" \
 assert_absent "$out_vs" '{{SURVEY_GUIDE}}' "packet leaked {{SURVEY_GUIDE}}"
 assert_absent "$out_vs" '{{ENV_MD}}' "packet leaked {{ENV_MD}}"
 assert_absent "$out_vs" '{{REPO_ROOT}}' "packet leaked {{REPO_ROOT}}"
+printf '%s\n' "$out_vs" | grep -q 'references/state-files.md' \
+  || fail "validate-spec packet missing interpolated STATE_FILES path"
+assert_absent "$out_vs" '{{STATE_FILES}}' "packet leaked {{STATE_FILES}}"
+assert_absent "$out_vs" '`references/state-files.md`' "validate-spec leaked relative state-files"
 printf 'LAYER: intake->validate-spec OK\n'
 
 # --- empty spec.md rejected (no labels at all) ---
@@ -493,13 +567,22 @@ printf 'done_sentence: need a checkable done\ncheckable: false\nask_user: what i
 run_cli update --run-dir "$run" --to blocked --reason "what is the oracle?" --resume-to validate-spec >/dev/null
 out_blk="$(run_cli next --run-dir "$run")"
 printf '%s\n' "$out_blk" | grep -q 'blocked: current' || fail "blocked current: $out_blk"
+printf '%s\n' "$out_blk" | grep -q 'complete --reason' || fail "blocked When done missing complete --reason: $out_blk"
+assert_absent "$out_blk" 'complete --blocked' "already-blocked packet printed --blocked"
+assert_absent "$out_blk" '/shiploop update' "blocked packet named slash update"
 assert_absent "$out_blk" 'more spec prose that must not be dumped later' "reminder dumped spec body"
 set +e
 out_jumpvs="$(run_cli update --run-dir "$run" --to implement 2>&1)"
 rc_jumpvs=$?
 set -e
 [[ "$rc_jumpvs" -eq 2 ]] || fail "blocked validate-spec resume jumped to implement: $out_jumpvs"
-run_cli update --run-dir "$run" --to validate-spec --reason "user answered" >/dev/null
+run_cli complete --run-dir "$run" --reason "user answered" >/dev/null
+python3 - "$run" <<'PY'
+import json, sys
+from pathlib import Path
+d = json.loads((Path(sys.argv[1]) / "state.json").read_text())
+assert d["phase"] == "validate-spec", d["phase"]
+PY
 printf 'LAYER: checkable false -> blocked OK\n'
 
 # --- missing environment.md blocks dest plan even with a checkable spec ---
@@ -818,9 +901,21 @@ grep -qi 'Key accomplishments' "$run/recap.html" || fail "generated recap missin
 grep -qi 'Implementation outcomes' "$run/recap.html" || fail "generated recap missing outcomes diagram"
 grep -q 'class="river"' "$run/recap.html" || fail "generated recap missing river diagram"
 grep -q 'Made true:' "$run/recap.html" || fail "generated recap missing made-true accomplishments"
+grep -q 'update:residual-&gt;done' "$run/recap.html" \
+  || fail "generated recap history missing dest done event"
+grep -q 'review-coverage complete and landed' "$run/recap.html" \
+  || fail "generated recap missing review-coverage complete line"
+grep -q 'host-owned' "$run/recap.html" \
+  || fail "generated recap missing host-owned quality line"
+grep -q 'not a harness-verified claim' "$run/recap.html" \
+  || fail "generated recap still treats done_sentence as harness-verified"
+grep -q 'Contracted end result — not harness-verified' "$run/recap.html" \
+  || fail "generated recap reveal still presents done_sentence as achieved"
 printf 'LAYER: dest done writes recap.html OK\n'
 out_done="$(run_cli next --run-dir "$run")"
 printf '%s\n' "$out_done" | grep -q 'stop — no update' || fail "done stop: $out_done"
+printf '%s\n' "$out_done" | grep -q 'quality/publish were host-owned' \
+  || fail "done Diagnosis missing host-owned quality: $out_done"
 printf '%s\n' "$out_done" | grep -q 'recap.html' || fail "done Look here missing recap.html: $out_done"
 python3 - "$run" <<'PY'
 import json, sys
@@ -860,6 +955,21 @@ assert d["terminal"] == "halted"
 PY
 grep -q 'HALTED' "$run/recap.html" || fail "halted recap missing HALTED stamp"
 grep -qi 'End result' "$run/recap.html" || fail "halted recap missing End result"
+grep -q 'update:residual-&gt;halted' "$run/recap.html" \
+  || fail "halted recap history missing dest halted event"
+grep -q 'host-owned' "$run/recap.html" \
+  || fail "halted recap missing host-owned quality line"
+out_halted="$(run_cli next --run-dir "$run")"
+assert_absent "$out_halted" '{{RECAP_HTML}}' "halted packet leaked {{RECAP_HTML}}"
+assert_absent "$out_halted" '{{LEDGER_PATH}}' "halted packet leaked {{LEDGER_PATH}}"
+printf '%s\n' "$out_halted" | grep -q 'recap.html' \
+  || fail "halted Look here missing recap.html: $out_halted"
+printf '%s\n' "$out_halted" | grep -q 'spec.md' \
+  || fail "halted Look here missing spec.md: $out_halted"
+printf '%s\n' "$out_halted" | grep -q 'REVIEW_CONVERGE.md' \
+  || fail "halted Look here missing REVIEW_CONVERGE: $out_halted"
+printf '%s\n' "$out_halted" | grep -q 'stop — no update' \
+  || fail "halted stop: $out_halted"
 printf 'LAYER: stopped -> halted OK\n'
 
 # --- plan H2 waiver accept ---
@@ -905,13 +1015,21 @@ cat >"$repo/REVIEW_CONVERGE.md" <<'MD'
 **Plan contract:** `/nope`
 MD
 write_recap "$run"
-run_cli update --run-dir "$run" --to done >/dev/null
+out_waive_done="$(run_cli update --run-dir "$run" --to done)"
 python3 - "$run" <<'PY'
 import json, sys
 from pathlib import Path
 d = json.loads((Path(sys.argv[1]) / "state.json").read_text())
 assert d["terminal"] == "waived", d
 PY
+grep -q 'review-coverage waived: demo fixture only' "$run/recap.html" \
+  || fail "waived recap missing review-coverage waived line"
+grep -q 'host-owned' "$run/recap.html" \
+  || fail "waived recap missing host-owned quality line"
+grep -q 'WAIVED' "$run/recap.html" \
+  && fail "waived recap still stamps WAIVED as if the session was abandoned"
+printf '%s\n' "$out_waive_done" | grep -q 'residual waived; quality/publish were host-owned' \
+  || fail "waived dest done Diagnosis missing host-owned stand: $out_waive_done"
 printf 'LAYER: plan H2 waiver accept OK\n'
 
 # --- ledger-local waiver refuse ---

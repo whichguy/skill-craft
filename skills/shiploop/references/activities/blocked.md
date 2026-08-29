@@ -4,4 +4,4 @@ ask_user: {{ASK_USER}}
 blocked_from: {{BLOCKED_FROM}}
 reason: {{BLOCKED_REASON}}
 
-When they answer, invoke `/shiploop update --to {{RESUME_TO}} --reason <answer>` then invoke `/shiploop next`. Do not invent an oracle.
+When they answer, invoke `/shiploop complete --reason <answer>` (resumes to `{{RESUME_TO}}`). Do not invent an oracle.
