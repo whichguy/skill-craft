@@ -68,18 +68,15 @@ Assume: this increment stays local
 has no line starting with `Tools:`, or that omits the frozen
 `mcp_considered` token (even on README / omit-MCP steps). In-flight
 pre-0.8.4 runs: dest **blocked** then dest **plan**, rewrite seed prompts
-(do not hand-edit `plan.json`). `inject-step` discovered steps still need
+(do not hand-edit `backchain/plan.json`). `inject-step` discovered steps still need
 a nonempty `prompt` but are exempt from citation and the Tools: gate;
 the implement envelope still reprints frozen tools/MCP for those `/goal`s.
 See `{{IMPLEMENT_ACTIVITY}}`.
 
 Persist the backchain document to `{{BACKCHAIN_JSON}}` (canonical). Then
-write:
-
-- `{{PLAN_MD}}` with a labeled line `done_sentence: {{DONE_SENTENCE}}` (must
-  equal the spec)
-- `{{PLAN_JSON}}` wrapper: `done_sentence` identical to the spec, `backchain`
-  path, `step_ids` copy
+write `{{PLAN_MD}}` with a labeled line `done_sentence: {{DONE_SENTENCE}}`
+(must equal the spec). Do not write a `plan.json` wrapper — leftover
+wrappers are inert (`init --force` still unlinks them).
 
 Do not vendor backchain. Do not exec a live packager. Missing backchain root
 is a Missing line — then `/shiploop complete --blocked --resume-to plan`.

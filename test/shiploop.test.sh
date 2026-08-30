@@ -117,7 +117,23 @@ if grep -F 'update --to <resume_to>' \
   "$le_docs" "$le_skill"; then
   fail "stale blocked resume update --to <resume_to>"
 fi
-if grep -E 'ENV_JSON|SPEC_JSON|IMPLEMENT_JSON|goal_line' "$cli" \
+if grep -q '{{PLAN_JSON}}' "$root/skills/shiploop/references/activities/plan.md"; then
+  fail "plan activity still interpolates retired PLAN_JSON"
+fi
+if grep -q 'plan.json wrappers' "$root/skills/shiploop/README.md"; then
+  fail "README still requires host-authored plan.json wrapper"
+fi
+if grep -q 'plan.json.done_sentence' "$root/skills/shiploop/README.md"; then
+  fail "README still treats wrapper done_sentence as a surface"
+fi
+grep -q 'Leftover `plan.json` wrappers are inert' \
+  "$root/skills/shiploop/references/state-files.md" \
+  || fail "state-files.md missing leftover plan.json inert"
+grep -q '1. survey —' "$root/skills/shiploop/README.md" \
+  || fail "README Look-here matrix missing ordinal survey why"
+grep -q '2. spec —' "$root/skills/shiploop/README.md" \
+  || fail "README Look-here matrix missing ordinal spec why"
+if grep -E 'ENV_JSON|SPEC_JSON|IMPLEMENT_JSON|PLAN_JSON|goal_line' "$cli" \
   "$root/skills/shiploop/references/activities/"*.md \
   "$root/skills/shiploop/references/turn-packet.md"; then
   fail "dropped interpolators or goal_line leaked back in"
@@ -376,7 +392,6 @@ fresh_vs() {
 
 write_wrapper() {
   local run="$1"
-  printf '%s\n' "{\"done_sentence\":\"$DS\",\"backchain\":\"$run/backchain/plan.json\"}" >"$run/plan.json"
   printf 'done_sentence: %s\n' "$DS" >"$run/plan.md"
 }
 
@@ -531,7 +546,11 @@ out_vs="$(run_cli next --run-dir "$run")"
 assert_headings "$out_vs"
 printf '%s\n' "$out_vs" | grep -q 'intake: done' || fail "intake done"
 printf '%s\n' "$out_vs" | grep -q 'validate-spec: current' || fail "vs current"
-printf '%s\n' "$out_vs" | grep -q 'not written yet' || fail "spec not written yet pointer"
+printf '%s\n' "$out_vs" | grep -q '1. survey — write this first (create)' \
+  || fail "validate-spec Look-here missing ordinal survey create: $out_vs"
+printf '%s\n' "$out_vs" | grep -q '2. spec — write after environment.md (create)' \
+  || fail "validate-spec Look-here missing ordinal spec create: $out_vs"
+assert_absent "$out_vs" 'not written yet' "validate-spec Look-here still used exists/absent not written yet"
 assert_absent "$out_vs" 'VALIDATE_SPEC_PATH' "packet leaked VALIDATE_SPEC_PATH"
 assert_absent "$out_vs" 'missing dep_roots.devloop' "devloop required at validate-spec"
 assert_absent "$out_vs" '/goal ' "validate-spec packet emitted implement /goal"
@@ -549,6 +568,29 @@ printf '%s\n' "$out_vs" | grep -q 'references/state-files.md' \
 assert_absent "$out_vs" '{{STATE_FILES}}' "packet leaked {{STATE_FILES}}"
 assert_absent "$out_vs" '`references/state-files.md`' "validate-spec leaked relative state-files"
 printf 'LAYER: intake->validate-spec OK\n'
+
+# --- validate-spec Look-here uses load_environment / load_spec gaps ---
+printf 'brief only, no machine heading\n' >"$run/environment.md"
+out_envstub="$(run_cli next --run-dir "$run")"
+printf '%s\n' "$out_envstub" | grep -q "1. survey — environment.md missing a '## machine' section" \
+  || fail "env stub Look-here missing ## machine gap: $out_envstub"
+printf '%s\n' "$out_envstub" | grep -q '2. spec — write after environment.md (create)' \
+  || fail "env stub still lists spec as write-after-env: $out_envstub"
+assert_absent "$out_envstub" 'not written yet' "env stub Look-here used not written yet"
+write_environment "$run"
+out_envok="$(run_cli next --run-dir "$run")"
+printf '%s\n' "$out_envok" | grep -q '1. survey — written' \
+  || fail "complete env Look-here missing written: $out_envok"
+printf '%s\n' "$out_envok" | grep -q '2. spec — write after environment.md (create)' \
+  || fail "complete env + missing spec Look-here: $out_envok"
+printf 'body\n' >"$run/spec.md"
+out_specgap="$(run_cli next --run-dir "$run")"
+printf '%s\n' "$out_specgap" | grep -q '1. survey — written' \
+  || fail "spec-gap Look-here lost written env: $out_specgap"
+printf '%s\n' "$out_specgap" | grep -q '2. spec — spec.md missing labeled done_sentence' \
+  || fail "spec-gap Look-here missing load_spec why: $out_specgap"
+rm -f "$run/spec.md" "$run/environment.md"
+printf 'LAYER: validate-spec Look-here load_* gaps OK\n'
 
 # --- empty spec.md rejected (no labels at all) ---
 printf 'body\n' >"$run/spec.md"
@@ -646,8 +688,9 @@ printf '%s\n' "$out_plan" | awk '/^## When done invoke$/,/^## Missing$/' \
   && fail "plan-before-DAG When done dest blocked: $out_plan"
 printf '%s\n' "$out_plan" | grep -qx 'invoke /shiploop complete' \
   || fail "plan-before-DAG When done should be complete: $out_plan"
+assert_absent "$out_plan" '{{PLAN_JSON}}' "plan packet leaked retired PLAN_JSON"
+printf '%s\n' "$out_plan" | grep -q 'plan.md' || fail "plan packet missing plan.md pointer"
 printf 'LAYER: plan-before-DAG dest implement OK\n'
-printf '%s\n' "{\"done_sentence\":\"$DS\"}" >"$run/plan.json"
 printf 'done_sentence: %s\n\nsteps: write file\n' "$DS" >"$run/plan.md"
 set +e
 out_thin="$(run_cli update --run-dir "$run" --to implement 2>&1)"
@@ -679,8 +722,52 @@ printf '%s\n' "$out_eh" | grep -q 'repo has no HEAD commit' \
   || fail "empty HEAD message: $out_eh"
 printf 'LAYER: empty HEAD dest implement message OK\n'
 
+# --- dest implement: plan.md vs spec; leftover plan.json inert ---
+runpj="$tmpdir/planjson-retired/.shiploop"
+repopj="$tmpdir/planjson-retired/repo"
+mkdir -p "$repopj"
+advance_to_plan "$runpj" "$repopj" "$planf"
+install_dag "$runpj" linear.json
+[[ ! -f "$runpj/plan.json" ]] || fail "install_dag wrote retired plan.json wrapper"
+printf '%s\n' "{\"done_sentence\":\"WRONG\",\"step_ids\":[\"S1\"]}" >"$runpj/plan.json"
+run_cli update --run-dir "$runpj" --to implement >/dev/null
+[[ -f "$runpj/plan.json" ]] || fail "leftover plan.json should stay on disk"
+python3 - "$runpj/plan.json" <<'PY'
+import json, sys
+from pathlib import Path
+d = json.loads(Path(sys.argv[1]).read_text())
+assert d.get("done_sentence") == "WRONG", d
+assert d.get("step_ids") == ["S1"], d
+PY
+runds="$tmpdir/planmd-drift/.shiploop"
+repods="$tmpdir/planmd-drift/repo"
+mkdir -p "$repods"
+advance_to_plan "$runds" "$repods" "$planf"
+install_dag "$runds" linear.json
+printf 'done_sentence: other sentence\n' >"$runds/plan.md"
+set +e
+out_dsd="$(run_cli update --run-dir "$runds" --to implement 2>&1)"
+rc_dsd=$?
+set -e
+[[ "$rc_dsd" -eq 2 ]] || fail "drifted plan.md want 2: $out_dsd"
+printf '%s\n' "$out_dsd" | grep -q 'plan.md labeled done_sentence must equal spec.md' \
+  || fail "drifted plan.md message: $out_dsd"
+assert_absent "$out_dsd" 'plan.json.done_sentence' "drifted plan.md still named wrapper field"
+assert_absent "$out_dsd" "missing $runds/plan.json" "drifted plan.md named missing wrapper"
+rm -f "$runds/plan.md"
+set +e
+out_mdp="$(run_cli update --run-dir "$runds" --to implement 2>&1)"
+rc_mdp=$?
+set -e
+[[ "$rc_mdp" -eq 2 ]] || fail "missing plan.md want 2: $out_mdp"
+printf '%s\n' "$out_mdp" | grep -q 'missing ' || fail "missing plan.md message: $out_mdp"
+printf '%s\n' "$out_mdp" | grep -q 'plan.md' || fail "missing plan.md named the file: $out_mdp"
+assert_absent "$out_mdp" 'plan.json.done_sentence' "missing plan.md still named wrapper field"
+printf 'LAYER: leftover plan.json inert + plan.md vs spec OK\n'
+
 # --- linear DAG implement + /goal + frozen ---
 install_dag "$run" linear.json
+[[ ! -f "$run/plan.json" ]] || fail "happy-path dest implement wrote plan.json"
 run_cli update --run-dir "$run" --to implement >/dev/null
 out_imp="$(run_cli next --run-dir "$run")"
 assert_headings "$out_imp"
@@ -1325,8 +1412,10 @@ set -e
 [[ "$rc_ef" -eq 2 ]] || fail "empty --force want 2: $out_ef"
 [[ -f "$runf/recap.html" ]] || fail "empty --force wiped recap.html"
 [[ -d "$repof/.worktrees/shiploop/$ridf/S1" ]] || fail "empty --force wiped worktree"
+printf '%s\n' '{"done_sentence":"leftover"}' >"$runf/plan.json"
 run_cli init --force --prompt "fresh" --run-dir "$runf" --bound-plan "$planf" --repo "$repof" >/dev/null
 [[ ! -f "$runf/backchain/plan.json" ]] || fail "force left backchain"
+[[ ! -f "$runf/plan.json" ]] || fail "force left leftover plan.json"
 [[ ! -f "$runf/recap.html" ]] || fail "force left recap.html"
 [[ ! -d "$runf/steps" ]] || [[ -z "$(ls -A "$runf/steps" 2>/dev/null || true)" ]] || fail "force left steps"
 [[ ! -d "$repof/.worktrees/shiploop/$ridf" ]] || fail "force left run worktrees"
@@ -1500,21 +1589,14 @@ run_cli update --run-dir "$runr" --to plan --reason "replan" >/dev/null
 if git -C "$repor" rev-parse --verify "shiploop/$ridr/S1" >/dev/null 2>&1; then
   fail "replan left S1 branch"
 fi
-# wrapper step_ids are not SoT: stale list must not hide S2
+# leftover wrapper step_ids are not SoT: stale list must not hide S2
 runsot="$tmpdir/sot/.shiploop"
 reposot="$tmpdir/sot/repo"
 mkdir -p "$reposot"
 advance_to_plan "$runsot" "$reposot" "$planf"
 install_dag "$runsot" linear.json
 run_cli update --run-dir "$runsot" --to implement >/dev/null
-python3 - "$runsot/plan.json" <<'PY'
-import json, sys
-from pathlib import Path
-p = Path(sys.argv[1])
-d = json.loads(p.read_text())
-d["step_ids"] = ["S1"]
-p.write_text(json.dumps(d, indent=2) + "\n")
-PY
+printf '%s\n' "{\"done_sentence\":\"$DS\",\"step_ids\":[\"S1\"]}" >"$runsot/plan.json"
 run_cli next --run-dir "$runsot" >/dev/null
 complete_ok "$runsot" S1
 out_sot="$(run_cli next --run-dir "$runsot")"
@@ -1547,7 +1629,6 @@ doc = {
   "unresolved": [],
 }
 (run / "backchain" / "plan.json").write_text(json.dumps(doc, indent=2) + "\n")
-(run / "plan.json").write_text(json.dumps({"done_sentence": ds}) + "\n")
 (run / "plan.md").write_text("done_sentence: %s\n" % ds)
 PY
 run_cli update --run-dir "$runs" --to implement >/dev/null
@@ -2142,7 +2223,6 @@ doc = {
   "unresolved": [],
 }
 (run / "backchain" / "plan.json").write_text(json.dumps(doc, indent=2) + "\n")
-(run / "plan.json").write_text(json.dumps({"done_sentence": ds}) + "\n")
 (run / "plan.md").write_text("done_sentence: %s\n" % ds)
 PY
 }
@@ -2265,6 +2345,7 @@ out_ip="$(run_cli inject-step --run-dir "$runinj" --statement "mid" --prompt "" 
 rc_ip=$?
 set -e
 [[ "$rc_ip" -eq 2 ]] || fail "inject empty --prompt want 2: $out_ip"
+printf '%s\n' '{"done_sentence":"stale","plan_sha256":"deadbeef"}' >"$runinj/plan.json"
 out_iok="$(run_cli inject-step --run-dir "$runinj" --statement "mid bind" --prompt "/goal injected mid bind" --produces "mid exists" --before S2 --id S3)"
 printf '%s\n' "$out_iok" | grep -q 'injected S3' || fail "inject add: $out_iok"
 python3 - "$runinj" <<'PY'
@@ -2281,7 +2362,8 @@ assert state["phase"] == "implement", state["phase"]
 digest = hashlib.sha256((run / "backchain" / "plan.json").read_bytes()).hexdigest()
 assert state["plan_sha256"] == digest
 wrapper = json.loads((run / "plan.json").read_text())
-assert wrapper.get("plan_sha256") == digest
+assert wrapper.get("plan_sha256") == "deadbeef", wrapper
+assert wrapper.get("done_sentence") == "stale", wrapper
 for rec_path in sorted((run / "steps").glob("*.json")):
     rec = json.loads(rec_path.read_text())
     if rec.get("plan_sha256"):

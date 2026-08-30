@@ -10,15 +10,17 @@ Everything below lives under the **run dir** (default: walked from cwd to
 | `environment.md` | `validate-spec` (survey + practices) | session survey: prose brief + `## machine` fenced JSON; practice references live here |
 | `spec.md` | `validate-spec` | labeled `done_sentence:` and `checkable: true\|false` (each exactly once); `ask_user:` when `checkable: false` |
 | `backchain/plan.json` | `plan` | canonical sequence DAG (steps carry `statement`, `prompt`, `produces`, `inputs`, `origin`; every seed `prompt` cites `environment.md` `references[].path` and a `Tools:` block) |
-| `plan.md` / `plan.json` | `plan` | pointer + thin wrapper (`done_sentence`, `backchain` path, `step_ids` — not SoT, recomputed from the DAG) |
+| `plan.md` | `plan` | sequence pointer with labeled `done_sentence:` (must equal `spec.md`). Not hashed. May lag the DAG after `inject-step`. |
 | `steps/<id>.json` | `implement` | per-step receipt (`status`, `plan_sha256`, `worktree`, `branch`, `base_sha`) |
 | `history.jsonl` | every command | append-only event log |
 | `recap.html` | dest done / dest halted | harness-written walk-back HTML (intent, original spec, accomplished, changed, end result, outcome, verified) |
 
-There is **no** `environment.json`, `spec.json`, or `implement.json`. Each
-artifact above has exactly one file as its source of truth; the script never
-writes a JSON twin next to a `.md` SoT. (`plan.json`/`plan.md` are a wrapper
-pair, not a twin — the DAG in `backchain/plan.json` is still canonical.)
+There is **no** `environment.json`, `spec.json`, `implement.json`, or
+host-authored `plan.json`. Each artifact above has exactly one file as
+its source of truth; the script never writes a JSON twin next to a `.md`
+SoT. Leftover `plan.json` wrappers are inert — dest implement and
+`inject-step` ignore them; `init --force` still unlinks them. The DAG in
+`backchain/plan.json` is canonical.
 
 ## Hashes (fail-closed drift)
 

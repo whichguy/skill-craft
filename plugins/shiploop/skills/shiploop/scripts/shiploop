@@ -247,7 +247,6 @@ def default_state(
             "environment_md": str(run_dir / "environment.md"),
             "spec_md": str(run_dir / "spec.md"),
             "plan_md": str(run_dir / "plan.md"),
-            "plan_json": str(run_dir / "plan.json"),
             "backchain": str(run_dir / "backchain" / "plan.json"),
             "recap_html": str(run_dir / "recap.html"),
         },
@@ -550,31 +549,20 @@ def canonical_backchain(run_dir: Path) -> Path:
 
 
 def wrapper_pair(run_dir: Path, spec: Optional[Dict[str, Any]]) -> List[str]:
-    gaps: List[str] = []
+    """plan.md labeled done_sentence must equal spec.md. plan.json is not SoT."""
     md_path = run_dir / "plan.md"
-    js_path = run_dir / "plan.json"
     if not md_path.is_file():
-        gaps.append(f"missing {md_path}")
-    if not js_path.is_file():
-        gaps.append(f"missing {js_path}")
-        return gaps
-    data = load_json(js_path)
-    if not isinstance(data, dict):
-        return ["plan.json is not an object"]
-    ds = data.get("done_sentence")
-    if not isinstance(ds, str) or not ds.strip():
-        gaps.append("plan.json.done_sentence missing")
-    spec_ds = (spec or {}).get("done_sentence")
-    if isinstance(ds, str) and spec_ds is not None and ds != spec_ds:
-        gaps.append("plan.json.done_sentence must equal spec.md")
+        return [f"missing {md_path}"]
     md = read_text(md_path) or ""
     if not md.strip():
-        gaps.append("plan.md empty")
-    elif isinstance(ds, str) and ds.strip():
-        labeled = DONE_LINE_RE.search(md)
-        if not labeled or labeled.group(1).strip() != ds.strip():
-            gaps.append("plan.md labeled done_sentence must equal plan.json")
-    return gaps
+        return ["plan.md empty"]
+    labeled = DONE_LINE_RE.search(md)
+    spec_ds = (spec or {}).get("done_sentence")
+    if not labeled or not labeled.group(1).strip():
+        return ["plan.md labeled done_sentence missing"]
+    if spec_ds is not None and labeled.group(1).strip() != spec_ds:
+        return ["plan.md labeled done_sentence must equal spec.md"]
+    return []
 
 
 def _section_h2(text: str, title: str) -> Optional[str]:
@@ -1403,13 +1391,13 @@ def dag_gaps(run_dir: Path, spec: Optional[Dict[str, Any]]) -> List[str]:
                 gaps.append(
                     f"{sid} prompt must have a line starting with Tools:; "
                     "in-flight pre-0.8.4 runs: dest blocked then dest plan, "
-                    "rewrite seed prompts (do not hand-edit plan.json)"
+                    "rewrite seed prompts (do not hand-edit backchain/plan.json)"
                 )
             if mcp_considered and mcp_considered not in prompt:
                 gaps.append(
                     f"{sid} prompt must cite mcp_considered {mcp_considered}; "
                     "in-flight pre-0.8.4 runs: dest blocked then dest plan, "
-                    "rewrite seed prompts (do not hand-edit plan.json)"
+                    "rewrite seed prompts (do not hand-edit backchain/plan.json)"
                 )
         produces = step.get("produces")
         texts = produces_texts(produces)
@@ -2150,7 +2138,7 @@ PHASE_BEGIN = {
     ),
     "plan": (
         "Call backchain once, persist backchain/plan.json, then write plan.md "
-        "and the plan.json wrapper. Do not rewrite the frozen spec."
+        "with a labeled done_sentence equal to the spec. Do not rewrite the frozen spec."
     ),
     "implement": "Walk ready DAG steps via /goal in per-step worktrees.",
     "residual": (
@@ -2464,7 +2452,6 @@ def activity_body(phase: str, run_dir: Path, state: Dict[str, Any]) -> str:
         "ENV_MD": str(run_dir / "environment.md"),
         "SPEC_MD": str(run_dir / "spec.md"),
         "PLAN_MD": str(run_dir / "plan.md"),
-        "PLAN_JSON": str(run_dir / "plan.json"),
         "BACKCHAIN_JSON": str(canonical_backchain(run_dir)),
         "SHIPLOOP_BIN": str(PACKAGE_ROOT / "scripts" / "shiploop"),
         "DONE_SENTENCE": str((load_spec(run_dir)[0] or {}).get("done_sentence") or ""),
@@ -2650,16 +2637,41 @@ def look_here_lines(run_dir: Path, state: Dict[str, Any], phase: str) -> List[st
         add("required", act, "current activity")
     elif phase == "validate-spec":
         add("required", run_dir / "prompt.md", "original ask", missing_ok=True)
-        add("required", run_dir / "environment.md", "survey (create)", missing_ok=True)
+        env_p = run_dir / "environment.md"
+        _env, env_gaps = load_environment(run_dir)
+        if not env_p.is_file():
+            add(
+                "required",
+                env_p,
+                "1. survey — write this first (create)",
+                missing_ok=True,
+                why_missing="1. survey — write this first (create)",
+            )
+        elif env_gaps:
+            add("required", env_p, "1. survey — " + "; ".join(env_gaps))
+        else:
+            add("required", env_p, "1. survey — written")
         add("required", REF_DIR / "survey.md", "survey guide")
-        add("required", run_dir / "spec.md", "spec (create)", missing_ok=True)
+        spec_p = run_dir / "spec.md"
+        _spec, spec_gaps = load_spec(run_dir)
+        if not spec_p.is_file():
+            add(
+                "required",
+                spec_p,
+                "2. spec — write after environment.md (create)",
+                missing_ok=True,
+                why_missing="2. spec — write after environment.md (create)",
+            )
+        elif spec_gaps:
+            add("required", spec_p, "2. spec — " + "; ".join(spec_gaps))
+        else:
+            add("required", spec_p, "2. spec — written")
         add("required", run_dir / "state.json", "session state")
     elif phase == "plan":
         add("required", run_dir / "spec.md", "frozen spec — do not rewrite")
         add("required", run_dir / "environment.md", "frozen survey")
         add("required", canonical_backchain(run_dir), "canonical backchain DAG (create)", missing_ok=True)
         add("required", run_dir / "plan.md", "sequence plan pointer", missing_ok=True)
-        add("required", run_dir / "plan.json", "plan wrapper", missing_ok=True)
         if deps.get("backchain"):
             add("required", Path(deps["backchain"]) / "SKILL.md", "backchain sequence plan")
     elif phase == "implement":
@@ -3043,14 +3055,6 @@ def apply_update(
         if more:
             die(EXIT_BLOCKED, "; ".join(more))
         state["plan_sha256"] = plan_hash_of(run_dir)
-        wrapper = run_dir / "plan.json"
-        if wrapper.is_file():
-            data = load_json(wrapper)
-            if isinstance(data, dict):
-                data["step_ids"] = recomputed_step_ids(run_dir)
-                data["plan_sha256"] = state["plan_sha256"]
-                data["backchain"] = str(canonical_backchain(run_dir))
-                write_json_atomic(wrapper, data)
         if src == "blocked":
             clear_steps(run_dir, state, running_only=True)
     if dest == "blocked":
@@ -3345,13 +3349,6 @@ def cmd_inject_step(args: argparse.Namespace) -> int:
                 if isinstance(rec, dict) and rec.get("plan_sha256") == stored_hash:
                     rec["plan_sha256"] = new_hash
                     write_json_atomic(path, rec)
-        wrapper = run_dir / "plan.json"
-        if wrapper.is_file():
-            wdata = load_json(wrapper)
-            if isinstance(wdata, dict):
-                wdata["step_ids"] = recomputed_step_ids(run_dir)
-                wdata["plan_sha256"] = new_hash
-                write_json_atomic(wrapper, wdata)
         state["plan_sha256"] = new_hash
         save_state(run_dir, state, event=f"inject-step:{sid}")
     print(f"injected {sid}")

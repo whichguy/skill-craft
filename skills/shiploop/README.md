@@ -210,9 +210,8 @@ and a **README create/revise as a late successor**. The spec's three
 placement answers decide which of those fire: deploy preparation *is* the
 early prep step; **dag** publish *is* the deploy step; **outer-loop**
 publish and a quality `/goal` stay out of the DAG (residual owns them).
-Then write `plan.md` /
-`plan.json` wrappers (`done_sentence` must equal the spec). The wrapper
-`step_ids` is a copy, not SoT.
+Then write `plan.md` with a labeled `done_sentence` that equals the spec.
+Do not write a `plan.json` wrapper; leftover wrappers are inert.
 
 dest `plan` **writes** `environment_sha256` / `spec_sha256` when empty (first
 bind) and **verifies** them when set. It always clears `plan_sha256` and
@@ -252,8 +251,8 @@ auto-merge. Failure: `--clear`. Hard stop: `--blocked --reason`.
 intermediate without dest `plan` (that would wipe receipts). Requires
 `--statement`, `--prompt`, `--produces`. Pre-image: DAG bytes must still
 hash to `state.plan_sha256`. `--before` is `todo` or `ready` only; appends
-`{need: produces, from: new id}`. Write order: DAG → receipts → wrapper →
-state last. Then `/shiploop next`.
+`{need: produces, from: new id}`. Write order: DAG → receipts → state last.
+Then `/shiploop next`.
 
 When every step is `done`, implement is **drained** (a diagnosis, not a
 phase). Next complete dests `residual`.
@@ -346,8 +345,8 @@ Look-here matrix (absolute path + one-line why):
 | Phase | Pointers |
 |-------|----------|
 | intake | `state.json`, `prompt.md` (create), activity |
-| validate-spec | prompt, `environment.md` (create), `survey.md`, `spec.md` (create), `state.json` |
-| plan | frozen spec + environment, `backchain/plan.json` (create), `plan.md` / `plan.json`, backchain SKILL |
+| validate-spec | prompt, `environment.md` (`1. survey —` write-first / `load_environment` gaps / written), `survey.md`, `spec.md` (`2. spec —` after env / `load_spec` gaps / written), `state.json` |
+| plan | frozen spec + environment, `backchain/plan.json` (create), `plan.md` (create), backchain SKILL |
 | implement | frozen spec, DAG, required `environment.md` (frozen survey), running `steps/<id>.json` + worktree, activity; `plan.md` if-needed |
 | implement-drained | spec, DAG, `implement-drained.md` |
 | residual | ledger, bound plan, spec, review-coverage SKILL, `recap.html` (written at dest done) |
@@ -369,23 +368,23 @@ Everything below is under the **run dir** (default: walk from cwd to
 | `environment.md` | host during validate-spec | survey + practices (prose + `## machine` JSON). Hashed as the whole file. |
 | `spec.md` | host during validate-spec | labeled `done_sentence` / `checkable` / optional `ask_user`. Hashed as the whole file. |
 | `backchain/plan.json` | host during plan; `inject-step` mutates | canonical DAG (`statement`, `prompt`, `produces`, `inputs`, `origin`) |
-| `plan.md` | host during plan | human sequence + labeled `done_sentence` (may lag the DAG after inject) |
-| `plan.json` | host / inject | wrapper only (`done_sentence`, `backchain` path, `step_ids` copy) |
+| `plan.md` | host during plan | human sequence + labeled `done_sentence` (must equal spec.md; may lag the DAG after inject) |
 | `steps/<id>.json` | `start-step` / complete / inject stamp | receipt: `running` or `complete`, worktree, branch, `plan_sha256` |
 | `history.jsonl` | every command | append-only event log |
 | `recap.html` | dest done / dest halted | walk-back briefing from run files (not hashed) |
 
-There is **no** `environment.json`, `spec.json`, or `implement.json`.
+There is **no** `environment.json`, `spec.json`, `implement.json`, or
+host-authored `plan.json`. Leftover `plan.json` wrappers are inert;
+`init --force` still unlinks them.
 
-**Same sentence, four surfaces (not four SoTs):** labeled `done_sentence` in
-`spec.md` ≡ labeled line in `plan.md` ≡ `plan.json.done_sentence` ≡
-`backchain.goal`. Drift is refused.
+**Same sentence, three surfaces (not three SoTs):** labeled `done_sentence` in
+`spec.md` ≡ labeled line in `plan.md` ≡ `backchain.goal`. Drift is refused.
 
 **Hashes**
 
 - `environment_sha256 = sha256(environment.md)`
 - `spec_sha256 = sha256(spec.md)`
-- `plan_sha256 = sha256(backchain/plan.json)` (wrapper unhashed)
+- `plan_sha256 = sha256(backchain/plan.json)` (plan.md unhashed)
 
 ```mermaid
 flowchart LR
