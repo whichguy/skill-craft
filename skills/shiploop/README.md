@@ -368,7 +368,7 @@ Everything below is under the **run dir** (default: walk from cwd to
 | `environment.md` | host during validate-spec | survey + practices (prose + `## machine` JSON). Hashed as the whole file. |
 | `spec.md` | host during validate-spec | labeled `done_sentence` / `checkable` / optional `ask_user`. Hashed as the whole file. |
 | `backchain/plan.json` | host during plan; `inject-step` mutates | canonical DAG (`statement`, `prompt`, `produces`, `inputs`, `origin`) |
-| `plan.md` | host during plan | human sequence + labeled `done_sentence` (must equal spec.md; may lag the DAG after inject) |
+| `plan.md` | host during plan | human sequence + labeled `done_sentence` (must equal spec.md at dest implement; not hashed, so a later edit does not fail-closed; may lag the DAG after inject) |
 | `steps/<id>.json` | `start-step` / complete / inject stamp | receipt: `running` or `complete`, worktree, branch, `plan_sha256` |
 | `history.jsonl` | every command | append-only event log |
 | `recap.html` | dest done / dest halted | walk-back briefing from run files (not hashed) |
@@ -378,7 +378,9 @@ host-authored `plan.json`. Leftover `plan.json` wrappers are inert;
 `init --force` still unlinks them.
 
 **Same sentence, three surfaces (not three SoTs):** labeled `done_sentence` in
-`spec.md` ≡ labeled line in `plan.md` ≡ `backchain.goal`. Drift is refused.
+`spec.md` ≡ labeled line in `plan.md` ≡ `backchain.goal`. dest implement
+refuses drift. `plan.md` is not hashed, so editing it after dest implement
+does not fail-closed on `next`.
 
 **Hashes**
 

@@ -120,15 +120,27 @@ fi
 if grep -q '{{PLAN_JSON}}' "$root/skills/shiploop/references/activities/plan.md"; then
   fail "plan activity still interpolates retired PLAN_JSON"
 fi
-if grep -q 'plan.json wrappers' "$root/skills/shiploop/README.md"; then
-  fail "README still requires host-authored plan.json wrapper"
-fi
 if grep -q 'plan.json.done_sentence' "$root/skills/shiploop/README.md"; then
   fail "README still treats wrapper done_sentence as a surface"
+fi
+if grep -q 'four surfaces' "$root/skills/shiploop/README.md"; then
+  fail "README still says four done_sentence surfaces"
+fi
+grep -q 'Same sentence, three surfaces' "$root/skills/shiploop/README.md" \
+  || fail "README missing three-surface done_sentence sentence"
+grep -q 'Do not write a `plan.json` wrapper' "$root/skills/shiploop/README.md" \
+  || fail "README missing do-not-write plan.json wrapper"
+grep -q 'Do not write a `plan.json` wrapper' \
+  "$root/skills/shiploop/references/activities/plan.md" \
+  || fail "plan activity missing do-not-write plan.json wrapper"
+if grep -E 'Write order: DAG → receipts → wrapper' "$root/skills/shiploop/README.md"; then
+  fail "README inject write-order still stamps wrapper"
 fi
 grep -q 'Leftover `plan.json` wrappers are inert' \
   "$root/skills/shiploop/references/state-files.md" \
   || fail "state-files.md missing leftover plan.json inert"
+grep -q 'at dest implement' "$root/skills/shiploop/references/state-files.md" \
+  || fail "state-files.md missing dest-implement plan.md equality"
 grep -q '1. survey —' "$root/skills/shiploop/README.md" \
   || fail "README Look-here matrix missing ordinal survey why"
 grep -q '2. spec —' "$root/skills/shiploop/README.md" \
@@ -299,6 +311,22 @@ assert_absent() {
   fi
 }
 
+packet_section() {
+  local out="$1" start="$2"
+  printf '%s\n' "$out" | awk -v s="$start" '
+    $0==s {p=1; next}
+    p && /^## / {exit}
+    p
+  '
+}
+
+assert_no_wrapper_lookhere() {
+  local look="$1" msg="$2"
+  local hits
+  hits="$(printf '%s\n' "$look" | grep -E '^(required|if-needed)  .+/plan.json' | grep -v '/backchain/plan.json' || true)"
+  [[ -z "$hits" ]] || fail "$msg: $hits"
+}
+
 run_cli() { python3 "$cli" "$@"; }
 
 commit_step_work() {
@@ -390,7 +418,7 @@ fresh_vs() {
   write_spec "$run"
 }
 
-write_wrapper() {
+write_plan_md() {
   local run="$1"
   printf 'done_sentence: %s\n' "$DS" >"$run/plan.md"
 }
@@ -414,7 +442,7 @@ install_dag() {
   local run="$1" fixture="$2"
   mkdir -p "$run/backchain"
   cp "$fix/$fixture" "$run/backchain/plan.json"
-  write_wrapper "$run"
+  write_plan_md "$run"
 }
 
 advance_to_plan() {
@@ -461,6 +489,15 @@ assert_absent "$out_init" 'DevLoop' "init banner named a foreign product"
 printf '%s\n' "$out_init" | grep -qF 'Reference only — not the next action.' || fail "look here missing reference-only line"
 printf '%s\n' "$out_init" | grep -qF 'Use this prompt as much as possible.' || fail "next prompt missing banner line"
 assert_absent "$out_init" 'shiploop update --run-dir' "init When done leaked update argv"
+python3 - "$run/state.json" <<'PY'
+import json, sys
+from pathlib import Path
+d = json.loads(Path(sys.argv[1]).read_text())
+arts = d.get("artifacts") or {}
+assert "plan_json" not in arts, arts
+assert "plan_md" in arts, arts
+assert "backchain" in arts, arts
+PY
 printf '%s\n' "$out_init" | grep -q 'Ask: create result.txt' || fail "reminder ask"
 printf '%s\n' "$out_init" | grep -qx 'Diagnosis' || fail "init missing Diagnosis"
 printf '%s\n' "$out_init" | grep -q 'spec       (not written)' || fail "init spec stand"
@@ -551,6 +588,12 @@ printf '%s\n' "$out_vs" | grep -q '1. survey — write this first (create)' \
 printf '%s\n' "$out_vs" | grep -q '2. spec — write after environment.md (create)' \
   || fail "validate-spec Look-here missing ordinal spec create: $out_vs"
 assert_absent "$out_vs" 'not written yet' "validate-spec Look-here still used exists/absent not written yet"
+miss_vs="$(packet_section "$out_vs" "## Missing")"
+printf '%s\n' "$miss_vs" | grep -q 'missing ' || fail "validate-spec Missing empty: $miss_vs"
+printf '%s\n' "$miss_vs" | grep -q 'environment.md' \
+  || fail "validate-spec Missing missing environment.md: $miss_vs"
+printf '%s\n' "$miss_vs" | grep -q 'spec.md' \
+  || fail "validate-spec Missing missing spec.md: $miss_vs"
 assert_absent "$out_vs" 'VALIDATE_SPEC_PATH' "packet leaked VALIDATE_SPEC_PATH"
 assert_absent "$out_vs" 'missing dep_roots.devloop' "devloop required at validate-spec"
 assert_absent "$out_vs" '/goal ' "validate-spec packet emitted implement /goal"
@@ -589,6 +632,22 @@ printf '%s\n' "$out_specgap" | grep -q '1. survey — written' \
   || fail "spec-gap Look-here lost written env: $out_specgap"
 printf '%s\n' "$out_specgap" | grep -q '2. spec — spec.md missing labeled done_sentence' \
   || fail "spec-gap Look-here missing load_spec why: $out_specgap"
+printf '%s\n' "$out_specgap" | grep -q 'spec.md missing labeled checkable' \
+  || fail "spec-gap Look-here missing checkable why: $out_specgap"
+printf '' >"$run/environment.md"
+out_emptyenv="$(run_cli next --run-dir "$run")"
+printf '%s\n' "$out_emptyenv" | grep -q '1. survey — environment.md is empty' \
+  || fail "empty env Look-here: $out_emptyenv"
+write_environment "$run"
+write_spec "$run"
+out_both="$(run_cli next --run-dir "$run")"
+printf '%s\n' "$out_both" | grep -q '1. survey — written' \
+  || fail "both-written Look-here env: $out_both"
+printf '%s\n' "$out_both" | grep -q '2. spec — written' \
+  || fail "both-written Look-here spec: $out_both"
+miss_both="$(packet_section "$out_both" "## Missing")"
+printf '%s\n' "$miss_both" | grep -qx '(none)' \
+  || fail "both-written dest plan Missing should be none: $miss_both"
 rm -f "$run/spec.md" "$run/environment.md"
 printf 'LAYER: validate-spec Look-here load_* gaps OK\n'
 
@@ -603,6 +662,9 @@ printf 'LAYER: empty spec.md reject OK\n'
 
 # --- duplicate done_sentence label rejected ---
 printf 'done_sentence: alpha\ncheckable: true\ndone_sentence: beta\n' >"$run/spec.md"
+out_dup="$(run_cli next --run-dir "$run")"
+printf '%s\n' "$out_dup" | grep -q '2. spec — spec.md labeled done_sentence: must appear exactly once' \
+  || fail "duplicate spec Look-here: $out_dup"
 set +e
 out_mm="$(run_cli update --run-dir "$run" --to plan 2>&1)"
 rc_mm=$?
@@ -614,6 +676,15 @@ printf 'LAYER: labeled once-only reject OK\n'
 # --- checkable false -> blocked (dest blocked hatch does not require environment.md) ---
 rm -f "$run/environment.md"
 printf 'done_sentence: need a checkable done\ncheckable: false\nask_user: what is the oracle?\n\nmore spec prose that must not be dumped later\n' >"$run/spec.md"
+out_hatch="$(run_cli next --run-dir "$run")"
+printf '%s\n' "$out_hatch" | grep -q '1. survey — write this first (create)' \
+  || fail "hatch Look-here missing survey-first: $out_hatch"
+printf '%s\n' "$out_hatch" | grep -q '2. spec — written' \
+  || fail "hatch Look-here spec should be written: $out_hatch"
+printf '%s\n' "$out_hatch" | grep -q 'validate-spec: current' \
+  || fail "hatch still validate-spec: $out_hatch"
+printf '%s\n' "$out_hatch" | grep -q 'complete --blocked' \
+  || fail "hatch When done missing --blocked: $out_hatch"
 run_cli update --run-dir "$run" --to blocked --reason "what is the oracle?" --resume-to validate-spec >/dev/null
 out_blk="$(run_cli next --run-dir "$run")"
 printf '%s\n' "$out_blk" | grep -q 'blocked: current' || fail "blocked current: $out_blk"
@@ -689,7 +760,28 @@ printf '%s\n' "$out_plan" | awk '/^## When done invoke$/,/^## Missing$/' \
 printf '%s\n' "$out_plan" | grep -qx 'invoke /shiploop complete' \
   || fail "plan-before-DAG When done should be complete: $out_plan"
 assert_absent "$out_plan" '{{PLAN_JSON}}' "plan packet leaked retired PLAN_JSON"
-printf '%s\n' "$out_plan" | grep -q 'plan.md' || fail "plan packet missing plan.md pointer"
+look_plan="$(packet_section "$out_plan" "## Look here")"
+printf '%s\n' "$look_plan" | grep -q 'plan.md' || fail "plan Look-here missing plan.md: $look_plan"
+printf '%s\n' "$look_plan" | grep -q 'not written yet — create at this path' \
+  || fail "plan Look-here missing plan.md create why: $look_plan"
+printf '%s\n' "$look_plan" | grep -q 'backchain' \
+  || fail "plan Look-here missing DAG: $look_plan"
+assert_no_wrapper_lookhere "$look_plan" "plan Look-here listed retired wrapper"
+prog_plan="$(packet_section "$out_plan" "## Progress")"
+printf '%s\n' "$prog_plan" | grep -q 'write plan.md' \
+  || fail "plan Progress missing write plan.md: $prog_plan"
+assert_absent "$prog_plan" 'plan.json wrapper' "plan Progress still names plan.json wrapper"
+miss_plan="$(packet_section "$out_plan" "## Missing")"
+printf '%s\n' "$miss_plan" | grep -q 'plan.md' \
+  || fail "plan Missing missing plan.md: $miss_plan"
+printf '%s\n' "$miss_plan" | grep -q 'backchain' \
+  || fail "plan Missing missing backchain DAG: $miss_plan"
+assert_absent "$miss_plan" 'plan.json.done_sentence' "plan Missing named wrapper field"
+printf '{not-json' >"$run/plan.json"
+out_plan_left="$(run_cli next --run-dir "$run")"
+look_left="$(packet_section "$out_plan_left" "## Look here")"
+assert_no_wrapper_lookhere "$look_left" "plan Look-here listed leftover wrapper"
+rm -f "$run/plan.json"
 printf 'LAYER: plan-before-DAG dest implement OK\n'
 printf 'done_sentence: %s\n\nsteps: write file\n' "$DS" >"$run/plan.md"
 set +e
@@ -739,6 +831,29 @@ d = json.loads(Path(sys.argv[1]).read_text())
 assert d.get("done_sentence") == "WRONG", d
 assert d.get("step_ids") == ["S1"], d
 PY
+out_pj="$(run_cli next --run-dir "$runpj")"
+printf '%s\n' "$out_pj" | grep -q 'S1: running' || fail "leftover wrapper hid S1: $out_pj"
+look_pj="$(packet_section "$out_pj" "## Look here")"
+assert_no_wrapper_lookhere "$look_pj" "implement Look-here listed leftover wrapper"
+printf '%s\n' "$look_pj" | grep -q 'plan.md' || fail "implement Look-here missing if-needed plan.md"
+printf 'done_sentence: mutated after bind\n' >"$runpj/plan.md"
+set +e
+out_post="$(run_cli next --run-dir "$runpj" 2>&1)"
+rc_post=$?
+set -e
+[[ "$rc_post" -eq 0 ]] || fail "post-bind plan.md edit should not fail-closed: $out_post"
+printf '%s\n' "$out_post" | grep -q 'S1: running' || fail "post-bind plan.md edit lost S1: $out_post"
+
+runbad="$tmpdir/planjson-bad/.shiploop"
+repobad="$tmpdir/planjson-bad/repo"
+mkdir -p "$repobad"
+advance_to_plan "$runbad" "$repobad" "$planf"
+install_dag "$runbad" linear.json
+printf '{' >"$runbad/plan.json"
+run_cli update --run-dir "$runbad" --to implement >/dev/null
+out_bad="$(run_cli next --run-dir "$runbad")"
+printf '%s\n' "$out_bad" | grep -q 'S1: running' || fail "malformed leftover wrapper blocked dest: $out_bad"
+
 runds="$tmpdir/planmd-drift/.shiploop"
 repods="$tmpdir/planmd-drift/repo"
 mkdir -p "$repods"
@@ -753,7 +868,6 @@ set -e
 printf '%s\n' "$out_dsd" | grep -q 'plan.md labeled done_sentence must equal spec.md' \
   || fail "drifted plan.md message: $out_dsd"
 assert_absent "$out_dsd" 'plan.json.done_sentence' "drifted plan.md still named wrapper field"
-assert_absent "$out_dsd" "missing $runds/plan.json" "drifted plan.md named missing wrapper"
 rm -f "$runds/plan.md"
 set +e
 out_mdp="$(run_cli update --run-dir "$runds" --to implement 2>&1)"
@@ -763,6 +877,98 @@ set -e
 printf '%s\n' "$out_mdp" | grep -q 'missing ' || fail "missing plan.md message: $out_mdp"
 printf '%s\n' "$out_mdp" | grep -q 'plan.md' || fail "missing plan.md named the file: $out_mdp"
 assert_absent "$out_mdp" 'plan.json.done_sentence' "missing plan.md still named wrapper field"
+printf '' >"$runds/plan.md"
+set +e
+out_mde="$(run_cli update --run-dir "$runds" --to implement 2>&1)"
+rc_mde=$?
+set -e
+[[ "$rc_mde" -eq 2 ]] || fail "empty plan.md want 2: $out_mde"
+printf '%s\n' "$out_mde" | grep -q 'plan.md empty' || fail "empty plan.md message: $out_mde"
+printf 'steps only, no label\n' >"$runds/plan.md"
+set +e
+out_mdl="$(run_cli update --run-dir "$runds" --to implement 2>&1)"
+rc_mdl=$?
+set -e
+[[ "$rc_mdl" -eq 2 ]] || fail "unlabeled plan.md want 2: $out_mdl"
+printf '%s\n' "$out_mdl" | grep -q 'plan.md labeled done_sentence missing' \
+  || fail "unlabeled plan.md message: $out_mdl"
+printf 'done sentence: %s\n' "$DS" >"$runds/plan.md"
+set +e
+out_mdsp="$(run_cli update --run-dir "$runds" --to implement 2>&1)"
+rc_mdsp=$?
+set -e
+[[ "$rc_mdsp" -eq 2 ]] || fail "done-sentence space label want 2: $out_mdsp"
+printf '%s\n' "$out_mdsp" | grep -q 'plan.md labeled done_sentence missing' \
+  || fail "done-sentence space label message: $out_mdsp"
+printf 'done_sentence: %s\ndone_sentence: %s\n' "$DS" "$DS" >"$runds/plan.md"
+set +e
+out_mdd="$(run_cli update --run-dir "$runds" --to implement 2>&1)"
+rc_mdd=$?
+set -e
+[[ "$rc_mdd" -eq 2 ]] || fail "duplicate plan.md labels want 2: $out_mdd"
+printf '%s\n' "$out_mdd" | grep -q 'plan.md labeled done_sentence must appear exactly once' \
+  || fail "duplicate plan.md labels message: $out_mdd"
+
+runfence="$tmpdir/planmd-fence/.shiploop"
+repofence="$tmpdir/planmd-fence/repo"
+mkdir -p "$repofence"
+advance_to_plan "$runfence" "$repofence" "$planf"
+install_dag "$runfence" linear.json
+cat >"$runfence/plan.md" <<MD
+intro
+
+\`\`\`text
+done_sentence: WRONG
+\`\`\`
+
+done_sentence: $DS
+MD
+run_cli update --run-dir "$runfence" --to implement >/dev/null
+out_fence="$(run_cli next --run-dir "$runfence")"
+printf '%s\n' "$out_fence" | grep -q 'S1: running' || fail "fenced WRONG + labeled spec dest: $out_fence"
+
+runfo="$tmpdir/planmd-fence-only/.shiploop"
+repofo="$tmpdir/planmd-fence-only/repo"
+mkdir -p "$repofo"
+advance_to_plan "$runfo" "$repofo" "$planf"
+install_dag "$runfo" linear.json
+cat >"$runfo/plan.md" <<MD
+intro
+
+\`\`\`text
+done_sentence: $DS
+\`\`\`
+MD
+set +e
+out_fence_only="$(run_cli update --run-dir "$runfo" --to implement 2>&1)"
+rc_fence_only=$?
+set -e
+[[ "$rc_fence_only" -eq 2 ]] || fail "fenced-only plan.md want 2: $out_fence_only"
+printf '%s\n' "$out_fence_only" | grep -q 'plan.md labeled done_sentence missing' \
+  || fail "fenced-only plan.md message: $out_fence_only"
+
+rungoal="$tmpdir/goal-mismatch/.shiploop"
+repogoal="$tmpdir/goal-mismatch/repo"
+mkdir -p "$repogoal"
+advance_to_plan "$rungoal" "$repogoal" "$planf"
+install_dag "$rungoal" linear.json
+python3 - "$rungoal/backchain/plan.json" <<'PY'
+import json, sys
+from pathlib import Path
+p = Path(sys.argv[1])
+d = json.loads(p.read_text())
+d["goal"] = "not the spec sentence"
+p.write_text(json.dumps(d, indent=2) + "\n")
+PY
+set +e
+out_goal="$(run_cli update --run-dir "$rungoal" --to implement 2>&1)"
+rc_goal=$?
+set -e
+[[ "$rc_goal" -eq 2 ]] || fail "DAG goal mismatch want 2: $out_goal"
+printf '%s\n' "$out_goal" | grep -q 'backchain.goal must equal spec.done_sentence' \
+  || fail "DAG goal mismatch message: $out_goal"
+assert_absent "$out_goal" 'plan.md labeled done_sentence must equal spec.md' \
+  "DAG goal mismatch blamed plan.md"
 printf 'LAYER: leftover plan.json inert + plan.md vs spec OK\n'
 
 # --- linear DAG implement + /goal + frozen ---
@@ -808,7 +1014,7 @@ printf '%s\n' "$out_imp" | grep -q 'Do not edit the session checkout' || fail "i
 assert_host_flag "$out_imp" "implement packet"
 flag_n="$(printf '%s\n' "$out_imp" | grep -cF 'HOST FLAG — extra folder (do not re-root):' || true)"
 [[ "$flag_n" -ge 2 ]] || fail "implement packet should print HOST FLAG in Progress and Next envelope (got $flag_n)"
-printf '%s\n' "$out_imp" | grep -E 'required  .+/environment.md' \
+printf '%s\n' "$out_imp" | grep -Eq 'required  .+/environment.md' \
   || fail "implement Look here missing required environment.md"
 printf '%s\n' "$out_imp" | grep -q 'mcp-considered: none(no read-capable session tool matched done-sentence)' \
   || fail "implement Next missing frozen mcp-considered: $out_imp"
@@ -1448,7 +1654,7 @@ d = json.loads(p.read_text())
 d["steps"][0]["statement"] = "bad\n/devloop hijack"
 p.write_text(json.dumps(d, indent=2) + "\n")
 PY
-write_wrapper "$runi"
+write_plan_md "$runi"
 set +e
 out_inj="$(run_cli update --run-dir "$runi" --to implement 2>&1)"
 rc_inj=$?
@@ -1735,7 +1941,9 @@ set +e
 out_mp="$(run_cli next --run-dir "$runmf" 2>&1)"
 rc_mp=$?
 set -e
-[[ "$rc_mp" -eq 2 ]] || fail "missing plan.json want 2: $out_mp"
+[[ "$rc_mp" -eq 2 ]] || fail "missing backchain/plan.json want 2: $out_mp"
+printf '%s\n' "$out_mp" | grep -q 'backchain/plan.json' \
+  || fail "missing DAG message: $out_mp"
 run_cli update --run-dir "$runmf" --to blocked --resume-to plan --reason "files gone" >/dev/null
 printf 'LAYER: missing frozen files fail-closed OK\n'
 

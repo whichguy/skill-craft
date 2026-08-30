@@ -10,7 +10,7 @@ Everything below lives under the **run dir** (default: walked from cwd to
 | `environment.md` | `validate-spec` (survey + practices) | session survey: prose brief + `## machine` fenced JSON; practice references live here |
 | `spec.md` | `validate-spec` | labeled `done_sentence:` and `checkable: true\|false` (each exactly once); `ask_user:` when `checkable: false` |
 | `backchain/plan.json` | `plan` | canonical sequence DAG (steps carry `statement`, `prompt`, `produces`, `inputs`, `origin`; every seed `prompt` cites `environment.md` `references[].path` and a `Tools:` block) |
-| `plan.md` | `plan` | sequence pointer with labeled `done_sentence:` (must equal `spec.md`). Not hashed. May lag the DAG after `inject-step`. |
+| `plan.md` | `plan` | sequence pointer with labeled `done_sentence:` (must equal `spec.md` at dest implement; same fence-skip labels as spec.md). Not hashed — a post-bind edit does not fail-closed. May lag the DAG after `inject-step`. |
 | `steps/<id>.json` | `implement` | per-step receipt (`status`, `plan_sha256`, `worktree`, `branch`, `base_sha`) |
 | `history.jsonl` | every command | append-only event log |
 | `recap.html` | dest done / dest halted | harness-written walk-back HTML (intent, original spec, accomplished, changed, end result, outcome, verified) |

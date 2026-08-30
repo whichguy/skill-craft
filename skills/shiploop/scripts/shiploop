@@ -88,7 +88,6 @@ WAIVER_RE = re.compile(
 PLACEHOLDER_RE = re.compile(
     r"(?i)^(tbd|todo|\.\.\.|…|from plan|list concrete|<[^>]+>)$"
 )
-DONE_LINE_RE = re.compile(r"(?im)^(?:done_sentence|done sentence)\s*:\s*(.+?)\s*$")
 H2_RE = re.compile(r"(?m)^##\s+(.+?)\s*$")
 FENCE_RE = re.compile(r"^[ \t]{0,3}(```|~~~)")
 
@@ -549,18 +548,26 @@ def canonical_backchain(run_dir: Path) -> Path:
 
 
 def wrapper_pair(run_dir: Path, spec: Optional[Dict[str, Any]]) -> List[str]:
-    """plan.md labeled done_sentence must equal spec.md. plan.json is not SoT."""
+    """plan.md labeled done_sentence must equal spec.md at dest implement.
+
+    Same scan_labels rules as spec.md (line-start, outside fences/blockquotes).
+    plan.json is not SoT. plan.md is not hashed; this check does not re-run
+    on next after dest implement.
+    """
     md_path = run_dir / "plan.md"
     if not md_path.is_file():
         return [f"missing {md_path}"]
     md = read_text(md_path) or ""
     if not md.strip():
         return ["plan.md empty"]
-    labeled = DONE_LINE_RE.search(md)
+    labels = scan_labels(md, ("done_sentence",))
     spec_ds = (spec or {}).get("done_sentence")
-    if not labeled or not labeled.group(1).strip():
+    found = labels["done_sentence"]
+    if len(found) == 0 or not found[0]:
         return ["plan.md labeled done_sentence missing"]
-    if spec_ds is not None and labeled.group(1).strip() != spec_ds:
+    if len(found) > 1:
+        return ["plan.md labeled done_sentence must appear exactly once"]
+    if spec_ds is not None and found[0] != spec_ds:
         return ["plan.md labeled done_sentence must equal spec.md"]
     return []
 
