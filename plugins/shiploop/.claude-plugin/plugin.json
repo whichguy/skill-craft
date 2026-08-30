@@ -1,6 +1,6 @@
 {
   "name": "shiploop",
-  "version": "0.8.8",
+  "version": "0.8.9",
   "description": "Session harness: spec once, one backchain sequence plan, then walk ready steps by emitting a paste-ready /goal per running id in a per-step git worktree/branch. Use when the user says shiploop, ship the project, session harness, or what's the next step. After every increment invoke /shiploop complete — do not rely on chat memory. Lost context without completing → /shiploop next.",
   "author": {
     "name": "whichguy",

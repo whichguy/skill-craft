@@ -8,7 +8,7 @@ description: >-
   /shiploop complete — do not rely on chat memory. Lost context without
   completing → /shiploop next.
 allowed-tools: all
-version: 0.8.8
+version: 0.8.9
 license: MIT
 platforms:
   - linux
@@ -28,7 +28,13 @@ metadata:
 
 **Package leaf:** `shiploop`
 
-Banner (first line of any invoke):
+CLI stdout: an outcome line (when the command prints one), then the banner,
+then the packet H2s. Successful `init` / `complete` / `update` print
+`initialized …`, `updated -> …`, `completed <id>`, or `cleared <id>` first.
+`next` prints `next — claimed <ids> (<phase>)` or `next — reprint (<phase>)`.
+`complete-step` / `clear-step` / `inject-step` print no packet.
+
+Banner:
 
 ```text
 shiploop — session harness

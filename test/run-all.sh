@@ -30,6 +30,7 @@ run install-status-uninstall bash test/install-status-uninstall.test.sh
 run devloop-run bash test/devloop-run.test.sh
 run devloop-gas-weather-native env DEVLOOP_LIVE_WEATHER=0 bash test/devloop-gas-weather-native.test.sh
 run evidence-gates bash test/evidence-gates.test.sh
+run shiploop-testkit bash test/shiploop-testkit.test.sh
 run shiploop bash test/shiploop.test.sh
 run review-coverage bash test/review-coverage.test.sh
 run dual-body-guard bash test/dual-body-guard.test.sh
