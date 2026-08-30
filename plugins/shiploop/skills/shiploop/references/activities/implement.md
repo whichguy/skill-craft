@@ -6,19 +6,25 @@ waiting-on — against that frozen `done_sentence`. No `✗` on steps.
 
 `/shiploop next` already claimed newly ready ids `running`. The packet's
 **Next prompt** section prints worktree / branch / HOST FLAG, then a
-**Frozen session environment** block, then each running id's **stored**
-`prompt` verbatim. That stored prompt **is** the `/goal` until this
-step's `produces`. Paste Frozen above it; do not wrap a second `/goal`.
-Do not paste worktree, branch, or HOST FLAG. The script does not compose
+**Frozen session environment** block, then **Implement git**, then each
+running id's **stored** `prompt` verbatim. That stored prompt **is** the
+`/goal` until this step's `produces`. Paste Frozen and Implement git
+above it; do not wrap a second `/goal`. Do not paste HOST FLAG. Implement
+git names the worktree and branch and the commit schema (`git log -10`,
+verbose body, `Key learnings:`, `See: <sha>`). The script does not compose
 or rewrite the stored prompt from the original ask.
 Each running step's worktree and branch are named in **Look here** /
 **Diagnosis** — work there (do not re-root the host chat); do not edit
 the session checkout or reuse a prior worktree.
 
 Do not nest a second `/goal` inside the first.
-If a `/goal` for an id is already open, do not open a second one. When the
-`/goal` is done, invoke **`/shiploop complete`** — that command commits
-on the worktree, merges into the session checkout
+If a `/goal` for an id is already open, do not open a second one. Inner
+`/goal` iterates and pathspec-commits **on the worktree** (read
+`git log -10` before planning each iteration; verbose message with
+`Key learnings:` and `See: <full sha> <subject>`). Never `git add -A`.
+Never merge from that cwd. When the `/goal` is done, invoke
+**`/shiploop complete`** — leftover uncommitted work gets the same commit
+schema, then merge into the session checkout
 (`git -C <session-checkout> merge --no-ff --no-edit <branch>`), and
 prints the next packet. Do not skip that merge; do not run a bare
 `git merge` from the worktree cwd. The next worktree forks `HEAD`.
@@ -42,8 +48,9 @@ carries a `Tools:` block, a `Use:` line whose entries include the designated
 `exclusive[].use`, and a parsed `Don't use:` line (`Don't use: none`
 if the token union is empty; a token under `Use:` does not count; overlap
 with `Don't use:` is a gap). The Next envelope still reprints Frozen
-(Exclusive / dest-blocked / See) above that stored prompt; paste that Frozen
-block with the discovered prompt. If the writer above fails, stop and invoke /shiploop complete --blocked --reason … — do not switch writers.
+(Exclusive / dest-blocked / See) and Implement git above that stored prompt;
+paste Frozen and Implement git with the discovered prompt (do not paste HOST
+FLAG). If the writer above fails, stop and invoke /shiploop complete --blocked --reason … — do not switch writers.
 
 After a `/goal` succeeds: invoke `/shiploop complete`.
 After a `/goal` fails and the session can continue: invoke `/shiploop complete --clear`.

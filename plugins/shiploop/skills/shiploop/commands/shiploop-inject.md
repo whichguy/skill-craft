@@ -10,5 +10,6 @@ discovered prompt still needs `Tools:`, a `Use:` line whose entries include
 the designated `exclusive[].use`, and a parsed `Don't use:` line (a token
 under `Use:` does not count; overlap with `Don't use:` is a gap).
 The implement Next envelope still
-reprints Frozen session environment above that stored prompt — paste that
-block with the discovered prompt.
+reprints Frozen session environment and Implement git above that stored
+prompt — paste those blocks with the discovered prompt (do not paste HOST
+FLAG).

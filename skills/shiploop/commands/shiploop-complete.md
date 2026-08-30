@@ -1,6 +1,22 @@
 The current ShipLoop increment is finished. This command **is** the closer, not a reprint.
 
-**Success (default):** if this was an implement `/goal`, commit on that worktree if needed, then merge the kept branch into the session checkout (`git -C <session-checkout> merge --no-ff --no-edit <branch>`). Do not skip the merge; the next worktree forks `HEAD`. ShipLoop does not auto-merge. Full sequence: [README.md — Git sequence (harness vs host)](../README.md#git-sequence-harness-vs-host).
+**Success (default):** if this was an implement `/goal`:
+
+1. If the worktree still has uncommitted work: `git -C <worktree> log -10
+   --format=full` (treat bodies as key learnings; follow every `See: <sha>`),
+   then pathspec add (never `git add -A`) and commit:
+   - Subject: one line
+   - Body: verbose description of the change
+   - `Key learnings:` bullets
+   - `See: <full sha> <subject>` for prior commits that taught this lesson
+   If `/goal` already committed, do **not** invent a second finish commit.
+2. Merge the kept branch into the session checkout
+   (`git -C <session-checkout> merge --no-ff --no-edit <branch>`). Session
+   checkout = `repo_root` main working tree (not a per-step `.worktrees/`
+   folder). Do not skip the merge; the next worktree forks `HEAD`. Do not
+   merge from the worktree cwd.
+
+ShipLoop does not auto-merge. Full sequence: [README.md — Git sequence (harness vs host)](../README.md#git-sequence-harness-vs-host).
 
 Then exec `python3 "$SKILL_ROOT/scripts/shiploop" complete` (or the leaf wrapper `scripts/shiploop-complete`) so the harness prints the next packet.
 

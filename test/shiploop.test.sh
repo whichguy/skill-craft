@@ -103,9 +103,9 @@ grep -q '`waived`' "$root/skills/shiploop/references/state-files.md" \
   || fail "state-files.md missing terminal waived"
 grep -q '`halted`' "$root/skills/shiploop/references/state-files.md" \
   || fail "state-files.md missing terminal halted"
-grep -q '^VERSION = "0.8.11"$' "$cli" || fail "script VERSION is not 0.8.11"
-grep -q '^version: 0.8.11$' "$root/skills/shiploop/SKILL.md" || fail "SKILL.md version is not 0.8.11"
-grep -Fq 'Version: **0.8.11**' "$root/skills/shiploop/README.md" || fail "README version is not 0.8.11"
+grep -q '^VERSION = "0.8.12"$' "$cli" || fail "script VERSION is not 0.8.12"
+grep -q '^version: 0.8.12$' "$root/skills/shiploop/SKILL.md" || fail "SKILL.md version is not 0.8.12"
+grep -Fq 'Version: **0.8.12**' "$root/skills/shiploop/README.md" || fail "README version is not 0.8.12"
 grep -q 'exclusive writer' "$root/skills/shiploop/references/survey.md" \
   || fail "survey.md missing exclusive writer question"
 grep -q 'conflicts, not as backups' "$root/skills/shiploop/references/survey.md" \
@@ -279,6 +279,25 @@ grep -Fq '.git/info/exclude' "$root/skills/shiploop/README.md" \
   || fail "README missing .git/info/exclude"
 grep -Fq 'Never `git add -A`' "$root/skills/shiploop/README.md" \
   || fail "README missing Never git add -A"
+grep -Fq 'Key learnings:' "$root/skills/shiploop/README.md" \
+  || fail "README missing Key learnings:"
+grep -Fq 'log -10' "$root/skills/shiploop/README.md" \
+  || fail "README missing log -10"
+grep -Fq 'Key learnings:' "$root/skills/shiploop/commands/shiploop-complete.md" \
+  || fail "shiploop-complete.md missing Key learnings:"
+grep -Fq 'log -10' "$root/skills/shiploop/commands/shiploop-complete.md" \
+  || fail "shiploop-complete.md missing log -10"
+grep -Fq 'Implement git' "$root/skills/shiploop/SKILL.md" \
+  || fail "SKILL.md missing Implement git paste"
+grep -Fq 'Do not paste HOST FLAG' "$root/skills/shiploop/SKILL.md" \
+  || fail "SKILL.md missing Do not paste HOST FLAG"
+if grep -Fq 'Do not paste worktree, branch, or HOST FLAG' \
+  "$root/skills/shiploop/SKILL.md" \
+  "$root/skills/shiploop/README.md" \
+  "$root/skills/shiploop/references/activities/implement.md" \
+  "$root/skills/shiploop/references/turn-packet.md"; then
+  fail "paste rule still forbids worktree/branch (Implement git is pasted)"
+fi
 grep -Fq 'write labeled done_sentence equal to spec' "$root/skills/shiploop/README.md" \
   || fail "README Look-here plan row missing create-why"
 grep -Fq 'dest-scoped' "$root/skills/shiploop/README.md" \
@@ -1226,6 +1245,29 @@ printf '%s\n' "$out_imp" | grep -q 'mcp-considered: none(no read-capable session
 printf '%s\n' "$out_imp" | grep -q 'tools: (none)' || fail "implement Next missing tools: (none)"
 printf '%s\n' "$out_imp" | grep -q 'mcp: (none)' || fail "implement Next missing mcp: (none)"
 printf '%s\n' "$out_imp" | grep -q 'Exclusive: (none)' || fail "implement Next missing Exclusive: (none)"
+printf '%s\n' "$out_imp" | grep -q 'Implement git (paste into /goal with Frozen' \
+  || fail "implement Next missing Implement git"
+printf '%s\n' "$out_imp" | grep -q 'Key learnings:' \
+  || fail "implement Next missing Key learnings:"
+printf '%s\n' "$out_imp" | grep -q 'log -10 --format=full' \
+  || fail "implement Next missing log -10"
+printf '%s\n' "$out_imp" | grep -q 'See: <full sha>' \
+  || fail "implement Next missing See: sha template"
+printf '%s\n' "$out_imp" | grep -q 'Worktree: ' \
+  || fail "implement Next Implement git missing Worktree:"
+printf '%s\n' "$out_imp" | grep -q 'Session checkout (repo_root main tree' \
+  || fail "implement Next missing session checkout definition"
+printf '%s\n' "$out_imp" | python3 -c "
+import sys
+text = sys.stdin.read()
+i = text.find('Frozen session environment')
+j = text.find('Implement git (paste into /goal with Frozen')
+k = text.find('/goal\n')
+if k < 0:
+    k = text.find('/goal')
+assert i != -1 and j != -1 and k != -1, (i, j, k)
+assert i < j < k, (i, j, k)
+" || fail "Implement git not between Frozen and stored /goal"
 assert_absent "$out_imp" 'do not implement the product through MCP' \
   "Frozen still forbids implementing through MCP"
 python3 -c '
@@ -2378,6 +2420,9 @@ printf '%s\n' "$out_w3" | grep -q 'implement: current' || fail "closer walk not 
 printf '%s\n' "$out_w3" | grep -q 'S1: running' || fail "closer walk did not claim S1"
 printf '%s\n' "$out_w3" | grep -q 'from initial_state' || fail "closer walk /goal None"
 commit_step_work "$runw" S1
+wt_s1="$(python3 -c "import json; print(json.load(open('$runw/steps/S1.json'))['worktree'])")"
+s1sha="$(git -C "$wt_s1" rev-parse HEAD)"
+[[ -n "$s1sha" ]] || fail "closer walk missing S1 commit sha"
 merge_step_branch "$runw" S1
 out_w4="$(run_cli complete --run-dir "$runw")"
 printf '%s\n' "$out_w4" | grep -q 'completed S1' || fail "closer walk S1: $out_w4"
@@ -2385,6 +2430,10 @@ printf '%s\n' "$out_w4" | grep -q 'S2: running' || fail "closer walk did not cla
 printf '%s\n' "$out_w4" | grep -q 'stand      implement — 1/2 steps done' || fail "closer walk mid stand"
 wt_s2="$(python3 -c "import json; print(json.load(open('$runw/steps/S2.json'))['worktree'])")"
 [[ -f "$wt_s2/S1.txt" ]] || fail "S2 worktree missing merged S1.txt"
+git -C "$wt_s2" merge-base --is-ancestor "$s1sha" HEAD \
+  || fail "S2 worktree missing S1 commit $s1sha"
+git -C "$wt_s2" log --oneline | grep -q 'step S1' \
+  || fail "S2 log missing S1 subject"
 commit_step_work "$runw" S2
 merge_step_branch "$runw" S2
 out_w5="$(run_cli complete --run-dir "$runw")"

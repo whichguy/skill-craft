@@ -8,7 +8,7 @@ description: >-
   /shiploop complete — do not rely on chat memory. Lost context without
   completing → /shiploop next.
 allowed-tools: all
-version: 0.8.11
+version: 0.8.12
 license: MIT
 platforms:
   - linux
@@ -92,10 +92,11 @@ Human overview: [README.md](README.md).
    away. That is the live session rail (`status --human` reprints it).
    Do only the **Next prompt** (first line is `Use this prompt as much as
    possible.`). On implement, paste the **Frozen session environment**
-   block together with the stored prompt into `/goal`. Do not paste
-   worktree, branch, or HOST FLAG. Implement steps name a per-step
-   worktree and branch in **Look here** / **Diagnosis** — work there; do
-   not edit the session checkout or reuse a prior worktree. Full workflow:
+   block, the **Implement git** block, and the stored prompt into `/goal`.
+   Do not paste HOST FLAG (parent chat stays put; no re-root). Implement
+   git names the worktree and branch; Look here / Diagnosis still name
+   them too. Work there; do not edit the session checkout or reuse a
+   prior worktree. Full workflow:
    [README.md](README.md). Git sequence (who runs which command):
    [README.md — Git sequence (harness vs host)](README.md#git-sequence-harness-vs-host).
 5. When the increment is done: invoke **`/shiploop complete`**. That command
@@ -135,9 +136,14 @@ This is not a reprint. Invoking it means the current increment finished (or
 failed). Follow [commands/shiploop-complete.md](commands/shiploop-complete.md):
 
 - **Success (default):** Next prompt is done. If that work was an implement
-  `/goal`: commit on that worktree if it is not committed; merge the kept
-  branch into the session checkout if it is not in `HEAD`. Do not skip the
-  merge; the next worktree forks `HEAD`.
+  `/goal`: if the worktree still has uncommitted files, `git -C <worktree>
+  log -10 --format=full`, then pathspec add (never `git add -A`) and
+  commit with a verbose body, `Key learnings:`, and `See: <full sha>
+  <subject>` for prior lesson commits. If `/goal` already committed, do
+  not invent a second finish commit. Then merge the kept branch into the
+  session checkout (`git -C <session-checkout> merge --no-ff --no-edit
+  <branch>`) if it is not in `HEAD`. Do not skip the merge; the next
+  worktree forks `HEAD`.
 - **`/goal` failed**, session can continue: `--clear` (add `--id` only when
   several steps are running and cwd is not that worktree).
 - **Hard stop:** `--blocked --reason <text>` (required). `--resume-to` only

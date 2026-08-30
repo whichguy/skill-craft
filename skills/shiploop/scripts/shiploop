@@ -23,7 +23,7 @@ EXIT_BLOCKED = 2
 EXIT_USAGE = 64
 
 PACKAGE_ROOT = Path(__file__).resolve().parents[1]
-VERSION = "0.8.11"
+VERSION = "0.8.12"
 REF_DIR = PACKAGE_ROOT / "references"
 WT_DIRNAME = ".worktrees"
 # Printed in ## Progress and the implement Next envelope. Do not splice into
@@ -38,6 +38,10 @@ HOST_WORKTREE_FLAG = (
     "The session checkout stays the merge dest; do not edit it during implement.",
     "After /shiploop complete, the host merges the kept branch into session HEAD; "
     "the next packet names the next worktree.",
+)
+# Pasted into /goal with Frozen. Do not splice into stored implement prompts.
+IMPLEMENT_GIT_HEAD = (
+    "Implement git (paste into /goal with Frozen; do not re-root the parent chat):"
 )
 TRANSITIONS_PATH = REF_DIR / "transitions.json"
 ACTIVITIES_DIR = REF_DIR / "activities"
@@ -2631,6 +2635,45 @@ def _join_env_list(values: Any) -> str:
     return ", ".join(parts) if parts else "(none)"
 
 
+def print_implement_git(
+    state: Dict[str, Any], sid: str, rec: Optional[Dict[str, Any]]
+) -> None:
+    """Paste-ready git/commit contract. Not Frozen (env) and not HOST FLAG."""
+    wt, br = isolation_for(state, sid, rec)
+    repo = repo_of(state)
+    repo_s = str(repo.resolve()) if repo.exists() else str(repo)
+    wt_s = wt or "(none)"
+    br_s = br or "(none)"
+    print(IMPLEMENT_GIT_HEAD)
+    print(f"Worktree: {wt_s}")
+    print(f"Branch: {br_s}")
+    print(
+        "Session checkout (repo_root main tree, merge dest — do not edit): "
+        f"{repo_s}"
+    )
+    print(
+        "This worktree already contains landed patches "
+        "(forked from session HEAD after the previous merge)."
+    )
+    print(f"Iterate here. git -C {wt_s} for every git command. Never git add -A.")
+    print(f"Before planning this iteration: git -C {wt_s} log -10 --format=full")
+    print(
+        "Treat those commit bodies as key learnings. "
+        "Follow every See: <sha> (and any path it names)."
+    )
+    print("Each inner commit on this branch:")
+    print("  Subject: one line")
+    print("  Body: verbose description of the change")
+    print("  Key learnings:")
+    print("  - <what this iteration taught>")
+    print("  See: <full sha> <subject>")
+    print(
+        "Do not merge from this cwd. When /goal is done, "
+        "the session host closer merges:"
+    )
+    print(f"  git -C {repo_s} merge --no-ff --no-edit {br_s}")
+
+
 def print_frozen_session_env(run_dir: Path) -> None:
     """Reprint frozen tools/MCP above the stored prompt. Do not compose it."""
     print(
@@ -3163,6 +3206,7 @@ def print_packet(run_dir: Path, state: Dict[str, Any], *, prior_running: Optiona
             print("Do not edit the session checkout during this /goal.")
             print_host_worktree_flag()
             print_frozen_session_env(run_dir)
+            print_implement_git(state, sid, rec)
             print_stored_prompt(str(step.get("prompt") or ""))
     else:
         print(activity_body(phase, run_dir, state))

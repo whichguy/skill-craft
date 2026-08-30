@@ -139,7 +139,9 @@ backchain/plan.json). `inject-step` discovered steps still
 need `/goal` plus until-`produces` and stay exempt from reference and
 `mcp_considered` citation; they are **not** exempt from Tools / Don't use when
 `exclusive` is nonempty. The implement envelope still reprints Frozen
-(Exclusive / dest-blocked / See) for those `/goal`s. See `{{IMPLEMENT_ACTIVITY}}`.
+(Exclusive / dest-blocked / See) and **Implement git** (worktree, `git log
+-10`, `Key learnings:`, `See: <sha>`) for those `/goal`s — do not copy
+that git contract into seed `prompt`s. See `{{IMPLEMENT_ACTIVITY}}`.
 
 Persist the backchain document to `{{BACKCHAIN_JSON}}` (canonical). Then
 write `{{PLAN_MD}}` with a labeled line `done_sentence: {{DONE_SENTENCE}}`
