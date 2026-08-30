@@ -2678,7 +2678,22 @@ def look_here_lines(run_dir: Path, state: Dict[str, Any], phase: str) -> List[st
         add("required", run_dir / "spec.md", "frozen spec — do not rewrite")
         add("required", run_dir / "environment.md", "frozen survey")
         add("required", canonical_backchain(run_dir), "canonical backchain DAG (create)", missing_ok=True)
-        add("required", run_dir / "plan.md", "sequence plan pointer", missing_ok=True)
+        spec, _ = load_spec(run_dir)
+        plan_p = run_dir / "plan.md"
+        if not plan_p.is_file():
+            add(
+                "required",
+                plan_p,
+                "sequence plan pointer",
+                missing_ok=True,
+                why_missing="write labeled done_sentence equal to spec (create)",
+            )
+        else:
+            pg = wrapper_pair(run_dir, spec)
+            if pg:
+                add("required", plan_p, "; ".join(pg))
+            else:
+                add("required", plan_p, "sequence plan pointer")
         if deps.get("backchain"):
             add("required", Path(deps["backchain"]) / "SKILL.md", "backchain sequence plan")
     elif phase == "implement":
@@ -3058,7 +3073,8 @@ def apply_update(
         clear_steps(run_dir, state)
     if dest == "implement":
         spec, _ = load_spec(run_dir)
-        more = dag_gaps(run_dir, spec)
+        more = wrapper_pair(run_dir, spec)
+        more.extend(dag_gaps(run_dir, spec))
         if more:
             die(EXIT_BLOCKED, "; ".join(more))
         state["plan_sha256"] = plan_hash_of(run_dir)

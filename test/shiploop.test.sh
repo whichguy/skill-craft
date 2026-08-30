@@ -762,7 +762,7 @@ printf '%s\n' "$out_plan" | grep -qx 'invoke /shiploop complete' \
 assert_absent "$out_plan" '{{PLAN_JSON}}' "plan packet leaked retired PLAN_JSON"
 look_plan="$(packet_section "$out_plan" "## Look here")"
 printf '%s\n' "$look_plan" | grep -q 'plan.md' || fail "plan Look-here missing plan.md: $look_plan"
-printf '%s\n' "$look_plan" | grep -q 'not written yet — create at this path' \
+printf '%s\n' "$look_plan" | grep -q 'write labeled done_sentence equal to spec (create)' \
   || fail "plan Look-here missing plan.md create why: $look_plan"
 printf '%s\n' "$look_plan" | grep -q 'backchain' \
   || fail "plan Look-here missing DAG: $look_plan"
@@ -843,6 +843,9 @@ rc_post=$?
 set -e
 [[ "$rc_post" -eq 0 ]] || fail "post-bind plan.md edit should not fail-closed: $out_post"
 printf '%s\n' "$out_post" | grep -q 'S1: running' || fail "post-bind plan.md edit lost S1: $out_post"
+look_post="$(packet_section "$out_post" "## Look here")"
+assert_absent "$look_post" 'plan.md labeled done_sentence must equal spec.md' \
+  "implement Look-here re-litigated dest-implement equality after allowed drift"
 
 runbad="$tmpdir/planjson-bad/.shiploop"
 repobad="$tmpdir/planjson-bad/repo"
@@ -853,13 +856,42 @@ printf '{' >"$runbad/plan.json"
 run_cli update --run-dir "$runbad" --to implement >/dev/null
 out_bad="$(run_cli next --run-dir "$runbad")"
 printf '%s\n' "$out_bad" | grep -q 'S1: running' || fail "malformed leftover wrapper blocked dest: $out_bad"
+out_injbad="$(run_cli inject-step --run-dir "$runbad" --statement "mid bind" --prompt "/goal injected mid bind" --produces "mid exists" --before S2 --id S3)"
+printf '%s\n' "$out_injbad" | grep -q 'injected S3' || fail "inject with malformed leftover wrapper: $out_injbad"
+python3 - "$runbad/plan.json" <<'PY'
+from pathlib import Path
+import sys
+raw = Path(sys.argv[1]).read_text()
+assert raw == "{", raw
+PY
 
 runds="$tmpdir/planmd-drift/.shiploop"
 repods="$tmpdir/planmd-drift/repo"
 mkdir -p "$repods"
 advance_to_plan "$runds" "$repods" "$planf"
 install_dag "$runds" linear.json
+out_okpl="$(run_cli next --run-dir "$runds")"
+look_okpl="$(packet_section "$out_okpl" "## Look here")"
+printf '%s\n' "$look_okpl" | grep -q 'sequence plan pointer' \
+  || fail "valid plan.md Look-here missing pointer: $look_okpl"
+assert_absent "$look_okpl" 'plan.md empty' "valid plan.md Look-here named empty"
+printf '' >"$runds/plan.md"
+out_emptypl="$(run_cli next --run-dir "$runds")"
+printf '%s\n' "$(packet_section "$out_emptypl" "## Look here")" | grep -q 'plan.md empty' \
+  || fail "empty plan.md Look-here missing gap: $out_emptypl"
+printf 'steps only, no label\n' >"$runds/plan.md"
+out_unlab="$(run_cli next --run-dir "$runds")"
+printf '%s\n' "$(packet_section "$out_unlab" "## Look here")" \
+  | grep -q 'plan.md labeled done_sentence missing' \
+  || fail "unlabeled plan.md Look-here missing gap: $out_unlab"
+printf '%s\n' "$(packet_section "$out_unlab" "## Missing")" \
+  | grep -q 'plan.md labeled done_sentence missing' \
+  || fail "unlabeled plan.md Missing missing gap: $out_unlab"
 printf 'done_sentence: other sentence\n' >"$runds/plan.md"
+out_driftpl="$(run_cli next --run-dir "$runds")"
+printf '%s\n' "$(packet_section "$out_driftpl" "## Look here")" \
+  | grep -q 'plan.md labeled done_sentence must equal spec.md' \
+  || fail "drifted plan.md Look-here missing equality gap: $out_driftpl"
 set +e
 out_dsd="$(run_cli update --run-dir "$runds" --to implement 2>&1)"
 rc_dsd=$?
