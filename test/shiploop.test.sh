@@ -82,6 +82,14 @@ grep -q 'researches applicable practices' "$root/skills/shiploop/README.md" \
   || fail "README missing practices research"
 grep -q 'recap.html' "$root/skills/shiploop/README.md" \
   || fail "README missing recap.html"
+if grep -q 'Any working phase can dest' "$root/skills/shiploop/README.md"; then
+  fail "README must not claim intake dest blocked"
+fi
+grep -q 'Every working phase after intake can dest' "$root/skills/shiploop/README.md" \
+  || fail "README missing after-intake dest blocked"
+grep -q 'Each seed `prompt` must cite every `references\[\].path`' \
+  "$root/skills/shiploop/README.md" \
+  || fail "README citation gate looser than dag_gaps"
 grep -q 'host-owned' "$root/skills/shiploop/references/activities/done.md" \
   || fail "done.md missing host-owned quality"
 if grep -q 'already ran' "$root/skills/shiploop/references/activities/done.md"; then
@@ -789,6 +797,9 @@ run_cli next --run-dir "$runub" >/dev/null
 complete_ok "$runub" S1
 run_cli next --run-dir "$runub" >/dev/null
 complete_ok "$runub" S2
+out_dr_ub="$(run_cli next --run-dir "$runub")"
+printf '%s\n' "$out_dr_ub" | grep -q 'bound_plan empty' \
+  || fail "drained unbound Missing missing bound_plan empty: $out_dr_ub"
 set +e
 out_ub="$(run_cli update --run-dir "$runub" --to residual 2>&1)"
 rc_ub=$?
@@ -796,6 +807,9 @@ set -e
 [[ "$rc_ub" -eq 2 ]] || fail "unbound dest residual want 2: $out_ub"
 printf '%s\n' "$out_ub" | grep -qi 'bound_plan empty' || fail "unbound residual message: $out_ub"
 printf '\n## Review Coverage\nauto-bind this session plan\n' >>"$runub/plan.md"
+out_dr_h2="$(run_cli next --run-dir "$runub")"
+assert_absent "$out_dr_h2" 'bound_plan empty' \
+  "drained H2 still listed bound_plan empty"
 out_bd="$(run_cli update --run-dir "$runub" --to residual)"
 printf '%s\n' "$out_bd" | grep -q 'residual: current' || fail "auto-bind dest residual: $out_bd"
 python3 - "$runub" <<'PY'
@@ -884,6 +898,10 @@ cat >"$repo/REVIEW_CONVERGE.md" <<MD
 review-converge: round 2 —
 **Committed:** yes
 MD
+rm -f "$run/recap.html"
+out_res_miss="$(run_cli next --run-dir "$run")"
+assert_absent "$out_res_miss" 'missing recap.html' \
+  "residual packet demanded recap.html the harness writes"
 printf 'not html\n' >"$run/recap.html"
 out_nr="$(run_cli update --run-dir "$run" --to done 2>&1)"
 printf '%s\n' "$out_nr" | grep -q 'updated residual -> done' || fail "dest done should write recap: $out_nr"
@@ -1082,7 +1100,14 @@ out_ss="$(run_cli start-step --run-dir "$run2" --id S1 2>&1)"
 rc_ss=$?
 set -e
 [[ "$rc_ss" -eq 2 ]] || fail "double start want 2: $out_ss"
-complete_ok "$run2" S1
+commit_step_work "$run2" S1
+merge_step_branch "$run2" S1
+out_tr_c="$(run_cli complete --run-dir "$run2" --id S1)"
+printf '%s\n' "$out_tr_c" | grep -q 'In flight' \
+  || fail "complete --id S1 did not keep S2 in-flight: $out_tr_c"
+printf '%s\n' "$out_tr_c" | grep -q 'Continuing' \
+  || fail "complete --id S1 Progress did not Continuing S2: $out_tr_c"
+printf '%s\n' "$out_tr_c" | grep -q 'S1: done' || fail "complete --id S1 S1 not done"
 out_tr2="$(run_cli next --run-dir "$run2")"
 printf '%s\n' "$out_tr2" | grep -q 'In flight' || fail "S2 not labeled in-flight"
 printf '%s\n' "$out_tr2" | grep -q 'S1: done' || fail "S1 should stay done"
@@ -1352,6 +1377,13 @@ install_dag "$runb" two-root.json
 run_cli update --run-dir "$runb" --to implement >/dev/null
 run_cli next --run-dir "$runb" >/dev/null
 run_cli update --run-dir "$runb" --to blocked --resume-to implement --reason "host failed" >/dev/null
+set +e
+out_bb="$(run_cli complete --run-dir "$runb" --blocked --reason x 2>&1)"
+rc_bb=$?
+set -e
+[[ "$rc_bb" -eq 2 ]] || fail "complete --blocked while blocked want 2: $out_bb"
+printf '%s\n' "$out_bb" | grep -q 'complete --reason' \
+  || fail "already-blocked --blocked missing complete --reason: $out_bb"
 set +e
 out_bcs="$(run_cli complete-step --run-dir "$runb" --id S1 2>&1)"
 rc_bcs=$?

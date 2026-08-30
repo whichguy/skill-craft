@@ -87,7 +87,7 @@ Phases (from `transitions.json`; there is **no** `survey` / `setup` / `inject`
 phase):
 
 `intake → validate-spec → plan → implement → residual → done`
-(or `halted` from residual). Any working phase can dest `blocked`.
+(or `halted` from residual). Every working phase after intake can dest `blocked`.
 
 ```mermaid
 flowchart TD
@@ -203,8 +203,8 @@ must have:
 - `prompt` — **exact** inner-loop paste body (newlines OK; no other control characters)
 - `produces` / `inputs` / `origin: seed`
 
-Each `prompt` must cite every `references[].path` from `environment.md` that
-the increment researched, and end with a `Tools:` block (Watch with / Use /
+Each seed `prompt` must cite every `references[].path` from `environment.md`,
+and end with a `Tools:` block (Watch with / Use /
 Don't use / Assume) that includes the frozen `mcp_considered` token. Include prep / intermediate deploy / cleanup when implied,
 and a **README create/revise as a late successor**. The spec's three
 placement answers decide which of those fire: deploy preparation *is* the

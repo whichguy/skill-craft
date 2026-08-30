@@ -633,10 +633,9 @@ def plan_waiver(state: Dict[str, Any]) -> Optional[str]:
     return reason
 
 
-def maybe_bind_residual_plan(state: Dict[str, Any], run_dir: Path) -> Optional[Path]:
-    """Bind empty bound_plan to a local plan that already has Review Coverage."""
-    if str(state.get("bound_plan") or "").strip():
-        return None
+def residual_coverage_candidates(state: Dict[str, Any], run_dir: Path) -> List[Path]:
+    """Plans that already have ## Review Coverage (read-only; no state writes)."""
+    found: List[Path] = []
     candidates = [run_dir / "plan.md"]
     repo = repo_of(state)
     if repo:
@@ -657,10 +656,27 @@ def maybe_bind_residual_plan(state: Dict[str, Any], run_dir: Path) -> Optional[P
             continue
         if _section_h2(text, "Review Coverage") is None:
             continue
-        state["bound_plan"] = key
-        state["bound_plan_hash"] = sha256_file(resolved)
-        return resolved
-    return None
+        found.append(resolved)
+    return found
+
+
+def residual_plan_bindable(state: Dict[str, Any], run_dir: Path) -> bool:
+    if str(state.get("bound_plan") or "").strip():
+        return True
+    return bool(residual_coverage_candidates(state, run_dir))
+
+
+def maybe_bind_residual_plan(state: Dict[str, Any], run_dir: Path) -> Optional[Path]:
+    """Bind empty bound_plan to a local plan that already has Review Coverage."""
+    if str(state.get("bound_plan") or "").strip():
+        return None
+    found = residual_coverage_candidates(state, run_dir)
+    if not found:
+        return None
+    resolved = found[0]
+    state["bound_plan"] = str(resolved)
+    state["bound_plan_hash"] = sha256_file(resolved)
+    return resolved
 
 
 def latest_round_body(text: str) -> Tuple[str, Optional[str]]:
@@ -2024,14 +2040,13 @@ def missing_for(state: Dict[str, Any], run_dir: Path, dest: Optional[str]) -> Li
     elif need == "steps_drained":
         if not steps_drained(run_dir, state):
             gaps.append("steps not drained")
-        if not str(state.get("bound_plan") or "").strip():
+        if not residual_plan_bindable(state, run_dir):
             gaps.append(
                 "bound_plan empty: add ## Review Coverage to .shiploop/plan.md "
                 "or pass --bound-plan"
             )
     elif need == "residual_success":
         gaps.extend(residual_gaps(state, "done"))
-        gaps.extend(recap_gaps(run_dir))
     elif need == "residual_stopped":
         gaps.extend(residual_gaps(state, "halted"))
     elif need == "reason":
@@ -2979,6 +2994,10 @@ def apply_update(
     if dest in ("done", "halted") and not residual_gaps(state, dest):
         write_recap_html(run_dir, state, dest=dest)
     gaps = missing_for(state, run_dir, dest)
+    if dest in ("done", "halted"):
+        for g in recap_gaps(run_dir):
+            if g not in gaps:
+                gaps.append(g)
     if dest == "blocked":
         resume = (resume_to or "").strip()
         if not resume:
@@ -3137,16 +3156,22 @@ def cmd_complete(args: argparse.Namespace) -> int:
         state = load_state(run_dir)
         state["dep_roots"] = resolve_dep_roots()
         explicit = getattr(args, "id", None)
+        prior: Set[str] = set()
+        if str(state.get("phase")) == "implement":
+            prior = {
+                sid for sid, k in classify_steps(run_dir, state).items() if k == "running"
+            }
         if args.blocked:
             src = str(state.get("phase"))
+            if src == "blocked":
+                die(
+                    EXIT_BLOCKED,
+                    "already blocked; resume with /shiploop complete --reason <answer>",
+                )
             resume = (args.resume_to or "").strip()
             if not resume:
                 if src in RESUME_PHASES:
                     resume = src
-                elif src == "blocked":
-                    resume = str(state.get("resume_to") or "")
-                else:
-                    resume = "implement"
             apply_update(
                 run_dir,
                 state,
@@ -3161,7 +3186,7 @@ def cmd_complete(args: argparse.Namespace) -> int:
             sid = resolve_step_id(run_dir, state, explicit)
             apply_clear_receipt(run_dir, state, sid)
             print(f"cleared {sid}")
-            claim_and_print(run_dir, state, prior=set())
+            claim_and_print(run_dir, state, prior=prior - {sid})
             return EXIT_OK
         phase = str(state.get("phase"))
         if phase == "implement":
@@ -3172,7 +3197,7 @@ def cmd_complete(args: argparse.Namespace) -> int:
                 sid = resolve_step_id(run_dir, state, explicit)
                 apply_complete_receipt(run_dir, state, sid)
                 print(f"completed {sid}")
-                claim_and_print(run_dir, state, prior=set())
+                claim_and_print(run_dir, state, prior=prior - {sid})
                 return EXIT_OK
             if steps_drained(run_dir, state):
                 apply_update(run_dir, state, "residual")
