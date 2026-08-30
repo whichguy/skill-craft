@@ -101,8 +101,18 @@ grep -q '`waived`' "$root/skills/shiploop/references/state-files.md" \
   || fail "state-files.md missing terminal waived"
 grep -q '`halted`' "$root/skills/shiploop/references/state-files.md" \
   || fail "state-files.md missing terminal halted"
-grep -q '^VERSION = "0.8.5"$' "$cli" || fail "script VERSION is not 0.8.5"
-grep -q '^version: 0.8.5$' "$root/skills/shiploop/SKILL.md" || fail "SKILL.md version is not 0.8.5"
+grep -q '^VERSION = "0.8.6"$' "$cli" || fail "script VERSION is not 0.8.6"
+grep -q '^version: 0.8.6$' "$root/skills/shiploop/SKILL.md" || fail "SKILL.md version is not 0.8.6"
+grep -q 'def journal_mark' "$cli" || fail "script missing journal_mark"
+grep -Fq 'walk-rail journal' "$root/skills/shiploop/README.md" \
+  || fail "README missing checkbox walk journal"
+grep -Fq 'walk-rail journal' "$root/skills/shiploop/references/turn-packet.md" \
+  || fail "turn-packet.md missing checkbox walk journal"
+if grep -E 'walk\.md|journal\.md' "$cli"; then
+  fail "scripts/shiploop must not write walk.md or journal.md"
+fi
+[[ -f "$root/test/shiploop-walk-journal.test.sh" ]] \
+  || fail "missing test/shiploop-walk-journal.test.sh"
 grep -q 'init --force --prompt' "$root/skills/shiploop/SKILL.md" \
   || fail "SKILL.md missing three-branch init --force --prompt"
 grep -q 'init --force --prompt' "$root/skills/shiploop/README.md" \
@@ -1076,9 +1086,12 @@ printf '%s\n' "$out_imp" | grep -q 'S2: todo' || fail "S2 should wait"
 printf '%s\n' "$out_imp" | grep -q 'Session  ● intake' || fail "session rail missing intake done"
 printf '%s\n' "$out_imp" | grep -q '▶ implement' || fail "session rail missing implement current"
 printf '%s\n' "$out_imp" | grep -q '○ residual' || fail "session rail missing residual left"
-printf '%s\n' "$out_imp" | grep -q '▶ S1  write the file' || fail "walk rail missing S1 statement"
-printf '%s\n' "$out_imp" | grep -q '○ S2  confirm the file' || fail "walk rail missing S2 statement"
+printf '%s\n' "$out_imp" | grep -Fq '[ ] S1  write the file' || fail "walk rail missing S1 statement"
+printf '%s\n' "$out_imp" | grep -Fq '[ ] S2  confirm the file' || fail "walk rail missing S2 statement"
 printf '%s\n' "$out_imp" | grep -q 'waiting on S1 write the file' || fail "walk rail missing waiting-on"
+if printf '%s\n' "$out_imp" | grep -E '^  [●▶○] S[0-9]' >/dev/null; then
+  fail "walk rail still uses session-rail glyphs on a step id"
+fi
 printf '%s\n' "$out_imp" | grep -q 'Finish S1: write the file' || fail "labeled Finish S1 missing"
 printf '%s\n' "$out_imp" | grep -q 'S1 worktree — cwd here — write the file' || fail "look here missing S1 statement"
 printf '%s\n' "$out_imp" | grep -qx 'Diagnosis' || fail "implement missing Diagnosis"
@@ -1135,6 +1148,8 @@ set -e
 complete_ok "$run" S1
 out_mid="$(run_cli next --run-dir "$run")"
 printf '%s\n' "$out_mid" | grep -q 'S1: done' || fail "S1 not done"
+printf '%s\n' "$out_mid" | grep -Fq '[x] S1  write the file' || fail "walk journal missing [x] S1"
+printf '%s\n' "$out_mid" | grep -Fq '[ ] S2  confirm the file' || fail "walk journal missing [ ] S2"
 printf '%s\n' "$out_mid" | grep -q 'S2: running' || fail "S2 not claimed"
 printf '%s\n' "$out_mid" | grep -q 'stand      implement — 1/2 steps done' || fail "mid stand"
 printf '%s\n' "$out_mid" | awk '/^  completed$/,/^  now$/' | grep -q 'S1  write the file' \
@@ -2717,5 +2732,8 @@ state = json.loads((run / "state.json").read_text())
 assert state["phase"] == "implement", state["phase"]
 PY
 printf 'LAYER: inject-step add/refuse/drained OK\n'
+
+bash "$root/test/shiploop-walk-journal.test.sh" \
+  || fail "shiploop-walk-journal.test.sh"
 
 printf 'shiploop.test.sh: PASS\n'

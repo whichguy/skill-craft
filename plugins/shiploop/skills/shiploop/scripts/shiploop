@@ -23,7 +23,7 @@ EXIT_BLOCKED = 2
 EXIT_USAGE = 64
 
 PACKAGE_ROOT = Path(__file__).resolve().parents[1]
-VERSION = "0.8.5"
+VERSION = "0.8.6"
 REF_DIR = PACKAGE_ROOT / "references"
 WT_DIRNAME = ".worktrees"
 # Printed in ## Progress and the implement Next envelope. Do not splice into
@@ -2200,13 +2200,26 @@ def _diag_supplier_suffix(step: Dict[str, Any]) -> str:
     return "needs " + "; ".join(bits)
 
 
+def journal_mark(klass: str) -> str:
+    return "[x]" if klass == "done" else "[ ]"
+
+
 def _print_diag_step(
-    sid: str, step: Dict[str, Any], *, status: str = "", need: str = "", isolate: str = ""
+    sid: str,
+    step: Dict[str, Any],
+    *,
+    status: str = "",
+    need: str = "",
+    isolate: str = "",
+    mark: str = "",
 ) -> None:
     stmt = diag_text(step.get("statement"))
     texts = produces_texts(step.get("produces")) or []
     produces = diag_text("; ".join(texts)) if texts else ""
-    print(f"    {sid}  {stmt}")
+    if mark:
+        print(f"    {mark} {sid}  {stmt}")
+    else:
+        print(f"    {sid}  {stmt}")
     if produces and produces != "(none)":
         print(f"        produces  {produces}")
     extra = "  ".join(p for p in (status, need) if p)
@@ -2256,7 +2269,11 @@ def print_diagnosis(run_dir: Path, state: Dict[str, Any]) -> None:
         print("  completed")
         if done:
             for sid in done:
-                _print_diag_step(sid, by_id.get(sid) or {"statement": ""})
+                _print_diag_step(
+                    sid,
+                    by_id.get(sid) or {"statement": ""},
+                    mark=journal_mark("done"),
+                )
         else:
             print("    (none)")
         print("  now")
@@ -2277,6 +2294,7 @@ def print_diagnosis(run_dir: Path, state: Dict[str, Any]) -> None:
                     status=extra,
                     need=need,
                     isolate=isolate,
+                    mark=journal_mark(kind),
                 )
         else:
             print("    (none)")
@@ -2284,7 +2302,12 @@ def print_diagnosis(run_dir: Path, state: Dict[str, Any]) -> None:
         if waiting:
             for sid in waiting:
                 need = _diag_supplier_suffix(by_id.get(sid) or {})
-                _print_diag_step(sid, by_id.get(sid) or {"statement": ""}, need=need)
+                _print_diag_step(
+                    sid,
+                    by_id.get(sid) or {"statement": ""},
+                    need=need,
+                    mark=journal_mark("todo"),
+                )
         else:
             print("    (none)")
         return
@@ -2593,12 +2616,7 @@ def print_walk_rail(run_dir: Path, state: Dict[str, Any]) -> None:
     for sid in ids:
         klass = classes.get(sid, "todo")
         step = by_id.get(sid) or {}
-        if klass == "done":
-            mark = "●"
-        elif klass in ("running", "ready"):
-            mark = "▶"
-        else:
-            mark = "○"
+        mark = journal_mark(klass)
         stmt = (step.get("statement") or "").strip()
         line = f"  {mark} {sid}  {stmt}  {sid}: {klass}".rstrip()
         if klass == "todo":
