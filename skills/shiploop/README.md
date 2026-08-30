@@ -246,8 +246,10 @@ shape, and no handle still `list` or `ask`. `create` is dest-plan-legal.
 ### 3. Plan
 
 Spec and environment are **frozen**. Host calls sibling **backchain** once
-and persists the DAG at `.shiploop/backchain/plan.json`. Every seed step
-must have:
+and persists the DAG at `.shiploop/backchain/plan.json`. Survey already
+exercised handles before the machine fence. Native backchain is draft →
+dependency review → resolve → elaborate; do not audit the persisted DAG for
+new experiments. Every seed step must have:
 
 - `statement` — short diagnosis label
 - `prompt` — **exact** inner-loop paste body (newlines OK; no other control characters)

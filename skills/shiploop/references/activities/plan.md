@@ -22,12 +22,32 @@ phase. It must record what the app is, how to run it, and what this
 increment changed; it must never contain machine JSON, handles, tokens, MCP
 inventory, or session hashes (those stay in `{{ENV_MD}}`).
 
-Call backchain with the frozen done sentence **and** the full `{{ENV_MD}}`
-(machine JSON plus dest notes in the brief). Ask it once whether the goal
-needs an existing repo, a data migration, a CI/CD gate, docs, or a system
-that is not there yet. A real missing precondition becomes a seed step. An
-unanswerable question is dest **blocked** with `--reason`. Never leave a
-nonempty `unresolved` list.
+Call the installed **backchain** skill **once**, native procedure: draft →
+dependency review → host resolve into `resolved_facts` → elaborate. Call it
+with the frozen done sentence **and** the full `{{ENV_MD}}` (machine JSON
+plus dest notes in the brief). Ask it once whether the goal needs an existing
+repo, a data migration, a CI/CD gate, docs, or a system that is not there yet.
+
+Persist `{{BACKCHAIN_JSON}}` only after topology is resolved. Never hand-edit
+`backchain/plan.json`. Never send the decorated ShipLoop document (steps with
+`prompt`) back into Backchain. Do not audit the persisted DAG for new experiments.
+Confirmation sinks remain DAG steps at implement.
+
+Unverified login, credentials, hosted ids, and “the API works this way” are
+not `initial_state`. A missing precondition later steps consume, with topology
+unchanged, becomes an early seed (the implement `/goal` is the spike). Do not
+run that spike in plan. A claim that would change which steps exist → do not
+guess the graph. If dependency review marks `source_needed: inspect` and a
+cheap read-only call exists, run it at resolve, append to `resolved_facts`
+with `evidence`, then elaborate. If `source_needed: user` or no cheap call →
+dest **blocked** (`resume_to=plan` if only the DAG is wrong, `validate-spec`
+if the spec or environment must change). Never empty `unresolved` by inventing `initial_state`.
+Dest **implement** still refuses a nonempty `unresolved` list. During
+`plan`, never edit `{{ENV_MD}}` or `{{SPEC_MD}}`.
+
+The **host** appends probe results at resolve — `dependency-review.prompt.md`
+tells its model to leave `resolved_facts` empty unless the draft already
+answers; that rule does not bind the ShipLoop host.
 
 **Purpose vs setup vs iterate vs conclude.** The original ask
 (`{{PROMPT_PATH}}`) and frozen `done_sentence` are the **purpose of the
@@ -85,7 +105,9 @@ Label meanings (host judgment — the script does not check these words):
 - **Don't use:** conflicting writers of the same artifact (from
   `exclusive[].dont_use`), plus unauthenticated, deferred, or
   wrong-for-this-step tools/MCP.
-- **Assume:** relevant frozen handles, initiation, and dest notes already in the brief — never newly invented facts.
+- **Assume:** frozen brief facts, **or** a probe-verified / survey-established
+  fact recorded in `initial_state` or `resolved_facts` — never a newly
+  invented host guess.
 
 ```text
 Tools:

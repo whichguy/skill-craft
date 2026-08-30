@@ -13,6 +13,15 @@ exactly `machine` with one fenced JSON object. Any handle resolved `list` or
 `ask` will block `dest plan` later — resolve it now or use the blocked hatch
 below.
 
+Inventory required handles, then at most one bounded read-only attempt per
+identified claim before finalizing the machine fence, per the survey guide.
+If `list` or `ask` remains, write `{{SPEC_MD}}` with labeled
+`done_sentence:` (provisional), `checkable: false`, and `ask_user: <the
+unresolved handle>`, then `/shiploop complete --blocked --resume-to
+validate-spec --reason <ask_user>`. Do not dest blocked with no `spec.md`.
+Do not re-exercise a handle already `inspect`. A handle first introduced
+while writing the spec inherits this rule before leaving validate-spec.
+
 ## 2. Best-practice research (once, before the spec)
 
 From `{{ENV_MD}}` (kind, tools, mcp, ui, initiation, handles) and
@@ -62,7 +71,7 @@ Do not run that `/goal` here. Do not publish here. Do not invent a new
 state-machine phase. Ownership: Q1 and Q2=`dag` → `plan`; Q2=`outer-loop`
 and Q3 → residual.
 
-If not checkable, or a handle needs the user: set `checkable: false` and a
-labeled `ask_user: <question>`, then `/shiploop complete --blocked
---resume-to validate-spec --reason <ask_user>`. This hatch does not require
-`{{ENV_MD}}` to be finished first.
+If not checkable, or a handle needs the user: set labeled `done_sentence:`
+(provisional), `checkable: false`, and `ask_user: <question>`, then
+`/shiploop complete --blocked --resume-to validate-spec --reason <ask_user>`.
+This hatch does not require `{{ENV_MD}}` to be finished first.

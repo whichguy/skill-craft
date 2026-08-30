@@ -109,6 +109,24 @@ grep -q 'new repo' "$root/skills/shiploop/references/activities/plan.md" \
   || fail "plan.md missing new repo example"
 grep -q 'Database' "$root/skills/shiploop/references/activities/plan.md" \
   || fail "plan.md missing database example"
+grep -Fq 'Never empty `unresolved` by inventing `initial_state`.' \
+  "$root/skills/shiploop/references/activities/plan.md" \
+  || fail "plan.md missing never-invent initial_state"
+grep -Fq 'Several matches' "$root/skills/shiploop/references/survey.md" \
+  || fail "survey.md missing Several matches -> ask"
+grep -Fq 'resolved_facts' "$root/skills/shiploop/references/activities/plan.md" \
+  || fail "plan.md missing resolved_facts"
+grep -Fq 'Do not audit the persisted DAG for new experiments' \
+  "$root/skills/shiploop/references/activities/plan.md" \
+  || fail "plan.md missing no post-persist experiment audit"
+grep -Fq 'dependency review' "$root/skills/shiploop/references/activities/plan.md" \
+  || fail "plan.md missing dependency review"
+grep -Fq 'access established' "$root/skills/shiploop/references/activities/blocked.md" \
+  || fail "blocked.md missing access established"
+grep -q 'done_sentence' "$root/skills/shiploop/references/activities/validate-spec.md" \
+  || fail "validate-spec.md missing done_sentence on hatch"
+grep -q 'done_sentence' "$root/skills/shiploop/references/survey.md" \
+  || fail "survey.md hatch missing done_sentence"
 grep -q 'Do this activity until these conditions are met:' "$cli" \
   || fail "script missing UNTIL_HEAD"
 [[ -f "$root/test/fixtures/shiploop/setup-once.json" ]] \

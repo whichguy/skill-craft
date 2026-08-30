@@ -27,6 +27,15 @@ its output is `environment.md` (Look here names the absolute path).
   `ask` (must ask the user), or `create` (this increment provisions it).
   Any `list` or `ask` handle blocks `dest plan` — resolve it first, or use
   the `dest blocked` hatch below.
+
+  `inspect` / `list` / `ask` / `create` classify **what was resolved**, not
+  intent. If this session has a cheap read-only call (signed-in MCP list,
+  `gh auth status`, a documented status endpoint), run it **once**, **before
+  committing** the machine fence. `inspect` only when the required concrete
+  value was obtained (non-credential: id in `value`; credential: `value`
+  stays empty — never a token). Several matches → `ask`. Failure the user can
+  relieve → `ask` and the dest-blocked hatch. No cheap call → `ask`. Never
+  write the product tree to find out.
 - **initiation** — `none` (nothing to create), `needed` (one-time project
   creation is part of this increment; requires at least one `create` handle),
   or `done` (already created in a prior increment). Deploy *readiness*
@@ -56,10 +65,11 @@ skills to `dep_roots`.
 ## The `dest blocked` hatch
 
 If a handle needs the user (`ask`) or a design/UX question can't be resolved
-here, write `spec.md` with `checkable: false` and `ask_user: <question>`,
-then `/shiploop complete --blocked --resume-to validate-spec --reason
-<ask_user>`. `dest blocked` does not require `environment.md` to be written
-first — the survey can be incomplete when you stop to ask.
+here, write `spec.md` with labeled `done_sentence:` (provisional),
+`checkable: false`, and `ask_user: <question>`, then `/shiploop complete
+--blocked --resume-to validate-spec --reason <ask_user>`. `dest blocked`
+does not require `environment.md` to be written first — the survey can be
+incomplete when you stop to ask.
 
 ## README is not survey's to write
 
