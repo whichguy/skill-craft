@@ -29,29 +29,70 @@ that is not there yet. A real missing precondition becomes a seed step. An
 unanswerable question is dest **blocked** with `--reason`. Never leave a
 nonempty `unresolved` list.
 
+**Purpose vs setup vs iterate vs conclude.** The original ask
+(`{{PROMPT_PATH}}`) and frozen `done_sentence` are the **purpose of the
+plan**. They are Reminder / Look-here context — not the body of every
+seed `prompt`. Split work so one-time jobs run once:
+
+- **Setup (once)** — already true in `initial_state`, or an **early**
+  seed whose `produces` is that setup. Later `/goal`s must not repeat it.
+- **Iterate** — middle seeds. Each `/goal` is only this step until its
+  own `produces`. Assume suppliers and `initial_state`.
+- **Conclude (once)** — late seed (README / cleanup) and/or residual
+  (quality `/goal`, outer-loop publish). Not in middle steps.
+
+Examples (instructive):
+
+1. **New repo.** Ask: "in a new repo, add result.txt". If `initial_state`
+   already has `repo exists`, later prompts must not create another repo.
+2. **Database.** Ask: "stand up postgres and add the User table".
+   Database exists is setup; the table is iterate.
+3. **Deploy at the end.** Ask: "ship the feature and deploy". Deploy is
+   conclude (late DAG if spec said **dag**, residual if **outer-loop**).
+
 Every seed step must carry a nonempty `prompt` — the exact string the host
-will paste into that step's inner loop (newlines allowed, no control chars
-other than newline). `statement` stays the short diagnosis
-label; `prompt` is what gets pasted, not composed later. Every **seed**
-step's `prompt` must cite the practice references from `{{ENV_MD}}`
-(`references[].path` URLs or repo paths). It must also end with a `Tools:` block. This session
-`plan.md` pointer must never contain machine JSON, handles, tokens, or MCP
-inventory — those stay in `{{ENV_MD}}`. Seed **prompts** (the `/goal` body)
-must carry the frozen `mcp_considered` token.
+will paste (newlines allowed, no control chars other than newline). The
+script prints it **verbatim** and does not compose it from `statement` /
+`produces` / the original ask. `statement` stays the short diagnosis
+label. Shape:
+
+```text
+/goal
+Do this activity until these conditions are met:
+- <this step's produces, one bullet each>
+
+Assume already true (do not repeat): <initial_state and supplier produces>.
+Purpose of the plan (do not re-execute as this step): <frozen done_sentence>.
+
+Tools:
+…
+```
+
+`dest implement` refuses a seed `prompt` that has no line starting with
+`/goal`, that omits `Do this activity until these conditions are met:`,
+or that omits any `produces` string. Every **seed** `prompt` must still
+cite the practice references from `{{ENV_MD}}` (`references[].path`) and
+end with a `Tools:` block. This session `plan.md` pointer must never
+contain machine JSON, handles, tokens, or MCP inventory — those stay in
+`{{ENV_MD}}`. Seed **prompts** must carry the frozen `mcp_considered`
+token.
 
 Label meanings (host judgment — the script does not check these words):
 
 - **Watch with:** the exact frozen `mcp_considered` string, including `none(reason)`.
-- **Use:** existing non-MCP tools this step runs.
-- **Don't use:** unauthenticated, deferred, or wrong-for-this-step tools/MCP.
+- **Use:** existing non-MCP tools this step runs. Destination writes follow
+  the playbook's exclusive writer, including MCP named in `mcp:`.
+- **Don't use:** conflicting writers of the same artifact (from
+  `exclusive[].dont_use`), plus unauthenticated, deferred, or
+  wrong-for-this-step tools/MCP.
 - **Assume:** relevant frozen handles, initiation, and dest notes already in the brief — never newly invented facts.
 
 ```text
 Tools:
 Watch with: cursor-ide-browser(browser_snapshot)
-Use: clasp
+Use: git
 Don't use: Drive MCP (not signed in); browser MCP (later quality check)
-Assume: clasp is already logged in; create a new script; do not write a new test harness
+Assume: git remote already exists; do not write a new test harness
 ```
 
 When nothing matched:
@@ -68,10 +109,10 @@ Assume: this increment stays local
 has no line starting with `Tools:`, or that omits the frozen
 `mcp_considered` token (even on README / omit-MCP steps). In-flight
 pre-0.8.4 runs: dest **blocked** then dest **plan**, rewrite seed prompts
-(do not hand-edit `backchain/plan.json`). `inject-step` discovered steps still need
-a nonempty `prompt` but are exempt from citation and the Tools: gate;
-the implement envelope still reprints frozen tools/MCP for those `/goal`s.
-See `{{IMPLEMENT_ACTIVITY}}`.
+(do not hand-edit `backchain/plan.json`). `inject-step` discovered steps still
+need `/goal` plus until-`produces` but are exempt from citation and the
+Tools: gate; the implement envelope still reprints frozen tools/MCP for
+those `/goal`s. See `{{IMPLEMENT_ACTIVITY}}`.
 
 Persist the backchain document to `{{BACKCHAIN_JSON}}` (canonical). Then
 write `{{PLAN_MD}}` with a labeled line `done_sentence: {{DONE_SENTENCE}}`

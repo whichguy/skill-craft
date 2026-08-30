@@ -1,5 +1,5 @@
 {
-  "goal": "result.txt contains exactly one line: ok",
+  "goal": "in a new repo, result.txt contains exactly one line: ok",
   "initial_state": [
     "repo exists"
   ],
@@ -21,10 +21,5 @@
     }
   ],
   "parallel_groups": [],
-  "unresolved": [
-    {
-      "need": "CAB signoff",
-      "reason": "residual-risk"
-    }
-  ]
+  "unresolved": []
 }

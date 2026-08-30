@@ -101,8 +101,18 @@ grep -q '`waived`' "$root/skills/shiploop/references/state-files.md" \
   || fail "state-files.md missing terminal waived"
 grep -q '`halted`' "$root/skills/shiploop/references/state-files.md" \
   || fail "state-files.md missing terminal halted"
-grep -q '^VERSION = "0.8.7"$' "$cli" || fail "script VERSION is not 0.8.7"
-grep -q '^version: 0.8.7$' "$root/skills/shiploop/SKILL.md" || fail "SKILL.md version is not 0.8.7"
+grep -q '^VERSION = "0.8.8"$' "$cli" || fail "script VERSION is not 0.8.8"
+grep -q '^version: 0.8.8$' "$root/skills/shiploop/SKILL.md" || fail "SKILL.md version is not 0.8.8"
+grep -q 'Purpose of the plan' "$root/skills/shiploop/references/activities/plan.md" \
+  || fail "plan.md missing purpose vs setup split"
+grep -q 'new repo' "$root/skills/shiploop/references/activities/plan.md" \
+  || fail "plan.md missing new repo example"
+grep -q 'Database' "$root/skills/shiploop/references/activities/plan.md" \
+  || fail "plan.md missing database example"
+grep -q 'Do this activity until these conditions are met:' "$cli" \
+  || fail "script missing UNTIL_HEAD"
+[[ -f "$root/test/fixtures/shiploop/setup-once.json" ]] \
+  || fail "missing setup-once.json"
 grep -q 'def journal_mark' "$cli" || fail "script missing journal_mark"
 grep -Fq 'same glyphs' "$root/skills/shiploop/README.md" \
   || fail "README missing walk rail same glyphs as session rail"
@@ -921,7 +931,7 @@ printf '{' >"$runbad/plan.json"
 run_cli update --run-dir "$runbad" --to implement >/dev/null
 out_bad="$(run_cli next --run-dir "$runbad")"
 printf '%s\n' "$out_bad" | grep -q 'S1: running' || fail "malformed leftover wrapper blocked dest: $out_bad"
-out_injbad="$(run_cli inject-step --run-dir "$runbad" --statement "mid bind" --prompt "/goal injected mid bind" --produces "mid exists" --before S2 --id S3)"
+out_injbad="$(run_cli inject-step --run-dir "$runbad" --statement "mid bind" --prompt $'/goal\nDo this activity until these conditions are met:\n- mid exists' --produces "mid exists" --before S2 --id S3)"
 printf '%s\n' "$out_injbad" | grep -q 'injected S3' || fail "inject with malformed leftover wrapper: $out_injbad"
 python3 - "$runbad/plan.json" <<'PY'
 from pathlib import Path
@@ -1120,6 +1130,9 @@ printf '%s\n' "$out_imp" | grep -q 'mcp-considered: none(no read-capable session
   || fail "implement Next missing frozen mcp-considered: $out_imp"
 printf '%s\n' "$out_imp" | grep -q 'tools: (none)' || fail "implement Next missing tools: (none)"
 printf '%s\n' "$out_imp" | grep -q 'mcp: (none)' || fail "implement Next missing mcp: (none)"
+printf '%s\n' "$out_imp" | grep -q 'Playbook:' || fail "implement Next missing Playbook:"
+assert_absent "$out_imp" 'do not implement the product through MCP' \
+  "Frozen still forbids implementing through MCP"
 python3 -c '
 import sys
 p = sys.argv[1]
@@ -1127,7 +1140,7 @@ host = p.find("HOST FLAG — extra folder")
 # last HOST FLAG is the Next envelope (Progress prints one first)
 host = p.rfind("HOST FLAG — extra folder")
 mcp = p.find("mcp-considered:", host)
-prompt = p.find("/goal step S1:", host)
+prompt = p.find("/goal", host)
 assert host != -1 and mcp != -1 and prompt != -1 and host < mcp < prompt, (host, mcp, prompt)
 ' "$out_imp" || fail "envelope order: HOST FLAG then mcp-considered then stored prompt"
 printf '%s\n' "$out_imp" | grep -q 'checkable=true' || fail "implement reminder checkable"
@@ -1487,7 +1500,7 @@ run_cli update --run-dir "$run2" --to implement >/dev/null
 out_tr="$(run_cli next --run-dir "$run2")"
 printf '%s\n' "$out_tr" | grep -q 'S1: running' || fail "two-root S1"
 printf '%s\n' "$out_tr" | grep -q 'S2: running' || fail "two-root S2"
-printf '%s\n' "$out_tr" | grep -c '^/goal ' | grep -qx 2 || fail "want two /goal lines"
+printf '%s\n' "$out_tr" | grep -c '^/goal' | grep -qx 2 || fail "want two /goal lines"
 printf '%s\n' "$out_tr" | grep -c 'mcp-considered:' | grep -qx 2 \
   || fail "two-root want two mcp-considered envelopes"
 set +e
@@ -1506,7 +1519,7 @@ printf '%s\n' "$out_tr_c" | grep -q 'S1: done' || fail "complete --id S1 S1 not 
 out_tr2="$(run_cli next --run-dir "$run2")"
 printf '%s\n' "$out_tr2" | grep -q 'In flight' || fail "S2 not labeled in-flight"
 printf '%s\n' "$out_tr2" | grep -q 'S1: done' || fail "S1 should stay done"
-printf '%s\n' "$out_tr2" | grep -c '^/goal ' | grep -qx 1 || fail "reprint should keep one /goal"
+printf '%s\n' "$out_tr2" | grep -c '^/goal' | grep -qx 1 || fail "reprint should keep one /goal"
 set +e
 out_ns="$(run_cli complete-step --run-dir "$run2" --id S9 2>&1)"
 rc_ns=$?
@@ -1713,6 +1726,7 @@ ridf="$(python3 -c "import json; print(json.load(open('$runf/state.json'))['run_
 [[ -d "$repof/.worktrees/shiploop/$ridf/S1" ]] || fail "force fixture missing S1 worktree"
 git -C "$repof" rev-parse --verify "shiploop/$ridf/S1" >/dev/null || fail "force fixture missing S1 branch"
 write_recap "$runf"
+printf 'playbook body\n' >"$runf/playbook.md"
 set +e
 out_ef="$(run_cli init --force --run-dir "$runf" --bound-plan "$planf" --repo "$repof" 2>&1)"
 rc_ef=$?
@@ -1725,6 +1739,7 @@ run_cli init --force --prompt "fresh" --run-dir "$runf" --bound-plan "$planf" --
 [[ ! -f "$runf/backchain/plan.json" ]] || fail "force left backchain"
 [[ ! -f "$runf/plan.json" ]] || fail "force left leftover plan.json"
 [[ ! -f "$runf/recap.html" ]] || fail "force left recap.html"
+[[ ! -f "$runf/playbook.md" ]] || fail "force left playbook.md"
 [[ ! -d "$runf/steps" ]] || [[ -z "$(ls -A "$runf/steps" 2>/dev/null || true)" ]] || fail "force left steps"
 [[ ! -d "$repof/.worktrees/shiploop/$ridf" ]] || fail "force left run worktrees"
 if git -C "$repof" rev-parse --verify "shiploop/$ridf/S1" >/dev/null 2>&1; then
@@ -1928,7 +1943,7 @@ doc = {
   "steps": [{
     "id": "S1",
     "statement": "write the file",
-    "prompt": "/goal from initial_state to result.txt exists via write the file\nTools:\nWatch with: none(no read-capable session tool matched done-sentence)\nUse: git\nDon't use: none\nAssume: test harness",
+    "prompt": "/goal\nDo this activity until these conditions are met:\n- result.txt exists\n\nAssume already true (do not repeat): repo exists.\nPurpose of the plan (do not re-execute as this step): result.txt contains exactly one line: ok\n\nTools:\nWatch with: none(no read-capable session tool matched done-sentence)\nUse: git\nDon't use: none\nAssume: test harness",
     "produces": "result.txt exists",
     "origin": "seed",
     "inputs": [{"need": "repo exists", "from": None}],
@@ -2437,6 +2452,33 @@ rc_uf=$?
 set -e
 [[ "$rc_uf" -eq 2 ]] || fail "ui false + named ui_craft want 2: $out_uf"
 
+write_machine "$runm" '{"kind": "greenfield", "augment": false, "references": [], "tools": [], "mcp": ["writer-mcp"],
+ "mcp_considered": "none(x)", "handles": [], "initiation": "none", "ui": false, "ui_craft": "none(no UI)"}'
+set +e
+out_exm="$(run_cli update --run-dir "$runm" --to plan 2>&1)"
+rc_exm=$?
+set -e
+[[ "$rc_exm" -eq 2 ]] || fail "mcp nonempty without exclusive want 2: $out_exm"
+printf '%s\n' "$out_exm" | grep -qi 'exclusive' || fail "mcp nonempty exclusive message: $out_exm"
+
+write_machine "$runm" '{"kind": "greenfield", "augment": false, "references": [], "tools": ["alt-cli"], "mcp": ["writer-mcp"],
+ "mcp_considered": "none(x)", "handles": [], "initiation": "none", "ui": false, "ui_craft": "none(no UI)",
+ "exclusive": [{"artifact": "", "use": "writer-mcp", "dont_use": ["alt-cli"]}]}'
+set +e
+out_exa="$(run_cli update --run-dir "$runm" --to plan 2>&1)"
+rc_exa=$?
+set -e
+[[ "$rc_exa" -eq 2 ]] || fail "exclusive empty artifact want 2: $out_exa"
+
+write_machine "$runm" '{"kind": "greenfield", "augment": false, "references": [], "tools": ["alt-cli"], "mcp": ["writer-mcp"],
+ "mcp_considered": "none(x)", "handles": [], "initiation": "none", "ui": false, "ui_craft": "none(no UI)",
+ "exclusive": [{"artifact": "hosted id", "use": "ghost", "dont_use": ["alt-cli"]}]}'
+set +e
+out_exu="$(run_cli update --run-dir "$runm" --to plan 2>&1)"
+rc_exu=$?
+set -e
+[[ "$rc_exu" -eq 2 ]] || fail "exclusive use not inventoried want 2: $out_exu"
+
 write_machine "$runm" '{"kind": "greenfield", "augment": false, "references": [], "tools": [], "mcp": [],
  "mcp_considered": "none(x)",
  "handles": [{"source": "gh", "need": "repo id", "resolve": "inspect", "value": "abc"}],
@@ -2537,14 +2579,18 @@ doc = {
 PY
 }
 DEFAULT_MC='none(no read-capable session tool matched done-sentence)'
-write_seed_dag "$runtg" "/goal no tools header"
+UNTIL_PREFIX='/goal
+Do this activity until these conditions are met:
+- result.txt exists
+'
+write_seed_dag "$runtg" "${UNTIL_PREFIX}/goal no tools header"
 set +e
 out_tg1="$(run_cli update --run-dir "$runtg" --to implement 2>&1)"
 rc_tg1=$?
 set -e
 [[ "$rc_tg1" -eq 2 ]] || fail "empty-refs no Tools: want 2: $out_tg1"
 printf '%s\n' "$out_tg1" | grep -q 'line starting with Tools:' || fail "empty-refs Tools: message: $out_tg1"
-write_seed_dag "$runtg" "See Tools: below
+write_seed_dag "$runtg" "${UNTIL_PREFIX}See Tools: below
 Watch with: ${DEFAULT_MC}"
 set +e
 out_tg2="$(run_cli update --run-dir "$runtg" --to implement 2>&1)"
@@ -2552,7 +2598,7 @@ rc_tg2=$?
 set -e
 [[ "$rc_tg2" -eq 2 ]] || fail "mid-line Tools: want 2: $out_tg2"
 printf '%s\n' "$out_tg2" | grep -q 'line starting with Tools:' || fail "mid-line Tools: message: $out_tg2"
-write_seed_dag "$runtg" "Tools:
+write_seed_dag "$runtg" "${UNTIL_PREFIX}Tools:
 Use: git
 Don't use: none"
 set +e
@@ -2561,7 +2607,7 @@ rc_tg3=$?
 set -e
 [[ "$rc_tg3" -eq 2 ]] || fail "Tools: without token want 2: $out_tg3"
 printf '%s\n' "$out_tg3" | grep -q "mcp_considered ${DEFAULT_MC}" || fail "missing token message: $out_tg3"
-write_seed_dag "$runtg" "Tools:
+write_seed_dag "$runtg" "${UNTIL_PREFIX}Tools:
 Watch with: ${DEFAULT_MC}
 Use: git
 Don't use: none
@@ -2619,16 +2665,22 @@ printf '%s\n' "$out_cited" | grep -qF "$refpath" || fail "next did not reprint c
 printf 'LAYER: empty prompt + reference citation OK\n'
 
 # --- A27 scope: inject-step's discovered steps are exempt from citation ---
-out_inj_nocite="$(run_cli inject-step --run-dir "$runpr" --statement "ad hoc bind" --prompt "no citation needed for a discovered step" --produces "bind exists" --before S2)"
+INJ_BIND='/goal
+Do this activity until these conditions are met:
+- bind exists
+
+no citation needed for a discovered step'
+out_inj_nocite="$(run_cli inject-step --run-dir "$runpr" --statement "ad hoc bind" --prompt "$INJ_BIND" --produces "bind exists" --before S2)"
 printf '%s\n' "$out_inj_nocite" | grep -q 'injected S' || fail "inject without citation should succeed: $out_inj_nocite"
-python3 - "$runpr" <<'PY'
+python3 - "$runpr" "$INJ_BIND" <<'PY'
 import json, sys
 from pathlib import Path
 run = Path(sys.argv[1])
+want = sys.argv[2]
 dag = json.loads((run / "backchain" / "plan.json").read_text())
 new = [s for s in dag["steps"] if s["origin"] == "discovered"]
 assert new, "expected a discovered step"
-assert all(s["prompt"] == "no citation needed for a discovered step" for s in new), new
+assert all(s["prompt"] == want for s in new), new
 PY
 printf 'LAYER: inject-step exempt from reference citation OK\n'
 complete_ok "$runpr" S1
@@ -2646,7 +2698,7 @@ install_dag "$runinj" linear.json
 run_cli update --run-dir "$runinj" --to implement >/dev/null
 run_cli next --run-dir "$runinj" >/dev/null
 set +e
-out_ib="$(run_cli inject-step --run-dir "$runinj" --statement "mid" --prompt "/goal injected mid" --produces "mid exists" --before S1 2>&1)"
+out_ib="$(run_cli inject-step --run-dir "$runinj" --statement "mid" --prompt $'/goal\nDo this activity until these conditions are met:\n- mid exists' --produces "mid exists" --before S1 2>&1)"
 rc_ib=$?
 set -e
 [[ "$rc_ib" -eq 2 ]] || fail "inject --before running want 2: $out_ib"
@@ -2656,7 +2708,7 @@ rc_ip=$?
 set -e
 [[ "$rc_ip" -eq 2 ]] || fail "inject empty --prompt want 2: $out_ip"
 printf '%s\n' '{"done_sentence":"stale","plan_sha256":"deadbeef"}' >"$runinj/plan.json"
-out_iok="$(run_cli inject-step --run-dir "$runinj" --statement "mid bind" --prompt "/goal injected mid bind" --produces "mid exists" --before S2 --id S3)"
+out_iok="$(run_cli inject-step --run-dir "$runinj" --statement "mid bind" --prompt $'/goal\nDo this activity until these conditions are met:\n- mid exists' --produces "mid exists" --before S2 --id S3)"
 printf '%s\n' "$out_iok" | grep -q 'injected S3' || fail "inject add: $out_iok"
 python3 - "$runinj" <<'PY'
 import json, hashlib, sys
@@ -2665,7 +2717,9 @@ run = Path(sys.argv[1])
 dag = json.loads((run / "backchain" / "plan.json").read_text())
 by_id = {s["id"]: s for s in dag["steps"]}
 assert by_id["S3"]["origin"] == "discovered", by_id["S3"]
-assert by_id["S3"]["prompt"] == "/goal injected mid bind"
+assert by_id["S3"]["prompt"] == (
+    "/goal\nDo this activity until these conditions are met:\n- mid exists"
+)
 assert any(i.get("from") == "S3" and i.get("need") == "mid exists" for i in by_id["S2"]["inputs"])
 state = json.loads((run / "state.json").read_text())
 assert state["phase"] == "implement", state["phase"]
@@ -2711,14 +2765,17 @@ complete_ok "$rundr" S2
 out_drained="$(run_cli next --run-dir "$rundr")"
 printf '%s\n' "$out_drained" | grep -q 'drained — next residual' || fail "pre-inject not drained: $out_drained"
 set +e
-out_idone="$(run_cli inject-step --run-dir "$rundr" --statement "late" --prompt "/goal late" --produces "late exists" --before S2 2>&1)"
+out_idone="$(run_cli inject-step --run-dir "$rundr" --statement "late" --prompt $'/goal\nDo this activity until these conditions are met:\n- late exists' --produces "late exists" --before S2 2>&1)"
 rc_idone=$?
 set -e
 [[ "$rc_idone" -eq 2 ]] || fail "inject --before done want 2: $out_idone"
-out_idrain="$(run_cli inject-step --run-dir "$rundr" --statement "late" --prompt "/goal late discovered" --produces "late exists" --id S9)"
+out_idrain="$(run_cli inject-step --run-dir "$rundr" --statement "late" --prompt $'/goal\nDo this activity until these conditions are met:\n- late exists' --produces "late exists" --id S9)"
 printf '%s\n' "$out_idrain" | grep -q 'injected S9' || fail "inject on drained: $out_idrain"
 out_after="$(run_cli next --run-dir "$rundr")"
-printf '%s\n' "$out_after" | grep -q '/goal late discovered' || fail "drained inject did not reprint new prompt: $out_after"
+printf '%s\n' "$out_after" | grep -Fq 'Do this activity until these conditions are met:' \
+  || fail "drained inject did not reprint new prompt: $out_after"
+printf '%s\n' "$out_after" | grep -Fq 'late exists' \
+  || fail "drained inject Next missing produces: $out_after"
 assert_absent "$out_after" 'drained — next residual' "session still drained after inject"
 python3 - "$rundr" <<'PY'
 import json, sys
@@ -2732,6 +2789,94 @@ state = json.loads((run / "state.json").read_text())
 assert state["phase"] == "implement", state["phase"]
 PY
 printf 'LAYER: inject-step add/refuse/drained OK\n'
+
+# --- dest plan playbook + dest implement exclusive.dont_use ---
+runpb="$tmpdir/playbook/.shiploop"
+repopb="$tmpdir/playbook/repo"
+fresh_vs "$runpb" "$repopb"
+write_machine "$runpb" '{"kind": "greenfield", "augment": false, "references": [], "tools": ["git", "alt-cli"], "mcp": ["writer-mcp"],
+ "mcp_considered": "none(x)", "handles": [], "initiation": "none", "ui": false, "ui_craft": "none(no UI)",
+ "exclusive": [{"artifact": "hosted project", "use": "writer-mcp", "dont_use": ["alt-cli"]}]}'
+set +e
+out_pbmiss="$(run_cli update --run-dir "$runpb" --to plan 2>&1)"
+rc_pbmiss=$?
+set -e
+[[ "$rc_pbmiss" -eq 2 ]] || fail "mcp nonempty missing playbook want 2: $out_pbmiss"
+printf '%s\n' "$out_pbmiss" | grep -qi 'playbook' || fail "missing playbook message: $out_pbmiss"
+printf 'Exclusive writers\nuse: writer-mcp\n' >"$runpb/playbook.md"
+set +e
+out_pbuncited="$(run_cli update --run-dir "$runpb" --to plan 2>&1)"
+rc_pbuncited=$?
+set -e
+[[ "$rc_pbuncited" -eq 2 ]] || fail "uncited playbook want 2: $out_pbuncited"
+printf '%s\n' "$out_pbuncited" | grep -qi 'playbook' || fail "uncited playbook message: $out_pbuncited"
+pbpath="$(python3 -c "from pathlib import Path; import sys; print(Path(sys.argv[1]).resolve())" "$runpb/playbook.md")"
+write_machine "$runpb" "{\"kind\": \"greenfield\", \"augment\": false, \"references\": [{\"path\": \"$pbpath\", \"why\": \"playbook\"}], \"tools\": [\"git\", \"alt-cli\"], \"mcp\": [\"writer-mcp\"],
+ \"mcp_considered\": \"none(x)\", \"handles\": [], \"initiation\": \"none\", \"ui\": false, \"ui_craft\": \"none(no UI)\",
+ \"exclusive\": [{\"artifact\": \"hosted project\", \"use\": \"writer-mcp\", \"dont_use\": [\"alt-cli\"]}]}"
+run_cli update --run-dir "$runpb" --to plan >/dev/null
+printf 'LAYER: dest-plan playbook gate OK\n'
+
+write_seed_dag() {
+  local run="$1" prompt="$2"
+  python3 - "$run" "$DS" "$prompt" <<'PY'
+import json, sys
+from pathlib import Path
+run = Path(sys.argv[1])
+ds, prompt = sys.argv[2], sys.argv[3]
+(run / "backchain").mkdir(exist_ok=True)
+doc = {
+  "goal": ds,
+  "initial_state": ["repo exists"],
+  "steps": [{
+    "id": "S1",
+    "statement": "write the file",
+    "prompt": prompt,
+    "produces": ["result.txt exists"],
+    "origin": "seed",
+    "inputs": [{"need": "repo exists", "from": None}],
+  }],
+  "parallel_groups": [],
+  "unresolved": [],
+}
+(run / "backchain" / "plan.json").write_text(json.dumps(doc, indent=2) + "\n")
+(run / "plan.md").write_text("done_sentence: %s\n" % ds)
+PY
+}
+write_seed_dag "$runpb" "${UNTIL_PREFIX}Tools:
+Watch with: none(x)
+Use: git
+Don't use: none
+Assume: test harness"
+set +e
+out_pbcite="$(run_cli update --run-dir "$runpb" --to implement 2>&1)"
+rc_pbcite=$?
+set -e
+[[ "$rc_pbcite" -eq 2 ]] || fail "seed omit playbook path want 2: $out_pbcite"
+write_seed_dag "$runpb" "${UNTIL_PREFIX}cite ${pbpath}
+Tools:
+Watch with: none(x)
+Use: git
+Don't use: none
+Assume: test harness"
+set +e
+out_pbdu="$(run_cli update --run-dir "$runpb" --to implement 2>&1)"
+rc_pbdu=$?
+set -e
+[[ "$rc_pbdu" -eq 2 ]] || fail "seed omit dont_use token want 2: $out_pbdu"
+printf '%s\n' "$out_pbdu" | grep -qi 'dont_use' || fail "dont_use message: $out_pbdu"
+write_seed_dag "$runpb" "${UNTIL_PREFIX}cite ${pbpath}
+Tools:
+Watch with: none(x)
+Use: git
+Don't use: alt-cli
+Assume: test harness"
+run_cli update --run-dir "$runpb" --to implement >/dev/null
+out_pbfz="$(run_cli next --run-dir "$runpb")"
+printf '%s\n' "$out_pbfz" | grep -q "Playbook: $pbpath" || fail "Frozen missing playbook path: $out_pbfz"
+assert_absent "$out_pbfz" 'do not implement the product through MCP' \
+  "playbook Frozen still forbids MCP writes"
+printf 'LAYER: dest-implement playbook + dont_use OK\n'
 
 bash "$root/test/shiploop-walk-journal.test.sh" \
   || fail "shiploop-walk-journal.test.sh"

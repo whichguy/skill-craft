@@ -8,7 +8,7 @@ description: >-
   /shiploop complete — do not rely on chat memory. Lost context without
   completing → /shiploop next.
 allowed-tools: all
-version: 0.8.7
+version: 0.8.8
 license: MIT
 platforms:
   - linux

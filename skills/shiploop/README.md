@@ -7,7 +7,7 @@ walk-back HTML recap exists.
 
 ShipLoop never auto-merges and never claims engine `COMPLETE`.
 
-Package leaf: `skills/shiploop`. Invoke: `/shiploop`. Version: **0.8.7**.
+Package leaf: `skills/shiploop`. Invoke: `/shiploop`. Version: **0.8.8**.
 
 Canonical companions (do not duplicate their contracts here):
 
@@ -113,7 +113,7 @@ That is the same function `update --to` uses, **not** the same dest on
 every reprint. In-flight implement (`forward_dest` is `None`) lists
 `dep_roots.backchain` only — it does **not** run `load_environment` /
 `load_spec` / `wrapper_pair` / `dag_gaps`. dest `plan` runs
-`load_spec` / `load_environment` / `handles_block_plan`. dest
+`load_spec` / `load_environment` / `handles_block_plan` / `playbook_gaps`. dest
 `implement` runs `wrapper_pair` / `dag_gaps` / backchain / git `HEAD`.
 Look-here independently reprints those load_* / `wrapper_pair` why
 strings even when Missing is empty. Those Look-here lines are the
@@ -171,7 +171,7 @@ only phase list the script (`PHASES` / `forward_dest` / `legal_edge`) knows.
 | Phase is `blocked` | Read `ask_user` / `resume_to`, then `/shiploop complete --reason "…"` |
 
 `--force` wipes **session** files (`environment.md`, `spec.md`, DAG, receipts,
-`recap.html`, leftover json twins). It does **not** delete the product tree
+`recap.html`, `playbook.md`, leftover json twins). It does **not** delete the product tree
 (app sources, product `README.md`).
 
 `--implementer host` is the only legal implementer. `init --repo PATH`
@@ -191,15 +191,18 @@ One phase, **three jobs in order**. Guide: `references/survey.md`. Activity:
 1. **Survey** the bound `repo_root` and this session’s tools. Write **one**
    file, `.shiploop/environment.md`: prose brief, then a unique H2 titled
    exactly `machine` with one fenced JSON object. Keys: `kind`, `augment`,
-   `references`, `tools`, `mcp`, `mcp_considered`, `handles`, `initiation`,
+   `references`, `tools`, `mcp`, `mcp_considered`, `exclusive`, `handles`, `initiation`,
    `ui`, `ui_craft`. **IF EXISTS** read product `README.md`, ADRs, CI,
    `AGENTS.md`, leftover `.specify/memory/constitution.md` — cite, do not
    invent. Do **not** write the product README here.
 2. **Research practices** from the ask + that inventory. Pull URLs, in-repo
    paths, official docs, skill references, MCP resource URIs. If an MCP
    server or its tools **document how to use them**, that text is a
-   reference — inventory alone is not enough. Append into the **same**
-   `environment.md` (`references[{path, why}]`). No second SoT file. No
+   reference — inventory alone is not enough. Answer exclusive-writer /
+   overlapping-tool / library questions; write `.shiploop/playbook.md` and
+   cite it in `references[]`. Append into the **same**
+   `environment.md` (`references[{path, why}]`). Playbook is a referenced
+   artifact, not a second hashed SoT. No
    secrets. No research skills in `dep_roots`.
 3. **Write spec** `.shiploop/spec.md`: labeled `done_sentence:` and
    `checkable: true|false` exactly once at line start, outside fences. The
@@ -225,11 +228,12 @@ flowchart TD
 **What this is:** the three jobs inside **one** SM phase, in the order
 `validate-spec.md` / `survey.md` require (survey → practices → spec).
 `dest plan` is what `load_environment()` / `load_spec()` /
-`handles_block_plan()` gate. `dest blocked` is the hatch (`forward_dest`
+`handles_block_plan()` / `playbook_gaps()` gate. `dest blocked` is the hatch (`forward_dest`
 returns `"blocked"` when `checkable is False`) and does **not** require
 `environment.md` — that is why the hatch is drawn from enter, not after
 `envAppend`. **What this is not:** survey and practices are not separate
-phases or a second SoT file — both write into the same `environment.md`.
+phases or a second hashed SoT — both write into the same `environment.md`.
+`playbook.md` is a referenced run-dir file, not hashed.
 A `list`/`ask` handle does **not** auto-dest `blocked`; it fails `dest
 plan` unless the host uses this hatch (`create` is dest-plan-legal).
 
@@ -251,7 +255,8 @@ must have:
 
 Each seed `prompt` must cite every `references[].path` from `environment.md`,
 and end with a `Tools:` block (Watch with / Use /
-Don't use / Assume) that includes the frozen `mcp_considered` token. Include prep / intermediate deploy / cleanup when implied,
+Don't use / Assume) that includes the frozen `mcp_considered` token and each
+`exclusive[].dont_use` token. Include prep / intermediate deploy / cleanup when implied,
 and a **README create/revise as a late successor**. The spec's three
 placement answers decide which of those fire: deploy preparation *is* the
 early prep step; **dag** publish *is* the deploy step; **outer-loop**
@@ -280,7 +285,7 @@ Command-level git (who runs `git worktree add` vs `merge --no-ff --no-edit`):
 
 **Next prompt** always starts with `Use this prompt as much as possible.`
 Then the harness prints worktree / branch / HOST FLAG, a **Frozen session
-environment** block (`mcp-considered` / `tools` / `mcp`), then each
+environment** block (`mcp-considered` / `tools` / `mcp` / `Playbook:`), then each
 **running** step’s stored `prompt` **verbatim**. Paste the Frozen block
 together with the stored prompt into host `/goal`. Do not paste worktree,
 branch, or HOST FLAG. The script does not compose a `/goal` from
@@ -487,10 +492,10 @@ Do not hand-edit the plugin copy.
 
 `environment.md` is mixed, not prose-only: a nonempty brief, then exactly
 one H2 titled `machine` with one fenced JSON object (`kind`, `augment`,
-`references`, `tools`, `mcp`, `mcp_considered`, `handles`, `initiation`,
+`references`, `tools`, `mcp`, `mcp_considered`, `exclusive`, `handles`, `initiation`,
 `ui`, `ui_craft`). dest plan shape-checks that fence (`load_environment` /
-`validate_machine` / `handles_block_plan`). Practices append into the
-**same** file.
+`validate_machine` / `handles_block_plan` / `playbook_gaps`). Practices append into the
+**same** file. `playbook.md` is a referenced run-dir file, not hashed.
 
 ### Run-dir files (how they maintain the run)
 
@@ -503,6 +508,7 @@ Everything below is under the **run dir** (default: walk from cwd to
 | `state.json` | every harness command | phase, `run_id`, `repo_root`, hashes, `dep_roots`, blocked/resume, bound plan, `terminal` (review-coverage close mode: `success` / `waived` / `halted`) |
 | `prompt.md` | `init` | original ask |
 | `environment.md` | host during validate-spec | survey + practices (prose + `## machine` JSON). Hashed as the whole file. |
+| `playbook.md` | host during validate-spec job 2 | exclusive writers / libraries / dest-blocked-on-writer-failure. Cited from `references[]`; Frozen reprints the path. Not hashed. |
 | `spec.md` | host during validate-spec | labeled `done_sentence` / `checkable` / optional `ask_user`. Hashed as the whole file. |
 | `backchain/plan.json` | host during plan; `inject-step` mutates | canonical DAG (`statement`, `prompt`, `produces`, `inputs`, `origin`) |
 | `plan.md` | host during plan | human sequence + labeled `done_sentence` (must equal spec.md at dest implement; not hashed into `plan_sha256`; dest residual may store `bound_plan_hash`; may lag the DAG after inject) |

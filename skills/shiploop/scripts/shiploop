@@ -23,7 +23,7 @@ EXIT_BLOCKED = 2
 EXIT_USAGE = 64
 
 PACKAGE_ROOT = Path(__file__).resolve().parents[1]
-VERSION = "0.8.7"
+VERSION = "0.8.8"
 REF_DIR = PACKAGE_ROOT / "references"
 WT_DIRNAME = ".worktrees"
 # Printed in ## Progress and the implement Next envelope. Do not splice into
@@ -68,6 +68,7 @@ CONTROL_RE = re.compile(r"[\x00-\x08\x0a-\x1f\x7f]")
 # without naming them in this file.
 PROMPT_CONTROL_RE = re.compile(r"[\x00-\x09\x0b-\x1f\x7f]")
 _FOREIGN_SLASH = "/" + "dev" + "loop"
+UNTIL_HEAD = "Do this activity until these conditions are met:"
 HANDLE_RESOLVE = ("list", "inspect", "ask", "create")
 
 STATUS_RE = re.compile(
@@ -180,6 +181,23 @@ def skill_dir_ok(root: Path) -> bool:
 
 def has_disallowed_slash(text: str) -> bool:
     return _FOREIGN_SLASH in text
+
+
+def prompt_until_gaps(sid: str, prompt: str, texts: List[str]) -> List[str]:
+    """Plan-time /goal until produces. Printer still prints prompt bytes verbatim."""
+    gaps: List[str] = []
+    if not any(re.match(r"^[ \t]*/goal\b", line) for line in prompt.splitlines()):
+        gaps.append(
+            f"{sid} prompt must have a line starting with /goal; "
+            "in-flight: dest blocked then dest plan, rewrite seed prompts "
+            "(do not hand-edit backchain/plan.json)"
+        )
+    if UNTIL_HEAD not in prompt:
+        gaps.append(f"{sid} prompt must contain {UNTIL_HEAD!r}")
+    for t in texts:
+        if t not in prompt:
+            gaps.append(f"{sid} prompt until-clause must name produces {t!r}")
+    return gaps
 
 
 def find_skill(name: str) -> Optional[Path]:
@@ -466,6 +484,51 @@ def validate_machine(m: Dict[str, Any]) -> List[str]:
             gaps.append("machine.ui_craft must not be none(...) when ui is true")
         if not ui and not is_none:
             gaps.append("machine.ui_craft must be none(...) when ui is false")
+    inventoried: Set[str] = set()
+    for key in ("tools", "mcp"):
+        arr = m.get(key)
+        if isinstance(arr, list):
+            for v in arr:
+                if isinstance(v, str) and v.strip():
+                    inventoried.add(v.strip())
+    mcp_arr = m.get("mcp")
+    mcp_nonempty = isinstance(mcp_arr, list) and any(
+        isinstance(v, str) and v.strip() for v in mcp_arr
+    )
+    exclusive = m.get("exclusive")
+    if exclusive is None:
+        if mcp_nonempty:
+            gaps.append("machine.exclusive must be a list when mcp is nonempty")
+    elif not isinstance(exclusive, list):
+        gaps.append("machine.exclusive must be a list")
+    else:
+        for i, row in enumerate(exclusive):
+            if not isinstance(row, dict):
+                gaps.append(f"machine.exclusive[{i}] must be an object")
+                continue
+            artifact = row.get("artifact")
+            use = row.get("use")
+            dont_use = row.get("dont_use")
+            if not isinstance(artifact, str) or not artifact.strip():
+                gaps.append(f"machine.exclusive[{i}].artifact must be a nonempty string")
+            if not isinstance(use, str) or not use.strip():
+                gaps.append(f"machine.exclusive[{i}].use must be a nonempty string")
+            elif inventoried and use.strip() not in inventoried:
+                gaps.append(
+                    f"machine.exclusive[{i}].use must be an inventoried tools or mcp name"
+                )
+            if not isinstance(dont_use, list):
+                gaps.append(f"machine.exclusive[{i}].dont_use must be a list")
+            else:
+                for j, tok in enumerate(dont_use):
+                    if not isinstance(tok, str) or not tok.strip():
+                        gaps.append(
+                            f"machine.exclusive[{i}].dont_use[{j}] must be a nonempty string"
+                        )
+                    elif isinstance(use, str) and tok.strip() == use.strip():
+                        gaps.append(
+                            f"machine.exclusive[{i}].dont_use must not contain use"
+                        )
     return gaps
 
 
@@ -474,6 +537,70 @@ def handles_block_plan(machine: Dict[str, Any]) -> List[str]:
     for h in machine.get("handles") or []:
         if isinstance(h, dict) and h.get("resolve") in ("list", "ask"):
             gaps.append(f"handle {h.get('source')} resolve={h.get('resolve')} blocks dest plan")
+    return gaps
+
+
+def _mcp_nonempty(env: Optional[Dict[str, Any]]) -> bool:
+    if not isinstance(env, dict):
+        return False
+    mcp = env.get("mcp")
+    return isinstance(mcp, list) and any(isinstance(v, str) and v.strip() for v in mcp)
+
+
+def _exclusive_rows(env: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    if not isinstance(env, dict):
+        return []
+    exclusive = env.get("exclusive")
+    if not isinstance(exclusive, list):
+        return []
+    return [row for row in exclusive if isinstance(row, dict)]
+
+
+def _dont_use_tokens(env: Optional[Dict[str, Any]]) -> List[str]:
+    tokens: List[str] = []
+    seen: Set[str] = set()
+    for row in _exclusive_rows(env):
+        dont_use = row.get("dont_use")
+        if not isinstance(dont_use, list):
+            continue
+        for tok in dont_use:
+            if isinstance(tok, str) and tok.strip() and tok.strip() not in seen:
+                seen.add(tok.strip())
+                tokens.append(tok.strip())
+    return tokens
+
+
+def playbook_gaps(run_dir: Path, env: Optional[Dict[str, Any]]) -> List[str]:
+    """dest plan: playbook exists, nonempty, and is cited when mcp or exclusive is set."""
+    if not env:
+        return []
+    if not _mcp_nonempty(env) and not _exclusive_rows(env):
+        return []
+    gaps: List[str] = []
+    path = run_dir / "playbook.md"
+    body = read_text(path) if path.is_file() else None
+    if not path.is_file() or not (body or "").strip():
+        gaps.append("playbook.md missing or empty")
+    target = path.resolve()
+    cited = False
+    for r in env.get("references") or []:
+        if not isinstance(r, dict):
+            continue
+        rp = r.get("path")
+        if not isinstance(rp, str) or not rp.strip():
+            continue
+        raw = rp.strip()
+        cand = Path(raw)
+        resolved: Optional[Path] = None
+        try:
+            resolved = cand.resolve() if cand.is_absolute() else (run_dir / cand).resolve()
+        except OSError:
+            resolved = None
+        if resolved == target or raw == str(target) or Path(raw).name == "playbook.md":
+            cited = True
+            break
+    if not cited:
+        gaps.append("playbook.md path must appear in machine.references")
     return gaps
 
 
@@ -1349,6 +1476,7 @@ def dag_gaps(run_dir: Path, spec: Optional[Dict[str, Any]]) -> List[str]:
     ref_paths: List[str] = []
     env, _ = load_environment(run_dir)
     mcp_considered = ""
+    dont_use_tokens = _dont_use_tokens(env if isinstance(env, dict) else None)
     if isinstance(env, dict):
         mc = env.get("mcp_considered")
         if isinstance(mc, str) and mc.strip():
@@ -1406,6 +1534,13 @@ def dag_gaps(run_dir: Path, spec: Optional[Dict[str, Any]]) -> List[str]:
                     "in-flight pre-0.8.4 runs: dest blocked then dest plan, "
                     "rewrite seed prompts (do not hand-edit backchain/plan.json)"
                 )
+            for tok in dont_use_tokens:
+                if tok not in prompt:
+                    gaps.append(
+                        f"{sid} prompt must cite exclusive dont_use {tok}; "
+                        "in-flight runs: dest blocked then dest plan, "
+                        "rewrite seed prompts (do not hand-edit backchain/plan.json)"
+                    )
         produces = step.get("produces")
         texts = produces_texts(produces)
         if texts is None:
@@ -1414,6 +1549,8 @@ def dag_gaps(run_dir: Path, spec: Optional[Dict[str, Any]]) -> List[str]:
             for t in texts:
                 if CONTROL_RE.search(t) or has_disallowed_slash(t):
                     gaps.append(f"{sid} produces contains a newline, control, or disallowed slash skill")
+            if isinstance(prompt, str) and prompt.strip():
+                gaps.extend(prompt_until_gaps(sid, prompt, texts))
         origin = step.get("origin")
         if origin not in ("seed", "discovered"):
             gaps.append(f"{sid} origin must be seed or discovered")
@@ -2014,6 +2151,7 @@ def missing_for(state: Dict[str, Any], run_dir: Path, dest: Optional[str]) -> Li
         gaps.extend(eg)
         if env:
             gaps.extend(handles_block_plan(env))
+            gaps.extend(playbook_gaps(run_dir, env))
     elif need == "spec_uncheckable":
         spec, sg = load_spec(run_dir)
         gaps.extend(sg)
@@ -2358,7 +2496,8 @@ def print_frozen_session_env(run_dir: Path) -> None:
     """Reprint frozen tools/MCP above the stored prompt. Do not compose it."""
     print(
         "Frozen session environment (do not re-survey; "
-        "do not implement the product through MCP):"
+        "destination writes follow the playbook and Tools: block; "
+        "MCP in mcp: is in-bounds):"
     )
     env, gaps = load_environment(run_dir)
     if gaps or not isinstance(env, dict):
@@ -2369,6 +2508,12 @@ def print_frozen_session_env(run_dir: Path) -> None:
     print(f"mcp-considered: {mc if isinstance(mc, str) and mc.strip() else '(none)'}")
     print(f"tools: {_join_env_list(env.get('tools'))}")
     print(f"mcp: {_join_env_list(env.get('mcp'))}")
+    pb = run_dir / "playbook.md"
+    body = read_text(pb) if pb.is_file() else None
+    if pb.is_file() and (body or "").strip():
+        print(f"Playbook: {pb.resolve()}")
+    else:
+        print("Playbook: (none)")
     print(f"See: {(run_dir / 'environment.md').resolve()}")
 
 
@@ -2915,6 +3060,7 @@ def force_wipe(run_dir: Path) -> None:
         "plan.json",
         "implement.json",
         "recap.html",
+        "playbook.md",
     ):
         p = run_dir / name
         if p.is_file() or p.is_symlink():
@@ -3090,6 +3236,9 @@ def apply_update(
         hgaps = handles_block_plan(env)
         if hgaps:
             die(EXIT_BLOCKED, "; ".join(hgaps))
+        pgaps = playbook_gaps(run_dir, env)
+        if pgaps:
+            die(EXIT_BLOCKED, "; ".join(pgaps))
         bind_or_verify_hash(state, "spec_sha256", spec_sha256_of(run_dir))
         bind_or_verify_hash(state, "environment_sha256", environment_sha256_of(run_dir))
         state["plan_sha256"] = ""

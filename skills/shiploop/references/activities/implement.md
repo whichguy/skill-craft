@@ -7,9 +7,10 @@ waiting-on — against that frozen `done_sentence`. No `✗` on steps.
 `/shiploop next` already claimed newly ready ids `running`. The packet's
 **Next prompt** section prints worktree / branch / HOST FLAG, then a
 **Frozen session environment** block, then each running id's **stored**
-`prompt` verbatim. Paste the Frozen session environment block together
-with the stored prompt into `/goal`. Do not paste worktree, branch, or
-HOST FLAG. The script does not compose or rewrite the stored prompt.
+`prompt` verbatim. That stored prompt **is** the `/goal` until this
+step's `produces`. Paste Frozen above it; do not wrap a second `/goal`.
+Do not paste worktree, branch, or HOST FLAG. The script does not compose
+or rewrite the stored prompt from the original ask.
 Each running step's worktree and branch are named in **Look here** /
 **Diagnosis** — work there (do not re-root the host chat); do not edit
 the session checkout or reuse a prior worktree.
@@ -33,10 +34,10 @@ in phase `implement` (including drained). It refuses on plan-hash drift (a
 hand-edit is not an inject), refuses `--before` a step that is not
 `todo`/`ready`, and rebinds `plan_sha256` only — it never re-runs `dest
 plan` or clears existing receipts. Unlike a seed step's `prompt`, a
-discovered step's `--prompt` does **not** need to cite `{{ENV_MD}}`'s
-practice references or carry a `Tools:` block — it is an ad-hoc fix, not
-researched practice work. The Next envelope still reprints frozen
-tools/MCP above that stored prompt; paste that Frozen block with the
+discovered step's `--prompt` still needs `/goal` plus until-`produces`
+but does **not** need to cite `{{ENV_MD}}`'s practice references or carry
+a `Tools:` block — it is an ad-hoc fix, not researched practice work. The Next envelope still reprints frozen
+tools/MCP/Playbook above that stored prompt; paste that Frozen block with the
 discovered prompt.
 
 After a `/goal` succeeds: invoke `/shiploop complete`.

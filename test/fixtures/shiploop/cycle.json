@@ -17,7 +17,7 @@
           "from": "S2"
         }
       ],
-      "prompt": "/goal step S1: one; produces a; suppliers b from S2"
+      "prompt": "/goal\nDo this activity until these conditions are met:\n- a\n\nAssume already true (do not repeat): repo exists.\nPurpose of the plan (do not re-execute as this step): result.txt contains exactly one line: ok\n\nTools:\nWatch with: none(no read-capable session tool matched done-sentence)\nUse: git\nDon't use: none\nAssume: test harness"
     },
     {
       "id": "S2",
@@ -32,7 +32,7 @@
           "from": "S1"
         }
       ],
-      "prompt": "/goal step S2: two; produces b; suppliers a from S1"
+      "prompt": "/goal\nDo this activity until these conditions are met:\n- b\n\nAssume already true (do not repeat): repo exists.\nPurpose of the plan (do not re-execute as this step): result.txt contains exactly one line: ok\n\nTools:\nWatch with: none(no read-capable session tool matched done-sentence)\nUse: git\nDon't use: none\nAssume: test harness"
     }
   ],
   "parallel_groups": [],

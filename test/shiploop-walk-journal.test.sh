@@ -20,20 +20,22 @@ fail() {
 }
 
 DS='result.txt contains exactly one line: ok'
-S1_LINEAR='/goal step S1: write the file; produces result.txt exists; suppliers repo exists from initial_state'
-S2_LINEAR='/goal step S2: confirm the file; produces result.txt validated; suppliers result.txt exists from S1'
-S1_TWOROOT='/goal step S1: write tests for the file; produces tests exist; suppliers repo exists from initial_state'
-S2_TWOROOT='/goal step S2: write the implementation; produces result.txt exists; suppliers repo exists from initial_state'
+UNTIL_HEAD='Do this activity until these conditions are met:'
+S1_LINEAR='- result.txt exists'
+S2_LINEAR='- result.txt validated'
+S1_TWOROOT='- tests exist'
+S2_TWOROOT='- result.txt exists'
 
 LAST_RC=0
 LAST_OUT=""
 LAST_ERR=""
 
 packet_section() {
-  local out="$1" start="$2"
-  printf '%s\n' "$out" | awk -v s="$start" '
+  local out="$1" start="$2" stop="${3:-}"
+  printf '%s\n' "$out" | awk -v s="$start" -v e="$stop" '
     $0==s {p=1; next}
-    p && /^## / {exit}
+    p && e != "" && $0==e {exit}
+    p && e == "" && /^## / {exit}
     p
   '
 }
@@ -78,15 +80,27 @@ assert_err_has() {
 
 assert_next_has() {
   local needle="$1" msg="$2"
-  packet_section "$LAST_OUT" "## Next prompt" | grep -Fq -- "$needle" \
+  packet_section "$LAST_OUT" "## Next prompt" "## When done invoke" | grep -Fq -- "$needle" \
     || fail "$msg: Next prompt missing ${needle}"
 }
 
 assert_next_lacks() {
   local needle="$1" msg="$2"
-  if packet_section "$LAST_OUT" "## Next prompt" | grep -Fq -- "$needle"; then
+  if packet_section "$LAST_OUT" "## Next prompt" "## When done invoke" | grep -Fq -- "$needle"; then
     fail "$msg: Next prompt has ${needle}"
   fi
+}
+
+# Successful packet: dest/event line + Next body (the transition return value).
+assert_transition_return() {
+  local dest_line="$1" next_needle="$2" msg="$3"
+  assert_rc 0 "$msg"
+  printf '%s\n' "$LAST_OUT" | grep -Fxq -- "$dest_line" \
+    || fail "$msg: dest line missing exact ${dest_line}"
+  assert_next_has "$next_needle" "$msg"
+  packet_section "$LAST_OUT" "## Next prompt" "## When done invoke" \
+    | grep -Fxq 'Use this prompt as much as possible.' \
+    || fail "$msg: Next missing first-line Use this prompt"
 }
 
 assert_no_walk() {
@@ -447,8 +461,10 @@ assert_walk_journal "$runL" "L3 RETURN walk"
 assert_out_has "▶ S1  write the file" "L3 RETURN"
 assert_out_has "○ S2  confirm the file" "L3 RETURN"
 assert_out_has "waiting on S1 write the file" "L3 RETURN"
+assert_next_has "$UNTIL_HEAD" "L3 RETURN"
 assert_next_has "$S1_LINEAR" "L3 RETURN"
 assert_next_lacks "$S2_LINEAR" "L3 RETURN"
+assert_next_has "Use this prompt as much as possible." "L3 RETURN"
 assert_disk "$runL" "L3 DISK" "$DISK_IMP_S1RUN"
 invoke_script status --run-dir "$runL" --human
 assert_rc 0 "L3 status --human"
@@ -620,8 +636,8 @@ assert_out_has "▶ S1  write tests for the file" "P1 RETURN"
 assert_out_has "▶ S2  write the implementation" "P1 RETURN"
 assert_next_has "$S1_TWOROOT" "P1 RETURN"
 assert_next_has "$S2_TWOROOT" "P1 RETURN"
-n_goals="$(printf '%s\n' "$LAST_OUT" | grep -c '^/goal step ' || true)"
-[[ "$n_goals" -eq 2 ]] || fail "P1 RETURN want two /goal step lines: $n_goals"
+n_goals="$(packet_section "$LAST_OUT" "## Next prompt" "## When done invoke" | grep -c '^/goal$' || true)"
+[[ "$n_goals" -eq 2 ]] || fail "P1 RETURN want two /goal lines: $n_goals"
 
 printf 'CASE P3 PRE: both running; INVOKE: complete without --id\n'
 assert_disk "$runP" "P3 PRE" '{"phase":"implement","receipts":{"S1":"running","S2":"running"}}'
@@ -655,7 +671,8 @@ setup_to_implement "$runI1" "$repoI1" "$planf" linear.json
 printf 'CASE I1 PRE: S1 running; INVOKE: inject-step S3 --before S2, then next\n'
 assert_disk "$runI1" "I1 PRE" "$DISK_IMP_S1RUN"
 invoke_script inject-step --run-dir "$runI1" --statement "mid bind" \
-  --prompt "/goal injected mid bind" --produces "mid exists" --before S2 --id S3
+  --prompt $'/goal\nDo this activity until these conditions are met:\n- mid exists' \
+  --produces "mid exists" --before S2 --id S3
 assert_rc 0 "I1 inject"
 assert_out_has "injected S3" "I1 inject RETURN"
 assert_disk "$runI1" "I1 DISK after inject (S3 not claimed)" \
@@ -665,7 +682,8 @@ assert_rc 0 "I1 next"
 assert_walk_journal "$runI1" "I1 next RETURN walk"
 assert_out_has "▶ S3  mid bind" "I1 next RETURN"
 assert_next_has "$S1_LINEAR" "I1 next RETURN"
-assert_next_has "/goal injected mid bind" "I1 next RETURN"
+assert_next_has "$UNTIL_HEAD" "I1 next RETURN"
+assert_next_has "- mid exists" "I1 next RETURN"
 assert_disk "$runI1" "I1 DISK after next" \
   '{"phase":"implement","receipts":{"S1":"running","S2":"none","S3":"running"}}'
 
@@ -703,6 +721,7 @@ assert_disk "$runB" "B1a PRE" "$DISK_IMP_S1RUN"
 invoke_script update --run-dir "$runB" --to blocked --resume-to implement --reason "host failed"
 assert_rc 0 "B1a"
 assert_out_has "updated implement -> blocked" "B1a RETURN"
+assert_next_has "Stop and ask the user" "B1a RETURN"
 assert_disk "$runB" "B1a DISK" \
   '{"phase":"blocked","resume_to":"implement","blocked_from":"implement","receipts":{"S1":"running"}}'
 
@@ -763,12 +782,15 @@ assert_disk "$runF" "F1a PRE" "$DISK_IMP_S1DONE"
 invoke_script complete --run-dir "$runF" --blocked --reason "replan" --resume-to plan
 assert_rc 0 "F1a"
 assert_out_has "updated -> blocked" "F1a RETURN"
+assert_next_has "Stop and ask the user" "F1a RETURN"
 assert_disk "$runF" "F1a DISK" '{"phase":"blocked","resume_to":"plan","receipts":{"S1":"complete","S2":"running"}}'
 
 printf 'CASE F1b PRE: blocked→plan; INVOKE: complete --reason (dest plan clears receipts)\n'
 invoke_script complete --run-dir "$runF" --reason "replan"
 assert_rc 0 "F1b"
 assert_out_has "updated -> plan" "F1b RETURN"
+assert_next_has "The spec is **frozen**" "F1b RETURN"
+assert_next_lacks "$S1_LINEAR" "F1b RETURN"
 assert_disk "$runF" "F1b DISK" \
   '{"phase":"plan","receipts":{"S1":"none","S2":"none"},"plan_sha256":"empty"}'
 
@@ -875,6 +897,14 @@ runK="$tmpdir/K/.shiploop"
 repoK="$tmpdir/K/repo"
 setup_to_residual "$runK" "$repoK" "$planK" linear.json
 
+printf 'CASE K0 PRE: residual, bound-coverage, no ledger; INVOKE: next (Phase B Next)\n'
+assert_disk "$runK" "K0 PRE" '{"phase":"residual","terminal":null}'
+invoke_script next --run-dir "$runK"
+assert_rc 0 "K0"
+assert_next_has "run review-coverage Phase B" "K0 RETURN"
+assert_next_lacks "Review-coverage is **waived**" "K0 RETURN"
+assert_disk "$runK" "K0 DISK (unchanged)" '{"phase":"residual"}'
+
 printf 'CASE K1 PRE: residual, bound-coverage + ledger-complete; INVOKE: complete dest done\n'
 assert_disk "$runK" "K1 PRE" '{"phase":"residual","terminal":null,"files":{"recap.html":false}}'
 install_ledger "$repoK" complete "$planK"
@@ -964,5 +994,34 @@ assert_rc 2 "X2"
 assert_err_has "illegal transition" "X2 RETURN"
 assert_disk "$runX2" "X2 DISK (unchanged)" "$DISK_IMP_S1RUN"
 printf 'LAYER: X illegal edges OK\n'
+
+# =============================================================================
+# U — setup-once: original ask mentions new repo; S1 prompt must not
+# =============================================================================
+runU="$tmpdir/U/.shiploop"
+repoU="$tmpdir/U/repo"
+init_git_repo "$repoU"
+invoke_script init --prompt "in a new repo, write result.txt" \
+  --run-dir "$runU" --bound-plan "$planf" --repo "$repoU"
+assert_rc 0 "U setup init"
+invoke_script complete --run-dir "$runU"
+assert_rc 0 "U setup vs"
+write_environment "$runU"
+printf 'done_sentence: in a new repo, result.txt contains exactly one line: ok\ncheckable: true\n' \
+  >"$runU/spec.md"
+invoke_script complete --run-dir "$runU"
+assert_rc 0 "U setup plan"
+install_dag "$runU" setup-once.json
+printf 'done_sentence: in a new repo, result.txt contains exactly one line: ok\n' >"$runU/plan.md"
+
+printf 'CASE U1 PRE: plan + setup-once.json; INVOKE: complete dest implement\n'
+invoke_script complete --run-dir "$runU"
+assert_rc 0 "U1"
+assert_out_has "updated -> implement" "U1 RETURN"
+assert_next_has "$UNTIL_HEAD" "U1 RETURN"
+assert_next_has "- result.txt exists" "U1 RETURN"
+assert_next_lacks "new repo" "U1 RETURN"
+assert_disk "$runU" "U1 DISK" '{"phase":"implement","receipts":{"S1":"running"}}'
+printf 'LAYER: U setup-once OK\n'
 
 printf 'shiploop-walk-journal.test.sh: PASS\n'
