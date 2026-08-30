@@ -23,7 +23,7 @@ EXIT_BLOCKED = 2
 EXIT_USAGE = 64
 
 PACKAGE_ROOT = Path(__file__).resolve().parents[1]
-VERSION = "0.8.6"
+VERSION = "0.8.7"
 REF_DIR = PACKAGE_ROOT / "references"
 WT_DIRNAME = ".worktrees"
 # Printed in ## Progress and the implement Next envelope. Do not splice into
@@ -2201,7 +2201,12 @@ def _diag_supplier_suffix(step: Dict[str, Any]) -> str:
 
 
 def journal_mark(klass: str) -> str:
-    return "[x]" if klass == "done" else "[ ]"
+    """Same glyphs as the session rail. No ✗ on steps — blocked is a phase."""
+    if klass == "done":
+        return "●"
+    if klass in ("running", "ready"):
+        return "▶"
+    return "○"
 
 
 def _print_diag_step(

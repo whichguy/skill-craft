@@ -7,7 +7,7 @@ walk-back HTML recap exists.
 
 ShipLoop never auto-merges and never claims engine `COMPLETE`.
 
-Package leaf: `skills/shiploop`. Invoke: `/shiploop`. Version: **0.8.6**.
+Package leaf: `skills/shiploop`. Invoke: `/shiploop`. Version: **0.8.7**.
 
 Canonical companions (do not duplicate their contracts here):
 
@@ -440,7 +440,7 @@ banner `shiploop — session harness`:
 
 | H2 | What it is |
 |----|------------|
-| **You are here** | Session rail + phase lines, then (in implement) a walk-rail journal: `[x]` accomplished / `[ ]` not, still with `S1: running` / `todo` / `done` and waiting-on. Then Diagnosis. `complete-step` / `clear-step` / `inject-step` do not reprint; `/shiploop next` or `status --human` is the live journal. |
+| **You are here** | Session rail + phase lines, then (in implement) a walk rail using the same glyphs: `●` done / `▶` current (`running` or `ready`) / `○` waiting, still with `S1: running` / `todo` / `done` and waiting-on. No `✗` on steps (blocked is a session phase). Then Diagnosis. `complete-step` / `clear-step` / `inject-step` do not reprint; `/shiploop next` or `status --human` is the live reprint. |
 | **Progress** | HOST FLAG (extra worktree folder — do not re-root), then begin/finish this phase or running step: worktree folder, branch, session checkout, what complete does next. |
 | **Reminder** | Ask one-liner + frozen `done_sentence`. No body dump. |
 | **Look here** | First line `Reference only — not the next action.` Phase-scoped paths only. |

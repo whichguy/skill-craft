@@ -1,8 +1,8 @@
 Walk ready steps via `/goal`. The spec is **frozen** — do not refine, expand,
 or rewrite it. **Diagnosis** and the implement walk rail (in You are here)
-are the checkbox journal of the DAG: `[x]` hash-matching complete receipts,
-`[ ]` not accomplished (`running` / `ready` / `todo`), still with
-`S1: running` / waiting-on — against that frozen `done_sentence`.
+use the same glyphs as the session rail: `●` hash-matching complete,
+`▶` running or ready, `○` waiting (`todo`), still with `S1: running` /
+waiting-on — against that frozen `done_sentence`. No `✗` on steps.
 
 `/shiploop next` already claimed newly ready ids `running`. The packet's
 **Next prompt** section prints worktree / branch / HOST FLAG, then a
