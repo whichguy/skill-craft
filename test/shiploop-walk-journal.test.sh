@@ -11,6 +11,7 @@ set -euo pipefail
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 cli="$root/skills/shiploop/scripts/shiploop"
 fix="$root/test/fixtures/shiploop"
+TRANS="$fix/transitions/artifacts"
 export SHIPLOOP_BACKCHAIN_ROOT="$fix/backchain-leaf"
 
 fail() {
@@ -256,29 +257,27 @@ init_git_repo() {
   git -C "$repo" commit -m seed >/dev/null
 }
 
+copy_artifact() {
+  local dest="$1" name="$2"
+  cp "$TRANS/$name" "$dest"
+}
+
 write_spec() {
-  local run="$1"
-  printf 'done_sentence: %s\ncheckable: true\n' "$DS" >"$run/spec.md"
-  rm -f "$run/spec.json"
+  copy_artifact "$1/spec.md" spec-checkable.md
+  rm -f "$1/spec.json"
+}
+
+write_uncheckable_spec() {
+  copy_artifact "$1/spec.md" spec-uncheckable.md
+  rm -f "$1/spec.json"
 }
 
 write_environment() {
-  local run="$1"
-  cat >"$run/environment.md" <<'MD'
-Session survey brief for the test harness.
-
-## machine
-```json
-{"kind": "greenfield", "augment": false, "references": [], "tools": [], "mcp": [],
- "mcp_considered": "none(no read-capable session tool matched done-sentence)",
- "handles": [], "initiation": "none", "ui": false, "ui_craft": "none(no UI in scope)"}
-```
-MD
+  copy_artifact "$1/environment.md" environment.md
 }
 
 write_plan_md() {
-  local run="$1"
-  printf 'done_sentence: %s\n' "$DS" >"$run/plan.md"
+  copy_artifact "$1/plan.md" plan.md
 }
 
 install_dag() {
@@ -286,6 +285,19 @@ install_dag() {
   mkdir -p "$run/backchain"
   cp "$fix/$fixture" "$run/backchain/plan.json"
   write_plan_md "$run"
+}
+
+install_ledger() {
+  local repo="$1" name="$2" planf="$3"
+  local hash
+  hash="$(python3 -c "import hashlib,pathlib; print(hashlib.sha256(pathlib.Path('$planf').read_bytes()).hexdigest())")"
+  python3 - "$TRANS/ledger-${name}.md" "$repo/REVIEW_CONVERGE.md" "$planf" "$hash" <<'PY'
+from pathlib import Path
+import sys
+text = Path(sys.argv[1]).read_text(encoding="utf-8")
+text = text.replace("__PLAN_CONTRACT__", sys.argv[3]).replace("__PLAN_HASH__", sys.argv[4])
+Path(sys.argv[2]).write_text(text, encoding="utf-8")
+PY
 }
 
 commit_step_work() {
@@ -314,12 +326,11 @@ host_land() {
 }
 
 setup_bound_plan() {
-  cat >"$1" <<'MD'
-# Bound
+  copy_artifact "$1" bound-waived.md
+}
 
-## Review Coverage
-None — residual loop waived: walk-journal fixture
-MD
+setup_bound_coverage() {
+  copy_artifact "$1" bound-coverage.md
 }
 
 # Drive intake→implement via the script. Caller asserts PRE of the *next* CASE.
@@ -340,6 +351,35 @@ setup_to_implement() {
   assert_rc 0 "setup dest implement"
 }
 
+setup_to_residual() {
+  setup_to_implement "$1" "$2" "$3" "${4:-linear.json}"
+  host_land "$1" S1
+  invoke_script complete --run-dir "$1"
+  assert_rc 0 "setup complete S1"
+  host_land "$1" S2
+  invoke_script complete --run-dir "$1"
+  assert_rc 0 "setup complete S2"
+  invoke_script complete --run-dir "$1"
+  assert_rc 0 "setup dest residual"
+}
+
+assert_index_covers_edges() {
+  python3 - "$root/skills/shiploop/references/transitions.json" \
+    "$fix/transitions/INDEX.md" <<'PY' || fail "INDEX missing transitions.json edges"
+import json, sys
+from pathlib import Path
+edges = json.loads(Path(sys.argv[1]).read_text())["edges"]
+index = Path(sys.argv[2]).read_text()
+missing = []
+for e in edges:
+    needle = f"| {e['from']} | {e['to']} |"
+    if needle not in index:
+        missing.append(needle)
+if missing:
+    sys.exit("INDEX.md missing rows: " + "; ".join(missing))
+PY
+}
+
 DISK_INTAKE='{"phase":"intake","receipts":{"S1":"none","S2":"none"},"files":{"prompt.md":true,"spec.md":false,"environment.md":false,"plan.md":false,"backchain/plan.json":false},"plan_sha256":"empty","spec_sha256":"empty"}'
 DISK_VS='{"phase":"validate-spec","files":{"prompt.md":true,"spec.md":false},"plan_sha256":"empty"}'
 DISK_PLAN='{"phase":"plan","files":{"spec.md":true,"environment.md":true,"backchain/plan.json":false},"spec_sha256":"set","plan_sha256":"empty"}'
@@ -350,6 +390,10 @@ DISK_IMP_DRAINED='{"phase":"implement","receipts":{"S1":"complete","S2":"complet
 tmpdir="$(mktemp -d "${TMPDIR:-/tmp}/shiploop-walk-journal.XXXXXX")"
 cleanup() { rm -rf "$tmpdir"; }
 trap cleanup EXIT
+
+[[ -f "$fix/transitions/INDEX.md" ]] || fail "missing transitions/INDEX.md"
+[[ -d "$TRANS" ]] || fail "missing transitions/artifacts"
+assert_index_covers_edges
 
 planf="$tmpdir/bound.plan.md"
 setup_bound_plan "$planf"
@@ -740,5 +784,185 @@ assert_out_lacks "● S1" "F1c RETURN"
 assert_next_has "$S1_LINEAR" "F1c RETURN"
 assert_disk "$runF" "F1c DISK" "$DISK_IMP_S1RUN"
 printf 'LAYER: F replan wipe OK\n'
+
+# =============================================================================
+# V — validate-spec ↔ blocked (uncheckable spec artifact, independent folder)
+# =============================================================================
+runV="$tmpdir/V/.shiploop"
+repoV="$tmpdir/V/repo"
+init_git_repo "$repoV"
+invoke_script init --prompt "create result.txt containing exactly one line: ok" \
+  --run-dir "$runV" --bound-plan "$planf" --repo "$repoV"
+assert_rc 0 "V setup init"
+invoke_script complete --run-dir "$runV"
+assert_rc 0 "V setup dest validate-spec"
+
+printf 'CASE V1 PRE: validate-spec + spec-uncheckable.md (no env); INVOKE: complete --blocked\n'
+write_uncheckable_spec "$runV"
+assert_disk "$runV" "V1 PRE" \
+  '{"phase":"validate-spec","files":{"spec.md":true,"environment.md":false}}'
+invoke_script complete --run-dir "$runV" --blocked --reason "what is the oracle?" \
+  --resume-to validate-spec
+assert_rc 0 "V1"
+assert_out_has "updated -> blocked" "V1 RETURN"
+assert_next_has "Stop and ask the user" "V1 RETURN"
+assert_disk "$runV" "V1 DISK" \
+  '{"phase":"blocked","resume_to":"validate-spec","blocked_from":"validate-spec","files":{"spec.md":true,"environment.md":false}}'
+
+printf 'CASE V2 PRE: blocked resume_to=validate-spec; INVOKE: complete --reason\n'
+assert_disk "$runV" "V2 PRE" '{"phase":"blocked","resume_to":"validate-spec"}'
+invoke_script complete --run-dir "$runV" --reason "user answered"
+assert_rc 0 "V2"
+assert_out_has "updated -> validate-spec" "V2 RETURN"
+assert_next_has "Survey, then practices, then spec" "V2 RETURN"
+assert_disk "$runV" "V2 DISK" \
+  '{"phase":"validate-spec","resume_to":null,"spec_sha256":"empty","plan_sha256":"empty"}'
+printf 'LAYER: V validate-spec blocked hatch OK\n'
+
+# =============================================================================
+# Q — plan → blocked (independent folder, no DAG)
+# =============================================================================
+runQ="$tmpdir/Q/.shiploop"
+repoQ="$tmpdir/Q/repo"
+init_git_repo "$repoQ"
+invoke_script init --prompt "create result.txt containing exactly one line: ok" \
+  --run-dir "$runQ" --bound-plan "$planf" --repo "$repoQ"
+assert_rc 0 "Q setup init"
+invoke_script complete --run-dir "$runQ"
+assert_rc 0 "Q setup dest vs"
+write_environment "$runQ"
+write_spec "$runQ"
+invoke_script complete --run-dir "$runQ"
+assert_rc 0 "Q setup dest plan"
+
+printf 'CASE Q1 PRE: plan, no DAG; INVOKE: complete --blocked --resume-to plan\n'
+assert_disk "$runQ" "Q1 PRE" "$DISK_PLAN"
+invoke_script complete --run-dir "$runQ" --blocked --reason "no backchain checkout" \
+  --resume-to plan
+assert_rc 0 "Q1"
+assert_out_has "updated -> blocked" "Q1 RETURN"
+assert_next_has "Stop and ask the user" "Q1 RETURN"
+assert_disk "$runQ" "Q1 DISK" \
+  '{"phase":"blocked","resume_to":"plan","blocked_from":"plan","files":{"backchain/plan.json":false}}'
+printf 'LAYER: Q plan-to-blocked OK\n'
+
+# =============================================================================
+# G — residual → done (waiver artifact, independent folder)
+# =============================================================================
+runG="$tmpdir/G/.shiploop"
+repoG="$tmpdir/G/repo"
+setup_to_residual "$runG" "$repoG" "$planf" linear.json
+
+printf 'CASE G1 PRE: residual, waived bound plan, no recap; INVOKE: complete dest done\n'
+assert_disk "$runG" "G1 PRE" \
+  '{"phase":"residual","receipts":{"S1":"complete","S2":"complete"},"files":{"recap.html":false},"terminal":null}'
+invoke_script complete --run-dir "$runG"
+assert_rc 0 "G1"
+assert_out_has "updated -> done" "G1 RETURN"
+assert_next_has "Session closed" "G1 RETURN"
+assert_out_has "recap.html" "G1 RETURN Look here"
+assert_disk "$runG" "G1 DISK" \
+  '{"phase":"done","terminal":"waived","files":{"recap.html":true},"receipts":{"S1":"complete","S2":"complete"}}'
+grep -q 'writer: shiploop.recap' "$runG/recap.html" || fail "G1 DISK recap missing writer stamp"
+printf 'LAYER: G residual-to-done waiver OK\n'
+
+# =============================================================================
+# K — residual → done via ledger-complete.md (no waiver, independent folder)
+# =============================================================================
+planK="$tmpdir/K.bound.md"
+setup_bound_coverage "$planK"
+runK="$tmpdir/K/.shiploop"
+repoK="$tmpdir/K/repo"
+setup_to_residual "$runK" "$repoK" "$planK" linear.json
+
+printf 'CASE K1 PRE: residual, bound-coverage + ledger-complete; INVOKE: complete dest done\n'
+assert_disk "$runK" "K1 PRE" '{"phase":"residual","terminal":null,"files":{"recap.html":false}}'
+install_ledger "$repoK" complete "$planK"
+[[ -f "$repoK/REVIEW_CONVERGE.md" ]] || fail "K1 PRE missing ledger"
+invoke_script complete --run-dir "$runK"
+assert_rc 0 "K1"
+assert_out_has "updated -> done" "K1 RETURN"
+assert_next_has "Session closed" "K1 RETURN"
+assert_disk "$runK" "K1 DISK" \
+  '{"phase":"done","terminal":"success","files":{"recap.html":true}}'
+grep -q 'review-coverage complete and landed' "$runK/recap.html" \
+  || fail "K1 DISK recap missing complete-and-landed"
+printf 'LAYER: K residual-to-done ledger OK\n'
+
+# =============================================================================
+# T — residual → halted via ledger-stopped.md (independent folder)
+# =============================================================================
+planT="$tmpdir/T.bound.md"
+setup_bound_coverage "$planT"
+runT="$tmpdir/T/.shiploop"
+repoT="$tmpdir/T/repo"
+setup_to_residual "$runT" "$repoT" "$planT" linear.json
+
+printf 'CASE T1 PRE: residual, ledger-stopped; INVOKE: complete dest halted\n'
+assert_disk "$runT" "T1 PRE" '{"phase":"residual","terminal":null}'
+install_ledger "$repoT" stopped "$planT"
+invoke_script complete --run-dir "$runT"
+assert_rc 0 "T1"
+assert_out_has "updated -> halted" "T1 RETURN"
+assert_next_has "Session terminal: halted" "T1 RETURN"
+assert_disk "$runT" "T1 DISK" \
+  '{"phase":"halted","terminal":"halted","files":{"recap.html":true}}'
+grep -q 'HALTED' "$runT/recap.html" || fail "T1 DISK recap missing HALTED"
+printf 'LAYER: T residual-to-halted OK\n'
+
+# =============================================================================
+# R — residual → blocked → residual (independent folder)
+# =============================================================================
+runR="$tmpdir/R/.shiploop"
+repoR="$tmpdir/R/repo"
+setup_to_residual "$runR" "$repoR" "$planf" linear.json
+
+printf 'CASE R1 PRE: residual; INVOKE: complete --blocked --resume-to residual\n'
+assert_disk "$runR" "R1 PRE" '{"phase":"residual","receipts":{"S1":"complete","S2":"complete"}}'
+invoke_script complete --run-dir "$runR" --blocked --reason "not green" --resume-to residual
+assert_rc 0 "R1"
+assert_out_has "updated -> blocked" "R1 RETURN"
+assert_next_has "Stop and ask the user" "R1 RETURN"
+assert_disk "$runR" "R1 DISK" \
+  '{"phase":"blocked","resume_to":"residual","blocked_from":"residual","receipts":{"S1":"complete","S2":"complete"}}'
+
+printf 'CASE R2 PRE: blocked resume_to=residual, steps drained; INVOKE: complete --reason\n'
+assert_disk "$runR" "R2 PRE" '{"phase":"blocked","resume_to":"residual"}'
+invoke_script complete --run-dir "$runR" --reason "suite green"
+assert_rc 0 "R2"
+assert_out_has "updated -> residual" "R2 RETURN"
+assert_next_has "Review-coverage is **waived**" "R2 RETURN"
+assert_disk "$runR" "R2 DISK" \
+  '{"phase":"residual","resume_to":null,"receipts":{"S1":"complete","S2":"complete"}}'
+printf 'LAYER: R residual blocked resume OK\n'
+
+# =============================================================================
+# X — illegal edges (independent folders)
+# =============================================================================
+runX1="$tmpdir/X1/.shiploop"
+repoX1="$tmpdir/X1/repo"
+init_git_repo "$repoX1"
+invoke_script init --prompt "create result.txt containing exactly one line: ok" \
+  --run-dir "$runX1" --bound-plan "$planf" --repo "$repoX1"
+assert_rc 0 "X1 setup"
+
+printf 'CASE X1 PRE: intake; INVOKE: complete --blocked (illegal)\n'
+assert_disk "$runX1" "X1 PRE" '{"phase":"intake"}'
+invoke_script complete --run-dir "$runX1" --blocked --reason "no" --resume-to validate-spec
+assert_rc 2 "X1"
+assert_err_has "illegal transition" "X1 RETURN"
+assert_disk "$runX1" "X1 DISK (unchanged)" '{"phase":"intake"}'
+
+runX2="$tmpdir/X2/.shiploop"
+repoX2="$tmpdir/X2/repo"
+setup_to_implement "$runX2" "$repoX2" "$planf" linear.json
+
+printf 'CASE X2 PRE: implement mid-walk; INVOKE: update --to done (illegal)\n'
+assert_disk "$runX2" "X2 PRE" "$DISK_IMP_S1RUN"
+invoke_script update --run-dir "$runX2" --to done
+assert_rc 2 "X2"
+assert_err_has "illegal transition" "X2 RETURN"
+assert_disk "$runX2" "X2 DISK (unchanged)" "$DISK_IMP_S1RUN"
+printf 'LAYER: X illegal edges OK\n'
 
 printf 'shiploop-walk-journal.test.sh: PASS\n'
