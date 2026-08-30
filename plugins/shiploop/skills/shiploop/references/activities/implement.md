@@ -38,8 +38,10 @@ discovered step's `--prompt` still needs `/goal` plus until-`produces`
 and does **not** need to cite `{{ENV_MD}}`'s practice references or the
 frozen `mcp_considered` token. That exemption does **not** cover the writer
 prohibition: when `exclusive` is nonempty, the discovered `--prompt` still
-carries a `Tools:` block and a parsed `Don't use:` line (`Don't use: none`
-if the token union is empty). The Next envelope still reprints Frozen
+carries a `Tools:` block, a `Use:` line whose entries include the designated
+`exclusive[].use`, and a parsed `Don't use:` line (`Don't use: none`
+if the token union is empty; a token under `Use:` does not count; overlap
+with `Don't use:` is a gap). The Next envelope still reprints Frozen
 (Exclusive / dest-blocked / See) above that stored prompt; paste that Frozen
 block with the discovered prompt. If the writer above fails, stop and invoke /shiploop complete --blocked --reason … — do not switch writers.
 

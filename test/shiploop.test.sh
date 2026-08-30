@@ -124,6 +124,14 @@ grep -Fq "$blocked_line" "$root/skills/shiploop/references/survey.md" \
   || fail "survey.md missing dest-blocked sentence"
 grep -Fq "$blocked_line" "$root/skills/shiploop/references/activities/implement.md" \
   || fail "implement.md missing dest-blocked sentence"
+grep -q 'Use:' "$root/skills/shiploop/commands/shiploop-inject.md" \
+  || fail "shiploop-inject.md missing Use: for exclusive discovered prompts"
+grep -q 'exclusive\[\].use' "$root/skills/shiploop/commands/shiploop-inject.md" \
+  || fail "shiploop-inject.md missing exclusive[].use on Use:"
+grep -q 'Use:' "$root/skills/shiploop/references/activities/implement.md" \
+  || fail "implement.md missing Use: for exclusive discovered prompts"
+grep -q 'exclusive\[\].use' "$root/skills/shiploop/references/activities/implement.md" \
+  || fail "implement.md missing exclusive[].use on Use:"
 grep -Fq "$blocked_line" "$root/skills/shiploop/references/turn-packet.md" \
   || fail "turn-packet.md missing dest-blocked sentence"
 grep -Fq "$blocked_line" "$root/skills/shiploop/README.md" \
