@@ -4,7 +4,9 @@ Add a discovered intermediate step to the running DAG. Exec harness
 `implement`. Refuses on plan-hash drift, unsafe/duplicate id, or a
 `--before` target that is not `todo`/`ready`. Does not re-run `dest plan`,
 clear receipts, or start the new step. `--prompt` is not required to cite
-`environment.md` practice references or carry a `Tools:` block (those
-script gates apply to seed steps only). The implement Next envelope still
+`environment.md` practice references or `mcp_considered` (those
+script gates apply to seed steps only). When `exclusive` is nonempty, the
+discovered prompt still needs `Tools:` and a parsed `Don't use:` line.
+The implement Next envelope still
 reprints Frozen session environment above that stored prompt — paste that
 block with the discovered prompt.

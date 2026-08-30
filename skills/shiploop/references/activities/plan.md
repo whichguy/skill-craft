@@ -101,10 +101,12 @@ Label meanings (host judgment — the script does not check these words):
 
 - **Watch with:** the exact frozen `mcp_considered` string, including `none(reason)`.
 - **Use:** existing non-MCP tools this step runs. Destination writes follow
-  the playbook's exclusive writer, including MCP named in `mcp:`.
+  `exclusive[].use`, including MCP named in `mcp:`. When `exclusive` is
+  nonempty, `Use:` names that writer.
 - **Don't use:** conflicting writers of the same artifact (from
-  `exclusive[].dont_use`), plus unauthenticated, deferred, or
-  wrong-for-this-step tools/MCP.
+  `exclusive[].dont_use`) as distinct semicolon-separated entries, plus
+  unauthenticated, deferred, or wrong-for-this-step tools/MCP. `Don't use:
+  none` is empty. A token under `Use:` does not count.
 - **Assume:** frozen brief facts, **or** a probe-verified / survey-established
   fact recorded in `initial_state` or `resolved_facts` — never a newly
   invented host guess.
@@ -129,12 +131,15 @@ Assume: this increment stays local
 
 `dest implement` refuses a seed `prompt` that omits any researched path, that
 has no line starting with `Tools:`, or that omits the frozen
-`mcp_considered` token (even on README / omit-MCP steps). In-flight
-pre-0.8.4 runs: dest **blocked** then dest **plan**, rewrite seed prompts
-(do not hand-edit `backchain/plan.json`). `inject-step` discovered steps still
-need `/goal` plus until-`produces` but are exempt from citation and the
-Tools: gate; the implement envelope still reprints frozen tools/MCP for
-those `/goal`s. See `{{IMPLEMENT_ACTIVITY}}`.
+`mcp_considered` token (even on README / omit-MCP steps). When `exclusive`
+is nonempty, seed **and** discovered prompts need a parsed `Don't use:` line
+(`Don't use: none` if the token union is empty). In-flight runs: dest blocked →
+validate-spec; rewrite environment.md; → plan (do not hand-edit
+backchain/plan.json). `inject-step` discovered steps still
+need `/goal` plus until-`produces` and stay exempt from reference and
+`mcp_considered` citation; they are **not** exempt from Tools / Don't use when
+`exclusive` is nonempty. The implement envelope still reprints Frozen
+(Exclusive / dest-blocked / See) for those `/goal`s. See `{{IMPLEMENT_ACTIVITY}}`.
 
 Persist the backchain document to `{{BACKCHAIN_JSON}}` (canonical). Then
 write `{{PLAN_MD}}` with a labeled line `done_sentence: {{DONE_SENTENCE}}`

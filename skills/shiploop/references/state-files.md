@@ -7,7 +7,7 @@ Everything below lives under the **run dir** (default: walked from cwd to
 |------|-----------------|----------------------|
 | `state.json` | every command | phase, hashes, `dep_roots`, blocked/resume, `terminal` |
 | `prompt.md` | `init` | the original ask |
-| `environment.md` | `validate-spec` (survey + practices) | session survey: prose brief + `## machine` fenced JSON; practice references live here |
+| `environment.md` | `validate-spec` (survey + practices) | session survey: prose brief + `## machine` fenced JSON (`exclusive` is the session writer map); practice references and practice prose live here, hashed with the file. Session-wide union of `dont_use`; a row's `use` in another row's `dont_use` is a dest-plan gap (split the session). Artifact-scoped `Writes:` is a follow-up, not this increment. |
 | `spec.md` | `validate-spec` | labeled `done_sentence:` and `checkable: true\|false` (each exactly once); `ask_user:` when `checkable: false` |
 | `backchain/plan.json` | `plan` | canonical sequence DAG (steps carry `statement`, `prompt`, `produces`, `inputs`, `origin`; every seed `prompt` cites `environment.md` `references[].path` and a `Tools:` block) |
 | `plan.md` | `plan` | sequence pointer with labeled `done_sentence:` (must equal `spec.md` at dest implement; same fence-skip labels as spec.md). Not hashed into `plan_sha256` — a post-bind edit does not fail-closed on `next`. dest residual may store `state.bound_plan_hash = sha256(plan.md)`. May lag the DAG after `inject-step`. |
@@ -30,7 +30,8 @@ SoT. Leftover `plan.json` wrappers are inert — dest implement and
 
 `dest plan` **writes** `environment_sha256` / `spec_sha256` when empty (first
 bind — including `blocked → plan`) and **verifies** them when already set.
-Editing either file after bind requires `blocked → validate-spec` to rebind
+Editing either file after bind requires dest blocked → validate-spec; rewrite
+environment.md; → plan (do not hand-edit backchain/plan.json)
 (this clears all three hashes and any receipts). Once `phase != validate-spec
 and != plan`, any command that reads state re-checks these hashes and fails
 closed (exit 2) on drift. An empty `environment_sha256` (a pre-0.7 run, or a

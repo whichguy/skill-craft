@@ -35,10 +35,13 @@ hand-edit is not an inject), refuses `--before` a step that is not
 `todo`/`ready`, and rebinds `plan_sha256` only — it never re-runs `dest
 plan` or clears existing receipts. Unlike a seed step's `prompt`, a
 discovered step's `--prompt` still needs `/goal` plus until-`produces`
-but does **not** need to cite `{{ENV_MD}}`'s practice references or carry
-a `Tools:` block — it is an ad-hoc fix, not researched practice work. The Next envelope still reprints frozen
-tools/MCP/Playbook above that stored prompt; paste that Frozen block with the
-discovered prompt.
+and does **not** need to cite `{{ENV_MD}}`'s practice references or the
+frozen `mcp_considered` token. That exemption does **not** cover the writer
+prohibition: when `exclusive` is nonempty, the discovered `--prompt` still
+carries a `Tools:` block and a parsed `Don't use:` line (`Don't use: none`
+if the token union is empty). The Next envelope still reprints Frozen
+(Exclusive / dest-blocked / See) above that stored prompt; paste that Frozen
+block with the discovered prompt. If the writer above fails, stop and invoke /shiploop complete --blocked --reason … — do not switch writers.
 
 After a `/goal` succeeds: invoke `/shiploop complete`.
 After a `/goal` fails and the session can continue: invoke `/shiploop complete --clear`.

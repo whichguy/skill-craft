@@ -103,8 +103,45 @@ grep -q '`waived`' "$root/skills/shiploop/references/state-files.md" \
   || fail "state-files.md missing terminal waived"
 grep -q '`halted`' "$root/skills/shiploop/references/state-files.md" \
   || fail "state-files.md missing terminal halted"
-grep -q '^VERSION = "0.8.9"$' "$cli" || fail "script VERSION is not 0.8.9"
-grep -q '^version: 0.8.9$' "$root/skills/shiploop/SKILL.md" || fail "SKILL.md version is not 0.8.9"
+grep -q '^VERSION = "0.8.10"$' "$cli" || fail "script VERSION is not 0.8.10"
+grep -q '^version: 0.8.10$' "$root/skills/shiploop/SKILL.md" || fail "SKILL.md version is not 0.8.10"
+grep -Fq 'Version: **0.8.10**' "$root/skills/shiploop/README.md" || fail "README version is not 0.8.10"
+grep -q 'exclusive writer' "$root/skills/shiploop/references/survey.md" \
+  || fail "survey.md missing exclusive writer question"
+grep -q 'conflicts, not as backups' "$root/skills/shiploop/references/survey.md" \
+  || fail "survey.md missing conflicts, not as backups"
+grep -q 'libraries' "$root/skills/shiploop/references/survey.md" \
+  || fail "survey.md missing libraries"
+grep -q 'exclusive' "$root/skills/shiploop/references/state-files.md" \
+  || fail "state-files.md missing exclusive writer map"
+grep -Fq 'ENV_RECOVERY' "$cli" || fail "script missing ENV_RECOVERY"
+grep -Fq 'DEST_BLOCKED_LINE' "$cli" || fail "script missing DEST_BLOCKED_LINE"
+grep -Fq 'in-flight runs: dest blocked → validate-spec; rewrite environment.md; → plan (do not hand-edit backchain/plan.json)' \
+  "$cli" || fail "script missing ENV_RECOVERY sentence"
+blocked_line='If the writer above fails, stop and invoke /shiploop complete --blocked --reason … — do not switch writers.'
+grep -Fq "$blocked_line" "$cli" || fail "script missing dest-blocked Frozen sentence"
+grep -Fq "$blocked_line" "$root/skills/shiploop/references/survey.md" \
+  || fail "survey.md missing dest-blocked sentence"
+grep -Fq "$blocked_line" "$root/skills/shiploop/references/activities/implement.md" \
+  || fail "implement.md missing dest-blocked sentence"
+grep -Fq "$blocked_line" "$root/skills/shiploop/references/turn-packet.md" \
+  || fail "turn-packet.md missing dest-blocked sentence"
+grep -Fq "$blocked_line" "$root/skills/shiploop/README.md" \
+  || fail "README missing dest-blocked sentence"
+if grep -q '| `playbook.md` |' "$root/skills/shiploop/README.md" \
+  "$root/skills/shiploop/references/state-files.md"; then
+  fail "playbook.md must not be a SoT row"
+fi
+if grep -nE 'clasp|(^|[^a-z])gas([^a-z]|$)|google' "$cli"; then
+  fail "Python must not name clasp/GAS/google"
+fi
+if grep -q 'write `.shiploop/playbook.md`' "$root/skills/shiploop/README.md" \
+  "$root/skills/shiploop/references/survey.md" \
+  "$root/skills/shiploop/references/activities/validate-spec.md"; then
+  fail "host must not be instructed to write playbook.md"
+fi
+grep -q 'Use: git' "$root/skills/shiploop/references/activities/plan.md" \
+  || fail "plan.md Tools Use is not git"
 grep -q 'def print_stored_prompt' "$cli" || fail "script missing print_stored_prompt"
 if grep -q 'print(str(step.get("prompt") or "").rstrip())' "$cli"; then
   fail "print_packet still rstrip stored prompt"
@@ -1164,7 +1201,7 @@ printf '%s\n' "$out_imp" | grep -q 'mcp-considered: none(no read-capable session
   || fail "implement Next missing frozen mcp-considered: $out_imp"
 printf '%s\n' "$out_imp" | grep -q 'tools: (none)' || fail "implement Next missing tools: (none)"
 printf '%s\n' "$out_imp" | grep -q 'mcp: (none)' || fail "implement Next missing mcp: (none)"
-printf '%s\n' "$out_imp" | grep -q 'Playbook:' || fail "implement Next missing Playbook:"
+printf '%s\n' "$out_imp" | grep -q 'Exclusive: (none)' || fail "implement Next missing Exclusive: (none)"
 assert_absent "$out_imp" 'do not implement the product through MCP' \
   "Frozen still forbids implementing through MCP"
 python3 -c '
@@ -2512,6 +2549,19 @@ out_exu="$(run_cli update --run-dir "$runm" --to plan 2>&1)"
 rc_exu=$?
 set -e
 [[ "$rc_exu" -eq 2 ]] || fail "exclusive use not inventoried want 2: $out_exu"
+printf '%s\n' "$out_exu" | grep -q 'must be an inventoried tools or mcp name' \
+  || fail "inventoried message: $out_exu"
+
+write_machine "$runm" '{"kind": "greenfield", "augment": false, "references": [{"path": "x", "why": "y"}], "tools": [], "mcp": [],
+ "mcp_considered": "none(x)", "handles": [], "initiation": "none", "ui": false, "ui_craft": "none(no UI)",
+ "exclusive": [{"artifact": "hosted", "use": "ghost", "dont_use": []}]}'
+set +e
+out_exg="$(run_cli update --run-dir "$runm" --to plan 2>&1)"
+rc_exg=$?
+set -e
+[[ "$rc_exg" -eq 2 ]] || fail "empty inventory exclusive use ghost want 2: $out_exg"
+printf '%s\n' "$out_exg" | grep -q 'must be an inventoried tools or mcp name' \
+  || fail "empty-inventory inventoried message: $out_exg"
 
 write_machine "$runm" '{"kind": "greenfield", "augment": false, "references": [], "tools": [], "mcp": [],
  "mcp_considered": "none(x)",
@@ -2605,6 +2655,42 @@ doc = {
     "origin": "seed",
     "inputs": [{"need": "repo exists", "from": None}],
   }],
+  "parallel_groups": [],
+  "unresolved": [],
+}
+(run / "backchain" / "plan.json").write_text(json.dumps(doc, indent=2) + "\n")
+(run / "plan.md").write_text("done_sentence: %s\n" % ds)
+PY
+}
+write_seed_and_discovered_dag() {
+  local run="$1" seed_prompt="$2" disc_prompt="$3"
+  python3 - "$run" "$DS" "$seed_prompt" "$disc_prompt" <<'PY'
+import json, sys
+from pathlib import Path
+run = Path(sys.argv[1])
+ds, seed_prompt, disc_prompt = sys.argv[2], sys.argv[3], sys.argv[4]
+(run / "backchain").mkdir(exist_ok=True)
+doc = {
+  "goal": ds,
+  "initial_state": ["repo exists"],
+  "steps": [
+    {
+      "id": "S1",
+      "statement": "write the file",
+      "prompt": seed_prompt,
+      "produces": ["result.txt exists"],
+      "origin": "seed",
+      "inputs": [{"need": "repo exists", "from": None}],
+    },
+    {
+      "id": "S2",
+      "statement": "mid",
+      "prompt": disc_prompt,
+      "produces": ["mid exists"],
+      "origin": "discovered",
+      "inputs": [{"need": "result.txt exists", "from": "S1"}],
+    },
+  ],
   "parallel_groups": [],
   "unresolved": [],
 }
@@ -2876,10 +2962,18 @@ assert state["phase"] == "implement", state["phase"]
 PY
 printf 'LAYER: inject-step add/refuse/drained OK\n'
 
-# --- dest plan playbook + dest implement exclusive.dont_use ---
-runpb="$tmpdir/playbook/.shiploop"
-repopb="$tmpdir/playbook/repo"
+# --- dest plan exclusive + dest implement parsed Don't use ---
+runpb="$tmpdir/exclusive/.shiploop"
+repopb="$tmpdir/exclusive/repo"
 fresh_vs "$runpb" "$repopb"
+write_machine "$runpb" '{"kind": "greenfield", "augment": false, "references": [], "tools": ["git"], "mcp": ["writer-mcp"],
+ "mcp_considered": "none(x)", "handles": [], "initiation": "none", "ui": false, "ui_craft": "none(no UI)",
+ "exclusive": []}'
+run_cli update --run-dir "$runpb" --to plan >/dev/null
+printf 'LAYER: dest-plan exclusive [] with mcp nonempty OK\n'
+run_cli update --run-dir "$runpb" --to blocked --resume-to validate-spec --reason "rebind exclusive rows" >/dev/null
+run_cli update --run-dir "$runpb" --to validate-spec --reason "rebind" >/dev/null
+write_spec "$runpb"
 write_machine "$runpb" '{"kind": "greenfield", "augment": false, "references": [], "tools": ["git", "alt-cli"], "mcp": ["writer-mcp"],
  "mcp_considered": "none(x)", "handles": [], "initiation": "none", "ui": false, "ui_craft": "none(no UI)",
  "exclusive": [{"artifact": "hosted project", "use": "writer-mcp", "dont_use": ["alt-cli"]}]}'
@@ -2887,82 +2981,185 @@ set +e
 out_pbmiss="$(run_cli update --run-dir "$runpb" --to plan 2>&1)"
 rc_pbmiss=$?
 set -e
-[[ "$rc_pbmiss" -eq 2 ]] || fail "mcp nonempty missing playbook want 2: $out_pbmiss"
-printf '%s\n' "$out_pbmiss" | grep -qi 'playbook' || fail "missing playbook message: $out_pbmiss"
-printf 'Exclusive writers\nuse: writer-mcp\n' >"$runpb/playbook.md"
+[[ "$rc_pbmiss" -eq 2 ]] || fail "exclusive nonempty missing references want 2: $out_pbmiss"
+printf '%s\n' "$out_pbmiss" | grep -qi 'references' || fail "missing references message: $out_pbmiss"
+write_machine "$runpb" '{"kind": "greenfield", "augment": false, "references": [{"path": "x", "why": "y"}], "tools": ["git", "writer-a", "writer-b"], "mcp": [],
+ "mcp_considered": "none(x)", "handles": [], "initiation": "none", "ui": false, "ui_craft": "none(no UI)",
+ "exclusive": [{"artifact": "a", "use": "writer-a", "dont_use": ["writer-b"]}, {"artifact": "b", "use": "writer-b", "dont_use": ["writer-a"]}]}'
 set +e
-out_pbuncited="$(run_cli update --run-dir "$runpb" --to plan 2>&1)"
-rc_pbuncited=$?
+out_opp="$(run_cli update --run-dir "$runpb" --to plan 2>&1)"
+rc_opp=$?
 set -e
-[[ "$rc_pbuncited" -eq 2 ]] || fail "uncited playbook want 2: $out_pbuncited"
-printf '%s\n' "$out_pbuncited" | grep -qi 'playbook' || fail "uncited playbook message: $out_pbuncited"
-pbpath="$(python3 -c "from pathlib import Path; import sys; print(Path(sys.argv[1]).resolve())" "$runpb/playbook.md")"
-write_machine "$runpb" "{\"kind\": \"greenfield\", \"augment\": false, \"references\": [{\"path\": \"$pbpath\", \"why\": \"playbook\"}], \"tools\": [\"git\", \"alt-cli\"], \"mcp\": [\"writer-mcp\"],
+[[ "$rc_opp" -eq 2 ]] || fail "opposing writers dest plan want 2: $out_opp"
+printf '%s\n' "$out_opp" | grep -qi 'opposing writers' || fail "opposing writers message: $out_opp"
+write_machine "$runpb" '{"kind": "greenfield", "augment": false, "references": [{"path": "x", "why": "y"}], "tools": ["git", "writer-a", "writer-b"], "mcp": [],
+ "mcp_considered": "none(x)", "handles": [], "initiation": "none", "ui": false, "ui_craft": "none(no UI)",
+ "exclusive": [{"artifact": "a", "use": "writer-a", "dont_use": []}, {"artifact": "b", "use": "writer-b", "dont_use": []}]}'
+set +e
+out_single="$(run_cli update --run-dir "$runpb" --to plan 2>&1)"
+rc_single=$?
+set -e
+[[ "$rc_single" -eq 2 ]] || fail "disagreeing exclusive use dest plan want 2: $out_single"
+printf '%s\n' "$out_single" | grep -qi 'single exclusive writer' \
+  || fail "single exclusive writer message: $out_single"
+write_machine "$runpb" '{"kind": "greenfield", "augment": false, "references": [{"path": "x", "why": "y"}], "tools": ["git", "alt-cli"], "mcp": ["writer-mcp"],
+ "mcp_considered": "none(x)", "handles": [], "initiation": "none", "ui": false, "ui_craft": "none(no UI)",
+ "exclusive": [{"artifact": "hosted project", "use": "writer-mcp", "dont_use": ["alt;cli"]}]}'
+set +e
+out_semi="$(run_cli update --run-dir "$runpb" --to plan 2>&1)"
+rc_semi=$?
+set -e
+[[ "$rc_semi" -eq 2 ]] || fail "semicolon dont_use token want 2: $out_semi"
+refpath="$fix/existing-app/README.md"
+write_machine "$runpb" "{\"kind\": \"greenfield\", \"augment\": false, \"references\": [{\"path\": \"$refpath\", \"why\": \"practice\"}], \"tools\": [\"git\", \"alt-cli\"], \"mcp\": [\"writer-mcp\"],
  \"mcp_considered\": \"none(x)\", \"handles\": [], \"initiation\": \"none\", \"ui\": false, \"ui_craft\": \"none(no UI)\",
  \"exclusive\": [{\"artifact\": \"hosted project\", \"use\": \"writer-mcp\", \"dont_use\": [\"alt-cli\"]}]}"
 run_cli update --run-dir "$runpb" --to plan >/dev/null
-printf 'LAYER: dest-plan playbook gate OK\n'
+printf 'LAYER: dest-plan exclusive + references OK\n'
 
-write_seed_dag() {
-  local run="$1" prompt="$2"
-  python3 - "$run" "$DS" "$prompt" <<'PY'
-import json, sys
-from pathlib import Path
-run = Path(sys.argv[1])
-ds, prompt = sys.argv[2], sys.argv[3]
-(run / "backchain").mkdir(exist_ok=True)
-doc = {
-  "goal": ds,
-  "initial_state": ["repo exists"],
-  "steps": [{
-    "id": "S1",
-    "statement": "write the file",
-    "prompt": prompt,
-    "produces": ["result.txt exists"],
-    "origin": "seed",
-    "inputs": [{"need": "repo exists", "from": None}],
-  }],
-  "parallel_groups": [],
-  "unresolved": [],
-}
-(run / "backchain" / "plan.json").write_text(json.dumps(doc, indent=2) + "\n")
-(run / "plan.md").write_text("done_sentence: %s\n" % ds)
-PY
-}
-write_seed_dag "$runpb" "${UNTIL_PREFIX}Tools:
-Watch with: none(x)
-Use: git
-Don't use: none
-Assume: test harness"
-set +e
-out_pbcite="$(run_cli update --run-dir "$runpb" --to implement 2>&1)"
-rc_pbcite=$?
-set -e
-[[ "$rc_pbcite" -eq 2 ]] || fail "seed omit playbook path want 2: $out_pbcite"
-write_seed_dag "$runpb" "${UNTIL_PREFIX}cite ${pbpath}
+write_seed_dag "$runpb" "${UNTIL_PREFIX}cite ${refpath}
 Tools:
 Watch with: none(x)
-Use: git
+Use: alt-cli
 Don't use: none
 Assume: test harness"
 set +e
 out_pbdu="$(run_cli update --run-dir "$runpb" --to implement 2>&1)"
 rc_pbdu=$?
 set -e
-[[ "$rc_pbdu" -eq 2 ]] || fail "seed omit dont_use token want 2: $out_pbdu"
+[[ "$rc_pbdu" -eq 2 ]] || fail "token only under Use: want 2: $out_pbdu"
 printf '%s\n' "$out_pbdu" | grep -qi 'dont_use' || fail "dont_use message: $out_pbdu"
-write_seed_dag "$runpb" "${UNTIL_PREFIX}cite ${pbpath}
+write_seed_dag "$runpb" "${UNTIL_PREFIX}cite ${refpath}
+Tools:
+Watch with: none(x)
+Use: git
+Don't use: aws-vault
+Assume: test harness"
+set +e
+out_coll="$(run_cli update --run-dir "$runpb" --to implement 2>&1)"
+rc_coll=$?
+set -e
+[[ "$rc_coll" -eq 2 ]] || fail "wrong Don't use entry want 2: $out_coll"
+write_seed_dag "$runpb" "${UNTIL_PREFIX}cite ${refpath}
 Tools:
 Watch with: none(x)
 Use: git
 Don't use: alt-cli
 Assume: test harness"
+set +e
+out_usegit="$(run_cli update --run-dir "$runpb" --to implement 2>&1)"
+rc_usegit=$?
+set -e
+[[ "$rc_usegit" -eq 2 ]] || fail "Use: git vs exclusive writer-mcp want 2: $out_usegit"
+printf '%s\n' "$out_usegit" | grep -q 'writer-mcp' || fail "designated writer message: $out_usegit"
+write_seed_dag "$runpb" "${UNTIL_PREFIX}cite ${refpath}
+Tools:
+Watch with: none(x)
+Use: alt-cli
+Don't use: alt-cli
+Assume: test harness"
+set +e
+out_ov="$(run_cli update --run-dir "$runpb" --to implement 2>&1)"
+rc_ov=$?
+set -e
+[[ "$rc_ov" -eq 2 ]] || fail "Use:/Don't use overlap want 2: $out_ov"
+printf '%s\n' "$out_ov" | grep -qi 'overlap' || fail "overlap message: $out_ov"
+write_seed_dag "$runpb" "${UNTIL_PREFIX}cite ${refpath}
+Tools:
+Watch with: none(x)
+Don't use: alt-cli
+Assume: test harness"
+set +e
+out_nouse="$(run_cli update --run-dir "$runpb" --to implement 2>&1)"
+rc_nouse=$?
+set -e
+[[ "$rc_nouse" -eq 2 ]] || fail "missing Use: line want 2: $out_nouse"
+printf '%s\n' "$out_nouse" | grep -q 'Use:' || fail "missing Use: message: $out_nouse"
+SEED_OK="${UNTIL_PREFIX}cite ${refpath}
+Tools:
+Watch with: none(x)
+Use: writer-mcp
+Don't use: alt-cli
+Assume: test harness"
+DISC_PREFIX='/goal
+Do this activity until these conditions are met:
+- mid exists
+'
+write_seed_and_discovered_dag "$runpb" "$SEED_OK" "${DISC_PREFIX}Tools:
+Watch with: none(x)
+Use: alt-cli
+Don't use: alt-cli"
+set +e
+out_dov="$(run_cli update --run-dir "$runpb" --to implement 2>&1)"
+rc_dov=$?
+set -e
+[[ "$rc_dov" -eq 2 ]] || fail "discovered Use:/Don't use overlap want 2: $out_dov"
+printf '%s\n' "$out_dov" | grep -qi 'overlap' || fail "discovered overlap message: $out_dov"
+write_seed_and_discovered_dag "$runpb" "$SEED_OK" "${DISC_PREFIX}Tools:
+Watch with: none(x)
+Use: git
+Don't use: alt-cli"
+set +e
+out_dgit="$(run_cli update --run-dir "$runpb" --to implement 2>&1)"
+rc_dgit=$?
+set -e
+[[ "$rc_dgit" -eq 2 ]] || fail "discovered Use: git vs writer-mcp want 2: $out_dgit"
+printf '%s\n' "$out_dgit" | grep -q 'writer-mcp' || fail "discovered designated writer message: $out_dgit"
+write_seed_and_discovered_dag "$runpb" "$SEED_OK" "${DISC_PREFIX}Tools:
+Watch with: none(x)
+Don't use: alt-cli"
+set +e
+out_dnu="$(run_cli update --run-dir "$runpb" --to implement 2>&1)"
+rc_dnu=$?
+set -e
+[[ "$rc_dnu" -eq 2 ]] || fail "discovered missing Use: want 2: $out_dnu"
+printf '%s\n' "$out_dnu" | grep -q 'Use:' || fail "discovered missing Use: message: $out_dnu"
+write_seed_and_discovered_dag "$runpb" "$SEED_OK" "${DISC_PREFIX}Tools:
+Watch with: none(x)
+Use: writer-mcp
+Don't use: alt-cli"
 run_cli update --run-dir "$runpb" --to implement >/dev/null
 out_pbfz="$(run_cli next --run-dir "$runpb")"
-printf '%s\n' "$out_pbfz" | grep -q "Playbook: $pbpath" || fail "Frozen missing playbook path: $out_pbfz"
+printf '%s\n' "$out_pbfz" | grep -q 'Exclusive: hosted project — use writer-mcp; don'\''t use alt-cli' \
+  || fail "Frozen missing Exclusive row: $out_pbfz"
+printf '%s\n' "$out_pbfz" | grep -Fq "$blocked_line" \
+  || fail "Frozen missing dest-blocked sentence: $out_pbfz"
+assert_absent "$out_pbfz" 'Playbook:' "Frozen still prints Playbook:"
 assert_absent "$out_pbfz" 'do not implement the product through MCP' \
-  "playbook Frozen still forbids MCP writes"
-printf 'LAYER: dest-implement playbook + dont_use OK\n'
+  "Frozen still forbids MCP writes"
+printf 'LAYER: dest-implement parsed Don'\''t use + Frozen Exclusive OK\n'
+
+python3 - "$cli" "$tmpdir/f1-env" <<'PY' || fail "F1 load_environment blanks on missing exclusive"
+import importlib.machinery, importlib.util, io, sys
+from pathlib import Path
+cli = Path(sys.argv[1])
+loader = importlib.machinery.SourceFileLoader("shiploop", str(cli))
+spec = importlib.util.spec_from_loader("shiploop", loader)
+mod = importlib.util.module_from_spec(spec)
+loader.exec_module(mod)
+run = Path(sys.argv[2])
+run.mkdir(parents=True)
+(run / "environment.md").write_text(
+    "brief\n\n## machine\n```json\n"
+    '{"kind": "greenfield", "augment": false, "references": [], "tools": [],'
+    ' "mcp": ["writer-mcp"], "mcp_considered": "none(x)", "handles": [],'
+    ' "initiation": "none", "ui": false, "ui_craft": "none(no UI)"}'
+    "\n```\n"
+)
+env, gaps = mod.load_environment(run)
+assert not gaps, gaps
+assert env.get("exclusive") is None
+buf = io.StringIO()
+old = sys.stdout
+sys.stdout = buf
+mod.print_frozen_session_env(run)
+sys.stdout = old
+out = buf.getvalue()
+assert "tools:" in out and "mcp: writer-mcp" in out, out
+assert "Exclusive: (not recorded in this legacy run)" in out, out
+assert "Playbook:" not in out, out
+PY
+printf 'LAYER: F1 missing exclusive does not blank Frozen OK\n'
 
 bash "$root/test/shiploop-walk-journal.test.sh" \
   || fail "shiploop-walk-journal.test.sh"

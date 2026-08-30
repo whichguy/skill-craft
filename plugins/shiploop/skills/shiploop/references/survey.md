@@ -17,10 +17,23 @@ its output is `environment.md` (Look here names the absolute path).
   research** (validate-spec job 2) and append those findings here before
   writing the spec. If an observed MCP server or its tools document how to
   use them, that text is a reference — inventory alone is not enough.
-- **tools / mcp** — CLIs and MCP servers actually available this session.
-  Inventory, do not install or catalog.
+- **tools / mcp** — CLIs and MCP servers available **and in-bounds for this
+  increment**. Inventory, do not install or catalog. Unauthenticated, deferred,
+  or wrong-for-this-increment servers belong in the brief, not in these lists
+  (Frozen asserts MCP in `mcp:` is in-bounds).
 - **mcp_considered** — first matching read-capable session MCP tool, printed
-  as `server(tool)`, or `none(reason)` when nothing matched.
+  as `server(tool)`, or `none(reason)` when nothing matched. A single token,
+  not a deferred-tools bucket.
+- **exclusive** — exclusive writer for destination artifacts this increment
+  creates or updates,
+  each `{artifact, use, dont_use}`. `use` is the designated writer (a name)
+  from `tools` or `mcp`). `dont_use` is overlapping tools that **mutate the
+  same artifact** (conflicts, not as backups) and may be `[]`. `exclusive: []`
+  when there is no such artifact (read-only inventory, local-only). Missing
+  `exclusive` is unanswered — dest plan requires the key. When a designated
+  writer fails: dest blocked; do not switch writers.
+  `If the writer above fails, stop and invoke /shiploop complete --blocked --reason … — do not switch writers.`
+  Frozen reprints that sentence; do not retype it into `environment.md`.
 - **handles** — external resources this increment needs (credentials,
   hosted ids, service endpoints), each resolved as `list` (enumerate
   candidates), `inspect` (read a concrete value — empty for credentials),
@@ -53,12 +66,18 @@ Put dest notes (existing repo, migration, CI/CD, missing systems) in that
 brief. Record unauthenticated, deferred, or wrong-for-this-increment MCP
 servers in the brief too — they are later **Don't use** lines, not machine
 keys. After inventory, **before the spec**, research applicable practices and fold
-them into the same file (more prose + `references`). `kind: brownfield`
+them into the same file (more prose + `references`). When `exclusive` is
+nonempty, that folded prose must cover the libraries and file/runtime layout
+the named writer requires, and `references` must be nonempty. Do not invent
+a Writer playbook heading. Do not write `playbook.md`. Do not restate the
+`exclusive` map in prose. `kind: brownfield`
 requires `augment: true` and a nonempty `references` list (cite the bound-repo
 README if it exists, plus any other files or URLs the increment depends on).
 Those `references[].path` values later appear in every seed `prompt` together
 with a `Tools:` block. This file becomes hashed and frozen at `dest plan`
-(`environment_sha256`) — same discipline as the frozen spec. Do not write
+(`environment_sha256`) — same discipline as the frozen spec. Editing it after
+bind requires dest blocked → validate-spec; rewrite environment.md; → plan
+(do not hand-edit backchain/plan.json). Do not write
 `environment.json`. Do not add a second practices file. Do not add research
 skills to `dep_roots`.
 

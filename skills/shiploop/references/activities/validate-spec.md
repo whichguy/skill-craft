@@ -5,9 +5,12 @@ State files: `{{SURVEY_GUIDE}}` and `{{STATE_FILES}}`.
 
 Inventory this session against `{{SURVEY_GUIDE}}`: kind/augment, references
 (read `{{REPO_ROOT}}/README.md` if it exists and cite it — do **not** write
-or rewrite it here), tools, mcp, mcp_considered, handles, initiation,
+or rewrite it here), tools, mcp, mcp_considered, exclusive, handles, initiation,
 ui/ui_craft. `kind` and `augment` must match (`greenfield`/`false`,
-`brownfield`/`true`); brownfield `references` must be nonempty. Write `{{ENV_MD}}`: a prose brief (dest notes and unauthenticated or deferred
+`brownfield`/`true`); brownfield `references` must be nonempty. `tools`/`mcp`
+are available **and in-bounds** this increment. `exclusive` is the destination-writer
+map (conflicts, not backups); `[]` when none; dest plan requires the key.
+Write `{{ENV_MD}}`: a prose brief (dest notes and unauthenticated or deferred
 MCP belong here, not in machine JSON), then a unique H2 titled
 exactly `machine` with one fenced JSON object. Any handle resolved `list` or
 `ask` will block `dest plan` later — resolve it now or use the blocked hatch
@@ -24,18 +27,24 @@ while writing the spec inherits this rule before leaving validate-spec.
 
 ## 2. Best-practice research (once, before the spec)
 
-From `{{ENV_MD}}` (kind, tools, mcp, ui, initiation, handles) and
+From `{{ENV_MD}}` (kind, tools, mcp, exclusive, ui, initiation, handles) and
 `{{PROMPT_PATH}}`, decide which practices apply. Pull concrete references
 implement steps must use: URLs, in-repo paths, ADRs, official docs, skill
 or reference files, MCP resource URIs. If an observed MCP server or its
 tools describe how to use them (tool descriptions, resources, prompts, or
 a query that returns practice guidance), record that text as a reference —
-inventory alone is not enough. Write the findings **into** `{{ENV_MD}}`
+inventory alone is not enough. When `exclusive` is nonempty, fold the named
+writer's libraries and file/runtime layout into the same file and keep
+`references` nonempty. Do not invent a Writer playbook heading. Do not write
+`playbook.md`. Do not restate the exclusive map in prose. Write the findings
+**into** `{{ENV_MD}}`
 (more prose plus `references[{path, why}]`; `path` may be a URL or repo
 path). Do not invent a second SoT file. Do not persist secrets. Do not
 write the product README. Do not add research skills to `dep_roots`. Those
 references must later appear in each seed step's stored `prompt` together
 with a `Tools:` block that carries the frozen `mcp_considered` token.
+In-flight runs: dest blocked → validate-spec; rewrite environment.md; → plan
+(do not hand-edit backchain/plan.json).
 
 ## 3. Spec (once)
 

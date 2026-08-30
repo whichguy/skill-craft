@@ -23,7 +23,7 @@ EXIT_BLOCKED = 2
 EXIT_USAGE = 64
 
 PACKAGE_ROOT = Path(__file__).resolve().parents[1]
-VERSION = "0.8.9"
+VERSION = "0.8.10"
 REF_DIR = PACKAGE_ROOT / "references"
 WT_DIRNAME = ".worktrees"
 # Printed in ## Progress and the implement Next envelope. Do not splice into
@@ -69,7 +69,16 @@ CONTROL_RE = re.compile(r"[\x00-\x08\x0a-\x1f\x7f]")
 PROMPT_CONTROL_RE = re.compile(r"[\x00-\x09\x0b-\x1f\x7f]")
 _FOREIGN_SLASH = "/" + "dev" + "loop"
 UNTIL_HEAD = "Do this activity until these conditions are met:"
+ENV_RECOVERY = "in-flight runs: dest blocked → validate-spec; rewrite environment.md; → plan (do not hand-edit backchain/plan.json)"
+DEST_BLOCKED_LINE = "If the writer above fails, stop and invoke /shiploop complete --blocked --reason … — do not switch writers."
 HANDLE_RESOLVE = ("list", "inspect", "ask", "create")
+_TOKEN_FORBIDDEN_RE = re.compile(r"[;\n\r]")
+_TOOLS_LINE_RE = re.compile(r"^[ \t]*Tools:")
+_DONT_USE_LINE_RE = re.compile(
+    r"^[ \t]*(?:Don't use|Do not use|Don\u2019t use)[ \t]*:(.*)$",
+    re.I,
+)
+_USE_LINE_RE = re.compile(r"^[ \t]*Use[ \t]*:(.*)$", re.I)
 
 STATUS_RE = re.compile(
     r"(?im)\bStatus\b[^\n]*(?P<state>stopped\s*\([^\n)]*\)|complete\b|active\b)"
@@ -188,9 +197,7 @@ def prompt_until_gaps(sid: str, prompt: str, texts: List[str]) -> List[str]:
     gaps: List[str] = []
     if not any(re.match(r"^[ \t]*/goal\b", line) for line in prompt.splitlines()):
         gaps.append(
-            f"{sid} prompt must have a line starting with /goal; "
-            "in-flight: dest blocked then dest plan, rewrite seed prompts "
-            "(do not hand-edit backchain/plan.json)"
+            f"{sid} prompt must have a line starting with /goal; {ENV_RECOVERY}"
         )
     if UNTIL_HEAD not in prompt:
         gaps.append(f"{sid} prompt must contain {UNTIL_HEAD!r}")
@@ -491,14 +498,9 @@ def validate_machine(m: Dict[str, Any]) -> List[str]:
             for v in arr:
                 if isinstance(v, str) and v.strip():
                     inventoried.add(v.strip())
-    mcp_arr = m.get("mcp")
-    mcp_nonempty = isinstance(mcp_arr, list) and any(
-        isinstance(v, str) and v.strip() for v in mcp_arr
-    )
     exclusive = m.get("exclusive")
     if exclusive is None:
-        if mcp_nonempty:
-            gaps.append("machine.exclusive must be a list when mcp is nonempty")
+        pass
     elif not isinstance(exclusive, list):
         gaps.append("machine.exclusive must be a list")
     else:
@@ -513,7 +515,11 @@ def validate_machine(m: Dict[str, Any]) -> List[str]:
                 gaps.append(f"machine.exclusive[{i}].artifact must be a nonempty string")
             if not isinstance(use, str) or not use.strip():
                 gaps.append(f"machine.exclusive[{i}].use must be a nonempty string")
-            elif inventoried and use.strip() not in inventoried:
+            elif _TOKEN_FORBIDDEN_RE.search(use):
+                gaps.append(
+                    f"machine.exclusive[{i}].use must not contain a semicolon or newline"
+                )
+            elif use.strip() not in inventoried:
                 gaps.append(
                     f"machine.exclusive[{i}].use must be an inventoried tools or mcp name"
                 )
@@ -524,6 +530,11 @@ def validate_machine(m: Dict[str, Any]) -> List[str]:
                     if not isinstance(tok, str) or not tok.strip():
                         gaps.append(
                             f"machine.exclusive[{i}].dont_use[{j}] must be a nonempty string"
+                        )
+                    elif _TOKEN_FORBIDDEN_RE.search(tok):
+                        gaps.append(
+                            f"machine.exclusive[{i}].dont_use[{j}] must not contain a "
+                            "semicolon or newline"
                         )
                     elif isinstance(use, str) and tok.strip() == use.strip():
                         gaps.append(
@@ -538,13 +549,6 @@ def handles_block_plan(machine: Dict[str, Any]) -> List[str]:
         if isinstance(h, dict) and h.get("resolve") in ("list", "ask"):
             gaps.append(f"handle {h.get('source')} resolve={h.get('resolve')} blocks dest plan")
     return gaps
-
-
-def _mcp_nonempty(env: Optional[Dict[str, Any]]) -> bool:
-    if not isinstance(env, dict):
-        return False
-    mcp = env.get("mcp")
-    return isinstance(mcp, list) and any(isinstance(v, str) and v.strip() for v in mcp)
 
 
 def _exclusive_rows(env: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
@@ -570,37 +574,174 @@ def _dont_use_tokens(env: Optional[Dict[str, Any]]) -> List[str]:
     return tokens
 
 
-def playbook_gaps(run_dir: Path, env: Optional[Dict[str, Any]]) -> List[str]:
-    """dest plan: playbook exists, nonempty, and is cited when mcp or exclusive is set."""
+def _use_token(env: Optional[Dict[str, Any]]) -> Optional[str]:
+    uses: List[str] = []
+    seen: Set[str] = set()
+    for row in _exclusive_rows(env):
+        use = row.get("use")
+        if isinstance(use, str) and use.strip() and use.strip() not in seen:
+            seen.add(use.strip())
+            uses.append(use.strip())
+    if len(uses) == 1:
+        return uses[0]
+    return None
+
+
+def _nonempty_references(env: Dict[str, Any]) -> List[Dict[str, Any]]:
+    refs = env.get("references") or []
+    out: List[Dict[str, Any]] = []
+    if not isinstance(refs, list):
+        return out
+    for r in refs:
+        if (
+            isinstance(r, dict)
+            and isinstance(r.get("path"), str)
+            and r["path"].strip()
+            and isinstance(r.get("why"), str)
+            and r["why"].strip()
+        ):
+            out.append(r)
+    return out
+
+
+def exclusive_gaps(run_dir: Path, env: Optional[Dict[str, Any]]) -> List[str]:
+    """dest plan: exclusive key present; nonempty rows need nonempty references."""
+    del run_dir
     if not env:
         return []
-    if not _mcp_nonempty(env) and not _exclusive_rows(env):
-        return []
     gaps: List[str] = []
-    path = run_dir / "playbook.md"
-    body = read_text(path) if path.is_file() else None
-    if not path.is_file() or not (body or "").strip():
-        gaps.append("playbook.md missing or empty")
-    target = path.resolve()
-    cited = False
-    for r in env.get("references") or []:
-        if not isinstance(r, dict):
-            continue
-        rp = r.get("path")
-        if not isinstance(rp, str) or not rp.strip():
-            continue
-        raw = rp.strip()
-        cand = Path(raw)
-        resolved: Optional[Path] = None
-        try:
-            resolved = cand.resolve() if cand.is_absolute() else (run_dir / cand).resolve()
-        except OSError:
-            resolved = None
-        if resolved == target or raw == str(target) or Path(raw).name == "playbook.md":
-            cited = True
-            break
-    if not cited:
-        gaps.append("playbook.md path must appear in machine.references")
+    if "exclusive" not in env:
+        gaps.append(
+            "machine.exclusive must be a list (use [] when this increment "
+            f"writes no destination artifact); {ENV_RECOVERY}"
+        )
+        return gaps
+    exclusive = env.get("exclusive")
+    if not isinstance(exclusive, list):
+        return gaps
+    rows = _exclusive_rows(env)
+    if rows and not _nonempty_references(env):
+        gaps.append(
+            "machine.references must be nonempty when exclusive is nonempty; "
+            f"{ENV_RECOVERY}"
+        )
+    uses: List[Tuple[int, str]] = []
+    donts: List[Tuple[int, List[str]]] = []
+    for i, row in enumerate(rows):
+        use = row.get("use")
+        if isinstance(use, str) and use.strip():
+            uses.append((i, use.strip()))
+        raw = row.get("dont_use")
+        toks: List[str] = []
+        if isinstance(raw, list):
+            toks = [t.strip() for t in raw if isinstance(t, str) and t.strip()]
+        donts.append((i, toks))
+    if len({u for _, u in uses}) > 1:
+        gaps.append(
+            "must designate a single exclusive writer; "
+            f"{ENV_RECOVERY}"
+        )
+    for i, use in uses:
+        for j, toks in donts:
+            if i != j and use in toks:
+                gaps.append(
+                    "session cannot express opposing writers — split the session; "
+                    f"{ENV_RECOVERY}"
+                )
+                return gaps
+    return gaps
+
+
+def _last_tools_block(prompt: str) -> Optional[str]:
+    lines = prompt.splitlines()
+    last_i: Optional[int] = None
+    for i, line in enumerate(lines):
+        if _TOOLS_LINE_RE.match(line):
+            last_i = i
+    if last_i is None:
+        return None
+    return "\n".join(lines[last_i:])
+
+
+def parse_tools_dont_use(prompt: str) -> Optional[List[str]]:
+    """Last Don't use: / Do not use: line in the last Tools: block.
+
+    None = no Don't use line. [] = explicit none. Otherwise semicolon-separated
+    exact entries. A token under Use: does not count.
+    """
+    block = _last_tools_block(prompt)
+    if block is None:
+        return None
+    last_rest: Optional[str] = None
+    for line in block.splitlines():
+        m = _DONT_USE_LINE_RE.match(line)
+        if m:
+            last_rest = m.group(1).strip()
+    if last_rest is None:
+        return None
+    if last_rest.lower() == "none":
+        return []
+    return [p.strip() for p in last_rest.split(";") if p.strip()]
+
+
+def parse_tools_use(prompt: str) -> Optional[List[str]]:
+    """Last Use: line in the last Tools: block.
+
+    None = no Use line. [] = explicit none. Otherwise semicolon-separated
+    exact entries.
+    """
+    block = _last_tools_block(prompt)
+    if block is None:
+        return None
+    last_rest: Optional[str] = None
+    for line in block.splitlines():
+        m = _USE_LINE_RE.match(line)
+        if m:
+            last_rest = m.group(1).strip()
+    if last_rest is None:
+        return None
+    if last_rest.lower() == "none":
+        return []
+    return [p.strip() for p in last_rest.split(";") if p.strip()]
+
+
+def writer_prompt_gaps(
+    sid: str,
+    prompt: str,
+    tokens: List[str],
+    use_token: Optional[str] = None,
+) -> List[str]:
+    gaps: List[str] = []
+    if _last_tools_block(prompt) is None:
+        gaps.append(
+            f"{sid} prompt must have a line starting with Tools:; {ENV_RECOVERY}"
+        )
+        return gaps
+    entries = parse_tools_dont_use(prompt)
+    if entries is None:
+        gaps.append(f"{sid} prompt must have a Don't use: line; {ENV_RECOVERY}")
+        return gaps
+    have = set(entries)
+    for tok in tokens:
+        if tok not in have:
+            gaps.append(
+                f"{sid} prompt must list exclusive dont_use {tok} as a Don't use: "
+                f"entry; {ENV_RECOVERY}"
+            )
+    use_entries = parse_tools_use(prompt)
+    if use_entries is None:
+        gaps.append(f"{sid} prompt must have a Use: line; {ENV_RECOVERY}")
+        return gaps
+    use_have = set(use_entries)
+    if use_token and use_token not in use_have:
+        gaps.append(
+            f"{sid} prompt must list exclusive use {use_token} as a Use: "
+            f"entry; {ENV_RECOVERY}"
+        )
+    for tok in sorted(use_have & have):
+        gaps.append(
+            f"{sid} prompt Use: and Don't use: overlap on {tok}; {ENV_RECOVERY}"
+        )
     return gaps
 
 
@@ -1477,6 +1618,7 @@ def dag_gaps(run_dir: Path, spec: Optional[Dict[str, Any]]) -> List[str]:
     env, _ = load_environment(run_dir)
     mcp_considered = ""
     dont_use_tokens = _dont_use_tokens(env if isinstance(env, dict) else None)
+    use_token = _use_token(env if isinstance(env, dict) else None)
     if isinstance(env, dict):
         mc = env.get("mcp_considered")
         if isinstance(mc, str) and mc.strip():
@@ -1525,22 +1667,13 @@ def dag_gaps(run_dir: Path, spec: Optional[Dict[str, Any]]) -> List[str]:
             if not any(re.match(r"^[ \t]*Tools:", line) for line in prompt.splitlines()):
                 gaps.append(
                     f"{sid} prompt must have a line starting with Tools:; "
-                    "in-flight pre-0.8.4 runs: dest blocked then dest plan, "
-                    "rewrite seed prompts (do not hand-edit backchain/plan.json)"
+                    f"{ENV_RECOVERY}"
                 )
             if mcp_considered and mcp_considered not in prompt:
                 gaps.append(
                     f"{sid} prompt must cite mcp_considered {mcp_considered}; "
-                    "in-flight pre-0.8.4 runs: dest blocked then dest plan, "
-                    "rewrite seed prompts (do not hand-edit backchain/plan.json)"
+                    f"{ENV_RECOVERY}"
                 )
-            for tok in dont_use_tokens:
-                if tok not in prompt:
-                    gaps.append(
-                        f"{sid} prompt must cite exclusive dont_use {tok}; "
-                        "in-flight runs: dest blocked then dest plan, "
-                        "rewrite seed prompts (do not hand-edit backchain/plan.json)"
-                    )
         produces = step.get("produces")
         texts = produces_texts(produces)
         if texts is None:
@@ -1554,6 +1687,12 @@ def dag_gaps(run_dir: Path, spec: Optional[Dict[str, Any]]) -> List[str]:
         origin = step.get("origin")
         if origin not in ("seed", "discovered"):
             gaps.append(f"{sid} origin must be seed or discovered")
+        elif (
+            _exclusive_rows(env if isinstance(env, dict) else None)
+            and isinstance(prompt, str)
+            and prompt.strip()
+        ):
+            gaps.extend(writer_prompt_gaps(sid, prompt, dont_use_tokens, use_token))
         inputs = step.get("inputs")
         if not isinstance(inputs, list):
             gaps.append(f"{sid} inputs must be a list")
@@ -2151,7 +2290,7 @@ def missing_for(state: Dict[str, Any], run_dir: Path, dest: Optional[str]) -> Li
         gaps.extend(eg)
         if env:
             gaps.extend(handles_block_plan(env))
-            gaps.extend(playbook_gaps(run_dir, env))
+            gaps.extend(exclusive_gaps(run_dir, env))
     elif need == "spec_uncheckable":
         spec, sg = load_spec(run_dir)
         gaps.extend(sg)
@@ -2496,7 +2635,7 @@ def print_frozen_session_env(run_dir: Path) -> None:
     """Reprint frozen tools/MCP above the stored prompt. Do not compose it."""
     print(
         "Frozen session environment (do not re-survey; "
-        "destination writes follow the playbook and Tools: block; "
+        "destination writes follow the Exclusive: line and Tools: block; "
         "MCP in mcp: is in-bounds):"
     )
     env, gaps = load_environment(run_dir)
@@ -2508,12 +2647,23 @@ def print_frozen_session_env(run_dir: Path) -> None:
     print(f"mcp-considered: {mc if isinstance(mc, str) and mc.strip() else '(none)'}")
     print(f"tools: {_join_env_list(env.get('tools'))}")
     print(f"mcp: {_join_env_list(env.get('mcp'))}")
-    pb = run_dir / "playbook.md"
-    body = read_text(pb) if pb.is_file() else None
-    if pb.is_file() and (body or "").strip():
-        print(f"Playbook: {pb.resolve()}")
+    if "exclusive" not in env:
+        print("Exclusive: (not recorded in this legacy run)")
     else:
-        print("Playbook: (none)")
+        rows = _exclusive_rows(env)
+        if not rows:
+            print("Exclusive: (none)")
+        else:
+            for row in rows:
+                artifact = str(row.get("artifact") or "").strip() or "(none)"
+                use = str(row.get("use") or "").strip() or "(none)"
+                raw = row.get("dont_use")
+                toks: List[str] = []
+                if isinstance(raw, list):
+                    toks = [str(t).strip() for t in raw if str(t).strip()]
+                du = "; ".join(toks) if toks else "(none)"
+                print(f"Exclusive: {artifact} — use {use}; don't use {du}")
+            print(DEST_BLOCKED_LINE)
     print(f"See: {(run_dir / 'environment.md').resolve()}")
 
 
@@ -3250,7 +3400,7 @@ def apply_update(
         hgaps = handles_block_plan(env)
         if hgaps:
             die(EXIT_BLOCKED, "; ".join(hgaps))
-        pgaps = playbook_gaps(run_dir, env)
+        pgaps = exclusive_gaps(run_dir, env)
         if pgaps:
             die(EXIT_BLOCKED, "; ".join(pgaps))
         bind_or_verify_hash(state, "spec_sha256", spec_sha256_of(run_dir))
