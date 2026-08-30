@@ -6,6 +6,8 @@ root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 cli="$root/skills/shiploop/scripts/shiploop"
 fix="$root/test/fixtures/shiploop"
 export SHIPLOOP_BACKCHAIN_ROOT="$fix/backchain-leaf"
+# shellcheck source=shiploop-testkit.sh
+source "$root/test/shiploop-testkit.sh"
 
 fail() {
   printf 'shiploop.test.sh: FAIL %s\n' "$*" >&2
@@ -101,8 +103,17 @@ grep -q '`waived`' "$root/skills/shiploop/references/state-files.md" \
   || fail "state-files.md missing terminal waived"
 grep -q '`halted`' "$root/skills/shiploop/references/state-files.md" \
   || fail "state-files.md missing terminal halted"
-grep -q '^VERSION = "0.8.8"$' "$cli" || fail "script VERSION is not 0.8.8"
-grep -q '^version: 0.8.8$' "$root/skills/shiploop/SKILL.md" || fail "SKILL.md version is not 0.8.8"
+grep -q '^VERSION = "0.8.9"$' "$cli" || fail "script VERSION is not 0.8.9"
+grep -q '^version: 0.8.9$' "$root/skills/shiploop/SKILL.md" || fail "SKILL.md version is not 0.8.9"
+grep -q 'def print_stored_prompt' "$cli" || fail "script missing print_stored_prompt"
+if grep -q 'print(str(step.get("prompt") or "").rstrip())' "$cli"; then
+  fail "print_packet still rstrip stored prompt"
+fi
+grep -q 'next — claimed' "$cli" || fail "cmd_next missing claimed event line"
+grep -q 'next — reprint' "$cli" || fail "cmd_next missing reprint event line"
+if grep -q 'Banner (first line of any invoke)' "$root/skills/shiploop/SKILL.md"; then
+  fail "SKILL.md still claims banner is first line of any invoke"
+fi
 grep -q 'Purpose of the plan' "$root/skills/shiploop/references/activities/plan.md" \
   || fail "plan.md missing purpose vs setup split"
 grep -q 'new repo' "$root/skills/shiploop/references/activities/plan.md" \
@@ -129,6 +140,8 @@ grep -q 'done_sentence' "$root/skills/shiploop/references/survey.md" \
   || fail "survey.md hatch missing done_sentence"
 grep -q 'Do this activity until these conditions are met:' "$cli" \
   || fail "script missing UNTIL_HEAD"
+n_ret="$(grep -c 'assert_transition_return ' "$root/test/shiploop-walk-journal.test.sh" || true)"
+[[ "$n_ret" -ge 20 ]] || fail "walk-journal must call assert_transition_return (got $n_ret)"
 [[ -f "$root/test/fixtures/shiploop/setup-once.json" ]] \
   || fail "missing setup-once.json"
 grep -q 'def journal_mark' "$cli" || fail "script missing journal_mark"
@@ -337,9 +350,10 @@ grep -Eiq 'Never.+invoke' "$root/skills/shiploop/SKILL.md" || fail "SKILL.md mis
 [[ ! -d "$root/skills/steer-next" ]] || fail "steer-next sibling still present"
 [[ ! -d "$root/skills/steer-complete-next" ]] || fail "steer-complete-next sibling still present"
 
-tmpdir="$(mktemp -d "${TMPDIR:-/tmp}/shiploop-test.XXXXXX")"
-cleanup() { rm -rf "$tmpdir"; }
-trap cleanup EXIT
+bash "$root/test/shiploop-testkit.test.sh" \
+  || fail "shiploop-testkit.test.sh"
+shiploop_suite_begin shiploop
+tmpdir="$SUITE_TMP"
 
 HEADINGS='## You are here
 ## Progress
@@ -483,7 +497,8 @@ Session survey brief for the test harness.
 \`\`\`json
 {"kind": "$kind", "augment": $augment, "references": [], "tools": [], "mcp": [],
  "mcp_considered": "none(no read-capable session tool matched done-sentence)",
- "handles": [], "initiation": "none", "ui": false, "ui_craft": "none(no UI in scope)"}
+ "handles": [], "initiation": "none", "ui": false, "ui_craft": "none(no UI in scope)",
+ "exclusive": []}
 \`\`\`
 MD
 }
@@ -835,7 +850,8 @@ Brief.
 {"kind": "greenfield", "augment": false, "references": [], "tools": [], "mcp": [],
  "mcp_considered": "none(no read-capable session tool matched done-sentence)",
  "handles": [{"source": "gh", "need": "repo id", "resolve": "create", "value": ""}],
- "initiation": "needed", "ui": false, "ui_craft": "none(no UI in scope)"}
+ "initiation": "needed", "ui": false, "ui_craft": "none(no UI in scope)",
+ "exclusive": []}
 ```
 MD
 run_cli update --run-dir "$run" --to plan >/dev/null
@@ -1566,9 +1582,9 @@ commit_step_work "$run3" S1
 commit_step_work "$run3" S2
 merge_step_branch "$run3" S1
 merge_step_branch "$run3" S2
-python3 "$cli" complete-step --run-dir "$run3" --id S1 >/tmp/shiploop-c1.out 2>&1 &
+python3 "$cli" complete-step --run-dir "$run3" --id S1 >"$tmpdir/shiploop-c1.out" 2>&1 &
 p1=$!
-python3 "$cli" complete-step --run-dir "$run3" --id S2 >/tmp/shiploop-c2.out 2>&1 &
+python3 "$cli" complete-step --run-dir "$run3" --id S2 >"$tmpdir/shiploop-c2.out" 2>&1 &
 p2=$!
 wait "$p1" || fail "concurrent S1"
 wait "$p2" || fail "concurrent S2"
@@ -2476,8 +2492,8 @@ set +e
 out_exm="$(run_cli update --run-dir "$runm" --to plan 2>&1)"
 rc_exm=$?
 set -e
-[[ "$rc_exm" -eq 2 ]] || fail "mcp nonempty without exclusive want 2: $out_exm"
-printf '%s\n' "$out_exm" | grep -qi 'exclusive' || fail "mcp nonempty exclusive message: $out_exm"
+[[ "$rc_exm" -eq 2 ]] || fail "dest plan missing exclusive key want 2: $out_exm"
+printf '%s\n' "$out_exm" | grep -qi 'exclusive' || fail "missing exclusive message: $out_exm"
 
 write_machine "$runm" '{"kind": "greenfield", "augment": false, "references": [], "tools": ["alt-cli"], "mcp": ["writer-mcp"],
  "mcp_considered": "none(x)", "handles": [], "initiation": "none", "ui": false, "ui_craft": "none(no UI)",
@@ -2500,7 +2516,7 @@ set -e
 write_machine "$runm" '{"kind": "greenfield", "augment": false, "references": [], "tools": [], "mcp": [],
  "mcp_considered": "none(x)",
  "handles": [{"source": "gh", "need": "repo id", "resolve": "inspect", "value": "abc"}],
- "initiation": "none", "ui": true, "ui_craft": "frontend-design"}'
+ "initiation": "none", "ui": true, "ui_craft": "frontend-design", "exclusive": []}'
 run_cli update --run-dir "$runm" --to plan >/dev/null
 printf 'LAYER: machine shape + handle/initiation/UI OK\n'
 
@@ -2521,7 +2537,7 @@ run_cli init --force --prompt "add undo to the existing app" \
 run_cli update --run-dir "$runlife" --to validate-spec >/dev/null
 write_spec "$runlife"
 write_machine "$runlife" "{\"kind\": \"brownfield\", \"augment\": true, \"references\": [{\"path\": \"$applife\", \"why\": \"Session A product\"}], \"tools\": [], \"mcp\": [],
- \"mcp_considered\": \"none(x)\", \"handles\": [], \"initiation\": \"none\", \"ui\": false, \"ui_craft\": \"none(no UI)\"}"
+ \"mcp_considered\": \"none(x)\", \"handles\": [], \"initiation\": \"none\", \"ui\": false, \"ui_craft\": \"none(no UI)\", \"exclusive\": []}"
 run_cli update --run-dir "$runlife" --to plan >/dev/null
 python3 - "$runlife/environment.md" "$applife" <<'PY' || fail "brownfield env did not cite existing-app"
 import sys
@@ -2633,6 +2649,58 @@ Assume: test harness"
 run_cli update --run-dir "$runtg" --to implement >/dev/null
 printf 'LAYER: Tools: seed gate OK\n'
 
+# --- prompt_until_gaps: dest implement refuses missing /goal, until, produces ---
+runug="$tmpdir/untilgaps/.shiploop"
+repoug="$tmpdir/untilgaps/repo"
+advance_to_plan "$runug" "$repoug" "$planf"
+TOOLS_OK="Tools:
+Watch with: ${DEFAULT_MC}
+Use: git
+Don't use: none
+Assume: test harness"
+write_seed_dag "$runug" "$TOOLS_OK"
+set +e
+out_ug1="$(run_cli update --run-dir "$runug" --to implement 2>&1)"
+rc_ug1=$?
+set -e
+[[ "$rc_ug1" -eq 2 ]] || fail "until-gaps no /goal want 2: $out_ug1"
+printf '%s\n' "$out_ug1" | grep -q 'line starting with /goal' || fail "no /goal message: $out_ug1"
+write_seed_dag "$runug" "/goal
+${TOOLS_OK}"
+set +e
+out_ug2="$(run_cli update --run-dir "$runug" --to implement 2>&1)"
+rc_ug2=$?
+set -e
+[[ "$rc_ug2" -eq 2 ]] || fail "until-gaps no UNTIL_HEAD want 2: $out_ug2"
+printf '%s\n' "$out_ug2" | grep -F "Do this activity until these conditions are met:" \
+  || fail "no until message: $out_ug2"
+write_seed_dag "$runug" "/goal
+Do this activity until these conditions are met:
+- something else
+${TOOLS_OK}"
+set +e
+out_ug3="$(run_cli update --run-dir "$runug" --to implement 2>&1)"
+rc_ug3=$?
+set -e
+[[ "$rc_ug3" -eq 2 ]] || fail "until-gaps missing produces want 2: $out_ug3"
+printf '%s\n' "$out_ug3" | grep -q "until-clause must name produces" \
+  || fail "missing produces message: $out_ug3"
+printf 'LAYER: prompt_until_gaps refusals OK\n'
+
+runiu="$tmpdir/inject-until/.shiploop"
+repoiu="$tmpdir/inject-until/repo"
+advance_to_plan "$runiu" "$repoiu" "$planf"
+install_dag "$runiu" linear.json
+run_cli update --run-dir "$runiu" --to implement >/dev/null
+run_cli next --run-dir "$runiu" >/dev/null
+set +e
+out_iu="$(run_cli inject-step --run-dir "$runiu" --statement "mid" --prompt "no goal line" --produces "mid exists" --before S2 2>&1)"
+rc_iu=$?
+set -e
+[[ "$rc_iu" -eq 2 ]] || fail "inject without /goal want 2: $out_iu"
+printf '%s\n' "$out_iu" | grep -q 'line starting with /goal' || fail "inject no /goal message: $out_iu"
+printf 'LAYER: inject-step until-gate OK\n'
+
 # --- A25 empty prompt refuses dest implement; A27 refs must be cited ---
 runpr="$tmpdir/promptref/.shiploop"
 repopr="$tmpdir/promptref/repo"
@@ -2647,13 +2715,13 @@ printf '%s\n' "$out_mp" | grep -qi 'prompt' || fail "missing-prompt message: $ou
 
 refpath="$fix/existing-app/README.md"
 write_machine "$runpr" "{\"kind\": \"greenfield\", \"augment\": false, \"references\": [{\"path\": \"$refpath\", \"why\": \"practice\"}], \"tools\": [], \"mcp\": [],
- \"mcp_considered\": \"none(x)\", \"handles\": [], \"initiation\": \"none\", \"ui\": false, \"ui_craft\": \"none(no UI)\"}"
+ \"mcp_considered\": \"none(x)\", \"handles\": [], \"initiation\": \"none\", \"ui\": false, \"ui_craft\": \"none(no UI)\", \"exclusive\": []}"
 # dest plan already happened; hashes bound to prior env. Rebind via blocked → validate-spec → plan.
 run_cli update --run-dir "$runpr" --to blocked --resume-to validate-spec --reason "add practice refs" >/dev/null
 run_cli update --run-dir "$runpr" --to validate-spec --reason "rebind refs" >/dev/null
 write_spec "$runpr"
 write_machine "$runpr" "{\"kind\": \"greenfield\", \"augment\": false, \"references\": [{\"path\": \"$refpath\", \"why\": \"practice\"}], \"tools\": [], \"mcp\": [],
- \"mcp_considered\": \"none(x)\", \"handles\": [], \"initiation\": \"none\", \"ui\": false, \"ui_craft\": \"none(no UI)\"}"
+ \"mcp_considered\": \"none(x)\", \"handles\": [], \"initiation\": \"none\", \"ui\": false, \"ui_craft\": \"none(no UI)\", \"exclusive\": []}"
 run_cli update --run-dir "$runpr" --to plan >/dev/null
 install_dag "$runpr" linear.json
 set +e

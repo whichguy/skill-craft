@@ -7,7 +7,7 @@ walk-back HTML recap exists.
 
 ShipLoop never auto-merges and never claims engine `COMPLETE`.
 
-Package leaf: `skills/shiploop`. Invoke: `/shiploop`. Version: **0.8.8**.
+Package leaf: `skills/shiploop`. Invoke: `/shiploop`. Version: **0.8.9**.
 
 Canonical companions (do not duplicate their contracts here):
 
@@ -443,7 +443,10 @@ writes it; `--force` never deletes it).
 ## The turn packet
 
 Every `next`, `complete`, and slash reprint prints this order after the
-banner `shiploop — session harness`:
+outcome line (when the command prints one) and the banner
+`shiploop — session harness`. `next` prints `next — claimed <ids> (<phase>)`
+or `next — reprint (<phase>)` first. `init` / `complete` / `update` print
+`initialized …` / `updated -> …` / `completed <id>` / `cleared <id>` first.
 
 | H2 | What it is |
 |----|------------|

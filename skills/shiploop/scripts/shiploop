@@ -23,7 +23,7 @@ EXIT_BLOCKED = 2
 EXIT_USAGE = 64
 
 PACKAGE_ROOT = Path(__file__).resolve().parents[1]
-VERSION = "0.8.8"
+VERSION = "0.8.9"
 REF_DIR = PACKAGE_ROOT / "references"
 WT_DIRNAME = ".worktrees"
 # Printed in ## Progress and the implement Next envelope. Do not splice into
@@ -2931,6 +2931,14 @@ def look_here_lines(run_dir: Path, state: Dict[str, Any], phase: str) -> List[st
     return lines
 
 
+def print_stored_prompt(prompt: str) -> None:
+    """Emit stored DAG prompt bytes. Packet framing owns a trailing newline."""
+    text = str(prompt or "")
+    sys.stdout.write(text)
+    if not text.endswith("\n"):
+        sys.stdout.write("\n")
+
+
 def print_packet(run_dir: Path, state: Dict[str, Any], *, prior_running: Optional[Set[str]] = None) -> None:
     phase = str(state.get("phase"))
     dest = forward_dest(state, run_dir)
@@ -3005,7 +3013,7 @@ def print_packet(run_dir: Path, state: Dict[str, Any], *, prior_running: Optiona
             print("Do not edit the session checkout during this /goal.")
             print_host_worktree_flag()
             print_frozen_session_env(run_dir)
-            print(str(step.get("prompt") or "").rstrip())
+            print_stored_prompt(str(step.get("prompt") or ""))
     else:
         print(activity_body(phase, run_dir, state))
     print()
@@ -3120,8 +3128,10 @@ def cmd_next(args: argparse.Namespace) -> int:
         state = load_state(run_dir)
         state["dep_roots"] = resolve_dep_roots()
         check_frozen_hashes(state, run_dir, None)
-        prior = set()
-        if str(state.get("phase")) == "implement":
+        prior: Set[str] = set()
+        claimed: List[str] = []
+        phase = str(state.get("phase"))
+        if phase == "implement":
             prior = {sid for sid, k in classify_steps(run_dir, state).items() if k == "running"}
             claimed = claim_ready(run_dir, state)
             if claimed:
@@ -3130,6 +3140,10 @@ def cmd_next(args: argparse.Namespace) -> int:
                 save_state(run_dir, state, event="next")
         else:
             save_state(run_dir, state, event="next")
+        if claimed:
+            print(f"next — claimed {' '.join(claimed)} ({phase})")
+        else:
+            print(f"next — reprint ({phase})")
         print_packet(run_dir, state, prior_running=prior)
     return EXIT_OK
 
