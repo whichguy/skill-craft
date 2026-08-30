@@ -10,7 +10,7 @@ Everything below lives under the **run dir** (default: walked from cwd to
 | `environment.md` | `validate-spec` (survey + practices) | session survey: prose brief + `## machine` fenced JSON; practice references live here |
 | `spec.md` | `validate-spec` | labeled `done_sentence:` and `checkable: true\|false` (each exactly once); `ask_user:` when `checkable: false` |
 | `backchain/plan.json` | `plan` | canonical sequence DAG (steps carry `statement`, `prompt`, `produces`, `inputs`, `origin`; every seed `prompt` cites `environment.md` `references[].path` and a `Tools:` block) |
-| `plan.md` | `plan` | sequence pointer with labeled `done_sentence:` (must equal `spec.md` at dest implement; same fence-skip labels as spec.md). Not hashed — a post-bind edit does not fail-closed. May lag the DAG after `inject-step`. |
+| `plan.md` | `plan` | sequence pointer with labeled `done_sentence:` (must equal `spec.md` at dest implement; same fence-skip labels as spec.md). Not hashed into `plan_sha256` — a post-bind edit does not fail-closed on `next`. dest residual may store `state.bound_plan_hash = sha256(plan.md)`. May lag the DAG after `inject-step`. |
 | `steps/<id>.json` | `implement` | per-step receipt (`status`, `plan_sha256`, `worktree`, `branch`, `base_sha`) |
 | `history.jsonl` | every command | append-only event log |
 | `recap.html` | dest done / dest halted | harness-written walk-back HTML (intent, original spec, accomplished, changed, end result, outcome, verified) |
@@ -36,6 +36,13 @@ and != plan`, any command that reads state re-checks these hashes and fails
 closed (exit 2) on drift. An empty `environment_sha256` (a pre-0.7 run, or a
 run that never survived to `dest plan`) is grandfathered — not enforced —
 until the next `validate-spec`.
+
+**Residual bind (not fail-closed):** dest residual may set
+`state.bound_plan_hash = sha256(plan.md)` when it auto-binds a plan that
+already has `## Review Coverage`. A later byte change does **not**
+`die(EXIT_BLOCKED)`; `plan_waiver()` returns None and the ledger may
+read `foreign`. Do not merge `plan.md` into a file that keeps receiving
+post-bind edits.
 
 ## Product `README.md`
 

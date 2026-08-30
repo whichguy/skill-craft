@@ -79,6 +79,46 @@ not a fifth route and not what every phase does. **What this is not:**
 there is no second SM between the wrapper and the harness —
 `scripts/shiploop` is the only state machine in this package.
 
+## How skill logic works
+
+The host chat is not the controller (clear, compact, model swap). After
+`init`, every turn is:
+
+```text
+invoke /shiploop (or next / complete)
+  → scripts/shiploop is the only SM
+  → read .shiploop/, check hashes, maybe claim a step
+  → print one turn packet
+  → host does only the Next prompt
+  → invoke /shiploop complete (or next if context was lost)
+```
+
+`SKILL.md` is when to use, three-branch init, and “echo You are here.”
+Command cards are thin verbs. Leaf wrappers refuse `update` / the wrong
+subcommand, then `execv` the harness. Activity files are the exact
+Next-prompt body for every phase **except** in-flight implement (that
+prints each running step’s stored DAG `prompt` plus a Frozen session
+environment reprint). The harness does not invent implement `/goal` text.
+
+**Two printed channels (not the same mechanism).** Look here is **not interpolated**.
+Next **is interpolated** except in-flight implement (stored `prompt` verbatim).
+
+| Channel | First line | How files get in |
+|---------|------------|------------------|
+| **Look here** | `Reference only — not the next action.` | **not interpolated.** `kind  abs-path  why`. `survey.md` has no `{{tokens}}` (they would print raw). |
+| **Next prompt** | `Use this prompt as much as possible.` | **is interpolated** (`activity_body` mapping) except in-flight implement, which prints the stored `prompt` **verbatim**. |
+
+**Missing** is the same gap list `update` would refuse
+(`load_environment` / `load_spec` / `wrapper_pair` / `dag_gaps`). Those
+packet-derived lines are the “fields marked done,” not host-authored
+`survey: done` markers.
+
+**Siblings:** plan calls **backchain** once (`dep_roots.backchain`).
+Residual calls **review-coverage** Phase B. Missing backchain is a
+Missing line, not a vendored copy. `scripts/shiploop` is the only SM.
+No auto-merge. No engine `COMPLETE`. Git command split:
+[Git sequence (harness vs host)](#git-sequence-harness-vs-host).
+
 ---
 
 ## Exhaustive workflow
@@ -225,6 +265,9 @@ DAG — not the empty start of plan. dest `implement` also requires a git
 
 ### 4. Implement
 
+Command-level git (who runs `git worktree add` vs `merge --no-ff --no-edit`):
+[Git sequence (harness vs host)](#git-sequence-harness-vs-host).
+
 `/shiploop next` (and complete after a step) **claims** newly ready ids
 `running` and creates `shiploop/<run_id>/<id>` worktrees under
 `<repo>/.worktrees/` (hidden via `.git/info/exclude`).
@@ -325,6 +368,62 @@ empty, non-HTML, or briefing-thin file. `--force` unlinks it. The file is
 
 ---
 
+## Git sequence (harness vs host)
+
+Intake / validate-spec / plan / residual do **not** create worktrees.
+Plan still needs a git `HEAD` before dest implement (empty repo → Missing
+“create an initial commit”). `inject-step` is not a git operation.
+
+**Who runs git.** The harness never `git add`, `commit`, or `merge`. The
+host never creates or removes worktrees. Harness calls are always
+`git -C <repo_root>` (never `cd`).
+
+**Closer vs SM.** `/shiploop complete` is the **host closer card**: if this
+was an implement `/goal`, commit on the worktree if needed, then merge,
+then exec the harness. The Python SM (`apply_complete_receipt`) only
+**checks** that the branch is an ancestor of session `HEAD` and then
+removes the worktree. It does not merge.
+
+**HOST FLAG vs cwd.** Implementation work happens **in** the Look-here
+worktree (cwd for `/goal`). Do **not** re-root the host chat into that
+folder. Merge dest is the **session checkout**. Merge with
+`git -C <session-checkout>`, not by `cd` into the product repo.
+
+### Harness
+
+| When | Command / effect |
+|------|------------------|
+| dest implement / `claim_ready` | `git rev-parse --is-inside-work-tree` and `HEAD`; empty repo → Missing “create an initial commit so implement can isolate worktrees” |
+| first worktree | append `.worktrees/` to `.git/info/exclude` (not a tracked `.gitignore`) |
+| claim ready id | `git worktree add -b shiploop/<run_id>/<id> <repo>/.worktrees/shiploop/<run_id>/<id> HEAD`; refuse reuse of that path; receipt stores `worktree`, `branch`, `base_sha` |
+| complete (after host merge) | `git rev-list --count <base_sha>..<branch>` must be `> 0`; `git merge-base --is-ancestor <branch> HEAD`; then `git worktree remove --force`; **keep** the branch; receipt `worktree: ""` |
+| `--clear` | `git worktree remove --force` **and** `git branch -D` for that id **and descendants**; next `claim_ready` forks a new worktree from current `HEAD` |
+| `init --force` | wipe every worktree and `shiploop/<run_id>/*` branch for this run |
+
+Several running ids: each gets its own worktree claimed from the `HEAD` at
+claim time. Complete needs `--id` or cwd in that worktree.
+
+### Host (implement `/goal` only)
+
+1. Work in the Look-here worktree (do not re-root the chat; do not edit
+   the session checkout).
+2. Pathspec add + commit with a verbose learning. **Never `git add -A`.**
+3. **Before** the harness `complete` runs, merge into the session checkout:
+
+   ```sh
+   git -C <session-checkout> merge --no-ff --no-edit shiploop/<run_id>/<id>
+   ```
+
+   Do not skip; the next worktree forks `HEAD`. ShipLoop does not
+   auto-merge. Empty or unmerged complete is exit 2 and prints that
+   merge line.
+4. Then `/shiploop complete`. Same call re-claims newly ready ids.
+
+Product `README.md` is not session state (survey reads it; last DAG step
+writes it; `--force` never deletes it).
+
+---
+
 ## The turn packet
 
 Every `next`, `complete`, and slash reprint prints this order after the
@@ -346,7 +445,7 @@ Look-here matrix (absolute path + one-line why):
 |-------|----------|
 | intake | `state.json`, `prompt.md` (create), activity |
 | validate-spec | prompt, `environment.md` (`1. survey —` write-first / `load_environment` gaps / written), `survey.md`, `spec.md` (`2. spec —` after env / `load_spec` gaps / written), `state.json` |
-| plan | frozen spec + environment, `backchain/plan.json` (create), `plan.md` (create), backchain SKILL |
+| plan | frozen spec + environment, `backchain/plan.json` (create), `plan.md` (missing: write labeled done_sentence equal to spec (create); if present: `wrapper_pair` gaps or sequence plan pointer), backchain SKILL |
 | implement | frozen spec, DAG, required `environment.md` (frozen survey), running `steps/<id>.json` + worktree, activity; `plan.md` if-needed |
 | implement-drained | spec, DAG, `implement-drained.md` |
 | residual | ledger, bound plan, spec, review-coverage SKILL, `recap.html` (written at dest done) |
@@ -355,7 +454,36 @@ Look-here matrix (absolute path + one-line why):
 
 ---
 
-## State files (how they maintain the run)
+## Files the skill uses
+
+Three operator worlds (do not flatten). The plugin tree
+`plugins/shiploop/skills/shiploop/` is a **generated twin** of the leaf —
+edit `skills/shiploop/`, then `./scripts/sync-plugin-views.sh shiploop`.
+Do not hand-edit the plugin copy.
+
+| World | Where | Role |
+|-------|--------|------|
+| Skill package | `skills/shiploop/` | How to run: `SKILL.md`, `commands/`, `references/activities/`, `survey.md`, `state-files.md`, `turn-packet.md`, `transitions.json`, `scripts/` |
+| Run dir | `<repo>/.shiploop/` | This session’s durable state |
+| Product repo | bound `repo_root` | App tree, `.worktrees/`, `REVIEW_CONVERGE.md`, product `README.md` |
+
+**How prompts use files**
+
+| Channel | What it reads |
+|---------|----------------|
+| Look-here | Pointers only (`kind  abs-path  why`). Phase-scoped. validate-spec ordinals: `1. survey —` / `2. spec —`. Plan `plan.md`: missing why is `write labeled done_sentence equal to spec (create)`; if present, `wrapper_pair` gaps or `sequence plan pointer`. Implement `plan.md` is `if-needed` only (no equality re-litigation). |
+| Next (non-implement) | Interpolated activity body (`{{SPEC_MD}}`, `{{ENV_MD}}`, `{{BACKCHAIN_JSON}}`, `{{PLAN_MD}}`, …). |
+| Next (implement, in-flight) | Frozen session environment reprint + stored `backchain/plan.json` step `prompt` verbatim. Not `implement.md` as the `/goal` body. |
+| Closer / inject | Host git, then harness `complete`. `inject-step` mutates DAG + receipts and does not claim. |
+
+`environment.md` is mixed, not prose-only: a nonempty brief, then exactly
+one H2 titled `machine` with one fenced JSON object (`kind`, `augment`,
+`references`, `tools`, `mcp`, `mcp_considered`, `handles`, `initiation`,
+`ui`, `ui_craft`). dest plan shape-checks that fence (`load_environment` /
+`validate_machine` / `handles_block_plan`). Practices append into the
+**same** file.
+
+### Run-dir files (how they maintain the run)
 
 Everything below is under the **run dir** (default: walk from cwd to
 `.shiploop/`). Never inside this package. Detail:
@@ -368,7 +496,7 @@ Everything below is under the **run dir** (default: walk from cwd to
 | `environment.md` | host during validate-spec | survey + practices (prose + `## machine` JSON). Hashed as the whole file. |
 | `spec.md` | host during validate-spec | labeled `done_sentence` / `checkable` / optional `ask_user`. Hashed as the whole file. |
 | `backchain/plan.json` | host during plan; `inject-step` mutates | canonical DAG (`statement`, `prompt`, `produces`, `inputs`, `origin`) |
-| `plan.md` | host during plan | human sequence + labeled `done_sentence` (must equal spec.md at dest implement; not hashed, so a later edit does not fail-closed; may lag the DAG after inject) |
+| `plan.md` | host during plan | human sequence + labeled `done_sentence` (must equal spec.md at dest implement; not hashed into `plan_sha256`; dest residual may store `bound_plan_hash`; may lag the DAG after inject) |
 | `steps/<id>.json` | `start-step` / complete / inject stamp | receipt: `running` or `complete`, worktree, branch, `plan_sha256` |
 | `history.jsonl` | every command | append-only event log |
 | `recap.html` | dest done / dest halted | walk-back briefing from run files (not hashed) |
@@ -379,14 +507,20 @@ host-authored `plan.json`. Leftover `plan.json` wrappers are inert;
 
 **Same sentence, three surfaces (not three SoTs):** labeled `done_sentence` in
 `spec.md` ≡ labeled line in `plan.md` ≡ `backchain.goal`. dest implement
-refuses drift. `plan.md` is not hashed, so editing it after dest implement
-does not fail-closed on `next`.
+refuses drift. `plan.md` is not hashed into `plan_sha256`, so editing it
+after dest implement does not fail-closed on `next`.
 
 **Hashes**
 
-- `environment_sha256 = sha256(environment.md)`
-- `spec_sha256 = sha256(spec.md)`
-- `plan_sha256 = sha256(backchain/plan.json)` (plan.md unhashed)
+- Freeze (fail-closed, exit 2 on drift after bind):
+  - `environment_sha256 = sha256(environment.md)`
+  - `spec_sha256 = sha256(spec.md)`
+  - `plan_sha256 = sha256(backchain/plan.json)` (`plan.md` unhashed here)
+- Residual bind (not fail-closed): `state.bound_plan_hash = sha256(plan.md)`
+  when dest residual auto-binds a plan with `## Review Coverage`. A later
+  byte change does **not** `die`; `plan_waiver()` returns None and the
+  ledger may read `foreign`. Do not merge `plan.md` into a file that keeps
+  receiving post-bind edits.
 
 ```mermaid
 flowchart LR
@@ -395,14 +529,16 @@ flowchart LR
   spec["spec.md"] -->|"dest plan: write if empty, else verify"| specHash["spec_sha256"]
   dag["backchain/plan.json"] -->|"dest implement: bind"| planHash["plan_sha256"]
   inject["inject-step"] -.->|"rebinds plan_sha256 only,\nstamps existing receipts"| planHash
+  planmd["plan.md"] -.->|"dest residual: bound_plan_hash; mismatch is silent"| residual(("residual"))
   recap["recap.html"] -.->|not hashed; dest done writes it| done(("done"))
 ```
 
-**What this is:** the three real hashes and what binds/clears them. **What
-this is not**: `plan_sha256` clears on `dest plan` (replan hatch) and rebinds
-only on `dest implement` or `inject-step` — it does not track `environment.md`
-or `spec.md`, which is why editing either after bind requires
-`blocked → validate-spec` to clear all three. Two grandfather cases keep old
+**What this is:** the three freeze hashes plus residual `bound_plan_hash`,
+and what binds/clears them. **What this is not**: `plan_sha256` clears on
+`dest plan` (replan hatch) and rebinds only on `dest implement` or
+`inject-step` — it does not track `environment.md` or `spec.md`, which is
+why editing either after bind requires `blocked → validate-spec` to clear
+all three. `bound_plan_hash` is not a freeze hash: mismatch is silent. Two grandfather cases keep old
 runs from wedging: an **empty** `environment_sha256` is skipped by
 `check_frozen_hashes` (`if env_h`) until `dest plan` writes it via
 `bind_or_verify_hash` (pre-0.7 run, or a run that never reached `dest plan`);

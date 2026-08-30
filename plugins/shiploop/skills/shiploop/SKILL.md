@@ -90,7 +90,8 @@ Human overview: [README.md](README.md).
    worktree, branch, or HOST FLAG. Implement steps name a per-step
    worktree and branch in **Look here** / **Diagnosis** — work there; do
    not edit the session checkout or reuse a prior worktree. Full workflow:
-   [README.md](README.md).
+   [README.md](README.md). Git sequence (who runs which command):
+   [README.md — Git sequence (harness vs host)](README.md#git-sequence-harness-vs-host).
 5. When the increment is done: invoke **`/shiploop complete`**. That command
    owns the closer (commit + merge if this was a `/goal`, then harness
    `complete`, then the next packet). Do not type `complete-step --id` or

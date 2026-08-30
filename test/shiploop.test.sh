@@ -145,6 +145,30 @@ grep -q '1. survey —' "$root/skills/shiploop/README.md" \
   || fail "README Look-here matrix missing ordinal survey why"
 grep -q '2. spec —' "$root/skills/shiploop/README.md" \
   || fail "README Look-here matrix missing ordinal spec why"
+grep -Fq '## How skill logic works' "$root/skills/shiploop/README.md" \
+  || fail "README missing How skill logic works H2"
+grep -Fq 'Look here is **not interpolated**' "$root/skills/shiploop/README.md" \
+  || fail "README missing Look-here not interpolated"
+grep -Fq 'Next **is interpolated**' "$root/skills/shiploop/README.md" \
+  || fail "README missing Next is interpolated"
+grep -Fq '## Files the skill uses' "$root/skills/shiploop/README.md" \
+  || fail "README missing Files the skill uses H2"
+grep -Fq 'bound_plan_hash' "$root/skills/shiploop/README.md" \
+  || fail "README missing bound_plan_hash"
+grep -Fq 'bound_plan_hash' "$root/skills/shiploop/references/state-files.md" \
+  || fail "state-files.md missing bound_plan_hash"
+grep -Fq '## Git sequence (harness vs host)' "$root/skills/shiploop/README.md" \
+  || fail "README missing Git sequence H2"
+grep -Fq 'git worktree add' "$root/skills/shiploop/README.md" \
+  || fail "README missing git worktree add"
+grep -Fq 'merge --no-ff --no-edit' "$root/skills/shiploop/README.md" \
+  || fail "README missing merge --no-ff --no-edit"
+grep -Fq '.git/info/exclude' "$root/skills/shiploop/README.md" \
+  || fail "README missing .git/info/exclude"
+grep -Fq 'Never `git add -A`' "$root/skills/shiploop/README.md" \
+  || fail "README missing Never git add -A"
+grep -Fq 'write labeled done_sentence equal to spec' "$root/skills/shiploop/README.md" \
+  || fail "README Look-here plan row missing create-why"
 if grep -E 'ENV_JSON|SPEC_JSON|IMPLEMENT_JSON|PLAN_JSON|goal_line' "$cli" \
   "$root/skills/shiploop/references/activities/"*.md \
   "$root/skills/shiploop/references/turn-packet.md"; then
