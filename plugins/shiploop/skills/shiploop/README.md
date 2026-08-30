@@ -108,10 +108,16 @@ Next **is interpolated** except in-flight implement (stored `prompt` verbatim).
 | **Look here** | `Reference only — not the next action.` | **not interpolated.** `kind  abs-path  why`. `survey.md` has no `{{tokens}}` (they would print raw). |
 | **Next prompt** | `Use this prompt as much as possible.` | **is interpolated** (`activity_body` mapping) except in-flight implement, which prints the stored `prompt` **verbatim**. |
 
-**Missing** is the same gap list `update` would refuse
-(`load_environment` / `load_spec` / `wrapper_pair` / `dag_gaps`). Those
-packet-derived lines are the “fields marked done,” not host-authored
-`survey: done` markers.
+**Missing** is dest-scoped: `missing_for(state, run_dir, forward_dest())`.
+That is the same function `update --to` uses, **not** the same dest on
+every reprint. In-flight implement (`forward_dest` is `None`) lists
+`dep_roots.backchain` only — it does **not** run `load_environment` /
+`load_spec` / `wrapper_pair` / `dag_gaps`. dest `plan` runs
+`load_spec` / `load_environment` / `handles_block_plan`. dest
+`implement` runs `wrapper_pair` / `dag_gaps` / backchain / git `HEAD`.
+Look-here independently reprints those load_* / `wrapper_pair` why
+strings even when Missing is empty. Those Look-here lines are the
+“fields marked done,” not host-authored `survey: done` markers.
 
 **Siblings:** plan calls **backchain** once (`dep_roots.backchain`).
 Residual calls **review-coverage** Phase B. Missing backchain is a
@@ -278,17 +284,19 @@ environment** block (`mcp-considered` / `tools` / `mcp`), then each
 **running** step’s stored `prompt` **verbatim**. Paste the Frozen block
 together with the stored prompt into host `/goal`. Do not paste worktree,
 branch, or HOST FLAG. The script does not compose a `/goal` from
-`statement` / `produces` / suppliers / worktree. `cd` to the worktree
-named in Look here; do not edit the session checkout.
+`statement` / `produces` / suppliers / worktree. Work in the Look-here
+worktree (do not re-root the host chat; do not edit the session checkout).
 
 Inner loop (host, not a phase): green-first or TDD (failing test first),
 prefer `/goal`, then a verbose pathspec commit that records a **learning**.
 Never `git add -A`.
 
-When the `/goal` is done: **you** commit on the worktree and merge the kept
-branch into the session checkout (`git merge --no-ff`). Then
-`/shiploop complete`. The next worktree forks `HEAD`. ShipLoop does not
-auto-merge. Failure: `--clear`. Hard stop: `--blocked --reason`.
+When the `/goal` is done: **you** commit on the worktree, then merge into
+the session checkout (`git -C <session-checkout> merge --no-ff --no-edit
+shiploop/<run_id>/<id>`). Do not run a bare `git merge` from the worktree
+cwd — that would merge into the step branch. Then `/shiploop complete`.
+The next worktree forks `HEAD`. ShipLoop does not auto-merge. Failure:
+`--clear`. Hard stop: `--blocked --reason`.
 
 **inject-step** (phase implement only, including drained): add a discovered
 intermediate without dest `plan` (that would wipe receipts). Requires
@@ -303,8 +311,8 @@ phase). Next complete dests `residual`.
 ```mermaid
 flowchart TD
   next["/shiploop next — claim_ready(): ready ids to running,\ngit worktree add -b per id"] --> printed["Packet Next prompt: Frozen session environment + stored prompt"]
-  printed --> gwork["Host cd's into that step's worktree, pastes Frozen block + stored prompt into /goal"]
-  gwork -->|goal succeeds| cm["Host commits on the worktree, then\ngit merge --no-ff into session HEAD"]
+  printed --> gwork["Host works in that step's worktree (do not re-root),\npastes Frozen block + stored prompt into /goal"]
+  gwork -->|goal succeeds| cm["Host commits on the worktree, then\ngit -C session-checkout merge --no-ff --no-edit"]
   cm --> complete["/shiploop complete — apply_complete_receipt() marks the step complete,\nthen re-claims any newly-ready ids in the same call"]
   complete -->|another id now running| printed
   complete -->|all steps done| drained["drained (diagnosis, not a phase)"]
@@ -371,8 +379,9 @@ empty, non-HTML, or briefing-thin file. `--force` unlinks it. The file is
 ## Git sequence (harness vs host)
 
 Intake / validate-spec / plan / residual do **not** create worktrees.
-Plan still needs a git `HEAD` before dest implement (empty repo → Missing
-“create an initial commit”). `inject-step` is not a git operation.
+dest `implement` requires a git `HEAD` (plan-phase packets dest
+`implement`, so Missing can list “create an initial commit” then).
+`inject-step` is not a git operation.
 
 **Who runs git.** The harness never `git add`, `commit`, or `merge`. The
 host never creates or removes worktrees. Harness calls are always
@@ -437,7 +446,7 @@ banner `shiploop — session harness`:
 | **Look here** | First line `Reference only — not the next action.` Phase-scoped paths only. |
 | **Next prompt** | First line `Use this prompt as much as possible.` Implement: Frozen session environment, then the stored prompt. Other phases: the activity file. |
 | **When done invoke** | `invoke /shiploop complete` (plus `--clear` / `--blocked` when that is the hatch). |
-| **Missing** | Same gaps `update` would refuse. |
+| **Missing** | dest-scoped `missing_for(..., forward_dest())` — not every load_* gap on every reprint. In-flight implement dest is `None`. |
 
 Look-here matrix (absolute path + one-line why):
 

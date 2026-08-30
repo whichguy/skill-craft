@@ -10,15 +10,17 @@ now running/ready, and what is still waiting — against that frozen
 with the stored prompt into `/goal`. Do not paste worktree, branch, or
 HOST FLAG. The script does not compose or rewrite the stored prompt.
 Each running step's worktree and branch are named in **Look here** /
-**Diagnosis** — `cd` there before pasting; do not edit the session
-checkout or reuse a prior worktree.
+**Diagnosis** — work there (do not re-root the host chat); do not edit
+the session checkout or reuse a prior worktree.
 
 Do not nest a second `/goal` inside the first.
 If a `/goal` for an id is already open, do not open a second one. When the
-`/goal` is done, invoke **`/shiploop complete`** — that command commits,
-merges the kept branch into the session checkout, and prints the next
-packet. Do not skip that merge; the next worktree forks `HEAD`. ShipLoop
-does not auto-merge.
+`/goal` is done, invoke **`/shiploop complete`** — that command commits
+on the worktree, merges into the session checkout
+(`git -C <session-checkout> merge --no-ff --no-edit <branch>`), and
+prints the next packet. Do not skip that merge; do not run a bare
+`git merge` from the worktree cwd. The next worktree forks `HEAD`.
+ShipLoop does not auto-merge.
 
 ## Discovered work mid-implement: `inject-step`
 

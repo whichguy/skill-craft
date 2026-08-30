@@ -169,6 +169,37 @@ grep -Fq 'Never `git add -A`' "$root/skills/shiploop/README.md" \
   || fail "README missing Never git add -A"
 grep -Fq 'write labeled done_sentence equal to spec' "$root/skills/shiploop/README.md" \
   || fail "README Look-here plan row missing create-why"
+grep -Fq 'dest-scoped' "$root/skills/shiploop/README.md" \
+  || fail "README Missing not dest-scoped"
+grep -Fq 'forward_dest()' "$root/skills/shiploop/README.md" \
+  || fail "README Missing missing forward_dest"
+grep -Fq 'dest-scoped' "$root/skills/shiploop/references/turn-packet.md" \
+  || fail "turn-packet.md Missing not dest-scoped"
+if grep -Fq 'Same gaps `update` would refuse' "$root/skills/shiploop/README.md"; then
+  fail "README Missing still equates reprint to update dest"
+fi
+if grep -Fq 'same validator as `update`' "$root/skills/shiploop/references/turn-packet.md"; then
+  fail "turn-packet.md Missing still equates reprint to update dest"
+fi
+if grep -Fq "Host cd's into" "$root/skills/shiploop/README.md"; then
+  fail "README mermaid still says Host cd's into worktree"
+fi
+if grep -Fq 'git merge --no-ff into session HEAD' "$root/skills/shiploop/README.md"; then
+  fail "README mermaid still has bare git merge --no-ff"
+fi
+if grep -Fq '(`git merge --no-ff`)' "$root/skills/shiploop/README.md"; then
+  fail "README §4 still has bare git merge --no-ff"
+fi
+grep -Fq 'git -C <session-checkout> merge --no-ff --no-edit' \
+  "$root/skills/shiploop/README.md" \
+  || fail "README §4 missing session-checkout merge"
+grep -Fq 'git -C <session-checkout> merge --no-ff --no-edit' \
+  "$root/skills/shiploop/references/activities/implement.md" \
+  || fail "implement.md missing session-checkout merge"
+if grep -Fq '`cd` there before pasting' \
+  "$root/skills/shiploop/references/activities/implement.md"; then
+  fail "implement.md still says cd there before pasting"
+fi
 if grep -E 'ENV_JSON|SPEC_JSON|IMPLEMENT_JSON|PLAN_JSON|goal_line' "$cli" \
   "$root/skills/shiploop/references/activities/"*.md \
   "$root/skills/shiploop/references/turn-packet.md"; then
