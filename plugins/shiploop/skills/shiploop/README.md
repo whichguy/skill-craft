@@ -7,7 +7,7 @@ walk-back HTML recap exists.
 
 ShipLoop never auto-merges and never claims engine `COMPLETE`.
 
-Package leaf: `skills/shiploop`. Invoke: `/shiploop`. Version: **0.8.10**.
+Package leaf: `skills/shiploop`. Invoke: `/shiploop`. Version: **0.8.11**.
 
 Canonical companions (do not duplicate their contracts here):
 
@@ -199,9 +199,12 @@ One phase, **three jobs in order**. Guide: `references/survey.md`. Activity:
    paths, official docs, skill references, MCP resource URIs. If an MCP
    server or its tools **document how to use them**, that text is a
    reference — inventory alone is not enough. Answer exclusive-writer /
-   overlapping-tool / library questions (conflicts, not as backups). Fold
-   the named writer's libraries and file/runtime layout into the **same**
-   `environment.md` (`references[{path, why}]`). When `exclusive` is nonempty,
+   overlapping-tool / library / enablement questions (conflicts, not as backups). Fold
+   the named writer's libraries, file/runtime layout, and platform preconditions
+   into the **same**
+   `environment.md` (`references[{path, why}]`). Probe enablement before an
+   `initiation: needed` create. In-bounds `tools`/`mcp` means dest-writes can
+   succeed now (or a `create` handle will enable them). When `exclusive` is nonempty,
    `references` must be nonempty. Do not write `playbook.md`. Do not invent a
    Writer playbook heading. No secrets. No research skills in `dep_roots`.
    If the writer above fails, stop and invoke /shiploop complete --blocked --reason … — do not switch writers.

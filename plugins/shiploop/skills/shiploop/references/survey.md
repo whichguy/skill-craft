@@ -18,9 +18,11 @@ its output is `environment.md` (Look here names the absolute path).
   writing the spec. If an observed MCP server or its tools document how to
   use them, that text is a reference — inventory alone is not enough.
 - **tools / mcp** — CLIs and MCP servers available **and in-bounds for this
-  increment**. Inventory, do not install or catalog. Unauthenticated, deferred,
-  or wrong-for-this-increment servers belong in the brief, not in these lists
-  (Frozen asserts MCP in `mcp:` is in-bounds).
+  increment**. Inventory, do not install or catalog. In-bounds means dest-writes can succeed now through that name, or a `create` handle in this increment will enable them. A connected server whose status/setup probe says a platform
+  API, scope, billing flag, or org allowlist is disabled is **not** in-bounds —
+  brief + `ask` handle, not these lists (Frozen asserts MCP in `mcp:` is
+  in-bounds). Unauthenticated, deferred, or wrong-for-this-increment servers
+  belong in the brief too.
 - **mcp_considered** — first matching read-capable session MCP tool, printed
   as `server(tool)`, or `none(reason)` when nothing matched. A single token,
   not a deferred-tools bucket.
@@ -35,7 +37,8 @@ its output is `environment.md` (Look here names the absolute path).
   `If the writer above fails, stop and invoke /shiploop complete --blocked --reason … — do not switch writers.`
   Frozen reprints that sentence; do not retype it into `environment.md`.
 - **handles** — external resources this increment needs (credentials,
-  hosted ids, service endpoints), each resolved as `list` (enumerate
+  hosted ids, service endpoints, **platform preconditions** the exclusive
+  writer requires), each resolved as `list` (enumerate
   candidates), `inspect` (read a concrete value — empty for credentials),
   `ask` (must ask the user), or `create` (this increment provisions it).
   Any `list` or `ask` handle blocks `dest plan` — resolve it first, or use
@@ -43,17 +46,28 @@ its output is `environment.md` (Look here names the absolute path).
 
   `inspect` / `list` / `ask` / `create` classify **what was resolved**, not
   intent. If this session has a cheap read-only call (signed-in MCP list,
-  `gh auth status`, a documented status endpoint), run it **once**, **before
+  `gh auth status`, a documented status endpoint, the dest writer's own
+  status/setup tool), run it **once**, **before
   committing** the machine fence. `inspect` only when the required concrete
   value was obtained (non-credential: id in `value`; credential: `value`
   stays empty — never a token). Several matches → `ask`. Failure the user can
   relieve → `ask` and the dest-blocked hatch. No cheap call → `ask`. Never
   write the product tree to find out.
+
+  When `exclusive` is nonempty, read the named writer's docs/status/setup
+  for platform preconditions (APIs, OAuth scopes, billing, org allowlists,
+  marketplace enablement). Each is a handle. Cheap probe: enabled →
+  `inspect`; user must flip a console flag → `ask` + dest blocked; this
+  increment can enable it via the writer's setup tool → `create`. If the
+  writer needs none, say so in the brief. Do not invent a second map or
+  a new initiation value. **Probe enablement before** an `initiation:
+  needed` `create` handle that provisions the hosted project.
 - **initiation** — `none` (nothing to create), `needed` (one-time project
   creation is part of this increment; requires at least one `create` handle),
   or `done` (already created in a prior increment). Deploy *readiness*
   (manifest, store listing, first publish) is a spec-expansion question,
-  not a second initiation value — see `validate-spec.md`.
+  not a second initiation value — see `validate-spec.md`. Platform
+  enablement is a handle, not a fourth initiation value.
 - **ui / ui_craft** — whether this increment touches user-facing surface, and
   if so, which design/UX skill was invoked (`none(reason)` when `ui` is
   false).
@@ -67,8 +81,9 @@ brief. Record unauthenticated, deferred, or wrong-for-this-increment MCP
 servers in the brief too — they are later **Don't use** lines, not machine
 keys. After inventory, **before the spec**, research applicable practices and fold
 them into the same file (more prose + `references`). When `exclusive` is
-nonempty, that folded prose must cover the libraries and file/runtime layout
-the named writer requires, and `references` must be nonempty. Do not invent
+nonempty, that folded prose must cover the libraries, file/runtime layout,
+and platform preconditions the named writer requires, and `references` must
+be nonempty. Do not invent
 a Writer playbook heading. Do not write `playbook.md`. Do not restate the
 `exclusive` map in prose. `kind: brownfield`
 requires `augment: true` and a nonempty `references` list (cite the bound-repo

@@ -8,7 +8,9 @@ Inventory this session against `{{SURVEY_GUIDE}}`: kind/augment, references
 or rewrite it here), tools, mcp, mcp_considered, exclusive, handles, initiation,
 ui/ui_craft. `kind` and `augment` must match (`greenfield`/`false`,
 `brownfield`/`true`); brownfield `references` must be nonempty. `tools`/`mcp`
-are available **and in-bounds** this increment. `exclusive` is the destination-writer
+are available **and in-bounds** this increment (dest-writes can succeed now,
+or a `create` handle will enable them — cheap-probe the exclusive writer's
+status/setup before listing it). `exclusive` is the destination-writer
 map (conflicts, not backups); `[]` when none; dest plan requires the key.
 Write `{{ENV_MD}}`: a prose brief (dest notes and unauthenticated or deferred
 MCP belong here, not in machine JSON), then a unique H2 titled
@@ -18,6 +20,9 @@ below.
 
 Inventory required handles, then at most one bounded read-only attempt per
 identified claim before finalizing the machine fence, per the survey guide.
+When `exclusive` is nonempty, those claims include platform preconditions
+from the named writer's docs/status/setup (APIs, scopes, billing, org
+allowlists). Probe enablement **before** an `initiation: needed` create.
 If `list` or `ask` remains, write `{{SPEC_MD}}` with labeled
 `done_sentence:` (provisional), `checkable: false`, and `ask_user: <the
 unresolved handle>`, then `/shiploop complete --blocked --resume-to
@@ -34,8 +39,8 @@ or reference files, MCP resource URIs. If an observed MCP server or its
 tools describe how to use them (tool descriptions, resources, prompts, or
 a query that returns practice guidance), record that text as a reference —
 inventory alone is not enough. When `exclusive` is nonempty, fold the named
-writer's libraries and file/runtime layout into the same file and keep
-`references` nonempty. Do not invent a Writer playbook heading. Do not write
+writer's libraries, file/runtime layout, and platform preconditions into the
+same file and keep `references` nonempty. Do not invent a Writer playbook heading. Do not write
 `playbook.md`. Do not restate the exclusive map in prose. Write the findings
 **into** `{{ENV_MD}}`
 (more prose plus `references[{path, why}]`; `path` may be a URL or repo

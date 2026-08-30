@@ -103,15 +103,25 @@ grep -q '`waived`' "$root/skills/shiploop/references/state-files.md" \
   || fail "state-files.md missing terminal waived"
 grep -q '`halted`' "$root/skills/shiploop/references/state-files.md" \
   || fail "state-files.md missing terminal halted"
-grep -q '^VERSION = "0.8.10"$' "$cli" || fail "script VERSION is not 0.8.10"
-grep -q '^version: 0.8.10$' "$root/skills/shiploop/SKILL.md" || fail "SKILL.md version is not 0.8.10"
-grep -Fq 'Version: **0.8.10**' "$root/skills/shiploop/README.md" || fail "README version is not 0.8.10"
+grep -q '^VERSION = "0.8.11"$' "$cli" || fail "script VERSION is not 0.8.11"
+grep -q '^version: 0.8.11$' "$root/skills/shiploop/SKILL.md" || fail "SKILL.md version is not 0.8.11"
+grep -Fq 'Version: **0.8.11**' "$root/skills/shiploop/README.md" || fail "README version is not 0.8.11"
 grep -q 'exclusive writer' "$root/skills/shiploop/references/survey.md" \
   || fail "survey.md missing exclusive writer question"
 grep -q 'conflicts, not as backups' "$root/skills/shiploop/references/survey.md" \
   || fail "survey.md missing conflicts, not as backups"
 grep -q 'libraries' "$root/skills/shiploop/references/survey.md" \
   || fail "survey.md missing libraries"
+grep -q 'platform preconditions' "$root/skills/shiploop/references/survey.md" \
+  || fail "survey.md missing platform preconditions"
+grep -q 'Probe enablement before' "$root/skills/shiploop/references/survey.md" \
+  || fail "survey.md missing probe enablement before initiation create"
+grep -q 'dest-writes can succeed now' "$root/skills/shiploop/references/survey.md" \
+  || fail "survey.md missing dest-writes in-bounds rule"
+grep -q 'platform preconditions' "$root/skills/shiploop/references/activities/validate-spec.md" \
+  || fail "validate-spec.md missing platform preconditions"
+grep -q 'enablement' "$root/skills/shiploop/README.md" \
+  || fail "README missing enablement in exclusive-writer job 2"
 grep -q 'exclusive' "$root/skills/shiploop/references/state-files.md" \
   || fail "state-files.md missing exclusive writer map"
 grep -Fq 'ENV_RECOVERY' "$cli" || fail "script missing ENV_RECOVERY"
