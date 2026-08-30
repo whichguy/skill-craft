@@ -1,0 +1,25 @@
+{
+  "goal": "result.txt contains exactly one line: ok",
+  "initial_state": [
+    "repo exists"
+  ],
+  "steps": [
+    {
+      "id": "S1",
+      "statement": "write the file",
+      "produces": [
+        "result.txt exists"
+      ],
+      "origin": "seed",
+      "inputs": [
+        {
+          "need": "repo exists",
+          "from": null
+        }
+      ],
+      "prompt": "/goal\nDo this activity until these conditions are met:\n- result.txt exists\n\nAssume already true (do not repeat): repo exists.\nPurpose of the plan (do not re-execute as this step): result.txt contains exactly one line: ok\n\nTools:\nWatch with: none(no read-capable session tool matched done-sentence)\nUse: git\nDon't use: none\nAssume: test harness"
+    }
+  ],
+  "parallel_groups": [],
+  "unresolved": []
+}

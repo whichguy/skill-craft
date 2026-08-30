@@ -11,6 +11,11 @@
 # (PRE of the next CASE is the previous DISK). Independent edges get a new
 # sandbox (setup → invoke → assert → teardown). Suite EXIT trap always
 # removes leftover git worktrees.
+#
+# Learnings: dest-plan sample (artifacts/environment.md) must satisfy live
+# exclusive_gaps; wrapper lead line is part of the return contract; first=last
+# implement needs a one-step DAG; parallel --write on scripts/shiploop is a
+# test-killer — pin VERSION in shiploop.test.sh.
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
@@ -110,6 +115,87 @@ assert_no_next_packet() {
   if printf '%s\n' "$LAST_OUT" | grep -Fxq '## Next prompt'; then
     fail "$msg: unexpected ## Next prompt"
   fi
+}
+
+WRAP_COMPLETE='shiploop complete — close the increment and print the next packet'
+WRAP_NEXT='shiploop next — reprint the packet'
+
+invoke_wrapper() {
+  local verb="$1"
+  shift
+  local wrap="$root/skills/shiploop/scripts/shiploop-${verb}"
+  [[ -f "$wrap" ]] || fail "missing wrapper scripts/shiploop-${verb}"
+  local outf errf
+  outf="$(mktemp "${TMPDIR:-/tmp}/shiploop-wrap-out.XXXXXX")"
+  errf="$(mktemp "${TMPDIR:-/tmp}/shiploop-wrap-err.XXXXXX")"
+  set +e
+  python3 "$wrap" "$@" >"$outf" 2>"$errf"
+  LAST_RC=$?
+  set -e
+  LAST_OUT="$(cat "$outf")"
+  LAST_ERR="$(cat "$errf")"
+  rm -f "$outf" "$errf"
+}
+
+assert_wrapper_then_transition() {
+  local run="$1" wrap_line="$2" dest_line="$3" mode="$4" msg="$5"
+  assert_rc 0 "$msg"
+  assert_line1 "$wrap_line" "$msg"
+  LAST_OUT="$(printf '%s\n' "$LAST_OUT" | awk 'NR>1')"
+  assert_transition_return "$run" "$dest_line" "$mode" "$msg"
+}
+
+assert_when_done_has() {
+  local needle="$1" msg="$2"
+  packet_section "$LAST_OUT" "## When done invoke" "## Missing" | grep -Fq -- "$needle" \
+    || fail "$msg: When done invoke missing ${needle}"
+}
+
+assert_when_done_lacks() {
+  local needle="$1" msg="$2"
+  if packet_section "$LAST_OUT" "## When done invoke" "## Missing" | grep -Fq -- "$needle"; then
+    fail "$msg: When done invoke has ${needle}"
+  fi
+}
+
+assert_session_closer() {
+  local msg="$1"
+  assert_when_done_has "invoke /shiploop complete" "$msg"
+  assert_when_done_lacks "complete-step" "$msg"
+}
+
+# Probe every dest that is not the legal forward from current phase.
+# kind=illegal → legal_edge is None. kind=resume → blocked dest ≠ resume_to.
+probe_illegal_updates() {
+  local run="$1" msg="$2"
+  local dest kind
+  while IFS=$'\t' read -r dest kind; do
+    [[ -n "$dest" ]] || continue
+    invoke_script update --run-dir "$run" --to "$dest"
+    assert_rc 2 "$msg $dest"
+    assert_no_next_packet "$msg $dest"
+    if [[ "$kind" == resume ]]; then
+      assert_err_has "blocked may only resume" "$msg $dest"
+    else
+      assert_err_has "illegal transition" "$msg $dest"
+    fi
+  done < <(python3 - "$root/skills/shiploop/references/transitions.json" "$run" <<'PY'
+import json, sys
+from pathlib import Path
+tj = json.loads(Path(sys.argv[1]).read_text())
+st = json.loads((Path(sys.argv[2]) / "state.json").read_text())
+frm = str(st.get("phase"))
+resume = st.get("resume_to")
+legal = {e["to"] for e in tj["edges"] if e.get("from") == frm}
+for p in tj.get("phases") or []:
+    if p == frm:
+        continue
+    if p not in legal:
+        print("%s\tillegal" % p)
+    elif frm == "blocked" and p != resume:
+        print("%s\tresume" % p)
+PY
+)
 }
 
 # mode: activity | stored
@@ -464,8 +550,8 @@ setup_bound_coverage() {
 }
 
 # Drive intake→implement via the script. Caller asserts PRE of the *next* CASE.
-setup_to_implement() {
-  local run="$1" repo="$2" planf="$3" fixture="$4"
+setup_to_plan() {
+  local run="$1" repo="$2" planf="$3"
   init_git_repo "$repo"
   invoke_script init --prompt "create result.txt containing exactly one line: ok" \
     --run-dir "$run" --bound-plan "$planf" --repo "$repo"
@@ -476,9 +562,39 @@ setup_to_implement() {
   write_spec "$run"
   invoke_script complete --run-dir "$run"
   assert_rc 0 "setup dest plan"
+}
+
+setup_to_implement() {
+  local run="$1" repo="$2" planf="$3" fixture="$4"
+  setup_to_plan "$run" "$repo" "$planf"
   install_dag "$run" "$fixture"
   invoke_script complete --run-dir "$run"
   assert_rc 0 "setup dest implement"
+}
+
+# stdin is the new prompt body. Must not share python3 - stdin with the program.
+set_step_prompt() {
+  local run="$1" sid="$2" pf
+  pf="$(mktemp "${TMPDIR:-/tmp}/shiploop-prompt.XXXXXX")"
+  cat >"$pf"
+  python3 - "$run" "$sid" "$pf" <<'PY'
+import json, sys
+from pathlib import Path
+run, sid, pf = Path(sys.argv[1]), sys.argv[2], Path(sys.argv[3])
+prompt = pf.read_text()
+path = run / "backchain" / "plan.json"
+doc = json.loads(path.read_text())
+found = False
+for step in doc.get("steps") or []:
+    if isinstance(step, dict) and step.get("id") == sid:
+        step["prompt"] = prompt
+        found = True
+        break
+if not found:
+    sys.exit(f"set_step_prompt: no {sid}")
+path.write_text(json.dumps(doc, indent=2) + "\n")
+PY
+  rm -f "$pf"
 }
 
 setup_to_residual() {
@@ -516,6 +632,8 @@ DISK_PLAN='{"phase":"plan","files":{"spec.md":true,"environment.md":true,"backch
 DISK_IMP_S1RUN='{"phase":"implement","receipts":{"S1":"running","S2":"none"},"files":{"backchain/plan.json":true,"plan.md":true},"plan_sha256":"set","spec_sha256":"set"}'
 DISK_IMP_S1DONE='{"phase":"implement","receipts":{"S1":"complete","S2":"running"},"plan_sha256":"set"}'
 DISK_IMP_DRAINED='{"phase":"implement","receipts":{"S1":"complete","S2":"complete"},"plan_sha256":"set"}'
+DISK_IMP_SOLO_RUN='{"phase":"implement","receipts":{"S1":"running"},"files":{"backchain/plan.json":true,"plan.md":true},"plan_sha256":"set"}'
+DISK_IMP_SOLO_DRAINED='{"phase":"implement","receipts":{"S1":"complete"},"plan_sha256":"set"}'
 
 shiploop_suite_begin shiploop-walk-journal
 tmpdir="$SUITE_TMP"
@@ -523,6 +641,8 @@ tmpdir="$SUITE_TMP"
 [[ -f "$fix/transitions/INDEX.md" ]] || fail "missing transitions/INDEX.md"
 [[ -d "$TRANS" ]] || fail "missing transitions/artifacts"
 assert_index_covers_edges
+grep -Fq '"exclusive": []' "$TRANS/environment.md" \
+  || fail "sample environment.md missing exclusive [] (dest-plan pin)"
 
 planf="$SUITE_TMP/bound.plan.md"
 setup_bound_plan "$planf"
@@ -542,17 +662,23 @@ invoke_script init --prompt "create result.txt containing exactly one line: ok" 
 assert_transition_return "$runL" \
   "initialized $(python3 -c "from pathlib import Path; print(Path('$runL') / 'state.json')")" \
   activity "L0 RETURN"
+assert_session_closer "L0 RETURN"
+assert_next_has "Write the original user ask" "L0 RETURN"
 assert_next_lacks "/goal step S1:" "L0 RETURN"
 assert_no_walk "L0 RETURN"
 assert_disk "$runL" "L0 DISK" "$DISK_INTAKE"
+probe_illegal_updates "$runL" "L0 illegal"
 
 printf 'CASE L1 PRE: intake, prompt.md only; INVOKE: complete dest validate-spec\n'
 assert_disk "$runL" "L1 PRE" "$DISK_INTAKE"
 invoke_script complete --run-dir "$runL"
 assert_transition_return "$runL" "updated -> validate-spec" activity "L1 RETURN"
+assert_session_closer "L1 RETURN"
+assert_next_has "Survey, then practices, then spec" "L1 RETURN"
 assert_next_lacks "/goal step S1:" "L1 RETURN"
 assert_no_walk "L1 RETURN"
 assert_disk "$runL" "L1 DISK" "$DISK_VS"
+probe_illegal_updates "$runL" "L1 illegal"
 
 printf 'CASE L2 PRE: validate-spec + host wrote env/spec; INVOKE: complete dest plan\n'
 write_environment "$runL"
@@ -560,9 +686,12 @@ write_spec "$runL"
 assert_disk "$runL" "L2 PRE" '{"phase":"validate-spec","files":{"spec.md":true,"environment.md":true},"spec_sha256":"empty"}'
 invoke_script complete --run-dir "$runL"
 assert_transition_return "$runL" "updated -> plan" activity "L2 RETURN"
+assert_session_closer "L2 RETURN"
+assert_next_has "The spec is **frozen**" "L2 RETURN"
 assert_next_lacks "/goal step S1:" "L2 RETURN"
 assert_no_walk "L2 RETURN"
 assert_disk "$runL" "L2 DISK" "$DISK_PLAN"
+probe_illegal_updates "$runL" "L2 illegal"
 
 printf 'CASE L3 PRE: plan + host wrote DAG; INVOKE: complete dest implement + claim S1\n'
 install_dag "$runL" linear.json
@@ -573,8 +702,14 @@ assert_walk_journal "$runL" "L3 RETURN walk"
 assert_out_has "▶ S1  write the file" "L3 RETURN"
 assert_out_has "○ S2  confirm the file" "L3 RETURN"
 assert_out_has "waiting on S1 write the file" "L3 RETURN"
+assert_next_has "$S1_LINEAR" "L3 RETURN"
 assert_next_lacks "$S2_LINEAR" "L3 RETURN"
+assert_when_done_has "Finish S1: write the file" "L3 RETURN"
+assert_when_done_has "then invoke /shiploop complete (marks this step done and claims the next)" "L3 RETURN"
+assert_when_done_lacks "Finish S2:" "L3 RETURN"
+assert_when_done_lacks "complete-step" "L3 RETURN"
 assert_disk "$runL" "L3 DISK" "$DISK_IMP_S1RUN"
+probe_illegal_updates "$runL" "L3 illegal"
 invoke_script status --run-dir "$runL" --human
 assert_rc 0 "L3 status --human"
 assert_walk_journal "$runL" "L3 status --human walk"
@@ -590,7 +725,11 @@ assert_transition_return "$runL" "completed S1" stored "L4 RETURN"
 assert_walk_journal "$runL" "L4 RETURN walk"
 assert_out_has "● S1  write the file" "L4 RETURN"
 assert_out_has "▶ S2  confirm the file" "L4 RETURN"
+assert_next_has "$S2_LINEAR" "L4 RETURN"
 assert_next_lacks "$S1_LINEAR" "L4 RETURN"
+assert_when_done_has "Finish S2: confirm the file" "L4 RETURN"
+assert_when_done_lacks "Finish S1:" "L4 RETURN"
+assert_when_done_lacks "complete-step" "L4 RETURN"
 assert_disk "$runL" "L4 DISK" "$DISK_IMP_S1DONE"
 assert_plan_md_unchanged "$runL" "$plan_hash_L3" "L4 DISK plan.md"
 
@@ -602,7 +741,10 @@ assert_transition_return "$runL" "completed S2" activity "L5 RETURN"
 assert_walk_journal "$runL" "L5 RETURN walk"
 assert_out_has "● S1  write the file" "L5 RETURN"
 assert_out_has "● S2  confirm the file" "L5 RETURN"
+assert_next_has "Session steps are drained" "L5 RETURN"
 assert_next_lacks "/goal " "L5 RETURN"
+assert_session_closer "L5 RETURN"
+assert_when_done_lacks "Finish S" "L5 RETURN"
 assert_disk "$runL" "L5 DISK" "$DISK_IMP_DRAINED"
 assert_plan_md_unchanged "$runL" "$plan_hash_L3" "L5 DISK plan.md"
 
@@ -611,8 +753,11 @@ assert_disk "$runL" "L6 PRE" "$DISK_IMP_DRAINED"
 invoke_script complete --run-dir "$runL"
 assert_transition_return "$runL" "updated implement -> residual" activity "L6 RETURN"
 assert_no_walk "L6 RETURN"
+assert_session_closer "L6 RETURN"
+assert_next_has "Review-coverage is **waived**" "L6 RETURN"
 assert_next_lacks "/goal step S" "L6 RETURN"
 assert_disk "$runL" "L6 DISK" '{"phase":"residual","receipts":{"S1":"complete","S2":"complete"}}'
+probe_illegal_updates "$runL" "L6 illegal"
 printf 'LAYER: L linear complete-walk OK\n'
 shiploop_sandbox_close
 [[ ! -d "$SUITE_TMP/sb-L" ]] || fail "L sandbox leaked after close"
@@ -631,6 +776,8 @@ invoke_script next --run-dir "$runN"
 assert_transition_return "$runN" "next — reprint (implement)" stored "N1 RETURN"
 assert_walk_journal "$runN" "N1 RETURN walk"
 assert_next_has "In flight — do not open a second /goal" "N1 RETURN"
+assert_when_done_has "Finish S1: write the file" "N1 RETURN"
+assert_when_done_lacks "complete-step" "N1 RETURN"
 assert_disk "$runN" "N1 DISK (unchanged)" "$DISK_IMP_S1RUN"
 
 printf 'CASE N2 PRE: S1 complete S2 running; INVOKE: next reprint\n'
@@ -644,6 +791,8 @@ assert_walk_journal "$runN" "N2 RETURN walk"
 assert_out_has "● S1  write the file" "N2 RETURN"
 assert_next_has "In flight — do not open a second /goal" "N2 RETURN"
 assert_next_lacks "$S1_LINEAR" "N2 RETURN"
+assert_when_done_has "Finish S2: confirm the file" "N2 RETURN"
+assert_when_done_lacks "Finish S1:" "N2 RETURN"
 assert_disk "$runN" "N2 DISK (unchanged)" "$DISK_IMP_S1DONE"
 
 printf 'CASE N3 PRE: drained; INVOKE: next reprint\n'
@@ -655,6 +804,7 @@ invoke_script next --run-dir "$runN"
 assert_transition_return "$runN" "next — reprint (implement)" activity "N3 RETURN"
 assert_walk_journal "$runN" "N3 RETURN walk"
 assert_next_lacks "/goal " "N3 RETURN"
+assert_session_closer "N3 RETURN"
 assert_disk "$runN" "N3 DISK (unchanged)" "$DISK_IMP_DRAINED"
 printf 'LAYER: N reprint OK\n'
 shiploop_sandbox_close
@@ -703,6 +853,8 @@ assert_transition_return "$runC1" "cleared S1" stored "C1 RETURN"
 assert_walk_journal "$runC1" "C1 RETURN walk"
 assert_out_has "▶ S1  write the file" "C1 RETURN"
 assert_out_lacks "In flight — do not open a second /goal" "C1 RETURN"
+assert_when_done_has "Finish S1: write the file" "C1 RETURN"
+assert_when_done_lacks "complete-step" "C1 RETURN"
 assert_disk "$runC1" "C1 DISK" "$DISK_IMP_S1RUN"
 shiploop_sandbox_close
 
@@ -728,6 +880,7 @@ assert_walk_journal "$runC2" "C2 next RETURN walk"
 assert_out_has "▶ S1  write the file" "C2 next RETURN"
 assert_out_has "○ S2  confirm the file" "C2 next RETURN"
 assert_next_lacks "$S2_LINEAR" "C2 next RETURN"
+assert_when_done_has "Finish S1: write the file" "C2 next RETURN"
 assert_disk "$runC2" "C2 DISK after next" "$DISK_IMP_S1RUN"
 printf 'LAYER: C clear retry OK\n'
 shiploop_sandbox_close
@@ -746,6 +899,9 @@ assert_transition_return "$runP" "updated -> implement" stored "P1 RETURN"
 assert_walk_journal "$runP" "P1 RETURN walk"
 assert_out_has "▶ S1  write tests for the file" "P1 RETURN"
 assert_out_has "▶ S2  write the implementation" "P1 RETURN"
+assert_when_done_has "Finish S1: write tests for the file" "P1 RETURN"
+assert_when_done_has "Finish S2: write the implementation" "P1 RETURN"
+assert_when_done_lacks "complete-step" "P1 RETURN"
 
 printf 'CASE P3 PRE: both running; INVOKE: complete without --id\n'
 assert_disk "$runP" "P3 PRE" '{"phase":"implement","receipts":{"S1":"running","S2":"running"}}'
@@ -765,6 +921,8 @@ assert_out_has "● S1  write tests for the file" "P2 RETURN"
 assert_out_has "▶ S2  write the implementation" "P2 RETURN"
 assert_next_has "In flight — do not open a second /goal" "P2 RETURN"
 assert_next_lacks "$S1_TWOROOT" "P2 RETURN"
+assert_when_done_has "Finish S2: write the implementation" "P2 RETURN"
+assert_when_done_lacks "Finish S1:" "P2 RETURN"
 assert_disk "$runP" "P2 DISK" '{"phase":"implement","receipts":{"S1":"complete","S2":"running"}}'
 printf 'LAYER: P parallel OK\n'
 shiploop_sandbox_close
@@ -792,6 +950,8 @@ assert_transition_return "$runI1" "next — claimed S3 (implement)" stored "I1 n
 assert_walk_journal "$runI1" "I1 next RETURN walk"
 assert_out_has "▶ S3  mid bind" "I1 next RETURN"
 assert_next_has "- mid exists" "I1 next RETURN"
+assert_when_done_has "Finish S1: write the file" "I1 next RETURN"
+assert_when_done_has "Finish S3: mid bind" "I1 next RETURN"
 assert_disk "$runI1" "I1 DISK after next" \
   '{"phase":"implement","receipts":{"S1":"running","S2":"none","S3":"running"}}'
 shiploop_sandbox_close
@@ -833,8 +993,10 @@ printf 'CASE B1a PRE: S1 running; INVOKE: update --to blocked\n'
 assert_disk "$runB" "B1a PRE" "$DISK_IMP_S1RUN"
 invoke_script update --run-dir "$runB" --to blocked --resume-to implement --reason "host failed"
 assert_transition_return "$runB" "updated implement -> blocked" activity "B1a RETURN"
+assert_when_done_has "invoke /shiploop complete --reason <answer>" "B1a RETURN"
 assert_disk "$runB" "B1a DISK" \
   '{"phase":"blocked","resume_to":"implement","blocked_from":"implement","receipts":{"S1":"running"}}'
+probe_illegal_updates "$runB" "B1a illegal"
 
 printf 'CASE B1b PRE: blocked resume_to=implement; INVOKE: complete --reason\n'
 assert_disk "$runB" "B1b PRE" '{"phase":"blocked","resume_to":"implement"}'
@@ -843,6 +1005,7 @@ assert_transition_return "$runB" "updated -> implement" stored "B1b RETURN"
 assert_walk_journal "$runB" "B1b RETURN walk"
 assert_out_has "▶ S1  write the file" "B1b RETURN"
 assert_out_lacks "● S1" "B1b RETURN"
+assert_when_done_has "Finish S1: write the file" "B1b RETURN"
 assert_disk "$runB" "B1b DISK" '{"phase":"implement","receipts":{"S1":"running","S2":"none"},"resume_to":null}'
 printf 'LAYER: B blocked resume OK\n'
 shiploop_sandbox_close
@@ -895,11 +1058,13 @@ printf 'CASE F1a PRE: S1 complete S2 running; INVOKE: complete --blocked --resum
 assert_disk "$runF" "F1a PRE" "$DISK_IMP_S1DONE"
 invoke_script complete --run-dir "$runF" --blocked --reason "replan" --resume-to plan
 assert_transition_return "$runF" "updated -> blocked" activity "F1a RETURN"
+assert_when_done_has "invoke /shiploop complete --reason <answer>" "F1a RETURN"
 assert_disk "$runF" "F1a DISK" '{"phase":"blocked","resume_to":"plan","receipts":{"S1":"complete","S2":"running"}}'
 
 printf 'CASE F1b PRE: blocked→plan; INVOKE: complete --reason (dest plan clears receipts)\n'
 invoke_script complete --run-dir "$runF" --reason "replan"
 assert_transition_return "$runF" "updated -> plan" activity "F1b RETURN"
+assert_session_closer "F1b RETURN"
 assert_next_lacks "$S1_LINEAR" "F1b RETURN"
 assert_disk "$runF" "F1b DISK" \
   '{"phase":"plan","receipts":{"S1":"none","S2":"none"},"plan_sha256":"empty"}'
@@ -912,6 +1077,7 @@ assert_transition_return "$runF" "updated -> implement" stored "F1c RETURN"
 assert_walk_journal "$runF" "F1c RETURN walk"
 assert_out_has "▶ S1  write the file" "F1c RETURN"
 assert_out_lacks "● S1" "F1c RETURN"
+assert_when_done_has "Finish S1: write the file" "F1c RETURN"
 assert_disk "$runF" "F1c DISK" "$DISK_IMP_S1RUN"
 printf 'LAYER: F replan wipe OK\n'
 shiploop_sandbox_close
@@ -936,6 +1102,7 @@ assert_disk "$runV" "V1 PRE" \
 invoke_script complete --run-dir "$runV" --blocked --reason "what is the oracle?" \
   --resume-to validate-spec
 assert_transition_return "$runV" "updated -> blocked" activity "V1 RETURN"
+assert_when_done_has "invoke /shiploop complete --reason <answer>" "V1 RETURN"
 assert_disk "$runV" "V1 DISK" \
   '{"phase":"blocked","resume_to":"validate-spec","blocked_from":"validate-spec","files":{"spec.md":true,"environment.md":false}}'
 
@@ -943,6 +1110,7 @@ printf 'CASE V2 PRE: blocked resume_to=validate-spec; INVOKE: complete --reason\
 assert_disk "$runV" "V2 PRE" '{"phase":"blocked","resume_to":"validate-spec"}'
 invoke_script complete --run-dir "$runV" --reason "user answered"
 assert_transition_return "$runV" "updated -> validate-spec" activity "V2 RETURN"
+assert_session_closer "V2 RETURN"
 assert_disk "$runV" "V2 DISK" \
   '{"phase":"validate-spec","resume_to":null,"spec_sha256":"empty","plan_sha256":"empty"}'
 printf 'LAYER: V validate-spec blocked hatch OK\n'
@@ -970,6 +1138,7 @@ assert_disk "$runQ" "Q1 PRE" "$DISK_PLAN"
 invoke_script complete --run-dir "$runQ" --blocked --reason "no backchain checkout" \
   --resume-to plan
 assert_transition_return "$runQ" "updated -> blocked" activity "Q1 RETURN"
+assert_when_done_has "invoke /shiploop complete --reason <answer>" "Q1 RETURN"
 assert_disk "$runQ" "Q1 DISK" \
   '{"phase":"blocked","resume_to":"plan","blocked_from":"plan","files":{"backchain/plan.json":false}}'
 printf 'LAYER: Q plan-to-blocked OK\n'
@@ -988,10 +1157,25 @@ assert_disk "$runG" "G1 PRE" \
   '{"phase":"residual","receipts":{"S1":"complete","S2":"complete"},"files":{"recap.html":false},"terminal":null}'
 invoke_script complete --run-dir "$runG"
 assert_transition_return "$runG" "updated -> done" activity "G1 RETURN"
+assert_next_has "Session closed" "G1 RETURN"
+assert_when_done_has "stop — no update" "G1 RETURN"
+assert_when_done_lacks "invoke /shiploop complete" "G1 RETURN"
 assert_out_has "recap.html" "G1 RETURN Look here"
 assert_disk "$runG" "G1 DISK" \
   '{"phase":"done","terminal":"waived","files":{"recap.html":true},"receipts":{"S1":"complete","S2":"complete"}}'
 grep -q 'writer: shiploop.recap' "$runG/recap.html" || fail "G1 DISK recap missing writer stamp"
+probe_illegal_updates "$runG" "G1 illegal"
+
+printf 'CASE G2 PRE: done; INVOKE: next reprint stop, then complete (no forward)\n'
+invoke_script next --run-dir "$runG"
+assert_transition_return "$runG" "next — reprint (done)" activity "G2 next RETURN"
+assert_when_done_has "stop — no update" "G2 next RETURN"
+assert_disk "$runG" "G2 DISK (unchanged)" '{"phase":"done","terminal":"waived"}'
+invoke_script complete --run-dir "$runG"
+assert_rc 2 "G2 complete"
+assert_err_has "no forward transition" "G2 complete RETURN"
+assert_no_next_packet "G2 complete RETURN"
+assert_disk "$runG" "G2 DISK after refused complete" '{"phase":"done","terminal":"waived"}'
 printf 'LAYER: G residual-to-done waiver OK\n'
 shiploop_sandbox_close
 
@@ -1011,6 +1195,7 @@ invoke_script next --run-dir "$runK"
 assert_transition_return "$runK" "next — reprint (residual)" activity "K0 RETURN"
 assert_next_has "run review-coverage Phase B" "K0 RETURN"
 assert_next_lacks "Review-coverage is **waived**" "K0 RETURN"
+assert_session_closer "K0 RETURN"
 assert_disk "$runK" "K0 DISK (unchanged)" '{"phase":"residual"}'
 
 printf 'CASE K1 PRE: residual, bound-coverage + ledger-complete; INVOKE: complete dest done\n'
@@ -1019,6 +1204,7 @@ install_ledger "$repoK" complete "$planK"
 [[ -f "$repoK/REVIEW_CONVERGE.md" ]] || fail "K1 PRE missing ledger"
 invoke_script complete --run-dir "$runK"
 assert_transition_return "$runK" "updated -> done" activity "K1 RETURN"
+assert_when_done_has "stop — no update" "K1 RETURN"
 assert_disk "$runK" "K1 DISK" \
   '{"phase":"done","terminal":"success","files":{"recap.html":true}}'
 grep -q 'review-coverage complete and landed' "$runK/recap.html" \
@@ -1041,9 +1227,22 @@ assert_disk "$runT" "T1 PRE" '{"phase":"residual","terminal":null}'
 install_ledger "$repoT" stopped "$planT"
 invoke_script complete --run-dir "$runT"
 assert_transition_return "$runT" "updated -> halted" activity "T1 RETURN"
+assert_next_has "Session terminal: halted" "T1 RETURN"
+assert_when_done_has "stop — no update" "T1 RETURN"
 assert_disk "$runT" "T1 DISK" \
   '{"phase":"halted","terminal":"halted","files":{"recap.html":true}}'
 grep -q 'HALTED' "$runT/recap.html" || fail "T1 DISK recap missing HALTED"
+probe_illegal_updates "$runT" "T1 illegal"
+
+printf 'CASE T2 PRE: halted; INVOKE: next reprint stop, then complete (no forward)\n'
+invoke_script next --run-dir "$runT"
+assert_transition_return "$runT" "next — reprint (halted)" activity "T2 next RETURN"
+assert_when_done_has "stop — no update" "T2 next RETURN"
+invoke_script complete --run-dir "$runT"
+assert_rc 2 "T2 complete"
+assert_err_has "no forward transition" "T2 complete RETURN"
+assert_no_next_packet "T2 complete RETURN"
+assert_disk "$runT" "T2 DISK (unchanged)" '{"phase":"halted","terminal":"halted"}'
 printf 'LAYER: T residual-to-halted OK\n'
 shiploop_sandbox_close
 
@@ -1059,6 +1258,7 @@ printf 'CASE R1 PRE: residual; INVOKE: complete --blocked --resume-to residual\n
 assert_disk "$runR" "R1 PRE" '{"phase":"residual","receipts":{"S1":"complete","S2":"complete"}}'
 invoke_script complete --run-dir "$runR" --blocked --reason "not green" --resume-to residual
 assert_transition_return "$runR" "updated -> blocked" activity "R1 RETURN"
+assert_when_done_has "invoke /shiploop complete --reason <answer>" "R1 RETURN"
 assert_disk "$runR" "R1 DISK" \
   '{"phase":"blocked","resume_to":"residual","blocked_from":"residual","receipts":{"S1":"complete","S2":"complete"}}'
 
@@ -1066,6 +1266,7 @@ printf 'CASE R2 PRE: blocked resume_to=residual, steps drained; INVOKE: complete
 assert_disk "$runR" "R2 PRE" '{"phase":"blocked","resume_to":"residual"}'
 invoke_script complete --run-dir "$runR" --reason "suite green"
 assert_transition_return "$runR" "updated -> residual" activity "R2 RETURN"
+assert_session_closer "R2 RETURN"
 assert_disk "$runR" "R2 DISK" \
   '{"phase":"residual","resume_to":null,"receipts":{"S1":"complete","S2":"complete"}}'
 printf 'LAYER: R residual blocked resume OK\n'
@@ -1132,6 +1333,132 @@ assert_transition_return "$runU" "updated -> implement" stored "U1 RETURN"
 assert_next_lacks "new repo" "U1 RETURN"
 assert_disk "$runU" "U1 DISK" '{"phase":"implement","receipts":{"S1":"running"}}'
 printf 'LAYER: U setup-once OK\n'
+shiploop_sandbox_close
+
+# =============================================================================
+# S — one-step DAG: S1 is both the first and the last implement step
+# =============================================================================
+shiploop_sandbox_open S
+runS="$SL_RUN"
+repoS="$SL_REPO"
+setup_to_plan "$runS" "$repoS" "$planf"
+install_dag "$runS" single.json
+
+printf 'CASE S1 PRE: plan + single.json; INVOKE: complete dest implement (claim first=last)\n'
+invoke_script complete --run-dir "$runS"
+assert_transition_return "$runS" "updated -> implement" stored "S1 RETURN"
+assert_walk_journal "$runS" "S1 RETURN walk"
+assert_out_has "▶ S1  write the file" "S1 RETURN"
+assert_out_lacks "S2" "S1 RETURN"
+assert_next_has "$S1_LINEAR" "S1 RETURN"
+assert_when_done_has "Finish S1: write the file" "S1 RETURN"
+assert_when_done_lacks "Finish S2:" "S1 RETURN"
+assert_when_done_lacks "complete-step" "S1 RETURN"
+assert_disk "$runS" "S1 DISK" "$DISK_IMP_SOLO_RUN"
+
+printf 'CASE S2 PRE: S1 running (host landed, only step); INVOKE: complete → drained\n'
+host_land "$runS" S1
+invoke_script complete --run-dir "$runS"
+assert_transition_return "$runS" "completed S1" activity "S2 RETURN"
+assert_walk_journal "$runS" "S2 RETURN walk"
+assert_out_has "● S1  write the file" "S2 RETURN"
+assert_next_has "Session steps are drained" "S2 RETURN"
+assert_next_lacks "/goal " "S2 RETURN"
+assert_next_lacks "$S1_LINEAR" "S2 RETURN"
+assert_session_closer "S2 RETURN"
+assert_when_done_lacks "Finish S1:" "S2 RETURN"
+assert_disk "$runS" "S2 DISK" "$DISK_IMP_SOLO_DRAINED"
+
+printf 'CASE S3 PRE: single-step drained; INVOKE: complete dest residual\n'
+invoke_script complete --run-dir "$runS"
+assert_transition_return "$runS" "updated implement -> residual" activity "S3 RETURN"
+assert_session_closer "S3 RETURN"
+assert_next_has "Review-coverage is **waived**" "S3 RETURN"
+assert_disk "$runS" "S3 DISK" '{"phase":"residual","receipts":{"S1":"complete"}}'
+printf 'LAYER: S single-step first=last OK\n'
+shiploop_sandbox_close
+
+# =============================================================================
+# Z — host wrappers shiploop-complete / shiploop-next through every stage
+# =============================================================================
+shiploop_sandbox_open Z
+runZ="$SL_RUN"
+repoZ="$SL_REPO"
+init_git_repo "$repoZ"
+
+printf 'CASE Z0 INVOKE: harness init (wrappers do not wrap init)\n'
+invoke_script init --prompt "create result.txt containing exactly one line: ok" \
+  --run-dir "$runZ" --bound-plan "$planf" --repo "$repoZ"
+assert_transition_return "$runZ" \
+  "initialized $(python3 -c "from pathlib import Path; print(Path('$runZ') / 'state.json')")" \
+  activity "Z0 RETURN"
+assert_session_closer "Z0 RETURN"
+assert_disk "$runZ" "Z0 DISK" "$DISK_INTAKE"
+
+printf 'CASE Z1 PRE: intake; INVOKE: wrapper complete dest validate-spec\n'
+invoke_wrapper complete --run-dir "$runZ"
+assert_wrapper_then_transition "$runZ" "$WRAP_COMPLETE" "updated -> validate-spec" activity "Z1 RETURN"
+assert_session_closer "Z1 RETURN"
+assert_next_has "Survey, then practices, then spec" "Z1 RETURN"
+assert_disk "$runZ" "Z1 DISK" "$DISK_VS"
+
+printf 'CASE Z1n PRE: validate-spec; INVOKE: wrapper next reprint\n'
+invoke_wrapper next --run-dir "$runZ"
+assert_wrapper_then_transition "$runZ" "$WRAP_NEXT" "next — reprint (validate-spec)" activity "Z1n RETURN"
+assert_disk "$runZ" "Z1n DISK (unchanged)" "$DISK_VS"
+
+printf 'CASE Z2 PRE: validate-spec + env/spec; INVOKE: wrapper complete dest plan\n'
+write_environment "$runZ"
+write_spec "$runZ"
+invoke_wrapper complete --run-dir "$runZ"
+assert_wrapper_then_transition "$runZ" "$WRAP_COMPLETE" "updated -> plan" activity "Z2 RETURN"
+assert_session_closer "Z2 RETURN"
+assert_next_has "The spec is **frozen**" "Z2 RETURN"
+assert_disk "$runZ" "Z2 DISK" "$DISK_PLAN"
+
+printf 'CASE Z3 PRE: plan + single.json; INVOKE: wrapper complete dest implement\n'
+install_dag "$runZ" single.json
+invoke_wrapper complete --run-dir "$runZ"
+assert_wrapper_then_transition "$runZ" "$WRAP_COMPLETE" "updated -> implement" stored "Z3 RETURN"
+assert_next_has "$S1_LINEAR" "Z3 RETURN"
+assert_when_done_has "Finish S1: write the file" "Z3 RETURN"
+assert_when_done_lacks "complete-step" "Z3 RETURN"
+assert_disk "$runZ" "Z3 DISK" "$DISK_IMP_SOLO_RUN"
+
+printf 'CASE Z4 PRE: S1 landed (first=last); INVOKE: wrapper complete → drained\n'
+host_land "$runZ" S1
+invoke_wrapper complete --run-dir "$runZ"
+assert_wrapper_then_transition "$runZ" "$WRAP_COMPLETE" "completed S1" activity "Z4 RETURN"
+assert_next_has "Session steps are drained" "Z4 RETURN"
+assert_next_lacks "/goal " "Z4 RETURN"
+assert_session_closer "Z4 RETURN"
+assert_disk "$runZ" "Z4 DISK" "$DISK_IMP_SOLO_DRAINED"
+
+printf 'CASE Z5 PRE: drained; INVOKE: wrapper complete dest residual\n'
+invoke_wrapper complete --run-dir "$runZ"
+assert_wrapper_then_transition "$runZ" "$WRAP_COMPLETE" "updated implement -> residual" activity "Z5 RETURN"
+assert_session_closer "Z5 RETURN"
+assert_next_has "Review-coverage is **waived**" "Z5 RETURN"
+assert_disk "$runZ" "Z5 DISK" '{"phase":"residual","receipts":{"S1":"complete"}}'
+
+printf 'CASE Z6 PRE: residual waived; INVOKE: wrapper complete dest done\n'
+invoke_wrapper complete --run-dir "$runZ"
+assert_wrapper_then_transition "$runZ" "$WRAP_COMPLETE" "updated -> done" activity "Z6 RETURN"
+assert_next_has "Session closed" "Z6 RETURN"
+assert_when_done_has "stop — no update" "Z6 RETURN"
+assert_disk "$runZ" "Z6 DISK" '{"phase":"done","terminal":"waived","files":{"recap.html":true}}'
+
+printf 'CASE Z7 PRE: done; INVOKE: wrapper next reprint stop, wrapper complete refused\n'
+invoke_wrapper next --run-dir "$runZ"
+assert_wrapper_then_transition "$runZ" "$WRAP_NEXT" "next — reprint (done)" activity "Z7 next RETURN"
+assert_when_done_has "stop — no update" "Z7 next RETURN"
+invoke_wrapper complete --run-dir "$runZ"
+assert_rc 2 "Z7 complete"
+assert_err_has "no forward transition" "Z7 complete RETURN"
+assert_line1 "$WRAP_COMPLETE" "Z7 complete RETURN"
+assert_no_next_packet "Z7 complete RETURN"
+assert_disk "$runZ" "Z7 DISK (unchanged)" '{"phase":"done","terminal":"waived"}'
+printf 'LAYER: Z wrapper call-chain OK\n'
 shiploop_sandbox_close
 
 printf 'shiploop-walk-journal.test.sh: PASS\n'

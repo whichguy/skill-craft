@@ -181,6 +181,10 @@ n_ret="$(grep -c 'assert_transition_return ' "$root/test/shiploop-walk-journal.t
 [[ "$n_ret" -ge 20 ]] || fail "walk-journal must call assert_transition_return (got $n_ret)"
 [[ -f "$root/test/fixtures/shiploop/setup-once.json" ]] \
   || fail "missing setup-once.json"
+[[ -f "$root/test/fixtures/shiploop/single.json" ]] \
+  || fail "missing single.json"
+grep -Fq '"exclusive": []' "$fix/transitions/artifacts/environment.md" \
+  || fail "sample environment.md missing exclusive []"
 grep -q 'def journal_mark' "$cli" || fail "script missing journal_mark"
 grep -Fq 'same glyphs' "$root/skills/shiploop/README.md" \
   || fail "README missing walk rail same glyphs as session rail"
