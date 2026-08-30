@@ -9,8 +9,9 @@ or rewrite it here), tools, mcp, mcp_considered, exclusive, handles, initiation,
 ui/ui_craft. `kind` and `augment` must match (`greenfield`/`false`,
 `brownfield`/`true`); brownfield `references` must be nonempty. `tools`/`mcp`
 are available **and in-bounds** this increment (dest-writes can succeed now,
-or a `create` handle will enable them — cheap-probe the exclusive writer's
-status/setup before listing it). `exclusive` is the destination-writer
+or a `create` handle will enable them). Cheap-probe the exclusive writer's
+status/setup before dest plan or an `initiation: needed` create;
+`exclusive[].use` stays inventoried. `exclusive` is the destination-writer
 map (conflicts, not backups); `[]` when none; dest plan requires the key.
 Write `{{ENV_MD}}`: a prose brief (dest notes and unauthenticated or deferred
 MCP belong here, not in machine JSON), then a unique H2 titled

@@ -18,11 +18,7 @@ its output is `environment.md` (Look here names the absolute path).
   writing the spec. If an observed MCP server or its tools document how to
   use them, that text is a reference — inventory alone is not enough.
 - **tools / mcp** — CLIs and MCP servers available **and in-bounds for this
-  increment**. Inventory, do not install or catalog. In-bounds means dest-writes can succeed now through that name, or a `create` handle in this increment will enable them. A connected server whose status/setup probe says a platform
-  API, scope, billing flag, or org allowlist is disabled is **not** in-bounds —
-  brief + `ask` handle, not these lists (Frozen asserts MCP in `mcp:` is
-  in-bounds). Unauthenticated, deferred, or wrong-for-this-increment servers
-  belong in the brief too.
+  increment**. Inventory, do not install or catalog. In-bounds means dest-writes can succeed now through that name, or a `create` handle in this increment will enable them. `exclusive[].use` must still be an inventoried tools or mcp name. A failed enablement probe is an `ask` handle and dest blocked — do not omit the designated writer from these lists, and do not dest plan until `inspect`. Unauthenticated, deferred, or wrong-for-this-increment names belong in the brief, not these lists (Frozen asserts MCP in `mcp:` is in-bounds).
 - **mcp_considered** — first matching read-capable session MCP tool, printed
   as `server(tool)`, or `none(reason)` when nothing matched. A single token,
   not a deferred-tools bucket.

@@ -118,6 +118,8 @@ grep -q 'Probe enablement before' "$root/skills/shiploop/references/survey.md" \
   || fail "survey.md missing probe enablement before initiation create"
 grep -q 'dest-writes can succeed now' "$root/skills/shiploop/references/survey.md" \
   || fail "survey.md missing dest-writes in-bounds rule"
+grep -q 'do not omit the designated writer' "$root/skills/shiploop/references/survey.md" \
+  || fail "survey.md missing do not omit designated writer from tools/mcp"
 grep -q 'platform preconditions' "$root/skills/shiploop/references/activities/validate-spec.md" \
   || fail "validate-spec.md missing platform preconditions"
 grep -q 'enablement' "$root/skills/shiploop/README.md" \

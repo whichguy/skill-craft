@@ -204,7 +204,8 @@ One phase, **three jobs in order**. Guide: `references/survey.md`. Activity:
    into the **same**
    `environment.md` (`references[{path, why}]`). Probe enablement before an
    `initiation: needed` create. In-bounds `tools`/`mcp` means dest-writes can
-   succeed now (or a `create` handle will enable them). When `exclusive` is nonempty,
+   succeed now (or a `create` handle will enable them). Failed enablement is
+   dest blocked; do not omit `exclusive[].use` from those lists. When `exclusive` is nonempty,
    `references` must be nonempty. Do not write `playbook.md`. Do not invent a
    Writer playbook heading. No secrets. No research skills in `dep_roots`.
    If the writer above fails, stop and invoke /shiploop complete --blocked --reason … — do not switch writers.
