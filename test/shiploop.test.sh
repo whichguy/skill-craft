@@ -26,6 +26,11 @@ if grep -RqiE 'devloop' --exclude-dir=__pycache__ \
   "$root/skills/shiploop" "$root/agents/shiploop.md"; then
   fail "shiploop skill must not mention DevLoop"
 fi
+if grep -Fq 'commit + merge' "$root/agents/shiploop.md"; then
+  fail "agents/shiploop.md closer still always-commits"
+fi
+grep -q 'leftover commit' "$root/agents/shiploop.md" \
+  || fail "agents/shiploop.md closer missing leftover commit"
 if grep -E 'shiploop capture|devloop-run' "$root/skills/shiploop/references/activities/implement.md"; then
   fail "implement activity still captures a foreign runner"
 fi

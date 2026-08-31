@@ -13,5 +13,5 @@ installed `shiploop` skill). Do not re-author the session procedure here.
 
 - Start / resume: skill card, then follow the packet.
 - Reprint: `/shiploop next`.
-- Closer: `/shiploop complete` (commit + merge, then next packet).
+- Closer: `/shiploop complete` (leftover commit if needed, harness merge, then next packet).
 - After every packet, echo `## You are here` and Diagnosis now/pending.
