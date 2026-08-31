@@ -308,9 +308,11 @@ Pathspec commit on the worktree (never `git add -A`) with a verbose body,
 `Key learnings:`, and `See: <full sha> <subject>` for prior lesson commits.
 Do not merge from the worktree cwd.
 
-When the `/goal` is done: **you** commit on the worktree, then merge into
-the session checkout (`git -C <session-checkout> merge --no-ff --no-edit
-shiploop/<run_id>/<id>`). Do not run a bare `git merge` from the worktree
+When the `/goal` is done: leftover uncommitted work gets the same
+Implement git schema (log -10, `Key learnings:`, `See: <sha>`), then merge
+into the session checkout (`git -C <session-checkout> merge --no-ff --no-edit
+shiploop/<run_id>/<id>`). If `/goal` already committed, do not invent a
+second finish commit. Do not run a bare `git merge` from the worktree
 cwd — that would merge into the step branch. Then `/shiploop complete`.
 The next worktree forks `HEAD`. ShipLoop does not auto-merge. Failure:
 `--clear`. Hard stop: `--blocked --reason`.

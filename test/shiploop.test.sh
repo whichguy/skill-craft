@@ -281,6 +281,12 @@ grep -Fq 'Never `git add -A`' "$root/skills/shiploop/README.md" \
   || fail "README missing Never git add -A"
 grep -Fq 'Key learnings:' "$root/skills/shiploop/README.md" \
   || fail "README missing Key learnings:"
+if grep -Fq 'When the `/goal` is done: **you** commit on the worktree, then merge' \
+  "$root/skills/shiploop/README.md"; then
+  fail "README closer still always-commit (want leftover-only)"
+fi
+grep -Fq 'leftover uncommitted' "$root/skills/shiploop/README.md" \
+  || fail "README missing leftover uncommitted closer"
 grep -Fq 'log -10' "$root/skills/shiploop/README.md" \
   || fail "README missing log -10"
 grep -Fq 'Key learnings:' "$root/skills/shiploop/commands/shiploop-complete.md" \
@@ -1228,6 +1234,8 @@ printf '%s\n' "$out_imp" | grep -q 'invoke /shiploop complete' || fail "when don
 assert_absent "$out_imp" 'complete-step --' "when done leaked complete-step argv"
 assert_absent "$out_imp" '--id S1' "when done leaked --id S1"
 printf '%s\n' "$out_imp" | grep -q 'commit on the worktree' || fail "when done missing commit"
+printf '%s\n' "$out_imp" | awk '/^## When done invoke$/,/^## Missing$/' | grep -q 'Key learnings:' \
+  || fail "when done missing Implement git schema"
 printf '%s\n' "$out_imp" | grep -q 'merge --no-ff' || fail "when done missing host merge"
 printf '%s\n' "$out_imp" | grep -qx '## Progress' || fail "implement missing Progress"
 printf '%s\n' "$out_imp" | grep -Eq '^(Beginning|Continuing) step S1 of 2' \
@@ -1322,6 +1330,8 @@ printf '%s\n' "$out_dr" | grep -q 'After it finishes: dest residual — run boun
 printf '%s\n' "$out_dr" | grep -q 'waived closer' \
   || fail "drained Next prompt missing waiver hatch: $out_dr"
 assert_absent "$out_dr" '/goal ' "drained implement still emitted /goal"
+assert_absent "$out_dr" 'Implement git (paste into /goal with Frozen' \
+  "drained implement still emitted Implement git"
 assert_absent "$out_dr" 'shiploop update --run-dir' "drained leaked update argv"
 run_cli update --run-dir "$run" --to residual >/dev/null
 printf 'LAYER: linear drain OK\n'
@@ -1640,6 +1650,21 @@ printf '%s\n' "$out_tr" | grep -q 'S2: running' || fail "two-root S2"
 printf '%s\n' "$out_tr" | grep -c '^/goal' | grep -qx 2 || fail "want two /goal lines"
 printf '%s\n' "$out_tr" | grep -c 'mcp-considered:' | grep -qx 2 \
   || fail "two-root want two mcp-considered envelopes"
+printf '%s\n' "$out_tr" | grep -cF 'Implement git (paste into /goal with Frozen' | grep -qx 2 \
+  || fail "two-root want two Implement git blocks"
+printf '%s\n' "$out_tr" | python3 -c '
+import sys
+head = "Implement git (paste into /goal with Frozen"
+parts = sys.stdin.read().split(head)
+assert len(parts) == 3, len(parts)
+wts, brs = [], []
+for block in parts[1:]:
+    lines = block.splitlines()
+    wts.append(next(ln for ln in lines if ln.startswith("Worktree: ")))
+    brs.append(next(ln for ln in lines if ln.startswith("Branch: ")))
+assert wts[0] != wts[1], wts
+assert brs[0] != brs[1], brs
+' || fail "two-root Implement git Worktree/Branch not distinct"
 set +e
 out_ss="$(run_cli start-step --run-dir "$run2" --id S1 2>&1)"
 rc_ss=$?
@@ -1653,6 +1678,8 @@ printf '%s\n' "$out_tr_c" | grep -q 'In flight' \
 printf '%s\n' "$out_tr_c" | grep -q 'Continuing' \
   || fail "complete --id S1 Progress did not Continuing S2: $out_tr_c"
 printf '%s\n' "$out_tr_c" | grep -q 'S1: done' || fail "complete --id S1 S1 not done"
+printf '%s\n' "$out_tr_c" | grep -cF 'Implement git (paste into /goal with Frozen' | grep -qx 1 \
+  || fail "after S1 complete want one Implement git for S2"
 out_tr2="$(run_cli next --run-dir "$run2")"
 printf '%s\n' "$out_tr2" | grep -q 'In flight' || fail "S2 not labeled in-flight"
 printf '%s\n' "$out_tr2" | grep -q 'S1: done' || fail "S1 should stay done"
@@ -2440,6 +2467,8 @@ out_w5="$(run_cli complete --run-dir "$runw")"
 printf '%s\n' "$out_w5" | grep -q 'completed S2' || fail "closer walk S2: $out_w5"
 printf '%s\n' "$out_w5" | grep -q 'drained — next residual' || fail "closer walk not drained"
 assert_absent "$out_w5" '/goal ' "drained closer still emitted /goal"
+assert_absent "$out_w5" 'Implement git (paste into /goal with Frozen' \
+  "drained closer still emitted Implement git"
 out_w6="$(run_cli complete --run-dir "$runw")"
 printf '%s\n' "$out_w6" | grep -q 'residual: current' || fail "closer walk not residual: $out_w6"
 python3 - "$runw" <<'PY'
@@ -2933,6 +2962,17 @@ out_inj_env="$(run_cli next --run-dir "$runpr")"
 printf '%s\n' "$out_inj_env" | grep -q 'ad hoc bind' || fail "discovered step not running: $out_inj_env"
 printf '%s\n' "$out_inj_env" | grep -q 'mcp-considered: none(x)' \
   || fail "injected-step packet missing frozen envelope: $out_inj_env"
+printf '%s\n' "$out_inj_env" | grep -q 'Implement git (paste into /goal with Frozen' \
+  || fail "injected-step packet missing Implement git: $out_inj_env"
+printf '%s\n' "$out_inj_env" | python3 -c '
+import sys
+text = sys.stdin.read()
+i = text.find("Frozen session environment")
+j = text.find("Implement git (paste into /goal with Frozen")
+k = text.find("no citation needed for a discovered step")
+assert i != -1 and j != -1 and k != -1, (i, j, k)
+assert i < j < k, (i, j, k)
+' || fail "inject Implement git not between Frozen and discovered prompt"
 printf 'LAYER: inject-step envelope reprint OK\n'
 
 # --- A16/A18/A22 inject-step ---

@@ -3222,7 +3222,11 @@ def print_packet(run_dir: Path, state: Dict[str, Any], *, prior_running: Optiona
         for sid in running:
             rec = load_receipt(run_dir, sid)
             _wt, br = isolation_for(state, sid, rec)
-            print(f"Finish {_finish_label(run_dir, sid)} — after /goal succeeds, commit on the worktree")
+            print(
+                f"Finish {_finish_label(run_dir, sid)} — after /goal succeeds, "
+                "leftover uncommitted: same Implement git schema "
+                "(log -10, Key learnings:, See: <sha>), commit on the worktree"
+            )
             if br:
                 print(
                     f"then merge that branch into the session checkout: "
