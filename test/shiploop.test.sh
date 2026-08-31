@@ -285,6 +285,10 @@ if grep -Fq 'When the `/goal` is done: **you** commit on the worktree, then merg
   "$root/skills/shiploop/README.md"; then
   fail "README closer still always-commit (want leftover-only)"
 fi
+if grep -Fq 'Host commits on the worktree, then' \
+  "$root/skills/shiploop/README.md"; then
+  fail "README mermaid still always-commit (want leftover-only)"
+fi
 grep -Fq 'leftover uncommitted' "$root/skills/shiploop/README.md" \
   || fail "README missing leftover uncommitted closer"
 grep -Fq 'log -10' "$root/skills/shiploop/README.md" \
@@ -1242,6 +1246,16 @@ printf '%s\n' "$out_imp" | grep -Eq '^(Beginning|Continuing) step S1 of 2' \
   || fail "implement Progress missing S1 begin/continue"
 printf '%s\n' "$out_imp" | grep -q 'Work in this worktree folder' || fail "implement Progress missing worktree"
 printf '%s\n' "$out_imp" | grep -q 'Finish S1:' || fail "implement Progress missing finish S1"
+printf '%s\n' "$out_imp" | awk '/^## Progress$/,/^## Reminder$/' | grep -q 'Finish S1:' \
+  || fail "implement Progress missing Finish S1:"
+printf '%s\n' "$out_imp" | awk '/^## Progress$/,/^## Reminder$/' | grep -q 'leftover uncommitted' \
+  || fail "implement Progress missing leftover-only"
+printf '%s\n' "$out_imp" | awk '/^## Progress$/,/^## Reminder$/' | grep -q 'Key learnings:' \
+  || fail "implement Progress missing Key learnings:"
+if printf '%s\n' "$out_imp" | awk '/^## Progress$/,/^## Reminder$/' \
+  | grep -Fq 'when the /goal is done, commit on that worktree'; then
+  fail "implement Progress still always-commit"
+fi
 printf '%s\n' "$out_imp" | grep -q 'Do not edit the session checkout' || fail "implement next missing checkout guard"
 assert_host_flag "$out_imp" "implement packet"
 flag_n="$(printf '%s\n' "$out_imp" | grep -cF 'HOST FLAG — extra folder (do not re-root):' || true)"
@@ -2459,7 +2473,7 @@ wt_s2="$(python3 -c "import json; print(json.load(open('$runw/steps/S2.json'))['
 [[ -f "$wt_s2/S1.txt" ]] || fail "S2 worktree missing merged S1.txt"
 git -C "$wt_s2" merge-base --is-ancestor "$s1sha" HEAD \
   || fail "S2 worktree missing S1 commit $s1sha"
-git -C "$wt_s2" log --oneline | grep -q 'step S1' \
+git -C "$wt_s2" log -1 --format=%s "$s1sha" | grep -qx 'step S1' \
   || fail "S2 log missing S1 subject"
 commit_step_work "$runw" S2
 merge_step_branch "$runw" S2

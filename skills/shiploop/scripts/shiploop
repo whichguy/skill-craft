@@ -2777,8 +2777,9 @@ def print_progress(
         if br:
             print(f"  Branch: {br}")
         print(
-            f"  Finish {_finish_label(run_dir, sid)} — when the /goal is done, commit on that worktree, "
-            f"merge the branch into the session checkout "
+            f"  Finish {_finish_label(run_dir, sid)} — leftover uncommitted: "
+            f"same Implement git schema (log -10, Key learnings:, See: <sha>), "
+            f"commit on the worktree, then merge the branch into the session checkout "
             f"(git -C {repo_s} merge --no-ff --no-edit {br or '<branch>'}), "
             f"then invoke /shiploop complete."
         )

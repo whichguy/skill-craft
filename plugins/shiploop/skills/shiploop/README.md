@@ -331,7 +331,7 @@ phase). Next complete dests `residual`.
 flowchart TD
   next["/shiploop next — claim_ready(): ready ids to running,\ngit worktree add -b per id"] --> printed["Packet Next prompt: Frozen + Implement git + stored prompt"]
   printed --> gwork["Host works in that step's worktree (do not re-root),\npastes Frozen + Implement git + stored prompt into /goal"]
-  gwork -->|goal succeeds| cm["Host commits on the worktree, then\ngit -C session-checkout merge --no-ff --no-edit"]
+  gwork -->|goal succeeds| cm["leftover uncommitted: Implement git schema, then\ngit -C session-checkout merge --no-ff --no-edit"]
   cm --> complete["/shiploop complete — apply_complete_receipt() marks the step complete,\nthen re-claims any newly-ready ids in the same call"]
   complete -->|another id now running| printed
   complete -->|all steps done| drained["drained (diagnosis, not a phase)"]
