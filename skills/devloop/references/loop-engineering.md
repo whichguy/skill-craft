@@ -39,13 +39,14 @@ User invoked `/shiploop` / skill `shiploop`.
 | When | Overlay | Role |
 |------|---------|------|
 | **Before** | **survey once** (session kind/handles/MCP/initiation/UI → `environment.md`; dest notes and unauthenticated MCP stay in the brief; handles get one cheap read-only look before the fence), **research practices** into that same file, then **spec once** (including deploy-prep / outer-loop publish / quality-`/goal` questions), then **sequence plan once** (native backchain: draft → dependency review → host resolve into `resolved_facts` → elaborate; missing precondition → seed step, unanswerable → dest blocked; do not hunt spikes after persist) | Survey is a required prefix inside `validate-spec`, not a new phase. Frozen `done_sentence`. Prep / intermediate deploy / cleanup / a README create-or-revise are DAG steps when implied; outer-loop publish and a quality `/goal` stay in residual. Brownfield augments an existing tree (`augment: true`) only when that tree already has this increment's product code; a new-project ask is greenfield and must not reuse a subject-sibling. Every seed `prompt` cites every `references[].path` and ends with a `Tools:` block that carries the frozen `mcp_considered` token. Each implement `/goal` pastes the Frozen session environment reprint plus that stored prompt. |
-| **During** | `/shiploop next` emits a `/goal` per running step (cwd is that step's worktree). `/shiploop complete` closes the increment (commit + host merge + next packet). | Host DAG walk. **Not** `/devloop`. **Not** a spec rewrite. |
+| **During** | `/shiploop next` emits a `/goal` per running step (cwd is that step's worktree). `/shiploop complete` closes the increment (leftover commit + harness merge + Git ran + next packet; last step dests residual). | Host DAG walk. **Not** `/devloop`. **Not** a spec rewrite. |
 | **After** | session residual under `/goal` once `steps_drained` (review-coverage, then the spec's quality test-and-fix `/goal` and outer-loop deploy/publish if named), then dest `done` / `halted` writes `.shiploop/recap.html` from the run files | No engine `COMPLETE`. Recap is the walk-back (intent, original spec, accomplished, changed, end result, outcome, verified). It reports review-coverage status; it does not witness host-owned quality/publish or treat `done_sentence` as harness-verified. |
 
 ShipLoop owns per-step git worktree/branch isolation (checkout disposable;
-branch kept on complete; host merges before `/shiploop complete`). It does **not** inherit
+branch kept on complete; harness `merge --no-ff --no-edit` on complete, Git ran
+printed). It does **not** inherit
 DevLoop’s frozen-oracle or COMPLETE guarantees, and must not import
-`worktree.py`, auto-merge, or claim engine `COMPLETE`.
+`worktree.py`, auto-resolve merge conflicts, or claim engine `COMPLETE`.
 
 ## Practices
 
@@ -72,7 +73,7 @@ for ready steps (cwd on that step's worktree) and does not rewrite the spec.
 The host closer is `/shiploop complete` (procedure on the shiploop card;
 the harness script infers the unique running id or happy-path `--to`).
 It must not invoke `/devloop`, must not
-capture `devloop-run`, must not auto-merge, and must not claim COMPLETE. Bare
+capture `devloop-run`, must not auto-resolve merge conflicts, and must not claim COMPLETE. Bare
 “devloop” still routes to skill `devloop`. `.shiploop/plan.md` is a pointer; the
 sequence plan is `.shiploop/backchain/plan.json`.
 

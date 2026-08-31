@@ -103,9 +103,10 @@ grep -q '`waived`' "$root/skills/shiploop/references/state-files.md" \
   || fail "state-files.md missing terminal waived"
 grep -q '`halted`' "$root/skills/shiploop/references/state-files.md" \
   || fail "state-files.md missing terminal halted"
-grep -q '^VERSION = "0.8.12"$' "$cli" || fail "script VERSION is not 0.8.12"
-grep -q '^version: 0.8.12$' "$root/skills/shiploop/SKILL.md" || fail "SKILL.md version is not 0.8.12"
-grep -Fq 'Version: **0.8.12**' "$root/skills/shiploop/README.md" || fail "README version is not 0.8.12"
+v=$(sed -n 's/^version: *//p' "$root/skills/shiploop/SKILL.md" | head -n1)
+grep -q "^VERSION = \"$v\"$" "$cli" || fail "script VERSION != SKILL.md"
+grep -q "^version: $v$" "$root/skills/shiploop/SKILL.md" || fail "SKILL.md version self-check"
+grep -Fq "Version: **$v**" "$root/skills/shiploop/README.md" || fail "README version != SKILL.md"
 grep -q 'exclusive writer' "$root/skills/shiploop/references/survey.md" \
   || fail "survey.md missing exclusive writer question"
 grep -q 'conflicts, not as backups' "$root/skills/shiploop/references/survey.md" \
@@ -429,7 +430,6 @@ fi
 grep -q 'emits a `/goal`' "$le_docs" || fail "LOOP-ENGINEERING missing emits a /goal"
 grep -q 'Per-step worktree (ShipLoop)' "$le_docs" || fail "LOOP-ENGINEERING missing ShipLoop worktree row"
 grep -q 'must not import' "$le_docs" || fail "LOOP-ENGINEERING missing no worktree.py import"
-grep -Eiq 'Never.+invoke' "$root/skills/shiploop/SKILL.md" || fail "SKILL.md missing Never invoke"
 [[ -f "$root/skills/shiploop/README.md" ]] || fail "missing skill README"
 [[ -f "$root/skills/shiploop/commands/shiploop.md" ]] || fail "missing commands/shiploop.md"
 [[ -f "$root/skills/shiploop/commands/shiploop-next.md" ]] || fail "missing commands/shiploop-next.md"
@@ -458,7 +458,7 @@ ShipLoop creates another folder: a per-step worktree under <repo>/.worktrees/shi
 Implementation work happens IN that worktree, not in the session checkout.
 Do not move_agent_to_root / re-root the host chat into that folder or the product repo unless the user asked.
 The session checkout stays the merge dest; do not edit it during implement.
-After /shiploop complete, the host merges the kept branch into session HEAD; the next packet names the next worktree.'
+After /shiploop complete, the harness merges the kept branch into session HEAD and prints Git ran; the next packet names the next worktree.'
 
 assert_host_flag() {
   local haystack="$1" label="$2"
@@ -1393,15 +1393,73 @@ assert d.get("bound_plan_hash")
 PY
 printf 'LAYER: dest residual bound_plan bind OK\n'
 
-# --- capture fail-closed (no implement.json in 0.7; receipts are the SoT) ---
+# last-step complete with no Review Coverage: receipt complete, dest residual rc 2
+runlast="$tmpdir/last-unbound/.shiploop"
+repolast="$tmpdir/last-unbound/repo"
+init_git_repo "$repolast"
+run_cli init --prompt "create result.txt containing exactly one line: ok" \
+  --run-dir "$runlast" --repo "$repolast" >/dev/null
+run_cli update --run-dir "$runlast" --to validate-spec >/dev/null
+write_environment "$runlast"
+write_spec "$runlast"
+run_cli update --run-dir "$runlast" --to plan >/dev/null
+install_dag "$runlast" linear.json
+run_cli update --run-dir "$runlast" --to implement >/dev/null
+run_cli next --run-dir "$runlast" >/dev/null
+complete_ok "$runlast" S1
+run_cli next --run-dir "$runlast" >/dev/null
+commit_step_work "$runlast" S2
+set +e
+out_last="$(run_cli complete --run-dir "$runlast" --id S2 2>&1)"
+rc_last=$?
+set -e
+[[ "$rc_last" -eq 2 ]] || fail "last-step unbound complete want 2: $out_last"
+printf '%s\n' "$out_last" | grep -Fq \
+  'bound_plan empty: add ## Review Coverage to .shiploop/plan.md or pass --bound-plan' \
+  || fail "last-step unbound gap: $out_last"
+python3 - "$runlast" <<'PY'
+import json, sys
+from pathlib import Path
+run = Path(sys.argv[1])
+d = json.loads((run / "state.json").read_text())
+assert d["phase"] == "implement", d["phase"]
+rec = json.loads((run / "steps" / "S2.json").read_text())
+assert rec["status"] == "complete", rec
+PY
+printf '\n## Review Coverage\nauto-bind\n' >>"$runlast/plan.md"
+out_fix="$(run_cli complete --run-dir "$runlast")"
+printf '%s\n' "$out_fix" | grep -q 'residual: current' || fail "recovery complete dest residual: $out_fix"
+
+# init --bound-plan missing path still dests residual
+runbpm="$tmpdir/bound-missing/.shiploop"
+repobpm="$tmpdir/bound-missing/repo"
+init_git_repo "$repobpm"
+run_cli init --prompt "create result.txt containing exactly one line: ok" \
+  --run-dir "$runbpm" --bound-plan "$tmpdir/no-such-shiploop-plan.md" --repo "$repobpm" >/dev/null
+run_cli update --run-dir "$runbpm" --to validate-spec >/dev/null
+write_environment "$runbpm"
+write_spec "$runbpm"
+run_cli update --run-dir "$runbpm" --to plan >/dev/null
+install_dag "$runbpm" linear.json
+run_cli update --run-dir "$runbpm" --to implement >/dev/null
+run_cli next --run-dir "$runbpm" >/dev/null
+complete_ok "$runbpm" S1
+run_cli next --run-dir "$runbpm" >/dev/null
+complete_ok "$runbpm" S2
+out_bpm="$(run_cli complete --run-dir "$runbpm")"
+printf '%s\n' "$out_bpm" | grep -q 'residual: current' \
+  || fail "missing --bound-plan still dest residual: $out_bpm"
+printf 'LAYER: last-step residual gate + bound-plan precedence OK\n'
+
+# --- capture is not a verb (argparse usage) ---
 [[ ! -f "$run/implement.json" ]] || fail "shiploop must not write implement.json"
 set +e
 out_cap="$(run_cli capture --run-dir "$run" -- echo hi 2>&1)"
 rc_cap=$?
 set -e
 [[ "$rc_cap" -eq 2 ]] || fail "capture want 2: $out_cap"
-printf '%s\n' "$out_cap" | grep -qi 'not a host-session gate' || fail "capture message: $out_cap"
-printf 'LAYER: capture fail-closed OK\n'
+printf '%s\n' "$out_cap" | grep -qi 'invalid choice' || fail "capture message: $out_cap"
+printf 'LAYER: capture usage OK\n'
 
 # --- residual ledger tests ---
 cat >"$repo/REVIEW_CONVERGE.md" <<'MD'
@@ -2312,7 +2370,7 @@ out_wt="$(run_cli next --run-dir "$runwt")"
 printf '%s\n' "$out_wt" | grep -q '.worktrees' || fail "goal missing .worktrees: $out_wt"
 printf '%s\n' "$out_wt" | grep -q 'shiploop/' || fail "goal missing shiploop/ path or branch"
 printf '%s\n' "$out_wt" | grep -q 'worktree — cwd here' || fail "look here missing cwd isolate instruction"
-printf '%s\n' "$out_wt" | grep -q 'merge that branch into the session checkout' \
+printf '%s\n' "$out_wt" | grep -q 'merge --no-ff --no-edit' \
   || fail "when-done missing session checkout merge instruction"
 assert_host_flag "$out_wt" "worktree isolation packet"
 ridwt="$(python3 -c "import json; print(json.load(open('$runwt/state.json'))['run_id'])")"
@@ -2399,22 +2457,73 @@ set -e
 printf '%s\n' "$out_ec" | grep -qi 'commit' || fail "empty complete message: $out_ec"
 printf 'LAYER: worktree isolation OK\n'
 
-# --- complete before merge is refused ---
+# --- complete without prior host merge lands the branch ---
 runum="$tmpdir/unmerged/.shiploop"
 repoum="$tmpdir/unmerged/repo"
 advance_to_plan "$runum" "$repoum" "$planf"
 install_dag "$runum" linear.json
-run_cli update --run-dir "$runum" --to implement >/dev/null
-run_cli next --run-dir "$runum" >/dev/null
+out_claim="$(run_cli update --run-dir "$runum" --to implement)"
+printf '%s\n' "$out_claim" | awk 'NR==1 {print; exit}' | grep -q 'updated .* implement' \
+  || fail "dest implement line1: $out_claim"
+printf '%s\n' "$out_claim" | awk '/^## Missing$/,0' | grep -q '^Git ran:' \
+  || fail "Git ran not after Missing: $out_claim"
+if printf '%s\n' "$out_claim" | grep -qx '## Git ran'; then
+  fail "Git ran became an H2"
+fi
+printf '%s\n' "$out_claim" | awk '/^Git ran:/,0' | grep -q 'worktree add' \
+  || fail "claim Git ran missing worktree add: $out_claim"
+if printf '%s\n' "$out_claim" | awk '/^Git ran:/,0' | grep -qE 'rev-parse|merge-base|rev-list'; then
+  fail "claim Git ran printed probe git"
+fi
 commit_step_work "$runum" S1
+out_um="$(run_cli complete-step --run-dir "$runum" --id S1)"
+printf '%s\n' "$out_um" | grep -q 'completed S1' || fail "harness-merge complete: $out_um"
+printf '%s\n' "$out_um" | grep -q 'Git ran:' || fail "complete missing Git ran: $out_um"
+printf '%s\n' "$out_um" | grep -q 'merge --no-ff --no-edit' || fail "Git ran missing merge: $out_um"
+[[ -f "$repoum/S1.txt" ]] || fail "harness merge did not land S1.txt"
+printf 'LAYER: harness merge complete OK\n'
+
+# --- dirty worktree complete refuse ---
+rundirty="$tmpdir/dirty/.shiploop"
+repodirty="$tmpdir/dirty/repo"
+advance_to_plan "$rundirty" "$repodirty" "$planf"
+install_dag "$rundirty" linear.json
+run_cli update --run-dir "$rundirty" --to implement >/dev/null
+run_cli next --run-dir "$rundirty" >/dev/null
+commit_step_work "$rundirty" S1
+wtdirty="$(python3 -c "import json; print(json.load(open('$rundirty/steps/S1.json'))['worktree'])")"
+printf 'leftover\n' >"$wtdirty/extra.txt"
 set +e
-out_um="$(run_cli complete-step --run-dir "$runum" --id S1 2>&1)"
-rc_um=$?
+out_dirty="$(run_cli complete-step --run-dir "$rundirty" --id S1 2>&1)"
+rc_dirty=$?
 set -e
-[[ "$rc_um" -eq 2 ]] || fail "unmerged complete want 2: $out_um"
-printf '%s\n' "$out_um" | grep -qi 'merge' || fail "unmerged message: $out_um"
-[[ ! -f "$repoum/S1.txt" ]] || fail "unmerged complete wrote S1 into HEAD"
-printf 'LAYER: unmerged complete refuse OK\n'
+[[ "$rc_dirty" -eq 2 ]] || fail "dirty complete want 2: $out_dirty"
+printf '%s\n' "$out_dirty" | grep -q 'extra.txt' || fail "dirty Git ran missing extra.txt: $out_dirty"
+[[ ! -f "$repodirty/S1.txt" ]] || fail "dirty complete merged anyway"
+printf 'LAYER: dirty complete refuse OK\n'
+
+# --- merge conflict complete refuse ---
+runconf="$tmpdir/conflict/.shiploop"
+repoconf="$tmpdir/conflict/repo"
+advance_to_plan "$runconf" "$repoconf" "$planf"
+install_dag "$runconf" linear.json
+run_cli update --run-dir "$runconf" --to implement >/dev/null
+run_cli next --run-dir "$runconf" >/dev/null
+commit_step_work "$runconf" S1
+printf 'session\n' >"$repoconf/S1.txt"
+git -C "$repoconf" add S1.txt
+git -C "$repoconf" commit -m 'session S1 clash' >/dev/null
+set +e
+out_conf="$(run_cli complete-step --run-dir "$runconf" --id S1 2>&1)"
+rc_conf=$?
+set -e
+[[ "$rc_conf" -eq 2 ]] || fail "conflict complete want 2: $out_conf"
+printf '%s\n' "$out_conf" | grep -q 'merge --no-ff --no-edit' || fail "conflict missing merge argv: $out_conf"
+printf '%s\n' "$out_conf" | grep -qi 'CONFLICT\|Automatic merge failed' \
+  || fail "conflict missing git conflict text: $out_conf"
+wtconf="$(python3 -c "import json; print(json.load(open('$runconf/steps/S1.json'))['worktree'])")"
+[[ -d "$wtconf" ]] || fail "conflict complete removed worktree"
+printf 'LAYER: conflict complete refuse OK\n'
 
 # --- two running + no --id from session cwd ---
 run2r="$tmpdir/tworun/.shiploop"
@@ -2479,12 +2588,11 @@ commit_step_work "$runw" S2
 merge_step_branch "$runw" S2
 out_w5="$(run_cli complete --run-dir "$runw")"
 printf '%s\n' "$out_w5" | grep -q 'completed S2' || fail "closer walk S2: $out_w5"
-printf '%s\n' "$out_w5" | grep -q 'drained — next residual' || fail "closer walk not drained"
-assert_absent "$out_w5" '/goal ' "drained closer still emitted /goal"
-assert_absent "$out_w5" 'Implement git (paste into /goal with Frozen' \
-  "drained closer still emitted Implement git"
-out_w6="$(run_cli complete --run-dir "$runw")"
-printf '%s\n' "$out_w6" | grep -q 'residual: current' || fail "closer walk not residual: $out_w6"
+n_out="$(printf '%s\n' "$out_w5" | grep -c '^completed S2$' || true)"
+[[ "$n_out" -eq 1 ]] || fail "closer walk last complete extra outcome: $out_w5"
+printf '%s\n' "$out_w5" | grep -q 'residual: current' || fail "closer walk not residual: $out_w5"
+assert_absent "$out_w5" 'updated implement -> residual' "last complete printed dest residual outcome"
+assert_absent "$out_w5" 'does not auto-dest residual' "last complete still says no auto-dest"
 python3 - "$runw" <<'PY'
 import json, sys
 from pathlib import Path

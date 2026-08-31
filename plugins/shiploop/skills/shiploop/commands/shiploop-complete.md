@@ -10,13 +10,14 @@ The current ShipLoop increment is finished. This command **is** the closer, not 
    - `Key learnings:` bullets
    - `See: <full sha> <subject>` for prior commits that taught this lesson
    If `/goal` already committed, do **not** invent a second finish commit.
-2. Merge the kept branch into the session checkout
-   (`git -C <session-checkout> merge --no-ff --no-edit <branch>`). Session
-   checkout = `repo_root` main working tree (not a per-step `.worktrees/`
-   folder). Do not skip the merge; the next worktree forks `HEAD`. Do not
-   merge from the worktree cwd.
+2. Then exec the harness `complete`. It merges
+   (`git -C <session-checkout> merge --no-ff --no-edit <branch>`), prints
+   `Git ran:` (argv + exit + output), dests residual when this was the last
+   step, and prints the next packet. Session checkout = `repo_root` main
+   working tree. Do not merge from the worktree cwd. Dirty, empty, or
+   conflicted complete is exit 2 with that transcript — fix and retry.
 
-ShipLoop does not auto-merge. Full sequence: [README.md — Git sequence (harness vs host)](../README.md#git-sequence-harness-vs-host).
+Complete runs the merge; it does not resolve conflicts. Full sequence: [README.md — Git sequence (harness vs host)](../README.md#git-sequence-harness-vs-host).
 
 Then exec `python3 "$SKILL_ROOT/scripts/shiploop" complete` (or the leaf wrapper `scripts/shiploop-complete`) so the harness prints the next packet.
 

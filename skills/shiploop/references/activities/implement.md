@@ -22,13 +22,13 @@ If a `/goal` for an id is already open, do not open a second one. Inner
 `/goal` iterates and pathspec-commits **on the worktree** (read
 `git log -10` before planning each iteration; verbose message with
 `Key learnings:` and `See: <full sha> <subject>`). Never `git add -A`.
-Never merge from that cwd. When the `/goal` is done, invoke
-**`/shiploop complete`** — leftover uncommitted work gets the same commit
-schema, then merge into the session checkout
-(`git -C <session-checkout> merge --no-ff --no-edit <branch>`), and
-prints the next packet. Do not skip that merge; do not run a bare
-`git merge` from the worktree cwd. The next worktree forks `HEAD`.
-ShipLoop does not auto-merge.
+Never merge from that cwd. When the `/goal` is done, leftover uncommitted
+work gets the same commit schema, then invoke **`/shiploop complete`** —
+the harness merges (`git -C <session-checkout> merge --no-ff --no-edit
+<branch>`), prints Git ran, dests residual when this was the last step,
+and prints the next packet. Do not run a bare `git merge` from the
+worktree cwd. The next worktree forks `HEAD`. Complete does not resolve
+conflicts; read Git ran and retry.
 
 ## Discovered work mid-implement: `inject-step`
 

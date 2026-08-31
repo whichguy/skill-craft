@@ -604,9 +604,7 @@ setup_to_residual() {
   assert_rc 0 "setup complete S1"
   host_land "$1" S2
   invoke_script complete --run-dir "$1"
-  assert_rc 0 "setup complete S2"
-  invoke_script complete --run-dir "$1"
-  assert_rc 0 "setup dest residual"
+  assert_rc 0 "setup complete S2 dest residual"
 }
 
 assert_index_covers_edges() {
@@ -707,7 +705,7 @@ assert_next_lacks "$S2_LINEAR" "L3 RETURN"
 assert_next_has "Implement git (paste into /goal with Frozen" "L3 RETURN"
 assert_when_done_has "Finish S1: write the file" "L3 RETURN"
 assert_when_done_has "Key learnings:" "L3 RETURN"
-assert_when_done_has "then invoke /shiploop complete (marks this step done and claims the next)" "L3 RETURN"
+assert_when_done_has "then invoke /shiploop complete (merges" "L3 RETURN"
 assert_when_done_lacks "Finish S2:" "L3 RETURN"
 assert_when_done_lacks "complete-step" "L3 RETURN"
 assert_disk "$runL" "L3 DISK" "$DISK_IMP_S1RUN"
@@ -735,26 +733,26 @@ assert_when_done_lacks "complete-step" "L4 RETURN"
 assert_disk "$runL" "L4 DISK" "$DISK_IMP_S1DONE"
 assert_plan_md_unchanged "$runL" "$plan_hash_L3" "L4 DISK plan.md"
 
-printf 'CASE L5 PRE: S2 running (host landed); INVOKE: complete → drained\n'
+printf 'CASE L5 PRE: S2 running (host landed); INVOKE: complete → residual\n'
 assert_disk "$runL" "L5 PRE before land" "$DISK_IMP_S1DONE"
 host_land "$runL" S2
 invoke_script complete --run-dir "$runL"
 assert_transition_return "$runL" "completed S2" activity "L5 RETURN"
-assert_walk_journal "$runL" "L5 RETURN walk"
-assert_out_has "● S1  write the file" "L5 RETURN"
-assert_out_has "● S2  confirm the file" "L5 RETURN"
-assert_next_has "Session steps are drained" "L5 RETURN"
+assert_no_walk "L5 RETURN"
+assert_out_has "residual: current" "L5 RETURN"
+assert_out_lacks "updated implement -> residual" "L5 RETURN"
+assert_next_has "Review-coverage is **waived**" "L5 RETURN"
 assert_next_lacks "/goal " "L5 RETURN"
 assert_next_lacks "Implement git (paste into /goal with Frozen" "L5 RETURN"
 assert_session_closer "L5 RETURN"
 assert_when_done_lacks "Finish S" "L5 RETURN"
-assert_disk "$runL" "L5 DISK" "$DISK_IMP_DRAINED"
+assert_disk "$runL" "L5 DISK" '{"phase":"residual","receipts":{"S1":"complete","S2":"complete"}}'
 assert_plan_md_unchanged "$runL" "$plan_hash_L3" "L5 DISK plan.md"
 
-printf 'CASE L6 PRE: implement drained; INVOKE: complete dest residual\n'
-assert_disk "$runL" "L6 PRE" "$DISK_IMP_DRAINED"
-invoke_script complete --run-dir "$runL"
-assert_transition_return "$runL" "updated implement -> residual" activity "L6 RETURN"
+printf 'CASE L6 PRE: residual; INVOKE: next reprint\n'
+assert_disk "$runL" "L6 PRE" '{"phase":"residual","receipts":{"S1":"complete","S2":"complete"}}'
+invoke_script next --run-dir "$runL"
+assert_transition_return "$runL" "next — reprint (residual)" activity "L6 RETURN"
 assert_no_walk "L6 RETURN"
 assert_session_closer "L6 RETURN"
 assert_next_has "Review-coverage is **waived**" "L6 RETURN"
@@ -801,8 +799,8 @@ assert_disk "$runN" "N2 DISK (unchanged)" "$DISK_IMP_S1DONE"
 
 printf 'CASE N3 PRE: drained; INVOKE: next reprint\n'
 host_land "$runN" S2
-invoke_script complete --run-dir "$runN"
-assert_rc 0 "N3 setup complete S2"
+invoke_script complete-step --run-dir "$runN" --id S2
+assert_rc 0 "N3 setup complete-step S2"
 assert_disk "$runN" "N3 PRE" "$DISK_IMP_DRAINED"
 invoke_script next --run-dir "$runN"
 assert_transition_return "$runN" "next — reprint (implement)" activity "N3 RETURN"
@@ -1362,23 +1360,23 @@ assert_when_done_lacks "Finish S2:" "S1 RETURN"
 assert_when_done_lacks "complete-step" "S1 RETURN"
 assert_disk "$runS" "S1 DISK" "$DISK_IMP_SOLO_RUN"
 
-printf 'CASE S2 PRE: S1 running (host landed, only step); INVOKE: complete → drained\n'
+printf 'CASE S2 PRE: S1 running (host landed, only step); INVOKE: complete → residual\n'
 host_land "$runS" S1
 invoke_script complete --run-dir "$runS"
 assert_transition_return "$runS" "completed S1" activity "S2 RETURN"
-assert_walk_journal "$runS" "S2 RETURN walk"
-assert_out_has "● S1  write the file" "S2 RETURN"
-assert_next_has "Session steps are drained" "S2 RETURN"
+assert_no_walk "S2 RETURN"
+assert_out_has "residual: current" "S2 RETURN"
+assert_next_has "Review-coverage is **waived**" "S2 RETURN"
 assert_next_lacks "/goal " "S2 RETURN"
 assert_next_lacks "Implement git (paste into /goal with Frozen" "S2 RETURN"
 assert_next_lacks "$S1_LINEAR" "S2 RETURN"
 assert_session_closer "S2 RETURN"
 assert_when_done_lacks "Finish S1:" "S2 RETURN"
-assert_disk "$runS" "S2 DISK" "$DISK_IMP_SOLO_DRAINED"
+assert_disk "$runS" "S2 DISK" '{"phase":"residual","receipts":{"S1":"complete"}}'
 
-printf 'CASE S3 PRE: single-step drained; INVOKE: complete dest residual\n'
-invoke_script complete --run-dir "$runS"
-assert_transition_return "$runS" "updated implement -> residual" activity "S3 RETURN"
+printf 'CASE S3 PRE: residual; INVOKE: next reprint\n'
+invoke_script next --run-dir "$runS"
+assert_transition_return "$runS" "next — reprint (residual)" activity "S3 RETURN"
 assert_session_closer "S3 RETURN"
 assert_next_has "Review-coverage is **waived**" "S3 RETURN"
 assert_disk "$runS" "S3 DISK" '{"phase":"residual","receipts":{"S1":"complete"}}'
@@ -1434,19 +1432,19 @@ assert_when_done_has "Key learnings:" "Z3 RETURN"
 assert_when_done_lacks "complete-step" "Z3 RETURN"
 assert_disk "$runZ" "Z3 DISK" "$DISK_IMP_SOLO_RUN"
 
-printf 'CASE Z4 PRE: S1 landed (first=last); INVOKE: wrapper complete → drained\n'
+printf 'CASE Z4 PRE: S1 landed (first=last); INVOKE: wrapper complete → residual\n'
 host_land "$runZ" S1
 invoke_wrapper complete --run-dir "$runZ"
 assert_wrapper_then_transition "$runZ" "$WRAP_COMPLETE" "completed S1" activity "Z4 RETURN"
-assert_next_has "Session steps are drained" "Z4 RETURN"
+assert_next_has "Review-coverage is **waived**" "Z4 RETURN"
 assert_next_lacks "/goal " "Z4 RETURN"
 assert_next_lacks "Implement git (paste into /goal with Frozen" "Z4 RETURN"
 assert_session_closer "Z4 RETURN"
-assert_disk "$runZ" "Z4 DISK" "$DISK_IMP_SOLO_DRAINED"
+assert_disk "$runZ" "Z4 DISK" '{"phase":"residual","receipts":{"S1":"complete"}}'
 
-printf 'CASE Z5 PRE: drained; INVOKE: wrapper complete dest residual\n'
-invoke_wrapper complete --run-dir "$runZ"
-assert_wrapper_then_transition "$runZ" "$WRAP_COMPLETE" "updated implement -> residual" activity "Z5 RETURN"
+printf 'CASE Z5 PRE: residual; INVOKE: wrapper next reprint\n'
+invoke_wrapper next --run-dir "$runZ"
+assert_wrapper_then_transition "$runZ" "$WRAP_NEXT" "next — reprint (residual)" activity "Z5 RETURN"
 assert_session_closer "Z5 RETURN"
 assert_next_has "Review-coverage is **waived**" "Z5 RETURN"
 assert_disk "$runZ" "Z5 DISK" '{"phase":"residual","receipts":{"S1":"complete"}}'

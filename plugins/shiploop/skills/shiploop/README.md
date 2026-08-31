@@ -5,9 +5,9 @@ researches applicable practices into `environment.md`, freeze a checkable spec,
 sequence-plan once, then walk ready steps until the work is landed and a
 walk-back HTML recap exists.
 
-ShipLoop never auto-merges and never claims engine `COMPLETE`.
+ShipLoop never conflict-resolves a merge and never claims engine `COMPLETE`.
 
-Package leaf: `skills/shiploop`. Invoke: `/shiploop`. Version: **0.8.12**.
+Package leaf: `skills/shiploop`. Invoke: `/shiploop`. Version: **0.8.13**.
 
 Canonical companions (do not duplicate their contracts here):
 
@@ -31,9 +31,9 @@ User / host
     │                           exec scripts/shiploop-next
     │                           → execv scripts/shiploop next
     ├─ /shiploop complete   → commands/shiploop-complete.md
-    │                           host commit+merge if this was a /goal
+    │                           leftover commit if this was a /goal
     │                           exec scripts/shiploop-complete
-    │                           → execv scripts/shiploop complete
+    │                           → execv scripts/shiploop complete (merges)
     └─ inject-step          → commands/shiploop-inject.md
                                 exec scripts/shiploop inject-step
 ```
@@ -122,7 +122,8 @@ strings even when Missing is empty. Those Look-here lines are the
 **Siblings:** plan calls **backchain** once (`dep_roots.backchain`).
 Residual calls **review-coverage** Phase B. Missing backchain is a
 Missing line, not a vendored copy. `scripts/shiploop` is the only SM.
-No auto-merge. No engine `COMPLETE`. Git command split:
+complete merges (`--no-ff --no-edit`); it does not resolve conflicts.
+No engine `COMPLETE`. Git command split:
 [Git sequence (harness vs host)](#git-sequence-harness-vs-host).
 
 ---
@@ -309,13 +310,15 @@ Pathspec commit on the worktree (never `git add -A`) with a verbose body,
 Do not merge from the worktree cwd.
 
 When the `/goal` is done: leftover uncommitted work gets the same
-Implement git schema (log -10, `Key learnings:`, `See: <sha>`), then merge
-into the session checkout (`git -C <session-checkout> merge --no-ff --no-edit
-shiploop/<run_id>/<id>`). If `/goal` already committed, do not invent a
-second finish commit. Do not run a bare `git merge` from the worktree
-cwd — that would merge into the step branch. Then `/shiploop complete`.
-The next worktree forks `HEAD`. ShipLoop does not auto-merge. Failure:
-`--clear`. Hard stop: `--blocked --reason`.
+Implement git schema (log -10, `Key learnings:`, `See: <sha>`), then
+`/shiploop complete`. The harness merges
+(`git -C <session-checkout> merge --no-ff --no-edit shiploop/<run_id>/<id>`),
+prints Git ran, and dests residual when this was the last step. If `/goal`
+already committed, do not invent a second finish commit. Do not run a bare
+`git merge` from the worktree cwd — that would merge into the step branch.
+The next worktree forks `HEAD`. Conflicted or dirty complete is exit 2 with
+the git transcript; fix and retry. Failure: `--clear`. Hard stop:
+`--blocked --reason`.
 
 **inject-step** (phase implement only, including drained): add a discovered
 intermediate without dest `plan` (that would wipe receipts). Requires
@@ -325,17 +328,17 @@ hash to `state.plan_sha256`. `--before` is `todo` or `ready` only; appends
 Then `/shiploop next`.
 
 When every step is `done`, implement is **drained** (a diagnosis, not a
-phase). Next complete dests `residual`.
+phase). The completing `/shiploop complete` dests `residual`. `/shiploop
+next` while drained reprints this diagnosis and does not dest.
 
 ```mermaid
 flowchart TD
   next["/shiploop next — claim_ready(): ready ids to running,\ngit worktree add -b per id"] --> printed["Packet Next prompt: Frozen + Implement git + stored prompt"]
   printed --> gwork["Host works in that step's worktree (do not re-root),\npastes Frozen + Implement git + stored prompt into /goal"]
-  gwork -->|goal succeeds| cm["leftover uncommitted: Implement git schema, then\ngit -C session-checkout merge --no-ff --no-edit"]
-  cm --> complete["/shiploop complete — apply_complete_receipt() marks the step complete,\nthen re-claims any newly-ready ids in the same call"]
+  gwork -->|goal succeeds| cm["leftover uncommitted: Implement git schema, then\n/shiploop complete"]
+  cm --> complete["/shiploop complete — merge --no-ff --no-edit, Git ran,\napply_complete_receipt, then re-claim or dest residual"]
   complete -->|another id now running| printed
-  complete -->|all steps done| drained["drained (diagnosis, not a phase)"]
-  drained -->|one more /shiploop complete, nothing running| residual([dest residual])
+  complete -->|last step done| residual([dest residual])
   gwork -->|goal fails| clear["/shiploop complete --clear"]
   clear --> printed
   gwork -.->|discovers intermediate work| inject["inject-step — side door CLI,\norigin: discovered, rebinds plan_sha256 only"]
@@ -354,18 +357,21 @@ that same call). `inject-step` does **not** claim the new id — that is the
 one case that still needs `/shiploop next` (or the next `complete`) to
 `claim_ready()`. Otherwise a separate `/shiploop next` is only a reprint
 after lost context.
-Draining takes **two** `/shiploop complete` calls: one completes the last
-running step, a second (with nothing running) is the one that dests
-`residual` — `implement-drained.md` says this explicitly: *"ShipLoop does not
-auto-`--to residual` when the last step completes."* **What this is not:**
-there is no auto-merge (`complete` refuses a branch that is not yet an
-ancestor of `HEAD`) and no nested `/goal` inside implement's `/goal`.
+The completing `/shiploop complete` of the last running step dests
+`residual` in the same call (one outcome line `completed <id>`). A
+`/shiploop next` while drained still prints `implement-drained.md` and
+does not dest — that file is a reprint after a residual-gate failure or
+lost context. **What this is not:** complete does not resolve merge
+conflicts (exit 2 with Git ran) and there is no nested `/goal` inside
+implement's `/goal`.
 
 ### 5. Residual
 
-Session closer only. dest `residual` binds an empty `bound_plan` to
-`.shiploop/plan.md` (then repo `PLAN.md`) when that file has
-`## Review Coverage`; otherwise it fails closed — do not wait for dest
+Session closer only. dest `residual` binds an empty `bound_plan` in this
+order: explicit `init --bound-plan PATH` wins (even if that path later
+disappears); else the first candidate that already has `## Review Coverage`
+(`.shiploop/plan.md`, then repo-root `PLAN.md`); else fail closed (exit 2,
+gap *"bound_plan empty: add ## Review Coverage to .shiploop/plan.md or pass --bound-plan"*). Do not wait for dest
 `done`. Run review-coverage Phase B for the bound plan under `/goal`
 (one `/review-converge` per turn). Ledger: repo-root `REVIEW_CONVERGE.md`.
 Do not treat a foreign or unlanded ledger as success.
@@ -402,15 +408,17 @@ dest `implement` requires a git `HEAD` (plan-phase packets dest
 `implement`, so Missing can list “create an initial commit” then).
 `inject-step` is not a git operation.
 
-**Who runs git.** The harness never `git add`, `commit`, or `merge`. The
-host never creates or removes worktrees. Harness calls are always
-`git -C <repo_root>` (never `cd`).
+**Who runs git.** The harness never `git add`, `commit`, or `push`. It
+does run `merge --no-ff --no-edit` on complete and prints `Git ran:`
+(argv + exit + stdout/stderr). The host never creates or removes
+worktrees. Harness calls are always `git -C` (never `cd`).
 
 **Closer vs SM.** `/shiploop complete` is the **host closer card**: if this
-was an implement `/goal`, commit on the worktree if needed, then merge,
-then exec the harness. The Python SM (`apply_complete_receipt`) only
-**checks** that the branch is an ancestor of session `HEAD` and then
-removes the worktree. It does not merge.
+was an implement `/goal`, pathspec-commit leftovers on the worktree if
+needed, then exec the harness. `apply_complete_receipt` refuses dirty or
+empty branches, runs `git -C <session-checkout> merge --no-ff --no-edit
+<branch>`, prints Git ran, then removes the worktree (keeps the branch).
+Conflicts are exit 2 with that transcript.
 
 **HOST FLAG vs cwd.** Implementation work happens **in** the Look-here
 worktree (cwd for `/goal`). Do **not** re-root the host chat into that
@@ -424,7 +432,7 @@ folder. Merge dest is the **session checkout**. Merge with
 | dest implement / `claim_ready` | `git rev-parse --is-inside-work-tree` and `HEAD`; empty repo → Missing “create an initial commit so implement can isolate worktrees” |
 | first worktree | append `.worktrees/` to `.git/info/exclude` (not a tracked `.gitignore`) |
 | claim ready id | `git worktree add -b shiploop/<run_id>/<id> <repo>/.worktrees/shiploop/<run_id>/<id> HEAD`; refuse reuse of that path; receipt stores `worktree`, `branch`, `base_sha` |
-| complete (after host merge) | `git rev-list --count <base_sha>..<branch>` must be `> 0`; `git merge-base --is-ancestor <branch> HEAD`; then `git worktree remove --force`; **keep** the branch; receipt `worktree: ""` |
+| complete | `git status --porcelain` in the worktree must be empty; `git rev-list --count <base_sha>..<branch>` must be `> 0`; then `git -C <session-checkout> merge --no-ff --no-edit <branch>` (recorded in Git ran); ancestor check; `git worktree remove --force`; **keep** the branch; receipt `worktree: ""`. Last running step dests residual in the same call. |
 | `--clear` | `git worktree remove --force` **and** `git branch -D` for that id **and descendants**; next `claim_ready` forks a new worktree from current `HEAD` |
 | `init --force` | wipe every worktree and `shiploop/<run_id>/*` branch for this run |
 
@@ -440,16 +448,16 @@ claim time. Complete needs `--id` or cwd in that worktree.
    learnings:`, and `See: <full sha> <subject>`. **Never `git add -A`.**
    Do not merge from this cwd.
 3. **Before** the harness `complete` runs, leftover uncommitted work gets
-   the same commit schema, then merge into the session checkout:
+   the same commit schema. Do not merge from this cwd.
+4. Then `/shiploop complete`. The harness merges:
 
    ```sh
    git -C <session-checkout> merge --no-ff --no-edit shiploop/<run_id>/<id>
    ```
 
-   Do not skip; the next worktree forks `HEAD`. ShipLoop does not
-   auto-merge. Empty or unmerged complete is exit 2 and prints that
-   merge line.
-4. Then `/shiploop complete`. Same call re-claims newly ready ids.
+   and prints `Git ran:`. Empty, dirty, or conflicted complete is exit 2
+   with that transcript. Same call re-claims newly ready ids or dests
+   residual when this was the last step. The next worktree forks `HEAD`.
 
 Product `README.md` is not session state (survey reads it; last DAG step
 writes it; `--force` never deletes it).
@@ -473,6 +481,9 @@ or `next — reprint (<phase>)` first. `init` / `complete` / `update` print
 | **Next prompt** | First line `Use this prompt as much as possible.` Implement: Frozen session environment, Implement git, then the stored prompt. Paste Frozen + Implement git; do not paste HOST FLAG. Other phases: the activity file. |
 | **When done invoke** | `invoke /shiploop complete` (plus `--clear` / `--blocked` when that is the hatch). |
 | **Missing** | dest-scoped `missing_for(..., forward_dest())` — not every load_* gap on every reprint. In-flight implement dest is `None`. |
+
+After Missing, when the harness recorded mutating git, a **Git ran:** trailer
+(not an H2) lists each `$ git -C …` argv, `exit N`, and stdout/stderr.
 
 Look-here matrix (absolute path + one-line why):
 
@@ -509,7 +520,7 @@ Do not hand-edit the plugin copy.
 | Look-here | Pointers only (`kind  abs-path  why`). Phase-scoped. validate-spec ordinals: `1. survey —` / `2. spec —`. Plan `plan.md`: missing why is `write labeled done_sentence equal to spec (create)`; if present, `wrapper_pair` gaps or `sequence plan pointer`. Implement `plan.md` is `if-needed` only (no equality re-litigation). |
 | Next (non-implement) | Interpolated activity body (`{{SPEC_MD}}`, `{{ENV_MD}}`, `{{BACKCHAIN_JSON}}`, `{{PLAN_MD}}`, …). |
 | Next (implement, in-flight) | Frozen session environment reprint + Implement git + stored `backchain/plan.json` step `prompt` verbatim. Not `implement.md` as the `/goal` body. |
-| Closer / inject | Host git, then harness `complete`. `inject-step` mutates DAG + receipts and does not claim. |
+| Closer / inject | Leftover host commit, then harness `complete` (merge + Git ran). `inject-step` mutates DAG + receipts and does not claim. |
 
 `environment.md` is mixed, not prose-only: a nonempty brief, then exactly
 one H2 titled `machine` with one fenced JSON object (`kind`, `augment`,
@@ -627,8 +638,9 @@ python3 "$CLI" inject-step --statement "…" --prompt "…" --produces "…" \
 ```
 
 Host verbs: `/shiploop`, `/shiploop next`, `/shiploop complete`. Those exec
-the wrappers, which exec the harness. `complete-step` / `update --to` / `--id`
-are overrides. `capture` always fails closed.
+the wrappers, which exec the harness. `complete-step` / `update --to` /
+`start-step` / `clear-step` / `--id` are **overrides — host cards refuse
+these; use `/shiploop complete` / `--clear` / `--blocked`**.
 
 | Exit | Meaning |
 |------|---------|

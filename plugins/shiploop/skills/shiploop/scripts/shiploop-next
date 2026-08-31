@@ -16,7 +16,6 @@ REFUSED = {
     "complete-step",
     "start-step",
     "clear-step",
-    "capture",
     "init",
 }
 

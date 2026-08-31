@@ -8,7 +8,7 @@ description: >-
   /shiploop complete — do not rely on chat memory. Lost context without
   completing → /shiploop next.
 allowed-tools: all
-version: 0.8.12
+version: 0.8.13
 license: MIT
 platforms:
   - linux
@@ -29,10 +29,13 @@ metadata:
 **Package leaf:** `shiploop`
 
 CLI stdout: an outcome line (when the command prints one), then the banner,
-then the packet H2s. Successful `init` / `complete` / `update` print
+then the packet H2s, then a `Git ran:` trailer when the harness recorded
+mutating git. Successful `init` / `complete` / `update` print
 `initialized …`, `updated -> …`, `completed <id>`, or `cleared <id>` first.
 `next` prints `next — claimed <ids> (<phase>)` or `next — reprint (<phase>)`.
-`complete-step` / `clear-step` / `inject-step` print no packet.
+`complete-step` / `clear-step` / `inject-step` print no packet (Git ran
+still follows when git ran). On git/merge/dirty refuse, the trailer is
+on stderr with `error:`.
 
 Banner:
 
@@ -99,19 +102,22 @@ Human overview: [README.md](README.md).
    prior worktree. Full workflow:
    [README.md](README.md). Git sequence (who runs which command):
    [README.md — Git sequence (harness vs host)](README.md#git-sequence-harness-vs-host).
-5. When the increment is done: invoke **`/shiploop complete`**. That command
-   owns the closer (commit + merge if this was a `/goal`, then harness
-   `complete`, then the next packet). Do not type `complete-step --id` or
-   `update --to` unless this card named an override (`--clear`,
-   `--blocked --reason`, `--id` when several steps are running). Empty or
-   unmerged branches are refused. ShipLoop does not auto-merge. See
-   **Host flag — extra folder** before any implement `/goal`.
+5. When the increment is done: leftover uncommitted work on an implement
+   `/goal` gets a pathspec commit (never `git add -A`) with `Key learnings:`
+   / `See: <sha>`, then invoke **`/shiploop complete`**. That command merges
+   (`git -C <session-checkout> merge --no-ff --no-edit`), prints Git ran,
+   dests residual when this was the last step, and prints the next packet.
+   Do not merge from the worktree cwd. If complete dies, read Git ran /
+   stderr, fix, retry. Do not type `complete-step --id` or `update --to`
+   unless this card named an override (`--clear`, `--blocked --reason`,
+   `--id` when several steps are running). Empty, dirty, or conflicted
+   complete is refused. See **Host flag — extra folder** before any
+   implement `/goal`.
 6. Repeat until the packet says stop. Lost context without completing
    anything → invoke **`/shiploop next`** (reprint / claim only).
 7. Mid-implement, discovered intermediate work → `inject-step` (see
    [commands/shiploop-inject.md](commands/shiploop-inject.md) and
    [references/activities/implement.md](references/activities/implement.md)).
-8. **Never** invoke `shiploop capture`.
 
 ## Host flag — extra folder (do not re-root)
 
@@ -127,7 +133,7 @@ ShipLoop creates another folder: a per-step worktree under <repo>/.worktrees/shi
 Implementation work happens IN that worktree, not in the session checkout.
 Do not move_agent_to_root / re-root the host chat into that folder or the product repo unless the user asked.
 The session checkout stays the merge dest; do not edit it during implement.
-After /shiploop complete, the host merges the kept branch into session HEAD; the next packet names the next worktree.
+After /shiploop complete, the harness merges the kept branch into session HEAD and prints Git ran; the next packet names the next worktree.
 ```
 
 ## Closer (`/shiploop complete`)
@@ -140,10 +146,11 @@ failed). Follow [commands/shiploop-complete.md](commands/shiploop-complete.md):
   log -10 --format=full`, then pathspec add (never `git add -A`) and
   commit with a verbose body, `Key learnings:`, and `See: <full sha>
   <subject>` for prior lesson commits. If `/goal` already committed, do
-  not invent a second finish commit. Then merge the kept branch into the
-  session checkout (`git -C <session-checkout> merge --no-ff --no-edit
-  <branch>`) if it is not in `HEAD`. Do not skip the merge; the next
-  worktree forks `HEAD`.
+  not invent a second finish commit. Then exec complete — the harness
+  merges (`git -C <session-checkout> merge --no-ff --no-edit <branch>`),
+  prints Git ran, and dests residual when this was the last step. Do not
+  merge from the worktree cwd. If complete dies, read the Git ran
+  transcript, fix, retry.
 - **`/goal` failed**, session can continue: `--clear` (add `--id` only when
   several steps are running and cwd is not that worktree).
 - **Hard stop:** `--blocked --reason <text>` (required). `--resume-to` only
