@@ -23,7 +23,7 @@ EXIT_BLOCKED = 2
 EXIT_USAGE = 64
 
 PACKAGE_ROOT = Path(__file__).resolve().parents[1]
-VERSION = "0.8.13"
+VERSION = "0.8.14"
 REF_DIR = PACKAGE_ROOT / "references"
 WT_DIRNAME = ".worktrees"
 # Printed in ## Progress and the implement Next envelope. Do not splice into
@@ -42,6 +42,20 @@ HOST_WORKTREE_FLAG = (
 # Pasted into /goal with Frozen. Do not splice into stored implement prompts.
 IMPLEMENT_GIT_HEAD = (
     "Implement git (paste into /goal with Frozen; do not re-root the parent chat):"
+)
+GOAL_UNTIL_HEAD = (
+    "Goal until (this stored prompt is /goal A — open host /goal; "
+    "do not work in the parent chat without until):"
+)
+IMPROVE_HEAD = (
+    "Improve (paste as /goal B after produces is true; do not nest inside /goal A):"
+)
+IMPROVE_GOAL = (
+    "quality review all the changes, review the last 7 git commit messages "
+    "for learnings, plan improvements and unconsidered conditions, git commit "
+    "each iteration with a verbose message with key learnings, complete when "
+    "only trivial findings remaining for 2 consecutive cycles, then commit "
+    "remaining trivial changes"
 )
 TRANSITIONS_PATH = REF_DIR / "transitions.json"
 ACTIVITIES_DIR = REF_DIR / "activities"
@@ -2723,11 +2737,43 @@ def print_implement_git(
     print("  - <what this iteration taught>")
     print("  See: <full sha> <subject>")
     print(
-        "Do not merge from this cwd. When /goal is done, leftover uncommitted "
+        "Do not merge from this cwd. When /goal A produces is true, close it "
+        "and open Improve /goal B (do not nest). After B, leftover uncommitted "
         "gets the same commit schema; then invoke /shiploop complete. "
         "complete merges into the session checkout and prints Git ran:"
     )
     print(f"  git -C {repo_s} merge --no-ff --no-edit {br_s}")
+
+
+def print_goal_until(step: Dict[str, Any]) -> None:
+    """Exit for /goal A. Produces from the DAG; do not rewrite stored prompt."""
+    print(GOAL_UNTIL_HEAD)
+    print("Until (exit; do not loop):")
+    texts = produces_texts(step.get("produces")) or []
+    if texts:
+        for t in texts:
+            print(f"- {t}")
+    else:
+        print("- (no produces)")
+    print(
+        "When those are true, close this /goal. "
+        "Do not nest a second /goal inside it."
+    )
+
+
+def print_improve() -> None:
+    """Static /goal B after functional complete. Not a DAG prompt."""
+    print(IMPROVE_HEAD)
+    print("/goal")
+    print(IMPROVE_GOAL)
+    print(UNTIL_HEAD)
+    print("- only trivial findings remaining for 2 consecutive cycles")
+    print("- remaining trivial changes committed")
+    print(
+        "Max 12 improve cycles; on exceed, leftover-commit and invoke "
+        "/shiploop complete (do not loop)."
+    )
+    print("Then invoke /shiploop complete.")
 
 
 def print_frozen_session_env(run_dir: Path) -> None:
@@ -2836,9 +2882,11 @@ def print_progress(
         if br:
             print(f"  Branch: {br}")
         print(
-            f"  Finish {_finish_label(run_dir, sid)} — leftover uncommitted: "
-            f"same Implement git schema (log -10, Key learnings:, See: <sha>), "
-            f"commit on the worktree, then invoke /shiploop complete "
+            f"  Finish {_finish_label(run_dir, sid)} — after /goal A (until produces), "
+            f"open Improve /goal B (last 7 commits, 2 consecutive only-trivial, "
+            f"max 12); leftover uncommitted: same Implement git schema "
+            f"(log -10, Key learnings:, See: <sha>), commit on the worktree, "
+            f"then invoke /shiploop complete "
             f"(harness merges git -C {repo_s} merge --no-ff --no-edit {br or '<branch>'} "
             f"and prints Git ran)."
         )
@@ -3270,7 +3318,9 @@ def print_packet(run_dir: Path, state: Dict[str, Any], *, prior_running: Optiona
             print_host_worktree_flag()
             print_frozen_session_env(run_dir)
             print_implement_git(state, sid, rec)
+            print_goal_until(step)
             print_stored_prompt(str(step.get("prompt") or ""))
+            print_improve()
     else:
         print(activity_body(phase, run_dir, state))
     print()
@@ -3286,8 +3336,9 @@ def print_packet(run_dir: Path, state: Dict[str, Any], *, prior_running: Optiona
             rec = load_receipt(run_dir, sid)
             _wt, br = isolation_for(state, sid, rec)
             print(
-                f"Finish {_finish_label(run_dir, sid)} — after /goal succeeds, "
-                "leftover uncommitted: same Implement git schema "
+                f"Finish {_finish_label(run_dir, sid)} — after /goal A produces, "
+                "open Improve /goal B (do not nest); leftover uncommitted: "
+                "same Implement git schema "
                 "(log -10, Key learnings:, See: <sha>), commit on the worktree"
             )
             print(

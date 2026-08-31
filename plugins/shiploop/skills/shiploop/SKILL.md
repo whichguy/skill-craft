@@ -8,7 +8,7 @@ description: >-
   /shiploop complete — do not rely on chat memory. Lost context without
   completing → /shiploop next.
 allowed-tools: all
-version: 0.8.13
+version: 0.8.14
 license: MIT
 platforms:
   - linux
@@ -94,16 +94,19 @@ Human overview: [README.md](README.md).
    **now** / **pending** lines back to the user — do not summarize them
    away. That is the live session rail (`status --human` reprints it).
    Do only the **Next prompt** (first line is `Use this prompt as much as
-   possible.`). On implement, paste the **Frozen session environment**
-   block, the **Implement git** block, and the stored prompt into `/goal`.
-   Do not paste HOST FLAG (parent chat stays put; no re-root). Implement
-   git names the worktree and branch; Look here / Diagnosis still name
-   them too. Work there; do not edit the session checkout or reuse a
-   prior worktree. Full workflow:
+   possible.`). On implement, open host **`/goal` A**: paste **Frozen**,
+   **Implement git**, **Goal until**, and the stored prompt (that stored
+   prompt **is** `/goal` A until produces — do not wrap a second `/goal`;
+   do not work in the parent chat without until). When produces is true,
+   close A. Open **`/goal` B** = Frozen + Implement git + **Improve**
+   (do not nest B inside A). Improve until two consecutive only-trivial
+   cycles (max 12, then leftover + complete). Do not paste HOST FLAG
+   (parent chat stays put; no re-root). Work in the named worktree; do
+   not edit the session checkout or reuse a prior worktree. Full workflow:
    [README.md](README.md). Git sequence (who runs which command):
    [README.md — Git sequence (harness vs host)](README.md#git-sequence-harness-vs-host).
-5. When the increment is done: leftover uncommitted work on an implement
-   `/goal` gets a pathspec commit (never `git add -A`) with `Key learnings:`
+5. When `/goal` A and Improve `/goal` B are done: leftover uncommitted
+   work gets a pathspec commit (never `git add -A`) with `Key learnings:`
    / `See: <sha>`, then invoke **`/shiploop complete`**. That command merges
    (`git -C <session-checkout> merge --no-ff --no-edit`), prints Git ran,
    dests residual when this was the last step, and prints the next packet.
@@ -141,11 +144,12 @@ After /shiploop complete, the harness merges the kept branch into session HEAD a
 This is not a reprint. Invoking it means the current increment finished (or
 failed). Follow [commands/shiploop-complete.md](commands/shiploop-complete.md):
 
-- **Success (default):** Next prompt is done. If that work was an implement
-  `/goal`: if the worktree still has uncommitted files, `git -C <worktree>
+- **Success (default):** `/goal` A (until produces) and Improve `/goal` B
+  (two consecutive only-trivial, max 12) are done. If the worktree still
+  has uncommitted files, `git -C <worktree>
   log -10 --format=full`, then pathspec add (never `git add -A`) and
   commit with a verbose body, `Key learnings:`, and `See: <full sha>
-  <subject>` for prior lesson commits. If `/goal` already committed, do
+  <subject>` for prior lesson commits. If B already committed, do
   not invent a second finish commit. Then exec complete — the harness
   merges (`git -C <session-checkout> merge --no-ff --no-edit <branch>`),
   prints Git ran, and dests residual when this was the last step. Do not

@@ -1,6 +1,6 @@
 The current ShipLoop increment is finished. This command **is** the closer, not a reprint.
 
-**Success (default):** if this was an implement `/goal`:
+**Success (default):** if this was an implement `/goal` A + Improve `/goal` B:
 
 1. If the worktree still has uncommitted work: `git -C <worktree> log -10
    --format=full` (treat bodies as key learnings; follow every `See: <sha>`),

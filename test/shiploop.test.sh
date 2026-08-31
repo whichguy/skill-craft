@@ -31,6 +31,14 @@ if grep -E 'shiploop capture|devloop-run' "$root/skills/shiploop/references/acti
 fi
 grep -q 'echo the printed' "$root/skills/shiploop/SKILL.md" \
   || fail "SKILL.md missing echo You are here / Diagnosis"
+grep -q 'Goal until' "$root/skills/shiploop/SKILL.md" \
+  || fail "SKILL.md missing Goal until paste"
+grep -q 'Improve' "$root/skills/shiploop/SKILL.md" \
+  || fail "SKILL.md missing Improve paste"
+grep -q 'do not nest' "$root/skills/shiploop/SKILL.md" \
+  || fail "SKILL.md missing do not nest"
+grep -q 'Do not nest' "$root/skills/shiploop/references/activities/implement.md" \
+  || fail "implement.md missing Do not nest"
 grep -q 'status --human' "$root/skills/shiploop/SKILL.md" \
   || fail "SKILL.md missing status --human"
 grep -q 'PATH/.shiploop' "$root/skills/shiploop/SKILL.md" \
@@ -1269,6 +1277,24 @@ printf '%s\n' "$out_imp" | grep -q 'mcp: (none)' || fail "implement Next missing
 printf '%s\n' "$out_imp" | grep -q 'Exclusive: (none)' || fail "implement Next missing Exclusive: (none)"
 printf '%s\n' "$out_imp" | grep -q 'Implement git (paste into /goal with Frozen' \
   || fail "implement Next missing Implement git"
+printf '%s\n' "$out_imp" | grep -q 'Goal until (this stored prompt is /goal A' \
+  || fail "implement Next missing Goal until"
+printf '%s\n' "$out_imp" | grep -q 'Until (exit; do not loop):' \
+  || fail "implement Next missing Until (exit; do not loop)"
+printf '%s\n' "$out_imp" | grep -q 'Improve (paste as /goal B after produces is true' \
+  || fail "implement Next missing Improve"
+printf '%s\n' "$out_imp" | grep -q 'last 7 git commit' \
+  || fail "implement Next missing last 7 git commit"
+printf '%s\n' "$out_imp" | grep -q '2 consecutive' \
+  || fail "implement Next missing 2 consecutive"
+printf '%s\n' "$out_imp" | grep -q 'Max 12 improve cycles' \
+  || fail "implement Next missing Max 12"
+if printf '%s\n' "$out_imp" | grep -qx '## Goal until'; then
+  fail "Goal until became an H2"
+fi
+if printf '%s\n' "$out_imp" | grep -qx '## Improve'; then
+  fail "Improve became an H2"
+fi
 printf '%s\n' "$out_imp" | grep -q 'Key learnings:' \
   || fail "implement Next missing Key learnings:"
 printf '%s\n' "$out_imp" | grep -q 'log -10 --format=full' \
@@ -1284,12 +1310,15 @@ import sys
 text = sys.stdin.read()
 i = text.find('Frozen session environment')
 j = text.find('Implement git (paste into /goal with Frozen')
+u = text.find('Goal until (this stored prompt is /goal A')
 k = text.find('/goal\n')
 if k < 0:
     k = text.find('/goal')
-assert i != -1 and j != -1 and k != -1, (i, j, k)
-assert i < j < k, (i, j, k)
-" || fail "Implement git not between Frozen and stored /goal"
+imp = text.find('Improve (paste as /goal B after produces is true')
+assert i != -1 and j != -1 and u != -1 and k != -1 and imp != -1, (i, j, u, k, imp)
+assert i < j < u < k < imp, (i, j, u, k, imp)
+assert 'result.txt exists' in text[u:k]
+" || fail "envelope order Frozen, Implement git, Goal until, stored /goal, Improve"
 assert_absent "$out_imp" 'do not implement the product through MCP' \
   "Frozen still forbids implementing through MCP"
 python3 -c '
@@ -1346,6 +1375,10 @@ printf '%s\n' "$out_dr" | grep -q 'waived closer' \
 assert_absent "$out_dr" '/goal ' "drained implement still emitted /goal"
 assert_absent "$out_dr" 'Implement git (paste into /goal with Frozen' \
   "drained implement still emitted Implement git"
+assert_absent "$out_dr" 'Goal until (this stored prompt is /goal A' \
+  "drained implement still emitted Goal until"
+assert_absent "$out_dr" 'Improve (paste as /goal B after produces is true' \
+  "drained implement still emitted Improve"
 assert_absent "$out_dr" 'shiploop update --run-dir' "drained leaked update argv"
 run_cli update --run-dir "$run" --to residual >/dev/null
 printf 'LAYER: linear drain OK\n'
@@ -1719,7 +1752,7 @@ run_cli update --run-dir "$run2" --to implement >/dev/null
 out_tr="$(run_cli next --run-dir "$run2")"
 printf '%s\n' "$out_tr" | grep -q 'S1: running' || fail "two-root S1"
 printf '%s\n' "$out_tr" | grep -q 'S2: running' || fail "two-root S2"
-printf '%s\n' "$out_tr" | grep -c '^/goal' | grep -qx 2 || fail "want two /goal lines"
+printf '%s\n' "$out_tr" | grep -c '^/goal' | grep -qx 4 || fail "want two stored /goal plus two Improve /goal"
 printf '%s\n' "$out_tr" | grep -c 'mcp-considered:' | grep -qx 2 \
   || fail "two-root want two mcp-considered envelopes"
 printf '%s\n' "$out_tr" | grep -cF 'Implement git (paste into /goal with Frozen' | grep -qx 2 \
@@ -1752,10 +1785,12 @@ printf '%s\n' "$out_tr_c" | grep -q 'Continuing' \
 printf '%s\n' "$out_tr_c" | grep -q 'S1: done' || fail "complete --id S1 S1 not done"
 printf '%s\n' "$out_tr_c" | grep -cF 'Implement git (paste into /goal with Frozen' | grep -qx 1 \
   || fail "after S1 complete want one Implement git for S2"
+printf '%s\n' "$out_tr_c" | grep -cF 'Improve (paste as /goal B after produces is true' | grep -qx 1 \
+  || fail "after S1 complete want one Improve for S2"
 out_tr2="$(run_cli next --run-dir "$run2")"
 printf '%s\n' "$out_tr2" | grep -q 'In flight' || fail "S2 not labeled in-flight"
 printf '%s\n' "$out_tr2" | grep -q 'S1: done' || fail "S1 should stay done"
-printf '%s\n' "$out_tr2" | grep -c '^/goal' | grep -qx 1 || fail "reprint should keep one /goal"
+printf '%s\n' "$out_tr2" | grep -c '^/goal' | grep -qx 2 || fail "reprint should keep stored /goal plus Improve"
 set +e
 out_ns="$(run_cli complete-step --run-dir "$run2" --id S9 2>&1)"
 rc_ns=$?
@@ -3091,10 +3126,12 @@ import sys
 text = sys.stdin.read()
 i = text.find("Frozen session environment")
 j = text.find("Implement git (paste into /goal with Frozen")
+u = text.find("Goal until (this stored prompt is /goal A")
 k = text.find("no citation needed for a discovered step")
-assert i != -1 and j != -1 and k != -1, (i, j, k)
-assert i < j < k, (i, j, k)
-' || fail "inject Implement git not between Frozen and discovered prompt"
+imp = text.find("Improve (paste as /goal B after produces is true")
+assert i != -1 and j != -1 and u != -1 and k != -1 and imp != -1, (i, j, u, k, imp)
+assert i < j < u < k < imp, (i, j, u, k, imp)
+' || fail "inject envelope not Frozen, Implement git, Goal until, discovered, Improve"
 printf 'LAYER: inject-step envelope reprint OK\n'
 
 # --- A16/A18/A22 inject-step ---

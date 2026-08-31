@@ -6,29 +6,34 @@ waiting-on — against that frozen `done_sentence`. No `✗` on steps.
 
 `/shiploop next` already claimed newly ready ids `running`. The packet's
 **Next prompt** section prints worktree / branch / HOST FLAG, then a
-**Frozen session environment** block, then **Implement git**, then each
-running id's **stored** `prompt` verbatim. That stored prompt **is** the
-`/goal` until this step's `produces`. Paste Frozen and Implement git
-above it; do not wrap a second `/goal`. Do not paste HOST FLAG. Implement
-git names the worktree and branch and the commit schema (`git log -10`,
+**Frozen session environment** block, then **Implement git**, **Goal until**,
+each running id's **stored** `prompt` verbatim, then **Improve**. That stored
+prompt **is** `/goal` A until this step's `produces`. Paste Frozen,
+Implement git, and Goal until above it; do not wrap a second `/goal`; do
+not work in the parent chat without until. When produces is true, close A
+and open `/goal` B = Frozen + Implement git + Improve (do not nest).
+Improve: last 7 git commits, two consecutive only-trivial, max 12, then
+leftover + `/shiploop complete`. Do not paste HOST FLAG. Implement git
+names the worktree and branch and the commit schema (`git log -10`,
 verbose body, `Key learnings:`, `See: <sha>`). The script does not compose
 or rewrite the stored prompt from the original ask.
 Each running step's worktree and branch are named in **Look here** /
 **Diagnosis** — work there (do not re-root the host chat); do not edit
 the session checkout or reuse a prior worktree.
 
-Do not nest a second `/goal` inside the first.
-If a `/goal` for an id is already open, do not open a second one. Inner
-`/goal` iterates and pathspec-commits **on the worktree** (read
-`git log -10` before planning each iteration; verbose message with
-`Key learnings:` and `See: <full sha> <subject>`). Never `git add -A`.
-Never merge from that cwd. When the `/goal` is done, leftover uncommitted
-work gets the same commit schema, then invoke **`/shiploop complete`** —
-the harness merges (`git -C <session-checkout> merge --no-ff --no-edit
-<branch>`), prints Git ran, dests residual when this was the last step,
-and prints the next packet. Do not run a bare `git merge` from the
-worktree cwd. The next worktree forks `HEAD`. Complete does not resolve
-conflicts; read Git ran and retry.
+Do not nest Improve `/goal` B inside `/goal` A.
+If `/goal` A for an id is already open, do not open a second functional
+`/goal` for that id. Inner `/goal` A iterates and pathspec-commits **on
+the worktree** (read `git log -10` before planning each iteration; verbose
+message with `Key learnings:` and `See: <full sha> <subject>`). Never
+`git add -A`. Never merge from that cwd. When produces is true, close A,
+open Improve `/goal` B, leftover uncommitted work gets the same commit
+schema, then invoke **`/shiploop complete`** — the harness merges
+(`git -C <session-checkout> merge --no-ff --no-edit <branch>`), prints
+Git ran, dests residual when this was the last step, and prints the next
+packet. Do not run a bare `git merge` from the worktree cwd. The next
+worktree forks `HEAD`. Complete does not resolve conflicts; read Git ran
+and retry.
 
 ## Discovered work mid-implement: `inject-step`
 
@@ -49,9 +54,9 @@ carries a `Tools:` block, a `Use:` line whose entries include the designated
 if the token union is empty; a token under `Use:` does not count; overlap
 with `Don't use:` is a gap). The Next envelope still reprints Frozen
 (Exclusive / dest-blocked / See) and Implement git above that stored prompt;
-paste Frozen and Implement git with the discovered prompt (do not paste HOST
+paste Frozen, Implement git, Goal until, and Improve with the discovered prompt (do not paste HOST
 FLAG). If the writer above fails, stop and invoke /shiploop complete --blocked --reason … — do not switch writers.
 
-After a `/goal` succeeds: invoke `/shiploop complete`.
+After `/goal` A produces and Improve `/goal` B finishes: invoke `/shiploop complete`.
 After a `/goal` fails and the session can continue: invoke `/shiploop complete --clear`.
 Hard stop: invoke `/shiploop complete --blocked --reason …`.

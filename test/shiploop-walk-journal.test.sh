@@ -284,8 +284,9 @@ if not lines or lines[0] != "Use this prompt as much as possible.":
     sys.exit(f"{msg}: Next missing Use this prompt lead")
 rest = "\n".join(lines[1:])
 goal_n = sum(1 for ln in rest.splitlines() if re.match(r"^[ \t]*/goal\b", ln))
-if goal_n != len(running):
-    sys.exit(f"{msg}: /goal lines={goal_n} running={running}")
+# Each running id: stored /goal A plus Improve /goal B.
+if goal_n != 2 * len(running):
+    sys.exit(f"{msg}: /goal lines={goal_n} want={2 * len(running)} running={running}")
 if running and until not in rest:
     sys.exit(f"{msg}: Next missing {until!r}")
 for sid in running:
@@ -703,6 +704,8 @@ assert_out_has "waiting on S1 write the file" "L3 RETURN"
 assert_next_has "$S1_LINEAR" "L3 RETURN"
 assert_next_lacks "$S2_LINEAR" "L3 RETURN"
 assert_next_has "Implement git (paste into /goal with Frozen" "L3 RETURN"
+assert_next_has "Goal until (this stored prompt is /goal A" "L3 RETURN"
+assert_next_has "Improve (paste as /goal B after produces is true" "L3 RETURN"
 assert_when_done_has "Finish S1: write the file" "L3 RETURN"
 assert_when_done_has "Key learnings:" "L3 RETURN"
 assert_when_done_has "then invoke /shiploop complete (merges" "L3 RETURN"
@@ -744,6 +747,8 @@ assert_out_lacks "updated implement -> residual" "L5 RETURN"
 assert_next_has "Review-coverage is **waived**" "L5 RETURN"
 assert_next_lacks "/goal " "L5 RETURN"
 assert_next_lacks "Implement git (paste into /goal with Frozen" "L5 RETURN"
+assert_next_lacks "Goal until (this stored prompt is /goal A" "L5 RETURN"
+assert_next_lacks "Improve (paste as /goal B after produces is true" "L5 RETURN"
 assert_session_closer "L5 RETURN"
 assert_when_done_lacks "Finish S" "L5 RETURN"
 assert_disk "$runL" "L5 DISK" '{"phase":"residual","receipts":{"S1":"complete","S2":"complete"}}'
@@ -778,6 +783,8 @@ assert_transition_return "$runN" "next — reprint (implement)" stored "N1 RETUR
 assert_walk_journal "$runN" "N1 RETURN walk"
 assert_next_has "In flight — do not open a second /goal" "N1 RETURN"
 assert_next_has "Implement git (paste into /goal with Frozen" "N1 RETURN"
+assert_next_has "Goal until (this stored prompt is /goal A" "N1 RETURN"
+assert_next_has "Improve (paste as /goal B after produces is true" "N1 RETURN"
 assert_when_done_has "Finish S1: write the file" "N1 RETURN"
 assert_when_done_lacks "complete-step" "N1 RETURN"
 assert_disk "$runN" "N1 DISK (unchanged)" "$DISK_IMP_S1RUN"
@@ -902,6 +909,8 @@ assert_walk_journal "$runP" "P1 RETURN walk"
 assert_out_has "▶ S1  write tests for the file" "P1 RETURN"
 assert_out_has "▶ S2  write the implementation" "P1 RETURN"
 assert_next_has "Implement git (paste into /goal with Frozen" "P1 RETURN"
+assert_next_has "Goal until (this stored prompt is /goal A" "P1 RETURN"
+assert_next_has "Improve (paste as /goal B after produces is true" "P1 RETURN"
 assert_when_done_has "Finish S1: write tests for the file" "P1 RETURN"
 assert_when_done_has "Finish S2: write the implementation" "P1 RETURN"
 assert_when_done_lacks "complete-step" "P1 RETURN"
@@ -1355,6 +1364,8 @@ assert_out_has "▶ S1  write the file" "S1 RETURN"
 assert_out_lacks "S2" "S1 RETURN"
 assert_next_has "$S1_LINEAR" "S1 RETURN"
 assert_next_has "Implement git (paste into /goal with Frozen" "S1 RETURN"
+assert_next_has "Goal until (this stored prompt is /goal A" "S1 RETURN"
+assert_next_has "Improve (paste as /goal B after produces is true" "S1 RETURN"
 assert_when_done_has "Finish S1: write the file" "S1 RETURN"
 assert_when_done_lacks "Finish S2:" "S1 RETURN"
 assert_when_done_lacks "complete-step" "S1 RETURN"
@@ -1369,6 +1380,7 @@ assert_out_has "residual: current" "S2 RETURN"
 assert_next_has "Review-coverage is **waived**" "S2 RETURN"
 assert_next_lacks "/goal " "S2 RETURN"
 assert_next_lacks "Implement git (paste into /goal with Frozen" "S2 RETURN"
+assert_next_lacks "Improve (paste as /goal B after produces is true" "S2 RETURN"
 assert_next_lacks "$S1_LINEAR" "S2 RETURN"
 assert_session_closer "S2 RETURN"
 assert_when_done_lacks "Finish S1:" "S2 RETURN"
@@ -1427,6 +1439,8 @@ invoke_wrapper complete --run-dir "$runZ"
 assert_wrapper_then_transition "$runZ" "$WRAP_COMPLETE" "updated -> implement" stored "Z3 RETURN"
 assert_next_has "$S1_LINEAR" "Z3 RETURN"
 assert_next_has "Implement git (paste into /goal with Frozen" "Z3 RETURN"
+assert_next_has "Goal until (this stored prompt is /goal A" "Z3 RETURN"
+assert_next_has "Improve (paste as /goal B after produces is true" "Z3 RETURN"
 assert_when_done_has "Finish S1: write the file" "Z3 RETURN"
 assert_when_done_has "Key learnings:" "Z3 RETURN"
 assert_when_done_lacks "complete-step" "Z3 RETURN"
@@ -1439,6 +1453,7 @@ assert_wrapper_then_transition "$runZ" "$WRAP_COMPLETE" "completed S1" activity 
 assert_next_has "Review-coverage is **waived**" "Z4 RETURN"
 assert_next_lacks "/goal " "Z4 RETURN"
 assert_next_lacks "Implement git (paste into /goal with Frozen" "Z4 RETURN"
+assert_next_lacks "Improve (paste as /goal B after produces is true" "Z4 RETURN"
 assert_session_closer "Z4 RETURN"
 assert_disk "$runZ" "Z4 DISK" '{"phase":"residual","receipts":{"S1":"complete"}}'
 
