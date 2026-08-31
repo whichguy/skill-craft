@@ -14,13 +14,16 @@ fail() {
 
 # Leaf-only bytecode is not plugin-view drift (.gitignore already ignores it).
 pyc_pin="skills/shiploop/scripts/__pycache__"
+cleanup_pyc_pin() { rm -rf "$pyc_pin"; }
+trap cleanup_pyc_pin EXIT
 mkdir -p "$pyc_pin"
 printf 'x' >"$pyc_pin/pin.pyc"
 set +e
 out_pyc="$(bash scripts/sync-plugin-views.sh --check shiploop 2>&1)"
 rc_pyc=$?
 set -e
-rm -rf "$pyc_pin"
+cleanup_pyc_pin
+trap - EXIT
 [[ "$rc_pyc" -eq 0 ]] || fail "leaf-only __pycache__ should not fail --check: $out_pyc"
 
 # Check mode must pass against committed materialization

@@ -1389,6 +1389,7 @@ assert_disk "$runZ" "Z1 DISK" "$DISK_VS"
 printf 'CASE Z1n PRE: validate-spec; INVOKE: wrapper next reprint\n'
 invoke_wrapper next --run-dir "$runZ"
 assert_wrapper_then_transition "$runZ" "$WRAP_NEXT" "next — reprint (validate-spec)" activity "Z1n RETURN"
+assert_next_h2_has "Deeply research those MCP servers" "Z1n RETURN"
 assert_disk "$runZ" "Z1n DISK (unchanged)" "$DISK_VS"
 
 printf 'CASE Z2 PRE: validate-spec + env/spec; INVOKE: wrapper complete dest plan\n'
