@@ -106,6 +106,18 @@ fi
 if grep -q '{{' "$root/skills/shiploop/references/survey.md"; then
   fail "survey.md must not contain interpolation tokens (Look-here is not interpolated)"
 fi
+if grep -qE '^## ' "$root/skills/shiploop/references/activities/"*.md; then
+  fail "activity files must not use packet-level H2 (## ) — Next is H2-bounded"
+fi
+grep -q 'must not use packet-level H2' \
+  "$root/skills/shiploop/references/turn-packet.md" \
+  || fail "turn-packet.md missing packet-level H2 Next contract"
+grep -q 'must not use packet-level H2' \
+  "$root/skills/shiploop/README.md" \
+  || fail "README missing packet-level H2 Next contract"
+grep -q '^### 2. Best-practice research' \
+  "$root/skills/shiploop/references/activities/validate-spec.md" \
+  || fail "validate-spec.md job 2 heading is not ###"
 grep -q 'practice references' "$root/skills/shiploop/references/activities/plan.md" \
   || fail "plan.md missing practice references in step prompts"
 grep -q 'researches applicable practices' "$root/skills/shiploop/README.md" \
@@ -536,6 +548,8 @@ assert_absent() {
   fi
 }
 
+# Until the next packet H2 (`## `). Activity Next bodies must not use
+# `## ` or this truncates (0.8.15 job 2 lived past an inner H2).
 packet_section() {
   local out="$1" start="$2"
   printf '%s\n' "$out" | awk -v s="$start" '
@@ -836,6 +850,20 @@ printf '%s\n' "$out_vs" | grep -q 'references/state-files.md' \
   || fail "validate-spec packet missing interpolated STATE_FILES path"
 assert_absent "$out_vs" '{{STATE_FILES}}' "packet leaked {{STATE_FILES}}"
 assert_absent "$out_vs" '`references/state-files.md`' "validate-spec leaked relative state-files"
+next_vs="$(packet_section "$out_vs" "## Next prompt")"
+printf '%s\n' "$next_vs" | grep -Fq 'Deeply research those MCP servers' \
+  || fail "validate-spec Next missing Deeply research: $next_vs"
+printf '%s\n' "$next_vs" | grep -Fiq 'reuse before add' \
+  || fail "validate-spec Next missing reuse before add: $next_vs"
+printf '%s\n' "$next_vs" | grep -Fq 'Do not duplicate, conflict with, or arbitrarily add' \
+  || fail "validate-spec Next missing arbitrarily add: $next_vs"
+printf '%s\n' "$next_vs" | grep -q '^### 2. Best-practice' \
+  || fail "validate-spec Next missing ### job 2 heading: $next_vs"
+printf '%s\n' "$next_vs" | grep -q '^### 3. Spec' \
+  || fail "validate-spec Next missing ### job 3 heading: $next_vs"
+if printf '%s\n' "$next_vs" | grep -E '^## '; then
+  fail "validate-spec Next leaked packet-level H2: $next_vs"
+fi
 printf 'LAYER: intake->validate-spec OK\n'
 
 # --- validate-spec Look-here uses load_environment / load_spec gaps ---
@@ -1232,6 +1260,12 @@ printf 'LAYER: leftover plan.json inert + plan.md vs spec OK\n'
 
 # --- linear DAG implement + /goal + frozen ---
 install_dag "$run" linear.json
+if grep -Fq 'Improve (paste as /goal B' "$run/backchain/plan.json"; then
+  fail "linear.json stored prompts must not carry Improve envelope"
+fi
+if grep -Fq 'last 7 git commit' "$run/backchain/plan.json"; then
+  fail "linear.json stored prompts must not carry Improve last-7 schema"
+fi
 [[ ! -f "$run/plan.json" ]] || fail "happy-path dest implement wrote plan.json"
 run_cli update --run-dir "$run" --to implement >/dev/null
 out_imp="$(run_cli next --run-dir "$run")"
@@ -1338,6 +1372,10 @@ imp = text.find('Improve (paste as /goal B after produces is true')
 assert i != -1 and j != -1 and u != -1 and k != -1 and imp != -1, (i, j, u, k, imp)
 assert i < j < u < k < imp, (i, j, u, k, imp)
 assert 'result.txt exists' in text[u:k]
+frozen = text[i:j]
+assert 'Deeply research those MCP servers' not in frozen, 'job-2 research leaked into Frozen'
+assert 'Improve (paste as /goal B after produces is true' not in frozen
+assert 'HOST FLAG' not in frozen
 " || fail "envelope order Frozen, Implement git, Goal until, stored /goal, Improve"
 assert_absent "$out_imp" 'do not implement the product through MCP' \
   "Frozen still forbids implementing through MCP"

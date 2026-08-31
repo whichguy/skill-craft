@@ -7,7 +7,7 @@ walk-back HTML recap exists.
 
 ShipLoop never conflict-resolves a merge and never claims engine `COMPLETE`.
 
-Package leaf: `skills/shiploop`. Invoke: `/shiploop`. Version: **0.8.15**.
+Package leaf: `skills/shiploop`. Invoke: `/shiploop`. Version: **0.8.16**.
 
 Canonical companions (do not duplicate their contracts here):
 
@@ -102,6 +102,9 @@ environment reprint). The harness does not invent implement `/goal` text.
 
 **Two printed channels (not the same mechanism).** Look here is **not interpolated**.
 Next **is interpolated** except in-flight implement (stored `prompt` verbatim).
+Activity Next bodies must not use packet-level H2 (`## `); Next is bounded
+by the next packet H2 (`## When done invoke`). Jobs inside the body use
+`###` or below.
 
 | Channel | First line | How files get in |
 |---------|------------|------------------|

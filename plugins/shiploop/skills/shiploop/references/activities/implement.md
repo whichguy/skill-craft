@@ -35,7 +35,7 @@ packet. Do not run a bare `git merge` from the worktree cwd. The next
 worktree forks `HEAD`. Complete does not resolve conflicts; read Git ran
 and retry.
 
-## Discovered work mid-implement: `inject-step`
+### Discovered work mid-implement: `inject-step`
 
 If a running `/goal` surfaces intermediate work the frozen DAG did not
 anticipate, add it with `inject-step`. **Look here** lists the harness CLI

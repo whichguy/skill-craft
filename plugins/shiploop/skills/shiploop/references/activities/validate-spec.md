@@ -1,7 +1,7 @@
 **Survey, then practices, then spec.** Write `environment.md` then `spec.md`.
 State files: `{{SURVEY_GUIDE}}` and `{{STATE_FILES}}`.
 
-## 1. Survey (once)
+### 1. Survey (once)
 
 Inventory this session against `{{SURVEY_GUIDE}}`: kind/augment, references
 (read `{{REPO_ROOT}}/README.md` if it exists and cite it — do **not** write
@@ -31,7 +31,7 @@ validate-spec --reason <ask_user>`. Do not dest blocked with no `spec.md`.
 Do not re-exercise a handle already `inspect`. A handle first introduced
 while writing the spec inherits this rule before leaving validate-spec.
 
-## 2. Best-practice research (once, before the spec)
+### 2. Best-practice research (once, before the spec)
 
 From `{{ENV_MD}}` (kind, tools, mcp, exclusive, ui, initiation, handles) and
 `{{PROMPT_PATH}}`, decide which practices apply. Pull concrete references
@@ -72,7 +72,7 @@ with a `Tools:` block that carries the frozen `mcp_considered` token.
 In-flight runs: dest blocked → validate-spec; rewrite environment.md; → plan
 (do not hand-edit backchain/plan.json).
 
-## 3. Spec (once)
+### 3. Spec (once)
 
 Write `{{SPEC_MD}}` with a labeled line `done_sentence: <exact sentence>`
 and a labeled line `checkable: true` or `checkable: false` (each exactly
