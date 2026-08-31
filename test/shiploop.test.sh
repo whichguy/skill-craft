@@ -127,7 +127,7 @@ grep -q 'practice references' "$root/skills/shiploop/references/activities/plan.
   || fail "plan.md missing practice references in step prompts"
 grep -q 'researches applicable practices' "$root/skills/shiploop/README.md" \
   || fail "README missing practices research"
-grep -q 'files, not the three Next jobs' "$root/skills/shiploop/README.md" \
+grep -Fq 'files, not the three Next jobs' "$root/skills/shiploop/README.md" \
   || fail "README missing Look-here file vs Next-job ordinals"
 grep -q '__pycache__/' "$root/skills/shiploop/README.md" \
   || fail "README missing --check bytecode ignore"

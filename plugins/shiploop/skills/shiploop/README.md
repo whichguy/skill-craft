@@ -503,7 +503,7 @@ Look-here matrix (absolute path + one-line why):
 | Phase | Pointers |
 |-------|----------|
 | intake | `state.json`, `prompt.md` (create), activity |
-| validate-spec | prompt, `environment.md` (`1. survey —` write-first / `load_environment` gaps / written), `survey.md`, `spec.md` (`2. spec —` after env / `load_spec` gaps / written), `state.json`. Those ordinals are **files**, not the three Next jobs (survey / practices / spec). Practices append into `environment.md`. |
+| validate-spec | prompt, `environment.md` (`1. survey —` write-first / `load_environment` gaps / written), `survey.md`, `spec.md` (`2. spec —` after env / `load_spec` gaps / written), `state.json`. Those ordinals are files, not the three Next jobs (survey / practices / spec). Practices append into `environment.md`. |
 | plan | frozen spec + environment, `backchain/plan.json` (create), `plan.md` (missing: write labeled done_sentence equal to spec (create); if present: `wrapper_pair` gaps or sequence plan pointer), backchain SKILL |
 | implement | frozen spec, DAG, required `environment.md` (frozen survey), running `steps/<id>.json` + worktree, activity; `plan.md` if-needed |
 | implement-drained | spec, DAG, `implement-drained.md` |
