@@ -12,6 +12,17 @@ fail() {
 
 [[ -x scripts/sync-plugin-views.sh ]] || fail "scripts/sync-plugin-views.sh not executable"
 
+# Leaf-only bytecode is not plugin-view drift (.gitignore already ignores it).
+pyc_pin="skills/shiploop/scripts/__pycache__"
+mkdir -p "$pyc_pin"
+printf 'x' >"$pyc_pin/pin.pyc"
+set +e
+out_pyc="$(bash scripts/sync-plugin-views.sh --check shiploop 2>&1)"
+rc_pyc=$?
+set -e
+rm -rf "$pyc_pin"
+[[ "$rc_pyc" -eq 0 ]] || fail "leaf-only __pycache__ should not fail --check: $out_pyc"
+
 # Check mode must pass against committed materialization
 bash scripts/sync-plugin-views.sh --check || fail "plugin views out of sync or still symlinked"
 

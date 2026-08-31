@@ -455,21 +455,6 @@ assert_plan_md_unchanged() {
   [[ "$got" == "$want" ]] || fail "$msg: plan.md changed"
 }
 
-init_git_repo() {
-  local repo="$1"
-  mkdir -p "$repo"
-  if git -C "$repo" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-    return 0
-  fi
-  git -C "$repo" init >/dev/null
-  git -C "$repo" config user.email "shiploop-test@example.com"
-  git -C "$repo" config user.name "ShipLoop Test"
-  git -C "$repo" config commit.gpgsign false
-  printf 'seed\n' >"$repo/README"
-  git -C "$repo" add README
-  git -C "$repo" commit -m seed >/dev/null
-}
-
 copy_artifact() {
   local dest="$1" name="$2"
   cp "$TRANS/$name" "$dest"
@@ -511,25 +496,6 @@ text = Path(sys.argv[1]).read_text(encoding="utf-8")
 text = text.replace("__PLAN_CONTRACT__", sys.argv[3]).replace("__PLAN_HASH__", sys.argv[4])
 Path(sys.argv[2]).write_text(text, encoding="utf-8")
 PY
-}
-
-commit_step_work() {
-  local run="$1" sid="$2"
-  local wt
-  wt="$(python3 -c "import json; print(json.load(open('$run/steps/$sid.json'))['worktree'])")"
-  [[ -n "$wt" && -d "$wt" ]] || fail "commit_step_work: missing worktree for $sid"
-  printf '%s\n' "step $sid" >"$wt/${sid}.txt"
-  git -C "$wt" add "${sid}.txt"
-  git -C "$wt" commit -m "step $sid" >/dev/null
-}
-
-merge_step_branch() {
-  local run="$1" sid="$2"
-  local repo branch
-  repo="$(python3 -c "import json; print(json.load(open('$run/state.json'))['repo_root'])")"
-  branch="$(python3 -c "import json; print(json.load(open('$run/steps/$sid.json')).get('branch') or '')")"
-  [[ -n "$repo" && -n "$branch" ]] || fail "merge_step_branch: missing repo/branch for $sid"
-  git -C "$repo" merge --no-ff --no-edit "$branch" >/dev/null
 }
 
 # Host closer pre-work (not an SM transition): commit on the worktree, merge to session HEAD.
@@ -658,7 +624,7 @@ assert_transition_return "$runL" \
   "initialized $(python3 -c "from pathlib import Path; print(Path('$runL') / 'state.json')")" \
   activity "L0 RETURN"
 assert_session_closer "L0 RETURN"
-assert_next_has "Write the original user ask" "L0 RETURN"
+assert_next_h2_has "Write the original user ask" "L0 RETURN"
 assert_next_lacks "/goal step S1:" "L0 RETURN"
 assert_no_walk "L0 RETURN"
 assert_disk "$runL" "L0 DISK" "$DISK_INTAKE"
@@ -669,7 +635,7 @@ assert_disk "$runL" "L1 PRE" "$DISK_INTAKE"
 invoke_script complete --run-dir "$runL"
 assert_transition_return "$runL" "updated -> validate-spec" activity "L1 RETURN"
 assert_session_closer "L1 RETURN"
-assert_next_has "Survey, then practices, then spec" "L1 RETURN"
+assert_next_h2_has "Survey, then practices, then spec" "L1 RETURN"
 assert_next_h2_has "Deeply research those MCP servers" "L1 RETURN"
 assert_next_h2_has "Reuse before add" "L1 RETURN"
 assert_next_h2_has "Do not duplicate, conflict with, or arbitrarily add" "L1 RETURN"
@@ -686,7 +652,7 @@ assert_disk "$runL" "L2 PRE" '{"phase":"validate-spec","files":{"spec.md":true,"
 invoke_script complete --run-dir "$runL"
 assert_transition_return "$runL" "updated -> plan" activity "L2 RETURN"
 assert_session_closer "L2 RETURN"
-assert_next_has "The spec is **frozen**" "L2 RETURN"
+assert_next_h2_has "The spec is **frozen**" "L2 RETURN"
 assert_next_lacks "/goal step S1:" "L2 RETURN"
 assert_no_walk "L2 RETURN"
 assert_disk "$runL" "L2 DISK" "$DISK_PLAN"
@@ -744,7 +710,7 @@ assert_transition_return "$runL" "completed S2" activity "L5 RETURN"
 assert_no_walk "L5 RETURN"
 assert_out_has "residual: current" "L5 RETURN"
 assert_out_lacks "updated implement -> residual" "L5 RETURN"
-assert_next_has "Review-coverage is **waived**" "L5 RETURN"
+assert_next_h2_has "Review-coverage is **waived**" "L5 RETURN"
 assert_next_lacks "/goal " "L5 RETURN"
 assert_next_lacks "Implement git (paste into /goal with Frozen" "L5 RETURN"
 assert_next_lacks "Goal until (this stored prompt is /goal A" "L5 RETURN"
@@ -760,7 +726,7 @@ invoke_script next --run-dir "$runL"
 assert_transition_return "$runL" "next — reprint (residual)" activity "L6 RETURN"
 assert_no_walk "L6 RETURN"
 assert_session_closer "L6 RETURN"
-assert_next_has "Review-coverage is **waived**" "L6 RETURN"
+assert_next_h2_has "Review-coverage is **waived**" "L6 RETURN"
 assert_next_lacks "/goal step S" "L6 RETURN"
 assert_disk "$runL" "L6 DISK" '{"phase":"residual","receipts":{"S1":"complete","S2":"complete"}}'
 probe_illegal_updates "$runL" "L6 illegal"
@@ -1169,7 +1135,7 @@ assert_disk "$runG" "G1 PRE" \
   '{"phase":"residual","receipts":{"S1":"complete","S2":"complete"},"files":{"recap.html":false},"terminal":null}'
 invoke_script complete --run-dir "$runG"
 assert_transition_return "$runG" "updated -> done" activity "G1 RETURN"
-assert_next_has "Session closed" "G1 RETURN"
+assert_next_h2_has "Session closed" "G1 RETURN"
 assert_when_done_has "stop — no update" "G1 RETURN"
 assert_when_done_lacks "invoke /shiploop complete" "G1 RETURN"
 assert_out_has "recap.html" "G1 RETURN Look here"
@@ -1205,7 +1171,7 @@ printf 'CASE K0 PRE: residual, bound-coverage, no ledger; INVOKE: next (Phase B 
 assert_disk "$runK" "K0 PRE" '{"phase":"residual","terminal":null}'
 invoke_script next --run-dir "$runK"
 assert_transition_return "$runK" "next — reprint (residual)" activity "K0 RETURN"
-assert_next_has "run review-coverage Phase B" "K0 RETURN"
+assert_next_h2_has "run review-coverage Phase B" "K0 RETURN"
 assert_next_lacks "Review-coverage is **waived**" "K0 RETURN"
 assert_session_closer "K0 RETURN"
 assert_disk "$runK" "K0 DISK (unchanged)" '{"phase":"residual"}'
@@ -1239,7 +1205,7 @@ assert_disk "$runT" "T1 PRE" '{"phase":"residual","terminal":null}'
 install_ledger "$repoT" stopped "$planT"
 invoke_script complete --run-dir "$runT"
 assert_transition_return "$runT" "updated -> halted" activity "T1 RETURN"
-assert_next_has "Session terminal: halted" "T1 RETURN"
+assert_next_h2_has "Session terminal: halted" "T1 RETURN"
 assert_when_done_has "stop — no update" "T1 RETURN"
 assert_disk "$runT" "T1 DISK" \
   '{"phase":"halted","terminal":"halted","files":{"recap.html":true}}'
@@ -1377,7 +1343,7 @@ invoke_script complete --run-dir "$runS"
 assert_transition_return "$runS" "completed S1" activity "S2 RETURN"
 assert_no_walk "S2 RETURN"
 assert_out_has "residual: current" "S2 RETURN"
-assert_next_has "Review-coverage is **waived**" "S2 RETURN"
+assert_next_h2_has "Review-coverage is **waived**" "S2 RETURN"
 assert_next_lacks "/goal " "S2 RETURN"
 assert_next_lacks "Implement git (paste into /goal with Frozen" "S2 RETURN"
 assert_next_lacks "Improve (paste as /goal B after produces is true" "S2 RETURN"
@@ -1390,7 +1356,7 @@ printf 'CASE S3 PRE: residual; INVOKE: next reprint\n'
 invoke_script next --run-dir "$runS"
 assert_transition_return "$runS" "next — reprint (residual)" activity "S3 RETURN"
 assert_session_closer "S3 RETURN"
-assert_next_has "Review-coverage is **waived**" "S3 RETURN"
+assert_next_h2_has "Review-coverage is **waived**" "S3 RETURN"
 assert_disk "$runS" "S3 DISK" '{"phase":"residual","receipts":{"S1":"complete"}}'
 printf 'LAYER: S single-step first=last OK\n'
 shiploop_sandbox_close
@@ -1416,7 +1382,7 @@ printf 'CASE Z1 PRE: intake; INVOKE: wrapper complete dest validate-spec\n'
 invoke_wrapper complete --run-dir "$runZ"
 assert_wrapper_then_transition "$runZ" "$WRAP_COMPLETE" "updated -> validate-spec" activity "Z1 RETURN"
 assert_session_closer "Z1 RETURN"
-assert_next_has "Survey, then practices, then spec" "Z1 RETURN"
+assert_next_h2_has "Survey, then practices, then spec" "Z1 RETURN"
 assert_next_h2_has "Deeply research those MCP servers" "Z1 RETURN"
 assert_disk "$runZ" "Z1 DISK" "$DISK_VS"
 
@@ -1431,7 +1397,7 @@ write_spec "$runZ"
 invoke_wrapper complete --run-dir "$runZ"
 assert_wrapper_then_transition "$runZ" "$WRAP_COMPLETE" "updated -> plan" activity "Z2 RETURN"
 assert_session_closer "Z2 RETURN"
-assert_next_has "The spec is **frozen**" "Z2 RETURN"
+assert_next_h2_has "The spec is **frozen**" "Z2 RETURN"
 assert_disk "$runZ" "Z2 DISK" "$DISK_PLAN"
 
 printf 'CASE Z3 PRE: plan + single.json; INVOKE: wrapper complete dest implement\n'
@@ -1451,7 +1417,7 @@ printf 'CASE Z4 PRE: S1 landed (first=last); INVOKE: wrapper complete → residu
 host_land "$runZ" S1
 invoke_wrapper complete --run-dir "$runZ"
 assert_wrapper_then_transition "$runZ" "$WRAP_COMPLETE" "completed S1" activity "Z4 RETURN"
-assert_next_has "Review-coverage is **waived**" "Z4 RETURN"
+assert_next_h2_has "Review-coverage is **waived**" "Z4 RETURN"
 assert_next_lacks "/goal " "Z4 RETURN"
 assert_next_lacks "Implement git (paste into /goal with Frozen" "Z4 RETURN"
 assert_next_lacks "Improve (paste as /goal B after produces is true" "Z4 RETURN"
@@ -1462,13 +1428,13 @@ printf 'CASE Z5 PRE: residual; INVOKE: wrapper next reprint\n'
 invoke_wrapper next --run-dir "$runZ"
 assert_wrapper_then_transition "$runZ" "$WRAP_NEXT" "next — reprint (residual)" activity "Z5 RETURN"
 assert_session_closer "Z5 RETURN"
-assert_next_has "Review-coverage is **waived**" "Z5 RETURN"
+assert_next_h2_has "Review-coverage is **waived**" "Z5 RETURN"
 assert_disk "$runZ" "Z5 DISK" '{"phase":"residual","receipts":{"S1":"complete"}}'
 
 printf 'CASE Z6 PRE: residual waived; INVOKE: wrapper complete dest done\n'
 invoke_wrapper complete --run-dir "$runZ"
 assert_wrapper_then_transition "$runZ" "$WRAP_COMPLETE" "updated -> done" activity "Z6 RETURN"
-assert_next_has "Session closed" "Z6 RETURN"
+assert_next_h2_has "Session closed" "Z6 RETURN"
 assert_when_done_has "stop — no update" "Z6 RETURN"
 assert_disk "$runZ" "Z6 DISK" '{"phase":"done","terminal":"waived","files":{"recap.html":true}}'
 

@@ -562,25 +562,6 @@ assert_no_wrapper_lookhere() {
 
 run_cli() { python3 "$cli" "$@"; }
 
-commit_step_work() {
-  local run="$1" sid="$2"
-  local wt
-  wt="$(python3 -c "import json; print(json.load(open('$run/steps/$sid.json'))['worktree'])")"
-  [[ -n "$wt" && -d "$wt" ]] || fail "commit_step_work: missing worktree for $sid"
-  printf '%s\n' "step $sid" >"$wt/${sid}.txt"
-  git -C "$wt" add "${sid}.txt"
-  git -C "$wt" commit -m "step $sid" >/dev/null
-}
-
-merge_step_branch() {
-  local run="$1" sid="$2"
-  local repo branch
-  repo="$(python3 -c "import json; print(json.load(open('$run/state.json'))['repo_root'])")"
-  branch="$(python3 -c "import json; print(json.load(open('$run/steps/$sid.json')).get('branch') or '')")"
-  [[ -n "$repo" && -n "$branch" ]] || fail "merge_step_branch: missing repo/branch for $sid"
-  git -C "$repo" merge --no-ff --no-edit "$branch" >/dev/null
-}
-
 complete_ok() {
   local run="$1" sid="$2"
   commit_step_work "$run" "$sid"
@@ -655,21 +636,6 @@ fresh_vs() {
 write_plan_md() {
   local run="$1"
   printf 'done_sentence: %s\n' "$DS" >"$run/plan.md"
-}
-
-init_git_repo() {
-  local repo="$1"
-  mkdir -p "$repo"
-  if git -C "$repo" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-    return 0
-  fi
-  git -C "$repo" init >/dev/null
-  git -C "$repo" config user.email "shiploop-test@example.com"
-  git -C "$repo" config user.name "ShipLoop Test"
-  git -C "$repo" config commit.gpgsign false
-  printf 'seed\n' >"$repo/README"
-  git -C "$repo" add README
-  git -C "$repo" commit -m seed >/dev/null
 }
 
 install_dag() {

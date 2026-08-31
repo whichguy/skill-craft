@@ -87,11 +87,13 @@ copy_skill_package_deref() {
   rm -rf "$dest"
   if command -v rsync >/dev/null 2>&1; then
     mkdir -p "$dest"
-    rsync -aL "$sot"/ "$dest"/
+    rsync -aL --exclude '__pycache__/' --exclude '*.pyc' "$sot"/ "$dest"/
   else
     mkdir -p "$(dirname "$dest")"
     # shellcheck disable=SC2086
     cp -R -L "$sot" "$dest"
+    find "$dest" -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
+    find "$dest" -name '*.pyc' -delete 2>/dev/null || true
   fi
   local leftover
   leftover="$(find "$dest" -type l 2>/dev/null | head -n 1 || true)"
@@ -114,16 +116,18 @@ skill_package_matches_view() {
   fi
   if command -v rsync >/dev/null 2>&1; then
     mkdir -p "$tmp/norm"
-    rsync -aL "$sot"/ "$tmp/norm"/
+    rsync -aL --exclude '__pycache__/' --exclude '*.pyc' "$sot"/ "$tmp/norm"/
   else
     cp -R -L "$sot" "$tmp/norm"
+    find "$tmp/norm" -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
+    find "$tmp/norm" -name '*.pyc' -delete 2>/dev/null || true
   fi
   if find "$dest" -type l 2>/dev/null | grep -q .; then
     printf 'sync-plugin-views: FAIL (%s): plugin view still contains symlinks\n' "$label" >&2
     rm -rf "$tmp"
     return 1
   fi
-  if diff -rq "$tmp/norm" "$dest" >/dev/null 2>&1; then
+  if diff -rq -x __pycache__ -x '*.pyc' "$tmp/norm" "$dest" >/dev/null 2>&1; then
     rm -rf "$tmp"
     return 0
   fi

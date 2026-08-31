@@ -128,6 +128,9 @@ shiploop_sandbox_close() {
 # Extract a packet H2 body. With no stop: until the next `## ` (packet contract).
 # With stop: until that exact heading (inner `## ` does not truncate).
 # `###` does not match `/^## /`.
+# Activity Next (intake/validate-spec/plan/residual/done): 2-arg (H2 contract).
+# Stored-mode implement Next: 3-arg through When done — Improve follows the
+# stored prompt, which may legally contain `## `.
 packet_section() {
   local out="$1" start="$2" stop="${3:-}"
   printf '%s\n' "$out" | awk -v s="$start" -v e="$stop" '
@@ -136,4 +139,38 @@ packet_section() {
     p && e == "" && /^## / {exit}
     p
   '
+}
+
+init_git_repo() {
+  local repo="$1"
+  mkdir -p "$repo"
+  if git -C "$repo" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    return 0
+  fi
+  git -C "$repo" init >/dev/null
+  git -C "$repo" config user.email "shiploop-test@example.com"
+  git -C "$repo" config user.name "ShipLoop Test"
+  git -C "$repo" config commit.gpgsign false
+  printf 'seed\n' >"$repo/README"
+  git -C "$repo" add README
+  git -C "$repo" commit -m seed >/dev/null
+}
+
+commit_step_work() {
+  local run="$1" sid="$2"
+  local wt
+  wt="$(python3 -c "import json; print(json.load(open('$run/steps/$sid.json'))['worktree'])")"
+  [[ -n "$wt" && -d "$wt" ]] || _shiploop_die "commit_step_work: missing worktree for $sid"
+  printf '%s\n' "step $sid" >"$wt/${sid}.txt"
+  git -C "$wt" add "${sid}.txt"
+  git -C "$wt" commit -m "step $sid" >/dev/null
+}
+
+merge_step_branch() {
+  local run="$1" sid="$2"
+  local repo branch
+  repo="$(python3 -c "import json; print(json.load(open('$run/state.json'))['repo_root'])")"
+  branch="$(python3 -c "import json; print(json.load(open('$run/steps/$sid.json')).get('branch') or '')")"
+  [[ -n "$repo" && -n "$branch" ]] || _shiploop_die "merge_step_branch: missing repo/branch for $sid"
+  git -C "$repo" merge --no-ff --no-edit "$branch" >/dev/null
 }
