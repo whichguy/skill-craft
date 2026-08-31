@@ -44,6 +44,23 @@ grep -q 'do not nest' "$root/skills/shiploop/SKILL.md" \
   || fail "SKILL.md missing do not nest"
 grep -q 'Do not nest' "$root/skills/shiploop/references/activities/implement.md" \
   || fail "implement.md missing Do not nest"
+if grep -Fq 'HOST FLAG — extra folder' \
+  "$root/skills/shiploop/references/activities/implement.md"; then
+  fail "implement.md re-clones HOST FLAG (SoT is print_packet envelope)"
+fi
+if grep -Fq 'two consecutive only-trivial' \
+  "$root/skills/shiploop/references/activities/implement.md"; then
+  fail "implement.md re-clones Improve cycle"
+fi
+if grep -Fq 'max 12' "$root/skills/shiploop/references/activities/implement.md"; then
+  fail "implement.md re-clones Improve max 12"
+fi
+impl_git_n="$(grep -cF 'Implement git' \
+  "$root/skills/shiploop/references/activities/implement.md" || true)"
+[[ "$impl_git_n" -eq 0 ]] || fail "implement.md re-clones Implement git (count $impl_git_n; SoT is print_implement_git)"
+if grep -Fq 'Key learnings:' "$root/skills/shiploop/references/activities/plan.md"; then
+  fail "plan.md re-clones implement git contract into plan-time Next"
+fi
 grep -q 'status --human' "$root/skills/shiploop/SKILL.md" \
   || fail "SKILL.md missing status --human"
 grep -q 'PATH/.shiploop' "$root/skills/shiploop/SKILL.md" \
@@ -1332,6 +1349,8 @@ printf '%s\n' "$out_imp" | grep -q 'Goal until (this stored prompt is /goal A' \
   || fail "implement Next missing Goal until"
 printf '%s\n' "$out_imp" | grep -q 'Until (exit; do not loop):' \
   || fail "implement Next missing Until (exit; do not loop)"
+printf '%s\n' "$out_imp" | grep -Fiq 'do not nest' \
+  || fail "implement Next missing do not nest"
 printf '%s\n' "$out_imp" | grep -q 'Improve (paste as /goal B after produces is true' \
   || fail "implement Next missing Improve"
 printf '%s\n' "$out_imp" | grep -q 'last 7 git commit' \

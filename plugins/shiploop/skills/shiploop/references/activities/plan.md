@@ -138,11 +138,9 @@ validate-spec; rewrite environment.md; → plan (do not hand-edit
 backchain/plan.json). `inject-step` discovered steps still
 need `/goal` plus until-`produces` and stay exempt from reference and
 `mcp_considered` citation; they are **not** exempt from Tools / Don't use when
-`exclusive` is nonempty. The implement envelope still reprints Frozen
-(Exclusive / dest-blocked / See), **Implement git** (worktree, `git log
--10`, `Key learnings:`, `See: <sha>`), **Goal until**, and **Improve**
-for those `/goal`s — do not copy that git or improve contract into seed
-`prompt`s. See `{{IMPLEMENT_ACTIVITY}}`.
+`exclusive` is nonempty. Seed `prompt`s must not copy the implement envelope
+(the script prints it at implement; copies drift). Follow the printed Next envelope.
+See `{{IMPLEMENT_ACTIVITY}}`.
 
 Persist the backchain document to `{{BACKCHAIN_JSON}}` (canonical). Then
 write `{{PLAN_MD}}` with a labeled line `done_sentence: {{DONE_SENTENCE}}`
