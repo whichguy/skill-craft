@@ -17,6 +17,13 @@ its output is `environment.md` (Look here names the absolute path).
   research** (validate-spec job 2) and append those findings here before
   writing the spec. If an observed MCP server or its tools document how to
   use them, that text is a reference — inventory alone is not enough.
+  Deeply research those MCP servers and destination services (tool schemas,
+  resources, prompts, official docs) for required or conventional syntax
+  style, library, module format, or behavior. If the source says it overtly,
+  record `references[{path, why}]`. **Reuse before add:** search bound
+  `repo_root` **and** the destination for libraries and patterns already in
+  use; do not duplicate, conflict with, or arbitrarily add a new library
+  for the same job.
 - **tools / mcp** — CLIs and MCP servers available **and in-bounds for this
   increment**. Inventory, do not install or catalog. In-bounds means dest-writes can succeed now through that name, or a `create` handle in this increment will enable them. `exclusive[].use` must still be an inventoried tools or mcp name. A failed enablement probe is an `ask` handle and dest blocked — do not omit the designated writer from these lists, and do not dest plan until `inspect`. Unauthenticated, deferred, or wrong-for-this-increment names belong in the brief, not these lists (Frozen asserts MCP in `mcp:` is in-bounds).
 - **mcp_considered** — first matching read-capable session MCP tool, printed
@@ -76,7 +83,9 @@ Put dest notes (existing repo, migration, CI/CD, missing systems) in that
 brief. Record unauthenticated, deferred, or wrong-for-this-increment MCP
 servers in the brief too — they are later **Don't use** lines, not machine
 keys. After inventory, **before the spec**, research applicable practices and fold
-them into the same file (more prose + `references`). When `exclusive` is
+them into the same file (more prose + `references`). Deeply research
+in-bounds MCP and destination services for style / library / behavior;
+reuse before add on bound `repo_root` and the destination. When `exclusive` is
 nonempty, that folded prose must cover the libraries, file/runtime layout,
 and platform preconditions the named writer requires, and `references` must
 be nonempty. Do not invent

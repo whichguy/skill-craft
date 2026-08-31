@@ -83,6 +83,26 @@ grep -q 'Best-practice research' "$root/skills/shiploop/references/activities/va
   || fail "validate-spec.md missing practices job"
 grep -q 'best-practice' "$root/skills/shiploop/references/survey.md" \
   || fail "survey.md missing practices research"
+grep -Fq 'Deeply research those MCP servers' \
+  "$root/skills/shiploop/references/activities/validate-spec.md" \
+  || fail "validate-spec.md missing Deeply research those MCP servers"
+grep -Fiq 'reuse before add' \
+  "$root/skills/shiploop/references/activities/validate-spec.md" \
+  || fail "validate-spec.md missing reuse before add"
+grep -Fq 'Do not duplicate, conflict with, or arbitrarily add' \
+  "$root/skills/shiploop/references/activities/validate-spec.md" \
+  || fail "validate-spec.md missing arbitrarily add"
+grep -q 'repo_root' "$root/skills/shiploop/references/survey.md" \
+  || fail "survey.md missing repo_root reuse search"
+grep -q 'destination' "$root/skills/shiploop/references/survey.md" \
+  || fail "survey.md missing destination reuse search"
+grep -Fq 'arbitrarily add' "$root/skills/shiploop/references/survey.md" \
+  || fail "survey.md missing arbitrarily add"
+if grep -RqiE 'mcp-gas-deploy|commonjs' --exclude-dir=__pycache__ \
+  "$root/skills/shiploop/references" \
+  "$root/skills/shiploop/scripts/shiploop"; then
+  fail "shiploop must not mandate a vendor MCP server or module format"
+fi
 if grep -q '{{' "$root/skills/shiploop/references/survey.md"; then
   fail "survey.md must not contain interpolation tokens (Look-here is not interpolated)"
 fi

@@ -39,7 +39,27 @@ implement steps must use: URLs, in-repo paths, ADRs, official docs, skill
 or reference files, MCP resource URIs. If an observed MCP server or its
 tools describe how to use them (tool descriptions, resources, prompts, or
 a query that returns practice guidance), record that text as a reference —
-inventory alone is not enough. When `exclusive` is nonempty, fold the named
+inventory alone is not enough.
+
+Deeply research those MCP servers and destination services. Read tool
+schemas, resources, prompts, and official docs. Determine whether there
+is a required or conventional syntax style, library, module format, or
+behavior pattern. If the source says it overtly, record it as
+`references[{path, why}]` plus brief prose in `{{ENV_MD}}`. `why` names
+what implement must follow (style / library / behavior), not “inventory.”
+Do not invent a house style. Do not bake a vendor name into the skill.
+
+**Reuse before add.** Brownfield / existing dest: search the bound
+`{{REPO_ROOT}}` **and** the destination (existing hosted project, package
+lock, README, imports, layout) for libraries and patterns already in use.
+Continue those. Do not duplicate, conflict with, or arbitrarily add a new
+library that serves the same job. Greenfield: no tree to reuse; still
+record what the MCP/dest source requires so implement does not guess.
+Writer conflicts stay `exclusive` (do not switch). Library conflicts are
+the same idea: one established stack per artifact; dest blocked if the
+user must choose.
+
+When `exclusive` is nonempty, fold the named
 writer's libraries, file/runtime layout, and platform preconditions into the
 same file and keep `references` nonempty. Do not invent a Writer playbook heading. Do not write
 `playbook.md`. Do not restate the exclusive map in prose. Write the findings

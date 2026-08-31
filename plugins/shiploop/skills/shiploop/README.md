@@ -7,7 +7,7 @@ walk-back HTML recap exists.
 
 ShipLoop never conflict-resolves a merge and never claims engine `COMPLETE`.
 
-Package leaf: `skills/shiploop`. Invoke: `/shiploop`. Version: **0.8.14**.
+Package leaf: `skills/shiploop`. Invoke: `/shiploop`. Version: **0.8.15**.
 
 Canonical companions (do not duplicate their contracts here):
 
@@ -199,7 +199,12 @@ One phase, **three jobs in order**. Guide: `references/survey.md`. Activity:
 2. **Research practices** from the ask + that inventory. Pull URLs, in-repo
    paths, official docs, skill references, MCP resource URIs. If an MCP
    server or its tools **document how to use them**, that text is a
-   reference — inventory alone is not enough. Answer exclusive-writer /
+   reference — inventory alone is not enough. Deeply research those MCP
+   servers and destination services (schemas, resources, docs) for style,
+   library, module format, or behavior; record overt findings in
+   `references[{path, why}]`. **Reuse before add:** search bound `repo_root`
+   **and** the destination; do not duplicate, conflict with, or arbitrarily
+   add a new library for the same job. Answer exclusive-writer /
    overlapping-tool / library / enablement questions (conflicts, not as backups). Fold
    the named writer's libraries, file/runtime layout, and platform preconditions
    into the **same**
