@@ -54,6 +54,9 @@ Port inventory: [docs/PORT.md](docs/PORT.md). After editing any skill body (incl
 ./scripts/sync-plugin-views.sh          # materialise plugins/* + derive plugin.json from SKILL.md
 ./scripts/sync-plugin-views.sh --check  # CI / pre-commit; enumerates skills/ SoT
 ```
+
+`--check` ignores `__pycache__/` and `*.pyc`. Name a leaf (`--check shiploop`)
+when you only need that view.
 ## Install (`install.sh`)
 
 Installs `skills/<leaf>` into local skill homes. Claude/Grok/Codex/Cursor get **symlinks**.
@@ -156,5 +159,9 @@ so the plugin view is a **materialised copy**. Keep it in sync:
 ./scripts/sync-plugin-views.sh          # after editing skills/
 ./scripts/sync-plugin-views.sh --check  # CI / pre-commit
 ```
+
+Copy and `--check` ignore `__pycache__/` and `*.pyc`. Bytecode next to a
+leaf script is not view drift. Bare `--check` still fails if some other
+plugin view's content is dirty.
 
 `skill-craft-market` pins `path: "plugins/skill-interop"`, not the bare skill leaf.

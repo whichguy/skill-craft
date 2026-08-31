@@ -503,7 +503,7 @@ Look-here matrix (absolute path + one-line why):
 | Phase | Pointers |
 |-------|----------|
 | intake | `state.json`, `prompt.md` (create), activity |
-| validate-spec | prompt, `environment.md` (`1. survey —` write-first / `load_environment` gaps / written), `survey.md`, `spec.md` (`2. spec —` after env / `load_spec` gaps / written), `state.json` |
+| validate-spec | prompt, `environment.md` (`1. survey —` write-first / `load_environment` gaps / written), `survey.md`, `spec.md` (`2. spec —` after env / `load_spec` gaps / written), `state.json`. Those ordinals are **files**, not the three Next jobs (survey / practices / spec). Practices append into `environment.md`. |
 | plan | frozen spec + environment, `backchain/plan.json` (create), `plan.md` (missing: write labeled done_sentence equal to spec (create); if present: `wrapper_pair` gaps or sequence plan pointer), backchain SKILL |
 | implement | frozen spec, DAG, required `environment.md` (frozen survey), running `steps/<id>.json` + worktree, activity; `plan.md` if-needed |
 | implement-drained | spec, DAG, `implement-drained.md` |
@@ -530,7 +530,7 @@ Do not hand-edit the plugin copy.
 
 | Channel | What it reads |
 |---------|----------------|
-| Look-here | Pointers only (`kind  abs-path  why`). Phase-scoped. validate-spec ordinals: `1. survey —` / `2. spec —`. Plan `plan.md`: missing why is `write labeled done_sentence equal to spec (create)`; if present, `wrapper_pair` gaps or `sequence plan pointer`. Implement `plan.md` is `if-needed` only (no equality re-litigation). |
+| Look-here | Pointers only (`kind  abs-path  why`). Phase-scoped. validate-spec ordinals: `1. survey —` / `2. spec —` (files: `environment.md`, `spec.md` — not Next jobs 1/2/3). Plan `plan.md`: missing why is `write labeled done_sentence equal to spec (create)`; if present, `wrapper_pair` gaps or `sequence plan pointer`. Implement `plan.md` is `if-needed` only (no equality re-litigation). |
 | Next (non-implement) | Interpolated activity body (`{{SPEC_MD}}`, `{{ENV_MD}}`, `{{BACKCHAIN_JSON}}`, `{{PLAN_MD}}`, …). |
 | Next (implement, in-flight) | Frozen + Implement git + Goal until + stored `prompt` verbatim (`/goal` A) + Improve (`/goal` B). Not `implement.md` as `/goal` A. |
 | Closer / inject | Leftover host commit, then harness `complete` (merge + Git ran). `inject-step` mutates DAG + receipts and does not claim. |
@@ -693,7 +693,7 @@ adopted — start a new run (or rename the directory to `.shiploop` yourself).
 ```sh
 bash test/shiploop.test.sh
 node test/skill-frontmatter.test.js
-bash scripts/sync-plugin-views.sh --check
+bash scripts/sync-plugin-views.sh --check shiploop
 ```
 
-(`--check` may still fail on unrelated dirty plugin views.)
+`--check` copy/compare ignore `__pycache__/` and `*.pyc` (bytecode next to a leaf script is not view drift). Bare `--check` (every skill) may still fail on an unrelated dirty plugin view.

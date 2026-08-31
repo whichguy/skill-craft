@@ -8,6 +8,9 @@
 #   ./scripts/sync-plugin-views.sh           # sync all skills/* with SKILL.md
 #   ./scripts/sync-plugin-views.sh skill-interop
 #   ./scripts/sync-plugin-views.sh --check   # exit 1 if out of sync (CI)
+#
+# Copy and --check ignore __pycache__/ and *.pyc. Running a leaf script is
+# not plugin-view drift. Other content diffs still fail --check.
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
