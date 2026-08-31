@@ -42,14 +42,10 @@ LAST_RC=0
 LAST_OUT=""
 LAST_ERR=""
 
-packet_section() {
-  local out="$1" start="$2" stop="${3:-}"
-  printf '%s\n' "$out" | awk -v s="$start" -v e="$stop" '
-    $0==s {p=1; next}
-    p && e != "" && $0==e {exit}
-    p && e == "" && /^## / {exit}
-    p
-  '
+assert_next_h2_has() {
+  local needle="$1" msg="$2"
+  packet_section "$LAST_OUT" "## Next prompt" | grep -Fq -- "$needle" \
+    || fail "$msg: H2-bounded Next missing ${needle}"
 }
 
 invoke_script() {
@@ -674,6 +670,9 @@ invoke_script complete --run-dir "$runL"
 assert_transition_return "$runL" "updated -> validate-spec" activity "L1 RETURN"
 assert_session_closer "L1 RETURN"
 assert_next_has "Survey, then practices, then spec" "L1 RETURN"
+assert_next_h2_has "Deeply research those MCP servers" "L1 RETURN"
+assert_next_h2_has "Do not duplicate, conflict with, or arbitrarily add" "L1 RETURN"
+assert_next_h2_has "### 2. Best-practice" "L1 RETURN"
 assert_next_lacks "/goal step S1:" "L1 RETURN"
 assert_no_walk "L1 RETURN"
 assert_disk "$runL" "L1 DISK" "$DISK_VS"

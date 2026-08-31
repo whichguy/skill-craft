@@ -15,6 +15,18 @@ host_tmp="${TMPDIR:-/tmp}"
 
 shiploop_suite_begin shiploop-testkit-pin
 [[ -n "$SUITE_TMP" && -d "$SUITE_TMP" ]] || fail "suite_begin missing SUITE_TMP"
+
+pkt_h2=$'## Next prompt\njob1\n## 2. Best\njob2\n## When done invoke\n'
+got2="$(packet_section "$pkt_h2" "## Next prompt")"
+printf '%s\n' "$got2" | grep -Fq 'job1' || fail "2-arg dropped job1"
+if printf '%s\n' "$got2" | grep -Fq 'job2'; then
+  fail "2-arg included body after inner ##"
+fi
+got3="$(packet_section "$pkt_h2" "## Next prompt" "## When done invoke")"
+printf '%s\n' "$got3" | grep -Fq 'job2' || fail "3-arg missed job2 past inner ##"
+pkt_h3=$'## Next prompt\njob1\n### 2. Best\njob2\n## When done invoke\n'
+got_h3="$(packet_section "$pkt_h3" "## Next prompt")"
+printf '%s\n' "$got_h3" | grep -Fq 'job2' || fail "2-arg stopped at ###"
 case "$TMPDIR" in
   "$SUITE_TMP"/*) ;;
   *) fail "TMPDIR not inside SUITE_TMP: $TMPDIR" ;;

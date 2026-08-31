@@ -553,17 +553,6 @@ assert_absent() {
   fi
 }
 
-# Until the next packet H2 (`## `). Activity Next bodies must not use
-# `## ` or this truncates (0.8.15 job 2 lived past an inner H2).
-packet_section() {
-  local out="$1" start="$2"
-  printf '%s\n' "$out" | awk -v s="$start" '
-    $0==s {p=1; next}
-    p && /^## / {exit}
-    p
-  '
-}
-
 assert_no_wrapper_lookhere() {
   local look="$1" msg="$2"
   local hits
@@ -869,6 +858,27 @@ printf '%s\n' "$next_vs" | grep -q '^### 3. Spec' \
 if printf '%s\n' "$next_vs" | grep -E '^## '; then
   fail "validate-spec Next leaked packet-level H2: $next_vs"
 fi
+look_vs="$(packet_section "$out_vs" "## Look here")"
+printf '%s\n' "$look_vs" | grep -q 'references/survey.md' \
+  || fail "validate-spec Look-here missing survey.md: $look_vs"
+if printf '%s\n' "$look_vs" | grep -Fq 'Deeply research those MCP servers'; then
+  fail "validate-spec Look-here leaked job 2 research: $look_vs"
+fi
+python3 - "$next_vs" "$run" "$repo" <<'PY' || fail "validate-spec Next job-2 slice missing interpolated ENV_MD/REPO_ROOT"
+from pathlib import Path
+import sys
+text, run, repo = sys.argv[1], sys.argv[2], sys.argv[3]
+i = text.find("### 2. Best-practice")
+j = text.find("### 3. Spec")
+assert i != -1 and j > i, (i, j)
+s = text[i:j]
+env_raw = str(Path(run) / "environment.md")
+env_res = str((Path(run) / "environment.md").resolve())
+assert env_raw in s or env_res in s, s[:400]
+root_raw = str(Path(repo))
+root_res = str(Path(repo).resolve())
+assert root_raw in s or root_res in s, s[:400]
+PY
 printf 'LAYER: intake->validate-spec OK\n'
 
 # --- validate-spec Look-here uses load_environment / load_spec gaps ---

@@ -124,3 +124,16 @@ shiploop_sandbox_close() {
   [[ -n "$dir" ]] || return 0
   shiploop_sandbox_teardown_dir "$dir"
 }
+
+# Extract a packet H2 body. With no stop: until the next `## ` (packet contract).
+# With stop: until that exact heading (inner `## ` does not truncate).
+# `###` does not match `/^## /`.
+packet_section() {
+  local out="$1" start="$2" stop="${3:-}"
+  printf '%s\n' "$out" | awk -v s="$start" -v e="$stop" '
+    $0==s {p=1; next}
+    p && e != "" && $0==e {exit}
+    p && e == "" && /^## / {exit}
+    p
+  '
+}
