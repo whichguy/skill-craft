@@ -131,6 +131,18 @@ grep -Fq 'files, not the three Next jobs' "$root/skills/shiploop/README.md" \
   || fail "README missing Look-here file vs Next-job ordinals"
 grep -q '__pycache__/' "$root/skills/shiploop/README.md" \
   || fail "README missing --check bytecode ignore"
+pyc_pin="$root/skills/shiploop/scripts/__pycache__"
+cleanup_pyc_pin() { rm -rf "$pyc_pin"; }
+trap cleanup_pyc_pin EXIT
+mkdir -p "$pyc_pin"
+printf 'x' >"$pyc_pin/pin.pyc"
+set +e
+out_pyc="$(bash "$root/scripts/sync-plugin-views.sh" --check shiploop 2>&1)"
+rc_pyc=$?
+set -e
+cleanup_pyc_pin
+trap - EXIT
+[[ "$rc_pyc" -eq 0 ]] || fail "leaf-only __pycache__ should not fail --check: $out_pyc"
 grep -q 'recap.html' "$root/skills/shiploop/README.md" \
   || fail "README missing recap.html"
 if grep -q 'Any working phase can dest' "$root/skills/shiploop/README.md"; then

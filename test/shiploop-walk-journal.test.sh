@@ -640,6 +640,22 @@ assert_next_h2_has "Deeply research those MCP servers" "L1 RETURN"
 assert_next_h2_has "Reuse before add" "L1 RETURN"
 assert_next_h2_has "Do not duplicate, conflict with, or arbitrarily add" "L1 RETURN"
 assert_next_h2_has "### 2. Best-practice" "L1 RETURN"
+next_l1="$(packet_section "$LAST_OUT" "## Next prompt")"
+python3 - "$next_l1" "$runL" "$repoL" <<'PY' || fail "L1 Next job-2 slice missing interpolated ENV_MD/REPO_ROOT"
+from pathlib import Path
+import sys
+text, run, repo = sys.argv[1], sys.argv[2], sys.argv[3]
+i = text.find("### 2. Best-practice")
+j = text.find("### 3. Spec")
+assert i != -1 and j > i, (i, j)
+s = text[i:j]
+env_raw = str(Path(run) / "environment.md")
+env_res = str((Path(run) / "environment.md").resolve())
+assert env_raw in s or env_res in s, s[:400]
+root_raw = str(Path(repo))
+root_res = str(Path(repo).resolve())
+assert root_raw in s or root_res in s, s[:400]
+PY
 assert_next_lacks "/goal step S1:" "L1 RETURN"
 assert_no_walk "L1 RETURN"
 assert_disk "$runL" "L1 DISK" "$DISK_VS"
