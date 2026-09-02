@@ -167,9 +167,9 @@ grep -Fq 'early design' "$root/skills/shiploop/references/activities/plan.md" \
   || fail "plan.md missing early design seed"
 grep -Fq -- '--inner-loop goal|parent' "$root/skills/shiploop/README.md" \
   || fail "README missing implement complete --inner-loop"
-grep -Fq -- '--inner-loop goal|parent' \
+grep -Fq -- '--inner-loop goal' \
   "$root/skills/shiploop/references/turn-packet.md" \
-  || fail "turn-packet.md missing implement complete --inner-loop"
+  || fail "turn-packet.md missing implement complete --inner-loop goal"
 grep -q 'practice references' "$root/skills/shiploop/references/activities/plan.md" \
   || fail "plan.md missing practice references in step prompts"
 grep -q 'researches applicable practices' "$root/skills/shiploop/README.md" \
@@ -1385,8 +1385,11 @@ printf '%s\n' "$out_imp" | grep -A20 '^Diagnosis$' | grep -q '(running)' || fail
 printf '%s\n' "$out_imp" | grep -A20 '^Diagnosis$' | grep -q 'S2  confirm the file' || fail "pending missing S2"
 printf '%s\n' "$out_imp" | grep -q 'invoke /shiploop complete' || fail "when done missing /shiploop complete"
 printf '%s\n' "$out_imp" | awk '/^## When done invoke$/,/^## Missing$/' \
+  | grep -Fq -- '--inner-loop goal' \
+  || fail "implement when done missing --inner-loop goal: $out_imp"
+printf '%s\n' "$out_imp" | awk '/^## When done invoke$/,/^## Missing$/' \
   | grep -Fq -- '--inner-loop goal|parent' \
-  || fail "implement when done missing --inner-loop: $out_imp"
+  && fail "implement when done printed illegal argv goal|parent"
 assert_absent "$out_imp" 'complete-step --' "when done leaked complete-step argv"
 assert_absent "$out_imp" '--id S1' "when done leaked --id S1"
 printf '%s\n' "$out_imp" | grep -q 'commit on the worktree' || fail "when done missing commit"

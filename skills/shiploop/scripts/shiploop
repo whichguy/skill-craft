@@ -3556,7 +3556,8 @@ def print_packet(run_dir: Path, state: Dict[str, Any], *, prior_running: Optiona
                 "(log -10, Key learnings:, See: <sha>), commit on the worktree"
             )
             print(
-                "then invoke /shiploop complete --inner-loop goal|parent (merges "
+                "then invoke /shiploop complete --inner-loop goal "
+                "(or --inner-loop parent if /goal is off) (merges "
                 f"git -C {repo_s} merge --no-ff --no-edit {br or '<branch>'}, "
                 "prints Git ran, marks this step done, claims the next, "
                 "or dests residual when this was the last step)"
