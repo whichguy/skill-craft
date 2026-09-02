@@ -89,6 +89,28 @@ grep -q 'Quality test/fix' "$root/skills/shiploop/references/activities/residual
   || fail "residual.md missing quality /goal closer"
 grep -q 'Outer-loop deploy/publish' "$root/skills/shiploop/references/activities/residual.md" \
   || fail "residual.md missing outer-loop deploy/publish"
+for residual_act in residual.md residual-waived.md; do
+  residual_path="$root/skills/shiploop/references/activities/$residual_act"
+  grep -Fq 'routing.user_entrypoint' "$residual_path" \
+    || fail "$residual_act missing frozen user-entrypoint compose"
+  grep -Fq -- '--resume-to validate-spec' "$residual_path" \
+    || fail "$residual_act missing dest-block validate-spec"
+  grep -Fq 'dest-hit was never frozen' "$residual_path" \
+    || fail "$residual_act missing unfrozen dest-hit dest-block"
+  grep -Fq 'Q2 mismatches the walk' "$residual_path" \
+    || fail "$residual_act missing wrong-Q2 dest-block"
+  grep -Fq 'watch MCP not in Frozen' "$residual_path" \
+    || fail "$residual_act missing Q3 watch MCP dest-block"
+done
+grep -Fq 're-reads live dest URLs' \
+  "$root/skills/shiploop/references/activities/validate-spec.md" \
+  || fail "validate-spec.md Q2 missing residual live-URL reread"
+grep -Fq 'watch MCP for that check' \
+  "$root/skills/shiploop/references/activities/validate-spec.md" \
+  || fail "validate-spec.md Q3 missing Frozen watch MCP"
+grep -Fq '**user** entrypoint' \
+  "$root/skills/shiploop/references/activities/validate-spec.md" \
+  || fail "validate-spec.md Q3 missing user entrypoint"
 chmod +x "$cli"
 
 le_docs="$root/docs/LOOP-ENGINEERING.md"

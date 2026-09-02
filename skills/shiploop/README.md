@@ -7,7 +7,7 @@ walk-back HTML recap exists.
 
 ShipLoop never conflict-resolves a merge and never claims engine `COMPLETE`.
 
-Package leaf: `skills/shiploop`. Invoke: `/shiploop`. Version: **0.8.18**.
+Package leaf: `skills/shiploop`. Invoke: `/shiploop`. Version: **0.8.19**.
 
 Canonical companions (do not duplicate their contracts here):
 

@@ -160,12 +160,16 @@ second project-create survey.
    someone still need to deploy or publish? Record one of: **outer-loop**
    (residual, after review-coverage — not a DAG step), **dag** (one
    sequence step; that *is* the plan's intermediate/late deploy), or
-   **none**.
+   **none**. Residual re-reads live dest URLs and composes them onto frozen
+   routing; it does not rewrite this answer unless dest-blocked to
+   validate-spec.
 3. **Quality test/fix on outer-loop completion?** After residual
    review-coverage, should the host run a `/goal` quality test-and-fix pass
    on the completed product before dest done? Record yes (and what to
-   check) or no. Residual treats that answer as frozen: yes runs it, no
-   skips it.
+   check) or no. If dest-hit differs from the default dest entrypoint, what
+   to check names the **user** entrypoint. Any watch MCP for that check
+   goes in machine `mcp:`/`tools` now (brief-only is Don't-use). Residual
+   treats that answer as frozen: yes runs it, no skips it.
 4. **Human-facing surfaces?** If survey `ui` is true, name each surface and
    say it is **designed** (distinctive, highly interactive within dest
    conventions) before it is built. If `ui` is false, say none.
