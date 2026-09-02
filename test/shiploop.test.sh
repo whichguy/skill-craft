@@ -1403,6 +1403,9 @@ printf '%s\n' "$out_imp" | grep -q 'Work in this worktree folder' || fail "imple
 printf '%s\n' "$out_imp" | grep -q 'Finish S1:' || fail "implement Progress missing finish S1"
 printf '%s\n' "$out_imp" | awk '/^## Progress$/,/^## Reminder$/' | grep -q 'Finish S1:' \
   || fail "implement Progress missing Finish S1:"
+printf '%s\n' "$out_imp" | awk '/^## Progress$/,/^## Reminder$/' \
+  | grep -Fq -- '--inner-loop goal' \
+  || fail "implement Progress missing --inner-loop goal"
 printf '%s\n' "$out_imp" | awk '/^## Progress$/,/^## Reminder$/' | grep -q 'leftover uncommitted' \
   || fail "implement Progress missing leftover-only"
 printf '%s\n' "$out_imp" | awk '/^## Progress$/,/^## Reminder$/' | grep -q 'Key learnings:' \

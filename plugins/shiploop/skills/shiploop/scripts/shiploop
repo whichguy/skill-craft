@@ -3099,7 +3099,8 @@ def print_progress(
             f"open Improve /goal B (last 7 commits, 2 consecutive only-trivial, "
             f"max 12); leftover uncommitted: same Implement git schema "
             f"(log -10, Key learnings:, See: <sha>), commit on the worktree, "
-            f"then invoke /shiploop complete "
+            f"then invoke /shiploop complete --inner-loop goal "
+            f"(or --inner-loop parent if /goal is off) "
             f"(harness merges git -C {repo_s} merge --no-ff --no-edit {br or '<branch>'} "
             f"and prints Git ran)."
         )
