@@ -33,6 +33,17 @@ Persist `{{BACKCHAIN_JSON}}` only after topology is resolved. Never hand-edit
 `prompt`) back into Backchain. Do not audit the persisted DAG for new experiments.
 Confirmation sinks remain DAG steps at implement.
 
+When frozen `layout` and `routing` exist, seed the DAG with two distinct
+verification kinds. Do not collapse them:
+
+1. A **routing-level probe** whose `produces` names `routing.confirmation`.
+   It hits the frozen `routing.user_entrypoint` at the reserved-route
+   boundary, not a module helper that bypasses the dispatcher, and is not a
+   browser play-through.
+2. At most one **live acceptance** sink. If it needs a browser MCP that is
+   missing or locked, dest blocked (`resume_to=plan` or `validate-spec`), not
+   fabricated confirmation notes.
+
 Unverified login, credentials, hosted ids, and “the API works this way” are
 not `initial_state`. A missing precondition later steps consume, with topology
 unchanged, becomes an early seed (the implement `/goal` is the spike). Do not
@@ -107,15 +118,20 @@ Label meanings (host judgment — the script does not check these words):
   `exclusive[].dont_use`) as distinct semicolon-separated entries, plus
   unauthenticated, deferred, or wrong-for-this-step tools/MCP. `Don't use:
   none` is empty. A token under `Use:` does not count.
+- **Don't write:** frozen `layout.reserved` trees as distinct
+  semicolon-separated entries. `Don't write: none` is empty. Product feature
+  code never lands in Reserved; this label is separate from `Don't use:`.
 - **Assume:** frozen brief facts, **or** a probe-verified / survey-established
   fact recorded in `initial_state` or `resolved_facts` — never a newly
-  invented host guess.
+  invented host guess. When layout/routing are frozen, include: user hits
+  `routing.user_entrypoint`; default dest route is `routing.reserved_routes`.
 
 ```text
 Tools:
 Watch with: cursor-ide-browser(browser_snapshot)
 Use: git
 Don't use: Drive MCP (not signed in); browser MCP (later quality check)
+Don't write: none
 Assume: git remote already exists; do not write a new test harness
 ```
 
@@ -126,6 +142,7 @@ Tools:
 Watch with: none(no read-capable session tool matched done-sentence)
 Use: git
 Don't use: none
+Don't write: none
 Assume: this increment stays local
 ```
 
@@ -141,6 +158,11 @@ need `/goal` plus until-`produces` and stay exempt from reference and
 `exclusive` is nonempty. Seed `prompt`s must not copy the implement envelope
 (the script prints it at implement; copies drift). Follow the printed Next envelope.
 See `{{IMPLEMENT_ACTIVITY}}`.
+
+Frozen reprint repeats Reserved, Product, and Entrypoint after Exclusive rows,
+then says `Don't write product into Reserved.` The seed's `Don't write:` line
+is the plan-time guard that reaches the stored prompt; do not rely on an
+in-flight implement instruction to supply it.
 
 Persist the backchain document to `{{BACKCHAIN_JSON}}` (canonical). Then
 write `{{PLAN_MD}}` with a labeled line `done_sentence: {{DONE_SENTENCE}}`

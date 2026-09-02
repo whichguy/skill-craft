@@ -23,7 +23,7 @@ EXIT_BLOCKED = 2
 EXIT_USAGE = 64
 
 PACKAGE_ROOT = Path(__file__).resolve().parents[1]
-VERSION = "0.8.16"
+VERSION = "0.8.17"
 REF_DIR = PACKAGE_ROOT / "references"
 WT_DIRNAME = ".worktrees"
 # Printed in ## Progress and the implement Next envelope. Do not splice into
@@ -97,6 +97,10 @@ _DONT_USE_LINE_RE = re.compile(
     r"^[ \t]*(?:Don't use|Do not use|Don\u2019t use)[ \t]*:(.*)$",
     re.I,
 )
+_DONT_WRITE_LINE_RE = re.compile(
+    r"^[ \t]*(?:Don't write|Do not write|Don\u2019t write)[ \t]*:(.*)$",
+    re.I,
+)
 _USE_LINE_RE = re.compile(r"^[ \t]*Use[ \t]*:(.*)$", re.I)
 
 STATUS_RE = re.compile(
@@ -111,6 +115,9 @@ PLAN_HASH_RE = re.compile(
 COMMITTED_YES_RE = re.compile(r"(?im)^\*\*Committed:\*\*\s*yes\b")
 COMMITTED_NO_RE = re.compile(r"(?im)^\*\*Committed:\*\*\s*no\b")
 ROUND_HEAD_RE = re.compile(r"(?im)^###\s+Round\s+(?P<n>\d+)\b")
+REVIEW_CONVERGE_ROUND_RE = re.compile(
+    r"(?im)(?:review-converge|grok-review-converge):\s*round\s+\d+\s*—"
+)
 WAIVER_RE = re.compile(
     r"(?im)^[ \t]*None\s*[—–-]\s*residual\s+loop\s+waived\s*:\s*(?P<reason>\S.+?)\s*$"
 )
@@ -653,6 +660,76 @@ def _nonempty_references(env: Dict[str, Any]) -> List[Dict[str, Any]]:
     return out
 
 
+def _layout_routing_gaps(env: Dict[str, Any], *, required: bool) -> List[str]:
+    """Shape-check frozen destination layout/routing at dest plan only."""
+    gaps: List[str] = []
+    refs = {str(r["path"]).strip() for r in _nonempty_references(env)}
+
+    if "layout" not in env:
+        if required:
+            gaps.append(
+                "machine.layout required when exclusive is nonempty; "
+                f"{ENV_RECOVERY}"
+            )
+    else:
+        layout = env.get("layout")
+        if not isinstance(layout, dict):
+            gaps.append("machine.layout must be an object")
+        else:
+            for key in ("reserved", "product"):
+                values = layout.get(key)
+                if not isinstance(values, list) or not values:
+                    gaps.append(f"machine.layout.{key} must be a nonempty list")
+                    continue
+                for i, value in enumerate(values):
+                    if not isinstance(value, str) or not value.strip():
+                        gaps.append(
+                            f"machine.layout.{key}[{i}] must be a nonempty string"
+                        )
+
+    if "routing" not in env:
+        if required:
+            gaps.append(
+                "machine.routing required when exclusive is nonempty; "
+                f"{ENV_RECOVERY}"
+            )
+    else:
+        routing = env.get("routing")
+        if not isinstance(routing, dict):
+            gaps.append("machine.routing must be an object")
+        else:
+            for key in ("user_entrypoint", "confirmation", "source"):
+                value = routing.get(key)
+                if not isinstance(value, str) or not value.strip():
+                    gaps.append(f"machine.routing.{key} must be a nonempty string")
+            routes = routing.get("reserved_routes")
+            if not isinstance(routes, list) or not routes:
+                gaps.append("machine.routing.reserved_routes must be a nonempty list")
+            else:
+                for i, value in enumerate(routes):
+                    if not isinstance(value, str) or not value.strip():
+                        gaps.append(
+                            "machine.routing.reserved_routes[{}] must be a nonempty "
+                            "string".format(i)
+                        )
+            source = routing.get("source")
+            if isinstance(source, str) and source.strip() and source.strip() not in refs:
+                gaps.append("machine.routing.source must name a references[].path")
+    return gaps
+
+
+def _reserved_paths(env: Optional[Dict[str, Any]]) -> List[str]:
+    if not isinstance(env, dict):
+        return []
+    layout = env.get("layout")
+    if not isinstance(layout, dict):
+        return []
+    values = layout.get("reserved")
+    if not isinstance(values, list):
+        return []
+    return [value.strip() for value in values if isinstance(value, str) and value.strip()]
+
+
 def exclusive_gaps(env: Optional[Dict[str, Any]]) -> List[str]:
     """dest plan: exclusive key present; nonempty rows need nonempty references."""
     if not env:
@@ -673,6 +750,7 @@ def exclusive_gaps(env: Optional[Dict[str, Any]]) -> List[str]:
             "machine.references must be nonempty when exclusive is nonempty; "
             f"{ENV_RECOVERY}"
         )
+    gaps.extend(_layout_routing_gaps(env, required=bool(rows)))
     uses: List[Tuple[int, str]] = []
     donts: List[Tuple[int, List[str]]] = []
     for i, row in enumerate(rows):
@@ -737,6 +815,16 @@ def parse_tools_dont_use(prompt: str) -> Optional[List[str]]:
     return [p.strip() for p in last_rest.split(";") if p.strip()]
 
 
+def parse_tools_dont_write(prompt: str) -> Optional[List[str]]:
+    """Last Don't write: / Do not write: line in the last Tools: block."""
+    last_rest = _last_tools_line(prompt, _DONT_WRITE_LINE_RE)
+    if last_rest is None:
+        return None
+    if last_rest.lower() == "none":
+        return []
+    return [p.strip() for p in last_rest.split(";") if p.strip()]
+
+
 def parse_tools_use(prompt: str) -> Optional[List[str]]:
     """Last Use: line in the last Tools: block.
 
@@ -788,6 +876,24 @@ def writer_prompt_gaps(
         gaps.append(
             f"{sid} prompt Use: and Don't use: overlap on {tok}; {ENV_RECOVERY}"
         )
+    return gaps
+
+
+def reserved_prompt_gaps(sid: str, prompt: str, reserved: List[str]) -> List[str]:
+    """Seed-only reserved-tree guard; discovered in-flight work is exempt."""
+    if not reserved or reserved == ["none"]:
+        return []
+    entries = parse_tools_dont_write(prompt)
+    if entries is None:
+        return [f"{sid} prompt must have a Don't write: line; {ENV_RECOVERY}"]
+    have = set(entries)
+    gaps: List[str] = []
+    for path in reserved:
+        if path not in have:
+            gaps.append(
+                f"{sid} prompt must list reserved path {path} as a Don't write: "
+                f"entry; {ENV_RECOVERY}"
+            )
     return gaps
 
 
@@ -1003,6 +1109,18 @@ def latest_round_body(text: str) -> Tuple[str, Optional[str]]:
     return text[start:end], last.group("n")
 
 
+def committed_review_round(repo_root: Path, n: str) -> bool:
+    """Read-only fallback for a landed latest ledger round."""
+    for subject in (
+        f"review-converge: round {n} —",
+        f"grok-review-converge: round {n} —",
+    ):
+        got = git_run(repo_root, "log", "--format=%s", f"--grep={subject}")
+        if got.returncode == 0 and (got.stdout or "").strip():
+            return True
+    return False
+
+
 def ledger_report(repo_root: Path, state: Dict[str, Any]) -> Dict[str, Any]:
     ledger = repo_root / "REVIEW_CONVERGE.md"
     out: Dict[str, Any] = {
@@ -1043,12 +1161,12 @@ def ledger_report(repo_root: Path, state: Dict[str, Any]) -> Dict[str, Any]:
     committed_yes = bool(last_c and re.search(r"(?i)yes\b", last_c) and not re.search(r"(?i)no\b", last_c))
     subj = False
     if n is not None:
-        subj = bool(
-            re.search(
-                rf"(?im)(?:review-converge|grok-review-converge):\s*round\s+{re.escape(n)}\s*—",
-                round_body,
-            )
+        subj = any(
+            match.group(0).rsplit("round", 1)[-1].strip().split(None, 1)[0] == n
+            for match in REVIEW_CONVERGE_ROUND_RE.finditer(round_body)
         )
+        if not subj:
+            subj = committed_review_round(repo_root, n)
     out["landed"] = bool(committed_yes and subj)
     return out
 
@@ -1301,6 +1419,12 @@ def render_recap_html(run_dir: Path, state: Dict[str, Any], *, dest: str) -> str
     classes = classify_steps(run_dir, state) if ids else {}
     n_done = sum(1 for sid in ids if classes.get(sid) == "done")
     drained = bool(ids) and n_done == len(ids)
+    inner_loop_rows: List[str] = []
+    for sid in ids:
+        receipt = load_receipt(run_dir, sid)
+        value = receipt.get("inner_loop") if isinstance(receipt, dict) else None
+        if isinstance(value, str) and value in ("goal", "parent"):
+            inner_loop_rows.append(f"{sid}: {value}")
     if dest == "halted":
         stamp = "HALTED"
         outcome = (
@@ -1340,6 +1464,12 @@ def render_recap_html(run_dir: Path, state: Dict[str, Any], *, dest: str) -> str
         ) + "</ol>"
     else:
         hist_html = "<p class=\"empty\">(no history.jsonl)</p>"
+    if inner_loop_rows:
+        inner_loop_html = "<ul>" + "".join(
+            f"<li><code>{_html_text(row)}</code></li>" for row in inner_loop_rows
+        ) + "</ul>"
+    else:
+        inner_loop_html = "<p class=\"empty\">(no inner_loop attestations)</p>"
     ledger_status = diag_text(ledger.get("status")) if ledger else "(none)"
     landed = "yes" if ledger.get("landed") else "no"
     bound = "yes" if ledger.get("bound") else "no"
@@ -1593,6 +1723,10 @@ pre {{
 <p>Harness events that moved the session (file order, last 24).</p>
 {hist_html}
 
+<h2>Inner loop attestation</h2>
+<p>Recorded completion mode when present.</p>
+{inner_loop_html}
+
 <h2>Verified</h2>
 <p>{_html_text(coverage)}.</p>
 <p>{_html_text(RECAP_QUALITY_HOST_OWNED)}</p>
@@ -1665,6 +1799,7 @@ def dag_gaps(run_dir: Path, spec: Optional[Dict[str, Any]]) -> List[str]:
     mcp_considered = ""
     dont_use_tokens = _dont_use_tokens(env if isinstance(env, dict) else None)
     use_token = _use_token(env if isinstance(env, dict) else None)
+    reserved_paths = _reserved_paths(env if isinstance(env, dict) else None)
     if isinstance(env, dict):
         mc = env.get("mcp_considered")
         if isinstance(mc, str) and mc.strip():
@@ -1739,6 +1874,8 @@ def dag_gaps(run_dir: Path, spec: Optional[Dict[str, Any]]) -> List[str]:
             and prompt.strip()
         ):
             gaps.extend(writer_prompt_gaps(sid, prompt, dont_use_tokens, use_token))
+        if origin == "seed" and isinstance(prompt, str) and prompt.strip():
+            gaps.extend(reserved_prompt_gaps(sid, prompt, reserved_paths))
         inputs = step.get("inputs")
         if not isinstance(inputs, list):
             gaps.append(f"{sid} inputs must be a list")
@@ -2194,7 +2331,13 @@ def resolve_step_id(run_dir: Path, state: Dict[str, Any], explicit: Optional[str
     return ""
 
 
-def apply_complete_receipt(run_dir: Path, state: Dict[str, Any], sid: str) -> str:
+def apply_complete_receipt(
+    run_dir: Path,
+    state: Dict[str, Any],
+    sid: str,
+    *,
+    inner_loop: Optional[str] = None,
+) -> str:
     refuse_if_blocked_step_cmd(state)
     check_frozen_hashes(state, run_dir, None)
     if sid not in steps_by_id(run_dir):
@@ -2255,19 +2398,19 @@ def apply_complete_receipt(run_dir: Path, state: Dict[str, Any], sid: str) -> st
         leftover = Path(wt_s)
         if leftover.exists() or leftover.is_symlink():
             die(EXIT_BLOCKED, f"could not remove worktree {wt_s}")
-    write_json_atomic(
-        receipt_path(run_dir, sid),
-        {
-            "writer": "shiploop.complete-step",
-            "run_id": state.get("run_id"),
-            "id": sid,
-            "status": "complete",
-            "plan_sha256": plan_hash,
-            "worktree": "",
-            "branch": branch,
-            "base_sha": base,
-        },
-    )
+    receipt = {
+        "writer": "shiploop.complete-step",
+        "run_id": state.get("run_id"),
+        "id": sid,
+        "status": "complete",
+        "plan_sha256": plan_hash,
+        "worktree": "",
+        "branch": branch,
+        "base_sha": base,
+    }
+    if inner_loop in ("goal", "parent"):
+        receipt["inner_loop"] = inner_loop
+    write_json_atomic(receipt_path(run_dir, sid), receipt)
     save_state(run_dir, state, event=f"complete-step:{sid}")
     return sid
 
@@ -2809,6 +2952,31 @@ def print_frozen_session_env(run_dir: Path) -> None:
                 du = "; ".join(toks) if toks else "(none)"
                 print(f"Exclusive: {artifact} — use {use}; don't use {du}")
             print(DEST_BLOCKED_LINE)
+    layout = env.get("layout")
+    routing = env.get("routing")
+    if isinstance(layout, dict):
+        reserved = layout.get("reserved")
+        product = layout.get("product")
+        reserved_s = "; ".join(
+            str(value).strip()
+            for value in reserved
+            if isinstance(value, str) and value.strip()
+        ) if isinstance(reserved, list) else "(none)"
+        product_s = "; ".join(
+            str(value).strip()
+            for value in product
+            if isinstance(value, str) and value.strip()
+        ) if isinstance(product, list) else "(none)"
+        print(f"Reserved: {reserved_s or '(none)'}")
+        print(f"Product: {product_s or '(none)'}")
+    if isinstance(routing, dict):
+        entrypoint = routing.get("user_entrypoint")
+        entrypoint_s = (
+            entrypoint.strip() if isinstance(entrypoint, str) and entrypoint.strip() else "(none)"
+        )
+        print(f"Entrypoint: {entrypoint_s}")
+    if isinstance(layout, dict) and isinstance(routing, dict):
+        print("Don't write product into Reserved.")
     print(f"See: {(run_dir / 'environment.md').resolve()}")
 
 
@@ -2817,7 +2985,6 @@ def print_progress(
 ) -> None:
     """Verbose begin / finish / worktree progression. Not a new SM phase."""
     phase = str(state.get("phase"))
-    print("## Progress")
     print_host_worktree_flag()
     print(f"Session phase: {phase} — {activity_title(phase, state)}.")
     repo = repo_of(state)
@@ -3274,6 +3441,7 @@ def print_packet(run_dir: Path, state: Dict[str, Any], *, prior_running: Optiona
     print()
     print_diagnosis(run_dir, state)
     print()
+    print("## Progress")
     print_progress(run_dir, state, prior_running=prior_running)
     print()
     print("## Reminder")
@@ -3720,7 +3888,18 @@ def cmd_complete(args: argparse.Namespace) -> int:
             )
             if can_complete:
                 sid = resolve_step_id(run_dir, state, explicit)
-                apply_complete_receipt(run_dir, state, sid)
+                plan_hash = str(state.get("plan_sha256") or "")
+                is_running = sid in steps_by_id(run_dir) and receipt_matches(
+                    load_receipt(run_dir, sid), plan_hash, "running"
+                )
+                inner_loop = getattr(args, "inner_loop", None)
+                if is_running and inner_loop not in ("goal", "parent"):
+                    die(
+                        EXIT_BLOCKED,
+                        "complete requires --inner-loop goal|parent when completing "
+                        "an implement step",
+                    )
+                apply_complete_receipt(run_dir, state, sid, inner_loop=inner_loop)
                 if steps_drained(run_dir, state):
                     apply_update(run_dir, state, "residual")
                     print(f"completed {sid}")
@@ -3910,6 +4089,7 @@ def build_parser() -> argparse.ArgumentParser:
     comp.add_argument("--blocked", action="store_true")
     comp.add_argument("--reason", default="")
     comp.add_argument("--resume-to", default="")
+    comp.add_argument("--inner-loop", choices=("goal", "parent"), default=None)
     inj = sub.add_parser("inject-step")
     inj.add_argument("--run-dir")
     inj.add_argument("--statement", required=True)

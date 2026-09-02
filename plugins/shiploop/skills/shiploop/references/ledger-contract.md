@@ -22,9 +22,11 @@ Do not author STATIC / halt sentences here.
 Latest `### Round` / `### Round N` section must contain:
 
 - `(?im)^\*\*Committed:\*\*\s*yes\b`
-- `(?im)review-converge:\s*round\s+\d+\s*—` or legacy `grok-review-converge:`
+- `(?im)(?:review-converge|grok-review-converge):\s*round\s+\d+\s*—`
 
 `Committed: no` is not landed. `stopped (...)` is halt, not `done`.
+Landed also holds when read-only `git log --grep` finds that latest-round
+subject; the latest round must still say `Committed: yes`.
 
 ## Waiver (bound plan file only)
 

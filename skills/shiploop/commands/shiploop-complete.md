@@ -10,7 +10,9 @@ The current ShipLoop increment is finished. This command **is** the closer, not 
    - `Key learnings:` bullets
    - `See: <full sha> <subject>` for prior commits that taught this lesson
    If `/goal` already committed, do **not** invent a second finish commit.
-2. Then exec the harness `complete`. It merges
+2. Then exec the harness `complete --inner-loop goal` after `/goal`, or
+   `complete --inner-loop parent` after the equivalent host-native inner
+   loop. It merges
    (`git -C <session-checkout> merge --no-ff --no-edit <branch>`), prints
    `Git ran:` (argv + exit + output), dests residual when this was the last
    step, and prints the next packet. Session checkout = `repo_root` main
@@ -19,7 +21,9 @@ The current ShipLoop increment is finished. This command **is** the closer, not 
 
 Complete runs the merge; it does not resolve conflicts. Full sequence: [README.md — Git sequence (harness vs host)](../README.md#git-sequence-harness-vs-host).
 
-Then exec `python3 "$SKILL_ROOT/scripts/shiploop" complete` (or the leaf wrapper `scripts/shiploop-complete`) so the harness prints the next packet.
+Then exec `python3 "$SKILL_ROOT/scripts/shiploop" complete --inner-loop goal`
+(or the leaf wrapper with `--inner-loop parent` for the host-native loop) so
+the harness prints the next packet.
 
 - `/goal` failed, session continues: `--clear`
 - Hard stop: `--blocked --reason <text>`

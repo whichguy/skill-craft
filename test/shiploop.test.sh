@@ -125,6 +125,11 @@ if grep -RqiE 'mcp-gas-deploy|commonjs' --exclude-dir=__pycache__ \
   "$root/skills/shiploop/scripts/shiploop"; then
   fail "shiploop must not mandate a vendor MCP server or module format"
 fi
+if grep -RqiE 'mcp-gas-deploy|common-js|HtmlService|doGet|/play' \
+  "$root/skills/shiploop/references/activities" \
+  "$root/skills/shiploop/references/survey.md"; then
+  fail "shiploop destination discovery must stay vendor-free"
+fi
 if grep -q '{{' "$root/skills/shiploop/references/survey.md"; then
   fail "survey.md must not contain interpolation tokens (Look-here is not interpolated)"
 fi
@@ -140,6 +145,15 @@ grep -q 'must not use packet-level H2' \
 grep -q '^### 2. Best-practice research' \
   "$root/skills/shiploop/references/activities/validate-spec.md" \
   || fail "validate-spec.md job 2 heading is not ###"
+for title in 'How to use this MCP' 'Library / runtime systems it imposes' \
+  'Conventions — reserved vs product' 'How a user actually hits'; do
+  grep -Fq "$title" "$root/skills/shiploop/references/activities/validate-spec.md" \
+    || fail "validate-spec.md missing destination discovery question: $title"
+done
+for needle in "Don't write:" 'routing-level probe' 'live acceptance'; do
+  grep -Fq "$needle" "$root/skills/shiploop/references/activities/plan.md" \
+    || fail "plan.md missing destination seed contract: $needle"
+done
 grep -q 'practice references' "$root/skills/shiploop/references/activities/plan.md" \
   || fail "plan.md missing practice references in step prompts"
 grep -q 'researches applicable practices' "$root/skills/shiploop/README.md" \
@@ -578,6 +592,49 @@ assert_headings() {
     prev="$h"
   done <<<"$HEADINGS"
 }
+
+python3 - "$root/skills/shiploop/references/turn-packet.md" "$cli" <<'PY' \
+  || fail "turn-packet heading list drifted from print_packet"
+import ast, re, sys
+from pathlib import Path
+doc = Path(sys.argv[1]).read_text(encoding="utf-8")
+script = Path(sys.argv[2]).read_text(encoding="utf-8")
+match = re.search(r"```text\n((?:## [^\n]+\n)+)```", doc)
+assert match, "turn-packet H2 fence missing"
+want = re.findall(r"^## .+$", match.group(1), flags=re.M)
+tree = ast.parse(script)
+packet = next(node for node in tree.body if isinstance(node, ast.FunctionDef) and node.name == "print_packet")
+got = [
+    node.args[0].value
+    for node in ast.walk(packet)
+    if isinstance(node, ast.Call)
+    and isinstance(node.func, ast.Name)
+    and node.func.id == "print"
+    and node.args
+    and isinstance(node.args[0], ast.Constant)
+    and isinstance(node.args[0].value, str)
+    and node.args[0].value.startswith("## ")
+]
+assert got == want, (got, want)
+PY
+
+python3 - "$root/skills/shiploop/references/ledger-contract.md" "$cli" <<'PY' \
+  || fail "ledger-contract regex source drifted from shiploop"
+import sys
+from pathlib import Path
+contract = Path(sys.argv[1]).read_text(encoding="utf-8")
+script = Path(sys.argv[2]).read_text(encoding="utf-8")
+needles = (
+    r"(?im)\bStatus\b[^\n]*(?P<state>stopped\s*\([^\n)]*\)|complete\b|active\b)",
+    r"(?im)^\*\*Plan contract:\*\*\s*`?(?P<path>[^`\n]+?)`?\s*$",
+    r"(?im)^\*\*Plan hash:\*\*\s*`?(?P<hash>[0-9a-fA-F]{64})`?",
+    r"(?im)^\*\*Committed:\*\*\s*yes\b",
+    r"(?im)(?:review-converge|grok-review-converge):\s*round\s+\d+\s*—",
+)
+for needle in needles:
+    assert needle in contract, needle
+    assert needle in script, needle
+PY
 
 assert_absent() {
   local out="$1" pat="$2" msg="$3"
@@ -1517,7 +1574,7 @@ complete_ok "$runlast" S1
 run_cli next --run-dir "$runlast" >/dev/null
 commit_step_work "$runlast" S2
 set +e
-out_last="$(run_cli complete --run-dir "$runlast" --id S2 2>&1)"
+out_last="$(run_cli complete --run-dir "$runlast" --id S2 --inner-loop parent 2>&1)"
 rc_last=$?
 set -e
 [[ "$rc_last" -eq 2 ]] || fail "last-step unbound complete want 2: $out_last"
@@ -1622,6 +1679,36 @@ rc_fl=$?
 set -e
 [[ "$rc_fl" -eq 2 ]] || fail "false landed want 2: $out_fl"
 printf 'LAYER: latest-round landed OK\n'
+
+# --- latest round may land from the matching git subject alone ---
+git -C "$repo" commit --allow-empty -m 'review-converge: round 2 —' >/dev/null
+cat >"$repo/REVIEW_CONVERGE.md" <<MD
+**Status:** complete
+**Plan contract:** \`$planf\`
+**Plan hash:** \`$bhash\`
+
+### Round 2 —
+**Committed:** yes
+MD
+rm -f "$run/recap.html"
+out_git_landed="$(run_cli update --run-dir "$run" --to done)"
+printf '%s\n' "$out_git_landed" | grep -q 'updated residual -> done' \
+  || fail "git subject should land latest round: $out_git_landed"
+python3 - "$run" <<'PY' || fail "git subject latest round did not dest done"
+import json, sys
+from pathlib import Path
+assert json.loads((Path(sys.argv[1]) / "state.json").read_text())["phase"] == "done"
+PY
+python3 - "$run" <<'PY'
+import json, sys
+from pathlib import Path
+p = Path(sys.argv[1]) / "state.json"
+data = json.loads(p.read_text())
+data["phase"] = "residual"
+data["terminal"] = None
+p.write_text(json.dumps(data, indent=2) + "\n")
+PY
+printf 'LAYER: git-log latest-round landed OK\n'
 
 cat >"$repo/REVIEW_CONVERGE.md" <<MD
 **Status:** complete
@@ -1851,7 +1938,7 @@ set -e
 [[ "$rc_ss" -eq 2 ]] || fail "double start want 2: $out_ss"
 commit_step_work "$run2" S1
 merge_step_branch "$run2" S1
-out_tr_c="$(run_cli complete --run-dir "$run2" --id S1)"
+out_tr_c="$(run_cli complete --run-dir "$run2" --id S1 --inner-loop parent)"
 printf '%s\n' "$out_tr_c" | grep -q 'In flight' \
   || fail "complete --id S1 did not keep S2 in-flight: $out_tr_c"
 printf '%s\n' "$out_tr_c" | grep -q 'Continuing' \
@@ -2650,7 +2737,7 @@ printf '%s\n' "$out_2r" | grep -qi 'multiple running' || fail "two-running messa
 wt2s1="$(python3 -c "import json; print(json.load(open('$run2r/steps/S1.json'))['worktree'])")"
 commit_step_work "$run2r" S1
 merge_step_branch "$run2r" S1
-out_cwd="$(cd "$wt2s1" && run_cli complete)"
+out_cwd="$(cd "$wt2s1" && run_cli complete --inner-loop parent)"
 printf '%s\n' "$out_cwd" | grep -q 'completed S1' || fail "cwd worktree did not complete S1: $out_cwd"
 python3 - "$run2r" <<'PY'
 import json, sys
@@ -2659,6 +2746,44 @@ rec = json.loads((Path(sys.argv[1]) / "steps" / "S1.json").read_text())
 assert rec["status"] == "complete", rec
 PY
 printf 'LAYER: two-running inference OK\n'
+
+# --- implement completion requires and records inner-loop attestation ---
+runil="$tmpdir/inner-loop/.shiploop"
+repoil="$tmpdir/inner-loop/repo"
+advance_to_plan "$runil" "$repoil" "$planf"
+install_dag "$runil" linear.json
+run_cli update --run-dir "$runil" --to implement >/dev/null
+run_cli next --run-dir "$runil" >/dev/null
+commit_step_work "$runil" S1
+merge_step_branch "$runil" S1
+set +e
+out_il_missing="$(run_cli complete --run-dir "$runil" --id S1 2>&1)"
+rc_il_missing=$?
+set -e
+[[ "$rc_il_missing" -eq 2 ]] || fail "implement complete without inner-loop want 2: $out_il_missing"
+printf '%s\n' "$out_il_missing" | grep -Fq -- '--inner-loop goal|parent' \
+  || fail "implement complete missing inner-loop message: $out_il_missing"
+out_il_parent="$(run_cli complete --run-dir "$runil" --id S1 --inner-loop parent)"
+printf '%s\n' "$out_il_parent" | grep -q 'completed S1' \
+  || fail "parent inner-loop complete did not complete S1: $out_il_parent"
+python3 - "$runil" <<'PY' || fail "inner-loop parent receipt missing"
+import json, sys
+from pathlib import Path
+rec = json.loads((Path(sys.argv[1]) / "steps" / "S1.json").read_text())
+assert rec.get("inner_loop") == "parent", rec
+PY
+python3 - "$cli" "$runil" <<'PY' || fail "recap inner-loop attestation missing"
+import importlib.machinery, importlib.util, json, sys
+from pathlib import Path
+loader = importlib.machinery.SourceFileLoader("shiploop_inner", sys.argv[1])
+spec = importlib.util.spec_from_loader("shiploop_inner", loader)
+mod = importlib.util.module_from_spec(spec)
+loader.exec_module(mod)
+run = Path(sys.argv[2])
+html = mod.render_recap_html(run, json.loads((run / "state.json").read_text()), dest="done")
+assert "Inner loop attestation" in html and "S1: parent" in html, html
+PY
+printf 'LAYER: implement inner-loop attestation OK\n'
 
 # --- closer-walk: complete only (no --id / --to) ---
 runw="$tmpdir/walk/.shiploop"
@@ -2683,7 +2808,7 @@ wt_s1="$(python3 -c "import json; print(json.load(open('$runw/steps/S1.json'))['
 s1sha="$(git -C "$wt_s1" rev-parse HEAD)"
 [[ -n "$s1sha" ]] || fail "closer walk missing S1 commit sha"
 merge_step_branch "$runw" S1
-out_w4="$(run_cli complete --run-dir "$runw")"
+out_w4="$(run_cli complete --run-dir "$runw" --inner-loop parent)"
 printf '%s\n' "$out_w4" | grep -q 'completed S1' || fail "closer walk S1: $out_w4"
 printf '%s\n' "$out_w4" | grep -q 'S2: running' || fail "closer walk did not claim S2"
 printf '%s\n' "$out_w4" | grep -q 'stand      implement — 1/2 steps done' || fail "closer walk mid stand"
@@ -2695,7 +2820,7 @@ git -C "$wt_s2" log -1 --format=%s "$s1sha" | grep -qx 'step S1' \
   || fail "S2 log missing S1 subject"
 commit_step_work "$runw" S2
 merge_step_branch "$runw" S2
-out_w5="$(run_cli complete --run-dir "$runw")"
+out_w5="$(run_cli complete --run-dir "$runw" --inner-loop parent)"
 printf '%s\n' "$out_w5" | grep -q 'completed S2' || fail "closer walk S2: $out_w5"
 n_out="$(printf '%s\n' "$out_w5" | grep -c '^completed S2$' || true)"
 [[ "$n_out" -eq 1 ]] || fail "closer walk last complete extra outcome: $out_w5"
@@ -3317,6 +3442,23 @@ write_machine "$runpb" '{"kind": "greenfield", "augment": false, "references": [
  "exclusive": []}'
 run_cli update --run-dir "$runpb" --to plan >/dev/null
 printf 'LAYER: dest-plan exclusive [] with mcp nonempty OK\n'
+
+runpboptional="$tmpdir/exclusive-optional/.shiploop"
+repopboptional="$tmpdir/exclusive-optional/repo"
+fresh_vs "$runpboptional" "$repopboptional"
+write_machine "$runpboptional" "{\"kind\": \"greenfield\", \"augment\": false, \"references\": [{\"path\": \"$fix/existing-app/README.md\", \"why\": \"routing source\"}], \"tools\": [], \"mcp\": [],
+ \"mcp_considered\": \"none(x)\", \"handles\": [], \"initiation\": \"none\", \"ui\": false, \"ui_craft\": \"none(no UI)\", \"exclusive\": [],
+ \"layout\": {\"reserved\": [], \"product\": [\"app/\"]},
+ \"routing\": {\"user_entrypoint\": \"none\", \"reserved_routes\": [\"none\"], \"confirmation\": \"none\", \"source\": \"$fix/existing-app/README.md\"}}"
+set +e
+out_pboptional="$(run_cli update --run-dir "$runpboptional" --to plan 2>&1)"
+rc_pboptional=$?
+set -e
+[[ "$rc_pboptional" -eq 2 ]] || fail "optional layout present but malformed want 2: $out_pboptional"
+printf '%s\n' "$out_pboptional" | grep -qi 'layout' \
+  || fail "optional layout malformed message: $out_pboptional"
+printf 'LAYER: optional layout/routing shape-check OK\n'
+
 run_cli update --run-dir "$runpb" --to blocked --resume-to validate-spec --reason "rebind exclusive rows" >/dev/null
 run_cli update --run-dir "$runpb" --to validate-spec --reason "rebind" >/dev/null
 write_spec "$runpb"
@@ -3359,7 +3501,9 @@ set -e
 refpath="$fix/existing-app/README.md"
 write_machine "$runpb" "{\"kind\": \"greenfield\", \"augment\": false, \"references\": [{\"path\": \"$refpath\", \"why\": \"practice\"}], \"tools\": [\"git\", \"alt-cli\"], \"mcp\": [\"writer-mcp\"],
  \"mcp_considered\": \"none(x)\", \"handles\": [], \"initiation\": \"none\", \"ui\": false, \"ui_craft\": \"none(no UI)\",
- \"exclusive\": [{\"artifact\": \"hosted project\", \"use\": \"writer-mcp\", \"dont_use\": [\"alt-cli\"]}]}"
+ \"exclusive\": [{\"artifact\": \"hosted project\", \"use\": \"writer-mcp\", \"dont_use\": [\"alt-cli\"]}],
+ \"layout\": {\"reserved\": [\"none\"], \"product\": [\"none\"]},
+ \"routing\": {\"user_entrypoint\": \"none\", \"reserved_routes\": [\"none\"], \"confirmation\": \"none\", \"source\": \"$refpath\"}}"
 run_cli update --run-dir "$runpb" --to plan >/dev/null
 printf 'LAYER: dest-plan exclusive + references OK\n'
 
@@ -3474,6 +3618,85 @@ assert_absent "$out_pbfz" 'Playbook:' "Frozen still prints Playbook:"
 assert_absent "$out_pbfz" 'do not implement the product through MCP' \
   "Frozen still forbids MCP writes"
 printf 'LAYER: dest-implement parsed Don'\''t use + Frozen Exclusive OK\n'
+
+# --- P0 destination layout/routing + seed Don't write gate ---
+runlr="$tmpdir/layout-routing/.shiploop"
+repolr="$tmpdir/layout-routing/repo"
+fresh_vs "$runlr" "$repolr"
+write_machine "$runlr" "{\"kind\": \"greenfield\", \"augment\": false, \"references\": [{\"path\": \"$refpath\", \"why\": \"writer contract\"}], \"tools\": [\"git\", \"alt-cli\"], \"mcp\": [\"writer-mcp\"],
+ \"mcp_considered\": \"none(x)\", \"handles\": [], \"initiation\": \"none\", \"ui\": false, \"ui_craft\": \"none(no UI)\",
+ \"exclusive\": [{\"artifact\": \"dest artifact\", \"use\": \"writer-mcp\", \"dont_use\": [\"alt-cli\"]}]}"
+set +e
+out_lr_missing="$(run_cli update --run-dir "$runlr" --to plan 2>&1)"
+rc_lr_missing=$?
+set -e
+[[ "$rc_lr_missing" -eq 2 ]] || fail "exclusive layout/routing missing want 2: $out_lr_missing"
+printf '%s\n' "$out_lr_missing" | grep -qiE 'layout|routing' \
+  || fail "exclusive layout/routing missing message: $out_lr_missing"
+
+write_machine "$runlr" "{\"kind\": \"greenfield\", \"augment\": false, \"references\": [{\"path\": \"$refpath\", \"why\": \"writer contract\"}], \"tools\": [\"git\", \"alt-cli\"], \"mcp\": [\"writer-mcp\"],
+ \"mcp_considered\": \"none(x)\", \"handles\": [], \"initiation\": \"none\", \"ui\": false, \"ui_craft\": \"none(no UI)\",
+ \"exclusive\": [{\"artifact\": \"dest artifact\", \"use\": \"writer-mcp\", \"dont_use\": [\"alt-cli\"]}],
+ \"layout\": {\"reserved\": [], \"product\": [\"app/\"]},
+ \"routing\": {\"user_entrypoint\": \"/app\", \"reserved_routes\": [\"/\"], \"confirmation\": \"GET /app\", \"source\": \"$refpath\"}}"
+set +e
+out_lr_shape="$(run_cli update --run-dir "$runlr" --to plan 2>&1)"
+rc_lr_shape=$?
+set -e
+[[ "$rc_lr_shape" -eq 2 ]] || fail "empty reserved layout want 2: $out_lr_shape"
+printf '%s\n' "$out_lr_shape" | grep -qi 'layout' \
+  || fail "empty reserved layout message: $out_lr_shape"
+
+write_machine "$runlr" "{\"kind\": \"greenfield\", \"augment\": false, \"references\": [{\"path\": \"$refpath\", \"why\": \"writer contract\"}], \"tools\": [\"git\", \"alt-cli\"], \"mcp\": [\"writer-mcp\"],
+ \"mcp_considered\": \"none(x)\", \"handles\": [], \"initiation\": \"none\", \"ui\": false, \"ui_craft\": \"none(no UI)\",
+ \"exclusive\": [{\"artifact\": \"dest artifact\", \"use\": \"writer-mcp\", \"dont_use\": [\"alt-cli\"]}],
+ \"layout\": {\"reserved\": [\"runtime/\"], \"product\": [\"app/\"]},
+ \"routing\": {\"user_entrypoint\": \"/app\", \"reserved_routes\": [\"/\"], \"confirmation\": \"GET /app\", \"source\": \"not-a-reference\"}}"
+set +e
+out_lr_source="$(run_cli update --run-dir "$runlr" --to plan 2>&1)"
+rc_lr_source=$?
+set -e
+[[ "$rc_lr_source" -eq 2 ]] || fail "routing source outside references want 2: $out_lr_source"
+printf '%s\n' "$out_lr_source" | grep -q 'routing.source' \
+  || fail "routing source message: $out_lr_source"
+
+write_machine "$runlr" "{\"kind\": \"greenfield\", \"augment\": false, \"references\": [{\"path\": \"$refpath\", \"why\": \"writer contract\"}], \"tools\": [\"git\", \"alt-cli\"], \"mcp\": [\"writer-mcp\"],
+ \"mcp_considered\": \"none(x)\", \"handles\": [], \"initiation\": \"none\", \"ui\": false, \"ui_craft\": \"none(no UI)\",
+ \"exclusive\": [{\"artifact\": \"dest artifact\", \"use\": \"writer-mcp\", \"dont_use\": [\"alt-cli\"]}],
+ \"layout\": {\"reserved\": [\"runtime/\"], \"product\": [\"app/\"]},
+ \"routing\": {\"user_entrypoint\": \"/app\", \"reserved_routes\": [\"/\"], \"confirmation\": \"GET /app\", \"source\": \"$refpath\"}}"
+run_cli update --run-dir "$runlr" --to plan >/dev/null
+printf 'LAYER: destination layout/routing frozen OK\n'
+
+write_seed_dag "$runlr" "${UNTIL_PREFIX}cite ${refpath}
+Tools:
+Watch with: none(x)
+Use: writer-mcp
+Don't use: alt-cli
+Assume: test harness"
+set +e
+out_lr_dontwrite="$(run_cli update --run-dir "$runlr" --to implement 2>&1)"
+rc_lr_dontwrite=$?
+set -e
+[[ "$rc_lr_dontwrite" -eq 2 ]] || fail "missing Don't write want 2: $out_lr_dontwrite"
+printf '%s\n' "$out_lr_dontwrite" | grep -Fq "Don't write" \
+  || fail "missing Don't write message: $out_lr_dontwrite"
+
+write_seed_dag "$runlr" "${UNTIL_PREFIX}cite ${refpath}
+Tools:
+Watch with: none(x)
+Use: writer-mcp
+Don't use: alt-cli
+Don't write: runtime/
+Assume: test harness"
+run_cli update --run-dir "$runlr" --to implement >/dev/null
+out_lr_frozen="$(run_cli next --run-dir "$runlr")"
+for needle in 'Reserved: runtime/' 'Product: app/' 'Entrypoint: /app' \
+  'Don'\''t write product into Reserved.'; do
+  printf '%s\n' "$out_lr_frozen" | grep -Fq "$needle" \
+    || fail "Frozen missing $needle: $out_lr_frozen"
+done
+printf 'LAYER: seed Don'\''t write + Frozen layout/routing OK\n'
 
 python3 - "$cli" "$tmpdir/f1-env" <<'PY' || fail "F1 load_environment blanks on missing exclusive"
 import importlib.machinery, importlib.util, io, sys

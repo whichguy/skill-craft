@@ -7,7 +7,7 @@ walk-back HTML recap exists.
 
 ShipLoop never conflict-resolves a merge and never claims engine `COMPLETE`.
 
-Package leaf: `skills/shiploop`. Invoke: `/shiploop`. Version: **0.8.16**.
+Package leaf: `skills/shiploop`. Invoke: `/shiploop`. Version: **0.8.17**.
 
 Canonical companions (do not duplicate their contracts here):
 
@@ -17,6 +17,9 @@ Canonical companions (do not duplicate their contracts here):
 - [references/turn-packet.md](references/turn-packet.md) — packet headings
 - [references/transitions.json](references/transitions.json) — legal phase edges
 - skill-craft [docs/LOOP-ENGINEERING.md](../../docs/LOOP-ENGINEERING.md) — ShipLoop track
+
+Destination discovery (writer use, imposed libraries, reserved/product layout,
+and user routing) is defined only in [references/survey.md](references/survey.md).
 
 ---
 

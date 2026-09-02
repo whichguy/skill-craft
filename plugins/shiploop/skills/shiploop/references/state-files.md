@@ -15,6 +15,28 @@ Everything below lives under the **run dir** (default: walked from cwd to
 | `history.jsonl` | every command | append-only event log |
 | `recap.html` | dest done / dest halted | harness-written walk-back HTML (intent, original spec, accomplished, changed, end result, outcome, verified) |
 
+When `exclusive` has rows, the `environment.md` machine also requires:
+
+```json
+"layout": {
+  "reserved": ["<path or glob>"],
+  "product": ["<path or glob>"]
+},
+"routing": {
+  "user_entrypoint": "<string or none>",
+  "reserved_routes": ["<string>"],
+  "confirmation": "<string or none>",
+  "source": "<exactly one references[].path>"
+}
+```
+
+`reserved`, `product`, and `reserved_routes` are nonempty lists of nonempty
+strings; `none` may be the sole list value. `user_entrypoint` and
+`confirmation` are nonempty strings and may be `none`. `source` is a
+nonempty string that exactly matches one `references[].path`. With
+`exclusive: []`, `layout` and `routing` are optional; when present, the same
+shape applies. No other machine keys are introduced for this discovery.
+
 There is **no** `environment.json`, `spec.json`, `implement.json`, or
 host-authored `plan.json`. Each artifact above has exactly one file as
 its source of truth; the script never writes a JSON twin next to a `.md`

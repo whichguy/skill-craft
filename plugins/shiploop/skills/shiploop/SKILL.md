@@ -8,7 +8,7 @@ description: >-
   /shiploop complete — do not rely on chat memory. Lost context without
   completing → /shiploop next.
 allowed-tools: all
-version: 0.8.16
+version: 0.8.17
 license: MIT
 platforms:
   - linux
@@ -107,7 +107,9 @@ Human overview: [README.md](README.md).
    [README.md — Git sequence (harness vs host)](README.md#git-sequence-harness-vs-host).
 5. When `/goal` A and Improve `/goal` B are done: leftover uncommitted
    work gets a pathspec commit (never `git add -A`) with `Key learnings:`
-   / `See: <sha>`, then invoke **`/shiploop complete`**. That command merges
+   / `See: <sha>`, then invoke **`/shiploop complete --inner-loop goal|parent`**.
+   Choose `goal` after the `/goal` inner loop, or `parent` after the equivalent
+   host-native until-produces + Improve two-clean loop. That command merges
    (`git -C <session-checkout> merge --no-ff --no-edit`), prints Git ran,
    dests residual when this was the last step, and prints the next packet.
    Do not merge from the worktree cwd. If complete dies, read Git ran /
@@ -150,7 +152,9 @@ failed). Follow [commands/shiploop-complete.md](commands/shiploop-complete.md):
   log -10 --format=full`, then pathspec add (never `git add -A`) and
   commit with a verbose body, `Key learnings:`, and `See: <full sha>
   <subject>` for prior lesson commits. If B already committed, do
-  not invent a second finish commit. Then exec complete — the harness
+  not invent a second finish commit. Then exec complete with
+  `--inner-loop goal` (or `--inner-loop parent` for the equivalent
+  host-native loop) — the harness
   merges (`git -C <session-checkout> merge --no-ff --no-edit <branch>`),
   prints Git ran, and dests residual when this was the last step. Do not
   merge from the worktree cwd. If complete dies, read the Git ran
@@ -168,7 +172,7 @@ Then exec the leaf CLI (`complete`) and follow the whole packet that prints.
 CLI="$SKILL_ROOT/scripts/shiploop"
 python3 "$CLI" init [--prompt TEXT] [--run-dir DIR] [--implementer host] [--force] [--bound-plan PATH] [--repo PATH]
 python3 "$CLI" next [--run-dir DIR]
-python3 "$CLI" complete [--id ID] [--run-dir DIR] [--clear] [--blocked --reason TEXT]
+python3 "$CLI" complete [--id ID] [--run-dir DIR] [--inner-loop goal|parent] [--clear] [--blocked --reason TEXT]
 python3 "$CLI" update [--run-dir DIR] --to PHASE [--reason TEXT] [--resume-to PHASE]
 python3 "$CLI" status [--run-dir DIR] [--human]
 python3 "$CLI" start-step [--run-dir DIR] --id ID
@@ -180,7 +184,9 @@ python3 "$CLI" inject-step [--run-dir DIR] --statement TEXT --prompt TEXT --prod
 
 The host closer is **`/shiploop complete`** (it execs `complete`).
 `complete` infers the unique running id or the happy-path `--to` from
-`.shiploop/` files, then prints the next packet. `complete-step` /
+`.shiploop/` files, then prints the next packet. Completing a running
+implement step requires `--inner-loop goal|parent`; it is recorded on that
+receipt. `complete-step` /
 `update --to` / `--id` are overrides.
 
 | Exit | Meaning |

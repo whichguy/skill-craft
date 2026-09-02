@@ -563,10 +563,10 @@ PY
 setup_to_residual() {
   setup_to_implement "$1" "$2" "$3" "${4:-linear.json}"
   host_land "$1" S1
-  invoke_script complete --run-dir "$1"
+  invoke_script complete --run-dir "$1" --inner-loop parent
   assert_rc 0 "setup complete S1"
   host_land "$1" S2
-  invoke_script complete --run-dir "$1"
+  invoke_script complete --run-dir "$1" --inner-loop parent
   assert_rc 0 "setup complete S2 dest residual"
 }
 
@@ -705,7 +705,7 @@ printf 'CASE L4 PRE: S1 running (host landed); INVOKE: complete → S1 done, cla
 assert_disk "$runL" "L4 PRE before land" "$DISK_IMP_S1RUN"
 host_land "$runL" S1
 assert_disk "$runL" "L4 PRE after host land (receipt still running)" "$DISK_IMP_S1RUN"
-invoke_script complete --run-dir "$runL"
+invoke_script complete --run-dir "$runL" --inner-loop parent
 assert_transition_return "$runL" "completed S1" stored "L4 RETURN"
 assert_walk_journal "$runL" "L4 RETURN walk"
 assert_out_has "● S1  write the file" "L4 RETURN"
@@ -721,7 +721,7 @@ assert_plan_md_unchanged "$runL" "$plan_hash_L3" "L4 DISK plan.md"
 printf 'CASE L5 PRE: S2 running (host landed); INVOKE: complete → residual\n'
 assert_disk "$runL" "L5 PRE before land" "$DISK_IMP_S1DONE"
 host_land "$runL" S2
-invoke_script complete --run-dir "$runL"
+invoke_script complete --run-dir "$runL" --inner-loop parent
 assert_transition_return "$runL" "completed S2" activity "L5 RETURN"
 assert_no_walk "L5 RETURN"
 assert_out_has "residual: current" "L5 RETURN"
@@ -773,7 +773,7 @@ assert_disk "$runN" "N1 DISK (unchanged)" "$DISK_IMP_S1RUN"
 
 printf 'CASE N2 PRE: S1 complete S2 running; INVOKE: next reprint\n'
 host_land "$runN" S1
-invoke_script complete --run-dir "$runN"
+invoke_script complete --run-dir "$runN" --inner-loop parent
 assert_rc 0 "N2 setup complete S1"
 assert_disk "$runN" "N2 PRE" "$DISK_IMP_S1DONE"
 invoke_script next --run-dir "$runN"
@@ -818,7 +818,7 @@ assert_disk "$runD" "D1 DISK (unchanged)" "$DISK_IMP_S1RUN"
 
 printf 'CASE D2 PRE: S1 complete; INVOKE: complete-step --id S1 (repeat)\n'
 host_land "$runD" S1
-invoke_script complete --run-dir "$runD"
+invoke_script complete --run-dir "$runD" --inner-loop parent
 assert_rc 0 "D2 setup"
 assert_disk "$runD" "D2 PRE" "$DISK_IMP_S1DONE"
 invoke_script complete-step --run-dir "$runD" --id S1
@@ -854,7 +854,7 @@ runC2="$SL_RUN"
 repoC2="$SL_REPO"
 setup_to_implement "$runC2" "$repoC2" "$planf" linear.json
 host_land "$runC2" S1
-invoke_script complete --run-dir "$runC2"
+invoke_script complete --run-dir "$runC2" --inner-loop parent
 assert_rc 0 "C2 setup"
 
 printf 'CASE C2 PRE: S1 complete S2 running; INVOKE: clear-step S1 then next\n'
@@ -908,7 +908,7 @@ assert_disk "$runP" "P3 DISK (unchanged)" '{"phase":"implement","receipts":{"S1"
 printf 'CASE P2 PRE: both running, S1 host-landed; INVOKE: complete --id S1\n'
 host_land "$runP" S1
 assert_disk "$runP" "P2 PRE" '{"phase":"implement","receipts":{"S1":"running","S2":"running"}}'
-invoke_script complete --run-dir "$runP" --id S1
+invoke_script complete --run-dir "$runP" --id S1 --inner-loop parent
 assert_transition_return "$runP" "completed S1" stored "P2 RETURN"
 assert_walk_journal "$runP" "P2 RETURN walk"
 assert_out_has "● S1  write tests for the file" "P2 RETURN"
@@ -955,7 +955,7 @@ runI2="$SL_RUN"
 repoI2="$SL_REPO"
 setup_to_implement "$runI2" "$repoI2" "$planf" linear.json
 host_land "$runI2" S1
-invoke_script complete --run-dir "$runI2"
+invoke_script complete --run-dir "$runI2" --inner-loop parent
 assert_rc 0 "I2 setup"
 
 printf 'CASE I2 PRE: S2 running; INVOKE: inject --before S2 (refused)\n'
@@ -1012,7 +1012,7 @@ runH="$SL_RUN"
 repoH="$SL_REPO"
 setup_to_implement "$runH" "$repoH" "$planf" linear.json
 host_land "$runH" S1
-invoke_script complete --run-dir "$runH"
+invoke_script complete --run-dir "$runH" --inner-loop parent
 assert_rc 0 "H setup"
 
 printf 'CASE H1 PRE: S1 complete then tamper plan_sha256; INVOKE: status --human, then next\n'
@@ -1045,7 +1045,7 @@ runF="$SL_RUN"
 repoF="$SL_REPO"
 setup_to_implement "$runF" "$repoF" "$planf" linear.json
 host_land "$runF" S1
-invoke_script complete --run-dir "$runF"
+invoke_script complete --run-dir "$runF" --inner-loop parent
 assert_rc 0 "F setup"
 
 printf 'CASE F1a PRE: S1 complete S2 running; INVOKE: complete --blocked --resume-to plan\n'
@@ -1355,7 +1355,7 @@ assert_disk "$runS" "S1 DISK" "$DISK_IMP_SOLO_RUN"
 
 printf 'CASE S2 PRE: S1 running (host landed, only step); INVOKE: complete → residual\n'
 host_land "$runS" S1
-invoke_script complete --run-dir "$runS"
+invoke_script complete --run-dir "$runS" --inner-loop parent
 assert_transition_return "$runS" "completed S1" activity "S2 RETURN"
 assert_no_walk "S2 RETURN"
 assert_out_has "residual: current" "S2 RETURN"
@@ -1432,7 +1432,7 @@ assert_disk "$runZ" "Z3 DISK" "$DISK_IMP_SOLO_RUN"
 
 printf 'CASE Z4 PRE: S1 landed (first=last); INVOKE: wrapper complete → residual\n'
 host_land "$runZ" S1
-invoke_wrapper complete --run-dir "$runZ"
+invoke_wrapper complete --run-dir "$runZ" --inner-loop parent
 assert_wrapper_then_transition "$runZ" "$WRAP_COMPLETE" "completed S1" activity "Z4 RETURN"
 assert_next_h2_has "Review-coverage is **waived**" "Z4 RETURN"
 assert_next_lacks "/goal " "Z4 RETURN"

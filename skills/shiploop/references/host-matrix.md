@@ -23,6 +23,11 @@ not re-rooting the host chat (`move_agent_to_root`).
 Package leaf: **shiploop**. Reprint and closer are `/shiploop next` and
 `/shiploop complete` on this leaf.
 
+When `/goal` is unavailable, the host-native inner loop is still the same
+contract: work until `produces`, then Improve until two clean cycles. Complete
+the running implement step with `--inner-loop parent`; `/goal` hosts use
+`--inner-loop goal`.
+
 | Claim | Requires |
 |-------|----------|
 | Packaged multi-host | install + hermetic tests green |

@@ -75,6 +75,53 @@ its output is `environment.md` (Look here names the absolute path).
   if so, which design/UX skill was invoked (`none(reason)` when `ui` is
   false).
 
+## Destination discovery
+
+When `mcp` or `exclusive` is nonempty, inventory alone is not enough. For
+every name in `mcp` and every `exclusive[].use`, read that server's own tool
+descriptions, resources, prompts, and published guidance, including create
+tools that this increment will not call. Record each applicable answer as a
+`references[{path, why}]` entry plus concise prose in the environment brief.
+`why` must name the implementation constraint. Write `none` for an
+inapplicable question so implement does not guess. Do not invent a house
+style; the writer's material supplies any product-specific names.
+
+1. **How to use this MCP / dest writer.** Identify which documented tools
+   read state, mutate the destination, create, and publish; record
+   server-named anti-patterns. Before dest plan, make one cheap documented
+   read-only status, list, or setup probe when one exists.
+2. **Library / runtime systems it imposes.** Record required module format,
+   wrap/export style, and helpers present after create/bootstrap (or, for an
+   existing destination, after listing its files). Reuse before add: search
+   both `repo_root` and the destination, and do not add a second library for
+   the same job. A new destination still records what its source requires.
+3. **Conventions — reserved vs product.** After create/bootstrap or a
+   destination listing, freeze `layout` by separating **reserved** trees the
+   writer owns, bootstraps, or can overwrite from **product** trees for this
+   increment's feature code. Compare the bootstrap files with files the
+   increment will add. Bootstrap is reserved unless the same source names a
+   distinct product tree. A documented catch-all runtime dump remains
+   reserved: use the named product tree, or a non-runtime path at repository
+   root when none is named; dest blocked if the user must choose. A product
+   file in reserved is a discovery miss even if the writer invited it.
+4. **How a user actually hits the dest artifact.** Freeze `routing` from
+   the default entrypoint versus the documented product path, query, or
+   route; include routes the writer keeps. Define a routing-level probe that
+   reaches the dispatcher, not a library helper, then after create+push (or
+   equivalent) record results for both default and product entrypoints. This
+   is not a browser play-through. If they differ, the done sentence names
+   the user entrypoint rather than the default destination URL. A sink that
+   genuinely needs a play-through names that need in `produces` and is a
+   live-acceptance step.
+
+With nonempty `exclusive`, all four answers and nonempty `references` are
+required before dest plan. With nonempty `mcp` but `exclusive: []`, record
+the first two; the latter two may be `none` when no dest artifact exists.
+Skip this discovery only when both are empty. If official platform material
+conflicts with the writer's destination-write guidance, record both and let
+the writer win: its `why` is the destination-write constraint; the platform
+entry says it is the default overridden by that writer.
+
 ## Write it once
 
 Write `environment.md`: a short prose brief, then a unique H2 titled exactly

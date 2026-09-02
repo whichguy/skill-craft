@@ -41,36 +41,79 @@ tools describe how to use them (tool descriptions, resources, prompts, or
 a query that returns practice guidance), record that text as a reference —
 inventory alone is not enough.
 
-Deeply research those MCP servers and destination services. Read tool
-schemas, resources, prompts, and official docs. Determine whether there
-is a required or conventional syntax style, library, module format, or
-behavior pattern. If the source says it overtly, record it as
-`references[{path, why}]` plus brief prose in `{{ENV_MD}}`. `why` names
-what implement must follow (style / library / behavior), not “inventory.”
-Do not invent a house style. Do not bake a vendor name into the skill.
+Deeply research those MCP servers and destination services before freezing
+their implementation constraints.
 
-**Reuse before add.** Brownfield / existing dest: search the bound
-`{{REPO_ROOT}}` **and** the destination (existing hosted project, package
-lock, README, imports, layout) for libraries and patterns already in use.
-Continue those. Do not duplicate, conflict with, or arbitrarily add a new
-library that serves the same job. Greenfield: no tree to reuse; still
-record what the MCP/dest source requires so implement does not guess.
-Writer conflicts stay `exclusive` (do not switch). Library conflicts are
-the same idea: one established stack per artifact; dest blocked if the
-user must choose.
+### Dest MCP, libraries, and conventions (required when `mcp:` or `exclusive` is nonempty)
 
-When `exclusive` is nonempty, fold the named
-writer's libraries, file/runtime layout, and platform preconditions into the
-same file and keep `references` nonempty. Do not invent a Writer playbook heading. Do not write
-`playbook.md`. Do not restate the exclusive map in prose. Write the findings
-**into** `{{ENV_MD}}`
-(more prose plus `references[{path, why}]`; `path` may be a URL or repo
-path). Do not invent a second SoT file. Do not persist secrets. Do not
-write the product README. Do not add research skills to `dep_roots`. Those
-references must later appear in each seed step's stored `prompt` together
-with a `Tools:` block that carries the frozen `mcp_considered` token.
-In-flight runs: dest blocked → validate-spec; rewrite environment.md; → plan
-(do not hand-edit backchain/plan.json).
+Inventory is not use. For **each** name in machine `mcp:`, and for each
+`exclusive[].use` (if any), answer the four questions below from **that
+server’s own** tool descriptions, resources, prompts, and published
+guidance — including tools this increment will not call for create.
+Record each answer as `references[{path, why}]` plus brief prose in
+`{{ENV_MD}}`. `why` names the implement constraint, not “inventory.”
+If a question does not apply, write `none` in the brief so implement
+does not guess. Do not invent a house style. Do not bake a vendor,
+platform, or folder name into this skill; the writer’s documents
+supply those names.
+
+1. **How to use this MCP / dest writer.** Which tool is for which job
+   (read state vs mutate dest vs create vs publish)? What anti-patterns
+   does the server itself name? Cheap probe: the writer’s documented
+   status/list/setup **once**, read-only, before dest plan.
+
+2. **Library / runtime systems it imposes.** Required module format,
+   wrap/export style, helpers that already exist after create/bootstrap
+   (or, brownfield, after listing dest files). **Reuse before add:**
+   search bound `{{REPO_ROOT}}` **and** the destination; do not add a
+   second library for the same job. Greenfield still records what the
+   dest source requires. Do not duplicate, conflict with, or arbitrarily add
+   a new library that serves the same job.
+
+3. **Conventions — reserved vs product.** After create/bootstrap (or
+   dest list), split paths:
+   - **reserved:** files/trees the writer owns, bootstraps, or will
+     overwrite. Product feature code must not land here.
+   - **product:** trees where this increment’s new feature code belongs.
+   Cheap probe: list files the writer placed at create/bootstrap vs
+   files this increment will add. The bootstrap set is **reserved**
+   unless the same source names a distinct product tree. If published
+   guidance says “put all new files in the runtime dump,” treat that
+   dump as reserved and put product code in the named product tree, or
+   (if none is named) in a non-runtime path at repo root — then dest
+   blocked if the user must choose. Product-in-reserved is a discovery
+   miss even when the writer invited it.
+
+4. **How a user actually hits the dest artifact.** Default dest
+   entrypoint (bare URL, default route, first-responder) vs documented
+   product path/query/route. Routes the writer keeps. How to run a
+   **routing-level probe** of that entrypoint (not a library/module
+   helper that bypasses the dispatcher). This probe is **not** a
+   browser play-through. Cheap probe after create+push (or equivalent):
+   hit the dest default entrypoint **and** the documented product path;
+   record both. If they differ, `done_sentence` must not claim the
+   product is served at the default entrypoint. A sink that genuinely
+   needs a play-through must say so in `produces` and is a **live
+   acceptance** step, not this probe.
+
+When `exclusive` is nonempty, all four answers are required before dest
+plan (and `references` stays nonempty). When `mcp:` is nonempty but
+`exclusive` is `[]`, still record (1) and (2); (3) and (4) may be `none`
+if there is no dest artifact. When both are empty, skip this block.
+
+If official platform docs are also in `references`, and they conflict
+with writer-published dest-write rules, **writer wins**. Record both:
+writer path with `why` = the dest-write constraint; platform docs with
+`why` = “platform default; dest writer overrides <X>.”
+
+When `exclusive` is nonempty, keep `references` nonempty. Do not invent a
+Writer playbook heading. Do not write `playbook.md`. Do not restate the
+exclusive map in prose. Do not invent a second SoT file. Do not persist
+secrets. Do not write the product README. Do not add research skills to
+`dep_roots`. Those references must later appear in each seed step's stored
+`prompt` together with a `Tools:` block that carries the frozen
+`mcp_considered` token. In-flight runs: dest blocked → validate-spec;
+rewrite environment.md; → plan (do not hand-edit backchain/plan.json).
 
 ### 3. Spec (once)
 
@@ -80,6 +123,8 @@ once, outside fences/blockquotes). Derive a machine-checkable
 `done_sentence`. Do not invent pytest, a path, or a cwd. The spec's final
 product duty is a README create (if absent) or revise (if present) — tell
 backchain to add that as a late DAG successor in `plan`, not here.
+If dest-hit found a reserved default entrypoint, `done_sentence` names the
+**user** entrypoint, not the default dest URL.
 
 While expanding the spec, answer these three questions in `{{SPEC_MD}}`
 (prose is enough; do not invent new required labels). Survey already owns
