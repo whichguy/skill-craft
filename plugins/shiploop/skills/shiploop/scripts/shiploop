@@ -2928,7 +2928,8 @@ def print_implement_git(
     print(
         "Do not merge from this cwd. When /goal A produces is true, close it "
         "and open Improve /goal B (do not nest). After B, leftover uncommitted "
-        "gets the same commit schema; then invoke /shiploop complete. "
+        "gets the same commit schema; then invoke /shiploop complete "
+        "--inner-loop goal (or --inner-loop parent if /goal is off). "
         "complete merges into the session checkout and prints Git ran:"
     )
     print(f"  git -C {repo_s} merge --no-ff --no-edit {br_s}")
@@ -2960,9 +2961,13 @@ def print_improve() -> None:
     print("- remaining trivial changes committed")
     print(
         "Max 12 improve cycles; on exceed, leftover-commit and invoke "
-        "/shiploop complete (do not loop)."
+        "/shiploop complete --inner-loop goal "
+        "(or --inner-loop parent if /goal is off) (do not loop)."
     )
-    print("Then invoke /shiploop complete.")
+    print(
+        "Then invoke /shiploop complete --inner-loop goal "
+        "(or --inner-loop parent if /goal is off)."
+    )
 
 
 def print_frozen_session_env(run_dir: Path) -> None:

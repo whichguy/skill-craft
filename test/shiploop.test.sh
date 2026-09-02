@@ -1457,6 +1457,12 @@ printf '%s\n' "$out_imp" | grep -q 'Worktree: ' \
   || fail "implement Next Implement git missing Worktree:"
 printf '%s\n' "$out_imp" | grep -q 'Session checkout (repo_root main tree' \
   || fail "implement Next missing session checkout definition"
+printf '%s\n' "$out_imp" | awk '/^Implement git \(paste into \/goal with Frozen/,/^Goal until/' \
+  | grep -Fq -- '--inner-loop goal' \
+  || fail "Implement git schema missing --inner-loop goal"
+printf '%s\n' "$out_imp" | awk '/^Improve \(paste as \/goal B/,/^## When done invoke$/' \
+  | grep -Fq -- '--inner-loop goal' \
+  || fail "Improve closer missing --inner-loop goal"
 printf '%s\n' "$out_imp" | python3 -c "
 import sys
 text = sys.stdin.read()
