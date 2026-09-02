@@ -2,9 +2,9 @@
 
 **Target paths:** `skills/shiploop/references/activities/residual.md`, `skills/shiploop/references/activities/residual-waived.md`, `skills/shiploop/references/activities/validate-spec.md`, `skills/shiploop/scripts/shiploop`, `skills/shiploop/README.md`, `skills/shiploop/references/turn-packet.md`, `test/shiploop.test.sh`, `plugins/shiploop`
 **Test command:** `bash test/shiploop.test.sh`
-**Started:** 2026-09-02          **Status:** active
-**Round counter:** 2
-**Consecutive clean rounds:** 1
+**Started:** 2026-09-02          **Status:** complete
+**Round counter:** 3
+**Consecutive clean rounds:** 2
 **Known test-artifact paths:**
 **Plan contract:** `/Users/dadleet/.grok/sessions/%2FUsers%2Fdadleet%2Fsrc%2Ftic-tac-toe-oneshot/01a06260-d265-7681-b3da-e7e0c522a839/plan.md`
 **Plan hash:** `fa0d151e0cfda421b0843c1cf8baec056817b56231695d20d9b37100eb728e36`
@@ -77,3 +77,28 @@
 **Consecutive clean rounds after this entry:** 1
 **Committed:** yes
 **Notes:** Ledger-only. First of two consecutive cleans. Pathspec REVIEW_CONVERGE.md only.
+
+### Round 3 — 2026-09-02
+**Review:** 0 material, 0 minor (new)
+**Material findings:**
+- none
+**Deferred (minor/P2):**
+- [ ] P2: README §5 still says "do only what the frozen spec named" without dest-reread. Live Next is residual.md. Overview grain. — docs
+- [ ] P2: `PHASE_FINISH["residual"]` Progress line still "quality /goal and outer-loop publish if named" without dest-reread. Next is SoT; Progress is glanceable. — docs
+- [ ] P2: Q3 pin `**user** entrypoint` also matches the earlier `done_sentence` line in validate-spec.md, so it does not uniquely prove the Q3 one-liner. `watch MCP for that check` does. — tests
+**Git-history check:** Second consecutive clean. Product tree unchanged since R1 (`git diff --stat 5ea7648 HEAD -- <Target paths excluding ledger>` is ledger-only). `bash test/shiploop.test.sh` PASS this turn (terminal clean): dest residual Look here environment.md, waived Look here environment.md, compose/dest-block pins, dest residual bound_plan bind. Recap still does not witness quality (`scripts/shiploop` recap copy). Plan hash unchanged `fa0d151e…`.
+**Plan:** n/a (clean)
+**Plan review:** n/a
+**Implementation:** none
+**Lint:** skipped (none configured)
+**Test result:** PASS (terminal clean)
+**Outcome:** clean
+**Error signature:** none
+**Learnings:** Two consecutive cleans with the second running the suite. Compose vs dest-block is in residual Next; watch MCP is frozen environment.md not the implement Frozen reprint; Look here points at that file. residual×2 complete. Artifact skipped: no Artifact tool in this host.
+**Anchor evidence:**
+- A1–A6 → same files as R2; suite PASS this turn
+- M1 → no Frozen token in residual activity files
+- M2 → LAYER dest residual bound_plan bind + waived residual Look here pins in this PASS
+**Consecutive clean rounds after this entry:** 2
+**Committed:** yes
+**Notes:** artifact skipped: no Artifact tool in this host. residual×2 success. Pathspec REVIEW_CONVERGE.md only.
