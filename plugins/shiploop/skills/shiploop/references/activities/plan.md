@@ -1,5 +1,5 @@
 The spec is **frozen**. Read `{{SPEC_MD}}` (done sentence, checkable, and
-the three placement answers) and `{{ENV_MD}}` (frozen survey). Do not
+the placement answers) and `{{ENV_MD}}` (frozen survey). Do not
 rewrite either.
 
 Call the installed **backchain** skill **once** to write the sequence DAG.
