@@ -3,8 +3,8 @@
 **Target paths:** `skills/shiploop/references/activities/residual.md`, `skills/shiploop/references/activities/residual-waived.md`, `skills/shiploop/references/activities/validate-spec.md`, `skills/shiploop/scripts/shiploop`, `skills/shiploop/README.md`, `skills/shiploop/references/turn-packet.md`, `test/shiploop.test.sh`, `plugins/shiploop`
 **Test command:** `bash test/shiploop.test.sh`
 **Started:** 2026-09-02          **Status:** active
-**Round counter:** 1
-**Consecutive clean rounds:** 0
+**Round counter:** 2
+**Consecutive clean rounds:** 1
 **Known test-artifact paths:**
 **Plan contract:** `/Users/dadleet/.grok/sessions/%2FUsers%2Fdadleet%2Fsrc%2Ftic-tac-toe-oneshot/01a06260-d265-7681-b3da-e7e0c522a839/plan.md`
 **Plan hash:** `fa0d151e0cfda421b0843c1cf8baec056817b56231695d20d9b37100eb728e36`
@@ -47,3 +47,33 @@
 **Consecutive clean rounds after this entry:** 0
 **Committed:** yes
 **Notes:** Fresh ledger. Prior foreign terminal ledger archived to `REVIEW_CONVERGE.archived-env-mcp-per-iteration-20260902.md` (gitignored; not committed). Pathspec-only. Exactly one review-converge this turn.
+
+### Round 2 — 2026-09-02
+**Review:** 0 material, 0 minor (new)
+**Material findings:**
+- none
+**Deferred (minor/P2):**
+- [ ] P2: README §5 still says "do only what the frozen spec named" without dest-reread. Live Next is residual.md. Overview grain. — docs
+- [ ] P2: `PHASE_FINISH["residual"]` Progress line still "quality /goal and outer-loop publish if named" without dest-reread. Next is SoT; Progress is glanceable. — docs
+- [ ] P2: Q3 pin `**user** entrypoint` also matches the earlier `done_sentence` line in validate-spec.md, so it does not uniquely prove the Q3 one-liner. `watch MCP for that check` does. — tests
+**Git-history check:** Independent re-read of residual.md / residual-waived.md / validate-spec Q2/Q3 / residual Look here vs Base `d495ab1..5ea7648`. R1's two material items are gone: no `Frozen` token in residual activity files; Look here requires environment.md. Reverse of `d495ab1` is compose + dest-block + ENV_MD naming + Look here pin — intended, not a regression. Last 10 now headed by `5ea7648` R1. Do not re-raise archived 0.8.4 P2s (blocked→plan README recovery; Tools: header vs token).
+**Plan:** n/a (clean)
+**Plan review:** n/a
+**Implementation:** none
+**Lint:** skipped (none configured)
+**Test result:** N/A (clean round)
+**Outcome:** clean
+**Error signature:** none
+**Learnings:** R1's Frozen-vs-ENV_MD fix was the real residual packet self-agreement, not theater waiting to be undone. Forward A1–A6 still hold on the same files. Manufacturing a material finding from README §5 or PHASE_FINISH would repeat the 0.8.4 mistake of treating overview/Progress copies as live Next. Those stay P2. First of two consecutive cleans; suite deferred to the second clean.
+**Anchor evidence:**
+- A1 → residual.md compose `routing.user_entrypoint`; quality hits composed entrypoint
+- A2 → dest-block `--resume-to validate-spec` for unfrozen dest-hit / Q2 mismatch / watch MCP not in frozen ENV_MD
+- A3 → do not write live URLs into `{{ENV_MD}}`
+- A4 → Q2 re-reads live dest URLs; Q3 watch MCP in machine mcp:/tools
+- A5 → no vendor tokens in residual/validate-spec activity files
+- A6 → done.md host-owned; recap does not witness quality
+- M1 → `grep Frozen residual.md residual-waived.md` empty
+- M2 → residual Look here `frozen survey (dest reread)` in scripts/shiploop
+**Consecutive clean rounds after this entry:** 1
+**Committed:** yes
+**Notes:** Ledger-only. First of two consecutive cleans. Pathspec REVIEW_CONVERGE.md only.
