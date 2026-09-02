@@ -3224,6 +3224,41 @@ doc = {
     },
     {
       "id": "S2", "statement": "build the surface",
+      "prompt": "/goal\nDo this activity until these conditions are met:\n- result.txt exists\n\nImplement using %s.\n%s" % (ref, tools),
+      "produces": ["result.txt exists"], "origin": "seed",
+      "inputs": [{"need": "repo exists", "from": None}],
+    },
+  ],
+  "parallel_groups": [], "unresolved": [],
+}
+(run / "backchain" / "plan.json").write_text(json.dumps(doc, indent=2) + "\n")
+(run / "plan.md").write_text("done_sentence: %s\n" % ds)
+PY
+set +e
+out_uidep="$(run_cli update --run-dir "$runui" --to implement 2>&1)"
+rc_uidep=$?
+set -e
+[[ "$rc_uidep" -eq 2 ]] || fail "ui design seed without dependent want 2: $out_uidep"
+printf '%s\n' "$out_uidep" | grep -qi 'feed another seed' \
+  || fail "ui design dependent gap message: $out_uidep"
+python3 - "$runui" "$DS" "$uicraft_ref" <<'PY'
+import json, sys
+from pathlib import Path
+run = Path(sys.argv[1])
+ds, ref = sys.argv[2], sys.argv[3]
+tools = "Tools:\nWatch with: none(x)\nUse: git\nDon't use: none\nAssume: test harness"
+doc = {
+  "goal": ds,
+  "initial_state": ["repo exists"],
+  "steps": [
+    {
+      "id": "S1", "statement": "design the surface",
+      "prompt": "/goal\nDo this activity until these conditions are met:\n- a recorded UI design and interaction model\n\nUse %s for distinctive craft.\n%s" % (ref, tools),
+      "produces": ["a recorded UI design and interaction model"],
+      "origin": "seed", "inputs": [{"need": "repo exists", "from": None}],
+    },
+    {
+      "id": "S2", "statement": "build the surface",
       "prompt": "/goal\nDo this activity until these conditions are met:\n- result.txt exists\n\nImplement the recorded design using %s.\n%s" % (ref, tools),
       "produces": ["result.txt exists"], "origin": "seed",
       "inputs": [{"need": "a recorded UI design and interaction model", "from": "S1"}],
