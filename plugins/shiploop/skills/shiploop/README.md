@@ -330,7 +330,7 @@ Do not merge from the worktree cwd.
 
 When `/goal` A produces is true: Improve `/goal` B, leftover uncommitted
 work gets the same Implement git schema (log -10, `Key learnings:`,
-`See: <sha>`), then `/shiploop complete`. The harness merges
+`See: <sha>`), then `/shiploop complete --inner-loop goal|parent`. The harness merges
 (`git -C <session-checkout> merge --no-ff --no-edit shiploop/<run_id>/<id>`),
 prints Git ran, and dests residual when this was the last step. If `/goal`
 already committed, do not invent a second finish commit. Do not run a bare
@@ -469,7 +469,7 @@ claim time. Complete needs `--id` or cwd in that worktree.
    Do not merge from this cwd.
 3. **Before** the harness `complete` runs, leftover uncommitted work gets
    the same commit schema. Do not merge from this cwd.
-4. Then `/shiploop complete`. The harness merges:
+4. Then `/shiploop complete --inner-loop goal|parent`. The harness merges:
 
    ```sh
    git -C <session-checkout> merge --no-ff --no-edit shiploop/<run_id>/<id>
@@ -647,7 +647,7 @@ Script is an example, not a script branch.
 CLI="$SKILL_ROOT/scripts/shiploop"
 python3 "$CLI" init --prompt "…" --repo PATH [--force] [--bound-plan PATH]
 python3 "$CLI" next
-python3 "$CLI" complete [--id ID] [--clear] [--blocked --reason TEXT] [--resume-to PHASE]
+python3 "$CLI" complete [--id ID] [--inner-loop goal|parent] [--clear] [--blocked --reason TEXT] [--resume-to PHASE]
 python3 "$CLI" update --to PHASE [--reason TEXT] [--resume-to PHASE]
 python3 "$CLI" status [--human]
 python3 "$CLI" start-step --id ID
