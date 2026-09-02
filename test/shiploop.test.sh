@@ -99,8 +99,10 @@ for residual_act in residual.md residual-waived.md; do
     || fail "$residual_act missing unfrozen dest-hit dest-block"
   grep -Fq 'Q2 mismatches the walk' "$residual_path" \
     || fail "$residual_act missing wrong-Q2 dest-block"
-  grep -Fq 'watch MCP not in Frozen' "$residual_path" \
+  grep -Fq 'watch MCP not in frozen' "$residual_path" \
     || fail "$residual_act missing Q3 watch MCP dest-block"
+  grep -Fq '{{ENV_MD}}' "$residual_path" \
+    || fail "$residual_act missing frozen ENV_MD for dest reread / watch MCP"
 done
 grep -Fq 're-reads live dest URLs' \
   "$root/skills/shiploop/references/activities/validate-spec.md" \
@@ -1598,6 +1600,8 @@ assert_absent "$out_dr_h2" 'bound_plan empty' \
   "drained H2 still listed bound_plan empty"
 out_bd="$(run_cli update --run-dir "$runub" --to residual)"
 printf '%s\n' "$out_bd" | grep -q 'residual: current' || fail "auto-bind dest residual: $out_bd"
+printf '%s\n' "$out_bd" | grep -Eq 'required  .+/environment.md' \
+  || fail "residual Look here missing required environment.md: $out_bd"
 python3 - "$runub" <<'PY'
 import json, sys
 from pathlib import Path
@@ -1902,6 +1906,8 @@ printf '%s\n' "$out_waive" | awk '/^## Next prompt$/,/^## When done invoke$/' \
   && fail "waived residual Next prompt still ran Phase B: $out_waive"
 printf '%s\n' "$out_waive" | grep -q 'residual-waived.md' \
   || fail "waived residual Look here missing residual-waived.md: $out_waive"
+printf '%s\n' "$out_waive" | grep -Eq 'required  .+/environment.md' \
+  || fail "waived residual Look here missing required environment.md: $out_waive"
 cat >"$repo/REVIEW_CONVERGE.md" <<'MD'
 **Status:** active
 **Plan contract:** `/nope`

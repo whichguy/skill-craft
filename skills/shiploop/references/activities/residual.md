@@ -34,18 +34,19 @@ Follow this order. Each `/goal` below is a new outer-loop turn, not a nested
    (`outer-loop` but publish already ran; `dag` but the deploy step never
    produced a slot and residual still needs one; residual would publish
    "just to test" against a writer anti-pattern that says push/HEAD is
-   enough); Q3=yes and the named check needs a watch MCP not in Frozen
-   `mcp:`/`tools`; empirical dest-hit contradicts frozen `routing`. Do not
-   dest-block for learning the URL string. README-only dest-hit fix is
-   allowed only when routing was already frozen and `done_sentence` already
-   names the user entrypoint.
+   enough); Q3=yes and the named check needs a watch MCP not in frozen
+   `{{ENV_MD}}` `mcp:`/`tools`; empirical dest-hit contradicts frozen
+   `routing`. Do not dest-block for learning the URL string. README-only
+   dest-hit fix is allowed only when routing was already frozen and
+   `done_sentence` already names the user entrypoint.
 
    1. **Quality test/fix `/goal`.** If the spec said yes on outer-loop
       completion, run one host `/goal` to test and fix the completed
       product at the composed user entrypoint (the check it named).
-      Play-through needs Frozen watch MCP; missing/locked → dest-block
-      validate-spec, not a helper that bypasses the dispatcher. If the
-      spec said no, skip. The spec is SoT — do not override a no.
+      Play-through needs a watch MCP in frozen `{{ENV_MD}}` `mcp:`/`tools`;
+      missing/locked → dest-block validate-spec, not a helper that bypasses
+      the dispatcher. If the spec said no, skip. The spec is SoT — do not
+      override a no.
    2. **Outer-loop deploy/publish.** If the spec named deploy/publish as
       **outer-loop**, do that now with the writer's publish tool
       (dest-discovery Q1), on the same composed entrypoint for that slot.

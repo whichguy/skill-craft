@@ -514,7 +514,7 @@ Look-here matrix (absolute path + one-line why):
 | plan | frozen spec + environment, `backchain/plan.json` (create), `plan.md` (missing: write labeled done_sentence equal to spec (create); if present: `wrapper_pair` gaps or sequence plan pointer), backchain SKILL |
 | implement | frozen spec, DAG, required `environment.md` (frozen survey), running `steps/<id>.json` + worktree, activity; `plan.md` if-needed |
 | implement-drained | spec, DAG, `implement-drained.md` |
-| residual | ledger, bound plan, spec, review-coverage SKILL, `recap.html` (written at dest done) |
+| residual | ledger, bound plan, spec, frozen `environment.md` (dest reread), review-coverage SKILL, `recap.html` (written at dest done) |
 | done | `recap.html`, spec |
 | blocked | `state.json` (ask/reason/resume), activity |
 

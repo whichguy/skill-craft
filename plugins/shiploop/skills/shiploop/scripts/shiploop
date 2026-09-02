@@ -3424,6 +3424,7 @@ def look_here_lines(run_dir: Path, state: Dict[str, Any], phase: str) -> List[st
         if bound:
             add("required", Path(bound), "bound plan (residual contract)")
         add("required", run_dir / "spec.md", "frozen spec")
+        add("required", run_dir / "environment.md", "frozen survey (dest reread)")
         add("required", act, "current activity")
         if deps.get("review-coverage") and not waived:
             add("required", Path(deps["review-coverage"]) / "SKILL.md", "review-coverage Phase B")
