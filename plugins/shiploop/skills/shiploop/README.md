@@ -7,7 +7,7 @@ walk-back HTML recap exists.
 
 ShipLoop never conflict-resolves a merge and never claims engine `COMPLETE`.
 
-Package leaf: `skills/shiploop`. Invoke: `/shiploop`. Version: **0.8.17**.
+Package leaf: `skills/shiploop`. Invoke: `/shiploop`. Version: **0.8.18**.
 
 Canonical companions (do not duplicate their contracts here):
 
@@ -20,6 +20,10 @@ Canonical companions (do not duplicate their contracts here):
 
 Destination discovery (writer use, imposed libraries, reserved/product layout,
 and user routing) is defined only in [references/survey.md](references/survey.md).
+Human-facing surfaces with `ui: true` are designed as an early DAG seed before
+they are built; details live in [survey.md](references/survey.md),
+[validate-spec.md](references/activities/validate-spec.md), and
+[plan.md](references/activities/plan.md).
 
 ---
 

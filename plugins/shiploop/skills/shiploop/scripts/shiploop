@@ -23,7 +23,7 @@ EXIT_BLOCKED = 2
 EXIT_USAGE = 64
 
 PACKAGE_ROOT = Path(__file__).resolve().parents[1]
-VERSION = "0.8.17"
+VERSION = "0.8.18"
 REF_DIR = PACKAGE_ROOT / "references"
 WT_DIRNAME = ".worktrees"
 # Printed in ## Progress and the implement Next envelope. Do not splice into
@@ -776,6 +776,20 @@ def exclusive_gaps(env: Optional[Dict[str, Any]]) -> List[str]:
                 )
                 return gaps
     return gaps
+
+
+def ui_craft_gaps(env: Optional[Dict[str, Any]]) -> List[str]:
+    """dest plan: a UI craft reference must cite the frozen skill token."""
+    if not isinstance(env, dict) or env.get("ui") is not True:
+        return []
+    token = env.get("ui_craft")
+    if not isinstance(token, str) or not token.strip() or re.match(
+        r"(?i)^none\(.*\)$", token.strip()
+    ):
+        return []
+    if any(token in ref["path"] for ref in _nonempty_references(env)):
+        return []
+    return ["ui_craft must appear in a references[].path when ui is true"]
 
 
 def _last_tools_block(prompt: str) -> Optional[str]:
@@ -1900,6 +1914,37 @@ def dag_gaps(run_dir: Path, spec: Optional[Dict[str, Any]]) -> List[str]:
         for fr in deps:
             if fr not in seen:
                 gaps.append(f"{sid} inputs.from {fr} is not an existing id")
+    if isinstance(env, dict) and env.get("ui") is True:
+        design_seed_ids: Set[str] = set()
+        seed_inputs: Dict[str, Set[str]] = {}
+        for step in steps:
+            if not isinstance(step, dict) or step.get("origin") != "seed":
+                continue
+            sid = step.get("id")
+            if not isinstance(sid, str):
+                continue
+            texts = produces_texts(step.get("produces"))
+            if texts and any(
+                re.search(r"(?i)\b(design|visual identity|interaction model)\b", text)
+                for text in texts
+            ):
+                design_seed_ids.add(sid)
+            raw_inputs = step.get("inputs")
+            if isinstance(raw_inputs, list):
+                seed_inputs[sid] = {
+                    inp["from"]
+                    for inp in raw_inputs
+                    if isinstance(inp, dict) and isinstance(inp.get("from"), str)
+                }
+        if not design_seed_ids:
+            gaps.append("ui requires a design-producing seed")
+        elif not any(
+            design_id in deps
+            for seed_id, deps in seed_inputs.items()
+            for design_id in design_seed_ids
+            if seed_id != design_id
+        ):
+            gaps.append("ui design seed must feed another seed")
     # cycle
     WHITE, GREY, BLACK = 0, 1, 2
     color = {sid: WHITE for sid in seen}
@@ -2509,6 +2554,7 @@ def missing_for(state: Dict[str, Any], run_dir: Path, dest: Optional[str]) -> Li
         if env:
             gaps.extend(handles_block_plan(env))
             gaps.extend(exclusive_gaps(env))
+            gaps.extend(ui_craft_gaps(env))
     elif need == "spec_uncheckable":
         spec, sg = load_spec(run_dir)
         gaps.extend(sg)
@@ -3733,6 +3779,9 @@ def apply_update(
         pgaps = exclusive_gaps(env)
         if pgaps:
             die(EXIT_BLOCKED, "; ".join(pgaps))
+        ugaps = ui_craft_gaps(env)
+        if ugaps:
+            die(EXIT_BLOCKED, "; ".join(ugaps))
         bind_or_verify_hash(state, "spec_sha256", spec_sha256_of(run_dir))
         bind_or_verify_hash(state, "environment_sha256", environment_sha256_of(run_dir))
         state["plan_sha256"] = ""

@@ -44,6 +44,23 @@ verification kinds. Do not collapse them:
    missing or locked, dest blocked (`resume_to=plan` or `validate-spec`), not
    fabricated confirmation notes.
 
+When frozen `ui` is true, seed the DAG with an **early design** setup step
+**before** iterate steps that build that surface. Do not collapse design into
+the first build step.
+
+- `produces` records a design: palette/type/layout/signature **and** an
+  interaction model (what is live, what responds, keyboard, empty/error/success).
+- The stored `prompt` invokes the frozen `ui_craft` skill (already a cited
+  `references[].path`) and says: maximize interactivity and distinctive craft
+  **within dest-writer conventions**; reuse dest helpers; do not invent a
+  second stack; do not skip design and just build.
+- Iterate seeds that implement the surface **Assume** that design is already
+  true; they execute it.
+- Additional human-facing surfaces in the brief (CLI, operator) get the same
+  treatment. One design seed may cover several surfaces that share identity.
+
+When `ui` is false, omit design seeds.
+
 Unverified login, credentials, hosted ids, and “the API works this way” are
 not `initial_state`. A missing precondition later steps consume, with topology
 unchanged, becomes an early seed (the implement `/goal` is the spike). Do not
@@ -132,7 +149,7 @@ Watch with: cursor-ide-browser(browser_snapshot)
 Use: git
 Don't use: Drive MCP (not signed in); browser MCP (later quality check)
 Don't write: none
-Assume: git remote already exists; do not write a new test harness
+Assume: git remote already exists; do not write a new test harness; when ui is true, design already recorded; implement the design, do not substitute a generic template
 ```
 
 When nothing matched:

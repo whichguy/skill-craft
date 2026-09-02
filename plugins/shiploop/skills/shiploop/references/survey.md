@@ -71,9 +71,7 @@ its output is `environment.md` (Look here names the absolute path).
   (manifest, store listing, first publish) is a spec-expansion question,
   not a second initiation value — see `validate-spec.md`. Platform
   enablement is a handle, not a fourth initiation value.
-- **ui / ui_craft** — whether this increment touches user-facing surface, and
-  if so, which design/UX skill was invoked (`none(reason)` when `ui` is
-  false).
+- **ui / ui_craft** — `ui` is true when this increment ships any **human-facing surface** (product UI, CLI, operator/debug page a person uses, dest-facing page the user sees). `ui_craft` is the installed design/UX skill invoked for those surfaces (`none(reason)` when `ui` is false). Inventory is not design: listing `ui: true` does not plan the surface. Cite the craft skill as `references[{path, why}]` with `why` naming distinctive identity + interaction, not “inventory.” The brief lists each surface and the dest-writer conventions that bound it (helpers, HTML/CLI patterns already in the dest).
 
 ## Destination discovery
 

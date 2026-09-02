@@ -44,6 +44,13 @@ SoT. Leftover `plan.json` wrappers are inert — dest implement and
 `inject-step` ignore them; `init --force` still unlinks them. The DAG in
 `backchain/plan.json` is canonical.
 
+When `machine.ui` is true, dest plan requires some nonempty
+`references[].path` to contain the frozen `ui_craft` token. Dest implement
+requires a seed step whose `produces` matches
+`(?i)\b(design|visual identity|interaction model)\b`, plus another seed whose
+`inputs[].from` names that design step. Discovered/inject steps do not satisfy
+the required design seed. When `ui` is false, both gates are skipped.
+
 ## Hashes (fail-closed drift)
 
 - `environment_sha256 = sha256(environment.md)`

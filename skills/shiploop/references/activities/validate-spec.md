@@ -115,6 +115,26 @@ secrets. Do not write the product README. Do not add research skills to
 `mcp_considered` token. In-flight runs: dest blocked → validate-spec;
 rewrite environment.md; → plan (do not hand-edit backchain/plan.json).
 
+### Surfaces (required when `ui` is true)
+
+Inventory is not design. When machine `ui` is true, for **each** human-facing
+surface this increment ships (product UI, CLI, operator/debug page a person
+uses, dest-facing page):
+
+1. Cite the frozen `ui_craft` skill as `references[{path, why}]`. `why` names
+   distinctive identity and interaction, not “inventory.” The `ui_craft`
+   token must appear in that `path`.
+2. Record dest-writer conventions that bound the surface (helpers and
+   interaction patterns already in the dest). Reuse those. Do not add a
+   second UI/CLI stack for the same job.
+3. Default quality bar unless the frozen spec says otherwise: as **highly
+   interactive and distinctive** as those conventions allow — live feedback,
+   in-surface state, keyboard where it fits, empty/error/success as designed
+   moments. Not a generic template. Not a static form if the dest can do
+   motion or in-page interaction.
+
+When `ui` is false, skip this block.
+
 ### 3. Spec (once)
 
 Write `{{SPEC_MD}}` with a labeled line `done_sentence: <exact sentence>`
@@ -126,7 +146,7 @@ backchain to add that as a late DAG successor in `plan`, not here.
 If dest-hit found a reserved default entrypoint, `done_sentence` names the
 **user** entrypoint, not the default dest URL.
 
-While expanding the spec, answer these three questions in `{{SPEC_MD}}`
+While expanding the spec, answer these four questions in `{{SPEC_MD}}`
 (prose is enough; do not invent new required labels). Survey already owns
 `initiation` / `create` handles — question 1 is deploy *readiness*, not a
 second project-create survey.
@@ -146,9 +166,12 @@ second project-create survey.
    on the completed product before dest done? Record yes (and what to
    check) or no. Residual treats that answer as frozen: yes runs it, no
    skips it.
+4. **Human-facing surfaces?** If survey `ui` is true, name each surface and
+   say it is **designed** (distinctive, highly interactive within dest
+   conventions) before it is built. If `ui` is false, say none.
 
 Do not run that `/goal` here. Do not publish here. Do not invent a new
-state-machine phase. Ownership: Q1 and Q2=`dag` → `plan`; Q2=`outer-loop`
+state-machine phase. Ownership: Q1, Q2=`dag`, and Q4 → `plan`; Q2=`outer-loop`
 and Q3 → residual.
 
 If not checkable, or a handle needs the user: set labeled `done_sentence:`

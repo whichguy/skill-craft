@@ -130,6 +130,11 @@ if grep -RqiE 'mcp-gas-deploy|common-js|HtmlService|doGet|/play' \
   "$root/skills/shiploop/references/survey.md"; then
   fail "shiploop destination discovery must stay vendor-free"
 fi
+if grep -RqiE 'frontend-design|HtmlService|GAS|mcp-gas-deploy|common-js|doGet|/play' \
+  "$root/skills/shiploop/references/activities" \
+  "$root/skills/shiploop/references/survey.md"; then
+  fail "shiploop surface planning must stay vendor-free"
+fi
 if grep -q '{{' "$root/skills/shiploop/references/survey.md"; then
   fail "survey.md must not contain interpolation tokens (Look-here is not interpolated)"
 fi
@@ -145,6 +150,10 @@ grep -q 'must not use packet-level H2' \
 grep -q '^### 2. Best-practice research' \
   "$root/skills/shiploop/references/activities/validate-spec.md" \
   || fail "validate-spec.md job 2 heading is not ###"
+grep -Fq '### Surfaces' "$root/skills/shiploop/references/activities/validate-spec.md" \
+  || fail "validate-spec.md missing Surfaces job"
+grep -Fq 'highly interactive' "$root/skills/shiploop/references/activities/validate-spec.md" \
+  || fail "validate-spec.md missing surface quality bar"
 for title in 'How to use this MCP' 'Library / runtime systems it imposes' \
   'Conventions — reserved vs product' 'How a user actually hits'; do
   grep -Fq "$title" "$root/skills/shiploop/references/activities/validate-spec.md" \
@@ -154,6 +163,8 @@ for needle in "Don't write:" 'routing-level probe' 'live acceptance'; do
   grep -Fq "$needle" "$root/skills/shiploop/references/activities/plan.md" \
     || fail "plan.md missing destination seed contract: $needle"
 done
+grep -Fq 'early design' "$root/skills/shiploop/references/activities/plan.md" \
+  || fail "plan.md missing early design seed"
 grep -q 'practice references' "$root/skills/shiploop/references/activities/plan.md" \
   || fail "plan.md missing practice references in step prompts"
 grep -q 'researches applicable practices' "$root/skills/shiploop/README.md" \
@@ -3025,6 +3036,18 @@ write_machine "$runm" '{"kind": "greenfield", "augment": false, "references": []
  "mcp_considered": "none(x)",
  "handles": [{"source": "gh", "need": "repo id", "resolve": "inspect", "value": "abc"}],
  "initiation": "none", "ui": true, "ui_craft": "frontend-design", "exclusive": []}'
+set +e
+out_uiref="$(run_cli update --run-dir "$runm" --to plan 2>&1)"
+rc_uiref=$?
+set -e
+[[ "$rc_uiref" -eq 2 ]] || fail "ui craft missing reference want 2: $out_uiref"
+printf '%s\n' "$out_uiref" | grep -q 'ui_craft' || fail "ui craft gap missing token: $out_uiref"
+printf '%s\n' "$out_uiref" | grep -q 'references' || fail "ui craft gap missing references: $out_uiref"
+
+write_machine "$runm" '{"kind": "greenfield", "augment": false, "references": [{"path": "skills/frontend-design/README.md", "why": "distinctive identity and interaction"}], "tools": [], "mcp": [],
+ "mcp_considered": "none(x)",
+ "handles": [{"source": "gh", "need": "repo id", "resolve": "inspect", "value": "abc"}],
+ "initiation": "none", "ui": true, "ui_craft": "frontend-design", "exclusive": []}'
 run_cli update --run-dir "$runm" --to plan >/dev/null
 printf 'LAYER: machine shape + handle/initiation/UI OK\n'
 
@@ -3161,6 +3184,59 @@ UNTIL_PREFIX='/goal
 Do this activity until these conditions are met:
 - result.txt exists
 '
+
+# --- ui craft citation and early design seed gates ---
+runui="$tmpdir/ui-design/.shiploop"
+repoui="$tmpdir/ui-design/repo"
+fresh_vs "$runui" "$repoui"
+uicraft_ref='skills/frontend-design/README.md'
+write_machine "$runui" "{\"kind\": \"greenfield\", \"augment\": false, \"references\": [{\"path\": \"$uicraft_ref\", \"why\": \"distinctive identity and interaction\"}], \"tools\": [], \"mcp\": [],
+ \"mcp_considered\": \"none(x)\", \"handles\": [], \"initiation\": \"none\", \"ui\": true, \"ui_craft\": \"frontend-design\", \"exclusive\": []}"
+run_cli update --run-dir "$runui" --to plan >/dev/null
+write_seed_dag "$runui" "${UNTIL_PREFIX}cite ${uicraft_ref}
+Tools:
+Watch with: none(x)
+Use: git
+Don't use: none
+Assume: test harness"
+set +e
+out_uidesign="$(run_cli update --run-dir "$runui" --to implement 2>&1)"
+rc_uidesign=$?
+set -e
+[[ "$rc_uidesign" -eq 2 ]] || fail "ui without design seed want 2: $out_uidesign"
+printf '%s\n' "$out_uidesign" | grep -qi 'ui.*design.*seed' \
+  || fail "ui design seed gap message: $out_uidesign"
+python3 - "$runui" "$DS" "$uicraft_ref" <<'PY'
+import json, sys
+from pathlib import Path
+run = Path(sys.argv[1])
+ds, ref = sys.argv[2], sys.argv[3]
+tools = "Tools:\nWatch with: none(x)\nUse: git\nDon't use: none\nAssume: test harness"
+doc = {
+  "goal": ds,
+  "initial_state": ["repo exists"],
+  "steps": [
+    {
+      "id": "S1", "statement": "design the surface",
+      "prompt": "/goal\nDo this activity until these conditions are met:\n- a recorded UI design and interaction model\n\nUse %s for distinctive craft.\n%s" % (ref, tools),
+      "produces": ["a recorded UI design and interaction model"],
+      "origin": "seed", "inputs": [{"need": "repo exists", "from": None}],
+    },
+    {
+      "id": "S2", "statement": "build the surface",
+      "prompt": "/goal\nDo this activity until these conditions are met:\n- result.txt exists\n\nImplement the recorded design using %s.\n%s" % (ref, tools),
+      "produces": ["result.txt exists"], "origin": "seed",
+      "inputs": [{"need": "a recorded UI design and interaction model", "from": "S1"}],
+    },
+  ],
+  "parallel_groups": [], "unresolved": [],
+}
+(run / "backchain" / "plan.json").write_text(json.dumps(doc, indent=2) + "\n")
+(run / "plan.md").write_text("done_sentence: %s\n" % ds)
+PY
+run_cli update --run-dir "$runui" --to implement >/dev/null
+printf 'LAYER: ui craft citation + early design seed gates OK\n'
+
 write_seed_dag "$runtg" "${UNTIL_PREFIX}/goal no tools header"
 set +e
 out_tg1="$(run_cli update --run-dir "$runtg" --to implement 2>&1)"
