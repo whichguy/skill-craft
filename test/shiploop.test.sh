@@ -110,9 +110,12 @@ grep -Fq 're-reads live dest URLs' \
 grep -Fq 'watch MCP for that check' \
   "$root/skills/shiploop/references/activities/validate-spec.md" \
   || fail "validate-spec.md Q3 missing Frozen watch MCP"
-grep -Fq '**user** entrypoint' \
+grep -Fq 'to check names the **user** entrypoint' \
   "$root/skills/shiploop/references/activities/validate-spec.md" \
   || fail "validate-spec.md Q3 missing user entrypoint"
+grep -Fq 'dest-reread then do the spec' \
+  "$root/skills/shiploop/scripts/shiploop" \
+  || fail "PHASE_FINISH residual missing dest-reread"
 chmod +x "$cli"
 
 le_docs="$root/docs/LOOP-ENGINEERING.md"

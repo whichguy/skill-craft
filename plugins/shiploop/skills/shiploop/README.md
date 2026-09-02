@@ -397,9 +397,11 @@ gap *"bound_plan empty: add ## Review Coverage to .shiploop/plan.md or pass --bo
 Do not treat a foreign or unlanded ledger as success.
 
 When the ledger is `complete` and landed (or the plan has a real residual
-waiver), do only what the frozen spec named: a `/goal` quality test-and-fix
-pass if it said yes (skip if no), then **outer-loop** deploy/publish if it
-said outer-loop (skip if dag or none), then dest `done`. A real waiver
+waiver), dest-reread live dest URLs onto frozen routing (compose; do not
+rewrite hashes), then do only what the frozen spec named: a `/goal` quality
+test-and-fix pass if it said yes (skip if no), then **outer-loop**
+deploy/publish if it said outer-loop (skip if dag or none), then dest
+`done`. A real waiver
 changes Diagnosis / Progress from “run Phase B” to “residual waived —
 quality/publish then dest done”, and Next prompt uses `residual-waived.md`
 instead of `residual.md`. When the ledger
