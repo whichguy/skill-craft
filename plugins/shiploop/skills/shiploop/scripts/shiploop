@@ -23,7 +23,7 @@ EXIT_BLOCKED = 2
 EXIT_USAGE = 64
 
 PACKAGE_ROOT = Path(__file__).resolve().parents[1]
-VERSION = "0.8.21"
+VERSION = "0.8.22"
 REF_DIR = PACKAGE_ROOT / "references"
 WT_DIRNAME = ".worktrees"
 # Printed in ## Progress and the implement Next envelope. Do not splice into
@@ -2703,10 +2703,7 @@ PHASE_FINISH = {
     "intake": "Invoke /shiploop complete. The harness dests validate-spec.",
     "validate-spec": "Invoke /shiploop complete. The harness dests plan (or blocked).",
     "plan": "Invoke /shiploop complete. The harness dests implement and claims ready ids.",
-    "implement": (
-        "After each /goal: commit on that step's worktree, merge the branch "
-        "into the session checkout, invoke /shiploop complete."
-    ),
+    "implement": "per-step Finish lines above",
     "residual": "When the ledger is complete+landed (or waived), dest-reread then do the spec's quality /goal A then Improve /goal B (Frozen reprint first; skip A+B if Q3=no) and outer-loop publish if named, then invoke /shiploop complete — dest done writes recap.html.",
     "blocked": "When they answer: invoke /shiploop complete --reason <answer> (resumes to resume_to).",
     "done": "stop — no update",
@@ -2910,8 +2907,9 @@ def print_implement_git(
         f"{repo_s}"
     )
     print(
-        "This worktree already contains landed patches "
-        "(forked from session HEAD after the previous merge)."
+        "This worktree forked from session HEAD when this id was claimed. "
+        "Ids claimed in the same call do not see each other's merges; the "
+        "next claim forks the HEAD after this merge."
     )
     print(f"Iterate here. git -C {wt_s} for every git command. Never git add -A.")
     print(f"Before planning this iteration: git -C {wt_s} log -10 --format=full")
@@ -2928,9 +2926,9 @@ def print_implement_git(
     print(
         "Do not merge from this cwd. When /goal A produces is true, close it "
         "and open Improve /goal B (do not nest). After B, leftover uncommitted "
-        "gets the same commit schema; then invoke /shiploop complete "
-        "--inner-loop goal (or --inner-loop parent if /goal is off). "
-        "complete merges into the session checkout, keeps the step branch, "
+        "gets the same commit schema. Then invoke the closer under When "
+        "done invoke (default --inner-loop goal). complete merges into the "
+        "session checkout, keeps the step branch, "
         "removes the worktree, does not squash, and prints Git ran:"
     )
     print(f"  git -C {repo_s} merge --no-ff --no-edit {br_s}")
@@ -2939,13 +2937,7 @@ def print_implement_git(
 def print_goal_until(step: Dict[str, Any]) -> None:
     """Exit for /goal A. Produces from the DAG; do not rewrite stored prompt."""
     print(GOAL_UNTIL_HEAD)
-    print("Until (exit; do not loop):")
-    texts = produces_texts(step.get("produces")) or []
-    if texts:
-        for t in texts:
-            print(f"- {t}")
-    else:
-        print("- (no produces)")
+    print("Until: this step's produces (also in the stored prompt).")
     print(
         "When those are true, close this /goal. "
         "Do not nest a second /goal inside it."
@@ -2961,13 +2953,11 @@ def print_improve() -> None:
     print("- only trivial findings remaining for 2 consecutive cycles")
     print("- remaining trivial changes committed")
     print(
-        "Max 12 improve cycles; on exceed, leftover-commit and invoke "
-        "/shiploop complete --inner-loop goal "
-        "(or --inner-loop parent if /goal is off) (do not loop)."
+        "Max 12 improve cycles; on exceed, leftover-commit and invoke the "
+        "closer under When done invoke (default --inner-loop goal; do not loop)."
     )
     print(
-        "Then invoke /shiploop complete --inner-loop goal "
-        "(or --inner-loop parent if /goal is off)."
+        "Then invoke the closer under When done invoke (default --inner-loop goal)."
     )
 
 
@@ -3167,6 +3157,7 @@ def activity_body(phase: str, run_dir: Path, state: Dict[str, Any]) -> str:
         "STATE_FILES": str(REF_DIR / "state-files.md"),
         "IMPLEMENT_ACTIVITY": str(ACTIVITIES_DIR / "implement.md"),
         "RECAP_HTML": str(run_dir / "recap.html"),
+        "IMPROVE_GOAL": IMPROVE_GOAL,
     }
     return interpolate(path.read_text(encoding="utf-8"), mapping).rstrip()
 

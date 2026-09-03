@@ -71,16 +71,7 @@ supply those names.
    wrap/export style, and helpers present after create/bootstrap (or, for an
    existing destination, after listing its files). Then record the call
    contract, one level below file shape:
-   - **Product-facing mechanics.** The documented calls, hooks, footers,
-     annotations, or registration steps a product author must invoke, with
-     any required order or lifecycle (register before use, evaluate before
-     configure, eager vs lazy load, entry then footer). Include mechanics the
-     writer says a product file needs to be picked up at all.
-   - **Replacement map.** For each mechanic, the generic platform or language
-     pattern it replaces (bare platform template call, global function,
-     ad-hoc include, inline module wrapper, catch-all request handler).
-     Product code using the replaced pattern is a discovery miss even when
-     the platform accepts it and the file lints clean.
+   - **Mechanics rows.** One row per product-facing mechanic the writer states (omit, do not infer): product action; imposed call, hook, footer, or registration with its order; the generic platform or language pattern it replaces (a miss even when the platform accepts it and the file lints clean); documenting `references[].path`. Host-chosen defaults are marked `host default; writer names none`. `none` when no library is imposed.
    - **Writer-internal.** Dispatch, auth, exec, and diagnostic mechanics the
      writer documents as its own. Product code reaches them only through the
      documented product-facing surface.
@@ -136,13 +127,6 @@ writer; each may be the token `none` when inapplicable:
 - **Tracked bind files.** When `initiation: needed` or exclusive dest-write
   requires a local resolver (id map or dest config), freeze paths later
   worktrees must keep tracked; secrets remain ignored.
-- **Mechanics rows (native vs generic).** Under the Q2 answer in the brief,
-  one row per product-facing mechanic: product action; imposed mechanic and
-  order; generic substitute that is a miss; documenting `references[].path`.
-  Rows the writer does not state are omitted, not inferred. Host-chosen
-  defaults (a product tree or route the writer leaves unnamed) are marked
-  `host default; writer names none`. `none` when no library is imposed.
-
 When `exclusive` is nonempty, all four answers are required before dest
 plan (and `references` stays nonempty). When `mcp:` is nonempty but
 `exclusive` is `[]`, still record (1) and (2); (3) and (4) may be `none`

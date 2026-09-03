@@ -7,7 +7,7 @@ walk-back HTML recap exists.
 
 ShipLoop never conflict-resolves a merge and never claims engine `COMPLETE`.
 
-Package leaf: `skills/shiploop`. Invoke: `/shiploop`. Version: **0.8.21**.
+Package leaf: `skills/shiploop`. Invoke: `/shiploop`. Version: **0.8.22**.
 
 Canonical companions (do not duplicate their contracts here):
 
@@ -18,10 +18,7 @@ Canonical companions (do not duplicate their contracts here):
 - [references/transitions.json](references/transitions.json) — legal phase edges
 - skill-craft [docs/LOOP-ENGINEERING.md](../../docs/LOOP-ENGINEERING.md) — ShipLoop track
 
-Destination discovery (writer use, imposed libraries including
-product-facing mechanics vs generic substitutes / replacement map,
-reserved/product layout, and user routing) is defined only in
-[references/survey.md](references/survey.md).
+Destination-discovery shape lives in [references/survey.md](references/survey.md); its four questions, mechanics, and evaluations are in the printed [validate-spec.md](references/activities/validate-spec.md) activity.
 Human-facing surfaces with `ui: true` are designed as an early DAG seed before
 they are built; details live in [survey.md](references/survey.md),
 [validate-spec.md](references/activities/validate-spec.md), and

@@ -48,10 +48,14 @@ Follow this order. Each `/goal` below is a new outer-loop turn, not a nested
       dest-reread plus spot-check instead. Play-through needs a watch MCP in
       frozen `{{ENV_MD}}` `mcp:`/`tools`; missing/locked → dest-block
       validate-spec, not a helper that bypasses the dispatcher.
-   2. **Improve `/goal` B.** If Q3=yes, open `/goal` B = Frozen + Improve
-      with the same `IMPROVE_GOAL` two-clean, max-12 contract after A. Do not
-      nest B inside A. If Q3=no, skip A and B; the spec is SoT — do not
-      override a no.
+   2. **Improve `/goal` B.** If Q3=yes, after A open host `/goal` B = Frozen + this goal (do not nest B inside A):
+      /goal
+      {{IMPROVE_GOAL}}
+      Do this activity until these conditions are met:
+      - only trivial findings remaining for 2 consecutive cycles
+      - remaining trivial changes committed
+      Max 12 improve cycles; on exceed, commit leftovers and go to step 3.
+      If Q3=no, skip A and B; the spec is SoT — do not override a no.
    3. **Outer-loop deploy/publish.** After B, if Q2 is **outer-loop**, do
       that now with the writer's publish tool (dest-discovery Q1), on the
       same composed entrypoint for that slot. If Q2 is **dag** or **none**,

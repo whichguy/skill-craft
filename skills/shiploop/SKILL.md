@@ -8,7 +8,7 @@ description: >-
   /shiploop complete — do not rely on chat memory. Lost context without
   completing → /shiploop next.
 allowed-tools: all
-version: 0.8.21
+version: 0.8.22
 license: MIT
 platforms:
   - linux
@@ -108,6 +108,9 @@ Human overview: [README.md](README.md).
    When several ids are running, finish one id's A + B + complete before
    opening another id’s A, unless they are truly parallel and each has its own
    `/goal` A/B pair; never use one parent Improve turn for two ids.
+   Only implement steps, review-coverage, and the residual quality pass get a
+   host `/goal`. Intake, validate-spec, and plan are parent-chat writes on the
+   session checkout: no `/goal`, no Improve, no worktree.
 5. When `/goal` A and Improve `/goal` B are done: leftover uncommitted
    work gets a pathspec commit (never `git add -A`) with `Key learnings:`
    / `See: <sha>`, then invoke **`/shiploop complete --inner-loop goal`**.
@@ -179,7 +182,7 @@ Then exec the leaf CLI (`complete`) and follow the whole packet that prints.
 CLI="$SKILL_ROOT/scripts/shiploop"
 python3 "$CLI" init [--prompt TEXT] [--run-dir DIR] [--implementer host] [--force] [--bound-plan PATH] [--repo PATH]
 python3 "$CLI" next [--run-dir DIR]
-python3 "$CLI" complete [--id ID] [--run-dir DIR] [--inner-loop goal|parent] [--clear] [--blocked --reason TEXT]
+python3 "$CLI" complete [--id ID] [--run-dir DIR] [--inner-loop goal|parent] [--clear] [--blocked --reason TEXT] [--resume-to PHASE]
 python3 "$CLI" update [--run-dir DIR] --to PHASE [--reason TEXT] [--resume-to PHASE]
 python3 "$CLI" status [--run-dir DIR] [--human]
 python3 "$CLI" start-step [--run-dir DIR] --id ID

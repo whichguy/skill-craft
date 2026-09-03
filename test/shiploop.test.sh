@@ -234,15 +234,10 @@ for title in 'How to use this MCP' 'Library / runtime systems it imposes' \
   grep -Fq "$title" "$root/skills/shiploop/references/activities/validate-spec.md" \
     || fail "validate-spec.md missing destination discovery question: $title"
 done
-for needle in 'by artifact, not familiarity' 'Product-facing mechanics' \
-  'Replacement map' 'Writer-internal' 'Shape oracle' 'Mechanics rows' \
-  'host default; writer names none'; do
-  for dest_discovery_file in \
-    "$root/skills/shiploop/references/survey.md" \
-    "$root/skills/shiploop/references/activities/validate-spec.md"; do
-    grep -Fq "$needle" "$dest_discovery_file" \
-      || fail "$(basename "$dest_discovery_file") missing destination discovery detail: $needle"
-  done
+for needle in 'by artifact, not familiarity' 'Writer-internal' 'Shape oracle' \
+  'Mechanics rows' 'host default; writer names none'; do
+  grep -Fq "$needle" "$root/skills/shiploop/references/activities/validate-spec.md" \
+    || fail "validate-spec.md missing destination discovery detail: $needle"
 done
 grep -Fq "mechanics rows for that step's file kinds" \
   "$root/skills/shiploop/references/activities/plan.md" \
@@ -1517,10 +1512,14 @@ printf '%s\n' "$out_imp" | grep -q 'mcp: (none)' || fail "implement Next missing
 printf '%s\n' "$out_imp" | grep -q 'Exclusive: (none)' || fail "implement Next missing Exclusive: (none)"
 printf '%s\n' "$out_imp" | grep -q 'Implement git (paste into /goal with Frozen' \
   || fail "implement Next missing Implement git"
+printf '%s\n' "$out_imp" | grep -Fq "This worktree forked from session HEAD when this id was claimed. Ids claimed in the same call do not see each other's merges; the next claim forks the HEAD after this merge." \
+  || fail "implement Next missing parallel-claim worktree contract"
+grep -Fq 'already contains landed patches' "$cli" \
+  && fail "implement git retained obsolete landed-patches claim"
 printf '%s\n' "$out_imp" | grep -q 'Goal until (this stored prompt is /goal A' \
   || fail "implement Next missing Goal until"
-printf '%s\n' "$out_imp" | grep -q 'Until (exit; do not loop):' \
-  || fail "implement Next missing Until (exit; do not loop)"
+printf '%s\n' "$out_imp" | grep -Fq "Until: this step's produces (also in the stored prompt)." \
+  || fail "implement Next missing produces-pointer Until"
 printf '%s\n' "$out_imp" | grep -Fiq 'do not nest' \
   || fail "implement Next missing do not nest"
 printf '%s\n' "$out_imp" | grep -q 'Improve (paste as /goal B after produces is true' \
@@ -1565,7 +1564,8 @@ if k < 0:
 imp = text.find('Improve (paste as /goal B after produces is true')
 assert i != -1 and j != -1 and u != -1 and k != -1 and imp != -1, (i, j, u, k, imp)
 assert i < j < u < k < imp, (i, j, u, k, imp)
-assert 'result.txt exists' in text[u:k]
+assert 'Until: this step\'s produces (also in the stored prompt).' in text[u:k]
+assert 'result.txt exists' not in text[u:k]
 frozen = text[i:j]
 assert 'Deeply research those MCP servers' not in frozen, 'job-2 research leaked into Frozen'
 assert 'Improve (paste as /goal B after produces is true' not in frozen
@@ -1848,6 +1848,13 @@ assert_absent "$out_res_miss" 'missing recap.html' \
   "residual packet demanded recap.html the harness writes"
 printf '%s\n' "$out_res_miss" | grep -Fq 'Frozen session environment' \
   || fail "residual Next missing Frozen session environment reprint: $out_res_miss"
+printf '%s\n' "$out_res_miss" | grep -Fq 'quality review all the changes, review the last 7 git commit messages' \
+  || fail "residual Next missing Improve goal"
+assert_absent "$out_res_miss" 'IMPROVE_GOAL' \
+  "residual Next leaked raw Improve-goal token"
+printf '%s\n' "$out_res_miss" | awk '/^## Next prompt$/,/^## When done invoke$/' \
+  | grep -Fq -- '--inner-loop' \
+  && fail "residual Next used an implement inner-loop closer"
 printf '%s\n' "$out_res_miss" | python3 -c "
 import sys
 text = sys.stdin.read()
