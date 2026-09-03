@@ -85,6 +85,54 @@ grep -q 'Quality test/fix on outer-loop completion' "$root/skills/shiploop/refer
   || fail "validate-spec.md missing quality /goal question"
 grep -q '/goal' "$root/skills/shiploop/references/activities/validate-spec.md" \
   || fail "validate-spec.md missing /goal in quality question"
+for eval_path in "$root/skills/shiploop/references/survey.md" \
+  "$root/skills/shiploop/references/activities/validate-spec.md"; do
+  grep -Fiq 'file identity' "$eval_path" \
+    || fail "$(basename "$eval_path") missing dest file identity evaluation"
+  grep -Fiq 'usability' "$eval_path" \
+    || fail "$(basename "$eval_path") missing dest usability evaluation"
+  grep -Fiq 'this turn' "$eval_path" \
+    || fail "$(basename "$eval_path") missing usability-this-turn evaluation"
+  grep -Fiq 'tracked bind' "$eval_path" \
+    || fail "$(basename "$eval_path") missing tracked bind files evaluation"
+  grep -Fiq 'token `none`' "$eval_path" \
+    || fail "$(basename "$eval_path") missing none allowance for evaluations"
+done
+grep -Fq '/goal` A' "$root/skills/shiploop/SKILL.md" \
+  || fail "SKILL.md missing inner /goal A"
+grep -Fq '/goal` B' "$root/skills/shiploop/SKILL.md" \
+  || fail "SKILL.md missing inner /goal B"
+grep -Fq -- '--inner-loop goal' "$root/skills/shiploop/SKILL.md" \
+  || fail "SKILL.md missing default goal closer"
+grep -Fq 'only if the host `/goal` is off' "$root/skills/shiploop/SKILL.md" \
+  || fail "SKILL.md missing parent-only-if-goal-off rule"
+grep -Fq 'open Improve /goal B' "$cli" \
+  || fail "printed closer missing inner Improve /goal B"
+grep -Fq 'then invoke /shiploop complete --inner-loop goal' "$cli" \
+  || fail "printed closer missing default goal completion after Improve"
+for residual_act in residual.md residual-waived.md; do
+  residual_path="$root/skills/shiploop/references/activities/$residual_act"
+  grep -Fq 'Quality test/fix `/goal` A' "$residual_path" \
+    || fail "$residual_act missing quality /goal A"
+  grep -Fq 'Improve `/goal` B' "$residual_path" \
+    || fail "$residual_act missing Improve /goal B"
+  grep -Fq 'skip A and B' "$residual_path" \
+    || fail "$residual_act missing Q3=no skip A+B"
+  grep -Fq 'After B, if Q2 is **outer-loop**' "$residual_path" \
+    || fail "$residual_act missing publish-after-B outer-loop rule"
+done
+grep -Fq 'git_run(repo, "merge", "--no-ff", "--no-edit", branch' "$cli" \
+  || fail "complete lost live --no-ff --no-edit merge call"
+if grep -F 'git_run(repo, "merge"' "$cli" | grep -q -- '--squash'; then
+  fail "complete merge command must not gain --squash"
+fi
+for merge_doc in "$root/skills/shiploop/README.md" \
+  "$root/skills/shiploop/references/turn-packet.md"; do
+  grep -Eq 'does not squash|do not squash' "$merge_doc" \
+    || fail "$(basename "$merge_doc") missing does-not-squash merge contract"
+done
+grep -Eq 'does not squash|do not squash' "$cli" \
+  || fail "print_implement_git / closer missing does-not-squash contract"
 grep -q 'Quality test/fix' "$root/skills/shiploop/references/activities/residual.md" \
   || fail "residual.md missing quality /goal closer"
 grep -q 'Outer-loop deploy/publish' "$root/skills/shiploop/references/activities/residual.md" \
@@ -1783,6 +1831,15 @@ rm -f "$run/recap.html"
 out_res_miss="$(run_cli next --run-dir "$run")"
 assert_absent "$out_res_miss" 'missing recap.html' \
   "residual packet demanded recap.html the harness writes"
+printf '%s\n' "$out_res_miss" | grep -Fq 'Frozen session environment' \
+  || fail "residual Next missing Frozen session environment reprint: $out_res_miss"
+printf '%s\n' "$out_res_miss" | python3 -c "
+import sys
+text = sys.stdin.read()
+quality = text.find('Quality test/fix')
+improve = text.find('Improve', quality)
+assert quality >= 0 and improve > quality, (quality, improve)
+" || fail "residual Next does not order Improve after quality A"
 printf 'not html\n' >"$run/recap.html"
 out_nr="$(run_cli update --run-dir "$run" --to done 2>&1)"
 printf '%s\n' "$out_nr" | grep -q 'updated residual -> done' || fail "dest done should write recap: $out_nr"

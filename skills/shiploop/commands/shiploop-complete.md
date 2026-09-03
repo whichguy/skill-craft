@@ -10,19 +10,21 @@ The current ShipLoop increment is finished. This command **is** the closer, not 
    - `Key learnings:` bullets
    - `See: <full sha> <subject>` for prior commits that taught this lesson
    If `/goal` already committed, do **not** invent a second finish commit.
-2. Then exec the harness `complete --inner-loop goal` after `/goal`, or
-   `complete --inner-loop parent` after the equivalent host-native inner
-   loop. It merges
-   (`git -C <session-checkout> merge --no-ff --no-edit <branch>`), prints
-   `Git ran:` (argv + exit + output), dests residual when this was the last
-   step, and prints the next packet. Session checkout = `repo_root` main
-   working tree. Do not merge from the worktree cwd. Dirty, empty, or
-   conflicted complete is exit 2 with that transcript — fix and retry.
+2. Then exec the harness `complete --inner-loop goal` after `/goal`.
+   Use `complete --inner-loop parent` only when host `/goal` is off; parent
+   still includes A until-produces and Improve B two-clean. It merges
+   (`git -C <session-checkout> merge --no-ff --no-edit <branch>`), keeps the
+   step branch, removes the worktree, and does not squash, so inner Key
+   learnings stay reachable from session HEAD. It prints `Git ran:` (argv +
+   exit + output), dests residual when this was the last step, and prints the
+   next packet. Session checkout = `repo_root` main working tree. Do not merge
+   from the worktree cwd. Dirty, empty, or conflicted complete is exit 2 with
+   that transcript — fix and retry.
 
 Complete runs the merge; it does not resolve conflicts. Full sequence: [README.md — Git sequence (harness vs host)](../README.md#git-sequence-harness-vs-host).
 
 Then exec `python3 "$SKILL_ROOT/scripts/shiploop" complete --inner-loop goal`
-(or the leaf wrapper with `--inner-loop parent` for the host-native loop) so
+(or the leaf wrapper with `--inner-loop parent` only when `/goal` is off) so
 the harness prints the next packet.
 
 - `/goal` failed, session continues: `--clear`

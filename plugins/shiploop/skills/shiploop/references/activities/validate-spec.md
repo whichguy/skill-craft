@@ -96,6 +96,22 @@ supply those names.
    needs a play-through must say so in `produces` and is a **live
    acceptance** step, not this probe.
 
+Also record these evaluations before dest plan for every applicable named
+writer; each may be the token `none` when inapplicable:
+
+- **Watch / dest-write usability this turn.** For every name in machine
+  `mcp:` that a later live-acceptance or Q3 check will use, make one cheap,
+  documented read-only call that proves it can run **this turn**, not merely
+  appear in a server list. Failure is `ask` or dest-block, not Frozen
+  “connected.”
+- **Dest file identity.** From the writer’s own push/list/lint docs, record
+  how destination keys files (name, type, position). If local files would
+  collapse to a destination name, put the constraint in
+  `references[{path, why}]` so implement does not guess.
+- **Tracked bind files.** When `initiation: needed` or exclusive dest-write
+  requires a local resolver (id map or dest config), freeze paths later
+  worktrees must keep tracked; secrets remain ignored.
+
 When `exclusive` is nonempty, all four answers are required before dest
 plan (and `references` stays nonempty). When `mcp:` is nonempty but
 `exclusive` is `[]`, still record (1) and (2); (3) and (4) may be `none`

@@ -40,25 +40,30 @@ Follow this order. Each `/goal` below is a new outer-loop turn, not a nested
    dest-hit fix is allowed only when routing was already frozen and
    `done_sentence` already names the user entrypoint.
 
-   1. **Quality test/fix `/goal`.** If the spec said yes on outer-loop
-      completion, run one host `/goal` to test and fix the completed
-      product at the composed user entrypoint (the check it named).
-      Play-through needs a watch MCP in frozen `{{ENV_MD}}` `mcp:`/`tools`;
-      missing/locked → dest-block validate-spec, not a helper that bypasses
-      the dispatcher. If the spec said no, skip. The spec is SoT — do not
+   Paste Frozen (printed above this Next body) before each quality turn.
+   1. **Quality test/fix `/goal` A.** If Q3=yes, run host `/goal` A to test
+      and fix the completed product at the composed user entrypoint (the
+      named check), then close A. A DAG sink that already play-through’d the
+      frozen user entrypoint may skip only that duplicate play-through and do
+      dest-reread plus spot-check instead. Play-through needs a watch MCP in
+      frozen `{{ENV_MD}}` `mcp:`/`tools`; missing/locked → dest-block
+      validate-spec, not a helper that bypasses the dispatcher.
+   2. **Improve `/goal` B.** If Q3=yes, open `/goal` B = Frozen + Improve
+      with the same `IMPROVE_GOAL` two-clean, max-12 contract after A. Do not
+      nest B inside A. If Q3=no, skip A and B; the spec is SoT — do not
       override a no.
-   2. **Outer-loop deploy/publish.** If the spec named deploy/publish as
-      **outer-loop**, do that now with the writer's publish tool
-      (dest-discovery Q1), on the same composed entrypoint for that slot.
-      If it said **dag** or **none**, skip (dag already ran in the walk).
-      Do not open a new DAG step. Do not publish "just to test" if the
-      writer says push/HEAD is enough.
-   3. Then invoke `/shiploop complete`. dest `done` writes the
+   3. **Outer-loop deploy/publish.** After B, if Q2 is **outer-loop**, do
+      that now with the writer's publish tool (dest-discovery Q1), on the
+      same composed entrypoint for that slot. If Q2 is **dag** or **none**,
+      skip (dag already ran in the walk). Do not open a new DAG step. Do not
+      publish "just to test" if the writer says push/HEAD is enough.
+   4. Then invoke `/shiploop complete`. dest `done` writes the
       end-of-run walk-back at `{{RECAP_HTML}}` (HTML covering intent, the
       original spec, what was accomplished, what materially changed, the
       end result, the final outcome, and what was verified). Recap
       Verified reports review-coverage; it does not witness this quality
-      `/goal` or treat `done_sentence` as harness-verified. Do not
+      `/goal` A or Improve `/goal` B, or treat `done_sentence` as
+      harness-verified. Do not
       hand-author that file.
 
 When the bound ledger is `stopped (...)`, invoke `/shiploop complete` (harness dests halted).

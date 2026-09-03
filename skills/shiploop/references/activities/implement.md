@@ -10,12 +10,14 @@ Do not nest Improve `/goal` B inside `/goal` A.
 If `/goal` A for an id is already open, do not open a second functional
 `/goal` for that id. Inner `/goal` A iterates and pathspec-commits **on
 the worktree**. Never `git add -A`. Never merge from that cwd. Then invoke
-**`/shiploop complete`** — the harness merges
-(`git -C <session-checkout> merge --no-ff --no-edit <branch>`), prints
-Git ran, dests residual when this was the last step, and prints the next
-packet. Do not run a bare `git merge` from the worktree cwd. The next
-worktree forks `HEAD`. Complete does not resolve conflicts; read Git ran
-and retry.
+**`/shiploop complete --inner-loop goal`** — the harness merges
+(`git -C <session-checkout> merge --no-ff --no-edit <branch>`), keeps the
+step branch, removes the worktree, and does not squash; inner Key learnings
+stay reachable from session HEAD. It prints Git ran, dests residual when this
+was the last step, and prints the next packet. Use `--inner-loop parent` only
+if host `/goal` is off; parent still includes A then B. Do not run a bare
+`git merge` from the worktree cwd. The next worktree forks `HEAD`. Complete
+does not resolve conflicts; read Git ran and retry.
 
 ### Discovered work mid-implement: `inject-step`
 
@@ -38,6 +40,7 @@ with `Don't use:` is a gap). The envelope wraps a discovered prompt exactly
 as it wraps a seed prompt.
 If the writer above fails, stop and invoke /shiploop complete --blocked --reason … — do not switch writers.
 
-After `/goal` A produces and Improve `/goal` B finishes: invoke `/shiploop complete`.
+After `/goal` A produces and Improve `/goal` B finishes: invoke
+`/shiploop complete --inner-loop goal`.
 After a `/goal` fails and the session can continue: invoke `/shiploop complete --clear`.
 Hard stop: invoke `/shiploop complete --blocked --reason …`.

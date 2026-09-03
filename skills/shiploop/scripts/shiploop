@@ -23,7 +23,7 @@ EXIT_BLOCKED = 2
 EXIT_USAGE = 64
 
 PACKAGE_ROOT = Path(__file__).resolve().parents[1]
-VERSION = "0.8.19"
+VERSION = "0.8.20"
 REF_DIR = PACKAGE_ROOT / "references"
 WT_DIRNAME = ".worktrees"
 # Printed in ## Progress and the implement Next envelope. Do not splice into
@@ -2707,7 +2707,7 @@ PHASE_FINISH = {
         "After each /goal: commit on that step's worktree, merge the branch "
         "into the session checkout, invoke /shiploop complete."
     ),
-    "residual": "When the ledger is complete+landed (or waived), dest-reread then do the spec's quality /goal and outer-loop publish if named, then invoke /shiploop complete — dest done writes recap.html.",
+    "residual": "When the ledger is complete+landed (or waived), dest-reread then do the spec's quality /goal A then Improve /goal B (Frozen reprint first; skip A+B if Q3=no) and outer-loop publish if named, then invoke /shiploop complete — dest done writes recap.html.",
     "blocked": "When they answer: invoke /shiploop complete --reason <answer> (resumes to resume_to).",
     "done": "stop — no update",
     "halted": "stop — no update",
@@ -2930,7 +2930,8 @@ def print_implement_git(
         "and open Improve /goal B (do not nest). After B, leftover uncommitted "
         "gets the same commit schema; then invoke /shiploop complete "
         "--inner-loop goal (or --inner-loop parent if /goal is off). "
-        "complete merges into the session checkout and prints Git ran:"
+        "complete merges into the session checkout, keeps the step branch, "
+        "removes the worktree, does not squash, and prints Git ran:"
     )
     print(f"  git -C {repo_s} merge --no-ff --no-edit {br_s}")
 
@@ -3107,7 +3108,7 @@ def print_progress(
             f"then invoke /shiploop complete --inner-loop goal "
             f"(or --inner-loop parent if /goal is off) "
             f"(harness merges git -C {repo_s} merge --no-ff --no-edit {br or '<branch>'} "
-            f"and prints Git ran)."
+            f"keeps the step branch, removes the worktree, does not squash, and prints Git ran)."
         )
         print(
             f"  After {sid} finishes: complete marks it done and claims newly "
@@ -3543,6 +3544,8 @@ def print_packet(run_dir: Path, state: Dict[str, Any], *, prior_running: Optiona
             print_stored_prompt(str(step.get("prompt") or ""))
             print_improve()
     else:
+        if phase == "residual":
+            print_frozen_session_env(run_dir)
         print(activity_body(phase, run_dir, state))
     print()
     print("## When done invoke")
@@ -3566,6 +3569,7 @@ def print_packet(run_dir: Path, state: Dict[str, Any], *, prior_running: Optiona
                 "then invoke /shiploop complete --inner-loop goal "
                 "(or --inner-loop parent if /goal is off) (merges "
                 f"git -C {repo_s} merge --no-ff --no-edit {br or '<branch>'}, "
+                "keeps the step branch, removes the worktree, does not squash, "
                 "prints Git ran, marks this step done, claims the next, "
                 "or dests residual when this was the last step)"
             )

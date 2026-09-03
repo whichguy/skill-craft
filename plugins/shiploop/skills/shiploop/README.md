@@ -7,7 +7,7 @@ walk-back HTML recap exists.
 
 ShipLoop never conflict-resolves a merge and never claims engine `COMPLETE`.
 
-Package leaf: `skills/shiploop`. Invoke: `/shiploop`. Version: **0.8.19**.
+Package leaf: `skills/shiploop`. Invoke: `/shiploop`. Version: **0.8.20**.
 
 Canonical companions (do not duplicate their contracts here):
 
@@ -330,14 +330,17 @@ Do not merge from the worktree cwd.
 
 When `/goal` A produces is true: Improve `/goal` B, leftover uncommitted
 work gets the same Implement git schema (log -10, `Key learnings:`,
-`See: <sha>`), then `/shiploop complete --inner-loop goal|parent`. The harness merges
+`See: <sha>`), then `/shiploop complete --inner-loop goal`. Use
+`--inner-loop parent` only if host `/goal` is off; parent still includes A
+until-produces and B two-clean. The harness merges
 (`git -C <session-checkout> merge --no-ff --no-edit shiploop/<run_id>/<id>`),
-prints Git ran, and dests residual when this was the last step. If `/goal`
-already committed, do not invent a second finish commit. Do not run a bare
-`git merge` from the worktree cwd — that would merge into the step branch.
-The next worktree forks `HEAD`. Conflicted or dirty complete is exit 2 with
-the git transcript; fix and retry. Failure: `--clear`. Hard stop:
-`--blocked --reason`.
+keeps the step branch, removes the worktree, and does not squash, so inner
+Key learnings stay reachable from session HEAD. It prints Git ran and dests
+residual when this was the last step. If `/goal` already committed, do not
+invent a second finish commit. Do not run a bare `git merge` from the
+worktree cwd — that would merge into the step branch. The next worktree forks
+`HEAD`. Conflicted or dirty complete is exit 2 with the git transcript; fix
+and retry. Failure: `--clear`. Hard stop: `--blocked --reason`.
 
 **inject-step** (phase implement only, including drained): add a discovered
 intermediate without dest `plan` (that would wipe receipts). Requires
@@ -356,7 +359,7 @@ flowchart TD
   printed --> gwork["Host opens /goal A: Frozen + Implement git + Goal until + stored prompt\n(until produces; do not nest)"]
   gwork -->|produces true| improve["/goal B Improve: last 7 commits, 2 consecutive only-trivial, max 12"]
   improve --> cm["leftover uncommitted: Implement git schema, then\n/shiploop complete"]
-  cm --> complete["/shiploop complete — merge --no-ff --no-edit, Git ran,\napply_complete_receipt, then re-claim or dest residual"]
+  cm --> complete["/shiploop complete --inner-loop goal — merge --no-ff --no-edit, does not squash,\nkeep branch + remove worktree, Git ran, then re-claim or dest residual"]
   complete -->|another id now running| printed
   complete -->|last step done| residual([dest residual])
   gwork -->|goal fails| clear["/shiploop complete --clear"]
@@ -398,10 +401,11 @@ Do not treat a foreign or unlanded ledger as success.
 
 When the ledger is `complete` and landed (or the plan has a real residual
 waiver), dest-reread live dest URLs onto frozen routing (compose; do not
-rewrite hashes), then do only what the frozen spec named: a `/goal` quality
-test-and-fix pass if it said yes (skip if no), then **outer-loop**
-deploy/publish if it said outer-loop (skip if dag or none), then dest
-`done`. A real waiver
+rewrite hashes), then reprint Frozen in the residual Next packet. If Q3=yes,
+run quality `/goal` A at the composed user entrypoint, close it, then run
+Improve `/goal` B with the same two-clean contract; if Q3=no, skip both A and
+B. Publish only after B when Q2 is **outer-loop** (skip for dag or none),
+then dest `done`. A real waiver
 changes Diagnosis / Progress from “run Phase B” to “residual waived —
 quality/publish then dest done”, and Next prompt uses `residual-waived.md`
 instead of `residual.md`. When the ledger
@@ -454,12 +458,15 @@ folder. Merge dest is the **session checkout**. Merge with
 | dest implement / `claim_ready` | `git rev-parse --is-inside-work-tree` and `HEAD`; empty repo → Missing “create an initial commit so implement can isolate worktrees” |
 | first worktree | append `.worktrees/` to `.git/info/exclude` (not a tracked `.gitignore`) |
 | claim ready id | `git worktree add -b shiploop/<run_id>/<id> <repo>/.worktrees/shiploop/<run_id>/<id> HEAD`; refuse reuse of that path; receipt stores `worktree`, `branch`, `base_sha` |
-| complete | `git status --porcelain` in the worktree must be empty; `git rev-list --count <base_sha>..<branch>` must be `> 0`; then `git -C <session-checkout> merge --no-ff --no-edit <branch>` (recorded in Git ran); ancestor check; `git worktree remove --force`; **keep** the branch; receipt `worktree: ""`. Last running step dests residual in the same call. |
+| complete | `git status --porcelain` in the worktree must be empty; `git rev-list --count <base_sha>..<branch>` must be `> 0`; then `git -C <session-checkout> merge --no-ff --no-edit <branch>` (recorded in Git ran); ancestor check; `git worktree remove --force`; **keep** the branch; does not squash, so inner Key learnings remain reachable from session HEAD; receipt `worktree: ""`. Last running step dests residual in the same call. |
 | `--clear` | `git worktree remove --force` **and** `git branch -D` for that id **and descendants**; next `claim_ready` forks a new worktree from current `HEAD` |
 | `init --force` | wipe every worktree and `shiploop/<run_id>/*` branch for this run |
 
 Several running ids: each gets its own worktree claimed from the `HEAD` at
-claim time. Complete needs `--id` or cwd in that worktree.
+claim time. Finish one id’s `/goal` A + `/goal` B + complete before opening
+another id’s A, unless they are truly parallel and each has its own A/B pair;
+never share one parent Improve turn across ids. Complete needs `--id` or cwd
+in that worktree.
 
 ### Host (implement `/goal` only)
 
@@ -471,15 +478,18 @@ claim time. Complete needs `--id` or cwd in that worktree.
    Do not merge from this cwd.
 3. **Before** the harness `complete` runs, leftover uncommitted work gets
    the same commit schema. Do not merge from this cwd.
-4. Then `/shiploop complete --inner-loop goal|parent`. The harness merges:
+4. Then `/shiploop complete --inner-loop goal`. Use `--inner-loop parent`
+   only if host `/goal` is off; parent still includes A then B. The harness merges:
 
    ```sh
    git -C <session-checkout> merge --no-ff --no-edit shiploop/<run_id>/<id>
    ```
 
-   and prints `Git ran:`. Empty, dirty, or conflicted complete is exit 2
-   with that transcript. Same call re-claims newly ready ids or dests
-   residual when this was the last step. The next worktree forks `HEAD`.
+   and prints `Git ran:`. It keeps the step branch, removes the worktree, and
+   does not squash, so inner Key learnings remain reachable from session HEAD.
+   Empty, dirty, or conflicted complete is exit 2 with that transcript. Same
+   call re-claims newly ready ids or dests residual when this was the last
+   step. The next worktree forks `HEAD`.
 
 Product `README.md` is not session state (survey reads it; last DAG step
 writes it; `--force` never deletes it).

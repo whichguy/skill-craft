@@ -112,6 +112,22 @@ style; the writer's material supplies any product-specific names.
    genuinely needs a play-through names that need in `produces` and is a
    live-acceptance step.
 
+Before dest plan, also record these evaluations for each applicable named
+writer; each may be the token `none` when inapplicable:
+
+- **Watch / dest-write usability this turn.** For every name in machine
+  `mcp:` that a later live-acceptance or Q3 check will use, run one cheap,
+  documented read-only call that proves it can run **this turn**, not merely
+  that the server is listed. Failure is an `ask` or dest-block, never Frozen
+  “connected.”
+- **Dest file identity.** From the writer’s push/list/lint docs, record how
+  destination files are keyed (name, type, position). If two local files
+  would collapse to one destination name, record that constraint in
+  `references[{path, why}]` so implement does not guess.
+- **Tracked bind files.** When `initiation: needed` or exclusive dest-write
+  needs a local resolver file (id map or destination config), freeze which
+  paths later worktrees must keep tracked; secrets stay ignored.
+
 With nonempty `exclusive`, all four answers and nonempty `references` are
 required before dest plan. With nonempty `mcp` but `exclusive: []`, record
 the first two; the latter two may be `none` when no dest artifact exists.

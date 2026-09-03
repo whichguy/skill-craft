@@ -8,7 +8,7 @@ description: >-
   /shiploop complete — do not rely on chat memory. Lost context without
   completing → /shiploop next.
 allowed-tools: all
-version: 0.8.19
+version: 0.8.20
 license: MIT
 platforms:
   - linux
@@ -105,13 +105,18 @@ Human overview: [README.md](README.md).
    not edit the session checkout or reuse a prior worktree. Full workflow:
    [README.md](README.md). Git sequence (who runs which command):
    [README.md — Git sequence (harness vs host)](README.md#git-sequence-harness-vs-host).
+   When several ids are running, finish one id's A + B + complete before
+   opening another id’s A, unless they are truly parallel and each has its own
+   `/goal` A/B pair; never use one parent Improve turn for two ids.
 5. When `/goal` A and Improve `/goal` B are done: leftover uncommitted
    work gets a pathspec commit (never `git add -A`) with `Key learnings:`
-   / `See: <sha>`, then invoke **`/shiploop complete --inner-loop goal|parent`**.
-   Choose `goal` after the `/goal` inner loop, or `parent` after the equivalent
-   host-native until-produces + Improve two-clean loop. That command merges
-   (`git -C <session-checkout> merge --no-ff --no-edit`), prints Git ran,
-   dests residual when this was the last step, and prints the next packet.
+   / `See: <sha>`, then invoke **`/shiploop complete --inner-loop goal`**.
+   Use `--inner-loop parent` only if the host `/goal` is off; parent still
+   requires A until-produces and B two-clean. That command merges
+   (`git -C <session-checkout> merge --no-ff --no-edit`), keeps the step
+   branch, removes the worktree, and does not squash, so inner Key learnings
+   stay reachable from session HEAD; it prints Git ran, dests residual when
+   this was the last step, and prints the next packet.
    Do not merge from the worktree cwd. If complete dies, read Git ran /
    stderr, fix, retry. Do not type `complete-step --id` or `update --to`
    unless this card named an override (`--clear`, `--blocked --reason`,
@@ -153,10 +158,12 @@ failed). Follow [commands/shiploop-complete.md](commands/shiploop-complete.md):
   commit with a verbose body, `Key learnings:`, and `See: <full sha>
   <subject>` for prior lesson commits. If B already committed, do
   not invent a second finish commit. Then exec complete with
-  `--inner-loop goal` (or `--inner-loop parent` for the equivalent
-  host-native loop) — the harness
+  `--inner-loop goal`. Use `--inner-loop parent` only if the host `/goal` is
+  off; parent still includes A until-produces and B two-clean — the harness
   merges (`git -C <session-checkout> merge --no-ff --no-edit <branch>`),
-  prints Git ran, and dests residual when this was the last step. Do not
+  keeps the step branch, removes the worktree, and does not squash, so inner
+  Key learnings stay reachable from session HEAD; it prints Git ran and dests
+  residual when this was the last step. Do not
   merge from the worktree cwd. If complete dies, read the Git ran
   transcript, fix, retry.
 - **`/goal` failed**, session can continue: `--clear` (add `--id` only when

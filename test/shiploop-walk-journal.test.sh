@@ -243,6 +243,10 @@ for line in packet.splitlines():
 if not lines or lines[0] != "Use this prompt as much as possible.":
     sys.exit(f"{msg}: Next missing Use this prompt lead")
 body = "\n".join(lines[1:]).rstrip()
+if phase == "residual":
+    if not body.startswith("Frozen session environment") or not body.endswith(expected):
+        sys.exit(f"{msg}: residual Next must prefix Frozen before activity_body")
+    sys.exit(0)
 if body != expected:
     sys.exit(f"{msg}: Next body != activity_body({phase})")
 PY
@@ -728,7 +732,7 @@ assert_no_walk "L5 RETURN"
 assert_out_has "residual: current" "L5 RETURN"
 assert_out_lacks "updated implement -> residual" "L5 RETURN"
 assert_next_h2_has "Review-coverage is **waived**" "L5 RETURN"
-assert_next_lacks "/goal " "L5 RETURN"
+assert_next_h2_has "Quality test/fix" "L5 RETURN"
 assert_next_lacks "Implement git (paste into /goal with Frozen" "L5 RETURN"
 assert_next_lacks "Goal until (this stored prompt is /goal A" "L5 RETURN"
 assert_next_lacks "Improve (paste as /goal B after produces is true" "L5 RETURN"
@@ -1361,7 +1365,7 @@ assert_transition_return "$runS" "completed S1" activity "S2 RETURN"
 assert_no_walk "S2 RETURN"
 assert_out_has "residual: current" "S2 RETURN"
 assert_next_h2_has "Review-coverage is **waived**" "S2 RETURN"
-assert_next_lacks "/goal " "S2 RETURN"
+assert_next_h2_has "Quality test/fix" "S2 RETURN"
 assert_next_lacks "Implement git (paste into /goal with Frozen" "S2 RETURN"
 assert_next_lacks "Improve (paste as /goal B after produces is true" "S2 RETURN"
 assert_next_lacks "$S1_LINEAR" "S2 RETURN"
@@ -1436,7 +1440,7 @@ host_land "$runZ" S1
 invoke_wrapper complete --run-dir "$runZ" --inner-loop parent
 assert_wrapper_then_transition "$runZ" "$WRAP_COMPLETE" "completed S1" activity "Z4 RETURN"
 assert_next_h2_has "Review-coverage is **waived**" "Z4 RETURN"
-assert_next_lacks "/goal " "Z4 RETURN"
+assert_next_h2_has "Quality test/fix" "Z4 RETURN"
 assert_next_lacks "Implement git (paste into /goal with Frozen" "Z4 RETURN"
 assert_next_lacks "Improve (paste as /goal B after produces is true" "Z4 RETURN"
 assert_session_closer "Z4 RETURN"
