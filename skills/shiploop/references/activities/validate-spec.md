@@ -59,16 +59,41 @@ supply those names.
 
 1. **How to use this MCP / dest writer.** Which tool is for which job
    (read state vs mutate dest vs create vs publish)? What anti-patterns
-   does the server itself name? Cheap probe: the writer’s documented
-   status/list/setup **once**, read-only, before dest plan.
+   does the server itself name? Choose `use` by artifact, not familiarity:
+   name the destination artifact, scan connected server tool descriptions
+   once without calls, and designate its writer before a cheap probe. Two
+   claimants of the same dest mutation with no one-sentence reason is `ask`
+   plus dest-block; `none` when `exclusive` is empty. Do not invent a second
+   writer map. Cheap probe: the writer’s documented status/list/setup
+   **once**, read-only, after designation and before dest plan.
 
-2. **Library / runtime systems it imposes.** Required module format,
-   wrap/export style, helpers that already exist after create/bootstrap
-   (or, brownfield, after listing dest files). **Reuse before add:**
-   search bound `{{REPO_ROOT}}` **and** the destination; do not add a
-   second library for the same job. Greenfield still records what the
-   dest source requires. Do not duplicate, conflict with, or arbitrarily add
-   a new library that serves the same job.
+2. **Library / runtime systems it imposes.** Record required module format,
+   wrap/export style, and helpers present after create/bootstrap (or, for an
+   existing destination, after listing its files). Then record the call
+   contract, one level below file shape:
+   - **Product-facing mechanics.** The documented calls, hooks, footers,
+     annotations, or registration steps a product author must invoke, with
+     any required order or lifecycle (register before use, evaluate before
+     configure, eager vs lazy load, entry then footer). Include mechanics the
+     writer says a product file needs to be picked up at all.
+   - **Replacement map.** For each mechanic, the generic platform or language
+     pattern it replaces (bare platform template call, global function,
+     ad-hoc include, inline module wrapper, catch-all request handler).
+     Product code using the replaced pattern is a discovery miss even when
+     the platform accepts it and the file lints clean.
+   - **Writer-internal.** Dispatch, auth, exec, and diagnostic mechanics the
+     writer documents as its own. Product code reaches them only through the
+     documented product-facing surface.
+   - **Shape oracle.** Name one writer-placed file of the same kind as each
+     product file kind (module, template, handler). Product files match its
+     mechanics, not a platform tutorial's shape. `none` when bootstrap
+     leaves no such file.
+   Reuse before add: search bound `{{REPO_ROOT}}` **and** the destination; do
+   not add a second library, wrapper, or helper stack for a job the writer
+   covers. Do not duplicate, conflict with, or arbitrarily add a new library
+   that serves the same job. A new destination still records what its source
+   requires. Cite one reference per documenting source, not per mechanic;
+   the mechanics live in the brief. Record only what the source states overtly.
 
 3. **Conventions — reserved vs product.** After create/bootstrap (or
    dest list), split paths:
@@ -111,6 +136,12 @@ writer; each may be the token `none` when inapplicable:
 - **Tracked bind files.** When `initiation: needed` or exclusive dest-write
   requires a local resolver (id map or dest config), freeze paths later
   worktrees must keep tracked; secrets remain ignored.
+- **Mechanics rows (native vs generic).** Under the Q2 answer in the brief,
+  one row per product-facing mechanic: product action; imposed mechanic and
+  order; generic substitute that is a miss; documenting `references[].path`.
+  Rows the writer does not state are omitted, not inferred. Host-chosen
+  defaults (a product tree or route the writer leaves unnamed) are marked
+  `host default; writer names none`. `none` when no library is imposed.
 
 When `exclusive` is nonempty, all four answers are required before dest
 plan (and `references` stays nonempty). When `mcp:` is nonempty but
@@ -125,7 +156,8 @@ writer path with `why` = the dest-write constraint; platform docs with
 When `exclusive` is nonempty, keep `references` nonempty. Do not invent a
 Writer playbook heading. Do not write `playbook.md`. Do not restate the
 exclusive map in prose. Do not invent a second SoT file. Do not persist
-secrets. Do not write the product README. Do not add research skills to
+secrets. Do not freeze signed-in account addresses; write "signed in as the
+expected account". Do not freeze live dest URLs. Do not write the product README. Do not add research skills to
 `dep_roots`. Those references must later appear in each seed step's stored
 `prompt` together with a `Tools:` block that carries the frozen
 `mcp_considered` token. In-flight runs: dest blocked → validate-spec;

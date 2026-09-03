@@ -234,6 +234,21 @@ for title in 'How to use this MCP' 'Library / runtime systems it imposes' \
   grep -Fq "$title" "$root/skills/shiploop/references/activities/validate-spec.md" \
     || fail "validate-spec.md missing destination discovery question: $title"
 done
+for needle in 'by artifact, not familiarity' 'Product-facing mechanics' \
+  'Replacement map' 'Writer-internal' 'Shape oracle' 'Mechanics rows' \
+  'host default; writer names none'; do
+  for dest_discovery_file in \
+    "$root/skills/shiploop/references/survey.md" \
+    "$root/skills/shiploop/references/activities/validate-spec.md"; do
+    grep -Fq "$needle" "$dest_discovery_file" \
+      || fail "$(basename "$dest_discovery_file") missing destination discovery detail: $needle"
+  done
+done
+grep -Fq "mechanics rows for that step's file kinds" \
+  "$root/skills/shiploop/references/activities/plan.md" \
+  || fail "plan.md missing mechanics rows seed contract"
+grep -Fq 'Other seeds carry none' "$root/skills/shiploop/references/activities/plan.md" \
+  || fail "plan.md missing non-product seed mechanics contract"
 for needle in "Don't write:" 'routing-level probe' 'live acceptance'; do
   grep -Fq "$needle" "$root/skills/shiploop/references/activities/plan.md" \
     || fail "plan.md missing destination seed contract: $needle"

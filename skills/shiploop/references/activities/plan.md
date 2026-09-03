@@ -142,6 +142,8 @@ Label meanings (host judgment — the script does not check these words):
   fact recorded in `initial_state` or `resolved_facts` — never a newly
   invented host guess. When layout/routing are frozen, include: user hits
   `routing.user_entrypoint`; default dest route is `routing.reserved_routes`.
+  Seeds that create or edit product files also carry, under `Assume:`, the
+  mechanics rows for that step's file kinds, verbatim from the brief. Other seeds carry none.
 
 ```text
 Tools:

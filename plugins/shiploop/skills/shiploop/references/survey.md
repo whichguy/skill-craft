@@ -37,6 +37,15 @@ its output is `environment.md` (Look here names the absolute path).
   when there is no such artifact (read-only inventory, local-only). Missing
   `exclusive` is unanswered — dest plan requires the key. When a designated
   writer fails: dest blocked; do not switch writers.
+  Choose `use` by artifact, not familiarity. Name the destination artifact
+  first. Scan each connected server's tool list once, descriptions only, no
+  calls, for tools that mutate that artifact kind. Servers with none are one
+  brief Don't-use line. If more than one mutates it, the others are
+  `dont_use`, and the brief gives the reason for the choice in one sentence:
+  it bootstraps the product tree, it owns publish, or the user named it.
+  Deep-read and probe candidates only. When one source bootstraps the tree
+  and another pushes, `use` is the pusher and Q2 follows the bootstrapper;
+  cite both.
   `If the writer above fails, stop and invoke /shiploop complete --blocked --reason … — do not switch writers.`
   Frozen reprints that sentence; do not retype it into `environment.md`.
 - **handles** — external resources this increment needs (credentials,
@@ -86,13 +95,40 @@ style; the writer's material supplies any product-specific names.
 
 1. **How to use this MCP / dest writer.** Identify which documented tools
    read state, mutate the destination, create, and publish; record
-   server-named anti-patterns. Before dest plan, make one cheap documented
-   read-only status, list, or setup probe when one exists.
+   server-named anti-patterns. Choose `use` by artifact, not familiarity:
+   name the destination artifact, scan connected server tool descriptions
+   once without calls, and designate its writer before a cheap probe. Two
+   claimants of the same dest mutation with no one-sentence reason is `ask`
+   plus dest-block; `none` when `exclusive` is empty. Do not invent a second
+   writer map. After designation, make one cheap documented read-only status,
+   list, or setup probe when one exists.
 2. **Library / runtime systems it imposes.** Record required module format,
    wrap/export style, and helpers present after create/bootstrap (or, for an
-   existing destination, after listing its files). Reuse before add: search
-   both `repo_root` and the destination, and do not add a second library for
-   the same job. A new destination still records what its source requires.
+   existing destination, after listing its files). Then record the call
+   contract, one level below file shape:
+   - **Product-facing mechanics.** The documented calls, hooks, footers,
+     annotations, or registration steps a product author must invoke, with
+     any required order or lifecycle (register before use, evaluate before
+     configure, eager vs lazy load, entry then footer). Include mechanics the
+     writer says a product file needs to be picked up at all.
+   - **Replacement map.** For each mechanic, the generic platform or language
+     pattern it replaces (bare platform template call, global function,
+     ad-hoc include, inline module wrapper, catch-all request handler).
+     Product code using the replaced pattern is a discovery miss even when
+     the platform accepts it and the file lints clean.
+   - **Writer-internal.** Dispatch, auth, exec, and diagnostic mechanics the
+     writer documents as its own. Product code reaches them only through the
+     documented product-facing surface.
+   - **Shape oracle.** Name one writer-placed file of the same kind as each
+     product file kind (module, template, handler). Product files match its
+     mechanics, not a platform tutorial's shape. `none` when bootstrap
+     leaves no such file.
+   Reuse before add: search both `repo_root` and the destination; do not add
+   a second library, wrapper, or helper stack for a job the writer covers.
+   Do not duplicate, conflict with, or arbitrarily add a new library that
+   serves the same job. A new destination still records what its source
+   requires. Cite one reference per documenting source, not per mechanic;
+   the mechanics live in the brief. Record only what the source states overtly.
 3. **Conventions — reserved vs product.** After create/bootstrap or a
    destination listing, freeze `layout` by separating **reserved** trees the
    writer owns, bootstraps, or can overwrite from **product** trees for this
@@ -127,6 +163,12 @@ writer; each may be the token `none` when inapplicable:
 - **Tracked bind files.** When `initiation: needed` or exclusive dest-write
   needs a local resolver file (id map or destination config), freeze which
   paths later worktrees must keep tracked; secrets stay ignored.
+- **Mechanics rows (native vs generic).** Under the Q2 answer in the brief,
+  one row per product-facing mechanic: product action; imposed mechanic and
+  order; generic substitute that is a miss; documenting `references[].path`.
+  Rows the writer does not state are omitted, not inferred. Host-chosen
+  defaults (a product tree or route the writer leaves unnamed) are marked
+  `host default; writer names none`. `none` when no library is imposed.
 
 With nonempty `exclusive`, all four answers and nonempty `references` are
 required before dest plan. With nonempty `mcp` but `exclusive: []`, record
@@ -161,6 +203,8 @@ bind requires dest blocked → validate-spec; rewrite environment.md; → plan
 (do not hand-edit backchain/plan.json). Do not write
 `environment.json`. Do not add a second practices file. Do not add research
 skills to `dep_roots`.
+Do not freeze signed-in account addresses; write "signed in as the expected
+account". Do not freeze live dest URLs.
 
 ## The `dest blocked` hatch
 
