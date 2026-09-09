@@ -7,7 +7,7 @@ walk-back HTML recap exists.
 
 ShipLoop never conflict-resolves a merge and never claims engine `COMPLETE`.
 
-Package leaf: `skills/shiploop`. Invoke: `/shiploop`. Version: **0.8.25**.
+Package leaf: `skills/shiploop`. Invoke: `/shiploop`. Version: **0.8.27**.
 
 Canonical companions (do not duplicate their contracts here):
 
@@ -309,27 +309,30 @@ Command-level git (who runs `git worktree add` vs `merge --no-ff --no-edit`):
 **Next prompt** always starts with `Use this prompt as much as possible.`
 Then the harness prints worktree / branch / HOST FLAG, a **Frozen session
 environment** block (`mcp-considered` / `tools` / `mcp` / `Exclusive:` / `See:`),
-**Implement git**, **Until-loop A**, each **running** step’s stored `prompt`
-**verbatim**. Inner A is until-loop A until produces: **if** produces is
-true → `/shiploop complete --advance B` (no merge); **else** keep working /
-`/shiploop next`. Inner B is Improve plus a classify prompt
-(`--improve-cycle`); two-clean then leftover +
-`--inner-loop parent --improve <line>` (`--inner-loop goal` only if this
+**Implement git**, **Implement**, each **running** step’s stored `prompt`
+**verbatim**. **Implement:** make produces true, then tests-until-green, then
+`/shiploop complete` (no merge; script prints Improve). **Else** keep working /
+`/shiploop next`. **Improve** is one cycle; `/shiploop complete` (or
+`--trivial` if only-trivial). After two consecutive only-trivial, leftover +
+flagless `/shiploop complete` merges (`--inner-loop goal` only if this
 host actually ran `/goal`). Do not paste HOST FLAG.
 Implement git names the worktree, branch, and session checkout
 (`repo_root` main tree). The script does not compose until-loop A from
 `statement` / `produces` / suppliers / worktree. Work in the Look-here
 worktree (do not re-root the host chat; do not edit the session checkout).
 
-Inner loop (host, not a phase): green-first or TDD (failing test first),
-prefer until-loop A in this parent chat. Before planning each iteration:
+Inner loop (host, not a phase): tests **after** this step's produces, then
+tests-until-green, then one Improve cycle at a time. The script decides
+whether another cycle is needed. Prefer Implement in this parent chat. Before planning each
+Improve cycle:
 `git -C <worktree> log -10 --format=full`; treat bodies as key learnings;
 follow every `See: <sha>`. Pathspec commit on the worktree (never
 `git add -A`) with a verbose body, `Key learnings:`, and
 `See: <full sha> <subject>` for prior lesson commits.
 Do not merge from the worktree cwd.
 
-When until-loop A produces is true: Improve until-loop B, leftover
+When Implement produces is true: tests-until-green then `complete`, then
+Improve one cycle at a time, leftover
 uncommitted work gets the same Implement git schema (log -10,
 `Key learnings:`, `See: <sha>`), then
 `/shiploop complete --inner-loop parent --improve <line>`. Use
@@ -357,9 +360,9 @@ next` while drained reprints this diagnosis and does not dest.
 
 ```mermaid
 flowchart TD
-  next["/shiploop next — claim_ready(): ready ids to running,\ngit worktree add -b per id"] --> printed["Packet Next: Frozen + Implement git + Until-loop A + stored prompt"]
-  printed --> gwork["Parent until-loop A: Frozen + Implement git + Until-loop A + stored prompt\n(if produces: --advance B; else keep working / next)"]
-  gwork -->|produces true| improve["Until-loop B Improve: last 7 commits, 2 consecutive only-trivial, max 12"]
+  next["/shiploop next — claim_ready(): ready ids to running,\ngit worktree add -b per id"] --> printed["Packet Next: Frozen + Implement git + Implement + stored prompt"]
+  printed --> gwork["Implement: Frozen + Implement git + stored prompt\n(if produces: tests-until-green then complete; else keep working / next)"]
+  gwork -->|produces true: tests-until-green then --advance B --tests| improve["Until-loop B Improve: last 7 commits, re-run receipt.tests, 2 consecutive only-trivial, max 12"]
   improve --> cm["leftover uncommitted: Implement git schema, then\n/shiploop complete --inner-loop parent --improve"]
   cm --> complete["/shiploop complete --inner-loop parent --improve — merge --no-ff --no-edit, does not squash,\nkeep branch + remove worktree, Git ran, then re-claim or dest residual"]
   complete -->|another id now running| printed
@@ -513,7 +516,7 @@ or `next — reprint (<phase>)` first. `init` / `complete` / `update` print
 | **Progress** | HOST FLAG (extra worktree folder — do not re-root), then begin/finish this phase or running step: worktree folder, branch, session checkout, what complete does next. |
 | **Reminder** | Ask one-liner + frozen `done_sentence`. No body dump. |
 | **Look here** | First line `Reference only — not the next action.` Phase-scoped paths only. |
-| **Next prompt** | First line `Use this prompt as much as possible.` Implement: Frozen, Implement git, Until-loop A, stored prompt (until produces), Improve (until-loop B). Work Frozen + Implement git + stored prompt as A in this parent chat; **if** produces, B. Do not nest. Do not paste HOST FLAG. Other phases: the activity file. |
+| **Next prompt** | First line `Use this prompt as much as possible.` Implement: Frozen, Implement git, Implement, stored prompt (until produces), Improve (one cycle). Work Frozen + Implement git + stored prompt in this parent chat; **if** produces, tests-until-green then `complete`. Do not nest. Do not paste HOST FLAG. Other phases: the activity file. |
 | **When done invoke** | `invoke /shiploop complete` (plus `--clear` / `--blocked` when that is the hatch). |
 | **Missing** | dest-scoped `missing_for(..., forward_dest())` — not every load_* gap on every reprint. In-flight implement dest is `None`. |
 
@@ -554,7 +557,7 @@ Do not hand-edit the plugin copy.
 |---------|----------------|
 | Look-here | Pointers only (`kind  abs-path  why`). Phase-scoped. validate-spec ordinals: `1. survey —` / `2. spec —` (files: `environment.md`, `spec.md` — not Next jobs 1/2/3). Plan `plan.md`: missing why is `write labeled done_sentence equal to spec (create)`; if present, `wrapper_pair` gaps or `sequence plan pointer`. Implement `plan.md` is `if-needed` only (no equality re-litigation). |
 | Next (non-implement) | Interpolated activity body (`{{SPEC_MD}}`, `{{ENV_MD}}`, `{{BACKCHAIN_JSON}}`, `{{PLAN_MD}}`, …). |
-| Next (implement, in-flight) | Frozen + Implement git + Until-loop A + stored `prompt` verbatim + Improve (until-loop B). Not `implement.md` as until-loop A. |
+| Next (implement, in-flight) | Frozen + Implement git + Implement + stored `prompt` verbatim + Improve (one cycle). Not `implement.md` as Implement. |
 | Closer / inject | Leftover host commit, then harness `complete` (merge + Git ran). `inject-step` mutates DAG + receipts and does not claim. |
 
 `environment.md` is mixed, not prose-only: a nonempty brief, then exactly
@@ -579,7 +582,7 @@ Everything below is under the **run dir** (default: walk from cwd to
 | `spec.md` | host during validate-spec | labeled `done_sentence` / `checkable` / optional `ask_user`. Hashed as the whole file. |
 | `backchain/plan.json` | host during plan; `inject-step` mutates | canonical DAG (`statement`, `prompt`, `produces`, `inputs`, `origin`) |
 | `plan.md` | host during plan | human sequence + labeled `done_sentence` (must equal spec.md at dest implement; not hashed into `plan_sha256`; dest residual may store `bound_plan_hash`; may lag the DAG after inject) |
-| `steps/<id>.json` | `start-step` / complete / inject stamp | receipt: `running` or `complete`, worktree, branch, `plan_sha256` |
+| `steps/<id>.json` | `start-step` / complete / inject stamp | receipt: `running` or `complete`, worktree, branch, `plan_sha256`, `inner` A\|B, on advance `tests` |
 | `history.jsonl` | every command | append-only event log |
 | `recap.html` | dest done / dest halted | walk-back briefing from run files (not hashed) |
 
@@ -662,7 +665,7 @@ Script is an example, not a script branch.
 CLI="$SKILL_ROOT/scripts/shiploop"
 python3 "$CLI" init --prompt "…" --repo PATH [--force] [--bound-plan PATH]
 python3 "$CLI" next
-python3 "$CLI" complete [--id ID] [--advance B | --improve-cycle trivial|material | --inner-loop goal|parent] [--improve TEXT] [--clear] [--blocked --reason TEXT] [--resume-to PHASE]
+python3 "$CLI" complete [--id ID] [--trivial] [--tests TEXT] [--advance B --tests TEXT | --improve-cycle trivial|material | --inner-loop goal|parent] [--improve TEXT] [--clear] [--blocked --reason TEXT] [--resume-to PHASE]
 python3 "$CLI" update --to PHASE [--reason TEXT] [--resume-to PHASE]
 python3 "$CLI" status [--human]
 python3 "$CLI" start-step --id ID

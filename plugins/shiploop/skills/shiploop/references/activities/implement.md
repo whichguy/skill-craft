@@ -9,8 +9,11 @@ the session checkout or reuse a prior worktree.
 Do not nest Improve until-loop B inside until-loop A.
 If until-loop A for an id is already in this parent chat, do not start a
 second functional until-loop for that id. Inner until-loop A iterates and
-pathspec-commits **on the worktree**. Never `git add -A`. Never merge from
-that cwd. Then invoke
+pathspec-commits **on the worktree**. After produces is true:
+tests-until-green (author and run checkable tests for this produces until
+they pass), then `/shiploop complete`. Never `git add -A`. Never merge from
+that cwd. Then follow the printed Improve (one cycle; re-run recorded
+checks). Then invoke
 **`/shiploop complete --inner-loop parent --improve <line>`** — the harness
 merges
 (`git -C <session-checkout> merge --no-ff --no-edit <branch>`), keeps the

@@ -160,7 +160,8 @@ inner_two_clean() {
   local run="$1" sid="$2"
   local bin="${cli:-}"
   [[ -n "$bin" && -f "$bin" ]] || _shiploop_die "inner_two_clean: cli unset"
-  python3 "$bin" complete --run-dir "$run" --id "$sid" --advance B >/dev/null
+  python3 "$bin" complete --run-dir "$run" --id "$sid" --advance B \
+    --tests "none(test)" >/dev/null
   python3 "$bin" complete --run-dir "$run" --id "$sid" --improve-cycle trivial \
     --improve "none(test)" >/dev/null
   python3 "$bin" complete --run-dir "$run" --id "$sid" --improve-cycle trivial \

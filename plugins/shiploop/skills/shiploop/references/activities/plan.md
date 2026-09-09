@@ -57,6 +57,11 @@ Review Coverage Test command (filled on `plan.md` **before leaving plan**):
 when dest contracts exist, it is dest behavior of routing confirmation plus
 bound names from `produces` — never `test -f` / `N/A` because there is no
 local suite. After residual binds the plan, do not edit that H2 in place.
+That residual Test command is not the per-step gate. Every **code-producing**
+seed must leave a **checkable** acceptance for that `produces` (a local suite
+command, or the frozen `bound-action` recipe plus dest call). Never `test -f`
+/ `N/A` because there is no local suite when dest contracts exist. Inner A
+names that line at `--advance B --tests` after tests-until-green.
 
 When frozen `ui` is true, seed the DAG with an **early design** setup step
 **before** iterate steps that build that surface. Do not collapse design into

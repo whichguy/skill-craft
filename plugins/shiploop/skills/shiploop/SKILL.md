@@ -8,7 +8,7 @@ description: >-
   /shiploop complete — do not rely on chat memory. Lost context without
   completing → /shiploop next.
 allowed-tools: all
-version: 0.8.25
+version: 0.8.27
 license: MIT
 platforms:
   - linux
@@ -65,7 +65,7 @@ Human overview: [README.md](README.md).
 
 - Offline freeze/prove/stop → **`evidence-gates`**
 - Packet reprint only → `/shiploop next` (same leaf)
-- Increment finished, want the next packet → `/shiploop complete` (same leaf)
+- This prompt is done, want the next packet → `/shiploop complete` (same leaf)
 - Residual×2 engine alone → **`review-coverage`** / **`review-converge`**
 
 ## Procedure
@@ -94,33 +94,29 @@ Human overview: [README.md](README.md).
    **now** / **pending** lines back to the user — do not summarize them
    away. That is the live session rail (`status --human` reprints it).
    Do only the **Next prompt** (first line is `Use this prompt as much as
-   possible.`). This skill **cannot invoke `/goal`**. Next is the until-loop
-   in this parent chat, rehydrated from `.shiploop/` every turn. On implement,
-   file-state inner A: Frozen, Implement git, **Until-loop A** / Goal until,
-   stored prompt. **If** produces is true → `/shiploop complete --advance B`
-   (no merge). **If not** → keep working; `/shiploop next` reprints. Inner B:
-   until-loop B classify — **if** only-trivial → `--improve-cycle trivial
-   --improve <line>`; **if** material → `--improve-cycle material --improve
-   <line>`. After two consecutive trivial cycles (max 12), leftover then
-   `/shiploop complete --inner-loop parent --improve <line>` (or
-   `--inner-loop goal` if this host actually ran `/goal`; do not nest B
-   inside A). Do not paste HOST FLAG
-   (parent chat stays put; no re-root). Work in the named worktree; do
-   not edit the session checkout or reuse a prior worktree. Full workflow:
-   [README.md](README.md). Git sequence (who runs which command):
+   possible.`). This skill **cannot invoke `/goal`**. Next is the prompt the
+   script returns, rehydrated from `.shiploop/` every turn. Do that work, then
+   invoke **exactly** `## When done invoke` (usually `/shiploop complete` with
+   no flags). The script infers the step action from the receipt and prints
+   the next prompt. `/shiploop next` reprints and claims; it does not advance
+   Implement/Improve. On implement: Frozen, Implement git, **Implement**
+   (produces, then tests-until-green) or **Improve** (one cycle; do not nest
+   Improve inside Implement). Do not paste HOST FLAG
+   (parent chat stays put; no re-root). Work in the named
+   worktree; do not edit the session checkout or reuse a prior worktree.
+   Full workflow: [README.md](README.md). Git sequence (who runs which command):
    [README.md — Git sequence (harness vs host)](README.md#git-sequence-harness-vs-host).
-   When several ids are running, finish one id's A + B + complete before
-   opening another id’s A, unless they are truly parallel and each has its own
-   until-loop A / until-loop B pair (`/goal` A / `/goal` B labels in stored
-   prompts only); never use one parent Improve turn for two ids.
-   Intake, validate-spec, and plan are parent-chat writes on the
-   session checkout: no until-loop, no Improve, no worktree.
-5. When file state is inner B two-clean: leftover uncommitted
+   When several ids are running, finish one id's Implement + Improve + merge
+   before opening another, unless they are truly parallel; never use one
+   parent Improve turn for two ids. Stored DAG prompts may start with `/goal`
+   bytes (a label, not a slash to invoke). Intake, validate-spec, and plan
+   are parent-chat writes on the session checkout: no Implement/Improve loop,
+   no worktree.
+5. When When done is the merge: leftover uncommitted
    work gets a pathspec commit (never `git add -A`) with `Key learnings:`
-   / `See: <sha>`, then invoke **`/shiploop complete --inner-loop parent --improve <line>`**.
-   Use `--inner-loop goal` only if this host actually ran `/goal`. Parent is the
-   Grok default and still requires `--advance B` then `--improve-cycle` two-clean.
-   Merge complete refuses inner A and refuses a missing `--improve`. That command merges
+   / `See: <sha>`, then invoke **`/shiploop complete`**.
+   Use `--inner-loop goal` only if this host actually ran `/goal` (override).
+   Bare `complete` from Implement cannot merge. That command merges
    (`git -C <session-checkout> merge --no-ff --no-edit`), keeps the step
    branch, removes the worktree, and does not squash, so inner Key learnings
    stay reachable from session HEAD; it prints Git ran, dests residual when
@@ -131,7 +127,7 @@ Human overview: [README.md](README.md).
    `--id` when several steps are running). Empty, dirty, or conflicted
    complete is refused. See **Host flag — extra folder** before any
    implement until-loop. Stored DAG prompts may start with `/goal` bytes
-   (until-loop A / until-loop B labels); do not invoke the `/goal` slash.
+   (a label, not a slash to invoke).
 6. Repeat until the packet says stop. Lost context without completing
    anything → invoke **`/shiploop next`** (reprint / claim only).
 7. Mid-implement, discovered intermediate work → `inject-step` (see
@@ -157,24 +153,23 @@ After /shiploop complete, the harness merges the kept branch into session HEAD a
 
 ## Closer (`/shiploop complete`)
 
-This is not a reprint. Invoking it means the current increment finished (or
-failed). Follow [commands/shiploop-complete.md](commands/shiploop-complete.md):
+This reports a result to the script. The script updates `.shiploop/` and
+prints the next packet. Calling it does not by itself mean the increment is
+finished. Follow [commands/shiploop-complete.md](commands/shiploop-complete.md)
+and **exactly** the printed When done line:
 
-- **Success (default):** file state is inner B two-clean (or max 12). If the
-  worktree still
-  has uncommitted files, `git -C <worktree>
-  log -10 --format=full`, then pathspec add (never `git add -A`) and
-  commit with a verbose body, `Key learnings:`, and `See: <full sha>
-  <subject>` for prior lesson commits. If B already committed, do
-  not invent a second finish commit. Then exec complete with
-  `--inner-loop parent --improve <line>`. Use `--inner-loop goal` only if this host
-  actually ran `/goal`. Parent still includes `--advance B` and `--improve-cycle` two-clean — the harness
+- **Success (default):** `/shiploop complete` with no flags. If When done
+  named `--trivial`, `--improve`, `--reason`, or `--id`, pass those.
+  Use `--inner-loop goal` only if this host actually ran `/goal` (override).
+  When When done is the merge and the worktree still has uncommitted files,
+  leftover-commit first (`Key learnings:` / `See: <sha>`). If Improve already
+  committed, do not invent a second finish commit. The harness
   merges (`git -C <session-checkout> merge --no-ff --no-edit <branch>`),
   keeps the step branch, removes the worktree, and does not squash, so inner
   Key learnings stay reachable from session HEAD; it prints Git ran and dests
   residual when this was the last step. Do not
   merge from the worktree cwd. If complete dies, read the Git ran
-  transcript, fix, retry.
+  transcript, fix, retry. Uncertain whether complete landed → `/shiploop next`.
 - **Until-loop failed**, session can continue: `--clear` (add `--id` only when
   several steps are running and cwd is not that worktree).
 - **Hard stop:** `--blocked --reason <text>` (required). `--resume-to` only
@@ -188,7 +183,7 @@ Then exec the leaf CLI (`complete`) and follow the whole packet that prints.
 CLI="$SKILL_ROOT/scripts/shiploop"
 python3 "$CLI" init [--prompt TEXT] [--run-dir DIR] [--implementer host] [--force] [--bound-plan PATH] [--repo PATH]
 python3 "$CLI" next [--run-dir DIR]
-python3 "$CLI" complete [--id ID] [--run-dir DIR] [--advance B | --improve-cycle trivial|material | --inner-loop goal|parent] [--improve TEXT] [--clear] [--blocked --reason TEXT] [--resume-to PHASE]
+python3 "$CLI" complete [--id ID] [--run-dir DIR] [--trivial] [--tests TEXT] [--advance B --tests TEXT | --improve-cycle trivial|material | --inner-loop goal|parent] [--improve TEXT] [--clear] [--blocked --reason TEXT] [--resume-to PHASE]
 python3 "$CLI" update [--run-dir DIR] --to PHASE [--reason TEXT] [--resume-to PHASE]
 python3 "$CLI" status [--run-dir DIR] [--human]
 python3 "$CLI" start-step [--run-dir DIR] --id ID
@@ -200,11 +195,11 @@ python3 "$CLI" inject-step [--run-dir DIR] --statement TEXT --prompt TEXT --prod
 
 The host closer is **`/shiploop complete`** (it execs `complete`).
 `complete` infers the unique running id or the happy-path `--to` from
-`.shiploop/` files, then prints the next packet. Completing a running
-implement step requires `--advance B`, `--improve-cycle`, or
-`--inner-loop goal|parent --improve`. Merge complete records `inner_loop`
-and `improve` on that receipt. `complete-step` /
-`update --to` / `--id` are overrides.
+`.shiploop/` files, infers the step action, then prints the next packet.
+Flagless `complete` advances Implement → Improve, records one Improve cycle
+(bare = material; `--trivial` = only-trivial), or merges after two
+consecutive only-trivial. `--advance` / `--improve-cycle` / `--inner-loop`
+are overrides. `complete-step` / `update --to` / `--id` are overrides.
 
 | Exit | Meaning |
 |------|---------|

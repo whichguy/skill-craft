@@ -36,8 +36,8 @@ if grep -E 'shiploop capture|devloop-run' "$root/skills/shiploop/references/acti
 fi
 grep -q 'echo the printed' "$root/skills/shiploop/SKILL.md" \
   || fail "SKILL.md missing echo You are here / Diagnosis"
-grep -q 'Goal until' "$root/skills/shiploop/SKILL.md" \
-  || fail "SKILL.md missing Goal until paste"
+grep -q 'Implement' "$root/skills/shiploop/SKILL.md" \
+  || fail "SKILL.md missing Implement paste"
 grep -q 'Improve' "$root/skills/shiploop/SKILL.md" \
   || fail "SKILL.md missing Improve paste"
 grep -q 'do not nest' "$root/skills/shiploop/SKILL.md" \
@@ -98,18 +98,16 @@ for eval_path in "$root/skills/shiploop/references/survey.md" \
   grep -Fiq 'token `none`' "$eval_path" \
     || fail "$(basename "$eval_path") missing none allowance for evaluations"
 done
-grep -Fq '/goal` A' "$root/skills/shiploop/SKILL.md" \
-  || fail "SKILL.md missing inner /goal A"
-grep -Fq '/goal` B' "$root/skills/shiploop/SKILL.md" \
-  || fail "SKILL.md missing inner /goal B"
+grep -Fq 'a label, not a slash to invoke' "$root/skills/shiploop/SKILL.md" \
+  || fail "SKILL.md missing stored /goal label"
 grep -Fq -- '--inner-loop goal' "$root/skills/shiploop/SKILL.md" \
   || fail "SKILL.md missing default goal closer"
 grep -Fq 'actually ran `/goal`' "$root/skills/shiploop/SKILL.md" \
   || fail "SKILL.md missing actually-ran /goal rule"
-grep -Fq 'Until-loop B' "$cli" \
-  || fail "printed closer missing until-loop B"
-grep -Fq 'then invoke /shiploop complete --inner-loop parent --improve' "$cli" \
-  || fail "printed closer missing default parent completion after Improve"
+grep -Fq 'Improve. This Next is one review-and-fix cycle' "$cli" \
+  || fail "printed closer missing Improve one-cycle heading"
+grep -Fq 'then invoke /shiploop complete' "$cli" \
+  || fail "printed closer missing complete after Improve"
 for residual_act in residual.md residual-waived.md; do
   residual_path="$root/skills/shiploop/references/activities/$residual_act"
   grep -Fq 'Quality test/fix until-loop A' "$residual_path" \
@@ -184,6 +182,35 @@ if grep -nF 'via /goal' "$cli"; then
 fi
 grep -Fq 'destination global scope' "$cli" \
   || fail "IMPROVE_GOAL missing destination global scope typeof check"
+grep -Fq 'receipt.tests' "$cli" \
+  || fail "IMPROVE_GOAL missing re-run receipt.tests"
+python3 - "$cli" <<'PY' || fail "IMPROVE_GOAL still tells step Improve to loop until two-clean"
+from pathlib import Path
+import re, sys
+text = Path(sys.argv[1]).read_text()
+m = re.search(r"^IMPROVE_GOAL = \((.*?)^\)", text, re.M | re.S)
+assert m, "IMPROVE_GOAL assignment missing"
+body = m.group(1)
+assert "complete when only trivial findings remain for 2 consecutive cycles" not in body, body
+assert "exposes a bound client action" in body
+assert "the first cycle cannot be" in body
+PY
+grep -Fq 'tests-until-green' "$cli" \
+  || fail "script missing tests-until-green"
+grep -Fq 'tests-until-green' \
+  "$root/skills/shiploop/references/activities/plan.md" \
+  || fail "plan.md missing tests-until-green for code-producing seeds"
+grep -Fq 'script infers advance' \
+  "$root/docs/LOOP-ENGINEERING.md" \
+  || fail "LOOP-ENGINEERING During row missing script infers"
+grep -Fq 'script infers advance' \
+  "$root/skills/devloop/references/loop-engineering.md" \
+  || fail "devloop loop-engineering During row missing script infers"
+generic_pat="$(printf '%s%s|google[.]script[.]run|%s%s' play Place App 's Script')"
+if grep -RInE --include='*.md' --include='shiploop' --include='*.sh' \
+  "$generic_pat" "$root/skills/shiploop" "$root/test/shiploop.test.sh"; then
+  fail "shiploop skill/suite must stay generic"
+fi
 grep -Fq 'not live-acceptance' \
   "$root/skills/shiploop/references/activities/plan.md" \
   || fail "plan.md missing module require is not live-acceptance"
@@ -209,9 +236,6 @@ for residual_act in residual.md residual-waived.md; do
     fail "$residual_act still permits in-place bound plan edit"
   fi
 done
-if grep -Fq 'open host /goal' "$root/skills/shiploop"; then
-  fail "package still instructs open host /goal"
-fi
 if grep -RFq --include='*.md' --include='shiploop' 'open host /goal' \
   "$root/skills/shiploop/SKILL.md" \
   "$root/skills/shiploop/README.md" \
@@ -1588,7 +1612,7 @@ printf '%s\n' "$out_imp" | grep -q 'waiting on S1 write the file' || fail "walk 
 if printf '%s\n' "$out_imp" | grep -E '^  \[[xX ]\] S[0-9]' >/dev/null; then
   fail "walk rail still uses checkbox marks on a step id"
 fi
-printf '%s\n' "$out_imp" | grep -q 'Finish S1: write the file' || fail "labeled Finish S1 missing"
+printf '%s\n' "$out_imp" | grep -q 'Step S1: write the file' || fail "labeled Step S1 missing"
 printf '%s\n' "$out_imp" | grep -q 'S1 worktree — cwd here — write the file' || fail "look here missing S1 statement"
 printf '%s\n' "$out_imp" | grep -qx 'Diagnosis' || fail "implement missing Diagnosis"
 printf '%s\n' "$out_imp" | grep -q 'stand      implement — 0/2 steps done' || fail "implement stand"
@@ -1599,7 +1623,13 @@ printf '%s\n' "$out_imp" | grep -A20 '^Diagnosis$' | grep -q 'S2  confirm the fi
 printf '%s\n' "$out_imp" | grep -q 'invoke /shiploop complete' || fail "when done missing /shiploop complete"
 printf '%s\n' "$out_imp" | awk '/^## When done invoke$/,/^## Missing$/' \
   | grep -Fq -- '--advance B' \
-  || fail "implement when done missing --advance B: $out_imp"
+  && fail "implement when done still names --advance B: $out_imp"
+printf '%s\n' "$out_imp" | awk '/^## When done invoke$/,/^## Missing$/' \
+  | grep -Fq 'invoke /shiploop complete' \
+  || fail "implement when done missing flagless complete: $out_imp"
+printf '%s\n' "$out_imp" | awk '/^## When done invoke$/,/^## Missing$/' \
+  | grep -Fq 'tests-until-green' \
+  || fail "implement when done missing tests-until-green: $out_imp"
 printf '%s\n' "$out_imp" | awk '/^## When done invoke$/,/^## Missing$/' \
   | grep -Fq 'keep working this Next' \
   || fail "implement when done missing if/else keep working: $out_imp"
@@ -1616,14 +1646,17 @@ printf '%s\n' "$out_imp" | grep -qx '## Progress' || fail "implement missing Pro
 printf '%s\n' "$out_imp" | grep -Eq '^(Beginning|Continuing) step S1 of 2' \
   || fail "implement Progress missing S1 begin/continue"
 printf '%s\n' "$out_imp" | grep -q 'Work in this worktree folder' || fail "implement Progress missing worktree"
-printf '%s\n' "$out_imp" | grep -q 'Finish S1:' || fail "implement Progress missing finish S1"
-printf '%s\n' "$out_imp" | awk '/^## Progress$/,/^## Reminder$/' | grep -q 'Finish S1:' \
-  || fail "implement Progress missing Finish S1:"
+printf '%s\n' "$out_imp" | grep -q 'Step S1:' || fail "implement Progress missing Step S1"
+printf '%s\n' "$out_imp" | awk '/^## Progress$/,/^## Reminder$/' | grep -q 'Step S1:' \
+  || fail "implement Progress missing Step S1:"
 printf '%s\n' "$out_imp" | awk '/^## Progress$/,/^## Reminder$/' \
   | grep -Fq -- '--advance B' \
-  || fail "implement Progress missing --advance B"
-printf '%s\n' "$out_imp" | awk '/^## Progress$/,/^## Reminder$/' | grep -q 'until-loop A until produces' \
-  || fail "implement Progress missing until-loop A until produces"
+  && fail "implement Progress still names --advance B"
+printf '%s\n' "$out_imp" | awk '/^## Progress$/,/^## Reminder$/' \
+  | grep -Fq 'tests-until-green' \
+  || fail "implement Progress missing tests-until-green"
+printf '%s\n' "$out_imp" | awk '/^## Progress$/,/^## Reminder$/' | grep -q 'Implement until produces' \
+  || fail "implement Progress missing Implement until produces"
 if printf '%s\n' "$out_imp" | awk '/^## Progress$/,/^## Reminder$/' \
   | grep -Fq 'when the /goal is done, commit on that worktree'; then
   fail "implement Progress still always-commit"
@@ -1645,16 +1678,20 @@ printf '%s\n' "$out_imp" | grep -Fq "This worktree forked from session HEAD when
   || fail "implement Next missing parallel-claim worktree contract"
 grep -Fq 'already contains landed patches' "$cli" \
   && fail "implement git retained obsolete landed-patches claim"
-printf '%s\n' "$out_imp" | grep -q 'Until-loop A (receipt inner=A)' \
-  || fail "implement Next missing Goal until"
+printf '%s\n' "$out_imp" | grep -q 'Implement. Work this Next in this chat' \
+  || fail "implement Next missing Implement heading"
 printf '%s\n' "$out_imp" | grep -Fq "Until: this step's produces (also in the stored prompt)." \
   || fail "implement Next missing produces-pointer Until"
 printf '%s\n' "$out_imp" | grep -Fiq 'do not nest' \
   || fail "implement Next missing do not nest"
 printf '%s\n' "$out_imp" | grep -Fq -- '--advance B' \
-  || fail "implement Next missing --advance B"
+  && fail "implement Next still names --advance B"
+printf '%s\n' "$out_imp" | grep -Fq 'tests-until-green' \
+  || fail "implement Next missing tests-until-green"
 assert_absent "$out_imp" 'Until-loop B (receipt inner=B)' \
   "inner A Next printed Improve B body"
+assert_absent "$out_imp" 'Until-loop A (receipt inner=A)' \
+  "inner A Next still printed Until-loop A"
 if printf '%s\n' "$out_imp" | grep -qx '## Goal until'; then
   fail "Goal until became an H2"
 fi
@@ -1671,22 +1708,22 @@ printf '%s\n' "$out_imp" | grep -q 'Worktree: ' \
   || fail "implement Next Implement git missing Worktree:"
 printf '%s\n' "$out_imp" | grep -q 'Session checkout (repo_root main tree' \
   || fail "implement Next missing session checkout definition"
-printf '%s\n' "$out_imp" | awk '/^Implement git \(use with Frozen in the parent chat/,/^Until-loop A/' \
-  | grep -Fq -- '--inner-loop parent' \
-  || fail "Implement git schema missing --inner-loop parent"
+printf '%s\n' "$out_imp" | awk '/^Implement git \(use with Frozen in the parent chat/,/^Implement\. Work this Next/' \
+  | grep -Fq 'the script prints the next action' \
+  || fail "Implement git schema missing script prints next action"
 printf '%s\n' "$out_imp" | awk '/^## When done invoke$/,/^## Missing$/' \
-  | grep -Fq -- '--advance B' \
-  || fail "When done invoke missing --advance B"
+  | grep -Fq 'invoke /shiploop complete' \
+  || fail "When done invoke missing complete"
 printf '%s\n' "$out_imp" | python3 -c "
 import sys
 text = sys.stdin.read()
 i = text.find('Frozen session environment')
 j = text.find('Implement git (use with Frozen in the parent chat')
-u = text.find('Until-loop A (receipt inner=A)')
+u = text.find('Implement. Work this Next in this chat')
 k = text.find('/goal\n')
 if k < 0:
     k = text.find('/goal')
-adv = text.find('--advance B', k)
+adv = text.find('invoke /shiploop complete', k)
 assert i != -1 and j != -1 and u != -1 and k != -1 and adv != -1, (i, j, u, k, adv)
 assert i < j < u < k < adv, (i, j, u, k, adv)
 assert 'Until: this step\'s produces (also in the stored prompt).' in text[u:k]
@@ -1695,7 +1732,7 @@ frozen = text[i:j]
 assert 'Deeply research those MCP servers' not in frozen, 'job-2 research leaked into Frozen'
 assert 'Until-loop B (receipt inner=B)' not in frozen
 assert 'HOST FLAG' not in frozen
-" || fail "envelope order Frozen, Implement git, Goal until, stored /goal, --advance B"
+" || fail "envelope order Frozen, Implement git, Implement, stored /goal, complete"
 assert_absent "$out_imp" 'do not implement the product through MCP' \
   "Frozen still forbids implementing through MCP"
 python3 -c '
@@ -1721,7 +1758,7 @@ printf 'LAYER: linear implement packet OK\n'
 wt_a20="$(python3 -c "import json; print(json.load(open('$run/steps/S1.json'))['worktree'])")"
 git -C "$wt_a20" commit --allow-empty -m 'git change is not produces' >/dev/null
 out_a20="$(run_cli next --run-dir "$run")"
-printf '%s\n' "$out_a20" | grep -q 'Until-loop A (receipt inner=A)' \
+printf '%s\n' "$out_a20" | grep -q 'Implement. Work this Next in this chat' \
   || fail "next after worktree commit left inner A: $out_a20"
 assert_absent "$out_a20" 'Until-loop B (receipt inner=B)' \
   "next auto-advanced from git HEAD moved"
@@ -2249,8 +2286,8 @@ printf '%s\n' "$out_tr_c" | grep -q 'Continuing' \
 printf '%s\n' "$out_tr_c" | grep -q 'S1: done' || fail "complete --id S1 S1 not done"
 printf '%s\n' "$out_tr_c" | grep -cF 'Implement git (use with Frozen in the parent chat' | grep -qx 1 \
   || fail "after S1 complete want one Implement git for S2"
-printf '%s\n' "$out_tr_c" | grep -cF -- '--advance B' | grep -q '[1-9]' \
-  || fail "after S1 complete want --advance B for S2"
+printf '%s\n' "$out_tr_c" | grep -Fq 'Implement. Work this Next in this chat' \
+  || fail "after S1 complete want Implement Next for S2"
 out_tr2="$(run_cli next --run-dir "$run2")"
 printf '%s\n' "$out_tr2" | grep -q 'In flight' || fail "S2 not labeled in-flight"
 printf '%s\n' "$out_tr2" | grep -q 'S1: done' || fail "S1 should stay done"
@@ -3064,31 +3101,22 @@ run_cli update --run-dir "$runil" --to implement >/dev/null
 run_cli next --run-dir "$runil" >/dev/null
 commit_step_work "$runil" S1
 merge_step_branch "$runil" S1
-set +e
-out_il_missing="$(run_cli complete --run-dir "$runil" --id S1 2>&1)"
-rc_il_missing=$?
-set -e
-[[ "$rc_il_missing" -eq 2 ]] || fail "implement complete without inner-loop want 2: $out_il_missing"
-printf '%s\n' "$out_il_missing" | grep -Fq -- '--advance B' \
-  || fail "implement complete missing --advance B message: $out_il_missing"
-inner_two_clean "$runil" S1
-set +e
-out_il_flags="$(run_cli complete --run-dir "$runil" --id S1 2>&1)"
-rc_il_flags=$?
-set -e
-[[ "$rc_il_flags" -eq 2 ]] || fail "implement complete after two-clean without flags want 2: $out_il_flags"
-printf '%s\n' "$out_il_flags" | grep -Fq -- '--inner-loop goal|parent' \
-  || fail "implement complete missing inner-loop message: $out_il_flags"
-out_il_parent="$(run_cli complete --run-dir "$runil" --id S1 --inner-loop parent --improve "none(test)")"
+out_il_missing="$(run_cli complete --run-dir "$runil" --id S1)"
+printf '%s\n' "$out_il_missing" | grep -q 'advanced S1 -> B' \
+  || fail "implement complete from A should advance: $out_il_missing"
+run_cli complete --run-dir "$runil" --id S1 --trivial >/dev/null
+run_cli complete --run-dir "$runil" --id S1 --trivial >/dev/null
+out_il_parent="$(run_cli complete --run-dir "$runil" --id S1)"
 printf '%s\n' "$out_il_parent" | grep -q 'completed S1' \
-  || fail "parent inner-loop complete did not complete S1: $out_il_parent"
+  || fail "inferred merge after two-clean did not complete S1: $out_il_parent"
 python3 - "$runil" <<'PY' || fail "inner-loop parent receipt missing"
 import json, sys
 from pathlib import Path
 rec = json.loads((Path(sys.argv[1]) / "steps" / "S1.json").read_text())
 assert rec.get("inner_loop") == "parent", rec
-assert rec.get("improve") == "none(test)", rec
+assert rec.get("improve") == "none(inferred)", rec
 assert rec.get("inner") == "B", rec
+assert "tests" not in rec, rec
 assert len(rec.get("improve_cycles") or []) == 2, rec
 PY
 python3 - "$cli" "$runil" <<'PY' || fail "recap inner-loop attestation missing"
@@ -3101,7 +3129,7 @@ loader.exec_module(mod)
 run = Path(sys.argv[2])
 html = mod.render_recap_html(run, json.loads((run / "state.json").read_text()), dest="done")
 assert "Inner loop attestation" in html and "S1: parent" in html, html
-assert "improve=none(test)" in html, html
+assert "improve=none(inferred)" in html, html
 PY
 printf 'LAYER: implement inner-loop attestation OK\n'
 
@@ -3119,7 +3147,7 @@ out_adv_merge="$(run_cli complete --run-dir "$runadv" --id S1 --inner-loop paren
 rc_adv_merge=$?
 set -e
 [[ "$rc_adv_merge" -eq 2 ]] || fail "merge before --advance B want 2: $out_adv_merge"
-printf '%s\n' "$out_adv_merge" | grep -Fq -- '--advance B' \
+printf '%s\n' "$out_adv_merge" | grep -Fq -- '/shiploop complete' \
   || fail "merge-before-advance message: $out_adv_merge"
 set +e
 out_adv_imp="$(run_cli complete --run-dir "$runadv" --id S1 --advance B \
@@ -3129,15 +3157,37 @@ set -e
 [[ "$rc_adv_imp" -eq 64 ]] || fail "advance+improve want 64: $out_adv_imp"
 printf '%s\n' "$out_adv_imp" | grep -Fq -- '--advance B does not take --improve' \
   || fail "advance+improve message: $out_adv_imp"
-out_adv="$(run_cli complete --run-dir "$runadv" --id S1 --advance B)"
+set +e
+out_adv_notests="$(run_cli complete --run-dir "$runadv" --id S1 --advance B 2>&1)"
+rc_adv_notests=$?
+set -e
+[[ "$rc_adv_notests" -eq 2 ]] || fail "advance without --tests want 2: $out_adv_notests"
+printf '%s\n' "$out_adv_notests" | grep -Fq -- '--tests' \
+  || fail "advance-without-tests message: $out_adv_notests"
+set +e
+out_adv_nl="$(run_cli complete --run-dir "$runadv" --id S1 --advance B \
+  --tests $'a\nb' 2>&1)"
+rc_adv_nl=$?
+set -e
+[[ "$rc_adv_nl" -eq 2 ]] || fail "newline --tests want 2: $out_adv_nl"
+out_adv="$(run_cli complete --run-dir "$runadv" --id S1 --advance B --tests "none(test)")"
 printf '%s\n' "$out_adv" | grep -q 'advanced S1 -> B' || fail "advance outcome: $out_adv"
-printf '%s\n' "$out_adv" | grep -q 'Until-loop B (receipt inner=B)' \
+python3 - "$runadv" <<'PY' || fail "advance receipt.tests missing"
+import json, sys
+from pathlib import Path
+rec = json.loads((Path(sys.argv[1]) / "steps" / "S1.json").read_text())
+assert rec.get("inner") == "B", rec
+assert rec.get("tests") == "none(test)", rec
+PY
+printf '%s\n' "$out_adv" | grep -Fq 'Re-run receipt.tests: none(test)' \
+  || fail "advance packet missing stored receipt.tests: $out_adv"
+printf '%s\n' "$out_adv" | grep -q 'Improve. This Next is one review-and-fix cycle' \
   || fail "advance packet missing Improve: $out_adv"
 if printf '%s\n' "$out_adv" | grep -qx '/goal'; then
   fail "until-loop B printed a bare /goal line"
 fi
-printf '%s\n' "$out_adv" | grep -Fq -- '--improve-cycle' \
-  || fail "advance packet missing --improve-cycle: $out_adv"
+printf '%s\n' "$out_adv" | grep -Fq -- '--trivial' \
+  || fail "advance packet missing --trivial: $out_adv"
 assert_absent "$out_adv" 'Until-loop A (receipt inner=A)' \
   "inner B packet still printed /goal A"
 set +e
@@ -3152,8 +3202,8 @@ printf '%s\n' "$out_mat" | grep -q 'consecutive-trivial=0' || fail "material res
 run_cli complete --run-dir "$runadv" --id S1 --improve-cycle trivial --improve "none(test)" >/dev/null
 out_c2="$(run_cli complete --run-dir "$runadv" --id S1 --improve-cycle trivial --improve "none(test)")"
 printf '%s\n' "$out_c2" | grep -q 'consecutive-trivial=2' || fail "two-clean streak: $out_c2"
-printf '%s\n' "$out_c2" | grep -Fq -- '--inner-loop parent --improve' \
-  || fail "two-clean packet missing merge closer: $out_c2"
+printf '%s\n' "$out_c2" | grep -Fq 'invoke /shiploop complete' \
+  || fail "two-clean packet missing merge complete: $out_c2"
 set +e
 out_cs_bare="$(run_cli complete-step --run-dir "$runadv" --id S1 2>&1)"
 rc_cs_bare=$?
@@ -3171,6 +3221,54 @@ out_done="$(run_cli complete --run-dir "$runadv" --id S1 --inner-loop parent --i
 printf '%s\n' "$out_done" | grep -q 'completed S1' || fail "two-clean merge: $out_done"
 printf 'LAYER: inner A/B file-state OK\n'
 
+# --- inferred complete sequence (flagless / --trivial) ---
+runinf="$tmpdir/inner-infer/.shiploop"
+repoinf="$tmpdir/inner-infer/repo"
+advance_to_plan "$runinf" "$repoinf" "$planf"
+install_dag "$runinf" linear.json
+run_cli update --run-dir "$runinf" --to implement >/dev/null
+run_cli next --run-dir "$runinf" >/dev/null
+commit_step_work "$runinf" S1
+head_before="$(git -C "$repoinf" rev-parse HEAD)"
+wt_inf="$(python3 -c "import json; print(json.load(open('$runinf/steps/S1.json'))['worktree'])")"
+printf 'dirty\n' >>"$wt_inf/S1.txt"
+set +e
+out_tr_a="$(run_cli complete --run-dir "$runinf" --id S1 --trivial 2>&1)"
+rc_tr_a=$?
+set -e
+[[ "$rc_tr_a" -eq 64 ]] || fail "--trivial on inner A want 64: $out_tr_a"
+out_inf_a="$(run_cli complete --run-dir "$runinf" --id S1)"
+printf '%s\n' "$out_inf_a" | grep -q 'advanced S1 -> B' || fail "inferred A complete: $out_inf_a"
+printf '%s\n' "$out_inf_a" | grep -Fq 'No check commands were recorded' \
+  || fail "inferred advance missing no-check line: $out_inf_a"
+[[ "$(git -C "$repoinf" rev-parse HEAD)" == "$head_before" ]] \
+  || fail "inferred advance moved session HEAD"
+[[ -d "$wt_inf" ]] || fail "inferred advance removed worktree"
+python3 - "$runinf" <<'PY' || fail "inferred advance receipt"
+import json, sys
+from pathlib import Path
+rec = json.loads((Path(sys.argv[1]) / "steps" / "S1.json").read_text())
+assert rec.get("inner") == "B", rec
+assert "tests" not in rec, rec
+assert rec.get("status") == "running", rec
+PY
+out_inf_t1="$(run_cli complete --run-dir "$runinf" --id S1 --trivial)"
+printf '%s\n' "$out_inf_t1" | grep -q 'consecutive-trivial=1' || fail "inferred trivial 1: $out_inf_t1"
+out_inf_t2="$(run_cli complete --run-dir "$runinf" --id S1 --trivial)"
+printf '%s\n' "$out_inf_t2" | grep -q 'consecutive-trivial=2' || fail "inferred trivial 2: $out_inf_t2"
+printf '%s\n' "$out_inf_t2" | grep -q 'completed S1' && fail "second trivial merged: $out_inf_t2"
+[[ -d "$wt_inf" ]] || fail "two-clean removed worktree before merge complete"
+set +e
+out_stale="$(run_cli complete --run-dir "$runinf" --id S1 --trivial 2>&1)"
+rc_stale=$?
+set -e
+[[ "$rc_stale" -eq 64 ]] || fail "stale --trivial after two-clean want 64: $out_stale"
+git -C "$wt_inf" add S1.txt
+git -C "$wt_inf" commit -m 'leftover dirty' >/dev/null
+out_inf_m="$(run_cli complete --run-dir "$runinf" --id S1)"
+printf '%s\n' "$out_inf_m" | grep -q 'completed S1' || fail "inferred merge: $out_inf_m"
+printf 'LAYER: inferred complete sequence OK\n'
+
 # --- max 12 material cycles do not merge without cap-exceed ---
 runcap="$tmpdir/inner-cap/.shiploop"
 repocap="$tmpdir/inner-cap/repo"
@@ -3180,7 +3278,7 @@ run_cli update --run-dir "$runcap" --to implement >/dev/null
 run_cli next --run-dir "$runcap" >/dev/null
 commit_step_work "$runcap" S1
 merge_step_branch "$runcap" S1
-run_cli complete --run-dir "$runcap" --id S1 --advance B >/dev/null
+run_cli complete --run-dir "$runcap" --id S1 --advance B --tests "none(test)" >/dev/null
 n=0
 while [[ "$n" -lt 12 ]]; do
   run_cli complete --run-dir "$runcap" --id S1 --improve-cycle material \
@@ -3863,12 +3961,12 @@ import sys
 text = sys.stdin.read()
 i = text.find("Frozen session environment")
 j = text.find("Implement git (use with Frozen in the parent chat")
-u = text.find("Until-loop A (receipt inner=A)")
+u = text.find("Implement. Work this Next in this chat")
 k = text.find("no citation needed for a discovered step")
-adv = text.find("--advance B", k)
+adv = text.find("invoke /shiploop complete", k)
 assert i != -1 and j != -1 and u != -1 and k != -1 and adv != -1, (i, j, u, k, adv)
 assert i < j < u < k < adv, (i, j, u, k, adv)
-' || fail "inject envelope not Frozen, Implement git, Goal until, discovered, --advance B"
+' || fail "inject envelope not Frozen, Implement git, Implement, discovered, complete"
 printf 'LAYER: inject-step envelope reprint OK\n'
 
 # --- A16/A18/A22 inject-step ---
