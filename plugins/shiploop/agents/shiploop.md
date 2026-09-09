@@ -1,8 +1,8 @@
 ---
 name: shiploop
 description: >-
-  Session harness: spec once, walk ready steps via /goal in per-step
-  worktrees, close each increment with /shiploop complete.
+  Session harness: spec once, walk ready steps via parent until-loop in
+  per-step worktrees, close each increment with /shiploop complete.
 model: inherit
 ---
 

@@ -23,10 +23,14 @@ not re-rooting the host chat (`move_agent_to_root`).
 Package leaf: **shiploop**. Reprint and closer are `/shiploop next` and
 `/shiploop complete` on this leaf.
 
-When `/goal` is unavailable, the host-native inner loop is still the same
-contract: work until `produces`, then Improve until two clean cycles. Complete
-the running implement step with `--inner-loop parent`; `/goal` hosts use
-`--inner-loop goal`.
+Grok cannot invoke `/goal` from this skill. The packet Next **is** the
+until-loop in the parent chat. Every `/shiploop next` / `complete` rehydrates
+from `.shiploop/` files; the skill holds no inner A/B. When done is if/else
+on facts not in files (`produces` true? this cycle trivial?). Complete a
+running implement step with `--inner-loop parent --improve <line>` (Grok
+default). Use `--inner-loop goal --improve <line>` only if this host actually
+ran `/goal`. Emitted policy requires evidence; `--improve` does not dest-verify
+the claim. The script never auto-advances from git dirty/HEAD moved.
 
 | Claim | Requires |
 |-------|----------|

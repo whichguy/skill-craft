@@ -1,27 +1,29 @@
-Walk ready steps via `/goal`. The spec is **frozen** — do not refine, expand,
-or rewrite it.
+Walk ready steps via the printed parent until-loop. The spec is **frozen** —
+do not refine, expand, or rewrite it.
 
-Follow the printed Next envelope; do not nest Improve `/goal` B inside A.
+Follow the printed Next envelope; do not nest Improve until-loop B inside A.
 Each running step's worktree and branch are named in **Look here** /
 **Diagnosis** — work there (do not re-root the host chat); do not edit
 the session checkout or reuse a prior worktree.
 
-Do not nest Improve `/goal` B inside `/goal` A.
-If `/goal` A for an id is already open, do not open a second functional
-`/goal` for that id. Inner `/goal` A iterates and pathspec-commits **on
-the worktree**. Never `git add -A`. Never merge from that cwd. Then invoke
-**`/shiploop complete --inner-loop goal`** — the harness merges
+Do not nest Improve until-loop B inside until-loop A.
+If until-loop A for an id is already in this parent chat, do not start a
+second functional until-loop for that id. Inner until-loop A iterates and
+pathspec-commits **on the worktree**. Never `git add -A`. Never merge from
+that cwd. Then invoke
+**`/shiploop complete --inner-loop parent --improve <line>`** — the harness
+merges
 (`git -C <session-checkout> merge --no-ff --no-edit <branch>`), keeps the
 step branch, removes the worktree, and does not squash; inner Key learnings
 stay reachable from session HEAD. It prints Git ran, dests residual when this
-was the last step, and prints the next packet. Use `--inner-loop parent` only
-if host `/goal` is off; parent still includes A then B. Do not run a bare
-`git merge` from the worktree cwd. The next worktree forks `HEAD`. Complete
-does not resolve conflicts; read Git ran and retry.
+was the last step, and prints the next packet. Use `--inner-loop goal` only
+if this host actually ran `/goal`. Parent still includes A then B. Do not run
+a bare `git merge` from the worktree cwd. The next worktree forks `HEAD`.
+Complete does not resolve conflicts; read Git ran and retry.
 
 ### Discovered work mid-implement: `inject-step`
 
-If a running `/goal` surfaces intermediate work the frozen DAG did not
+If a running until-loop surfaces intermediate work the frozen DAG did not
 anticipate, add it with `inject-step`. **Look here** lists the harness CLI
 and the inject-step card as absolute paths. Pass `--statement`, `--prompt`,
 `--produces`, optional `--id Sn`, `--need`/`--from`, `--before`. Legal only
@@ -40,7 +42,7 @@ with `Don't use:` is a gap). The envelope wraps a discovered prompt exactly
 as it wraps a seed prompt.
 If the writer above fails, stop and invoke /shiploop complete --blocked --reason … — do not switch writers.
 
-After `/goal` A produces and Improve `/goal` B finishes: invoke
-`/shiploop complete --inner-loop goal`.
-After a `/goal` fails and the session can continue: invoke `/shiploop complete --clear`.
+After until-loop A produces and Improve until-loop B finishes: invoke
+`/shiploop complete --inner-loop parent --improve <line>`.
+After an until-loop fails and the session can continue: invoke `/shiploop complete --clear`.
 Hard stop: invoke `/shiploop complete --blocked --reason …`.

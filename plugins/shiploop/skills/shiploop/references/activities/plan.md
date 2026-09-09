@@ -33,16 +33,30 @@ Persist `{{BACKCHAIN_JSON}}` only after topology is resolved. Never hand-edit
 `prompt`) back into Backchain. Do not audit the persisted DAG for new experiments.
 Confirmation sinks remain DAG steps at implement.
 
-When frozen `layout` and `routing` exist, seed the DAG with two distinct
-verification kinds. Do not collapse them:
+When frozen `layout` and `routing` exist, seed the DAG with **three**
+distinct verification kinds. Do not collapse them, and do not let a cheaper
+probe close a more expensive one:
 
 1. A **routing-level probe** whose `produces` names `routing.confirmation`.
    It hits the frozen `routing.user_entrypoint` at the reserved-route
    boundary, not a module helper that bypasses the dispatcher, and is not a
-   browser play-through.
-2. At most one **live acceptance** sink. If it needs a browser MCP that is
+   browser play-through. If the dest is auth-walled, this probe is dest
+   dispatcher/exec (or equivalent), not unauthenticated HTTP GET.
+2. A **bound client action probe** on each seed that exposes dest-callables.
+   That seed’s `produces` **names the bound callables it exposes**. The
+   cheap proof is the frozen `bound-action` recipe for each named callable,
+   then call that same name. Module `require()` is not this probe. This
+   needs no browser MCP. A bound-name call is **not** live acceptance and
+   does not skip it.
+3. At most one **live acceptance** sink. If it needs a browser MCP that is
    missing or locked, dest blocked (`resume_to=plan` or `validate-spec`), not
-   fabricated confirmation notes.
+   fabricated confirmation notes. A bound-name call is not live acceptance.
+   Module `require()` is not live-acceptance.
+
+Review Coverage Test command (filled on `plan.md` **before leaving plan**):
+when dest contracts exist, it is dest behavior of routing confirmation plus
+bound names from `produces` — never `test -f` / `N/A` because there is no
+local suite. After residual binds the plan, do not edit that H2 in place.
 
 When frozen `ui` is true, seed the DAG with an **early design** setup step
 **before** iterate steps that build that surface. Do not collapse design into
@@ -117,7 +131,8 @@ Tools:
 ```
 
 `dest implement` refuses a seed `prompt` that has no line starting with
-`/goal`, that omits `Do this activity until these conditions are met:`,
+`/goal` (until-loop A label, not a slash to invoke), that omits
+`Do this activity until these conditions are met:`,
 or that omits any `produces` string. Every **seed** `prompt` must still
 cite the practice references from `{{ENV_MD}}` (`references[].path`) and
 end with a `Tools:` block. This session `plan.md` pointer must never

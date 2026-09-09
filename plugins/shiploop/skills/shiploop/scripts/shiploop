@@ -23,7 +23,7 @@ EXIT_BLOCKED = 2
 EXIT_USAGE = 64
 
 PACKAGE_ROOT = Path(__file__).resolve().parents[1]
-VERSION = "0.8.22"
+VERSION = "0.8.24"
 REF_DIR = PACKAGE_ROOT / "references"
 WT_DIRNAME = ".worktrees"
 # Printed in ## Progress and the implement Next envelope. Do not splice into
@@ -39,23 +39,44 @@ HOST_WORKTREE_FLAG = (
     "After /shiploop complete, the harness merges the kept branch into session HEAD "
     "and prints Git ran; the next packet names the next worktree.",
 )
-# Pasted into /goal with Frozen. Do not splice into stored implement prompts.
+# Pasted with Frozen. Do not splice into stored implement prompts.
 IMPLEMENT_GIT_HEAD = (
     "Implement git (paste into /goal with Frozen; do not re-root the parent chat):"
 )
 GOAL_UNTIL_HEAD = (
-    "Goal until (this stored prompt is /goal A — open host /goal; "
-    "do not work in the parent chat without until):"
+    "Until-loop A (receipt inner=A). Work this Next in the parent chat. "
+    "This skill cannot invoke /goal:"
 )
 IMPROVE_HEAD = (
-    "Improve (paste as /goal B after produces is true; do not nest inside /goal A):"
+    "Until-loop B (receipt inner=B). Work this Next in the parent chat. "
+    "Do not nest inside A. Do not invoke /goal:"
 )
 IMPROVE_GOAL = (
-    "quality review all the changes, review the last 7 git commit messages "
-    "for learnings, plan improvements and unconsidered conditions, git commit "
-    "each iteration with a verbose message with key learnings, complete when "
-    "only trivial findings remaining for 2 consecutive cycles, then commit "
-    "remaining trivial changes"
+    "quality and breadth review of the work in scope for this pass: read the "
+    "last 7 git commit messages for learnings; for each produces bullet in "
+    "scope, run that produce's own declared acceptance check; when a produce "
+    "exposes a bound client action, additionally execute that bound name on the "
+    "destination and then call it; when a frozen mechanics row this work touched "
+    "claims a destination effect, verify that effect on the destination, not from "
+    "the README; never substitute an inner module helper for a routing probe, a "
+    "bound name, or a live acceptance, and never treat a bound-name call as a "
+    "play-through; hunt unconsidered conditions (empty, error, occupied, "
+    "terminal, the call the surface actually makes); git commit each iteration "
+    "with a verbose message and Key learnings; a cycle is only-trivial only after "
+    "the checks named above ran and passed; the first cycle cannot be "
+    '"no findings" without that evidence; complete when only trivial findings '
+    "remain for 2 consecutive cycles, then commit remaining trivial changes "
+    "(except reserved-file P2s)"
+)
+INNER_A = "A"
+INNER_B = "B"
+IMPROVE_MAX_CYCLES = 12
+IMPROVE_CLEAN_STREAK = 2
+IMPROVE_SCOPE_STEP = (
+    "Scope: this step's produces and the mechanics rows it touched."
+)
+IMPROVE_SCOPE_PRODUCT = (
+    "Scope: the whole product at the composed user entrypoint."
 )
 TRANSITIONS_PATH = REF_DIR / "transitions.json"
 ACTIVITIES_DIR = REF_DIR / "activities"
@@ -253,7 +274,8 @@ def prompt_until_gaps(sid: str, prompt: str, texts: List[str]) -> List[str]:
     gaps: List[str] = []
     if not any(re.match(r"^[ \t]*/goal\b", line) for line in prompt.splitlines()):
         gaps.append(
-            f"{sid} prompt must have a line starting with /goal; {ENV_RECOVERY}"
+            f"{sid} prompt must have a line starting with /goal "
+            f"(until-loop A label, not a slash to invoke); {ENV_RECOVERY}"
         )
     if UNTIL_HEAD not in prompt:
         gaps.append(f"{sid} prompt must contain {UNTIL_HEAD!r}")
@@ -1437,8 +1459,17 @@ def render_recap_html(run_dir: Path, state: Dict[str, Any], *, dest: str) -> str
     for sid in ids:
         receipt = load_receipt(run_dir, sid)
         value = receipt.get("inner_loop") if isinstance(receipt, dict) else None
+        improve_line = receipt.get("improve") if isinstance(receipt, dict) else None
         if isinstance(value, str) and value in ("goal", "parent"):
-            inner_loop_rows.append(f"{sid}: {value}")
+            extra = (
+                f"; improve={improve_line}"
+                if isinstance(improve_line, str) and improve_line.strip()
+                else ""
+            )
+            inner_loop_rows.append(f"{sid}: {value}{extra}")
+    residual_improve = state.get("improve")
+    if isinstance(residual_improve, str) and residual_improve.strip():
+        inner_loop_rows.append(f"residual-done: {residual_improve.strip()}")
     if dest == "halted":
         stamp = "HALTED"
         outcome = (
@@ -2296,6 +2327,134 @@ def refuse_if_blocked_step_cmd(state: Dict[str, Any]) -> None:
         die(EXIT_BLOCKED, "step commands require phase implement")
 
 
+def receipt_inner(rec: Optional[Dict[str, Any]]) -> str:
+    if rec and rec.get("inner") == INNER_B:
+        return INNER_B
+    return INNER_A
+
+
+def improve_cycles_of(rec: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    raw = rec.get("improve_cycles") if isinstance(rec, dict) else None
+    if not isinstance(raw, list):
+        return []
+    return [row for row in raw if isinstance(row, dict)]
+
+
+def improve_consecutive_trivial(rec: Optional[Dict[str, Any]]) -> int:
+    streak = 0
+    for row in improve_cycles_of(rec):
+        if str(row.get("outcome") or "") == "trivial":
+            streak += 1
+        else:
+            streak = 0
+    return streak
+
+
+def improve_at_max(rec: Optional[Dict[str, Any]]) -> bool:
+    return len(improve_cycles_of(rec)) >= IMPROVE_MAX_CYCLES
+
+
+def improve_two_clean(rec: Optional[Dict[str, Any]]) -> bool:
+    return improve_consecutive_trivial(rec) >= IMPROVE_CLEAN_STREAK
+
+
+def improve_is_cap_exceed(raw: Optional[str]) -> bool:
+    text = (raw or "").strip()
+    if not (text.startswith("cap-exceed(") and text.endswith(")")):
+        return False
+    return bool(text[len("cap-exceed(") : -1].strip())
+
+
+def improve_packet_closer(rec: Optional[Dict[str, Any]]) -> bool:
+    """Leftover+When-done closer: two-clean or max (max still needs cap-exceed to merge)."""
+    return improve_two_clean(rec) or improve_at_max(rec)
+
+
+def improve_ready_to_merge(
+    rec: Optional[Dict[str, Any]], improve: Optional[str] = None
+) -> bool:
+    if improve_two_clean(rec):
+        return True
+    return improve_at_max(rec) and improve_is_cap_exceed(improve)
+
+
+def require_improve_text(raw: Optional[str]) -> str:
+    text = (raw or "").strip()
+    if not text or "\n" in text or "\r" in text:
+        die(
+            EXIT_BLOCKED,
+            "complete requires --improve <one line naming the checks that ran> "
+            "or none(<reason>)",
+        )
+    return text
+
+
+def save_running_receipt(
+    run_dir: Path, state: Dict[str, Any], rec: Dict[str, Any], *, event: str
+) -> None:
+    sid = str(rec.get("id") or "")
+    write_json_atomic(receipt_path(run_dir, sid), rec)
+    save_state(run_dir, state, event=event)
+
+
+def apply_advance_b(run_dir: Path, state: Dict[str, Any], sid: str) -> None:
+    refuse_if_blocked_step_cmd(state)
+    check_frozen_hashes(state, run_dir, None)
+    plan_hash = str(state.get("plan_sha256") or "")
+    rec = load_receipt(run_dir, sid)
+    if not receipt_matches(rec, plan_hash, "running") or not isinstance(rec, dict):
+        die(EXIT_BLOCKED, f"{sid} is not running")
+    if receipt_inner(rec) == INNER_B:
+        die(EXIT_BLOCKED, f"{sid} inner is already B; record an Improve cycle")
+    rec["inner"] = INNER_B
+    if "improve_cycles" not in rec:
+        rec["improve_cycles"] = []
+    save_running_receipt(run_dir, state, rec, event=f"advance-inner:{sid}")
+
+
+def apply_improve_cycle(
+    run_dir: Path,
+    state: Dict[str, Any],
+    sid: str,
+    *,
+    outcome: str,
+    improve: Optional[str],
+) -> None:
+    refuse_if_blocked_step_cmd(state)
+    check_frozen_hashes(state, run_dir, None)
+    if outcome not in ("trivial", "material"):
+        die(EXIT_BLOCKED, "--improve-cycle must be trivial or material")
+    plan_hash = str(state.get("plan_sha256") or "")
+    rec = load_receipt(run_dir, sid)
+    if not receipt_matches(rec, plan_hash, "running") or not isinstance(rec, dict):
+        die(EXIT_BLOCKED, f"{sid} is not running")
+    if receipt_inner(rec) != INNER_B:
+        die(
+            EXIT_BLOCKED,
+            f"{sid} inner is A; when produces is true invoke "
+            "/shiploop complete --advance B",
+        )
+    if improve_packet_closer(rec):
+        die(
+            EXIT_BLOCKED,
+            f"{sid} Improve B already two-clean or at max {IMPROVE_MAX_CYCLES}; "
+            "leftover-commit then invoke /shiploop complete --inner-loop goal|parent "
+            "--improve <line> (at max without two-clean: cap-exceed(<why>))",
+        )
+    text = require_improve_text(improve)
+    cycles = list(improve_cycles_of(rec))
+    cycles.append(
+        {
+            "n": len(cycles) + 1,
+            "outcome": outcome,
+            "improve": text,
+        }
+    )
+    rec["inner"] = INNER_B
+    rec["improve_cycles"] = cycles
+    save_running_receipt(run_dir, state, rec, event=f"improve-cycle:{sid}:{outcome}")
+
+
 def write_running_receipt(run_dir: Path, state: Dict[str, Any], sid: str) -> None:
     plan_hash = str(state.get("plan_sha256") or "")
     wt, branch = create_step_worktree(state, sid)
@@ -2308,6 +2467,8 @@ def write_running_receipt(run_dir: Path, state: Dict[str, Any], sid: str) -> Non
         "worktree": wt,
         "branch": branch,
         "base_sha": head_sha(repo_of(state)),
+        "inner": INNER_A,
+        "improve_cycles": [],
     }
     try:
         write_json_atomic(receipt_path(run_dir, sid), rec)
@@ -2382,6 +2543,7 @@ def apply_complete_receipt(
     sid: str,
     *,
     inner_loop: Optional[str] = None,
+    improve: Optional[str] = None,
 ) -> str:
     refuse_if_blocked_step_cmd(state)
     check_frozen_hashes(state, run_dir, None)
@@ -2424,6 +2586,36 @@ def apply_complete_receipt(
             EXIT_BLOCKED,
             f"{sid} branch has no commits beyond session HEAD; commit in the worktree first",
         )
+    if receipt_inner(rec) != INNER_B:
+        die(
+            EXIT_BLOCKED,
+            f"{sid} inner is A; when produces is true invoke "
+            "/shiploop complete --advance B — do not merge yet",
+        )
+    if not improve_ready_to_merge(rec, improve):
+        streak = improve_consecutive_trivial(rec)
+        n = len(improve_cycles_of(rec))
+        if improve_at_max(rec):
+            die(
+                EXIT_BLOCKED,
+                f"{sid} Improve B at max {IMPROVE_MAX_CYCLES} without two-clean "
+                f"(streak {streak}); leftover-commit then invoke /shiploop complete "
+                "--inner-loop goal|parent --improve cap-exceed(<why>)",
+            )
+        die(
+            EXIT_BLOCKED,
+            f"{sid} Improve B needs {IMPROVE_CLEAN_STREAK} consecutive trivial "
+            f"cycles (have {streak} after {n}); invoke /shiploop complete "
+            "--improve-cycle trivial|material --improve <line>",
+        )
+    if inner_loop not in ("goal", "parent"):
+        die(
+            EXIT_BLOCKED,
+            "complete requires --inner-loop goal|parent when completing "
+            "an implement step",
+        )
+    improve_text = require_improve_text(improve)
+    cycles = improve_cycles_of(rec)
     if branch:
         merged = git_run(repo, "merge", "--no-ff", "--no-edit", branch, record=True)
         if merged.returncode != 0:
@@ -2453,8 +2645,10 @@ def apply_complete_receipt(
         "branch": branch,
         "base_sha": base,
     }
-    if inner_loop in ("goal", "parent"):
-        receipt["inner_loop"] = inner_loop
+    receipt["inner"] = INNER_B
+    receipt["inner_loop"] = inner_loop
+    receipt["improve"] = improve_text
+    receipt["improve_cycles"] = cycles
     write_json_atomic(receipt_path(run_dir, sid), receipt)
     save_state(run_dir, state, event=f"complete-step:{sid}")
     return sid
@@ -2829,6 +3023,26 @@ def print_diagnosis(run_dir: Path, state: Dict[str, Any]) -> None:
                 isolate = ""
                 if kind == "running" and wt and br:
                     isolate = f"cwd {wt} on branch {br}"
+                if kind == "running":
+                    inner = receipt_inner(rec)
+                    if inner == INNER_A:
+                        extra = f"{extra}; inner A"
+                    elif improve_packet_closer(rec):
+                        extra = (
+                            f"{extra}; inner B two-clean "
+                            f"({len(improve_cycles_of(rec))} cycles)"
+                            if improve_two_clean(rec)
+                            else (
+                                f"{extra}; inner B at max "
+                                f"{IMPROVE_MAX_CYCLES} (cap-exceed to merge)"
+                            )
+                        )
+                    else:
+                        extra = (
+                            f"{extra}; inner B cycle "
+                            f"{len(improve_cycles_of(rec)) + 1} "
+                            f"consecutive-trivial {improve_consecutive_trivial(rec)}"
+                        )
                 _print_diag_step(
                     sid,
                     by_id.get(sid) or {"statement": ""},
@@ -2924,40 +3138,85 @@ def print_implement_git(
     print("  - <what this iteration taught>")
     print("  See: <full sha> <subject>")
     print(
-        "Do not merge from this cwd. When /goal A produces is true, close it "
-        "and open Improve /goal B (do not nest). After B, leftover uncommitted "
-        "gets the same commit schema. Then invoke the closer under When "
-        "done invoke (default --inner-loop goal). complete merges into the "
+        "Do not merge from this cwd. When produces is true, invoke When done "
+        "(if/else --advance B or keep working). After until-loop B two-clean, "
+        "leftover uncommitted gets the same commit schema. Then invoke the "
+        "closer under When done invoke (default --inner-loop parent --improve "
+        "<line>). complete merges into the "
         "session checkout, keeps the step branch, "
         "removes the worktree, does not squash, and prints Git ran:"
     )
     print(f"  git -C {repo_s} merge --no-ff --no-edit {br_s}")
 
 
-def print_goal_until(step: Dict[str, Any]) -> None:
-    """Exit for /goal A. Produces from the DAG; do not rewrite stored prompt."""
-    print(GOAL_UNTIL_HEAD)
-    print("Until: this step's produces (also in the stored prompt).")
+def print_worktree_git_facts(
+    rec: Optional[Dict[str, Any]],
+) -> None:
+    """Cheap git facts. Not produces. Never auto-advance."""
+    wt = rec.get("worktree") if isinstance(rec, dict) else ""
+    if not isinstance(wt, str) or not wt.strip():
+        return
+    wt_p = Path(wt)
+    if not wt_p.is_dir():
+        return
+    porcelain = git_run(wt_p, "status", "--porcelain")
+    dirty = bool((porcelain.stdout or "").strip()) if porcelain.returncode == 0 else False
+    head = git_run(wt_p, "rev-parse", "HEAD")
+    head_s = (head.stdout or "").strip()[:12] if head.returncode == 0 else "(none)"
+    base = rec.get("base_sha") if rec else ""
+    base_s = (
+        str(base).strip()[:12]
+        if isinstance(base, str) and base.strip()
+        else "(none)"
+    )
     print(
-        "When those are true, close this /goal. "
-        "Do not nest a second /goal inside it."
+        f"Git facts (not produces): porcelain={'dirty' if dirty else 'clean'}; "
+        f"HEAD {head_s}; base {base_s}."
     )
 
 
-def print_improve() -> None:
-    """Static /goal B after functional complete. Not a DAG prompt."""
+def print_goal_until(step: Dict[str, Any]) -> None:
+    """Until-loop A. Produces from the DAG; do not rewrite stored prompt."""
+    print(GOAL_UNTIL_HEAD)
+    print("Until: this step's produces (also in the stored prompt).")
+    print(
+        "This parent chat is the until-loop. Do not invoke /goal. "
+        "Do not nest a second until-loop inside it."
+    )
+
+
+def print_improve(rec: Optional[Dict[str, Any]] = None) -> None:
+    """Until-loop B after produces. Not a DAG prompt. Do not print /goal."""
     print(IMPROVE_HEAD)
-    print("/goal")
+    print(IMPROVE_SCOPE_STEP)
+    n = len(improve_cycles_of(rec))
+    streak = improve_consecutive_trivial(rec)
+    print(
+        f"File state: inner B, cycle {n + 1} about to run, "
+        f"consecutive-trivial {streak}, max {IMPROVE_MAX_CYCLES}."
+    )
     print(IMPROVE_GOAL)
     print(UNTIL_HEAD)
     print("- only trivial findings remaining for 2 consecutive cycles")
     print("- remaining trivial changes committed")
     print(
         "Max 12 improve cycles; on exceed, leftover-commit and invoke the "
-        "closer under When done invoke (default --inner-loop goal; do not loop)."
+        "closer under When done invoke (default --inner-loop parent --improve "
+        "<line>; do not loop)."
     )
     print(
-        "Then invoke the closer under When done invoke (default --inner-loop goal)."
+        "If this cycle was only-trivial, invoke:"
+    )
+    print(
+        "  /shiploop complete --improve-cycle trivial "
+        '--improve "<checks that ran>"'
+    )
+    print(
+        "If this cycle had material findings, invoke:"
+    )
+    print(
+        "  /shiploop complete --improve-cycle material "
+        '--improve "<checks that ran>"'
     )
 
 
@@ -3087,19 +3346,43 @@ def print_progress(
         if need:
             print(f"  {need}.")
         if wt:
-            print(f"  Work in this worktree folder (cwd for /goal): {wt}")
+            print(f"  Work in this worktree folder (cwd for until-loop): {wt}")
         if br:
             print(f"  Branch: {br}")
-        print(
-            f"  Finish {_finish_label(run_dir, sid)} — after /goal A (until produces), "
-            f"open Improve /goal B (last 7 commits, 2 consecutive only-trivial, "
-            f"max 12); leftover uncommitted: same Implement git schema "
-            f"(log -10, Key learnings:, See: <sha>), commit on the worktree, "
-            f"then invoke /shiploop complete --inner-loop goal "
-            f"(or --inner-loop parent if /goal is off) "
-            f"(harness merges git -C {repo_s} merge --no-ff --no-edit {br or '<branch>'} "
-            f"keeps the step branch, removes the worktree, does not squash, and prints Git ran)."
-        )
+        rec_inner = receipt_inner(rec)
+        if rec_inner == INNER_A:
+            finish = (
+                f"  Finish {_finish_label(run_dir, sid)} — now until-loop A until produces; "
+                "if produces is true invoke /shiploop complete --advance B; "
+                "if not, keep working / /shiploop next reprints "
+                "(no merge; harness reprints until-loop B from file state)."
+            )
+        elif improve_packet_closer(rec):
+            cap = (
+                ""
+                if improve_two_clean(rec)
+                else " (at max without two-clean: --improve cap-exceed(<why>))"
+            )
+            finish = (
+                f"  Finish {_finish_label(run_dir, sid)} — until-loop B two-clean "
+                f"(or max {IMPROVE_MAX_CYCLES}); leftover uncommitted: same "
+                "Implement git schema (log -10, Key learnings:, See: <sha>), "
+                "commit on the worktree, then invoke /shiploop complete "
+                "--inner-loop parent --improve <line> "
+                "(or --inner-loop goal if this host actually ran /goal)"
+                f"{cap} "
+                f"(harness merges git -C {repo_s} merge --no-ff --no-edit {br or '<branch>'} "
+                "keeps the step branch, removes the worktree, does not squash, and prints Git ran)."
+            )
+        else:
+            finish = (
+                f"  Finish {_finish_label(run_dir, sid)} — now until-loop B "
+                f"cycle {len(improve_cycles_of(rec)) + 1}, consecutive-trivial "
+                f"{improve_consecutive_trivial(rec)}; if only-trivial invoke "
+                "/shiploop complete --improve-cycle trivial --improve <line>; "
+                "if material, --improve-cycle material --improve <line> (no merge)."
+            )
+        print(finish)
         print(
             f"  After {sid} finishes: complete marks it done and claims newly "
             f"ready ids (or dest residual when that completing call drains the walk)."
@@ -3158,6 +3441,7 @@ def activity_body(phase: str, run_dir: Path, state: Dict[str, Any]) -> str:
         "IMPLEMENT_ACTIVITY": str(ACTIVITIES_DIR / "implement.md"),
         "RECAP_HTML": str(run_dir / "recap.html"),
         "IMPROVE_GOAL": IMPROVE_GOAL,
+        "IMPROVE_SCOPE": IMPROVE_SCOPE_PRODUCT,
     }
     return interpolate(path.read_text(encoding="utf-8"), mapping).rstrip()
 
@@ -3519,7 +3803,7 @@ def print_packet(run_dir: Path, state: Dict[str, Any], *, prior_running: Optiona
             if classes.get(sid) != "running":
                 continue
             step = by_id.get(sid) or {"id": sid, "statement": "", "prompt": ""}
-            prefix = "In flight — do not open a second /goal. " if sid in already else ""
+            prefix = "In flight — do not start a second until-loop. " if sid in already else ""
             rec = load_receipt(run_dir, sid)
             wt, br = isolation_for(state, sid, rec)
             print(f"{prefix}Step `{sid}` — `{step.get('statement') or ''}`.")
@@ -3527,13 +3811,50 @@ def print_packet(run_dir: Path, state: Dict[str, Any], *, prior_running: Optiona
                 print(f"Work in this worktree folder: {wt}")
             if br:
                 print(f"Branch: {br}")
-            print("Do not edit the session checkout during this /goal.")
+            print("Do not edit the session checkout during this until-loop.")
             print_host_worktree_flag()
             print_frozen_session_env(run_dir)
             print_implement_git(state, sid, rec)
-            print_goal_until(step)
-            print_stored_prompt(str(step.get("prompt") or ""))
-            print_improve()
+            print_worktree_git_facts(rec)
+            inner = receipt_inner(rec)
+            if inner == INNER_A:
+                print_goal_until(step)
+                print_stored_prompt(str(step.get("prompt") or ""))
+                print(
+                    "If this step's produces is true, invoke /shiploop complete "
+                    "--advance B (harness stays on this step and reprints "
+                    "until-loop B from file state). Do not merge yet."
+                )
+                print(
+                    "If produces is not true yet, keep working this Next; "
+                    "invoke /shiploop next to reprint from files."
+                )
+            elif improve_packet_closer(rec):
+                print(IMPROVE_SCOPE_STEP)
+                print(
+                    f"File state: inner B, two-clean or max {IMPROVE_MAX_CYCLES} "
+                    f"({len(improve_cycles_of(rec))} cycles, consecutive-trivial "
+                    f"{improve_consecutive_trivial(rec)})."
+                )
+                cap = (
+                    ""
+                    if improve_two_clean(rec)
+                    else " At max without two-clean use --improve cap-exceed(<why>)."
+                )
+                print(
+                    "Leftover trivial changes: pathspec commit on the worktree "
+                    "(never git add -A), then invoke the closer under When done "
+                    "invoke --inner-loop parent --improve <line> "
+                    "(or --inner-loop goal if this host actually ran /goal)."
+                    f"{cap}"
+                )
+            else:
+                produces = produces_texts(step.get("produces")) or []
+                if produces:
+                    print("Declared acceptance checks (from this step's produces):")
+                    for item in produces:
+                        print(f"- {item}")
+                print_improve(rec)
     else:
         if phase == "residual":
             print_frozen_session_env(run_dir)
@@ -3550,21 +3871,45 @@ def print_packet(run_dir: Path, state: Dict[str, Any], *, prior_running: Optiona
         for sid in running:
             rec = load_receipt(run_dir, sid)
             _wt, br = isolation_for(state, sid, rec)
-            print(
-                f"Finish {_finish_label(run_dir, sid)} — after /goal A produces, "
-                "open Improve /goal B (do not nest); leftover uncommitted: "
-                "same Implement git schema "
-                "(log -10, Key learnings:, See: <sha>), commit on the worktree"
-            )
-            print(
-                "then invoke /shiploop complete --inner-loop goal "
-                "(or --inner-loop parent if /goal is off) (merges "
-                f"git -C {repo_s} merge --no-ff --no-edit {br or '<branch>'}, "
-                "keeps the step branch, removes the worktree, does not squash, "
-                "prints Git ran, marks this step done, claims the next, "
-                "or dests residual when this was the last step)"
-            )
-        print("on /goal failure: invoke /shiploop complete --clear")
+            inner = receipt_inner(rec)
+            if inner == INNER_A:
+                print(
+                    f"Finish {_finish_label(run_dir, sid)} — if produces is true, "
+                    "invoke /shiploop complete --advance B (no merge; "
+                    "harness reprints until-loop B from file state). "
+                    "If not, keep working this Next; /shiploop next reprints. "
+                    "Worktree commits use the Implement git schema "
+                    "(log -10, Key learnings:, See: <sha>)."
+                )
+            elif improve_packet_closer(rec):
+                print(
+                    f"Finish {_finish_label(run_dir, sid)} — leftover uncommitted: "
+                    "same Implement git schema "
+                    "(log -10, Key learnings:, See: <sha>), commit on the worktree"
+                )
+                cap = (
+                    "<line>"
+                    if improve_two_clean(rec)
+                    else "cap-exceed(<why>)"
+                )
+                print(
+                    "then invoke /shiploop complete --inner-loop parent --improve "
+                    f"{cap} (or --inner-loop goal if this host actually ran /goal) "
+                    "(merges "
+                    f"git -C {repo_s} merge --no-ff --no-edit {br or '<branch>'}, "
+                    "keeps the step branch, removes the worktree, does not squash, "
+                    "prints Git ran, marks this step done, claims the next, "
+                    "or dests residual when this was the last step)"
+                )
+            else:
+                print(
+                    f"Finish {_finish_label(run_dir, sid)} — if this cycle was "
+                    "only-trivial, invoke /shiploop complete --improve-cycle "
+                    "trivial --improve <line>; if material, --improve-cycle "
+                    "material --improve <line> (no merge; harness reprints "
+                    "the next cycle from file state)"
+                )
+        print("on until-loop failure: invoke /shiploop complete --clear")
         print("hard stop: invoke /shiploop complete --blocked --reason <text>")
     elif dest:
         if phase == "blocked":
@@ -3887,7 +4232,13 @@ def cmd_complete_step(args: argparse.Namespace) -> int:
         state = load_state(run_dir)
         state["dep_roots"] = resolve_dep_roots()
         sid = resolve_step_id(run_dir, state, getattr(args, "id", None))
-        apply_complete_receipt(run_dir, state, sid)
+        apply_complete_receipt(
+            run_dir,
+            state,
+            sid,
+            inner_loop=getattr(args, "inner_loop", None),
+            improve=getattr(args, "improve", None),
+        )
     print(f"completed {sid}")
     return EXIT_OK
 
@@ -3945,13 +4296,45 @@ def cmd_complete(args: argparse.Namespace) -> int:
                     load_receipt(run_dir, sid), plan_hash, "running"
                 )
                 inner_loop = getattr(args, "inner_loop", None)
-                if is_running and inner_loop not in ("goal", "parent"):
+                improve = getattr(args, "improve", None)
+                advance = getattr(args, "advance", None)
+                cycle = getattr(args, "improve_cycle", None)
+                flagged = [n for n, v in (
+                    ("--advance", advance),
+                    ("--improve-cycle", cycle),
+                    ("--inner-loop", inner_loop),
+                ) if v]
+                if len(flagged) > 1:
                     die(
-                        EXIT_BLOCKED,
-                        "complete requires --inner-loop goal|parent when completing "
-                        "an implement step",
+                        EXIT_USAGE,
+                        "complete: use only one of --advance, --improve-cycle, "
+                        "or --inner-loop",
                     )
-                apply_complete_receipt(run_dir, state, sid, inner_loop=inner_loop)
+                if advance and improve:
+                    die(
+                        EXIT_USAGE,
+                        "complete: --advance B does not take --improve",
+                    )
+                if is_running and advance:
+                    apply_advance_b(run_dir, state, sid)
+                    print(f"advanced {sid} -> B")
+                    print_packet(run_dir, state, prior_running=prior)
+                    return EXIT_OK
+                if is_running and cycle:
+                    apply_improve_cycle(
+                        run_dir, state, sid, outcome=str(cycle), improve=improve
+                    )
+                    rec_now = load_receipt(run_dir, sid)
+                    streak = improve_consecutive_trivial(rec_now)
+                    n = len(improve_cycles_of(rec_now))
+                    print(
+                        f"improve-cycle {sid} {cycle} n={n} consecutive-trivial={streak}"
+                    )
+                    print_packet(run_dir, state, prior_running=prior)
+                    return EXIT_OK
+                apply_complete_receipt(
+                    run_dir, state, sid, inner_loop=inner_loop, improve=improve
+                )
                 if steps_drained(run_dir, state):
                     apply_update(run_dir, state, "residual")
                     print(f"completed {sid}")
@@ -3969,6 +4352,8 @@ def cmd_complete(args: argparse.Namespace) -> int:
         dest = forward_dest(state, run_dir)
         if not dest:
             die(EXIT_BLOCKED, "no forward transition")
+        if dest == "done":
+            state["improve"] = require_improve_text(getattr(args, "improve", None))
         apply_update(
             run_dir,
             state,
@@ -4130,10 +4515,14 @@ def build_parser() -> argparse.ArgumentParser:
     ss = sub.add_parser("start-step")
     ss.add_argument("--run-dir")
     ss.add_argument("--id", required=True)
-    for name in ("complete-step", "clear-step"):
-        sp = sub.add_parser(name)
-        sp.add_argument("--run-dir")
-        sp.add_argument("--id")
+    cs = sub.add_parser("complete-step")
+    cs.add_argument("--run-dir")
+    cs.add_argument("--id")
+    cs.add_argument("--inner-loop", choices=("goal", "parent"), default=None)
+    cs.add_argument("--improve", default=None)
+    cl = sub.add_parser("clear-step")
+    cl.add_argument("--run-dir")
+    cl.add_argument("--id")
     comp = sub.add_parser("complete")
     comp.add_argument("--run-dir")
     comp.add_argument("--id")
@@ -4142,6 +4531,9 @@ def build_parser() -> argparse.ArgumentParser:
     comp.add_argument("--reason", default="")
     comp.add_argument("--resume-to", default="")
     comp.add_argument("--inner-loop", choices=("goal", "parent"), default=None)
+    comp.add_argument("--advance", choices=("B",), default=None)
+    comp.add_argument("--improve-cycle", choices=("trivial", "material"), default=None)
+    comp.add_argument("--improve", default=None)
     inj = sub.add_parser("inject-step")
     inj.add_argument("--run-dir")
     inj.add_argument("--statement", required=True)

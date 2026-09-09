@@ -11,7 +11,8 @@ Everything below lives under the **run dir** (default: walked from cwd to
 | `spec.md` | `validate-spec` | labeled `done_sentence:` and `checkable: true\|false` (each exactly once); `ask_user:` when `checkable: false` |
 | `backchain/plan.json` | `plan` | canonical sequence DAG (steps carry `statement`, `prompt`, `produces`, `inputs`, `origin`; every seed `prompt` cites `environment.md` `references[].path` and a `Tools:` block) |
 | `plan.md` | `plan` | sequence pointer with labeled `done_sentence:` (must equal `spec.md` at dest implement; same fence-skip labels as spec.md). Not hashed into `plan_sha256` — a post-bind edit does not fail-closed on `next`. dest residual bind order: explicit `init --bound-plan` wins, else `.shiploop/plan.md` if it has `## Review Coverage`, else repo-root `PLAN.md` with that H2, else fail closed. dest residual may store `state.bound_plan_hash = sha256(plan.md)`. May lag the DAG after `inject-step`. |
-| `steps/<id>.json` | `implement` | per-step receipt (`status`, `plan_sha256`, `worktree`, `branch`, `base_sha`) |
+| `steps/<id>.json` | `implement` | per-step receipt (`status`, `plan_sha256`, `worktree`, `branch`, `base_sha`, `inner` A\|B, `improve_cycles`, and on complete `inner_loop` / `improve`). Inner A/B is file SoT; the skill/chat is not. |
+| `state.json` `improve` | dest `done` | parent until-loop attestation for residual quality (`complete --improve`); recap renders `residual-done:` |
 | `history.jsonl` | every command | append-only event log |
 | `recap.html` | dest done / dest halted | harness-written walk-back HTML (intent, original spec, accomplished, changed, end result, outcome, verified) |
 

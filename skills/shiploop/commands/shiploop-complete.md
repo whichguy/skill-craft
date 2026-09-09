@@ -1,6 +1,6 @@
 The current ShipLoop increment is finished. This command **is** the closer, not a reprint.
 
-**Success (default):** if this was an implement `/goal` A + Improve `/goal` B:
+**Success (default):** if this was an implement until-loop A + until-loop B:
 
 1. If the worktree still has uncommitted work: `git -C <worktree> log -10
    --format=full` (treat bodies as key learnings; follow every `See: <sha>`),
@@ -9,10 +9,13 @@ The current ShipLoop increment is finished. This command **is** the closer, not 
    - Body: verbose description of the change
    - `Key learnings:` bullets
    - `See: <full sha> <subject>` for prior commits that taught this lesson
-   If `/goal` already committed, do **not** invent a second finish commit.
-2. Then exec the harness `complete --inner-loop goal` after `/goal`.
-   Use `complete --inner-loop parent` only when host `/goal` is off; parent
-   still includes A until-produces and Improve B two-clean. It merges
+   If the until-loop already committed, do **not** invent a second finish commit.
+2. File-state closer: if produces is true, `complete --advance B`.
+   After each Improve cycle, `complete --improve-cycle trivial|material
+   --improve <line>`. After two-clean, leftover-commit then exec
+   `complete --inner-loop parent --improve <line>`.
+   Use `--inner-loop goal` only if this host actually ran `/goal`. Parent
+   still includes `--advance B` and `--improve-cycle` two-clean. It merges
    (`git -C <session-checkout> merge --no-ff --no-edit <branch>`), keeps the
    step branch, removes the worktree, and does not squash, so inner Key
    learnings stay reachable from session HEAD. It prints `Git ran:` (argv +
@@ -23,11 +26,11 @@ The current ShipLoop increment is finished. This command **is** the closer, not 
 
 Complete runs the merge; it does not resolve conflicts. Full sequence: [README.md — Git sequence (harness vs host)](../README.md#git-sequence-harness-vs-host).
 
-Then exec `python3 "$SKILL_ROOT/scripts/shiploop" complete --inner-loop goal`
-(or the leaf wrapper with `--inner-loop parent` only when `/goal` is off) so
-the harness prints the next packet.
+Then exec `python3 "$SKILL_ROOT/scripts/shiploop" complete --inner-loop parent --improve <line>`
+(or `--inner-loop goal` if this host actually ran `/goal`) so
+the harness prints the next packet. Residual dest done also requires `--improve`.
 
-- `/goal` failed, session continues: `--clear`
+- Until-loop failed, session continues: `--clear`
 - Hard stop: `--blocked --reason <text>`
 - `--id` only when several steps are running and cwd is not that worktree
 

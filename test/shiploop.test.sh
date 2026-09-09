@@ -104,18 +104,18 @@ grep -Fq '/goal` B' "$root/skills/shiploop/SKILL.md" \
   || fail "SKILL.md missing inner /goal B"
 grep -Fq -- '--inner-loop goal' "$root/skills/shiploop/SKILL.md" \
   || fail "SKILL.md missing default goal closer"
-grep -Fq 'only if the host `/goal` is off' "$root/skills/shiploop/SKILL.md" \
-  || fail "SKILL.md missing parent-only-if-goal-off rule"
-grep -Fq 'open Improve /goal B' "$cli" \
-  || fail "printed closer missing inner Improve /goal B"
-grep -Fq 'then invoke /shiploop complete --inner-loop goal' "$cli" \
-  || fail "printed closer missing default goal completion after Improve"
+grep -Fq 'actually ran `/goal`' "$root/skills/shiploop/SKILL.md" \
+  || fail "SKILL.md missing actually-ran /goal rule"
+grep -Fq 'Until-loop B' "$cli" \
+  || fail "printed closer missing until-loop B"
+grep -Fq 'then invoke /shiploop complete --inner-loop parent --improve' "$cli" \
+  || fail "printed closer missing default parent completion after Improve"
 for residual_act in residual.md residual-waived.md; do
   residual_path="$root/skills/shiploop/references/activities/$residual_act"
-  grep -Fq 'Quality test/fix `/goal` A' "$residual_path" \
-    || fail "$residual_act missing quality /goal A"
-  grep -Fq 'Improve `/goal` B' "$residual_path" \
-    || fail "$residual_act missing Improve /goal B"
+  grep -Fq 'Quality test/fix until-loop A' "$residual_path" \
+    || fail "$residual_act missing quality until-loop A"
+  grep -Fq 'Improve until-loop B' "$residual_path" \
+    || fail "$residual_act missing Improve until-loop B"
   grep -Fq 'skip A and B' "$residual_path" \
     || fail "$residual_act missing Q3=no skip A+B"
   grep -Fq 'After B, if Q2 is **outer-loop**' "$residual_path" \
@@ -155,6 +155,110 @@ done
 grep -Fq 're-reads live dest URLs' \
   "$root/skills/shiploop/references/activities/validate-spec.md" \
   || fail "validate-spec.md Q2 missing residual live-URL reread"
+grep -Fq 'Bound client action contract' \
+  "$root/skills/shiploop/references/activities/validate-spec.md" \
+  || fail "validate-spec.md missing bound client action contract"
+grep -Fq 'bound-action <surface>::<name>' \
+  "$root/skills/shiploop/references/activities/validate-spec.md" \
+  || fail "validate-spec.md missing bound-action recipe"
+grep -Fq 'Mechanics on dest' \
+  "$root/skills/shiploop/references/activities/validate-spec.md" \
+  || fail "validate-spec.md missing mechanics on dest"
+grep -Fq 'git add -f' \
+  "$root/skills/shiploop/references/activities/validate-spec.md" \
+  || fail "validate-spec.md missing force-track git add -f"
+grep -Fq 'bound client action probe' \
+  "$root/skills/shiploop/references/activities/plan.md" \
+  || fail "plan.md missing bound client action probe"
+# U1 Branch A: shipped activities must not instruct dest-exec of dest callables.
+if grep -RIn --include='*.md' --include='shiploop' 'dest-exec' \
+  "$root/skills/shiploop" "$root/plugins/shiploop" 2>/dev/null; then
+  fail "shipped shiploop activities must not require dest-exec"
+fi
+grep -Fq 'not live-acceptance' \
+  "$root/skills/shiploop/references/activities/plan.md" \
+  || fail "plan.md missing module require is not live-acceptance"
+grep -Fq 'declared acceptance check' "$cli" \
+  || fail "IMPROVE_GOAL missing declared acceptance check"
+grep -Fq 'exposes a bound client action' "$cli" \
+  || fail "IMPROVE_GOAL missing bound-name exec condition"
+grep -Fq 'the first cycle cannot be' "$cli" \
+  || fail "IMPROVE_GOAL missing first-cycle evidence bar"
+grep -Fq 'Scope: this step' "$cli" \
+  || fail "print_improve missing step Scope line"
+grep -Fq 'IMPROVE_SCOPE_PRODUCT' "$cli" \
+  || fail "script missing residual Scope token"
+for residual_act in residual.md residual-waived.md; do
+  residual_path="$root/skills/shiploop/references/activities/$residual_act"
+  grep -Fq '{{IMPROVE_SCOPE}}' "$residual_path" \
+    || fail "$residual_act missing IMPROVE_SCOPE"
+  grep -Fq 'shipped surface source' "$residual_path" \
+    || fail "$residual_act missing shipped-surface bound-name enumeration"
+  grep -Fq 'Do **not** dest-block `resume_to=plan`' "$residual_path" \
+    || fail "$residual_act missing no resume_to=plan for Test command"
+  if grep -Fq 'edit the plan.md H2 in place' "$residual_path"; then
+    fail "$residual_act still permits in-place bound plan edit"
+  fi
+done
+if grep -Fq 'open host /goal' "$root/skills/shiploop"; then
+  fail "package still instructs open host /goal"
+fi
+if grep -RFq --include='*.md' --include='shiploop' 'open host /goal' \
+  "$root/skills/shiploop/SKILL.md" \
+  "$root/skills/shiploop/README.md" \
+  "$root/skills/shiploop/commands" \
+  "$root/skills/shiploop/references" \
+  "$root/skills/shiploop/scripts/shiploop" \
+  2>/dev/null; then
+  fail "package still instructs open host /goal"
+fi
+if grep -RFq --include='*.md' --include='shiploop' 'only if host `/goal` is off' \
+  "$root/skills/shiploop/SKILL.md" \
+  "$root/skills/shiploop/README.md" \
+  "$root/skills/shiploop/commands" \
+  "$root/skills/shiploop/references" \
+  "$root/skills/shiploop/scripts/shiploop" \
+  "$root/docs/LOOP-ENGINEERING.md" \
+  2>/dev/null; then
+  fail "package still treats parent as /goal-off fallback"
+fi
+grep -Fq 'This skill cannot invoke /goal' "$cli" \
+  || fail "GOAL_UNTIL_HEAD missing cannot invoke /goal"
+grep -Fq 'If this step'\''s produces is true' "$cli" \
+  || fail "inner A missing if/else produces"
+grep -Fq 'Git facts (not produces)' "$cli" \
+  || fail "script missing git facts printer"
+grep -Fq -- '--improve-cycle' "$cli" \
+  || fail "script missing --improve-cycle"
+grep -Fq 'until-loop A label, not a slash to invoke' "$cli" \
+  || fail "prompt_until_gaps missing until-loop A label wording"
+grep -Fq 'until-loop A label, not a slash to invoke' \
+  "$root/skills/shiploop/references/activities/plan.md" \
+  || fail "plan.md missing until-loop A label wording"
+n_sub="$(grep -cE 'subprocess\.(run|Popen|call)' "$cli" || true)"
+[[ "$n_sub" -eq 1 ]] || fail "expected one subprocess.run/Popen/call in git_run, got $n_sub"
+if grep -Fq 'SHIPLOOP_IMPROVE_CMD' "$cli"; then
+  fail "harness must not define SHIPLOOP_IMPROVE_CMD"
+fi
+python3 - "$cli" <<'PY' || fail "harness constructs a grok argv"
+import ast, sys
+from pathlib import Path
+tree = ast.parse(Path(sys.argv[1]).read_text(encoding="utf-8"))
+class V(ast.NodeVisitor):
+    def visit_Call(self, node):
+        func = node.func
+        name = func.attr if isinstance(func, ast.Attribute) else (
+            func.id if isinstance(func, ast.Name) else ""
+        )
+        if name in ("run", "Popen", "call", "execv", "execl", "system"):
+            for arg in node.args:
+                if isinstance(arg, ast.List) and arg.elts:
+                    first = arg.elts[0]
+                    if isinstance(first, ast.Constant) and str(first.value) == "grok":
+                        raise SystemExit("grok argv")
+        self.generic_visit(node)
+V().visit(tree)
+PY
 grep -Fq 'watch MCP for that check' \
   "$root/skills/shiploop/references/activities/validate-spec.md" \
   || fail "validate-spec.md Q3 missing Frozen watch MCP"
@@ -252,9 +356,18 @@ grep -Fq 'early design' "$root/skills/shiploop/references/activities/plan.md" \
   || fail "plan.md missing early design seed"
 grep -Fq -- '--inner-loop goal|parent' "$root/skills/shiploop/README.md" \
   || fail "README missing implement complete --inner-loop"
+grep -Fq -- '--inner-loop parent --improve' \
+  "$root/skills/shiploop/references/turn-packet.md" \
+  || fail "turn-packet.md missing default parent closer"
 grep -Fq -- '--inner-loop goal' \
   "$root/skills/shiploop/references/turn-packet.md" \
   || fail "turn-packet.md missing implement complete --inner-loop goal"
+grep -Fq -- '--inner-loop parent --improve' \
+  "$root/skills/shiploop/references/activities/implement.md" \
+  || fail "implement.md missing default parent closer"
+grep -Fq -- '--inner-loop parent --improve' \
+  "$root/skills/shiploop/README.md" \
+  || fail "README missing default parent closer"
 grep -q 'practice references' "$root/skills/shiploop/references/activities/plan.md" \
   || fail "plan.md missing practice references in step prompts"
 grep -q 'researches applicable practices' "$root/skills/shiploop/README.md" \
@@ -620,7 +733,11 @@ grep -q 'does not rewrite the spec' "$le_docs" || fail "LOOP-ENGINEERING missing
 if grep -qi 'c-plan' <<<"$(sed -n '/^## Compose graph$/,/^## Practices$/p' "$le_docs")"; then
   fail "compose graph must not name c-plan"
 fi
-grep -q 'emits a `/goal`' "$le_docs" || fail "LOOP-ENGINEERING missing emits a /goal"
+grep -q 'parent until-loop' "$le_docs" || fail "LOOP-ENGINEERING missing parent until-loop"
+grep -q 'per-step Improve B' "$le_docs" || fail "LOOP-ENGINEERING missing per-step Improve B"
+if grep -q 'emits a `/goal`' "$le_docs"; then
+  fail "LOOP-ENGINEERING still emits a /goal"
+fi
 grep -q 'Per-step worktree (ShipLoop)' "$le_docs" || fail "LOOP-ENGINEERING missing ShipLoop worktree row"
 grep -q 'must not import' "$le_docs" || fail "LOOP-ENGINEERING missing no worktree.py import"
 [[ -f "$root/skills/shiploop/README.md" ]] || fail "missing skill README"
@@ -757,7 +874,9 @@ complete_ok() {
   local run="$1" sid="$2"
   commit_step_work "$run" "$sid"
   merge_step_branch "$run" "$sid"
-  run_cli complete-step --run-dir "$run" --id "$sid" >/dev/null
+  inner_two_clean "$run" "$sid"
+  run_cli complete-step --run-dir "$run" --id "$sid" --inner-loop parent \
+    --improve "none(test)" >/dev/null
 }
 
 DS='result.txt contains exactly one line: ok'
@@ -1470,17 +1589,20 @@ printf '%s\n' "$out_imp" | grep -A20 '^Diagnosis$' | grep -q '(running)' || fail
 printf '%s\n' "$out_imp" | grep -A20 '^Diagnosis$' | grep -q 'S2  confirm the file' || fail "pending missing S2"
 printf '%s\n' "$out_imp" | grep -q 'invoke /shiploop complete' || fail "when done missing /shiploop complete"
 printf '%s\n' "$out_imp" | awk '/^## When done invoke$/,/^## Missing$/' \
-  | grep -Fq -- '--inner-loop goal' \
-  || fail "implement when done missing --inner-loop goal: $out_imp"
+  | grep -Fq -- '--advance B' \
+  || fail "implement when done missing --advance B: $out_imp"
+printf '%s\n' "$out_imp" | awk '/^## When done invoke$/,/^## Missing$/' \
+  | grep -Fq 'keep working this Next' \
+  || fail "implement when done missing if/else keep working: $out_imp"
+printf '%s\n' "$out_imp" | grep -Fq 'Git facts (not produces)' \
+  || fail "implement Next missing git facts: $out_imp"
 printf '%s\n' "$out_imp" | awk '/^## When done invoke$/,/^## Missing$/' \
   | grep -Fq -- '--inner-loop goal|parent' \
   && fail "implement when done printed illegal argv goal|parent"
 assert_absent "$out_imp" 'complete-step --' "when done leaked complete-step argv"
 assert_absent "$out_imp" '--id S1' "when done leaked --id S1"
-printf '%s\n' "$out_imp" | grep -q 'commit on the worktree' || fail "when done missing commit"
-printf '%s\n' "$out_imp" | awk '/^## When done invoke$/,/^## Missing$/' | grep -q 'Key learnings:' \
-  || fail "when done missing Implement git schema"
-printf '%s\n' "$out_imp" | grep -q 'merge --no-ff' || fail "when done missing host merge"
+printf '%s\n' "$out_imp" | grep -q 'Key learnings:' || fail "packet missing Key learnings"
+printf '%s\n' "$out_imp" | grep -q 'merge --no-ff' || fail "packet missing host merge"
 printf '%s\n' "$out_imp" | grep -qx '## Progress' || fail "implement missing Progress"
 printf '%s\n' "$out_imp" | grep -Eq '^(Beginning|Continuing) step S1 of 2' \
   || fail "implement Progress missing S1 begin/continue"
@@ -1489,12 +1611,10 @@ printf '%s\n' "$out_imp" | grep -q 'Finish S1:' || fail "implement Progress miss
 printf '%s\n' "$out_imp" | awk '/^## Progress$/,/^## Reminder$/' | grep -q 'Finish S1:' \
   || fail "implement Progress missing Finish S1:"
 printf '%s\n' "$out_imp" | awk '/^## Progress$/,/^## Reminder$/' \
-  | grep -Fq -- '--inner-loop goal' \
-  || fail "implement Progress missing --inner-loop goal"
-printf '%s\n' "$out_imp" | awk '/^## Progress$/,/^## Reminder$/' | grep -q 'leftover uncommitted' \
-  || fail "implement Progress missing leftover-only"
-printf '%s\n' "$out_imp" | awk '/^## Progress$/,/^## Reminder$/' | grep -q 'Key learnings:' \
-  || fail "implement Progress missing Key learnings:"
+  | grep -Fq -- '--advance B' \
+  || fail "implement Progress missing --advance B"
+printf '%s\n' "$out_imp" | awk '/^## Progress$/,/^## Reminder$/' | grep -q 'until-loop A until produces' \
+  || fail "implement Progress missing until-loop A until produces"
 if printf '%s\n' "$out_imp" | awk '/^## Progress$/,/^## Reminder$/' \
   | grep -Fq 'when the /goal is done, commit on that worktree'; then
   fail "implement Progress still always-commit"
@@ -1516,20 +1636,16 @@ printf '%s\n' "$out_imp" | grep -Fq "This worktree forked from session HEAD when
   || fail "implement Next missing parallel-claim worktree contract"
 grep -Fq 'already contains landed patches' "$cli" \
   && fail "implement git retained obsolete landed-patches claim"
-printf '%s\n' "$out_imp" | grep -q 'Goal until (this stored prompt is /goal A' \
+printf '%s\n' "$out_imp" | grep -q 'Until-loop A (receipt inner=A)' \
   || fail "implement Next missing Goal until"
 printf '%s\n' "$out_imp" | grep -Fq "Until: this step's produces (also in the stored prompt)." \
   || fail "implement Next missing produces-pointer Until"
 printf '%s\n' "$out_imp" | grep -Fiq 'do not nest' \
   || fail "implement Next missing do not nest"
-printf '%s\n' "$out_imp" | grep -q 'Improve (paste as /goal B after produces is true' \
-  || fail "implement Next missing Improve"
-printf '%s\n' "$out_imp" | grep -q 'last 7 git commit' \
-  || fail "implement Next missing last 7 git commit"
-printf '%s\n' "$out_imp" | grep -q '2 consecutive' \
-  || fail "implement Next missing 2 consecutive"
-printf '%s\n' "$out_imp" | grep -q 'Max 12 improve cycles' \
-  || fail "implement Next missing Max 12"
+printf '%s\n' "$out_imp" | grep -Fq -- '--advance B' \
+  || fail "implement Next missing --advance B"
+assert_absent "$out_imp" 'Until-loop B (receipt inner=B)' \
+  "inner A Next printed Improve B body"
 if printf '%s\n' "$out_imp" | grep -qx '## Goal until'; then
   fail "Goal until became an H2"
 fi
@@ -1546,31 +1662,31 @@ printf '%s\n' "$out_imp" | grep -q 'Worktree: ' \
   || fail "implement Next Implement git missing Worktree:"
 printf '%s\n' "$out_imp" | grep -q 'Session checkout (repo_root main tree' \
   || fail "implement Next missing session checkout definition"
-printf '%s\n' "$out_imp" | awk '/^Implement git \(paste into \/goal with Frozen/,/^Goal until/' \
-  | grep -Fq -- '--inner-loop goal' \
-  || fail "Implement git schema missing --inner-loop goal"
-printf '%s\n' "$out_imp" | awk '/^Improve \(paste as \/goal B/,/^## When done invoke$/' \
-  | grep -Fq -- '--inner-loop goal' \
-  || fail "Improve closer missing --inner-loop goal"
+printf '%s\n' "$out_imp" | awk '/^Implement git \(paste into \/goal with Frozen/,/^Until-loop A/' \
+  | grep -Fq -- '--inner-loop parent' \
+  || fail "Implement git schema missing --inner-loop parent"
+printf '%s\n' "$out_imp" | awk '/^## When done invoke$/,/^## Missing$/' \
+  | grep -Fq -- '--advance B' \
+  || fail "When done invoke missing --advance B"
 printf '%s\n' "$out_imp" | python3 -c "
 import sys
 text = sys.stdin.read()
 i = text.find('Frozen session environment')
 j = text.find('Implement git (paste into /goal with Frozen')
-u = text.find('Goal until (this stored prompt is /goal A')
+u = text.find('Until-loop A (receipt inner=A)')
 k = text.find('/goal\n')
 if k < 0:
     k = text.find('/goal')
-imp = text.find('Improve (paste as /goal B after produces is true')
-assert i != -1 and j != -1 and u != -1 and k != -1 and imp != -1, (i, j, u, k, imp)
-assert i < j < u < k < imp, (i, j, u, k, imp)
+adv = text.find('--advance B', k)
+assert i != -1 and j != -1 and u != -1 and k != -1 and adv != -1, (i, j, u, k, adv)
+assert i < j < u < k < adv, (i, j, u, k, adv)
 assert 'Until: this step\'s produces (also in the stored prompt).' in text[u:k]
 assert 'result.txt exists' not in text[u:k]
 frozen = text[i:j]
 assert 'Deeply research those MCP servers' not in frozen, 'job-2 research leaked into Frozen'
-assert 'Improve (paste as /goal B after produces is true' not in frozen
+assert 'Until-loop B (receipt inner=B)' not in frozen
 assert 'HOST FLAG' not in frozen
-" || fail "envelope order Frozen, Implement git, Goal until, stored /goal, Improve"
+" || fail "envelope order Frozen, Implement git, Goal until, stored /goal, --advance B"
 assert_absent "$out_imp" 'do not implement the product through MCP' \
   "Frozen still forbids implementing through MCP"
 python3 -c '
@@ -1591,6 +1707,24 @@ rc_midres=$?
 set -e
 [[ "$rc_midres" -eq 2 ]] || fail "mid-graph --to residual want 2: $out_midres"
 printf 'LAYER: linear implement packet OK\n'
+
+# --- git HEAD moved does not auto-advance inner A ---
+wt_a20="$(python3 -c "import json; print(json.load(open('$run/steps/S1.json'))['worktree'])")"
+git -C "$wt_a20" commit --allow-empty -m 'git change is not produces' >/dev/null
+out_a20="$(run_cli next --run-dir "$run")"
+printf '%s\n' "$out_a20" | grep -q 'Until-loop A (receipt inner=A)' \
+  || fail "next after worktree commit left inner A: $out_a20"
+assert_absent "$out_a20" 'Until-loop B (receipt inner=B)' \
+  "next auto-advanced from git HEAD moved"
+printf '%s\n' "$out_a20" | grep -Fq 'Git facts (not produces)' \
+  || fail "next after commit missing git facts"
+python3 - "$run" <<'PY' || fail "receipt inner drifted after git commit"
+import json, sys
+from pathlib import Path
+rec = json.loads((Path(sys.argv[1]) / "steps" / "S1.json").read_text())
+assert rec.get("inner") in (None, "A", ""), rec
+PY
+printf 'LAYER: git does not auto-advance inner A OK\n'
 
 # --- S2 waits for S1 ---
 set +e
@@ -1627,9 +1761,9 @@ printf '%s\n' "$out_dr" | grep -q 'waived closer' \
 assert_absent "$out_dr" '/goal ' "drained implement still emitted /goal"
 assert_absent "$out_dr" 'Implement git (paste into /goal with Frozen' \
   "drained implement still emitted Implement git"
-assert_absent "$out_dr" 'Goal until (this stored prompt is /goal A' \
+assert_absent "$out_dr" 'Until-loop A (receipt inner=A)' \
   "drained implement still emitted Goal until"
-assert_absent "$out_dr" 'Improve (paste as /goal B after produces is true' \
+assert_absent "$out_dr" 'Until-loop B (receipt inner=B)' \
   "drained implement still emitted Improve"
 assert_absent "$out_dr" 'shiploop update --run-dir' "drained leaked update argv"
 run_cli update --run-dir "$run" --to residual >/dev/null
@@ -1697,7 +1831,8 @@ complete_ok "$runlast" S1
 run_cli next --run-dir "$runlast" >/dev/null
 commit_step_work "$runlast" S2
 set +e
-out_last="$(run_cli complete --run-dir "$runlast" --id S2 --inner-loop parent 2>&1)"
+inner_two_clean "$runlast" S2
+out_last="$(run_cli complete --run-dir "$runlast" --id S2 --inner-loop parent --improve "none(test)" 2>&1)"
 rc_last=$?
 set -e
 [[ "$rc_last" -eq 2 ]] || fail "last-step unbound complete want 2: $out_last"
@@ -1848,8 +1983,10 @@ assert_absent "$out_res_miss" 'missing recap.html' \
   "residual packet demanded recap.html the harness writes"
 printf '%s\n' "$out_res_miss" | grep -Fq 'Frozen session environment' \
   || fail "residual Next missing Frozen session environment reprint: $out_res_miss"
-printf '%s\n' "$out_res_miss" | grep -Fq 'quality review all the changes, review the last 7 git commit messages' \
+printf '%s\n' "$out_res_miss" | grep -Fq 'quality and breadth review of the work in scope for this pass' \
   || fail "residual Next missing Improve goal"
+printf '%s\n' "$out_res_miss" | grep -Fq 'Scope: the whole product at the composed user entrypoint.' \
+  || fail "residual Next missing Improve Scope"
 assert_absent "$out_res_miss" 'IMPROVE_GOAL' \
   "residual Next leaked raw Improve-goal token"
 printf '%s\n' "$out_res_miss" | awk '/^## Next prompt$/,/^## When done invoke$/' \
@@ -1995,13 +2132,28 @@ cat >"$repo/REVIEW_CONVERGE.md" <<'MD'
 **Plan contract:** `/nope`
 MD
 write_recap "$run"
-out_waive_done="$(run_cli update --run-dir "$run" --to done)"
+set +e
+out_w_noimp="$(run_cli complete --run-dir "$run" 2>&1)"
+rc_w_noimp=$?
+set -e
+[[ "$rc_w_noimp" -eq 2 ]] || fail "residual complete without --improve want 2: $out_w_noimp"
+printf '%s\n' "$out_w_noimp" | grep -Fq -- '--improve' \
+  || fail "residual complete missing --improve: $out_w_noimp"
+python3 - "$run" <<'PY' || fail "residual complete without --improve dested anyway"
+import json, sys
+from pathlib import Path
+assert json.loads((Path(sys.argv[1]) / "state.json").read_text())["phase"] == "residual"
+PY
+out_waive_done="$(run_cli complete --run-dir "$run" --improve "none(test)")"
 python3 - "$run" <<'PY'
 import json, sys
 from pathlib import Path
 d = json.loads((Path(sys.argv[1]) / "state.json").read_text())
 assert d["terminal"] == "waived", d
+assert d.get("improve") == "none(test)", d
 PY
+grep -q 'residual-done: none(test)' "$run/recap.html" \
+  || fail "waived recap missing residual-done improve line"
 grep -q 'review-coverage waived: demo fixture only' "$run/recap.html" \
   || fail "waived recap missing review-coverage waived line"
 grep -q 'host-owned' "$run/recap.html" \
@@ -2054,7 +2206,7 @@ run_cli update --run-dir "$run2" --to implement >/dev/null
 out_tr="$(run_cli next --run-dir "$run2")"
 printf '%s\n' "$out_tr" | grep -q 'S1: running' || fail "two-root S1"
 printf '%s\n' "$out_tr" | grep -q 'S2: running' || fail "two-root S2"
-printf '%s\n' "$out_tr" | grep -c '^/goal' | grep -qx 4 || fail "want two stored /goal plus two Improve /goal"
+printf '%s\n' "$out_tr" | grep -c '^/goal' | grep -qx 2 || fail "want two stored /goal (inner A, no Improve yet)"
 printf '%s\n' "$out_tr" | grep -c 'mcp-considered:' | grep -qx 2 \
   || fail "two-root want two mcp-considered envelopes"
 printf '%s\n' "$out_tr" | grep -cF 'Implement git (paste into /goal with Frozen' | grep -qx 2 \
@@ -2079,7 +2231,8 @@ set -e
 [[ "$rc_ss" -eq 2 ]] || fail "double start want 2: $out_ss"
 commit_step_work "$run2" S1
 merge_step_branch "$run2" S1
-out_tr_c="$(run_cli complete --run-dir "$run2" --id S1 --inner-loop parent)"
+inner_two_clean "$run2" S1
+out_tr_c="$(run_cli complete --run-dir "$run2" --id S1 --inner-loop parent --improve "none(test)")"
 printf '%s\n' "$out_tr_c" | grep -q 'In flight' \
   || fail "complete --id S1 did not keep S2 in-flight: $out_tr_c"
 printf '%s\n' "$out_tr_c" | grep -q 'Continuing' \
@@ -2087,12 +2240,12 @@ printf '%s\n' "$out_tr_c" | grep -q 'Continuing' \
 printf '%s\n' "$out_tr_c" | grep -q 'S1: done' || fail "complete --id S1 S1 not done"
 printf '%s\n' "$out_tr_c" | grep -cF 'Implement git (paste into /goal with Frozen' | grep -qx 1 \
   || fail "after S1 complete want one Implement git for S2"
-printf '%s\n' "$out_tr_c" | grep -cF 'Improve (paste as /goal B after produces is true' | grep -qx 1 \
-  || fail "after S1 complete want one Improve for S2"
+printf '%s\n' "$out_tr_c" | grep -cF -- '--advance B' | grep -q '[1-9]' \
+  || fail "after S1 complete want --advance B for S2"
 out_tr2="$(run_cli next --run-dir "$run2")"
 printf '%s\n' "$out_tr2" | grep -q 'In flight' || fail "S2 not labeled in-flight"
 printf '%s\n' "$out_tr2" | grep -q 'S1: done' || fail "S1 should stay done"
-printf '%s\n' "$out_tr2" | grep -c '^/goal' | grep -qx 2 || fail "reprint should keep stored /goal plus Improve"
+printf '%s\n' "$out_tr2" | grep -c '^/goal' | grep -qx 1 || fail "reprint inner A should keep one stored /goal"
 set +e
 out_ns="$(run_cli complete-step --run-dir "$run2" --id S9 2>&1)"
 rc_ns=$?
@@ -2121,9 +2274,11 @@ commit_step_work "$run3" S1
 commit_step_work "$run3" S2
 merge_step_branch "$run3" S1
 merge_step_branch "$run3" S2
-python3 "$cli" complete-step --run-dir "$run3" --id S1 >"$tmpdir/shiploop-c1.out" 2>&1 &
+inner_two_clean "$run3" S1
+inner_two_clean "$run3" S2
+python3 "$cli" complete-step --run-dir "$run3" --id S1 --inner-loop parent --improve "none(test)" >"$tmpdir/shiploop-c1.out" 2>&1 &
 p1=$!
-python3 "$cli" complete-step --run-dir "$run3" --id S2 >"$tmpdir/shiploop-c2.out" 2>&1 &
+python3 "$cli" complete-step --run-dir "$run3" --id S2 --inner-loop parent --improve "none(test)" >"$tmpdir/shiploop-c2.out" 2>&1 &
 p2=$!
 wait "$p1" || fail "concurrent S1"
 wait "$p2" || fail "concurrent S2"
@@ -2813,7 +2968,8 @@ if printf '%s\n' "$out_claim" | awk '/^Git ran:/,0' | grep -qE 'rev-parse|merge-
   fail "claim Git ran printed probe git"
 fi
 commit_step_work "$runum" S1
-out_um="$(run_cli complete-step --run-dir "$runum" --id S1)"
+inner_two_clean "$runum" S1
+out_um="$(run_cli complete-step --run-dir "$runum" --id S1 --inner-loop parent --improve "none(test)")"
 printf '%s\n' "$out_um" | grep -q 'completed S1' || fail "harness-merge complete: $out_um"
 printf '%s\n' "$out_um" | grep -q 'Git ran:' || fail "complete missing Git ran: $out_um"
 printf '%s\n' "$out_um" | grep -q 'merge --no-ff --no-edit' || fail "Git ran missing merge: $out_um"
@@ -2847,11 +3003,12 @@ install_dag "$runconf" linear.json
 run_cli update --run-dir "$runconf" --to implement >/dev/null
 run_cli next --run-dir "$runconf" >/dev/null
 commit_step_work "$runconf" S1
+inner_two_clean "$runconf" S1
 printf 'session\n' >"$repoconf/S1.txt"
 git -C "$repoconf" add S1.txt
 git -C "$repoconf" commit -m 'session S1 clash' >/dev/null
 set +e
-out_conf="$(run_cli complete-step --run-dir "$runconf" --id S1 2>&1)"
+out_conf="$(run_cli complete-step --run-dir "$runconf" --id S1 --inner-loop parent --improve "none(test)" 2>&1)"
 rc_conf=$?
 set -e
 [[ "$rc_conf" -eq 2 ]] || fail "conflict complete want 2: $out_conf"
@@ -2878,7 +3035,8 @@ printf '%s\n' "$out_2r" | grep -qi 'multiple running' || fail "two-running messa
 wt2s1="$(python3 -c "import json; print(json.load(open('$run2r/steps/S1.json'))['worktree'])")"
 commit_step_work "$run2r" S1
 merge_step_branch "$run2r" S1
-out_cwd="$(cd "$wt2s1" && run_cli complete --inner-loop parent)"
+inner_two_clean "$run2r" S1
+out_cwd="$(cd "$wt2s1" && run_cli complete --inner-loop parent --improve "none(test)")"
 printf '%s\n' "$out_cwd" | grep -q 'completed S1' || fail "cwd worktree did not complete S1: $out_cwd"
 python3 - "$run2r" <<'PY'
 import json, sys
@@ -2902,9 +3060,17 @@ out_il_missing="$(run_cli complete --run-dir "$runil" --id S1 2>&1)"
 rc_il_missing=$?
 set -e
 [[ "$rc_il_missing" -eq 2 ]] || fail "implement complete without inner-loop want 2: $out_il_missing"
-printf '%s\n' "$out_il_missing" | grep -Fq -- '--inner-loop goal|parent' \
-  || fail "implement complete missing inner-loop message: $out_il_missing"
-out_il_parent="$(run_cli complete --run-dir "$runil" --id S1 --inner-loop parent)"
+printf '%s\n' "$out_il_missing" | grep -Fq -- '--advance B' \
+  || fail "implement complete missing --advance B message: $out_il_missing"
+inner_two_clean "$runil" S1
+set +e
+out_il_flags="$(run_cli complete --run-dir "$runil" --id S1 2>&1)"
+rc_il_flags=$?
+set -e
+[[ "$rc_il_flags" -eq 2 ]] || fail "implement complete after two-clean without flags want 2: $out_il_flags"
+printf '%s\n' "$out_il_flags" | grep -Fq -- '--inner-loop goal|parent' \
+  || fail "implement complete missing inner-loop message: $out_il_flags"
+out_il_parent="$(run_cli complete --run-dir "$runil" --id S1 --inner-loop parent --improve "none(test)")"
 printf '%s\n' "$out_il_parent" | grep -q 'completed S1' \
   || fail "parent inner-loop complete did not complete S1: $out_il_parent"
 python3 - "$runil" <<'PY' || fail "inner-loop parent receipt missing"
@@ -2912,6 +3078,9 @@ import json, sys
 from pathlib import Path
 rec = json.loads((Path(sys.argv[1]) / "steps" / "S1.json").read_text())
 assert rec.get("inner_loop") == "parent", rec
+assert rec.get("improve") == "none(test)", rec
+assert rec.get("inner") == "B", rec
+assert len(rec.get("improve_cycles") or []) == 2, rec
 PY
 python3 - "$cli" "$runil" <<'PY' || fail "recap inner-loop attestation missing"
 import importlib.machinery, importlib.util, json, sys
@@ -2923,8 +3092,125 @@ loader.exec_module(mod)
 run = Path(sys.argv[2])
 html = mod.render_recap_html(run, json.loads((run / "state.json").read_text()), dest="done")
 assert "Inner loop attestation" in html and "S1: parent" in html, html
+assert "improve=none(test)" in html, html
 PY
 printf 'LAYER: implement inner-loop attestation OK\n'
+
+# --- inner A/B file-state: advance, cycles, merge refuse ---
+runadv="$tmpdir/inner-advance/.shiploop"
+repoadv="$tmpdir/inner-advance/repo"
+advance_to_plan "$runadv" "$repoadv" "$planf"
+install_dag "$runadv" linear.json
+run_cli update --run-dir "$runadv" --to implement >/dev/null
+run_cli next --run-dir "$runadv" >/dev/null
+commit_step_work "$runadv" S1
+merge_step_branch "$runadv" S1
+set +e
+out_adv_merge="$(run_cli complete --run-dir "$runadv" --id S1 --inner-loop parent --improve "none(test)" 2>&1)"
+rc_adv_merge=$?
+set -e
+[[ "$rc_adv_merge" -eq 2 ]] || fail "merge before --advance B want 2: $out_adv_merge"
+printf '%s\n' "$out_adv_merge" | grep -Fq -- '--advance B' \
+  || fail "merge-before-advance message: $out_adv_merge"
+set +e
+out_adv_imp="$(run_cli complete --run-dir "$runadv" --id S1 --advance B \
+  --improve "none(test)" 2>&1)"
+rc_adv_imp=$?
+set -e
+[[ "$rc_adv_imp" -eq 64 ]] || fail "advance+improve want 64: $out_adv_imp"
+printf '%s\n' "$out_adv_imp" | grep -Fq -- '--advance B does not take --improve' \
+  || fail "advance+improve message: $out_adv_imp"
+out_adv="$(run_cli complete --run-dir "$runadv" --id S1 --advance B)"
+printf '%s\n' "$out_adv" | grep -q 'advanced S1 -> B' || fail "advance outcome: $out_adv"
+printf '%s\n' "$out_adv" | grep -q 'Until-loop B (receipt inner=B)' \
+  || fail "advance packet missing Improve: $out_adv"
+if printf '%s\n' "$out_adv" | grep -qx '/goal'; then
+  fail "until-loop B printed a bare /goal line"
+fi
+printf '%s\n' "$out_adv" | grep -Fq -- '--improve-cycle' \
+  || fail "advance packet missing --improve-cycle: $out_adv"
+assert_absent "$out_adv" 'Until-loop A (receipt inner=A)' \
+  "inner B packet still printed /goal A"
+set +e
+out_one="$(run_cli complete --run-dir "$runadv" --id S1 --inner-loop parent --improve "none(test)" 2>&1)"
+rc_one=$?
+set -e
+[[ "$rc_one" -eq 2 ]] || fail "merge after 0 cycles want 2: $out_one"
+out_c1="$(run_cli complete --run-dir "$runadv" --id S1 --improve-cycle trivial --improve "none(test)")"
+printf '%s\n' "$out_c1" | grep -q 'consecutive-trivial=1' || fail "cycle1 streak: $out_c1"
+out_mat="$(run_cli complete --run-dir "$runadv" --id S1 --improve-cycle material --improve "none(test)")"
+printf '%s\n' "$out_mat" | grep -q 'consecutive-trivial=0' || fail "material reset: $out_mat"
+run_cli complete --run-dir "$runadv" --id S1 --improve-cycle trivial --improve "none(test)" >/dev/null
+out_c2="$(run_cli complete --run-dir "$runadv" --id S1 --improve-cycle trivial --improve "none(test)")"
+printf '%s\n' "$out_c2" | grep -q 'consecutive-trivial=2' || fail "two-clean streak: $out_c2"
+printf '%s\n' "$out_c2" | grep -Fq -- '--inner-loop parent --improve' \
+  || fail "two-clean packet missing merge closer: $out_c2"
+set +e
+out_cs_bare="$(run_cli complete-step --run-dir "$runadv" --id S1 2>&1)"
+rc_cs_bare=$?
+set -e
+[[ "$rc_cs_bare" -eq 2 ]] || fail "bare complete-step after two-clean want 2: $out_cs_bare"
+printf '%s\n' "$out_cs_bare" | grep -Fq -- '--inner-loop goal|parent' \
+  || fail "bare complete-step message: $out_cs_bare"
+set +e
+out_nl="$(run_cli complete --run-dir "$runadv" --id S1 --inner-loop parent \
+  --improve $'none(test)\nextra' 2>&1)"
+rc_nl=$?
+set -e
+[[ "$rc_nl" -eq 2 ]] || fail "multiline --improve want 2: $out_nl"
+out_done="$(run_cli complete --run-dir "$runadv" --id S1 --inner-loop parent --improve "none(test)")"
+printf '%s\n' "$out_done" | grep -q 'completed S1' || fail "two-clean merge: $out_done"
+printf 'LAYER: inner A/B file-state OK\n'
+
+# --- max 12 material cycles do not merge without cap-exceed ---
+runcap="$tmpdir/inner-cap/.shiploop"
+repocap="$tmpdir/inner-cap/repo"
+advance_to_plan "$runcap" "$repocap" "$planf"
+install_dag "$runcap" linear.json
+run_cli update --run-dir "$runcap" --to implement >/dev/null
+run_cli next --run-dir "$runcap" >/dev/null
+commit_step_work "$runcap" S1
+merge_step_branch "$runcap" S1
+run_cli complete --run-dir "$runcap" --id S1 --advance B >/dev/null
+n=0
+while [[ "$n" -lt 12 ]]; do
+  run_cli complete --run-dir "$runcap" --id S1 --improve-cycle material \
+    --improve "none(test)" >/dev/null
+  n=$((n + 1))
+done
+set +e
+out_c13="$(run_cli complete --run-dir "$runcap" --id S1 --improve-cycle material \
+  --improve "none(test)" 2>&1)"
+rc_c13=$?
+set -e
+[[ "$rc_c13" -eq 2 ]] || fail "13th improve-cycle want 2: $out_c13"
+set +e
+out_cap_none="$(run_cli complete --run-dir "$runcap" --id S1 --inner-loop parent \
+  --improve "none(test)" 2>&1)"
+rc_cap_none=$?
+set -e
+[[ "$rc_cap_none" -eq 2 ]] || fail "max-12 material merge without cap-exceed want 2: $out_cap_none"
+printf '%s\n' "$out_cap_none" | grep -Fq 'cap-exceed' \
+  || fail "max-12 refuse missing cap-exceed: $out_cap_none"
+python3 - "$cli" "$runcap" <<'PY' || fail "12 material cycles should not be ready_to_merge"
+import importlib.machinery, importlib.util, json, sys
+from pathlib import Path
+loader = importlib.machinery.SourceFileLoader("shiploop_cap", sys.argv[1])
+spec = importlib.util.spec_from_loader("shiploop_cap", loader)
+mod = importlib.util.module_from_spec(spec)
+loader.exec_module(mod)
+rec = json.loads((Path(sys.argv[2]) / "steps" / "S1.json").read_text())
+assert len(mod.improve_cycles_of(rec)) == 12, rec
+assert mod.improve_consecutive_trivial(rec) == 0, rec
+assert not mod.improve_ready_to_merge(rec, "none(test)"), rec
+assert not mod.improve_is_cap_exceed("cap-exceed(  )"), rec
+assert mod.improve_ready_to_merge(rec, "cap-exceed(max 12 material)"), rec
+PY
+out_cap_ok="$(run_cli complete --run-dir "$runcap" --id S1 --inner-loop parent \
+  --improve "cap-exceed(max 12 material)")"
+printf '%s\n' "$out_cap_ok" | grep -q 'completed S1' \
+  || fail "cap-exceed merge: $out_cap_ok"
+printf 'LAYER: max-12 material cap-exceed OK\n'
 
 # --- closer-walk: complete only (no --id / --to) ---
 runw="$tmpdir/walk/.shiploop"
@@ -2949,7 +3235,8 @@ wt_s1="$(python3 -c "import json; print(json.load(open('$runw/steps/S1.json'))['
 s1sha="$(git -C "$wt_s1" rev-parse HEAD)"
 [[ -n "$s1sha" ]] || fail "closer walk missing S1 commit sha"
 merge_step_branch "$runw" S1
-out_w4="$(run_cli complete --run-dir "$runw" --inner-loop parent)"
+inner_two_clean "$runw" S1
+out_w4="$(run_cli complete --run-dir "$runw" --inner-loop parent --improve "none(test)")"
 printf '%s\n' "$out_w4" | grep -q 'completed S1' || fail "closer walk S1: $out_w4"
 printf '%s\n' "$out_w4" | grep -q 'S2: running' || fail "closer walk did not claim S2"
 printf '%s\n' "$out_w4" | grep -q 'stand      implement — 1/2 steps done' || fail "closer walk mid stand"
@@ -2961,7 +3248,8 @@ git -C "$wt_s2" log -1 --format=%s "$s1sha" | grep -qx 'step S1' \
   || fail "S2 log missing S1 subject"
 commit_step_work "$runw" S2
 merge_step_branch "$runw" S2
-out_w5="$(run_cli complete --run-dir "$runw" --inner-loop parent)"
+inner_two_clean "$runw" S2
+out_w5="$(run_cli complete --run-dir "$runw" --inner-loop parent --improve "none(test)")"
 printf '%s\n' "$out_w5" | grep -q 'completed S2' || fail "closer walk S2: $out_w5"
 n_out="$(printf '%s\n' "$out_w5" | grep -c '^completed S2$' || true)"
 [[ "$n_out" -eq 1 ]] || fail "closer walk last complete extra outcome: $out_w5"
@@ -3566,12 +3854,12 @@ import sys
 text = sys.stdin.read()
 i = text.find("Frozen session environment")
 j = text.find("Implement git (paste into /goal with Frozen")
-u = text.find("Goal until (this stored prompt is /goal A")
+u = text.find("Until-loop A (receipt inner=A)")
 k = text.find("no citation needed for a discovered step")
-imp = text.find("Improve (paste as /goal B after produces is true")
-assert i != -1 and j != -1 and u != -1 and k != -1 and imp != -1, (i, j, u, k, imp)
-assert i < j < u < k < imp, (i, j, u, k, imp)
-' || fail "inject envelope not Frozen, Implement git, Goal until, discovered, Improve"
+adv = text.find("--advance B", k)
+assert i != -1 and j != -1 and u != -1 and k != -1 and adv != -1, (i, j, u, k, adv)
+assert i < j < u < k < adv, (i, j, u, k, adv)
+' || fail "inject envelope not Frozen, Implement git, Goal until, discovered, --advance B"
 printf 'LAYER: inject-step envelope reprint OK\n'
 
 # --- A16/A18/A22 inject-step ---

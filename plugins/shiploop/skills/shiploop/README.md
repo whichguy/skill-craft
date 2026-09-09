@@ -7,7 +7,7 @@ walk-back HTML recap exists.
 
 ShipLoop never conflict-resolves a merge and never claims engine `COMPLETE`.
 
-Package leaf: `skills/shiploop`. Invoke: `/shiploop`. Version: **0.8.22**.
+Package leaf: `skills/shiploop`. Invoke: `/shiploop`. Version: **0.8.24**.
 
 Canonical companions (do not duplicate their contracts here):
 
@@ -37,7 +37,7 @@ User / host
     │                           exec scripts/shiploop-next
     │                           → execv scripts/shiploop next
     ├─ /shiploop complete   → commands/shiploop-complete.md
-    │                           leftover commit if this was a /goal
+    │                           leftover commit if this was an until-loop
     │                           exec scripts/shiploop-complete
     │                           → execv scripts/shiploop complete (merges)
     └─ inject-step          → commands/shiploop-inject.md
@@ -79,9 +79,10 @@ flowchart TB
 **What this is:** the four routes from the ASCII list above, collapsed to
 one picture. `init` and `inject-step` call the harness directly; only
 `next` and `complete` pass through a leaf wrapper first (`refuse` the wrong
-subcommand, then `execv`). The packet is a printout — implement and
-residual may paste into `/goal`, but that is host work after the packet,
-not a fifth route and not what every phase does. **What this is not:**
+subcommand, then `execv`). The packet is a printout — Grok works Next in
+the parent chat (this skill cannot invoke `/goal`). Hosts that actually ran
+`/goal` may paste Next into it; that is host work after the packet, not a
+fifth route and not what every phase does. **What this is not:**
 there is no second SM between the wrapper and the harness —
 `scripts/shiploop` is the only state machine in this package.
 
@@ -308,35 +309,37 @@ Command-level git (who runs `git worktree add` vs `merge --no-ff --no-edit`):
 **Next prompt** always starts with `Use this prompt as much as possible.`
 Then the harness prints worktree / branch / HOST FLAG, a **Frozen session
 environment** block (`mcp-considered` / `tools` / `mcp` / `Exclusive:` / `See:`),
-**Implement git**, **Goal until**, each **running** step’s stored `prompt`
-**verbatim**, then **Improve**. Paste Frozen + Implement git + Goal until +
-stored prompt as host **`/goal` A** (until produces; do not wrap a second
-`/goal`; do not work in the parent chat without until). When produces is
-true, close A and open **`/goal` B** = Frozen + Implement git + Improve
-(do not nest). Improve until two consecutive only-trivial cycles (last 7
-git commits; max 12 then leftover + complete). Do not paste HOST FLAG.
+**Implement git**, **Until-loop A**, each **running** step’s stored `prompt`
+**verbatim**. Inner A is until-loop A until produces: **if** produces is
+true → `/shiploop complete --advance B` (no merge); **else** keep working /
+`/shiploop next`. Inner B is Improve plus a classify prompt
+(`--improve-cycle`); two-clean then leftover +
+`--inner-loop parent --improve <line>` (`--inner-loop goal` only if this
+host actually ran `/goal`). Do not paste HOST FLAG.
 Implement git names the worktree, branch, and session checkout
-(`repo_root` main tree). The script does not compose `/goal` A from
+(`repo_root` main tree). The script does not compose until-loop A from
 `statement` / `produces` / suppliers / worktree. Work in the Look-here
 worktree (do not re-root the host chat; do not edit the session checkout).
 
 Inner loop (host, not a phase): green-first or TDD (failing test first),
-prefer `/goal` A. Before planning each iteration: `git -C <worktree> log -10
---format=full`; treat bodies as key learnings; follow every `See: <sha>`.
-Pathspec commit on the worktree (never `git add -A`) with a verbose body,
-`Key learnings:`, and `See: <full sha> <subject>` for prior lesson commits.
+prefer until-loop A in this parent chat. Before planning each iteration:
+`git -C <worktree> log -10 --format=full`; treat bodies as key learnings;
+follow every `See: <sha>`. Pathspec commit on the worktree (never
+`git add -A`) with a verbose body, `Key learnings:`, and
+`See: <full sha> <subject>` for prior lesson commits.
 Do not merge from the worktree cwd.
 
-When `/goal` A produces is true: Improve `/goal` B, leftover uncommitted
-work gets the same Implement git schema (log -10, `Key learnings:`,
-`See: <sha>`), then `/shiploop complete --inner-loop goal`. Use
-`--inner-loop parent` only if host `/goal` is off; parent still includes A
-until-produces and B two-clean. The harness merges
+When until-loop A produces is true: Improve until-loop B, leftover
+uncommitted work gets the same Implement git schema (log -10,
+`Key learnings:`, `See: <sha>`), then
+`/shiploop complete --inner-loop parent --improve <line>`. Use
+`--inner-loop goal` only if this host actually ran `/goal`; parent still
+includes A until-produces and B two-clean. The harness merges
 (`git -C <session-checkout> merge --no-ff --no-edit shiploop/<run_id>/<id>`),
 keeps the step branch, removes the worktree, and does not squash, so inner
 Key learnings stay reachable from session HEAD. It prints Git ran and dests
-residual when this was the last step. If `/goal` already committed, do not
-invent a second finish commit. Do not run a bare `git merge` from the
+residual when this was the last step. If until-loop B already committed, do
+not invent a second finish commit. Do not run a bare `git merge` from the
 worktree cwd — that would merge into the step branch. The next worktree forks
 `HEAD`. Conflicted or dirty complete is exit 2 with the git transcript; fix
 and retry. Failure: `--clear`. Hard stop: `--blocked --reason`.
@@ -354,17 +357,17 @@ next` while drained reprints this diagnosis and does not dest.
 
 ```mermaid
 flowchart TD
-  next["/shiploop next — claim_ready(): ready ids to running,\ngit worktree add -b per id"] --> printed["Packet Next: Frozen + Implement git + Goal until + stored prompt + Improve"]
-  printed --> gwork["Host opens /goal A: Frozen + Implement git + Goal until + stored prompt\n(until produces; do not nest)"]
-  gwork -->|produces true| improve["/goal B Improve: last 7 commits, 2 consecutive only-trivial, max 12"]
-  improve --> cm["leftover uncommitted: Implement git schema, then\n/shiploop complete"]
-  cm --> complete["/shiploop complete --inner-loop goal — merge --no-ff --no-edit, does not squash,\nkeep branch + remove worktree, Git ran, then re-claim or dest residual"]
+  next["/shiploop next — claim_ready(): ready ids to running,\ngit worktree add -b per id"] --> printed["Packet Next: Frozen + Implement git + Until-loop A + stored prompt"]
+  printed --> gwork["Parent until-loop A: Frozen + Implement git + Until-loop A + stored prompt\n(if produces: --advance B; else keep working / next)"]
+  gwork -->|produces true| improve["Until-loop B Improve: last 7 commits, 2 consecutive only-trivial, max 12"]
+  improve --> cm["leftover uncommitted: Implement git schema, then\n/shiploop complete --inner-loop parent --improve"]
+  cm --> complete["/shiploop complete --inner-loop parent --improve — merge --no-ff --no-edit, does not squash,\nkeep branch + remove worktree, Git ran, then re-claim or dest residual"]
   complete -->|another id now running| printed
   complete -->|last step done| residual([dest residual])
-  gwork -->|goal fails| clear["/shiploop complete --clear"]
+  gwork -->|until-loop fails| clear["/shiploop complete --clear"]
   clear --> printed
   gwork -.->|discovers intermediate work| inject["inject-step — side door CLI,\norigin: discovered, rebinds plan_sha256 only"]
-  inject -.->|current /goal continues; new id is not started| gwork
+  inject -.->|current until-loop continues; new id is not started| gwork
   inject -.->|claim the new id later| next
 ```
 
@@ -384,8 +387,8 @@ The completing `/shiploop complete` of the last running step dests
 `/shiploop next` while drained still prints `implement-drained.md` and
 does not dest — that file is a reprint after a residual-gate failure or
 lost context. **What this is not:** complete does not resolve merge
-conflicts (exit 2 with Git ran) and there is no nested `/goal` inside
-implement's `/goal`.
+conflicts (exit 2 with Git ran) and there is no nested until-loop B inside
+until-loop A.
 
 ### 5. Residual
 
@@ -394,15 +397,15 @@ order: explicit `init --bound-plan PATH` wins (even if that path later
 disappears); else the first candidate that already has `## Review Coverage`
 (`.shiploop/plan.md`, then repo-root `PLAN.md`); else fail closed (exit 2,
 gap *"bound_plan empty: add ## Review Coverage to .shiploop/plan.md or pass --bound-plan"*). Do not wait for dest
-`done`. Run review-coverage Phase B for the bound plan under `/goal`
+`done`. Run review-coverage Phase B for the bound plan in this parent chat
 (one `/review-converge` per turn). Ledger: repo-root `REVIEW_CONVERGE.md`.
 Do not treat a foreign or unlanded ledger as success.
 
 When the ledger is `complete` and landed (or the plan has a real residual
 waiver), dest-reread live dest URLs onto frozen routing (compose; do not
 rewrite hashes), then reprint Frozen in the residual Next packet. If Q3=yes,
-run quality `/goal` A at the composed user entrypoint, close it, then run
-Improve `/goal` B with the same two-clean contract; if Q3=no, skip both A and
+run quality until-loop A at the composed user entrypoint, close it, then run
+Improve until-loop B with the same two-clean contract; if Q3=no, skip both A and
 B. Publish only after B when Q2 is **outer-loop** (skip for dag or none),
 then dest `done`. A real waiver
 changes Diagnosis / Progress from “run Phase B” to “residual waived —
@@ -439,14 +442,14 @@ does run `merge --no-ff --no-edit` on complete and prints `Git ran:`
 worktrees. Harness calls are always `git -C` (never `cd`).
 
 **Closer vs SM.** `/shiploop complete` is the **host closer card**: if this
-was an implement `/goal`, pathspec-commit leftovers on the worktree if
+was an implement until-loop, pathspec-commit leftovers on the worktree if
 needed, then exec the harness. `apply_complete_receipt` refuses dirty or
 empty branches, runs `git -C <session-checkout> merge --no-ff --no-edit
 <branch>`, prints Git ran, then removes the worktree (keeps the branch).
 Conflicts are exit 2 with that transcript.
 
 **HOST FLAG vs cwd.** Implementation work happens **in** the Look-here
-worktree (cwd for `/goal`). Do **not** re-root the host chat into that
+worktree (cwd for the until-loop). Do **not** re-root the host chat into that
 folder. Merge dest is the **session checkout**. Merge with
 `git -C <session-checkout>`, not by `cd` into the product repo.
 
@@ -462,12 +465,12 @@ folder. Merge dest is the **session checkout**. Merge with
 | `init --force` | wipe every worktree and `shiploop/<run_id>/*` branch for this run |
 
 Several running ids: each gets its own worktree claimed from the `HEAD` at
-claim time. Finish one id’s `/goal` A + `/goal` B + complete before opening
-another id’s A, unless they are truly parallel and each has its own A/B pair;
-never share one parent Improve turn across ids. Complete needs `--id` or cwd
-in that worktree.
+claim time. Finish one id’s until-loop A + until-loop B + complete before
+opening another id’s A, unless they are truly parallel and each has its own
+A/B pair; never share one parent Improve turn across ids. Complete needs
+`--id` or cwd in that worktree.
 
-### Host (implement `/goal` only)
+### Host (implement until-loop only)
 
 1. Work in the Look-here worktree (do not re-root the chat; do not edit
    the session checkout). Session checkout = `repo_root` main working tree.
@@ -477,8 +480,9 @@ in that worktree.
    Do not merge from this cwd.
 3. **Before** the harness `complete` runs, leftover uncommitted work gets
    the same commit schema. Do not merge from this cwd.
-4. Then `/shiploop complete --inner-loop goal`. Use `--inner-loop parent`
-   only if host `/goal` is off; parent still includes A then B. The harness merges:
+4. Then `/shiploop complete --inner-loop parent --improve <line>`. Use
+   `--inner-loop goal` only if this host actually ran `/goal`; parent still
+   includes A then B. The harness merges:
 
    ```sh
    git -C <session-checkout> merge --no-ff --no-edit shiploop/<run_id>/<id>
@@ -509,7 +513,7 @@ or `next — reprint (<phase>)` first. `init` / `complete` / `update` print
 | **Progress** | HOST FLAG (extra worktree folder — do not re-root), then begin/finish this phase or running step: worktree folder, branch, session checkout, what complete does next. |
 | **Reminder** | Ask one-liner + frozen `done_sentence`. No body dump. |
 | **Look here** | First line `Reference only — not the next action.` Phase-scoped paths only. |
-| **Next prompt** | First line `Use this prompt as much as possible.` Implement: Frozen, Implement git, Goal until, stored prompt (`/goal` A until produces), Improve (`/goal` B). Paste Frozen + Implement git + stored prompt as A; when produces, B. Do not nest. Do not paste HOST FLAG. Other phases: the activity file. |
+| **Next prompt** | First line `Use this prompt as much as possible.` Implement: Frozen, Implement git, Until-loop A, stored prompt (until produces), Improve (until-loop B). Work Frozen + Implement git + stored prompt as A in this parent chat; **if** produces, B. Do not nest. Do not paste HOST FLAG. Other phases: the activity file. |
 | **When done invoke** | `invoke /shiploop complete` (plus `--clear` / `--blocked` when that is the hatch). |
 | **Missing** | dest-scoped `missing_for(..., forward_dest())` — not every load_* gap on every reprint. In-flight implement dest is `None`. |
 
@@ -550,7 +554,7 @@ Do not hand-edit the plugin copy.
 |---------|----------------|
 | Look-here | Pointers only (`kind  abs-path  why`). Phase-scoped. validate-spec ordinals: `1. survey —` / `2. spec —` (files: `environment.md`, `spec.md` — not Next jobs 1/2/3). Plan `plan.md`: missing why is `write labeled done_sentence equal to spec (create)`; if present, `wrapper_pair` gaps or `sequence plan pointer`. Implement `plan.md` is `if-needed` only (no equality re-litigation). |
 | Next (non-implement) | Interpolated activity body (`{{SPEC_MD}}`, `{{ENV_MD}}`, `{{BACKCHAIN_JSON}}`, `{{PLAN_MD}}`, …). |
-| Next (implement, in-flight) | Frozen + Implement git + Goal until + stored `prompt` verbatim (`/goal` A) + Improve (`/goal` B). Not `implement.md` as `/goal` A. |
+| Next (implement, in-flight) | Frozen + Implement git + Until-loop A + stored `prompt` verbatim + Improve (until-loop B). Not `implement.md` as until-loop A. |
 | Closer / inject | Leftover host commit, then harness `complete` (merge + Git ran). `inject-step` mutates DAG + receipts and does not claim. |
 
 `environment.md` is mixed, not prose-only: a nonempty brief, then exactly
@@ -658,11 +662,11 @@ Script is an example, not a script branch.
 CLI="$SKILL_ROOT/scripts/shiploop"
 python3 "$CLI" init --prompt "…" --repo PATH [--force] [--bound-plan PATH]
 python3 "$CLI" next
-python3 "$CLI" complete [--id ID] [--inner-loop goal|parent] [--clear] [--blocked --reason TEXT] [--resume-to PHASE]
+python3 "$CLI" complete [--id ID] [--advance B | --improve-cycle trivial|material | --inner-loop goal|parent] [--improve TEXT] [--clear] [--blocked --reason TEXT] [--resume-to PHASE]
 python3 "$CLI" update --to PHASE [--reason TEXT] [--resume-to PHASE]
 python3 "$CLI" status [--human]
 python3 "$CLI" start-step --id ID
-python3 "$CLI" complete-step [--id ID]
+python3 "$CLI" complete-step [--id ID] [--inner-loop goal|parent] [--improve TEXT]
 python3 "$CLI" clear-step [--id ID]
 python3 "$CLI" inject-step --statement "…" --prompt "…" --produces "…" \
   [--id Sn] [--need NEED --from ID] [--before ID ...]

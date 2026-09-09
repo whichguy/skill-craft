@@ -4,12 +4,13 @@ invent a new state-machine phase.
 Review-coverage is **waived** on the bound plan `{{BOUND_PLAN}}`. Do not open
 review-coverage Phase B. Do not treat a missing `{{LEDGER_PATH}}` as failure.
 
-Follow this order. Each `/goal` below is a new outer-loop turn, not a nested
-`/goal` and not a DAG step.
+Follow this order. Each until-loop below is a new outer-loop turn in this
+parent chat, not a nested until-loop and not a DAG step. This skill cannot
+invoke `/goal`.
 
-1. Do not open `/goal` until the bound repo’s Test command is green and the
-   implementation commits are landed. Otherwise `/shiploop complete --blocked
-   --resume-to residual --reason …`.
+1. Do not start quality until-loop A until the bound repo’s Test command is
+   green and the implementation commits are landed. Otherwise
+   `/shiploop complete --blocked --resume-to residual --reason …`.
 2. Skip review-coverage Phase B (waiver).
 3. Dest-reread then finish only what the frozen spec named:
 
@@ -39,15 +40,25 @@ Follow this order. Each `/goal` below is a new outer-loop turn, not a nested
    `done_sentence` already names the user entrypoint.
 
    Paste Frozen (printed above this Next body) before each quality turn.
-   1. **Quality test/fix `/goal` A.** If Q3=yes, run host `/goal` A to test
+   1. **Quality test/fix until-loop A.** If Q3=yes, run the parent until-loop A to test
       and fix the completed product at the composed user entrypoint (the
       named check), then close A. A DAG sink that already play-through’d the
       frozen user entrypoint may skip only that duplicate play-through and do
-      dest-reread plus spot-check instead. Play-through needs a watch MCP in
-      frozen `{{ENV_MD}}` `mcp:`/`tools`; missing/locked → dest-block
-      validate-spec, not a helper that bypasses the dispatcher.
-   2. **Improve `/goal` B.** If Q3=yes, after A open host `/goal` B = Frozen + this goal (do not nest B inside A):
-      /goal
+      dest-reread plus spot-check instead. A bound-name call, fetching
+      HTML, or requiring a product module is **not** a play-through and does
+      not skip. Enumerate bound names from the shipped surface source union
+      DAG `produces` (not only the frozen brief) and include those bound-name
+      probes in the spot-check. Play-through needs a watch MCP in frozen
+      `{{ENV_MD}}` `mcp:`/`tools`; missing/locked → dest-block validate-spec,
+      not a helper that bypasses the dispatcher. If the bound Review Coverage
+      Test command is file-existence or N/A, treat it as insufficient: do not
+      skip Q3; run dest-behavior probes and record them in B commit bodies and
+      the ledger round. Do **not** dest-block `resume_to=plan` (that wipes
+      receipts). Do **not** edit the bound `plan.md` in place (byte drift
+      unbinds residual). Durable Test-command correction is rebind-and-rerun
+      only.
+   2. **Improve until-loop B.** If Q3=yes, after A work until-loop B in the parent chat = Frozen + this goal (do not nest B inside A; this skill cannot invoke /goal):
+      {{IMPROVE_SCOPE}}
       {{IMPROVE_GOAL}}
       Do this activity until these conditions are met:
       - only trivial findings remaining for 2 consecutive cycles

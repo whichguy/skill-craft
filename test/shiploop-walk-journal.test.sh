@@ -284,9 +284,9 @@ if not lines or lines[0] != "Use this prompt as much as possible.":
     sys.exit(f"{msg}: Next missing Use this prompt lead")
 rest = "\n".join(lines[1:])
 goal_n = sum(1 for ln in rest.splitlines() if re.match(r"^[ \t]*/goal\b", ln))
-# Each running id: stored /goal A plus Improve /goal B.
-if goal_n != 2 * len(running):
-    sys.exit(f"{msg}: /goal lines={goal_n} want={2 * len(running)} running={running}")
+# Inner A Next prints one stored /goal per running id (Improve B is a later file-state).
+if goal_n != len(running):
+    sys.exit(f"{msg}: /goal lines={goal_n} want={len(running)} running={running}")
 if running and until not in rest:
     sys.exit(f"{msg}: Next missing {until!r}")
 for sid in running:
@@ -506,6 +506,7 @@ PY
 host_land() {
   commit_step_work "$1" "$2"
   merge_step_branch "$1" "$2"
+  inner_two_clean "$1" "$2"
 }
 
 setup_bound_plan() {
@@ -567,10 +568,10 @@ PY
 setup_to_residual() {
   setup_to_implement "$1" "$2" "$3" "${4:-linear.json}"
   host_land "$1" S1
-  invoke_script complete --run-dir "$1" --inner-loop parent
+  invoke_script complete --run-dir "$1" --inner-loop parent --improve "none(test)"
   assert_rc 0 "setup complete S1"
   host_land "$1" S2
-  invoke_script complete --run-dir "$1" --inner-loop parent
+  invoke_script complete --run-dir "$1" --inner-loop parent --improve "none(test)"
   assert_rc 0 "setup complete S2 dest residual"
 }
 
@@ -690,12 +691,11 @@ assert_out_has "waiting on S1 write the file" "L3 RETURN"
 assert_next_has "$S1_LINEAR" "L3 RETURN"
 assert_next_lacks "$S2_LINEAR" "L3 RETURN"
 assert_next_has "Implement git (paste into /goal with Frozen" "L3 RETURN"
-assert_next_has "Then invoke the closer under When done invoke (default --inner-loop goal" "L3 RETURN"
-assert_next_has "Goal until (this stored prompt is /goal A" "L3 RETURN"
-assert_next_has "Improve (paste as /goal B after produces is true" "L3 RETURN"
+assert_next_has "Until-loop A (receipt inner=A)" "L3 RETURN"
+assert_next_has "--advance B" "L3 RETURN"
+assert_next_lacks "Until-loop B (receipt inner=B)" "L3 RETURN"
 assert_when_done_has "Finish S1: write the file" "L3 RETURN"
-assert_when_done_has "Key learnings:" "L3 RETURN"
-assert_when_done_has "then invoke /shiploop complete --inner-loop goal " "L3 RETURN"
+assert_when_done_has "--advance B" "L3 RETURN"
 assert_when_done_lacks "Finish S2:" "L3 RETURN"
 assert_when_done_lacks "complete-step" "L3 RETURN"
 assert_disk "$runL" "L3 DISK" "$DISK_IMP_S1RUN"
@@ -710,7 +710,7 @@ printf 'CASE L4 PRE: S1 running (host landed); INVOKE: complete → S1 done, cla
 assert_disk "$runL" "L4 PRE before land" "$DISK_IMP_S1RUN"
 host_land "$runL" S1
 assert_disk "$runL" "L4 PRE after host land (receipt still running)" "$DISK_IMP_S1RUN"
-invoke_script complete --run-dir "$runL" --inner-loop parent
+invoke_script complete --run-dir "$runL" --inner-loop parent --improve "none(test)"
 assert_transition_return "$runL" "completed S1" stored "L4 RETURN"
 assert_walk_journal "$runL" "L4 RETURN walk"
 assert_out_has "● S1  write the file" "L4 RETURN"
@@ -726,7 +726,7 @@ assert_plan_md_unchanged "$runL" "$plan_hash_L3" "L4 DISK plan.md"
 printf 'CASE L5 PRE: S2 running (host landed); INVOKE: complete → residual\n'
 assert_disk "$runL" "L5 PRE before land" "$DISK_IMP_S1DONE"
 host_land "$runL" S2
-invoke_script complete --run-dir "$runL" --inner-loop parent
+invoke_script complete --run-dir "$runL" --inner-loop parent --improve "none(test)"
 assert_transition_return "$runL" "completed S2" activity "L5 RETURN"
 assert_no_walk "L5 RETURN"
 assert_out_has "residual: current" "L5 RETURN"
@@ -734,8 +734,8 @@ assert_out_lacks "updated implement -> residual" "L5 RETURN"
 assert_next_h2_has "Review-coverage is **waived**" "L5 RETURN"
 assert_next_h2_has "Quality test/fix" "L5 RETURN"
 assert_next_lacks "Implement git (paste into /goal with Frozen" "L5 RETURN"
-assert_next_lacks "Goal until (this stored prompt is /goal A" "L5 RETURN"
-assert_next_lacks "Improve (paste as /goal B after produces is true" "L5 RETURN"
+assert_next_lacks "Until-loop A (receipt inner=A)" "L5 RETURN"
+assert_next_lacks "Until-loop B (receipt inner=B)" "L5 RETURN"
 assert_session_closer "L5 RETURN"
 assert_when_done_lacks "Finish S" "L5 RETURN"
 assert_disk "$runL" "L5 DISK" '{"phase":"residual","receipts":{"S1":"complete","S2":"complete"}}'
@@ -768,24 +768,24 @@ assert_disk "$runN" "N1 PRE" "$DISK_IMP_S1RUN"
 invoke_script next --run-dir "$runN"
 assert_transition_return "$runN" "next — reprint (implement)" stored "N1 RETURN"
 assert_walk_journal "$runN" "N1 RETURN walk"
-assert_next_has "In flight — do not open a second /goal" "N1 RETURN"
+assert_next_has "In flight — do not start a second until-loop" "N1 RETURN"
 assert_next_has "Implement git (paste into /goal with Frozen" "N1 RETURN"
-assert_next_has "Goal until (this stored prompt is /goal A" "N1 RETURN"
-assert_next_has "Improve (paste as /goal B after produces is true" "N1 RETURN"
+assert_next_has "Until-loop A (receipt inner=A)" "N1 RETURN"
+assert_next_has "--advance B" "N1 RETURN"
 assert_when_done_has "Finish S1: write the file" "N1 RETURN"
 assert_when_done_lacks "complete-step" "N1 RETURN"
 assert_disk "$runN" "N1 DISK (unchanged)" "$DISK_IMP_S1RUN"
 
 printf 'CASE N2 PRE: S1 complete S2 running; INVOKE: next reprint\n'
 host_land "$runN" S1
-invoke_script complete --run-dir "$runN" --inner-loop parent
+invoke_script complete --run-dir "$runN" --inner-loop parent --improve "none(test)"
 assert_rc 0 "N2 setup complete S1"
 assert_disk "$runN" "N2 PRE" "$DISK_IMP_S1DONE"
 invoke_script next --run-dir "$runN"
 assert_transition_return "$runN" "next — reprint (implement)" stored "N2 RETURN"
 assert_walk_journal "$runN" "N2 RETURN walk"
 assert_out_has "● S1  write the file" "N2 RETURN"
-assert_next_has "In flight — do not open a second /goal" "N2 RETURN"
+assert_next_has "In flight — do not start a second until-loop" "N2 RETURN"
 assert_next_lacks "$S1_LINEAR" "N2 RETURN"
 assert_when_done_has "Finish S2: confirm the file" "N2 RETURN"
 assert_when_done_lacks "Finish S1:" "N2 RETURN"
@@ -793,7 +793,7 @@ assert_disk "$runN" "N2 DISK (unchanged)" "$DISK_IMP_S1DONE"
 
 printf 'CASE N3 PRE: drained; INVOKE: next reprint\n'
 host_land "$runN" S2
-invoke_script complete-step --run-dir "$runN" --id S2
+invoke_script complete-step --run-dir "$runN" --id S2 --inner-loop parent --improve "none(test)"
 assert_rc 0 "N3 setup complete-step S2"
 assert_disk "$runN" "N3 PRE" "$DISK_IMP_DRAINED"
 invoke_script next --run-dir "$runN"
@@ -823,7 +823,7 @@ assert_disk "$runD" "D1 DISK (unchanged)" "$DISK_IMP_S1RUN"
 
 printf 'CASE D2 PRE: S1 complete; INVOKE: complete-step --id S1 (repeat)\n'
 host_land "$runD" S1
-invoke_script complete --run-dir "$runD" --inner-loop parent
+invoke_script complete --run-dir "$runD" --inner-loop parent --improve "none(test)"
 assert_rc 0 "D2 setup"
 assert_disk "$runD" "D2 PRE" "$DISK_IMP_S1DONE"
 invoke_script complete-step --run-dir "$runD" --id S1
@@ -848,7 +848,7 @@ invoke_script complete --run-dir "$runC1" --clear
 assert_transition_return "$runC1" "cleared S1" stored "C1 RETURN"
 assert_walk_journal "$runC1" "C1 RETURN walk"
 assert_out_has "▶ S1  write the file" "C1 RETURN"
-assert_out_lacks "In flight — do not open a second /goal" "C1 RETURN"
+assert_out_lacks "In flight — do not start a second until-loop" "C1 RETURN"
 assert_when_done_has "Finish S1: write the file" "C1 RETURN"
 assert_when_done_lacks "complete-step" "C1 RETURN"
 assert_disk "$runC1" "C1 DISK" "$DISK_IMP_S1RUN"
@@ -859,7 +859,7 @@ runC2="$SL_RUN"
 repoC2="$SL_REPO"
 setup_to_implement "$runC2" "$repoC2" "$planf" linear.json
 host_land "$runC2" S1
-invoke_script complete --run-dir "$runC2" --inner-loop parent
+invoke_script complete --run-dir "$runC2" --inner-loop parent --improve "none(test)"
 assert_rc 0 "C2 setup"
 
 printf 'CASE C2 PRE: S1 complete S2 running; INVOKE: clear-step S1 then next\n'
@@ -896,8 +896,8 @@ assert_walk_journal "$runP" "P1 RETURN walk"
 assert_out_has "▶ S1  write tests for the file" "P1 RETURN"
 assert_out_has "▶ S2  write the implementation" "P1 RETURN"
 assert_next_has "Implement git (paste into /goal with Frozen" "P1 RETURN"
-assert_next_has "Goal until (this stored prompt is /goal A" "P1 RETURN"
-assert_next_has "Improve (paste as /goal B after produces is true" "P1 RETURN"
+assert_next_has "Until-loop A (receipt inner=A)" "P1 RETURN"
+assert_next_has "--advance B" "P1 RETURN"
 assert_when_done_has "Finish S1: write tests for the file" "P1 RETURN"
 assert_when_done_has "Finish S2: write the implementation" "P1 RETURN"
 assert_when_done_lacks "complete-step" "P1 RETURN"
@@ -913,12 +913,12 @@ assert_disk "$runP" "P3 DISK (unchanged)" '{"phase":"implement","receipts":{"S1"
 printf 'CASE P2 PRE: both running, S1 host-landed; INVOKE: complete --id S1\n'
 host_land "$runP" S1
 assert_disk "$runP" "P2 PRE" '{"phase":"implement","receipts":{"S1":"running","S2":"running"}}'
-invoke_script complete --run-dir "$runP" --id S1 --inner-loop parent
+invoke_script complete --run-dir "$runP" --id S1 --inner-loop parent --improve "none(test)"
 assert_transition_return "$runP" "completed S1" stored "P2 RETURN"
 assert_walk_journal "$runP" "P2 RETURN walk"
 assert_out_has "● S1  write tests for the file" "P2 RETURN"
 assert_out_has "▶ S2  write the implementation" "P2 RETURN"
-assert_next_has "In flight — do not open a second /goal" "P2 RETURN"
+assert_next_has "In flight — do not start a second until-loop" "P2 RETURN"
 assert_next_lacks "$S1_TWOROOT" "P2 RETURN"
 assert_when_done_has "Finish S2: write the implementation" "P2 RETURN"
 assert_when_done_lacks "Finish S1:" "P2 RETURN"
@@ -960,7 +960,7 @@ runI2="$SL_RUN"
 repoI2="$SL_REPO"
 setup_to_implement "$runI2" "$repoI2" "$planf" linear.json
 host_land "$runI2" S1
-invoke_script complete --run-dir "$runI2" --inner-loop parent
+invoke_script complete --run-dir "$runI2" --inner-loop parent --improve "none(test)"
 assert_rc 0 "I2 setup"
 
 printf 'CASE I2 PRE: S2 running; INVOKE: inject --before S2 (refused)\n'
@@ -1017,7 +1017,7 @@ runH="$SL_RUN"
 repoH="$SL_REPO"
 setup_to_implement "$runH" "$repoH" "$planf" linear.json
 host_land "$runH" S1
-invoke_script complete --run-dir "$runH" --inner-loop parent
+invoke_script complete --run-dir "$runH" --inner-loop parent --improve "none(test)"
 assert_rc 0 "H setup"
 
 printf 'CASE H1 PRE: S1 complete then tamper plan_sha256; INVOKE: status --human, then next\n'
@@ -1050,7 +1050,7 @@ runF="$SL_RUN"
 repoF="$SL_REPO"
 setup_to_implement "$runF" "$repoF" "$planf" linear.json
 host_land "$runF" S1
-invoke_script complete --run-dir "$runF" --inner-loop parent
+invoke_script complete --run-dir "$runF" --inner-loop parent --improve "none(test)"
 assert_rc 0 "F setup"
 
 printf 'CASE F1a PRE: S1 complete S2 running; INVOKE: complete --blocked --resume-to plan\n'
@@ -1154,7 +1154,7 @@ setup_to_residual "$runG" "$repoG" "$planf" linear.json
 printf 'CASE G1 PRE: residual, waived bound plan, no recap; INVOKE: complete dest done\n'
 assert_disk "$runG" "G1 PRE" \
   '{"phase":"residual","receipts":{"S1":"complete","S2":"complete"},"files":{"recap.html":false},"terminal":null}'
-invoke_script complete --run-dir "$runG"
+invoke_script complete --run-dir "$runG" --improve "none(test)"
 assert_transition_return "$runG" "updated -> done" activity "G1 RETURN"
 assert_next_h2_has "Session closed" "G1 RETURN"
 assert_when_done_has "stop — no update" "G1 RETURN"
@@ -1201,7 +1201,7 @@ printf 'CASE K1 PRE: residual, bound-coverage + ledger-complete; INVOKE: complet
 assert_disk "$runK" "K1 PRE" '{"phase":"residual","terminal":null,"files":{"recap.html":false}}'
 install_ledger "$repoK" complete "$planK"
 [[ -f "$repoK/REVIEW_CONVERGE.md" ]] || fail "K1 PRE missing ledger"
-invoke_script complete --run-dir "$runK"
+invoke_script complete --run-dir "$runK" --improve "none(test)"
 assert_transition_return "$runK" "updated -> done" activity "K1 RETURN"
 assert_when_done_has "stop — no update" "K1 RETURN"
 assert_disk "$runK" "K1 DISK" \
@@ -1351,8 +1351,8 @@ assert_out_has "▶ S1  write the file" "S1 RETURN"
 assert_out_lacks "S2" "S1 RETURN"
 assert_next_has "$S1_LINEAR" "S1 RETURN"
 assert_next_has "Implement git (paste into /goal with Frozen" "S1 RETURN"
-assert_next_has "Goal until (this stored prompt is /goal A" "S1 RETURN"
-assert_next_has "Improve (paste as /goal B after produces is true" "S1 RETURN"
+assert_next_has "Until-loop A (receipt inner=A)" "S1 RETURN"
+assert_next_has "--advance B" "S1 RETURN"
 assert_when_done_has "Finish S1: write the file" "S1 RETURN"
 assert_when_done_lacks "Finish S2:" "S1 RETURN"
 assert_when_done_lacks "complete-step" "S1 RETURN"
@@ -1360,14 +1360,14 @@ assert_disk "$runS" "S1 DISK" "$DISK_IMP_SOLO_RUN"
 
 printf 'CASE S2 PRE: S1 running (host landed, only step); INVOKE: complete → residual\n'
 host_land "$runS" S1
-invoke_script complete --run-dir "$runS" --inner-loop parent
+invoke_script complete --run-dir "$runS" --inner-loop parent --improve "none(test)"
 assert_transition_return "$runS" "completed S1" activity "S2 RETURN"
 assert_no_walk "S2 RETURN"
 assert_out_has "residual: current" "S2 RETURN"
 assert_next_h2_has "Review-coverage is **waived**" "S2 RETURN"
 assert_next_h2_has "Quality test/fix" "S2 RETURN"
 assert_next_lacks "Implement git (paste into /goal with Frozen" "S2 RETURN"
-assert_next_lacks "Improve (paste as /goal B after produces is true" "S2 RETURN"
+assert_next_lacks "Until-loop B (receipt inner=B)" "S2 RETURN"
 assert_next_lacks "$S1_LINEAR" "S2 RETURN"
 assert_session_closer "S2 RETURN"
 assert_when_done_lacks "Finish S1:" "S2 RETURN"
@@ -1428,8 +1428,8 @@ invoke_wrapper complete --run-dir "$runZ"
 assert_wrapper_then_transition "$runZ" "$WRAP_COMPLETE" "updated -> implement" stored "Z3 RETURN"
 assert_next_has "$S1_LINEAR" "Z3 RETURN"
 assert_next_has "Implement git (paste into /goal with Frozen" "Z3 RETURN"
-assert_next_has "Goal until (this stored prompt is /goal A" "Z3 RETURN"
-assert_next_has "Improve (paste as /goal B after produces is true" "Z3 RETURN"
+assert_next_has "Until-loop A (receipt inner=A)" "Z3 RETURN"
+assert_next_has "--advance B" "Z3 RETURN"
 assert_when_done_has "Finish S1: write the file" "Z3 RETURN"
 assert_when_done_has "Key learnings:" "Z3 RETURN"
 assert_when_done_lacks "complete-step" "Z3 RETURN"
@@ -1437,12 +1437,12 @@ assert_disk "$runZ" "Z3 DISK" "$DISK_IMP_SOLO_RUN"
 
 printf 'CASE Z4 PRE: S1 landed (first=last); INVOKE: wrapper complete → residual\n'
 host_land "$runZ" S1
-invoke_wrapper complete --run-dir "$runZ" --inner-loop parent
+invoke_wrapper complete --run-dir "$runZ" --inner-loop parent --improve "none(test)"
 assert_wrapper_then_transition "$runZ" "$WRAP_COMPLETE" "completed S1" activity "Z4 RETURN"
 assert_next_h2_has "Review-coverage is **waived**" "Z4 RETURN"
 assert_next_h2_has "Quality test/fix" "Z4 RETURN"
 assert_next_lacks "Implement git (paste into /goal with Frozen" "Z4 RETURN"
-assert_next_lacks "Improve (paste as /goal B after produces is true" "Z4 RETURN"
+assert_next_lacks "Until-loop B (receipt inner=B)" "Z4 RETURN"
 assert_session_closer "Z4 RETURN"
 assert_disk "$runZ" "Z4 DISK" '{"phase":"residual","receipts":{"S1":"complete"}}'
 
@@ -1454,7 +1454,7 @@ assert_next_h2_has "Review-coverage is **waived**" "Z5 RETURN"
 assert_disk "$runZ" "Z5 DISK" '{"phase":"residual","receipts":{"S1":"complete"}}'
 
 printf 'CASE Z6 PRE: residual waived; INVOKE: wrapper complete dest done\n'
-invoke_wrapper complete --run-dir "$runZ"
+invoke_wrapper complete --run-dir "$runZ" --improve "none(test)"
 assert_wrapper_then_transition "$runZ" "$WRAP_COMPLETE" "updated -> done" activity "Z6 RETURN"
 assert_next_h2_has "Session closed" "Z6 RETURN"
 assert_when_done_has "stop — no update" "Z6 RETURN"

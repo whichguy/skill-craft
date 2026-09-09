@@ -124,9 +124,22 @@ writer; each may be the token `none` when inapplicable:
   how destination keys files (name, type, position). If local files would
   collapse to a destination name, put the constraint in
   `references[{path, why}]` so implement does not guess.
+- **Bound client action contract.** When `ui` is true and the writer says the
+  surface calls dest, record the **kind + probe recipe** as stable prose:
+  `bound-action <surface>::<name>; probe <safe invocation>; expect <assertion>`.
+  Include fixture/setup and cleanup when the call mutates dest. Probe that
+  name with the recorded recipe, then call it. Module `require` is not that
+  probe. This probe is **not** live acceptance. Do **not** freeze instance
+  names here — those land in DAG `produces` when the producing step exists.
+  Token `none` when the surface does not call dest.
+- **Mechanics on dest.** For each mechanics row that claims dest
+  generation, registration, or bridging, one cheap dest probe (or equivalent)
+  after create+push. Docs-only is a claim.
 - **Tracked bind files.** When `initiation: needed` or exclusive dest-write
   requires a local resolver (id map or dest config), freeze paths later
-  worktrees must keep tracked; secrets remain ignored.
+  worktrees must keep tracked; secrets remain ignored. If the writer
+  gitignores a resolver later worktrees must keep, freeze `git add -f` (or
+  equivalent) as the keep rule. Do not un-ignore the writer’s gitignore.
 When `exclusive` is nonempty, all four answers are required before dest
 plan (and `references` stays nonempty). When `mcp:` is nonempty but
 `exclusive` is `[]`, still record (1) and (2); (3) and (4) may be `none`
