@@ -175,6 +175,15 @@ if grep -RIn --include='*.md' --include='shiploop' 'dest-exec' \
   "$root/skills/shiploop" "$root/plugins/shiploop" 2>/dev/null; then
   fail "shipped shiploop activities must not require dest-exec"
 fi
+if grep -RIn --include='*.md' --include='shiploop' 'paste into /goal' \
+  "$root/skills/shiploop" "$root/plugins/shiploop" 2>/dev/null; then
+  fail "shipped shiploop still says paste into /goal"
+fi
+if grep -nF 'via /goal' "$cli"; then
+  fail "script still says via /goal"
+fi
+grep -Fq 'destination global scope' "$cli" \
+  || fail "IMPROVE_GOAL missing destination global scope typeof check"
 grep -Fq 'not live-acceptance' \
   "$root/skills/shiploop/references/activities/plan.md" \
   || fail "plan.md missing module require is not live-acceptance"
@@ -1563,7 +1572,7 @@ out_imp="$(run_cli next --run-dir "$run")"
 assert_headings "$out_imp"
 printf '%s\n' "$out_imp" | grep -q 'implement: current' || fail "implement current"
 printf '%s\n' "$out_imp" | grep -q 'frozen' || fail "spec not frozen"
-printf '%s\n' "$out_imp" | grep -q '/goal ' || fail "missing /goal"
+printf '%s\n' "$out_imp" | grep -qx '/goal' || fail "missing /goal"
 printf '%s\n' "$out_imp" | grep -q 'from initial_state' || fail "goal missing initial_state"
 assert_absent "$out_imp" 'from None' "/goal leaked Python None"
 assert_absent "$out_imp" 'refine the spec' "implement said refine"
@@ -1630,7 +1639,7 @@ printf '%s\n' "$out_imp" | grep -q 'mcp-considered: none(no read-capable session
 printf '%s\n' "$out_imp" | grep -q 'tools: (none)' || fail "implement Next missing tools: (none)"
 printf '%s\n' "$out_imp" | grep -q 'mcp: (none)' || fail "implement Next missing mcp: (none)"
 printf '%s\n' "$out_imp" | grep -q 'Exclusive: (none)' || fail "implement Next missing Exclusive: (none)"
-printf '%s\n' "$out_imp" | grep -q 'Implement git (paste into /goal with Frozen' \
+printf '%s\n' "$out_imp" | grep -q 'Implement git (use with Frozen in the parent chat' \
   || fail "implement Next missing Implement git"
 printf '%s\n' "$out_imp" | grep -Fq "This worktree forked from session HEAD when this id was claimed. Ids claimed in the same call do not see each other's merges; the next claim forks the HEAD after this merge." \
   || fail "implement Next missing parallel-claim worktree contract"
@@ -1662,7 +1671,7 @@ printf '%s\n' "$out_imp" | grep -q 'Worktree: ' \
   || fail "implement Next Implement git missing Worktree:"
 printf '%s\n' "$out_imp" | grep -q 'Session checkout (repo_root main tree' \
   || fail "implement Next missing session checkout definition"
-printf '%s\n' "$out_imp" | awk '/^Implement git \(paste into \/goal with Frozen/,/^Until-loop A/' \
+printf '%s\n' "$out_imp" | awk '/^Implement git \(use with Frozen in the parent chat/,/^Until-loop A/' \
   | grep -Fq -- '--inner-loop parent' \
   || fail "Implement git schema missing --inner-loop parent"
 printf '%s\n' "$out_imp" | awk '/^## When done invoke$/,/^## Missing$/' \
@@ -1672,7 +1681,7 @@ printf '%s\n' "$out_imp" | python3 -c "
 import sys
 text = sys.stdin.read()
 i = text.find('Frozen session environment')
-j = text.find('Implement git (paste into /goal with Frozen')
+j = text.find('Implement git (use with Frozen in the parent chat')
 u = text.find('Until-loop A (receipt inner=A)')
 k = text.find('/goal\n')
 if k < 0:
@@ -1743,7 +1752,7 @@ printf '%s\n' "$out_mid" | awk '/^  completed$/,/^  now$/' | grep -q 'S1  write 
   || fail "completed missing S1"
 printf '%s\n' "$out_mid" | awk '/^  now$/,/^  pending$/' | grep -q 'S2  confirm the file' \
   || fail "now missing S2"
-printf '%s\n' "$out_mid" | grep -q '/goal ' || fail "S2 missing /goal"
+printf '%s\n' "$out_mid" | grep -qx '/goal' || fail "S2 missing /goal"
 run_cli complete-step --run-dir "$run" --id S1 >/dev/null 2>&1 && fail "duplicate complete should fail" || true
 set +e
 out_dup="$(run_cli complete-step --run-dir "$run" --id S1 2>&1)"
@@ -1759,7 +1768,7 @@ printf '%s\n' "$out_dr" | grep -q 'After it finishes: dest residual — run boun
 printf '%s\n' "$out_dr" | grep -q 'waived closer' \
   || fail "drained Next prompt missing waiver hatch: $out_dr"
 assert_absent "$out_dr" '/goal ' "drained implement still emitted /goal"
-assert_absent "$out_dr" 'Implement git (paste into /goal with Frozen' \
+assert_absent "$out_dr" 'Implement git (use with Frozen in the parent chat' \
   "drained implement still emitted Implement git"
 assert_absent "$out_dr" 'Until-loop A (receipt inner=A)' \
   "drained implement still emitted Goal until"
@@ -2209,11 +2218,11 @@ printf '%s\n' "$out_tr" | grep -q 'S2: running' || fail "two-root S2"
 printf '%s\n' "$out_tr" | grep -c '^/goal' | grep -qx 2 || fail "want two stored /goal (inner A, no Improve yet)"
 printf '%s\n' "$out_tr" | grep -c 'mcp-considered:' | grep -qx 2 \
   || fail "two-root want two mcp-considered envelopes"
-printf '%s\n' "$out_tr" | grep -cF 'Implement git (paste into /goal with Frozen' | grep -qx 2 \
+printf '%s\n' "$out_tr" | grep -cF 'Implement git (use with Frozen in the parent chat' | grep -qx 2 \
   || fail "two-root want two Implement git blocks"
 printf '%s\n' "$out_tr" | python3 -c '
 import sys
-head = "Implement git (paste into /goal with Frozen"
+head = "Implement git (use with Frozen in the parent chat"
 parts = sys.stdin.read().split(head)
 assert len(parts) == 3, len(parts)
 wts, brs = [], []
@@ -2238,7 +2247,7 @@ printf '%s\n' "$out_tr_c" | grep -q 'In flight' \
 printf '%s\n' "$out_tr_c" | grep -q 'Continuing' \
   || fail "complete --id S1 Progress did not Continuing S2: $out_tr_c"
 printf '%s\n' "$out_tr_c" | grep -q 'S1: done' || fail "complete --id S1 S1 not done"
-printf '%s\n' "$out_tr_c" | grep -cF 'Implement git (paste into /goal with Frozen' | grep -qx 1 \
+printf '%s\n' "$out_tr_c" | grep -cF 'Implement git (use with Frozen in the parent chat' | grep -qx 1 \
   || fail "after S1 complete want one Implement git for S2"
 printf '%s\n' "$out_tr_c" | grep -cF -- '--advance B' | grep -q '[1-9]' \
   || fail "after S1 complete want --advance B for S2"
@@ -2334,7 +2343,7 @@ write_spec "$runh"
 # restore matching spec bytes... --to plan set hash of original pair; we rewrote spec.md then restored
 # recompute: restored spec.md+json should match if write_spec is identical
 out_ok="$(run_cli next --run-dir "$runh")"
-printf '%s\n' "$out_ok" | grep -q '/goal ' || fail "restored spec should next"
+printf '%s\n' "$out_ok" | grep -qx '/goal' || fail "restored spec should next"
 python3 - "$runh/backchain/plan.json" <<'PY'
 import json, sys
 from pathlib import Path
@@ -2359,7 +2368,7 @@ p.write_text(json.dumps(d, indent=2) + "\n")
 PY
 printf '%s\n' '{"leftover":"from a pre-0.7 run","note":"irrelevant now"}' >"$runh/spec.json"
 out_leftover="$(run_cli next --run-dir "$runh")"
-printf '%s\n' "$out_leftover" | grep -q '/goal ' || fail "leftover spec.json should not cause drift: $out_leftover"
+printf '%s\n' "$out_leftover" | grep -qx '/goal' || fail "leftover spec.json should not cause drift: $out_leftover"
 rm -f "$runh/spec.json"
 printf 'LAYER: hash drift OK\n'
 
@@ -2396,7 +2405,7 @@ p.write_text(json.dumps(d, indent=2) + "\n")
 PY
 rm -f "$rungf/environment.md"
 out_gf="$(run_cli next --run-dir "$rungf")"
-printf '%s\n' "$out_gf" | grep -q '/goal ' || fail "grandfathered empty environment_sha256 should not drift: $out_gf"
+printf '%s\n' "$out_gf" | grep -qx '/goal' || fail "grandfathered empty environment_sha256 should not drift: $out_gf"
 printf 'LAYER: environment grandfather OK\n'
 
 # --- A21 leftover spec.json pair-hash + empty environment_sha256 ---
@@ -2423,7 +2432,7 @@ state["environment_sha256"] = ""
 (run / "state.json").write_text(json.dumps(state, indent=2) + "\n")
 PY
 out_v2="$(run_cli next --run-dir "$runv2")"
-printf '%s\n' "$out_v2" | grep -q '/goal ' || fail "pair-hash grandfather next: $out_v2"
+printf '%s\n' "$out_v2" | grep -qx '/goal' || fail "pair-hash grandfather next: $out_v2"
 run_cli update --run-dir "$runv2" --to blocked --resume-to validate-spec --reason "rebind pair hash" >/dev/null
 run_cli update --run-dir "$runv2" --to validate-spec --reason "rebind pair hash" >/dev/null
 write_spec "$runv2"
@@ -2684,7 +2693,7 @@ doc = {
 PY
 run_cli update --run-dir "$runs" --to implement >/dev/null
 out_sp="$(run_cli next --run-dir "$runs")"
-printf '%s\n' "$out_sp" | grep -q '/goal ' || fail "string produces /goal"
+printf '%s\n' "$out_sp" | grep -qx '/goal' || fail "string produces /goal"
 printf 'LAYER: string produces dual-type OK\n'
 
 # --- drift still allows --to blocked ---
@@ -3847,13 +3856,13 @@ out_inj_env="$(run_cli next --run-dir "$runpr")"
 printf '%s\n' "$out_inj_env" | grep -q 'ad hoc bind' || fail "discovered step not running: $out_inj_env"
 printf '%s\n' "$out_inj_env" | grep -q 'mcp-considered: none(x)' \
   || fail "injected-step packet missing frozen envelope: $out_inj_env"
-printf '%s\n' "$out_inj_env" | grep -q 'Implement git (paste into /goal with Frozen' \
+printf '%s\n' "$out_inj_env" | grep -q 'Implement git (use with Frozen in the parent chat' \
   || fail "injected-step packet missing Implement git: $out_inj_env"
 printf '%s\n' "$out_inj_env" | python3 -c '
 import sys
 text = sys.stdin.read()
 i = text.find("Frozen session environment")
-j = text.find("Implement git (paste into /goal with Frozen")
+j = text.find("Implement git (use with Frozen in the parent chat")
 u = text.find("Until-loop A (receipt inner=A)")
 k = text.find("no citation needed for a discovered step")
 adv = text.find("--advance B", k)

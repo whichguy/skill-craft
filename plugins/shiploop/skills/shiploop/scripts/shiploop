@@ -23,7 +23,7 @@ EXIT_BLOCKED = 2
 EXIT_USAGE = 64
 
 PACKAGE_ROOT = Path(__file__).resolve().parents[1]
-VERSION = "0.8.24"
+VERSION = "0.8.25"
 REF_DIR = PACKAGE_ROOT / "references"
 WT_DIRNAME = ".worktrees"
 # Printed in ## Progress and the implement Next envelope. Do not splice into
@@ -41,7 +41,7 @@ HOST_WORKTREE_FLAG = (
 )
 # Pasted with Frozen. Do not splice into stored implement prompts.
 IMPLEMENT_GIT_HEAD = (
-    "Implement git (paste into /goal with Frozen; do not re-root the parent chat):"
+    "Implement git (use with Frozen in the parent chat; do not re-root):"
 )
 GOAL_UNTIL_HEAD = (
     "Until-loop A (receipt inner=A). Work this Next in the parent chat. "
@@ -55,8 +55,9 @@ IMPROVE_GOAL = (
     "quality and breadth review of the work in scope for this pass: read the "
     "last 7 git commit messages for learnings; for each produces bullet in "
     "scope, run that produce's own declared acceptance check; when a produce "
-    "exposes a bound client action, additionally execute that bound name on the "
-    "destination and then call it; when a frozen mechanics row this work touched "
+    "exposes a bound client action, additionally resolve that bound name at "
+    "destination global scope (`typeof` is \"function\"), then call it; when a "
+    "frozen mechanics row this work touched "
     "claims a destination effect, verify that effect on the destination, not from "
     "the README; never substitute an inner module helper for a routing probe, a "
     "bound name, or a live acceptance, and never treat a bound-name call as a "
@@ -2839,7 +2840,7 @@ def activity_title(phase: str, state: Optional[Dict[str, Any]] = None) -> str:
         "intake": "record the original ask",
         "validate-spec": "survey, then write a machine-checkable spec",
         "plan": "write the sequence plan via backchain",
-        "implement": "walk ready steps via /goal",
+        "implement": "walk ready steps via parent until-loop",
         "residual": "run bound review-coverage Phase B",
         "blocked": "stop and ask the user",
         "done": (
@@ -2880,7 +2881,7 @@ PHASE_BEGIN = {
         "Call backchain once, persist backchain/plan.json, then write plan.md "
         "with a labeled done_sentence equal to the spec. Do not rewrite the frozen spec."
     ),
-    "implement": "Walk ready DAG steps via /goal in per-step worktrees.",
+    "implement": "Walk ready DAG steps via parent until-loop in per-step worktrees.",
     "residual": (
         "Run review-coverage Phase B for the bound plan, or dest blocked if "
         "there is no Test command / bound plan."
