@@ -23,7 +23,7 @@ ShipLoop creates another folder: a per-step worktree under <repo>/.worktrees/shi
 Implementation work happens IN that worktree, not in the session checkout.
 Do not move_agent_to_root / re-root the host chat into that folder or the product repo unless the user asked.
 The session checkout stays the merge dest; do not edit it during implement.
-After /shiploop complete, the harness merges the kept branch into session HEAD and prints Git ran; the next packet names the next worktree.
+After a merge complete, the harness merges the kept branch into session HEAD and prints Git ran; the next packet names the next worktree.
 ```
 - **Reminder** — prompt one-liner and frozen `done_sentence`. No spec/plan body dump. No “rewrite the spec.”
 - **Look here** — first line `Reference only — not the next action.`, then absolute pointers with a one-line why (`required` / `if-needed`), phase-scoped (validate-spec adds `environment.md` + the survey guide; implement adds `environment.md` as **required** frozen survey plus each running step's worktree labeled with the step statement, e.g. `S1 worktree — cwd here — write the file`; residual points at frozen `environment.md` (dest reread) and `recap.html` as written on dest done; done/halted add the generated recap). Spec/environment marked frozen after `--to plan`.

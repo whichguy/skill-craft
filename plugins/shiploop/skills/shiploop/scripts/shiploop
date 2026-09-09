@@ -36,7 +36,7 @@ HOST_WORKTREE_FLAG = (
     "Do not move_agent_to_root / re-root the host chat into that folder or the "
     "product repo unless the user asked.",
     "The session checkout stays the merge dest; do not edit it during implement.",
-    "After /shiploop complete, the harness merges the kept branch into session HEAD "
+    "After a merge complete, the harness merges the kept branch into session HEAD "
     "and prints Git ran; the next packet names the next worktree.",
 )
 # Pasted with Frozen. Do not splice into stored implement prompts.
@@ -4327,10 +4327,11 @@ def cmd_complete(args: argparse.Namespace) -> int:
     tests = getattr(args, "tests", None)
     improve = getattr(args, "improve", None)
     if args.clear or args.blocked:
-        if any((advance, cycle, inner_loop, trivial)):
+        if any((advance, cycle, inner_loop, trivial, tests, improve)):
             die(
                 EXIT_USAGE,
-                "complete: --clear/--blocked cannot combine with action or --trivial",
+                "complete: --clear/--blocked cannot combine with action, "
+                "--trivial, --tests, or --improve",
             )
     run_dir = run_dir_from_arg(args.run_dir, walk=True)
     refuse_package_path(run_dir)

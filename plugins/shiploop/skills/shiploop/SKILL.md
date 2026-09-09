@@ -148,7 +148,7 @@ ShipLoop creates another folder: a per-step worktree under <repo>/.worktrees/shi
 Implementation work happens IN that worktree, not in the session checkout.
 Do not move_agent_to_root / re-root the host chat into that folder or the product repo unless the user asked.
 The session checkout stays the merge dest; do not edit it during implement.
-After /shiploop complete, the harness merges the kept branch into session HEAD and prints Git ran; the next packet names the next worktree.
+After a merge complete, the harness merges the kept branch into session HEAD and prints Git ran; the next packet names the next worktree.
 ```
 
 ## Closer (`/shiploop complete`)
