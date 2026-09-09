@@ -813,7 +813,7 @@ if grep -qi 'c-plan' <<<"$(sed -n '/^## Compose graph$/,/^## Practices$/p' "$le_
   fail "compose graph must not name c-plan"
 fi
 grep -q 'parent until-loop' "$le_docs" || fail "LOOP-ENGINEERING missing parent until-loop"
-grep -q 'per-step Improve B' "$le_docs" || fail "LOOP-ENGINEERING missing per-step Improve B"
+grep -q 'per-step Improve' "$le_docs" || fail "LOOP-ENGINEERING missing per-step Improve"
 if grep -q 'emits a `/goal`' "$le_docs"; then
   fail "LOOP-ENGINEERING still emits a /goal"
 fi

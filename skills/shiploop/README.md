@@ -317,7 +317,7 @@ environment** block (`mcp-considered` / `tools` / `mcp` / `Exclusive:` / `See:`)
 flagless `/shiploop complete` merges (`--inner-loop goal` only if this
 host actually ran `/goal`). Do not paste HOST FLAG.
 Implement git names the worktree, branch, and session checkout
-(`repo_root` main tree). The script does not compose until-loop A from
+(`repo_root` main tree). The script does not compose Implement from
 `statement` / `produces` / suppliers / worktree. Work in the Look-here
 worktree (do not re-root the host chat; do not edit the session checkout).
 
@@ -341,7 +341,7 @@ includes Implement then Improve. The harness merges
 (`git -C <session-checkout> merge --no-ff --no-edit shiploop/<run_id>/<id>`),
 keeps the step branch, removes the worktree, and does not squash, so inner
 Key learnings stay reachable from session HEAD. It prints Git ran and dests
-residual when this was the last step. If until-loop B already committed, do
+residual when this was the last step. If Improve already committed, do
 not invent a second finish commit. Do not run a bare `git merge` from the
 worktree cwd — that would merge into the step branch. The next worktree forks
 `HEAD`. Conflicted or dirty complete is exit 2 with the git transcript; fix
@@ -391,8 +391,8 @@ The completing `/shiploop complete` of the last running step dests
 `/shiploop next` while drained still prints `implement-drained.md` and
 does not dest — that file is a reprint after a residual-gate failure or
 lost context. **What this is not:** complete does not resolve merge
-conflicts (exit 2 with Git ran) and there is no nested until-loop B inside
-until-loop A.
+conflicts (exit 2 with Git ran) and there is no nested Improve inside
+Implement.
 
 ### 5. Residual
 
@@ -470,9 +470,9 @@ folder. Merge dest is the **session checkout**. Merge with
 | `init --force` | wipe every worktree and `shiploop/<run_id>/*` branch for this run |
 
 Several running ids: each gets its own worktree claimed from the `HEAD` at
-claim time. Finish one id’s until-loop A + until-loop B + complete before
-opening another id’s A, unless they are truly parallel and each has its own
-A/B pair; never share one parent Improve turn across ids. Complete needs
+claim time. Finish one id’s Implement + Improve + merge complete before
+opening another id’s Implement, unless they are truly parallel and each has
+its own pair; never share one parent Improve turn across ids. Complete needs
 `--id` or cwd in that worktree.
 
 ### Host (implement until-loop only)
