@@ -20,7 +20,7 @@ If Improve already committed, do **not** invent a second finish commit.
 
 Use `--inner-loop goal` only if this host actually ran `/goal` (override).
 `--advance B` / `--improve-cycle` / `--inner-loop parent` are overrides.
-It merges (`git -C <session-checkout> merge --no-ff --no-edit <branch>`), keeps the
+A merge complete merges (`git -C <session-checkout> merge --no-ff --no-edit <branch>`), keeps the
 step branch, removes the worktree, and does not squash, so inner Key
 learnings stay reachable from session HEAD. It prints `Git ran:` (argv +
 exit + output), dests residual when this was the last step, and prints the

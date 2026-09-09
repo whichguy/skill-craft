@@ -1,26 +1,29 @@
 Walk ready steps via the printed parent until-loop. The spec is **frozen** —
 do not refine, expand, or rewrite it.
 
-Follow the printed Next envelope; do not nest Improve until-loop B inside A.
+Follow the printed Next envelope; do not nest Improve inside Implement.
 Each running step's worktree and branch are named in **Look here** /
 **Diagnosis** — work there (do not re-root the host chat); do not edit
 the session checkout or reuse a prior worktree.
 
-Do not nest Improve until-loop B inside until-loop A.
-If until-loop A for an id is already in this parent chat, do not start a
-second functional until-loop for that id. Inner until-loop A iterates and
+Do not nest Improve inside Implement.
+If Implement for an id is already in this parent chat, do not start a
+second functional until-loop for that id. Implement iterates and
 pathspec-commits **on the worktree**. After produces is true:
 tests-until-green (author and run checkable tests for this produces until
 they pass), then `/shiploop complete`. Never `git add -A`. Never merge from
 that cwd. Then follow the printed Improve (one cycle; re-run recorded
-checks). Then invoke
-**`/shiploop complete --inner-loop parent --improve <line>`** — the harness
+checks). Then invoke the printed When done — flagless
+**`/shiploop complete`** (add `--trivial` when When done named it). Do not
+pass `--inner-loop parent --improve` unless When done named that override.
+When When done is the merge, the harness
 merges
 (`git -C <session-checkout> merge --no-ff --no-edit <branch>`), keeps the
 step branch, removes the worktree, and does not squash; inner Key learnings
 stay reachable from session HEAD. It prints Git ran, dests residual when this
 was the last step, and prints the next packet. Use `--inner-loop goal` only
-if this host actually ran `/goal`. Parent still includes A then B. Do not run
+if this host actually ran `/goal`. Parent still includes Implement then
+Improve. Do not run
 a bare `git merge` from the worktree cwd. The next worktree forks `HEAD`.
 Complete does not resolve conflicts; read Git ran and retry.
 
@@ -45,7 +48,7 @@ with `Don't use:` is a gap). The envelope wraps a discovered prompt exactly
 as it wraps a seed prompt.
 If the writer above fails, stop and invoke /shiploop complete --blocked --reason … — do not switch writers.
 
-After until-loop A produces and Improve until-loop B finishes: invoke
-`/shiploop complete --inner-loop parent --improve <line>`.
+After Implement produces and Improve finishes: invoke `/shiploop complete`
+as printed under When done.
 After an until-loop fails and the session can continue: invoke `/shiploop complete --clear`.
 Hard stop: invoke `/shiploop complete --blocked --reason …`.

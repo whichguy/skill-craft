@@ -27,10 +27,12 @@ Grok cannot invoke `/goal` from this skill. The packet Next **is** the
 until-loop in the parent chat. Every `/shiploop next` / `complete` rehydrates
 from `.shiploop/` files; the skill holds no inner A/B. When done is if/else
 on facts not in files (`produces` true? this cycle trivial?). Complete a
-running implement step with `--inner-loop parent --improve <line>` (Grok
-default). Use `--inner-loop goal --improve <line>` only if this host actually
-ran `/goal`. Emitted policy requires evidence; `--improve` does not dest-verify
-the claim. The script never auto-advances from git dirty/HEAD moved.
+running implement step with flagless `/shiploop complete`. The script infers
+advance, one Improve cycle, or merge. Add `--trivial` when an Improve cycle
+was only-trivial. `--inner-loop parent --improve` remains an override. Use
+`--inner-loop goal` only if this host actually ran `/goal`. Emitted policy
+requires evidence; `--improve` does not dest-verify the claim. The script
+never auto-advances from git dirty/HEAD moved.
 
 | Claim | Requires |
 |-------|----------|

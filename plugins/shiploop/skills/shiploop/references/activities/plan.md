@@ -60,8 +60,9 @@ local suite. After residual binds the plan, do not edit that H2 in place.
 That residual Test command is not the per-step gate. Every **code-producing**
 seed must leave a **checkable** acceptance for that `produces` (a local suite
 command, or the frozen `bound-action` recipe plus dest call). Never `test -f`
-/ `N/A` because there is no local suite when dest contracts exist. Inner A
-names that line at `--advance B --tests` after tests-until-green.
+/ `N/A` because there is no local suite when dest contracts exist. Implement
+records that line as optional `--tests` after tests-until-green
+(`--advance B --tests` remains an override).
 
 When frozen `ui` is true, seed the DAG with an **early design** setup step
 **before** iterate steps that build that surface. Do not collapse design into

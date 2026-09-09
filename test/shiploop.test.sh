@@ -391,16 +391,37 @@ grep -Fq -- '--inner-loop goal|parent' "$root/skills/shiploop/README.md" \
   || fail "README missing implement complete --inner-loop"
 grep -Fq -- '--inner-loop parent --improve' \
   "$root/skills/shiploop/references/turn-packet.md" \
-  || fail "turn-packet.md missing default parent closer"
+  || fail "turn-packet.md missing override --inner-loop parent --improve"
 grep -Fq -- '--inner-loop goal' \
   "$root/skills/shiploop/references/turn-packet.md" \
   || fail "turn-packet.md missing implement complete --inner-loop goal"
 grep -Fq -- '--inner-loop parent --improve' \
   "$root/skills/shiploop/references/activities/implement.md" \
-  || fail "implement.md missing default parent closer"
+  || fail "implement.md missing override --inner-loop parent --improve"
 grep -Fq -- '--inner-loop parent --improve' \
   "$root/skills/shiploop/README.md" \
-  || fail "README missing default parent closer"
+  || fail "README missing override --inner-loop parent --improve"
+if grep -Fq '**`/shiploop complete --inner-loop parent --improve' \
+  "$root/skills/shiploop/references/activities/implement.md"; then
+  fail "implement.md still bolds override as the closer"
+fi
+grep -Fq '**`/shiploop complete`**' \
+  "$root/skills/shiploop/references/activities/implement.md" \
+  || fail "implement.md missing flagless complete closer"
+if grep -Fq '(Grok default)' \
+  "$root/skills/shiploop/references/host-matrix.md"; then
+  fail "host-matrix still treats --inner-loop parent as Grok default"
+fi
+grep -Fq 'flagless `/shiploop complete`' \
+  "$root/skills/shiploop/references/host-matrix.md" \
+  || fail "host-matrix missing flagless complete"
+if grep -Fq 'names that line at `--advance B --tests`' \
+  "$root/skills/shiploop/references/activities/plan.md"; then
+  fail "plan.md still names --advance B as the tests home"
+fi
+grep -Fq 'optional `--tests`' \
+  "$root/skills/shiploop/references/activities/plan.md" \
+  || fail "plan.md missing optional --tests"
 grep -q 'practice references' "$root/skills/shiploop/references/activities/plan.md" \
   || fail "plan.md missing practice references in step prompts"
 grep -q 'researches applicable practices' "$root/skills/shiploop/README.md" \
@@ -671,6 +692,31 @@ fi
 if grep -Fq '(`git merge --no-ff`)' "$root/skills/shiploop/README.md"; then
   fail "README §4 still has bare git merge --no-ff"
 fi
+if grep -Fq 'complete (merges)' "$root/skills/shiploop/README.md"; then
+  fail "README ASCII still says every complete merges"
+fi
+grep -Fq 'complete (infers)' "$root/skills/shiploop/README.md" \
+  || fail "README ASCII missing complete (infers)"
+if grep -Fq 'if this was an implement until-loop, pathspec-commit leftovers' \
+  "$root/skills/shiploop/README.md"; then
+  fail "Git sequence Closer vs SM still treats every implement complete as merge"
+fi
+grep -Fq 'apply_complete_receipt` runs only on merge' \
+  "$root/skills/shiploop/README.md" \
+  || fail "Git sequence missing apply_complete_receipt only on merge"
+impl_mmd="$(awk '/^### 4\. Implement$/,/^### 5\. Residual$/' \
+  "$root/skills/shiploop/README.md" | awk '/^```mermaid$/,/^```$/')"
+printf '%s\n' "$impl_mmd" | grep -Fq -- '--advance B' \
+  && fail "README implement mermaid still names --advance B"
+printf '%s\n' "$impl_mmd" | grep -Fq -- '--inner-loop parent --improve' \
+  && fail "README implement mermaid still names --inner-loop parent --improve"
+printf '%s\n' "$impl_mmd" | grep -Fq 'tests-until-green then complete' \
+  || fail "README implement mermaid missing flagless complete advance"
+step4="$(grep -E '^4\. Then' "$root/skills/shiploop/README.md" || true)"
+printf '%s\n' "$step4" | grep -Fq -- '--inner-loop parent --improve' \
+  && fail "Git sequence step 4 still uses override as closer: $step4"
+printf '%s\n' "$step4" | grep -Fq '/shiploop complete' \
+  || fail "Git sequence step 4 missing flagless complete: $step4"
 grep -Fq 'git -C <session-checkout> merge --no-ff --no-edit' \
   "$root/skills/shiploop/README.md" \
   || fail "README §4 missing session-checkout merge"
