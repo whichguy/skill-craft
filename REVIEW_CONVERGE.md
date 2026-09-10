@@ -2,9 +2,9 @@
 
 **Target paths:** `skills/shiploop/`, `agents/shiploop.md`, `test/shiploop.test.sh`, `test/shiploop-walk-journal.test.sh`, `plugins/shiploop/`
 **Test command:** `bash test/shiploop.test.sh && bash scripts/sync-plugin-views.sh --check shiploop`
-**Started:** 2026-09-10          **Status:** active
-**Round counter:** 2
-**Consecutive clean rounds:** 1
+**Started:** 2026-09-10          **Status:** complete
+**Round counter:** 3
+**Consecutive clean rounds:** 2
 **Known test-artifact paths:**
 **Plan contract:** `/Users/dadleet/.grok/sessions/%2FUsers%2Fdadleet%2Fsrc%2Ftic-tac-toe-oneshot/01a0887a-7a47-7193-9d4a-ef855b5b2559/plan.md`
 **Plan hash:** `2e94f53775101706fcc6c070afd0ba910ce31eda2e2a8659af78f772137332e3`
@@ -67,3 +67,32 @@
 **Consecutive clean rounds after this entry:** 1
 **Committed:** yes
 **Notes:** First clean. Suite deferred to second clean.
+
+### Round 3 — 2026-09-10
+**Review:** 0 material, 3 minor (carried)
+**Material findings:** none
+**Deferred (minor/P2):**
+- [ ] P2: README exhaustive workflow and mermaid still say “packet” / “turn packet.” Host-facing SKILL/commands/agents do not. Overview grain. — docs
+- [ ] P2: `implement.md` still says “prints the next packet.” Not a slash card. — docs
+- [ ] P2: HOST_CONTINUE line 1 repeats `Issue this prompt.` after NEXT_LEAD. Intentional emphasis; noisy. — docs
+**Git-history check:** Round 2 landed `c5888b5` (first clean). Round 1 `e8b7b94` closer-home. `af9cc5d` 0.8.29 land. Re-read SKILL Closer: still “exactly the printed When done command (no default independent of that line)”. complete.md: “Do not invent a flagless default independent of that line.” Diff vs Base `22a4137` is 0.8.29 + closer-home; no new closer menu. Do not re-open archived 0.8.19 ledger.
+**Plan:** n/a (clean)
+**Plan review:** n/a
+**Implementation:** n/a
+**Lint:** n/a
+**Test result:** PASS (terminal clean)
+**Outcome:** clean
+**Error signature:** none
+**Learnings:** Second native re-read of the slash path found the same closer-home: When done is the only closer instruction; residual dest done still names `--improve`; parallel still needs `--id`. Remaining “packet” wording is README/implement.md overview, not SKILL/commands/agents. HOST_CONTINUE still leads with `Issue this prompt.` after NEXT_LEAD — plan-intentional, still noisy. Two consecutive cleans; terminal suite PASS.
+**Anchor evidence:**
+- A1 → `rg packet SKILL.md commands/ agents/shiploop.md` empty
+- A2 → one `## Host loop`; Closer points at printed When done only
+- A3 → NEXT_LEAD `Issue this prompt.`; HOST_CONTINUE two lines; closer_inner_a shared
+- A8 → no `If produces is not true yet` in scripts/shiploop
+- A9 → no SKILL_ROOT in scripts/shiploop
+- A10 → CLOSER_RESIDUAL_DONE `--improve`
+- A11 → walk-journal P1 `--id` (suite PASS)
+- A12 → walk-journal activity-mode strip (suite PASS)
+**Consecutive clean rounds after this entry:** 2
+**Committed:** yes
+**Notes:** Second clean. artifact skipped: no Artifact tool on this host.
