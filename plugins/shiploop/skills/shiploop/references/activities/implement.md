@@ -22,7 +22,7 @@ merges
 (`git -C <session-checkout> merge --no-ff --no-edit <branch>`), keeps the
 step branch, removes the worktree, and does not squash; inner Key learnings
 stay reachable from session HEAD. It prints Git ran, dests residual when this
-was the last step, and prints the next packet. Use `--inner-loop goal` only
+was the last step, and prints the next stdout. Use `--inner-loop goal` only
 if this host actually ran `/goal`. Parent still includes Implement then
 Improve. Do not run
 a bare `git merge` from the worktree cwd. The next worktree forks `HEAD`.

@@ -14,7 +14,7 @@ Canonical companions (do not duplicate their contracts here):
 - [SKILL.md](SKILL.md) — host procedure
 - [references/state-files.md](references/state-files.md) — SoT table and hashes
 - [references/survey.md](references/survey.md) — survey + practices prefix
-- [references/turn-packet.md](references/turn-packet.md) — packet headings
+- [references/turn-packet.md](references/turn-packet.md) — printed H2s
 - [references/transitions.json](references/transitions.json) — legal phase edges
 - skill-craft [docs/LOOP-ENGINEERING.md](../../docs/LOOP-ENGINEERING.md) — ShipLoop track
 
@@ -49,14 +49,14 @@ User / host
 | **Skill card** | `SKILL.md` | When to use, three-branch init, Host loop |
 | **Slash / command cards** | `commands/shiploop.md`, `shiploop-next.md`, `shiploop-complete.md`, `shiploop-inject.md` | Thin host verbs. They do not implement the SM. |
 | **Leaf wrappers** | `scripts/shiploop-next`, `scripts/shiploop-complete` | Refuse the wrong subcommand, then `execv` the harness |
-| **Harness (stateless printer)** | `scripts/shiploop` | The only SM. Reads `.shiploop/`, checks hashes, claims steps, prints the packet. Does **not** invent implement `/goal` text. |
+| **Harness (stateless printer)** | `scripts/shiploop` | The only SM. Reads `.shiploop/`, checks hashes, claims steps, prints stdout. Does **not** invent implement `/goal` text. |
 | **Activity prompts** | `references/activities/<phase>.md` | Exact Next-prompt body for every phase except in-flight implement (that prints each step’s stored `prompt`) |
-| **Survey / packet / ledger contracts** | `references/survey.md`, `turn-packet.md`, `ledger-contract.md`, `state-files.md` | What the host must write; what the script shape-checks |
+| **Survey / stdout H2 / ledger contracts** | `references/survey.md`, `turn-packet.md`, `ledger-contract.md`, `state-files.md` | What the host must write; what the script shape-checks |
 | **Sibling skills** | `dep_roots.backchain`, `dep_roots.review-coverage` | Plan calls **backchain** once. Residual calls **review-coverage** Phase B. Missing backchain is a Missing line, not a vendored copy. |
 
 The harness is **file-driven**. After `init`, every command walks from cwd to
 `.shiploop/`, loads `state.json`, re-checks frozen hashes, then either mutates
-one artifact and reprints the packet, or refuses (exit 2). It does not call
+one artifact and reprints stdout, or refuses (exit 2). It does not call
 host MCP APIs. It does not write the product tree except by creating per-step
 git worktrees under `<repo>/.worktrees/`.
 
@@ -67,21 +67,21 @@ flowchart TB
   wrap["shiploop-next / shiploop-complete leaf wrappers"]
   harness[scripts/shiploop]
   state[".shiploop/ state files"]
-  packet[Turn packet]
+  stdout[Printed stdout]
   user --> card
   card -->|next, complete| wrap
   card -->|init, inject-step| harness
   wrap -->|execv| harness
   harness --> state
-  harness --> packet
+  harness --> stdout
 ```
 
 **What this is:** the four routes from the ASCII list above, collapsed to
 one picture. `init` and `inject-step` call the harness directly; only
 `next` and `complete` pass through a leaf wrapper first (`refuse` the wrong
-subcommand, then `execv`). The packet is a printout — Grok works Next in
+subcommand, then `execv`). Printed stdout is the Next prompt — Grok works Next in
 the parent chat (this skill cannot invoke `/goal`). Hosts that actually ran
-`/goal` may paste Next into it; that is host work after the packet, not a
+`/goal` may paste Next into it; that is host work after stdout, not a
 fifth route and not what every phase does. **What this is not:**
 there is no second SM between the wrapper and the harness —
 `scripts/shiploop` is the only state machine in this package.
@@ -293,7 +293,7 @@ dest `plan` **writes** `environment_sha256` / `spec_sha256` when empty (first
 bind) and **verifies** them when set. It always clears `plan_sha256` and
 receipts (replan hatch).
 
-While `backchain/plan.json` is not written yet, the packet dest is
+While `backchain/plan.json` is not written yet, dest is
 `implement` (Missing lists the plan files; When done invoke is
 `/shiploop complete`). dest `blocked` is only for a **written** illegal
 DAG — not the empty start of plan. dest `implement` also requires a git
@@ -363,7 +363,7 @@ next` while drained reprints this diagnosis and does not dest.
 
 ```mermaid
 flowchart TD
-  next["/shiploop next — claim_ready(): ready ids to running,\ngit worktree add -b per id"] --> printed["Packet Next: Frozen + Implement git + Implement + stored prompt"]
+  next["/shiploop next — claim_ready(): ready ids to running,\ngit worktree add -b per id"] --> printed["Next: Frozen + Implement git + Implement + stored prompt"]
   printed --> gwork["Implement: Frozen + Implement git + stored prompt\n(if produces: tests-until-green then complete; else keep working / next)"]
   gwork -->|produces true: tests-until-green then complete| improve["Improve: one cycle; complete or complete --trivial;\nlast 7 commits, re-run receipt.tests, 2 consecutive only-trivial, max 12"]
   improve -->|two consecutive only-trivial| cm["leftover uncommitted: Implement git schema, then\n/shiploop complete"]
@@ -410,7 +410,7 @@ Do not treat a foreign or unlanded ledger as success.
 
 When the ledger is `complete` and landed (or the plan has a real residual
 waiver), dest-reread live dest URLs onto frozen routing (compose; do not
-rewrite hashes), then reprint Frozen in the residual Next packet. If Q3=yes,
+rewrite hashes), then reprint Frozen in the residual Next. If Q3=yes,
 run quality until-loop A at the composed user entrypoint, close it, then run
 Improve until-loop B with the same two-clean contract; if Q3=no, skip both A and
 B. Publish only after B when Q2 is **outer-loop** (skip for dag or none),
@@ -439,7 +439,7 @@ empty, non-HTML, or briefing-thin file. `--force` unlinks it. The file is
 ## Git sequence (harness vs host)
 
 Intake / validate-spec / plan / residual do **not** create worktrees.
-dest `implement` requires a git `HEAD` (plan-phase packets dest
+dest `implement` requires a git `HEAD` (plan-phase stdout dests
 `implement`, so Missing can list “create an initial commit” then).
 `inject-step` is not a git operation.
 
@@ -508,7 +508,7 @@ writes it; `--force` never deletes it).
 
 ---
 
-## The turn packet
+## Printed stdout (H2s)
 
 Every `next`, `complete`, and slash reprint prints this order after the
 outcome line (when the command prints one) and the banner

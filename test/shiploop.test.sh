@@ -49,7 +49,7 @@ grep -Fq 'NEXT_LEAD' "$cli" || fail "script missing NEXT_LEAD"
 grep -Fq 'Issue this prompt.' "$cli" \
   || fail "script missing Issue this prompt lead"
 grep -Fq 'STOP_PHASES' "$cli" || fail "script missing STOP_PHASES"
-grep -Fq 'Issue this prompt. When ## When done invoke states a precondition, satisfy it first, then exec its command exactly as printed — do not substitute a different command.' \
+grep -Fq 'When ## When done invoke states a precondition, satisfy it first, then exec its command exactly as printed — do not substitute a different command.' \
   "$root/skills/shiploop/references/turn-packet.md" \
   || fail "turn-packet.md missing HOST_CONTINUE text"
 grep -Fq 'The new stdout is the next prompt to issue. Repeat until When done says stop.' \

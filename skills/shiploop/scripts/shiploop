@@ -30,7 +30,7 @@ NEXT_LEAD = "Issue this prompt."
 # Printed in ## Next prompt and ## When done invoke on non-stop stdout.
 # Two lines. Same wording lives in turn-packet.md. Do not splice into stored prompts.
 HOST_CONTINUE = (
-    "Issue this prompt. When ## When done invoke states a precondition, "
+    "When ## When done invoke states a precondition, "
     "satisfy it first, then exec its command exactly as printed — do not "
     "substitute a different command.\n"
     "The new stdout is the next prompt to issue. Repeat until When done says stop."
