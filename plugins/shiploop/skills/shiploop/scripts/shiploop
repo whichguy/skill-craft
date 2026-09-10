@@ -23,9 +23,62 @@ EXIT_BLOCKED = 2
 EXIT_USAGE = 64
 
 PACKAGE_ROOT = Path(__file__).resolve().parents[1]
-VERSION = "0.8.27"
+VERSION = "0.8.29"
 REF_DIR = PACKAGE_ROOT / "references"
 WT_DIRNAME = ".worktrees"
+NEXT_LEAD = "Issue this prompt."
+# Printed in ## Next prompt and ## When done invoke on non-stop stdout.
+# Two lines. Same wording lives in turn-packet.md. Do not splice into stored prompts.
+HOST_CONTINUE = (
+    "Issue this prompt. When ## When done invoke states a precondition, "
+    "satisfy it first, then exec its command exactly as printed — do not "
+    "substitute a different command.\n"
+    "The new stdout is the next prompt to issue. Repeat until When done says stop."
+)
+STOP_PHASES = frozenset({"done", "halted", "blocked"})
+CLOSER_RESIDUAL_DONE = (
+    'invoke /shiploop complete --improve "<one line naming the checks that ran>" '
+    "(or --improve none(<reason>))"
+)
+
+
+def invoke_complete(*flags: str, sid: str = "", running_n: int = 1) -> str:
+    """Host-facing closer spelling. --id only when several steps are running."""
+    parts = ["invoke /shiploop complete"]
+    parts.extend(flags)
+    if running_n > 1 and sid:
+        parts.append(f"--id {sid}")
+    return " ".join(parts)
+
+
+def closer_inner_a(*, sid: str = "", running_n: int = 1) -> str:
+    return (
+        "Keep issuing this prompt; /shiploop next reprints. "
+        "When this step's produces is true and tests are green, "
+        f"{invoke_complete(sid=sid, running_n=running_n)}. "
+        "No other flags. Do not start a different step."
+    )
+
+
+def closer_improve_cycle(*, sid: str = "", running_n: int = 1) -> str:
+    return (
+        f"{invoke_complete(sid=sid, running_n=running_n)}. "
+        "If this cycle had no material change after the named checks ran, "
+        f"{invoke_complete('--trivial', sid=sid, running_n=running_n)} instead. "
+        "No other flags. Do not stop."
+    )
+
+
+def closer_merge(*, cap: bool, sid: str = "", running_n: int = 1) -> str:
+    flags = ("--improve cap-exceed(<why>)",) if cap else ()
+    return (
+        "if the worktree is dirty, pathspec-commit leftovers on the worktree "
+        "(never git add -A), then "
+        f"{invoke_complete(*flags, sid=sid, running_n=running_n)}. "
+        "Do not merge from the worktree cwd."
+    )
+
+
 # Printed in ## Progress and the implement Next envelope. Do not splice into
 # stored implement prompts. Same wording lives in SKILL.md + turn-packet.md.
 HOST_WORKTREE_FLAG = (
@@ -37,7 +90,7 @@ HOST_WORKTREE_FLAG = (
     "product repo unless the user asked.",
     "The session checkout stays the merge dest; do not edit it during implement.",
     "After a merge complete, the harness merges the kept branch into session HEAD "
-    "and prints Git ran; the next packet names the next worktree.",
+    "and prints Git ran; the new stdout names the next worktree.",
 )
 # Pasted with Frozen. Do not splice into stored implement prompts.
 IMPLEMENT_GIT_HEAD = (
@@ -2455,8 +2508,7 @@ def apply_improve_cycle(
     if receipt_inner(rec) != INNER_B:
         die(
             EXIT_BLOCKED,
-            f"{sid} inner is A; when produces is true invoke "
-            "/shiploop complete",
+            f"{sid} inner is A; {closer_inner_a()}",
         )
     if improve_packet_closer(rec):
         die(
@@ -2613,8 +2665,7 @@ def apply_complete_receipt(
     if receipt_inner(rec) != INNER_B:
         die(
             EXIT_BLOCKED,
-            f"{sid} inner is A; when produces is true invoke "
-            "/shiploop complete — do not merge yet",
+            f"{sid} inner is A; {closer_inner_a()} — do not merge yet",
         )
     if not improve_ready_to_merge(rec, improve):
         streak = improve_consecutive_trivial(rec)
@@ -3371,25 +3422,16 @@ def print_progress(
         if br:
             print(f"  Branch: {br}")
         rec_inner = receipt_inner(rec)
+        running_n = len(running)
         if rec_inner == INNER_A:
             finish = (
-                f"  Step {_finish_label(run_dir, sid)} — Implement until produces; "
-                "if produces is true, tests-until-green then invoke /shiploop complete; "
-                "if not, keep working / /shiploop next reprints "
-                "(no merge; the script prints Improve next)."
+                f"  Step {_finish_label(run_dir, sid)} — "
+                f"{closer_inner_a(sid=sid, running_n=running_n)}"
             )
         elif improve_packet_closer(rec):
-            cap = (
-                ""
-                if improve_two_clean(rec)
-                else " (at max without two-clean: --improve cap-exceed(<why>))"
-            )
             finish = (
-                f"  Finish {_finish_label(run_dir, sid)} — Improve ready to merge "
-                f"(or max {IMPROVE_MAX_CYCLES}); leftover uncommitted: same "
-                "Implement git schema (log -10, Key learnings:, See: <sha>), "
-                "commit on the worktree, then invoke /shiploop complete"
-                f"{cap} "
+                f"  Finish {_finish_label(run_dir, sid)} — "
+                f"{closer_merge(cap=not improve_two_clean(rec), sid=sid, running_n=running_n)} "
                 f"(harness merges git -C {repo_s} merge --no-ff --no-edit {br or '<branch>'} "
                 "keeps the step branch, removes the worktree, does not squash, and prints Git ran)."
             )
@@ -3397,9 +3439,8 @@ def print_progress(
             finish = (
                 f"  Step {_finish_label(run_dir, sid)} — Improve "
                 f"cycle {len(improve_cycles_of(rec)) + 1}, only-trivial in a row "
-                f"{improve_consecutive_trivial(rec)}; invoke /shiploop complete; "
-                "if this cycle was only-trivial, /shiploop complete --trivial "
-                "(no merge)."
+                f"{improve_consecutive_trivial(rec)}; "
+                f"{closer_improve_cycle(sid=sid, running_n=running_n)}"
             )
         print(finish)
         print(
@@ -3812,7 +3853,9 @@ def print_packet(run_dir: Path, state: Dict[str, Any], *, prior_running: Optiona
         print(line)
     print()
     print("## Next prompt")
-    print("Use this prompt as much as possible.")
+    print(NEXT_LEAD)
+    if phase not in STOP_PHASES:
+        print(HOST_CONTINUE)
     drained = phase == "implement" and steps_drained(run_dir, state)
     if phase == "implement" and not drained:
         classes = classify_steps(run_dir, state)
@@ -3836,18 +3879,11 @@ def print_packet(run_dir: Path, state: Dict[str, Any], *, prior_running: Optiona
             print_implement_git(state, sid, rec)
             print_worktree_git_facts(rec)
             inner = receipt_inner(rec)
+            running_n = sum(1 for k in classes.values() if k == "running")
             if inner == INNER_A:
                 print_goal_until(step)
                 print_stored_prompt(str(step.get("prompt") or ""))
-                print(
-                    "If this step's produces is true, tests-until-green then "
-                    "invoke /shiploop complete (the script moves this step to "
-                    "Improve and prints the next prompt). Do not merge yet."
-                )
-                print(
-                    "If produces is not true yet, keep working this Next; "
-                    "invoke /shiploop next to reprint from files."
-                )
+                print(closer_inner_a(sid=sid, running_n=running_n))
             elif improve_packet_closer(rec):
                 print(IMPROVE_SCOPE_STEP)
                 print(
@@ -3879,6 +3915,8 @@ def print_packet(run_dir: Path, state: Dict[str, Any], *, prior_running: Optiona
         print(activity_body(phase, run_dir, state))
     print()
     print("## When done invoke")
+    if phase not in STOP_PHASES:
+        print(HOST_CONTINUE)
     if phase in ("done", "halted"):
         print("stop — no update")
     elif phase == "implement" and not drained:
@@ -3886,48 +3924,29 @@ def print_packet(run_dir: Path, state: Dict[str, Any], *, prior_running: Optiona
         running = [sid for sid, k in classes.items() if k == "running"]
         repo = repo_of(state)
         repo_s = str(repo.resolve()) if repo.exists() else str(repo)
+        running_n = len(running)
         for sid in running:
             rec = load_receipt(run_dir, sid)
             _wt, br = isolation_for(state, sid, rec)
             inner = receipt_inner(rec)
             if inner == INNER_A:
                 print(
-                    f"Step {_finish_label(run_dir, sid)} — if produces is true, "
-                    "tests-until-green then invoke /shiploop complete (no merge; "
-                    "the script prints Improve next). "
-                    "If not, keep working this Next; /shiploop next reprints. "
-                    "Worktree commits use the Implement git schema "
-                    "(log -10, Key learnings:, See: <sha>)."
+                    f"Step {_finish_label(run_dir, sid)} — "
+                    f"{closer_inner_a(sid=sid, running_n=running_n)}"
                 )
             elif improve_packet_closer(rec):
                 print(
-                    f"Finish {_finish_label(run_dir, sid)} — leftover uncommitted: "
-                    "same Implement git schema "
-                    "(log -10, Key learnings:, See: <sha>), commit on the worktree"
+                    f"Finish {_finish_label(run_dir, sid)} — "
+                    f"{closer_merge(cap=not improve_two_clean(rec), sid=sid, running_n=running_n)} "
+                    f"(merges git -C {repo_s} merge --no-ff --no-edit {br or '<branch>'}, "
+                    "keeps the step branch, removes the worktree, does not squash, "
+                    "prints Git ran, marks this step done, claims the next, "
+                    "or dests residual when this was the last step)"
                 )
-                if improve_two_clean(rec):
-                    print(
-                        "then invoke /shiploop complete "
-                        "(merges "
-                        f"git -C {repo_s} merge --no-ff --no-edit {br or '<branch>'}, "
-                        "keeps the step branch, removes the worktree, does not squash, "
-                        "prints Git ran, marks this step done, claims the next, "
-                        "or dests residual when this was the last step)"
-                    )
-                else:
-                    print(
-                        "then invoke /shiploop complete --improve cap-exceed(<why>) "
-                        "(merges "
-                        f"git -C {repo_s} merge --no-ff --no-edit {br or '<branch>'}, "
-                        "keeps the step branch, removes the worktree, does not squash, "
-                        "prints Git ran, marks this step done, claims the next, "
-                        "or dests residual when this was the last step)"
-                    )
             else:
                 print(
-                    f"Step {_finish_label(run_dir, sid)} — invoke /shiploop complete; "
-                    "if this cycle was only-trivial, invoke /shiploop complete "
-                    "--trivial (no merge; the script prints the next prompt)"
+                    f"Step {_finish_label(run_dir, sid)} — "
+                    f"{closer_improve_cycle(sid=sid, running_n=running_n)}"
                 )
         print("on until-loop failure: invoke /shiploop complete --clear")
         print("hard stop: invoke /shiploop complete --blocked --reason <text>")
@@ -3939,6 +3958,8 @@ def print_packet(run_dir: Path, state: Dict[str, Any], *, prior_running: Optiona
                 print(f"(resumes to {resume})")
         elif dest == "blocked":
             print("invoke /shiploop complete --blocked --reason <text>")
+        elif dest == "done":
+            print(CLOSER_RESIDUAL_DONE)
         else:
             print("invoke /shiploop complete")
     else:

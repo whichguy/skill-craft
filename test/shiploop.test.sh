@@ -34,8 +34,33 @@ grep -q 'leftover commit' "$root/agents/shiploop.md" \
 if grep -E 'shiploop capture|devloop-run' "$root/skills/shiploop/references/activities/implement.md"; then
   fail "implement activity still captures a foreign runner"
 fi
-grep -q 'echo the printed' "$root/skills/shiploop/SKILL.md" \
+grep -qi 'echo the printed' "$root/skills/shiploop/SKILL.md" \
   || fail "SKILL.md missing echo You are here / Diagnosis"
+grep -q '## Host loop' "$root/skills/shiploop/SKILL.md" \
+  || fail "SKILL.md missing Host loop"
+grep -Fq 'Issue this prompt' "$root/skills/shiploop/SKILL.md" \
+  || fail "SKILL.md missing Issue this prompt"
+grep -Fq 'exec When done exactly' "$root/skills/shiploop/SKILL.md" \
+  || fail "SKILL.md missing exec When done exactly"
+grep -Fq 'full `## Next prompt`' "$root/skills/shiploop/SKILL.md" \
+  || fail "SKILL.md Host loop missing full Next prompt echo"
+grep -Fq 'HOST_CONTINUE' "$cli" || fail "script missing HOST_CONTINUE"
+grep -Fq 'NEXT_LEAD' "$cli" || fail "script missing NEXT_LEAD"
+grep -Fq 'Issue this prompt.' "$cli" \
+  || fail "script missing Issue this prompt lead"
+grep -Fq 'STOP_PHASES' "$cli" || fail "script missing STOP_PHASES"
+grep -Fq 'Issue this prompt. When ## When done invoke states a precondition, satisfy it first, then exec its command exactly as printed — do not substitute a different command.' \
+  "$root/skills/shiploop/references/turn-packet.md" \
+  || fail "turn-packet.md missing HOST_CONTINUE text"
+grep -Fq 'The new stdout is the next prompt to issue. Repeat until When done says stop.' \
+  "$root/skills/shiploop/references/turn-packet.md" \
+  || fail "turn-packet.md missing HOST_CONTINUE line 2"
+if grep -Fq 'If produces is not true yet' "$cli"; then
+  fail "script still prints produces-not-true menu"
+fi
+if grep -Fq 'SKILL_ROOT' "$cli"; then
+  fail "script must not emit SKILL_ROOT"
+fi
 grep -q 'Implement' "$root/skills/shiploop/SKILL.md" \
   || fail "SKILL.md missing Implement paste"
 grep -q 'Improve' "$root/skills/shiploop/SKILL.md" \
@@ -257,8 +282,8 @@ if grep -RFq --include='*.md' --include='shiploop' 'only if host `/goal` is off'
 fi
 grep -Fq 'This skill cannot invoke /goal' "$cli" \
   || fail "GOAL_UNTIL_HEAD missing cannot invoke /goal"
-grep -Fq 'If this step'\''s produces is true' "$cli" \
-  || fail "inner A missing if/else produces"
+grep -Fq 'When this step'\''s produces is true and tests are green' "$cli" \
+  || fail "inner A missing produces-true closer"
 grep -Fq 'Git facts (not produces)' "$cli" \
   || fail "script missing git facts printer"
 grep -Fq -- '--improve-cycle' "$cli" \
@@ -412,9 +437,9 @@ if grep -Fq '(Grok default)' \
   "$root/skills/shiploop/references/host-matrix.md"; then
   fail "host-matrix still treats --inner-loop parent as Grok default"
 fi
-grep -Fq 'flagless `/shiploop complete`' \
+grep -Fq '`/shiploop complete`' \
   "$root/skills/shiploop/references/host-matrix.md" \
-  || fail "host-matrix missing flagless complete"
+  || fail "host-matrix missing complete closer"
 if grep -Fq 'names that line at `--advance B --tests`' \
   "$root/skills/shiploop/references/activities/plan.md"; then
   fail "plan.md still names --advance B as the tests home"
@@ -847,7 +872,7 @@ ShipLoop creates another folder: a per-step worktree under <repo>/.worktrees/shi
 Implementation work happens IN that worktree, not in the session checkout.
 Do not move_agent_to_root / re-root the host chat into that folder or the product repo unless the user asked.
 The session checkout stays the merge dest; do not edit it during implement.
-After a merge complete, the harness merges the kept branch into session HEAD and prints Git ran; the next packet names the next worktree.'
+After a merge complete, the harness merges the kept branch into session HEAD and prints Git ran; the new stdout names the next worktree.'
 
 assert_host_flag() {
   local haystack="$1" label="$2"
@@ -1087,7 +1112,20 @@ printf '%s\n' "$out_init" | grep -q 'invoke /shiploop complete' || fail "when do
 printf '%s\n' "$out_init" | grep -q 'shiploop — session harness' || fail "init missing harness banner"
 assert_absent "$out_init" 'DevLoop' "init banner named a foreign product"
 printf '%s\n' "$out_init" | grep -qF 'Reference only — not the next action.' || fail "look here missing reference-only line"
-printf '%s\n' "$out_init" | grep -qF 'Use this prompt as much as possible.' || fail "next prompt missing banner line"
+printf '%s\n' "$out_init" | grep -qF 'Issue this prompt.' || fail "next prompt missing Issue this prompt"
+printf '%s\n' "$out_init" | awk '/^## Next prompt$/,/^## When done invoke$/' \
+  | grep -Fq 'When ## When done invoke states a precondition' \
+  || fail "init Next missing HOST_CONTINUE"
+printf '%s\n' "$out_init" | awk '/^## When done invoke$/,/^## Missing$/' \
+  | grep -Fq 'When ## When done invoke states a precondition' \
+  || fail "init When done missing HOST_CONTINUE"
+cont_n="$(printf '%s\n' "$out_init" | grep -cF 'When ## When done invoke states a precondition' || true)"
+[[ "$cont_n" -ge 2 ]] || fail "init stdout should print HOST_CONTINUE in Next and When done (got $cont_n)"
+printf '%s\n' "$out_init" | grep -Fq 'SKILL_ROOT' \
+  && fail "init stdout leaked SKILL_ROOT"
+if printf '%s\n' "$out_init" | grep -Eq 'python3 ["/]'; then
+  fail "init stdout leaked python3 path spelling"
+fi
 assert_absent "$out_init" 'shiploop update --run-dir' "init When done leaked update argv"
 python3 - "$run/state.json" <<'PY'
 import json, sys
@@ -1320,10 +1358,14 @@ printf '%s\n' "$out_hatch" | grep -q 'validate-spec: current' \
   || fail "hatch still validate-spec: $out_hatch"
 printf '%s\n' "$out_hatch" | grep -q 'complete --blocked' \
   || fail "hatch When done missing --blocked: $out_hatch"
+printf '%s\n' "$out_hatch" | grep -Fq 'When ## When done invoke states a precondition' \
+  || fail "hatch stdout missing HOST_CONTINUE"
 run_cli update --run-dir "$run" --to blocked --reason "what is the oracle?" --resume-to validate-spec >/dev/null
 out_blk="$(run_cli next --run-dir "$run")"
 printf '%s\n' "$out_blk" | grep -q 'blocked: current' || fail "blocked current: $out_blk"
 printf '%s\n' "$out_blk" | grep -q 'complete --reason' || fail "blocked When done missing complete --reason: $out_blk"
+printf '%s\n' "$out_blk" | grep -Fq 'When ## When done invoke states a precondition' \
+  && fail "blocked stdout still has HOST_CONTINUE"
 assert_absent "$out_blk" 'complete --blocked' "already-blocked packet printed --blocked"
 assert_absent "$out_blk" '/shiploop update' "blocked packet named slash update"
 assert_absent "$out_blk" 'more spec prose that must not be dumped later' "reminder dumped spec body"
@@ -1684,12 +1726,22 @@ printf '%s\n' "$out_imp" | awk '/^## When done invoke$/,/^## Missing$/' \
 printf '%s\n' "$out_imp" | awk '/^## When done invoke$/,/^## Missing$/' \
   | grep -Fq 'invoke /shiploop complete' \
   || fail "implement when done missing flagless complete: $out_imp"
+INNER_A_CLOSER="When this step's produces is true and tests are green, invoke /shiploop complete"
+printf '%s\n' "$out_imp" | awk '/^## Progress$/,/^## Reminder$/' \
+  | grep -Fq "$INNER_A_CLOSER" \
+  || fail "implement Progress missing shared inner-A closer: $out_imp"
+printf '%s\n' "$out_imp" | awk '/^## Next prompt$/,/^## When done invoke$/' \
+  | grep -Fq "$INNER_A_CLOSER" \
+  || fail "implement Next missing shared inner-A closer: $out_imp"
 printf '%s\n' "$out_imp" | awk '/^## When done invoke$/,/^## Missing$/' \
-  | grep -Fq 'tests-until-green' \
-  || fail "implement when done missing tests-until-green: $out_imp"
+  | grep -Fq "$INNER_A_CLOSER" \
+  || fail "implement When done missing shared inner-A closer: $out_imp"
 printf '%s\n' "$out_imp" | awk '/^## When done invoke$/,/^## Missing$/' \
-  | grep -Fq 'keep working this Next' \
-  || fail "implement when done missing if/else keep working: $out_imp"
+  | grep -Fq 'Keep issuing this prompt' \
+  || fail "implement when done missing keep issuing: $out_imp"
+if printf '%s\n' "$out_imp" | grep -Fq 'If produces is not true yet'; then
+  fail "implement stdout still has produces-not-true menu"
+fi
 printf '%s\n' "$out_imp" | grep -Fq 'Git facts (not produces)' \
   || fail "implement Next missing git facts: $out_imp"
 printf '%s\n' "$out_imp" | awk '/^## When done invoke$/,/^## Missing$/' \
@@ -1710,10 +1762,8 @@ printf '%s\n' "$out_imp" | awk '/^## Progress$/,/^## Reminder$/' \
   | grep -Fq -- '--advance B' \
   && fail "implement Progress still names --advance B"
 printf '%s\n' "$out_imp" | awk '/^## Progress$/,/^## Reminder$/' \
-  | grep -Fq 'tests-until-green' \
-  || fail "implement Progress missing tests-until-green"
-printf '%s\n' "$out_imp" | awk '/^## Progress$/,/^## Reminder$/' | grep -q 'Implement until produces' \
-  || fail "implement Progress missing Implement until produces"
+  | grep -Fq 'tests are green' \
+  || fail "implement Progress missing tests-are-green closer"
 if printf '%s\n' "$out_imp" | awk '/^## Progress$/,/^## Reminder$/' \
   | grep -Fq 'when the /goal is done, commit on that worktree'; then
   fail "implement Progress still always-commit"
@@ -2095,6 +2145,9 @@ assert_absent "$out_res_miss" 'IMPROVE_GOAL' \
 printf '%s\n' "$out_res_miss" | awk '/^## Next prompt$/,/^## When done invoke$/' \
   | grep -Fq -- '--inner-loop' \
   && fail "residual Next used an implement inner-loop closer"
+printf '%s\n' "$out_res_miss" | awk '/^## When done invoke$/,/^## Missing$/' \
+  | grep -Fq -- '--improve' \
+  || fail "residual When done missing --improve: $out_res_miss"
 printf '%s\n' "$out_res_miss" | python3 -c "
 import sys
 text = sys.stdin.read()
@@ -2132,6 +2185,8 @@ grep -q 'Contracted end result — not harness-verified' "$run/recap.html" \
 printf 'LAYER: dest done writes recap.html OK\n'
 out_done="$(run_cli next --run-dir "$run")"
 printf '%s\n' "$out_done" | grep -q 'stop — no update' || fail "done stop: $out_done"
+printf '%s\n' "$out_done" | grep -Fq 'When ## When done invoke states a precondition' \
+  && fail "done stdout still has HOST_CONTINUE"
 printf '%s\n' "$out_done" | grep -q 'quality/publish were host-owned' \
   || fail "done Diagnosis missing host-owned quality: $out_done"
 printf '%s\n' "$out_done" | grep -q 'recap.html' || fail "done Look here missing recap.html: $out_done"
@@ -2188,6 +2243,8 @@ printf '%s\n' "$out_halted" | grep -q 'REVIEW_CONVERGE.md' \
   || fail "halted Look here missing REVIEW_CONVERGE: $out_halted"
 printf '%s\n' "$out_halted" | grep -q 'stop — no update' \
   || fail "halted stop: $out_halted"
+printf '%s\n' "$out_halted" | grep -Fq 'When ## When done invoke states a precondition' \
+  && fail "halted stdout still has HOST_CONTINUE"
 printf 'LAYER: stopped -> halted OK\n'
 
 # --- plan H2 waiver accept ---

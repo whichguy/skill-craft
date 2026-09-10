@@ -6,9 +6,11 @@ description: >-
   worktree/branch. Use when the user says shiploop, ship the project,
   session harness, or what's the next step. After every increment invoke
   /shiploop complete — do not rely on chat memory. Lost context without
-  completing → /shiploop next.
+  completing → /shiploop next. Issue this prompt — satisfy the printed
+  precondition, exec When done exactly, until When done says stop
+  (done / halted / blocked-ask).
 allowed-tools: all
-version: 0.8.27
+version: 0.8.29
 license: MIT
 platforms:
   - linux
@@ -29,11 +31,11 @@ metadata:
 **Package leaf:** `shiploop`
 
 CLI stdout: an outcome line (when the command prints one), then the banner,
-then the packet H2s, then a `Git ran:` trailer when the harness recorded
+then the H2s, then a `Git ran:` trailer when the harness recorded
 mutating git. Successful `init` / `complete` / `update` print
 `initialized …`, `updated -> …`, `completed <id>`, or `cleared <id>` first.
 `next` prints `next — claimed <ids> (<phase>)` or `next — reprint (<phase>)`.
-`complete-step` / `clear-step` / `inject-step` print no packet (Git ran
+`complete-step` / `clear-step` / `inject-step` print no H2s (Git ran
 still follows when git ran). On git/merge/dirty refuse, the trailer is
 on stderr with `error:`.
 
@@ -50,6 +52,10 @@ requires the sibling **backchain** skill (fail-closed via
 Reprint and closer live on this leaf (`/shiploop next`, `/shiploop complete`).
 There are no sibling marketplace skills for those verbs.
 
+**Issue this prompt. Satisfy the printed precondition, then exec When done
+exactly.** — **Host loop** after every stdout, same turn, until stop.
+Chat memory is not the SM.
+
 Practices: skill-craft `docs/LOOP-ENGINEERING.md` (ShipLoop session track).
 State files: [references/state-files.md](references/state-files.md).
 Survey guide: [references/survey.md](references/survey.md).
@@ -64,8 +70,8 @@ Human overview: [README.md](README.md).
 ## When not to use
 
 - Offline freeze/prove/stop → **`evidence-gates`**
-- Packet reprint only → `/shiploop next` (same leaf)
-- This prompt is done, want the next packet → `/shiploop complete` (same leaf)
+- Reprint only → `/shiploop next` (same leaf)
+- This prompt is done, want the next stdout → `/shiploop complete` (same leaf)
 - Residual×2 engine alone → **`review-coverage`** / **`review-converge`**
 
 ## Procedure
@@ -81,29 +87,24 @@ Human overview: [README.md](README.md).
      once. `--implementer host` is the only legal implementer.
    - **New ask on an existing run:** `init --force --prompt "…" --repo PATH`.
      Empty `--force` is refused before any wipe. `--force` does not delete
-     the product tree. Then follow the new packet.
+     the product tree. Then **Host loop** on the new stdout.
    - **state.json exists, same ask, phase is not `blocked`:** do not `init`
      again. Invoke `/shiploop next` (or `/shiploop complete` if an increment
      just finished) to reprint and continue.
    - **state.json exists, phase is `blocked`:** read `ask_user` /
-     `blocked_reason` / `resume_to` from the packet, resolve whatever it
+     `blocked_reason` / `resume_to` from stdout, resolve whatever it
      asked, then invoke `/shiploop complete --reason "…"` to resume.
      Wrappers refuse `update`; do not type `update --to`.
-4. Follow the whole packet. After every packet (`init` / `next` /
-   `complete`), echo the printed `## You are here` block and the Diagnosis
-   **now** / **pending** lines back to the user — do not summarize them
-   away. That is the live session rail (`status --human` reprints it).
-   Do only the **Next prompt** (first line is `Use this prompt as much as
-   possible.`). This skill **cannot invoke `/goal`**. Next is the prompt the
-   script returns, rehydrated from `.shiploop/` every turn. Do that work, then
-   invoke **exactly** `## When done invoke` (usually `/shiploop complete` with
-   no flags). The script infers the step action from the receipt and prints
-   the next prompt. `/shiploop next` reprints and claims; it does not advance
-   Implement/Improve. On implement: Frozen, Implement git, **Implement**
-   (produces, then tests-until-green) or **Improve** (one cycle; do not nest
-   Improve inside Implement). Do not paste HOST FLAG
-   (parent chat stays put; no re-root). Work in the named
-   worktree; do not edit the session checkout or reuse a prior worktree.
+4. **Host loop** (below). After every `init` / `next` / `complete` stdout,
+   issue the printed Next; satisfy any printed precondition; exec When done
+   exactly. Echo the printed `## You are here` block, Diagnosis **now** /
+   **pending**, the full `## Next prompt`, and the full `## When done
+   invoke` block. First line of Next is `Issue this prompt.` This skill
+   **cannot invoke `/goal`**. `/shiploop next` reprints and claims; it does
+   not advance Implement/Improve. On implement: Frozen, Implement git,
+   **Implement** or **Improve** (one cycle; do not nest). Do not paste HOST FLAG
+   (parent chat stays put; no re-root). Work in the named worktree; do not
+   edit the session checkout or reuse a prior worktree.
    Full workflow: [README.md](README.md). Git sequence (who runs which command):
    [README.md — Git sequence (harness vs host)](README.md#git-sequence-harness-vs-host).
    When several ids are running, finish one id's Implement + Improve + merge
@@ -120,7 +121,7 @@ Human overview: [README.md](README.md).
    (`git -C <session-checkout> merge --no-ff --no-edit`), keeps the step
    branch, removes the worktree, and does not squash, so inner Key learnings
    stay reachable from session HEAD; it prints Git ran, dests residual when
-   this was the last step, and prints the next packet.
+   this was the last step, and prints the next stdout.
    Do not merge from the worktree cwd. If complete dies, read Git ran /
    stderr, fix, retry. Do not type `complete-step --id` or `update --to`
    unless this card named an override (`--clear`, `--blocked --reason`,
@@ -128,18 +129,52 @@ Human overview: [README.md](README.md).
    complete is refused. See **Host flag — extra folder** before any
    implement until-loop. Stored DAG prompts may start with `/goal` bytes
    (a label, not a slash to invoke).
-6. Repeat until the packet says stop. Lost context without completing
-   anything → invoke **`/shiploop next`** (reprint / claim only).
+6. Stay in **Host loop** until When done says stop. Lost context without
+   completing anything → invoke **`/shiploop next`** (reprint / claim only),
+   then Host loop on that reprint.
 7. Mid-implement, discovered intermediate work → `inject-step` (see
    [commands/shiploop-inject.md](commands/shiploop-inject.md) and
    [references/activities/implement.md](references/activities/implement.md)).
+
+## Host loop
+
+The script is the only SM. **Issue this prompt. Satisfy the printed
+precondition, then exec When done exactly.** After every CLI stdout in
+**this same turn**:
+
+1. Echo the printed `## You are here` block, Diagnosis **now** /
+   **pending**, the full `## Next prompt` (not only its first line), and
+   the full `## When done invoke` block. Do not summarize them away. That
+   paste is the live rail; remembered stdout is not.
+2. **Issue** that **Next prompt** (do that work in this chat).
+3. When When done names a precondition, satisfy it (produces true + tests
+   green; or this Improve cycle was only-trivial), then exec the printed
+   command with no flags beyond the ones it printed and the host-owned
+   values it named (`--improve "<text>"`, `--reason <answer>`, `--id <sid>`).
+   Several steps running: exec one labeled `--id` closer, discard the rest
+   of that now-stale stdout, follow the new stdout.
+4. The new stdout is the next prompt to issue. Do not invent a next step
+   from chat. Uncertain whether a closer landed, or about to end the turn
+   without stop → exec `next`, then this loop.
+
+“No extra judgment” means **no command selection**, not “no evaluation.”
+Evaluating produces/tests is work the step already requires.
+
+Repeat 1–4 until **stop**:
+
+- When done is `stop — no update` (phase `done` or `halted`), or
+- phase `blocked` whose Next is ask the user.
+
+A When done that names `complete` (including `--trivial`, `--id`,
+`--clear`, `--reason`, `--improve`) is **not** a stop — exec it and issue
+the new stdout. Do not end the turn by narrating the next step.
 
 ## Host flag — extra folder (do not re-root)
 
 ShipLoop creates another folder for implement until-loops. Work there. The
 session checkout stays the merge dest. Do not re-root the host chat into
-that folder or the product repo unless the user asked. Printed packets
-repeat this block in **Progress** and the implement Next envelope
+that folder or the product repo unless the user asked. Printed stdout
+repeats this block in **Progress** and the implement Next envelope
 (stored `prompt`s stay verbatim):
 
 ```text
@@ -148,15 +183,16 @@ ShipLoop creates another folder: a per-step worktree under <repo>/.worktrees/shi
 Implementation work happens IN that worktree, not in the session checkout.
 Do not move_agent_to_root / re-root the host chat into that folder or the product repo unless the user asked.
 The session checkout stays the merge dest; do not edit it during implement.
-After a merge complete, the harness merges the kept branch into session HEAD and prints Git ran; the next packet names the next worktree.
+After a merge complete, the harness merges the kept branch into session HEAD and prints Git ran; the new stdout names the next worktree.
 ```
 
 ## Closer (`/shiploop complete`)
 
-This reports a result to the script. The script updates `.shiploop/` and
-prints the next packet. Calling it does not by itself mean the increment is
-finished. Follow [commands/shiploop-complete.md](commands/shiploop-complete.md)
-and **exactly** the printed When done line:
+This is the exec of the printed When done. The script updates `.shiploop/`
+and prints the next stdout — that is the next prompt to issue. Calling it
+does not by itself mean the increment is finished. Follow
+[commands/shiploop-complete.md](commands/shiploop-complete.md)
+and **exactly** the printed When done command:
 
 - **Success (default):** `/shiploop complete` with no flags. If When done
   named `--trivial`, `--improve`, `--reason`, or `--id`, pass those.
@@ -173,9 +209,9 @@ and **exactly** the printed When done line:
 - **Until-loop failed**, session can continue: `--clear` (add `--id` only when
   several steps are running and cwd is not that worktree).
 - **Hard stop:** `--blocked --reason <text>` (required). `--resume-to` only
-  if the packet named it.
+  if stdout named it.
 
-Then exec the leaf CLI (`complete`) and follow the whole packet that prints.
+Then exec the leaf CLI (`complete`) and **Host loop** on the new stdout.
 
 ## CLI
 
@@ -195,7 +231,7 @@ python3 "$CLI" inject-step [--run-dir DIR] --statement TEXT --prompt TEXT --prod
 
 The host closer is **`/shiploop complete`** (it execs `complete`).
 `complete` infers the unique running id or the happy-path `--to` from
-`.shiploop/` files, infers the step action, then prints the next packet.
+`.shiploop/` files, infers the step action, then prints the next stdout.
 Flagless `complete` advances Implement → Improve, records one Improve cycle
 (bare = material; `--trivial` = only-trivial), or merges after two
 consecutive only-trivial. `--advance` / `--improve-cycle` / `--inner-loop`

@@ -11,7 +11,7 @@ model: inherit
 Load and follow the **shiploop** skill (`skills/shiploop/SKILL.md` or the
 installed `shiploop` skill). Do not re-author the session procedure here.
 
-- Start / resume: skill card, then follow the packet.
+- Start / resume: skill card, then Host loop.
 - Reprint: `/shiploop next`.
-- Closer: `/shiploop complete` reports this prompt's result (leftover commit if When done is the merge), then the script prints the next packet.
-- After every packet, echo `## You are here` and Diagnosis now/pending.
+- Closer: `/shiploop complete` execs the printed When done (leftover commit if When done is the merge); the new stdout is the next prompt to issue.
+- After every stdout: SKILL.md Host loop (issue this prompt; satisfy any printed precondition; exec When done exactly).

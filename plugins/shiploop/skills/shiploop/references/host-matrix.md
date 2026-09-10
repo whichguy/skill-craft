@@ -23,13 +23,15 @@ not re-rooting the host chat (`move_agent_to_root`).
 Package leaf: **shiploop**. Reprint and closer are `/shiploop next` and
 `/shiploop complete` on this leaf.
 
-Grok cannot invoke `/goal` from this skill. The packet Next **is** the
+Grok cannot invoke `/goal` from this skill. The printed Next **is** the
 until-loop in the parent chat. Every `/shiploop next` / `complete` rehydrates
-from `.shiploop/` files; the skill holds no inner A/B. When done is if/else
-on facts not in files (`produces` true? this cycle trivial?). Complete a
-running implement step with flagless `/shiploop complete`. The script infers
-advance, one Improve cycle, or merge. Add `--trivial` when an Improve cycle
-was only-trivial. `--inner-loop parent --improve` remains an override. Use
+from `.shiploop/` files; the skill holds no inner A/B. When done is a bound
+directive on facts not in files (`produces` true + tests green? this cycle
+trivial?). Complete a running implement step with `/shiploop complete` when
+that is the printed command; add `--id` when several steps are running; dest
+done requires `--improve`. The script infers advance, one Improve cycle, or
+merge. Add `--trivial` when an Improve cycle was only-trivial.
+`--inner-loop parent --improve` remains an override. Use
 `--inner-loop goal` only if this host actually ran `/goal`. Emitted policy
 requires evidence; `--improve` does not dest-verify the claim. The script
 never auto-advances from git dirty/HEAD moved.

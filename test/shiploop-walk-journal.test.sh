@@ -205,7 +205,7 @@ assert_transition_return() {
   [[ "$n" -eq 1 ]] || fail "$msg: ## Next prompt count=$n want=1"
   local first
   first="$(packet_section "$LAST_OUT" "## Next prompt" "## When done invoke" | awk 'NR==1 { print; exit }')"
-  [[ "$first" == 'Use this prompt as much as possible.' ]] \
+  [[ "$first" == 'Issue this prompt.' ]] \
     || fail "$msg: Next first line=${first}"
   local second
   second="$(packet_section "$LAST_OUT" "## Next prompt" "## When done invoke" | awk 'NR==2 { print; exit }')"
@@ -240,9 +240,16 @@ for line in packet.splitlines():
         break
     if in_next:
         lines.append(line)
-if not lines or lines[0] != "Use this prompt as much as possible.":
-    sys.exit(f"{msg}: Next missing Use this prompt lead")
+if not lines or lines[0] != "Issue this prompt.":
+    sys.exit(f"{msg}: Next missing Issue this prompt lead")
 body = "\n".join(lines[1:]).rstrip()
+if phase not in mod.STOP_PHASES:
+    cont = mod.HOST_CONTINUE
+    if not body.startswith(cont):
+        sys.exit(f"{msg}: Next missing HOST_CONTINUE")
+    body = body[len(cont):].lstrip("\n")
+elif body.startswith(mod.HOST_CONTINUE):
+    sys.exit(f"{msg}: stop packet Next still has HOST_CONTINUE")
 if phase == "residual":
     if not body.startswith("Frozen session environment") or not body.endswith(expected):
         sys.exit(f"{msg}: residual Next must prefix Frozen before activity_body")
@@ -280,8 +287,8 @@ for line in packet.splitlines():
         break
     if in_next:
         lines.append(line)
-if not lines or lines[0] != "Use this prompt as much as possible.":
-    sys.exit(f"{msg}: Next missing Use this prompt lead")
+if not lines or lines[0] != "Issue this prompt.":
+    sys.exit(f"{msg}: Next missing Issue this prompt lead")
 rest = "\n".join(lines[1:])
 goal_n = sum(1 for ln in rest.splitlines() if re.match(r"^[ \t]*/goal\b", ln))
 # Inner A Next prints one stored /goal per running id (Improve B is a later file-state).
@@ -697,7 +704,7 @@ assert_next_has "tests-until-green" "L3 RETURN"
 assert_next_lacks "Until-loop B (receipt inner=B)" "L3 RETURN"
 assert_when_done_has "Step S1: write the file" "L3 RETURN"
 assert_when_done_has "invoke /shiploop complete" "L3 RETURN"
-assert_when_done_has "tests-until-green" "L3 RETURN"
+assert_when_done_has "tests are green" "L3 RETURN"
 assert_when_done_lacks "Finish S2:" "L3 RETURN"
 assert_when_done_lacks "complete-step" "L3 RETURN"
 assert_disk "$runL" "L3 DISK" "$DISK_IMP_S1RUN"
@@ -749,6 +756,7 @@ invoke_script next --run-dir "$runL"
 assert_transition_return "$runL" "next — reprint (residual)" activity "L6 RETURN"
 assert_no_walk "L6 RETURN"
 assert_session_closer "L6 RETURN"
+assert_when_done_has "--improve" "L6 RETURN"
 assert_next_h2_has "Review-coverage is **waived**" "L6 RETURN"
 assert_next_lacks "/goal step S" "L6 RETURN"
 assert_disk "$runL" "L6 DISK" '{"phase":"residual","receipts":{"S1":"complete","S2":"complete"}}'
@@ -907,6 +915,8 @@ assert_next_has "tests-until-green" "P1 RETURN"
 assert_next_has "tests-until-green" "P1 RETURN"
 assert_when_done_has "Step S1: write tests for the file" "P1 RETURN"
 assert_when_done_has "Step S2: write the implementation" "P1 RETURN"
+assert_when_done_has "--id S1" "P1 RETURN"
+assert_when_done_has "--id S2" "P1 RETURN"
 assert_when_done_lacks "complete-step" "P1 RETURN"
 
 printf 'CASE P3 PRE: both running; INVOKE: complete without --id\n'
@@ -928,6 +938,7 @@ assert_out_has "▶ S2  write the implementation" "P2 RETURN"
 assert_next_has "In flight — do not start a second until-loop" "P2 RETURN"
 assert_next_lacks "$S1_TWOROOT" "P2 RETURN"
 assert_when_done_has "Step S2: write the implementation" "P2 RETURN"
+assert_when_done_lacks "--id S2" "P2 RETURN"
 assert_when_done_lacks "Finish S1:" "P2 RETURN"
 assert_disk "$runP" "P2 DISK" '{"phase":"implement","receipts":{"S1":"complete","S2":"running"}}'
 printf 'LAYER: P parallel OK\n'
@@ -1442,7 +1453,7 @@ assert_next_has "invoke /shiploop complete" "Z3 RETURN"
 assert_next_has "tests-until-green" "Z3 RETURN"
 assert_next_has "tests-until-green" "Z3 RETURN"
 assert_when_done_has "Step S1: write the file" "Z3 RETURN"
-assert_when_done_has "Key learnings:" "Z3 RETURN"
+assert_next_has "Key learnings:" "Z3 RETURN"
 assert_when_done_lacks "complete-step" "Z3 RETURN"
 assert_disk "$runZ" "Z3 DISK" "$DISK_IMP_SOLO_RUN"
 

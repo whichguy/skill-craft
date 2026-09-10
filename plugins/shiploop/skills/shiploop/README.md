@@ -7,7 +7,7 @@ walk-back HTML recap exists.
 
 ShipLoop never conflict-resolves a merge and never claims engine `COMPLETE`.
 
-Package leaf: `skills/shiploop`. Invoke: `/shiploop`. Version: **0.8.27**.
+Package leaf: `skills/shiploop`. Invoke: `/shiploop`. Version: **0.8.29**.
 
 Canonical companions (do not duplicate their contracts here):
 
@@ -46,7 +46,7 @@ User / host
 
 | Layer | Lives in | Role |
 |-------|----------|------|
-| **Skill card** | `SKILL.md` | When to use, three-branch init, echo You are here |
+| **Skill card** | `SKILL.md` | When to use, three-branch init, Host loop |
 | **Slash / command cards** | `commands/shiploop.md`, `shiploop-next.md`, `shiploop-complete.md`, `shiploop-inject.md` | Thin host verbs. They do not implement the SM. |
 | **Leaf wrappers** | `scripts/shiploop-next`, `scripts/shiploop-complete` | Refuse the wrong subcommand, then `execv` the harness |
 | **Harness (stateless printer)** | `scripts/shiploop` | The only SM. Reads `.shiploop/`, checks hashes, claims steps, prints the packet. Does **not** invent implement `/goal` text. |
@@ -95,12 +95,14 @@ The host chat is not the controller (clear, compact, model swap). After
 invoke /shiploop (or next / complete)
   → scripts/shiploop is the only SM
   → read .shiploop/, check hashes, maybe claim a step
-  → print one turn packet
-  → host does only the Next prompt
-  → invoke /shiploop complete (or next if context was lost)
+  → print stdout
+  → issue this prompt (the printed Next)
+  → satisfy the precondition, exec When done exactly
+  → new stdout is the next prompt to issue
+  → repeat until When done says stop
 ```
 
-`SKILL.md` is when to use, three-branch init, and “echo You are here.”
+`SKILL.md` is when to use, three-branch init, and Host loop.
 Command cards are thin verbs. Leaf wrappers refuse `update` / the wrong
 subcommand, then `execv` the harness. Activity files are the exact
 Next-prompt body for every phase **except** in-flight implement (that
@@ -116,7 +118,7 @@ by the next packet H2 (`## When done invoke`). Jobs inside the body use
 | Channel | First line | How files get in |
 |---------|------------|------------------|
 | **Look here** | `Reference only — not the next action.` | **not interpolated.** `kind  abs-path  why`. `survey.md` has no `{{tokens}}` (they would print raw). |
-| **Next prompt** | `Use this prompt as much as possible.` | **is interpolated** (`activity_body` mapping) except in-flight implement, which prints the stored `prompt` **verbatim**. |
+| **Next prompt** | `Issue this prompt.` | **is interpolated** (`activity_body` mapping) except in-flight implement, which prints the stored `prompt` **verbatim**. |
 
 **Missing** is dest-scoped: `missing_for(state, run_dir, forward_dest())`.
 That is the same function `update --to` uses, **not** the same dest on
@@ -306,8 +308,9 @@ Command-level git (who runs `git worktree add` vs `merge --no-ff --no-edit`):
 `running` and creates `shiploop/<run_id>/<id>` worktrees under
 `<repo>/.worktrees/` (hidden via `.git/info/exclude`).
 
-**Next prompt** always starts with `Use this prompt as much as possible.`
-Then the harness prints worktree / branch / HOST FLAG, a **Frozen session
+**Next prompt** always starts with `Issue this prompt.`
+Non-stop stdout then prints HOST_CONTINUE. Then the harness prints worktree /
+branch / HOST FLAG, a **Frozen session
 environment** block (`mcp-considered` / `tools` / `mcp` / `Exclusive:` / `See:`),
 **Implement git**, **Implement**, each **running** step’s stored `prompt`
 **verbatim**. **Implement:** make produces true, then tests-until-green, then
@@ -519,8 +522,8 @@ or `next — reprint (<phase>)` first. `init` / `complete` / `update` print
 | **Progress** | HOST FLAG (extra worktree folder — do not re-root), then begin/finish this phase or running step: worktree folder, branch, session checkout, what complete does next. |
 | **Reminder** | Ask one-liner + frozen `done_sentence`. No body dump. |
 | **Look here** | First line `Reference only — not the next action.` Phase-scoped paths only. |
-| **Next prompt** | First line `Use this prompt as much as possible.` Implement: Frozen, Implement git, Implement, stored prompt (until produces), Improve (one cycle). Work Frozen + Implement git + stored prompt in this parent chat; **if** produces, tests-until-green then `complete`. Do not nest. Do not paste HOST FLAG. Other phases: the activity file. |
-| **When done invoke** | `invoke /shiploop complete` (plus `--clear` / `--blocked` when that is the hatch). |
+| **Next prompt** | First line `Issue this prompt.` Non-stop stdout then prints HOST_CONTINUE. Implement: Frozen, Implement git, Implement, stored prompt (until produces), Improve (one cycle). Work Frozen + Implement git + stored prompt in this parent chat; **if** produces, tests-until-green then `complete`. Do not nest. Do not paste HOST FLAG. Other phases: the activity file. |
+| **When done invoke** | Non-stop stdout prints HOST_CONTINUE first, then a bound `invoke /shiploop complete` (plus `--clear` / `--blocked` when that is the hatch). Stop stdout (done / halted / blocked) omits HOST_CONTINUE. |
 | **Missing** | dest-scoped `missing_for(..., forward_dest())` — not every load_* gap on every reprint. In-flight implement dest is `None`. |
 
 After Missing, when the harness recorded mutating git, a **Git ran:** trailer
