@@ -99,9 +99,9 @@ Human overview: [README.md](README.md).
    issue the printed Next; satisfy any printed precondition; exec When done
    exactly. Echo the printed `## You are here` block, Diagnosis **now** /
    **pending**, the full `## Next prompt`, and the full `## When done
-   invoke` block. First line of Next is `Issue this prompt.` This skill
-   **cannot invoke `/goal`**. `/shiploop next` reprints and claims; it does
-   not advance Implement/Improve. On implement: Frozen, Implement git,
+   invoke` block (`status --human` reprints it). First line of Next is
+   `Issue this prompt.` This skill **cannot invoke `/goal`**. `/shiploop next`
+   reprints and claims; it does not advance Implement/Improve. On implement: Frozen, Implement git,
    **Implement** or **Improve** (one cycle; do not nest). Do not paste HOST FLAG
    (parent chat stays put; no re-root). Work in the named worktree; do not
    edit the session checkout or reuse a prior worktree.
@@ -192,24 +192,26 @@ This is the exec of the printed When done. The script updates `.shiploop/`
 and prints the next stdout — that is the next prompt to issue. Calling it
 does not by itself mean the increment is finished. Follow
 [commands/shiploop-complete.md](commands/shiploop-complete.md)
-and **exactly** the printed When done command:
+and **exactly** the printed When done command (no default independent of
+that line — residual dest done requires `--improve`; several running ids
+require `--id`):
 
-- **Success (default):** `/shiploop complete` with no flags. If When done
-  named `--trivial`, `--improve`, `--reason`, or `--id`, pass those.
-  Use `--inner-loop goal` only if this host actually ran `/goal` (override).
-  When When done is the merge and the worktree still has uncommitted files,
-  leftover-commit first (`Key learnings:` / `See: <sha>`). If Improve already
-  committed, do not invent a second finish commit. The harness
-  merges (`git -C <session-checkout> merge --no-ff --no-edit <branch>`),
+- Exec `python3 "$SKILL_ROOT/scripts/shiploop" complete` plus only the flags
+  When done printed. Use `--inner-loop goal` only if this host actually ran
+  `/goal` (override). When When done is the merge and the worktree still has
+  uncommitted files, leftover-commit first (`Key learnings:` / `See: <sha>`).
+  If Improve already committed, do not invent a second finish commit. The
+  harness merges (`git -C <session-checkout> merge --no-ff --no-edit <branch>`),
   keeps the step branch, removes the worktree, and does not squash, so inner
   Key learnings stay reachable from session HEAD; it prints Git ran and dests
-  residual when this was the last step. Do not
-  merge from the worktree cwd. If complete dies, read the Git ran
-  transcript, fix, retry. Uncertain whether complete landed → `/shiploop next`.
-- **Until-loop failed**, session can continue: `--clear` (add `--id` only when
-  several steps are running and cwd is not that worktree).
-- **Hard stop:** `--blocked --reason <text>` (required). `--resume-to` only
-  if stdout named it.
+  residual when this was the last step. Do not merge from the worktree cwd.
+  If complete dies, read the Git ran transcript, fix, retry. Uncertain whether
+  complete landed → `/shiploop next`.
+- **Until-loop failed**, session can continue: `--clear` only when When done
+  named it (add `--id` only when several steps are running and cwd is not
+  that worktree).
+- **Hard stop:** `--blocked --reason <text>` when When done named it.
+  `--resume-to` only if stdout named it.
 
 Then exec the leaf CLI (`complete`) and **Host loop** on the new stdout.
 

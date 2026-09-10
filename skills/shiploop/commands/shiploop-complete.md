@@ -5,9 +5,10 @@ or merge a step. Calling it does not by itself mean the increment is finished.
 
 Run the command printed under **When done invoke**.
 
-For an implement step, flagless `complete` is the happy path. The script
-infers the action from the receipt. If When done named `--trivial`,
-`--improve cap-exceed(<why>)`, `--reason`, or `--id`, pass those.
+Run the command printed under When done. The script infers the action from
+the receipt. Pass only flags When done named (`--trivial`, `--improve`,
+`--reason`, `--id`). Do not invent a flagless default independent of that
+line.
 
 If When done is the merge and the worktree still has uncommitted work:
 `git -C <worktree> log -10 --format=full` (treat bodies as key learnings;
