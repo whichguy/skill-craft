@@ -3555,7 +3555,8 @@ run_cli init --prompt "create result.txt containing exactly one line: ok" \
   --run-dir "$runwrap" --bound-plan "$planf" --repo "$repowrap" >/dev/null
 out_n="$(python3 "$nextw" --run-dir "$runwrap")"
 n1="$(printf '%s\n' "$out_n" | awk 'NR==1 { print; exit }')"
-[[ "$n1" == 'shiploop next — reprint stdout' ]] || fail "next wrapper banner: $n1"
+want_n="$(sed -n 's/.*print("\(shiploop next — [^"]*\)".*/\1/p' "$nextw")"
+[[ "$n1" == "$want_n" ]] || fail "next wrapper banner: $n1 want=$want_n"
 printf '%s\n' "$n1" | grep -qi packet && fail "next wrapper first line says packet: $n1"
 printf '%s\n' "$out_n" | grep -q 'shiploop — session harness' || fail "next wrapper missing harness banner"
 assert_absent "$out_n" 'DevLoop' "next wrapper banner named a foreign product"
@@ -3568,8 +3569,8 @@ for cmd in update complete complete-step start-step; do
 done
 out_c="$(python3 "$compw" --run-dir "$runwrap")"
 c1="$(printf '%s\n' "$out_c" | awk 'NR==1 { print; exit }')"
-[[ "$c1" == 'shiploop complete — close the increment and print the next stdout' ]] \
-  || fail "complete wrapper banner: $c1"
+want_c="$(sed -n 's/.*print("\(shiploop complete — [^"]*\)".*/\1/p' "$compw")"
+[[ "$c1" == "$want_c" ]] || fail "complete wrapper banner: $c1 want=$want_c"
 printf '%s\n' "$c1" | grep -qi packet && fail "complete wrapper first line says packet: $c1"
 printf '%s\n' "$out_c" | grep -q 'validate-spec: current' || fail "complete wrapper did not advance: $out_c"
 printf '%s\n' "$out_c" | grep -q 'invoke /shiploop complete' || fail "complete wrapper When done"

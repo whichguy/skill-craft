@@ -113,8 +113,15 @@ assert_no_next_packet() {
   fi
 }
 
-WRAP_COMPLETE='shiploop complete — close the increment and print the next stdout'
-WRAP_NEXT='shiploop next — reprint stdout'
+# Banner SoT is the wrapper print(); do not retype it here.
+WRAP_NEXT="$(sed -n 's/.*print("\(shiploop next — [^"]*\)".*/\1/p' \
+  "$root/skills/shiploop/scripts/shiploop-next")"
+WRAP_COMPLETE="$(sed -n 's/.*print("\(shiploop complete — [^"]*\)".*/\1/p' \
+  "$root/skills/shiploop/scripts/shiploop-complete")"
+[[ -n "$WRAP_NEXT" && -n "$WRAP_COMPLETE" ]] \
+  || fail "could not read wrapper banners from scripts/shiploop-next|complete"
+printf '%s\n' "$WRAP_NEXT" "$WRAP_COMPLETE" | grep -qi packet \
+  && fail "wrapper banner still says packet"
 
 invoke_wrapper() {
   local verb="$1"
