@@ -12,8 +12,10 @@ its output is `environment.md` (Look here names the absolute path).
   tree without replacing it. Greenfield is always `augment: false`.
 - **references** — concrete paths **or URLs** that inform this increment,
   each with a one-line `why`. Include existing `README.md` (read it; do not
-  rewrite it — see below), prior specs, ADRs, official docs, skill/reference
-  files, and MCP resource URIs. After the first inventory, run **best-practice
+  rewrite it — see below), `AGENTS.md` at bound repo root if it exists (`why`
+  names standing agent contract, not “inventory”; do not write it — see
+  below), prior specs, ADRs, official docs, skill/reference files, and MCP
+  resource URIs. After the first inventory, run **best-practice
   research** (validate-spec job 2) and append those findings here before
   writing the spec. If an observed MCP server or its tools document how to
   use them, that text is a reference — inventory alone is not enough.
@@ -133,6 +135,16 @@ incomplete when you stop to ask.
 Survey **reads** `README.md` if it exists (cite it in `references`) but must
 **not** write or rewrite it. Mutating the product tree before the spec is
 frozen is a spec-adjacent action, not a survey action. The README create (if
-absent) or revise (if present) is the increment's **final product duty**,
-written from `spec.md` and executed as a late DAG successor during
-`plan`.
+absent) or revise (if present) is a required late product-doc DAG successor
+during `plan`, not a survey write.
+
+## AGENTS.md is not survey's to write
+
+Survey **reads** bound `repo_root/AGENTS.md` **IF EXISTS** (cite it in
+`references` with `why` naming standing agent contract, not “inventory”) but
+must **not** write or rewrite it. Absent: omit. Do not invent. Do not
+dest-block. Nested `AGENTS.md` under subdirs is out of v1. The AGENTS.md
+create (if absent) or revise (if present) is a required late product-doc DAG
+successor during `plan`, same grain as README — pointer-only standing facts
+for later agents, not session SoT. Do not absorb unique dest receipts
+(`DEST_*.md`, `DESIGN.md`, `REVIEW_CONVERGE.md`) into it.

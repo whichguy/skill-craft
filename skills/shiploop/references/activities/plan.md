@@ -22,6 +22,16 @@ phase. It must record what the app is, how to run it, and what this
 increment changed; it must never contain machine JSON, handles, tokens, MCP
 inventory, or session hashes (those stay in `{{ENV_MD}}`).
 
+Include an **AGENTS.md create or revise** as a **late DAG successor** — same
+grain as README, not a new state-machine phase. Create if absent at bound
+repo root; revise if present. They may share one conclude seed or be two
+seeds; `produces` must name `AGENTS.md`. Body is standing agent facts for
+later agents: dest writer name, user entrypoint, and **pointers** to unique
+dest/docs (`DEST_*.md`, `DESIGN.md`, `REVIEW_CONVERGE.md`, product README).
+Do **not** absorb those unique files. Never machine JSON, handles, tokens,
+MCP inventory, or session hashes. Do not restate Frozen Exclusive / routing
+/ lint-oracle as a competing SoT — Frozen wins this session.
+
 Call the installed **backchain** skill **once**, native procedure: draft →
 dependency review → host resolve into `resolved_facts` → elaborate. Call it
 with the frozen done sentence **and** the full `{{ENV_MD}}` (machine JSON
@@ -111,7 +121,7 @@ seed `prompt`. Split work so one-time jobs run once:
   seed whose `produces` is that setup. Later `/goal`s must not repeat it.
 - **Iterate** — middle seeds. Each `/goal` is only this step until its
   own `produces`. Assume suppliers and `initial_state`.
-- **Conclude (once)** — late seed (README / cleanup) and/or residual
+- **Conclude (once)** — late seed (README / AGENTS.md / cleanup) and/or residual
   (quality `/goal`, outer-loop publish). Not in middle steps.
 
 Examples (instructive):
@@ -207,7 +217,9 @@ See `{{IMPLEMENT_ACTIVITY}}`.
 Frozen reprint repeats Reserved, Product, and Entrypoint after Exclusive rows,
 then says `Don't write product into Reserved.` When Exclusive rows exist it
 also prints the Lint oracle line (writer lint/validate is dest-syntax SoT;
-dest list/position beats a local walk). The seed's `Don't write:` line
+dest list/position beats a local walk). When bound `repo_root/AGENTS.md` is a
+file, Frozen then prints one Product AGENTS.md pointer (not session SoT; do
+not paste the body). The seed's `Don't write:` line
 is the plan-time guard that reaches the stored prompt; do not rely on an
 in-flight implement instruction to supply it.
 

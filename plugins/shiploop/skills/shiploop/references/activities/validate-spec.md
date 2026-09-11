@@ -5,7 +5,9 @@ State files: `{{SURVEY_GUIDE}}` and `{{STATE_FILES}}`.
 
 Inventory this session against `{{SURVEY_GUIDE}}`: kind/augment, references
 (read `{{REPO_ROOT}}/README.md` if it exists and cite it — do **not** write
-or rewrite it here), tools, mcp, mcp_considered, exclusive, handles, initiation,
+or rewrite it here; **IF EXISTS** cite `{{REPO_ROOT}}/AGENTS.md` with `why`
+naming standing agent contract, not “inventory” — do **not** write or rewrite
+it here; absent: omit, do not invent, do not dest-block), tools, mcp, mcp_considered, exclusive, handles, initiation,
 ui/ui_craft. `kind` and `augment` must match (`greenfield`/`false`,
 `brownfield`/`true`); brownfield `references` must be nonempty. `tools`/`mcp`
 are available **and in-bounds** this increment (dest-writes can succeed now,
@@ -164,7 +166,7 @@ When `exclusive` is nonempty, keep `references` nonempty. Do not invent a
 Writer playbook heading. Do not write `playbook.md`. Do not restate the
 exclusive map in prose. Do not invent a second SoT file. Do not persist
 secrets. Do not freeze signed-in account addresses; write "signed in as the
-expected account". Do not freeze live dest URLs. Do not write the product README. Do not add research skills to
+expected account". Do not freeze live dest URLs. Do not write the product README. Do not write product AGENTS.md. Do not add research skills to
 `dep_roots`. Those references must later appear in each seed step's stored
 `prompt` together with a `Tools:` block that carries the frozen
 `mcp_considered` token. In-flight runs: dest blocked → validate-spec;
@@ -195,9 +197,13 @@ When `ui` is false, skip this block.
 Write `{{SPEC_MD}}` with a labeled line `done_sentence: <exact sentence>`
 and a labeled line `checkable: true` or `checkable: false` (each exactly
 once, outside fences/blockquotes). Derive a machine-checkable
-`done_sentence`. Do not invent pytest, a path, or a cwd. The spec's final
-product duty is a README create (if absent) or revise (if present) — tell
-backchain to add that as a late DAG successor in `plan`, not here.
+`done_sentence`. Do not invent pytest, a path, or a cwd. The spec's product-doc
+duties are a README create (if absent) or revise (if present) **and** an
+AGENTS.md create (if absent) or revise (if present) — tell backchain to add
+both as late DAG successors in `plan`, not here. AGENTS.md is standing agent
+facts for later agents (pointers to unique dest/docs; never machine JSON,
+handles, tokens, or session hashes). Do not absorb unique dest receipts into
+it. Frozen Exclusive/routing/lint-oracle stay session SoT.
 If dest-hit found a reserved default entrypoint, `done_sentence` names the
 **user** entrypoint, not the default dest URL.
 

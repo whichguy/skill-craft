@@ -79,10 +79,23 @@ post-bind edits.
 
 Not a `.shiploop/` state file — it lives in the bound repo tree. Survey reads
 it (if present) and cites it in `environment.md.references`; `validate-spec`
-never writes it. The spec's final product duty is a README create/revise as
-a late DAG successor (see `plan.md`, `survey.md`). It must never contain
+never writes it. The spec's product-doc duties include a README create/revise
+as a late DAG successor (see `plan.md`, `survey.md`). It must never contain
 machine JSON, handles, tokens, MCP inventory, or session hashes — those stay
 in `environment.md`. `init --force` never deletes it.
+
+## Product `AGENTS.md`
+
+Not a `.shiploop/` state file — it lives at bound `repo_root/AGENTS.md`.
+Survey cites it **IF EXISTS** (`why` = standing agent contract) and never
+writes it; absence is not dest-block. Spec/plan seed a create (absent) or
+revise (present) as a late DAG successor, same grain as README (prompt-driven;
+not a dest-implement machine gap; not hashed). Body is standing agent facts
+for later agents: pointers to unique dest/docs, never machine JSON, handles,
+tokens, or session hashes. Do not absorb unique dest receipts. Frozen may
+print a live pointer when the file exists (not session SoT; Exclusive /
+routing / lint-oracle win on conflict this session). Nested copies under
+subdirs are out of v1. `init --force` never deletes it.
 
 ## End-of-run `recap.html`
 

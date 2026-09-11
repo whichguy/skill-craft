@@ -44,8 +44,10 @@ LAST_ERR=""
 
 assert_next_h2_has() {
   local needle="$1" msg="$2"
-  packet_section "$LAST_OUT" "## Next prompt" | grep -Fq -- "$needle" \
-    || fail "$msg: H2-bounded Next missing ${needle}"
+  local body
+  body="$(packet_section "$LAST_OUT" "## Next prompt")"
+  printf '%s\n' "$body" | grep -Fq -- "$needle" \
+    || fail "$msg: H2-bounded Next missing ${needle} (next-head=$(printf '%s' "$body" | head -c 500 | tr '\n' '|'))"
 }
 
 invoke_script() {

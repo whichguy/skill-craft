@@ -196,6 +196,33 @@ for tok in prep "intermediate deploy" cleanup; do
 done
 grep -q 'outer-loop' "$root/skills/shiploop/references/activities/plan.md" \
   || fail "plan.md missing outer-loop publish placement"
+grep -Fq 'AGENTS.md create or revise' \
+  "$root/skills/shiploop/references/activities/plan.md" \
+  || fail "plan.md missing AGENTS.md late successor"
+grep -Fq 'Do **not** absorb' \
+  "$root/skills/shiploop/references/activities/plan.md" \
+  || fail "plan.md missing AGENTS.md pointer-not-absorb"
+grep -Fq 'standing agent contract' \
+  "$root/skills/shiploop/references/survey.md" \
+  || fail "survey.md missing AGENTS.md standing agent contract why"
+grep -Fq 'AGENTS.md is not survey' \
+  "$root/skills/shiploop/references/survey.md" \
+  || fail "survey.md missing AGENTS.md is not survey's to write"
+grep -Fq 'Do not write product AGENTS.md' \
+  "$root/skills/shiploop/references/activities/validate-spec.md" \
+  || fail "validate-spec.md missing do not write product AGENTS.md"
+grep -Fq 'AGENTS.md create' \
+  "$root/skills/shiploop/references/activities/validate-spec.md" \
+  || fail "validate-spec.md missing AGENTS.md create/revise duty"
+grep -Fq 'IF EXISTS' \
+  "$root/skills/shiploop/references/survey.md" \
+  || fail "survey.md missing AGENTS.md IF EXISTS"
+grep -Fq '## Product `AGENTS.md`' \
+  "$root/skills/shiploop/references/state-files.md" \
+  || fail "state-files.md missing Product AGENTS.md"
+grep -Fq 'AGENTS.md create-or-revise' \
+  "$root/docs/LOOP-ENGINEERING.md" \
+  || fail "LOOP-ENGINEERING missing AGENTS.md create-or-revise"
 grep -q 'Deploy preparation before the walk' "$root/skills/shiploop/references/activities/validate-spec.md" \
   || fail "validate-spec.md missing deploy-prep question"
 grep -q 'Deploy / publish after the walk' "$root/skills/shiploop/references/activities/validate-spec.md" \
@@ -1930,6 +1957,8 @@ printf '%s\n' "$out_imp" | grep -q 'mcp-considered: none(no read-capable session
 printf '%s\n' "$out_imp" | grep -q 'tools: (none)' || fail "implement Next missing tools: (none)"
 printf '%s\n' "$out_imp" | grep -q 'mcp: (none)' || fail "implement Next missing mcp: (none)"
 printf '%s\n' "$out_imp" | grep -q 'Exclusive: (none)' || fail "implement Next missing Exclusive: (none)"
+assert_absent "$out_imp" 'Product AGENTS.md' \
+  "linear implement Frozen printed Product AGENTS.md without the file"
 printf '%s\n' "$out_imp" | grep -q 'Implement git (use with Frozen in the parent chat' \
   || fail "implement Next missing Implement git"
 printf '%s\n' "$out_imp" | grep -Fq "This worktree forked from session HEAD when this id was claimed. Ids claimed in the same call do not see each other's merges; the next claim forks the HEAD after this merge." \
@@ -4667,8 +4696,57 @@ assert "tools:" in out and "mcp: writer-mcp" in out, out
 assert "Exclusive: (not recorded in this legacy run)" in out, out
 assert "Lint oracle:" not in out, out
 assert "Playbook:" not in out, out
+assert "Product AGENTS.md" not in out, out
 PY
 printf 'LAYER: F1 missing exclusive does not blank Frozen OK\n'
+
+python3 - "$cli" "$tmpdir/agents-env" "$tmpdir/agents-repo" <<'PY' || fail "Frozen AGENTS.md pointer unit"
+import importlib.machinery, importlib.util, io, sys
+from pathlib import Path
+cli = Path(sys.argv[1])
+loader = importlib.machinery.SourceFileLoader("shiploop", str(cli))
+spec = importlib.util.spec_from_loader("shiploop", loader)
+mod = importlib.util.module_from_spec(spec)
+loader.exec_module(mod)
+run = Path(sys.argv[2])
+repo = Path(sys.argv[3])
+run.mkdir(parents=True)
+repo.mkdir(parents=True)
+unique = "UNIQUE_AGENTS_BODY_SENTENCE_do_not_reprint"
+(repo / "AGENTS.md").write_text(unique + "\n", encoding="utf-8")
+(run / "environment.md").write_text(
+    "brief\n\n## machine\n```json\n"
+    '{"kind": "greenfield", "augment": false, "references": [], "tools": [],'
+    ' "mcp": [], "mcp_considered": "none(x)", "handles": [],'
+    ' "initiation": "none", "ui": false, "ui_craft": "none(no UI)",'
+    ' "exclusive": []}'
+    "\n```\n"
+)
+state = {"repo_root": str(repo)}
+buf = io.StringIO()
+old = sys.stdout
+sys.stdout = buf
+mod.print_frozen_session_env(run, state)
+sys.stdout = old
+out = buf.getvalue()
+agents_path = str((repo / "AGENTS.md").resolve())
+see_i = out.find("See: ")
+ptr_i = out.find("Product AGENTS.md (not session SoT):")
+assert see_i != -1 and ptr_i != -1 and see_i < ptr_i, out
+assert agents_path in out, out
+assert "win on conflict this session" in out, out
+assert unique not in out, out
+assert "none(" not in out.split("Product AGENTS.md", 1)[-1], out
+(repo / "AGENTS.md").unlink()
+buf = io.StringIO()
+sys.stdout = buf
+mod.print_frozen_session_env(run, state)
+sys.stdout = old
+out_miss = buf.getvalue()
+assert "Product AGENTS.md" not in out_miss, out_miss
+assert "none(" not in out_miss or "mcp-considered: none(x)" in out_miss
+PY
+printf 'LAYER: Frozen AGENTS.md pointer OK\n'
 
 bash "$root/test/shiploop-walk-journal.test.sh" \
   || fail "shiploop-walk-journal.test.sh"

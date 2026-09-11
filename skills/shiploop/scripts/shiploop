@@ -23,7 +23,7 @@ EXIT_BLOCKED = 2
 EXIT_USAGE = 64
 
 PACKAGE_ROOT = Path(__file__).resolve().parents[1]
-VERSION = "0.8.31"
+VERSION = "0.8.32"
 REF_DIR = PACKAGE_ROOT / "references"
 WT_DIRNAME = ".worktrees"
 NEXT_LEAD = "Issue this prompt."
@@ -3321,7 +3321,9 @@ def print_improve(rec: Optional[Dict[str, Any]] = None) -> None:
     )
 
 
-def print_frozen_session_env(run_dir: Path) -> None:
+def print_frozen_session_env(
+    run_dir: Path, state: Optional[Dict[str, Any]] = None
+) -> None:
     """Reprint frozen tools/MCP above the stored prompt. Do not compose it."""
     print(
         "Frozen session environment (do not re-survey; "
@@ -3381,6 +3383,15 @@ def print_frozen_session_env(run_dir: Path) -> None:
     if isinstance(layout, dict) and isinstance(routing, dict):
         print("Don't write product into Reserved.")
     print(f"See: {(run_dir / 'environment.md').resolve()}")
+    if state is None:
+        return
+    agents = repo_of(state) / "AGENTS.md"
+    if agents.is_file():
+        print(
+            "Product AGENTS.md (not session SoT): "
+            f"{agents.resolve()} — standing repo facts for later agents; "
+            "Frozen Exclusive/routing/lint-oracle win on conflict this session."
+        )
 
 
 def print_progress(
@@ -3905,7 +3916,7 @@ def print_packet(run_dir: Path, state: Dict[str, Any], *, prior_running: Optiona
                 print(f"Branch: {br}")
             print("Do not edit the session checkout during this until-loop.")
             print_host_worktree_flag()
-            print_frozen_session_env(run_dir)
+            print_frozen_session_env(run_dir, state)
             print_implement_git(state, sid, rec)
             print_worktree_git_facts(rec)
             inner = receipt_inner(rec)
@@ -3941,7 +3952,7 @@ def print_packet(run_dir: Path, state: Dict[str, Any], *, prior_running: Optiona
                 print_improve(rec)
     else:
         if phase == "residual":
-            print_frozen_session_env(run_dir)
+            print_frozen_session_env(run_dir, state)
         print(activity_body(phase, run_dir, state))
     print()
     print("## When done invoke")

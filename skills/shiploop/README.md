@@ -7,7 +7,7 @@ walk-back HTML recap exists.
 
 ShipLoop never conflict-resolves a merge and never claims engine `COMPLETE`.
 
-Package leaf: `skills/shiploop`. Invoke: `/shiploop`. Version: **0.8.31**.
+Package leaf: `skills/shiploop`. Invoke: `/shiploop`. Version: **0.8.32**.
 
 Canonical companions (do not duplicate their contracts here):
 
@@ -185,7 +185,7 @@ only phase list the script (`PHASES` / `forward_dest` / `legal_edge`) knows.
 
 `--force` wipes **session** files (`environment.md`, `spec.md`, DAG, receipts,
 `recap.html`, leftover `playbook.md`, leftover json twins). It does **not** delete the product tree
-(app sources, product `README.md`).
+(app sources, product `README.md`, product `AGENTS.md`).
 
 `--implementer host` is the only legal implementer. `init --repo PATH`
 without `--run-dir` writes `PATH/.shiploop`, not `$PWD/.shiploop`.
@@ -207,7 +207,8 @@ One phase, **three jobs in order**. Guide: `references/survey.md`. Activity:
    `references`, `tools`, `mcp`, `mcp_considered`, `exclusive`, `handles`, `initiation`,
    `ui`, `ui_craft`. **IF EXISTS** read product `README.md`, ADRs, CI,
    `AGENTS.md`, leftover `.specify/memory/constitution.md` — cite, do not
-   invent. Do **not** write the product README here.
+   invent. Do **not** write the product README or product AGENTS.md here
+   (`AGENTS.md` IF EXISTS: cite with `why` naming standing agent contract).
 2. **Research practices** from the ask + that inventory. Pull URLs, in-repo
    paths, official docs, skill references, MCP resource URIs. If an MCP
    server or its tools **document how to use them**, that text is a
@@ -229,8 +230,10 @@ One phase, **three jobs in order**. Guide: `references/survey.md`. Activity:
    If the writer above fails, stop and invoke /shiploop complete --blocked --reason … — do not switch writers.
 3. **Write spec** `.shiploop/spec.md`: labeled `done_sentence:` and
    `checkable: true|false` exactly once at line start, outside fences. The
-   spec’s **final product duty** is a README create (absent) or revise
-   (present) — as a late DAG step in **plan**, not a validate-spec write.
+   spec’s **product-doc duties** are a README create (absent) or revise
+   (present) **and** an AGENTS.md create (absent) or revise (present) — as
+   late DAG steps in **plan**, not a validate-spec write. AGENTS.md is
+   standing agent facts (pointers to unique dest/docs; never session hashes).
    While expanding the spec, also answer: deploy preparation before the
    walk (yes/what or none); deploy/publish after the walk (**outer-loop**,
    **dag**, or **none**); and whether residual should run a `/goal`
@@ -282,7 +285,8 @@ Each seed `prompt` must cite every `references[].path` from `environment.md`,
 and end with a `Tools:` block (Watch with / Use /
 Don't use / Assume) that includes the frozen `mcp_considered` token and each
 `exclusive[].dont_use` token. Include prep / intermediate deploy / cleanup when implied,
-and a **README create/revise as a late successor**. The spec's three
+and a **README create/revise** plus an **AGENTS.md create/revise as late
+successors**. The spec's three
 placement answers decide which of those fire: deploy preparation *is* the
 early prep step; **dag** publish *is* the deploy step; **outer-loop**
 publish and a quality `/goal` stay out of the DAG (residual owns them).
@@ -311,7 +315,8 @@ Command-level git (who runs `git worktree add` vs `merge --no-ff --no-edit`):
 **Next prompt** always starts with `Issue this prompt.`
 Non-stop stdout then prints HOST_CONTINUE. Then the harness prints worktree /
 branch / HOST FLAG, a **Frozen session
-environment** block (`mcp-considered` / `tools` / `mcp` / `Exclusive:` / `See:`),
+environment** block (`mcp-considered` / `tools` / `mcp` / `Exclusive:` / `See:` /
+optional Product AGENTS.md pointer when that file exists),
 **Implement git**, **Implement**, each **running** step’s stored `prompt`
 **verbatim**. **Implement:** make produces true, then lint-after-write then tests-until-green, then
 `/shiploop complete` (no merge; script prints Improve). **Else** keep working /
@@ -503,8 +508,10 @@ its own pair; never share one parent Improve turn across ids. Complete needs
    call re-claims newly ready ids or dests residual when this was the last
    step. The next worktree forks `HEAD`.
 
-Product `README.md` is not session state (survey reads it; last DAG step
-writes it; `--force` never deletes it).
+Product `README.md` and product `AGENTS.md` are not session state (survey
+reads them IF EXISTS; last DAG step writes/revises them; `--force` never
+deletes them). AGENTS.md is standing agent facts for later agents, not
+session SoT.
 
 ---
 
@@ -555,7 +562,7 @@ Do not hand-edit the plugin copy.
 |-------|--------|------|
 | Skill package | `skills/shiploop/` | How to run: `SKILL.md`, `commands/`, `references/activities/`, `survey.md`, `state-files.md`, `turn-packet.md`, `transitions.json`, `scripts/` |
 | Run dir | `<repo>/.shiploop/` | This session’s durable state |
-| Product repo | bound `repo_root` | App tree, `.worktrees/`, `REVIEW_CONVERGE.md`, product `README.md` |
+| Product repo | bound `repo_root` | App tree, `.worktrees/`, `REVIEW_CONVERGE.md`, product `README.md`, product `AGENTS.md` |
 
 **How prompts use files**
 
@@ -649,6 +656,12 @@ only and stamps existing receipts so completed work stays done.
 Survey reads it; the last DAG step writes it. Never put machine keys, handles,
 or secrets there. `--force` never deletes it.
 
+**Product `AGENTS.md`** is **not** session state. Survey cites it IF EXISTS
+and never writes it. Plan seeds a create (absent) or revise (present) as a
+late successor, same grain as README. Pointers to unique dest/docs; never
+machine JSON or session hashes. Frozen may pointer it when present (not
+session SoT). `--force` never deletes it.
+
 ---
 
 ## Session A vs Session B
@@ -656,7 +669,8 @@ or secrets there. `--force` never deletes it.
 | | Session A — greenfield | Session B — brownfield |
 |---|---|---|
 | `environment.md` | `kind: greenfield`, `augment: false` | `kind: brownfield`, `augment: true`; cites existing README and app paths |
-| Product `README.md` | created as the **last** product DAG step | revised as the **last** product DAG step |
+| Product `README.md` | created as a **late** product DAG step | revised as a **late** product DAG step |
+| Product `AGENTS.md` | created as a **late** product DAG step (thin standing agent contract) | revised as a **late** product DAG step |
 | `initiation` | often `needed` + a `create` handle | often `none` or `done` (inspect an existing container) |
 | Everything else | same SM, hashes, worktrees, stored prompts | same |
 
