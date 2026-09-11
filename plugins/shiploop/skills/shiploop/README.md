@@ -315,8 +315,8 @@ environment** block (`mcp-considered` / `tools` / `mcp` / `Exclusive:` / `See:`)
 **Implement git**, **Implement**, each **running** step’s stored `prompt`
 **verbatim**. **Implement:** make produces true, then tests-until-green, then
 `/shiploop complete` (no merge; script prints Improve). **Else** keep working /
-`/shiploop next`. **Improve** is one cycle; `/shiploop complete` (or
-`--trivial` if only-trivial). After two consecutive only-trivial, leftover +
+`/shiploop next`. **Improve** is one cycle; `invoke /shiploop complete`, adding
+`--trivial` when only-trivial. After two consecutive only-trivial, leftover +
 flagless `/shiploop complete` merges (`--inner-loop goal` only if this
 host actually ran `/goal`). Do not paste HOST FLAG.
 Implement git names the worktree, branch, and session checkout
@@ -335,7 +335,7 @@ follow every `See: <sha>`. Pathspec commit on the worktree (never
 Do not merge from the worktree cwd.
 
 When Implement produces is true: tests-until-green then `complete`, then
-Improve one cycle at a time (`complete` or `complete --trivial`), leftover
+Improve one cycle at a time (`invoke /shiploop complete`, adding `--trivial` when only-trivial), leftover
 uncommitted work gets the same Implement git schema (log -10,
 `Key learnings:`, `See: <sha>`), then flagless
 `/shiploop complete`. `--inner-loop parent --improve` remains an override. Use

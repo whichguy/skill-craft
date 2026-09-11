@@ -2,9 +2,9 @@
 
 **Target paths:** `skills/shiploop/`, `agents/shiploop.md`, `docs/LOOP-ENGINEERING.md`, `skills/devloop/references/loop-engineering.md`, `test/shiploop.test.sh`, `test/shiploop-walk-journal.test.sh`, `test/run-all.sh`, `plugins/shiploop/`, `plugins/devloop/`
 **Test command:** `bash test/shiploop.test.sh && bash test/shiploop-walk-journal.test.sh && bash scripts/sync-plugin-views.sh --check shiploop devloop`
-**Started:** 2026-09-10          **Status:** complete
-**Round counter:** 3
-**Consecutive clean rounds:** 2
+**Started:** 2026-09-10          **Status:** active
+**Round counter:** 4
+**Consecutive clean rounds:** 0
 **Known test-artifact paths:**
 **Plan contract:** `/Users/dadleet/.grok/sessions/%2FUsers%2Fdadleet%2Fsrc%2Ftic-tac-toe-oneshot/01a0887a-7a47-7193-9d4a-ef855b5b2559/goal/plan.md`
 **Plan hash:** none
@@ -51,3 +51,15 @@
 **Cycle result:** trivial-only
 **Material findings:** none
 **Key learnings:** Second consecutive trivial-only. SKILL/commands/agents still have no packet. closer_improve_cycle still one invoke. Plugin LOOP-ENGINEERING still cmp-equal. Do not rename print_packet / turn-packet.md / packet-level H2 (non-goals). Ready for wrap-up of deferred as waived-non-goal.
+
+### Round 4 — 2026-09-10
+**Review:** 2 material (skeptic), 0 new minor
+**Material findings:**
+- print_implement_git / print_improve still printed "Report this prompt's result using When done" / "Report it using When done" — same closer verb cycle 1 removed from LOOP-ENGINEERING, on the live Next envelope
+- README Implement prose still offered `/shiploop complete` (or `--trivial`) and (`complete` or `complete --trivial`); the pin grepped backtick-free `complete or complete --trivial` so it stayed green
+**Deferred (minor/P2):** header checklist unchanged (internal packet names, non-goals)
+**Outcome:** fixed
+**Cycle result:** material
+**Material findings:** 2
+**Key learnings:** Printed Next is a second home for the closer verb. HOST_CONTINUE and closer_improve_cycle can say exec while print_implement_git / print_improve still say Report. Pins must grep the Report literals and exec the real printers. README two-command menus hide behind backticks; pin the backticked form. Rubber-stamp ledger-only residual×2 does not close AC1. Streak resets.
+

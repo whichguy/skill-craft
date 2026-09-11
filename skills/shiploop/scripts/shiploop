@@ -3215,7 +3215,7 @@ def print_implement_git(
     print("  - <what this iteration taught>")
     print("  See: <full sha> <subject>")
     print(
-        "Do not merge from this cwd. Report this prompt's result using When done; "
+        "Do not merge from this cwd. Exec When done exactly as printed; "
         "the script prints the next action. complete does not always merge. "
         "After Improve is ready to merge, leftover uncommitted gets the same "
         "commit schema. Then invoke When done. The harness merges into the "
@@ -3261,7 +3261,7 @@ def print_goal_until(step: Dict[str, Any]) -> None:
     )
     print(
         "After produces is true, tests-until-green: author and run checkable "
-        "tests for this produces until they pass; do not report complete on a "
+        "tests for this produces until they pass; do not exec When done on a "
         "red check. test -f / N/A is not that check when dest contracts exist."
     )
 
@@ -3282,11 +3282,11 @@ def print_improve(rec: Optional[Dict[str, Any]] = None) -> None:
     else:
         print(
             "No check commands were recorded. Identify and run the declared "
-            "acceptance checks before reporting this cycle."
+            "acceptance checks before exec When done for this cycle."
         )
     print(IMPROVE_GOAL)
     print(
-        "This Next is one cycle. Report it using When done. "
+        "This Next is one cycle. Exec When done exactly as printed. "
         "Only the script decides whether another Improve cycle is needed."
     )
 

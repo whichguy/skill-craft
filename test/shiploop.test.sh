@@ -81,6 +81,26 @@ grep -Fq 'Add `--trivial` when this Improve cycle was only-trivial' \
 if grep -Fq 'complete or complete --trivial' "$root/skills/shiploop/README.md"; then
   fail "README mermaid still offers complete or complete --trivial"
 fi
+if grep -Fq '`complete` or `complete --trivial`' "$root/skills/shiploop/README.md"; then
+  fail "README still offers backticked complete or complete --trivial"
+fi
+if grep -Fq '`/shiploop complete` (or' "$root/skills/shiploop/README.md"; then
+  fail "README Improve still two-command (or --trivial)"
+fi
+grep -Fq 'adding `--trivial` when only-trivial' "$root/skills/shiploop/README.md" \
+  || fail "README missing one-invoke adding --trivial"
+if grep -Fq 'Report this prompt' "$cli"; then
+  fail "print_implement_git still Report this prompt"
+fi
+if grep -Fq 'Report it using When done' "$cli"; then
+  fail "print_improve still Report it using When done"
+fi
+if grep -Fq 'do not report complete' "$cli"; then
+  fail "print_goal_until still do not report complete"
+fi
+if grep -Fq 'before reporting this cycle' "$cli"; then
+  fail "print_improve still before reporting this cycle"
+fi
 python3 - "$cli" <<'PY' || fail "closer_improve_cycle is still two invokes / missing Add --trivial"
 from importlib.machinery import SourceFileLoader
 from importlib.util import module_from_spec, spec_from_loader
@@ -102,6 +122,32 @@ assert s2.count("invoke /shiploop complete") == 1, s2
 assert "--id S1" in s2, s2
 assert "Add --trivial" in s2, s2
 assert "instead" not in s2, s2
+PY
+python3 - "$cli" <<'PY' || fail "print_improve / print_implement_git still Report using When done"
+from importlib.machinery import SourceFileLoader
+from importlib.util import module_from_spec, spec_from_loader
+import contextlib, io, sys
+from pathlib import Path
+cli = sys.argv[1]
+loader = SourceFileLoader("shiploop_cli", cli)
+spec = spec_from_loader("shiploop_cli", loader)
+mod = module_from_spec(spec)
+loader.exec_module(mod)
+buf = io.StringIO()
+with contextlib.redirect_stdout(buf):
+    mod.print_improve(None)
+improve_out = buf.getvalue()
+assert "Report it using When done" not in improve_out, improve_out
+assert "Report this prompt" not in improve_out, improve_out
+assert "reporting this cycle" not in improve_out, improve_out
+assert "Exec When done exactly as printed" in improve_out, improve_out
+repo = str(Path(cli).resolve().parents[3])
+buf = io.StringIO()
+with contextlib.redirect_stdout(buf):
+    mod.print_implement_git({"repo_root": repo}, "S1", {"worktree": "", "branch": ""})
+git_out = buf.getvalue()
+assert "Report this prompt" not in git_out, git_out
+assert "Exec When done exactly as printed" in git_out, git_out
 PY
 if grep -Fq 'If produces is not true yet' "$cli"; then
   fail "script still prints produces-not-true menu"
