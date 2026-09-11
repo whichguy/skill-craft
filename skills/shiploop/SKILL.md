@@ -101,8 +101,9 @@ stage when it says `outer-loop`, and absent when it says `none`.
   forward draft and backwards dependency audit before importing the sequence.
 - **Survey constraints:** retain the environment writer route, destination
   conventions, reserved/product layout, lint and live identity oracle,
-  routing, references, and UI/design constraints. Do not invent a second
-  writer or a fallback when an exclusive writer fails.
+  routing, references, UI/design constraints, and any client–service
+  invocation contract. Do not invent a second writer or a fallback when an
+  exclusive writer fails.
 - **Implementation:** work only in the active per-step worktree. Add or
   expand meaningful tests that map to each exact `produces` value. Run lint
   after every production edit and run the required tests until successful.
@@ -162,7 +163,8 @@ by a forged JSON file.
 
 - [Survey guide](references/survey.md) and
   [validate-spec activity](references/activities/validate-spec.md): preserve
-  writer, routing, reserved-tree, and UI constraints.
+  writer, routing, reserved-tree, UI, and client–service invocation
+  constraints.
 - [Planning activity](references/activities/plan.md): make one validated DAG,
   include preparation/deployment placement and testable outputs.
 - [Implementation activity](references/activities/implement.md): worktree,

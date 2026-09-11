@@ -336,6 +336,35 @@ class ProtocolTests(unittest.TestCase):
         self.assertIn("context --section lifecycle", prompt)
         self.assertIn("exact", prompt)
 
+    def test_client_service_invocation_is_frozen_before_communication(self):
+        import shiploop_protocol
+
+        survey_guide = (SCRIPTS.parent / "references/survey.md").read_text()
+        self.assertIn("## Client–service invocation", survey_guide)
+        self.assertIn("before authoring any communication", survey_guide)
+        self.assertIn("Service-visible operations", survey_guide)
+        self.assertIn("Client call conventions", survey_guide)
+        self.assertIn("HTML-style client", survey_guide)
+        self.assertIn("substitute exec", survey_guide)
+
+        survey = shiploop_protocol.PROMPTS["survey"]
+        self.assertIn("invocation protocol", survey)
+        self.assertIn("client/HTML call conventions", survey)
+        self.assertIn("before any communication is authored", survey)
+        self.assertIn("references/survey.md", survey)
+
+        research = shiploop_protocol.PROMPTS["research"]
+        self.assertIn("invocation contract", research)
+        self.assertIn("do not author communication yet", research)
+
+        sequence = shiploop_protocol.PROMPTS["sequence"]
+        self.assertIn("invocation contract", sequence)
+        self.assertIn("before the step that authors call sites", sequence)
+
+        implement = shiploop_protocol.PROMPTS["implement"]
+        self.assertIn("real client/HTML invocation path", implement)
+        self.assertIn("substitute exec", implement)
+
 
 if __name__ == "__main__":
     unittest.main()

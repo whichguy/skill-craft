@@ -35,6 +35,10 @@ conflicting replay.
 4. Check safe unique IDs, exact need-to-producer links, and cycles.
 5. Give every step concrete produces, a stored goal/until/Tools prompt, and a
    meaningful test plan for every produces value.
+6. When a client will call a service, a step must produce the frozen
+   invocation contract (visible operations plus client/HTML call conventions)
+   before any step that authors a call site. See
+   [Client–service invocation](../survey.md#client-service-invocation).
 
 Seed prompts cite every environment reference and its exact mcp_considered
 token. Preserve the exclusive writer in Use, every conflicting tool in Don't

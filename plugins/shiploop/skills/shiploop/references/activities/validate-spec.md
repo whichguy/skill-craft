@@ -33,8 +33,10 @@ Inventory, with evidence:
 - human-facing surfaces, their existing design/convention constraints, and
   whether an early design-producing step will be needed;
 - destination writer, runtime/library conventions, safe product paths,
-  reserved paths, syntax-lint oracle, live destination identity oracle, and
-  routing/entrypoint probe where a destination is involved.
+  reserved paths, syntax-lint oracle, live destination identity oracle,
+  routing/entrypoint probe, and — when a client will call a service — both
+  sides' invocation protocol (see
+  [Client–service invocation](../survey.md#client-service-invocation)).
 
 When a destination artifact has more than one potential writer, designate
 exactly one use and record overlapping mutation tools in dont_use. They are
@@ -49,9 +51,10 @@ For a writer-backed product, research and preserve the following before plan:
    patterns. Reuse before adding another stack.
 3. Reserved versus product paths. Product changes never go into a writer-owned
    or overwrite-prone tree.
-4. The user-facing route or invocation, reserved routes, a routing-level
+4. The user-facing route or entrypoint, reserved routes, a routing-level
    confirmation probe, and the distinction between a cheap bound-call probe
-   and live acceptance.
+   and live acceptance. This is routing, not the client–service invocation
+   protocol.
 5. Writer lint/validation for file-local syntax and writer list/status or
    preflight for live identity. Destination rules outrank a generic formatter
    when they conflict.
@@ -66,6 +69,9 @@ Research the uncertainties discovered by survey before authoring the spec.
 Prefer primary documentation, existing repository conventions, and the named
 writer's own descriptions. The result records source pointers, what was
 learned, assumptions, and a reason when research genuinely does not apply.
+A client–service API, when in scope, is a research uncertainty: resolve both
+systems' invocation protocol from primary docs before the spec, and do not
+author communication yet.
 
 Research is not an excuse to create product files, mutate a destination, or
 re-survey an already frozen environment. A material discovery after freeze is

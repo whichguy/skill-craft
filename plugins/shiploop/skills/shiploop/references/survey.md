@@ -75,6 +75,7 @@ Record evidence for:
 - non-secret handles and initiation facts. A user decision or failed safe probe
   is a reason to pause, not to call it established;
 - UI/CLI/operator surfaces and the design conventions they must follow;
+- client–service invocation protocol when a client will call a service;
 - existing README.md and, if it exists, root AGENTS.md as references only.
   Product docs are later DAG work when needed, never the survey's mutation.
 
@@ -100,6 +101,7 @@ guess:
 1. Read/create/mutate/validate/publish responsibilities and anti-patterns.
 2. Required library, runtime, module, wrapper, registration, and product-facing
    call mechanics. Reuse existing patterns before introducing another stack.
+   These are destination structure, not the client invocation protocol.
 3. Reserved versus product paths. Writer-owned/bootstrap/overwrite-prone files
    are reserved; product code never lands there.
 4. Writer syntax lint/validation and live list/status/preflight identity
@@ -112,6 +114,40 @@ guess:
 When no destination writer exists, record that plainly. Do not invent a
 platform, a client stack, a linter, or a deployment process.
 
+## Client–service invocation
+
+When any client will call a service — an HTML page, CLI, SDK, another
+process, or operator surface — consider both systems' invocation protocol
+before authoring any communication between them.
+
+This is distinct from routing (how a user reaches the surface) and from
+writer/runtime mechanics (how files land and how internal modules are
+structured). Destination call mechanics are not the client call path.
+
+Record, from primary documentation and existing destination patterns:
+
+1. **Service-visible operations.** What the service actually exposes at the
+   invocation boundary: names, arity, wrappers, required envelopes. That set
+   is defined by the platform's invocation rules (for example only parse-time
+   top-level entrypoints, a single dispatcher, or a generated stub). Internal
+   module exports, later global assignments, and helpers that are convenient
+   to unit-test are not visible operations unless the platform documents them
+   as callable.
+2. **Client call conventions.** What the client side needs in order to use
+   those operations. For an HTML-style client, that is the page-side
+   interaction: required includes or bootstrap, the documented stub or
+   library, the exact call shape, argument serialization, success/failure
+   handling, and the return/error envelope the page must unwrap. Define those
+   conventions as the client interaction; do not invent a parallel RPC that
+   looks like a local function.
+3. **Order.** Freeze this contract in survey/research before spec. Sequence
+   planning needs a producer for it before any step that writes a call site.
+   Implementation tests must exercise the real client path, not only a
+   substitute exec of internal functions.
+
+If no client calls a service, record that plainly. A missing invocation
+contract is missing authority, not an implementation detail.
+
 ## Human-facing surfaces
 
 When UI is true, cite the applicable UI craft guidance and record the existing
@@ -119,6 +155,8 @@ destination conventions. Planning creates an early design-producing step before
 surface implementation. Its output covers distinctive identity, layout, and
 interaction behavior including useful feedback and empty/error/success states.
 Later steps consume that output rather than substituting a generic template.
+When the surface calls a service, HTML/page-side call conventions belong in
+Client–service invocation, not as a later implementation guess.
 
 ## Freeze discipline
 

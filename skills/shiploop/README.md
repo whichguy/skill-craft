@@ -123,6 +123,11 @@ The survey preserves facts later steps need without rescanning the world:
 - Research writer/library/runtime conventions, reserved versus product paths,
   syntax lint and live destination identity oracles, routing, and safe probe
   recipes. Reuse local/destination patterns before adding a stack.
+- If a client will call a service, freeze both sides' invocation protocol
+  (what the service actually exposes, and the client/HTML conventions needed
+  to call it) before any communication is authored. Tests must cover that
+  real client path. See
+  [Client–service invocation](references/survey.md#client-service-invocation).
 - When a user-facing surface exists, make an early design-producing DAG step
   feed the implementation step. Design includes interaction behavior, not just
   a visual asset.

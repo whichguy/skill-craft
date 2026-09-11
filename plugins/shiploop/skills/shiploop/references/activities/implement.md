@@ -15,6 +15,10 @@ frozen DAG in place.
 For every implementation pass:
 
 1. Create or expand behavior/contract tests mapped to every produces value.
+   When the step authors client–service communication, tests must cover the
+   real client invocation path and its page-side conventions, not only a
+   substitute exec of internal functions. See
+   [Client–service invocation](../survey.md#client-service-invocation).
 2. After each production edit, run all applicable lint: destination-writer
    lint/validation where available, repository-configured lint, and suitable
    existing syntax checks. Destination syntax rules win over generic rewrites.
