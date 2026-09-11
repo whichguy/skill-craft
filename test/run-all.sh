@@ -32,6 +32,7 @@ run devloop-gas-weather-native env DEVLOOP_LIVE_WEATHER=0 bash test/devloop-gas-
 run evidence-gates bash test/evidence-gates.test.sh
 run shiploop-testkit bash test/shiploop-testkit.test.sh
 run shiploop bash test/shiploop.test.sh
+run shiploop-walk-journal bash test/shiploop-walk-journal.test.sh
 run review-coverage bash test/review-coverage.test.sh
 run dual-body-guard bash test/dual-body-guard.test.sh
 
