@@ -394,8 +394,38 @@ body = text[start:end]
 i_lint = body.find("lint-after-write")
 i_tests = body.find("tests-until-green")
 assert 0 <= i_lint < i_tests, (i_lint, i_tests, body)
+assert "every available" in body, body
+assert "must not rewrite dest-mandated syntax" in body, body
 assert "mcp-gas-deploy" not in text
 PY
+grep -Fq 'every available' "$cli" \
+  || fail "script missing every available linter"
+python3 - "$cli" <<'PY' || fail "IMPROVE_GOAL missing every available linter"
+from pathlib import Path
+import sys
+text = Path(sys.argv[1]).read_text()
+i = text.find("IMPROVE_GOAL = (")
+j = text.find("INFERRED_IMPROVE")
+assert i >= 0 and j > i, (i, j)
+body = text[i:j]
+assert "every available" in body, body
+assert "must not rewrite dest-mandated syntax" in body, body
+assert "mcp-gas-deploy" not in body
+PY
+grep -Fq 'every available linter' \
+  "$root/skills/shiploop/references/activities/plan.md" \
+  || fail "plan.md Lint item missing every available linter"
+grep -Fq 'dest-mandated syntax' \
+  "$root/skills/shiploop/references/activities/plan.md" \
+  || fail "plan.md Lint item missing dest-mandated syntax"
+for residual_lint in residual.md residual-waived.md; do
+  grep -Fq 'every available linter' \
+    "$root/skills/shiploop/references/activities/$residual_lint" \
+    || fail "$residual_lint missing every available linter on quality A"
+done
+grep -Fq 'every available linter' \
+  "$root/docs/LOOP-ENGINEERING.md" \
+  || fail "LOOP-ENGINEERING missing every available linter"
 grep -Fq 'lint-after-write' \
   "$root/docs/LOOP-ENGINEERING.md" \
   || fail "LOOP-ENGINEERING missing lint-after-write"
@@ -4592,6 +4622,8 @@ printf '%s\n' "$out_pbfz" | grep -Fq "$blocked_line" \
   || fail "Frozen missing dest-blocked sentence: $out_pbfz"
 printf '%s\n' "$out_pbfz" | grep -Fq 'Lint oracle:' \
   || fail "Frozen Exclusive rows missing Lint oracle: $out_pbfz"
+printf '%s\n' "$out_pbfz" | grep -Fq 'every available' \
+  || fail "Frozen Lint oracle missing every available: $out_pbfz"
 printf '%s\n' "$out_pbfz" | grep -Fq 'mcp-gas-deploy' \
   && fail "Frozen Lint oracle baked a vendor: $out_pbfz"
 assert_absent "$out_pbfz" 'Playbook:' "Frozen still prints Playbook:"

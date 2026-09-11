@@ -7,7 +7,7 @@ walk-back HTML recap exists.
 
 ShipLoop never conflict-resolves a merge and never claims engine `COMPLETE`.
 
-Package leaf: `skills/shiploop`. Invoke: `/shiploop`. Version: **0.8.33**.
+Package leaf: `skills/shiploop`. Invoke: `/shiploop`. Version: **0.8.34**.
 
 Canonical companions (do not duplicate their contracts here):
 
@@ -331,7 +331,9 @@ Implement git names the worktree, branch, and session checkout
 `statement` / `produces` / suppliers / worktree. Work in the Look-here
 worktree (do not re-root the host chat; do not edit the session checkout).
 
-Inner loop (host, not a phase): lint-after-write **after** this step's produces, then
+Inner loop (host, not a phase): lint-after-write **after** this step's produces
+(run every available linter — dest-writer, repo-configured, generic syntax
+already present; dest-mandated syntax wins; do not install), then
 tests-until-green, then one Improve cycle at a time. The script decides
 whether another cycle is needed. Prefer Implement in this parent chat. Before planning each
 Improve cycle:

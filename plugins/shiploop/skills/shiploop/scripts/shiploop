@@ -23,7 +23,7 @@ EXIT_BLOCKED = 2
 EXIT_USAGE = 64
 
 PACKAGE_ROOT = Path(__file__).resolve().parents[1]
-VERSION = "0.8.33"
+VERSION = "0.8.34"
 REF_DIR = PACKAGE_ROOT / "references"
 WT_DIRNAME = ".worktrees"
 NEXT_LEAD = "Issue this prompt."
@@ -106,7 +106,10 @@ IMPROVE_HEAD = (
 IMPROVE_GOAL = (
     "quality and breadth review of the work in scope for this pass: read the "
     "last 7 git commit messages for learnings; lint-after-write on this round's "
-    "changed paths (Exclusive writer lint/validate is dest-syntax SoT for "
+    "changed paths — run every available linter (Exclusive writer "
+    "lint/validate if it has one, then repo-configured, then generic "
+    "syntax checkers already on PATH that match the files; do not install a "
+    "linter); Exclusive writer lint/validate is dest-syntax SoT for "
     "file-local syntax; dest identity findings are provisional until live dest "
     "list/status/push-preflight agrees; disagreement is a P2 learning, not a "
     "rewrite; unreachable dest is unresolved-dest-identity(<finding>); generic "
@@ -177,7 +180,9 @@ LINT_ORACLE_LINE = (
     "is dest-syntax SoT for file-local syntax; for dest identity "
     "(order/position/name/presence) the live dest list/status/push-preflight "
     "is the oracle and a local-walk finding is advisory; generic "
-    "linters must not rewrite dest-mandated syntax."
+    "linters must not rewrite dest-mandated syntax. Run every available "
+    "linter on the changed paths (writer, repo-configured, generic syntax "
+    "already present — do not install); dest-mandated syntax wins."
 )
 HANDLE_RESOLVE = ("list", "inspect", "ask", "create")
 _TOKEN_FORBIDDEN_RE = re.compile(r"[;\n\r]")
@@ -3277,22 +3282,24 @@ def print_goal_until(step: Dict[str, Any]) -> None:
     )
     print(
         "After produces is true, lint-after-write then tests-until-green: "
-        "run the Exclusive writer's lint/validate on the files this increment "
-        "wrote, then any repo-configured linter on that same file list. Writer "
-        "findings about file-local syntax (parse, module wrap, template "
-        "scriptlets, schema) are red — fix and re-lint before tests. Findings "
-        "whose subject is dest identity (file order/position, "
-        "name-without-extension, module presence) are provisional: check the "
-        "live dest list/status/push-preflight and fix only if the live dest "
-        "agrees; if it disagrees, record a P2 learning and change nothing; if "
-        "the live dest is unreachable, record unresolved and never rewrite "
-        "reserved runtime on a local-walk finding. Generic linters must not "
-        "rewrite dest-mandated syntax. Docs-only or no linter: print "
-        "lint-after-write: none(<reason>). Do not exec When done on a red "
-        "dest-syntax check. Then author and run checkable tests for this "
-        "produces until they pass; if tests force production edits, re-lint "
-        "those paths before claiming green. test -f / N/A is not that check "
-        "when dest contracts exist."
+        "run every available linter on LINT_PATHS — Exclusive writer "
+        "lint/validate if it has one, then any repo-configured linter, then "
+        "generic syntax checkers already on PATH that match the files. "
+        "Available means inventoried tools/mcp or already present; do not "
+        "install a linter. Writer findings about file-local syntax (parse, "
+        "module wrap, template scriptlets, schema) are red — fix and re-lint "
+        "before tests. Findings whose subject is dest identity (file "
+        "order/position, name-without-extension, module presence) are "
+        "provisional: check the live dest list/status/push-preflight and fix "
+        "only if the live dest agrees; if it disagrees, record a P2 learning "
+        "and change nothing; if the live dest is unreachable, record "
+        "unresolved and never rewrite reserved runtime on a local-walk "
+        "finding. Generic linters must not rewrite dest-mandated syntax. "
+        "Docs-only or no linter: print lint-after-write: none(<reason>). "
+        "Do not exec When done on a red dest-syntax check. Then author and "
+        "run checkable tests for this produces until they pass; if tests "
+        "force production edits, re-lint those paths before claiming green. "
+        "test -f / N/A is not that check when dest contracts exist."
     )
 
 

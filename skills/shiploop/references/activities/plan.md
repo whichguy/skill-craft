@@ -53,7 +53,10 @@ Fill from frozen survey/spec (not invented house style):
    (if it has one) is dest-syntax SoT for file-local syntax; for dest
    identity (order/position/name/presence) the live dest list/status/
    push-preflight is the oracle and a local-walk finding is advisory;
-   generic linters must not rewrite dest-mandated syntax. After production
+   generic linters must not rewrite dest-mandated syntax. Every inner loop
+   and after production edits: run every available linter (dest-writer,
+   repo-configured, generic syntax already on PATH); dest-mandated syntax
+   wins; do not install a linter to satisfy this. After production
    edits: lint-after-write then tests before done.
 5. **Layout / routing.** Reserved vs Product trees; user hits
    `routing.user_entrypoint`; `reserved_routes` stay reserved; don't claim

@@ -18,11 +18,14 @@ immutable `receipt.base_sha`, never moving session HEAD. Recompute after
 every production-file edit; the lint run that counts is the one after the
 last production edit. If tests force production edits, re-lint those paths
 before claiming green. Residual Improve B / review-converge use that
-round's `CHANGED_PATHS`, not the step receipt baseline. Writer
-lint/validate on dest/source in `LINT_PATHS` is dest-syntax SoT for
+round's `CHANGED_PATHS`, not the step receipt baseline. Run every available linter on `LINT_PATHS` (Exclusive writer
+lint/validate if it has one, then repo-configured, then generic syntax
+checkers already on PATH that match the files; do not install a linter).
+Writer lint/validate on dest/source in `LINT_PATHS` is dest-syntax SoT for
 file-local syntax; dest-identity findings (order/position/name/presence)
 are provisional until live dest list/status/push-preflight agrees;
 disagreement is a P2 learning, not a rewrite of reserved runtime;
+generic linters must not rewrite dest-mandated syntax;
 docs-only: none(<reason>). Then author and run checkable tests for this
 produces until they pass. Then `/shiploop complete`. Never `git add -A`. Never merge from
 that cwd. Then follow the printed Improve (one cycle; lint-after-write

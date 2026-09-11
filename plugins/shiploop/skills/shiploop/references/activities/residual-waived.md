@@ -42,7 +42,9 @@ invoke `/goal`.
    Paste Frozen (printed above this Next body) before each quality turn.
    1. **Quality test/fix until-loop A.** If Q3=yes, run the parent until-loop A to test
       and fix the completed product at the composed user entrypoint (the
-      named check), then close A. A DAG sink that already play-through’d the
+      named check), then close A. If A edits production files, lint-after-write
+      first (every available linter; dest-mandated syntax wins; do not install)
+      before claiming A done. A DAG sink that already play-through’d the
       frozen user entrypoint may skip only that duplicate play-through and do
       dest-reread plus spot-check instead. A bound-name call, fetching
       HTML, or requiring a product module is **not** a play-through and does

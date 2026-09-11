@@ -10,7 +10,7 @@ description: >-
   precondition, exec When done exactly, until When done says stop
   (done / halted / blocked-ask).
 allowed-tools: all
-version: 0.8.33
+version: 0.8.34
 license: MIT
 platforms:
   - linux
