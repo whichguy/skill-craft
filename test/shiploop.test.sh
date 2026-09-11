@@ -311,6 +311,15 @@ done
 grep -Fq 're-reads live dest URLs' \
   "$root/skills/shiploop/references/activities/validate-spec.md" \
   || fail "validate-spec.md Q2 missing residual live-URL reread"
+grep -Fq 'many kinds' \
+  "$root/skills/shiploop/references/activities/validate-spec.md" \
+  || fail "validate-spec.md missing many recommendation kinds"
+grep -Fq 'discovery miss' \
+  "$root/skills/shiploop/references/activities/validate-spec.md" \
+  || fail "validate-spec.md missing discovery miss"
+grep -Fq 'recommendation kinds' \
+  "$root/skills/shiploop/references/survey.md" \
+  || fail "survey.md missing recommendation kinds"
 grep -Fq 'Bound client action contract' \
   "$root/skills/shiploop/references/activities/validate-spec.md" \
   || fail "validate-spec.md missing bound client action contract"

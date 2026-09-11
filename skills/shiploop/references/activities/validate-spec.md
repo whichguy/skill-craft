@@ -50,14 +50,21 @@ their implementation constraints.
 
 Inventory is not use. For **each** name in machine `mcp:`, and for each
 `exclusive[].use` (if any), answer the four questions below from **that
-server’s own** tool descriptions, resources, prompts, and published
-guidance — including tools this increment will not call for create.
-Record each answer as `references[{path, why}]` plus brief prose in
-`{{ENV_MD}}`. `why` names the implement constraint, not “inventory.”
-If a question does not apply, write `none` in the brief so implement
-does not guess. Do not invent a house style. Do not bake a vendor,
-platform, or folder name into this skill; the writer’s documents
-supply those names.
+server’s own** published recommendations — including tools this increment
+will not call for create. Those recommendations come in **many kinds**, not
+dest-write routing only: tool descriptions, resources, prompts, practice-guidance
+queries, per-tool `llmGuidance`, lint/fix guidance, dest list metadata, and
+dest-listed files. Instructive examples of kinds (not required labels): dest-write
+vs read, runtime/library wrap, how a human-facing surface calls dest, lint/fix
+recipes, extra dest files or exported names, operator vs product surfaces.
+Skipping a published kind because the four questions did not mention that
+kind is a discovery miss. Record each kind the writer actually states as
+`references[{path, why}]` plus brief prose in `{{ENV_MD}}`. `why` names the
+implement constraint, not “inventory.” Token `none` when the writer names
+none. If a question does not apply, write `none` in the brief so implement
+does not guess. Do not invent a house style. Do not invent a house client/UI
+stack for a job the writer covers. Do not bake a vendor, platform, or folder
+name into this skill; the writer’s documents supply those names.
 
 1. **How to use this MCP / dest writer.** Which tool is for which job
    (read state vs mutate dest vs create vs publish)? What anti-patterns

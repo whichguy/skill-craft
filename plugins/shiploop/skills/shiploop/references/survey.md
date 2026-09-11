@@ -86,7 +86,7 @@ its output is `environment.md` (Look here names the absolute path).
 
 ## Destination discovery
 
-When `mcp` or `exclusive` is nonempty, answer the four dest-discovery questions and the evaluations in the printed validate-spec activity. `layout` / `routing` shape is in `state-files.md`. Nonempty `exclusive` requires all four answers and nonempty `references` before dest plan; `mcp` only requires Q1 and Q2, and Q3/Q4 may be `none`.
+When `mcp` or `exclusive` is nonempty, answer the four dest-discovery questions and the evaluations in the printed validate-spec activity. Writer MCP servers publish **many recommendation kinds** (not dest-write only); skipping a published kind is a discovery miss — see validate-spec. `layout` / `routing` shape is in `state-files.md`. Nonempty `exclusive` requires all four answers and nonempty `references` before dest plan; `mcp` only requires Q1 and Q2, and Q3/Q4 may be `none`.
 
 The evaluations (usability this turn, dest file identity, lint / syntax
 oracle plus live dest-identity oracle, bound client action contract,
