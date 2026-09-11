@@ -75,6 +75,12 @@ if grep -Fq 'prints the next packet' "$root/docs/LOOP-ENGINEERING.md" \
 fi
 grep -Fq 'execs the printed When done' "$root/docs/LOOP-ENGINEERING.md" \
   || fail "LOOP-ENGINEERING missing execs the printed When done"
+grep -Fq 'Add `--trivial` when this Improve cycle was only-trivial' \
+  "$root/skills/shiploop/references/turn-packet.md" \
+  || fail "turn-packet.md When done still a second complete --trivial command"
+if grep -Fq 'complete or complete --trivial' "$root/skills/shiploop/README.md"; then
+  fail "README mermaid still offers complete or complete --trivial"
+fi
 python3 - "$cli" <<'PY' || fail "closer_improve_cycle is still two invokes / missing Add --trivial"
 from importlib.machinery import SourceFileLoader
 from importlib.util import module_from_spec, spec_from_loader

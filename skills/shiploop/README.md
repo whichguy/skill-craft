@@ -365,7 +365,7 @@ next` while drained reprints this diagnosis and does not dest.
 flowchart TD
   next["/shiploop next — claim_ready(): ready ids to running,\ngit worktree add -b per id"] --> printed["Next: Frozen + Implement git + Implement + stored prompt"]
   printed --> gwork["Implement: Frozen + Implement git + stored prompt\n(if produces: tests-until-green then complete; else keep working / next)"]
-  gwork -->|produces true: tests-until-green then complete| improve["Improve: one cycle; complete or complete --trivial;\nlast 7 commits, re-run receipt.tests, 2 consecutive only-trivial, max 12"]
+  gwork -->|produces true: tests-until-green then complete| improve["Improve: one cycle; complete, Add --trivial if only-trivial;\nlast 7 commits, re-run receipt.tests, 2 consecutive only-trivial, max 12"]
   improve -->|two consecutive only-trivial| cm["leftover uncommitted: Implement git schema, then\n/shiploop complete"]
   cm --> complete["/shiploop complete — merge --no-ff --no-edit, does not squash,\nkeep branch + remove worktree, Git ran, then re-claim or dest residual"]
   complete -->|another id now running| printed
