@@ -3,8 +3,8 @@
 **Target paths:** `skills/shiploop/`, `agents/shiploop.md`, `docs/LOOP-ENGINEERING.md`, `skills/devloop/references/loop-engineering.md`, `test/shiploop.test.sh`, `test/shiploop-walk-journal.test.sh`, `test/run-all.sh`, `plugins/shiploop/`, `plugins/devloop/`
 **Test command:** `bash test/shiploop.test.sh && bash test/shiploop-walk-journal.test.sh && bash scripts/sync-plugin-views.sh --check shiploop devloop`
 **Started:** 2026-09-10          **Status:** active
-**Round counter:** 5
-**Consecutive clean rounds:** 1
+**Round counter:** 6
+**Consecutive clean rounds:** 2
 **Known test-artifact paths:**
 **Plan contract:** `/Users/dadleet/.grok/sessions/%2FUsers%2Fdadleet%2Fsrc%2Ftic-tac-toe-oneshot/01a0887a-7a47-7193-9d4a-ef855b5b2559/goal/plan.md`
 **Plan hash:** none
@@ -71,5 +71,15 @@
 **Cycle result:** trivial-only
 **Material findings:** none
 **Key learnings:** Re-read print_implement_git / print_improve / print_goal_until, README Implement prose, SKILL/commands, LOOP-ENGINEERING, wrappers. Report literals gone; printers emit Exec When done exactly as printed; README has adding --trivial when only-trivial; no `complete` or `complete --trivial`. Remaining "reports" are recap Verified reporting review-coverage status, not a closer verb. First honest trivial-only after the Report-verb material reset.
+
+### Round 6 — 2026-09-10
+**Review:** 0 material (second target-path pass)
+**Material findings:** none
+**Deferred (minor/P2):** header checklist unchanged
+**Outcome:** clean
+**Cycle result:** trivial-only
+**Material findings:** none
+**Key learnings:** Second pass: turn-packet Improve is invoke /shiploop complete, adding --trivial; SKILL Closer and complete.md exec the printed When done; print_implement_git and print_improve both Exec When done exactly as printed (2 sites). complete.md still forbids inventing a flagless default. Internal packet names remain non-goals. Second consecutive honest trivial-only; wrap-up next.
+
 
 
