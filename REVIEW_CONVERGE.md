@@ -2,9 +2,9 @@
 
 **Target paths:** `skills/shiploop/scripts/shiploop`, `skills/shiploop/references/activities/implement.md`, `skills/shiploop/references/activities/plan.md`, `skills/shiploop/references/activities/residual.md`, `skills/shiploop/references/activities/residual-waived.md`, `skills/shiploop/README.md`, `skills/shiploop/SKILL.md`, `test/shiploop.test.sh`, `docs/LOOP-ENGINEERING.md`, `skills/devloop/references/loop-engineering.md`, `plugins/devloop/skills/devloop/references/loop-engineering.md`
 **Test command:** `bash test/shiploop.test.sh && ./scripts/sync-plugin-views.sh --check shiploop`
-**Started:** 2026-09-11          **Status:** active
-**Round counter:** 1
-**Consecutive clean rounds:** 1
+**Started:** 2026-09-11          **Status:** complete
+**Round counter:** 2
+**Consecutive clean rounds:** 2
 **Known test-artifact paths:**
 **Plan contract:** `/Users/dadleet/.grok/sessions/%2FUsers%2Fdadleet%2Fsrc%2Ftic-tac-toe-oneshot/01a090ba-11f0-7a22-b13e-9a1caf7126bd/plan.md`
 **Plan hash:** `4e171cd18f9ee219c8a6bdde685d438be2ce52435e6e5a99375a8cef39945ead`
@@ -15,7 +15,7 @@
 - consecutive-same-error: 0 (signature: none)
 
 ## Deferred (minor/P2)
-- [ ] P2: Rank 4 generic syntax on dest-wrapped modules may FAIL while writer lint PASSes (plan U3). Advisory only; do not rewrite reserved runtime.
+- [x] P2: Rank 4 generic syntax on dest-wrapped modules may FAIL while writer lint PASSes (plan U3). Waived — advisory only; dest-mandated syntax wins; do not rewrite reserved runtime.
 
 ## Log
 ### Round 1 — 2026-09-11
@@ -43,3 +43,23 @@
 **Consecutive clean rounds after this entry:** 1
 **Committed:** yes
 **Notes:** Prior complete ledger archived (gitignored) so this campaign could start.
+
+### Round 2 — 2026-09-11
+**Review:** 0 material, 0 new minor
+**Material findings:** none
+**Deferred (minor/P2):**
+- [x] P2: Rank 4 generic syntax on dest-wrapped modules may FAIL while writer lint PASSes (plan U3). Waived — advisory only; dest-mandated syntax wins; do not rewrite reserved runtime.
+**Git-history check:** Re-read printers vs plan anchors. Plan hash still `4e171cd1`. Round 1 `9562ac0` was first clean. No new product delta this round.
+**Plan:** n/a (clean)
+**Plan review:** n/a
+**Implementation:** n/a
+**Lint:** n/a
+**Test result:** PASS (terminal clean)
+**Outcome:** clean
+**Error signature:** none
+**Learnings:** Second consecutive clean. Recorded suite once: `bash test/shiploop.test.sh` PASS; `./scripts/sync-plugin-views.sh --check shiploop` OK. LOOP-ENGINEERING three copies equal. Waive rank-4 dest-wrap P2 as U3; no further residual cycle.
+**Anchor evidence:**
+- A7 → suite exit 0; plugin `--check` exit 0
+**Consecutive clean rounds after this entry:** 2
+**Committed:** yes
+**Notes:** artifact skipped: no Artifact tool in this harness.
