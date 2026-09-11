@@ -85,7 +85,7 @@ must not grow another bash phrase-matcher.
 | Grain | Prompt decides | Script only |
 |-------|----------------|-------------|
 | **Requirements** | Checkable done, dest contract, interpolate `--repo` / `--lang` / `verify_cmd` from the card table (empty done → stop and ask) | Pin sha256, safe extract, host-local resolve, refuse empty/invalid resolve or transport; `STATE target=` from the `--repo` flag only (`explicit` vs `default`). Do not parse the done sentence in bash. |
-| **Inner loop** | Charter / implement / review text. Host inner loops (ShipLoop Implement/Improve, residual Improve B) mandate lint-after-write after code is written: run every available linter (writer, repo-configured, generic syntax already present — do not install); dest-writer lint/validate is dest-syntax SoT; live dest is identity oracle; dest-mandated syntax wins over generic | Engine sequencer, frozen oracle, worktree, COMPLETE = `AFTER exec exit=0`. Do not import dest MCP lint into the DevLoop engine |
+| **Inner loop** | Charter / implement / review text. Host inner loops (ShipLoop Implement/Improve, residual Improve B) mandate lint-after-write after code is written: run every available linter (writer, repo-configured, generic syntax already present — do not install); dest-writer lint/validate is dest-syntax SoT; live dest is identity oracle; dest-mandated syntax wins over generic. Frozen reprints the lint oracle even when Exclusive is `(none)` | Engine sequencer, frozen oracle, worktree, COMPLETE = `AFTER exec exit=0`. Do not import dest MCP lint into the DevLoop engine |
 | **Outer residual** | `/goal` sentence, residual×2, halt rules | Validate H2 fields; print the reference-owned trailer |
 
 Do **not** put DEFINE → PROVE → BUILD in `SKILL.md` or `/goal`.

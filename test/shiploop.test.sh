@@ -412,12 +412,40 @@ assert "every available" in body, body
 assert "must not rewrite dest-mandated syntax" in body, body
 assert "mcp-gas-deploy" not in body
 PY
+python3 - "$cli" <<'PY' || fail "print_frozen_session_env Lint oracle must follow Exclusive block"
+from pathlib import Path
+import sys
+text = Path(sys.argv[1]).read_text()
+start = text.find("def print_frozen_session_env")
+end = text.find("\ndef print_progress")
+assert start >= 0 and end > start, (start, end)
+body = text[start:end]
+i_blocked = body.find("print(DEST_BLOCKED_LINE)")
+i_oracle = body.find("print(LINT_ORACLE_LINE)")
+assert i_blocked >= 0 and i_oracle > i_blocked, (i_blocked, i_oracle, body)
+blocked_line = [ln for ln in body.splitlines() if "print(DEST_BLOCKED_LINE)" in ln][0]
+oracle_line = [ln for ln in body.splitlines() if "print(LINT_ORACLE_LINE)" in ln][0]
+assert len(blocked_line) - len(blocked_line.lstrip()) > len(oracle_line) - len(oracle_line.lstrip()), (
+    blocked_line,
+    oracle_line,
+)
+PY
 grep -Fq 'every available linter' \
   "$root/skills/shiploop/references/activities/plan.md" \
   || fail "plan.md Lint item missing every available linter"
 grep -Fq 'dest-mandated syntax' \
   "$root/skills/shiploop/references/activities/plan.md" \
   || fail "plan.md Lint item missing dest-mandated syntax"
+if grep -Fq 'When Exclusive rows exist it also prints' \
+  "$root/skills/shiploop/references/activities/plan.md"; then
+  fail "plan.md still says Lint oracle prints only when Exclusive rows exist"
+fi
+grep -Fq 'always prints the Lint oracle' \
+  "$root/skills/shiploop/references/activities/plan.md" \
+  || fail "plan.md missing Frozen always prints the Lint oracle"
+grep -Fq 'Dest-blocked still prints' \
+  "$root/skills/shiploop/references/activities/plan.md" \
+  || fail "plan.md missing dest-blocked still Exclusive-rows-only"
 for residual_lint in residual.md residual-waived.md; do
   grep -Fq 'every available linter' \
     "$root/skills/shiploop/references/activities/$residual_lint" \
@@ -426,6 +454,9 @@ done
 grep -Fq 'every available linter' \
   "$root/docs/LOOP-ENGINEERING.md" \
   || fail "LOOP-ENGINEERING missing every available linter"
+grep -Fq 'Frozen reprints the lint oracle even when Exclusive is' \
+  "$root/docs/LOOP-ENGINEERING.md" \
+  || fail "LOOP-ENGINEERING missing Frozen lint oracle when Exclusive is none"
 grep -Fq 'lint-after-write' \
   "$root/docs/LOOP-ENGINEERING.md" \
   || fail "LOOP-ENGINEERING missing lint-after-write"
@@ -672,6 +703,8 @@ grep -Fq 'files, not the three Next jobs' "$root/skills/shiploop/README.md" \
   || fail "README missing Look-here file vs Next-job ordinals"
 grep -q '__pycache__/' "$root/skills/shiploop/README.md" \
   || fail "README missing --check bytecode ignore"
+grep -Fq 'PYTHONDONTWRITEBYTECODE=1' "$root/test/shiploop-testkit.sh" \
+  || fail "shiploop-testkit.sh missing PYTHONDONTWRITEBYTECODE=1"
 pyc_pin="$root/skills/shiploop/scripts/__pycache__"
 cleanup_pyc_pin() { rm -rf "$pyc_pin"; }
 trap cleanup_pyc_pin EXIT
@@ -2034,7 +2067,11 @@ raise SystemExit(0 if 0 <= i < j else 1)
 ' <<<"$out_imp" \
   || fail "implement Next lint-after-write must precede tests-until-green"
 printf '%s\n' "$out_imp" | grep -Fq 'Lint oracle:' \
-  && fail "Exclusive none must not print Lint oracle: $out_imp"
+  || fail "Exclusive none missing Lint oracle: $out_imp"
+printf '%s\n' "$out_imp" | grep -Fq 'every available' \
+  || fail "Exclusive none Frozen missing every available: $out_imp"
+printf '%s\n' "$out_imp" | grep -Fq 'If the writer above fails' \
+  && fail "Exclusive none must not print dest-blocked: $out_imp"
 assert_absent "$out_imp" 'Until-loop B (receipt inner=B)' \
   "inner A Next printed Improve B body"
 assert_absent "$out_imp" 'Until-loop A (receipt inner=A)' \
@@ -4738,7 +4775,9 @@ sys.stdout = old
 out = buf.getvalue()
 assert "tools:" in out and "mcp: writer-mcp" in out, out
 assert "Exclusive: (not recorded in this legacy run)" in out, out
-assert "Lint oracle:" not in out, out
+assert "Lint oracle:" in out, out
+assert "every available" in out, out
+assert "If the writer above fails" not in out, out
 assert "Playbook:" not in out, out
 assert "Product AGENTS.md" not in out, out
 PY

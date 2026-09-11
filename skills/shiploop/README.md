@@ -7,7 +7,7 @@ walk-back HTML recap exists.
 
 ShipLoop never conflict-resolves a merge and never claims engine `COMPLETE`.
 
-Package leaf: `skills/shiploop`. Invoke: `/shiploop`. Version: **0.8.34**.
+Package leaf: `skills/shiploop`. Invoke: `/shiploop`. Version: **0.8.35**.
 
 Canonical companions (do not duplicate their contracts here):
 
@@ -317,8 +317,9 @@ Command-level git (who runs `git worktree add` vs `merge --no-ff --no-edit`):
 **Next prompt** always starts with `Issue this prompt.`
 Non-stop stdout then prints HOST_CONTINUE. Then the harness prints worktree /
 branch / HOST FLAG, a **Frozen session
-environment** block (`mcp-considered` / `tools` / `mcp` / `Exclusive:` / `See:` /
-optional Product AGENTS.md pointer when that file exists),
+environment** block (`mcp-considered` / `tools` / `mcp` / `Exclusive:` /
+lint-oracle always after Exclusive / dest-blocked only when Exclusive rows
+exist / `See:` / optional Product AGENTS.md pointer when that file exists),
 **Implement git**, **Implement**, each **running** step’s stored `prompt`
 **verbatim**. **Implement:** make produces true, then lint-after-write then tests-until-green, then
 `/shiploop complete` (no merge; script prints Improve). **Else** keep working /
@@ -583,7 +584,8 @@ one H2 titled `machine` with one fenced JSON object (`kind`, `augment`,
 `ui`, `ui_craft`). dest plan shape-checks that fence (`load_environment` /
 `validate_machine` / `handles_block_plan` / `exclusive_gaps`). Practices append into the
 **same** file. Do not write `playbook.md`. `exclusive` is the writer map; Frozen
-emits dest-blocked when rows exist.
+emits dest-blocked when rows exist and always reprints the lint oracle
+after Exclusive (rows, `(none)`, or not recorded).
 
 ### Run-dir files (how they maintain the run)
 

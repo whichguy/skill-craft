@@ -257,9 +257,11 @@ need `/goal` plus until-`produces` and stay exempt from reference and
 See `{{IMPLEMENT_ACTIVITY}}`.
 
 Frozen reprint repeats Reserved, Product, and Entrypoint after Exclusive rows,
-then says `Don't write product into Reserved.` When Exclusive rows exist it
-also prints the Lint oracle line (writer lint/validate is dest-syntax SoT;
-dest list/position beats a local walk). When bound `repo_root/AGENTS.md` is a
+then says `Don't write product into Reserved.` After Exclusive (rows, `(none)`,
+or not recorded) it always prints the Lint oracle line (writer lint/validate
+if it has one is dest-syntax SoT; dest list/position beats a local walk; run
+every available linter; dest-mandated syntax wins). Dest-blocked still prints
+only when Exclusive rows exist. When bound `repo_root/AGENTS.md` is a
 file, Frozen then prints one Product AGENTS.md pointer (not session SoT; do
 not paste the body). The seed's `Don't write:` line
 is the plan-time guard that reaches the stored prompt; do not rely on an

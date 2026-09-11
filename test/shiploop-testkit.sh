@@ -17,6 +17,8 @@ if [[ "${SHIPLOOP_TESTKIT_LOADED:-}" == 1 ]]; then
   return 0
 fi
 SHIPLOOP_TESTKIT_LOADED=1
+# SourceFileLoader of scripts/shiploop must not write __pycache__ next to the leaf.
+export PYTHONDONTWRITEBYTECODE=1
 
 _shiploop_die() {
   if declare -F fail >/dev/null 2>&1; then
