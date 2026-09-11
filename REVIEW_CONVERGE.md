@@ -2,7 +2,7 @@
 
 **Target paths:** `skills/shiploop/`, `agents/shiploop.md`, `docs/LOOP-ENGINEERING.md`, `skills/devloop/references/loop-engineering.md`, `test/shiploop.test.sh`, `test/shiploop-walk-journal.test.sh`, `test/run-all.sh`, `plugins/shiploop/`, `plugins/devloop/`
 **Test command:** `bash test/shiploop.test.sh && bash test/shiploop-walk-journal.test.sh && bash scripts/sync-plugin-views.sh --check shiploop devloop`
-**Started:** 2026-09-10          **Status:** active
+**Started:** 2026-09-10          **Status:** complete
 **Round counter:** 3
 **Consecutive clean rounds:** 2
 **Known test-artifact paths:**
@@ -15,9 +15,9 @@
 - consecutive-same-error: 0 (signature: none)
 
 ## Deferred (minor/P2)
-- [ ] P2: README still names `packet-level H2` (test-pinned Next bound). Internal contract; non-goal to rename.
-- [ ] P2: `references/turn-packet.md` title remains "Turn packet headings". Filename is a non-goal identifier.
-- [ ] P2: walk-journal helper `assert_no_next_packet` still uses "packet" in the function name. Test helper; non-goal `packet_section` family.
+- [x] P2: README still names `packet-level H2` (test-pinned Next bound). Waived — non-goal to rename internal H2-bound contract.
+- [x] P2: `references/turn-packet.md` title remains "Turn packet headings". Waived — filename is a non-goal identifier.
+- [x] P2: walk-journal helper `assert_no_next_packet` still uses "packet" in the function name. Waived — non-goal `packet_section` family.
 
 ## Log
 ### Round 1 — 2026-09-10
