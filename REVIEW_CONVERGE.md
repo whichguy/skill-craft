@@ -3,8 +3,8 @@
 **Target paths:** `skills/shiploop/`, `agents/shiploop.md`, `docs/LOOP-ENGINEERING.md`, `skills/devloop/references/loop-engineering.md`, `test/shiploop.test.sh`, `test/shiploop-walk-journal.test.sh`, `test/run-all.sh`, `plugins/shiploop/`, `plugins/devloop/`
 **Test command:** `bash test/shiploop.test.sh && bash test/shiploop-walk-journal.test.sh && bash scripts/sync-plugin-views.sh --check shiploop devloop`
 **Started:** 2026-09-10          **Status:** active
-**Round counter:** 1
-**Consecutive clean rounds:** 0
+**Round counter:** 2
+**Consecutive clean rounds:** 1
 **Known test-artifact paths:**
 **Plan contract:** `/Users/dadleet/.grok/sessions/%2FUsers%2Fdadleet%2Fsrc%2Ftic-tac-toe-oneshot/01a0887a-7a47-7193-9d4a-ef855b5b2559/goal/plan.md`
 **Plan hash:** none
@@ -33,3 +33,12 @@
 **Cycle result:** material
 **Material findings:** 6
 **Key learnings:** Archive the prior complete ledger instead of reopening it. `--check` is name-scoped; pin the plugin DevLoop twin with a three-way cmp. Banner pins only count if run-all actually invokes walk-journal.
+
+### Round 2 — 2026-09-10
+**Review:** 0 material, 3 minor (carried)
+**Material findings:** none
+**Deferred (minor/P2):** header checklist unchanged (packet-level H2, turn-packet.md title, assert_no_next_packet) — non-goals
+**Outcome:** clean
+**Cycle result:** trivial-only
+**Material findings:** none
+**Key learnings:** After F1–F6, the printed Improve closer is still one invoke plus Add --trivial; wrappers reprint stdout; LOOP-ENGINEERING twins exec the printed When done. Remaining packet nouns are internal identifiers this goal must not rename. First of two trivial-only cycle commits.
