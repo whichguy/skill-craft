@@ -157,34 +157,3 @@ init_git_repo() {
   git -C "$repo" add README
   git -C "$repo" commit -m seed >/dev/null
 }
-
-inner_two_clean() {
-  local run="$1" sid="$2"
-  local bin="${cli:-}"
-  [[ -n "$bin" && -f "$bin" ]] || _shiploop_die "inner_two_clean: cli unset"
-  python3 "$bin" complete --run-dir "$run" --id "$sid" --advance B \
-    --tests "none(test)" >/dev/null
-  python3 "$bin" complete --run-dir "$run" --id "$sid" --improve-cycle trivial \
-    --improve "none(test)" >/dev/null
-  python3 "$bin" complete --run-dir "$run" --id "$sid" --improve-cycle trivial \
-    --improve "none(test)" >/dev/null
-}
-
-commit_step_work() {
-  local run="$1" sid="$2"
-  local wt
-  wt="$(python3 -c "import json; print(json.load(open('$run/steps/$sid.json'))['worktree'])")"
-  [[ -n "$wt" && -d "$wt" ]] || _shiploop_die "commit_step_work: missing worktree for $sid"
-  printf '%s\n' "step $sid" >"$wt/${sid}.txt"
-  git -C "$wt" add "${sid}.txt"
-  git -C "$wt" commit -m "step $sid" >/dev/null
-}
-
-merge_step_branch() {
-  local run="$1" sid="$2"
-  local repo branch
-  repo="$(python3 -c "import json; print(json.load(open('$run/state.json'))['repo_root'])")"
-  branch="$(python3 -c "import json; print(json.load(open('$run/steps/$sid.json')).get('branch') or '')")"
-  [[ -n "$repo" && -n "$branch" ]] || _shiploop_die "merge_step_branch: missing repo/branch for $sid"
-  git -C "$repo" merge --no-ff --no-edit "$branch" >/dev/null
-}

@@ -20,22 +20,25 @@ not re-rooting the host chat (`move_agent_to_root`).
 | Codex | symlink | `~/.codex/skills/shiploop` | `/shiploop` | pending |
 | Cursor | symlink | `~/.cursor/skills/shiploop` | `/shiploop` | pending |
 
-Package leaf: **shiploop**. Reprint and closer are `/shiploop next` and
-`/shiploop complete` on this leaf.
+Package leaf: **shiploop**. All hosts execute the same Python 3 CLI and
+interpret its returned action. No host-specific `/goal` invocation is needed.
+Stored DAG prompts retain the planning grammar but are instructions for the
+host, not permission to bypass ShipLoop's action cursor.
 
-Grok cannot invoke `/goal` from this skill. The printed Next **is** the
-until-loop in the parent chat. Every `/shiploop next` / `complete` rehydrates
-from `.shiploop/` files; the skill holds no inner A/B. When done is a bound
-directive on facts not in files (`produces` true + tests green?
-Lint-after-write must have run (or none(<reason>))? this cycle
-trivial?). Complete a running implement step with `/shiploop complete` when
-that is the printed command; add `--id` when several steps are running; dest
-done requires `--improve`. The script infers advance, one Improve cycle, or
-merge. Add `--trivial` when an Improve cycle was only-trivial.
-`--inner-loop parent --improve` remains an override. Use
-`--inner-loop goal` only if this host actually ran `/goal`. Emitted policy
-requires evidence; `--improve` does not dest-verify the claim. The script
-never auto-advances from git dirty/HEAD moved.
+Version 0.9 requires `complete --action ID --result /absolute/result.md`.
+Bare completion, `--trivial`, `--advance`, and `--inner-loop` overrides are
+not supported. `next` rehydrates the exact current action from authoritative
+Markdown. `context` pages only the current step or iteration when needed.
+
+The script executes lint/test manifests, checks their freshness, binds each
+iteration to a distinct verbose learning commit, and gates merging on two
+trivial-only passes plus fresh final verification and a broader-plan decision.
+The host still judges test meaningfulness and materiality. Follow the exact
+printed command; never infer a transition from Git dirt or changed HEAD.
+
+Only one step is active. Worktree creation is local and does not re-root the
+host conversation. Host-specific runtime certification still requires a live
+run on that host; hermetic CLI tests are not proof of that certification.
 
 | Claim | Requires |
 |-------|----------|

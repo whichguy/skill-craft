@@ -38,13 +38,13 @@ User invoked `/shiploop` / skill `shiploop`.
 
 | When | Overlay | Role |
 |------|---------|------|
-| **Before** | **survey once** (session kind/handles/MCP/initiation/UI → `environment.md`; dest notes and unauthenticated MCP stay in the brief; handles get one cheap read-only look before the fence), **research practices** into that same file, then **spec once** (including deploy-prep / outer-loop publish / quality-`/goal` questions), then **sequence plan once** (native backchain: draft → dependency review → host resolve into `resolved_facts` → elaborate; missing precondition → seed step, unanswerable → dest blocked; do not hunt spikes after persist) | Survey is a required prefix inside `validate-spec`, not a new phase. Frozen `done_sentence`. Prep / intermediate deploy / cleanup / a README create-or-revise / an AGENTS.md create-or-revise are DAG steps when implied; AGENTS.md restates dest Exclusive/lint/layout/routing as standing rules for later agents (Frozen still wins this session); Frozen may pointer product AGENTS.md when present (not session SoT); outer-loop publish and a quality `/goal` stay in residual. Brownfield augments an existing tree (`augment: true`) only when that tree already has this increment's product code; a new-project ask is greenfield and must not reuse a subject-sibling. Every seed `prompt` cites every `references[].path` and ends with a `Tools:` block that carries the frozen `mcp_considered` token. Each implement until-loop pastes the Frozen session environment reprint plus that stored prompt. |
-| **During** | `/shiploop next` reprints/claims (does not advance Implement/Improve). `/shiploop complete` execs the printed When done; the script infers advance, one Improve cycle, or merge from the receipt and the new stdout is the next prompt (**per-step Improve**). | Host DAG walk. Implement: lint-after-write then tests-until-green, then Improve one cycle. Dest-writer lint/validate is dest-syntax SoT for file-local syntax; live dest list/status is the identity oracle. **Not** `/devloop`. **Not** a spec rewrite. |
-| **After** | session residual parent until-loop once `steps_drained` (review-coverage, then the spec's quality test-and-fix until-loop A, Improve until-loop B, then outer-loop deploy/publish if named; skip A+B if Q3=no), then dest `done` / `halted` writes `.shiploop/recap.html` from the run files | No engine `COMPLETE`. Recap is the walk-back (intent, original spec, accomplished, changed, end result, outcome, verified). It reports review-coverage status; it does not witness host-owned quality/publish or treat `done_sentence` as harness-verified. |
+| **Before** | **preflight**, then **approach**, **survey**, **research**, and a checkable **spec**; then native bounded **sequence** planning and only lifecycle-selected preparation | The Markdown run records the source of truth. Sequence planning uses a short forward draft plus backwards prerequisite audit, then a validated compatible DAG import; no external planner is required. Survey retains destination writer, reserved/product layout, routing, lint/live-identity oracle, references, and UI constraints. The lifecycle explicitly places preparation, quality, and publication as none, DAG, or outer work. |
+| **During** | `/shiploop next` reprints one action; `/shiploop complete --action ID --result FILE` advances only that durable action | One ready worktree step at a time. Implement and every Improve iteration run concrete lint and required tests through a manifest. Improve reads Git history, reviews, plans/applies fixes, verifies, and makes a verbose learning-oriented primary commit. Two trivial-only iterations still require final verify and broader-plan review. |
+| **After** | `coverage → quality → publish? → handoff`; action-bound `replan` may add a corrective pending step | Review Coverage must be bound/tracked/clean; quality always runs fresh acceptance/integration evidence, and `quality: true` adds focused quality review. Publication remains authorized, host-reported evidence. Handoff records limitations and generic ShipLoop proposals; it does not prove semantic or remote success. |
 
 ShipLoop owns per-step git worktree/branch isolation (checkout disposable;
-branch kept on a merge complete; harness `merge --no-ff --no-edit` on a merge
-complete, Git ran printed). It does **not** inherit
+branch kept on a merge complete; harness `merge --no-ff --no-edit` only after
+fresh final evidence and session-baseline checks). It does **not** inherit
 DevLoop’s frozen-oracle or COMPLETE guarantees, and must not import
 `worktree.py`, auto-resolve merge conflicts, or claim engine `COMPLETE`.
 
@@ -56,26 +56,24 @@ DevLoop’s frozen-oracle or COMPLETE guarantees, and must not import
 | Fail-closed (no invented oracle / cwd / `--repo`) | Card interpolate + engine admission | `/goal` “best effort” complete |
 | COMPLETE = `AFTER exec exit=0` only | Card + `test/devloop-run.test.sh` D37 | Second host gate (silent push, `/goal` verify, evidence-gates receipt) |
 | Isolated worktree every run | Shim + engine | Review-converge sticky target, cwd reuse |
-| Per-step worktree (ShipLoop) | shiploop claim / complete-step / clear-step | DevLoop `worktree.py` import, auto-merge, second COMPLETE |
+| Per-step worktree (ShipLoop) | ShipLoop action receipt / local merge gate | DevLoop `worktree.py` import, auto-merge, second COMPLETE |
 | Frozen oracle | Engine PROVE/BUILD | Host rewrite of tests |
 | Consumer-channel + `require_*` family | Engine `admission_gates.py` | Host skill / destination-contract nouns |
 | Checkable done sentence | `/devloop <goal>` text | Host DEFINE/PROVE/BUILD complete-when table |
-| residual×2 | `review-coverage` after DevLoop `COMPLETE`, or after ShipLoop `steps_drained` | Engine (≤3 attempt retry is a different grain) |
+| residual×2 | `review-coverage` after DevLoop `COMPLETE` | Engine (≤3 attempt retry is a different grain) |
 | Learning after outcome | Engine DELIVER+LEARN | Host commit to “finish” delivery |
 | MCP observe-not-act | Card (`references/mcp-consider.md`) | Engine (does not speak MCP) |
 
 `evidence-gates` is offline freeze / prove / build-on-host / stop — **not**
 DevLoop. Never fall back to it when the user asked for DevLoop.
 
-`shiploop` is a **session harness**, not a second DevLoop. It reads artifacts and
-prints the next stdout. During a ShipLoop session, `/shiploop next` prints a parent until-loop
-for ready steps (cwd on that step's worktree) and does not rewrite the spec.
-The host closer is `/shiploop complete` (procedure on the shiploop card;
-the harness script infers the unique running id or happy-path `--to`).
-It must not invoke `/devloop`, must not
-capture `devloop-run`, must not auto-resolve merge conflicts, and must not claim COMPLETE. Bare
-“devloop” still routes to skill `devloop`. `.shiploop/plan.md` is a pointer; the
-sequence plan is `.shiploop/backchain/plan.json`.
+`shiploop` is a **session harness**, not a second DevLoop. It reads durable
+Markdown artifacts and prints the next action. It must not invoke `/devloop`,
+capture `devloop-run`, auto-resolve merge conflicts, or claim COMPLETE. A
+small-context host obtains bounded state with `shiploop context`, not a full
+packet echo. The canonical sequence is `.shiploop/backchain/plan.md`, and
+the only revision paths are post-inner or outer `replan` with a validated
+pending-only DAG.
 
 ## Prompt-driven, script-enforced (three grains)
 

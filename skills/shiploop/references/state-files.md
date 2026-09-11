@@ -1,131 +1,99 @@
-# State files (`.shiploop/`)
+# Durable run files (`.shiploop/`)
 
-Everything below lives under the **run dir** (default: walked from cwd to
-`.shiploop`), never inside the `shiploop` skill package.
+Everything below belongs to a run directory, normally `<repo>/.shiploop`,
+not to the installed ShipLoop package. Markdown is the authoritative state.
+Each structured record has one `shiploop-state` JSON fence inside its Markdown
+file. There is no writable JSON mirror.
 
-| File | Written during | Source of truth for |
-|------|-----------------|----------------------|
-| `state.json` | every command | phase, hashes, `dep_roots`, blocked/resume, `terminal` |
-| `prompt.md` | `init` | the original ask |
-| `environment.md` | `validate-spec` (survey + practices) | session survey: prose brief + `## machine` fenced JSON (`exclusive` is the session writer map); practice references and practice prose live here, hashed with the file. Session-wide union of `dont_use`; a row's `use` in another row's `dont_use` is a dest-plan gap (split the session). Artifact-scoped `Writes:` is a follow-up, not this increment. |
-| `spec.md` | `validate-spec` | labeled `done_sentence:` and `checkable: true\|false` (each exactly once); `ask_user:` when `checkable: false` |
-| `backchain/plan.json` | `plan` | canonical sequence DAG (steps carry `statement`, `prompt`, `produces`, `inputs`, `origin`; every seed `prompt` cites `environment.md` `references[].path` and a `Tools:` block) |
-| `plan.md` | `plan` | sequence pointer with labeled `done_sentence:` (must equal `spec.md` at dest implement; same fence-skip labels as spec.md). Not hashed into `plan_sha256` — a post-bind edit does not fail-closed on `next`. dest residual bind order: explicit `init --bound-plan` wins, else `.shiploop/plan.md` if it has `## Review Coverage`, else repo-root `PLAN.md` with that H2, else fail closed. dest residual may store `state.bound_plan_hash = sha256(plan.md)`. May lag the DAG after `inject-step`. |
-| `steps/<id>.json` | `implement` | per-step receipt (`status`, `plan_sha256`, `worktree`, `branch`, `base_sha`, `inner` A\|B, `improve_cycles`, optional `tests` after advance, and on complete `inner_loop` / `improve`). Inner A/B is file SoT; the skill/chat is not. |
-| `state.json` `improve` | dest `done` | parent until-loop attestation for residual quality (`complete --improve`); recap renders `residual-done:` |
-| `history.jsonl` | every command | append-only event log |
-| `recap.html` | dest done / dest halted | harness-written walk-back HTML (intent, original spec, accomplished, changed, end result, outcome, verified) |
+| File or directory | Authority / purpose |
+|---|---|
+| `state.md` | Current phase, stage, action, revision, frozen hashes, active step, and completed-action replay digests. |
+| `run.md` | Persistent marker that identifies Markdown state authority and prevents accidental reinitialization/resurrection. |
+| `prompt.md` | Original user request captured at initialization. |
+| `preflight.md`, `approach.md` | Baseline facts and the initial delivery approach. |
+| `environment.md` | Survey and research-facing environment brief. Its prose is human-readable; its single `## machine` JSON fence is the validated environment contract. |
+| `research.md` | Sources, uncertainty resolution, and assumptions used before freezing the spec. |
+| `spec.md` | Checkable `done_sentence:` and `checkable: true`; the product contract. |
+| `lifecycle.md` | Whether preparation, quality, and publication belong in the DAG or outer loop, plus acceptance criteria and rationale. |
+| `plan.md` | Human-readable sequence plan, including matching `done_sentence:` and the bound Review Coverage section. |
+| `backchain/plan.md` | Canonical dependency DAG in a Markdown record. The JSON fence is authoritative for steps, dependencies, prompts, produces, and unresolved facts. |
+| `steps/<id>.md` | Per-step receipt: allocation, branch/worktree, implementation evidence, Improve iterations, final check, plan review, and merge result. |
+| `results/<action>.md` | Immutable submitted result for a completed action. |
+| `checks/<action>.md` | Manifest plus verified check evidence for that action. |
+| `manifests/<step-or-outer>.md` | Last accepted manifest for change detection and required verification reason. |
+| `check-attempts/<action>-<id>.md` | Every verification attempt, including failures, timeout evidence, and manifest-change reason. |
+| `logs/<action>/` | Raw stdout/stderr logs named by check; evidence, not Markdown authority or prompt payload. |
+| `history-pages/<action>-<skip>.md` | Persisted pages of full Git commit bodies read for an Improve review. |
+| `history.md` | Append-only command/action history. |
+| `shiploop-improvements.md` | Deduplicated generic ShipLoop improvement proposals with provenance; proposal-only. |
+| `preparation.md`, `coverage.md`, `quality.md`, `delivery.md`, `handoff.md` | Outer-loop evidence and final handoff records. |
+| `migration.md`, `legacy-backup/` | Explicit legacy-migration marker and copied pre-0.9 records. |
+| `transaction.md` | Short-lived write-ahead transaction journal. The next locked command rolls it forward deterministically. |
 
-When `exclusive` has rows, the `environment.md` machine also requires:
+`recap.html` from an older run may remain as a historical view, but it is not
+the source of truth for the 0.9 protocol. Inspect `handoff.md`, checks,
+receipts, history, and the journal for current evidence.
 
-```json
-"layout": {
-  "reserved": ["<path or glob>"],
-  "product": ["<path or glob>"]
-},
-"routing": {
-  "user_entrypoint": "<string or none>",
-  "reserved_routes": ["<string>"],
-  "confirmation": "<string or none>",
-  "source": "<exactly one references[].path>"
-}
-```
+## Authority and safety rules
 
-`reserved`, `product`, and `reserved_routes` are nonempty lists of nonempty
-strings; `none` may be the sole list value. `user_entrypoint` and
-`confirmation` are nonempty strings and may be `none`. `source` is a
-nonempty string that exactly matches one `references[].path`. With
-`exclusive: []`, `layout` and `routing` are optional; when present, the same
-shape applies. No other machine keys are introduced for this discovery.
+- Do not create or edit `state.json`, `plan.json`, `steps/*.json`, or
+  `history.jsonl`. They are legacy inputs only, never state authority once a
+  Markdown run exists.
+- The script rejects a legacy `state.json` until explicit `migrate`; it does
+  not silently convert or resurrect JSON.
+- `migrate` saves source JSON under `legacy-backup/`, creates
+  `migration.md`, preserves code/branches/worktrees, and makes planning pass
+  new evidence gates. It does not certify historical assertions.
+- A state mutation writes one transaction intent before targets. If an
+  interruption leaves `transaction.md`, the next locked command recovers it.
+  Do not hand-delete it to make a run appear healthy.
+- A result is action-bound. The same action plus byte-equivalent structured
+  result is replay-safe; a different result for an already consumed action is
+  rejected.
+- Worktrees live below `<repo>/.worktrees/shiploop/<run-id>/<step-id>` and
+  branches are retained after merge. The session checkout is the local merge
+  destination; unrelated dirty files are preserved and block an implicit
+  merge rather than being swept in.
+- Results, check-attempt records, and raw logs can retain exact host-provided
+  content. Do not include credentials or secrets; storage permissions reduce
+  accidental exposure but do not promise perfect redaction.
 
-There is **no** `environment.json`, `spec.json`, `implement.json`, or
-host-authored `plan.json`. Each artifact above has exactly one file as
-its source of truth; the script never writes a JSON twin next to a `.md`
-SoT. Leftover `plan.json` wrappers are inert — dest implement and
-`inject-step` ignore them; `init --force` still unlinks them. The DAG in
-`backchain/plan.json` is canonical.
+## Frozen planning contracts
 
-When `machine.ui` is true, dest plan requires some nonempty
-`references[].path` to contain the frozen `ui_craft` token. Dest implement
-requires a seed step whose `produces` matches
-`(?i)\b(design|visual identity|interaction model)\b`, plus another seed whose
-`inputs[].from` names that design step. Discovered/inject steps do not satisfy
-the required design seed. When `ui` is false, both gates are skipped.
+`environment.md`, `spec.md`, and `backchain/plan.md` are hashed when their
+stage completes. Drift fails closed rather than being silently reinterpreted.
+The only plan change path is the completed step's `post-inner` action: it can
+replace `plan.md` and `backchain/plan.md` together after candidate validation,
+and only change pending steps while retaining goal, initial state, completed
+receipts, and the running receipt.
 
-## Hashes (fail-closed drift)
+`environment.md` retains the valuable survey contract:
 
-- `environment_sha256 = sha256(environment.md)`
-- `spec_sha256 = sha256(spec.md)`
-- `plan_sha256 = sha256(backchain/plan.json)`
+- The prose brief records scope, existing repository facts, research, writer
+  and platform constraints, deferred tools, and non-secret readiness facts.
+- Its `## machine` JSON object records inventory fields such as `kind`,
+  `augment`, `references`, `tools`, `mcp`, `mcp_considered`, `exclusive`,
+  `handles`, `initiation`, and UI information.
+- When an exclusive destination writer exists, retain the validated
+  `layout`/`routing` contract: product files do not enter reserved trees,
+  writer lint/validation is the syntax authority, and live writer list/status
+  is the identity authority.
+- Never persist credentials, signed-in account addresses, or live delivery
+  URLs as state. Reference a safe probe or expected account role instead.
 
-`dest plan` **writes** `environment_sha256` / `spec_sha256` when empty (first
-bind — including `blocked → plan`) and **verifies** them when already set.
-Editing either file after bind requires dest blocked → validate-spec; rewrite
-environment.md; → plan (do not hand-edit backchain/plan.json)
-(this clears all three hashes and any receipts). Once `phase != validate-spec
-and != plan`, any command that reads state re-checks these hashes and fails
-closed (exit 2) on drift. An empty `environment_sha256` (a pre-0.7 run, or a
-run that never survived to `dest plan`) is grandfathered — not enforced —
-until the next `validate-spec`.
+The DAG must keep the same protections: safe unique IDs; nonempty exact
+`produces`; valid dependency edges and no cycles; a complete seed prompt with
+its `Tools:` contract; cited environment references; reserved-path and
+exclusive-writer restrictions; and an early design-producing seed feeding
+another seed for human-facing UI work. A discovered need after planning is
+not a license to hand-edit the DAG: record it in post-inner learning and use a
+pending-only plan revision when it changes the broader sequence.
 
-**Residual bind (not fail-closed):** dest residual may set
-`state.bound_plan_hash = sha256(plan.md)` when it auto-binds a plan that
-already has `## Review Coverage`. A later byte change does **not**
-`die(EXIT_BLOCKED)`; `plan_waiver()` returns None and the ledger may
-read `foreign`. Do not merge `plan.md` into a file that keeps receiving
-post-bind edits.
+## Product documentation is separate
 
-## Product `README.md`
-
-Not a `.shiploop/` state file — it lives in the bound repo tree. Survey reads
-it (if present) and cites it in `environment.md.references`; `validate-spec`
-never writes it. The spec's product-doc duties include a README create/revise
-as a late DAG successor (see `plan.md`, `survey.md`). It must never contain
-machine JSON, handles, tokens, MCP inventory, or session hashes — those stay
-in `environment.md`. `init --force` never deletes it.
-
-## Product `AGENTS.md`
-
-Not a `.shiploop/` state file — it lives at bound `repo_root/AGENTS.md`.
-Survey cites it **IF EXISTS** (`why` = standing agent contract) and never
-writes it; absence is not dest-block. Spec/plan seed a create (absent) or
-revise (present) as a late DAG successor, same grain as README (prompt-driven;
-not a dest-implement machine gap; not hashed). Later agents will not see
-Frozen: body restates dest Exclusive / layout / routing / lint-oracle,
-exact dest lint/list/test commands, never `git add -A`, and pointers to
-unique dest/docs. Never machine JSON, handles, tokens, or session hashes.
-Do not absorb unique dest receipts. Frozen may print a live pointer when
-the file exists (not session SoT; Exclusive / routing / lint-oracle win on
-conflict this session). Nested copies under subdirs are out of v1.
-`init --force` never deletes it.
-
-## End-of-run `recap.html`
-
-The harness writes this file on dest `done` and dest `halted` from the run
-files (prompt, frozen spec, DAG/receipts, plan, survey prose, history,
-ledger). dest appends `history.jsonl` first, then rewrites the recap so
-**Materially changed** includes the dest event. The top of the page is a
-reveal: key accomplishments and a diagram of implementation outcomes
-(starting facts → each step's `produces` → frozen done_sentence).
-**Verified** reports review-coverage status and that quality `/goal` /
-outer-loop publish are host-owned (not harness-verified). Not hashed.
-`--force` unlinks it. The script refuses dest `done` when the file is
-missing, empty, not HTML, or missing the briefing words `intent`,
-`accomplish`, `changed`, `outcome`, `verif`, `original spec`, and
-`end result`. The host does not hand-author it.
-
-## `state.json` `terminal`
-
-Unset (`null`) until dest `done` or dest `halted`. This is the
-review-coverage close mode, not a claim that quality `/goal` or
-outer-loop publish ran:
-
-| Value | Meaning |
-|-------|---------|
-| `success` | dest `done`; review-coverage complete and landed |
-| `waived` | dest `done`; review-coverage waived on the bound plan |
-| `halted` | dest `halted`; bound residual ledger is `stopped (...)` |
-
-Quality `/goal` and outer-loop publish stay host-owned on every row.
-Packet Diagnosis and recap Verified say that; `terminal` does not
-witness them.
+The repository's `README.md` and `AGENTS.md` are product artifacts, not
+ShipLoop state. Survey may read and cite them; the dependency plan can add a
+late, tested product-documentation step when needed. They must not become a
+dump for session hashes, secret handles, raw machine inventory, or unique
+receipts. `AGENTS.md` is an optional standing aid for future agents, never a
+replacement for the printed action or the run records.

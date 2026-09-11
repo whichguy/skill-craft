@@ -1,7 +1,9 @@
-# Transition sample artifacts
+# Historical 0.8 transition sample artifacts
 
-Independent run dirs in `test/shiploop-walk-journal.test.sh` copy these
-files to establish each legal edge in `skills/shiploop/references/transitions.json`.
+These fixtures describe the retired JSON/free-form transition protocol and
+remain useful as migration inputs, not as 0.9 execution instructions. The
+current action-walk suite is `test/shiploop-action-walk.test.py`; the current
+protocol is documented in `skills/shiploop/references/action-protocol.md`.
 DAG bodies stay in `test/fixtures/shiploop/*.json` (`linear.json`,
 `two-root.json`, `single.json` for the one-step first=last walk).
 

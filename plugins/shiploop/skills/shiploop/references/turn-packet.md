@@ -1,32 +1,76 @@
-# Turn packet headings (script interpolates; do not paraphrase)
+# Compact action packet
 
-Every `shiploop next`, `shiploop complete`, and `/shiploop next` prints these H2s in order
-(after the outcome line when the command prints one, then the harness banner).
-`next` first line is `next — claimed <ids> (<phase>)` or `next — reprint (<phase>)`.
+ShipLoop 0.9 prints one bounded action rather than echoing the full session
+into every context. Treat the packet as the operational source for the current
+turn; durable Markdown files hold the detail.
 
-```text
-## You are here
-## Progress
-## Reminder
-## Look here
-## Next prompt
-## When done invoke
-## Missing
-```
+~~~text
+ShipLoop 0.9.0 | <phase> / <stage> | revision <n>
+Run: <absolute run directory>
+State: <run>/state.md
+Journal: <run>/shiploop-improvements.md
+Action: <run-scoped action id>
+Working directory: <repo or active worktree>
+Step: <id> | receipt: <path>                 # only for an active step
+Iteration: <id>                               # only during Improve
+<one stage-specific prompt>
+<only relevant command(s)>
+Result format: one shiploop-state JSON object fence in Markdown.
+When done: shiploop complete --action <id> --result <path>
+~~~
 
-- **You are here** — glanceable rails, then the same machine-stable status lines (not a new H2). Session rail: `intake → validate-spec → plan → implement → residual → done` with `●` done / `▶` current / `○` left / `✗` blocked. Then each session phase as `phase: current|done|todo|blocked`. In implement, a walk rail lists every backchain id with the same glyphs (`●` done / `▶` running or ready / `○` waiting), its **statement**, and `done` / `ready` / `running` / `todo` (still as `S1: running` on that line). If waiting, `waiting on <supplier id> <statement>`. Marks come from `classify_steps` (hash-matching receipts), not a second file. No `✗` on steps — blocked is a session phase, not a step state. `complete-step` / `clear-step` / `inject-step` do not reprint; `/shiploop next` or `status --human` is the live reprint. After `--to plan`, spec is `frozen`. Then a `Diagnosis` block: frozen `done_sentence`, stand vs spec/steps, **completed** (`●`), **now** (`▶`, running/ready with worktree/branch), **pending** (`○`, waiting on suppliers or later session phases).
-- **Progress** — verbose begin/finish for the current phase or running step: what this increment does, worktree folder + branch (implement), session checkout (do not edit during the until-loop), and what `/shiploop complete` does next. Not a new SM phase. Always prints this host flag first (same wording again in the implement Next envelope; stored `prompt`s stay verbatim):
+The packet points to the relevant approach, environment, spec, lifecycle, and
+plan records; it does not copy their bodies. Read only the sections required
+for the action. After cold context loss, use context section prompt first, then
+the current step or iteration. The active step's stored prompt and exact
+produces live in backchain/plan.md; its receipt preserves prior iteration facts.
 
-```text
-HOST FLAG — extra folder (do not re-root):
-ShipLoop creates another folder: a per-step worktree under <repo>/.worktrees/shiploop/<run_id>/<id> on branch shiploop/<run_id>/<id>.
-Implementation work happens IN that worktree, not in the session checkout.
-Do not move_agent_to_root / re-root the host chat into that folder or the product repo unless the user asked.
-The session checkout stays the merge dest; do not edit it during implement.
-After a merge complete, the harness merges the kept branch into session HEAD and prints Git ran; the new stdout names the next worktree.
-```
-- **Reminder** — prompt one-liner and frozen `done_sentence`. No spec/plan body dump. No “rewrite the spec.”
-- **Look here** — first line `Reference only — not the next action.`, then absolute pointers with a one-line why (`required` / `if-needed`), phase-scoped (validate-spec adds `environment.md` + the survey guide; implement adds `environment.md` as **required** frozen survey plus each running step's worktree labeled with the step statement, e.g. `S1 worktree — cwd here — write the file`; residual points at frozen `environment.md` (dest reread) and `recap.html` as written on dest done; done/halted add the generated recap). Spec/environment marked frozen after `--to plan`.
-- **Next prompt** — first line `Issue this prompt.` Non-stop stdout then prints HOST_CONTINUE (`When ## When done invoke states a precondition, satisfy it first, then exec its command exactly as printed — do not substitute a different command.` then `The new stdout is the next prompt to issue. Repeat until When done says stop.`). Stop stdout (done / halted / blocked) omits it. Implement (not drained): envelope (worktree folder, branch, checkout guard, HOST FLAG, Frozen session environment, Implement git) then **Implement** or **Improve**. Implement: stored `prompt` verbatim (stored `/goal` bytes are a label, not a slash to invoke). **If** produces is true → lint-after-write then tests-until-green then `/shiploop complete`; **else** keep working / `/shiploop next`. Improve is **one** cycle; `invoke /shiploop complete`, adding `--trivial` when the cycle was only-trivial. After two consecutive only-trivial, leftover then flagless `complete` merges. The script infers the action. The script does not compose or rewrite the stored prompt (printer emits stored bytes; it does not `rstrip` the prompt). Do not wrap a second `/goal`; work this Next in the parent chat; do not paste HOST FLAG. Do not nest Improve inside Implement. Improve: last 7 git commits, lint-after-write, recorded tests, declared acceptance checks, bound-name execs when a produce exposes one. Implement git names the worktree/branch/session checkout (`repo_root` main tree), `git log -10` before planning each functional iteration, and the commit schema (`Key learnings:` / `See: <full sha> <subject>`). Frozen reprints `mcp-considered` / `tools` / `mcp` / `Exclusive:` (legacy unanswered vs `[]` vs rows) and `See:` environment.md, and means do not re-survey — destination writes follow the Exclusive: line and Tools: block; MCP in `mcp:` is in-bounds. When bound `repo_root/AGENTS.md` is a file, Frozen then prints one Product AGENTS.md pointer (not session SoT; do not paste the body; omit when missing — no `none(...)`). Do not add AGENTS.md to Look-here. When exclusive rows exist it also prints: If the writer above fails, stop and invoke /shiploop complete --blocked --reason … — do not switch writers. Then the Lint oracle line (Exclusive writer lint/validate is dest-syntax SoT; dest list/position beats a local walk). Residual Next prints Frozen first, then its activity: Q3=yes runs quality until-loop A then Improve until-loop B; Q3=no skips both; Q2=outer-loop publishes only after B. Other phases (including drained implement, which uses `implement-drained.md`, and residual with a bound-plan waiver, which uses `residual-waived.md`): the interpolated activity body, printed as-is. Activity bodies dumped here must not use packet-level H2 (`## `); those headings bound Next (the next `## ` is When done invoke). Jobs inside the body use `###` or below.
-- **When done invoke** — Non-stop stdout prints HOST_CONTINUE first, then a bound closer (`invoke /shiploop complete`, not `complete-step --id` / `update --to`). Stop stdout (done / halted / blocked) omits HOST_CONTINUE (`stop — no update` or ask-the-user `--reason`). Implement labels `Step S1:` for Implement/Improve cycles and `Finish S1:` only for merge. Flagless `complete` infers advance / one cycle / merge. Add `--trivial` when this Improve cycle was only-trivial. After two-clean: leftover pathspec commit, then `complete` merges `--no-ff --no-edit`, keeps the branch, removes the worktree, and does not squash so inner Key learnings stay reachable from session HEAD; it prints Git ran and dests residual when this was the last step. Failure: `/shiploop complete --clear` or `--blocked --reason`. Empty, dirty, or conflicted **merge** is refused. Worktree/branch stay in Look here / Diagnosis, not spliced into the prompt. Plan-before-DAG is the success closer (`complete` → implement), not `--blocked`; `--blocked` is only when a written DAG is illegal. Residual Diagnosis / Progress name a bound-plan waiver when one exists (not “run Phase B”). dest `done` Diagnosis says session closed and that quality/publish were host-owned; recap Verified does not treat the frozen `done_sentence` as harness-verified. Residual dest done still requires `--improve`. `--inner-loop parent --improve` and `--inner-loop goal` remain overrides.
-- **Missing** — dest-scoped: `missing_for(state, run_dir, forward_dest())`. Same function as `update --to`, not the same dest on every reprint. In-flight implement (`forward_dest` is `None`) does not run dest-implement gates (`wrapper_pair` / `dag_gaps` / git `HEAD`). dest `plan` runs `load_spec` / `load_environment` / `exclusive_gaps`; dest `implement` runs `wrapper_pair` / `dag_gaps`. Look-here why strings are independent of this list. After Missing, mutating harness git prints a **Git ran:** trailer (not an H8): `$ git -C …`, `exit N`, stdout/stderr.
+## Action use
+
+- The Action value is required by complete, verify, history, journal, and
+  repair. A stale ID is refused.
+- A completed action can be replayed only with byte-equivalent structured
+  content. The script then prints the current action instead of double-counting
+  a transition.
+- next and status reprint the same action. Neither silently advances an
+  inner-loop stage.
+- pause preserves the action with a non-success reason; resume reprints it.
+  halt is terminal and its packet names the unfinished handoff.
+- The packet does not prove semantic correctness, test adequacy, publication,
+  or user acceptance. It reports script-verified state and host-reported
+  evidence separately.
+
+## Stage-specific commands
+
+For implementation, Improve verification, final verification, and outer
+quality, the packet prints:
+
+~~~text
+Checks: shiploop verify --run-dir <run> --action <id> --manifest <absolute-checks.md>
+~~~
+
+Every manifest has a concrete lint command and required test commands. If the
+manifest changes for a current action, run verify --reason "<why coverage
+changed>"; failed attempts remain in check-attempts/ and do not become
+invisible.
+
+For Improve review, the packet prints a bounded history command. The default
+output is a compact SHA/subject index and a pointer to the durable page. Read
+the latest seven commits or all available commits before completing review.
+Retrieve a specific full body without flooding the context:
+
+~~~text
+shiploop history --run-dir <run> --action <id> --limit 1 --skip <n> --full
+~~~
+
+For commit, the packet names the iteration ID. The primary commit must end
+with ShipLoop-Iteration: <id> and include the review and application learning
+text verbatim in its evidence-based body.
+
+## Do not infer the old protocol
+
+There are no packet headings for a hidden parent loop, no full frozen-context
+echo, and no inferred closer. Do not run bare complete, complete-step, update,
+start-step, clear-step, or inject-step; those are pre-0.9 interfaces. Do not
+call a transition complete because a chat response says it is done. Persist the
+requested result and execute the packet's exact command.

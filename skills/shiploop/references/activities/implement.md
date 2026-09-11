@@ -1,71 +1,63 @@
-Walk ready steps via the printed parent until-loop. The spec is **frozen** —
-do not refine, expand, or rewrite it.
+# Per-step implement and Improve loop
 
-Follow the printed Next envelope; do not nest Improve inside Implement.
-Each running step's worktree and branch are named in **Look here** /
-**Diagnosis** — work there (do not re-root the host chat); do not edit
-the session checkout or reuse a prior worktree.
+Work only in the active step worktree named by the action packet. The session
+checkout remains the eventual local merge target. Do not re-root the whole
+session, edit the session checkout during a step, force-remove a worktree,
+auto-resolve conflicts, or stage everything with git add -A.
 
-Do not nest Improve inside Implement.
-If Implement for an id is already in this parent chat, do not start a
-second functional until-loop for that id. Implement iterates and
-pathspec-commits **on the worktree**. After produces is true:
-lint-after-write then tests-until-green. `LINT_PATHS` is the NUL-safe union
-of `git -C <worktree> diff -z --name-only <receipt.base_sha>` (including
-the working tree) and `git -C <worktree> ls-files -z --others
---exclude-standard` (untracked, not ignored). Anchor on that step's
-immutable `receipt.base_sha`, never moving session HEAD. Recompute after
-every production-file edit; the lint run that counts is the one after the
-last production edit. If tests force production edits, re-lint those paths
-before claiming green. Residual Improve B / review-converge use that
-round's `CHANGED_PATHS`, not the step receipt baseline. Run every available linter on `LINT_PATHS` (Exclusive writer
-lint/validate if it has one, then repo-configured, then generic syntax
-checkers already on PATH that match the files; do not install a linter).
-Writer lint/validate on dest/source in `LINT_PATHS` is dest-syntax SoT for
-file-local syntax; dest-identity findings (order/position/name/presence)
-are provisional until live dest list/status/push-preflight agrees;
-disagreement is a P2 learning, not a rewrite of reserved runtime;
-generic linters must not rewrite dest-mandated syntax;
-docs-only: none(<reason>). Then author and run checkable tests for this
-produces until they pass. Then `/shiploop complete`. Never `git add -A`. Never merge from
-that cwd. Then follow the printed Improve (one cycle; lint-after-write
-then re-run recorded checks). Then invoke the printed When done —
-**`/shiploop complete`** (add `--trivial` if this Improve cycle was
-only-trivial). Do not
-pass `--inner-loop parent --improve` unless When done named that override.
-When When done is the merge, the harness
-merges
-(`git -C <session-checkout> merge --no-ff --no-edit <branch>`), keeps the
-step branch, removes the worktree, and does not squash; inner Key learnings
-stay reachable from session HEAD. It prints Git ran, dests residual when this
-was the last step, and prints the next stdout. Use `--inner-loop goal` only
-if this host actually ran `/goal`. Parent still includes Implement then
-Improve. Do not run
-a bare `git merge` from the worktree cwd. The next worktree forks `HEAD`.
-Complete does not resolve conflicts; read Git ran and retry.
+## Implement
 
-### Discovered work mid-implement: `inject-step`
+Implement only the active step's stored prompt and exact produces. Suppliers
+and initial state are assumptions, not work to repeat. If evidence exposes a
+broader defect, preserve it for review/post-inner rather than rewriting the
+frozen DAG in place.
 
-If a running until-loop surfaces intermediate work the frozen DAG did not
-anticipate, add it with `inject-step`. **Look here** lists the harness CLI
-and the inject-step card as absolute paths. Pass `--statement`, `--prompt`,
-`--produces`, optional `--id Sn`, `--need`/`--from`, `--before`. Legal only
-in phase `implement` (including drained). It refuses on plan-hash drift (a
-hand-edit is not an inject), refuses `--before` a step that is not
-`todo`/`ready`, and rebinds `plan_sha256` only — it never re-runs `dest
-plan` or clears existing receipts. Unlike a seed step's `prompt`, a
-discovered step's `--prompt` still needs `/goal` plus until-`produces`
-and does **not** need to cite `{{ENV_MD}}`'s practice references or the
-frozen `mcp_considered` token. That exemption does **not** cover the writer
-prohibition: when `exclusive` is nonempty, the discovered `--prompt` still
-carries a `Tools:` block, a `Use:` line whose entries include the designated
-`exclusive[].use`, and a parsed `Don't use:` line (`Don't use: none`
-if the token union is empty; a token under `Use:` does not count; overlap
-with `Don't use:` is a gap). The envelope wraps a discovered prompt exactly
-as it wraps a seed prompt.
-If the writer above fails, stop and invoke /shiploop complete --blocked --reason … — do not switch writers.
+For every implementation pass:
 
-After Implement produces and Improve finishes: invoke `/shiploop complete`
-as printed under When done.
-After an until-loop fails and the session can continue: invoke `/shiploop complete --clear`.
-Hard stop: invoke `/shiploop complete --blocked --reason …`.
+1. Create or expand behavior/contract tests mapped to every produces value.
+2. After each production edit, run all applicable lint: destination-writer
+   lint/validation where available, repository-configured lint, and suitable
+   existing syntax checks. Destination syntax rules win over generic rewrites.
+3. Build an explicit manifest with a concrete lint entry and required test
+   entries. Each produces value appears in a test acceptance list.
+4. Run verify. A failing, timing-out, tree-changing, stale, or
+   manifest-mismatched result is not evidence; fix and re-run.
+5. Complete implement only after a fresh successful verification record and a
+   test_review explain the coverage and limitations.
+
+The script persists logs and failed attempts. Never put secrets in a command,
+test output, result, or manifest; logs are evidence artifacts and exact output
+may be retained.
+
+## Improve iteration
+
+Each iteration follows this fixed order:
+
+1. **Review.** Run history for the active action. Read complete commit bodies
+   for the latest seven commits or all available commits, using one full body
+   page at a time when context is small. Review code, tests, regressions,
+   declared acceptance, and prior learnings.
+2. **Plan.** Write a concrete improvement plan covering every finding,
+   necessary test changes, and prevention.
+3. **Apply.** Implement the plan. Mark material truthfully: a material finding
+   or application resets the trivial streak even when the textual diff is tiny.
+4. **Verify.** Run fresh lint and every required test. If tests force another
+   edit, lint and test again. A late file edit during verification is treated
+   conservatively as material and restarts convergence.
+5. **Commit.** Make one new primary commit at worktree HEAD. It is not a main
+   branch commit and includes concrete Review, Changes, Validation, and Key
+   learnings sections, ending with the exact ShipLoop iteration trailer.
+   Include review learnings and apply learnings verbatim. An audit-only
+   allow-empty commit is permitted but must still record real evidence.
+
+Two fully recorded trivial-only iterations are necessary before final verify.
+There is no maximum iteration count that becomes success. Final verify runs a
+fresh manifest on the final tree. Post-inner then asks whether broader
+dependencies, preparation, tests, or the plan need changing; only pending work
+may be revised.
+
+If a real defect appears after commit, final verification, post-inner, or merge
+intent, use repair. It records the defect, resets convergence, and returns to
+review. If the session checkout has advanced, integrate its current HEAD into
+the worktree first, then repair and complete two new converged iterations; do
+not merge a branch validated against an obsolete session baseline.

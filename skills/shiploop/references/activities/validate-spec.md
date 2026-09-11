@@ -1,255 +1,110 @@
-**Survey, then practices, then spec.** Write `environment.md` then `spec.md`.
-State files: `{{SURVEY_GUIDE}}` and `{{STATE_FILES}}`.
+# Survey, research, and spec actions
 
-### 1. Survey (once)
+These are separate durable actions because a small context should not need to
+hold discovery, source research, and a final product contract simultaneously.
+They occur once per frozen planning baseline:
 
-Inventory this session against `{{SURVEY_GUIDE}}`: kind/augment, references
-(read `{{REPO_ROOT}}/README.md` if it exists and cite it — do **not** write
-or rewrite it here; **IF EXISTS** cite `{{REPO_ROOT}}/AGENTS.md` with `why`
-naming standing agent contract, not “inventory” — do **not** write or rewrite
-it here; absent: omit, do not invent, do not dest-block), tools, mcp, mcp_considered, exclusive, handles, initiation,
-ui/ui_craft. `kind` and `augment` must match (`greenfield`/`false`,
-`brownfield`/`true`); brownfield `references` must be nonempty. `tools`/`mcp`
-are available **and in-bounds** this increment (dest-writes can succeed now,
-or a `create` handle will enable them). Cheap-probe the exclusive writer's
-status/setup before dest plan or an `initiation: needed` create;
-`exclusive[].use` stays inventoried. `exclusive` is the destination-writer
-map (conflicts, not backups); `[]` when none; dest plan requires the key.
-Write `{{ENV_MD}}`: a prose brief (dest notes and unauthenticated or deferred
-MCP belong here, not in machine JSON), then a unique H2 titled
-exactly `machine` with one fenced JSON object. Any handle resolved `list` or
-`ask` will block `dest plan` later — resolve it now or use the blocked hatch
-below.
+1. Survey and write environment.md.
+2. Research uncertainties and write research.md.
+3. Freeze a checkable spec.md plus lifecycle.md.
 
-Inventory required handles, then at most one bounded read-only attempt per
-identified claim before finalizing the machine fence, per the survey guide.
-When `exclusive` is nonempty, those claims include platform preconditions
-from the named writer's docs/status/setup (APIs, scopes, billing, org
-allowlists). Probe enablement **before** an `initiation: needed` create.
-If `list` or `ask` remains, write `{{SPEC_MD}}` with labeled
-`done_sentence:` (provisional), `checkable: false`, and `ask_user: <the
-unresolved handle>`, then `/shiploop complete --blocked --resume-to
-validate-spec --reason <ask_user>`. Do not dest blocked with no `spec.md`.
-Do not re-exercise a handle already `inspect`. A handle first introduced
-while writing the spec inherits this rule before leaving validate-spec.
+Use the exact action/result commands from the action protocol. If a user
+decision or external prerequisite blocks progress, pause with a specific reason
+instead of creating an uncheckable spec or inventing facts.
+For a cold start, begin with the minimal typed machine record in
+[the survey guide](../survey.md#minimal-valid-local-greenfield-machine-record)
+and adapt it rather than guessing booleans, lists, or conditional fields.
 
-### 2. Best-practice research (once, before the spec)
+## Survey
 
-From `{{ENV_MD}}` (kind, tools, mcp, exclusive, ui, initiation, handles) and
-`{{PROMPT_PATH}}`, decide which practices apply. Pull concrete references
-implement steps must use: URLs, in-repo paths, ADRs, official docs, skill
-or reference files, MCP resource URIs. If an observed MCP server or its
-tools describe how to use them (tool descriptions, resources, prompts, or
-a query that returns practice guidance), record that text as a reference —
-inventory alone is not enough.
+The survey result body becomes environment.md. Write a concise prose brief,
+then exactly one H2 named machine and one fenced JSON object. The JSON is
+structured content within authoritative Markdown. It is not a separate
+environment.json authority.
 
-Deeply research those MCP servers and destination services before freezing
-their implementation constraints.
+Inventory, with evidence:
 
-### Dest MCP, libraries, and conventions (required when `mcp:` or `exclusive` is nonempty)
+- repository kind and augmentation status; current product tree and relevant
+  README/AGENTS guidance when it exists;
+- concrete repository, product, writer, platform, and official-doc references
+  with a one-line constraint-oriented why;
+- available in-scope tools and MCPs, one read-capable mcp_considered token,
+  non-secret handles/initiation facts, and unresolved questions;
+- human-facing surfaces, their existing design/convention constraints, and
+  whether an early design-producing step will be needed;
+- destination writer, runtime/library conventions, safe product paths,
+  reserved paths, syntax-lint oracle, live destination identity oracle, and
+  routing/entrypoint probe where a destination is involved.
 
-Inventory is not use. For **each** name in machine `mcp:`, and for each
-`exclusive[].use` (if any), answer the four questions below from **that
-server’s own** published recommendations — including tools this increment
-will not call for create. Those recommendations come in **many kinds**, not
-dest-write routing only: tool descriptions, resources, prompts, practice-guidance
-queries, per-tool `llmGuidance`, lint/fix guidance, dest list metadata, and
-dest-listed files. Instructive examples of kinds (not required labels): dest-write
-vs read, runtime/library wrap, how a human-facing surface calls dest, lint/fix
-recipes, extra dest files or exported names, operator vs product surfaces.
-Skipping a published kind because the four questions did not mention that
-kind is a discovery miss. Record each kind the writer actually states as
-`references[{path, why}]` plus brief prose in `{{ENV_MD}}`. `why` names the
-implement constraint, not “inventory.” Token `none` when the writer names
-none. If a question does not apply, write `none` in the brief so implement
-does not guess. Do not invent a house style. Do not invent a house client/UI
-stack for a job the writer covers. Do not bake a vendor, platform, or folder
-name into this skill; the writer’s documents supply those names.
+When a destination artifact has more than one potential writer, designate
+exactly one use and record overlapping mutation tools in dont_use. They are
+conflicts, not backups. If the designated writer cannot operate, pause and
+obtain direction; do not silently switch writers.
 
-1. **How to use this MCP / dest writer.** Which tool is for which job
-   (read state vs mutate dest vs create vs publish)? What anti-patterns
-   does the server itself name? Choose `use` by artifact, not familiarity:
-   name the destination artifact, scan connected server tool descriptions
-   once without calls, and designate its writer before a cheap probe. Two
-   claimants of the same dest mutation with no one-sentence reason is `ask`
-   plus dest-block; `none` when `exclusive` is empty. Do not invent a second
-   writer map. Cheap probe: the writer’s documented status/list/setup
-   **once**, read-only, after designation and before dest plan.
+For a writer-backed product, research and preserve the following before plan:
 
-2. **Library / runtime systems it imposes.** Record required module format,
-   wrap/export style, and helpers present after create/bootstrap (or, for an
-   existing destination, after listing its files). Then record the call
-   contract, one level below file shape:
-   - **Mechanics rows.** One row per product-facing mechanic the writer states (omit, do not infer): product action; imposed call, hook, footer, or registration with its order; the generic platform or language pattern it replaces (a miss even when the platform accepts it and the file lints clean); documenting `references[].path`. Host-chosen defaults are marked `host default; writer names none`. `none` when no library is imposed.
-   - **Writer-internal.** Dispatch, auth, exec, and diagnostic mechanics the
-     writer documents as its own. Product code reaches them only through the
-     documented product-facing surface.
-   - **Shape oracle.** Name one writer-placed file of the same kind as each
-     product file kind (module, template, handler). Product files match its
-     mechanics, not a platform tutorial's shape. `none` when bootstrap
-     leaves no such file.
-   Reuse before add: search bound `{{REPO_ROOT}}` **and** the destination; do
-   not add a second library, wrapper, or helper stack for a job the writer
-   covers. Do not duplicate, conflict with, or arbitrarily add a new library
-   that serves the same job. A new destination still records what its source
-   requires. Cite one reference per documenting source, not per mechanic;
-   the mechanics live in the brief. Record only what the source states overtly.
+1. Which writer operation owns read, create, mutate, validation, and publish;
+   do not use a familiar tool merely because it exists.
+2. Required runtime/module/wrapper mechanics and existing local/destination
+   patterns. Reuse before adding another stack.
+3. Reserved versus product paths. Product changes never go into a writer-owned
+   or overwrite-prone tree.
+4. The user-facing route or invocation, reserved routes, a routing-level
+   confirmation probe, and the distinction between a cheap bound-call probe
+   and live acceptance.
+5. Writer lint/validation for file-local syntax and writer list/status or
+   preflight for live identity. Destination rules outrank a generic formatter
+   when they conflict.
 
-3. **Conventions — reserved vs product.** After create/bootstrap (or
-   dest list), split paths:
-   - **reserved:** files/trees the writer owns, bootstraps, or will
-     overwrite. Product feature code must not land here.
-   - **product:** trees where this increment’s new feature code belongs.
-   Cheap probe: list files the writer placed at create/bootstrap vs
-   files this increment will add. The bootstrap set is **reserved**
-   unless the same source names a distinct product tree. If published
-   guidance says “put all new files in the runtime dump,” treat that
-   dump as reserved and put product code in the named product tree, or
-   (if none is named) in a non-runtime path at repo root — then dest
-   blocked if the user must choose. Product-in-reserved is a discovery
-   miss even when the writer invited it.
+Never record credentials, API tokens, signed-in account addresses, or volatile
+delivery URLs. Record expected account role, safe status probes, and source
+pointers instead.
 
-4. **How a user actually hits the dest artifact.** Default dest
-   entrypoint (bare URL, default route, first-responder) vs documented
-   product path/query/route. Routes the writer keeps. How to run a
-   **routing-level probe** of that entrypoint (not a library/module
-   helper that bypasses the dispatcher). This probe is **not** a
-   browser play-through. Cheap probe after create+push (or equivalent):
-   hit the dest default entrypoint **and** the documented product path;
-   record both. If they differ, `done_sentence` must not claim the
-   product is served at the default entrypoint. A sink that genuinely
-   needs a play-through must say so in `produces` and is a **live
-   acceptance** step, not this probe.
+## Research
 
-Also record these evaluations before dest plan for every applicable named
-writer; each may be the token `none` when inapplicable:
+Research the uncertainties discovered by survey before authoring the spec.
+Prefer primary documentation, existing repository conventions, and the named
+writer's own descriptions. The result records source pointers, what was
+learned, assumptions, and a reason when research genuinely does not apply.
 
-- **Watch / dest-write usability this turn.** For every name in machine
-  `mcp:` that a later live-acceptance or Q3 check will use, make one cheap,
-  documented read-only call that proves it can run **this turn**, not merely
-  appear in a server list. Failure is `ask` or dest-block, not Frozen
-  “connected.”
-- **Dest file identity.** From the writer’s own push/list/lint docs, record
-  how destination keys files (name, type, position). If local files would
-  collapse to a destination name, put the constraint in
-  `references[{path, why}]` so implement does not guess.
-- **Lint / syntax oracle.** From the writer’s own lint/push/validate docs:
-  which tool validates dest syntax (file-local: parse, module wrap, template
-  scriptlets, schema); **which tool answers dest identity live**
-  (list/status/push-preflight) when the lint tool’s local walk disagrees;
-  which dest facts beat a local or generic linter. Token `none` when the
-  writer has no lint tool; token `none` for the live oracle when the writer
-  has no list/preflight tool (then dest-identity findings are recorded
-  unresolved, never “fixed”). Do not invent a house linter. Writer lint
-  wins over generic local lint for file-local syntax; live dest list/position
-  is the identity oracle.
-- **Bound client action contract.** When `ui` is true and the writer says the
-  surface calls dest, record the **kind + probe recipe** as stable prose:
-  `bound-action <surface>::<name>; probe <safe invocation>; expect <assertion>`.
-  Include fixture/setup and cleanup when the call mutates dest. Probe that
-  name with the recorded recipe, then call it. Module `require` is not that
-  probe. This probe is **not** live acceptance. Do **not** freeze instance
-  names here — those land in DAG `produces` when the producing step exists.
-  Token `none` when the surface does not call dest.
-- **Mechanics on dest.** For each mechanics row that claims dest
-  generation, registration, or bridging, one cheap dest probe (or equivalent)
-  after create+push. Docs-only is a claim.
-- **Tracked bind files.** When `initiation: needed` or exclusive dest-write
-  requires a local resolver (id map or dest config), freeze paths later
-  worktrees must keep tracked; secrets remain ignored. If the writer
-  gitignores a resolver later worktrees must keep, freeze `git add -f` (or
-  equivalent) as the keep rule. Do not un-ignore the writer’s gitignore.
-When `exclusive` is nonempty, all four answers are required before dest
-plan (and `references` stays nonempty). When `mcp:` is nonempty but
-`exclusive` is `[]`, still record (1) and (2); (3) and (4) may be `none`
-if there is no dest artifact. When both are empty, skip this block.
+Research is not an excuse to create product files, mutate a destination, or
+re-survey an already frozen environment. A material discovery after freeze is
+handled by an explicit pause or later pending-only replan.
 
-If official platform docs are also in `references`, and they conflict
-with writer-published dest-write rules, **writer wins**. Record both:
-writer path with `why` = the dest-write constraint; platform docs with
-`why` = “platform default; dest writer overrides <X>.”
+## Spec
 
-When `exclusive` is nonempty, keep `references` nonempty. Do not invent a
-Writer playbook heading. Do not write `playbook.md`. Do not restate the
-exclusive map in prose. Do not invent a second SoT file. Do not persist
-secrets. Do not freeze signed-in account addresses; write "signed in as the
-expected account". Do not freeze live dest URLs. Do not write the product README. Do not write product AGENTS.md. Do not add research skills to
-`dep_roots`. Those references must later appear in each seed step's stored
-`prompt` together with a `Tools:` block that carries the frozen
-`mcp_considered` token. In-flight runs: dest blocked → validate-spec;
-rewrite environment.md; → plan (do not hand-edit backchain/plan.json).
+Write spec.md with exactly one line each, outside fences and blockquotes:
 
-### Surfaces (required when `ui` is true)
+~~~text
+done_sentence: <one checkable delivery sentence>
+checkable: true
+~~~
 
-Inventory is not design. When machine `ui` is true, for **each** human-facing
-surface this increment ships (product UI, CLI, operator/debug page a person
-uses, dest-facing page):
+The spec result also supplies lifecycle:
 
-1. Cite the frozen `ui_craft` skill as `references[{path, why}]`. `why` names
-   distinctive identity and interaction, not “inventory.” The `ui_craft`
-   token must appear in that `path`.
-2. Record dest-writer conventions that bound the surface (helpers and
-   interaction patterns already in the dest). Reuse those. Do not add a
-   second UI/CLI stack for the same job.
-3. Default quality bar unless the frozen spec says otherwise: as **highly
-   interactive and distinctive** as those conventions allow — live feedback,
-   in-surface state, keyboard where it fits, empty/error/success as designed
-   moments. Not a generic template. Not a static form if the dest can do
-   motion or in-page interaction.
+~~~json
+{
+  "acceptance": ["observable acceptance criterion"],
+  "preparation": "none | dag | outer-before",
+  "publish": "none | dag | outer-loop",
+  "quality": true,
+  "reason": "why work belongs in these locations"
+}
+~~~
 
-When `ui` is false, skip this block.
+The spec states scope, exclusions, user-facing outcome, acceptance, risks, and
+the placement rationale. It does not invent a testing framework, external
+permission, writer, endpoint, or source fact.
 
-### 3. Spec (once)
+- preparation outer-before means a named readiness action must complete before
+  the DAG walk; dag means preparation is an early DAG step; none means no such
+  work is implied.
+- publish dag means a declared sequence step; outer-loop means an authorized
+  delivery action after coverage/quality; none means no publication action.
+- quality true means outer quality needs its quality review plus integration
+  checks; quality false still requires mandatory acceptance/integration checks.
+  The chosen integration check is implementation policy, not a fake user quote.
 
-Write `{{SPEC_MD}}` with a labeled line `done_sentence: <exact sentence>`
-and a labeled line `checkable: true` or `checkable: false` (each exactly
-once, outside fences/blockquotes). Derive a machine-checkable
-`done_sentence`. Do not invent pytest, a path, or a cwd. The spec's product-doc
-duties are a README create (if absent) or revise (if present) **and** an
-AGENTS.md create (if absent) or revise (if present) — tell backchain to add
-both as late DAG successors in `plan`, not here. AGENTS.md is standing agent
-facts for later agents who will not see Frozen: restated dest Exclusive /
-layout / routing / lint-oracle (duplicate on purpose), exact dest
-lint/list/test commands, never `git add -A`, pointers to unique dest/docs.
-Never machine JSON, handles, tokens, or session hashes. Do not absorb unique
-dest receipts into it. Frozen Exclusive/routing/lint-oracle still win this
-session if they conflict.
-If dest-hit found a reserved default entrypoint, `done_sentence` names the
-**user** entrypoint, not the default dest URL.
-
-While expanding the spec, answer these four questions in `{{SPEC_MD}}`
-(prose is enough; do not invent new required labels). Survey already owns
-`initiation` / `create` handles — question 1 is deploy *readiness*, not a
-second project-create survey.
-
-1. **Deploy preparation before the walk?** Does this increment need
-   credentials, store listing, web-app manifest, or other deploy config
-   *before* the feature steps? If yes, say what. If no, say deploy
-   preparation is none. `plan` turns a yes into the early **prep** DAG
-   step (not a second unnamed prep).
-2. **Deploy / publish after the walk?** Once the feature work is done, does
-   someone still need to deploy or publish? Record one of: **outer-loop**
-   (residual, after review-coverage — not a DAG step), **dag** (one
-   sequence step; that *is* the plan's intermediate/late deploy), or
-   **none**. Residual re-reads live dest URLs and composes them onto frozen
-   routing; it does not rewrite this answer unless dest-blocked to
-   validate-spec.
-3. **Quality test/fix on outer-loop completion?** After residual
-   review-coverage, should the host run a `/goal` quality test-and-fix pass
-   on the completed product before dest done? Record yes (and what to
-   check) or no. If dest-hit differs from the default dest entrypoint, what
-   to check names the **user** entrypoint. Any watch MCP for that check
-   goes in machine `mcp:`/`tools` now (brief-only is Don't-use). Residual
-   treats that answer as frozen: yes runs it, no skips it.
-4. **Human-facing surfaces?** If survey `ui` is true, name each surface and
-   say it is **designed** (distinctive, highly interactive within dest
-   conventions) before it is built. If `ui` is false, say none.
-
-Do not run that `/goal` here. Do not publish here. Do not invent a new
-state-machine phase. Ownership: Q1, Q2=`dag`, and Q4 → `plan`; Q2=`outer-loop`
-and Q3 → residual.
-
-If not checkable, or a handle needs the user: set labeled `done_sentence:`
-(provisional), `checkable: false`, and `ask_user: <question>`, then
-`/shiploop complete --blocked --resume-to validate-spec --reason <ask_user>`.
-This hatch does not require `{{ENV_MD}}` to be finished first.
+The spec is frozen after completion. A later plan revision cannot silently
+change its done sentence or baseline. Product README and optional AGENTS.md
+work are product DAG artifacts when needed, not survey writes or session state.

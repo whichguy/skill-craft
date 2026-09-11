@@ -1,3 +1,5 @@
-Write the original user ask to `{{PROMPT_PATH}}` (non-empty). Do not invent a done sentence yet.
+# Intake
 
-If that file already has the ask, go to When done invoke.
+Select a committed Git baseline explicitly, preserve unrelated dirty files,
+inspect available runtime/lint/test capability without recording secrets, and
+note possible preparation before the approach/spec work begins.

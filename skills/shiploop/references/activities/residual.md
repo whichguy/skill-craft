@@ -1,87 +1,48 @@
-Session closer only. The spec is still **frozen**. Do not rewrite it. Do not
-invent a new state-machine phase.
+# Outer closure: coverage, quality, publication, handoff
 
-Follow this order. Each until-loop below is a new outer-loop turn in this
-parent chat, not a nested until-loop and not a DAG step. This skill cannot
-invoke `/goal`.
+Outer work begins only after every current DAG step is merged through the same
+full inner loop. It is not a shortcut for patching code outside a step.
 
-1. Do not start quality until-loop A until the bound repo’s Test command is
-   green and the implementation commits are landed. Otherwise
-   `/shiploop complete --blocked --resume-to residual --reason …`.
-2. When green and landed, run review-coverage Phase B for the bound plan
-   `{{BOUND_PLAN}}` in this parent chat. Follow the review-coverage skill
-   (Look here). Ledger: repo-root `{{LEDGER_PATH}}`. Do not treat a foreign
-   or unlanded ledger as success.
-3. When the bound ledger is `complete` and landed, or the bound plan H2 has
-   a real residual waiver, dest-reread then finish only what the frozen spec
-   named:
+## Coverage
 
-   Before quality or publish — cheap dest reread (not a spec edit). Read
-   frozen `{{ENV_MD}}` (`routing.user_entrypoint`) and `{{SPEC_MD}}`
-   (placement answers, `done_sentence`). When a dest writer is frozen,
-   writer status/list once. Compose the live dest URL (HEAD/staging/prod)
-   with that frozen user entrypoint (or documented product path). Do not
-   write those URLs into `{{ENV_MD}}`. Quality and publish hit that composed
-   entrypoint, not the dest default, not a module helper.
+Run the bound Review Coverage activity. The ledger must be complete, bound to
+the correct plan, actually tracked, and clean in the repository. A prose claim,
+foreign ledger, untracked file, or committed:no record is not closure. Use an
+already explicit Review Coverage waiver only where its bound plan genuinely
+permits one; do not author a waiver to escape review.
 
-   Stay frozen (compose) when routing was frozen, empirical dest-hit matches
-   it, Q2/Q3 still describe what is left, and any watch MCP for Q3 is already
-   in `{{ENV_MD}}` `mcp:`/`tools`. Product README may name the user path.
+If coverage discovers a real product change, use replan with an action-bound
+result that supplies plan_decision revise, plan_reason, plan, and complete DAG.
+The revision adds a corrective pending step; completed work remains intact and
+the new step receives the full implement/Improve/final-verify/post-inner loop.
 
-   Unfreeze is `/shiploop complete --blocked --resume-to validate-spec`
-   (clears hashes and receipts — expensive; contract drift only), when any
-   of: dest-hit was never frozen, or `done_sentence` still claims the default
-   dest URL while empirical dest-hit differs; Q2 mismatches the walk
-   (`outer-loop` but publish already ran; `dag` but the deploy step never
-   produced a slot and residual still needs one; residual would publish
-   "just to test" against a writer anti-pattern that says push/HEAD is
-   enough); Q3=yes and the named check needs a watch MCP not in frozen
-   `{{ENV_MD}}` `mcp:`/`tools`; empirical dest-hit contradicts frozen
-   `routing`. Do not dest-block for learning the URL string. README-only
-   dest-hit fix is allowed only when routing was already frozen and
-   `done_sentence` already names the user entrypoint.
+## Quality
 
-   Paste Frozen (printed above this Next body) before each quality turn.
-   1. **Quality test/fix until-loop A.** If Q3=yes, run the parent until-loop A to test
-      and fix the completed product at the composed user entrypoint (the
-      named check), then close A. If A edits production files, lint-after-write
-      first (every available linter; dest-mandated syntax wins; do not install)
-      before claiming A done. A DAG sink that already play-through’d the
-      frozen user entrypoint may skip only that duplicate play-through and do
-      dest-reread plus spot-check instead. A bound-name call, fetching
-      HTML, or requiring a product module is **not** a play-through and does
-      not skip. Enumerate bound names from the shipped surface source union
-      DAG `produces` (not only the frozen brief) and include those bound-name
-      probes in the spot-check. Play-through needs a watch MCP in frozen
-      `{{ENV_MD}}` `mcp:`/`tools`; missing/locked → dest-block validate-spec,
-      not a helper that bypasses the dispatcher. If the bound Review Coverage
-      Test command is file-existence or N/A, treat it as insufficient: do not
-      skip Q3; run dest-behavior probes and record them in B commit bodies and
-      the ledger round. Do **not** dest-block `resume_to=plan` (that wipes
-      receipts). Do **not** edit the bound `plan.md` in place (byte drift
-      unbinds residual). Durable Test-command correction is rebind-and-rerun
-      only.
+Run the whole-product lint and integration/acceptance manifest through verify.
+Map test acceptance entries to every exact `lifecycle.acceptance` string from
+`context --section lifecycle`, not the prior step's `produces`.
+This always occurs, whether lifecycle quality is true or false. When quality is
+true, the completion result also includes a quality_review: the host's focused
+review of integration risks and outcomes. The selection of an integration check
+is implementation policy informed by the frozen contract—not an invented claim
+that the user named a particular test.
 
-   2. **Improve until-loop B.** If Q3=yes, after A work until-loop B in the parent chat = Frozen + this goal (do not nest B inside A; this skill cannot invoke /goal):
-      {{IMPROVE_SCOPE}}
-      {{IMPROVE_GOAL}}
-      Do this activity until these conditions are met:
-      - only trivial findings remaining for 2 consecutive cycles
-      - remaining trivial changes committed
-      Max 12 improve cycles; on exceed, commit leftovers and go to step 3.
-      If Q3=no, skip A and B; the spec is SoT — do not override a no.
-   3. **Outer-loop deploy/publish.** After B, if Q2 is **outer-loop**, do
-      that now with the writer's publish tool (dest-discovery Q1), on the
-      same composed entrypoint for that slot. If Q2 is **dag** or **none**,
-      skip (dag already ran in the walk). Do not open a new DAG step. Do not
-      publish "just to test" if the writer says push/HEAD is enough.
-   4. Then invoke `/shiploop complete`. dest `done` writes the
-      end-of-run walk-back at `{{RECAP_HTML}}` (HTML covering intent, the
-      original spec, what was accomplished, what materially changed, the
-      end result, the final outcome, and what was verified). Recap
-      Verified reports review-coverage; it does not witness this quality
-      `/goal` A or Improve `/goal` B, or treat `done_sentence` as
-      harness-verified. Do not
-      hand-author that file.
+Quality failures remain unfinished. If quality learning requires another
+corrective step, use the same action-bound replan path rather than editing
+merged product code in the outer loop.
 
-When the bound ledger is `stopped (...)`, invoke `/shiploop complete` (harness dests halted).
+## Publication
+
+Run publication only when lifecycle says outer-loop and the user authorized
+the external effect. Before retrying, inspect existing delivery to avoid a
+duplicate publish. Record artifact, entrypoint verification, and concrete
+evidence in delivery.md. Local tests and a Git merge cannot prove a remote
+deployment, URL, permission, or recipient state.
+
+## Handoff
+
+The handoff records checked acceptance, commands/evidence, known limitations,
+delivery facts, and a prioritized summary of shiploop-improvements.md. Review
+the generic proposal journal explicitly, supplying [] when no new proposal was
+found. Do not apply these generic skill/script proposals during the delivery
+run without separate authorization.

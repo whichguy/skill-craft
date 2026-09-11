@@ -1,4 +1,5 @@
-Session terminal: halted. Bound residual ledger is `stopped (...)`. That is not success. Do not update. Do not claim COMPLETE.
+# Terminal halted handoff
 
-Walk-back: `{{RECAP_HTML}}`
-Ledger: `{{LEDGER_PATH}}`
+Use halt only when the run cannot continue. It writes an unfinished handoff
+with the exact reason and durable journal pointer. It does not delete work,
+turn a blocker into success, or permit legacy JSON state to reappear.

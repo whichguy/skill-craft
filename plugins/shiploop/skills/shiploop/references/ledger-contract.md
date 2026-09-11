@@ -1,40 +1,46 @@
-# Ledger contract (copied, not imported)
+# Review Coverage ledger contract
 
-Copied from review-coverage public grammar. Do not import
-`skills/review-coverage/scripts/review-coverage` private `_` helpers.
-Do not author STATIC / halt sentences here.
+ShipLoop treats Review Coverage as outer-loop evidence, not a text assertion.
+The ledger must be the repository's actual REVIEW_CONVERGE.md, bind to the
+current plan path and hash, report complete, and be present as a clean tracked
+Git blob. A stale, foreign, untracked, dirty, or merely claimed ledger is not
+coverage completion.
 
-## Status line (REVIEW_CONVERGE.md)
+The accepted public status grammar is:
 
-```
+~~~text
 (?im)\bStatus\b[^\n]*(?P<state>stopped\s*\([^\n)]*\)|complete\b|active\b)
-```
+~~~
 
-## Plan binding (ledger header)
+The plan binding is a plan contract line plus 64-hex plan hash:
 
-```
-(?im)^\*\*Plan contract:\*\*\s*`?(?P<path>[^`\n]+?)`?\s*$
-(?im)^\*\*Plan hash:\*\*\s*`?(?P<hash>[0-9a-fA-F]{64})`?
-```
+~~~text
+**Plan contract:** <path>
+**Plan hash:** <sha256>
+~~~
 
-## Landed latest log
+A completed latest Round uses an H3 heading and a committed marker. Both plain
+`Committed: yes` and bold `**Committed:** yes` are accepted:
 
-Latest `### Round` / `### Round N` section must contain:
+~~~markdown
+## Log
 
-- `(?im)^\*\*Committed:\*\*\s*yes\b`
-- `(?im)(?:review-converge|grok-review-converge):\s*round\s+\d+\s*—`
+### Round 2
 
-`Committed: no` is not landed. `stopped (...)` is halt, not `done`.
-Landed also holds when read-only `git log --grep` finds that latest-round
-subject; the latest round must still say `Committed: yes`.
+Forward: <actual spec-to-product review>
+Reverse: <actual diff-to-regression review>
+Suite: PASS — <checks actually run>
+Committed: yes
+~~~
 
-## Waiver (bound plan file only)
+The latest round's Git commit subject must begin `review-converge: round 2 —`
+(or `grok-review-converge: round 2 —`), substituting the actual round number.
+That commit must change `REVIEW_CONVERGE.md` and contain its current exact
+blob, which must also be clean and tracked at HEAD. A matching subject on an
+unrelated commit is not evidence. Record actual outer reviews; do not relabel
+inner-loop receipts as outer rounds.
 
-Unfenced inside H2 `## Review Coverage` only:
-
-```
-(?im)^[ \t]*None\s*[—–-]\s*residual\s+loop\s+waived\s*:\s*(?P<reason>\S.+?)\s*$
-```
-
-Placeholder reasons (`<reason>`, `tbd`, `todo`) are not waivers.
-Ledger-local “waiver” prose is not a waiver.
+Committed: no and stopped(...) are not success. An explicit waiver only counts
+when it already appears, unfenced, in the bound plan's Review Coverage section
+with a concrete reason. It cannot waive fresh outer acceptance/integration
+checks or a corrective step made necessary by later learning.
