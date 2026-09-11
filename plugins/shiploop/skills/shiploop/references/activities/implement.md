@@ -10,12 +10,21 @@ Do not nest Improve inside Implement.
 If Implement for an id is already in this parent chat, do not start a
 second functional until-loop for that id. Implement iterates and
 pathspec-commits **on the worktree**. After produces is true:
-lint-after-write then tests-until-green (if this increment wrote dest or
-source files, run Exclusive writer's lint/validate tool if it has one —
-dest-syntax SoT; dest list/position beats a local walk; generic linters
-must not rewrite dest-mandated syntax; docs-only: none(<reason>); then
-author and run checkable tests for this produces until they pass), then
-`/shiploop complete`. Never `git add -A`. Never merge from
+lint-after-write then tests-until-green. `LINT_PATHS` is the NUL-safe union
+of `git -C <worktree> diff -z --name-only <receipt.base_sha>` (including
+the working tree) and `git -C <worktree> ls-files -z --others
+--exclude-standard` (untracked, not ignored). Anchor on that step's
+immutable `receipt.base_sha`, never moving session HEAD. Recompute after
+every production-file edit; the lint run that counts is the one after the
+last production edit. If tests force production edits, re-lint those paths
+before claiming green. Residual Improve B / review-converge use that
+round's `CHANGED_PATHS`, not the step receipt baseline. Writer
+lint/validate on dest/source in `LINT_PATHS` is dest-syntax SoT for
+file-local syntax; dest-identity findings (order/position/name/presence)
+are provisional until live dest list/status/push-preflight agrees;
+disagreement is a P2 learning, not a rewrite of reserved runtime;
+docs-only: none(<reason>). Then author and run checkable tests for this
+produces until they pass. Then `/shiploop complete`. Never `git add -A`. Never merge from
 that cwd. Then follow the printed Improve (one cycle; lint-after-write
 then re-run recorded checks). Then invoke the printed When done —
 **`/shiploop complete`** (add `--trivial` if this Improve cycle was

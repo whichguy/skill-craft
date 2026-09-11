@@ -54,9 +54,9 @@ def invoke_complete(*flags: str, sid: str = "", running_n: int = 1) -> str:
 def closer_inner_a(*, sid: str = "", running_n: int = 1) -> str:
     return (
         "Keep issuing this prompt; /shiploop next reprints. "
-        "When this step's produces is true, lint-after-write "
-        "(or none(<reason>)) is done, and tests are green, "
+        "When this step's produces is true and tests are green, "
         f"{invoke_complete(sid=sid, running_n=running_n)}. "
+        "Lint-after-write must have run (or none(<reason>)). "
         "No other flags. Do not start a different step."
     )
 
@@ -105,10 +105,13 @@ IMPROVE_HEAD = (
 )
 IMPROVE_GOAL = (
     "quality and breadth review of the work in scope for this pass: read the "
-    "last 7 git commit messages for learnings; lint-after-write on dest/source "
-    "this cycle touched (Exclusive writer lint/validate is dest-syntax SoT; "
-    "dest list/position beats a local walk; generic linters must not rewrite "
-    "dest-mandated syntax; docs-only: none(<reason>)); re-run the checks named "
+    "last 7 git commit messages for learnings; lint-after-write on this round's "
+    "changed paths (Exclusive writer lint/validate is dest-syntax SoT for "
+    "file-local syntax; dest identity findings are provisional until live dest "
+    "list/status/push-preflight agrees; disagreement is a P2 learning, not a "
+    "rewrite; unreachable dest is unresolved-dest-identity(<finding>); generic "
+    "linters must not rewrite dest-mandated syntax; docs-only: none(<reason>)); "
+    "re-run the checks named "
     "in this step's receipt.tests; for each produces bullet in "
     "scope, run that produce's own declared acceptance check; when a produce "
     "exposes a bound client action, additionally resolve that bound name at "
@@ -120,7 +123,8 @@ IMPROVE_GOAL = (
     "play-through; hunt unconsidered conditions (empty, error, occupied, "
     "terminal, the call the surface actually makes); git commit each iteration "
     "with a verbose message and Key learnings; a cycle is only-trivial only after "
-    "lint-after-write (or none(<reason>)), receipt.tests and the checks named "
+    "lint-after-write (or none(<reason>) / unresolved-dest-identity(<finding>)), "
+    "receipt.tests and the checks named "
     "above ran and passed; the first cycle cannot be "
     '"no findings" without that evidence'
 )
@@ -170,7 +174,9 @@ ENV_RECOVERY = "in-flight runs: dest blocked → validate-spec; rewrite environm
 DEST_BLOCKED_LINE = "If the writer above fails, stop and invoke /shiploop complete --blocked --reason … — do not switch writers."
 LINT_ORACLE_LINE = (
     "Lint oracle: Exclusive writer's lint/validate tool (if it has one) "
-    "is dest-syntax SoT; dest list/position beats a local walk; generic "
+    "is dest-syntax SoT for file-local syntax; for dest identity "
+    "(order/position/name/presence) the live dest list/status/push-preflight "
+    "is the oracle and a local-walk finding is advisory; generic "
     "linters must not rewrite dest-mandated syntax."
 )
 HANDLE_RESOLVE = ("list", "inspect", "ask", "create")
@@ -3271,14 +3277,21 @@ def print_goal_until(step: Dict[str, Any]) -> None:
     )
     print(
         "After produces is true, lint-after-write then tests-until-green: "
-        "if this increment wrote dest or source files, run Exclusive writer's "
-        "lint/validate tool (if it has one) on those files — dest-syntax SoT; "
-        "dest list/position beats a local walk; generic linters must not "
-        "rewrite dest-mandated syntax; findings on untouched reserved files "
-        "are not this step's red check. Docs-only: dest lint is N/A — record "
-        "lint-after-write: none(<reason>). Then author and run checkable "
-        "tests for this produces until they pass; do not exec When done on a "
-        "red dest-syntax check or a red test. test -f / N/A is not that check "
+        "run the Exclusive writer's lint/validate on the files this increment "
+        "wrote, then any repo-configured linter on that same file list. Writer "
+        "findings about file-local syntax (parse, module wrap, template "
+        "scriptlets, schema) are red — fix and re-lint before tests. Findings "
+        "whose subject is dest identity (file order/position, "
+        "name-without-extension, module presence) are provisional: check the "
+        "live dest list/status/push-preflight and fix only if the live dest "
+        "agrees; if it disagrees, record a P2 learning and change nothing; if "
+        "the live dest is unreachable, record unresolved and never rewrite "
+        "reserved runtime on a local-walk finding. Generic linters must not "
+        "rewrite dest-mandated syntax. Docs-only or no linter: print "
+        "lint-after-write: none(<reason>). Do not exec When done on a red "
+        "dest-syntax check. Then author and run checkable tests for this "
+        "produces until they pass; if tests force production edits, re-lint "
+        "those paths before claiming green. test -f / N/A is not that check "
         "when dest contracts exist."
     )
 

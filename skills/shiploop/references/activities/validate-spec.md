@@ -125,11 +125,15 @@ writer; each may be the token `none` when inapplicable:
   collapse to a destination name, put the constraint in
   `references[{path, why}]` so implement does not guess.
 - **Lint / syntax oracle.** From the writer’s own lint/push/validate docs:
-  which tool validates dest syntax, and which dest facts (position, module
-  wrap, template scriptlets, or the writer’s equivalent) beat a local or
-  generic linter. Token `none` when the writer has no lint tool. Do not
-  invent a house linter. Writer lint wins over generic local lint; dest
-  list/position beats a local walk.
+  which tool validates dest syntax (file-local: parse, module wrap, template
+  scriptlets, schema); **which tool answers dest identity live**
+  (list/status/push-preflight) when the lint tool’s local walk disagrees;
+  which dest facts beat a local or generic linter. Token `none` when the
+  writer has no lint tool; token `none` for the live oracle when the writer
+  has no list/preflight tool (then dest-identity findings are recorded
+  unresolved, never “fixed”). Do not invent a house linter. Writer lint
+  wins over generic local lint for file-local syntax; live dest list/position
+  is the identity oracle.
 - **Bound client action contract.** When `ui` is true and the writer says the
   surface calls dest, record the **kind + probe recipe** as stable prose:
   `bound-action <surface>::<name>; probe <safe invocation>; expect <assertion>`.

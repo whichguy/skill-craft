@@ -314,6 +314,8 @@ assert "complete when only trivial findings remain for 2 consecutive cycles" not
 assert "exposes a bound client action" in body
 assert "the first cycle cannot be" in body
 assert "lint-after-write" in body
+assert "changed paths" in body
+assert "provisional" in body
 PY
 grep -Fq 'tests-until-green' "$cli" \
   || fail "script missing tests-until-green"
@@ -322,6 +324,18 @@ grep -Fq 'lint-after-write' "$cli" \
 grep -Fq 'lint-after-write' \
   "$root/skills/shiploop/references/activities/implement.md" \
   || fail "implement.md missing lint-after-write"
+grep -Fq 'receipt.base_sha' \
+  "$root/skills/shiploop/references/activities/implement.md" \
+  || fail "implement.md missing LINT_PATHS receipt.base_sha"
+grep -Fq 'ls-files -z --others' \
+  "$root/skills/shiploop/references/activities/implement.md" \
+  || fail "implement.md missing LINT_PATHS untracked-files clause"
+grep -Fq 'Recompute after' \
+  "$root/skills/shiploop/references/activities/implement.md" \
+  || fail "implement.md missing recompute after every production-file edit"
+grep -Fq 'CHANGED_PATHS' \
+  "$root/skills/shiploop/references/activities/implement.md" \
+  || fail "implement.md missing residual-B CHANGED_PATHS exception"
 grep -Fq 'Lint / syntax oracle' \
   "$root/skills/shiploop/references/activities/validate-spec.md" \
   || fail "validate-spec.md missing Lint / syntax oracle"
@@ -406,8 +420,10 @@ if grep -RFq --include='*.md' --include='shiploop' 'only if host `/goal` is off'
 fi
 grep -Fq 'This skill cannot invoke /goal' "$cli" \
   || fail "GOAL_UNTIL_HEAD missing cannot invoke /goal"
-grep -Fq 'When this step'\''s produces is true, lint-after-write' "$cli" \
-  || fail "inner A missing produces-true lint-after-write closer"
+grep -Fq 'When this step'\''s produces is true and tests are green' "$cli" \
+  || fail "inner A missing produces-true closer"
+grep -Fq 'Lint-after-write must have run' "$cli" \
+  || fail "inner A missing appended lint-after-write closer"
 grep -Fq 'Git facts (not produces)' "$cli" \
   || fail "script missing git facts printer"
 grep -Fq -- '--improve-cycle' "$cli" \
@@ -1858,7 +1874,7 @@ printf '%s\n' "$out_imp" | awk '/^## When done invoke$/,/^## Missing$/' \
 printf '%s\n' "$out_imp" | awk '/^## When done invoke$/,/^## Missing$/' \
   | grep -Fq 'invoke /shiploop complete' \
   || fail "implement when done missing flagless complete: $out_imp"
-INNER_A_CLOSER="When this step's produces is true, lint-after-write (or none(<reason>)) is done, and tests are green, invoke /shiploop complete"
+INNER_A_CLOSER="When this step's produces is true and tests are green, invoke /shiploop complete"
 printf '%s\n' "$out_imp" | awk '/^## Progress$/,/^## Reminder$/' \
   | grep -Fq "$INNER_A_CLOSER" \
   || fail "implement Progress missing shared inner-A closer: $out_imp"
@@ -1868,6 +1884,9 @@ printf '%s\n' "$out_imp" | awk '/^## Next prompt$/,/^## When done invoke$/' \
 printf '%s\n' "$out_imp" | awk '/^## When done invoke$/,/^## Missing$/' \
   | grep -Fq "$INNER_A_CLOSER" \
   || fail "implement When done missing shared inner-A closer: $out_imp"
+printf '%s\n' "$out_imp" | awk '/^## When done invoke$/,/^## Missing$/' \
+  | grep -Fq 'Lint-after-write must have run' \
+  || fail "implement When done missing appended lint-after-write: $out_imp"
 printf '%s\n' "$out_imp" | awk '/^## When done invoke$/,/^## Missing$/' \
   | grep -Fq 'Keep issuing this prompt' \
   || fail "implement when done missing keep issuing: $out_imp"
@@ -1929,6 +1948,12 @@ printf '%s\n' "$out_imp" | grep -Fq 'tests-until-green' \
   || fail "implement Next missing tests-until-green"
 printf '%s\n' "$out_imp" | grep -Fq 'lint-after-write' \
   || fail "implement Next missing lint-after-write"
+printf '%s\n' "$out_imp" | grep -Fq 'Lint-after-write must have run' \
+  || fail "implement Next missing appended lint-after-write closer"
+printf '%s\n' "$out_imp" | grep -Fq 'provisional' \
+  || fail "implement Next missing dest-identity provisional carve-out"
+printf '%s\n' "$out_imp" | grep -Fq 'dest identity' \
+  || fail "implement Next missing dest identity carve-out"
 python3 -c '
 import sys
 text = sys.stdin.read()
