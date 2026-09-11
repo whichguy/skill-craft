@@ -2,9 +2,9 @@
 
 **Target paths:** `skills/shiploop/scripts/shiploop`, `skills/shiploop/references/activities/plan.md`, `skills/shiploop/README.md`, `skills/shiploop/SKILL.md`, `test/shiploop.test.sh`, `test/shiploop-testkit.sh`, `docs/LOOP-ENGINEERING.md`, `skills/devloop/references/loop-engineering.md`, `plugins/devloop/skills/devloop/references/loop-engineering.md`, `plugins/shiploop/`
 **Test command:** `bash test/shiploop.test.sh && ./scripts/sync-plugin-views.sh --check shiploop`
-**Started:** 2026-09-11          **Status:** active
-**Round counter:** 1
-**Consecutive clean rounds:** 1
+**Started:** 2026-09-11          **Status:** complete
+**Round counter:** 2
+**Consecutive clean rounds:** 2
 **Known test-artifact paths:**
 **Plan contract:** `/Users/dadleet/.grok/sessions/%2FUsers%2Fdadleet%2Fsrc%2Ftic-tac-toe-oneshot/01a090ba-11f0-7a22-b13e-9a1caf7126bd/plan.md`
 **Plan hash:** `283b7384a7f957b231d30bcc6a207815a2c513f421a4720e81b6edfb8fc17f87`
@@ -41,3 +41,22 @@
 **Consecutive clean rounds after this entry:** 1
 **Committed:** yes
 **Notes:** Prior complete ledger archived (gitignored) so this campaign could start.
+
+### Round 2 — 2026-09-11
+**Review:** 0 material, 0 new minor
+**Material findings:** none
+**Deferred (minor/P2):** (none)
+**Git-history check:** Re-read `print_frozen_session_env` vs plan anchors. Plan hash still `283b7384`. Round 1 `4363650` was first clean. No new product delta this round. `print(DEST_BLOCKED_LINE)` remains more indented than `print(LINT_ORACLE_LINE)`.
+**Plan:** n/a (clean)
+**Plan review:** n/a
+**Implementation:** n/a
+**Lint:** n/a
+**Test result:** PASS (terminal clean)
+**Outcome:** clean
+**Error signature:** none
+**Learnings:** Second consecutive clean. Recorded suite once: `bash test/shiploop.test.sh` PASS; `./scripts/sync-plugin-views.sh --check shiploop` OK. LOOP-ENGINEERING three copies equal. Frozen lint oracle always reprints; dest-blocked stays Exclusive-rows-only. No further residual cycle.
+**Anchor evidence:**
+- A6 → suite exit 0; plugin `--check` exit 0; VERSION 0.8.35
+**Consecutive clean rounds after this entry:** 2
+**Committed:** yes
+**Notes:** artifact skipped: no Artifact tool in this harness.
