@@ -23,7 +23,7 @@ EXIT_BLOCKED = 2
 EXIT_USAGE = 64
 
 PACKAGE_ROOT = Path(__file__).resolve().parents[1]
-VERSION = "0.8.30"
+VERSION = "0.8.31"
 REF_DIR = PACKAGE_ROOT / "references"
 WT_DIRNAME = ".worktrees"
 NEXT_LEAD = "Issue this prompt."
@@ -54,7 +54,8 @@ def invoke_complete(*flags: str, sid: str = "", running_n: int = 1) -> str:
 def closer_inner_a(*, sid: str = "", running_n: int = 1) -> str:
     return (
         "Keep issuing this prompt; /shiploop next reprints. "
-        "When this step's produces is true and tests are green, "
+        "When this step's produces is true, lint-after-write "
+        "(or none(<reason>)) is done, and tests are green, "
         f"{invoke_complete(sid=sid, running_n=running_n)}. "
         "No other flags. Do not start a different step."
     )
@@ -104,8 +105,11 @@ IMPROVE_HEAD = (
 )
 IMPROVE_GOAL = (
     "quality and breadth review of the work in scope for this pass: read the "
-    "last 7 git commit messages for learnings; re-run the checks named in this "
-    "step's receipt.tests; for each produces bullet in "
+    "last 7 git commit messages for learnings; lint-after-write on dest/source "
+    "this cycle touched (Exclusive writer lint/validate is dest-syntax SoT; "
+    "dest list/position beats a local walk; generic linters must not rewrite "
+    "dest-mandated syntax; docs-only: none(<reason>)); re-run the checks named "
+    "in this step's receipt.tests; for each produces bullet in "
     "scope, run that produce's own declared acceptance check; when a produce "
     "exposes a bound client action, additionally resolve that bound name at "
     "destination global scope (`typeof` is \"function\"), then call it; when a "
@@ -116,7 +120,8 @@ IMPROVE_GOAL = (
     "play-through; hunt unconsidered conditions (empty, error, occupied, "
     "terminal, the call the surface actually makes); git commit each iteration "
     "with a verbose message and Key learnings; a cycle is only-trivial only after "
-    "receipt.tests and the checks named above ran and passed; the first cycle cannot be "
+    "lint-after-write (or none(<reason>)), receipt.tests and the checks named "
+    "above ran and passed; the first cycle cannot be "
     '"no findings" without that evidence'
 )
 INFERRED_IMPROVE = "none(inferred)"
@@ -163,6 +168,11 @@ _FOREIGN_SLASH = "/" + "dev" + "loop"
 UNTIL_HEAD = "Do this activity until these conditions are met:"
 ENV_RECOVERY = "in-flight runs: dest blocked → validate-spec; rewrite environment.md; → plan (do not hand-edit backchain/plan.json)"
 DEST_BLOCKED_LINE = "If the writer above fails, stop and invoke /shiploop complete --blocked --reason … — do not switch writers."
+LINT_ORACLE_LINE = (
+    "Lint oracle: Exclusive writer's lint/validate tool (if it has one) "
+    "is dest-syntax SoT; dest list/position beats a local walk; generic "
+    "linters must not rewrite dest-mandated syntax."
+)
 HANDLE_RESOLVE = ("list", "inspect", "ask", "create")
 _TOKEN_FORBIDDEN_RE = re.compile(r"[;\n\r]")
 _TOOLS_LINE_RE = re.compile(r"^[ \t]*Tools:")
@@ -3260,9 +3270,16 @@ def print_goal_until(step: Dict[str, Any]) -> None:
         "Do not nest a second Implement prompt inside it."
     )
     print(
-        "After produces is true, tests-until-green: author and run checkable "
+        "After produces is true, lint-after-write then tests-until-green: "
+        "if this increment wrote dest or source files, run Exclusive writer's "
+        "lint/validate tool (if it has one) on those files — dest-syntax SoT; "
+        "dest list/position beats a local walk; generic linters must not "
+        "rewrite dest-mandated syntax; findings on untouched reserved files "
+        "are not this step's red check. Docs-only: dest lint is N/A — record "
+        "lint-after-write: none(<reason>). Then author and run checkable "
         "tests for this produces until they pass; do not exec When done on a "
-        "red check. test -f / N/A is not that check when dest contracts exist."
+        "red dest-syntax check or a red test. test -f / N/A is not that check "
+        "when dest contracts exist."
     )
 
 
@@ -3324,6 +3341,7 @@ def print_frozen_session_env(run_dir: Path) -> None:
                 du = "; ".join(toks) if toks else "(none)"
                 print(f"Exclusive: {artifact} — use {use}; don't use {du}")
             print(DEST_BLOCKED_LINE)
+            print(LINT_ORACLE_LINE)
     layout = env.get("layout")
     routing = env.get("routing")
     if isinstance(layout, dict):

@@ -27,6 +27,11 @@ dependency review → host resolve into `resolved_facts` → elaborate. Call it
 with the frozen done sentence **and** the full `{{ENV_MD}}` (machine JSON
 plus dest notes in the brief). Ask it once whether the goal needs an existing
 repo, a data migration, a CI/CD gate, docs, or a system that is not there yet.
+When dest already has state (prior runs, an existing system, stored
+properties, tables, files), name who invokes each transition (user,
+system/trigger, API/MCP), what state already exists, and whether this
+increment migrates, resets, or leaves that state. Do not invent a second
+SM phase for migration — it is a seed (setup/iterate) or `none`.
 
 Persist `{{BACKCHAIN_JSON}}` only after topology is resolved. Never hand-edit
 `backchain/plan.json`. Never send the decorated ShipLoop document (steps with
@@ -61,8 +66,8 @@ That residual Test command is not the per-step gate. Every **code-producing**
 seed must leave a **checkable** acceptance for that `produces` (a local suite
 command, or the frozen `bound-action` recipe plus dest call). Never `test -f`
 / `N/A` because there is no local suite when dest contracts exist. Implement
-records that line as optional `--tests` after tests-until-green
-(`--advance B --tests` remains an override).
+records that line as optional `--tests` after lint-after-write then
+tests-until-green (`--advance B --tests` remains an override).
 
 When frozen `ui` is true, seed the DAG with an **early design** setup step
 **before** iterate steps that build that surface. Do not collapse design into
@@ -200,7 +205,9 @@ need `/goal` plus until-`produces` and stay exempt from reference and
 See `{{IMPLEMENT_ACTIVITY}}`.
 
 Frozen reprint repeats Reserved, Product, and Entrypoint after Exclusive rows,
-then says `Don't write product into Reserved.` The seed's `Don't write:` line
+then says `Don't write product into Reserved.` When Exclusive rows exist it
+also prints the Lint oracle line (writer lint/validate is dest-syntax SoT;
+dest list/position beats a local walk). The seed's `Don't write:` line
 is the plan-time guard that reaches the stored prompt; do not rely on an
 in-flight implement instruction to supply it.
 

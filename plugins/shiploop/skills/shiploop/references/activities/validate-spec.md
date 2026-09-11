@@ -124,6 +124,12 @@ writer; each may be the token `none` when inapplicable:
   how destination keys files (name, type, position). If local files would
   collapse to a destination name, put the constraint in
   `references[{path, why}]` so implement does not guess.
+- **Lint / syntax oracle.** From the writer’s own lint/push/validate docs:
+  which tool validates dest syntax, and which dest facts (position, module
+  wrap, template scriptlets, or the writer’s equivalent) beat a local or
+  generic linter. Token `none` when the writer has no lint tool. Do not
+  invent a house linter. Writer lint wins over generic local lint; dest
+  list/position beats a local walk.
 - **Bound client action contract.** When `ui` is true and the writer says the
   surface calls dest, record the **kind + probe recipe** as stable prose:
   `bound-action <surface>::<name>; probe <safe invocation>; expect <assertion>`.

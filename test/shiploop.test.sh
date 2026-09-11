@@ -313,12 +313,42 @@ body = m.group(1)
 assert "complete when only trivial findings remain for 2 consecutive cycles" not in body, body
 assert "exposes a bound client action" in body
 assert "the first cycle cannot be" in body
+assert "lint-after-write" in body
 PY
 grep -Fq 'tests-until-green' "$cli" \
   || fail "script missing tests-until-green"
+grep -Fq 'lint-after-write' "$cli" \
+  || fail "script missing lint-after-write"
+grep -Fq 'lint-after-write' \
+  "$root/skills/shiploop/references/activities/implement.md" \
+  || fail "implement.md missing lint-after-write"
+grep -Fq 'Lint / syntax oracle' \
+  "$root/skills/shiploop/references/activities/validate-spec.md" \
+  || fail "validate-spec.md missing Lint / syntax oracle"
+grep -Fq 'Lint oracle:' "$cli" \
+  || fail "script missing Lint oracle line"
 grep -Fq 'tests-until-green' \
   "$root/skills/shiploop/references/activities/plan.md" \
   || fail "plan.md missing tests-until-green for code-producing seeds"
+python3 - "$cli" <<'PY' || fail "print_goal_until lint-after-write must precede tests-until-green"
+from pathlib import Path
+import sys
+text = Path(sys.argv[1]).read_text()
+start = text.find("def print_goal_until")
+end = text.find("\ndef print_improve")
+assert start >= 0 and end > start, (start, end)
+body = text[start:end]
+i_lint = body.find("lint-after-write")
+i_tests = body.find("tests-until-green")
+assert 0 <= i_lint < i_tests, (i_lint, i_tests, body)
+assert "mcp-gas-deploy" not in text
+PY
+grep -Fq 'lint-after-write' \
+  "$root/docs/LOOP-ENGINEERING.md" \
+  || fail "LOOP-ENGINEERING missing lint-after-write"
+grep -Fq 'lint-after-write' \
+  "$root/skills/devloop/references/loop-engineering.md" \
+  || fail "devloop loop-engineering missing lint-after-write"
 grep -Fq 'script infers advance' \
   "$root/docs/LOOP-ENGINEERING.md" \
   || fail "LOOP-ENGINEERING During row missing script infers"
@@ -376,8 +406,8 @@ if grep -RFq --include='*.md' --include='shiploop' 'only if host `/goal` is off'
 fi
 grep -Fq 'This skill cannot invoke /goal' "$cli" \
   || fail "GOAL_UNTIL_HEAD missing cannot invoke /goal"
-grep -Fq 'When this step'\''s produces is true and tests are green' "$cli" \
-  || fail "inner A missing produces-true closer"
+grep -Fq 'When this step'\''s produces is true, lint-after-write' "$cli" \
+  || fail "inner A missing produces-true lint-after-write closer"
 grep -Fq 'Git facts (not produces)' "$cli" \
   || fail "script missing git facts printer"
 grep -Fq -- '--improve-cycle' "$cli" \
@@ -1828,7 +1858,7 @@ printf '%s\n' "$out_imp" | awk '/^## When done invoke$/,/^## Missing$/' \
 printf '%s\n' "$out_imp" | awk '/^## When done invoke$/,/^## Missing$/' \
   | grep -Fq 'invoke /shiploop complete' \
   || fail "implement when done missing flagless complete: $out_imp"
-INNER_A_CLOSER="When this step's produces is true and tests are green, invoke /shiploop complete"
+INNER_A_CLOSER="When this step's produces is true, lint-after-write (or none(<reason>)) is done, and tests are green, invoke /shiploop complete"
 printf '%s\n' "$out_imp" | awk '/^## Progress$/,/^## Reminder$/' \
   | grep -Fq "$INNER_A_CLOSER" \
   || fail "implement Progress missing shared inner-A closer: $out_imp"
@@ -1897,6 +1927,18 @@ printf '%s\n' "$out_imp" | grep -Fq -- '--advance B' \
   && fail "implement Next still names --advance B"
 printf '%s\n' "$out_imp" | grep -Fq 'tests-until-green' \
   || fail "implement Next missing tests-until-green"
+printf '%s\n' "$out_imp" | grep -Fq 'lint-after-write' \
+  || fail "implement Next missing lint-after-write"
+python3 -c '
+import sys
+text = sys.stdin.read()
+i = text.find("lint-after-write")
+j = text.find("tests-until-green")
+raise SystemExit(0 if 0 <= i < j else 1)
+' <<<"$out_imp" \
+  || fail "implement Next lint-after-write must precede tests-until-green"
+printf '%s\n' "$out_imp" | grep -Fq 'Lint oracle:' \
+  && fail "Exclusive none must not print Lint oracle: $out_imp"
 assert_absent "$out_imp" 'Until-loop B (receipt inner=B)' \
   "inner A Next printed Improve B body"
 assert_absent "$out_imp" 'Until-loop A (receipt inner=A)' \
@@ -4482,6 +4524,10 @@ printf '%s\n' "$out_pbfz" | grep -q 'Exclusive: hosted project — use writer-mc
   || fail "Frozen missing Exclusive row: $out_pbfz"
 printf '%s\n' "$out_pbfz" | grep -Fq "$blocked_line" \
   || fail "Frozen missing dest-blocked sentence: $out_pbfz"
+printf '%s\n' "$out_pbfz" | grep -Fq 'Lint oracle:' \
+  || fail "Frozen Exclusive rows missing Lint oracle: $out_pbfz"
+printf '%s\n' "$out_pbfz" | grep -Fq 'mcp-gas-deploy' \
+  && fail "Frozen Lint oracle baked a vendor: $out_pbfz"
 assert_absent "$out_pbfz" 'Playbook:' "Frozen still prints Playbook:"
 assert_absent "$out_pbfz" 'do not implement the product through MCP' \
   "Frozen still forbids MCP writes"
@@ -4594,6 +4640,7 @@ sys.stdout = old
 out = buf.getvalue()
 assert "tools:" in out and "mcp: writer-mcp" in out, out
 assert "Exclusive: (not recorded in this legacy run)" in out, out
+assert "Lint oracle:" not in out, out
 assert "Playbook:" not in out, out
 PY
 printf 'LAYER: F1 missing exclusive does not blank Frozen OK\n'

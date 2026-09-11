@@ -10,7 +10,7 @@ description: >-
   precondition, exec When done exactly, until When done says stop
   (done / halted / blocked-ask).
 allowed-tools: all
-version: 0.8.30
+version: 0.8.31
 license: MIT
 platforms:
   - linux
@@ -147,8 +147,9 @@ precondition, then exec When done exactly.** After every CLI stdout in
    the full `## When done invoke` block. Do not summarize them away. That
    paste is the live rail; remembered stdout is not.
 2. **Issue** that **Next prompt** (do that work in this chat).
-3. When When done names a precondition, satisfy it (produces true + tests
-   green; or this Improve cycle was only-trivial), then exec the printed
+3. When When done names a precondition, satisfy it (produces true,
+   lint-after-write or none(<reason>), and tests green; or this Improve
+   cycle was only-trivial), then exec the printed
    command with no flags beyond the ones it printed and the host-owned
    values it named (`--improve "<text>"`, `--reason <answer>`, `--id <sid>`).
    Several steps running: exec one labeled `--id` closer, discard the rest

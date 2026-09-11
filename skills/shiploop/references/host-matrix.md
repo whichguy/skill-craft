@@ -26,8 +26,8 @@ Package leaf: **shiploop**. Reprint and closer are `/shiploop next` and
 Grok cannot invoke `/goal` from this skill. The printed Next **is** the
 until-loop in the parent chat. Every `/shiploop next` / `complete` rehydrates
 from `.shiploop/` files; the skill holds no inner A/B. When done is a bound
-directive on facts not in files (`produces` true + tests green? this cycle
-trivial?). Complete a running implement step with `/shiploop complete` when
+directive on facts not in files (`produces` true, lint-after-write or
+none(<reason>), and tests green? this cycle trivial?). Complete a running implement step with `/shiploop complete` when
 that is the printed command; add `--id` when several steps are running; dest
 done requires `--improve`. The script infers advance, one Improve cycle, or
 merge. Add `--trivial` when an Improve cycle was only-trivial.

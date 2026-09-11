@@ -7,7 +7,7 @@ walk-back HTML recap exists.
 
 ShipLoop never conflict-resolves a merge and never claims engine `COMPLETE`.
 
-Package leaf: `skills/shiploop`. Invoke: `/shiploop`. Version: **0.8.30**.
+Package leaf: `skills/shiploop`. Invoke: `/shiploop`. Version: **0.8.31**.
 
 Canonical companions (do not duplicate their contracts here):
 
@@ -313,7 +313,7 @@ Non-stop stdout then prints HOST_CONTINUE. Then the harness prints worktree /
 branch / HOST FLAG, a **Frozen session
 environment** block (`mcp-considered` / `tools` / `mcp` / `Exclusive:` / `See:`),
 **Implement git**, **Implement**, each **running** step’s stored `prompt`
-**verbatim**. **Implement:** make produces true, then tests-until-green, then
+**verbatim**. **Implement:** make produces true, then lint-after-write then tests-until-green, then
 `/shiploop complete` (no merge; script prints Improve). **Else** keep working /
 `/shiploop next`. **Improve** is one cycle; `invoke /shiploop complete`, adding
 `--trivial` when only-trivial. After two consecutive only-trivial, leftover +
@@ -324,7 +324,7 @@ Implement git names the worktree, branch, and session checkout
 `statement` / `produces` / suppliers / worktree. Work in the Look-here
 worktree (do not re-root the host chat; do not edit the session checkout).
 
-Inner loop (host, not a phase): tests **after** this step's produces, then
+Inner loop (host, not a phase): lint-after-write **after** this step's produces, then
 tests-until-green, then one Improve cycle at a time. The script decides
 whether another cycle is needed. Prefer Implement in this parent chat. Before planning each
 Improve cycle:
@@ -334,7 +334,7 @@ follow every `See: <sha>`. Pathspec commit on the worktree (never
 `See: <full sha> <subject>` for prior lesson commits.
 Do not merge from the worktree cwd.
 
-When Implement produces is true: tests-until-green then `complete`, then
+When Implement produces is true: lint-after-write then tests-until-green then `complete`, then
 Improve one cycle at a time (`invoke /shiploop complete`, adding `--trivial` when only-trivial), leftover
 uncommitted work gets the same Implement git schema (log -10,
 `Key learnings:`, `See: <sha>`), then flagless
@@ -364,8 +364,8 @@ next` while drained reprints this diagnosis and does not dest.
 ```mermaid
 flowchart TD
   next["/shiploop next — claim_ready(): ready ids to running,\ngit worktree add -b per id"] --> printed["Next: Frozen + Implement git + Implement + stored prompt"]
-  printed --> gwork["Implement: Frozen + Implement git + stored prompt\n(if produces: tests-until-green then complete; else keep working / next)"]
-  gwork -->|produces true: tests-until-green then complete| improve["Improve: one cycle; complete, Add --trivial if only-trivial;\nlast 7 commits, re-run receipt.tests, 2 consecutive only-trivial, max 12"]
+  printed --> gwork["Implement: Frozen + Implement git + stored prompt\n(if produces: lint-after-write then tests-until-green then complete; else keep working / next)"]
+  gwork -->|produces true: lint-after-write then tests-until-green then complete| improve["Improve: one cycle; complete, Add --trivial if only-trivial;\nlast 7 commits, lint-after-write, re-run receipt.tests, 2 consecutive only-trivial, max 12"]
   improve -->|two consecutive only-trivial| cm["leftover uncommitted: Implement git schema, then\n/shiploop complete"]
   cm --> complete["/shiploop complete — merge --no-ff --no-edit, does not squash,\nkeep branch + remove worktree, Git ran, then re-claim or dest residual"]
   complete -->|another id now running| printed
@@ -522,7 +522,7 @@ or `next — reprint (<phase>)` first. `init` / `complete` / `update` print
 | **Progress** | HOST FLAG (extra worktree folder — do not re-root), then begin/finish this phase or running step: worktree folder, branch, session checkout, what complete does next. |
 | **Reminder** | Ask one-liner + frozen `done_sentence`. No body dump. |
 | **Look here** | First line `Reference only — not the next action.` Phase-scoped paths only. |
-| **Next prompt** | First line `Issue this prompt.` Non-stop stdout then prints HOST_CONTINUE. Implement: Frozen, Implement git, Implement, stored prompt (until produces), Improve (one cycle). Work Frozen + Implement git + stored prompt in this parent chat; **if** produces, tests-until-green then `complete`. Do not nest. Do not paste HOST FLAG. Other phases: the activity file. |
+| **Next prompt** | First line `Issue this prompt.` Non-stop stdout then prints HOST_CONTINUE. Implement: Frozen, Implement git, Implement, stored prompt (until produces), Improve (one cycle). Work Frozen + Implement git + stored prompt in this parent chat; **if** produces, lint-after-write then tests-until-green then `complete`. Do not nest. Do not paste HOST FLAG. Other phases: the activity file. |
 | **When done invoke** | Non-stop stdout prints HOST_CONTINUE first, then a bound `invoke /shiploop complete` (plus `--clear` / `--blocked` when that is the hatch). Stop stdout (done / halted / blocked) omits HOST_CONTINUE. |
 | **Missing** | dest-scoped `missing_for(..., forward_dest())` — not every load_* gap on every reprint. In-flight implement dest is `None`. |
 

@@ -10,10 +10,14 @@ Do not nest Improve inside Implement.
 If Implement for an id is already in this parent chat, do not start a
 second functional until-loop for that id. Implement iterates and
 pathspec-commits **on the worktree**. After produces is true:
-tests-until-green (author and run checkable tests for this produces until
-they pass), then `/shiploop complete`. Never `git add -A`. Never merge from
-that cwd. Then follow the printed Improve (one cycle; re-run recorded
-checks). Then invoke the printed When done —
+lint-after-write then tests-until-green (if this increment wrote dest or
+source files, run Exclusive writer's lint/validate tool if it has one —
+dest-syntax SoT; dest list/position beats a local walk; generic linters
+must not rewrite dest-mandated syntax; docs-only: none(<reason>); then
+author and run checkable tests for this produces until they pass), then
+`/shiploop complete`. Never `git add -A`. Never merge from
+that cwd. Then follow the printed Improve (one cycle; lint-after-write
+then re-run recorded checks). Then invoke the printed When done —
 **`/shiploop complete`** (add `--trivial` if this Improve cycle was
 only-trivial). Do not
 pass `--inner-loop parent --improve` unless When done named that override.

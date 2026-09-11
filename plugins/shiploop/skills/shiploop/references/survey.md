@@ -86,9 +86,10 @@ its output is `environment.md` (Look here names the absolute path).
 
 When `mcp` or `exclusive` is nonempty, answer the four dest-discovery questions and the evaluations in the printed validate-spec activity. `layout` / `routing` shape is in `state-files.md`. Nonempty `exclusive` requires all four answers and nonempty `references` before dest plan; `mcp` only requires Q1 and Q2, and Q3/Q4 may be `none`.
 
-The evaluations (usability this turn, dest file identity, bound client action
-contract, mechanics on dest, tracked bind files) live in the printed
-validate-spec activity; each may be the token `none` when inapplicable.
+The evaluations (usability this turn, dest file identity, lint / syntax
+oracle, bound client action contract, mechanics on dest, tracked bind files)
+live in the printed validate-spec activity; each may be the token `none`
+when inapplicable.
 
 ## Write it once
 
