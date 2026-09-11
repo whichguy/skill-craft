@@ -25,12 +25,51 @@ inventory, or session hashes (those stay in `{{ENV_MD}}`).
 Include an **AGENTS.md create or revise** as a **late DAG successor** — same
 grain as README, not a new state-machine phase. Create if absent at bound
 repo root; revise if present. They may share one conclude seed or be two
-seeds; `produces` must name `AGENTS.md`. Body is standing agent facts for
-later agents: dest writer name, user entrypoint, and **pointers** to unique
-dest/docs (`DEST_*.md`, `DESIGN.md`, `REVIEW_CONVERGE.md`, product README).
-Do **not** absorb those unique files. Never machine JSON, handles, tokens,
-MCP inventory, or session hashes. Do not restate Frozen Exclusive / routing
-/ lint-oracle as a competing SoT — Frozen wins this session.
+seeds; `produces` must name `AGENTS.md`. Later agents will not see Frozen;
+this file is the standing copy of dest facts they would otherwise guess
+wrong. **Restate** Exclusive / layout / routing / lint-oracle as short
+imperative rules (duplicate Frozen standing facts on purpose). Frozen still
+wins **this session** if they conflict. Keep under ~150 lines. Pair every
+Don't with a Do. Omit a section only when its frozen facts are `none`.
+Do **not** absorb unique dest/docs (`DEST_*.md`, `DESIGN.md`,
+`REVIEW_CONVERGE.md`, product README) — one pointer line each. Never
+machine JSON, handles, tokens, MCP inventory, session hashes, or live dest
+URLs. This activity file must not start a line with `## ` (that bounds Next);
+the product file may use H2 names below.
+
+Fill from frozen survey/spec (not invented house style):
+
+1. **Never (top).** Exclusive `dont_use` as never-use; don't write product
+   into Reserved; never `git add -A` (pathspec only); never switch dest
+   writers if Exclusive `use` fails — stop; never freeze secrets, live dest
+   URLs, or signed-in account addresses.
+2. **Commands.** Exact dest lint/validate; dest list/status/push-preflight;
+   local test command if this repo has one (not invented pytest / `test -f`);
+   `git add -f` for frozen bind files the writer gitignores. Tools named
+   here are the ones later agents will call.
+3. **Dest writer.** Each Exclusive row as `artifact → use; don't use …`.
+   If that writer fails: stop — do not switch.
+4. **Lint.** Restate the Frozen lint-oracle: Exclusive writer lint/validate
+   (if it has one) is dest-syntax SoT for file-local syntax; for dest
+   identity (order/position/name/presence) the live dest list/status/
+   push-preflight is the oracle and a local-walk finding is advisory;
+   generic linters must not rewrite dest-mandated syntax. After production
+   edits: lint-after-write then tests before done.
+5. **Layout / routing.** Reserved vs Product trees; user hits
+   `routing.user_entrypoint`; `reserved_routes` stay reserved; don't claim
+   the product is at the dest default if they differ.
+6. **Reuse.** Dest-writer libraries and mechanics before adding a second
+   stack. Do not duplicate, conflict with, or arbitrarily add a new library
+   for the same job.
+7. **Commits.** Pathspec only (never `git add -A`). Verbose bodies that
+   name what was learned and cite prior lesson commits by full sha, when
+   this repo already uses that schema or this increment introduced it.
+   Do not copy the implement git envelope into stored prompts.
+8. **Pointers.** One line each to unique dest/docs — do **not** absorb.
+
+Revise-if-present: keep host-authored sections that do not contradict these
+dest facts; replace dest Exclusive / lint / layout / routing from this
+session's Frozen.
 
 Call the installed **backchain** skill **once**, native procedure: draft →
 dependency review → host resolve into `resolved_facts` → elaborate. Call it

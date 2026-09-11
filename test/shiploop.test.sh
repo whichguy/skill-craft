@@ -202,6 +202,18 @@ grep -Fq 'AGENTS.md create or revise' \
 grep -Fq 'Do **not** absorb' \
   "$root/skills/shiploop/references/activities/plan.md" \
   || fail "plan.md missing AGENTS.md pointer-not-absorb"
+grep -Fq 'duplicate Frozen standing facts' \
+  "$root/skills/shiploop/references/activities/plan.md" \
+  || fail "plan.md missing AGENTS.md Frozen-facts restatement"
+grep -Fq 'never `git add -A`' \
+  "$root/skills/shiploop/references/activities/plan.md" \
+  || fail "plan.md missing AGENTS.md never git add -A"
+grep -Fq 'lint-after-write then tests' \
+  "$root/skills/shiploop/references/activities/plan.md" \
+  || fail "plan.md missing AGENTS.md lint-after-write then tests"
+if grep -E '^## ' "$root/skills/shiploop/references/activities/plan.md"; then
+  fail "plan.md activity has packet-level H2 (would bound Next)"
+fi
 grep -Fq 'standing agent contract' \
   "$root/skills/shiploop/references/survey.md" \
   || fail "survey.md missing AGENTS.md standing agent contract why"

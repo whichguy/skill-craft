@@ -90,12 +90,14 @@ Not a `.shiploop/` state file — it lives at bound `repo_root/AGENTS.md`.
 Survey cites it **IF EXISTS** (`why` = standing agent contract) and never
 writes it; absence is not dest-block. Spec/plan seed a create (absent) or
 revise (present) as a late DAG successor, same grain as README (prompt-driven;
-not a dest-implement machine gap; not hashed). Body is standing agent facts
-for later agents: pointers to unique dest/docs, never machine JSON, handles,
-tokens, or session hashes. Do not absorb unique dest receipts. Frozen may
-print a live pointer when the file exists (not session SoT; Exclusive /
-routing / lint-oracle win on conflict this session). Nested copies under
-subdirs are out of v1. `init --force` never deletes it.
+not a dest-implement machine gap; not hashed). Later agents will not see
+Frozen: body restates dest Exclusive / layout / routing / lint-oracle,
+exact dest lint/list/test commands, never `git add -A`, and pointers to
+unique dest/docs. Never machine JSON, handles, tokens, or session hashes.
+Do not absorb unique dest receipts. Frozen may print a live pointer when
+the file exists (not session SoT; Exclusive / routing / lint-oracle win on
+conflict this session). Nested copies under subdirs are out of v1.
+`init --force` never deletes it.
 
 ## End-of-run `recap.html`
 

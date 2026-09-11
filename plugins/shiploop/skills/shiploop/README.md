@@ -7,7 +7,7 @@ walk-back HTML recap exists.
 
 ShipLoop never conflict-resolves a merge and never claims engine `COMPLETE`.
 
-Package leaf: `skills/shiploop`. Invoke: `/shiploop`. Version: **0.8.32**.
+Package leaf: `skills/shiploop`. Invoke: `/shiploop`. Version: **0.8.33**.
 
 Canonical companions (do not duplicate their contracts here):
 
@@ -233,7 +233,9 @@ One phase, **three jobs in order**. Guide: `references/survey.md`. Activity:
    spec’s **product-doc duties** are a README create (absent) or revise
    (present) **and** an AGENTS.md create (absent) or revise (present) — as
    late DAG steps in **plan**, not a validate-spec write. AGENTS.md is
-   standing agent facts (pointers to unique dest/docs; never session hashes).
+   standing agent facts for later agents (restated dest Exclusive / lint /
+   layout / routing, dest commands, never `git add -A`, pointers to unique
+   dest/docs; never session hashes).
    While expanding the spec, also answer: deploy preparation before the
    walk (yes/what or none); deploy/publish after the walk (**outer-loop**,
    **dag**, or **none**); and whether residual should run a `/goal`
@@ -510,8 +512,8 @@ its own pair; never share one parent Improve turn across ids. Complete needs
 
 Product `README.md` and product `AGENTS.md` are not session state (survey
 reads them IF EXISTS; last DAG step writes/revises them; `--force` never
-deletes them). AGENTS.md is standing agent facts for later agents, not
-session SoT.
+deletes them). AGENTS.md restates dest Exclusive / lint / layout / routing
+for later agents; Frozen still wins this session.
 
 ---
 
@@ -658,9 +660,10 @@ or secrets there. `--force` never deletes it.
 
 **Product `AGENTS.md`** is **not** session state. Survey cites it IF EXISTS
 and never writes it. Plan seeds a create (absent) or revise (present) as a
-late successor, same grain as README. Pointers to unique dest/docs; never
-machine JSON or session hashes. Frozen may pointer it when present (not
-session SoT). `--force` never deletes it.
+late successor, same grain as README. Restates dest Exclusive / lint /
+layout / routing and dest commands for later agents; pointers to unique
+dest/docs; never machine JSON or session hashes. Frozen may pointer it
+when present (not session SoT). `--force` never deletes it.
 
 ---
 
@@ -670,7 +673,7 @@ session SoT). `--force` never deletes it.
 |---|---|---|
 | `environment.md` | `kind: greenfield`, `augment: false` | `kind: brownfield`, `augment: true`; cites existing README and app paths |
 | Product `README.md` | created as a **late** product DAG step | revised as a **late** product DAG step |
-| Product `AGENTS.md` | created as a **late** product DAG step (thin standing agent contract) | revised as a **late** product DAG step |
+| Product `AGENTS.md` | created as a **late** product DAG step (standing dest rules + pointers) | revised as a **late** product DAG step |
 | `initiation` | often `needed` + a `create` handle | often `none` or `done` (inspect an existing container) |
 | Everything else | same SM, hashes, worktrees, stored prompts | same |
 

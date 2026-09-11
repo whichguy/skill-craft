@@ -145,6 +145,8 @@ Survey **reads** bound `repo_root/AGENTS.md` **IF EXISTS** (cite it in
 must **not** write or rewrite it. Absent: omit. Do not invent. Do not
 dest-block. Nested `AGENTS.md` under subdirs is out of v1. The AGENTS.md
 create (if absent) or revise (if present) is a required late product-doc DAG
-successor during `plan`, same grain as README — pointer-only standing facts
-for later agents, not session SoT. Do not absorb unique dest receipts
-(`DEST_*.md`, `DESIGN.md`, `REVIEW_CONVERGE.md`) into it.
+successor during `plan`, same grain as README. Later agents will not see
+Frozen: restated dest Exclusive / layout / routing / lint-oracle, commands,
+never-`git add -A`, and pointers to unique dest receipts (`DEST_*.md`,
+`DESIGN.md`, `REVIEW_CONVERGE.md`). Do not absorb those unique files. Not
+session SoT (Frozen wins this session). Never machine JSON or session hashes.

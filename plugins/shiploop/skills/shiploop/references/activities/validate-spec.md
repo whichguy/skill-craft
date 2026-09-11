@@ -201,9 +201,12 @@ once, outside fences/blockquotes). Derive a machine-checkable
 duties are a README create (if absent) or revise (if present) **and** an
 AGENTS.md create (if absent) or revise (if present) — tell backchain to add
 both as late DAG successors in `plan`, not here. AGENTS.md is standing agent
-facts for later agents (pointers to unique dest/docs; never machine JSON,
-handles, tokens, or session hashes). Do not absorb unique dest receipts into
-it. Frozen Exclusive/routing/lint-oracle stay session SoT.
+facts for later agents who will not see Frozen: restated dest Exclusive /
+layout / routing / lint-oracle (duplicate on purpose), exact dest
+lint/list/test commands, never `git add -A`, pointers to unique dest/docs.
+Never machine JSON, handles, tokens, or session hashes. Do not absorb unique
+dest receipts into it. Frozen Exclusive/routing/lint-oracle still win this
+session if they conflict.
 If dest-hit found a reserved default entrypoint, `done_sentence` names the
 **user** entrypoint, not the default dest URL.
 
