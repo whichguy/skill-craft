@@ -13,7 +13,7 @@ pathspec-commits **on the worktree**. After produces is true:
 tests-until-green (author and run checkable tests for this produces until
 they pass), then `/shiploop complete`. Never `git add -A`. Never merge from
 that cwd. Then follow the printed Improve (one cycle; re-run recorded
-checks). Then invoke the printed When done — flagless
+checks). Then invoke the printed When done —
 **`/shiploop complete`** (add `--trivial` if this Improve cycle was
 only-trivial). Do not
 pass `--inner-loop parent --improve` unless When done named that override.

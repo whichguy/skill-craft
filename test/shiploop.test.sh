@@ -480,7 +480,13 @@ if grep -Fq '**`/shiploop complete --inner-loop parent --improve' \
 fi
 grep -Fq '**`/shiploop complete`**' \
   "$root/skills/shiploop/references/activities/implement.md" \
-  || fail "implement.md missing flagless complete closer"
+  || fail "implement.md missing complete closer"
+if grep -Fq 'When done — flagless' \
+  "$root/skills/shiploop/references/activities/implement.md"; then
+  fail "implement.md still names flagless as the When done default"
+fi
+grep -Fq 'exec the printed When done' "$root/skills/shiploop/SKILL.md" \
+  || fail "SKILL.md When not to use missing exec the printed When done"
 if grep -Fq '(Grok default)' \
   "$root/skills/shiploop/references/host-matrix.md"; then
   fail "host-matrix still treats --inner-loop parent as Grok default"

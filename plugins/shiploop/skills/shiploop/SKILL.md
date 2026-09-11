@@ -71,7 +71,7 @@ Human overview: [README.md](README.md).
 
 - Offline freeze/prove/stop → **`evidence-gates`**
 - Reprint only → `/shiploop next` (same leaf)
-- This prompt is done, want the next stdout → `/shiploop complete` (same leaf)
+- This prompt is done, want the next stdout → exec the printed When done (`/shiploop complete`)
 - Residual×2 engine alone → **`review-coverage`** / **`review-converge`**
 
 ## Procedure
