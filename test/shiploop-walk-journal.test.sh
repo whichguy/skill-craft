@@ -113,8 +113,8 @@ assert_no_next_packet() {
   fi
 }
 
-WRAP_COMPLETE='shiploop complete — close the increment and print the next packet'
-WRAP_NEXT='shiploop next — reprint the packet'
+WRAP_COMPLETE='shiploop complete — close the increment and print the next stdout'
+WRAP_NEXT='shiploop next — reprint stdout'
 
 invoke_wrapper() {
   local verb="$1"

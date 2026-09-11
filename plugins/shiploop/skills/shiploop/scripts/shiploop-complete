@@ -33,7 +33,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     harness = PACKAGE_ROOT / "scripts" / "shiploop"
     if not harness.is_file():
         die(EXIT_BLOCKED, "missing same-leaf scripts/shiploop")
-    print("shiploop complete — close the increment and print the next packet", flush=True)
+    print("shiploop complete — close the increment and print the next stdout", flush=True)
     os.execv(sys.executable, [sys.executable, str(harness), "complete", *argv])
     return EXIT_USAGE
 

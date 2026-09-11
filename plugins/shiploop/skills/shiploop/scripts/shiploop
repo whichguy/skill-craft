@@ -23,7 +23,7 @@ EXIT_BLOCKED = 2
 EXIT_USAGE = 64
 
 PACKAGE_ROOT = Path(__file__).resolve().parents[1]
-VERSION = "0.8.29"
+VERSION = "0.8.30"
 REF_DIR = PACKAGE_ROOT / "references"
 WT_DIRNAME = ".worktrees"
 NEXT_LEAD = "Issue this prompt."
@@ -63,8 +63,7 @@ def closer_inner_a(*, sid: str = "", running_n: int = 1) -> str:
 def closer_improve_cycle(*, sid: str = "", running_n: int = 1) -> str:
     return (
         f"{invoke_complete(sid=sid, running_n=running_n)}. "
-        "If this cycle had no material change after the named checks ran, "
-        f"{invoke_complete('--trivial', sid=sid, running_n=running_n)} instead. "
+        "Add --trivial when this cycle had no material change after the named checks ran. "
         "No other flags. Do not stop."
     )
 

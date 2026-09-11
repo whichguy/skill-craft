@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""shiploop-next — reprint the packet via same-leaf shiploop next."""
+"""shiploop-next — reprint stdout via same-leaf shiploop next."""
 from __future__ import annotations
 
 import os
@@ -34,7 +34,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     harness = PACKAGE_ROOT / "scripts" / "shiploop"
     if not harness.is_file():
         die(EXIT_BLOCKED, "missing same-leaf scripts/shiploop")
-    print("shiploop next — reprint the packet", flush=True)
+    print("shiploop next — reprint stdout", flush=True)
     os.execv(sys.executable, [sys.executable, str(harness), "next", *argv])
     return EXIT_USAGE
 

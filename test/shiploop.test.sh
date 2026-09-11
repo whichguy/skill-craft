@@ -55,6 +55,48 @@ grep -Fq 'When ## When done invoke states a precondition, satisfy it first, then
 grep -Fq 'The new stdout is the next prompt to issue. Repeat until When done says stop.' \
   "$root/skills/shiploop/references/turn-packet.md" \
   || fail "turn-packet.md missing HOST_CONTINUE line 2"
+if grep -Fq 'packet' "$root/skills/shiploop/SKILL.md" \
+  "$root/agents/shiploop.md" \
+  "$root/skills/shiploop/commands/"*.md; then
+  fail "host-facing SKILL/commands/agents still say packet"
+fi
+if grep -Fq 'packet' \
+  "$root/skills/shiploop/scripts/shiploop-next" \
+  "$root/skills/shiploop/scripts/shiploop-complete"; then
+  fail "leaf wrappers still say packet"
+fi
+if grep -Fq 'reports this prompt done' "$root/docs/LOOP-ENGINEERING.md" \
+  "$root/skills/devloop/references/loop-engineering.md"; then
+  fail "LOOP-ENGINEERING still says complete reports this prompt done"
+fi
+if grep -Fq 'prints the next packet' "$root/docs/LOOP-ENGINEERING.md" \
+  "$root/skills/devloop/references/loop-engineering.md"; then
+  fail "LOOP-ENGINEERING still says prints the next packet"
+fi
+grep -Fq 'execs the printed When done' "$root/docs/LOOP-ENGINEERING.md" \
+  || fail "LOOP-ENGINEERING missing execs the printed When done"
+python3 - "$cli" <<'PY' || fail "closer_improve_cycle is still two invokes / missing Add --trivial"
+from importlib.machinery import SourceFileLoader
+from importlib.util import module_from_spec, spec_from_loader
+import sys
+cli = sys.argv[1]
+loader = SourceFileLoader("shiploop_cli", cli)
+spec = spec_from_loader("shiploop_cli", loader)
+mod = module_from_spec(spec)
+loader.exec_module(mod)
+hc = mod.HOST_CONTINUE
+assert "exec its command exactly as printed" in hc, hc
+assert "packet" not in hc.lower(), hc
+s = mod.closer_improve_cycle()
+assert s.count("invoke /shiploop complete") == 1, s
+assert "Add --trivial" in s, s
+assert "instead" not in s, s
+s2 = mod.closer_improve_cycle(sid="S1", running_n=2)
+assert s2.count("invoke /shiploop complete") == 1, s2
+assert "--id S1" in s2, s2
+assert "Add --trivial" in s2, s2
+assert "instead" not in s2, s2
+PY
 if grep -Fq 'If produces is not true yet' "$cli"; then
   fail "script still prints produces-not-true menu"
 fi
@@ -3302,6 +3344,17 @@ if printf '%s\n' "$out_adv" | grep -qx '/goal'; then
 fi
 printf '%s\n' "$out_adv" | grep -Fq -- '--trivial' \
   || fail "advance packet missing --trivial: $out_adv"
+wd_adv="$(printf '%s\n' "$out_adv" | awk '/^## When done invoke$/,/^## Missing$/')"
+step_adv="$(printf '%s\n' "$wd_adv" | grep -F 'Step ' | grep -F 'invoke /shiploop complete' || true)"
+[[ -n "$step_adv" ]] || fail "advance When done missing Improve step closer: $wd_adv"
+inv_n="$(printf '%s\n' "$step_adv" | grep -o 'invoke /shiploop complete' | wc -l | tr -d ' ')"
+[[ "$inv_n" == 1 ]] || fail "Improve When done wants one invoke, got $inv_n: $step_adv"
+printf '%s\n' "$step_adv" | grep -Fq 'Add --trivial' \
+  || fail "Improve When done missing Add --trivial flag: $step_adv"
+printf '%s\n' "$step_adv" | grep -Fq 'instead' \
+  && fail "Improve When done still a second command (instead): $step_adv"
+printf '%s\n' "$wd_adv" | grep -Fq 'exec its command exactly as printed' \
+  || fail "When done missing HOST_CONTINUE exec exactly: $wd_adv"
 assert_absent "$out_adv" 'Until-loop A (receipt inner=A)' \
   "inner B packet still printed /goal A"
 set +e
@@ -3495,7 +3548,9 @@ init_git_repo "$repowrap"
 run_cli init --prompt "create result.txt containing exactly one line: ok" \
   --run-dir "$runwrap" --bound-plan "$planf" --repo "$repowrap" >/dev/null
 out_n="$(python3 "$nextw" --run-dir "$runwrap")"
-printf '%s\n' "$out_n" | grep -q 'shiploop next — reprint the packet' || fail "next wrapper banner: $out_n"
+n1="$(printf '%s\n' "$out_n" | awk 'NR==1 { print; exit }')"
+[[ "$n1" == 'shiploop next — reprint stdout' ]] || fail "next wrapper banner: $n1"
+printf '%s\n' "$n1" | grep -qi packet && fail "next wrapper first line says packet: $n1"
 printf '%s\n' "$out_n" | grep -q 'shiploop — session harness' || fail "next wrapper missing harness banner"
 assert_absent "$out_n" 'DevLoop' "next wrapper banner named a foreign product"
 for cmd in update complete complete-step start-step; do
@@ -3506,10 +3561,12 @@ for cmd in update complete complete-step start-step; do
   [[ "$rc" -eq 2 ]] || fail "next wrapper refuse $cmd want 2: $bad"
 done
 out_c="$(python3 "$compw" --run-dir "$runwrap")"
-printf '%s\n' "$out_c" | grep -q 'shiploop complete — close the increment and print the next packet' \
-  || fail "complete wrapper banner: $out_c"
+c1="$(printf '%s\n' "$out_c" | awk 'NR==1 { print; exit }')"
+[[ "$c1" == 'shiploop complete — close the increment and print the next stdout' ]] \
+  || fail "complete wrapper banner: $c1"
+printf '%s\n' "$c1" | grep -qi packet && fail "complete wrapper first line says packet: $c1"
 printf '%s\n' "$out_c" | grep -q 'validate-spec: current' || fail "complete wrapper did not advance: $out_c"
-printf '%s\n' "$out_c" | grep -q 'invoke /shiploop complete' || fail "complete wrapper packet When done"
+printf '%s\n' "$out_c" | grep -q 'invoke /shiploop complete' || fail "complete wrapper When done"
 for cmd in next update complete complete-step start-step; do
   set +e
   bad="$(python3 "$compw" "$cmd" --run-dir "$runwrap" 2>&1)"
