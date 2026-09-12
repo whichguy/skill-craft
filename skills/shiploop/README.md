@@ -1063,11 +1063,15 @@ complete secret-detection guarantee.
 Aborted merge intent now has an explicit `merge-recover` route. First reconcile
 Git yourself; ShipLoop never aborts a merge automatically. With the exact current
 merge action, it refuses an in-progress or already-landed merge, unrelated branch,
-or dirty product checkout. A safe recovery retains branch/worktree and an
-immutable recovery checkpoint, clears the abandoned intent, resets convergence,
-and restarts review. A manually reconciled descendant of the old target must
-pass the full review/final verification cycle again; the actual merge remains
-bound to its exact verified target. Ordinary `repair` cannot bypass merge intent.
+or dirty product checkout. If the active worktree changed after merge intent,
+first preserve or reconcile and commit the scoped intended work to clean it,
+invoke `merge-recover`, and only afterward run the restarted full Improve review
+and checks rather than `verify` before recovery. A safe recovery retains
+branch/worktree and an immutable recovery checkpoint, clears the abandoned intent,
+resets convergence, and restarts review. A manually reconciled descendant of the
+old target must pass the full review/final verification cycle again; the actual
+merge remains bound to its exact verified target. Ordinary `repair` cannot bypass
+merge intent.
 
 Legacy migration now recovers a nonempty `state.prompt` byte-for-byte into
 `prompt.md` in the same Markdown transaction and records its source and digest.

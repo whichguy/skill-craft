@@ -2253,6 +2253,59 @@ class ShipLoopActionWalkTests(ShipLoopActionWalkFixture):
             ["sequence", "preparation-readiness"],
         )
 
+    def test_post_convergence_commit_with_green_checks_requires_inner_repair(self):
+        """Fresh passing tests cannot replace review of the accepted revision."""
+        self.bootstrap_to_first_implementation()
+        self.start_step("S1")
+        self.run_improve_iteration("S1", material=False)
+        self.run_improve_iteration("S1", material=False)
+        self.assertEqual(self.state()["stage"], "final-verify")
+        self.assertTrue(CORE.improve_two_clean(self.receipt("S1")))
+        accepted_primary = self.receipt("S1")["improve_cycles"][-1]["primary_commit"]
+        worktree = self.worktree("S1")
+        source = worktree / "s1.py"
+        changed_source = source.read_text(encoding="utf-8") + (
+            "\ndef unreviewed_late_function():\n    return 'not reviewed'\n"
+        )
+        source.write_text(changed_source, encoding="utf-8")
+        self.git("add", "s1.py", cwd=worktree)
+        self.git("commit", "-m", "late source change outside Improve", cwd=worktree)
+        late_head = self.git("rev-parse", "HEAD", cwd=worktree)
+        self.assertNotEqual(late_head, accepted_primary)
+
+        final_action = self.action_id()
+        self.verify_current(self.manifest_for("S1"), label="late-source-green-checks")
+        before = {
+            name: (self.run_dir / name).read_bytes()
+            for name in ("state.md", "steps/S1.md", "history.md")
+        }
+        rejected, _ = self.complete(
+            {
+                "summary": "New source passes checks but never received Improve review.",
+                "done_evidence": self.done_evidence("S1"),
+            },
+            action_id=final_action,
+            code=2,
+            label="late-source-finalization",
+        )
+        self.assertIn("new source revision appeared", rejected.stderr)
+        self.assertEqual(
+            {name: (self.run_dir / name).read_bytes() for name in before}, before
+        )
+        self.assertFalse((self.run_dir / "results" / f"{final_action}.md").exists())
+
+        self.cli(
+            "repair", "--action", final_action,
+            "--reason", "Retain the late source commit and restart its full Improve review.",
+        )
+        repaired = self.receipt("S1")
+        self.assertEqual(self.state()["stage"], "review")
+        self.assertNotEqual(self.action_id(), final_action)
+        self.assertEqual(repaired["improve_cycles"][-1]["kind"], "repair-checkpoint")
+        self.assertFalse(CORE.improve_two_clean(repaired))
+        self.assertEqual(self.git("rev-parse", "HEAD", cwd=worktree), late_head)
+        self.assertEqual(source.read_text(encoding="utf-8"), changed_source)
+
     def test_twelve_material_cycles_do_not_converge(self):
         receipt = {
             "improve_cycles": [

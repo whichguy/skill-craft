@@ -3176,7 +3176,7 @@ def merge_recover(core, root, state, aid, reason):
     )
     need(
         not git(core, worktree, "status", "--porcelain", "--untracked-files=all"),
-        "worktree changed after merge intent; commit and reverify before merge-recover",
+        "worktree changed after merge intent; preserve or reconcile and commit scoped intended work to clean the worktree, then invoke merge-recover; only afterward run the restarted full Improve review and checks",
     )
 
     recovery = {

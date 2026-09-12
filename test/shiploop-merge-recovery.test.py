@@ -251,11 +251,25 @@ class MergeRecoveryTests(unittest.TestCase):
 
     def test_dirty_worktree_preserves_the_durable_snapshot(self):
         receipt = self.receipt()
-        (Path(receipt["worktree"]) / "worktree-uncommitted.txt").write_text(
+        worktree = Path(receipt["worktree"])
+        dirty_path = worktree / "worktree-uncommitted.txt"
+        dirty_path.write_text(
             "operator work\n", encoding="utf-8"
         )
         action = self.state()["action"]["id"]
         snapshot = self.durable_snapshot()
+
+        unavailable_verify = self.cli(
+            "verify",
+            "--action",
+            action,
+            "--manifest",
+            str(self.run_dir / "unused-manifest.md"),
+            code=2,
+        )
+        self.assertIn("verify is not the active activity", unavailable_verify.stderr)
+        self.assertEqual(self.durable_snapshot(), snapshot)
+
         blocked = self.cli(
             "merge-recover",
             "--action",
@@ -264,8 +278,40 @@ class MergeRecoveryTests(unittest.TestCase):
             "The active worktree must be clean before recovery.",
             code=2,
         )
-        self.assertIn("worktree changed after merge intent", blocked.stderr)
+        diagnostic = blocked.stderr
+        self.assertIn("worktree changed after merge intent", diagnostic)
+        fragments = (
+            "preserve or reconcile",
+            "commit scoped intended work",
+            "invoke merge-recover",
+            "restarted full Improve review and checks",
+        )
+        positions = [diagnostic.index(fragment) for fragment in fragments]
+        self.assertEqual(positions, sorted(positions))
+        self.assertNotIn("reverify", diagnostic)
         self.assertEqual(self.durable_snapshot(), snapshot)
+
+        self.git("add", dirty_path.name, cwd=worktree)
+        self.git("commit", "-m", "preserve scoped work before recovery", cwd=worktree)
+        scoped_head = self.git("rev-parse", "HEAD", cwd=worktree)
+
+        recovered = self.cli(
+            "merge-recover",
+            "--action",
+            action,
+            "--reason",
+            "The scoped work is committed and recovery must restart Improve review.",
+        )
+        self.assertIn("Stage: review", recovered.stdout)
+        state = self.state()
+        recovered_receipt = self.receipt()
+        self.assertEqual((state["phase"], state["stage"], state["active_step"]), ("implement", "review", "S1"))
+        self.assertEqual(recovered_receipt["branch"], receipt["branch"])
+        self.assertEqual(recovered_receipt["worktree"], str(worktree))
+        self.assertEqual(self.git("rev-parse", receipt["branch"]), scoped_head)
+        self.assertEqual(dirty_path.read_text(encoding="utf-8"), "operator work\n")
+        self.assertEqual(recovered_receipt["iteration"]["previous_sha"], scoped_head)
+        self.assertFalse(CORE.improve_two_clean(recovered_receipt))
 
     def test_paused_merge_recovery_keeps_the_pause_and_prints_no_callback(self):
         pause_reason = "Await explicit operator direction before another review pass."

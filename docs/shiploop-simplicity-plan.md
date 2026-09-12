@@ -4,6 +4,12 @@ Baseline: `21535144152ea19c4cd43676de3dc59534156656`. Scope: reduce avoidable
 instruction complexity and make inner-loop coding decisions explicit without
 adding a new workflow, authority, dependency, or result schema.
 
+**Implementation status (2026-09-12):** delivered by `c548bc9` and retained at
+`414b3e9`. The constitution, all eight routes, and compact iteration table are
+implemented. The [combined quality-review closeout](shiploop-quality-review-closeout.md)
+records current checks and the narrow follow-up recovery/regression work. The
+verification section below preserves the original implementation evidence.
+
 ## Decision
 
 Adopt one short, stack-neutral implementation constitution in the existing
