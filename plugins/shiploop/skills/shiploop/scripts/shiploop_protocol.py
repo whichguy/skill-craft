@@ -5058,6 +5058,21 @@ TEST_DOC_SECTIONS = {
 }
 
 
+# Reuse the existing guidance/result contract; style adds no stage or state.
+for _implementation_stage in (
+    "step-plan", "step-plan-review", "step-plan-revise",
+    "implement", "review", "improve-plan", "improve-apply", "verify",
+):
+    TEST_DOC_SECTIONS[_implementation_stage] = (
+        *TEST_DOC_SECTIONS.get(_implementation_stage, ()),
+        "implementation-constitution",
+    )
+    PROMPTS[_implementation_stage] += (
+        " Follow the implementation constitution: smallest change, justified "
+        "abstraction, boundary checks and useful comments. Use existing result fields."
+    )
+
+
 # Product behavior modeling is routed separately from test/documentation policy.
 BEHAVIOR_SECTIONS = {
     "approach": ("discovery-and-research",),

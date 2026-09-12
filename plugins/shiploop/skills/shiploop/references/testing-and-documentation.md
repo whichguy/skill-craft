@@ -219,64 +219,71 @@ dumps, raw logs, or generic harness journals in them. `AGENTS.md` remains option
 Before step execution, store proposed docs/cases in the spec/plan results; survey
 does not create product files. Plan documentation outputs and checks explicitly.
 
+## Implementation constitution
+
+Use these stack-neutral defaults in the current step, not a new governance loop.
+Respect user requirements, approved contracts, applicable repository instructions
+and established language/style tooling. A conflict needs clarification, not a
+silent override. Never relax safety or acceptance to claim simplicity.
+
+1. **Smallest sufficient change.** Solve the current requirement. Reuse local
+   conventions; avoid unrelated cleanup, speculative features, new dependencies,
+   configuration knobs or fallback paths without a present need. A no-change
+   result is valid; do not manufacture edits to satisfy an iteration.
+2. **Useful abstraction.** Prefer direct, readable code and cohesive functions.
+   Extract a helper/interface when it clarifies current behavior, removes actual
+   duplication, or isolates a real boundary. Explain the present benefit of new
+   indirection; do not build a framework for hypothetical reuse or force unrelated
+   code through one abstraction.
+3. **Explicit boundaries.** Check untrusted inputs and public preconditions:
+   shape, domain constraints and relevant state before effects. Use established
+   validators and clear error behavior; do not swallow failure or invent success
+   defaults. Avoid redundant internal checks, but retain revalidation when state
+   or trust can change. Validation is not authorization. Test invalid inputs and
+   expected unchanged state where relevant.
+4. **Compact, useful documentation.** Prefer clear names. Comment on intent,
+   invariants, surprising constraints and tradeoffs, not obvious syntax. Document
+   changed public/non-obvious contracts as specified in [Documentation](#documentation).
+   No mandatory comment on every function, machine-only tags, copied code prose,
+   or abbreviated names merely to save tokens. Keep essential caveats.
+5. **Evidence before polish.** Plan tests first; inspect code before refining
+   actual tests; run required lint/tests after edits. Update affected README/docs.
+   Prefer existing tools and focused cases over checklist-driven test layers.
+   Preserve the independent expected outcome and required real-boundary evidence.
+
+In existing `body`/`plan`, note consequential design choices. During review use
+existing findings; record changes or justified exceptions in `summary`/`learnings`
+where that action permits them. Personal style preferences alone are trivial;
+behavior/security/contract changes are material. Never downgrade the script's
+classification. This is host judgment, not a new field, score or proof of quality.
+
 ## Iteration
 
 Use [Test cases](#test-cases), [Surface selection](#surface-selection), or
 [Documentation](#documentation) only when the current step needs their record
 shape or selection rules; do not load unrelated sections or past cycles.
 
-1. **Initial path:** in `step-plan`, put the case-to-contract criteria matrix in
-   the candidate before any source edit; after its convergence/finalization,
-   `implement` writes the certified code, inspects its actual diff/learnings, then
-   authors/refines tests and documentation. A TDD or reused test needs an
-   evidence-backed adequacy rationale. Run/fix its required lint/test manifest
-   until checks pass on unchanged files, then record actual results and any
-   justified correction in initial `implement`'s `test_review`.
-2. **Improve review:** after the initial implementation, each `review` begins
-   with current Git history and reassesses actual code, tests,
-   expected-versus-observed outcomes, test adequacy, real-boundary gaps,
-   environment decisions, contracts, documentation, and product README. Complete
-   the structured `research_assessment` required by the research protocol;
-   questions about changed environmental conditions or unsupported best-practice
-   assumptions are material when they affect the step.
-3. **Improve plan:** `improve-plan` retains/refines the case-to-contract criteria
-   matrix before code, then completes its nested plan convergence. A learning can
-   add coverage, but it cannot weaken the accepted oracle to match current behavior.
-4. **Improve apply:** `improve-apply` implements certified code first, inspects
-   its actual diff/learnings, then authors/refines tests and documentation. Put
-   application deltas/corrections in `test_changes` and discoveries in `learnings`.
-5. **Verify and fix:** after Improve application, run lint and all required
-   current-step tests, compare actual against expected outcomes, and check changed
-   documentation examples/links. Diagnose a failure, correct code or a justified
-   test oracle, then rerun the applicable manifest until it passes on unchanged
-   files. Required failed, blocked, or unrun cases keep the step unfinished; they
-   earn no clean pass.
-6. **Carry forward:** distill observations useful to another iteration using the
-   [carry-forward contract](carry-forward.md). Record changed environment/test
-   prerequisites and documentation implications, their scope and evidence, or
-   explicitly record no discoveries. A current-step correction returns to review
-   and fresh checks; do not reuse the old pass as proof of the corrected state.
-7. **Commit:** include test-case and documentation deltas or explicit no-change
-   reasons in the existing review/changes/validation/learnings record. Two
-   trivial-only cycles and fresh final verification remain required. Include
-   carry-forward learnings verbatim alongside review and apply learnings.
-8. **Post-inner:** ask whether learnings require broader test cases, surface or
-   environment changes, function contracts, README updates, or prerequisite steps.
-   Resolve carried pending-work obligations through a validated pending-only plan
-   revision; generic ShipLoop ideas go to its separate journal.
+The packet owns the order. This table locates duties and records; it is not a
+second scheduler. Keep the [Test cases](#test-cases) oracle/reuse rules,
+[Surface selection](#surface-selection) decisions and
+[Documentation](#documentation) contract rather than duplicating them per phase.
 
-Persist a compact record in the existing result: case IDs and independent sources,
-test/documentation changes or no-change rationale, environment, observed outcome,
-and evidence references. `body`/`plan` carry the pre-code matrix; initial
-`implement` puts post-code adequacy and actual-versus-expected outcomes in
-`test_review`; `improve-apply` puts authorship/reuse/corrections in
-`test_changes` and discoveries in `learnings`; later `review`/quality again use
-`test_review`; and verification uses `summary`. Results are imported into
-authoritative Markdown; no new public fields, sidecar schema, or assumed chat
-memory is needed. Keep essential facts inline and detail linked so a fresh
-context can resume. Update the product artifacts before verification; record
-run-only observations in the packet's inbox result, not in the product tree after
-checks (which would stale the evidence).
+| Current action | Duty and existing record |
+| --- | --- |
+| `step-plan` / `improve-plan`, then nested plan convergence | Put the pre-code case-to-contract matrix in `body`/`plan`. Use the implementation constitution; only a finalized plan authorizes its scoped code edits. |
+| `implement` / `improve-apply` | Write certified code, inspect actual diff/learnings, then author/refine tests and docs. Initial adequacy and justified oracle corrections use `test_review`; Improve application deltas use `test_changes` and `learnings`. Retained/TDD tests need evidence of adequacy, not a manufactured edit. |
+| `review` | Begin with current Git history and knowledge; compare actual code/tests/environment/docs with independent expectations. Record findings, `test_review`, `learnings` and `research_assessment`; new material research questions require investigation. |
+| `verify` / `final-verify` | Run required lint/tests and relevant examples/links; diagnose and fix failures, then rerun on unchanged files. Source repairs in `verify` also use the implementation constitution; late edits remain material. Required failed, blocked or unrun checks remain unfinished. Put case/check evidence in `summary`; a test-oracle change needs independent justification. |
+| `carry-forward` | Use the [carry-forward contract](carry-forward.md) for scoped observations/evidence or explicit no discoveries. A current-step correction returns to review and fresh checks; prior evidence is stale. |
+| `commit` | Include test/docs deltas or no-change reasons and required review, nested-plan, apply and carry-forward learnings verbatim. Two trivial-only cycles and fresh final verification remain mandatory. |
+| `post-inner` | Reassess broader tests, environments, contracts, README and prerequisites. Resolve pending-work obligations through validated pending-only replanning; generic ShipLoop proposals go to its journal. |
+
+Keep case IDs, independent sources, environment, observed outcomes and evidence
+references compact in the permitted result fields above. Results are imported
+into authoritative Markdown; no sidecar schema or assumed chat memory is needed.
+Keep essential facts inline and detail linked for a fresh context. Update product
+artifacts before verification; run-only observations go in the packet's inbox,
+not into the product tree after checks (which would stale the evidence).
 
 ## Deployment and handoff
 

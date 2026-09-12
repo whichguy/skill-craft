@@ -7,6 +7,11 @@ auto-resolve conflicts, or stage everything with git add -A.
 
 ## Initial execution plan and implement
 
+Apply the compact [Implementation constitution](../testing-and-documentation.md#implementation-constitution)
+during planning, coding and review: smallest sufficient change, justified
+abstraction, explicit input/error boundaries and useful comments. Keep decisions
+in the current results; do not introduce a separate style loop or policy ledger.
+
 The first `implement`-phase action after scheduling is `step-plan`, not a
 source edit. Draft the initial plan for the active step, then complete:
 

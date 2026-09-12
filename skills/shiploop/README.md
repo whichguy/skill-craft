@@ -70,6 +70,13 @@ The current packet and [action protocol](references/action-protocol.md) govern
 when they conflict with an older guide. Capture a documentation mismatch in the
 generic ShipLoop journal rather than improvising a transition.
 
+Inner-loop planning, implementation, review and verification repair select the short
+[Implementation constitution](references/testing-and-documentation.md#implementation-constitution):
+KISS/YAGNI, justified abstraction, input/error boundaries, concise useful comments
+and local style conventions. These are host judgment defaults, not a new phase,
+score, result schema or permission to skip tests. The entry skill stays a thin
+router; the current packet supplies the guidance again after context loss.
+
 ## Start or resume a run
 
 Choose a repository and a **fresh, dedicated** run directory. Starting from the

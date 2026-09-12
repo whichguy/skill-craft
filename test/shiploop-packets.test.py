@@ -630,6 +630,83 @@ class PacketTests(unittest.TestCase):
                     "execution-planning.md#local-microplan-and-backchain", guidance
                 )
 
+    def test_cold_implement_packet_includes_implementation_constitution_guidance(self):
+        import shiploop_packets
+        import shiploop_protocol
+
+        state = {
+            "phase": "inner",
+            "stage": "implement",
+            "revision": 1,
+            "action": {"id": "implement-guidance"},
+            "active_step": "S1",
+        }
+        api = {
+            "repo_for": lambda _root, _state: self.repo,
+            "planning": SimpleNamespace(is_current=lambda _state: True),
+            "PROMPTS": {},
+            "check_target": lambda _core, _root, _state: ("S1", ["result passes"]),
+            "TEST_DOC_SECTIONS": shiploop_protocol.TEST_DOC_SECTIONS,
+        }
+        core = SimpleNamespace(
+            VERSION="test",
+            PACKAGE_ROOT=SCRIPTS.parent,
+            REF_DIR=SCRIPTS.parent / "references",
+        )
+        target = (
+            f"{core.REF_DIR / 'testing-and-documentation.md'}"
+            "#implementation-constitution"
+        )
+
+        with patch.object(
+            shiploop_packets,
+            "_step_info",
+            return_value=(
+                {"step": {"id": "S1", "prompt": "Implement the selected step."}},
+                None,
+            ),
+        ):
+            packet = shiploop_packets.render(core, self.run_dir, state, api)
+
+        self.assertEqual(packet.count(target), 1)
+
+    def test_implementation_constitution_guidance_routes_to_exact_execution_stages(self):
+        import shiploop_packets
+        import shiploop_protocol
+
+        core = SimpleNamespace(REF_DIR=SCRIPTS.parent / "references")
+        document = core.REF_DIR / "testing-and-documentation.md"
+        target = f"{document}#implementation-constitution"
+        self.assertRegex(
+            document.read_text(encoding="utf-8"),
+            r"(?m)^##\s+Implementation constitution\s*$",
+        )
+        selected_stages = (
+            "step-plan",
+            "step-plan-review",
+            "step-plan-revise",
+            "implement",
+            "review",
+            "improve-plan",
+            "improve-apply",
+            "verify",
+        )
+        api = {"TEST_DOC_SECTIONS": shiploop_protocol.TEST_DOC_SECTIONS}
+        routes = {}
+        for stage in set(shiploop_protocol.PROMPTS) | {"done", "halted"}:
+            guidance = shiploop_packets._guidance_lines(core, stage, api)
+            routes[stage] = sum(line.count(target) for line in guidance)
+
+        for stage in selected_stages:
+            with self.subTest(selected_stage=stage):
+                self.assertEqual(routes[stage], 1)
+        for stage in ("preflight", "survey", "commit", "final-verify", "done", "halted"):
+            with self.subTest(unrelated_stage=stage):
+                self.assertEqual(routes[stage], 0)
+        self.assertEqual(
+            {stage for stage, count in routes.items() if count}, set(selected_stages)
+        )
+
     def test_last_accepted_action_explains_replay_and_current_recovery(self):
         self.cli("init", "--repo", str(self.repo), "--prompt", "Build")
         first = self.state()["action"]["id"]
