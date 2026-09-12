@@ -395,6 +395,9 @@ class StepPlanningCliTests(ActionWalkFixture):
         self.assertIn("step-plan", first_packet)
         self.assertIn("--section step-context", first_packet)
         self.assertIn("--section step-context", second_packet)
+        self.assertIn("unit", first_packet)
+        self.assertIn("mock/fake", first_packet)
+        self.assertIn("end-to-end", first_packet)
         self.assertLess(len(first_packet), 12000)
 
         # A staged product edit exists before the first plan pass and must not
@@ -424,6 +427,12 @@ class StepPlanningCliTests(ActionWalkFixture):
         self.assertIn("Current step-plan candidate", compact_plan)
         self.assertIn("completed_passes", compact_plan)
         self.assertNotIn("improve_cycles", compact_plan)
+        # The planned case is durable Markdown, not an assertion supplied only
+        # in the current host turn.  A cold context must expose its exact ID
+        # and expected observable outcome before implementation begins.
+        self.assertIn("TC-S1-exact", compact_plan)
+        self.assertIn("Expected outcome:", compact_plan)
+        self.assertIn(self.product_for("S1"), compact_plan)
 
         incomplete_review = {
             "summary": "This deliberately incomplete review has no current history or knowledge acknowledgement.",
@@ -471,18 +480,64 @@ class StepPlanningCliTests(ActionWalkFixture):
         # implementation commit remains scoped to the declared fixture files.
         self.git("reset", "--", staged, cwd=worktree)
         (worktree / staged).unlink()
+        implement_packet = self.cli("next").stdout
+        self.assertIn("Stage: implement", implement_packet)
+        self.assertIn("--section step-plan", implement_packet)
         self.write_implementation("S1")
         implementation_action = self.action_id()
         self.verify_current(self.manifest_for("S1"), label="initial-plan-implementation-checks")
-        self.complete(
+        _, implementation_draft = self.complete(
             {
                 "summary": "The legitimate product edit and its fresh checks advance only after the finalized plan proof.",
-                "test_review": "The exact-output case passed in the selected local environment.",
+                "test_review": "Post-code learning: authored manifest check T-S1 exact-output test passed in the selected local environment; mock/fake and end-to-end are not applicable to this local fixture.",
             },
             action_id=implementation_action,
             label="initial-plan-implementation-complete",
         )
         self.assertEqual(self.state()["stage"], "review")
+        implementation_result = self.run_dir / "results" / f"{implementation_action}.md"
+        self.assertTrue(implementation_result.is_file())
+        accepted_result = implementation_result.read_text(encoding="utf-8")
+        self.assertIn(
+            "Post-code learning: authored manifest check T-S1",
+            accepted_result,
+        )
+        # The inbox is only a submission transport.  A cold step-context must
+        # reconstruct the accepted initial test note from results/<action>.md,
+        # whose digest is bound in completed_actions, after the inbox is gone.
+        implementation_draft_path = Path(implementation_draft)
+        self.assertTrue(implementation_draft_path.is_file())
+        implementation_draft_path.unlink()
+        self.assertFalse(implementation_draft_path.exists())
+        cold_context = self.cli(
+            "context", "--section", "step-context", "--offset", "0", "--limit", "8000"
+        ).stdout
+        self.assertIn("implementation_test_record", cold_context)
+        self.assertIn(implementation_action, cold_context)
+        self.assertIn(f"results/{implementation_action}.md", cold_context)
+        self.assertIn("historical host-reported notes", cold_context)
+        self.assertIn("Post-code learning: authored manifest check T-S1", cold_context)
+        # Re-enter through the cold packet after completion: it must describe
+        # the code-learning refinement/review handoff, rather than relying on
+        # the previous implementation conversation.
+        post_code_packet = self.cli("next").stdout
+        self.assertIn("code learnings", post_code_packet)
+        self.assertIn("--section step-plan", post_code_packet)
+        self.assertIn("unit", post_code_packet)
+        self.assertIn("mock/fake", post_code_packet)
+        self.assertIn("end-to-end", post_code_packet)
+        implementation_result.write_text(
+            accepted_result.replace(
+                "Post-code learning: authored manifest check T-S1",
+                "Post-code learning: tampered manifest check T-S1",
+            ),
+            encoding="utf-8",
+        )
+        rejected = self.cli(
+            "context", "--section", "step-context", "--offset", "0", "--limit", "8000", code=2
+        )
+        self.assertIn("digest mismatch", rejected.stderr)
+        implementation_result.write_text(accepted_result, encoding="utf-8")
         self.assertNotEqual(first["commit"], second["commit"])
 
     def test_finalized_plan_artifacts_are_required_by_actual_implementation_completion(self):
@@ -551,6 +606,10 @@ class StepPlanningCliTests(ActionWalkFixture):
         draft_packet = self.cli("next").stdout
         self.assertIn("Stage: improve-plan", draft_packet)
         self.assertIn("--section step-context", draft_packet)
+        self.assertIn("post-code", draft_packet)
+        self.assertIn("unit", draft_packet)
+        self.assertIn("mock/fake", draft_packet)
+        self.assertIn("end-to-end", draft_packet)
         self.assertNotIn("Current candidate/pass:", draft_packet)
         prior_plan = self.cli(
             "context", "--section", "step-plan", "--offset", "0", "--limit", "8000"
@@ -593,6 +652,12 @@ class StepPlanningCliTests(ActionWalkFixture):
         first, second, _third, receipt = self.converge_step_plan("S1")
         self.assertEqual(receipt["route"], "improve")
         self.assertEqual(self.state()["stage"], "improve-apply")
+        improve_apply_packet = self.cli("next").stdout
+        self.assertIn("Stage: improve-apply", improve_apply_packet)
+        self.assertIn("post-code", improve_apply_packet)
+        self.assertIn("unit", improve_apply_packet)
+        self.assertIn("mock/fake", improve_apply_packet)
+        self.assertIn("end-to-end", improve_apply_packet)
         iteration = self.receipt("S1")["iteration"]
         self.assertEqual(iteration["step_plan"]["loop_id"], receipt["loop_id"])
         self.assertTrue(iteration["plan_learnings"])

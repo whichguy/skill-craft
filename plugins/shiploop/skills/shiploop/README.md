@@ -306,14 +306,14 @@ loop is:
 
 ```mermaid
 flowchart TD
-    S[Schedule ready step] --> D[Draft step plan]
-    D --> R[Review and revise actual step context]
-    R --> V[Lint and test plan artifact]
-    V --> C[Audit-only plan commit]
+    S[Schedule ready step] --> D[step-plan: draft pre-code criteria]
+    D --> R[step-plan-review and step-plan-revise]
+    R --> V[step-plan-verify: plan-artifact checks]
+    V --> C[step-plan-commit: audit]
     C --> G{Two trivial passes and no gaps?}
     G -->|No| R
-    G -->|Yes| F[Fresh plan check and finalize]
-    F --> I[Implement exact checked plan]
+    G -->|Yes| F[step-plan-finalize: fresh plan check]
+    F --> I[implement: code, actual-diff test refinement, verify command]
 ```
 
 `step-plan-review` reads bounded `step-context`, `step-plan`, and current
@@ -336,13 +336,52 @@ findings. `step-plan-finalize` releases only the exact freshly checked plan to
 `implement`. The audit commits preserve the product tree and do not count as
 Improve iterations or replace the later primary step commit.
 
-Implement only the declared `produces` after that finalization, update relevant
-tests and documentation, lint after production edits, and run `verify` with an
-explicit manifest. The script retains command logs, before/after fingerprints,
-and failed attempts; it rejects non-zero, timed-out, stale, or changed-tree
-evidence. It does not decide whether the selected tests actually prove the
-intended behavior. A passing initial implementation starts P5; it is not
+Before code, the planning result's existing `body`/`plan` holds a compact test
+criteria matrix. Each stable case ID maps its contract `T-` ID and exact
+`produces` string to preconditions/input, expected output/state/side effect, planned test
+path/selector, check ID, environment/fixture, and separate decisions for unit,
+integration, end-to-end, mock/fake, browser, service, and API coverage. Each
+decision is selected, not applicable with a reason, or required but blocked
+with a cause. This is durable Markdown planning evidence, not a new schema,
+test catalog, or proof that a future test passed.
+
+On a cold entry to `implement`, `improve-apply`, or `review`, start with `next`,
+then page `context --section step-plan` for the accepted plan criteria and
+`context --section step-context` for the active-step context. The latter can
+expose the digest-bound read-only `implementation_test_record`: the accepted
+action plus `summary` and `test_review` from
+`results/{implementation_check_action}.md`. It is a historical host-reported
+note, not current proof; inspect the actual tree and rerun current checks before
+reusing its coverage conclusion.
+
+After finalization, implement only the declared `produces`: write the code,
+then inspect the actual diff, dependencies, and code learnings before authoring
+or refining executable tests. A TDD or reused test can remain only with evidence
+that it covers the planned criterion; do not manufacture a no-op test edit.
+Run lint and every selected required test, fix justified code or test defects,
+and rerun until the current manifest passes on unchanged files. The script
+retains command logs, before/after fingerprints, and failed attempts; it rejects
+non-zero, timed-out, stale, or changed-tree evidence. A required unavailable,
+failed, blocked, or unrun test keeps the step unfinished.
+
+When a test needs correction, never rewrite acceptance to fit a current bug. In
+initial `implement`, record the reason, before/after oracle, independent
+requirement or contract source, retained/added coverage, actual-versus-expected
+outcomes, and adequacy limits in `test_review`. In Improve work, record
+application additions/corrections in `test_changes`, discoveries in `learnings`,
+and later adequacy review in `test_review`; `summary` records checked evidence.
+The existing results are imported into Markdown for a fresh context. Passing
+plan or local tests do not decide semantic adequacy, and a mock/fake cannot prove
+a required real boundary. A passing initial implementation starts P5; it is not
 permission to merge.
+
+**Illustrative trace.** Before code, case `TC-14` maps contract `T-14` and its
+exact `produces` string to a blank-input fixture and reject/unchanged-state
+outcome. During `implement`, the actual diff shows whitespace takes the same
+new branch. The test refinement retains `TC-14`/`T-14`'s oracle and adds a
+whitespace stimulus/assertion at its planned test path; initial `test_review`
+records the added coverage and limitation. The code learning adds a test
+input—it does not change accepted behavior.
 
 ### P5 — Improve repeatedly, learn, and merge
 
@@ -583,11 +622,14 @@ assertions in the executable test where they belong.
 
 The execution-plan loop turns a ready DAG step or Improve finding into an
 ordered, checkable edit/test/documentation plan before product source changes.
-It records target symbols/interfaces, prerequisites, expected outcomes, case
-IDs, relevant browser/service/API coverage, documentation decisions, risk
-controls, and revalidation triggers. Its `planning-verify` evidence validates
-that plan artifact with exact acceptance `step plan`; it never substitutes for
-the later source lint/tests or for a live deployment observation.
+It records target symbols/interfaces, prerequisites, a pre-code case-to-contract
+criteria matrix for every exact `produces`, expected outcomes, test paths/check IDs,
+environment/fixtures, separately selected unit/integration/end-to-end and
+mock/fake strategies, browser/service/API decisions, documentation decisions,
+risk controls, and revalidation triggers. Its `planning-verify` evidence
+validates that plan artifact with exact acceptance `step plan`; it never
+substitutes for later source lint/tests, a real-boundary observation, or a live
+deployment observation.
 
 For universal objective candidates, any exact persisted-byte rewrite—including
 whitespace-only editing—is conservatively material. Only retaining the exact
@@ -655,9 +697,11 @@ coverage, use `verify --reason` to record why. Failed attempts remain in
 
 Use the existing result `body`, `plan`, `test_review`, `test_changes`,
 `learnings`, and `summary` fields to link cases, documentation decisions, and
-evidence. Do not create a parallel case-result sidecar. Expected outcomes and
-actual observations are separate: a required unavailable check is blocked, not
-`N/A` or passed by prose.
+evidence. Planning uses `body`/`plan`; initial `implement` uses `test_review`;
+Improve application uses `test_changes`/`learnings`; later review/quality uses
+`test_review`; verification uses `summary`. Do not create a parallel
+case-result sidecar. Expected outcomes and actual observations are separate: a
+required unavailable check is blocked, not `N/A` or passed by prose.
 
 Testing and documentation are duties inside the current stages, not a late
 separate phase:
@@ -666,8 +710,8 @@ separate phase:
 |---|---|---|
 | P2 survey/research/behavior loops | Identify relevant environments and observable expected outcomes; verify research question/source integrity and review the model's case mapping on every behavior pass. | Inspect conventions and identify product or interface guidance that will need change. |
 | P3 spec loop/sequence | Confirm acceptance/case mapping during spec convergence, then map stable cases and checks to exact outputs; order fixtures, readiness, and deployment dependencies. | Plan concise function/interface contracts, case guidance, and relevant README changes. |
-| P4 execution plan and implementation | Before source edits, map outputs/transitions to stable cases, expected outcomes, surfaces, fixtures/readiness, and plan-artifact checks; after finalization, add executable success, invalid, boundary, and regression coverage when relevant. | Before source edits, name the affected non-obvious contracts, README instructions, examples, and links; update them in the worktree before source checks, or explain why unchanged. |
-| P5 Improve | Converge the post-review plan, then compare expected and observed outcomes, reassess coverage, and rerun current checks. | Converge documentation work with the Improve plan; review README and contracts each iteration, update them or record a no-change reason. |
+| P4 execution plan and implementation | Before source edits, record the case-to-contract matrix, scope/mock/fake/surface decisions, and test paths/check IDs; after finalization, implement code, inspect the actual diff, then author/refine executable success, invalid, boundary, and regression coverage when relevant. | Before source edits, name the affected non-obvious contracts, README instructions, examples, and links; update them in the worktree before source checks, or explain why unchanged. |
+| P5 Improve | Converge the post-review plan, compare expected and observed outcomes, reassess test adequacy and real-boundary gaps, then rerun current checks after every justified fix. | Converge documentation work with the Improve plan; review README and contracts each iteration, update them or record a no-change reason. |
 | P6–P7 outer closure | Check whole-product behavior in the relevant actual environment. | Hand off usage, interface references, tested outcomes, and operational limitations. |
 
 The [testing and documentation contract](references/testing-and-documentation.md)

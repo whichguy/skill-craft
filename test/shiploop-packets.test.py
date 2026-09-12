@@ -6,6 +6,7 @@ from __future__ import annotations
 import os
 import json
 from pathlib import Path
+import re
 import runpy
 import subprocess
 import sys
@@ -112,6 +113,43 @@ class PacketTests(unittest.TestCase):
         self.assertIn(f"--result {result_path}", packet)
         self.assertIn(f"done --run-dir {self.run_dir}", packet)
         self.assertNotIn("It's all complete.", packet)
+
+    def test_step_plan_templates_name_an_executable_case_matrix(self):
+        import shiploop_packets
+
+        api = {"step_planning": SimpleNamespace(RUBRIC=())}
+        for stage in ("step-plan", "improve-plan"):
+            with self.subTest(stage=stage):
+                template, _ = shiploop_packets._step_plan_template(
+                    stage, {}, api, {}
+                )
+                self.assertIsInstance(template, dict)
+                body = template["body"]
+                normalized = re.sub(r"[^a-z0-9]+", " ", body.lower())
+
+                for concept in (
+                    "case",
+                    "criterion",
+                    "id",
+                    "precondition",
+                    "input",
+                    "expected outcome",
+                    "test path",
+                    "check id",
+                    "target environment",
+                    "fixture",
+                    "post code",
+                    "unit",
+                    "mock fake",
+                    "integration",
+                    "end to end",
+                    "browser service api",
+                ):
+                    self.assertIn(concept, normalized)
+                self.assertRegex(
+                    normalized,
+                    r"selected.*not applicable.*reason.*required.*blocked",
+                )
 
     def test_last_accepted_action_explains_replay_and_current_recovery(self):
         self.cli("init", "--repo", str(self.repo), "--prompt", "Build")

@@ -694,6 +694,114 @@ class ProtocolTests(unittest.TestCase):
             "unmapped obligations 0 | scheduled obligations 1", current_packet
         )
 
+    def test_implementation_test_context_returns_none_without_an_accepted_action(self):
+        import shiploop_protocol
+
+        self.run_dir.mkdir()
+        state = {"completed_actions": {}}
+        rec = {"id": "S1"}
+
+        self.assertIsNone(
+            shiploop_protocol.implementation_test_context(self.run_dir, state, rec)
+        )
+        self.assertFalse((self.run_dir / "results").exists())
+
+    def test_implementation_test_context_projects_bound_historical_notes_read_only(self):
+        import shiploop_protocol
+        import shiploop_store
+
+        self.run_dir.mkdir()
+        action = "initial-implement"
+        result = {
+            "summary": "Initial implementation test notes were recorded.",
+            "test_review": "T-API-001 passed in the target test environment.",
+        }
+        result_path = self.run_dir / "results" / f"{action}.md"
+        result_path.parent.mkdir()
+        shiploop_store.write_record(result_path, result)
+        state = {"completed_actions": {action: shiploop_protocol.digest(result)}}
+        rec = {"implementation_check_action": action}
+        before_state = json.loads(json.dumps(state))
+        before_rec = dict(rec)
+        before_markdown = result_path.read_text()
+
+        context = shiploop_protocol.implementation_test_context(
+            self.run_dir, state, rec
+        )
+
+        self.assertEqual(
+            context,
+            {
+                "action": action,
+                "source": f"results/{action}.md",
+                "status": "historical host-reported notes; recheck current code and tests",
+                "summary": result["summary"],
+                "test_review": result["test_review"],
+            },
+        )
+        self.assertEqual(state, before_state)
+        self.assertEqual(rec, before_rec)
+        self.assertEqual(result_path.read_text(), before_markdown)
+
+    def test_implementation_test_context_rejects_tampered_or_unsafe_records(self):
+        import shiploop_protocol
+        import shiploop_store
+
+        self.run_dir.mkdir()
+        action = "initial-implement"
+        rec = {"implementation_check_action": action}
+        with self.assertRaisesRegex(
+            shiploop_protocol.ProtocolError, "accepted implementation test result is missing"
+        ):
+            shiploop_protocol.implementation_test_context(
+                self.run_dir, {"completed_actions": {}}, rec
+            )
+
+        result_path = self.run_dir / "results" / f"{action}.md"
+        result_path.parent.mkdir()
+        accepted = {
+            "summary": "Accepted initial implementation notes.",
+            "test_review": "T-UI-001 was recorded.",
+        }
+        shiploop_store.write_record(result_path, accepted)
+        state = {"completed_actions": {action: shiploop_protocol.digest(accepted)}}
+        shiploop_store.write_record(
+            result_path,
+            {
+                "summary": "Tampered initial implementation notes.",
+                "test_review": accepted["test_review"],
+            },
+        )
+        with self.assertRaisesRegex(
+            shiploop_protocol.ProtocolError, "digest mismatch"
+        ):
+            shiploop_protocol.implementation_test_context(self.run_dir, state, rec)
+
+        with self.assertRaisesRegex(
+            shiploop_protocol.ProtocolError, "action is invalid"
+        ):
+            shiploop_protocol.implementation_test_context(
+                self.run_dir,
+                {"completed_actions": {}},
+                {"implementation_check_action": "../outside"},
+            )
+
+        symlink_root = self.root / "symlink-run"
+        symlink_root.mkdir()
+        external_results = self.root / "external-results"
+        external_results.mkdir()
+        (symlink_root / "results").symlink_to(
+            external_results, target_is_directory=True
+        )
+        with self.assertRaisesRegex(
+            shiploop_protocol.ProtocolError, "run path contains a symlink"
+        ):
+            shiploop_protocol.implementation_test_context(
+                symlink_root,
+                {"completed_actions": {}},
+                rec,
+            )
+
     def test_outer_quality_prompt_names_its_exact_acceptance_source(self):
         import shiploop_protocol
 
@@ -701,6 +809,46 @@ class ProtocolTests(unittest.TestCase):
         self.assertIn("lifecycle.acceptance", prompt)
         self.assertIn("context --section lifecycle", prompt)
         self.assertIn("exact", prompt)
+
+    def test_test_refinement_prompts_keep_cases_adequate_and_acceptance_intact(self):
+        import re
+
+        import shiploop_protocol
+
+        implementation = shiploop_protocol.PROMPTS["implement"].lower()
+        code = implementation.index("code")
+        post_code = implementation.index("post-code")
+        author = implementation.index("then author", post_code)
+        executable_tests = implementation.index("executable tests")
+        execute = implementation.index("execute")
+        fix = implementation.index("fix")
+        self.assertLess(code, post_code)
+        self.assertLess(post_code, author)
+        self.assertLess(author, executable_tests)
+        self.assertLess(executable_tests, execute)
+        self.assertLess(execute, fix)
+        self.assertIn("implementation learnings", implementation)
+
+        review = shiploop_protocol.PROMPTS["review"]
+        self.assertRegex(review, re.compile(r"missing.{0,80}tests?", re.IGNORECASE))
+        self.assertIn("adequacy", review.lower())
+
+        apply = shiploop_protocol.PROMPTS["improve-apply"].lower()
+        for concept in (
+            "authored",
+            "updated",
+            "reused",
+            "test correction",
+            "old/new expectation",
+            "independent requirement evidence",
+            "preserved coverage",
+            "never weaken acceptance",
+        ):
+            self.assertIn(concept, apply)
+
+        verify = shiploop_protocol.PROMPTS["verify"].lower()
+        for concept in ("failed", "blocked", "unrun", "weaken", "acceptance"):
+            self.assertIn(concept, verify)
 
     def test_packet_routes_testing_docs_guidance_without_expanding_contract(self):
         import contextlib
@@ -1278,8 +1426,9 @@ This is not a semantic-completeness claim.
         self.assertIn("before the step that authors call sites", sequence)
 
         implement = shiploop_protocol.PROMPTS["implement"]
+        self.assertIn("When the step authors client–service calls", implement)
         self.assertIn("real client/HTML invocation path", implement)
-        self.assertIn("substitute exec", implement)
+        self.assertIn("mocks or internal substitutes", implement)
 
 
 if __name__ == "__main__":

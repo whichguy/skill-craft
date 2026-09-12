@@ -17,9 +17,13 @@ live environment stayed unchanged. See
 ## Test cases
 
 Define expected behavior before implementation when possible. In the spec, name
-observable acceptance criteria. In the sequence, map cases to each step's exact
-`produces` and plan the tests/documentation as deliverables, not an afterthought.
-Use stable case IDs to connect requirements, executable tests, and evidence.
+observable acceptance criteria. Before source code, the existing planning result
+`body`/`plan` contains a compact criteria matrix: each stable case ID maps its
+contract `T-` ID and exact `produces` string to preconditions/input, expected
+output/state/side effect, planned test path/selector, check ID, and
+environment/fixture. This is the durable pre-code plan, not a new result schema
+or a second test catalog. In the sequence, plan tests/documentation as
+deliverables, not an afterthought.
 For behavioral requirements, also link `R-/F-/T-` IDs from the
 [product behavior model](behavioral-requirements.md#behavior-model). Cases must
 state the expected source/destination or unchanged state, outputs and side
@@ -31,11 +35,11 @@ for equivalent boundaries:
 
 | Field | Record |
 | --- | --- |
-| Case and requirement | Stable case ID, criterion, and exact step output or lifecycle acceptance string. |
+| Case and requirement | Stable case ID (for example, `TC-07`), mapped contract `T-` ID, criterion, and exact step `produces` or lifecycle acceptance string. |
 | Preconditions and input | Initial state, fixtures, role, relevant configuration, and stimulus/action. |
 | Expected outcome | Observable result, state change or absence of side effects; explicit error behavior and justified tolerance/time bound where relevant. Never just “works.” |
-| Layer and environment | Local/component, browser, service, API, or another justified surface; target environment alias, real versus simulated dependencies, readiness requirements. |
-| Executable reference | Test path/symbol/selector and check-manifest ID, or a reproducible manual procedure when automation is genuinely unavailable. |
+| Scope, surface, and environment | Unit/integration/end-to-end scope, mock/fake strategy, and separately selected browser/service/API view; target environment alias, real versus simulated dependencies, readiness requirements. |
+| Executable reference | Planned or actual test path/symbol/selector and check-manifest ID, or a reproducible manual procedure when automation is genuinely unavailable. |
 | Observation | Separately record actual outcome, passed/failed/blocked/not-run status, checked revision/build, and evidence reference. Expected is not actual. |
 
 Cover relevant success, invalid input, boundary/empty cases, permission failures,
@@ -58,14 +62,35 @@ second test catalog. Case IDs supplement, never replace, the manifest's exact
 Manual evidence must remain labeled manual; it does not replace mandatory
 script-run lint/test checks or certify a required automated case as passed.
 
+After code, inspect the actual diff, changed dependencies, and code learnings;
+then author or refine the executable tests from that evidence and the pre-code
+matrix. A TDD or reused test may be retained only with an explicit adequacy
+rationale and evidence that it covers the criterion; do not manufacture a
+no-op edit. New observations can refine stimuli or assertions, but do not
+silently rewrite accepted behavior.
+
 Run current required checks through `verify`; preserve failures and explain test
-or manifest changes. Include documentation/example checks where applicable.
-Do not change expected outcomes or remove assertions merely to match a bug.
-Do not rerun a flaky failure until lucky green and call its cause resolved.
+or manifest changes. Include documentation/example checks where applicable. A
+test correction records its reason, the before/after oracle, an independent
+requirement/contract source, and coverage retained or added. Do not change
+expected outcomes or remove assertions merely to match a bug. A requirement
+conflict needs explicit disposition, not an oracle rewrite. Do not rerun a
+flaky failure until lucky green and call its cause resolved.
 
 ## Surface selection
 
-At survey/spec, and whenever changed behavior warrants it, assess each surface:
+Before code, record test scope and replacement strategy separately from the
+browser/service/API views. Do not infer one decision from another:
+
+| Decision | Select when | Record |
+| --- | --- | --- |
+| Unit | A local rule, transformation, boundary, or isolated contract needs direct diagnosis. | Planned case/test path and the outputs, errors, invariants, or state effects asserted. |
+| Integration | Collaboration across real local components, persistence, messages, or an exposed contract carries risk. | Boundary, dependency setup, fixture isolation, and observable cross-component effect. |
+| End-to-end | A critical user or operational journey needs proof through its actual entrypoint. | Entry path, selected environment, user-visible result, and required readiness/cleanup. |
+| Mock/fake | An isolated dependency must be replaced for diagnosis, cost, determinism, or unavailable infrastructure. | Replaced dependency, reason, fidelity limit, and the retained real-boundary check or its blocked cause. |
+
+At survey/spec, and whenever changed behavior warrants it, assess each
+browser/service/API surface:
 
 | Surface | Select when | Expected evidence |
 | --- | --- | --- |
@@ -80,10 +105,14 @@ cover multiple views without duplicate tests. Prefer focused tests for fast
 diagnosis, plus necessary integrated journeys. A library without those surfaces
 can record them as not applicable with a reason; do not invent a browser or API.
 
-Record a decision for each view: **selected**, **not applicable with reason**, or
+For every unit/integration/end-to-end scope, mock/fake strategy, and
+browser/service/API view, record **selected**, **not applicable with reason**, or
 **required but blocked with cause**. Lack of tools, access, an endpoint, or a ready
-environment does not make a relevant check inapplicable. Reassess the selection
-after discoveries, and propagate additional work through pending-only replanning.
+environment does not make a relevant check inapplicable. A mock or fake can
+support an isolated assertion; it is not proof of a required real dependency or
+entrypoint boundary. Retain that real-boundary check or mark it blocked. Reassess
+the selection after discoveries, and propagate additional work through
+pending-only replanning.
 
 Environment is separate from test layer. Record the intended local/test/staging/
 deployment role, artifact/version identity, readiness probe, required non-secret
@@ -142,44 +171,58 @@ Use [Test cases](#test-cases), [Surface selection](#surface-selection), or
 [Documentation](#documentation) only when the current step needs their record
 shape or selection rules; do not load unrelated sections or past cycles.
 
-1. **Implement/review:** inspect the current cases and expected outcomes, relevant
-   surface/environment decisions, changed function contracts, and product README.
-   Review still begins with current Git history. Read only the current step's
-   records and linked sections, not all historical receipts or every source file.
-   Complete the structured `research_assessment` required by the research
-   protocol; questions about changed environmental conditions or unsupported
-   best-practice assumptions are material when they affect the current step.
-2. **Plan/apply:** fix code, tests, and docs together. Add or revise cases where
-   behavior or new learning requires it; preserve the agreed acceptance criteria.
-   Resolve required research with concrete evidence and revise tests when its
-   answer changes the known conditions. An evidence gap is not resolved merely
-   because an unchanged test command passed.
-3. **Verify:** run lint and all required current-step tests, compare actual against
-   expected outcomes, and check changed documentation examples/links. Required
-   failed, blocked, or unrun cases keep the step unfinished; they earn no clean pass.
-4. **Carry forward:** distill observations useful to another iteration using the
+1. **Initial path:** in `step-plan`, put the case-to-contract criteria matrix in
+   the candidate before any source edit; after its convergence/finalization,
+   `implement` writes the certified code, inspects its actual diff/learnings, then
+   authors/refines tests and documentation. A TDD or reused test needs an
+   evidence-backed adequacy rationale. Run/fix its required lint/test manifest
+   until checks pass on unchanged files, then record actual results and any
+   justified correction in initial `implement`'s `test_review`.
+2. **Improve review:** after the initial implementation, each `review` begins
+   with current Git history and reassesses actual code, tests,
+   expected-versus-observed outcomes, test adequacy, real-boundary gaps,
+   environment decisions, contracts, documentation, and product README. Complete
+   the structured `research_assessment` required by the research protocol;
+   questions about changed environmental conditions or unsupported best-practice
+   assumptions are material when they affect the step.
+3. **Improve plan:** `improve-plan` retains/refines the case-to-contract criteria
+   matrix before code, then completes its nested plan convergence. A learning can
+   add coverage, but it cannot weaken the accepted oracle to match current behavior.
+4. **Improve apply:** `improve-apply` implements certified code first, inspects
+   its actual diff/learnings, then authors/refines tests and documentation. Put
+   application deltas/corrections in `test_changes` and discoveries in `learnings`.
+5. **Verify and fix:** after Improve application, run lint and all required
+   current-step tests, compare actual against expected outcomes, and check changed
+   documentation examples/links. Diagnose a failure, correct code or a justified
+   test oracle, then rerun the applicable manifest until it passes on unchanged
+   files. Required failed, blocked, or unrun cases keep the step unfinished; they
+   earn no clean pass.
+6. **Carry forward:** distill observations useful to another iteration using the
    [carry-forward contract](carry-forward.md). Record changed environment/test
    prerequisites and documentation implications, their scope and evidence, or
    explicitly record no discoveries. A current-step correction returns to review
    and fresh checks; do not reuse the old pass as proof of the corrected state.
-5. **Commit:** include test-case and documentation deltas or explicit no-change
+7. **Commit:** include test-case and documentation deltas or explicit no-change
    reasons in the existing review/changes/validation/learnings record. Two
    trivial-only cycles and fresh final verification remain required. Include
    carry-forward learnings verbatim alongside review and apply learnings.
-6. **Post-inner:** ask whether learnings require broader test cases, surface or
+8. **Post-inner:** ask whether learnings require broader test cases, surface or
    environment changes, function contracts, README updates, or prerequisite steps.
    Resolve carried pending-work obligations through a validated pending-only plan
    revision; generic ShipLoop ideas go to its separate journal.
 
-Persist a compact record in the existing result: case IDs and source references,
+Persist a compact record in the existing result: case IDs and independent sources,
 test/documentation changes or no-change rationale, environment, observed outcome,
-and evidence references. Use `body`/`plan` during planning, `test_review` for
-implementation/review/quality, `test_changes` and `learnings` while applying,
-and `summary` at verification/commit. Results are imported into authoritative
-Markdown; no new sidecar schema or assumed chat memory is needed. Keep essential
-facts inline and detail linked so a fresh context can resume. Update the product
-artifacts before verification; record run-only observations in the packet's inbox
-result, not in the product tree after checks (which would stale the evidence).
+and evidence references. `body`/`plan` carry the pre-code matrix; initial
+`implement` puts post-code adequacy and actual-versus-expected outcomes in
+`test_review`; `improve-apply` puts authorship/reuse/corrections in
+`test_changes` and discoveries in `learnings`; later `review`/quality again use
+`test_review`; and verification uses `summary`. Results are imported into
+authoritative Markdown; no new public fields, sidecar schema, or assumed chat
+memory is needed. Keep essential facts inline and detail linked so a fresh
+context can resume. Update the product artifacts before verification; record
+run-only observations in the packet's inbox result, not in the product tree after
+checks (which would stale the evidence).
 
 ## Deployment and handoff
 

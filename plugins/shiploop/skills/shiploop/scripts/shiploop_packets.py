@@ -17,6 +17,28 @@ from typing import Any, Mapping
 _INLINE_PROMPT_LIMIT = 1400
 _ENVIRONMENT_LIST_LIMIT = 12
 
+# This is authored Markdown inside the existing body, not a second result schema.
+# Both planning routes and revisions retain the same cold-start test checklist.
+_STEP_PLAN_BODY = """# Step plan
+
+## Scope and ordered changes
+Exact selected outputs, target symbols, dependencies, and PARENT-* responses.
+
+## Test criteria before code
+| Case / contract T-ID | Exact produces / requirement | Preconditions / inputs | Expected outcome / state / side effects | Planned test path / selector / check ID |
+| --- | --- | --- | --- | --- |
+| Replace with stable case IDs | Exact approved criterion | Fixtures and stimulus | Observable expected result, not current buggy behavior | Executable target; not-run until evidence |
+
+## Coverage decisions
+Assess unit, integration, end-to-end, and mock/fake use separately from browser/service/API surfaces. Record selected, not applicable with reason, or required but blocked for each; name target environment, real/simulated dependencies, readiness and cleanup.
+
+## Execution and post-code test refinement
+Implement the scoped code; inspect actual diff and learnings; author/refine actual tests from these criteria (or justify adequate existing tests); run lint and tests, diagnose failures, fix and rerun. Name boundary, failure and regression gaps to investigate. Correct a test only with independent requirement evidence and preserved coverage, never by weakening acceptance.
+
+## Documentation and remaining risks
+Function contracts, README changes or why unchanged; unresolved gaps and revalidation triggers.
+"""
+
 
 def _value(api: Mapping[str, Any], name: str, default: Any = None) -> Any:
     return api.get(name, default)
@@ -369,7 +391,7 @@ def _step_plan_template(stage: str, state: Mapping[str, Any], api: Mapping[str, 
     if stage in ("step-plan", "improve-plan"):
         return {
             "summary": "Step-local plan drafted.",
-            "body": "# Step plan\n\n## Scope\n...\n\n## Tests and expected outcomes\n...",
+            "body": _STEP_PLAN_BODY,
         }, (["For improve-plan, body must retain every printed PARENT-* finding ID."] if stage == "improve-plan" else [])
     if stage == "step-plan-review":
         knowledge_read = info.get("knowledge_read")
@@ -390,7 +412,7 @@ def _step_plan_template(stage: str, state: Mapping[str, Any], api: Mapping[str, 
                 "environment": ["Current frozen environment fact."],
                 "dependencies": ["Direct supplier/consumer evidence."],
             },
-            "test_review": "Name expected and observed plan-check outcomes.",
+            "test_review": "Audit planned case IDs, expected outcomes, unit/mock/fake/integration/end-to-end decisions, environment and post-code refinement work. Name actual plan-check outcomes; future product tests are not-run.",
             "learnings": "A durable plan-review learning for the audit commit.",
         }
         if state.get("objective_protocol_version") != 1:
@@ -414,11 +436,11 @@ def _step_plan_template(stage: str, state: Mapping[str, Any], api: Mapping[str, 
     if stage == "step-plan-revise":
         return {
             "summary": "Step-plan candidate revised.",
-            "body": "# Complete replacement step plan\n...",
+            "body": _STEP_PLAN_BODY,
             "addresses": open_ids or ["F-001"],
             "resolutions": [{"id": (open_ids or ["F-001"])[0], "evidence": "Candidate section and concrete review evidence."}],
             "material": False,
-            "test_changes": "Expected-outcome case and manifest impact, or why unchanged.",
+            "test_changes": "Planned case/expected-outcome, coverage-decision and manifest changes, or why unchanged; retain the complete test criteria and post-code refinement checkpoint.",
             "learnings": "A durable plan-revise learning for the audit commit.",
         }, ["addresses must list every and only open finding ID; resolutions cannot close material scope/behavior IDs."]
     if stage == "step-plan-verify":
@@ -511,12 +533,12 @@ def _execution_template(stage: str, state: Mapping[str, Any], info: Mapping[str,
     if stage == "prepare":
         return {"summary": "Authorized preparation completed.", "evidence": "Exact command/probe, environment, result, and limitation."}, []
     if stage == "implement":
-        return {"summary": "Selected step implemented and verified.", "test_review": "Case IDs, expected versus observed outcomes, environment, evidence, limits, function contract and README decision."}, []
+        return {"summary": "Selected step implemented, actual tests authored/refined after code inspection, and verified.", "test_review": "Planned case IDs -> actual test paths/check IDs; post-code learnings and authored/updated/reused tests with reasons. Unit/mock/fake/integration/end-to-end decisions; expected versus observed outcomes, environment, evidence and unresolved gaps. Test corrections: old/new expectation, independent requirement source and preserved coverage. Function contract and README decision."}, []
     if stage == "review":
         template: dict[str, Any] = {
             "summary": "Current implementation reviewed.",
             "findings": [{"severity": "trivial", "summary": "Example finding; use [] when none."}],
-            "test_review": "Expected versus observed outcomes and test-surface decision.",
+            "test_review": "Planned versus actual cases and missing assertions discovered from code learnings; unit/mock/fake/integration/end-to-end and surface decisions; expected versus observed outcomes, evidence and unresolved gaps or why existing tests remain adequate.",
             "learnings": "A durable review learning for the primary commit.",
             "research_assessment": {"status": "not-needed", "summary": "No new material research is needed.", "evidence": [], "questions": []},
         }
@@ -538,11 +560,11 @@ def _execution_template(stage: str, state: Mapping[str, Any], info: Mapping[str,
         return {
             "summary": "Certified improvement applied.",
             "material": False,
-            "test_changes": "Case, expected-outcome, and documentation delta or why unchanged.",
+            "test_changes": "Post-code learnings -> authored/updated/reused test paths and case/check IDs; why retained tests are adequate. Test corrections: old/new expectation, independent requirement source and preserved coverage; never weaken acceptance. Function/README delta or why unchanged.",
             "learnings": "A durable apply learning for the primary commit.",
         }, ["When the prior research assessment was required or blocked, also include resolved research_assessment with every prior question verbatim and safe evidence."]
     if stage == "verify":
-        return {"summary": "Required checks passed for this exact action."}, []
+        return {"summary": "Fresh lint and all required tests passed for this exact action; case/check evidence, failures diagnosed, code/test corrections justified and rechecked; no required failed, blocked or unrun cases."}, []
     if stage == "final-verify":
         contract_view = info.get("contract_view")
         if isinstance(contract_view, Mapping):
@@ -1513,7 +1535,13 @@ def render(core: Any, root: Path, state: Mapping[str, Any], api: Mapping[str, An
             available.append(name)
     if state.get("active_step"):
         available.extend(["step", "step-context", "iteration"])
-        if info.get("step_plan_loop"):
+        step_receipt = info.get("receipt")
+        has_plan = info.get("step_plan_loop") or (
+            isinstance(step_receipt, Mapping)
+            and isinstance(step_receipt.get("step_plan"), Mapping)
+            and step_receipt["step_plan"].get("status") == "finalized"
+        )
+        if has_plan:
             available.append("step-plan")
         if info.get("knowledge_read"):
             available.append("knowledge")
@@ -1532,6 +1560,10 @@ def render(core: Any, root: Path, state: Mapping[str, Any], api: Mapping[str, An
     lines.append("Bounded context: " + _context_command(core, root, "<available-section>"))
     if state.get("active_step"):
         lines.append("Step cold context: " + _context_command(core, root, "step-context"))
+        if "step-plan" in available and stage in ("implement", "review", "improve-plan", "improve-apply", "verify"):
+            lines.append("Test-plan criteria: " + _context_command(core, root, "step-plan"))
+        if stage == "review":
+            lines.append("Read step-context for the accepted initial implementation_test_record and iteration for current Improve evidence; historical notes do not certify current tests.")
     if info.get("knowledge_read"):
         if state.get("objective_protocol_version") == 1:
             lines.append("Knowledge pages: read every page before review; the script records the current scoped-page receipt internally.")

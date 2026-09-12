@@ -27,6 +27,23 @@ Only after finalization, implement the active step's stored prompt and exact
 repeat. If evidence exposes a broader defect, preserve it for review/post-inner
 rather than rewriting the frozen DAG in place.
 
+Before source code, the certified `body`/`plan` must contain a compact test
+criteria matrix. For each stable case ID, mapped contract `T-` ID, and exact `produces`, record
+preconditions/input, expected output/state/side effect, planned test
+path/selector, check ID, environment/fixture, and separate unit, integration,
+end-to-end, mock/fake, browser, service, and API decisions. Each decision is
+selected, not applicable with a reason, or required but blocked with a cause.
+This is a duty inside the existing planning actions, not a new stage or schema.
+
+On a cold `implement`, `improve-apply`, or `review`, use `next`, then
+`context --section step-plan` for the accepted criteria and
+`context --section step-context` for active-step context. When present, the
+latter includes a digest-bound read-only `implementation_test_record` with the
+accepted action, `summary`, and `test_review` from
+`results/{implementation_check_action}.md`. Treat it as a historical
+host-reported note, not current proof: inspect the actual tree/diff and run
+fresh checks before accepting its coverage conclusion.
+
 Use [Test cases](../testing-and-documentation.md#test-cases),
 [Documentation](../testing-and-documentation.md#documentation), and
 [Iteration](../testing-and-documentation.md#iteration) for the canonical
@@ -45,27 +62,40 @@ require user direction.
 
 For every source-editing implementation pass after the initial plan finalizes:
 
-1. Create or expand behavior/contract tests mapped to every produces value.
-   When the step authors client–service communication, tests must cover the
-   real client invocation path and its page-side conventions, not only a
-   substitute exec of internal functions. See
+1. Implement the certified production code first, only for the exact `produces`.
+   Do not reinterpret acceptance from the current behavior.
+2. Then inspect the actual diff, changed dependencies, and code learnings, and
+   author or refine behavior/contract tests from the pre-code matrix. Keep stable
+   case IDs mapped to contract `T-` IDs, exact criterion/output mappings, preconditions/input,
+   path/selector/check ID, environment/fixture, and expected observable outcomes;
+   actual observations remain distinct. A TDD or reused test may remain only with
+   evidence and an adequacy rationale; do not manufacture a no-op test edit.
+   When the step authors client–service communication, tests must cover the real
+   client invocation path and its page-side conventions, not only a substitute
+   exec of internal functions. See
    [Client–service invocation](../survey.md#clientservice-invocation).
-   Keep stable case IDs, exact criterion/output mappings, preconditions/input,
-   selector/command, and expected observable outcomes in the applicable
-   product test documentation; actual observation and evidence remain distinct.
-2. After each production edit, run all applicable lint: destination-writer
+3. In initial `implement`, record a test correction's reason, before/after oracle,
+   independent requirement/contract source, and coverage retained or added in
+   `test_review`. A bug is never a
+   reason to weaken accepted behavior. A mock/fake can support an isolated
+   assertion but cannot prove a required real boundary; retain that check or mark
+   it blocked.
+4. After each production or justified test edit, run all applicable lint: destination-writer
    lint/validation where available, repository-configured lint, and suitable
    existing syntax checks. Destination syntax rules win over generic rewrites.
-3. Build an explicit manifest with a concrete lint entry and required test
+5. Build an explicit manifest with a concrete lint entry and required test
    entries. Each produces value appears in a test acceptance list. Select any
-   browser/service/API check by risk and surface, not because every layer is
-   mandatory.
-4. Run verify. A failing, timing-out, tree-changing, stale, or
-   manifest-mismatched result is not evidence; fix and re-run. A required case
-   or environment-dependent check that is unavailable is blocked, never `N/A`
-   or passed.
-5. Complete implement only after a fresh successful verification record and a
-   test_review explain the coverage, actual evidence, and limitations.
+   browser/service/API check by risk and surface, separately from
+   unit/integration/end-to-end scope and mock/fake strategy, not because every
+   layer is mandatory.
+6. Run verify. A failing, timing-out, tree-changing, stale, or
+   manifest-mismatched result is not evidence; diagnose, fix, and rerun until
+   all required checks pass on unchanged files. A required case or
+   environment-dependent check that is unavailable is blocked, never `N/A` or
+   passed.
+7. Complete implement only after a fresh successful verification record and
+   `test_review` explain coverage, actual evidence, adequacy limits, and real
+   boundary limitations.
 
 The script persists logs and failed attempts. Never put secrets in a command,
 test output, result, or manifest; logs are evidence artifacts and exact output
@@ -76,9 +106,13 @@ concise contract rather than restating types, signatures, or source code.
 Review the product README in every Improve cycle: update it or record why it
 is unchanged, then exercise changed runnable examples and validate relevant
 links before verification. Product docs live in the product worktree and Git;
-they must not contain ShipLoop session state. Use the existing `body`,
-`test_review`, `test_changes`, and `summary` to link those durable decisions
-and evidence rather than inventing fields.
+they must not contain ShipLoop session state. Use `body`/`plan` for the pre-code
+matrix and initial `implement`'s `test_review` for post-code adequacy/results.
+`step-plan-revise` uses `test_changes` for planned case/coverage changes and
+`learnings` for plan discoveries. After code, `improve-apply` uses those fields
+for actual application deltas and discoveries; later review uses `test_review`,
+and verification uses `summary`. ShipLoop imports them into durable Markdown;
+do not invent public fields or a parallel test catalog.
 
 ## Improve iteration
 
@@ -90,12 +124,14 @@ step plan.
    run history before completing the review, then record the matching
    `knowledge_read` revision, digest, and scope in the review result. Read
    complete commit bodies for the latest ten commits or all available commits,
-   using one full body page at a time when context is small. If audit-only plan
-   commits dominate that window, also inspect the relevant older implementation
-   or decision commit through a scoped path/symbol investigation. Review code, tests,
-   regressions, declared acceptance, case expected-versus-actual outcomes,
-   documentation, product README, current obligations/blockers, and prior
-   learnings. Supply the explicit `research_assessment` described in
+   using one full body page at a time when context is small. Also page
+   `context --section step-context`. If audit-only plan commits dominate that
+   window, inspect the relevant older implementation or decision commit through
+   a scoped path/symbol investigation. Review code, tests, regressions, declared
+   acceptance, case expected-versus-actual outcomes, missing coverage, test
+   adequacy, mock/fake fidelity, real-boundary gaps, documentation, product README,
+   current obligations/blockers, and prior learnings. Supply the explicit
+   `research_assessment` described in
    [Later discoveries](../research-loop.md#later-discoveries): do new conditions,
    contradictions or best-practice questions require investigation? Required or
    blocked research is material, not an empty/trivial review. A step tagged
@@ -104,7 +140,10 @@ step plan.
    findings.
 2. **Converge the Improve plan.** `improve-plan` drafts a concrete plan covering
    every finding, necessary test/documentation changes, prevention, and expected
-   outcomes. Read the `enclosing_review` block within the `step-context`
+   outcomes. Before code, retain the compact case-to-contract criteria matrix and
+   its exact `produces`, inputs, oracle, path/check/environment, scope, mock/fake, and
+   browser/service/API decisions; change a decision only with a recorded reason.
+   Read the `enclosing_review` block within the `step-context`
    section and explicitly retain every
    printed `PARENT-…` finding ID in that draft. This proves the plan covers each
    parent review finding; it does not claim the product finding is resolved
@@ -122,16 +161,21 @@ step plan.
    trivial-only nested passes, no open findings, and fresh planning checks with
    exact acceptance `step plan`. Nested plan passes do not count as Improve
    iterations or replace the later primary Improve commit.
-3. **Apply.** Implement the finalized plan with its code, tests, contracts, and product
-   documentation. Mark material truthfully: a material finding or application
-   resets the trivial streak even when the textual diff is tiny. Resolve required
-   research with durable answers and supporting evidence before verification;
-   unresolved authority or unavailable required evidence needs a pause.
-4. **Verify.** Run fresh lint and every required test. If tests force another
-   edit, lint and test again. Verify changed examples/links where applicable.
-   A late file edit during verification is treated conservatively as material
-   and restarts convergence. Passing local checks do not prove a remote,
-   deployed, or external effect.
+3. **Apply.** Implement the finalized code first, inspect its actual diff and
+   learnings, then author/refine its tests, contracts, and product documentation.
+   A reused or TDD test needs evidence of adequacy; a correction names the reason,
+   before/after oracle, independent requirement source, and retained/added coverage.
+   Do not weaken acceptance to current buggy behavior. Mark material truthfully:
+   a material finding or application resets the trivial streak even when the
+   textual diff is tiny. Resolve required research with durable answers and
+   supporting evidence before verification; unresolved authority or unavailable
+   required evidence needs a pause.
+4. **Verify.** Run fresh lint and every required test. Diagnose and fix failures,
+   then lint and test again until all required checks pass on unchanged files.
+   Verify changed examples/links where applicable. A late file edit during
+   verification is treated conservatively as material and restarts convergence.
+   Required failed, blocked, or unrun checks remain unfinished. Passing local
+   checks do not prove a remote, deployed, or external effect.
 5. **Carry forward.** After the successful verification record, complete the
    printed `carry-forward` action before any primary commit. Submit an explicit
    no-discovery result or bounded non-secret discoveries, using the current

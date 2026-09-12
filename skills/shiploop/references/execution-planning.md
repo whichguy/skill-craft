@@ -22,8 +22,9 @@ plan for one existing Improve iteration. Each uses `step-plan-review`,
 `step-plan-revise`, `step-plan-verify`, `step-plan-commit`, and
 `step-plan-finalize`; these are stored stages in
 phase `implement`, not new dependency DAG steps. Research, behavior and spec
-retain their own upstream loops. Initial `sequence` is still an audited import,
-not a newly enforced two-pass loop.
+retain their own upstream loops. Initial `sequence` is a generic objective
+candidate with the same receipt-derived two-trivial-pass and fresh-final-check
+discipline; it is not a dependency DAG step or evidence that product code passed.
 
 The incorporated until-loop policy computes **readiness**, not success, from
 unique completed, verified and audited passes in the current repair epoch.
@@ -64,6 +65,14 @@ as selected by the packet. Use the current step's prompt/produces, accepted
 spec/behavior slice, frozen environment plus current knowledge overlay, and
 direct suppliers/consumers. Follow references only as needed to inspect
 transitive impacts. Do not load every archived pass or the whole repository.
+
+For a cold `implement`, `improve-apply`, or `review`, page `context --section
+step-plan` for the accepted criteria and `context --section step-context` for
+the active step. When present, the latter includes a digest-bound read-only
+`implementation_test_record`: accepted action, `summary`, and `test_review` from
+`results/{implementation_check_action}.md`. It is a historical host-reported
+note, not current code/test proof. Reinspect the actual diff and dependencies,
+then run fresh required checks before relying on it.
 
 For an Improve plan, the `step-context` section also carries `enclosing_review`
 with the product findings, test review, learnings and research assessment.
@@ -113,7 +122,7 @@ step, implementation, environment and dependency inspection.
 | `edge_conditions` | Examine relevant invalid/empty/boundary/stale/duplicate input, timeout, cancellation, partial failure, retries, concurrency and recovery. Which cases are missing? |
 | `second_order_effects` | What changes indirectly for consumers, persisted data, caches, permissions, resource use, deployment/rollback, observability or documentation? Which cross-step effects need a broader plan change? |
 | `implicit_requirements` | What prerequisite or behavioral assumption is necessary but unstated? Identify its source and confidence. Do not silently convert an assumption into user-approved scope. |
-| `test_strategy` | Map each output/transition to stable cases, inputs, expected state/output/side effects and meaningful checks. Select browser/service/API coverage by surface and risk; order readiness before checks. Inspect the checks' own side effects and fixture isolation, including generated files and shared mutable state. |
+| `test_strategy` | Before source code, map every exact `produces`/transition to a stable case ID and contract `T-` criterion, inputs, expected state/output/side effects, planned test path/selector, check ID, environment/fixture, and revalidation trigger. Decide unit/integration/end-to-end scope and mock/fake strategy separately from browser/service/API surfaces; each is selected, not applicable with a reason, or required but blocked with cause. A mock/fake cannot prove a required real boundary. Order readiness before checks and inspect check side effects/fixture isolation, including generated files and shared mutable state. |
 | `documentation` | Which concise function/interface contracts, expected-outcome test records, README instructions, runnable examples and links must change—or why are they unchanged? |
 
 Actively try to disprove the plan: reverse-trace one outcome to its prerequisites,
@@ -138,9 +147,14 @@ plain resume is not permission to change the contract.
 
 Revise the **plan**, not product source. Explain how every open finding will be
 addressed, then import the complete corrected candidate with resolution evidence.
-Keep a concrete ordered edit/test/documentation sequence, target symbols, expected
-outcomes, prerequisites, risk controls and revalidation triggers. An empty finding
-set needs an explicit no-fix decision; do not invent work to fill the loop.
+Before code, keep a compact criteria matrix in the existing `body`/`plan`, not a
+new catalog: stable case ID, mapped contract `T-` ID, exact `produces`,
+inputs/preconditions, expected outcome, path/selector, check ID,
+environment/fixture, and scope/surface decision.
+Keep a concrete ordered edit/test/documentation sequence, target symbols,
+expected outcomes, prerequisites, risk controls and revalidation triggers. An
+empty finding set needs an explicit no-fix decision; do not invent work to fill
+the loop.
 
 Required investigation must establish the facts needed to choose an executable
 plan. If an unknown is intentionally a future research producer, consumers must
@@ -168,6 +182,17 @@ Where two components could drift together, consider an independent assertion of
 their approved interface contract: a passing integration path can still agree
 on the wrong request shape or observable behavior. Select such checks by risk;
 do not replace real integration coverage with mocks.
+
+At `implement` or `improve-apply`, code comes before post-code test refinement:
+inspect the actual diff, dependencies, and code learnings, then author or refine
+tests from the pre-code matrix. A TDD or reused test needs evidence and an
+adequacy rationale; do not manufacture an edit. In initial `implement`, a
+correction's reason, before/after oracle, independent requirement/contract source,
+and retained/added coverage belong in `test_review`. In Improve work, use
+`test_changes` for application deltas, `learnings` for discoveries, and later
+`test_review` for adequacy. Do not rewrite acceptance to fit a bug. Required
+unavailable, failed, blocked, or unrun checks remain unfinished; passing evidence
+still does not prove semantic test adequacy.
 
 Every completed plan pass has its own verbose audit-only direct-child commit,
 with `Review:`, `Changes:`, `Validation:`, `Key learnings:` and the exact printed
@@ -206,7 +231,7 @@ another planning loop. Read only the packet-selected section for the current act
 | Phase activity | Required emphasis |
 |---|---|
 | Research/behavior/spec review and planning | Current evidence, environmental applicability, requirement/transition breadth, dependencies and implicit assumptions; resolve contradictions before accepting the candidate. |
-| Dependency sequence | Forward draft plus backward prerequisite audit, consumer effects, case/README work and preparation placement; no invented producers or new two-pass guarantee. |
+| Dependency sequence | Forward draft plus backward prerequisite audit, consumer effects, case/README work and preparation placement; its generic-objective candidate follows the two-trivial-pass and fresh-final-check gate. Do not invent producers. |
 | Step plan / Improve plan | All ten rubric dimensions, actual code/diff/environment evidence, repeated plan refinement and checks before product edits. |
 | Implementation / Improve apply | Follow the accepted scoped plan, preserve writer constraints, implement cases and concise docs, and route new material facts back through review/repair. |
 | Product review / verify | Compare actual versus expected behavior, reassess adjacent consumers and test surfaces, and rerun lint/tests after edits. |
@@ -233,9 +258,14 @@ Intentional changes from the standalone script:
 - Cycle/budget exhaustion is unfinished; it cannot stand in for quality.
 
 This is an incorporated adaptation, **not** execution of the unmodified external
-until-loop skill. The installed standalone skill is left unchanged. Upstream
-research/behavior/spec continue using their established planning module; only
-execution-plan readiness currently calls this incorporated policy.
+until-loop skill. The installed standalone skill is left unchanged. The shared
+receipt-derived policy now serves every current converging family: research,
+behavior, and specification planning; generic approach/survey/sequence,
+`preparation-readiness` (authorized observation/readiness, not an external-effect
+loop), post-inner, coverage, and quality objectives; step-plan readiness; and
+Improve iterations. Their candidates, checks, and completion effects differ, but
+none may substitute a host claim, cycle budget, or mock-only result for its
+required evidence.
 
 Repeated review improves the opportunity to find gaps, not a proof of
 exhaustiveness. The [planning self-critique study](https://arxiv.org/abs/2310.08118)
