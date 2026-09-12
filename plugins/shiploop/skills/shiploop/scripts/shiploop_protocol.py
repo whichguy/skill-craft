@@ -301,6 +301,29 @@ def safe_run_path(root, relative):
     return path
 
 
+def review_history_context(root, current_iteration, record):
+    """Reread one current review's bound archive; paging adds no review proof."""
+    need(isinstance(current_iteration, dict), "current iteration is unavailable")
+    current = current_iteration.get("current_pass", current_iteration)
+    need(isinstance(current, dict), "current review pass is unavailable")
+    history = current.get("history")
+    need(isinstance(history, dict) and isinstance(history.get("pages"), list),
+         "current review has no saved full Git bodies")
+    need(isinstance(record, str) and bool(record), "select a current history archive_path with --record")
+    matches = [page for page in history["pages"]
+               if isinstance(page, dict) and page.get("archive_path") == record]
+    need(len(matches) == 1, "history archive is not uniquely bound to the current review")
+    path = safe_run_path(root, record)
+    need(path.is_file(), "current review history archive is unavailable")
+    raw = path.read_bytes()
+    need(hashlib.sha256(raw).hexdigest() == matches[0].get("archive_sha256"),
+         "current review history archive differs from its receipt")
+    try:
+        return raw.decode("utf-8")
+    except UnicodeError as exc:
+        raise ProtocolError("current review history archive is not UTF-8") from exc
+
+
 def validate_state(state):
     need(
         state.get("version") == 3 and isinstance(state.get("action"), dict),
@@ -5445,7 +5468,7 @@ PROMPTS = {
     "step-plan-finalize": "Two consecutive verified/audited trivial step-plan passes with no open findings are required. Run fresh planning-verify for the newly bound final pass; do not replace the candidate or findings. Result: summary.",
     "implement": "Read context --section knowledge and --section step-plan for accepted test criteria; neither changes scope or writers. First implement the scoped code. Next perform post-code test refinement: inspect actual diff and implementation learnings, then author or expand executable tests from planned case IDs, inputs and expected outcomes mapped to each produces. Reassess unit, mock/fake, integration, end-to-end and browser/service/API; target boundary, failure, state and regression gaps. Existing/TDD tests may be reused with an adequacy reason. When the step authors client–service calls, tests must cover the real client/HTML invocation path, not mocks or internal substitutes. Update function contracts and README or explain unchanged. Then execute verify with lint and all required tests; diagnose failures, fix code or justify a test correction from independent requirement evidence, and rerun until all pass. Never weaken acceptance or match a buggy result. Result: summary, test_review with planned-to-actual cases/checks, learnings, old/new corrected expectation and source, preserved coverage, environment, actual evidence, docs and unresolved gaps.",
     "review": 'Run history and retrieve every knowledge page for this action. Review actual code, tests, environment, dependencies, flows, edge conditions, second-order effects, implicit requirements and prior learnings. Compare planned versus actual cases and expected versus observed outcomes; seek missing assertions and test gaps from code learnings even when green. Reassess unit/mock/fake/integration/end-to-end adequacy, browser/service/API, real dependency fidelity, function contracts and README. Missing required tests or misleading docs are material; record unresolved gaps or evidence why existing tests remain adequate. Result: summary, findings:[{severity:"material|trivial",summary}], test_review, learnings, research_assessment:{status:"not-needed|resolved|required|blocked",summary,evidence:[safe refs],questions:[strings]}; non-not-needed requires evidence/questions. Use resolved only for new investigation this pass (material); not-needed means no new material research and prior evidence remains valid. For activity:research also supply every research_review rubric key. Empty findings is valid, not proof of exhaustive coverage.',
-    "improve-plan": "Plan all findings and Git learnings. Read --section step-context and, when listed, --section system-context; retain every PARENT-* ID and selected role/interface/interaction constraint. Before code, fill the test-criteria and coverage tables with independent expectations and environment/fixture evidence. Order code, post-code test authoring/refinement, lint/tests and failure repair. Include missing cases, justified corrections and function/README work or no-change reasons. Converge against actual evidence and the linked rubric before application. Result: summary, body (Markdown plan).",
+    "improve-plan": "Plan all findings/Git learnings from step-context and listed system-context; retain PARENT-* IDs/constraints. Fill every template section with evidence, prevention/no-change reasons; converge via rubric before application. Result: summary, body (Markdown plan).",
     "improve-apply": "First implement only the certified scoped code/trivial fixes. Next perform post-code test refinement: inspect actual implementation learnings, author/expand tests from planned criteria, and reassess unit/mock/fake/integration/end-to-end and browser/service/API gaps. Record authored/updated/reused case IDs, test paths/check IDs and why existing tests are adequate. A legitimate test correction needs old/new expectation, independent requirement evidence and preserved coverage; never weaken acceptance to match a bug. Recheck environment/dependency/flow/edge/second-order/implicit effects; update function/README docs or explain unchanged before verify executes lint/tests. If prior research was required/blocked, include resolved research_assessment with safe evidence and every required question verbatim; do not fabricate resolution. Result: summary, material:boolean, test_changes, learnings. Material test gaps, corrections or code changes reset the streak; small diffs are not necessarily trivial.",
     "verify": "Run verify for fresh lint and every required step test, including applicable documentation/examples. Compare actual with independent expected outcomes in the selected environment; required failed, blocked or unrun cases remain unfinished. Diagnose code, test, fixture or environment failures; do not retry flaky failures for lucky green. Correct tests only with old/new expectation, independent requirement evidence and preserved coverage, never by weakening acceptance. Changed manifests require verify --reason. Fix and rerun lint/tests after every edit; completion is refused until all checks pass on unchanged files. Any late edit is material and restarts convergence. Result: summary with case/check evidence, failure diagnosis and correction reasons; write run-only observations in the inbox, not product files after checks.",
     "carry-forward": "After successful fresh verification and before commit, record an explicit carry-forward checkpoint. Retrieve context --section knowledge; result fields are summary, learnings (nonempty string), discoveries (explicit [] when none), and optional resolutions. Each discovery is {id,domain,observation,evidence,scope,disposition,rationale,revalidate}; domains and dispositions are fixed by the linked protocol. Observations are host-reported, evidence is a safe reference, and no credential values or credential-bearing URLs are allowed. current-step-repair restarts review with a material interrupted checkpoint; pending-replan remains an obligation for post-inner; pause requires a later no-contract-change resolution. Do not rewrite frozen contracts.",
@@ -5473,9 +5496,9 @@ PROMPTS.update(
 
 # One shared local-plan duty in each cold route, without a second state machine.
 _MICROPLAN_DRAFT = (
-    " Execution microplan: local work/output, prerequisite source/evidence, case mapping. "
-    "Backward-check outputs/checks, then forward order. Gaps block coding; no global DAG "
-    "edits or per-row retry authority. Inspect effects first."
+    " Execution microplan: local outputs, prerequisite source/evidence, case mapping. "
+    "Backward-check, then forward. Gaps block coding; no global DAG edits or per-row "
+    "retry authority; inspect effects."
 )
 for _microplan_stage in ("step-plan", "improve-plan", "step-plan-revise"):
     PROMPTS[_microplan_stage] += _MICROPLAN_DRAFT
@@ -6186,6 +6209,7 @@ def main(core, argv=None):
                     "prompt",
                     "step",
                     "iteration",
+                    "review-history",
                     "spec",
                     "environment",
                     "knowledge",
@@ -6633,30 +6657,24 @@ def main(core, argv=None):
                         body = store.dumps(
                             core.steps_by_id(root)[state["active_step"]], "Current step"
                         )
-                    elif args.section == "iteration":
+                    elif args.section in ("iteration", "review-history"):
                         if objectives.is_objective_stage(state["stage"]):
                             _, objective_receipt_value = objective_receipt(root, state)
-                            body = store.dumps(
-                                objective_receipt_value["current_pass"],
-                                "Current objective pass",
-                            )
+                            current_iteration = objective_receipt_value["current_pass"]
+                            title = "Current objective pass"
                         elif state.get("active_step"):
                             if is_step_plan_stage(state["stage"]):
                                 rec = active(root, state)
                                 loop, receipt = step_plan_receipt(root, rec)
-                                body = store.dumps(
-                                    {
-                                        "loop_id": loop,
-                                        "route": receipt["route"],
-                                        "current_pass": receipt["current_pass"],
-                                    },
-                                    "Current step-plan pass",
-                                )
+                                current_iteration = {
+                                    "loop_id": loop,
+                                    "route": receipt["route"],
+                                    "current_pass": receipt["current_pass"],
+                                }
+                                title = "Current step-plan pass"
                             else:
-                                body = store.dumps(
-                                    active(root, state).get("iteration", {}),
-                                    "Current iteration",
-                                )
+                                current_iteration = active(root, state).get("iteration", {})
+                                title = "Current iteration"
                         else:
                             need(
                                 planning.is_planning_stage(state["stage"])
@@ -6664,10 +6682,12 @@ def main(core, argv=None):
                                 "no active iteration",
                             )
                             _, receipt = planning_receipt(root, state)
-                            body = store.dumps(
-                                receipt["current_iteration"],
-                                "Current planning iteration",
-                            )
+                            current_iteration = receipt["current_iteration"]
+                            title = "Current planning iteration"
+                        if args.section == "review-history":
+                            body = review_history_context(root, current_iteration, args.record)
+                        else:
+                            body = store.dumps(current_iteration, title)
                     elif args.section == "knowledge":
                         _, scope, body = knowledge_context(root, state)
                     elif args.section == "planning":

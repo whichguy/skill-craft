@@ -19,7 +19,7 @@ SCRIPTS = Path(__file__).resolve().parents[1] / "skills" / "shiploop" / "scripts
 if str(SCRIPTS) not in sys.path:
     sys.path.insert(0, str(SCRIPTS))
 
-from shiploop_until import UntilError, decide  # noqa: E402
+from shiploop_until import UntilError, decide, review_improve_cycle  # noqa: E402
 
 
 class UntilDecisionTests(unittest.TestCase):
@@ -53,6 +53,37 @@ class UntilDecisionTests(unittest.TestCase):
         self.assertNotIn("done", result)
         self.assertNotIn("success", result)
         self.assertNotIn("final", result)
+
+    def test_review_improve_cycle_states_the_complete_order_for_new_and_legacy_history(self) -> None:
+        """One shared packet says what a converging pass actually means.
+
+        The seven-body current policy and the ten-body legacy policy must change
+        only the history window.  In particular, a callback is not a review
+        pass: only a completed, audited, trivial review can advance the
+        two-pass convergence streak.
+        """
+        for history_limit in (7, 10):
+            with self.subTest(history_limit=history_limit):
+                packet = review_improve_cycle(history_limit)
+                self.assertEqual(packet.count("Review-and-improve cycle"), 1)
+                ordered = (
+                    "1. Review changes",
+                    "2. Consider improvements",
+                    f"3. Plan improvements using the last {history_limit} full Git commit bodies",
+                    "4. Implement every approved improvement, including trivial fixes",
+                    "Run required checks and create the verbose learning commit",
+                    "5. Repeat until two consecutive completed trivial reviews",
+                )
+                positions = [packet.index(item) for item in ordered]
+                self.assertEqual(positions, sorted(positions))
+                self.assertIn("not callbacks", packet)
+                self.assertIn("Key learnings", packet)
+
+    def test_review_improve_cycle_rejects_an_unsafe_history_window(self) -> None:
+        for invalid in (0, -1, True, False, "7", None):
+            with self.subTest(invalid=invalid):
+                with self.assertRaises(UntilError):
+                    review_improve_cycle(invalid)  # type: ignore[arg-type]
 
     def test_material_pass_resets_the_current_repair_epoch_streak(self) -> None:
         result = decide(
@@ -91,6 +122,19 @@ class UntilDecisionTests(unittest.TestCase):
             "unsafe-id": ([self.row("I 001")], []),
             "missing-id": ([self.row("")], []),
             "partial-commit": ([self.row("I-001", commit="a" * 39)], []),
+            # An incomplete review has no completed audit receipt, so it
+            # cannot be silently promoted into a convergence pass.
+            "incomplete-no-audit-receipt": (
+                [
+                    self.row("I-001", commit="a" * 40),
+                    {
+                        "id": "I-002",
+                        "outcome": "trivial",
+                        "verified": True,
+                    },
+                ],
+                [],
+            ),
             "uppercase-commit": ([self.row("I-001", commit="A" * 40)], []),
             "unverified": ([self.row("I-001", verified=1)], []),
             "invalid-outcome": ([self.row("I-001", "no-change")], []),

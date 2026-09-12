@@ -5,8 +5,10 @@ scripts/until-loop (local source commit 7fb7057056552438fa39ccf11b70fa7c63f80077
 declared MIT). This is an internal adaptation, not the standalone CLI. See
 references/execution-planning.md for provenance and intentional differences.
 
+The repeated unit is a review-and-improve cycle: review changes, consider
+improvements, plan from recent full Git messages, implement, check and commit.
 The caller owns the existing Markdown transaction, validates evidence and audit
-commits, and passes completed receipts. This module performs no I/O, creates no
+commits, and passes completed cycle receipts. This module performs no I/O, creates no
 second state store, and never trusts a host-supplied done flag or cached streak.
 Readiness is not final success: the caller must still perform fresh final checks.
 """
@@ -22,10 +24,28 @@ class UntilError(ValueError):
     """The completed-pass evidence cannot support a continuation decision."""
 
 
+def review_improve_cycle(history_limit: int) -> str:
+    """Project the common cycle into cold packets; owners retain their gates."""
+    if type(history_limit) is not int or history_limit < 1:
+        raise UntilError("review-and-improve history limit must be a positive integer")
+    return (
+        "Review-and-improve cycle (current stage only):\n"
+        "1. Review changes.\n"
+        "2. Consider improvements.\n"
+        f"3. Plan improvements using the last {history_limit} full Git commit bodies "
+        "(all if fewer).\n"
+        "4. Implement every approved improvement, including trivial fixes. "
+        "Run required checks and create the verbose learning commit, including Key learnings.\n"
+        "5. Repeat until two consecutive completed trivial reviews, not callbacks. "
+        "Material resets; finish fixes/checks before counting; then fresh final gates."
+    )
+
+
 def decide(passes: list[dict[str, Any]], *, open_findings: list[Any]) -> dict[str, Any]:
     """Derive two-trivial readiness from unique, verified, audited pass receipts.
 
-    ``passes`` contains only completed passes in the current repair epoch.
+    ``passes`` contains only completed review-and-improve cycles in the current
+    repair epoch, after planning, application, required checks and learning commit.
     Interrupted attempts remain in the caller's Markdown audit history but
     cannot be supplied as completed evidence. Every pass must have a stable ID,
     outcome, verified=True and a distinct full Git commit SHA. Material passes

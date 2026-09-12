@@ -15,6 +15,7 @@ from typing import Any, Mapping
 
 import shiploop_history_policy as history_policy
 from shiploop_privacy import redact_text, sensitive_text
+from shiploop_until import review_improve_cycle
 
 
 _INLINE_PROMPT_LIMIT = 1400
@@ -42,34 +43,34 @@ _HISTORY_BODY_UNTRUSTED = (
 _STEP_PLAN_BODY = """# Step plan
 
 ## Scope and ordered changes
-Exact selected outputs, target symbols, dependencies, and PARENT-* responses.
+Selected outputs, symbols, dependencies and PARENT-* responses.
 
 ## Execution microplan
 | Local ID | Work + output | Needs | Source | Evidence | Case mapping |
 | --- | --- | --- | --- | --- | --- |
-| L1 | Scoped output | Prior local ID/state | Supplier/ref | Observed or planned; not passed | Case/check ID |
+| L1 | Output | Earlier L-ID/state | Supplier/ref | Observed/planned; not passed | Case/check ID |
 
-Table order is forward order. One row or a justified no-change inspection/check plan suffices. No per-row callbacks.
+Table order: forward; one row or justified no-change inspection/check plan suffices. No per-row callbacks.
 
 ## Backward dependency check
-Backward-check outputs/checks to evidence or earlier producers; a Ready claim or assumption is not proof. Check forward order. Missing prerequisites block coding; never rewrite the global DAG. Inspect effects before retry; no replay authority.
+Link outputs/checks to evidence or earlier producers. Ready claims/assumptions are not proof. Missing prerequisites block coding; no global DAG edits.
 
 ## System-context uptake
-When `context --section system-context` is available, use its selected role, interface, interaction, question, observation, and source IDs. Preserve an unresolved contract as a blocker; do not invent a probe, retry policy, environment, or second dependency graph.
+Use listed system-context role/interface/interaction/question/observation/source IDs. Unresolved contracts block; do not invent probes, retry policy, environments or another DAG.
 
 ## Test criteria before code
 | Case / contract T-ID | Exact produces / requirement | Preconditions / inputs | Expected outcome / state / side effects | Planned test path / selector / check ID |
 | --- | --- | --- | --- | --- |
-| Case + T-ID | Approved criterion | Fixture/input | Expected output/state/effects | Planned path/selector/check ID; not run |
+| TC1 / T-ID | Criterion | Fixture/input | Expected state/effects | path/selector/check ID; not run |
 
 ## Coverage decisions
-Assess unit/integration/end-to-end and mock/fake separately from browser/service/API. Each: selected, not applicable with reason, or required but blocked. Name target environment, real/simulated dependencies, readiness/cleanup.
+Assess unit/integration/end-to-end; mock/fake; browser/service/API separately: selected, not applicable with reason, or required but blocked. Name target environment, fixture, real/simulated dependencies, readiness/cleanup.
 
 ## Execution and post-code test refinement
-Code; inspect diff/learnings; author/refine tests or justify reuse; run lint/tests, diagnose/fix failures and rerun. Check boundary/failure/regression gaps. Test corrections need independent requirement evidence and preserved coverage; never weaken acceptance.
+Code; inspect diff/learnings; author/refine tests or justify reuse; lint/tests; diagnose/fix/rerun. Cover boundary/failure/regression gaps. Correct tests from independent requirement evidence; preserve coverage and acceptance.
 
 ## Documentation and remaining risks
-Function contracts, README changes or why unchanged; unresolved gaps and revalidation triggers.
+Function contracts, README changes/no-change reasons, risks, revalidation triggers.
 """
 
 
@@ -1330,13 +1331,16 @@ def _objective_info(root: Path, state: Mapping[str, Any], api: Mapping[str, Any]
     }, None
 
 
-def _stage_lifecycle(stage: Any, info: Mapping[str, Any], api: Mapping[str, Any]) -> list[str]:
+def _stage_lifecycle(
+    stage: Any, info: Mapping[str, Any], api: Mapping[str, Any], *, history_limit: int
+) -> list[str]:
     """Small stage-local continuation contract; detailed work stays durable."""
     objectives = _value(api, "objectives") or _value(api, "shiploop_objectives")
     binding = info.get("objective_binding")
     if isinstance(binding, Mapping) and callable(getattr(objectives, "is_objective_stage", None)) and objectives.is_objective_stage(stage):
         kind = binding.get("kind")
         return [
+            review_improve_cycle(history_limit),
             f"Objective: converge the current {kind} candidate before applying it once to {binding.get('base_stage')}.",
             "Until: two verified/audited trivial passes, no open findings, and a fresh final objective check.",
             "Continue while: material findings, unaddressed ledger rows, stale context, incomplete required Git bodies, or missing fresh checks remain.",
@@ -1348,10 +1352,12 @@ def _stage_lifecycle(stage: Any, info: Mapping[str, Any], api: Mapping[str, Any]
             return [
                 f"Objective: create the initial {stage} candidate without treating chat memory as state.",
                 "Until: a durable candidate starts its own convergence loop.",
+                f"This draft does not count as a cycle; the review-and-improve sequence begins at {stage}-review.",
                 "Continue while: the candidate has not been persisted and bound to its evidence.",
                 "Evidence required: complete candidate Markdown and this action's typed result.",
             ]
         return [
+            review_improve_cycle(history_limit),
             "Objective: converge the current planning candidate before its next lifecycle gate.",
             "Until: two verified/audited trivial passes, no open findings, and a fresh final candidate check.",
             "Continue while: material findings, unresolved evidence, stale candidate/ledger context, or missing checks remain.",
@@ -1363,10 +1369,12 @@ def _stage_lifecycle(stage: Any, info: Mapping[str, Any], api: Mapping[str, Any]
             return [
                 "Objective: draft the selected step plan against the current code, environment, dependencies, and frozen inputs.",
                 "Until: durable plan evidence starts the nested step-plan convergence loop before product edits.",
+                "This draft does not count as a cycle; the review-and-improve sequence begins at step-plan-review.",
                 "Continue while: no candidate is bound to the selected step.",
                 "Evidence required: complete step-plan Markdown and typed result.",
             ]
         return [
+            review_improve_cycle(history_limit),
             "Objective: converge this exact selected step plan before product edits.",
             "Until: two verified/audited trivial passes, no open findings, fresh final planning check, and (for the initial plan) ready evidence.",
             "Continue while: material findings, stale selected context, missing contract evidence, or missing checks remain.",
@@ -1374,10 +1382,11 @@ def _stage_lifecycle(stage: Any, info: Mapping[str, Any], api: Mapping[str, Any]
         ]
     if stage in ("review", "improve-plan", "improve-apply", "verify", "carry-forward", "commit", "final-verify", "post-inner", "merge"):
         return [
-            "Objective: complete one evidence-bound inner-loop activity for the selected step.",
-            "Until: two consecutive trivial primary iterations, fresh final verification, broader-step reassessment, and safe merge are complete.",
-            "Continue while: a material finding, failed/unrun test, stale knowledge/check evidence, or new broader obligation remains.",
-            "Evidence required: selected worktree, current test record, durable learnings, primary commit, and final done evidence where requested.",
+            review_improve_cycle(history_limit),
+            "Objective: improve the selected step.",
+            "Until: cycle ready, fresh final verification, post-inner and safe merge.",
+            "Continue while: findings, failures, stale evidence or obligations remain.",
+            "Evidence required: current checks, carry-forward, primary commit and final proof.",
         ]
     return [
         "Objective: complete only the printed current stage from durable Markdown evidence.",
@@ -1836,7 +1845,7 @@ def _guidance_lines(core: Any, stage: str, api: Mapping[str, Any]) -> list[str]:
     for label, filename, mapping in mappings:
         sections = mapping.get(stage) if isinstance(mapping, Mapping) else None
         if sections:
-            lines.append(f"{label}: read only " + ", ".join(f"{ref_dir / filename}#{section}" for section in sections))
+            lines.append(f"{label}: read only {ref_dir / filename}" + ", ".join(f"#{section}" for section in sections))
     return lines
 
 
@@ -2127,7 +2136,7 @@ def render(core: Any, root: Path, state: Mapping[str, Any], api: Mapping[str, An
         lines.append("Current objective: " + _line_json({key: objective.get(key) for key in ("loop_id", "kind", "base_stage", "receipt", "candidate", "status")}))
     else:
         lines.append("Current task: use the active durable cursor only; do not infer an unstated transition.")
-    lines.extend(_stage_lifecycle(stage, info, api))
+    lines.extend(_stage_lifecycle(stage, info, api, history_limit=history_policy.required_limit(state)))
 
     # Every ordinary packet gives a cold host its exact rehydration commands.
     available = ["prompt", "journal"]
@@ -2167,9 +2176,27 @@ def render(core: Any, root: Path, state: Mapping[str, Any], api: Mapping[str, An
         available.append("planning")
     if info.get("objective_binding"):
         available.append("objective")
+    review_bound_plan = stage in (
+        "improve-plan", "research-plan", "behavior-plan", "spec-plan",
+        "objective-plan", "step-plan-revise",
+    )
+    if review_bound_plan:
+        available.extend(["iteration", "review-history"])
     available = list(dict.fromkeys(available))
     lines.append("Available durable context: " + ", ".join(available))
-    lines.append("Bounded context: " + _context_command(core, root, "<available-section>"))
+    lines.append("Bounded context: " + _context_command(core, root, "iteration" if review_bound_plan else "<available-section>"))
+    if review_bound_plan:
+        lines.append(
+            "Saved full Git bodies: "
+            + _context_command(core, root, "review-history")
+            + " --record '<history.pages[].archive_path>'"
+        )
+        lines.append(
+            "Page iteration/current_pass, then every archive_path above; copy continuations. "
+            "Other sections: substitute. Hash-bound reads, not new review proof; "
+            "put relevant learnings/no-change reasons in body. "
+            + _HISTORY_BODY_UNTRUSTED
+        )
     if state.get("observation_protocol_version") == 1:
         lines.append("Early facts: context --section observation; separate callback, parent unfinished.")
     base_stage = info.get("objective_binding", {}).get("kind", stage)
@@ -2318,5 +2345,5 @@ def render(core: Any, root: Path, state: Mapping[str, Any], api: Mapping[str, An
     options = f"--run-dir {_quote(root)} --action {_quote(aid)} --result {_quote(result)}"
     lines.append("When done: use this exact callback; the script selects what follows.")
     lines.append(f"Call this when done: {_command(core)} done {options}")
-    lines.append("Only this action advances the run. If blocked, preserve evidence and follow recovery; chat memory is not proof.")
+    lines.append("If blocked, preserve evidence and follow recovery; do not call done.")
     return "\n".join(lines) + "\n"
