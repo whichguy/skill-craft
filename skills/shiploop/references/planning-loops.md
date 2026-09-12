@@ -284,8 +284,9 @@ legacy JSON input.
 ## Until-loop incorporation boundary
 
 ShipLoop incorporates the standalone `until-loop` 0.1.3 repeat/verify/continue
-decision as the internal `scripts/shiploop_until.py` policy for the execution
-plan loop. The installed standalone skill and its CLI are not executed or
+decision as the internal `scripts/shiploop_until.py` policy shared by specialized
+planning, both execution-plan routes, generic substantive objectives, and product
+Improve. The installed standalone skill and its CLI are not executed or
 modified. Its JSON-authoritative state, independent lock, non-idempotent
 completion, optional verifier, and single repo-level loop are intentionally
 excluded: ShipLoop keeps one Markdown authority, one action-bound command,
@@ -293,9 +294,11 @@ replay-safe results, candidate-bound checks, and fresh finalization evidence.
 
 The upstream research/behavior/spec mechanics in this document remain in
 `scripts/shiploop_planning.py` under ShipLoop's lock and transaction boundary.
-The incorporated policy only decides whether verified, audited execution-plan
-passes make a plan ready for its own fresh finalization gate; it never grants
-success from a host `done` claim or a cycle budget. See
+Their owner calls the shared policy with verified, audited pass projections;
+the decision means ready for that owner's fresh finalization gate, never
+success from a host `done` claim or a cycle budget. See the
+[README integration and coverage matrix](../README.md#how-shiploop-leverages-until-loop)
+and
 [Execution-plan incorporation and limits](execution-planning.md#until-loop-incorporation-and-limits)
 for the exact provenance and differences. No slash invocation, external runtime,
 model pin, host-specific path, or second state owner is required.

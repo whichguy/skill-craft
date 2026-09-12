@@ -129,10 +129,11 @@ response, expected outcome and check. Refine those planned responses throughout
 the nested loop; do not confuse closing a **plan** gap with proving the product
 finding fixed. Product application and verification have not happened yet.
 
-Run current action-bound Git history and read the latest ten full bodies (or
-all available) in pages. Audit-only planning commits can occupy those pages;
-also retrieve relevant older implementation/decision commits using a scoped
-path or symbol investigation when needed. Do not mistake ten recent audit
+Run current action-bound Git history and read the policy-required full bodies
+(seven for new runs, ten for unmarked legacy runs, or all available) in pages.
+Audit-only planning commits can occupy those pages; also retrieve relevant
+older implementation/decision commits using a scoped
+path or symbol investigation when needed. Do not mistake the recent audit
 messages for the complete history of the code being changed.
 Inspect the actual worktree: relevant functions,
 interfaces, call sites, tests, configuration and diff. An initial step may have
@@ -350,9 +351,11 @@ until-loop skill. The installed standalone skill is left unchanged. The shared
 receipt-derived policy now serves every current converging family: research,
 behavior, and specification planning; generic approach/survey/sequence,
 `preparation-readiness` (authorized observation/readiness, not an external-effect
-loop), post-inner, coverage, and quality objectives; step-plan readiness; and
-Improve iterations. Their candidates, checks, and completion effects differ, but
-none may substitute a host claim, cycle budget, or mock-only result for its
+loop), post-inner, coverage, quality, and versioned handoff objectives; initial
+and Improve step-plan readiness; and product Improve iterations. Handoff needs
+the delivery-objective marker as well as the objective protocol. Their
+candidates, checks, and completion effects differ, but none may substitute a
+host claim, cycle budget, or mock-only result for its
 required evidence.
 
 Repeated review improves the opportunity to find gaps, not a proof of

@@ -1,13 +1,15 @@
 # Universal substantive-objective loop
 
 ShipLoop applies this Markdown-backed loop to substantive approach, survey,
-sequence, preparation-readiness, post-inner, coverage, and quality activities.
+sequence, preparation-readiness, post-inner, coverage, quality, and versioned
+handoff activities. Handoff requires both the objective and delivery-objective
+protocol markers; an unmarked legacy handoff gains no retrospective certificate.
 It complements, rather than replaces, the specialized research/behavior/spec
 and per-step execution-plan loops.
 
 ```mermaid
 flowchart TD
-  B[Base activity candidate] --> R[Objective review: current context and 10 Git bodies]
+  B[Base activity candidate] --> R[Objective review: current context and policy-selected Git bodies]
   R --> P[Plan and apply candidate refinement]
   P --> V[Fresh bound lint and checks]
   V --> C[Audit-only learning commit]
@@ -18,9 +20,10 @@ flowchart TD
 
 The base activity first records a complete candidate; the script then routes to
 `objective-review`, `objective-plan`, `objective-apply`, `objective-verify`,
-`objective-commit`, and `objective-finalize`. Every review reads the latest ten
-full commit bodies, its bound current context, and the candidate. It records a
-ten-part assessment: current context, implementation, environment,
+`objective-commit`, and `objective-finalize`. Every review reads the current
+policy-selected full commit bodies (seven for new runs, ten for unmarked legacy
+runs, or all available), its bound current context, and the candidate. It records
+a ten-part assessment: current context, implementation, environment,
 dependencies, flows, edge conditions, second-order effects, implicit
 requirements, test strategy, and documentation.
 
@@ -50,12 +53,13 @@ success claim.
 ## Review rubric
 
 Before `objective-review`, read the current candidate and bounded context plus
-the full bodies of every current latest-ten Git-history row. Assess current
+the full bodies of every current policy-required Git-history row. Assess current
 context, implementation, environment, dependencies, flows, edge conditions,
 second-order effects, implicit requirements, test strategy, and documentation.
 Record stable finding IDs, concrete evidence or an applicability reason for
 each assessment, expected-versus-observed test evidence, and a durable
-learning. Older history may supplement the current ten but cannot replace it.
+learning. Older history may supplement the required current window but cannot
+replace it. Follow bounded fragment continuations until each body is complete.
 
 ## Plan and apply
 
@@ -83,12 +87,20 @@ every recorded review/plan/apply learning verbatim, and the exact final
 and applies that exact candidate once to its original base stage. It never
 replaces a candidate, finding, plan, resolution, material flag, or DAG.
 
-`repair` may rebind only an approach or survey objective before frozen planning
-or active step work; it archives the interrupted pass and starts a fresh
-objective review. A post-inner objective repair archives its pass, records a
+For ordinary context changes, `repair` may rebind an approach or survey objective
+before frozen planning or active step work; it archives the interrupted pass
+and starts a fresh objective review. A post-inner objective repair archives its pass, records a
 material interrupted step iteration, clears stale final/merge proof, and returns
 to Improve review. Other objective kinds cannot silently rebind changed frozen
 context.
+
+There is one narrow journal exception for any active substantive objective:
+with the outer-work protocol enabled, if the only changed context binding is
+the script-owned, state-bound outer-work journal, explicit `repair` can rebind
+that journal, archive the interrupted pass, reset convergence, and issue fresh
+`objective-review`. Candidate, findings, Git, and product inputs stay frozen.
+The journal callback does not perform this restart automatically, and this
+exception cannot bless other context drift.
 
 Before execution, `revisit` may abandon an active survey, sequence, or
 preparation-readiness objective while applying the normal planning archive
