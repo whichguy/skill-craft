@@ -68,7 +68,7 @@ the field list is not permission to manufacture observations.
 | `development_validation` | `{decision,step_id,environment,expected_outcome}`; decision `required`, `not-applicable`, or `blocked`; step ID only for required, otherwise null; environment role for required, null for not-applicable; nonempty expected outcome or explicit no-work reason. |
 | `promotion` | `{mode,target,step_id,verification}`; mode `none`, `dag`, `outer-loop`, or `blocked`; step ID only for DAG, otherwise null; target for selected promotion, null for none; nonempty verification or explicit no-work reason. |
 | `revalidate_at` | Required canonical triggers `cold-resume` and `before-external-operation`; also `before-promotion` for selected DAG/outer-loop promotion. |
-| `blocked_paths` | String list; explain blocked routes when any capability, identity, authority or delivery route is blocked; otherwise empty. |
+| `blocked_paths` | String list; nonempty aggregate narrative explaining blocked routes when any capability, identity, authority or delivery route is blocked; otherwise empty. The validator checks that distinction, not exhaustive per-route semantic coverage. |
 
 Step IDs refer to the later existing dependency DAG, not a parallel plan. Survey
 checks the declaration; sequence checks producer existence, route placement and
@@ -80,6 +80,14 @@ identity/readiness probe. Use non-secret role aliases, never credentials,
 account addresses, session IDs, or secret resource identifiers. Preserve the
 observation's as-of context in the evidence narrative. A planned probe is not
 an observed result; tool availability is not mutation authorization.
+
+Known credential patterns in platform strings and common environment fields
+are rejected without echoing their values. Cold environment projections also
+redact recognized credential-bearing strings defensively. This is not an
+exhaustive secret scanner: host-provided prose, results and logs still require
+careful non-secret authoring. Ordinary documentation URLs and role aliases are
+allowed; credential URLs, signed access URLs and literal authentication tokens
+are not safe evidence references.
 
 If the task requires unavailable access, keep the platform applicable and mark
 the relevant capability/authority blocked. Do not relabel it local-only to pass
@@ -93,6 +101,47 @@ documented safe probe. Never execute a probe merely because a tool description
 suggests it is harmless. A changed or failed result triggers a carry-forward
 observation, pending-only replan when compatible, or a pause for new authority.
 It cannot silently rewrite the frozen baseline.
+
+### Action-bound probe attestations
+
+Fresh runs declare `platform_revalidation_protocol_version: 1`. For selected
+outer-before `prepare`, outer-loop `publish`, and DAG-bound `implement` or
+`improve-apply` routes, the current packet adds `platform_revalidation` to the
+ordinary result. No additional CLI or separate state file is required.
+Large requirement sets use `context --section platform-revalidation` with the
+ordinary Unicode/digest pagination. It returns every script-selected binding
+and the current action ID, not observed probe results. The packet may show a
+bounded **sample** result: retrieve all requirement pages and supply every
+required row before completing; omitted sample rows are never waived.
+The context's `route` is informational, not a result field. Build each result
+using the eight-field shape below, taking `action_id` from the context record
+and adding the actual observed evidence/status rather than submitting the
+requirement object as if it were a completed observation.
+
+Each row has exactly `platform_id`, `trigger`, `action_id`,
+`environment_sha256`, `observed_role`, `status`, `evidence`, and
+`performed_before_operation`. Copy the packet's binding values. Supply one row
+per required platform/trigger, `status: "ready"`, an observed role matching the
+declared expected role, a non-secret evidence reference, and
+`performed_before_operation: true` **only if it actually happened**. Every
+selected external route needs `before-external-operation`; promotion also
+needs `before-promotion`. Missing, duplicate, stale, mismatched or non-ready
+attestations cannot complete that action. Stop and seek direction if the safe
+probe fails or requires new authority.
+
+Accepted results persist in `results/<action>.md`; preparation and publication
+records retain the corresponding result too. The preparation-readiness
+objective reviews the original accepted operation evidence: its Apply passes
+must not rewrite that attestation or repeat the operation, and its finalization
+does not claim a new probe. A cold process cannot be detected reliably, so
+`cold-resume` remains a host re-probe obligation before the next external use.
+
+This is an enforced **receipt requirement**, not script execution of probes or
+independent proof of their result/timing. Access can change after a probe.
+Unmapped external work still requires safe host checks and correct discovery/
+DAG routing; a missing mapping is not an exemption or authorization. Existing
+runs without the marker keep their earlier callback shape; an explicitly
+invalid marker is rejected, never silently treated as legacy.
 
 ## Bootstrap, validation, and publication are different obligations
 

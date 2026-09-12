@@ -207,6 +207,79 @@ class DiscoverySchemaTests(unittest.TestCase):
         self.assertIn("requires observed non-secret authority", "\n".join(gaps))
         self.assertTrue(machine["platform_discovery"]["applicable"])
 
+    def test_blocked_paths_are_empty_without_blocks_and_aggregate_when_blocked(self) -> None:
+        machine = remote_machine()
+        platform = machine["platform_discovery"]["platforms"][0]
+        platform["blocked_paths"] = ["A stale blocked-route explanation."]
+        gaps = discovery.validate_machine(machine, required=True)
+        self.assertIn("must be empty when no platform route is blocked", "\n".join(gaps))
+
+        platform["authority"]["status"] = "blocked"
+        platform["identity"]["status"] = "blocked"
+        platform["blocked_paths"] = [
+            "The selected route is blocked pending target role and authority."
+        ]
+        self.assertEqual(discovery.validate_machine(machine, required=True), [])
+
+    def test_platform_discovery_rejects_sensitive_nested_text_without_echoing_it(self) -> None:
+        secret = "privacy-secret-123"
+        locations = (
+            ("interface reference", lambda platform: platform["interfaces"][0], "reference"),
+            ("identity probe", lambda platform: platform["identity"], "safe_probe"),
+            ("authority rationale", lambda platform: platform["authority"], "rationale"),
+            ("bootstrap prerequisite", lambda platform: platform["bootstrap"], "prerequisites"),
+            (
+                "development outcome",
+                lambda platform: platform["development_validation"],
+                "expected_outcome",
+            ),
+            ("promotion verification", lambda platform: platform["promotion"], "verification"),
+            ("revalidation marker", lambda platform: platform, "revalidate_at"),
+        )
+        for label, container, key in locations:
+            with self.subTest(location=label):
+                machine = remote_machine()
+                platform = machine["platform_discovery"]["platforms"][0]
+                target = container(platform)
+                if key in ("prerequisites", "revalidate_at"):
+                    target[key] = [f"api_key={secret}"]
+                else:
+                    target[key] = f"Authorization: Bearer {secret}"
+                gaps = discovery.validate_machine(machine, required=True)
+                joined = "\n".join(gaps)
+                self.assertIn("sensitive credential material", joined)
+                self.assertNotIn(secret, joined)
+
+        machine = remote_machine()
+        machine["platform_discovery"]["rationale"] = f"api_key={secret}"
+        gaps = discovery.validate_machine(machine, required=True)
+        joined = "\n".join(gaps)
+        self.assertIn("sensitive credential material", joined)
+        self.assertNotIn(secret, joined)
+
+        machine = remote_machine()
+        platform = machine["platform_discovery"]["platforms"][0]
+        platform["authority"]["status"] = "blocked"
+        platform["blocked_paths"] = [f"https://user:{secret}@example.invalid"]
+        gaps = discovery.validate_machine(machine, required=True)
+        joined = "\n".join(gaps)
+        self.assertIn("sensitive credential material", joined)
+        self.assertNotIn(secret, joined)
+
+        machine = remote_machine()
+        platform = machine["platform_discovery"]["platforms"][0]
+        platform[f"api_key={secret}"] = "benign unknown metadata"
+        gaps = discovery.validate_machine(machine, required=True)
+        joined = "\n".join(gaps)
+        self.assertIn("sensitive credential material", joined)
+        self.assertNotIn(secret, joined)
+
+    def test_platform_discovery_keeps_non_string_errors_schema_specific(self) -> None:
+        machine = remote_machine()
+        machine["platform_discovery"]["platforms"][0]["identity"]["safe_probe"] = None
+        gaps = discovery.validate_machine(machine, required=True)
+        self.assertIn("safe_probe must be a nonempty string", "\n".join(gaps))
+
     def test_route_order_and_publish_none_are_rejected(self) -> None:
         machine = remote_machine()
         dag = platform_dag()

@@ -63,10 +63,12 @@ class MigrationPromptTests(unittest.TestCase):
         self.assertEqual(result.returncode, code, result.stdout + result.stderr)
         return result
 
-    def legacy_state(self, run_dir, prompt_marker=...):
+    def legacy_state(self, run_dir, prompt_marker=..., run_id=...):
         state = {
             "version": 2,
-            "run_id": f"legacy-{run_dir.name.lstrip('.')}",
+            "run_id": (
+                f"legacy-{run_dir.name.lstrip('.')}" if run_id is ... else run_id
+            ),
             "phase": "intake",
             "repo_root": str(self.repo),
         }
@@ -75,6 +77,48 @@ class MigrationPromptTests(unittest.TestCase):
         run_dir.mkdir()
         (run_dir / "state.json").write_text(json.dumps(state), encoding="utf-8")
         return state
+
+    def test_migrate_rejects_unsafe_legacy_run_ids_before_writes(self):
+        invalid_run_ids = (
+            None,
+            False,
+            17,
+            "",
+            "../escape",
+            "legacy/with/slash",
+            "legacy with spaces",
+            "-legacy",
+            "_legacy",
+            "a" * 149,
+        )
+        migrated_artifacts = (
+            "state.md",
+            "migration.md",
+            "run.md",
+            "history.md",
+            "prompt.md",
+            "shiploop-improvements.md",
+            "legacy-backup",
+        )
+        for index, run_id in enumerate(invalid_run_ids):
+            with self.subTest(run_id=run_id):
+                run_dir = self.repo / f".shiploop-invalid-run-id-{index}"
+                old = self.legacy_state(run_dir, "preserve me", run_id=run_id)
+                original_state = (run_dir / "state.json").read_bytes()
+
+                result = self.cli("migrate", "--run-dir", str(run_dir), code=2)
+
+                self.assertIn("unsafe legacy run ID", result.stderr)
+                self.assertEqual((run_dir / "state.json").read_bytes(), original_state)
+                self.assertEqual(
+                    json.loads((run_dir / "state.json").read_text(encoding="utf-8")),
+                    old,
+                )
+                for relative in migrated_artifacts:
+                    self.assertFalse(
+                        (run_dir / relative).exists(),
+                        f"migration created {relative} for malformed run ID {run_id!r}",
+                    )
 
     @staticmethod
     def read_record(path):

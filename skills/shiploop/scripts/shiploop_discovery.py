@@ -11,6 +11,8 @@ from collections.abc import Mapping
 import re
 from typing import Any
 
+from shiploop_privacy import redact_text, sensitive_text
+
 
 VERSION = 1
 
@@ -59,6 +61,33 @@ def _mapping(value: Any, label: str, gaps: list[str]) -> Mapping[str, Any] | Non
     return value
 
 
+def _contains_sensitive_text(value: Any) -> bool:
+    """Screen nested discovery values without echoing an unsafe value.
+
+    Discovery is JSON-shaped at the durable boundary, but this also keeps the
+    pure validator safe when callers pass an in-memory mapping or list.
+    """
+    pending = [value]
+    seen: set[int] = set()
+    while pending:
+        current = pending.pop()
+        if isinstance(current, str):
+            if sensitive_text(current):
+                return True
+        elif isinstance(current, Mapping):
+            marker = id(current)
+            if marker not in seen:
+                seen.add(marker)
+                pending.extend(current.keys())
+                pending.extend(current.values())
+        elif isinstance(current, list):
+            marker = id(current)
+            if marker not in seen:
+                seen.add(marker)
+                pending.extend(current)
+    return False
+
+
 def _step_id(value: Any, label: str, gaps: list[str]) -> str | None:
     if not isinstance(value, str) or not _STEP_ID.fullmatch(value):
         gaps.append(f"{label} must be a ShipLoop step ID")
@@ -81,6 +110,8 @@ def _platform_rows(machine: Mapping[str, Any]) -> list[Mapping[str, Any]]:
 def step_routes(machine: Any, step_id: Any) -> list[dict[str, str]]:
     """Return declared platform routes for one DAG step without I/O or mutation."""
     if not isinstance(machine, Mapping) or not isinstance(step_id, str):
+        return []
+    if validate_machine(machine, required=False):
         return []
     routes: list[dict[str, str]] = []
     for platform in _platform_rows(machine):
@@ -237,6 +268,8 @@ def validate_machine(machine: Any, *, required: bool = False) -> list[str]:
     discovery = _mapping(record, "machine.platform_discovery", gaps)
     if discovery is None:
         return gaps
+    if _contains_sensitive_text(discovery):
+        return ["machine.platform_discovery must not contain sensitive credential material"]
     if type(discovery.get("version")) is not int or discovery.get("version") != VERSION:
         gaps.append(f"machine.platform_discovery.version must be {VERSION}")
     applicable = discovery.get("applicable")
@@ -321,9 +354,19 @@ def validate_machine(machine: Any, *, required: bool = False) -> list[str]:
                 f"{label}.revalidate_at is missing required trigger(s): "
                 + ", ".join(missing_triggers)
             )
-        blocked_paths = _string_list(platform.get("blocked_paths"), f"{label}.blocked_paths", gaps)
-        if _blocked_reasons(platform) and not blocked_paths:
-            gaps.append(f"{label}.blocked_paths must explain each blocked route")
+        blocked_paths = _string_list(
+            platform.get("blocked_paths"), f"{label}.blocked_paths", gaps
+        )
+        blocked_reasons = _blocked_reasons(platform)
+        if blocked_reasons and not blocked_paths:
+            gaps.append(
+                f"{label}.blocked_paths must contain an aggregate explanation "
+                "when a route is blocked"
+            )
+        elif not blocked_reasons and blocked_paths:
+            gaps.append(
+                f"{label}.blocked_paths must be empty when no platform route is blocked"
+            )
     return gaps
 
 
@@ -408,7 +451,11 @@ def validate_lifecycle(machine: Any, lifecycle: Any, dag: Any) -> list[str]:
     if "outer-loop" in promotion_modes and lifecycle.get("publish") != "outer-loop":
         gaps.append("platform promotion outer-loop requires lifecycle.publish=outer-loop")
     for row in rows:
-        platform_id = str(row.get("id", "<invalid-platform>"))
+        platform_id = row.get("id", "<invalid-platform>")
+        if not isinstance(platform_id, str):
+            platform_id = "<invalid-platform>"
+        else:
+            platform_id = redact_text(platform_id)
         label = f"platform {platform_id}"
         blocked = _blocked_reasons(row)
         if blocked:
@@ -451,6 +498,8 @@ _COLD_TEXT_LIMIT = 80
 def _cold_text(value: Any) -> tuple[str | None, bool]:
     if not isinstance(value, str):
         return None, False
+    if sensitive_text(value):
+        return redact_text(value), False
     if len(value) <= _COLD_TEXT_LIMIT:
         return value, False
     return value[:_COLD_TEXT_LIMIT], True

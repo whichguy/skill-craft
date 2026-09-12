@@ -315,6 +315,17 @@ producers to the existing DAG; it does not create another scheduler. The
 script checks declarations and ordering, while the host must establish current
 access and permission before external use.
 
+New runs also require action-bound `platform_revalidation` results at selected
+external preparation, implementation/improvement and publication boundaries.
+The packet supplies the exact platform/trigger/action/environment binding.
+Large sets are available through digest-bound `platform-revalidation` context
+pages; bounded result samples never waive the complete required evidence.
+Record the safe probe **before** the authorized operation; failed probes or
+changed roles require a pause, not a successful callback. This is recorded
+host testimony, not independently verified live access. Earlier runs without
+the new marker retain their callback compatibility. The preparation objective
+reviews its original operation evidence without rerunning external effects.
+
 For example, a request for a hosted developer app leads to discovery of the
 available CLI/MCP and documented syntax, then to an identity/authority record.
 Missing write authority leaves that platform applicable but blocked; it does
@@ -934,6 +945,15 @@ the action, HEAD and message identity; partial or stale pages cannot count as
 review proof. The cap is Unicode characters in the message fragment, not total
 response bytes. Legacy `--full` without the bound remains unbounded. See the
 [history protocol](references/action-protocol.md#git-history-and-improve-commits).
+
+Git message lines are JSON-quoted as untrusted evidence, including the legacy
+full display. Quoting never changes the archived message or its coverage digest.
+Only an unquoted script-owned continuation is a command. Environment packet
+projections also bound individual fields and total output, with explicit
+truncation indicators and paged full-context pointers; they are navigation, not
+complete operational arguments. Context offsets count Unicode characters, not
+bytes. Recognized credential patterns are rejected/redacted, but this is not a
+complete secret-detection guarantee.
 
 Aborted merge intent now has an explicit `merge-recover` route. First reconcile
 Git yourself; ShipLoop never aborts a merge automatically. With the exact current

@@ -140,6 +140,13 @@ contract edit.
   revalidate. Never record a credential value, secret ID, account address,
   signed URL, or raw credential-bearing output. The observation is current
   evidence, not a timeless claim that access remains valid.
+- New runs declare `platform_revalidation_protocol_version: 1`. Selected
+  external action results retain host-reported safe-probe attestations in the
+  existing `results/<action>.md` record, bound to action, platform, trigger and
+  environment digest. Preparation objective refinement preserves its original
+  accepted probe evidence rather than rewriting observation history. Absent
+  marker means legacy compatibility; explicit invalid versions fail closed.
+  Neither this record nor the frozen declaration proves live access by itself.
 
 ## Frozen planning contracts
 

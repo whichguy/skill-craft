@@ -22,6 +22,7 @@ import shiploop_store as store
 import shiploop_contracts as contracts
 import shiploop_until as until
 import shiploop_discovery as discovery
+from shiploop_privacy import sensitive_text
 
 EXIT_OK = 0
 EXIT_BLOCKED = 2
@@ -395,6 +396,7 @@ def load_spec(run_dir: Path) -> Tuple[Optional[Dict[str, Any]], List[str]]:
 
 def validate_machine(m: Dict[str, Any], *, required: bool = False) -> List[str]:
     gaps: List[str] = []
+    _machine_privacy_gaps(m, gaps)
     kind = m.get("kind")
     if kind not in ("greenfield", "brownfield"):
         gaps.append("machine.kind must be greenfield or brownfield")
@@ -544,12 +546,68 @@ def validate_machine(m: Dict[str, Any], *, required: bool = False) -> List[str]:
     return gaps
 
 
+def _machine_privacy_gaps(machine: Dict[str, Any], gaps: List[str]) -> None:
+    """Reject credential material from strings projected from environment.md.
+
+    This names only schema paths, never the submitted value, so a validation
+    error cannot copy a credential into a packet or terminal diagnostic.
+    """
+
+    def text(value: Any, label: str) -> None:
+        if isinstance(value, str) and sensitive_text(value):
+            gaps.append(f"{label} must not contain sensitive credential material")
+
+    def strings(value: Any, label: str) -> None:
+        if isinstance(value, list):
+            for index, item in enumerate(value):
+                text(item, f"{label}[{index}]")
+
+    text(machine.get("kind"), "machine.kind")
+    text(machine.get("mcp_considered"), "machine.mcp_considered")
+    text(machine.get("ui_craft"), "machine.ui_craft")
+    for key in ("tools", "mcp"):
+        strings(machine.get(key), f"machine.{key}")
+
+    references = machine.get("references")
+    if isinstance(references, list):
+        for index, row in enumerate(references):
+            if isinstance(row, dict):
+                for key in ("path", "why"):
+                    text(row.get(key), f"machine.references[{index}].{key}")
+
+    handles = machine.get("handles")
+    if isinstance(handles, list):
+        for index, row in enumerate(handles):
+            if isinstance(row, dict):
+                for key in ("source", "need", "resolve", "value"):
+                    text(row.get(key), f"machine.handles[{index}].{key}")
+
+    exclusive = machine.get("exclusive")
+    if isinstance(exclusive, list):
+        for index, row in enumerate(exclusive):
+            if isinstance(row, dict):
+                for key in ("artifact", "use"):
+                    text(row.get(key), f"machine.exclusive[{index}].{key}")
+                strings(row.get("dont_use"), f"machine.exclusive[{index}].dont_use")
+
+    layout = machine.get("layout")
+    if isinstance(layout, dict):
+        for key in ("reserved", "product"):
+            strings(layout.get(key), f"machine.layout.{key}")
+
+    routing = machine.get("routing")
+    if isinstance(routing, dict):
+        for key in ("user_entrypoint", "confirmation", "source"):
+            text(routing.get(key), f"machine.routing.{key}")
+        strings(routing.get("reserved_routes"), "machine.routing.reserved_routes")
+
+
 def handles_block_plan(machine: Dict[str, Any]) -> List[str]:
     gaps: List[str] = []
-    for h in machine.get("handles") or []:
+    for index, h in enumerate(machine.get("handles") or []):
         if isinstance(h, dict) and h.get("resolve") in ("list", "ask"):
             gaps.append(
-                f"handle {h.get('source')} resolve={h.get('resolve')} blocks dest plan"
+                f"handle[{index}] resolve={h.get('resolve')} blocks dest plan"
             )
     return gaps
 

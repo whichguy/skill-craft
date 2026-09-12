@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Behavioral acceptance tests for the Markdown-authoritative ShipLoop CLI."""
 
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -69,6 +70,36 @@ class ProtocolTests(unittest.TestCase):
         import shiploop_store
 
         return shiploop_store.read_record(self.run_dir / "state.md")
+
+    def bind_current_local_environment(self, state):
+        """Bind a valid local-only environment for current-protocol packets."""
+        machine = {
+            "kind": "greenfield",
+            "augment": False,
+            "references": [],
+            "tools": [],
+            "mcp": [],
+            "mcp_considered": "none(local packet fixture)",
+            "handles": [],
+            "initiation": "none",
+            "ui": False,
+            "ui_craft": "none(local packet fixture)",
+            "exclusive": [],
+            "platform_discovery": {
+                "version": 1,
+                "applicable": False,
+                "rationale": "This packet fixture changes only local repository artifacts.",
+                "platforms": [],
+            },
+        }
+        body = (
+            "Current local packet fixture.\n\n## machine\n```json\n"
+            + json.dumps(machine)
+            + "\n```\n"
+        )
+        path = self.run_dir / "environment.md"
+        path.write_text(body, encoding="utf-8")
+        state["environment_sha256"] = hashlib.sha256(body.encode("utf-8")).hexdigest()
 
     def converge_approach_objective(self, candidate, *, label):
         """Finalize an imported approach through the public objective actions.
@@ -662,6 +693,7 @@ class ProtocolTests(unittest.TestCase):
             knowledge_sha256=shiploop_knowledge.sha256_bytes(body.encode()),
             knowledge_action_id="knowledge-map",
         )
+        self.bind_current_local_environment(current)
 
         legacy = dict(current)
         for key in (
@@ -669,6 +701,7 @@ class ProtocolTests(unittest.TestCase):
             "knowledge_revision",
             "knowledge_sha256",
             "knowledge_action_id",
+            "platform_revalidation_protocol_version",
         ):
             legacy.pop(key, None)
         legacy["action"] = {"id": "legacy-implement", "stage": "implement"}
@@ -693,6 +726,32 @@ class ProtocolTests(unittest.TestCase):
         self.assertIn(
             "unmapped obligations 0 | scheduled obligations 1", current_packet
         )
+
+    def test_current_packet_blocks_without_a_frozen_environment(self):
+        import contextlib
+        import io
+        import runpy
+        from types import SimpleNamespace
+
+        import shiploop_protocol
+
+        self.cli("init", "--repo", str(self.repo), "--prompt", "Build")
+        state = self.state()
+        state.update(phase="test", stage="prepare")
+        state["action"] = {"id": "current-missing-environment", "stage": "prepare"}
+        core = SimpleNamespace(**runpy.run_path(str(CLI)))
+        output = io.StringIO()
+        with contextlib.redirect_stdout(output):
+            shiploop_protocol.packet(core, self.run_dir, state)
+        packet = output.getvalue()
+
+        self.assertIn(
+            "Blocked: current platform revalidation requirements cannot be read safely",
+            packet,
+        )
+        self.assertIn("missing", packet)
+        self.assertNotIn("Call this when done:", packet)
+        self.assertIn("No completion callback is valid", packet)
 
     def test_implementation_test_context_returns_none_without_an_accepted_action(self):
         import shiploop_protocol
@@ -982,6 +1041,10 @@ class ProtocolTests(unittest.TestCase):
                 if stage in planning_stages | state_bound_stages:
                     continue
                 state = dict(base)
+                # This table isolates static guidance routing for the legacy
+                # packet shape. Current runs have a separate missing-
+                # environment block assertion above.
+                state.pop("platform_revalidation_protocol_version")
                 state.update(phase="test", stage=stage)
                 state["action"] = {"id": f"packet-{stage}", "stage": stage}
                 output = io.StringIO()
@@ -1206,6 +1269,10 @@ schema or sidecar is needed.
                 if stage in planning_stages | state_bound_stages:
                     continue
                 state = dict(base)
+                # This table isolates static guidance routing for the legacy
+                # packet shape. Current runs have a separate missing-
+                # environment block assertion above.
+                state.pop("platform_revalidation_protocol_version")
                 state.update(phase="test", stage=stage)
                 state["action"] = {"id": f"behavior-{stage}", "stage": stage}
                 output = io.StringIO()

@@ -10,6 +10,9 @@ for suite in \
   test/shiploop-evidence.test.py \
   test/shiploop-validators.test.py \
   test/shiploop-discovery.test.py \
+  test/shiploop-privacy.test.py \
+  test/shiploop-revalidation.test.py \
+  test/shiploop-revalidation-context.test.py \
   test/shiploop-risk.test.py \
   test/shiploop-boundaries.test.py \
   test/shiploop-objectives.test.py \
