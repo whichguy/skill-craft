@@ -199,6 +199,10 @@ deterministic checks. Revalidate the local runtime before implementation.
             "sources": [] if status == "not-applicable" else [source_id],
             "revalidate": "Run the fixture's local lint and exact-output checks before implementation.",
             "rationale": "The fixture must remain deterministic and network-free.",
+            "parents": [],
+            "contract_refs": [],
+            "role_refs": ["ROLE-local"],
+            "interface_refs": [],
         }
         questions = [question]
         if include_follow_up:
@@ -212,20 +216,82 @@ deterministic checks. Revalidate the local runtime before implementation.
                     "sources": [source_id],
                     "revalidate": "Confirm the planned steps remain local-only.",
                     "rationale": "A new service dependency would require a new research pass.",
+                    "parents": ["RQ-001"],
+                    "contract_refs": [],
+                    "role_refs": ["ROLE-local"],
+                    "interface_refs": [],
                 }
             )
+        source_rows = [
+            {
+                "id": source_id,
+                "reference": "test fixture local runtime record",
+                "authority": "local",
+                "version_or_observed_at": f"fixture-{revision}",
+                "supports": "The local deterministic exact-output research conclusion.",
+                "limitations": "This evidence does not claim any external service availability.",
+            }
+        ]
         return {
             "questions": questions,
-            "sources": [
-                {
-                    "id": source_id,
-                    "reference": "test fixture local runtime record",
-                    "authority": "local",
-                    "version_or_observed_at": f"fixture-{revision}",
-                    "supports": "The local deterministic exact-output research conclusion.",
-                    "limitations": "This evidence does not claim any external service availability.",
-                }
-            ],
+            "sources": source_rows,
+            "system_context": {
+                "version": 1,
+                "scope": "local-only",
+                "rationale": "The deterministic fixture has no selected external platform or interface.",
+                "roles": [
+                    {
+                        "id": "ROLE-local",
+                        "label": "isolated local fixture role",
+                        "status": "observed",
+                        "permitted_actions": "Run deterministic repository-local checks only.",
+                        "isolation": "No external platform, credential, or production data is present.",
+                        "platform_refs": [],
+                        "source_refs": [source_id],
+                        "revalidate": "Recheck if the fixture gains an external dependency.",
+                    }
+                ],
+                "interfaces": [],
+                "interactions": [],
+                "observations": [
+                    {
+                        "id": "OBS-code",
+                        "kind": "code",
+                        "status": "observed",
+                        "summary": "The fixture uses only committed repository-local Python code.",
+                        "source_refs": [source_id],
+                        "role_refs": ["ROLE-local"],
+                        "interface_refs": [],
+                    },
+                    {
+                        "id": "OBS-state",
+                        "kind": "state",
+                        "status": "not-applicable",
+                        "summary": "The fixture has no persisted external state boundary.",
+                        "source_refs": [],
+                        "role_refs": ["ROLE-local"],
+                        "interface_refs": [],
+                    },
+                    {
+                        "id": "OBS-system",
+                        "kind": "system",
+                        "status": "not-applicable",
+                        "summary": "The fixture has no selected remote system or integration boundary.",
+                        "source_refs": [],
+                        "role_refs": ["ROLE-local"],
+                        "interface_refs": [],
+                    },
+                    {
+                        "id": "OBS-role",
+                        "kind": "environment-role",
+                        "status": "observed",
+                        "summary": "The local role is isolated from external effects and credentials.",
+                        "source_refs": [source_id],
+                        "role_refs": ["ROLE-local"],
+                        "interface_refs": [],
+                    },
+                ],
+            },
         }
 
     def behavior_body(self, revision: str = "initial") -> str:

@@ -19,6 +19,9 @@ if str(SCRIPTS) not in sys.path:
     sys.path.insert(0, str(SCRIPTS))
 
 import shiploop_store as store  # noqa: E402
+import shiploop_delivery as delivery  # noqa: E402
+import shiploop_objectives as objectives  # noqa: E402
+import shiploop_outer_work as outer_work  # noqa: E402
 from shiploop_report import render_report  # noqa: E402
 
 
@@ -42,6 +45,233 @@ class ShipLoopReportTests(unittest.TestCase):
 
     def read(self, relative):
         return store.read_record(self.run_dir / relative)
+
+    @staticmethod
+    def outer_ledger(*, resolved: bool = False) -> dict:
+        request = {
+            "request_id": "OWR-REPORT-001",
+            "expected_revision": 0,
+            "entry_id": "OW-REPORT-001",
+            "dedupe_key": "report-release-owner-approval",
+            "required_action": "Obtain the release owner's explicit approval before publication.",
+            "target_stage": "quality",
+            "target_alias": "production-release",
+            "prerequisites": ["Current quality evidence is available."],
+            "expected_outcome": "The release owner records a decision for the reviewed candidate.",
+            "evidence": "The current quality report identifies the candidate revision.",
+            "authority_limitations": "This journal does not authorize publication or deployment.",
+            "rationale": "Production publication is outside the inner implementation authority.",
+        }
+        provenance = {
+            "parent_action": "A-INNER-REPORT-001",
+            "parent_step": "S1",
+            "parent_stage": "implement",
+        }
+        ledger, _ = outer_work.append(outer_work.empty(), request, provenance)
+        if resolved:
+            ledger = outer_work.resolve(
+                ledger,
+                {
+                    "entry_id": "OW-REPORT-001",
+                    "expected_revision": ledger["revision"],
+                    "evidence": "The release owner recorded approval against the reviewed revision.",
+                    "reason": "The listed quality-stage obligation was completed.",
+                },
+                dict(provenance, parent_step=None, parent_stage="quality"),
+            )
+        return ledger
+
+    def bind_outer_ledger(self, ledger: dict) -> None:
+        body = outer_work.render(ledger)
+        path = self.run_dir / "outer-work.md"
+        path.write_text(body, encoding="utf-8")
+        state = self.read("state.md")
+        state.update(
+            outer_work_protocol_version=1,
+            outer_work_sha256=hashlib.sha256(body.encode("utf-8")).hexdigest(),
+            outer_work_revision=ledger["revision"],
+        )
+        self.record("state.md", state, "ShipLoop state")
+
+    def add_final_handoff_objective(self) -> tuple[str, str]:
+        """Attach the bounded proof shape used by a versioned final handoff."""
+        loop = "report-fixture-handoff-objective"
+        final_action = "report-fixture-handoff-finalize"
+        context = {
+            "git_baseline": "a" * 40,
+            "committed_tree_sha256": "b" * 40,
+            "worktree_fingerprint": "c" * 64,
+            "status_sha256": "d" * 64,
+            "spec_sha256": "e" * 64,
+            "environment_sha256": "f" * 64,
+            "behavior_sha256": "1" * 64,
+            "plan_sha256": "2" * 64,
+            "knowledge_sha256": "3" * 64,
+            "preparation_sha256": "4" * 64,
+            "coverage_sha256": "5" * 64,
+            "delivery_sha256": "6" * 64,
+            "outer_work_sha256": "7" * 64,
+        }
+        receipt = objectives.new_receipt(
+            loop=loop,
+            kind="handoff",
+            base_stage="handoff",
+            candidate_body="Final handoff candidate.\n",
+            context=context,
+        )
+        for commit in ("8" * 40, "9" * 40):
+            receipt["current_pass"].update(review={}, plan={}, apply={})
+            objectives.complete_pass(receipt, commit=commit, outcome="trivial")
+            objectives.start_next_pass(receipt, context=context)
+        receipt["status"] = "finalized"
+        check = {
+            "objective_loop": loop,
+            "objective_pass": receipt["current_pass"]["id"],
+            "objective_kind": "handoff",
+            "objective_passed": True,
+            "candidate_sha256": receipt["candidate_sha256"],
+            "ledger_sha256": receipt["ledger_sha256"],
+            "context_sha256": receipt["context_sha256"],
+            "identity_sha256": receipt["identity_sha256"],
+        }
+        check_body = store.dumps(check, "ShipLoop checks")
+        certificate = objectives.certificate(
+            receipt,
+            final_check_action=final_action,
+            final_check_sha256=hashlib.sha256(check_body.encode("utf-8")).hexdigest(),
+            audit_head=receipt["current_pass"]["git_baseline"],
+        )
+        receipt_path = objectives.receipt_name(loop)
+        certificate_path = objectives.certificate_name(loop)
+        self.record(receipt_path, receipt, "ShipLoop objective receipt")
+        self.record(certificate_path, certificate, "ShipLoop objective certificate")
+        self.record(f"checks/{final_action}.md", check, "ShipLoop checks")
+        self.record("coverage.md", {"summary": "All final cases were reviewed."})
+        state = self.read("state.md")
+        state.update(
+            objective_protocol_version=objectives.VERSION,
+            delivery_objective_protocol_version=1,
+            objective={
+                "loop_id": loop,
+                "kind": "handoff",
+                "base_stage": "handoff",
+                "receipt": receipt_path,
+                "candidate": objectives.candidate_name(loop),
+                "status": "finalized",
+                "certificate": certificate_path,
+            },
+        )
+        self.record("state.md", state, "ShipLoop state")
+        return receipt_path, certificate_path
+
+    def test_outer_records_are_semantically_rendered_and_source_bound(self):
+        before, first = render_report(self.run_dir)
+        self.record("delivery.md", {"summary": "Staged release inspected", "artifact": "release-v2", "verification": "service read-back", "evidence": "safe probe record"})
+        after, second = render_report(self.run_dir)
+        self.assertIn("Staged release inspected", after)
+        self.assertIn("service read-back", after)
+        self.assertIn("delivery.md", second["sources"])
+        self.assertNotEqual(first["source_digest"], second["source_digest"])
+        self.assertNotEqual(before, after)
+
+    def test_new_delivery_gate_requires_conditional_outer_evidence(self):
+        self.add_final_handoff_objective()
+        state = self.read("state.md")
+        state["delivery_objective_protocol_version"] = 1
+        self.record("state.md", state)
+        lifecycle = self.read("lifecycle.md")
+        lifecycle["publish"] = "outer-loop"
+        self.record("lifecycle.md", lifecycle)
+        _, metadata = render_report(self.run_dir)
+        self.assertEqual(metadata["outcome"], "unfinished")
+        self.assertTrue(any("delivery.md" in error for error in metadata["evidence_errors"]))
+        self.record("coverage.md", {"summary": "All cases reviewed"})
+        self.record("delivery.md", {"summary": "Publication read back", "evidence": "safe fixture evidence"})
+        _, metadata = render_report(self.run_dir)
+        self.assertEqual(metadata["outcome"], "complete")
+
+    def test_final_handoff_certificate_is_report_bound_and_tamper_fails_closed(self):
+        receipt_path, certificate_path = self.add_final_handoff_objective()
+        _, metadata = render_report(self.run_dir)
+        self.assertEqual(metadata["outcome"], "complete")
+        self.assertIn(receipt_path, metadata["sources"])
+        self.assertIn(certificate_path, metadata["sources"])
+
+        state = self.read("state.md")
+        writes = delivery.prepare_terminal_report(self.run_dir, state, {})
+        store.transaction(self.run_dir, writes)
+        self.assertTrue(delivery.valid_complete_report(self.run_dir, state))
+
+        certificate = self.read(certificate_path)
+        certificate["final_check_sha256"] = "0" * 64
+        self.record(certificate_path, certificate, "ShipLoop objective certificate")
+        _, tampered = render_report(self.run_dir)
+        self.assertEqual(tampered["outcome"], "unfinished")
+        self.assertIn(
+            "final handoff objective final check differs from its certificate binding",
+            tampered["evidence_errors"],
+        )
+        self.assertFalse(delivery.valid_complete_report(self.run_dir, state))
+
+    def test_bound_outer_work_requires_a_valid_resolved_ledger(self):
+        self.bind_outer_ledger(self.outer_ledger())
+        rendered, metadata = render_report(self.run_dir)
+        self.assertEqual(metadata["outcome"], "unfinished")
+        self.assertIn(
+            "outer-work.md contains unfinished outer obligations",
+            metadata["evidence_errors"],
+        )
+        self.assertIn("Obtain the release owner&#x27;s explicit approval", rendered)
+
+        self.bind_outer_ledger(self.outer_ledger(resolved=True))
+        rendered, metadata = render_report(self.run_dir)
+        self.assertEqual(metadata["outcome"], "complete")
+        self.assertTrue(metadata["evidence_complete"])
+        self.assertIn("resolved", rendered)
+
+        state = self.read("state.md")
+        state["outer_work_revision"] += 1
+        self.record("state.md", state, "ShipLoop state")
+        _, metadata = render_report(self.run_dir)
+        self.assertEqual(metadata["outcome"], "unfinished")
+        self.assertIn(
+            "outer-work.md revision differs from its accepted journal binding",
+            metadata["evidence_errors"],
+        )
+
+    def test_outer_work_must_be_event_valid_and_hash_bound(self):
+        forged = self.outer_ledger()
+        forged["entries"] = []
+        body = store.dumps(forged, "Forged outer-work record")
+        path = self.run_dir / "outer-work.md"
+        path.write_text(body, encoding="utf-8")
+        state = self.read("state.md")
+        state.update(
+            outer_work_protocol_version=1,
+            outer_work_sha256=hashlib.sha256(body.encode("utf-8")).hexdigest(),
+            outer_work_revision=forged["revision"],
+        )
+        self.record("state.md", state, "ShipLoop state")
+        rendered, metadata = render_report(self.run_dir)
+        self.assertEqual(metadata["outcome"], "unfinished")
+        self.assertIn(
+            "outer-work.md is not a valid script-maintained journal",
+            metadata["evidence_errors"],
+        )
+        self.assertNotIn("Obtain the release owner&#x27;s explicit approval", rendered)
+
+        self.write_complete_run()
+        valid = outer_work.render(self.outer_ledger(resolved=True))
+        (self.run_dir / "outer-work.md").write_text(valid, encoding="utf-8")
+        state = self.read("state.md")
+        state["outer_work_protocol_version"] = 1
+        self.record("state.md", state, "ShipLoop state")
+        _, metadata = render_report(self.run_dir)
+        self.assertEqual(metadata["outcome"], "unfinished")
+        self.assertIn(
+            "outer-work.md exists without an accepted journal binding",
+            metadata["evidence_errors"],
+        )
 
     @staticmethod
     def result_digest(value):

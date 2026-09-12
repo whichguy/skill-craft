@@ -18,6 +18,9 @@ import re
 import stat
 from typing import Any
 
+import shiploop_objectives as objectives
+import shiploop_outer_work as outer_work
+
 
 REPORT_SCHEMA_VERSION = 1
 
@@ -29,6 +32,11 @@ _FIXED_SOURCES = (
     "quality.md",
     "handoff.md",
     "shiploop-improvements.md",
+    "preflight.md",
+    "preparation.md",
+    "coverage.md",
+    "delivery.md",
+    "outer-work.md",
 )
 _DISCOVERED_DIRECTORIES = (
     "results",
@@ -128,6 +136,23 @@ def render_report(
         if relative not in texts:
             _add_error(errors, f"missing {relative}")
 
+    # A versioned terminal handoff is itself a converged objective.  Its
+    # top-level receipt is an ordinary specialist source; follow only the
+    # exact certificate path bound by that receipt/state pair.  Do not admit
+    # candidate drafts or arbitrary objective archives into the report.
+    handoff_certificates = _referenced_handoff_certificates(records)
+    _load_source_records(
+        root,
+        handoff_certificates,
+        effective_overrides,
+        texts,
+        records,
+        errors,
+    )
+    for relative in handoff_certificates:
+        if relative not in texts:
+            _add_error(errors, f"missing {relative}")
+
     source_digest = _source_digest(texts, records)
     model = _assess(records, texts, errors)
     metadata = {
@@ -213,12 +238,18 @@ def _is_allowed_source(relative: str) -> bool:
             return _SPECIALIST_RECEIPT_NAME.fullmatch(filename) is not None
         if directory == "planning":
             return filename in _PLANNING_DIRECT_RECORDS
-    return _is_planning_iteration_source(relative)
+    return _is_planning_iteration_source(relative) or _is_objective_certificate_source(
+        relative
+    )
 
 
 def _is_initial_source(relative: str) -> bool:
     """Return whether a record can be discovered without a receipt reference."""
-    return _is_allowed_source(relative) and not _is_planning_iteration_source(relative)
+    return (
+        _is_allowed_source(relative)
+        and not _is_planning_iteration_source(relative)
+        and not _is_objective_certificate_source(relative)
+    )
 
 
 def _is_planning_iteration_source(relative: str) -> bool:
@@ -229,6 +260,54 @@ def _is_planning_iteration_source(relative: str) -> bool:
         and _PLANNING_ITERATION_DIRECTORY.fullmatch(parts[1]) is not None
         and _PLANNING_ITERATION_NAME.fullmatch(parts[2]) is not None
     )
+
+
+def _is_objective_certificate_source(relative: str) -> bool:
+    """Recognize the one stable nested objective record the report may bind."""
+    parts = relative.split("/")
+    if len(parts) != 3 or parts[0] != "objectives" or parts[2] != "certificate.md":
+        return False
+    try:
+        return objectives.certificate_name(parts[1]) == relative
+    except objectives.ObjectiveError:
+        return False
+
+
+def _handoff_objective_paths(state: Any) -> tuple[str, str] | None:
+    """Return the exact receipt/certificate paths named by final state."""
+    if not isinstance(state, Mapping):
+        return None
+    binding = state.get("objective")
+    if not isinstance(binding, Mapping):
+        return None
+    loop = binding.get("loop_id")
+    try:
+        receipt = objectives.receipt_name(loop)
+        certificate = objectives.certificate_name(loop)
+    except objectives.ObjectiveError:
+        return None
+    if (
+        binding.get("receipt") != receipt
+        or binding.get("certificate") != certificate
+    ):
+        return None
+    return receipt, certificate
+
+
+def _referenced_handoff_certificates(records: Mapping[str, Any]) -> set[str]:
+    """Return the exact final-handoff certificate selected by terminal state.
+
+    This is deliberately a closed pointer: a syntactically valid nested
+    override has no effect unless the terminal state names its matching
+    top-level handoff receipt and certificate.
+    """
+    state = records.get("state.md")
+    if not isinstance(state, Mapping) or state.get("delivery_objective_protocol_version") != 1:
+        return set()
+    paths = _handoff_objective_paths(state)
+    if paths is None:
+        return set()
+    return {paths[1]}
 
 
 def _source_candidates(
@@ -476,8 +555,66 @@ def _assess(
     handoff = _mapping_record(records, texts, errors, "handoff.md")
     journal = _list_record(records, texts, errors, "shiploop-improvements.md")
     final_check_valid = False
+    validated_outer_work: dict[str, Any] | None = None
 
     if terminal:
+        if state.get("delivery_objective_protocol_version") == 1:
+            _final_handoff_objective_errors(state, records, texts, errors)
+            required_outer = ["coverage.md"]
+            if lifecycle.get("preparation") == "outer-before":
+                required_outer.append("preparation.md")
+            if lifecycle.get("publish") == "outer-loop":
+                required_outer.append("delivery.md")
+            for relative in required_outer:
+                outer = _mapping_record(records, texts, errors, relative)
+                if not isinstance(outer.get("summary"), str) or not outer["summary"].strip():
+                    _add_error(errors, f"{relative} has no outer evidence summary")
+        expected_outer_work = state.get("outer_work_sha256")
+        if expected_outer_work:
+            raw_outer_work = _mapping_record(records, texts, errors, "outer-work.md")
+            actual = hashlib.sha256(
+                texts.get("outer-work.md", "").encode("utf-8")
+            ).hexdigest()
+            if (
+                not isinstance(expected_outer_work, str)
+                or _SHA256.fullmatch(expected_outer_work) is None
+                or actual != expected_outer_work
+            ):
+                _add_error(
+                    errors,
+                    "outer-work.md differs from its accepted journal binding",
+                )
+            try:
+                validated_outer_work = outer_work.validate(raw_outer_work)
+            except outer_work.OuterWorkError:
+                _add_error(
+                    errors,
+                    "outer-work.md is not a valid script-maintained journal",
+                )
+            else:
+                if state.get("outer_work_revision") != validated_outer_work["revision"]:
+                    _add_error(
+                        errors,
+                        "outer-work.md revision differs from its accepted journal binding",
+                    )
+                # A journal request remains work, not evidence that the work
+                # happened.  Its append-only projection decides closure.
+                if any(
+                    entry["status"] != "resolved"
+                    for entry in validated_outer_work["entries"]
+                ):
+                    _add_error(
+                        errors,
+                        "outer-work.md contains unfinished outer obligations",
+                    )
+        elif (
+            state.get("outer_work_protocol_version") == 1
+            and "outer-work.md" in texts
+        ):
+            _add_error(
+                errors,
+                "outer-work.md exists without an accepted journal binding",
+            )
         acceptance = _string_list(lifecycle.get("acceptance"))
         if not acceptance:
             _add_error(errors, "lifecycle.md has no valid acceptance list")
@@ -526,8 +663,95 @@ def _assess(
         "quality": quality,
         "handoff": handoff,
         "journal": journal,
+        "outer_work": validated_outer_work,
         "final_check_valid": final_check_valid,
     }
+
+
+def _final_handoff_objective_errors(
+    state: Mapping[str, Any],
+    records: Mapping[str, Any],
+    texts: Mapping[str, str],
+    errors: list[str],
+) -> None:
+    """Verify the versioned terminal objective without loading its drafts.
+
+    The final receipt/certificate pair is an independently selected report
+    source.  The certificate's final-check digest binds it to the exact check
+    Markdown that was available when the handoff objective converged.
+    """
+    binding = state.get("objective")
+    paths = _handoff_objective_paths(state)
+    if not isinstance(binding, Mapping) or paths is None:
+        _add_error(errors, "state.md has no bound final handoff objective")
+        return
+    receipt_path, certificate_path = paths
+    loop = binding.get("loop_id")
+    try:
+        expected_candidate = objectives.candidate_name(loop)
+    except objectives.ObjectiveError:
+        _add_error(errors, "state.md has no bound final handoff objective")
+        return
+    if not (
+        state.get("objective_protocol_version") == objectives.VERSION
+        and binding.get("kind") == "handoff"
+        and binding.get("base_stage") == "handoff"
+        and binding.get("status") == "finalized"
+        and binding.get("candidate") == expected_candidate
+    ):
+        _add_error(errors, "state.md final handoff objective binding is invalid")
+        return
+
+    receipt = _mapping_record(records, texts, errors, receipt_path)
+    certificate = _mapping_record(records, texts, errors, certificate_path)
+    if not receipt or not certificate:
+        return
+    try:
+        certified = objectives.assert_certificate(receipt, certificate)
+    except objectives.ObjectiveError:
+        _add_error(errors, "final handoff objective certificate is invalid")
+        return
+    if certified.get("kind") != "handoff" or certified.get("base_stage") != "handoff":
+        _add_error(errors, "final handoff objective certificate kind is invalid")
+        return
+
+    action = certified.get("final_check_action")
+    if not isinstance(action, str) or _ACTION_ID.fullmatch(action) is None:
+        _add_error(errors, "final handoff objective certificate final check is invalid")
+        return
+    check_path = f"checks/{action}.md"
+    check = _mapping_record(records, texts, errors, check_path)
+    raw_check = texts.get(check_path)
+    if raw_check is None:
+        return
+    if hashlib.sha256(raw_check.encode("utf-8")).hexdigest() != certified.get(
+        "final_check_sha256"
+    ):
+        _add_error(
+            errors,
+            "final handoff objective final check differs from its certificate binding",
+        )
+    current = receipt.get("current_pass")
+    if not isinstance(current, Mapping) or not (
+        isinstance(check, Mapping)
+        and check.get("objective_loop") == loop
+        and check.get("objective_pass") == current.get("id")
+        and check.get("objective_kind") == "handoff"
+        and check.get("objective_passed") is True
+        and all(
+            check.get(key) == certified.get(key)
+            for key in (
+                "candidate_sha256",
+                "ledger_sha256",
+                "context_sha256",
+                "identity_sha256",
+            )
+        )
+    ):
+        _add_error(
+            errors,
+            "final handoff objective final check is not bound to its certificate",
+        )
 
 
 def _mapping_record(
@@ -784,6 +1008,7 @@ def _render_html(
         _overview(model, metadata),
         _timeline(model.get("history", [])),
         _achievement_evidence(model, records),
+        _outer_evidence(records, model.get("outer_work")),
         _outputs(model, records),
         _tests(model, records),
         _learnings_and_plan(records),
@@ -994,6 +1219,35 @@ def _achievement_evidence(model: Mapping[str, Any], records: Mapping[str, Any]) 
 <p class="muted">Recorded identifiers are evidence pointers only: readiness is pre-edit, step and whole-run verification are separate, and a local merge is not publication. A publication row is host-reported history, not an independently verified external effect.</p>
 {_table(("Scope", "Readiness", "Verification", "Integration / publication"), rows)}
 </section>"""
+
+
+def _outer_evidence(
+    records: Mapping[str, Any], validated_outer_work: Any = None
+) -> str:
+    """Consume selected outer facts without presenting host assertions as probes."""
+    rows = []
+    for name in ("preflight", "preparation", "coverage", "delivery"):
+        record = records.get(name + ".md")
+        if not isinstance(record, Mapping):
+            continue
+        facts = [str(record[key]) for key in ("summary", "artifact", "verification", "evidence")
+                 if isinstance(record.get(key), str) and record[key]]
+        rows.append([_esc(name), _esc(" | ".join(facts)), "Recorded / host-reported"])
+    # Do not render a malformed/unbound journal as though it were evidence.
+    # ``_assess`` admits this projection only after validating its append-only
+    # event history with the same pure model used by the protocol.
+    journal = validated_outer_work
+    if isinstance(journal, Mapping):
+        entries = journal.get("entries", [])
+        if isinstance(entries, list):
+            for entry in entries[:_MAX_ROWS]:
+                if isinstance(entry, Mapping):
+                    rows.append([_esc(entry.get("id", "outer dependency")),
+                                 _esc(entry.get("required_action", entry.get("title", ""))),
+                                 _esc(entry.get("status", "unfinished"))])
+    if not rows:
+        rows.append(["No selected outer records", "No remote result inferred", "Not recorded"])
+    return '<section id="outer-evidence"><h2>Outer work and delivery evidence</h2><p class="muted">Journal entries request work; they do not grant deployment authority. Recorded outcomes are not independent live verification.</p>' + _table(("Record", "Fact / required action", "Evidence status"), rows) + '</section>'
 
 
 def _recorded_action(label: str, action: Any) -> str:

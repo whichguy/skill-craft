@@ -75,6 +75,44 @@ work can use actual repository/runtime evidence; no external-search quota or
 third-party tool is mandatory. No relevant uncertainty still requires an explicit
 bounded applicability review, not a fabricated source or silent empty result.
 
+### Versioned system-context links
+
+New runs that declare `system_context_protocol_version: 1` extend only their
+`research_state`; older runs keep the exact two-key `questions`/`sources` shape.
+The extension adds `parents`, `contract_refs`, `role_refs`, and `interface_refs`
+to every question, plus one `system_context` record with a version, scope,
+rationale, observations, roles, interfaces, and interactions. The detailed
+model stays in `research.md` and `research-evidence.md`; packets carry only a
+bounded selected projection and its evidence locator.
+
+Use stable IDs and validate every source, parent, role, interface, and contract
+reference. Question parents are acyclic. Contract/question links are reciprocal.
+An interface that represents a surveyed platform names its frozen
+`{platform_id, name}` identity rather than copying or changing the survey.
+Roles record permitted actions and isolation without forcing a `dev`, `stage`,
+or `prod` taxonomy. Include observed or explicitly blocked/not-applicable
+code, state, system, and environment-role observations; unavailable evidence is
+not permission to call a boundary irrelevant.
+
+Each relevant interaction records caller/callee interfaces, operation,
+input/output shape, state and failure semantics, supported SDK/client idiom,
+risk, depth rationale, sources, questions, and affected consumer steps. Follow
+causal boundaries as far as risk requires: a simple local call may stop with a
+reason, while retries, duplicate effects, cancellation, partial commit, or role
+differences need the relevant downstream state/service boundary. A numeric depth
+claim is never evidence. Required unresolved interactions or their open/blocked
+questions prevent research finalization; do not replace them with a future
+consumer dependency or an invented probe.
+
+Use the selected primary contract for an operation. The
+[MCP tools specification](https://modelcontextprotocol.io/specification/2025-11-25/server/tools)
+is an example of why operation/result/error envelopes need explicit evidence;
+[MCP security guidance](https://modelcontextprotocol.io/docs/2025-11-25/tutorials/security/security_best_practices)
+illustrates that an adapter boundary does not grant authority; and
+[Google AIP-194](https://google.aip.dev/194) illustrates why retry ownership and
+idempotency must come from the actual API contract. These are investigation
+anchors, not a mandate to install an MCP server or adopt an RPC design.
+
 ## Review
 
 Each pass reads its current question/source records, finding ledger, selected

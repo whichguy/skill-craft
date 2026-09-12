@@ -30,13 +30,15 @@ import shiploop_objectives as objectives
 import shiploop_contracts as contracts
 import shiploop_contract_protocol as contract_protocol
 import shiploop_history as history_pages
+import shiploop_history_policy as history_policy
+import shiploop_artifacts as artifacts
+import shiploop_outer_work as outer_work
+import shiploop_observations as observations
+import shiploop_system_context as system_context
 
 
 class ProtocolError(RuntimeError):
     pass
-
-
-HISTORY_LIMIT = objectives.HISTORY_LIMIT
 
 
 def bounded_history_requested(args):
@@ -163,10 +165,19 @@ def history_body_entries(rows):
     return entries
 
 
-def record_full_history_page(iteration, rows, *, head, skip, limit, archive_path):
+def record_full_history_page(
+    iteration, rows, *, head, skip, limit, archive_path, state=None
+):
     """Store full-body identities in the active Markdown receipt."""
     entries = history_body_entries(rows)
+    policy = history_policy.bind(iteration, {} if state is None else state)
     old = iteration.get("history")
+    if old is not None:
+        need(isinstance(old, dict), "history receipt is malformed")
+        need(
+            old.get("required_limit") == policy["required_limit"],
+            "history policy changed; explicit repair or migration is required",
+        )
     pages = [] if not isinstance(old, dict) or old.get("head") != head else list(old.get("pages", []))
     page = {
         "skip": skip,
@@ -186,13 +197,15 @@ def record_full_history_page(iteration, rows, *, head, skip, limit, archive_path
         "commits": list(dict.fromkeys((old or {}).get("commits", []) + [row["sha"] for row in rows]))
         if isinstance(old, dict) and old.get("head") == head
         else [row["sha"] for row in rows],
-        "required_limit": HISTORY_LIMIT,
+        "required_limit": policy["required_limit"],
         "pages": pages,
     }
 
 
-def require_full_history(core, root, iteration, repo, *, label):
-    """Require the current last-ten full bodies, not a subject/SHA claim."""
+def require_full_history(core, root, iteration, repo, *, label, state=None):
+    """Require the policy-owned current full bodies, not a subject/SHA claim."""
+    policy = history_policy.bound(iteration, {} if state is None else state)
+    required_limit = policy["required_limit"]
     current = git(core, repo, "rev-parse", "HEAD")
     history = iteration.get("history")
     need(
@@ -200,8 +213,8 @@ def require_full_history(core, root, iteration, repo, *, label):
         f"read current Git history with shiploop history before {label}",
     )
     need(
-        history.get("required_limit") == HISTORY_LIMIT,
-        f"{label} requires the latest {HISTORY_LIMIT} full commit bodies",
+        history.get("required_limit") == required_limit,
+        f"{label} requires the latest {required_limit} full commit bodies",
     )
     pages = history.get("pages")
     need(isinstance(pages, list) and pages, f"{label} has no full-body history receipt")
@@ -220,13 +233,13 @@ def require_full_history(core, root, iteration, repo, *, label):
             recorded[row["sha"]] = row["body_sha256"]
         for row in page["commits"]:
             page_by_sha[row["sha"]] = page
-    rows = evidence.history(repo, HISTORY_LIMIT, 0)
+    rows = evidence.history(repo, required_limit, 0)
     needed_pages = []
     for row in rows:
         need(
             recorded.get(row["sha"])
             == hashlib.sha256(row["body"].encode()).hexdigest(),
-            f"{label} requires the latest {HISTORY_LIMIT} full commit bodies",
+            f"{label} requires the latest {required_limit} full commit bodies",
         )
         page = page_by_sha.get(row["sha"])
         need(isinstance(page, dict), f"{label} history page is missing a required body")
@@ -311,6 +324,34 @@ def validate_state(state):
         "invalid completed action ledger",
     )
     platform_revalidation_current(state)
+    history_policy.resolve(state)
+    system_context.context_current(state)
+    for marker in ("outer_work_protocol_version", "delivery_objective_protocol_version", "observation_protocol_version"):
+        need(marker not in state or (type(state[marker]) is int and state[marker] == 1),
+             f"unsupported {marker}")
+    if "outer_work_sha256" in state or "outer_work_revision" in state:
+        need(isinstance(state.get("outer_work_sha256"), str)
+             and re.fullmatch(r"[0-9a-f]{64}", state["outer_work_sha256"])
+             and type(state.get("outer_work_revision")) is int and state["outer_work_revision"] > 0,
+             "invalid outer-work state binding")
+    receipts = state.get("observation_receipts", {})
+    need(isinstance(receipts, dict) and all(
+        isinstance(key, str) and re.fullmatch(r"OBS-[0-9a-f]{32}", key)
+        and isinstance(value, str) and re.fullmatch(r"[0-9a-f]{64}", value)
+        for key, value in receipts.items()), "invalid observation receipt bindings")
+    outer_receipts = state.get("outer_work_receipts", {})
+    need(isinstance(outer_receipts, dict) and all(
+        isinstance(key, str) and re.fullmatch(r"OW-[0-9a-f]{32}", key)
+        and isinstance(value, str) and re.fullmatch(r"[0-9a-f]{64}", value)
+        for key, value in outer_receipts.items()), "invalid outer-work receipt bindings")
+    interruption = state.get("observation_repair")
+    if interruption is not None:
+        need(isinstance(interruption, dict) and set(interruption) == {"action", "parent_action", "route"}
+             and interruption.get("action") in receipts and interruption.get("parent_action") == aid
+             and isinstance(interruption.get("route"), dict)
+             and set(interruption["route"]) == {"kind", "discovery_ids"}
+             and interruption["route"]["kind"] in ("pause", "current-step-repair", "proof-repair", "pending-replan")
+             and isinstance(interruption["route"]["discovery_ids"], list), "invalid observation repair state")
 
 
 def git(core, repo, *args):
@@ -331,6 +372,11 @@ def action(state, phase, stage):
 
 def persist(root, state, event, writes=None, deletes=None):
     writes = dict(writes or {})
+    interruption = state.get("observation_repair")
+    if interruption and interruption["parent_action"] != state.get("action", {}).get("id"):
+        state.pop("observation_repair", None)
+        if str(state.get("paused", "")).startswith("New unverified knowledge"):
+            state.pop("paused", None)
     history_path = root / "history.md"
     history = store.read_record(history_path) if history_path.exists() else []
     history.append(
@@ -642,6 +688,204 @@ def knowledge_context(root, state):
     return ledger, scope, knowledge.context_text(ledger, state.get("active_step"))
 
 
+def bound_outer_work(root, state):
+    """Absence is allowed; a created journal must remain hash-bound Markdown."""
+    path = safe_run_path(root, "outer-work.md")
+    expected = state.get("outer_work_sha256")
+    if not expected:
+        need(not path.exists(), "unbound outer-work.md; restore the script-owned journal")
+        return outer_work.empty()
+    need(path.is_file(), "bound outer-work.md is missing")
+    body = path.read_text()
+    need(hashlib.sha256(body.encode()).hexdigest() == expected, "outer-work.md changed outside its journal callback")
+    ledger = outer_work.validate(store.loads(body))
+    need(ledger["revision"] == state.get("outer_work_revision"), "outer-work revision mismatch")
+    return ledger
+
+
+def outer_work_stage(state):
+    stage = state["stage"]
+    if objectives.is_objective_stage(stage):
+        stage = state.get("objective", {}).get("kind", stage)
+    return stage
+
+
+def observation_ticket(state):
+    need(state.get("observation_protocol_version") == 1, "early observations are unavailable for this legacy run")
+    need(state["stage"] not in ("done", "halted", "schedule"), "observations require an active host action")
+    return observations.issue(state["action"]["id"], state["stage"], state.get("active_step"), state["knowledge_revision"])
+
+
+def observation_context(root, state):
+    ticket = observation_ticket(state)
+    command = f"{shlex.quote(sys.executable)} {shlex.quote(str(Path(__file__).with_name('shiploop')))} done --run-dir {shlex.quote(str(root))} --action {ticket['action']} --result <absolute-result.md>"
+    return store.dumps({"ticket": ticket, "callback": command,
+        "result_template": {"summary": "What was observed before verification.", "knowledge_revision": ticket["expected_knowledge_revision"],
+            "learnings": "Safe evidence-backed learning; no credential values.", "discoveries": []},
+        "discovery_fields": "id, domain, observation, evidence, scope, disposition, rationale, revalidate; use the existing carry-forward schema and stable IDs from knowledge context",
+        "instructions": "Read context --section knowledge first. This side callback records compatible unverified observations, never successful tests or parent completion. Do not submit an empty checkpoint for routine work. Context-bound planning or late checks require an available repair route. Permission/contract blockers are rejected before mutation: use pause and seek direction, or the existing carry-forward resolution at its owning stage. No blocker resolutions are allowed here. Use outer-work instead for later deployment dependencies."}, "ShipLoop early observation ticket")
+
+
+def observation_repair_available(state):
+    """Do not admit a checkpoint whose recovery route does not exist."""
+    stage = state["stage"]
+    if objectives.is_objective_stage(stage):
+        return state.get("objective", {}).get("kind") in ("approach", "survey", "post-inner")
+    return (planning.is_planning_stage(stage) or is_step_plan_stage(stage)
+            or bool(state.get("active_step")) and stage in (
+                "implement", "review", "improve-plan", "improve-apply", "verify",
+                "carry-forward", "commit", "final-verify", "post-inner", "merge"))
+
+
+def complete_observation(core, root, state, aid, result):
+    need(state.get("observation_protocol_version") == 1, "early observations require a versioned new run")
+    need(re.fullmatch(r"OBS-[0-9a-f]{32}", aid) is not None, "unsafe observation action")
+    relative = f"observations/{aid}.md"
+    path = safe_run_path(root, relative)
+    if path.exists():
+        old = store.read_record(path)
+        need(state.get("observation_receipts", {}).get(aid) == digest(old), "observation receipt binding mismatch")
+        ticket = observations.issue(old["parent_action"], old["parent_stage"], old["parent_step"], old["expected_knowledge_revision"])
+        observations.assert_replay(old, ticket, result, route_value=old["route"])
+        return
+    need(not state.get("observation_repair"), "resolve the prior observation repair before submitting another checkpoint")
+    ticket = observation_ticket(state)
+    need(aid == ticket["action"], "stale observation ticket; read observation context again")
+    ledger = bound_knowledge(root, state)
+    repo = repo_for(root, state)
+    prepared = observations.build_checkpoint(ledger=ledger, previous_sha256=state["knowledge_sha256"],
+        ticket=ticket, raw_result=result, step_ids=set(core.steps_by_id(root)),
+        context_fingerprint=evidence.fingerprint(repo, excluded=exclusions(root, repo)))
+    need(prepared["result"]["discoveries"], "early observation requires a discovery; routine empty checkpoints belong to carry-forward")
+    stage = state["stage"]
+    # Any allocated plan/objective is context-bound, even before its first check.
+    bound_pass = objectives.is_objective_stage(stage) or (is_step_plan_stage(stage) and stage != "step-plan")
+    late = stage in ("implement", "improve-apply", "verify", "carry-forward", "commit", "final-verify", "post-inner", "merge", "quality", "publish", "handoff")
+    needs_repair = bound_pass or late or prepared["route"]["kind"] in ("current-step-repair", "pause")
+    need(prepared["route"]["kind"] != "pause", "early observations cannot resolve permission/contract blockers; use pause and seek direction or the owning carry-forward stage; no state changed")
+    need(not needs_repair or observation_repair_available(state),
+         "no compatible observation repair route at this stage; journal outer dependencies or pause for an authorized replan; no state changed")
+    if needs_repair and prepared["route"]["kind"] not in ("pause", "current-step-repair"):
+        prepared["route"] = {"kind": "proof-repair", "discovery_ids": []}
+    receipt = observations.receipt(ticket, prepared)
+    writes = {}
+    write_knowledge_checkpoint(root, state, writes, action_id=aid, kind=observations.KIND,
+        previous=ledger, current=prepared["ledger"], source=prepared["source"], result=prepared["result"])
+    writes[relative] = store.dumps(receipt, "ShipLoop unverified observation receipt")
+    state.setdefault("observation_receipts", {})[aid] = digest(receipt)
+    if needs_repair:
+        state["observation_repair"] = {"action": aid, "parent_action": ticket["parent_action"], "route": prepared["route"]}
+        state["paused"] = "New unverified knowledge requires explicit repair/replan; no prior check or convergence is reused. Read knowledge and observation context."
+    state["revision"] += 1
+    persist(root, state, "unverified-observation", writes)
+
+
+def outer_work_request_id(state, ledger):
+    return "OW-" + digest({"action": state["action"]["id"], "revision": ledger["revision"]})[:32]
+
+
+def outer_work_context(root, state):
+    need(state.get("outer_work_protocol_version") == 1, "outer-work journaling is not enabled for this legacy run")
+    ledger = bound_outer_work(root, state)
+    rid = outer_work_request_id(state, ledger)
+    stage = outer_work_stage(state)
+    resolution = dict(outer_work.resolution_template("OW-entry", ledger["revision"]), request_id=rid)
+    command = f"{shlex.quote(sys.executable)} {shlex.quote(str(Path(__file__).with_name('shiploop')))} journal --run-dir {shlex.quote(str(root))} --target outer --action {shlex.quote(state['action']['id'])}"
+    return store.dumps({
+        "journal": "outer-work.md", "revision": ledger["revision"],
+        "entries": outer_work.select(ledger),
+        "due": outer_work.pending_for_stage(ledger, stage) if stage in outer_work.OUTER_STAGES else [],
+        "append_template": outer_work.request_template(rid, ledger["revision"]),
+        "resolve_template": resolution,
+        "append_callback": command + " --operation append --result <absolute-result.md>",
+        "resolve_callback": command + " --operation resolve --result <absolute-result.md>",
+        "instructions": "Read existing entries to reuse their dedupe_key and entry_id. Submit the exact template using the callback below. This does not complete the parent action. Resolution requires the matching outer stage and observed evidence; planned is not done. No new external authority is granted. If the current step needs this prerequisite now, pause/repair it now; deferring a journal item cannot make it Ready. After any edit, reread this context. A changed journal invalidates a bound objective: use its repair route before further convergence.",
+    }, "ShipLoop outer-work context")
+
+
+def record_outer_work_page(root, state, *, checksum, offset, end, total):
+    if not state.get("outer_work_sha256"):
+        return
+    relative = f"outer-work-reads/{state['action']['id']}.md"
+    path = safe_run_path(root, relative)
+    expected = {"action": state["action"]["id"], "journal_sha256": state["outer_work_sha256"],
+                "digest": checksum, "total": total}
+    old = store.read_record(path) if path.exists() else {}
+    # A new journal revision deliberately invalidates prior page coverage.
+    pages = old.get("pages", []) if all(old.get(k) == v for k, v in expected.items()) else []
+    page = {"offset": offset, "end": end}
+    if page not in pages:
+        pages.append(page)
+    store.transaction(root, {relative: store.dumps(dict(expected, pages=pages), "ShipLoop outer-work read receipt")})
+
+
+def require_outer_work_read(root, state, *, stage, require_resolved):
+    if state.get("outer_work_protocol_version") != 1:
+        return
+    ledger = bound_outer_work(root, state)
+    if not state.get("outer_work_sha256"):
+        return
+    body = outer_work_context(root, state)
+    path = safe_run_path(root, f"outer-work-reads/{state['action']['id']}.md")
+    need(path.is_file(), "outer stage requires reading context --section outer-work")
+    record = store.read_record(path)
+    need(isinstance(record, dict) and record.get("action") == state["action"]["id"]
+         and record.get("journal_sha256") == state["outer_work_sha256"]
+         and record.get("digest") == hashlib.sha256(body.encode()).hexdigest()
+         and record.get("total") == len(body)
+         and pages_cover_total(record.get("pages"), len(body)),
+         "outer stage requires every page of the current outer-work journal")
+    if require_resolved:
+        # Earlier-stage obligations cannot disappear by advancing the cursor.
+        due = [row["id"] for row in outer_work.pending_for_stage(ledger, stage)]
+        need(not due, "unresolved outer work blocks " + stage + ": " + ", ".join(due))
+
+
+def journal_outer_work(root, state, aid, result, operation):
+    """A replay-safe side callback: persist discoveries without consuming aid."""
+    need(state.get("outer_work_protocol_version") == 1, "outer-work journaling requires a versioned new run")
+    need(isinstance(result, dict), "outer-work result must be a Markdown record")
+    rid = result.get("request_id")
+    need(isinstance(rid, str) and re.fullmatch(r"OW-[0-9a-f]{32}", rid), "use the script-issued outer-work request_id")
+    relative = f"journal-requests/{rid}.md"
+    path = safe_run_path(root, relative)
+    identity = digest({"action": aid, "operation": operation, "result": result})
+    if path.exists():
+        receipt = store.read_record(path)
+        need(state.get("outer_work_receipts", {}).get(rid) == digest(receipt), "outer-work request receipt binding mismatch")
+        need(receipt.get("input_digest") == identity, "conflicting replay of outer-work request")
+        return
+    need(aid == state["action"]["id"], "stale parent action ID; run next")
+    need(state["stage"] not in ("done", "halted", "schedule"), "outer-work requires an active host action")
+    ledger = bound_outer_work(root, state)
+    need(rid == outer_work_request_id(state, ledger), "stale outer-work request; reread outer-work context")
+    stage = outer_work_stage(state)
+    provenance = {"parent_action": aid, "parent_step": state.get("active_step"), "parent_stage": stage}
+    if operation == "append":
+        lifecycle_path = safe_run_path(root, "lifecycle.md")
+        if result.get("target_stage") == "publish" and lifecycle_path.is_file():
+            lifecycle = store.read_record(lifecycle_path)
+            need(lifecycle.get("publish") == "outer-loop",
+                 "publish is not an enabled outer stage; journal for quality/handoff or request an authorized lifecycle revision")
+        updated, receipt = outer_work.append(ledger, result, provenance)
+    else:
+        need(operation == "resolve" and stage in outer_work.OUTER_STAGES, "resolution requires an outer quality, publish, or handoff action")
+        require_outer_work_read(root, state, stage=stage, require_resolved=False)
+        updated = outer_work.resolve(ledger, {k: v for k, v in result.items() if k != "request_id"}, provenance)
+        receipt = {"request_id": rid, "entry_id": result["entry_id"], "outcome": "resolved", "revision": updated["revision"]}
+    body = outer_work.render(updated)
+    state["outer_work_sha256"] = hashlib.sha256(body.encode()).hexdigest()
+    state["outer_work_revision"] = updated["revision"]
+    request_record = {"input_digest": identity, "parent_action": aid,
+                      "request": result, "operation": operation, "receipt": receipt}
+    state.setdefault("outer_work_receipts", {})[rid] = digest(request_record)
+    state["revision"] += 1
+    persist(root, state, "outer-work:" + operation, {
+        "outer-work.md": body,
+        relative: store.dumps(request_record, "ShipLoop outer-work request receipt"),
+    })
+
+
 def knowledge_read_path(action_id):
     return f"knowledge-reads/{action_id}.md"
 
@@ -884,6 +1128,39 @@ def planning_kind(state):
     return kind
 
 
+def research_validation_kwargs(core, root, state):
+    """Select the exact legacy or v1 research validator without migrating runs."""
+    if not system_context.context_current(state):
+        return {}
+    machine, gaps = core.load_environment(root)
+    need(
+        not gaps and isinstance(machine, dict),
+        "; ".join(gaps) or "missing frozen environment machine",
+    )
+    return {"machine": machine, "system_context_enabled": True}
+
+
+def stored_research_state(root, state):
+    """Read the durable candidate for equality checks after its accepted validation.
+
+    The v1 branch intentionally compares the exact Markdown payload to the
+    validated receipt here.  Call sites that need semantic bindings use
+    ``research_validation_kwargs`` and the system-context evidence helper.
+    """
+    if not system_context.context_current(state):
+        return research.read_state(root)
+    path = safe_run_path(root, "research-evidence.md")
+    need(path.is_file() and not path.is_symlink(), "missing research-evidence.md")
+    return store.read_record(path)
+
+
+def research_unresolved_ids(core, root, state, value):
+    """Use the selected evidence schema when deciding research convergence."""
+    return research.unresolved_ids(
+        value, **research_validation_kwargs(core, root, state)
+    )
+
+
 def planning_receipt(root, state):
     kind = planning_kind(state)
     path = safe_run_path(root, planning.receipt_name(kind))
@@ -891,7 +1168,7 @@ def planning_receipt(root, state):
     receipt = planning.assert_receipt(root, kind, store.read_record(path))
     if kind == "research":
         need(
-            receipt.get("research_state") == research.read_state(root),
+            receipt.get("research_state") == stored_research_state(root, state),
             "research evidence does not match the current planning receipt",
         )
     return kind, receipt
@@ -1355,13 +1632,17 @@ def planning_validate_certificate(core, root, state, kind, *, require_current_id
     )
     if kind == "research":
         text_field(certificate, "as_of")
+        research_kwargs = research_validation_kwargs(core, root, state)
         need(
-            receipt.get("research_state") == research.read_state(root),
+            receipt.get("research_state")
+            == research.read_state(root, **research_kwargs),
             "research evidence does not match the frozen planning receipt",
         )
         need(
-            not research.unresolved_ids(receipt.get("research_state", {})),
-            "research planning certificate has open or blocked questions",
+            not research.unresolved_ids(
+                receipt.get("research_state", {}), **research_kwargs
+            ),
+            "research planning certificate has open or blocked questions or required interaction contracts",
         )
     else:
         need(
@@ -1537,7 +1818,7 @@ def step_plan_step_context(core, root, state, rec, *, route="initial"):
             if isinstance(row, dict) and row.get("from") == rec["id"]:
                 consumers.append(candidate)
                 break
-    return {
+    context = {
         "selected_step": step,
         "direct_suppliers": sorted(suppliers, key=lambda item: item.get("id", "")),
         "direct_consumers": sorted(consumers, key=lambda item: item.get("id", "")),
@@ -1554,6 +1835,16 @@ def step_plan_step_context(core, root, state, rec, *, route="initial"):
         "enclosing_review": step_plan_enclosing_review(rec, route=route),
         "implementation_test_record": implementation_test_context(root, state, rec),
     }
+    system_view = step_plan_system_context(
+        core,
+        root,
+        state,
+        rec["id"],
+        [row["id"] for row in consumers if isinstance(row.get("id"), str)],
+    )
+    if system_view is not None:
+        context["system_context"] = system_view
+    return context
 
 
 def step_plan_require_parent_coverage(rec, body):
@@ -1589,7 +1880,7 @@ def step_plan_context_identity(core, root, state, rec, *, route="initial"):
 
     bound_knowledge(root, state)
     status = git(core, worktree, "status", "--porcelain=v1", "--untracked-files=all")
-    return {
+    identity = {
         "step_sha256": step_planning.sha256_value(step_context["selected_step"]),
         "dependency_sha256": step_planning.sha256_value(
             {
@@ -1615,6 +1906,26 @@ def step_plan_context_identity(core, root, state, rec, *, route="initial"):
         "plan_sha256": frozen("plan_sha256", "backchain/plan.md"),
         "knowledge_sha256": state["knowledge_sha256"],
     }
+    system_view = step_context.get("system_context")
+    if system_view is not None:
+        need(
+            isinstance(system_view, dict)
+            and isinstance(system_view.get("research_binding"), dict),
+            "step-plan system-context binding is invalid",
+        )
+        research_binding = system_view["research_binding"]
+        context_binding = research_binding.get("system_context")
+        need(
+            isinstance(context_binding, dict),
+            "step-plan system-context evidence binding is invalid",
+        )
+        identity.update(
+            research_candidate_sha256=research_binding.get("candidate_sha256"),
+            research_certificate_sha256=research_binding.get("certificate_sha256"),
+            research_evidence_sha256=context_binding.get("research_evidence_sha256"),
+            system_context_sha256=context_binding.get("context_sha256"),
+        )
+    return identity
 
 
 def step_plan_receipt(root, rec, loop=None):
@@ -1941,7 +2252,7 @@ def step_plan_validate_execution_proof(core, root, state, rec):
 def step_plan_repair(core, root, state, aid, reason):
     """Archive an interrupted pass, retain its ledger, and bind a new epoch."""
     need(aid == state["action"]["id"], "stale action ID")
-    need(is_step_plan_stage(state["stage"]), "step-plan repair requires an active step-plan loop")
+    need(is_step_plan_stage(state["stage"]) or (state["stage"] == "implement" and state.get("observation_repair")), "step-plan repair requires an active step-plan loop")
     need(bool(reason.strip()), "step-plan repair needs a reason")
     rec = active(root, state)
     loop, receipt = step_plan_receipt(root, rec)
@@ -1978,6 +2289,7 @@ def step_plan_repair(core, root, state, aid, reason):
         action(state, "implement", "step-plan-review")
         state.pop("paused", None)
     state["revision"] += 1
+    state.pop("observation_repair", None)
     persist(
         root,
         state,
@@ -2150,11 +2462,72 @@ def research_current_binding(core, root, state, *, require_current_identity=Fals
         receipt.get("candidate_sha256") == candidate_sha256,
         "research receipt candidate does not match frozen state",
     )
-    return {
+    binding = {
         "candidate_sha256": candidate_sha256,
         "certificate_sha256": certificate_sha256,
         "as_of": as_of,
     }
+    if system_context.context_current(state):
+        research_kwargs = research_validation_kwargs(core, root, state)
+        machine = research_kwargs["machine"]
+        binding["system_context"] = system_context.read_evidence_binding(
+            root, state, machine
+        )
+    return binding
+
+
+def system_context_context(core, root, state, *, step_id=None, consumer_ids=()):
+    """Read a bounded v1 context view for an active task or outer reader.
+
+    ``consumer_ids`` comes from the existing frozen DAG caller.  With no step
+    supplied, an active task selects itself and its direct frozen-DAG consumers;
+    an outer reader with no active task receives the bounded whole-context
+    view.  It creates no new scheduling edge.
+    """
+    if not system_context.context_current(state):
+        return None
+    if step_id is None and isinstance(state.get("active_step"), str):
+        step_id = state["active_step"]
+        steps = core.steps_by_id(root)
+        consumer_ids = tuple(
+            candidate["id"]
+            for candidate in steps.values()
+            if isinstance(candidate, dict)
+            and isinstance(candidate.get("id"), str)
+            and any(
+                isinstance(row, dict) and row.get("from") == step_id
+                for row in (
+                    candidate.get("inputs", [])
+                    if isinstance(candidate.get("inputs", []), list)
+                    else []
+                )
+            )
+        )
+    research_kwargs = research_validation_kwargs(core, root, state)
+    machine = research_kwargs["machine"]
+    evidence_state = research.read_state(root, **research_kwargs)
+    research_binding = research_current_binding(core, root, state)
+    return {
+        "research_binding": research_binding,
+        "projection": system_context.project_context(
+            evidence_state["system_context"],
+            evidence_state,
+            machine,
+            step_id=step_id,
+            consumer_ids=tuple(consumer_ids),
+        ),
+    }
+
+
+def step_plan_system_context(core, root, state, step_id, consumer_ids):
+    """Read the active task's v1 selected-contract view."""
+    return system_context_context(
+        core,
+        root,
+        state,
+        step_id=step_id,
+        consumer_ids=consumer_ids,
+    )
 
 
 def run_step_plan_verify(core, root, state, args):
@@ -2871,8 +3244,11 @@ def planning_complete(core, root, state, aid, result, writes):
 
     if stage == "research":
         body = text_field(result, "body")
-        research_state = research.validate_state(result.get("research_state"))
-        evidence_text = research.render_state(research_state)
+        research_kwargs = research_validation_kwargs(core, root, state)
+        research_state = research.validate_state(
+            result.get("research_state"), **research_kwargs
+        )
+        evidence_text = research.render_state(research_state, **research_kwargs)
         candidate = planning.candidate_identity_from_texts(
             kind,
             {"research.md": body, "research-evidence.md": evidence_text},
@@ -2969,7 +3345,9 @@ def planning_complete(core, root, state, aid, result, writes):
     iteration = receipt["current_iteration"]
 
     if stage.endswith("-review"):
-        require_full_history(core, root, iteration, repo, label="planning review")
+        require_full_history(
+            core, root, iteration, repo, label="planning review", state=state
+        )
         findings = planning.normal_findings(result.get("findings"))
         planning.check_coverage_review(kind, result.get("coverage_review"))
         text_field(result, "test_review")
@@ -2995,21 +3373,24 @@ def planning_complete(core, root, state, aid, result, writes):
         text_field(result, "learnings")
         addresses = planning.check_addresses(receipt, iteration.get("plan", {}).get("addresses"))
         if kind == "research":
+            research_kwargs = research_validation_kwargs(core, root, state)
             previous_research_state = research.validate_state(
-                receipt.get("research_state")
+                receipt.get("research_state"), **research_kwargs
             )
             current_research_state = research.validate_state(
-                result.get("research_state")
+                result.get("research_state"), **research_kwargs
             )
             research.validate_transition(
-                previous_research_state, current_research_state
+                previous_research_state, current_research_state, **research_kwargs
             )
             iteration["research_material"] = research.meaningful_change(
-                previous_research_state, current_research_state
+                previous_research_state, current_research_state, **research_kwargs
             )
             candidate_texts = {
                 "research.md": body,
-                "research-evidence.md": research.render_state(current_research_state),
+                "research-evidence.md": research.render_state(
+                    current_research_state, **research_kwargs
+                ),
             }
             receipt["research_state"] = current_research_state
         elif kind == "behavior":
@@ -3077,7 +3458,11 @@ def planning_complete(core, root, state, aid, result, writes):
             or bool(iteration.get("research_material"))
             or (
                 kind == "research"
-                and bool(research.unresolved_ids(receipt.get("research_state", {})))
+                and bool(
+                    research_unresolved_ids(
+                        core, root, state, receipt.get("research_state", {})
+                    )
+                )
             )
         )
         outcome = planning.countable_outcome(receipt, material=material)
@@ -3121,7 +3506,9 @@ def planning_complete(core, root, state, aid, result, writes):
                 extra_open=(
                     ["research-state-open"]
                     if kind == "research"
-                    and research.unresolved_ids(receipt.get("research_state", {}))
+                    and research_unresolved_ids(
+                        core, root, state, receipt.get("research_state", {})
+                    )
                     else []
                 ),
             )
@@ -3133,7 +3520,9 @@ def planning_complete(core, root, state, aid, result, writes):
             and planning.all_clear(receipt)
             and (
                 kind != "research"
-                or not research.unresolved_ids(receipt.get("research_state", {}))
+                or not research_unresolved_ids(
+                    core, root, state, receipt.get("research_state", {})
+                )
             )
         ):
             action(state, "validate-spec", f"{kind}-finalize")
@@ -3151,8 +3540,10 @@ def planning_complete(core, root, state, aid, result, writes):
         need(planning.all_clear(receipt), "planning finalize requires no unresolved findings")
         if kind == "research":
             need(
-                not research.unresolved_ids(receipt.get("research_state", {})),
-                "research finalize requires no open or blocked questions",
+                not research_unresolved_ids(
+                    core, root, state, receipt.get("research_state", {})
+                ),
+                "research finalize requires no open or blocked questions or required interaction contracts",
             )
         certificate = {
             "kind": kind,
@@ -3227,6 +3618,13 @@ def objective_current(state):
     return objectives.is_current(state)
 
 
+def objective_base_current(state, stage):
+    """Only newly versioned runs acquire the final handoff objective."""
+    return objectives.is_base_stage(stage) and objective_current(state) and (
+        stage != "handoff" or state.get("delivery_objective_protocol_version") == 1
+    )
+
+
 def objective_artifact_sha256(root, name):
     """Hash one authoritative Markdown input, including an explicit absence."""
     path = safe_run_path(root, name)
@@ -3241,7 +3639,7 @@ def objective_context_identity(core, root, state):
     repo = repo_for(root, state)
     status_paths = [".", ":(exclude).shiploop", ":(exclude).worktrees"]
     status_paths.extend(f":(exclude){item}" for item in exclusions(root, repo))
-    return {
+    context = {
         "git_baseline": git(core, repo, "rev-parse", "HEAD"),
         "committed_tree_sha256": git(core, repo, "rev-parse", "HEAD^{tree}"),
         "worktree_fingerprint": evidence.fingerprint(repo, excluded=exclusions(root, repo)),
@@ -3254,6 +3652,15 @@ def objective_context_identity(core, root, state):
         "plan_sha256": objective_artifact_sha256(root, "backchain/plan.md"),
         "knowledge_sha256": objective_artifact_sha256(root, "knowledge.md"),
     }
+    if state.get("outer_work_protocol_version") == 1:
+        context["outer_work_sha256"] = objective_artifact_sha256(root, "outer-work.md")
+    if state.get("delivery_objective_protocol_version") == 1 and (
+        state.get("stage") == "handoff"
+        or state.get("objective", {}).get("kind") == "handoff"
+    ):
+        for name in ("preparation", "coverage", "delivery", "outer-work"):
+            context[name.replace("-", "_") + "_sha256"] = objective_artifact_sha256(root, name + ".md")
+    return context
 
 
 def objective_binding(state):
@@ -3297,24 +3704,21 @@ def objective_assert_bound(core, root, state, receipt, *, allow_audit_head=False
     current = receipt["current_pass"]
     actual = objective_context_identity(core, root, state)
     ignored = {"git_baseline", "committed_tree_sha256"} if allow_audit_head else set()
-    for key, value in current.items():
-        if key in objectives.CONTEXT_KEYS and key not in ignored:
+    bound_context = objectives.pass_context(current)
+    need(
+        set(actual) == set(bound_context),
+        "objective context keys changed; restore frozen inputs or start fresh",
+    )
+    for key, value in bound_context.items():
+        if key not in ignored:
             need(
                 actual[key] == value,
-                f"objective context changed at {key}; only approach/survey/post-inner have a safe repair path, otherwise restore frozen inputs or start fresh",
-            )
-    if not allow_audit_head:
-        for key in objectives.CONTEXT_KEYS:
-            need(
-                actual[key] == current[key],
                 f"objective context changed at {key}; only approach/survey/post-inner have a safe repair path, otherwise restore frozen inputs or start fresh",
             )
     need(
         current["candidate_sha256"] == receipt["candidate_sha256"]
         and current["ledger_sha256"] == receipt["ledger_sha256"]
-        and current["context_sha256"] == objectives.context_sha256(
-            {key: current[key] for key in objectives.CONTEXT_KEYS}
-        ),
+        and current["context_sha256"] == objectives.context_sha256(bound_context),
         "objective pass binding is stale",
     )
     return actual
@@ -3338,8 +3742,10 @@ def objective_check_record(core, root, state, receipt, action_id, *, allow_audit
     need(record.get("objective_pass") == current["id"], "objective check pass is stale")
     for key in ("candidate_sha256", "ledger_sha256", "context_sha256", "identity_sha256"):
         need(record.get(key) == receipt.get(key), f"objective check {key} is stale")
-    for key in objectives.CONTEXT_KEYS:
-        need(record.get("context", {}).get(key) == current.get(key), f"objective check context {key} is stale")
+    need(
+        record.get("context") == objectives.pass_context(current),
+        "objective check context is stale",
+    )
     repo = repo_for(root, state)
     expected = objective_expected_acceptance(core, root, state, binding["kind"])
     evidence.validate_manifest(record.get("manifest"), expected)
@@ -3662,7 +4068,7 @@ def run_objective_verify(core, root, state, args):
         "ledger_sha256": receipt["ledger_sha256"],
         "context_sha256": receipt["context_sha256"],
         "identity_sha256": receipt["identity_sha256"],
-        "context": {key: current[key] for key in objectives.CONTEXT_KEYS},
+        "context": objectives.pass_context(current),
         "after": {key: after[key] for key in ("id", "candidate_sha256", "ledger_sha256", "context_sha256")} if after else None,
         "binding_error": binding_error or None,
         "objective_passed": passed,
@@ -3753,10 +4159,15 @@ def objective_complete(core, root, state, aid, result, writes):
     repo = repo_for(root, state)
 
     if stage == "objective-review":
-        history_rows = evidence.history(repo, objectives.HISTORY_LIMIT, 0)
+        history_rows = evidence.history(repo, history_policy.required_limit(state), 0)
         try:
             objective_assert_history_archive(core, root, receipt, repo, history_rows)
-            objectives.assert_history(receipt, history_rows, head=git(core, repo, "rev-parse", "HEAD"))
+            objectives.assert_history(
+                receipt,
+                history_rows,
+                head=git(core, repo, "rev-parse", "HEAD"),
+                state=state,
+            )
             findings = objectives.normal_findings(result.get("findings"))
             assessment = objectives.check_assessment(result.get("assessment"))
             history_assessment = text_field(result, "history_assessment")
@@ -3931,6 +4342,49 @@ def objective_repair(core, root, state, aid, reason):
     kind = binding["kind"]
     context = objective_context_identity(core, root, state)
 
+    # A script-owned outer-work callback is the one narrowly safe context
+    # rebind for any substantive objective: the candidate, findings, Git and
+    # product inputs must remain frozen, while the newly bound journal resets
+    # convergence rather than inheriting a prior trivial streak.
+    bound_context = objectives.pass_context(receipt["current_pass"])
+    outer_key = "outer_work_sha256"
+    changed_context_keys = {
+        key
+        for key in set(bound_context) | set(context)
+        if bound_context.get(key) != context.get(key)
+    }
+    if (
+        state.get("outer_work_protocol_version") == 1
+        and set(context) == set(bound_context)
+        and changed_context_keys == {outer_key}
+    ):
+        need(outer_key in bound_context, "outer-work repair has no bound journal context")
+        need(
+            state.get(outer_key) == context[outer_key],
+            "outer-work repair requires the state-bound current journal",
+        )
+        bound_outer_work(root, state)
+        try:
+            archived = objectives.abandon_current(
+                receipt, reason=reason, context=context
+            )
+        except objectives.ObjectiveError as exc:
+            raise ProtocolError(str(exc)) from exc
+        archive_path = objectives.abandoned_name(binding["loop_id"], archived["id"])
+        need(not safe_run_path(root, archive_path).exists(), "objective repair archive already exists")
+        action(state, state["phase"], "objective-review")
+        state["revision"] += 1
+        persist(
+            root,
+            state,
+            "objective-repair-outer-work-rebind",
+            {
+                binding["receipt"]: store.dumps(receipt, "ShipLoop objective receipt"),
+                archive_path: store.dumps(archived, "ShipLoop abandoned objective pass"),
+            },
+        )
+        return
+
     if kind in ("approach", "survey"):
         # These two objectives precede frozen requirements and execution.  A
         # fresh pass can safely inspect changed local/environment inputs, but
@@ -4076,11 +4530,24 @@ def step_plan_complete(core, root, state, aid, result, writes):
 
         if stage == "step-plan-review":
             require_knowledge_read(root, state, result)
-            require_full_history(core, root, current, worktree, label="step-plan review")
+            require_full_history(
+                core, root, current, worktree, label="step-plan review", state=state
+            )
             findings = step_planning.normal_findings(result.get("findings"))
             coverage = step_planning.check_coverage_review(result.get("coverage_review"))
+            step_context = step_plan_step_context(
+                core, root, state, rec, route=receipt["route"]
+            )
+            system_view = step_context.get("system_context")
+            selected_system_context = (
+                system_view.get("projection")
+                if isinstance(system_view, dict)
+                and isinstance(system_view.get("projection"), dict)
+                else None
+            )
             context_evidence = step_planning.check_context_evidence(
-                result.get("context_evidence")
+                result.get("context_evidence"),
+                system_context=selected_system_context,
             )
             test_review = text_field(result, "test_review")
             learnings = text_field(result, "learnings")
@@ -4372,6 +4839,10 @@ def complete(
         f"ShipLoop result {state['stage']}",
     )
     text_field(result, "summary")
+    outer_stage = outer_work_stage(state)
+    if outer_stage in outer_work.OUTER_STAGES:
+        require_outer_work_read(root, state, stage=outer_stage,
+                                require_resolved=not objectives.is_objective_stage(state["stage"]) or state["stage"] == "objective-finalize")
     if stage in ("coverage", "quality", "publish", "handoff"):
         require_outer_product_baseline(core, root, state)
     if (
@@ -4409,13 +4880,13 @@ def complete(
         state["revision"] += 1
         persist(root, state, f"complete:{stage}", writes)
         return
-    if objectives.is_base_stage(stage) and objective_current(state) and not _objective_bypass:
+    if objective_base_current(state, stage) and not _objective_bypass:
         objective_start(core, root, state, stage, result, writes)
     elif "journal" in result:
         writes["shiploop-improvements.md"] = proposal_entries(
             root, state, result["journal"]
         )
-    if objectives.is_base_stage(stage) and objective_current(state) and not _objective_bypass:
+    if objective_base_current(state, stage) and not _objective_bypass:
         pass
     elif stage == "preflight":
         repo = Path(state["repo_root"])
@@ -4493,6 +4964,11 @@ def complete(
                         "migration must preserve completed/running step definitions; add corrective steps instead",
                     )
         lifecycle = store.read_record(root / "lifecycle.md")
+        if state.get("outer_work_protocol_version") == 1 and lifecycle.get("publish") != "outer-loop":
+            orphaned = [row["id"] for row in outer_work.select(bound_outer_work(root, state))
+                        if row["target_stage"] == "publish" and row["status"] != "resolved"]
+            need(not orphaned, "outer publish is disabled but journal work targets it: " + ", ".join(orphaned)
+                 + "; revise these entries to quality/handoff with rationale or seek an authorized lifecycle change")
         for kind, key in (("preparation", "preparation"), ("publish", "publish")):
             if lifecycle[key] == "dag":
                 need(
@@ -4562,7 +5038,12 @@ def complete(
         if stage == "review":
             require_knowledge_read(root, state, result)
             require_full_history(
-                core, root, it, Path(rec["worktree"]), label="inner-loop review"
+                core,
+                root,
+                it,
+                Path(rec["worktree"]),
+                label="inner-loop review",
+                state=state,
             )
             findings = result.get("findings")
             need(
@@ -4932,7 +5413,7 @@ PROMPTS = {
     "preflight": 'Inspect Git baseline, dirty files, runtime, credentials availability (never record secrets), existing lint/tests and any environment preparation needed. Identify test surfaces and target-environment readiness without installing tools or changing scope. Preserve user dirt. Result: summary, baseline="committed-head"; include readiness and preparation findings.',
     "approach": "Create the initial delivery approach before the spec: scope, risks, milestones, prep candidates, and acceptance strategy. Start from the durable incoming prompt; identify actors, behavioral outcomes and high-risk state/sequence questions. Result: summary, body (Markdown).",
     "survey": "Survey existing artifacts, references and tool/writer routes. If a client will call a service, freeze both sides' invocation protocol (service-visible operations and client/HTML call conventions) before any communication is authored. Assess browser/service/API testing by actual surface and risk; record selected, not applicable with reason, or required but blocked, plus environment and documentation conventions. Read references/survey.md and references/activities/validate-spec.md section for environment.md. Result: summary, body (complete environment Markdown with ## machine fenced JSON).",
-    "research": "Draft the research candidate from the survey. Preserve a bounded question/source inventory in research_state while the report body may be detailed. Trace high-risk flows, recovery, sources and access without claiming unresolved evidence is settled. For any client/service boundary, inspect and record the actual invocation contract: public service operations/envelopes plus the real client or HTML call convention, before spec or communication authoring; do not author communication yet. Result: summary, body (Markdown), research_state={questions:[{id,question,origin,status:\"resolved|open|blocked|not-applicable\",answer,sources:[source IDs],revalidate,rationale}],sources:[{id,reference,authority:\"primary|local|secondary|probe\",version_or_observed_at,supports,limitations}]}. Every question answer is nonempty (gap/reason when not resolved); resolved questions cite source IDs; open/blocked questions cannot converge.",
+    "research": "Draft the research candidate from the survey. Preserve a bounded question/source inventory in research_state while the report body may be detailed. Trace high-risk flows, recovery, sources and access without claiming unresolved evidence is settled. For a new versioned run, every question also links parents, contracts, roles and interfaces, and system_context records bounded observations, roles, surveyed-interface references and interaction input/output, state, failure and idiom semantics; legacy runs retain the two-key shape. Follow causal boundaries according to risk, not a numeric depth count. For any client/service boundary, inspect and record the actual invocation contract: public service operations/envelopes plus the real client or HTML call convention, before spec or communication authoring; do not author communication yet. Result: summary, body (Markdown), research_state={questions:[{id,question,origin,status:\"resolved|open|blocked|not-applicable\",answer,sources:[source IDs],revalidate,rationale}],sources:[{id,reference,authority:\"primary|local|secondary|probe\",version_or_observed_at,supports,limitations}]}. Every question answer is nonempty (gap/reason when not resolved); resolved questions cite source IDs; required open/blocked interaction boundaries cannot converge.",
     "research-review": "Run history first. Review the research report and compact evidence for the full research rubric, source limitations, contradictions, open questions, access readiness and invocation contracts. Result: summary, findings:[{id,severity:'material|trivial',summary}], coverage_review mapping, test_review, learnings.",
     "research-plan": "Plan every open research finding and needed evidence clarification against the current environment, actual inspected artifacts, dependencies, flows, edge conditions, second-order effects, and implicit assumptions. Keep scope explicit; do not invent implementation facts. Result: summary, body (Markdown), addresses:[every open finding ID].",
     "research-apply": "Replace the complete research report and research_state only through this action. Preserve all prior question/source IDs and source identity; do not omit unresolved questions. Meaningful question/conclusion/status/source-binding changes are material even when the host flag says false. Result: summary, body (Markdown), research_state, material:boolean, resolutions:[{id,evidence}], test_changes, learnings.",
@@ -4955,8 +5436,8 @@ PROMPTS = {
     "spec-finalize": "Two trivial, fully checked and committed specification passes with no open findings are required. Run fresh planning-verify for the unchanged candidate; do not supply body or lifecycle. Result: summary.",
     "sequence": "Use ShipLoop native dependency planning: draft forward steps, then audit prerequisites backwards one step at a time. Recheck the actual environment, existing implementation, prior Git learning, dependencies, state/sequence flows, edge conditions, second-order effects, and implicit requirements before fixing order. Add missing producers or unresolved questions; never invent initial facts. Read the compact references/activities/plan.md (no external planner skill required). Return summary, dependency_review, plan (Markdown with matching done_sentence and Review Coverage), and the complete dag OR dag_file (absolute Markdown draft path). New runs require DAG contract_version:1 and every step's explicit contract: objective matching statement, Ready criteria, Done criteria, tests with exact expected outcomes, and documentation obligations; follow the printed schema. Import validates the complete DAG without needing it in chat. Mark required prep/publish steps activity: preparation/publish; plan executable checks and concise function/README documentation for every relevant produces. Put environment/deployment prerequisites before dependent checks; deployment-dependent acceptance must be verifiable before the step closes. When a client will call a service, a producer must freeze the invocation contract before the step that authors call sites.",
     "prepare": "Perform only authorized outer-before preparation. Verify the selected test environment, artifact identity, isolated fixtures and readiness; a health probe is not behavioral acceptance. Stop for new permission or external uncertainty. Result: summary, evidence (specific commands/probes/results).",
-    "step-plan": "Draft the initial step-local plan before product edits. Read --section step-context, relevant prior Git commit bodies, frozen spec/environment/behavior/plan pages and bounded knowledge. Bind the selected step, actual code, dependencies, flows, edge conditions, second-order effects, implicit requirements and docs. In body, define test criteria before code: stable case/contract T-IDs, exact produces, preconditions/inputs, expected outcomes/state/side effects, planned test paths/check IDs, target environment and fixtures. Assess unit, mock/fake, integration, end-to-end and browser/service/API: selected, not applicable with reason, or required but blocked. Order code, post-code test authoring/refinement from implementation learnings, then lint/tests and failure repair. Plan checks do not prove future product tests. Draft only Markdown; do not edit product files. Result: summary, body.",
-    "step-plan-review": "Run history first, then read --section step-plan, --section step-context and every knowledge page. Inspect the actual worktree and environment, not only the draft. Audit commits can dominate the latest ten; inspect relevant older implementation decisions by path/symbol when needed. Audit case/criterion mappings, independent expected outcomes, unit/mock/fake/integration/end-to-end decisions, fixtures and post-code test refinement in test_strategy. Missing required cases or vague assertions are material. Record stable findings and every coverage dimension. Material scope/behavior means a new or contradictory frozen-contract requirement and pauses execution; an approved-flow gap is implementation, flow or edge-condition. Result: summary, findings:[{id,severity:'material|trivial',category:'scope|behavior|implementation|environment|dependency|flow|edge-condition|second-order-effect|implicit-requirement|test-strategy|documentation',summary}], coverage_review with every key, context_evidence:{step,implementation,environment,dependencies}, test_review, learnings. The script binds knowledge page receipts; new runs do not echo their metadata.",
+    "step-plan": "Draft the initial step-local plan before product edits. Read --section step-context and, when listed, --section system-context, relevant prior Git commit bodies, frozen spec/environment/behavior/plan pages and bounded knowledge. Bind the selected step, actual code, dependencies, selected role/interface/interaction contracts, flows, edge conditions, second-order effects, implicit requirements and docs. Preserve unresolved system contracts as blockers. In body, define test criteria before code: stable case/contract T-IDs, exact produces, preconditions/inputs, expected outcomes/state/side effects, planned test paths/check IDs, target environment and fixtures. Assess unit, mock/fake, integration, end-to-end and browser/service/API: selected, not applicable with reason, or required but blocked. Order code, post-code test authoring/refinement from implementation learnings, then lint/tests and failure repair. Plan checks do not prove future product tests. Draft only Markdown; do not edit product files. Result: summary, body.",
+    "step-plan-review": "Run history first, then read --section step-plan, --section step-context, and when listed --section system-context, plus every knowledge page. Inspect the actual worktree and environment, not only the draft. Audit commits can dominate the latest ten; inspect relevant older implementation decisions by path/symbol when needed. Audit case/criterion mappings, independent expected outcomes, selected role/interface/interaction constraints, unit/mock/fake/integration/end-to-end decisions, fixtures and post-code test refinement in test_strategy. Missing required cases or vague assertions are material. Record stable findings and every coverage dimension. Material scope/behavior means a new or contradictory frozen-contract requirement and pauses execution; an approved-flow gap is implementation, flow or edge-condition. For a listed system context, context_evidence also requires system_context with every and only projected role/interface/interaction/question/observation/source ID and its context digest. Result: summary, findings:[{id,severity:'material|trivial',category:'scope|behavior|implementation|environment|dependency|flow|edge-condition|second-order-effect|implicit-requirement|test-strategy|documentation',summary}], coverage_review with every key, context_evidence:{step,implementation,environment,dependencies}, test_review, learnings. The script binds knowledge page receipts; new runs do not echo their metadata.",
     "step-plan-disposition": "A material scope or behavior finding paused this step plan. After an explicit review of the approved contract, either halt for an authorized broader-plan change, or record only a demonstrated false-positive classification. Do not edit the candidate, product, DAG, or frozen contract. For the latter, Result: summary, disposition:'no-contract-change', resolutions:[{id,evidence}] covering every listed material scope/behavior finding. ShipLoop archives this pass and restarts fresh review; resume alone does not approve it.",
     "step-plan-revise": "Revise only the step-plan Markdown candidate to address every open finding. Retain complete test criteria, stable case/criterion IDs, independent expected outcomes, coverage decisions, fixtures and the post-code test refinement checkpoint. Do not edit product files, tests, frozen requirements or the DAG here. Retain stable finding IDs and concrete resolution evidence; classify changes honestly. Result: summary, body (complete Markdown candidate), addresses:[every open finding ID], resolutions:[{id,evidence}], material:boolean, test_changes, learnings.",
     "step-plan-verify": "Run planning-verify in the active worktree with a concrete lint and a test acceptance exactly covering 'step plan'. It must pass without changing the candidate, ledger, selected source state, staged/uncommitted work, Git baseline, or frozen inputs. Result: summary.",
@@ -4964,7 +5445,7 @@ PROMPTS = {
     "step-plan-finalize": "Two consecutive verified/audited trivial step-plan passes with no open findings are required. Run fresh planning-verify for the newly bound final pass; do not replace the candidate or findings. Result: summary.",
     "implement": "Read context --section knowledge and --section step-plan for accepted test criteria; neither changes scope or writers. First implement the scoped code. Next perform post-code test refinement: inspect actual diff and implementation learnings, then author or expand executable tests from planned case IDs, inputs and expected outcomes mapped to each produces. Reassess unit, mock/fake, integration, end-to-end and browser/service/API; target boundary, failure, state and regression gaps. Existing/TDD tests may be reused with an adequacy reason. When the step authors client–service calls, tests must cover the real client/HTML invocation path, not mocks or internal substitutes. Update function contracts and README or explain unchanged. Then execute verify with lint and all required tests; diagnose failures, fix code or justify a test correction from independent requirement evidence, and rerun until all pass. Never weaken acceptance or match a buggy result. Result: summary, test_review with planned-to-actual cases/checks, learnings, old/new corrected expectation and source, preserved coverage, environment, actual evidence, docs and unresolved gaps.",
     "review": 'Run history and retrieve every knowledge page for this action. Review actual code, tests, environment, dependencies, flows, edge conditions, second-order effects, implicit requirements and prior learnings. Compare planned versus actual cases and expected versus observed outcomes; seek missing assertions and test gaps from code learnings even when green. Reassess unit/mock/fake/integration/end-to-end adequacy, browser/service/API, real dependency fidelity, function contracts and README. Missing required tests or misleading docs are material; record unresolved gaps or evidence why existing tests remain adequate. Result: summary, findings:[{severity:"material|trivial",summary}], test_review, learnings, research_assessment:{status:"not-needed|resolved|required|blocked",summary,evidence:[safe refs],questions:[strings]}; non-not-needed requires evidence/questions. Use resolved only for new investigation this pass (material); not-needed means no new material research and prior evidence remains valid. For activity:research also supply every research_review rubric key. Empty findings is valid, not proof of exhaustive coverage.',
-    "improve-plan": "Plan all findings and Git learnings. Read --section step-context; retain every PARENT-* ID. Before code, fill the test-criteria and coverage tables with independent expectations and environment/fixture evidence. Order code, post-code test authoring/refinement, lint/tests and failure repair. Include missing cases, justified corrections and function/README work or no-change reasons. Converge against actual evidence and the linked rubric before application. Result: summary, body (Markdown plan).",
+    "improve-plan": "Plan all findings and Git learnings. Read --section step-context and, when listed, --section system-context; retain every PARENT-* ID and selected role/interface/interaction constraint. Before code, fill the test-criteria and coverage tables with independent expectations and environment/fixture evidence. Order code, post-code test authoring/refinement, lint/tests and failure repair. Include missing cases, justified corrections and function/README work or no-change reasons. Converge against actual evidence and the linked rubric before application. Result: summary, body (Markdown plan).",
     "improve-apply": "First implement only the certified scoped code/trivial fixes. Next perform post-code test refinement: inspect actual implementation learnings, author/expand tests from planned criteria, and reassess unit/mock/fake/integration/end-to-end and browser/service/API gaps. Record authored/updated/reused case IDs, test paths/check IDs and why existing tests are adequate. A legitimate test correction needs old/new expectation, independent requirement evidence and preserved coverage; never weaken acceptance to match a bug. Recheck environment/dependency/flow/edge/second-order/implicit effects; update function/README docs or explain unchanged before verify executes lint/tests. If prior research was required/blocked, include resolved research_assessment with safe evidence and every required question verbatim; do not fabricate resolution. Result: summary, material:boolean, test_changes, learnings. Material test gaps, corrections or code changes reset the streak; small diffs are not necessarily trivial.",
     "verify": "Run verify for fresh lint and every required step test, including applicable documentation/examples. Compare actual with independent expected outcomes in the selected environment; required failed, blocked or unrun cases remain unfinished. Diagnose code, test, fixture or environment failures; do not retry flaky failures for lucky green. Correct tests only with old/new expectation, independent requirement evidence and preserved coverage, never by weakening acceptance. Changed manifests require verify --reason. Fix and rerun lint/tests after every edit; completion is refused until all checks pass on unchanged files. Any late edit is material and restarts convergence. Result: summary with case/check evidence, failure diagnosis and correction reasons; write run-only observations in the inbox, not product files after checks.",
     "carry-forward": "After successful fresh verification and before commit, record an explicit carry-forward checkpoint. Retrieve context --section knowledge; result fields are summary, learnings (nonempty string), discoveries (explicit [] when none), and optional resolutions. Each discovery is {id,domain,observation,evidence,scope,disposition,rationale,revalidate}; domains and dispositions are fixed by the linked protocol. Observations are host-reported, evidence is a safe reference, and no credential values or credential-bearing URLs are allowed. current-step-repair restarts review with a material interrupted checkpoint; pending-replan remains an obligation for post-inner; pause requires a later no-contract-change resolution. Do not rewrite frozen contracts.",
@@ -4973,9 +5454,9 @@ PROMPTS = {
     "post-inner": 'After improvements and passing tests: use the current environment, actual implementation, Git learnings, dependencies, flows, edge conditions, second-order effects, and implicit requirements to ask whether broader steps, prep, test cases/surfaces, function contracts, or README documentation must change. Result: summary, plan_decision="no-change|revise", plan_reason, journal:[proposals]. For revise include complete dag and plan; only pending steps can change. If context --section knowledge reports open obligations, revise and include pending_obligation_map:[{id,steps:[changed-or-added pending step IDs]}]; this schedules work, it does not verify or fix it. Generic ShipLoop proposals require title,evidence,impact,proposal,test_idea. Do not self-modify the harness.',
     "merge": "The step passed convergence, final checks and broader-plan review. Return summary to merge into the session checkout. Merge is local only; no push or publication.",
     "coverage": "Run the bound Review Coverage activity and commit its ledger. Complete only with a complete, bound, actually tracked clean ledger or an existing explicit bound-plan waiver. Result: summary.",
-    "quality": "Run whole-product acceptance/integration checks with verify. Test manifest acceptance entries must cover every exact string in lifecycle.acceptance (retrieve context --section lifecycle), not the prior step's produces. Include a lint check. Reassess the actual deployment/test environment, dependencies, cross-step flows, edge conditions, second-order effects, implicit requirements, browser/service/API cases, expected/observed outcomes, concise function contracts, and product README examples. If lifecycle quality=true, also review broader product quality and record quality_review. Put needed code/test/documentation improvements into corrective pending DAG steps with replan; do not bypass inner loops by patching the session checkout. Result: summary, test_review with case/doc/evidence references and limitations, quality_review when applicable. Required failed, blocked or unrun checks remain unfinished.",
-    "publish": "Perform publication only if authorized and specified. Inspect any existing delivery before retrying to avoid duplicate external effects. Verify the actual entrypoint and applicable delivery smoke cases against documented expected outcomes; record the tested environment/build, not a local substitute. Required failed or unknown delivery checks keep publication unfinished. Result: summary, artifact, verification, evidence. These publication facts remain host-reported.",
-    "handoff": "Summarize delivery, checked acceptance, limitations and a prioritized proposal list from shiploop-improvements.md. Link test-case expectations/results, concise function/API docs and product README; distinguish observed outcomes, actual environment/version, manual evidence and unrun checks. Result: summary, journal ([] if no additions). Do not apply generic skill proposals automatically.",
+    "quality": "Run whole-product acceptance/integration checks with verify. Test manifest acceptance entries must cover every exact string in lifecycle.acceptance (retrieve context --section lifecycle), not the prior step's produces. When listed, read context --section system-context and reconcile its selected role/interface/interaction constraints with current environment and dependency evidence; it does not authorize promotion or prove a remote outcome. Include a lint check. Reassess the actual deployment/test environment, dependencies, cross-step flows, edge conditions, second-order effects, implicit requirements, browser/service/API cases, expected/observed outcomes, concise function contracts, and product README examples. If lifecycle quality=true, also review broader product quality and record quality_review. Put needed code/test/documentation improvements into corrective pending DAG steps with replan; do not bypass inner loops by patching the session checkout. Result: summary, test_review with case/doc/evidence references and limitations, quality_review when applicable. Required failed, blocked or unrun checks remain unfinished.",
+    "publish": "Perform publication only if authorized and specified. When listed, read context --section system-context and reconcile selected target roles/interfaces with current environment and dependency evidence; it does not grant a writer, promotion, or remote effect. Inspect any existing delivery before retrying to avoid duplicate external effects. Verify the actual entrypoint and applicable delivery smoke cases against documented expected outcomes; record the tested environment/build, not a local substitute. Required failed or unknown delivery checks keep publication unfinished. Result: summary, artifact, verification, evidence. These publication facts remain host-reported.",
+    "handoff": "When listed, read context --section system-context and reconcile its selected role/interface/interaction constraints with the recorded environment and dependency evidence. Summarize delivery, checked acceptance, limitations and a prioritized proposal list from shiploop-improvements.md. Link test-case expectations/results, concise function/API docs and product README; distinguish observed outcomes, actual environment/version, manual evidence and unrun checks. Result: summary, journal ([] if no additions). Do not apply generic skill proposals automatically.",
 }
 
 PROMPTS.update(
@@ -5662,12 +6143,15 @@ def main(core, argv=None):
             sub.add_argument("--loop", required=True)
         if name in ("complete", "journal", "replan"):
             sub.add_argument("--result", required=True)
+        if name == "journal":
+            sub.add_argument("--target", choices=("skill", "outer"), default="skill")
+            sub.add_argument("--operation", choices=("append", "resolve"), default="append")
         if name in ("verify", "planning-verify"):
             sub.add_argument("--manifest", required=True)
             sub.add_argument("--timeout", type=float, default=60)
             sub.add_argument("--reason", default="")
         if name == "history":
-            sub.add_argument("--limit", type=int, default=HISTORY_LIMIT)
+            sub.add_argument("--limit", type=int)
             sub.add_argument("--skip", type=int, default=0)
             sub.add_argument("--full", action="store_true")
             sub.add_argument(
@@ -5719,11 +6203,30 @@ def main(core, argv=None):
                     "step-plan",
                     "step-context",
                     "platform-revalidation",
+                    "preflight",
+                    "preparation",
+                    "coverage",
+                    "quality",
+                    "delivery",
+                    "handoff",
+                    "artifacts",
+                    "audit",
+                    "check-log",
+                    "outer-work",
+                    "migration",
+                    "system-context",
+                    "observation",
                 ),
             )
             sub.add_argument("--offset", type=int, default=0)
             sub.add_argument("--limit", type=int, default=4000)
             sub.add_argument("--digest")
+            sub.add_argument("--kind", choices=(*artifacts.ARCHIVES, "history-pages"))
+            sub.add_argument("--record", default="")
+            sub.add_argument("--check-action", default="")
+            sub.add_argument("--attempt", default="")
+            sub.add_argument("--check", default="")
+            sub.add_argument("--stream", choices=("stdout", "stderr", "combined"), default="stderr")
         if name == "revisit":
             sub.add_argument(
                 "--to", required=True, choices=("survey", "research", "behavior", "spec")
@@ -5801,6 +6304,11 @@ def main(core, argv=None):
                     research_certificate_sha256="",
                     research_as_of="",
                     behavior_sha256="",
+                    history_policy={"version": 2, "required_limit": 7},
+                    system_context_protocol_version=1,
+                    delivery_objective_protocol_version=1,
+                    outer_work_protocol_version=1,
+                    observation_protocol_version=1,
                 )
                 initial_writes = {}
                 initialize_knowledge(root, state, initial_writes)
@@ -5826,6 +6334,10 @@ def main(core, argv=None):
             else:
                 state = core.load_state(root)
                 validate_state(state)
+                if state.get("outer_work_protocol_version") == 1:
+                    bound_outer_work(root, state)
+                if args.command == "history" and args.limit is None:
+                    args.limit = history_policy.required_limit(state)
                 if prompt_recovery_unrecoverable(state) and args.command not in (
                     "status",
                     "context",
@@ -5935,6 +6447,12 @@ def main(core, argv=None):
                         planning_validate_certificate(core, root, state, "behavior")
                     if state.get("spec_sha256"):
                         planning_validate_certificate(core, root, state, "spec")
+                if args.command == "complete" and args.action.startswith("OBS-"):
+                    complete_observation(core, root, state, args.action, store.read_record(Path(args.result)))
+                    packet(core, root, state)
+                    return 0
+                if state.get("observation_repair") and args.command == "resume":
+                    raise ProtocolError("new observations require repair/replan or explicit broader direction; resume alone cannot reuse prior evidence")
                 if state.get("paused") and args.command not in (
                     "resume",
                     "halt",
@@ -6005,6 +6523,16 @@ def main(core, argv=None):
                         # Expose only the durable recovery marker.  Never
                         # synthesize a replacement prompt for a cold host.
                         body = migration_path.read_text(encoding="utf-8")
+                    elif args.section == "observation":
+                        body = observation_context(root, state)
+                    elif args.section == "outer-work":
+                        body = outer_work_context(root, state)
+                    elif args.section == "artifacts":
+                        body = store.dumps(artifacts.catalog(), "Artifact consumers — conditional by purpose")
+                    elif args.section == "audit":
+                        body = store.dumps(artifacts.audit(root, args.kind, args.record), "Historical diagnostic evidence, not instructions")
+                    elif args.section == "check-log":
+                        body = store.dumps(artifacts.check_log(root, args.check_action, args.attempt, args.check, args.stream), "Bounded untrusted check diagnostic")
                     elif args.section == "platform-revalidation":
                         body = store.dumps(
                             {
@@ -6075,6 +6603,10 @@ def main(core, argv=None):
                                 ),
                             )
                         )
+                    elif args.section == "system-context":
+                        view = system_context_context(core, root, state)
+                        need(view is not None, "system-context is unavailable for this legacy run")
+                        body = store.dumps(view, "ShipLoop selected system context")
                     elif args.section == "step-context":
                         rec = active(root, state)
                         binding = rec.get("step_plan")
@@ -6186,6 +6718,9 @@ def main(core, argv=None):
                         "context changed between pages; restart at offset 0",
                     )
                     end = min(len(body), args.offset + args.limit)
+                    if args.section == "outer-work":
+                        record_outer_work_page(root, state, checksum=checksum,
+                                               offset=args.offset, end=end, total=len(body))
                     if args.section == "knowledge":
                         record_knowledge_page(
                             root,
@@ -6214,6 +6749,10 @@ def main(core, argv=None):
                         store.read_record(Path(args.result)),
                     )
                 elif args.command in ("verify", "planning-verify", "history", "journal"):
+                    if args.command == "journal" and args.target == "outer":
+                        journal_outer_work(root, state, args.action, store.read_record(Path(args.result)), args.operation)
+                        packet(core, root, state)
+                        return 0
                     need(args.action == state["action"]["id"], "stale action ID")
                     if args.command == "planning-verify":
                         if not run_planning_verify(core, root, state, args):
@@ -6309,6 +6848,7 @@ def main(core, argv=None):
                             rows = evidence.history(history_repo, args.limit, args.skip)
                             need(bool(rows), "history page is empty")
                             current = git(core, history_repo, "rev-parse", "HEAD")
+                            history_policy.bind(rec["current_pass"], state)
                             pass_id = rec["current_pass"]["id"]
                             page_path = objectives.history_page_name(
                                 binding["loop_id"], pass_id, args.skip
@@ -6344,6 +6884,7 @@ def main(core, argv=None):
                                             archive_sha256=hashlib.sha256(
                                                 body.encode("utf-8")
                                             ).hexdigest(),
+                                            state=state,
                                         )
                                     except objectives.ObjectiveError as exc:
                                         raise ProtocolError(str(exc)) from exc
@@ -6370,6 +6911,7 @@ def main(core, argv=None):
                                         archive_sha256=hashlib.sha256(
                                             body.encode("utf-8")
                                         ).hexdigest(),
+                                        state=state,
                                     )
                                 except objectives.ObjectiveError as exc:
                                     raise ProtocolError(str(exc)) from exc
@@ -6430,6 +6972,7 @@ def main(core, argv=None):
                         rows = evidence.history(history_repo, args.limit, args.skip)
                         need(bool(rows), "history page is empty")
                         current = git(core, history_repo, "rev-parse", "HEAD")
+                        history_policy.bind(iteration, state)
                         page_path = f"history-pages/{args.action}-{args.skip}.md"
                         index_path = f"history-pages/{args.action}-{args.skip}-index.md"
                         body = store.dumps(rows, "Git history — full commit bodies")
@@ -6457,6 +7000,7 @@ def main(core, argv=None):
                                     skip=args.skip,
                                     limit=args.limit,
                                     archive_path=page_path,
+                                    state=state,
                                 )
                                 writes[page_path] = body
                                 event = "history-full-reviewed"
@@ -6478,6 +7022,7 @@ def main(core, argv=None):
                                 skip=args.skip,
                                 limit=args.limit,
                                 archive_path=page_path,
+                                state=state,
                             )
                             writes[record_path] = store.dumps(rec, record_title)
                             writes[page_path] = body
@@ -6555,6 +7100,10 @@ def main(core, argv=None):
                 elif args.command == "merge-recover":
                     merge_recover(core, root, state, args.action, args.reason)
                 elif args.command == "repair":
+                    if state.get("observation_repair") and state["stage"] == "implement":
+                        step_plan_repair(core, root, state, args.action, args.reason)
+                        packet(core, root, state)
+                        return 0
                     if objectives.is_objective_stage(state["stage"]):
                         objective_repair(core, root, state, args.action, args.reason)
                         packet(core, root, state)

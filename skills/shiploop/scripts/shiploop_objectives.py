@@ -18,11 +18,11 @@ from typing import Any
 
 import shiploop_store as store
 import shiploop_until as until
+import shiploop_history_policy as history_policy
 
 
 VERSION = 1
 PROTOCOL_VERSION = VERSION
-HISTORY_LIMIT = 10
 KINDS = (
     "approach",
     "survey",
@@ -31,6 +31,7 @@ KINDS = (
     "post-inner",
     "coverage",
     "quality",
+    "handoff",
 )
 BASE_STAGES = {
     "approach": "approach",
@@ -40,6 +41,7 @@ BASE_STAGES = {
     "post-inner": "post-inner",
     "coverage": "coverage",
     "quality": "quality",
+    "handoff": "handoff",
 }
 STAGES = (
     "objective-review",
@@ -71,6 +73,29 @@ CONTEXT_KEYS = (
     "behavior_sha256",
     "plan_sha256",
     "knowledge_sha256",
+)
+# A newly created journal is a dependency for every objective pass, while the
+# final handoff additionally binds the durable outer-stage evidence it consumes.
+# Keep these as closed, all-or-none groups: accepting a partial group would let a
+# caller accidentally drop one of the artifacts that gave an objective its
+# meaning.  ``CONTEXT_KEYS`` remains the exact legacy contract.
+OUTER_WORK_CONTEXT_KEYS = frozenset(("outer_work_sha256",))
+DELIVERY_CONTEXT_KEYS = frozenset(
+    (
+        "preparation_sha256",
+        "coverage_sha256",
+        "delivery_sha256",
+        "outer_work_sha256",
+    )
+)
+_BASE_CONTEXT_KEY_SET = frozenset(CONTEXT_KEYS)
+_OPTIONAL_CONTEXT_KEYS = DELIVERY_CONTEXT_KEYS
+_ALLOWED_CONTEXT_KEY_SETS = frozenset(
+    (
+        _BASE_CONTEXT_KEY_SET,
+        _BASE_CONTEXT_KEY_SET | OUTER_WORK_CONTEXT_KEYS,
+        _BASE_CONTEXT_KEY_SET | DELIVERY_CONTEXT_KEYS,
+    )
 )
 FINDING_CATEGORIES = (
     "scope",
@@ -215,14 +240,23 @@ def candidate_identity(body: Any) -> str:
 
 def _context(context: Any) -> dict[str, str]:
     need(isinstance(context, Mapping), "objective context must be a mapping")
-    need(set(context) == set(CONTEXT_KEYS), "objective context keys do not match the contract")
+    need(
+        frozenset(context) in _ALLOWED_CONTEXT_KEY_SETS,
+        "objective context keys do not match the contract",
+    )
     normalized: dict[str, str] = {}
-    for key in CONTEXT_KEYS:
+    for key in sorted(context):
         value = context[key]
         expression = _GIT_RE if key in ("git_baseline", "committed_tree_sha256") else _SHA_RE
         need(isinstance(value, str) and expression.fullmatch(value), f"objective context {key} is invalid")
         normalized[key] = value
     return normalized
+
+
+def pass_context(row: Mapping[str, Any]) -> dict[str, str]:
+    """Extract the full, closed context group carried by one pass record."""
+    keys = _BASE_CONTEXT_KEY_SET | (set(row) & _OPTIONAL_CONTEXT_KEYS)
+    return _context({key: row.get(key) for key in keys})
 
 
 def context_sha256(context: Any) -> str:
@@ -369,9 +403,11 @@ def _assert_pass_shape(receipt: Mapping[str, Any], row: Any, *, completed: bool)
     need(row.get("id") == expected_id, "objective pass ID does not match its cursor")
     for key in ("candidate_sha256", "ledger_sha256", "context_sha256"):
         need(isinstance(row.get(key), str) and _SHA_RE.fullmatch(row[key]), f"objective pass {key} is invalid")
-    for key in CONTEXT_KEYS:
-        expression = _GIT_RE if key in ("git_baseline", "committed_tree_sha256") else _SHA_RE
-        need(isinstance(row.get(key), str) and expression.fullmatch(row[key]), f"objective pass {key} is invalid")
+    bound_context = pass_context(row)
+    need(
+        row.get("context_sha256") == context_sha256(bound_context),
+        "objective pass context digest is stale",
+    )
     if completed:
         need(row.get("status") == "completed", "completed objective pass lacks status")
         need(row.get("verified") is True, "completed objective pass is not verified")
@@ -410,10 +446,15 @@ def _assert_receipt_shape(receipt: Any) -> dict[str, Any]:
     need(current.get("epoch") == receipt["epoch"] and current.get("number") == receipt["pass"], "objective current pass cursor is stale")
     for key in ("candidate_sha256", "ledger_sha256", "context_sha256"):
         need(current.get(key) == receipt.get(key), f"objective current pass {key} is stale")
-    for key in CONTEXT_KEYS:
-        need(key in current, f"objective current pass lacks {key}")
-    _context({key: current[key] for key in CONTEXT_KEYS})
-    need(current.get("context_sha256") == context_sha256({key: current[key] for key in CONTEXT_KEYS}), "objective current pass context digest is stale")
+    current_context = pass_context(current)
+    need(
+        current_context == context,
+        "objective current pass context differs from its receipt",
+    )
+    need(
+        current.get("context_sha256") == context_sha256(current_context),
+        "objective current pass context digest is stale",
+    )
     for key in ("completed_passes", "abandoned_passes"):
         need(isinstance(receipt.get(key), list), f"objective {key} must be a list")
     seen_ids: set[str] = set()
@@ -503,6 +544,7 @@ def record_history(
     skip: int,
     archive_path: str | None = None,
     archive_sha256: str | None = None,
+    state: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     need(isinstance(rows, list) and rows, "objective history page must be nonempty")
     need(isinstance(skip, int) and skip >= 0, "objective history skip must be nonnegative")
@@ -535,22 +577,44 @@ def record_history(
         page["archive_path"] = archive_path
         page["archive_sha256"] = archive_sha256
     current = receipt["current_pass"]
+    policy = history_policy.bind(current, {} if state is None else state)
     prior = current.get("history")
+    if prior is not None:
+        need(isinstance(prior, Mapping), "objective history receipt is malformed")
+        need(
+            prior.get("required_limit") == policy["required_limit"],
+            "objective history policy changed; explicit repair or migration is required",
+        )
     pages = [] if not isinstance(prior, Mapping) or prior.get("head") != head else list(prior.get("pages", []))
     pages = [item for item in pages if item.get("skip") != skip]
     pages.append(page)
     pages.sort(key=lambda item: item["skip"])
-    current["history"] = {"head": head, "required_limit": HISTORY_LIMIT, "pages": pages}
+    current["history"] = {
+        "head": head,
+        "required_limit": policy["required_limit"],
+        "pages": pages,
+    }
     return page
 
 
-def assert_history(receipt: Mapping[str, Any], rows: Any, *, head: str) -> None:
+def assert_history(
+    receipt: Mapping[str, Any],
+    rows: Any,
+    *,
+    head: str,
+    state: Mapping[str, Any] | None = None,
+) -> None:
     need(isinstance(rows, list), "objective current Git history must be a list")
     current = receipt.get("current_pass")
     need(isinstance(current, Mapping), "objective current pass is missing")
+    policy = history_policy.bound(current, {} if state is None else state)
+    required_limit = policy["required_limit"]
     history = current.get("history")
     need(isinstance(history, Mapping) and history.get("head") == head, "read current Git history with shiploop history before objective review")
-    need(history.get("required_limit") == HISTORY_LIMIT, "objective history did not record the required last ten full commit bodies")
+    need(
+        history.get("required_limit") == required_limit,
+        f"objective history did not record the required last {required_limit} full commit bodies",
+    )
     pages = history.get("pages")
     need(isinstance(pages, list) and pages, "objective history has no durable page receipt")
     recorded: dict[str, str] = {}
@@ -614,6 +678,10 @@ def complete_pass(receipt: dict[str, Any], *, commit: str, outcome: str) -> dict
     need(isinstance(commit, str) and _GIT_RE.fullmatch(commit), "objective audit commit must be a full SHA")
     current = receipt["current_pass"]
     need("review" in current and "plan" in current and "apply" in current, "objective pass lacks review, plan, or apply evidence")
+    need(
+        pass_context(current) == _context(receipt["context"]),
+        "objective pass context differs from its receipt",
+    )
     completed = dict(current)
     completed.update(
         status="completed",

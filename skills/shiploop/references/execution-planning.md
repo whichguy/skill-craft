@@ -153,6 +153,35 @@ change unnoticed between review and handoff. A changed assumption needs a new
 review, not a retained clean streak. An environment observation does not grant
 permission to change an approved writer, credential, shared setting or requirement.
 
+## Selected system-context uptake
+
+For a new run with versioned system context, `context --section system-context`
+returns a bounded projection for the active step and its direct frozen-DAG
+consumers; when no step is active, outer quality, publish, and handoff receive a
+bounded current projection. It contains the research/certificate binding,
+evidence digest and locator, selected roles, interfaces, interactions, linked
+questions, observations, sources, unresolved IDs, and any omitted-row count.
+Read `research-evidence.md` through its normal bounded context route for detail;
+do not make a second research database or infer new DAG edges from the view.
+
+The v1 step-plan identity binds the research candidate, research certificate,
+research evidence, and canonical system-context digests in addition to the
+existing worktree and frozen inputs. A step-plan review must put its exact
+selected `context_sha256` and every projected role/interface/interaction/
+question/observation/source ID under `context_evidence.system_context`. This
+proves which bounded records were selected, not that a host understood them or
+that a remote operation succeeded. If a context or research binding changes,
+the old plan cannot pass review. Legacy runs omit these fields and retain their
+previous context schema exactly.
+
+Use selected roles and interfaces to choose test environment, writer limits,
+real-boundary versus mock coverage, failure cases, and downstream consumer
+checks. Required unresolved interaction boundaries remain blockers. Outer
+quality, publish, and handoff reconcile the same selected constraints with
+current environment/dependency evidence; the reader never authorizes promotion,
+creates a missing environment, or substitutes a local test for required remote
+evidence.
+
 ## Review rubric
 
 Every `step-plan-review` supplies a complete `coverage_review` object. Each value

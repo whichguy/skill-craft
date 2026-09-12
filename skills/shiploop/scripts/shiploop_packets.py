@@ -13,6 +13,7 @@ from pathlib import Path
 import shlex
 from typing import Any, Mapping
 
+import shiploop_history_policy as history_policy
 from shiploop_privacy import redact_text, sensitive_text
 
 
@@ -52,6 +53,9 @@ Table order is forward order. One row or a justified no-change inspection/check 
 
 ## Backward dependency check
 Backward-check outputs/checks to evidence or earlier producers; a Ready claim or assumption is not proof. Check forward order. Missing prerequisites block coding; never rewrite the global DAG. Inspect effects before retry; no replay authority.
+
+## System-context uptake
+When `context --section system-context` is available, use its selected role, interface, interaction, question, observation, and source IDs. Preserve an unresolved contract as a blocker; do not invent a probe, retry policy, environment, or second dependency graph.
 
 ## Test criteria before code
 | Case / contract T-ID | Exact produces / requirement | Preconditions / inputs | Expected outcome / state / side effects | Planned test path / selector / check ID |
@@ -849,6 +853,39 @@ def _planning_template(stage: str, state: Mapping[str, Any], api: Mapping[str, A
     return None, []
 
 
+def _system_context_evidence_template(info: Mapping[str, Any]) -> dict[str, Any] | None:
+    """Copy only the current selected IDs into the review-result template."""
+    view = info.get("system_context_view")
+    if not isinstance(view, Mapping):
+        return None
+    projection = view.get("projection")
+    if not isinstance(projection, Mapping):
+        return None
+    digest = projection.get("context_sha256")
+    if not isinstance(digest, str):
+        return None
+    fields = {
+        "role_ids": "roles",
+        "interface_ids": "interfaces",
+        "interaction_ids": "interactions",
+        "question_ids": "questions",
+        "observation_ids": "observations",
+        "source_ids": "sources",
+    }
+    result: dict[str, Any] = {"context_sha256": digest}
+    for field, projected_field in fields.items():
+        rows = projection.get(projected_field)
+        if not isinstance(rows, list):
+            return None
+        identifiers = [row.get("id") for row in rows if isinstance(row, Mapping)]
+        if len(identifiers) != len(rows) or not all(
+            isinstance(identifier, str) for identifier in identifiers
+        ):
+            return None
+        result[field] = identifiers
+    return result
+
+
 def _step_plan_template(stage: str, state: Mapping[str, Any], api: Mapping[str, Any], info: Mapping[str, Any]) -> tuple[dict[str, Any] | None, list[str]]:
     step_planning = _value(api, "step_planning")
     rubric = list(getattr(step_planning, "RUBRIC", ()))
@@ -888,9 +925,13 @@ def _step_plan_template(stage: str, state: Mapping[str, Any], api: Mapping[str, 
                 "digest": "copy the printed knowledge digest",
                 "scope": ["all", info.get("step_id", "S1")],
             }
+        system_evidence = _system_context_evidence_template(info)
+        if system_evidence is not None:
+            template["context_evidence"]["system_context"] = system_evidence
         return template, [
             "category scope/behavior is only for a new or contradictory frozen-contract requirement; ordinary approved-flow gaps use implementation, flow, or edge-condition.",
             "A material scope/behavior finding pauses at step-plan-disposition instead of widening the contract.",
+            *( ["system_context must cite every and only ID in the current selected projection; read research-evidence.md for detail when the projection reports omitted rows."] if system_evidence is not None else [] ),
         ]
     if stage == "step-plan-disposition":
         return {
@@ -1100,6 +1141,7 @@ def _objective_template(stage: str, state: Mapping[str, Any], api: Mapping[str, 
     base_stage = binding.get("base_stage") if isinstance(binding, Mapping) else None
     open_ids = list(info.get("objective_open_ids", []))
     if stage == "objective-review":
+        history_limit = history_policy.required_limit(state)
         assessment = {
             key: "Concrete evidence or an applicability reason."
             for key in getattr(objectives, "ASSESSMENT_KEYS", ())
@@ -1115,10 +1157,10 @@ def _objective_template(stage: str, state: Mapping[str, Any], api: Mapping[str, 
                 }
             ],
             "assessment": assessment,
-            "history_assessment": "State which of the ten full commit bodies mattered, including any older implementation decision consulted because audit-only commits dominated.",
+            "history_assessment": f"State which of the {history_limit} full commit bodies mattered, including any older implementation decision consulted because audit-only commits dominated.",
             "test_review": "Expected versus observed objective-check outcomes.",
             "learnings": "A durable objective-review learning for the audit commit.",
-        }, ["Read and record all available bodies from the latest ten commits before review; findings retain stable IDs and categories."]
+        }, [f"Read and record all available bodies from the latest {history_limit} commits before review; findings retain stable IDs and categories."]
     if stage == "objective-plan":
         return {
             "summary": f"{kind} objective findings planned.",
@@ -1192,10 +1234,32 @@ def _knowledge_binding(root: Path, state: Mapping[str, Any], api: Mapping[str, A
     }, None
 
 
+def _add_system_context_info(
+    info: dict[str, Any], core: Any, root: Path, state: Mapping[str, Any], api: Mapping[str, Any]
+) -> None:
+    """Expose a reader only after the frozen v1 research binding exists."""
+    if not (
+        state.get("system_context_protocol_version") == 1
+        and state.get("research_sha256")
+    ):
+        return
+    context_view, context_error = _call(
+        _value(api, "system_context_context"), core, root, state
+    )
+    if (
+        isinstance(context_view, Mapping)
+        and isinstance(context_view.get("projection"), Mapping)
+    ):
+        info["system_context_view"] = context_view
+    elif context_error:
+        info["system_context_error"] = context_error
+
+
 def _step_info(core: Any, root: Path, state: Mapping[str, Any], api: Mapping[str, Any]) -> tuple[dict[str, Any], str | None]:
     info: dict[str, Any] = {"knowledge_revision": state.get("knowledge_revision", 0)}
     active_step = state.get("active_step")
     if not isinstance(active_step, str):
+        _add_system_context_info(info, core, root, state, api)
         return info, None
     rec, error = _call(_value(api, "active"), root, state)
     if error or not isinstance(rec, dict):
@@ -1239,6 +1303,7 @@ def _step_info(core: Any, root: Path, state: Mapping[str, Any], api: Mapping[str
         info["knowledge_error"] = knowledge_error
     if knowledge_error and stage in ("review", "step-plan-review"):
         return info, knowledge_error
+    _add_system_context_info(info, core, root, state, api)
     research = _value(api, "research")
     info["research_rubric"] = list(getattr(research, "RUBRIC", ()))
     return info, None
@@ -1274,7 +1339,7 @@ def _stage_lifecycle(stage: Any, info: Mapping[str, Any], api: Mapping[str, Any]
         return [
             f"Objective: converge the current {kind} candidate before applying it once to {binding.get('base_stage')}.",
             "Until: two verified/audited trivial passes, no open findings, and a fresh final objective check.",
-            "Continue while: material findings, unaddressed ledger rows, stale context, missing ten-body history, or missing fresh checks remain.",
+            "Continue while: material findings, unaddressed ledger rows, stale context, incomplete required Git bodies, or missing fresh checks remain.",
             "Evidence required: current candidate/ledger/context, full current history page, candidate-bound lint/test record, and audit commit.",
         ]
     planning = _value(api, "planning")
@@ -1815,7 +1880,7 @@ def render(core: Any, root: Path, state: Mapping[str, Any], api: Mapping[str, An
         f"ShipLoop {getattr(core, 'VERSION', '?')} | {phase} / {stage} | revision {revision}",
         f"Run: {root}",
         f"State: {root / 'state.md'}",
-        f"Journal: {root / 'shiploop-improvements.md'}",
+        "Proposal journal: context --section journal",
         f"Stage: {stage}",
     ]
     if not isinstance(aid, str) or not aid:
@@ -1834,6 +1899,9 @@ def render(core: Any, root: Path, state: Mapping[str, Any], api: Mapping[str, An
         )
     if stage in ("done", "halted"):
         return _terminal_packet(core, root, state, api, lines)
+
+    if state.get("outer_work_protocol_version") == 1:
+        lines.append("Any action: dedupe/journal via context --section outer-work; required outer reader when present.")
 
     completed = state.get("completed_actions")
     if isinstance(completed, Mapping) and aid in completed:
@@ -1863,6 +1931,12 @@ def render(core: Any, root: Path, state: Mapping[str, Any], api: Mapping[str, An
             if missing_intent
             else f"Recovery: {_command(core)} resume --run-dir {_quote(root)} after the recorded blocker is resolved."
         )
+        if state.get("observation_repair"):
+            recovery_instruction = (
+                "Read current observations: " + _context_command(core, root, "knowledge") + "\n"
+                + f"For a compatible interrupted plan/inner loop: {_command(core)} repair --run-dir {_quote(root)} --action {_quote(aid)} --reason <recorded-context-change>\n"
+                + "If the stage cannot be repaired, use its authorized replan or seek user direction. A contract/permission blocker must be resolved explicitly; resume alone is refused."
+            )
         lines.extend([
             f"Paused, unfinished: {str(paused)[:1000]}",
             f"Current action remains: {aid}; it has not been accepted.",
@@ -2030,6 +2104,9 @@ def render(core: Any, root: Path, state: Mapping[str, Any], api: Mapping[str, An
 
     prompt_map = _value(api, "PROMPTS", {})
     instruction = prompt_map.get(stage) if isinstance(prompt_map, Mapping) else None
+    if isinstance(instruction, str):
+        limit = history_policy.required_limit(state)
+        instruction = instruction.replace("--limit 10", f"--limit {limit}").replace("latest ten", f"latest {limit}").replace("current ten", f"current {limit}")
     legacy_knowledge = (
         bool(state.get("active_step"))
         and state.get("carry_forward_protocol_version") is None
@@ -2054,9 +2131,15 @@ def render(core: Any, root: Path, state: Mapping[str, Any], api: Mapping[str, An
 
     # Every ordinary packet gives a cold host its exact rehydration commands.
     available = ["prompt", "journal"]
+    if state.get("outer_work_protocol_version") == 1:
+        available.append("outer-work")
+    if state.get("observation_protocol_version") == 1:
+        available.append("observation")
+    if state.get("carry_forward_protocol_version") == 1:
+        available.append("knowledge")
     if revalidation_rows:
         available.append("platform-revalidation")
-    for name in ("approach", "environment", "research", "research-evidence", "behavior", "spec", "lifecycle", "plan", "spec-draft", "lifecycle-draft"):
+    for name in ("preflight", "approach", "environment", "research", "research-evidence", "behavior", "spec", "lifecycle", "plan", "spec-draft", "lifecycle-draft", "preparation", "coverage", "quality", "delivery", "migration"):
         path = root / f"{name}.md"
         if path.is_file() and not path.is_symlink():
             available.append(name)
@@ -2072,6 +2155,8 @@ def render(core: Any, root: Path, state: Mapping[str, Any], api: Mapping[str, An
             available.append("step-plan")
         if info.get("knowledge_read"):
             available.append("knowledge")
+    if info.get("system_context_view"):
+        available.append("system-context")
     if (
         not info.get("objective_binding")
         and isinstance(stage, str)
@@ -2085,12 +2170,28 @@ def render(core: Any, root: Path, state: Mapping[str, Any], api: Mapping[str, An
     available = list(dict.fromkeys(available))
     lines.append("Available durable context: " + ", ".join(available))
     lines.append("Bounded context: " + _context_command(core, root, "<available-section>"))
+    if state.get("observation_protocol_version") == 1:
+        lines.append("Early facts: context --section observation; separate callback, parent unfinished.")
+    base_stage = info.get("objective_binding", {}).get("kind", stage)
+    if base_stage in ("approach", "survey", "sequence"):
+        baselines = [name for name in ("preflight", "approach", "knowledge") if name in available and name != base_stage]
+        if baselines:
+            lines.append("Before deciding, read baseline evidence via context --section: " + ", ".join(baselines) + ". Reconcile recorded Git isolation/dirty baseline and proposed approach with current scope; these records do not authorize remote writes.")
+    if base_stage in ("quality", "publish", "handoff"):
+        lines.append("Outer decisions must read current environment and knowledge context; baseline observations do not grant access or certify current readiness.")
     if state.get("active_step"):
         lines.append("Step cold context: " + _context_command(core, root, "step-context"))
+        if "system-context" in available:
+            lines.append("Read selected roles/interfaces via context --section system-context.")
         if "step-plan" in available and stage in ("implement", "review", "improve-plan", "improve-apply", "verify"):
             lines.append("Test-plan criteria: " + _context_command(core, root, "step-plan"))
         if stage == "review":
             lines.append("Read step-context for the accepted initial implementation_test_record and iteration for current Improve evidence; historical notes do not certify current tests.")
+    elif "system-context" in available:
+        lines.append(
+            "Selected role/interface contract context: "
+            + _context_command(core, root, "system-context")
+        )
     if info.get("knowledge_read"):
         if state.get("objective_protocol_version") == 1:
             lines.append("Knowledge pages: read every page before review; the script records the current scoped-page receipt internally.")
@@ -2099,20 +2200,21 @@ def render(core: Any, root: Path, state: Mapping[str, Any], api: Mapping[str, An
             lines.append("Knowledge acknowledgement required after all pages: " + _line_json(binding))
         lines.append("Knowledge pages: " + _context_command(core, root, "knowledge"))
     if isinstance(stage, str) and (stage == "review" or stage.endswith("-review")):
+        history_limit = history_policy.required_limit(state)
         history_options = f"--run-dir {_quote(root)} --action {_quote(aid)}"
         if info.get("objective_binding"):
             lines.extend(
                 [
-                    f"History index (not review proof; enumerate current rows): {_command(core)} history {history_options} --limit 10 --skip 0",
+                    f"History index (not review proof; enumerate current rows): {_command(core)} history {history_options} --limit {history_limit} --skip 0",
                     f"History full-body proof for each index row N: bounded {_command(core)} history {history_options} --limit 1 --skip N --full --max-chars 4000",
-                    "Copy each printed continuation exactly until the full body is recorded, then advance N through every index row (at most 0 through 9). Fragments and indexes never satisfy review; older history may inform review but cannot replace current full-body proof.",
+                    f"Copy each printed continuation exactly until the full body is recorded, then advance N through every index row (at most 0 through {history_limit - 1}). Fragments and indexes never satisfy review; older history may inform review but cannot replace current full-body proof.",
                     _HISTORY_BODY_UNTRUSTED,
                 ]
             )
         else:
             lines.extend([
-                f"History index (record the latest 10 or all available): {_command(core)} history {history_options} --limit 10 --skip 0",
-                f"History bounded body page: {_command(core)} history {history_options} --limit 1 --skip 0 --full --max-chars 4000; copy each continuation exactly until full coverage is recorded, then repeat --skip 1 through 9 (or until no page remains).",
+                f"History index (record the latest {history_limit} or all available): {_command(core)} history {history_options} --limit {history_limit} --skip 0",
+                f"History bounded body page: {_command(core)} history {history_options} --limit 1 --skip 0 --full --max-chars 4000; copy each continuation exactly until full coverage is recorded, then repeat --skip 1 through {history_limit - 1} (or until no page remains).",
                 _HISTORY_BODY_UNTRUSTED,
             ])
 
@@ -2214,7 +2316,7 @@ def render(core: Any, root: Path, state: Mapping[str, Any], api: Mapping[str, An
         ])
         return "\n".join(lines) + "\n"
     options = f"--run-dir {_quote(root)} --action {_quote(aid)} --result {_quote(result)}"
-    lines.append(f"When done: {_command(core)} complete {options}")
+    lines.append("When done: use this exact callback; the script selects what follows.")
     lines.append(f"Call this when done: {_command(core)} done {options}")
-    lines.append("The current action alone can advance this run. If blocked, preserve the evidence, use the stated recovery, and do not certify success from chat memory.")
+    lines.append("Only this action advances the run. If blocked, preserve evidence and follow recovery; chat memory is not proof.")
     return "\n".join(lines) + "\n"

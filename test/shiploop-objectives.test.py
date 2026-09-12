@@ -10,6 +10,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 
 
 SCRIPTS = Path(__file__).resolve().parents[1] / "skills" / "shiploop" / "scripts"
@@ -18,6 +19,7 @@ if str(SCRIPTS) not in sys.path:
 
 import shiploop_objectives as objectives  # noqa: E402
 import shiploop_evidence as evidence  # noqa: E402
+import shiploop_outer_work as outer_work  # noqa: E402
 import shiploop_protocol as protocol  # noqa: E402
 import shiploop_store as store  # noqa: E402
 
@@ -54,6 +56,19 @@ class ObjectiveRecordTests(unittest.TestCase):
             "knowledge_sha256": "3" * 64,
         }
 
+    @classmethod
+    def outer_work_context(cls) -> dict[str, str]:
+        return dict(cls.context(), outer_work_sha256="4" * 64)
+
+    @classmethod
+    def handoff_context(cls) -> dict[str, str]:
+        return dict(
+            cls.outer_work_context(),
+            preparation_sha256="5" * 64,
+            coverage_sha256="6" * 64,
+            delivery_sha256="7" * 64,
+        )
+
     def receipt(self) -> dict:
         loop = objectives.loop_id("20260912T012900Z-192c6d00", "approach")
         return objectives.new_receipt(
@@ -77,7 +92,7 @@ class ObjectiveRecordTests(unittest.TestCase):
 
     def write_receipt(self, root: Path, receipt: dict) -> None:
         candidate = root / receipt["candidate_path"]
-        candidate.parent.mkdir(parents=True)
+        candidate.parent.mkdir(parents=True, exist_ok=True)
         candidate.write_text(self.BODY, encoding="utf-8")
         store.write_record(root / objectives.receipt_name(receipt["loop_id"]), receipt)
 
@@ -93,6 +108,220 @@ class ObjectiveRecordTests(unittest.TestCase):
             (root / receipt["candidate_path"]).write_text(self.BODY + "drift\n", encoding="utf-8")
             with self.assertRaises(objectives.ObjectiveError):
                 objectives.assert_receipt(root, receipt)
+
+    def test_closed_optional_context_groups_preserve_outer_and_handoff_evidence(self) -> None:
+        outer = self.outer_work_context()
+        outer_receipt = objectives.new_receipt(
+            loop=objectives.loop_id("20260912T012900Z-192c6d00", "quality"),
+            kind="quality",
+            base_stage="quality",
+            candidate_body=self.BODY,
+            context=outer,
+        )
+        self.assertEqual(objectives.pass_context(outer_receipt["current_pass"]), outer)
+
+        handoff = self.handoff_context()
+        receipt = objectives.new_receipt(
+            loop=objectives.loop_id("20260912T012900Z-192c6d00", "handoff"),
+            kind="handoff",
+            base_stage="handoff",
+            candidate_body=self.BODY,
+            context=handoff,
+        )
+        self.assertEqual(receipt["context"], handoff)
+        self.assertEqual(objectives.pass_context(receipt["current_pass"]), handoff)
+
+        partial = dict(self.context(), coverage_sha256="6" * 64)
+        with self.assertRaisesRegex(objectives.ObjectiveError, "context keys"):
+            objectives.new_receipt(
+                loop=objectives.loop_id("20260912T012900Z-192c6d00", "coverage"),
+                kind="coverage",
+                base_stage="coverage",
+                candidate_body=self.BODY,
+                context=partial,
+            )
+
+    def test_handoff_context_survives_completed_and_next_pass_validation(self) -> None:
+        context = self.handoff_context()
+        receipt = objectives.new_receipt(
+            loop=objectives.loop_id("20260912T012900Z-192c6d00", "handoff"),
+            kind="handoff",
+            base_stage="handoff",
+            candidate_body=self.BODY,
+            context=context,
+        )
+        receipt["current_pass"].update(
+            review={"learnings": "Review kept the full outer evidence binding."},
+            plan={"learnings": "Plan retained all handoff dependencies."},
+            apply={"learnings": "Apply did not discard an outer dependency."},
+        )
+        completed = objectives.complete_pass(
+            receipt, commit="a" * 40, outcome="trivial"
+        )
+        self.assertEqual(objectives.pass_context(completed), context)
+        objectives.start_next_pass(receipt, context=context)
+
+        with tempfile.TemporaryDirectory(prefix="shiploop-objective-handoff-") as raw:
+            root = Path(raw)
+            archive = root / objectives.pass_name(receipt["loop_id"], completed["id"])
+            archive.parent.mkdir(parents=True)
+            archive.write_text(
+                store.dumps(completed, "ShipLoop completed objective pass"),
+                encoding="utf-8",
+            )
+            self.write_receipt(root, receipt)
+            verified = objectives.assert_receipt(root, receipt)
+        self.assertEqual(objectives.pass_context(verified["current_pass"]), context)
+
+    def test_outer_work_only_repair_restarts_any_objective_without_rebinding_other_inputs(self) -> None:
+        """A new bound journal may restart handoff convergence, nothing else."""
+        with tempfile.TemporaryDirectory(prefix="shiploop-objective-outer-repair-") as raw:
+            root = Path(raw)
+            old_context = dict(
+                self.handoff_context(),
+                outer_work_sha256=protocol.objective_artifact_sha256(
+                    root, "outer-work.md"
+                ),
+            )
+            loop = objectives.loop_id("20260912T012900Z-192c6d00", "handoff")
+            receipt = objectives.new_receipt(
+                loop=loop,
+                kind="handoff",
+                base_stage="handoff",
+                candidate_body=self.BODY,
+                context=old_context,
+            )
+            # Seed a real two-pass trivial streak and archives. The callback
+            # must invalidate it by beginning a new epoch, not preserve it.
+            for number, commit in enumerate(("a" * 40, "b" * 40), start=1):
+                receipt["current_pass"].update(
+                    review={"learnings": f"Review learning {number}."},
+                    plan={"learnings": f"Plan learning {number}."},
+                    apply={"learnings": f"Apply learning {number}."},
+                )
+                completed = objectives.complete_pass(
+                    receipt, commit=commit, outcome="trivial"
+                )
+                archive = root / objectives.pass_name(loop, completed["id"])
+                archive.parent.mkdir(parents=True, exist_ok=True)
+                archive.write_text(
+                    store.dumps(completed, "ShipLoop completed objective pass"),
+                    encoding="utf-8",
+                )
+                objectives.start_next_pass(receipt, context=old_context)
+            prior_pass = receipt["current_pass"]["id"]
+            self.assertEqual(receipt["streak"], 2)
+            self.write_receipt(root, receipt)
+
+            request = {
+                "request_id": "OWR-OBJECTIVE-REPAIR-001",
+                "expected_revision": 0,
+                "entry_id": "OW-OBJECTIVE-REPAIR-001",
+                "dedupe_key": "handoff-journal-repair",
+                "required_action": "Record the newly discovered handoff dependency.",
+                "target_stage": "handoff",
+                "target_alias": "local-fixture",
+                "prerequisites": ["The final handoff is still active."],
+                "expected_outcome": "The dependency is available to the fresh handoff objective pass.",
+                "evidence": "The inner action recorded the dependency in the script-owned journal.",
+                "authority_limitations": "The journal does not grant remote delivery authority.",
+                "rationale": "A new outer dependency invalidates prior convergence evidence.",
+            }
+            ledger, _ = outer_work.append(
+                outer_work.empty(),
+                request,
+                {
+                    "parent_action": "A-OUTER-REPAIR-001",
+                    "parent_step": None,
+                    "parent_stage": "review",
+                },
+            )
+            journal = outer_work.render(ledger)
+            (root / "outer-work.md").write_text(journal, encoding="utf-8")
+            new_context = dict(
+                old_context,
+                outer_work_sha256=protocol.objective_artifact_sha256(
+                    root, "outer-work.md"
+                ),
+            )
+            state = {
+                "run_id": "20260912T012900Z-192c6d00",
+                "phase": "residual",
+                "stage": "objective-review",
+                "action": {
+                    "id": "A-OUTER-REPAIR-001",
+                    "stage": "objective-review",
+                },
+                "revision": 9,
+                "completed_actions": {},
+                "outer_work_protocol_version": 1,
+                "delivery_objective_protocol_version": 1,
+                "outer_work_sha256": new_context["outer_work_sha256"],
+                "outer_work_revision": ledger["revision"],
+                "objective": {
+                    "loop_id": loop,
+                    "kind": "handoff",
+                    "base_stage": "handoff",
+                    "receipt": objectives.receipt_name(loop),
+                    "candidate": objectives.candidate_name(loop),
+                    "status": "active",
+                },
+            }
+
+            with patch.object(protocol, "objective_context_identity", return_value=new_context):
+                protocol.objective_repair(
+                    None,
+                    root,
+                    state,
+                    "A-OUTER-REPAIR-001",
+                    "A newly journaled dependency requires fresh handoff convergence.",
+                )
+
+            after = store.read_record(root / objectives.receipt_name(loop))
+            archive = root / objectives.abandoned_name(loop, prior_pass)
+            self.assertEqual((state["phase"], state["stage"]), ("residual", "objective-review"))
+            self.assertNotEqual(state["action"]["id"], "A-OUTER-REPAIR-001")
+            self.assertEqual(after["epoch"], 2)
+            self.assertEqual(after["pass"], 1)
+            self.assertEqual(after["streak"], 0)
+            self.assertEqual(after["context"], new_context)
+            self.assertEqual(objectives.pass_context(after["current_pass"]), new_context)
+            self.assertEqual(after["abandoned_passes"][-1]["id"], prior_pass)
+            self.assertEqual(
+                after["abandoned_passes"][-1]["outer_work_sha256"],
+                old_context["outer_work_sha256"],
+            )
+            self.assertTrue(archive.is_file())
+            objectives.assert_receipt(root, after)
+
+            abandoned_count = len(after["abandoned_passes"])
+            with patch.object(protocol, "objective_context_identity", return_value=new_context):
+                with self.assertRaisesRegex(
+                    protocol.ProtocolError, "cannot rebind handoff"
+                ):
+                    protocol.objective_repair(
+                        None,
+                        root,
+                        state,
+                        state["action"]["id"],
+                        "No journal change occurred.",
+                    )
+            changed_product_context = dict(new_context, spec_sha256="f" * 64)
+            with patch.object(
+                protocol, "objective_context_identity", return_value=changed_product_context
+            ):
+                with self.assertRaisesRegex(
+                    protocol.ProtocolError, "cannot rebind handoff"
+                ):
+                    protocol.objective_repair(
+                        None,
+                        root,
+                        state,
+                        state["action"]["id"],
+                        "Product evidence also changed.",
+                    )
+            unchanged = store.read_record(root / objectives.receipt_name(loop))
+            self.assertEqual(len(unchanged["abandoned_passes"]), abandoned_count)
 
     def test_review_requires_full_body_history_and_preserves_open_findings(self) -> None:
         receipt = self.receipt()

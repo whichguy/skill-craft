@@ -18,6 +18,7 @@ preconditions, and refuses unsafe or stale transitions.
 - [Requirements modeling and traceability](#requirements-modeling-and-traceability)
 - [Execution-plan, per-step evidence, tests, and documentation](#execution-plan-per-step-evidence-tests-and-documentation)
 - [Ownership, context, and recovery](#ownership-context-and-recovery)
+- [Outer-work journal](#outer-work-journal)
 - [Current limitations and proposed safeguards](#current-limitations-and-proposed-safeguards)
 - [Command reference](#command-reference)
 - [Related references](#related-references)
@@ -62,6 +63,7 @@ transition.
 | Status | Meaning |
 |---|---|
 | **Current control** | The script and authoritative Markdown currently store state, issue one action ID, validate declared result/evidence shape, gate research/behavior/specification candidates, and converge each initial or Improve execution plan with durable finding ledgers, fresh planning checks, and audit commits. |
+| **New-run control** | New runs bind a seven-message history policy, compact source-linked system context, bounded artifact diagnostics, an early-observation callback, an outer-work obligation journal, and a final handoff objective. Missing version markers retain legacy behavior; explicit unsupported markers fail closed. |
 | **Required host duty** | The host must make scoped edits, select meaningful tests, interpret evidence, review semantics, preserve unrelated work, and verify external effects. The script cannot mechanically prove these judgments. |
 | **Proposed safeguard** | A documented improvement idea that is not a current stage, result field, or enforced gate. It must not be described as implemented. |
 | **Known limitation** | A current state-machine or recovery gap. Follow the safe operating discipline and report the limitation; do not claim that the harness already closes it. |
@@ -179,6 +181,18 @@ direction, not an executable plan or blanket authority for later external work.
 repository: relevant references, permitted tools, writer routes, layout,
 reserved paths, UI surfaces, test environments, and documentation conventions.
 Never record secrets.
+
+New runs also make the system map durable before implementation. The paired
+research evidence names observed code, state, system, and environment-role
+facets; applicable roles and surveyed interfaces; and the selected interaction
+contracts that connect them. Investigate only as deeply as the decision needs:
+the exposed tool/CLI/API surface, its real invocation and error contract, then
+the downstream state, retry, consistency, permission, and environment effects.
+For a simple local edit, record why a deeper boundary is not applicable. For a
+remote or client/service boundary, preserve compact question/source/contract
+links and explicit uncertainty instead of copying vendor schemas or assuming a
+provider-specific stack. See [platform discovery](references/platform-discovery.md)
+and [research convergence](references/research-loop.md) for the packaged guidance.
 
 If a client will call a service, freeze the actual invocation contract before
 authoring communication: the operations the service exposes and the
@@ -383,7 +397,10 @@ flowchart TD
 ```
 
 `step-plan-review` reads bounded `step-context`, `step-plan`, and current
-`iteration` state, then current Git history. It inspects the actual worktree's
+`iteration` state, then the run's policy-owned current Git history. In new
+runs, `step-context` also projects only the selected step's applicable
+system-context roles, interfaces, interaction contracts, source/question links,
+blocking IDs, and research-evidence/context digests. It inspects the actual worktree's
 relevant code, interfaces, call sites, tests, configuration, documentation,
 and diff; the frozen environment plus current non-secret observations; and
 direct suppliers and consumers. Its full rubric asks about scope, current
@@ -498,8 +515,10 @@ flowchart TD
 ```
 
 Before completing `review`, fully page the bounded `knowledge` selection and
-run `history`; inspect the full bodies for the latest ten commits (or all
-available), one body at a time when needed. If audit-only plan commits dominate
+run `history`; inspect the full bodies for the run policy's latest commits (or
+all available), one body at a time when needed. New runs require seven and bind
+that policy into every pass; a run without the marker remains at the legacy ten.
+If audit-only plan commits dominate
 that window, also inspect the relevant older implementation or decision commit
 through a scoped path/symbol investigation. The review result binds the
 knowledge revision, digest, and scope it read. It also records the structured
@@ -569,6 +588,33 @@ commit. See
 [Carry-forward checkpoint](references/carry-forward.md) for the exact schema
 and impact routes.
 
+Before successful verification, an active inner action can record a concrete
+non-secret operational fact through `context --section observation`. The script
+issues a separate `OBS-…` action, expected knowledge revision, result template,
+and exact `done` callback. Page `knowledge` first, submit at least one
+existing-schema **compatible** discovery, and let the script atomically preserve
+the current ledger, history, and observation receipt while it reprints the
+unchanged parent action. This receipt explicitly says `not-run`: it cannot
+resolve a blocker, prove a test or remote condition, or grant permission. A
+pause/permission/contract blocker, or a context/proof change at a stage without
+a compatible repair route, is rejected before any state change; use ordinary
+`pause` plus direction, the owning carry-forward route, or `outer-work` for a
+later deployment dependency. At a supported bound objective/planning/execution
+stage, an accepted material observation pauses for the printed repair/replan route;
+`resume` alone never reuses the earlier convergence.
+
+An active inner action can also record a distinct **outer-work** need as soon
+as it is discovered—before a successful check, checkpoint, or parent
+completion. First page `context --section outer-work`; it gives the current
+ledger, a script-issued request ID, and the exact append template. Read current
+entries before choosing a stable dedupe key. Submit the result with the packet's
+exact `journal --target outer --operation append` call. The journal callback
+persists the obligation and returns the same parent action, which remains
+unfinished. It can never make a failed verification look successful, authorize
+a deployment, or replace the normal carry-forward/replan/pause route for a
+current product requirement. [Outer-work journal](references/outer-work.md)
+defines the target stages, deduplication, resolution, and read binding.
+
 At `commit`, create the distinct primary commit on the step branch with
 `Review:`, `Changes:`, `Validation:`, `Key learnings:`, and the exact
 `ShipLoop-Iteration:` trailer. Its body must include the ordinary review,
@@ -621,12 +667,26 @@ blocked, or unrun checks remain unfinished. The required practice is to use
 patch the outer checkout around P5. Current enforcement has a known gap, so the
 host must uphold this discipline.
 
+If `outer-work.md` exists, `quality` pages the current journal and binds that
+read to its action before it can close. It must resolve every planned row due
+at quality; later-stage rows remain visible but do not incorrectly block it.
+Resolving a row records evidence and reason at its named stage—it is not an
+automatic test result, user approval, or remote operation.
+
 ### P7 — Deliver if authorized and hand off
 
 When `publish: outer-loop`, `publish` occurs after `quality` only with user
 authorization. Inspect the existing delivery before retrying an uncertain
 external operation. Record the artifact, actual entrypoint verification, tested
 environment, and evidence; a local green suite cannot prove publication.
+
+`publish` and the final handoff follow the same outer-work rule: page the
+current ledger, bind the read, and resolve all rows due through their own stage.
+Rows due at a later stage cannot be resolved early, and no journal entry grants
+the authority needed for publication. For versioned new runs, `handoff` is a
+substantive objective with normal review/improvement/finalization convergence;
+its context binds the applicable preparation, coverage, delivery, and
+outer-work evidence before it can produce the derived terminal report.
 
 When `publish: dag`, publication is an explicitly ordered P4–P5 step. When
 `publish: none`, ShipLoop proceeds from `quality` to `handoff` and does not
@@ -848,12 +908,17 @@ Current behavior: `next` reconstructs the action from Markdown, and `context`
 retrieves bounded `prompt`, `step`, `iteration`, `knowledge`, `behavior`,
 `spec-draft`, `lifecycle-draft`, `planning`, `spec`, `environment`, `plan`,
 `lifecycle`, `journal`, `approach`, `research`, `research-evidence`,
-`step-context`, or `step-plan` sections. The limit is characters, not a
+`objective`, `step-context`, `step-plan`, `platform-revalidation`, `preflight`,
+`preparation`, `coverage`, `quality`, `delivery`, `handoff`, `outer-work`,
+`artifacts`, `audit`, `check-log`, `migration`, `system-context`, or
+`observation` sections.
+The limit is characters, not a
 guarantee of model tokens. A research cold context reads its report and evidence
 candidates, planning receipt, and current iteration rather than every historical
 pass. An execution-plan cold context reads the selected step's compact
-implementation/environment/dependency evidence, current candidate/ledger, and
-current nested pass—not archived plan passes or an assumed prior conversation.
+implementation/environment/dependency evidence plus its selected system-context
+projection, current candidate/ledger, and current nested pass—not archived plan
+passes or an assumed prior conversation.
 `context environment` keeps the
 frozen baseline visible and labels the current knowledge overlay as
 authoritative state for host-reported observations but not authority to change
@@ -865,6 +930,39 @@ receipts link completed iterations while the packet gives the current bounded
 slice. If interrupted halfway through an iteration, inspect uncommitted work and
 resume the persisted action; the interruption earns no clean iteration and
 invents no commit.
+
+## Outer-work journal
+
+```mermaid
+sequenceDiagram
+    participant I as Active inner action
+    participant S as ShipLoop script
+    participant J as outer-work.md
+    participant O as Target outer stage
+    I->>S: context outer-work
+    S-->>I: current ledger, request ID, append template
+    I->>S: journal append with parent action
+    S->>J: validate, deduplicate, append receipt
+    S-->>I: same parent action remains open
+    O->>J: page, bind read, resolve due entries
+```
+
+This is a side callback, not a second workflow. Any active inner action can
+append a new non-secret dependency when it discovers work that belongs at
+`quality`, `publish`, or `handoff`. It first reads the bounded ledger so that it
+can reuse a stable `dedupe_key`; the script supplies the request ID and current
+revision. The callback records provenance (`parent_action`, active step when
+there is one, and parent stage), writes only authoritative Markdown, and returns
+the original parent action unchanged.
+
+At the target outer stage, the host must page the complete current journal,
+provide the action-bound read receipt, and resolve every due planned entry with
+evidence and reason. A quality entry blocks quality and later stages; a publish
+entry blocks publish and handoff; a handoff entry blocks handoff. Entries have
+only `planned` and `resolved` states—there is no waived or implicit-deployment
+shortcut. The journal never grants credentials, changes a remote system, or
+authorizes a deployment. See [outer-work reference](references/outer-work.md)
+for its bounded record contract.
 
 Each multi-file state update uses a write-ahead `transaction.md` and the next
 locked command rolls it forward. Do not delete it or edit state by hand to
@@ -991,10 +1089,12 @@ a new explicitly scoped run.
 
 The mandatory research, behavior, specification, execution-plan, and generic
 objective loops are current. `sequence`, authorized preparation, post-inner,
-coverage, and quality retain a Markdown candidate, stable findings, bound
-context, candidate-bound checks, full-body Git-history evidence, audit-only
-learning commits, and a certificate after two trivial verified passes and a
-fresh final check.
+coverage, quality, and (for new runs) handoff retain a Markdown candidate,
+stable findings, bound context, candidate-bound checks, full-body Git-history
+evidence, audit-only learning commits, and a certificate after two trivial
+verified passes and a fresh final check. Handoff additionally binds outer
+evidence and the current outer-work ledger; a journal change reopens the
+affected objective rather than silently inheriting convergence.
 
 ```mermaid
 flowchart TD
@@ -1038,6 +1138,8 @@ shiploop planning-upgrade --run-dir RUN --action ACTION
 shiploop history  --run-dir RUN --action ACTION --limit 1 --skip N [--full]
 shiploop history  --run-dir RUN --action ACTION --limit 1 --skip N --full --max-chars 4000
 shiploop journal  --run-dir RUN --action ACTION --result PROPOSALS.md
+shiploop journal  --run-dir RUN --target outer --operation append --action PARENT_ACTION --result REQUEST_RESULT.md
+shiploop journal  --run-dir RUN --target outer --operation resolve --action OUTER_ACTION --result REQUEST_RESULT.md
 shiploop repair   --run-dir RUN --action ACTION --reason TEXT
 shiploop merge-recover --run-dir RUN --action ACTION --reason TEXT
 shiploop replan   --run-dir RUN --action ACTION --result CORRECTIVE_PLAN.md
@@ -1056,6 +1158,14 @@ inferred-completion commands, bare `complete`, or a hand-constructed stage
 transition. `plan-status` is read-only: it can confirm only an exact finalized
 execution-plan handoff before its target product action begins; it does not
 advance work or bless drift.
+
+The first `journal` form is the generic ShipLoop improvement-proposal journal.
+The `--target outer` forms are packet-issued side callbacks: their result file
+uses the exact append or resolve template returned by `context --section
+outer-work`. `PARENT_ACTION` stays open after append; `OUTER_ACTION` is the
+current matching `quality`, `publish`, or `handoff` action for a resolution.
+Never substitute a hand-written request ID, revision, target stage, result path,
+or completion command. An exact replay is safe; a changed replay is rejected.
 
 `report` regenerates the derived [terminal report](references/report.md) for an
 already terminal run. It refreshes integrity metadata, increments the run
@@ -1081,7 +1191,10 @@ same bytes, even though pure rendering of identical inputs is deterministic.
   its ten-dimensional review, cold-context packets, audit passes, and
   incorporated until-loop policy.
 - [Universal substantive-objective loop](references/objective-loops.md): the
-  ten-history, two-trivial-pass refinement applied to substantive outer stages.
+  policy-owned history, two-trivial-pass refinement applied to substantive
+  outer stages, including versioned handoff.
+- [Outer-work journal](references/outer-work.md): side callbacks from inner
+  work, deduplication, stage-bound resolution, and no-authority boundary.
 - [Research loop](references/research-loop.md#draft): typed research candidate
   schema; see its [review](references/research-loop.md#review),
   [freshness](references/research-loop.md#evidence-and-freshness), and

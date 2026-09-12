@@ -31,6 +31,7 @@ if str(SCRIPTS) not in sys.path:
     sys.path.insert(0, str(SCRIPTS))
 
 import shiploop_store as store  # noqa: E402
+import shiploop_history_policy as history_policy  # noqa: E402
 import shiploop_objectives as objectives  # noqa: E402
 import shiploop_step_planning as step_planning  # noqa: E402
 
@@ -468,6 +469,10 @@ TC-01 and TC-02 map the two exact-output acceptance criteria to durable checks.
                     "sources": ["SRC-LOCAL-001"],
                     "revalidate": "Run the local lint and exact-output checks before implementation.",
                     "rationale": "The fixture intentionally has no external service dependency.",
+                    "parents": [],
+                    "contract_refs": [],
+                    "role_refs": ["ROLE-local"],
+                    "interface_refs": [],
                 }
             ],
             "sources": [
@@ -480,6 +485,63 @@ TC-01 and TC-02 map the two exact-output acceptance criteria to durable checks.
                     "limitations": "This source says nothing about external services.",
                 }
             ],
+            "system_context": {
+                "version": 1,
+                "scope": "local-only",
+                "rationale": "Only local fixture code is in scope.",
+                "roles": [
+                    {
+                        "id": "ROLE-local",
+                        "label": "local fixture role",
+                        "status": "observed",
+                        "permitted_actions": "Run deterministic local checks.",
+                        "isolation": "No remote data or mutation.",
+                        "platform_refs": [],
+                        "source_refs": ["SRC-LOCAL-001"],
+                        "revalidate": "Recheck the local runtime before implementation.",
+                    }
+                ],
+                "interfaces": [],
+                "interactions": [],
+                "observations": [
+                    {
+                        "id": "OBS-code",
+                        "kind": "code",
+                        "status": "observed",
+                        "summary": "The fixture uses committed local code.",
+                        "source_refs": ["SRC-LOCAL-001"],
+                        "role_refs": [],
+                        "interface_refs": [],
+                    },
+                    {
+                        "id": "OBS-state",
+                        "kind": "state",
+                        "status": "not-applicable",
+                        "summary": "No persisted business state exists.",
+                        "source_refs": [],
+                        "role_refs": [],
+                        "interface_refs": [],
+                    },
+                    {
+                        "id": "OBS-system",
+                        "kind": "system",
+                        "status": "not-applicable",
+                        "summary": "No separate system boundary exists.",
+                        "source_refs": [],
+                        "role_refs": [],
+                        "interface_refs": [],
+                    },
+                    {
+                        "id": "OBS-role",
+                        "kind": "environment-role",
+                        "status": "observed",
+                        "summary": "The local fixture role is available.",
+                        "source_refs": ["SRC-LOCAL-001"],
+                        "role_refs": ["ROLE-local"],
+                        "interface_refs": [],
+                    },
+                ],
+            },
         }
 
     def planning_lifecycle(self):
@@ -718,19 +780,104 @@ TC-01 and TC-02 map the two exact-output acceptance criteria to durable checks.
         }
 
     def objective_history(self):
-        """Durably read the current full last-ten page before objective review."""
+        """Durably read the current policy-owned page before objective review."""
         action = self.action_id()
+        history_limit = history_policy.required_limit(self.state())
         output = self.cli(
-            "history", "--action", action, "--limit", "10", "--skip", "0", "--full"
+            "history", "--action", action, "--limit", str(history_limit), "--skip", "0", "--full"
         ).stdout
         self.assertIn("Git history", output)
         receipt = self.objective_receipt()
         current = receipt["current_pass"]
-        self.assertEqual(current["history"]["required_limit"], 10)
+        self.assertEqual(current["history"]["required_limit"], history_limit)
         archive = self.run_dir / objectives.history_page_name(
             receipt["loop_id"], current["id"], 0
         )
         self.assertTrue(archive.is_file())
+
+    def read_context_record(self, section):
+        """Read every current context page through the public bounded CLI."""
+        offset = 0
+        digest = None
+        pages = []
+        total = None
+        while True:
+            args = [
+                "context",
+                "--section",
+                section,
+                "--offset",
+                str(offset),
+                "--limit",
+                "8000",
+            ]
+            if digest is not None:
+                args.extend(["--digest", digest])
+            output = self.cli(*args).stdout
+            header, body = output.split("\n", 1)
+            match = re.fullmatch(
+                rf"Context {re.escape(section)}; digest ([0-9a-f]{{64}}); characters (\d+):(\d+)/(\d+)",
+                header,
+            )
+            self.assertIsNotNone(match, output)
+            page_digest, start, end, page_total = match.groups()
+            start, end, page_total = int(start), int(end), int(page_total)
+            self.assertEqual(start, offset)
+            self.assertEqual(digest or page_digest, page_digest)
+            self.assertLessEqual(end, page_total)
+            if total is None:
+                total = page_total
+                digest = page_digest
+            else:
+                self.assertEqual(total, page_total)
+            pages.append(body[: end - start])
+            if end == page_total:
+                self.assertNotIn("Continue: --offset", body[end - start :])
+                break
+            continuation = re.search(
+                r"Continue: --offset (\d+) --limit 8000 --digest ([0-9a-f]{64})",
+                body[end - start :],
+            )
+            self.assertIsNotNone(continuation, output)
+            self.assertEqual(continuation.group(2), digest)
+            offset = int(continuation.group(1))
+        text = "".join(pages)
+        self.assertEqual(len(text), total)
+        return store.loads(text)
+
+    def read_outer_work_context(self):
+        """Read every current outer-work page through the public bounded CLI."""
+        return self.read_context_record("outer-work")
+
+    def read_outer_work_if_required(self):
+        """Satisfy an outer-stage read gate only when this run has a journal."""
+        state = self.state()
+        stage = state["stage"]
+        if objectives.is_objective_stage(stage):
+            stage = state.get("objective", {}).get("kind")
+        if state.get("outer_work_sha256") and stage in ("quality", "publish", "handoff"):
+            return self.read_outer_work_context()
+        return None
+
+    def local_quality_outer_request(self, context):
+        """Populate the printed append template with one local quality obligation."""
+        request = copy.deepcopy(context["append_template"])
+        request.update(
+            entry_id="OW-QUALITY-LOCAL-001",
+            dedupe_key="fixture-local-whole-product-check",
+            required_action="Review the local whole-product check and final verification observation.",
+            target_stage="quality",
+            target_alias="local-fixture-quality",
+            prerequisites=[
+                "Both fixture artifacts are merged into the local repository.",
+                "The final local whole-product exact-output check is available.",
+            ],
+            expected_outcome="The quality review records whether the local whole-product checks and final verification evidence are complete.",
+            evidence="The local whole-product exact-output check and final verification record are available at quality.",
+            authority_limitations="This journal records a local quality observation and does not authorize an external effect.",
+            rationale="The final whole-product check is observable only after both local implementation steps are merged.",
+        )
+        return request
 
     def objective_manifest(self, kind, *, fail=False):
         receipt = self.objective_receipt()
@@ -805,6 +952,7 @@ TC-01 and TC-02 map the two exact-output acceptance criteria to durable checks.
         base_stage = self.state()["stage"]
         kind = objectives.kind_for_base_stage(base_stage)
         self.assertIsNotNone(kind)
+        self.read_outer_work_if_required()
         self.complete(candidate, label=label)
         self.assertEqual(self.state()["stage"], "objective-review")
         binding = self.objective_binding()
@@ -819,6 +967,7 @@ TC-01 and TC-02 map the two exact-output acceptance criteria to durable checks.
         review_learning = (
             f"The {kind} objective review read the complete current Git history and durable context."
         )
+        self.read_outer_work_if_required()
         self.complete(
             {
                 "summary": "The objective review records an explicit finding against every required dimension.",
@@ -841,6 +990,7 @@ TC-01 and TC-02 map the two exact-output acceptance criteria to durable checks.
         plan_learning = (
             f"The {kind} objective plan resolves its stable finding without broadening the original candidate."
         )
+        self.read_outer_work_if_required()
         self.complete(
             {
                 "summary": "The objective plan addresses every open finding with a bounded durable change.",
@@ -857,6 +1007,7 @@ TC-01 and TC-02 map the two exact-output acceptance criteria to durable checks.
         apply_learning = (
             f"The {kind} objective apply result retains the complete original-stage candidate and its explicit check."
         )
+        self.read_outer_work_if_required()
         self.complete(
             {
                 "summary": "The objective apply result resolves the finding without an external effect.",
@@ -911,6 +1062,7 @@ TC-01 and TC-02 map the two exact-output acceptance criteria to durable checks.
                 ]
             )
         self.cli(*verify_args)
+        self.read_outer_work_if_required()
         self.complete(
             {"summary": "Fresh objective lint and candidate acceptance checks passed."},
             action_id=verify_action,
@@ -919,6 +1071,7 @@ TC-01 and TC-02 map the two exact-output acceptance criteria to durable checks.
         self.assertEqual(self.state()["stage"], "objective-commit")
         commit_action = self.action_id()
         commit = self.objective_audit_commit(kind)
+        self.read_outer_work_if_required()
         self.complete(
             {
                 "summary": "An audit-only direct-child commit records the objective review, plan, apply, and validation learnings.",
@@ -968,6 +1121,7 @@ TC-01 and TC-02 map the two exact-output acceptance criteria to durable checks.
             "--manifest",
             self.record(f"{kind}-objective-final-checks", self.objective_manifest(kind)),
         )
+        self.read_outer_work_if_required()
         final_process, _ = self.complete(
             {"summary": "Fresh final objective lint and candidate acceptance checks passed."},
             action_id=finalize_action,
@@ -1061,12 +1215,24 @@ document any future function-contract or README impact before implementation.
         }
 
     def step_plan_context_evidence(self, sid):
-        return {
+        evidence = {
             "step": f"context --section step identified {sid} and its declared produces.",
             "implementation": "context --section step-context bound the current worktree and Git head.",
             "environment": "The frozen environment and local Python runtime remain the selected test environment.",
             "dependencies": "The direct supplier and consumer records were inspected from the bounded step context.",
         }
+        selected = self.read_context_record("step-context")["step"]["system_context"]["projection"]
+        self.assertIsInstance(selected, dict)
+        evidence["system_context"] = {
+            "context_sha256": selected["context_sha256"],
+            "role_ids": [row["id"] for row in selected["roles"]],
+            "interface_ids": [row["id"] for row in selected["interfaces"]],
+            "interaction_ids": [row["id"] for row in selected["interactions"]],
+            "question_ids": [row["id"] for row in selected["questions"]],
+            "observation_ids": [row["id"] for row in selected["observations"]],
+            "source_ids": [row["id"] for row in selected["sources"]],
+        }
+        return evidence
 
     def step_plan_manifest(self, sid):
         receipt = self.step_plan_receipt(sid)
@@ -1887,7 +2053,29 @@ class ShipLoopActionWalkTests(ShipLoopActionWalkFixture):
     def test_action_walk_enforces_evidence_history_commits_revision_and_terminal_journal(
         self,
     ):
-        self.bootstrap_to_first_implementation()
+        initial_implementation = self.bootstrap_to_first_implementation()
+        append_context = self.read_outer_work_context()
+        self.assertEqual(append_context["revision"], 0)
+        append = self.local_quality_outer_request(append_context)
+        self.cli(
+            "journal",
+            "--target",
+            "outer",
+            "--operation",
+            "append",
+            "--action",
+            initial_implementation["action"]["id"],
+            "--result",
+            self.record("inner-quality-observation", append),
+        )
+        after_append = self.state()
+        self.assertEqual(after_append["action"], initial_implementation["action"])
+        self.assertEqual(after_append["stage"], "implement")
+        self.assertEqual(after_append["outer_work_revision"], 1)
+        outer_ledger = store.read_record(self.run_dir / "outer-work.md")
+        self.assertEqual(outer_ledger["entries"][0]["id"], "OW-QUALITY-LOCAL-001")
+        self.assertEqual(outer_ledger["entries"][0]["target_stage"], "quality")
+        self.assertEqual(outer_ledger["entries"][0]["status"], "planned")
         s1_before = self.finish_step("S1", revise=True, material_first=True)
         state_after_s1 = self.state()
         self.assertEqual(state_after_s1["active_step"], "S2")
@@ -1919,17 +2107,66 @@ class ShipLoopActionWalkTests(ShipLoopActionWalkFixture):
         self.verify_current(
             self.manifest_for("S2", quality=True), label="whole-product-checks"
         )
+        quality_candidate = {
+            "summary": "Whole-product lint and exact-output checks passed after both merges.",
+            "test_review": "Both declared lifecycle acceptance criteria are covered by an exact-output check.",
+            "quality_review": "The merged fixture remains limited to its two declared exact-output acceptance criteria.",
+        }
+        missing_outer_read, _ = self.complete(
+            quality_candidate,
+            code=2,
+            label="quality-missing-outer-read",
+        )
+        self.assertIn(
+            "outer stage requires reading context --section outer-work",
+            missing_outer_read.stderr,
+        )
+        self.assertEqual(self.state()["stage"], "quality")
+        quality_context = self.read_outer_work_context()
+        self.assertEqual(
+            [entry["id"] for entry in quality_context["due"]],
+            ["OW-QUALITY-LOCAL-001"],
+        )
+        unresolved_outer_work, _ = self.complete(
+            quality_candidate,
+            code=2,
+            label="quality-unresolved-outer-work",
+        )
+        self.assertIn(
+            "unresolved outer work blocks quality: OW-QUALITY-LOCAL-001",
+            unresolved_outer_work.stderr,
+        )
+        resolution = copy.deepcopy(quality_context["resolve_template"])
+        resolution.update(
+            entry_id="OW-QUALITY-LOCAL-001",
+            evidence="The final local exact-output check passed for both merged fixture artifacts.",
+            reason="The quality-stage observation now has the required whole-product and final verification evidence.",
+        )
+        self.cli(
+            "journal",
+            "--target",
+            "outer",
+            "--operation",
+            "resolve",
+            "--action",
+            self.action_id(),
+            "--result",
+            self.record("quality-observation-resolved", resolution),
+        )
+        self.assertEqual(self.state()["outer_work_revision"], 2)
+        refreshed_quality_context = self.read_outer_work_context()
+        self.assertEqual(refreshed_quality_context["due"], [])
+        self.assertEqual(refreshed_quality_context["entries"][0]["status"], "resolved")
         self.converge_objective(
-            {
-                "summary": "Whole-product lint and exact-output checks passed after both merges.",
-                "test_review": "Both declared lifecycle acceptance criteria are covered by an exact-output check.",
-                "quality_review": "The merged fixture remains limited to its two declared exact-output acceptance criteria.",
-            },
+            quality_candidate,
             label="quality",
         )
         self.assertEqual(self.state()["stage"], "handoff")
         # A fresh host uses only the printed callback, including its run/result
-        # locators, even when its cwd is no longer the product repository.
+        # locators, even when its cwd is no longer the product repository. The
+        # callback starts the final handoff objective rather than bypassing it.
+        handoff_context = self.read_outer_work_context()
+        self.assertEqual(handoff_context["due"], [])
         handoff_packet = self.cli("next", "--run-dir", str(self.run_dir), cwd=self.root).stdout
         callbacks = [
             line.removeprefix("Call this when done: ")
@@ -1940,18 +2177,19 @@ class ShipLoopActionWalkTests(ShipLoopActionWalkFixture):
         callback = shlex.split(callbacks[0])
         handoff_action = callback[callback.index("--action") + 1]
         result_path = Path(callback[callback.index("--result") + 1])
-        store.write_record(result_path, {
+        handoff_candidate = {
             "summary": "The fixture is complete with durable journal proposals available for later skill maintenance.",
             "journal": [],
-        })
+        }
+        store.write_record(result_path, handoff_candidate)
         handed_off = subprocess.run(
             callback, cwd=self.root, capture_output=True, text=True, env=self.env
         )
         self.assertEqual(handed_off.returncode, 0, handed_off.stdout + handed_off.stderr)
         self.assertIn(f"Last accepted: {handoff_action}", handed_off.stdout)
-        self.assertIn("It's all complete.", handed_off.stdout)
-        self.assertNotIn("Call this when done:", handed_off.stdout)
-        self.assertNotIn("When done:", handed_off.stdout)
+        self.assertEqual(self.state()["stage"], "objective-review")
+        self.converge_objective(handoff_candidate, label="handoff", started=True)
+        self.assertIn("It's all complete.", self.last_objective_final.stdout)
         terminal = self.state()
         self.assertEqual((terminal["phase"], terminal["stage"]), ("done", "done"))
         self.assertNotIn("active_step", terminal)
@@ -2264,12 +2502,13 @@ class ShipLoopActionWalkTests(ShipLoopActionWalkFixture):
         )
         self.assertIn("read current Git history", rejected.stderr)
         self.assertEqual(self.state()["stage"], "review")
+        history_limit = history_policy.required_limit(self.state())
         self.cli(
-            "history", "--action", action, "--limit", "10", "--skip", "0", "--full"
+            "history", "--action", action, "--limit", str(history_limit), "--skip", "0", "--full"
         )
         self.complete(
             {
-                "summary": "The complete current ten-body history page was reviewed before the decision.",
+                "summary": "The complete current policy-owned history page was reviewed before the decision.",
                 "findings": [],
                 "test_review": "The implementation check remains the active evidence.",
                 "learnings": "A full current history page is durable evidence, while its subject index is only navigation.",

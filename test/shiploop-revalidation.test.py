@@ -574,6 +574,173 @@ class ExternalPreparationFinalizationTests(unittest.TestCase):
         try:
             fixture.fixture_preparation = "outer-before"
             fixture.machine_markdown = lambda: environment_body(outer_machine())
+
+            def integrated_research_state(revision="initial"):
+                """Mirror the selected frozen platform/interface identity.
+
+                This fixture deliberately changes the inherited survey from
+                local-only to an applicable hosted route, so its research
+                evidence must make the same scoped declaration rather than
+                weakening the v1 context validator.
+                """
+                platform = outer_machine()["platform_discovery"]["platforms"][0]
+                platform_id = platform["id"]
+                interface_name = platform["interfaces"][0]["name"]
+                source_id = "SRC-HOSTED-001"
+                role_id = "ROLE-hosted"
+                writer_id = "IF-platform-cli"
+                operator_id = "IF-operator"
+                interaction_id = "IC-prepare"
+                return {
+                    "questions": [
+                        {
+                            "id": "RQ-001",
+                            "question": "Which selected hosted writer and safe preparation boundary apply to this fixture?",
+                            "origin": "prompt discovery: selected hosted preparation route",
+                            "status": "resolved",
+                            "answer": "Use the surveyed platform-cli writer through the recorded outer preparation route.",
+                            "sources": [source_id],
+                            "revalidate": "Recheck the selected role and writer before the external operation.",
+                            "rationale": "The fixture's preparation route depends on the selected hosted platform.",
+                            "parents": [],
+                            "contract_refs": [interaction_id],
+                            "role_refs": [role_id],
+                            "interface_refs": [operator_id, writer_id],
+                        }
+                    ],
+                    "sources": [
+                        {
+                            "id": source_id,
+                            "reference": "fixture hosted platform survey",
+                            "authority": "local",
+                            "version_or_observed_at": f"fixture-{revision}",
+                            "supports": "The selected platform identity, writer, and authorized preparation route.",
+                            "limitations": "This fixture record does not prove a live external operation succeeded.",
+                        }
+                    ],
+                    "system_context": {
+                        "version": 1,
+                        "scope": "integrated",
+                        "rationale": "The selected hosted writer and outer preparation operation affect this fixture.",
+                        "roles": [
+                            {
+                                "id": role_id,
+                                "label": "authorized hosted fixture role",
+                                "status": "observed",
+                                "permitted_actions": "Perform the recorded non-mutating readiness observation before the authorized preparation operation.",
+                                "isolation": "The fixture uses the selected isolated development target and records no credential values.",
+                                "platform_refs": [platform_id],
+                                "source_refs": [source_id],
+                                "revalidate": "Recheck role identity and authority immediately before external use.",
+                            }
+                        ],
+                        "interfaces": [
+                            {
+                                "id": operator_id,
+                                "kind": "operator",
+                                "identity": "fixture host preparation caller",
+                                "survey_ref": None,
+                                "role_refs": [role_id],
+                                "source_refs": [source_id],
+                                "idiom": "Use the script-issued preparation callback and retain the original action proof.",
+                                "status": "resolved",
+                                "revalidate": "Recheck the current action before submitting the preparation result.",
+                            },
+                            {
+                                "id": writer_id,
+                                "kind": platform["interfaces"][0]["kind"],
+                                "identity": "surveyed hosted platform writer",
+                                "survey_ref": {"platform_id": platform_id, "name": interface_name},
+                                "role_refs": [role_id],
+                                "source_refs": [source_id],
+                                "idiom": "Use the surveyed platform-cli writer rather than an overlapping mutation route.",
+                                "status": "resolved",
+                                "revalidate": "Recheck the selected writer and documented safe probe before external use.",
+                            },
+                        ],
+                        "interactions": [
+                            {
+                                "id": interaction_id,
+                                "caller_interface_id": operator_id,
+                                "callee_interface_id": writer_id,
+                                "role_refs": [role_id],
+                                "operation": "Record the action-bound hosted preparation readiness observation.",
+                                "question_refs": ["RQ-001"],
+                                "source_refs": [source_id],
+                                "input_output": "The current action and frozen environment digest yield a recorded readiness attestation.",
+                                "state_semantics": "The accepted result preserves the original action proof for later objective finalization.",
+                                "failure_semantics": "A missing or stale safe observation blocks preparation without retrying an external effect.",
+                                "idiom": "Use the documented preparation callback and platform revalidation result row.",
+                                "risk": "high",
+                                "depth_rationale": "External authority and retained action proof require the writer, action state, and finalization boundary.",
+                                "status": "resolved",
+                                "required": True,
+                                "consumer_steps": ["S1", "S2"],
+                            }
+                        ],
+                        "observations": [
+                            {
+                                "id": "OBS-code",
+                                "kind": "code",
+                                "status": "observed",
+                                "summary": "The fixture uses the script-issued preparation callback and result record.",
+                                "source_refs": [source_id],
+                                "role_refs": [role_id],
+                                "interface_refs": [operator_id],
+                            },
+                            {
+                                "id": "OBS-state",
+                                "kind": "state",
+                                "status": "observed",
+                                "summary": "Preparation retains the original action-bound attestation for later objective finalization.",
+                                "source_refs": [source_id],
+                                "role_refs": [role_id],
+                                "interface_refs": [operator_id, writer_id],
+                            },
+                            {
+                                "id": "OBS-system",
+                                "kind": "system",
+                                "status": "observed",
+                                "summary": "The selected hosted writer is an external preparation boundary.",
+                                "source_refs": [source_id],
+                                "role_refs": [role_id],
+                                "interface_refs": [writer_id],
+                            },
+                            {
+                                "id": "OBS-role",
+                                "kind": "environment-role",
+                                "status": "observed",
+                                "summary": "The selected hosted fixture role is recorded without credential values.",
+                                "source_refs": [source_id],
+                                "role_refs": [role_id],
+                                "interface_refs": [writer_id],
+                            },
+                        ],
+                    },
+                }
+
+            fixture.planning_research_state = integrated_research_state
+            inherited_manifest = fixture.planning_manifest
+
+            def integrated_planning_manifest(kind):
+                manifest = inherited_manifest(kind)
+                if kind != "research":
+                    return manifest
+                manifest = deepcopy(manifest)
+                manifest["checks"][1]["argv"] = [
+                    sys.executable,
+                    "-B",
+                    "-c",
+                    (
+                        "from pathlib import Path; "
+                        "research = Path('.shiploop/research.md').read_text(); "
+                        "evidence = Path('.shiploop/research-evidence.md').read_text(); "
+                        "assert 'RQ-001' in research; assert 'SRC-HOSTED-001' in evidence"
+                    ),
+                ]
+                return manifest
+
+            fixture.planning_manifest = integrated_planning_manifest
             original_dag = fixture.initial_dag
 
             def selected_dag():

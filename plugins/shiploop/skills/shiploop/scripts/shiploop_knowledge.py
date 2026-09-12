@@ -36,6 +36,7 @@ DISPOSITIONS = (
 )
 
 _ID_RE = re.compile(r"[A-Za-z][A-Za-z0-9._:-]{0,159}\Z")
+_PARENT_ACTION_RE = re.compile(r"[A-Za-z0-9][A-Za-z0-9._:-]{0,159}\Z")
 _STEP_RE = re.compile(r"[SD][0-9]+\Z")
 _CREDENTIAL_ASSIGNMENT_RE = re.compile(
     r"(?i)\b(?:api[_-]?key|secret|password|passwd|access[_-]?token|refresh[_-]?token|"
@@ -54,6 +55,8 @@ _PRIVATE_KEY_RE = re.compile(r"-----BEGIN (?:[A-Z ]+ )?PRIVATE KEY-----")
 MAX_TEXT = 2000
 MAX_DISCOVERIES = 24
 MAX_LEARNINGS = 16
+_STAGE_RE = re.compile(r"[a-z][a-z0-9-]{0,79}\Z")
+_SHA256_RE = re.compile(r"[0-9a-f]{64}\Z")
 
 
 class KnowledgeError(ValueError):
@@ -298,7 +301,15 @@ def _copy(value: Any) -> Any:
 
 
 def _source(source: Mapping[str, Any]) -> dict[str, Any]:
-    expected = {
+    """Validate either a verified checkpoint source or an early observation.
+
+    The existing carry-forward shape continues to mean that a named check action
+    supplied the evidence. Earlier observations deliberately use a different,
+    closed schema: they can record a host-reported fact but cannot be mistaken
+    for a successful verification result.
+    """
+    need(isinstance(source, Mapping), "knowledge provenance is invalid")
+    verified_fields = {
         "action",
         "iteration",
         "check_action",
@@ -307,18 +318,65 @@ def _source(source: Mapping[str, Any]) -> dict[str, Any]:
         "reported_by",
         "recorded_at",
     }
-    need(set(source) == expected, "knowledge provenance is invalid")
-    for key in (
+    if set(source) == verified_fields:
+        for key in (
+            "action",
+            "iteration",
+            "check_action",
+            "worktree_fingerprint",
+            "step",
+            "reported_by",
+            "recorded_at",
+        ):
+            _text(source[key], f"knowledge provenance {key}")
+        need(source["reported_by"] == "host", "knowledge observations must remain host-reported")
+        return dict(source)
+
+    observation_fields = {
+        "kind",
         "action",
-        "iteration",
-        "check_action",
-        "worktree_fingerprint",
-        "step",
+        "parent_action",
+        "parent_stage",
+        "parent_step",
+        "context_fingerprint",
         "reported_by",
         "recorded_at",
-    ):
-        _text(source[key], f"knowledge provenance {key}")
+        "verification",
+    }
+    need(set(source) == observation_fields, "knowledge provenance is invalid")
+    need(
+        source["kind"] == "unverified-observation",
+        "early knowledge provenance must identify an unverified observation",
+    )
+    need(
+        source["verification"] == "not-run",
+        "early knowledge provenance must not claim a completed check",
+    )
+    _safe_id(source["action"], "knowledge observation action")
+    need(
+        isinstance(source["parent_action"], str)
+        and _PARENT_ACTION_RE.fullmatch(source["parent_action"]) is not None,
+        "knowledge observation parent action is invalid",
+    )
+    parent_stage = _text(source["parent_stage"], "knowledge observation parent stage")
+    need(
+        _STAGE_RE.fullmatch(parent_stage) is not None,
+        "knowledge observation parent stage is invalid",
+    )
+    parent_step = source["parent_step"]
+    need(
+        parent_step is None
+        or (isinstance(parent_step, str) and _STEP_RE.fullmatch(parent_step) is not None),
+        "knowledge observation parent step is invalid",
+    )
+    fingerprint = source["context_fingerprint"]
+    need(
+        isinstance(fingerprint, str) and _SHA256_RE.fullmatch(fingerprint) is not None,
+        "knowledge observation context fingerprint is invalid",
+    )
+    _text(source["reported_by"], "knowledge observation reported_by")
     need(source["reported_by"] == "host", "knowledge observations must remain host-reported")
+    _text(source["recorded_at"], "knowledge observation recorded_at")
     return dict(source)
 
 

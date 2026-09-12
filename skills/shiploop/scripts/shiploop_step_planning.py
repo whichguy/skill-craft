@@ -36,6 +36,15 @@ RUBRIC = (
     "documentation",
 )
 CONTEXT_EVIDENCE = ("step", "implementation", "environment", "dependencies")
+SYSTEM_CONTEXT_EVIDENCE = (
+    "context_sha256",
+    "role_ids",
+    "interface_ids",
+    "interaction_ids",
+    "question_ids",
+    "observation_ids",
+    "source_ids",
+)
 CONTEXT_KEYS = (
     "step_sha256",
     "dependency_sha256",
@@ -51,8 +60,15 @@ CONTEXT_KEYS = (
     "plan_sha256",
     "knowledge_sha256",
 )
+SYSTEM_CONTEXT_KEYS = (
+    "research_candidate_sha256",
+    "research_certificate_sha256",
+    "research_evidence_sha256",
+    "system_context_sha256",
+)
 _ID_RE = re.compile(r"[A-Za-z0-9][A-Za-z0-9_-]{0,191}\Z")
 _FINDING_RE = re.compile(r"[A-Za-z][A-Za-z0-9._:-]{0,159}\Z")
+_CONTEXT_REF_RE = re.compile(r"[A-Za-z][A-Za-z0-9._:-]{0,159}\Z")
 _SHA_RE = re.compile(r"[0-9a-f]{64}\Z")
 _COMMIT_RE = re.compile(r"[0-9a-f]{40}(?:[0-9a-f]{24})?\Z")
 _CATEGORIES = {
@@ -240,11 +256,17 @@ def ledger_sha256(value: Any) -> str:
 
 def validate_context(value: Any) -> dict[str, str]:
     need(isinstance(value, Mapping), "step-plan context must be an object")
-    missing = set(CONTEXT_KEYS) - set(value)
-    extra = set(value) - set(CONTEXT_KEYS)
+    present_system_keys = set(value) & set(SYSTEM_CONTEXT_KEYS)
+    expected_keys = set(CONTEXT_KEYS)
+    if present_system_keys:
+        expected_keys.update(SYSTEM_CONTEXT_KEYS)
+    missing = expected_keys - set(value)
+    extra = set(value) - expected_keys
     need(not missing and not extra, "step-plan context has the wrong identity keys")
     out: dict[str, str] = {}
-    for key in CONTEXT_KEYS:
+    for key in (*CONTEXT_KEYS, *SYSTEM_CONTEXT_KEYS):
+        if key not in expected_keys:
+            continue
         raw = value[key]
         if key == "worktree":
             text = _text(raw, "step-plan context worktree", limit=4096)
@@ -618,12 +640,85 @@ def check_coverage_review(value: Any) -> dict[str, Any]:
     return normalized
 
 
-def check_context_evidence(value: Any) -> dict[str, list[str]]:
+def _context_reference_ids(value: Any, label: str) -> list[str]:
+    need(isinstance(value, list), f"{label} must be a list")
+    need(len(value) <= 64, f"{label} exceeds the bounded context limit")
+    result: list[str] = []
+    for item in value:
+        need(
+            isinstance(item, str) and _CONTEXT_REF_RE.fullmatch(item) is not None,
+            f"{label} must contain stable context IDs",
+        )
+        result.append(item)
+    need(len(result) == len(set(result)), f"{label} must not duplicate IDs")
+    return result
+
+
+def _system_context_evidence(
+    value: Any, selected: Mapping[str, Any]
+) -> dict[str, Any]:
+    need(
+        isinstance(value, Mapping) and set(value) == set(SYSTEM_CONTEXT_EVIDENCE),
+        "step-plan system_context evidence has an unexpected schema",
+    )
+    expected_sha = _sha(
+        selected.get("context_sha256"), "selected system-context digest"
+    )
+    actual_sha = _sha(
+        value.get("context_sha256"), "step-plan system_context context_sha256"
+    )
+    need(
+        actual_sha == expected_sha,
+        "step-plan system_context evidence names another context digest",
+    )
+    normalized: dict[str, Any] = {"context_sha256": actual_sha}
+    for field, projected_field in (
+        ("role_ids", "roles"),
+        ("interface_ids", "interfaces"),
+        ("interaction_ids", "interactions"),
+        ("question_ids", "questions"),
+        ("observation_ids", "observations"),
+        ("source_ids", "sources"),
+    ):
+        projected = selected.get(projected_field)
+        need(
+            isinstance(projected, list),
+            f"selected system-context {projected_field} is invalid",
+        )
+        expected_ids = {
+            row.get("id")
+            for row in projected
+            if isinstance(row, Mapping) and isinstance(row.get("id"), str)
+        }
+        need(
+            len(expected_ids) == len(projected),
+            f"selected system-context {projected_field} has invalid IDs",
+        )
+        actual_ids = _context_reference_ids(
+            value.get(field), f"step-plan system_context {field}"
+        )
+        need(
+            set(actual_ids) == expected_ids,
+            f"step-plan system_context {field} must cite every and only selected ID",
+        )
+        normalized[field] = sorted(actual_ids)
+    return normalized
+
+
+def check_context_evidence(
+    value: Any, *, system_context: Mapping[str, Any] | None = None
+) -> dict[str, Any]:
     need(isinstance(value, Mapping), "step-plan context_evidence must be a mapping")
-    missing = set(CONTEXT_EVIDENCE) - set(value)
-    extra = set(value) - set(CONTEXT_EVIDENCE)
-    need(not missing and not extra, "step-plan context_evidence must contain exactly step, implementation, environment, dependencies")
-    normalized: dict[str, list[str]] = {}
+    expected = set(CONTEXT_EVIDENCE)
+    if system_context is not None:
+        expected.add("system_context")
+    missing = expected - set(value)
+    extra = set(value) - expected
+    need(
+        not missing and not extra,
+        "step-plan context_evidence must contain exactly the selected evidence sections",
+    )
+    normalized: dict[str, Any] = {}
     for key in CONTEXT_EVIDENCE:
         raw = value[key]
         values = [raw] if isinstance(raw, str) else raw
@@ -632,6 +727,10 @@ def check_context_evidence(value: Any) -> dict[str, list[str]]:
         need(len(rows) == len(set(rows)), f"step-plan context_evidence.{key} must not duplicate observations")
         knowledge.screen_payload(rows)
         normalized[key] = rows
+    if system_context is not None:
+        normalized["system_context"] = _system_context_evidence(
+            value["system_context"], system_context
+        )
     return normalized
 
 

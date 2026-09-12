@@ -95,6 +95,27 @@ validation. The script checks record shape and route consistency; it cannot
 independently certify the truth of the host's observations or infer permission
 from a role label.
 
+### Frozen interface identity handoff
+
+The survey owns selected platform and interface identity. A later versioned
+research context may reference a selected interface only by its frozen
+`{platform_id, name}` pair, then add bounded role, invocation, state, failure,
+and source links in `research-evidence.md`. It must not create a second platform
+inventory, revise `environment.md`, install a client, or turn a planned safe
+probe into an observation. If an interface or role is unavailable, preserve a
+blocked reference and its revalidation trigger.
+
+Environment roles are task labels with permitted actions and isolation facts,
+not an assumed dev/stage/prod ladder. One isolated local environment can satisfy
+multiple labels when its evidence supports that decision; a production-only
+connection is not a test fixture. Investigate meaningful differences without
+forcing infrastructure parity. [Twelve-Factor's dev/prod discussion](https://www.12factor.net/dev-prod-parity)
+is a useful prompt for differences, not a requirement to provision three
+environments. For connected tool boundaries, use the selected version's
+[MCP tools contract](https://modelcontextprotocol.io/specification/2025-11-25/server/tools)
+and its authority guidance as evidence anchors rather than treating a tool name
+or annotation as a safe writer.
+
 At cold resume and immediately before an external operation, recheck the
 selected interface, non-secret target role and required authority with the
 documented safe probe. Never execute a probe merely because a tool description

@@ -177,8 +177,34 @@ def _question(value: Any) -> dict[str, Any]:
     return result
 
 
-def validate_state(value: Any) -> dict[str, Any]:
-    """Normalize source/question evidence without screening report prose."""
+def _system_context_adapter(machine: Any, enabled: bool):
+    """Load the optional v1 extension lazily to preserve legacy import shape."""
+    if not enabled:
+        return None
+    need(machine is not None, "system-context research validation requires machine")
+    import shiploop_system_context as system_context
+
+    return system_context
+
+
+def validate_state(
+    value: Any,
+    *,
+    machine: Any = None,
+    system_context_enabled: bool = False,
+) -> dict[str, Any]:
+    """Normalize source/question evidence without screening report prose.
+
+    Existing callers receive the exact original two-key schema.  New callers
+    must explicitly select the system-context extension through the run marker
+    and pass the frozen survey machine for reference validation.
+    """
+    system_context = _system_context_adapter(machine, system_context_enabled)
+    if system_context is not None:
+        try:
+            return system_context.validate_research_state(value, machine)
+        except system_context.SystemContextError as exc:
+            raise ResearchError(str(exc)) from exc
     expected = {"questions", "sources"}
     need(
         isinstance(value, Mapping) and set(value) == expected,
@@ -200,21 +226,55 @@ def validate_state(value: Any) -> dict[str, Any]:
     return {"questions": questions, "sources": sources}
 
 
-def render_state(value: Mapping[str, Any]) -> str:
-    return store.dumps(validate_state(value), "ShipLoop research evidence — host reported")
+def render_state(
+    value: Mapping[str, Any],
+    *,
+    machine: Any = None,
+    system_context_enabled: bool = False,
+) -> str:
+    return store.dumps(
+        validate_state(
+            value,
+            machine=machine,
+            system_context_enabled=system_context_enabled,
+        ),
+        "ShipLoop research evidence — host reported",
+    )
 
 
-def read_state(root: Path) -> dict[str, Any]:
+def read_state(
+    root: Path,
+    *,
+    machine: Any = None,
+    system_context_enabled: bool = False,
+) -> dict[str, Any]:
     path = root / "research-evidence.md"
     need(path.is_file() and not path.is_symlink(), "missing research-evidence.md")
     try:
-        return validate_state(store.read_record(path))
+        return validate_state(
+            store.read_record(path),
+            machine=machine,
+            system_context_enabled=system_context_enabled,
+        )
     except UnicodeError as exc:
         raise ResearchError("research evidence is not UTF-8 Markdown") from exc
 
 
-def validate_transition(previous: Mapping[str, Any], current: Mapping[str, Any]) -> None:
+def validate_transition(
+    previous: Mapping[str, Any],
+    current: Mapping[str, Any],
+    *,
+    machine: Any = None,
+    system_context_enabled: bool = False,
+) -> None:
     """Preserve question/source identity across supported research apply actions."""
+    system_context = _system_context_adapter(machine, system_context_enabled)
+    if system_context is not None:
+        try:
+            system_context.validate_transition(previous, current, machine)
+            return
+        except system_context.SystemContextError as exc:
+            raise ResearchError(str(exc)) from exc
     old = validate_state(previous)
     new = validate_state(current)
     old_questions = {row["id"]: row for row in old["questions"]}
@@ -240,8 +300,20 @@ def validate_transition(previous: Mapping[str, Any], current: Mapping[str, Any])
         )
 
 
-def meaningful_change(previous: Mapping[str, Any], current: Mapping[str, Any]) -> bool:
+def meaningful_change(
+    previous: Mapping[str, Any],
+    current: Mapping[str, Any],
+    *,
+    machine: Any = None,
+    system_context_enabled: bool = False,
+) -> bool:
     """Conservatively classify semantic research changes for the trivial streak."""
+    system_context = _system_context_adapter(machine, system_context_enabled)
+    if system_context is not None:
+        try:
+            return system_context.meaningful_change(previous, current, machine)
+        except system_context.SystemContextError as exc:
+            raise ResearchError(str(exc)) from exc
     old = validate_state(previous)
     new = validate_state(current)
     old_questions = {row["id"]: row for row in old["questions"]}
@@ -279,13 +351,33 @@ def meaningful_change(previous: Mapping[str, Any], current: Mapping[str, Any]) -
     return False
 
 
-def unresolved_ids(value: Mapping[str, Any]) -> list[str]:
-    state = validate_state(value)
-    return [
+def unresolved_ids(
+    value: Mapping[str, Any],
+    *,
+    machine: Any = None,
+    system_context_enabled: bool = False,
+) -> list[str]:
+    state = validate_state(
+        value,
+        machine=machine,
+        system_context_enabled=system_context_enabled,
+    )
+    unresolved = [
         row["id"]
         for row in state["questions"]
         if row["status"] in ("open", "blocked")
     ]
+    if system_context_enabled:
+        system_context = _system_context_adapter(machine, True)
+        try:
+            unresolved.extend(
+                item
+                for item in system_context.blocking_ids(state, machine)
+                if item.startswith("interaction:")
+            )
+        except system_context.SystemContextError as exc:
+            raise ResearchError(str(exc)) from exc
+    return unresolved
 
 
 def validate_assessment(value: Any) -> dict[str, Any]:

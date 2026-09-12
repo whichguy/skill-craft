@@ -104,6 +104,13 @@ under the research loop, not an untyped extension of `environment.md`. See the
 does not require a research provider or new tool, and its safe observations never
 authorize externally mutating probes.
 
+For new versioned runs, research may link the frozen survey interface identity
+as `{platform_id, name}` and add bounded roles, interactions, question parents,
+and source references in `research-evidence.md`. Survey remains the owner of
+interface identity and route declarations; research does not duplicate the
+platform inventory or write its conclusions back into `environment.md`. See
+[versioned system-context links](research-loop.md#versioned-system-context-links).
+
 ## Destination writers
 
 For each destination artifact, designate one writer:
@@ -187,9 +194,10 @@ Client–service invocation, not as a later implementation guess.
 
 ## Freeze discipline
 
-Research extends the survey evidence before behavior/spec. Once the sequence
-stage freezes `environment.md`, `spec.md`, and the DAG, do not hand-edit them to
-resolve new learning. Before any execution receipt, `revisit --to research`
+Research extends the survey evidence before behavior/spec. Accepting the survey
+already freezes `environment.md` and its `environment_sha256`; sequence later
+binds that frozen survey alongside `spec.md` and the DAG. Do not hand-edit any
+of them to resolve new learning. Before any execution receipt, `revisit --to research`
 preserves this survey while archiving research and downstream planning proof; a
 changed survey fact uses `revisit --to survey` instead. The execution
 `carry-forward` checkpoint may record a current non-secret overlay, but it is

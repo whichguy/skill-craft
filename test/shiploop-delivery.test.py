@@ -46,6 +46,51 @@ class DeliveryTests(unittest.TestCase):
         self.assertEqual(saved["report"]["sha256"], hashlib.sha256(self.html.encode()).hexdigest())
         self.assertEqual(saved["report"]["source_digest"], "a" * 64)
 
+    def test_terminal_overlay_keeps_only_bound_handoff_objective_certificate(self):
+        loop = "delivery-fixture-handoff-objective"
+        certificate = f"objectives/{loop}/certificate.md"
+        receipt = f"objectives/{loop}.md"
+        self.state.update(
+            delivery_objective_protocol_version=1,
+            objective={
+                "loop_id": loop,
+                "kind": "handoff",
+                "base_stage": "handoff",
+                "receipt": receipt,
+                "candidate": f"objectives/{loop}/candidate.md",
+                "status": "finalized",
+                "certificate": certificate,
+            },
+        )
+        writes = {
+            receipt: store.dumps({"loop_id": loop}),
+            certificate: store.dumps({"loop_id": loop}),
+            "results/delivery-fixture-finalize.md": store.dumps({"summary": "Done"}),
+            "handoff.md": store.dumps({"summary": "Done"}),
+        }
+        with patch.object(delivery, "render_report", return_value=(self.html, self.meta)) as render:
+            result = delivery.prepare_terminal_report(self.root, self.state, writes)
+        overlay = render.call_args.kwargs["overrides"]
+        self.assertIn(receipt, overlay)
+        self.assertIn(certificate, overlay)
+        self.assertEqual(result[certificate], writes[certificate])
+        self.assertNotIn("report.html", overlay)
+
+    def test_terminal_overlay_refuses_unknown_or_unsafe_writes(self):
+        loop = "delivery-fixture-handoff-objective"
+        for relative, message in (
+            (f"objectives/{loop}/candidate.md", "accepted report input"),
+            (f"objectives/{loop}/certificate.md", "accepted report input"),
+            ("../escape.md", "terminal write path is unsafe"),
+        ):
+            with self.subTest(relative=relative), patch.object(
+                delivery, "render_report", return_value=(self.html, self.meta)
+            ):
+                with self.assertRaisesRegex(delivery.DeliveryError, message):
+                    delivery.prepare_terminal_report(
+                        self.root, self.state, {relative: "untrusted"}
+                    )
+
     def test_incomplete_evidence_cannot_prepare_success(self):
         meta = dict(self.meta, outcome="unfinished", evidence_complete=False, evidence_errors=["Missing test"])
         with patch.object(delivery, "render_report", return_value=(self.html, meta)):

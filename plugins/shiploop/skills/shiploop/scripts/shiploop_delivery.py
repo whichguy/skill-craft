@@ -8,9 +8,11 @@ presentation of evidence, not a second source of workflow state.
 from __future__ import annotations
 
 import hashlib
-from pathlib import Path
+from pathlib import Path, PurePosixPath
+import re
 from typing import Any
 
+import shiploop_objectives as objectives
 import shiploop_store as store
 
 
@@ -18,11 +20,152 @@ class DeliveryError(ValueError):
     """Terminal evidence cannot safely support the requested report."""
 
 
+_REPORT_FIXED_INPUTS = frozenset(
+    (
+        "state.md",
+        "history.md",
+        "lifecycle.md",
+        "backchain/plan.md",
+        "quality.md",
+        "handoff.md",
+        "shiploop-improvements.md",
+        "preflight.md",
+        "preparation.md",
+        "coverage.md",
+        "delivery.md",
+        "outer-work.md",
+    )
+)
+_PLANNING_DIRECT_INPUTS = frozenset(
+    f"{kind}{suffix}.md"
+    for kind in ("research", "behavior", "spec")
+    for suffix in ("", "-certificate")
+)
+_PLANNING_ITERATION_DIRECTORY = re.compile(r"^(?:research|behavior|spec)-iterations$")
+_PLANNING_ITERATION_NAME = re.compile(r"^[A-Za-z0-9_-]+\.md$")
+_SPECIALIST_RECEIPT_NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{0,240}\.md$")
+_GENERATED_ARTIFACTS = frozenset(("report.html", "report-metadata.md"))
+
+
 def render_report(root: Path, *, overrides: dict[str, str] | None = None):
     """Load the renderer lazily so active actions do not load reporting code."""
     from shiploop_report import render_report as render
 
     return render(root, overrides=overrides)
+
+
+def _normalise_pending_path(value: object) -> str | None:
+    """Accept only a portable, direct run-relative write path."""
+    if not isinstance(value, str) or not value or "\\" in value or "\x00" in value:
+        return None
+    try:
+        path = PurePosixPath(value)
+    except (TypeError, ValueError):
+        return None
+    if path.is_absolute() or value != path.as_posix():
+        return None
+    parts = path.parts
+    if not parts or any(part in ("", ".", "..") for part in parts):
+        return None
+    return "/".join(parts)
+
+
+def _is_objective_receipt_path(relative: str) -> bool:
+    parts = relative.split("/")
+    if len(parts) != 2 or parts[0] != "objectives" or not parts[1].endswith(".md"):
+        return False
+    loop = parts[1][:-3]
+    try:
+        return objectives.receipt_name(loop) == relative
+    except objectives.ObjectiveError:
+        return False
+
+
+def _is_objective_certificate_path(relative: str) -> bool:
+    parts = relative.split("/")
+    if len(parts) != 3 or parts[0] != "objectives" or parts[2] != "certificate.md":
+        return False
+    try:
+        return objectives.certificate_name(parts[1]) == relative
+    except objectives.ObjectiveError:
+        return False
+
+
+def _bound_handoff_certificate(state: dict[str, Any]) -> str | None:
+    """Return the single nested certificate that a terminal state may expose."""
+    if state.get("delivery_objective_protocol_version") != 1:
+        return None
+    binding = state.get("objective")
+    if not isinstance(binding, dict):
+        return None
+    loop = binding.get("loop_id")
+    try:
+        receipt = objectives.receipt_name(loop)
+        candidate = objectives.candidate_name(loop)
+        certificate = objectives.certificate_name(loop)
+    except objectives.ObjectiveError:
+        return None
+    if not (
+        binding.get("kind") == "handoff"
+        and binding.get("base_stage") == "handoff"
+        and binding.get("status") == "finalized"
+        and binding.get("receipt") == receipt
+        and binding.get("candidate") == candidate
+        and binding.get("certificate") == certificate
+    ):
+        return None
+    return certificate
+
+
+def _is_report_input_path(relative: str, *, certificate: str | None) -> bool:
+    """Return whether the bounded renderer may consume this write-ahead text."""
+    if relative in _REPORT_FIXED_INPUTS:
+        return True
+    parts = relative.split("/")
+    if len(parts) == 2:
+        directory, filename = parts
+        if directory in {"results", "steps", "checks", "check-attempts"}:
+            return filename.endswith(".md")
+        if directory == "objectives":
+            return _is_objective_receipt_path(relative)
+        if directory == "step-planning":
+            return _SPECIALIST_RECEIPT_NAME.fullmatch(filename) is not None
+        if directory == "planning":
+            return filename in _PLANNING_DIRECT_INPUTS
+    return (
+        len(parts) == 3
+        and parts[0] == "planning"
+        and _PLANNING_ITERATION_DIRECTORY.fullmatch(parts[1]) is not None
+        and _PLANNING_ITERATION_NAME.fullmatch(parts[2]) is not None
+    ) or (relative == certificate and _is_objective_certificate_path(relative))
+
+
+def _report_inputs(pending: dict[str, str], state: dict[str, Any]) -> dict[str, str]:
+    """Filter the full terminal WAL to renderer inputs without hiding unsafe writes.
+
+    The protocol transaction can contain durable objective internals.  The
+    final handoff certificate is an explicit report input; arbitrary nested
+    drafts or paths are not silently admitted.  The returned mapping is only
+    the render overlay—the caller still commits the full atomic write set.
+    """
+    selected: dict[str, str] = {}
+    certificate = _bound_handoff_certificate(state)
+    for raw_relative, text in pending.items():
+        relative = _normalise_pending_path(raw_relative)
+        if relative is None:
+            raise DeliveryError("terminal write path is unsafe")
+        if not isinstance(text, str):
+            raise DeliveryError(f"terminal write {relative} is not text")
+        if relative in _GENERATED_ARTIFACTS:
+            continue
+        if not _is_report_input_path(relative, certificate=certificate):
+            raise DeliveryError(
+                f"terminal write is not an accepted report input: {relative}"
+            )
+        if relative in selected:
+            raise DeliveryError(f"duplicate terminal report input: {relative}")
+        selected[relative] = text
+    return selected
 
 
 def _report_path(root: Path) -> Path:
@@ -51,7 +194,7 @@ def prepare_terminal_report(
     _report_path(root)
     pending = dict(writes)
     pending["state.md"] = store.dumps(state, "ShipLoop state")
-    html, metadata = render_report(root, overrides=pending)
+    html, metadata = render_report(root, overrides=_report_inputs(pending, state))
     success = state.get("stage") == "done" and state.get("phase") == "done"
     if success and not (
         metadata.get("outcome") == "complete"
