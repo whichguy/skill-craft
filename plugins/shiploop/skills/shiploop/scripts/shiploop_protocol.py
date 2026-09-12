@@ -4437,7 +4437,7 @@ PROMPTS = {
     "step-plan-finalize": "Two consecutive verified/audited trivial step-plan passes with no open findings are required. Run fresh planning-verify for the newly bound final pass; do not replace the candidate or findings. Result: summary.",
     "implement": "Read context --section knowledge and --section step-plan for accepted test criteria; neither changes scope or writers. First implement the scoped code. Next perform post-code test refinement: inspect actual diff and implementation learnings, then author or expand executable tests from planned case IDs, inputs and expected outcomes mapped to each produces. Reassess unit, mock/fake, integration, end-to-end and browser/service/API; target boundary, failure, state and regression gaps. Existing/TDD tests may be reused with an adequacy reason. When the step authors client–service calls, tests must cover the real client/HTML invocation path, not mocks or internal substitutes. Update function contracts and README or explain unchanged. Then execute verify with lint and all required tests; diagnose failures, fix code or justify a test correction from independent requirement evidence, and rerun until all pass. Never weaken acceptance or match a buggy result. Result: summary, test_review with planned-to-actual cases/checks, learnings, old/new corrected expectation and source, preserved coverage, environment, actual evidence, docs and unresolved gaps.",
     "review": 'Run history and retrieve every knowledge page for this action. Review actual code, tests, environment, dependencies, flows, edge conditions, second-order effects, implicit requirements and prior learnings. Compare planned versus actual cases and expected versus observed outcomes; seek missing assertions and test gaps from code learnings even when green. Reassess unit/mock/fake/integration/end-to-end adequacy, browser/service/API, real dependency fidelity, function contracts and README. Missing required tests or misleading docs are material; record unresolved gaps or evidence why existing tests remain adequate. Result: summary, findings:[{severity:"material|trivial",summary}], test_review, learnings, research_assessment:{status:"not-needed|resolved|required|blocked",summary,evidence:[safe refs],questions:[strings]}; non-not-needed requires evidence/questions. Use resolved only for new investigation this pass (material); not-needed means no new material research and prior evidence remains valid. For activity:research also supply every research_review rubric key. Empty findings is valid, not proof of exhaustive coverage.',
-    "improve-plan": "Draft the next step-local improvement plan from every review finding and Git learning. Read --section step-context; retain every PARENT-* ID. Before edits, define/refine test criteria: stable case/contract T-IDs, exact produces, preconditions/inputs, independent expected outcomes, planned test paths/check IDs, target environment and fixtures. Assess unit, mock/fake, integration, end-to-end and browser/service/API as selected, not applicable with reason, or required but blocked. Order scoped code, post-code test authoring/refinement from actual implementation learnings, then lint/tests and failure repair. Include missing cases, test corrections with evidence, function/README work or justified no-change decisions. The nested plan loop rechecks actual code, environment, dependencies, flows, edge conditions, second-order effects and implicit requirements before application. Result: summary, body (Markdown plan).",
+    "improve-plan": "Plan all findings and Git learnings. Read --section step-context; retain every PARENT-* ID. Before code, fill the test-criteria and coverage tables with independent expectations and environment/fixture evidence. Order code, post-code test authoring/refinement, lint/tests and failure repair. Include missing cases, justified corrections and function/README work or no-change reasons. Converge against actual evidence and the linked rubric before application. Result: summary, body (Markdown plan).",
     "improve-apply": "First implement only the certified scoped code/trivial fixes. Next perform post-code test refinement: inspect actual implementation learnings, author/expand tests from planned criteria, and reassess unit/mock/fake/integration/end-to-end and browser/service/API gaps. Record authored/updated/reused case IDs, test paths/check IDs and why existing tests are adequate. A legitimate test correction needs old/new expectation, independent requirement evidence and preserved coverage; never weaken acceptance to match a bug. Recheck environment/dependency/flow/edge/second-order/implicit effects; update function/README docs or explain unchanged before verify executes lint/tests. If prior research was required/blocked, include resolved research_assessment with safe evidence and every required question verbatim; do not fabricate resolution. Result: summary, material:boolean, test_changes, learnings. Material test gaps, corrections or code changes reset the streak; small diffs are not necessarily trivial.",
     "verify": "Run verify for fresh lint and every required step test, including applicable documentation/examples. Compare actual with independent expected outcomes in the selected environment; required failed, blocked or unrun cases remain unfinished. Diagnose code, test, fixture or environment failures; do not retry flaky failures for lucky green. Correct tests only with old/new expectation, independent requirement evidence and preserved coverage, never by weakening acceptance. Changed manifests require verify --reason. Fix and rerun lint/tests after every edit; completion is refused until all checks pass on unchanged files. Any late edit is material and restarts convergence. Result: summary with case/check evidence, failure diagnosis and correction reasons; write run-only observations in the inbox, not product files after checks.",
     "carry-forward": "After successful fresh verification and before commit, record an explicit carry-forward checkpoint. Retrieve context --section knowledge; result fields are summary, learnings (nonempty string), discoveries (explicit [] when none), and optional resolutions. Each discovery is {id,domain,observation,evidence,scope,disposition,rationale,revalidate}; domains and dispositions are fixed by the linked protocol. Observations are host-reported, evidence is a safe reference, and no credential values or credential-bearing URLs are allowed. current-step-repair restarts review with a material interrupted checkpoint; pending-replan remains an obligation for post-inner; pause requires a later no-contract-change resolution. Do not rewrite frozen contracts.",
@@ -4461,6 +4461,33 @@ PROMPTS.update(
         "objective-finalize": "Two verified/audited trivial passes with no open findings are only ready. Run fresh planning-verify on the newly bound final pass, then finalize without candidate replacement. The script applies the finalized candidate once to its original stage. Result: summary.",
     }
 )
+
+
+# One shared local-plan duty in each cold route, without a second state machine.
+_MICROPLAN_DRAFT = (
+    " Execution microplan: local work/output, prerequisite source/evidence, case mapping. "
+    "Backward-check outputs/checks, then forward order. Gaps block coding; no global DAG "
+    "edits or per-row retry authority. Inspect effects first."
+)
+for _microplan_stage in ("step-plan", "improve-plan", "step-plan-revise"):
+    PROMPTS[_microplan_stage] += _MICROPLAN_DRAFT
+
+PROMPTS["step-plan-review"] += (
+    " Audit the execution microplan backward from every required output and check, "
+    "then walk forward through local producers. Record concrete conclusions in "
+    "coverage_review.dependencies and context_evidence.dependencies. Missing or "
+    "circular prerequisites, unsupported evidence, omitted cases or a needed "
+    "global producer are material; do not approve a current blocker as later work. "
+    "Review declared scope separately from actual Ready/supplier evidence."
+)
+for _microplan_stage in ("implement", "improve-apply"):
+    PROMPTS[_microplan_stage] += (
+        " Follow context --section step-plan's microplan order within this action; "
+        "record outputs/evidence/deviations in summary/learnings. New blocking "
+        "prerequisites need recovery/review or pause. No per-row cursor or retry authority: "
+        "inspect actual files and external-operation evidence after interruption; "
+        "pause on unknown outcomes, never automatically replay effects."
+    )
 
 
 # Section routing keeps each action small; the referenced policy is shared by hosts.
@@ -4566,20 +4593,21 @@ PLANNING_SECTIONS = {
 # Per-step planning is a separate, Markdown-bound gate.  The guide is routed
 # in small sections so an exhausted model need not carry its archive history.
 STEP_PLANNING_SECTIONS = {
-    "step-plan": ("loop-contract", "cold-start-evidence"),
-    "step-plan-review": ("review-rubric", "cold-start-evidence"),
+    "step-plan": ("loop-contract", "cold-start-evidence", "local-microplan-and-backchain"),
+    "step-plan-review": ("review-rubric", "cold-start-evidence", "local-microplan-and-backchain"),
     "step-plan-disposition": ("contract-disposition",),
-    "step-plan-revise": ("revise-and-verify",),
+    "step-plan-revise": ("revise-and-verify", "local-microplan-and-backchain"),
     "step-plan-verify": ("revise-and-verify",),
     "step-plan-commit": ("revise-and-verify",),
     "step-plan-finalize": ("loop-contract",),
-    "improve-plan": ("phase-specific-emphasis",),
+    "improve-plan": ("phase-specific-emphasis", "local-microplan-and-backchain"),
+    "implement": ("local-microplan-and-backchain",),
     "research-plan": ("phase-specific-emphasis",),
     "behavior-plan": ("phase-specific-emphasis",),
     "spec-plan": ("phase-specific-emphasis",),
     "sequence": ("phase-specific-emphasis",),
     "review": ("phase-specific-emphasis",),
-    "improve-apply": ("phase-specific-emphasis",),
+    "improve-apply": ("phase-specific-emphasis", "local-microplan-and-backchain"),
     "post-inner": ("phase-specific-emphasis",),
     "quality": ("phase-specific-emphasis",),
 }

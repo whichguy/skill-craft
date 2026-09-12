@@ -27,6 +27,15 @@ Only after finalization, implement the active step's stored prompt and exact
 repeat. If evidence exposes a broader defect, preserve it for review/post-inner
 rather than rewriting the frozen DAG in place.
 
+The plan also contains an ordered local execution microplan: local IDs, work and
+observable outputs, prerequisites and their evidence sources, and case/check
+mappings. Reverse-check every output and verification need, then walk the forward
+order using [Local microplan and backchain](../execution-planning.md#local-microplan-and-backchain).
+This refines one task against current evidence; it does not rerun the whole DAG
+or start another scheduler. One row or a justified no-change plan is valid.
+If a missing prerequisite blocks this task, pause now for its resolution; do not
+defer that blocker until post-inner or invent a new global producer locally.
+
 Before source code, the certified `body`/`plan` must contain a compact test
 criteria matrix. For each stable case ID, mapped contract `T-` ID, and exact `produces`, record
 preconditions/input, expected output/state/side effect, planned test
@@ -140,7 +149,9 @@ step plan.
    findings.
 2. **Converge the Improve plan.** `improve-plan` drafts a concrete plan covering
    every finding, necessary test/documentation changes, prevention, and expected
-   outcomes. Before code, retain the compact case-to-contract criteria matrix and
+   outcomes. Rebuild or retain the local microplan against the current diff and
+   evidence; repeat the reverse prerequisite check and forward order check.
+   Before code, retain the compact case-to-contract criteria matrix and
    its exact `produces`, inputs, oracle, path/check/environment, scope, mock/fake, and
    browser/service/API decisions; change a decision only with a recorded reason.
    Read the `enclosing_review` block within the `step-context`

@@ -114,11 +114,11 @@ class PacketTests(unittest.TestCase):
         self.assertIn(f"done --run-dir {self.run_dir}", packet)
         self.assertNotIn("It's all complete.", packet)
 
-    def test_step_plan_templates_name_an_executable_case_matrix(self):
+    def test_step_plan_templates_name_an_executable_case_matrix_and_local_microplan(self):
         import shiploop_packets
 
         api = {"step_planning": SimpleNamespace(RUBRIC=())}
-        for stage in ("step-plan", "improve-plan"):
+        for stage in ("step-plan", "improve-plan", "step-plan-revise"):
             with self.subTest(stage=stage):
                 template, _ = shiploop_packets._step_plan_template(
                     stage, {}, api, {}
@@ -149,6 +149,83 @@ class PacketTests(unittest.TestCase):
                 self.assertRegex(
                     normalized,
                     r"selected.*not applicable.*reason.*required.*blocked",
+                )
+                # This is durable Markdown inside the existing candidate, not
+                # a second task schema or a permission to rewrite the global
+                # dependency graph.
+                for heading in (
+                    "## Execution microplan",
+                    "## Backward dependency check",
+                ):
+                    self.assertIn(heading, body)
+                for column in (
+                    "Local ID",
+                    "Work + output",
+                    "Needs",
+                    "Source",
+                    "Evidence",
+                    "Case mapping",
+                ):
+                    self.assertIn(column, body)
+                for concept in (
+                    "table order",
+                    "one row",
+                    "no change",
+                    "backward",
+                    "forward",
+                    "evidence",
+                    "assumption",
+                    "global dag",
+                ):
+                    self.assertIn(concept, normalized)
+
+    def test_step_plan_prompts_require_scoped_backchain_and_no_global_dag_authority(self):
+        import shiploop_protocol
+
+        for stage in ("step-plan", "improve-plan", "step-plan-revise"):
+            with self.subTest(stage=stage):
+                normalized = re.sub(
+                    r"[^a-z0-9]+", " ", shiploop_protocol.PROMPTS[stage].lower()
+                )
+                for concept in (
+                    "execution microplan",
+                    "local",
+                    "backward",
+                    "forward",
+                    "source",
+                    "evidence",
+                    "case mapping",
+                    "global dag",
+                    "per row",
+                    "retry",
+                    "authority",
+                ):
+                    self.assertIn(concept, normalized)
+
+    def test_cold_packets_route_local_microplan_guidance_to_each_local_role(self):
+        import shiploop_packets
+        import shiploop_protocol
+
+        core = SimpleNamespace(REF_DIR=SCRIPTS.parent / "references")
+        guide = (core.REF_DIR / "execution-planning.md").read_text(encoding="utf-8")
+        self.assertIn("## Local microplan and backchain", guide)
+        self.assertIn("readiness blocker", guide)
+        self.assertIn("Do not waive mandatory lint", guide)
+        self.assertIn("substitute a syntax/import probe", guide)
+        stages = (
+            "step-plan",
+            "improve-plan",
+            "step-plan-review",
+            "step-plan-revise",
+            "implement",
+            "improve-apply",
+        )
+        api = {"STEP_PLANNING_SECTIONS": shiploop_protocol.STEP_PLANNING_SECTIONS}
+        for stage in stages:
+            with self.subTest(stage=stage):
+                guidance = "\n".join(shiploop_packets._guidance_lines(core, stage, api))
+                self.assertIn(
+                    "execution-planning.md#local-microplan-and-backchain", guidance
                 )
 
     def test_last_accepted_action_explains_replay_and_current_recovery(self):

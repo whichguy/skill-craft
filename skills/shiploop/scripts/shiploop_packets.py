@@ -18,22 +18,32 @@ _INLINE_PROMPT_LIMIT = 1400
 _ENVIRONMENT_LIST_LIMIT = 12
 
 # This is authored Markdown inside the existing body, not a second result schema.
-# Both planning routes and revisions retain the same cold-start test checklist.
+# Both planning routes and revisions retain the same local-work/test checklist.
 _STEP_PLAN_BODY = """# Step plan
 
 ## Scope and ordered changes
 Exact selected outputs, target symbols, dependencies, and PARENT-* responses.
 
+## Execution microplan
+| Local ID | Work + output | Needs | Source | Evidence | Case mapping |
+| --- | --- | --- | --- | --- | --- |
+| L1 | Scoped output | Prior local ID/state | Supplier/ref | Observed or planned; not passed | Case/check ID |
+
+Table order is forward order. One row or a justified no-change inspection/check plan suffices. No per-row callbacks.
+
+## Backward dependency check
+Backward-check outputs/checks to evidence or earlier producers; a Ready claim or assumption is not proof. Check forward order. Missing prerequisites block coding; never rewrite the global DAG. Inspect effects before retry; no replay authority.
+
 ## Test criteria before code
 | Case / contract T-ID | Exact produces / requirement | Preconditions / inputs | Expected outcome / state / side effects | Planned test path / selector / check ID |
 | --- | --- | --- | --- | --- |
-| Replace with stable case IDs | Exact approved criterion | Fixtures and stimulus | Observable expected result, not current buggy behavior | Executable target; not-run until evidence |
+| Case + T-ID | Approved criterion | Fixture/input | Expected output/state/effects | Planned path/selector/check ID; not run |
 
 ## Coverage decisions
-Assess unit, integration, end-to-end, and mock/fake use separately from browser/service/API surfaces. Record selected, not applicable with reason, or required but blocked for each; name target environment, real/simulated dependencies, readiness and cleanup.
+Assess unit/integration/end-to-end and mock/fake separately from browser/service/API. Each: selected, not applicable with reason, or required but blocked. Name target environment, real/simulated dependencies, readiness/cleanup.
 
 ## Execution and post-code test refinement
-Implement the scoped code; inspect actual diff and learnings; author/refine actual tests from these criteria (or justify adequate existing tests); run lint and tests, diagnose failures, fix and rerun. Name boundary, failure and regression gaps to investigate. Correct a test only with independent requirement evidence and preserved coverage, never by weakening acceptance.
+Code; inspect diff/learnings; author/refine tests or justify reuse; run lint/tests, diagnose/fix failures and rerun. Check boundary/failure/regression gaps. Test corrections need independent requirement evidence and preserved coverage; never weaken acceptance.
 
 ## Documentation and remaining risks
 Function contracts, README changes or why unchanged; unresolved gaps and revalidation triggers.

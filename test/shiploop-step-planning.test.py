@@ -386,6 +386,31 @@ class StepPlanningRecordTests(unittest.TestCase):
 class StepPlanningCliTests(ActionWalkFixture):
     """Fresh-process checks for allocation and nested Improve routing."""
 
+    def local_microplan(self, sid):
+        """Return concrete candidate Markdown that a cold host can rehydrate."""
+        product = self.product_for(sid)
+        return f"""## Execution microplan
+
+| Local ID | Work + output | Needs | Source | Evidence | Case mapping |
+| --- | --- | --- | --- | --- | --- |
+| MP-{sid}-01 | Inspect the active fixture and preserve `{product}` | `R-{sid}` and committed baseline | `context --section step-context` | Selected-step record and current Git head | `TC-{sid}-exact` |
+| MP-{sid}-02 | Implement `{product}` and record its check | `MP-{sid}-01` | Frozen step plan and test criteria | Planned `T-{sid}` exact-output check; not run | `TC-{sid}-exact` |
+
+## Backward dependency check
+
+Work backward from `TC-{sid}-exact` and `D-{sid}`: `MP-{sid}-02` needs
+`MP-{sid}-01`, which needs `R-{sid}` and the committed baseline. Cite those
+sources as evidence, not assumptions. Execute only this local microplan in
+forward order (`MP-{sid}-01`, then `MP-{sid}-02`); do not rewrite the global
+DAG. A missing producer or contradictory requirement pauses before coding for
+broader-plan direction.
+""".strip()
+
+    def step_plan_candidate(self, sid, revision, *, parent_ids=()):
+        """Keep initial drafts and every revision concrete at local-task scope."""
+        base = super().step_plan_candidate(sid, revision, parent_ids=parent_ids)
+        return base + "\n" + self.local_microplan(sid)
+
     def test_initial_step_plan_is_repeatable_cold_and_gates_implementation(self):
         self.bootstrap_to_first_step_plan()
         initial_action = self.action_id()
@@ -406,8 +431,19 @@ class StepPlanningCliTests(ActionWalkFixture):
         staged = "preserved-staged-product-note.txt"
         (worktree / staged).write_text("preserve this staged product edit\n", encoding="utf-8")
         self.git("add", staged, cwd=worktree)
-        self.start_step_plan("S1")
+        initial_body = self.step_plan_candidate("S1", "initial durable microplan")
+        _, initial_draft = self.complete(
+            {
+                "summary": "The initial plan includes a local work order with cited prerequisites, evidence, and cases.",
+                "body": initial_body,
+            },
+            label="initial-step-plan-microplan-draft",
+        )
         review_action = self.action_id()
+        initial_draft_path = Path(initial_draft)
+        self.assertTrue(initial_draft_path.is_file())
+        initial_draft_path.unlink()
+        self.assertFalse(initial_draft_path.exists())
 
         cold_packet = self.cli("next").stdout
         self.assertIn("--section step-plan", cold_packet)
@@ -433,6 +469,12 @@ class StepPlanningCliTests(ActionWalkFixture):
         self.assertIn("TC-S1-exact", compact_plan)
         self.assertIn("Expected outcome:", compact_plan)
         self.assertIn(self.product_for("S1"), compact_plan)
+        # The source submission is gone.  The next cold host receives this
+        # exact local work order only from the candidate stored by ShipLoop.
+        self.assertIn(self.local_microplan("S1"), compact_plan)
+        self.assertIn("MP-S1-01", compact_plan)
+        self.assertIn("MP-S1-02", compact_plan)
+        self.assertIn("R-S1", compact_plan)
 
         incomplete_review = {
             "summary": "This deliberately incomplete review has no current history or knowledge acknowledgement.",
@@ -475,6 +517,10 @@ class StepPlanningCliTests(ActionWalkFixture):
         self.assertTrue(
             (self.run_dir / step_planning.certificate_name(receipt["loop_id"])).is_file()
         )
+        finalized_candidate = (self.run_dir / receipt["candidate_path"]).read_text(
+            encoding="utf-8"
+        )
+        self.assertIn(self.local_microplan("S1"), finalized_candidate)
 
         # Keep the staged-edit assertion above, then unstage it so the actual
         # implementation commit remains scoped to the declared fixture files.
@@ -634,14 +680,32 @@ class StepPlanningCliTests(ActionWalkFixture):
         self.assertIn(parent_ids[0], blocked.stderr)
         self.assertEqual(self.state()["stage"], "improve-plan")
 
-        self.start_step_plan("S1")
+        improve_body = self.step_plan_candidate(
+            "S1", "Improve durable microplan", parent_ids=parent_ids
+        )
+        _, improve_draft = self.complete(
+            {
+                "summary": "The Improve plan retains its parent finding and local ordered microplan.",
+                "body": improve_body,
+            },
+            label="improve-step-plan-microplan-draft",
+        )
         nested_receipt = self.step_plan_receipt("S1")
+        improve_draft_path = Path(improve_draft)
+        self.assertTrue(improve_draft_path.is_file())
+        improve_draft_path.unlink()
+        self.assertFalse(improve_draft_path.exists())
         nested_plan = self.cli(
             "context", "--section", "step-plan", "--offset", "0", "--limit", "8000"
         ).stdout
         self.assertIn("# Current step-plan candidate", nested_plan)
         self.assertIn(nested_receipt["current_pass"]["id"], nested_plan)
         self.assertNotIn(initial_pass_id, nested_plan)
+        self.assertIn(self.local_microplan("S1"), nested_plan)
+        self.assertIn("MP-S1-01", nested_plan)
+        self.assertIn("MP-S1-02", nested_plan)
+        self.assertIn("R-S1", nested_plan)
+        self.assertIn("TC-S1-exact", nested_plan)
         nested_iteration = self.cli(
             "context", "--section", "iteration", "--offset", "0", "--limit", "8000"
         ).stdout
@@ -663,6 +727,7 @@ class StepPlanningCliTests(ActionWalkFixture):
         self.assertTrue(iteration["plan_learnings"])
         candidate = (self.run_dir / receipt["candidate_path"]).read_text(encoding="utf-8")
         self.assertTrue(all(parent_id in candidate for parent_id in parent_ids))
+        self.assertIn(self.local_microplan("S1"), candidate)
         self.assertNotEqual(first["commit"], second["commit"])
 
     def test_step_plan_repair_archives_a_drifted_pass_and_rebinds_a_new_epoch(self):

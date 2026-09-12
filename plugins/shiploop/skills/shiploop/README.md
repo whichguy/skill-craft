@@ -306,7 +306,7 @@ loop is:
 
 ```mermaid
 flowchart TD
-    S[Schedule ready step] --> D[step-plan: draft pre-code criteria]
+    S[Schedule ready step] --> D[step-plan: local microplan, backcheck and criteria]
     D --> R[step-plan-review and step-plan-revise]
     R --> V[step-plan-verify: plan-artifact checks]
     V --> C[step-plan-commit: audit]
@@ -335,6 +335,23 @@ unique checked/audited trivial passes, all trivial fixes applied, and no open
 findings. `step-plan-finalize` releases only the exact freshly checked plan to
 `implement`. The audit commits preserve the product tree and do not count as
 Improve iterations or replace the later primary step commit.
+
+Each initial and Improve plan includes a **local execution microplan**: ordered
+local work/output rows, prerequisites with evidence sources, and planned
+case/check mappings. The agent works backward from each required output and its
+verification needs, resolves suppliers or records material gaps, then checks the
+forward execution order. The global backchain still owns dependencies between
+delivery steps; this local check catches assumptions exposed by the actual code,
+fixtures and environment. One row or a justified no-change plan is enough when
+appropriate; no second scheduler, standalone skill call or progress cursor is
+introduced. See [Local microplan and backchain](references/execution-planning.md#local-microplan-and-backchain).
+
+For example, a plan to validate a matching record cannot treat “the data model
+exists” as proof that its test fixture exists. It must cite the fixture or order
+an authorized, in-scope fixture-producing row before the test. If a new shared
+environment or permission is needed to proceed, the step stays blocked for
+broader direction. These dependency judgments are host-reviewed Markdown;
+the script binds and gates the plan but does not prove its semantic completeness.
 
 Before code, the planning result's existing `body`/`plan` holds a compact test
 criteria matrix. Each stable case ID maps its contract `T-` ID and exact

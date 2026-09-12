@@ -1299,20 +1299,21 @@ schema or sidecar is needed.
         import shiploop_protocol
 
         expected = {
-            "step-plan": ("loop-contract", "cold-start-evidence"),
-            "step-plan-review": ("review-rubric", "cold-start-evidence"),
+            "step-plan": ("loop-contract", "cold-start-evidence", "local-microplan-and-backchain"),
+            "step-plan-review": ("review-rubric", "cold-start-evidence", "local-microplan-and-backchain"),
             "step-plan-disposition": ("contract-disposition",),
-            "step-plan-revise": ("revise-and-verify",),
+            "step-plan-revise": ("revise-and-verify", "local-microplan-and-backchain"),
             "step-plan-verify": ("revise-and-verify",),
             "step-plan-commit": ("revise-and-verify",),
             "step-plan-finalize": ("loop-contract",),
-            "improve-plan": ("phase-specific-emphasis",),
+            "improve-plan": ("phase-specific-emphasis", "local-microplan-and-backchain"),
+            "implement": ("local-microplan-and-backchain",),
             "research-plan": ("phase-specific-emphasis",),
             "behavior-plan": ("phase-specific-emphasis",),
             "spec-plan": ("phase-specific-emphasis",),
             "sequence": ("phase-specific-emphasis",),
             "review": ("phase-specific-emphasis",),
-            "improve-apply": ("phase-specific-emphasis",),
+            "improve-apply": ("phase-specific-emphasis", "local-microplan-and-backchain"),
             "post-inner": ("phase-specific-emphasis",),
             "quality": ("phase-specific-emphasis",),
         }

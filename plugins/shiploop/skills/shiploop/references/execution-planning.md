@@ -38,6 +38,54 @@ fresh final checks. A failed, blocked, timed-out or stale check cannot advance.
 Neither an LLM `done` claim nor a cycle budget is an alternate success route.
 Finalization releases only the exact checked plan for its designated next action.
 
+## Local microplan and backchain
+
+The global DAG orders delivery steps. Within the selected step, draft a compact
+**execution microplan** in the existing Markdown `body`: local ID, work and
+observable output, prerequisite/source, evidence reference, and planned case or
+check. Order rows by their actual dependencies, not merely file order. One row
+is sufficient for simple work; a no-change Improve plan can name inspection and
+fresh checks with its no-change reason. Do not invent edits or recursive subtasks.
+Retain the required sequence of code, post-code test refinement, lint/tests and
+documentation; a no-change plan still needs the mandatory fresh checks.
+If a required lint/test check has no established permitted command, retain a
+readiness blocker and investigate within scope. Do not waive mandatory lint or
+substitute a syntax/import probe for it; new tools or access need authorization.
+
+Before coding, reverse-walk **each required output and its verification needs**:
+
+1. **Claim and needs:** what must become true, and what must exist to implement
+   and verify it? Include fixtures, interfaces, authorized environment, failure
+   paths, and relevant downstream consumers.
+2. **Supply:** cite an inspected current fact or an earlier local row that will
+   produce inspectable evidence. Check selected-step Ready criteria, global
+   supplier artifacts and initial facts against current evidence. A criterion,
+   prior claim, installed tool, or planned check is not proof of readiness,
+   authorized access, a populated fixture, or a passing result.
+3. **Resolve:** reuse the actual supplier; clarify its local output; add only
+   necessary in-scope local work; otherwise retain a material unresolved finding.
+   Never close a need with an assumption, a circular dependency, or future work
+   that has not run. Then walk forward once to check that each row can execute
+   using established facts and earlier outputs and that the required outcomes
+   and cases are covered.
+
+Repeat this check in the existing plan-review loop after each revision. Record
+conclusions and safe evidence in `coverage_review.dependencies` and
+`context_evidence.dependencies`; use existing findings for gaps. A missing
+current prerequisite blocks application. If it needs a new global producer,
+changed contract, writer or permission, pause for broader-plan direction rather
+than finishing the active step to reach post-inner. Future-only compatible
+impacts can use carry-forward/pending replan. Never rewrite the global DAG here.
+
+Rows are planning content, **not** a second scheduler, schema, per-row completion
+cursor, or external retry authorization. Do not invoke standalone Backchain or
+until-loop. The script binds the complete Markdown candidate and gates the
+enclosing action; the host judges dependency meaning and supplies meaningful
+checks. No parser proves row completeness or dependency sufficiency. Recover the
+accepted plan through `context --section step-plan`; on interruption inspect
+actual files and external-operation evidence before continuing, never replay a
+mutating row merely because it lacks a checkbox. Unknown outcomes need a pause.
+
 ## Contract disposition
 
 A material `scope` or `behavior` finding routes to paused
@@ -117,7 +165,7 @@ step, implementation, environment and dependency inspection.
 | `step_scope` | What exact stored prompt, outputs and acceptance does this plan implement? Which changes are explicitly out of scope? |
 | `current_implementation` | What does the real code/configuration/diff do now, where will the change land, and which call sites or tests contradict the proposed approach? |
 | `environment` | Are runtime, permitted writer, invocation conventions, deployment target, test fixtures and non-secret access assumptions valid now? Which observation needs revalidation? |
-| `dependencies` | Does each input have a real producer or established fact? Walk both upstream prerequisites and downstream consumers; identify ordering, compatibility and shared-resource constraints. |
+| `dependencies` | Reverse-check every microplan output and verification need to current evidence or an earlier local producer, then walk the forward order. Do Ready criteria and global supplier artifacts actually establish the needed state? Identify unresolved prerequisites, cycles, compatibility, shared resources and affected consumers; never treat a claim as evidence. |
 | `flows` | Trace a concrete input through state, guards, calls and observable output. Do the normal, alternate and recovery flows agree with the approved requirement/transition model? |
 | `edge_conditions` | Examine relevant invalid/empty/boundary/stale/duplicate input, timeout, cancellation, partial failure, retries, concurrency and recovery. Which cases are missing? |
 | `second_order_effects` | What changes indirectly for consumers, persisted data, caches, permissions, resource use, deployment/rollback, observability or documentation? Which cross-step effects need a broader plan change? |
@@ -125,7 +173,7 @@ step, implementation, environment and dependency inspection.
 | `test_strategy` | Before source code, map every exact `produces`/transition to a stable case ID and contract `T-` criterion, inputs, expected state/output/side effects, planned test path/selector, check ID, environment/fixture, and revalidation trigger. Decide unit/integration/end-to-end scope and mock/fake strategy separately from browser/service/API surfaces; each is selected, not applicable with a reason, or required but blocked with cause. A mock/fake cannot prove a required real boundary. Order readiness before checks and inspect check side effects/fixture isolation, including generated files and shared mutable state. |
 | `documentation` | Which concise function/interface contracts, expected-outcome test records, README instructions, runnable examples and links must change—or why are they unchanged? |
 
-Actively try to disprove the plan: reverse-trace one outcome to its prerequisites,
+Actively try to disprove the plan: reverse-trace the microplan outcomes to their prerequisites,
 walk a failure/recovery trace, inspect an adjacent consumer, and challenge an
 implicit assumption with evidence. Rotate the emphasis between passes while
 retaining the full rubric. Rephrasing the same approval is not a new inspection.
@@ -155,6 +203,9 @@ Keep a concrete ordered edit/test/documentation sequence, target symbols,
 expected outcomes, prerequisites, risk controls and revalidation triggers. An
 empty finding set needs an explicit no-fix decision; do not invent work to fill
 the loop.
+Retain the complete execution microplan and backward dependency conclusions
+through revision, including unresolved gaps and any changed evidence. A changed
+prerequisite/order/output needs renewed review, not an inherited clean streak.
 
 Required investigation must establish the facts needed to choose an executable
 plan. If an unknown is intentionally a future research producer, consumers must
@@ -169,6 +220,10 @@ should exercise real plan properties: complete output/case mappings, ordered
 prerequisites, known interface names, expected-state records, example/diagram
 syntax or consistency rules that the chosen representation can express. A file
 existence check or an always-green command is not semantic validation.
+For a microplan, checks can detect duplicate IDs, missing cited artifacts,
+forward/circular local references and unmapped required cases. A reference to
+a future producer is planned evidence, not a file that must already exist.
+Do not substitute a heading-presence test for review of prerequisite truth.
 
 Keep plan check helpers under the run inbox or otherwise outside product source;
 creating them inside the worktree would change the plan's implementation baseline.
@@ -193,6 +248,10 @@ and retained/added coverage belong in `test_review`. In Improve work, use
 `test_review` for adequacy. Do not rewrite acceptance to fit a bug. Required
 unavailable, failed, blocked, or unrun checks remain unfinished; passing evidence
 still does not prove semantic test adequacy.
+Follow the accepted microplan's dependency order within that one action. Record
+actual local outputs/evidence and deviations in existing result `summary` and
+`learnings`, not a separate progress ledger. Newly discovered execution-blocking
+gaps require recovery/review or a pause, never silently expanding the plan.
 
 Every completed plan pass has its own verbose audit-only direct-child commit,
 with `Review:`, `Changes:`, `Validation:`, `Key learnings:` and the exact printed
