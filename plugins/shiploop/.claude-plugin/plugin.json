@@ -1,7 +1,7 @@
 {
   "name": "shiploop",
   "version": "0.9.0",
-  "description": "Markdown-authoritative session harness: establish an approach and checkable spec, make one dependency sequence, then execute one action at a time with durable evidence, per-step review/improvement loops, and an outer closure. Use when the user says shiploop, ship the project, session harness, or asks what the next durable delivery step is.",
+  "description": "Markdown-authoritative delivery harness. Start or resume once, follow the script's current action packet, and submit its exact completion call until the script reports completion with an HTML achievement report. Use when the user says shiploop, ship the project, or requests a durable delivery loop.",
   "author": {
     "name": "whichguy",
     "url": "https://github.com/whichguy"

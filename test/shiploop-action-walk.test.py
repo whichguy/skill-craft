@@ -10,11 +10,13 @@ is made in the allocated Git worktree.
 from __future__ import annotations
 
 import copy
+import hashlib
 import importlib.machinery
 import importlib.util
 import json
 import os
 from pathlib import Path
+import re
 import subprocess
 import sys
 import tempfile
@@ -28,6 +30,8 @@ if str(SCRIPTS) not in sys.path:
     sys.path.insert(0, str(SCRIPTS))
 
 import shiploop_store as store  # noqa: E402
+import shiploop_objectives as objectives  # noqa: E402
+import shiploop_step_planning as step_planning  # noqa: E402
 
 
 def load_core():
@@ -45,12 +49,36 @@ def load_core():
 CORE = load_core()
 
 
-class ShipLoopActionWalkTests(unittest.TestCase):
-    """One real two-step walk plus narrow protocol-negatives."""
+class ShipLoopActionWalkFixture(unittest.TestCase):
+    """Reusable real-CLI planning and execution fixture for ShipLoop tests."""
 
     product_one = "s1.txt contains exactly one line: first"
     product_two = "s2.txt contains exactly one line: second"
+    product_research = "s3.txt contains exactly one line: research"
     done_sentence = product_two
+    research_rubric = (
+        "prompt_coverage",
+        "environment_conditions",
+        "source_quality",
+        "contradictions",
+        "best_practices",
+        "access_readiness",
+        "invocation_contracts",
+        "test_deploy_feasibility",
+        "remaining_unknowns",
+    )
+    step_plan_rubric = (
+        "step_scope",
+        "current_implementation",
+        "environment",
+        "dependencies",
+        "flows",
+        "edge_conditions",
+        "second_order_effects",
+        "implicit_requirements",
+        "test_strategy",
+        "documentation",
+    )
 
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(prefix="shiploop-action-walk-")
@@ -119,12 +147,49 @@ class ShipLoopActionWalkTests(unittest.TestCase):
     def action_id(self):
         return self.state()["action"]["id"]
 
-    def complete(self, payload, *, action_id=None, code=0, label="result"):
+    def complete(
+        self,
+        payload,
+        *,
+        action_id=None,
+        code=0,
+        label="result",
+        include_research_assessment=True,
+    ):
+        if (
+            include_research_assessment
+            and self.state()["stage"] == "review"
+            and "research_assessment" not in payload
+        ):
+            payload = dict(payload, research_assessment=self.research_assessment())
         aid = action_id or self.action_id()
         result = self.record(label, payload)
         return self.cli(
             "complete", "--action", aid, "--result", result, code=code
         ), result
+
+    def research_assessment(self, status="not-needed", *, questions=None):
+        self.assertIn(status, {"not-needed", "resolved", "required", "blocked"})
+        if status == "not-needed":
+            return {
+                "status": status,
+                "summary": "The local fixture has no new research question for this review.",
+                "evidence": [],
+                "questions": [],
+            }
+        questions = questions or ["Does the local exact-output contract remain sufficient?"]
+        return {
+            "status": status,
+            "summary": "The review records a scoped local research question.",
+            "evidence": ["research-evidence.md#SRC-LOCAL-001"],
+            "questions": questions,
+        }
+
+    def research_review(self):
+        return {
+            key: f"Reviewed {key} against the durable local research evidence."
+            for key in self.research_rubric
+        }
 
     def machine_markdown(self):
         machine = {
@@ -146,8 +211,8 @@ class ShipLoopActionWalkTests(unittest.TestCase):
             + "\n```\n"
         )
 
-    def step(self, sid, product, inputs, statement):
-        return {
+    def step(self, sid, product, inputs, statement, *, activity=None):
+        step = {
             "id": sid,
             "statement": statement,
             "prompt": "\n".join(
@@ -161,10 +226,151 @@ class ShipLoopActionWalkTests(unittest.TestCase):
             "produces": [product],
             "origin": "discovered",
             "inputs": inputs,
+            "contract": self.step_contract(sid, product, statement),
         }
+        if activity is not None:
+            step["activity"] = activity
+        return step
+
+    def step_contract(self, sid, product, statement):
+        """Return the explicit Ready/Done contract used by the real fixture DAG."""
+        return {
+            "objective": statement,
+            "ready": [
+                {
+                    "id": f"R-{sid}",
+                    "condition": f"{sid} has a current scoped step plan before edits.",
+                    "evidence_method": "planning verify candidate check",
+                }
+            ],
+            "done": [
+                {
+                    "id": f"D-{sid}",
+                    "condition": f"{sid} exact-output artifact is integrated.",
+                    "produces": [product],
+                    "evidence_method": "exact-output verification",
+                    "completion": "integrated",
+                }
+            ],
+            "tests": [
+                {
+                    "id": f"T-{sid}",
+                    "produces": [product],
+                    "expected_outcome": product,
+                    "surface": "local Python exact-output check",
+                    "evidence_method": "exact-output verification",
+                }
+            ],
+            "documentation": [
+                {
+                    "id": f"DOC-{sid}",
+                    "condition": "Fixture README is unchanged because this local test artifact has no product README.",
+                    "evidence_method": "manual fixture documentation review",
+                }
+            ],
+        }
+
+    def bound_step_contract(self, sid):
+        """Read the current durable DAG so corrective steps retain their own contract."""
+        plan = self.run_dir / "backchain" / "plan.md"
+        dag = store.read_record(plan) if plan.is_file() else self.initial_dag()
+        step = next((row for row in dag["steps"] if row["id"] == sid), None)
+        self.assertIsNotNone(step, f"missing current DAG step {sid}")
+        self.assertIsInstance(step.get("contract"), dict)
+        return copy.deepcopy(step["contract"])
+
+    def ready_evidence(self, sid):
+        contract = self.bound_step_contract(sid)
+        ready = contract["ready"][0]
+        return {
+            "ready": [
+                {
+                    "id": ready["id"],
+                    "condition": ready["condition"],
+                    "method": ready["evidence_method"],
+                    "source": "verify-record",
+                    "reference": f"check:{ready['id']}",
+                    "observed": "The fresh step-plan candidate and dedicated readiness check passed before implementation.",
+                }
+            ]
+        }
+
+    def done_evidence(self, sid):
+        contract = self.bound_step_contract(sid)
+        done = contract["done"][0]
+        test = contract["tests"][0]
+        documentation = contract["documentation"][0]
+        return {
+            "done": [
+                {
+                    "id": done["id"],
+                    "method": done["evidence_method"],
+                    "source": "verify-record",
+                    "reference": f"check:{test['id']}",
+                    "observed": "The exact declared artifact passed the final verification check.",
+                }
+            ],
+            "tests": [
+                {
+                    "id": test["id"],
+                    "check_id": test["id"],
+                    "expected_outcome": test["expected_outcome"],
+                    "observed_outcome": "The local exact-output check passed with the declared artifact content.",
+                    "source": "verify-record",
+                }
+            ],
+            "documentation": [
+                {
+                    "id": documentation["id"],
+                    "method": documentation["evidence_method"],
+                    "source": "manual-observation",
+                    "reference": "fixture documentation review",
+                    "observed": "No product README exists for this local fixture, so the documented no-change rationale remains accurate.",
+                }
+            ],
+        }
+
+    def output_for(self, sid):
+        outputs = {"S1": "first", "S2": "second", "S3": "research"}
+        self.assertIn(sid, outputs)
+        return outputs[sid]
+
+    def product_for(self, sid):
+        products = {
+            "S1": self.product_one,
+            "S2": self.product_two,
+            "S3": self.product_research,
+        }
+        self.assertIn(sid, products)
+        return products[sid]
+
+    def markdown_lint_argv(self, candidate, *, state_record=False):
+        """Lint one immutable Markdown candidate without re-entering ShipLoop."""
+        lint = (
+            "from pathlib import Path; "
+            f"path = Path({str(candidate)!r}); "
+            "text = path.read_text(encoding='utf-8'); lines = text.splitlines(); "
+            "assert path.is_file() and not path.is_symlink(); "
+            "assert text.strip(); "
+            "assert all(line == line.rstrip(' \\t') for line in lines)"
+        )
+        if state_record:
+            lint = (
+                "import json; "
+                + lint
+                + "; assert lines.count('```shiploop-state') == 1 and lines[-1] == '```'; "
+                "start = lines.index('```shiploop-state'); assert start > 0; "
+                "json.loads('\\n'.join(lines[start + 1:-1]))"
+            )
+        return [sys.executable, "-B", "-c", lint]
+
+    def activity_for(self, sid):
+        dag = store.read_record(self.run_dir / "backchain" / "plan.md")
+        return next(step.get("activity") for step in dag["steps"] if step["id"] == sid)
 
     def initial_dag(self):
         return {
+            "contract_version": 1,
             "goal": self.done_sentence,
             "initial_state": ["repository exists"],
             "steps": [
@@ -192,7 +398,891 @@ class ShipLoopActionWalkTests(unittest.TestCase):
             "None — residual loop waived: fixture-bound coverage policy.\n" + suffix
         )
 
-    def bootstrap_to_first_implementation(self):
+    def planning_body(self, kind, revision="initial"):
+        if kind == "research":
+            return f"""# Fixture research ({revision})
+
+## Question RQ-001
+
+Can the local fixture use deterministic exact-output checks without a network dependency?
+
+## Conclusion
+
+The committed local repository and Python standard library provide the required
+test surface. Revalidate the local runtime before implementation.
+"""
+        if kind == "behavior":
+            return f"""# Fixture behavior model ({revision})
+
+## Requirements
+
+R-01: The fixture has two dependent exact-output artifacts.
+
+## States and transitions
+
+S-01 baseline; S-02 S1 complete; S-03 S2 complete.
+T-01: baseline --S1 verified--> S1 complete; S1 complete --S2 verified--> S2 complete.
+
+## Edge conditions and sequences
+
+A dependent artifact cannot begin before its producer is merged.
+
+## Test mapping
+
+TC-01 maps S1 to its exact-output check; TC-02 maps S2 to its exact-output check.
+
+## Ambiguities
+
+None for this local fixture.
+"""
+        return f"""# Fixture specification ({revision})
+
+done_sentence: {self.done_sentence}
+checkable: true
+
+## Requirements, states, transitions, and edge conditions
+
+R-01 requires both exact-output artifacts. T-01 requires S1 verification before S2.
+
+## Test mapping
+
+TC-01 and TC-02 map the two exact-output acceptance criteria to durable checks.
+"""
+
+    def planning_research_state(self, revision="initial"):
+        return {
+            "questions": [
+                {
+                    "id": "RQ-001",
+                    "question": "Can the local fixture use deterministic exact-output checks without a network dependency?",
+                    "origin": "prompt discovery: local fixture test surface",
+                    "status": "resolved",
+                    "answer": "The local Python runtime can execute the fixture's deterministic checks.",
+                    "sources": ["SRC-LOCAL-001"],
+                    "revalidate": "Run the local lint and exact-output checks before implementation.",
+                    "rationale": "The fixture intentionally has no external service dependency.",
+                }
+            ],
+            "sources": [
+                {
+                    "id": "SRC-LOCAL-001",
+                    "reference": "action-walk local runtime fixture",
+                    "authority": "local",
+                    "version_or_observed_at": f"fixture-{revision}",
+                    "supports": "The local deterministic exact-output conclusion.",
+                    "limitations": "This source says nothing about external services.",
+                }
+            ],
+        }
+
+    def planning_lifecycle(self):
+        preparation = getattr(self, "fixture_preparation", "none")
+        return {
+            "acceptance": [self.product_one, self.product_two],
+            "preparation": preparation,
+            "publish": "none",
+            "quality": True,
+            "reason": (
+                "The fixture requires a bounded outer readiness observation before allocation."
+                if preparation == "outer-before"
+                else "Local files require no outer preparation or publication."
+            ),
+        }
+
+    def planning_rubric(self, kind):
+        dimensions = list(self.research_rubric) if kind == "research" else [
+            "requirements",
+            "states",
+            "transitions",
+            "edge_conditions",
+            "sequences",
+            "test_mapping",
+            "ambiguities",
+        ]
+        if kind == "spec":
+            dimensions += ["clarity", "consistency", "feasibility"]
+        return {
+            dimension: f"Reviewed {dimension} against the durable {kind} candidate."
+            for dimension in dimensions
+        }
+
+    def planning_manifest(self, kind):
+        candidate = (
+            "research.md"
+            if kind == "research"
+            else "behavior.md"
+            if kind == "behavior"
+            else "spec-draft.md"
+        )
+        acceptance = (
+            "research evidence"
+            if kind == "research"
+            else "behavior model"
+            if kind == "behavior"
+            else "specification"
+        )
+        if kind == "research":
+            check = (
+                "from pathlib import Path; "
+                "research = Path('.shiploop/research.md').read_text(); "
+                "evidence = Path('.shiploop/research-evidence.md').read_text(); "
+                "assert 'RQ-001' in research; assert 'SRC-LOCAL-001' in evidence"
+            )
+        else:
+            check = (
+                "from pathlib import Path; "
+                f"text = Path('.shiploop/{candidate}').read_text(); "
+                "assert 'Test mapping' in text; assert 'T-01' in text"
+            )
+        return {
+            "checks": [
+                {
+                    "id": "planning-lint",
+                    "kind": "lint",
+                    "argv": self.markdown_lint_argv(self.run_dir / candidate),
+                    "acceptance": [],
+                },
+                {
+                    "id": f"{kind}-candidate",
+                    "kind": "test",
+                    "argv": [sys.executable, "-B", "-c", check],
+                    "acceptance": [acceptance],
+                },
+            ]
+        }
+
+    def planning_receipt(self, kind):
+        return store.read_record(self.run_dir / "planning" / f"{kind}.md")
+
+    def planning_audit_commit(self, kind, review_learning, apply_learning):
+        iteration = self.planning_receipt(kind)["current_iteration"]["id"]
+        message = "\n".join(
+            [
+                f"Planning {kind} {iteration}",
+                "",
+                "Review:",
+                "Read current Git history and the durable planning finding ledger.",
+                "",
+                "Changes:",
+                "Recorded an audit-only planning pass without product-tree changes.",
+                "",
+                "Validation:",
+                "Fresh candidate-bound lint and planning tests passed.",
+                "",
+                "Key learnings:",
+                review_learning,
+                apply_learning,
+                "",
+                f"ShipLoop-Iteration: {iteration}",
+            ]
+        )
+        self.git("commit", "--allow-empty", "--only", "-m", message)
+        return self.git("rev-parse", "HEAD")
+
+    def run_planning_iteration(self, kind, number):
+        self.assertEqual(self.state()["stage"], f"{kind}-review")
+        review_action = self.action_id()
+        self.cli(
+            "history", "--action", review_action, "--limit", "10", "--skip", "0", "--full"
+        )
+        finding = f"{kind[:1].upper()}-T-{number}"
+        review_learning = f"Review {finding} before changing the planning candidate."
+        review = {
+            "summary": f"Review records and resolves trivial planning finding {finding}.",
+            "findings": [
+                {
+                    "id": finding,
+                    "severity": "trivial",
+                    "summary": f"Trivial {kind} fixture wording improvement",
+                }
+            ],
+            "test_review": "A candidate-bound planning manifest will assert the current Markdown artifact.",
+            "learnings": review_learning,
+        }
+        review["coverage_review"] = self.planning_rubric(kind)
+        self.complete(review, action_id=review_action, label=f"{kind}-{number}-review")
+        self.assertEqual(self.state()["stage"], f"{kind}-plan")
+        self.complete(
+            {
+                "summary": f"The plan addresses {finding} without weakening the candidate check.",
+                "body": f"# {kind} plan\n\nAddress {finding} and retain its explicit test mapping.\n",
+                "addresses": [finding],
+            },
+            label=f"{kind}-{number}-plan",
+        )
+        self.assertEqual(self.state()["stage"], f"{kind}-apply")
+        apply_learning = f"Apply {finding} as a complete {kind} candidate replacement."
+        applied = {
+            "summary": f"The full replacement candidate resolves {finding}.",
+            "body": self.planning_body(kind, finding),
+            "material": False,
+            "resolutions": [{"id": finding, "evidence": f"Candidate revision names {finding}."}],
+            "test_changes": "The candidate-bound lint and test checks remain active.",
+            "learnings": apply_learning,
+        }
+        if kind == "research":
+            applied["research_state"] = self.planning_research_state(finding)
+        elif kind == "spec":
+            applied["lifecycle"] = self.planning_lifecycle()
+        self.complete(applied, label=f"{kind}-{number}-apply")
+        self.assertEqual(self.state()["stage"], f"{kind}-verify")
+        verify_action = self.action_id()
+        self.cli(
+            "planning-verify",
+            "--action",
+            verify_action,
+            "--manifest",
+            self.record(f"{kind}-{number}-checks", self.planning_manifest(kind)),
+        )
+        self.complete(
+            {"summary": "Fresh planning lint and candidate assertion evidence passed."},
+            action_id=verify_action,
+            label=f"{kind}-{number}-verify",
+        )
+        self.assertEqual(self.state()["stage"], f"{kind}-commit")
+        commit = self.planning_audit_commit(kind, review_learning, apply_learning)
+        self.complete(
+            {"summary": "A verbose audit-only commit records this planning pass.", "commit": commit},
+            label=f"{kind}-{number}-commit",
+        )
+
+    def converge_planning(self, kind):
+        self.assertEqual(self.state()["stage"], kind)
+        initial = {
+            "summary": f"The initial {kind} candidate maps states, transitions, and exact tests.",
+            "body": self.planning_body(kind),
+        }
+        if kind == "research":
+            initial["research_state"] = self.planning_research_state()
+        elif kind == "spec":
+            initial["lifecycle"] = self.planning_lifecycle()
+        self.complete(initial, label=f"{kind}-initial")
+        self.assertEqual(self.state()["stage"], f"{kind}-review")
+        self.run_planning_iteration(kind, 1)
+        self.assertEqual(self.planning_receipt(kind)["streak"], 1)
+        self.assertEqual(self.state()["stage"], f"{kind}-review")
+        self.run_planning_iteration(kind, 2)
+        self.assertEqual(self.planning_receipt(kind)["streak"], 2)
+        self.assertEqual(self.state()["stage"], f"{kind}-finalize")
+        final_action = self.action_id()
+        self.cli(
+            "planning-verify",
+            "--action",
+            final_action,
+            "--manifest",
+            self.record(f"{kind}-final-checks", self.planning_manifest(kind)),
+        )
+        self.complete(
+            {"summary": "Fresh checks passed for the unchanged final planning candidate."},
+            action_id=final_action,
+            label=f"{kind}-finalize",
+        )
+
+    def objective_binding(self):
+        binding = self.state().get("objective")
+        self.assertIsInstance(binding, dict)
+        self.assertEqual(binding.get("status"), "active")
+        self.assertIn(binding.get("kind"), objectives.KINDS)
+        return binding
+
+    def objective_receipt(self):
+        binding = self.objective_binding()
+        return store.read_record(self.run_dir / binding["receipt"])
+
+    def objective_assessment(self, kind):
+        return {
+            key: f"Reviewed {key} against the bounded {kind} objective candidate."
+            for key in objectives.ASSESSMENT_KEYS
+        }
+
+    def objective_history(self):
+        """Durably read the current full last-ten page before objective review."""
+        action = self.action_id()
+        output = self.cli(
+            "history", "--action", action, "--limit", "10", "--skip", "0", "--full"
+        ).stdout
+        self.assertIn("Git history", output)
+        receipt = self.objective_receipt()
+        current = receipt["current_pass"]
+        self.assertEqual(current["history"]["required_limit"], 10)
+        archive = self.run_dir / objectives.history_page_name(
+            receipt["loop_id"], current["id"], 0
+        )
+        self.assertTrue(archive.is_file())
+
+    def objective_manifest(self, kind, *, fail=False):
+        receipt = self.objective_receipt()
+        candidate = self.run_dir / receipt["candidate_path"]
+        state = self.state()
+        if kind == "post-inner":
+            acceptance = [self.product_for(state["active_step"])]
+        elif kind == "quality":
+            acceptance = [self.product_one, self.product_two]
+        else:
+            acceptance = [f"objective {kind}"]
+        candidate_check = (
+            "from pathlib import Path; "
+            f"text = Path({str(candidate)!r}).read_text(encoding='utf-8'); "
+            "assert text.strip()"
+        )
+        if fail:
+            candidate_check += "; raise SystemExit(1)"
+        return {
+            "checks": [
+                {
+                    "id": "objective-lint",
+                    "kind": "lint",
+                    "argv": self.markdown_lint_argv(candidate, state_record=True),
+                    "acceptance": [],
+                },
+                {
+                    "id": "objective-candidate",
+                    "kind": "test",
+                    "argv": [sys.executable, "-B", "-c", candidate_check],
+                    "acceptance": acceptance,
+                },
+            ]
+        }
+
+    def objective_repo(self):
+        state = self.state()
+        return self.worktree(state["active_step"]) if state.get("active_step") else self.repo
+
+    def objective_audit_commit(self, kind):
+        receipt = self.objective_receipt()
+        current = receipt["current_pass"]
+        review = current["review"]["learnings"]
+        plan = current["plan"]["learnings"]
+        applied = current["apply"]["learnings"]
+        message = "\n".join(
+            [
+                f"Objective {kind} {current['id']}",
+                "",
+                "Review:",
+                review,
+                "",
+                "Changes:",
+                "Recorded the candidate plan and its scoped resolution without product-tree changes.",
+                "",
+                "Validation:",
+                "Fresh objective lint and candidate-bound checks passed.",
+                "",
+                "Key learnings:",
+                review,
+                plan,
+                applied,
+                "",
+                f"ShipLoop-Iteration: {current['id']}",
+            ]
+        )
+        repo = self.objective_repo()
+        self.git("commit", "--allow-empty", "--only", "-m", message, cwd=repo)
+        return self.git("rev-parse", "HEAD", cwd=repo)
+
+    def start_objective(self, candidate, *, label):
+        base_stage = self.state()["stage"]
+        kind = objectives.kind_for_base_stage(base_stage)
+        self.assertIsNotNone(kind)
+        self.complete(candidate, label=label)
+        self.assertEqual(self.state()["stage"], "objective-review")
+        binding = self.objective_binding()
+        self.assertEqual(binding["kind"], kind)
+        self.assertEqual(binding["base_stage"], base_stage)
+        return kind
+
+    def run_objective_pass(self, kind, number, candidate, *, material=False, fail_verify=False):
+        self.assertEqual(self.state()["stage"], "objective-review")
+        self.objective_history()
+        finding_id = f"OBJ-{kind}-{number}"
+        review_learning = (
+            f"The {kind} objective review read the complete current Git history and durable context."
+        )
+        self.complete(
+            {
+                "summary": "The objective review records an explicit finding against every required dimension.",
+                "findings": [
+                    {
+                        "id": finding_id,
+                        "severity": "material" if material else "trivial",
+                        "category": "other",
+                        "summary": "The fixture objective keeps its candidate, checks, and completion evidence explicit.",
+                    }
+                ],
+                "assessment": self.objective_assessment(kind),
+                "history_assessment": "All currently available full commit bodies were read before this objective decision.",
+                "test_review": "The objective candidate check keeps the expected acceptance visible without changing product files.",
+                "learnings": review_learning,
+            },
+            label=f"{kind}-objective-{number}-review",
+        )
+        self.assertEqual(self.state()["stage"], "objective-plan")
+        plan_learning = (
+            f"The {kind} objective plan resolves its stable finding without broadening the original candidate."
+        )
+        self.complete(
+            {
+                "summary": "The objective plan addresses every open finding with a bounded durable change.",
+                "addresses": [finding_id],
+                "body": f"# {kind} objective plan\n\nAddress {finding_id} without changing product files.\n",
+                "learnings": plan_learning,
+            },
+            label=f"{kind}-objective-{number}-plan",
+        )
+        self.assertEqual(self.state()["stage"], "objective-apply")
+        applied_candidate = copy.deepcopy(candidate)
+        if material:
+            applied_candidate["summary"] += " The material fixture correction is now explicit."
+        apply_learning = (
+            f"The {kind} objective apply result retains the complete original-stage candidate and its explicit check."
+        )
+        self.complete(
+            {
+                "summary": "The objective apply result resolves the finding without an external effect.",
+                "candidate": applied_candidate,
+                "material": material,
+                "addresses": [finding_id],
+                "resolutions": [
+                    {
+                        "id": finding_id,
+                        "evidence": "The complete candidate preserves its declared outcome, test, and documentation decision.",
+                    }
+                ],
+                "test_changes": "The candidate-bound objective test remains active; no expected outcome was removed.",
+                "learnings": apply_learning,
+            },
+            label=f"{kind}-objective-{number}-apply",
+        )
+        self.assertEqual(self.state()["stage"], "objective-verify")
+        verify_action = self.action_id()
+        if fail_verify:
+            self.cli(
+                "planning-verify",
+                "--action",
+                verify_action,
+                "--manifest",
+                self.record(
+                    f"{kind}-objective-{number}-failed-checks",
+                    self.objective_manifest(kind, fail=True),
+                ),
+                code=2,
+            )
+            self.assertEqual(self.state()["stage"], "objective-verify")
+            self.assertEqual(self.action_id(), verify_action)
+        verify_args = [
+            "planning-verify",
+            "--action",
+            verify_action,
+            "--manifest",
+            self.record(
+                f"{kind}-objective-{number}-checks", self.objective_manifest(kind)
+            ),
+        ]
+        if fail_verify or kind == "post-inner":
+            verify_args.extend(
+                [
+                    "--reason",
+                    (
+                        "Restore the candidate acceptance command after the failed objective check; no acceptance was weakened."
+                        if fail_verify
+                        else "The per-step post-inner acceptance target changed from the prior completed step; retain the exact declared product check."
+                    ),
+                ]
+            )
+        self.cli(*verify_args)
+        self.complete(
+            {"summary": "Fresh objective lint and candidate acceptance checks passed."},
+            action_id=verify_action,
+            label=f"{kind}-objective-{number}-verify",
+        )
+        self.assertEqual(self.state()["stage"], "objective-commit")
+        commit_action = self.action_id()
+        commit = self.objective_audit_commit(kind)
+        self.complete(
+            {
+                "summary": "An audit-only direct-child commit records the objective review, plan, apply, and validation learnings.",
+                "commit": commit,
+            },
+            action_id=commit_action,
+            label=f"{kind}-objective-{number}-commit",
+        )
+        return applied_candidate
+
+    def converge_objective(
+        self,
+        candidate,
+        *,
+        label,
+        material_first=False,
+        started=False,
+        fail_first_verify=False,
+        final_code=0,
+    ):
+        """Converge one universal outer objective through real CLI actions."""
+        if started:
+            binding = self.objective_binding()
+            kind = binding["kind"]
+            self.assertEqual(kind, label)
+            self.assertEqual(self.state()["stage"], "objective-review")
+        else:
+            kind = self.start_objective(candidate, label=label)
+        current = self.run_objective_pass(
+            kind,
+            1,
+            candidate,
+            material=material_first,
+            fail_verify=fail_first_verify,
+        )
+        self.assertEqual(self.state()["stage"], "objective-review")
+        current = self.run_objective_pass(kind, 2, current)
+        if material_first:
+            self.assertEqual(self.state()["stage"], "objective-review")
+            current = self.run_objective_pass(kind, 3, current)
+        self.assertEqual(self.state()["stage"], "objective-finalize")
+        finalize_action = self.action_id()
+        self.cli(
+            "planning-verify",
+            "--action",
+            finalize_action,
+            "--manifest",
+            self.record(f"{kind}-objective-final-checks", self.objective_manifest(kind)),
+        )
+        final_process, _ = self.complete(
+            {"summary": "Fresh final objective lint and candidate acceptance checks passed."},
+            action_id=finalize_action,
+            code=final_code,
+            label=f"{kind}-objective-finalize",
+        )
+        self.last_objective_final = final_process
+        if final_code:
+            self.assertEqual(self.state()["stage"], "objective-finalize")
+            return current
+        binding = self.state()["objective"]
+        self.assertEqual(binding["status"], "finalized")
+        self.assertTrue((self.run_dir / binding["certificate"]).is_file())
+        return current
+
+    def step_plan_loop(self, sid):
+        binding = self.receipt(sid).get("step_plan")
+        self.assertIsInstance(binding, dict)
+        self.assertIsInstance(binding.get("loop_id"), str)
+        return binding["loop_id"]
+
+    def step_plan_receipt(self, sid):
+        loop = self.step_plan_loop(sid)
+        return store.read_record(self.run_dir / step_planning.receipt_name(loop))
+
+    def step_plan_parent_ids(self, sid):
+        if (
+            self.state()["stage"] != "improve-plan"
+            and self.receipt(sid).get("step_plan", {}).get("route") != "improve"
+        ):
+            return []
+        context = self.cli(
+            "context", "--section", "step-context", "--offset", "0", "--limit", "8000"
+        ).stdout
+        return sorted(set(re.findall(r"PARENT-[0-9a-f]{16}", context)))
+
+    def step_plan_candidate(self, sid, revision, *, parent_ids=()):
+        product = self.product_for(sid)
+        parent_section = (
+            "## Enclosing review findings\n\n"
+            + "\n".join(
+                f"- {finding_id}: Address this enclosing review finding in the scoped plan."
+                for finding_id in parent_ids
+            )
+            + "\n\n"
+            if parent_ids
+            else ""
+        )
+        return f"""# Step plan {sid} ({revision})
+
+## Scope
+
+Implement only {sid}; preserve its declared output and dependency boundary.
+
+## Current implementation and environment
+
+Inspect the active worktree, current Git head, local Python runtime, and the
+frozen behavior, specification, environment, plan, and knowledge records.
+
+## Dependencies and flows
+
+{sid} consumes only its declared prerequisites and must preserve the observable
+producer-to-consumer sequence without adding an implicit side effect.
+
+## Edge conditions and second-order effects
+
+An exact-output failure must not be hidden by a weaker assertion or a changed
+expected outcome. Repeated execution must not alter an already valid artifact.
+
+## Implicit requirements
+
+Keep the implementation scoped to the active step; do not change frozen
+contracts, pending steps, credentials, or deployment state.
+
+## Test cases
+
+TC-{sid}-exact: Given the active fixture, run the local exact-output check.
+Expected outcome: {product}.
+
+## Documentation
+
+The fixture has no product README; retain this explicit no-change decision and
+document any future function-contract or README impact before implementation.
+
+{parent_section}"""
+
+    def step_plan_coverage(self):
+        return {
+            key: f"Reviewed {key} against the active step, durable inputs, and current worktree."
+            for key in self.step_plan_rubric
+        }
+
+    def step_plan_context_evidence(self, sid):
+        return {
+            "step": f"context --section step identified {sid} and its declared produces.",
+            "implementation": "context --section step-context bound the current worktree and Git head.",
+            "environment": "The frozen environment and local Python runtime remain the selected test environment.",
+            "dependencies": "The direct supplier and consumer records were inspected from the bounded step context.",
+        }
+
+    def step_plan_manifest(self, sid):
+        receipt = self.step_plan_receipt(sid)
+        candidate = self.run_dir / receipt["candidate_path"]
+        expected = self.product_for(sid)
+        test = (
+            "from pathlib import Path; "
+            f"text = Path({str(candidate)!r}).read_text(encoding='utf-8'); "
+            f"assert 'TC-{sid}-exact' in text; "
+            f"assert {expected!r} in text; "
+            "assert 'Expected outcome:' in text"
+        )
+        return {
+            "checks": [
+                {
+                    "id": "step-plan-lint",
+                    "kind": "lint",
+                    "argv": self.markdown_lint_argv(candidate),
+                    "acceptance": [],
+                },
+                {
+                    "id": "step-plan-candidate",
+                    "kind": "test",
+                    "argv": [sys.executable, "-B", "-c", test],
+                    "acceptance": ["step plan"],
+                },
+                {
+                    "id": f"R-{sid}",
+                    "kind": "test",
+                    "argv": [sys.executable, "-B", "-c", test],
+                    "acceptance": ["step plan"],
+                },
+            ]
+        }
+
+    def step_plan_commit(self, sid, *, staged_product_path=None):
+        receipt = self.step_plan_receipt(sid)
+        current = receipt["current_pass"]
+        review = current["review"]["learnings"]
+        revise = current["revise"]["learnings"]
+        message = "\n".join(
+            [
+                f"Step-plan {sid} {current['id']}",
+                "",
+                "Review:",
+                "Read current Git history, bounded step context, and the durable risk ledger.",
+                "",
+                "Changes:",
+                "Recorded the bounded plan candidate and findings without changing product content.",
+                "",
+                "Validation:",
+                "Fresh lint and candidate-bound expected-outcome checks passed.",
+                "",
+                "Key learnings:",
+                review,
+                revise,
+                "",
+                f"ShipLoop-Iteration: {current['id']}",
+            ]
+        )
+        worktree = self.worktree(sid)
+        if staged_product_path is not None:
+            self.git("add", staged_product_path, cwd=worktree)
+        self.git("commit", "--allow-empty", "--only", "-m", message, cwd=worktree)
+        return self.git("rev-parse", "HEAD", cwd=worktree)
+
+    def run_step_plan_pass(
+        self,
+        sid,
+        number,
+        *,
+        material=False,
+        finding_id=None,
+        staged_product_path=None,
+    ):
+        self.assertEqual(self.state()["stage"], "step-plan-review")
+        review_action = self.action_id()
+        self.cli(
+            "history", "--action", review_action, "--limit", "10", "--skip", "0", "--full"
+        )
+        knowledge_read = self.read_knowledge(sid)
+        finding_id = finding_id or f"SP-{sid}-{number}"
+        review_learning = (
+            "The plan review used current Git history, active implementation, environment, direct dependencies, and durable knowledge."
+        )
+        review = {
+            "summary": "The bounded step-plan review records an explicit risk and every required dimension.",
+            "findings": [
+                {
+                    "id": finding_id,
+                    "severity": "material" if material else "trivial",
+                    "category": "implementation",
+                    "summary": "The exact-output boundary requires a documented, checked plan adjustment.",
+                }
+            ],
+            "coverage_review": self.step_plan_coverage(),
+            "context_evidence": self.step_plan_context_evidence(sid),
+            "test_review": "TC exact-output asserts the declared result; the plan check asserts its expected outcome remains explicit.",
+            "learnings": review_learning,
+            "knowledge_read": knowledge_read,
+        }
+        self.complete(review, action_id=review_action, label=f"{sid}-step-plan-{number}-review")
+        self.assertEqual(self.state()["stage"], "step-plan-revise")
+        revise_learning = (
+            "Every open plan finding is resolved with a concrete candidate, test, and documentation decision."
+        )
+        self.complete(
+            {
+                "summary": "The revised candidate resolves every open step-plan finding without weakening expected outcomes.",
+                "body": self.step_plan_candidate(
+                    sid,
+                    f"pass {number}",
+                    parent_ids=self.step_plan_parent_ids(sid),
+                ),
+                "material": material,
+                "addresses": [finding_id],
+                "resolutions": [
+                    {
+                        "id": finding_id,
+                        "evidence": "The candidate names the exact-output case, boundary, and documentation decision.",
+                    }
+                ],
+                "test_changes": "The candidate-bound test asserts the explicit expected output; no acceptance condition was removed.",
+                "learnings": revise_learning,
+            },
+            label=f"{sid}-step-plan-{number}-revise",
+        )
+        self.assertEqual(self.state()["stage"], "step-plan-verify")
+        check_action = self.action_id()
+        self.cli(
+            "planning-verify",
+            "--action",
+            check_action,
+            "--manifest",
+            self.record(f"{sid}-step-plan-{number}-checks", self.step_plan_manifest(sid)),
+        )
+        self.complete(
+            {"summary": "Fresh lint and exact candidate expected-outcome checks passed without changing the plan context."},
+            action_id=check_action,
+            label=f"{sid}-step-plan-{number}-verify",
+        )
+        self.assertEqual(self.state()["stage"], "step-plan-commit")
+        commit_action = self.action_id()
+        commit = self.step_plan_commit(sid, staged_product_path=staged_product_path)
+        _, result = self.complete(
+            {
+                "summary": "A distinct audit-only commit records the current review, revision, validation, and key learnings.",
+                "commit": commit,
+            },
+            action_id=commit_action,
+            label=f"{sid}-step-plan-{number}-commit",
+        )
+        return {
+            "review_action": review_action,
+            "check_action": check_action,
+            "commit_action": commit_action,
+            "commit": commit,
+            "result": result,
+            "finding_id": finding_id,
+        }
+
+    def start_step_plan(self, sid):
+        self.assertIn(self.state()["stage"], ("step-plan", "improve-plan"))
+        route = "initial" if self.state()["stage"] == "step-plan" else "improve"
+        self.complete(
+            {
+                "summary": "The plan candidate explicitly covers current code, environment, dependencies, flows, risks, tests, and documentation.",
+                "body": self.step_plan_candidate(
+                    sid,
+                    "draft",
+                    parent_ids=(
+                        self.step_plan_parent_ids(sid)
+                        if route == "improve"
+                        else []
+                    ),
+                ),
+            },
+            label=f"{sid}-{route}-step-plan-draft",
+        )
+        self.assertEqual(self.state()["stage"], "step-plan-review")
+        return route
+
+    def converge_step_plan(self, sid, *, material_first=False, staged_product_path=None):
+        """Converge an initial or Improve plan through fresh, replay-safe CLI actions."""
+        if self.state()["stage"] in ("step-plan", "improve-plan"):
+            route = self.start_step_plan(sid)
+        else:
+            self.assertEqual(self.state()["stage"], "step-plan-review")
+            route = self.step_plan_receipt(sid)["route"]
+        first = self.run_step_plan_pass(
+            sid,
+            1,
+            material=material_first,
+            staged_product_path=staged_product_path,
+        )
+        self.assertEqual(len(self.step_plan_receipt(sid)["completed_passes"]), 1)
+        self.assertEqual(
+            self.step_plan_receipt(sid)["completed_passes"][0]["outcome"],
+            "material" if material_first else "trivial",
+        )
+        self.assertEqual(self.state()["stage"], "step-plan-review")
+        second = self.run_step_plan_pass(sid, 2, material=False)
+        if material_first:
+            self.assertEqual(self.state()["stage"], "step-plan-review")
+            third = self.run_step_plan_pass(sid, 3, material=False)
+        else:
+            third = None
+        self.assertEqual(self.state()["stage"], "step-plan-finalize")
+        final_action = self.action_id()
+        self.cli(
+            "planning-verify",
+            "--action",
+            final_action,
+            "--manifest",
+            self.record(f"{sid}-{route}-step-plan-final-checks", self.step_plan_manifest(sid)),
+        )
+        final_result = {
+            "summary": "A fresh final lint and candidate expected-outcome check passed after two trivial passes."
+        }
+        if route == "initial":
+            final_result["ready_evidence"] = self.ready_evidence(sid)
+        self.complete(
+            final_result,
+            action_id=final_action,
+            label=f"{sid}-{route}-step-plan-finalize",
+        )
+        receipt = self.step_plan_receipt(sid)
+        self.assertEqual(receipt["route"], route)
+        self.assertGreaterEqual(len(receipt["completed_passes"]), 2)
+        self.assertEqual(self.state()["stage"], receipt["return_stage"])
+        self.cli("plan-status", "--loop", receipt["loop_id"])
+        self.assertFalse((self.repo / ".until-loop").exists())
+        self.assertFalse((self.run_dir / ".until-loop").exists())
+        self.assertFalse((self.run_dir / "state.json").exists())
+        self.assertEqual(list((self.run_dir / "step-planning").rglob("*.json")), [])
+        return first, second, third, receipt
+
+    def bootstrap_to_first_step_plan(self):
         self.cli(
             "init",
             "--repo",
@@ -209,42 +1299,29 @@ class ShipLoopActionWalkTests(unittest.TestCase):
             },
             label="preflight",
         )
-        self.complete(
+        self.converge_objective(
             {
                 "summary": "The approach separates initial delivery, per-step verification, and outer checks.",
                 "body": "# Approach\n\nCreate two dependent files with exact-output tests and review each increment.\n",
             },
             label="approach",
         )
-        self.complete(
+        self.assertEqual(self.state()["stage"], "survey")
+        self.converge_objective(
             {
                 "summary": "Survey captured a greenfield fixture and no external routes.",
                 "body": self.machine_markdown(),
             },
             label="survey",
         )
-        self.complete(
-            {
-                "summary": "No external research is needed for this local fixture.",
-                "body": "The fixture uses Python standard library checks and Git worktrees.\n",
-            },
-            label="research",
-        )
-        self.complete(
-            {
-                "summary": "The target is checkable by exact file contents.",
-                "body": f"done_sentence: {self.done_sentence}\ncheckable: true\n",
-                "lifecycle": {
-                    "acceptance": [self.product_one, self.product_two],
-                    "preparation": "none",
-                    "publish": "none",
-                    "quality": True,
-                    "reason": "Local files require no outer preparation or publication.",
-                },
-            },
-            label="spec",
-        )
-        self.complete(
+        self.assertEqual(self.state()["stage"], "research")
+        self.converge_planning("research")
+        self.assertEqual(self.state()["stage"], "behavior")
+        self.converge_planning("behavior")
+        self.assertEqual(self.state()["stage"], "spec")
+        self.converge_planning("spec")
+        self.assertEqual(self.state()["stage"], "sequence")
+        self.converge_objective(
             {
                 "summary": "The dependency sequence creates S1 before S2 and maps tests to both outputs.",
                 "dependency_review": "Backward prerequisite audit: S2 consumes S1 output; S1 consumes the established repository baseline; no missing producers or cycles.",
@@ -253,6 +1330,24 @@ class ShipLoopActionWalkTests(unittest.TestCase):
             },
             label="sequence",
         )
+        if self.state()["stage"] == "prepare":
+            self.converge_objective(
+                {
+                    "summary": "The local fixture readiness observation is complete before allocation.",
+                    "evidence": "The committed baseline and local Python runtime remain available for the declared exact-output checks.",
+                },
+                label="preparation-readiness",
+            )
+        state = self.state()
+        self.assertEqual(
+            (state["phase"], state["stage"], state["active_step"]),
+            ("implement", "step-plan", "S1"),
+        )
+        return state
+
+    def bootstrap_to_first_implementation(self):
+        self.bootstrap_to_first_step_plan()
+        self.converge_step_plan("S1")
         state = self.state()
         self.assertEqual(
             (state["phase"], state["stage"], state["active_step"]),
@@ -268,7 +1363,7 @@ class ShipLoopActionWalkTests(unittest.TestCase):
 
     def write_implementation(self, sid, *, wrong_output=False):
         wt = self.worktree(sid)
-        word = "first" if sid == "S1" else "second"
+        word = self.output_for(sid)
         (wt / f"{sid.lower()}.py").write_text(f"VALUE = {word!r}\n", encoding="utf-8")
         output = "not-the-declared-output" if wrong_output else word
         (wt / f"{sid.lower()}.txt").write_text(output + "\n", encoding="utf-8")
@@ -289,10 +1384,10 @@ class ShipLoopActionWalkTests(unittest.TestCase):
                 for name in source_names
             )
         else:
-            word = "first" if sid == "S1" else "second"
+            word = self.output_for(sid)
             filename = f"{sid.lower()}.py"
             textfile = f"{sid.lower()}.txt"
-            products = [self.product_one if sid == "S1" else self.product_two]
+            products = [self.product_for(sid)]
             lint = f"from pathlib import Path; compile(Path({filename!r}).read_text(), {filename!r}, 'exec')"
             command = f"from pathlib import Path; assert Path({textfile!r}).read_text() == {word + chr(10)!r}"
         return {
@@ -304,7 +1399,7 @@ class ShipLoopActionWalkTests(unittest.TestCase):
                     "acceptance": [],
                 },
                 {
-                    "id": "exact-output",
+                    "id": f"T-{sid}" if not quality else "exact-output",
                     "kind": "test",
                     "argv": [sys.executable, "-B", "-c", command],
                     "acceptance": products,
@@ -318,6 +1413,54 @@ class ShipLoopActionWalkTests(unittest.TestCase):
             "verify", "--action", self.action_id(), "--manifest", path, code=code
         )
 
+    def read_knowledge(self, sid):
+        """Read every bounded knowledge page and return its review acknowledgment."""
+        output = self.cli(
+            "context", "--section", "knowledge", "--offset", "0", "--limit", "8000"
+        ).stdout
+        first_page = output
+        digest_match = re.search(r"Context knowledge; digest ([0-9a-f]+)", output)
+        self.assertIsNotNone(digest_match, output)
+        digest = digest_match.group(1)
+        while continuation := re.search(r"Continue: --offset (\d+)", output):
+            output = self.cli(
+                "context",
+                "--section",
+                "knowledge",
+                "--offset",
+                continuation.group(1),
+                "--limit",
+                "8000",
+                "--digest",
+                digest,
+            ).stdout
+        if sid == "S2":
+            self.assertGreater(self.state()["knowledge_revision"], 0)
+            self.assertTrue(list((self.run_dir / "knowledge-history").glob("*.md")))
+            self.assertIn("knowledge_revision", first_page)
+        return {
+            "revision": self.state()["knowledge_revision"],
+            "digest": digest,
+            "scope": ["all", sid],
+        }
+
+    def carry_forward_payload(
+        self,
+        *,
+        learnings="No new non-secret project knowledge was discovered in this iteration.",
+        discoveries=None,
+        resolutions=None,
+    ):
+        payload = {
+            "summary": "The verified iteration has an explicit carry-forward checkpoint.",
+            "knowledge_revision": self.state()["knowledge_revision"],
+            "learnings": learnings,
+            "discoveries": [] if discoveries is None else discoveries,
+        }
+        if resolutions is not None:
+            payload["resolutions"] = resolutions
+        return payload
+
     def formatted_commit(
         self,
         sid,
@@ -325,10 +1468,15 @@ class ShipLoopActionWalkTests(unittest.TestCase):
         verification_action,
         review_learning,
         apply_learning,
+        carry_learning,
         *,
         allow_empty=True,
+        include_plan_learnings=True,
     ):
         wt = self.worktree(sid)
+        plan_learnings = iteration.get("plan_learnings", [])
+        self.assertIsInstance(plan_learnings, list)
+        self.assertTrue(all(isinstance(item, str) and item for item in plan_learnings))
         message = "\n".join(
             [
                 f"Improve {sid} {iteration['id']}",
@@ -345,6 +1493,8 @@ class ShipLoopActionWalkTests(unittest.TestCase):
                 "Key learnings:",
                 review_learning,
                 apply_learning,
+                carry_learning,
+                *(plan_learnings if include_plan_learnings else []),
                 "",
                 f"ShipLoop-Iteration: {iteration['id']}",
             ]
@@ -357,12 +1507,23 @@ class ShipLoopActionWalkTests(unittest.TestCase):
         return self.git("rev-parse", "HEAD", cwd=wt)
 
     def run_improve_iteration(
-        self, sid, *, material, invalid_commit_first=False, missing_learning_first=False
+        self,
+        sid,
+        *,
+        material,
+        invalid_commit_first=False,
+        missing_learning_first=False,
+        missing_plan_learning_first=False,
+        stop_at_carry_forward=False,
+        carry_payload=None,
     ):
-        """Exercise history -> plan -> apply -> fresh checks -> primary commit."""
+        """Exercise history -> plan -> apply -> checks -> carry-forward -> commit."""
         self.assertEqual(self.state()["stage"], "review")
         review_action = self.action_id()
-        self.cli("history", "--action", review_action, "--limit", "7", "--skip", "0")
+        self.cli(
+            "history", "--action", review_action, "--limit", "10", "--skip", "0", "--full"
+        )
+        knowledge_read = self.read_knowledge(sid)
         review_learning = "Commit history is read before each improvement decision."
         apply_learning = "Classifying material findings resets convergence even when the patch is small."
         findings = [
@@ -373,13 +1534,17 @@ class ShipLoopActionWalkTests(unittest.TestCase):
                 else "Trivial fixture wording audit",
             }
         ]
+        review = {
+            "summary": "History and the current worktree were reviewed before planning improvements.",
+            "findings": findings,
+            "test_review": "The exact-output test covers the declared product and syntax check covers source parsing.",
+            "learnings": review_learning,
+            "knowledge_read": knowledge_read,
+        }
+        if self.activity_for(sid) == "research":
+            review["research_review"] = self.research_review()
         self.complete(
-            {
-                "summary": "History and the current worktree were reviewed before planning improvements.",
-                "findings": findings,
-                "test_review": "The exact-output test covers the declared product and syntax check covers source parsing.",
-                "learnings": review_learning,
-            },
+            review,
             action_id=review_action,
             label=f"{sid}-review",
         )
@@ -387,10 +1552,16 @@ class ShipLoopActionWalkTests(unittest.TestCase):
         self.complete(
             {
                 "summary": "The plan maps the review finding to one scoped adjustment and keeps the test intact.",
-                "body": "# Improve plan\n\nPreserve exact-output coverage and record the scoped learning.\n",
+                "body": self.step_plan_candidate(
+                    sid,
+                    "improve draft",
+                    parent_ids=self.step_plan_parent_ids(sid),
+                ),
             },
             label=f"{sid}-improve-plan",
         )
+        self.assertEqual(self.state()["stage"], "step-plan-review")
+        self.converge_step_plan(sid)
         self.assertEqual(self.state()["stage"], "improve-apply")
         wt = self.worktree(sid)
         if material:
@@ -415,9 +1586,28 @@ class ShipLoopActionWalkTests(unittest.TestCase):
             action_id=verification_action,
             label=f"{sid}-verify-result",
         )
-        self.assertEqual(self.state()["stage"], "commit")
+        self.assertEqual(self.state()["stage"], "carry-forward")
+        carry_action = self.action_id()
         receipt = self.receipt(sid)
         iteration = copy.deepcopy(receipt["iteration"])
+        if stop_at_carry_forward:
+            return {
+                "iteration": iteration,
+                "verification_action": verification_action,
+                "review_learning": review_learning,
+                "apply_learning": apply_learning,
+                "carry_action": carry_action,
+                "knowledge_read": knowledge_read,
+            }
+        if carry_payload is None:
+            carry_payload = self.carry_forward_payload()
+        carry_learning = carry_payload["learnings"]
+        self.complete(
+            carry_payload,
+            action_id=carry_action,
+            label=f"{sid}-carry-forward",
+        )
+        self.assertEqual(self.state()["stage"], "commit")
         if invalid_commit_first:
             self.git("add", f"{sid.lower()}.py", cwd=wt)
             self.git("commit", "-m", "unstructured attempted primary commit", cwd=wt)
@@ -442,6 +1632,7 @@ class ShipLoopActionWalkTests(unittest.TestCase):
                 verification_action,
                 "A different review learning that was not recorded in the result.",
                 apply_learning,
+                carry_learning,
             )
             rejected, _ = self.complete(
                 {
@@ -454,8 +1645,39 @@ class ShipLoopActionWalkTests(unittest.TestCase):
             self.assertIn("verbatim", rejected.stderr)
             self.assertEqual(self.state()["stage"], "commit")
             self.assertEqual(self.receipt(sid)["improve_cycles"], [])
+        if missing_plan_learning_first:
+            self.assertTrue(iteration.get("plan_learnings"))
+            missing_plan_sha = self.formatted_commit(
+                sid,
+                iteration,
+                verification_action,
+                review_learning,
+                apply_learning,
+                carry_learning,
+                include_plan_learnings=False,
+            )
+            missing_body = self.git(
+                "show", "-s", "--format=%B", missing_plan_sha, cwd=wt
+            )
+            self.assertNotIn(iteration["plan_learnings"][0], missing_body)
+            rejected, _ = self.complete(
+                {
+                    "summary": "Attempt to record a primary commit that omits nested plan learnings.",
+                    "commit": missing_plan_sha,
+                },
+                code=2,
+                label=f"{sid}-missing-plan-learning",
+            )
+            self.assertIn("primary commit must include", rejected.stderr)
+            self.assertEqual(self.state()["stage"], "commit")
+            self.assertEqual(self.receipt(sid)["improve_cycles"], [])
         primary = self.formatted_commit(
-            sid, iteration, verification_action, review_learning, apply_learning
+            sid,
+            iteration,
+            verification_action,
+            review_learning,
+            apply_learning,
+            carry_learning,
         )
         commit_action = self.action_id()
         commit_payload = {
@@ -496,7 +1718,7 @@ class ShipLoopActionWalkTests(unittest.TestCase):
                 label=f"{sid}-failed-evidence",
             )
             wt = self.worktree(sid)
-            expected = "first" if sid == "S1" else "second"
+            expected = self.output_for(sid)
             (wt / f"{sid.lower()}.txt").write_text(expected + "\n", encoding="utf-8")
             self.git("add", f"{sid.lower()}.txt", cwd=wt)
             self.git(
@@ -574,7 +1796,8 @@ class ShipLoopActionWalkTests(unittest.TestCase):
         self.verify_current(self.manifest_for(sid), label=f"{sid}-final-checks")
         self.complete(
             {
-                "summary": "Fresh final checks passed after both trivial-only iterations."
+                "summary": "Fresh final checks passed after both trivial-only iterations.",
+                "done_evidence": self.done_evidence(sid),
             },
             action_id=final_action,
             label=f"{sid}-final-verify",
@@ -586,6 +1809,9 @@ class ShipLoopActionWalkTests(unittest.TestCase):
             revised["steps"][1]["statement"] = (
                 "Create the dependent artifact after the broader-plan review"
             )
+            revised["steps"][1]["contract"]["objective"] = revised["steps"][1][
+                "statement"
+            ]
             revised["steps"][1]["prompt"] += (
                 "\nApply the recorded broader-plan learning."
             )
@@ -614,7 +1840,7 @@ class ShipLoopActionWalkTests(unittest.TestCase):
                 "plan_reason": "The dependent sequence and outer waiver remain applicable after the recorded reviews.",
                 "journal": [],
             }
-        self.complete(post_payload, label=f"{sid}-post-inner")
+        self.converge_objective(post_payload, label=f"{sid}-post-inner")
         after_post_inner = self.receipt(sid)
         self.assertEqual(
             after_post_inner["improve_cycles"], before_post_inner["improve_cycles"]
@@ -628,7 +1854,13 @@ class ShipLoopActionWalkTests(unittest.TestCase):
             {"summary": "Merge the converged step into the session checkout."},
             label=f"{sid}-merge",
         )
+        next_state = self.state()
+        if next_state.get("stage") == "step-plan":
+            self.converge_step_plan(next_state["active_step"])
         return before_post_inner
+
+class ShipLoopActionWalkTests(ShipLoopActionWalkFixture):
+    """One real two-step walk plus narrow protocol-negatives."""
 
     def test_action_walk_enforces_evidence_history_commits_revision_and_terminal_journal(
         self,
@@ -655,7 +1887,7 @@ class ShipLoopActionWalkTests(unittest.TestCase):
         self.finish_step("S2", revise=False, material_first=False)
         self.assertEqual((self.repo / "s2.txt").read_text(encoding="utf-8"), "second\n")
         self.assertEqual(self.state()["stage"], "coverage")
-        self.complete(
+        self.converge_objective(
             {
                 "summary": "The explicit bound-plan waiver permits the fixture to finish outer coverage."
             },
@@ -665,7 +1897,7 @@ class ShipLoopActionWalkTests(unittest.TestCase):
         self.verify_current(
             self.manifest_for("S2", quality=True), label="whole-product-checks"
         )
-        self.complete(
+        self.converge_objective(
             {
                 "summary": "Whole-product lint and exact-output checks passed after both merges.",
                 "test_review": "Both declared lifecycle acceptance criteria are covered by an exact-output check.",
@@ -684,6 +1916,17 @@ class ShipLoopActionWalkTests(unittest.TestCase):
         terminal = self.state()
         self.assertEqual((terminal["phase"], terminal["stage"]), ("done", "done"))
         self.assertNotIn("active_step", terminal)
+        report = self.run_dir / "report.html"
+        self.assertTrue(report.is_file())
+        report_html = report.read_text(encoding="utf-8")
+        self.assertIn('data-outcome="complete"', report_html)
+        self.assertIn("Derived report — not authoritative state.", report_html)
+        self.assertEqual(terminal["report"]["path"], "report.html")
+        self.assertEqual(
+            terminal["report"]["sha256"],
+            hashlib.sha256(report.read_bytes()).hexdigest(),
+        )
+        self.assertTrue(terminal["report"]["evidence_complete"])
         journal = store.read_record(self.run_dir / "shiploop-improvements.md")
         self.assertEqual(len(journal), 1)
         self.assertEqual(journal[0]["title"], "Keep action receipts compact")
@@ -691,6 +1934,20 @@ class ShipLoopActionWalkTests(unittest.TestCase):
         self.assertFalse(
             Path(s1_before["worktree"]).exists(),
             "journal must survive disposable worktree removal",
+        )
+
+    def test_preparation_readiness_objective_extends_the_preallocation_audit_bridge(self):
+        self.fixture_preparation = "outer-before"
+        state = self.bootstrap_to_first_step_plan()
+        self.assertEqual((state["phase"], state["stage"], state["active_step"]), ("implement", "step-plan", "S1"))
+        self.assertEqual(
+            store.read_record(self.run_dir / "preparation.md")["evidence"],
+            "The committed baseline and local Python runtime remain available for the declared exact-output checks.",
+        )
+        bridge = state["objective_preallocation_bridge"]
+        self.assertEqual(
+            [row["kind"] for row in bridge["entries"]],
+            ["sequence", "preparation-readiness"],
         )
 
     def test_twelve_material_cycles_do_not_converge(self):
@@ -701,6 +1958,80 @@ class ShipLoopActionWalkTests(unittest.TestCase):
         }
         self.assertFalse(CORE.improve_two_clean(receipt))
 
+    def test_fixture_markdown_lint_rejects_malformed_or_trailing_whitespace(self):
+        candidate = self.records / "candidate.md"
+        store.write_record(candidate, {"summary": "A valid immutable candidate."}, title="Candidate")
+        argv = self.markdown_lint_argv(candidate, state_record=True)
+        self.assertNotIn(str(CLI), argv)
+        valid = subprocess.run(argv, capture_output=True, text=True, env=self.env)
+        self.assertEqual(valid.returncode, 0, valid.stdout + valid.stderr)
+
+        plain = self.records / "plain-candidate.md"
+        plain.write_text("# Candidate\n\n## Scope\n\nBounded Markdown body.\n", encoding="utf-8")
+        plain_valid = subprocess.run(
+            self.markdown_lint_argv(plain), capture_output=True, text=True, env=self.env
+        )
+        self.assertEqual(plain_valid.returncode, 0, plain_valid.stdout + plain_valid.stderr)
+
+        empty = self.records / "empty-candidate.md"
+        empty.write_text("", encoding="utf-8")
+        empty_result = subprocess.run(
+            self.markdown_lint_argv(empty), capture_output=True, text=True, env=self.env
+        )
+        self.assertNotEqual(empty_result.returncode, 0)
+
+        candidate.write_text(
+            "# Candidate \n\n```shiploop-state\n{}\n```\n", encoding="utf-8"
+        )
+        invalid = subprocess.run(argv, capture_output=True, text=True, env=self.env)
+        self.assertNotEqual(invalid.returncode, 0)
+
+    def test_objective_cold_resume_failed_checks_and_material_reset(self):
+        """A generic outer loop is durable, fail-closed, and resets on material work."""
+        self.cli(
+            "init",
+            "--repo",
+            str(self.repo),
+            "--bound-plan",
+            str(self.bound_plan),
+            "--prompt",
+            "Exercise a durable objective loop.",
+        )
+        self.complete(
+            {
+                "summary": "The committed fixture baseline and local runtime are available.",
+                "baseline": "committed-head",
+            },
+            label="objective-cold-preflight",
+        )
+        candidate = {
+            "summary": "The approach retains a bounded tested delivery sequence.",
+            "body": "# Approach\n\nUse durable evidence and exact-output checks for each fixture transition.\n",
+        }
+        self.complete(candidate, label="objective-cold-approach-draft")
+        self.assertEqual(self.state()["stage"], "objective-review")
+        binding = copy.deepcopy(self.objective_binding())
+        action_before = self.action_id()
+        cold_packet = self.cli("next").stdout
+        self.assertEqual(self.action_id(), action_before)
+        self.assertTrue((self.run_dir / binding["receipt"]).is_file())
+        self.assertTrue((self.run_dir / binding["candidate"]).is_file())
+        self.assertIn("objective-review", cold_packet)
+
+        self.converge_objective(
+            candidate,
+            label="approach",
+            material_first=True,
+            started=True,
+            fail_first_verify=True,
+        )
+        receipt = store.read_record(self.run_dir / binding["receipt"])
+        self.assertEqual(
+            [row["outcome"] for row in receipt["completed_passes"]],
+            ["material", "trivial", "trivial"],
+        )
+        self.assertEqual(self.state()["stage"], "survey")
+
     def test_primary_commit_cannot_substitute_recorded_learnings(self):
         self.bootstrap_to_first_implementation()
         self.start_step("S1", exercise_failed_and_stale=False)
@@ -709,7 +2040,120 @@ class ShipLoopActionWalkTests(unittest.TestCase):
         self.assertEqual(len(cycles), 1)
         self.assertEqual(cycles[0]["outcome"], "trivial")
 
-    def test_review_requires_every_available_history_body_not_only_first_page(self):
+    def test_primary_commit_cannot_omit_nested_step_plan_learnings(self):
+        self.bootstrap_to_first_implementation()
+        self.start_step("S1", exercise_failed_and_stale=False)
+        self.run_improve_iteration(
+            "S1", material=False, missing_plan_learning_first=True
+        )
+        cycles = self.receipt("S1")["improve_cycles"]
+        self.assertEqual(len(cycles), 1)
+        self.assertTrue(cycles[0]["plan_learnings"])
+
+    def test_execution_research_assessment_requires_full_later_resolution(self):
+        self.bootstrap_to_first_implementation()
+        self.start_step("S1", exercise_failed_and_stale=False)
+        review_action = self.action_id()
+        self.cli(
+            "history", "--action", review_action, "--limit", "10", "--skip", "0", "--full"
+        )
+        knowledge_read = self.read_knowledge("S1")
+        review = {
+            "summary": "The review identifies a scoped research question before a fixture adjustment.",
+            "findings": [],
+            "test_review": "The exact-output test remains the active local evidence.",
+            "learnings": "Research follow-up must be resolved before this iteration can converge.",
+            "knowledge_read": knowledge_read,
+        }
+        rejected, _ = self.complete(
+            review,
+            action_id=review_action,
+            code=2,
+            label="missing-research-assessment",
+            include_research_assessment=False,
+        )
+        self.assertIn("research_assessment", rejected.stderr)
+        questions = [
+            "Does the local exact-output contract remain sufficient?",
+            "Does the fixture require a new local research report?",
+        ]
+        review["research_assessment"] = self.research_assessment(
+            "required", questions=questions
+        )
+        self.complete(review, action_id=review_action, label="required-research-assessment")
+        self.assertEqual(self.state()["stage"], "improve-plan")
+        self.complete(
+            {
+                "summary": "The plan resolves the exact research questions before verification.",
+                "body": self.step_plan_candidate("S1", "research improve draft")
+                + "\n\n## Research resolution\n\nResolve both local research questions without weakening the check.\n",
+            },
+            label="required-research-plan",
+        )
+        self.assertEqual(self.state()["stage"], "step-plan-review")
+        self.converge_step_plan("S1")
+        self.assertEqual(self.state()["stage"], "improve-apply")
+        apply = {
+            "summary": "The local evidence resolves the required research questions.",
+            "material": False,
+            "test_changes": "The exact-output test remains active.",
+            "learnings": "A required research assessment makes this otherwise trivial iteration material.",
+            "research_assessment": self.research_assessment(
+                "resolved", questions=questions[:1]
+            ),
+        }
+        rejected, _ = self.complete(
+            apply,
+            code=2,
+            label="partial-research-resolution",
+        )
+        self.assertIn("retain every prior required question", rejected.stderr)
+        apply["research_assessment"] = self.research_assessment(
+            "resolved", questions=questions
+        )
+        self.complete(apply, label="full-research-resolution")
+        self.assertEqual(self.state()["stage"], "verify")
+        verification_action = self.action_id()
+        self.verify_current(self.manifest_for("S1"), label="research-resolution-checks")
+        self.complete(
+            {"summary": "Fresh local checks confirm the resolved research assessment."},
+            action_id=verification_action,
+            label="research-resolution-verify",
+        )
+        self.assertEqual(self.state()["stage"], "carry-forward")
+        carry_learning = "The resolved local research questions remain attached to this material iteration."
+        self.complete(
+            {
+                "summary": "The verified iteration records its required carry-forward checkpoint.",
+                "knowledge_revision": self.state()["knowledge_revision"],
+                "learnings": carry_learning,
+                "discoveries": [],
+            },
+            label="research-resolution-carry-forward",
+        )
+        receipt = self.receipt("S1")
+        wt = self.worktree("S1")
+        self.git("add", "s1.py", cwd=wt)
+        commit = self.formatted_commit(
+            "S1",
+            receipt["iteration"],
+            verification_action,
+            review["learnings"],
+            apply["learnings"],
+            carry_learning,
+        )
+        self.complete(
+            {
+                "summary": "The primary commit retains the resolved research assessment learning.",
+                "commit": commit,
+            },
+            label="research-resolution-commit",
+        )
+        cycle = self.receipt("S1")["improve_cycles"][-1]
+        self.assertEqual(cycle["outcome"], "material")
+        self.assertEqual(cycle["research_assessment"]["status"], "resolved")
+
+    def test_review_requires_the_bound_full_history_page_not_a_subject_index(self):
         self.bootstrap_to_first_implementation()
         state_before_status = (self.run_dir / "state.md").read_bytes()
         history_before_status = (self.run_dir / "history.md").read_bytes()
@@ -740,26 +2184,31 @@ class ShipLoopActionWalkTests(unittest.TestCase):
         ).stdout
         self.assertNotIn("improve_cycles", continued)
         self.cli("history", "--action", action, "--limit", "1", "--skip", "0")
+        knowledge_read = self.read_knowledge("S1")
         rejected, _ = self.complete(
             {
                 "summary": "A one-commit page was reviewed.",
                 "findings": [],
                 "test_review": "The implementation check remains the active evidence.",
                 "learnings": "One page does not cover all available commit bodies.",
+                "knowledge_read": knowledge_read,
             },
             action_id=action,
             code=2,
             label="partial-history-review",
         )
-        self.assertIn("latest seven", rejected.stderr)
+        self.assertIn("read current Git history", rejected.stderr)
         self.assertEqual(self.state()["stage"], "review")
-        self.cli("history", "--action", action, "--limit", "1", "--skip", "1")
+        self.cli(
+            "history", "--action", action, "--limit", "10", "--skip", "0", "--full"
+        )
         self.complete(
             {
-                "summary": "Every available commit body was reviewed through bounded pages.",
+                "summary": "The complete current ten-body history page was reviewed before the decision.",
                 "findings": [],
                 "test_review": "The implementation check remains the active evidence.",
-                "learnings": "Paged history can cover the complete available history without a large packet.",
+                "learnings": "A full current history page is durable evidence, while its subject index is only navigation.",
+                "knowledge_read": knowledge_read,
             },
             action_id=action,
             label="complete-history-review",
@@ -776,8 +2225,9 @@ class ShipLoopActionWalkTests(unittest.TestCase):
         store.write_record(
             self.run_dir / "steps" / "S1.md", forged, title="Forged receipt"
         )
-        blocked = self.cli("status", code=2)
-        self.assertIn("foreign worktree", blocked.stderr)
+        blocked = self.cli("status")
+        self.assertIn("foreign worktree", blocked.stdout)
+        self.assertIn("No completion callback is valid", blocked.stdout)
         self.assertEqual((self.run_dir / "state.md").read_bytes(), state_before)
         self.assertEqual((self.run_dir / "history.md").read_bytes(), history_before)
         self.assertTrue(Path(original["worktree"]).is_dir())
@@ -827,13 +2277,46 @@ class ShipLoopActionWalkTests(unittest.TestCase):
         self.finish_step("S2", exercise_failure=False)
         completed_s2 = copy.deepcopy(self.receipt("S2"))
         self.assertEqual(self.state()["stage"], "coverage")
-        self.complete(
+        self.converge_objective(
             {
                 "summary": "The explicit bound-plan waiver permits the fixture to enter the outer quality review."
             },
             label="outer-replan-coverage",
         )
         self.assertEqual(self.state()["stage"], "quality")
+        self.complete(
+            {
+                "summary": "A newly observed outer quality concern needs a corrective pending step.",
+                "test_review": "The existing whole-product exact-output checks identify the corrective gap.",
+                "quality_review": "The pending corrective work belongs in the DAG rather than an untracked outer edit.",
+            },
+            label="outer-replan-quality-draft",
+        )
+        self.assertEqual(self.state()["stage"], "objective-review")
+        quality_objective = copy.deepcopy(self.state()["objective"])
+        quality_receipt_path = self.run_dir / quality_objective["receipt"]
+        self.assertTrue(quality_receipt_path.is_file())
+        self.objective_history()
+        self.complete(
+            {
+                "summary": "The outer-quality candidate is reviewed before its corrective replan is proposed.",
+                "findings": [
+                    {
+                        "id": "OBJ-quality-replan",
+                        "severity": "material",
+                        "category": "implementation",
+                        "summary": "The quality review found a product defect that requires a new pending DAG step.",
+                    }
+                ],
+                "assessment": self.objective_assessment("quality"),
+                "history_assessment": "The full current history page was read before deciding that corrective work is required.",
+                "test_review": "Whole-product exact-output coverage identifies the missing corrective behavior.",
+                "learnings": "A discovered outer defect must be preserved as corrective work, not converged inside the quality objective.",
+            },
+            label="outer-replan-quality-review",
+        )
+        self.assertEqual(self.state()["stage"], "objective-plan")
+        reviewed_quality_pass = self.objective_receipt()["current_pass"]
         revised = self.initial_dag()
         revised["steps"].append(
             self.step(
@@ -858,11 +2341,36 @@ class ShipLoopActionWalkTests(unittest.TestCase):
             },
         )
         self.cli("replan", "--action", replan_action, "--result", result)
+        abandoned_quality = store.read_record(quality_receipt_path)
+        self.assertEqual(abandoned_quality["status"], "abandoned")
+        self.assertIn(
+            "Corrective pending DAG work",
+            abandoned_quality["abandonment"]["reason"],
+        )
+        self.assertNotIn("certificate", abandoned_quality)
+        archived_quality_pass = abandoned_quality["abandoned_passes"][-1]
+        self.assertEqual(archived_quality_pass["id"], reviewed_quality_pass["id"])
+        self.assertEqual(
+            archived_quality_pass["reason"],
+            abandoned_quality["abandonment"]["reason"],
+        )
+        self.assertIn("review", archived_quality_pass)
+        self.assertEqual(
+            archived_quality_pass["review"]["learnings"],
+            "A discovered outer defect must be preserved as corrective work, not converged inside the quality objective.",
+        )
+        abandoned_archive = self.run_dir / objectives.abandoned_name(
+            quality_objective["loop_id"], archived_quality_pass["id"]
+        )
+        self.assertTrue(abandoned_archive.is_file())
+        self.assertEqual(store.read_record(abandoned_archive), archived_quality_pass)
         state = self.state()
         self.assertEqual(
             (state["phase"], state["stage"], state["active_step"]),
-            ("implement", "implement", "S3"),
+            ("implement", "step-plan", "S3"),
         )
+        self.converge_step_plan("S3")
+        self.assertEqual(self.state()["stage"], "implement")
         self.assertEqual(self.receipt("S1")["status"], "complete")
         self.assertEqual(self.receipt("S2")["status"], "complete")
         self.assertEqual(

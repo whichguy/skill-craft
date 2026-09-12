@@ -13,17 +13,28 @@ import json
 import os
 import re
 from pathlib import Path
-import shlex
 import sys
 import tempfile
 import uuid
 
 import shiploop_store as store
 import shiploop_evidence as evidence
+import shiploop_planning as planning
+import shiploop_knowledge as knowledge
+import shiploop_research as research
+import shiploop_step_planning as step_planning
+import shiploop_until as until
+import shiploop_delivery as delivery
+import shiploop_objectives as objectives
+import shiploop_contracts as contracts
+import shiploop_contract_protocol as contract_protocol
 
 
 class ProtocolError(RuntimeError):
     pass
+
+
+HISTORY_LIMIT = objectives.HISTORY_LIMIT
 
 
 def need(ok, message):
@@ -44,6 +55,124 @@ def digest(obj):
     return hashlib.sha256(
         json.dumps(obj, sort_keys=True, separators=(",", ":")).encode()
     ).hexdigest()
+
+
+def history_body_entries(rows):
+    """Normalize full Git bodies into compact, tamper-evident page evidence."""
+    need(isinstance(rows, list) and rows, "history page is empty")
+    entries = []
+    seen = set()
+    for row in rows:
+        need(isinstance(row, dict), "history row is invalid")
+        sha, body = row.get("sha"), row.get("body")
+        need(
+            isinstance(sha, str)
+            and re.fullmatch(r"[0-9a-f]{40}|[0-9a-f]{64}", sha)
+            and isinstance(body, str)
+            and body.strip(),
+            "history requires a full nonempty commit body",
+        )
+        need(sha not in seen, "history page repeats a commit")
+        seen.add(sha)
+        entries.append(
+            {"sha": sha, "body_sha256": hashlib.sha256(body.encode()).hexdigest()}
+        )
+    return entries
+
+
+def record_full_history_page(iteration, rows, *, head, skip, limit, archive_path):
+    """Store full-body identities in the active Markdown receipt."""
+    entries = history_body_entries(rows)
+    old = iteration.get("history")
+    pages = [] if not isinstance(old, dict) or old.get("head") != head else list(old.get("pages", []))
+    page = {
+        "skip": skip,
+        "count": len(entries),
+        "commits": entries,
+        "page_sha256": digest(entries),
+        "archive_path": archive_path,
+        "archive_sha256": hashlib.sha256(
+            store.dumps(rows, "Git history — full commit bodies").encode("utf-8")
+        ).hexdigest(),
+    }
+    pages = [item for item in pages if isinstance(item, dict) and item.get("skip") != skip]
+    pages.append(page)
+    pages.sort(key=lambda item: item["skip"])
+    iteration["history"] = {
+        "head": head,
+        "commits": list(dict.fromkeys((old or {}).get("commits", []) + [row["sha"] for row in rows]))
+        if isinstance(old, dict) and old.get("head") == head
+        else [row["sha"] for row in rows],
+        "required_limit": HISTORY_LIMIT,
+        "pages": pages,
+    }
+
+
+def require_full_history(core, root, iteration, repo, *, label):
+    """Require the current last-ten full bodies, not a subject/SHA claim."""
+    current = git(core, repo, "rev-parse", "HEAD")
+    history = iteration.get("history")
+    need(
+        isinstance(history, dict) and history.get("head") == current,
+        f"read current Git history with shiploop history before {label}",
+    )
+    need(
+        history.get("required_limit") == HISTORY_LIMIT,
+        f"{label} requires the latest {HISTORY_LIMIT} full commit bodies",
+    )
+    pages = history.get("pages")
+    need(isinstance(pages, list) and pages, f"{label} has no full-body history receipt")
+    recorded = {}
+    page_by_sha = {}
+    for page in pages:
+        need(isinstance(page, dict) and isinstance(page.get("commits"), list), f"{label} history page is malformed")
+        need(page.get("page_sha256") == digest(page["commits"]), f"{label} history page digest is stale")
+        for row in page["commits"]:
+            need(
+                isinstance(row, dict)
+                and isinstance(row.get("sha"), str)
+                and isinstance(row.get("body_sha256"), str),
+                f"{label} history body receipt is malformed",
+            )
+            recorded[row["sha"]] = row["body_sha256"]
+        for row in page["commits"]:
+            page_by_sha[row["sha"]] = page
+    rows = evidence.history(repo, HISTORY_LIMIT, 0)
+    needed_pages = []
+    for row in rows:
+        need(
+            recorded.get(row["sha"])
+            == hashlib.sha256(row["body"].encode()).hexdigest(),
+            f"{label} requires the latest {HISTORY_LIMIT} full commit bodies",
+        )
+        page = page_by_sha.get(row["sha"])
+        need(isinstance(page, dict), f"{label} history page is missing a required body")
+        if page not in needed_pages:
+            needed_pages.append(page)
+    for page in needed_pages:
+        archive_path = page.get("archive_path")
+        skip, count = page.get("skip"), page.get("count")
+        need(
+            isinstance(archive_path, str)
+            and isinstance(skip, int)
+            and isinstance(count, int)
+            and count > 0,
+            f"{label} history archive path is invalid",
+        )
+        archive_rows = evidence.history(repo, count, skip)
+        expected_archive = store.dumps(
+            archive_rows, "Git history — full commit bodies"
+        ).encode("utf-8")
+        archive = safe_run_path(root, archive_path)
+        need(
+            archive.is_file()
+            and not archive.is_symlink()
+            and archive.read_bytes() == expected_archive
+            and page.get("archive_sha256")
+            == hashlib.sha256(expected_archive).hexdigest()
+            and history_body_entries(archive_rows) == page["commits"],
+            f"{label} full-body history archive is missing or changed",
+        )
 
 
 def resolve_draft(result):
@@ -116,7 +245,7 @@ def action(state, phase, stage):
     }
 
 
-def persist(root, state, event, writes=None):
+def persist(root, state, event, writes=None, deletes=None):
     writes = dict(writes or {})
     history_path = root / "history.md"
     history = store.read_record(history_path) if history_path.exists() else []
@@ -125,7 +254,14 @@ def persist(root, state, event, writes=None):
     )
     writes["state.md"] = store.dumps(state, "ShipLoop state")
     writes["history.md"] = store.dumps(history, "ShipLoop history")
-    store.transaction(root, writes)
+    if state.get("stage") in ("done", "halted"):
+        # The successful cursor and its evidence-derived presentation become
+        # durable together, or neither does. HTML never owns workflow state.
+        try:
+            writes = delivery.prepare_terminal_report(root, state, writes)
+        except delivery.DeliveryError as exc:
+            raise ProtocolError(str(exc)) from exc
+    store.transaction(root, writes, list(deletes or []))
 
 
 def rec_path(state):
@@ -190,6 +326,51 @@ def check_target(core, root, state):
     return repo_for(root, state), produces
 
 
+def require_outer_product_baseline(core, root, state):
+    """Outer closure may review merged work, not introduce unreviewed code.
+
+    Same-tree audit commits and the separately validated Review Coverage ledger
+    are allowed. Product fixes must become corrective DAG steps. No user file
+    is removed or implicitly staged by this check.
+    """
+    repo = Path(state["repo_root"])
+    rows = [core.load_receipt(root, sid) for sid in core.steps_by_id(root)]
+    need(rows and all(isinstance(row, dict) and row.get("status") == "complete" for row in rows),
+         "outer closure requires completed step receipts")
+    anchor = None
+    for row in rows:
+        merged = row.get("merged_sha")
+        need(isinstance(merged, str) and re.fullmatch(r"[0-9a-f]{40}|[0-9a-f]{64}", merged),
+             "outer closure has no verified step integration anchor")
+        if anchor is None or core.git_run(repo, "merge-base", "--is-ancestor", anchor, merged).returncode == 0:
+            anchor = merged
+        else:
+            need(core.git_run(repo, "merge-base", "--is-ancestor", merged, anchor).returncode == 0,
+                 "completed step integration anchors are not one ordered ancestry")
+    need(core.git_run(repo, "merge-base", "--is-ancestor", anchor, "HEAD").returncode == 0,
+         "outer checkout no longer descends from integrated steps")
+    paths = [".", ":(exclude).shiploop", ":(exclude).worktrees"]
+    paths.extend(f":(exclude){item}" for item in exclusions(root, repo))
+    need(not git(core, repo, "status", "--porcelain", "--untracked-files=all", "--", *paths),
+         "outer closure has unreviewed checkout changes; preserve unrelated work and route product fixes through replan")
+    changed = set(git(core, repo, "diff", "--name-only", anchor, "HEAD", "--", *paths).splitlines())
+    need(changed <= {"REVIEW_CONVERGE.md"},
+         "outer product changed after integrated steps; use corrective DAG work through replan")
+    if changed:
+        gaps = core.residual_gaps(state, "done")
+        need(not gaps, "outer ledger change is not certified: " + "; ".join(gaps))
+
+
+def validate_lifecycle_steps(dag, lifecycle):
+    """An absent or outer activity cannot also authorize a DAG side effect."""
+    for activity in ("preparation", "publish"):
+        present = any(step.get("activity") == activity for step in dag["steps"])
+        if lifecycle[activity] == "dag":
+            need(present, f"lifecycle requires a DAG {activity} step marked activity: {activity}")
+        else:
+            need(not present, f"lifecycle {activity}={lifecycle[activity]} forbids a DAG {activity} step")
+
+
 def verified(core, root, state, action_id=None):
     aid = action_id or state["action"]["id"]
     record = store.read_record(root / "checks" / f"{aid}.md")
@@ -207,6 +388,1621 @@ def verified(core, root, state, action_id=None):
         excluded=exclusions(root, repo),
     )
     return record
+
+
+def require_final_verify_convergence_bound(core, root, state, rec):
+    """Refuse late source revisions after the two audited trivial cycles."""
+    need(
+        core.improve_two_clean(rec),
+        "two consecutive verified trivial iterations are required before final verification",
+    )
+    cycles = rec.get("improve_cycles")
+    need(isinstance(cycles, list), "improvement cycle receipt is invalid")
+    primary = [
+        row
+        for row in cycles
+        if isinstance(row, dict) and isinstance(row.get("primary_commit"), str)
+    ]
+    need(primary, "final verification has no primary iteration commit")
+    latest = primary[-1]
+    worktree = Path(rec["worktree"])
+    commit_sha = latest["primary_commit"]
+    iteration_id = latest.get("id")
+    previous = latest.get("previous_sha")
+    need(
+        isinstance(iteration_id, str) and isinstance(previous, str),
+        "final verification primary iteration receipt is incomplete",
+    )
+    need(
+        git(core, worktree, "rev-parse", "HEAD") == commit_sha,
+        "new source revision appeared after the final trivial primary commit; run repair to restart Improve review",
+    )
+    evidence.validate_commit(worktree, commit_sha, previous, iteration_id)
+    status_paths = ["."] + [
+        f":(exclude){item}" for item in exclusions(root, worktree)
+    ]
+    need(
+        not git(
+            core,
+            worktree,
+            "status",
+            "--porcelain=v1",
+            "--untracked-files=all",
+            "--",
+            *status_paths,
+        ),
+        "staged or uncommitted source changes appeared after convergence; run repair to restart Improve review",
+    )
+    check_action = latest.get("check_action")
+    need(
+        isinstance(check_action, str) and check_action,
+        "final verification primary iteration lacks its successful check action",
+    )
+    # `verified` binds the live working fingerprint to the exact successful
+    # inner-cycle manifest.  The fresh final check below supplements it; it
+    # cannot substitute for it after a late source revision.
+    verified(core, root, state, check_action)
+    return latest
+
+
+CARRY_FORWARD_PROTOCOL_VERSION = 1
+_LEGACY_CARRY_FORWARD_INNER_STAGES = {
+    "review",
+    "improve-plan",
+    "improve-apply",
+    "verify",
+    "carry-forward",
+    "commit",
+    "final-verify",
+    "post-inner",
+    "merge",
+}
+
+
+def carry_forward_current(state):
+    return state.get("carry_forward_protocol_version") == CARRY_FORWARD_PROTOCOL_VERSION
+
+
+def initialize_knowledge(root, state, writes):
+    """Create the empty current ledger only as part of an existing transaction."""
+    need(
+        not carry_forward_current(state),
+        "carry-forward knowledge is already initialized",
+    )
+    for name in ("knowledge.md", "knowledge-history", "knowledge-reads"):
+        path = root / name
+        need(
+            not path.exists() and not path.is_symlink(),
+            "unbound carry-forward knowledge artifacts exist; restore the state binding instead of overwriting recovery data",
+        )
+    ledger = knowledge.empty_ledger()
+    body = knowledge.render(ledger)
+    state.update(
+        carry_forward_protocol_version=CARRY_FORWARD_PROTOCOL_VERSION,
+        knowledge_revision=ledger["revision"],
+        knowledge_sha256=knowledge.sha256_text(body),
+        knowledge_action_id="",
+    )
+    writes["knowledge.md"] = body
+    return ledger
+
+
+def bound_knowledge(root, state):
+    need(
+        carry_forward_current(state),
+        "carry-forward knowledge is not initialized; use repair to restart the active improvement safely",
+    )
+    return knowledge.read_bound(root, state)
+
+
+def knowledge_source(core, root, state, rec, iteration, action_id, *, stage):
+    worktree = Path(rec["worktree"])
+    return {
+        "action": action_id,
+        "iteration": iteration["id"],
+        "check_action": iteration["check_action"],
+        "worktree_fingerprint": evidence.fingerprint(
+            worktree, excluded=exclusions(root, worktree)
+        ),
+        "step": rec["id"],
+        "reported_by": "host",
+        "recorded_at": knowledge.recorded_at(),
+    }
+
+
+def write_knowledge_checkpoint(
+    root,
+    state,
+    writes,
+    *,
+    action_id,
+    kind,
+    previous,
+    current,
+    source,
+    result=None,
+):
+    """Bind a current ledger replacement and an immutable action checkpoint."""
+    relative = f"knowledge-history/{action_id}.md"
+    path = safe_run_path(root, relative)
+    need(
+        not path.exists() and not path.is_symlink(),
+        "knowledge checkpoint already exists; inspect recovery before retrying",
+    )
+    body = knowledge.render(current)
+    current_sha256 = knowledge.sha256_text(body)
+    previous_sha256 = state["knowledge_sha256"]
+    checkpoint = knowledge.checkpoint(
+        kind=kind,
+        action=action_id,
+        previous_ledger=previous,
+        next_ledger=current,
+        previous_sha256=previous_sha256,
+        next_sha256=current_sha256,
+        source=source,
+        result=result,
+    )
+    writes["knowledge.md"] = body
+    writes[relative] = store.dumps(checkpoint, "ShipLoop immutable knowledge checkpoint")
+    state.update(
+        knowledge_revision=current["revision"],
+        knowledge_sha256=current_sha256,
+        knowledge_action_id=action_id,
+    )
+    return relative
+
+
+def knowledge_context(root, state):
+    ledger = bound_knowledge(root, state)
+    scope = knowledge.scope_for(state.get("active_step"))
+    return ledger, scope, knowledge.context_text(ledger, state.get("active_step"))
+
+
+def knowledge_read_path(action_id):
+    return f"knowledge-reads/{action_id}.md"
+
+
+def record_knowledge_page(root, state, *, digest_value, scope, offset, end, total):
+    """Record bounded review-page reads without consuming the active action."""
+    if state.get("stage") not in ("review", "step-plan-review"):
+        return
+    action_id = state["action"]["id"]
+    relative = knowledge_read_path(action_id)
+    path = safe_run_path(root, relative)
+    expected = {
+        "action": action_id,
+        "knowledge_revision": state["knowledge_revision"],
+        "knowledge_sha256": state["knowledge_sha256"],
+        "digest": digest_value,
+        "scope": scope,
+        "total": total,
+    }
+    if path.exists():
+        need(not path.is_symlink(), "knowledge read acknowledgement cannot be a symlink")
+        record = store.read_record(path)
+        need(isinstance(record, dict), "knowledge read acknowledgement is invalid")
+        pages = record.pop("pages", None)
+        need(isinstance(pages, list) and record == expected, "knowledge context changed; reread it from offset 0")
+        for prior in pages:
+            need(
+                isinstance(prior, dict)
+                and set(prior) == {"offset", "end"}
+                and type(prior["offset"]) is int
+                and type(prior["end"]) is int
+                and 0 <= prior["offset"] <= prior["end"] <= total,
+                "knowledge read acknowledgement page is invalid",
+            )
+    else:
+        pages = []
+    page = {"offset": offset, "end": end}
+    if page not in pages:
+        pages.append(page)
+    pages.sort(key=lambda item: (item["offset"], item["end"]))
+    record = dict(expected, pages=pages)
+    store.transaction(
+        root,
+        {relative: store.dumps(record, "ShipLoop bounded knowledge read acknowledgement")},
+    )
+
+
+def pages_cover_total(pages, total):
+    if not isinstance(pages, list) or total < 0:
+        return False
+    normalized = []
+    for page in pages:
+        if not isinstance(page, dict):
+            return False
+        start, end = page.get("offset"), page.get("end")
+        if type(start) is not int or type(end) is not int or start < 0 or end < start:
+            return False
+        normalized.append((start, end))
+    covered = 0
+    for start, end in sorted(normalized):
+        if start > covered:
+            return False
+        covered = max(covered, end)
+    return covered >= total
+
+
+def require_knowledge_read(root, state, result):
+    """A review must acknowledge the complete current bounded knowledge view."""
+    ledger, scope, body = knowledge_context(root, state)
+    del ledger
+    digest_value = hashlib.sha256(body.encode()).hexdigest()
+    raw = result.get("knowledge_read")
+    if raw is None and state.get("objective_protocol_version") == 1:
+        # New thin hosts submit observations, not a copy of runtime state.
+        # The action-bound, fully covered page receipt below is the proof.
+        raw = {"revision": state["knowledge_revision"], "digest": digest_value, "scope": scope}
+    need(
+        isinstance(raw, dict)
+        and set(raw) == {"revision", "digest", "scope"}
+        and raw.get("revision") == state["knowledge_revision"]
+        and raw.get("digest") == digest_value
+        and raw.get("scope") == scope,
+        "review requires current knowledge_read revision, digest, and scoped view",
+    )
+    path = safe_run_path(root, knowledge_read_path(state["action"]["id"]))
+    need(path.is_file() and not path.is_symlink(), "review requires reading current knowledge pages")
+    record = store.read_record(path)
+    need(
+        isinstance(record, dict)
+        and record.get("action") == state["action"]["id"]
+        and record.get("knowledge_revision") == state["knowledge_revision"]
+        and record.get("knowledge_sha256") == state["knowledge_sha256"]
+        and record.get("digest") == digest_value
+        and record.get("scope") == scope
+        and record.get("total") == len(body)
+        and pages_cover_total(record.get("pages"), len(body)),
+        "review requires every bounded page of current knowledge",
+    )
+
+
+def carry_forward_provenance(core, root, state, rec, iteration, action_id):
+    return knowledge_source(
+        core, root, state, rec, iteration, action_id, stage="carry-forward"
+    )
+
+
+def validate_pending_obligation_map(core, root, old_dag, new_dag, obligations, value):
+    """Require each open cross-step obligation to be planned, not declared fixed."""
+    need(isinstance(value, list), "pending carry-forward obligations require a pending_obligation_map")
+    expected_ids = {row["id"] for row in obligations}
+    by_id = {}
+    for item in value:
+        need(
+            isinstance(item, dict) and set(item) == {"id", "steps"},
+            "pending_obligation_map entries require id and steps",
+        )
+        obligation_id = item["id"]
+        need(isinstance(obligation_id, str), "pending_obligation_map id is invalid")
+        steps = item["steps"]
+        need(
+            isinstance(steps, list)
+            and steps
+            and all(isinstance(step, str) for step in steps)
+            and len(steps) == len(set(steps)),
+            "pending_obligation_map steps must be a nonempty unique list",
+        )
+        need(obligation_id not in by_id, "pending_obligation_map must not duplicate IDs")
+        by_id[obligation_id] = steps
+    need(set(by_id) == expected_ids, "pending_obligation_map must retain every open obligation ID")
+
+    old_steps = {row["id"]: row for row in old_dag["steps"]}
+    new_steps = {row["id"]: row for row in new_dag["steps"]}
+    pending_before = {
+        step_id
+        for step_id in old_steps
+        if not (
+            (receipt := core.load_receipt(root, step_id))
+            and receipt.get("status") in ("complete", "running")
+        )
+    }
+
+    def depends_on(step_id, producers, seen=None):
+        """Whether a candidate consumer transitively consumes a producer."""
+        seen = set() if seen is None else seen
+        if step_id in seen:
+            return False
+        seen.add(step_id)
+        step = new_steps.get(step_id)
+        if not isinstance(step, dict):
+            return False
+        for dependency in step.get("inputs", []):
+            if not isinstance(dependency, dict):
+                continue
+            source = dependency.get("from")
+            if source in producers:
+                return True
+            if isinstance(source, str) and depends_on(source, producers, seen):
+                return True
+        return False
+
+    for obligation in obligations:
+        mapped = by_id[obligation["id"]]
+        for step_id in mapped:
+            need(step_id in new_steps, "pending_obligation_map names a missing pending step")
+            need(
+                step_id not in old_steps or step_id in pending_before,
+                "pending_obligation_map may only target pending steps",
+            )
+            need(
+                step_id not in old_steps or new_steps[step_id] != old_steps[step_id],
+                "pending_obligation_map targets a step that was not changed or added",
+            )
+        scoped = obligation.get("scope", [])
+        if obligation.get("research_required") is True:
+            need(
+                all(new_steps[step_id].get("activity") == "research" for step_id in mapped),
+                "research obligation must map only changed or added activity: research producers",
+            )
+            affected = (
+                pending_before
+                if scoped == ["all"]
+                else set(scoped).intersection(pending_before)
+            ) - set(mapped)
+            missing_consumers = sorted(
+                step_id
+                for step_id in affected
+                if not depends_on(step_id, set(mapped))
+            )
+            need(
+                not missing_consumers,
+                "research obligation affected consumers must transitively depend on a mapped research producer: "
+                + ", ".join(missing_consumers),
+            )
+            continue
+        if scoped == ["all"]:
+            if pending_before:
+                need(
+                    pending_before.issubset(set(mapped)),
+                    "pending_obligation_map must cover every pending step for all scope",
+                )
+        else:
+            affected = set(scoped).intersection(pending_before)
+            need(
+                affected.issubset(set(mapped)),
+                "pending_obligation_map must cover the affected pending scope",
+            )
+    return by_id
+
+
+def validate_carry_forward_dispositions(core, root, rec, result):
+    """Route scope-sensitive discoveries without treating completed work as pending."""
+    dag = core.load_dag(root)
+    pending = {
+        step["id"]
+        for step in dag["steps"]
+        if not (
+            (receipt := core.load_receipt(root, step["id"]))
+            and receipt.get("status") in ("complete", "running")
+        )
+    }
+    active_step = rec["id"]
+    for discovery in result["discoveries"]:
+        scope = discovery["scope"]
+        disposition = discovery["disposition"]
+        if disposition == "pending-replan" and scope != ["all"]:
+            need(
+                set(scope).issubset(pending),
+                "pending-replan scope must name current pending steps or all",
+            )
+        if disposition == "current-step-repair":
+            need(
+                scope == [active_step],
+                "current-step-repair scope must be exactly the active step",
+            )
+
+
+def planning_kind(state):
+    kind = planning.kind_for_stage(state.get("stage", ""))
+    need(kind is not None, "active action is not a planning-convergence stage")
+    return kind
+
+
+def planning_receipt(root, state):
+    kind = planning_kind(state)
+    path = safe_run_path(root, planning.receipt_name(kind))
+    need(path.is_file() and not path.is_symlink(), f"missing {kind} planning receipt")
+    receipt = planning.assert_receipt(root, kind, store.read_record(path))
+    if kind == "research":
+        need(
+            receipt.get("research_state") == research.read_state(root),
+            "research evidence does not match the current planning receipt",
+        )
+    return kind, receipt
+
+
+def planning_product_fingerprint(root, state):
+    repo = Path(state["repo_root"])
+    return evidence.fingerprint(repo, excluded=exclusions(root, repo))
+
+
+def planning_expected_head(state, receipt):
+    stage = state["stage"]
+    if stage.endswith("-finalize"):
+        return text_field(receipt, "audit_head")
+    iteration = receipt["current_iteration"]
+    return text_field(iteration, "git_baseline")
+
+
+def planning_assert_bound(core, root, state, receipt):
+    """Refuse product/candidate/ledger drift at every planning gate."""
+    expected_head = planning_expected_head(state, receipt)
+    repo = Path(state["repo_root"])
+    need(
+        git(core, repo, "rev-parse", "HEAD") == expected_head,
+        "planning Git baseline changed; restore it or use an explicit supported correction",
+    )
+    iteration = receipt["current_iteration"]
+    need(
+        planning_product_fingerprint(root, state)
+        == text_field(iteration, "product_fingerprint"),
+        "product tree changed during planning; restore it before continuing",
+    )
+    need(
+        iteration.get("candidate_sha256") == receipt["candidate_sha256"]
+        and iteration.get("ledger_sha256") == receipt["ledger_sha256"]
+        and iteration.get("identity_sha256") == receipt["identity_sha256"],
+        "planning iteration candidate or ledger binding is stale",
+    )
+    if receipt.get("kind") in ("behavior", "spec"):
+        need(
+            receipt.get("research_binding") == research_current_binding(core, root, state),
+            "planning candidate is not bound to the current frozen research evidence",
+        )
+    return expected_head
+
+
+def planning_validate_lifecycle(lifecycle):
+    need(isinstance(lifecycle, dict), "spec requires lifecycle object")
+    need(
+        isinstance(lifecycle.get("acceptance"), list)
+        and lifecycle["acceptance"]
+        and all(isinstance(x, str) and x.strip() for x in lifecycle["acceptance"]),
+        "lifecycle needs acceptance criteria",
+    )
+    need(
+        lifecycle.get("preparation") in ("none", "dag", "outer-before"),
+        "preparation must be none, dag, or outer-before",
+    )
+    need(
+        lifecycle.get("publish") in ("none", "dag", "outer-loop"),
+        "publish must be none, dag, or outer-loop",
+    )
+    need(type(lifecycle.get("quality")) is bool, "quality must be a boolean")
+    text_field(lifecycle, "reason")
+    return lifecycle
+
+
+def planning_validate_spec_draft(core, body, lifecycle):
+    """Validate draft bytes without publishing either frozen artifact."""
+    lifecycle = planning_validate_lifecycle(lifecycle)
+    with tempfile.TemporaryDirectory(prefix="shiploop-spec-draft-") as tmp:
+        stage = Path(tmp)
+        store.atomic_write_text(stage / "spec.md", body)
+        spec, gaps = core.load_spec(stage)
+        need(
+            not gaps and spec["checkable"],
+            "; ".join(gaps) or "spec must be checkable",
+        )
+    return lifecycle
+
+
+def planning_check_record(core, root, state, receipt, action_id, *, allow_audit_head=False):
+    """Revalidate fresh planner evidence against the current candidate/ledger."""
+    kind = planning_kind(state)
+    record = store.read_record(root / "checks" / f"{action_id}.md")
+    need(record.get("planning_kind") == kind, "planning check kind does not match")
+    need(
+        record.get("planning_iteration") == receipt["current_iteration"]["id"],
+        "planning check iteration does not match",
+    )
+    for key in ("candidate_sha256", "ledger_sha256", "identity_sha256"):
+        need(
+            record.get(key) == receipt.get(key),
+            f"planning check {key} is stale",
+        )
+    if allow_audit_head:
+        iteration = receipt["current_iteration"]
+        expected_head = text_field(iteration, "git_baseline")
+        need(
+            iteration.get("candidate_sha256") == receipt["candidate_sha256"]
+            and iteration.get("ledger_sha256") == receipt["ledger_sha256"]
+            and iteration.get("identity_sha256") == receipt["identity_sha256"],
+            "planning iteration candidate or ledger binding is stale",
+        )
+    else:
+        expected_head = planning_assert_bound(core, root, state, receipt)
+    need(
+        record.get("git_baseline") == expected_head,
+        "planning check Git baseline is stale",
+    )
+    need(
+        record.get("product_fingerprint")
+        == receipt["current_iteration"]["product_fingerprint"],
+        "planning check product fingerprint is stale",
+    )
+    manifest = record.get("manifest")
+    evidence.validate_manifest(manifest, planning.acceptance(kind))
+    need(
+        any(row["kind"] == "lint" for row in manifest["checks"]),
+        "planning verification requires a concrete lint check",
+    )
+    repo = Path(state["repo_root"])
+    evidence.validate_results(
+        record.get("results"),
+        repo,
+        manifest,
+        action_id,
+        excluded=exclusions(root, repo),
+    )
+    need(record.get("planning_passed") is True, "planning check did not keep artifacts unchanged")
+    return record
+
+
+def planning_iteration_path(kind, receipt):
+    return planning.iteration_name(kind, receipt["current_iteration"]["id"])
+
+
+def planning_validate_certificate(core, root, state, kind, *, require_current_identity=False):
+    """Validate historical convergence proof without requiring its old tree now."""
+    _kind, receipt = (
+        kind,
+        planning.assert_receipt(
+            root,
+            kind,
+            store.read_record(root / planning.receipt_name(kind)),
+        ),
+    )
+    del _kind
+    certificate_path = root / f"planning/{kind}-certificate.md"
+    need(
+        certificate_path.is_file() and not certificate_path.is_symlink(),
+        f"missing frozen {kind} planning certificate",
+    )
+    certificate = store.read_record(certificate_path)
+    need(certificate.get("kind") == kind, f"{kind} planning certificate kind mismatch")
+    for key in (
+        "candidate_sha256",
+        "candidate_components",
+        "ledger_sha256",
+        "identity_sha256",
+    ):
+        need(
+            certificate.get(key) == receipt.get(key),
+            f"{kind} planning certificate {key} mismatch",
+        )
+    need(
+        certificate.get("streak") == receipt.get("streak")
+        and isinstance(receipt.get("streak"), int)
+        and receipt["streak"] >= 2,
+        f"{kind} planning certificate lacks two trivial passes",
+    )
+    need(
+        planning.all_clear(receipt),
+        f"{kind} planning certificate has unresolved findings",
+    )
+    if kind == "research":
+        text_field(certificate, "as_of")
+        need(
+            receipt.get("research_state") == research.read_state(root),
+            "research evidence does not match the frozen planning receipt",
+        )
+        need(
+            not research.unresolved_ids(receipt.get("research_state", {})),
+            "research planning certificate has open or blocked questions",
+        )
+    else:
+        need(
+            certificate.get("research_binding")
+            == research_current_binding(core, root, state),
+            f"{kind} planning certificate is not bound to the current frozen research evidence",
+        )
+    final_action = text_field(certificate, "final_check_action")
+    audit_head = text_field(certificate, "audit_head")
+    need(
+        audit_head == receipt.get("audit_head"),
+        f"{kind} planning certificate audit head mismatch",
+    )
+    record = store.read_record(root / "checks" / f"{final_action}.md")
+    need(
+        record.get("planning_kind") == kind
+        and record.get("planning_passed") is True
+        and record.get("planning_iteration") == receipt["current_iteration"]["id"],
+        f"{kind} planning final check record mismatch",
+    )
+    for key in ("candidate_sha256", "ledger_sha256", "identity_sha256"):
+        need(
+            record.get(key) == receipt.get(key),
+            f"{kind} planning final check {key} mismatch",
+        )
+    need(
+        record.get("git_baseline") == audit_head,
+        f"{kind} planning final check was not anchored to its audit head",
+    )
+    manifest = record.get("manifest")
+    evidence.validate_manifest(manifest, planning.acceptance(kind))
+    need(
+        any(row["kind"] == "lint" for row in manifest["checks"]),
+        f"{kind} planning final check lacks a lint check",
+    )
+    results = record.get("results")
+    need(
+        isinstance(results, dict)
+        and results.get("all_passed") is True
+        and results.get("content_changed") is False,
+        f"{kind} planning final check is not successful immutable evidence",
+    )
+    repo = Path(state["repo_root"])
+    need(
+        git(core, repo, "rev-parse", audit_head) == audit_head,
+        f"{kind} planning audit head no longer resolves",
+    )
+    audit_baseline = text_field(receipt, "audit_baseline")
+    need(
+        git(core, repo, "rev-list", "--parents", "-n", "1", audit_head).split()
+        == [audit_head, audit_baseline],
+        f"{kind} planning audit must have exactly one baseline parent",
+    )
+    need(
+        git(core, repo, "rev-parse", f"{audit_head}^")
+        == audit_baseline,
+        f"{kind} planning audit parent mismatch",
+    )
+    audit_tree = git(core, repo, "rev-parse", f"{audit_head}^{{tree}}")
+    need(
+        audit_tree == text_field(receipt, "audit_tree")
+        and audit_tree == git(core, repo, "rev-parse", f"{audit_baseline}^{{tree}}"),
+        f"{kind} planning audit tree mismatch",
+    )
+    if require_current_identity:
+        need(
+            git(core, repo, "rev-parse", "HEAD") == audit_head,
+            f"{kind} planning baseline changed after finalization; use revisit before continuing",
+        )
+        need(
+            planning_product_fingerprint(root, state)
+            == record.get("product_fingerprint"),
+            f"{kind} product tree changed after finalization; use revisit before continuing",
+        )
+    return receipt
+
+
+STEP_PLANNING_PROTOCOL_VERSION = step_planning.VERSION
+STEP_PLAN_STAGES = {
+    "step-plan",
+    "step-plan-review",
+    "step-plan-disposition",
+    "step-plan-revise",
+    "step-plan-verify",
+    "step-plan-commit",
+    "step-plan-finalize",
+}
+_STEP_PLAN_LEGACY_SAFE_STAGES = {"schedule", "implement", "improve-plan"}
+
+
+def step_planning_current(state):
+    return state.get("step_planning_protocol_version") == STEP_PLANNING_PROTOCOL_VERSION
+
+
+def is_step_plan_stage(stage):
+    return stage in STEP_PLAN_STAGES
+
+
+def step_plan_enclosing_review(rec, *, route):
+    """Project only the parent review facts an Improve plan must cover."""
+    if route != "improve":
+        return {"findings": [], "test_review": "", "learnings": "", "research_assessment": None}
+    iteration = rec.get("iteration")
+    need(isinstance(iteration, dict), "Improve step-plan lacks an enclosing iteration")
+    review = iteration.get("review")
+    need(isinstance(review, dict), "Improve step-plan lacks the enclosing product review")
+    findings = review.get("findings")
+    need(isinstance(findings, list), "Improve step-plan enclosing findings are invalid")
+    compact = []
+    for index, finding in enumerate(findings, start=1):
+        need(isinstance(finding, dict), "Improve step-plan enclosing finding is invalid")
+        summary = text_field(finding, "summary")
+        severity = finding.get("severity")
+        need(severity in ("material", "trivial"), "Improve step-plan enclosing finding severity is invalid")
+        stable = "PARENT-" + step_planning.sha256_value(
+            {"index": index, "severity": severity, "summary": summary}
+        )[:16]
+        compact.append({"id": stable, "severity": severity, "summary": summary})
+    return {
+        "findings": compact,
+        "test_review": text_field(review, "test_review"),
+        "learnings": text_field(review, "learnings"),
+        "research_assessment": review.get("research_assessment"),
+    }
+
+
+def step_plan_step_context(core, root, state, rec, *, route="initial"):
+    """Return only the active definition and direct DAG neighbors for cold use."""
+    steps = core.steps_by_id(root)
+    step = steps.get(rec["id"])
+    need(isinstance(step, dict), "active step is absent from the frozen dependency plan")
+    suppliers = []
+    for row in step.get("inputs", []):
+        if not isinstance(row, dict):
+            continue
+        source = row.get("from")
+        if isinstance(source, str) and isinstance(steps.get(source), dict):
+            suppliers.append(steps[source])
+    consumers = []
+    for candidate in steps.values():
+        if not isinstance(candidate, dict) or candidate.get("id") == rec["id"]:
+            continue
+        for row in candidate.get("inputs", []):
+            if isinstance(row, dict) and row.get("from") == rec["id"]:
+                consumers.append(candidate)
+                break
+    return {
+        "selected_step": step,
+        "direct_suppliers": sorted(suppliers, key=lambda item: item.get("id", "")),
+        "direct_consumers": sorted(consumers, key=lambda item: item.get("id", "")),
+        "artifact_digests": {
+            key: state.get(key, "")
+            for key in (
+                "environment_sha256",
+                "behavior_sha256",
+                "spec_sha256",
+                "plan_sha256",
+                "knowledge_sha256",
+            )
+        },
+        "enclosing_review": step_plan_enclosing_review(rec, route=route),
+    }
+
+
+def step_plan_require_parent_coverage(rec, body):
+    """An Improve draft cannot silently drop any enclosing review finding."""
+    enclosing = step_plan_enclosing_review(rec, route="improve")
+    missing = [
+        finding["id"] for finding in enclosing["findings"] if finding["id"] not in body
+    ]
+    need(
+        not missing,
+        "Improve step-plan candidate must explicitly cover every parent finding ID: "
+        + ", ".join(missing),
+    )
+
+
+def step_plan_context_identity(core, root, state, rec, *, route="initial"):
+    """Bind a plan pass to the exact code state and frozen inputs it reviewed."""
+    worktree = Path(rec["worktree"])
+    need(worktree.is_dir() and not worktree.is_symlink(), "active worktree is unavailable")
+    step_context = step_plan_step_context(core, root, state, rec, route=route)
+
+    def frozen(key, name):
+        expected = state.get(key)
+        need(
+            isinstance(expected, str) and re.fullmatch(r"[0-9a-f]{64}", expected),
+            f"{name} is not frozen for step planning",
+        )
+        path = safe_run_path(root, name)
+        need(path.is_file() and not path.is_symlink(), f"missing frozen {name}")
+        actual = hashlib.sha256(path.read_bytes()).hexdigest()
+        need(actual == expected, f"{name} hash drift; restore it before step planning")
+        return expected
+
+    bound_knowledge(root, state)
+    status = git(core, worktree, "status", "--porcelain=v1", "--untracked-files=all")
+    return {
+        "step_sha256": step_planning.sha256_value(step_context["selected_step"]),
+        "dependency_sha256": step_planning.sha256_value(
+            {
+                "suppliers": step_context["direct_suppliers"],
+                "consumers": step_context["direct_consumers"],
+            }
+        ),
+        "enclosing_review_sha256": step_planning.sha256_value(
+            step_context["enclosing_review"]
+        ),
+        "worktree": str(worktree),
+        "git_baseline": git(core, worktree, "rev-parse", "HEAD"),
+        "committed_tree_sha256": hashlib.sha256(
+            git(core, worktree, "rev-parse", "HEAD^{tree}").encode("utf-8")
+        ).hexdigest(),
+        "worktree_fingerprint": evidence.fingerprint(
+            worktree, excluded=exclusions(root, worktree)
+        ),
+        "status_sha256": hashlib.sha256(status.encode("utf-8")).hexdigest(),
+        "spec_sha256": frozen("spec_sha256", "spec.md"),
+        "environment_sha256": frozen("environment_sha256", "environment.md"),
+        "behavior_sha256": frozen("behavior_sha256", "behavior.md"),
+        "plan_sha256": frozen("plan_sha256", "backchain/plan.md"),
+        "knowledge_sha256": state["knowledge_sha256"],
+    }
+
+
+def step_plan_receipt(root, rec, loop=None):
+    binding = rec.get("step_plan")
+    selected = loop
+    if selected is None:
+        need(isinstance(binding, dict), "active step has no bound step-plan loop")
+        selected = binding.get("loop_id")
+    selected = step_planning._id(selected, "step-plan loop ID")
+    path = safe_run_path(root, step_planning.receipt_name(selected))
+    need(path.is_file() and not path.is_symlink(), "missing step-plan receipt")
+    try:
+        raw_receipt = store.read_record(path)
+    except store.StorageError as exc:
+        raise ProtocolError(f"step-plan receipt is unreadable: {exc}") from exc
+    try:
+        receipt = step_planning.assert_receipt(root, raw_receipt, loop=selected)
+    except (step_planning.StepPlanningError, store.StorageError) as exc:
+        raise ProtocolError(f"step-plan receipt is invalid: {exc}") from exc
+    need(receipt.get("step_id") == rec["id"], "step-plan receipt targets another step")
+    if isinstance(binding, dict):
+        need(binding.get("loop_id") == selected, "step receipt step-plan loop mismatch")
+        need(binding.get("receipt") == step_planning.receipt_name(selected), "step receipt step-plan path mismatch")
+    return selected, receipt
+
+
+def step_plan_certificate(root, loop, receipt):
+    """Read the certified Markdown proof with a step-plan-specific error."""
+    path = safe_run_path(root, step_planning.certificate_name(loop))
+    need(path.is_file() and not path.is_symlink(), "missing step-plan certificate")
+    try:
+        raw_certificate = store.read_record(path)
+    except store.StorageError as exc:
+        raise ProtocolError(f"step-plan certificate is unreadable: {exc}") from exc
+    try:
+        return step_planning.assert_certificate(raw_certificate, receipt)
+    except step_planning.StepPlanningError as exc:
+        raise ProtocolError(f"step-plan certificate is invalid: {exc}") from exc
+
+
+def step_plan_assert_bound(core, root, state, rec, receipt):
+    """Reject source, frozen-input, candidate, ledger, or worktree drift."""
+    current = step_plan_context_identity(
+        core, root, state, rec, route=receipt["route"]
+    )
+    expected = step_planning.validate_context(receipt.get("context"))
+    need(
+        current == expected,
+        "step-plan context changed; use repair to archive the pass and rebind it",
+    )
+    active_pass = receipt["current_pass"]
+    for key in (
+        "git_baseline",
+        "worktree_fingerprint",
+        "status_sha256",
+        "candidate_sha256",
+        "ledger_sha256",
+        "context_sha256",
+        "identity_sha256",
+    ):
+        need(
+            active_pass.get(key) == receipt.get(key)
+            if key not in ("git_baseline", "worktree_fingerprint", "status_sha256")
+            else active_pass.get(key) == expected[key],
+            f"step-plan current pass {key} is stale",
+        )
+    return current
+
+
+def step_plan_check_record(
+    core, root, state, rec, receipt, action_id, *, current_worktree=True
+):
+    """Validate fresh lint/test evidence bound to the exact step-plan pass."""
+    record = store.read_record(root / "checks" / f"{action_id}.md")
+    current = receipt["current_pass"]
+    expected = {
+        "step_plan_loop": receipt["loop_id"],
+        "step_plan_pass": current["id"],
+        "candidate_sha256": receipt["candidate_sha256"],
+        "ledger_sha256": receipt["ledger_sha256"],
+        "context_sha256": receipt["context_sha256"],
+        "identity_sha256": receipt["identity_sha256"],
+        "git_baseline": current["git_baseline"],
+        "worktree_fingerprint": current["worktree_fingerprint"],
+        "status_sha256": current["status_sha256"],
+    }
+    for key, value in expected.items():
+        need(record.get(key) == value, f"step-plan check {key} is stale")
+    manifest = record.get("manifest")
+    evidence.validate_manifest(manifest, ["step plan"])
+    need(
+        any(row["kind"] == "lint" for row in manifest["checks"]),
+        "step-plan verification requires a concrete lint check",
+    )
+    results = record.get("results")
+    if current_worktree:
+        worktree = Path(rec["worktree"])
+        evidence.validate_results(
+            results,
+            worktree,
+            manifest,
+            action_id,
+            excluded=exclusions(root, worktree),
+        )
+    else:
+        # After a certified handoff, product edits are expected.  The frozen
+        # certificate pins the exact record bytes; retain a small structural
+        # guard here without falsely asking historical check fingerprints to
+        # equal the newly edited worktree.
+        need(
+            isinstance(results, dict)
+            and results.get("action") == action_id
+            and results.get("action_id") == action_id
+            and results.get("all_passed") is True
+            and results.get("content_changed") is False,
+            "historic step-plan final check record is invalid",
+        )
+    need(record.get("planning_passed") is True, "step-plan checks did not preserve the bound context")
+    return record
+
+
+def step_plan_current_summary(receipt):
+    """A cold packet projection: never spill prior review/revise bodies."""
+    return {
+        "loop_id": receipt["loop_id"],
+        "route": receipt["route"],
+        "return_stage": receipt["return_stage"],
+        "candidate_sha256": receipt["candidate_sha256"],
+        "ledger_sha256": receipt["ledger_sha256"],
+        "context_sha256": receipt["context_sha256"],
+        "epoch": receipt["epoch"],
+        "current_pass": receipt["current_pass"],
+        "open_findings": [
+            row
+            for row in step_planning.normal_findings(receipt["findings"])
+            if row["status"] == "open"
+        ],
+        "completed_passes": [
+            {
+                key: row.get(key)
+                for key in ("id", "epoch", "number", "outcome", "commit", "verified")
+            }
+            for row in receipt["completed_passes"]
+        ],
+    }
+
+
+def step_plan_start(core, root, state, rec, *, route, body, return_stage, writes):
+    """Create exactly one candidate/receipt pair for the initial or Improve gate."""
+    if route == "initial":
+        loop = step_planning.loop_id(state["run_id"], rec["id"], route)
+    else:
+        step_plan_require_parent_coverage(rec, body)
+        iteration = rec.get("iteration", {})
+        loop = step_planning.loop_id(
+            state["run_id"], rec["id"], route, iteration.get("id")
+        )
+    receipt_path = step_planning.receipt_name(loop)
+    candidate_path = step_planning.candidate_name(loop)
+    for relative in (receipt_path, candidate_path, step_planning.certificate_name(loop)):
+        path = safe_run_path(root, relative)
+        need(
+            not path.exists() and not path.is_symlink(),
+            "step-plan loop already exists; inspect its receipt instead of overwriting it",
+        )
+    context = step_plan_context_identity(core, root, state, rec, route=route)
+    receipt = step_planning.new_receipt(
+        loop=loop,
+        step_id=rec["id"],
+        route=route,
+        return_stage=return_stage,
+        body=body,
+        context=context,
+    )
+    rec["step_plan"] = {
+        "loop_id": loop,
+        "route": route,
+        "return_stage": return_stage,
+        "receipt": receipt_path,
+        "candidate": candidate_path,
+        "status": "active",
+    }
+    rec.setdefault("step_plan_history", []).append(
+        {
+            "loop_id": loop,
+            "route": route,
+            "return_stage": return_stage,
+            "receipt": receipt_path,
+            "status": "active",
+        }
+    )
+    writes[candidate_path] = body
+    writes[receipt_path] = store.dumps(receipt, "ShipLoop step-plan receipt")
+    action(state, "implement", "step-plan-review")
+    return loop, receipt
+
+
+def step_plan_start_next_pass(core, root, state, rec, receipt):
+    step_planning.start_next_pass(
+        receipt,
+        step_plan_context_identity(core, root, state, rec, route=receipt["route"]),
+    )
+
+
+def step_plan_until(receipt):
+    try:
+        return until.decide(
+            step_planning.current_epoch_passes(receipt),
+            open_findings=sorted(step_planning.open_ids(receipt)),
+        )
+    except until.UntilError as exc:
+        raise ProtocolError(str(exc)) from exc
+
+
+def step_plan_validate_handoff(core, root, state, rec, loop):
+    """The plan is reusable only at the exact post-finalize action boundary."""
+    selected, receipt = step_plan_receipt(root, rec, loop)
+    certificate = step_plan_certificate(root, selected, receipt)
+    binding = rec.get("step_plan")
+    need(isinstance(binding, dict), "step-plan handoff binding is missing")
+    handoff = binding.get("handoff")
+    need(isinstance(handoff, dict), "step-plan has not reached its handoff")
+    need(
+        handoff.get("loop_id") == selected
+        and handoff.get("certificate") == step_planning.certificate_name(selected)
+        and handoff.get("stage") == receipt["return_stage"]
+        and handoff.get("action") == state["action"]["id"]
+        and state["stage"] == receipt["return_stage"],
+        "step-plan certificate is not valid at this handoff action",
+    )
+    current = step_plan_context_identity(
+        core, root, state, rec, route=receipt["route"]
+    )
+    need(
+        current == receipt["context"],
+        "step-plan handoff worktree or frozen context drifted before product work began",
+    )
+    final_record_path = safe_run_path(
+        root, f"checks/{certificate['final_check_action']}.md"
+    )
+    need(
+        final_record_path.is_file()
+        and not final_record_path.is_symlink()
+        and hashlib.sha256(final_record_path.read_bytes()).hexdigest()
+        == certificate["final_check_sha256"],
+        "step-plan final check record changed after certification",
+    )
+    record = step_plan_check_record(
+        core, root, state, rec, receipt, certificate["final_check_action"]
+    )
+    need(record.get("planning_passed") is True, "step-plan final check is not valid")
+    return receipt, certificate
+
+
+def step_plan_validate_execution_proof(core, root, state, rec):
+    """Validate durable certification while allowing the authorized product edit.
+
+    This is intentionally weaker than ``plan-status``: a host may have edited
+    the worktree during implement/improve-apply, so its fingerprint cannot
+    still equal the handoff fingerprint.  The candidate, ledger, certificate,
+    final check, action identity, and audit history must nevertheless remain
+    intact.  The authorized implementation may create one or more ordinary
+    product commits after the audit-only handoff commit, so it need only retain
+    that commit as an ancestor rather than remain at its exact HEAD.
+    """
+    binding = rec.get("step_plan")
+    need(isinstance(binding, dict), "active step lacks a certified step-plan binding")
+    loop = binding.get("loop_id")
+    selected, receipt = step_plan_receipt(root, rec, loop)
+    certificate = step_plan_certificate(root, selected, receipt)
+    handoff = binding.get("handoff")
+    need(
+        isinstance(handoff, dict)
+        and handoff.get("loop_id") == selected
+        and handoff.get("certificate") == step_planning.certificate_name(selected)
+        and handoff.get("stage") == state["stage"]
+        and handoff.get("action") == state["action"]["id"],
+        "step-plan certificate is not bound to this execution action",
+    )
+    final_record_path = safe_run_path(
+        root, f"checks/{certificate['final_check_action']}.md"
+    )
+    need(
+        final_record_path.is_file()
+        and not final_record_path.is_symlink()
+        and hashlib.sha256(final_record_path.read_bytes()).hexdigest()
+        == certificate["final_check_sha256"],
+        "step-plan final check record changed after certification",
+    )
+    step_plan_check_record(
+        core,
+        root,
+        state,
+        rec,
+        receipt,
+        certificate["final_check_action"],
+        current_worktree=False,
+    )
+    worktree = Path(rec["worktree"])
+    audit_rows = step_planning.current_epoch_passes(receipt)
+    for row in audit_rows:
+        commit = row["commit"]
+        need(
+            core.git_run(worktree, "cat-file", "-e", f"{commit}^{{commit}}").returncode
+            == 0,
+            "step-plan completed audit commit is no longer available",
+        )
+    audit_head = certificate["audit_head"]
+    need(
+        core.git_run(worktree, "cat-file", "-e", f"{audit_head}^{{commit}}").returncode
+        == 0,
+        "step-plan audit handoff commit is no longer available",
+    )
+    need(
+        core.git_run(
+            worktree, "merge-base", "--is-ancestor", audit_head, "HEAD"
+        ).returncode
+        == 0,
+        "step-plan audit handoff is no longer an ancestor of the implementation HEAD",
+    )
+    return receipt, certificate
+
+
+def step_plan_repair(core, root, state, aid, reason):
+    """Archive an interrupted pass, retain its ledger, and bind a new epoch."""
+    need(aid == state["action"]["id"], "stale action ID")
+    need(is_step_plan_stage(state["stage"]), "step-plan repair requires an active step-plan loop")
+    need(bool(reason.strip()), "step-plan repair needs a reason")
+    rec = active(root, state)
+    loop, receipt = step_plan_receipt(root, rec)
+    # Candidate/ledger drift must be restored; this repair is for an explicit
+    # worktree/environment rebind, not for silently accepting new plan bytes.
+    step_planning.assert_receipt(root, receipt, loop=loop)
+    current = dict(receipt["current_pass"])
+    if state["stage"] == "step-plan-commit":
+        head = git(core, Path(rec["worktree"]), "rev-parse", "HEAD")
+        need(
+            head == current["git_baseline"],
+            "unrecorded step-plan audit commit is ambiguous; restore the pass baseline before repair",
+        )
+    current.update(status="abandoned", reason=reason, outcome="material")
+    archive = step_planning.abandoned_name(loop, current["id"])
+    need(
+        not safe_run_path(root, archive).exists(),
+        "step-plan abandoned pass archive already exists",
+    )
+    receipt["abandoned_passes"].append(current)
+    step_planning.rebind_after_repair(
+        receipt,
+        step_plan_context_identity(core, root, state, rec, route=receipt["route"]),
+    )
+    rec["step_plan"]["status"] = "active"
+    blockers = step_planning.scope_or_behavior_findings(receipt)
+    if blockers:
+        action(state, "implement", "step-plan-disposition")
+        state["paused"] = (
+            "step-plan scope or behavior finding requires explicit broader-plan disposition: "
+            + ", ".join(blockers)
+        )
+    else:
+        action(state, "implement", "step-plan-review")
+        state.pop("paused", None)
+    state["revision"] += 1
+    persist(
+        root,
+        state,
+        "step-plan-repair",
+        {
+            step_planning.receipt_name(loop): store.dumps(
+                receipt, "ShipLoop step-plan receipt"
+            ),
+            archive: store.dumps(current, "ShipLoop abandoned step-plan pass"),
+            rec_path(state): store.dumps(rec),
+        },
+    )
+
+
+def step_planning_legacy_gate(core, root, state, args):
+    """Route only safe legacy boundaries into the new mandatory plan gate.
+
+    A pre-gate run is never silently treated as certified.  The initial
+    implementation and Improve-plan cursors can be restarted without deleting
+    product work; later cursors require the already public explicit repair
+    path, which records an interrupted iteration before returning to review.
+    """
+    if step_planning_current(state):
+        return
+    stage = state["stage"]
+    # Inspection and terminal controls must not manufacture an upgrade cursor
+    # or reroute a legacy action just by looking at it.
+    if args.command in {"status", "context", "plan-status", "pause", "halt"}:
+        return
+    if stage in ("done", "halted"):
+        return
+    if not state.get("active_step"):
+        # Upstream/outer lifecycle actions have no step work to bypass.  Mark
+        # the protocol for their eventual allocation while preserving the
+        # existing cursor and without backfilling a certificate.
+        writes = {}
+        if not carry_forward_current(state):
+            initialize_knowledge(root, state, writes)
+        state["step_planning_protocol_version"] = STEP_PLANNING_PROTOCOL_VERSION
+        state["revision"] += 1
+        persist(root, state, "step-plan-legacy-enable-upstream", writes)
+        return
+    if stage not in _STEP_PLAN_LEGACY_SAFE_STAGES and args.command != "repair":
+        raise ProtocolError(
+            "step-plan protocol is required for this legacy active action; use repair to record the interruption and restart review"
+        )
+    writes = {}
+    if not carry_forward_current(state):
+        initialize_knowledge(root, state, writes)
+    state["step_planning_protocol_version"] = STEP_PLANNING_PROTOCOL_VERSION
+    state["revision"] += 1
+    if stage == "implement" and state.get("active_step"):
+        active(root, state)
+        action(state, "implement", "step-plan")
+        event = "step-plan-legacy-route-initial"
+    elif stage == "improve-plan" and state.get("active_step"):
+        active(root, state)
+        event = "step-plan-legacy-route-improve"
+    elif stage == "schedule":
+        event = "step-plan-legacy-enable"
+    else:
+        # repair continues through its existing explicit checkpoint behavior;
+        # the next Improve draft will be forced through the new nested loop.
+        event = "step-plan-legacy-repair-enable"
+    persist(root, state, event, writes)
+
+
+def objective_legacy_gate(core, root, state, args):
+    """Fail closed rather than letting an old run inherit objective success.
+
+    Before any active step exists, restarting from approach is safe: no generic
+    certificate is invented and the old durable material remains available for
+    review.  Once execution or outer closure has begun, the old run remains
+    inspectable but must be halted or replaced with a fresh run; this gate
+    never re-labels historical work as objective convergence evidence.
+    """
+    if objective_current(state):
+        return
+    if args.command in {"status", "context", "plan-status", "pause", "halt", "report"}:
+        return
+    stage = state["stage"]
+    if stage in ("done", "halted"):
+        return
+    if not state.get("active_step") and stage in {
+        "preflight",
+        "approach",
+        "survey",
+        "research",
+        "research-review",
+        "research-plan",
+        "research-apply",
+        "research-verify",
+        "research-commit",
+        "research-finalize",
+        "behavior",
+        "behavior-review",
+        "behavior-plan",
+        "behavior-apply",
+        "behavior-verify",
+        "behavior-commit",
+        "behavior-finalize",
+        "spec",
+        "spec-review",
+        "spec-plan",
+        "spec-apply",
+        "spec-verify",
+        "spec-commit",
+        "spec-finalize",
+        "sequence",
+        "prepare",
+        "schedule",
+    }:
+        state["objective_protocol_version"] = OBJECTIVE_PROTOCOL_VERSION
+        state["objective_epoch"] = max(int(state.get("objective_epoch", 0)), 0)
+        # This is only a protocol marker for the restarted, pre-execution
+        # path.  It creates no Ready/Done proof and forces any new sequence to
+        # establish current contracts instead of inheriting historical ones.
+        state["step_contract_protocol_version"] = 1
+        state.pop("objective", None)
+        state["revision"] += 1
+        if stage not in ("preflight", "approach"):
+            action(state, "intake", "approach")
+        persist(root, state, "objective-legacy-restart-approach")
+        return
+    raise ProtocolError(
+        "generic objective convergence proof is absent for this legacy action; do not inherit success. Inspect or halt this run, then start a fresh run."
+    )
+
+
+def research_current_binding(core, root, state, *, require_current_identity=False):
+    """Return and validate the frozen research proof required by later gates."""
+    candidate_sha256 = state.get("research_sha256")
+    certificate_sha256 = state.get("research_certificate_sha256")
+    as_of = state.get("research_as_of")
+    need(
+        isinstance(candidate_sha256, str)
+        and re.fullmatch(r"[0-9a-f]{64}", candidate_sha256) is not None,
+        "research evidence is not frozen; complete research-finalize first",
+    )
+    need(
+        isinstance(certificate_sha256, str)
+        and re.fullmatch(r"[0-9a-f]{64}", certificate_sha256) is not None,
+        "research certificate binding is invalid",
+    )
+    as_of = text_field({"as_of": as_of}, "as_of")
+    certificate_path = root / "planning/research-certificate.md"
+    need(
+        certificate_path.is_file() and not certificate_path.is_symlink(),
+        "missing frozen research planning certificate",
+    )
+    raw = certificate_path.read_bytes()
+    need(
+        hashlib.sha256(raw).hexdigest() == certificate_sha256,
+        "research certificate hash drift; use revisit --to research before continuing",
+    )
+    certificate = store.read_record(certificate_path)
+    need(
+        certificate.get("candidate_sha256") == candidate_sha256
+        and certificate.get("as_of") == as_of,
+        "research certificate state binding mismatch",
+    )
+    receipt = planning_validate_certificate(
+        core,
+        root,
+        state,
+        "research",
+        require_current_identity=require_current_identity,
+    )
+    need(
+        receipt.get("candidate_sha256") == candidate_sha256,
+        "research receipt candidate does not match frozen state",
+    )
+    return {
+        "candidate_sha256": candidate_sha256,
+        "certificate_sha256": certificate_sha256,
+        "as_of": as_of,
+    }
+
+
+def run_step_plan_verify(core, root, state, args):
+    """Run a plan-only lint/test manifest in the active step worktree."""
+    need(
+        state["stage"] in ("step-plan-verify", "step-plan-finalize"),
+        "planning-verify is not the active step-plan activity",
+    )
+    need(0 < args.timeout <= 3600, "timeout must be in (0, 3600] seconds per check")
+    rec = active(root, state)
+    loop, receipt = step_plan_receipt(root, rec)
+    step_plan_assert_bound(core, root, state, rec, receipt)
+    manifest = store.read_record(Path(args.manifest))
+    evidence.validate_manifest(manifest, ["step plan"])
+    need(
+        any(row["kind"] == "lint" for row in manifest["checks"]),
+        "step-plan verification requires a concrete lint check",
+    )
+    manifest_path = f"manifests/step-plan-{loop}.md"
+    old = (
+        store.read_record(root / manifest_path)
+        if (root / manifest_path).exists()
+        else None
+    )
+    if old and digest(old["manifest"]) != digest(manifest):
+        need(
+            bool(args.reason.strip()),
+            "changed step-plan manifest requires --reason explaining test expansion or correction",
+        )
+    current = receipt["current_pass"]
+    before = {
+        key: current[key]
+        for key in (
+            "id",
+            "candidate_sha256",
+            "ledger_sha256",
+            "context_sha256",
+            "identity_sha256",
+            "git_baseline",
+            "worktree_fingerprint",
+            "status_sha256",
+        )
+    }
+    attempt = uuid.uuid4().hex
+    log_directory = safe_run_path(root, f"logs/{args.action}/{attempt}")
+    worktree = Path(rec["worktree"])
+    results = evidence.run_checks(
+        worktree,
+        manifest,
+        log_directory,
+        args.action,
+        timeout=args.timeout,
+        excluded=exclusions(root, worktree),
+    )
+    binding_error = ""
+    after = {}
+    try:
+        _, after_receipt = step_plan_receipt(root, rec, loop)
+        step_plan_assert_bound(core, root, state, rec, after_receipt)
+        after_current = after_receipt["current_pass"]
+        after = {
+            key: after_current[key]
+            for key in (
+                "id",
+                "candidate_sha256",
+                "ledger_sha256",
+                "context_sha256",
+                "identity_sha256",
+                "git_baseline",
+                "worktree_fingerprint",
+                "status_sha256",
+            )
+        }
+        need(after == before, "step-plan candidate, context, or worktree changed during checks")
+    except (step_planning.StepPlanningError, ProtocolError, OSError, ValueError) as exc:
+        binding_error = str(exc)
+    planning_passed = results["all_passed"] and not binding_error
+    record = {
+        "step_plan_loop": loop,
+        "step_plan_pass": before["id"],
+        "candidate_sha256": before["candidate_sha256"],
+        "ledger_sha256": before["ledger_sha256"],
+        "context_sha256": before["context_sha256"],
+        "identity_sha256": before["identity_sha256"],
+        "git_baseline": before["git_baseline"],
+        "worktree_fingerprint": before["worktree_fingerprint"],
+        "status_sha256": before["status_sha256"],
+        "after": after or None,
+        "binding_error": binding_error or None,
+        "planning_passed": planning_passed,
+        "manifest": manifest,
+        "results": results,
+        "reason": args.reason,
+        "previous_manifest_digest": digest(old["manifest"]) if old else None,
+    }
+    persist(
+        root,
+        state,
+        "step-plan-checks",
+        {
+            f"checks/{args.action}.md": store.dumps(record),
+            f"check-attempts/{args.action}-{attempt}.md": store.dumps(record),
+            manifest_path: store.dumps(
+                {
+                    "manifest": manifest,
+                    "reason": args.reason,
+                    "action": args.action,
+                    "loop": loop,
+                    "pass": before["id"],
+                }
+            ),
+        },
+    )
+    print(
+        f"Step-plan checks {'PASS' if planning_passed else 'FAIL'}: "
+        f"{root / 'checks' / (args.action + '.md')}"
+    )
+    if not planning_passed:
+        print(
+            "The current step-plan action remains unfinished. Restore any changed plan or worktree bytes, repair failures, and rerun planning-verify with the same action ID."
+        )
+    return planning_passed
+
+
+def run_planning_verify(core, root, state, args):
+    """Run planner lint/tests while binding evidence to candidate and ledger bytes."""
+    if objectives.is_objective_stage(state["stage"]):
+        return run_objective_verify(core, root, state, args)
+    if state["stage"] in ("step-plan-verify", "step-plan-finalize"):
+        return run_step_plan_verify(core, root, state, args)
+    need(
+        state["stage"]
+        in (
+            "research-verify",
+            "research-finalize",
+            "behavior-verify",
+            "behavior-finalize",
+            "spec-verify",
+            "spec-finalize",
+        ),
+        "planning-verify is not the active activity",
+    )
+    need(0 < args.timeout <= 3600, "timeout must be in (0, 3600] seconds per check")
+    kind, receipt = planning_receipt(root, state)
+    expected_head = planning_assert_bound(core, root, state, receipt)
+    manifest = store.read_record(Path(args.manifest))
+    evidence.validate_manifest(manifest, planning.acceptance(kind))
+    need(
+        any(row["kind"] == "lint" for row in manifest["checks"]),
+        "planning verification requires a concrete lint check",
+    )
+    manifest_path = f"manifests/planning-{kind}.md"
+    old = (
+        store.read_record(root / manifest_path)
+        if (root / manifest_path).exists()
+        else None
+    )
+    if old and digest(old["manifest"]) != digest(manifest):
+        need(
+            bool(args.reason.strip()),
+            "changed planning manifest requires --reason explaining test expansion or correction",
+        )
+    iteration = receipt["current_iteration"]
+    before_candidate = receipt["candidate_sha256"]
+    before_ledger = receipt["ledger_sha256"]
+    before_identity = receipt["identity_sha256"]
+    before_product = iteration["product_fingerprint"]
+    attempt = uuid.uuid4().hex
+    log_directory = safe_run_path(root, f"logs/{args.action}/{attempt}")
+    repo = Path(state["repo_root"])
+    results = evidence.run_checks(
+        repo,
+        manifest,
+        log_directory,
+        args.action,
+        timeout=args.timeout,
+        excluded=exclusions(root, repo),
+    )
+    binding_error = ""
+    after_candidate = after_ledger = after_identity = ""
+    try:
+        _, after_receipt = planning_receipt(root, state)
+        after_candidate = after_receipt["candidate_sha256"]
+        after_ledger = after_receipt["ledger_sha256"]
+        after_identity = after_receipt["identity_sha256"]
+        need(
+            git(core, repo, "rev-parse", "HEAD") == expected_head,
+            "planning Git baseline changed during checks",
+        )
+        need(
+            after_candidate == before_candidate
+            and after_ledger == before_ledger
+            and after_identity == before_identity,
+            "planning candidate or ledger changed during checks",
+        )
+        need(
+            planning_product_fingerprint(root, state) == before_product,
+            "product tree changed during planning checks",
+        )
+    except (planning.PlanningError, ProtocolError, OSError, ValueError) as exc:
+        # The evidence attempt is still useful diagnostic Markdown.  Do not
+        # overwrite the mutated receipt or certify the attempt.
+        binding_error = str(exc)
+    planning_passed = results["all_passed"] and not binding_error
+    record = {
+        "planning_kind": kind,
+        "planning_iteration": iteration["id"],
+        "candidate_sha256": before_candidate,
+        "ledger_sha256": before_ledger,
+        "identity_sha256": before_identity,
+        "git_baseline": expected_head,
+        "product_fingerprint": before_product,
+        "candidate_after_sha256": after_candidate,
+        "ledger_after_sha256": after_ledger,
+        "identity_after_sha256": after_identity,
+        "binding_error": binding_error or None,
+        "planning_passed": planning_passed,
+        "manifest": manifest,
+        "results": results,
+        "reason": args.reason,
+        "previous_manifest_digest": digest(old["manifest"]) if old else None,
+    }
+    persist(
+        root,
+        state,
+        "planning-checks",
+        {
+            f"checks/{args.action}.md": store.dumps(record),
+            f"check-attempts/{args.action}-{attempt}.md": store.dumps(record),
+            manifest_path: store.dumps(
+                {
+                    "manifest": manifest,
+                    "reason": args.reason,
+                    "action": args.action,
+                    "kind": kind,
+                }
+            ),
+        },
+    )
+    print(
+        f"Planning checks {'PASS' if planning_passed else 'FAIL'}: "
+        f"{root / 'checks' / (args.action + '.md')}"
+    )
+    if not planning_passed:
+        print(
+            "The current planning action remains unfinished. Read the check record and logs, restore any changed planning artifact, repair failures, and rerun planning-verify with the same action ID."
+        )
+    return planning_passed
 
 
 def proposal_entries(root, state, entries):
@@ -282,6 +2078,10 @@ def validate_candidate(core, root, writes, state):
         gaps = core.wrapper_pair(stage, spec) + core.dag_gaps(stage, spec)
         need(not gaps, "; ".join(gaps))
         dag = core.load_dag(stage)
+        contract_gaps = contracts.dag_gaps(
+            dag, require_contract=contract_protocol.enabled(state)
+        )
+        need(not contract_gaps, "; ".join(contract_gaps))
         producers = {
             step["id"]: set(core.produces_texts(step["produces"]))
             for step in dag["steps"]
@@ -295,30 +2095,44 @@ def validate_candidate(core, root, writes, state):
                     )
         if (root / "lifecycle.md").exists():
             lifecycle = store.read_record(root / "lifecycle.md")
-            for key in ("preparation", "publish"):
-                if lifecycle[key] == "dag":
-                    need(
-                        any(x.get("activity") == key for x in dag["steps"]),
-                        f"lifecycle requires a DAG {key} step marked activity: {key}",
-                    )
-            if lifecycle["publish"] == "outer-loop":
-                need(
-                    not any(x.get("activity") == "publish" for x in dag["steps"]),
-                    "outer publication must not also occur in DAG",
-                )
+            validate_lifecycle_steps(dag, lifecycle)
     return spec
 
 
 def schedule(core, root, state):
     """Persist allocation intent before Git; only one step runs at a time."""
+    if planning.is_current(state):
+        planning_validate_certificate(core, root, state, "behavior")
+        has_steps = bool(list((root / "steps").glob("*.md")))
+        if not has_steps and state.get("objective_preallocation_bridge"):
+            # Before the first allocation, generic sequence/preparation audit
+            # commits are valid only when their complete direct-child lineage
+            # is bound back to the frozen specification.
+            objective_validate_preallocation_audit_bridge(core, root, state)
+        else:
+            planning_validate_certificate(
+                core,
+                root,
+                state,
+                "spec",
+                require_current_identity=not has_steps,
+            )
     if state.get("active_step"):
         return
     classes = core.classify_steps(root, state)
     running = [sid for sid, kind in classes.items() if kind == "running"]
     if running:
         state["active_step"] = running[0]
-        action(state, "implement", "implement")
-        active(root, state)  # Validate a migrated receipt before any Git action.
+        resumed = active(root, state)  # Validate a migrated receipt before any Git action.
+        prior = resumed.get("step_plan")
+        if (
+            step_planning_current(state)
+            and isinstance(prior, dict)
+            and prior.get("status") == "finalized"
+        ):
+            action(state, "implement", "implement")
+        else:
+            action(state, "implement", "step-plan")
         persist(root, state, "resume-migrated-step")
         return
     ready = [sid for sid, kind in classes.items() if kind == "ready"]
@@ -345,7 +2159,7 @@ def schedule(core, root, state):
         "allocation": "pending",
     }
     state["active_step"] = sid
-    action(state, "implement", "implement")
+    action(state, "implement", "step-plan")
     persist(root, state, "allocate-intent", {rec_path(state): store.dumps(record)})
 
 
@@ -394,6 +2208,23 @@ def start_iteration(core, root, state, rec):
         "previous_sha": git(core, Path(rec["worktree"]), "rev-parse", "HEAD"),
     }
     action(state, "implement", "review")
+
+
+def execution_research_assessment(result, prior=None):
+    """Validate the bounded research follow-up carried by an inner loop."""
+    assessment = research.validate_assessment(result.get("research_assessment"))
+    if isinstance(prior, dict) and prior.get("status") in ("required", "blocked"):
+        need(
+            assessment["status"] == "resolved",
+            "improve-apply must resolve the prior required or blocked research assessment",
+        )
+        missing = sorted(set(prior.get("questions", [])) - set(assessment["questions"]))
+        need(
+            not missing,
+            "resolved research_assessment must retain every prior required question: "
+            + ", ".join(missing),
+        )
+    return assessment
 
 
 def revision(core, root, state, result, writes):
@@ -455,7 +2286,16 @@ def finish_merge(core, root, state, rec):
             "worktree changed after final checks; commit and reverify",
         )
         verified(core, root, state, rec["final_check_action"])
+        if contract_protocol.enabled(state):
+            rec["contract_integration_ready"] = contract_protocol.revalidate_done(
+                core, root, state, rec, phase="merge"
+            )["record"]
     else:
+        if contract_protocol.enabled(state):
+            need(
+                isinstance(rec.get("contract_integration_ready"), dict),
+                "missing pre-merge Definition of Done evidence during recovery",
+            )
         need(
             core.git_run(repo, "merge-base", "--is-ancestor", target, "HEAD").returncode
             == 0,
@@ -485,29 +2325,1537 @@ def finish_merge(core, root, state, rec):
     rec.update(
         status="complete", merged_sha=git(core, repo, "rev-parse", "HEAD"), worktree=""
     )
+    if contract_protocol.enabled(state):
+        rec["contract_closure"] = dict(
+            rec["contract_integration_ready"],
+            integrated_sha=rec["merged_sha"],
+            fully_closed=True,
+        )
     return rec
 
 
-def complete(core, root, state, aid, result):
+def planning_start_next_iteration(core, root, state, kind, receipt):
+    repo = Path(state["repo_root"])
+    planning.start_next_iteration(
+        receipt,
+        run_id=state["run_id"],
+        git_baseline=git(core, repo, "rev-parse", "HEAD"),
+        product_fingerprint=planning_product_fingerprint(root, state),
+    )
+    action(state, "validate-spec", f"{kind}-review")
+
+
+def planning_complete(core, root, state, aid, result, writes):
+    """Complete one of the behavior/spec convergence actions.
+
+    The function intentionally never creates product commits or touches product
+    files.  It binds host-created audit commits and planning-artifact checks to
+    the current Markdown candidate/ledger instead.
+    """
+    stage = state["stage"]
+    kind = planning.kind_for_stage(stage)
+    need(kind is not None, "not a planning-convergence stage")
+    repo = Path(state["repo_root"])
+
+    if stage == "research":
+        body = text_field(result, "body")
+        research_state = research.validate_state(result.get("research_state"))
+        evidence_text = research.render_state(research_state)
+        candidate = planning.candidate_identity_from_texts(
+            kind,
+            {"research.md": body, "research-evidence.md": evidence_text},
+        )
+        writes["research.md"] = body
+        writes["research-evidence.md"] = evidence_text
+        receipt = planning.new_receipt(
+            root=root,
+            state=state,
+            kind=kind,
+            git_baseline=git(core, repo, "rev-parse", "HEAD"),
+            product_fingerprint=planning_product_fingerprint(root, state),
+            candidate=candidate,
+        )
+        receipt["research_state"] = research_state
+        writes[planning.receipt_name(kind)] = store.dumps(
+            receipt, "ShipLoop research planning receipt"
+        )
+        action(state, "validate-spec", "research-review")
+        return
+
+    if stage == "behavior":
+        research_binding = research_current_binding(
+            core, root, state, require_current_identity=True
+        )
+        body = text_field(result, "body")
+        candidate = planning.candidate_identity_from_texts(
+            kind, {"behavior.md": body}
+        )
+        writes["behavior.md"] = body
+        receipt = planning.new_receipt(
+            root=root,
+            state=state,
+            kind=kind,
+            git_baseline=git(core, repo, "rev-parse", "HEAD"),
+            product_fingerprint=planning_product_fingerprint(root, state),
+            candidate=candidate,
+        )
+        receipt["research_binding"] = research_binding
+        writes[planning.receipt_name(kind)] = store.dumps(
+            receipt, "ShipLoop behavior planning receipt"
+        )
+        action(state, "validate-spec", "behavior-review")
+        return
+
+    if stage == "spec":
+        need(
+            state.get("behavior_sha256"),
+            "behavior model is not frozen; complete behavior-finalize first",
+        )
+        research_binding = research_current_binding(core, root, state)
+        planning_validate_certificate(
+            core, root, state, "behavior", require_current_identity=True
+        )
+        behavior = root / "behavior.md"
+        need(
+            behavior.is_file()
+            and hashlib.sha256(behavior.read_bytes()).hexdigest()
+            == state["behavior_sha256"],
+            "frozen behavior model drift; revisit behavior before drafting specification",
+        )
+        body = text_field(result, "body")
+        lifecycle = planning_validate_spec_draft(core, body, result.get("lifecycle"))
+        lifecycle_text = store.dumps(lifecycle, "ShipLoop lifecycle placement")
+        candidate = planning.candidate_identity_from_texts(
+            kind,
+            {
+                "spec-draft.md": body,
+                "lifecycle-draft.md": lifecycle_text,
+            },
+        )
+        writes["spec-draft.md"] = body
+        writes["lifecycle-draft.md"] = lifecycle_text
+        receipt = planning.new_receipt(
+            root=root,
+            state=state,
+            kind=kind,
+            git_baseline=git(core, repo, "rev-parse", "HEAD"),
+            product_fingerprint=planning_product_fingerprint(root, state),
+            candidate=candidate,
+        )
+        receipt["research_binding"] = research_binding
+        writes[planning.receipt_name(kind)] = store.dumps(
+            receipt, "ShipLoop specification planning receipt"
+        )
+        action(state, "validate-spec", "spec-review")
+        return
+
+    kind, receipt = planning_receipt(root, state)
+    if not stage.endswith("-commit"):
+        planning_assert_bound(core, root, state, receipt)
+    iteration = receipt["current_iteration"]
+
+    if stage.endswith("-review"):
+        require_full_history(core, root, iteration, repo, label="planning review")
+        findings = planning.normal_findings(result.get("findings"))
+        planning.check_coverage_review(kind, result.get("coverage_review"))
+        text_field(result, "test_review")
+        text_field(result, "learnings")
+        iteration["review_candidate_sha256"] = receipt["candidate_sha256"]
+        iteration["review"] = result
+        planning.apply_review(receipt, findings)
+        # A material row can be carried forward from an earlier pass and
+        # resolved here without appearing again in this review payload.  Keep
+        # that fact on this iteration before Apply closes the row, so this
+        # pass cannot be counted as trivial by an optimistic host flag.
+        iteration["open_material_ids"] = planning.current_open_material_ids(receipt)
+        action(state, "validate-spec", f"{kind}-plan")
+    elif stage.endswith("-plan"):
+        text_field(result, "body")
+        planning.check_addresses(receipt, result.get("addresses"))
+        iteration["plan"] = result
+        action(state, "validate-spec", f"{kind}-apply")
+    elif stage.endswith("-apply"):
+        need(type(result.get("material")) is bool, "planning apply requires material boolean")
+        body = text_field(result, "body")
+        text_field(result, "test_changes")
+        text_field(result, "learnings")
+        addresses = planning.check_addresses(receipt, iteration.get("plan", {}).get("addresses"))
+        if kind == "research":
+            previous_research_state = research.validate_state(
+                receipt.get("research_state")
+            )
+            current_research_state = research.validate_state(
+                result.get("research_state")
+            )
+            research.validate_transition(
+                previous_research_state, current_research_state
+            )
+            iteration["research_material"] = research.meaningful_change(
+                previous_research_state, current_research_state
+            )
+            candidate_texts = {
+                "research.md": body,
+                "research-evidence.md": research.render_state(current_research_state),
+            }
+            receipt["research_state"] = current_research_state
+        elif kind == "behavior":
+            candidate_texts = {"behavior.md": body}
+        else:
+            lifecycle = planning_validate_spec_draft(core, body, result.get("lifecycle"))
+            candidate_texts = {
+                "spec-draft.md": body,
+                "lifecycle-draft.md": store.dumps(
+                    lifecycle, "ShipLoop lifecycle placement"
+                ),
+            }
+        planning.resolve_findings(receipt, result.get("resolutions"), addresses)
+        candidate = planning.candidate_identity_from_texts(kind, candidate_texts)
+        planning.set_identity(receipt, candidate)
+        writes.update(candidate_texts)
+        iteration["applied"] = result
+        iteration["apply_material"] = result["material"]
+        action(state, "validate-spec", f"{kind}-verify")
+    elif stage.endswith("-verify"):
+        planning_check_record(core, root, state, receipt, aid)
+        iteration["check_action"] = aid
+        receipt["check_action"] = aid
+        action(state, "validate-spec", f"{kind}-commit")
+    elif stage.endswith("-commit"):
+        check_action = text_field(iteration, "check_action")
+        planning_check_record(
+            core, root, state, receipt, check_action, allow_audit_head=True
+        )
+        previous = text_field(iteration, "git_baseline")
+        commit_sha = text_field(result, "commit")
+        commit = evidence.validate_commit(repo, commit_sha, previous, iteration["id"])
+        need(
+            git(core, repo, "rev-list", "--parents", "-n", "1", commit_sha).split()
+            == [commit_sha, previous],
+            "planning audit commit must be single-parent with exactly the iteration Git baseline",
+        )
+        need(
+            git(core, repo, "rev-parse", f"{commit_sha}^") == previous,
+            "planning audit commit must have the iteration Git baseline as its direct parent",
+        )
+        audit_tree = git(core, repo, "rev-parse", f"{commit_sha}^{{tree}}")
+        need(
+            audit_tree == git(core, repo, "rev-parse", f"{previous}^{{tree}}"),
+            "planning audit commit must leave the product tree unchanged",
+        )
+        need(
+            planning_product_fingerprint(root, state)
+            == text_field(iteration, "product_fingerprint"),
+            "product tree changed before the planning audit commit",
+        )
+        for learned in (
+            iteration["review"]["learnings"],
+            iteration["applied"]["learnings"],
+        ):
+            need(
+                learned.strip() in commit["body"],
+                "planning audit commit must include recorded review and apply learnings verbatim",
+            )
+        material = (
+            bool(iteration.get("apply_material"))
+            or bool(iteration.get("open_material_ids"))
+            or bool(iteration.get("research_material"))
+            or (
+                kind == "research"
+                and bool(research.unresolved_ids(receipt.get("research_state", {})))
+            )
+        )
+        outcome = planning.countable_outcome(receipt, material=material)
+        completed = dict(iteration)
+        completed.update(
+            status="completed",
+            outcome=outcome,
+            primary_commit=commit_sha,
+            audit_baseline=previous,
+            audit_head=commit_sha,
+            audit_tree=audit_tree,
+            candidate_sha256=receipt["candidate_sha256"],
+            ledger_sha256=receipt["ledger_sha256"],
+            identity_sha256=receipt["identity_sha256"],
+        )
+        path = planning_iteration_path(kind, receipt)
+        need(
+            not (root / path).exists(),
+            "planning iteration record already exists; inspect recovery before retrying",
+        )
+        writes[path] = store.dumps(completed, "ShipLoop completed planning iteration")
+        receipt["completed_iterations"].append(
+            {
+                "id": iteration["id"],
+                "path": path,
+                "outcome": outcome,
+                "verified": True,
+                "commit": commit_sha,
+                "epoch": receipt["epoch"],
+            }
+        )
+        receipt.update(
+            check_action=check_action,
+            audit_baseline=previous,
+            audit_head=commit_sha,
+            audit_tree=audit_tree,
+        )
+        try:
+            decision = planning.until_decision(
+                receipt,
+                extra_open=(
+                    ["research-state-open"]
+                    if kind == "research"
+                    and research.unresolved_ids(receipt.get("research_state", {}))
+                    else []
+                ),
+            )
+        except planning.PlanningError as exc:
+            raise ProtocolError(str(exc)) from exc
+        receipt["streak"] = decision["trivial_streak"]
+        if (
+            decision["phase"] == "ready"
+            and planning.all_clear(receipt)
+            and (
+                kind != "research"
+                or not research.unresolved_ids(receipt.get("research_state", {}))
+            )
+        ):
+            action(state, "validate-spec", f"{kind}-finalize")
+        else:
+            planning_start_next_iteration(core, root, state, kind, receipt)
+    elif stage.endswith("-finalize"):
+        need(
+            "body" not in result
+            and "lifecycle" not in result
+            and "research_state" not in result,
+            "planning finalize accepts no replacement candidate",
+        )
+        planning_check_record(core, root, state, receipt, aid)
+        need(receipt["streak"] >= 2, "two consecutive trivial planning iterations required")
+        need(planning.all_clear(receipt), "planning finalize requires no unresolved findings")
+        if kind == "research":
+            need(
+                not research.unresolved_ids(receipt.get("research_state", {})),
+                "research finalize requires no open or blocked questions",
+            )
+        certificate = {
+            "kind": kind,
+            "candidate_sha256": receipt["candidate_sha256"],
+            "candidate_components": receipt["candidate_components"],
+            "ledger_sha256": receipt["ledger_sha256"],
+            "identity_sha256": receipt["identity_sha256"],
+            "final_check_action": aid,
+            "audit_head": receipt["audit_head"],
+            "streak": receipt["streak"],
+        }
+        if kind == "research":
+            certificate["as_of"] = research.script_as_of()
+        else:
+            binding = receipt.get("research_binding")
+            need(
+                isinstance(binding, dict),
+                f"{kind} planning receipt lacks frozen research binding",
+            )
+            certificate["research_binding"] = binding
+        certificate_text = store.dumps(
+            certificate, f"ShipLoop frozen {kind} planning certificate"
+        )
+        writes[f"planning/{kind}-certificate.md"] = certificate_text
+        if kind == "research":
+            state.update(
+                research_sha256=receipt["candidate_sha256"],
+                research_certificate_sha256=hashlib.sha256(
+                    certificate_text.encode("utf-8")
+                ).hexdigest(),
+                research_as_of=certificate["as_of"],
+            )
+            action(state, "validate-spec", "behavior")
+        elif kind == "behavior":
+            state["behavior_sha256"] = hashlib.sha256(
+                (root / "behavior.md").read_bytes()
+            ).hexdigest()
+            action(state, "validate-spec", "spec")
+        else:
+            spec_path = root / "spec-draft.md"
+            lifecycle_path = root / "lifecycle-draft.md"
+            need(
+                spec_path.is_file()
+                and lifecycle_path.is_file()
+                and not spec_path.is_symlink()
+                and not lifecycle_path.is_symlink(),
+                "specification draft is missing before promotion",
+            )
+            spec_text = spec_path.read_bytes().decode("utf-8")
+            lifecycle_text = lifecycle_path.read_bytes().decode("utf-8")
+            lifecycle = store.loads(lifecycle_text)
+            planning_validate_spec_draft(core, spec_text, lifecycle)
+            writes["spec.md"] = spec_text
+            writes["lifecycle.md"] = lifecycle_text
+            state["spec_sha256"] = hashlib.sha256(spec_text.encode()).hexdigest()
+            state["lifecycle_sha256"] = hashlib.sha256(
+                lifecycle_text.encode()
+            ).hexdigest()
+            action(state, "plan", "sequence")
+    else:
+        raise ProtocolError(f"cannot complete planning stage {stage}")
+
+    writes[planning.receipt_name(kind)] = store.dumps(
+        receipt, f"ShipLoop {kind} planning receipt"
+    )
+
+
+OBJECTIVE_PROTOCOL_VERSION = objectives.VERSION
+
+
+def objective_current(state):
+    return objectives.is_current(state)
+
+
+def objective_artifact_sha256(root, name):
+    """Hash one authoritative Markdown input, including an explicit absence."""
+    path = safe_run_path(root, name)
+    if not path.exists():
+        return digest({"absent": name})
+    need(path.is_file() and not path.is_symlink(), f"objective context artifact is unsafe: {name}")
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def objective_context_identity(core, root, state):
+    """Bind one objective pass to the exact current repository and durable inputs."""
+    repo = repo_for(root, state)
+    status_paths = [".", ":(exclude).shiploop", ":(exclude).worktrees"]
+    status_paths.extend(f":(exclude){item}" for item in exclusions(root, repo))
+    return {
+        "git_baseline": git(core, repo, "rev-parse", "HEAD"),
+        "committed_tree_sha256": git(core, repo, "rev-parse", "HEAD^{tree}"),
+        "worktree_fingerprint": evidence.fingerprint(repo, excluded=exclusions(root, repo)),
+        "status_sha256": digest(
+            git(core, repo, "status", "--porcelain", "--untracked-files=all", "--", *status_paths)
+        ),
+        "spec_sha256": objective_artifact_sha256(root, "spec.md"),
+        "environment_sha256": objective_artifact_sha256(root, "environment.md"),
+        "behavior_sha256": objective_artifact_sha256(root, "behavior.md"),
+        "plan_sha256": objective_artifact_sha256(root, "backchain/plan.md"),
+        "knowledge_sha256": objective_artifact_sha256(root, "knowledge.md"),
+    }
+
+
+def objective_binding(state):
+    binding = state.get("objective")
+    need(isinstance(binding, dict), "active objective binding is missing")
+    loop = binding.get("loop_id")
+    kind = binding.get("kind")
+    base = binding.get("base_stage")
+    need(isinstance(loop, str) and isinstance(kind, str), "objective binding is malformed")
+    need(objectives.BASE_STAGES.get(kind) == base, "objective binding kind/base stage mismatch")
+    need(binding.get("receipt") == objectives.receipt_name(loop), "objective binding receipt path is invalid")
+    need(binding.get("candidate") == objectives.candidate_name(loop), "objective binding candidate path is invalid")
+    need(binding.get("status") in ("active", "finalized"), "objective binding status is invalid")
+    return binding
+
+
+def objective_receipt(root, state):
+    binding = objective_binding(state)
+    path = safe_run_path(root, binding["receipt"])
+    need(path.is_file() and not path.is_symlink(), "objective receipt is missing or unsafe")
+    try:
+        receipt = objectives.assert_receipt(root, store.read_record(path))
+    except (objectives.ObjectiveError, store.StorageError, UnicodeError, OSError) as exc:
+        raise ProtocolError(str(exc)) from exc
+    need(
+        receipt["loop_id"] == binding["loop_id"]
+        and receipt["kind"] == binding["kind"]
+        and receipt["base_stage"] == binding["base_stage"],
+        "objective receipt does not match the active binding",
+    )
+    return binding, receipt
+
+
+def objective_assert_bound(core, root, state, receipt, *, allow_audit_head=False):
+    """Refuse candidate, source, durable-input, or worktree drift.
+
+    At audit commit time Git HEAD and its committed tree are expected to move
+    together by one audit-only child; all other source/index/context evidence
+    must remain identical.  The caller validates that child explicitly.
+    """
+    current = receipt["current_pass"]
+    actual = objective_context_identity(core, root, state)
+    ignored = {"git_baseline", "committed_tree_sha256"} if allow_audit_head else set()
+    for key, value in current.items():
+        if key in objectives.CONTEXT_KEYS and key not in ignored:
+            need(
+                actual[key] == value,
+                f"objective context changed at {key}; only approach/survey/post-inner have a safe repair path, otherwise restore frozen inputs or start fresh",
+            )
+    if not allow_audit_head:
+        for key in objectives.CONTEXT_KEYS:
+            need(
+                actual[key] == current[key],
+                f"objective context changed at {key}; only approach/survey/post-inner have a safe repair path, otherwise restore frozen inputs or start fresh",
+            )
+    need(
+        current["candidate_sha256"] == receipt["candidate_sha256"]
+        and current["ledger_sha256"] == receipt["ledger_sha256"]
+        and current["context_sha256"] == objectives.context_sha256(
+            {key: current[key] for key in objectives.CONTEXT_KEYS}
+        ),
+        "objective pass binding is stale",
+    )
+    return actual
+
+
+def objective_expected_acceptance(core, root, state, kind):
+    """A final quality/post-inner check must also be valid original evidence."""
+    if kind in ("post-inner", "quality"):
+        _, produces = check_target(core, root, state)
+        return produces
+    return [f"objective {kind}"]
+
+
+def objective_check_record(core, root, state, receipt, action_id, *, allow_audit_head=False):
+    binding = objective_binding(state)
+    record_path = safe_run_path(root, f"checks/{action_id}.md")
+    need(record_path.is_file() and not record_path.is_symlink(), "objective check record is missing")
+    record = store.read_record(record_path)
+    current = receipt["current_pass"]
+    need(record.get("objective_loop") == binding["loop_id"], "objective check loop is stale")
+    need(record.get("objective_pass") == current["id"], "objective check pass is stale")
+    for key in ("candidate_sha256", "ledger_sha256", "context_sha256", "identity_sha256"):
+        need(record.get(key) == receipt.get(key), f"objective check {key} is stale")
+    for key in objectives.CONTEXT_KEYS:
+        need(record.get("context", {}).get(key) == current.get(key), f"objective check context {key} is stale")
+    repo = repo_for(root, state)
+    expected = objective_expected_acceptance(core, root, state, binding["kind"])
+    evidence.validate_manifest(record.get("manifest"), expected)
+    need(any(row["kind"] == "lint" for row in record["manifest"]["checks"]), "objective verification requires a concrete lint check")
+    evidence.validate_results(
+        record.get("results"), repo, record["manifest"], action_id, excluded=exclusions(root, repo)
+    )
+    if not allow_audit_head:
+        need(
+            git(core, repo, "rev-parse", "HEAD") == current["git_baseline"],
+            "objective Git baseline changed after verification",
+        )
+    return record
+
+
+def objective_assert_history_archive(core, root, receipt, repo, rows):
+    """Bind review to all delivered full-body pages, not a SHA index."""
+    history = receipt["current_pass"].get("history")
+    need(isinstance(history, dict) and isinstance(history.get("pages"), list), "objective full-body history receipt is missing")
+    by_sha = {}
+    for page in history["pages"]:
+        need(isinstance(page, dict) and isinstance(page.get("commits"), list), "objective history page is malformed")
+        for item in page["commits"]:
+            if isinstance(item, dict) and isinstance(item.get("sha"), str):
+                by_sha[item["sha"]] = page
+    required = []
+    for row in rows:
+        page = by_sha.get(row["sha"])
+        need(isinstance(page, dict), "objective full-body history page is missing")
+        if page not in required:
+            required.append(page)
+    for page in required:
+        path_value = page.get("archive_path")
+        skip, count = page.get("skip"), page.get("count")
+        need(
+            isinstance(path_value, str)
+            and isinstance(skip, int)
+            and isinstance(count, int)
+            and count > 0,
+            "objective full-body history archive is invalid",
+        )
+        expected_rows = evidence.history(repo, count, skip)
+        expected = store.dumps(
+            expected_rows, "Git history — full commit bodies"
+        ).encode("utf-8")
+        path = safe_run_path(root, path_value)
+        expected_commits = history_body_entries(expected_rows)
+        objective_commits = [
+            {"sha": row.get("sha"), "body_sha256": row.get("body_sha256")}
+            for row in page["commits"]
+        ]
+        need(
+            path.is_file()
+            and not path.is_symlink()
+            and path.read_bytes() == expected
+            and page.get("archive_sha256") == hashlib.sha256(expected).hexdigest()
+            and objective_commits == expected_commits,
+            "objective full-body history page differs from its receipt",
+        )
+
+
+def objective_validate_sequence_audit_bridge(core, root, state, expected_head):
+    """Allow only this objective's audited same-tree descendants of spec proof."""
+    binding, receipt = objective_receipt(root, state)
+    need(
+        binding["kind"] == "sequence" and binding["status"] == "finalized",
+        "sequence objective audit bridge is not finalized",
+    )
+    need(
+        isinstance(expected_head, str)
+        and expected_head == receipt["current_pass"]["git_baseline"],
+        "sequence objective audit bridge head is stale",
+    )
+    certified = planning_validate_certificate(
+        core, root, state, "spec", require_current_identity=False
+    )
+    repo = Path(state["repo_root"])
+    predecessor = certified["audit_head"]
+    tree = git(core, repo, "rev-parse", f"{predecessor}^{{tree}}")
+    completed = receipt["completed_passes"]
+    need(completed, "sequence objective has no audited passes")
+    for row in completed:
+        commit = row.get("commit")
+        baseline = row.get("audit_baseline")
+        need(
+            isinstance(commit, str) and isinstance(baseline, str) and baseline == predecessor,
+            "sequence objective audit chain does not start at the certified spec proof",
+        )
+        need(
+            git(core, repo, "rev-parse", f"{commit}^") == predecessor
+            and git(core, repo, "rev-parse", f"{commit}^{{tree}}") == tree,
+            "sequence objective audit altered the certified product tree",
+        )
+        predecessor = commit
+    need(predecessor == expected_head, "sequence objective audit chain does not reach its final bound head")
+    need(git(core, repo, "rev-parse", "HEAD") == expected_head, "sequence Git head changed after objective final verification")
+
+
+_PREALLOCATION_OBJECTIVE_KINDS = ("sequence", "preparation-readiness")
+
+
+def _objective_audit_chain(core, repo, receipt, predecessor, tree, audit_head, *, label):
+    """Prove every recorded generic audit is a same-tree direct child."""
+    rows = list(receipt.get("completed_passes", []))
+    need(rows, f"{label} has no audited objective passes")
+    rows.sort(key=lambda row: (row.get("epoch", -1), row.get("number", -1)))
+    seen = set()
+    for row in rows:
+        commit = row.get("commit")
+        baseline = row.get("audit_baseline")
+        need(
+            isinstance(commit, str)
+            and isinstance(baseline, str)
+            and commit not in seen
+            and baseline == predecessor,
+            f"{label} objective audit chain is discontinuous",
+        )
+        seen.add(commit)
+        need(
+            git(core, repo, "rev-list", "--parents", "-n", "1", commit).split()
+            == [commit, predecessor]
+            and git(core, repo, "rev-parse", f"{commit}^{{tree}}") == tree,
+            f"{label} objective audit changed the certified product tree",
+        )
+        predecessor = commit
+    need(predecessor == audit_head, f"{label} objective audit head is stale")
+    return predecessor
+
+
+def _objective_bridge_receipt(root, entry):
+    """Read one immutable preallocation objective proof from Markdown."""
+    need(isinstance(entry, dict), "preallocation objective bridge entry is malformed")
+    loop = entry.get("loop_id")
+    kind = entry.get("kind")
+    need(kind in _PREALLOCATION_OBJECTIVE_KINDS, "preallocation objective bridge kind is invalid")
+    need(
+        entry.get("receipt") == objectives.receipt_name(loop)
+        and entry.get("certificate") == objectives.certificate_name(loop),
+        "preallocation objective bridge paths are invalid",
+    )
+    receipt_path = safe_run_path(root, entry["receipt"])
+    certificate_path = safe_run_path(root, entry["certificate"])
+    need(
+        receipt_path.is_file()
+        and not receipt_path.is_symlink()
+        and certificate_path.is_file()
+        and not certificate_path.is_symlink(),
+        "preallocation objective bridge proof is missing",
+    )
+    receipt_bytes = receipt_path.read_bytes()
+    certificate_bytes = certificate_path.read_bytes()
+    need(
+        entry.get("receipt_sha256") == hashlib.sha256(receipt_bytes).hexdigest()
+        and entry.get("certificate_sha256") == hashlib.sha256(certificate_bytes).hexdigest(),
+        "preallocation objective bridge proof changed",
+    )
+    try:
+        receipt = objectives.assert_receipt(root, store.read_record(receipt_path))
+        certificate = objectives.assert_certificate(
+            receipt, store.read_record(certificate_path)
+        )
+    except (objectives.ObjectiveError, store.StorageError, OSError) as exc:
+        raise ProtocolError(f"preallocation objective bridge proof is invalid: {exc}") from exc
+    need(
+        certificate["kind"] == kind
+        and certificate["audit_head"] == entry.get("audit_head"),
+        "preallocation objective bridge certificate mismatch",
+    )
+    check_path = safe_run_path(root, f"checks/{certificate['final_check_action']}.md")
+    need(check_path.is_file() and not check_path.is_symlink(), "preallocation objective final check is missing")
+    check = store.read_record(check_path)
+    need(
+        check.get("objective_loop") == loop
+        and check.get("objective_pass") == receipt["current_pass"]["id"]
+        and check.get("objective_kind") == kind
+        and check.get("objective_passed") is True
+        and check.get("candidate_sha256") == certificate["candidate_sha256"]
+        and check.get("ledger_sha256") == certificate["ledger_sha256"]
+        and check.get("context_sha256") == certificate["context_sha256"],
+        "preallocation objective final check is not bound to its certificate",
+    )
+    evidence.validate_manifest(check.get("manifest"), [f"objective {kind}"])
+    need(
+        any(row["kind"] == "lint" for row in check["manifest"]["checks"]),
+        "preallocation objective final check lacks a lint check",
+    )
+    return receipt, certificate
+
+
+def objective_validate_preallocation_audit_bridge(core, root, state):
+    """Permit only certified sequence/prep audit descendants before allocation."""
+    bridge = state.get("objective_preallocation_bridge")
+    need(isinstance(bridge, dict) and bridge.get("version") == 1, "preallocation objective audit bridge is missing")
+    entries = bridge.get("entries")
+    need(isinstance(entries, list) and entries, "preallocation objective audit bridge has no entries")
+    kinds = [entry.get("kind") if isinstance(entry, dict) else None for entry in entries]
+    need(
+        kinds in (["sequence"], ["sequence", "preparation-readiness"]),
+        "preallocation objective audit bridge order is invalid",
+    )
+    certified = planning_validate_certificate(
+        core, root, state, "spec", require_current_identity=False
+    )
+    certificate_path = root / "planning/spec-certificate.md"
+    need(
+        bridge.get("spec_audit_head") == certified["audit_head"]
+        and bridge.get("spec_certificate_sha256")
+        == hashlib.sha256(certificate_path.read_bytes()).hexdigest(),
+        "preallocation objective audit bridge is not bound to the frozen specification",
+    )
+    repo = Path(state["repo_root"])
+    predecessor = certified["audit_head"]
+    tree = git(core, repo, "rev-parse", f"{predecessor}^{{tree}}")
+    for entry in entries:
+        receipt, certificate = _objective_bridge_receipt(root, entry)
+        predecessor = _objective_audit_chain(
+            core,
+            repo,
+            receipt,
+            predecessor,
+            tree,
+            certificate["audit_head"],
+            label=entry["kind"],
+        )
+    need(
+        git(core, repo, "rev-parse", "HEAD") == predecessor,
+        "Git head changed outside the certified preallocation objective audit chain",
+    )
+    return predecessor
+
+
+def objective_record_preallocation_audit_bridge(
+    core, root, state, binding, receipt, certificate, certificate_path
+):
+    """Persist just enough certified audit lineage for first step allocation."""
+    kind = binding["kind"]
+    if kind not in _PREALLOCATION_OBJECTIVE_KINDS:
+        return
+    need(not state.get("active_step"), "preallocation objective cannot finalize during active step work")
+    certified = planning_validate_certificate(
+        core, root, state, "spec", require_current_identity=False
+    )
+    spec_certificate_path = root / "planning/spec-certificate.md"
+    bridge = state.get("objective_preallocation_bridge")
+    if kind == "sequence":
+        need(not bridge, "a sequence preallocation objective bridge already exists")
+        bridge = {
+            "version": 1,
+            "spec_audit_head": certified["audit_head"],
+            "spec_certificate_sha256": hashlib.sha256(
+                spec_certificate_path.read_bytes()
+            ).hexdigest(),
+            "entries": [],
+        }
+    else:
+        need(isinstance(bridge, dict), "preparation objective requires a certified sequence audit bridge")
+        need(
+            bridge.get("spec_audit_head") == certified["audit_head"]
+            and bridge.get("spec_certificate_sha256")
+            == hashlib.sha256(spec_certificate_path.read_bytes()).hexdigest(),
+            "preparation objective bridge no longer matches the frozen specification",
+        )
+        need(
+            [item.get("kind") for item in bridge.get("entries", []) if isinstance(item, dict)]
+            == ["sequence"],
+            "preparation objective bridge requires exactly one prior sequence entry",
+        )
+    receipt_body = store.dumps(receipt, "ShipLoop objective receipt")
+    certificate_body = store.dumps(certificate, "ShipLoop objective certificate")
+    entry = {
+        "kind": kind,
+        "loop_id": binding["loop_id"],
+        "receipt": binding["receipt"],
+        "receipt_sha256": hashlib.sha256(receipt_body.encode("utf-8")).hexdigest(),
+        "certificate": certificate_path,
+        "certificate_sha256": hashlib.sha256(certificate_body.encode("utf-8")).hexdigest(),
+        "audit_head": certificate["audit_head"],
+    }
+    bridge["entries"].append(entry)
+    state["objective_preallocation_bridge"] = bridge
+
+
+def run_objective_verify(core, root, state, args):
+    """Run fresh lint/tests while binding an objective candidate and its context."""
+    need(state["stage"] in ("objective-verify", "objective-finalize"), "objective verification is not the active activity")
+    need(0 < args.timeout <= 3600, "timeout must be in (0, 3600] seconds per check")
+    binding, receipt = objective_receipt(root, state)
+    objective_assert_bound(core, root, state, receipt)
+    current = receipt["current_pass"]
+    repo = repo_for(root, state)
+    manifest = store.read_record(Path(args.manifest))
+    expected = objective_expected_acceptance(core, root, state, binding["kind"])
+    evidence.validate_manifest(manifest, expected)
+    need(any(row["kind"] == "lint" for row in manifest["checks"]), "objective verification requires a concrete lint check")
+    manifest_path = f"manifests/objective-{binding['kind']}.md"
+    old = store.read_record(root / manifest_path) if (root / manifest_path).exists() else None
+    if old and digest(old["manifest"]) != digest(manifest):
+        need(bool(args.reason.strip()), "changed objective manifest requires --reason explaining test expansion or correction")
+    attempt = uuid.uuid4().hex
+    log_directory = safe_run_path(root, f"logs/{args.action}/{attempt}")
+    results = evidence.run_checks(
+        repo, manifest, log_directory, args.action, timeout=args.timeout, excluded=exclusions(root, repo)
+    )
+    binding_error = ""
+    after = None
+    try:
+        _, after_receipt = objective_receipt(root, state)
+        objective_assert_bound(core, root, state, after_receipt)
+        after = after_receipt["current_pass"]
+        for key in ("id", "candidate_sha256", "ledger_sha256", "context_sha256"):
+            need(after[key] == current[key], "objective candidate, ledger, or context changed during checks")
+    except (ProtocolError, objectives.ObjectiveError, store.StorageError, OSError, ValueError) as exc:
+        binding_error = str(exc)
+    passed = results["all_passed"] and not binding_error
+    record = {
+        "objective_loop": binding["loop_id"],
+        "objective_pass": current["id"],
+        "objective_kind": binding["kind"],
+        "candidate_sha256": receipt["candidate_sha256"],
+        "ledger_sha256": receipt["ledger_sha256"],
+        "context_sha256": receipt["context_sha256"],
+        "identity_sha256": receipt["identity_sha256"],
+        "context": {key: current[key] for key in objectives.CONTEXT_KEYS},
+        "after": {key: after[key] for key in ("id", "candidate_sha256", "ledger_sha256", "context_sha256")} if after else None,
+        "binding_error": binding_error or None,
+        "objective_passed": passed,
+        "manifest": manifest,
+        "results": results,
+        "reason": args.reason,
+        "previous_manifest_digest": digest(old["manifest"]) if old else None,
+    }
+    persist(
+        root,
+        state,
+        "objective-checks",
+        {
+            f"checks/{args.action}.md": store.dumps(record),
+            f"check-attempts/{args.action}-{attempt}.md": store.dumps(record),
+            manifest_path: store.dumps({"manifest": manifest, "reason": args.reason, "action": args.action, "kind": binding["kind"]}),
+        },
+    )
+    print(f"Objective checks {'PASS' if passed else 'FAIL'}: {root / 'checks' / (args.action + '.md')}")
+    return passed
+
+
+def objective_start(core, root, state, stage, result, writes):
+    kind = objectives.kind_for_base_stage(stage)
+    need(kind is not None, "objective start has no base stage")
+    previous = state.get("objective")
+    need(not isinstance(previous, dict) or previous.get("status") == "finalized", "an earlier objective is still active")
+    serial = max(int(state.get("objective_epoch", 0)), 0) + 1
+    loop = f"{objectives.loop_id(state['run_id'], kind)}-{serial}"
+    # `complete()` imports a top-level dag_file for result replay, but the
+    # durable candidate must contain only the imported DAG.  Otherwise a
+    # host-controlled path can be reread after verification/finalization.
+    candidate = dict(result)
+    candidate.pop("dag_file", None)
+    need(
+        "draft_file" not in candidate,
+        "objective candidate cannot retain an unresolved draft_file reference",
+    )
+    candidate_body = store.dumps(candidate, f"ShipLoop {kind} objective candidate")
+    context = objective_context_identity(core, root, state)
+    receipt = objectives.new_receipt(
+        loop=loop, kind=kind, base_stage=stage, candidate_body=candidate_body, context=context
+    )
+    state["objective_epoch"] = serial
+    state["objective"] = {
+        "loop_id": loop,
+        "kind": kind,
+        "base_stage": stage,
+        "receipt": objectives.receipt_name(loop),
+        "candidate": objectives.candidate_name(loop),
+        "status": "active",
+    }
+    writes[objectives.candidate_name(loop)] = candidate_body
+    writes[objectives.receipt_name(loop)] = store.dumps(receipt, "ShipLoop objective receipt")
+    action(state, state["phase"], "objective-review")
+
+
+def abandon_objective_for_replan(core, root, state, writes, *, reason, details):
+    """Preserve the interrupted pass before leaving an objective for new work."""
+    binding, receipt = objective_receipt(root, state)
+    archived = objectives.abandon_objective(
+        receipt, reason=reason, context=objective_context_identity(core, root, state)
+    )
+    archive = objectives.abandoned_name(binding["loop_id"], archived["id"])
+    need(not safe_run_path(root, archive).exists(), "objective abandonment archive already exists")
+    receipt["abandonment"] = dict(details, reason=reason)
+    writes[binding["receipt"]] = store.dumps(receipt, "ShipLoop abandoned objective receipt")
+    writes[archive] = store.dumps(archived, "ShipLoop abandoned objective pass")
+    state.pop("objective", None)
+
+
+def objective_complete(core, root, state, aid, result, writes):
+    """Advance one generic objective pass; finalization applies its candidate once."""
+    stage = state["stage"]
+    binding, receipt = objective_receipt(root, state)
+    if stage != "objective-commit":
+        objective_assert_bound(core, root, state, receipt)
+    else:
+        objective_assert_bound(core, root, state, receipt, allow_audit_head=True)
+    current = receipt["current_pass"]
+    repo = repo_for(root, state)
+
+    if stage == "objective-review":
+        history_rows = evidence.history(repo, objectives.HISTORY_LIMIT, 0)
+        try:
+            objective_assert_history_archive(core, root, receipt, repo, history_rows)
+            objectives.assert_history(receipt, history_rows, head=git(core, repo, "rev-parse", "HEAD"))
+            findings = objectives.normal_findings(result.get("findings"))
+            assessment = objectives.check_assessment(result.get("assessment"))
+            history_assessment = text_field(result, "history_assessment")
+        except objectives.ObjectiveError as exc:
+            raise ProtocolError(str(exc)) from exc
+        current["review"] = {
+            "findings": findings,
+            "assessment": assessment,
+            "history_assessment": history_assessment,
+            "test_review": text_field(result, "test_review"),
+            "learnings": text_field(result, "learnings"),
+        }
+        objectives.apply_review(receipt, findings)
+        current["review_material"] = any(row["severity"] == "material" for row in findings)
+        current["open_material_ids"] = objectives.open_material_ids(receipt)
+        action(state, state["phase"], "objective-plan")
+    elif stage == "objective-plan":
+        current["plan"] = {
+            "addresses": objectives.check_addresses(receipt, result.get("addresses")),
+            "body": text_field(result, "body"),
+            "learnings": text_field(result, "learnings"),
+        }
+        action(state, state["phase"], "objective-apply")
+    elif stage == "objective-apply":
+        need(type(result.get("material")) is bool, "objective apply requires a material boolean")
+        candidate = result.get("candidate")
+        need(isinstance(candidate, dict), "objective apply requires a complete candidate result object")
+        # Snapshot an imported sequence DAG before the candidate is hashed and
+        # checked.  Finalization must never reread a host-controlled draft.
+        candidate = resolve_draft(candidate)
+        candidate.pop("dag_file", None)
+        need(
+            "draft_file" not in candidate,
+            "objective candidate cannot retain an unresolved draft_file reference",
+        )
+        text_field(candidate, "summary")
+        addresses = objectives.check_addresses(receipt, current.get("plan", {}).get("addresses"))
+        try:
+            resolutions = objectives.resolve_findings(receipt, result.get("resolutions"), addresses)
+        except objectives.ObjectiveError as exc:
+            raise ProtocolError(str(exc)) from exc
+        candidate_body = store.dumps(candidate, f"ShipLoop {binding['kind']} objective candidate")
+        candidate_changed = (
+            objectives.candidate_identity(candidate_body)
+            != receipt["candidate_sha256"]
+        )
+        # A generic objective has no safe semantic oracle for a claimed
+        # "trivial" candidate rewrite.  Conservatively make every byte-level
+        # candidate change material; retaining the exact candidate is the
+        # only non-material Apply path.
+        need(
+            not candidate_changed or result["material"],
+            "objective apply candidate changes are material; retain the exact candidate for a trivial pass",
+        )
+        objectives.replace_candidate(receipt, candidate_body)
+        current["apply"] = {
+            "addresses": addresses,
+            "resolutions": resolutions,
+            "material": result["material"],
+            "candidate_changed": candidate_changed,
+            "test_changes": text_field(result, "test_changes"),
+            "learnings": text_field(result, "learnings"),
+        }
+        current["apply_material"] = result["material"] or candidate_changed
+        writes[receipt["candidate_path"]] = candidate_body
+        action(state, state["phase"], "objective-verify")
+    elif stage == "objective-verify":
+        objective_check_record(core, root, state, receipt, aid)
+        current["check_action"] = aid
+        action(state, state["phase"], "objective-commit")
+    elif stage == "objective-commit":
+        check_action = current.get("check_action")
+        need(isinstance(check_action, str) and check_action, "objective commit requires a successful objective verify")
+        objective_check_record(core, root, state, receipt, check_action, allow_audit_head=True)
+        previous = current["git_baseline"]
+        commit_sha = text_field(result, "commit")
+        commit = evidence.validate_commit(repo, commit_sha, previous, current["id"])
+        need(git(core, repo, "rev-list", "--parents", "-n", "1", commit_sha).split() == [commit_sha, previous], "objective audit commit must have the pass baseline as its direct parent")
+        audit_tree = git(core, repo, "rev-parse", f"{commit_sha}^{{tree}}")
+        need(audit_tree == git(core, repo, "rev-parse", f"{previous}^{{tree}}"), "objective audit commit must leave the committed product tree unchanged")
+        for learned in (
+            current.get("review", {}).get("learnings"),
+            current.get("plan", {}).get("learnings"),
+            current.get("apply", {}).get("learnings"),
+        ):
+            need(isinstance(learned, str) and learned.strip() and learned.strip() in commit["body"], "objective audit commit must include review, plan, and apply learnings verbatim")
+        material = bool(current.get("review_material")) or bool(current.get("apply_material")) or bool(current.get("open_material_ids"))
+        current["audit_baseline"] = previous
+        current["audit_tree"] = audit_tree
+        completed = objectives.complete_pass(receipt, commit=commit_sha, outcome="material" if material else "trivial")
+        archive = objectives.pass_name(binding["loop_id"], completed["id"])
+        need(not safe_run_path(root, archive).exists(), "objective completed pass archive already exists")
+        decision = objectives.decide(receipt)
+        objectives.start_next_pass(receipt, context=objective_context_identity(core, root, state))
+        action(state, state["phase"], "objective-finalize" if decision["phase"] == "ready" else "objective-review")
+        writes[archive] = store.dumps(completed, "ShipLoop completed objective pass")
+    elif stage == "objective-finalize":
+        forbidden = {"candidate", "body", "findings", "addresses", "resolutions", "material", "dag", "dag_file"}
+        need(not (forbidden & set(result)), "objective finalize accepts no replacement candidate or findings")
+        objective_check_record(core, root, state, receipt, aid)
+        decision = objectives.decide(receipt)
+        need(decision["phase"] == "ready" and objectives.all_clear(receipt), "objective finalize requires two consecutive verified trivial passes and no open findings")
+        certificate = objectives.certificate(
+            receipt,
+            final_check_action=aid,
+            final_check_sha256=hashlib.sha256(safe_run_path(root, f"checks/{aid}.md").read_bytes()).hexdigest(),
+            audit_head=current["git_baseline"],
+        )
+        certificate_path = objectives.certificate_name(binding["loop_id"])
+        receipt["status"] = "finalized"
+        binding.update(status="finalized", certificate=certificate_path)
+        objective_record_preallocation_audit_bridge(
+            core,
+            root,
+            state,
+            binding,
+            receipt,
+            certificate,
+            certificate_path,
+        )
+        writes[certificate_path] = store.dumps(certificate, "ShipLoop objective certificate")
+        writes[binding["receipt"]] = store.dumps(receipt, "ShipLoop objective receipt")
+        candidate = store.read_record(safe_run_path(root, receipt["candidate_path"]))
+        need(isinstance(candidate, dict), "objective candidate is not a result object")
+        # A post-inner objective's fresh final check becomes the current
+        # merge proof.  Its audit child is the truthful final branch head.
+        if binding["kind"] == "post-inner":
+            state["_objective_post_inner_check_action"] = aid
+            state["_objective_post_inner_final_head"] = current["git_baseline"]
+        if binding["kind"] == "sequence":
+            state["_objective_sequence_audit_bridge"] = current["git_baseline"]
+        complete(
+            core,
+            root,
+            state,
+            aid,
+            candidate,
+            _stage_override=binding["base_stage"],
+            _objective_bypass=True,
+            _writes=writes,
+            _result_record=result,
+        )
+        return True
+    else:
+        raise ProtocolError(f"cannot complete objective stage {stage}")
+
+    writes[binding["receipt"]] = store.dumps(receipt, "ShipLoop objective receipt")
+
+
+def objective_repair(core, root, state, aid, reason):
+    """Record a permitted generic-loop interruption without blessing drift."""
+    need(aid == state["action"]["id"], "stale action ID")
+    need(bool(reason.strip()), "repair needs a reason")
+    need(objectives.is_objective_stage(state["stage"]), "objective repair requires an active objective stage")
+    binding, receipt = objective_receipt(root, state)
+    need(
+        binding.get("status") == "active" and receipt.get("status") == "active",
+        "only an active objective can be repaired",
+    )
+    kind = binding["kind"]
+    context = objective_context_identity(core, root, state)
+
+    if kind in ("approach", "survey"):
+        # These two objectives precede frozen requirements and execution.  A
+        # fresh pass can safely inspect changed local/environment inputs, but
+        # no later frozen contract may be silently rebased through this path.
+        need(not state.get("active_step"), "pre-spec objective repair cannot run during active step work")
+        need(
+            not state.get("spec_sha256")
+            and not state.get("behavior_sha256")
+            and not state.get("plan_sha256"),
+            "objective context changed after frozen planning; restore it or use the planning revisit path",
+        )
+        try:
+            archived = objectives.abandon_current(
+                receipt, reason=reason, context=context
+            )
+        except objectives.ObjectiveError as exc:
+            raise ProtocolError(str(exc)) from exc
+        archive_path = objectives.abandoned_name(binding["loop_id"], archived["id"])
+        need(not safe_run_path(root, archive_path).exists(), "objective repair archive already exists")
+        action(state, state["phase"], "objective-review")
+        state["revision"] += 1
+        persist(
+            root,
+            state,
+            "objective-repair-rebind",
+            {
+                binding["receipt"]: store.dumps(receipt, "ShipLoop objective receipt"),
+                archive_path: store.dumps(archived, "ShipLoop abandoned objective pass"),
+            },
+        )
+        return
+
+    if kind == "post-inner":
+        need(state.get("active_step"), "post-inner objective repair requires its active step")
+        rec = active(root, state)
+        try:
+            archived = objectives.abandon_objective(
+                receipt, reason=reason, context=context
+            )
+        except objectives.ObjectiveError as exc:
+            raise ProtocolError(str(exc)) from exc
+        archive_path = objectives.abandoned_name(binding["loop_id"], archived["id"])
+        need(not safe_run_path(root, archive_path).exists(), "objective repair archive already exists")
+        rec["improve_cycles"].append(
+            {
+                "outcome": "material",
+                "kind": "post-inner-objective-repair",
+                "reason": reason,
+                "objective_loop": binding["loop_id"],
+                "interrupted_objective_pass": archived["id"],
+                "interrupted_iteration": rec.get("iteration"),
+            }
+        )
+        for key in (
+            "final_check_action",
+            "final_head",
+            "contract_done",
+            "contract_integration_ready",
+            "merge_target",
+            "plan_review",
+        ):
+            rec.pop(key, None)
+        state.pop("_objective_post_inner_check_action", None)
+        state.pop("_objective_post_inner_final_head", None)
+        state.pop("objective", None)
+        start_iteration(core, root, state, rec)
+        state["revision"] += 1
+        persist(
+            root,
+            state,
+            "post-inner-objective-repair",
+            {
+                binding["receipt"]: store.dumps(receipt, "ShipLoop objective receipt"),
+                archive_path: store.dumps(archived, "ShipLoop abandoned objective pass"),
+                rec_path(state): store.dumps(rec),
+            },
+        )
+        return
+
+    raise ProtocolError(
+        f"objective repair cannot rebind {kind}; restore frozen inputs or use the approved planning/outer replan path"
+    )
+
+
+def step_plan_complete(core, root, state, aid, result, writes):
+    """Advance exactly one Markdown-bound step-plan action.
+
+    This is deliberately separate from the upstream planning convergence
+    kinds: it never replaces the spec/DAG and never writes product files.
+    Product source is only a fingerprinted review input until the certified
+    handoff returns to ``implement`` or ``improve-apply``.
+    """
+    stage = state["stage"]
+    rec = active(root, state)
+
+    if stage == "step-plan":
+        body = text_field(result, "body")
+        loop, receipt = step_plan_start(
+            core,
+            root,
+            state,
+            rec,
+            route="initial",
+            body=body,
+            return_stage="implement",
+            writes=writes,
+        )
+    elif stage == "improve-plan":
+        body = text_field(result, "body")
+        iteration = rec.get("iteration")
+        need(isinstance(iteration, dict) and iteration.get("review"), "Improve plan requires a completed current review")
+        loop, receipt = step_plan_start(
+            core,
+            root,
+            state,
+            rec,
+            route="improve",
+            body=body,
+            return_stage="improve-apply",
+            writes=writes,
+        )
+    else:
+        loop, receipt = step_plan_receipt(root, rec)
+        if stage == "step-plan-commit":
+            # The host has already created the proposed audit HEAD before it
+            # can report it.  Its changed commit identity is checked below;
+            # every other bound source/index/fingerprint fact must still be
+            # identical to the verified pass.
+            current_context = step_plan_context_identity(
+                core, root, state, rec, route=receipt["route"]
+            )
+            for key, value in receipt["context"].items():
+                if key in ("git_baseline", "committed_tree_sha256"):
+                    continue
+                need(
+                    current_context[key] == value,
+                    "step-plan audit commit changed staged, uncommitted, or product work",
+                )
+        else:
+            step_plan_assert_bound(core, root, state, rec, receipt)
+        current = receipt["current_pass"]
+        worktree = Path(rec["worktree"])
+
+        if stage == "step-plan-review":
+            require_knowledge_read(root, state, result)
+            require_full_history(core, root, current, worktree, label="step-plan review")
+            findings = step_planning.normal_findings(result.get("findings"))
+            coverage = step_planning.check_coverage_review(result.get("coverage_review"))
+            context_evidence = step_planning.check_context_evidence(
+                result.get("context_evidence")
+            )
+            test_review = text_field(result, "test_review")
+            learnings = text_field(result, "learnings")
+            current["review"] = {
+                "findings": findings,
+                "coverage_review": coverage,
+                "context_evidence": context_evidence,
+                "test_review": test_review,
+                "learnings": learnings,
+            }
+            current["review_material"] = any(
+                finding["severity"] == "material" for finding in findings
+            )
+            step_planning.apply_review(receipt, findings)
+            current["open_material_ids"] = step_planning.open_material_ids(receipt)
+            scope_findings = step_planning.scope_or_behavior_findings(receipt)
+            if scope_findings:
+                action(state, "implement", "step-plan-disposition")
+                state["paused"] = (
+                    "step-plan scope or behavior finding requires explicit broader-plan disposition: "
+                    + ", ".join(scope_findings)
+                )
+            else:
+                action(state, "implement", "step-plan-revise")
+        elif stage == "step-plan-disposition":
+            need(
+                result.get("disposition") == "no-contract-change",
+                "step-plan disposition requires disposition: no-contract-change; otherwise halt for an approved broader-plan change",
+            )
+            forbidden = {"body", "addresses", "material", "findings", "test_changes"}
+            need(
+                not (forbidden & set(result)),
+                "step-plan no-contract-change disposition cannot edit the candidate or resolve ordinary findings",
+            )
+            resolved = step_planning.resolve_no_contract_change_findings(
+                receipt, result.get("resolutions")
+            )
+            current["disposition"] = {
+                "decision": "no-contract-change",
+                "resolutions": [
+                    {
+                        "id": finding_id,
+                        "evidence": next(
+                            row["resolution_evidence"]
+                            for row in receipt["findings"]
+                            if row["id"] == finding_id
+                        ),
+                    }
+                    for finding_id in resolved
+                ],
+            }
+            abandoned = dict(current)
+            abandoned.update(
+                status="abandoned",
+                reason="explicit no-contract-change disposition requires a fresh review pass",
+                outcome="material",
+            )
+            archive = step_planning.abandoned_name(loop, abandoned["id"])
+            need(
+                not safe_run_path(root, archive).exists(),
+                "step-plan disposition archive already exists",
+            )
+            receipt["abandoned_passes"].append(abandoned)
+            step_planning.rebind_after_repair(
+                receipt,
+                step_plan_context_identity(
+                    core, root, state, rec, route=receipt["route"]
+                ),
+            )
+            rec["step_plan"]["status"] = "active"
+            state.pop("paused", None)
+            action(state, "implement", "step-plan-review")
+            writes[archive] = store.dumps(
+                abandoned, "ShipLoop abandoned step-plan pass"
+            )
+        elif stage == "step-plan-revise":
+            body = text_field(result, "body")
+            need(
+                type(result.get("material")) is bool,
+                "step-plan revise requires a material boolean",
+            )
+            addresses = step_planning.check_addresses(receipt, result.get("addresses"))
+            resolutions = step_planning.resolve_findings(
+                receipt, result.get("resolutions"), addresses
+            )
+            test_changes = text_field(result, "test_changes")
+            learnings = text_field(result, "learnings")
+            step_planning.replace_candidate(receipt, body)
+            current["revise"] = {
+                "addresses": addresses,
+                "resolutions": resolutions,
+                "material": result["material"],
+                "test_changes": test_changes,
+                "learnings": learnings,
+            }
+            current["revise_material"] = result["material"]
+            writes[receipt["candidate_path"]] = body
+            action(state, "implement", "step-plan-verify")
+        elif stage == "step-plan-verify":
+            step_plan_check_record(core, root, state, rec, receipt, aid)
+            current["check_action"] = aid
+            action(state, "implement", "step-plan-commit")
+        elif stage == "step-plan-commit":
+            check_action = current.get("check_action")
+            need(isinstance(check_action, str) and check_action, "step-plan commit requires a successful step-plan verify")
+            step_plan_check_record(core, root, state, rec, receipt, check_action)
+            previous = current["git_baseline"]
+            commit_sha = text_field(result, "commit")
+            commit = evidence.validate_commit(worktree, commit_sha, previous, current["id"])
+            need(
+                git(core, worktree, "rev-list", "--parents", "-n", "1", commit_sha).split()
+                == [commit_sha, previous],
+                "step-plan audit commit must have the pass baseline as its direct parent",
+            )
+            need(
+                git(core, worktree, "rev-parse", f"{commit_sha}^{{tree}}")
+                == git(core, worktree, "rev-parse", f"{previous}^{{tree}}"),
+                "step-plan audit commit must leave the committed product tree unchanged",
+            )
+            for learned in (
+                current.get("review", {}).get("learnings"),
+                current.get("revise", {}).get("learnings"),
+            ):
+                need(
+                    isinstance(learned, str) and learned.strip() and learned.strip() in commit["body"],
+                    "step-plan audit commit must include review and revise learnings verbatim",
+                )
+            after = step_plan_context_identity(
+                core, root, state, rec, route=receipt["route"]
+            )
+            for key, value in receipt["context"].items():
+                if key in ("git_baseline", "committed_tree_sha256"):
+                    continue
+                need(
+                    after[key] == value,
+                    "step-plan audit commit changed staged, uncommitted, or product work",
+                )
+            material = bool(current.get("review_material")) or bool(
+                current.get("revise_material")
+            ) or bool(current.get("open_material_ids"))
+            outcome = "material" if material else "trivial"
+            completed = dict(current)
+            completed.update(
+                status="completed",
+                verified=True,
+                outcome=outcome,
+                commit=commit_sha,
+                audit_baseline=previous,
+                audit_tree=git(core, worktree, "rev-parse", f"{commit_sha}^{{tree}}"),
+                candidate_sha256=receipt["candidate_sha256"],
+                ledger_sha256=receipt["ledger_sha256"],
+                context_sha256=receipt["context_sha256"],
+                identity_sha256=receipt["identity_sha256"],
+            )
+            archive = step_planning.pass_name(loop, current["id"])
+            need(
+                not safe_run_path(root, archive).exists(),
+                "step-plan completed pass archive already exists",
+            )
+            receipt["completed_passes"].append(completed)
+            decision = step_plan_until(receipt)
+            # Every next action, including finalization, receives a newly
+            # bound pass after the audit HEAD.  Finalization's check is thus a
+            # real fresh check rather than a re-labeling of a counted pass.
+            step_plan_start_next_pass(core, root, state, rec, receipt)
+            action(
+                state,
+                "implement",
+                "step-plan-finalize"
+                if decision["phase"] == "ready"
+                else "step-plan-review",
+            )
+            writes[archive] = store.dumps(completed, "ShipLoop completed step-plan pass")
+        elif stage == "step-plan-finalize":
+            forbidden = {"body", "addresses", "resolutions", "material", "findings"}
+            need(
+                not (forbidden & set(result)),
+                "step-plan finalize accepts no replacement candidate or findings",
+            )
+            final_plan_check = step_plan_check_record(core, root, state, rec, receipt, aid)
+            decision = step_plan_until(receipt)
+            need(
+                decision["phase"] == "ready" and step_planning.all_clear(receipt),
+                "step-plan finalize requires two consecutive verified trivial passes and no open findings",
+            )
+            if contract_protocol.enabled(state) and receipt["route"] == "initial":
+                rec["contract_ready"] = contract_protocol.capture(
+                    core, root, state, rec, result.get("ready_evidence"),
+                    phase="ready", check=final_plan_check,
+                )
+            certificate = step_planning.certificate(
+                receipt,
+                final_check_action=aid,
+                final_check_sha256=hashlib.sha256(
+                    safe_run_path(root, f"checks/{aid}.md").read_bytes()
+                ).hexdigest(),
+                audit_head=receipt["current_pass"]["git_baseline"],
+            )
+            certificate_path = step_planning.certificate_name(loop)
+            writes[certificate_path] = store.dumps(
+                certificate, "ShipLoop frozen step-plan certificate"
+            )
+            binding = rec["step_plan"]
+            binding.update(
+                status="finalized",
+                certificate=certificate_path,
+            )
+            action(state, "implement", receipt["return_stage"])
+            binding["handoff"] = {
+                "loop_id": loop,
+                "certificate": certificate_path,
+                "stage": state["stage"],
+                "action": state["action"]["id"],
+                "candidate_sha256": receipt["candidate_sha256"],
+                "context_sha256": receipt["context_sha256"],
+            }
+            for row in rec.get("step_plan_history", []):
+                if row.get("loop_id") == loop:
+                    row.update(status="finalized", certificate=certificate_path)
+            if receipt["route"] == "improve":
+                iteration = rec.get("iteration")
+                need(isinstance(iteration, dict), "Improve step-plan lost its enclosing iteration")
+                # The nested audit commits establish a new direct baseline for
+                # the enclosing product commit; they are never themselves
+                # treated as implementation work.
+                iteration["previous_sha"] = certificate["audit_head"]
+                iteration["step_plan"] = {
+                    "loop_id": loop,
+                    "certificate": certificate_path,
+                    "audit_head": certificate["audit_head"],
+                }
+                plan_learnings = []
+                for completed in receipt["completed_passes"]:
+                    for section in ("review", "revise"):
+                        learned = completed.get(section, {}).get("learnings")
+                        if isinstance(learned, str) and learned.strip() and learned not in plan_learnings:
+                            plan_learnings.append(learned)
+                need(plan_learnings, "Improve step-plan certificate lacks audited learnings")
+                iteration["plan_learnings"] = plan_learnings
+        else:
+            raise ProtocolError(f"cannot complete step-plan stage {stage}")
+
+    writes[step_planning.receipt_name(rec["step_plan"]["loop_id"])] = store.dumps(
+        receipt, "ShipLoop step-plan receipt"
+    )
+    writes[rec_path(state)] = store.dumps(rec)
+
+
+def complete(
+    core,
+    root,
+    state,
+    aid,
+    result,
+    *,
+    _stage_override=None,
+    _objective_bypass=False,
+    _writes=None,
+    _result_record=None,
+):
     need(
         isinstance(result, dict),
         "result must be an object in a shiploop-state Markdown fence",
     )
-    result = resolve_draft(result)
-    fingerprint = digest(result)
+    stage = _stage_override or state["stage"]
     previous = state["completed_actions"].get(aid)
+    # Carry-forward accepts a deliberately closed schema; do not import a
+    # draft path before that schema can reject the unknown field.
+    if previous or stage != "carry-forward":
+        result = resolve_draft(result)
+    fingerprint = digest(_result_record if _result_record is not None else result)
     if previous:
         need(previous == fingerprint, "conflicting replay of a completed action")
         return
     need(aid == state["action"]["id"], "stale action ID; run next")
-    stage = state["stage"]
-    writes = {f"results/{aid}.md": store.dumps(result, f"ShipLoop result {stage}")}
+    carry_result = None
+    if stage == "carry-forward":
+        carry_input = result
+        if "knowledge_revision" not in result and state.get("objective_protocol_version") == 1:
+            carry_input = dict(result, knowledge_revision=state["knowledge_revision"])
+        carry_result = knowledge.validate_result(
+            carry_input,
+            expected_revision=state["knowledge_revision"],
+            step_ids=set(core.steps_by_id(root)),
+        )
+    writes = dict(_writes or {})
+    writes[f"results/{aid}.md"] = store.dumps(
+        _result_record if _result_record is not None else result,
+        f"ShipLoop result {state['stage']}",
+    )
     text_field(result, "summary")
-    if "journal" in result:
+    if stage in ("coverage", "quality", "publish", "handoff"):
+        require_outer_product_baseline(core, root, state)
+    if objectives.is_objective_stage(state["stage"]) and not _objective_bypass:
+        if objective_complete(core, root, state, aid, result, writes):
+            return
+        state["completed_actions"][aid] = fingerprint
+        state["last_completion"] = {"action": aid, "stage": stage, "result_digest": fingerprint}
+        state["revision"] += 1
+        persist(root, state, f"complete:{stage}", writes)
+        return
+    if objectives.is_base_stage(stage) and objective_current(state) and not _objective_bypass:
+        objective_start(core, root, state, stage, result, writes)
+    elif "journal" in result:
         writes["shiploop-improvements.md"] = proposal_entries(
             root, state, result["journal"]
         )
-    if stage == "preflight":
+    if objectives.is_base_stage(stage) and objective_current(state) and not _objective_bypass:
+        pass
+    elif stage == "preflight":
         repo = Path(state["repo_root"])
         need(core.git_repo_ready(repo), "preflight requires a Git repository with HEAD")
         need(
@@ -541,43 +3889,39 @@ def complete(core, root, state, aid, result):
             writes["environment.md"].encode()
         ).hexdigest()
         action(state, "validate-spec", "research")
-    elif stage == "research":
-        writes["research.md"] = text_field(result, "body")
-        action(state, "validate-spec", "spec")
-    elif stage == "spec":
-        writes["spec.md"] = text_field(result, "body")
-        lifecycle = result.get("lifecycle")
-        need(isinstance(lifecycle, dict), "spec requires lifecycle object")
-        need(
-            isinstance(lifecycle.get("acceptance"), list)
-            and lifecycle["acceptance"]
-            and all(isinstance(x, str) and x.strip() for x in lifecycle["acceptance"]),
-            "lifecycle needs acceptance criteria",
-        )
-        need(
-            lifecycle.get("preparation") in ("none", "dag", "outer-before"),
-            "preparation must be none, dag, or outer-before",
-        )
-        need(
-            lifecycle.get("publish") in ("none", "dag", "outer-loop"),
-            "publish must be none, dag, or outer-loop",
-        )
-        need(type(lifecycle.get("quality")) is bool, "quality must be a boolean")
-        text_field(lifecycle, "reason")
-        with tempfile.TemporaryDirectory(prefix="shiploop-spec-") as tmp:
-            store.atomic_write_text(Path(tmp) / "spec.md", writes["spec.md"])
-            spec, gaps = core.load_spec(Path(tmp))
-            need(
-                not gaps and spec["checkable"],
-                "; ".join(gaps) or "spec must be checkable",
-            )
-        state["spec_sha256"] = hashlib.sha256(writes["spec.md"].encode()).hexdigest()
-        writes["lifecycle.md"] = store.dumps(lifecycle, "ShipLoop lifecycle placement")
-        state["lifecycle_sha256"] = hashlib.sha256(
-            writes["lifecycle.md"].encode()
-        ).hexdigest()
-        action(state, "plan", "sequence")
+    elif is_step_plan_stage(stage) or (
+        stage == "improve-plan" and step_planning_current(state)
+    ):
+        step_plan_complete(core, root, state, aid, result, writes)
+    elif planning.is_planning_stage(stage):
+        planning_complete(core, root, state, aid, result, writes)
     elif stage == "sequence":
+        if planning.is_current(state):
+            objective_bridge = state.get("_objective_sequence_audit_bridge")
+            # Objective audit commits intentionally advance HEAD without
+            # changing the certified product tree.  Preserve the normal
+            # strict baseline for ordinary sequence work, but let the bridge
+            # validator prove the exact same-tree direct-child chain first.
+            planning_validate_certificate(
+                core,
+                root,
+                state,
+                "behavior",
+                require_current_identity=objective_bridge is None,
+            )
+            if objective_bridge is not None:
+                objective_validate_sequence_audit_bridge(
+                    core, root, state, objective_bridge
+                )
+                state.pop("_objective_sequence_audit_bridge", None)
+            else:
+                planning_validate_certificate(
+                    core,
+                    root,
+                    state,
+                    "spec",
+                    require_current_identity=not list((root / "steps").glob("*.md")),
+                )
         text_field(result, "dependency_review")
         dag = result.get("dag")
         need(isinstance(dag, dict), "sequence requires dag object")
@@ -633,9 +3977,16 @@ def complete(core, root, state, aid, result):
         )
         action(state, "implement", "schedule")
     elif stage == "implement":
+        rec = active(root, state)
+        step_plan_validate_execution_proof(core, root, state, rec)
+        if contract_protocol.enabled(state):
+            contract_protocol.require_ready(core, root, state, rec)
         verified(core, root, state)
         text_field(result, "test_review")
-        rec = active(root, state)
+        if not carry_forward_current(state):
+            # A legacy run can establish the empty ledger only before its
+            # first review. Nothing earlier is retroactively certified.
+            initialize_knowledge(root, state, writes)
         rec["implementation_check_action"] = aid
         start_iteration(core, root, state, rec)
         writes[rec_path(state)] = store.dumps(rec)
@@ -644,6 +3995,7 @@ def complete(core, root, state, aid, result):
         "improve-plan",
         "improve-apply",
         "verify",
+        "carry-forward",
         "commit",
         "final-verify",
         "post-inner",
@@ -652,20 +4004,9 @@ def complete(core, root, state, aid, result):
         rec = active(root, state)
         it = rec.get("iteration", {})
         if stage == "review":
-            history = it.get("history")
-            need(
-                history
-                and history.get("head")
-                == git(core, Path(rec["worktree"]), "rev-parse", "HEAD"),
-                "read current Git history with shiploop history before reviewing",
-            )
-            required = {
-                row["sha"].strip()
-                for row in evidence.history(Path(rec["worktree"]), 7, 0)
-            }
-            need(
-                required.issubset(set(history["commits"])),
-                "read the latest seven commit bodies (or all available), paging history as needed",
+            require_knowledge_read(root, state, result)
+            require_full_history(
+                core, root, it, Path(rec["worktree"]), label="inner-loop review"
             )
             findings = result.get("findings")
             need(
@@ -678,20 +4019,42 @@ def complete(core, root, state, aid, result):
                 ),
                 "findings must list severity and summary",
             )
+            assessment = execution_research_assessment(result)
+            if core.steps_by_id(root)[rec["id"]].get("activity") == "research":
+                planning.check_coverage_review("research", result.get("research_review"))
             text_field(result, "test_review")
             text_field(result, "learnings")
             it["review"] = result
+            it["research_assessment"] = assessment
+            it["research_assessment_material"] = assessment["status"] != "not-needed"
+            if assessment["status"] == "blocked":
+                state["paused"] = "research assessment blocked: " + assessment["summary"]
             action(state, "implement", "improve-plan")
-        elif stage == "improve-plan":
-            text_field(result, "body")
-            it["plan"] = result
-            action(state, "implement", "improve-apply")
         elif stage == "improve-apply":
+            step_plan_validate_execution_proof(core, root, state, rec)
             need(
                 type(result.get("material")) is bool, "apply requires material boolean"
             )
             text_field(result, "test_changes")
             text_field(result, "learnings")
+            prior_assessment = it.get("research_assessment")
+            if isinstance(prior_assessment, dict) and prior_assessment.get("status") in (
+                "required",
+                "blocked",
+            ):
+                assessment = execution_research_assessment(result, prior_assessment)
+                it["research_assessment"] = assessment
+                it["research_assessment_material"] = True
+            elif "research_assessment" in result:
+                assessment = execution_research_assessment(result)
+                need(
+                    assessment["status"] not in ("required", "blocked"),
+                    "research assessment remains required or blocked; pause and resolve before applying",
+                )
+                it["research_assessment"] = assessment
+                it["research_assessment_material"] = (
+                    assessment["status"] != "not-needed"
+                )
             it["applied"] = result
             it["applied_fingerprint"] = evidence.fingerprint(
                 Path(rec["worktree"]), excluded=exclusions(root, Path(rec["worktree"]))
@@ -706,10 +4069,114 @@ def complete(core, root, state, aid, result):
                 Path(rec["worktree"]), excluded=exclusions(root, Path(rec["worktree"]))
             )
             it["check_action"] = aid
-            action(state, "implement", "commit")
+            action(state, "implement", "carry-forward")
+        elif stage == "carry-forward":
+            need(carry_result is not None, "carry-forward result was not validated")
+            verified(core, root, state, it["check_action"])
+            validate_carry_forward_dispositions(core, root, rec, carry_result)
+            previous_knowledge = bound_knowledge(root, state)
+            source = carry_forward_provenance(core, root, state, rec, it, aid)
+            next_knowledge = knowledge.apply_result(
+                previous_knowledge, carry_result, source
+            )
+            checkpoint_path = write_knowledge_checkpoint(
+                root,
+                state,
+                writes,
+                action_id=aid,
+                kind="carry-forward",
+                previous=previous_knowledge,
+                current=next_knowledge,
+                source=source,
+                result=result,
+            )
+            it["carry_forward"] = {
+                "action": aid,
+                "result_fingerprint": fingerprint,
+                "knowledge_revision": next_knowledge["revision"],
+                "knowledge_sha256": state["knowledge_sha256"],
+                "worktree_fingerprint": source["worktree_fingerprint"],
+                "checkpoint": checkpoint_path,
+                "learnings": carry_result["learnings"],
+            }
+            dispositions = {row["disposition"] for row in carry_result["discoveries"]}
+            need(
+                not (
+                    "pause" in dispositions
+                    and "current-step-repair" in dispositions
+                ),
+                "carry-forward cannot mix pause with current-step-repair",
+            )
+            if "pause" in dispositions:
+                blockers = [
+                    row["id"]
+                    for row in carry_result["discoveries"]
+                    if row["disposition"] == "pause"
+                ]
+                state["paused"] = (
+                    "carry-forward blocker: " + ", ".join(blockers)
+                )
+                action(state, "implement", "carry-forward")
+            elif "current-step-repair" in dispositions:
+                need(
+                    not knowledge.has_open_blockers(next_knowledge),
+                    "unresolved carry-forward blocker; submit a carry-forward resolution before restarting review",
+                )
+                repairs = [
+                    row["id"]
+                    for row in carry_result["discoveries"]
+                    if row["disposition"] == "current-step-repair"
+                ]
+                rec["improve_cycles"].append(
+                    {
+                        "outcome": "material",
+                        "kind": "carry-forward-repair",
+                        "reason": "current-step repair required: " + ", ".join(repairs),
+                        "interrupted_iteration": it["id"],
+                        "carry_forward_action": aid,
+                        "knowledge_revision": next_knowledge["revision"],
+                    }
+                )
+                start_iteration(core, root, state, rec)
+            else:
+                need(
+                    not knowledge.has_open_blockers(next_knowledge),
+                    "unresolved carry-forward blocker; submit a carry-forward resolution before continuing",
+                )
+                action(state, "implement", "commit")
         elif stage == "commit":
             verified(core, root, state, it["check_action"])
             wt = Path(rec["worktree"])
+            assessment = it.get("research_assessment")
+            need(
+                isinstance(assessment, dict)
+                and assessment.get("status") not in ("required", "blocked"),
+                "commit requires a resolved or not-needed research assessment",
+            )
+            carry = it.get("carry_forward")
+            need(
+                isinstance(carry, dict),
+                "commit requires a successful carry-forward checkpoint",
+            )
+            carry_action = carry.get("action")
+            need(
+                isinstance(carry_action, str)
+                and state["completed_actions"].get(carry_action)
+                == carry.get("result_fingerprint"),
+                "carry-forward checkpoint fingerprint is stale",
+            )
+            carry_result_path = safe_run_path(root, f"results/{carry_action}.md")
+            need(
+                carry_result_path.is_file()
+                and digest(store.read_record(carry_result_path))
+                == carry["result_fingerprint"],
+                "carry-forward result fingerprint changed before commit",
+            )
+            need(
+                evidence.fingerprint(wt, excluded=exclusions(root, wt))
+                == carry.get("worktree_fingerprint"),
+                "worktree changed after carry-forward; repair and reverify",
+            )
             need(
                 not git(core, wt, "status", "--porcelain"),
                 "commit all scoped iteration changes before completing commit",
@@ -718,7 +4185,18 @@ def complete(core, root, state, aid, result):
                 wt, text_field(result, "commit"), it["previous_sha"], it["id"]
             )
             body = git(core, wt, "show", "-s", "--format=%B", result["commit"])
-            for learned in (it["review"]["learnings"], it["applied"]["learnings"]):
+            nested_learnings = it.get("plan_learnings", [])
+            need(
+                isinstance(nested_learnings, list)
+                and all(isinstance(value, str) and value.strip() for value in nested_learnings),
+                "nested step-plan learnings are invalid",
+            )
+            for learned in (
+                it["review"]["learnings"],
+                *nested_learnings,
+                it["applied"]["learnings"],
+                carry["learnings"],
+            ):
                 need(
                     learned.strip() in body,
                     "primary commit must include the recorded review and apply learnings verbatim",
@@ -733,6 +4211,7 @@ def complete(core, root, state, aid, result):
             material = (
                 it["applied"]["material"]
                 or it.get("late_edits", False)
+                or it.get("research_assessment_material", False)
                 or any(x["severity"] == "material" for x in it["review"]["findings"])
             )
             outcome = "material" if material else "trivial"
@@ -746,17 +4225,80 @@ def complete(core, root, state, aid, result):
             else:
                 start_iteration(core, root, state, rec)
         elif stage == "final-verify":
-            verified(core, root, state)
+            require_final_verify_convergence_bound(core, root, state, rec)
+            final_check = verified(core, root, state)
+            if contract_protocol.enabled(state):
+                rec["contract_done"] = contract_protocol.capture(
+                    core, root, state, rec, result.get("done_evidence"),
+                    phase="final-verify", check=final_check,
+                )
             rec["final_check_action"] = aid
             rec["final_head"] = git(core, Path(rec["worktree"]), "rev-parse", "HEAD")
             action(state, "implement", "post-inner")
         elif stage == "post-inner":
+            if contract_protocol.enabled(state):
+                contract_protocol.revalidate_done(core, root, state, rec, phase="post-inner")
+            objective_check_action = state.pop("_objective_post_inner_check_action", None)
+            objective_final_head = state.pop("_objective_post_inner_final_head", None)
+            if objective_check_action is not None or objective_final_head is not None:
+                need(
+                    isinstance(objective_check_action, str)
+                    and isinstance(objective_final_head, str),
+                    "objective post-inner final-check binding is incomplete",
+                )
+                rec["final_check_action"] = objective_check_action
+                rec["final_head"] = objective_final_head
             need(
                 "journal" in result,
                 "post-inner requires journal, including [] when no generic proposals",
             )
             verified(core, root, state, rec["final_check_action"])
+            current_knowledge = bound_knowledge(root, state)
+            obligations = knowledge.open_pending_obligations(current_knowledge)
+            old_dag = core.load_dag(root)
             revision(core, root, state, result, writes)
+            if obligations:
+                need(
+                    result.get("plan_decision") == "revise",
+                    "pending carry-forward obligations require a revised plan",
+                )
+                revised_dag = store.loads(writes["backchain/plan.md"])
+                mapping = validate_pending_obligation_map(
+                    core,
+                    root,
+                    old_dag,
+                    revised_dag,
+                    obligations,
+                    result.get("pending_obligation_map"),
+                )
+                source = knowledge_source(
+                    core,
+                    root,
+                    state,
+                    rec,
+                    it,
+                    aid,
+                    stage="post-inner",
+                )
+                next_knowledge = knowledge.map_pending_obligations(
+                    current_knowledge, mapping, source
+                )
+                write_knowledge_checkpoint(
+                    root,
+                    state,
+                    writes,
+                    action_id=aid,
+                    kind="pending-obligation-map",
+                    previous=current_knowledge,
+                    current=next_knowledge,
+                    source=source,
+                    result={"pending_obligation_map": result["pending_obligation_map"]},
+                )
+            else:
+                need(
+                    "pending_obligation_map" not in result,
+                    "pending_obligation_map is only valid for open carry-forward obligations",
+                )
             if rec_path(state) in writes:
                 rec["plan_sha256"] = state["plan_sha256"]
             rec["plan_review"] = result
@@ -773,6 +4315,10 @@ def complete(core, root, state, aid, result):
                     "session baseline changed; integrate it into the step worktree, then repair and revalidate",
                 )
             rec["merge_target"] = rec["final_head"]
+            if contract_protocol.enabled(state):
+                rec["contract_integration_ready"] = contract_protocol.revalidate_done(
+                    core, root, state, rec, phase="merge"
+                )["record"]
             # Durable intent makes an interrupted Git merge recoverable without counting twice.
             persist(root, state, "merge-intent", {rec_path(state): store.dumps(rec)})
             rec = finish_merge(core, root, state, rec)
@@ -820,126 +4366,233 @@ def complete(core, root, state, aid, result):
     else:
         raise ProtocolError(f"cannot complete stage {stage}")
     state["completed_actions"][aid] = fingerprint
+    state["last_completion"] = {"action": aid, "stage": stage, "result_digest": fingerprint}
     state["revision"] += 1
     persist(root, state, f"complete:{stage}", writes)
 
 
 PROMPTS = {
-    "preflight": 'Inspect Git baseline, dirty files, runtime, credentials availability (never record secrets), existing lint/tests and any environment preparation needed. Preserve user dirt. Result: summary, baseline="committed-head"; include readiness and preparation findings.',
-    "approach": "Create the initial delivery approach before the spec: scope, risks, milestones, prep candidates, and acceptance strategy. Result: summary, body (Markdown).",
-    "survey": "Survey existing artifacts, references and tool/writer routes. If a client will call a service, freeze both sides' invocation protocol (service-visible operations and client/HTML call conventions) before any communication is authored. Read references/survey.md and references/activities/validate-spec.md section for environment.md. Result: summary, body (complete environment Markdown with ## machine fenced JSON).",
-    "research": "Resolve uncertainties from the survey using evidence; record assumptions and source pointers, or a reason research is not applicable. If a client–service API exists, resolve the real invocation contract from primary docs (service-visible operations; client/HTML call conventions) before spec; do not author communication yet. Result: summary, body (Markdown).",
-    "spec": 'Create the checkable spec from approach and research. Result: summary, body (Markdown with done_sentence: and checkable: true), lifecycle={acceptance:[criteria],preparation:"none|dag|outer-before",publish:"none|dag|outer-loop",quality:boolean,reason:"placement rationale"}. Obtain user direction for scope/acceptance ambiguity.',
-    "sequence": "Use ShipLoop native dependency planning: draft forward steps, then audit prerequisites backwards one step at a time. Add missing producers or unresolved questions; never invent initial facts. Read the compact references/activities/plan.md (no external planner skill required). Return summary, dependency_review, plan (Markdown with matching done_sentence and Review Coverage), and dag={goal,initial_state,steps,unresolved:[]} OR dag_file (absolute Markdown draft path). Import validates the complete DAG without needing it in chat. Mark required prep/publish steps activity: preparation/publish; plan tests for every produces. When a client will call a service, a producer must freeze the invocation contract before the step that authors call sites.",
-    "prepare": "Perform only authorized outer-before preparation. Verify readiness; stop for new permission or external uncertainty. Result: summary, evidence (specific commands/probes/results).",
-    "implement": "Implement only the active step; create or expand meaningful tests mapped to each produces. When the step authors client–service calls, tests must cover the real client/HTML invocation path, not only a substitute exec of internals. Run verify with a lint/test manifest, fix failures and repeat until all pass. Then return summary and test_review explaining coverage and changes.",
-    "review": 'Run history for this action and read the returned commit bodies and linked evidence. Review code, tests, regressions, and prior learnings. Result: summary, findings:[{severity:"material|trivial",summary}], test_review, learnings. Empty findings is valid; missing tests are material.',
-    "improve-plan": "Plan fixes for every finding, test additions/changes and prevention based on Git learnings. Result: summary, body (Markdown plan).",
-    "improve-apply": "Apply the improvement plan including trivial fixes and necessary tests. Do not weaken tests to get green. Result: summary, material:boolean, test_changes, learnings. Material findings reset the streak even if this edit is small.",
-    "verify": "Run verify for fresh lint and every declared step acceptance test. Repair failures and rerun; completion is refused until all checks pass on unchanged files. Result: summary.",
-    "commit": "Create a distinct verbose primary commit on the step branch (not branch main). Include Review:, Changes:, Validation:, Key learnings: sections and the exact ShipLoop-Iteration trailer using the iteration ID above. Include the recorded review.learnings and applied.learnings strings verbatim (retrieve context --section iteration); honest no-new-findings is valid. Use an empty audit commit if no files changed. Stage explicit paths only. Result: summary, commit (full HEAD SHA).",
-    "final-verify": "Two trivial-only iterations are recorded. Run verify again on the final tree, including all applied trivial fixes. No stale results or failed tests may exit the inner loop. Result: summary.",
-    "post-inner": 'After improvements and passing tests: do the overall learnings require changing broader steps, dependencies, prep, or test strategy? Result: summary, plan_decision="no-change|revise", plan_reason, journal:[proposals]. For revise include complete dag and plan; only pending steps can change. Generic ShipLoop proposals require title,evidence,impact,proposal,test_idea. Do not self-modify the harness.',
+    "preflight": 'Inspect Git baseline, dirty files, runtime, credentials availability (never record secrets), existing lint/tests and any environment preparation needed. Identify test surfaces and target-environment readiness without installing tools or changing scope. Preserve user dirt. Result: summary, baseline="committed-head"; include readiness and preparation findings.',
+    "approach": "Create the initial delivery approach before the spec: scope, risks, milestones, prep candidates, and acceptance strategy. Start from the durable incoming prompt; identify actors, behavioral outcomes and high-risk state/sequence questions. Result: summary, body (Markdown).",
+    "survey": "Survey existing artifacts, references and tool/writer routes. If a client will call a service, freeze both sides' invocation protocol (service-visible operations and client/HTML call conventions) before any communication is authored. Assess browser/service/API testing by actual surface and risk; record selected, not applicable with reason, or required but blocked, plus environment and documentation conventions. Read references/survey.md and references/activities/validate-spec.md section for environment.md. Result: summary, body (complete environment Markdown with ## machine fenced JSON).",
+    "research": "Draft the research candidate from the survey. Preserve a bounded question/source inventory in research_state while the report body may be detailed. Trace high-risk flows, recovery, sources and access without claiming unresolved evidence is settled. For any client/service boundary, inspect and record the actual invocation contract: public service operations/envelopes plus the real client or HTML call convention, before spec or communication authoring; do not author communication yet. Result: summary, body (Markdown), research_state={questions:[{id,question,origin,status:\"resolved|open|blocked|not-applicable\",answer,sources:[source IDs],revalidate,rationale}],sources:[{id,reference,authority:\"primary|local|secondary|probe\",version_or_observed_at,supports,limitations}]}. Every question answer is nonempty (gap/reason when not resolved); resolved questions cite source IDs; open/blocked questions cannot converge.",
+    "research-review": "Run history first. Review the research report and compact evidence for the full research rubric, source limitations, contradictions, open questions, access readiness and invocation contracts. Result: summary, findings:[{id,severity:'material|trivial',summary}], coverage_review mapping, test_review, learnings.",
+    "research-plan": "Plan every open research finding and needed evidence clarification against the current environment, actual inspected artifacts, dependencies, flows, edge conditions, second-order effects, and implicit assumptions. Keep scope explicit; do not invent implementation facts. Result: summary, body (Markdown), addresses:[every open finding ID].",
+    "research-apply": "Replace the complete research report and research_state only through this action. Preserve all prior question/source IDs and source identity; do not omit unresolved questions. Meaningful question/conclusion/status/source-binding changes are material even when the host flag says false. Result: summary, body (Markdown), research_state, material:boolean, resolutions:[{id,evidence}], test_changes, learnings.",
+    "research-verify": "Run planning-verify with a concrete lint and a test that asserts research evidence acceptance. It must pass without changing the candidate, ledger, Git baseline, or product tree. Result: summary.",
+    "research-commit": "Create one verbose audit-only Git commit with Review:, Changes:, Validation:, Key learnings:, and the exact ShipLoop-Iteration trailer. Use git commit --allow-empty --only so unrelated staged work remains staged. The commit must have the printed baseline as direct parent and identical tree. Result: summary, commit (full HEAD SHA).",
+    "research-finalize": "Two trivial, fully checked and committed research passes with no open/blocked questions or findings are required. Run fresh planning-verify for the unchanged candidate; do not supply body or research_state. Result: summary.",
+    "behavior": "Draft the current behavior model after research, before authoring the specification. Document requirements, state inventory, valid/invalid transitions, edge conditions, sequence flows, ambiguity and case mapping. This is a candidate, not a frozen contract. Result: summary, body (Markdown).",
+    "behavior-review": "Run history first. Exhaustively review the current behavior candidate for new or recurring state-transition and edge-condition findings. Every behavior rubric needs evidence or an inapplicability reason. Result: summary, findings:[{id,severity:'material|trivial',summary}], coverage_review mapping, test_review, learnings.",
+    "behavior-plan": "Plan every open behavior finding against the current environment, observed implementation or interface evidence, dependency paths, flows, edge conditions, second-order effects, and implicit requirements. Result: summary, body (Markdown), addresses:[every open finding ID].",
+    "behavior-apply": "Replace the complete behavior candidate through this action only; resolve findings only with concrete evidence. Result: summary, body (Markdown), material:boolean, resolutions:[{id,evidence}], test_changes, learnings.",
+    "behavior-verify": "Run planning-verify with a concrete lint and a test that asserts the behavior-model acceptance. It must pass without changing the candidate, ledger, Git baseline, or product tree. Result: summary.",
+    "behavior-commit": "Create one verbose audit-only Git commit with Review:, Changes:, Validation:, Key learnings:, and the exact ShipLoop-Iteration trailer. Use git commit --allow-empty --only so unrelated staged work remains staged. The commit must have the printed baseline as direct parent and identical tree. Result: summary, commit (full HEAD SHA).",
+    "behavior-finalize": "Two trivial, fully checked and committed behavior passes with no open findings are required. Run fresh planning-verify for the unchanged candidate; do not supply body or lifecycle. Result: summary.",
+    "spec": 'Draft the checkable specification only after the behavior model is frozen. Document prompt-linked requirements, sequence flows, state invariants and all required in-scope transitions with triggers, guards, effects and recovery; audit invalid events and relevant temporal/concurrent paths, or justify stateless applicability. Define acceptance test cases with preconditions, inputs/actions, observable expected outcomes, and required test surfaces/environments; expected is not observed. This is a candidate, not the frozen contract. Result: summary, body (Markdown with done_sentence: and checkable: true), lifecycle={acceptance:[criteria],preparation:"none|dag|outer-before",publish:"none|dag|outer-loop",quality:boolean,reason:"placement rationale"}. Obtain user direction for material behavioral or scope/acceptance ambiguity.',
+    "spec-review": "Run history first. Review the specification candidate, including behavior-model traceability, state transitions, edge conditions, acceptance, clarity, consistency and feasibility. Result: summary, findings:[{id,severity:'material|trivial',summary}], coverage_review mapping, test_review, learnings.",
+    "spec-plan": "Plan every open specification finding using the current behavior model, environment, dependency sequence, state flows, edge conditions, second-order effects, and implicit requirements. Result: summary, body (Markdown), addresses:[every open finding ID].",
+    "spec-apply": "Replace the complete spec and lifecycle drafts through this action only; resolve findings only with concrete evidence. Result: summary, body (Markdown), lifecycle object, material:boolean, resolutions:[{id,evidence}], test_changes, learnings.",
+    "spec-verify": "Run planning-verify with a concrete lint and a test that asserts the specification acceptance. It must pass without changing the candidate, ledger, Git baseline, or product tree. Result: summary.",
+    "spec-commit": "Create one verbose audit-only Git commit with Review:, Changes:, Validation:, Key learnings:, and the exact ShipLoop-Iteration trailer. Use git commit --allow-empty --only so unrelated staged work remains staged. The commit must have the printed baseline as direct parent and identical tree. Result: summary, commit (full HEAD SHA).",
+    "spec-finalize": "Two trivial, fully checked and committed specification passes with no open findings are required. Run fresh planning-verify for the unchanged candidate; do not supply body or lifecycle. Result: summary.",
+    "sequence": "Use ShipLoop native dependency planning: draft forward steps, then audit prerequisites backwards one step at a time. Recheck the actual environment, existing implementation, prior Git learning, dependencies, state/sequence flows, edge conditions, second-order effects, and implicit requirements before fixing order. Add missing producers or unresolved questions; never invent initial facts. Read the compact references/activities/plan.md (no external planner skill required). Return summary, dependency_review, plan (Markdown with matching done_sentence and Review Coverage), and the complete dag OR dag_file (absolute Markdown draft path). New runs require DAG contract_version:1 and every step's explicit contract: objective matching statement, Ready criteria, Done criteria, tests with exact expected outcomes, and documentation obligations; follow the printed schema. Import validates the complete DAG without needing it in chat. Mark required prep/publish steps activity: preparation/publish; plan executable checks and concise function/README documentation for every relevant produces. Put environment/deployment prerequisites before dependent checks; deployment-dependent acceptance must be verifiable before the step closes. When a client will call a service, a producer must freeze the invocation contract before the step that authors call sites.",
+    "prepare": "Perform only authorized outer-before preparation. Verify the selected test environment, artifact identity, isolated fixtures and readiness; a health probe is not behavioral acceptance. Stop for new permission or external uncertainty. Result: summary, evidence (specific commands/probes/results).",
+    "step-plan": "Draft the initial step-local plan before product edits. Read --section step-context, relevant prior Git commit bodies, the relevant frozen spec/environment/behavior/plan pages, and bounded knowledge. Bind the exact selected step, existing code state, direct dependencies, flows, edge conditions, second-order effects, implicit requirements, test strategy, and documentation impact. This drafts only Markdown planning evidence; do not edit product files. Result: summary, body (Markdown plan).",
+    "step-plan-review": "Run history first, then read --section step-plan, --section step-context, and every bounded knowledge page. Review the actual selected step implementation/worktree and environment rather than only the draft. Inspect prior Git commit bodies; audit-only plan commits can dominate the latest ten, so inspect relevant older implementation/decision commits by path or symbol when needed. Record stable findings and every required coverage dimension. Use material scope or behavior only for a new or contradictory frozen-contract requirement; an ordinary gap implementing an already-approved flow belongs in implementation, flow, or edge-condition. Material scope or behavior pauses ShipLoop rather than silently widening the frozen contract. Result: summary, findings:[{id,severity:'material|trivial',category:'scope|behavior|implementation|environment|dependency|flow|edge-condition|second-order-effect|implicit-requirement|test-strategy|documentation',summary}], coverage_review with every required key, context_evidence:{step,implementation,environment,dependencies}, test_review, learnings. The script binds knowledge page receipts; new runs do not echo their metadata.",
+    "step-plan-disposition": "A material scope or behavior finding paused this step plan. After an explicit review of the approved contract, either halt for an authorized broader-plan change, or record only a demonstrated false-positive classification. Do not edit the candidate, product, DAG, or frozen contract. For the latter, Result: summary, disposition:'no-contract-change', resolutions:[{id,evidence}] covering every listed material scope/behavior finding. ShipLoop archives this pass and restarts fresh review; resume alone does not approve it.",
+    "step-plan-revise": "Revise only the step-plan Markdown candidate to address every open finding. Do not edit product files, tests, frozen requirements, or the DAG in this phase. For each concrete resolution retain stable finding IDs and evidence; state whether candidate changes are material. Result: summary, body (complete Markdown candidate), addresses:[every open finding ID], resolutions:[{id,evidence}], material:boolean, test_changes, learnings.",
+    "step-plan-verify": "Run planning-verify in the active worktree with a concrete lint and a test acceptance exactly covering 'step plan'. It must pass without changing the candidate, ledger, selected source state, staged/uncommitted work, Git baseline, or frozen inputs. Result: summary.",
+    "step-plan-commit": "Create one verbose audit-only Git commit in the active step worktree with Review:, Changes:, Validation:, Key learnings:, and the exact ShipLoop-Iteration trailer for the current step-plan pass. Use git commit --allow-empty --only so staged or uncommitted product work remains untouched. The audit must be the direct child of the printed baseline with the same committed tree. Result: summary, commit (full HEAD SHA).",
+    "step-plan-finalize": "Two consecutive verified/audited trivial step-plan passes with no open findings are required. Run fresh planning-verify for the newly bound final pass; do not replace the candidate or findings. Result: summary.",
+    "implement": "Before acting, retrieve current bounded knowledge with context --section knowledge; it is host-reported context, not permission to change frozen contracts or writers. Implement only the active step after its current step-plan handoff; create or expand meaningful tests mapped to each produces. When the step authors client–service calls, tests must cover the real client/HTML invocation path, not only a substitute exec of internals. Document case IDs/expected outcomes and concise changed function contracts; review the product README and update it or explain unchanged before checks. Run verify with a lint/test manifest, fix failures and repeat until all pass. Then return summary and test_review with case/documentation references, actual outcomes, environment, evidence and limitations.",
+    "review": 'Run history for this action and retrieve every bounded page of context --section knowledge before reviewing; the script binds its current revision and complete page coverage. Review actual code, tests, environment, dependencies, state/sequence flows, edge conditions, second-order effects, implicit requirements, regressions, and prior learnings. Compare expected versus observed case outcomes; reassess browser/service/API applicability, function contracts and product README accuracy. Result: summary, findings:[{severity:"material|trivial",summary}], test_review, learnings, research_assessment:{status:"not-needed|resolved|required|blocked",summary,evidence:[safe refs],questions:[strings]}; non-not-needed requires evidence/questions. Use resolved only when new investigation completed this pass (it is material); use not-needed when no new material research is needed and prior resolved evidence remains valid. For activity:research, also include research_review with every research rubric key. Empty findings is valid; missing required tests or materially misleading documentation are material.',
+    "improve-plan": "Draft the next step-local improvement plan from every review finding and Git learning. Read --section step-context and include every listed PARENT-* finding ID in the candidate. The following step-plan loop will repeatedly inspect the actual worktree, environment, dependencies, flows, edge conditions, second-order effects, and implicit requirements before any product edits. Include expected-outcome case changes, concise function contracts and product README changes or a no-change reason. Result: summary, body (Markdown plan).",
+    "improve-apply": "Apply only the certified step-plan improvement including trivial fixes, necessary tests and affected function/README documentation before verification. Recheck environment/dependency/flow/edge/second-order/implicit effects while editing; do not weaken tests or expected outcomes to get green. If the prior research_assessment was required or blocked, include research_assessment with status resolved, safe evidence and every prior required question verbatim; do not fabricate a resolution. Result: summary, material:boolean, test_changes, learnings; record case/doc deltas or why unchanged. Material findings reset the streak even if this edit is small.",
+    "verify": "Run verify for fresh lint and every declared step acceptance test, including applicable documentation/example checks. Compare actual with expected outcomes in the selected environment; required failed, blocked or unrun cases remain unfinished. Repair failures and rerun; completion is refused until all checks pass on unchanged files. Result: summary with compact case/evidence references; put run-only observations in the inbox result, not product files after checks.",
+    "carry-forward": "After successful fresh verification and before commit, record an explicit carry-forward checkpoint. Retrieve context --section knowledge; result fields are summary, learnings (nonempty string), discoveries (explicit [] when none), and optional resolutions. Each discovery is {id,domain,observation,evidence,scope,disposition,rationale,revalidate}; domains and dispositions are fixed by the linked protocol. Observations are host-reported, evidence is a safe reference, and no credential values or credential-bearing URLs are allowed. current-step-repair restarts review with a material interrupted checkpoint; pending-replan remains an obligation for post-inner; pause requires a later no-contract-change resolution. Do not rewrite frozen contracts.",
+    "commit": "Create a distinct verbose primary commit on the step branch (not branch main). Include Review:, Changes:, Validation:, Key learnings: sections and the exact ShipLoop-Iteration trailer using the iteration ID above. Include the recorded review.learnings, nested step-plan plan_learnings, applied.learnings, and carry-forward learnings strings verbatim (retrieve context --section iteration); honest no-new-findings is valid. Include case and function/README documentation deltas or no-change reasons without copying full logs. Use an empty audit commit if no files changed. Stage explicit paths only. Result: summary, commit (full HEAD SHA).",
+    "final-verify": "Two trivial-only iterations are recorded. Run verify again on the final tree, including all applied trivial fixes and applicable documentation/example checks. Compare required case outcomes; no stale results or failed, blocked or unrun required tests may exit the inner loop. Result: summary with case/evidence references.",
+    "post-inner": 'After improvements and passing tests: use the current environment, actual implementation, Git learnings, dependencies, flows, edge conditions, second-order effects, and implicit requirements to ask whether broader steps, prep, test cases/surfaces, function contracts, or README documentation must change. Result: summary, plan_decision="no-change|revise", plan_reason, journal:[proposals]. For revise include complete dag and plan; only pending steps can change. If context --section knowledge reports open obligations, revise and include pending_obligation_map:[{id,steps:[changed-or-added pending step IDs]}]; this schedules work, it does not verify or fix it. Generic ShipLoop proposals require title,evidence,impact,proposal,test_idea. Do not self-modify the harness.',
     "merge": "The step passed convergence, final checks and broader-plan review. Return summary to merge into the session checkout. Merge is local only; no push or publication.",
     "coverage": "Run the bound Review Coverage activity and commit its ledger. Complete only with a complete, bound, actually tracked clean ledger or an existing explicit bound-plan waiver. Result: summary.",
-    "quality": "Run whole-product acceptance/integration checks with verify. Test manifest acceptance entries must cover every exact string in lifecycle.acceptance (retrieve context --section lifecycle), not the prior step's produces. Include a lint check. If lifecycle quality=true, also review broader product quality and record quality_review. Put needed code/test improvements into corrective pending DAG steps with replan; do not bypass inner loops by patching the session checkout. Result: summary, test_review, quality_review when applicable. Failure remains unfinished.",
-    "publish": "Perform publication only if authorized and specified. Inspect any existing delivery before retrying to avoid duplicate external effects. Verify the actual entrypoint. Result: summary, artifact, verification, evidence. These publication facts remain host-reported.",
-    "handoff": "Summarize delivery, checked acceptance, limitations and a prioritized proposal list from shiploop-improvements.md. Result: summary, journal ([] if no additions). Do not apply generic skill proposals automatically.",
+    "quality": "Run whole-product acceptance/integration checks with verify. Test manifest acceptance entries must cover every exact string in lifecycle.acceptance (retrieve context --section lifecycle), not the prior step's produces. Include a lint check. Reassess the actual deployment/test environment, dependencies, cross-step flows, edge conditions, second-order effects, implicit requirements, browser/service/API cases, expected/observed outcomes, concise function contracts, and product README examples. If lifecycle quality=true, also review broader product quality and record quality_review. Put needed code/test/documentation improvements into corrective pending DAG steps with replan; do not bypass inner loops by patching the session checkout. Result: summary, test_review with case/doc/evidence references and limitations, quality_review when applicable. Required failed, blocked or unrun checks remain unfinished.",
+    "publish": "Perform publication only if authorized and specified. Inspect any existing delivery before retrying to avoid duplicate external effects. Verify the actual entrypoint and applicable delivery smoke cases against documented expected outcomes; record the tested environment/build, not a local substitute. Required failed or unknown delivery checks keep publication unfinished. Result: summary, artifact, verification, evidence. These publication facts remain host-reported.",
+    "handoff": "Summarize delivery, checked acceptance, limitations and a prioritized proposal list from shiploop-improvements.md. Link test-case expectations/results, concise function/API docs and product README; distinguish observed outcomes, actual environment/version, manual evidence and unrun checks. Result: summary, journal ([] if no additions). Do not apply generic skill proposals automatically.",
+}
+
+PROMPTS.update(
+    {
+        "objective-review": "Run `shiploop history --limit 10 --skip 0` for navigation, then bind every current body with `--limit 1 --skip N --full` (or an equivalent full page) before reviewing. Audit-only commits can crowd the latest window, so inspect relevant older implementation/decision bodies by --skip when needed; older pages supplement rather than replace the current ten. Review the bound Markdown candidate against current source, environment, dependencies, flows, edge conditions, second-order effects, implicit requirements, tests, documentation, and relevant full Git bodies. Result: summary, findings:[{id,severity:'material|trivial',category:'scope|behavior|implementation|environment|dependency|flow|edge-condition|second-order|implicit-requirement|test|documentation|other',summary}], assessment with every required dimension, history_assessment, test_review, learnings. Do not edit product files.",
+        "objective-plan": "Plan every open objective finding using only the exact bound candidate and current durable context. Result: summary, addresses:[every open finding ID], body (Markdown), learnings. Do not edit product files or apply external effects.",
+        "objective-apply": "Refine only the complete tentative objective candidate. Resolve every open finding with concrete evidence; classify material work honestly. Result: summary, candidate:{complete original-stage result}, material:boolean, addresses:[every open finding ID], resolutions:[{id,evidence}], test_changes, learnings. Do not edit product files or perform external effects.",
+        "objective-verify": "Run planning-verify with a concrete lint and acceptance exactly covering the printed objective requirement. It must pass without changing the candidate, Git baseline, source tree, staged/untracked state, or bound context. Result: summary.",
+        "objective-commit": "Create one verbose audit-only Git commit with Review:, Changes:, Validation:, Key learnings:, exact ShipLoop-Iteration trailer, and every recorded review/plan/apply learning verbatim. It must be the direct child of the printed baseline with identical committed tree; preserve staged/uncommitted product work. Result: summary, commit (full HEAD SHA).",
+        "objective-finalize": "Two verified/audited trivial passes with no open findings are only ready. Run fresh planning-verify on the newly bound final pass, then finalize without candidate replacement. The script applies the finalized candidate once to its original stage. Result: summary.",
+    }
+)
+
+
+# Section routing keeps each action small; the referenced policy is shared by hosts.
+TEST_DOC_SECTIONS = {
+    "preflight": ("surface-selection",),
+    "survey": ("surface-selection",),
+    "research": ("surface-selection",),
+    "research-review": ("iteration",),
+    "research-plan": ("iteration",),
+    "research-apply": ("iteration",),
+    "research-verify": ("test-cases",),
+    "research-commit": ("iteration",),
+    "research-finalize": ("test-cases",),
+    "spec": ("test-cases", "surface-selection"),
+    "behavior-review": ("iteration",),
+    "behavior-plan": ("iteration",),
+    "behavior-apply": ("iteration",),
+    "behavior-verify": ("test-cases",),
+    "behavior-commit": ("iteration",),
+    "behavior-finalize": ("test-cases",),
+    "spec-review": ("iteration",),
+    "spec-plan": ("iteration",),
+    "spec-apply": ("iteration",),
+    "spec-verify": ("test-cases",),
+    "spec-commit": ("iteration",),
+    "spec-finalize": ("test-cases",),
+    "sequence": ("test-cases", "documentation"),
+    "prepare": ("surface-selection",),
+    "implement": ("iteration",),
+    "review": ("iteration",),
+    "improve-plan": ("iteration",),
+    "improve-apply": ("iteration",),
+    "verify": ("test-cases",),
+    "carry-forward": ("iteration",),
+    "commit": ("iteration",),
+    "final-verify": ("test-cases",),
+    "post-inner": ("iteration",),
+    "quality": ("deployment-and-handoff",),
+    "publish": ("deployment-and-handoff",),
+    "handoff": ("deployment-and-handoff",),
+}
+
+
+# Product behavior modeling is routed separately from test/documentation policy.
+BEHAVIOR_SECTIONS = {
+    "approach": ("discovery-and-research",),
+    "survey": ("discovery-and-research",),
+    "behavior": ("behavior-model",),
+    "behavior-review": ("traceability-and-review",),
+    "behavior-plan": ("traceability-and-review",),
+    "behavior-apply": ("traceability-and-review",),
+    "behavior-verify": ("traceability-and-review",),
+    "behavior-commit": ("traceability-and-review",),
+    "behavior-finalize": ("traceability-and-review",),
+    "spec": ("behavior-model",),
+    "spec-review": ("traceability-and-review",),
+    "spec-plan": ("traceability-and-review",),
+    "spec-apply": ("traceability-and-review",),
+    "spec-verify": ("traceability-and-review",),
+    "spec-commit": ("traceability-and-review",),
+    "spec-finalize": ("traceability-and-review",),
+    "sequence": ("traceability-and-review",),
+    "implement": ("traceability-and-review",),
+    "review": ("traceability-and-review",),
+    "improve-plan": ("traceability-and-review",),
+    "improve-apply": ("traceability-and-review",),
+    "verify": ("traceability-and-review",),
+    "carry-forward": ("traceability-and-review",),
+    "final-verify": ("traceability-and-review",),
+    "post-inner": ("traceability-and-review",),
+    "quality": ("traceability-and-review",),
+    "handoff": ("traceability-and-review",),
+}
+
+
+# Planning convergence is a separate durable loop.  Packets page only the
+# section needed by the active action instead of loading its full guide.
+PLANNING_SECTIONS = {
+    "research": ("loop-contract",),
+    "research-review": ("review",),
+    "research-plan": ("plan-and-apply",),
+    "research-apply": ("plan-and-apply",),
+    "research-verify": ("checks-and-commits",),
+    "research-commit": ("checks-and-commits",),
+    "research-finalize": ("finalization-and-recovery",),
+    "behavior": ("loop-contract",),
+    "behavior-review": ("review",),
+    "behavior-plan": ("plan-and-apply",),
+    "behavior-apply": ("plan-and-apply",),
+    "behavior-verify": ("checks-and-commits",),
+    "behavior-commit": ("checks-and-commits",),
+    "behavior-finalize": ("finalization-and-recovery",),
+    "spec": ("loop-contract",),
+    "spec-review": ("review",),
+    "spec-plan": ("plan-and-apply",),
+    "spec-apply": ("plan-and-apply",),
+    "spec-verify": ("checks-and-commits",),
+    "spec-commit": ("checks-and-commits",),
+    "spec-finalize": ("finalization-and-recovery",),
+}
+
+
+# Per-step planning is a separate, Markdown-bound gate.  The guide is routed
+# in small sections so an exhausted model need not carry its archive history.
+STEP_PLANNING_SECTIONS = {
+    "step-plan": ("loop-contract", "cold-start-evidence"),
+    "step-plan-review": ("review-rubric", "cold-start-evidence"),
+    "step-plan-disposition": ("contract-disposition",),
+    "step-plan-revise": ("revise-and-verify",),
+    "step-plan-verify": ("revise-and-verify",),
+    "step-plan-commit": ("revise-and-verify",),
+    "step-plan-finalize": ("loop-contract",),
+    "improve-plan": ("phase-specific-emphasis",),
+    "research-plan": ("phase-specific-emphasis",),
+    "behavior-plan": ("phase-specific-emphasis",),
+    "spec-plan": ("phase-specific-emphasis",),
+    "sequence": ("phase-specific-emphasis",),
+    "review": ("phase-specific-emphasis",),
+    "improve-apply": ("phase-specific-emphasis",),
+    "post-inner": ("phase-specific-emphasis",),
+    "quality": ("phase-specific-emphasis",),
+}
+
+
+# Generic substantive objectives use the same small, cold-start guide shape.
+# Packet rendering owns presentation; this mapping exposes only stable routing.
+OBJECTIVE_SECTIONS = {
+    "objective-review": ("loop-contract", "review-rubric"),
+    "objective-plan": ("loop-contract", "plan-and-apply"),
+    "objective-apply": ("plan-and-apply",),
+    "objective-verify": ("checks-and-commits",),
+    "objective-commit": ("checks-and-commits",),
+    "objective-finalize": ("finalization-and-recovery",),
+}
+
+
+# Research has its own compact evidence contract.  Keep this mapping separate
+# from the generic planning loop guide so a cold host only reads the section
+# that explains the current research decision.
+RESEARCH_SECTIONS = {
+    "research": ("draft",),
+    "research-review": ("review",),
+    "research-plan": ("review",),
+    "research-apply": ("draft",),
+    "research-verify": ("evidence-and-freshness",),
+    "research-commit": ("evidence-and-freshness",),
+    "research-finalize": ("evidence-and-freshness",),
+    "review": ("later-discoveries",),
+    "improve-plan": ("later-discoveries",),
+    "improve-apply": ("later-discoveries",),
+    "carry-forward": ("later-discoveries",),
+    "post-inner": ("later-discoveries",),
 }
 
 
 def packet(core, root, state):
-    stage = state["stage"]
-    print(
-        f"ShipLoop {core.VERSION} | {state['phase']} / {stage} | revision {state['revision']}"
-    )
-    print(
-        f"Run: {root}\nState: {root / 'state.md'}\nJournal: {root / 'shiploop-improvements.md'}"
-    )
-    if state.get("paused"):
-        print(
-            f"Paused, unfinished: {str(state['paused'])[:320]}\nUse shiploop resume --run-dir {shlex.quote(str(root))} when resolved. The full reason and action cursor remain in state.md."
-        )
-        return
-    if stage in ("done", "halted"):
-        print(
-            f"Stop. Handoff: {root / 'handoff.md'}\nReview and propose journal entries; no automatic harness updates."
-        )
-        entries = store.read_record(root / "shiploop-improvements.md")
-        print(f"ShipLoop proposals recorded: {len(entries)}")
-        for entry in entries[:5]:
-            print(f"- {entry['title'][:120]}: {entry['impact'][:180]}")
-        if len(entries) > 5:
-            print(
-                "Additional proposals are in the linked journal; use context --section journal to page through them."
-            )
-        return
-    aid = state["action"]["id"]
-    print(f"Action: {aid}\nWorking directory: {repo_for(root, state)}")
-    if state.get("active_step"):
-        rec = active(root, state)
-        print(f"Step: {rec['id']} | receipt: {root / rec_path(state)}")
-        print(
-            f"Step prompt/produces: {root / 'backchain/plan.md'} (select only {rec['id']})"
-        )
-        if rec.get("iteration"):
-            print(f"Iteration: {rec['iteration']['id']}")
-            print(
-                "Use context --section iteration for only the current review/plan, not the full receipt history."
-            )
-    available = [
-        name
-        for name in (
-            "prompt",
-            "approach",
-            "environment",
-            "research",
-            "spec",
-            "lifecycle",
-            "plan",
-        )
-        if (root / f"{name}.md").is_file()
-    ]
-    print(
-        "Available durable context: "
-        + ", ".join(
-            available
-            + ["journal"]
-            + (["step", "iteration"] if state.get("active_step") else [])
-        )
-    )
-    if state.get("previous_planning"):
-        print(
-            f"Previous planning evidence (archived, not active): {state['previous_planning']}"
-        )
-    instruction = PROMPTS.get(stage, "Run next to resume scheduling.")
-    print(instruction.replace("references/", str(core.REF_DIR) + "/"))
-    cmd = f"{shlex.quote(str(core.PACKAGE_ROOT / 'scripts/shiploop'))}"
-    options = f"--run-dir {shlex.quote(str(root))} --action {aid}"
-    print(
-        f"Bounded context: {cmd} context --run-dir {shlex.quote(str(root))} --section <available-section> --offset 0 --limit 4000"
-    )
-    if stage in ("implement", "verify", "final-verify", "quality"):
-        manifest_input = (
-            root / "inbox" / f"checks-{state.get('active_step', 'outer')}.md"
-        )
-        print(f"Author/update manifest: {manifest_input}")
-        print(
-            f"Checks: {cmd} verify {options} --manifest {shlex.quote(str(manifest_input))}"
-        )
-    if stage == "review":
-        print(f"History: {cmd} history {options} --limit 7 --skip 0")
-    print(
-        f"Result format: one ```shiploop-state JSON object fence in a Markdown file. Protocol/schema: {core.REF_DIR / 'action-protocol.md'}"
-    )
-    result_input = root / "inbox" / f"{aid}.md"
-    print(f"Write the result to {result_input} (metadata, not product files).")
-    print(
-        f"When done: {cmd} complete {options} --result {shlex.quote(str(result_input))}"
-    )
-    print(
-        "Use the returned next action; do not infer completion from chat memory. If blocked, report the exact blocker; do not certify success."
-    )
+    # Keep this host-facing entry point intentionally thin.  Packet rendering
+    # has no transition authority and receives every protocol helper through
+    # this module's existing namespace so it cannot become a second engine.
+    import shiploop_packets
+
+    print(shiploop_packets.render(core, root, state, globals()), end="")
 
 
 def migrate(core, root):
@@ -984,11 +4637,22 @@ def migrate(core, root):
             writes[str(Path(relative).with_suffix(".md"))] = store.dumps(record)
         deletes.append(relative)
     old.update(
-        version=3, revision=0, completed_actions={}, legacy_phase=old.get("phase")
+        version=3,
+        revision=0,
+        completed_actions={},
+        legacy_phase=old.get("phase"),
+        planning_protocol_version=planning.PROTOCOL_VERSION,
+        planning_epoch=1,
+        step_planning_protocol_version=STEP_PLANNING_PROTOCOL_VERSION,
+        research_sha256="",
+        research_certificate_sha256="",
+        research_as_of="",
+        behavior_sha256="",
     )
     # Restart planning checkpoints, never erase code, branches, or historical receipts.
     action(old, "intake", "preflight")
     old["environment_sha256"] = old["spec_sha256"] = old["plan_sha256"] = ""
+    old["lifecycle_sha256"] = old["plan_wrapper_sha256"] = ""
     old["artifacts"] = dict(
         old.get("artifacts", {}),
         backchain=str(root / "backchain/plan.md"),
@@ -1020,6 +4684,267 @@ def migrate(core, root):
     store.transaction(root, writes, deletes)
 
 
+def planning_upgrade(core, root, state, aid):
+    """Explicitly restart unreviewed v3 planning without touching execution work."""
+    need(
+        not planning.is_current(state),
+        "planning protocol is already current; do not replay an upgrade",
+    )
+    need(aid == state["action"]["id"], "stale action ID")
+    step_receipts = list((root / "steps").glob("*.md"))
+    need(
+        not step_receipts and not state.get("active_step"),
+        "planning upgrade requires a fresh run when step receipts exist; preserved work is not replayed or certified",
+    )
+    archive_root = f"planning-history/{aid}/upgrade"
+    names = {
+        "research.md",
+        "research-evidence.md",
+        "behavior.md",
+        "spec-draft.md",
+        "lifecycle-draft.md",
+        "spec.md",
+        "lifecycle.md",
+        "plan.md",
+        "backchain/plan.md",
+        "preparation.md",
+    }
+    planning_dir = root / "planning"
+    if planning_dir.exists():
+        need(not planning_dir.is_symlink(), "planning directory must not be a symlink")
+        for source in planning_dir.rglob("*.md"):
+            need(not source.is_symlink(), "planning archive source must not be a symlink")
+            names.add(str(source.relative_to(root)))
+    writes, deletes = {}, []
+    for name in sorted(names):
+        source = safe_run_path(root, name)
+        if source.is_file():
+            writes[f"{archive_root}/{name}"] = source.read_bytes().decode("utf-8")
+            deletes.append(name)
+    old_stage = state["stage"]
+    if old_stage in ("preflight", "approach", "survey", "research"):
+        restart = old_stage
+    elif not (root / "environment.md").is_file():
+        restart = "survey"
+    else:
+        # v1 research was a one-shot report, not a converged certificate.  It
+        # is archived above and re-run even if a stale report still exists.
+        restart = "research"
+    restart_phase = "intake" if restart in ("preflight", "approach") else "validate-spec"
+    state.update(
+        planning_protocol_version=planning.PROTOCOL_VERSION,
+        planning_epoch=max(int(state.get("planning_epoch", 0)), 0) + 1,
+        research_sha256="",
+        research_certificate_sha256="",
+        research_as_of="",
+        behavior_sha256="",
+        spec_sha256="",
+        lifecycle_sha256="",
+        plan_sha256="",
+        plan_wrapper_sha256="",
+    )
+    if state.get("bound_plan") == str(root / "plan.md"):
+        state["bound_plan"] = state["bound_plan_hash"] = ""
+    state["completed_actions"][aid] = digest(
+        {"command": "planning-upgrade", "restart": restart}
+    )
+    state["previous_planning"] = str(root / archive_root)
+    state["revision"] += 1
+    action(state, restart_phase, restart)
+    writes[f"{archive_root}/upgrade.md"] = store.dumps(
+        {
+            "from_action": aid,
+            "restart": restart,
+            "note": "Earlier planning was archived and not certified. No step receipt, branch, or product work was deleted or replayed.",
+        },
+        "ShipLoop planning protocol upgrade",
+    )
+    persist(root, state, "planning-upgrade", writes, deletes)
+
+
+def planning_revisit(core, root, state, aid, target, reason):
+    """Archive a current planning epoch and restart only the requested scope."""
+    need(aid == state["action"]["id"], "stale action ID")
+    allowed = {
+        "approach",
+        "survey",
+        "research",
+        "research-review",
+        "research-plan",
+        "research-apply",
+        "research-verify",
+        "research-commit",
+        "research-finalize",
+        "behavior",
+        "behavior-review",
+        "behavior-plan",
+        "behavior-apply",
+        "behavior-verify",
+        "behavior-commit",
+        "behavior-finalize",
+        "spec",
+        "spec-review",
+        "spec-plan",
+        "spec-apply",
+        "spec-verify",
+        "spec-commit",
+        "spec-finalize",
+        "sequence",
+        "prepare",
+    }
+    enclosing_objective = state.get("objective")
+    objective_revisit = (
+        objectives.is_objective_stage(state["stage"])
+        and objective_current(state)
+        and isinstance(enclosing_objective, dict)
+        and enclosing_objective.get("kind") in (
+            "survey", "sequence", "preparation-readiness"
+        )
+    )
+    need(state["stage"] in allowed or objective_revisit, "revisit is only for planning before execution")
+    need(
+        not list((root / "steps").glob("*.md")) and not state.get("active_step"),
+        "cannot revisit frozen contracts underneath running or completed work; seek user direction",
+    )
+    need(bool(reason.strip()), "revisit needs a reason")
+    current_kind = planning.kind_for_stage(state["stage"])
+    if current_kind and state["stage"] not in ("research", "behavior", "spec"):
+        _, receipt = planning_receipt(root, state)
+        planning_assert_bound(core, root, state, receipt)
+    if state.get("behavior_sha256"):
+        behavior = root / "behavior.md"
+        need(
+            behavior.is_file()
+            and not behavior.is_symlink()
+            and hashlib.sha256(behavior.read_bytes()).hexdigest()
+            == state["behavior_sha256"],
+            "behavior model hash drift; restore frozen content before revisiting",
+        )
+    if target == "spec":
+        need(state.get("behavior_sha256"), "behavior must be converged before revisiting spec")
+        planning_validate_certificate(core, root, state, "behavior")
+    if target == "research":
+        need(
+            (root / "environment.md").is_file(),
+            "survey must be completed before revisiting research",
+        )
+    if target == "behavior":
+        need(
+            (root / "environment.md").is_file(),
+            "survey must be completed before revisiting behavior",
+        )
+        research_current_binding(core, root, state)
+
+    names = {
+        "spec-draft.md",
+        "lifecycle-draft.md",
+        "spec.md",
+        "lifecycle.md",
+        "plan.md",
+        "backchain/plan.md",
+        "preparation.md",
+    }
+    if target in ("survey", "research", "behavior"):
+        names.add("behavior.md")
+    if target in ("survey", "research"):
+        names.update({"research.md", "research-evidence.md"})
+    if target == "survey":
+        names.add("environment.md")
+    planning_dir = root / "planning"
+    if planning_dir.exists():
+        need(not planning_dir.is_symlink(), "planning directory must not be a symlink")
+        for source in planning_dir.rglob("*.md"):
+            relative = str(source.relative_to(root))
+            if target == "spec" and not relative.startswith("planning/spec"):
+                continue
+            if target == "behavior" and not (
+                relative.startswith("planning/behavior")
+                or relative.startswith("planning/spec")
+            ):
+                continue
+            need(not source.is_symlink(), "planning archive source must not be a symlink")
+            names.add(relative)
+    archive_root = f"planning-history/{aid}/revisit-{target}"
+    writes, deletes = {}, []
+    if objective_revisit:
+        abandon_objective_for_replan(
+            core, root, state, writes, reason=reason,
+            details={"action": aid, "revisit": target},
+        )
+    state.pop("objective_preallocation_bridge", None)
+    for name in sorted(names):
+        source = safe_run_path(root, name)
+        if source.is_file():
+            writes[f"{archive_root}/{name}"] = source.read_bytes().decode("utf-8")
+            deletes.append(name)
+    for key in (
+        "spec_sha256",
+        "lifecycle_sha256",
+        "plan_sha256",
+        "plan_wrapper_sha256",
+    ):
+        state[key] = ""
+    if target in ("survey", "research", "behavior"):
+        state["behavior_sha256"] = ""
+    if target in ("survey", "research"):
+        state["research_sha256"] = ""
+        state["research_certificate_sha256"] = ""
+        state["research_as_of"] = ""
+    if target == "survey":
+        state["environment_sha256"] = ""
+    if state.get("bound_plan") == str(root / "plan.md"):
+        state["bound_plan"] = state["bound_plan_hash"] = ""
+    state["planning_epoch"] = max(int(state.get("planning_epoch", 1)), 1) + 1
+    state["completed_actions"][aid] = digest(
+        {"command": "revisit", "to": target, "reason": reason}
+    )
+    state["previous_planning"] = str(root / archive_root)
+    state.pop("paused", None)
+    state["revision"] += 1
+    action(state, "validate-spec", target)
+    writes[f"{archive_root}/reason.md"] = store.dumps(
+        {"reason": reason, "to": target, "epoch": state["planning_epoch"]},
+        "ShipLoop planning revisit",
+    )
+    persist(root, state, f"planning-revisit:{target}", writes, deletes)
+
+
+def planning_repair(core, root, state, aid, reason):
+    """Abandon the current planner pass and restart review without blessing drift."""
+    need(aid == state["action"]["id"], "stale action ID")
+    need(
+        planning.is_planning_stage(state["stage"])
+        and state["stage"] not in ("research", "behavior", "spec"),
+        "planning repair requires an active planning loop",
+    )
+    need(bool(reason.strip()), "repair needs a reason")
+    kind, receipt = planning_receipt(root, state)
+    # At commit, an unrecorded host audit commit would be ambiguous.  It must
+    # be restored before repair rather than silently becoming the next baseline.
+    planning_assert_bound(core, root, state, receipt)
+    iteration = dict(receipt["current_iteration"])
+    iteration.update(status="abandoned", outcome="material", repair_reason=reason)
+    normal_path = planning_iteration_path(kind, receipt)
+    path = normal_path
+    if (root / path).exists():
+        path = planning.iteration_name(
+            kind, f"{iteration['id']}-repair-{aid.rsplit('-', 1)[-1]}"
+        )
+    writes = {
+        path: store.dumps(iteration, "ShipLoop abandoned planning iteration")
+    }
+    receipt["completed_iterations"].append(
+        {"id": iteration["id"], "path": path, "outcome": "material", "status": "abandoned"}
+    )
+    receipt["streak"] = 0
+    planning_start_next_iteration(core, root, state, kind, receipt)
+    state["revision"] += 1
+    writes[planning.receipt_name(kind)] = store.dumps(
+        receipt, f"ShipLoop {kind} planning receipt"
+    )
+    persist(root, state, "planning-repair", writes)
+
+
 def main(core, argv=None):
     parser = argparse.ArgumentParser(
         prog="shiploop",
@@ -1030,9 +4955,13 @@ def main(core, argv=None):
         "init",
         "next",
         "status",
+        "report",
+        "plan-status",
         "context",
         "complete",
         "verify",
+        "planning-verify",
+        "planning-upgrade",
         "history",
         "journal",
         "halt",
@@ -1043,7 +4972,7 @@ def main(core, argv=None):
         "revisit",
         "migrate",
     ):
-        sub = subs.add_parser(name)
+        sub = subs.add_parser(name, aliases=["done"] if name == "complete" else [])
         sub.add_argument("--run-dir")
         if name == "init":
             sub.add_argument("--prompt", required=True)
@@ -1053,21 +4982,25 @@ def main(core, argv=None):
         if name in (
             "complete",
             "verify",
+            "planning-verify",
             "history",
             "journal",
             "repair",
             "replan",
             "revisit",
+            "planning-upgrade",
         ):
             sub.add_argument("--action", required=True)
+        if name == "plan-status":
+            sub.add_argument("--loop", required=True)
         if name in ("complete", "journal", "replan"):
             sub.add_argument("--result", required=True)
-        if name == "verify":
+        if name in ("verify", "planning-verify"):
             sub.add_argument("--manifest", required=True)
             sub.add_argument("--timeout", type=float, default=60)
             sub.add_argument("--reason", default="")
         if name == "history":
-            sub.add_argument("--limit", type=int, default=7)
+            sub.add_argument("--limit", type=int, default=HISTORY_LIMIT)
             sub.add_argument("--skip", type=int, default=0)
             sub.add_argument("--full", action="store_true")
         if name == "context":
@@ -1080,21 +5013,36 @@ def main(core, argv=None):
                     "iteration",
                     "spec",
                     "environment",
+                    "knowledge",
                     "plan",
                     "lifecycle",
                     "journal",
                     "approach",
                     "research",
+                    "research-evidence",
+                    "behavior",
+                    "spec-draft",
+                    "lifecycle-draft",
+                    "planning",
+                    "objective",
+                    "step-plan",
+                    "step-context",
                 ),
             )
             sub.add_argument("--offset", type=int, default=0)
             sub.add_argument("--limit", type=int, default=4000)
             sub.add_argument("--digest")
         if name == "revisit":
-            sub.add_argument("--to", required=True, choices=("survey", "spec"))
+            sub.add_argument(
+                "--to", required=True, choices=("survey", "research", "behavior", "spec")
+            )
         if name in ("halt", "pause", "repair", "revisit"):
             sub.add_argument("--reason", required=True)
     args = parser.parse_args(argv)
+    # The thin host has one completion verb; retain the established spelling
+    # as an exact alias, with identical action binding and replay semantics.
+    if args.command == "done":
+        args.command = "complete"
     raw_root = args.run_dir
     if args.command == "init" and not raw_root and args.repo:
         raw_root = str(Path(args.repo) / ".shiploop")
@@ -1144,6 +5092,23 @@ def main(core, argv=None):
                     else "",
                     repo=str(Path(args.repo or os.getcwd()).resolve()),
                 )
+                # Keep the long-lived state schema at v3 while making the
+                # planning gate explicit.  Existing v3 runs lack this marker
+                # and must take the fail-closed upgrade route below.
+                state.update(
+                    planning_protocol_version=planning.PROTOCOL_VERSION,
+                    planning_epoch=1,
+                    step_planning_protocol_version=STEP_PLANNING_PROTOCOL_VERSION,
+                    step_contract_protocol_version=1,
+                    objective_protocol_version=OBJECTIVE_PROTOCOL_VERSION,
+                    objective_epoch=0,
+                    research_sha256="",
+                    research_certificate_sha256="",
+                    research_as_of="",
+                    behavior_sha256="",
+                )
+                initial_writes = {}
+                initialize_knowledge(root, state, initial_writes)
                 action(state, "intake", "preflight")
                 persist(
                     root,
@@ -1157,6 +5122,7 @@ def main(core, argv=None):
                         "shiploop-improvements.md": store.dumps(
                             [], "ShipLoop improvement proposals"
                         ),
+                        **initial_writes,
                     },
                 )
             elif args.command == "migrate":
@@ -1165,12 +5131,54 @@ def main(core, argv=None):
             else:
                 state = core.load_state(root)
                 validate_state(state)
+                if args.command == "report":
+                    need(state["stage"] in ("done", "halted"), "report requires a terminal run")
+                    state["revision"] += 1
+                    persist(root, state, "report-regenerated")
+                    packet(core, root, state)
+                    return 0
+                if not step_planning_current(state):
+                    step_planning_legacy_gate(core, root, state, args)
+                if not objective_current(state):
+                    objective_legacy_gate(core, root, state, args)
+                if carry_forward_current(state) and args.command not in (
+                    "pause",
+                    "halt",
+                ):
+                    bound_knowledge(root, state)
+                elif (
+                    state.get("active_step")
+                    and state.get("stage") in _LEGACY_CARRY_FORWARD_INNER_STAGES
+                    and args.command
+                    not in ("repair", "halt", "pause", "status", "context", "next")
+                ):
+                    raise ProtocolError(
+                        "carry-forward checkpoint required before this legacy active improvement can continue; use repair; prior work is preserved and not certified"
+                    )
+                if (
+                    state["stage"] not in ("done", "halted")
+                    and not planning.is_current(state)
+                    and args.command
+                    not in (
+                        "next",
+                        "status",
+                        "context",
+                        "pause",
+                        "resume",
+                        "halt",
+                        "planning-upgrade",
+                    )
+                ):
+                    raise ProtocolError(
+                        "planning protocol upgrade required before this existing run can mutate state"
+                    )
                 if args.command not in (
                     "halt",
                     "pause",
                     "status",
                     "context",
                     "revisit",
+                    "planning-upgrade",
                 ):
                     core.check_frozen_hashes(state, root, None)
                     for key, name in (
@@ -1182,34 +5190,238 @@ def main(core, argv=None):
                                 core.sha256_file(root / name) == state[key],
                                 f"{name} hash drift; restore frozen content or use a validated plan revision",
                             )
+                if (
+                    planning.is_current(state)
+                    and state.get("research_sha256")
+                    and args.command
+                    not in ("halt", "pause", "status", "context", "revisit")
+                ):
+                    # Only the immediate research→behavior handoff must still
+                    # be at the research audit HEAD.  Later behavior/spec
+                    # audit commits are authorized evidence, not drift.
+                    research_current_binding(
+                        core,
+                        root,
+                        state,
+                        require_current_identity=state["stage"] == "behavior",
+                    )
+                if (
+                    planning.is_current(state)
+                    and state.get("behavior_sha256")
+                    and args.command
+                    not in ("halt", "pause", "status", "context", "revisit")
+                ):
+                    behavior_path = root / "behavior.md"
+                    need(
+                        behavior_path.is_file()
+                        and not behavior_path.is_symlink()
+                        and hashlib.sha256(behavior_path.read_bytes()).hexdigest()
+                        == state["behavior_sha256"],
+                        "behavior model hash drift; restore frozen content or use revisit --to behavior before execution",
+                    )
+                if (
+                    planning.is_current(state)
+                    and args.command
+                    not in ("halt", "pause", "status", "context", "revisit")
+                ):
+                    if state.get("behavior_sha256"):
+                        planning_validate_certificate(core, root, state, "behavior")
+                    if state.get("spec_sha256"):
+                        planning_validate_certificate(core, root, state, "spec")
                 if state.get("paused") and args.command not in (
                     "resume",
                     "halt",
                     "pause",
                     "status",
+                    "plan-status",
                     "next",
                     "journal",
                     "context",
                     "revisit",
+                    "planning-upgrade",
+                    "repair",
                 ):
                     raise ProtocolError(
                         "run paused; resolve the blocker and resume before continuing"
                     )
-                if args.command == "context":
+                if (
+                    carry_forward_current(state)
+                    and args.command == "complete"
+                    and state["stage"] != "carry-forward"
+                    and knowledge.has_open_blockers(bound_knowledge(root, state))
+                ):
+                    raise ProtocolError(
+                        "unresolved carry-forward blocker; submit a carry-forward resolution before continuing"
+                    )
+                if (
+                    carry_forward_current(state)
+                    and args.command == "repair"
+                    and knowledge.has_open_blockers(bound_knowledge(root, state))
+                ):
+                    raise ProtocolError(
+                        "unresolved carry-forward blocker; resume and submit a carry-forward resolution before repair"
+                    )
+                if args.command == "planning-upgrade":
+                    planning_upgrade(core, root, state, args.action)
+                elif args.command == "plan-status":
+                    need(not state.get("paused"), "step-plan handoff is paused and not ready")
+                    if carry_forward_current(state):
+                        need(
+                            not knowledge.has_open_blockers(bound_knowledge(root, state)),
+                            "step-plan handoff has unresolved carry-forward blockers",
+                        )
+                    rec = active(root, state)
+                    loop = step_planning._id(args.loop, "step-plan loop ID")
+                    receipt, certificate = step_plan_validate_handoff(
+                        core, root, state, rec, loop
+                    )
+                    print(
+                        "Step plan finalized and valid at handoff: "
+                        f"{receipt['loop_id']} | {certificate['final_check_action']}"
+                    )
+                    return 0
+                elif args.command == "context":
                     need(
                         0 <= args.offset and 1 <= args.limit <= 8000,
                         "context offset >= 0 and limit 1..8000 characters",
                     )
-                    if args.section == "step":
+                    if args.section == "objective":
+                        binding, objective_receipt_value = objective_receipt(root, state)
+                        candidate_path = safe_run_path(
+                            root, objective_receipt_value["candidate_path"]
+                        )
+                        compact = {
+                            "loop_id": binding["loop_id"],
+                            "kind": binding["kind"],
+                            "base_stage": binding["base_stage"],
+                            "status": binding["status"],
+                            "candidate_sha256": objective_receipt_value["candidate_sha256"],
+                            "ledger_sha256": objective_receipt_value["ledger_sha256"],
+                            "context_sha256": objective_receipt_value["context_sha256"],
+                            "context": objective_receipt_value["context"],
+                            "findings": objective_receipt_value["findings"],
+                            "current_pass": objective_receipt_value["current_pass"],
+                            "completed_passes": [
+                                {
+                                    key: row.get(key)
+                                    for key in ("id", "epoch", "number", "outcome", "verified", "commit")
+                                }
+                                for row in objective_receipt_value["completed_passes"]
+                            ],
+                        }
+                        body = (
+                            "# Current objective candidate\n\n"
+                            + candidate_path.read_text(encoding="utf-8")
+                            + "\n# Compact objective state\n\n"
+                            + store.dumps(compact, "ShipLoop compact objective state")
+                        )
+                    elif args.section == "step-plan":
+                        rec = active(root, state)
+                        need(
+                            isinstance(rec.get("step_plan"), dict),
+                            "no active step-plan candidate exists at this draft stage; use step-context",
+                        )
+                        loop, receipt = step_plan_receipt(root, rec)
+                        candidate_path = safe_run_path(root, receipt["candidate_path"])
+                        prior = state["stage"] == "improve-plan"
+                        body = (
+                            (
+                                "# Previous finalized step-plan candidate (not the current Improve draft)\n\n"
+                                if prior
+                                else "# Current step-plan candidate\n\n"
+                            )
+                            + candidate_path.read_text()
+                            + (
+                                "\n\n# Previous finalized step-plan pass\n\n"
+                                if prior
+                                else "\n\n# Current step-plan pass\n\n"
+                            )
+                            + store.dumps(
+                                step_plan_current_summary(receipt),
+                                (
+                                    "ShipLoop prior finalized step-plan state"
+                                    if prior
+                                    else "ShipLoop compact step-plan state"
+                                ),
+                            )
+                        )
+                    elif args.section == "step-context":
+                        rec = active(root, state)
+                        binding = rec.get("step_plan")
+                        route = (
+                            "improve"
+                            if state["stage"] == "improve-plan"
+                            else binding.get("route")
+                            if isinstance(binding, dict)
+                            else "initial"
+                        )
+                        body = store.dumps(
+                            {
+                                "step": step_plan_step_context(
+                                    core, root, state, rec, route=route
+                                ),
+                                "current_identity": step_plan_context_identity(
+                                    core, root, state, rec, route=route
+                                ),
+                            },
+                            "ShipLoop active step context — selected step and direct neighbors only",
+                        )
+                    elif args.section == "step":
                         need(state.get("active_step"), "no active step")
                         body = store.dumps(
                             core.steps_by_id(root)[state["active_step"]], "Current step"
                         )
                     elif args.section == "iteration":
-                        body = store.dumps(
-                            active(root, state).get("iteration", {}),
-                            "Current iteration",
+                        if objectives.is_objective_stage(state["stage"]):
+                            _, objective_receipt_value = objective_receipt(root, state)
+                            body = store.dumps(
+                                objective_receipt_value["current_pass"],
+                                "Current objective pass",
+                            )
+                        elif state.get("active_step"):
+                            if is_step_plan_stage(state["stage"]):
+                                rec = active(root, state)
+                                loop, receipt = step_plan_receipt(root, rec)
+                                body = store.dumps(
+                                    {
+                                        "loop_id": loop,
+                                        "route": receipt["route"],
+                                        "current_pass": receipt["current_pass"],
+                                    },
+                                    "Current step-plan pass",
+                                )
+                            else:
+                                body = store.dumps(
+                                    active(root, state).get("iteration", {}),
+                                    "Current iteration",
+                                )
+                        else:
+                            need(
+                                planning.is_planning_stage(state["stage"])
+                                and state["stage"] not in ("research", "behavior", "spec"),
+                                "no active iteration",
+                            )
+                            _, receipt = planning_receipt(root, state)
+                            body = store.dumps(
+                                receipt["current_iteration"],
+                                "Current planning iteration",
+                            )
+                    elif args.section == "knowledge":
+                        _, scope, body = knowledge_context(root, state)
+                    elif args.section == "planning":
+                        kind = planning.kind_for_stage(state["stage"])
+                        if kind is None:
+                            kind = (
+                                "spec"
+                                if (root / planning.receipt_name("spec")).is_file()
+                                else "behavior"
+                            )
+                        path = safe_run_path(root, planning.receipt_name(kind))
+                        need(
+                            path.is_file(),
+                            "planning is not created yet at this stage; use an available context section from next",
                         )
+                        body = path.read_text()
                     else:
                         name = (
                             "shiploop-improvements"
@@ -1222,12 +5434,38 @@ def main(core, argv=None):
                             f"{args.section} is not created yet at stage {state['stage']}; use an available context section from next",
                         )
                         body = path.read_text()
+                        if args.section == "environment" and carry_forward_current(
+                            state
+                        ):
+                            _, _, overlay = knowledge_context(root, state)
+                            body = (
+                                "# Frozen environment baseline\n\n"
+                                + body
+                                + "\n# Current operational knowledge overlay\n\n"
+                                + "This overlay is host-reported operational context. It does not "
+                                + "change frozen requirements, contracts, permissions, or writers.\n\n"
+                                + overlay
+                            )
                     checksum = hashlib.sha256(body.encode()).hexdigest()
+                    need(
+                        args.offset <= len(body),
+                        "context offset is past available content; restart at offset 0",
+                    )
                     need(
                         not args.digest or args.digest == checksum,
                         "context changed between pages; restart at offset 0",
                     )
                     end = min(len(body), args.offset + args.limit)
+                    if args.section == "knowledge":
+                        record_knowledge_page(
+                            root,
+                            state,
+                            digest_value=checksum,
+                            scope=scope,
+                            offset=args.offset,
+                            end=end,
+                            total=len(body),
+                        )
                     print(
                         f"Context {args.section}; digest {checksum}; characters {args.offset}:{end}/{len(body)}"
                     )
@@ -1245,9 +5483,12 @@ def main(core, argv=None):
                         args.action,
                         store.read_record(Path(args.result)),
                     )
-                elif args.command in ("verify", "history", "journal"):
+                elif args.command in ("verify", "planning-verify", "history", "journal"):
                     need(args.action == state["action"]["id"], "stale action ID")
-                    if args.command == "verify":
+                    if args.command == "planning-verify":
+                        if not run_planning_verify(core, root, state, args):
+                            return 2
+                    elif args.command == "verify":
                         need(
                             state["stage"]
                             in ("implement", "verify", "final-verify", "quality"),
@@ -1325,49 +5566,138 @@ def main(core, argv=None):
                             return 2
                     elif args.command == "history":
                         need(
-                            state["stage"] == "review",
-                            "history recording requires Improve review stage",
-                        )
-                        need(
                             1 <= args.limit <= 20 and args.skip >= 0,
                             "history limit 1..20; skip >= 0",
                         )
-                        rec = active(root, state)
-                        rows = evidence.history(
-                            Path(rec["worktree"]), args.limit, args.skip
-                        )
+                        if state["stage"] == "objective-review":
+                            binding, rec = objective_receipt(root, state)
+                            objective_assert_bound(core, root, state, rec)
+                            history_repo = repo_for(root, state)
+                            record_path = binding["receipt"]
+                            record_title = "ShipLoop objective receipt"
+                            rows = evidence.history(history_repo, args.limit, args.skip)
+                            need(bool(rows), "history page is empty")
+                            current = git(core, history_repo, "rev-parse", "HEAD")
+                            pass_id = rec["current_pass"]["id"]
+                            page_path = objectives.history_page_name(
+                                binding["loop_id"], pass_id, args.skip
+                            )
+                            index_path = objectives.history_index_name(
+                                binding["loop_id"], pass_id, args.skip
+                            )
+                            body = store.dumps(rows, "Git history — full commit bodies")
+                            writes = {record_path: store.dumps(rec, record_title)}
+                            if args.full:
+                                try:
+                                    objectives.record_history(
+                                        rec,
+                                        rows,
+                                        head=current,
+                                        skip=args.skip,
+                                        archive_path=page_path,
+                                        archive_sha256=hashlib.sha256(
+                                            body.encode("utf-8")
+                                        ).hexdigest(),
+                                    )
+                                except objectives.ObjectiveError as exc:
+                                    raise ProtocolError(str(exc)) from exc
+                                writes[record_path] = store.dumps(rec, record_title)
+                                writes[page_path] = body
+                                event = "objective-history-full-reviewed"
+                            else:
+                                # Index output may preserve an immutable local
+                                # copy for a later cold restart, but it never
+                                # creates body-read evidence.  Only --full can
+                                # advance the review gate.
+                                writes[index_path] = body
+                                event = "objective-history-indexed"
+                            persist(
+                                root,
+                                state,
+                                event,
+                                writes,
+                            )
+                            if args.full:
+                                print(body)
+                            else:
+                                for row in rows:
+                                    print(
+                                        f"{row['sha'].strip()} {row['body'].splitlines()[0][:160] if row['body'].splitlines() else ''}"
+                                    )
+                                print(
+                                    f"Index archived at {root / index_path}; it does not satisfy review. Use --limit 1 --skip N --full for each required current body."
+                                )
+                            return 0
+                        if state["stage"] == "review":
+                            rec = active(root, state)
+                            history_repo = Path(rec["worktree"])
+                            record_path = rec_path(state)
+                            record_title = "ShipLoop step receipt"
+                            iteration = rec["iteration"]
+                        elif state["stage"] == "step-plan-review":
+                            step_rec = active(root, state)
+                            loop, step_receipt = step_plan_receipt(root, step_rec)
+                            step_plan_assert_bound(
+                                core, root, state, step_rec, step_receipt
+                            )
+                            rec = step_receipt
+                            history_repo = Path(step_rec["worktree"])
+                            record_path = step_planning.receipt_name(loop)
+                            record_title = "ShipLoop step-plan receipt"
+                            iteration = step_receipt["current_pass"]
+                        else:
+                            need(
+                                planning.is_planning_stage(state["stage"])
+                                and state["stage"].endswith("-review"),
+                                "history recording requires an Improve or planning review stage",
+                            )
+                            kind, rec = planning_receipt(root, state)
+                            planning_assert_bound(core, root, state, rec)
+                            history_repo = Path(state["repo_root"])
+                            record_path = planning.receipt_name(kind)
+                            record_title = f"ShipLoop {kind} planning receipt"
+                            iteration = rec["current_iteration"]
+                        rows = evidence.history(history_repo, args.limit, args.skip)
                         need(bool(rows), "history page is empty")
-                        old = rec["iteration"].get("history", {})
-                        current = git(core, Path(rec["worktree"]), "rev-parse", "HEAD")
-                        seen = (
-                            old.get("commits", []) if old.get("head") == current else []
-                        )
-                        rec["iteration"]["history"] = {
-                            "head": current,
-                            "commits": list(
-                                dict.fromkeys(seen + [r["sha"].strip() for r in rows])
-                            ),
-                        }
+                        current = git(core, history_repo, "rev-parse", "HEAD")
+                        page_path = f"history-pages/{args.action}-{args.skip}.md"
+                        index_path = f"history-pages/{args.action}-{args.skip}-index.md"
+                        body = store.dumps(rows, "Git history — full commit bodies")
+                        writes = {record_path: store.dumps(rec, record_title)}
+                        if args.full:
+                            record_full_history_page(
+                                iteration,
+                                rows,
+                                head=current,
+                                skip=args.skip,
+                                limit=args.limit,
+                                archive_path=page_path,
+                            )
+                            writes[record_path] = store.dumps(rec, record_title)
+                            writes[page_path] = body
+                            event = "history-full-reviewed"
+                        else:
+                            # A subject index is useful navigation, but it is
+                            # deliberately not evidence that the host read the
+                            # full bodies.  Keep it separate from `history` so
+                            # every review gate remains full-page based.
+                            writes[index_path] = body
+                            event = "history-indexed"
                         persist(
                             root,
                             state,
-                            "history-reviewed",
-                            {
-                                rec_path(state): store.dumps(rec),
-                                f"history-pages/{args.action}-{args.skip}.md": store.dumps(
-                                    rows
-                                ),
-                            },
+                            event,
+                            writes,
                         )
                         if args.full:
-                            print(store.dumps(rows, "Git history — full commit bodies"))
+                            print(body)
                         else:
                             for row in rows:
                                 print(
                                     f"{row['sha'].strip()} {row['body'].splitlines()[0][:160] if row['body'].splitlines() else ''}"
                                 )
                             print(
-                                f"Read full bodies from {root / 'history-pages' / (args.action + '-' + str(args.skip) + '.md')}; use --limit 1 --skip N --full to retrieve one at a time. Follow relevant learning references."
+                                f"Index archived at {root / index_path}; use --limit 1 --skip N --full to retrieve one current body at a time. Follow relevant learning references."
                             )
                         return 0
                     else:
@@ -1405,9 +5735,34 @@ def main(core, argv=None):
                     persist(root, state, "pause")
                 elif args.command == "resume":
                     need(state.get("paused"), "run is not paused")
+                    if is_step_plan_stage(state["stage"]):
+                        rec = active(root, state)
+                        _, receipt = step_plan_receipt(root, rec)
+                        step_plan_assert_bound(core, root, state, rec, receipt)
+                        blockers = step_planning.scope_or_behavior_findings(receipt)
+                        need(
+                            not blockers or state["stage"] == "step-plan-disposition",
+                            "step-plan scope or behavior finding still needs an explicitly authorized broader-plan decision; "
+                            "resume cannot advance it to revise: "
+                            + ", ".join(blockers),
+                        )
                     state.pop("paused")
                     persist(root, state, "resume")
                 elif args.command == "repair":
+                    if objectives.is_objective_stage(state["stage"]):
+                        objective_repair(core, root, state, args.action, args.reason)
+                        packet(core, root, state)
+                        return 0
+                    if is_step_plan_stage(state["stage"]):
+                        step_plan_repair(core, root, state, args.action, args.reason)
+                        packet(core, root, state)
+                        return 0
+                    if planning.is_current(state) and planning.is_planning_stage(
+                        state["stage"]
+                    ):
+                        planning_repair(core, root, state, args.action, args.reason)
+                        packet(core, root, state)
+                        return 0
                     need(args.action == state["action"]["id"], "stale action ID")
                     need(
                         state.get("active_step")
@@ -1417,6 +5772,7 @@ def main(core, argv=None):
                             "improve-plan",
                             "improve-apply",
                             "verify",
+                            "carry-forward",
                             "commit",
                             "final-verify",
                             "post-inner",
@@ -1430,6 +5786,11 @@ def main(core, argv=None):
                         "merge already started; inspect Git and retry merge, do not rewrite its branch",
                     )
                     need(bool(args.reason.strip()), "repair needs a reason")
+                    repair_writes = {}
+                    if not carry_forward_current(state):
+                        # This is an explicit restart, not a fabricated
+                        # checkpoint for an old in-flight commit/finalization.
+                        initialize_knowledge(root, state, repair_writes)
                     baseline = git(core, Path(state["repo_root"]), "rev-parse", "HEAD")
                     if baseline != rec["base_sha"]:
                         need(
@@ -1453,8 +5814,17 @@ def main(core, argv=None):
                         }
                     )
                     start_iteration(core, root, state, rec)
-                    persist(root, state, "repair", {rec_path(state): store.dumps(rec)})
+                    repair_writes[rec_path(state)] = store.dumps(rec)
+                    persist(root, state, "repair", repair_writes)
                 elif args.command == "revisit":
+                    if planning.is_current(state):
+                        planning_revisit(core, root, state, args.action, args.to, args.reason)
+                        packet(core, root, state)
+                        return 0
+                    need(
+                        args.to in ("survey", "spec"),
+                        "legacy planning revisit supports survey or spec; upgrade first for behavior",
+                    )
                     need(args.action == state["action"]["id"], "stale action ID")
                     need(
                         state["stage"]
@@ -1493,7 +5863,7 @@ def main(core, argv=None):
                         source = safe_run_path(root, name)
                         if source.is_file():
                             writes[f"planning-history/{args.action}/{name}"] = (
-                                source.read_text()
+                                source.read_bytes().decode("utf-8")
                             )
                             deletes.append(name)
                     for key in keys:
@@ -1528,10 +5898,17 @@ def main(core, argv=None):
                     store.transaction(root, writes, deletes)
                 elif args.command == "replan":
                     need(args.action == state["action"]["id"], "stale action ID")
+                    enclosing_objective = state.get("objective")
+                    objective_replan = (
+                        objectives.is_objective_stage(state["stage"])
+                        and objective_current(state)
+                        and isinstance(enclosing_objective, dict)
+                        and enclosing_objective.get("kind") in ("coverage", "quality")
+                    )
                     need(
-                        state["stage"] in ("coverage", "quality")
+                        (state["stage"] in ("coverage", "quality") or objective_replan)
                         and not state.get("active_step"),
-                        "outer replan requires coverage or quality stage",
+                        "outer replan requires coverage or quality, including its active objective loop",
                     )
                     result = resolve_draft(store.read_record(Path(args.result)))
                     need(
@@ -1557,18 +5934,36 @@ def main(core, argv=None):
                         writes["shiploop-improvements.md"] = proposal_entries(
                             root, state, result["journal"]
                         )
+                    if objective_replan:
+                        # A discovered product defect is corrective work, never
+                        # objective convergence. Preserve the unfinished receipt.
+                        abandon_objective_for_replan(
+                            core, root, state, writes,
+                            reason="Corrective pending DAG work: " + result["summary"],
+                            details={"action": args.action},
+                        )
                     state.pop("outer_check_action", None)
                     state["completed_actions"][args.action] = digest(result)
+                    state["last_completion"] = {
+                        "action": args.action, "stage": state["stage"],
+                        "result_digest": digest(result),
+                    }
                     state["revision"] += 1
                     action(state, "implement", "schedule")
                     persist(root, state, "outer-replan", writes)
             if (
+                planning.is_current(state)
+                and
                 state["stage"] == "schedule"
                 and not state.get("paused")
                 and args.command != "status"
             ):
                 schedule(core, root, state)
-            if args.command != "status" and not state.get("paused"):
+            if (
+                planning.is_current(state)
+                and args.command != "status"
+                and not state.get("paused")
+            ):
                 ensure_worktree(core, root, state)
             packet(core, root, state)
         return 0
@@ -1582,4 +5977,14 @@ def main(core, argv=None):
         TypeError,
     ) as exc:
         print(f"ShipLoop blocked: {exc}", file=sys.stderr)
+        if isinstance(locals().get("root"), Path):
+            # A rejected result may have changed only the in-memory candidate.
+            # Rehydrate the durable cursor; never suggest an inferred next stage.
+            from shlex import join
+
+            recovery = join([
+                "python3", str(core.PACKAGE_ROOT / "scripts" / "shiploop"),
+                "next", "--run-dir", str(root),
+            ])
+            print(f"Recover the current durable action: {recovery}", file=sys.stderr)
         return 2

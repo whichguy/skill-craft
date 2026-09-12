@@ -19,6 +19,8 @@ from typing import Any, Dict, Iterator, List, Optional, Set, Tuple
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import shiploop_store as store
+import shiploop_contracts as contracts
+import shiploop_until as until
 
 EXIT_OK = 0
 EXIT_BLOCKED = 2
@@ -331,7 +333,7 @@ def read_text(path: Path) -> Optional[str]:
 
 def scan_labels(text: str, labels: Tuple[str, ...]) -> Dict[str, List[str]]:
     """Line-start labeled values, outside fences and blockquotes."""
-    out: Dict[str, List[str]] = {l: [] for l in labels}
+    out: Dict[str, List[str]] = {label: [] for label in labels}
     in_fence = False
     for line in text.splitlines():
         if FENCE_RE.match(line):
@@ -341,10 +343,10 @@ def scan_labels(text: str, labels: Tuple[str, ...]) -> Dict[str, List[str]]:
             continue
         if line.lstrip().startswith(">"):
             continue
-        for l in labels:
-            m = re.match(rf"(?i)^{re.escape(l)}\s*:\s*(.*)$", line)
+        for label in labels:
+            m = re.match(rf"(?i)^{re.escape(label)}\s*:\s*(.*)$", line)
             if m:
-                out[l].append(m.group(1).strip())
+                out[label].append(m.group(1).strip())
                 break
     return out
 
@@ -1377,6 +1379,12 @@ def dag_gaps(run_dir: Path, spec: Optional[Dict[str, Any]]) -> List[str]:
         if color[sid] == WHITE and visit(sid):
             gaps.append("committed cycle")
             break
+    # Versionless plans retain their documented compatibility path.  A DAG that
+    # explicitly opts into step contracts, however, must validate every
+    # criterion before it can become a candidate.  Protocol state decides when
+    # an old run is explicitly upgraded; this core validator never fabricates a
+    # contract for it.
+    gaps.extend(f"backchain {gap}" for gap in contracts.dag_gaps(data))
     return gaps
 
 
@@ -1550,26 +1558,88 @@ def improve_cycles_of(rec: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
     )
 
 
+def improve_until_passes(rec: Optional[Dict[str, Any]]) -> Optional[List[Dict[str, Any]]]:
+    """Project only audited, verified primary cycles into the shared policy.
+
+    Repair checkpoints are durable material boundaries but not completed primary
+    passes, so they reset the current epoch.  A malformed cycle fails closed
+    rather than being silently skipped past an earlier pair of trivial passes.
+    """
+    if not isinstance(rec, dict):
+        return []
+    raw = rec.get("improve_cycles")
+    if raw is None:
+        return []
+    if not isinstance(raw, list):
+        return None
+    passes: List[Dict[str, Any]] = []
+    for row in raw:
+        if not isinstance(row, dict):
+            return None
+        primary = row.get("primary_commit")
+        if primary is None:
+            if row.get("outcome") == "material":
+                passes = []
+                continue
+            return None
+        iteration_id = row.get("id")
+        commit = row.get("commit")
+        if not (
+            isinstance(iteration_id, str)
+            and isinstance(primary, str)
+            and isinstance(commit, dict)
+            and commit.get("sha") == primary
+            and commit.get("action") == iteration_id
+            and isinstance(row.get("check_action"), str)
+            and row["check_action"].strip()
+            and isinstance(row.get("review"), dict)
+            and isinstance(row.get("applied"), dict)
+            and isinstance(row.get("carry_forward"), dict)
+        ):
+            return None
+        passes.append(
+            {
+                "id": iteration_id,
+                "outcome": row.get("outcome"),
+                # The protocol reaches this append only after verified() and
+                # evidence.validate_commit(); do not accept a host flag here.
+                "verified": True,
+                "commit": primary,
+            }
+        )
+    return passes
+
+
+def improve_until_decision(rec: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+    """Return the shared continuation decision, fail-closed on stale receipts."""
+    passes = improve_until_passes(rec)
+    if passes is None:
+        return {"phase": "active", "trivial_streak": 0}
+    try:
+        # review/plan/apply/carry-forward gates are all present on every
+        # projected pass, so no unresolved finding is eligible to be omitted.
+        return until.decide(passes, open_findings=[])
+    except until.UntilError:
+        return {"phase": "active", "trivial_streak": 0}
+
+
 def improve_consecutive_trivial(rec: Optional[Dict[str, Any]]) -> int:
-    streak = 0
-    for row in improve_cycles_of(rec):
-        streak = streak + 1 if row.get("outcome") == "trivial" else 0
-    return streak
+    return int(improve_until_decision(rec)["trivial_streak"])
 
 
 def improve_two_clean(rec: Optional[Dict[str, Any]]) -> bool:
-    return improve_consecutive_trivial(rec) >= IMPROVE_CLEAN_STREAK
+    return improve_until_decision(rec)["phase"] == "ready"
 
 
 def improve_packet_closer(rec: Optional[Dict[str, Any]]) -> bool:
-    """An inner loop closes only after two consecutive trivial iterations."""
+    """Close only after two verified, audited consecutive trivial passes."""
     return improve_two_clean(rec)
 
 
 def improve_ready_to_merge(
     rec: Optional[Dict[str, Any]], improve: Optional[str] = None
 ) -> bool:
-    """Successful completion has no cycle-cap override."""
+    """Successful completion has no cycle-cap or unverified-receipt override."""
     del improve
     return improve_two_clean(rec)
 

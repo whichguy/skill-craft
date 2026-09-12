@@ -70,6 +70,170 @@ class ProtocolTests(unittest.TestCase):
 
         return shiploop_store.read_record(self.run_dir / "state.md")
 
+    def converge_approach_objective(self, candidate, *, label):
+        """Finalize an imported approach through the public objective actions.
+
+        The draft-deletion fixtures below deliberately use this rather than
+        bypassing the new generic objective.  That keeps their durable-record
+        assertion meaningful: the original result draft may disappear while
+        the candidate snapshot, two audited passes, and fresh final check
+        remain sufficient to apply the approach exactly once.
+        """
+        import shiploop_objectives as objectives
+        import shiploop_store
+
+        def complete(value, name):
+            self.cli(
+                "complete",
+                "--action",
+                self.state()["action"]["id"],
+                "--result",
+                self.record(name, value),
+            )
+
+        def manifest(name):
+            return self.record(
+                name,
+                {
+                    "checks": [
+                        {
+                            "id": "objective-lint",
+                            "kind": "lint",
+                            "argv": ["/usr/bin/true"],
+                            "acceptance": ["objective approach"],
+                        },
+                        {
+                            "id": "objective-acceptance",
+                            "kind": "test",
+                            "argv": ["/usr/bin/true"],
+                            "acceptance": ["objective approach"],
+                        },
+                    ]
+                },
+            )
+
+        for number in (1, 2):
+            state = self.state()
+            self.assertEqual(state["stage"], "objective-review")
+            self.cli(
+                "history",
+                "--run-dir",
+                str(self.run_dir),
+                "--action",
+                state["action"]["id"],
+                "--limit",
+                "10",
+                "--skip",
+                "0",
+                "--full",
+            )
+            review_learning = (
+                f"{label} objective review {number} read the current full Git history "
+                "and durable approach candidate."
+            )
+            complete(
+                {
+                    "summary": f"{label} objective review {number} is complete.",
+                    "findings": [],
+                    "assessment": {
+                        key: f"{key} was inspected against the durable approach candidate."
+                        for key in objectives.ASSESSMENT_KEYS
+                    },
+                    "history_assessment": "All currently available full commit bodies were read before this decision.",
+                    "test_review": "A local lint and acceptance check cover the frozen approach candidate.",
+                    "learnings": review_learning,
+                },
+                f"{label}-objective-{number}-review.md",
+            )
+            self.assertEqual(self.state()["stage"], "objective-plan")
+            plan_learning = (
+                f"{label} objective plan {number} retains the frozen candidate because "
+                "there are no open findings."
+            )
+            complete(
+                {
+                    "summary": f"{label} objective plan {number} is complete.",
+                    "addresses": [],
+                    "body": "# Objective plan\n\nNo open findings require a candidate change.\n",
+                    "learnings": plan_learning,
+                },
+                f"{label}-objective-{number}-plan.md",
+            )
+            self.assertEqual(self.state()["stage"], "objective-apply")
+            apply_learning = (
+                f"{label} objective apply {number} retains the exact imported "
+                "approach candidate without product changes."
+            )
+            complete(
+                {
+                    "summary": f"{label} objective apply {number} retains the candidate.",
+                    "candidate": dict(candidate),
+                    "material": False,
+                    "addresses": [],
+                    "resolutions": [],
+                    "test_changes": "The existing local objective lint and acceptance checks remain sufficient.",
+                    "learnings": apply_learning,
+                },
+                f"{label}-objective-{number}-apply.md",
+            )
+            self.assertEqual(self.state()["stage"], "objective-verify")
+            verify_action = self.state()["action"]["id"]
+            self.cli(
+                "planning-verify",
+                "--run-dir",
+                str(self.run_dir),
+                "--action",
+                verify_action,
+                "--manifest",
+                manifest(f"{label}-objective-{number}-checks.md"),
+            )
+            complete(
+                {"summary": f"{label} objective checks {number} pass."},
+                f"{label}-objective-{number}-verify.md",
+            )
+            self.assertEqual(self.state()["stage"], "objective-commit")
+            state = self.state()
+            receipt = shiploop_store.read_record(
+                self.run_dir / state["objective"]["receipt"]
+            )
+            current = receipt["current_pass"]
+            message = "\n\n".join(
+                (
+                    f"Objective approach audit {number}",
+                    "Review:\n" + review_learning,
+                    "Changes:\n" + plan_learning + "\n" + apply_learning,
+                    "Validation:\nThe local lint and acceptance commands passed without source changes.",
+                    "Key learnings:\n" + review_learning + "\n" + plan_learning + "\n" + apply_learning,
+                    "ShipLoop-Iteration: " + current["id"],
+                )
+            )
+            self.git("commit", "--allow-empty", "--only", "-m", message)
+            commit = self.git("rev-parse", "HEAD")
+            complete(
+                {
+                    "summary": f"{label} objective audit {number} is recorded.",
+                    "commit": commit,
+                },
+                f"{label}-objective-{number}-commit.md",
+            )
+
+        self.assertEqual(self.state()["stage"], "objective-finalize")
+        final_action = self.state()["action"]["id"]
+        self.cli(
+            "planning-verify",
+            "--run-dir",
+            str(self.run_dir),
+            "--action",
+            final_action,
+            "--manifest",
+            manifest(f"{label}-objective-final-checks.md"),
+        )
+        complete(
+            {"summary": f"{label} fresh final objective check passes."},
+            f"{label}-objective-finalize.md",
+        )
+        self.assertEqual(self.state()["stage"], "survey")
+
     def test_new_run_is_markdown_authoritative_and_compact(self):
         out = self.cli(
             "init", "--repo", str(self.repo), "--prompt", "Build a tested file"
@@ -81,6 +245,75 @@ class ProtocolTests(unittest.TestCase):
         before = self.state()["action"]["id"]
         self.cli("next")
         self.assertEqual(self.state()["action"]["id"], before)
+
+    def test_legacy_upstream_research_next_enables_the_future_step_gate_without_repair(self):
+        """A missing per-step marker cannot replay or repair work before allocation."""
+        import shiploop_protocol
+        import shiploop_store
+
+        self.cli("init", "--repo", str(self.repo), "--prompt", "Build")
+        before = self.state()
+        legacy = dict(before)
+        legacy.update(
+            phase="validate-spec",
+            stage="research",
+            action={"id": "legacy-research", "stage": "research"},
+        )
+        legacy.pop("step_planning_protocol_version", None)
+        shiploop_store.write_record(self.run_dir / "state.md", legacy)
+
+        packet = self.cli("next").stdout
+        after = self.state()
+        self.assertEqual(after["stage"], "research")
+        self.assertEqual(after["action"], legacy["action"])
+        self.assertFalse(after.get("active_step"))
+        self.assertEqual(
+            after["step_planning_protocol_version"],
+            shiploop_protocol.STEP_PLANNING_PROTOCOL_VERSION,
+        )
+        self.assertEqual(after["revision"], before["revision"] + 1)
+        self.assertNotIn("repair", packet.lower())
+        history = shiploop_store.read_record(self.run_dir / "history.md")
+        self.assertEqual(history[-1]["event"], "step-plan-legacy-enable-upstream")
+
+    def test_legacy_active_read_only_commands_do_not_create_a_gate_or_move_cursor(self):
+        """Inspection must not turn a legacy active implement into a new action."""
+        import shiploop_store
+
+        self.cli("init", "--repo", str(self.repo), "--prompt", "Build")
+        state = self.state()
+        run_id = state["run_id"]
+        worktree = Path(state["repo_root"]) / ".worktrees" / "shiploop" / run_id / "S1"
+        worktree.mkdir(parents=True)
+        (self.run_dir / "steps").mkdir()
+        shiploop_store.write_record(
+            self.run_dir / "steps/S1.md",
+            {
+                "id": "S1",
+                "run_id": run_id,
+                "worktree": str(worktree),
+                "branch": f"shiploop/{run_id}/S1",
+                "base_sha": self.git("rev-parse", "HEAD"),
+            },
+        )
+        state.update(
+            active_step="S1",
+            phase="implement",
+            stage="implement",
+            action={"id": "legacy-implement", "stage": "implement"},
+        )
+        state.pop("step_planning_protocol_version", None)
+        shiploop_store.write_record(self.run_dir / "state.md", state)
+        before = (self.run_dir / "state.md").read_bytes()
+
+        self.cli("status")
+        self.assertEqual((self.run_dir / "state.md").read_bytes(), before)
+        self.cli("context", "--section", "prompt", "--offset", "0", "--limit", "4000")
+        self.assertEqual((self.run_dir / "state.md").read_bytes(), before)
+        self.cli("plan-status", "--loop", "legacy-loop", code=2)
+        self.assertEqual((self.run_dir / "state.md").read_bytes(), before)
+        self.assertNotIn("step_planning_protocol_version", self.state())
+        self.assertEqual(self.state()["action"], state["action"])
 
     def test_stale_and_replayed_completion(self):
         self.cli("init", "--repo", str(self.repo), "--prompt", "Build a tested file")
@@ -274,7 +507,7 @@ class ProtocolTests(unittest.TestCase):
         self.assertEqual(self.state()["stage"], "survey")
         self.assertFalse((self.run_dir / "environment.md").exists())
         self.assertEqual(
-            (self.run_dir / "planning-history" / aid / "environment.md").read_text(),
+            (self.run_dir / "planning-history" / aid / "revisit-survey" / "environment.md").read_text(),
             "prior survey to preserve",
         )
         self.assertEqual(
@@ -326,7 +559,140 @@ class ProtocolTests(unittest.TestCase):
         self.assertIn("verbatim", prompt)
         self.assertIn("review.learnings", prompt)
         self.assertIn("applied.learnings", prompt)
+        self.assertIn("carry-forward", prompt)
         self.assertIn("ShipLoop-Iteration", prompt)
+
+    def test_carry_forward_prompt_requires_a_safe_explicit_checkpoint(self):
+        import shiploop_protocol
+
+        prompt = shiploop_protocol.PROMPTS["carry-forward"]
+        self.assertIn("discoveries", prompt)
+        self.assertIn("learnings", prompt)
+        self.assertIn("explicit []", prompt)
+        self.assertIn("credential", prompt)
+        self.assertIn("pause", prompt)
+        self.assertNotIn("knowledge_revision", prompt)
+
+    def test_implement_packet_only_requires_knowledge_after_initialization(self):
+        import contextlib
+        import io
+        import runpy
+        from types import SimpleNamespace
+
+        import shiploop_knowledge
+        import shiploop_protocol
+        import shiploop_store
+
+        self.cli("init", "--repo", str(self.repo), "--prompt", "Build")
+        current = self.state()
+        run_id = current["run_id"]
+        worktree = (
+            Path(current["repo_root"])
+            / ".worktrees"
+            / "shiploop"
+            / run_id
+            / "S1"
+        )
+        (self.run_dir / "steps").mkdir()
+        shiploop_store.write_record(
+            self.run_dir / "steps/S1.md",
+            {
+                "id": "S1",
+                "run_id": run_id,
+                "worktree": str(worktree),
+                "branch": f"shiploop/{run_id}/S1",
+                "base_sha": self.git("rev-parse", "HEAD"),
+            },
+        )
+        current.update(
+            active_step="S1",
+            phase="implement",
+            stage="implement",
+            action={"id": "current-implement", "stage": "implement"},
+        )
+        core = SimpleNamespace(**runpy.run_path(str(CLI)))
+
+        # A mapped future obligation remains visible, but it is no longer an
+        # unmapped post-inner blocker. Build it through the public ledger
+        # primitives so this packet fixture stays structurally realistic.
+        def source(action):
+            return {
+                "action": action,
+                "iteration": "I1",
+                "check_action": "check-I1",
+                "worktree_fingerprint": "fixture-fingerprint",
+                "step": "S1",
+                "reported_by": "host",
+                "recorded_at": "2026-09-11T00:00:00Z",
+            }
+
+        checkpoint = shiploop_knowledge.validate_result(
+            {
+                "summary": "Schedule the future contract check.",
+                "knowledge_revision": 0,
+                "learnings": "Keep the scheduled future check visible.",
+                "discoveries": [
+                    {
+                        "id": "future-contract-check",
+                        "domain": "invocation-contract",
+                        "observation": "S2 needs a fresh contract check.",
+                        "evidence": "fixture receipt",
+                        "scope": ["S2"],
+                        "disposition": "pending-replan",
+                        "rationale": "Schedule the check before S2.",
+                        "revalidate": "Confirm the contract in S2.",
+                    }
+                ],
+            },
+            expected_revision=0,
+            step_ids={"S1", "S2"},
+        )
+        ledger = shiploop_knowledge.apply_result(
+            shiploop_knowledge.empty_ledger(), checkpoint, source("checkpoint")
+        )
+        ledger = shiploop_knowledge.map_pending_obligations(
+            ledger,
+            {"future-contract-check": ["S2"]},
+            source("knowledge-map"),
+        )
+        body = shiploop_knowledge.render(ledger)
+        (self.run_dir / "knowledge.md").write_text(body)
+        current.update(
+            knowledge_revision=ledger["revision"],
+            knowledge_sha256=shiploop_knowledge.sha256_bytes(body.encode()),
+            knowledge_action_id="knowledge-map",
+        )
+
+        legacy = dict(current)
+        for key in (
+            "carry_forward_protocol_version",
+            "knowledge_revision",
+            "knowledge_sha256",
+            "knowledge_action_id",
+        ):
+            legacy.pop(key, None)
+        legacy["action"] = {"id": "legacy-implement", "stage": "implement"}
+        # Model the old initial implementation packet precisely: it has no
+        # ledger file or state binding, so the generic prompt must not issue
+        # an impossible knowledge-context command.
+        (self.run_dir / "knowledge.md").unlink()
+        output = io.StringIO()
+        with contextlib.redirect_stdout(output):
+            shiploop_protocol.packet(core, self.run_dir, legacy)
+        legacy_packet = output.getvalue()
+        self.assertIn("Carry-forward protocol is absent", legacy_packet)
+        self.assertNotIn("context --section knowledge", legacy_packet)
+
+        (self.run_dir / "knowledge.md").write_text(body)
+        output = io.StringIO()
+        with contextlib.redirect_stdout(output):
+            shiploop_protocol.packet(core, self.run_dir, current)
+        current_packet = output.getvalue()
+        self.assertIn("Cold-start requirement: read current knowledge", current_packet)
+        self.assertIn("context --section knowledge", current_packet)
+        self.assertIn(
+            "unmapped obligations 0 | scheduled obligations 1", current_packet
+        )
 
     def test_outer_quality_prompt_names_its_exact_acceptance_source(self):
         import shiploop_protocol
@@ -335,6 +701,556 @@ class ProtocolTests(unittest.TestCase):
         self.assertIn("lifecycle.acceptance", prompt)
         self.assertIn("context --section lifecycle", prompt)
         self.assertIn("exact", prompt)
+
+    def test_packet_routes_testing_docs_guidance_without_expanding_contract(self):
+        import contextlib
+        import io
+        import re
+        import runpy
+        from types import SimpleNamespace
+
+        import shiploop_protocol
+
+        expected = {
+            "preflight": ("surface-selection",),
+            "survey": ("surface-selection",),
+            "prepare": ("surface-selection",),
+            "research": ("surface-selection",),
+            "research-review": ("iteration",),
+            "research-plan": ("iteration",),
+            "research-apply": ("iteration",),
+            "research-verify": ("test-cases",),
+            "research-commit": ("iteration",),
+            "research-finalize": ("test-cases",),
+            "spec": ("test-cases", "surface-selection"),
+            "behavior-review": ("iteration",),
+            "behavior-plan": ("iteration",),
+            "behavior-apply": ("iteration",),
+            "behavior-verify": ("test-cases",),
+            "behavior-commit": ("iteration",),
+            "behavior-finalize": ("test-cases",),
+            "spec-review": ("iteration",),
+            "spec-plan": ("iteration",),
+            "spec-apply": ("iteration",),
+            "spec-verify": ("test-cases",),
+            "spec-commit": ("iteration",),
+            "spec-finalize": ("test-cases",),
+            "sequence": ("test-cases", "documentation"),
+            "implement": ("iteration",),
+            "review": ("iteration",),
+            "improve-plan": ("iteration",),
+            "improve-apply": ("iteration",),
+            "carry-forward": ("iteration",),
+            "commit": ("iteration",),
+            "post-inner": ("iteration",),
+            "verify": ("test-cases",),
+            "final-verify": ("test-cases",),
+            "quality": ("deployment-and-handoff",),
+            "publish": ("deployment-and-handoff",),
+            "handoff": ("deployment-and-handoff",),
+        }
+        no_guidance = {
+            "approach",
+            "behavior",
+            "merge",
+            "coverage",
+            "objective-review",
+            "objective-plan",
+            "objective-apply",
+            "objective-verify",
+            "objective-commit",
+            "objective-finalize",
+            "step-plan",
+            "step-plan-review",
+            "step-plan-disposition",
+            "step-plan-revise",
+            "step-plan-verify",
+            "step-plan-commit",
+            "step-plan-finalize",
+        }
+        self.assertEqual(shiploop_protocol.TEST_DOC_SECTIONS, expected)
+        self.assertEqual(
+            set(shiploop_protocol.PROMPTS), set(expected) | no_guidance
+        )
+
+        core = SimpleNamespace(**runpy.run_path(str(CLI)))
+        reference = core.REF_DIR / "testing-and-documentation.md"
+        self.assertEqual(
+            reference, SCRIPTS.parent / "references/testing-and-documentation.md"
+        )
+        self.assertTrue(reference.is_file())
+        available_anchors = {
+            re.sub(r"[^a-z0-9 -]", "", heading.lower()).replace(" ", "-")
+            for heading in re.findall(r"(?m)^##\s+(.+?)\s*$", reference.read_text())
+        }
+        expected_anchors = {anchor for anchors in expected.values() for anchor in anchors}
+        self.assertTrue(expected_anchors <= available_anchors)
+
+        self.cli("init", "--repo", str(self.repo), "--prompt", "Build")
+        base = self.state()
+        planning_stages = {
+            "research",
+            "research-review",
+            "research-plan",
+            "research-apply",
+            "research-verify",
+            "research-commit",
+            "research-finalize",
+            "behavior",
+            "behavior-review",
+            "behavior-plan",
+            "behavior-apply",
+            "behavior-verify",
+            "behavior-commit",
+            "behavior-finalize",
+            "spec",
+            "spec-review",
+            "spec-plan",
+            "spec-apply",
+            "spec-verify",
+            "spec-commit",
+            "spec-finalize",
+            "step-plan",
+            "step-plan-review",
+            "step-plan-disposition",
+            "step-plan-revise",
+            "step-plan-verify",
+            "step-plan-commit",
+            "step-plan-finalize",
+            "objective-review",
+            "objective-plan",
+            "objective-apply",
+            "objective-verify",
+            "objective-commit",
+            "objective-finalize",
+        }
+        state_bound_stages = {"sequence", "commit", "final-verify"}
+        for stage in shiploop_protocol.PROMPTS:
+            with self.subTest(stage=stage):
+                # Planning packets need a real planning receipt; their bounded
+                # Objective/Until contract is exercised through public CLI in
+                # shiploop-planning.test.py.  This table still locks their
+                # reference routing to the shared prompt map.
+                if stage in planning_stages | state_bound_stages:
+                    continue
+                state = dict(base)
+                state.update(phase="test", stage=stage)
+                state["action"] = {"id": f"packet-{stage}", "stage": stage}
+                output = io.StringIO()
+                with contextlib.redirect_stdout(output):
+                    shiploop_protocol.packet(core, self.run_dir, state)
+                packet = output.getvalue()
+                guidance = [
+                    line
+                    for line in packet.splitlines()
+                    if line.startswith("Testing/docs guidance:")
+                ]
+
+                self.assertLess(len(packet), 7000)
+                self.assertIn(f"Action: packet-{stage}", packet)
+                self.assertIn("Bounded context:", packet)
+                self.assertIn("Result format:", packet)
+                self.assertIn("When done:", packet)
+                self.assertIn(f"--action packet-{stage}", packet)
+                self.assertIn(
+                    f"--result {self.run_dir / 'inbox' / f'packet-{stage}.md'}",
+                    packet,
+                )
+                if stage in expected:
+                    self.assertEqual(len(guidance), 1)
+                    self.assertLess(len(guidance[0]), 500)
+                    self.assertIn(str(reference), guidance[0])
+                    self.assertEqual(
+                        set(re.findall(r"#([a-z0-9-]+)", guidance[0])),
+                        set(expected[stage]),
+                    )
+                else:
+                    self.assertEqual(guidance, [])
+
+    def test_approach_test_docs_record_survives_draft_deletion_across_processes(self):
+        self.cli("init", "--repo", str(self.repo), "--prompt", "Build")
+        preflight = self.state()["action"]["id"]
+        self.cli(
+            "complete",
+            "--action",
+            preflight,
+            "--result",
+            self.record(
+                "preflight.md",
+                {"summary": "Committed baseline is available", "baseline": "committed-head"},
+            ),
+        )
+        self.assertEqual(self.state()["stage"], "approach")
+
+        approach_body = """## Test case
+
+TC-context-docs: Given a fresh process after its approach draft is deleted,
+`context --section approach` returns the saved expected outcome and docs decision.
+Expected outcome: the durable Markdown record remains readable without JSON state.
+
+## Documentation decision
+
+Document the behavior beside the existing protocol guidance; no separate result
+schema or sidecar is needed.
+""".strip()
+        approach_candidate = {
+            "summary": "Stored test case and documentation decision",
+            "body": approach_body,
+        }
+        approach_draft = Path(self.record("approach-draft.md", approach_candidate))
+        self.cli(
+            "complete",
+            "--action",
+            self.state()["action"]["id"],
+            "--result",
+            str(approach_draft),
+        )
+        state = self.state()
+        self.assertEqual(state["stage"], "objective-review")
+        candidate_path = self.run_dir / state["objective"]["candidate"]
+        self.assertTrue(candidate_path.is_file())
+
+        approach_draft.unlink()
+        self.assertFalse(approach_draft.exists())
+        self.assertTrue(candidate_path.is_file())
+        self.converge_approach_objective(approach_candidate, label="test-docs")
+        self.assertEqual((self.run_dir / "approach.md").read_text(), approach_body)
+        packet = self.cli("next").stdout
+        self.assertIn("Action:", packet)
+        self.assertIn("Testing/docs guidance:", packet)
+        self.assertIn("#surface-selection", packet)
+
+        context = self.cli(
+            "context", "--section", "approach", "--offset", "0", "--limit", "4000"
+        ).stdout
+        self.assertIn("TC-context-docs", context)
+        self.assertIn("Expected outcome:", context)
+        self.assertIn("no separate result", context)
+        self.assertNotIn("shiploop-state", (self.run_dir / "approach.md").read_text())
+        self.assertFalse((self.run_dir / "state.json").exists())
+        self.assertFalse((self.run_dir / "approach.json").exists())
+
+    def test_packet_routes_behavior_model_guidance_without_expanding_contract(self):
+        import contextlib
+        import io
+        import re
+        import runpy
+        from types import SimpleNamespace
+
+        import shiploop_protocol
+
+        expected = {
+            "approach": ("discovery-and-research",),
+            "survey": ("discovery-and-research",),
+            "behavior": ("behavior-model",),
+            "behavior-review": ("traceability-and-review",),
+            "behavior-plan": ("traceability-and-review",),
+            "behavior-apply": ("traceability-and-review",),
+            "behavior-verify": ("traceability-and-review",),
+            "behavior-commit": ("traceability-and-review",),
+            "behavior-finalize": ("traceability-and-review",),
+            "spec": ("behavior-model",),
+            "spec-review": ("traceability-and-review",),
+            "spec-plan": ("traceability-and-review",),
+            "spec-apply": ("traceability-and-review",),
+            "spec-verify": ("traceability-and-review",),
+            "spec-commit": ("traceability-and-review",),
+            "spec-finalize": ("traceability-and-review",),
+            "sequence": ("traceability-and-review",),
+            "implement": ("traceability-and-review",),
+            "review": ("traceability-and-review",),
+            "improve-plan": ("traceability-and-review",),
+            "improve-apply": ("traceability-and-review",),
+            "verify": ("traceability-and-review",),
+            "carry-forward": ("traceability-and-review",),
+            "final-verify": ("traceability-and-review",),
+            "post-inner": ("traceability-and-review",),
+            "quality": ("traceability-and-review",),
+            "handoff": ("traceability-and-review",),
+        }
+        no_guidance = {
+            "preflight",
+            "prepare",
+            "research",
+            "research-review",
+            "research-plan",
+            "research-apply",
+            "research-verify",
+            "research-commit",
+            "research-finalize",
+            "commit",
+            "merge",
+            "coverage",
+            "publish",
+            "objective-review",
+            "objective-plan",
+            "objective-apply",
+            "objective-verify",
+            "objective-commit",
+            "objective-finalize",
+            "step-plan",
+            "step-plan-review",
+            "step-plan-disposition",
+            "step-plan-revise",
+            "step-plan-verify",
+            "step-plan-commit",
+            "step-plan-finalize",
+        }
+        self.assertEqual(shiploop_protocol.BEHAVIOR_SECTIONS, expected)
+        self.assertEqual(
+            set(shiploop_protocol.PROMPTS), set(expected) | no_guidance
+        )
+
+        core = SimpleNamespace(**runpy.run_path(str(CLI)))
+        reference = core.REF_DIR / "behavioral-requirements.md"
+        self.assertEqual(
+            reference, SCRIPTS.parent / "references/behavioral-requirements.md"
+        )
+        self.assertTrue(reference.is_file())
+        available_anchors = {
+            re.sub(r"[^a-z0-9 -]", "", heading.lower()).replace(" ", "-")
+            for heading in re.findall(r"(?m)^##\s+(.+?)\s*$", reference.read_text())
+        }
+        expected_anchors = {anchor for anchors in expected.values() for anchor in anchors}
+        self.assertTrue(expected_anchors <= available_anchors)
+
+        self.cli("init", "--repo", str(self.repo), "--prompt", "Build")
+        base = self.state()
+        planning_stages = {
+            "research",
+            "research-review",
+            "research-plan",
+            "research-apply",
+            "research-verify",
+            "research-commit",
+            "research-finalize",
+            "behavior",
+            "behavior-review",
+            "behavior-plan",
+            "behavior-apply",
+            "behavior-verify",
+            "behavior-commit",
+            "behavior-finalize",
+            "spec",
+            "spec-review",
+            "spec-plan",
+            "spec-apply",
+            "spec-verify",
+            "spec-commit",
+            "spec-finalize",
+            "step-plan",
+            "step-plan-review",
+            "step-plan-disposition",
+            "step-plan-revise",
+            "step-plan-verify",
+            "step-plan-commit",
+            "step-plan-finalize",
+            "objective-review",
+            "objective-plan",
+            "objective-apply",
+            "objective-verify",
+            "objective-commit",
+            "objective-finalize",
+        }
+        state_bound_stages = {"sequence", "commit", "final-verify"}
+        for stage in shiploop_protocol.PROMPTS:
+            with self.subTest(stage=stage):
+                if stage in planning_stages | state_bound_stages:
+                    continue
+                state = dict(base)
+                state.update(phase="test", stage=stage)
+                state["action"] = {"id": f"behavior-{stage}", "stage": stage}
+                output = io.StringIO()
+                with contextlib.redirect_stdout(output):
+                    shiploop_protocol.packet(core, self.run_dir, state)
+                packet = output.getvalue()
+                guidance = [
+                    line
+                    for line in packet.splitlines()
+                    if line.startswith("Behavior-model guidance:")
+                ]
+
+                self.assertLess(len(packet), 7000)
+                self.assertIn(f"Action: behavior-{stage}", packet)
+                self.assertIn("Bounded context:", packet)
+                self.assertIn("Result format:", packet)
+                self.assertIn("When done:", packet)
+                self.assertIn(f"--action behavior-{stage}", packet)
+                self.assertIn(
+                    f"--result {self.run_dir / 'inbox' / f'behavior-{stage}.md'}",
+                    packet,
+                )
+                if stage in expected:
+                    self.assertEqual(len(guidance), 1)
+                    self.assertLess(len(guidance[0]), 500)
+                    self.assertTrue(
+                        guidance[0].startswith("Behavior-model guidance: read only ")
+                    )
+                    self.assertIn(str(reference), guidance[0])
+                    self.assertEqual(
+                        set(re.findall(r"#([a-z0-9-]+)", guidance[0])),
+                        set(expected[stage]),
+                    )
+                else:
+                    self.assertEqual(guidance, [])
+
+    def test_planning_loop_guidance_routes_one_bounded_section_per_planning_stage(self):
+        import re
+
+        import shiploop_protocol
+
+        expected = {
+            "research": ("loop-contract",),
+            "research-review": ("review",),
+            "research-plan": ("plan-and-apply",),
+            "research-apply": ("plan-and-apply",),
+            "research-verify": ("checks-and-commits",),
+            "research-commit": ("checks-and-commits",),
+            "research-finalize": ("finalization-and-recovery",),
+            "behavior": ("loop-contract",),
+            "behavior-review": ("review",),
+            "behavior-plan": ("plan-and-apply",),
+            "behavior-apply": ("plan-and-apply",),
+            "behavior-verify": ("checks-and-commits",),
+            "behavior-commit": ("checks-and-commits",),
+            "behavior-finalize": ("finalization-and-recovery",),
+            "spec": ("loop-contract",),
+            "spec-review": ("review",),
+            "spec-plan": ("plan-and-apply",),
+            "spec-apply": ("plan-and-apply",),
+            "spec-verify": ("checks-and-commits",),
+            "spec-commit": ("checks-and-commits",),
+            "spec-finalize": ("finalization-and-recovery",),
+        }
+        self.assertEqual(shiploop_protocol.PLANNING_SECTIONS, expected)
+        self.assertEqual(
+            set(expected),
+            {
+                stage
+                for stage in shiploop_protocol.PROMPTS
+                if stage == "research"
+                or stage.startswith("research-")
+                or stage == "behavior"
+                or stage.startswith("behavior-")
+                or stage == "spec"
+                or stage.startswith("spec-")
+            },
+        )
+        reference = SCRIPTS.parent / "references/planning-loops.md"
+        self.assertTrue(reference.is_file())
+        anchors = {
+            re.sub(r"[^a-z0-9 -]", "", heading.lower()).replace(" ", "-")
+            for heading in re.findall(r"(?m)^##\s+(.+?)\s*$", reference.read_text())
+        }
+        expected_anchors = {anchor for anchors in expected.values() for anchor in anchors}
+        self.assertTrue(expected_anchors <= anchors)
+
+    def test_step_planning_guidance_routes_only_the_current_bounded_section(self):
+        import re
+
+        import shiploop_protocol
+
+        expected = {
+            "step-plan": ("loop-contract", "cold-start-evidence"),
+            "step-plan-review": ("review-rubric", "cold-start-evidence"),
+            "step-plan-disposition": ("contract-disposition",),
+            "step-plan-revise": ("revise-and-verify",),
+            "step-plan-verify": ("revise-and-verify",),
+            "step-plan-commit": ("revise-and-verify",),
+            "step-plan-finalize": ("loop-contract",),
+            "improve-plan": ("phase-specific-emphasis",),
+            "research-plan": ("phase-specific-emphasis",),
+            "behavior-plan": ("phase-specific-emphasis",),
+            "spec-plan": ("phase-specific-emphasis",),
+            "sequence": ("phase-specific-emphasis",),
+            "review": ("phase-specific-emphasis",),
+            "improve-apply": ("phase-specific-emphasis",),
+            "post-inner": ("phase-specific-emphasis",),
+            "quality": ("phase-specific-emphasis",),
+        }
+        self.assertEqual(shiploop_protocol.STEP_PLANNING_SECTIONS, expected)
+        self.assertTrue(set(expected) <= set(shiploop_protocol.PROMPTS))
+
+        reference = SCRIPTS.parent / "references/execution-planning.md"
+        self.assertTrue(reference.is_file())
+        anchors = {
+            re.sub(r"[^a-z0-9 -]", "", heading.lower()).replace(" ", "-")
+            for heading in re.findall(r"(?m)^##\s+(.+?)\s*$", reference.read_text())
+        }
+        expected_anchors = {anchor for values in expected.values() for anchor in values}
+        self.assertTrue(expected_anchors <= anchors)
+
+    def test_behavioral_requirements_survive_draft_deletion_across_processes(self):
+        self.cli("init", "--repo", str(self.repo), "--prompt", "Build")
+        preflight = self.state()["action"]["id"]
+        self.cli(
+            "complete",
+            "--action",
+            preflight,
+            "--result",
+            self.record(
+                "behavior-preflight.md",
+                {"summary": "Committed baseline is available", "baseline": "committed-head"},
+            ),
+        )
+        self.assertEqual(self.state()["stage"], "approach")
+
+        approach_body = """## Behavioral requirements
+
+R-01: A fresh host can reconstruct the intended behavior from durable Markdown.
+F-01: Deleting an authored result draft does not erase the imported requirement.
+T-01: context --section approach exposes the persisted requirement identifiers.
+
+## Uncertainty and evidence
+
+Uncertainty: semantic completeness remains unassessed in this planning record.
+Evidence: the imported approach record and a fresh-process context read.
+This is not a semantic-completeness claim.
+""".strip()
+        approach_candidate = {
+            "summary": "Stored behavioral requirements with uncertainty",
+            "body": approach_body,
+        }
+        approach_draft = Path(
+            self.record("behavior-approach-draft.md", approach_candidate)
+        )
+        self.cli(
+            "complete",
+            "--action",
+            self.state()["action"]["id"],
+            "--result",
+            str(approach_draft),
+        )
+        state = self.state()
+        self.assertEqual(state["stage"], "objective-review")
+        candidate_path = self.run_dir / state["objective"]["candidate"]
+        self.assertTrue(candidate_path.is_file())
+
+        approach_draft.unlink()
+        self.assertFalse(approach_draft.exists())
+        self.assertTrue(candidate_path.is_file())
+        self.converge_approach_objective(
+            approach_candidate, label="behavioral-requirements"
+        )
+        self.assertEqual((self.run_dir / "approach.md").read_text(), approach_body)
+        packet = self.cli("next").stdout
+        reference = SCRIPTS.parent / "references/behavioral-requirements.md"
+        self.assertIn("Action:", packet)
+        self.assertIn("Behavior-model guidance: read only", packet)
+        self.assertIn(f"{reference}#discovery-and-research", packet)
+
+        context = self.cli(
+            "context", "--section", "approach", "--offset", "0", "--limit", "4000"
+        ).stdout
+        self.assertIn("R-01", context)
+        self.assertIn("F-01", context)
+        self.assertIn("T-01", context)
+        self.assertIn("Uncertainty:", context)
+        self.assertIn("Evidence:", context)
+        self.assertIn("not a semantic-completeness claim", context)
+        self.assertNotIn("shiploop-state", (self.run_dir / "approach.md").read_text())
+        self.assertFalse((self.run_dir / "state.json").exists())
+        self.assertFalse((self.run_dir / "approach.json").exists())
 
     def test_client_service_invocation_is_frozen_before_communication(self):
         import shiploop_protocol

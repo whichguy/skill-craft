@@ -1,7 +1,7 @@
 # Survey guide
 
-Survey is its own durable action before research and spec. Its output is
-environment.md: a concise prose brief followed by exactly one H2 named machine
+Survey is its own durable action before research, behavior, and spec. Its output
+is environment.md: a concise prose brief followed by exactly one H2 named machine
 and one fenced JSON object. That fence is structured content within
 Markdown-authoritative state, not a JSON sidecar.
 
@@ -72,12 +72,23 @@ Record evidence for:
 - tools and MCPs that are actually in scope for this increment, plus one
   read-capable mcp_considered token; list unauthenticated or deferred systems
   in prose, not as usable capability;
-- non-secret handles and initiation facts. A user decision or failed safe probe
-  is a reason to pause, not to call it established;
+- non-secret handles and initiation facts. Record an expected account role and
+  a documented non-mutating probe, never an account address, credential value,
+  or secret ID. An observation may say when it was observed, but that does not
+  make availability a timeless fact; a user decision or failed safe probe is a
+  reason to pause, not to call it established;
 - UI/CLI/operator surfaces and the design conventions they must follow;
 - client–service invocation protocol when a client will call a service;
 - existing README.md and, if it exists, root AGENTS.md as references only.
   Product docs are later DAG work when needed, never the survey's mutation.
+
+Research turns these surveyed constraints into a bounded question/source
+candidate. It uses the paired `research.md` and `research-evidence.md` records
+under the research loop, not an untyped extension of `environment.md`. See the
+[research draft schema](research-loop.md#draft) and
+[evidence/freshness boundary](research-loop.md#evidence-and-freshness). Survey
+does not require a research provider or new tool, and its safe observations never
+authorize externally mutating probes.
 
 ## Destination writers
 
@@ -160,8 +171,16 @@ Client–service invocation, not as a later implementation guess.
 
 ## Freeze discipline
 
-Research extends the survey evidence before spec. Once the sequence stage
-freezes environment.md, spec.md, and the DAG, do not hand-edit them to resolve
-new learning. Pause for missing authority or use post-inner/outer replan for a
-validated pending-only correction. Never put secrets, live delivery URLs,
-session hashes, raw logs, or generic ShipLoop proposals in product docs.
+Research extends the survey evidence before behavior/spec. Once the sequence
+stage freezes `environment.md`, `spec.md`, and the DAG, do not hand-edit them to
+resolve new learning. Before any execution receipt, `revisit --to research`
+preserves this survey while archiving research and downstream planning proof; a
+changed survey fact uses `revisit --to survey` instead. The execution
+`carry-forward` checkpoint may record a current non-secret overlay, but it is
+not authority to rebase this approved historical survey contract. `context
+environment` presents the unchanged baseline alongside the labeled overlay.
+Pause for missing authority or use the mandatory post-inner obligation mapping
+and a validated pending-only correction. Never put secrets, live delivery URLs,
+session hashes, raw logs, or generic ShipLoop proposals in product docs. See
+[Carry-forward checkpoint](carry-forward.md) and
+[later research discoveries](research-loop.md#later-discoveries).

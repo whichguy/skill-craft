@@ -1,0 +1,524 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ShipLoop implementation verification summary</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #172033;
+      --muted: #536176;
+      --paper: #f5f7fb;
+      --card: #ffffff;
+      --line: #d9e1ec;
+      --blue: #245ad7;
+      --blue-soft: #eaf1ff;
+      --green: #087443;
+      --green-soft: #e9f8f0;
+      --amber: #9a5700;
+      --amber-soft: #fff4e4;
+      --red: #a82922;
+      --red-soft: #fff0ef;
+      --shadow: 0 1px 2px rgb(23 32 51 / 5%);
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: var(--paper);
+      font: 16px/1.55 ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+        "Segoe UI", sans-serif;
+    }
+
+    a { color: #174cac; text-decoration-thickness: 1px; text-underline-offset: 2px; }
+    a:hover, a:focus { color: #0a347f; }
+    code {
+      padding: .1em .3em;
+      border-radius: 4px;
+      background: #eef2f7;
+      font: .9em ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      overflow-wrap: anywhere;
+    }
+
+    .wrap { width: min(1120px, calc(100% - 36px)); margin: 0 auto; }
+    .masthead {
+      color: #fff;
+      background: linear-gradient(130deg, #12285b, #2865dc 66%, #4a7cf0);
+      padding: 48px 0 34px;
+    }
+    .eyebrow {
+      margin: 0 0 9px;
+      font-size: .78rem;
+      font-weight: 750;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      opacity: .85;
+    }
+    h1 { margin: 0; font-size: clamp(2rem, 5vw, 3.25rem); line-height: 1.08; }
+    .subtitle { max-width: 760px; margin: 13px 0 0; color: #e1eaff; font-size: 1.07rem; }
+    nav { display: flex; flex-wrap: wrap; gap: 9px 19px; margin-top: 24px; }
+    nav a { color: #fff; font-size: .92rem; text-decoration: none; }
+    nav a:hover, nav a:focus { color: #fff; text-decoration: underline; }
+
+    main { padding: 28px 0 50px; }
+    section {
+      margin: 18px 0;
+      padding: 24px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: var(--card);
+      box-shadow: var(--shadow);
+    }
+    h2 { margin: 0 0 12px; font-size: 1.28rem; line-height: 1.25; }
+    h3 { margin: 0 0 7px; font-size: 1rem; line-height: 1.3; }
+    p { margin: 0 0 13px; }
+    p:last-child { margin-bottom: 0; }
+    ul, ol { margin: 10px 0 0; padding-left: 22px; }
+    li + li { margin-top: 6px; }
+
+    .notice {
+      margin: 0 0 18px;
+      padding: 13px 15px;
+      border-left: 4px solid var(--blue);
+      background: var(--blue-soft);
+      color: #203962;
+    }
+    .notice strong { color: #122a5d; }
+    .facts {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+      gap: 11px;
+    }
+    .fact {
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #fcfdff;
+    }
+    .fact dt {
+      color: var(--muted);
+      font-size: .76rem;
+      font-weight: 750;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+    }
+    .fact dd { margin: 4px 0 0; font-weight: 680; }
+    .status {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 999px;
+      font-size: .78rem;
+      font-weight: 760;
+      white-space: nowrap;
+    }
+    .pass { color: var(--green); background: var(--green-soft); }
+    .pending { color: var(--amber); background: var(--amber-soft); }
+    .limited { color: var(--red); background: var(--red-soft); }
+    .muted { color: var(--muted); }
+
+    .phase-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 12px;
+      counter-reset: phase;
+    }
+    .phase {
+      position: relative;
+      min-height: 160px;
+      padding: 16px 16px 16px 60px;
+      border: 1px solid var(--line);
+      border-radius: 11px;
+      background: #fff;
+    }
+    .phase::before {
+      position: absolute;
+      top: 15px;
+      left: 15px;
+      display: grid;
+      width: 31px;
+      height: 31px;
+      place-items: center;
+      border-radius: 50%;
+      color: #fff;
+      background: var(--blue);
+      content: counter(phase);
+      counter-increment: phase;
+      font-size: .82rem;
+      font-weight: 800;
+    }
+    .phase p { color: var(--muted); font-size: .93rem; }
+
+    .sequence { list-style: none; margin: 0; padding: 0; }
+    .sequence li {
+      position: relative;
+      padding: 0 0 18px 31px;
+      border-left: 2px solid #d7e3ff;
+    }
+    .sequence li:last-child { padding-bottom: 0; }
+    .sequence li::before {
+      position: absolute;
+      top: 3px;
+      left: -6px;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--blue);
+      content: "";
+    }
+    .sequence strong { display: block; margin-bottom: 2px; }
+
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; min-width: 680px; border-collapse: collapse; }
+    th, td { padding: 11px 10px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+    th { color: var(--muted); font-size: .76rem; letter-spacing: .05em; text-transform: uppercase; }
+    tr:last-child td { border-bottom: 0; }
+    td:first-child { font-weight: 670; }
+
+    .split { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 15px; }
+    .callout {
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 11px;
+      background: #fcfdff;
+    }
+    .callout.warning { border-color: #f1d7a9; background: #fffaf1; }
+    .references { display: flex; flex-wrap: wrap; gap: 9px 16px; margin-top: 10px; }
+    footer { padding: 0 0 36px; color: var(--muted); font-size: .88rem; }
+
+    @media (max-width: 680px) {
+      .wrap { width: min(calc(100% - 22px), 1120px); }
+      .masthead { padding: 32px 0 27px; }
+      section { padding: 17px; }
+      .split { grid-template-columns: 1fr; }
+      .phase-grid { grid-template-columns: 1fr; }
+      table { min-width: 0; }
+      thead { display: none; }
+      table, tbody, tr, td { display: block; width: 100%; }
+      tr { padding: 10px 0; border-bottom: 1px solid var(--line); }
+      tr:last-child { border-bottom: 0; }
+      td { padding: 4px 0; border: 0; }
+      td::before {
+        display: block;
+        margin-bottom: 1px;
+        color: var(--muted);
+        content: attr(data-label);
+        font-size: .72rem;
+        font-weight: 750;
+        letter-spacing: .05em;
+        text-transform: uppercase;
+      }
+    }
+
+    @media print {
+      body { background: #fff; font-size: 10pt; }
+      .masthead { padding: 0 0 14px; color: #000; background: #fff; }
+      .subtitle { color: #333; }
+      nav { display: none; }
+      .wrap { width: 100%; }
+      section { break-inside: avoid; box-shadow: none; }
+      a { color: inherit; text-decoration: none; }
+    }
+  </style>
+</head>
+<body>
+  <header class="masthead">
+    <div class="wrap">
+      <p class="eyebrow">ShipLoop · checked-in implementation overview</p>
+      <h1>Implementation verification summary</h1>
+      <p class="subtitle">A human-readable summary of the Markdown-authoritative ShipLoop harness, its seven-phase workflow, and the current verification snapshot.</p>
+      <nav aria-label="Summary sections">
+        <a href="#tldr">TL;DR</a>
+        <a href="#workflow">Workflow</a>
+        <a href="#sequence">Implementation sequence</a>
+        <a href="#evidence">Evidence</a>
+        <a href="#cold-trial">Cold trial</a>
+        <a href="#limits">Limits</a>
+        <a href="#references">References</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section id="tldr">
+      <h2>TL;DR</h2>
+      <p class="notice"><strong>This is not a runtime certificate or a product-deployment claim.</strong> It summarizes the completed ShipLoop implementation and its scoped verification. A specific run is complete only when its authoritative Markdown evidence and terminal checks say so.</p>
+      <dl class="facts">
+        <div class="fact">
+          <dt>Authority</dt>
+          <dd>Markdown records and script-owned transitions</dd>
+        </div>
+        <div class="fact">
+          <dt>Operator model</dt>
+          <dd>One durable, recoverable action at a time</dd>
+        </div>
+        <div class="fact">
+          <dt>Completion rule</dt>
+          <dd>Evidence-bound checks, not a host “done” assertion</dd>
+        </div>
+        <div class="fact">
+          <dt>Verification</dt>
+          <dd>224 test cases <span class="status pass">verified</span></dd>
+        </div>
+      </dl>
+      <p class="muted" style="margin-top:16px">The implementation keeps state in fenced Markdown, validates action/result boundaries in code, and derives a terminal HTML achievement report only from durable run evidence. It does not independently implement product behavior, judge semantic adequacy, or attest to remote effects.</p>
+    </section>
+
+    <section id="workflow">
+      <h2>Readable seven-phase workflow</h2>
+      <p>The seven labels are an operator map. The script stores a more granular <code>phase</code>/<code>stage</code> cursor and issues a fresh action ID at each boundary; the phases are not extra state records or product runtime states.</p>
+      <div class="phase-grid">
+        <article class="phase">
+          <h3>P1 — Frame and baseline</h3>
+          <p><code>preflight</code> and <code>approach</code> select a committed baseline, preserve unrelated work, identify usable checks, and establish a bounded delivery direction.</p>
+        </article>
+        <article class="phase">
+          <h3>P2 — Survey, research, behavior</h3>
+          <p>Survey, research, and behavior candidates are reviewed iteratively against the current environment, then converge through planning, apply, verification, audit, and fresh finalization.</p>
+        </article>
+        <article class="phase">
+          <h3>P3 — Specification and sequence</h3>
+          <p>The specification/lifecycle are frozen only after the same convergence discipline; sequence validates the dependency DAG and authorized preparation placement.</p>
+        </article>
+        <article class="phase">
+          <h3>P4 — Ready-step planning and execution</h3>
+          <p>The scheduler selects a dependency-ready step. A nested step-plan loop produces a fresh, evidence-bound plan before implementation begins.</p>
+        </article>
+        <article class="phase">
+          <h3>P5 — Improve, learn, merge</h3>
+          <p>Review findings, mapped test evidence, learning commits, fresh verification, knowledge carry-forward, and a broader-plan decision precede local merge.</p>
+        </article>
+        <article class="phase">
+          <h3>P6 — Whole-product quality</h3>
+          <p>Coverage and quality examine lifecycle acceptance across steps. A finding returns work to a corrective pending DAG step rather than bypassing the loop.</p>
+        </article>
+        <article class="phase">
+          <h3>P7 — Authorized handoff</h3>
+          <p>Publish is conditional and separately authorized. Handoff records facts and limitations; <code>done</code> is allowed only when terminal evidence is complete.</p>
+        </article>
+      </div>
+    </section>
+
+    <section id="sequence">
+      <h2>Implementation and verification sequence</h2>
+      <ol class="sequence">
+        <li>
+          <strong>Persist the real control plane in Markdown.</strong>
+          The command host maintains the active action, state cursor, history, results, checks, receipts, and handoff under a run directory. Completion replay is checked against an action-bound fingerprint instead of treating chat history as authority.
+        </li>
+        <li>
+          <strong>Converge planning candidates before source edits.</strong>
+          Research, behavior, specification, and generic substantive objectives use candidate-bound review/apply/check/audit cycles. The embedded continuation policy needs two verified, distinct trivial audit passes and no open findings before it is merely ready for a fresh final check.
+        </li>
+        <li>
+          <strong>Make step readiness and completion inspectable.</strong>
+          Versioned Ready/Done/test/documentation criteria tie a selected step’s produces to named evidence. Current-step knowledge or source changes invalidate stale evidence rather than silently preserving a “ready” flag.
+        </li>
+        <li>
+          <strong>Keep implementation and review boundaries separate.</strong>
+          The step-plan loop is audit-only; the implementation stage owns scoped product edits and meaningful checks. Improve cycles record findings, checks, learning commits, and a broader-plan decision before merge.
+        </li>
+        <li>
+          <strong>Require whole-product evidence before terminal handoff.</strong>
+          Outer coverage and quality use lifecycle acceptance, concrete lint and test checks, and corrective replanning if evidence is incomplete or changes invalidate prior results.
+        </li>
+        <li>
+          <strong>Derive the HTML report; never promote it to authority.</strong>
+          At a terminal transaction, the delivery layer renders a deterministic offline report from selected Markdown evidence. It rejects incomplete evidence for a successful terminal cursor and stores report metadata only as a derived binding.
+        </li>
+      </ol>
+    </section>
+
+    <section id="evidence">
+      <h2>Current verification snapshot</h2>
+      <p>224 distinct Python test cases were verified across full suites and affected targeted reruns. The retained terminal walkthrough additionally exercised genuine planning, step-plan, and objective lint commands through completion. This is scoped implementation evidence, not certification of every host or downstream product.</p>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Evidence surface</th>
+              <th>Current result</th>
+              <th>Meaning</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td data-label="Evidence surface">Storage / evidence / validators</td>
+              <td data-label="Current result">7 / 8 / 39 passed</td>
+              <td data-label="Meaning">Durable record handling, evidence checks, and retained validators in the stable focused slice.</td>
+              <td data-label="Status"><span class="status pass">Pass snapshot</span></td>
+            </tr>
+            <tr>
+              <td data-label="Evidence surface">Closure and pending-map boundaries</td>
+              <td data-label="Current result">10 passed</td>
+              <td data-label="Meaning">Closure and pending-work boundary cases in the stable focused slice.</td>
+              <td data-label="Status"><span class="status pass">Pass snapshot</span></td>
+            </tr>
+            <tr>
+              <td data-label="Evidence surface">Generic objectives / embedded until policy</td>
+              <td data-label="Current result">15 / 7 passed</td>
+              <td data-label="Meaning">Universal substantive-objective gates and the pure convergence decision policy.</td>
+              <td data-label="Status"><span class="status pass">Pass snapshot</span></td>
+            </tr>
+            <tr>
+              <td data-label="Evidence surface">Contract schema / protocol adapters</td>
+              <td data-label="Current result">10 / 10 passed</td>
+              <td data-label="Meaning">Versioned Ready/Done criteria and their protocol integration boundaries.</td>
+              <td data-label="Status"><span class="status pass">Pass snapshot</span></td>
+            </tr>
+            <tr>
+              <td data-label="Evidence surface">Delivery / derived HTML report</td>
+              <td data-label="Current result">6 / 8 passed</td>
+              <td data-label="Meaning">Terminal report transaction binding and the standalone report’s safety/evidence cases.</td>
+              <td data-label="Status"><span class="status pass">Pass snapshot</span></td>
+            </tr>
+            <tr>
+              <td data-label="Evidence surface">Stable focused subtotal</td>
+              <td data-label="Current result">120 passed</td>
+              <td data-label="Meaning">The stable implementation slice, including new boundary coverage, is reported green for this pass.</td>
+              <td data-label="Status"><span class="status pass">Pass snapshot</span></td>
+            </tr>
+            <tr>
+              <td data-label="Evidence surface">Protocol suite</td>
+              <td data-label="Current result">29 passed</td>
+              <td data-label="Meaning">Exercises script-owned transition and evidence behavior at the protocol layer.</td>
+              <td data-label="Status"><span class="status pass">Pass snapshot</span></td>
+            </tr>
+            <tr>
+              <td data-label="Evidence surface">Cold action packet suite</td>
+              <td data-label="Current result">14 passed</td>
+              <td data-label="Meaning">Checks stage-local packet/result-shape and bounded-context behavior.</td>
+              <td data-label="Status"><span class="status pass">Pass snapshot</span></td>
+            </tr>
+            <tr>
+              <td data-label="Evidence surface">Step-planning suite</td>
+              <td data-label="Current result">17 passed</td>
+              <td data-label="Meaning">Exercises the nested, evidence-bound step-plan convergence path.</td>
+              <td data-label="Status"><span class="status pass">Pass snapshot</span></td>
+            </tr>
+            <tr>
+              <td data-label="Evidence surface">Total distinct Python test cases</td>
+              <td data-label="Current result">224 verified</td>
+              <td data-label="Meaning">120 stable + 29 protocol + 14 packets + 17 step-planning + 28 planning + 4 knowledge + 12 action-walk/lint cases. Repeat runs are not double-counted.</td>
+              <td data-label="Status"><span class="status pass">Pass snapshot</span></td>
+            </tr>
+            <tr>
+              <td data-label="Evidence surface">Research / behavior / specification planning</td>
+              <td data-label="Current result">28 passed</td>
+              <td data-label="Meaning">27 in the full run; the updated sequence-proof error wording passed its targeted rerun.</td>
+              <td data-label="Status"><span class="status pass">Verified</span></td>
+            </tr>
+            <tr>
+              <td data-label="Evidence surface">Carry-forward knowledge integration</td>
+              <td data-label="Current result">4 passed</td>
+              <td data-label="Meaning">The corrected full rerun passed after the fixture learned to read dynamically added step contracts from the bound DAG.</td>
+              <td data-label="Status"><span class="status pass">Verified</span></td>
+            </tr>
+            <tr>
+              <td data-label="Evidence surface">Full public-CLI action walks</td>
+              <td data-label="Current result">12 cases verified; retained terminal walk passed</td>
+              <td data-label="Meaning">10 initial passes, corrected dynamic-step replan rerun, and new real-lint negative regression. A retained complete walkthrough also passed; nine actual authored candidate formats passed direct lint smoke checks.</td>
+              <td data-label="Status"><span class="status pass">Verified</span></td>
+            </tr>
+            <tr>
+              <td data-label="Evidence surface">Canonical ShipLoop scripts and Python tests Ruff</td>
+              <td data-label="Current result">Passed</td>
+              <td data-label="Meaning">Static lint verification for the canonical ShipLoop script surfaces.</td>
+              <td data-label="Status"><span class="status pass">Pass snapshot</span></td>
+            </tr>
+            <tr>
+              <td data-label="Evidence surface">Repository frontmatter validator</td>
+              <td data-label="Current result">17 skills passed</td>
+              <td data-label="Meaning">The repository’s checked-in validator confirmed its skill-frontmatter contract.</td>
+              <td data-label="Status"><span class="status pass">Pass snapshot</span></td>
+            </tr>
+            <tr>
+              <td data-label="Evidence surface">ShipLoop plugin mirror consistency</td>
+              <td data-label="Current result">Passed, scoped to ShipLoop</td>
+              <td data-label="Meaning">The checked-in plugin mirror agrees with the ShipLoop source slice.</td>
+              <td data-label="Status"><span class="status pass">Pass snapshot</span></td>
+            </tr>
+            <tr>
+              <td data-label="Evidence surface">Shell harness syntax / Git whitespace checks</td>
+              <td data-label="Current result">Passed</td>
+              <td data-label="Meaning">Basic shell syntax and patch-whitespace hygiene checks passed for this worktree snapshot.</td>
+              <td data-label="Status"><span class="status pass">Pass snapshot</span></td>
+            </tr>
+            <tr>
+              <td data-label="Evidence surface">This implementation-summary HTML</td>
+              <td data-label="Current result">Static checks passed; visual preview unavailable</td>
+              <td data-label="Meaning">Local links, anchors, and offline-content checks passed. Browser URL policy blocked visual preview; no workaround was attempted.</td>
+              <td data-label="Status"><span class="status limited">Preview limit</span></td>
+            </tr>
+            <tr>
+              <td data-label="Evidence surface">Generic PyYAML-based validator</td>
+              <td data-label="Current result">Unavailable</td>
+              <td data-label="Meaning">PyYAML is absent from the available Python runtimes; no dependency was installed merely to make this check run.</td>
+              <td data-label="Status"><span class="status limited">Known limit</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="muted" style="margin-top:14px">The source plan retains verification provenance and the corrected fixture failures. No push, deployment, credential change, or new persistent integration was performed; unrelated Review Coverage work was preserved.</p>
+    </section>
+
+    <section id="cold-trial">
+      <h2>Independent cold-operator trial boundary</h2>
+      <p>An opaque public-CLI trial reached <code>validate-spec / survey</code> after two unchanged, verified, audited approach passes and a fresh final verification. It intentionally stopped at survey.</p>
+      <p>The trial exposed a missing manifest schema and a same-run CLI check that deadlocked on the active lock. The packet gaps were corrected, and the direct immutable-candidate check then passed. The plan retains the exact durable evidence and audit identifiers.</p>
+      <p class="notice"><strong>This is narrow evidence, not end-to-end host coverage.</strong> The trial does not claim a completed product, a completed run, behavior on every supported host, a fixed token ceiling, or a physically cleared chat context at every action boundary.</p>
+      <h3>Separate complete public-CLI walkthrough</h3>
+      <p>A two-step test product completed 223 accepted actions and generated a 106,844-byte report. The final state is <code>done / done</code>, report evidence is complete, and its HTML hash matches the state binding. Read-only status prints the exact <code>It's all complete.</code> response with no remaining callback.</p>
+      <p>The retained proof is a post-terminal inspection copy; its original temporary product checkout was cleaned up. It is not a relocated resumable run. The source plan records its location and hash.</p>
+    </section>
+
+    <section id="limits">
+      <h2>Honest limits and non-claims</h2>
+      <div class="split">
+        <article class="callout">
+          <h3>What the implementation can establish</h3>
+          <ul>
+            <li>Durable, action-bound state and evidence transitions in the checked-in harness.</li>
+            <li>Refusal of missing, stale, malformed, changed, or incomplete evidence at the gates implemented by the scripts.</li>
+            <li>A deterministic offline run report derived from bounded Markdown records.</li>
+            <li>Focused verification results recorded above, subject to their stated scope.</li>
+          </ul>
+        </article>
+        <article class="callout warning">
+          <h3>What this page does not establish</h3>
+          <ul>
+            <li>That any downstream application was deployed or published during this implementation verification.</li>
+            <li>That a host selected meaningful tests, performed a complete semantic review, or made truthful external assertions.</li>
+            <li>That every possible behavior, integration, or host was covered by these tests.</li>
+            <li>That the cold-operator trial covers every host or proves a physically reset context at each action boundary.</li>
+            <li>That a generated per-run report is authoritative state; the run Markdown remains authoritative.</li>
+          </ul>
+        </article>
+      </div>
+      <p style="margin-top:16px">The practical boundary is deliberate: ShipLoop can enforce evidence shape, freshness, and transition rules, but it cannot infer product correctness or external reality from a host’s prose. Failures, pauses, exhausted budgets, missing dependencies, and unverified effects remain unfinished rather than alternative success paths.</p>
+      <p>The README also records three recovery/context limits: merge-intent reconciliation may require operator direction; a single very large Git commit body has no byte-level paging yet; and legacy migration cannot reconstruct a missing original prompt. These limits are not bypasses for evidence or authority.</p>
+    </section>
+
+    <section id="references">
+      <h2>Source reading</h2>
+      <p>This page is a static reading aid. The linked Markdown and source modules are the current reference points for exact protocol details and recovery behavior.</p>
+      <div class="references">
+        <a href="../README.md">Repository README</a>
+        <a href="shiploop-universal-plan.md">ShipLoop universal implementation plan</a>
+        <a href="../skills/shiploop/README.md">ShipLoop operator README</a>
+        <a href="../skills/shiploop/scripts/shiploop_protocol.py">Protocol transitions and terminal persistence</a>
+        <a href="../skills/shiploop/scripts/shiploop_contracts.py">Versioned step contracts</a>
+        <a href="../skills/shiploop/scripts/shiploop_until.py">Pure convergence decision policy</a>
+        <a href="../skills/shiploop/scripts/shiploop_delivery.py">Derived report transaction binding</a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="wrap">
+    Static offline implementation summary. It intentionally contains no scripts, remote assets, analytics, or runtime state mutation.
+  </footer>
+</body>
+</html>

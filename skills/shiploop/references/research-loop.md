@@ -1,0 +1,221 @@
+# Iterative environmental and best-practice research
+
+Research is a delivery activity with its own evidence and stopping condition,
+not a one-shot report or a request to repeat the same answer. Start from the
+incoming prompt, surveyed environment, available spec and recorded discoveries.
+Follow the printed action; retain everything needed by the next iteration in
+Markdown. Read only the section the current packet selects.
+
+```mermaid
+flowchart TD
+  Q[Scoped questions] --> S[Review sources and investigate]
+  S --> R[Revise evidence and resolve findings]
+  R --> V[Lint, tests and learning commit]
+  V --> G{Two trivial passes and no gaps?}
+  G -->|No| S
+  G -->|Yes| F[Fresh final checks]
+  F --> N[Next phase with fresh context]
+```
+
+## Draft
+
+Identify the environmental conditions and best-practice decisions that could
+change the approach, feasibility, behavior, tests or deployment. Convert them
+into a bounded question inventory. Scope the inventory to this task; do not
+research every technology, invent an unnecessary environment, or impose a stack.
+
+For each question, distinguish:
+
+- what the user requires, with a prompt/spec reference;
+- what the environment currently does, with direct evidence;
+- what a source recommends, with applicability and contrary evidence;
+- what remains unknown or requires a user decision.
+
+Research begins with `body` and `research_state` in the normal Markdown result.
+The script maintains `research.md` and `research-evidence.md` as candidate
+components; host-authored result drafts belong in the printed inbox. The typed
+evidence structure is:
+
+```json
+{
+  "questions": [
+    {
+      "id": "Q-1",
+      "question": "Which invocation boundary must the client use?",
+      "origin": "Prompt R-1 and survey invocation uncertainty",
+      "status": "resolved",
+      "answer": "Use the documented service-visible operation and error envelope.",
+      "sources": ["SRC-1"],
+      "revalidate": "Recheck if the deployed interface version or client changes.",
+      "rationale": "The documented boundary matches the requested client and current service."
+    }
+  ],
+  "sources": [
+    {
+      "id": "SRC-1",
+      "reference": "Safe primary-document or repository reference",
+      "authority": "primary",
+      "version_or_observed_at": "Exact inspected version or observation timestamp",
+      "supports": "The exposed operation, input shape and error envelope",
+      "limitations": "Does not prove live credential availability or a deployed result"
+    }
+  ]
+}
+```
+
+Use stable IDs. Question status is `resolved`, `open`, `blocked`, or
+`not-applicable`; source authority is `primary`, `local`, `secondary`, or `probe`.
+`origin` explicitly references the prompt, spec or discovery that raised the
+question. Preserve prior question and source IDs across application; changing a
+source reference/authority needs a new ID rather than repurposing the old one.
+A resolved question needs source support. An irrelevant question needs a concrete
+inapplicability rationale. An open/blocked question records the gap in `answer`;
+it cannot be hidden by removing its ID or declaring the pass trivial. Local-only
+work can use actual repository/runtime evidence; no external-search quota or
+third-party tool is mandatory. No relevant uncertainty still requires an explicit
+bounded applicability review, not a fabricated source or silent empty result.
+
+## Review
+
+Each pass reads its current question/source records, finding ledger, selected
+candidate pages and required Git history. Use `next`, `context` and `history`;
+do not load every old research report. Perform a new investigation or independent
+recheck of the important conclusions, not merely a rewrite of prior prose.
+
+Cover every research rubric key with a concise evidence-based explanation:
+
+| Key | Question to answer in this pass |
+|---|---|
+| `prompt_coverage` | Which requirements/spec clauses/discoveries drive the inventory, and are any omitted or invented? |
+| `environment_conditions` | What runtime, resource, data, concurrency, persistence, configuration and failure conditions actually matter? |
+| `source_quality` | Do inspected sources directly support each conclusion at the relevant version/environment? |
+| `contradictions` | Which sources, observations or requirements disagree, and what evidence or decision resolves the disagreement? |
+| `best_practices` | Which alternatives fit local constraints, and what are their benefits, costs, failure modes and adoption reasons? |
+| `access_readiness` | Are authorized roles, safe probes and prerequisite availability understood without recording secrets? |
+| `invocation_contracts` | Are relevant client/service operations, envelopes, serialization and error/async behavior established on both sides? |
+| `test_deploy_feasibility` | Which local, browser, service or API checks are required and possible in the intended environment? |
+| `remaining_unknowns` | Which material questions remain, what should be investigated next, and what requires user direction? |
+
+Start broad enough to identify plausible alternatives, then investigate the
+highest-risk gaps deeply. Inspect relevant local contracts and current primary
+documentation; use secondary/community reports to generate leads and failure
+hypotheses, not as sole proof of a capability. Seek evidence that could disprove
+the favored answer. Distinguish independent corroboration from copied sources.
+Record what each safe probe or source actually establishes, including null or
+negative results and why an alternative was rejected.
+
+Use the existing planning result contract: `findings` with stable IDs and
+material/trivial severity, the complete `coverage_review` object, `test_review`
+and `learnings`. Plan every unresolved finding, then supply the updated complete
+report and `research_state` at application. Research changes remain candidates
+until checks and audit commits establish convergence.
+
+The complete replacement result is an on-disk artifact, not a requirement to
+paste the entire report or inventory into the model context. For large candidates,
+read bounded relevant sections and assemble the replacement in the printed host
+inbox from the current Markdown using scoped edits or local transformation
+scripts. Do not edit script-owned candidates directly. Preserve untouched
+records and stable IDs, then validate the assembled result. Never omit evidence
+to fit the context window or rely on remembered records from a prior iteration.
+
+## Evidence and freshness
+
+Source identity and observation time serve different purposes. Prefer an exact
+commit, release, document revision or other immutable identifier for stable
+claims. Record when a volatile condition was observed and its safe point-of-use
+revalidation trigger. The script's finalization time is when the checkpoint was
+recorded, not proof that every remote source was freshly inspected then.
+
+Treat a new/changed conclusion, newly discovered material question, environment
+constraint, incompatibility, or test/deploy feasibility gap as material. A small
+text edit can change the entire decision. Non-semantic report cleanup or a source
+observation/version refresh that changes no conclusion may be trivial. The script
+conservatively treats additions or edits to question records, source identities,
+support or limitations as material, even if the host labels them trivial.
+Unavailable evidence is not evidence that nothing material remains; record the
+gap and pause as needed.
+
+Each research iteration requires real candidate-bound lint and tests covering the
+packet's exact `research evidence` acceptance. Useful checks include question/source
+referential integrity, missing applicability/revalidation policy, contradictions
+detectable from a structured model, and the expected results of safe local probes.
+Test the asserted contract, not only file existence. Manual source interpretation
+is host-reported evidence, not executable proof or a passed remote acceptance test.
+Reconcile the report's required case map with the repeatable checks: every
+required case needs an expected outcome and current execution evidence. Label
+historical/manual observations separately; a passing subset does not validate
+the whole case map or excuse an unavailable required check.
+
+Use a distinct verbose audit-only commit per completed planning pass with the
+recorded learnings. Two consecutive fully checked trivial-only passes, no open
+questions/findings, and fresh final checks permit finalization. Apply trivial
+fixes before the checks. A repeated action, failed probe, exhausted budget or
+iteration cap never counts as another successful pass.
+
+Keep secret values, credential-bearing URLs, account addresses and raw sensitive
+responses out of reports, results and logs. Research does not authorize installing
+tools, changing credentials/configuration, running destructive experiments or
+publishing. Missing user policy is not resolvable by additional web citations.
+
+## Later discoveries
+
+Research completion accepts a versioned evidence baseline, not a permanent claim
+that discovery is over. Every implementation review explicitly assesses whether
+its current scope needs new investigation:
+
+```json
+{
+  "research_assessment": {
+    "status": "required",
+    "summary": "A newly observed boundary invalidates the current assumption.",
+    "evidence": ["Safe reference to the retained observation"],
+    "questions": ["Which supported behavior applies at this boundary?"]
+  }
+}
+```
+
+Statuses are `not-needed`, `resolved`, `required`, or `blocked`. Explain why no
+research is needed when that is the decision. Required/blocked investigation is
+material and cannot leave the improvement loop unresolved. Retain the answer,
+evidence and revalidation policy when resolving it; repeat review and checks.
+`resolved` means investigation was completed in this pass and still resets the
+trivial streak. In a later pass, use `not-needed` when rechecking the existing
+evidence reveals no new investigation need; explain why it remains applicable.
+Every status requires a summary; all except `not-needed` require nonempty
+`evidence` and `questions` lists. These are safe references and question text,
+not an invitation to copy raw source output into the result.
+Use the existing carry-forward checkpoint for facts other iterations need.
+
+| Discovery location | Required route |
+|---|---|
+| Before any execution receipt | `revisit --to research` archives the old research and downstream planning, preserves the survey, and reconverges. A changed survey contract uses `--to survey`. |
+| Within the active step's approved scope | Investigate during its ordinary Improve loop; unresolved research is material and resets convergence. |
+| Required by future pending steps | Carry a `research`-domain `pending-replan` discovery. Post-inner maps it to an explicit `activity: research` producer, and every affected consumer must transitively depend on that producer. |
+| Incompatible requirement, permission or completed-work assumption | Pause for direction. Research evidence is not authority to rewrite the approved baseline. |
+
+A research DAG step names its checkable report/decision artifact in `produces`.
+Its review supplies the full research rubric in `research_review` as well as the
+ordinary execution fields. The step must pass the normal lint/tests,
+carry-forward, verbose commit, two-trivial-pass, final-verify and merge gates.
+Following steps consume the report and scoped knowledge with fresh context.
+Mapping a research obligation means **scheduled**, not answered or verified.
+In `pending_obligation_map`, a research obligation's `{id, steps}` entry lists
+only the research producer IDs in `steps`. The script derives affected pending
+consumers and checks their transitive dependencies separately; do not list those
+consumers as research producers.
+
+Generic improvements to ShipLoop belong in `shiploop-improvements.md`, separate
+from product research and without permission to self-modify the harness.
+
+## Basis and limits
+
+Adaptive investigation and persistent artifacts are supported by
+[Anthropic's research-system engineering experience](https://www.anthropic.com/engineering/multi-agent-research-system).
+It also reports coordination and token costs, so parallel investigation is a
+choice for independent questions, not a requirement for every pass.
+[Self-Refine](https://arxiv.org/abs/2303.17651) reports task-specific improvements
+from revision, while [intrinsic self-correction research](https://arxiv.org/abs/2310.01798)
+shows important limits without external feedback. These motivate evidence-backed
+iteration, not a guarantee of completeness or this exact two-pass threshold.
+The threshold is ShipLoop's explicit operational stopping rule; semantic
+adequacy, source interpretation and live-source truth still require judgment.

@@ -1,8 +1,19 @@
-# Compact action packet
+# Action packet and cold-context handoff
 
-ShipLoop 0.9 prints one bounded action rather than echoing the full session
-into every context. Treat the packet as the operational source for the current
-turn; durable Markdown files hold the detail.
+The host skill invocation is deliberately thin: it starts or resumes ShipLoop,
+then the script packet owns the current action. A packet supplies the current
+phase/stage and action capability, the bounded context needed for that action,
+the result schema location, the check/history commands that are required now,
+and the exact **When done** command plus its explicit `done` alias. It does not paste the README, every prior
+pass, or an unbounded repository snapshot into the model window. Durable
+Markdown remains the complete current state.
+
+Treat the printed packet as the operational source for this turn. After a
+context reset, call `next`, page only the named context sections, and follow
+the newly printed action rather than replaying a remembered plan. A paused,
+halted, legacy, or uncertified-terminal packet omits both completion callbacks
+and prints `Recovery:` instead. That remains unfinished state; do not infer a
+closer from a prior packet.
 
 ~~~text
 ShipLoop 0.9.0 | <phase> / <stage> | revision <n>
@@ -10,13 +21,21 @@ Run: <absolute run directory>
 State: <run>/state.md
 Journal: <run>/shiploop-improvements.md
 Action: <run-scoped action id>
-Working directory: <repo or active worktree>
-Step: <id> | receipt: <path>                 # only for an active step
-Iteration: <id>                               # only during Improve
-<one stage-specific prompt>
-<only relevant command(s)>
-Result format: one shiploop-state JSON object fence in Markdown.
+Stage: <phase> / <stage>
+Worktree: <repo or active worktree>
+Current task: <active step / receipt / iteration when applicable>
+Objective: <the bounded outcome for this action>
+Until: <the recorded terminal predicate for this loop/action>
+Continue while: <what remains unfinished>
+Evidence required: <current evidence and schema fields>
+Environment: <frozen baseline and current overlay pointer>
+Bounded context: <section commands and current digest pointers>
+Result format: <result fields and linked protocol section>
+Result template: <the inbox template / required field shape>
+Write the result to: <absolute inbox path>
+<only relevant check/history command(s)>
 When done: shiploop complete --action <id> --result <path>
+Call this when done: shiploop done --action <id> --result <path>
 ~~~
 
 The packet points to the relevant approach, environment, spec, lifecycle, and
@@ -54,9 +73,10 @@ manifest changes for a current action, run verify --reason "<why coverage
 changed>"; failed attempts remain in check-attempts/ and do not become
 invisible.
 
-For Improve review, the packet prints a bounded history command. The default
-output is a compact SHA/subject index and a pointer to the durable page. Read
-the latest seven commits or all available commits before completing review.
+For Improve and execution-plan review, the packet prints a bounded history
+command. The default output is a compact SHA/subject index and a pointer to the
+durable page. Read the latest ten commits or all available commits before
+completing review.
 Retrieve a specific full body without flooding the context:
 
 ~~~text
