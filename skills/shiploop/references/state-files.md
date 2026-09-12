@@ -28,7 +28,7 @@ file. There is no writable JSON mirror.
 | `step-planning/<loop>/abandoned/<pass>.md` | An interrupted, repaired, or `no-contract-change`-disposed nested pass retained with its reason and material outcome; it does not count toward convergence. |
 | `step-planning/<loop>/certificate.md` | Fresh-finalization proof for the exact step plan: candidate/ledger, accepted planning checks, audit history, and whether it released `implement` or `improve-apply`. |
 | `spec.md` | Checkable `done_sentence:` and `checkable: true`; promoted product contract only after spec-loop finalization. |
-| `lifecycle.md` | Whether preparation, quality, and publication belong in the DAG or outer loop, plus acceptance criteria and rationale. |
+| `lifecycle.md` | Whether preparation, quality, and publication belong in the DAG or outer loop, plus acceptance criteria, rationale and versioned `risk_policy` decisions. |
 | `plan.md` | Human-readable sequence plan, including matching `done_sentence:` and the bound Review Coverage section. |
 | `backchain/plan.md` | Canonical dependency DAG in a Markdown record. The JSON fence is authoritative for steps, dependencies, prompts, produces, and unresolved facts. |
 | `steps/<id>.md` | Per-step receipt: allocation, branch/worktree, current/history execution-plan bindings, implementation evidence, Improve iterations and their carried nested-plan learnings, final check, broader-plan review, and merge result. |
@@ -39,7 +39,15 @@ file. There is no writable JSON mirror.
 | `check-attempts/<action>-<id>.md` | Every verification attempt, including failures, timeout evidence, and manifest-change reason. |
 | `logs/<action>/` | Raw stdout/stderr logs named by check; evidence, not Markdown authority or prompt payload. |
 | `history-pages/<action>-<skip>.md` | Persisted pages of full Git commit bodies read for an execution or step-plan review. |
+| `merge-recoveries/<action>.md` | Immutable evidence of explicit recovery from a reconciled, unlanded merge intent. It does not itself abort or undo Git work. |
 | `history.md` | Append-only command/action history. |
+
+Bounded history uses `history_paging` inside the active objective/planning pass,
+step-plan pass, or execution iteration receipt. It binds action, HEAD, commit,
+full-body identity and contiguous fragment offsets/digests. Only complete
+coverage creates the existing full-body `history.pages` proof and archived
+Markdown body. Fragment metadata is not a second state file or proof of
+semantic understanding; a changed source or damaged fragment ledger is rejected.
 | `shiploop-improvements.md` | Deduplicated generic ShipLoop improvement proposals with provenance; proposal-only. |
 | `preparation.md`, `coverage.md`, `quality.md`, `delivery.md`, `handoff.md` | Outer-loop evidence and final handoff records. |
 | `migration.md`, `legacy-backup/` | Explicit legacy-migration marker and copied pre-0.9 records. |
@@ -80,6 +88,10 @@ contract edit.
 - `migrate` saves source JSON under `legacy-backup/`, creates
   `migration.md`, preserves code/branches/worktrees, and makes planning pass
   new evidence gates. It does not certify historical assertions.
+- Migration records `prompt_recovery` in `state.md` and `migration.md`. A
+  nonempty legacy `state.prompt` is copied exactly to `prompt.md` with a source
+  digest. Missing/blank/non-string intent is `unrecoverable`, not fabricated;
+  the run remains paused and permits diagnostics instead of advancement.
 - New Markdown runs retain state version 3 and add
   `planning_protocol_version: 2`, a monotonically advanced `planning_epoch`,
   and `step_planning_protocol_version: 1`. Pre-v2 Markdown runs, including
@@ -96,6 +108,12 @@ contract edit.
   product edit through the appropriate step-plan loop; an active later
   execution stage must use its existing `repair` route to record the
   interruption before it can restart review. Read-only diagnosis remains safe.
+- New runs carry `platform_discovery_protocol_version: 1` and
+  `risk_policy_version: 1` in `state.md`. They require the versioned
+  `machine.platform_discovery` in `environment.md` and `risk_policy` in the
+  lifecycle draft/frozen record. Missing markers preserve legacy compatibility;
+  present malformed or unknown versions never silently downgrade. These
+  declarations do not retrospectively certify old runs or live access.
 - A state mutation writes one transaction intent before targets. If an
   interruption leaves `transaction.md`, the next locked command recovers it.
   Do not hand-delete it to make a run appear healthy.

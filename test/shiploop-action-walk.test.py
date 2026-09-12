@@ -205,6 +205,12 @@ class ShipLoopActionWalkFixture(unittest.TestCase):
             "ui": False,
             "ui_craft": "none(no UI in scope)",
             "exclusive": [],
+            "platform_discovery": {
+                "version": 1,
+                "applicable": False,
+                "rationale": "This deterministic fixture has no external platform route.",
+                "platforms": [],
+            },
         }
         return (
             "Fixture survey.\n\n## machine\n```json\n"
@@ -488,6 +494,21 @@ TC-01 and TC-02 map the two exact-output acceptance criteria to durable checks.
                 if preparation == "outer-before"
                 else "Local files require no outer preparation or publication."
             ),
+            "risk_policy": {
+                "risk_policy_version": 1,
+                "security": {
+                    "decision": "not-applicable",
+                    "rationale": "The isolated local fixture exposes no security boundary.",
+                },
+                "fuzz": {
+                    "decision": "not-applicable",
+                    "rationale": "The deterministic fixture has no parser or external input surface.",
+                },
+                "maintenance": {
+                    "decision": "not-applicable",
+                    "rationale": "The fixture declares no deployable dependency maintenance path.",
+                },
+            },
         }
 
     def planning_rubric(self, kind):

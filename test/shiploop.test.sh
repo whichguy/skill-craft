@@ -9,6 +9,8 @@ for suite in \
   test/shiploop-store.test.py \
   test/shiploop-evidence.test.py \
   test/shiploop-validators.test.py \
+  test/shiploop-discovery.test.py \
+  test/shiploop-risk.test.py \
   test/shiploop-boundaries.test.py \
   test/shiploop-objectives.test.py \
   test/shiploop-contracts.test.py \
@@ -17,6 +19,9 @@ for suite in \
   test/shiploop-report.test.py \
   test/shiploop-packets.test.py \
   test/shiploop-protocol.test.py \
+  test/shiploop-history-pages.test.py \
+  test/shiploop-merge-recovery.test.py \
+  test/shiploop-migration-prompt.test.py \
   test/shiploop-knowledge.test.py \
   test/shiploop-planning.test.py \
   test/shiploop-until.test.py \

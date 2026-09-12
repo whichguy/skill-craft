@@ -28,7 +28,13 @@ Local-only greenfield work. No external writer, account, or UI is in scope.
   "initiation": "none",
   "ui": false,
   "ui_craft": "none(no user-facing surface)",
-  "exclusive": []
+  "exclusive": [],
+  "platform_discovery": {
+    "version": 1,
+    "applicable": false,
+    "rationale": "Only the local product tree is involved; no hosted artifact is required.",
+    "platforms": []
+  }
 }
 ~~~
 ~~~~
@@ -62,6 +68,12 @@ empty objects are not a valid placeholder for their required typed fields.
 
 ## Inventory before planning
 
+For hosted artifacts or remote environments, also follow
+[Platform discovery and delivery readiness](platform-discovery.md). Resolve
+interface/version, identity and authority, bootstrap, development validation,
+and promotion as separate decisions. An unavailable required platform remains
+applicable and blocked, never silently local-only.
+
 Record evidence for:
 
 - kind: greenfield or brownfield, and augment only when adding to the existing
@@ -69,9 +81,11 @@ Record evidence for:
 - relevant repository files, product docs, ADRs, official documentation, skill
   references, and MCP resource URIs; every reference has a constraint-focused
   why;
-- tools and MCPs that are actually in scope for this increment, plus one
-  read-capable mcp_considered token; list unauthenticated or deferred systems
-  in prose, not as usable capability;
+- tools and MCPs in scope for this increment, plus one read-capable
+  mcp_considered token. A selected but unavailable platform writer may appear
+  by name solely to bind its `exclusive`/`platform_discovery` record, with
+  explicit `blocked` status and prose; inventory presence never means usable.
+  Unselected unauthenticated or deferred alternatives stay in prose;
 - non-secret handles and initiation facts. Record an expected account role and
   a documented non-mutating probe, never an account address, credential value,
   or secret ID. An observation may say when it was observed, but that does not
@@ -103,7 +117,9 @@ For each destination artifact, designate one writer:
 ~~~
 
 dont_use lists competing mutation mechanisms, not a fallback ladder. The
-designated writer must be in the surveyed usable tools/MCP set. If it fails,
+designated writer must be in the surveyed tools/MCP inventory and be ready
+before any mutation. A blocked selected writer is a pending requirement, not
+usable capability. If it fails,
 pause and obtain direction; do not switch writers silently.
 
 Research and preserve writer constraints that later agents would otherwise

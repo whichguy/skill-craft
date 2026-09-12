@@ -63,6 +63,7 @@ python3 "$CLI" verify --run-dir "$RUN_DIR" --action "$ACTION" --manifest /absolu
 python3 "$CLI" planning-verify --run-dir "$RUN_DIR" --action "$ACTION" --manifest /absolute/planning-checks.md [--reason "why the manifest changed"] [--timeout 60]
 python3 "$CLI" planning-upgrade --run-dir "$RUN_DIR" --action "$ACTION"
 python3 "$CLI" history --run-dir "$RUN_DIR" --action "$ACTION" --limit 10 --skip 0 [--full]
+python3 "$CLI" history --run-dir "$RUN_DIR" --action "$ACTION" --limit 1 --skip N --full --max-chars 4000
 python3 "$CLI" journal --run-dir "$RUN_DIR" --action "$ACTION" --result /absolute/proposals.md
 python3 "$CLI" repair --run-dir "$RUN_DIR" --action "$ACTION" --reason "specific defect found after verification"
 python3 "$CLI" replan --run-dir "$RUN_DIR" --action "$ACTION" --result /absolute/corrective-plan.md
@@ -123,6 +124,14 @@ keeps check changes visible rather than silently weakening validation.
 `--run-dir` for a new session; prior journals, receipts, branches, and
 worktrees remain available for inspection.  Run `migrate` only for a legacy
 JSON run, described below.
+
+Migration restores a nonempty legacy `state.prompt` exactly into `prompt.md`
+and records source/digest metadata atomically with the Markdown state. If the
+legacy field is missing, blank or non-string, the result is explicitly
+`unrecoverable`: no prompt is invented, the migrated run remains paused, and
+`next`, `resume` and advancing commands are refused. Inspect `status`,
+`context --section prompt` and `migration.md`, then seek direction or start a
+new scoped run. A conflicting existing prompt file is not overwritten.
 
 A new run directory must be dedicated and empty, not the repository root.
 Before any step receipt or active work exists,
@@ -371,6 +380,23 @@ carry-forward, two-pass convergence, final verification, and merge gates. Its
 
 ## Git history and Improve commits
 
+### Abandoned merge intent
+
+`merge-recover --run-dir RUN --action ACTION --reason TEXT` is the explicit
+recovery after an unsuccessful merge has been reconciled outside ShipLoop.
+It never runs Git abort, reset, or merge. The current action must still be
+`merge`; the step branch must retain the target in its ancestry, not already be
+integrated, no `MERGE_HEAD` may remain, and both product checkouts must be clean.
+The script records `merge-recoveries/<action>.md`, retains branch/worktree and
+audit evidence, clears the abandoned intent, and restarts review with material
+recovery recorded. A manually reconciled descendant is not certified by the
+old checks; restarting review requires fresh convergence and final verification.
+In-progress, landed or ambiguous merges must be reconciled
+or retried, not declared unmerged. Ordinary `repair` remains unavailable once
+merge intent exists.
+
+### Full-message review
+
 At each execution `review`, fully page the current `knowledge` selection and
 run `history` before writing findings; record its matching `knowledge_read`
 object. Upstream `research-review`/`behavior-review`/`spec-review` actions need
@@ -380,7 +406,15 @@ the matching implementation/environment/dependency evidence. `history` first
 emits an index; that index is not review proof. Read and retain the complete
 bodies of the latest ten commits (or all available) for the active step
 worktree HEAD, or the bound repository HEAD during planning. Page one body at a
-time with `--limit 1 --skip N --full` when context is small. Audit-only planning
+time with `--limit 1 --skip N --full --max-chars 4000` when context is small.
+The bound is 1–4000 Unicode characters per message fragment, not UTF-8 bytes or
+the total JSON envelope size. Copy each emitted continuation exactly: it carries
+the action, repository HEAD, message identity digest, commit index, and next
+offset. Continue until that body is complete, then retrieve the next index.
+Only contiguous complete-body coverage becomes history-review proof; an index,
+partial page, skipped range, stale action, or changed HEAD cannot satisfy it.
+The older `--full` without `--max-chars` remains available and is unbounded.
+Audit-only planning
 commits can occupy those pages; when they do, also inspect the relevant older
 implementation or decision commit through a scoped path/symbol investigation.
 Do not mistake ten audit messages for the complete history of code being

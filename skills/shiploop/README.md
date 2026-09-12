@@ -287,6 +287,42 @@ The frozen lifecycle record answers placement before coding:
 - `quality: true | false`
 - `acceptance: [...]`
 
+New runs also require an explicit, versioned `risk_policy`: security testing,
+fuzzing, and ongoing dependency maintenance each receive a reasoned decision.
+Selected test IDs must resolve to actual step contracts. Maintenance is
+run-wide: implementation in this DAG precedes every DAG publication;
+`operate-later` records a future owner/cadence/validation/rollback policy without
+creating an updater or scheduler. See the
+[risk-policy schema and test guidance](references/testing-and-documentation.md#security-fuzzing-and-ongoing-maintenance).
+
+### Platform discovery without platform-specific assumptions
+
+```mermaid
+flowchart TD
+    A[Requested artifact and environment] --> B[Discover interfaces and conventions]
+    B --> C[Record identity and required authority]
+    C --> D{Usable authorized route?}
+    D -->|No| E[Block and request direction]
+    D -->|Yes| F[Order bootstrap and real development checks]
+    F --> G[Conditional delivery or promotion]
+```
+
+Survey requires `machine.platform_discovery`, including a compact explicit
+local-only case. A hosted artifact instead records the selected interfaces and
+versions, safe identity probe, authority status, exclusive writer, bootstrap,
+development validation and promotion decisions. Sequence binds the required
+producers to the existing DAG; it does not create another scheduler. The
+script checks declarations and ordering, while the host must establish current
+access and permission before external use.
+
+For example, a request for a hosted developer app leads to discovery of the
+available CLI/MCP and documented syntax, then to an identity/authority record.
+Missing write authority leaves that platform applicable but blocked; it does
+not become a fictional local-only task. With an authorized route, bootstrap
+precedes dependent validation, and promotion is separately planned. No
+platform name, tool installation, development account, or production deployment
+is assumed. See the [typed platform guide](references/platform-discovery.md).
+
 At `sequence`, make a short forward draft, audit every prerequisite backward,
 add missing producers or leave facts unresolved, then validate the acyclic DAG.
 The human `plan.md` and imported `backchain/plan.md` must agree. Include Review
@@ -576,9 +612,9 @@ environment, and evidence; a local green suite cannot prove publication.
 
 When `publish: dag`, publication is an explicitly ordered P4–P5 step. When
 `publish: none`, ShipLoop proceeds from `quality` to `handoff` and does not
-authorize delivery. The current `publish: none` validation gap is listed below,
-so follow the frozen lifecycle and user authority even if an inconsistent plan
-appears to validate.
+authorize delivery. Lifecycle validation rejects a DAG publication step when
+publication is absent or belongs to the outer loop; the lifecycle does not
+itself grant permission for any external effect.
 
 At `handoff`, record checked acceptance, actual delivery facts, limitations,
 unresolved concerns, and the prioritized generic ShipLoop proposal list. Use an
@@ -874,16 +910,14 @@ Read-only `status`, `context`, and `plan-status` inspection remain available.
 
 ## Current limitations and proposed safeguards
 
-### Three known current implementation gaps
+### Remaining recovery boundaries
 
-The diagrams and required operating discipline do not claim that every
-state-machine gate is watertight. These defects remain outstanding:
+The diagrams do not imply that missing intent or ambiguous external state can
+be reconstructed. These boundaries remain explicit:
 
 | Gap | Affected boundary | Operator consequence |
 |---|---|---|
-| Rejected merge intent can block the documented repair route. | P5 `merge` / `repair` | Once merge intent starts, inspect Git and reconcile the merge; current `repair` is intentionally unavailable there. |
-| A full Git commit body is not bounded by the history item count. | P2–P3 planning reviews, P5 `review`, and small-context retrieval | Retrieve bodies one at a time and keep context pressure visible. |
-| Legacy migration does not reconstruct the original prompt file. | Cold-start recovery after migration | Recover with available durable artifacts and resolve missing intent before relying on a cold restart. |
+| Legacy state never retained a usable prompt. | Cold-start recovery after migration | Migration records unrecoverable intent and pauses. Inspect diagnostics and obtain direction or start a new scoped run; never fabricate the prompt. |
 
 The final-verify convergence binding now rejects post-convergence product edits,
 and outer closure now requires a clean checkout descending from every integrated
@@ -892,6 +926,29 @@ validation also rejects a marked DAG step when its activity is `none`, or is
 placed outside the DAG (`preparation: outer-before`, `publish: outer-loop`).
 These safeguards do not add a semantic correctness
 oracle; the remaining limits above still require careful host judgment.
+
+Full Git messages now have bounded fragment retrieval:
+`history --limit 1 --skip N --full --max-chars 4000`. Follow each emitted
+continuation exactly until the complete body is covered. Pages are bound to
+the action, HEAD and message identity; partial or stale pages cannot count as
+review proof. The cap is Unicode characters in the message fragment, not total
+response bytes. Legacy `--full` without the bound remains unbounded. See the
+[history protocol](references/action-protocol.md#git-history-and-improve-commits).
+
+Aborted merge intent now has an explicit `merge-recover` route. First reconcile
+Git yourself; ShipLoop never aborts a merge automatically. With the exact current
+merge action, it refuses an in-progress or already-landed merge, unrelated branch,
+or dirty product checkout. A safe recovery retains branch/worktree and an
+immutable recovery checkpoint, clears the abandoned intent, resets convergence,
+and restarts review. A manually reconciled descendant of the old target must
+pass the full review/final verification cycle again; the actual merge remains
+bound to its exact verified target. Ordinary `repair` cannot bypass merge intent.
+
+Legacy migration now recovers a nonempty `state.prompt` byte-for-byte into
+`prompt.md` in the same Markdown transaction and records its source and digest.
+Missing, blank or non-string prompt data cannot become successful cold-start
+evidence: the migrated run stays paused, offers diagnostics, and rejects
+advancement. Backups, product files, branches and historical receipts are retained.
 
 ### Carry-forward is current; unrestricted rebasing is deferred
 
@@ -952,8 +1009,10 @@ shiploop verify   --run-dir RUN --action ACTION --manifest CHECKS.md [--reason T
 shiploop planning-verify  --run-dir RUN --action ACTION --manifest CHECKS.md [--reason TEXT] [--timeout N]
 shiploop planning-upgrade --run-dir RUN --action ACTION
 shiploop history  --run-dir RUN --action ACTION --limit 1 --skip N [--full]
+shiploop history  --run-dir RUN --action ACTION --limit 1 --skip N --full --max-chars 4000
 shiploop journal  --run-dir RUN --action ACTION --result PROPOSALS.md
 shiploop repair   --run-dir RUN --action ACTION --reason TEXT
+shiploop merge-recover --run-dir RUN --action ACTION --reason TEXT
 shiploop replan   --run-dir RUN --action ACTION --result CORRECTIVE_PLAN.md
 shiploop revisit  --run-dir RUN --action ACTION --to survey|research|behavior|spec --reason TEXT
 shiploop pause    --run-dir RUN --reason TEXT

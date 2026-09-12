@@ -21,6 +21,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import shiploop_store as store
 import shiploop_contracts as contracts
 import shiploop_until as until
+import shiploop_discovery as discovery
 
 EXIT_OK = 0
 EXIT_BLOCKED = 2
@@ -392,7 +393,7 @@ def load_spec(run_dir: Path) -> Tuple[Optional[Dict[str, Any]], List[str]]:
     }, []
 
 
-def validate_machine(m: Dict[str, Any]) -> List[str]:
+def validate_machine(m: Dict[str, Any], *, required: bool = False) -> List[str]:
     gaps: List[str] = []
     kind = m.get("kind")
     if kind not in ("greenfield", "brownfield"):
@@ -499,9 +500,11 @@ def validate_machine(m: Dict[str, Any]) -> List[str]:
                     inventoried.add(v.strip())
     exclusive = m.get("exclusive")
     if exclusive is None:
+        gaps.extend(discovery.validate_machine(m, required=required))
         return gaps
     if not isinstance(exclusive, list):
         gaps.append("machine.exclusive must be a list")
+        gaps.extend(discovery.validate_machine(m, required=required))
         return gaps
     for i, row in enumerate(exclusive):
         if not isinstance(row, dict):
@@ -537,6 +540,7 @@ def validate_machine(m: Dict[str, Any]) -> List[str]:
                     )
                 elif isinstance(use, str) and tok.strip() == use.strip():
                     gaps.append(f"machine.exclusive[{i}].dont_use must not contain use")
+    gaps.extend(discovery.validate_machine(m, required=required))
     return gaps
 
 

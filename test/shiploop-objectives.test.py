@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 import os
 import subprocess
@@ -760,10 +761,32 @@ class ObjectiveProtocolSmokeTests(unittest.TestCase):
             "approach",
         )
         self.finalize_approach_objective()
+        # Survey must pass the current declaration gate before this test can
+        # exercise abandonment of its still-unreviewed objective candidate.
+        machine = {
+            "kind": "greenfield",
+            "augment": False,
+            "references": [],
+            "tools": [],
+            "mcp": [],
+            "mcp_considered": "none(no external reader is in scope)",
+            "handles": [],
+            "initiation": "none",
+            "ui": False,
+            "ui_craft": "none(no user-facing surface)",
+            "exclusive": [],
+            "platform_discovery": {
+                "version": 1,
+                "applicable": False,
+                "rationale": "Only this isolated local fixture is in scope.",
+                "platforms": [],
+            },
+        }
         self.complete(
             {
                 "summary": "Survey is ready for objective review.",
-                "body": "# Survey\n\nThe local environment is still under review.\n",
+                "body": "# Survey\n\nThe local environment is still under review.\n\n"
+                "## machine\n```json\n" + json.dumps(machine) + "\n```\n",
             },
             "survey",
         )

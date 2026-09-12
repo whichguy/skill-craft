@@ -16,6 +16,7 @@ from typing import Any, Mapping
 
 _INLINE_PROMPT_LIMIT = 1400
 _ENVIRONMENT_LIST_LIMIT = 12
+_PLATFORM_ROUTE_LIMIT = 3
 
 # This is authored Markdown inside the existing body, not a second result schema.
 # Both planning routes and revisions retain the same local-work/test checklist.
@@ -235,7 +236,9 @@ def _snippet(label: str, value: Any, continuation: str) -> list[str]:
     ]
 
 
-def _environment_projection(core: Any, root: Path) -> tuple[list[str], str | None]:
+def _environment_projection(
+    core: Any, root: Path, state: Mapping[str, Any] | None = None
+) -> tuple[list[str], str | None]:
     """Return small operational facts, excluding all handle values/secrets."""
     path = root / "environment.md"
     command = (
@@ -302,11 +305,47 @@ def _environment_projection(core: Any, root: Path) -> tuple[list[str], str | Non
             if isinstance(row, dict) and isinstance(row.get("path"), str)
         ],
     }
-    return [
+    import shiploop_discovery as discovery
+
+    platform = discovery.cold_projection(machine)
+    projection["platform_discovery"] = platform
+    lines = [
         "Environment constraints (current non-secret machine projection): "
         + _line_json(projection),
         f"Full environment pages: {command}",
-    ], None
+    ]
+    if platform.get("applicable") is True:
+        lines.append(
+            "Platform projection is navigation only: read the full environment "
+            "pages for exact identifiers, authority, probes and outcomes before use."
+        )
+    if platform.get("status") != "legacy-not-recorded":
+        reference_dir = getattr(core, "REF_DIR", None)
+        guide = (
+            Path(reference_dir) / "platform-discovery.md"
+            if reference_dir is not None
+            else Path("references/platform-discovery.md")
+        )
+        lines.append(f"Platform discovery guide: {guide}")
+    active_step = state.get("active_step") if isinstance(state, Mapping) else None
+    routes = discovery.step_routes(machine, active_step)
+    if platform.get("applicable") is True and (
+        routes
+        or (isinstance(state, Mapping) and state.get("stage") in ("prepare", "publish"))
+    ):
+        if routes:
+            route_projection: dict[str, Any] = {"routes": routes[:_PLATFORM_ROUTE_LIMIT]}
+            if len(routes) > _PLATFORM_ROUTE_LIMIT:
+                route_projection["routes_omitted"] = len(routes) - _PLATFORM_ROUTE_LIMIT
+            lines.append(
+                "Selected platform route for this step: " + _line_json(route_projection)
+            )
+        lines.append(
+            "Before an external operation, use the recorded non-mutating safe probe "
+            "for the selected interface and non-secret role. Record changed access "
+            "as a pause/revisit; this declaration is not live proof."
+        )
+    return lines, None
 
 
 def _planning_template(stage: str, state: Mapping[str, Any], api: Mapping[str, Any]) -> tuple[dict[str, Any] | None, list[str]]:
@@ -384,6 +423,22 @@ def _planning_template(stage: str, state: Mapping[str, Any], api: Mapping[str, A
                 "quality": True,
                 "reason": "No separate preparation or publication is required.",
             }
+            if state.get("risk_policy_version") == 1:
+                template["lifecycle"]["risk_policy"] = {
+                    "risk_policy_version": 1,
+                    "security": {
+                        "decision": "not-applicable",
+                        "rationale": "No security-focused test is selected for this scoped change.",
+                    },
+                    "fuzz": {
+                        "decision": "not-applicable",
+                        "rationale": "No fuzzing target is selected for this scoped change.",
+                    },
+                    "maintenance": {
+                        "decision": "not-applicable",
+                        "rationale": "No dependency maintenance workflow is selected for this scoped change.",
+                    },
+                }
         return template, ["resolutions may cover only planned, currently open IDs; preserve all prior research IDs when applicable."]
     if stage.endswith("-verify") or stage.endswith("-finalize"):
         return {"summary": f"Fresh {kind} candidate check passed."}, ["finalize must not include body, lifecycle, or research_state."]
@@ -481,7 +536,7 @@ def _execution_template(stage: str, state: Mapping[str, Any], info: Mapping[str,
     if stage == "approach":
         return {"summary": "Delivery approach drafted.", "body": "# Approach\n..."}, []
     if stage == "survey":
-        return {"summary": "Environment survey drafted.", "body": "# Environment\n...\n\n## machine\n```json\n{}\n```"}, ["body must contain a complete valid machine JSON record; do not put secrets in it."]
+        return {"summary": "Environment survey drafted.", "body": "# Environment\n...\n\n## machine\n```json\n{}\n```"}, ["body must contain a complete valid machine JSON record; do not put secrets in it.", "New runs must include machine.platform_discovery: use version 1, applicable false, a local rationale, and [] platforms only when no external platform is in scope. Otherwise use the selected-route record in references/platform-discovery.md. Inventory is not a safe probe, credential, authority grant, or execution proof."]
     if stage == "sequence":
         statement = "Produce the first observable artifact."
         produces = ["The named output exists."]
@@ -1385,10 +1440,22 @@ def render(core: Any, root: Path, state: Mapping[str, Any], api: Mapping[str, An
 
     paused = state.get("paused")
     if paused:
+        recovery = state.get("prompt_recovery")
+        missing_intent = (
+            isinstance(recovery, Mapping)
+            and recovery.get("status") == "unrecoverable"
+        )
+        recovery_instruction = (
+            f"Recovery: {_command(core)} status --run-dir {_quote(root)}; "
+            "inspect migration.md, seek user direction, or start a new scoped run. "
+            "This run cannot resume without recoverable original intent."
+            if missing_intent
+            else f"Recovery: {_command(core)} resume --run-dir {_quote(root)} after the recorded blocker is resolved."
+        )
         lines.extend([
             f"Paused, unfinished: {str(paused)[:1000]}",
             f"Current action remains: {aid}; it has not been accepted.",
-            f"Recovery: {_command(core)} resume --run-dir {_quote(root)} after the recorded blocker is resolved.",
+            recovery_instruction,
         ])
         if stage == "step-plan-disposition":
             lines.append("For a material scope/behavior finding, resume only to submit no-contract-change evidence for every blocker; an actual contract change requires halt, broader-plan approval, and a new/replanned run.")
@@ -1489,7 +1556,7 @@ def render(core: Any, root: Path, state: Mapping[str, Any], api: Mapping[str, An
         ])
         return "\n".join(lines) + "\n"
 
-    lines.extend(_environment_projection(core, root)[0])
+    lines.extend(_environment_projection(core, root, state)[0])
     lint_oracle = getattr(core, "LINT_ORACLE_LINE", None)
     if isinstance(lint_oracle, str) and lint_oracle.strip():
         lines.append(lint_oracle.strip())
@@ -1587,14 +1654,14 @@ def render(core: Any, root: Path, state: Mapping[str, Any], api: Mapping[str, An
             lines.extend(
                 [
                     f"History index (not review proof; enumerate current rows): {_command(core)} history {history_options} --limit 10 --skip 0",
-                    f"History full-body proof for each index row N: {_command(core)} history {history_options} --limit 1 --skip N --full",
-                    "Start N at 0 and advance through every row returned by the current index (at most 0 through 9); older history may inform review but cannot replace current full-body proof.",
+                    f"History full-body proof for each index row N: bounded {_command(core)} history {history_options} --limit 1 --skip N --full --max-chars 4000",
+                    "Copy each printed continuation exactly until the full body is recorded, then advance N through every index row (at most 0 through 9). Fragments and indexes never satisfy review; older history may inform review but cannot replace current full-body proof.",
                 ]
             )
         else:
             lines.extend([
                 f"History index (record the latest 10 or all available): {_command(core)} history {history_options} --limit 10 --skip 0",
-                f"History body page: {_command(core)} history {history_options} --limit 1 --skip 0 --full; repeat --skip 1 through 9 (or until no page remains).",
+                f"History bounded body page: {_command(core)} history {history_options} --limit 1 --skip 0 --full --max-chars 4000; copy each continuation exactly until full coverage is recorded, then repeat --skip 1 through 9 (or until no page remains).",
             ])
 
     binding = info.get("objective_binding")

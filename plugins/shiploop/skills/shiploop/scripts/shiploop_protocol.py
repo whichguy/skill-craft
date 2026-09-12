@@ -12,6 +12,7 @@ import hashlib
 import json
 import os
 import re
+import shlex
 from pathlib import Path
 import sys
 import tempfile
@@ -28,6 +29,7 @@ import shiploop_delivery as delivery
 import shiploop_objectives as objectives
 import shiploop_contracts as contracts
 import shiploop_contract_protocol as contract_protocol
+import shiploop_history as history_pages
 
 
 class ProtocolError(RuntimeError):
@@ -35,6 +37,69 @@ class ProtocolError(RuntimeError):
 
 
 HISTORY_LIMIT = objectives.HISTORY_LIMIT
+
+
+def bounded_history_requested(args):
+    """Validate the optional bounded full-body page contract.
+
+    ``--max-chars`` counts Unicode code points in the commit-body fragment,
+    never UTF-8 bytes or arbitrary index output.  Legacy ``--full`` has no
+    paging arguments and remains a whole-message operation.
+    """
+    if args.max_chars is None:
+        need(
+            args.offset == 0 and not args.head and not args.digest,
+            "history offset, head, and digest require --max-chars",
+        )
+        return False
+    need(args.full, "history --max-chars requires --full")
+    need(args.limit == 1, "bounded history requires --limit 1")
+    need(
+        1 <= args.max_chars <= history_pages.MAX_CHARS and args.offset >= 0,
+        f"history max chars 1..{history_pages.MAX_CHARS}; offset >= 0",
+    )
+    return True
+
+
+def history_continuation(core, root, args, page):
+    """Render a copyable cold-host continuation bound to the observed source."""
+    return shlex.join(
+        [
+            sys.executable,
+            str(Path(core.__file__).resolve()),
+            "history",
+            "--run-dir",
+            str(root),
+            "--action",
+            args.action,
+            "--limit",
+            "1",
+            "--skip",
+            str(args.skip),
+            "--full",
+            "--max-chars",
+            str(args.max_chars),
+            "--offset",
+            str(page["end"]),
+            "--head",
+            page["head"],
+            "--digest",
+            page["identity_sha256"],
+        ]
+    )
+
+
+def print_bounded_history_page(core, root, args, page):
+    """Print bounded body evidence without expanding an arbitrary subject."""
+    print(
+        "History full-body fragment; "
+        f"action {args.action}; head {page['head']}; "
+        f"identity digest {page['identity_sha256']}; commit {page['sha']}; "
+        f"Unicode characters {page['offset']}:{page['end']}/{page['total_chars']}"
+    )
+    print(page["fragment"])
+    if not page["complete"]:
+        print("Continue (copy exactly): " + history_continuation(core, root, args, page))
 
 
 def need(ok, message):
@@ -854,7 +919,108 @@ def planning_assert_bound(core, root, state, receipt):
     return expected_head
 
 
-def planning_validate_lifecycle(lifecycle):
+PLATFORM_DISCOVERY_PROTOCOL_VERSION = 1
+RISK_POLICY_PROTOCOL_VERSION = 1
+
+
+def platform_discovery_current(state):
+    """Return whether this run opted into the current discovery contract.
+
+    Absence is the documented legacy path.  A declared version is an explicit
+    contract and must never silently fall back to that path.
+    """
+    if "platform_discovery_protocol_version" not in state:
+        return False
+    version = state["platform_discovery_protocol_version"]
+    need(
+        type(version) is int and version == PLATFORM_DISCOVERY_PROTOCOL_VERSION,
+        "unsupported platform discovery protocol version; migrate or restore the recorded state",
+    )
+    return True
+
+
+def risk_policy_current(state):
+    """Return whether this run opted into the current risk-policy contract."""
+    if "risk_policy_version" not in state:
+        return False
+    version = state["risk_policy_version"]
+    need(
+        type(version) is int and version == RISK_POLICY_PROTOCOL_VERSION,
+        "unsupported risk-policy protocol version; migrate or restore the recorded state",
+    )
+    return True
+
+
+def platform_and_risk_lifecycle_gaps(state, machine, lifecycle, dag):
+    """Validate declared, frozen routes without creating host-side evidence."""
+    import shiploop_discovery as discovery
+    import shiploop_risk as risk
+
+    gaps = discovery.validate_machine(
+        machine, required=platform_discovery_current(state)
+    )
+    if not gaps:
+        gaps.extend(discovery.validate_lifecycle(machine, lifecycle, dag))
+    policy_present = isinstance(lifecycle, dict) and "risk_policy" in lifecycle
+    policy = lifecycle.get("risk_policy") if isinstance(lifecycle, dict) else None
+    current_risk = risk_policy_current(state)
+    gaps.extend(
+        risk.validate_policy(policy, required=current_risk or policy_present)
+    )
+    if (current_risk or policy is not None) and not gaps:
+        gaps.extend(risk.validate_dag(policy, dag))
+    return gaps
+
+
+def require_platform_and_risk_lifecycle(core, root, state):
+    """Recheck frozen declarations before an external lifecycle boundary."""
+    environment, gaps = core.load_environment(root)
+    need(not gaps and isinstance(environment, dict), "; ".join(gaps))
+    lifecycle = store.read_record(root / "lifecycle.md")
+    dag = core.load_dag(root)
+    gaps = platform_and_risk_lifecycle_gaps(state, environment, lifecycle, dag)
+    need(not gaps, "; ".join(gaps))
+
+
+def require_platform_route_for_active_step(core, root, state):
+    """Recheck frozen route consistency for a DAG-bound external boundary."""
+    step_id = state.get("active_step")
+    if not isinstance(step_id, str):
+        return
+    environment, gaps = core.load_environment(root)
+    need(not gaps and isinstance(environment, dict), "; ".join(gaps))
+    import shiploop_discovery as discovery
+
+    if discovery.step_routes(environment, step_id):
+        require_platform_and_risk_lifecycle(core, root, state)
+
+
+def validate_survey_candidate(core, state, body):
+    """Check a survey candidate before an objective can spend convergence work.
+
+    This is intentionally side-effect free: it stages only the supplied
+    Markdown in a temporary directory.  The final objective application calls
+    the same validator again, because its Apply pass may replace the initial
+    candidate.
+    """
+    with tempfile.TemporaryDirectory(prefix="shiploop-survey-") as tmp:
+        stage = Path(tmp)
+        store.atomic_write_text(stage / "environment.md", body)
+        environment, gaps = core.load_environment(stage)
+        if not gaps:
+            import shiploop_discovery as discovery
+
+            gaps += discovery.validate_machine(
+                environment, required=platform_discovery_current(state)
+            )
+            gaps += core.exclusive_gaps(environment) + core.ui_craft_gaps(
+                environment
+            )
+        need(not gaps, "; ".join(gaps))
+    return environment
+
+
+def planning_validate_lifecycle(lifecycle, *, risk_required=False):
     need(isinstance(lifecycle, dict), "spec requires lifecycle object")
     need(
         isinstance(lifecycle.get("acceptance"), list)
@@ -872,12 +1038,22 @@ def planning_validate_lifecycle(lifecycle):
     )
     need(type(lifecycle.get("quality")) is bool, "quality must be a boolean")
     text_field(lifecycle, "reason")
+    import shiploop_risk as risk
+
+    policy_present = "risk_policy" in lifecycle
+    risk_gaps = risk.validate_policy(
+        lifecycle.get("risk_policy"), required=risk_required or policy_present
+    )
+    need(not risk_gaps, "; ".join(risk_gaps))
     return lifecycle
 
 
-def planning_validate_spec_draft(core, body, lifecycle):
+def planning_validate_spec_draft(core, body, lifecycle, *, state=None):
     """Validate draft bytes without publishing either frozen artifact."""
-    lifecycle = planning_validate_lifecycle(lifecycle)
+    lifecycle = planning_validate_lifecycle(
+        lifecycle,
+        risk_required=risk_policy_current(state) if state is not None else False,
+    )
     with tempfile.TemporaryDirectory(prefix="shiploop-spec-draft-") as tmp:
         stage = Path(tmp)
         store.atomic_write_text(stage / "spec.md", body)
@@ -2126,6 +2302,15 @@ def validate_candidate(core, root, writes, state):
         if (root / "lifecycle.md").exists():
             lifecycle = store.read_record(root / "lifecycle.md")
             validate_lifecycle_steps(dag, lifecycle)
+            platform_gaps = platform_and_risk_lifecycle_gaps(
+                state, env, lifecycle, dag
+            )
+            need(not platform_gaps, "; ".join(platform_gaps))
+        else:
+            need(
+                not platform_discovery_current(state) and not risk_policy_current(state),
+                "current platform/risk protocol requires lifecycle.md before sequence validation",
+            )
     return spec
 
 
@@ -2364,6 +2549,109 @@ def finish_merge(core, root, state, rec):
     return rec
 
 
+def merge_recover(core, root, state, aid, reason):
+    """Abandon an unlanded merge intent and restart the inner review safely.
+
+    This intentionally never resolves or aborts Git's merge operation.  The
+    caller must first make Git unambiguous; only then may ShipLoop clear the
+    durable intent that otherwise makes an interrupted merge replayable.
+    """
+    need(aid == state["action"]["id"], "stale action ID")
+    need(
+        state.get("active_step") and state["stage"] == "merge",
+        "merge-recover requires the active merge action",
+    )
+    need(bool(reason.strip()), "merge-recover needs a reason")
+    rec = active(root, state)
+    target = rec.get("merge_target")
+    need(
+        isinstance(target, str) and re.fullmatch(r"[0-9a-f]{40,64}", target),
+        "merge-recover requires a recorded merge intent",
+    )
+    repo, worktree = Path(state["repo_root"]), Path(rec["worktree"])
+    branch_head = git(core, repo, "rev-parse", rec["branch"])
+    need(
+        core.git_run(repo, "merge-base", "--is-ancestor", target, branch_head).returncode
+        == 0,
+        "branch no longer descends from the recorded merge target",
+    )
+    merge_head = core.git_run(repo, "rev-parse", "-q", "--verify", "MERGE_HEAD")
+    need(
+        merge_head.returncode != 0,
+        "Git merge is in progress; resolve or abort it explicitly before merge-recover",
+    )
+    need(
+        core.git_run(repo, "merge-base", "--is-ancestor", target, "HEAD").returncode
+        != 0,
+        "merge target is already integrated; retry the merge action instead of recovering",
+    )
+    paths = [".", ":(exclude).shiploop", ":(exclude).worktrees"]
+    paths.extend(f":(exclude){item}" for item in exclusions(root, repo))
+    need(
+        not git(
+            core,
+            repo,
+            "status",
+            "--porcelain",
+            "--untracked-files=all",
+            "--",
+            *paths,
+        ),
+        "session checkout has changes; resolve them before merge-recover",
+    )
+    need(
+        worktree.is_dir() and not worktree.is_symlink(),
+        "active worktree is unavailable; inspect and recover it before merge-recover",
+    )
+    need(
+        git(core, worktree, "rev-parse", "HEAD") == branch_head,
+        "active worktree does not match the recorded branch",
+    )
+    need(
+        not git(core, worktree, "status", "--porcelain", "--untracked-files=all"),
+        "worktree changed after merge intent; commit and reverify before merge-recover",
+    )
+
+    recovery = {
+        "action": aid,
+        "reason": reason,
+        "merge_target": target,
+        "branch": rec["branch"],
+        "branch_head": branch_head,
+        "session_head": git(core, repo, "rev-parse", "HEAD"),
+        "worktree_head": git(core, worktree, "rev-parse", "HEAD"),
+    }
+    if isinstance(rec.get("contract_integration_ready"), dict):
+        recovery["contract_integration_ready"] = dict(
+            rec["contract_integration_ready"]
+        )
+    rec["improve_cycles"].append(
+        {
+            "outcome": "material",
+            "kind": "merge-recovery-checkpoint",
+            "reason": reason,
+            "merge_recovery": recovery,
+            "interrupted_iteration": rec.get("iteration"),
+        }
+    )
+    rec.pop("merge_target", None)
+    rec.pop("contract_integration_ready", None)
+    rec["last_merge_recovery"] = recovery
+    start_iteration(core, root, state, rec)
+    state["revision"] += 1
+    persist(
+        root,
+        state,
+        "merge-recover",
+        {
+            rec_path(state): store.dumps(rec),
+            f"merge-recoveries/{aid}.md": store.dumps(
+                recovery, "ShipLoop abandoned merge intent"
+            ),
+        },
+    )
+
+
 def planning_start_next_iteration(core, root, state, kind, receipt):
     repo = Path(state["repo_root"])
     planning.start_next_iteration(
@@ -2453,7 +2741,9 @@ def planning_complete(core, root, state, aid, result, writes):
             "frozen behavior model drift; revisit behavior before drafting specification",
         )
         body = text_field(result, "body")
-        lifecycle = planning_validate_spec_draft(core, body, result.get("lifecycle"))
+        lifecycle = planning_validate_spec_draft(
+            core, body, result.get("lifecycle"), state=state
+        )
         lifecycle_text = store.dumps(lifecycle, "ShipLoop lifecycle placement")
         candidate = planning.candidate_identity_from_texts(
             kind,
@@ -2531,7 +2821,9 @@ def planning_complete(core, root, state, aid, result, writes):
         elif kind == "behavior":
             candidate_texts = {"behavior.md": body}
         else:
-            lifecycle = planning_validate_spec_draft(core, body, result.get("lifecycle"))
+            lifecycle = planning_validate_spec_draft(
+                core, body, result.get("lifecycle"), state=state
+            )
             candidate_texts = {
                 "spec-draft.md": body,
                 "lifecycle-draft.md": store.dumps(
@@ -2718,7 +3010,7 @@ def planning_complete(core, root, state, aid, result, writes):
             spec_text = spec_path.read_bytes().decode("utf-8")
             lifecycle_text = lifecycle_path.read_bytes().decode("utf-8")
             lifecycle = store.loads(lifecycle_text)
-            planning_validate_spec_draft(core, spec_text, lifecycle)
+            planning_validate_spec_draft(core, spec_text, lifecycle, state=state)
             writes["spec.md"] = spec_text
             writes["lifecycle.md"] = lifecycle_text
             state["spec_sha256"] = hashlib.sha256(spec_text.encode()).hexdigest()
@@ -3300,6 +3592,8 @@ def objective_complete(core, root, state, aid, result, writes):
             "objective candidate cannot retain an unresolved draft_file reference",
         )
         text_field(candidate, "summary")
+        if binding["base_stage"] == "survey":
+            validate_survey_candidate(core, state, text_field(candidate, "body"))
         addresses = objectives.check_addresses(receipt, current.get("plan", {}).get("addresses"))
         try:
             resolutions = objectives.resolve_findings(receipt, result.get("resolutions"), addresses)
@@ -3869,6 +4163,14 @@ def complete(
     text_field(result, "summary")
     if stage in ("coverage", "quality", "publish", "handoff"):
         require_outer_product_baseline(core, root, state)
+    if (
+        stage == "survey"
+        and objective_current(state)
+        and not _objective_bypass
+    ):
+        # Reject a malformed new-run discovery decision before the generic
+        # survey objective allocates review/plan/apply convergence passes.
+        validate_survey_candidate(core, state, text_field(result, "body"))
     if objectives.is_objective_stage(state["stage"]) and not _objective_bypass:
         if objective_complete(core, root, state, aid, result, writes):
             return
@@ -3904,17 +4206,9 @@ def complete(
         writes["approach.md"] = text_field(result, "body")
         action(state, "validate-spec", "survey")
     elif stage == "survey":
-        writes["environment.md"] = text_field(result, "body")
-        with tempfile.TemporaryDirectory(prefix="shiploop-survey-") as tmp:
-            store.atomic_write_text(
-                Path(tmp) / "environment.md", writes["environment.md"]
-            )
-            environment, gaps = core.load_environment(Path(tmp))
-            if not gaps:
-                gaps += core.exclusive_gaps(environment) + core.ui_craft_gaps(
-                    environment
-                )
-            need(not gaps, "; ".join(gaps))
+        body = text_field(result, "body")
+        validate_survey_candidate(core, state, body)
+        writes["environment.md"] = body
         state["environment_sha256"] = hashlib.sha256(
             writes["environment.md"].encode()
         ).hexdigest()
@@ -4001,6 +4295,7 @@ def complete(
             "prepare" if lifecycle["preparation"] == "outer-before" else "schedule",
         )
     elif stage == "prepare":
+        require_platform_and_risk_lifecycle(core, root, state)
         text_field(result, "evidence")
         writes["preparation.md"] = store.dumps(
             result, "Outer preparation evidence — host reported"
@@ -4008,6 +4303,7 @@ def complete(
         action(state, "implement", "schedule")
     elif stage == "implement":
         rec = active(root, state)
+        require_platform_route_for_active_step(core, root, state)
         step_plan_validate_execution_proof(core, root, state, rec)
         if contract_protocol.enabled(state):
             contract_protocol.require_ready(core, root, state, rec)
@@ -4379,6 +4675,7 @@ def complete(
         )
     elif stage == "publish":
         # No script-triggered external side effects. On ambiguity stay here and inspect.
+        require_platform_and_risk_lifecycle(core, root, state)
         verified(core, root, state, state["outer_check_action"])
         for field in ("artifact", "verification", "evidence"):
             text_field(result, field)
@@ -4453,7 +4750,7 @@ PROMPTS = {
 
 PROMPTS.update(
     {
-        "objective-review": "Run `shiploop history --limit 10 --skip 0` for navigation, then bind every current body with `--limit 1 --skip N --full` (or an equivalent full page) before reviewing. Audit-only commits can crowd the latest window, so inspect relevant older implementation/decision bodies by --skip when needed; older pages supplement rather than replace the current ten. Review the bound Markdown candidate against current source, environment, dependencies, flows, edge conditions, second-order effects, implicit requirements, tests, documentation, and relevant full Git bodies. Result: summary, findings:[{id,severity:'material|trivial',category:'scope|behavior|implementation|environment|dependency|flow|edge-condition|second-order|implicit-requirement|test|documentation|other',summary}], assessment with every required dimension, history_assessment, test_review, learnings. Do not edit product files.",
+        "objective-review": "Run `shiploop history --limit 10 --skip 0` for navigation, then bind every current body with `--limit 1 --skip N --full --max-chars 4000`, copying each continuation until full coverage is recorded, before reviewing. Audit-only commits can crowd the latest window, so inspect relevant older implementation/decision bodies by --skip when needed; older pages supplement rather than replace the current ten. Review the bound Markdown candidate against current source, environment, dependencies, flows, edge conditions, second-order effects, implicit requirements, tests, documentation, and relevant full Git bodies. Result: summary, findings:[{id,severity:'material|trivial',category:'scope|behavior|implementation|environment|dependency|flow|edge-condition|second-order|implicit-requirement|test|documentation|other',summary}], assessment with every required dimension, history_assessment, test_review, learnings. Do not edit product files.",
         "objective-plan": "Plan every open objective finding using only the exact bound candidate and current durable context. Result: summary, addresses:[every open finding ID], body (Markdown), learnings. Do not edit product files or apply external effects.",
         "objective-apply": "Refine only the complete tentative objective candidate. Resolve every open finding with concrete evidence; classify material work honestly. Result: summary, candidate:{complete original-stage result}, material:boolean, addresses:[every open finding ID], resolutions:[{id,evidence}], test_changes, learnings. Do not edit product files or perform external effects.",
         "objective-verify": "Run planning-verify with a concrete lint and acceptance exactly covering the printed objective requirement. It must pass without changing the candidate, Git baseline, source tree, staged/untracked state, or bound context. Result: summary.",
@@ -4670,6 +4967,40 @@ def migrate(core, root):
     old = json.loads(oldpath.read_text())
     need(isinstance(old, dict) and old.get("run_id"), "invalid legacy state")
     writes, deletes = {}, []
+    legacy_prompt = old.get("prompt")
+    if isinstance(legacy_prompt, str) and legacy_prompt.strip():
+        prompt_recovery = {
+            "status": "recovered-from-state",
+            "source": "state.prompt",
+            "sha256": hashlib.sha256(legacy_prompt.encode("utf-8")).hexdigest(),
+        }
+        prompt_path = root / "prompt.md"
+        need(
+            not prompt_path.is_symlink(),
+            "legacy prompt recovery refuses a symlink prompt.md",
+        )
+        if prompt_path.exists():
+            need(prompt_path.is_file(), "existing prompt.md is not a regular file")
+            need(
+                prompt_path.read_text(encoding="utf-8") == legacy_prompt,
+                "existing prompt.md does not exactly match legacy state.prompt; inspect it before migration",
+            )
+        writes["prompt.md"] = legacy_prompt
+    else:
+        prompt_recovery = {
+            "status": "unrecoverable",
+            "source": "state.prompt",
+            "reason": (
+                "missing"
+                if "prompt" not in old
+                else "non-string"
+                if not isinstance(legacy_prompt, str)
+                else "empty"
+            ),
+        }
+        # Do not promote an absent, blank, or non-text JSON field into the
+        # Markdown authority.  The original remains in legacy-backup/state.json.
+        old.pop("prompt", None)
     sources = [oldpath]
     sources += [x for x in (root / "steps").glob("*.json")]
     if (root / "backchain/plan.json").exists():
@@ -4717,6 +5048,15 @@ def migrate(core, root):
         handoff_md=str(root / "handoff.md"),
         journal_md=str(root / "shiploop-improvements.md"),
     )
+    old["prompt_recovery"] = prompt_recovery
+    if prompt_recovery["status"] == "recovered-from-state":
+        old["artifacts"]["prompt"] = str(root / "prompt.md")
+    else:
+        old["artifacts"].pop("prompt", None)
+        old["paused"] = (
+            "Legacy state.prompt is unrecoverable. Do not resume this migrated run; "
+            "inspect migration.md, seek user direction, or start a new scoped run."
+        )
     old["artifacts"].pop("recap_html", None)
     old.pop("active_step", None)
     writes["state.md"] = store.dumps(old, "ShipLoop migrated state")
@@ -4726,6 +5066,7 @@ def migrate(core, root):
             "from": 2,
             "to": 3,
             "backup": str(root / "legacy-backup"),
+            "prompt_recovery": prompt_recovery,
             "note": "Revalidate planning; running work must pass new evidence gates. No branches deleted.",
         }
     )
@@ -4740,6 +5081,12 @@ def migrate(core, root):
             [], "ShipLoop improvement proposals"
         )
     store.transaction(root, writes, deletes)
+
+
+def prompt_recovery_unrecoverable(state):
+    """Whether migration deliberately withheld an unusable legacy prompt."""
+    recovery = state.get("prompt_recovery") if isinstance(state, dict) else None
+    return isinstance(recovery, dict) and recovery.get("status") == "unrecoverable"
 
 
 def planning_upgrade(core, root, state, aid):
@@ -5026,6 +5373,7 @@ def main(core, argv=None):
         "pause",
         "resume",
         "repair",
+        "merge-recover",
         "replan",
         "revisit",
         "migrate",
@@ -5044,6 +5392,7 @@ def main(core, argv=None):
             "history",
             "journal",
             "repair",
+            "merge-recover",
             "replan",
             "revisit",
             "planning-upgrade",
@@ -5061,6 +5410,30 @@ def main(core, argv=None):
             sub.add_argument("--limit", type=int, default=HISTORY_LIMIT)
             sub.add_argument("--skip", type=int, default=0)
             sub.add_argument("--full", action="store_true")
+            sub.add_argument(
+                "--max-chars",
+                type=int,
+                help=(
+                    "bounded full-body fragment size in Unicode code points "
+                    f"(1..{history_pages.MAX_CHARS}; requires --full --limit 1)"
+                ),
+            )
+            sub.add_argument(
+                "--offset",
+                type=int,
+                default=0,
+                help="Unicode-code-point offset from a copied bounded continuation",
+            )
+            sub.add_argument(
+                "--head",
+                default="",
+                help="HEAD from a copied bounded-history continuation",
+            )
+            sub.add_argument(
+                "--digest",
+                default="",
+                help="identity digest from a copied bounded-history continuation",
+            )
         if name == "context":
             sub.add_argument(
                 "--section",
@@ -5094,7 +5467,7 @@ def main(core, argv=None):
             sub.add_argument(
                 "--to", required=True, choices=("survey", "research", "behavior", "spec")
             )
-        if name in ("halt", "pause", "repair", "revisit"):
+        if name in ("halt", "pause", "repair", "merge-recover", "revisit"):
             sub.add_argument("--reason", required=True)
     args = parser.parse_args(argv)
     # The thin host has one completion verb; retain the established spelling
@@ -5160,6 +5533,8 @@ def main(core, argv=None):
                     step_contract_protocol_version=1,
                     objective_protocol_version=OBJECTIVE_PROTOCOL_VERSION,
                     objective_epoch=0,
+                    platform_discovery_protocol_version=PLATFORM_DISCOVERY_PROTOCOL_VERSION,
+                    risk_policy_version=RISK_POLICY_PROTOCOL_VERSION,
                     research_sha256="",
                     research_certificate_sha256="",
                     research_as_of="",
@@ -5189,6 +5564,18 @@ def main(core, argv=None):
             else:
                 state = core.load_state(root)
                 validate_state(state)
+                if prompt_recovery_unrecoverable(state) and args.command not in (
+                    "status",
+                    "context",
+                    "pause",
+                    "halt",
+                ):
+                    raise ProtocolError(
+                        "legacy prompt is unrecoverable; inspect migration.md, seek user direction, "
+                        "or start a new scoped run; only status, context, pause, and halt are available"
+                    )
+                platform_discovery_current(state)
+                risk_policy_current(state)
                 if args.command == "report":
                     need(state["stage"] in ("done", "halted"), "report requires a terminal run")
                     state["revision"] += 1
@@ -5298,6 +5685,7 @@ def main(core, argv=None):
                     "revisit",
                     "planning-upgrade",
                     "repair",
+                    "merge-recover",
                 ):
                     raise ProtocolError(
                         "run paused; resolve the blocker and resume before continuing"
@@ -5343,7 +5731,19 @@ def main(core, argv=None):
                         0 <= args.offset and 1 <= args.limit <= 8000,
                         "context offset >= 0 and limit 1..8000 characters",
                     )
-                    if args.section == "objective":
+                    if (
+                        args.section == "prompt"
+                        and prompt_recovery_unrecoverable(state)
+                    ):
+                        migration_path = safe_run_path(root, "migration.md")
+                        need(
+                            migration_path.is_file() and not migration_path.is_symlink(),
+                            "legacy prompt is unrecoverable and migration.md is unavailable; restore the legacy backup or start a new scoped run",
+                        )
+                        # Expose only the durable recovery marker.  Never
+                        # synthesize a replacement prompt for a cold host.
+                        body = migration_path.read_text(encoding="utf-8")
+                    elif args.section == "objective":
                         binding, objective_receipt_value = objective_receipt(root, state)
                         candidate_path = safe_run_path(
                             root, objective_receipt_value["candidate_path"]
@@ -5627,6 +6027,7 @@ def main(core, argv=None):
                             1 <= args.limit <= 20 and args.skip >= 0,
                             "history limit 1..20; skip >= 0",
                         )
+                        bounded = bounded_history_requested(args)
                         if state["stage"] == "objective-review":
                             binding, rec = objective_receipt(root, state)
                             objective_assert_bound(core, root, state, rec)
@@ -5645,6 +6046,47 @@ def main(core, argv=None):
                             )
                             body = store.dumps(rows, "Git history — full commit bodies")
                             writes = {record_path: store.dumps(rec, record_title)}
+                            if bounded:
+                                try:
+                                    page = history_pages.record_bounded_page(
+                                        rec["current_pass"],
+                                        rows[0],
+                                        action=args.action,
+                                        head=current,
+                                        skip=args.skip,
+                                        offset=args.offset,
+                                        max_chars=args.max_chars,
+                                        supplied_head=args.head,
+                                        supplied_digest=args.digest,
+                                    )
+                                except history_pages.HistoryPagingError as exc:
+                                    raise ProtocolError(str(exc)) from exc
+                                if page["complete"]:
+                                    try:
+                                        objectives.record_history(
+                                            rec,
+                                            rows,
+                                            head=current,
+                                            skip=args.skip,
+                                            archive_path=page_path,
+                                            archive_sha256=hashlib.sha256(
+                                                body.encode("utf-8")
+                                            ).hexdigest(),
+                                        )
+                                    except objectives.ObjectiveError as exc:
+                                        raise ProtocolError(str(exc)) from exc
+                                    writes[page_path] = body
+                                    event = "objective-history-full-reviewed"
+                                else:
+                                    event = "objective-history-bounded-page"
+                                writes[record_path] = store.dumps(rec, record_title)
+                                persist(root, state, event, writes)
+                                print_bounded_history_page(core, root, args, page)
+                                if page["complete"]:
+                                    print(
+                                        "Full body coverage is now recorded in the current Markdown receipt."
+                                    )
+                                return 0
                             if args.full:
                                 try:
                                     objectives.record_history(
@@ -5679,11 +6121,9 @@ def main(core, argv=None):
                                 print(body)
                             else:
                                 for row in rows:
-                                    print(
-                                        f"{row['sha'].strip()} {row['body'].splitlines()[0][:160] if row['body'].splitlines() else ''}"
-                                    )
+                                    print(history_pages.navigation_line(row))
                                 print(
-                                    f"Index archived at {root / index_path}; it does not satisfy review. Use --limit 1 --skip N --full for each required current body."
+                                    f"Index archived at {root / index_path}; it does not satisfy review. Use --limit 1 --skip N --full --max-chars 4000 and copy each continuation for every required current body."
                                 )
                             return 0
                         if state["stage"] == "review":
@@ -5722,6 +6162,42 @@ def main(core, argv=None):
                         index_path = f"history-pages/{args.action}-{args.skip}-index.md"
                         body = store.dumps(rows, "Git history — full commit bodies")
                         writes = {record_path: store.dumps(rec, record_title)}
+                        if bounded:
+                            try:
+                                page = history_pages.record_bounded_page(
+                                    iteration,
+                                    rows[0],
+                                    action=args.action,
+                                    head=current,
+                                    skip=args.skip,
+                                    offset=args.offset,
+                                    max_chars=args.max_chars,
+                                    supplied_head=args.head,
+                                    supplied_digest=args.digest,
+                                )
+                            except history_pages.HistoryPagingError as exc:
+                                raise ProtocolError(str(exc)) from exc
+                            if page["complete"]:
+                                record_full_history_page(
+                                    iteration,
+                                    rows,
+                                    head=current,
+                                    skip=args.skip,
+                                    limit=args.limit,
+                                    archive_path=page_path,
+                                )
+                                writes[page_path] = body
+                                event = "history-full-reviewed"
+                            else:
+                                event = "history-bounded-page"
+                            writes[record_path] = store.dumps(rec, record_title)
+                            persist(root, state, event, writes)
+                            print_bounded_history_page(core, root, args, page)
+                            if page["complete"]:
+                                print(
+                                    "Full body coverage is now recorded in the current Markdown receipt."
+                                )
+                            return 0
                         if args.full:
                             record_full_history_page(
                                 iteration,
@@ -5751,11 +6227,9 @@ def main(core, argv=None):
                             print(body)
                         else:
                             for row in rows:
-                                print(
-                                    f"{row['sha'].strip()} {row['body'].splitlines()[0][:160] if row['body'].splitlines() else ''}"
-                                )
+                                print(history_pages.navigation_line(row))
                             print(
-                                f"Index archived at {root / index_path}; use --limit 1 --skip N --full to retrieve one current body at a time. Follow relevant learning references."
+                                f"Index archived at {root / index_path}; use --limit 1 --skip N --full --max-chars 4000 and copy each continuation to retrieve one current body at a time. Follow relevant learning references."
                             )
                         return 0
                     else:
@@ -5806,6 +6280,8 @@ def main(core, argv=None):
                         )
                     state.pop("paused")
                     persist(root, state, "resume")
+                elif args.command == "merge-recover":
+                    merge_recover(core, root, state, args.action, args.reason)
                 elif args.command == "repair":
                     if objectives.is_objective_stage(state["stage"]):
                         objective_repair(core, root, state, args.action, args.reason)
@@ -6040,9 +6516,14 @@ def main(core, argv=None):
             # Rehydrate the durable cursor; never suggest an inferred next stage.
             from shlex import join
 
+            recovery_command = (
+                "status"
+                if prompt_recovery_unrecoverable(locals().get("state"))
+                else "next"
+            )
             recovery = join([
                 "python3", str(core.PACKAGE_ROOT / "scripts" / "shiploop"),
-                "next", "--run-dir", str(root),
+                recovery_command, "--run-dir", str(root),
             ])
             print(f"Recover the current durable action: {recovery}", file=sys.stderr)
         return 2

@@ -79,6 +79,60 @@ flaky failure until lucky green and call its cause resolved.
 
 ## Surface selection
 
+### Security, fuzzing, and ongoing maintenance
+
+The lifecycle must explicitly assess security testing, fuzzing, and dependency
+maintenance. These are risk-based choices, not mandatory technology-specific
+tools. Record `required` or a concrete `not-applicable` reason for security and
+fuzz testing; unavailable required work is `blocked`. Selected tests map stable
+`T-` IDs to actual step test contracts at sequence time. Expected outcomes,
+fixtures, real versus simulated boundaries and executable evidence remain part
+of the ordinary test plan; a policy declaration is not a passed test.
+
+Consider authorization boundaries, data exposure, unsafe input, dependency and
+supply-chain risks. Fuzzing is useful for parsers, serializers, protocol/state
+machines and untrusted-input boundaries when it can have a meaningful oracle.
+Record resource/time limits, reproducible seeds or minimized failing inputs,
+isolation and no-unintended-side-effect expectations. Do not perform intrusive
+security tests on a live service without authorization.
+
+For ongoing dependency updates, evaluate the advisory source, responsible owner,
+cadence, mechanism, validation before release and rollback. A six-hour cadence
+is an example to justify, not ShipLoop's default. `dag` means an explicitly
+scoped implementation producer in this delivery; `operate-later` records a
+future operational policy without creating a scheduler or updater. Prefer
+reviewed, testable, reversible updates over assuming the application can safely
+replace its own dependencies. Any persistent automation or production change
+still needs task-specific authorization. `not-applicable` and `blocked` require
+clear reasons; do not conceal an unresolved requirement as future work.
+
+The new-run `lifecycle.risk_policy` shape is:
+
+```json
+{
+  "risk_policy_version": 1,
+  "security": {"decision": "not-applicable", "rationale": "Explain this increment's actual risk assessment."},
+  "fuzz": {"decision": "not-applicable", "rationale": "Explain why fuzzing has no meaningful target or oracle here."},
+  "maintenance": {"decision": "not-applicable", "rationale": "Explain why ongoing dependency maintenance is outside this increment."}
+}
+```
+
+Replace these explanatory reasons with concrete findings; they are not default
+waivers. `required` security/fuzz decisions add a nonempty unique `case_ids`
+list. The same test may cover both concerns, but each ID must identify exactly
+one DAG test definition. `blocked` may retain planned case IDs but cannot pass
+sequence. `not-applicable` carries no selected case IDs.
+
+Maintenance `dag` and `operate-later` add nonempty strings `owner`,
+`advisory_source`, `cadence`, `mechanism`, `validation`, and `rollback`, plus
+`step_id`: a real DAG producer for `dag`, null for `operate-later`. A selected
+maintenance policy is run-wide: its producer must precede every DAG publication.
+No field itself schedules
+anything. Other decisions omit these selected fields. Malformed or unknown
+versions fail validation rather than becoming a legacy exemption.
+
+### Layers and real boundaries
+
 Before code, record test scope and replacement strategy separately from the
 browser/service/API views. Do not infer one decision from another:
 

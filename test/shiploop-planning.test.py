@@ -151,6 +151,12 @@ class PlanningLoopTests(unittest.TestCase):
             "ui": False,
             "ui_craft": "none(local fixture)",
             "exclusive": [],
+            "platform_discovery": {
+                "version": 1,
+                "applicable": False,
+                "rationale": "This deterministic fixture has no external platform route.",
+                "platforms": [],
+            },
         }
         return "Fixture survey.\n\n## machine\n```json\n" + json.dumps(machine) + "\n```\n"
 
@@ -286,6 +292,21 @@ TC-01 validates acceptance; TC-02 validates rejection and repetition.
             "publish": "none",
             "quality": False,
             "reason": "The fixture has no deployment boundary.",
+            "risk_policy": {
+                "risk_policy_version": 1,
+                "security": {
+                    "decision": "not-applicable",
+                    "rationale": "The isolated local fixture exposes no security boundary.",
+                },
+                "fuzz": {
+                    "decision": "not-applicable",
+                    "rationale": "The deterministic fixture has no parser or external input surface.",
+                },
+                "maintenance": {
+                    "decision": "not-applicable",
+                    "rationale": "The fixture declares no deployable dependency maintenance path.",
+                },
+            },
         }
 
     def sequence_payload(self) -> dict:
