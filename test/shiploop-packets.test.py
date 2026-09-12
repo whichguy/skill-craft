@@ -8,6 +8,7 @@ import json
 from pathlib import Path
 import re
 import runpy
+import shlex
 import subprocess
 import sys
 import tempfile
@@ -248,6 +249,106 @@ class PacketTests(unittest.TestCase):
         self.assertEqual(self.state()["revision"], revision)
         self.assertIn(f"Last accepted: {first}", replay)
         self.assertIn(f"Action: {current}", replay)
+
+    def test_printed_cold_callback_survives_spaces_replay_and_submission_cleanup(self):
+        import shiploop_store as store
+
+        self.run_dir = self.root / "cold callback run"
+        initial = self.cli(
+            "init",
+            "--repo",
+            str(self.repo),
+            "--run-dir",
+            str(self.run_dir),
+            "--prompt",
+            "Build",
+        ).stdout
+        before = self.state()
+        predecessor = before["action"]["id"]
+        callback_line = next(
+            line
+            for line in initial.splitlines()
+            if line.startswith("Call this when done: ")
+        )
+        callback = shlex.split(callback_line.removeprefix("Call this when done: "))
+        result_path = Path(callback[callback.index("--result") + 1])
+        self.assertEqual(
+            result_path, self.run_dir / "inbox" / f"{predecessor}.md"
+        )
+        store.write_record(
+            result_path,
+            {"summary": "Committed baseline inspected.", "baseline": "committed-head"},
+        )
+
+        unrelated = self.root / "unrelated cwd"
+        unrelated.mkdir()
+        accepted = subprocess.run(
+            callback,
+            cwd=unrelated,
+            text=True,
+            capture_output=True,
+            env=self.env,
+        )
+        self.assertEqual(accepted.returncode, 0, accepted.stdout + accepted.stderr)
+        after_accept = self.state()
+        current = after_accept["action"]["id"]
+        self.assertNotEqual(predecessor, current)
+        self.assertEqual(after_accept["last_completion"]["action"], predecessor)
+        self.assertIn(f"Last accepted: {predecessor}", accepted.stdout)
+        next_callback_line = next(
+            line
+            for line in accepted.stdout.splitlines()
+            if line.startswith("Call this when done: ")
+        )
+        next_callback = shlex.split(
+            next_callback_line.removeprefix("Call this when done: ")
+        )
+        self.assertEqual(next_callback[next_callback.index("--run-dir") + 1], str(self.run_dir))
+        self.assertEqual(next_callback[next_callback.index("--action") + 1], current)
+
+        accepted_revision = after_accept["revision"]
+        replay = subprocess.run(
+            callback,
+            cwd=unrelated,
+            text=True,
+            capture_output=True,
+            env=self.env,
+        )
+        self.assertEqual(replay.returncode, 0, replay.stdout + replay.stderr)
+        self.assertEqual(self.state()["revision"], accepted_revision)
+
+        store.write_record(
+            result_path,
+            {"summary": "Changed preflight replay.", "baseline": "committed-head"},
+        )
+        changed_replay = subprocess.run(
+            callback,
+            cwd=unrelated,
+            text=True,
+            capture_output=True,
+            env=self.env,
+        )
+        self.assertEqual(
+            changed_replay.returncode,
+            2,
+            changed_replay.stdout + changed_replay.stderr,
+        )
+        self.assertIn("conflicting replay", changed_replay.stderr)
+        self.assertEqual(self.state()["revision"], accepted_revision)
+
+        result_path.unlink()
+        recovered = subprocess.run(
+            [sys.executable, str(CLI), "next", "--run-dir", str(self.run_dir)],
+            cwd=unrelated,
+            text=True,
+            capture_output=True,
+            env=self.env,
+        )
+        self.assertEqual(recovered.returncode, 0, recovered.stdout + recovered.stderr)
+        self.assertFalse(result_path.exists())
+        self.assertIn(f"Action: {current}", recovered.stdout)
+        self.assertIn(f"Last accepted: {predecessor}", recovered.stdout)
+        self.assertIn("Call this when done:", recovered.stdout)
 
     def test_rejected_completion_keeps_the_action_and_prints_exact_recovery(self):
         self.cli("init", "--repo", str(self.repo), "--prompt", "Build")
@@ -725,9 +826,15 @@ class PacketTests(unittest.TestCase):
         terminal = dict(state)
         terminal.update(phase="done", stage="done")
         terminal["action"] = {"id": "uncertified-terminal", "stage": "done"}
+        terminal["last_completion"] = {
+            "action": "accepted-quality",
+            "stage": "quality",
+            "result_digest": "0123456789abcdef",
+        }
         terminal_packet = self.packet(terminal)
         self.assertIn("Terminal cursor is not evidence-complete", terminal_packet)
         self.assertIn("Recovery:", terminal_packet)
+        self.assertIn("Last accepted: accepted-quality", terminal_packet)
         self.assertNotIn("It's all complete.", terminal_packet)
         self.assertNotIn("Call this when done:", terminal_packet)
 

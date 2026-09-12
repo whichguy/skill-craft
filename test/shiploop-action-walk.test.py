@@ -17,6 +17,7 @@ import json
 import os
 from pathlib import Path
 import re
+import shlex
 import subprocess
 import sys
 import tempfile
@@ -1906,13 +1907,30 @@ class ShipLoopActionWalkTests(ShipLoopActionWalkFixture):
             label="quality",
         )
         self.assertEqual(self.state()["stage"], "handoff")
-        self.complete(
-            {
-                "summary": "The fixture is complete with durable journal proposals available for later skill maintenance.",
-                "journal": [],
-            },
-            label="handoff",
+        # A fresh host uses only the printed callback, including its run/result
+        # locators, even when its cwd is no longer the product repository.
+        handoff_packet = self.cli("next", "--run-dir", str(self.run_dir), cwd=self.root).stdout
+        callbacks = [
+            line.removeprefix("Call this when done: ")
+            for line in handoff_packet.splitlines()
+            if line.startswith("Call this when done: ")
+        ]
+        self.assertEqual(len(callbacks), 1)
+        callback = shlex.split(callbacks[0])
+        handoff_action = callback[callback.index("--action") + 1]
+        result_path = Path(callback[callback.index("--result") + 1])
+        store.write_record(result_path, {
+            "summary": "The fixture is complete with durable journal proposals available for later skill maintenance.",
+            "journal": [],
+        })
+        handed_off = subprocess.run(
+            callback, cwd=self.root, capture_output=True, text=True, env=self.env
         )
+        self.assertEqual(handed_off.returncode, 0, handed_off.stdout + handed_off.stderr)
+        self.assertIn(f"Last accepted: {handoff_action}", handed_off.stdout)
+        self.assertIn("It's all complete.", handed_off.stdout)
+        self.assertNotIn("Call this when done:", handed_off.stdout)
+        self.assertNotIn("When done:", handed_off.stdout)
         terminal = self.state()
         self.assertEqual((terminal["phase"], terminal["stage"]), ("done", "done"))
         self.assertNotIn("active_step", terminal)
@@ -1927,6 +1945,32 @@ class ShipLoopActionWalkTests(ShipLoopActionWalkFixture):
             hashlib.sha256(report.read_bytes()).hexdigest(),
         )
         self.assertTrue(terminal["report"]["evidence_complete"])
+        for section in ("overview", "timeline", "outputs", "tests"):
+            self.assertIn(f'id="{section}"', report_html)
+
+        # HTML is disposable; losing a result draft or damaging the view must
+        # neither lose accepted Markdown evidence nor falsely certify success.
+        result_path.unlink()
+        report.write_text("damaged derived view", encoding="utf-8")
+        damaged = self.cli("next", "--run-dir", str(self.run_dir), cwd=self.root).stdout
+        self.assertNotIn("It's all complete.", damaged)
+        self.assertIn("Recovery:", damaged)
+        self.assertEqual(self.state(), terminal)
+        prior_history = store.read_record(self.run_dir / "history.md")
+        regenerated = self.cli("report", "--run-dir", str(self.run_dir), cwd=self.root).stdout
+        repaired = self.state()
+        self.assertIn("It's all complete.", regenerated)
+        self.assertEqual(repaired["revision"], terminal["revision"] + 1)
+        for key in ("phase", "stage", "action", "completed_actions"):
+            self.assertEqual(repaired[key], terminal[key])
+        current_history = store.read_record(self.run_dir / "history.md")
+        self.assertEqual(current_history[:-1], prior_history)
+        self.assertEqual(current_history[-1]["event"], "report-regenerated")
+        self.assertNotEqual(repaired["report"]["source_digest"], terminal["report"]["source_digest"])
+        self.assertEqual(repaired["report"]["sha256"], hashlib.sha256(report.read_bytes()).hexdigest())
+        self.assertIn("report-regenerated", report.read_text(encoding="utf-8"))
+        self.assertEqual((self.repo / "s1.txt").read_text(encoding="utf-8"), "first\n")
+        self.assertEqual((self.repo / "s2.txt").read_text(encoding="utf-8"), "second\n")
         journal = store.read_record(self.run_dir / "shiploop-improvements.md")
         self.assertEqual(len(journal), 1)
         self.assertEqual(journal[0]["title"], "Keep action receipts compact")

@@ -290,8 +290,11 @@ class ShipLoopReportTests(unittest.TestCase):
         self.assertRegex(first_meta["source_digest"], r"^[0-9a-f]{64}$")
         self.assertIn('data-outcome="complete"', first_html)
         self.assertIn('data-source-digest="' + first_meta["source_digest"], first_html)
+        self.assertIn('<a href="#achievement">Evidence</a>', first_html)
         for heading in (
+            "TL;DR",
             "Actual sequence",
+            "Achievement evidence boundaries",
             "Required and achieved outputs",
             "Test evidence",
             "Learning commits",
@@ -310,6 +313,12 @@ class ShipLoopReportTests(unittest.TestCase):
         self.assertNotIn("/private/tmp/report-fixture", first_html)
         self.assertNotIn("lint_fixture.py", first_html)
 
+        evidence = first_html.split('id="achievement"', 1)[1].split("</section>", 1)[0]
+        self.assertIn("Machine-verified final check:", evidence)
+        self.assertGreaterEqual(evidence.count("Not recorded"), 3)
+        self.assertNotIn("Recorded local merge:", evidence)
+        self.assertNotIn("Host-reported publication:", evidence)
+
         # Root stores report binding metadata in state.md after rendering.  It
         # must not change a subsequent report or recursively alter its digest.
         state = self.read("state.md")
@@ -324,6 +333,80 @@ class ShipLoopReportTests(unittest.TestCase):
         bound_html, bound_meta = render_report(self.run_dir)
         self.assertEqual(bound_html, first_html)
         self.assertEqual(bound_meta, first_meta)
+
+    def test_timeline_labels_resulting_cursor_and_recorded_boundaries(self):
+        history = self.read("history.md")
+        history[0]["action"] = {
+            "id": "cursor-after-quality",
+            "stage": "handoff",
+        }
+        history[1]["action"] = {"stage": "done"}
+
+        receipt = self.read("steps/S1.md")
+        receipt.update(
+            contract_ready={
+                "record": {"envelope": {"verify_action": "S1-ready-check"}}
+            },
+            final_check_action="S1-final-check",
+            merged_sha="a" * 40,
+        )
+        self.record("steps/S1.md", receipt, "ShipLoop step receipt")
+        history.append({"event": "complete:publish", "revision": 13})
+        self.record("history.md", history, "ShipLoop history")
+
+        rendered, metadata = render_report(self.run_dir)
+
+        self.assertEqual(metadata["outcome"], "complete")
+        self.assertIn("Recorded resulting cursor:", rendered)
+        self.assertIn("cursor-after-quality", rendered)
+        self.assertIn("action ID not recorded", rendered)
+        self.assertIn("cursor is not a claim that its action completed the event", rendered)
+        self.assertNotIn("Completed action:", rendered)
+        evidence = rendered.split('id="achievement"', 1)[1].split("</section>", 1)[0]
+        for text in (
+            "Recorded pre-edit readiness check:",
+            "S1-ready-check",
+            "Recorded final step verification:",
+            "S1-final-check",
+            "Recorded local merge:",
+            "a" * 40,
+            "Host-reported publication:",
+            "recorded complete:publish event",
+        ):
+            self.assertIn(text, evidence)
+        self.assertIn("not an independently verified external effect", evidence)
+
+    def test_readiness_falls_back_to_finalized_certificate_reference(self):
+        receipt = self.read("steps/S1.md")
+        certificate = "step-planning/fixture-S1/certificate.md"
+        receipt["step_plan"] = {
+            "status": "finalized",
+            "certificate": certificate,
+        }
+        self.record("steps/S1.md", receipt, "ShipLoop step receipt")
+
+        rendered, metadata = render_report(self.run_dir)
+
+        self.assertEqual(metadata["outcome"], "complete")
+        evidence = rendered.split('id="achievement"', 1)[1].split("</section>", 1)[0]
+        self.assertIn("Recorded finalized plan certificate reference:", evidence)
+        self.assertIn(certificate, evidence)
+        self.assertIn("certificate contents not assessed by this view", evidence)
+        self.assertNotIn("Recorded pre-edit readiness check:", evidence)
+
+    def test_readiness_without_contract_or_certificate_pointer_is_not_recorded(self):
+        receipt = self.read("steps/S1.md")
+        receipt["step_plan"] = {"status": "finalized"}
+        self.record("steps/S1.md", receipt, "ShipLoop step receipt")
+
+        rendered, metadata = render_report(self.run_dir)
+
+        self.assertEqual(metadata["outcome"], "complete")
+        evidence = rendered.split('id="achievement"', 1)[1].split("</section>", 1)[0]
+        step_row = evidence.split("<tr><td>Step S1</td>", 1)[1].split("</tr>", 1)[0]
+        self.assertIn("<td>Not recorded</td>", step_row)
+        self.assertNotIn("Recorded pre-edit readiness check:", step_row)
+        self.assertNotIn("Recorded finalized plan certificate reference:", step_row)
 
     def test_specialized_pass_receipts_add_learning_commits_without_candidates(self):
         """New convergence loops expose bounded learnings, not their draft bodies."""

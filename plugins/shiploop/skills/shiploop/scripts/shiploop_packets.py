@@ -1359,9 +1359,6 @@ def render(core: Any, root: Path, state: Mapping[str, Any], api: Mapping[str, An
         ])
         return "\n".join(lines) + "\n"
     lines.append(f"Action: {aid}")
-    if stage in ("done", "halted"):
-        return _terminal_packet(core, root, state, api, lines)
-
     last = state.get("last_completion")
     if isinstance(last, Mapping) and isinstance(last.get("action"), str):
         lines.append(
@@ -1369,6 +1366,9 @@ def render(core: Any, root: Path, state: Mapping[str, Any], api: Mapping[str, An
             f"{last['action']} ({last.get('stage', 'unknown')}, result {str(last.get('result_digest', ''))[:16]}). "
             "Replaying that action accepts only the identical structured result and never advances state."
         )
+    if stage in ("done", "halted"):
+        return _terminal_packet(core, root, state, api, lines)
+
     completed = state.get("completed_actions")
     if isinstance(completed, Mapping) and aid in completed:
         lines.extend([

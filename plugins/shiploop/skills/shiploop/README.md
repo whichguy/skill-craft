@@ -106,7 +106,7 @@ path, with exactly one `shiploop-state` fence:
 Then use the packet's exact command and action ID:
 
 ```sh
-python3 "$SKILL_ROOT/scripts/shiploop" complete \
+python3 "$SKILL_ROOT/scripts/shiploop" done \
   --run-dir "$RUN_DIR" --action "$ACTION" --result /absolute/preflight-result.md
 ```
 
@@ -114,6 +114,18 @@ The JSON is structured content **inside** authoritative Markdown, not
 permission to create a writable `state.json` or another sidecar. The action ID
 is single-use: a stale action or a changed replay is refused. Use `next` to
 resume the durable action after a cold context, not a fresh `init`.
+
+Invoke the skill only once. A successful `done` reply acknowledges the accepted
+action and includes the next action packet; follow that reply directly. The
+calling host does not select stages, maintain counters, or invoke the skill
+again. After context loss, bootstrap with the package/run locators from the
+task handoff and call `next`; all decisions and progress come from Markdown.
+`complete` remains a compatible alias for `done`.
+
+Only an evidence-complete terminal packet says **It's all complete.**, links
+the generated `report.html`, and offers no further completion callback. The
+report presents the outcome, achieved outputs, check results, activity sequence,
+learnings and limitations; it is a derived view, never authoritative state.
 
 ## Seven explanatory phases and current stored states
 
@@ -959,10 +971,12 @@ transition. `plan-status` is read-only: it can confirm only an exact finalized
 execution-plan handoff before its target product action begins; it does not
 advance work or bless drift.
 
-`report` performs presentation-only regeneration for an already terminal run.
-It rewrites the derived [terminal report](references/report.md) and its
-integrity metadata without changing the terminal outcome, product worktree, or
-authoritative Markdown evidence.
+`report` regenerates the derived [terminal report](references/report.md) for an
+already terminal run. It refreshes integrity metadata, increments the run
+revision and appends a `report-regenerated` audit event in Markdown. It does not
+change the terminal outcome, action, product worktree or accepted check results.
+The new audit event changes report inputs; CLI regeneration need not yield the
+same bytes, even though pure rendering of identical inputs is deterministic.
 
 ## Related references
 

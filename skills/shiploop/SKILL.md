@@ -28,6 +28,8 @@ The script owns the workflow and durable Markdown state. You execute **one
 printed action at a time**; you do not need to remember stages, previous
 iterations, counters, or decisions. The packet supplies what to read, what to
 do, what evidence/result to produce, and the exact call to make when done.
+Invoke the skill once. Each successful completion reply is already the next
+packet: follow it directly, without reinvoking the skill or remembering a loop.
 
 ## Start once or recover
 
@@ -46,6 +48,9 @@ For an existing run, including after context loss or uncertain completion:
 ```sh
 python3 "$CLI" next --run-dir "$RUN_DIR"
 ```
+
+A fresh host needs only this package and the run location as bootstrap inputs;
+keep those locators in the task handoff, not decisions or progress in LLM memory.
 
 Use structured arguments or safe literal quoting for actual user text.
 

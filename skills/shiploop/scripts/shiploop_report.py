@@ -773,6 +773,7 @@ def _render_html(
         for anchor, label in (
             ("overview", "Overview"),
             ("timeline", "Timeline"),
+            ("achievement", "Evidence"),
             ("outputs", "Outputs"),
             ("tests", "Tests"),
             ("learnings", "Learnings"),
@@ -782,6 +783,7 @@ def _render_html(
     sections = [
         _overview(model, metadata),
         _timeline(model.get("history", [])),
+        _achievement_evidence(model, records),
         _outputs(model, records),
         _tests(model, records),
         _learnings_and_plan(records),
@@ -852,6 +854,14 @@ def _overview(model: Mapping[str, Any], metadata: Mapping[str, Any]) -> str:
     outcome = str(model["outcome"])
     label = "Complete" if outcome == "complete" else "Unfinished"
     summary = _plain(model.get("handoff", {}).get("summary"))
+    tldr = (
+        "The selected terminal Markdown satisfies this report's existing completion checks. "
+        "Readiness, verification, merge, and publication remain separately recorded below; "
+        "this report does not infer any missing fact."
+        if outcome == "complete"
+        else "The selected terminal Markdown does not support a complete achievement claim. "
+        "Missing readiness, verification, merge, and publication facts remain not recorded."
+    )
     facts = (
         ("Outcome", f'<span class="badge {outcome}">{label}</span>'),
         (
@@ -873,7 +883,8 @@ def _overview(model: Mapping[str, Any], metadata: Mapping[str, Any]) -> str:
         for name, value in facts
     )
     return f"""<section id="overview">
-<h2>Outcome at a glance</h2>
+<h2>TL;DR</h2>
+<p>{_esc(tldr)}</p>
 <p class="notice"><strong>Derived report — not authoritative state.</strong> Read the durable Markdown records for decisions, recovery, and any mutation.</p>
 <div class="facts">{fact_html}</div>
 <h3 style="margin-top:18px">Final handoff summary <span class="host">Host-reported</span></h3>
@@ -913,11 +924,19 @@ def _timeline(history: Any) -> str:
                 continue
             event = _esc(entry.get("event"), limit=200)
             action = entry.get("action")
+            action_id = action.get("id") if isinstance(action, Mapping) else None
             stage = (
                 action.get("stage") if isinstance(action, Mapping) else "Not recorded"
             )
             revision = entry.get("revision")
-            detail = f"stage {_esc(stage, limit=100)}"
+            cursor = (
+                f"<code>{_esc(action_id, limit=180)}</code>"
+                if isinstance(action_id, str) and action_id.strip()
+                else "action ID not recorded"
+            )
+            detail = (
+                f"Recorded resulting cursor: {cursor}; stage {_esc(stage, limit=100)}"
+            )
             if isinstance(revision, int):
                 detail += f" · revision {revision}"
             rows.append(
@@ -930,11 +949,122 @@ def _timeline(history: Any) -> str:
         summary = '<p class="muted">No recorded event count is available.</p>'
     return (
         '<section id="timeline"><h2>Actual sequence</h2>'
+        '<p class="muted">Each row pairs a recorded event with the cursor persisted after it. '
+        'That cursor is not a claim that its action completed the event; this view does not infer a completed action, step, or iteration.</p>'
         + summary
         + '<ol class="timeline">'
         + "".join(rows)
         + "</ol></section>"
     )
+
+
+def _achievement_evidence(model: Mapping[str, Any], records: Mapping[str, Any]) -> str:
+    """Project existing durable pointers without adding achievement validation."""
+    rows: list[list[str]] = []
+    plan = model.get("plan")
+    steps = plan.get("steps") if isinstance(plan, Mapping) else []
+    if isinstance(steps, list):
+        for step in steps[:_MAX_ROWS]:
+            if not isinstance(step, Mapping):
+                continue
+            step_id = step.get("id")
+            if not isinstance(step_id, str) or not step_id:
+                continue
+            receipt = records.get(f"steps/{step_id}.md")
+            rows.append(
+                [
+                    _esc(f"Step {step_id}", limit=180),
+                    _recorded_readiness(receipt),
+                    _recorded_step_verification(receipt),
+                    _recorded_local_merge(receipt),
+                ]
+            )
+    if not rows:
+        rows.append(["No step records", "Not recorded", "Not recorded", "Not recorded"])
+    rows.append(
+        [
+            "Whole run",
+            "Not applicable",
+            _recorded_final_verification(model),
+            _recorded_publication(model.get("history")),
+        ]
+    )
+    return f"""<section id="achievement">
+<h2>Achievement evidence boundaries</h2>
+<p class="muted">Recorded identifiers are evidence pointers only: readiness is pre-edit, step and whole-run verification are separate, and a local merge is not publication. A publication row is host-reported history, not an independently verified external effect.</p>
+{_table(("Scope", "Readiness", "Verification", "Integration / publication"), rows)}
+</section>"""
+
+
+def _recorded_action(label: str, action: Any) -> str:
+    if not isinstance(action, str) or not action.strip():
+        return "Not recorded"
+    return f"{html.escape(label)} <code>{_esc(action, limit=180)}</code>"
+
+
+def _contract_verify_action(receipt: Any, field: str) -> Any:
+    if not isinstance(receipt, Mapping):
+        return None
+    contract = receipt.get(field)
+    record = contract.get("record") if isinstance(contract, Mapping) else None
+    envelope = record.get("envelope") if isinstance(record, Mapping) else None
+    return envelope.get("verify_action") if isinstance(envelope, Mapping) else None
+
+
+def _recorded_readiness(receipt: Any) -> str:
+    action = _contract_verify_action(receipt, "contract_ready")
+    if isinstance(action, str) and action.strip():
+        return _recorded_action("Recorded pre-edit readiness check:", action)
+    if not isinstance(receipt, Mapping):
+        return "Not recorded"
+    step_plan = receipt.get("step_plan")
+    certificate = step_plan.get("certificate") if isinstance(step_plan, Mapping) else None
+    if (
+        not isinstance(step_plan, Mapping)
+        or step_plan.get("status") != "finalized"
+        or not isinstance(certificate, str)
+        or not certificate.strip()
+    ):
+        return "Not recorded"
+    return (
+        "Recorded finalized plan certificate reference: "
+        f"<code>{_esc(certificate, limit=300)}</code>; "
+        "certificate contents not assessed by this view"
+    )
+
+
+def _recorded_step_verification(receipt: Any) -> str:
+    action = receipt.get("final_check_action") if isinstance(receipt, Mapping) else None
+    return _recorded_action("Recorded final step verification:", action)
+
+
+def _recorded_local_merge(receipt: Any) -> str:
+    merged = receipt.get("merged_sha") if isinstance(receipt, Mapping) else None
+    if not isinstance(merged, str) or not merged.strip():
+        return "Not recorded"
+    return f"Recorded local merge: <code>{_esc(merged, limit=80)}</code>"
+
+
+def _recorded_final_verification(model: Mapping[str, Any]) -> str:
+    state = model.get("state")
+    action = state.get("outer_check_action") if isinstance(state, Mapping) else None
+    label = (
+        "Machine-verified final check:"
+        if model.get("final_check_valid")
+        else "Recorded final-check action; verification unavailable:"
+    )
+    return _recorded_action(label, action)
+
+
+def _recorded_publication(history: Any) -> str:
+    if not isinstance(history, list):
+        return "Not recorded"
+    if any(
+        isinstance(entry, Mapping) and entry.get("event") == "complete:publish"
+        for entry in history
+    ):
+        return '<span class="host">Host-reported publication:</span> recorded complete:publish event'
+    return "Not recorded"
 
 
 def _outputs(model: Mapping[str, Any], records: Mapping[str, Any]) -> str:

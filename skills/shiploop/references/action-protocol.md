@@ -88,10 +88,12 @@ objective loops): it adds a corrective
 pending step through the same validated revision contract, never patches code
 around the inner loop.
 
-`report` is available only after `done` or `halted`. It performs
-presentation-only regeneration of derived offline `report.html` and refreshes
-its integrity binding in `state.md`; it does not supply completion evidence,
-change product files, or advance workflow state.
+`report` is available only after `done` or `halted`. It regenerates derived
+offline `report.html`, refreshes its integrity binding in `state.md`, increments
+the revision and appends a `report-regenerated` history event. It does not supply
+completion evidence, change product files, accepted checks, or the phase/stage
+and action cursor. Pure rendering is deterministic for identical inputs; a CLI
+regeneration adds audit input and therefore can change report bytes and digest.
 See [offline terminal report](report.md).
 
 For an active universal objective, `repair` has narrow routes. An approach or
