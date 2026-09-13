@@ -31,11 +31,11 @@ This review combined two independent read-only code investigations, source inspe
 
 ### What already works and should be preserved
 
-- Normal packets identify the action, worktree, selected work, evidence readers, result shape, and completion command. Rendering itself does not advance the workflow. [shiploop_packets.py - render: current action packet construction](/Users/dadleet/src/skill-craft/skills/shiploop/scripts/shiploop_packets.py:2250)
+- Normal packets identify the action, worktree, selected work, evidence readers, result shape, and completion command. Rendering itself does not advance the workflow. [shiploop_packets.py - render: current action packet construction](/Users/dadleet/src/skill-craft/skills/shiploop/scripts/shiploop_packets.py:2261)
 - The embedded Until-Loop policy already says review changes, consider improvements, plan using full recent Git commit bodies, implement approved improvements including trivial fixes, check, and record a learning commit. It counts two consecutive **completed** trivial reviews, not two callbacks. [shiploop_until.py - review_improve_cycle: shared five-step improvement contract](/Users/dadleet/src/skill-craft/skills/shiploop/scripts/shiploop_until.py:38)
 - Product improvement already has a useful provenance pattern: it retrieves an accepted implementation result by action ID, verifies the result digest, and explicitly labels its test notes historical rather than current green evidence. [shiploop_protocol.py - implementation_test_context: verified historical implementation notes](/Users/dadleet/src/skill-craft/skills/shiploop/scripts/shiploop_protocol.py:1796)
-- Ordinary identical-result replay does not advance or rewind the cursor; the caller subsequently receives the current packet. The renderer's “current action already accepted” early return is an exceptional guard, **not** the ordinary replay path. Preserve that distinction. [shiploop_protocol.py - complete: accepted-result replay guard](/Users/dadleet/src/skill-craft/skills/shiploop/scripts/shiploop_protocol.py:5289)
-- Certified completion, uncertified completion, and an unfinished halt are distinguished. More descriptive prose must not weaken those gates or add a completion call to terminal packets. [shiploop_packets.py - _terminal_packet: certified and unfinished terminal responses](/Users/dadleet/src/skill-craft/skills/shiploop/scripts/shiploop_packets.py:2204)
+- Ordinary identical-result replay does not advance or rewind the cursor; the caller subsequently receives the current packet. The renderer's “current action already accepted” early return is an exceptional guard, **not** the ordinary replay path. Preserve that distinction. [shiploop_protocol.py - complete: accepted-result replay guard](/Users/dadleet/src/skill-craft/skills/shiploop/scripts/shiploop_protocol.py:5290)
+- Certified completion, uncertified completion, and an unfinished halt are distinguished. More descriptive prose must not weaken those gates or add a completion call to terminal packets. [shiploop_packets.py - _terminal_packet: certified and unfinished terminal responses](/Users/dadleet/src/skill-craft/skills/shiploop/scripts/shiploop_packets.py:2215)
 
 ### Actual CLI trace
 
@@ -58,15 +58,15 @@ These are observations from one small CLI fixture, not universal bounds or measu
 
 ### F1 — P1: Orientation is present in pieces, but not a clear narrative
 
-The header gives phase/stage/revision and action metadata. Later lifecycle text explains convergence, but some descriptions are circular: an approach candidate converges before being applied to `approach`, or a planning candidate converges before its next lifecycle gate. Nested state appears as compact JSON. A fresh reader must reconstruct the relationship between the overall project, selected task, owning loop, and this action. [shiploop_packets.py - render header: terse cursor metadata](/Users/dadleet/src/skill-craft/skills/shiploop/scripts/shiploop_packets.py:2258), [shiploop_packets.py - _stage_lifecycle: generic purpose descriptions](/Users/dadleet/src/skill-craft/skills/shiploop/scripts/shiploop_packets.py:1338), [shiploop_packets.py - current loop projections: JSON rather than explanatory breadcrumbs](/Users/dadleet/src/skill-craft/skills/shiploop/scripts/shiploop_packets.py:2700)
+The header gives phase/stage/revision and action metadata. Later lifecycle text explains convergence, but some descriptions are circular: an approach candidate converges before being applied to `approach`, or a planning candidate converges before its next lifecycle gate. Nested state appears as compact JSON. A fresh reader must reconstruct the relationship between the overall project, selected task, owning loop, and this action. [shiploop_packets.py - render header: terse cursor metadata](/Users/dadleet/src/skill-craft/skills/shiploop/scripts/shiploop_packets.py:2269), [shiploop_packets.py - _stage_lifecycle: generic purpose descriptions](/Users/dadleet/src/skill-craft/skills/shiploop/scripts/shiploop_packets.py:1338), [shiploop_packets.py - current loop projections: JSON rather than explanatory breadcrumbs](/Users/dadleet/src/skill-craft/skills/shiploop/scripts/shiploop_packets.py:2711)
 
 **Adopt:** a short, consistent “You are here” section explaining the owning activity, current assignment, why this action is necessary, and the condition the script is waiting for. For nested planning, explicitly distinguish improving a plan from implementing the product changes that plan describes. Derive location and readiness from existing state; do not create a second transition table in prose.
 
-**Purpose-link clarification:** normal inner packets display the selected step prompt where other packets display the incoming prompt. The original-prompt and spec readers remain available, but the packet does not consistently explain how the selected task serves the bigger purpose. The existing spec reader means this does not require a new purpose file or storage system. [shiploop_packets.py - task versus incoming prompt: separate local and overall assignments](/Users/dadleet/src/skill-craft/skills/shiploop/scripts/shiploop_packets.py:2518), [shiploop_packets.py - available context: existing spec reference when present](/Users/dadleet/src/skill-craft/skills/shiploop/scripts/shiploop_packets.py:2601), [shiploop_protocol.py - durable context reader: existing artifact retrieval](/Users/dadleet/src/skill-craft/skills/shiploop/scripts/shiploop_protocol.py:7244)
+**Purpose-link clarification:** normal inner packets display the selected step prompt where other packets display the incoming prompt. The original-prompt and spec readers remain available, but the packet does not consistently explain how the selected task serves the bigger purpose. The existing spec reader means this does not require a new purpose file or storage system. [shiploop_packets.py - task versus incoming prompt: separate local and overall assignments](/Users/dadleet/src/skill-craft/skills/shiploop/scripts/shiploop_packets.py:2529), [shiploop_packets.py - available context: existing spec reference when present](/Users/dadleet/src/skill-craft/skills/shiploop/scripts/shiploop_packets.py:2612), [shiploop_protocol.py - durable context reader: existing artifact retrieval](/Users/dadleet/src/skill-craft/skills/shiploop/scripts/shiploop_protocol.py:7245)
 
 ### F2 — P1: Candidate continuity is clearer than assessment continuity
 
-The generic objective reader provides the current candidate, current findings/pass, and compact completed-pass outcomes. The objective binding does not directly name the originating accepted action. Accepted original results remain durable, so this is **not** a claim that the first output is lost. The gap is an unambiguous, consistently exposed connection between that first output, its first recorded assessment, and the evolving candidate. [shiploop_protocol.py - objective_start: current candidate and loop binding](/Users/dadleet/src/skill-craft/skills/shiploop/scripts/shiploop_protocol.py:4522), [shiploop_protocol.py - context objective: current candidate and compact receipt](/Users/dadleet/src/skill-craft/skills/shiploop/scripts/shiploop_protocol.py:7101), [shiploop_protocol.py - complete: accepted result persistence](/Users/dadleet/src/skill-craft/skills/shiploop/scripts/shiploop_protocol.py:5304)
+The generic objective reader provides the current candidate, current findings/pass, and compact completed-pass outcomes. The objective binding does not directly name the originating accepted action. Accepted original results remain durable, so this is **not** a claim that the first output is lost. The gap is an unambiguous, consistently exposed connection between that first output, its first recorded assessment, and the evolving candidate. [shiploop_protocol.py - objective_start: current candidate and loop binding](/Users/dadleet/src/skill-craft/skills/shiploop/scripts/shiploop_protocol.py:4523), [shiploop_protocol.py - context objective: current candidate and compact receipt](/Users/dadleet/src/skill-craft/skills/shiploop/scripts/shiploop_protocol.py:7102), [shiploop_protocol.py - complete: accepted result persistence](/Users/dadleet/src/skill-craft/skills/shiploop/scripts/shiploop_protocol.py:5305)
 
 **Adopt:** render distinct baseline and assessment statements using existing verified records:
 
@@ -87,7 +87,7 @@ A packet can identify logical loop continuity; it cannot know whether the host a
 
 ### F4 — P2: Recovery and supporting responses need their own orientation
 
-Paused responses return before normal task/loop enrichment. Context pages identify section, digest, and character range, but not a full human explanation of their relationship to the current action. These are also information returned to the LLM; they should not look like new action assignments or standalone completion evidence. Some context reads record read receipts, so call them **non-advancing supporting responses**, not universally non-mutating operations. [shiploop_packets.py - paused branch: safe early exit](/Users/dadleet/src/skill-craft/skills/shiploop/scripts/shiploop_packets.py:2307), [shiploop_protocol.py - context output: read receipts and page framing](/Users/dadleet/src/skill-craft/skills/shiploop/scripts/shiploop_protocol.py:7272)
+Paused responses return before normal task/loop enrichment. Context pages identify section, digest, and character range, but not a full human explanation of their relationship to the current action. These are also information returned to the LLM; they should not look like new action assignments or standalone completion evidence. Some context reads record read receipts, so call them **non-advancing supporting responses**, not universally non-mutating operations. [shiploop_packets.py - paused branch: safe early exit](/Users/dadleet/src/skill-craft/skills/shiploop/scripts/shiploop_packets.py:2318), [shiploop_protocol.py - context output: read receipts and page framing](/Users/dadleet/src/skill-craft/skills/shiploop/scripts/shiploop_protocol.py:7273)
 
 **Adopt:** a branch-appropriate envelope. An action packet assigns work; a context page supplies evidence for the named current action; a check result reports only its check scope; a blocked packet explains what cannot proceed and the exact recovery route; a terminal packet distinguishes completion from unfinished termination. Preserve existing pagination, callbacks, and fail-closed behavior.
 
@@ -381,3 +381,84 @@ family, not only string helpers; distinguish original quality evidence from
 current proof; and separate qualitative model observations from deterministic
 gate validation. These learnings belong in the final verbose commit as well
 as this audit, without staging unrelated work.
+
+## Follow-up: reference material in every phase
+
+The user requested path-based material to inform every phase. This follow-up
+starts at `73933af`; it adds navigation, not a new loop, artifact store,
+required external tool, or completion gate.
+
+### Q1 — Should all phases load all reference material?
+
+**Info-gain: 0.9.** This distinguishes discoverability from a larger mandatory
+context window. **Answer:** no. Keep the existing selected, required headings
+and bounded evidence readers. Clearly mark additional explanation optional;
+do not convert a stopped or completed response into another work assignment.
+The [README phase map](../skills/shiploop/README.md#reference-material-by-phase)
+names relevant sources and their purposes without requiring blanket reading.
+
+### Q2 — Was required reference routing already complete?
+
+**Info-gain: 0.8.** The existing six routing families already covered most
+actions. **Evidence:** evaluating all 53 `PROMPTS` stages against
+`_guidance_lines` failed for exactly `merge` and `coverage`. **Answer:** reuse
+the renderer's mapping tuple for those two actual gaps, with the existing
+local-merge and coverage activity guides; do not add another stage registry.
+[shiploop_packets.py - guidance selection: two missing stage routes added](/Users/dadleet/src/skill-craft/skills/shiploop/scripts/shiploop_packets.py:1844)
+
+### Remediation and alignment
+
+| Priority | Applied change | Validation intent |
+|---|---|---|
+| HIGH | Required, section-specific merge/coverage paths. | Every actual `PROMPTS` stage selects an existing file and heading; other routes do not inherit these readings. |
+| MEDIUM | Optional cursor/recovery or report references for non-action responses. | Valid package paths; no extra damaged-state reads, callbacks or authority. |
+| MEDIUM | README phase map and explicit required/optional reading rules. | Discoverable material with purpose, bounded reading, current-source status and preserved acceptance duties. |
+
+The reference-routing regression checks real paths and Markdown headings,
+including shared-directory resolution, rather than only matching guide names.
+It also exercises an actual context read and refused submission without
+advancing durable state. A reviewer confirmed the routing and safety semantics.
+This establishes discoverability, not proof that a model read or understood
+every source. Missing required evidence remains a recorded gap; a reference
+never grants permission to change the system it describes.
+
+### Follow-up verification and closeout
+
+The final runtime, packaged guides and tests were frozen at detached snapshot
+`a779c5ac69f7baec2404fcf883e19b61710c0193`, parent `73933af`. Only this
+closeout text was added after that snapshot. **125 distinct targeted tests
+passed:** reference-routing (5), orientation (14), orientation-context (8),
+orientation-integration (4), packets (36), protocol (34), embedded Until-Loop
+(10), migration-prompt (3), history-pages (10), plus the cold-context
+repair/revisit/old-run planning scenario (1). This is a targeted regression
+run, not a claim that the entire native suite was rerun on this revision.
+
+The routing checks first failed on the two missing stages, then passed for
+all 53 active stages. A further failing test exposed a stale nested README
+anchor in the newly selected implementation guide; correcting it to
+`#recovery-and-compatibility` restored the five-method routing suite. The
+guide now distinguishes ordinary repair from conditional `merge-recover`.
+An independent final read-only review found no actionable regression.
+
+Ruff F/E9, native frontmatter checks for 17 skills, shell syntax, scoped
+ShipLoop plugin parity, and diff checks passed. Documentation validation
+checked 129 local destinations and balanced fences across seven documents;
+all 21 new README phase-map destinations and heading fragments also resolve.
+The routing suite additionally validates both newly selected activity guides'
+local links and headings. Generic skill validation could not start because
+PyYAML is unavailable; no dependency was installed, and native metadata
+validation is not represented as that generic validator passing.
+
+Prompt-refinement closeout: one HIGH and two MEDIUM remediations applied;
+runtime, caller instructions, reference guides and README are aligned. The
+ShipLoop packet contract kept required readings separate from optional help
+and preserved bounded readers, Markdown authority, exact callbacks and the
+embedded Until-Loop convergence rules. No new engine, state store, workflow
+gate, deployment or unrelated Review Coverage edit was included.
+
+Key learning for the verbose commit: providing a path is useful only when its
+destination and heading resolve, including links reached from a newly routed
+guide. Inform every phase without loading every manual, and keep recovery
+references explanatory rather than assigning work. These checks establish
+navigation and unchanged script behavior, not model comprehension or a live
+end-to-end product delivery.

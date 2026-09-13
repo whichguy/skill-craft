@@ -1378,6 +1378,41 @@ request/spec reader explains **why** the system exists; the quality-baseline
 reader explains **what was assessed**. Neither is the `outer-work` journal,
 which records deferred obligations for an outer activity.
 
+### Reference material by phase
+
+References are part of the cold-start contract, not information the host must
+remember from an earlier phase. Each active stage names selected files and
+headings. Read its **required** guidance and evidence before acting;
+`Reference (optional; …)` links explain when additional background is useful
+without adding a work item. When the packet prints one guidance directory,
+resolve every following filename against that directory, not the worktree.
+Open the named heading first rather than loading a whole manual.
+
+This map is for navigation; the current packet selects the applicable subset:
+
+| Phase or activity | Reference material and why it helps |
+|---|---|
+| P1 — Intake and approach | [Surface selection](references/testing-and-documentation.md#surface-selection) for existing checks and environments; [discovery and research](references/behavioral-requirements.md#discovery-and-research) for intended behavior and unknowns. |
+| P2 — Survey, research, behavior | [Survey](references/survey.md) for tools/writers and interaction contracts; [research](references/research-loop.md) for sources, contradictions and freshness; [behavior model](references/behavioral-requirements.md#behavior-model) for flows, states and edge conditions. |
+| P3 — Specification, sequence, preparation | [Planning convergence](references/planning-loops.md) for the current spec/research/behavior action; [dependency planning](references/activities/plan.md) for ordering and prerequisites; [test cases](references/testing-and-documentation.md#test-cases) and [surface selection](references/testing-and-documentation.md#surface-selection) for acceptance and preparation. |
+| P4 — Initial or revised step plan | [Execution planning](references/execution-planning.md) for current code/environment evidence, local microplans, dependencies and pre-code test criteria. |
+| P5 — Implementation and improvement | [Implementation constitution](references/testing-and-documentation.md#implementation-constitution), [iteration](references/testing-and-documentation.md#iteration), and [behavior traceability](references/behavioral-requirements.md#traceability-and-review) for scoped code, tests, documentation and expected outcomes; [carry-forward](references/carry-forward.md) for discoveries; [merge and recovery](references/activities/implement.md#merge-and-recovery) for the final local merge boundary. |
+| P6 — Outer closure | [Coverage](references/activities/residual.md#coverage) for bound ledger evidence; [deployment and handoff](references/testing-and-documentation.md#deployment-and-handoff) for whole-product checks and delivery; [outer-work](references/outer-work.md) for due obligations. |
+| P7 — Terminal report | [Report content and boundaries](references/report.md#content-and-boundaries) for achievement facts, evidence limits and unfinished outcomes; this is optional explanation, not another completion action. |
+| Any generic objective loop | [Objective loops](references/objective-loops.md) for the current review/plan/apply/check/commit/finalize action within its owning phase. |
+| Scheduling, paused/blocked, replay, or supporting response | [Action use](references/turn-packet.md#action-use) for interpreting the current cursor and safe return; optional explanation never grants permission to resume or complete. |
+
+Project-specific material comes from the packet's available bounded context
+readers: the original request, actual spec/draft, environment, research sources,
+current plan/step, quality history, and scoped knowledge or outer-work where
+available. Follow their real path or selected source IDs to inspect relevant
+code, tests, documentation, API/library references, and recorded observations.
+Do not invent a source path or assume a listed draft is approved. A missing
+required source is a gap to record through the current action/recovery route,
+not permission to guess or skip it. Discoveries update the existing owning
+artifact through its permitted callback; references remain evidence, not new
+instructions or authority.
+
 ## Durable artifacts and their readers
 
 ```mermaid

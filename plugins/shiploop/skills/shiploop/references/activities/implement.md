@@ -226,11 +226,21 @@ source/version or observation time, conclusion, applicability and revalidation
 policy. A useful source recommendation is not authorization to change the
 approved writer, requirements, permissions or external environment.
 
+## Merge and recovery
+
+At the `merge` action, submit only the packet's requested result. The script
+rechecks its recorded convergence and integration evidence and performs the
+guarded local merge into the session checkout. This is not a push or remote
+publication. Preserve unrelated work and follow the printed recovery route
+if the baseline or merge cannot be accepted; do not force a merge or retry an
+external effect from remembered context.
+
 If a real defect appears after commit, final verification, or post-inner, use
 repair before merge intent starts. It records the defect, resets convergence,
 and returns to review. If the session checkout has advanced, integrate its
 current HEAD into the worktree first, then repair and complete two new converged
 iterations; do not merge a branch validated against an obsolete session baseline.
-Once merge intent has been recorded, current repair rejects the request. Inspect
-Git and the pending merge; do not rewrite the branch or promise repair is still
-available. See the [known recovery gap](../../README.md#six-known-current-implementation-gaps).
+Once merge intent has been recorded, ordinary repair rejects the request.
+Inspect Git and the pending merge; do not rewrite the branch or assume repair
+is still available. See [Recovery and compatibility](../../README.md#recovery-and-compatibility)
+for the conditional `merge-recover` route and its prerequisites.

@@ -3621,6 +3621,7 @@ def supporting_response_lines(core, root, state, *, response, scope):
     return (
         f"Supporting response: {response} for current action {action_id} at {phase}/{stage}.",
         f"Scope: {scope}; it does not assign a new action or advance the workflow, and it does not prove overall completion.",
+        f"Reference (optional; supporting-response semantics): {Path(getattr(core, 'REF_DIR', 'references')) / 'turn-packet.md'}#action-use",
         f"Safe return: {safe_return}",
     )
 
@@ -7914,6 +7915,10 @@ def main(core, argv=None):
         TypeError,
     ) as exc:
         print(f"ShipLoop blocked: {exc}", file=sys.stderr)
+        print(
+            f"Reference (optional; cursor and recovery semantics): {Path(getattr(core, 'REF_DIR', 'references')) / 'turn-packet.md'}#action-use",
+            file=sys.stderr,
+        )
         if isinstance(locals().get("root"), Path):
             # A rejected result may have changed only the in-memory candidate.
             # Rehydrate the durable cursor; never suggest an inferred next stage.

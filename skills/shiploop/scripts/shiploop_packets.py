@@ -1841,6 +1841,8 @@ def _guidance_lines(core: Any, stage: str, api: Mapping[str, Any]) -> list[str]:
         ("Step-planning guidance", "execution-planning.md", _value(api, "STEP_PLANNING_SECTIONS", {})),
         ("Research-loop guidance", "research-loop.md", _value(api, "RESEARCH_SECTIONS", {})),
         ("Objective-loop guidance", "objective-loops.md", _value(api, "OBJECTIVE_SECTIONS", {})),
+        ("Local merge guidance", "activities/implement.md", {"merge": ("merge-and-recovery",)}),
+        ("Coverage evidence guidance", "activities/residual.md", {"coverage": ("coverage",)}),
     )
     selected = []
     for label, filename, mapping in mappings:
@@ -2190,6 +2192,14 @@ def _safe_orientation_lines(
         state.get("prompt"),
         "the saved original request is unavailable; do not infer the intended outcome.",
     )
+    # Only package-owned explanatory paths: damaged run artifacts stay unread.
+    ref_dir = Path(getattr(core, "REF_DIR", "references"))
+    reference = (
+        f"{ref_dir / 'report.md'}#content-and-boundaries"
+        if stage in ("done", "halted")
+        else f"{ref_dir / 'turn-packet.md'}#action-use"
+    )
+    reference_purpose = "terminal evidence limits" if stage in ("done", "halted") else "cursor and recovery semantics"
     return [
         f"You are here: {location}.",
         f"Bigger purpose: {purpose}",
@@ -2198,6 +2208,7 @@ def _safe_orientation_lines(
             if stage == "done" and state_note == "certified completion"
             else "This is a recovery/status response, not a new work assignment; use only its printed recovery route."
         ),
+        f"Reference (optional; {reference_purpose}): {reference}",
     ]
 
 

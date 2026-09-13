@@ -69,6 +69,9 @@ requests into double quotes. Preserve multiline and Unicode text exactly.
    selected spec path/section for deeper rationale. Before a spec exists, use
    the original request and treat any draft as unapproved. Background reading
    never makes the current acceptance criteria optional or expands permission.
+   Read required reference headings; use explicitly optional links when their
+   stated purpose helps. Resolve filenames against the printed guidance
+   directory. Missing required material is a recorded gap, not a reason to guess.
 2. Perform the printed action and its required checks. Write the requested
    result at the printed inbox path, using the supplied Markdown record shape.
    Results report facts and evidence; they do not choose the next stage.

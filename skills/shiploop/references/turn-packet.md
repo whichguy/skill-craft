@@ -62,6 +62,12 @@ destination is the callback's `--result` path; do not substitute a product file.
 When several guidance pages are selected, the packet prints one absolute
 guidance directory and filenames/sections relative to that directory, not to
 the product worktree. This removes repeated paths without dropping readings.
+Selected `guidance: read only` headings are required for the assigned action.
+`Reference (optional; reason)` links are additional explanation: read them when
+useful, not as an extra task or a new completion condition. Scheduling,
+recovery, and terminal responses retain optional references without assigning
+work. Supporting context/check/history responses point to their interpretation
+guide as well as the safe return to the full current packet.
 The packet points to the relevant approach, environment, spec, lifecycle, and
 plan records; it does not copy their bodies. It connects this task with the
 broader system purpose and provides an actual file reference for deeper insight.
