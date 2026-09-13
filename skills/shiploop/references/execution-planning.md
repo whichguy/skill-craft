@@ -118,12 +118,17 @@ of changed requirements, credentials, writers, or shared configuration.
 
 ## Cold-start evidence
 
-At every pass assume the preceding LLM context is gone. Use `next`, then page
+Every pass must be recoverable without preceding LLM context. Retained context
+within the same quality loop is optional, not authority. Use `next`, then page
 the current `step-context`, `step-plan`, `iteration`, and `knowledge` sections
 as selected by the packet. Use the current step's prompt/produces, accepted
 spec/behavior slice, frozen environment plus current knowledge overlay, and
 direct suppliers/consumers. Follow references only as needed to inspect
 transitive impacts. Do not load every archived pass or the whole repository.
+The packet connects the local task to the broader system purpose and names the
+spec reference for deeper rationale. Use it to resolve design tradeoffs against
+the approved outcome, not to invent additional work or change the contract.
+Required step criteria remain mandatory even when broader background is optional.
 
 For a cold `implement`, `improve-apply`, or `review`, page `context --section
 step-plan` for the accepted criteria and `context --section step-context` for
@@ -366,8 +371,10 @@ writes and literal argument transport belong to the existing script boundary.
 Current action packets also ask for unmet criteria, useful new evidence or a
 changed strategy, all-clause evaluation and an honest incomplete stop. These
 are reasoning duties inside the assigned stage, not host-selected transitions.
-Every returned packet assumes fresh context; existing Markdown receipts and
-bounded readers carry its state. Available authorized independent review may
+Every returned packet remains sufficient after a reset; existing Markdown
+receipts and bounded readers carry its state. Same-loop memory may help compare
+work, but a prior assessment is historical evidence, not proof about changed
+code or a new candidate. Available authorized independent review may
 inform high-risk/subjective findings; otherwise disclose self-check. No extra
 notebook, stage, runtime, or test waiver is created.
 

@@ -294,7 +294,7 @@ def _template(value: Mapping[str, Any], *, bounded: bool = False) -> list[str]:
         if bounded
         else "Result template (replace example values; do not add fields):"
     )
-    return [label, "```json", json.dumps(value, ensure_ascii=False, indent=2), "```"]
+    return [label, "```shiploop-state", json.dumps(value, ensure_ascii=False, indent=2), "```"]
 
 
 def _criterion_text(value: Any, status: dict[str, bool]) -> Any:
@@ -632,7 +632,11 @@ def _environment_projection(
             "Platform projection is navigation only: read the full environment "
             "pages for exact identifiers, authority, probes and outcomes before use."
         )
-    if platform.get("status") != "legacy-not-recorded":
+    local_only = (
+        platform.get("applicable") is False
+        and platform.get("status") == "local-only"
+    )
+    if platform.get("status") != "legacy-not-recorded" and not local_only:
         reference_dir = getattr(core, "REF_DIR", None)
         guide = (
             Path(reference_dir) / "platform-discovery.md"
@@ -1335,17 +1339,23 @@ def _stage_lifecycle(
     stage: Any, info: Mapping[str, Any], api: Mapping[str, Any], *, history_limit: int
 ) -> list[str]:
     """Small stage-local continuation contract; detailed work stays durable."""
+    def converge(objective: str, evidence: str) -> list[str]:
+        return [
+            review_improve_cycle(history_limit),
+            "Objective: " + objective,
+            "Until: two verified/audited trivial passes, no open findings, and a fresh final gate. "
+            "Continue while: material or incomplete proof remains. "
+            "Evidence required: " + evidence,
+        ]
+
     objectives = _value(api, "objectives") or _value(api, "shiploop_objectives")
     binding = info.get("objective_binding")
     if isinstance(binding, Mapping) and callable(getattr(objectives, "is_objective_stage", None)) and objectives.is_objective_stage(stage):
         kind = binding.get("kind")
-        return [
-            review_improve_cycle(history_limit),
-            f"Objective: converge the current {kind} candidate before applying it once to {binding.get('base_stage')}.",
-            "Until: two verified/audited trivial passes, no open findings, and a fresh final objective check.",
-            "Continue while: material findings, unaddressed ledger rows, stale context, incomplete required Git bodies, or missing fresh checks remain.",
-            "Evidence required: current candidate/ledger/context, full current history page, candidate-bound lint/test record, and audit commit.",
-        ]
+        return converge(
+            f"current {kind} candidate before its one script-controlled application to {binding.get('base_stage')}.",
+            "printed current candidate/context/history/checks and audit commit.",
+        )
     planning = _value(api, "planning")
     if callable(getattr(planning, "is_planning_stage", None)) and planning.is_planning_stage(stage):
         if stage in ("research", "behavior", "spec"):
@@ -1356,13 +1366,10 @@ def _stage_lifecycle(
                 "Continue while: the candidate has not been persisted and bound to its evidence.",
                 "Evidence required: complete candidate Markdown and this action's typed result.",
             ]
-        return [
-            review_improve_cycle(history_limit),
-            "Objective: converge the current planning candidate before its next lifecycle gate.",
-            "Until: two verified/audited trivial passes, no open findings, and a fresh final candidate check.",
-            "Continue while: material findings, unresolved evidence, stale candidate/ledger context, or missing checks remain.",
-            "Evidence required: current Git history, candidate/ledger-bound lint and test evidence, and an audit commit.",
-        ]
+        return converge(
+            "current planning candidate.",
+            "current candidate/history/checks and audit commit.",
+        )
     is_step_plan = _value(api, "is_step_plan_stage")
     if callable(is_step_plan) and is_step_plan(stage):
         if stage == "step-plan":
@@ -1373,21 +1380,15 @@ def _stage_lifecycle(
                 "Continue while: no candidate is bound to the selected step.",
                 "Evidence required: complete step-plan Markdown and typed result.",
             ]
-        return [
-            review_improve_cycle(history_limit),
-            "Objective: converge this exact selected step plan before product edits.",
-            "Until: two verified/audited trivial passes, no open findings, fresh final planning check, and (for the initial plan) ready evidence.",
-            "Continue while: material findings, stale selected context, missing contract evidence, or missing checks remain.",
-            "Evidence required: current step/context pages, plan candidate/ledger, lint/test record, and audit commit.",
-        ]
+        return converge(
+            "exact selected step plan before product edits.",
+            "printed step/context/plan/checks and audit commit.",
+        )
     if stage in ("review", "improve-plan", "improve-apply", "verify", "carry-forward", "commit", "final-verify", "post-inner", "merge"):
-        return [
-            review_improve_cycle(history_limit),
-            "Objective: improve the selected step.",
-            "Until: cycle ready, fresh final verification, post-inner and safe merge.",
-            "Continue while: findings, failures, stale evidence or obligations remain.",
-            "Evidence required: current checks, carry-forward, primary commit and final proof.",
-        ]
+        return converge(
+            "selected step.",
+            "printed checks, carry-forward, primary commit, and final proof.",
+        )
     return [
         "Objective: complete only the printed current stage from durable Markdown evidence.",
         "Until: the exact typed result is accepted and ShipLoop prints a new action.",
@@ -1841,12 +1842,363 @@ def _guidance_lines(core: Any, stage: str, api: Mapping[str, Any]) -> list[str]:
         ("Research-loop guidance", "research-loop.md", _value(api, "RESEARCH_SECTIONS", {})),
         ("Objective-loop guidance", "objective-loops.md", _value(api, "OBJECTIVE_SECTIONS", {})),
     )
-    lines: list[str] = []
+    selected = []
     for label, filename, mapping in mappings:
         sections = mapping.get(stage) if isinstance(mapping, Mapping) else None
         if sections:
-            lines.append(f"{label}: read only {ref_dir / filename}" + ", ".join(f"#{section}" for section in sections))
+            selected.append((label, filename, sections))
+    shared = len(selected) > 1
+    lines = [f"Guidance directory: {ref_dir} (resolve the following filenames here)."] if shared else []
+    for label, filename, sections in selected:
+        path = filename if shared else ref_dir / filename
+        lines.append(f"{label}: read only {path}" + ", ".join(f"#{section}" for section in sections))
     return lines
+
+
+_ORIENTATION_TEXT_LIMIT = 160
+_ORIENTATION_READER_SECTIONS = frozenset(("prompt", "spec", "spec-draft"))
+
+
+def _orientation_text(value: Any, unavailable: str) -> str:
+    """Bound display-only context without promoting it to packet authority."""
+    if not isinstance(value, str) or not value.strip():
+        return unavailable
+    status = {"truncated": False, "redacted": False}
+    rendered = _bounded_text(
+        value.strip(),
+        status,
+        text_limit=_ORIENTATION_TEXT_LIMIT,
+        truncation_marker="[truncated; use the named durable reader]",
+    )
+    return rendered
+
+
+def _orientation_data(value: Any, unavailable: str) -> str:
+    """Render host-provided prose as one JSON string, never packet instructions."""
+    return json.dumps(_orientation_text(value, unavailable), ensure_ascii=False)
+
+
+def _current_pass_label(value: Any) -> str | None:
+    """Use a recorded cursor label only; never infer a pass number from prose."""
+    if not isinstance(value, Mapping):
+        return None
+    number = value.get("number")
+    if type(number) is int and number > 0:
+        return f"pass {number}"
+    identifier = value.get("id")
+    if isinstance(identifier, str) and identifier:
+        return f"current pass {identifier}"
+    return None
+
+
+def _packet_orientation(
+    root: Path, state: Mapping[str, Any], api: Mapping[str, Any]
+) -> tuple[dict[str, Any], str | None]:
+    """Read an optional, protocol-owned display projection without changing state."""
+    helper = _value(api, "packet_orientation")
+    if helper is None:
+        # Older runs and narrow fixtures have no provenance adapter yet.
+        return {}, None
+    value, error = _call(helper, root, state)
+    if error:
+        return {}, f"packet orientation projection is unreadable ({error})"
+    if not isinstance(value, Mapping):
+        return {}, "packet orientation projection is malformed"
+    for name in ("purpose", "quality"):
+        item = value.get(name)
+        if item is not None and not isinstance(item, Mapping):
+            return {}, f"packet orientation projection has malformed {name}"
+    return dict(value), None
+
+
+def _orientation_purpose(
+    root: Path, state: Mapping[str, Any], orientation: Mapping[str, Any]
+) -> tuple[str, str | None, str | None, str]:
+    """Return the purpose, optional actual spec reference, and its reader section."""
+    raw = orientation.get("purpose")
+    purpose = raw if isinstance(raw, Mapping) else {}
+    text = _orientation_data(
+        purpose.get("text"),
+        _orientation_text(
+            state.get("prompt"),
+            "the saved original request is unavailable; do not infer the intended outcome.",
+        ),
+    )
+    path_value = purpose.get("path")
+    path: str | None = None
+    if isinstance(path_value, str) and path_value.strip():
+        candidate = Path(path_value)
+        # The protocol has already validated its locator.  Keep the renderer
+        # defensive as well: display a single line and never use it as argv.
+        path = str(candidate if candidate.is_absolute() else root / candidate).replace("\n", " ")
+    elif (root / "prompt.md").is_file() and not (root / "prompt.md").is_symlink():
+        path = str(root / "prompt.md")
+    elif (root / "spec.md").is_file() and not (root / "spec.md").is_symlink():
+        # The fallback remains the original request before a spec. This branch
+        # is for legacy/narrow projections that lack prompt.md.
+        path = str(root / "spec.md")
+    section = purpose.get("section")
+    if not isinstance(section, str) or not section.strip():
+        section = None
+    else:
+        section = _orientation_data(section, "")
+    reader_section = purpose.get("reader_section")
+    if reader_section not in _ORIENTATION_READER_SECTIONS:
+        reader_section = "prompt" if path and Path(path).name == "prompt.md" else "spec" if path else "prompt"
+    return text, path, section, reader_section
+
+
+def _saved_spec_reference(root: Path) -> tuple[str, str, str] | None:
+    """Name one real saved spec artifact without claiming it is approved."""
+    spec = root / "spec.md"
+    if spec.is_file() and not spec.is_symlink():
+        return str(spec), "spec", "saved specification artifact"
+    draft = root / "spec-draft.md"
+    if draft.is_file() and not draft.is_symlink():
+        return str(draft), "spec-draft", "unapproved specification draft"
+    return None
+
+
+def _planning_orientation_info(
+    root: Path, state: Mapping[str, Any], api: Mapping[str, Any]
+) -> tuple[dict[str, Any], str | None]:
+    """Read the existing planning receipt once for its loop breadcrumb."""
+    stage = state.get("stage")
+    planning = _value(api, "planning")
+    is_stage = getattr(planning, "is_planning_stage", None)
+    if not callable(is_stage) or not is_stage(stage) or stage in ("research", "behavior", "spec"):
+        return {}, None
+    reader = _value(api, "planning_receipt")
+    # Narrow presentation fixtures and older adapters can omit this optional
+    # breadcrumb. The actual protocol supplies it for current planning runs.
+    if reader is None:
+        return {}, None
+    value, error = _call(reader, root, state)
+    if error:
+        return {}, f"planning orientation receipt is unreadable ({error})"
+    if not isinstance(value, tuple) or len(value) != 2:
+        return {}, "planning orientation receipt is malformed"
+    kind, receipt = value
+    if not isinstance(kind, str) or not kind or not isinstance(receipt, Mapping):
+        return {}, "planning orientation receipt is malformed"
+    return {"planning_kind": kind, "planning_receipt": dict(receipt)}, None
+
+
+def _orientation_location(
+    state: Mapping[str, Any], info: Mapping[str, Any], action_id: str, *, suffix: str = ""
+) -> str:
+    """Describe the current durable owner; it does not calculate transitions."""
+    phase = state.get("phase") if isinstance(state.get("phase"), str) else "unknown phase"
+    stage = state.get("stage") if isinstance(state.get("stage"), str) else "unknown stage"
+    parts = [phase]
+    active_step = info.get("step_id") or state.get("active_step")
+    if isinstance(active_step, str) and active_step:
+        parts.append(f"selected step {active_step}")
+    binding = info.get("objective_binding")
+    receipt = info.get("objective_receipt")
+    if isinstance(binding, Mapping):
+        kind = binding.get("kind")
+        if isinstance(kind, str) and kind:
+            parts.append(f"{kind} objective")
+        pass_label = _current_pass_label(
+            receipt.get("current_pass") if isinstance(receipt, Mapping) else None
+        )
+        if pass_label:
+            parts.append(f"review-and-improve loop {pass_label}")
+    elif stage.startswith("step-plan-"):
+        loop_id = info.get("step_plan_loop")
+        if isinstance(loop_id, str) and loop_id:
+            parts.append(f"nested step-plan loop {loop_id}")
+        else:
+            parts.append("nested step-plan loop")
+    elif isinstance(info.get("planning_kind"), str):
+        kind = info["planning_kind"]
+        planning_receipt = info.get("planning_receipt")
+        iteration = (
+            planning_receipt.get("iteration")
+            if isinstance(planning_receipt, Mapping)
+            else None
+        )
+        label = f"{kind} planning review-and-improve loop"
+        if type(iteration) is int and iteration > 0:
+            label += f" iteration {iteration}"
+        parts.append(label)
+    elif stage in ("review", "improve-plan", "improve-apply", "verify", "commit", "final-verify", "post-inner", "merge"):
+        parts.append("product review-and-improve loop")
+    parts.append(f"{stage} (action {action_id})")
+    return " → ".join(parts) + suffix
+
+
+def _quality_orientation_lines(orientation: Mapping[str, Any]) -> list[str]:
+    quality = orientation.get("quality")
+    if not isinstance(quality, Mapping):
+        return []
+    initial = quality.get("initial_candidate")
+    current = quality.get("current_candidate")
+    parts: list[str] = []
+    has_initial_locator = False
+    if isinstance(initial, Mapping):
+        path = initial.get("path")
+        if isinstance(path, str) and path:
+            label = (
+                "historical implementation/test evidence"
+                if initial.get("kind") == "implementation-evidence"
+                else "initial"
+            )
+            parts.append(f"{label} {path}")
+            has_initial_locator = True
+    assessment = quality.get("assessment")
+    if isinstance(assessment, Mapping):
+        status = assessment.get("status")
+        if status == "not-yet-assessed":
+            parts.append("unassessed—not approved")
+        elif status == "recorded":
+            path = assessment.get("path")
+            if isinstance(path, str) and path:
+                parts.append(f"assessment {path}")
+            else:
+                parts.append("assessment locator unavailable")
+            if assessment.get("current_candidate_matches") is False:
+                parts.append("assessment historical; reassess changed candidate")
+            if isinstance(assessment.get("summary"), str) and assessment["summary"].strip():
+                parts.append("historical summary " + _orientation_data(assessment["summary"], ""))
+        elif status == "unavailable":
+            parts.append("assessment unavailable; do not infer approval")
+    if isinstance(current, Mapping):
+        path = current.get("path")
+        digest = current.get("digest")
+        digest_text = (
+            f" digest {digest[:16]}…"
+            if isinstance(digest, str) and len(digest) > 16
+            else f" digest {digest}"
+            if isinstance(digest, str) and digest
+            else ""
+        )
+        if isinstance(path, str) and path:
+            parts.append(f"current candidate {path}{digest_text}")
+        else:
+            raw_paths = current.get("paths")
+            if isinstance(raw_paths, (list, tuple)):
+                paths = [
+                    _orientation_text(value, "")
+                    for value in raw_paths
+                    if isinstance(value, str) and value.strip()
+                ]
+                if paths:
+                    rendered = json.dumps(paths[:3], ensure_ascii=False)
+                    if len(paths) > 3:
+                        rendered = rendered[:-1] + f',"…{len(paths) - 3} more"]'
+                    parts.append(f"current candidate set {rendered}{digest_text}")
+    if not parts:
+        return []
+    lines = ["Quality: " + "; ".join(parts) + "."]
+    if has_initial_locator:
+        lines.append("Historical assessment reader: context --section quality-baseline (not current proof).")
+    return lines
+
+
+def _action_orientation_lines(
+    root: Path,
+    state: Mapping[str, Any],
+    info: Mapping[str, Any],
+    api: Mapping[str, Any],
+    action_id: str,
+) -> tuple[list[str], str | None]:
+    """Render the concise human breadcrumb before detailed task instructions."""
+    orientation, error = _packet_orientation(root, state, api)
+    if error:
+        return [], error
+    stage = state.get("stage") if isinstance(state.get("stage"), str) else "unknown stage"
+    purpose, path, section, reader_section = _orientation_purpose(root, state, orientation)
+    if stage == "objective-review":
+        scope = "Review the persisted candidate and record evidence; do not apply or finalize it now."
+    elif stage.startswith("objective-"):
+        scope = "Perform only this named objective action; the script selects continuation."
+    elif stage == "step-plan-review":
+        scope = "Review selected plan findings; no product edits or parent completion."
+    elif stage.startswith("step-plan-"):
+        scope = "Change selected plan/evidence only; no product edits or parent completion."
+    elif stage == "implement":
+        scope = "Exact task below contributes to the purpose; implement scoped code and required tests/evidence only. No parent/delivery completion."
+    elif stage == "improve-plan":
+        scope = "Plan current review findings only; do not implement fixes now."
+    elif stage == "review":
+        scope = "Evaluate the selected step/evidence; wait for an apply action before fixes."
+    else:
+        scope = f"Only {stage}; the script selects transitions; existing permissions bind."
+    lines = [
+        f"You are here: {_orientation_location(state, info, action_id)}.",
+        f"Bigger purpose: {purpose}",
+        f"Scope: {scope}",
+    ]
+    if path:
+        section_text = f" {section}" if section else ""
+        document_role = "saved request" if reader_section == "prompt" else "specification"
+        lines.append(
+            "Purpose reader: "
+            + path
+            + section_text
+            + " ("
+            + document_role
+            + "; context --section "
+            + reader_section
+            + ")."
+        )
+    else:
+        lines.append(
+            "Purpose reader unavailable: restore saved original request before using context --section "
+            + reader_section
+            + "."
+        )
+    spec_reference = _saved_spec_reference(root)
+    if spec_reference is not None:
+        spec_path, spec_section, spec_role = spec_reference
+        if not (path == spec_path and reader_section == spec_section):
+            lines.append(
+                "Spec reader: "
+                + spec_path
+                + " ("
+                + spec_role
+                + "; document-level context --section "
+                + spec_section
+                + ")."
+            )
+    lines.extend(_quality_orientation_lines(orientation))
+    return lines, None
+
+
+def _safe_orientation_lines(
+    core: Any,
+    root: Path,
+    state: Mapping[str, Any],
+    action_id: str | None,
+    *,
+    state_note: str,
+) -> list[str]:
+    """Use only header-safe state for pause, damage, and terminal exits."""
+    stage = state.get("stage") if isinstance(state.get("stage"), str) else "unknown stage"
+    phase = state.get("phase") if isinstance(state.get("phase"), str) else "unknown phase"
+    if stage == "done" and state_note == "certified completion":
+        location = "terminal delivery → certified completion"
+    elif stage == "done":
+        location = f"terminal delivery → {state_note}"
+    elif action_id:
+        location = f"{phase} → {stage} (action {action_id}), {state_note}"
+    else:
+        location = f"{phase} → {stage}, {state_note}"
+    purpose = _orientation_data(
+        state.get("prompt"),
+        "the saved original request is unavailable; do not infer the intended outcome.",
+    )
+    return [
+        f"You are here: {location}.",
+        f"Bigger purpose: {purpose}",
+        (
+            "This is certified terminal completion; no callback or recovery action remains."
+            if stage == "done" and state_note == "certified completion"
+            else "This is a recovery/status response, not a new work assignment; use only its printed recovery route."
+        ),
+    ]
 
 
 def _terminal_packet(core: Any, root: Path, state: Mapping[str, Any], api: Mapping[str, Any], lines: list[str]) -> str:
@@ -1856,18 +2208,36 @@ def _terminal_packet(core: Any, root: Path, state: Mapping[str, Any], api: Mappi
         delivery = _value(api, "delivery")
         valid, error = _call(getattr(delivery, "valid_complete_report", None), root, state)
         if valid is True and error is None:
+            lines.extend(
+                _safe_orientation_lines(
+                    core, root, state, state.get("action", {}).get("id") if isinstance(state.get("action"), Mapping) else None,
+                    state_note="certified completion",
+                )
+            )
             lines.extend([
                 "It's all complete.",
                 f"Report: {root / 'report.html'}",
                 "The report is derived from the verified terminal Markdown state; no completion callback remains.",
             ])
         else:
+            lines.extend(
+                _safe_orientation_lines(
+                    core, root, state, state.get("action", {}).get("id") if isinstance(state.get("action"), Mapping) else None,
+                    state_note="report certification is incomplete",
+                )
+            )
             lines.extend([
                 "Terminal cursor is not evidence-complete; do not claim success or call done.",
                 f"Recovery: {cmd} report --run-dir {_quote(root)}",
             ])
         return "\n".join(lines) + "\n"
     reason = state.get("halt_reason") or "No halt reason is recorded."
+    lines.extend(
+        _safe_orientation_lines(
+            core, root, state, state.get("action", {}).get("id") if isinstance(state.get("action"), Mapping) else None,
+            state_note="halted unfinished",
+        )
+    )
     lines.extend([
         f"Halted, unfinished: {reason}",
         f"Handoff: {root / 'handoff.md'}",
@@ -1887,12 +2257,15 @@ def render(core: Any, root: Path, state: Mapping[str, Any], api: Mapping[str, An
     aid = action.get("id") if isinstance(action, Mapping) else None
     lines = [
         f"ShipLoop {getattr(core, 'VERSION', '?')} | {phase} / {stage} | revision {revision}",
-        f"Run: {root}",
         f"State: {root / 'state.md'}",
-        "Proposal journal: context --section journal",
         f"Stage: {stage}",
     ]
     if not isinstance(aid, str) or not aid:
+        lines.extend(
+            _safe_orientation_lines(
+                core, root, state, None, state_note="blocked before assignment"
+            )
+        )
         lines.extend([
             "Blocked: authoritative state has no usable current action ID.",
             f"Recovery: {_command(core)} status --run-dir {_quote(root)}; restore state.md rather than inventing a result.",
@@ -1903,17 +2276,22 @@ def render(core: Any, root: Path, state: Mapping[str, Any], api: Mapping[str, An
     if isinstance(last, Mapping) and isinstance(last.get("action"), str):
         lines.append(
             "Last accepted: "
-            f"{last['action']} ({last.get('stage', 'unknown')}, result {str(last.get('result_digest', ''))[:16]}). "
-            "Replaying that action accepts only the identical structured result and never advances state."
+            f"{last['action']} ({last.get('stage', 'unknown')}). "
+            "Replay only; current cursor selects next."
         )
     if stage in ("done", "halted"):
         return _terminal_packet(core, root, state, api, lines)
 
     if state.get("outer_work_protocol_version") == 1:
-        lines.append("Any action: dedupe/journal via context --section outer-work; required outer reader when present.")
+        lines.append("Outer-work required when present: context --section outer-work.")
 
     completed = state.get("completed_actions")
     if isinstance(completed, Mapping) and aid in completed:
+        lines.extend(
+            _safe_orientation_lines(
+                core, root, state, aid, state_note="already accepted; awaiting current cursor"
+            )
+        )
         lines.extend([
             "Current action already has an accepted result. Do not submit a different replay.",
             f"Recovery: {_command(core)} next --run-dir {_quote(root)} to print the current durable cursor.",
@@ -1924,10 +2302,15 @@ def render(core: Any, root: Path, state: Mapping[str, Any], api: Mapping[str, An
     worktree, worktree_error = _call(repo_for, root, state)
     if worktree_error:
         worktree = state.get("repo_root") or "unavailable"
-    lines.extend([f"Worktree: {worktree}", "Working directory: the Worktree above."])
+    lines.append(f"Worktree: {worktree}")
 
     paused = state.get("paused")
     if paused:
+        lines.extend(
+            _safe_orientation_lines(
+                core, root, state, aid, state_note="paused before completion"
+            )
+        )
         recovery = state.get("prompt_recovery")
         missing_intent = (
             isinstance(recovery, Mapping)
@@ -1959,6 +2342,11 @@ def render(core: Any, root: Path, state: Mapping[str, Any], api: Mapping[str, An
     planning = _value(api, "planning")
     current, current_error = _call(getattr(planning, "is_current", None), state)
     if current is False and stage not in ("schedule",):
+        lines.extend(
+            _safe_orientation_lines(
+                core, root, state, aid, state_note="blocked before assignment"
+            )
+        )
         lines.extend([
             "Legacy planning protocol: this run cannot mutate until its planning evidence is upgraded.",
             "Objective: preserve existing evidence and restart the reviewable planning gates.",
@@ -1969,6 +2357,11 @@ def render(core: Any, root: Path, state: Mapping[str, Any], api: Mapping[str, An
         ])
         return "\n".join(lines) + "\n"
     if current_error and stage not in ("schedule",):
+        lines.extend(
+            _safe_orientation_lines(
+                core, root, state, aid, state_note="blocked before assignment"
+            )
+        )
         lines.extend([
             f"Blocked: planning-protocol state cannot be read ({current_error}).",
             f"Recovery: {_command(core)} status --run-dir {_quote(root)}; restore or migrate durable state before mutation.",
@@ -1976,6 +2369,11 @@ def render(core: Any, root: Path, state: Mapping[str, Any], api: Mapping[str, An
         return "\n".join(lines) + "\n"
 
     if stage == "schedule":
+        lines.extend(
+            _safe_orientation_lines(
+                core, root, state, aid, state_note="waiting to allocate a dependency-ready step"
+            )
+        )
         lines.extend([
             "Current task: allocate only the next dependency-ready step; no host result file is accepted at this cursor.",
             "Objective: select one ready dependency step without inferring completion from chat memory.",
@@ -1987,6 +2385,11 @@ def render(core: Any, root: Path, state: Mapping[str, Any], api: Mapping[str, An
 
     info, info_error = _step_info(core, root, state, api)
     if info_error:
+        lines.extend(
+            _safe_orientation_lines(
+                core, root, state, aid, state_note="blocked before assignment"
+            )
+        )
         lines.extend([
             f"Blocked: selected durable context cannot be bound safely ({info_error}).",
             f"Recovery: {_command(core)} context --run-dir {_quote(root)} --section prompt --offset 0 --limit 4000; then use the documented repair/recovery command only if the state-specific blocker remains.",
@@ -1995,6 +2398,11 @@ def render(core: Any, root: Path, state: Mapping[str, Any], api: Mapping[str, An
         return "\n".join(lines) + "\n"
     objective_info, objective_error = _objective_info(root, state, api)
     if objective_error:
+        lines.extend(
+            _safe_orientation_lines(
+                core, root, state, aid, state_note="blocked before assignment"
+            )
+        )
         lines.extend([
             f"Blocked: generic-objective evidence cannot be bound safely ({objective_error}).",
             f"Recovery: {_command(core)} status --run-dir {_quote(root)}; restore the objective receipt rather than creating a result.",
@@ -2002,6 +2410,41 @@ def render(core: Any, root: Path, state: Mapping[str, Any], api: Mapping[str, An
         ])
         return "\n".join(lines) + "\n"
     info.update(objective_info)
+    planning_info, planning_orientation_error = _planning_orientation_info(root, state, api)
+    if planning_orientation_error:
+        lines.extend(
+            _safe_orientation_lines(
+                core, root, state, aid, state_note="blocked before assignment"
+            )
+        )
+        lines.extend(
+            [
+                "Blocked: current planning-loop orientation cannot be bound safely "
+                f"({planning_orientation_error}).",
+                f"Recovery: {_command(core)} status --run-dir {_quote(root)}; restore the bound planning receipt before creating a result.",
+                "No completion callback is valid until current planning-loop provenance is readable.",
+            ]
+        )
+        return "\n".join(lines) + "\n"
+    info.update(planning_info)
+    orientation_lines, orientation_error = _action_orientation_lines(
+        root, state, info, api, aid
+    )
+    if orientation_error:
+        lines.extend(
+            _safe_orientation_lines(
+                core, root, state, aid, state_note="blocked before assignment"
+            )
+        )
+        lines.extend(
+            [
+                f"Blocked: current packet orientation cannot be bound safely ({orientation_error}).",
+                f"Recovery: {_command(core)} status --run-dir {_quote(root)}; restore the bound Markdown provenance before creating a result.",
+                "No completion callback is valid until current orientation provenance is readable.",
+            ]
+        )
+        return "\n".join(lines) + "\n"
+    lines.extend(orientation_lines)
 
     revalidation_lines, revalidation_rows, revalidation_error = (
         _platform_revalidation_packet(core, root, state, api, aid)
@@ -2077,7 +2520,13 @@ def render(core: Any, root: Path, state: Mapping[str, Any], api: Mapping[str, An
     if isinstance(step, Mapping):
         step_display_changed = False
         lines.append(f"Step: {step.get('id', state.get('active_step'))} | receipt: {root / 'steps' / (str(state.get('active_step')) + '.md')}")
-        lines.extend(_snippet("Current task", step.get("prompt"), _context_command(core, root, "step")))
+        lines.extend(
+            _snippet(
+                "Current task toward the broader purpose",
+                step.get("prompt"),
+                _context_command(core, root, "step"),
+            )
+        )
         produces = step.get("produces")
         if produces is not None:
             produces_projection, produces_changed = _bounded_step_projection(
@@ -2108,7 +2557,7 @@ def render(core: Any, root: Path, state: Mapping[str, Any], api: Mapping[str, An
         if step_display_changed:
             lines.append(_step_display_recovery(core, root))
         lines.append("Selected step record: " + _context_command(core, root, "step"))
-    else:
+    elif stage in ("preflight", "approach"):
         lines.extend(_snippet("Incoming prompt", state.get("prompt"), prompt_command))
 
     prompt_map = _value(api, "PROMPTS", {})
@@ -2199,7 +2648,7 @@ def render(core: Any, root: Path, state: Mapping[str, Any], api: Mapping[str, An
             + _HISTORY_BODY_UNTRUSTED
         )
     if state.get("observation_protocol_version") == 1:
-        lines.append("Early facts: context --section observation; separate callback, parent unfinished.")
+        lines.append("Observation: context --section observation; separate callback, parent unfinished.")
     base_stage = info.get("objective_binding", {}).get("kind", stage)
     if base_stage in ("approach", "survey", "sequence"):
         baselines = [name for name in ("preflight", "approach", "knowledge") if name in available and name != base_stage]
@@ -2217,7 +2666,7 @@ def render(core: Any, root: Path, state: Mapping[str, Any], api: Mapping[str, An
             lines.append("Read step-context for the accepted initial implementation_test_record and iteration for current Improve evidence; historical notes do not certify current tests.")
     elif "system-context" in available:
         lines.append(
-            "Selected role/interface contract context: use Bounded context with --section system-context."
+            "System context: use Bounded context with --section system-context."
         )
     if info.get("knowledge_read"):
         if state.get("objective_protocol_version") == 1:
@@ -2228,7 +2677,7 @@ def render(core: Any, root: Path, state: Mapping[str, Any], api: Mapping[str, An
         lines.append("Knowledge pages: " + _context_command(core, root, "knowledge"))
     if isinstance(stage, str) and (stage == "review" or stage.endswith("-review")):
         lines.append(
-            "Risky/subjective review: use an available authorized read-only evaluator or disclose self-check."
+            "Review mode: use an authorized read-only evaluator or disclose self-check."
         )
         history_limit = history_policy.required_limit(state)
         history_options = f"--run-dir {_quote(root)} --action {_quote(aid)}"
@@ -2281,13 +2730,12 @@ def render(core: Any, root: Path, state: Mapping[str, Any], api: Mapping[str, An
                 }
             )
         )
-    if callable(getattr(planning, "is_planning_stage", None)) and planning.is_planning_stage(stage) and stage not in ("research", "behavior", "spec"):
-        receipt_result, receipt_error = _call(_value(api, "planning_receipt"), root, state)
-        if receipt_error is None and isinstance(receipt_result, tuple) and len(receipt_result) == 2:
-            kind, receipt = receipt_result
-            open_fn = getattr(planning, "current_open_ids", None)
-            open_ids, _ = _call(open_fn, receipt)
-            lines.append("Planning state: " + _line_json({"kind": kind, "iteration": receipt.get("iteration"), "streak": receipt.get("streak"), "open_findings": sorted(open_ids) if isinstance(open_ids, set) else []}))
+    planning_receipt = info.get("planning_receipt")
+    planning_kind = info.get("planning_kind")
+    if isinstance(planning_kind, str) and isinstance(planning_receipt, Mapping):
+        open_fn = getattr(planning, "current_open_ids", None)
+        open_ids, _ = _call(open_fn, planning_receipt)
+        lines.append("Planning state: " + _line_json({"kind": planning_kind, "iteration": planning_receipt.get("iteration"), "streak": planning_receipt.get("streak"), "open_findings": sorted(open_ids) if isinstance(open_ids, set) else []}))
 
     lines.extend(_guidance_lines(core, str(stage), api))
     checks = _check_commands(core, root, state, api, aid, info)
@@ -2336,7 +2784,7 @@ def render(core: Any, root: Path, state: Mapping[str, Any], api: Mapping[str, An
     lines.extend(f"Schema constraint: {note}" for note in notes)
     lines.extend(commit_lines)
     result = root / "inbox" / f"{aid}.md"
-    lines.append(f"Write the result to {result} (not product files).")
+    lines.append("Write the result to the exact --result path in the callback below (not product files).")
     lines.extend(_outer_objective_replan_lines(core, root, aid, info, result))
     if checks and _failed_check(root, aid, api):
         lines.extend([

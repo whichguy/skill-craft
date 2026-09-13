@@ -62,7 +62,13 @@ requests into double quotes. Preserve multiline and Unicode text exactly.
 1. Read the current packet. Use its working directory, current environment,
    scope, prerequisites, and bounded context commands. Read only the resources
    it selects; do not load the entire README or reconstruct history from chat.
-   Assume a completely fresh context on every packet, including within a loop.
+   Every packet must work after a context reset. Retained context from the same
+   quality loop may help, but current Markdown wins over memory. Do not infer
+   a review result or valid check from remembering an earlier candidate.
+   Use the broader purpose to understand this task's contribution; consult the
+   selected spec path/section for deeper rationale. Before a spec exists, use
+   the original request and treat any draft as unapproved. Background reading
+   never makes the current acceptance criteria optional or expands permission.
 2. Perform the printed action and its required checks. Write the requested
    result at the printed inbox path, using the supplied Markdown record shape.
    Results report facts and evidence; they do not choose the next stage.

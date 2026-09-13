@@ -4,7 +4,8 @@ The host skill invocation is deliberately thin: it starts or resumes ShipLoop,
 then the script packet owns the current action. A packet supplies the current
 phase/stage and action capability, the bounded context needed for that action,
 the result schema location, the check/history commands that are required now,
-and the exact **When done** command plus its explicit `done` alias. It does not paste the README, every prior
+and the exact **Call this when done** command (`complete` remains an alias).
+It does not paste the README, every prior
 pass, or an unbounded repository snapshot into the model window. Durable
 Markdown remains the complete current state.
 
@@ -15,6 +16,18 @@ halted, legacy, or uncertified-terminal packet omits both completion callbacks
 and prints `Recovery:` instead. That remains unfinished state; do not infer a
 closer from a prior packet.
 
+Each packet is sufficient after a reset; it need not insist that an intact
+conversation be cleared. Retained context within the same owning quality loop
+may help compare work, but current Markdown wins. “Quality loop” means any
+review-and-improve loop, not just the outer stage named `quality`. A known
+owning-loop breadcrumb locates the work; it is not another scheduler.
+
+The original output is a candidate until reviewed. Distinguish it from the
+first recorded assessment, latest candidate, and current checks. Historical
+assessments may explain prior decisions but cannot certify changed work or
+restore a repaired epoch's clean streak. Missing provenance is explicitly
+unavailable, never reconstructed from chat.
+
 ~~~text
 ShipLoop 0.9.0 | <phase> / <stage> | revision <n>
 Run: <absolute run directory>
@@ -22,8 +35,13 @@ State: <run>/state.md
 Journal: <run>/shiploop-improvements.md
 Action: <run-scoped action id>
 Stage: <phase> / <stage>
+You are here: <phase, selected task, owning loop and current action>
 Worktree: <repo or active worktree>
+Broader purpose: <grounded original outcome, not inferred new scope>
+Spec reference: <actual available file/section and bounded reader; status explicit>
 Current task: <active step / receipt / iteration when applicable>
+Why now: <how this assigned work contributes to the purpose and current gate>
+Quality baseline: <candidate and recorded assessment status; historical is not current proof>
 Objective: <the bounded outcome for this action>
 Until: <the recorded terminal predicate for this loop/action>
 Continue while: <what remains unfinished>
@@ -34,14 +52,26 @@ Result format: <result fields and linked protocol section>
 Result template: <the inbox template / required field shape>
 Write the result to: <absolute inbox path>
 <only relevant check/history command(s)>
-When done: shiploop complete --action <id> --result <path>
-Call this when done: shiploop done --action <id> --result <path>
+When done: exact callback only
+Call this when done: <resolved CLI> done --run-dir <run> --action <id> --result <path>
 ~~~
 
+This is an explanatory envelope, not a literal response or runnable template.
+The result template uses the accepted `shiploop-state` fence. Its exact write
+destination is the callback's `--result` path; do not substitute a product file.
+When several guidance pages are selected, the packet prints one absolute
+guidance directory and filenames/sections relative to that directory, not to
+the product worktree. This removes repeated paths without dropping readings.
 The packet points to the relevant approach, environment, spec, lifecycle, and
-plan records; it does not copy their bodies. Read only the sections required
-for the action. After cold context loss, use context section prompt first, then
-the current step or iteration. The active step's stored prompt and exact
+plan records; it does not copy their bodies. It connects this task with the
+broader system purpose and provides an actual file reference for deeper insight.
+Before an accepted spec exists, use the original request and distinguish any
+draft from an approved contract. Consult broader rationale when resolving a
+tradeoff; required acceptance criteria remain mandatory even when background
+reading is optional. The reference grants no new writer, permission, or scope.
+Read the packet's selected sections after context loss; consult its purpose
+reader when the broader rationale needs clarification. Do not infer a required
+reader that the packet has not made available. The active step's stored prompt and exact
 produces live in backchain/plan.md; its receipt preserves prior iteration facts.
 
 ## Action use
@@ -58,6 +88,14 @@ produces live in backchain/plan.md; its receipt preserves prior iteration facts.
 - The packet does not prove semantic correctness, test adequacy, publication,
   or user acceptance. It reports script-verified state and host-reported
   evidence separately.
+- Supporting context/history/check and plan-status responses identify their
+  relationship to the current action. A page, handoff status, or check PASS is
+  not a new assignment or overall completion. Context and history may record
+  read receipts; they do not advance the action. Keep page digests and
+  continuations intact and return through the printed current cursor.
+- Paused, damaged-state and terminal responses use only safely available
+  orientation. Do not load rejected evidence to fill a missing description,
+  repeat a completed external operation, or invent a callback while blocked.
 
 ## Stage-specific commands
 
@@ -90,8 +128,9 @@ text verbatim in its evidence-based body.
 
 ## Do not infer the old protocol
 
-There are no packet headings for a hidden parent loop, no full frozen-context
-echo, and no inferred closer. Do not run bare complete, complete-step, update,
+An explicit breadcrumb describes stored owning and nested loops, not a hidden
+host parent loop. There is no full frozen-context echo or inferred closer.
+Do not run bare complete, complete-step, update,
 start-step, clear-step, or inject-step; those are pre-0.9 interfaces. Do not
 call a transition complete because a chat response says it is done. Persist the
 requested result and execute the packet's exact command.

@@ -225,6 +225,8 @@ class MigrationPromptTests(unittest.TestCase):
                 self.assertIn("seek user direction", blocked.stderr)
                 self.assertIn("start a new scoped run", blocked.stderr)
                 self.assertIn("status --run-dir", blocked.stderr)
+                self.assertIn("safely available durable orientation", blocked.stderr)
+                self.assertNotIn("rehydrates the current assignment and purpose", blocked.stderr)
                 self.assertNotIn("next --run-dir", blocked.stderr)
                 self.assertEqual((run_dir / "state.md").read_bytes(), before)
 

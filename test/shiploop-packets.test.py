@@ -518,7 +518,7 @@ class PacketTests(unittest.TestCase):
             "Until:",
             "Continue while:",
             "Evidence required:",
-            "Fresh context: read selected Markdown",
+            "Reset-safe context: read selected Markdown",
             "Only scripts advance/count cycles.",
             "Bounded context:",
             "Result template",
@@ -683,7 +683,7 @@ class PacketTests(unittest.TestCase):
         self.assertIn("Copy full exact criteria from durable step context into the result", packet)
         self.assertIn("a truncated placeholder sample is not valid evidence", packet)
         rendered_template = packet.split("Result template", 1)[1].split(
-            "```json\n", 1
+            "```shiploop-state\n", 1
         )[1].split("\n```", 1)[0]
         template = json.loads(rendered_template)
         self.assertIn("done_evidence", template)
@@ -754,7 +754,7 @@ class PacketTests(unittest.TestCase):
         self.assertIn("Platform revalidation is required before this external operation.", packet)
         self.assertIn("development-validation", packet)
         rendered_template = packet.split("Result template", 1)[1].split(
-            "```json\n", 1
+            "```shiploop-state\n", 1
         )[1].split("\n```", 1)[0]
         template = json.loads(rendered_template)
         self.assertEqual(

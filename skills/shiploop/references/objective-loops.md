@@ -41,6 +41,15 @@ live under `objectives/` in the run directory. A cold host pages only the
 printed `objective` and `iteration` context sections; it does not reload older
 passes or rely on a remembered answer.
 
+Retained context within this same review-and-improve loop may help compare
+work; every action must still be recoverable after a reset. The original output
+is a candidate, not a quality verdict. Use the selected origin/assessment
+evidence to distinguish earlier reviews from the current candidate. A repaired
+epoch does not inherit current proof from remembered assessments.
+The broader-purpose/spec reference explains why this objective matters to the
+system; it is optional background unless selected as required evidence. It
+does not authorize additional product changes or remote effects.
+
 ## Loop contract
 
 The base stage writes one complete candidate before ShipLoop opens an objective

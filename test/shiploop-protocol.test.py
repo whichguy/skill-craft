@@ -17,6 +17,20 @@ CLI = SCRIPTS / "shiploop"
 
 
 class ProtocolTests(unittest.TestCase):
+    def assert_guidance_path(self, packet, guidance, reference):
+        """Resolve shared-directory guidance to the same concrete source file."""
+        candidate = Path(guidance.split("read only ", 1)[1].split("#", 1)[0])
+        if not candidate.is_absolute():
+            directory = next(line for line in packet.splitlines()
+                             if line.startswith("Guidance directory: "))
+            directory = directory.removeprefix("Guidance directory: ").removesuffix(
+                " (resolve the following filenames here)."
+            )
+            self.assertTrue(Path(directory).is_absolute())
+            candidate = Path(directory) / candidate
+        self.assertEqual(candidate, reference)
+        self.assertTrue(candidate.is_file())
+
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory(prefix="shiploop-protocol-")
         self.root = Path(self.tmp.name)
@@ -1070,7 +1084,7 @@ class ProtocolTests(unittest.TestCase):
                 if stage in expected:
                     self.assertEqual(len(guidance), 1)
                     self.assertLess(len(guidance[0]), 500)
-                    self.assertIn(str(reference), guidance[0])
+                    self.assert_guidance_path(packet, guidance[0], reference)
                     self.assertEqual(
                         set(re.findall(r"#([a-z0-9-]+)", guidance[0])),
                         set(expected[stage]),
@@ -1301,7 +1315,7 @@ schema or sidecar is needed.
                     self.assertTrue(
                         guidance[0].startswith("Behavior-model guidance: read only ")
                     )
-                    self.assertIn(str(reference), guidance[0])
+                    self.assert_guidance_path(packet, guidance[0], reference)
                     self.assertEqual(
                         set(re.findall(r"#([a-z0-9-]+)", guidance[0])),
                         set(expected[stage]),
@@ -1453,7 +1467,10 @@ This is not a semantic-completeness claim.
         reference = SCRIPTS.parent / "references/behavioral-requirements.md"
         self.assertIn("Action:", packet)
         self.assertIn("Behavior-model guidance: read only", packet)
-        self.assertIn(f"{reference}#discovery-and-research", packet)
+        guidance = next(line for line in packet.splitlines()
+                        if line.startswith("Behavior-model guidance: read only "))
+        self.assert_guidance_path(packet, guidance, reference)
+        self.assertIn("#discovery-and-research", guidance)
 
         context = self.cli(
             "context", "--section", "approach", "--offset", "0", "--limit", "4000"

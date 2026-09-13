@@ -32,6 +32,9 @@ for suite in \
   test/shiploop-delivery.test.py \
   test/shiploop-report.test.py \
   test/shiploop-packets.test.py \
+  test/shiploop-orientation.test.py \
+  test/shiploop-orientation-context.test.py \
+  test/shiploop-orientation-integration.test.py \
   test/shiploop-protocol.test.py \
   test/shiploop-history-pages.test.py \
   test/shiploop-merge-recovery.test.py \

@@ -644,7 +644,7 @@ class DiscoveryCliTests(unittest.TestCase):
         unrelated.mkdir()
         packet = self.cli("next", "--run-dir", str(self.run_dir), cwd=unrelated).stdout
         self.assertIn("local-only", packet)
-        self.assertIn("Platform discovery guide:", packet)
+        self.assertNotIn("Platform discovery guide:", packet)
 
     def test_inconsistent_selected_writer_route_is_rejected_without_state_advance(self) -> None:
         state = self.prepare_survey()

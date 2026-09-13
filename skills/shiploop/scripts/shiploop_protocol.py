@@ -2097,7 +2097,9 @@ def step_plan_current_summary(receipt):
     }
 
 
-def step_plan_start(core, root, state, rec, *, route, body, return_stage, writes):
+def step_plan_start(
+    core, root, state, rec, *, route, body, return_stage, writes, origin=None
+):
     """Create exactly one candidate/receipt pair for the initial or Improve gate."""
     if route == "initial":
         loop = step_planning.loop_id(state["run_id"], rec["id"], route)
@@ -2123,6 +2125,7 @@ def step_plan_start(core, root, state, rec, *, route, body, return_stage, writes
         return_stage=return_stage,
         body=body,
         context=context,
+        origin=origin,
     )
     rec["step_plan"] = {
         "loop_id": loop,
@@ -2669,6 +2672,14 @@ def run_step_plan_verify(core, root, state, args):
         f"Step-plan checks {'PASS' if planning_passed else 'FAIL'}: "
         f"{root / 'checks' / (args.action + '.md')}"
     )
+    for line in supporting_response_lines(
+        core,
+        root,
+        state,
+        response="step-plan check result",
+        scope="the current candidate-bound step-plan check",
+    ):
+        print(line)
     if not planning_passed:
         print(
             "The current step-plan action remains unfinished. Restore any changed plan or worktree bytes, repair failures, and rerun planning-verify with the same action ID."
@@ -2795,6 +2806,14 @@ def run_planning_verify(core, root, state, args):
         f"Planning checks {'PASS' if planning_passed else 'FAIL'}: "
         f"{root / 'checks' / (args.action + '.md')}"
     )
+    for line in supporting_response_lines(
+        core,
+        root,
+        state,
+        response="planning check result",
+        scope="the current candidate-bound planning check",
+    ):
+        print(line)
     if not planning_passed:
         print(
             "The current planning action remains unfinished. Read the check record and logs, restore any changed planning artifact, repair failures, and rerun planning-verify with the same action ID."
@@ -3254,6 +3273,358 @@ def planning_start_next_iteration(core, root, state, kind, receipt):
     action(state, "validate-spec", f"{kind}-review")
 
 
+def _first_assessment_is_recordable(receipt, receipt_api):
+    """Allow a first-review locator only for a demonstrably fresh loop.
+
+    Legacy receipts intentionally omit provenance.  A later review of one of
+    those records must not be relabeled as the historical loop's first review.
+    The existing receipt cursor is a bounded proof: no earlier archived pass,
+    no repair epoch, and the initial candidate still current.
+    """
+    origin = receipt_api.origin(receipt)
+    if origin is None or receipt_api.first_assessment(receipt) is not None:
+        return False
+    return (
+        origin["candidate_sha256"] == receipt.get("candidate_sha256")
+        and receipt.get("epoch") == 1
+        and receipt.get("iteration", receipt.get("pass", 1)) == 1
+        and receipt.get("completed_iterations", receipt.get("completed_passes", []))
+        == []
+        and receipt.get("abandoned_passes", []) == []
+    )
+
+
+def _orientation_purpose(root, state):
+    """Project only the durable purpose locator; never reread a source body."""
+    text = state.get("prompt")
+    if not isinstance(text, str) or not text.strip():
+        return {
+            "text": None,
+            "source": "unavailable",
+            "path": None,
+            "section": None,
+            "reader_section": None,
+        }
+    path = safe_run_path(root, "prompt.md")
+    return {
+        "text": text.strip(),
+        "source": "prompt",
+        "path": "prompt.md" if path.is_file() else None,
+        "section": None,
+        "reader_section": "prompt",
+    }
+
+
+def _accepted_result_locator(root, state, value, label):
+    """Return a compact accepted-result locator after digest-map validation."""
+    action_id = value["action_id"]
+    need(
+        isinstance(action_id, str)
+        and re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]{0,240}", action_id),
+        f"{label} action is invalid",
+    )
+    expected = value["result_sha256"]
+    completed = state.get("completed_actions")
+    need(
+        isinstance(completed, dict) and completed.get(action_id) == expected,
+        f"{label} accepted result digest mismatch",
+    )
+    relative = f"results/{action_id}.md"
+    path = safe_run_path(root, relative)
+    need(path.is_file(), f"{label} accepted result is missing")
+    try:
+        result = store.read_record(path)
+    except (store.StorageError, OSError) as exc:
+        raise ProtocolError(f"{label} accepted result is unreadable: {exc}") from exc
+    need(
+        digest(result) == expected,
+        f"{label} accepted result digest mismatch",
+    )
+    return {
+        "action_id": action_id,
+        "path": relative,
+        "digest": expected,
+        "candidate_sha256": value["candidate_sha256"],
+    }
+
+
+def _quality_orientation(root, state, receipt, receipt_api, current):
+    """Project origin, first review, and current candidate without body copies."""
+    current_candidate = dict(current)
+    current_candidate["digest"] = receipt["candidate_sha256"]
+    origin = receipt_api.origin(receipt)
+    if origin is None:
+        return {
+            "continuity": "same-loop",
+            "initial_candidate": None,
+            "assessment": {
+                "status": "unavailable",
+                "action_id": None,
+                "path": None,
+                "digest": None,
+                "summary": None,
+                "current_candidate_matches": False,
+            },
+            "current_candidate": current_candidate,
+            "reason": (
+                "legacy receipt has no origin-action provenance; do not infer an "
+                "initial candidate or first assessment from later records."
+            ),
+        }
+    initial = _accepted_result_locator(root, state, origin, "origin")
+    first = receipt_api.first_assessment(receipt)
+    if first is None:
+        fresh = _first_assessment_is_recordable(receipt, receipt_api)
+        return {
+            "continuity": "same-loop",
+            "initial_candidate": initial,
+            "assessment": {
+                "status": "not-yet-assessed" if fresh else "unavailable",
+                "action_id": None,
+                "path": None,
+                "digest": None,
+                "summary": None,
+                "current_candidate_matches": False,
+            },
+            "current_candidate": current_candidate,
+            "reason": (
+                "No first recorded assessment is bound to the initial candidate."
+                if fresh
+                else "First-assessment provenance is unavailable after a prior pass, repair, or candidate change; do not relabel a later review as first."
+            ),
+        }
+    need(
+        first["candidate_sha256"] == origin["candidate_sha256"],
+        "first assessment does not bind the origin candidate",
+    )
+    assessment = _accepted_result_locator(root, state, first, "first assessment")
+    current_matches = (
+        first["candidate_sha256"] == receipt["candidate_sha256"]
+        and first["epoch"] == receipt["epoch"]
+    )
+    assessment.update(
+        epoch=first["epoch"],
+        summary=(
+            "First recorded assessment is historical evidence; read its accepted "
+            "result record and reassess changed candidate bytes."
+        ),
+        current_candidate_matches=current_matches,
+    )
+    return {
+        "continuity": "same-loop",
+        "initial_candidate": initial,
+        "assessment": dict(assessment, status="recorded"),
+        "current_candidate": current_candidate,
+        "reason": (
+            "The recorded assessment is historical and does not approve the current "
+            "candidate."
+            if not current_matches
+            else "The first recorded assessment is bound to the current candidate."
+        ),
+    }
+
+
+_PRODUCT_ORIENTATION_STAGES = frozenset(
+    (
+        "implement",
+        "review",
+        "improve-plan",
+        "improve-apply",
+        "verify",
+        "carry-forward",
+        "commit",
+        "final-verify",
+        "post-inner",
+        "merge",
+    )
+)
+
+
+def packet_orientation(root, state):
+    """Return a read-only, fail-closed orientation projection for packets.
+
+    Scripts own transitions.  This mapping is intentionally only a compact
+    locator set for a fresh-context prompt: it contains no candidate, review,
+    result, or transcript bodies and it never writes state.
+    """
+    projection = {
+        "purpose": _orientation_purpose(root, state),
+        "quality": None,
+        "supporting": None,
+    }
+    stage = state.get("stage")
+    if objectives.is_objective_stage(stage):
+        _, receipt = objective_receipt(root, state)
+        projection["quality"] = _quality_orientation(
+            root,
+            state,
+            receipt,
+            objectives,
+            {"path": receipt["candidate_path"]},
+        )
+        return projection
+    if (
+        planning.is_current(state)
+        and isinstance(stage, str)
+        and planning.is_planning_stage(stage)
+        and stage not in ("research", "behavior", "spec")
+    ):
+        kind, receipt = planning_receipt(root, state)
+        projection["quality"] = _quality_orientation(
+            root,
+            state,
+            receipt,
+            planning,
+            {
+                "path": None,
+                "paths": list(planning.candidate_names(kind)),
+                "kind": "candidate-set",
+            },
+        )
+        return projection
+    if state.get("active_step") and is_step_plan_stage(stage):
+        rec = active(root, state)
+        # Allocation enters the initial draft stage before that draft creates
+        # its receipt.  Its absence is therefore intentional only here.  Do
+        # not weaken receipt validation for any later, bound step-plan stage
+        # (or for a malformed initial binding).
+        if stage == "step-plan" and "step_plan" not in rec:
+            return projection
+        _, receipt = step_plan_receipt(root, rec)
+        projection["quality"] = _quality_orientation(
+            root,
+            state,
+            receipt,
+            step_planning,
+            {"path": receipt["candidate_path"]},
+        )
+        return projection
+    if state.get("active_step") and stage in _PRODUCT_ORIENTATION_STAGES:
+        rec = active(root, state)
+        initial = implementation_test_context(root, state, rec)
+        if initial is not None:
+            projection["quality"] = {
+                "continuity": "same-loop",
+                "initial_candidate": {
+                    "kind": "implementation-evidence",
+                    "action_id": initial["action"],
+                    "path": initial["source"],
+                    "digest": state["completed_actions"][initial["action"]],
+                    "candidate_sha256": None,
+                },
+                "assessment": {
+                    "status": "unavailable",
+                    "action_id": None,
+                    "path": None,
+                    "digest": None,
+                    "summary": None,
+                    "current_candidate_matches": False,
+                },
+                "current_candidate": None,
+                "reason": (
+                    "Initial implementation evidence is historical host-reported "
+                    "test context, not an approval or current test result."
+                ),
+            }
+    return projection
+
+
+def quality_baseline_context(root, state):
+    """Read only origin/first-review records already bound by the active loop.
+
+    This is deliberately not a generic ``results`` reader.  The locators come
+    from ``packet_orientation`` after accepted-result digest validation, so a
+    cold host can page the two selected historical records without supplying
+    an arbitrary action ID or path.
+    """
+    quality = packet_orientation(root, state).get("quality")
+    need(isinstance(quality, dict), "no bound quality baseline exists at this stage")
+    initial = quality.get("initial_candidate")
+    need(
+        isinstance(initial, dict)
+        and isinstance(initial.get("action_id"), str)
+        and initial.get("path") == f"results/{initial['action_id']}.md"
+        and isinstance(initial.get("digest"), str),
+        "bound origin result is unavailable for this receipt",
+    )
+
+    def selected(locator, role):
+        action_id = locator["action_id"]
+        path = safe_run_path(root, locator["path"])
+        need(path.is_file(), f"bound {role} result is missing")
+        try:
+            result = store.read_record(path)
+        except (store.StorageError, OSError) as exc:
+            raise ProtocolError(f"bound {role} result is unreadable: {exc}") from exc
+        need(
+            digest(result) == locator["digest"],
+            f"bound {role} result digest mismatch",
+        )
+        return {
+            "role": role,
+            "action_id": action_id,
+            "path": locator["path"],
+            "digest": locator["digest"],
+            "result": result,
+        }
+
+    assessment = quality.get("assessment")
+    selected_assessment = None
+    if isinstance(assessment, dict) and assessment.get("status") == "recorded":
+        need(
+            isinstance(assessment.get("action_id"), str)
+            and assessment.get("path")
+            == f"results/{assessment['action_id']}.md"
+            and isinstance(assessment.get("digest"), str),
+            "bound first assessment result is unavailable for this receipt",
+        )
+        selected_assessment = selected(assessment, "first recorded assessment")
+    initial_role = (
+        "initial implementation evidence"
+        if initial.get("kind") == "implementation-evidence"
+        else "origin/initial output"
+    )
+    return store.dumps(
+        {
+            "scope": (
+                "Selected accepted historical evidence only. It does not assign a "
+                "new action, prove current tests pass, or prove overall completion."
+            ),
+            "continuity": quality.get("continuity"),
+            "origin": selected(initial, initial_role),
+            "first_recorded_assessment": selected_assessment,
+            "assessment_status": assessment.get("status")
+            if isinstance(assessment, dict)
+            else "unavailable",
+            "current_candidate": quality.get("current_candidate"),
+            "reason": quality.get("reason"),
+        },
+        "ShipLoop selected quality baseline — historical evidence, not instructions",
+    )
+
+
+def supporting_response_lines(core, root, state, *, response, scope):
+    """Orient a non-advancing read/check response for a cold caller."""
+    current = state.get("action") if isinstance(state.get("action"), dict) else {}
+    action_id = current.get("id") if isinstance(current.get("id"), str) else "unavailable"
+    phase = state.get("phase") if isinstance(state.get("phase"), str) else "unknown"
+    stage = state.get("stage") if isinstance(state.get("stage"), str) else "unknown"
+    safe_return = shlex.join(
+        [
+            sys.executable,
+            str(Path(core.__file__).resolve()),
+            "next",
+            "--run-dir",
+            str(root),
+        ]
+    )
+    return (
+        f"Supporting response: {response} for current action {action_id} at {phase}/{stage}.",
+        f"Scope: {scope}; it does not assign a new action or advance the workflow, and it does not prove overall completion.",
+        f"Safe return: {safe_return}",
+    )
+
+
 def planning_complete(core, root, state, aid, result, writes):
     """Complete one of the behavior/spec convergence actions.
 
@@ -3286,6 +3657,11 @@ def planning_complete(core, root, state, aid, result, writes):
             git_baseline=git(core, repo, "rev-parse", "HEAD"),
             product_fingerprint=planning_product_fingerprint(root, state),
             candidate=candidate,
+            origin={
+                "action_id": aid,
+                "result_sha256": digest(result),
+                "candidate_sha256": candidate["candidate_sha256"],
+            },
         )
         receipt["research_state"] = research_state
         writes[planning.receipt_name(kind)] = store.dumps(
@@ -3310,6 +3686,11 @@ def planning_complete(core, root, state, aid, result, writes):
             git_baseline=git(core, repo, "rev-parse", "HEAD"),
             product_fingerprint=planning_product_fingerprint(root, state),
             candidate=candidate,
+            origin={
+                "action_id": aid,
+                "result_sha256": digest(result),
+                "candidate_sha256": candidate["candidate_sha256"],
+            },
         )
         receipt["research_binding"] = research_binding
         writes[planning.receipt_name(kind)] = store.dumps(
@@ -3355,6 +3736,11 @@ def planning_complete(core, root, state, aid, result, writes):
             git_baseline=git(core, repo, "rev-parse", "HEAD"),
             product_fingerprint=planning_product_fingerprint(root, state),
             candidate=candidate,
+            origin={
+                "action_id": aid,
+                "result_sha256": digest(result),
+                "candidate_sha256": candidate["candidate_sha256"],
+            },
         )
         receipt["research_binding"] = research_binding
         writes[planning.receipt_name(kind)] = store.dumps(
@@ -3378,6 +3764,16 @@ def planning_complete(core, root, state, aid, result, writes):
         text_field(result, "learnings")
         iteration["review_candidate_sha256"] = receipt["candidate_sha256"]
         iteration["review"] = result
+        if _first_assessment_is_recordable(receipt, planning):
+            planning.record_first_assessment(
+                receipt,
+                {
+                    "action_id": aid,
+                    "result_sha256": digest(result),
+                    "candidate_sha256": receipt["candidate_sha256"],
+                    "epoch": receipt["epoch"],
+                },
+            )
         planning.apply_review(receipt, findings)
         # A material row can be carried forward from an earlier pass and
         # resolved here without appearing again in this review payload.  Keep
@@ -4112,6 +4508,14 @@ def run_objective_verify(core, root, state, args):
         },
     )
     print(f"Objective checks {'PASS' if passed else 'FAIL'}: {root / 'checks' / (args.action + '.md')}")
+    for line in supporting_response_lines(
+        core,
+        root,
+        state,
+        response="objective check result",
+        scope="the current candidate-bound objective check",
+    ):
+        print(line)
     return passed
 
 
@@ -4134,7 +4538,16 @@ def objective_start(core, root, state, stage, result, writes):
     candidate_body = store.dumps(candidate, f"ShipLoop {kind} objective candidate")
     context = objective_context_identity(core, root, state)
     receipt = objectives.new_receipt(
-        loop=loop, kind=kind, base_stage=stage, candidate_body=candidate_body, context=context
+        loop=loop,
+        kind=kind,
+        base_stage=stage,
+        candidate_body=candidate_body,
+        context=context,
+        origin={
+            "action_id": state["action"]["id"],
+            "result_sha256": digest(result),
+            "candidate_sha256": objectives.candidate_identity(candidate_body),
+        },
     )
     prepare_revalidation = (
         bind_prepare_objective_revalidation(core, root, state, result)
@@ -4204,6 +4617,16 @@ def objective_complete(core, root, state, aid, result, writes):
             "test_review": text_field(result, "test_review"),
             "learnings": text_field(result, "learnings"),
         }
+        if _first_assessment_is_recordable(receipt, objectives):
+            objectives.record_first_assessment(
+                receipt,
+                {
+                    "action_id": aid,
+                    "result_sha256": digest(result),
+                    "candidate_sha256": receipt["candidate_sha256"],
+                    "epoch": receipt["epoch"],
+                },
+            )
         objectives.apply_review(receipt, findings)
         current["review_material"] = any(row["severity"] == "material" for row in findings)
         current["open_material_ids"] = objectives.open_material_ids(receipt)
@@ -4515,6 +4938,11 @@ def step_plan_complete(core, root, state, aid, result, writes):
             body=body,
             return_stage="implement",
             writes=writes,
+            origin={
+                "action_id": aid,
+                "result_sha256": digest(result),
+                "candidate_sha256": step_planning.candidate_identity(body),
+            },
         )
     elif stage == "improve-plan":
         body = text_field(result, "body")
@@ -4529,6 +4957,11 @@ def step_plan_complete(core, root, state, aid, result, writes):
             body=body,
             return_stage="improve-apply",
             writes=writes,
+            origin={
+                "action_id": aid,
+                "result_sha256": digest(result),
+                "candidate_sha256": step_planning.candidate_identity(body),
+            },
         )
     else:
         loop, receipt = step_plan_receipt(root, rec)
@@ -4582,6 +5015,16 @@ def step_plan_complete(core, root, state, aid, result, writes):
                 "test_review": test_review,
                 "learnings": learnings,
             }
+            if _first_assessment_is_recordable(receipt, step_planning):
+                step_planning.record_first_assessment(
+                    receipt,
+                    {
+                        "action_id": aid,
+                        "result_sha256": digest(result),
+                        "candidate_sha256": receipt["candidate_sha256"],
+                        "epoch": receipt["epoch"],
+                    },
+                )
             current["review_material"] = any(
                 finding["severity"] == "material" for finding in findings
             )
@@ -6299,6 +6742,7 @@ def main(core, argv=None):
                     "preparation",
                     "coverage",
                     "quality",
+                    "quality-baseline",
                     "delivery",
                     "handoff",
                     "artifacts",
@@ -6603,6 +7047,14 @@ def main(core, argv=None):
                         "Step plan finalized and valid at handoff: "
                         f"{receipt['loop_id']} | {certificate['final_check_action']}"
                     )
+                    for line in supporting_response_lines(
+                        core,
+                        root,
+                        state,
+                        response="step-plan handoff status",
+                        scope="the requested finalized step-plan handoff",
+                    ):
+                        print(line)
                     return 0
                 elif args.command == "context":
                     need(
@@ -6644,6 +7096,8 @@ def main(core, argv=None):
                             },
                             "Current platform revalidation requirements — not observations",
                         )
+                    elif args.section == "quality-baseline":
+                        body = quality_baseline_context(root, state)
                     elif args.section == "objective":
                         binding, objective_receipt_value = objective_receipt(root, state)
                         candidate_path = safe_run_path(
@@ -6836,6 +7290,14 @@ def main(core, argv=None):
                         print(
                             f"Continue: --offset {end} --limit {args.limit} --digest {checksum}"
                         )
+                    for line in supporting_response_lines(
+                        core,
+                        root,
+                        state,
+                        response=f"context section {args.section}",
+                        scope="the requested durable reference data",
+                    ):
+                        print(line)
                     return 0
                 elif args.command == "complete":
                     complete(
@@ -6925,6 +7387,14 @@ def main(core, argv=None):
                         print(
                             f"Checks {'PASS' if results['all_passed'] else 'FAIL'}: {root / 'checks' / (args.action + '.md')}"
                         )
+                        for line in supporting_response_lines(
+                            core,
+                            root,
+                            state,
+                            response="check result",
+                            scope="the current action's submitted check manifest",
+                        ):
+                            print(line)
                         if not results["all_passed"]:
                             print(
                                 "The current action remains unfinished. Read the check record and logs, repair failures, and rerun verify with the same action ID; do not complete or skip the tests."
@@ -6935,6 +7405,17 @@ def main(core, argv=None):
                             1 <= args.limit <= 20 and args.skip >= 0,
                             "history limit 1..20; skip >= 0",
                         )
+
+                        def history_supporting_response():
+                            for line in supporting_response_lines(
+                                core,
+                                root,
+                                state,
+                                response="Git history evidence",
+                                scope="the requested Git-history page",
+                            ):
+                                print(line)
+
                         bounded = bounded_history_requested(args)
                         if state["stage"] == "objective-review":
                             binding, rec = objective_receipt(root, state)
@@ -6996,6 +7477,7 @@ def main(core, argv=None):
                                     print(
                                         "Full body coverage is now recorded in the current Markdown receipt."
                                     )
+                                history_supporting_response()
                                 return 0
                             if args.full:
                                 try:
@@ -7036,6 +7518,7 @@ def main(core, argv=None):
                                 print(
                                     f"Index archived at {root / index_path}; it does not satisfy review. Use --limit 1 --skip N --full --max-chars 4000 and copy each continuation for every required current body."
                                 )
+                            history_supporting_response()
                             return 0
                         if state["stage"] == "review":
                             rec = active(root, state)
@@ -7110,6 +7593,7 @@ def main(core, argv=None):
                                 print(
                                     "Full body coverage is now recorded in the current Markdown receipt."
                                 )
+                            history_supporting_response()
                             return 0
                         if args.full:
                             record_full_history_page(
@@ -7145,6 +7629,7 @@ def main(core, argv=None):
                             print(
                                 f"Index archived at {root / index_path}; use --limit 1 --skip N --full --max-chars 4000 and copy each continuation to retrieve one current body at a time. Follow relevant learning references."
                             )
+                        history_supporting_response()
                         return 0
                     else:
                         entry = store.read_record(Path(args.result))
@@ -7443,5 +7928,17 @@ def main(core, argv=None):
                 "python3", str(core.PACKAGE_ROOT / "scripts" / "shiploop"),
                 recovery_command, "--run-dir", str(root),
             ])
+            print(
+                "Request failure: no in-memory result, candidate, or rejected artifact is trusted.",
+                file=sys.stderr,
+            )
+            print(
+                "Durable cursor recovery: the printed command rehydrates only safely available durable orientation from authoritative Markdown. Do not infer a next action from this error; follow the recovery packet.",
+                file=sys.stderr,
+            )
+            print(
+                "Broader purpose: unavailable in this failure response; the recovery packet reports what can be recovered and what remains unavailable.",
+                file=sys.stderr,
+            )
             print(f"Recover the current durable action: {recovery}", file=sys.stderr)
         return 2

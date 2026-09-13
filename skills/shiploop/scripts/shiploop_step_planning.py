@@ -135,6 +135,55 @@ def _sha(value: Any, label: str) -> str:
     return value
 
 
+def _origin(value: Any) -> dict[str, str]:
+    """Normalize the accepted result that created this step-plan candidate."""
+    need(isinstance(value, Mapping), "step-plan origin must be an object")
+    need(
+        set(value) == {"action_id", "result_sha256", "candidate_sha256"},
+        "step-plan origin keys do not match the contract",
+    )
+    return {
+        "action_id": _id(value.get("action_id"), "step-plan origin action ID"),
+        "result_sha256": _sha(
+            value.get("result_sha256"), "step-plan origin result digest"
+        ),
+        "candidate_sha256": _sha(
+            value.get("candidate_sha256"), "step-plan origin candidate digest"
+        ),
+    }
+
+
+def _first_assessment(value: Any) -> dict[str, Any]:
+    need(isinstance(value, Mapping), "step-plan first assessment must be an object")
+    need(
+        set(value) == {"action_id", "result_sha256", "candidate_sha256", "epoch"},
+        "step-plan first assessment keys do not match the contract",
+    )
+    normalized = _origin(
+        {
+            key: value.get(key)
+            for key in ("action_id", "result_sha256", "candidate_sha256")
+        }
+    )
+    epoch = value.get("epoch")
+    need(type(epoch) is int and epoch >= 1, "step-plan first assessment epoch is invalid")
+    return dict(normalized, epoch=epoch)
+
+
+def origin(receipt: Mapping[str, Any]) -> dict[str, str] | None:
+    """Return optional immutable provenance, preserving legacy absence."""
+    if "origin" not in receipt:
+        return None
+    return _origin(receipt["origin"])
+
+
+def first_assessment(receipt: Mapping[str, Any]) -> dict[str, Any] | None:
+    """Return the first review locator without scanning historic pass archives."""
+    if "first_assessment" not in receipt:
+        return None
+    return _first_assessment(receipt["first_assessment"])
+
+
 def loop_id(run_id: str, step_id: str, route: str, iteration: str | None = None) -> str:
     """Return a durable loop ID distinct for an initial or Improve iteration."""
     _id(run_id, "run ID")
@@ -287,14 +336,24 @@ def context_sha256(value: Any) -> str:
     return sha256_value(validate_context(value))
 
 
-def identity(*, candidate_sha256: str, ledger_sha256_value: str, context_sha256_value: str) -> str:
-    return sha256_value(
-        {
-            "candidate_sha256": _sha(candidate_sha256, "step-plan candidate digest"),
-            "ledger_sha256": _sha(ledger_sha256_value, "step-plan ledger digest"),
-            "context_sha256": _sha(context_sha256_value, "step-plan context digest"),
-        }
-    )
+def identity(
+    *,
+    candidate_sha256: str,
+    ledger_sha256_value: str,
+    context_sha256_value: str,
+    origin_value: Mapping[str, Any] | None = None,
+    first_assessment_value: Mapping[str, Any] | None = None,
+) -> str:
+    fields: dict[str, Any] = {
+        "candidate_sha256": _sha(candidate_sha256, "step-plan candidate digest"),
+        "ledger_sha256": _sha(ledger_sha256_value, "step-plan ledger digest"),
+        "context_sha256": _sha(context_sha256_value, "step-plan context digest"),
+    }
+    if origin_value is not None:
+        fields["origin"] = _origin(origin_value)
+    if first_assessment_value is not None:
+        fields["first_assessment"] = _first_assessment(first_assessment_value)
+    return sha256_value(fields)
 
 
 def _pass(
@@ -336,6 +395,7 @@ def new_receipt(
     return_stage: str,
     body: str,
     context: Mapping[str, str],
+    origin: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     loop = _id(loop, "step-plan loop ID")
     step_id = _id(step_id, "step ID")
@@ -365,10 +425,18 @@ def new_receipt(
         "completed_passes": [],
         "abandoned_passes": [],
     }
+    if origin is not None:
+        normalized_origin = _origin(origin)
+        need(
+            normalized_origin["candidate_sha256"] == candidate,
+            "step-plan origin does not match the initial candidate",
+        )
+        receipt["origin"] = normalized_origin
     receipt["identity_sha256"] = identity(
         candidate_sha256=candidate,
         ledger_sha256_value=ledger,
         context_sha256_value=context_digest,
+        origin_value=receipt.get("origin"),
     )
     receipt["current_pass"] = _pass(
         loop=loop,
@@ -379,6 +447,7 @@ def new_receipt(
         context_sha256_value=context_digest,
         context=normalized_context,
     )
+    _sync_identity(receipt)
     return receipt
 
 
@@ -411,6 +480,8 @@ def _assert_pass(value: Any, receipt: Mapping[str, Any], *, completed: bool = Fa
         candidate_sha256=value["candidate_sha256"],
         ledger_sha256_value=value["ledger_sha256"],
         context_sha256_value=value["context_sha256"],
+        origin_value=origin(receipt),
+        first_assessment_value=first_assessment(receipt),
     )
     need(value["identity_sha256"] == expected_identity, "step-plan pass identity mismatch")
     if completed:
@@ -442,9 +513,22 @@ def assert_receipt(root: Path, value: Any, *, loop: str | None = None) -> dict[s
         candidate_identity(body) == _sha(value.get("candidate_sha256"), "step-plan candidate digest"),
         "step-plan candidate changed outside the revise action",
     )
+    need(type(value.get("epoch")) is int and value["epoch"] >= 1, "step-plan epoch is invalid")
     findings = normal_findings(value.get("findings"))
     ledger = ledger_sha256(findings)
     need(value.get("ledger_sha256") == ledger, "step-plan finding ledger digest mismatch")
+    initial = origin(value)
+    first = first_assessment(value)
+    if first is not None:
+        need(initial is not None, "step-plan first assessment requires origin provenance")
+        need(
+            first["candidate_sha256"] == initial["candidate_sha256"],
+            "step-plan first assessment does not bind the origin candidate",
+        )
+        need(
+            first["epoch"] <= value.get("epoch", 0),
+            "step-plan first assessment cannot be from a future epoch",
+        )
     context = validate_context(value.get("context"))
     context_digest = context_sha256(context)
     need(value.get("context_sha256") == context_digest, "step-plan context digest mismatch")
@@ -452,9 +536,10 @@ def assert_receipt(root: Path, value: Any, *, loop: str | None = None) -> dict[s
         candidate_sha256=value["candidate_sha256"],
         ledger_sha256_value=ledger,
         context_sha256_value=context_digest,
+        origin_value=origin(value),
+        first_assessment_value=first,
     )
     need(value.get("identity_sha256") == expected_identity, "step-plan receipt identity mismatch")
-    need(isinstance(value.get("epoch"), int) and value["epoch"] >= 1, "step-plan epoch is invalid")
     need(isinstance(value.get("pass"), int) and value["pass"] >= 1, "step-plan pass is invalid")
     current = _assert_pass(value.get("current_pass"), value)
     for key in ("candidate_sha256", "ledger_sha256", "context_sha256", "identity_sha256"):
@@ -542,6 +627,8 @@ def _sync_identity(receipt: dict[str, Any]) -> None:
         candidate_sha256=receipt["candidate_sha256"],
         ledger_sha256_value=receipt["ledger_sha256"],
         context_sha256_value=receipt["context_sha256"],
+        origin_value=origin(receipt),
+        first_assessment_value=first_assessment(receipt),
     )
     current = receipt.get("current_pass")
     if isinstance(current, dict):
@@ -551,6 +638,32 @@ def _sync_identity(receipt: dict[str, Any]) -> None:
             context_sha256=receipt["context_sha256"],
             identity_sha256=receipt["identity_sha256"],
         )
+
+
+def record_first_assessment(receipt: dict[str, Any], value: Any) -> dict[str, Any]:
+    """Bind the first accepted review without searching prior pass archives."""
+    normalized = _first_assessment(value)
+    initial = origin(receipt)
+    need(initial is not None, "step-plan first assessment requires origin provenance")
+    need(
+        normalized["candidate_sha256"] == receipt.get("candidate_sha256"),
+        "step-plan first assessment is not bound to the reviewed candidate",
+    )
+    need(
+        normalized["candidate_sha256"] == initial["candidate_sha256"],
+        "step-plan first assessment is not bound to the origin candidate",
+    )
+    need(
+        normalized["epoch"] == receipt.get("epoch"),
+        "step-plan first assessment is not from the current epoch",
+    )
+    existing = first_assessment(receipt)
+    if existing is not None:
+        need(existing == normalized, "step-plan first assessment cannot be replaced")
+        return existing
+    receipt["first_assessment"] = normalized
+    _sync_identity(receipt)
+    return normalized
 
 
 def apply_review(receipt: dict[str, Any], value: Any) -> list[dict[str, str]]:
@@ -843,6 +956,7 @@ def start_next_pass(receipt: dict[str, Any], context: Mapping[str, str]) -> None
         context_sha256_value=receipt["context_sha256"],
         context=normalized_context,
     )
+    _sync_identity(receipt)
 
 
 def rebind_after_repair(receipt: dict[str, Any], context: Mapping[str, str]) -> None:
@@ -861,6 +975,7 @@ def rebind_after_repair(receipt: dict[str, Any], context: Mapping[str, str]) -> 
         context_sha256_value=receipt["context_sha256"],
         context=normalized_context,
     )
+    _sync_identity(receipt)
 
 
 def current_epoch_passes(receipt: Mapping[str, Any]) -> list[dict[str, Any]]:

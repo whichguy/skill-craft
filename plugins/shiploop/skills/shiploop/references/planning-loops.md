@@ -45,6 +45,14 @@ passes, not a host `done` claim:
   plan, changes, checks and distinct primary learning commit;
 - final checks are fresh for the unchanged candidate and matching audit history.
 
+The packet also explains the broader system purpose, how this planning task
+supports it, and which original-request/spec source provides deeper rationale.
+Before spec finalization, distinguish the current draft from an approved
+contract. Same-loop conversation may help comparison, but every packet must
+work after a reset and current Markdown remains authoritative. An initial
+candidate has no recorded quality assessment until its first accepted review;
+historical reviews do not certify a changed candidate.
+
 A material finding, material application or repair resets the streak. Material
 means changing required behavior, a transition/guard/invariant, an edge-case
 outcome, acceptance/test adequacy, feasibility, or meaning—not the size of the

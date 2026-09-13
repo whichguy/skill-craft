@@ -992,6 +992,24 @@ TC-01 validates acceptance; TC-02 validates rejection and repetition.
         self.assertTrue((self.run_dir / "lifecycle.md").is_file())
         for kind in ("research", "behavior", "spec"):
             receipt = self.planning(kind)
+            # These bindings must come through actual draft/review callbacks,
+            # not only the pure receipt constructors exercised by unit tests.
+            origin = receipt["origin"]
+            first_review = receipt["first_assessment"]
+            for locator in (origin, first_review):
+                self.assertEqual(
+                    self.state()["completed_actions"][locator["action_id"]],
+                    locator["result_sha256"],
+                )
+            initial_result = store.read_record(self.run_dir / "results" / f"{origin['action_id']}.md")
+            review_result = store.read_record(self.run_dir / "results" / f"{first_review['action_id']}.md")
+            self.assertTrue(initial_result["summary"].startswith("The initial"))
+            self.assertIn(
+                {"research": "R-T-01", "behavior": "B-M-01", "spec": "S-T-01"}[kind],
+                review_result["summary"],
+            )
+            self.assertEqual(first_review["candidate_sha256"], origin["candidate_sha256"])
+            self.assertEqual(first_review["epoch"], 1)
             self.assertEqual(receipt["version"], 2)
             self.assertEqual(receipt["kind"], kind)
             self.assertTrue(receipt["candidate_sha256"])
@@ -1008,6 +1026,10 @@ TC-01 validates acceptance; TC-02 validates rejection and repetition.
         self.assertTrue(state["research_as_of"])
         self.assertTrue(self.planning("behavior")["research_binding"])
         self.assertTrue(self.planning("spec")["research_binding"])
+        packet = self.cli("next").stdout
+        self.assertIn(str(self.run_dir / "prompt.md"), packet)
+        self.assertIn(str(self.run_dir / "spec.md"), packet)
+        self.assertIn("--section spec", packet)
 
     def test_research_requires_typed_sources_before_entering_its_loop(self) -> None:
         self.bootstrap_to_research()

@@ -440,6 +440,12 @@ broader-plan direction.
             label="initial-step-plan-microplan-draft",
         )
         review_action = self.action_id()
+        origin = self.step_plan_receipt("S1")["origin"]
+        self.assertEqual(origin["action_id"], initial_action)
+        self.assertEqual(origin["result_sha256"], self.state()["completed_actions"][initial_action])
+        baseline = self.cli("context", "--section", "quality-baseline", "--limit", "8000").stdout
+        self.assertIn("The initial plan includes a local work order", baseline)
+        self.assertIn("not-yet-assessed", baseline)
         initial_draft_path = Path(initial_draft)
         self.assertTrue(initial_draft_path.is_file())
         initial_draft_path.unlink()
@@ -507,6 +513,11 @@ broader-plan direction.
             "S1", material_first=True, staged_product_path=staged
         )
         self.assertIsNotNone(third)
+        first_assessment = receipt["first_assessment"]
+        self.assertEqual(first_assessment["action_id"], review_action)
+        self.assertEqual(first_assessment["result_sha256"], self.state()["completed_actions"][review_action])
+        self.assertEqual(first_assessment["candidate_sha256"], origin["candidate_sha256"])
+        self.assertEqual(first_assessment["epoch"], 1)
         self.assertEqual(
             [row["outcome"] for row in receipt["completed_passes"]],
             ["material", "trivial", "trivial"],
@@ -589,6 +600,11 @@ broader-plan direction.
     def test_finalized_plan_artifacts_are_required_by_actual_implementation_completion(self):
         self.bootstrap_to_first_implementation()
         receipt = self.step_plan_receipt("S1")
+        status = self.cli("plan-status", "--loop", receipt["loop_id"])
+        self.assertIn("Supporting response: step-plan handoff status", status.stdout)
+        self.assertIn("does not assign a new action", status.stdout)
+        self.assertIn("does not prove overall completion", status.stdout)
+        self.assertIn("Safe return:", status.stdout)
         candidate = self.run_dir / receipt["candidate_path"]
         receipt_path = self.run_dir / step_planning.receipt_name(receipt["loop_id"])
         certificate_path = self.run_dir / step_planning.certificate_name(receipt["loop_id"])

@@ -198,8 +198,11 @@ concurrent actor with permission to replace the run directory, link an inode
 between checks and writes, or rewrite both copies of authoritative intent.
 Use a separately protected workspace when that adversary is in scope.
 
-Every packet assumes a fresh context, even between review, plan and apply.
-Only the script selects the next action and counts accepted cycles. An initial
+Every packet must work after a context reset, including between review, plan
+and apply. Retained context within the same quality loop may help compare work,
+but is optional and never authoritative; current Markdown wins. “Quality loop”
+includes every owning review-and-improve loop, not only the outer `quality`
+stage. Only the script selects the next action and counts accepted cycles. An initial
 result is a candidate, not completion; subsequent substantive review-and-improve
 cycles continue until two consecutive completed trivial-only reviews, fixes and
 checks included, then fresh final gates. A missing prerequisite is incomplete,
@@ -1062,8 +1065,8 @@ flowchart TD
    the final report. If authority or required tests remain unavailable, the
    outcome is unfinished—not a success inferred from local commits.
 
-At any accepted action boundary in this example, discard conversation context
-and run `next` with the same run locator. The selected action, case criteria,
+At any accepted action boundary in this example, conversation context may be
+discarded; run `next` with the same run locator to recover. The selected action, case criteria,
 pending findings, knowledge, checks, and history bindings come from durable
 records. A return from `done` is the next instruction, not a requirement for
 the host to remember which numbered phase comes next.
@@ -1280,7 +1283,8 @@ sequenceDiagram
 | Host | Scoped changes, semantic review, test adequacy, evidence interpretation, and external verification. | A deterministic correctness oracle. |
 
 One context only needs to survive until its required facts are durable. The next
-context should assume that prior conversation is gone:
+packet must remain usable without prior conversation. Retention within the same
+quality loop is allowed, not required:
 
 ```mermaid
 flowchart TD
@@ -1299,7 +1303,9 @@ retrieves bounded `prompt`, `step`, `iteration`, `knowledge`, `behavior`,
 `objective`, `step-context`, `step-plan`, `platform-revalidation`, `preflight`,
 `preparation`, `coverage`, `quality`, `delivery`, `handoff`, `outer-work`,
 `artifacts`, `audit`, `check-log`, `migration`, `system-context`, or
-`observation` sections.
+`observation` sections. When the current loop has a validated original-result
+binding, its selected `quality-baseline` reader also exposes historical quality
+evidence; it is not an unrestricted result-file reader.
 The limit is characters, not a
 guarantee of model tokens. A research cold context reads its report and evidence
 candidates, planning receipt, and current iteration rather than every historical
@@ -1318,6 +1324,59 @@ receipts link completed iterations while the packet gives the current bounded
 slice. If interrupted halfway through an iteration, inspect uncommitted work and
 resume the persisted action; the interruption earns no clean iteration and
 invents no commit.
+
+### Descriptive action orientation
+
+Each packet connects three things: the broader system purpose, the owning
+workflow/loop, and the exact action assigned now. “You are here” identifies
+location; the assignment explains what to do and why it contributes. The
+spec/original-request reference supplies deeper rationale without copying the
+entire specification into every model window.
+
+| Packet information | How to use it |
+|---|---|
+| Current phase, task, loop and action | Orient after a reset; a nested plan review is not product implementation, and its passes do not count as product cycles. |
+| Broader purpose and spec reference | Understand the intended outcome and consult the actual referenced file when a tradeoff needs more insight. Before a spec exists, use the original request; a draft is not an approved contract. |
+| Candidate and assessment state | Distinguish the initial output, earlier recorded reviews, and the latest candidate. “No findings” before the first review does not mean quality passed. |
+| Selected sources and required checks | Load the relevant evidence, not every archive. Optional background does not make assigned acceptance criteria or checks optional. |
+| Exact callback or recovery instruction | Complete only the current action; supporting context, history, plan-status, and check output do not choose a new task or certify the whole objective. |
+
+For example, a CSV application's inner task might add malformed-row handling
+because the broader spec requires trustworthy summaries. A delivery task might
+verify that the approved build preserves the same behavior in its selected
+environment. Those are explanatory examples, not built-in technology-specific
+requirements. The real packet uses the stored request, selected task, and
+available spec reference; it must not invent requirement IDs, approval status,
+or new authority. A contradictory spec/observation needs the existing finding,
+carry-forward, or replan route—not an unrequested scope change.
+
+Same-loop memory can help compare an output with its earlier assessment, but
+the first output is still only a candidate. Use recorded evidence to determine
+what was assessed and on which version. A material repair, changed candidate,
+or stale environment does not inherit proof from remembered success. Blocked
+and terminal packets use only safely available context and retain their
+no-completion boundaries. Character limits measure display size, not model
+tokens or semantic understanding.
+
+Supporting responses name the current action and their narrow scope, then give
+a safe return to its full packet. History pages still require their exact
+continuations; a page-read receipt is not an action completion. A rejected
+command does not trust a partially changed in-memory cursor: its recovery
+instruction reloads durable state before assigning more work.
+
+Newly created objective and planning receipts bind the accepted result that
+created the initial candidate and, when recorded, its first review. These are
+small action/digest references inside the existing Markdown receipts, not a
+second history store. The protocol verifies them against accepted results before
+displaying them; altered evidence blocks an ordinary action packet. Legacy or
+repaired loops without an unambiguous first-review binding explicitly report
+that provenance as unavailable. They do not guess a quality verdict.
+
+The selected `context --section quality-baseline` reader provides the verified
+original/first-review records through existing bounded pagination. The original
+request/spec reader explains **why** the system exists; the quality-baseline
+reader explains **what was assessed**. Neither is the `outer-work` journal,
+which records deferred obligations for an outer activity.
 
 ## Durable artifacts and their readers
 

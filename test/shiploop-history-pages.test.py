@@ -43,6 +43,14 @@ def load_fixture(filename: str, module_name: str, class_name: str) -> type[unitt
     return getattr(module, class_name)
 
 
+def assert_supporting_history_response(case: unittest.TestCase, output: str) -> None:
+    """History data is supporting evidence, not a transition packet."""
+    case.assertIn("Supporting response: Git history evidence", output)
+    case.assertIn("does not assign a new action", output)
+    case.assertIn("does not prove overall completion", output)
+    case.assertIn("Safe return:", output)
+
+
 class BoundedHistoryReceiptTests(unittest.TestCase):
     """Every review route can hold fragments without creating body proof."""
 
@@ -331,6 +339,7 @@ class BoundedHistoryCliTests(unittest.TestCase):
         index = self.cli(
             "history", "--action", action, "--limit", "1", "--skip", "0"
         )
+        assert_supporting_history_response(self, index.stdout)
         navigation = index.stdout.splitlines()[0]
         self.assertIn("[truncated]", navigation)
         self.assertLessEqual(len(navigation), 40 + 1 + 160)
@@ -348,6 +357,7 @@ class BoundedHistoryCliTests(unittest.TestCase):
             "37",
         )
         first = self.cli(*first_args)
+        assert_supporting_history_response(self, first.stdout)
         self.assertRegex(first.stdout, r"Unicode characters 0:37/\d+")
         command = self.continuation(first.stdout)
         self.assertIsNotNone(command)
@@ -383,6 +393,7 @@ class BoundedHistoryCliTests(unittest.TestCase):
         legacy = self.cli(
             "history", "--action", action, "--limit", "1", "--skip", "1", "--full"
         )
+        assert_supporting_history_response(self, legacy.stdout)
         self.assertIn("Git history — full commit bodies", legacy.stdout)
 
         review = {
@@ -530,6 +541,7 @@ class BoundedHistoryAdditionalCliRouteTests(unittest.TestCase):
             "--max-chars",
             "4000",
         )
+        assert_supporting_history_response(self, bounded.stdout)
         self.assertIn("Full body coverage is now recorded", bounded.stdout)
         current = case.planning("behavior")["current_iteration"]
         self.assertIn("history_paging", current)
@@ -537,6 +549,7 @@ class BoundedHistoryAdditionalCliRouteTests(unittest.TestCase):
         legacy = case.cli(
             "history", "--action", action, "--limit", "1", "--skip", "0", "--full"
         )
+        assert_supporting_history_response(self, legacy.stdout)
         self.assertIn("Git history — full commit bodies", legacy.stdout)
 
     def test_step_plan_review_cli_route_persists_bounded_coverage(self) -> None:
@@ -568,6 +581,7 @@ class BoundedHistoryAdditionalCliRouteTests(unittest.TestCase):
             "--max-chars",
             "4000",
         )
+        assert_supporting_history_response(self, output.stdout)
         self.assertIn("Full body coverage is now recorded", output.stdout)
         current = case.step_plan_receipt("S1")["current_pass"]
         self.assertIn("history_paging", current)

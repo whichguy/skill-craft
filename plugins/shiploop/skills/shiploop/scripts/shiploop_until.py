@@ -27,9 +27,10 @@ class UntilError(ValueError):
 
 
 def action_reasoning() -> str:
-    """Bound probabilistic judgment to the script's current cold action."""
+    """Allow same-loop continuity without making memory an evidence source."""
     return (
-        "Fresh context: read selected Markdown. Record gaps/new evidence; adapt failed strategies. "
+        "Reset-safe context: read selected Markdown; same-loop memory is optional, Markdown wins. "
+        "Record gaps/new evidence; adapt failed strategies. "
         "Check all clauses; missing proof is incomplete. Only scripts advance/count cycles."
     )
 

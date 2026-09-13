@@ -19,11 +19,19 @@ SCRIPTS = Path(__file__).resolve().parents[1] / "skills" / "shiploop" / "scripts
 if str(SCRIPTS) not in sys.path:
     sys.path.insert(0, str(SCRIPTS))
 
-from shiploop_until import UntilError, decide, review_improve_cycle  # noqa: E402
+from shiploop_until import UntilError, action_reasoning, decide, review_improve_cycle  # noqa: E402
 
 
 class UntilDecisionTests(unittest.TestCase):
     """The helper accepts only completed, verified, uniquely audited passes."""
+
+    def test_action_guidance_allows_optional_memory_but_never_cached_authority(self) -> None:
+        guidance = action_reasoning()
+        self.assertIn("Reset-safe context:", guidance)
+        self.assertIn("same-loop memory is optional", guidance)
+        self.assertIn("Markdown wins", guidance)
+        self.assertIn("missing proof is incomplete", guidance)
+        self.assertIn("Only scripts advance/count cycles", guidance)
 
     @staticmethod
     def row(
