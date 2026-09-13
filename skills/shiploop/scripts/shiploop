@@ -9,6 +9,7 @@ import hashlib
 import json
 import os
 import re
+import stat
 import subprocess
 import sys
 import uuid
@@ -46,13 +47,11 @@ _FOREIGN_SLASH = "/" + "dev" + "loop"
 UNTIL_HEAD = "Do this activity until these conditions are met:"
 ENV_RECOVERY = "before execution: use action-bound revisit --to survey; after execution: preserve frozen contracts and seek user direction"
 LINT_ORACLE_LINE = (
-    "Lint oracle: Exclusive writer's lint/validate tool (if it has one) "
-    "is dest-syntax SoT for file-local syntax; for dest identity "
-    "(order/position/name/presence) the live dest list/status/push-preflight "
-    "is the oracle and a local-walk finding is advisory; generic "
-    "linters must not rewrite dest-mandated syntax. Run every available "
-    "linter on the changed paths (writer, repo-configured, generic syntax "
-    "already present — do not install); dest-mandated syntax wins."
+    "Lint oracle: Run every available linter on changed paths (writer, repo, "
+    "existing syntax tools; no installs). Exclusive writer validation controls "
+    "destination syntax; live list/status/push-preflight controls identity "
+    "(order/position/name/presence). Local-walk findings are advisory; generic "
+    "linters must not rewrite destination-mandated syntax."
 )
 HANDLE_RESOLVE = ("list", "inspect", "ask", "create")
 _TOKEN_FORBIDDEN_RE = re.compile(r"[;\n\r]")
@@ -1520,20 +1519,198 @@ def worktree_path(repo: Path, run_id: str, sid: str) -> Path:
     return (repo / WT_DIRNAME / "shiploop" / run_id / sid).resolve()
 
 
+def _require_no_follow_descriptors(label: str) -> None:
+    supports = getattr(os, "supports_dir_fd", set())
+    if (
+        not hasattr(os, "O_NOFOLLOW")
+        or not hasattr(os, "O_NONBLOCK")
+        or os.open not in supports
+        or os.stat not in supports
+    ):
+        die(EXIT_BLOCKED, f"secure descriptor operations unavailable for {label}")
+
+
+def _open_real_directory(path: Path, label: str) -> int:
+    """Open an existing directory after rejecting every lexical symlink parent."""
+    _require_no_follow_descriptors(label)
+    if not path.is_absolute():
+        die(EXIT_BLOCKED, f"unsafe {label}: path is not absolute")
+    current = Path(path.anchor)
+    for part in path.parts[1:]:
+        current /= part
+        try:
+            metadata = os.lstat(os.fspath(current))
+        except OSError as exc:
+            die(EXIT_BLOCKED, f"unsafe {label}: {current}: {exc}")
+        if stat.S_ISLNK(metadata.st_mode) or not stat.S_ISDIR(metadata.st_mode):
+            die(EXIT_BLOCKED, f"unsafe {label}: {current}")
+    flags = os.O_RDONLY | os.O_NOFOLLOW | getattr(os, "O_DIRECTORY", 0)
+    try:
+        descriptor = os.open(os.fspath(path), flags)
+    except OSError as exc:
+        die(EXIT_BLOCKED, f"cannot open {label}: {path}: {exc}")
+    try:
+        metadata = os.fstat(descriptor)
+        if not stat.S_ISDIR(metadata.st_mode):
+            die(EXIT_BLOCKED, f"unsafe {label}: {path}")
+        return descriptor
+    except BaseException:
+        os.close(descriptor)
+        raise
+
+
+def _stat_owned_child(
+    parent_fd: int, name: str, path: Path, label: str
+) -> Optional[os.stat_result]:
+    try:
+        return os.stat(name, dir_fd=parent_fd, follow_symlinks=False)
+    except FileNotFoundError:
+        return None
+    except OSError as exc:
+        die(EXIT_BLOCKED, f"cannot inspect {label}: {path}: {exc}")
+
+
+def _require_single_regular(metadata: os.stat_result, path: Path, label: str) -> None:
+    if not stat.S_ISREG(metadata.st_mode) or metadata.st_nlink != 1:
+        die(EXIT_BLOCKED, f"unsafe {label}: {path}")
+
+
+def _open_child_directory(parent_fd: int, name: str, path: Path, label: str) -> int:
+    flags = os.O_RDONLY | os.O_NOFOLLOW | getattr(os, "O_DIRECTORY", 0)
+    try:
+        descriptor = os.open(name, flags, dir_fd=parent_fd)
+    except OSError as exc:
+        die(EXIT_BLOCKED, f"cannot open {label}: {path}: {exc}")
+    try:
+        metadata = os.fstat(descriptor)
+        if not stat.S_ISDIR(metadata.st_mode):
+            die(EXIT_BLOCKED, f"unsafe {label}: {path}")
+        return descriptor
+    except BaseException:
+        os.close(descriptor)
+        raise
+
+
+def _validate_existing_regular_child(
+    parent_fd: int, name: str, path: Path, label: str
+) -> None:
+    metadata = _stat_owned_child(parent_fd, name, path, label)
+    if metadata is None:
+        return
+    _require_single_regular(metadata, path, label)
+    flags = os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK
+    try:
+        descriptor = os.open(name, flags, dir_fd=parent_fd)
+    except OSError as exc:
+        die(EXIT_BLOCKED, f"cannot open {label}: {path}: {exc}")
+    try:
+        _require_single_regular(os.fstat(descriptor), path, label)
+    finally:
+        os.close(descriptor)
+
+
 def ensure_worktrees_excluded(repo: Path) -> None:
     """Keep harness worktrees out of the product's tracked tree."""
-    probe = git_run(repo, "check-ignore", "-q", "--", f"{WT_DIRNAME}/probe")
-    if probe.returncode == 0:
-        return
-    excl = git_run(repo, "rev-parse", "--git-path", "info/exclude")
-    if excl.returncode != 0 or not excl.stdout.strip():
+    top = git_run(repo, "rev-parse", "--path-format=absolute", "--show-toplevel")
+    if top.returncode != 0 or not top.stdout.strip():
+        die(EXIT_BLOCKED, "cannot resolve Git worktree root for worktree ignore")
+    if Path(top.stdout.strip()) != Path(os.path.abspath(os.fspath(repo))):
+        die(EXIT_BLOCKED, "refusing to mutate an enclosing repository worktree ignore")
+    common = git_run(
+        repo, "rev-parse", "--path-format=absolute", "--git-common-dir"
+    )
+    excl = git_run(
+        repo, "rev-parse", "--path-format=absolute", "--git-path", "info/exclude"
+    )
+    if (
+        common.returncode != 0
+        or not common.stdout.strip()
+        or excl.returncode != 0
+        or not excl.stdout.strip()
+    ):
         die(EXIT_BLOCKED, "cannot resolve .git/info/exclude for worktree ignore")
-    raw = excl.stdout.strip()
-    path = Path(raw) if Path(raw).is_absolute() else repo / raw
-    path.parent.mkdir(parents=True, exist_ok=True)
-    existing = path.read_text(encoding="utf-8") if path.is_file() else ""
-    if f"{WT_DIRNAME}/" not in existing:
-        path.write_text(existing.rstrip() + f"\n{WT_DIRNAME}/\n", encoding="utf-8")
+    common_dir = Path(common.stdout.strip())
+    path = Path(excl.stdout.strip())
+    expected = common_dir / "info" / "exclude"
+    if (
+        not common_dir.is_absolute()
+        or not path.is_absolute()
+        or path != expected
+    ):
+        die(EXIT_BLOCKED, "unsafe Git common-directory exclude path")
+
+    common_fd = _open_real_directory(common_dir, "Git common directory")
+    info_fd = -1
+    try:
+        info_path = common_dir / "info"
+        metadata = _stat_owned_child(common_fd, "info", info_path, "Git info directory")
+        if metadata is not None:
+            if not stat.S_ISDIR(metadata.st_mode):
+                die(EXIT_BLOCKED, f"unsafe Git info directory: {info_path}")
+            info_fd = _open_child_directory(
+                common_fd, "info", info_path, "Git info directory"
+            )
+            _validate_existing_regular_child(
+                info_fd, "exclude", path, "Git exclude file"
+            )
+
+        probe = git_run(repo, "check-ignore", "-q", "--", f"{WT_DIRNAME}/probe")
+        if probe.returncode == 0:
+            return
+        if probe.returncode != 1:
+            die(EXIT_BLOCKED, "cannot determine worktree ignore invariant")
+
+        if info_fd < 0:
+            try:
+                os.mkdir("info", 0o755, dir_fd=common_fd)
+            except OSError as exc:
+                die(EXIT_BLOCKED, f"cannot create Git info directory: {exc}")
+            info_fd = _open_child_directory(
+                common_fd, "info", info_path, "Git info directory"
+            )
+        _validate_existing_regular_child(info_fd, "exclude", path, "Git exclude file")
+        flags = (
+            os.O_RDWR | os.O_APPEND | os.O_CREAT | os.O_NOFOLLOW | os.O_NONBLOCK
+        )
+        try:
+            descriptor = os.open("exclude", flags, 0o666, dir_fd=info_fd)
+        except OSError as exc:
+            die(EXIT_BLOCKED, f"cannot open Git exclude file: {path}: {exc}")
+        try:
+            _require_single_regular(os.fstat(descriptor), path, "Git exclude file")
+            with os.fdopen(descriptor, "r+", encoding="utf-8", newline="") as handle:
+                descriptor = -1
+                handle.seek(0)
+                existing = handle.read()
+                line = f"{WT_DIRNAME}/"
+                _require_single_regular(
+                    os.fstat(handle.fileno()), path, "Git exclude file"
+                )
+                if existing and not existing.endswith("\n"):
+                    handle.write("\n")
+                handle.write(line + "\n")
+        except (OSError, UnicodeError) as exc:
+            die(EXIT_BLOCKED, f"cannot safely update Git exclude file: {path}: {exc}")
+        finally:
+            if descriptor >= 0:
+                os.close(descriptor)
+        confirmed = git_run(
+            repo, "check-ignore", "-q", "--", f"{WT_DIRNAME}/probe"
+        )
+        if confirmed.returncode == 0:
+            return
+        if confirmed.returncode == 1:
+            die(
+                EXIT_BLOCKED,
+                "worktree ignore remains ineffective after updating "
+                ".git/info/exclude; a higher-priority product rule may negate "
+                f"{WT_DIRNAME}/",
+            )
+        die(EXIT_BLOCKED, "cannot confirm worktree ignore invariant")
+    finally:
+        if info_fd >= 0:
+            os.close(info_fd)
+        os.close(common_fd)
 
 
 def steps_by_id(run_dir: Path) -> Dict[str, Dict[str, Any]]:

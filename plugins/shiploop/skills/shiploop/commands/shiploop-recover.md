@@ -1,11 +1,11 @@
 # ShipLoop pause, repair, and migration
 
 ~~~sh
-python3 "$SKILL_ROOT/scripts/shiploop" pause --run-dir "$RUN_DIR" --reason "specific blocker"
+python3 "$SKILL_ROOT/scripts/shiploop" pause --run-dir "$RUN_DIR" --reason='specific blocker'
 python3 "$SKILL_ROOT/scripts/shiploop" resume --run-dir "$RUN_DIR"
 python3 "$SKILL_ROOT/scripts/shiploop" repair \
-  --run-dir "$RUN_DIR" --action "$ACTION_ID" --reason "specific discovered defect"
-python3 "$SKILL_ROOT/scripts/shiploop" halt --run-dir "$RUN_DIR" --reason "terminal reason"
+  --run-dir "$RUN_DIR" --action "$ACTION_ID" --reason='specific discovered defect'
+python3 "$SKILL_ROOT/scripts/shiploop" halt --run-dir "$RUN_DIR" --reason='terminal reason'
 python3 "$SKILL_ROOT/scripts/shiploop" migrate --run-dir "$RUN_DIR"
 ~~~
 

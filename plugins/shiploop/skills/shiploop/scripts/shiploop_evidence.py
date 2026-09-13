@@ -14,6 +14,7 @@ import re
 import signal
 import stat
 import subprocess
+import tempfile
 import time
 from collections.abc import Mapping, Sequence
 from datetime import datetime, timezone
@@ -395,48 +396,173 @@ def _safe_log_stem(index: int, check_id: str) -> str:
     return f"{index:02d}-{stem}"
 
 
+def _owned_path(path: Path | str | os.PathLike[str]) -> Path:
+    """Make the host temporary-directory prefix physical without resolving suffixes."""
+    raw = Path(os.path.abspath(os.fspath(path)))
+    temp_root = Path(tempfile.gettempdir())
+    try:
+        suffix = raw.relative_to(temp_root)
+    except ValueError:
+        return raw
+    return Path(os.path.realpath(os.fspath(temp_root))).joinpath(*suffix.parts)
+
+
+def _require_no_follow_descriptors(label: str) -> None:
+    supports = getattr(os, "supports_dir_fd", set())
+    if (
+        not hasattr(os, "O_NOFOLLOW")
+        or not hasattr(os, "O_NONBLOCK")
+        or os.open not in supports
+        or os.stat not in supports
+        or os.mkdir not in supports
+    ):
+        raise EvidenceError(f"secure descriptor operations unavailable for {label}")
+
+
+def _safe_directory_prefix(path: Path, label: str) -> tuple[Path, tuple[str, ...]]:
+    """Return an absolute path's real-directory prefix and absent suffix."""
+    if not path.is_absolute():
+        raise EvidenceError(f"{label} must be an absolute path")
+    current = Path(path.anchor)
+    for index, part in enumerate(path.parts[1:]):
+        candidate = current / part
+        try:
+            metadata = os.lstat(os.fspath(candidate))
+        except FileNotFoundError:
+            return current, tuple(path.parts[index + 1 :])
+        except OSError as exc:
+            raise EvidenceError(f"cannot inspect {label}: {candidate}") from exc
+        if stat.S_ISLNK(metadata.st_mode) or not stat.S_ISDIR(metadata.st_mode):
+            raise EvidenceError(f"unsafe {label} ancestor: {candidate}")
+        current = candidate
+    return current, ()
+
+
+def _open_real_directory(path: Path, label: str) -> int:
+    flags = os.O_RDONLY | os.O_NOFOLLOW | getattr(os, "O_DIRECTORY", 0)
+    try:
+        descriptor = os.open(os.fspath(path), flags)
+    except OSError as exc:
+        raise EvidenceError(f"cannot open {label}: {path}") from exc
+    try:
+        metadata = os.fstat(descriptor)
+        if not stat.S_ISDIR(metadata.st_mode):
+            raise EvidenceError(f"unsafe {label}: {path}")
+        return descriptor
+    except BaseException:
+        os.close(descriptor)
+        raise
+
+
+def _stat_owned_child(
+    parent_fd: int, name: str, path: Path, label: str
+) -> os.stat_result | None:
+    try:
+        return os.stat(name, dir_fd=parent_fd, follow_symlinks=False)
+    except FileNotFoundError:
+        return None
+    except OSError as exc:
+        raise EvidenceError(f"cannot inspect {label}: {path}") from exc
+
+
+def _require_single_regular(metadata: os.stat_result, path: Path, label: str) -> None:
+    if not stat.S_ISREG(metadata.st_mode) or metadata.st_nlink != 1:
+        raise EvidenceError(f"unsafe {label}: {path}")
+
+
+def _open_child_directory(parent_fd: int, name: str, path: Path, label: str) -> int:
+    flags = os.O_RDONLY | os.O_NOFOLLOW | getattr(os, "O_DIRECTORY", 0)
+    try:
+        descriptor = os.open(name, flags, dir_fd=parent_fd)
+    except OSError as exc:
+        raise EvidenceError(f"cannot open {label}: {path}") from exc
+    try:
+        metadata = os.fstat(descriptor)
+        if not stat.S_ISDIR(metadata.st_mode):
+            raise EvidenceError(f"unsafe {label}: {path}")
+        return descriptor
+    except BaseException:
+        os.close(descriptor)
+        raise
+
+
 def _write_log(path: Path, content: bytes) -> None:
     """Write a private log without changing the process-wide umask."""
-    flags = os.O_WRONLY | os.O_CREAT | os.O_TRUNC
-    if hasattr(os, "O_NOFOLLOW"):
-        flags |= os.O_NOFOLLOW
-    else:
-        try:
-            existing = os.lstat(os.fspath(path))
-        except FileNotFoundError:
-            existing = None
-        if existing is not None and stat.S_ISLNK(existing.st_mode):
-            raise EvidenceError(f"refusing to write log through symlink: {path}")
+    _require_no_follow_descriptors("evidence logs")
+    path = _owned_path(path)
+    if path == path.parent:
+        raise EvidenceError(f"invalid evidence log path: {path}")
+    parent, missing = _safe_directory_prefix(path.parent, "evidence log")
+    if missing:
+        raise EvidenceError(f"evidence log parent is unavailable: {path.parent}")
+    parent_fd = _open_real_directory(parent, "evidence log parent")
+    descriptor = -1
     try:
-        descriptor = os.open(os.fspath(path), flags, 0o600)
+        metadata = _stat_owned_child(parent_fd, path.name, path, "evidence log")
+        if metadata is not None:
+            _require_single_regular(metadata, path, "evidence log")
+        flags = os.O_WRONLY | os.O_CREAT | os.O_NOFOLLOW | os.O_NONBLOCK
+        try:
+            descriptor = os.open(path.name, flags, 0o600, dir_fd=parent_fd)
+        except OSError as exc:
+            raise EvidenceError(f"cannot write private evidence log: {path}") from exc
+        _require_single_regular(os.fstat(descriptor), path, "evidence log")
+        os.fchmod(descriptor, 0o600)
+        _require_single_regular(os.fstat(descriptor), path, "evidence log")
+        os.ftruncate(descriptor, 0)
+        view = memoryview(content)
+        while view:
+            written = os.write(descriptor, view)
+            if written <= 0:
+                raise OSError("short write to private evidence log")
+            view = view[written:]
     except OSError as exc:
         raise EvidenceError(f"cannot write private evidence log: {path}") from exc
-    try:
-        os.fchmod(descriptor, 0o600)
-        with os.fdopen(descriptor, "wb", closefd=True) as log_file:
-            descriptor = -1
-            log_file.write(content)
     finally:
         if descriptor >= 0:
             os.close(descriptor)
+        os.close(parent_fd)
 
 
 def _ensure_private_evidence_dir(path: Path) -> None:
     """Create a new leaf evidence directory at 0700 without altering umask."""
+    _require_no_follow_descriptors("evidence directory")
+    path = _owned_path(path)
+    parent, missing = _safe_directory_prefix(path, "evidence directory")
+    descriptor = _open_real_directory(parent, "evidence directory parent")
     created = False
     try:
-        path.mkdir(parents=True, mode=0o700)
-        created = True
-    except FileExistsError:
-        pass
-    try:
-        status = os.lstat(os.fspath(path))
-    except FileNotFoundError as exc:
-        raise EvidenceError(f"evidence directory disappeared: {path}") from exc
-    if not stat.S_ISDIR(status.st_mode):
-        raise EvidenceError(f"evidence_dir must be a real directory: {path}")
-    if created:
-        os.chmod(path, 0o700)
+        for index, name in enumerate(missing):
+            made = False
+            try:
+                os.mkdir(name, 0o700, dir_fd=descriptor)
+                made = True
+            except FileExistsError:
+                pass
+            except OSError as exc:
+                raise EvidenceError(
+                    f"cannot create evidence directory: {path}"
+                ) from exc
+            child_path = path if index == len(missing) - 1 else parent / name
+            metadata = _stat_owned_child(
+                descriptor, name, child_path, "evidence directory"
+            )
+            if metadata is None or not stat.S_ISDIR(metadata.st_mode):
+                raise EvidenceError(
+                    f"evidence_dir must be a real directory: {child_path}"
+                )
+            child = _open_child_directory(
+                descriptor, name, child_path, "evidence directory"
+            )
+            os.close(descriptor)
+            descriptor = child
+            parent = child_path
+            if made and index == len(missing) - 1:
+                created = True
+        if created:
+            os.fchmod(descriptor, 0o700)
+    finally:
+        os.close(descriptor)
 
 
 def _utc_timestamp() -> str:

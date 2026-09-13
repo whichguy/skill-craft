@@ -8,6 +8,9 @@ cd "$root"
 for suite in \
   test/shiploop-store.test.py \
   test/shiploop-evidence.test.py \
+  test/shiploop-file-safety.test.py \
+  test/shiploop-prompt-integrity.test.py \
+  test/shiploop-literal-transport.test.py \
   test/shiploop-validators.test.py \
   test/shiploop-discovery.test.py \
   test/shiploop-system-context.test.py \

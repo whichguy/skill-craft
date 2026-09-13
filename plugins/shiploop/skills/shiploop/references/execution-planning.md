@@ -360,6 +360,17 @@ source was `scripts/until-loop` at commit
 remote or separate LICENSE file was present. This provenance identifies the
 design source; it is not a runtime dependency or a multi-host execution claim.
 
+The 2026-09-13 refresh selectively adapts **0.2.1**, inspected at `7d24bbc`
+(integration safeguards in `4430f89`). Settled prompt integrity, safe control-file
+writes and literal argument transport belong to the existing script boundary.
+Current action packets also ask for unmet criteria, useful new evidence or a
+changed strategy, all-clause evaluation and an honest incomplete stop. These
+are reasoning duties inside the assigned stage, not host-selected transitions.
+Every returned packet assumes fresh context; existing Markdown receipts and
+bounded readers carry its state. Available authorized independent review may
+inform high-risk/subjective findings; otherwise disclose self-check. No extra
+notebook, stage, runtime, or test waiver is created.
+
 Intentional changes from the standalone script:
 
 - No `.until-loop/state.json`, independent lock, Git-exclude mutation or second

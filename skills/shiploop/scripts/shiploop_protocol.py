@@ -13,6 +13,7 @@ import json
 import os
 import re
 import shlex
+import stat
 from pathlib import Path
 import sys
 import tempfile
@@ -5746,7 +5747,7 @@ def migrate(core, root):
         if prompt_path.exists():
             need(prompt_path.is_file(), "existing prompt.md is not a regular file")
             need(
-                prompt_path.read_text(encoding="utf-8") == legacy_prompt,
+                prompt_path.read_bytes() == legacy_prompt.encode("utf-8"),
                 "existing prompt.md does not exactly match legacy state.prompt; inspect it before migration",
             )
         writes["prompt.md"] = legacy_prompt
@@ -5851,6 +5852,73 @@ def prompt_recovery_unrecoverable(state):
     """Whether migration deliberately withheld an unusable legacy prompt."""
     recovery = state.get("prompt_recovery") if isinstance(state, dict) else None
     return isinstance(recovery, dict) and recovery.get("status") == "unrecoverable"
+
+
+def settled_prompt_text(state):
+    """Return the exact durable prompt text expected for this state schema."""
+    prompt = state.get("prompt")
+    need(isinstance(prompt, str), "authoritative state has no saved prompt")
+    recovery = state.get("prompt_recovery")
+    if isinstance(recovery, dict) and recovery.get("status") == "recovered-from-state":
+        return prompt
+    # New runs deliberately persist one extra LF after the argv value.  Keep
+    # it byte-for-byte distinct from an intentional trailing LF in that value.
+    return prompt + "\n"
+
+
+def validate_settled_prompt(root, state):
+    """Fail closed unless the saved prompt bytes still match authoritative state."""
+    if prompt_recovery_unrecoverable(state):
+        return None
+    expected_text = settled_prompt_text(state)
+    expected = expected_text.encode("utf-8")
+    path = root / "prompt.md"
+    try:
+        before = path.lstat()
+    except FileNotFoundError as exc:
+        raise ProtocolError("saved prompt.md is missing") from exc
+    except OSError as exc:
+        raise ProtocolError(f"cannot inspect saved prompt.md: {exc}") from exc
+    need(
+        stat.S_ISREG(before.st_mode) and before.st_nlink == 1,
+        "saved prompt.md must be a single-link regular file",
+    )
+    need(before.st_size == len(expected), "saved prompt differs from authoritative state")
+    flags = (
+        os.O_RDONLY
+        | getattr(os, "O_NOFOLLOW", 0)
+        | getattr(os, "O_NONBLOCK", 0)
+    )
+    try:
+        fd = os.open(path, flags)
+    except OSError as exc:
+        raise ProtocolError(f"cannot open saved prompt.md: {exc}") from exc
+    try:
+        opened = os.fstat(fd)
+        need(
+            stat.S_ISREG(opened.st_mode)
+            and opened.st_nlink == 1
+            and (opened.st_dev, opened.st_ino) == (before.st_dev, before.st_ino),
+            "saved prompt.md changed while opening; retry from a stable run",
+        )
+        need(opened.st_size == len(expected), "saved prompt differs from authoritative state")
+        chunks = []
+        remaining = len(expected) + 1
+        while remaining:
+            chunk = os.read(fd, remaining)
+            if not chunk:
+                break
+            chunks.append(chunk)
+            remaining -= len(chunk)
+    except OSError as exc:
+        raise ProtocolError(f"cannot read saved prompt.md: {exc}") from exc
+    finally:
+        os.close(fd)
+    need(
+        b"".join(chunks) == expected,
+        "saved prompt differs from authoritative state",
+    )
+    return expected_text
 
 
 def planning_upgrade(core, root, state, aid):
@@ -6272,6 +6340,7 @@ def main(core, argv=None):
     root = unresolved_root.resolve()
     try:
         with core.run_lock(root):
+            saved_prompt = None
             if args.command == "init":
                 need(bool(args.prompt.strip()), "prompt must not be empty")
                 need(
@@ -6279,7 +6348,9 @@ def main(core, argv=None):
                     "--force is no longer destructive: use a fresh --run-dir; existing journals and worktrees are preserved",
                 )
                 if (root / "state.md").exists():
-                    packet(core, root, core.load_state(root))
+                    state = core.load_state(root)
+                    validate_settled_prompt(root, state)
+                    packet(core, root, state)
                     return 0
                 need(
                     not (root / "state.json").exists(),
@@ -6352,12 +6423,15 @@ def main(core, argv=None):
                         **initial_writes,
                     },
                 )
+                saved_prompt = validate_settled_prompt(root, state)
             elif args.command == "migrate":
                 migrate(core, root)
                 state = core.load_state(root)
+                saved_prompt = validate_settled_prompt(root, state)
             else:
                 state = core.load_state(root)
                 validate_state(state)
+                saved_prompt = validate_settled_prompt(root, state)
                 if state.get("outer_work_protocol_version") == 1:
                     bound_outer_work(root, state)
                 if args.command == "history" and args.limit is None:
@@ -6547,6 +6621,9 @@ def main(core, argv=None):
                         # Expose only the durable recovery marker.  Never
                         # synthesize a replacement prompt for a cold host.
                         body = migration_path.read_text(encoding="utf-8")
+                    elif args.section == "prompt":
+                        need(saved_prompt is not None, "saved prompt is unavailable")
+                        body = saved_prompt
                     elif args.section == "observation":
                         body = observation_context(root, state)
                     elif args.section == "outer-work":

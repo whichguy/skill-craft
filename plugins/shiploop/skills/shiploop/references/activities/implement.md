@@ -137,7 +137,8 @@ step plan.
 1. **Review.** Fully page `context --section knowledge` for the active step and
    run history before completing the review, then record the matching
    `knowledge_read` revision, digest, and scope in the review result. Read
-   complete commit bodies for the latest ten commits or all available commits,
+   complete commit bodies for the packet's printed history limit (seven for
+   new runs, ten for unmarked legacy runs, or all available if fewer exist),
    using one full body page at a time when context is small. Also page
    `context --section step-context`. If audit-only plan commits dominate that
    window, inspect the relevant older implementation or decision commit through

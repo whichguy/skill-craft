@@ -15,7 +15,7 @@ from typing import Any, Mapping
 
 import shiploop_history_policy as history_policy
 from shiploop_privacy import redact_text, sensitive_text
-from shiploop_until import review_improve_cycle
+from shiploop_until import action_reasoning, review_improve_cycle
 
 
 _INLINE_PROMPT_LIMIT = 1400
@@ -43,20 +43,20 @@ _HISTORY_BODY_UNTRUSTED = (
 _STEP_PLAN_BODY = """# Step plan
 
 ## Scope and ordered changes
-Selected outputs, symbols, dependencies and PARENT-* responses.
+Outputs, symbols, dependencies and PARENT-* responses.
 
 ## Execution microplan
 | Local ID | Work + output | Needs | Source | Evidence | Case mapping |
 | --- | --- | --- | --- | --- | --- |
 | L1 | Output | Earlier L-ID/state | Supplier/ref | Observed/planned; not passed | Case/check ID |
 
-Table order: forward; one row or justified no-change inspection/check plan suffices. No per-row callbacks.
+Table order: forward; one row or justified no-change inspection/check plan. No per-row callbacks.
 
 ## Backward dependency check
-Link outputs/checks to evidence or earlier producers. Ready claims/assumptions are not proof. Missing prerequisites block coding; no global DAG edits.
+Outputs/checks need evidence or earlier producers, not ready claims/assumptions. Missing prerequisites block coding; no global DAG edits.
 
 ## System-context uptake
-Use listed system-context role/interface/interaction/question/observation/source IDs. Unresolved contracts block; do not invent probes, retry policy, environments or another DAG.
+Cite listed role/interface/interaction/question/observation/source IDs. Unresolved contracts block; no invented probes, retry policy, environments or DAG.
 
 ## Test criteria before code
 | Case / contract T-ID | Exact produces / requirement | Preconditions / inputs | Expected outcome / state / side effects | Planned test path / selector / check ID |
@@ -64,10 +64,10 @@ Use listed system-context role/interface/interaction/question/observation/source
 | TC1 / T-ID | Criterion | Fixture/input | Expected state/effects | path/selector/check ID; not run |
 
 ## Coverage decisions
-Assess unit/integration/end-to-end; mock/fake; browser/service/API separately: selected, not applicable with reason, or required but blocked. Name target environment, fixture, real/simulated dependencies, readiness/cleanup.
+Assess unit/integration/end-to-end; mock/fake; browser/service/API separately: selected, not applicable with reason, or required but blocked. Name target environment, fixtures, real/simulated dependencies, readiness/cleanup.
 
 ## Execution and post-code test refinement
-Code; inspect diff/learnings; author/refine tests or justify reuse; lint/tests; diagnose/fix/rerun. Cover boundary/failure/regression gaps. Correct tests from independent requirement evidence; preserve coverage and acceptance.
+Code; inspect diff/learnings; author/refine tests or justify reuse; lint/tests; diagnose/fix/rerun. Cover boundary/failure/regression gaps. Test corrections need independent requirement evidence; preserve acceptance/coverage.
 
 ## Documentation and remaining risks
 Function contracts, README changes/no-change reasons, risks, revalidation triggers.
@@ -625,7 +625,7 @@ def _environment_projection(
     lines = [
         "Environment constraints (current non-secret machine projection): "
         + _line_json(projection),
-        f"Full environment pages: {command}",
+        "Full environment pages: use Bounded context below with --section environment.",
     ]
     if platform.get("applicable") is True:
         lines.append(
@@ -763,7 +763,7 @@ def _planning_template(stage: str, state: Mapping[str, Any], api: Mapping[str, A
         return None, []
     rubrics = getattr(planning, "RUBRICS", {})
     rubric = list(rubrics.get(kind, ())) if isinstance(rubrics, Mapping) else []
-    coverage = {key: "Concrete evidence or an applicability reason." for key in rubric}
+    coverage = {key: "Evidence or inapplicability reason." for key in rubric}
     research_state = {
         "questions": [
             {
@@ -1924,7 +1924,7 @@ def render(core: Any, root: Path, state: Mapping[str, Any], api: Mapping[str, An
     worktree, worktree_error = _call(repo_for, root, state)
     if worktree_error:
         worktree = state.get("repo_root") or "unavailable"
-    lines.extend([f"Worktree: {worktree}", f"Working directory: {worktree}"])
+    lines.extend([f"Worktree: {worktree}", "Working directory: the Worktree above."])
 
     paused = state.get("paused")
     if paused:
@@ -1943,7 +1943,7 @@ def render(core: Any, root: Path, state: Mapping[str, Any], api: Mapping[str, An
         if state.get("observation_repair"):
             recovery_instruction = (
                 "Read current observations: " + _context_command(core, root, "knowledge") + "\n"
-                + f"For a compatible interrupted plan/inner loop: {_command(core)} repair --run-dir {_quote(root)} --action {_quote(aid)} --reason <recorded-context-change>\n"
+                + f"For a compatible interrupted plan/inner loop: {_command(core)} repair --run-dir {_quote(root)} --action {_quote(aid)} --reason='<recorded-context-change>'\n"
                 + "If the stage cannot be repaired, use its authorized replan or seek user direction. A contract/permission blocker must be resolved explicitly; resume alone is refused."
             )
         lines.extend([
@@ -2136,6 +2136,7 @@ def render(core: Any, root: Path, state: Mapping[str, Any], api: Mapping[str, An
         lines.append("Current objective: " + _line_json({key: objective.get(key) for key in ("loop_id", "kind", "base_stage", "receipt", "candidate", "status")}))
     else:
         lines.append("Current task: use the active durable cursor only; do not infer an unstated transition.")
+    lines.append(action_reasoning())
     lines.extend(_stage_lifecycle(stage, info, api, history_limit=history_policy.required_limit(state)))
 
     # Every ordinary packet gives a cold host its exact rehydration commands.
@@ -2192,9 +2193,9 @@ def render(core: Any, root: Path, state: Mapping[str, Any], api: Mapping[str, An
             + " --record '<history.pages[].archive_path>'"
         )
         lines.append(
-            "Page iteration/current_pass, then every archive_path above; copy continuations. "
-            "Other sections: substitute. Hash-bound reads, not new review proof; "
-            "put relevant learnings/no-change reasons in body. "
+            "Page iteration/current_pass and every archive_path; copy continuations. "
+            "Substitute other sections. Hash-bound reads, not new review proof; "
+            "put learnings/no-change reasons in body. "
             + _HISTORY_BODY_UNTRUSTED
         )
     if state.get("observation_protocol_version") == 1:
@@ -2216,8 +2217,7 @@ def render(core: Any, root: Path, state: Mapping[str, Any], api: Mapping[str, An
             lines.append("Read step-context for the accepted initial implementation_test_record and iteration for current Improve evidence; historical notes do not certify current tests.")
     elif "system-context" in available:
         lines.append(
-            "Selected role/interface contract context: "
-            + _context_command(core, root, "system-context")
+            "Selected role/interface contract context: use Bounded context with --section system-context."
         )
     if info.get("knowledge_read"):
         if state.get("objective_protocol_version") == 1:
@@ -2227,6 +2227,9 @@ def render(core: Any, root: Path, state: Mapping[str, Any], api: Mapping[str, An
             lines.append("Knowledge acknowledgement required after all pages: " + _line_json(binding))
         lines.append("Knowledge pages: " + _context_command(core, root, "knowledge"))
     if isinstance(stage, str) and (stage == "review" or stage.endswith("-review")):
+        lines.append(
+            "Risky/subjective review: use an available authorized read-only evaluator or disclose self-check."
+        )
         history_limit = history_policy.required_limit(state)
         history_options = f"--run-dir {_quote(root)} --action {_quote(aid)}"
         if info.get("objective_binding"):
@@ -2333,7 +2336,7 @@ def render(core: Any, root: Path, state: Mapping[str, Any], api: Mapping[str, An
     lines.extend(f"Schema constraint: {note}" for note in notes)
     lines.extend(commit_lines)
     result = root / "inbox" / f"{aid}.md"
-    lines.append(f"Write the result to {result} (metadata, not product files).")
+    lines.append(f"Write the result to {result} (not product files).")
     lines.extend(_outer_objective_replan_lines(core, root, aid, info, result))
     if checks and _failed_check(root, aid, api):
         lines.extend([
@@ -2343,7 +2346,7 @@ def render(core: Any, root: Path, state: Mapping[str, Any], api: Mapping[str, An
         ])
         return "\n".join(lines) + "\n"
     options = f"--run-dir {_quote(root)} --action {_quote(aid)} --result {_quote(result)}"
-    lines.append("When done: use this exact callback; the script selects what follows.")
+    lines.append("When done: exact callback only.")
     lines.append(f"Call this when done: {_command(core)} done {options}")
-    lines.append("If blocked, preserve evidence and follow recovery; do not call done.")
+    lines.append("If blocked, preserve evidence; recover, not done.")
     return "\n".join(lines) + "\n"

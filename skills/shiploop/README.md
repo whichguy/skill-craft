@@ -178,10 +178,39 @@ keeps it unfinished even though its review found only polish.
 
 The executable [continuation policy](scripts/shiploop_until.py) declares an
 adaptation of standalone until-loop **0.1.3**, source commit
-`7fb7057056552438fa39ccf11b70fa7c63f80077`. The separately installed skill
-inspected for this documentation on 2026-09-12 was **0.2.0**. These are different
-version lines: the embedded adaptation is not a live import, automatic update,
-or claim of feature parity with the installed skill.
+`7fb7057056552438fa39ccf11b70fa7c63f80077`. A selective refresh reviewed
+standalone **0.2.1** at `7d24bbc` (including integration safeguards in
+`4430f89`) on 2026-09-13. These are different version lines: the embedded
+adaptation is not a live import, automatic update, or claim of feature parity
+with the installed skill.
+
+The refresh adopts settled original-prompt consistency checks, safe handling
+of script-owned log/ignore targets, and literal `--name=value` transport. It
+also adapts the skill's reassessment guidance into each ordinary action packet:
+identify unmet criteria, gain useful new evidence or change strategy, and
+distinguish all-clause success from a blocker. Required metadata remains in
+the selected Markdown artifacts; no `.until-loop/` sidecar or `working.md`
+authority is introduced.
+
+These file checks reject preexisting unsafe aliases and non-regular control
+files before reads or destructive writes. They are not a sandbox against a
+concurrent actor with permission to replace the run directory, link an inode
+between checks and writes, or rewrite both copies of authoritative intent.
+Use a separately protected workspace when that adversary is in scope.
+
+Every packet assumes a fresh context, even between review, plan and apply.
+Only the script selects the next action and counts accepted cycles. An initial
+result is a candidate, not completion; subsequent substantive review-and-improve
+cycles continue until two consecutive completed trivial-only reviews, fixes and
+checks included, then fresh final gates. A missing prerequisite is incomplete,
+and a passing narrow test proves only the behavior it actually checks.
+
+For high-risk or subjective review, the packet recommends an available,
+authorized read-only evaluator. Its evidence goes into existing review and
+learning fields; it cannot choose a transition, waive a test, or certify a
+whole run. Otherwise disclose self-check. Repeated self-assessment is not proof
+of exhaustive correctness. A bounded cold-context pilot is useful evidence for
+its particular case, not a cross-host reliability benchmark.
 
 | Concern | ShipLoop's embedded use | Separate standalone until-loop |
 |---|---|---|
@@ -302,7 +331,7 @@ SKILL_ROOT=/absolute/path/to/shiploop
 
 cd "$REPO"
 python3 "$SKILL_ROOT/scripts/shiploop" init \
-  --repo "$REPO" --run-dir "$RUN_DIR" --prompt "Implement …"
+  --repo "$REPO" --run-dir "$RUN_DIR" --prompt='Implement …'
 ```
 
 The first packet requests `preflight`. Inspect the committed Git baseline,
@@ -1604,7 +1633,7 @@ The compact stdout packet is authoritative for the current action. The command
 surface is:
 
 ```sh
-shiploop init     --repo REPO [--run-dir RUN] --prompt TEXT
+shiploop init     --repo REPO [--run-dir RUN] --prompt=TEXT
 shiploop next     --run-dir RUN
 shiploop status   --run-dir RUN
 shiploop report   --run-dir RUN
@@ -1612,23 +1641,28 @@ shiploop plan-status --run-dir RUN --loop STEP_PLAN_LOOP
 shiploop context  --run-dir RUN --section SECTION --offset 0 --limit 4000 [--digest SHA256]
 shiploop context  --run-dir RUN --section review-history --record ARCHIVE_PATH --offset 0 --limit 4000 [--digest SHA256]
 shiploop complete --run-dir RUN --action ACTION --result RESULT.md
-shiploop verify   --run-dir RUN --action ACTION --manifest CHECKS.md [--reason TEXT]
-shiploop planning-verify  --run-dir RUN --action ACTION --manifest CHECKS.md [--reason TEXT] [--timeout N]
+shiploop verify   --run-dir RUN --action ACTION --manifest CHECKS.md [--reason=TEXT]
+shiploop planning-verify  --run-dir RUN --action ACTION --manifest CHECKS.md [--reason=TEXT] [--timeout N]
 shiploop planning-upgrade --run-dir RUN --action ACTION
 shiploop history  --run-dir RUN --action ACTION --limit 1 --skip N [--full]
 shiploop history  --run-dir RUN --action ACTION --limit 1 --skip N --full --max-chars 4000
 shiploop journal  --run-dir RUN --action ACTION --result PROPOSALS.md
 shiploop journal  --run-dir RUN --target outer --operation append --action PARENT_ACTION --result REQUEST_RESULT.md
 shiploop journal  --run-dir RUN --target outer --operation resolve --action OUTER_ACTION --result REQUEST_RESULT.md
-shiploop repair   --run-dir RUN --action ACTION --reason TEXT
-shiploop merge-recover --run-dir RUN --action ACTION --reason TEXT
+shiploop repair   --run-dir RUN --action ACTION --reason=TEXT
+shiploop merge-recover --run-dir RUN --action ACTION --reason=TEXT
 shiploop replan   --run-dir RUN --action ACTION --result CORRECTIVE_PLAN.md
-shiploop revisit  --run-dir RUN --action ACTION --to survey|research|behavior|spec --reason TEXT
-shiploop pause    --run-dir RUN --reason TEXT
+shiploop revisit  --run-dir RUN --action ACTION --to survey|research|behavior|spec --reason=TEXT
+shiploop pause    --run-dir RUN --reason=TEXT
 shiploop resume   --run-dir RUN
-shiploop halt     --run-dir RUN --reason TEXT
+shiploop halt     --run-dir RUN --reason=TEXT
 shiploop migrate  --run-dir RUN
 ```
+
+`TEXT` is literal data: use one `--name=value` argument, including with
+structured argv. In a shell single-quote it, escaping embedded `'` as `'\''`.
+For example `--reason='--help'` records that literal reason instead of parsing
+it as an option. Never paste raw requests into double-quoted shell source.
 
 Use absolute paths for `--result` and `--manifest` when the working directory is
 ambiguous. `verify`, `planning-verify`, `history`, `journal`, `repair`,

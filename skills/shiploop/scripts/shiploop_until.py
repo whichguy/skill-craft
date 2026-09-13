@@ -4,6 +4,8 @@ Adapted from the repeat/verify/continue contract of until-loop 0.1.3,
 scripts/until-loop (local source commit 7fb7057056552438fa39ccf11b70fa7c63f80077,
 declared MIT). This is an internal adaptation, not the standalone CLI. See
 references/execution-planning.md for provenance and intentional differences.
+Action reasoning guidance also adapts until-loop 0.2.1 at 7d24bbc; the
+standalone runtime and its state/completion semantics are not imported.
 
 The repeated unit is a review-and-improve cycle: review changes, consider
 improvements, plan from recent full Git messages, implement, check and commit.
@@ -22,6 +24,14 @@ from typing import Any
 
 class UntilError(ValueError):
     """The completed-pass evidence cannot support a continuation decision."""
+
+
+def action_reasoning() -> str:
+    """Bound probabilistic judgment to the script's current cold action."""
+    return (
+        "Fresh context: read selected Markdown. Record gaps/new evidence; adapt failed strategies. "
+        "Check all clauses; missing proof is incomplete. Only scripts advance/count cycles."
+    )
 
 
 def review_improve_cycle(history_limit: int) -> str:

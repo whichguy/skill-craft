@@ -66,7 +66,7 @@ The 0.9 CLI intentionally replaces `update`, `start-step`, `complete-step`,
 ```sh
 CLI="$SKILL_ROOT/scripts/shiploop"
 
-python3 "$CLI" init --repo "$REPO" --run-dir "$RUN_DIR" --prompt "…"
+python3 "$CLI" init --repo "$REPO" --run-dir "$RUN_DIR" --prompt='…'
 python3 "$CLI" next --run-dir "$RUN_DIR"
 python3 "$CLI" status --run-dir "$RUN_DIR"
 python3 "$CLI" report --run-dir "$RUN_DIR"
@@ -74,22 +74,37 @@ python3 "$CLI" plan-status --run-dir "$RUN_DIR" --loop "$STEP_PLAN_LOOP"
 python3 "$CLI" context --run-dir "$RUN_DIR" --section iteration --offset 0 --limit 4000
 python3 "$CLI" done --run-dir "$RUN_DIR" --action "$ACTION" --result /absolute/result.md
 python3 "$CLI" complete --run-dir "$RUN_DIR" --action "$ACTION" --result /absolute/result.md
-python3 "$CLI" verify --run-dir "$RUN_DIR" --action "$ACTION" --manifest /absolute/checks.md [--reason "why the manifest changed"] [--timeout 60]
-python3 "$CLI" planning-verify --run-dir "$RUN_DIR" --action "$ACTION" --manifest /absolute/planning-checks.md [--reason "why the manifest changed"] [--timeout 60]
+python3 "$CLI" verify --run-dir "$RUN_DIR" --action "$ACTION" --manifest /absolute/checks.md [--reason='why the manifest changed'] [--timeout 60]
+python3 "$CLI" planning-verify --run-dir "$RUN_DIR" --action "$ACTION" --manifest /absolute/planning-checks.md [--reason='why the manifest changed'] [--timeout 60]
 python3 "$CLI" planning-upgrade --run-dir "$RUN_DIR" --action "$ACTION"
 python3 "$CLI" history --run-dir "$RUN_DIR" --action "$ACTION" --limit "$HISTORY_LIMIT" --skip 0 [--full]
 python3 "$CLI" history --run-dir "$RUN_DIR" --action "$ACTION" --limit 1 --skip N --full --max-chars 4000
 python3 "$CLI" journal --run-dir "$RUN_DIR" --action "$ACTION" --result /absolute/proposals.md
 python3 "$CLI" journal --run-dir "$RUN_DIR" --target outer --operation append --action "$PARENT_ACTION" --result /absolute/request.md
 python3 "$CLI" journal --run-dir "$RUN_DIR" --target outer --operation resolve --action "$OUTER_ACTION" --result /absolute/request.md
-python3 "$CLI" repair --run-dir "$RUN_DIR" --action "$ACTION" --reason "specific defect found after verification"
+python3 "$CLI" repair --run-dir "$RUN_DIR" --action "$ACTION" --reason='specific defect found after verification'
 python3 "$CLI" replan --run-dir "$RUN_DIR" --action "$ACTION" --result /absolute/corrective-plan.md
-python3 "$CLI" revisit --run-dir "$RUN_DIR" --action "$ACTION" --to research --reason "correct research evidence before execution"
-python3 "$CLI" pause --run-dir "$RUN_DIR" --reason "specific external or user blocker"
+python3 "$CLI" revisit --run-dir "$RUN_DIR" --action "$ACTION" --to research --reason='correct research evidence before execution'
+python3 "$CLI" pause --run-dir "$RUN_DIR" --reason='specific external or user blocker'
 python3 "$CLI" resume --run-dir "$RUN_DIR"
-python3 "$CLI" halt --run-dir "$RUN_DIR" --reason "terminal reason"
+python3 "$CLI" halt --run-dir "$RUN_DIR" --reason='terminal reason'
 python3 "$CLI" migrate --run-dir "$RUN_DIR"
 ```
+
+Use one `--name=value` argument for arbitrary text, including `--prompt` and
+`--reason`, even with structured argv. In a shell use literal single quoting
+and escape embedded `'` as `'\''`; quotes alone do not make a separate value
+such as `--help` unambiguous to argparse. Do not interpolate raw user text into
+double-quoted source. Preserve original request bytes, including line endings.
+
+After transaction recovery, the settled `prompt.md` bytes must equal the
+authoritative `state.md` prompt plus the initialization newline for fresh runs;
+recovered legacy prompts retain their exact original bytes without that extra LF. A missing,
+unsafe or conflicting prompt is rejected without rewriting either copy or
+advancing. Restore the known original artifact; never choose a preferred copy
+from chat memory. Legacy unrecoverable-prompt diagnostics remain distinct.
+This check does not freeze mutable environment observations or pending plans:
+those retain their existing journal/revision contracts.
 
 `HISTORY_LIMIT` above means the limit printed by the current packet: seven for
 a versioned new run and ten for a legacy run without the marker. It is an
@@ -523,7 +538,7 @@ immutable original-evidence rule. This uses the same result/done interaction.
 
 ### Abandoned merge intent
 
-`merge-recover --run-dir RUN --action ACTION --reason TEXT` is the explicit
+`merge-recover --run-dir RUN --action ACTION --reason=TEXT` is the explicit
 recovery after an unsuccessful merge has been reconciled outside ShipLoop.
 It never runs Git abort, reset, or merge. The current action must still be
 `merge`; the step branch must retain the target in its ancestry, not already be

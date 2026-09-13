@@ -5,7 +5,7 @@ Use only the current packet action ID:
 ~~~sh
 python3 "$SKILL_ROOT/scripts/shiploop" verify \
   --run-dir "$RUN_DIR" --action "$ACTION_ID" --manifest /absolute/checks.md \
-  [--reason "why the manifest changed"]
+  [--reason='why the manifest changed']
 
 python3 "$SKILL_ROOT/scripts/shiploop" history \
   --run-dir "$RUN_DIR" --action "$ACTION_ID" --limit 1 --skip 0 --full

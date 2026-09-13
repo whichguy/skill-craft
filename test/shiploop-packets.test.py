@@ -518,6 +518,8 @@ class PacketTests(unittest.TestCase):
             "Until:",
             "Continue while:",
             "Evidence required:",
+            "Fresh context: read selected Markdown",
+            "Only scripts advance/count cycles.",
             "Bounded context:",
             "Result template",
             "\"baseline\": \"committed-head\"",

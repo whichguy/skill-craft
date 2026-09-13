@@ -4,7 +4,7 @@ Use the ShipLoop 0.9 action protocol. Start a fresh run with:
 
 ~~~sh
 python3 "$SKILL_ROOT/scripts/shiploop" init \
-  --repo "$REPO" [--run-dir "$REPO/.shiploop"] --prompt "<user request>"
+  --repo "$REPO" [--run-dir "$REPO/.shiploop"] --prompt='<user request>'
 ~~~
 
 Read the resulting action packet, retrieve only the durable context it points

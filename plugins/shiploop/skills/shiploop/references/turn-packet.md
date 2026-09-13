@@ -69,14 +69,15 @@ Checks: shiploop verify --run-dir <run> --action <id> --manifest <absolute-check
 ~~~
 
 Every manifest has a concrete lint command and required test commands. If the
-manifest changes for a current action, run verify --reason "<why coverage
-changed>"; failed attempts remain in check-attempts/ and do not become
+manifest changes for a current action, run `verify --reason='<why coverage changed>'`;
+failed attempts remain in check-attempts/ and do not become
 invisible.
 
 For Improve and execution-plan review, the packet prints a bounded history
 command. The default output is a compact SHA/subject index and a pointer to the
-durable page. Read the latest ten commits or all available commits before
-completing review.
+durable page. Read the required full commit bodies before completing review:
+new runs require the latest seven, unmarked legacy runs retain ten, and a
+shorter history uses all available commits. Follow the packet's bound policy.
 Retrieve a specific full body without flooding the context:
 
 ~~~text
