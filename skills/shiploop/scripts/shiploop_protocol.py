@@ -36,6 +36,7 @@ import shiploop_artifacts as artifacts
 import shiploop_outer_work as outer_work
 import shiploop_observations as observations
 import shiploop_system_context as system_context
+import shiploop_system_tests as system_tests
 
 
 class ProtocolError(RuntimeError):
@@ -350,9 +351,15 @@ def validate_state(state):
     platform_revalidation_current(state)
     history_policy.resolve(state)
     system_context.context_current(state)
-    for marker in ("outer_work_protocol_version", "delivery_objective_protocol_version", "observation_protocol_version"):
+    for marker in ("outer_work_protocol_version", "delivery_objective_protocol_version", "observation_protocol_version", "system_test_protocol_version"):
         need(marker not in state or (type(state[marker]) is int and state[marker] == 1),
              f"unsupported {marker}")
+    pending_system_tests = state.get("system_test_pending", [])
+    need(isinstance(pending_system_tests, list) and len(pending_system_tests) <= 128
+         and all(isinstance(item, str) and re.fullmatch(r"[A-Za-z][A-Za-z0-9._:-]{0,159}", item)
+                 for item in pending_system_tests)
+         and len(set(pending_system_tests)) == len(pending_system_tests),
+         "invalid pending system-test discovery IDs")
     if "outer_work_sha256" in state or "outer_work_revision" in state:
         need(isinstance(state.get("outer_work_sha256"), str)
              and re.fullmatch(r"[0-9a-f]{64}", state["outer_work_sha256"])
@@ -478,6 +485,160 @@ def check_target(core, root, state):
     else:
         produces = store.read_record(root / "lifecycle.md")["acceptance"]
     return repo_for(root, state), produces
+
+
+def system_test_catalog(core, root, state, dag=None, *, previous=None):
+    """Validate the one authoritative catalog; never trust its readable view."""
+    dag = core.load_dag(root) if dag is None else dag
+    lifecycle = store.read_record(safe_run_path(root, "lifecycle.md"))
+    locked = []
+    if previous is not None:
+        need(isinstance(previous, dict) and isinstance(previous.get("steps"), list),
+             "previous system-test DAG must have a steps list")
+        need(all(isinstance(step, dict) and isinstance(step.get("id"), str)
+                 for step in previous["steps"]), "previous system-test DAG has malformed steps")
+    for step in (previous or {}).get("steps", []):
+        rec = core.load_receipt(root, step["id"])
+        if rec and rec.get("status") in ("running", "complete"):
+            locked.append(step["id"])
+    try:
+        catalog = system_tests.validate(
+            dag, lifecycle, required=state.get("system_test_protocol_version") == 1,
+            previous=previous, locked_steps=locked,
+        )
+    except system_tests.SystemTestError as exc:
+        raise ProtocolError(str(exc)) from exc
+    if catalog is not None and catalog["cases"]:
+        need(contract_protocol.enabled(state),
+             "system-test cases require the versioned step-contract protocol; upgrade before adding pending test activities")
+        for case in catalog["cases"]:
+            rec = core.load_receipt(root, case["test_step"])
+            need(not rec or rec.get("status") != "complete" or isinstance(rec.get("contract_done"), dict),
+                 "cannot certify a legacy completed step as a system test; add a new pending test activity")
+    return catalog
+
+
+def write_system_test_view(core, root, state, dag, writes):
+    if system_test_catalog(core, root, state, dag) is not None:
+        # The catalog already participates in the plan hash and transaction.
+        # This file is presentation only, never a second mutable state store.
+        state["system_test_protocol_version"] = 1
+        writes["system-test-requirements.md"] = system_tests.render(dag)
+
+
+def system_test_context(core, root, state):
+    dag = core.load_dag(root)
+    need(isinstance(dag, dict), "system-test requirements are not planned yet; complete sequence first")
+    need(hashlib.sha256(safe_run_path(root, "backchain/plan.md").read_bytes()).hexdigest()
+         == state.get("plan_sha256"), "system-test authoritative plan hash drift")
+    need(system_test_catalog(core, root, state, dag) is not None,
+         "legacy run has no system-test catalog; add it through a validated replan")
+    body = system_tests.render(dag)
+    if state.get("system_test_pending"):
+        body += "\n## Pending system-test changes\n\n" + "\n".join(
+            "- " + ident for ident in state["system_test_pending"]
+        ) + "\nRead their knowledge entries; map each to a changed/new SYS case and pending system-test owner at replan.\n"
+    return body
+
+
+def require_system_test_closure(core, root, state):
+    """Reconcile catalog obligations with immutable, real test proof at quality."""
+    dag = core.load_dag(root)
+    catalog = system_test_catalog(core, root, state, dag)
+    if catalog is None:
+        return
+    need(not state.get("system_test_pending"), "global system-test discoveries still require a mapped replan")
+    by_id = {step["id"]: step for step in dag["steps"]}
+    for case in catalog["cases"]:
+        rec = core.load_receipt(root, case["test_step"])
+        need(rec and rec.get("status") == "complete", f"system test {case['id']} is unfinished")
+        closure = rec.get("contract_closure", {})
+        need(closure.get("fully_closed") is True
+             and closure.get("integrated_sha") == rec.get("merged_sha"),
+             f"system test {case['id']} lacks integrated contract evidence")
+        saved = rec.get("contract_done", {})
+        envelope = saved.get("record", {}).get("envelope", {})
+        aid = envelope.get("verify_action")
+        need(isinstance(aid, str) and re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]{1,160}", aid),
+             f"system test {case['id']} has no verification action")
+        path = safe_run_path(root, f"checks/{aid}.md")
+        need(path.is_file() and hashlib.sha256(path.read_bytes()).hexdigest() == saved.get("check_sha256"),
+             f"system test {case['id']} check evidence changed or is missing")
+        normalized = contracts.validate_discharge(
+            by_id[case["test_step"]], saved.get("evidence"), phase="final-verify",
+            verify_record=store.read_record(path), head=envelope.get("head"),
+            # This is an integrity audit of the completed test's own target
+            # epoch, not a claim that its result proves a later environment.
+            # Current observations remain bound at active Ready/Done gates;
+            # changed requirements need fresh corrective test activities.
+            environment_identity=envelope.get("environment_identity"),
+            artifact_identity=envelope.get("artifact_identity"),
+        )
+        need(normalized["record"] == saved.get("record"),
+             f"system test {case['id']} contract proof changed")
+
+
+def validate_system_test_review(root, state, stage, result):
+    """Make a declared global-test change an obligation, not ignorable prose."""
+    review = result.get("system_test_review")
+    need(isinstance(review, dict) and set(review) == {"decision", "evidence", "discovery_ids"},
+         "system_test_review requires decision, evidence and discovery_ids")
+    decision = review["decision"]
+    need(decision in ("no-change", "revise"), "system_test_review decision must be no-change or revise")
+    text_field(review, "evidence")
+    ids = review["discovery_ids"]
+    need(isinstance(ids, list) and all(isinstance(item, str) and item.strip() for item in ids)
+         and len(ids) == len(set(ids)), "system_test_review discovery_ids must be unique strings")
+    if decision == "no-change":
+        need(not ids, "no-change system_test_review cannot declare pending discovery_ids")
+        return
+    need(stage != "quality", "system-test requirements need revision; use replan with corrective pending test steps before quality")
+    if stage == "post-inner":
+        need(result.get("plan_decision") == "revise", "system_test_review revise requires a revised pending DAG and plan")
+    elif stage == "carry-forward":
+        discoveries = result.get("discoveries", [])
+        need(isinstance(discoveries, list), "carry-forward discoveries must be a list")
+        available = {row.get("id") for row in discoveries if isinstance(row, dict)
+                     and row.get("domain") == "test-strategy" and row.get("disposition") == "pending-replan"}
+        ledger = knowledge.read_bound(root, state)
+        available.update(row["id"] for row in ledger.get("obligations", []) if row.get("status") == "open")
+        need(ids and set(ids) <= available,
+             "system_test_review revise requires matching pending-replan discovery_ids; journal the global-test requirement")
+
+
+def require_system_test_replan(core, root, state, result, writes):
+    """Discharge declared global-test discoveries only into typed pending work."""
+    pending = state.get("system_test_pending", [])
+    review = result.get("system_test_review", {})
+    need(isinstance(review, dict), "system_test_review must be an object")
+    if not pending and review.get("decision") != "revise":
+        return
+    need(result.get("plan_decision") == "revise" and "backchain/plan.md" in writes,
+         "global system-test changes require a revised pending DAG")
+    old = core.load_dag(root)
+    new = store.loads(writes["backchain/plan.md"])
+    before_steps = {step["id"]: step for step in old["steps"]}
+    before_cases = {case["id"]: case for case in old.get("system_tests", {}).get("cases", [])}
+    changed_owners = set()
+    for case in new.get("system_tests", {}).get("cases", []):
+        if before_cases.get(case["id"]) == case:
+            continue
+        owner = next(step for step in new["steps"] if step["id"] == case["test_step"])
+        receipt = core.load_receipt(root, owner["id"])
+        if (owner != before_steps.get(owner["id"])
+                and owner.get("activity") in ("system-test-pre", "system-test-post")
+                and (not receipt or receipt.get("status") not in ("running", "complete"))):
+            changed_owners.add(owner["id"])
+    need(changed_owners, "system-test replan requires a changed/new SYS case and matching changed/new pending system-test activity")
+    mapping = result.get("pending_obligation_map", [])
+    need(isinstance(mapping, list), "system-test pending_obligation_map must be a list")
+    for ident in pending:
+        rows = [row for row in mapping if isinstance(row, dict) and row.get("id") == ident]
+        need(len(rows) == 1 and isinstance(rows[0].get("steps"), list)
+             and all(isinstance(item, str) for item in rows[0]["steps"])
+             and set(rows[0]["steps"]) & changed_owners,
+             f"system-test discovery {ident} must map to a changed/new system-test owner")
+    state.pop("system_test_pending", None)
 
 
 def require_outer_product_baseline(core, root, state):
@@ -2912,6 +3073,7 @@ def validate_candidate(core, root, writes, state):
         if (root / "lifecycle.md").exists():
             lifecycle = store.read_record(root / "lifecycle.md")
             validate_lifecycle_steps(dag, lifecycle)
+            system_test_catalog(core, root, state, dag, previous=core.load_dag(root))
             platform_gaps = platform_and_risk_lifecycle_gaps(
                 state, env, lifecycle, dag
             )
@@ -3080,6 +3242,7 @@ def revision(core, root, state, result, writes):
     writes["backchain/plan.md"] = store.dumps(new, "ShipLoop dependency sequence")
     writes["plan.md"] = text_field(result, "plan")
     validate_candidate(core, root, writes, state)
+    write_system_test_view(core, root, state, new, writes)
     state["plan_sha256"] = hashlib.sha256(
         writes["backchain/plan.md"].encode()
     ).hexdigest()
@@ -5291,11 +5454,15 @@ def complete(
         need(previous == fingerprint, "conflicting replay of a completed action")
         return
     need(aid == state["action"]["id"], "stale action ID; run next")
+    if state.get("system_test_protocol_version") == 1 and stage in ("carry-forward", "post-inner", "quality"):
+        validate_system_test_review(root, state, stage, result)
     carry_result = None
     if stage == "carry-forward":
-        carry_input = result
+        carry_input = dict(result)
+        if state.get("system_test_protocol_version") == 1:
+            carry_input.pop("system_test_review", None)
         if "knowledge_revision" not in result and state.get("objective_protocol_version") == 1:
-            carry_input = dict(result, knowledge_revision=state["knowledge_revision"])
+            carry_input = dict(carry_input, knowledge_revision=state["knowledge_revision"])
         carry_result = knowledge.validate_result(
             carry_input,
             expected_revision=state["knowledge_revision"],
@@ -5421,6 +5588,7 @@ def complete(
         writes["backchain/plan.md"] = store.dumps(dag, "ShipLoop dependency sequence")
         writes["plan.md"] = text_field(result, "plan")
         validate_candidate(core, root, writes, state)
+        write_system_test_view(core, root, state, dag, writes)
         old_dag = core.load_dag(root)
         if old_dag:
             proposed = {x["id"]: x for x in dag["steps"]}
@@ -5577,6 +5745,10 @@ def complete(
             action(state, "implement", "carry-forward")
         elif stage == "carry-forward":
             need(carry_result is not None, "carry-forward result was not validated")
+            if result.get("system_test_review", {}).get("decision") == "revise":
+                state["system_test_pending"] = sorted(set(state.get("system_test_pending", []))
+                                                     | set(result["system_test_review"]["discovery_ids"]))
+                need(len(state["system_test_pending"]) <= 128, "too many pending global system-test discoveries; replan before adding more")
             verified(core, root, state, it["check_action"])
             validate_carry_forward_dispositions(core, root, rec, carry_result)
             previous_knowledge = bound_knowledge(root, state)
@@ -5762,6 +5934,7 @@ def complete(
             obligations = knowledge.open_pending_obligations(current_knowledge)
             old_dag = core.load_dag(root)
             revision(core, root, state, result, writes)
+            require_system_test_replan(core, root, state, result, writes)
             if obligations:
                 need(
                     result.get("plan_decision") == "revise",
@@ -5838,6 +6011,7 @@ def complete(
         writes["coverage.md"] = store.dumps(result, "Outer review coverage")
         action(state, "residual", "quality")
     elif stage == "quality":
+        require_system_test_closure(core, root, state)
         verified(core, root, state)
         text_field(result, "test_review")
         state["outer_check_action"] = aid
@@ -5926,6 +6100,36 @@ PROMPTS = {
     "publish": "Perform publication only if authorized and specified. When listed, read context --section system-context and reconcile selected target roles/interfaces with current environment and dependency evidence; it does not grant a writer, promotion, or remote effect. Inspect any existing delivery before retrying to avoid duplicate external effects. Verify the actual entrypoint and applicable delivery smoke cases against documented expected outcomes; record the tested environment/build, not a local substitute. Required failed or unknown delivery checks keep publication unfinished. Result: summary, artifact, verification, evidence. These publication facts remain host-reported.",
     "handoff": "When listed, read context --section system-context and reconcile its selected role/interface/interaction constraints with the recorded environment and dependency evidence. Summarize delivery, checked acceptance, limitations and a prioritized proposal list from shiploop-improvements.md. Link test-case expectations/results, concise function/API docs and product README; distinguish observed outcomes, actual environment/version, manual evidence and unrun checks. Result: summary, journal ([] if no additions). Do not apply generic skill proposals automatically.",
 }
+
+SYSTEM_TEST_SECTIONS = {
+    stage: ("catalog-shape", "placement-and-dependency-rules")
+    for stage in ("preflight", "approach", "survey", "research", "behavior", "spec", "sequence")
+}
+SYSTEM_TEST_SECTIONS.update({
+    stage: ("reassessment-change-and-closure", "safety-boundary")
+    for stage in ("carry-forward", "post-inner", "quality", "publish", "handoff")
+})
+for _system_test_stage in ("research", "spec", "sequence"):
+    PROMPTS[_system_test_stage] += (
+        " Investigate global system-test requirements separately from local step tests: "
+        "which integrated journeys need several steps, what must run before deployment, "
+        "what requires the actual deployed target, and what is legitimately not applicable? "
+        "Sequence records dag.system_tests with stable SYS IDs, exact expected outcomes, "
+        "environment, prerequisite step IDs, test-step/T-ID owners and deployment linkage. "
+        "Required post-deployment tests need lifecycle.publish=dag and explicit publication "
+        "then system-test-post steps; system-test-pre steps precede publication."
+    )
+for _system_test_stage in ("carry-forward", "post-inner", "quality"):
+    PROMPTS[_system_test_stage] += (
+        " For a system-test-protocol run, read context --section system-test-requirements "
+        "and include system_test_review={decision:'no-change|revise',evidence:'case IDs, "
+        "requirement/prerequisite/environment deltas or no-change rationale',discovery_ids:[]}. "
+        "Carry-forward revise must name pending-replan discovery IDs; post-inner revise "
+        "must revise the DAG/plan; quality revise must use replan, not complete. "
+        "At carry-forward journal future work as test-strategy/pending-replan; "
+        "at post-inner revise pending DAG steps/catalog if needed. Never erase completed "
+        "system-test obligations or count an outer-work journal entry as test proof."
+    )
 
 PROMPTS.update(
     {
@@ -6388,6 +6592,7 @@ def planning_upgrade(core, root, state, aid):
         "lifecycle.md",
         "plan.md",
         "backchain/plan.md",
+        "system-test-requirements.md",
         "preparation.md",
     }
     planning_dir = root / "planning"
@@ -6752,6 +6957,7 @@ def main(core, argv=None):
                     "outer-work",
                     "migration",
                     "system-context",
+                    "system-test-requirements",
                     "observation",
                 ),
             )
@@ -6849,6 +7055,7 @@ def main(core, argv=None):
                     delivery_objective_protocol_version=1,
                     outer_work_protocol_version=1,
                     observation_protocol_version=1,
+                    system_test_protocol_version=1,
                 )
                 initial_writes = {}
                 initialize_knowledge(root, state, initial_writes)
@@ -7222,6 +7429,8 @@ def main(core, argv=None):
                             body = store.dumps(current_iteration, title)
                     elif args.section == "knowledge":
                         _, scope, body = knowledge_context(root, state)
+                    elif args.section == "system-test-requirements":
+                        body = system_test_context(core, root, state)
                     elif args.section == "planning":
                         kind = planning.kind_for_stage(state["stage"])
                         if kind is None:
@@ -7860,6 +8069,7 @@ def main(core, argv=None):
                         )
                     }
                     revision(core, root, state, result, writes)
+                    require_system_test_replan(core, root, state, result, writes)
                     revised_dag = store.loads(writes["backchain/plan.md"])
                     need(
                         any(

@@ -259,6 +259,12 @@ classification. This is host judgment, not a new field, score or proof of qualit
 
 ## Iteration
 
+Also read the current global catalog through `context --section
+system-test-requirements` when offered. Cross-step tests have separate
+prerequisite-owned activities; they never replace this step's required tests.
+Use the [system-test contract](system-tests.md#reassessment-change-and-closure)
+for the carry-forward/replan checkpoint and pre/post-deployment test sequencing.
+
 Use [Test cases](#test-cases), [Surface selection](#surface-selection), or
 [Documentation](#documentation) only when the current step needs their record
 shape or selection rules; do not load unrelated sections or past cycles.

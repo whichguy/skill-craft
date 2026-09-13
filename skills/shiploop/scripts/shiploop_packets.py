@@ -984,6 +984,27 @@ def _step_plan_template(stage: str, state: Mapping[str, Any], api: Mapping[str, 
 
 
 def _execution_template(stage: str, state: Mapping[str, Any], info: Mapping[str, Any]) -> tuple[dict[str, Any] | None, list[str]]:
+    template, notes = _execution_base_template(stage, state, info)
+    if template is not None and state.get("system_test_protocol_version") == 1:
+        if stage == "sequence":
+            template["dag"]["system_tests"] = {
+                "version": 1,
+                "phases": {phase: {"status": "not-applicable", "reason":
+                    "Example only: this isolated artifact has no integrated or deployed system boundary."}
+                    for phase in ("pre_deployment", "post_deployment")},
+                "cases": [],
+            }
+            notes.append("Assess both system-test phases; do not copy the example N/A decisions without evidence. Read system-tests.md#catalog-shape for required case rows and graph placement.")
+        if stage in ("carry-forward", "post-inner", "quality"):
+            template["system_test_review"] = {
+                "decision": "no-change",
+                "evidence": "Current SYS IDs, prerequisites, expected outcomes and environment versus new learnings; evidence why unchanged or what must be revised.",
+                "discovery_ids": [],
+            }
+    return template, notes
+
+
+def _execution_base_template(stage: str, state: Mapping[str, Any], info: Mapping[str, Any]) -> tuple[dict[str, Any] | None, list[str]]:
     if stage == "preflight":
         return {"summary": "Committed baseline, runtime, test surfaces, and preparation needs recorded.", "baseline": "committed-head"}, []
     if stage == "approach":
@@ -1758,7 +1779,7 @@ def _check_manifest_lines(
         "```",
         "Use real, safe lint and test command argument lists from the current environment; the displayed argv markers are not executable commands or a waiver.",
         "Every exact acceptance string below must appear in one or more test rows; retain the lint row and do not use a shell string.",
-        "Never put a ShipLoop CLI invocation (including context, next, verify, planning-verify, complete, or done) against this same --run-dir in check argv: it recursively waits on the active run lock. Read the packet's immutable candidate and selected files directly instead.",
+        "Never put a ShipLoop CLI invocation against this same --run-dir in check argv: it waits on the held run lock. Read immutable candidates and selected files directly.",
         "Required test acceptance (copy exactly): " + _line_json(acceptance),
         f"Manifest contract: {ref_dir / 'action-protocol.md'}#check-manifest-and-evidence",
     ]
@@ -1827,6 +1848,7 @@ def _outer_objective_replan_lines(
         "Product-defect route: do not patch this objective session or try to pass a failing check. Preserve the defect evidence and create corrective pending work.",
         "Alternative corrective result schema: summary, plan_decision:'revise', plan_reason, complete plan, complete dag, and optional journal.",
         "The revised DAG must preserve the frozen goal and initial state, leave completed/running steps unchanged, and add a corrective pending step.",
+        "For global-test changes include system_test_review with decision:revise and a changed/new SYS case plus its changed/new pending system-test owner.",
         f"Call for a discovered product defect: {_command(core)} replan {options}",
         "Use that replan command instead of complete or done when a product defect is discovered.",
     ]
@@ -1843,6 +1865,7 @@ def _guidance_lines(core: Any, stage: str, api: Mapping[str, Any]) -> list[str]:
         ("Objective-loop guidance", "objective-loops.md", _value(api, "OBJECTIVE_SECTIONS", {})),
         ("Local merge guidance", "activities/implement.md", {"merge": ("merge-and-recovery",)}),
         ("Coverage evidence guidance", "activities/residual.md", {"coverage": ("coverage",)}),
+        ("System-test guidance", "system-tests.md", _value(api, "SYSTEM_TEST_SECTIONS", {})),
     )
     selected = []
     for label, filename, mapping in mappings:
@@ -1850,7 +1873,7 @@ def _guidance_lines(core: Any, stage: str, api: Mapping[str, Any]) -> list[str]:
         if sections:
             selected.append((label, filename, sections))
     shared = len(selected) > 1
-    lines = [f"Guidance directory: {ref_dir} (resolve the following filenames here)."] if shared else []
+    lines = [f"Guidance directory: {ref_dir}"] if shared else []
     for label, filename, sections in selected:
         path = filename if shared else ref_dir / filename
         lines.append(f"{label}: read only {path}" + ", ".join(f"#{section}" for section in sections))
@@ -2522,6 +2545,15 @@ def render(core: Any, root: Path, state: Mapping[str, Any], api: Mapping[str, An
 
     lines.extend(_environment_projection(core, root, state)[0])
     lines.extend(revalidation_lines)
+    if state.get("system_test_protocol_version") == 1:
+        if state.get("plan_sha256"):
+            lines.extend([
+                "Global system tests: read context --section system-test-requirements (authority: backchain/plan.md; requirements view is derived). Keep local tests mandatory; journal discoveries and revise pending test work.",
+            ])
+        elif stage in ("preflight", "approach", "survey", "research", "behavior", "spec", "sequence"):
+            lines.append("System tests: sequence must decide pre/post cases before coding.")
+    elif state.get("plan_sha256"):
+        lines.append("Legacy run: global system-test catalog is not certified unless supplied through validated planning; do not infer prior coverage.")
     lint_oracle = getattr(core, "LINT_ORACLE_LINE", None)
     if isinstance(lint_oracle, str) and lint_oracle.strip():
         lines.append(lint_oracle.strip())
@@ -2530,6 +2562,8 @@ def render(core: Any, root: Path, state: Mapping[str, Any], api: Mapping[str, An
     step = info.get("step")
     if isinstance(step, Mapping):
         step_display_changed = False
+        if step.get("activity") in ("system-test-pre", "system-test-post"):
+            lines.append("System-test activity: " + str(step["activity"]) + ". The scheduler has selected this test-authoring and verification step after its graph prerequisites. Plan cases, author/refine real tests, run them and fix failures; retain expected versus observed target/build evidence. Never repeat a deployment merely to rerun a test. The ordinary Until improvement and fresh lint/test gates still apply.")
         lines.append(f"Step: {step.get('id', state.get('active_step'))} | receipt: {root / 'steps' / (str(state.get('active_step')) + '.md')}")
         lines.extend(
             _snippet(
@@ -2627,6 +2661,8 @@ def render(core: Any, root: Path, state: Mapping[str, Any], api: Mapping[str, An
             available.append("knowledge")
     if info.get("system_context_view"):
         available.append("system-context")
+    if state.get("system_test_protocol_version") == 1 and state.get("plan_sha256"):
+        available.append("system-test-requirements")
     if (
         not info.get("objective_binding")
         and isinstance(stage, str)

@@ -158,6 +158,12 @@ class ShipLoopActionWalkFixture(unittest.TestCase):
         label="result",
         include_research_assessment=True,
     ):
+        if self.state().get("system_test_protocol_version") == 1 and self.state()["stage"] in ("carry-forward", "post-inner", "quality"):
+            payload = dict(payload)
+            payload.setdefault("system_test_review", {
+                "decision": "no-change", "evidence": "SYS-INTEGRATED-001 remains mapped to the dependent S2 check after S1; no new global requirement or deployment boundary was discovered.",
+                "discovery_ids": [],
+            })
         if (
             include_research_assessment
             and self.state()["stage"] == "review"
@@ -379,6 +385,20 @@ class ShipLoopActionWalkFixture(unittest.TestCase):
     def initial_dag(self):
         return {
             "contract_version": 1,
+            "system_tests": {
+                "version": 1,
+                "phases": {
+                    "pre_deployment": {"status": "required", "reason": "The dependent output must be verified after the first artifact is integrated."},
+                    "post_deployment": {"status": "not-applicable", "reason": "This local protocol fixture has no deployment boundary."},
+                },
+                "cases": [{
+                    "id": "SYS-INTEGRATED-001", "phase": "pre_deployment",
+                    "requirement": "The dependent artifact passes after the first artifact is integrated.",
+                    "expected_outcome": self.product_two, "environment": "isolated local worktree",
+                    "prerequisites": ["S1"], "test_step": "S2", "test_id": "T-S2",
+                    "deployment_step": None,
+                }],
+            },
             "goal": self.done_sentence,
             "initial_state": ["repository exists"],
             "steps": [
@@ -393,6 +413,7 @@ class ShipLoopActionWalkFixture(unittest.TestCase):
                     self.product_two,
                     [{"need": self.product_one, "from": "S1"}],
                     "Create the dependent verified artifact",
+                    activity="system-test-pre",
                 ),
             ],
             "unresolved": [],
@@ -1100,6 +1121,9 @@ TC-01 and TC-02 map the two exact-output acceptance criteria to durable checks.
             self.assertEqual(self.state()["stage"], "objective-review")
         else:
             kind = self.start_objective(candidate, label=label)
+        # Continue from the accepted candidate, including versioned fixture
+        # acknowledgements, not the caller's pre-submission object.
+        candidate = store.read_record(self.run_dir / self.objective_receipt()["candidate_path"])
         current = self.run_objective_pass(
             kind,
             1,

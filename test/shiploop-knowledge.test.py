@@ -266,6 +266,11 @@ class ShipLoopKnowledgeTests(ACTION.ShipLoopActionWalkFixture):
                 )
             ]
         )
+        secret["system_test_review"] = {
+            "decision": "no-change",
+            "evidence": "The credential-rejection fixture does not change the mapped global system-test requirement.",
+            "discovery_ids": [],
+        }
         secret_result = self.record("secret-carry-forward", secret)
         rejected = self.cli(
             "complete", "--action", first_action, "--result", secret_result, code=2
@@ -289,6 +294,11 @@ class ShipLoopKnowledgeTests(ACTION.ShipLoopActionWalkFixture):
                 )
             ]
         )
+        credential_url["system_test_review"] = {
+            "decision": "no-change",
+            "evidence": "The credential-URL rejection fixture does not change the mapped global system-test requirement.",
+            "discovery_ids": [],
+        }
         credential_result = self.record("credential-url-carry-forward", credential_url)
         rejected = self.cli(
             "complete", "--action", first_action, "--result", credential_result, code=2

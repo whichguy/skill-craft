@@ -40,6 +40,7 @@ for the implementation, provenance, and limits of that claim.
 - [A worked example from request to report](#a-worked-example-from-request-to-report)
 - [Requirements modeling and traceability](#requirements-modeling-and-traceability)
 - [Execution-plan, per-step evidence, tests, and documentation](#execution-plan-per-step-evidence-tests-and-documentation)
+- [Global system-test catalog](#global-system-test-catalog)
 - [Ownership, context, and recovery](#ownership-context-and-recovery)
 - [Durable artifacts and their readers](#durable-artifacts-and-their-readers)
 - [Where a new learning belongs](#where-a-new-learning-belongs)
@@ -1254,6 +1255,84 @@ iteration duties, and deployment/handoff rules. Read only the section named by
 the packet. Product documentation belongs in the product worktree and Git, not
 in ShipLoop session state.
 
+## Global system-test catalog
+
+For a new marked run, the accepted `backchain/plan.md` DAG also owns one typed,
+global `system_tests` catalog. It declares the run-wide pre-deployment and
+post-deployment cases that cross ordinary feature-step boundaries. The protocol
+derives a readable `system-test-requirements.md` from the accepted plan; it is a
+view, not a second writable state file or a second test catalog.
+
+```mermaid
+flowchart LR
+    C["Accepted DAG system_tests catalog"] --> PRE["system-test-pre ordinary DAG step"]
+    PRE --> PUB["DAG publish step"]
+    PUB --> POST["system-test-post ordinary DAG step"]
+    PRE --> Q["Quality: required case receipts and reassessment"]
+    POST --> Q
+    Q --> H["Handoff and report link catalog"]
+```
+
+System-test activities use the existing step-plan, implementation, verification,
+Improve, two-trivial-pass, commit, and merge lifecycle. They are not new outer
+stages and do not authorize publication. Case prerequisites fan in to their test
+step; a pre-deployment test precedes the DAG publication producer, while a
+post-deployment test depends on that producer and actual target readiness.
+Required real post-deployment testing therefore requires `lifecycle.publish:
+dag`, not `outer-loop`; an outer-loop publish is host-reported evidence and
+cannot be a test-authoring gate.
+
+A catalog case names its stable `SYS-...` ID, phase, requirement, expected
+outcome, environment, prerequisite DAG step IDs, test-owner step, exact `T-...` contract,
+and deployment-step link. It does not establish that a test ran or that a remote
+target has the claimed identity. The executable step manifest and retained
+evidence must inspect and assert the real selected target/build; a reused local
+or mock result cannot establish that remote boundary.
+
+At carry-forward, post-inner, and quality, record the required strict
+`system_test_review`: `{decision: "no-change"|"revise", evidence: "case IDs
+plus concrete rationale/deltas", discovery_ids: []}`. `no-change` has no
+discovery IDs; carry-forward `revise` names current test-strategy/pending-replan
+discoveries or open obligations, post-inner `revise` requires a pending
+DAG/plan revision, and quality `revise` remains blocked for replan.
+Carry-forward persists those IDs in script-owned `state.system_test_pending`.
+Cold `context --section system-test-requirements` renders the current accepted
+plan and outstanding IDs rather than trusting a derived view that is altered,
+missing, or out of date. An outer replan flagged `system_test_review: revise`
+also requires the pending DAG/plan revision, and every pending ID must map to
+its typed system-test owner; unrelated work cannot discharge it. Route new
+discoveries through current knowledge and pending-only replanning; record later
+external dependencies in outer-work only as obligations, never as passing test
+evidence.
+Completed/running case definitions are immutable: changed scope, assertion, or
+target adds corrective cases/steps and requires fresh convergence. Quality reads
+the current catalog, case receipts/contracts, global reassessment, and current
+`lifecycle.acceptance` checks before it can close. It validates historical
+immutable-case proof against its saved target epoch without comparing it to
+current knowledge merely because corrective work exists; a changed requirement
+needs a newly completed corrective case. The revised DAG must add/change the
+`SYS-...` case and its pending typed system-test owner, with the pending mapping
+reaching that owner; a prose ID mention or unrelated completed step is not
+closure. The final report identifies the catalog in its source inventory and
+retains limitations.
+
+An older run without `system_test_protocol_version: 1` remains compatible but is
+un-certified against this catalog until supplied through its supported planning
+route. Unknown or
+access-blocked real boundaries are not `not-applicable`; pause or replan with
+explicit authority. See [Global system-test catalog](references/system-tests.md)
+for the exact V1 shape, dependency rules, generic example, and production/fuzz
+safety boundary.
+
+The runtime can prove graph ordering, recorded check execution, required IDs,
+and bound receipt/digest relationships. It cannot prove remote target identity,
+the semantic meaning of an assertion, or continuing external freshness after a
+check. Evidence strings and case-ID mentions are host judgment; schema checks
+cannot prove comprehension, assertion adequacy, or that every relevant case was
+considered. The host must inspect the actual target/build and judge assertion
+adequacy; ShipLoop deliberately does not add a fake generic remote-attestation
+string as a substitute.
+
 ## Ownership, context, and recovery
 
 The script, Markdown files, Git, check tools, and host have different jobs:
@@ -1868,6 +1947,9 @@ change persistent configuration, or publish a product.
 - [Testing and documentation contract](references/testing-and-documentation.md):
   case records, surface selection, compact contracts, README review, and
   deployment evidence.
+- [Global system-test catalog](references/system-tests.md): accepted-DAG V1
+  catalog, ordinary test-step placement, pre/post-deployment fan-in, immutable
+  corrective changes, quality closure, and safety boundaries.
 - [Behavioral requirements contract](references/behavioral-requirements.md):
   evidence-led discovery, product flows and states, `R-/F-/T-` traceability,
   breadth review, and model-to-case links.

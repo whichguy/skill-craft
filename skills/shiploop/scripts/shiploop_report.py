@@ -20,6 +20,7 @@ from typing import Any
 
 import shiploop_objectives as objectives
 import shiploop_outer_work as outer_work
+import shiploop_system_tests as system_tests
 
 
 REPORT_SCHEMA_VERSION = 1
@@ -556,6 +557,24 @@ def _assess(
     journal = _list_record(records, texts, errors, "shiploop-improvements.md")
     final_check_valid = False
     validated_outer_work: dict[str, Any] | None = None
+    validated_system_tests: dict[str, Any] | None = None
+
+    # The catalog lives inside an already-selected authoritative plan record;
+    # do not add a report-only file read or treat a derived Markdown view as a
+    # source of truth.  Invalid host data is withheld from display rather than
+    # rendered as requirements with an implied passing status.
+    system_tests_enabled = state.get("system_test_protocol_version") == 1
+    catalog_present = "system_tests" in plan
+    if system_tests_enabled or catalog_present:
+        try:
+            validated_system_tests = system_tests.validate(
+                plan,
+                lifecycle,
+                required=system_tests_enabled,
+            )
+        except system_tests.SystemTestError as exc:
+            if terminal:
+                _add_error(errors, f"system-test requirements are unavailable: {exc}")
 
     if terminal:
         if state.get("delivery_objective_protocol_version") == 1:
@@ -664,6 +683,7 @@ def _assess(
         "handoff": handoff,
         "journal": journal,
         "outer_work": validated_outer_work,
+        "system_tests": validated_system_tests,
         "final_check_valid": final_check_valid,
     }
 
@@ -1000,6 +1020,7 @@ def _render_html(
             ("achievement", "Evidence"),
             ("outputs", "Outputs"),
             ("tests", "Tests"),
+            ("system-tests", "System tests"),
             ("learnings", "Learnings"),
             ("limits", "Limits"),
         )
@@ -1011,6 +1032,7 @@ def _render_html(
         _outer_evidence(records, model.get("outer_work")),
         _outputs(model, records),
         _tests(model, records),
+        _system_test_requirements(model),
         _learnings_and_plan(records),
         _limits_and_proposals(model, records, metadata),
         _source_inventory(metadata),
@@ -1489,6 +1511,70 @@ def _tests(model: Mapping[str, Any], records: Mapping[str, Any]) -> str:
 <h3 style="margin-top:18px">Checks failures and retries</h3>
 {attempts_html}
 </section>"""
+
+
+def _system_test_requirements(model: Mapping[str, Any]) -> str:
+    """Render validated DAG requirements without claiming live test proof."""
+    catalog = model.get("system_tests")
+    if not isinstance(catalog, Mapping):
+        return ""
+    phases = catalog.get("phases")
+    cases = catalog.get("cases")
+    if not isinstance(phases, Mapping) or not isinstance(cases, list):
+        return ""
+    phase_rows: list[list[str]] = []
+    for phase in system_tests.PHASES:
+        decision = phases.get(phase)
+        if isinstance(decision, Mapping):
+            phase_rows.append(
+                [
+                    _esc(phase, limit=80),
+                    _esc(decision.get("status", "unavailable"), limit=80),
+                    _esc(decision.get("reason", "Not recorded")),
+                ]
+            )
+    case_rows: list[list[str]] = []
+    for case in cases[:_MAX_ROWS]:
+        if not isinstance(case, Mapping):
+            continue
+        prerequisites = case.get("prerequisites")
+        prereq_text = ", ".join(prerequisites) if isinstance(prerequisites, list) else ""
+        deployment = case.get("deployment_step") or "none"
+        test_step = case.get("test_step", "")
+        test_id = case.get("test_id", "")
+        case_rows.append(
+            [
+                _esc(case.get("id", ""), limit=180),
+                _esc(case.get("phase", ""), limit=80),
+                _esc(case.get("requirement", "")),
+                _esc(case.get("expected_outcome", "")),
+                _esc(case.get("environment", "")),
+                _esc(f"steps/{test_step}.md; {test_id}", limit=300),
+                _esc(
+                    f"deployment: {deployment}; prerequisites: {prereq_text or 'none'}",
+                    limit=600,
+                ),
+            ]
+        )
+    if not case_rows:
+        case_rows.append(
+            [
+                "No required cases",
+                "Not applicable",
+                "Not recorded",
+                "Not recorded",
+                "Not recorded",
+                "Not recorded",
+                "Not recorded",
+            ]
+        )
+    return f'''<section id="system-tests"><h2>Global system-test requirements</h2>
+<p class="muted">Requirements are read from the validated <code>backchain/plan.md</code> catalog. Test-owner paths and IDs are historical receipt pointers, not a live target check, test-pass status, or remote identity claim.</p>
+<h3>Phase decisions</h3>
+{_table(("Phase", "Decision", "Reason"), phase_rows)}
+<h3 style="margin-top:18px">Declared cases</h3>
+{_table(("Case", "Phase", "Requirement", "Expected outcome", "Environment", "Historical receipt pointer", "Deployment / prerequisites"), case_rows)}
+</section>'''
 
 
 def _final_check(
