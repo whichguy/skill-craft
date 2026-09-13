@@ -1364,9 +1364,10 @@ def _stage_lifecycle(
         return [
             review_improve_cycle(history_limit),
             "Objective: " + objective,
-            "Until: two verified/audited trivial passes, no open findings, and a fresh final gate. "
-            "Continue while: material or incomplete proof remains. "
+            "Until: this loop only—two verified/audited trivial passes, no open findings, and a fresh final gate. "
+            "Continue while: open findings remain or required proof is missing. "
             "Evidence required: " + evidence,
+            'Delivery completion: only ShipLoop\'s actual terminal "It\'s all complete." response with its achievement report ends this run. Otherwise follow the next packet.',
         ]
 
     objectives = _value(api, "objectives") or _value(api, "shiploop_objectives")
@@ -2116,9 +2117,10 @@ def _quality_orientation_lines(orientation: Mapping[str, Any]) -> list[str]:
                     parts.append(f"current candidate set {rendered}{digest_text}")
     if not parts:
         return []
-    lines = ["Quality: " + "; ".join(parts) + "."]
+    lines = []
     if has_initial_locator:
-        lines.append("Historical assessment reader: context --section quality-baseline (not current proof).")
+        lines.append("Read first: context --section quality-baseline (history, not current proof).")
+    lines.append("Quality: " + "; ".join(parts) + ".")
     return lines
 
 

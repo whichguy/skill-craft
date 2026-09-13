@@ -1417,8 +1417,17 @@ entire specification into every model window.
 | Current phase, task, loop and action | Orient after a reset; a nested plan review is not product implementation, and its passes do not count as product cycles. |
 | Broader purpose and spec reference | Understand the intended outcome and consult the actual referenced file when a tradeoff needs more insight. Before a spec exists, use the original request; a draft is not an approved contract. |
 | Candidate and assessment state | Distinguish the initial output, earlier recorded reviews, and the latest candidate. “No findings” before the first review does not mean quality passed. |
+| Read-first historical-quality reader | When shown, read the bounded `quality-baseline` before judging. Its position before the summary makes the reading order explicit; historical assessment is not current approval. Missing provenance remains unavailable. |
+| Local Until versus delivery completion | Two completed trivial passes close only their owning loop after its final gate. Follow the script's next packet; only its actual terminal completion response with report ends the delivery. An active packet quoting that rule is not terminal. |
 | Selected sources and required checks | Load the relevant evidence, not every archive. Optional background does not make assigned acceptance criteria or checks optional. |
 | Exact callback or recovery instruction | Complete only the current action; supporting context, history, plan-status, and check output do not choose a new task or certify the whole objective. |
+
+Packet-length measurements are **guidelines, not release gates**. The tests can
+report a packet above its suggested size without failing it. Clarity and complete
+instructions take priority; avoid repetition and use reference readers where
+helpful, but do not trim required context, safety conditions or exact callbacks
+to satisfy an arbitrary character count. Actual paging, input-validation and
+sensitive-data projection limits remain enforced.
 
 For example, a CSV application's inner task might add malformed-row handling
 because the broader spec requires trustworthy summaries. A delivery task might

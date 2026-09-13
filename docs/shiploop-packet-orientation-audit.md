@@ -15,6 +15,13 @@ flowchart TD
 
 ## Original audit verdict
 
+**Later policy clarification:** the user specified that total packet character
+counts are guidelines, not hard gates. The historical count-based findings and
+test results below remain historical; their recommendation to retain strict
+packet-size limits is superseded by the
+[proposal closeout](shiploop-proposal-closeout.md). Paging, validation and
+sensitive-data limits remain enforced.
+
 The core intention is carried through structurally, but only partially in the language returned to the LLM. Scripts own the current action and convergence gates; packets expose durable readers and an exact completion command. However, understanding *where this action fits, why it exists, what was already assessed, and what remains unassessed* still requires interpreting dispersed labels, JSON, and references.
 
 The recommended rule is: **every packet must work without prior conversation; retained context may help within the same quality loop, but must never be required or authoritative.** This allows continuity without making recovery depend on memory. It does not require deliberately clearing context between review, planning, and application in that loop.

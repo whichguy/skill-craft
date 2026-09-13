@@ -36,6 +36,7 @@ for suite in \
   test/shiploop-report.test.py \
   test/shiploop-packets.test.py \
   test/shiploop-orientation.test.py \
+  test/shiploop-loop-scope.test.py \
   test/shiploop-orientation-context.test.py \
   test/shiploop-orientation-integration.test.py \
   test/shiploop-reference-routing.test.py \

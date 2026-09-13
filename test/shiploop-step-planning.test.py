@@ -16,6 +16,8 @@ import sys
 import tempfile
 import unittest
 
+from shiploop_test_support import report_advisory_size
+
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS = ROOT / "skills" / "shiploop" / "scripts"
@@ -423,7 +425,7 @@ broader-plan direction.
         self.assertIn("unit", first_packet)
         self.assertIn("mock/fake", first_packet)
         self.assertIn("end-to-end", first_packet)
-        self.assertLess(len(first_packet), 12000)
+        report_advisory_size("initial step-planning packet", first_packet, 12000)
 
         # A staged product edit exists before the first plan pass and must not
         # be swallowed by the audit-only planning commit.
@@ -456,7 +458,7 @@ broader-plan direction.
         self.assertIn("--section step-context", cold_packet)
         self.assertIn("History index", cold_packet)
         self.assertIn("Knowledge pages:", cold_packet)
-        self.assertLess(len(cold_packet), 14000)
+        report_advisory_size("cold step-planning packet", cold_packet, 14000)
         context = self.cli(
             "context", "--section", "step-context", "--offset", "0", "--limit", "8000"
         ).stdout

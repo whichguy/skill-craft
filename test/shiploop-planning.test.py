@@ -19,6 +19,8 @@ import sys
 import tempfile
 import unittest
 
+from shiploop_test_support import report_advisory_size
+
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS = ROOT / "skills" / "shiploop" / "scripts"
@@ -1816,7 +1818,7 @@ TC-01 validates acceptance; TC-02 validates rejection and repetition.
         self.assertIn("streak", packet.lower())
         self.assertIn("Planning-loop guidance: read only", packet)
         self.assertIn("planning-loops.md#review", packet)
-        self.assertLess(len(packet), 7000)
+        report_advisory_size("cold behavior planning packet", packet, 7000)
         self.assertNotIn(".until-loop", packet)
         context = self.cli("context", "--section", "behavior", "--offset", "0", "--limit", "4000").stdout
         self.assertIn("Fixture behavior model (cold)", context)

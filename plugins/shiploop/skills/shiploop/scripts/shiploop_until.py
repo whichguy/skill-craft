@@ -40,7 +40,7 @@ def review_improve_cycle(history_limit: int) -> str:
     if type(history_limit) is not int or history_limit < 1:
         raise UntilError("review-and-improve history limit must be a positive integer")
     return (
-        "Review-and-improve cycle (current stage only):\n"
+        "Review-and-improve cycle (owning loop):\n"
         "1. Review changes.\n"
         "2. Consider improvements.\n"
         f"3. Plan improvements using the last {history_limit} full Git commit bodies "
@@ -48,7 +48,7 @@ def review_improve_cycle(history_limit: int) -> str:
         "4. Implement every approved improvement, including trivial fixes. "
         "Run required checks and create the verbose learning commit, including Key learnings.\n"
         "5. Repeat until two consecutive completed trivial reviews, not callbacks. "
-        "Material resets; finish fixes/checks before counting; then fresh final gates."
+        "Material changes reset the streak; apply fixes, run checks, and commit before counting a pass."
     )
 
 

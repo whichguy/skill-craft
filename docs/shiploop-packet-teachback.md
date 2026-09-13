@@ -166,14 +166,17 @@ did not unambiguously mean strings. The revised wrapper says "array of strings".
 The final paused response obeyed that shape and retained the recovery boundary.
 This is not evidence of a general prompt-quality improvement rate.
 
-Two grounded **proposals, not applied runtime changes**, emerge:
+Two grounded **proposals, not applied at that pilot baseline**, emerged:
 
 1. Near active `Until` text, explicitly distinguish owning-loop convergence
    from whole-run completion; require a later terminal response for the latter.
 2. Revisit placement of the historical-quality reader within the review
    reading sequence, preserving that historical evidence is not current proof.
 
-Test those wording candidates on repeated, held-out cases before adoption.
+The later [remaining-proposal closeout](shiploop-proposal-closeout.md) tracks
+their implementation and validation separately. The observations above remain
+historical, not evidence for the changed runtime.
+Test wording candidates on repeated, held-out cases before adoption.
 No trial establishes actual coding, test execution, or delivery success.
 The semantic grader evaluated reported intent, not an instrumented execution
 trace. Neither a successful paused response nor green probe tests establish

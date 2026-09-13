@@ -10,6 +10,8 @@ import sys
 import tempfile
 import unittest
 
+from shiploop_test_support import report_advisory_size
+
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS = ROOT / "skills/shiploop/scripts"
 sys.path.insert(0, str(SCRIPTS))
@@ -286,7 +288,7 @@ class ProtocolTests(unittest.TestCase):
         self.assertTrue((self.run_dir / "state.md").is_file())
         self.assertFalse((self.run_dir / "state.json").exists())
         self.assertEqual(self.state()["stage"], "preflight")
-        self.assertLess(len(out), 7000)
+        report_advisory_size("bootstrap packet", out, 7000)
         before = self.state()["action"]["id"]
         self.cli("next")
         self.assertEqual(self.state()["action"]["id"], before)
@@ -1071,7 +1073,7 @@ class ProtocolTests(unittest.TestCase):
                     if line.startswith("Testing/docs guidance:")
                 ]
 
-                self.assertLess(len(packet), 7000)
+                report_advisory_size(f"packet stage {stage}", packet, 7000)
                 self.assertIn(f"Action: packet-{stage}", packet)
                 self.assertIn("Bounded context:", packet)
                 self.assertIn("Result format:", packet)
@@ -1083,7 +1085,7 @@ class ProtocolTests(unittest.TestCase):
                 )
                 if stage in expected:
                     self.assertEqual(len(guidance), 1)
-                    self.assertLess(len(guidance[0]), 500)
+                    report_advisory_size(f"testing/docs guidance {stage}", guidance[0], 500)
                     self.assert_guidance_path(packet, guidance[0], reference)
                     self.assertEqual(
                         set(re.findall(r"#([a-z0-9-]+)", guidance[0])),
@@ -1299,7 +1301,7 @@ schema or sidecar is needed.
                     if line.startswith("Behavior-model guidance:")
                 ]
 
-                self.assertLess(len(packet), 7000)
+                report_advisory_size(f"behavior packet stage {stage}", packet, 7000)
                 self.assertIn(f"Action: behavior-{stage}", packet)
                 self.assertIn("Bounded context:", packet)
                 self.assertIn("Result format:", packet)
@@ -1311,7 +1313,7 @@ schema or sidecar is needed.
                 )
                 if stage in expected:
                     self.assertEqual(len(guidance), 1)
-                    self.assertLess(len(guidance[0]), 500)
+                    report_advisory_size(f"behavior-model guidance {stage}", guidance[0], 500)
                     self.assertTrue(
                         guidance[0].startswith("Behavior-model guidance: read only ")
                     )

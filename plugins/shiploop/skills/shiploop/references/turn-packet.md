@@ -27,6 +27,24 @@ first recorded assessment, latest candidate, and current checks. Historical
 assessments may explain prior decisions but cannot certify changed work or
 restore a repaired epoch's clean streak. Missing provenance is explicitly
 unavailable, never reconstructed from chat.
+When available, `Read first: context --section quality-baseline` precedes the
+quality summary. Use that bounded reader before judging the current candidate;
+it supplies historical context, not current approval. Its absence is not an
+instruction to invent an assessment or search arbitrary result files.
+
+`Until` describes this action or owning loop, not whole-run success. A loop
+exit returns control to the script: follow its next packet. The separate
+`Delivery completion` line describes the later terminal message and report
+required for overall completion; quoting that rule in an active packet is not
+the terminal response itself. Do not stop at two trivial passes if the script
+has assigned further work.
+
+Packet-length targets are advisory readability guidelines, not completion gates.
+Prefer a clear, self-contained assignment over shaving characters to meet a
+number. Measure growth and remove duplication when useful, but do not remove
+purpose, required readers, safety conditions, evidence requirements or the exact
+callback just to fit a target. This does not relax bounded context/history
+paging, validated input sizes, or redaction/truncation safeguards.
 
 ~~~text
 ShipLoop 0.9.0 | <phase> / <stage> | revision <n>
@@ -43,8 +61,9 @@ Current task: <active step / receipt / iteration when applicable>
 Why now: <how this assigned work contributes to the purpose and current gate>
 Quality baseline: <candidate and recorded assessment status; historical is not current proof>
 Objective: <the bounded outcome for this action>
-Until: <the recorded terminal predicate for this loop/action>
+Until: <the local exit predicate for this loop/action>
 Continue while: <what remains unfinished>
+Delivery completion: <terminal response required; otherwise follow the next packet>
 Evidence required: <current evidence and schema fields>
 Environment: <frozen baseline and current overlay pointer>
 Bounded context: <section commands and current digest pointers>

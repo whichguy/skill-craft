@@ -17,6 +17,8 @@ from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
+from shiploop_test_support import report_advisory_size
+
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS = ROOT / "skills/shiploop/scripts"
@@ -688,7 +690,7 @@ class PacketTests(unittest.TestCase):
         template = json.loads(rendered_template)
         self.assertIn("done_evidence", template)
         self.assertNotIn("display_navigation", template)
-        self.assertLess(len(packet), 15000)
+        report_advisory_size("step-contract packet", packet, 15000)
 
     def test_static_step_plan_template_is_not_replaced_by_a_bounded_projection(self):
         import shiploop_packets
@@ -851,7 +853,7 @@ class PacketTests(unittest.TestCase):
         packet = "\n".join(lines)
         self.assertIn("10 required platform revalidation row(s) are omitted", packet)
         self.assertIn("--section platform-revalidation --offset 0 --limit 4000", packet)
-        self.assertLess(len(packet), 6000)
+        report_advisory_size("platform-revalidation packet", packet, 6000)
 
     def test_dynamic_evidence_samples_have_an_aggregate_bound_without_extra_schema_keys(self):
         import shiploop_packets

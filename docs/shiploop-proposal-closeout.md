@@ -1,0 +1,228 @@
+# ShipLoop remaining-proposal closeout
+
+Baseline: `8b98d57`, 2026-09-13. Scope: previously proposed ShipLoop work,
+not a new architecture or live deployment. Unrelated Review Coverage changes
+are excluded. Status: audit complete; both remaining packet clarifications are
+implemented. Final regression verification is recorded below.
+
+**User clarification during closeout:** total packet character counts are
+readability guidelines, not hard limits. That supersedes the earlier size-gate
+assumption in this audit and the older packet-orientation audit. Required
+context, clear language and safety take priority over hitting a count.
+
+## Disposition ledger
+
+| Proposal group | Current disposition and evidence |
+|---|---|
+| One-action interface, Markdown authority, HTML completion report | Implemented: `shiploop_delivery.py:220`, `shiploop-action-walk.test.py:2077`. |
+| Ready/Done, local microplans, nested and product Until cycles | Implemented: README local-microplan section; `shiploop-step-planning.test.py:268`. No second scheduler needed. |
+| Seven full Git bodies, learned-plan traceability, hostile-history handling | Implemented: `shiploop_history.py:208`, `shiploop-history-pages.test.py:71` and `:430`. |
+| Generic platform/environment discovery, security/fuzz and maintenance decisions | Implemented: `shiploop_discovery.py:256`, `shiploop_risk.py:334`. Actual scheduled maintenance needs a selected product and authorized producer; no generic updater is installed. |
+| Historical quality review and merge/migration recovery | Implemented/superseded: `shiploop-quality-review-closeout.md`; `shiploop-merge-recovery.test.py:167`, `shiploop-migration-prompt.test.py:129`. |
+| KISS/YAGNI constitution and test-plan/refinement duties | Implemented: README current-controls section; `testing-and-documentation.md:19` and `:65`. A universal handler refactor remains deliberately deferred without a demonstrated need. |
+| System context, artifact readers, observations and outer-work journal | Implemented: README artifact inventory; `shiploop_system_context.py:198`, `shiploop-system-context.test.py:290`. |
+| Global system-test requirements, prerequisite ordering and evidence closure | Implemented in `8b98d57`: `shiploop_system_tests.py:181`, `shiploop-system-tests-protocol.test.py:333`. |
+| Validated Until-Loop safeguards | Implemented: `shiploop-until-refresh-plan.md`; exact prompt, literal transport, filesystem and cold-context regressions. No standalone runtime or second authority. |
+| Original orientation audit and reference routing | Implemented in `73933af`/`115240e`; their audit closeouts distinguish historical findings from current behavior. |
+| Teach-back: loop exit versus whole-run completion | **Closed here:** the owning-loop label and adjacent terminal/report boundary now appear in converging packets. See `shiploop-loop-scope.test.py`. |
+| Teach-back: historical-quality reader placement | **Closed here:** the existing reader precedes the quality summary and explicitly says to read it first, without promoting history to current proof. See `shiploop-loop-scope.test.py`. |
+| Packet character counts | **New clarification applied here:** total-packet size checks are advisory diagnostics. Paging, input validation and sensitive-data projection limits remain enforced. |
+| Universal semantic oracle, legacy-history reconstruction, vendor integrations, live-host certification | Intentionally deferred/rejected, not unfinished approved features. Missing evidence stays unknown; external operations require specific targets and authority. |
+
+## Prompt audit and decisions
+
+### Q1 — Does satisfying Until finish the delivery?
+
+**Info-gain: 0.95.** This resolves the most consequential observed confusion.
+At baseline, the shared cycle said “current stage only” and the renderer
+presented an unqualified `Until` predicate.
+The skill card correctly reserves success for a terminal message with report.
+The original pilot and a new baseline plan response conflate those levels.
+
+**Answer:** label the cycle's owning loop, qualify its local exit, and put the
+whole-run terminal condition immediately beside it. Preserve every transition,
+callback, convergence gate and permission boundary. Do not make the host predict
+future stages or treat an example terminal phrase as an actual terminal response.
+
+### Q2 — Should prior quality evidence be mandatory current proof?
+
+**Info-gain: 0.90.** The existing reader is correct but was omitted by another
+fresh review reader. At baseline, `_quality_orientation_lines` placed a passive
+reader label after the summary. Its availability is already origin-bound.
+
+**Answer:** move the existing bounded reader before that summary and explicitly
+say to read it first. Preserve its historical-only status and omit it when no
+initial locator exists. Do not invent missing assessments, add read receipts,
+or load complete histories into the packet.
+
+## Remediation and validation plan
+
+| Priority | Change | Evidence required |
+|---|---|---|
+| HIGH | Distinguish local Until from terminal delivery next to the loop predicate. | All converging families retain exact callback/state behavior and explicit terminal/report authority. |
+| HIGH | Move the available historical reader before the quality summary. | Real CLI reader works, unavailable provenance stays unavailable, no cursor advance, no blocked callback. |
+| MEDIUM | Reconcile this ledger and the teach-back guide with current status. | Retain old observations as historical; document new evidence without claiming general model reliability. |
+
+The user requested implementation of remaining proposals, so these scoped
+changes are authorized. Write failing regressions first, then apply the
+smallest renderer/helper edits, measure packet size as an advisory signal, synchronize the
+derived plugin, and review. Use the existing native Python suites rather than
+the prompt-migration skill's illustrative npm commands (this repo has no npm
+test package). The ShipLoop skill is the contract under maintenance, not an
+instruction to create a self-modifying delivery run.
+
+Freeze the existing teach-back wrapper and seven-criterion rubric. Capture real
+baseline and candidate packets, use fresh readers without prior conclusions,
+repeat active cases and include a paused hold-out. Grade identity mechanically
+and interpretation separately; never execute an answer. Model trials are
+supplemental, not a replacement for deterministic runtime safety tests.
+
+## Evidence-first and interoperability decision
+
+Adopt these two inexpensive presentation changes: local tests and the pilot's
+two target criteria support them. They address reproduced navigation/completion confusion
+without a new state model, provider, dependency or permission. The contrary
+risks are packet growth, over-reading old evidence, and overfitting the rubric.
+Treat total-packet size as guidance, retain actual safety/paging limits, and
+preserve UNKNOWN for missing evidence.
+
+Primary guidance supports repeated trials, calibrated graders, and separating
+reported intent from observed outcomes: [Anthropic evaluation guidance](https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents).
+Selective references with useful metadata support the small-context approach:
+[Anthropic context engineering](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents).
+Neither source proves these exact packets work; local traces are decisive.
+
+ShipLoop remains script-backed and host-neutral: one CLI, script-selected
+transitions and Markdown state, thin skill card, canonical package plus derived
+plugin. Grok/Codex paths were verified as canonical symlinks. No other host
+installation or runtime was certified, refreshed, or silently substituted.
+
+## Validation closeout
+
+### Runtime and packaging
+
+The production runtime changes are presentation-only. They change neither `decide`, state
+schemas, transactions, callbacks, permissions nor convergence ownership. The
+embedded Until policy still requires verified, uniquely audited completed
+passes; the renderer clarifies that readiness is not terminal delivery.
+
+The first immutable snapshot (`d660eaa`) passed 123 targeted tests but failed
+the actual cold-planning packet bound at 7,042 characters. Redundant wording
+was shortened, not the limit. Snapshot `4a3f091` passed 125 distinct tests:
+
+| Suite or selector | Passed methods |
+|---|---:|
+| Protocol | 34 |
+| Packets | 36 |
+| Until policy | 10 |
+| New loop-scope regressions | 3 |
+| Orientation | 14 |
+| Historical quality context | 8 |
+| Public-CLI orientation integration | 4 |
+| Phase reference routing | 5 |
+| Teach-back probe | 9 |
+| Actual cold planning / legacy repair selector | 1 |
+| Actual cold nested step-planning selector | 1 |
+| **Total** | **125** |
+
+Independent review then found that the synthetic long-path orientation test
+stubbed out the lifecycle. Its new assertion failed before the helper was
+corrected; the strengthened test then caught a 7,081-character nested-plan
+packet. Shortening redundant nested/legacy wording restored the same 7,000
+limit in the primary checkout. Snapshot `0f79126` then exposed that the synthetic
+fixture's installation path grew with the checkout directory (7,211 characters),
+while both actual cold CLI selectors passed. Fixing only the synthetic package
+path made its layout independent of the checkout. Snapshot `7dbdd24` passed all
+125 targeted methods.
+
+The final review also requested restoring explicit open findings in the
+continuation line, rather than relying on “proof is incomplete” plus adjacent
+Until gates. The added assertion failed for all five tested converging families
+before the wording was fixed. Snapshot `3b2e8f1` passed 124 methods but its
+cold-planning size gate failed at 7,010 characters. Snapshot `b1e3c0b` passed all
+125 after further wording reductions. These size failures and reductions are
+historical diagnostics, not the desired long-term quality policy.
+
+The user then clarified that character counts should be guidelines. Total
+packet/prose size assertions now emit non-failing diagnostics, while bounded
+data projections, history/context pages and validation safeguards remain hard
+checks. Full, readable planning/legacy descriptions were restored. The final
+continuation wording explicitly says that open findings or missing required
+proof keep the loop active; only the actual terminal response with achievement
+report ends the run. The tests retain all semantic and callback assertions.
+Final immutable snapshot `963af51` passed **126 distinct targeted methods**:
+the same suite/selector inventory above, with orientation increased from 14 to
+15 by the direct oversized-advisory regression. Both actual CLI selectors pass:
+cold behavior planning measured 7,139 characters against a 7,000 guideline,
+and cold nested planning measured 14,044 against 14,000. Those are diagnostic
+measurements, not failures; all semantic and evidence assertions still run.
+The additional ten-method history-paging suite also passed on that snapshot,
+bringing final targeted coverage to **136 distinct passing methods**. This
+separately verifies the preserved enforced paging behavior.
+
+Independent final review found no actionable issue in the runtime, advisory
+helper, retained hard bounds, or canonical/package parity. The final commit
+differs from this tested snapshot only in audit closeout prose.
+
+This is targeted regression coverage, not a full-suite, live-host execution or
+deployment certification. Suggested packet sizes are not runtime caps, token
+counts, or substitutes for semantic review. A packet above a suggestion can be
+correct; a short packet missing context or safety instructions is not better.
+
+Scoped Ruff, native metadata validation for 17 skills, shell syntax, 127 local
+link destinations across five Markdown files, balanced fences, scoped plugin
+parity and diff checks passed. No changed diagram required rendering.
+The generic skill validator could not start because PyYAML is unavailable.
+No dependency was installed to conceal that limitation.
+
+### Fresh-context comprehension pilot
+
+The existing wrapper and seven-criterion rubric were held fixed. Real public-CLI
+packets were captured at baseline and after the two proposed changes, with no
+edited packet fixtures. This candidate precedes the final explicit open-findings
+clarification and readability/advisory-size edits; those final adjustments
+have deterministic and code-review coverage, not another fresh-reader trial.
+Nine fresh, isolated readers each received only one prompt: two
+baseline trials, three candidate review trials, three candidate planning trials,
+and one paused candidate hold-out. Replies were not executed. All nine passed
+mechanical identifier/path/callback checks; that result remains
+`NEEDS_SEMANTIC_REVIEW`, not semantic success.
+
+An independent grader assessed every applicable rubric criterion:
+
+| Case | Historical reader | Whole-run terminal authority | Full rubric result |
+|---|---|---|---|
+| Baseline review | FAIL: omitted reader | PASS | Not a pass; quality-cycle explanation UNKNOWN |
+| Baseline plan | PASS | UNKNOWN: described local gates | Not a pass; quality-cycle explanation UNKNOWN |
+| Candidate review, 3 trials | PASS in all 3 | PASS in all 3 | Not passes; quality-cycle explanation UNKNOWN |
+| Candidate plan, 3 trials | PASS in all 3 | PASS in all 3 | Not passes; quality-cycle explanation UNKNOWN |
+| Candidate paused, 1 trial | Correct recovery-only reads | No completion while paused | PASS on all applicable criteria |
+
+For example, candidate review 3 states that its callback “does not by itself
+complete the objective loop or delivery.” Candidate readers consistently label
+the quality baseline historical and not current proof. However, all six active
+candidate answers omit part of the full script-owned review/plan/apply/check/
+learning-commit explanation. That residual uncertainty is explicit: the pilot
+supports these two narrow changes, not general model reliability or a fully
+successful workflow. It does not justify a new scheduler or weaker gates.
+
+One separately saved answer accidentally duplicated `.shiploop` in a callback.
+Comparison with the original trial response identified an archival transcription
+error. The bad saved copy is retained separately; the exact original was
+restored and graded. It is not counted as another trial or a model correction.
+
+Temporary evidence is retained under
+`/tmp/shiploop-proposal-closeout.M2reUD` (baseline/candidate prompts, separate
+oracles, original answer copies, and `semantic-review.md`). The durable table
+above preserves the verdicts if those temporary files are later removed.
+These are same-model, small-sample observations with no recorded model-version
+or temperature controls, statistical claim, cross-host claim, or provider
+integration. Missing explanations remain UNKNOWN; no semantic oracle is added.
+
+### Completion boundaries
+
+All approved unfinished proposals found in the audit are now implemented.
+Deliberate deferrals in the ledger remain deferrals: no production operation,
+push, new service, scheduled updater, host certification or external permission
+change was performed. The skill card remains thin; its existing Until adaptation
+and Markdown-authoritative state remain the only delivery control path.
