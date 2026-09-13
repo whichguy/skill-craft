@@ -36,6 +36,7 @@ for suite in \
   test/shiploop-orientation-context.test.py \
   test/shiploop-orientation-integration.test.py \
   test/shiploop-reference-routing.test.py \
+  test/shiploop-teachback.test.py \
   test/shiploop-protocol.test.py \
   test/shiploop-history-pages.test.py \
   test/shiploop-merge-recovery.test.py \
