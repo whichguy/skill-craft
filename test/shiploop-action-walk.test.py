@@ -91,6 +91,8 @@ class ShipLoopActionWalkFixture(unittest.TestCase):
         self.records.mkdir()
         self.run_dir = self.repo / ".shiploop"
         self.counter = 0
+        self._trace_completed_actions = False
+        self.transition_trace = []
         self.env = dict(
             os.environ,
             PYTHONDONTWRITEBYTECODE="1",
@@ -149,6 +151,72 @@ class ShipLoopActionWalkFixture(unittest.TestCase):
     def action_id(self):
         return self.state()["action"]["id"]
 
+    def start_transition_trace(self):
+        """Capture only accepted public callbacks that advance Markdown state."""
+        self._trace_completed_actions = True
+        self.transition_trace = []
+
+    def record_completed_transition(self, before, after, action_id, *, source):
+        self.assertGreater(after["revision"], before["revision"])
+        self.assertIn(action_id, after["completed_actions"])
+        completed_stage = before["stage"]
+        if before["stage"] == "objective-finalize":
+            # Objective finalization deliberately completes its owning base
+            # stage through the protocol's internal stage override.  Do not
+            # generalize this to another stage or caller-provided transition.
+            binding = before.get("objective")
+            self.assertIsInstance(binding, dict)
+            self.assertIn(binding.get("kind"), objectives.KINDS)
+            completed_stage = binding["base_stage"]
+            self.assertEqual(
+                completed_stage, objectives.BASE_STAGES[binding["kind"]]
+            )
+        self.assertEqual(after["last_completion"]["action"], action_id)
+        self.assertEqual(after["last_completion"]["stage"], completed_stage)
+        self.transition_trace.append(
+            {
+                "action": action_id,
+                "source": source,
+                "from_phase": before["phase"],
+                "from_stage": before["stage"],
+                "completed_stage": completed_stage,
+                "from_step": before.get("active_step"),
+                "to_phase": after["phase"],
+                "to_stage": after["stage"],
+                "to_step": after.get("active_step"),
+                "revision": after["revision"],
+            }
+        )
+
+    def authoritative_snapshot(self, *receipt_paths):
+        """Return exact bytes for state, chronology, and selected receipts."""
+        snapshot = {}
+        for relative in ("state.md", "history.md", *receipt_paths):
+            path = self.run_dir / relative
+            self.assertTrue(path.is_file(), f"expected authoritative record: {path}")
+            snapshot[relative] = path.read_bytes()
+        return snapshot
+
+    def assert_authority_unchanged(self, before, *receipt_paths):
+        self.assertEqual(before, self.authoritative_snapshot(*receipt_paths))
+
+    def cold_next_is_read_only(self, *receipt_paths):
+        before = self.authoritative_snapshot(*receipt_paths)
+        packet = self.cli("next", "--run-dir", str(self.run_dir), cwd=self.root).stdout
+        self.assert_authority_unchanged(before, *receipt_paths)
+        return packet
+
+    def assert_stage_subsequence(self, stages, required):
+        """Assert an ordered path while allowing required loop repetitions."""
+        cursor = 0
+        for stage in required:
+            try:
+                cursor = stages.index(stage, cursor) + 1
+            except ValueError:
+                self.fail(
+                    f"missing required ordered stage {stage!r}; observed: {stages!r}"
+                )
+
     def complete(
         self,
         payload,
@@ -158,6 +226,7 @@ class ShipLoopActionWalkFixture(unittest.TestCase):
         label="result",
         include_research_assessment=True,
     ):
+        before = self.state() if self._trace_completed_actions else None
         if self.state().get("system_test_protocol_version") == 1 and self.state()["stage"] in ("carry-forward", "post-inner", "quality"):
             payload = dict(payload)
             payload.setdefault("system_test_review", {
@@ -172,9 +241,18 @@ class ShipLoopActionWalkFixture(unittest.TestCase):
             payload = dict(payload, research_assessment=self.research_assessment())
         aid = action_id or self.action_id()
         result = self.record(label, payload)
-        return self.cli(
+        process = self.cli(
             "complete", "--action", aid, "--result", result, code=code
-        ), result
+        )
+        if before is not None and process.returncode == 0:
+            after = self.state()
+            # A successful exact replay is intentionally idempotent; it is not
+            # a new durable transition and therefore does not enter the trace.
+            if after["revision"] > before["revision"]:
+                self.record_completed_transition(
+                    before, after, aid, source="public-cli"
+                )
+        return process, result
 
     def research_assessment(self, status="not-needed", *, questions=None):
         self.assertIn(status, {"not-needed", "resolved", "required", "blocked"})
@@ -2077,7 +2155,61 @@ class ShipLoopActionWalkTests(ShipLoopActionWalkFixture):
     def test_action_walk_enforces_evidence_history_commits_revision_and_terminal_journal(
         self,
     ):
+        # Select the optional pre-allocation preparation branch through the
+        # lifecycle candidate.  The caller still receives only the current
+        # action; it never names a next workflow stage.
+        self.fixture_preparation = "outer-before"
+        self.start_transition_trace()
         initial_implementation = self.bootstrap_to_first_implementation()
+        self.assertTrue((self.run_dir / "preparation.md").is_file())
+        self.assertEqual(
+            store.read_record(self.run_dir / "preparation.md")["evidence"],
+            "The committed baseline and local Python runtime remain available for the declared exact-output checks.",
+        )
+        self.assertEqual(
+            [entry["kind"] for entry in initial_implementation["objective_preallocation_bridge"]["entries"]],
+            ["sequence", "preparation-readiness"],
+        )
+
+        # A context-reset host can ask for the next packet without mutating
+        # the authoritative state or allocated receipt.
+        cold_implementation = self.cold_next_is_read_only("steps/S1.md")
+        self.assertIn(initial_implementation["action"]["id"], cold_implementation)
+        self.assertIn("Call this when done:", cold_implementation)
+
+        # No caller-facing transition command can select a later state.
+        before_unknown_transition = self.authoritative_snapshot("steps/S1.md")
+        unknown_transition = subprocess.run(
+            [
+                sys.executable,
+                str(CLI),
+                "transition",
+                "--run-dir",
+                str(self.run_dir),
+                "--to",
+                "quality",
+            ],
+            cwd=self.root,
+            capture_output=True,
+            text=True,
+            env=self.env,
+        )
+        self.assertEqual(unknown_transition.returncode, 2)
+        self.assertIn("invalid choice", unknown_transition.stderr)
+        self.assert_authority_unchanged(before_unknown_transition, "steps/S1.md")
+
+        # Nor can an unallocated action ID cause the script to advance from
+        # implementation; this synthetic result is not durable run evidence.
+        before_unknown_action = self.authoritative_snapshot("steps/S1.md")
+        rejected_unknown_action, _ = self.complete(
+            {"summary": "Synthetic unbound callback."},
+            action_id=initial_implementation["action"]["id"] + "-not-allocated",
+            code=2,
+            label="unknown-action",
+        )
+        self.assertIn("stale action ID; run next", rejected_unknown_action.stderr)
+        self.assert_authority_unchanged(before_unknown_action, "steps/S1.md")
+
         append_context = self.read_outer_work_context()
         self.assertEqual(append_context["revision"], 0)
         append = self.local_quality_outer_request(append_context)
@@ -2100,6 +2232,7 @@ class ShipLoopActionWalkTests(ShipLoopActionWalkFixture):
         self.assertEqual(outer_ledger["entries"][0]["id"], "OW-QUALITY-LOCAL-001")
         self.assertEqual(outer_ledger["entries"][0]["target_stage"], "quality")
         self.assertEqual(outer_ledger["entries"][0]["status"], "planned")
+        s1_implementation_action = initial_implementation["action"]["id"]
         s1_before = self.finish_step("S1", revise=True, material_first=True)
         state_after_s1 = self.state()
         self.assertEqual(state_after_s1["active_step"], "S2")
@@ -2118,6 +2251,25 @@ class ShipLoopActionWalkTests(ShipLoopActionWalkFixture):
         )
         self.assertEqual(state_after_s1["plan_revision"], 1)
 
+        # S1's once-valid implementation callback cannot be repurposed after
+        # the script allocated S2: a different result is rejected as a
+        # conflicting replay before any state or receipt mutation.
+        before_stale_action = self.authoritative_snapshot("steps/S1.md", "steps/S2.md")
+        rejected_stale_action, _ = self.complete(
+            {"summary": "Synthetic stale S1 callback."},
+            action_id=s1_implementation_action,
+            code=2,
+            label="stale-s1-action",
+        )
+        self.assertIn(
+            "conflicting replay of a completed action", rejected_stale_action.stderr
+        )
+        self.assert_authority_unchanged(
+            before_stale_action, "steps/S1.md", "steps/S2.md"
+        )
+        cold_s2 = self.cold_next_is_read_only("steps/S1.md", "steps/S2.md")
+        self.assertIn(self.action_id(), cold_s2)
+
         self.finish_step("S2", revise=False, material_first=False)
         self.assertEqual((self.repo / "s2.txt").read_text(encoding="utf-8"), "second\n")
         self.assertEqual(self.state()["stage"], "coverage")
@@ -2128,6 +2280,8 @@ class ShipLoopActionWalkTests(ShipLoopActionWalkFixture):
             label="coverage",
         )
         self.assertEqual(self.state()["stage"], "quality")
+        cold_quality = self.cold_next_is_read_only()
+        self.assertIn(self.action_id(), cold_quality)
         self.verify_current(
             self.manifest_for("S2", quality=True), label="whole-product-checks"
         )
@@ -2191,7 +2345,7 @@ class ShipLoopActionWalkTests(ShipLoopActionWalkFixture):
         # callback starts the final handoff objective rather than bypassing it.
         handoff_context = self.read_outer_work_context()
         self.assertEqual(handoff_context["due"], [])
-        handoff_packet = self.cli("next", "--run-dir", str(self.run_dir), cwd=self.root).stdout
+        handoff_packet = self.cold_next_is_read_only()
         callbacks = [
             line.removeprefix("Call this when done: ")
             for line in handoff_packet.splitlines()
@@ -2206,10 +2360,17 @@ class ShipLoopActionWalkTests(ShipLoopActionWalkFixture):
             "journal": [],
         }
         store.write_record(result_path, handoff_candidate)
+        handoff_before = self.state()
         handed_off = subprocess.run(
             callback, cwd=self.root, capture_output=True, text=True, env=self.env
         )
         self.assertEqual(handed_off.returncode, 0, handed_off.stdout + handed_off.stderr)
+        self.record_completed_transition(
+            handoff_before,
+            self.state(),
+            handoff_action,
+            source="printed-callback",
+        )
         self.assertIn(f"Last accepted: {handoff_action}", handed_off.stdout)
         self.assertEqual(self.state()["stage"], "objective-review")
         self.converge_objective(handoff_candidate, label="handoff", started=True)
@@ -2230,6 +2391,96 @@ class ShipLoopActionWalkTests(ShipLoopActionWalkFixture):
         self.assertTrue(terminal["report"]["evidence_complete"])
         for section in ("overview", "timeline", "outputs", "tests"):
             self.assertIn(f'id="{section}"', report_html)
+
+        # The in-test trace records only public callbacks that advanced the
+        # run.  Match it to script-written Markdown chronology rather than
+        # trusting the test hook by itself.
+        history = store.read_record(self.run_dir / "history.md")
+        self.assertEqual(history[0]["event"], "init")
+        durable_completed_stages = [
+            entry["event"].removeprefix("complete:")
+            for entry in history
+            if entry.get("event", "").startswith("complete:")
+        ]
+        traced_completed_stages = [
+            entry["completed_stage"] for entry in self.transition_trace
+        ]
+        self.assertEqual(traced_completed_stages, durable_completed_stages)
+        traced_stages = [entry["from_stage"] for entry in self.transition_trace]
+        self.assertEqual(self.transition_trace[-1]["to_stage"], "done")
+        self.assertTrue(
+            any(
+                entry["source"] == "printed-callback"
+                for entry in self.transition_trace
+            ),
+            "handoff must use the exact callback printed by ShipLoop",
+        )
+
+        # The selected preparation branch precedes allocated steps.  Then the
+        # script requires each inner and outer state-machine owner in order.
+        self.assert_stage_subsequence(
+            traced_stages,
+            [
+                "preflight",
+                "approach",
+                "survey",
+                "research",
+                "behavior",
+                "spec",
+                "sequence",
+                "prepare",
+                "step-plan",
+                "implement",
+                "coverage",
+                "quality",
+                "handoff",
+                "objective-finalize",
+            ],
+        )
+        for sid, expected_outcomes in (
+            ("S1", ["material", "trivial", "trivial"]),
+            ("S2", ["trivial", "trivial"]),
+        ):
+            step_stages = [
+                entry["from_stage"]
+                for entry in self.transition_trace
+                if entry["from_step"] == sid
+            ]
+            # The initial plan plus one nested plan per improvement cycle must
+            # all finish before final verification can advance the step.
+            self.assertGreaterEqual(
+                step_stages.count("step-plan-finalize"), len(expected_outcomes) + 1
+            )
+            self.assert_stage_subsequence(
+                step_stages,
+                [
+                    "step-plan",
+                    "step-plan-review",
+                    "step-plan-revise",
+                    "step-plan-verify",
+                    "step-plan-commit",
+                    "step-plan-finalize",
+                    "implement",
+                    "review",
+                    "improve-plan",
+                    "improve-apply",
+                    "verify",
+                    "carry-forward",
+                    "commit",
+                    "final-verify",
+                    "post-inner",
+                    "merge",
+                ],
+            )
+            receipt = self.receipt(sid)
+            self.assertEqual(receipt["status"], "complete")
+            self.assertEqual(
+                [cycle["outcome"] for cycle in receipt["improve_cycles"]],
+                expected_outcomes,
+            )
+            self.assertTrue(
+                all(cycle.get("primary_commit") for cycle in receipt["improve_cycles"])
+            )
 
         # HTML is disposable; losing a result draft or damaging the view must
         # neither lose accepted Markdown evidence nor falsely certify success.

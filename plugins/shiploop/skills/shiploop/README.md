@@ -24,6 +24,11 @@ for the implementation, provenance, and limits of that claim.
 ## Table of contents
 
 - [What ShipLoop is and is not](#what-shiploop-is-and-is-not)
+- [Script-enforced state machine](#script-enforced-state-machine)
+  - [One completion is a guarded transition](#one-completion-is-a-guarded-transition)
+  - [Mandatory gates before, inside, and after execution](#mandatory-gates-before-inside-and-after-execution)
+  - [Declared branches are not discretionary skips](#declared-branches-are-not-discretionary-skips)
+  - [Enforcement boundaries](#enforcement-boundaries)
 - [How ShipLoop leverages until-loop](#how-shiploop-leverages-until-loop)
   - [The review-and-improve cycle](#the-review-and-improve-cycle)
   - [Coverage: what repeats and what does not](#coverage-what-repeats-and-what-does-not)
@@ -114,6 +119,148 @@ KISS/YAGNI, justified abstraction, input/error boundaries, concise useful commen
 and local style conventions. These are host judgment defaults, not a new phase,
 score, result schema or permission to skip tests. The entry skill stays a thin
 router; the current packet supplies the guidance again after context loss.
+
+## Script-enforced state machine
+
+**The scripts select and traverse the workflow. Prompts describe the work inside
+the currently assigned state; they do not select the next state.** For a current
+new run, every applicable gate below must accept its evidence before the script
+can advance. A model saying “done,” suggesting a later stage, or remembering a
+previous success cannot substitute for the required transition.
+
+This is an enforcement map of the existing runtime, not another scheduler or a
+new state file. The [stored phase/stage inventory](#seven-explanatory-phases-and-current-stored-states)
+and P1–P7 sections give the detailed paths. Older runs keep their explicitly
+documented [protocol compatibility boundaries](#new-run-features-versus-old-run-evidence);
+an old run must not be described as having evidence it never recorded.
+
+### One completion is a guarded transition
+
+```mermaid
+flowchart TD
+    A[Load locked Markdown state and recover pending writes] --> B[Issue the current action packet]
+    B --> C[Host performs one assigned action]
+    C --> D[Submit the exact action and result]
+    D --> E{Current identity and required evidence valid?}
+    E -->|No| F[Reject completion and keep work unfinished]
+    F --> B
+    E -->|Yes| G[Script chooses and persists the next state]
+    G --> B
+```
+
+The accepted `state.md` cursor includes `phase`, `stage`, `action`, `revision`
+and the completed-action digest ledger. The caller submits an action ID and a
+Markdown result, **not a target stage**. The public `done`/`complete` command
+dispatches by the saved stage. The internal `action()` helper creates the next
+cursor and fresh ID; the host never calls that helper as a workflow operation.
+[shiploop_protocol.py - complete: saved-stage dispatch](scripts/shiploop_protocol.py#L5430),
+[shiploop_protocol.py - action: new script-selected cursor](scripts/shiploop_protocol.py#L396).
+
+The run lock recovers any pending Markdown transaction before normal command
+processing. `persist()` records the cursor, history event, accepted result and
+affected receipts in one journaled transaction. Its file writes are serialized
+and recoverable by rolling forward after interruption, not an instantaneous
+multi-file filesystem update.
+`transaction.md` is temporary recovery state, not a second JSON-backed authority.
+[shiploop - run_lock: serialized recovery](scripts/shiploop#L305),
+[shiploop_protocol.py - persist: coordinated record writes](scripts/shiploop_protocol.py#L404),
+[shiploop_store.py - transaction: journaled forward recovery](scripts/shiploop_store.py#L431).
+
+At an ordinary assigned action, `next` rehydrates the same pending action after
+a context reset. At the script-owned `schedule` cursor it may allocate the next
+ready step; recovery may finish an already-journaled transaction. Neither is
+permission for the host to invent an intermediate success. Exact accepted-result
+replays are idempotent; a changed replay or unrelated action ID is rejected.
+Supporting reads, check logs and journal appends do not count as completed
+quality cycles merely because they returned successfully.
+
+**Concrete trace:** at `implement`, submitting a result without its required
+current verification cannot start `review`. After the certified step plan,
+lint-containing checks and required contract evidence validate, accepting that
+same assigned implementation action produces a new `review` action—not `merge`
+or terminal success. Discarding chat context at this point changes nothing:
+the next invocation reads `review` from Markdown. Failed checks may leave useful
+attempt logs, but cannot earn an accepted transition or clean pass.
+[shiploop_protocol.py - implement: plan and verification gates](scripts/shiploop_protocol.py#L5646),
+[shiploop_protocol.py - verified: required lint and current check results](scripts/shiploop_protocol.py#L689).
+
+### Mandatory gates before, inside, and after execution
+
+| Boundary | States and enforced prerequisite | Authoritative evidence and owner |
+|---|---|---|
+| Before any product implementation | `preflight`, `approach`, `survey`, research/behavior/specification convergence, and `sequence`; conditional `prepare` must finish before scheduling. Drafting a spec is not its finalization. | Git baseline, accepted environment/spec/lifecycle/DAG, planning or objective certificates. The protocol and planning handlers choose each successor. |
+| Before initial implementation **and** each Improve application | `step-plan` or `improve-plan` starts a separate `step-plan-review → step-plan-revise → step-plan-verify → step-plan-commit` loop, then `step-plan-finalize`. Only its certified handoff releases `implement` or `improve-apply`. | Step-plan candidate, current context/finding ledger, full Git-history receipts, real plan checks, distinct audit commits, two-trivial-pass certificate and fresh final check. |
+| Initial implementation | `implement` must validate the accepted plan and required current checks before entering the first `review`. It cannot go directly to integration. | Selected worktree and Ready/Done contract, action-bound check records and code/test evidence. |
+| Every product Improve iteration | `review → improve-plan → nested plan convergence → improve-apply → verify → carry-forward → commit`. The script requires the prior records and may pause, repair or replan instead of advancing. | Review/history, finalized improvement plan, application evidence, lint/tests, knowledge checkpoint and primary learning commit. A callback is not an iteration. |
+| Before merging a completed step | Two consecutive verified/audited trivial iterations and no open findings lead to `final-verify`, then `post-inner` and `merge`. Final verification must still match the reviewed commit; post-inner is itself a converged objective. | Fresh final proof, broader-plan/system-test reassessment, mapped pending obligations, step receipt and local merge ancestry. Material change resets convergence; it is not a shortcut to another clean pass. |
+| After the dependency graph is drained | `coverage`, then `quality`, each with objective convergence. Quality requires integrated step receipts, current whole-product checks, declared system-test closure and due outer-work obligations. | Bound coverage ledger or the explicit plan waiver; quality checks; completed test contracts; current outer-work reads/resolutions. A corrective product change returns through a pending DAG step and its full inner loop. |
+| After outer quality | Conditional `publish`, then converged `handoff`, then `done` with the integrity-bound achievement report. Publication evidence is not terminal completion. | Applicable delivery/outer-work records, accepted handoff and terminal Markdown/report transaction. `halted` is an unfinished exit, never an alternate success path. |
+
+The repeated generic objective substates are
+`objective-review → objective-plan → objective-apply → objective-verify →
+objective-commit → objective-finalize`. They refine the selected candidate and
+then apply that certified candidate once to its owning base activity. They do
+not repeat external publication. That finalization callback records completion
+under the owning base activity in history; it is not another caller-selectable
+transition. Research/behavior/specification and nested
+step planning have their own named substates and durable receipts; the
+[Until coverage matrix](#coverage-what-repeats-and-what-does-not) identifies each
+owner. All use evidence-based convergence, not a model-supplied completion flag.
+[shiploop_until.py - decide: verified audited pass counting](scripts/shiploop_until.py#L55),
+[shiploop_protocol.py - step_plan_complete: nested handoff gates](scripts/shiploop_protocol.py#L5083),
+[shiploop_protocol.py - commit: product convergence and final verification](scripts/shiploop_protocol.py#L5824).
+
+### Declared branches are not discretionary skips
+
+“Mandatory” means mandatory on the **validated selected path**, not that every
+project must provision a remote environment or publish to production. The
+lifecycle and DAG declare applicability before execution; the validators reject
+contradictory placements. Those declarations do not grant external permission.
+
+| Declared policy | Script-controlled route |
+|---|---|
+| `preparation: outer-before` | Readiness objective and `prepare` precede the first scheduled step. |
+| `preparation: dag` | A declared preparation producer runs through ordinary dependency-ordered step execution. |
+| `preparation: none` | No separate preparation activity; a conflicting DAG preparation step is rejected. |
+| `publish: outer-loop` | Publication evidence is submitted after outer quality and before handoff. Required post-deployment test cases are incompatible with this layout and are rejected. |
+| `publish: dag` | Publication is an explicitly ordered step. Declared pre-deployment tests precede it; declared post-deployment tests follow it, all before final outer quality. |
+| `publish: none` | Quality proceeds to handoff without authorizing publication; a DAG publication step is rejected. |
+| `quality: false` | Omits the additional semantic-review field, **not** the quality stage or required acceptance/integration checks. |
+
+Post-deployment tests are therefore not a hopeful sentence in a final prompt.
+When declared, they have typed test-owning DAG steps and prerequisite edges;
+quality checks their completed contract/check evidence. An outer-loop publish
+cannot silently defer those cases until after success. If the host incorrectly
+declares real-world testing unnecessary, however, structure alone cannot detect
+that semantic omission.
+[shiploop_protocol.py - validate_lifecycle_steps: consistent placement](scripts/shiploop_protocol.py#L679),
+[shiploop_system_tests.py - validate: deployment/test dependency rules](scripts/shiploop_system_tests.py#L335),
+[shiploop_protocol.py - require_system_test_closure: final catalog evidence](scripts/shiploop_protocol.py#L544).
+
+### Enforcement boundaries
+
+- **Hard protocol gates:** saved action identity, legal handler-selected paths,
+  required records/fields, frozen-input and current-tree bindings, actual check
+  command outcomes, history receipts, learning commits, convergence and declared
+  dependency/outer-work obligations. Missing required evidence is unfinished.
+- **Work inside an assigned state:** code and test authoring/refinement occur
+  within `implement` or `improve-apply`; semantic test review, research depth,
+  applicability and materiality require host judgment. They are not each separate
+  runtime states. Required verification is separately gated, but a passing
+  host-chosen command does not prove the assertions are meaningful or exhaustive.
+- **Remote effects:** readiness and publication records include host-reported
+  facts. ShipLoop does not itself attest that a remote deployment occurred,
+  manufacture credentials, or force an unauthorized operation. Missing authority
+  or evidence must block the work, not justify skipping a selected activity.
+- **Authority boundary:** this is a fail-closed CLI protocol, not a sandbox against
+  someone rewriting the runtime or authoritative files. Never edit the cursor or
+  certificates to jump stages. Use the printed pause, repair, revisit or replan
+  route; these preserve evidence and may reset progress rather than waive gates.
+
+The design keeps deterministic sequencing in scripts and qualitative work in
+the selected prompt. It does not add a second state machine to prove that the
+first ran. Packet-size guidance remains advisory; transition and evidence gates
+do not become advisory with it.
 
 ## How ShipLoop leverages until-loop
 
