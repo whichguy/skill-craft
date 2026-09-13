@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>ShipLoop implementation verification summary</title>
+  <title>ShipLoop historical implementation verification summary</title>
   <style>
     :root {
       color-scheme: light;
@@ -226,9 +226,9 @@
 <body>
   <header class="masthead">
     <div class="wrap">
-      <p class="eyebrow">ShipLoop · checked-in implementation overview</p>
-      <h1>Implementation verification summary</h1>
-      <p class="subtitle">A human-readable summary of the Markdown-authoritative ShipLoop harness, its seven-phase workflow, and the current verification snapshot.</p>
+      <p class="eyebrow">ShipLoop · historical record · 0591ce0</p>
+      <h1>Historical implementation verification</h1>
+      <p class="subtitle">The completed single-action harness increment and its original verification snapshot. This page is retained history, not the latest workflow or test inventory.</p>
       <nav aria-label="Summary sections">
         <a href="#tldr">TL;DR</a>
         <a href="#workflow">Workflow</a>
@@ -244,7 +244,7 @@
   <main class="wrap">
     <section id="tldr">
       <h2>TL;DR</h2>
-      <p class="notice"><strong>This is not a runtime certificate or a product-deployment claim.</strong> It summarizes the completed ShipLoop implementation and its scoped verification. A specific run is complete only when its authoritative Markdown evidence and terminal checks say so.</p>
+      <p class="notice"><strong>Historical evidence, not a runtime certificate or a product-deployment claim.</strong> This report shipped in <code>0591ce0</code>; counts and trials below belong to that increment. Use the <a href="../skills/shiploop/README.md">current operator README</a> and <a href="shiploop-proposal-closeout.md">proposal disposition index</a> for later changes. A specific run is complete only when its authoritative Markdown evidence and terminal checks say so.</p>
       <dl class="facts">
         <div class="fact">
           <dt>Authority</dt>
@@ -332,7 +332,7 @@
     </section>
 
     <section id="evidence">
-      <h2>Current verification snapshot</h2>
+      <h2>Historical verification snapshot</h2>
       <p>224 distinct Python test cases were verified across full suites and affected targeted reruns. The retained terminal walkthrough additionally exercised genuine planning, step-plan, and objective lint commands through completion. This is scoped implementation evidence, not certification of every host or downstream product.</p>
       <div class="table-wrap">
         <table>
@@ -499,12 +499,12 @@
         </article>
       </div>
       <p style="margin-top:16px">The practical boundary is deliberate: ShipLoop can enforce evidence shape, freshness, and transition rules, but it cannot infer product correctness or external reality from a host’s prose. Failures, pauses, exhausted budgets, missing dependencies, and unverified effects remain unfinished rather than alternative success paths.</p>
-      <p>The README also records three recovery/context limits: merge-intent reconciliation may require operator direction; a single very large Git commit body has no byte-level paging yet; and legacy migration cannot reconstruct a missing original prompt. These limits are not bypasses for evidence or authority.</p>
+      <p>The original full-message paging gap was resolved in <code>f47dcfa</code> with identity-bound, character-paged reads and coverage checks. That increment also added explicit merge-intent recovery and restoration of recoverable legacy intent. Genuinely absent prompts still cannot be reconstructed, and ambiguous Git reconciliation may require operator direction. See the <a href="shiploop-remaining-recommendations-plan.md#progress">later completion record</a>; these limits never authorize bypassing evidence or authority.</p>
     </section>
 
     <section id="references">
       <h2>Source reading</h2>
-      <p>This page is a static reading aid. The linked Markdown and source modules are the current reference points for exact protocol details and recovery behavior.</p>
+      <p>This page is a historical reading aid. The plan retains the original evidence; the operator README and source modules describe present protocol details. Historical counts are not a claim that later revisions were retested.</p>
       <div class="references">
         <a href="../README.md">Repository README</a>
         <a href="shiploop-universal-plan.md">ShipLoop universal implementation plan</a>

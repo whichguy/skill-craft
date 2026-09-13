@@ -1,5 +1,12 @@
 # ShipLoop simplicity and quality-review closeout
 
+**Completed historical closeout — delivered in `ac6cb43`.** Findings and test
+counts below belong to that closeout, not a new verification run. Source links
+open the maintained module or named reference section; locate the named symbol
+rather than relying on the original, now-stale current-tree line offsets.
+Use the [operator README](../skills/shiploop/README.md) for maintained guidance
+and the [proposal disposition index](shiploop-proposal-closeout.md) for later work.
+
 ```mermaid
 flowchart LR
     A[Read the historical plans] --> B[Map findings to current gates]
@@ -22,21 +29,21 @@ source-editing/planning routes. No extra loop, state schema, dependency, or
 style-enforcement engine was added. Its compact iteration table still retains
 test criteria, independent oracles, lint, carry-forward, learning commits, and
 broader-plan review. See
-[testing-and-documentation.md — constitution: scoped defaults](/Users/dadleet/src/skill-craft/skills/shiploop/references/testing-and-documentation.md:222)
-and [shiploop_protocol.py — constitution routing: eight applicable actions](/Users/dadleet/src/skill-craft/skills/shiploop/scripts/shiploop_protocol.py:5542).
+[testing-and-documentation.md — constitution: scoped defaults](../skills/shiploop/references/testing-and-documentation.md#implementation-constitution)
+and [shiploop_protocol.py — constitution routing: eight applicable actions](../skills/shiploop/scripts/shiploop_protocol.py).
 
 The quality review's six runtime corrections are already present in this
 baseline. The remaining work here is an actionable recovery-order correction
 and stronger end-to-end regression evidence, not replacing those gates.
 
-| Finding | Current correction and decisive consumer | Regression evidence |
+| Finding | Recorded correction and named consumer | Regression evidence |
 | --- | --- | --- |
-| F1: Late source revision after convergence | Final verification requires the last accepted primary commit, clean worktree, and that iteration's passing evidence. [shiploop_protocol.py — require_final_verify_convergence_bound: reject late revisions](/Users/dadleet/src/skill-craft/skills/shiploop/scripts/shiploop_protocol.py:523) | Existing real-Git helper tests cover committed/staged drift. The added CLI action walk creates a source commit after two trivial passes, runs green checks, proves finalization refuses without changing durable state, and proves repair retains the code but restarts review. |
-| F2: Unreviewed outer changes | Outer closure requires the integrated-step baseline; dirty/staged/committed product changes are refused, while the separately certified review ledger is distinguished. Product fixes use corrective DAG work. [shiploop_protocol.py — require_outer_product_baseline: preserve reviewed product](/Users/dadleet/src/skill-craft/skills/shiploop/scripts/shiploop_protocol.py:459) | Boundary tests exercise dirty and committed changes, staged-only changes, missing anchors, and certified/uncertified ledger changes. The existing outer-replan action walk exercises a corrective pending step without rewriting completed receipts. |
-| F3: Unlanded merge intent | `merge-recover` checks that Git is unambiguous, the target is unlanded, the branch is a valid descendant, and both checkouts are clean before retaining provenance and restarting review. [shiploop_protocol.py — merge_recover: explicit unlanded recovery](/Users/dadleet/src/skill-craft/skills/shiploop/scripts/shiploop_protocol.py:3119) | The dirty-worktree test now follows the actual supported order: preserve and commit scoped work, recover, then review and reverify. It also proves verification is unavailable before recovery and the refusal leaves state unchanged. |
-| F4: Conflicting lifecycle placement | A typed preparation/publication DAG step is legal only when the matching lifecycle placement is `dag`; that placement also requires a typed step. Initial/revised candidates use the same validator. [shiploop_protocol.py — validate_lifecycle_steps: symmetric placement checks](/Users/dadleet/src/skill-craft/skills/shiploop/scripts/shiploop_protocol.py:494) | Lifecycle tests cover both activities against none, outer placement, missing DAG activity, and valid DAG placement. |
-| F5: Oversized full Git body | Required bounded reads use fragments with action/HEAD/message identity, offset, digest, and complete-coverage gates; the index is not body proof. [shiploop_history.py — record_bounded_page: bounded identity-bound fragments](/Users/dadleet/src/skill-craft/skills/shiploop/scripts/shiploop_history.py:208) | History-page tests cover large Unicode bodies, all four reader routes, partial reads, holes, replay/drift, line endings, and hostile continuation-like text. |
-| F6: Missing migrated prompt context | Migration materializes the retained prompt in the same transaction, preserves matching existing prompt content, and pauses on unusable intent rather than fabricating it. [shiploop_protocol.py — migrate: original-request recovery](/Users/dadleet/src/skill-craft/skills/shiploop/scripts/shiploop_protocol.py:5679) | Migration tests exercise exact prompt recovery followed by bounded cold retrieval, unsafe IDs, and missing/invalid prompt refusal. |
+| F1: Late source revision after convergence | Final verification requires the last accepted primary commit, clean worktree, and that iteration's passing evidence. [shiploop_protocol.py — require_final_verify_convergence_bound: reject late revisions](../skills/shiploop/scripts/shiploop_protocol.py) | Existing real-Git helper tests cover committed/staged drift. The added CLI action walk creates a source commit after two trivial passes, runs green checks, proves finalization refuses without changing durable state, and proves repair retains the code but restarts review. |
+| F2: Unreviewed outer changes | Outer closure requires the integrated-step baseline; dirty/staged/committed product changes are refused, while the separately certified review ledger is distinguished. Product fixes use corrective DAG work. [shiploop_protocol.py — require_outer_product_baseline: preserve reviewed product](../skills/shiploop/scripts/shiploop_protocol.py) | Boundary tests exercise dirty and committed changes, staged-only changes, missing anchors, and certified/uncertified ledger changes. The existing outer-replan action walk exercises a corrective pending step without rewriting completed receipts. |
+| F3: Unlanded merge intent | `merge-recover` checks that Git is unambiguous, the target is unlanded, the branch is a valid descendant, and both checkouts are clean before retaining provenance and restarting review. [shiploop_protocol.py — merge_recover: explicit unlanded recovery](../skills/shiploop/scripts/shiploop_protocol.py) | The dirty-worktree test now follows the actual supported order: preserve and commit scoped work, recover, then review and reverify. It also proves verification is unavailable before recovery and the refusal leaves state unchanged. |
+| F4: Conflicting lifecycle placement | A typed preparation/publication DAG step is legal only when the matching lifecycle placement is `dag`; that placement also requires a typed step. Initial/revised candidates use the same validator. [shiploop_protocol.py — validate_lifecycle_steps: symmetric placement checks](../skills/shiploop/scripts/shiploop_protocol.py) | Lifecycle tests cover both activities against none, outer placement, missing DAG activity, and valid DAG placement. |
+| F5: Oversized full Git body | Required bounded reads use fragments with action/HEAD/message identity, offset, digest, and complete-coverage gates; the index is not body proof. [shiploop_history.py — record_bounded_page: bounded identity-bound fragments](../skills/shiploop/scripts/shiploop_history.py) | History-page tests cover large Unicode bodies, all four reader routes, partial reads, holes, replay/drift, line endings, and hostile continuation-like text. |
+| F6: Missing migrated prompt context | Migration materializes the retained prompt in the same transaction, preserves matching existing prompt content, and pauses on unusable intent rather than fabricating it. [shiploop_protocol.py — migrate: original-request recovery](../skills/shiploop/scripts/shiploop_protocol.py) | Migration tests exercise exact prompt recovery followed by bounded cold retrieval, unsafe IDs, and missing/invalid prompt refusal. |
 
 ## Narrow follow-up changes
 
@@ -80,8 +87,9 @@ Ruff, runtime bytecode compilation, `git diff --check`, package frontmatter
 checks (17 skills), new document links/current source anchors, and scoped
 ShipLoop plugin parity passed. Independent review found the pending derived-copy
 sync; synchronization resolved it, with no remaining semantic finding in this
-follow-up. Historical line anchors in the original review are intentionally
-preserved; this closeout provides current source locations.
+follow-up. The original review retains its historical line anchors; this
+closeout now links to named modules/sections so old offsets cannot masquerade
+as current decisive source locations.
 
 ## Boundaries retained
 

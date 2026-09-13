@@ -520,7 +520,7 @@ action and includes the next action packet; follow that reply directly. The
 calling host does not select stages, maintain counters, or invoke the skill
 again. After context loss, bootstrap with the package/run locators from the
 task handoff and call `next`; all decisions and progress come from Markdown.
-`complete` remains a compatible alias for `done`.
+`done` is a compatible alias for the `complete` command.
 
 Only an evidence-complete terminal packet says **It's all complete.**, links
 the generated `report.html`, and offers no further completion callback. The

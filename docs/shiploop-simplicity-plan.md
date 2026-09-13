@@ -7,7 +7,7 @@ adding a new workflow, authority, dependency, or result schema.
 **Implementation status (2026-09-12):** delivered by `c548bc9` and retained at
 `414b3e9`. The constitution, all eight routes, and compact iteration table are
 implemented. The [combined quality-review closeout](shiploop-quality-review-closeout.md)
-records current checks and the narrow follow-up recovery/regression work. The
+records that follow-up's checks and narrow recovery/regression work. The
 verification section below preserves the original implementation evidence.
 
 ## Decision

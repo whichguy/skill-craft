@@ -1,5 +1,10 @@
 # ShipLoop: validated Until-Loop refresh
 
+**Completed historical plan — delivered in `82dbfe2`.** The accepted changes
+and their red/green evidence are recorded below; they are not an outstanding
+Until-Loop upgrade. See the [proposal disposition index](shiploop-proposal-closeout.md)
+for later packet-size policy and completion-language changes.
+
 ## Scope and evidence
 
 Implement the accepted findings from Until-Loop 0.2.1 at `7d24bbc`, including

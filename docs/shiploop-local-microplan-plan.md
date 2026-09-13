@@ -1,5 +1,10 @@
 # ShipLoop step-local microplan increment
 
+**Completed historical plan — delivered in `3f79978`.** The original findings
+and plan below describe the pre-change baseline; [implementation evidence](#implementation-and-review-evidence)
+records the result. See the [proposal disposition index](shiploop-proposal-closeout.md)
+for current dispositions; the deferred parser is not unfinished approved work.
+
 ## Decision and boundary
 
 Adopt a compact execution microplan and a backward prerequisite check inside

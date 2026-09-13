@@ -1,10 +1,16 @@
 # ShipLoop remaining recommendations
 
+**Completed historical plan — delivered in `f47dcfa`.** R1–R6 and R10–R11 were
+implemented, R7–R8 preserved, and R9's authority/information boundaries retained.
+The "Adopt" rows below record original decisions, not open tasks. See
+[completion evidence](#progress) and the [proposal disposition index](shiploop-proposal-closeout.md).
+
 Baseline: `e01a7dd`. Scope: finish the concrete recommendations left by the
 prior audits, without installing connectors, changing credentials, creating
 automations, publishing an application, or touching unrelated Review Coverage
 work. Markdown remains authoritative; the calling skill remains one action/done
-interface. This plan is the implementation tracker, not a second run scheduler.
+interface. This record preserves the implementation tracker; it is not an active
+backlog or a second run scheduler.
 
 ## Disposition
 

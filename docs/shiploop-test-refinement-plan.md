@@ -1,5 +1,10 @@
 # ShipLoop task-local test planning and refinement
 
+**Completed historical plan — delivered in `7e4211e`.** The original audit and
+acceptance plan below are not pending work; [completion evidence](#completion-evidence)
+records the scoped results. See the [proposal disposition index](shiploop-proposal-closeout.md)
+for later increments and deliberate limits.
+
 ## Outcome and scope
 
 Make the existing cold-resumable execution loop explicitly plan test criteria

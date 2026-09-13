@@ -1,5 +1,11 @@
 # ShipLoop: one-action host, durable objective loops
 
+**Completed historical plan — delivered in `0591ce0`.** The design, original
+findings and validation below are retained for provenance, not as an open task
+list. See the [proposal disposition index](shiploop-proposal-closeout.md) for
+later completions and the [operator README](../skills/shiploop/README.md) for
+the current contract.
+
 ## Approved outcome
 
 Implement the user's accumulated requests in the existing Markdown-authoritative
@@ -200,9 +206,14 @@ human-readable implementation summary is
 
 ### Remaining limits
 
-Two stable passes are a convergence heuristic, not semantic perfection. Full
-commit bodies still have no byte-level paging; legacy migration cannot recover
-an absent original prompt; and merge-intent reconciliation may need operator
-direction. Incompatible changes to frozen scope or authority require explicit
-direction rather than automatic rebasing. See the README for current recovery
-boundaries. These limitations are not alternative success paths.
+The original lack of full-message paging was resolved by `f47dcfa`: bounded
+history fragments now carry identity/digest and complete-coverage checks.
+The paging offsets count characters, not bytes. That work also added explicit
+merge-intent recovery and restoration of recoverable legacy prompt content;
+see the [remaining-recommendations completion record](shiploop-remaining-recommendations-plan.md#progress).
+
+The enduring boundaries remain: two stable passes do not prove semantic
+perfection, a genuinely absent original prompt cannot be reconstructed, and
+ambiguous Git reconciliation or incompatible scope/authority may need user
+direction. See the [current recovery guidance](../skills/shiploop/README.md#recovery-and-compatibility).
+These limitations are not alternative success paths.

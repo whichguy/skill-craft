@@ -1,14 +1,50 @@
-# ShipLoop remaining-proposal closeout
+# ShipLoop proposal disposition and historical closeout
 
 Baseline: `8b98d57`, 2026-09-13. Scope: previously proposed ShipLoop work,
 not a new architecture or live deployment. Unrelated Review Coverage changes
-are excluded. Status: audit complete; both remaining packet clarifications are
-implemented. Final regression verification is recorded below.
+are excluded. Status: completed in `b391c74`; both remaining packet clarifications
+were implemented. The validation below is that increment's historical evidence,
+not a fresh verification claim for every later revision.
 
 **User clarification during closeout:** total packet character counts are
 readability guidelines, not hard limits. That supersedes the earlier size-gate
 assumption in this audit and the older packet-orientation audit. Required
 context, clear language and safety take priority over hitting a count.
+
+## How to read the completed proposal records
+
+Disposition review baseline: `42f815d`. Use the
+[operator README](../skills/shiploop/README.md) for current workflow instructions.
+The records below retain the original decisions, rejected alternatives, failures,
+test counts and limitations. Original "Adopt", "implement" and "proposed" wording
+inside a completed record is historical, not an instruction to repeat the work.
+Source line offsets and temporary evidence paths belong to the recorded revision;
+they are not maintained current-tree pointers or a promise that temporary files
+still exist. Named source symbols and current operator guidance are the way to
+investigate present behavior.
+
+| Record | Completion or maintained purpose |
+|---|---|
+| [Initial 0.9 validation](shiploop-0.9-validation.md) | `68324cf`: original Markdown/evidence-gated protocol validation. |
+| [Single-action objective plan](shiploop-universal-plan.md) and [HTML implementation summary](shiploop-implementation-report.html) | `0591ce0`: completed design and historical verification, not a live run certificate. |
+| [Task-local test refinement](shiploop-test-refinement-plan.md) | `7e4211e`: test planning and post-code refinement duties. |
+| [Local microplans](shiploop-local-microplan-plan.md) | `3f79978`: local execution breakdown and bounded prerequisite review. |
+| [Remaining recommendations](shiploop-remaining-recommendations-plan.md) | `f47dcfa`: R1–R6/R10–R11 completed; R7–R8 preserved; R9 not adopted. |
+| [Quality corrections](shiploop-quality-review-plan.md) | `2153514`: Q1–Q7 completed. |
+| [Simplicity plan](shiploop-simplicity-plan.md) and [quality closeout](shiploop-quality-review-closeout.md) | `c548bc9` / `ac6cb43`: constitution and follow-up recovery/regression work. |
+| [System context and artifact plan](shiploop-system-context-and-artifact-plan.md) | `414b3e9`: context, artifact readers, observations and outer-work/handoff gates. |
+| [Until-Loop refresh](shiploop-until-refresh-plan.md) | `82dbfe2`: selective, validated safeguards; not automatic upstream synchronization. |
+| [Packet orientation audit](shiploop-packet-orientation-audit.md) | `73933af` / `115240e`: orientation and complete phase-reference routing; pilot limitations retained. |
+| [Packet teach-back guide](shiploop-packet-teachback.md) | `291e0e5`: implemented maintainer probe and reusable instructions. Its pilot remains exploratory, not universal semantic certification. |
+| [System-test sequencing](shiploop-system-test-plan.md) | `8b98d57`: catalog, prerequisite ordering and final evidence closure. |
+| This closeout | `b391c74`: local-loop/terminal distinction, historical reader placement and advisory packet counts. |
+| [Script-enforcement map](../skills/shiploop/README.md#script-enforced-state-machine) | `42f815d`: documentation and real-CLI traversal proof, with 100 targeted passing tests at that increment. No runtime rewrite. |
+
+Do not reopen completed proposals merely because their historical filename ends
+in `-plan.md`. Deferred ideas in the ledger below remain deferred; new findings
+need current evidence and their own scoped decision. Compatibility/migration
+paths and regression fixtures are still consumers of completed work, not
+disposable proposal scaffolding.
 
 ## Disposition ledger
 
@@ -27,6 +63,7 @@ context, clear language and safety take priority over hitting a count.
 | Teach-back: loop exit versus whole-run completion | **Closed here:** the owning-loop label and adjacent terminal/report boundary now appear in converging packets. See `shiploop-loop-scope.test.py`. |
 | Teach-back: historical-quality reader placement | **Closed here:** the existing reader precedes the quality summary and explicitly says to read it first, without promoting history to current proof. See `shiploop-loop-scope.test.py`. |
 | Packet character counts | **New clarification applied here:** total-packet size checks are advisory diagnostics. Paging, input validation and sensitive-data projection limits remain enforced. |
+| Script-enforced traversal | Completed in `42f815d`: explicit README gate/branch map, cold resumes, invalid callback refusal and history-backed end-to-end traversal assertions. |
 | Universal semantic oracle, legacy-history reconstruction, vendor integrations, live-host certification | Intentionally deferred/rejected, not unfinished approved features. Missing evidence stays unknown; external operations require specific targets and authority. |
 
 ## Prompt audit and decisions
@@ -63,19 +100,17 @@ or load complete histories into the packet.
 | HIGH | Move the available historical reader before the quality summary. | Real CLI reader works, unavailable provenance stays unavailable, no cursor advance, no blocked callback. |
 | MEDIUM | Reconcile this ledger and the teach-back guide with current status. | Retain old observations as historical; document new evidence without claiming general model reliability. |
 
-The user requested implementation of remaining proposals, so these scoped
-changes are authorized. Write failing regressions first, then apply the
-smallest renderer/helper edits, measure packet size as an advisory signal, synchronize the
-derived plugin, and review. Use the existing native Python suites rather than
-the prompt-migration skill's illustrative npm commands (this repo has no npm
-test package). The ShipLoop skill is the contract under maintenance, not an
-instruction to create a self-modifying delivery run.
+The approved plan was to write failing regressions, apply the smallest
+renderer/helper edits, measure packet size, synchronize the derived plugin and
+review. Native Python suites were selected rather than illustrative npm commands
+(this repo has no npm test package). ShipLoop was the contract under maintenance,
+not a self-modifying delivery run. The validation below records execution and
+the later change from strict packet counts to advisory guidance.
 
-Freeze the existing teach-back wrapper and seven-criterion rubric. Capture real
-baseline and candidate packets, use fresh readers without prior conclusions,
-repeat active cases and include a paused hold-out. Grade identity mechanically
-and interpretation separately; never execute an answer. Model trials are
-supplemental, not a replacement for deterministic runtime safety tests.
+The teach-back wrapper and seven-criterion rubric were held fixed for the pilot.
+Real baseline/candidate packets, fresh readers, repeated active cases and a
+paused hold-out supplied supplemental evidence. Answers were graded, never
+executed; these trials did not replace deterministic runtime safety tests.
 
 ## Evidence-first and interoperability decision
 

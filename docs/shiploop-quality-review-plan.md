@@ -1,5 +1,10 @@
 # ShipLoop quality review and corrections
 
+**Completed historical review — delivered in `2153514`.** Q1–Q7 are closed;
+the findings below describe the original baseline, not current defects.
+[Review closeout](#review-closeout-and-generic-lessons) preserves the evidence;
+the [proposal disposition index](shiploop-proposal-closeout.md) identifies later work.
+
 Baseline: `f47dcfa0c3fd145d88a76999bdd70777dac7d1bf`. Scope: review the
 recent ShipLoop increments against Markdown authority, cold action boundaries,
 evidence-backed iteration, and truthful completion; implement concrete defects

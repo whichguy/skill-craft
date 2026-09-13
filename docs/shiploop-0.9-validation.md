@@ -1,5 +1,10 @@
 # ShipLoop 0.9 validation
 
+**Historical validation record — delivered in `68324cf`.** Counts, source
+locations and operator observations below belong to that revision, not a new
+verification run. See the [proposal disposition index](shiploop-proposal-closeout.md)
+and [current command contract](../skills/shiploop/references/action-protocol.md).
+
 Date: 2026-09-11. Starting revision: `f68f033c939bc36c104a27ca7d699d5d7103c6f4`.
 
 ## Delivered contract
@@ -105,7 +110,9 @@ high-severity defect in the reviewed protocol and planning-correction paths.
 ## Boundaries and migration
 
 This is a breaking protocol update. Existing JSON-only runs require explicit
-`migrate`; bare `complete` and the former step/update shortcuts are removed.
+`migrate`; unbound completion without the current action/result and the former
+step/update shortcuts were removed. The action-bound `complete` command remains
+supported, with `done` as its compatible alias; its name was not removed.
 Migration preserves existing work and backs up recognized legacy records;
 it does not certify old prose as fresh verification evidence.
 
