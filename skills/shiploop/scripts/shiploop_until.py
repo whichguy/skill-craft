@@ -53,40 +53,14 @@ def review_improve_cycle(history_limit: int) -> str:
 
 
 def decide(passes: list[dict[str, Any]], *, open_findings: list[Any]) -> dict[str, Any]:
-    """Derive two-trivial readiness from unique, verified, audited pass receipts.
+    """Compatibility facade for Improve's canonical receipt-derived decision.
 
-    ``passes`` contains only completed review-and-improve cycles in the current
-    repair epoch, after planning, application, required checks and learning commit.
-    Interrupted attempts remain in the caller's Markdown audit history but
-    cannot be supplied as completed evidence. Every pass must have a stable ID,
-    outcome, verified=True and a distinct full Git commit SHA. Material passes
-    reset the consecutive streak. Any open finding keeps the loop active.
+    Legacy callers keep their existing phase ownership. Managed invocations use
+    the same implementation from their child controller; no second algorithm or
+    cached parent streak can substitute for completed evidence.
     """
-    if not isinstance(passes, list) or not isinstance(open_findings, list):
-        raise UntilError("until-loop requires completed-pass and open-finding lists")
-    ids: set[str] = set()
-    commits: set[str] = set()
-    streak = 0
-    for row in passes:
-        if not isinstance(row, Mapping):
-            raise UntilError("until-loop pass must be a record")
-        pass_id = row.get("id")
-        commit = row.get("commit")
-        if not isinstance(pass_id, str) or not re.fullmatch(r"[A-Za-z0-9_-]+", pass_id):
-            raise UntilError("until-loop pass requires a safe stable ID")
-        if not isinstance(commit, str) or not re.fullmatch(r"[0-9a-f]{40}|[0-9a-f]{64}", commit):
-            raise UntilError("until-loop pass requires a full audit commit SHA")
-        if pass_id in ids or commit in commits:
-            raise UntilError("until-loop repeated pass or commit cannot count twice")
-        if row.get("verified") is not True:
-            raise UntilError("until-loop cannot count an unverified pass")
-        if row.get("outcome") not in ("material", "trivial"):
-            raise UntilError("until-loop pass outcome must be material or trivial")
-        ids.add(pass_id)
-        commits.add(commit)
-        streak = streak + 1 if row["outcome"] == "trivial" else 0
-    # Standalone until-loop's done-when + verification branch becomes readiness
-    # derived from durable receipts. Neither a budget limit nor a done claim is
-    # an alternative terminal condition in ShipLoop.
-    done_when = streak >= 2 and not open_findings
-    return {"phase": "ready" if done_when else "active", "trivial_streak": streak}
+    from _improve_managed import ManagedImproveError, decide as improve_decide
+    try:
+        return improve_decide(passes, open_findings=open_findings)
+    except ManagedImproveError as exc:
+        raise UntilError(str(exc)) from exc

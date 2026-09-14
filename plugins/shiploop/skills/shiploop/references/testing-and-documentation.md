@@ -14,6 +14,198 @@ question/source relationships and asserted contracts; they do not prove that a
 live environment stayed unchanged. See
 [Research evidence and freshness](research-loop.md#evidence-and-freshness).
 
+## Managed Improve checkpoints
+
+This section applies only when the current packet is a managed Improve child
+under `managed_improve_protocol_version: 1`. The ShipLoop parent remains at
+`managed-improve`; the child controller owns the following phase progression
+and records it in the bound Markdown receipt. Do not start standalone Improve,
+create `.until-loop` state, or use legacy phase callbacks to duplicate these
+checkpoints.
+
+1. **Initial local test plan.** Before source edits, retain the complete case
+   matrix. `step-plan` and `step-plan-revise` require it; the local-plan child
+   converges it before it releases code.
+2. **Per-iteration product plan.** Before each Apply, `improve-plan` requires
+   the current test plan plus coverage/context evidence, explicit prerequisite
+   satisfaction evidence and learnings. Run one `improve-plan-verify` planning
+   check. This is one checked plan record, not a nested two-trivial plan
+   campaign.
+3. **Post-code refinement.** After Apply, `test-refine` inspects actual code
+   and dependencies before changing tests. It returns the complete current test
+   plan and `refinement_reason`; retained/new cases keep independent expected
+   outcomes. A changed oracle requires an external requirement/contract basis.
+4. **Executable-test authoring.** `test-author` maps every retained/new planned
+   case to real test files/selectors and exact check commands. `verify` later binds
+   those IDs and ordered command arguments to the actual check manifest. Its `test_refinement` record
+   describes authored, updated or reused tests. This checkpoint never claims
+   the tests passed.
+5. **Documentation and skill validation.** `iteration-document` records the
+   documentation/reuse assessment. If it selects a repo-local skill,
+   `skill-validate` verifies its entrypoint/index, inputs, helper or example
+   checks, failure/recovery behavior and host limits before verification.
+   Discovery or a frontmatter-only check is not successful use.
+6. **Actual verification.** `verify` runs the bound manifest after code, tests, docs
+   and selected skill evidence are current. Failed, stale, blocked or unrun
+   checks are incomplete. A product defect found by a tests/fixtures-only scope
+   returns corrective-work evidence; it cannot be hidden by weakening the
+   expected result.
+
+Use these packet fields. They stay in the child/parent Markdown records; they
+are not a second global test catalog.
+
+```json
+{
+  "test_plan": {
+    "cases": [
+      {
+        "case_id": "CASE-CSV-001",
+        "contract_id": "T-CSV-001",
+        "requirement": "CSV labels containing commas remain one field after export.",
+        "inputs": ["A fixture record with a comma in its label."],
+        "expected_outcome": "The exported field is quoted and parses back to the original label.",
+        "test_selectors": ["test/test_csv.py::test_quotes_commas"],
+        "check_ids": ["T-CSV-001"],
+        "environment": "Local Python environment with the repository CSV parser.",
+        "fixture": "A temporary CSV output containing one comma-bearing label."
+      }
+    ],
+    "coverage": [
+      {"surface": "unit", "disposition": "selected", "reason": "CSV quoting is a deterministic local transformation."},
+      {"surface": "mock_fake", "disposition": "not-applicable", "reason": "The selected serializer has no collaborator boundary."},
+      {"surface": "integration", "disposition": "not-applicable", "reason": "This scoped contract has no service integration."},
+      {"surface": "end_to_end", "disposition": "not-applicable", "reason": "This local serializer has no end-user journey."},
+      {"surface": "browser_service_api", "disposition": "not-applicable", "reason": "This selected contract exposes no browser or API boundary."}
+    ]
+  }
+}
+```
+
+Every surface appears once with `selected`, `not-applicable`, or
+`required-but-blocked`; the latter prevents release. Each case retains the
+accepted contract ID and exact expected outcome, even when several cases share
+a test command. `test_selectors` are safe repository-relative
+`path::selector` references, not a claim that the selector ran.
+
+```json
+{
+  "test_refinement": {
+    "cases": [
+      {
+        "case_id": "CASE-CSV-001",
+        "disposition": "authored",
+        "test_paths": ["test/test_csv.py"],
+        "check_ids": ["T-CSV-001"],
+        "coverage": "The test exercises the planned comma-escaping boundary.",
+        "oracle": {"decision": "unchanged"}
+      }
+    ]
+  },
+  "test_bindings": {
+    "bindings": [
+      {
+        "check_id": "T-CSV-001",
+        "argv": ["python3", "test/test_csv.py"],
+        "case_ids": ["CASE-CSV-001"],
+        "selectors": ["test/test_csv.py::test_quotes_commas"],
+        "selection": {"mode": "direct", "evidence": "The script runs its unittest suite including the quoting assertion."}
+      }
+    ]
+  }
+}
+```
+
+`disposition` is `authored`, `updated`, or `reused`. A reused case must add an
+`adequacy_reason`. A corrected oracle must state its old/new expected outcomes,
+independent basis and preserved coverage. The next `verify` action, not this
+record, establishes whether the named checks passed.
+
+Every case/check and planned selector must be covered by `test_bindings` at
+`test-author`. Its `argv` must exactly match the later test-kind manifest row.
+Direct selection names each test path or selector in `argv`. For suite discovery,
+use `selection:{mode:"suite",evidence:"...",evidence_path:"..."}`: the existing
+repo-local discovery/config file must name every selected path or selector.
+The script freezes that file with the authored tests and rejects later changes.
+These bindings establish command identity; review still must assess assertion quality.
+Selected skill-example check commands likewise must name their example path.
+
+The child, not the parent, counts a completed review cycle after these duties
+are satisfied. It returns a certificate only after its current evidence and
+the binding's convergence/reviewer rules hold. A mandatory independent review
+blocks when unavailable unless the binding explicitly authorizes and records a
+self-review fallback.
+
+New runs select this policy with `init --independent-review optional`, `required`,
+or `required-with-fallback`. A required counted pass supplies a commit-result
+`independent_review:{status:"performed",evidence_ref:"reviews/current.md"}`.
+The existing run-relative record is bound as evidence. An explicitly allowed
+fallback instead records `status:"unavailable"`, `fallback:"self-review"`,
+`reason`, and `evidence_ref`. The reviewer identity and judgment remain
+host-reported; missing required evidence is refused.
+
+### Local and outer-test boundary
+
+A managed local-plan or product certificate proves only its bound candidate and
+checks. The parent delivery DAG still owns the global system-test requirements,
+their producer/test-owner steps, pre-deployment integration/journey execution,
+final release checks and post-deployment observation. Plan global cases before
+delivery sequencing; author and improve their fixtures in their owned work;
+execute them against the assembled/deployed target only when their prerequisites
+and authorization exist. A local mock or simulator cannot substitute for a
+required real boundary, and an unobserved future deployment is not test evidence.
+
+Likewise, a prerequisite repo-local skill is an earlier DAG producer with its
+own validation before a consumer relies on it. A reusable procedure discovered
+during product work follows the child `iteration-document` and selected
+`skill-validate` path. Neither route authorizes global installation or lets a
+late skill edit bypass final product/outer test evidence.
+
+### Current product and replacement evidence
+
+At product final verification the adapter derives `invalidation_impact` from
+the actual baseline-to-final Git artifact bytes and binds it into the child
+certificate. It names selected contracts/outputs and all known potentially
+affected local cases, SYS cases, documentation and skills. The map is
+conservative (`certainty:"uncertain"`); a host cannot narrow away required
+checks by declaring a small impact. Mode-only changes still count through the
+full candidate fingerprint.
+
+Each system-test owner captures its original product fingerprint and completed
+producer identities when it merges. A later product or suite change makes
+affected historical evidence stale. `context --section system-test-requirements`
+shows that map. Frozen original SYS cases and receipts are retained. Add new
+equivalent SYS cases and pending test owners with the same requirement,
+expected outcome, environment and deployment target, and execute the existing
+or updated tests against the current candidate. Author all changed suites
+before final re-execution; a replacement may honestly reuse its tests and
+record an audit-only commit. This avoids manufacturing new files on every
+verification pass. The separately certified `REVIEW_CONVERGE.md` ledger is
+excluded from the product fingerprint.
+
+Quality supplies this result field when the map lists stale SYS cases:
+
+```json
+{
+  "system_test_revalidation": {
+    "version": 1,
+    "product_content_identity_sha256": "COPY_CURRENT_PRODUCT_CONTENT_IDENTITY_SHA256",
+    "replacements": [
+      {"stale_case_id": "SYS-PRE-001", "replacement_case_id": "SYS-PRE-002"}
+    ]
+  }
+}
+```
+
+The script verifies every replacement has fresh completed check/contract proof
+for the current product; a replacement that is itself stale cannot discharge
+an old case. The final quality manifest also reruns all completed local test
+bindings and selected skill examples on the assembled tree. Retrieve exact
+commands from `context --section sdlc`; combine them with lint and every
+whole-product acceptance check. The current implementation conservatively
+retains that full required set. It does not claim precise impact analysis or
+support silently discarding obsolete commands. Changes to those contracts
+require explicit corrective planning and compatible executable evidence.
+
 ## Test cases
 
 Define expected behavior before implementation when possible. In the spec, name
@@ -221,12 +413,20 @@ does not create product files. Plan documentation outputs and checks explicitly.
 
 ## Iteration documentation and reuse
 
-New runs with `iteration_documentation_protocol_version: 1` have a mandatory
+The legacy versioned route with `iteration_documentation_protocol_version: 1` has a mandatory
 `iteration-document` action after each `improve-apply` and before `verify`.
 The initial implementation enters Improve, so its first candidate also receives
 this gate before the step can finish. An assessment is required; needless edits
 or skill creation are not. Follow the packet's exact result schema. Old unmarked
 runs retain their original callbacks and cannot claim this new receipt.
+
+A managed product child retains the same substantive documentation and reusable
+skill obligations, but its controller owns their placement and evidence inside
+the child receipt. It must update or explicitly assess relevant README/interface
+documentation before actual verification, and it must complete the explicit
+`skill-validate` checkpoint when a skill is selected. A managed packet's child
+phase/result shape takes precedence over the legacy `iteration-document`
+callback; do not run both routes for one candidate.
 
 The result has `summary`, `documentation`, `reusable_skill`, Boolean `material`
 and `learnings`. Both assessment objects start with `decision`, `rationale`,
@@ -327,6 +527,13 @@ silent override. Never relax safety or acceptance to claim simplicity.
    actual tests; run required lint/tests after edits. Update affected README/docs.
    Prefer existing tools and focused cases over checklist-driven test layers.
    Preserve the independent expected outcome and required real-boundary evidence.
+6. **One convergence owner.** A managed Improve child owns its review, plan,
+   apply, check and two-trivial assessment for the bound candidate. ShipLoop
+   owns its parent action, DAG and certificate import. Do not wrap the child's
+   per-iteration plan in another converging Improve loop, count its passes in
+   the parent, or use a legacy callback in parallel. A material change reopens
+   affected evidence; an unavailable mandatory reviewer blocks unless the
+   binding explicitly records an authorized self-review fallback.
 
 In existing `body`/`plan`, note consequential design choices. During review use
 existing findings; record changes or justified exceptions in `summary`/`learnings`
@@ -353,14 +560,21 @@ second scheduler. Keep the [Test cases](#test-cases) oracle/reuse rules,
 
 | Current action | Duty and existing record |
 | --- | --- |
-| `step-plan` / `improve-plan`, then nested plan convergence | Put the pre-code case-to-contract matrix in `body`/`plan`. Use the implementation constitution; only a finalized plan authorizes its scoped code edits. |
-| `implement` / `improve-apply` | Write certified code, inspect actual diff/learnings, then author/refine tests and docs. Initial adequacy and justified oracle corrections use `test_review`; Improve application deltas use `test_changes` and `learnings`. Retained/TDD tests need evidence of adequacy, not a manufactured edit. |
-| `review` | Begin with current Git history and knowledge; compare actual code/tests/environment/docs with independent expectations. Record findings, `test_review`, `learnings` and `research_assessment`; new material research questions require investigation. |
-| `iteration-document` (versioned runs) | Required docs/README and reusable-local-skill decision, with safe paths, reasons, intended readers and learnings. Make scoped documentation/skill edits before fresh verification, not after it. |
-| `verify` / `final-verify` | Run required lint/tests and relevant examples/links; diagnose failures. In versioned runs, any source edit after `iteration-document` requires repair, renewed review/documentation and fresh checks; merely rerunning verify cannot renew the documentation receipt. Legacy repairs also remain material. Required failed, blocked or unrun checks remain unfinished. Put case/check evidence in `summary`; a test-oracle change needs independent justification. |
-| `carry-forward` | Use the [carry-forward contract](carry-forward.md) for scoped observations/evidence or explicit no discoveries. A current-step correction returns to review and fresh checks; prior evidence is stale. |
-| `commit` | Include test/docs deltas or no-change reasons and required review, nested-plan, apply, versioned iteration-document and carry-forward learnings verbatim. Two trivial-only cycles and fresh final verification remain mandatory. |
-| `post-inner` | Reassess broader tests, environments, contracts, README and prerequisites. Resolve pending-work obligations through validated pending-only replanning; generic ShipLoop proposals go to its journal. |
+| Managed parent `managed-improve` | Keep the parent action fixed and follow only the child packet/import route. The parent neither advances a child phase nor counts a child review. |
+| Managed local-plan child | Require the complete pre-code `test_plan` in `step-plan` and `step-plan-revise`; it converges that plan before implementation. |
+| Managed product child `improve-plan` / `improve-plan-verify` | Bind product findings, complete test plan, coverage/context evidence, prerequisites and learnings; validate/check the plan once before Apply, with no nested plan-convergence campaign. |
+| Managed product child `improve-apply` → `test-refine` → `test-author` | Apply scoped code, then refine the complete test plan from actual code and author/update/reuse executable tests with independent oracle evidence. Those records do not claim checks passed. |
+| Managed product child `iteration-document` / `skill-validate` | Record documentation/reuse assessment. When a skill is selected, validate its actual entrypoint/index and example/helper checks before verification; do not install it globally. |
+| Managed product child `review` | Begin from current history/knowledge and compare actual code/tests/environment/docs with independent expectations. The child retains findings, test/research assessment and learnings. |
+| Managed product child `verify` / `carry-forward` / `commit` / `final-verify` | Run current required checks after all bound artifacts are current, record carry-forward evidence, retain the primary learning/audit-commit evidence, and let the child decide convergence before returning a certificate. |
+| Legacy `step-plan` / `improve-plan`, then nested plan convergence | Put the pre-code case-to-contract matrix in `body`/`plan`. Use the implementation constitution; only a finalized plan authorizes its scoped code edits. |
+| Legacy `implement` / `improve-apply` | Write certified code, inspect actual diff/learnings, then author/refine tests and docs. Initial adequacy and justified oracle corrections use `test_review`; Improve application deltas use `test_changes` and `learnings`. Retained/TDD tests need evidence of adequacy, not a manufactured edit. |
+| Legacy `review` | Begin with current Git history and knowledge; compare actual code/tests/environment/docs with independent expectations. Record findings, `test_review`, `learnings` and `research_assessment`; new material research questions require investigation. |
+| Legacy `iteration-document` (versioned runs) | Required docs/README and reusable-local-skill decision, with safe paths, reasons, intended readers and learnings. Make scoped documentation/skill edits before fresh verification, not after it. |
+| Legacy `verify` / `final-verify` | Run required lint/tests and relevant examples/links; diagnose failures. In versioned runs, any source edit after `iteration-document` requires repair, renewed review/documentation and fresh checks; merely rerunning verify cannot renew the documentation receipt. Legacy repairs also remain material. Required failed, blocked or unrun checks remain unfinished. Put case/check evidence in `summary`; a test-oracle change needs independent justification. |
+| Legacy `carry-forward` | Use the [carry-forward contract](carry-forward.md) for scoped observations/evidence or explicit no discoveries. A current-step correction returns to review and fresh checks; prior evidence is stale. |
+| Legacy `commit` | Include test/docs deltas or no-change reasons and required review, nested-plan, apply, versioned iteration-document and carry-forward learnings verbatim. Two trivial-only cycles and fresh final verification remain mandatory. |
+| `post-inner` after either route | Reassess broader tests, environments, contracts, README and prerequisites. Resolve pending-work obligations through validated pending-only replanning; generic ShipLoop proposals go to its journal. |
 
 Keep case IDs, independent sources, environment, observed outcomes and evidence
 references compact in the permitted result fields above. Results are imported

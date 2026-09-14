@@ -771,7 +771,10 @@ class ObjectiveProtocolSmokeTests(unittest.TestCase):
         self.assertEqual(self.state()["stage"], "survey")
 
     def test_approach_is_tentative_until_generic_objective_finalization(self) -> None:
-        self.cli("init", "--repo", str(self.repo), "--prompt", "Bounded objective smoke test.")
+        self.cli(
+            "init", "--repo", str(self.repo), "--execution-mode", "legacy",
+            "--prompt", "Bounded objective smoke test.",
+        )
         state = self.state()
         self.assertEqual(state["objective_protocol_version"], objectives.VERSION)
         self.assertEqual(state["step_contract_protocol_version"], 1)
@@ -813,7 +816,10 @@ class ObjectiveProtocolSmokeTests(unittest.TestCase):
         self.assertTrue(index.is_file())
 
     def test_history_index_does_not_satisfy_objective_review(self) -> None:
-        self.cli("init", "--repo", str(self.repo), "--prompt", "Objective history index test.")
+        self.cli(
+            "init", "--repo", str(self.repo), "--execution-mode", "legacy",
+            "--prompt", "Objective history index test.",
+        )
         self.complete({"summary": "Baseline is committed.", "baseline": "committed-head"}, "preflight")
         self.complete(
             {
@@ -846,7 +852,10 @@ class ObjectiveProtocolSmokeTests(unittest.TestCase):
     def test_single_commit_full_pages_cover_the_latest_ten_objective_bodies(self) -> None:
         for number in range(9):
             self.git("commit", "--allow-empty", "-qm", f"history body {number}")
-        self.cli("init", "--repo", str(self.repo), "--prompt", "Objective paged history test.")
+        self.cli(
+            "init", "--repo", str(self.repo), "--execution-mode", "legacy",
+            "--prompt", "Objective paged history test.",
+        )
         self.complete({"summary": "Baseline is committed.", "baseline": "committed-head"}, "preflight")
         self.complete(
             {
@@ -874,7 +883,10 @@ class ObjectiveProtocolSmokeTests(unittest.TestCase):
         self.assertEqual(self.state()["last_completion"]["stage"], "objective-review")
 
     def test_candidate_rewrite_cannot_claim_a_trivial_objective_apply(self) -> None:
-        self.cli("init", "--repo", str(self.repo), "--prompt", "Objective material apply test.")
+        self.cli(
+            "init", "--repo", str(self.repo), "--execution-mode", "legacy",
+            "--prompt", "Objective material apply test.",
+        )
         self.complete({"summary": "Baseline is committed.", "baseline": "committed-head"}, "preflight")
         self.complete(
             {
@@ -909,7 +921,10 @@ class ObjectiveProtocolSmokeTests(unittest.TestCase):
             self.assertEqual(after["candidate_sha256"], original)
 
     def test_approach_repair_archives_the_pass_and_rebinds_fresh_context(self) -> None:
-        self.cli("init", "--repo", str(self.repo), "--prompt", "Objective repair test.")
+        self.cli(
+            "init", "--repo", str(self.repo), "--execution-mode", "legacy",
+            "--prompt", "Objective repair test.",
+        )
         self.complete({"summary": "Baseline is committed.", "baseline": "committed-head"}, "preflight")
         self.complete(
             {
@@ -980,7 +995,10 @@ class ObjectiveProtocolSmokeTests(unittest.TestCase):
         self.assertNotIn("dag_file", candidate)
 
     def test_survey_revisit_archives_the_active_objective_pass(self) -> None:
-        self.cli("init", "--repo", str(self.repo), "--prompt", "Objective revisit archive test.")
+        self.cli(
+            "init", "--repo", str(self.repo), "--execution-mode", "legacy",
+            "--prompt", "Objective revisit archive test.",
+        )
         self.complete({"summary": "Baseline is committed.", "baseline": "committed-head"}, "preflight")
         self.complete(
             {
@@ -1044,7 +1062,10 @@ class ObjectiveProtocolSmokeTests(unittest.TestCase):
         self.assertEqual(store.read_record(archive), abandoned["abandoned_passes"][-1])
 
     def test_two_trivial_audited_passes_need_a_fresh_final_check_before_approach_applies(self) -> None:
-        self.cli("init", "--repo", str(self.repo), "--prompt", "Bounded objective convergence test.")
+        self.cli(
+            "init", "--repo", str(self.repo), "--execution-mode", "legacy",
+            "--prompt", "Bounded objective convergence test.",
+        )
         self.complete({"summary": "Baseline is committed.", "baseline": "committed-head"}, "preflight")
         self.complete(
             {

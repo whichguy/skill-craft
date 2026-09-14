@@ -15,6 +15,8 @@ from typing import Any, Mapping
 
 import shiploop_history_policy as history_policy
 import shiploop_improve_policy as improve_policy
+import shiploop_improve_bridge as improve_bridge
+import shiploop_sdlc as sdlc
 import shiploop_system_context as system_context
 from shiploop_privacy import redact_text, sensitive_text
 from shiploop_until import action_reasoning, review_improve_cycle
@@ -953,6 +955,80 @@ def _skill_assessment_template() -> dict[str, Any]:
     }
 
 
+def _managed_template(stage, template, state, info, api):
+    """Expose every managed-only field in the same cold action packet."""
+    rec = info.get("receipt", {})
+    saved = rec.get("sdlc", {}).get("test_plan")
+    tests = info.get("step", {}).get("contract", {}).get("tests", [])
+    plan = saved or {
+        "cases": [{"case_id": f"CASE-{index:03d}", "contract_id": row["id"],
+                   "requirement": "; ".join(row["produces"]), "inputs": ["Replace with concrete inputs"],
+                   "expected_outcome": row["expected_outcome"], "test_selectors": ["tests/replace.py::test_case"],
+                   "check_ids": ["replace-test-check"], "environment": "Replace with actual test environment",
+                   "fixture": "Replace with concrete fixture or fixture-free rationale"}
+                  for index, row in enumerate(tests, 1)],
+        "coverage": [{"surface": surface, "disposition": "not-applicable", "reason": "Replace with assessed selection or concrete applicability rationale"}
+                     for surface in ("unit", "mock_fake", "integration", "end_to_end", "browser_service_api")],
+    }
+    notes = []
+    if stage == "commit" or stage.endswith("-commit"):
+        policy = state.get("managed_improve_independent_review", {})
+        if policy.get("required"):
+            template = dict(template or {})
+            template["independent_review"] = {"status": "performed", "evidence_ref": "reviews/replace-with-current-independent-review.md"}
+            notes.append("This binding requires independent review for each counted pass. Evidence must be an existing run-relative file describing the current candidate review; the controller rejects omission.")
+            if policy.get("fallback_allowed"):
+                notes.append("Only when an independent reviewer is unavailable, the bound policy permits {status:'unavailable',fallback:'self-review',reason:<actual reason>,evidence_ref:<actual review record>}.")
+    if stage in ("step-plan", "step-plan-revise", "improve-plan"):
+        template = dict(template or {"summary": "Plan the scoped work."})
+        template["test_plan"] = plan
+        notes.append("Replace example case inputs/selectors/check IDs and coverage decisions with actual evidence. Retain frozen contract outcomes and all previously required case IDs.")
+        if stage == "improve-plan":
+            template.update(
+                coverage_review={key: "Concrete evidence or applicability reason" for key in getattr(_value(api, "step_planning"), "RUBRIC", ())},
+                context_evidence={key: ["Concrete observed context reference"] for key in ("step", "implementation", "environment", "dependencies")},
+                prerequisites=[], learnings="Concrete lessons from this review and plan",
+            )
+            selected = _system_context_evidence_template(info)
+            if selected is not None:
+                template["context_evidence"]["system_context"] = selected
+            notes.append("prerequisites is [] only when none are required; otherwise every row has requirement,evidence,status:'satisfied'. Unresolved current prerequisites block Apply.")
+    elif stage == "improve-plan-verify":
+        template = {"summary": "Current iteration plan checks passed."}
+    elif stage == "test-refine":
+        template = {"summary": "Cases reassessed from actual code.", "test_plan": plan,
+                    "refinement_reason": "Concrete new case discoveries or adequate-existing-coverage rationale"}
+    elif stage == "test-author":
+        template = {"summary": "Executable tests mapped to planned cases.", "test_refinement": {"cases": [
+            {"case_id": row["case_id"], "disposition": "reused", "test_paths": [selector.split("::", 1)[0] for selector in row["test_selectors"]],
+             "check_ids": row["check_ids"], "coverage": "Explain the assertions covering this case",
+             "adequacy_reason": "Explain why the actual existing assertions are sufficient", "oracle": {"decision": "unchanged"}}
+            for row in plan["cases"]]}}
+        bindings = {}
+        for case in plan["cases"]:
+            for check_id in case["check_ids"]:
+                row = bindings.setdefault(check_id, {"check_id": check_id, "argv": ["REPLACE_WITH_ACTUAL_TEST_COMMAND"],
+                    "case_ids": [], "selectors": [], "selection": {"mode": "direct", "evidence": "Explain how argv selects these cases"}})
+                row["case_ids"].append(case["case_id"])
+                row["selectors"] = sorted(set(row["selectors"]) | set(case["test_selectors"]))
+        template["test_bindings"] = {"bindings": list(bindings.values())}
+        notes.append("test_bindings freezes exact ordered argv for every case/check mapping. Direct selection must name the test path or selector in argv. Suite selection instead requires mode:'suite', evidence and evidence_path naming an existing repo-local discovery/config file that lists every selected path. verify rejects changed commands or selection evidence.")
+        notes.append("For changed tests use authored or updated and omit adequacy_reason. Oracle corrections require old_expected_outcome,new_expected_outcome,basis,preserved_coverage; never weaken frozen acceptance for green.")
+    elif stage == "skill-validate":
+        skill = rec.get("iteration", {}).get("documentation", {}).get("reusable_skill", {})
+        entrypoint = next((p for p in skill.get("paths", []) if p.endswith("SKILL.md")), "skills/example/SKILL.md")
+        template = {"summary": "Skill use is mapped to executable verification.", "skill_validation": {
+            "decision": skill.get("decision", "reused"), "rationale": skill.get("rationale", "Explain selected reuse"),
+            "entrypoint": entrypoint, "index": next(iter(skill.get("references", [])), "README.md"),
+            "executable_examples": [{"path": "tests/replace_skill_example.py", "check_id": "replace-skill-check", "purpose": "Actual skill use and expected result"}],
+            "failure_recovery": "Concrete failure and safe recovery behavior", "host_limitations": "Actual supported and unverified host boundaries"}}
+        notes.append("Each executable_examples check_id must select a real test-kind manifest command whose argv names that example path; ID matching alone does not prove skill use.")
+    quality_target = stage == "quality" or state.get("objective", {}).get("base_stage") == "quality"
+    if quality_target:
+        notes.append("Managed release re-executes every completed local test binding and selected skill example against the assembled tree. Read context --section sdlc for exact case/command records, and include those commands with whole-product acceptance and lint in verify. Read system-test-requirements for current invalidation and any required replacement SYS mapping. A later product change invalidates prior affected evidence even if its old node completed.")
+    return template, notes
+
+
 def _step_plan_template(stage: str, state: Mapping[str, Any], api: Mapping[str, Any], info: Mapping[str, Any]) -> tuple[dict[str, Any] | None, list[str]]:
     step_planning = _value(api, "step_planning")
     rubric = list(getattr(step_planning, "RUBRIC", ()))
@@ -1389,7 +1465,7 @@ def _step_info(core: Any, root: Path, state: Mapping[str, Any], api: Mapping[str
     stage = state.get("stage")
     is_step_plan = _value(api, "is_step_plan_stage")
     step_stage = bool(callable(is_step_plan) and is_step_plan(stage))
-    if step_stage or stage == "improve-plan":
+    if step_stage or stage in ("improve-plan", "improve-plan-verify"):
         receipt_result, receipt_error = _call(_value(api, "step_plan_receipt"), root, rec)
         if receipt_error is None and isinstance(receipt_result, tuple) and len(receipt_result) == 2:
             loop, receipt = receipt_result
@@ -1444,6 +1520,12 @@ def _stage_lifecycle(
     stage: Any, info: Mapping[str, Any], api: Mapping[str, Any], *, history_limit: int
 ) -> list[str]:
     """Small stage-local continuation contract; detailed work stays durable."""
+    if info.get("managed_improve"):
+        return [
+            "Managed Improve owns this invocation's review, plan, apply, tests, record and convergence. ShipLoop's parent action remains waiting.",
+            "Follow each child packet through its exact callback until a validated certificate releases the parent. Two distinct completed trivial passes and fresh final checks are required.",
+            "Plan every pass before edits; do not launch a nested plan-convergence campaign or a standalone Until Loop. Missing scope, prerequisites or evidence remains incomplete.",
+        ]
     def converge(objective: str, evidence: str, *, cycle: str | None = None) -> list[str]:
         return [
             cycle if cycle is not None else review_improve_cycle(history_limit),
@@ -1793,7 +1875,7 @@ def _check_manifest_acceptance(
             state,
             binding["kind"],
         )
-    elif stage in ("step-plan-verify", "step-plan-finalize"):
+    elif stage in ("step-plan-verify", "step-plan-finalize", "improve-plan-verify"):
         expected, error = ["step plan"], None
     else:
         planning = _value(api, "planning")
@@ -1889,7 +1971,7 @@ def _check_commands(core: Any, root: Path, state: Mapping[str, Any], api: Mappin
             f"Author/update objective manifest: {manifest}",
             f"Objective checks (must pass before completion): {cmd} planning-verify {options} --manifest {_quote(manifest)}",
         ]
-    if stage in ("step-plan-verify", "step-plan-finalize"):
+    if stage in ("step-plan-verify", "step-plan-finalize", "improve-plan-verify"):
         loop = info.get("step_plan_loop")
         if isinstance(loop, str):
             manifest = root / "inbox" / f"checks-step-plan-{loop}.md"
@@ -2153,7 +2235,7 @@ def _orientation_location(
         if type(iteration) is int and iteration > 0:
             label += f" iteration {iteration}"
         parts.append(label)
-    elif stage in ("review", "improve-plan", "improve-apply", "iteration-document", "verify", "commit", "final-verify", "post-inner", "merge"):
+    elif stage in ("review", "improve-plan", "improve-plan-verify", "improve-apply", "test-refine", "test-author", "skill-validate", "iteration-document", "verify", "commit", "final-verify", "post-inner", "merge"):
         parts.append("product review-and-improve loop")
     parts.append(f"{stage} (action {action_id})")
     return " → ".join(parts) + suffix
@@ -2400,6 +2482,22 @@ def render(core: Any, root: Path, state: Mapping[str, Any], api: Mapping[str, An
         f"State: {root / 'state.md'}",
         f"Stage: {stage}",
     ]
+    managed = improve_bridge.packet_metadata(state)
+    if managed:
+        lines.append("Managed Improve binding: " + _line_json({key: value for key, value in managed.items() if key != "recovery_handoff"}))
+        lines.append("Frozen managed consumer contract: " + str(root / "improve-managed-contract.md"))
+        lines.append("The parent remains waiting. This action belongs to its saved Improve child; a callback is not another completed review.")
+        recovery = managed.get("recovery_handoff")
+        if isinstance(recovery, Mapping):
+            lines.append("Required recovery handoff: " + _line_json(recovery))
+            lines.append("Before continuing this child, read the bound recovery evidence and address the recorded reason. The previous child ended unfinished; it did not release its consumer.")
+            for reference in recovery.get("evidence_refs", []):
+                lines.append("Required recovery evidence: " + str(root / reference))
+    if improve_bridge.enabled(state):
+        lines.append("SDLC responsibility: " + str(sdlc.stage_responsibility(
+            str(stage), base_stage=state.get("objective", {}).get("base_stage"),
+            profile=state.get("managed_improve", {}).get("profile"))))
+        lines.append("Flat SDLC map: " + _context_command(core, root, "sdlc"))
     if not isinstance(aid, str) or not aid:
         lines.extend(
             _safe_orientation_lines(
@@ -2568,7 +2666,9 @@ def render(core: Any, root: Path, state: Mapping[str, Any], api: Mapping[str, An
         ])
         return "\n".join(lines) + "\n"
     info.update(objective_info)
-    if policy_path is not None and stage in improve_policy.PRODUCT_STAGES:
+    if managed:
+        info["managed_improve"] = managed
+    if policy_path is not None and stage in improve_policy.PRODUCT_STAGES and not managed:
         info["improve_policy_cycle"] = improve_policy.cycle(
             policy_path, state["improve_policy"], history_policy.required_limit(state)
         )
@@ -2735,6 +2835,8 @@ def render(core: Any, root: Path, state: Mapping[str, Any], api: Mapping[str, An
 
     prompt_map = _value(api, "PROMPTS", {})
     instruction = prompt_map.get(stage) if isinstance(prompt_map, Mapping) else None
+    if improve_bridge.enabled(state):
+        instruction = _value(api, "MANAGED_PROMPTS", {}).get(stage, instruction)
     if isinstance(instruction, str):
         limit = history_policy.required_limit(state)
         instruction = instruction.replace("--limit 10", f"--limit {limit}").replace("latest ten", f"latest {limit}").replace("current ten", f"current {limit}")
@@ -2835,7 +2937,7 @@ def render(core: Any, root: Path, state: Mapping[str, Any], api: Mapping[str, An
         lines.append("Step cold context: " + _context_command(core, root, "step-context"))
         if "system-context" in available:
             lines.append("Read selected roles/interfaces via context --section system-context.")
-        if "step-plan" in available and stage in ("implement", "review", "improve-plan", "improve-apply", "iteration-document", "verify"):
+        if "step-plan" in available and stage in ("implement", "review", "improve-plan", "improve-plan-verify", "improve-apply", "test-refine", "test-author", "skill-validate", "iteration-document", "verify"):
             lines.append("Test-plan criteria: " + _context_command(core, root, "step-plan"))
         if stage == "review":
             lines.append("Read step-context for the accepted initial implementation_test_record and iteration for current Improve evidence; historical notes do not certify current tests.")
@@ -2932,6 +3034,9 @@ def render(core: Any, root: Path, state: Mapping[str, Any], api: Mapping[str, An
         template, notes = _execution_template(str(stage), state, info)
     if template is None and isinstance(stage, str) and stage.startswith("objective-"):
         template, notes = _objective_template(stage, state, api, info)
+    if improve_bridge.enabled(state):
+        template, managed_notes = _managed_template(str(stage), template, state, info, api)
+        notes.extend(managed_notes)
     if template is None:
         lines.extend([
             "Blocked: no complete result schema is available for this durable stage.",

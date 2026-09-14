@@ -54,6 +54,10 @@ CORE = load_core()
 class ShipLoopActionWalkFixture(unittest.TestCase):
     """Reusable real-CLI planning and execution fixture for ShipLoop tests."""
 
+    # Preserve the established action-walk route explicitly.  Managed coverage
+    # subclasses this fixture and opts in deliberately.
+    execution_mode = "legacy"
+
     product_one = "s1.txt contains exactly one line: first"
     product_two = "s2.txt contains exactly one line: second"
     product_research = "s3.txt contains exactly one line: research"
@@ -1589,6 +1593,8 @@ document any future function-contract or README impact before implementation.
             str(self.repo),
             "--bound-plan",
             str(self.bound_plan),
+            "--execution-mode",
+            self.execution_mode,
             "--prompt",
             "Build two tested fixture artifacts through the durable ShipLoop protocol.",
         )
@@ -2689,6 +2695,8 @@ class ShipLoopActionWalkTests(ShipLoopActionWalkFixture):
             str(self.repo),
             "--bound-plan",
             str(self.bound_plan),
+            "--execution-mode",
+            self.execution_mode,
             "--prompt",
             "Exercise a durable objective loop.",
         )

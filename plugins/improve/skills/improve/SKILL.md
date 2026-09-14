@@ -27,14 +27,14 @@ Read the shared policy in full before interpreting or executing this skill. It
 defines the reusable review-cycle obligations. The sections below supply only
 this standalone consumer's binding, preview behavior, and adapter handoff.
 
-This package bundles its Until Loop runtime at
+For the standalone entrypoint, this package bundles its Until Loop runtime at
 [runtime/until-loop/ADAPTER.md](runtime/until-loop/ADAPTER.md). Resolve symlinks to
 this card's physical directory before resolving relative links. Read that bound
 card in full and follow its adapter. The package-relative binding is
 authoritative: do not substitute a separately installed runtime, an older card,
 or a runtime that lacks the requested preview behavior.
 
-That bound card is the only CLI caller. Pass the following intent as natural
+That bound card is the only CLI caller for standalone execution. Pass the following intent as natural
 language, retaining the user's exact request and any more specific constraints.
 Do not make the user supply internal arguments or JSON. A skill-directory or
 marketplace installation must keep this entire package tree together; the
@@ -48,6 +48,40 @@ explicit binding in full. It must not run this standalone card or this card's
 until-loop adapter. The other owner supplies its own history window, scope,
 classification rule, evidence location, commit policy, phase/callback, and
 finalization authority.
+
+## ShipLoop managed-subrun entrypoint
+
+[ShipLoop's managed consumer binding](references/managed-consumer.md) is a
+separate consumer of the same shared policy. It applies only when a ShipLoop
+run has selected the versioned managed Improve protocol and printed a
+`managed-improve` packet. It does not replace the standalone owner binding
+above or change an existing ShipLoop run that lacks that protocol marker.
+
+Read the managed-consumer binding and the parent-supplied child packet in full.
+The managed controller owns the child phase sequence, its completed review
+records, material reset, and two-consecutive-trivial assessment. ShipLoop owns
+the parent action, delivery DAG, run lock, Markdown transaction, and consumer
+release. While the child is active, do not invoke the standalone card or its
+bundled until-loop adapter, create an ambient `.until-loop` directory, call a
+legacy per-phase ShipLoop callback, or start another Improve invocation to
+improve the child's own plan.
+
+The parent action remains fixed at `managed-improve` while the child progresses
+in its namespaced Markdown records. Follow only the printed child continuation
+or import route. A terminal child status of `blocked`, `needs-prerequisite`,
+`needs-replan`, or `stopped` is incomplete; it keeps the parent action and
+binding for recovery. Only a current, validated `converged` certificate can
+release the parent to its stated return stage.
+
+The managed binding must state the child action ID, profile, frozen
+candidate/context inputs, scope, history, policy/executor digests, checks,
+explicit `audit-every-iteration` commit policy, evidence/certificate
+requirements, independent-review rule, and parent return conditions. The shared policy asks
+for an independent reviewer when available. If this binding makes independent
+review mandatory, it must explicitly say whether a recorded self-review
+fallback is allowed; absent that authorization, unavailable independent review
+blocks the child. The controller must never infer a fallback from availability
+or a desire to finish.
 
 ## Standalone owner binding
 

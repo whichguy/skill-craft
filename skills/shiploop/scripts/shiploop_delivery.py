@@ -231,6 +231,13 @@ def valid_complete_report(root: Path, state: dict[str, Any]) -> bool:
     if record.get("outcome") != "complete" or record.get("evidence_complete") is not True:
         return False
     try:
+        if state.get("managed_improve_protocol_version") == 1:
+            # The HTML is a bounded projection. Its success gate also checks
+            # the exact managed proof bound by the authoritative parent state.
+            import shiploop_improve_bridge as improve_bridge
+
+            if improve_bridge.validate_imported_certificate(root, state) is None:
+                return False
         path = _report_path(root)
         if hashlib.sha256(path.read_bytes()).hexdigest() != record.get("sha256"):
             return False

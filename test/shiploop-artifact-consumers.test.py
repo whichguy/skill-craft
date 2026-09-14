@@ -88,6 +88,8 @@ class ArtifactConsumerMatrixTests(ACTION.ShipLoopActionWalkFixture):
             str(self.repo),
             "--bound-plan",
             str(self.bound_plan),
+            "--execution-mode",
+            "legacy",
             "--prompt",
             "Exercise artifact producer and consumer routes through durable Markdown.",
         )

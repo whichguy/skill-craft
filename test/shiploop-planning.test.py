@@ -441,6 +441,8 @@ TC-01 validates acceptance; TC-02 validates rejection and repetition.
             "init",
             "--repo",
             str(self.repo),
+            "--execution-mode",
+            "legacy",
             "--prompt",
             "Plan a fixture with explicit states, transitions, and edge conditions.",
         )
@@ -1892,6 +1894,8 @@ TC-01 validates acceptance; TC-02 validates rejection and repetition.
             "init",
             "--repo",
             str(self.repo),
+            "--execution-mode",
+            "legacy",
             "--prompt",
             "Upgrade a historical preflight run without skipping its gate.",
         )
@@ -1901,7 +1905,10 @@ TC-01 validates acceptance; TC-02 validates rejection and repetition.
         self.assertEqual(self.state().get("planning_protocol_version"), 2)
 
     def test_old_approach_upgrade_keeps_approach_gate_and_artifact(self) -> None:
-        self.cli("init", "--repo", str(self.repo), "--prompt", "Upgrade approach")
+        self.cli(
+            "init", "--repo", str(self.repo), "--execution-mode", "legacy",
+            "--prompt", "Upgrade approach",
+        )
         self.complete(
             {"summary": "A committed baseline exists.", "baseline": "committed-head"},
             label="old-approach-preflight",
@@ -1929,7 +1936,10 @@ TC-01 validates acceptance; TC-02 validates rejection and repetition.
         )
 
     def test_v1_research_upgrade_archives_one_shot_report_and_restarts_research(self) -> None:
-        self.cli("init", "--repo", str(self.repo), "--prompt", "Upgrade research")
+        self.cli(
+            "init", "--repo", str(self.repo), "--execution-mode", "legacy",
+            "--prompt", "Upgrade research",
+        )
         self.complete(
             {"summary": "A committed baseline exists.", "baseline": "committed-head"},
             label="old-research-preflight",
@@ -2045,7 +2055,10 @@ TC-01 validates acceptance; TC-02 validates rejection and repetition.
 
     def test_old_schedule_next_is_read_only_until_upgrade(self) -> None:
         """A legacy schedule cursor must not allocate a worktree before upgrade."""
-        self.cli("init", "--repo", str(self.repo), "--prompt", "No legacy schedule side effect")
+        self.cli(
+            "init", "--repo", str(self.repo), "--execution-mode", "legacy",
+            "--prompt", "No legacy schedule side effect",
+        )
         state = self.make_old_run()
         state.update(phase="implement", stage="schedule")
         state["action"] = {"id": "old-schedule-next", "stage": "schedule"}

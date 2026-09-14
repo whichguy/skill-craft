@@ -317,7 +317,10 @@ class BoundedHistoryCliTests(unittest.TestCase):
         )
 
     def enter_objective_review(self) -> None:
-        self.cli("init", "--repo", str(self.repo), "--run-dir", str(self.run), "--prompt", "Review the bounded fixture.")
+        self.cli(
+            "init", "--repo", str(self.repo), "--run-dir", str(self.run),
+            "--execution-mode", "legacy", "--prompt", "Review the bounded fixture.",
+        )
         self.complete({"summary": "The committed baseline is available.", "baseline": "committed-head"})
         self.complete(
             {

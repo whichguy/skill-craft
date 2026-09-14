@@ -366,7 +366,15 @@ class PacketTests(unittest.TestCase):
 
         long_body = "Long saved history body for read-only paging.\n\n" + ("\u03bb" * 4500)
         self.git("commit", "--amend", "--allow-empty", "-q", "-m", long_body)
-        self.cli("init", "--repo", str(self.repo), "--prompt", "Plan from saved history")
+        self.cli(
+            "init",
+            "--repo",
+            str(self.repo),
+            "--execution-mode",
+            "legacy",
+            "--prompt",
+            "Plan from saved history",
+        )
         preflight = self.state()["action"]["id"]
         self.cli(
             "complete",
@@ -1093,7 +1101,11 @@ class PacketTests(unittest.TestCase):
             "implement",
             "review",
             "improve-plan",
+            "improve-plan-verify",
             "improve-apply",
+            "test-refine",
+            "test-author",
+            "skill-validate",
             "iteration-document",
             "verify",
         )
@@ -1361,7 +1373,15 @@ class PacketTests(unittest.TestCase):
         self.assertNotIn("Call this when done:", missing_packet)
 
     def test_objective_packet_is_self_contained_and_uses_seven_body_history_gate(self):
-        self.cli("init", "--repo", str(self.repo), "--prompt", "Build")
+        self.cli(
+            "init",
+            "--repo",
+            str(self.repo),
+            "--execution-mode",
+            "legacy",
+            "--prompt",
+            "Build",
+        )
         preflight = self.state()["action"]["id"]
         self.cli(
             "complete",

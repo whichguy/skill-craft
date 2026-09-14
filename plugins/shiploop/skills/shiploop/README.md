@@ -10,22 +10,22 @@ or prove a human-facing, remote, or deployed outcome. The host performs those
 judgments and records evidence; ShipLoop persists the result, checks transition
 preconditions, and refuses unsafe or stale transitions.
 
-**Until-loop integration:** ShipLoop retains until-loop's continuation policy
-and shared **review-and-improve cycle** prompt for its non-product convergence
-owners: review changes, consider improvements, plan using the selected full Git
-history, implement improvements, and repeat until two consecutive completed
-reviews are trivial-only. Apply the trivial fixes too; checks and a verbose
-learning commit are required before a cycle counts. Research, behavior,
-specification, step planning, product Improve, and substantive objectives all
-reach ShipLoop's shared receipt-derived decision function. New-run product
-Improve stages additionally read their bound declarative policy snapshot; they
-do **not** invoke a separately installed Improve or `/until-loop` skill or start
-either CLI. See [exact integration and loop coverage](#how-shiploop-leverages-until-loop)
-for the implementation, provenance, and limits of that claim.
+**Until-loop integration and mode:** ShipLoop retains an until-loop-derived
+review policy and receipt-based convergence for its retained legacy and native
+owners. New runs use **managed Improve by default**: ShipLoop holds one durable
+parent binding while the bundled controller owns the bound child profile's
+phases, material reset, pass count, and terminal certificate. Its six profiles
+are `research`, `behavior`, `spec`, `objective`, `step-plan`, and `product`.
+An existing or explicitly requested `--execution-mode=legacy` run retains the
+documented stage-by-stage and nested-plan route. Neither mode invokes an
+installed Improve or `/until-loop` skill, starts either CLI, or creates a
+separate `.until-loop` state store. See [the managed default](#managed-improve-is-the-new-run-default)
+and [exact integration and loop coverage](#how-shiploop-leverages-until-loop).
 
 ## Table of contents
 
 - [What ShipLoop is and is not](#what-shiploop-is-and-is-not)
+- [Managed Improve is the new-run default](#managed-improve-is-the-new-run-default)
 - [Script-enforced state machine](#script-enforced-state-machine)
   - [One completion is a guarded transition](#one-completion-is-a-guarded-transition)
   - [Mandatory gates before, inside, and after execution](#mandatory-gates-before-inside-and-after-execution)
@@ -68,6 +68,47 @@ This README is a human deep dive, **not** a document to inject wholesale into
 every prompt. The thin [entry skill](SKILL.md) and current packet select what a
 single action needs.
 
+## Managed Improve is the new-run default
+
+New `init` runs select managed Improve unless the caller explicitly passes
+`--execution-mode=legacy`; the selected mode is durable and existing runs resume
+their recorded mode. A managed parent parks at `managed-improve` while the
+bound controller owns one of six profiles: `research`, `behavior`, `spec`,
+`objective`, `step-plan`, or `product`. ShipLoop still owns the run lock,
+Markdown transaction, DAG, typed evidence validators, and consumer release.
+The controller owns only the child's legal phases, material reset, verified-pass
+decision, and certificate. The current [entry skill](SKILL.md) is the concise
+operator contract; [execution planning](references/execution-planning.md#execution-mode-and-one-convergence-owner)
+describes that boundary in detail.
+
+For a managed product pass, the controller route is:
+
+```text
+improve-plan → improve-plan-verify → improve-apply → test-refine → test-author
+→ iteration-document → skill-validate (only when selected) → verify
+→ carry-forward → commit
+```
+
+`improve-plan-verify` checks one bound per-iteration implementation/test plan
+before Apply. It is not a nested two-trivial-pass planning campaign. After two
+distinct verified trivial passes with no open findings, the controller still
+requires fresh final evidence before it can issue a converged certificate. The
+product checkpoint records are defined in [Managed Improve checkpoints](references/testing-and-documentation.md#managed-improve-checkpoints).
+
+At a managed parent, run `next`, read the saved child packet and, when needed,
+run `context --section sdlc` for the current responsibility, child binding,
+flat SDLC map, and assembled local test/skill records. Follow only the printed
+child continuation or recovery instruction. A valid certificate imports
+atomically; there is no separate Improve installation, imported command, or
+parent `done` call to construct. `blocked`, `needs-prerequisite`,
+`needs-replan`, and `stopped` remain unfinished until the packet supplies a
+valid recovery route.
+
+The retained nested `step-plan-*` and stage-by-stage product descriptions below
+are **legacy-mode** behavior unless a section explicitly says managed. They
+document existing-run compatibility and manual/API details; they do not mean a
+new managed product run starts a second nested Improve-plan campaign.
+
 ## What ShipLoop is and is not
 
 The full operator loop is intentionally broader than a single implementation
@@ -107,8 +148,8 @@ transition.
 
 | Status | Meaning |
 |---|---|
-| **Current control** | The script and authoritative Markdown currently store state, issue one action ID, validate declared result/evidence shape, gate research/behavior/specification candidates, and converge each initial or Improve execution plan with durable finding ledgers, fresh planning checks, and audit commits. |
-| **New-run control** | New runs bind a seven-message history policy, compact source-linked system context, an early-observation callback, an outer-work obligation journal, a final handoff objective, and the content-pinned product Improve policy snapshot. Compatibility is marker-specific: see the recovery matrix; an absent marker is not a universal bypass. Bounded artifact diagnostics expose the available evidence without upgrading an old run. |
+| **Current control** | The script and authoritative Markdown store state, issue one action ID, validate declared result/evidence shape, and gate candidates. In managed mode, the bundled controller owns the bound child profile's convergence and terminal certificate while ShipLoop validates and imports it; legacy mode retains its documented nested execution-plan loops. |
+| **New-run control** | New runs default to managed Improve and bind a content-pinned managed consumer/policy, seven-message history policy, compact source-linked system context, an early-observation callback, an outer-work obligation journal, and a final handoff objective. `--execution-mode=legacy` is explicit. Compatibility is marker-specific: see the recovery matrix; an absent marker is not a universal bypass. |
 | **Required host duty** | The host must make scoped edits, select meaningful tests, interpret evidence, review semantics, preserve unrelated work, and verify external effects. The script cannot mechanically prove these judgments. |
 | **Proposed safeguard** | A documented improvement idea that is not a current stage, result field, or enforced gate. It must not be described as implemented. |
 | **Known limitation** | A current state-machine or recovery gap. Follow the safe operating discipline and report the limitation; do not claim that the harness already closes it. |
@@ -193,9 +234,9 @@ attempt logs, but cannot earn an accepted transition or clean pass.
 | Boundary | States and enforced prerequisite | Authoritative evidence and owner |
 |---|---|---|
 | Before any product implementation | `preflight`, `approach`, `survey`, research/behavior/specification convergence, and `sequence`; conditional `prepare` must finish before scheduling. Drafting a spec is not its finalization. | Git baseline, accepted environment/spec/lifecycle/DAG, planning or objective certificates. The protocol and planning handlers choose each successor. |
-| Before initial implementation **and** each Improve application | `step-plan` or `improve-plan` starts a separate `step-plan-review → step-plan-revise → step-plan-verify → step-plan-commit` loop, then `step-plan-finalize`. Only its certified handoff releases `implement` or `improve-apply`. | Step-plan candidate, current context/finding ledger, full Git-history receipts, real plan checks, distinct audit commits, two-trivial-pass certificate and fresh final check. |
+| Before initial implementation **and** each Improve application | **Managed new runs:** the `step-plan` child converges the initial local plan; a product pass uses `improve-plan → improve-plan-verify → improve-apply` with one bound checked plan record. **Explicit legacy mode:** `step-plan` or `improve-plan` starts the retained `step-plan-review → step-plan-revise → step-plan-verify → step-plan-commit` loop, then `step-plan-finalize`. | Managed planning binds cases, expected outcomes, prerequisites, candidate/context, and its check before Apply. Legacy planning retains its candidate, ledger, history, real plan checks, audit commits, two-trivial-pass certificate, and fresh final check. |
 | Initial implementation | `implement` must validate the accepted plan and required current checks before entering the first `review`. It cannot go directly to integration. | Selected worktree and Ready/Done contract, action-bound check records and code/test evidence. |
-| Every product Improve iteration | `review → improve-plan → nested plan convergence → improve-apply → iteration-document → verify → carry-forward → commit` for new runs. The script requires the prior records and may pause, repair or replan instead of advancing. | Review/history, finalized improvement plan, application evidence, documentation/reuse receipt, lint/tests, knowledge checkpoint and primary learning commit. A callback is not an iteration. Unmarked older runs retain Apply-to-Verify. |
+| Every product Improve iteration | **Managed new runs:** `review → improve-plan → improve-plan-verify → improve-apply → test-refine → test-author → iteration-document → [skill-validate] → verify → carry-forward → commit`; the controller chooses the child route. **Explicit legacy mode:** the retained nested-plan path and callbacks apply. | Review/history, a bound plan record, post-code test refinement/authoring, documentation/skill evidence, lint/tests, knowledge checkpoint, and primary learning commit. A callback is not an iteration. |
 | Before merging a completed step | Two consecutive verified/audited trivial iterations and no open findings lead to `final-verify`, then `post-inner` and `merge`. Final verification must still match the reviewed commit; post-inner is itself a converged objective. | Fresh final proof, broader-plan/system-test reassessment, mapped pending obligations, step receipt and local merge ancestry. Material change resets convergence; it is not a shortcut to another clean pass. |
 | After the dependency graph is drained | `coverage`, then `quality`, each with objective convergence. Quality requires integrated step receipts, current whole-product checks, declared system-test closure and due outer-work obligations. | Bound coverage ledger or the explicit plan waiver; quality checks; completed test contracts; current outer-work reads/resolutions. A corrective product change returns through a pending DAG step and its full inner loop. |
 | After outer quality | Conditional `publish`, then converged `handoff`, then `done` with the integrity-bound achievement report. Publication evidence is not terminal completion. | Applicable delivery/outer-work records, accepted handoff and terminal Markdown/report transaction. `halted` is an unfinished exit, never an alternate success path. |
@@ -270,13 +311,20 @@ do not become advisory with it.
 
 ### Product Improve policy pilot
 
+**Legacy-mode detail.** This retained policy-pilot section describes the
+stage-by-stage product route selected only by `--execution-mode=legacy` or an
+existing legacy run. New managed runs use the child-controller boundary above:
+they still snapshot the reviewed policy and managed consumer contract, but do
+not run the nested product plan campaign described in this section.
+
 ```mermaid
 flowchart LR
     U[Upstream Improve review policy] --> B[Bundled copy and reviewed pin]
-    B --> S[New-run Markdown snapshot]
-    S --> P[One product Improve phase packet]
+    B --> S[Saved policy snapshot]
+    S --> P[Retained legacy product packet]
     P --> V[ShipLoop validates result and policy bytes]
-    V --> M[Authoritative Markdown]
+    B --> C[Managed consumer contract]
+    C --> M[Managed child controller]
 ```
 
 This approved pilot shares only a declarative review policy. Its maintained
@@ -288,21 +336,21 @@ reviewed identity and SHA-256 in `references/improve-policy-pin.json` as
 source is packaging input, not a runtime dependency: ShipLoop neither downloads
 it nor looks for an Improve installation on the host.
 
-At `init`, a new ShipLoop run validates the bundled pin/body pair, writes its
-body to `<run>/improve-policy.md`, and stores the same binding under
-`state.md`'s `improve_policy`. The product Improve packets for exactly
-`review`, `improve-plan`, `improve-apply`, `iteration-document`, `verify`,
-`carry-forward`, `commit`, `final-verify`, `post-inner`, and `merge` print the
-saved policy path and the ShipLoop-managed one-stage/callback boundary. They do
-not add a result schema, a JSON sidecar, a standalone Improve session, or an
-Until runtime.
+At `init`, ShipLoop validates the bundled pin/body pair, writes its body to
+`<run>/improve-policy.md`, and stores the same binding under `state.md`'s
+`improve_policy`. Managed runs also bind their managed consumer contract. The
+legacy product Improve packets for exactly `review`, `improve-plan`,
+`improve-apply`, `iteration-document`, `verify`, `carry-forward`, `commit`,
+`final-verify`, `post-inner`, and `merge` print the saved policy path and the
+ShipLoop-managed one-stage/callback boundary. They do not add a result schema,
+a JSON sidecar, a standalone Improve session, or an Until runtime.
 
-ShipLoop remains the owner of strict material classification, required
-lint/tests, nested-plan convergence, iteration documentation, carry-forward,
-fresh final verification, post-inner, and merge gates. It still requires its
-distinct audit/primary learning commit on every iteration, including a
-no-change audit iteration. The declarative policy cannot relax those rules or
-turn a phase result into a whole-cycle completion.
+On that legacy route, ShipLoop remains the owner of strict material
+classification, required lint/tests, nested-plan convergence, iteration
+documentation, carry-forward, fresh final verification, post-inner, and merge
+gates. It still requires its distinct audit/primary learning commit on every
+iteration, including a no-change audit iteration. The declarative policy cannot
+relax those rules or turn a phase result into a whole-cycle completion.
 
 ShipLoop validates a present binding's shape at state load; a malformed binding
 is an ordinary fail-closed state error. With a valid binding, it rereads saved
@@ -315,8 +363,8 @@ missing or damaged, and unrelated stages do not read an unused snapshot. A
 package upgrade therefore never rebinds an active run. Existing runs without
 `improve_policy` keep their established `shiploop_until` policy. Research,
 specification, generic-objective, and nested execution-plan loops also remain
-on that existing shared helper; this pilot does not change their result schemas
-or readiness decisions.
+on that existing shared helper for the legacy route; this pilot does not change
+their result schemas or readiness decisions.
 
 This is the same integrity boundary as other run Markdown: a separately changed
 snapshot is detected, but an actor able to rewrite both `state.md` and the
@@ -372,9 +420,11 @@ or creates another state store.
 
 The repeated unit is an **owning loop's completed cycle**, not every tool call.
 A `done` callback completes one action inside it; the host must perform only
-the printed current stage. Product Improve's planning action starts a nested
-plan loop. Its cycles improve the plan and do not count as product Improve
-cycles. Stage-specific evidence and materiality rules still apply, as detailed
+the printed current stage. On the explicit legacy product route, `improve-plan`
+starts a nested plan loop whose cycles do not count as product Improve cycles.
+A managed product child instead uses its one checked `improve-plan-verify`
+record before Apply and owns the product pass itself. Stage-specific evidence
+and materiality rules still apply, as detailed
 [below](#what-counts-as-a-completed-improvement-pass).
 
 For example, a review discovers a missing timeout test. Planning rereads the
@@ -448,10 +498,11 @@ new dependency installation or runtime migration.
 
 | Work being improved | Owning loop and durable location | Shared policy and final gate |
 |---|---|---|
-| Research, behavior, specification | Specialized planning loops; `planning/<kind>.md`, current candidates, pass receipts and certificates. | `shiploop_planning.until_decision` calls the shared helper. Each loop validates its own rubric, findings, planning checks, history, and fresh final certificate. |
-| Initial plan for a ready step | Execution-plan loop, route `initial`; `step-planning/<loop>/`. | `step_plan_until` calls the helper; finalization releases only the exact checked microplan to `implement`. |
-| Plan for an Improve application | A separate execution-plan loop, route `improve`; its own `step-planning/<loop>/`. | The same policy and fresh final gate release only the checked plan to `improve-apply`. Its audit passes do not advance the parent's product streak. |
-| Product changes and their tests/docs | Primary Improve loop in `steps/<id>.md`, with the new-run `improve-policy.md` snapshot. | Only its listed product stages read the bound declarative policy. `improve_until_decision` still calls the helper after projecting verified, audited passes and material repair boundaries; `improve_two_clean` is a wrapper, not a different algorithm. Fresh `final-verify`, post-inner review, and merge guards still apply. |
+| Research, behavior, specification | **Managed:** the bound `research`, `behavior`, or `spec` child under the parent `managed-improve` record. **Legacy:** specialized planning loops under `planning/<kind>.md`. | A managed controller owns only its selected profile and certificate. The legacy owner calls `shiploop_planning.until_decision`; both routes require their selected evidence and fresh final gate. |
+| Initial plan for a ready step | **Managed:** the bound `step-plan` child retains the local plan and test matrix. **Legacy:** execution-plan loop, route `initial`, under `step-planning/<loop>/`. | The managed child releases its certified local plan to `implement`; the legacy `step_plan_until` owner releases only its exact checked microplan. |
+| Plan for a legacy Improve application | A separate execution-plan loop, route `improve`, under `step-planning/<loop>/`. | This legacy nested loop releases only the checked plan to `improve-apply`; its audit passes do not advance the parent product streak. A managed product pass uses one bound `improve-plan-verify` instead. |
+| Managed product changes and their tests/docs | The bound `product` child below the parent `managed-improve` record. | It owns the product pass, including the explicit post-code test and conditional skill checkpoints, two verified trivial passes, and fresh final evidence before its certificate. It does not start a nested plan campaign. |
+| Legacy product changes and their tests/docs | Primary legacy Improve loop in `steps/<id>.md`, with its saved `improve-policy.md` snapshot. | The listed legacy product stages read the bound declarative policy. `improve_until_decision` calls the helper after projecting verified, audited passes and material repair boundaries; fresh `final-verify`, post-inner review, and merge guards still apply. |
 | Approach, survey, sequence, preparation readiness, post-inner, coverage, quality | Generic substantive-objective loops; `objectives/<loop>.md` and its directory. | `shiploop_objectives.decide` calls the same helper; the exact candidate, context, ledger, history and final checks must still validate. These routes require their supported objective protocol. |
 | Final handoff | Generic `handoff` objective for runs with the delivery-objective marker. | The same policy plus bound outer evidence and journal obligations; only then can the terminal report be produced. Unmarked legacy handoff does not retroactively gain this proof. |
 
@@ -552,6 +603,14 @@ python3 "$SKILL_ROOT/scripts/shiploop" init \
   --repo "$REPO" --run-dir "$RUN_DIR" --prompt='Implement …'
 ```
 
+The omitted execution mode is `managed`, the new-run default. Pass
+`--execution-mode=legacy` only to start the retained stage-by-stage route; an
+existing run always resumes its recorded mode. A managed parent later waits at
+`managed-improve`: call `next`, follow its child packet, and use
+`context --section sdlc` when the packet needs the bound responsibility or
+local test/skill release records. There is no separate managed command or
+parent `done` callback.
+
 The first packet requests `preflight`. Inspect the committed Git baseline,
 preserve unrelated dirt, identify the available runtime and checks, and assess
 non-secret preparation needs. Put the requested result in the packet's inbox
@@ -600,13 +659,19 @@ The stored `phase` and `stage` pair is assigned by the script with a new action
 ID. Numbered explanatory phases, DAG step IDs, and Improve iteration IDs are
 different identifiers.
 
+For a managed run, ShipLoop reports the fixed parent stage
+`managed-improve` while the controller owns the selected child profile below it.
+The detailed `research-*`, `spec-*`, `step-plan-*`, and product stage lists in
+this retained phase map are legacy behavior unless a row explicitly labels the
+managed child route.
+
 | Explanatory phase | Current stored phase | Base and specialized stages; shared objective substages below | Outcome before the next explanatory phase |
 |---|---|---|---|
 | **P1 — Frame work and establish a baseline** | `intake` | `preflight`, `approach` | A selected committed baseline and an initial delivery approach. |
 | **P2 — Survey and converge research and behavior** | `validate-spec` | `survey`, `research`, `research-review`, `research-plan`, `research-apply`, `research-verify`, `research-commit`, `research-finalize`, `behavior`, `behavior-review`, `behavior-plan`, `behavior-apply`, `behavior-verify`, `behavior-commit`, `behavior-finalize` | An as-of research evidence baseline and a frozen behavior model, with material ambiguity resolved or explicitly paused. |
 | **P3 — Converge specification, sequence dependencies, and prepare** | `validate-spec`, then `plan` | `spec`, `spec-review`, `spec-plan`, `spec-apply`, `spec-verify`, `spec-commit`, `spec-finalize`, then `sequence` and conditional `prepare` | A frozen specification/lifecycle, validated dependency plan, and only authorized outer-before preparation. |
-| **P4 — Select, plan, and implement one ready step** | `implement` | script-driven `schedule`, then `step-plan`, `step-plan-review`, `step-plan-revise`, `step-plan-verify`, `step-plan-commit`, `step-plan-finalize`, and `implement` | One active branch/worktree, a freshly finalized execution plan, step output, and fresh check evidence. |
-| **P5 — Improve repeatedly, learn, and merge** | `implement` | `review`, `improve-plan`, then the same nested `step-plan-review`/`step-plan-revise`/`step-plan-verify`/`step-plan-commit`/`step-plan-finalize` stages, `improve-apply`, new-run `iteration-document`, `verify`, `carry-forward`, `commit`, `final-verify`, `post-inner`, `merge` | A converged, locally merged step, checked documentation/reuse decision, current knowledge checkpoint, and broader-plan decision. |
+| **P4 — Select, plan, and implement one ready step** | `implement` | **Managed:** parent `managed-improve` with the `step-plan` child, then `implement`. **Legacy:** script-driven `schedule`, then `step-plan`, `step-plan-review`, `step-plan-revise`, `step-plan-verify`, `step-plan-commit`, `step-plan-finalize`, and `implement`. | One active branch/worktree, a freshly finalized execution plan, step output, and fresh check evidence. |
+| **P5 — Improve repeatedly, learn, and merge** | `implement` | **Managed:** parent `managed-improve` with the `product` child, whose product pass includes `improve-plan`, one `improve-plan-verify`, Apply, test refinement/authoring, documentation, conditional skill validation, verification, carry-forward, and commit. **Legacy:** `review`, `improve-plan`, the nested `step-plan-*` stages, `improve-apply`, versioned `iteration-document`, `verify`, `carry-forward`, `commit`, `final-verify`, `post-inner`, `merge`. | A converged, locally merged step, checked documentation/reuse decision, current knowledge checkpoint, and broader-plan decision. |
 | **P6 — Review the whole product** | `residual` | `coverage`, `quality` | Bound coverage and whole-product acceptance/integration evidence, or a corrective replan. |
 | **P7 — Deliver if authorized and hand off** | `residual`, then `done` | conditional `publish`, `handoff`, then `done` | Actual delivery facts when applicable, limitations, handoff, and the terminal `done` state. |
 
@@ -1098,44 +1163,58 @@ input—it does not change accepted behavior.
 
 ### P5 — Improve repeatedly, learn, and merge
 
-One Improve iteration is the [review-and-improve cycle](#the-review-and-improve-cycle),
-from `review` through `carry-forward` and `commit`. This is the sole pilot
-surface: each listed P5 stage through `merge` reads the new run's saved
-`improve-policy.md` path, performs one stage, and returns through its exact
-ShipLoop callback. Each iteration has its own recorded history review, findings,
-a separately converged post-review plan, application, fresh checks, current
-knowledge checkpoint, and primary learning commit. Nested plan passes are
-evidence for the next edit; they do not count as Improve iterations or read the
-product policy snapshot.
+#### Managed product route
+
+For a managed new run, the parent remains at `managed-improve` while its bound
+`product` child owns the review, material reset, convergence count, and
+certificate. After the child's `review`, each per-iteration route is:
+
+```text
+improve-plan → improve-plan-verify → improve-apply → test-refine → test-author
+→ iteration-document → skill-validate (when selected) → verify
+→ carry-forward → commit
+```
+
+The single `improve-plan-verify` validates the current implementation/test plan
+before Apply; it is not a nested two-trivial-pass plan campaign. `test-refine`
+preserves and updates the pre-code case matrix from the actual code, and
+`test-author` maps those cases to actual selectors and check IDs. When the
+packet selects skill validation, the repo-local skill gets `skill-validate`
+before its executable examples can count in the actual manifest. The controller
+needs two distinct verified trivial
+passes with no open findings, then fresh final evidence, before it can return a
+certificate. ShipLoop validates and imports that certificate once before its
+ordinary parent `post-inner` and merge work. See [Managed Improve checkpoints](references/testing-and-documentation.md#managed-improve-checkpoints)
+for the retained records and [execution mode and one convergence owner](references/execution-planning.md#execution-mode-and-one-convergence-owner)
+for the parent/child boundary.
 
 ```mermaid
 flowchart TD
-    I1["5.1: Read knowledge, Git history, and research assessment"] --> I2["5.2: Draft Improve plan"]
-    I2 --> I3["5.3: Converge nested Improve plan"]
-    I3 --> I4["5.4: Apply finalized fixes and test changes"]
-    I4 --> D["5.4a: Document and assess local skill reuse"]
-    D --> I5["5.5: Verify lint and required tests"]
-    I5 -->|Failure or stale evidence| F["5.5a: Fix and rerun checks"]
-    F --> I5
-    F -.->|Plan invalid; repair| I1
-    I5 -->|Passing evidence| I6["5.6: Carry-forward checkpoint"]
-    I6 -->|Informational| I7["5.7: Record primary learning commit"]
-    I6 -->|Current-step repair| I1
-    I6 -->|Pending replan| P["Retain obligation for post-inner mapping"]
-    P --> I7
-    I6 -->|Pause| B["Record blocker and pause"]
-    B -->|No-contract-change resolution| I6
-    I7 --> G{"Two consecutive trivial-only iterations?"}
-    G -->|No| I1
-    G -->|Yes| I8["5.8: Fresh final verification"]
-    I8 -->|Pass| I9["5.9: Broader-plan review"]
-    I9 --> I10["5.10: Local merge"]
+    R["Review current code, history, and findings"] --> P["Improve plan"]
+    P --> PV["One plan verification"]
+    PV --> A["Apply code changes"]
+    A --> T["Refine and author tests"]
+    T --> D["Document; validate selected skill"]
+    D --> V["Run bound checks"]
+    V --> C["Carry forward and commit"]
+    C --> G{"Two verified trivial passes?"}
+    G -->|No| R
+    G -->|Yes| F["Fresh final evidence and certificate"]
+    F --> O["Parent post-inner and merge"]
 ```
+
+#### Retained legacy product route
+
+The stage-by-stage material below describes an existing or explicitly
+`--execution-mode=legacy` product route. It preserves the legacy callbacks,
+policy snapshot, and nested execution-plan campaign for compatibility; it does
+not describe the path selected by a new managed run.
 
 Before completing `review`, fully page the bounded `knowledge` selection and
 run `history`; inspect the full bodies for the run policy's latest commits (or
-all available), one body at a time when needed. New runs require seven and bind
-that policy into every pass; a run without the marker remains at the legacy ten.
+all available), one body at a time when needed. The bound history policy supplies
+its required count (seven under the current binding; an unmarked older run
+retains the legacy ten).
 If audit-only plan commits dominate
 that window, also inspect the relevant older implementation or decision commit
 through a scoped path/symbol investigation. The review result binds the
@@ -1154,7 +1233,7 @@ documentation are material findings. See
 [later research discoveries](references/research-loop.md#later-discoveries) for
 the route rather than silently rewriting a planning baseline.
 
-At `improve-plan`, reread the current review and its full saved Git messages
+On this legacy route, at `improve-plan`, reread the current review and its full saved Git messages
 through the packet's `iteration`/archive pointers; this plan cannot depend on
 remembering the preceding action. Draft a plan that addresses every finding
 and relevant Git learning with fixes, test work, documentation work or an
@@ -1183,21 +1262,21 @@ learnings into the enclosing iteration so that commit preserves both the plan
 investigation and the actual code/test learnings.
 
 At `improve-apply`, make the finalized changes without weakening expectations
-just to obtain green. New runs then enter the required `iteration-document`
-action before `verify`; older unmarked runs retain their original route.
-At `verify`, run fresh lint and required tests. A passing
+just to obtain green. A legacy run with the versioned documentation route then
+enters `iteration-document` before `verify`; an older unmarked run retains its
+original route. At `verify`, run fresh lint and required tests. A passing
 local result is evidence only for that local run; it does not prove a remote,
 deployed, or external effect.
 
 #### Required documentation and reusable-skill checkpoint
 
-Every new-run Improve iteration must submit an explicit documentation/README
-decision and a reusable-local-skill decision, with reasons and the packet's
-required evidence. Update code-local contracts and relevant existing docs, not
-an entire parallel knowledge base. A skill is created/updated only when a
-demonstrably reusable procedure will help future steps or maintenance. Reusing
-an existing skill or explaining why none is needed is valid; omitting the
-assessment is not.
+Every managed product iteration, and a legacy run where its versioned
+documentation route is enabled, must submit an explicit documentation/README
+decision and reusable-local-skill decision with the packet's required evidence.
+Update code-local contracts and relevant existing docs, not an entire parallel
+knowledge base. A skill is created or updated only when a demonstrably reusable
+procedure will help future steps or maintenance. Reusing an existing skill or
+explaining why none is needed is valid; omitting the assessment is not.
 
 Useful skills state purpose, when/why/how to use them, variable inputs, expected
 outputs, validation and safe failure behavior. Link code/tests/design/environment
@@ -1273,10 +1352,10 @@ defines the target stages, deduplication, resolution, and read binding.
 
 At `commit`, create the distinct primary commit on the step branch with
 `Review:`, `Changes:`, `Validation:`, `Key learnings:`, and the exact
-`ShipLoop-Iteration:` trailer. Its body must include the ordinary review,
-deduplicated nested Improve-plan review/revise, application, iteration-document
-(when enabled), and carry-forward
-learnings verbatim. An honest audit-only empty commit is allowed when it
+`ShipLoop-Iteration:` trailer. Its body includes the ordinary review,
+application, test/documentation evidence, and carry-forward learnings verbatim.
+The retained legacy route also includes deduplicated nested Improve-plan
+review/revise learnings. An honest audit-only empty commit is allowed when it
 contains concrete evidence.
 
 Two consecutive fully recorded trivial-only iterations are necessary, not
@@ -1795,7 +1874,7 @@ retrieves bounded `prompt`, `step`, `iteration`, `knowledge`, `behavior`,
 `lifecycle`, `journal`, `approach`, `research`, `research-evidence`,
 `objective`, `step-context`, `step-plan`, `platform-revalidation`, `preflight`,
 `preparation`, `coverage`, `quality`, `delivery`, `handoff`, `outer-work`,
-`artifacts`, `audit`, `check-log`, `migration`, `system-context`, or
+`artifacts`, `audit`, `check-log`, `migration`, `system-context`, `sdlc`, or
 `observation` sections. When the current loop has a validated original-result
 binding, its selected `quality-baseline` reader also exposes historical quality
 evidence; it is not an unrestricted result-file reader.
@@ -1898,7 +1977,7 @@ This map is for navigation; the current packet selects the applicable subset:
 | P2 — Survey, research, behavior | [Survey](references/survey.md) for tools/writers and interaction contracts; [research](references/research-loop.md) for sources, contradictions and freshness; [behavior model](references/behavioral-requirements.md#behavior-model) for flows, states and edge conditions. |
 | P3 — Specification, sequence, preparation | [Planning convergence](references/planning-loops.md) for the current spec/research/behavior action; [dependency planning](references/activities/plan.md) for ordering and prerequisites; [native Backchain planning](references/backchain-planning.md#outcomes) for outcome coverage and the five-lens audit; [test cases](references/testing-and-documentation.md#test-cases) and [surface selection](references/testing-and-documentation.md#surface-selection) for acceptance and preparation. |
 | P4 — Initial or revised step plan | [Execution planning](references/execution-planning.md) for current code/environment evidence, local microplans, dependencies and pre-code test criteria. |
-| P5 — Implementation and improvement | The packet's bound [`improve-policy.md`](references/improve-review-policy.md) path for the declarative product-review contract; [Implementation constitution](references/testing-and-documentation.md#implementation-constitution), [iteration](references/testing-and-documentation.md#iteration), and [behavior traceability](references/behavioral-requirements.md#traceability-and-review) for scoped code, tests, documentation and expected outcomes; [carry-forward](references/carry-forward.md) for discoveries; [merge and recovery](references/activities/implement.md#merge-and-recovery) for the final local merge boundary. |
+| P5 — Implementation and improvement | **Managed:** [Managed Improve checkpoints](references/testing-and-documentation.md#managed-improve-checkpoints) for the plan, test, skill, and check records, plus [execution-mode ownership](references/execution-planning.md#execution-mode-and-one-convergence-owner). **Legacy:** the packet's bound [`improve-policy.md`](references/improve-review-policy.md) for the declarative product-review contract and the retained [iteration](references/testing-and-documentation.md#iteration) route. Both use [Implementation constitution](references/testing-and-documentation.md#implementation-constitution), [behavior traceability](references/behavioral-requirements.md#traceability-and-review), [carry-forward](references/carry-forward.md), and [merge and recovery](references/activities/implement.md#merge-and-recovery) as selected by the packet. |
 | P6 — Outer closure | [Coverage](references/activities/residual.md#coverage) for bound ledger evidence; [deployment and handoff](references/testing-and-documentation.md#deployment-and-handoff) for whole-product checks and delivery; [outer-work](references/outer-work.md) for due obligations. |
 | P7 — Terminal report | [Report content and boundaries](references/report.md#content-and-boundaries) for achievement facts, evidence limits and unfinished outcomes; this is optional explanation, not another completion action. |
 | Any generic objective loop | [Objective loops](references/objective-loops.md) for the current review/plan/apply/check/commit/finalize action within its owning phase. |
@@ -1940,7 +2019,7 @@ are proposals until accepted, and a historical receipt is not current state.
 | Artifact family | Who writes it | Who reads it and when |
 |---|---|---|
 | `state.md`, `run.md`, `prompt.md` | Initialization and accepted script transactions. | Run identity/recovery and the current packet; `prompt` supplies original intent after a cold start. |
-| `improve-policy.md` plus `state.md`'s `improve_policy` binding | New-run initialization copies the checked package policy in the same Markdown transaction. | Active product Improve packet/callback validation rereads the saved bytes and prints the path. It is not read by unrelated stages; status/context/recovery stay diagnostic if it is missing. |
+| `improve-policy.md` plus `state.md`'s `improve_policy` binding | New-run initialization copies the checked package policy in the same Markdown transaction. Managed runs also retain their separate immutable child binding. | Active legacy product packet/callback and the managed child validate the saved bytes. It is not read by unrelated stages; status/context/recovery stay diagnostic if it is missing. |
 | `environment.md`, paired research files, `behavior.md`, `spec.md`, `lifecycle.md`, `plan.md`, `backchain/plan.md` | Their owning accepted survey/planning results and certified promotions; permitted replans use the script. | Downstream planning and execution context, DAG scheduler, identity and certificate validators. Current knowledge does not silently rewrite these baselines. |
 | `planning/`, `step-planning/`, `objectives/` | Each loop's candidate, finding, pass and finalization transactions. | Current loop packets, shared-policy callers, fresh-final gates and bounded diagnostics. Old passes are retained, not loaded wholesale. |
 | `steps/<id>.md`, `results/<action>.md`, `history.md` | Accepted execution actions and command receipts. | Current step context, replay/merge/outer gates, diagnostics and final reporting. A receipt for a different action cannot satisfy the current one. |
@@ -2045,6 +2124,7 @@ These are decision aids, not substitute callback templates:
 | Observed condition | Safe next route | What it does not do |
 |---|---|---|
 | Context was cleared, a completion reply was lost, or work stopped mid-action | `next`, then selected `context`; inspect the existing work/effect before resuming. Identical accepted callbacks are replay-safe. | Does not repeat a remote operation merely because its reply was lost; an interrupted action earns no clean pass. |
+| A managed parent is waiting or its child is incomplete | Run `next`, read the printed child packet, and use `context --section sdlc` when responsibility, release tests, or the flat SDLC map is needed. Follow only the printed child continuation or recovery route. | Does not submit the fixed parent action to `done`, start a standalone Improve command, or import a certificate by hand. |
 | Local checks fail or a required environment is unavailable | Keep the action unfinished; diagnose/fix within scope, or `pause` for a real blocker. Rerun the required checks. | No successful result from prose, partial passing checks, or unavailable evidence. |
 | A material active-step defect or proof drift appears before merge intent | Use the printed `repair` route, retain scoped changes, and reconverge the restarted review. | Does not preserve the old trivial streak or bless a changed revision with an old certificate. |
 | A supported early observation invalidates current proof | Follow the callback's pause/repair route before continuing. | `resume` alone does not refresh invalidated proof or remove a contract blocker. |
@@ -2085,10 +2165,11 @@ contracts. **Missing-marker behavior is specific to each feature:**
 | Marker or input | Current new-run contract | Missing or older-run behavior |
 |---|---|---|
 | Legacy `state.json` with no Markdown state | New runs use authoritative Markdown only. | Explicit `migrate`; retained prompt is recovered exactly or the run pauses for missing intent. Never a live JSON mirror. |
+| `managed_improve_protocol_version: 1` and its immutable child binding | `init` defaults to managed ownership for the six controller profiles; ShipLoop validates a current matching certificate before releasing the parent. | A missing marker remains on its established legacy route. An invalid present binding or certificate fails closed; it is never inferred from a package upgrade. |
 | `planning_protocol_version: 2` | Mandatory research, behavior and specification convergence. | Pre-v2/missing blocks workflow mutation until the guarded `planning-upgrade`; already executed work cannot be retroactively upgraded. |
-| `step_planning_protocol_version: 1` | Nested plan before initial coding and every Improve application. | Safe-boundary adoption or repair of later execution, never an invented certificate for past edits. |
+| `step_planning_protocol_version: 1` | **Legacy route:** nested plan before initial coding and every Improve application. **Managed route:** the `step-plan` child owns the initial plan, while a product pass uses its one `improve-plan-verify` record. | Safe-boundary adoption or repair of later execution, never an invented certificate for past edits. |
 | `iteration_documentation_protocol_version: 1` | Required `iteration-document` after every Improve application, before verification and commit. | Absent retains original Apply-to-Verify callbacks; no retroactive documentation receipt. Unsupported explicit values fail closed. |
-| `improve_policy: {version: 1, policy_id: "improve/review-policy/v1", sha256: "…"}` plus `improve-policy.md` | New runs bind and snapshot the reviewed declarative product Improve policy. Active product Improve work rereads its saved bytes; package upgrades do not rebind it. | Absent retains the established ShipLoop policy. A malformed present binding is a fail-closed state error; a missing or changed snapshot blocks only active product Improve work while diagnostic/recovery commands remain available. |
+| `improve_policy: {version: 1, policy_id: "improve/review-policy/v1", sha256: "…"}` plus `improve-policy.md` | New runs bind and snapshot the reviewed declarative product Improve policy. Legacy product packets and the managed child validate its saved bytes; package upgrades do not rebind it. | Absent retains the established ShipLoop policy. A malformed present binding is a fail-closed state error; a missing or changed snapshot blocks only active product Improve work while diagnostic/recovery commands remain available. |
 | `history_policy: {version: 2, required_limit: 7}` | Seven complete current Git commit bodies, bound to each required review. | Absent retains the legacy ten-body policy; no silent reduction of prior obligations. |
 | `system_context_protocol_version: 1` | Source-linked research system context and task-relevant projections. | Unmarked runs retain their prior research contract; no assumed source-linked proof. |
 | `observation_protocol_version: 1` | Script-issued unverified early-observation callbacks. | No implicit new callback authority in an unmarked run. |
@@ -2134,15 +2215,16 @@ candidates because its old pair was archived. Any later cursor restarts at
 preserves product code, branches, and worktrees in every case; no upgrade can be
 used to skip the mandatory research, behavior, or specification loops.
 
-### Existing runs and the execution-plan marker
+### Existing legacy runs and the execution-plan marker
 
-New runs also carry `step_planning_protocol_version: 1`. A v3 run missing that
-marker does not gain a retrospective certificate for prior direct implementation
-or an already-written Improve draft. At the safe `schedule`, `implement`, or
-`improve-plan` boundary, ShipLoop records the marker and sends the next product
-edit through the appropriate nested plan loop. If the active action is later in
-execution, use the existing `repair` route to record the interrupted work and
-restart review; do not edit Markdown state to pretend the plan gate ran.
+Legacy runs also carry `step_planning_protocol_version: 1`. A v3 legacy run
+missing that marker does not gain a retrospective certificate for prior direct
+implementation or an already-written Improve draft. At the safe `schedule`,
+`implement`, or `improve-plan` boundary, ShipLoop records the marker and sends
+the next product edit through the appropriate legacy nested plan loop. If the
+active action is later in execution, use the existing `repair` route to record
+the interrupted work and restart review; do not edit Markdown state to pretend
+the plan gate ran.
 Read-only `status`, `context`, and `plan-status` inspection remain available.
 
 ## Current limitations and proposed safeguards
@@ -2253,7 +2335,7 @@ The compact stdout packet is authoritative for the current action. The command
 surface is:
 
 ```sh
-shiploop init     --repo REPO [--run-dir RUN] --prompt=TEXT
+shiploop init     --repo REPO [--run-dir RUN] [--execution-mode=managed|legacy] --prompt=TEXT
 shiploop next     --run-dir RUN
 shiploop status   --run-dir RUN
 shiploop report   --run-dir RUN
@@ -2278,6 +2360,12 @@ shiploop resume   --run-dir RUN
 shiploop halt     --run-dir RUN --reason=TEXT
 shiploop migrate  --run-dir RUN
 ```
+
+`managed` is the default for `init`; use `legacy` only to request the retained
+stage-by-stage route. A managed parent has no separate import or continuation
+command: call `next`, follow the child packet, and read `context --section sdlc`
+when it is printed or needed for the current responsibility. Only the script can
+import the child's current validated certificate.
 
 `TEXT` is literal data: use one `--name=value` argument, including with
 structured argv. In a shell single-quote it, escaping embedded `'` as `'\''`.
@@ -2391,13 +2479,17 @@ change persistent configuration, or publish a product.
 - [Planning convergence loops](references/planning-loops.md): mandatory
   research/behavior/spec candidate loops, rubric/finding evidence, planning
   checks, audit-only commits, finalization, and upgrade behavior.
-- [Execution-plan convergence](references/execution-planning.md): current
-  nested planning gate before initial source edits and Improve applications,
-  its ten-dimensional review, cold-context packets, audit passes, and
+- [Execution-plan convergence](references/execution-planning.md): managed
+  parent/child ownership and its one per-iteration plan check, plus the retained
+  legacy nested planning gate, cold-context packets, audit passes, and
   incorporated until-loop policy.
+- [Managed Improve checkpoints](references/testing-and-documentation.md#managed-improve-checkpoints):
+  bound test planning, post-code refinement/authoring, skill validation, and
+  actual-manifest evidence for managed product passes.
 - [Product Improve review policy](references/improve-review-policy.md):
   declarative shared review guidance copied from its maintained upstream source;
-  ShipLoop applies it only through the new-run product policy binding.
+  both modes bind its reviewed bytes, while managed runs additionally use their
+  immutable managed consumer binding.
 - [Universal substantive-objective loop](references/objective-loops.md): the
   policy-owned history, two-trivial-pass refinement applied to substantive
   outer stages, including versioned handoff.

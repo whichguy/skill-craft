@@ -14,6 +14,7 @@ import os
 import re
 import shlex
 import stat
+import subprocess
 from pathlib import Path
 import sys
 import tempfile
@@ -39,6 +40,9 @@ import shiploop_system_context as system_context
 import shiploop_system_tests as system_tests
 import shiploop_iteration_docs as iteration_docs
 import shiploop_improve_policy as improve_policy
+import shiploop_improve_bridge as improve_bridge
+import shiploop_sdlc as sdlc
+import shiploop_invalidation as invalidation
 
 
 class ProtocolError(RuntimeError):
@@ -353,6 +357,7 @@ def validate_state(state):
     platform_revalidation_current(state)
     history_policy.resolve(state)
     improve_policy.validate_binding(state)
+    improve_bridge.validate_parent(state)
     system_context.context_current(state)
     for marker in ("outer_work_protocol_version", "delivery_objective_protocol_version", "observation_protocol_version", "system_test_protocol_version", "iteration_documentation_protocol_version"):
         need(marker not in state or (type(state[marker]) is int and state[marker] == 1),
@@ -406,23 +411,40 @@ def action(state, phase, stage):
 
 def persist(root, state, event, writes=None, deletes=None):
     writes = dict(writes or {})
+    submitted_paths = set(writes)
     interruption = state.get("observation_repair")
     if interruption and interruption["parent_action"] != state.get("action", {}).get("id"):
         state.pop("observation_repair", None)
         if str(state.get("paused", "")).startswith("New unverified knowledge"):
             state.pop("paused", None)
+    durable_state, writes, deletes = improve_bridge.prepare(
+        root, state, event, writes, list(deletes or [])
+    )
     history_path = root / "history.md"
     history = store.read_record(history_path) if history_path.exists() else []
     history.append(
-        {"event": event, "action": state.get("action"), "revision": state["revision"]}
+        {"event": event, "action": durable_state.get("action"), "revision": durable_state["revision"],
+         **({"child_action": state.get("action")} if durable_state.get("action") != state.get("action") else {})}
     )
-    writes["state.md"] = store.dumps(state, "ShipLoop state")
+    writes["state.md"] = store.dumps(durable_state, "ShipLoop state")
     writes["history.md"] = store.dumps(history, "ShipLoop history")
-    if state.get("stage") in ("done", "halted"):
+    if durable_state.get("stage") in ("done", "halted"):
         # The successful cursor and its evidence-derived presentation become
         # durable together, or neither does. HTML never owns workflow state.
         try:
-            writes = delivery.prepare_terminal_report(root, state, writes)
+            # The bridge has already validated these auxiliary child records.
+            # Keep every one in the same transaction, but the bounded report
+            # renderer consumes only its established parent evidence inputs.
+            # A caller-supplied namespace path is not exempted from that check.
+            auxiliary = {
+                name for name in writes
+                if name not in submitted_paths
+                and name.startswith(improve_bridge.DIRECTORY + "/")
+            }
+            report_writes = {name: body for name, body in writes.items() if name not in auxiliary}
+            writes.update(delivery.prepare_terminal_report(root, durable_state, report_writes))
+            state.clear()
+            state.update(durable_state)
         except delivery.DeliveryError as exc:
             raise ProtocolError(str(exc)) from exc
     store.transaction(root, writes, list(deletes or []))
@@ -541,10 +563,58 @@ def system_test_context(core, root, state):
         body += "\n## Pending system-test changes\n\n" + "\n".join(
             "- " + ident for ident in state["system_test_pending"]
         ) + "\nRead their knowledge entries; map each to a changed/new SYS case and pending system-test owner at replan.\n"
+    current = managed_system_invalidation(core, root, state, dag=dag)
+    if current:
+        body += "\n" + store.dumps(current["decision"], "Current evidence invalidation map")
+        body += ("\nStale cases retain their frozen requirements. Add equivalent new SYS cases with new pending test owners, "
+                 "execute them on the current product, then supply system_test_revalidation with version:1, "
+                 "product_content_identity_sha256 using this map's current_product_content_identity_sha256, "
+                 "and replacements:[{stale_case_id,replacement_case_id}]. "
+                 "Author all changed suites before their final re-execution. Never replay deployment to refresh tests.\n")
     return body
 
 
-def require_system_test_closure(core, root, state):
+def managed_product_identity(core, root, state):
+    repo = Path(state["repo_root"])
+    return {"version": 1, "revision": git(core, repo, "rev-parse", "HEAD"),
+            # Outer coverage is a separately validated evidence artifact. Its
+            # ledger commit must not invalidate the tests it is documenting.
+            "worktree_fingerprint": evidence.fingerprint(repo, excluded=[*exclusions(root, repo), "REVIEW_CONVERGE.md"]),
+            "paths": {}}
+
+
+def managed_system_invalidation(core, root, state, *, dag=None, receipts=None):
+    """Expose actual stale evidence; never reconstruct an old proof at release."""
+    if not improve_bridge.enabled(state):
+        return None
+    dag = dag or core.load_dag(root)
+    catalog = dag.get("system_tests", {})
+    if not catalog.get("cases"):
+        return None
+    receipts = receipts or {step["id"]: core.load_receipt(root, step["id"]) for step in dag["steps"]}
+    receipts = {ident: rec for ident, rec in receipts.items() if rec}
+    snapshots, local, docs, skills = {}, set(), set(), set()
+    for rec in receipts.values():
+        for case_id, snapshot in rec.get("system_test_proofs", {}).items():
+            need(case_id not in snapshots and snapshot.get("proof", {}).get("test_step") == rec.get("id"),
+                 "system-test proof snapshots require one original owner: " + case_id)
+            snapshots[case_id] = snapshot
+        local.update(row["case_id"] for row in rec.get("sdlc", {}).get("test_plan", {}).get("cases", []))
+        documentation = rec.get("iteration", {}).get("documentation", {})
+        docs.update(documentation.get("documentation", {}).get("paths", []))
+        skills.update(documentation.get("reusable_skill", {}).get("paths", []))
+    # Pending test owners are ordinary unfinished work, not missing snapshots.
+    completed_cases = [case for case in catalog["cases"] if receipts.get(case["test_step"], {}).get("status") == "complete"]
+    if not completed_cases:
+        return None
+    selected = dict(catalog, cases=completed_cases)
+    decision = invalidation.assess_all(snapshots, selected, dag["steps"], receipts,
+        product_identity=managed_product_identity(core, root, state), known_local_cases=sorted(local),
+        known_documentation=sorted(docs), known_skills=sorted(skills))
+    return {"decision": decision, "snapshots": snapshots, "catalog": selected}
+
+
+def require_system_test_closure(core, root, state, *, result=None):
     """Reconcile catalog obligations with immutable, real test proof at quality."""
     dag = core.load_dag(root)
     catalog = system_test_catalog(core, root, state, dag)
@@ -579,6 +649,71 @@ def require_system_test_closure(core, root, state):
         )
         need(normalized["record"] == saved.get("record"),
              f"system test {case['id']} contract proof changed")
+    current = managed_system_invalidation(core, root, state, dag=dag)
+    if current and current["decision"]["stale_case_ids"]:
+        need(isinstance(result, dict) and "system_test_revalidation" in result,
+             "stale SYS evidence requires new equivalent system-test work and a system_test_revalidation mapping; "
+             "read context --section system-test-requirements: " + ", ".join(current["decision"]["stale_case_ids"]))
+        invalidation.validate_revalidation(result["system_test_revalidation"], current["decision"],
+                                          current["snapshots"], current["catalog"])
+
+
+def managed_release_skill_validations(rec):
+    """Retain selected skill obligations across completed product iterations."""
+    cycles = rec.get("improve_cycles", [])
+    need(isinstance(cycles, list), "managed release requires a valid iteration history")
+    validations = []
+    seen = set()
+    for iteration in [*cycles, rec.get("iteration", {})]:
+        need(isinstance(iteration, dict), "managed release has malformed iteration evidence")
+        skill = iteration.get("skill_validation")
+        if skill is None:
+            continue
+        need(isinstance(skill, dict) and isinstance(skill.get("result"), dict),
+             "managed release has malformed skill evidence")
+        result = skill["result"]
+        identity = digest(result)
+        if identity not in seen:
+            validations.append(result)
+            seen.add(identity)
+    return validations
+
+
+def managed_release_test_evidence(core, root, state, check):
+    """Re-execute the coupled local test/skill contracts on the assembled tree."""
+    if not improve_bridge.enabled(state):
+        return
+    manifest = check["manifest"]
+    repo = Path(state["repo_root"])
+    for step in core.load_dag(root)["steps"]:
+        rec = core.load_receipt(root, step["id"])
+        if not rec or rec.get("status") != "complete":
+            continue
+        plan = rec.get("sdlc", {}).get("test_plan")
+        authored = rec.get("iteration", {}).get("test_refinement")
+        need(plan and authored, "managed release needs completed local case and authoring evidence for " + step["id"])
+        sdlc.validate_test_bindings(authored["bindings"], plan, authored["result"], repo, manifest=manifest)
+        for skill in managed_release_skill_validations(rec):
+            selected = {row["id"]: row for row in manifest["checks"]}
+            sdlc.validate_skill_validation(skill, repo, check_ids=list(selected))
+            for example in skill.get("executable_examples", []):
+                row = selected[example["check_id"]]
+                need(row["kind"] == "test" and example["path"] in row["argv"],
+                     "release checks must execute the selected skill example")
+
+
+def managed_release_context(core, root, state):
+    if not improve_bridge.enabled(state) or not core.load_dag(root):
+        return []
+    rows = []
+    for step in core.load_dag(root)["steps"]:
+        rec = core.load_receipt(root, step["id"])
+        if rec and rec.get("status") == "complete":
+            rows.append({"step": step["id"], "test_plan": rec.get("sdlc", {}).get("test_plan"),
+                         "test_bindings": rec.get("iteration", {}).get("test_refinement", {}).get("bindings"),
+                         "skill_validation": rec.get("iteration", {}).get("skill_validation", {}).get("result"),
+                         "retained_skill_validations": managed_release_skill_validations(rec)})
+    return rows
 
 
 def validate_system_test_review(root, state, stage, result):
@@ -958,7 +1093,8 @@ def observation_repair_available(state):
         return state.get("objective", {}).get("kind") in ("approach", "survey", "post-inner")
     return (planning.is_planning_stage(stage) or is_step_plan_stage(stage)
             or bool(state.get("active_step")) and stage in (
-                "implement", "review", "improve-plan", "improve-apply", "iteration-document", "verify",
+                "implement", "review", "improve-plan", "improve-plan-verify", "improve-apply",
+                "test-refine", "test-author", "skill-validate", "iteration-document", "verify",
                 "carry-forward", "commit", "final-verify", "post-inner", "merge"))
 
 
@@ -985,7 +1121,7 @@ def complete_observation(core, root, state, aid, result):
     stage = state["stage"]
     # Any allocated plan/objective is context-bound, even before its first check.
     bound_pass = objectives.is_objective_stage(stage) or (is_step_plan_stage(stage) and stage != "step-plan")
-    late = stage in ("implement", "improve-apply", "iteration-document", "verify", "carry-forward", "commit", "final-verify", "post-inner", "merge", "quality", "publish", "handoff")
+    late = stage in ("implement", "improve-plan-verify", "improve-apply", "test-refine", "test-author", "skill-validate", "iteration-document", "verify", "carry-forward", "commit", "final-verify", "post-inner", "merge", "quality", "publish", "handoff")
     needs_repair = bound_pass or late or prepared["route"]["kind"] in ("current-step-repair", "pause")
     need(prepared["route"]["kind"] != "pause", "early observations cannot resolve permission/contract blockers; use pause and seek direction or the owning carry-forward stage; no state changed")
     need(not needs_repair or observation_repair_available(state),
@@ -2085,6 +2221,260 @@ def step_plan_require_parent_coverage(rec, body):
     )
 
 
+def managed_test_plan(core, root, state, rec, value, *, preserve_cases=False):
+    """Bind explicit cases to frozen contract outcomes before product edits."""
+    step = core.steps_by_id(root)[rec["id"]]
+    if "baseline_identity" not in rec.get("sdlc", {}):
+        worktree = Path(rec["worktree"])
+        rec.setdefault("sdlc", {})["baseline_identity"] = {
+            "version": 1, "revision": git(core, worktree, "rev-parse", "HEAD"),
+            "worktree_fingerprint": evidence.fingerprint(worktree, excluded=exclusions(root, worktree)), "paths": {},
+        }
+    required = step.get("contract", {}).get("tests", [])
+    previous = rec.get("sdlc", {}).get("test_plan", {})
+    plan = sdlc.validate_local_test_plan(
+        value,
+        required_contract_ids=[row["id"] for row in required],
+        required_case_ids=[row["case_id"] for row in previous.get("cases", [])] if preserve_cases else (),
+    )
+    for test in required:
+        need(any(row["contract_id"] == test["id"] and row["expected_outcome"] == test["expected_outcome"]
+                 for row in plan["cases"]),
+             f"test plan must retain frozen expected outcome for {test['id']}")
+    need(not any(row["disposition"] == "required-but-blocked" for row in plan["coverage"]),
+         "required test surface is blocked; resolve prerequisites before releasing the plan")
+    rec.setdefault("sdlc", {})["test_plan"] = plan
+    return plan
+
+
+def managed_plan_body(body, plan):
+    """Include the case matrix in the exact bytes certified by plan checks."""
+    marker = "\n\n<!-- shiploop-managed-test-plan -->"
+    body = body.split(marker, 1)[0]
+    return body + marker + "\n## Bound executable test plan\n\n```json\n" + json.dumps(
+        plan, ensure_ascii=False, sort_keys=True, indent=2
+    ) + "\n```\n"
+
+
+def managed_iteration_plan_proof(core, root, state, rec):
+    """Validate this pass's plan proof without inventing a nested convergence."""
+    it = rec.get("iteration", {})
+    proof = it.get("managed_plan")
+    need(isinstance(proof, dict), "managed Apply requires its validated per-iteration plan")
+    need(proof.get("apply_action") == state["action"]["id"], "iteration plan belongs to another Apply action")
+    plan_record = it.get("plan_record")
+    need(isinstance(plan_record, dict) and digest(plan_record) == proof.get("plan_record_sha256"),
+         "iteration plan coverage/context/prerequisite evidence changed")
+    result_path = safe_run_path(root, f"results/{plan_record['result_action']}.md")
+    need(result_path.is_file() and not result_path.is_symlink()
+         and digest(store.read_record(result_path)) == plan_record.get("result_sha256")
+         and state["completed_actions"].get(plan_record["result_action"]) == plan_record["result_sha256"],
+         "iteration plan result is missing or stale")
+    loop, receipt = step_plan_receipt(root, rec, proof.get("loop_id"))
+    need(receipt["route"] == "improve" and receipt["context_sha256"] == proof.get("context_sha256")
+         and receipt["candidate_sha256"] == proof.get("candidate_sha256"), "iteration plan candidate/context changed")
+    check_path = safe_run_path(root, f"checks/{proof['check_action']}.md")
+    need(check_path.is_file() and not check_path.is_symlink()
+         and hashlib.sha256(check_path.read_bytes()).hexdigest() == proof.get("check_sha256"),
+         "iteration plan check evidence changed")
+    step_plan_check_record(core, root, state, rec, receipt, proof["check_action"], current_worktree=False)
+    step_plan_require_parent_coverage(rec, safe_run_path(root, receipt["candidate_path"]).read_text())
+    need(git(core, Path(rec["worktree"]), "rev-parse", "HEAD") == it["previous_sha"],
+         "managed Apply cannot advance Git before its checked iteration commit")
+
+
+def managed_validate_test_execution(core, root, state, rec, iteration, check):
+    """Require authored cases and skill examples to occur in the real check manifest."""
+    worktree = Path(rec["worktree"])
+    plan = rec.get("sdlc", {}).get("test_plan")
+    need(isinstance(plan, dict), "managed checks require the current test plan")
+    manifest = check.get("manifest", {})
+    check_ids = [row["id"] for row in manifest.get("checks", [])]
+    authored = iteration.get("test_refinement")
+    need(isinstance(authored, dict), "managed checks require executable test authoring evidence")
+    sdlc.validate_test_refinement(authored["result"], plan, worktree, check_ids=check_ids)
+    sdlc.validate_test_bindings(authored.get("bindings"), plan, authored["result"], worktree, manifest=manifest)
+    need(authored["plan_sha256"] == digest(plan), "test authoring evidence has a stale case plan")
+    for path, expected in authored["test_files"].items():
+        target = worktree / path
+        need(target.is_file() and not target.is_symlink()
+             and hashlib.sha256(target.read_bytes()).hexdigest() == expected,
+             "test files changed after authoring evidence; redo test-author before verification")
+    skill = iteration.get("skill_validation")
+    if skill is not None:
+        sdlc.validate_skill_validation(skill["result"], worktree, check_ids=check_ids)
+        checks_by_id = {row["id"]: row for row in manifest["checks"]}
+        for example in skill["result"].get("executable_examples", []):
+            selected = checks_by_id[example["check_id"]]
+            need(selected["kind"] == "test" and example["path"] in selected["argv"],
+                 "skill example check must execute its declared repo-local example path")
+
+
+def managed_product_impact(core, root, state, rec):
+    """Build a required conservative change map from actual committed bytes."""
+    worktree = Path(rec["worktree"])
+    baseline = rec["sdlc"]["baseline_identity"]
+    before = dict(baseline, paths={})
+    after = {"version": 1, "revision": git(core, worktree, "rev-parse", "HEAD"),
+             "worktree_fingerprint": evidence.fingerprint(worktree, excluded=exclusions(root, worktree)), "paths": {}}
+
+    def git_bytes(*args):
+        completed = subprocess.run(["git", "-C", str(worktree), *args], capture_output=True)
+        need(completed.returncode == 0, "cannot bind committed artifact impact")
+        return completed.stdout
+
+    changed = git_bytes("diff", "--name-only", "--no-renames", "-z", before["revision"], after["revision"]).split(b"\0")
+    artifacts = []
+    for raw_path in sorted(set(changed)):
+        if not raw_path:
+            continue
+        path = os.fsdecode(raw_path)
+        digests = []
+        unsupported = False
+        for identity in (before, after):
+            listing = git_bytes("ls-tree", "-z", identity["revision"], "--", path)
+            if not listing:
+                digests.append(None)
+                continue
+            mode_kind_sha = listing.split(b"\t", 1)[0].split()
+            mode = mode_kind_sha[0]
+            kind, object_id = mode_kind_sha[1:]
+            if kind != b"blob" or mode not in (b"100644", b"100755", b"120000"):
+                # Gitlinks are not file bytes. Keep their impact uncertain
+                # through the complete fingerprint instead of inventing content.
+                unsupported = True
+                break
+            content = git_bytes("cat-file", "blob", object_id.decode())
+            value = hashlib.sha256(content).hexdigest()
+            identity["paths"][path] = value
+            digests.append(value)
+        if unsupported:
+            before["paths"].pop(path, None)
+            after["paths"].pop(path, None)
+            continue
+        if digests[0] != digests[1]:
+            artifacts.append({"path": path, "before_sha256": digests[0], "after_sha256": digests[1]})
+    dag = core.load_dag(root)
+    selected = core.steps_by_id(root)[rec["id"]]
+    local, docs, skills = set(), set(), set()
+    for step in dag["steps"]:
+        item = rec if step["id"] == rec["id"] else core.load_receipt(root, step["id"])
+        if not item:
+            continue
+        local.update(row["case_id"] for row in item.get("sdlc", {}).get("test_plan", {}).get("cases", []))
+        documentation = item.get("iteration", {}).get("documentation", {})
+        docs.update(documentation.get("documentation", {}).get("paths", []))
+        skills.update(documentation.get("reusable_skill", {}).get("paths", []))
+    catalog = dag.get("system_tests", {"cases": []})
+    impact = {"version": 1, "certainty": "uncertain", "changes": {
+        "artifacts": artifacts,
+        "contracts": [row["id"] for row in selected.get("contract", {}).get("tests", [])],
+        "produces": core.produces_texts(selected["produces"]),
+    }, "affected": {"local_cases": sorted(local), "system_cases": sorted(row["id"] for row in catalog.get("cases", [])),
+                    "documentation": sorted(docs), "skills": sorted(skills)}}
+    return invalidation.validate_impact_map(impact, known_local_cases=sorted(local), catalog=catalog,
+        known_documentation=sorted(docs), known_skills=sorted(skills), before_identity=before, after_identity=after)
+
+
+def managed_completion_evidence(core, root, state, stage, aid, writes):
+    """Adapt validated domain receipts into facts for Improve's pure reducer."""
+    metadata = improve_bridge.packet_metadata(state)
+    if not metadata or state.get("_managed_evidence"):
+        return
+    result_ref = f"results/{aid}.md"
+    event = {"kind": "complete", "phase": stage, "evidence_refs": [result_ref], "flags": {}}
+
+    def record(path):
+        return store.loads(writes[path]) if path in writes else store.read_record(safe_run_path(root, path))
+
+    if stage == "step-plan-review":
+        event["flags"]["disposition"] = "required" if state["stage"] == "step-plan-disposition" else "not-required"
+    if stage == "iteration-document":
+        documentation = record(rec_path(state))["iteration"]["documentation"]["documentation"]
+        event["flags"]["documentation_disposition"] = "updated" if documentation["decision"] == "updated" else "not-needed"
+        event["flags"]["skill_disposition"] = "validate" if state["stage"] == "skill-validate" else "not-needed"
+    if stage == "carry-forward":
+        event["flags"]["disposition"] = "repair" if state["stage"] == "review" else ("pause" if state.get("paused") else "continue")
+    if stage == "commit" or stage.endswith("-commit"):
+        if stage == "commit":
+            receipt_path = rec_path(state)
+            receipt = record(receipt_path)
+            row = receipt["improve_cycles"][-1]
+            normalized = core.improve_until_passes(receipt)
+            need(normalized, "managed product commit lacks a complete typed pass")
+            completed = dict(normalized[-1])
+            open_findings = []
+            check_action = row["check_action"]
+        elif stage == "step-plan-commit":
+            rec = record(rec_path(state))
+            receipt_path = rec["step_plan"]["receipt"]
+            receipt = record(receipt_path)
+            row = receipt["completed_passes"][-1]
+            completed = {key: row[key] for key in ("id", "outcome", "verified", "commit")}
+            open_findings = sorted(step_planning.open_ids(receipt))
+            check_action = row["check_action"]
+        elif stage == "objective-commit":
+            receipt_path = state["objective"]["receipt"]
+            receipt = record(receipt_path)
+            row = receipt["completed_passes"][-1]
+            completed = {key: row[key] for key in ("id", "outcome", "verified", "commit")}
+            open_findings = sorted(objectives.open_ids(receipt))
+            check_action = row["check_action"]
+        else:
+            kind = planning.kind_for_stage(stage)
+            receipt_path = planning.receipt_name(kind)
+            receipt = record(receipt_path)
+            row = receipt["completed_iterations"][-1]
+            completed = {key: row[key] for key in ("id", "outcome", "verified", "commit")}
+            open_findings = sorted(planning.current_open_ids(receipt))
+            if kind == "research" and research_unresolved_ids(core, root, state, receipt.get("research_state", {})):
+                open_findings.append("research-state-open")
+            check_action = receipt["check_action"]
+        completed["evidence_ref"] = receipt_path
+        independent_review = record(result_ref).get("independent_review")
+        if independent_review is not None:
+            need(isinstance(independent_review, dict), "independent_review must be an object")
+            reference = independent_review.get("evidence_ref")
+            need(isinstance(reference, str), "independent review needs a run-relative evidence_ref")
+            target = safe_run_path(root, reference)
+            need(target.is_file() and not target.is_symlink(), "independent review evidence must exist")
+            completed["independent_review"] = independent_review
+            event["evidence_refs"].append(reference)
+        event.update(completed_pass=completed, audit_commit=completed["commit"], open_findings=open_findings)
+        event["evidence_refs"].extend([receipt_path, f"checks/{check_action}.md"])
+    if stage.endswith("-finalize") or stage == "final-verify":
+        check_ref = f"checks/{aid}.md"
+        check = record(check_ref)
+        results = check.get("results", {})
+        need(results.get("all_passed") is True and results.get("content_changed") is False,
+             "managed finalization requires fresh unchanged-candidate passing checks")
+        target = repo_for(root, state)
+        impact = None
+        if stage == "final-verify":
+            step_receipt = record(rec_path(state))
+            impact = managed_product_impact(core, root, state, step_receipt)
+            step_receipt["sdlc"]["invalidation_impact"] = impact
+            writes[rec_path(state)] = store.dumps(step_receipt)
+        identity = {"head": git(core, target, "rev-parse", "HEAD"),
+                    "worktree_fingerprint": evidence.fingerprint(target, excluded=exclusions(root, target)),
+                    "artifact_digests": {name: hashlib.sha256(body.encode()).hexdigest() for name, body in writes.items()
+                                  if name != result_ref}}
+        check_bytes = writes[check_ref].encode("utf-8") if check_ref in writes else safe_run_path(root, check_ref).read_bytes()
+        identity["artifact_digests"][check_ref] = hashlib.sha256(check_bytes).hexdigest()
+        if impact is not None:
+            identity["invalidation_impact"] = impact
+        identity["identity_digest"] = digest(identity)
+        event["output_identity"] = identity
+        event["fresh_evidence"] = {
+            "binding_sha256": metadata["binding_sha256"], "action": aid,
+            "identity_digest": identity["identity_digest"], "result": "passed", "evidence_ref": check_ref,
+            "checks": [{"id": row["id"], "result": "passed", "evidence_ref": check_ref}
+                       for row in check["manifest"]["checks"]],
+        }
+        event["evidence_refs"].append(check_ref)
+    improve_bridge.set_evidence(state, event)
+
+
 def step_plan_context_identity(core, root, state, rec, *, route="initial"):
     """Bind a plan pass to the exact code state and frozen inputs it reviewed."""
     worktree = Path(rec["worktree"])
@@ -2434,6 +2824,8 @@ def step_plan_validate_execution_proof(core, root, state, rec):
     product commits after the audit-only handoff commit, so it need only retain
     that commit as an ancestor rather than remain at its exact HEAD.
     """
+    if improve_bridge.enabled(state) and state["stage"] == "improve-apply":
+        return managed_iteration_plan_proof(core, root, state, rec)
     binding = rec.get("step_plan")
     need(isinstance(binding, dict), "active step lacks a certified step-plan binding")
     loop = binding.get("loop_id")
@@ -2776,7 +3168,7 @@ def step_plan_system_context(core, root, state, step_id, consumer_ids):
 def run_step_plan_verify(core, root, state, args):
     """Run a plan-only lint/test manifest in the active step worktree."""
     need(
-        state["stage"] in ("step-plan-verify", "step-plan-finalize"),
+        state["stage"] in ("step-plan-verify", "step-plan-finalize", "improve-plan-verify"),
         "planning-verify is not the active step-plan activity",
     )
     need(0 < args.timeout <= 3600, "timeout must be in (0, 3600] seconds per check")
@@ -2907,7 +3299,7 @@ def run_planning_verify(core, root, state, args):
     """Run planner lint/tests while binding evidence to candidate and ledger bytes."""
     if objectives.is_objective_stage(state["stage"]):
         return run_objective_verify(core, root, state, args)
-    if state["stage"] in ("step-plan-verify", "step-plan-finalize"):
+    if state["stage"] in ("step-plan-verify", "step-plan-finalize", "improve-plan-verify"):
         return run_step_plan_verify(core, root, state, args)
     need(
         state["stage"]
@@ -3374,6 +3766,18 @@ def finish_merge(core, root, state, rec):
             integrated_sha=rec["merged_sha"],
             fully_closed=True,
         )
+    if improve_bridge.enabled(state):
+        dag = core.load_dag(root)
+        catalog = dag.get("system_tests", {})
+        owned_cases = [case for case in catalog.get("cases", []) if case["test_step"] == rec["id"]]
+        if owned_cases:
+            receipts = {step["id"]: core.load_receipt(root, step["id"]) for step in dag["steps"]}
+            receipts[rec["id"]] = rec
+            receipts = {ident: value for ident, value in receipts.items() if value}
+            identity = managed_product_identity(core, root, state)
+            rec["system_test_proofs"] = {case["id"]: invalidation.capture_system_proof(
+                catalog, dag["steps"], receipts, case_id=case["id"], product_identity=identity)
+                for case in owned_cases}
     return rec
 
 
@@ -3647,7 +4051,11 @@ _PRODUCT_ORIENTATION_STAGES = frozenset(
         "implement",
         "review",
         "improve-plan",
+        "improve-plan-verify",
         "improve-apply",
+        "test-refine",
+        "test-author",
+        "skill-validate",
         "iteration-document",
         "verify",
         "carry-forward",
@@ -4978,6 +5386,7 @@ def objective_complete(core, root, state, aid, result, writes):
             state["_objective_post_inner_final_head"] = current["git_baseline"]
         if binding["kind"] == "sequence":
             state["_objective_sequence_audit_bridge"] = current["git_baseline"]
+        managed_completion_evidence(core, root, state, stage, aid, writes)
         complete(
             core,
             root,
@@ -5149,6 +5558,8 @@ def step_plan_complete(core, root, state, aid, result, writes):
 
     if stage == "step-plan":
         body = text_field(result, "body")
+        if improve_bridge.enabled(state):
+            body = managed_plan_body(body, managed_test_plan(core, root, state, rec, result.get("test_plan")))
         skill_assessment = None
         if iteration_documentation_current(state):
             try:
@@ -5175,6 +5586,29 @@ def step_plan_complete(core, root, state, aid, result, writes):
         )
     elif stage == "improve-plan":
         body = text_field(result, "body")
+        managed_plan_changed = False
+        if improve_bridge.enabled(state):
+            prior_test_plan = rec.get("sdlc", {}).get("test_plan")
+            updated_test_plan = managed_test_plan(
+                core, root, state, rec, result.get("test_plan"), preserve_cases=True
+            )
+            managed_plan_changed = prior_test_plan != updated_test_plan
+            body = managed_plan_body(body, updated_test_plan)
+            step_planning.check_coverage_review(result.get("coverage_review"))
+            system_view = step_plan_step_context(core, root, state, rec, route="improve").get("system_context")
+            step_planning.check_context_evidence(
+                result.get("context_evidence"),
+                system_context=system_view.get("projection") if isinstance(system_view, dict) else None,
+            )
+            text_field(result, "learnings")
+            prerequisites = result.get("prerequisites")
+            need(isinstance(prerequisites, list), "managed plan requires explicit prerequisites, including [] when none")
+            for prerequisite in prerequisites:
+                need(isinstance(prerequisite, dict) and set(prerequisite) == {"requirement", "evidence", "status"},
+                     "prerequisites require requirement, evidence and status")
+                text_field(prerequisite, "requirement")
+                text_field(prerequisite, "evidence")
+                need(prerequisite["status"] == "satisfied", "unresolved prerequisite blocks managed Apply")
         skill_assessment = None
         if iteration_documentation_current(state):
             try:
@@ -5199,6 +5633,14 @@ def step_plan_complete(core, root, state, aid, result, writes):
                 **({"skill_assessment": skill_assessment} if skill_assessment is not None else {}),
             },
         )
+        if improve_bridge.enabled(state):
+            iteration["test_plan_material"] = managed_plan_changed
+            iteration["plan_learnings"] = [result["learnings"]]
+            iteration["plan_record"] = {"result_action": aid, "result_sha256": digest(result),
+                                        "coverage_review": result["coverage_review"],
+                                        "context_evidence": result["context_evidence"],
+                                        "prerequisites": result["prerequisites"]}
+            action(state, "implement", "improve-plan-verify")
     else:
         loop, receipt = step_plan_receipt(root, rec)
         if stage == "step-plan-commit":
@@ -5328,6 +5770,12 @@ def step_plan_complete(core, root, state, aid, result, writes):
             )
         elif stage == "step-plan-revise":
             body = text_field(result, "body")
+            test_plan_changed = False
+            if improve_bridge.enabled(state):
+                previous_plan = rec.get("sdlc", {}).get("test_plan")
+                plan = managed_test_plan(core, root, state, rec, result.get("test_plan"), preserve_cases=True)
+                test_plan_changed = previous_plan != plan
+                body = managed_plan_body(body, plan)
             skill_assessment = None
             if iteration_documentation_current(state):
                 try:
@@ -5353,7 +5801,7 @@ def step_plan_complete(core, root, state, aid, result, writes):
                     break
             if prior_assessment is None:
                 prior_assessment = receipt.get("origin", {}).get("skill_assessment")
-            assessment_changed = skill_assessment is not None and skill_assessment != prior_assessment
+            assessment_changed = test_plan_changed or (skill_assessment is not None and skill_assessment != prior_assessment)
             current["revise"] = {
                 "addresses": addresses,
                 "resolutions": resolutions,
@@ -5598,6 +6046,7 @@ def complete(
     if objectives.is_objective_stage(state["stage"]) and not _objective_bypass:
         if objective_complete(core, root, state, aid, result, writes):
             return
+        managed_completion_evidence(core, root, state, stage, aid, writes)
         state["completed_actions"][aid] = fingerprint
         state["last_completion"] = {"action": aid, "stage": stage, "result_digest": fingerprint}
         state["revision"] += 1
@@ -5637,6 +6086,21 @@ def complete(
             writes["environment.md"].encode()
         ).hexdigest()
         action(state, "validate-spec", "research")
+    elif stage == "improve-plan-verify" and improve_bridge.enabled(state):
+        rec = active(root, state)
+        loop, receipt = step_plan_receipt(root, rec)
+        step_plan_assert_bound(core, root, state, rec, receipt)
+        step_plan_check_record(core, root, state, rec, receipt, aid)
+        action(state, "implement", "improve-apply")
+        rec["iteration"]["managed_plan"] = {
+            "loop_id": loop, "candidate_sha256": receipt["candidate_sha256"],
+            "context_sha256": receipt["context_sha256"], "check_action": aid,
+            "check_sha256": hashlib.sha256(safe_run_path(root, f"checks/{aid}.md").read_bytes()).hexdigest(),
+            "apply_action": state["action"]["id"],
+            "plan_record_sha256": digest(rec["iteration"]["plan_record"]),
+        }
+        rec["step_plan"]["status"] = "validated"
+        writes[rec_path(state)] = store.dumps(rec)
     elif is_step_plan_stage(stage) or (
         stage == "improve-plan" and step_planning_current(state)
     ):
@@ -5750,6 +6214,9 @@ def complete(
         "review",
         "improve-plan",
         "improve-apply",
+        "test-refine",
+        "test-author",
+        "skill-validate",
         "iteration-document",
         "verify",
         "carry-forward",
@@ -5824,8 +6291,41 @@ def complete(
             action(
                 state,
                 "implement",
-                "iteration-document" if iteration_documentation_current(state) else "verify",
+                "test-refine" if improve_bridge.enabled(state) else
+                ("iteration-document" if iteration_documentation_current(state) else "verify"),
             )
+        elif stage == "test-refine":
+            need(improve_bridge.enabled(state), "test-refine requires managed execution")
+            prior = rec.get("sdlc", {}).get("test_plan", {})
+            text_field(result, "refinement_reason")
+            plan = managed_test_plan(core, root, state, rec, result.get("test_plan"), preserve_cases=True)
+            previous_cases = {row["case_id"]: row for row in prior.get("cases", [])}
+            for row in plan["cases"]:
+                if row["case_id"] in previous_cases:
+                    need(row["expected_outcome"] == previous_cases[row["case_id"]]["expected_outcome"],
+                         "refinement preserves planned expected outcomes; record evidence-based oracle corrections at test-author")
+            it["case_refinement"] = {"action": aid, "plan_sha256": digest(plan), "reason": result["refinement_reason"]}
+            it["test_plan_material"] = it.get("test_plan_material", False) or prior != plan
+            action(state, "implement", "test-author")
+        elif stage == "test-author":
+            need(improve_bridge.enabled(state), "test-author requires managed execution")
+            worktree = Path(rec["worktree"])
+            plan = rec.get("sdlc", {}).get("test_plan")
+            refined = sdlc.validate_test_refinement(result.get("test_refinement"), plan, worktree)
+            paths = sdlc.test_refinement_references(refined, plan, worktree)["test_paths"]
+            bindings = sdlc.validate_test_bindings(result.get("test_bindings"), plan, refined, worktree)
+            binding_refs = sdlc.test_binding_references(bindings, plan, refined, worktree)
+            paths = sorted(set(paths) | set(binding_refs["suite_evidence_paths"]))
+            it["test_refinement"] = {"action": aid, "result": refined, "bindings": bindings, "plan_sha256": digest(plan),
+                                     "test_files": {path: hashlib.sha256((worktree / path).read_bytes()).hexdigest() for path in paths}}
+            action(state, "implement", "iteration-document")
+        elif stage == "skill-validate":
+            need(improve_bridge.enabled(state), "skill-validate requires managed execution")
+            validated = sdlc.validate_skill_validation(result.get("skill_validation"), Path(rec["worktree"]))
+            declared = it.get("documentation", {}).get("reusable_skill", {})
+            need(validated["decision"] == declared.get("decision"), "skill validation must match the documented skill decision")
+            it["skill_validation"] = {"action": aid, "result": validated}
+            action(state, "implement", "verify")
         elif stage == "iteration-document":
             worktree = Path(rec["worktree"])
             try:
@@ -5848,10 +6348,13 @@ def complete(
                 "documentation": documented["documentation"],
                 "reusable_skill": documented["reusable_skill"],
             }
-            action(state, "implement", "verify")
+            action(state, "implement", "skill-validate" if improve_bridge.enabled(state)
+                   and documented["reusable_skill"]["decision"] != "not-needed" else "verify")
         elif stage == "verify":
             require_iteration_documentation(core, root, state, rec, it)
-            verified(core, root, state)
+            check = verified(core, root, state)
+            if improve_bridge.enabled(state):
+                managed_validate_test_execution(core, root, state, rec, it, check)
             # Fixes made while getting checks green were not part of the earlier
             # classification. Conservatively treat them as material, never as a
             # second trivial pass merely because an old result said so.
@@ -6006,6 +6509,7 @@ def complete(
             )
             material = (
                 it["applied"]["material"]
+                or it.get("test_plan_material", False)
                 or it.get("late_edits", False)
                 or it.get("research_assessment_material", False)
                 or bool(documentation and documentation.get("material"))
@@ -6131,8 +6635,9 @@ def complete(
         writes["coverage.md"] = store.dumps(result, "Outer review coverage")
         action(state, "residual", "quality")
     elif stage == "quality":
-        require_system_test_closure(core, root, state)
-        verified(core, root, state)
+        require_system_test_closure(core, root, state, result=result)
+        release_check = verified(core, root, state)
+        managed_release_test_evidence(core, root, state, release_check)
         text_field(result, "test_review")
         state["outer_check_action"] = aid
         writes["quality.md"] = store.dumps(
@@ -6165,6 +6670,7 @@ def complete(
         action(state, "done", "done")
     else:
         raise ProtocolError(f"cannot complete stage {stage}")
+    managed_completion_evidence(core, root, state, stage, aid, writes)
     state["completed_actions"][aid] = fingerprint
     state["last_completion"] = {"action": aid, "stage": stage, "result_digest": fingerprint}
     state["revision"] += 1
@@ -6172,6 +6678,11 @@ def complete(
 
 
 PROMPTS = {
+    "managed-improve": "The parent is waiting on its bound managed Improve invocation. Resume its saved child packet; only a validated certificate releases this parent action.",
+    "improve-plan-verify": "Run planning-verify for this iteration's bound implementation/test plan, with a concrete lint and acceptance 'step plan'. The plan must cover every PARENT finding, selected T-ID, expected outcome and prerequisite before Apply. This is one validated plan record, not another convergence campaign. Result: summary.",
+    "test-refine": "Inspect the actual code and planned cases. Record newly learned boundary/failure cases, retain independent expected outcomes, and identify necessary executable test changes. Preserve all required cases; an oracle correction needs requirement evidence. Result: summary, test_plan (the complete structured case plan including retained and new cases), refinement_reason. Do not claim these future tests passed.",
+    "test-author": "Author or refine executable tests from the current case plan; reuse adequate existing tests with a concrete reason. Return summary and test_refinement with every planned case mapped to actual safe repository test files and check IDs. Oracle changes require independent evidence and rationale. Passing claims are not accepted here: the next verify action runs the actual checks.",
+    "skill-validate": "Validate the created, updated or reused repo-local skill: actual entrypoint/index, executable examples/helper check IDs, failure/recovery behavior and honest host limitations. Return summary and skill_validation. Required example checks must subsequently pass in the actual verify manifest; discovery alone is not successful use. Do not install globally.",
     "preflight": 'Inspect Git baseline, dirty files, runtime, credentials availability (never record secrets), existing lint/tests and any environment preparation needed. Identify test surfaces and target-environment readiness without installing tools or changing scope. Preserve user dirt. Result: summary, baseline="committed-head"; include readiness and preparation findings.',
     "approach": "Create the initial delivery approach before the spec: scope, risks, milestones, prep candidates, and acceptance strategy. Start from the durable incoming prompt; identify actors, behavioral outcomes and high-risk state/sequence questions. Result: summary, body (Markdown).",
     "survey": "Survey existing artifacts, references and tool/writer routes. If a client will call a service, freeze both sides' invocation protocol (service-visible operations and client/HTML call conventions) before any communication is authored. Assess browser/service/API testing by actual surface and risk; record selected, not applicable with reason, or required but blocked, plus environment and documentation conventions. Read references/survey.md and references/activities/validate-spec.md section for environment.md. Result: summary, body (complete environment Markdown with ## machine fenced JSON).",
@@ -6220,6 +6731,12 @@ PROMPTS = {
     "quality": "Run whole-product acceptance/integration checks with verify. Test manifest acceptance entries must cover every exact string in lifecycle.acceptance (retrieve context --section lifecycle), not the prior step's produces. When listed, read context --section system-context and reconcile its selected role/interface/interaction constraints with current environment and dependency evidence; it does not authorize promotion or prove a remote outcome. Include a lint check. Reassess the actual deployment/test environment, dependencies, cross-step flows, edge conditions, second-order effects, implicit requirements, browser/service/API cases, expected/observed outcomes, concise function contracts, and product README examples. If lifecycle quality=true, also review broader product quality and record quality_review. Put needed code/test/documentation improvements into corrective pending DAG steps with replan; do not bypass inner loops by patching the session checkout. Result: summary, test_review with case/doc/evidence references and limitations, quality_review when applicable. Required failed, blocked or unrun checks remain unfinished.",
     "publish": "Perform publication only if authorized and specified. When listed, read context --section system-context and reconcile selected target roles/interfaces with current environment and dependency evidence; it does not grant a writer, promotion, or remote effect. Inspect any existing delivery before retrying to avoid duplicate external effects. Verify the actual entrypoint and applicable delivery smoke cases against documented expected outcomes; record the tested environment/build, not a local substitute. Required failed or unknown delivery checks keep publication unfinished. Result: summary, artifact, verification, evidence. These publication facts remain host-reported.",
     "handoff": "When listed, read context --section system-context and reconcile its selected role/interface/interaction constraints with the recorded environment and dependency evidence. Summarize delivery, checked acceptance, limitations and a prioritized proposal list from shiploop-improvements.md. Link test-case expectations/results, concise function/API docs and product README; distinguish observed outcomes, actual environment/version, manual evidence and unrun checks. Result: summary, journal ([] if no additions). Do not apply generic skill proposals automatically.",
+}
+
+MANAGED_PROMPTS = {
+    "improve-plan": "Plan this Improve iteration from all review findings, Git learnings, step-context and listed system-context. Retain PARENT-* IDs and frozen outcomes. Supply body, test_plan, coverage_review, context_evidence, prerequisites, learnings and skill_assessment. Backward-check concrete suppliers and scope; every current prerequisite must be satisfied with evidence. This plan receives one bound planning check at improve-plan-verify before Apply. Improve owns the containing product convergence loop; do not recursively start another plan-convergence campaign.",
+    "improve-apply": "Apply only the scoped changes in the bound, checked iteration plan. Preserve frozen acceptance and PARENT-* coverage. Resolve required research with concrete evidence and every required question. Result: summary, material:boolean, test_changes, learnings, plus required research_assessment. Next child actions separately reassess cases, author or justify executable tests, and record documentation/skill work before verification. Any material code, test, or requirement-evidence change resets convergence.",
+    "commit": "Create a distinct verbose primary commit on the step branch. Include Review:, Changes:, Validation:, Key learnings:, the exact ShipLoop-Iteration trailer, and all recorded review, iteration plan, apply, documentation and carry-forward learnings verbatim. Retrieve context --section iteration. Use an empty audit commit for an honest no-change pass. Stage explicit paths only. Result: summary, commit (full HEAD SHA). Improve records the pass and decides whether another review or fresh final check is required.",
 }
 
 SYSTEM_TEST_SECTIONS = {
@@ -6305,6 +6822,7 @@ for _baseline_stage in (
 
 # Section routing keeps each action small; the referenced policy is shared by hosts.
 TEST_DOC_SECTIONS = {
+    "managed-improve": ("managed-improve-checkpoints",),
     "preflight": ("surface-selection",),
     "survey": ("surface-selection",),
     "research": ("surface-selection",),
@@ -6332,7 +6850,11 @@ TEST_DOC_SECTIONS = {
     "implement": ("iteration",),
     "review": ("iteration",),
     "improve-plan": ("iteration",),
+    "improve-plan-verify": ("managed-improve-checkpoints",),
     "improve-apply": ("iteration",),
+    "test-refine": ("managed-improve-checkpoints",),
+    "test-author": ("managed-improve-checkpoints",),
+    "skill-validate": ("managed-improve-checkpoints",),
     "iteration-document": ("iteration-documentation-and-reuse",),
     "verify": ("test-cases",),
     "carry-forward": ("iteration",),
@@ -6348,7 +6870,8 @@ TEST_DOC_SECTIONS = {
 # Reuse the existing guidance/result contract; style adds no stage or state.
 for _implementation_stage in (
     "step-plan", "step-plan-review", "step-plan-revise",
-    "implement", "review", "improve-plan", "improve-apply", "iteration-document", "verify",
+    "implement", "review", "improve-plan", "improve-plan-verify", "improve-apply",
+    "test-refine", "test-author", "skill-validate", "iteration-document", "verify",
 ):
     TEST_DOC_SECTIONS[_implementation_stage] = (
         *TEST_DOC_SECTIONS.get(_implementation_stage, ()),
@@ -7022,6 +7545,10 @@ def main(core, argv=None):
             sub.add_argument("--repo")
             sub.add_argument("--bound-plan", default="")
             sub.add_argument("--force", action="store_true")
+            sub.add_argument("--execution-mode", choices=("managed", "legacy"), default="managed",
+                             help="new-run Improve ownership; existing runs retain their bound mode")
+            sub.add_argument("--independent-review", choices=("optional", "required", "required-with-fallback"), default="optional",
+                             help="bind managed review requirements; fallback must be explicitly recorded")
         if name in (
             "complete",
             "verify",
@@ -7115,6 +7642,7 @@ def main(core, argv=None):
                     "system-context",
                     "system-test-requirements",
                     "observation",
+                    "sdlc",
                 ),
             )
             sub.add_argument("--offset", type=int, default=0)
@@ -7216,6 +7744,22 @@ def main(core, argv=None):
                 )
                 initial_writes = {}
                 improve_policy.initialize(core.REF_DIR, state, initial_writes)
+                if args.execution_mode == "managed":
+                    improve_bridge.initialize(state)
+                    managed_contract_path = core.REF_DIR / "improve-managed-consumer.md"
+                    managed_contract = managed_contract_path.read_bytes()
+                    managed_pin = json.loads((core.REF_DIR / "improve-managed-controller-pin.json").read_text())
+                    need(not managed_contract_path.is_symlink()
+                         and hashlib.sha256(managed_contract).hexdigest() == managed_pin["contract_sha256"],
+                         "managed Improve consumer contract differs from its package pin")
+                    state["managed_improve_contract_sha256"] = managed_pin["contract_sha256"]
+                    initial_writes["improve-managed-contract.md"] = managed_contract.decode("utf-8")
+                    state["managed_improve_independent_review"] = {
+                        "required": args.independent_review != "optional",
+                        "fallback_allowed": args.independent_review == "required-with-fallback",
+                    }
+                else:
+                    need(args.independent_review == "optional", "independent review policy requires managed execution")
                 initialize_knowledge(root, state, initial_writes)
                 action(state, "intake", "preflight")
                 persist(
@@ -7240,6 +7784,12 @@ def main(core, argv=None):
                 saved_prompt = validate_settled_prompt(root, state)
             else:
                 state = core.load_state(root)
+                validate_state(state)
+                if (improve_bridge.enabled(state) and not state.get("managed_improve")
+                        and state.get("last_completion", {}).get("stage") == "managed-improve"
+                        and args.command not in ("status", "context", "halt", "pause", "repair")):
+                    improve_bridge.validate_imported_certificate(root, state)
+                state = improve_bridge.project(root, state)
                 validate_state(state)
                 saved_prompt = validate_settled_prompt(root, state)
                 if (state["stage"] in improve_policy.PRODUCT_STAGES
@@ -7436,7 +7986,16 @@ def main(core, argv=None):
                         0 <= args.offset and 1 <= args.limit <= 8000,
                         "context offset >= 0 and limit 1..8000 characters",
                     )
-                    if (
+                    if args.section == "sdlc":
+                        body = store.dumps({"current_stage": state["stage"],
+                                            "responsibility": sdlc.stage_responsibility(
+                                                state["stage"], base_stage=state.get("objective", {}).get("base_stage"),
+                                                profile=state.get("managed_improve", {}).get("profile")),
+                                            "managed_invocation": improve_bridge.packet_metadata(state),
+                                            "release_tests": managed_release_context(core, root, state),
+                                            "nodes": sdlc.sdlc_node_catalog()},
+                                           "Flat SDLC execution map")
+                    elif (
                         args.section == "prompt"
                         and prompt_recovery_unrecoverable(state)
                     ):
@@ -8084,7 +8643,11 @@ def main(core, argv=None):
                         in (
                             "review",
                             "improve-plan",
+                            "improve-plan-verify",
                             "improve-apply",
+                            "test-refine",
+                            "test-author",
+                            "skill-validate",
                             "iteration-document",
                             "verify",
                             "carry-forward",

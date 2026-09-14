@@ -1,5 +1,76 @@
 # Execution-plan convergence
 
+## Execution mode and one convergence owner
+
+ShipLoop has two deliberately separate execution routes. Existing runs without
+`managed_improve_protocol_version: 1` remain on the legacy phase-by-phase route
+documented below. Their established receipts, callbacks, audit commits and
+recovery rules are not migrated or reinterpreted.
+
+For a managed run, ShipLoop creates one immutable child binding and keeps its
+parent action at `managed-improve`. The managed Improve controller then owns the
+child's phase sequence, review-cycle records, material resets and convergence
+assessment. The parent owns the delivery DAG, action selection, run lock,
+Markdown transaction, prerequisite scheduling and release of consumers. It
+validates an imported child certificate once; it does not recreate the child's
+review/apply/count loop under another name.
+
+The controller is the phase owner for the selected child profile: `research`,
+`behavior`, `spec`, `objective`, `step-plan`, or `product`. Planning subjects
+remain separate children: a research child never silently advances to behavior
+or specification. A packet only authorizes the profile it names. A new profile
+needs its own explicit binding and validator; do not infer a generic workflow
+engine or a profile from another run. The child uses ShipLoop's namespaced
+Markdown records and current run lock. It never starts standalone Improve, an
+ambient `.until-loop` runtime, or a second state machine.
+
+While a child is active, the parent action/cursor stays fixed. `active` resumes
+the printed child packet. `blocked`, `needs-prerequisite`, `needs-replan` and
+`stopped` retain the parent binding and are incomplete. Only a current,
+binding-matched `converged` certificate may be imported to the parent return
+stage. A parent/child crash or duplicate submission must recover or replay that
+same binding; it must not repeat a commit, test, deployment or external effect.
+
+For the managed **initial local-plan** profile, `step-plan` and
+`step-plan-revise` retain the complete structured test plan; Improve owns the
+full planning convergence record and fresh final planning evidence before
+implementation. Its review disposition is explicit: required disposition work
+returns to review; a non-required disposition permits revision. For the managed
+**product** profile, each product review cycle
+uses `improve-plan` with the current test plan, coverage/context evidence,
+explicit satisfied-prerequisite evidence and learnings, then runs one
+`improve-plan-verify` before Apply. The record retains its originating findings,
+permitted scope, selected `T-` IDs, expected outcomes, prerequisite decisions,
+and candidate/context identities. That is deliberate planning, not another
+nested two-trivial review campaign or a separate audit-commit chain. Material
+upstream scope/contract/prerequisite gaps return an incomplete disposition to
+the parent rather than silently widening the child.
+
+The managed product child makes the handoff after Apply explicit: preserve the
+pre-code case matrix, run `test-refine` to return the complete current plan and
+its refinement reason, run `test-author` to map cases to actual test selectors,
+complete `iteration-document`, and then run `skill-validate` when a selected
+skill needs it before the bound check manifest. Tests and skill examples are not
+considered passed until their actual checks run. A test-only child may repair
+tests/fixtures within its bound scope; a product defect outside that scope must
+become corrective-work evidence rather than a weakened expected outcome. See
+[Managed Improve checkpoints](testing-and-documentation.md#managed-improve-checkpoints)
+for the exact record shapes.
+
+The managed binding must explicitly state its independent-review rule. The
+shared policy calls for a fresh independent reviewer when available. If this
+binding makes that review mandatory, unavailable review blocks unless it also
+explicitly authorizes a recorded self-review fallback. Neither the child nor
+parent may infer that fallback merely to finish.
+
+The managed binding also requires the explicit `audit-every-iteration` commit
+policy. Each completed child pass therefore carries a matching audit commit,
+completed-pass identity, verification fact and open-findings inventory. This
+does not rewrite the shared policy pin or the standalone default; it is the
+managed consumer's stricter binding. The final phase then requires fresh output
+identity/check evidence after two distinct verified trivial passes with no open
+findings.
+
 ## Loop contract
 
 Plan before the first implementation and before every Improve application. A
@@ -26,8 +97,8 @@ flowchart TD
   G -->|Yes| F[Fresh checks then implementation or Improve apply]
 ```
 
-`step-plan` drafts the initial implementation plan. `improve-plan` drafts the
-plan for one existing Improve iteration. Each uses `step-plan-review`,
+On the legacy route, `step-plan` drafts the initial implementation plan.
+`improve-plan` drafts the plan for one existing Improve iteration. Each uses `step-plan-review`,
 `step-plan-revise`, `step-plan-verify`, `step-plan-commit`, and
 `step-plan-finalize`; these are stored stages in
 phase `implement`, not new dependency DAG steps. Research, behavior and spec
@@ -87,7 +158,10 @@ keeps these duties in the existing body/evidence fields. Do not repeat the globa
 survey for each local row, invent verification work for taste, or count a future
 producer as evidence that a prerequisite already holds.
 
-Repeat this check in the existing plan-review loop after each revision. Record
+On the legacy route, repeat this check in the existing plan-review loop after
+each revision. A managed local-plan child retains the same coverage and
+context evidence in its own receipt; a managed product child retains the
+per-iteration plan record described above. Record
 conclusions and safe evidence in `coverage_review.dependencies` and
 `context_evidence.dependencies`; use existing findings for gaps. A missing
 current prerequisite blocks application. If it needs a new global producer,
@@ -373,7 +447,7 @@ their approved interface contract: a passing integration path can still agree
 on the wrong request shape or observable behavior. Select such checks by risk;
 do not replace real integration coverage with mocks.
 
-At `implement` or `improve-apply`, code comes before post-code test refinement:
+At legacy `implement` or `improve-apply`, code comes before post-code test refinement:
 inspect the actual diff, dependencies, and code learnings, then author or refine
 tests from the pre-code matrix. A TDD or reused test needs evidence and an
 adequacy rationale; do not manufacture an edit. In initial `implement`, a
@@ -388,12 +462,12 @@ actual local outputs/evidence and deviations in existing result `summary` and
 `learnings`, not a separate progress ledger. Newly discovered execution-blocking
 gaps require recovery/review or a pause, never silently expanding the plan.
 
-Every completed plan pass has its own verbose audit-only direct-child commit,
+Every completed **legacy** plan pass has its own verbose audit-only direct-child commit,
 with `Review:`, `Changes:`, `Validation:`, `Key learnings:` and the exact printed
 iteration trailer. Preserve staged and uncommitted product changes using
 `git commit --allow-empty --only`; never stage the run records. Include recorded
 review/revision learnings verbatim and reference the candidate/check evidence.
-The enclosing Improve iteration still needs its **separate primary commit** after
+The enclosing legacy Improve iteration still needs its **separate primary commit** after
 product application, lint/tests and carry-forward. Plan audits do not count as
 trivial implementation iterations. Finalization carries the nested review/revise
 learnings into the enclosing iteration's `plan_learnings`; include each verbatim
@@ -427,7 +501,9 @@ another planning loop. Read only the packet-selected section for the current act
 |---|---|
 | Research/behavior/spec review and planning | Current evidence, environmental applicability, requirement/transition breadth, dependencies and implicit assumptions; resolve contradictions before accepting the candidate. |
 | Dependency sequence | Forward draft plus backward prerequisite audit, consumer effects, case/README work and preparation placement; its generic-objective candidate follows the two-trivial-pass and fresh-final-check gate. Do not invent producers. |
-| Step plan / Improve plan | All ten rubric dimensions, actual code/diff/environment evidence, repeated plan refinement and checks before product edits. |
+| Legacy step plan / Improve plan | All ten rubric dimensions, actual code/diff/environment evidence, repeated plan refinement and checks before product edits. |
+| Managed local-plan child | Use the same complete plan/test rubric and fresh planning evidence, but let the child own its full convergence record and certificate. |
+| Managed product child | Validate and check one per-iteration plan before Apply; after code, refine cases, author executable tests, validate selected skills, then run actual checks. Do not recursively converge the per-iteration plan. |
 | Implementation / Improve apply | Follow the accepted scoped plan, preserve writer constraints, implement cases and concise docs, and route new material facts back through review/repair. |
 | Product review / verify | Compare actual versus expected behavior, reassess adjacent consumers and test surfaces, and rerun lint/tests after edits. |
 | Carry-forward / post-inner / outer quality | Persist cross-step observations, review downstream and second-order impacts, revise compatible pending work, and journal generic ShipLoop improvements separately. |
@@ -459,6 +535,10 @@ Intentional changes from the standalone script:
 
 - No `.until-loop/state.json`, independent lock, Git-exclude mutation or second
   CLI. ShipLoop's existing Markdown transaction remains the only state owner.
+- A managed Improve child is not an ambient until-loop run. It uses the same
+  ShipLoop transaction/lock and namespaced Markdown receipt while its controller,
+  rather than the parent, owns internal phase progression and the clean-pass
+  decision.
 - The stop predicate is derived from unique checked/audited pass receipts,
   not a host's `--done` claim; finalization additionally requires fresh evidence.
 - Replayed action results are idempotent, and cold continuation uses ShipLoop
@@ -467,15 +547,15 @@ Intentional changes from the standalone script:
 
 This is an incorporated adaptation, **not** execution of the unmodified external
 until-loop skill. The installed standalone skill is left unchanged. The shared
-receipt-derived policy now serves every current converging family: research,
-behavior, and specification planning; generic approach/survey/sequence,
+receipt-derived policy continues to serve legacy research, behavior and
+specification planning; generic approach/survey/sequence,
 `preparation-readiness` (authorized observation/readiness, not an external-effect
-loop), post-inner, coverage, quality, and versioned handoff objectives; initial
-and Improve step-plan readiness; and product Improve iterations. Handoff needs
-the delivery-objective marker as well as the objective protocol. Their
-candidates, checks, and completion effects differ, but none may substitute a
-host claim, cycle budget, or mock-only result for its
-required evidence.
+loop), post-inner, coverage, quality, versioned handoff objectives, initial and
+Improve step-plan readiness, and product Improve iterations. For a managed
+profile, the managed Improve controller applies the same evidence principles to
+the child receipt and returns one certificate to ShipLoop. Its candidate, checks
+and completion effects still differ by profile, but neither route may substitute
+a host claim, cycle budget, or mock-only result for required evidence.
 
 Repeated review improves the opportunity to find gaps, not a proof of
 exhaustiveness. The [planning self-critique study](https://arxiv.org/abs/2310.08118)
