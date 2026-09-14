@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
-# Materialize Claude plugin views from skills/ SoT.
-# Claude git-subdir installs do not resolve relative symlinks outside the
-# subdir, so plugins/<name>/skills/<name> must be a real tree (copy).
-# plugin.json name/version/description/license are derived from SKILL.md.
+# Materialize plugin views from skills/ SoT.
+# Plugin installs must not depend on a symlink outside the plugin directory,
+# so plugins/<name>/skills/<name> must be a real tree (copy). Claude and
+# Cursor manifests plus the Cursor/Grok marketplace indexes are derived from
+# SKILL.md.
 #
 # Usage:
 #   ./scripts/sync-plugin-views.sh           # sync all skills/* with SKILL.md
@@ -30,6 +31,14 @@ for arg in "$@"; do
   esac
 done
 
+# Root marketplace indexes are generated only for a full sync/check. A leaf
+# operation is deliberately self-contained so fixture and repair workflows do
+# not need to materialize every marketplace entry.
+full_sync=0
+if [[ ${#names[@]} -eq 0 ]]; then
+  full_sync=1
+fi
+
 # Default: enumerate from skills/ SoT (not plugins/), so new skills are not invisible.
 if [[ ${#names[@]} -eq 0 ]]; then
   shopt -s nullglob
@@ -48,8 +57,8 @@ if [[ ${#names[@]} -eq 0 ]]; then
 fi
 
 if [[ ${#names[@]} -eq 0 ]]; then
-  printf 'sync-plugin-views: no skills to sync\n' >&2
-  exit 0
+  printf 'sync-plugin-views: FAIL no source skills; refusing empty distribution\n' >&2
+  exit 1
 fi
 
 fail=0
@@ -139,13 +148,25 @@ skill_package_matches_view() {
 }
 
 
-# Orphan plugin views (plugin without skills/ leaf) — only when syncing the full set.
-if [[ "$check_only" -eq 1 && $# -eq 1 && "$1" == "--check" ]]; then
+# A plugin with package contents but no source SKILL.md is an orphan. Empty,
+# ignored directory remnants are harmless and should not make a valid checkout
+# fail its full sync check.
+plugin_has_packaged_contents() {
+  local plugin_dir="$1"
+  find "$plugin_dir" -mindepth 1 \
+    \( -type d -name __pycache__ -prune \) -o \
+    \( -type f ! -name '*.pyc' ! -name '.DS_Store' -print -quit \) -o \
+    \( -type l -print -quit \) 2>/dev/null | grep -q .
+}
+
+# Orphan plugin views (plugin without a source SKILL.md) — only when syncing
+# the full set. A source directory without SKILL.md is not a valid source.
+if [[ "$check_only" -eq 1 && "$full_sync" -eq 1 ]]; then
   shopt -s nullglob
   for d in plugins/*/; do
     n="$(basename "$d")"
-    if [[ ! -d "skills/$n" ]]; then
-      printf 'sync-plugin-views: FAIL orphan plugins/%s (no skills/%s)\n' "$n" "$n" >&2
+    if [[ ! -f "skills/$n/SKILL.md" ]] && plugin_has_packaged_contents "$d"; then
+      printf 'sync-plugin-views: FAIL orphan plugins/%s (no skills/%s/SKILL.md)\n' "$n" "$n" >&2
       fail=1
     fi
   done
@@ -214,6 +235,18 @@ for name in "${names[@]}"; do
   fi
   printf 'sync-plugin-views: synced plugins/%s from skills/%s\n' "$name" "$name"
 done
+
+# A full operation owns the marketplace catalog; a leaf operation intentionally
+# does not, so it remains usable for isolated fixtures and single-plugin repair.
+if [[ "$full_sync" -eq 1 ]]; then
+  if [[ "$check_only" -eq 1 ]]; then
+    if ! node "$derive_js" --marketplaces --check; then
+      fail=1
+    fi
+  else
+    node "$derive_js" --marketplaces --write
+  fi
+fi
 
 if [[ "$check_only" -eq 1 ]]; then
   if [[ "$fail" -ne 0 ]]; then

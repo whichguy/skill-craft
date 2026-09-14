@@ -38,7 +38,7 @@ Do **not** renumber legacy Layer 0–2. Skill-interop reviews and checklists alr
 | Scripts / CLI | **Layer 2** | **implemented** |
 | Skill card (`SKILL.md` router) | review step (not a Layer 1 rename) | **implemented** |
 | Runtime binding | append (**SC-L3**) | **implemented** for Hermes materialize + `devloop` resolve/bootstrap; **Grok multi-transport required for Grok parity** (in progress); Claude/Codex transport optional |
-| Host adapters + distribution | append (**SC-L4 / SC-L5**) | **implemented** (skill-dir install, Claude plugin views, market pins) |
+| Host adapters + distribution | append (**SC-L4 / SC-L5**) | **implemented** (skill-dir install, shared plugin views, Grok/Cursor indexes, Claude/Codex pins) |
 | Provenance (managed installs) | append | **implemented** — schema-2 marker + append-only `receipts.jsonl` + `--status` / `--uninstall` |
 | Operator / CI | control plane (not a runtime layer) | **implemented** — hermetic suite + GitHub Actions |
 
@@ -98,9 +98,10 @@ host checkout into a tree that is bind-mounted into the container as `/opt/data`
 
 | Track | Status |
 |-------|--------|
-| Skill-dir symlink (Claude, Grok, Codex) | **implemented** |
+| Skill-dir symlink (Claude, Grok, Codex, Cursor) | **implemented** |
 | Skill-dir materialized copy (Hermes default) | **implemented** |
-| Claude plugin view `plugins/<leaf>/` via `sync-plugin-views.sh` | **implemented** |
+| Shared plugin view `plugins/<leaf>/` via `sync-plugin-views.sh` | **implemented** |
+| Grok/Cursor same-repository catalogs | **implemented** — generated from skill frontmatter; distribution and publication steps in [distribution.md](distribution.md) |
 | `plugin.json` name/version/description/license derived from `SKILL.md` | **implemented** (`scripts/skill-frontmatter-to-plugin-json.js`; sync enumerates from `skills/`) |
 | skill-craft-market pins (catalog only; no skill bodies) | **implemented** |
 | `install.sh --status` / `--uninstall` (owned only) | **implemented** |
@@ -152,14 +153,15 @@ skill-interop additionally requires Hermes-peer fields (`author`, `metadata.herm
 ## Dual-track distribution
 
 ```text
-skill-craft/skills/<leaf>/     # SoT (all hosts skill-dir; Grok/Codex/Hermes docs)
+skill-craft/skills/<leaf>/     # SoT (all hosts skill-dir)
         │
-        ├── install.sh ──► ~/.claude|grok|codex/skills/<leaf>   (symlink)
+        ├── install.sh ──► ~/.claude|grok|codex|cursor/skills/<leaf>   (symlink)
         │              ──► ~/.hermes/skills/software-development/<leaf>  (copy)
         │
-        └── plugins/<leaf>/    # Claude marketplace view (materialised copy)
+        └── plugins/<leaf>/    # shared marketplace package (materialised copy)
                  ▲
-                 └── skill-craft-market pins path: plugins/<leaf>
+                 ├── skill-craft Grok/Cursor indexes: ./plugins/<leaf>
+                 └── skill-craft-market Claude/Codex pins: plugins/<leaf>
 ```
 
 ## Out of scope (product repos)
@@ -175,7 +177,7 @@ claude-craft product suites (wiki, gas, async, …) stay host-native. Portable l
 | P2 | Derive `plugin.json` from `SKILL.md` | **done** |
 | P3 | `--status` / `--uninstall` | **done** |
 | P4 | `skills/devloop` probe card | **done** |
-| Market pins | skill-craft-market → tagged `ref: v0.3.0` for released leaves; new leaves may pin `main` until tagged | **done** |
+| Market pins | skill-craft-market → full commit `sha` for every leaf, with release tag or `main` as a reachability label | **done** |
 
 ### Package-internal symlinks (**implemented**)
 
@@ -186,11 +188,14 @@ Both **Hermes materialization** (`install.sh`) and **Claude plugin-view sync**
 (fail closed; no partial write). Post-sync / post-materialize trees must contain **no**
 residual symlinks (Claude git-subdir cannot follow them under `plugins/`).
 
-**skill-craft-market** Claude catalog pins skill-craft `plugins/<leaf>` at a git **`ref`**
+**skill-craft-market** Claude-compatible catalog (also read by Codex) pins skill-craft `plugins/<leaf>` at a full commit **`sha`**, optionally labeled with a git **`ref`**
 (release tags such as **`v0.3.0`** / **`v0.3.3`** per leaf). External leaves (e.g.
 **lennox-s40**) pin a **standalone** repo URL — this monorepo must not also ship
 `skills/<same-name>/`. Advance a pin only when that leaf’s content or package version
-changes at a released tag (no bulk retarget of content-identical pins).
+changes at a released tag or verified published commit (no bulk retarget of
+content-identical pins). Untagged published packages may use `ref: "main"` plus a
+full commit `sha`; the SHA fixes package bytes. Catalog validation checks version
+parity at that SHA and reachability from the declared ref.
 
 
 

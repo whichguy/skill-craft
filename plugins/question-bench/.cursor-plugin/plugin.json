@@ -1,0 +1,18 @@
+{
+  "name": "question-bench",
+  "version": "0.1.0",
+  "description": "Benchmark review-plan question effectiveness via experiment-based ablation. Applies different question subsets to a plan (or directory of plans) in parallel experiments, evaluates each against fixed plan-quality questions (Q-PQ1..Q-PQ8), and compares quality spreads to identify which questions drive real improvement.",
+  "author": {
+    "name": "whichguy"
+  },
+  "homepage": "https://github.com/whichguy/skill-craft",
+  "repository": "https://github.com/whichguy/skill-craft",
+  "license": "MIT",
+  "keywords": [
+    "skill-craft",
+    "question-bench",
+    "portable-skills",
+    "prompt-only"
+  ],
+  "skills": "skills"
+}

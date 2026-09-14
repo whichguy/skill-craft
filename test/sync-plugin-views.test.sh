@@ -3,6 +3,35 @@
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
+
+# The cases below intentionally corrupt views and source fixtures. Re-run the
+# same test in a disposable copy when invoked from a real checkout so no
+# compatibility test can alter a collaborator's active tree.
+if [[ "${SKILL_CRAFT_SYNC_FIXTURE:-}" != "1" ]]; then
+  fixture_tmp="$(mktemp -d "${TMPDIR:-/tmp}/skill-craft-sync-test.XXXXXX")"
+  fixture_root="$fixture_tmp/repo"
+  cleanup_fixture() { rm -rf "$fixture_tmp"; }
+  trap cleanup_fixture EXIT
+  mkdir -p "$fixture_root"
+  (cd "$root" && tar \
+    --exclude='.git' \
+    --exclude='.claude/worktrees' \
+    --exclude='.ruff_cache' \
+    --exclude='node_modules' \
+    --exclude='.results' \
+    --exclude='results' \
+    --exclude='tasks' \
+    --exclude='dist' \
+    --exclude='__pycache__' \
+    --exclude='*.pyc' \
+    -cf - .) | (cd "$fixture_root" && tar -xf -)
+  set +e
+  SKILL_CRAFT_SYNC_FIXTURE=1 bash "$fixture_root/test/sync-plugin-views.test.sh"
+  fixture_rc=$?
+  set -e
+  exit "$fixture_rc"
+fi
+
 cd "$root"
 
 fail() {
