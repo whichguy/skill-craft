@@ -1,0 +1,84 @@
+{
+  "product": {
+    "stage": "product-improve",
+    "action_id": "nav-44b06f31c6964a0e99448dc43c5484e7",
+    "next_actions": [
+      "Establish the current in-scope candidate and baseline by inspecting the repository, affected consumers, durable prior-review evidence, and the latest seven full Git commit messages.",
+      "Perform a complete Improve review cycle: triage findings, make a bounded authorized plan with expected behavior and checks, apply only justified changes, and refresh every affected check.",
+      "Record scope, candidate identity, findings and materiality, plan or no-change rationale, checks, evidence, learnings, independent-review availability, and the clean-review streak in the run directory.",
+      "Continue with a distinct second complete review cycle; submit done only after two consecutive trivial-only cycles have current checks and no unresolved material finding."
+    ],
+    "required_reads": [
+      "The product packet, its durable state, and the named result record for nav-e9504b7d327348e39b6b07e2b0eb6643 before relying on accepted context.",
+      "The named navigator responsibilities and Improve review policy.",
+      "Before execution: the current repository candidate, affected consumers, relevant existing checks, and the latest seven full Git commit messages."
+    ],
+    "can_complete_now": false,
+    "completion_conditions": [
+      "The material code change has been assessed against the current candidate and all checks it affects have been rerun; the earlier clean reviews cannot count for the changed candidate.",
+      "The full owner-bound Improve campaign has completed its ordered review, plan, apply, checks, record, and assessment obligations, including a durable record and an independent-review pass when available (or a disclosed self-review limitation).",
+      "Two distinct consecutive completed review cycles are trivial-only or no-change, have current relevant checks, and have no unresolved material finding."
+    ],
+    "proposed_result": null,
+    "navigation_call_or_null": null,
+    "ambiguities_or_limits": [
+      "No repository, code, consumer, commit history, test result, or durable review note was inspected in this interpretation-only experiment.",
+      "The accepted history and named preceding result are explicitly synthetic setup transitions, so they provide no completed-review or current-check evidence."
+    ]
+  },
+  "verify": {
+    "stage": "verify",
+    "action_id": "nav-155eef7caec44648b1e48885e67484af",
+    "next_actions": [
+      "Inspect the current parser change, its expected behavior, the repository run context, and the relevant test and linter configuration; treat the green report as stale context because it predates the edit.",
+      "Run the actual relevant local linters, executable tests, and any other proportionate checks against the current candidate.",
+      "Investigate each failure, fix only justified defects or an explicitly invalid test, and rerun every affected check against the resulting candidate.",
+      "Record current, outcome-tied evidence and submit done only when relevant checks are current; use repeat or blocked rather than treating an unrun or limited check as a green completion."
+    ],
+    "required_reads": [
+      "The verify packet, its durable state, and the named result record for nav-eb7d1add66fb404e8dac534328bca1b9 before relying on accepted context.",
+      "The named navigator responsibilities.",
+      "Before execution: the current parser source and change, expected behavior, relevant tests, linter/test configuration, and any prior report only as stale context."
+    ],
+    "can_complete_now": false,
+    "completion_conditions": [
+      "Relevant tests, linters, and other necessary local checks have actually run after the latest parser edit.",
+      "Failures have been investigated, justified fixes or test corrections have been rechecked, and the recorded results are tied to the current candidate and expected parser behavior.",
+      "No required check remains unrun, blocked, stale, or environment-limited without an honest incomplete outcome."
+    ],
+    "proposed_result": null,
+    "navigation_call_or_null": null,
+    "ambiguities_or_limits": [
+      "The packet does not identify the parser files, expected behavior, test command, linter command, or check results, so none can be inferred.",
+      "No local check was run and no project file was inspected in this interpretation-only experiment; the preceding accepted record is synthetic setup evidence only."
+    ]
+  },
+  "release": {
+    "stage": "release",
+    "action_id": "nav-7d80b1b141934d50ada7046d723ea271",
+    "next_actions": [
+      "Write a structured done result stating that release is not applicable because the requested deliverable is a local fixture and the user prohibited merge, push, installation, and deployment.",
+      "Do not perform or claim any external release effect; if this were execution rather than a preview, submit that result through the packet's supplied completion call."
+    ],
+    "required_reads": [
+      "The release packet and its explicit user scope, which directly establishes that release is not part of this task.",
+      "The durable state and named result record for nav-ae0d8c3dcada49988abbf097d69fbdab if relying on accepted context; both are synthetic and do not establish a real release."
+    ],
+    "can_complete_now": true,
+    "completion_conditions": [
+      "The result gives the concrete non-applicable reason from the user scope.",
+      "It does not assert a merge, push, installation, deployment, or consumer change and does not seek publication permission.",
+      "In an actual run, the structured result is saved at the packet's inbox path and submitted with its supplied completion call."
+    ],
+    "proposed_result": {
+      "evidence_refs": [],
+      "outcome": "done",
+      "summary": "Release is not applicable: the requested deliverable is a local fixture only, and the user explicitly prohibited merge, push, installation, and deployment. No external release was performed."
+    },
+    "navigation_call_or_null": "python3 <SOURCE_CHECKOUT>/skills/shiploop/scripts/shiploop complete --run-dir=<INITIAL_TRIAL>/release/run --action=nav-7d80b1b141934d50ada7046d723ea271 --result=<INITIAL_TRIAL>/release/run/inbox/nav-7d80b1b141934d50ada7046d723ea271.md",
+    "ambiguities_or_limits": [
+      "This is a preview: the stated completion of local checks is accepted only as a scenario fact and was not independently verified.",
+      "The completion call is recorded for navigation only and was not executed; no project or run file other than this response JSON was changed."
+    ]
+  }
+}

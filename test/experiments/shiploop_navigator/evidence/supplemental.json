@@ -1,0 +1,222 @@
+[
+  {
+    "round": "initial",
+    "workflow": "improve",
+    "head": "048f2e5f84f4b147b97c7826b6fff8a38e12db3d",
+    "post_hoc": true,
+    "results": [
+      {
+        "case": "extra_tuple_pairs",
+        "passed": true,
+        "actual": [
+          [
+            1,
+            5
+          ]
+        ],
+        "expected": [
+          [
+            1,
+            5
+          ]
+        ],
+        "input_preserved": true
+      },
+      {
+        "case": "extra_float_start",
+        "passed": true,
+        "exception": "ValueError",
+        "input_preserved": true
+      },
+      {
+        "case": "extra_float_end",
+        "passed": true,
+        "exception": "ValueError",
+        "input_preserved": true
+      },
+      {
+        "case": "extra_false_start",
+        "passed": true,
+        "exception": "ValueError",
+        "input_preserved": true
+      },
+      {
+        "case": "extra_false_end",
+        "passed": true,
+        "exception": "ValueError",
+        "input_preserved": true
+      },
+      {
+        "case": "extra_true_end",
+        "passed": true,
+        "exception": "ValueError",
+        "input_preserved": true
+      }
+    ]
+  },
+  {
+    "round": "initial",
+    "workflow": "control",
+    "head": "271a99c072a227eb61715bef3921fa76f6efd8b9",
+    "post_hoc": true,
+    "results": [
+      {
+        "case": "extra_tuple_pairs",
+        "passed": true,
+        "actual": [
+          [
+            1,
+            5
+          ]
+        ],
+        "expected": [
+          [
+            1,
+            5
+          ]
+        ],
+        "input_preserved": true
+      },
+      {
+        "case": "extra_float_start",
+        "passed": true,
+        "exception": "ValueError",
+        "input_preserved": true
+      },
+      {
+        "case": "extra_float_end",
+        "passed": true,
+        "exception": "ValueError",
+        "input_preserved": true
+      },
+      {
+        "case": "extra_false_start",
+        "passed": true,
+        "exception": "ValueError",
+        "input_preserved": true
+      },
+      {
+        "case": "extra_false_end",
+        "passed": true,
+        "exception": "ValueError",
+        "input_preserved": true
+      },
+      {
+        "case": "extra_true_end",
+        "passed": true,
+        "exception": "ValueError",
+        "input_preserved": true
+      }
+    ]
+  },
+  {
+    "round": "explicit",
+    "workflow": "improve",
+    "head": "530948fee5941d243a19caf0ce2028584e7e93e1",
+    "post_hoc": true,
+    "results": [
+      {
+        "case": "extra_tuple_pairs",
+        "passed": true,
+        "actual": [
+          [
+            1,
+            5
+          ]
+        ],
+        "expected": [
+          [
+            1,
+            5
+          ]
+        ],
+        "input_preserved": true
+      },
+      {
+        "case": "extra_float_start",
+        "passed": true,
+        "exception": "ValueError",
+        "input_preserved": true
+      },
+      {
+        "case": "extra_float_end",
+        "passed": true,
+        "exception": "ValueError",
+        "input_preserved": true
+      },
+      {
+        "case": "extra_false_start",
+        "passed": true,
+        "exception": "ValueError",
+        "input_preserved": true
+      },
+      {
+        "case": "extra_false_end",
+        "passed": true,
+        "exception": "ValueError",
+        "input_preserved": true
+      },
+      {
+        "case": "extra_true_end",
+        "passed": true,
+        "exception": "ValueError",
+        "input_preserved": true
+      }
+    ]
+  },
+  {
+    "round": "explicit",
+    "workflow": "control",
+    "head": "5feb37d04870bbd31ddc61c08456d61e4a07026d",
+    "post_hoc": true,
+    "results": [
+      {
+        "case": "extra_tuple_pairs",
+        "passed": true,
+        "actual": [
+          [
+            1,
+            5
+          ]
+        ],
+        "expected": [
+          [
+            1,
+            5
+          ]
+        ],
+        "input_preserved": true
+      },
+      {
+        "case": "extra_float_start",
+        "passed": true,
+        "exception": "ValueError",
+        "input_preserved": true
+      },
+      {
+        "case": "extra_float_end",
+        "passed": true,
+        "exception": "ValueError",
+        "input_preserved": true
+      },
+      {
+        "case": "extra_false_start",
+        "passed": true,
+        "exception": "ValueError",
+        "input_preserved": true
+      },
+      {
+        "case": "extra_false_end",
+        "passed": true,
+        "exception": "ValueError",
+        "input_preserved": true
+      },
+      {
+        "case": "extra_true_end",
+        "passed": true,
+        "exception": "ValueError",
+        "input_preserved": true
+      }
+    ]
+  }
+]

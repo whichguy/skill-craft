@@ -1,0 +1,98 @@
+{
+  "plan": {
+    "stage": "plan-improve",
+    "action_id": "nav-13ee3c49dade4823a8241c224e7196aa",
+    "next_actions": [
+      "Reconcile the durable state and any identifiable prior plan-review record with the current candidate; the supplied scenario establishes one clean review after a material repair, not convergence.",
+      "Inspect the latest seven full Git commit messages, the complete in-scope delivery plan, dependency order, affected consumers, test strategy, system-test obligations, and release assumptions.",
+      "Perform one fresh, complete plan-improve review under the named policy, triage any finding, and update only authorized plan material if warranted.",
+      "Refresh every affected plan check and record the scope, evidence, findings, classification, checks, limitations, and clean-review streak. Submit done only if this becomes the second distinct consecutive trivial-only review with current checks; otherwise reset the streak for a material finding or remain incomplete."
+    ],
+    "required_reads": [
+      "<INITIAL_TRIAL>/plan/run/state.md",
+      "<SOURCE_CHECKOUT>/skills/shiploop/references/navigator.md#sdlc-responsibilities",
+      "<SOURCE_CHECKOUT>/skills/shiploop/references/improve-review-policy.md",
+      "The current in-scope repository candidate, relevant affected consumers, and the seven latest full Git commit messages required by the packet.",
+      "The relevant prior accepted result record or durable review note before relying on accepted history; the packet names a results directory but identifies no particular record."
+    ],
+    "can_complete_now": false,
+    "completion_conditions": [
+      "A second distinct, fully completed plan-improve cycle has been assessed after the material repair.",
+      "Both consecutive cycles are trivial-only or no-change, have no unresolved material finding, and have current relevant plan checks.",
+      "A durable run record supports the assessment, including the required review evidence and any independent-review limitation."
+    ],
+    "proposed_result": null,
+    "navigation_call_or_null": null,
+    "ambiguities_or_limits": [
+      "The state contains synthetic accepted-transition summaries and no named prior result record, so it does not independently substantiate the prior review beyond the supplied scenario fact.",
+      "This is an interpretation preview; no repository inspection, review, check, plan edit, result-file write, or navigator command was performed."
+    ]
+  },
+  "queue": {
+    "stage": "carry-forward",
+    "action_id": "nav-f30264c212c64cae8cdb36cec87576d5",
+    "next_actions": [
+      "Reconcile the current W2 boundary and the broad remaining scope with durable state and run context; keep completed W1 and current W2 separate from future-only work.",
+      "Return a future-only ordered queue containing W4 before W3, without relisting W1 or W2.",
+      "Record only the planning consequence of the prerequisite discovery, including that no future implementation, test, integration, release, or publication is being claimed, then submit done."
+    ],
+    "required_reads": [
+      "<INITIAL_TRIAL>/queue/run/state.md",
+      "<SOURCE_CHECKOUT>/skills/shiploop/references/navigator.md#sdlc-responsibilities",
+      "The current repository and run context needed to review remaining dependencies, system-test needs, consumer impacts, release prerequisites, and reusable-skill obligations.",
+      "The relevant result record for W2 before relying on the accepted summary; no specific result-record path is named."
+    ],
+    "can_complete_now": true,
+    "completion_conditions": [
+      "The future-only work list orders W4 before W3.",
+      "W1 and W2 are preserved by not rewriting them into the future-only replacement.",
+      "The result makes no claim that W4, W3, tests, integration, release, or publication has occurred."
+    ],
+    "proposed_result": {
+      "evidence_refs": [],
+      "outcome": "done",
+      "summary": "Future work is W4 before W3. W1 and W2 are preserved by leaving their completed/current records out of the future-only replacement; no publication is claimed.",
+      "work_items": [
+        {
+          "id": "W4",
+          "title": "Prerequisite for W3"
+        },
+        {
+          "id": "W3",
+          "title": "Downstream consumer"
+        }
+      ]
+    },
+    "navigation_call_or_null": "After substantiating and writing that result to the packet-designated inbox: python3 <SOURCE_CHECKOUT>/skills/shiploop/scripts/shiploop complete --run-dir=<INITIAL_TRIAL>/queue/run --action=nav-f30264c212c64cae8cdb36cec87576d5 --result=<INITIAL_TRIAL>/queue/run/inbox/nav-f30264c212c64cae8cdb36cec87576d5.md",
+    "ambiguities_or_limits": [
+      "The scenario supplies no detailed W4 scope, owner, expected behavior, or checks, so its title remains deliberately generic.",
+      "The proposed done result is a preview of the stated queue change; no project/run inspection, inbox write, or navigator command was performed."
+    ]
+  },
+  "blocked": {
+    "stage": "system-test",
+    "action_id": "nav-962da629abd649ff9ed352652b14f31d",
+    "next_actions": [
+      "Leave the pending system-test action untouched: do not submit a result and do not resume while staging credentials remain unavailable.",
+      "Wait for the credential condition to change and verify actual staging access when it does.",
+      "Only after that change, resume the pending action, run the required staging acceptance tests, and record their actual result; local checks cannot substitute."
+    ],
+    "required_reads": [
+      "<INITIAL_TRIAL>/blocked/run/state.md",
+      "Actual staging-credential availability and authorization after the stated blocking condition changes.",
+      "The required staging acceptance-test evidence after a valid resume."
+    ],
+    "can_complete_now": false,
+    "completion_conditions": [
+      "Staging credentials become available and the blocked action is validly resumed.",
+      "The required staging acceptance tests actually run; local checks are not substituted.",
+      "Their actual outcome is recorded truthfully before any system-test completion is declared."
+    ],
+    "proposed_result": null,
+    "navigation_call_or_null": null,
+    "ambiguities_or_limits": [
+      "The supplied scenario and blocked state both say credentials remain unavailable, so the packet expressly prohibits both completion and resume.",
+      "This preview establishes neither staging access nor an acceptance-test result."
+    ]
+  }
+}
