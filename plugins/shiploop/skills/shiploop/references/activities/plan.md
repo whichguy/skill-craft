@@ -1,7 +1,11 @@
 # Native bounded dependency planning
 
 Sequence planning is native ShipLoop work, not a required external Backchain
-skill or template load. Make a short forward draft, audit every step backwards,
+skill or template load. It selectively adapts Backchain source prompts reviewed
+at commit `8278e27` through
+[Backchain planning in ShipLoop](../backchain-planning.md#owner-binding). It
+does not invoke an external runtime or import raw Backchain JSON/schema, model,
+benchmark, or evaluator. Make a short forward draft, audit every step backwards,
 then import only a validated compatible DAG.
 
 During execution, the [carry-forward checkpoint](../carry-forward.md) may expose
@@ -54,11 +58,11 @@ is still host-reported rather than a local success claim.
 {
   "contract_version": 1,
   "steps": [{
-    "id": "S1", "statement": "Create the checked widget outcome",
+    "id": "S1", "statement": "The checked widget outcome is available",
     "produces": ["checked widget outcome"], "inputs": [], "origin": "seed",
     "prompt": "<stored bounded prompt>",
     "contract": {
-      "objective": "Create the checked widget outcome",
+      "objective": "The checked widget outcome is available",
       "ready": [{"id":"R-WIDGET-ENV","condition":"The selected test environment is available","evidence_method":"planning verify"}],
       "done": [{"id":"D-WIDGET-OUTCOME","condition":"The widget exposes the declared outcome","produces":["checked widget outcome"],"evidence_method":"accepted test","completion":"integrated"}],
       "tests": [{"id":"T-WIDGET-OUTCOME","produces":["checked widget outcome"],"expected_outcome":"The declared observable outcome occurs","surface":"selected component or API surface","evidence_method":"accepted test"}],
@@ -96,12 +100,39 @@ environment, artifact, and check identities internally. See
    to order prerequisite health checks, necessary repairs and small compatible
    data migrations. An intentionally failing target regression is not a foundation
    failure; unrelated defects do not automatically expand the assignment.
-2. Draft the smallest forward path from established initial state to exact goal.
-3. For each step, work backwards: every input needs an upstream exact produces
-   value or a real initial-state fact.
-4. Add a missing producer or leave it unresolved and pause; never invent facts.
-5. Check safe unique IDs, exact need-to-producer links, consumer ordering,
-   compatibility boundaries, shared-resource effects, and cycles.
+2. **Before drafting**, reread the original request and the approved
+   `spec.md`/`lifecycle.md` acceptance and case requirements. Cover every
+   required, negative, and conditional outcome, then map each independently
+   checkable outcome to a planned observation. As the draft adds steps,
+   record the mapping in the existing contract/case rows. This is the native
+   representation of upstream goal needs and verification sinks, not a new goal
+   catalog. Related assertions may share one coherent DAG step; divergent
+   prerequisites or deliverables should not. See
+   [outcomes](../backchain-planning.md#outcomes).
+3. Record an initial fact only when the request or an actual inspection proves
+   it. Then draft the smallest forward path of **postconditions** from those
+   facts: `statement` and `produces` say what will be true, while the existing
+   stored `prompt` holds tactics and authorized Tools. Keep the local microplan
+   in the existing `plan`/`body` Markdown, not a new schema. See
+   [sequence](../backchain-planning.md#sequence) and
+   [step plans](../backchain-planning.md#step-plans).
+4. For every draft step, including unchanged seeds, and every added or widened
+   supplier, apply the complete
+   **CLAIM / NEEDS / SUPPLY / PULL / RESOLVE** audit. SUPPLY inspects every
+   relevant producer and established fact, not merely adjacent rows; PULL
+   tests the committed consumers and can expose a supplier gap. Do not treat a
+   tool, assumption, unanswered question, or a matching label as evidence. See
+   [dependency audit](../backchain-planning.md#dependency-audit).
+5. Resolve each need through inspectable evidence at the exact required layer
+   and carrier. Give actual shared state one suitable direct supplier for its
+   consumers, rather than an adjacency chain or arbitrary god-step. Retain
+   safe unique IDs, exact need-to-producer links, consumer ordering,
+   compatibility boundaries, shared-resource effects, and cycles; then make
+   one forward check from established facts to the planned observations. Plan
+   per-outcome verification in the existing contract/case rows, with the
+   existing plan's evidence method, target, selector/command, and documentation
+   check. See
+   [replanning](../backchain-planning.md#replanning) for later facts.
 6. Give every step concrete produces, a stored goal/until/Tools prompt, and a
    meaningful test plan for every produces value. Map stable case IDs to exact
    output or lifecycle-acceptance strings and plan selectors/commands and
@@ -156,7 +187,7 @@ id, statement, origin, prompt, produces, and inputs:
 
 ~~~json
 {"goal":"<exact spec done_sentence>","initial_state":["<established fact>"],
- "unresolved":[],"steps":[{"id":"S1","statement":"One bounded outcome",
+ "unresolved":[],"steps":[{"id":"S1","statement":"The exact checked outcome is available",
  "origin":"seed","produces":["<exact checked outcome>"],"inputs":[],
  "prompt":"/goal\nDo this activity until these conditions are met:\n- <exact checked outcome>\n\nTools:\nWatch with: <frozen mcp_considered>\nUse: <tool>\nDon't use: none\nDon't write: none\nAssume: <facts>"}]}
 ~~~

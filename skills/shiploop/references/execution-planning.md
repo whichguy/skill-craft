@@ -65,20 +65,27 @@ substitute a syntax/import probe for it; new tools or access need authorization.
 
 Before coding, reverse-walk **each required output and its verification needs**:
 
-1. **Claim and needs:** what must become true, and what must exist to implement
-   and verify it? Include fixtures, interfaces, authorized environment, failure
-   paths, and relevant downstream consumers.
-2. **Supply:** cite an inspected current fact or an earlier local row that will
-   produce inspectable evidence. Check selected-step Ready criteria, global
-   supplier artifacts and initial facts against current evidence. A criterion,
-   prior claim, installed tool, or planned check is not proof of readiness,
-   authorized access, a populated fixture, or a passing result.
-3. **Resolve:** reuse the actual supplier; clarify its local output; add only
-   necessary in-scope local work; otherwise retain a material unresolved finding.
-   Never close a need with an assumption, a circular dependency, or future work
-   that has not run. Then walk forward once to check that each row can execute
-   using established facts and earlier outputs and that the required outcomes
-   and cases are covered.
+1. **CLAIM:** name the exact postcondition, separately from the tactic used to
+   achieve it. Retain every required outcome and its own case/observation.
+2. **NEEDS:** infer what must exist to implement and verify it: fixtures,
+   interfaces, authorized environment, failure paths and relevant consumers.
+3. **SUPPLY:** cite an inspected current fact or an earlier producer of
+   inspectable evidence at the correct layer. A criterion, prior claim,
+   installed tool, authored file or deployment is not proof of authorized
+   access, populated data, applied state or passing same-build checks.
+4. **PULL:** inspect what direct consumers need from this output; revisit this
+   producer's inputs if that reveals a gap. Do not redesign those consumers.
+5. **RESOLVE:** reuse the actual supplier, clarify its genuinely owned output,
+   add necessary in-scope work, or retain a material unresolved finding. Account
+   for every need; never close one with an assumption or cycle. Recheck new or
+   widened producers, then walk forward once through outcomes and cases.
+
+The shared [Backchain dependency audit](backchain-planning.md#dependency-audit)
+defines evidence layers, concrete carriers, shared suppliers and conditional
+transition clocks. Its [step-plan binding](backchain-planning.md#step-plans)
+keeps these duties in the existing body/evidence fields. Do not repeat the global
+survey for each local row, invent verification work for taste, or count a future
+producer as evidence that a prerequisite already holds.
 
 Repeat this check in the existing plan-review loop after each revision. Record
 conclusions and safe evidence in `coverage_review.dependencies` and
@@ -293,7 +300,7 @@ step, implementation, environment and dependency inspection.
 | `step_scope` | What exact stored prompt, outputs and acceptance does this plan implement? Which changes are explicitly out of scope? |
 | `current_implementation` | What does the real code/configuration/diff do now, where will the change land, and which call sites or tests contradict the proposed approach? |
 | `environment` | Are runtime, permitted writer, invocation conventions, deployment target, test fixtures and non-secret access assumptions valid now? Which observation needs revalidation? |
-| `dependencies` | Reverse-check every microplan output and verification need to current evidence or an earlier local producer, then walk the forward order. Do Ready criteria and global supplier artifacts actually establish the needed state? Identify unresolved prerequisites, cycles, compatibility, shared resources and affected consumers; never treat a claim as evidence. |
+| `dependencies` | Apply CLAIM/NEEDS/SUPPLY/PULL/RESOLVE to each output and verification need, then walk forward. Do Ready criteria and supplier artifacts establish the exact state, carrier and evidence layer? Recheck new/widened suppliers, shared needs, consumers and conditional transition clocks. Account for every need and unresolved gap; never treat a claim as evidence. |
 | `flows` | Trace a concrete input through state, guards, calls and observable output. Do the normal, alternate and recovery flows agree with the approved requirement/transition model? |
 | `edge_conditions` | Examine relevant invalid/empty/boundary/stale/duplicate input, timeout, cancellation, partial failure, retries, concurrency and recovery. Which cases are missing? |
 | `second_order_effects` | What changes indirectly for consumers, persisted data, caches, permissions, resource use, deployment/rollback, observability or documentation? Which cross-step effects need a broader plan change? |

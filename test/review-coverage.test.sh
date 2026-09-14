@@ -641,6 +641,18 @@ if grep -q 'only trivial findings remaining this cycle' "$ROOT/skills/review-cov
 else
   bad skill_md_trivial_findings_ledger
 fi
+if grep -q 'Wrap-up trivials' "$ROOT/skills/review-coverage/SKILL.md" \
+  && grep -q 'Deferred (minor/P2)' "$ROOT/skills/review-coverage/SKILL.md"; then
+  ok skill_md_wrap_up_trivials
+else
+  bad skill_md_wrap_up_trivials
+fi
+if grep -qi 'user-typed' "$ROOT/skills/review-coverage/SKILL.md" \
+  && grep -qi 'does not execute' "$ROOT/skills/review-coverage/references/host-matrix.md"; then
+  ok skill_md_grok_goal_user_typed
+else
+  bad skill_md_grok_goal_user_typed
+fi
 if grep -q 'Post-Implementation Residual Loop' "$ROOT/skills/review-coverage/SKILL.md" \
   && grep -qiE 'rewrite|migrate|legacy' "$ROOT/skills/review-coverage/SKILL.md"; then
   ok skill_md_migrate_legacy_h2

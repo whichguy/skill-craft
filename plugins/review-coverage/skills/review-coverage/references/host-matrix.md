@@ -29,7 +29,7 @@ includes current `main` product; skill-dir install tracks the skill-craft checko
 | Phase | What | Supported where |
 |-------|------|-----------------|
 | **A — Plan authoring** | Skill invoke: agent edits plan to add filled `## Review Coverage` | **All hosts** with skill-dir or Claude plugin install |
-| **B — Post-ship residual** | Skill invoke: agent composes `/goal` + one **`/review-converge`** per turn; residual×2 | **Claude** when review-converge is available. **Grok / Codex / Hermes**: if `/review-converge` (or equivalent) is installed; else residual manually from the composed `/goal` text |
+| **B — Post-ship residual** | Skill invoke: in-session **review-converge** loop (residual×2); optional operator `/goal` paste | **Grok:** `/goal` is user-typed only (pager slash; no `update_goal` while workflows are on). Agent must invoke **review-coverage** / **review-converge** in-session — a `/goal` line in a plan does not execute. **Claude / others:** same in-session loop unless `update_goal` exists. |
 
 ### Mid-session invoke (primary)
 
@@ -52,7 +52,9 @@ Before residual×2, the skill agent confirms (no script required):
 
 1. Plan has filled `## Review Coverage` (or run Phase A).
 2. Residual driver available: skill **review-converge** (or host equivalent).
-3. Host can run `/goal` with max-turns / max-budget (or manual multi-turn).
+3. Residual driver available as an **agent-invocable skill** (`review-converge`)
+   or in-session loop. Do not require the agent to type `/goal` on Grok.
+   Optional: operator pastes `/goal` for host max-turns/budget.
 
 Optional CLI: `scripts/review-coverage preflight --plan <plan>` / `goal-body --slash`.
 

@@ -56,7 +56,8 @@ unit of work, then re-evaluate.
 
 **Success (all required):** Status `complete`; two **consecutive** Log rounds Outcome
 `clean` (only trivial findings remaining; non-clean resets streak); second clean runs Test command PASS;
-latest Log **landed**.
+latest Log **landed**. Then stop iterating and apply remaining Deferred (minor/P2)
+in one pathspec wrap-up commit (skip if Deferred is empty).
 
 **Unsuccessful halt:** land `stopped (same-error ×3 | no-progress ×3 | max-cycles |
 plan hash drift | no target paths | no test command | host quota | operator abort)`.
@@ -82,9 +83,13 @@ Printer trailer (CLI fills slots only):
 Plan: {plan}. Base ref: {base_ref}. Target paths: {target_paths}. Test command: {test_command}. Driver: one /review-converge per turn. Max review-converge rounds: {max_n} — on exceed, land stopped (max-cycles) in REVIEW_CONVERGE.md and EXIT HALT. Also EXIT HALT on stopped (same-error ×3) or stopped (no-progress ×3) when landed. Ledger: REVIEW_CONVERGE.md — a cycle counts clean only if Log Outcome is clean (only trivial findings remaining this cycle; fixing material resets the streak); second clean must run Test command PASS; SUCCESS only when Status complete AND Log landed. Never unlimited outer loop. Pathspec commits only under Target paths; never git add -A{repo_clause}.
 ```
 
-**Primary:** invoke the **review-coverage skill** (`/review-coverage` on this plan).
-The agent composes `/goal` + the static sentence + the filled printer trailer,
-opens that host goal, then runs **one** `/review-converge` per outer turn.
+**Primary (Grok-executable):** invoke the **review-coverage skill**
+(`/review-coverage` on this plan) or **review-converge**. Loop rounds **in this
+session** until residual×2 or halt. On Grok, `/goal` is a **user-typed** pager
+slash — putting `/goal …` in a plan does not execute it.
+
+**Optional operator paste:** `scripts/review-coverage goal-body --plan <ABS_PLAN> --slash`
+(user types that line). The agent must not type `/goal` and wait.
 
 Optional human/CI helper only: `scripts/review-coverage goal-body --plan <ABS_PLAN> --slash`
 (or `run-card --preflight`). Do not treat the CLI as the skill entrypoint.

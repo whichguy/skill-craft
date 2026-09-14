@@ -10,15 +10,17 @@ or prove a human-facing, remote, or deployed outcome. The host performs those
 judgments and records evidence; ShipLoop persists the result, checks transition
 preconditions, and refuses unsafe or stale transitions.
 
-**Until-loop integration:** ShipLoop incorporates until-loop's continuation
-policy and one shared **review-and-improve cycle** prompt in its own runtime:
-review changes, consider improvements, plan using the last seven full Git
-commit messages, implement improvements, and repeat until two consecutive
-completed reviews are trivial-only. Apply the trivial fixes too; checks and a
-verbose learning commit are required before a cycle counts. Research, behavior, specification,
-step planning, product Improve, and substantive objectives all reach that shared
-decision function. It does **not** invoke the separately installed `/until-loop`
-skill or start its CLI. See [exact integration and loop coverage](#how-shiploop-leverages-until-loop)
+**Until-loop integration:** ShipLoop retains until-loop's continuation policy
+and shared **review-and-improve cycle** prompt for its non-product convergence
+owners: review changes, consider improvements, plan using the selected full Git
+history, implement improvements, and repeat until two consecutive completed
+reviews are trivial-only. Apply the trivial fixes too; checks and a verbose
+learning commit are required before a cycle counts. Research, behavior,
+specification, step planning, product Improve, and substantive objectives all
+reach ShipLoop's shared receipt-derived decision function. New-run product
+Improve stages additionally read their bound declarative policy snapshot; they
+do **not** invoke a separately installed Improve or `/until-loop` skill or start
+either CLI. See [exact integration and loop coverage](#how-shiploop-leverages-until-loop)
 for the implementation, provenance, and limits of that claim.
 
 ## Table of contents
@@ -30,7 +32,9 @@ for the implementation, provenance, and limits of that claim.
   - [Declared branches are not discretionary skips](#declared-branches-are-not-discretionary-skips)
   - [Enforcement boundaries](#enforcement-boundaries)
 - [How ShipLoop leverages until-loop](#how-shiploop-leverages-until-loop)
+  - [Product Improve policy pilot](#product-improve-policy-pilot)
   - [The review-and-improve cycle](#the-review-and-improve-cycle)
+  - [Existing embedded policy, product Improve pilot, and standalone skill](#existing-embedded-policy-product-improve-pilot-and-standalone-skill)
   - [Coverage: what repeats and what does not](#coverage-what-repeats-and-what-does-not)
   - [What counts as a completed improvement pass](#what-counts-as-a-completed-improvement-pass)
 - [Start or resume a run](#start-or-resume-a-run)
@@ -104,7 +108,7 @@ transition.
 | Status | Meaning |
 |---|---|
 | **Current control** | The script and authoritative Markdown currently store state, issue one action ID, validate declared result/evidence shape, gate research/behavior/specification candidates, and converge each initial or Improve execution plan with durable finding ledgers, fresh planning checks, and audit commits. |
-| **New-run control** | New runs bind a seven-message history policy, compact source-linked system context, an early-observation callback, an outer-work obligation journal, and a final handoff objective. Compatibility is marker-specific: see the recovery matrix; an absent marker is not a universal bypass. Bounded artifact diagnostics expose the available evidence without upgrading an old run. |
+| **New-run control** | New runs bind a seven-message history policy, compact source-linked system context, an early-observation callback, an outer-work obligation journal, a final handoff objective, and the content-pinned product Improve policy snapshot. Compatibility is marker-specific: see the recovery matrix; an absent marker is not a universal bypass. Bounded artifact diagnostics expose the available evidence without upgrading an old run. |
 | **Required host duty** | The host must make scoped edits, select meaningful tests, interpret evidence, review semantics, preserve unrelated work, and verify external effects. The script cannot mechanically prove these judgments. |
 | **Proposed safeguard** | A documented improvement idea that is not a current stage, result field, or enforced gate. It must not be described as implemented. |
 | **Known limitation** | A current state-machine or recovery gap. Follow the safe operating discipline and report the limitation; do not claim that the harness already closes it. |
@@ -264,6 +268,62 @@ do not become advisory with it.
 
 ## How ShipLoop leverages until-loop
 
+### Product Improve policy pilot
+
+```mermaid
+flowchart LR
+    U[Upstream Improve review policy] --> B[Bundled copy and reviewed pin]
+    B --> S[New-run Markdown snapshot]
+    S --> P[One product Improve phase packet]
+    P --> V[ShipLoop validates result and policy bytes]
+    V --> M[Authoritative Markdown]
+```
+
+This approved pilot shares only a declarative review policy. Its maintained
+upstream source is
+`until-loop-v2/examples/improve/references/review-policy.md`. ShipLoop packages
+a byte-identical copy at `references/improve-review-policy.md` and records its
+reviewed identity and SHA-256 in `references/improve-policy-pin.json` as
+`{version: 1, policy_id: "improve/review-policy/v1", sha256: "..."}`. The
+source is packaging input, not a runtime dependency: ShipLoop neither downloads
+it nor looks for an Improve installation on the host.
+
+At `init`, a new ShipLoop run validates the bundled pin/body pair, writes its
+body to `<run>/improve-policy.md`, and stores the same binding under
+`state.md`'s `improve_policy`. The product Improve packets for exactly
+`review`, `improve-plan`, `improve-apply`, `iteration-document`, `verify`,
+`carry-forward`, `commit`, `final-verify`, `post-inner`, and `merge` print the
+saved policy path and the ShipLoop-managed one-stage/callback boundary. They do
+not add a result schema, a JSON sidecar, a standalone Improve session, or an
+Until runtime.
+
+ShipLoop remains the owner of strict material classification, required
+lint/tests, nested-plan convergence, iteration documentation, carry-forward,
+fresh final verification, post-inner, and merge gates. It still requires its
+distinct audit/primary learning commit on every iteration, including a
+no-change audit iteration. The declarative policy cannot relax those rules or
+turn a phase result into a whole-cycle completion.
+
+ShipLoop validates a present binding's shape at state load; a malformed binding
+is an ordinary fail-closed state error. With a valid binding, it rereads saved
+bytes only when an active product Improve packet or callback needs the policy.
+A missing or digest-mismatched snapshot blocks that active product work until
+the original bytes are restored; replacing it with an installed or newly
+packaged policy is not recovery. Status, bounded context, pause/halt, and
+terminal reporting remain available for diagnosis when the snapshot alone is
+missing or damaged, and unrelated stages do not read an unused snapshot. A
+package upgrade therefore never rebinds an active run. Existing runs without
+`improve_policy` keep their established `shiploop_until` policy. Research,
+specification, generic-objective, and nested execution-plan loops also remain
+on that existing shared helper; this pilot does not change their result schemas
+or readiness decisions.
+
+This is the same integrity boundary as other run Markdown: a separately changed
+snapshot is detected, but an actor able to rewrite both `state.md` and the
+snapshot can defeat the check. It is not a tamperproof store or a claim of
+multi-host Improve/Until reliability. The self-contained ShipLoop package still
+works without any host Improve installation.
+
 ### The review-and-improve cycle
 
 ```mermaid
@@ -300,12 +360,15 @@ The single unit is a **review-and-improve cycle**:
    before counting the second cycle; then satisfy fresh final verification and
    the owning loop's remaining gates. Do not exit immediately after its review.
 
-This wording is executable prompt content, not just a README convention:
-[`shiploop_until.review_improve_cycle`](scripts/shiploop_until.py) supplies the
-common contract once in each convergence packet, alongside the current stage's
-exact task and callback. The owning loop validates Markdown/Git evidence and
-calls the same module's `decide` function to compute readiness. It does not
-delegate the counter to chat memory or create another state store.
+This wording is executable prompt content, not just a README convention.
+[`shiploop_until.review_improve_cycle`](scripts/shiploop_until.py) continues to
+supply the common contract for planning, nested execution-plan, research,
+specification, and generic-objective convergence packets. The product Improve
+pilot instead prints its bound `improve-policy.md` path and ShipLoop's
+stage-specific owner overrides. In both cases, the owning loop validates
+Markdown/Git evidence and uses the existing `decide` function to compute
+readiness; declarative policy text never delegates the counter to chat memory
+or creates another state store.
 
 The repeated unit is an **owning loop's completed cycle**, not every tool call.
 A `done` callback completes one action inside it; the host must perform only
@@ -322,10 +385,11 @@ so its streak is zero. Two later fully applied, checked and committed
 trivial-only cycles can reach readiness. A failing test in the second cycle
 keeps it unfinished even though its review found only polish.
 
-### Embedded policy versus the standalone skill
+### Existing embedded policy, product Improve pilot, and standalone skill
 
-The executable [continuation policy](scripts/shiploop_until.py) declares an
-adaptation of standalone until-loop **0.1.3**, source commit
+The executable [continuation policy](scripts/shiploop_until.py) continues to
+serve the non-product convergence owners. It declares an adaptation of
+standalone until-loop **0.1.3**, source commit
 `7fb7057056552438fa39ccf11b70fa7c63f80077`. A selective refresh reviewed
 standalone **0.2.1** at `7d24bbc` (including integration safeguards in
 `4430f89`) on 2026-09-13. These are different version lines: the embedded
@@ -363,21 +427,22 @@ whole run. Otherwise disclose self-check. Repeated self-assessment is not proof
 of exhaustive correctness. A bounded cold-context pilot is useful evidence for
 its particular case, not a cross-host reliability benchmark.
 
-| Concern | ShipLoop's embedded use | Separate standalone until-loop |
+| Concern | ShipLoop's embedded and product-pilot use | Separate standalone until-loop |
 |---|---|---|
-| Invocation | The host starts ShipLoop once; its loop owners call the internal Python policy. | Its own skill/CLI starts and manages a separate run. ShipLoop does not call it. |
-| Durable authority | ShipLoop's Markdown candidates, ledgers, check receipts, Git bindings, and state. The helper performs no I/O. | Its runtime has its own `.until-loop/` state, including `state.json`; it is not a ShipLoop sidecar. |
-| Repeated work | Typed, action-bound SDLC objectives with specific review rubrics and evidence gates. | A general execute/continue/exit contract chosen for the requested task. |
-| Continue decision | Material changes reset the streak; two consecutive verified, audit-committed trivial passes make a loop ready only with its finding/eligibility gates satisfied. | The installed skill supplies general iteration guidance and its own completion/verifier protocol; that protocol is not substituted here. |
+| Invocation | The host starts ShipLoop once. Non-product owners call the internal Python policy; the listed product Improve stages read the run-bound declarative policy. | Its own skill/CLI starts and manages a separate run. ShipLoop does not call it. |
+| Durable authority | ShipLoop's Markdown candidates, ledgers, check receipts, Git bindings, state, and (for new runs) `improve-policy.md`. The helper/policy does not own I/O or a second cursor. | Its runtime has its own `.until-loop/` state, including `state.json`; it is not a ShipLoop sidecar. |
+| Repeated work | Typed, action-bound SDLC objectives with specific review rubrics and evidence gates. The product policy is guidance for one printed phase, not permission to run a full cycle. | A general execute/continue/exit contract chosen for the requested task. |
+| Continue decision | Material changes reset the streak; two consecutive verified, audit-committed trivial passes make a loop ready only with its finding/eligibility gates satisfied. ShipLoop's existing receipt-derived decision remains authoritative. | The installed skill supplies general iteration guidance and its own completion/verifier protocol; that protocol is not substituted here. |
 | Success | The owner still requires fresh, bound final evidence and the activity's remaining gates. | Completion belongs to its own run and does not certify any ShipLoop action. |
 
 Do not launch a second standalone until-loop session inside a ShipLoop run to
 "activate" this integration. It is already on the code path. A second runtime
 would introduce independent counters, completion semantics, and state authority.
-Conversely, editing the installed until-loop skill does not update ShipLoop:
-any later upstream alignment requires an explicit code/test review of the
-embedded adaptation. This guide documents the present integration, not a new
-dependency installation or runtime migration.
+Conversely, editing an installed Improve or until-loop skill does not update
+ShipLoop. A future declarative-policy alignment requires an explicit upstream
+review, pin update, and package sync; alignment of the embedded helper requires
+its own code/test review. This guide documents the present integration, not a
+new dependency installation or runtime migration.
 
 ### Coverage: what repeats and what does not
 
@@ -386,7 +451,7 @@ dependency installation or runtime migration.
 | Research, behavior, specification | Specialized planning loops; `planning/<kind>.md`, current candidates, pass receipts and certificates. | `shiploop_planning.until_decision` calls the shared helper. Each loop validates its own rubric, findings, planning checks, history, and fresh final certificate. |
 | Initial plan for a ready step | Execution-plan loop, route `initial`; `step-planning/<loop>/`. | `step_plan_until` calls the helper; finalization releases only the exact checked microplan to `implement`. |
 | Plan for an Improve application | A separate execution-plan loop, route `improve`; its own `step-planning/<loop>/`. | The same policy and fresh final gate release only the checked plan to `improve-apply`. Its audit passes do not advance the parent's product streak. |
-| Product changes and their tests/docs | Primary Improve loop in `steps/<id>.md`. | `improve_until_decision` calls the helper after projecting verified, audited passes and material repair boundaries. `improve_two_clean` is a wrapper, not a different algorithm. Fresh `final-verify`, post-inner review, and merge guards still apply. |
+| Product changes and their tests/docs | Primary Improve loop in `steps/<id>.md`, with the new-run `improve-policy.md` snapshot. | Only its listed product stages read the bound declarative policy. `improve_until_decision` still calls the helper after projecting verified, audited passes and material repair boundaries; `improve_two_clean` is a wrapper, not a different algorithm. Fresh `final-verify`, post-inner review, and merge guards still apply. |
 | Approach, survey, sequence, preparation readiness, post-inner, coverage, quality | Generic substantive-objective loops; `objectives/<loop>.md` and its directory. | `shiploop_objectives.decide` calls the same helper; the exact candidate, context, ledger, history and final checks must still validate. These routes require their supported objective protocol. |
 | Final handoff | Generic `handoff` objective for runs with the delivery-objective marker. | The same policy plus bound outer evidence and journal obligations; only then can the terminal report be produced. Unmarked legacy handoff does not retroactively gain this proof. |
 
@@ -416,15 +481,17 @@ recursively looping the bookkeeping or repeating side effects.
 
 ### What counts as a completed improvement pass
 
-The pure policy accepts completed pass records with a unique pass ID, a unique
-full audit commit ID, `verified: true`, and outcome `material` or `trivial`.
-It checks record shape, uniqueness and the trailing streak; the **owning loop**
-establishes the actual check, candidate, finding, Git, epoch and context
-bindings. Passing `verified: true` in a host-authored note cannot bypass those gates.
-Ledger-backed loops supply their open findings to the helper. Product Improve
-instead supplies eligible primary-cycle projections and an empty findings list
-after its own review/apply/carry-forward gates; the helper does not inspect
-product findings independently.
+ShipLoop's existing pure receipt decision accepts completed pass records with a
+unique pass ID, a unique full audit commit ID, `verified: true`, and outcome
+`material` or `trivial`. It checks record shape, uniqueness and the trailing
+streak; the **owning loop** establishes the actual check, candidate, finding,
+Git, epoch and context bindings. Passing `verified: true` in a host-authored
+note cannot bypass those gates. Ledger-backed loops supply their open findings
+to the helper. Product Improve instead supplies eligible primary-cycle
+projections and an empty findings list after its own review/apply/carry-forward
+gates; the helper does not inspect product findings independently. Its bound
+declarative policy guides the current stage but does not add a receipt type or
+replace this decision.
 
 1. Rehydrate the current objective, relevant system/environment context,
    findings, and complete recent Git bodies. New runs use seven; unmarked
@@ -840,6 +907,60 @@ The human `plan.md` and imported `backchain/plan.md` must agree. Include Review
 Coverage and map expected cases, checks, documentation, preparation, deployment,
 and readiness to concrete outputs.
 
+#### Native bounded Backchain adaptation
+
+```mermaid
+flowchart LR
+    R["Original request and frozen spec/lifecycle"] --> O["Goal coverage and planned outcome checks"]
+    O --> F["Forward postcondition draft"]
+    F --> A["Five-lens dependency audit"]
+    A --> P["Existing DAG plus plan/body"]
+    P --> V["Existing sequence validation"]
+    V --> I["Inner review and pending-only replan"]
+```
+
+ShipLoop selectively adapts Backchain source prompts reviewed at commit
+`8278e27` through [Backchain planning in ShipLoop](references/backchain-planning.md#owner-binding).
+It is native guidance, not an external runtime, schema, model, benchmark, or
+evaluator dependency. It does not import raw Backchain JSON, automatically sync
+an external skill, or claim to be a byte-identical copy of one.
+
+| Inspected Backchain concept | Existing ShipLoop carrier |
+|---|---|
+| Goal needs and verification sinks | The original request plus frozen `spec.md`/`lifecycle.md` acceptance/case requirements; as sequence drafts steps, existing `contract` criteria and stable case/check mapping. These are conceptual mappings, not new payload fields. |
+| Work tactics | The existing step `prompt`, which carries the bounded authorized work. |
+| Local microplan | Existing `plan`/`body` Markdown and the selected `step-plan` context. |
+
+An independently checkable outcome needs its own planned observation, but no
+rule requires one DAG step per assertion: related assertions may share a
+coherent producer, while divergent prerequisites or deliverables remain
+separate. Keep subjective preferences visible as scoped semantic-review
+criteria; do not hide them in `unresolved` or misrepresent them as objective
+machine-verified facts.
+
+At `sequence`, read the durable request, accepted specification/lifecycle, and
+selected current project and environment evidence before the forward draft and
+[dependency audit](references/backchain-planning.md#dependency-audit). Nested
+P4/P5 `step-plan` and `improve-plan` readers use their selected `step-context`,
+`step-plan`, `iteration`, worktree, and supplier/consumer evidence. Existing
+post-inner and pending-only replan readers reconcile later facts with affected
+pending consumers; they do not silently rewrite accepted receipts or completed
+work. The host's semantic review judges whether original outcomes and subjective
+criteria are adequately covered. Machine validation keeps its current job:
+checking existing shapes, identities, links, ordering, and receipts—not proving
+semantic truth or exhaustive coverage. This guidance adds no state, stage,
+callback, result schema, or scheduler.
+
+From the source checkout, run
+`python3 test/shiploop-backchain-guidance.test.py` for deterministic packet
+routing and schema-boundary checks. Separately, give a fresh read-only reviewer
+the inputs (not the expected distinctions) from
+`test/fixtures/shiploop/backchain-review-cases.md` to check interpretation.
+These are checkout-only paths, intentionally shown as inline code rather than
+packaged relative links. The deterministic test does not grade model answers;
+the comprehension trials are neither a statistical benchmark nor proof that
+an execution or product outcome works.
+
 `prepare` appears only for authorized `outer-before` preparation. Other
 preparation belongs in explicit dependency-ordered DAG steps, or it is `none`.
 Preflight's readiness assessment is not permission to make unapproved
@@ -978,11 +1099,14 @@ input—it does not change accepted behavior.
 ### P5 — Improve repeatedly, learn, and merge
 
 One Improve iteration is the [review-and-improve cycle](#the-review-and-improve-cycle),
-from `review` through `carry-forward` and `commit`. Each
-iteration has its own recorded history review, findings, a separately converged
-post-review plan, application, fresh checks, current knowledge checkpoint, and
-primary learning commit. Nested plan passes are evidence for the next edit; they
-do not count as Improve iterations.
+from `review` through `carry-forward` and `commit`. This is the sole pilot
+surface: each listed P5 stage through `merge` reads the new run's saved
+`improve-policy.md` path, performs one stage, and returns through its exact
+ShipLoop callback. Each iteration has its own recorded history review, findings,
+a separately converged post-review plan, application, fresh checks, current
+knowledge checkpoint, and primary learning commit. Nested plan passes are
+evidence for the next edit; they do not count as Improve iterations or read the
+product policy snapshot.
 
 ```mermaid
 flowchart TD
@@ -1772,9 +1896,9 @@ This map is for navigation; the current packet selects the applicable subset:
 |---|---|
 | P1 — Intake and approach | [Surface selection](references/testing-and-documentation.md#surface-selection) for existing checks and environments; [discovery and research](references/behavioral-requirements.md#discovery-and-research) for intended behavior and unknowns. |
 | P2 — Survey, research, behavior | [Survey](references/survey.md) for tools/writers and interaction contracts; [research](references/research-loop.md) for sources, contradictions and freshness; [behavior model](references/behavioral-requirements.md#behavior-model) for flows, states and edge conditions. |
-| P3 — Specification, sequence, preparation | [Planning convergence](references/planning-loops.md) for the current spec/research/behavior action; [dependency planning](references/activities/plan.md) for ordering and prerequisites; [test cases](references/testing-and-documentation.md#test-cases) and [surface selection](references/testing-and-documentation.md#surface-selection) for acceptance and preparation. |
+| P3 — Specification, sequence, preparation | [Planning convergence](references/planning-loops.md) for the current spec/research/behavior action; [dependency planning](references/activities/plan.md) for ordering and prerequisites; [native Backchain planning](references/backchain-planning.md#outcomes) for outcome coverage and the five-lens audit; [test cases](references/testing-and-documentation.md#test-cases) and [surface selection](references/testing-and-documentation.md#surface-selection) for acceptance and preparation. |
 | P4 — Initial or revised step plan | [Execution planning](references/execution-planning.md) for current code/environment evidence, local microplans, dependencies and pre-code test criteria. |
-| P5 — Implementation and improvement | [Implementation constitution](references/testing-and-documentation.md#implementation-constitution), [iteration](references/testing-and-documentation.md#iteration), and [behavior traceability](references/behavioral-requirements.md#traceability-and-review) for scoped code, tests, documentation and expected outcomes; [carry-forward](references/carry-forward.md) for discoveries; [merge and recovery](references/activities/implement.md#merge-and-recovery) for the final local merge boundary. |
+| P5 — Implementation and improvement | The packet's bound [`improve-policy.md`](references/improve-review-policy.md) path for the declarative product-review contract; [Implementation constitution](references/testing-and-documentation.md#implementation-constitution), [iteration](references/testing-and-documentation.md#iteration), and [behavior traceability](references/behavioral-requirements.md#traceability-and-review) for scoped code, tests, documentation and expected outcomes; [carry-forward](references/carry-forward.md) for discoveries; [merge and recovery](references/activities/implement.md#merge-and-recovery) for the final local merge boundary. |
 | P6 — Outer closure | [Coverage](references/activities/residual.md#coverage) for bound ledger evidence; [deployment and handoff](references/testing-and-documentation.md#deployment-and-handoff) for whole-product checks and delivery; [outer-work](references/outer-work.md) for due obligations. |
 | P7 — Terminal report | [Report content and boundaries](references/report.md#content-and-boundaries) for achievement facts, evidence limits and unfinished outcomes; this is optional explanation, not another completion action. |
 | Any generic objective loop | [Objective loops](references/objective-loops.md) for the current review/plan/apply/check/commit/finalize action within its owning phase. |
@@ -1816,6 +1940,7 @@ are proposals until accepted, and a historical receipt is not current state.
 | Artifact family | Who writes it | Who reads it and when |
 |---|---|---|
 | `state.md`, `run.md`, `prompt.md` | Initialization and accepted script transactions. | Run identity/recovery and the current packet; `prompt` supplies original intent after a cold start. |
+| `improve-policy.md` plus `state.md`'s `improve_policy` binding | New-run initialization copies the checked package policy in the same Markdown transaction. | Active product Improve packet/callback validation rereads the saved bytes and prints the path. It is not read by unrelated stages; status/context/recovery stay diagnostic if it is missing. |
 | `environment.md`, paired research files, `behavior.md`, `spec.md`, `lifecycle.md`, `plan.md`, `backchain/plan.md` | Their owning accepted survey/planning results and certified promotions; permitted replans use the script. | Downstream planning and execution context, DAG scheduler, identity and certificate validators. Current knowledge does not silently rewrite these baselines. |
 | `planning/`, `step-planning/`, `objectives/` | Each loop's candidate, finding, pass and finalization transactions. | Current loop packets, shared-policy callers, fresh-final gates and bounded diagnostics. Old passes are retained, not loaded wholesale. |
 | `steps/<id>.md`, `results/<action>.md`, `history.md` | Accepted execution actions and command receipts. | Current step context, replay/merge/outer gates, diagnostics and final reporting. A receipt for a different action cannot satisfy the current one. |
@@ -1963,6 +2088,7 @@ contracts. **Missing-marker behavior is specific to each feature:**
 | `planning_protocol_version: 2` | Mandatory research, behavior and specification convergence. | Pre-v2/missing blocks workflow mutation until the guarded `planning-upgrade`; already executed work cannot be retroactively upgraded. |
 | `step_planning_protocol_version: 1` | Nested plan before initial coding and every Improve application. | Safe-boundary adoption or repair of later execution, never an invented certificate for past edits. |
 | `iteration_documentation_protocol_version: 1` | Required `iteration-document` after every Improve application, before verification and commit. | Absent retains original Apply-to-Verify callbacks; no retroactive documentation receipt. Unsupported explicit values fail closed. |
+| `improve_policy: {version: 1, policy_id: "improve/review-policy/v1", sha256: "…"}` plus `improve-policy.md` | New runs bind and snapshot the reviewed declarative product Improve policy. Active product Improve work rereads its saved bytes; package upgrades do not rebind it. | Absent retains the established ShipLoop policy. A malformed present binding is a fail-closed state error; a missing or changed snapshot blocks only active product Improve work while diagnostic/recovery commands remain available. |
 | `history_policy: {version: 2, required_limit: 7}` | Seven complete current Git commit bodies, bound to each required review. | Absent retains the legacy ten-body policy; no silent reduction of prior obligations. |
 | `system_context_protocol_version: 1` | Source-linked research system context and task-relevant projections. | Unmarked runs retain their prior research contract; no assumed source-linked proof. |
 | `observation_protocol_version: 1` | Script-issued unverified early-observation callbacks. | No implicit new callback authority in an unmarked run. |
@@ -2029,6 +2155,7 @@ be reconstructed. These boundaries remain explicit:
 | Gap | Affected boundary | Operator consequence |
 |---|---|---|
 | Legacy state never retained a usable prompt. | Cold-start recovery after migration | Migration records unrecoverable intent and pauses. Inspect diagnostics and obtain direction or start a new scoped run; never fabricate the prompt. |
+| Product Improve policy snapshot has only local ShipLoop package/run coverage. | Cross-host Improve/Until reliability | The bundled package remains independent of a host Improve install, but this pilot does not establish multi-host runtime reliability. |
 
 The final-verify convergence binding now rejects post-convergence product edits,
 and outer closure now requires a clean checkout descending from every integrated
@@ -2193,6 +2320,7 @@ large mandatory prompt payload.
 | Question | Decisive implementation |
 |---|---|
 | What action runs next, and what must a completion prove? | [Protocol routing and gates](scripts/shiploop_protocol.py), [packet construction](scripts/shiploop_packets.py), and [CLI/product Improve projection](scripts/shiploop). |
+| How is the product Improve policy packaged and bound? | [Declarative bundled policy](references/improve-review-policy.md), [reviewed package pin](references/improve-policy-pin.json), [snapshot validator](scripts/shiploop_improve_policy.py), and the maintainer-checkout command `scripts/sync-shiploop-improve-policy.py`. |
 | Where is the until-loop decision actually reused? | [Pure `decide` policy](scripts/shiploop_until.py), [specialized planning owner](scripts/shiploop_planning.py), [step-plan records and certificates](scripts/shiploop_step_planning.py), and [generic objective owner](scripts/shiploop_objectives.py). |
 | What persists across a cold context? | [Markdown transactions](scripts/shiploop_store.py), [current knowledge](scripts/shiploop_knowledge.py), and [bounded artifact readers](scripts/shiploop_artifacts.py). |
 | How do environmental facts reach implementation? | [Platform discovery](scripts/shiploop_discovery.py), [research evidence](scripts/shiploop_research.py), [system-context projection](scripts/shiploop_system_context.py), and [action revalidation](scripts/shiploop_revalidation.py). |
@@ -2217,6 +2345,19 @@ python3 test/shiploop-step-planning.test.py
 python3 test/shiploop-objectives.test.py
 python3 test/shiploop-action-walk.test.py
 ```
+
+The product Improve bundle has a separate package-integrity check. Its default
+mode only compares the explicit upstream source with the reviewed pin and the
+bundled copy; it performs no download, host-skill lookup, or pin update:
+
+```sh
+python3 scripts/sync-shiploop-improve-policy.py --source /absolute/path/to/improve
+```
+
+After separately reviewing a deliberate source/pin change, use the same command
+with `--write` to materialize bytes that already match that pin. `--write` never
+selects a policy version or recalculates the pin. It packages future new runs;
+it does not modify active run snapshots.
 
 A green synthetic action walk establishes the exercised local state-machine
 behavior—not production acceptance, research quality, or an actual remote
@@ -2244,6 +2385,9 @@ change persistent configuration, or publish a product.
   writer, routing, UI, and client–service constraints.
 - [Planning activity](references/activities/plan.md): one validated DAG,
   prerequisite audit, lifecycle placement, and Review Coverage.
+- [Backchain planning in ShipLoop](references/backchain-planning.md): selective
+  native outcome/dependency guidance mapped to current ShipLoop Markdown, not a
+  runtime dependency or new result schema.
 - [Planning convergence loops](references/planning-loops.md): mandatory
   research/behavior/spec candidate loops, rubric/finding evidence, planning
   checks, audit-only commits, finalization, and upgrade behavior.
@@ -2251,6 +2395,9 @@ change persistent configuration, or publish a product.
   nested planning gate before initial source edits and Improve applications,
   its ten-dimensional review, cold-context packets, audit passes, and
   incorporated until-loop policy.
+- [Product Improve review policy](references/improve-review-policy.md):
+  declarative shared review guidance copied from its maintained upstream source;
+  ShipLoop applies it only through the new-run product policy binding.
 - [Universal substantive-objective loop](references/objective-loops.md): the
   policy-owned history, two-trivial-pass refinement applied to substantive
   outer stages, including versioned handoff.

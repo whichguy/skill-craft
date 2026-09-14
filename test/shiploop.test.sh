@@ -23,6 +23,7 @@ for suite in \
   test/shiploop-system-tests-protocol.test.py \
   test/shiploop-system-tests-report.test.py \
   test/shiploop-history-policy.test.py \
+  test/shiploop-improve-policy.test.py \
   test/shiploop-outer-work.test.py \
   test/shiploop-outer-work-protocol.test.py \
   test/shiploop-observations.test.py \
@@ -45,6 +46,7 @@ for suite in \
   test/shiploop-orientation-context.test.py \
   test/shiploop-orientation-integration.test.py \
   test/shiploop-reference-routing.test.py \
+  test/shiploop-backchain-guidance.test.py \
   test/shiploop-teachback.test.py \
   test/shiploop-protocol.test.py \
   test/shiploop-history-pages.test.py \

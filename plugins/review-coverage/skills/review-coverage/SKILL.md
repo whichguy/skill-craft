@@ -74,20 +74,24 @@ Do **not** require the user to run shell scripts to use this skill.
 quality review changes and consider improvements, review the last 10 git commit messages for learnings, anchoring each spec item in code changes and verify use cases/corner cases, git commit between each iteration with a verbose message with key learnings, complete when only trivial findings remaining for 2 consecutive cycles
 ```
 
-### Host `/goal` line the agent opens
+### Host `/goal` line (operator paste — not agent-executable on Grok)
 
-**Prefer CLI when available** (avoids compose drift):
+On Grok, `/goal` is a **user-typed pager slash**. The agent must not type it
+and wait. Prefer CLI when available (avoids compose drift) **for the optional
+operator paste**:
 
 ```sh
 scripts/review-coverage goal-body --plan <ABS_PLAN> --slash
 ```
 
-Paste that output byte-for-byte. Fallback only if the CLI is missing: STATIC + the
+Show that output to the operator labeled **user-typed slash — not
+agent-executable on Grok**. Fallback only if the CLI is missing: STATIC + the
 same trailer fields/order as `references/review_coverage.md` (Plan absolute, Base
 ref, Target paths, Test command, Driver one round, Max rounds + halt rules,
 Ledger clean = only trivial findings remaining this cycle + landed SUCCESS,
 pathspec). Include `Repo:` when set. Default max rounds **N** = 12. The CLI
-fills those slots and prints; it does not author the sentence.
+fills those slots and prints; it does not author the sentence. The **executable**
+driver is in-session **review-converge** (or `update_goal` when that tool exists).
 
 ### Nesting
 
@@ -160,12 +164,23 @@ waiver. Report what you wrote; do not require the user to run a CLI.
      until paths are clean or dirt is confirmed in-scope.
    - Optional: `scripts/review-coverage preflight --plan ABS` (use `--strict`
      in CI). Prefer when the CLI is on PATH.
-3. **Emit host `/goal` line:** if `scripts/review-coverage` exists, run
-   `goal-body --plan <ABS> --slash` and paste the **exact** stdout. **Do not
-   paraphrase.** Only if CLI is missing, compose from Definitions (STATIC +
-   trailer rules matching CLI).
-4. Open that line in the host goal facility. Set host **max-turns** and
-   **max-budget** before unattended work. Prefer `/goal` over unlimited ralph.
+3. **Outer driver (host-aware — Grok cannot agent-execute `/goal`):**
+   - **Executable (Grok default, and any host without an agent-callable `/goal`
+     or `update_goal` tool):** invoke skill **review-converge** in **this
+     session**. One round, then if `REVIEW_CONVERGE.md` Status is still
+     `active`, immediately run another round. Do not stop for the user. Do
+     **not** type a `/goal` slash and wait — on Grok that is a user-typed
+     pager command and a `/goal` line in a plan does not execute.
+   - **If `update_goal` exists** (Grok with workflows off): set the objective
+     to the composed complete-when sentence + trailer; one review-converge
+     per outer turn.
+   - **Optional operator paste:** if `scripts/review-coverage` exists, run
+     `goal-body --plan <ABS> --slash` and show that line labeled
+     **user-typed slash — not agent-executable on Grok**. The operator may
+     paste it for host max-turns/budget. **Do not paraphrase** the static
+     sentence. CLI missing → compose from Definitions (STATIC + trailer).
+4. Set host **max-turns** / **max-budget** only when the operator actually
+   opened `/goal`. Prefer in-session review-converge over unlimited ralph.
 5. **Each outer turn:** run exactly **one** `/review-converge` for the plan’s
    target paths and test command (forward + reverse). Then re-read
    `REVIEW_CONVERGE.md` Status:
@@ -179,10 +194,16 @@ waiver. Report what you wrote; do not require the user to run a CLI.
    - **Reverse:** diff vs Base ref; regressions / violated anchors; fix or ledger.
    - Per static sentence: review last 10 commit messages for learnings; verbose
      pathspec commits with key learnings between iterations.
+7. **Wrap-up trivials (after residual×2 success only):** when Status is
+   `complete` and the latest Log **landed**, stop iterating. Apply remaining
+   Deferred (minor/P2) trivial improvements in **one** pathspec wrap-up commit
+   (no new `/review-converge` round). Then EXIT SUCCESS. Do not start another
+   residual cycle for those trivials. Skip the wrap-up when Deferred is empty.
 
 Success is only Status **`complete`** after two consecutive clean rounds, second
-clean Test PASS, Log landed. **`stopped (...)` is not success.** Never unlimited
-ralph. Never continue after complete or stopped (...).
+clean Test PASS, Log landed — then the wrap-up commit if trivials remain.
+**`stopped (...)` is not success.** Never unlimited ralph. Never continue after
+complete or stopped (...).
 
 ## Optional CLI helpers (not the primary invoke)
 

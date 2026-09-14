@@ -7,9 +7,10 @@ file. There is no writable JSON mirror.
 
 | File or directory | Authority / purpose |
 |---|---|
-| `state.md` | Current phase, stage, action, revision, frozen hashes, active step and nested execution-plan cursor, completed-action replay digests, the bound current-knowledge revision/hash/action provenance, and accepted research digest/certificate/as-of bindings. New-run protocol markers also select the immutable seven-message history policy, versioned system-context evidence, the converged handoff objective, the early-observation callback, and (when created) the bound outer-work journal. |
+| `state.md` | Current phase, stage, action, revision, frozen hashes, active step and nested execution-plan cursor, completed-action replay digests, the bound current-knowledge revision/hash/action provenance, and accepted research digest/certificate/as-of bindings. New-run protocol markers also select the immutable seven-message history policy, versioned system-context evidence, the converged handoff objective, the early-observation callback, the content-pinned `improve_policy` binding, and (when created) the bound outer-work journal. |
 | `run.md` | Persistent marker that identifies Markdown state authority and prevents accidental reinitialization/resurrection. |
 | `prompt.md` | Original user request captured at initialization. |
+| `improve-policy.md` | New-run snapshot of the byte-pinned declarative Improve review policy. Its `state.md.improve_policy` binding contains only `{version: 1, policy_id: "improve/review-policy/v1", sha256}`. Active product Improve packets/callbacks validate these saved bytes; unrelated stages and diagnostic recovery do not use the snapshot. |
 | `preflight.md`, `approach.md` | Baseline facts and the initial delivery approach. |
 | `environment.md` | Survey and research-facing environment brief. Its prose is human-readable; its single `## machine` JSON fence is the validated environment contract. |
 | `knowledge.md` | Script-owned current knowledge ledger: `version: 1`, `revision`, `entries`, `obligations`, `blockers`, `learnings`, and `last_checkpoint`. It is authoritative for recorded current observations, not authority to alter approved baselines. |
@@ -72,6 +73,7 @@ route a fresh host. It is a navigation aid, not a second state store.
 | Family | Script-owned writer | Reader and trigger | What the reader may establish |
 |---|---|---|---|
 | Current planning, research, ordinary knowledge, and step records | The matching accepted action transaction | Selected cold-context projection, identity/certificate checks, and the next matching action | Current bounded facts and whether the current artifact binding is still valid. |
+| `improve-policy.md` and `state.md.improve_policy` | New-run initialization validates the package pin/body pair and writes both in its Markdown transaction. | Active product Improve packet/callback digest validation; trigger: new run, resume into product Improve, and each product Improve stage. | The run still has the exact policy it started with. It does not select a stage, count a pass, or make an active run follow a package upgrade. |
 | `observations/<OBS-id>.md` and matching `knowledge-history/<OBS-id>.md` | The script-issued `context --section observation` / `done` callback | Current knowledge projection, callback replay guard, and bounded history diagnostic | A non-secret, host-reported fact was recorded as unverified before parent completion. It cannot establish a passed check, resolve a blocker, or grant authority. |
 | `outer-work.md` | The outer journal append/resolve callback | Any inner action pages it to deduplicate; `quality`, `publish`, and `handoff` page current entries and resolve rows due at their stage | A current obligation was recorded/read/resolved at the allowed stage. It never establishes remote permission or effect. |
 | `journal-requests/*` | The same outer journal callback | Exact callback replay and `audit` diagnostic | The request/result and its immutable replay outcome, never a completed parent action or external effect. |
@@ -131,6 +133,19 @@ contract edit.
   only an unfinished preflight/approach/survey/research cursor; otherwise it
   refuses the run.
   See [Earlier Markdown runs](planning-loops.md#earlier-markdown-runs).
+- New runs also bind `improve_policy` exactly as version 1,
+  `improve/review-policy/v1`, and the SHA-256 of `improve-policy.md`. The
+  snapshot is written from ShipLoop's checked bundled policy, not a host Improve
+  installation. Its bytes are reread only for active product Improve work;
+  status, bounded context, pause/halt, and terminal reporting remain available
+  when a validly bound snapshot is missing or damaged. A malformed binding is
+  a fail-closed state error. Existing runs with no binding keep the established
+  ShipLoop loop policy, and a package upgrade never rewrites their run state or
+  snapshot.
+- The Improve binding detects a changed snapshot against an unchanged state
+  record. It is not tamperproof against an actor able to rewrite both
+  `state.md` and `improve-policy.md`; that is the existing protected-workspace
+  boundary, not a new reliability claim.
 - A v3 run that lacks `step_planning_protocol_version: 1` does not receive a
   retroactive plan certificate. At safe `schedule`, `implement`, or
   `improve-plan` boundaries ShipLoop records the marker and routes the next

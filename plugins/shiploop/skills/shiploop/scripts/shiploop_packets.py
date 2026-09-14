@@ -14,6 +14,7 @@ import shlex
 from typing import Any, Mapping
 
 import shiploop_history_policy as history_policy
+import shiploop_improve_policy as improve_policy
 import shiploop_system_context as system_context
 from shiploop_privacy import redact_text, sensitive_text
 from shiploop_until import action_reasoning, review_improve_cycle
@@ -54,7 +55,7 @@ Outputs, symbols, dependencies and PARENT-* responses.
 Table order: forward; one row or justified no-change inspection/check plan. No per-row callbacks.
 
 ## Backward dependency check
-Outputs/checks need evidence or earlier producers, not ready claims/assumptions. Missing prerequisites block coding; no global DAG edits.
+Use CLAIM, NEEDS, SUPPLY, PULL, RESOLVE. Trace each required outcome to its own case/observation; inspect exact supplier state, carrier/layer and consumers. Outputs/checks need evidence or earlier producers, not ready claims/assumptions. Account for unresolved needs and check forward order. Missing prerequisites block coding; no global DAG edits.
 
 ## System-context uptake
 Cite listed role/interface/interaction/question/observation/source IDs. Unresolved contracts block; no invented probes, retry policy, environments or DAG.
@@ -1443,9 +1444,9 @@ def _stage_lifecycle(
     stage: Any, info: Mapping[str, Any], api: Mapping[str, Any], *, history_limit: int
 ) -> list[str]:
     """Small stage-local continuation contract; detailed work stays durable."""
-    def converge(objective: str, evidence: str) -> list[str]:
+    def converge(objective: str, evidence: str, *, cycle: str | None = None) -> list[str]:
         return [
-            review_improve_cycle(history_limit),
+            cycle if cycle is not None else review_improve_cycle(history_limit),
             "Objective: " + objective,
             "Until: this loop only—two verified/audited trivial passes, no open findings, and a fresh final gate. "
             "Continue while: open findings remain or required proof is missing. "
@@ -1489,10 +1490,11 @@ def _stage_lifecycle(
             "exact selected step plan before product edits.",
             "printed step/context/plan/checks and audit commit.",
         )
-    if stage in ("review", "improve-plan", "improve-apply", "iteration-document", "verify", "carry-forward", "commit", "final-verify", "post-inner", "merge"):
+    if stage in improve_policy.PRODUCT_STAGES:
         return converge(
             "selected step.",
             "printed checks, carry-forward, primary commit, and final proof.",
+            cycle=info.get("improve_policy_cycle"),
         )
     return [
         "Objective: complete only the printed current stage from durable Markdown evidence.",
@@ -1945,13 +1947,21 @@ def _outer_objective_replan_lines(
     ]
 
 
-def _guidance_lines(core: Any, stage: str, api: Mapping[str, Any]) -> list[str]:
+def _guidance_lines(
+    core: Any, stage: str, api: Mapping[str, Any], *, objective_kind: str | None = None
+) -> list[str]:
     ref_dir = Path(getattr(core, "REF_DIR", "references"))
+    backchain = _value(api, "BACKCHAIN_SECTIONS", {})
+    if stage.startswith("objective-") and isinstance(backchain, Mapping):
+        # A sequence/outer objective retains its subject's policy on cold review,
+        # but never its base-stage command or completion schema.
+        backchain = {stage: backchain.get(objective_kind, ())}
     mappings = (
         ("Testing/docs guidance", "testing-and-documentation.md", _value(api, "TEST_DOC_SECTIONS", {})),
         ("Behavior-model guidance", "behavioral-requirements.md", _value(api, "BEHAVIOR_SECTIONS", {})),
         ("Planning-loop guidance", "planning-loops.md", _value(api, "PLANNING_SECTIONS", {})),
         ("Step-planning guidance", "execution-planning.md", _value(api, "STEP_PLANNING_SECTIONS", {})),
+        ("Backchain guidance", "backchain-planning.md", backchain),
         ("Research-loop guidance", "research-loop.md", _value(api, "RESEARCH_SECTIONS", {})),
         ("Research result schema", "research-result-schema.md", {
             "research": ("result-shape", "replacement-rules"),
@@ -2470,6 +2480,23 @@ def render(core: Any, root: Path, state: Mapping[str, Any], api: Mapping[str, An
         lines.append("No completion callback is valid while paused.")
         return "\n".join(lines) + "\n"
 
+    policy_path = None
+    if stage in improve_policy.PRODUCT_STAGES:
+        try:
+            policy_path = improve_policy.bound_path(root, state)
+        except improve_policy.ImprovePolicyError as exc:
+            lines.extend(_safe_orientation_lines(
+                core, root, state, aid, state_note="blocked before policy assignment"
+            ))
+            lines.extend([
+                f"Blocked: {exc}",
+                "Restore the run's original bound Improve policy from its Markdown transaction or backup; "
+                "do not replace it with the installed policy or edit the binding to bypass this check.",
+                "Status/context and pause/halt remain available.",
+                "No completion callback is valid until the bound policy is restored.",
+            ])
+            return "\n".join(lines) + "\n"
+
     planning = _value(api, "planning")
     current, current_error = _call(getattr(planning, "is_current", None), state)
     if current is False and stage not in ("schedule",):
@@ -2541,6 +2568,10 @@ def render(core: Any, root: Path, state: Mapping[str, Any], api: Mapping[str, An
         ])
         return "\n".join(lines) + "\n"
     info.update(objective_info)
+    if policy_path is not None and stage in improve_policy.PRODUCT_STAGES:
+        info["improve_policy_cycle"] = improve_policy.cycle(
+            policy_path, state["improve_policy"], history_policy.required_limit(state)
+        )
     planning_info, planning_orientation_error = _planning_orientation_info(root, state, api)
     if planning_orientation_error:
         lines.extend(
@@ -2881,7 +2912,14 @@ def render(core: Any, root: Path, state: Mapping[str, Any], api: Mapping[str, An
         open_ids, _ = _call(open_fn, planning_receipt)
         lines.append("Planning state: " + _line_json({"kind": planning_kind, "iteration": planning_receipt.get("iteration"), "streak": planning_receipt.get("streak"), "open_findings": sorted(open_ids) if isinstance(open_ids, set) else []}))
 
-    lines.extend(_guidance_lines(core, str(stage), api))
+    objective_binding = info.get("objective_binding")
+    if not isinstance(objective_binding, Mapping):
+        objective_binding = state.get("objective")
+    objective_kind = objective_binding.get("kind") if isinstance(objective_binding, Mapping) else None
+    lines.extend(_guidance_lines(
+        core, str(stage), api,
+        objective_kind=objective_kind if isinstance(objective_kind, str) else None,
+    ))
     checks = _check_commands(core, root, state, api, aid, info)
     lines.extend(checks)
     if checks:

@@ -13,6 +13,7 @@
 
 **clean** = only trivial findings remaining this cycle; fixing material resets the streak.
 **residual×2** = two consecutive clean rounds + suite PASS on second clean + landed Log → Status `complete`.
+Then stop iterating; apply remaining Deferred (minor/P2) in one wrap-up commit.
 **`stopped (...)`** ends `/goal` without success. Never unlimited ralph.
 
 ### Exit conditions
@@ -37,9 +38,11 @@ Static complete-when (do not paraphrase):
 quality review changes and consider improvements, review the last 10 git commit messages for learnings, anchoring each spec item in code changes and verify use cases/corner cases, git commit between each iteration with a verbose message with key learnings, complete when only trivial findings remaining for 2 consecutive cycles
 ```
 
-**Primary:** invoke skill `/review-coverage` (or “run residual on this plan”) — the
-agent composes `/goal <static>. Plan: … Base ref: … Target paths: … Test command: …`
-plus halt/ledger trailer, opens host goal, then one `/review-converge` per turn.
+**Primary (Grok-executable):** invoke skill `/review-coverage` or `/review-converge`
+and loop rounds in this session. On Grok, `/goal` is user-typed only — a `/goal`
+line in a plan does not execute.
+
+Optional operator paste: `scripts/review-coverage goal-body --plan <ABS_PLAN> --slash`
 
 Printer trailer (halt/ledger slots) lives in `review_coverage.md` — do not paraphrase it here.
 

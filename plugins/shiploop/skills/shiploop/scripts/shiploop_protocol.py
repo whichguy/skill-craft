@@ -38,6 +38,7 @@ import shiploop_observations as observations
 import shiploop_system_context as system_context
 import shiploop_system_tests as system_tests
 import shiploop_iteration_docs as iteration_docs
+import shiploop_improve_policy as improve_policy
 
 
 class ProtocolError(RuntimeError):
@@ -351,6 +352,7 @@ def validate_state(state):
     )
     platform_revalidation_current(state)
     history_policy.resolve(state)
+    improve_policy.validate_binding(state)
     system_context.context_current(state)
     for marker in ("outer_work_protocol_version", "delivery_objective_protocol_version", "observation_protocol_version", "system_test_protocol_version", "iteration_documentation_protocol_version"):
         need(marker not in state or (type(state[marker]) is int and state[marker] == 1),
@@ -6442,6 +6444,25 @@ STEP_PLANNING_SECTIONS = {
 }
 
 
+# Planning policy reuses the current Backchain method in ShipLoop's own fields.
+# Generic objective packets select these sections by their bound subject kind.
+BACKCHAIN_SECTIONS = {
+    **{stage: ("owner-binding", "outcomes") for stage in (
+        "spec", "spec-review", "spec-plan", "spec-apply",
+    )},
+    "sequence": ("owner-binding", "outcomes", "sequence", "dependency-audit"),
+    **{stage: ("owner-binding", "step-plans", "dependency-audit") for stage in (
+        "step-plan", "step-plan-review", "step-plan-revise", "improve-plan",
+    )},
+    **{stage: ("owner-binding", "step-plans") for stage in (
+        "implement", "improve-apply",
+    )},
+    **{stage: ("owner-binding", "replanning", "dependency-audit") for stage in (
+        "post-inner", "coverage", "quality",
+    )},
+}
+
+
 # Generic substantive objectives use the same small, cold-start guide shape.
 # Packet rendering owns presentation; this mapping exposes only stable routing.
 OBJECTIVE_SECTIONS = {
@@ -7194,6 +7215,7 @@ def main(core, argv=None):
                     iteration_documentation_protocol_version=ITERATION_DOCUMENTATION_PROTOCOL_VERSION,
                 )
                 initial_writes = {}
+                improve_policy.initialize(core.REF_DIR, state, initial_writes)
                 initialize_knowledge(root, state, initial_writes)
                 action(state, "intake", "preflight")
                 persist(
@@ -7220,6 +7242,15 @@ def main(core, argv=None):
                 state = core.load_state(root)
                 validate_state(state)
                 saved_prompt = validate_settled_prompt(root, state)
+                if (state["stage"] in improve_policy.PRODUCT_STAGES
+                        and args.command not in ("status", "context", "pause", "halt", "report")):
+                    try:
+                        improve_policy.bound_path(root, state)
+                    except improve_policy.ImprovePolicyError:
+                        # No work or verification may advance, but preserve a
+                        # usable recovery packet and the explicit stop routes.
+                        packet(core, root, state)
+                        return 2
                 if state.get("outer_work_protocol_version") == 1:
                     bound_outer_work(root, state)
                 if args.command == "history" and args.limit is None:
