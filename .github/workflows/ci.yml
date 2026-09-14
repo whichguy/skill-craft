@@ -27,11 +27,15 @@ jobs:
           package-manager-cache: false
       - name: Hermetic group
         run: bash test/run-all.sh --group "${{ matrix.group }}"
-      - name: Plugin views in sync and tracked checkout unchanged
+      - name: Plugin views in sync
         if: ${{ always() && matrix.group == 'core' }}
+        run: bash scripts/sync-plugin-views.sh --check
+      - name: Tracked checkout unchanged
+        if: ${{ always() }}
+        shell: bash -e -o pipefail {0}
         run: |
-          bash scripts/sync-plugin-views.sh --check
-          git diff --exit-code HEAD
+          git diff --exit-code
+          git diff --cached --exit-code
 
   # Preserve the existing required-check name; skipped/failed groups cannot pass.
   hermetic:

@@ -466,7 +466,10 @@ class BoundedHistoryCliTests(unittest.TestCase):
         self.assertIn("\x1b[2J", archive[0]["body"])
 
     def test_inner_review_cli_route_upgrades_only_a_complete_bounded_body(self) -> None:
-        self.cli("init", "--repo", str(self.repo), "--run-dir", str(self.run), "--prompt", "Exercise inner history.")
+        self.cli(
+            "init", "--repo", str(self.repo), "--run-dir", str(self.run),
+            "--execution-mode", "managed", "--prompt", "Exercise inner history.",
+        )
         state = self.state()
         run_id = state["run_id"]
         worktree = Path(state["repo_root"]) / ".worktrees" / "shiploop" / run_id / "S1"

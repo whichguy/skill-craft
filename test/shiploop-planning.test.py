@@ -2038,7 +2038,10 @@ TC-01 validates acceptance; TC-02 validates rejection and repetition.
         self.assertFalse((self.run_dir / "research.md").exists())
 
     def test_revisit_behavior_refuses_to_skip_survey_and_research(self) -> None:
-        self.cli("init", "--repo", str(self.repo), "--prompt", "No behavior shortcut")
+        self.cli(
+            "init", "--repo", str(self.repo), "--execution-mode", "managed",
+            "--prompt", "No behavior shortcut",
+        )
         action = self.state()["action"]["id"]
         blocked = self.cli(
             "revisit",

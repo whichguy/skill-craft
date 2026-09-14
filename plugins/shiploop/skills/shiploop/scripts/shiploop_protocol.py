@@ -7518,9 +7518,13 @@ def main(core, argv=None):
     )
     subs = parser.add_subparsers(dest="command", required=True)
     import shiploop_dry_run
+    import shiploop_navigator as navigator
+    import shiploop_navigator_dry_run as navigator_dry_run
 
     shiploop_dry_run.add_arguments(subs.add_parser(
-        "graph-dry-run", help="simulate managed graph routes and prompts without project work"))
+        "managed-graph-dry-run", help="inspect the compatibility managed controller without project work"))
+    navigator_dry_run.add_arguments(subs.add_parser(
+        "graph-dry-run", help="inspect navigator routes and prompts without project work"))
     for name in (
         "init",
         "next",
@@ -7550,8 +7554,8 @@ def main(core, argv=None):
             sub.add_argument("--repo")
             sub.add_argument("--bound-plan", default="")
             sub.add_argument("--force", action="store_true")
-            sub.add_argument("--execution-mode", choices=("managed", "legacy"), default="managed",
-                             help="new-run Improve ownership; existing runs retain their bound mode")
+            sub.add_argument("--execution-mode", choices=("navigator", "managed", "legacy"), default="navigator",
+                             help="new-run protocol; existing runs retain their recorded mode")
             sub.add_argument("--independent-review", choices=("optional", "required", "required-with-fallback"), default="optional",
                              help="bind managed review requirements; fallback must be explicitly recorded")
         if name in (
@@ -7648,6 +7652,7 @@ def main(core, argv=None):
                     "system-test-requirements",
                     "observation",
                     "sdlc",
+                    "navigator",
                 ),
             )
             sub.add_argument("--offset", type=int, default=0)
@@ -7668,6 +7673,8 @@ def main(core, argv=None):
     args = parser.parse_args(argv)
     if args.command == "graph-dry-run":
         # Deliberately before run-directory discovery, locking or state access.
+        return navigator_dry_run.run(args)
+    if args.command == "managed-graph-dry-run":
         return shiploop_dry_run.run(args, globals())
     # The thin host has one completion verb; retain the established spelling
     # as an exact alias, with identical action binding and replay semantics.
@@ -7683,6 +7690,16 @@ def main(core, argv=None):
     root = unresolved_root.resolve()
     try:
         with core.run_lock(root):
+            # New navigator runs never enter the old proof/child machinery.
+            # A marker mismatch is an error, never an implicit protocol change.
+            if (root / "state.md").exists():
+                existing = core.load_state(root)
+                if ("navigator_protocol_version" in existing
+                        or existing.get("execution_mode") == "navigator"):
+                    need(not getattr(args, "force", False),
+                         "--force cannot replace an existing run; use a fresh --run-dir")
+                    navigator.validate(existing)
+                    return navigator.dispatch(core, root, existing, args)
             saved_prompt = None
             if args.command == "init":
                 need(bool(args.prompt.strip()), "prompt must not be empty")
@@ -7716,6 +7733,16 @@ def main(core, argv=None):
                     root != Path(args.repo or os.getcwd()).resolve(),
                     "run directory cannot be the product repository root",
                 )
+                if args.execution_mode == "navigator":
+                    need(args.independent_review == "optional",
+                         "--independent-review is a managed-mode option; state navigator review requirements in the prompt")
+                    state = navigator.new_state(
+                        str(Path(args.repo or os.getcwd()).resolve()), args.prompt,
+                        str(Path(args.bound_plan).resolve()) if args.bound_plan else "",
+                    )
+                    navigator.save(root, state)
+                    print(navigator.render(core, root, state))
+                    return 0
                 state = core.default_state(
                     root,
                     prompt=args.prompt,
@@ -8854,6 +8881,11 @@ def main(core, argv=None):
                 ensure_worktree(core, root, state)
             packet(core, root, state)
         return 0
+    except navigator.NavigatorError as exc:
+        print(f"ShipLoop navigator: {exc}", file=sys.stderr)
+        print("Read the current packet with next; the rejected request did not advance the graph.",
+              file=sys.stderr)
+        return 2
     except (
         ProtocolError,
         store.StorageError,

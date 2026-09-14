@@ -1,3 +1,56 @@
+# ShipLoop navigator
+
+New runs use the prompt navigator: explicit SDLC actions, one complete Improve
+loop per assigned Improve action, and a small declaration-based transition
+contract. The script owns the cursor and safe Markdown persistence; the host
+owns execution and evaluation.
+
+- [Navigator guide and flat SDLC diagram](references/navigator.md)
+- [Graph dry-run commands and examples](references/graph-dry-run.md)
+- [Skill entrypoint](SKILL.md)
+
+`init` defaults to `--execution-mode=navigator`. Existing runs resume their
+recorded protocol without conversion. Navigation completion records the host's
+declared result; it does not certify tests, Git state or deployment.
+
+## Bounded recursive discovery
+
+Discovery follows task-relevant boundaries behind an MCP or other gateway and
+screens message passing, client connections, service authentication, design,
+client-side libraries, storage, caching, and security. Existing platform
+facilities, libraries, and patterns are the default reuse candidates. A new
+mechanism needs evidence of a substantial task-relevant improvement.
+
+When authorized by the task, the host can acquire a temporary skill, MCP, SDK,
+or dev/test dependency for a specific observation, establish its actual access,
+and run a discriminating experiment. It retains unresolved access and labels
+source inspection, local tests, service reads, and deployed-user evidence
+separately. A catalog alone does not establish target access.
+
+The shared default allowance is 15 active minutes / 64 observable host actions,
+at most two capability candidates and three experiments. New exploration stops
+at 13 minutes or 56 actions, reserving two minutes / eight actions to record
+findings and clean up. These are host-followed instructions, not a script
+watchdog. Resuming the same investigation does not refill its allowance.
+
+Navigator discovery and research packets select the
+[shared discovery policy](references/research-loop.md#recursive-discovery-and-experiments)
+and [navigator adapter](references/research-loop.md#navigator-execution-mode-adapter).
+Later product/outer Improve packets select them for consequential new findings.
+The host stores evidence, reuse decisions, open gaps, and remaining allowance in
+durable notes referenced by its generic result. Unaccepted draft + pause retains
+the action; an accepted blocker report creates a new action at the same stage.
+Existing managed/legacy runs use the same policy with their own record binding.
+
+## Compatibility protocols
+
+The material below documents **managed and legacy runs**, retained for existing
+state and regression fixtures. Its frozen hashes, manifests, certificates and
+child-phase gates do not apply to navigator runs. Use the guide above for new
+runs. Historical examples of unqualified `init` in this section require an
+explicit `--execution-mode=managed` or `--execution-mode=legacy` to select the
+protocol being described.
+
 # ShipLoop 0.9
 
 ShipLoop is a Markdown-authoritative session harness for delivering one bounded
@@ -12,20 +65,20 @@ preconditions, and refuses unsafe or stale transitions.
 
 **Until-loop integration and mode:** ShipLoop retains an until-loop-derived
 review policy and receipt-based convergence for its retained legacy and native
-owners. New runs use **managed Improve by default**: ShipLoop holds one durable
+owners. Explicit **managed Improve runs** use this older ownership model: ShipLoop holds one durable
 parent binding while the bundled controller owns the bound child profile's
 phases, material reset, pass count, and terminal certificate. Its six profiles
 are `research`, `behavior`, `spec`, `objective`, `step-plan`, and `product`.
 An existing or explicitly requested `--execution-mode=legacy` run retains the
 documented stage-by-stage and nested-plan route. Neither mode invokes an
 installed Improve or `/until-loop` skill, starts either CLI, or creates a
-separate `.until-loop` state store. See [the managed default](#managed-improve-is-the-new-run-default)
+separate `.until-loop` state store. See [the managed compatibility protocol](#managed-improve-is-the-new-run-default)
 and [exact integration and loop coverage](#how-shiploop-leverages-until-loop).
 
 ## Table of contents
 
 - [What ShipLoop is and is not](#what-shiploop-is-and-is-not)
-- [Managed Improve is the new-run default](#managed-improve-is-the-new-run-default)
+- [Managed Improve compatibility](#managed-improve-is-the-new-run-default)
 - [Script-enforced state machine](#script-enforced-state-machine)
   - [One completion is a guarded transition](#one-completion-is-a-guarded-transition)
   - [Mandatory gates before, inside, and after execution](#mandatory-gates-before-inside-and-after-execution)
@@ -68,11 +121,13 @@ This README is a human deep dive, **not** a document to inject wholesale into
 every prompt. The thin [entry skill](SKILL.md) and current packet select what a
 single action needs.
 
-## Managed Improve is the new-run default
+<a id="managed-improve-is-the-new-run-default"></a>
 
-New `init` runs select managed Improve unless the caller explicitly passes
-`--execution-mode=legacy`; the selected mode is durable and existing runs resume
-their recorded mode. A managed parent parks at `managed-improve` while the
+## Managed Improve compatibility
+
+Explicit `init --execution-mode=managed` selects this compatibility protocol.
+Unqualified `init` now selects navigator. The selected protocol is durable and
+existing runs resume their recorded mode. A managed parent parks at `managed-improve` while the
 bound controller owns one of six profiles: `research`, `behavior`, `spec`,
 `objective`, `step-plan`, or `product`. ShipLoop still owns the run lock,
 Markdown transaction, DAG, typed evidence validators, and consumer release.
@@ -149,7 +204,7 @@ transition.
 | Status | Meaning |
 |---|---|
 | **Current control** | The script and authoritative Markdown store state, issue one action ID, validate declared result/evidence shape, and gate candidates. In managed mode, the bundled controller owns the bound child profile's convergence and terminal certificate while ShipLoop validates and imports it; legacy mode retains its documented nested execution-plan loops. |
-| **New-run control** | New runs default to managed Improve and bind a content-pinned managed consumer/policy, seven-message history policy, compact source-linked system context, an early-observation callback, an outer-work obligation journal, and a final handoff objective. `--execution-mode=legacy` is explicit. Compatibility is marker-specific: see the recovery matrix; an absent marker is not a universal bypass. |
+| **New-run control** | Explicit managed runs bind a content-pinned managed consumer/policy, seven-message history policy, compact source-linked system context, an early-observation callback, an outer-work obligation journal, and a final handoff objective. `--execution-mode=legacy` is explicit. Compatibility is marker-specific: see the recovery matrix; an absent marker is not a universal bypass. |
 | **Required host duty** | The host must make scoped edits, select meaningful tests, interpret evidence, review semantics, preserve unrelated work, and verify external effects. The script cannot mechanically prove these judgments. |
 | **Proposed safeguard** | A documented improvement idea that is not a current stage, result field, or enforced gate. It must not be described as implemented. |
 | **Known limitation** | A current state-machine or recovery gap. Follow the safe operating discipline and report the limitation; do not claim that the harness already closes it. |
@@ -600,10 +655,11 @@ SKILL_ROOT=/absolute/path/to/shiploop
 
 cd "$REPO"
 python3 "$SKILL_ROOT/scripts/shiploop" init \
-  --repo "$REPO" --run-dir "$RUN_DIR" --prompt='Implement …'
+  --repo "$REPO" --run-dir "$RUN_DIR" --execution-mode=managed --prompt='Implement …'
 ```
 
-The omitted execution mode is `managed`, the new-run default. Pass
+This compatibility example explicitly selects `managed`. Omitted mode selects
+`navigator`. Pass
 `--execution-mode=legacy` only to start the retained stage-by-stage route; an
 existing run always resumes its recorded mode. A managed parent later waits at
 `managed-improve`: call `next`, follow its child packet, and use
@@ -2191,7 +2247,7 @@ contracts. **Missing-marker behavior is specific to each feature:**
 | Marker or input | Current new-run contract | Missing or older-run behavior |
 |---|---|---|
 | Legacy `state.json` with no Markdown state | New runs use authoritative Markdown only. | Explicit `migrate`; retained prompt is recovered exactly or the run pauses for missing intent. Never a live JSON mirror. |
-| `managed_improve_protocol_version: 1` and its immutable child binding | `init` defaults to managed ownership for the six controller profiles; ShipLoop validates a current matching certificate before releasing the parent. | A missing marker remains on its established legacy route. An invalid present binding or certificate fails closed; it is never inferred from a package upgrade. |
+| `managed_improve_protocol_version: 1` and its immutable child binding | Explicit managed initialization selects ownership for the six controller profiles; ShipLoop validates a current matching certificate before releasing the parent. | A missing marker remains on its established legacy route. An invalid present binding or certificate fails closed; it is never inferred from a package upgrade. |
 | `planning_protocol_version: 2` | Mandatory research, behavior and specification convergence. | Pre-v2/missing blocks workflow mutation until the guarded `planning-upgrade`; already executed work cannot be retroactively upgraded. |
 | `step_planning_protocol_version: 1` | **Legacy route:** nested plan before initial coding and every Improve application. **Managed route:** the `step-plan` child owns the initial plan, while a product pass uses its one `improve-plan-verify` record. | Safe-boundary adoption or repair of later execution, never an invented certificate for past edits. |
 | `iteration_documentation_protocol_version: 1` | Required `iteration-document` after every Improve application, before verification and commit. | Absent retains original Apply-to-Verify callbacks; no retroactive documentation receipt. Unsupported explicit values fail closed. |
@@ -2361,7 +2417,7 @@ The compact stdout packet is authoritative for the current action. The command
 surface is:
 
 ```sh
-shiploop init     --repo REPO [--run-dir RUN] [--execution-mode=managed|legacy] --prompt=TEXT
+shiploop init     --repo REPO [--run-dir RUN] [--execution-mode=navigator|managed|legacy] --prompt=TEXT
 shiploop next     --run-dir RUN
 shiploop status   --run-dir RUN
 shiploop report   --run-dir RUN
@@ -2387,8 +2443,8 @@ shiploop halt     --run-dir RUN --reason=TEXT
 shiploop migrate  --run-dir RUN
 ```
 
-`managed` is the default for `init`; use `legacy` only to request the retained
-stage-by-stage route. A managed parent has no separate import or continuation
+`navigator` is the default for `init`; see the navigator guide for its commands.
+Use `managed` or `legacy` explicitly for these compatibility routes. A managed parent has no separate import or continuation
 command: call `next`, follow the child packet, and read `context --section sdlc`
 when it is printed or needed for the current responsibility. Only the script can
 import the child's current validated certificate.

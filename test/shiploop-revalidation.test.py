@@ -509,7 +509,10 @@ class RevalidationCliTests(unittest.TestCase):
         self.assertFalse((self.run_dir / "results" / f"{state['action']['id']}.md").exists())
 
     def test_invalid_explicit_marker_blocks_a_cold_cli_read(self) -> None:
-        self.cli("init", "--repo", str(self.repo), "--prompt", "Check cold marker validation.")
+        self.cli(
+            "init", "--repo", str(self.repo), "--execution-mode", "managed",
+            "--prompt", "Check cold marker validation.",
+        )
         state = store.read_record(self.run_dir / "state.md")
         state["platform_revalidation_protocol_version"] = None
         store.write_record(self.run_dir / "state.md", state, "ShipLoop state")

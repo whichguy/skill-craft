@@ -51,7 +51,10 @@ class MergeRecoveryTests(unittest.TestCase):
         self.git("add", "shared.txt")
         self.git("commit", "-m", "baseline")
         self.run_dir = self.repo / ".shiploop"
-        self.cli("init", "--repo", str(self.repo), "--prompt", "Recover one merge")
+        self.cli(
+            "init", "--repo", str(self.repo), "--execution-mode", "managed",
+            "--prompt", "Recover one merge",
+        )
         self.install_merge_fixture()
 
     def tearDown(self):

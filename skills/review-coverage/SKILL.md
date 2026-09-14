@@ -8,7 +8,7 @@ description: >
   (use review-plan) or raw residual×2 engine mechanics alone (use
   review-converge under /goal).
 allowed-tools: all
-version: 0.2.4
+version: 0.2.5
 license: MIT
 platforms:
   - linux
@@ -62,10 +62,10 @@ Do **not** require the user to run shell scripts to use this skill.
 | **Review Coverage** | Durable plan **H2 only** `## Review Coverage` + this skill (H1/H3+ are not recognized). After ship: prove code matches specs and **stop** when proof is stable. |
 | **Status / Log / landed** | Driver ledger at repo-root `REVIEW_CONVERGE.md`. **Landed** = latest Log `Committed: yes` and `review-converge: round N —` (or legacy `grok-review-converge: round N —`). |
 | **residual** | Forward (specs→code) + reverse (diff vs Base ref); material fixes only; pathspec commits. |
-| **clean / residual×2** | Clean = **only trivial findings remaining this cycle** (not “fixed some material and left minors”). Success = two consecutive cleans; second clean runs Test command PASS. Fixing material resets the streak. After DevLoop COMPLETE, this is the overlay — not a nested `/devloop`. Practices: skill-craft `docs/LOOP-ENGINEERING.md`. |
+| **clean / residual×2** | Clean = **only trivial findings remaining this cycle** (not “fixed some material and left minors”). Review success = two consecutive cleans with second-pass verification as defined below. Fixing material resets the streak. After DevLoop COMPLETE, this is the overlay — not a nested `/devloop`. Practices: skill-craft `docs/LOOP-ENGINEERING.md`. |
 | **`/goal` body** | Outer multi-turn objective: **static complete-when sentence** + plan bindings (see below). Do not paraphrase the static sentence. |
 | **`/review-converge`** | Default Driver: **one** residual round per outer turn. |
-| **complete** | residual×2 success + landed Log. |
+| **complete** | residual×2 review success + landed Log. Delivery success additionally requires the current-candidate Finalization record below. |
 | **stopped (...)** | Terminal halt without residual×2 success; still ends `/goal`. |
 
 ### Static complete-when (byte-exact — do not paraphrase)
@@ -88,8 +88,9 @@ Show that output to the operator labeled **user-typed slash — not
 agent-executable on Grok**. Fallback only if the CLI is missing: STATIC + the
 same trailer fields/order as `references/review_coverage.md` (Plan absolute, Base
 ref, Target paths, Test command, Driver one round, Max rounds + halt rules,
-Ledger clean = only trivial findings remaining this cycle + landed SUCCESS,
-pathspec). Include `Repo:` when set. Default max rounds **N** = 12. The CLI
+Ledger clean = only trivial findings remaining this cycle + landed SUCCESS, and
+the Finalization current-candidate evidence, pathspec). Include `Repo:` when
+set. Default max rounds **N** = 12. The CLI
 fills those slots and prints; it does not author the sentence. The **executable**
 driver is in-session **review-converge** (or `update_goal` when that tool exists).
 
@@ -118,7 +119,7 @@ Skip pure doc-only one-line plans unless the user asks.
 4. Fill when known:
    - **Base ref** — commit SHA before implement
    - **Target paths** — concrete pathspecs (no TBD)
-   - **Test command** — exact suite command
+   - **Test command** — exact suite command, or explicit N/A with reason and concrete manual verification
    - **Materiality bar** — material P0/P1 blocks clean; minors/P2 are trivial
    - **Driver** — default `review-converge under /goal`
    - **Max review-converge rounds** — default 12
@@ -148,8 +149,8 @@ waiver. Report what you wrote; do not require the user to run a CLI.
 
 ## Phase B — Post-implement residual (agent runs the campaign)
 
-1. Preconditions: implementation landed; suite green; optional first-pass
-   `/review-fix` done.
+1. Preconditions: implementation landed; applicable suite green or concrete manual
+   verification for an explicitly N/A Test command; optional first-pass `/review-fix` done.
 2. **Preflight (hard stops — do not open `/goal` if any fail):**
    - Plan has filled `## Review Coverage` (or run Phase A first).
    - Not waived (if waived, stop — no residual campaign).
@@ -158,7 +159,9 @@ waiver. Report what you wrote; do not require the user to run a CLI.
      **terminal** (`complete` / `stopped`) for a **different** plan contract,
      plan hash, or campaign scope → **hard stop**: archive/rename the ledger
      first (do not auto-delete). Same plan + re-run only if operator explicitly
-     requests re-open residual.
+     requests re-open residual. Resuming Finalization alone is not a residual reopen;
+     for the same completed/landed campaign, reconcile its Finalization record
+     and perform only the missing verification/receipt work without another round.
    - If `git status --porcelain -- <Target paths>` shows foreign dirt under
      Target paths (excluding the ledger), **warn**; refuse unattended start
      until paths are clean or dirt is confirmed in-scope.
@@ -184,10 +187,12 @@ waiver. Report what you wrote; do not require the user to run a CLI.
 5. **Each outer turn:** run exactly **one** `/review-converge` for the plan’s
    target paths and test command (forward + reverse). Then re-read
    `REVIEW_CONVERGE.md` Status:
-   - `complete` + landed → **EXIT SUCCESS** (residual×2 met)
+   - `complete` + landed → **enter Finalization** below. EXIT SUCCESS only
+     after it records current-candidate verification.
    - `stopped (...)` + landed → **EXIT HALT** (not success)
    - `active` and rounds ≥ Max → force `stopped (max-cycles)`, land, EXIT HALT
-   - terminal but not landed → one ledger-flush; then EXIT per Status
+   - terminal but not landed → one ledger-flush; then EXIT HALT if still not
+     landed
    - else → next turn, one more converge only
 6. Every converge round does both:
    - **Forward:** specs / anchors / intent → code; pathspec commit material fixes.
@@ -197,13 +202,51 @@ waiver. Report what you wrote; do not require the user to run a CLI.
 7. **Wrap-up trivials (after residual×2 success only):** when Status is
    `complete` and the latest Log **landed**, stop iterating. Apply remaining
    Deferred (minor/P2) trivial improvements in **one** pathspec wrap-up commit
-   (no new `/review-converge` round). Then EXIT SUCCESS. Do not start another
-   residual cycle for those trivials. Skip the wrap-up when Deferred is empty.
+   (no new `/review-converge` round). If it changes the candidate, it must be
+   verified in Finalization below before delivery success. Do not start another
+   residual cycle for those trivials. Skip the wrap-up when Deferred is empty,
+   then enter Finalization below.
 
-Success is only Status **`complete`** after two consecutive clean rounds, second
-clean Test PASS, Log landed — then the wrap-up commit if trivials remain.
-**`stopped (...)` is not success.** Never unlimited ralph. Never continue after
-complete or stopped (...).
+Residual review success is Status **`complete`** after two consecutive clean
+rounds, second-pass verification, and Log landed. Delivery success additionally
+requires Finalization to establish evidence for the final candidate after any
+wrap-up commit. **`stopped (...)` is not success.** Never unlimited ralph.
+Never run another residual round after complete or stopped (...); a completed/landed review enters Finalization.
+
+Second clean: automated Test command PASS when applicable; otherwise N/A requires concrete manual method and result (never an automated PASS).
+
+## Finalization (after completed/landed review)
+
+Run this after the residual review is `complete` and landed, before declaring
+delivery success. It is a record and verification step, not another
+`/review-converge` round or a new execution engine.
+
+1. Re-read the existing repo-root `REVIEW_CONVERGE.md`; preserve terminal review-round history.
+   Add or update an ordinary Markdown `### Finalization` subsection with no new state enum or engine. Record all of:
+   - **Candidate SHA** — the tested product/policy/configuration revision, not a later receipt commit.
+   - **Verification command or manual method** — what checks that candidate.
+   - **Result / exit** — PASS, manual result, or the failure/interruption.
+   - **Log reference** — durable path or receipt for the actual output.
+2. Bind evidence to that candidate. With no remaining edits and an unchanged
+   candidate, current second-pass evidence may be reused; record that binding.
+   A changed candidate, including a trivial wrap-up, requires verification after
+   its final edit: Test command PASS when applicable, or the manual alternative.
+   N/A is not an automated PASS: record a concrete manual method and result instead.
+3. Missing, stale, failed, or interrupted evidence means no delivery success;
+   HALT and retain the evidence. Never reinterpret an interrupted Finalization
+   as a successful review.
+4. Keep the record durable and read it on resume before acting. Reconcile any existing wrap-up
+   commit and evidence; make no duplicate commit. Retest is not a review round,
+   and must not erase or rewrite terminal review-round history.
+5. If Finalization discovers a material repair, it requires the existing
+   operator-authorized reopen path for the residual campaign; otherwise HALT.
+   Do not label material repair as a trivial wrap-up.
+
+A bookkeeping-only receipt commit may follow verification and does not invalidate proof. It must name the prior tested product/policy/configuration Candidate SHA and must not pretend to test the receipt commit. Any later in-scope product/policy/configuration change invalidates affected evidence.
+
+Static/prompt tests prove this instruction contract; they do not prove actual model compliance.
+They also do not attest a candidate that was not actually
+verified and recorded.
 
 ## Optional CLI helpers (not the primary invoke)
 

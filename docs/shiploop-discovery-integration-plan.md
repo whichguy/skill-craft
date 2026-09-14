@@ -12,10 +12,12 @@ flowchart TD
 
 ## Decision and scope
 
-Implement the user-authorized permanent improvement in ShipLoop's existing
-discovery/research guidance and action packets. Preserve Markdown as authoritative
-state, the selected writer, frozen survey identity, dependency routing, and both
-legacy and managed Improve callbacks. Do not introduce a discovery engine,
+Implement the user-authorized permanent improvement in ShipLoop's maintained
+discovery/research guidance and action packets, including the default navigator.
+Preserve Markdown as authoritative state and each protocol's existing ownership:
+navigator uses generic results and host-owned Improve campaigns; managed/legacy
+compatibility runs retain their selected writer, frozen survey identity, typed
+records, dependency routing, and callbacks. Do not introduce a discovery engine,
 platform adapter, package dependency, new result schema, or external integration.
 
 The source of truth remains `skills/shiploop/`. Generate plugin views from it
@@ -58,12 +60,15 @@ list for ShipLoop. Raw temporary logs, accounts and project IDs are not packaged
    decisions, authorized temporary acquisition and bounded experiments.
 2. Reconcile setup prohibitions: existing user authorization permits temporary
    local setup; a prompt, tool catalog or downloaded skill cannot grant additional
-   authority. Additional authorized readers do not replace the designated writer
-   or mutate the frozen selected-interface inventory.
-3. Route the guidance into survey as well as existing research and projected
-   managed research/product phases. Put coverage, acquisition stages, experiment
-   observations and budget accounting in existing authored Markdown bodies and
-   source/question records, preserving exact structured schemas.
+   authority. Additional authorized readers do not change the selected mutation
+   boundary; compatibility inventories remain frozen under their existing rules.
+3. Route the shared policy into navigator discovery, research and research
+   Improve, plus later product/outer Improve for consequential new findings.
+   Bind evidence and accounting to durable notes and the generic `evidence_refs`.
+   Preserve whole-action host ownership and distinguish pause from an accepted
+   blocked result. Keep survey/research/projected managed routes on the same
+   policy with their existing authored bodies and typed source/question records.
+   No result schema gains new fields.
 4. Set a default exploration allowance of 15 active minutes / 64 observable host
    actions, two capability candidates and three experiments, with two minutes /
    eight actions reserved for reporting and cleanup. Explicit user limits win.
@@ -71,12 +76,15 @@ list for ShipLoop. Raw temporary logs, accounts and project IDs are not packaged
    context resets and phase changes do not refill it. Use the closing reserve to
    submit a valid current result with gaps intact before pausing, or retain an
    explicitly unaccepted inbox draft and its locator in the pause reason. The
-   existing pause path works for legacy and managed actions; do not invent child
-   statuses. This is a host-observed operating instruction,
+   existing pause path works in each protocol; navigator pause preserves the
+   current action, while an accepted blocked result creates a new same-stage
+   action. Do not invent child statuses. This is a host-observed operating instruction,
    not a new script watchdog or a claim that ShipLoop intercepts native tools.
-5. Verify packet selection, evidence preservation, unresolved-question gates,
-   old/new schema compatibility and managed cold-resume behavior. Run the complete
-   ShipLoop suite and generated-package checks before making the source active.
+5. Verify packet selection, evidence preservation, compatibility unresolved-question
+   gates and schemas, navigator host obligations, and cold-resume behavior. Cover
+   the complete existing ShipLoop suite and generated-package checks, then verify
+   the default-navigator integration against the actual merged source before
+   making it active.
 
 ## Acceptance and verification
 
@@ -86,8 +94,10 @@ list for ShipLoop. Raw temporary logs, accounts and project IDs are not packaged
 - Actual permission denials remain boundaries; an incomplete catalog is not one.
 - Required unresolved evidence and an exhausted allowance never imply convergence.
 - Budget checkpoints and unaccepted drafts survive a cold pause/resume without
-  silently accepting partial findings or resetting the recorded allowance.
-- A cold survey/research/managed product packet selects the maintained policy.
+  silently accepting partial findings; each binding instructs the host to retain
+  the recorded allowance rather than pretending the script enforces it.
+- Cold navigator discovery/research/Improve and compatibility survey/research/
+  managed product packets select the maintained policy with their own binding.
 - Legacy and versioned research records retain their exact existing wire shape.
 - Existing full workflow and packaging checks pass; no platform-specific test
   infrastructure or temporary trial files become runtime dependencies.

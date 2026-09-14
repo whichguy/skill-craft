@@ -50,6 +50,8 @@ class OuterWorkProtocolTests(ACTION.ShipLoopActionWalkFixture):
             str(self.repo),
             "--bound-plan",
             str(self.bound_plan),
+            "--execution-mode",
+            self.execution_mode,
             "--prompt",
             "Exercise the bounded outer-work journal through a real ShipLoop CLI run.",
         )

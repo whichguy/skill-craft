@@ -72,7 +72,7 @@ class GraphDriverTests(unittest.TestCase):
         environment["PYTHONDONTWRITEBYTECODE"] = "1"
         environment["PYTHONNOUSERSITE"] = "1"
         return subprocess.run(
-            [sys.executable, "-B", str(script), "graph-dry-run", *args],
+            [sys.executable, "-B", str(script), "managed-graph-dry-run", *args],
             cwd=cwd,
             env=environment,
             text=True,
@@ -301,7 +301,7 @@ class GraphDriverTests(unittest.TestCase):
             redirect_stdout(output),
         ):
             code = protocol.main(
-                ForbiddenCore(), ["graph-dry-run", "--scenario", "product-skill"]
+                ForbiddenCore(), ["managed-graph-dry-run", "--scenario", "product-skill"]
             )
         self.assertEqual(code, 0)
         self.assertIn("PASS product-skill", output.getvalue())
@@ -340,7 +340,7 @@ class GraphDriverTests(unittest.TestCase):
                     sys.executable,
                     "-B",
                     str(portable / "scripts" / "shiploop"),
-                    "graph-dry-run",
+                    "managed-graph-dry-run",
                     "--scenario",
                     "product-skill",
                     "--format",

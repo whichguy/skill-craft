@@ -74,6 +74,12 @@ class PacketTests(unittest.TestCase):
         return result.stdout.strip()
 
     def cli(self, *args, code=0):
+        args = list(args)
+        if args[:1] == ["init"] and not any(
+            arg == "--execution-mode" or arg.startswith("--execution-mode=")
+            for arg in args
+        ):
+            args.extend(("--execution-mode", "managed"))
         result = subprocess.run(
             [sys.executable, str(CLI), *args],
             cwd=self.repo,

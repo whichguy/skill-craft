@@ -329,6 +329,61 @@ the existing plan, knowledge/outer-work records, and scoped product documentatio
 tasks; never hand-edit frozen environment state or create a second investigation
 engine.
 
+## Navigator execution mode adapter
+
+Navigator packets select this adapter with the shared recursive-discovery
+section above. Apply the same eight-area screen, consequential recursion,
+authorized acquisition, experiments, reuse decisions, evidence fidelity, and
+shared allowance. This adapter supplies the current protocol's record and owner
+binding; the other detailed result-schema and child-phase sections in this guide
+describe managed/legacy compatibility runs.
+
+For navigator, keep findings in a durable run note, such as
+`notes/<actionID>.md`, and include its locator in the current generic result's
+`evidence_refs`. Use ordinary Markdown to retain questions and parent/source
+links, visited boundaries, access and acquisition stages, observations and
+limitations, reuse choices, cleanup, active time/action accounting, remaining
+allowance, conclusions, and required open gaps. Use the current packet's result
+envelope. Do not add `body`, `research_state`, `system_context`, or other legacy
+fields to that envelope or create compatibility candidate files. Named
+questions/sources/`depth_rationale` in the shared section describe information to
+retain, not a mandatory navigator schema or note layout.
+
+Record the selected mutation route and its authorization boundaries. Extra
+readers do not grant authority to change that route or evade a real denial.
+References to a frozen inventory, selected-interface identity, or child state
+describe compatibility enforcement; navigator does not freeze those artifacts
+or require their certificates. The host must preserve the actual scope and
+decisions and disclose changes without claiming script-enforced checks.
+
+`discovery`, `research`, and `research-improve` use this policy for affected
+environment flows. At `product-improve` and `outer-improve`, use it when a
+consequential newly encountered boundary or conflicting evidence requires more
+investigation. Do not restart settled research just because a later node reads
+this guide. The same investigation's allowance follows its notes across nodes
+and context resets; entering an Improve action never refills it.
+
+An Improve node owns its entire review/plan/apply/check/record/assess campaign.
+Perform those cycles internally under the navigator binding and preserve their
+learnings. Do not submit a callback for each compatibility child phase. Required
+unresolved questions prevent a host declaration of convergence; navigator
+validates the result envelope, not the truth or completeness of those findings.
+
+Use the closing reserve with the current packet's protocol:
+
+- If the action's duties are complete, submit its valid generic result and pause
+  the returned action when the investigation allowance is exhausted.
+- For unfinished duties, retain the **unaccepted draft** at the current printed
+  inbox path and call `pause` with the note/draft locator, remaining allowance,
+  and next gap. Cold `next` and `resume` preserve that action ID and draft; neither
+  accepts it or replenishes the allowance. Finish the actual duties before
+  submitting that action's result.
+- A substantiated access/owner blocker may instead be submitted as a valid
+  `outcome: blocked` result with durable evidence references. That is an accepted
+  blocker report and allocates a **new action ID at the same stage**; it is not a
+  same-action draft checkpoint or a successful advance. Follow its returned
+  blocked/resume packet. Never mark an unfinished campaign `done` just to save it.
+
 ## Decision boundaries
 
 Classify the next useful action in the existing question's `answer`,

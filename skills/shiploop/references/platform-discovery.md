@@ -6,6 +6,12 @@ product tree. A local-only increment records that decision explicitly; it does
 not invent a remote platform to fill a checklist. All records live in existing
 Markdown state, not in a separate discovery database.
 
+Navigator uses the generic result and durable-note binding in the
+[navigator discovery adapter](research-loop.md#navigator-execution-mode-adapter).
+Apply the investigation and authority questions here, but the typed machine
+schema, frozen records, and guarded planning artifacts below belong to
+managed/legacy compatibility runs, not navigator results.
+
 ```mermaid
 flowchart TD
     A[Incoming artifact and behavior] --> B[Discover interfaces and conventions]
@@ -67,7 +73,7 @@ permission to switch to a second mutation mechanism.
 
 ### Markdown machine schema
 
-New runs require `machine.platform_discovery` in `environment.md`:
+New managed or legacy runs require `machine.platform_discovery` in `environment.md`:
 
 ```json
 {
