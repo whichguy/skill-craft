@@ -438,6 +438,7 @@ broader-plan direction.
             {
                 "summary": "The initial plan includes a local work order with cited prerequisites, evidence, and cases.",
                 "body": initial_body,
+                "skill_assessment": self.skill_assessment(),
             },
             label="initial-step-plan-microplan-draft",
         )
@@ -691,6 +692,7 @@ broader-plan direction.
             {
                 "summary": "A candidate that omits the parent finding must not begin the nested loop.",
                 "body": self.step_plan_candidate("S1", "missing parent ids"),
+                "skill_assessment": self.skill_assessment(),
             },
             code=2,
             label="nested-plan-missing-parent-id",
@@ -705,6 +707,7 @@ broader-plan direction.
             {
                 "summary": "The Improve plan retains its parent finding and local ordered microplan.",
                 "body": improve_body,
+                "skill_assessment": self.skill_assessment(),
             },
             label="improve-step-plan-microplan-draft",
         )

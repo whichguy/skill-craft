@@ -90,6 +90,12 @@ environment, artifact, and check identities internally. See
    implementation, interfaces, call sites, tests, configuration, and docs that
    a step would affect. Git explains prior decisions; it does not replace an
    inspection of the current tree or current environment.
+   Always inspect README or record absence, follow applicable existing AGENTS.md,
+   architecture/design/environment notes and local skill indexes. Use
+   [baseline tests and migrations](../execution-planning.md#baseline-tests-and-migrations)
+   to order prerequisite health checks, necessary repairs and small compatible
+   data migrations. An intentionally failing target regression is not a foundation
+   failure; unrelated defects do not automatically expand the assignment.
 2. Draft the smallest forward path from established initial state to exact goal.
 3. For each step, work backwards: every input needs an upstream exact produces
    value or a real initial-state fact.
@@ -127,6 +133,11 @@ environment, artifact, and check identities internally. See
    producers and their affected consumers. Plan source/applicability/freshness
    evidence and report checks. Preserve the distinction between a research
    conclusion, a user policy decision and authorization for an external change.
+   Include consequential upstream/downstream actors, storage and trust boundaries
+   behind gateways, plus experiments that could change these decisions; use
+   [recursive discovery](../research-loop.md#recursive-discovery-and-experiments).
+   Plan reusable context capture and future skill readers when useful; do not
+   create a skill or integration merely to fill a category.
 
 Record only compact current-tree and environment evidence in the sequence
 result—symbols, case IDs, test selectors, source references, or non-secret

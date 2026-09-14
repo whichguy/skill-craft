@@ -37,6 +37,7 @@ import shiploop_outer_work as outer_work
 import shiploop_observations as observations
 import shiploop_system_context as system_context
 import shiploop_system_tests as system_tests
+import shiploop_iteration_docs as iteration_docs
 
 
 class ProtocolError(RuntimeError):
@@ -351,7 +352,7 @@ def validate_state(state):
     platform_revalidation_current(state)
     history_policy.resolve(state)
     system_context.context_current(state)
-    for marker in ("outer_work_protocol_version", "delivery_objective_protocol_version", "observation_protocol_version", "system_test_protocol_version"):
+    for marker in ("outer_work_protocol_version", "delivery_objective_protocol_version", "observation_protocol_version", "system_test_protocol_version", "iteration_documentation_protocol_version"):
         need(marker not in state or (type(state[marker]) is int and state[marker] == 1),
              f"unsupported {marker}")
     pending_system_tests = state.get("system_test_pending", [])
@@ -774,6 +775,43 @@ _LEGACY_CARRY_FORWARD_INNER_STAGES = {
 }
 
 
+ITERATION_DOCUMENTATION_PROTOCOL_VERSION = 1
+
+
+def iteration_documentation_current(state):
+    """New runs must document/reuse-assess every Improve pass before checks.
+
+    Existing in-flight runs deliberately have no marker and retain their printed
+    improve-apply callback instead of being silently rerouted mid-action.
+    """
+    return state.get("iteration_documentation_protocol_version") == ITERATION_DOCUMENTATION_PROTOCOL_VERSION
+
+
+def require_iteration_documentation(core, root, state, rec, iteration):
+    """Bind verification/commit to the accepted pre-check documentation decision."""
+    if not iteration_documentation_current(state):
+        return None
+    record = iteration.get("documentation")
+    need(isinstance(record, dict), "verify requires a completed iteration-document action")
+    action_id = record.get("action")
+    fingerprint_value = record.get("result_fingerprint")
+    worktree_fingerprint = record.get("worktree_fingerprint")
+    need(isinstance(action_id, str) and action_id, "iteration-document action is invalid")
+    need(
+        state["completed_actions"].get(action_id) == fingerprint_value,
+        "iteration-document result fingerprint is stale",
+    )
+    result_path = safe_run_path(root, f"results/{action_id}.md")
+    need(
+        result_path.is_file() and not result_path.is_symlink()
+        and digest(store.read_record(result_path)) == fingerprint_value,
+        "iteration-document result is missing or changed",
+    )
+    current = evidence.fingerprint(Path(rec["worktree"]), excluded=exclusions(root, Path(rec["worktree"])))
+    need(current == worktree_fingerprint, "worktree changed after iteration-document; repair and restart review")
+    return record
+
+
 def carry_forward_current(state):
     return state.get("carry_forward_protocol_version") == CARRY_FORWARD_PROTOCOL_VERSION
 
@@ -918,7 +956,7 @@ def observation_repair_available(state):
         return state.get("objective", {}).get("kind") in ("approach", "survey", "post-inner")
     return (planning.is_planning_stage(stage) or is_step_plan_stage(stage)
             or bool(state.get("active_step")) and stage in (
-                "implement", "review", "improve-plan", "improve-apply", "verify",
+                "implement", "review", "improve-plan", "improve-apply", "iteration-document", "verify",
                 "carry-forward", "commit", "final-verify", "post-inner", "merge"))
 
 
@@ -945,7 +983,7 @@ def complete_observation(core, root, state, aid, result):
     stage = state["stage"]
     # Any allocated plan/objective is context-bound, even before its first check.
     bound_pass = objectives.is_objective_stage(stage) or (is_step_plan_stage(stage) and stage != "step-plan")
-    late = stage in ("implement", "improve-apply", "verify", "carry-forward", "commit", "final-verify", "post-inner", "merge", "quality", "publish", "handoff")
+    late = stage in ("implement", "improve-apply", "iteration-document", "verify", "carry-forward", "commit", "final-verify", "post-inner", "merge", "quality", "publish", "handoff")
     needs_repair = bound_pass or late or prepared["route"]["kind"] in ("current-step-repair", "pause")
     need(prepared["route"]["kind"] != "pause", "early observations cannot resolve permission/contract blockers; use pause and seek direction or the owning carry-forward stage; no state changed")
     need(not needs_repair or observation_repair_available(state),
@@ -2234,6 +2272,20 @@ def step_plan_check_record(
 
 def step_plan_current_summary(receipt):
     """A cold packet projection: never spill prior review/revise bodies."""
+    origin = receipt.get("origin") if isinstance(receipt.get("origin"), dict) else {}
+    current_pass = receipt.get("current_pass", {})
+    latest_skill_assessment = None
+    current_revise = current_pass.get("revise") if isinstance(current_pass, dict) else None
+    if isinstance(current_revise, dict):
+        latest_skill_assessment = current_revise.get("skill_assessment")
+    if latest_skill_assessment is None:
+        for completed_pass in reversed(receipt.get("completed_passes", [])):
+            revised = completed_pass.get("revise") if isinstance(completed_pass, dict) else None
+            if isinstance(revised, dict) and "skill_assessment" in revised:
+                latest_skill_assessment = revised["skill_assessment"]
+                break
+    if latest_skill_assessment is None:
+        latest_skill_assessment = origin.get("skill_assessment")
     return {
         "loop_id": receipt["loop_id"],
         "route": receipt["route"],
@@ -2248,6 +2300,7 @@ def step_plan_current_summary(receipt):
             for row in step_planning.normal_findings(receipt["findings"])
             if row["status"] == "open"
         ],
+        "skill_assessment": latest_skill_assessment,
         "completed_passes": [
             {
                 key: row.get(key)
@@ -3593,6 +3646,7 @@ _PRODUCT_ORIENTATION_STAGES = frozenset(
         "review",
         "improve-plan",
         "improve-apply",
+        "iteration-document",
         "verify",
         "carry-forward",
         "commit",
@@ -5093,6 +5147,19 @@ def step_plan_complete(core, root, state, aid, result, writes):
 
     if stage == "step-plan":
         body = text_field(result, "body")
+        skill_assessment = None
+        if iteration_documentation_current(state):
+            try:
+                skill_assessment = iteration_docs.validate_skill_assessment(result.get("skill_assessment"))
+            except iteration_docs.IterationDocumentationError as exc:
+                raise ProtocolError(str(exc)) from exc
+        origin = {
+            "action_id": aid,
+            "result_sha256": digest(result),
+            "candidate_sha256": step_planning.candidate_identity(body),
+        }
+        if skill_assessment is not None:
+            origin["skill_assessment"] = skill_assessment
         loop, receipt = step_plan_start(
             core,
             root,
@@ -5102,14 +5169,16 @@ def step_plan_complete(core, root, state, aid, result, writes):
             body=body,
             return_stage="implement",
             writes=writes,
-            origin={
-                "action_id": aid,
-                "result_sha256": digest(result),
-                "candidate_sha256": step_planning.candidate_identity(body),
-            },
+            origin=origin,
         )
     elif stage == "improve-plan":
         body = text_field(result, "body")
+        skill_assessment = None
+        if iteration_documentation_current(state):
+            try:
+                skill_assessment = iteration_docs.validate_skill_assessment(result.get("skill_assessment"))
+            except iteration_docs.IterationDocumentationError as exc:
+                raise ProtocolError(str(exc)) from exc
         iteration = rec.get("iteration")
         need(isinstance(iteration, dict) and iteration.get("review"), "Improve plan requires a completed current review")
         loop, receipt = step_plan_start(
@@ -5125,6 +5194,7 @@ def step_plan_complete(core, root, state, aid, result, writes):
                 "action_id": aid,
                 "result_sha256": digest(result),
                 "candidate_sha256": step_planning.candidate_identity(body),
+                **({"skill_assessment": skill_assessment} if skill_assessment is not None else {}),
             },
         )
     else:
@@ -5256,6 +5326,12 @@ def step_plan_complete(core, root, state, aid, result, writes):
             )
         elif stage == "step-plan-revise":
             body = text_field(result, "body")
+            skill_assessment = None
+            if iteration_documentation_current(state):
+                try:
+                    skill_assessment = iteration_docs.validate_skill_assessment(result.get("skill_assessment"))
+                except iteration_docs.IterationDocumentationError as exc:
+                    raise ProtocolError(str(exc)) from exc
             need(
                 type(result.get("material")) is bool,
                 "step-plan revise requires a material boolean",
@@ -5267,14 +5343,24 @@ def step_plan_complete(core, root, state, aid, result, writes):
             test_changes = text_field(result, "test_changes")
             learnings = text_field(result, "learnings")
             step_planning.replace_candidate(receipt, body)
+            prior_assessment = None
+            for completed_pass in reversed(receipt.get("completed_passes", [])):
+                revised = completed_pass.get("revise") if isinstance(completed_pass, dict) else None
+                if isinstance(revised, dict) and "skill_assessment" in revised:
+                    prior_assessment = revised["skill_assessment"]
+                    break
+            if prior_assessment is None:
+                prior_assessment = receipt.get("origin", {}).get("skill_assessment")
+            assessment_changed = skill_assessment is not None and skill_assessment != prior_assessment
             current["revise"] = {
                 "addresses": addresses,
                 "resolutions": resolutions,
-                "material": result["material"],
+                "material": result["material"] or assessment_changed,
                 "test_changes": test_changes,
                 "learnings": learnings,
+                **({"skill_assessment": skill_assessment} if skill_assessment is not None else {}),
             }
-            current["revise_material"] = result["material"]
+            current["revise_material"] = result["material"] or assessment_changed
             writes[receipt["candidate_path"]] = body
             action(state, "implement", "step-plan-verify")
         elif stage == "step-plan-verify":
@@ -5662,6 +5748,7 @@ def complete(
         "review",
         "improve-plan",
         "improve-apply",
+        "iteration-document",
         "verify",
         "carry-forward",
         "commit",
@@ -5732,8 +5819,36 @@ def complete(
             it["applied_fingerprint"] = evidence.fingerprint(
                 Path(rec["worktree"]), excluded=exclusions(root, Path(rec["worktree"]))
             )
+            action(
+                state,
+                "implement",
+                "iteration-document" if iteration_documentation_current(state) else "verify",
+            )
+        elif stage == "iteration-document":
+            worktree = Path(rec["worktree"])
+            try:
+                documented = iteration_docs.validate_result(result, worktree)
+            except iteration_docs.IterationDocumentationError as exc:
+                raise ProtocolError(str(exc)) from exc
+            current_fingerprint = evidence.fingerprint(
+                worktree, excluded=exclusions(root, worktree)
+            )
+            documented["material"] = (
+                documented["material"]
+                or current_fingerprint != it.get("applied_fingerprint")
+            )
+            it["documentation"] = {
+                "action": aid,
+                "result_fingerprint": fingerprint,
+                "worktree_fingerprint": current_fingerprint,
+                "material": documented["material"],
+                "learnings": documented["learnings"],
+                "documentation": documented["documentation"],
+                "reusable_skill": documented["reusable_skill"],
+            }
             action(state, "implement", "verify")
         elif stage == "verify":
+            require_iteration_documentation(core, root, state, rec, it)
             verified(core, root, state)
             # Fixes made while getting checks green were not part of the earlier
             # classification. Conservatively treat them as material, never as a
@@ -5831,6 +5946,7 @@ def complete(
                 "commit requires a resolved or not-needed research assessment",
             )
             carry = it.get("carry_forward")
+            documentation = require_iteration_documentation(core, root, state, rec, it)
             need(
                 isinstance(carry, dict),
                 "commit requires a successful carry-forward checkpoint",
@@ -5872,11 +5988,12 @@ def complete(
                 it["review"]["learnings"],
                 *nested_learnings,
                 it["applied"]["learnings"],
+                *([documentation["learnings"]] if documentation is not None else []),
                 carry["learnings"],
             ):
                 need(
                     learned.strip() in body,
-                    "primary commit must include the recorded review and apply learnings verbatim",
+                    "primary commit must include every recorded review, nested-plan, apply, documentation and carry-forward learning verbatim",
                 )
             need(
                 not any(
@@ -5889,6 +6006,7 @@ def complete(
                 it["applied"]["material"]
                 or it.get("late_edits", False)
                 or it.get("research_assessment_material", False)
+                or bool(documentation and documentation.get("material"))
                 or any(x["severity"] == "material" for x in it["review"]["findings"])
             )
             outcome = "material" if material else "trivial"
@@ -6078,20 +6196,21 @@ PROMPTS = {
     "spec-finalize": "Two trivial, fully checked and committed specification passes with no open findings are required. Run fresh planning-verify for the unchanged candidate; do not supply body or lifecycle. Result: summary.",
     "sequence": "Use ShipLoop native dependency planning: draft forward steps, then audit prerequisites backwards one step at a time. Recheck the actual environment, existing implementation, prior Git learning, dependencies, state/sequence flows, edge conditions, second-order effects, and implicit requirements before fixing order. Add missing producers or unresolved questions; never invent initial facts. Read the compact references/activities/plan.md (no external planner skill required). Return summary, dependency_review, plan (Markdown with matching done_sentence and Review Coverage), and the complete dag OR dag_file (absolute Markdown draft path). New runs require DAG contract_version:1 and every step's explicit contract: objective matching statement, Ready criteria, Done criteria, tests with exact expected outcomes, and documentation obligations; follow the printed schema. Import validates the complete DAG without needing it in chat. Mark required prep/publish steps activity: preparation/publish; plan executable checks and concise function/README documentation for every relevant produces. Put environment/deployment prerequisites before dependent checks; deployment-dependent acceptance must be verifiable before the step closes. When a client will call a service, a producer must freeze the invocation contract before the step that authors call sites.",
     "prepare": "Perform only authorized outer-before preparation. Verify the selected test environment, artifact identity, isolated fixtures and readiness; a health probe is not behavioral acceptance. Stop for new permission or external uncertainty. Result: summary, evidence (specific commands/probes/results).",
-    "step-plan": "Draft the initial step-local plan before product edits. Read --section step-context and, when listed, --section system-context, relevant prior Git commit bodies, frozen spec/environment/behavior/plan pages and bounded knowledge. Bind the selected step, actual code, dependencies, selected role/interface/interaction contracts, flows, edge conditions, second-order effects, implicit requirements and docs. Preserve unresolved system contracts as blockers. In body, define test criteria before code: stable case/contract T-IDs, exact produces, preconditions/inputs, expected outcomes/state/side effects, planned test paths/check IDs, target environment and fixtures. Assess unit, mock/fake, integration, end-to-end and browser/service/API: selected, not applicable with reason, or required but blocked. Order code, post-code test authoring/refinement from implementation learnings, then lint/tests and failure repair. Plan checks do not prove future product tests. Draft only Markdown; do not edit product files. Result: summary, body.",
+    "step-plan": "Draft the initial step-local plan before product edits. Read --section step-context and, when listed, --section system-context, relevant prior Git commit bodies, frozen spec/environment/behavior/plan pages and bounded knowledge. Bind the selected step, actual code, dependencies, selected role/interface/interaction contracts, flows, edge conditions, second-order effects, implicit requirements and docs. Preserve unresolved system contracts as blockers. In body, define test criteria before code: stable case/contract T-IDs, exact produces, preconditions/inputs, expected outcomes/state/side effects, planned test paths/check IDs, target environment and fixtures. Assess unit, mock/fake, integration, end-to-end and browser/service/API: selected, not applicable with reason, or required but blocked. Order code, post-code test authoring/refinement from implementation learnings, then lint/tests and failure repair. Plan checks do not prove future product tests. Draft only Markdown; do not edit product files. Result: summary, body, skill_assessment:{inspected:[host-reported refs],selected:[subset],rationale,usage}.",
     "step-plan-review": "Run history first, then read --section step-plan, --section step-context, and when listed --section system-context, plus every knowledge page. Inspect the actual worktree and environment, not only the draft. Audit commits can dominate the latest ten; inspect relevant older implementation decisions by path/symbol when needed. Audit case/criterion mappings, independent expected outcomes, selected role/interface/interaction constraints, unit/mock/fake/integration/end-to-end decisions, fixtures and post-code test refinement in test_strategy. Missing required cases or vague assertions are material. Record stable findings and every coverage dimension. Material scope/behavior means a new or contradictory frozen-contract requirement and pauses execution; an approved-flow gap is implementation, flow or edge-condition. For a listed system context, context_evidence also requires system_context with every and only projected role/interface/interaction/question/observation/source ID and its context digest. Result: summary, findings:[{id,severity:'material|trivial',category:'scope|behavior|implementation|environment|dependency|flow|edge-condition|second-order-effect|implicit-requirement|test-strategy|documentation',summary}], coverage_review with every key, context_evidence:{step,implementation,environment,dependencies}, test_review, learnings. The script binds knowledge page receipts; new runs do not echo their metadata.",
     "step-plan-disposition": "A material scope or behavior finding paused this step plan. After an explicit review of the approved contract, either halt for an authorized broader-plan change, or record only a demonstrated false-positive classification. Do not edit the candidate, product, DAG, or frozen contract. For the latter, Result: summary, disposition:'no-contract-change', resolutions:[{id,evidence}] covering every listed material scope/behavior finding. ShipLoop archives this pass and restarts fresh review; resume alone does not approve it.",
-    "step-plan-revise": "Revise only the step-plan Markdown candidate to address every open finding. Retain complete test criteria, stable case/criterion IDs, independent expected outcomes, coverage decisions, fixtures and the post-code test refinement checkpoint. Do not edit product files, tests, frozen requirements or the DAG here. Retain stable finding IDs and concrete resolution evidence; classify changes honestly. Result: summary, body (complete Markdown candidate), addresses:[every open finding ID], resolutions:[{id,evidence}], material:boolean, test_changes, learnings.",
+    "step-plan-revise": "Revise only the step-plan Markdown candidate to address every open finding. Retain complete test criteria, stable case/criterion IDs, independent expected outcomes, coverage decisions, fixtures and the post-code test refinement checkpoint. Do not edit product files, tests, frozen requirements or the DAG here. Retain stable finding IDs and concrete resolution evidence; classify changes honestly. Result: summary, body (complete Markdown candidate), addresses:[every open finding ID], resolutions:[{id,evidence}], material:boolean, test_changes, learnings, skill_assessment:{inspected:[host-reported refs],selected:[subset],rationale,usage}.",
     "step-plan-verify": "Run planning-verify in the active worktree with a concrete lint and a test acceptance exactly covering 'step plan'. It must pass without changing the candidate, ledger, selected source state, staged/uncommitted work, Git baseline, or frozen inputs. Result: summary.",
     "step-plan-commit": "Create one verbose audit-only Git commit in the active step worktree with Review:, Changes:, Validation:, Key learnings:, and the exact ShipLoop-Iteration trailer for the current step-plan pass. Use git commit --allow-empty --only so staged or uncommitted product work remains untouched. The audit must be the direct child of the printed baseline with the same committed tree. Result: summary, commit (full HEAD SHA).",
     "step-plan-finalize": "Two consecutive verified/audited trivial step-plan passes with no open findings are required. Run fresh planning-verify for the newly bound final pass; do not replace the candidate or findings. Result: summary.",
     "implement": "Read context --section knowledge and --section step-plan for accepted test criteria; neither changes scope or writers. First implement the scoped code. Next perform post-code test refinement: inspect actual diff and implementation learnings, then author or expand executable tests from planned case IDs, inputs and expected outcomes mapped to each produces. Reassess unit, mock/fake, integration, end-to-end and browser/service/API; target boundary, failure, state and regression gaps. Existing/TDD tests may be reused with an adequacy reason. When the step authors client–service calls, tests must cover the real client/HTML invocation path, not mocks or internal substitutes. Update function contracts and README or explain unchanged. Then execute verify with lint and all required tests; diagnose failures, fix code or justify a test correction from independent requirement evidence, and rerun until all pass. Never weaken acceptance or match a buggy result. Result: summary, test_review with planned-to-actual cases/checks, learnings, old/new corrected expectation and source, preserved coverage, environment, actual evidence, docs and unresolved gaps.",
     "review": 'Run history and retrieve every knowledge page for this action. Review actual code, tests, environment, dependencies, flows, edge conditions, second-order effects, implicit requirements and prior learnings. Compare planned versus actual cases and expected versus observed outcomes; seek missing assertions and test gaps from code learnings even when green. Reassess unit/mock/fake/integration/end-to-end adequacy, browser/service/API, real dependency fidelity, function contracts and README. Missing required tests or misleading docs are material; record unresolved gaps or evidence why existing tests remain adequate. Result: summary, findings:[{severity:"material|trivial",summary}], test_review, learnings, research_assessment:{status:"not-needed|resolved|required|blocked",summary,evidence:[safe refs],questions:[strings]}; non-not-needed requires evidence/questions. Use resolved only for new investigation this pass (material); not-needed means no new material research and prior evidence remains valid. For activity:research also supply every research_review rubric key. Empty findings is valid, not proof of exhaustive coverage.',
-    "improve-plan": "Plan all findings/Git learnings from step-context and listed system-context; retain PARENT-* IDs/constraints. Fill every template section with evidence, prevention/no-change reasons; converge via rubric before application. Result: summary, body (Markdown plan).",
+    "improve-plan": "Plan all findings/Git learnings from step-context and listed system-context; retain PARENT-* IDs/constraints. Fill every template section with evidence, prevention/no-change reasons; converge via rubric before application. Result: summary, body (Markdown plan), skill_assessment:{inspected:[host-reported refs],selected:[subset],rationale,usage}.",
     "improve-apply": "First implement only the certified scoped code/trivial fixes. Next perform post-code test refinement: inspect actual implementation learnings, author/expand tests from planned criteria, and reassess unit/mock/fake/integration/end-to-end and browser/service/API gaps. Record authored/updated/reused case IDs, test paths/check IDs and why existing tests are adequate. A legitimate test correction needs old/new expectation, independent requirement evidence and preserved coverage; never weaken acceptance to match a bug. Recheck environment/dependency/flow/edge/second-order/implicit effects; update function/README docs or explain unchanged before verify executes lint/tests. If prior research was required/blocked, include resolved research_assessment with safe evidence and every required question verbatim; do not fabricate resolution. Result: summary, material:boolean, test_changes, learnings. Material test gaps, corrections or code changes reset the streak; small diffs are not necessarily trivial.",
+    "iteration-document": "Before verification, make the explicit documentation and reusable-local-skill decision for this Improve pass. Read context --section step-context, --section step-plan, --section knowledge and --section iteration; inspect the actual worktree and README/AGENTS/design/environment material. Update code comments, README, or related local docs when needed. A local reusable skill is optional: create/update/reuse only when it has a future audience beyond this step; never install it globally. Created/updated skills must be regular repo-local SKILL.md entrypoints with concrete purpose, when/how to use, inputs, references and validation evidence. Result: summary, documentation:{decision:'created|updated|reused|not-needed',rationale,paths,references}, reusable_skill:{decision,rationale,paths,references; for created|updated|reused also purpose,when,how,inputs,validation}, material:boolean, learnings. Use actual repo-relative regular-file paths; reused skills name their actual path and references. This action is required before verify. Do not edit the worktree after this checkpoint: any later byte edit invalidates it and requires repair/restart review followed by a fresh documentation decision.",
     "verify": "Run verify for fresh lint and every required step test, including applicable documentation/examples. Compare actual with independent expected outcomes in the selected environment; required failed, blocked or unrun cases remain unfinished. Diagnose code, test, fixture or environment failures; do not retry flaky failures for lucky green. Correct tests only with old/new expectation, independent requirement evidence and preserved coverage, never by weakening acceptance. Changed manifests require verify --reason. Fix and rerun lint/tests after every edit; completion is refused until all checks pass on unchanged files. Any late edit is material and restarts convergence. Result: summary with case/check evidence, failure diagnosis and correction reasons; write run-only observations in the inbox, not product files after checks.",
     "carry-forward": "After successful fresh verification and before commit, record an explicit carry-forward checkpoint. Retrieve context --section knowledge; result fields are summary, learnings (nonempty string), discoveries (explicit [] when none), and optional resolutions. Each discovery is {id,domain,observation,evidence,scope,disposition,rationale,revalidate}; domains and dispositions are fixed by the linked protocol. Observations are host-reported, evidence is a safe reference, and no credential values or credential-bearing URLs are allowed. current-step-repair restarts review with a material interrupted checkpoint; pending-replan remains an obligation for post-inner; pause requires a later no-contract-change resolution. Do not rewrite frozen contracts.",
-    "commit": "Create a distinct verbose primary commit on the step branch (not branch main). Include Review:, Changes:, Validation:, Key learnings: sections and the exact ShipLoop-Iteration trailer using the iteration ID above. Include the recorded review.learnings, nested step-plan plan_learnings, applied.learnings, and carry-forward learnings strings verbatim (retrieve context --section iteration); honest no-new-findings is valid. Include case and function/README documentation deltas or no-change reasons without copying full logs. Use an empty audit commit if no files changed. Stage explicit paths only. Result: summary, commit (full HEAD SHA).",
+    "commit": "Create a distinct verbose primary commit on the step branch (not branch main). Include Review:, Changes:, Validation:, Key learnings: sections and the exact ShipLoop-Iteration trailer using the iteration ID above. Include the recorded review.learnings, nested step-plan plan_learnings, applied.learnings, and carry-forward learnings strings verbatim (retrieve context --section iteration). For a versioned documentation run, also include iteration.documentation.learnings verbatim; a legacy run without that marker must not invent a documentation record. Honest no-new-findings is valid. Include case and function/README documentation deltas or no-change reasons without copying full logs. Use an empty audit commit if no files changed. Stage explicit paths only. Result: summary, commit (full HEAD SHA).",
     "final-verify": "Two trivial-only iterations are recorded. Run verify again on the final tree, including all applied trivial fixes and applicable documentation/example checks. Compare required case outcomes; no stale results or failed, blocked or unrun required tests may exit the inner loop. Result: summary with case/evidence references.",
     "post-inner": 'After improvements and passing tests: use the current environment, actual implementation, Git learnings, dependencies, flows, edge conditions, second-order effects, and implicit requirements to ask whether broader steps, prep, test cases/surfaces, function contracts, or README documentation must change. Result: summary, plan_decision="no-change|revise", plan_reason, journal:[proposals]. For revise include complete dag and plan; only pending steps can change. If context --section knowledge reports open obligations, revise and include pending_obligation_map:[{id,steps:[changed-or-added pending step IDs]}]; this schedules work, it does not verify or fix it. Generic ShipLoop proposals require title,evidence,impact,proposal,test_idea. Do not self-modify the harness.',
     "merge": "The step passed convergence, final checks and broader-plan review. Return summary to merge into the session checkout. Merge is local only; no push or publication.",
@@ -6169,6 +6288,18 @@ for _microplan_stage in ("implement", "improve-apply"):
         "pause on unknown outcomes, never automatically replay effects."
     )
 
+for _baseline_stage in (
+    "sequence", "step-plan", "step-plan-review", "step-plan-revise",
+    "implement", "review", "improve-plan", "improve-apply",
+):
+    PROMPTS[_baseline_stage] += (
+        " Read the selected baseline-tests-and-migrations guidance. Before changing "
+        "a surface, decide whether a focused existing-state test or small migration is "
+        "needed; prefer isolated, reversible migration increments. During planning, "
+        "also inspect available local skills and reuse one only when its declared input "
+        "and purpose fit this step."
+    )
+
 
 # Section routing keeps each action small; the referenced policy is shared by hosts.
 TEST_DOC_SECTIONS = {
@@ -6200,6 +6331,7 @@ TEST_DOC_SECTIONS = {
     "review": ("iteration",),
     "improve-plan": ("iteration",),
     "improve-apply": ("iteration",),
+    "iteration-document": ("iteration-documentation-and-reuse",),
     "verify": ("test-cases",),
     "carry-forward": ("iteration",),
     "commit": ("iteration",),
@@ -6214,7 +6346,7 @@ TEST_DOC_SECTIONS = {
 # Reuse the existing guidance/result contract; style adds no stage or state.
 for _implementation_stage in (
     "step-plan", "step-plan-review", "step-plan-revise",
-    "implement", "review", "improve-plan", "improve-apply", "verify",
+    "implement", "review", "improve-plan", "improve-apply", "iteration-document", "verify",
 ):
     TEST_DOC_SECTIONS[_implementation_stage] = (
         *TEST_DOC_SECTIONS.get(_implementation_stage, ()),
@@ -6249,6 +6381,7 @@ BEHAVIOR_SECTIONS = {
     "review": ("traceability-and-review",),
     "improve-plan": ("traceability-and-review",),
     "improve-apply": ("traceability-and-review",),
+    "iteration-document": ("traceability-and-review",),
     "verify": ("traceability-and-review",),
     "carry-forward": ("traceability-and-review",),
     "final-verify": ("traceability-and-review",),
@@ -6288,21 +6421,22 @@ PLANNING_SECTIONS = {
 # Per-step planning is a separate, Markdown-bound gate.  The guide is routed
 # in small sections so an exhausted model need not carry its archive history.
 STEP_PLANNING_SECTIONS = {
-    "step-plan": ("loop-contract", "cold-start-evidence", "local-microplan-and-backchain"),
-    "step-plan-review": ("review-rubric", "cold-start-evidence", "local-microplan-and-backchain"),
+    "step-plan": ("loop-contract", "cold-start-evidence", "local-microplan-and-backchain", "baseline-tests-and-migrations"),
+    "step-plan-review": ("review-rubric", "cold-start-evidence", "local-microplan-and-backchain", "baseline-tests-and-migrations"),
     "step-plan-disposition": ("contract-disposition",),
-    "step-plan-revise": ("revise-and-verify", "local-microplan-and-backchain"),
+    "step-plan-revise": ("revise-and-verify", "local-microplan-and-backchain", "baseline-tests-and-migrations"),
     "step-plan-verify": ("revise-and-verify",),
     "step-plan-commit": ("revise-and-verify",),
     "step-plan-finalize": ("loop-contract",),
-    "improve-plan": ("phase-specific-emphasis", "local-microplan-and-backchain"),
-    "implement": ("local-microplan-and-backchain",),
+    "improve-plan": ("phase-specific-emphasis", "local-microplan-and-backchain", "baseline-tests-and-migrations"),
+    "implement": ("local-microplan-and-backchain", "baseline-tests-and-migrations"),
     "research-plan": ("phase-specific-emphasis",),
     "behavior-plan": ("phase-specific-emphasis",),
     "spec-plan": ("phase-specific-emphasis",),
-    "sequence": ("phase-specific-emphasis",),
-    "review": ("phase-specific-emphasis",),
-    "improve-apply": ("phase-specific-emphasis", "local-microplan-and-backchain"),
+    "sequence": ("phase-specific-emphasis", "baseline-tests-and-migrations"),
+    "review": ("phase-specific-emphasis", "baseline-tests-and-migrations"),
+    "improve-apply": ("phase-specific-emphasis", "local-microplan-and-backchain", "baseline-tests-and-migrations"),
+    "iteration-document": ("phase-specific-emphasis",),
     "post-inner": ("phase-specific-emphasis",),
     "quality": ("phase-specific-emphasis",),
 }
@@ -6324,16 +6458,17 @@ OBJECTIVE_SECTIONS = {
 # from the generic planning loop guide so a cold host only reads the section
 # that explains the current research decision.
 RESEARCH_SECTIONS = {
-    "research": ("draft", "decision-boundaries"),
-    "research-review": ("review", "decision-boundaries"),
-    "research-plan": ("review", "decision-boundaries"),
-    "research-apply": ("draft", "decision-boundaries"),
+    "research": ("draft", "decision-boundaries", "recursive-discovery-and-experiments"),
+    "research-review": ("review", "decision-boundaries", "recursive-discovery-and-experiments"),
+    "research-plan": ("review", "decision-boundaries", "recursive-discovery-and-experiments"),
+    "research-apply": ("draft", "decision-boundaries", "recursive-discovery-and-experiments"),
     "research-verify": ("evidence-and-freshness",),
     "research-commit": ("evidence-and-freshness",),
     "research-finalize": ("evidence-and-freshness",),
-    "review": ("later-discoveries",),
-    "improve-plan": ("later-discoveries",),
-    "improve-apply": ("later-discoveries",),
+    "review": ("later-discoveries", "recursive-discovery-and-experiments"),
+    "improve-plan": ("later-discoveries", "recursive-discovery-and-experiments"),
+    "improve-apply": ("later-discoveries", "recursive-discovery-and-experiments"),
+    "iteration-document": ("later-discoveries",),
     "carry-forward": ("later-discoveries",),
     "post-inner": ("later-discoveries",),
 }
@@ -7056,6 +7191,7 @@ def main(core, argv=None):
                     outer_work_protocol_version=1,
                     observation_protocol_version=1,
                     system_test_protocol_version=1,
+                    iteration_documentation_protocol_version=ITERATION_DOCUMENTATION_PROTOCOL_VERSION,
                 )
                 initial_writes = {}
                 initialize_knowledge(root, state, initial_writes)
@@ -7918,6 +8054,7 @@ def main(core, argv=None):
                             "review",
                             "improve-plan",
                             "improve-apply",
+                            "iteration-document",
                             "verify",
                             "carry-forward",
                             "commit",

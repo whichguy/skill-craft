@@ -966,6 +966,7 @@ class ProtocolTests(unittest.TestCase):
             "review": ("iteration", "implementation-constitution"),
             "improve-plan": ("iteration", "implementation-constitution"),
             "improve-apply": ("iteration", "implementation-constitution"),
+            "iteration-document": ("iteration-documentation-and-reuse", "implementation-constitution"),
             "carry-forward": ("iteration",),
             "commit": ("iteration",),
             "post-inner": ("iteration",),
@@ -1188,6 +1189,7 @@ schema or sidecar is needed.
             "review": ("traceability-and-review",),
             "improve-plan": ("traceability-and-review",),
             "improve-apply": ("traceability-and-review",),
+            "iteration-document": ("traceability-and-review",),
             "verify": ("traceability-and-review",),
             "carry-forward": ("traceability-and-review",),
             "final-verify": ("traceability-and-review",),
@@ -1376,27 +1378,57 @@ schema or sidecar is needed.
         expected_anchors = {anchor for anchors in expected.values() for anchor in anchors}
         self.assertTrue(expected_anchors <= anchors)
 
+    def test_recursive_research_guidance_routes_to_investigation_and_inner_readers(self):
+        import re
+
+        import shiploop_protocol
+
+        expected = {
+            "research": ("draft", "decision-boundaries", "recursive-discovery-and-experiments"),
+            "research-review": ("review", "decision-boundaries", "recursive-discovery-and-experiments"),
+            "research-plan": ("review", "decision-boundaries", "recursive-discovery-and-experiments"),
+            "research-apply": ("draft", "decision-boundaries", "recursive-discovery-and-experiments"),
+            "research-verify": ("evidence-and-freshness",),
+            "research-commit": ("evidence-and-freshness",),
+            "research-finalize": ("evidence-and-freshness",),
+            "review": ("later-discoveries", "recursive-discovery-and-experiments"),
+            "improve-plan": ("later-discoveries", "recursive-discovery-and-experiments"),
+            "improve-apply": ("later-discoveries", "recursive-discovery-and-experiments"),
+            "iteration-document": ("later-discoveries",),
+            "carry-forward": ("later-discoveries",),
+            "post-inner": ("later-discoveries",),
+        }
+        self.assertEqual(shiploop_protocol.RESEARCH_SECTIONS, expected)
+        self.assertTrue(set(expected) <= set(shiploop_protocol.PROMPTS))
+        reference = SCRIPTS.parent / "references/research-loop.md"
+        anchors = {
+            re.sub(r"[^a-z0-9 -]", "", heading.lower()).replace(" ", "-")
+            for heading in re.findall(r"(?m)^##\s+(.+?)\s*$", reference.read_text())
+        }
+        self.assertTrue({anchor for values in expected.values() for anchor in values} <= anchors)
+
     def test_step_planning_guidance_routes_only_the_current_bounded_section(self):
         import re
 
         import shiploop_protocol
 
         expected = {
-            "step-plan": ("loop-contract", "cold-start-evidence", "local-microplan-and-backchain"),
-            "step-plan-review": ("review-rubric", "cold-start-evidence", "local-microplan-and-backchain"),
+            "step-plan": ("loop-contract", "cold-start-evidence", "local-microplan-and-backchain", "baseline-tests-and-migrations"),
+            "step-plan-review": ("review-rubric", "cold-start-evidence", "local-microplan-and-backchain", "baseline-tests-and-migrations"),
             "step-plan-disposition": ("contract-disposition",),
-            "step-plan-revise": ("revise-and-verify", "local-microplan-and-backchain"),
+            "step-plan-revise": ("revise-and-verify", "local-microplan-and-backchain", "baseline-tests-and-migrations"),
             "step-plan-verify": ("revise-and-verify",),
             "step-plan-commit": ("revise-and-verify",),
             "step-plan-finalize": ("loop-contract",),
-            "improve-plan": ("phase-specific-emphasis", "local-microplan-and-backchain"),
-            "implement": ("local-microplan-and-backchain",),
+            "improve-plan": ("phase-specific-emphasis", "local-microplan-and-backchain", "baseline-tests-and-migrations"),
+            "implement": ("local-microplan-and-backchain", "baseline-tests-and-migrations"),
             "research-plan": ("phase-specific-emphasis",),
             "behavior-plan": ("phase-specific-emphasis",),
             "spec-plan": ("phase-specific-emphasis",),
-            "sequence": ("phase-specific-emphasis",),
-            "review": ("phase-specific-emphasis",),
-            "improve-apply": ("phase-specific-emphasis", "local-microplan-and-backchain"),
+            "sequence": ("phase-specific-emphasis", "baseline-tests-and-migrations"),
+            "review": ("phase-specific-emphasis", "baseline-tests-and-migrations"),
+            "improve-apply": ("phase-specific-emphasis", "local-microplan-and-backchain", "baseline-tests-and-migrations"),
+            "iteration-document": ("phase-specific-emphasis",),
             "post-inner": ("phase-specific-emphasis",),
             "quality": ("phase-specific-emphasis",),
         }

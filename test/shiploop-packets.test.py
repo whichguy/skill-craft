@@ -1094,6 +1094,7 @@ class PacketTests(unittest.TestCase):
             "review",
             "improve-plan",
             "improve-apply",
+            "iteration-document",
             "verify",
         )
         api = {"TEST_DOC_SECTIONS": shiploop_protocol.TEST_DOC_SECTIONS}
@@ -1113,6 +1114,82 @@ class PacketTests(unittest.TestCase):
                 self.assertEqual(routes[stage], 0)
         self.assertEqual(
             {stage for stage, count in routes.items() if count}, set(selected_stages)
+        )
+
+    def test_iteration_document_packet_keeps_loop_orientation_and_step_plan_reader(self):
+        import shiploop_packets
+        import shiploop_protocol
+
+        state = {
+            "phase": "implement",
+            "stage": "iteration-document",
+            "revision": 1,
+            "action": {"id": "document-packet"},
+            "completed_actions": {},
+            "prompt": "Document the selected change before verification.",
+            "active_step": "S1",
+            "history_policy": {"version": 2, "required_limit": 7},
+            "iteration_documentation_protocol_version": 1,
+            "carry_forward_protocol_version": 1,
+        }
+        api = {
+            "repo_for": lambda _root, _state: self.repo,
+            "planning": SimpleNamespace(
+                is_current=lambda _state: True,
+                is_planning_stage=lambda _stage: False,
+            ),
+            "objectives": SimpleNamespace(is_objective_stage=lambda _stage: False),
+            "is_step_plan_stage": lambda _stage: False,
+            "PROMPTS": {
+                "iteration-document": shiploop_protocol.PROMPTS["iteration-document"],
+            },
+            "TEST_DOC_SECTIONS": shiploop_protocol.TEST_DOC_SECTIONS,
+        }
+        core = SimpleNamespace(
+            VERSION="test",
+            PACKAGE_ROOT=SCRIPTS.parent,
+            REF_DIR=SCRIPTS.parent / "references",
+        )
+        with (
+            patch.object(
+                shiploop_packets,
+                "_step_info",
+                return_value=(
+                    {
+                        "step": {"id": "S1", "prompt": "Document the selected change."},
+                        "step_plan_loop": "LOOP-S1",
+                        "receipt": {"step_plan": {"status": "finalized"}},
+                        "knowledge_read": {
+                            "unmapped_obligations": 0,
+                            "scheduled_obligations": 0,
+                            "revision": 1,
+                            "digest": "a" * 64,
+                            "scope": ["S1"],
+                        },
+                    },
+                    None,
+                ),
+            ),
+            patch.object(shiploop_packets, "_objective_info", return_value=({}, None)),
+            patch.object(shiploop_packets, "_environment_projection", return_value=([], None)),
+            patch.object(
+                shiploop_packets,
+                "_platform_revalidation_packet",
+                return_value=([], [], None),
+            ),
+            patch.object(shiploop_packets, "_check_commands", return_value=[]),
+        ):
+            packet = shiploop_packets.render(core, self.run_dir, state, api)
+
+        self.assertIn(
+            "You are here: implement → selected step S1 → product review-and-improve loop → iteration-document (action document-packet).",
+            packet,
+        )
+        self.assertIn("Review-and-improve cycle (owning loop):", packet)
+        self.assertIn("Test-plan criteria:", packet)
+        self.assertIn(
+            "requires repair/restart review followed by a fresh documentation decision.",
+            packet,
         )
 
     def test_last_accepted_action_explains_replay_and_current_recovery(self):
@@ -1662,6 +1739,143 @@ class PacketTests(unittest.TestCase):
         self.assertNotIn("next byte offset", long_packet)
         self.assertNotIn(oversized, long_packet)
         self.assertIn("ShipLoop-Iteration: OBJ-P1", long_packet)
+
+    def test_versioned_primary_commit_packet_requires_documentation_learning_but_legacy_does_not(self):
+        import shiploop_packets
+        import shiploop_protocol
+
+        baseline = self.git("rev-parse", "HEAD")
+        core = SimpleNamespace(PACKAGE_ROOT=SCRIPTS.parent)
+        iteration = {
+            "id": "INNER-I1",
+            "previous_sha": baseline,
+            "check_action": "inner-check",
+            "review": {"learnings": "Implementation review learning."},
+            "plan_learnings": ["Nested plan learning."],
+            "applied": {"learnings": "Implementation apply learning."},
+            "carry_forward": {"learnings": "Carry-forward learning."},
+        }
+        info = {"receipt": {"iteration": iteration}}
+        versioned_state = {
+            "stage": "commit",
+            "iteration_documentation_protocol_version": 1,
+        }
+
+        provenance, error = shiploop_packets._commit_provenance(
+            core, self.run_dir, versioned_state, {}, info
+        )
+        self.assertIsNone(provenance)
+        self.assertEqual(error, "iteration documentation record is unavailable")
+
+        iteration["documentation"] = {}
+        provenance, error = shiploop_packets._commit_provenance(
+            core, self.run_dir, versioned_state, {}, info
+        )
+        self.assertIsNone(provenance)
+        self.assertEqual(error, "iteration documentation.learnings is unavailable")
+
+        documentation_learning = "Documentation assessment is durable for this exact iteration."
+        iteration["documentation"] = {"learnings": documentation_learning}
+        provenance, error = shiploop_packets._commit_provenance(
+            core, self.run_dir, versioned_state, {}, info
+        )
+        self.assertIsNone(error)
+        self.assertEqual(
+            provenance["learnings"],
+            [
+                ("implementation review", "Implementation review learning."),
+                ("nested step-plan 1", "Nested plan learning."),
+                ("implementation apply", "Implementation apply learning."),
+                ("iteration documentation", documentation_learning),
+                ("carry-forward", "Carry-forward learning."),
+            ],
+        )
+        lines, error = shiploop_packets._commit_packet_lines(
+            core, self.run_dir, versioned_state, {}, info
+        )
+        self.assertIsNone(error)
+        packet = "\n".join(lines)
+        self.assertIn(
+            "- iteration documentation: " + documentation_learning,
+            packet,
+        )
+        _template, notes = shiploop_packets._execution_template(
+            "commit", versioned_state, {}
+        )
+        self.assertIn("iteration.documentation.learnings verbatim", notes[0])
+        self.assertIn(
+            "iteration.documentation.learnings verbatim",
+            shiploop_protocol.PROMPTS["commit"],
+        )
+
+        legacy_iteration = dict(iteration)
+        legacy_iteration.pop("documentation")
+        legacy_provenance, legacy_error = shiploop_packets._commit_provenance(
+            core,
+            self.run_dir,
+            {"stage": "commit"},
+            {},
+            {"receipt": {"iteration": legacy_iteration}},
+        )
+        self.assertIsNone(legacy_error)
+        self.assertNotIn(
+            "iteration documentation",
+            [label for label, _learning in legacy_provenance["learnings"]],
+        )
+
+    def test_step_plan_summary_preserves_latest_assessment_after_current_pass_reset(self):
+        import shiploop_protocol
+
+        origin_assessment = {
+            "inspected": ["origin skill"],
+            "selected": [],
+            "rationale": "Origin inventory is retained for a cold reader.",
+            "usage": "No use: no origin skill was selected.",
+        }
+        prior_assessment = {
+            "inspected": ["prior revised skill"],
+            "selected": ["prior revised skill"],
+            "rationale": "The revised pass selected the applicable local skill.",
+            "usage": "Use the selected skill's declared inputs and limits.",
+        }
+        latest_assessment = {
+            "inspected": ["latest revised skill"],
+            "selected": [],
+            "rationale": "The most recent revised pass found no selected skill.",
+            "usage": "No use: the latest revised pass selected no skill.",
+        }
+        receipt = {
+            "loop_id": "LOOP-S1",
+            "route": "initial",
+            "return_stage": "implement",
+            "candidate_sha256": "a" * 64,
+            "ledger_sha256": "b" * 64,
+            "context_sha256": "c" * 64,
+            "epoch": 3,
+            "origin": {"skill_assessment": origin_assessment},
+            # A newly started pass has no revise result yet. Its cold summary
+            # must retain the latest completed assessment, not regress to origin.
+            "current_pass": {"id": "PASS-3", "number": 3},
+            "findings": [],
+            "completed_passes": [
+                {"id": "PASS-1", "revise": {"skill_assessment": prior_assessment}},
+                {"id": "PASS-2", "revise": {"skill_assessment": latest_assessment}},
+            ],
+        }
+        summary = shiploop_protocol.step_plan_current_summary(receipt)
+        self.assertEqual(summary["skill_assessment"], latest_assessment)
+
+        current_assessment = {
+            "inspected": ["current revised skill"],
+            "selected": ["current revised skill"],
+            "rationale": "The active revision supersedes completed-pass evidence.",
+            "usage": "Use the active revision's selected skill.",
+        }
+        receipt["current_pass"]["revise"] = {"skill_assessment": current_assessment}
+        self.assertEqual(
+            shiploop_protocol.step_plan_current_summary(receipt)["skill_assessment"],
+            current_assessment,
+        )
 
     def test_failed_checks_and_uncertified_terminal_never_claim_completion(self):
         import shiploop_packets

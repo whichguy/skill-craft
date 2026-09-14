@@ -118,6 +118,61 @@ illustrates that an adapter boundary does not grant authority; and
 idempotency must come from the actual API contract. These are investigation
 anchors, not a mandate to install an MCP server or adopt an RPC design.
 
+## Recursive discovery and experiments
+
+Start with the task's affected flows, not a fixed number of hops. Read the repo
+README and existing applicable AGENTS.md, architecture/design/environment notes
+and local skills before rediscovering their subject. Record absence or stale
+claims explicitly. Recheck volatile facts; documentation is not live access proof.
+
+For each relevant system, including the world behind an MCP gateway, ask:
+
+- Who produces input, invokes operations, consumes results or receives secondary
+  effects? Include people, jobs, services and external actors on both sides.
+- Where is state stored and who owns it? Trace data format/schema, source of
+  truth, lifecycle/retention, consistency and migration/compatibility boundaries.
+- What sequence, library/client convention, event or protocol connects actors?
+  Follow validation, async completion, retry/deduplication, partial failure and
+  recovery to the actual durable or user-visible effect.
+- Which identity and permissions apply at each hop? Distinguish tenant/account
+  roles, delegated authority, sensitive data crossing boundaries and auditability.
+  Upstream authentication does not prove downstream permission or safe isolation.
+- Does this system call another system or gateway whose contract could change
+  the required behavior, tests, deployment or chosen approach? Investigate that
+  boundary, using existing question parents/interaction links and source IDs.
+
+For each explored branch, give a stopping reason in `depth_rationale` and the
+report: the in-scope effect and important failure/security semantics are backed
+by inspected evidence, or an explicit open/blocked question names what is missing.
+Reuse already-inspected nodes when paths reconverge or cycle. Do not follow every
+unrelated integration or inspect private account contents simply to enumerate
+them. Reopen a branch when new evidence could materially change the plan. A
+bounded local function may need one trace; a multi-service write may need several
+trust and persistence boundaries. Complexity must match actual scope and risk.
+
+If observation is inaccessible, compare available MCP/API/CLI/SDK/browser routes
+using [platform discovery](platform-discovery.md#discover-before-choosing-a-mechanism).
+No route found is a recorded gap, not evidence that the system has no behavior.
+
+Use a small experiment when it can settle a consequential uncertainty better
+than more reading. Before running, name the question/hypothesis, independent
+expected outcomes, what result would change the plan, permitted target/role,
+isolated fixture, effects, limits and cleanup/recovery. Prefer non-mutating
+inspection, then a bounded authorized sandbox probe. Never test on production
+because it is the only available target. Capture actual positive/negative/unknown
+outcomes, access/observation date, version and limitations as existing `probe`
+sources; do not record secrets or treat a planned experiment as evidence.
+Stop on unexpected effects or missing authority. A material finding goes back
+through the existing review/plan/apply loop and resets convergence.
+
+Repeat consequential investigation in each research review: seek an overlooked
+actor, downstream effect, conflicting source or disproving experiment. An unchanged
+blocker stays open, while two fully checked trivial passes can finish only with
+no required unresolved questions. No recursive sub-loop, new journal or numeric
+depth quota is needed. Carry durable reusable conclusions to the existing plan,
+knowledge/outer-work records and scoped product documentation tasks; never write
+product docs during a research-only action or hand-edit frozen environment state.
+
 ## Decision boundaries
 
 Classify the next useful action in the existing question's `answer`,

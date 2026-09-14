@@ -26,6 +26,23 @@ the selected interface. Discovering an MCP name does not prove it is connected;
 finding a CLI does not prove that the current account has permission. Do not
 install a connector, change credentials, or create a remote target implicitly.
 
+An MCP server can be a gateway, not the whole system. Identify the system behind
+it and the access actually needed for this task. If a relevant system has no
+usable route, investigate whether a supported MCP server, existing API/CLI/SDK,
+or authorized browser session could supply the missing observation or operation.
+Compare coverage, publisher/provenance, authentication, data exposure, maintenance
+and verification against existing tools. Registry presence is a lead, not trust
+or access proof. Record adopt/pilot/defer/reject and why in survey/research prose.
+Recommend adding a connector only for a concrete gap; request authorization
+before installation, credential grants or persistent configuration. A browser
+is not a bypass for a blocked writer or missing permissions. Keep optional
+alternatives outside the selected required inventory until explicitly selected.
+
+Follow the relevant gateway's actors and contracts as described in
+[recursive discovery](research-loop.md#recursive-discovery-and-experiments).
+Local and remote boundaries need the same evidence discipline; discovering a
+second gateway is not permission to invoke it or traverse unrelated accounts.
+
 Research the destination's language, metadata/schema, module boundaries,
 registration or bootstrap, generated/reserved files, syntax validation,
 client–service invocation, deployment/package mechanics, and real acceptance

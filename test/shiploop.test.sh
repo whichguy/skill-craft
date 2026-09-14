@@ -16,6 +16,9 @@ for suite in \
   test/shiploop-system-context.test.py \
   test/shiploop-research-template.test.py \
   test/shiploop-research-packet-protocol.test.py \
+  test/shiploop-question-resume.test.py \
+  test/shiploop-iteration-docs.test.py \
+  test/shiploop-iteration-docs-protocol.test.py \
   test/shiploop-system-tests.test.py \
   test/shiploop-system-tests-protocol.test.py \
   test/shiploop-system-tests-report.test.py \

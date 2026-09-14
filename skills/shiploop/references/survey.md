@@ -96,6 +96,21 @@ Record evidence for:
 - existing README.md and, if it exists, root AGENTS.md as references only.
   Product docs are later DAG work when needed, never the survey's mutation.
 
+Always inspect the repository README (or record its absence). On a fresh run or
+resumption, look for existing applicable AGENTS.md instructions, architecture,
+design and environment documents, prior decision records and repo-local skills.
+Use their existing locations and indexes; do not assume a blank project, load
+every file, or treat old observations as current proof. Follow relevant references,
+check them against actual code/system behavior, and record source/version and
+revalidation needs. These files are input material, not ShipLoop's state cursor.
+
+For existing code, identify meaningful baseline/characterization checks before
+modification, whether they are known to run clean, and what unavailable or failing
+results mean for readiness. A target regression may intentionally fail; unrelated
+broken prerequisites need explicit repair or a blocker, not a false clean claim.
+Investigate data shape/version and any migration ordering/isolation constraints;
+carry these into [baseline and migration planning](execution-planning.md#baseline-tests-and-migrations).
+
 Research turns these surveyed constraints into a bounded question/source
 candidate. It uses the paired `research.md` and `research-evidence.md` records
 under the research loop, not an untyped extension of `environment.md`. See the

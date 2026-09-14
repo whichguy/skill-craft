@@ -1310,6 +1310,14 @@ document any future function-contract or README impact before implementation.
 
 {parent_section}"""
 
+    def skill_assessment(self):
+        return {
+            "inspected": [],
+            "selected": [],
+            "rationale": "The scoped fixture skill inventory is absent, so no reusable skill can be selected.",
+            "usage": "No use: no selected skill is applicable to this fixture step.",
+        }
+
     def step_plan_coverage(self):
         return {
             key: f"Reviewed {key} against the active step, durable inputs, and current worktree."
@@ -1459,6 +1467,7 @@ document any future function-contract or README impact before implementation.
                 ],
                 "test_changes": "The candidate-bound test asserts the explicit expected output; no acceptance condition was removed.",
                 "learnings": revise_learning,
+                "skill_assessment": self.skill_assessment(),
             },
             label=f"{sid}-step-plan-{number}-revise",
         )
@@ -1511,6 +1520,7 @@ document any future function-contract or README impact before implementation.
                         else []
                     ),
                 ),
+                "skill_assessment": self.skill_assessment(),
             },
             label=f"{sid}-{route}-step-plan-draft",
         )
@@ -1765,8 +1775,11 @@ document any future function-contract or README impact before implementation.
     ):
         wt = self.worktree(sid)
         plan_learnings = iteration.get("plan_learnings", [])
+        documentation_learning = iteration.get("documentation", {}).get("learnings", "")
         self.assertIsInstance(plan_learnings, list)
         self.assertTrue(all(isinstance(item, str) and item for item in plan_learnings))
+        self.assertIsInstance(documentation_learning, str)
+        self.assertTrue(documentation_learning)
         message = "\n".join(
             [
                 f"Improve {sid} {iteration['id']}",
@@ -1783,6 +1796,7 @@ document any future function-contract or README impact before implementation.
                 "Key learnings:",
                 review_learning,
                 apply_learning,
+                documentation_learning,
                 carry_learning,
                 *(plan_learnings if include_plan_learnings else []),
                 "",
@@ -1847,6 +1861,7 @@ document any future function-contract or README impact before implementation.
                     "improve draft",
                     parent_ids=self.step_plan_parent_ids(sid),
                 ),
+                "skill_assessment": self.skill_assessment(),
             },
             label=f"{sid}-improve-plan",
         )
@@ -1865,6 +1880,29 @@ document any future function-contract or README impact before implementation.
                 "learnings": apply_learning,
             },
             label=f"{sid}-improve-apply",
+        )
+        self.assertEqual(self.state()["stage"], "iteration-document")
+        document_action = self.action_id()
+        self.complete(
+            {
+                "summary": "The README and local-skill assessment are current for this fixture iteration.",
+                "documentation": {
+                    "decision": "not-needed",
+                    "rationale": "The fixture README does not need a separate iteration update.",
+                    "paths": [],
+                    "references": [],
+                },
+                "reusable_skill": {
+                    "decision": "not-needed",
+                    "rationale": "The fixture change has no reusable local workflow.",
+                    "paths": [],
+                    "references": [],
+                },
+                "material": False,
+                "learnings": "The explicit documentation and reuse decision is available to the commit.",
+            },
+            action_id=document_action,
+            label=f"{sid}-iteration-document",
         )
         self.assertEqual(self.state()["stage"], "verify")
         verification_action = self.action_id()
@@ -1931,6 +1969,31 @@ document any future function-contract or README impact before implementation.
                 },
                 code=2,
                 label=f"{sid}-missing-learning",
+            )
+            self.assertIn("verbatim", rejected.stderr)
+            self.assertEqual(self.state()["stage"], "commit")
+            self.assertEqual(self.receipt(sid)["improve_cycles"], [])
+            # A plausible summary cannot replace the independently recorded
+            # documentation learning, even when every other learning matches.
+            altered_iteration = {
+                **iteration,
+                "documentation": {
+                    **iteration["documentation"],
+                    "learnings": "An unrecorded substitute for the documentation checkpoint learning.",
+                },
+            }
+            missing_docs_sha = self.formatted_commit(
+                sid, altered_iteration, verification_action,
+                review_learning, apply_learning, carry_learning,
+            )
+            self.assertNotIn(
+                iteration["documentation"]["learnings"],
+                self.git("show", "-s", "--format=%B", missing_docs_sha, cwd=wt),
+            )
+            rejected, _ = self.complete(
+                {"summary": "Attempt to substitute the documentation learning.", "commit": missing_docs_sha},
+                code=2,
+                label=f"{sid}-missing-documentation-learning",
             )
             self.assertIn("verbatim", rejected.stderr)
             self.assertEqual(self.state()["stage"], "commit")
@@ -2464,6 +2527,7 @@ class ShipLoopActionWalkTests(ShipLoopActionWalkFixture):
                     "review",
                     "improve-plan",
                     "improve-apply",
+                    "iteration-document",
                     "verify",
                     "carry-forward",
                     "commit",
@@ -2718,6 +2782,7 @@ class ShipLoopActionWalkTests(ShipLoopActionWalkFixture):
                 "summary": "The plan resolves the exact research questions before verification.",
                 "body": self.step_plan_candidate("S1", "research improve draft")
                 + "\n\n## Research resolution\n\nResolve both local research questions without weakening the check.\n",
+                "skill_assessment": self.skill_assessment(),
             },
             label="required-research-plan",
         )
@@ -2743,6 +2808,17 @@ class ShipLoopActionWalkTests(ShipLoopActionWalkFixture):
             "resolved", questions=questions
         )
         self.complete(apply, label="full-research-resolution")
+        self.assertEqual(self.state()["stage"], "iteration-document")
+        self.complete(
+            {
+                "summary": "The research resolution documentation decision is complete.",
+                "documentation": {"decision": "not-needed", "rationale": "The existing fixture documentation remains accurate.", "paths": [], "references": []},
+                "reusable_skill": {"decision": "not-needed", "rationale": "This fixture research resolution has no reusable local workflow.", "paths": [], "references": []},
+                "material": False,
+                "learnings": "The explicit documentation decision remains bound to the resolved research iteration.",
+            },
+            label="research-resolution-iteration-document",
+        )
         self.assertEqual(self.state()["stage"], "verify")
         verification_action = self.action_id()
         self.verify_current(self.manifest_for("S1"), label="research-resolution-checks")

@@ -97,6 +97,75 @@ accepted plan through `context --section step-plan`; on interruption inspect
 actual files and external-operation evidence before continuing, never replay a
 mutating row merely because it lacks a checkbox. Unknown outcomes need a pause.
 
+## Baseline tests and migrations
+
+Overall sequencing and every initial/Improve step plan must inspect the current
+code, state, systems, README, applicable AGENTS.md, design/environment references
+and available repo-local skills. Ask which existing skill can help this step;
+read only relevant guidance and honor its inputs, authority and limitations.
+Reuse a maintained local skill before inventing a new abstraction. Versioned
+new-run step/Improve plan packets require an explicit `skill_assessment`, not
+only a sentence implying lookup happened; follow its exact template and retain
+the selection or concrete no-use reason through candidate refinement. This
+records the host's assessment, not automatic proof that it read or understood
+every possible skill. Prior notes
+and commits are education, not proof that current code or access still works.
+
+`skill_assessment` contains `inspected` and `selected` arrays of safe reference
+strings, plus nonempty `rationale` and `usage`. Every selected reference must
+also be inspected. Empty arrays are valid when the rationale explains the scoped
+inventory or no-use decision. Usage describes required inputs and limits, or
+why no skill will be used. References may name approved installed guidance as
+well as repo-local material; they are recorded host testimony, not a script
+instruction to open arbitrary external paths. Drafts and revisions must supply
+the assessment; a changed selection/assessment requires fresh convergence even
+if the surrounding plan prose is unchanged.
+
+Decide which baseline checks must run before modifying the affected area. Prefer
+targeted existing tests; introduce a characterization/regression test when current
+behavior is unclear, with an independent expected outcome rather than blessing
+a bug. Capture the checked revision, target role, fixture and observed failures.
+Distinguish three cases:
+
+1. A required foundation is healthy: cite passing checks before dependent edits.
+2. A required foundation is broken: plan a small repair and its test as an earlier
+   local row or DAG producer; dependent feature work waits for that evidence.
+3. The failing regression is the requested fix: preserve its expected failure,
+   then implement the fix and require it to pass. Do not require the target bug
+   to be fixed before allowing its own repair step.
+
+Unrelated existing failures need an explicit impact/scope decision, not automatic
+repair, hidden waivers or a claim the entire suite passed. If a current prerequisite
+needs new scope, writer, environment or permission, pause; schedule compatible
+future-only needs via existing carry-forward/post-inner routes. Planning actions
+do not edit product tests: the certified execution microplan or an earlier
+explicit producer owns those edits and checks. A planning check does not execute
+or certify future baseline checks. Record baseline decisions in `body` and the
+existing `current_implementation`, `dependencies` and `test_strategy` rubric.
+
+For persisted data/schema changes, decide whether migration is unnecessary,
+an earlier prerequisite, part of this step, or an authorized deployment obligation.
+Prefer small independently verifiable slices, compatible expansion then bounded
+data movement and later contraction when appropriate. Record old/new versions,
+affected readers/writers, ordering, isolated fixtures, resumability/idempotency,
+integrity checks, rollback or forward-repair strategy and the point after which
+reversal is unsafe. Verify recovery assumptions rather than assuming transactions
+or a backup make every change reversible. Keep dependency edges explicit.
+
+Time/availability constraints may justify a bulk migration; explain why it is
+safer or simpler here, its blast radius, checkpoint/stop criteria and recovery
+evidence. Never run a migration implicitly during research or plan review.
+Rehearse on authorized representative isolated data when needed, then revalidate
+target/version immediately before the permitted operation. Journal outer-only
+actions through `outer-work`; inner scope does not authorize deployment. Material
+new findings require renewed review or broader planning, not silent plan drift.
+
+Revisit the relevant actor/data/trust frontier from research at each step's changed
+boundary, including second-order consumers and environment-role differences.
+Research only what could change this task or its dependencies, and record why a
+branch can stop or remains blocked. See
+[recursive investigation](research-loop.md#recursive-discovery-and-experiments).
+
 ## Contract disposition
 
 A material `scope` or `behavior` finding routes to paused
@@ -321,7 +390,8 @@ The enclosing Improve iteration still needs its **separate primary commit** afte
 product application, lint/tests and carry-forward. Plan audits do not count as
 trivial implementation iterations. Finalization carries the nested review/revise
 learnings into the enclosing iteration's `plan_learnings`; include each verbatim
-in that primary commit as well as the ordinary review/apply/carry-forward learnings.
+in that primary commit as well as the ordinary review/apply/carry-forward learnings
+and, for versioned runs, the accepted `iteration-document` learnings.
 
 ### Example trace
 

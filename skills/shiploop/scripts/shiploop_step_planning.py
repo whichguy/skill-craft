@@ -17,6 +17,7 @@ from pathlib import Path
 from typing import Any
 
 import shiploop_knowledge as knowledge
+import shiploop_iteration_docs as iteration_docs
 import shiploop_store as store
 import shiploop_until as until
 
@@ -135,14 +136,13 @@ def _sha(value: Any, label: str) -> str:
     return value
 
 
-def _origin(value: Any) -> dict[str, str]:
+def _origin(value: Any) -> dict[str, Any]:
     """Normalize the accepted result that created this step-plan candidate."""
     need(isinstance(value, Mapping), "step-plan origin must be an object")
-    need(
-        set(value) == {"action_id", "result_sha256", "candidate_sha256"},
-        "step-plan origin keys do not match the contract",
-    )
-    return {
+    expected = {"action_id", "result_sha256", "candidate_sha256"}
+    current = expected | {"skill_assessment"}
+    need(set(value) in (expected, current), "step-plan origin keys do not match the contract")
+    normalized: dict[str, Any] = {
         "action_id": _id(value.get("action_id"), "step-plan origin action ID"),
         "result_sha256": _sha(
             value.get("result_sha256"), "step-plan origin result digest"
@@ -151,6 +151,12 @@ def _origin(value: Any) -> dict[str, str]:
             value.get("candidate_sha256"), "step-plan origin candidate digest"
         ),
     }
+    if "skill_assessment" in value:
+        try:
+            normalized["skill_assessment"] = iteration_docs.validate_skill_assessment(value["skill_assessment"])
+        except iteration_docs.IterationDocumentationError as exc:
+            raise StepPlanningError(str(exc)) from exc
+    return normalized
 
 
 def _first_assessment(value: Any) -> dict[str, Any]:

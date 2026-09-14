@@ -219,6 +219,83 @@ dumps, raw logs, or generic harness journals in them. `AGENTS.md` remains option
 Before step execution, store proposed docs/cases in the spec/plan results; survey
 does not create product files. Plan documentation outputs and checks explicitly.
 
+## Iteration documentation and reuse
+
+New runs with `iteration_documentation_protocol_version: 1` have a mandatory
+`iteration-document` action after each `improve-apply` and before `verify`.
+The initial implementation enters Improve, so its first candidate also receives
+this gate before the step can finish. An assessment is required; needless edits
+or skill creation are not. Follow the packet's exact result schema. Old unmarked
+runs retain their original callbacks and cannot claim this new receipt.
+
+The result has `summary`, `documentation`, `reusable_skill`, Boolean `material`
+and `learnings`. Both assessment objects start with `decision`, `rationale`,
+`paths` and `references`. Decisions are `created`, `updated`, `reused` or
+`not-needed`. For `not-needed`, both path arrays are empty and the rationale
+explains the actual no-work decision. Other decisions name existing safe
+repo-relative reference files; created/updated docs also name their actual files.
+A reusable skill names exactly one `SKILL.md` within its local directory and
+adds `purpose`, `when`, `how`, `inputs` and `validation`. The packet contains a
+minimal example, not a suggested default verdict. If work is required but blocked,
+use the printed pause/repair route instead of mislabeling it `not-needed`.
+
+Skill entrypoints need nonempty frontmatter `name` and `description`; references
+must include a repo-local index that names the entrypoint. The script checks
+those declared files/links and the receipt binding; meaningful input defaults,
+verification procedures, security semantics and future usefulness still require
+host review. Do not mistake a minimal frontmatter check for complete Agent Skills
+schema validation or a working helper test.
+
+Read the actual code/test diff, accepted step plan, current knowledge and relevant
+repo docs. Prefer colocated concise contracts/comments for non-obvious behavior;
+incrementally update affected README sections and existing design/architecture/
+environment notes, or give a concrete unchanged reason. Always assess the repo
+README (record absence and decide whether this step needs one). Use AGENTS.md for
+short stable project navigation/conventions when useful, not run state, secrets,
+raw observations or copied manuals. Link detailed durable knowledge once from
+the existing appropriate index instead of duplicating it.
+
+Ask whether a reusable repo-local skill would materially help later steps or
+maintenance. Check existing skills first. Record a decision and rationale even
+when the answer is no. Create or update one only for a demonstrated reusable
+procedure or boundary, not a narrow transcript of this step or a speculative
+framework. Reuse existing repo layout, or `skills/<name>/SKILL.md` when none is
+established. Keep it inside the product worktree; no global installation, new
+connector or privilege change follows from this decision.
+
+A useful local skill documents:
+
+- a discriminating name/description and when to use it (and meaningful exclusions);
+- why it helps, the task/output it supports and the known limitations;
+- variable inputs with types/required/default rules and safe example invocation;
+- how to perform/verify the procedure, expected outcomes, failure/recovery and
+  permission boundaries without embedding credentials or machine-specific IDs;
+- relative references to relevant code, tests and design/environment material,
+  with revalidation triggers for volatile assumptions.
+
+Expose the skill through an existing repo skill index, README or a short relevant
+AGENTS.md reference, stating when future planners should read it. Name the intended
+future consumer and required inputs; do not assume every host automatically
+discovers every local skill folder. Validate frontmatter and referenced paths,
+exercise changed helpers/examples when applicable, and record unrun limitations
+honestly. A file-existence check is not proof the procedure works. Keep new work
+inside the accepted step; broader missing outputs use existing replan/pause routes.
+
+The script saves the result in the ordinary Markdown action/iteration records.
+Verification and commit consume its binding; future reviews/plans read the local
+index, linked skill/docs and current knowledge. There is no new documentation
+database. Changed files must pass the following lint/tests before commit. A
+material addition or changed instruction resets convergence; the script also
+conservatively treats any worktree edit during this action as material. Thus the
+new artifacts receive subsequent review-and-improve passes, not an unchecked
+last-minute handoff. Include the recorded learnings in the primary commit.
+
+For this versioned route, editing the worktree after the documentation receipt
+invalidates it even if later tests pass. Use the printed `repair` route to return
+to review and obtain a new documentation assessment and fresh checks. Merely
+rerunning `verify` cannot renew that receipt. Unmarked legacy runs retain their
+earlier late-edit handling.
+
 ## Implementation constitution
 
 Use these stack-neutral defaults in the current step, not a new governance loop.
@@ -279,9 +356,10 @@ second scheduler. Keep the [Test cases](#test-cases) oracle/reuse rules,
 | `step-plan` / `improve-plan`, then nested plan convergence | Put the pre-code case-to-contract matrix in `body`/`plan`. Use the implementation constitution; only a finalized plan authorizes its scoped code edits. |
 | `implement` / `improve-apply` | Write certified code, inspect actual diff/learnings, then author/refine tests and docs. Initial adequacy and justified oracle corrections use `test_review`; Improve application deltas use `test_changes` and `learnings`. Retained/TDD tests need evidence of adequacy, not a manufactured edit. |
 | `review` | Begin with current Git history and knowledge; compare actual code/tests/environment/docs with independent expectations. Record findings, `test_review`, `learnings` and `research_assessment`; new material research questions require investigation. |
-| `verify` / `final-verify` | Run required lint/tests and relevant examples/links; diagnose and fix failures, then rerun on unchanged files. Source repairs in `verify` also use the implementation constitution; late edits remain material. Required failed, blocked or unrun checks remain unfinished. Put case/check evidence in `summary`; a test-oracle change needs independent justification. |
+| `iteration-document` (versioned runs) | Required docs/README and reusable-local-skill decision, with safe paths, reasons, intended readers and learnings. Make scoped documentation/skill edits before fresh verification, not after it. |
+| `verify` / `final-verify` | Run required lint/tests and relevant examples/links; diagnose failures. In versioned runs, any source edit after `iteration-document` requires repair, renewed review/documentation and fresh checks; merely rerunning verify cannot renew the documentation receipt. Legacy repairs also remain material. Required failed, blocked or unrun checks remain unfinished. Put case/check evidence in `summary`; a test-oracle change needs independent justification. |
 | `carry-forward` | Use the [carry-forward contract](carry-forward.md) for scoped observations/evidence or explicit no discoveries. A current-step correction returns to review and fresh checks; prior evidence is stale. |
-| `commit` | Include test/docs deltas or no-change reasons and required review, nested-plan, apply and carry-forward learnings verbatim. Two trivial-only cycles and fresh final verification remain mandatory. |
+| `commit` | Include test/docs deltas or no-change reasons and required review, nested-plan, apply, versioned iteration-document and carry-forward learnings verbatim. Two trivial-only cycles and fresh final verification remain mandatory. |
 | `post-inner` | Reassess broader tests, environments, contracts, README and prerequisites. Resolve pending-work obligations through validated pending-only replanning; generic ShipLoop proposals go to its journal. |
 
 Keep case IDs, independent sources, environment, observed outcomes and evidence

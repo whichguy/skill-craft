@@ -78,6 +78,14 @@ requests into double quotes. Preserve multiline and Unicode text exactly.
 3. Run the exact **Call this when done** command, retaining its action ID and
    result path. Read the reply and repeat. `done` and `complete` are aliases.
    A rejected submission is unfinished; it never authorizes advancing manually.
+   If the action needs a user answer, asking is permitted but the conversational
+   reply is not a transition. Record the answer, its scope, and any available
+   authority/evidence in the current action's required result. If the run was
+   paused, first use its printed `resume` command and reread the same action;
+   otherwise keep the current action. Invoke the exact callback only when all
+   duties for that result are complete. An unanswered or unsupported decision
+   stays open or blocked; never call `done` merely because a question was asked
+   or answered.
 4. After a completed action boundary, conversation context may be discarded.
    The next packet rehydrates the next action from Markdown. If delivery was
    uncertain, call `next` before retrying any external operation. An identical

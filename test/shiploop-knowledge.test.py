@@ -333,7 +333,7 @@ class ShipLoopKnowledgeTests(ACTION.ShipLoopActionWalkFixture):
         self.assertEqual(checkpoint_path.read_bytes(), checkpoint_before_replay)
 
         # Even if a hostile late edit also rewrites the local check fingerprint,
-        # commit compares the worktree to the carry-forward product fingerprint.
+        # the documentation binding rejects drift before the carry-forward guard.
         wt = self.worktree("S1")
         source_path = wt / "s1.py"
         original_source = source_path.read_bytes()
@@ -358,7 +358,22 @@ class ShipLoopKnowledgeTests(ACTION.ShipLoopActionWalkFixture):
             code=2,
             label="carry-product-fingerprint-drift",
         )
+        self.assertIn("worktree changed after iteration-document", rejected.stderr)
+        # Isolate the independent carry-forward defense with an intentionally
+        # corrupted documentation receipt. This is fault injection, not a
+        # supported way to renew documentation evidence after source edits.
+        receipt_path = self.run_dir / "steps" / "S1.md"
+        original_receipt = receipt_path.read_bytes()
+        tampered_receipt = ACTION.store.read_record(receipt_path)
+        tampered_receipt["iteration"]["documentation"]["worktree_fingerprint"] = fingerprint
+        ACTION.store.write_record(receipt_path, tampered_receipt, title="Tampered documentation receipt")
+        rejected, _ = self.complete(
+            {"summary": "Attempt to bypass the independent carry-forward binding.", "commit": first["iteration"]["previous_sha"]},
+            code=2,
+            label="carry-product-fingerprint-after-documentation-tamper",
+        )
         self.assertIn("worktree changed after carry-forward", rejected.stderr)
+        receipt_path.write_bytes(original_receipt)
         source_path.write_bytes(original_source)
         check_path.write_bytes(original_check)
 

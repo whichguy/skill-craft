@@ -564,6 +564,7 @@ class BoundedHistoryAdditionalCliRouteTests(unittest.TestCase):
             {
                 "summary": "The initial step plan has concrete local work, prerequisites, and cases.",
                 "body": candidate,
+                "skill_assessment": case.skill_assessment(),
             },
             label="bounded-history-step-plan-draft",
         )

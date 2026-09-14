@@ -187,24 +187,32 @@ step plan.
    textual diff is tiny. Resolve required research with durable answers and
    supporting evidence before verification; unresolved authority or unavailable
    required evidence needs a pause.
-4. **Verify.** Run fresh lint and every required test. Diagnose and fix failures,
+4. **Document and assess reuse.** On versioned new runs, the script selects
+   `iteration-document` after Apply. Review/update concise code contracts, README
+   and affected design/environment docs; decide explicitly whether to create,
+   update or reuse a repo-local skill, or why none is useful. Its exact packet
+   supplies the result schema and required paths/readers. See
+   [Iteration documentation and reuse](../testing-and-documentation.md#iteration-documentation-and-reuse).
+   This action precedes fresh checks; it is not a post-check editing exemption.
+   Unmarked older runs retain the original Apply-to-Verify route.
+5. **Verify.** Run fresh lint and every required test. Diagnose and fix failures,
    then lint and test again until all required checks pass on unchanged files.
    Verify changed examples/links where applicable. A late file edit during
    verification is treated conservatively as material and restarts convergence.
    Required failed, blocked, or unrun checks remain unfinished. Passing local
    checks do not prove a remote, deployed, or external effect.
-5. **Carry forward.** After the successful verification record, complete the
+6. **Carry forward.** After the successful verification record, complete the
    printed `carry-forward` action before any primary commit. Submit an explicit
    no-discovery result or bounded non-secret discoveries, using the current
    expected knowledge revision. A current-step repair returns to review; a
    pending replan retains a durable obligation; a pause cannot be bypassed by
    resume. See [Carry-forward checkpoint](../carry-forward.md).
-6. **Commit.** Make one new primary commit at worktree HEAD. It is not a main
+7. **Commit.** Make one new primary commit at worktree HEAD. It is not a main
    branch commit and includes concrete Review, Changes, Validation, and Key
    learnings sections, ending with the exact ShipLoop iteration trailer.
    For an Improve-routed step plan, ShipLoop carries the deduplicated nested
    review/revise learnings into the enclosing iteration; include those plus the
-   ordinary review, apply, and carry-forward learnings verbatim. An audit-only
+   ordinary review, apply, iteration-document (when enabled), and carry-forward learnings verbatim. An audit-only
    allow-empty commit is permitted but must still record real evidence.
 
 Two fully recorded trivial-only iterations are necessary before final verify.

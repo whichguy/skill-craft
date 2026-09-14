@@ -121,6 +121,26 @@ blocker. `halt` is terminal for the run and writes an unfinished handoff.
 `repair` is for a real defect found after an iteration was otherwise recorded:
 it records the reason, resets the trivial streak, and returns to Improve
 review.  It never makes a failed check pass or deletes work.
+
+## User-question handoff
+
+An action may ask the user for a missing decision, access fact, or other
+scoped clarification. The reply is **supporting input**, not a state-machine
+transition and not evidence that the whole action is complete. Keep the exact
+current action ID and result path. If progress depended on the reply, use
+`pause --reason='…'`; after a reply, run `resume --run-dir "$RUN_DIR"` and
+read the reprinted same action. Do not resume a run that was never paused:
+after a cold or uncertain return, use `next` to recover the current packet.
+
+In the reprinted action's required result, record the answer and its source,
+authority, scope, limitations, or remaining gap in the selected schema. Then
+finish every other required duty, check, and result field. Only then run the
+printed `complete --action … --result …` callback; its acceptance is the sole
+transition to the next action. A rejected result, an unanswerable question, or
+an owner/permission decision without adequate authority remains unfinished.
+Do not auto-resolve a question, call `done` from chat alone, or rewrite frozen
+requirements. A genuine baseline or scope change uses the printed
+`revisit`/`repair`/pause route rather than treating the answer as an approval.
 Outer `replan` is available only at coverage or quality (including their active
 objective loops): it adds a corrective
 pending step through the same validated revision contract, never patches code
@@ -506,9 +526,10 @@ own authoritative `.md` file.
 | `review` | Before completing the review, fully page `context --section knowledge` and run `history`; provide matching `knowledge_read: {revision,digest,scope}`, `findings` (`severity` `material` or `trivial`, `summary`), `test_review`, `learnings`, and `research_assessment: {status,summary,evidence:[safe nonempty references],questions:[nonempty strings]}`. Status is `not-needed`, `resolved`, `required`, or `blocked`; a non-`not-needed` assessment lists its required questions and is material. `resolved` records this pass's completed investigation; a later unchanged pass uses `not-needed`. See [later discoveries](research-loop.md#later-discoveries). |
 | `improve-plan` | Read the `enclosing_review` block within the `step-context` section, then submit Markdown `body`; fixes, test work, documentation work, expected outcomes, and prevention for every parent finding. The body must explicitly retain every printed `PARENT-…` ID. Those IDs prove plan coverage, not that a product finding is fixed before application. It starts an Improve-routed execution-plan loop, then issues `step-plan-review`; it does not yet authorize application. |
 | `improve-apply` | Reached only after the Improve-routed `step-plan-finalize`; submit `material` boolean, `test_changes`, and `learnings`; do not weaken tests to get green. A previously `required` research assessment needs a resolved assessment here before convergence continues, retaining every prior required/blocked question string. |
+| `iteration-document` | New runs require this after every `improve-apply`, before `verify`. Submit the packet's explicit documentation and reusable-local-skill assessments, safe repo-local file/reference evidence, `material` and `learnings`. The script stores a result/source binding on the iteration; omitted or stale evidence cannot advance. A concrete no-change/no-skill rationale is valid. See [Iteration documentation and reuse](testing-and-documentation.md#iteration-documentation-and-reuse). |
 | `verify` | First run `verify` for this action, then complete with `summary`. |
 | `carry-forward` | Follows successful `verify` and precedes `commit`. Submit `knowledge_revision` (expected prior integer), nonempty string `learnings`, and explicit `discoveries` (possibly `[]`); each discovery has `id`, `domain`, `observation`, safe-reference `evidence`, `scope`, `disposition`, `rationale`, and `revalidate`. A `current-step-repair` scope is exactly the active step; future/completed/frozen impacts use pending-replan or pause. A `research` pending obligation needs a future `activity: research` producer before affected consumers. Optional `resolutions` only resolve a retained pause blocker with `decision: "no-contract-change"`. No stage/action/iteration input is accepted. |
-| `commit` | `commit`; full SHA of the actual current worktree HEAD after the primary iteration commit. Its body must include review, nested Improve-plan review/revise, application, and carry-forward learnings verbatim. |
+| `commit` | `commit`; full SHA of the actual current worktree HEAD after the primary iteration commit. Its body must include review, nested Improve-plan review/revise, application, iteration-document when enabled, and carry-forward learnings verbatim. |
 | `final-verify` | First run a fresh `verify` for the final tree, then complete with `summary`. |
 | `post-inner` | `plan_decision` (`no-change` or `revise`), `plan_reason`, and `journal`; when open pending-replan obligations exist, required `pending_obligation_map: [{id,steps:[pending step IDs]}]`. Each nonempty `steps` list must cover the obligation scope with newly added or actually changed pending DAG steps. `revise` also requires a complete `dag` and `plan`, and can change only compatible pending work. |
 | `merge` | `summary`; local merge only. |
@@ -523,6 +544,14 @@ also requires the complete nine-key `research_review` rubric object from
 replaces, the ordinary findings, test review, research assessment, lint/tests,
 carry-forward, two-pass convergence, final verification, and merge gates. Its
 `produces` must name the report or decision artifact that affected consumers use.
+
+With `iteration_documentation_protocol_version: 1`, `step-plan`, `improve-plan`
+and `step-plan-revise` also require `skill_assessment` with `inspected`, `selected`,
+`rationale` and `usage`; selected references must be included in inspected.
+This records a considered skill choice or a concrete no-use decision in the
+bound plan. It is not an installation request, permission grant or proof of
+semantic understanding. See [baseline tests and migrations](execution-planning.md#baseline-tests-and-migrations)
+for how skill selection, existing-state checks and dependencies inform the plan.
 
 ## External platform revalidation
 

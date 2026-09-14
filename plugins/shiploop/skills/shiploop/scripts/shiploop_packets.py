@@ -943,6 +943,15 @@ def _system_context_evidence_template(info: Mapping[str, Any]) -> dict[str, Any]
     return result
 
 
+def _skill_assessment_template() -> dict[str, Any]:
+    return {
+        "inspected": [],
+        "selected": [],
+        "rationale": "The scoped local skill inventory is absent, so no reusable skill can be selected.",
+        "usage": "No use: no selected skill is applicable to this step.",
+    }
+
+
 def _step_plan_template(stage: str, state: Mapping[str, Any], api: Mapping[str, Any], info: Mapping[str, Any]) -> tuple[dict[str, Any] | None, list[str]]:
     step_planning = _value(api, "step_planning")
     rubric = list(getattr(step_planning, "RUBRIC", ()))
@@ -953,6 +962,7 @@ def _step_plan_template(stage: str, state: Mapping[str, Any], api: Mapping[str, 
         return {
             "summary": "Step-local plan drafted.",
             "body": _STEP_PLAN_BODY,
+            "skill_assessment": _skill_assessment_template(),
         }, (["For improve-plan, body must retain every printed PARENT-* finding ID."] if stage == "improve-plan" else [])
     if stage == "step-plan-review":
         knowledge_read = info.get("knowledge_read")
@@ -1007,6 +1017,7 @@ def _step_plan_template(stage: str, state: Mapping[str, Any], api: Mapping[str, 
             "material": False,
             "test_changes": "Planned case/expected-outcome, coverage-decision and manifest changes, or why unchanged; retain the complete test criteria and post-code refinement checkpoint.",
             "learnings": "A durable plan-revise learning for the audit commit.",
+            "skill_assessment": _skill_assessment_template(),
         }, ["addresses must list every and only open finding ID; resolutions cannot close material scope/behavior IDs."]
     if stage == "step-plan-verify":
         return {"summary": "Fresh candidate-bound step-plan check passed."}, []
@@ -1154,6 +1165,26 @@ def _execution_base_template(stage: str, state: Mapping[str, Any], info: Mapping
             "test_changes": "Post-code learnings -> authored/updated/reused test paths and case/check IDs; why retained tests are adequate. Test corrections: old/new expectation, independent requirement source and preserved coverage; never weaken acceptance. Function/README delta or why unchanged.",
             "learnings": "A durable apply learning for the primary commit.",
         }, ["When the prior research assessment was required or blocked, also include resolved research_assessment with every prior question verbatim and safe evidence."]
+    if stage == "iteration-document":
+        return {
+            "summary": "Documentation and reusable local skill assessment completed.",
+            "documentation": {
+                "decision": "not-needed",
+                "rationale": "The existing README and code contracts already cover this scoped change.",
+                "paths": [],
+                "references": [],
+            },
+            "reusable_skill": {
+                "decision": "not-needed",
+                "rationale": "This step has no reusable workflow beyond its existing local plan.",
+                "paths": [],
+                "references": [],
+            },
+            "material": False,
+            "learnings": "The documentation and local-skill assessment is durable for this iteration.",
+        }, [
+            "created/updated documentation must name existing regular repo-relative files; reusable skills are optional but created/updated/reused skills name their actual repo-local <directory>/SKILL.md entrypoint and references. Any worktree byte change is material even if material is false."
+        ]
     if stage == "verify":
         return {"summary": "Fresh lint and all required tests passed for this exact action; case/check evidence, failures diagnosed, code/test corrections justified and rechecked; no required failed, blocked or unrun cases."}, []
     if stage == "final-verify":
@@ -1194,7 +1225,7 @@ def _execution_base_template(stage: str, state: Mapping[str, Any], info: Mapping
             template["knowledge_revision"] = info.get("knowledge_revision", 0)
         return template, ["Use discoveries: [] when none. Optional resolutions require id, decision:no-contract-change, evidence, and reason. Never include credential values or credential-bearing URLs."]
     if stage == "commit":
-        return {"summary": "Primary improvement commit created.", "commit": "0123456789abcdef0123456789abcdef01234567"}, ["commit must be the full primary SHA and include review, every nested step-plan, apply, and carry-forward learning verbatim."]
+        return {"summary": "Primary improvement commit created.", "commit": "0123456789abcdef0123456789abcdef01234567"}, ["commit must be the full primary SHA and include review, every nested step-plan, apply, carry-forward, and—when the versioned documentation stage is active—iteration.documentation.learnings verbatim."]
     if stage == "post-inner":
         return {
             "summary": "Broader-step reassessment completed.",
@@ -1458,7 +1489,7 @@ def _stage_lifecycle(
             "exact selected step plan before product edits.",
             "printed step/context/plan/checks and audit commit.",
         )
-    if stage in ("review", "improve-plan", "improve-apply", "verify", "carry-forward", "commit", "final-verify", "post-inner", "merge"):
+    if stage in ("review", "improve-plan", "improve-apply", "iteration-document", "verify", "carry-forward", "commit", "final-verify", "post-inner", "merge"):
         return converge(
             "selected step.",
             "printed checks, carry-forward, primary commit, and final proof.",
@@ -1524,6 +1555,13 @@ def _commit_provenance(
             ("implementation apply", "applied"),
             ("carry-forward", "carry_forward"),
         )
+        if state.get("iteration_documentation_protocol_version") == 1:
+            sources = (
+                ("implementation review", "review"),
+                ("implementation apply", "applied"),
+                ("iteration documentation", "documentation"),
+                ("carry-forward", "carry_forward"),
+            )
         baseline_key = "previous_sha"
         audit = False
     else:
@@ -2105,7 +2143,7 @@ def _orientation_location(
         if type(iteration) is int and iteration > 0:
             label += f" iteration {iteration}"
         parts.append(label)
-    elif stage in ("review", "improve-plan", "improve-apply", "verify", "commit", "final-verify", "post-inner", "merge"):
+    elif stage in ("review", "improve-plan", "improve-apply", "iteration-document", "verify", "commit", "final-verify", "post-inner", "merge"):
         parts.append("product review-and-improve loop")
     parts.append(f"{stage} (action {action_id})")
     return " → ".join(parts) + suffix
@@ -2425,6 +2463,7 @@ def render(core: Any, root: Path, state: Mapping[str, Any], api: Mapping[str, An
             f"Paused, unfinished: {str(paused)[:1000]}",
             f"Current action remains: {aid}; it has not been accepted.",
             recovery_instruction,
+            "Question handoff: a user reply is supporting input, not completion. After the blocker is resolved, resume and reread this same action; record the answer and its authority/evidence in the required result, complete every remaining duty, then use that reprinted action's exact callback.",
         ])
         if stage == "step-plan-disposition":
             lines.append("For a material scope/behavior finding, resume only to submit no-contract-change evidence for every blocker; an actual contract change requires halt, broader-plan approval, and a new/replanned run.")
@@ -2765,7 +2804,7 @@ def render(core: Any, root: Path, state: Mapping[str, Any], api: Mapping[str, An
         lines.append("Step cold context: " + _context_command(core, root, "step-context"))
         if "system-context" in available:
             lines.append("Read selected roles/interfaces via context --section system-context.")
-        if "step-plan" in available and stage in ("implement", "review", "improve-plan", "improve-apply", "verify"):
+        if "step-plan" in available and stage in ("implement", "review", "improve-plan", "improve-apply", "iteration-document", "verify"):
             lines.append("Test-plan criteria: " + _context_command(core, root, "step-plan"))
         if stage == "review":
             lines.append("Read step-context for the accepted initial implementation_test_record and iteration for current Improve evidence; historical notes do not certify current tests.")
@@ -2899,6 +2938,7 @@ def render(core: Any, root: Path, state: Mapping[str, Any], api: Mapping[str, An
         ])
         return "\n".join(lines) + "\n"
     options = f"--run-dir {_quote(root)} --action {_quote(aid)} --result {_quote(result)}"
+    lines.append("Question handoff: if this action needs user direction, ask the scoped question but do not stop at the reply. Record it in this result with its authority/evidence and remaining limits; after every required duty is complete, use this exact callback. If paused, resume first; if cold or uncertain but not paused, use next to recover this packet.")
     lines.append("When done: exact callback only.")
     lines.append(f"Call this when done: {_command(core)} done {options}")
     lines.append("If blocked, preserve evidence; recover, not done.")

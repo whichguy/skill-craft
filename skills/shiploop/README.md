@@ -153,8 +153,8 @@ and the completed-action digest ledger. The caller submits an action ID and a
 Markdown result, **not a target stage**. The public `done`/`complete` command
 dispatches by the saved stage. The internal `action()` helper creates the next
 cursor and fresh ID; the host never calls that helper as a workflow operation.
-[shiploop_protocol.py - complete: saved-stage dispatch](scripts/shiploop_protocol.py#L5430),
-[shiploop_protocol.py - action: new script-selected cursor](scripts/shiploop_protocol.py#L396).
+[shiploop_protocol.py - complete: saved-stage dispatch](scripts/shiploop_protocol.py#L5516),
+[shiploop_protocol.py - action: new script-selected cursor](scripts/shiploop_protocol.py#L397).
 
 The run lock recovers any pending Markdown transaction before normal command
 processing. `persist()` records the cursor, history event, accepted result and
@@ -163,7 +163,7 @@ and recoverable by rolling forward after interruption, not an instantaneous
 multi-file filesystem update.
 `transaction.md` is temporary recovery state, not a second JSON-backed authority.
 [shiploop - run_lock: serialized recovery](scripts/shiploop#L305),
-[shiploop_protocol.py - persist: coordinated record writes](scripts/shiploop_protocol.py#L404),
+[shiploop_protocol.py - persist: coordinated record writes](scripts/shiploop_protocol.py#L405),
 [shiploop_store.py - transaction: journaled forward recovery](scripts/shiploop_store.py#L431).
 
 At an ordinary assigned action, `next` rehydrates the same pending action after
@@ -181,8 +181,8 @@ same assigned implementation action produces a new `review` action—not `merge`
 or terminal success. Discarding chat context at this point changes nothing:
 the next invocation reads `review` from Markdown. Failed checks may leave useful
 attempt logs, but cannot earn an accepted transition or clean pass.
-[shiploop_protocol.py - implement: plan and verification gates](scripts/shiploop_protocol.py#L5646),
-[shiploop_protocol.py - verified: required lint and current check results](scripts/shiploop_protocol.py#L689).
+[shiploop_protocol.py - implement: plan and verification gates](scripts/shiploop_protocol.py#L5732),
+[shiploop_protocol.py - verified: required lint and current check results](scripts/shiploop_protocol.py#L690).
 
 ### Mandatory gates before, inside, and after execution
 
@@ -191,7 +191,7 @@ attempt logs, but cannot earn an accepted transition or clean pass.
 | Before any product implementation | `preflight`, `approach`, `survey`, research/behavior/specification convergence, and `sequence`; conditional `prepare` must finish before scheduling. Drafting a spec is not its finalization. | Git baseline, accepted environment/spec/lifecycle/DAG, planning or objective certificates. The protocol and planning handlers choose each successor. |
 | Before initial implementation **and** each Improve application | `step-plan` or `improve-plan` starts a separate `step-plan-review → step-plan-revise → step-plan-verify → step-plan-commit` loop, then `step-plan-finalize`. Only its certified handoff releases `implement` or `improve-apply`. | Step-plan candidate, current context/finding ledger, full Git-history receipts, real plan checks, distinct audit commits, two-trivial-pass certificate and fresh final check. |
 | Initial implementation | `implement` must validate the accepted plan and required current checks before entering the first `review`. It cannot go directly to integration. | Selected worktree and Ready/Done contract, action-bound check records and code/test evidence. |
-| Every product Improve iteration | `review → improve-plan → nested plan convergence → improve-apply → verify → carry-forward → commit`. The script requires the prior records and may pause, repair or replan instead of advancing. | Review/history, finalized improvement plan, application evidence, lint/tests, knowledge checkpoint and primary learning commit. A callback is not an iteration. |
+| Every product Improve iteration | `review → improve-plan → nested plan convergence → improve-apply → iteration-document → verify → carry-forward → commit` for new runs. The script requires the prior records and may pause, repair or replan instead of advancing. | Review/history, finalized improvement plan, application evidence, documentation/reuse receipt, lint/tests, knowledge checkpoint and primary learning commit. A callback is not an iteration. Unmarked older runs retain Apply-to-Verify. |
 | Before merging a completed step | Two consecutive verified/audited trivial iterations and no open findings lead to `final-verify`, then `post-inner` and `merge`. Final verification must still match the reviewed commit; post-inner is itself a converged objective. | Fresh final proof, broader-plan/system-test reassessment, mapped pending obligations, step receipt and local merge ancestry. Material change resets convergence; it is not a shortcut to another clean pass. |
 | After the dependency graph is drained | `coverage`, then `quality`, each with objective convergence. Quality requires integrated step receipts, current whole-product checks, declared system-test closure and due outer-work obligations. | Bound coverage ledger or the explicit plan waiver; quality checks; completed test contracts; current outer-work reads/resolutions. A corrective product change returns through a pending DAG step and its full inner loop. |
 | After outer quality | Conditional `publish`, then converged `handoff`, then `done` with the integrity-bound achievement report. Publication evidence is not terminal completion. | Applicable delivery/outer-work records, accepted handoff and terminal Markdown/report transaction. `halted` is an unfinished exit, never an alternate success path. |
@@ -207,8 +207,8 @@ step planning have their own named substates and durable receipts; the
 [Until coverage matrix](#coverage-what-repeats-and-what-does-not) identifies each
 owner. All use evidence-based convergence, not a model-supplied completion flag.
 [shiploop_until.py - decide: verified audited pass counting](scripts/shiploop_until.py#L55),
-[shiploop_protocol.py - step_plan_complete: nested handoff gates](scripts/shiploop_protocol.py#L5083),
-[shiploop_protocol.py - commit: product convergence and final verification](scripts/shiploop_protocol.py#L5824).
+[shiploop_protocol.py - step_plan_complete: nested handoff gates](scripts/shiploop_protocol.py#L5137),
+[shiploop_protocol.py - commit: product convergence and final verification](scripts/shiploop_protocol.py#L5939).
 
 ### Declared branches are not discretionary skips
 
@@ -233,9 +233,9 @@ quality checks their completed contract/check evidence. An outer-loop publish
 cannot silently defer those cases until after success. If the host incorrectly
 declares real-world testing unnecessary, however, structure alone cannot detect
 that semantic omission.
-[shiploop_protocol.py - validate_lifecycle_steps: consistent placement](scripts/shiploop_protocol.py#L679),
+[shiploop_protocol.py - validate_lifecycle_steps: consistent placement](scripts/shiploop_protocol.py#L680),
 [shiploop_system_tests.py - validate: deployment/test dependency rules](scripts/shiploop_system_tests.py#L335),
-[shiploop_protocol.py - require_system_test_closure: final catalog evidence](scripts/shiploop_protocol.py#L544).
+[shiploop_protocol.py - require_system_test_closure: final catalog evidence](scripts/shiploop_protocol.py#L545).
 
 ### Enforcement boundaries
 
@@ -539,7 +539,7 @@ different identifiers.
 | **P2 — Survey and converge research and behavior** | `validate-spec` | `survey`, `research`, `research-review`, `research-plan`, `research-apply`, `research-verify`, `research-commit`, `research-finalize`, `behavior`, `behavior-review`, `behavior-plan`, `behavior-apply`, `behavior-verify`, `behavior-commit`, `behavior-finalize` | An as-of research evidence baseline and a frozen behavior model, with material ambiguity resolved or explicitly paused. |
 | **P3 — Converge specification, sequence dependencies, and prepare** | `validate-spec`, then `plan` | `spec`, `spec-review`, `spec-plan`, `spec-apply`, `spec-verify`, `spec-commit`, `spec-finalize`, then `sequence` and conditional `prepare` | A frozen specification/lifecycle, validated dependency plan, and only authorized outer-before preparation. |
 | **P4 — Select, plan, and implement one ready step** | `implement` | script-driven `schedule`, then `step-plan`, `step-plan-review`, `step-plan-revise`, `step-plan-verify`, `step-plan-commit`, `step-plan-finalize`, and `implement` | One active branch/worktree, a freshly finalized execution plan, step output, and fresh check evidence. |
-| **P5 — Improve repeatedly, learn, and merge** | `implement` | `review`, `improve-plan`, then the same nested `step-plan-review`/`step-plan-revise`/`step-plan-verify`/`step-plan-commit`/`step-plan-finalize` stages, `improve-apply`, `verify`, `carry-forward`, `commit`, `final-verify`, `post-inner`, `merge` | A converged, locally merged step, current knowledge checkpoint, and broader-plan decision. |
+| **P5 — Improve repeatedly, learn, and merge** | `implement` | `review`, `improve-plan`, then the same nested `step-plan-review`/`step-plan-revise`/`step-plan-verify`/`step-plan-commit`/`step-plan-finalize` stages, `improve-apply`, new-run `iteration-document`, `verify`, `carry-forward`, `commit`, `final-verify`, `post-inner`, `merge` | A converged, locally merged step, checked documentation/reuse decision, current knowledge checkpoint, and broader-plan decision. |
 | **P6 — Review the whole product** | `residual` | `coverage`, `quality` | Bound coverage and whole-product acceptance/integration evidence, or a corrective replan. |
 | **P7 — Deliver if authorized and hand off** | `residual`, then `done` | conditional `publish`, `handoff`, then `done` | Actual delivery facts when applicable, limitations, handoff, and the terminal `done` state. |
 
@@ -783,6 +783,57 @@ precedes dependent validation, and promotion is separately planned. No
 platform name, tool installation, development account, or production deployment
 is assumed. See the [typed platform guide](references/platform-discovery.md).
 
+#### Beyond the gateway: bounded recursive discovery
+
+An MCP connection is an entrance to a system, not a complete model of it.
+For every task-relevant flow, research producers and incoming users/systems,
+consumers and outgoing effects, persisted state, data interchange and the
+security semantics at each boundary. Follow another gateway or downstream
+service when it could change the required behavior, implementation, tests or
+deployment. Reuse already-inspected nodes and record the evidence-backed stopping
+frontier; do not enumerate unrelated accounts or integrations for completeness.
+
+```mermaid
+flowchart TD
+    A[Task and existing repo guidance] --> B[Relevant actors and gateway]
+    B --> C[Data, state and trust contracts]
+    C --> D{Consequential unknown?}
+    D -->|Yes| E[Authorized source or bounded experiment]
+    E --> C
+    D -->|No| F[Record evidence and stopping reason]
+    F --> G[Plan and step-local consumers]
+```
+
+Research reads the repository README, applicable existing AGENTS.md and relevant
+design, architecture, environment and local-skill references, including on a
+fresh-context rerun. It checks their claims against current facts. Existing notes
+are education, not proof of current access or working code. Stable conventions
+can later be linked from AGENTS.md; detailed design facts belong in the existing
+appropriate document. Planning/research does not mutate product documentation.
+
+If a system lacks a usable route, investigate existing connectors, official
+MCP candidates, APIs/CLIs/SDKs and authorized browser access. Record which gap a
+candidate addresses and its cost, trust, permissions and verification limits.
+An optional candidate is not required infrastructure. Adding an integration or
+granting access still requires specific authorization, and a browser is never a
+workaround for a blocked designated writer. The
+[MCP registry](https://modelcontextprotocol.io/registry/about) is a discovery aid;
+[MCP security guidance](https://modelcontextprotocol.io/docs/2026-07-28/tutorials/security/security_best_practices)
+explains why proxy/downstream boundaries need their own authorization analysis.
+
+For example (hypothetical), a gateway exposes a job-start operation which writes
+to a queue and later updates a record. Research must distinguish request accepted
+from job completed, identify the worker and record owner, and investigate duplicate
+delivery/permission semantics where relevant. A sandbox probe with a known fixture
+could settle whether retries duplicate effects. Its hypothesis, expected/actual
+result, observation date, permission, cleanup and plan consequence are recorded;
+an unavailable probe stays unknown. A tool response alone does not prove a later
+database write. No experiment or live integration is implied by this example.
+
+These questions use the existing research evidence and two-trivial-pass loop,
+not another recursive scheduler. See
+[research-loop.md — recursive discovery: frontier and experiment contract](references/research-loop.md#recursive-discovery-and-experiments).
+
 At `sequence`, make a short forward draft, audit every prerequisite backward,
 add missing producers or leave facts unresolved, then validate the acyclic DAG.
 The human `plan.md` and imported `backchain/plan.md` must agree. Include Review
@@ -938,7 +989,8 @@ flowchart TD
     I1["5.1: Read knowledge, Git history, and research assessment"] --> I2["5.2: Draft Improve plan"]
     I2 --> I3["5.3: Converge nested Improve plan"]
     I3 --> I4["5.4: Apply finalized fixes and test changes"]
-    I4 --> I5["5.5: Verify lint and required tests"]
+    I4 --> D["5.4a: Document and assess local skill reuse"]
+    D --> I5["5.5: Verify lint and required tests"]
     I5 -->|Failure or stale evidence| F["5.5a: Fix and rerun checks"]
     F --> I5
     F -.->|Plan invalid; repair| I1
@@ -1007,14 +1059,49 @@ learnings into the enclosing iteration so that commit preserves both the plan
 investigation and the actual code/test learnings.
 
 At `improve-apply`, make the finalized changes without weakening expectations
-just to obtain green. At `verify`, run fresh lint and required tests. A passing
+just to obtain green. New runs then enter the required `iteration-document`
+action before `verify`; older unmarked runs retain their original route.
+At `verify`, run fresh lint and required tests. A passing
 local result is evidence only for that local run; it does not prove a remote,
 deployed, or external effect.
 
-For an ordinary failed or stale check, make the already-authorized correction,
-then rerun lint and the required tests. If that result invalidates the finalized
-plan rather than merely needing a check retry, use `repair` and return to
-`review`; do not jump back into an older nested plan pass.
+#### Required documentation and reusable-skill checkpoint
+
+Every new-run Improve iteration must submit an explicit documentation/README
+decision and a reusable-local-skill decision, with reasons and the packet's
+required evidence. Update code-local contracts and relevant existing docs, not
+an entire parallel knowledge base. A skill is created/updated only when a
+demonstrably reusable procedure will help future steps or maintenance. Reusing
+an existing skill or explaining why none is needed is valid; omitting the
+assessment is not.
+
+Useful skills state purpose, when/why/how to use them, variable inputs, expected
+outputs, validation and safe failure behavior. Link code/tests/design/environment
+material rather than copying it. Keep them in the product repository and expose
+them through its README, local index or a short relevant AGENTS.md reference so
+future step plans can find them. Every initial and Improve plan asks which local
+skills are applicable. Creating a file does not install a global skill or prove
+that every host automatically discovers it.
+
+The accepted result is retained in ordinary `results/<action>.md` and the
+current iteration record, read by verification, commit and bounded iteration
+context. Its file/source binding prevents stale documentation evidence from
+being accepted. Any worktree edit during this action is conservatively material,
+so new documentation/skills receive further review-and-improve passes before
+convergence. Their learnings belong verbatim in the primary commit. Product
+docs and skills are checked before commit, never edited after checks to bypass
+fresh verification. See the
+[testing-and-documentation.md — iteration checkpoint: docs and reuse requirements](references/testing-and-documentation.md#iteration-documentation-and-reuse).
+
+For a failed or stale check, diagnose the cause before deciding how to retry.
+On the versioned documentation route, any source edit after `iteration-document`
+invalidates its binding: use `repair`, renew review/documentation and run fresh
+checks. A check-only retry with no file change does not need to manufacture an
+edit, but tests passing on changed files cannot renew the old receipt. Before
+that checkpoint, or on legacy runs, make an already-authorized correction and
+rerun lint and the required tests. If the correction invalidates the finalized
+plan, use `repair` and return to `review`; do not jump back into an older nested
+plan pass.
 
 Before `commit`, `carry-forward` is mandatory. It records either explicit
 `discoveries: []` or bounded non-secret discoveries in the current knowledge
@@ -1063,7 +1150,8 @@ defines the target stages, deduplication, resolution, and read binding.
 At `commit`, create the distinct primary commit on the step branch with
 `Review:`, `Changes:`, `Validation:`, `Key learnings:`, and the exact
 `ShipLoop-Iteration:` trailer. Its body must include the ordinary review,
-deduplicated nested Improve-plan review/revise, application, and carry-forward
+deduplicated nested Improve-plan review/revise, application, iteration-document
+(when enabled), and carry-forward
 learnings verbatim. An honest audit-only empty commit is allowed when it
 contains concrete evidence.
 
@@ -1315,6 +1403,28 @@ case intent compact, use the existing result fields, and leave detailed
 assertions in the executable test where they belong.
 
 ## Execution-plan, per-step evidence, tests, and documentation
+
+### Existing-state baselines and incremental migration
+
+Overall sequence planning and every step/Improve plan assess existing code,
+system state, environment roles, dependent actors and skills, plus targeted
+baseline checks before editing. If a required foundation is broken, plan a small
+repair and its test before dependent feature work. If the failure is the very
+bug being fixed, preserve that failing regression and make it pass as the scoped
+repair; do not demand it pass before allowing its own fix. Unrelated failures
+need an explicit impact/scope decision, not a silent waiver or unsolicited cleanup.
+
+Data/schema migration belongs in an explicit earlier producer, a bounded local
+microplan row, or an authorized outer-work obligation. Prefer small verifiable
+units with old/new data versions, consumer compatibility, integrity checks,
+interruption/resume behavior and rollback or forward-repair evidence. A bulk
+move can be justified by actual time/operational constraints, but must state
+blast radius, checkpoints and recovery. No migration is run just because it
+appears in research or a plan. These are risk-based planning duties within
+existing Ready/Done, dependency and verification gates, not a new migration engine.
+See [execution-planning.md — baseline tests and migrations: ordering and limits](references/execution-planning.md#baseline-tests-and-migrations).
+
+### Test and documentation evidence
 
 ```mermaid
 flowchart TD
@@ -1783,6 +1893,26 @@ for its bounded record contract.
 
 ## Recovery and compatibility
 
+### Continue after answering a question
+
+Asking the user is allowed whenever a missing decision or fact matters. The
+answer supplies input to the current action; it does not itself complete that
+action or resolve every source/permission gap. After an answer, recover the
+current packet with `next` if needed. If it reports paused, resolve the recorded
+blocker and follow its `resume` instruction; otherwise do not call `resume`.
+Record the answer and its limits in the permitted result/evidence fields,
+complete the remaining action duties/checks, and invoke the exact printed
+**Call this when done** command. Follow the returned next packet immediately
+rather than stopping after acknowledging the answer.
+
+A paused packet has no valid completion callback. Resume returns the same
+unfinished action; it does not certify research, skip its improvement loop or
+approve a changed contract. Unsupported/missing evidence still rejects `done`
+without advancing. A new answer that changes frozen scope or authority needs
+the existing revisit/repair/pause route. The host must be running to continue;
+this is a same-task continuation contract, not a background wake-up service.
+See [action-protocol.md — user-question handoff: answer and callback recovery](references/action-protocol.md#user-question-handoff).
+
 Start with `next`, not with a reconstruction from chat or a fresh `init` over
 an existing run. The packet supplies the exact valid action-bound command.
 These are decision aids, not substitute callback templates:
@@ -1832,6 +1962,7 @@ contracts. **Missing-marker behavior is specific to each feature:**
 | Legacy `state.json` with no Markdown state | New runs use authoritative Markdown only. | Explicit `migrate`; retained prompt is recovered exactly or the run pauses for missing intent. Never a live JSON mirror. |
 | `planning_protocol_version: 2` | Mandatory research, behavior and specification convergence. | Pre-v2/missing blocks workflow mutation until the guarded `planning-upgrade`; already executed work cannot be retroactively upgraded. |
 | `step_planning_protocol_version: 1` | Nested plan before initial coding and every Improve application. | Safe-boundary adoption or repair of later execution, never an invented certificate for past edits. |
+| `iteration_documentation_protocol_version: 1` | Required `iteration-document` after every Improve application, before verification and commit. | Absent retains original Apply-to-Verify callbacks; no retroactive documentation receipt. Unsupported explicit values fail closed. |
 | `history_policy: {version: 2, required_limit: 7}` | Seven complete current Git commit bodies, bound to each required review. | Absent retains the legacy ten-body policy; no silent reduction of prior obligations. |
 | `system_context_protocol_version: 1` | Source-linked research system context and task-relevant projections. | Unmarked runs retain their prior research contract; no assumed source-linked proof. |
 | `observation_protocol_version: 1` | Script-issued unverified early-observation callbacks. | No implicit new callback authority in an unmarked run. |
