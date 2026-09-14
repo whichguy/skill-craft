@@ -107,7 +107,7 @@ host checkout into a tree that is bind-mounted into the container as `/opt/data`
 | skillctl | **optional / not planned** (use `install.sh`) |
 | Default DevLoop card `skills/devloop` | **implemented** (discovery on Claude/Grok/Codex/Cursor; Hermes card skipped; host-local bootstrap + seed resolve; strict shim SKILL) |
 | Demoted evidence gates `skills/evidence-gates` | **implemented** (offline freeze/prove/stop; not DevLoop) |
-| Grok engine transport (no Hermes) | **implemented** (card host affinity + pin `transports: [hermes, grok]`; GitHub Release publish of `devloop-engine-v0.2.0` is operator follow-up when `gh` auth is valid) |
+| Grok engine transport (no Hermes) | **implemented** (card host affinity + pin `transports: [hermes, grok]`; [`devloop-engine-v0.2.0` was published on GitHub](https://github.com/whichguy/skill-craft/releases/tag/devloop-engine-v0.2.0) on 2026-08-15; publication does not establish host installation or execution) |
 
 ### Operator / CI (**implemented**)
 

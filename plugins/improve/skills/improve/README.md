@@ -77,6 +77,12 @@ The full obligations and their evidence boundary are in
 [evidence-capture.md](references/evidence-capture.md). The parent card binds
 them to [the bundled Until Loop card](runtime/until-loop/ADAPTER.md).
 
+## Research and proposed experiments
+
+[The Improve research decision record in the source repository](https://github.com/whichguy/skill-craft/blob/main/docs/improve-research.md)
+documents evaluated GitHub mechanisms, proposed pilot arms, controls, and
+promotion criteria. It proposes no behavior change for this release candidate.
+
 ## Provenance and packaging boundary
 
 This package was derived from the `until-loop-v2` source at Git commit
