@@ -105,9 +105,73 @@ list for ShipLoop. Raw temporary logs, accounts and project IDs are not packaged
 Targeted validation: research-template, research-packet-protocol, reference-routing,
 protocol, managed-walk and platform-discovery tests. Final validation:
 `bash test/run-all.sh --group shiploop`, `bash scripts/sync-plugin-views.sh --check`,
-and the relevant package/install checks. Record measured outcomes below after
-implementation; planned checks are not passed checks.
+and the relevant package/install checks. Measured outcomes and revision boundaries
+are recorded below; planned checks are not passed checks.
 
 ## Completion record
 
-Implementation and validation in progress.
+Implemented as ShipLoop **0.9.1** and activated on local `main` on September 14,
+2026. The integrated source and tests are commit
+`037b02a06b62c738af4f96832583cbe66b95dfcd`. This documentation closeout does not
+change that tested source. The default navigator and managed/legacy compatibility
+runs now select the shared discovery policy through their respective bindings.
+
+### Regression baseline
+
+The original discovery candidate,
+`674e0581a010bb83b7bb0d0dcd80468d289a63d0`, covered all **612 tests in 61 suite
+files**. The single `bash test/run-all.sh --group shiploop` invocation hit its
+external 40-minute ceiling after 60 complete suites (599 tests) and five passing
+cases in the final 13-case legacy action suite. It returned timeout code 124,
+not success; no assertion failure was reported.
+
+The eight unfinished cases were then explicitly selected in the unchanged test
+class and passed under a separate 20-minute ceiling in **523.377 seconds**. Case
+selection used the standard unittest method order and the five completed passing
+case markers; no completed case was silently omitted or treated as skipped.
+The initial run's owned process group had no remaining processes after cleanup.
+The combined coverage is a completed baseline, not a claim that one uninterrupted
+aggregate invocation returned zero.
+
+### Integrated navigator and compatibility checks
+
+Concurrent main changes introduced the default prompt navigator during baseline
+validation. They were merged without conflicts. The integration added direct
+core-plus-adapter routing and public-CLI checkpoint tests rather than applying
+compatibility schemas or child ownership to the new mode. On the committed
+integrated revision above, all **100 focused tests** passed:
+
+| Check | Passing tests |
+| --- | ---: |
+| Navigator public CLI, envelope, references, draft pause/resume and accepted blocker | 15 |
+| Navigator graph dry-run | 4 |
+| Compatibility protocol | 35 |
+| Reference routing | 5 |
+| Relocated managed package | 1 |
+| Test-group inventory | 10 |
+| Research templates | 7 |
+| Platform discovery | 17 |
+| Research packet protocol and recovery | 5 |
+| Complete managed delivery walk, including discovery packet and draft recovery | 1 |
+
+The navigator/protocol group completed in 25.016 seconds, research group in
+52.665 seconds, and managed walk in 209.052 seconds. Each group had a ten-minute
+external limit. Full generated-plugin parity and frontmatter checks also passed
+for the 18 source skills. Independent review found no remaining material issue
+after correcting the navigator adapter pointer and testing its actual target
+heading.
+
+These checks prove packet selection, declared-result behavior, and state/draft
+preservation in their exercised paths. They do not prove that a model follows
+every instruction, enforce a native-tool watchdog, or upgrade the earlier
+Apps Script/Salesforce trials into deployed-user validation.
+
+### Activation
+
+The tested integrated commit was fast-forwarded into local `main`. The existing
+Claude, Codex, Grok, and Cursor links were verified to resolve to the updated
+source and its 0.9.1 skill metadata. The installer still classifies the separate
+Hermes copy as foreign; it was preserved. Unrelated untracked documents were
+hash-checked immediately before and after the merge and remained intact.
+Generated plugin copies match the maintained source. Linked source availability
+does not establish live execution on every host.
