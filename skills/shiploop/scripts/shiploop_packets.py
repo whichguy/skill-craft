@@ -2469,6 +2469,21 @@ def _terminal_packet(core: Any, root: Path, state: Mapping[str, Any], api: Mappi
     return "\n".join(lines) + "\n"
 
 
+def stage_instruction(stage: str, api: Mapping[str, Any], *, managed: bool = False,
+                      history_limit: int = 7, state: Mapping[str, Any] | None = None) -> str | None:
+    """Select the shared stage instruction for live packets and graph previews."""
+    prompt_map = _value(api, "PROMPTS", {})
+    instruction = prompt_map.get(stage) if isinstance(prompt_map, Mapping) else None
+    if managed:
+        instruction = _value(api, "MANAGED_PROMPTS", {}).get(stage, instruction)
+    if isinstance(instruction, str):
+        if state is not None:
+            history_limit = history_policy.required_limit(state)
+        return instruction.replace("--limit 10", f"--limit {history_limit}").replace(
+            "latest ten", f"latest {history_limit}").replace("current ten", f"current {history_limit}")
+    return None
+
+
 def render(core: Any, root: Path, state: Mapping[str, Any], api: Mapping[str, Any]) -> str:
     """Render one self-contained packet without mutating durable state."""
     root = Path(root)
@@ -2833,13 +2848,8 @@ def render(core: Any, root: Path, state: Mapping[str, Any], api: Mapping[str, An
     elif stage in ("preflight", "approach"):
         lines.extend(_snippet("Incoming prompt", state.get("prompt"), prompt_command))
 
-    prompt_map = _value(api, "PROMPTS", {})
-    instruction = prompt_map.get(stage) if isinstance(prompt_map, Mapping) else None
-    if improve_bridge.enabled(state):
-        instruction = _value(api, "MANAGED_PROMPTS", {}).get(stage, instruction)
-    if isinstance(instruction, str):
-        limit = history_policy.required_limit(state)
-        instruction = instruction.replace("--limit 10", f"--limit {limit}").replace("latest ten", f"latest {limit}").replace("current ten", f"current {limit}")
+    instruction = stage_instruction(stage, api, managed=improve_bridge.enabled(state),
+                                    state=state)
     legacy_knowledge = (
         bool(state.get("active_step"))
         and state.get("carry_forward_protocol_version") is None

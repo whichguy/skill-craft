@@ -12,6 +12,8 @@ import copy
 import hashlib
 import importlib.machinery
 import importlib.util
+import json
+import os
 from pathlib import Path
 import re
 import subprocess
@@ -46,14 +48,333 @@ import shiploop_improve_bridge as improve_bridge  # noqa: E402
 import shiploop_delivery as delivery  # noqa: E402
 
 
+GRAPH_TRACE_ENV = "SHIPLOOP_GRAPH_TRACE"
+GRAPH_TRACE_SCOPE = "temporary integration fixture"
+_GRAPH_TRACE_PLANNING_STAGES = frozenset(
+    {
+        "approach",
+        "survey",
+        "research",
+        "research-review",
+        "research-plan",
+        "research-apply",
+        "research-verify",
+        "research-commit",
+        "research-finalize",
+        "behavior",
+        "behavior-review",
+        "behavior-plan",
+        "behavior-apply",
+        "behavior-verify",
+        "behavior-commit",
+        "behavior-finalize",
+        "spec",
+        "spec-review",
+        "spec-plan",
+        "spec-apply",
+        "spec-verify",
+        "spec-commit",
+        "spec-finalize",
+        "sequence",
+        "prepare",
+        "objective-review",
+        "objective-plan",
+        "objective-apply",
+        "objective-verify",
+        "objective-commit",
+        "objective-finalize",
+    }
+)
+
+
+class ManagedGraphTrace:
+    """Opt-in JSONL observation writer used only by this integration fixture."""
+
+    def __init__(self, path):
+        self.path = None
+        self.records = []
+        if path in (None, ""):
+            return
+        candidate = Path(path)
+        try:
+            with candidate.open("x", encoding="utf-8"):
+                pass
+        except FileExistsError as exc:
+            raise RuntimeError(
+                f"{GRAPH_TRACE_ENV} already exists: {candidate}; choose a new trace path"
+            ) from exc
+        except FileNotFoundError as exc:
+            raise RuntimeError(
+                f"{GRAPH_TRACE_ENV} parent directory does not exist: {candidate.parent}"
+            ) from exc
+        self.path = candidate
+
+    @property
+    def enabled(self):
+        return self.path is not None
+
+    @classmethod
+    def from_environment(cls, environment):
+        return cls(environment.get(GRAPH_TRACE_ENV))
+
+    def append(self, record):
+        """Append one independently recoverable JSONL record without overwriting."""
+        if not self.enabled:
+            return
+        encoded = json.dumps(record, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+        with self.path.open("a", encoding="utf-8") as handle:
+            handle.write(encoded + "\n")
+            handle.flush()
+        # The JSONL file retains exact output; the fixture needs only enough
+        # in-memory state to validate the final graph order.
+        self.records.append(
+            {
+                "type": record.get("type"),
+                "sequence": record.get("sequence"),
+                "after": record.get("after"),
+            }
+        )
+
+
+def graph_trace_node(state):
+    """Reduce a parent or child record to the dispatch-relevant cursor fields."""
+    if not isinstance(state, dict):
+        return None
+    action = state.get("action")
+    return {
+        "phase": state.get("phase"),
+        "stage": state.get("stage"),
+        "action": action.get("id") if isinstance(action, dict) else None,
+        "active_step": state.get("active_step"),
+        "status": state.get("status"),
+        "paused": bool(state.get("paused")),
+        "profile": None,
+    }
+
+
+def graph_trace_child_node(child):
+    """Reduce the controller-owned child cursor without treating it as parent state."""
+    if not isinstance(child, dict):
+        return None
+    execution = child.get("execution")
+    if not isinstance(execution, dict):
+        return None
+    phase = child.get("current_phase")
+    stage = execution.get("stage") if isinstance(execution.get("stage"), str) else phase
+    action = execution.get("action")
+    return {
+        "phase": phase,
+        "stage": stage,
+        "action": action if isinstance(action, str) else None,
+        "active_step": None,
+        "status": child.get("status"),
+        "paused": bool(child.get("paused")),
+        "profile": child.get("profile") if isinstance(child.get("profile"), str) else None,
+    }
+
+
+def graph_trace_snapshot(run_dir):
+    """Read traceable parent and child cursors without changing durable state."""
+    state_path = Path(run_dir) / "state.md"
+    empty = {
+        "durable_parent": None,
+        "effective": None,
+        "child": None,
+        "effective_source": "unavailable",
+    }
+    if not state_path.is_file():
+        return empty
+    try:
+        parent = store.read_record(state_path)
+    except Exception:
+        return empty
+
+    parent_node = graph_trace_node(parent)
+    child_node = None
+    binding = parent.get("managed_improve")
+    if isinstance(binding, dict) and isinstance(binding.get("receipt"), str):
+        try:
+            child_record = store.read_record(Path(run_dir) / binding["receipt"])
+            child_node = graph_trace_child_node(child_record.get("child"))
+        except Exception:
+            child_node = None
+
+    try:
+        projected = improve_bridge.project(Path(run_dir), copy.deepcopy(parent))
+    except Exception:
+        return {
+            "durable_parent": parent_node,
+            "effective": None,
+            "child": child_node,
+            "effective_source": "unavailable",
+        }
+    effective = graph_trace_node(projected)
+    source = "managed-child" if effective != parent_node else "parent"
+    return {
+        "durable_parent": parent_node,
+        "effective": effective,
+        "child": child_node,
+        "effective_source": source,
+    }
+
+
+def graph_trace_command_record(*, sequence, command, before, after, exit_status, stdout, stderr):
+    """Build a concise trace row without retaining input argv or result files."""
+    before_effective = before.get("effective") if isinstance(before, dict) else None
+    after_effective = after.get("effective") if isinstance(after, dict) else None
+    same_effective_node = (
+        before_effective is not None
+        and after_effective is not None
+        and before_effective == after_effective
+    )
+    child = after.get("child") if isinstance(after, dict) else None
+    effective = after_effective
+    blocked = any(
+        isinstance(node, dict)
+        and (node.get("status") == "blocked" or node.get("paused") is True)
+        for node in (effective, child)
+    )
+    rejected = exit_status != 0
+    outcome = (
+        "rejected"
+        if rejected
+        else "blocked"
+        if blocked
+        else "unchanged"
+        if same_effective_node
+        else "advanced"
+    )
+    return {
+        "type": "command",
+        "sequence": sequence,
+        "synthetic_fixture": True,
+        "execution_scope": GRAPH_TRACE_SCOPE,
+        "command": command,
+        "exit_status": exit_status,
+        "before": before,
+        "after": after,
+        "transition": {
+            "outcome": outcome,
+            "rejected": rejected,
+            "blocked": blocked,
+            "same_effective_node": same_effective_node,
+        },
+        "stdout": stdout,
+        "stderr": stderr,
+    }
+
+
+def graph_trace_terminal_summary(snapshot, *, command_records, walk_assertions_passed):
+    """Make a terminal claim only after the complete integration walk passed."""
+    if walk_assertions_passed is not True:
+        raise ValueError("graph trace terminal proof requires completed walk assertions")
+    terminal = snapshot.get("durable_parent") if isinstance(snapshot, dict) else None
+    if not isinstance(terminal, dict) or terminal.get("stage") != "done":
+        raise ValueError("graph trace terminal proof requires durable done state")
+    return {
+        "type": "terminal-summary",
+        "synthetic_fixture": True,
+        "execution_scope": GRAPH_TRACE_SCOPE,
+        "successful_terminal_proof": True,
+        "command_records": command_records,
+        "terminal": snapshot,
+    }
+
+
+def assert_graph_trace_high_level_order(records):
+    """Require the real fixture's coarse route while retaining actual stage IDs."""
+    observed = []
+    for record in records:
+        if record.get("type") != "command":
+            continue
+        after = record.get("after")
+        if not isinstance(after, dict):
+            continue
+        parent = after.get("durable_parent")
+        effective = after.get("effective")
+        child = after.get("child")
+        nodes = [node for node in (parent, effective, child) if isinstance(node, dict)]
+        stages = [node.get("stage") for node in nodes]
+        if "preflight" in stages:
+            observed.append("preflight")
+        if any(stage in _GRAPH_TRACE_PLANNING_STAGES for stage in stages):
+            observed.append("planning")
+        for step_id in ("S1", "S2"):
+            if any(node.get("active_step") == step_id for node in nodes):
+                observed.append(step_id)
+        for stage in ("coverage", "quality", "handoff", "done"):
+            if stage in stages:
+                observed.append(stage)
+
+    cursor = 0
+    required = ("preflight", "planning", "S1", "S2", "coverage", "quality", "handoff", "done")
+    for milestone in required:
+        try:
+            cursor = observed.index(milestone, cursor) + 1
+        except ValueError as exc:
+            actual_stages = [
+                record.get("after", {}).get("durable_parent", {}).get("stage")
+                for record in records
+                if isinstance(record.get("after"), dict)
+                and isinstance(record["after"].get("durable_parent"), dict)
+            ]
+            raise AssertionError(
+                f"missing ordered graph milestone {milestone!r}; "
+                f"observed milestones={observed!r}; durable stage IDs={actual_stages!r}"
+            ) from exc
+
+
 class ManagedShipLoopWalkFixture(ACTION.ShipLoopActionWalkFixture):
     """Use the legacy fixture's real repository with a managed child overlay."""
 
     execution_mode = "managed"
 
     def setUp(self):
+        self.graph_trace = ManagedGraphTrace.from_environment(os.environ)
         super().setUp()
         self.managed_children = []
+
+    def cli(self, *args, code=0, cwd=None):
+        """Run the real CLI and, only on request, record its dispatch surface."""
+        if not self.graph_trace.enabled:
+            return super().cli(*args, code=code, cwd=cwd)
+        before = graph_trace_snapshot(self.run_dir)
+        process = subprocess.run(
+            [sys.executable, str(ACTION.CLI), *args],
+            cwd=cwd or self.repo,
+            capture_output=True,
+            text=True,
+            env=self.env,
+        )
+        after = graph_trace_snapshot(self.run_dir)
+        if self.graph_trace.enabled:
+            self.graph_trace.append(
+                graph_trace_command_record(
+                    sequence=len(self.graph_trace.records) + 1,
+                    command=str(args[0]) if args else "",
+                    before=before,
+                    after=after,
+                    exit_status=process.returncode,
+                    stdout=process.stdout,
+                    stderr=process.stderr,
+                )
+            )
+        self.assertEqual(process.returncode, code, process.stdout + process.stderr)
+        return process
+
+    def finish_graph_trace(self):
+        """Write a terminal proof after this test's existing assertions succeed."""
+        if not self.graph_trace.enabled:
+            return
+        self.assertTrue(self.graph_trace.records)
+        assert_graph_trace_high_level_order(self.graph_trace.records)
+        self.graph_trace.append(
+            graph_trace_terminal_summary(
+                graph_trace_snapshot(self.run_dir),
+                command_records=len(self.graph_trace.records),
+                walk_assertions_passed=True,
+            )
+        )
 
     def durable_parent_state(self):
         """Read the actual parent record without its child execution overlay."""
@@ -1382,6 +1703,7 @@ class ManagedShipLoopWalkTests(ManagedShipLoopWalkFixture):
             all((self.run_dir / path).is_file() for path in set(self.managed_children)),
             "child Markdown receipts remain durable after parent completion",
         )
+        self.finish_graph_trace()
 
 
 if __name__ == "__main__":
