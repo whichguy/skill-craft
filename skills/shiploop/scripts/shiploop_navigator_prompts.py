@@ -1,0 +1,346 @@
+"""Prompt catalog for ShipLoop's lightweight navigator execution mode.
+
+The navigator owns no execution, evidence interpretation, or loop counter.  It
+only exposes stable, host-neutral instructions for the runtime's current node.
+"""
+
+PRELUDE = (
+    "intake",
+    "discovery",
+    "research",
+    "research-improve",
+    "spec",
+    "spec-improve",
+    "test-strategy",
+    "plan",
+    "plan-improve",
+)
+
+INNER = (
+    "step-plan",
+    "step-plan-improve",
+    "implement",
+    "test-refine",
+    "test-author",
+    "document",
+    "skill-validate",
+    "verify",
+    "product-improve",
+    "integrate",
+    "carry-forward",
+)
+
+OUTER = (
+    "system-test",
+    "outer-improve",
+    "release-plan",
+    "release",
+    "release-verify",
+    "handoff",
+)
+
+IMPROVE_STAGES = {
+    "research-improve",
+    "spec-improve",
+    "plan-improve",
+    "step-plan-improve",
+    "product-improve",
+    "outer-improve",
+}
+
+COMMON = """\
+The script owns only this cursor, action identity, durable state, and graph
+routing. You own repository review, judgment, planning, edits, test design,
+commands, evidence, and whether work has converged. Follow the user’s scope
+and permissions; do not infer permission to release, push, install, delete, or
+change unrelated work.
+
+Inspect current repository and run context before relying on prior notes. Keep
+the candidate and adjacent context explicitly scoped, preserve unrelated user
+work, and treat a missing prerequisite, access, decision, or trustworthy check
+as incomplete rather than success. Choose proportionate ways to carry out this
+prompt; no exact prose layout, check-manifest schema, byte comparison, or
+generic evidence string proves quality.
+
+Return a concise result with `outcome` (`done`, `repeat`, or `blocked`) and a
+`summary`; add `evidence_refs` when they help locate real evidence. Do not
+supply a next stage. `repeat` asks for a new action at this same node; `blocked`
+keeps this work incomplete until the host resumes it. Only `plan` may include
+ordered `work_items` for all approved work. `plan-improve` may update that
+ordered queue before execution begins. Only `carry-forward` may include ordered
+future-only `work_items`.
+"""
+
+IMPROVE = """\
+This one action owns the entire reusable Improve review cycle. Read
+`references/improve-review-policy.md` and perform its ordered review, plan,
+apply, checks, record, and assessment work internally. Do not start standalone
+Improve or until-loop, create child phases or ambient state, or add another
+loop wrapper around this action.
+
+For every distinct cycle, inspect the seven latest full Git commit messages;
+when fewer exist inspect all available messages, and when none exist disclose
+that no history was available. Review the in-scope current candidate and
+affected consumers against the stated baseline, then plan only authorized
+worthwhile changes and establish their expected behavior and checks before
+applying them. Classify materiality
+semantically: a one-line defect can be material, and cosmetic changes are not
+automatically material. Investigate uncertainty. Any material finding or edit
+resets the clean-review condition.
+
+After every affected plan, code, test, documentation, or skill change, refresh
+the checks it can affect. Keep a durable human-readable record under the run
+directory, for example `notes/<actionID>.md`, with scope, candidate/source/
+baseline identity as a host-recorded descriptor, findings and classification,
+plan or no-change reason, checks, evidence, learnings, review limitation, and
+clean-review streak before and after. That descriptor is not a scripted hash
+gate. Use a fresh independent reviewer when available; otherwise record the
+self-review limitation. Commit authorized changes only after their checks;
+never manufacture an empty commit, and honor an explicit user request not to
+commit.
+
+Repeat complete, distinct cycles internally until you assess two consecutive
+trivial-only completed reviews with current checks and no unresolved material
+findings. The action boundary is the whole cycle campaign: submit one `done`
+only after that assessment. A blocker, stop, stale check, missing evidence, or
+unfinished convergence prevents `done`. If you cannot continue, report `blocked`.
+Ordinary review iterations continue inside this action. If an attempt must be
+restarted, the generic `repeat` outcome requests a fresh attempt at this node;
+it is not a completed review, a clean pass, or a successful completion.
+"""
+
+
+def _prompt(duty: str, *, improve: bool = False) -> str:
+    """Assemble a concrete prompt while keeping shared obligations in one place."""
+    parts = (COMMON, duty, IMPROVE) if improve else (COMMON, duty)
+    return "\n\n".join(parts)
+
+
+PROMPTS = {
+    "intake": _prompt(
+        """\
+Establish the requested outcome, repository and run boundaries, explicit user
+constraints, authority limits, consumers, known risks, and unanswered
+questions. Distinguish facts from assumptions. Identify what discovery must
+establish before research, specification, planning, tests, or release work can
+be trusted; do not implement or silently expand scope yet."""
+    ),
+    "discovery": _prompt(
+        """\
+Inspect the current repository, Git/worktree state, instructions, relevant
+code, tests, documentation, environment, consumers, and useful local skills.
+Record current facts and gaps that shape the work. Review the candidate before
+planning; neither old commits nor a visible file proves current behavior,
+authorization, or a passing check."""
+    ),
+    "research": _prompt(
+        """\
+Resolve the material unknowns using appropriate primary repository or external
+evidence. Relate each conclusion to its source, uncertainty, affected
+requirement, consumer, prerequisite, and likely verification need. Keep
+research bounded to the request and leave unsupported questions open rather
+than inventing answers or implementation."""
+    ),
+    "research-improve": _prompt(
+        """\
+Improve the research record and its conclusions as the current candidate.
+Check evidence quality, scope, assumptions, source relevance, and downstream
+impact before accepting a change. Refresh any affected research-based plan,
+expected outcome, or system-test need.""",
+        improve=True,
+    ),
+    "spec": _prompt(
+        """\
+Define the approved behavior, boundaries, acceptance criteria, nonfunctional
+expectations, failure cases, and consumer-facing outcomes. State independent
+expected outcomes early, including local tests and plausible integration,
+system-test, or outer-loop obligations. Mark unresolved prerequisites or user
+decisions instead of burying them in implementation detail."""
+    ),
+    "spec-improve": _prompt(
+        """\
+Improve the specification as the current candidate. Review behavior,
+acceptance criteria, failure paths, consumer impact, and early test/system-test
+expectations. Refresh every planned outcome or check affected by a changed
+requirement.""",
+        improve=True,
+    ),
+    "test-strategy": _prompt(
+        """\
+Turn the specification into independent, observable expected outcomes before
+coding. Cover normal, failure, boundary, and relevant consumer behavior;
+separate executable local tests from integration, runtime, and system tests.
+Name necessary fixtures, data, environments, authorization, and evidence
+limits. A planned test is not a passed test."""
+    ),
+    "plan": _prompt(
+        """\
+Create a dependency-aware implementation plan by reverse-walking each required
+outcome: required behavior, prerequisites, suppliers, affected consumers, and
+verification. Use Backchain-style reasoning to expose missing inputs or cycles.
+Order approved work by actual dependencies and retain early test and outer/
+system-test obligations. If useful, return ordered `work_items` covering the
+whole approved plan; do not turn them into a second scheduler."""
+    ),
+    "plan-improve": _prompt(
+        """\
+Improve the complete delivery plan. Recheck prerequisites, dependency order,
+scope, expected outcomes, test strategy, system-test obligations, consumers,
+and release assumptions. Refresh affected planned checks before deciding the
+plan is ready for local step planning. If the approved work queue changes
+before execution, return ordered `work_items` for the whole updated plan.""",
+        improve=True,
+    ),
+    "step-plan": _prompt(
+        """\
+Plan the current authorized work item in enough detail to implement safely:
+the bounded candidate, prerequisites, affected code and consumers, intended
+behavior, independent expected outcomes, test cases, fixtures, documentation,
+skill/reuse questions, and checks. Resolve or block missing inputs before code;
+this is planning, not permission to skip directly to unverified edits."""
+    ),
+    "step-plan-improve": _prompt(
+        """\
+Improve the local step plan as the current candidate. Recheck the bounded
+scope, prerequisite evidence, Backchain dependencies, expected outcomes,
+tests, documentation, reuse/skill choice, and any system-test impact. Refresh
+the affected plan and its planned checks before implementation.""",
+        improve=True,
+    ),
+    "implement": _prompt(
+        """\
+Implement the authorized bounded plan. Inspect the actual code as it changes,
+preserve unrelated work, and record material discoveries. Do not treat a code
+edit as verification: send the learned implementation context forward so cases
+can be refined and executable tests authored before the final checks."""
+    ),
+    "test-refine": _prompt(
+        """\
+Refine the earlier test cases from the code that now exists. Correct stale
+assumptions, retain meaningful coverage, and state current expected outcomes,
+failure behavior, fixtures, and selectors. Do not weaken an oracle merely to
+obtain a green result and do not claim a planned or edited test has run."""
+    ),
+    "test-author": _prompt(
+        """\
+Author or refine executable tests and fixtures from the current case set.
+Map important behavior and failure cases to meaningful checks, preserving
+adequate existing tests where they already cover the outcome. Record any
+blocked test need honestly; final linters and tests still run at verify."""
+    ),
+    "document": _prompt(
+        """\
+Update necessary code, API, user, or operator documentation from the completed
+implementation and test learning. Make an explicit reuse decision: use an
+existing relevant skill, or create/update a repo-local skill when repeated work
+demonstrates a concrete benefit. Otherwise explain why none is needed. Do not
+install or publish a skill without authority. Set `choices.skill_required: true` when the next
+`skill-validate` node is genuinely required; otherwise omit that choice. A
+documentation or reuse change may require affected checks to be refreshed."""
+    ),
+    "skill-validate": _prompt(
+        """\
+Validate the selected reusable skill or skill-related change against its real
+executable examples, inputs, failure behavior, and consumer documentation;
+check the claimed host portability when applicable. Do not claim
+a skill is usable from its presence alone. Refresh all plan, code, test, or
+documentation checks affected by this work before final verification."""
+    ),
+    "verify": _prompt(
+        """\
+Run the actual relevant linters, executable tests, and other checks for the
+current candidate. Inspect failures, fix justified defects, and rerun affected
+checks until they are current; explain an invalid test before changing it. Tie
+results to expected outcomes and disclose any unrun, blocked, or environment-
+limited check rather than treating a partial green run as completion."""
+    ),
+    "product-improve": _prompt(
+        """\
+Improve the assembled product candidate as a whole, including the integrated
+plan, code, tests, documentation, skill/reuse decision, and verification
+evidence. Reconsider consumers, cross-step behavior, dependencies, and
+system-test needs. Any plan, code, test, documentation, or skill change made
+inside this action refreshes every affected check before convergence.""",
+        improve=True,
+    ),
+    "integrate": _prompt(
+        """\
+Perform only authorized Git and worktree integration work. Inspect the actual
+branches, diffs, conflicts, identities, and resulting candidate; preserve user
+work and do not infer that a merge, commit, push, or deployment occurred from
+a plan or command attempt. Recheck integration-affected tests and surface a
+permission or conflict blocker rather than forcing an external operation."""
+    ),
+    "carry-forward": _prompt(
+        """\
+Review broad remaining scope, dependencies, discoveries, system-test needs,
+consumer impacts, release prerequisites, and reusable-skill obligations. Keep
+current work separate from honest future work. If needed, return ordered
+future-only `work_items`; do not use them to claim a future test, integration,
+or release has already occurred."""
+    ),
+    "system-test": _prompt(
+        """\
+Run or honestly assess the actual authorized integration, end-to-end, runtime,
+or system checks that were planned. Verify the real target, prerequisites,
+fixtures, authorization, and observed behavior; distinguish a planned case or
+local mock from an executed system boundary. A genuinely non-applicable check
+needs a concrete reason, while unknown access or target state is blocked."""
+    ),
+    "outer-improve": _prompt(
+        """\
+Improve the entire product and delivery candidate, not a single local file.
+Review cross-cutting requirements, integration and system evidence, release
+readiness, consumer impact, documentation, skills, and handoff facts. Refresh
+all checks affected by any plan, code, test, documentation, or skill change
+made during the complete improvement campaign.""",
+        improve=True,
+    ),
+    "release-plan": _prompt(
+        """\
+Plan a release only within granted authority. Identify the intended target,
+identity and version checks, permissions, prerequisites, user impact,
+rollback/recovery path, monitoring, and pre/post-release verification. A plan
+does not authorize the release or prove target access; leave unsupported
+decisions blocked for direction."""
+    ),
+    "release": _prompt(
+        """\
+Execute a release only when it is explicitly authorized and the planned target,
+checks, and rollback conditions are satisfied. Inspect the real result before
+claiming an external effect. When no release applies, report an honest,
+concrete non-applicable reason; do not invent a deployment, commit, push, or
+consumer change to advance the graph."""
+    ),
+    "release-verify": _prompt(
+        """\
+Verify the actual relevant release and consumer/runtime boundary using current
+target evidence. Confirm the observed behavior, version or identity where
+available, and release-specific checks; distinguish unavailable evidence from
+a passed check. If release was genuinely non-applicable, verify the applicable
+final consumer boundary and retain that reason."""
+    ),
+    "handoff": _prompt(
+        """\
+Produce an honest handoff of actual source, test, integration, release, and
+consumer status. Name completed evidence, current limitations, unresolved
+blockers, follow-up work, operational/revalidation needs, and the exact scope
+of any non-applicable release. Do not convert a planned action, stale check,
+or conversational summary into completion evidence."""
+    ),
+}
+
+
+if set(PROMPTS) != set(PRELUDE + INNER + OUTER):
+    raise RuntimeError("navigator prompt catalog does not cover its graph")
+
+
+__all__ = (
+    "COMMON",
+    "IMPROVE",
+    "IMPROVE_STAGES",
+    "INNER",
+    "OUTER",
+    "PRELUDE",
+    "PROMPTS",
+)

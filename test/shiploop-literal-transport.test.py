@@ -59,8 +59,10 @@ class LiteralTransportTests(unittest.TestCase):
                         ["/bin/sh", "-c", command], cwd=repo, env=env, capture_output=True
                     )
                     self.assertEqual(result.returncode, 0, result.stderr)
-                    self.assertEqual(store.read_record(run / "state.md")["prompt"], value)
-                    self.assertEqual((run / "prompt.md").read_bytes(), (value + "\n").encode())
+                    state = store.read_record(run / "state.md")
+                    self.assertEqual(state["prompt"], value)
+                    self.assertEqual(state["status"], "active")
+                    self.assertEqual(state["stage"], "intake")
                     self.assertFalse(sentinel.exists(), "literal prompt text executed as shell code")
                     pause = subprocess.run(
                         ["/bin/sh", "-c", 'python3 "$CLI" pause --run-dir "$RUN_DIR" --reason='
@@ -69,8 +71,10 @@ class LiteralTransportTests(unittest.TestCase):
                     )
                     self.assertEqual(pause.returncode, 0, pause.stderr)
                     paused = store.read_record(run / "state.md")
-                    self.assertEqual(paused["paused"], value)
-                    self.assertEqual(paused["stage"], "preflight")
+                    self.assertEqual(paused["status"], "paused")
+                    self.assertEqual(paused["status_reason"], value)
+                    self.assertEqual(paused["stage"], "intake")
+                    self.assertEqual(paused["action"], state["action"])
                     self.assertFalse(sentinel.exists(), "literal reason executed as shell code")
 
 

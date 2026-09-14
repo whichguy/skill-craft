@@ -80,7 +80,10 @@ class PromptIntegrityTests(unittest.TestCase):
         return result
 
     def init(self, prompt="Build the exact requested behavior"):
-        self.cli("init", "--repo", str(self.repo), "--prompt", prompt)
+        self.cli(
+            "init", "--repo", str(self.repo), "--execution-mode", "managed",
+            "--prompt", prompt,
+        )
         return prompt
 
     @staticmethod

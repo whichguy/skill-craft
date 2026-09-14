@@ -9,6 +9,8 @@ printf '==> scripts/sync-improve-managed.py\n'
 PYTHONDONTWRITEBYTECODE=1 python3 scripts/sync-improve-managed.py
 
 for suite in \
+  test/shiploop-navigator.test.py \
+  test/shiploop-navigator-dry-run.test.py \
   test/improve-managed.test.py \
   test/shiploop-graph-driver.test.py \
   test/shiploop-graph-trace.test.py \

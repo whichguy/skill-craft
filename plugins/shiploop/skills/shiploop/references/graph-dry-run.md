@@ -1,3 +1,38 @@
+# Navigator graph dry runs
+
+The default graph driver now exercises the actual navigator and full returned
+packets. Synthetic declarations stand in for project work; the driver runs no
+LLM, Git operation, implementation, test command, or delivery action.
+
+```sh
+python3 skills/shiploop/scripts/shiploop graph-dry-run
+python3 skills/shiploop/scripts/shiploop graph-dry-run --list
+python3 skills/shiploop/scripts/shiploop graph-dry-run --scenario two-work-items --format markdown
+python3 skills/shiploop/scripts/shiploop graph-dry-run --scenario blocked-resume --format json
+```
+
+The eight built-in scenarios cover delivery, multiple work items, conditional
+skill validation, a repeated Improve action, blockers, pause/resume, halt and
+new corrective work. Expectations are authored independently of the routing
+tables. Each trace contains the actual prompt before its synthetic declaration
+and the resulting stage/status. No entire prompt snapshot is a pass condition.
+
+Custom JSON uses `steps`, each with `at`, `expect`, optional `status` (default
+`active`), and either a generic `result` or `command: pause|resume|halt`.
+The last completion expects stage/status `done`. Run it with `--script PATH`.
+An example prefix is in `navigator-dry-run-example.json`.
+
+Exit 0 means expectations matched, including an intentionally halted or partial
+scenario. Exit 1 means an expectation failed; exit 2 means the input could not
+be read. Simulation success never establishes project completion. See the
+[navigator guide](navigator.md) for actual execution and Improve ownership.
+
+## Compatibility harnesses
+
+The remainder describes the previous managed-controller driver and its real
+outer fixture. These remain useful for existing managed runs. They do not
+exercise the default navigator and their evidence gates do not apply to it.
+
 # Dry-run graph activities
 
 Use the fast driver to inspect the actual managed controller's routes and the
@@ -17,10 +52,10 @@ flowchart LR
 Locate the package's `scripts/shiploop` as `CLI`. From a repository checkout:
 
 ```sh
-python3 skills/shiploop/scripts/shiploop graph-dry-run
-python3 skills/shiploop/scripts/shiploop graph-dry-run --list
-python3 skills/shiploop/scripts/shiploop graph-dry-run --scenario product-skill --format markdown
-python3 skills/shiploop/scripts/shiploop graph-dry-run --scenario product-pause-resume --format json
+python3 skills/shiploop/scripts/shiploop managed-graph-dry-run
+python3 skills/shiploop/scripts/shiploop managed-graph-dry-run --list
+python3 skills/shiploop/scripts/shiploop managed-graph-dry-run --scenario product-skill --format markdown
+python3 skills/shiploop/scripts/shiploop managed-graph-dry-run --scenario product-pause-resume --format json
 ```
 
 The default runs every built-in scenario. Exit 0 means the simulated path
@@ -48,7 +83,7 @@ LLM or human review task.
 The included `graph-dry-run-example.json` walks a short product planning prefix:
 
 ```sh
-python3 skills/shiploop/scripts/shiploop graph-dry-run \
+python3 skills/shiploop/scripts/shiploop managed-graph-dry-run \
   --script skills/shiploop/references/graph-dry-run-example.json --format json
 ```
 

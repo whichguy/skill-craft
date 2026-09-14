@@ -348,7 +348,10 @@ class ImprovePolicyActionWalkTests(ACTION.ShipLoopActionWalkFixture):
 
         before_resume = self.authoritative_snapshot("steps/S1.md")
         before_policy = snapshot.read_bytes()
-        self.cli("init", "--repo", str(self.repo), "--prompt", "resume fixture")
+        self.cli(
+            "init", "--repo", str(self.repo), "--execution-mode", self.execution_mode,
+            "--prompt", "resume fixture",
+        )
         self.assert_authority_unchanged(before_resume, "steps/S1.md")
         self.assertEqual(snapshot.read_bytes(), before_policy)
 
