@@ -66,6 +66,58 @@ class TestGroupTests(unittest.TestCase):
         env["HOME"] = str(root / "empty-home")
         return root, env
 
+    def workflow_step(self, workflow, name):
+        marker = f"      - name: {name}\n"
+        self.assertEqual(workflow.count(marker), 1)
+        lines = workflow[workflow.index(marker):].splitlines()
+        step = []
+        for index, line in enumerate(lines):
+            if index and (
+                line.startswith("      - ") or
+                (line and len(line) - len(line.lstrip()) < 6)
+            ):
+                break
+            step.append(line)
+        return "\n".join(step)
+
+    def workflow_run_commands(self, step):
+        run_marker = "        run: |\n"
+        self.assertIn(run_marker, step)
+        commands = []
+        for line in step.split(run_marker, 1)[1].splitlines():
+            if not line:
+                commands.append(line)
+            elif line.startswith("          "):
+                commands.append(line[10:])
+            else:
+                break
+        self.assertTrue(commands)
+        return "\n".join(commands).strip()
+
+    def git(self, root, *args):
+        return subprocess.run(
+            ["git", *args], cwd=root, check=True, capture_output=True, text=True,
+        )
+
+    def git_checkout_fixture(self):
+        temp = tempfile.TemporaryDirectory(prefix="skill-craft-ci-guard-")
+        self.addCleanup(temp.cleanup)
+        root = Path(temp.name)
+        self.git(root, "init", "--quiet")
+        self.git(root, "config", "user.email", "test@example.invalid")
+        self.git(root, "config", "user.name", "Test User")
+        tracked = root / "tracked.txt"
+        tracked.write_text("clean\n")
+        self.git(root, "add", "tracked.txt")
+        self.git(root, "commit", "--quiet", "-m", "initial")
+        return root, tracked
+
+    def run_ci_commands(self, root, commands):
+        return subprocess.run(
+            ["bash", "-e", "-o", "pipefail"],
+            cwd=root, input=commands, capture_output=True, text=True, timeout=20,
+        )
+
     def test_catalog_is_complete_disjoint_and_host_free(self):
         core = self.inventory("core")
         shiploop = self.inventory("shiploop")
@@ -132,8 +184,8 @@ class TestGroupTests(unittest.TestCase):
         self.assertIn("fail-fast: false", workflow)
         self.assertIn("python-version: '3.12'", workflow)
         self.assertIn("node-version: '22'", workflow)
-        self.assertIn("always() && matrix.group == 'core'", workflow)
-        self.assertIn("git diff --exit-code HEAD", workflow)
+        self.assertIn("      - name: Plugin views in sync\n", workflow)
+        self.assertIn("      - name: Tracked checkout unchanged\n", workflow)
         gate = workflow.split("\n  hermetic:\n", 1)[1]
         self.assertIn("if: ${{ always() }}", gate)
         self.assertIn("needs: checks", gate)
@@ -145,6 +197,68 @@ class TestGroupTests(unittest.TestCase):
             self.assertEqual(result.returncode == 0, state == "success")
         self.assertNotIn("run-integration", workflow)
         self.assertNotIn("secrets.", workflow)
+
+    def test_ci_scopes_plugin_parity_and_checkout_guard_after_the_suite(self):
+        workflow = (ROOT / ".github" / "workflows" / "ci.yml").read_text()
+        parity = self.workflow_step(workflow, "Plugin views in sync")
+        guard = self.workflow_step(workflow, "Tracked checkout unchanged")
+        self.assertIn("if: ${{ always() && matrix.group == 'core' }}", parity)
+        self.assertIn("bash scripts/sync-plugin-views.sh --check", parity)
+        self.assertNotIn("git diff", parity)
+        self.assertIn("if: ${{ always() }}", guard)
+        self.assertNotIn("matrix.group", guard)
+        self.assertIn("shell: bash -e -o pipefail {0}", guard)
+        self.assertLess(workflow.index("      - name: Hermetic group"),
+                        workflow.index("      - name: Plugin views in sync"))
+        self.assertLess(workflow.index("      - name: Plugin views in sync"),
+                        workflow.index("      - name: Tracked checkout unchanged"))
+        self.assertLess(workflow.index("      - name: Tracked checkout unchanged"),
+                        workflow.index("\n  hermetic:\n"))
+
+    def test_ci_tracked_checkout_guard_executes_actual_commands(self):
+        workflow = (ROOT / ".github" / "workflows" / "ci.yml").read_text()
+        commands = self.workflow_run_commands(
+            self.workflow_step(workflow, "Tracked checkout unchanged")
+        )
+        self.assertEqual(commands.splitlines(), [
+            "git diff --exit-code",
+            "git diff --cached --exit-code",
+        ])
+
+        def clean(root, tracked):
+            del root, tracked
+
+        def unstaged(root, tracked):
+            del root
+            tracked.write_text("unstaged\n")
+
+        def staged(root, tracked):
+            tracked.write_text("staged\n")
+            self.git(root, "add", "tracked.txt")
+
+        def staged_new(root, tracked):
+            del tracked
+            (root / "staged-new.txt").write_text("new\n")
+            self.git(root, "add", "staged-new.txt")
+
+        def staged_with_working_tree_restored(root, tracked):
+            tracked.write_text("staged\n")
+            self.git(root, "add", "tracked.txt")
+            self.git(root, "restore", "--source=HEAD", "--worktree", "tracked.txt")
+            self.assertEqual(tracked.read_text(), "clean\n")
+
+        for name, change, expected in (
+            ("clean", clean, 0),
+            ("unstaged", unstaged, 1),
+            ("staged", staged, 1),
+            ("staged-new", staged_new, 1),
+            ("staged+working-restored", staged_with_working_tree_restored, 1),
+        ):
+            with self.subTest(change=name):
+                root, tracked = self.git_checkout_fixture()
+                change(root, tracked)
+                result = self.run_ci_commands(root, commands)
+                self.assertEqual(result.returncode, expected, result.stdout + result.stderr)
 
     def test_bootstrap_fixture_pin_does_not_rewrite_the_checkout(self):
         script = (ROOT / "test" / "devloop-run.test.sh").read_text()

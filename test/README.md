@@ -78,8 +78,12 @@ CI sets Python 3.12 and Node 22 explicitly, runs `core` and `shiploop` as
 independent groups on Ubuntu 24.04, and preserves the existing `hermetic` status
 as an aggregate gate. Failed, cancelled or skipped required groups cannot make
 that gate pass. Package drift is reported even when another core check fails.
-Core CI also rejects tracked-file changes left by tests; checkout-local bootstrap
-pins are generated in temporary directories, not rewritten into source fixtures.
+Both CI jobs reject staged or unstaged tracked-file changes left by tests,
+even after a suite or package-parity failure. The worktree and index are checked
+separately so restoring a working file cannot hide its staged changes.
+Checkout-local bootstrap pins are generated in temporary directories, not
+rewritten into source fixtures. This dirty-tree guard is not a sandbox: it does
+not reject untracked/ignored artifacts or tests deliberately committing changes.
 CI does not inject secret values or make any integration target mandatory.
 The small Linux-only CI footprint is intentional; it is not macOS or live-host
 certification. Local checks may use other Python/Node versions.

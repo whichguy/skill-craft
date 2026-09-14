@@ -117,6 +117,8 @@ host checkout into a tree that is bind-mounted into the container as `/opt/data`
 - Plugin view drift: `bash scripts/sync-plugin-views.sh --check` (**implemented**)
 - CI: `.github/workflows/ci.yml` (**implemented**); independent core/ShipLoop jobs,
   explicit Python/Node versions and a fail-closed aggregate `hermetic` status.
+  Both checkouts independently reject staged or unstaged tracked changes after
+  their suites, including failed suites; package parity remains core-only.
 - External integrations: explicitly selected via `bash test/run-integration.sh`;
   never pulled into the required CI aggregate. See [test runners](../test/README.md).
 
