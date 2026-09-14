@@ -161,3 +161,9 @@ authorizes and records a self-review fallback.
 HTML is a derived report, not state. Operational details, diagrams, and recovery
 guidance are in [README.md](README.md); the script selects the relevant
 instructions for each action.
+
+For a simulated graph/prompt inspection, use `graph-dry-run` instead of starting
+a delivery run. It feeds synthetic events to the actual managed router and
+prints the shared stage instructions without project work or run-state writes.
+See [dry-run activities](references/graph-dry-run.md), including the optional
+full outer-workflow fixture trace. Simulation output is never delivery evidence.

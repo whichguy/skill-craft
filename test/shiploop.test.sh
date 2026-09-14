@@ -10,6 +10,8 @@ PYTHONDONTWRITEBYTECODE=1 python3 scripts/sync-improve-managed.py
 
 for suite in \
   test/improve-managed.test.py \
+  test/shiploop-graph-driver.test.py \
+  test/shiploop-graph-trace.test.py \
   test/shiploop-store.test.py \
   test/shiploop-evidence.test.py \
   test/shiploop-file-safety.test.py \

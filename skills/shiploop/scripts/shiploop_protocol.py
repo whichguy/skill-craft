@@ -7516,6 +7516,10 @@ def main(core, argv=None):
         description="Markdown-authoritative, action-oriented session harness",
     )
     subs = parser.add_subparsers(dest="command", required=True)
+    import shiploop_dry_run
+
+    shiploop_dry_run.add_arguments(subs.add_parser(
+        "graph-dry-run", help="simulate managed graph routes and prompts without project work"))
     for name in (
         "init",
         "next",
@@ -7661,6 +7665,9 @@ def main(core, argv=None):
         if name in ("halt", "pause", "repair", "merge-recover", "revisit"):
             sub.add_argument("--reason", required=True)
     args = parser.parse_args(argv)
+    if args.command == "graph-dry-run":
+        # Deliberately before run-directory discovery, locking or state access.
+        return shiploop_dry_run.run(args, globals())
     # The thin host has one completion verb; retain the established spelling
     # as an exact alias, with identical action binding and replay semantics.
     if args.command == "done":
