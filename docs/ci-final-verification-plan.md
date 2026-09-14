@@ -1,6 +1,6 @@
 # CI and final-candidate verification plan
 
-Status: implementation in progress on `codex/ci-final-verification-20260914`, following the user's approval. Publication and repository-setting changes remain deferred.
+Status: implemented and verified locally on `codex/ci-final-verification-20260914`. Publication, integration, installation, and repository-setting changes remain deferred.
 
 Prepared: 2026-09-14. Inspected published baseline: `83a736e7f2515f09969c2a8410908ecbecd53bf3`.
 
@@ -184,3 +184,107 @@ Concurrent documentation publication advanced `origin/main` to
 running. Its four documentation changes were inspected and are not incorporated
 here. Later authorized integration must preserve that commit and revalidate;
 this work does not push or overwrite shared main.
+
+## Completion record — 2026-09-14
+
+Both approved fixes are implemented. Review Coverage 0.2.5 now separates review
+convergence from current-candidate delivery verification, including manual N/A
+verification, interrupted finalization, and receipt-only commits. Its generated
+plugin matches the source; the helper CLI remains an unchanged reference-owned
+printer. CI now checks both the working tree and index in each matrix checkout
+after the suite. No new runtime, mandatory Hermes dependency, or integration was
+introduced.
+
+### Local commits and producing candidate
+
+| Commit | Scoped result |
+|---|---|
+| `c91cd25440aa007018652c08cfea920927625262` | Both matrix checkout guards, executable Git fixtures, and CI documentation |
+| `18dd0388d1979279b93071c980e51e0a914d901c` | Finalization contract, tests, generated package, and approved plan |
+| `b6025a137c99a232846a47445a56176a9d0b7fcc` | Review-found N/A readiness and Finalization-only recovery corrections |
+
+The complete hermetic aggregate ran against **`b6025a137c99a232846a47445a56176a9d0b7fcc`**
+with a clean tracked worktree and index throughout. This completion section is
+bookkeeping only: its later commit records that tested candidate, not a claim
+that the full aggregate ran against the receipt commit. No CI, test, product,
+policy, package, or configuration bytes changed after that producing revision.
+
+### Verification receipt
+
+Environment: macOS 26.6.2, Python 3.14.7, Node 25.9.0. The exact aggregate command
+used a newly created disposable HOME and disabled Python bytecode writes:
+
+```sh
+task_final_home=$(mktemp -d /tmp/ci-final-frozen-home.XXXXXX)
+env HOME="$task_final_home" PYTHONDONTWRITEBYTECODE=1 \
+  bash test/run-all.sh \
+  > /tmp/ci-final-verification-evidence.p1bXPz/full-hermetic-frozen.log 2>&1
+```
+
+Observed exit: **0**. All **19 catalog entrypoints** passed, including **51
+ShipLoop suites / 510 test methods** and all **13 action-walk methods**.
+Review Coverage passed **132 assertions**; the CI contract/fixture suite passed
+**10 tests**. These are actual local execution results, not a simulated workflow
+or the results of the published baseline.
+
+Full-log SHA-256:
+`18742fe1b39b9fac5d48b100316c59d8ea842321f5c5c613386b895499855f3e`.
+The local raw log remains in the temporary evidence directory above; this
+committed receipt preserves its identity and observed results, not a promise
+that temporary logs are published or retained indefinitely.
+
+Final receipt checks cover Review Coverage, CI fixtures, shell syntax, scoped
+Ruff `F,E9`, native frontmatter validation, all 18 plugin views, whitespace, and
+local Markdown destinations. The receipt-only diff is checked separately from
+the unchanged tested product. Their output is retained as
+`review-3-final-checks.log` in the same evidence directory.
+
+### Improvement and interpretation evidence
+
+The installed Improve skill and its bound Until adapter drove this implementation's
+review sequence. This did not add a competing engine to ShipLoop. Every distinct
+review read seven complete Git commit messages and considered the scoped diff,
+consumer packets, tests, and prior learnings before its plan/apply/check record.
+
+| Review | Finding and action | Clean streak |
+|---|---|---|
+| 1, root | Material readiness/recovery contradictions; added a failing regression and fixed them in `b6025a1` | 0 → 0 |
+| 2, independent plus root adjudication | No supported material finding; no changes; completed after the frozen full suite passed | 0 → 1 |
+| 3, root | No additional behavior change needed; reconcile evidence and make only this completion receipt, with affected checks | 1 → 2 |
+
+Initial implementation, test retries, and the full-suite run do not count as
+review passes. No empty review commits were manufactured. The independent
+reviewer withdrew a proposed mandatory Git-landing rule for Finalization:
+ordinary on-disk Markdown already survives a context reset, and no authorized
+operation demonstrated the claimed loss. A stronger persistence policy was not
+added without evidence.
+
+A reader without parent conversation history interpreted actual emitted goal
+and run packets for unchanged, changed, failed, manual, interrupted, receipt-only,
+and mixed receipt/policy-change scenarios. It selected current verification,
+honest HALT/manual outcomes, and nonduplicating recovery as intended. The first
+manual fixture incorrectly paired an N/A scenario with an automated-command
+packet; the reader detected the mismatch. A genuine N/A packet was then emitted
+and correctly interpreted. This is limited interpretation evidence, not actual
+campaign execution or universal model/host compliance. See the local
+`teachback-observation.md` and three emitted packet files in the evidence directory.
+
+### Preserved failures and remaining boundaries
+
+- Baseline Review Coverage: 113 passing assertions. New-contract tests first
+  failed before the repair; the first review's extra regression also failed
+  before its fix. The optimistically named `review-coverage-green.log` actually
+  records 124 passes / 7 failures and is not treated as green evidence.
+- `full-hermetic.log` began on `18dd038`, was superseded by the material review
+  repair, and was intentionally terminated; it ended with exit 1. Only
+  `full-hermetic-frozen.log` supplies complete final-product aggregate evidence.
+- Generic skill quick-validation could not start because PyYAML was unavailable.
+  Native frontmatter/parser and package checks passed; no dependency was installed.
+- Optional live-host integration tests were not run. The empty-HOME optional
+  Cursor-import check skipped as designed. This is not native Hermes certification.
+- No candidate GitHub run was triggered. Published baseline run `34856891699`
+  succeeded on `83a736e`, but does not certify this branch or its Ubuntu/Python
+  3.12/Node 22 execution. Candidate CI remains a publication-time verification.
+- No push, merge, branch-rule change, global installation, or edit to the shared
+  dirty checkout was performed. Later authorized integration must preserve
+  `05d59f6644e68b81d2ec72b4d14177c172ddfc37` and revalidate the integrated revision.
