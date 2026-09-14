@@ -195,6 +195,7 @@ out15="$(
 )" || fail "S15 status: $out15"
 printf '%s\n' "$out15" | grep -q 'state=symlink-owned' || fail "S15 skill-dir: $out15"
 printf '%s\n' "$out15" | grep -q 'plugin-track: skill-interop@skill-craft-market' || fail "S15 plugin-track: $out15"
+printf '%s\n' "$out15" | grep -q 'enabled=true  state=confirmed-enabled' || fail "S15 confirmed enabled: $out15"
 printf '%s\n' "$out15" | grep -q 'double-install' || fail "S15 double-install warn: $out15"
 pass "S15 double-install warn"
 
@@ -217,6 +218,7 @@ out16="$(
 )" || fail "S16 status: $out16"
 printf '%s\n' "$out16" | grep -q 'state=absent' || fail "S16 absent: $out16"
 printf '%s\n' "$out16" | grep -q 'plugin-track: skill-interop@skill-craft-market' || fail "S16 plugin-track: $out16"
+printf '%s\n' "$out16" | grep -q 'enabled=unknown  state=cached-state-unknown' || fail "S16 cached state: $out16"
 printf '%s\n' "$out16" | grep -q 'double-install' && fail "S16 unexpected double-install: $out16"
 pass "S16 plugin-only no double-install"
 
@@ -235,4 +237,94 @@ printf '%s\n' "$out17" | grep -q 'plugin-track' && fail "S17 probe should skip: 
 printf '%s\n' "$out17" | grep -q 'double-install' && fail "S17 no warn: $out17"
 pass "S17 empty inv env skips probe"
 
-printf 'install-status-uninstall.test.sh: PASS S1–S17\n'
+# S18: a literal false remains informative but cannot create a duplicate warning.
+fresh_home s18
+"$install_sh" --skill skill-interop --claude-only >/dev/null
+inv18="$tmpdir/inv-s18.json"
+cat >"$inv18" <<'JSON'
+{"plugins":{"skill-interop@skill-craft-market":[{"version":"0.2.2","enabled":false}]}}
+JSON
+out18="$(
+  CLAUDE_INSTALLED_PLUGINS_JSON="$inv18" \
+    "$install_sh" --status --skill skill-interop --claude-only 2>&1
+)" || fail "S18 status: $out18"
+printf '%s\n' "$out18" | grep -q 'enabled=false  state=disabled' || fail "S18 disabled state: $out18"
+printf '%s\n' "$out18" | grep -q 'double-install' && fail "S18 disabled false duplicate: $out18"
+pass "S18 disabled plugin no double-install"
+
+# S19: an absent enabled field is unknown, even when the skill directory exists.
+fresh_home s19
+"$install_sh" --skill skill-interop --claude-only >/dev/null
+inv19="$tmpdir/inv-s19.json"
+cat >"$inv19" <<'JSON'
+{"plugins":{"skill-interop@skill-craft-market":[{"version":"0.2.2"}]}}
+JSON
+out19="$(
+  CLAUDE_INSTALLED_PLUGINS_JSON="$inv19" \
+    "$install_sh" --status --skill skill-interop --claude-only 2>&1
+)" || fail "S19 status: $out19"
+printf '%s\n' "$out19" | grep -q 'enabled=unknown  state=cached-state-unknown' || fail "S19 unknown state: $out19"
+printf '%s\n' "$out19" | grep -q 'double-install' && fail "S19 unknown false duplicate: $out19"
+pass "S19 unknown plugin state no double-install"
+
+# S20: string values are cache metadata, not literal enabled booleans.
+fresh_home s20
+"$install_sh" --skill skill-interop --claude-only >/dev/null
+inv20="$tmpdir/inv-s20.json"
+cat >"$inv20" <<'JSON'
+{"plugins":{"skill-interop@skill-craft-market":[{"version":"0.2.2","enabled":"true"}]}}
+JSON
+out20="$(
+  CLAUDE_INSTALLED_PLUGINS_JSON="$inv20" \
+    "$install_sh" --status --skill skill-interop --claude-only 2>&1
+)" || fail "S20 status: $out20"
+printf '%s\n' "$out20" | grep -q 'enabled=unknown  state=cached-state-unknown' || fail "S20 string boolean: $out20"
+printf '%s\n' "$out20" | grep -q 'double-install' && fail "S20 string boolean false duplicate: $out20"
+pass "S20 string boolean remains unknown"
+
+# S21: inspect every cached array item; a later literal true wins an earlier false.
+fresh_home s21
+"$install_sh" --skill skill-interop --claude-only >/dev/null
+inv21="$tmpdir/inv-s21.json"
+cat >"$inv21" <<'JSON'
+{"plugins":{"skill-interop@skill-craft-market":[{"version":"0.2.2","enabled":false},{"version":"0.2.3","enabled":true}]}}
+JSON
+out21="$(
+  CLAUDE_INSTALLED_PLUGINS_JSON="$inv21" \
+    "$install_sh" --status --skill skill-interop --claude-only 2>&1
+)" || fail "S21 status: $out21"
+printf '%s\n' "$out21" | grep -q 'version=0.2.3  enabled=true  state=confirmed-enabled' || fail "S21 later enabled item: $out21"
+printf '%s\n' "$out21" | grep -q 'double-install' || fail "S21 confirmed later item warning: $out21"
+pass "S21 later array item confirmed enabled"
+
+# S22: an enabled plugin from another market outranks a preferred market's disabled cache.
+fresh_home s22
+"$install_sh" --skill skill-interop --claude-only >/dev/null
+inv22="$tmpdir/inv-s22.json"
+cat >"$inv22" <<'JSON'
+{"plugins":{"skill-interop@skill-craft-market":[{"version":"0.2.2","enabled":false}],"skill-interop@other-market":[{"version":"9.1.0","enabled":true}]}}
+JSON
+out22="$(
+  CLAUDE_INSTALLED_PLUGINS_JSON="$inv22" \
+    "$install_sh" --status --skill skill-interop --claude-only 2>&1
+)" || fail "S22 status: $out22"
+printf '%s\n' "$out22" | grep -q 'plugin-track: skill-interop@other-market  version=9.1.0  enabled=true  state=confirmed-enabled' || fail "S22 enabled other market: $out22"
+printf '%s\n' "$out22" | grep -q 'double-install' || fail "S22 enabled other market warning: $out22"
+pass "S22 enabled other market wins disabled preferred cache"
+
+# S23: unknown outranks false, so mixed caches never claim that all matches are disabled.
+fresh_home s23
+"$install_sh" --skill skill-interop --claude-only >/dev/null
+inv23="$tmpdir/inv-s23.json"
+cat >"$inv23" <<'JSON'
+{"plugins":{"skill-interop@skill-craft-market":[{"version":"0.2.2","enabled":false}],"skill-interop@other-market":[{"version":"9.1.0"}]}}
+JSON
+out23="$(
+  CLAUDE_INSTALLED_PLUGINS_JSON="$inv23" \
+    "$install_sh" --status --skill skill-interop --claude-only 2>&1
+)" || fail "S23 status: $out23"
+printf '%s\n' "$out23" | grep -q 'plugin-track: skill-interop@other-market  version=9.1.0  enabled=unknown  state=cached-state-unknown' || fail "S23 mixed state selection: $out23"
+printf '%s\n' "$out23" | grep -q 'double-install' && fail "S23 mixed cache false duplicate: $out23"
+pass "S23 mixed false and unknown remains unknown"
+
+printf 'install-status-uninstall.test.sh: PASS S1–S23\n'

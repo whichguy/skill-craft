@@ -43,7 +43,9 @@ usage() {
   printf 'Status outcomes: absent | symlink-owned | symlink-wrong | copy-owned |\n' >&2
   printf '  copy-owned-stale | foreign | foreign-file\n' >&2
   printf 'When Claude plugin inventory is available, --status also reports plugin-track\n' >&2
-  printf 'and warns on double-install (skill-dir present + plugin installed for same leaf).\n' >&2
+  printf 'and warns on double-install only when a matching plugin is confirmed enabled.\n' >&2
+  printf 'Plugin state is confirmed-enabled only for literal JSON enabled:true; otherwise\n' >&2
+  printf 'it is cached-state-unknown or disabled.\n' >&2
   printf 'Override inventory path: CLAUDE_INSTALLED_PLUGINS_JSON (default\n' >&2
   printf '~/.claude/plugins/installed_plugins.json). Set empty to skip plugin probe.\n' >&2
   printf '\n' >&2
@@ -913,7 +915,7 @@ status_one() {
 # Unset → default $HOME/.claude/plugins/installed_plugins.json
 #
 # Prints one line to stdout when a plugin id matches leaf@* :
-#   plugin-track: <id>  version=<v>  enabled=<true|false|unknown>
+#   plugin-track: <id>  version=<v>  enabled=<true|false|unknown>  state=<state>
 # Returns 0 if a plugin track is present for leaf, 1 otherwise.
 claude_plugin_track_line() {
   local leaf="$1"
@@ -940,48 +942,74 @@ except Exception:
 
 plugins = data.get("plugins", data) if isinstance(data, dict) else data
 found = []
+ordinal = 0
 
 def consider(plugin_id, meta):
+    global ordinal
     if not isinstance(plugin_id, str) or "@" not in plugin_id:
         return
     name = plugin_id.split("@", 1)[0]
     if name != leaf:
         return
-    version = ""
-    enabled = "unknown"
-    if isinstance(meta, list) and meta:
-        meta0 = meta[0] if isinstance(meta[0], dict) else {}
-        version = str(meta0.get("version") or "")
-        if "enabled" in meta0:
-            enabled = "true" if meta0.get("enabled") else "false"
-    elif isinstance(meta, dict):
-        version = str(meta.get("version") or "")
-        if "enabled" in meta:
-            enabled = "true" if meta.get("enabled") else "false"
-    found.append((plugin_id, version, enabled))
+    record = meta if isinstance(meta, dict) else {}
+    version = str(record.get("version") or "")
+    enabled_value = record.get("enabled")
+    if enabled_value is True:
+        enabled = "true"
+    elif enabled_value is False:
+        enabled = "false"
+    else:
+        enabled = "unknown"
+    found.append((plugin_id, version, enabled, ordinal))
+    ordinal += 1
+
+def consider_all(plugin_id, meta):
+    if isinstance(meta, list):
+        if meta:
+            for item in meta:
+                consider(plugin_id, item)
+        else:
+            # A matching, empty cached record is still informative, but not enabled.
+            consider(plugin_id, {})
+    else:
+        consider(plugin_id, meta)
 
 if isinstance(plugins, dict):
     for pid, meta in plugins.items():
-        consider(pid, meta)
+        consider_all(pid, meta)
 elif isinstance(plugins, list):
     for item in plugins:
         if not isinstance(item, dict):
             continue
         pid = item.get("id") or item.get("name") or ""
-        consider(pid, item)
+        consider_all(pid, item)
 
 if not found:
     sys.exit(1)
-# Prefer skill-craft-market when multiple markets install the same leaf name
-found.sort(key=lambda t: (0 if t[0].endswith("@skill-craft-market") else 1, t[0]))
-pid, version, enabled = found[0]
+# A literal true is the only evidence that a plugin is enabled. Prefer that state
+# first, then an unknown cached state, then a literal false; only break ties by
+# the preferred marketplace and plugin id.
+status_rank = {"true": 0, "unknown": 1, "false": 2}
+found.sort(key=lambda t: (
+    status_rank[t[2]],
+    0 if t[0].endswith("@skill-craft-market") else 1,
+    t[0],
+    t[3],
+))
+pid, version, enabled, _ = found[0]
+state = {
+    "true": "confirmed-enabled",
+    "unknown": "cached-state-unknown",
+    "false": "disabled",
+}[enabled]
 ver_s = version if version else "?"
-print(f"plugin-track: {pid}  version={ver_s}  enabled={enabled}")
+print(f"plugin-track: {pid}  version={ver_s}  enabled={enabled}  state={state}")
 sys.exit(0)
 PY
 }
 
-# After Claude skill-dir status, report plugin-track and double-install when both present.
+# After Claude skill-dir status, report plugin-track and warn only for a confirmed
+# enabled plugin plus a present skill directory.
 status_claude_plugin_overlay() {
   local leaf="$1"
   local skill_state="$2"
@@ -990,14 +1018,18 @@ status_claude_plugin_overlay() {
     return 0
   fi
   printf 'status (Claude plugin / %s): %s\n' "$leaf" "$line"
-  case "$skill_state" in
-    absent)
-      # plugin-only track is fine
-      ;;
-    *)
-      printf 'warn (Claude / %s): double-install — skill-dir state=%s AND %s\n' \
-        "$leaf" "$skill_state" "$line" >&2
-      printf '  pick one track: skill-dir (install.sh) OR plugin (plugin install …@market); not both\n' >&2
+  case "$line" in
+    *' state=confirmed-enabled')
+      case "$skill_state" in
+        absent)
+          # A confirmed plugin-only track is fine.
+          ;;
+        *)
+          printf 'warn (Claude / %s): double-install — skill-dir state=%s AND %s\n' \
+            "$leaf" "$skill_state" "$line" >&2
+          printf '  pick one track: skill-dir (install.sh) OR plugin (plugin install …@market); not both\n' >&2
+          ;;
+      esac
       ;;
   esac
 }

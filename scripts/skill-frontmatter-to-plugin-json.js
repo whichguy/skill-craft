@@ -2,12 +2,15 @@
 "use strict";
 
 /**
- * Derive Claude plugin.json fields from skills/<leaf>/SKILL.md frontmatter.
+ * Derive plugin manifests and marketplace indexes from skills/<leaf>/SKILL.md
+ * frontmatter.
  *
  * Usage:
  *   node scripts/skill-frontmatter-to-plugin-json.js <leaf>
  *   node scripts/skill-frontmatter-to-plugin-json.js <leaf> --write
  *   node scripts/skill-frontmatter-to-plugin-json.js <leaf> --check
+ *   node scripts/skill-frontmatter-to-plugin-json.js --marketplaces --write
+ *   node scripts/skill-frontmatter-to-plugin-json.js --marketplaces --check
  *
  * Exit 0 on success / check match; exit 1 on error or --check mismatch.
  */
@@ -16,6 +19,9 @@ const path = require("path");
 
 const root = path.resolve(__dirname, "..");
 const MAX_DESC = 1024;
+const REPOSITORY = "https://github.com/whichguy/skill-craft";
+const MARKETPLACE_DESCRIPTION =
+  "Portable multi-host agent skills for Grok, Claude, Cursor, and Codex.";
 
 function fail(msg) {
   console.error(`skill-frontmatter-to-plugin-json: ${msg}`);
@@ -110,80 +116,313 @@ function buildPlugin(leaf, fm) {
       name: authorName,
       url: "https://github.com/whichguy",
     },
-    homepage: "https://github.com/whichguy/skill-craft",
-    repository: "https://github.com/whichguy/skill-craft",
+    homepage: REPOSITORY,
+    repository: REPOSITORY,
     license,
     keywords: kw,
   };
+}
+
+function buildCursorPlugin(leaf, fm) {
+  const plugin = buildPlugin(leaf, fm);
+  return {
+    name: plugin.name,
+    version: plugin.version,
+    description: plugin.description,
+    // Cursor documents name/email for author metadata. Keep its manifest to
+    // that schema rather than inheriting Claude's author URL extension.
+    author: {
+      name: plugin.author.name,
+    },
+    homepage: plugin.homepage,
+    repository: plugin.repository,
+    license: plugin.license,
+    keywords: plugin.keywords,
+    // Cursor otherwise discovers this by convention. Pinning the component
+    // path makes the package contract explicit without creating a second body.
+    skills: "skills",
+  };
+}
+
+function categoryFromFm(fm) {
+  // skill-craft's Hermes metadata has an optional category. Grok catalog
+  // entries use one for consistent browsing, so general skills use its
+  // documented example category while a declared source category wins.
+  const m = fm.match(/^\s+category:\s*(\S+)\s*$/m);
+  return m ? m[1] : "productivity";
+}
+
+function listLeaves() {
+  const skillsDir = path.join(root, "skills");
+  return fs
+    .readdirSync(skillsDir, { withFileTypes: true })
+    .filter(
+      (entry) =>
+        entry.isDirectory() &&
+        fs.existsSync(path.join(skillsDir, entry.name, "SKILL.md"))
+    )
+    .map((entry) => entry.name)
+    .sort();
+}
+
+function readSkillFrontmatter(leaf) {
+  const skillPath = path.join(root, "skills", leaf, "SKILL.md");
+  if (!fs.existsSync(skillPath)) {
+    fail(`missing ${skillPath}`);
+  }
+  return parseFrontmatter(fs.readFileSync(skillPath, "utf8"));
+}
+
+function buildCursorMarketplace(leaves) {
+  return {
+    name: "skill-craft",
+    owner: {
+      name: "whichguy",
+    },
+    metadata: {
+      description: MARKETPLACE_DESCRIPTION,
+    },
+    plugins: leaves.map((leaf) => {
+      const plugin = buildPlugin(leaf, readSkillFrontmatter(leaf));
+      return {
+        name: leaf,
+        source: `./plugins/${leaf}`,
+        description: plugin.description,
+      };
+    }),
+  };
+}
+
+function buildGrokMarketplace(leaves) {
+  return {
+    name: "skill-craft",
+    description: MARKETPLACE_DESCRIPTION,
+    owner: {
+      name: "whichguy",
+    },
+    plugins: leaves.map((leaf) => {
+      const fm = readSkillFrontmatter(leaf);
+      const plugin = buildPlugin(leaf, fm);
+      return {
+        name: leaf,
+        version: plugin.version,
+        description: plugin.description,
+        category: categoryFromFm(fm),
+        source: {
+          type: "local",
+          path: `./plugins/${leaf}`,
+        },
+      };
+    }),
+  };
+}
+
+function jsonText(value) {
+  return JSON.stringify(value, null, 2) + "\n";
+}
+
+function writeGeneratedJson(outPath, value) {
+  fs.mkdirSync(path.dirname(outPath), { recursive: true });
+  fs.writeFileSync(outPath, jsonText(value));
+}
+
+function checkGeneratedJson(outPath, value, label) {
+  if (!fs.existsSync(outPath)) {
+    fail(`missing ${outPath}`);
+  }
+  const existing = fs.readFileSync(outPath, "utf8");
+  try {
+    JSON.parse(existing);
+  } catch (e) {
+    fail(`invalid JSON ${outPath}: ${e.message}`);
+  }
+  if (existing !== jsonText(value)) {
+    fail(`${label} out of sync with SKILL.md derivation`);
+  }
+}
+
+function checkClaudePlugin(outPath, plugin, leaf) {
+  if (!fs.existsSync(outPath)) {
+    fail(`missing ${outPath}`);
+  }
+  const existing = fs.readFileSync(outPath, "utf8");
+  let parsed;
+  try {
+    parsed = JSON.parse(existing);
+  } catch (e) {
+    fail(`invalid JSON ${outPath}: ${e.message}`);
+  }
+  // Preserve the Claude check's compatibility contract: validate its
+  // load-bearing frontmatter-derived fields while allowing Claude additions.
+  const keys = ["name", "version", "description", "license"];
+  for (const k of keys) {
+    if (parsed[k] !== plugin[k]) {
+      fail(
+        `${leaf} plugin.json ${k} mismatch\n  want: ${JSON.stringify(plugin[k])}\n  got:  ${JSON.stringify(parsed[k])}`
+      );
+    }
+  }
+  if (!parsed.author || parsed.author.name !== plugin.author.name) {
+    fail(`${leaf} plugin.json author.name mismatch`);
+  }
+}
+
+function readmeInventory(leaves) {
+  const outPath = path.join(root, "README.md");
+  const current = fs.readFileSync(outPath, "utf8");
+  const start = "<!-- skill-craft:inventory:start -->";
+  const end = "<!-- skill-craft:inventory:end -->";
+  if (current.split(start).length !== 2 || current.split(end).length !== 2 ||
+      current.indexOf(end) < current.indexOf(start)) {
+    fail("README inventory requires exactly one ordered start/end marker pair");
+  }
+  const cell = (text) => text.replace(/\|/g, "\\|").replace(/[\r\n]+/g, " ");
+  const summary = (text) => {
+    if (text.length <= 180) return cell(text);
+    const prefix = text.slice(0, 179);
+    return cell(prefix.slice(0, prefix.lastIndexOf(" ")) + "…");
+  };
+  const rows = leaves.map((leaf) => {
+    const plugin = buildPlugin(leaf, readSkillFrontmatter(leaf));
+    return `| [${leaf}](skills/${leaf}/SKILL.md) | ${cell(plugin.version)} | ${summary(plugin.description)} |`;
+  });
+  const inventory = [
+    start,
+    "",
+    `**${leaves.length} skills.** Generated from skill frontmatter by \`scripts/sync-plugin-views.sh\`.`,
+    "",
+    "| Skill | Version | Purpose |",
+    "|-------|---------|---------|",
+    ...rows,
+    "",
+    end,
+  ].join("\n");
+  const wanted = current.slice(0, current.indexOf(start)) + inventory +
+    current.slice(current.indexOf(end) + end.length);
+  return { outPath, current, wanted };
+}
+
+function runMarketplaces(doWrite, doCheck) {
+  const leaves = listLeaves();
+  if (leaves.length === 0) {
+    fail("no source skills; refusing empty distribution");
+  }
+  const inventory = doWrite || doCheck ? readmeInventory(leaves) : null;
+  const targets = [
+    {
+      outPath: path.join(root, ".cursor-plugin", "marketplace.json"),
+      value: buildCursorMarketplace(leaves),
+      label: "Cursor marketplace index",
+    },
+    {
+      outPath: path.join(root, ".grok-plugin", "marketplace.json"),
+      value: buildGrokMarketplace(leaves),
+      label: "Grok marketplace index",
+    },
+  ];
+
+  if (doCheck) {
+    for (const target of targets) {
+      checkGeneratedJson(target.outPath, target.value, target.label);
+    }
+    if (inventory.current !== inventory.wanted) {
+      fail("README inventory out of sync with SKILL.md derivation");
+    }
+    process.stdout.write(
+      `skill-frontmatter-to-plugin-json: CHECK OK marketplaces (${leaves.length} skills)\n`
+    );
+    return;
+  }
+
+  if (doWrite) {
+    for (const target of targets) {
+      writeGeneratedJson(target.outPath, target.value);
+      process.stdout.write(
+        `skill-frontmatter-to-plugin-json: wrote ${path.relative(root, target.outPath)}\n`
+      );
+    }
+    fs.writeFileSync(inventory.outPath, inventory.wanted);
+    process.stdout.write("skill-frontmatter-to-plugin-json: updated README inventory\n");
+    return;
+  }
+
+  process.stdout.write(
+    jsonText({
+      cursor: targets[0].value,
+      grok: targets[1].value,
+    })
+  );
 }
 
 function main() {
   const args = process.argv.slice(2);
   if (args.length === 0 || args.includes("-h") || args.includes("--help")) {
     console.log(
-      "Usage: skill-frontmatter-to-plugin-json.js <leaf> [--write|--check]"
+      "Usage: skill-frontmatter-to-plugin-json.js <leaf> [--write|--check]\n" +
+        "       skill-frontmatter-to-plugin-json.js --marketplaces [--write|--check]"
     );
     process.exit(args.length === 0 ? 1 : 0);
   }
-  const leaf = args.find((a) => !a.startsWith("--"));
-  if (!leaf) {
-    fail("missing leaf");
-  }
   const doWrite = args.includes("--write");
   const doCheck = args.includes("--check");
-
-  const skillPath = path.join(root, "skills", leaf, "SKILL.md");
-  if (!fs.existsSync(skillPath)) {
-    fail(`missing ${skillPath}`);
+  const marketplaces = args.includes("--marketplaces");
+  if (doWrite && doCheck) {
+    fail("--write and --check are mutually exclusive");
   }
-  const fm = parseFrontmatter(fs.readFileSync(skillPath, "utf8"));
+  const leaves = args.filter((a) => !a.startsWith("--"));
+
+  if (marketplaces) {
+    if (leaves.length > 0) {
+      fail("--marketplaces does not take a leaf");
+    }
+    runMarketplaces(doWrite, doCheck);
+    return;
+  }
+
+  if (leaves.length !== 1) {
+    fail("missing leaf");
+  }
+  const leaf = leaves[0];
+
+  const fm = readSkillFrontmatter(leaf);
   const plugin = buildPlugin(leaf, fm);
-  const json = JSON.stringify(plugin, null, 2) + "\n";
-  const outPath = path.join(
+  const claudePath = path.join(
     root,
     "plugins",
     leaf,
     ".claude-plugin",
     "plugin.json"
   );
+  const cursorPath = path.join(
+    root,
+    "plugins",
+    leaf,
+    ".cursor-plugin",
+    "plugin.json"
+  );
+  const cursorPlugin = buildCursorPlugin(leaf, fm);
 
   if (doCheck) {
-    if (!fs.existsSync(outPath)) {
-      fail(`missing ${outPath}`);
-    }
-    const existing = fs.readFileSync(outPath, "utf8");
-    let parsed;
-    try {
-      parsed = JSON.parse(existing);
-    } catch (e) {
-      fail(`invalid JSON ${outPath}: ${e.message}`);
-    }
-    // Compare load-bearing fields derived from SoT
-    const keys = ["name", "version", "description", "license"];
-    for (const k of keys) {
-      if (parsed[k] !== plugin[k]) {
-        fail(
-          `${leaf} plugin.json ${k} mismatch\n  want: ${JSON.stringify(plugin[k])}\n  got:  ${JSON.stringify(parsed[k])}`
-        );
-      }
-    }
-    if (!parsed.author || parsed.author.name !== plugin.author.name) {
-      fail(`${leaf} plugin.json author.name mismatch`);
-    }
+    checkClaudePlugin(claudePath, plugin, leaf);
+    checkGeneratedJson(
+      cursorPath,
+      cursorPlugin,
+      `${leaf} Cursor plugin manifest`
+    );
     process.stdout.write(`skill-frontmatter-to-plugin-json: CHECK OK ${leaf}\n`);
     return;
   }
 
   if (doWrite) {
-    fs.mkdirSync(path.dirname(outPath), { recursive: true });
-    fs.writeFileSync(outPath, json);
+    writeGeneratedJson(claudePath, plugin);
+    writeGeneratedJson(cursorPath, cursorPlugin);
     process.stdout.write(
-      `skill-frontmatter-to-plugin-json: wrote plugins/${leaf}/.claude-plugin/plugin.json\n`
+      `skill-frontmatter-to-plugin-json: wrote plugins/${leaf}/.claude-plugin/plugin.json and .cursor-plugin/plugin.json\n`
     );
     return;
   }
 
-  process.stdout.write(json);
+  process.stdout.write(jsonText(plugin));
 }
 
 main();

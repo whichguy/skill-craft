@@ -660,12 +660,17 @@ else
   bad skill_md_migrate_legacy_h2
 fi
 
-# Cursor skill-dir import (skip when this host has not installed the skill)
-CURSOR_RC="$HOME/.cursor/skills/review-coverage"
+# Exercise Cursor skill-dir discovery in a disposable fixture. Actual host
+# imports belong to test/run-integration.sh cursor-imports.
+CURSOR_FIXTURE=$(mktemp -d)
+trap 'rm -rf "$CURSOR_FIXTURE"' EXIT
+CURSOR_RC="$CURSOR_FIXTURE/.cursor/skills/review-coverage"
+mkdir -p "$(dirname "$CURSOR_RC")"
+ln -s "$ROOT/skills/review-coverage" "$CURSOR_RC"
 if [[ -f "$CURSOR_RC/SKILL.md" && -f "$CURSOR_RC/scripts/review-coverage" ]]; then
   python3 "$CURSOR_RC/scripts/review-coverage" check-install >/dev/null \
     && ok cursor_check_install || bad cursor_check_install
-  CURSOR_PLAN=$(mktemp)
+  CURSOR_PLAN="$CURSOR_FIXTURE/plan.md"
   cat >"$CURSOR_PLAN" <<'EOF'
 ## Review Coverage
 
@@ -692,7 +697,7 @@ EOF
   REPO_SRC="$(python3 -c 'from pathlib import Path; import sys; print(Path(sys.argv[1]).resolve())' "$ROOT/skills/review-coverage")"
   [[ "$CURSOR_SRC" == "$REPO_SRC" ]] && ok cursor_symlink_source || bad cursor_symlink_source
 else
-  echo "SKIP cursor import checks (review-coverage not in ~/.cursor/skills)"
+  bad cursor_fixture_package_missing
 fi
 
 echo "======== review-coverage: PASS=$PASS FAIL=$FAIL ========"

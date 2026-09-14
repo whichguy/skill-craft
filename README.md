@@ -1,7 +1,10 @@
 # skill-craft
 
 **Host-neutral portable skills monorepo.** Skills live under `skills/<leaf>/` and install into
-Claude, Grok, Codex, and Hermes skill directories via `install.sh`.
+Grok, Claude Code, Cursor, Codex, and Hermes skill directories via `install.sh`.
+
+For setup and marketplace distribution across hosts, start with
+[docs/distribution.md](docs/distribution.md).
 
 Architecture (layers, binding, install honesty): [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 Loop-engineering compose (before / during / after DevLoop):
@@ -11,8 +14,8 @@ This is **not** [claude-craft](https://github.com/whichguy/claude-craft).
 
 | Repo | Role |
 |------|------|
-| **skill-craft** (this repo) | Skill source of truth — prompt packages, scripts, tests |
-| **skill-craft-market** | Marketplace *adapters* only — pins/docs, **no** skill prompt bodies |
+| **skill-craft** (this repo) | Skill source of truth, shared plugin packages, generated Grok/Cursor catalogs |
+| **skill-craft-market** | Pinned Claude/Codex catalog and host setup notes; no skill prompt bodies |
 | **claude-craft** | Claude Code plugin marketplace (GAS, wiki, review suites, …) |
 
 ## skill-craft vs claude-craft
@@ -23,38 +26,48 @@ This is **not** [claude-craft](https://github.com/whichguy/claude-craft).
 - **claude-craft** is a Claude Code **plugin marketplace** (plugins with commands, agents, hooks).
   Different packaging, different install path.
 
-If you want portable skills that work across hosts, use **skill-craft**. If you want Claude Code
-plugins, use **claude-craft**.
+Use **skill-craft** for portable skill packages and their plugin distribution. Use
+**claude-craft** for its separate product suites.
 
 ## Skills in this monorepo
 
-| Skill | Purpose |
-|-------|---------|
-| **shiploop** | Markdown-authoritative delivery harness (not DevLoop): script-owned action packets, evidence-gated planning/implementation/outer loops, and an HTML achievement report. [Operator README](skills/shiploop/README.md); [completed proposals and deferred boundaries](docs/shiploop-proposal-closeout.md) |
-| **devloop** | Optional autonomous-engine launcher; real execution needs a compatible engine and transport. [Skill card](skills/devloop/SKILL.md) |
-| **evidence-gates** | Offline freeze/prove/stop evidence checks, without the autonomous engine. [Skill card](skills/evidence-gates/SKILL.md) |
-| **improve** | Review a repository candidate using seven full commit messages, meaningful checks, and two consecutive qualifying reviews. Bundles its compatible Until Loop runtime. [Guide and release-candidate limits](skills/improve/README.md) |
-| **skill-interop** | Author/review portable multi-host skills; scaffold; install; marketplace facade |
-| **c-plan** | Ambiguous-prompt clarifier (EVQ / FASTPATH) |
-| **review-coverage** | Post-ship improve-to-exhaustion plan directive (`## Review Coverage`) |
-| **prompt-audit** | Audit agent/skill prompts for internal inconsistencies |
-| **prompt-align** | Diff a prompt vs its test harness |
-| **prompt-migrate** | TDD-style prompt migration |
-| **prompt-refine** | Audit → remediate → migrate → align workflow |
-| **architect** | Architecture / tech decisions (suite agent dispatch may be host-specific) |
-| **plan-test** | Generate tests (ported from planning-suite `test`) |
-| **compare-prompts** | A/B compare prompt versions |
-| **derive-questions** | Research-derived planning questions library |
-| **question-bench** | Benchmark review-plan question subsets |
-| **improve-system-prompt** | Benchmark system prompt variants (Sheets Chat lineage) |
-| **review-fix-bench** | A/B benchmark code reviewer agent prompts |
+<!-- skill-craft:inventory:start -->
+
+**18 skills.** Generated from skill frontmatter by `scripts/sync-plugin-views.sh`.
+
+| Skill | Version | Purpose |
+|-------|---------|---------|
+| [architect](skills/architect/SKILL.md) | 0.1.0 | Design system architecture and make technology decisions. Dispatches to system-architect agent for comprehensive design work. |
+| [c-plan](skills/c-plan/SKILL.md) | 0.1.0 | Resolve ambiguous user prompts by choosing whether to answer now, answer with assumptions, ask 1–2 high-value clarification questions, replan, or stop. Use when the best response… |
+| [compare-prompts](skills/compare-prompts/SKILL.md) | 0.1.0 | Compare two prompt versions (A vs B) by running both against a directory of test input files, then evaluating results on three dimensions in priority order: quality > tokens >… |
+| [derive-questions](skills/derive-questions/SKILL.md) | 0.1.0 | Iteratively researches real software project failures and wins, extracts key planning questions via 5-whys analysis, validates them against synthetic test plans, judges their… |
+| [devloop](skills/devloop/SKILL.md) | 0.5.4 | DevLoop (default): invoke the autonomous engine for a machine-verifiable build or debug goal. Use when the user says devloop, DevLoop, /devloop, or wants an isolated fail-closed… |
+| [evidence-gates](skills/evidence-gates/SKILL.md) | 0.2.1 | Optional offline evidence gates (freeze/prove/stop with guard digests) for machine-checkable red→green contracts without the autonomous engine. Use when the user says… |
+| [improve](skills/improve/SKILL.md) | 0.1.0-rc.1 | Use when a repository candidate needs a deliberate review-and-improvement loop: use recent Git history, make warranted changes, run meaningful checks, and require two consecutive… |
+| [improve-system-prompt](skills/improve-system-prompt/SKILL.md) | 0.1.0 | Benchmark and compare system prompt variants (V2/V2a/V2b/V2c) for Sheets Chat by running test scenarios through the real GAS-side ClaudeConversation pipeline. Tests both… |
+| [plan-test](skills/plan-test/SKILL.md) | 0.1.0 | Generate comprehensive tests for code. Dispatches to qa-analyst agent for complex components requiring test architecture decisions. |
+| [prompt-align](skills/prompt-align/SKILL.md) | 0.1.0 | Compare an agent or skill prompt against its test harness skill for phase-model, skip-condition, and wiring consistency. Reports mismatches and identifies which file is… |
+| [prompt-audit](skills/prompt-audit/SKILL.md) | 0.1.0 | Audit an agent or skill prompt file for internal inconsistencies (phase numbering, behavioral contracts, terminology, stale references). Produces a Q&A with info-gain scores, a… |
+| [prompt-migrate](skills/prompt-migrate/SKILL.md) | 0.1.0 | TDD-based prompt migration — given a target agent/skill prompt and a remediation list from prompt-audit, writes failing tests first, then updates the prompt to make them pass,… |
+| [prompt-refine](skills/prompt-refine/SKILL.md) | 0.1.0 | Full prompt-improvement workflow — runs prompt-audit to find inconsistencies, presents a remediation plan, then runs prompt-migrate to apply fixes and prompt-align to verify… |
+| [question-bench](skills/question-bench/SKILL.md) | 0.1.0 | Benchmark review-plan question effectiveness via experiment-based ablation. Applies different question subsets to a plan (or directory of plans) in parallel experiments,… |
+| [review-coverage](skills/review-coverage/SKILL.md) | 0.2.4 | Add a post-ship improve-to-exhaustion directive to a plan, or run that directive after implementation. Invoke like any skill: /review-coverage, "review-coverage on this plan",… |
+| [review-fix-bench](skills/review-fix-bench/SKILL.md) | 0.1.0 | A/B benchmarking skill for code reviewer agent prompts. Runs two versions of a reviewer agent against fixture ground truth using an LLM judge for semantic evaluation, then… |
+| [shiploop](skills/shiploop/SKILL.md) | 0.9.0 | Markdown-authoritative delivery harness. Start or resume once, follow the script's current action packet, and submit its exact completion call until the script reports completion… |
+| [skill-interop](skills/skill-interop/SKILL.md) | 0.2.0 | Use when authoring or reviewing a portable multi-host agent skill (Grok, Claude Code, Codex, Hermes): scaffold a prompt-only skill, make a skill host-agnostic, create skill… |
+
+<!-- skill-craft:inventory:end -->
+
+Operator guides: [ShipLoop](skills/shiploop/README.md),
+[Improve and release-candidate limits](skills/improve/README.md), and
+[completed ShipLoop proposals](docs/shiploop-proposal-closeout.md).
 
 **External (not in this monorepo):** [lennox-s40](https://github.com/whichguy/lennox-s40) — thermostat skill; install from that clone. Catalog pin remains in skill-craft-market.
 
 Port inventory: [docs/PORT.md](docs/PORT.md). After editing any skill body (including frontmatter version/description), run:
 
 ```sh
-./scripts/sync-plugin-views.sh          # materialise plugins/* + derive plugin.json from SKILL.md
+./scripts/sync-plugin-views.sh          # generate plugin packages, manifests, Grok/Cursor catalogs
 ./scripts/sync-plugin-views.sh --check  # CI / pre-commit; enumerates skills/ SoT
 ```
 
@@ -79,6 +92,7 @@ Hermes card install is skipped (the engine owns `software-development/devloop`).
 ./install.sh --codex-only
 ./install.sh --hermes-only
 ./install.sh --cursor-only
+./install.sh --grok-only --claude-only --cursor-only --codex-only  # these four hosts
 ./install.sh --relink                # fix wrong/dangling symlinks
 ./install.sh --copy                  # force copy mode (all hosts)
 ./install.sh --symlink               # force symlink (overrides Hermes copy default)
@@ -102,25 +116,42 @@ Re-running install refreshes managed Hermes copies; foreign Hermes trees print `
 
 ## Marketplace pins (sibling repo)
 
-**skill-craft-market** holds host-facing marketplace adapters that **pin** skills in this repo.
-Claude pins use the **plugin view** path (`plugins/<name>`), never the bare skill leaf.
+**skill-craft-market** holds the Claude/Codex catalog that **pins** skills in this repo.
+Claude and Codex pins use the **plugin view** path (`plugins/<name>`), never the bare skill leaf.
 Catalog only — skill prompt bodies stay here.
 
 ```sh
 claude plugin marketplace add whichguy/skill-craft-market
 claude plugin install skill-interop@skill-craft-market
+
+# Codex reads the same catalog:
+codex plugin marketplace add whichguy/skill-craft-market
+codex plugin list --marketplace skill-craft-market --available --json
+codex plugin add skill-interop@skill-craft-market
 ```
+
+Register a local market checkout by passing its absolute root to `marketplace add`.
+Registration makes packages available; install only leaves not already exposed by
+skill-dir. Start a new Codex thread after installing a plugin.
 
 ### Install lifecycle
 
 | Mode | Action |
 |------|--------|
 | **Dev (skill-dir)** | `./install.sh --skill <name> [--agents] [--relink]` |
-| **Claude plugin** | install via skill-craft-market (above) |
+| **Claude or Codex plugin** | install via skill-craft-market (above) |
 | **Upgrade skill-dir** | `git pull` + re-run install; use `--relink` if links point elsewhere |
 | **Uninstall skill-dir** | remove host symlink under `~/.{claude,grok,codex}/skills/<name>` (and Hermes path) |
 
 See the skill-craft-market README for per-host faces.
+
+### Grok and Cursor marketplaces
+
+This repo also contains generated native catalogs at `.grok-plugin/marketplace.json`
+and `.cursor-plugin/marketplace.json`. Both reference the same generated `plugins/<leaf>`
+packages in this checkout. They do not include the sibling catalog's external packages.
+Use a full plugin sync to regenerate the catalogs. See
+[distribution instructions](docs/distribution.md) for local use, updates, and publication.
 
 ## Unit of a skill (agentskills.io)
 
@@ -153,13 +184,14 @@ See [test/README.md](test/README.md) for test groups, prerequisites and evidence
 
 MIT — see [LICENSE](LICENSE).
 
-## Claude plugin view (optional distribution)
+## Shared plugin packages
 
-Skill **SoT** is always `skills/<name>/`. For Claude marketplace installs we also ship a thin **plugin view**:
+Skill **SoT** is always `skills/<name>/`. Marketplace hosts share one generated **plugin view**:
 
 ```text
 plugins/skill-interop/
   .claude-plugin/plugin.json
+  .cursor-plugin/plugin.json
   skills/skill-interop/   # materialised copy of skills/skill-interop (not a symlink)
   agents/… (optional real files)
 ```
