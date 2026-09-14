@@ -132,6 +132,8 @@ class SystemTestProtocolTests(unittest.TestCase):
                     "init",
                     "--repo",
                     str(repo),
+                    "--execution-mode",
+                    "managed",
                     "--prompt",
                     "Plan a bounded local fixture.",
                 ],

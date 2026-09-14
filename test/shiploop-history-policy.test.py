@@ -100,6 +100,8 @@ class HistoryPolicyCliTests(unittest.TestCase):
                     str(repo),
                     "--run-dir",
                     str(run),
+                    "--execution-mode",
+                    "managed",
                     "--prompt",
                     "Exercise the immutable history policy.",
                 ],

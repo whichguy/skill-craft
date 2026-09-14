@@ -418,7 +418,10 @@ class OrientationContextTests(unittest.TestCase):
 
         run_dir = repo / ".shiploop"
         started = subprocess.run(
-            [sys.executable, str(CLI), "init", "--repo", str(repo), "--prompt", "Inspect a bounded fixture."],
+            [
+                sys.executable, str(CLI), "init", "--repo", str(repo),
+                "--execution-mode", "managed", "--prompt", "Inspect a bounded fixture.",
+            ],
             cwd=repo,
             text=True,
             capture_output=True,

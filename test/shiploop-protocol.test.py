@@ -65,6 +65,12 @@ class ProtocolTests(unittest.TestCase):
         return p.stdout.strip()
 
     def cli(self, *args, code=0):
+        args = list(args)
+        if args[:1] == ["init"] and not any(
+            arg == "--execution-mode" or arg.startswith("--execution-mode=")
+            for arg in args
+        ):
+            args.extend(("--execution-mode", "managed"))
         p = subprocess.run(
             [sys.executable, str(CLI), *args],
             cwd=self.repo,
@@ -427,7 +433,10 @@ class ProtocolTests(unittest.TestCase):
         self.assertFalse((self.run_dir / "state.md").exists())
 
     def test_concurrent_init_keeps_one_run_and_original_prompt(self):
-        command = [sys.executable, str(CLI), "init", "--repo", str(self.repo)]
+        command = [
+            sys.executable, str(CLI), "init", "--repo", str(self.repo),
+            "--execution-mode", "managed",
+        ]
         one = subprocess.Popen(
             command + ["--prompt", "first"],
             cwd=self.repo,

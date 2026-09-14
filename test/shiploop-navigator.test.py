@@ -1,0 +1,688 @@
+#!/usr/bin/env python3
+"""Acceptance tests for ShipLoop's small, prompt-returning navigator.
+
+These tests deliberately drive the public navigator API with synthetic agent
+results.  They do not create a Git repository, run implementation commands,
+or duplicate the navigator's routing code.  The expected stage list is an
+independent statement of the user-facing graph contract.
+"""
+
+from __future__ import annotations
+
+from contextlib import ExitStack, redirect_stdout
+import copy
+from io import StringIO
+import json
+import os
+from pathlib import Path
+import shlex
+import subprocess
+import sys
+import tempfile
+from types import SimpleNamespace
+import unittest
+from unittest.mock import patch
+
+
+ROOT = Path(__file__).resolve().parents[1]
+SCRIPTS = ROOT / "skills" / "shiploop" / "scripts"
+if str(SCRIPTS) not in sys.path:
+    sys.path.insert(0, str(SCRIPTS))
+
+import shiploop_navigator as navigator  # noqa: E402
+import shiploop_navigator_prompts as navigator_prompts  # noqa: E402
+import shiploop_store as store  # noqa: E402
+
+
+# Kept here rather than derived from the runtime or prompt table, so a routing
+# regression cannot make the expectation silently follow it.
+EXPECTED_PRELUDE = (
+    "intake",
+    "discovery",
+    "research",
+    "research-improve",
+    "spec",
+    "spec-improve",
+    "test-strategy",
+    "plan",
+    "plan-improve",
+)
+EXPECTED_INNER = (
+    "step-plan",
+    "step-plan-improve",
+    "implement",
+    "test-refine",
+    "test-author",
+    "document",
+    "skill-validate",
+    "verify",
+    "product-improve",
+    "integrate",
+    "carry-forward",
+)
+EXPECTED_OUTER = (
+    "system-test",
+    "outer-improve",
+    "release-plan",
+    "release",
+    "release-verify",
+    "handoff",
+)
+
+
+class SimulatedCrash(RuntimeError):
+    """Models a process interruption after the state target reaches disk."""
+
+
+class ForbiddenAccess:
+    """Fails immediately if pure navigation reaches a project-inspection hook."""
+
+    def __init__(self, name: str):
+        self.name = name
+
+    def __getattr__(self, attribute: str):
+        raise AssertionError(f"navigator unexpectedly accessed {self.name}.{attribute}")
+
+    def __call__(self, *args, **kwargs):
+        raise AssertionError(f"navigator unexpectedly called {self.name}")
+
+
+class NavigatorTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.temp = tempfile.TemporaryDirectory(prefix="shiploop-navigator-")
+        self.base = Path(self.temp.name)
+        self.root = self.base / "run"
+        self.root.mkdir()
+        # Deliberately never initialized as Git.  The navigator receives a
+        # repo label for cold-context orientation only.
+        self.repo = self.base / "ordinary-project"
+        self.repo.mkdir()
+        self.goal = "Build <unsafe> flow without losing the original goal."
+
+    def tearDown(self) -> None:
+        self.temp.cleanup()
+
+    def new_state(self) -> dict:
+        return navigator.new_state(
+            str(self.repo), self.goal, "/not/a/real/or/required/plan.md"
+        )
+
+    @staticmethod
+    def result(
+        outcome: str = "done", summary: str = "Synthetic agent result.", **extra
+    ) -> dict:
+        return {"outcome": outcome, "summary": summary, **extra}
+
+    def advance(self, state: dict, stage: str, **extra) -> dict:
+        """Apply one ordinary synthetic completion and prove API purity."""
+        self.assertEqual(state["stage"], stage)
+        self.assertEqual(state["action"]["stage"], stage)
+        before = copy.deepcopy(state)
+        next_state = navigator.apply(
+            state, state["action"]["id"], self.result(**extra)
+        )
+        self.assertEqual(state, before)
+        self.assertIsNot(next_state, state)
+        navigator.validate(next_state)
+        return next_state
+
+    @staticmethod
+    def two_work_items() -> list[dict]:
+        return [
+            {
+                "id": "W1",
+                "title": "Create the first small capability",
+                "context": "The first independently reviewable outcome.",
+            },
+            {
+                "id": "W2",
+                "title": "Finish the second small capability",
+                "context": "The later independently reviewable outcome.",
+            },
+        ]
+
+    def advance_to_first_work_item(self, state: dict, work_items: list[dict]) -> dict:
+        for stage in EXPECTED_PRELUDE[:-2]:
+            state = self.advance(state, stage)
+        self.assertEqual(state["stage"], "plan")
+        state = self.advance(state, "plan", work_items=work_items)
+        self.assertEqual(state["stage"], "plan-improve")
+        return self.advance(state, "plan-improve")
+
+    def complete_work_item(self, state: dict, *, skill_required: bool) -> dict:
+        """Finish the current opaque work item through its fixed node sequence."""
+        for stage in (
+            "step-plan",
+            "step-plan-improve",
+            "implement",
+            "test-refine",
+            "test-author",
+        ):
+            state = self.advance(state, stage)
+
+        state = self.advance(
+            state,
+            "document",
+            choices={"skill_required": skill_required},
+        )
+        if skill_required:
+            self.assertEqual(state["stage"], "skill-validate")
+            state = self.advance(state, "skill-validate")
+        else:
+            self.assertEqual(state["stage"], "verify")
+        for stage in ("verify", "product-improve", "integrate"):
+            state = self.advance(state, stage)
+        return state
+
+    def test_new_state_is_minimal_navigator_and_retains_cold_context(self) -> None:
+        state = self.new_state()
+
+        self.assertEqual(state["version"], 3)
+        self.assertEqual(state["navigator_protocol_version"], 1)
+        self.assertEqual(state["execution_mode"], "navigator")
+        self.assertEqual(state["stage"], "intake")
+        self.assertEqual(state["status"], "active")
+        self.assertEqual(state["revision"], 0)
+        self.assertEqual(state["repo"], str(self.repo))
+        self.assertEqual(state["prompt"], self.goal)
+        self.assertEqual(state["bound_plan"], "/not/a/real/or/required/plan.md")
+        self.assertEqual(state["accepted"], {})
+        self.assertEqual(state["history"], [])
+        self.assertEqual(len(state["work_items"]), 1)
+        self.assertEqual(state["work_items"][0]["id"], "W1")
+        self.assertTrue(state["work_items"][0]["title"].strip())
+        self.assertEqual(state["work_index"], 0)
+        self.assertEqual(state["completed_work_items"], [])
+        self.assertTrue(state["action"]["id"])
+        self.assertEqual(state["action"]["stage"], "intake")
+        navigator.validate(state)
+
+        # Prompt mapping is static guidance, while the runtime retains the
+        # complete original goal for a cold context.  Do not compare prompt
+        # prose byte-for-byte.
+        self.assertEqual(tuple(navigator_prompts.PRELUDE), EXPECTED_PRELUDE)
+        self.assertEqual(tuple(navigator_prompts.INNER), EXPECTED_INNER)
+        self.assertEqual(tuple(navigator_prompts.OUTER), EXPECTED_OUTER)
+        self.assertTrue(all(
+            isinstance(navigator_prompts.PROMPTS[stage], str)
+            and navigator_prompts.PROMPTS[stage].strip()
+            for stage in (*EXPECTED_PRELUDE, *EXPECTED_INNER, *EXPECTED_OUTER)
+        ))
+
+    def test_two_work_walk_follows_the_declared_graph_without_project_work(self) -> None:
+        state = self.advance_to_first_work_item(self.new_state(), self.two_work_items())
+        self.assertEqual(state["stage"], "step-plan")
+        self.assertEqual(state["work_items"][state["work_index"]]["id"], "W1")
+
+        state = self.complete_work_item(state, skill_required=True)
+        self.assertEqual(state["stage"], "carry-forward")
+        state = self.advance(state, "carry-forward")
+        self.assertEqual(state["stage"], "step-plan")
+        self.assertEqual(state["work_items"][state["work_index"]]["id"], "W2")
+        self.assertEqual(state["completed_work_items"], ["W1"])
+
+        state = self.complete_work_item(state, skill_required=False)
+        self.assertEqual(state["stage"], "carry-forward")
+        state = self.advance(state, "carry-forward")
+        self.assertEqual(state["stage"], "system-test")
+        self.assertEqual(state["completed_work_items"], ["W1", "W2"])
+
+        for stage in EXPECTED_OUTER:
+            state = self.advance(state, stage)
+        self.assertEqual((state["stage"], state["status"]), ("done", "done"))
+        self.assertEqual(state["action"]["stage"], "done")
+        self.assertGreaterEqual(len(state["history"]), 1)
+        terminal_packet = navigator.render(None, self.root, state)
+        self.assertIn("agent-declared completion", terminal_packet)
+        self.assertIn("does not independently prove", terminal_packet)
+
+    def test_public_cli_completes_two_work_items_from_cold_processes(self) -> None:
+        """Exercise CLI mode selection, callbacks and persistence end to end."""
+        def run(argv: list[str]) -> str:
+            result = subprocess.run(
+                argv,
+                cwd=self.repo,
+                env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1"},
+                text=True, capture_output=True, timeout=30,
+            )
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            return result.stdout
+
+        def cli(*args: str) -> str:
+            return run([sys.executable, str(SCRIPTS / "shiploop"), *args,
+                        "--run-dir", str(self.root)])
+
+        packet = cli("init", "--repo", str(self.repo), "--prompt", self.goal)
+        expected = (
+            *EXPECTED_PRELUDE, *EXPECTED_INNER,
+            *(stage for stage in EXPECTED_INNER if stage != "skill-validate"),
+            *EXPECTED_OUTER,
+        )
+        for stage in expected:
+            state = store.read_record(self.root / "state.md")
+            self.assertEqual(state["execution_mode"], "navigator")
+            self.assertEqual(state["stage"], stage)
+            self.assertIn(state["action"]["id"], packet)
+            # A separate process must recover the same current action.
+            cold = cli("next")
+            self.assertIn(state["action"]["id"], cold)
+            self.assertIn(self.goal, cold)
+            result = self.result(summary=f"Synthetic CLI completion at {stage}.")
+            if stage == "plan":
+                result["work_items"] = self.two_work_items()
+            if stage == "document":
+                result["choices"] = {"skill_required": state["work_index"] == 0}
+            # Follow the generated canonical path, including macOS /var aliases.
+            callback = Path(cold.split("Write the structured result to: ", 1)[1].splitlines()[0])
+            self.assertEqual(callback, self.root.resolve() / "inbox" / f"{state['action']['id']}.md")
+            submitted = store.dumps(result, "Synthetic host result")
+            callback.write_text(submitted, encoding="utf-8")
+            command = shlex.split(cold.split("Call this when done:\n", 1)[1].splitlines()[0])
+            self.assertEqual(command[0], "python3")
+            self.assertEqual(Path(command[1]).resolve(), (SCRIPTS / "shiploop").resolve())
+            packet = run([sys.executable, *command[1:]])
+            self.assertEqual(callback.read_text(encoding="utf-8"), submitted)
+
+        final = store.read_record(self.root / "state.md")
+        self.assertEqual((final["stage"], final["status"]), ("done", "done"))
+        self.assertEqual(final["completed_work_items"], ["W1", "W2"])
+        self.assertEqual(len(final["history"]), len(expected))
+        self.assertIn("agent-declared completion", packet)
+        self.assertTrue((self.root / "report.html").is_file())
+        self.assertEqual(list(self.repo.iterdir()), [])
+
+    def test_repeat_block_pause_resume_and_halt_are_pure_control_paths(self) -> None:
+        state = self.new_state()
+        action_id = state["action"]["id"]
+        before = copy.deepcopy(state)
+        repeated = navigator.apply(
+            state, action_id, self.result("repeat", "Need another pass.")
+        )
+        self.assertEqual(state, before)
+        self.assertEqual((repeated["stage"], repeated["status"]), ("intake", "active"))
+        self.assertGreater(repeated["revision"], state["revision"])
+
+        before = copy.deepcopy(repeated)
+        blocked = navigator.apply(
+            repeated,
+            repeated["action"]["id"],
+            self.result("blocked", "Awaiting a product decision."),
+        )
+        self.assertEqual(repeated, before)
+        self.assertEqual(blocked["status"], "blocked")
+        self.assertEqual(blocked["stage"], "intake")
+
+        before = copy.deepcopy(blocked)
+        resumed_from_block = navigator.control(
+            blocked, "resume", "A product decision arrived."
+        )
+        self.assertEqual(blocked, before)
+        self.assertEqual(
+            (resumed_from_block["stage"], resumed_from_block["status"]),
+            ("intake", "active"),
+        )
+
+        before = copy.deepcopy(repeated)
+        paused = navigator.control(repeated, "pause", "Pause the current action.")
+        self.assertEqual(repeated, before)
+        self.assertEqual(paused["status"], "paused")
+        before = copy.deepcopy(paused)
+        resumed = navigator.control(paused, "resume", "Decision received.")
+        self.assertEqual(paused, before)
+        self.assertEqual((resumed["stage"], resumed["status"]), ("intake", "active"))
+        self.assertEqual(resumed["action"]["stage"], "intake")
+
+        before = copy.deepcopy(resumed)
+        halted = navigator.control(resumed, "halt", "The requester cancelled this run.")
+        self.assertEqual(resumed, before)
+        self.assertEqual(halted["status"], "halted")
+        self.assertEqual(halted["stage"], "intake")
+        self.assertEqual(halted["action"], resumed["action"])
+        with self.assertRaises(navigator.NavigatorError):
+            navigator.apply(
+                halted, halted["action"]["id"], self.result("done", "Cannot continue.")
+            )
+
+    def test_replay_compares_semantic_results_and_rejects_conflicts_without_mutation(self) -> None:
+        initial = self.new_state()
+        action_id = initial["action"]["id"]
+        first = json.loads(
+            '{"outcome":"repeat","summary":"Read the requirements again.",'
+            '"evidence_refs":["notes/first.md"]}'
+        )
+        after = navigator.apply(initial, action_id, first)
+        same_semantics_different_json_whitespace = json.loads(
+            '{\n  "evidence_refs" : [ "notes/first.md" ],\n'
+            '  "summary" : "Read the requirements again.",\n'
+            '  "outcome" : "repeat"\n}'
+        )
+        replay = navigator.apply(after, action_id, same_semantics_different_json_whitespace)
+        self.assertEqual(replay, after)
+
+        before = copy.deepcopy(after)
+        with self.assertRaises(navigator.NavigatorError):
+            navigator.apply(
+                after,
+                action_id,
+                self.result("repeat", "A conflicting replay."),
+            )
+        self.assertEqual(after, before)
+
+    def test_rejects_forged_next_wrong_action_and_corrupt_navigator_state(self) -> None:
+        state = self.new_state()
+        original = copy.deepcopy(state)
+        cases = (
+            ("wrong action", "wrong-action", self.result()),
+            (
+                "forged next node",
+                state["action"]["id"],
+                self.result(next="release"),
+            ),
+            (
+                "work queue outside plan",
+                state["action"]["id"],
+                self.result(work_items=self.two_work_items()),
+            ),
+            (
+                "document choice outside document",
+                state["action"]["id"],
+                self.result(choices={"skill_required": True}),
+            ),
+        )
+        for label, action_id, payload in cases:
+            with self.subTest(label=label):
+                before = copy.deepcopy(state)
+                with self.assertRaises(navigator.NavigatorError):
+                    navigator.apply(state, action_id, payload)
+                self.assertEqual(state, before)
+        self.assertEqual(state, original)
+
+        corruptions = []
+        unknown_stage = copy.deepcopy(state)
+        unknown_stage["stage"] = "release-without-graph-edge"
+        unknown_stage["action"]["stage"] = unknown_stage["stage"]
+        corruptions.append(unknown_stage)
+        unsupported = copy.deepcopy(state)
+        unsupported["navigator_protocol_version"] = 999
+        corruptions.append(unsupported)
+        missing_marker = copy.deepcopy(state)
+        del missing_marker["navigator_protocol_version"]
+        corruptions.append(missing_marker)
+        wrong_mode = copy.deepcopy(state)
+        wrong_mode["execution_mode"] = "managed"
+        corruptions.append(wrong_mode)
+        for corruption in corruptions:
+            with self.subTest(corruption=corruption):
+                with self.assertRaises(navigator.NavigatorError):
+                    navigator.validate(corruption)
+
+    def test_plan_and_carry_forward_manage_only_future_work_and_preserve_completion(self) -> None:
+        state = self.advance_to_first_work_item(self.new_state(), self.two_work_items())
+        state = self.complete_work_item(state, skill_required=False)
+        self.assertEqual(state["stage"], "carry-forward")
+
+        future = [
+            {
+                "id": "W2",
+                "title": "A revised second capability",
+                "context": "Refined after the completed first item.",
+            },
+            {
+                "id": "W3",
+                "title": "A newly discovered follow-up",
+                "context": "Discovered while implementing W1.",
+            },
+        ]
+        state = self.advance(state, "carry-forward", work_items=future)
+        self.assertEqual(state["stage"], "step-plan")
+        self.assertEqual(state["work_items"][state["work_index"]]["id"], "W2")
+        self.assertEqual(state["completed_work_items"], ["W1"])
+        self.assertTrue(any(item["id"] == "W3" for item in state["work_items"]))
+
+    def test_plan_improve_can_refresh_the_unstarted_queue(self) -> None:
+        state = self.new_state()
+        for stage in EXPECTED_PRELUDE[:-2]:
+            state = self.advance(state, stage)
+        state = self.advance(state, "plan", work_items=self.two_work_items())
+        self.assertEqual(state["stage"], "plan-improve")
+        improved_queue = [
+            {
+                "id": "W1",
+                "title": "First capability after plan review",
+                "context": "Refined before work begins.",
+            },
+            {
+                "id": "W2",
+                "title": "Second capability after plan review",
+                "context": "Retained and sharpened before work begins.",
+            },
+            {
+                "id": "W3",
+                "title": "New dependency found by plan review",
+                "context": "Still unstarted and safe to add here.",
+            },
+        ]
+        state = self.advance(state, "plan-improve", work_items=improved_queue)
+        self.assertEqual(state["stage"], "step-plan")
+        self.assertEqual(
+            [item["id"] for item in state["work_items"]], ["W1", "W2", "W3"]
+        )
+        self.assertEqual(state["completed_work_items"], [])
+
+    def test_results_are_opaque_and_navigation_never_inspects_git_or_evidence(self) -> None:
+        forbidden_names = (
+            "subprocess",
+            "git",
+            "bridge",
+            "improve_bridge",
+            "hashlib",
+            "sha256_file",
+            "sha256_bytes",
+            "validate_evidence",
+            "validate_artifacts",
+        )
+        with ExitStack() as stack:
+            for name in forbidden_names:
+                stack.enter_context(
+                    patch.object(navigator, name, ForbiddenAccess(name), create=True)
+                )
+            state = self.new_state()
+            result = self.result(
+                "done",
+                "Agent says it completed something; this is only a progress report.",
+                evidence_refs=[
+                    "does-not-exist/product-artifact.bin",
+                    "arbitrary://opaque-reference",
+                ],
+            )
+            state = navigator.apply(state, state["action"]["id"], result)
+            packet = navigator.render(None, self.root, state)
+
+        # A claimed completion advances only one graph node.  It does not make
+        # a product proof or terminal delivery claim.
+        self.assertEqual((state["stage"], state["status"]), ("discovery", "active"))
+        self.assertEqual(state["history"][-1]["summary"], result["summary"])
+        self.assertIn("Repository locator", packet)
+
+    def test_dispatch_preserves_cold_context_reads_only_its_result_callback_and_escapes_report(self) -> None:
+        state = self.new_state()
+        navigator.save(self.root, state)
+        self.assertTrue((self.root / "inbox").is_dir())
+        self.assertTrue((self.root / "inbox" / ".keep").is_file())
+        core = SimpleNamespace(PACKAGE_ROOT=ROOT / "skills" / "shiploop")
+        initial_state_bytes = (self.root / "state.md").read_bytes()
+        init_output = StringIO()
+        with redirect_stdout(init_output):
+            self.assertEqual(
+                navigator.dispatch(core, self.root, state, SimpleNamespace(command="init")),
+                0,
+            )
+        # Reopening a durable navigator run is read-only.  It must never
+        # overwrite the cursor merely because the init route is rendered.
+        self.assertEqual((self.root / "state.md").read_bytes(), initial_state_bytes)
+
+        output = StringIO()
+        with redirect_stdout(output):
+            self.assertEqual(
+                navigator.dispatch(core, self.root, state, SimpleNamespace(command="next")),
+                0,
+            )
+        packet = output.getvalue()
+        self.assertIn(self.goal, packet)
+        self.assertIn(state["action"]["id"], packet)
+
+        result_path = self.root / "inbox" / f"{state['action']['id']}.md"
+        store.write_record(
+            result_path,
+            self.result(
+                "done",
+                "<script>alert('not HTML')</script>",
+                evidence_refs=["<unsafe-reference>"],
+            ),
+            title="Synthetic navigator callback",
+        )
+        output = StringIO()
+        with redirect_stdout(output):
+            self.assertEqual(
+                navigator.dispatch(
+                    core,
+                    self.root,
+                    state,
+                    SimpleNamespace(
+                        command="complete",
+                        action=state["action"]["id"],
+                        result=str(result_path),
+                    ),
+                ),
+                0,
+            )
+        accepted = store.read_record(self.root / "state.md")
+        self.assertEqual((accepted["stage"], accepted["status"]), ("discovery", "active"))
+
+        next_packet_output = StringIO()
+        with redirect_stdout(next_packet_output):
+            self.assertEqual(
+                navigator.dispatch(
+                    core, self.root, accepted, SimpleNamespace(command="next")
+                ),
+                0,
+            )
+        next_packet = next_packet_output.getvalue()
+        self.assertIn("<script>alert('not HTML')</script>", next_packet)
+        self.assertIn("Stage: intake; outcome: done", next_packet)
+        self.assertIn("<unsafe-reference>", next_packet)
+
+        # The same durable callback is an idempotent semantic replay even
+        # after the cursor has moved on; altered contents are a conflict.
+        state_bytes = (self.root / "state.md").read_bytes()
+        replay_output = StringIO()
+        with redirect_stdout(replay_output):
+            self.assertEqual(
+                navigator.dispatch(
+                    core,
+                    self.root,
+                    accepted,
+                    SimpleNamespace(
+                        command="complete",
+                        action=state["action"]["id"],
+                        result=str(result_path),
+                    ),
+                ),
+                0,
+            )
+        self.assertEqual((self.root / "state.md").read_bytes(), state_bytes)
+        self.assertEqual(store.read_record(self.root / "state.md"), accepted)
+        store.write_record(
+            result_path,
+            self.result("done", "A conflicting edit to an accepted callback."),
+            title="Conflicting navigator callback",
+        )
+        with self.assertRaises(navigator.NavigatorError):
+            navigator.dispatch(
+                core,
+                self.root,
+                accepted,
+                SimpleNamespace(
+                    command="complete",
+                    action=state["action"]["id"],
+                    result=str(result_path),
+                ),
+            )
+        self.assertEqual((self.root / "state.md").read_bytes(), state_bytes)
+
+        report_output = StringIO()
+        with redirect_stdout(report_output):
+            self.assertEqual(
+                navigator.dispatch(
+                    core, self.root, accepted, SimpleNamespace(command="report")
+                ),
+                0,
+            )
+        report = report_output.getvalue()
+        self.assertIn("&lt;script&gt;alert(&#x27;not HTML&#x27;)&lt;/script&gt;", report)
+        self.assertIn("&lt;unsafe-reference&gt;", report)
+        self.assertNotIn("<script>alert", report)
+
+    def test_save_is_transactional_recovers_after_fault_and_refuses_symlink_escape(self) -> None:
+        state = self.new_state()
+        real_transaction = store.transaction
+
+        def crash_after_state_target(root, writes, deletes=None, **kwargs):
+            def fault(phase: str, index: int) -> None:
+                if phase == "after-target" and index == 1:
+                    raise SimulatedCrash("test interruption")
+
+            self.assertNotIn("fault", kwargs)
+            return real_transaction(root, writes, deletes, fault=fault, **kwargs)
+
+        with patch.object(navigator.store, "transaction", side_effect=crash_after_state_target):
+            with self.assertRaises(SimulatedCrash):
+                navigator.save(self.root, state)
+        self.assertTrue((self.root / "transaction.md").exists())
+        self.assertTrue(store.recover(self.root))
+        self.assertEqual(store.read_record(self.root / "state.md"), state)
+        self.assertTrue((self.root / "inbox").is_dir())
+        self.assertTrue((self.root / "inbox" / ".keep").is_file())
+        self.assertFalse((self.root / "transaction.md").exists())
+
+        safe_root = self.base / "symlink-run"
+        outside = self.base / "outside"
+        safe_root.mkdir()
+        outside.mkdir()
+        (safe_root / "state.md").symlink_to(outside / "state.md")
+        with self.assertRaises((store.StorageError, navigator.NavigatorError)):
+            navigator.save(safe_root, self.new_state())
+        self.assertFalse((outside / "state.md").exists())
+
+        inbox_link_root = self.base / "inbox-link-run"
+        inbox_link_root.mkdir()
+        (inbox_link_root / "inbox").symlink_to(outside, target_is_directory=True)
+        with self.assertRaises(navigator.NavigatorError):
+            navigator.save(inbox_link_root, self.new_state())
+        self.assertFalse((outside / ".keep").exists())
+
+    def test_dispatch_refuses_a_symlinked_result_callback_without_mutating_state(self) -> None:
+        state = self.new_state()
+        navigator.save(self.root, state)
+        callback = self.root / "inbox" / f"{state['action']['id']}.md"
+        outside = self.base / "outside-result.md"
+        store.write_record(outside, self.result(), title="Outside result")
+        callback.symlink_to(outside)
+        before = (self.root / "state.md").read_bytes()
+
+        with self.assertRaises(navigator.NavigatorError):
+            navigator.dispatch(
+                SimpleNamespace(PACKAGE_ROOT=ROOT / "skills" / "shiploop"),
+                self.root,
+                state,
+                SimpleNamespace(
+                    command="complete",
+                    action=state["action"]["id"],
+                    result=str(callback),
+                ),
+            )
+        self.assertEqual((self.root / "state.md").read_bytes(), before)
+
+
+if __name__ == "__main__":
+    unittest.main(verbosity=2)
