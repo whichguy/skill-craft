@@ -119,7 +119,7 @@ Skip pure doc-only one-line plans unless the user asks.
 4. Fill when known:
    - **Base ref** — commit SHA before implement
    - **Target paths** — concrete pathspecs (no TBD)
-   - **Test command** — exact suite command
+   - **Test command** — exact suite command, or explicit N/A with reason and concrete manual verification
    - **Materiality bar** — material P0/P1 blocks clean; minors/P2 are trivial
    - **Driver** — default `review-converge under /goal`
    - **Max review-converge rounds** — default 12
@@ -149,8 +149,8 @@ waiver. Report what you wrote; do not require the user to run a CLI.
 
 ## Phase B — Post-implement residual (agent runs the campaign)
 
-1. Preconditions: implementation landed; suite green; optional first-pass
-   `/review-fix` done.
+1. Preconditions: implementation landed; applicable suite green or concrete manual
+   verification for an explicitly N/A Test command; optional first-pass `/review-fix` done.
 2. **Preflight (hard stops — do not open `/goal` if any fail):**
    - Plan has filled `## Review Coverage` (or run Phase A first).
    - Not waived (if waived, stop — no residual campaign).
@@ -159,7 +159,9 @@ waiver. Report what you wrote; do not require the user to run a CLI.
      **terminal** (`complete` / `stopped`) for a **different** plan contract,
      plan hash, or campaign scope → **hard stop**: archive/rename the ledger
      first (do not auto-delete). Same plan + re-run only if operator explicitly
-     requests re-open residual.
+     requests re-open residual. Resuming Finalization alone is not a residual reopen;
+     for the same completed/landed campaign, reconcile its Finalization record
+     and perform only the missing verification/receipt work without another round.
    - If `git status --porcelain -- <Target paths>` shows foreign dirt under
      Target paths (excluding the ledger), **warn**; refuse unattended start
      until paths are clean or dirt is confirmed in-scope.

@@ -305,6 +305,12 @@ if printf '%s\n' "$GBO" | grep -Fq "$SECOND_PASS_NA" \
 else
   bad finalization_na_second_pass_packets
 fi
+if grep -Fq 'Preconditions: implementation landed; applicable suite green or concrete manual' "$SKILL" \
+  && grep -Fq 'Resuming Finalization alone is not a residual reopen' "$SKILL"; then
+  ok finalization_start_and_resume_contract
+else
+  bad finalization_start_and_resume_contract
+fi
 TMPNA=$(mktemp)
 cat >"$TMPNA" <<'EOF'
 ## Review Coverage
