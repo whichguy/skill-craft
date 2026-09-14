@@ -27,6 +27,7 @@ class OrientationIntegrationTests(unittest.TestCase):
         self.addCleanup(self.f.tearDown)
         self.f.cli(
             "init", "--repo", str(self.f.repo), "--run-dir", str(self.f.run_dir),
+            "--execution-mode", "legacy",
             "--prompt=Build a local CSV summary CLI; do not fabricate missing input.",
         )
         self.complete({"summary": "Baseline inspected; owner input is absent.", "baseline": "committed-head"})

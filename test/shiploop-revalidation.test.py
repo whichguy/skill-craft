@@ -375,7 +375,10 @@ class RevalidationCliTests(unittest.TestCase):
         return str(path)
 
     def prepare_action(self) -> tuple[dict, str]:
-        self.cli("init", "--repo", str(self.repo), "--prompt", "Prepare a hosted target.")
+        self.cli(
+            "init", "--repo", str(self.repo), "--execution-mode", "legacy",
+            "--prompt", "Prepare a hosted target.",
+        )
         state = store.read_record(self.run_dir / "state.md")
         self.assertEqual(state["platform_revalidation_protocol_version"], 1)
         machine = outer_machine()

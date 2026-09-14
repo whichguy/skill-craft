@@ -50,6 +50,8 @@ class ObservationProtocolTests(ACTION.ShipLoopActionWalkFixture):
             str(self.repo),
             "--bound-plan",
             str(self.bound_plan),
+            "--execution-mode",
+            "legacy",
             "--prompt",
             "Exercise early current-knowledge observations without relying on host memory.",
         )

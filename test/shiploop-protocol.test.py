@@ -935,6 +935,7 @@ class ProtocolTests(unittest.TestCase):
         import shiploop_protocol
 
         expected = {
+            "managed-improve": ("managed-improve-checkpoints",),
             "preflight": ("surface-selection",),
             "survey": ("surface-selection",),
             "prepare": ("surface-selection",),
@@ -965,7 +966,11 @@ class ProtocolTests(unittest.TestCase):
             "implement": ("iteration", "implementation-constitution"),
             "review": ("iteration", "implementation-constitution"),
             "improve-plan": ("iteration", "implementation-constitution"),
+            "improve-plan-verify": ("managed-improve-checkpoints", "implementation-constitution"),
             "improve-apply": ("iteration", "implementation-constitution"),
+            "test-refine": ("managed-improve-checkpoints", "implementation-constitution"),
+            "test-author": ("managed-improve-checkpoints", "implementation-constitution"),
+            "skill-validate": ("managed-improve-checkpoints", "implementation-constitution"),
             "iteration-document": ("iteration-documentation-and-reuse", "implementation-constitution"),
             "carry-forward": ("iteration",),
             "commit": ("iteration",),
@@ -1048,7 +1053,7 @@ class ProtocolTests(unittest.TestCase):
             "objective-commit",
             "objective-finalize",
         }
-        state_bound_stages = {"sequence", "commit", "final-verify"}
+        state_bound_stages = {"managed-improve", "sequence", "commit", "final-verify"}
         for stage in shiploop_protocol.PROMPTS:
             with self.subTest(stage=stage):
                 # Planning packets need a real planning receipt; their bounded
@@ -1096,7 +1101,10 @@ class ProtocolTests(unittest.TestCase):
                     self.assertEqual(guidance, [])
 
     def test_approach_test_docs_record_survives_draft_deletion_across_processes(self):
-        self.cli("init", "--repo", str(self.repo), "--prompt", "Build")
+        self.cli(
+            "init", "--repo", str(self.repo), "--execution-mode", "legacy",
+            "--prompt", "Build",
+        )
         preflight = self.state()["action"]["id"]
         self.cli(
             "complete",
@@ -1198,6 +1206,7 @@ schema or sidecar is needed.
             "handoff": ("traceability-and-review",),
         }
         no_guidance = {
+            "managed-improve",
             "preflight",
             "prepare",
             "research",
@@ -1224,6 +1233,10 @@ schema or sidecar is needed.
             "step-plan-verify",
             "step-plan-commit",
             "step-plan-finalize",
+            "improve-plan-verify",
+            "test-refine",
+            "test-author",
+            "skill-validate",
         }
         self.assertEqual(shiploop_protocol.BEHAVIOR_SECTIONS, expected)
         self.assertEqual(
@@ -1281,7 +1294,7 @@ schema or sidecar is needed.
             "objective-commit",
             "objective-finalize",
         }
-        state_bound_stages = {"sequence", "commit", "final-verify"}
+        state_bound_stages = {"managed-improve", "sequence", "commit", "final-verify"}
         for stage in shiploop_protocol.PROMPTS:
             with self.subTest(stage=stage):
                 if stage in planning_stages | state_bound_stages:
@@ -1445,7 +1458,10 @@ schema or sidecar is needed.
         self.assertTrue(expected_anchors <= anchors)
 
     def test_behavioral_requirements_survive_draft_deletion_across_processes(self):
-        self.cli("init", "--repo", str(self.repo), "--prompt", "Build")
+        self.cli(
+            "init", "--repo", str(self.repo), "--execution-mode", "legacy",
+            "--prompt", "Build",
+        )
         preflight = self.state()["action"]["id"]
         self.cli(
             "complete",

@@ -16,6 +16,8 @@ SCRIPTS = ROOT / "skills/shiploop/scripts"
 sys.path.insert(0, str(SCRIPTS))
 
 import shiploop_delivery as delivery  # noqa: E402
+import shiploop_improve_bridge as improve_bridge  # noqa: E402
+import shiploop_protocol as protocol  # noqa: E402
 import shiploop_store as store  # noqa: E402
 
 
@@ -129,6 +131,52 @@ class DeliveryTests(unittest.TestCase):
         self.assertEqual(result.returncode, 2)
         self.assertIn("--action", result.stderr)
         self.assertIn("--result", result.stderr)
+
+    def test_managed_terminal_transaction_renders_only_durable_parent_state(self):
+        for terminal in ("done", "halted"):
+            with self.subTest(terminal=terminal):
+                root = self.root / terminal
+                root.mkdir()
+                durable = {"phase": terminal, "stage": terminal, "revision": 12,
+                           "action": {"id": "terminal-action", "stage": terminal}}
+                transient = dict(durable, _managed_improve_projection={"private": True})
+                child_path = "managed-improve/bound-child.md"
+                child_body = store.dumps({"status": "converged" if terminal == "done" else "stopped"})
+                pending = {"handoff.md": store.dumps({"summary": "Recorded outcome."})}
+                bridged = dict(pending, **{child_path: child_body})
+                metadata = dict(self.meta, outcome="complete" if terminal == "done" else "unfinished")
+                with patch.object(improve_bridge, "prepare", return_value=(durable, bridged, [])), patch.object(
+                    delivery, "render_report", return_value=(self.html, metadata)
+                ) as render:
+                    protocol.persist(root, transient, "complete:objective-finalize", pending)
+                overlay = render.call_args.kwargs["overrides"]
+                self.assertNotIn(child_path, overlay)
+                self.assertEqual((root / child_path).read_text(), child_body)
+                saved = store.read_record(root / "state.md")
+                self.assertFalse(any(key.startswith("_") for key in saved))
+                self.assertEqual(saved, transient)
+                self.assertEqual(store.loads(overlay["state.md"])["action"], durable["action"])
+                self.assertEqual(saved["report"]["source_digest"], metadata["source_digest"])
+                self.assertEqual((root / "report.html").read_text(), self.html)
+
+    def test_managed_namespace_does_not_hide_caller_supplied_terminal_writes(self):
+        pending = {"managed-improve/unbound-child.md": "Unvalidated caller content"}
+        with patch.object(improve_bridge, "prepare", return_value=(dict(self.state), dict(pending), [])):
+            with self.assertRaisesRegex(protocol.ProtocolError, "accepted report input"):
+                protocol.persist(self.root, dict(self.state), "halt", pending)
+        self.assertFalse((self.root / "state.md").exists())
+        self.assertFalse((self.root / "managed-improve").exists())
+
+    def test_managed_success_gate_requires_its_bound_child_certificate(self):
+        self.state["managed_improve_protocol_version"] = 1
+        with patch.object(delivery, "render_report", return_value=(self.html, self.meta)):
+            store.transaction(self.root, delivery.prepare_terminal_report(self.root, self.state, {}))
+            with patch.object(improve_bridge, "validate_imported_certificate", return_value={"validated": True}):
+                self.assertTrue(delivery.valid_complete_report(self.root, self.state))
+            with patch.object(improve_bridge, "validate_imported_certificate", return_value=None):
+                self.assertFalse(delivery.valid_complete_report(self.root, self.state))
+            with patch.object(improve_bridge, "validate_imported_certificate", side_effect=ValueError("changed certificate")):
+                self.assertFalse(delivery.valid_complete_report(self.root, self.state))
 
 
 if __name__ == "__main__":

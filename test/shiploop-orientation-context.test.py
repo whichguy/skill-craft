@@ -498,6 +498,8 @@ class OrientationContextTests(unittest.TestCase):
             str(fixture.repo),
             "--run-dir",
             str(fixture.run_dir),
+            "--execution-mode",
+            "legacy",
             "--prompt=Build a local CSV summary CLI; do not fabricate missing input.",
         )
 

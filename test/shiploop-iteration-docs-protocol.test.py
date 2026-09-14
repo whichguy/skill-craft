@@ -57,6 +57,8 @@ class IterationDocumentationProtocolTests(ACTION.ShipLoopActionWalkFixture):
             str(self.repo),
             "--bound-plan",
             str(self.bound_plan),
+            "--execution-mode",
+            "legacy",
             "--prompt",
             "Exercise the versioned documentation checkpoint through public callbacks.",
         )

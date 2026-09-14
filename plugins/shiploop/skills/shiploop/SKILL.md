@@ -43,6 +43,11 @@ For a new run:
 python3 "$CLI" init --repo "$REPO" --run-dir "$RUN_DIR" --prompt='<user request>'
 ```
 
+New runs use managed Improve ownership by default. Use
+`--execution-mode=legacy` only when deliberately starting the established
+stage-by-stage route; the selected mode is recorded in the new run and an
+existing run always resumes its recorded mode.
+
 For an existing run, including after context loss or uncertain completion:
 
 ```sh
@@ -112,12 +117,47 @@ and dependency review. Apply it in ShipLoop's existing Markdown/result fields;
 do not start the standalone Backchain harness or import its foreign JSON schema.
 
 The existing embedded until-loop policy shares ShipLoop's Markdown authority.
-For a new run, the product Improve pilot also snapshots its packaged,
-content-pinned declarative policy into the run and binds it from `state.md`.
-At a product Improve stage, read the printed saved policy path, perform only
-that named stage, and use its exact callback. Do not start standalone Improve
+Existing runs without `managed_improve_protocol_version: 1` retain their
+established stage-by-stage Improve route: read the saved policy, perform only
+the named stage, and use its exact callback. Do not start standalone Improve
 or until-loop, substitute a host installation, or create policy sidecar state.
-Existing runs without that binding retain their established loop policy. HTML
-is a derived report, not state. Operational details, diagrams, and recovery
+
+New managed runs snapshot the content-pinned declarative policy and managed
+consumer contract at initialization.
+This is one child invocation, not an alias for the standalone Improve card.
+ShipLoop keeps the parent action,
+delivery DAG, state lock, transaction, and final consumer-release authority;
+the child controller keeps the child phase, review records, material reset, and
+convergence decision in namespaced Markdown below the ShipLoop run. Never
+create or resume an ambient `.until-loop` directory for that child.
+
+At `managed-improve`, read the immutable binding and the printed child packet,
+then follow its exact continuation command. The callback uses the printed
+child action ID even when its phase name matches a legacy phase. Never submit
+the fixed parent waiting action to `done`. The script imports a valid terminal
+certificate atomically; no separate host import command is needed. Do not add
+a second Improve loop around the child. `blocked`, `needs-prerequisite`,
+`needs-replan`, and `stopped` are unfinished outcomes. Only a current validated
+`converged` certificate lets the parent advance to its bound return stage.
+
+The managed controller is the sole phase owner for any profile the parent has
+bound: `research`, `behavior`, `spec`, `objective`, `step-plan` (the initial
+local plan), or `product`. Follow only profiles and phases printed by the
+current packet; do not infer that an unbound profile is authorized. A managed
+product pass must
+retain a validated per-iteration implementation/test plan and run its planning
+check once before Apply. That plan has finding, selected-test, expected-outcome,
+prerequisite, candidate, and context bindings. It is not a nested two-trivial
+plan-convergence campaign.
+
+Managed product profiles make the test lifecycle explicit: preserve the
+pre-code test plan, refine cases from the actual code, author/refine executable
+tests, validate any selected repo-local skill, then run the actual check
+manifest. Do not report future tests as passed during planning or authoring,
+and do not weaken an oracle to make a check green. Required independent review
+follows the binding: unavailable review blocks unless that binding explicitly
+authorizes and records a self-review fallback.
+
+HTML is a derived report, not state. Operational details, diagrams, and recovery
 guidance are in [README.md](README.md); the script selects the relevant
 instructions for each action.

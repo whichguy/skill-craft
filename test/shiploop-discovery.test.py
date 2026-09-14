@@ -452,7 +452,10 @@ class DiscoveryCliTests(unittest.TestCase):
         return result
 
     def prepare_survey(self) -> dict:
-        self.cli("init", "--repo", str(self.repo), "--prompt", "Survey a generic route.")
+        self.cli(
+            "init", "--repo", str(self.repo), "--execution-mode", "legacy",
+            "--prompt", "Survey a generic route.",
+        )
         state = store.read_record(self.run_dir / "state.md")
         self.assertEqual(state["platform_discovery_protocol_version"], 1)
         protocol.action(state, "validate-spec", "survey")

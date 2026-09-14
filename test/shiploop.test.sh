@@ -5,7 +5,11 @@ set -euo pipefail
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 cd "$root"
 
+printf '==> scripts/sync-improve-managed.py\n'
+PYTHONDONTWRITEBYTECODE=1 python3 scripts/sync-improve-managed.py
+
 for suite in \
+  test/improve-managed.test.py \
   test/shiploop-store.test.py \
   test/shiploop-evidence.test.py \
   test/shiploop-file-safety.test.py \
@@ -56,6 +60,13 @@ for suite in \
   test/shiploop-planning.test.py \
   test/shiploop-until.test.py \
   test/shiploop-step-planning.test.py \
+  test/shiploop-sdlc.test.py \
+  test/shiploop-improve-bridge.test.py \
+  test/shiploop-managed-contracts.test.py \
+  test/shiploop-invalidation.test.py \
+  test/shiploop-managed-invalidation.test.py \
+  test/shiploop-managed-package.test.py \
+  test/shiploop-managed-walk.test.py \
   test/shiploop-action-walk.test.py; do
   printf '==> %s\n' "$suite"
   PYTHONDONTWRITEBYTECODE=1 python3 "$suite"
