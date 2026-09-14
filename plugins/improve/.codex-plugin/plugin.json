@@ -1,0 +1,28 @@
+{
+  "name": "improve",
+  "version": "0.1.0-rc.1",
+  "description": "Use when a repository candidate needs a deliberate review-and-improvement loop: use recent Git history, make warranted changes, run meaningful checks, and require two consecutive trivial-only review passes. Supports a read-only interpretation preview; not a one-off code review.",
+  "author": {
+    "name": "whichguy",
+    "url": "https://github.com/whichguy"
+  },
+  "homepage": "https://github.com/whichguy/skill-craft/tree/main/skills/improve",
+  "repository": "https://github.com/whichguy/skill-craft",
+  "license": "MIT",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Improve",
+    "shortDescription": "Review, test and improve with explicit stopping rules",
+    "longDescription": "Release-candidate repository improvement workflow with preview, seven-message history, scoped local commits, evidence capture, and a bundled Until Loop runtime. Publishing source does not prove execution on every host.",
+    "developerName": "whichguy",
+    "category": "Productivity",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Dry-run $improve on these changes without writing files.",
+      "Use $improve on these changes, preserving unrelated work."
+    ]
+  }
+}

@@ -31,6 +31,7 @@ plugins, use **claude-craft**.
 | Skill | Purpose |
 |-------|---------|
 | **shiploop** | Markdown-authoritative delivery harness (not DevLoop): script-owned action packets, evidence-gated planning/implementation/outer loops, and an HTML achievement report. [Operator README](skills/shiploop/README.md); [completed proposals and deferred boundaries](docs/shiploop-proposal-closeout.md) |
+| **improve** | Review a repository candidate using seven full commit messages, meaningful checks, and two consecutive qualifying reviews. Bundles its compatible Until Loop runtime. [Guide and release-candidate limits](skills/improve/README.md) |
 | **skill-interop** | Author/review portable multi-host skills; scaffold; install; marketplace facade |
 | **c-plan** | Ambiguous-prompt clarifier (EVQ / FASTPATH) |
 | **review-coverage** | Post-ship improve-to-exhaustion plan directive (`## Review Coverage`) |

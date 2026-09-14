@@ -30,6 +30,8 @@ run install-status-uninstall bash test/install-status-uninstall.test.sh
 run devloop-run bash test/devloop-run.test.sh
 run devloop-gas-weather-native env DEVLOOP_LIVE_WEATHER=0 bash test/devloop-gas-weather-native.test.sh
 run evidence-gates bash test/evidence-gates.test.sh
+run improve bash test/improve.test.sh
+run improve-plugin python3 test/improve-plugin.test.py
 run shiploop-testkit bash test/shiploop-testkit.test.sh
 run shiploop bash test/shiploop.test.sh
 run shiploop-walk-journal bash test/shiploop-walk-journal.test.sh
