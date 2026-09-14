@@ -24,6 +24,17 @@ class ResearchTemplateTests(unittest.TestCase):
         state = {"system_context_protocol_version": 1} if current else {}
         return packets._planning_template(stage, state, protocol.__dict__)
 
+    def assert_discovery_authoring_note(self, notes, *, machine=False):
+        instruction = " ".join(notes)
+        for detail in (
+            "discovery coverage and reuse decisions",
+            "setup-capability stages",
+            "experiment fidelity/cleanup",
+            "remaining exploration allowance",
+        ):
+            self.assertIn(detail, instruction)
+        self.assertIn("do not add machine keys" if machine else "do not add research_state keys", instruction)
+
     def test_current_draft_and_apply_examples_validate_but_cannot_converge(self):
         for stage in ("research", "research-apply"):
             with self.subTest(stage=stage):
@@ -46,11 +57,12 @@ class ResearchTemplateTests(unittest.TestCase):
                 self.assertIn("not evidence", " ".join(notes))
                 self.assertIn("local-only", " ".join(notes))
                 self.assertIn("integrated", " ".join(notes))
+                self.assert_discovery_authoring_note(notes)
 
     def test_legacy_draft_and_apply_keep_exact_original_shape(self):
         for stage in ("research", "research-apply"):
             with self.subTest(stage=stage):
-                template, _notes = self.template(stage, current=False)
+                template, notes = self.template(stage, current=False)
                 value = template["research_state"]
                 self.assertEqual(set(value), {"questions", "sources"})
                 self.assertEqual(set(value["questions"][0]), {
@@ -59,6 +71,44 @@ class ResearchTemplateTests(unittest.TestCase):
                 })
                 research.validate_state(value)
                 self.assertEqual(research.unresolved_ids(value), ["RQ-1"])
+                self.assert_discovery_authoring_note(notes)
+
+    def test_survey_template_keeps_discovery_detail_in_authored_body(self):
+        template, notes = packets._execution_base_template("survey", {}, {})
+        self.assertEqual(
+            template,
+            {
+                "summary": "Environment survey drafted.",
+                "body": "# Environment\n...\n\n## machine\n```json\n{}\n```",
+            },
+        )
+        self.assert_discovery_authoring_note(notes, machine=True)
+
+    def test_selected_discovery_policy_keeps_setup_authority_and_recovery_boundaries(self):
+        text = (SCRIPTS.parent / "references/research-loop.md").read_text()
+        section = text.split("## Recursive discovery and experiments\n", 1)[1].split("\n## ", 1)[0]
+        normalized = " ".join(section.split())
+        # Policy-presence checks complement, rather than claim, model compliance.
+        for area in (
+            "Message passing", "Client connections", "Service authentication", "Design",
+            "Client-side libraries", "Storage", "Caching", "Security considerations",
+        ):
+            self.assertIn(f"| {area} |", section)
+        for boundary in (
+            "user's request or current task context authorizes discovery setup",
+            "do not ask again for the same bounded setup",
+            "An initial catalog is not a ceiling",
+            "same authorized account/data scope and grant",
+            "do not route around it",
+            "acquisition never changes the frozen selected interface, writer, or inventory",
+            "13 active minutes or 56 observable actions",
+            "ShipLoop does not observe native host tools or kill them",
+            "unaccepted draft",
+            "accepted candidate remains unchanged",
+            "Resuming does not replenish the exploration allowance",
+        ):
+            with self.subTest(boundary=boundary):
+                self.assertIn(boundary, normalized)
 
     def test_unknown_version_does_not_silently_get_legacy_example(self):
         with self.assertRaises(system_context.SystemContextError):

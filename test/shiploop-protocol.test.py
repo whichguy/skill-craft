@@ -1397,6 +1397,7 @@ schema or sidecar is needed.
         import shiploop_protocol
 
         expected = {
+            "survey": ("recursive-discovery-and-experiments",),
             "research": ("draft", "decision-boundaries", "recursive-discovery-and-experiments"),
             "research-review": ("review", "decision-boundaries", "recursive-discovery-and-experiments"),
             "research-plan": ("review", "decision-boundaries", "recursive-discovery-and-experiments"),

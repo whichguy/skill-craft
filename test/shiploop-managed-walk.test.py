@@ -333,6 +333,7 @@ class ManagedShipLoopWalkFixture(ACTION.ShipLoopActionWalkFixture):
         self.graph_trace = ManagedGraphTrace.from_environment(os.environ)
         super().setUp()
         self.managed_children = []
+        self.cold_recursive_discovery_packets = {}
 
     def cli(self, *args, code=0, cwd=None):
         """Run the real CLI and, only on request, record its dispatch surface."""
@@ -431,6 +432,113 @@ class ManagedShipLoopWalkFixture(ACTION.ShipLoopActionWalkFixture):
         self.assertEqual(self.durable_parent_state(), parent)
         return packet
 
+    def capture_cold_recursive_discovery_packet(self):
+        """Check the guide selected by a real projected research/product cursor."""
+        expected = {
+            ("research", "research-review"):
+                ("review", "decision-boundaries", "recursive-discovery-and-experiments"),
+            ("product", "review"):
+                ("later-discoveries", "recursive-discovery-and-experiments"),
+        }
+        # The binding belongs to the durable parked parent, while ``state()``
+        # deliberately presents the current child phase.  Read each from its
+        # owning surface so this check cannot accidentally inspect a partial
+        # projection after a cold recovery.
+        durable = self.durable_parent_state()
+        binding = durable.get("managed_improve")
+        if not isinstance(binding, dict):
+            return
+        state = self.state()
+        profile = binding.get("profile")
+        sections = expected.get((profile, state.get("stage")))
+        if sections is None or profile in self.cold_recursive_discovery_packets:
+            return
+        packet = self.assert_child_resume_is_read_only()
+        guidance = next(
+            line for line in packet.splitlines()
+            if line.startswith("Research-loop guidance: read only ")
+        )
+        self.assertIn("research-loop.md", guidance)
+        for section in sections:
+            self.assertIn(f"#{section}", guidance)
+        if profile == "research":
+            self.exercise_research_discovery_pause_resume()
+        self.cold_recursive_discovery_packets[profile] = packet
+
+    def exercise_research_discovery_pause_resume(self):
+        """Pause an accepted research child without changing its evidence."""
+        self.assertEqual(self.state()["stage"], "research-review")
+        _parent, before_binding, _child = self.assert_parent_parked("research")
+        child_id = before_binding["id"]
+        paths = ("research.md", "research-evidence.md", "planning/research.md")
+        before_bytes = {
+            relative: (self.run_dir / relative).read_bytes()
+            for relative in paths
+        }
+        before_record = store.read_record(self.run_dir / "planning" / "research.md")
+        before_candidate = before_record["candidate_sha256"]
+        before_identity = copy.deepcopy(self.managed_child_record()["input_identity"])
+        inbox = self.run_dir / "inbox" / f"{self.state()['action']['id']}.md"
+        store.write_record(inbox, {
+            "summary": "Unaccepted partial research review; coverage is unfinished.",
+            "body": "# Partial review\n56 actions used; eight reserved. Next duty: finish source review.\n",
+        }, title="Unaccepted managed discovery draft")
+        draft_bytes = inbox.read_bytes()
+        pause_reason = (
+            f"Unaccepted draft: {inbox}; 56 actions used, eight reserved. "
+            "Next duty: finish source review. Accepted research is unchanged."
+        )
+
+        self.cli(
+            "pause",
+            "--run-dir",
+            str(self.run_dir),
+            "--reason",
+            pause_reason,
+            cwd=self.root,
+        )
+        paused = self.durable_parent_state()
+        self.assertEqual(paused["paused"], pause_reason)
+        self.assertEqual(paused["managed_improve"]["id"], child_id)
+        self.assertEqual(paused["managed_improve"]["status"], "blocked")
+        paused_child = self.managed_child_record()["child"]
+        self.assertEqual(paused_child["status"], "blocked")
+        self.assertEqual(paused_child["phase_records"][-1]["kind"], "blocked")
+        paused_packet = self.cold_next_is_read_only(paused["managed_improve"]["receipt"])
+        self.assertIn(pause_reason, paused_packet)
+        self.assertIn("No completion callback is valid while paused.", paused_packet)
+        self.assertEqual(inbox.read_bytes(), draft_bytes)
+        self.assertEqual(
+            {
+                relative: (self.run_dir / relative).read_bytes()
+                for relative in paths
+            },
+            before_bytes,
+        )
+
+        self.cli("resume", "--run-dir", str(self.run_dir), cwd=self.root)
+        resumed = self.durable_parent_state()
+        self.assertNotIn("paused", resumed)
+        self.assertEqual(resumed["managed_improve"]["id"], child_id)
+        self.assertEqual(resumed["managed_improve"]["status"], "active")
+        self.assertEqual(self.state()["stage"], "research-review")
+        self.assert_parent_parked("research")
+        resumed_child = self.managed_child_record()["child"]
+        self.assertEqual(resumed_child["phase_records"][-1]["kind"], "resume")
+        self.assertEqual(self.managed_child_record()["input_identity"], before_identity)
+        self.assertEqual(inbox.read_bytes(), draft_bytes)
+        self.assertEqual(
+            store.read_record(self.run_dir / "planning" / "research.md")["candidate_sha256"],
+            before_candidate,
+        )
+        self.assertEqual(
+            {
+                relative: (self.run_dir / relative).read_bytes()
+                for relative in paths
+            },
+            before_bytes,
+        )
+
     def exercise_step_plan_scope_disposition_recovery(self, sid):
         """Keep a repaired scope finding at disposition until it is resolved."""
         self.assertEqual(self.state()["stage"], "step-plan-review")
@@ -519,7 +627,7 @@ class ManagedShipLoopWalkFixture(ACTION.ShipLoopActionWalkFixture):
         self.assertEqual(self.state()["stage"], "step-plan-review")
 
     def complete(self, payload, **kwargs):
-        """Assert every child callback preserves the parent wait cursor."""
+        """Assert child callbacks preserve the parent wait cursor and guides."""
         before = self.durable_parent_state()
         binding = before.get("managed_improve")
         process, result = super().complete(payload, **kwargs)
@@ -531,6 +639,8 @@ class ManagedShipLoopWalkFixture(ACTION.ShipLoopActionWalkFixture):
                 self.assertEqual(after["action"]["id"], binding["parent_action"])
                 self.assertEqual(active["id"], binding["id"])
                 self.assertEqual(active["binding_sha256"], binding["binding_sha256"])
+        if process.returncode == 0:
+            self.capture_cold_recursive_discovery_packet()
         return process, result
 
     def verify_current(self, manifest, *, code=0, label="checks", reason=None):
@@ -1702,6 +1812,9 @@ class ManagedShipLoopWalkTests(ManagedShipLoopWalkFixture):
         self.assertTrue(
             all((self.run_dir / path).is_file() for path in set(self.managed_children)),
             "child Markdown receipts remain durable after parent completion",
+        )
+        self.assertEqual(
+            set(self.cold_recursive_discovery_packets), {"research", "product"}
         )
         self.finish_graph_trace()
 

@@ -782,6 +782,7 @@ def _research_state_template(state: Mapping[str, Any]) -> tuple[dict[str, Any], 
     }
     notes = [
         "Research rows are examples, not evidence. Replace them with the scoped inventory; add rows, not undeclared fields. Read the selected research-result-schema.md for all row shapes and enum values.",
+        "Keep discovery coverage and reuse decisions, setup-capability stages, experiment fidelity/cleanup, and remaining exploration allowance in the authored report and existing question/source rows; do not add research_state keys.",
     ]
     if not system_context.context_current(state):
         return value, notes
@@ -1150,7 +1151,7 @@ def _execution_base_template(stage: str, state: Mapping[str, Any], info: Mapping
     if stage == "approach":
         return {"summary": "Delivery approach drafted.", "body": "# Approach\n..."}, []
     if stage == "survey":
-        return {"summary": "Environment survey drafted.", "body": "# Environment\n...\n\n## machine\n```json\n{}\n```"}, ["body must contain a complete valid machine JSON record; do not put secrets in it.", "New runs must include machine.platform_discovery: use version 1, applicable false, a local rationale, and [] platforms only when no external platform is in scope. Otherwise use the selected-route record in references/platform-discovery.md. Inventory is not a safe probe, credential, authority grant, or execution proof."]
+        return {"summary": "Environment survey drafted.", "body": "# Environment\n...\n\n## machine\n```json\n{}\n```"}, ["body must contain a complete valid machine JSON record; do not put secrets in it.", "New runs must include machine.platform_discovery: use version 1, applicable false, a local rationale, and [] platforms only when no external platform is in scope. Otherwise use the selected-route record in references/platform-discovery.md. Inventory is not a safe probe, credential, authority grant, or execution proof.", "Keep discovery coverage and reuse decisions, setup-capability stages, experiment fidelity/cleanup, and remaining exploration allowance in the authored Environment body and any existing question/source narrative; do not add machine keys for them."]
     if stage == "sequence":
         statement = "Produce the first observable artifact."
         produces = ["The named output exists."]

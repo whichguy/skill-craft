@@ -25,6 +25,11 @@ CLIs, platform SDKs, and primary documentation. Record version and source for
 the selected interface. Discovering an MCP name does not prove it is connected;
 finding a CLI does not prove that the current account has permission. Do not
 install a connector, change credentials, or create a remote target implicitly.
+When the user's request or current task context authorizes bounded discovery
+setup, a task-local temporary reader, SDK, skill, or test dependency may be
+acquired for a named gap under the
+[recursive-discovery rules](research-loop.md#recursive-discovery-and-experiments);
+that is not a persistent integration, a credential grant, or a new writer.
 
 An MCP server can be a gateway, not the whole system. Identify the system behind
 it and the access actually needed for this task. If a relevant system has no
@@ -33,10 +38,12 @@ or authorized browser session could supply the missing observation or operation.
 Compare coverage, publisher/provenance, authentication, data exposure, maintenance
 and verification against existing tools. Registry presence is a lead, not trust
 or access proof. Record adopt/pilot/defer/reject and why in survey/research prose.
-Recommend adding a connector only for a concrete gap; request authorization
-before installation, credential grants or persistent configuration. A browser
-is not a bypass for a blocked writer or missing permissions. Keep optional
-alternatives outside the selected required inventory until explicitly selected.
+Recommend adding a connector only for a concrete gap. The existing discovery-setup
+authorization governs a temporary reader; a persistent installation, credential
+grant, or persistent configuration needs authorization covering that change, but
+not a repeat request when it is already granted. A browser is not a bypass for a
+blocked writer or missing permissions. Keep optional alternatives outside the
+selected required inventory until explicitly selected.
 
 Follow the relevant gateway's actors and contracts as described in
 [recursive discovery](research-loop.md#recursive-discovery-and-experiments).
@@ -118,9 +125,11 @@ The survey owns selected platform and interface identity. A later versioned
 research context may reference a selected interface only by its frozen
 `{platform_id, name}` pair, then add bounded role, invocation, state, failure,
 and source links in `research-evidence.md`. It must not create a second platform
-inventory, revise `environment.md`, install a client, or turn a planned safe
-probe into an observation. If an interface or role is unavailable, preserve a
-blocked reference and its revalidation trigger.
+inventory, revise `environment.md`, change the selected writer, or turn a planned
+safe probe into an observation. With discovery setup authorized by the request or
+current task context, a temporary reader may add source or probe evidence without
+changing that frozen inventory or writer. If an interface or role is unavailable,
+preserve a blocked reference and its revalidation trigger.
 
 Environment roles are task labels with permitted actions and isolation facts,
 not an assumed dev/stage/prod ladder. One isolated local environment can satisfy

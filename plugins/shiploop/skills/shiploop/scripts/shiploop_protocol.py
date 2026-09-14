@@ -7002,6 +7002,7 @@ OBJECTIVE_SECTIONS = {
 # from the generic planning loop guide so a cold host only reads the section
 # that explains the current research decision.
 RESEARCH_SECTIONS = {
+    "survey": ("recursive-discovery-and-experiments",),
     "research": ("draft", "decision-boundaries", "recursive-discovery-and-experiments"),
     "research-review": ("review", "decision-boundaries", "recursive-discovery-and-experiments"),
     "research-plan": ("review", "decision-boundaries", "recursive-discovery-and-experiments"),

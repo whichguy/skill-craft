@@ -153,10 +153,13 @@ receipts or hashes. Keep the essential model and decisions in the candidate, not
 only in a temporary linked draft. Product source and its README are still
 untouched at this stage; plan their later worktree deliverables.
 
-Research is read-only evidence work. It neither authorizes a provider, tool
-installation, configuration change, credential mutation, destructive probe, nor
-publication. Record expected roles and documented non-mutating probes without
-secrets; missing authority is a pause, not a research conclusion.
+Research leaves product state unchanged. User-authorized temporary discovery
+setup and isolated experiments follow the shared
+[recursive discovery controls](research-loop.md#recursive-discovery-and-experiments).
+Only authorized disposable setup and test data may change. Research itself
+grants no provider choice, persistent installation, new
+credentials or publication authority. Record expected roles and observed probes
+without secrets; missing authority is a pause, not a research conclusion.
 
 The spec loop improves the specification of an accepted behavior baseline. If
 it discovers a missing or changed requirement/transition, use

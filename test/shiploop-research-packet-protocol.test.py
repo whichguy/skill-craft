@@ -95,6 +95,14 @@ class ResearchPacketProtocolTests(unittest.TestCase):
         self.assertIn("examples, not evidence", packet)
         self.assertIn("local-only", packet)
         self.assertIn("integrated", packet)
+        for detail in (
+            "discovery coverage and reuse decisions",
+            "setup-capability stages",
+            "experiment fidelity/cleanup",
+            "remaining exploration allowance",
+            "do not add research_state keys",
+        ):
+            self.assertIn(detail, packet)
         self.assertEqual(set(template["research_state"]), {
             "questions",
             "sources",
@@ -302,6 +310,114 @@ class ResearchPacketProtocolTests(unittest.TestCase):
         self.assertEqual(receipt["streak"], 0)
         self.assertEqual(receipt["research_state"]["questions"][0]["status"], "blocked")
         self.fixture.assert_cursor("validate-spec", "research-review")
+
+    def test_cataloged_probe_evidence_persists_without_claiming_service_access(self) -> None:
+        packet, template = self._bootstrap_research()
+        environment_path = self.fixture.run_dir / "environment.md"
+        frozen_environment = environment_path.read_bytes()
+        blocked_state = self.fixture.research_state(
+            "cataloged-service-blocked",
+            status="blocked",
+            answer=(
+                "The task-local MCP server was acquired and cataloged, but the "
+                "required service operation remains blocked pending authorized access."
+            ),
+        )
+        probe = blocked_state["sources"][0]
+        probe.update(
+            reference="fixture task-local MCP probe receipt",
+            authority="probe",
+            version_or_observed_at="fixture-mcp-catalog-1",
+            supports=(
+                "The task-local MCP server was acquired and cataloged; its "
+                "required service operation remained blocked."
+            ),
+            limitations=(
+                "Catalog evidence does not prove service access, deployment, "
+                "or an authorized operation."
+            ),
+        )
+        body = self.fixture.research_body("cataloged-service-blocked") + (
+            "\n## Capability probe\n\nThe local reader was acquired and cataloged; "
+            "the required service operation remains blocked.\n"
+            "\n## Exploration allowance\n\nUsed 13 active minutes and 56 actions; "
+            "remaining two minutes/eight actions are for recording and cleanup. "
+            "Next gap: establish authorized target access.\n"
+        )
+        self._submit_packet(
+            packet,
+            self._fixture_result(
+                template,
+                revision="cataloged-service-blocked",
+                research_state=blocked_state,
+            ) | {"body": body},
+        )
+        initial = self.fixture.planning("research")["research_state"]
+        self.assertEqual(initial["questions"][0]["status"], "blocked")
+        self.assertEqual(initial["sources"][0]["authority"], "probe")
+        self.assertIn("acquired and cataloged", initial["sources"][0]["supports"])
+        self.assertIn("does not prove service access", initial["sources"][0]["limitations"])
+
+        # A valid candidate is checkpointed before pausing the returned action.
+        # Neither a temporary reader nor a pause may rewrite the frozen survey.
+        retained = {
+            name: (self.fixture.run_dir / name).read_bytes()
+            for name in ("research.md", "research-evidence.md", "environment.md")
+        }
+        reason = "Exploration allowance reached; target access remains blocked. No automatic refill."
+        self.fixture.cli("pause", "--run-dir", str(self.fixture.run_dir), "--reason", reason)
+        self.assertEqual(self.fixture.state()["paused"], reason)
+        self.assertIn(reason, self.fixture.cli("next").stdout)
+        self.fixture.cli("resume", "--run-dir", str(self.fixture.run_dir))
+        self.fixture.cli("next")
+        for name, raw in retained.items():
+            self.assertEqual((self.fixture.run_dir / name).read_bytes(), raw)
+        self.assertEqual(environment_path.read_bytes(), frozen_environment)
+        self.assertEqual(self.fixture.planning("research")["research_state"], initial)
+        self.fixture.assert_cursor("validate-spec", "research-review")
+
+        self.fixture.run_iteration(
+            "research",
+            "R-MCP-BLOCKED",
+            material=False,
+            candidate_body=body,
+            research_state=blocked_state,
+        )
+        receipt = self.fixture.planning("research")
+        self.assertEqual(receipt["research_state"]["questions"][0]["status"], "blocked")
+        self.assertEqual(receipt["research_state"]["sources"][0]["authority"], "probe")
+        self.assertEqual(receipt["streak"], 0)
+        self.fixture.assert_cursor("validate-spec", "research-review")
+
+    def test_unaccepted_inbox_draft_survives_pause_without_becoming_a_candidate(self) -> None:
+        packet, _template = self._bootstrap_research()
+        _callback, inbox = self._exact_callback(packet)
+        action_id = self.fixture.state()["action"]["id"]
+        before = {
+            name: ((self.fixture.run_dir / name).read_bytes()
+                   if (self.fixture.run_dir / name).exists() else None)
+            for name in ("research.md", "research-evidence.md", "environment.md")
+        }
+        # Deliberately incomplete: no research_state. Pause must not parse/import it.
+        draft = {
+            "summary": "Unaccepted partial discovery draft; required work remains.",
+            "body": "# Partial research\nUsed 56 actions; eight reserved. Target access is unresolved.\n",
+        }
+        store.write_record(inbox, draft, title="Unaccepted discovery draft")
+        raw_draft = inbox.read_bytes()
+        reason = f"Unaccepted draft: {inbox}; eight reserved actions remain. Next gap: target access."
+        self.fixture.cli("pause", "--run-dir", str(self.fixture.run_dir), "--reason", reason)
+        paused_packet = self.fixture.cli("next").stdout
+        self.assertIn(str(inbox), paused_packet)
+        self.assertIn("Unaccepted draft", paused_packet)
+        self.fixture.cli("resume", "--run-dir", str(self.fixture.run_dir))
+        resumed = self._research_packet()
+        self.assertIn(action_id, resumed)
+        self.assertEqual(inbox.read_bytes(), raw_draft)
+        for name, raw in before.items():
+            path = self.fixture.run_dir / name
+            self.assertEqual(path.read_bytes() if path.exists() else None, raw)
+        self.fixture.assert_cursor("validate-spec", "research")
 
 
 if __name__ == "__main__":

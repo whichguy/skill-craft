@@ -114,10 +114,12 @@ complete [research rubric](../research-loop.md#review), retains stable question
 and source IDs, and treats changed conclusions/status/scope as material. See
 [Discovery and research](../behavioral-requirements.md#discovery-and-research).
 
-Research is not an excuse to create product files, mutate a destination, install
-tools, select a mandatory provider, or re-survey an already frozen environment.
-Use only authorized read-only evidence and non-mutating probes; do not record
-secrets. Research finalization is an as-of evidence certificate, not proof that
+Research does not authorize product changes, destination mutations, a mandatory
+provider, or re-surveying an already frozen environment. User-authorized
+temporary acquisition and isolated discovery experiments follow the shared
+[recursive discovery controls](../research-loop.md#recursive-discovery-and-experiments);
+only authorized disposable setup and test data may change. Do not record secrets.
+Research finalization is an as-of evidence certificate, not proof that
 sources remain live. A material discovery after freeze follows the explicit
 [later-discovery route](../research-loop.md#later-discoveries): revisit research
 before execution, handle it in the active Improve loop, map a future producer,

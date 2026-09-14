@@ -917,13 +917,14 @@ is assumed. See the [typed platform guide](references/platform-discovery.md).
 
 #### Beyond the gateway: bounded recursive discovery
 
-An MCP connection is an entrance to a system, not a complete model of it.
-For every task-relevant flow, research producers and incoming users/systems,
-consumers and outgoing effects, persisted state, data interchange and the
-security semantics at each boundary. Follow another gateway or downstream
-service when it could change the required behavior, implementation, tests or
-deployment. Reuse already-inspected nodes and record the evidence-backed stopping
-frontier; do not enumerate unrelated accounts or integrations for completeness.
+An MCP connection is an entrance to a system, not a complete model of it. The
+research loop screens each task-relevant flow for message passing, client
+connections, service authentication, design, client-side libraries, storage,
+caching, and security considerations. It follows another gateway or downstream
+service only when a consequential unknown could change behavior, reuse,
+implementation, tests, or delivery. Existing question/source/role/interface/
+interaction records retain the frontier and `depth_rationale`; no second
+inventory, schema, or scheduler is created.
 
 ```mermaid
 flowchart TD
@@ -936,35 +937,60 @@ flowchart TD
     F --> G[Plan and step-local consumers]
 ```
 
-Research reads the repository README, applicable existing AGENTS.md and relevant
-design, architecture, environment and local-skill references, including on a
-fresh-context rerun. It checks their claims against current facts. Existing notes
-are education, not proof of current access or working code. Stable conventions
-can later be linked from AGENTS.md; detailed design facts belong in the existing
-appropriate document. Planning/research does not mutate product documentation.
+Research reads the repository README, applicable AGENTS.md, and relevant design,
+architecture, environment, and local-skill references, then tests their current
+applicability. Existing notes are evidence, not proof of live access. Prefer an
+existing native facility, library, pattern, configuration, or small extension;
+replace it only when a comparison shows a substantial task-relevant improvement
+that outweighs compatibility, maintenance, operational, dependency, and security
+costs.
 
-If a system lacks a usable route, investigate existing connectors, official
-MCP candidates, APIs/CLIs/SDKs and authorized browser access. Record which gap a
-candidate addresses and its cost, trust, permissions and verification limits.
-An optional candidate is not required infrastructure. Adding an integration or
-granting access still requires specific authorization, and a browser is never a
-workaround for a blocked designated writer. The
-[MCP registry](https://modelcontextprotocol.io/registry/about) is a discovery aid;
-[MCP security guidance](https://modelcontextprotocol.io/docs/2026-07-28/tutorials/security/security_best_practices)
-explains why proxy/downstream boundaries need their own authorization analysis.
+If a consequential observation lacks a route, first compare existing readers.
+When the user's request or current task context authorizes discovery setup, the
+host may acquire the smallest temporary skill, MCP, SDK, or test dependency for a
+named gap without requesting that same authorization again. It verifies source and
+metadata before fetching, pins a version or commit where available, inspects and
+disables unnecessary install scripts, then records resolved integrity before
+execution. It also records task-local configuration, initialization/catalog,
+relevant invocation, effects, and cleanup. A catalog is not proof that no other
+authorized reader exists; a genuine permission/policy denial remains evidence.
+This never changes the selected frozen interface or single writer. Existing
+credential-chain refresh is ordinary use; login, scopes, accounts, terms, or
+privilege changes need authorization covering them. Disposable remote dev/test
+setup likewise needs authorization covering its account, resource type, and cost.
 
-For example (hypothetical), a gateway exposes a job-start operation which writes
-to a queue and later updates a record. Research must distinguish request accepted
-from job completed, identify the worker and record owner, and investigate duplicate
-delivery/permission semantics where relevant. A sandbox probe with a known fixture
-could settle whether retries duplicate effects. Its hypothesis, expected/actual
-result, observation date, permission, cleanup and plan consequence are recorded;
-an unavailable probe stays unknown. A tool response alone does not prove a later
-database write. No experiment or live integration is implied by this example.
+For a hypothetical example, a hosted client calls a service through a gateway.
+Research reads
+the supported client wrapper and service contract, then finds an unanswered
+question about whether a stale update is rejected. An authorized temporary reader
+is initialized and performs a relevant read; a disposable fixture sends a current
+and stale update. If the reader receives a real permission denial, or the fixture
+cannot be authorized, the report preserves that gap and does not switch writers
+or claim the deployed client works. If the stale update is rejected, the existing
+versioning pattern becomes a reuse candidate; it still needs a real-boundary test
+before delivery.
+
+The default allowance, unless the user supplies one, is 15 active minutes and 64
+observable host actions, with at most two capability candidates and three
+experiments; reserve two minutes and eight actions for reporting and cleanup.
+It is shared across readers, tools, environments, context resets, and the same
+investigation's review phase. The host checks its own counters and per-command
+timeouts; at the default bound, it stops launching exploration at 13 active
+minutes or 56 actions and uses the reserve only to close out. A command timeout
+must fit the remaining exploration allowance. It does not charge inactive user
+wait time and states a conservative measurement limit when needed. ShipLoop does
+not observe or kill native host tools, so this is not a script watchdog. Use the
+reserve to submit a valid current result with required gaps intact, then pause;
+if its duties cannot be completed, retain an explicitly unaccepted draft in the
+printed inbox and include its path and remaining allowance in the pause reason.
+The accepted candidate remains unchanged. The same existing pause command works
+for legacy and managed actions; do not fabricate a child outcome, auto-renew, or
+claim convergence. Known sufficient evidence can finish early. The shared
+reference defines checkpoint and resume details.
 
 These questions use the existing research evidence and two-trivial-pass loop,
 not another recursive scheduler. See
-[research-loop.md — recursive discovery: frontier and experiment contract](references/research-loop.md#recursive-discovery-and-experiments).
+[research-loop.md — recursive discovery: frontier, acquisition, experiments, and bounds](references/research-loop.md#recursive-discovery-and-experiments).
 
 At `sequence`, make a short forward draft, audit every prerequisite backward,
 add missing producers or leave facts unresolved, then validate the acyclic DAG.

@@ -120,58 +120,214 @@ anchors, not a mandate to install an MCP server or adopt an RPC design.
 
 ## Recursive discovery and experiments
 
+### Scope, coverage, and frontier
+
 Start with the task's affected flows, not a fixed number of hops. Read the repo
-README and existing applicable AGENTS.md, architecture/design/environment notes
+README and existing applicable AGENTS.md, architecture/design/environment notes,
 and local skills before rediscovering their subject. Record absence or stale
 claims explicitly. Recheck volatile facts; documentation is not live access proof.
+Use the existing `body`, questions, sources, role/interface/interaction records,
+and `depth_rationale`; do not add a recursive journal, schema, inventory, or
+sidecar.
 
-For each relevant system, including the world behind an MCP gateway, ask:
+Before deep source or library research, make one cheap authorized read that
+crosses the actual target boundary when it could settle access or target
+uncertainty. A listed tool, credential-status response, local binding error, or
+catalog does not establish account/project reachability. Do not create a target
+solely to claim discovery access.
 
-- Who produces input, invokes operations, consumes results or receives secondary
-  effects? Include people, jobs, services and external actors on both sides.
-- Where is state stored and who owns it? Trace data format/schema, source of
-  truth, lifecycle/retention, consistency and migration/compatibility boundaries.
-- What sequence, library/client convention, event or protocol connects actors?
-  Follow validation, async completion, retry/deduplication, partial failure and
-  recovery to the actual durable or user-visible effect.
-- Which identity and permissions apply at each hop? Distinguish tenant/account
-  roles, delegated authority, sensitive data crossing boundaries and auditability.
-  Upstream authentication does not prove downstream permission or safe isolation.
-- Does this system call another system or gateway whose contract could change
-  the required behavior, tests, deployment or chosen approach? Investigate that
-  boundary, using existing question parents/interaction links and source IDs.
+Screen every affected flow and every consequential newly encountered boundary for
+all eight areas below. Mark an area established, unresolved, or not applicable
+with its reason and evidence. The screen is task-scoped: it does not authorize an
+audit of every platform feature or private account.
 
-For each explored branch, give a stopping reason in `depth_rationale` and the
-report: the in-scope effect and important failure/security semantics are backed
-by inspected evidence, or an explicit open/blocked question names what is missing.
-Reuse already-inspected nodes when paths reconverge or cycle. Do not follow every
-unrelated integration or inspect private account contents simply to enumerate
-them. Reopen a branch when new evidence could materially change the plan. A
-bounded local function may need one trace; a multi-service write may need several
-trust and persistence boundaries. Complexity must match actual scope and risk.
+| Area | Ask enough to choose or reuse safely |
+| --- | --- |
+| Message passing | Producers, consumers, operation/event contract, serialization, ordering, retries, duplicates, cancellation, errors, and the durable or user-visible effect. |
+| Client connections | How a client reaches the actual callable boundary, including transport/session lifecycle, cleanup, and reconnect/offline behavior when relevant. |
+| Service authentication | Discovery and runtime identities, delegation, credential-chain/refresh behavior, effective permissions, audience/scope, and proof limits without recording secrets. |
+| Design | Existing architecture, ownership, state flow, code conventions, and relevant UI loading, error, accessibility, and interaction patterns. |
+| Client-side libraries | Shipped dependencies and versions, initialization/wrappers, compatibility limits, and supported use before adding another dependency. |
+| Storage | Source of truth, schema/access path, ownership, authorization, transaction/concurrency, failure, retention, and migration boundaries. |
+| Caching | Relevant cache layers, scope/keys/TTL/invalidation, read-after-write and failure behavior, and separation from authoritative state. |
+| Security considerations | Trust and tenant boundaries, input/output handling, authorization, transport/data protection, logging/secret exposure, and dependency provenance. |
 
-If observation is inaccessible, compare available MCP/API/CLI/SDK/browser routes
-using [platform discovery](platform-discovery.md#discover-before-choosing-a-mechanism).
-No route found is a recorded gap, not evidence that the system has no behavior.
+For each relevant system, including the system behind an MCP gateway, identify the
+actors, state owner, invocation convention, identities, permissions, and
+downstream effects that could change implementation, tests, deployment, or reuse.
+When a consequential unknown exposes another system or boundary, add its
+unanswered contract to the same existing question frontier with parent/source and
+interaction links. Reuse visited identities and sources when paths reconverge or
+cycle. Reopen a branch only when changed or conflicting evidence could materially
+change the plan; do not traverse unrelated integrations merely to be exhaustive.
 
-Use a small experiment when it can settle a consequential uncertainty better
-than more reading. Before running, name the question/hypothesis, independent
-expected outcomes, what result would change the plan, permitted target/role,
-isolated fixture, effects, limits and cleanup/recovery. Prefer non-mutating
-inspection, then a bounded authorized sandbox probe. Never test on production
-because it is the only available target. Capture actual positive/negative/unknown
-outcomes, access/observation date, version and limitations as existing `probe`
-sources; do not record secrets or treat a planned experiment as evidence.
-Stop on unexpected effects or missing authority. A material finding goes back
-through the existing review/plan/apply loop and resets convergence.
+Every explored branch needs a stopping reason in `depth_rationale` and the
+existing report: the in-scope effect and relevant failure/security semantics are
+supported, the branch is out of scope, it reconverges on inspected evidence, or an
+explicit open/blocked question names the missing authorized route. A local call may
+need one trace; a multi-service write can need several trust and persistence
+boundaries. No route found is a recorded gap, not evidence that the system has no
+behavior.
 
-Repeat consequential investigation in each research review: seek an overlooked
-actor, downstream effect, conflicting source or disproving experiment. An unchanged
-blocker stays open, while two fully checked trivial passes can finish only with
-no required unresolved questions. No recursive sub-loop, new journal or numeric
-depth quota is needed. Carry durable reusable conclusions to the existing plan,
-knowledge/outer-work records and scoped product documentation tasks; never write
-product docs during a research-only action or hand-edit frozen environment state.
+### Acquire a reader and establish access only when authorized
+
+If a consequential observation is unavailable, compare existing MCP/API/CLI/SDK/
+browser routes using [platform discovery](platform-discovery.md#discover-before-choosing-a-mechanism).
+Prefer an existing authorized tool or native facility. A missing skill, MCP
+server, SDK, client, or test environment is a setup question before it becomes a
+final access blocker, but acquire one only for a named gap that could change
+discovery, reuse, implementation, or verification.
+
+When the user's request or current task context authorizes discovery setup, that
+authorization covers a reversible, task-local acquisition in the stated account,
+resource, cost, and change scope; do not ask again for the same bounded setup.
+Before acquisition,
+verify the publisher/source and package metadata, select a resolved version or
+commit where available, and inspect install scripts and requested permissions.
+Never execute an unexamined floating installer; disable unnecessary install
+scripts. After fetching but before execution, record and verify the resolved
+bytes' hash or package integrity and relevant support/compatibility evidence. Use
+a task-owned temporary workspace, dependency store, cache, and configuration;
+avoid global installation and unrelated host or repository changes. A skill
+supplies guidance, not credentials or implicit tool access.
+
+For an MCP server, inspect its startup requirements and relevant schemas, then
+initialize, catalog, and invoke one task-relevant operation through a supported
+host connection or temporary protocol client. Record whether it is a native host
+tool or a client-invoked process. An initial catalog is not a ceiling: another
+supported existing or newly acquired reader may be used within the same authorized
+account/data scope and grant. Preserve an actual permission, policy, or target
+denial as evidence; do not route around it. Readers and validators may differ
+from the selected writer, but acquisition never changes the frozen selected
+interface, writer, or inventory and never licenses a second mutation mechanism.
+
+Reuse ordinary credential chains and refresh under an existing grant. Starting a
+login, selecting a new account, granting scopes, accepting terms, copying secrets,
+or broadening privileges needs authorization covering that change; do not ask
+again when it is already granted. Distinguish a package/tool being ready from an
+identity being authenticated, an operation being authorized, the intended target
+being selected, and target behavior being observed.
+
+Prefer an existing authorized sandbox, then a temporary project, official sample
+or test harness, emulator, or local service. Provision a disposable remote dev/
+test resource only when the user's authorization covers that account and resource
+type, its cost/quota and isolation, and cleanup. A temporary name does not make a
+production operation safe. Record acquired artifacts, non-secret command/config
+references, observed capabilities/effects, unresolved access, and task-owned
+process/resource cleanup in the existing authored Markdown.
+
+### Run bounded, discriminating experiments
+
+Use an experiment when it settles a consequential uncertainty better than another
+read. Before each experiment, record in the existing question/source/role/
+interface/interaction and report material: its hypothesis; plausible outcomes and
+the observation that distinguishes them; inspected existing mechanism; source,
+configuration, target, and identity; allowed effects; time/attempt limit; cleanup;
+and how each outcome changes the plan or reuse decision. Prefer non-mutating
+inspection, then an authorized isolated fixture. Stop on unexpected effects or
+missing authority; never use production merely because it is the only target.
+
+Select only the experiments needed from this ladder:
+
+- **Access setup:** acquire/configure a reader, initialize/catalog it, and make
+  one authorized relevant read; distinguish package, startup, identity,
+  permission, target, and data-access failures.
+- **Client/server contract:** exercise supported valid and invalid calls to learn
+  serialization, callbacks/errors, ordering, and completion; a local RPC mock
+  proves only its adapter.
+- **Library and design compatibility:** run representative existing code or an
+  official example under the actual framework or a clearly labeled local harness.
+- **State and concurrency:** compare valid, stale, repeated, or concurrent
+  disposable operations to learn ownership, isolation, transaction/version, and
+  idempotency behavior.
+- **Caching and failure recovery:** compare hit/miss, read-after-write, expiry,
+  and a bounded safe failure without equating a cache with durable state.
+- **Authorization and exposure:** use approved test identities or harmless local
+  fixtures for a relevant allow/deny, input/output, or tenant-scope boundary.
+- **Reuse comparison:** compare an existing facility and the smallest extension
+  under equivalent inputs and a predeclared correctness, UX, reliability, cost,
+  or security criterion.
+
+Record actual positive, negative, or unresolved outcomes, source versions,
+artifacts, and cleanup. Label fidelity precisely: source-only inference, local
+mock, actual framework test, actual service read, deployed endpoint, or
+intended-user test. A successful local test cannot become a claim about a
+deployed endpoint or user behavior. A material result re-enters the existing
+review/plan/apply loop and resets convergence.
+
+### Reuse before a new mechanism
+
+For each implementation choice, inspect the current mechanism, configuration,
+platform/native capability, shared code, library/version, and representative
+supported use. Prefer **reuse**, then **configure**, then the smallest compatible
+**extension**. Record the requirement met, applicable evidence, and material
+limits. Do not duplicate an existing cache, authentication flow, transport
+wrapper, storage abstraction, or design component merely because it is easier to
+demonstrate a new one.
+
+Use **replace/new proposal** only when evidence shows that the best applicable
+existing option has a concrete task-relevant defect or unmet requirement and the
+change brings a substantial improvement in correctness, security, user
+experience, reliability, maintainability, performance, or cost. Compare
+equivalent conditions when measured; otherwise give a concrete causal explanation.
+Account for the smallest change, migration/compatibility, maintenance,
+operational, dependency, and security costs. If the improvement is unproven or
+access is missing, keep the suitable existing option as the default and defer the
+alternative or frame it as a bounded experiment.
+Do not copy an evidenced obsolete, insecure, or incompatible mechanism unchanged.
+
+### Budget, stopping, and convergence
+
+Use a user-supplied exploration allowance when present. Otherwise, one
+investigation has at most 15 active minutes and 64 observable host actions, up to
+two capability candidates and three experiments. Reserve two active minutes and
+eight actions for reconciling findings, writing the result, and cleanup. The
+allowance is shared across every reader, tool, environment, context reset, and
+same-investigation review phase; opening a new tool or environment never refills
+it. Known sufficient evidence may finish without using the allowance.
+
+The host must check elapsed active work, observable-action counters, remaining
+capacity, and a per-command timeout before starting work. At the default bound,
+once 13 active minutes or 56 observable actions have been used, stop launching
+exploration and use the reserve only for reconciliation, writing, and cleanup.
+Set each exploration command's timeout within the remaining exploration allowance,
+not merely the full deadline. Do not charge inactive time waiting for the user as
+investigation activity. If the host cannot measure a counter honestly, state that
+limitation in the existing Markdown and use the available conservative bound.
+ShipLoop does not observe native host tools or kill them; this guidance is not a
+claim of a script watchdog.
+
+Record the investigation scope, start, elapsed active work, observed counters,
+remaining allowance, conclusions, and best next gap in the existing authored
+Markdown. Use the closing reserve to checkpoint before pausing:
+
+- If the current action's duties can be completed honestly within the reserve,
+  submit its valid result through the exact callback, retaining open/blocked
+  questions and budget accounting, then pause at the returned packet. Do not
+  submit an incomplete review or manufacture passing checks merely to checkpoint.
+- Otherwise, write the partial result to the current packet's existing inbox
+  path. Pause with a non-secret reason that includes that path, labels it an
+  **unaccepted draft**, and records the remaining allowance and next gap. The
+  accepted candidate remains unchanged. If the draft could not be written, say
+  what was not retained; do not claim the discoveries were checkpointed.
+
+Use the existing `pause` command for either a legacy or managed action. The
+managed bridge owns its unfinished child status; do not invent a `stopped` result
+or edit child state. `halt` is for deliberately ending the run unfinished, not the
+default resumable budget checkpoint. On a later authorized resume, read the
+recorded draft and accepted candidate, finish the current action's duties, and
+use its current callback. Resuming does not replenish the exploration allowance.
+At the allowance/deadline, do not autonomously renew, restart, or claim convergence.
+An exhausted budget, failed probe, or repeated action never counts as a trivial
+pass.
+
+During each research review, challenge the most consequential conclusion with a
+feasible independent source, counterexample, or safe probe; otherwise record that
+limit. Unchanged blockers remain open. Two fully checked trivial passes can finish
+only with no required unresolved questions. Carry durable reusable conclusions to
+the existing plan, knowledge/outer-work records, and scoped product documentation
+tasks; never hand-edit frozen environment state or create a second investigation
+engine.
 
 ## Decision boundaries
 
@@ -285,9 +441,13 @@ fixes before the checks. A repeated action, failed probe, exhausted budget or
 iteration cap never counts as another successful pass.
 
 Keep secret values, credential-bearing URLs, account addresses and raw sensitive
-responses out of reports, results and logs. Research does not authorize installing
-tools, changing credentials/configuration, running destructive experiments or
-publishing. Missing user policy is not resolvable by additional web citations.
+responses out of reports, results and logs. Research does not authorize a new
+credential grant, persistent configuration, destructive experiment, or
+publication. When the user's request or task context authorizes bounded discovery
+setup, a temporary task-local investigation reader, SDK, skill, or test dependency
+may be acquired under the recursive-discovery rules; that does not alter the frozen
+selected writer or interface inventory. Missing user policy is not resolvable by
+additional web citations.
 
 ## Later discoveries
 

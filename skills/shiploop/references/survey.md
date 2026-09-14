@@ -85,7 +85,12 @@ Record evidence for:
   mcp_considered token. A selected but unavailable platform writer may appear
   by name solely to bind its `exclusive`/`platform_discovery` record, with
   explicit `blocked` status and prose; inventory presence never means usable.
-  Unselected unauthenticated or deferred alternatives stay in prose;
+  Unselected unauthenticated or deferred alternatives stay in prose. When a
+  task-authorized temporary reader, SDK, skill, or test dependency is needed for
+  a named gap during survey, retain its provenance, version/integrity, local
+  scope, setup/observation result, and available budget in survey prose. Do not
+  require future research state while the survey is active; later research can
+  cite the same evidence. It does not become a selected inventory route or writer;
 - non-secret handles and initiation facts. Record an expected account role and
   a documented non-mutating probe, never an account address, credential value,
   or secret ID. An observation may say when it was observed, but that does not
@@ -115,9 +120,10 @@ Research turns these surveyed constraints into a bounded question/source
 candidate. It uses the paired `research.md` and `research-evidence.md` records
 under the research loop, not an untyped extension of `environment.md`. See the
 [research draft schema](research-loop.md#draft) and
-[evidence/freshness boundary](research-loop.md#evidence-and-freshness). Survey
-does not require a research provider or new tool, and its safe observations never
-authorize externally mutating probes.
+[evidence/freshness boundary](research-loop.md#evidence-and-freshness), including
+[recursive discovery and experiments](research-loop.md#recursive-discovery-and-experiments).
+Survey does not require a research provider or new tool, and its safe observations
+never authorize externally mutating probes.
 
 For new versioned runs, research may link the frozen survey interface identity
 as `{platform_id, name}` and add bounded roles, interactions, question parents,
@@ -218,6 +224,8 @@ changed survey fact uses `revisit --to survey` instead. The execution
 `carry-forward` checkpoint may record a current non-secret overlay, but it is
 not authority to rebase this approved historical survey contract. `context
 environment` presents the unchanged baseline alongside the labeled overlay.
+An authorized temporary investigation reader can add source/probe evidence under
+the research loop without changing the frozen selected inventory or writer.
 Pause for missing authority or use the mandatory post-inner obligation mapping
 and a validated pending-only correction. Never put secrets, live delivery URLs,
 session hashes, raw logs, or generic ShipLoop proposals in product docs. See
