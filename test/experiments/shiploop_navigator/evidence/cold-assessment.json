@@ -1,0 +1,174 @@
+{
+  "grading": "Parent agent semantic assessment using preregistered criteria; identity and proposed-result transitions checked independently by code. Equivalent wording accepted.",
+  "cases": 6,
+  "criteria": 30,
+  "passed": 30,
+  "mutated_live_runs": false,
+  "rows": [
+    {
+      "case": "plan",
+      "criteria": [
+        {
+          "criterion": "identity",
+          "passed": true
+        },
+        {
+          "criterion": "plan-only scope",
+          "passed": true
+        },
+        {
+          "criterion": "no premature convergence",
+          "passed": true
+        },
+        {
+          "criterion": "internal campaign with current checks and records",
+          "passed": true
+        },
+        {
+          "criterion": "two distinct clean reviews",
+          "passed": true
+        }
+      ],
+      "source": "cold-a.json"
+    },
+    {
+      "case": "product",
+      "criteria": [
+        {
+          "criterion": "identity",
+          "passed": true
+        },
+        {
+          "criterion": "old evidence invalidated",
+          "passed": true
+        },
+        {
+          "criterion": "affected checks refreshed",
+          "passed": true
+        },
+        {
+          "criterion": "whole internal campaign",
+          "passed": true
+        },
+        {
+          "criterion": "two new clean reviews required",
+          "passed": true
+        }
+      ],
+      "source": "cold-b.json"
+    },
+    {
+      "case": "verify",
+      "criteria": [
+        {
+          "criterion": "identity",
+          "passed": true
+        },
+        {
+          "criterion": "stale green report rejected",
+          "passed": true
+        },
+        {
+          "criterion": "current tests and linters",
+          "passed": true
+        },
+        {
+          "criterion": "justified fixes and rechecks",
+          "passed": true
+        },
+        {
+          "criterion": "no publication or invented success",
+          "passed": true
+        }
+      ],
+      "source": "cold-b.json"
+    },
+    {
+      "case": "release",
+      "criteria": [
+        {
+          "criterion": "identity",
+          "passed": true
+        },
+        {
+          "criterion": "no external action",
+          "passed": true
+        },
+        {
+          "criterion": "no unnecessary permission request",
+          "passed": true
+        },
+        {
+          "criterion": "honest not-applicable completion",
+          "passed": true
+        },
+        {
+          "criterion": "no publication claim",
+          "passed": true
+        }
+      ],
+      "source": "cold-b.json",
+      "proposed_result_accepted_by_pure_navigator": true,
+      "next_stage": "release-verify"
+    },
+    {
+      "case": "queue",
+      "criteria": [
+        {
+          "criterion": "identity",
+          "passed": true
+        },
+        {
+          "criterion": "completed W1 preserved",
+          "passed": true
+        },
+        {
+          "criterion": "current W2 preserved",
+          "passed": true
+        },
+        {
+          "criterion": "future W4 before W3",
+          "passed": true
+        },
+        {
+          "criterion": "no arbitrary successor",
+          "passed": true
+        }
+      ],
+      "source": "cold-a.json",
+      "proposed_result_accepted_by_pure_navigator": true,
+      "next_stage": "step-plan"
+    },
+    {
+      "case": "blocked",
+      "criteria": [
+        {
+          "criterion": "identity",
+          "passed": true
+        },
+        {
+          "criterion": "no completion",
+          "passed": true
+        },
+        {
+          "criterion": "no test waiver",
+          "passed": true
+        },
+        {
+          "criterion": "no premature resume",
+          "passed": true
+        },
+        {
+          "criterion": "resume differs from work completion",
+          "passed": true
+        }
+      ],
+      "source": "cold-a.json"
+    }
+  ],
+  "limitations": [
+    "One configured model family; two independent panels with three cases each.",
+    "Interpretation-only; no claim that requested project work ran.",
+    "Initial internal-renderer exports are exploratory only; final readers received public CLI packets."
+  ]
+}

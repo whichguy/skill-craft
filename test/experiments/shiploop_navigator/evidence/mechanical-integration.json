@@ -1,0 +1,50 @@
+{
+  "integration_base": "8ed4bee062c008f346b6e79249afd0f39a9ca40a",
+  "generated_at_utc": "2026-09-14T20:10:53.838158+00:00",
+  "overall_status": "passed",
+  "configuration": {
+    "elapsed_seconds": 8.824,
+    "master_seed": 20260914,
+    "race_count_each_requested": 5,
+    "reproduce_command": "python3 test/experiments/shiploop_navigator/mechanical.py --output test/experiments/shiploop_navigator/results/mechanical.json --seed 20260914 --walks 100 --race-count 5 --timeout-seconds 60",
+    "timeout_seconds": 60.0,
+    "walks_requested": 100
+  },
+  "source": {
+    "cli": "<SOURCE_CHECKOUT>/skills/shiploop/scripts/shiploop",
+    "navigator": "<SOURCE_CHECKOUT>/skills/shiploop/scripts/shiploop_navigator.py",
+    "navigator_reference": "<SOURCE_CHECKOUT>/skills/shiploop/references/navigator.md",
+    "navigator_reference_sha256": "d263667e18da001fa392a0bdb2dc9d0421a286dd86e277665cbef6f7755e3d28",
+    "navigator_sha256": "2b4a10403aa1632faf3d993008c56f0ea1d86f023881cb0e626fefaaeb00395d",
+    "repo_root": "<SOURCE_CHECKOUT>"
+  },
+  "walks_completed": 100,
+  "walks_failed": 0,
+  "counts": {
+    "blocked_resume": 615,
+    "carry_forward_queue_replacements": 63,
+    "conflicting_rejections": 4513,
+    "illegal_attempts": 581,
+    "illegal_forged-route": 193,
+    "illegal_illegal-resume": 204,
+    "illegal_wrong-action": 184,
+    "ordinary_done": 3921,
+    "pause_resume": 642,
+    "plan_improve_queue_replacements": 66,
+    "plan_queue_replacements": 100,
+    "repeat": 592,
+    "semantic_replays": 4513,
+    "terminal_rejections": 200,
+    "work_queue_assertions": 11148
+  },
+  "cli_counts": {
+    "conflicting_races_passed": 5,
+    "conflicting_races_requested": 5,
+    "duplicate_races_passed": 5,
+    "duplicate_races_requested": 5,
+    "two_process_races_completed": 10
+  },
+  "cli_status": "passed",
+  "failures": [],
+  "note": "Compact rerun evidence after main gained discovery-policy rendering. Original live-agent trials remain tied to1e81cda; they were not rerun against these new prompts."
+}

@@ -1,0 +1,147 @@
+{
+  "source_commit": "1e81cdafb4d8bb316f2d9e258419921e889e0949",
+  "date": "2026-09-14",
+  "grading": "Fixed oracle; initial adjacency mismatches reflect acknowledged task ambiguity, not established defects. Final candidate and durable state independently inspected by parent. Review-cycle execution is recorded by workers, not externally observed cognition.",
+  "trials": [
+    {
+      "round": "initial",
+      "workflow": "improve",
+      "baseline": "5f980697b361af6cd4bcad7c438aee773771b916",
+      "head": "048f2e5f84f4b147b97c7826b6fff8a38e12db3d",
+      "checks": 210,
+      "passed": 188,
+      "mismatches": 22,
+      "mismatch_cases": [
+        "grid_union_007",
+        "grid_union_026",
+        "grid_union_034",
+        "grid_union_038",
+        "grid_union_040",
+        "grid_union_047",
+        "grid_union_058",
+        "grid_union_065",
+        "grid_union_084",
+        "grid_union_091",
+        "grid_union_098",
+        "grid_union_104",
+        "grid_union_121",
+        "grid_union_143",
+        "grid_union_146",
+        "grid_union_167",
+        "grid_union_174",
+        "grid_union_189",
+        "grid_union_192",
+        "grid_union_193",
+        "grid_union_198",
+        "grid_union_199"
+      ],
+      "spec_unchanged": true,
+      "changed_files": [
+        "PLAN.md",
+        "ranges.py",
+        "test_ranges.py"
+      ],
+      "final_worktree_clean": true,
+      "action": "nav-059566cfe87542668b2f4e5c6008665e",
+      "accepted_action_records": 1,
+      "next_stage": "integrate",
+      "next_status": "active",
+      "nested_until_state_found": false,
+      "independent_review_timing": "first repaired six-test candidate; final test addition and two clean passes self-reviewed"
+    },
+    {
+      "round": "initial",
+      "workflow": "control",
+      "baseline": "2c1e1448a19e85420b181f268e536cc184f7d4cb",
+      "head": "271a99c072a227eb61715bef3921fa76f6efd8b9",
+      "checks": 210,
+      "passed": 188,
+      "mismatches": 22,
+      "mismatch_cases": [
+        "grid_union_007",
+        "grid_union_026",
+        "grid_union_034",
+        "grid_union_038",
+        "grid_union_040",
+        "grid_union_047",
+        "grid_union_058",
+        "grid_union_065",
+        "grid_union_084",
+        "grid_union_091",
+        "grid_union_098",
+        "grid_union_104",
+        "grid_union_121",
+        "grid_union_143",
+        "grid_union_146",
+        "grid_union_167",
+        "grid_union_174",
+        "grid_union_189",
+        "grid_union_192",
+        "grid_union_193",
+        "grid_union_198",
+        "grid_union_199"
+      ],
+      "spec_unchanged": true,
+      "changed_files": [
+        "EXPERIMENT.md",
+        "PLAN.md",
+        "ranges.py",
+        "test_ranges.py"
+      ],
+      "final_worktree_clean": true
+    },
+    {
+      "round": "explicit",
+      "workflow": "improve",
+      "baseline": "c0b69050cdddbc89b3b1843bde1de15df8c1b7e1",
+      "head": "530948fee5941d243a19caf0ce2028584e7e93e1",
+      "checks": 210,
+      "passed": 210,
+      "mismatches": 0,
+      "mismatch_cases": [],
+      "spec_unchanged": true,
+      "changed_files": [
+        "PLAN.md",
+        "ranges.py",
+        "test_ranges.py"
+      ],
+      "final_worktree_clean": true,
+      "action": "nav-f8a43c5cedbd48df8991e3ccc29d29ea",
+      "accepted_action_records": 1,
+      "next_stage": "integrate",
+      "next_status": "active",
+      "nested_until_state_found": false,
+      "independent_review_timing": "baseline only; final candidate and two clean passes self-reviewed"
+    },
+    {
+      "round": "explicit",
+      "workflow": "control",
+      "baseline": "c0b69050cdddbc89b3b1843bde1de15df8c1b7e1",
+      "head": "5feb37d04870bbd31ddc61c08456d61e4a07026d",
+      "checks": 210,
+      "passed": 210,
+      "mismatches": 0,
+      "mismatch_cases": [],
+      "spec_unchanged": true,
+      "changed_files": [
+        "EXPERIMENT.md",
+        "PLAN.md",
+        "ranges.py",
+        "test_ranges.py"
+      ],
+      "final_worktree_clean": true
+    }
+  ],
+  "improve-before": {
+    "seed": 9142026,
+    "checks": 210,
+    "passed": 57,
+    "failed": 153
+  },
+  "oracle-calibration": {
+    "seed": 9142026,
+    "checks": 210,
+    "passed": 210,
+    "failed": 0
+  }
+}

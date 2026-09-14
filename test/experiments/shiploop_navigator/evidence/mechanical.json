@@ -1,0 +1,548 @@
+{
+  "configuration": {
+    "elapsed_seconds": 5.903,
+    "master_seed": 20260914,
+    "race_count_each_requested": 5,
+    "reproduce_command": "python3 test/experiments/shiploop_navigator/mechanical.py --output test/experiments/shiploop_navigator/results/mechanical.json --seed 20260914 --walks 100 --race-count 5 --timeout-seconds 60",
+    "timeout_seconds": 60.0,
+    "walks_requested": 100
+  },
+  "experiments": {
+    "generated_model_walks": {
+      "counts": {
+        "blocked_resume": 615,
+        "carry_forward_queue_replacements": 63,
+        "conflicting_rejections": 4513,
+        "illegal_attempts": 581,
+        "illegal_forged-route": 193,
+        "illegal_illegal-resume": 204,
+        "illegal_wrong-action": 184,
+        "ordinary_done": 3921,
+        "pause_resume": 642,
+        "plan_improve_queue_replacements": 66,
+        "plan_queue_replacements": 100,
+        "repeat": 592,
+        "semantic_replays": 4513,
+        "terminal_rejections": 200,
+        "work_queue_assertions": 11148
+      },
+      "coverage": {
+        "blocked_resume": 615,
+        "carry_forward_queue_replacements": 63,
+        "conflict_rejections": 4513,
+        "illegal_rejections": 581,
+        "pause_resume": 642,
+        "queue_preservation_assertions": 11148,
+        "repeat_identity_renewal": 592,
+        "semantic_replay": 4513,
+        "terminal_rejections": 200
+      },
+      "failures": [],
+      "master_seed": 20260914,
+      "status": "passed",
+      "walk_seed_derivation": "random.Random(master_seed).getrandbits(64), ascending walk order",
+      "walk_summary_samples": [
+        {
+          "completed_work_items": [
+            "W1",
+            "F0_1",
+            "F0_2"
+          ],
+          "cursor_steps": 46,
+          "final_work_items": [
+            "W1",
+            "F0_1",
+            "F0_2"
+          ],
+          "history_entries": 63,
+          "noise_counts": {
+            "blocked_resume": 10,
+            "carry_forward_queue_replacements": 1,
+            "conflicting_rejections": 53,
+            "illegal_attempts": 6,
+            "illegal_forged-route": 3,
+            "illegal_illegal-resume": 3,
+            "ordinary_done": 46,
+            "pause_resume": 6,
+            "plan_queue_replacements": 1,
+            "repeat": 7,
+            "semantic_replays": 53,
+            "terminal_rejections": 2,
+            "work_queue_assertions": 133
+          },
+          "seed": 13607621182037154280,
+          "skill_edges": {
+            "with_skill": 1,
+            "without_skill": 2
+          },
+          "walk": 0
+        },
+        {
+          "completed_work_items": [
+            "W1",
+            "W2"
+          ],
+          "cursor_steps": 36,
+          "final_work_items": [
+            "W1",
+            "W2"
+          ],
+          "history_entries": 46,
+          "noise_counts": {
+            "blocked_resume": 4,
+            "conflicting_rejections": 42,
+            "illegal_attempts": 6,
+            "illegal_forged-route": 2,
+            "illegal_illegal-resume": 3,
+            "illegal_wrong-action": 1,
+            "ordinary_done": 36,
+            "pause_resume": 6,
+            "plan_improve_queue_replacements": 1,
+            "plan_queue_replacements": 1,
+            "repeat": 6,
+            "semantic_replays": 42,
+            "terminal_rejections": 2,
+            "work_queue_assertions": 100
+          },
+          "seed": 8645552333799421839,
+          "skill_edges": {
+            "with_skill": 1,
+            "without_skill": 1
+          },
+          "walk": 1
+        },
+        {
+          "completed_work_items": [
+            "W1",
+            "F2_1",
+            "F2_2"
+          ],
+          "cursor_steps": 47,
+          "final_work_items": [
+            "W1",
+            "F2_1",
+            "F2_2"
+          ],
+          "history_entries": 56,
+          "noise_counts": {
+            "blocked_resume": 6,
+            "carry_forward_queue_replacements": 1,
+            "conflicting_rejections": 50,
+            "illegal_attempts": 5,
+            "illegal_forged-route": 2,
+            "illegal_illegal-resume": 1,
+            "illegal_wrong-action": 2,
+            "ordinary_done": 47,
+            "pause_resume": 8,
+            "plan_improve_queue_replacements": 1,
+            "plan_queue_replacements": 1,
+            "repeat": 3,
+            "semantic_replays": 50,
+            "terminal_rejections": 2,
+            "work_queue_assertions": 127
+          },
+          "seed": 6358606493688025936,
+          "skill_edges": {
+            "with_skill": 2,
+            "without_skill": 1
+          },
+          "walk": 2
+        },
+        {
+          "completed_work_items": [
+            "W1",
+            "F99_1"
+          ],
+          "cursor_steps": 36,
+          "final_work_items": [
+            "W1",
+            "F99_1"
+          ],
+          "history_entries": 45,
+          "noise_counts": {
+            "blocked_resume": 4,
+            "carry_forward_queue_replacements": 1,
+            "conflicting_rejections": 41,
+            "illegal_attempts": 5,
+            "illegal_forged-route": 2,
+            "illegal_illegal-resume": 2,
+            "illegal_wrong-action": 1,
+            "ordinary_done": 36,
+            "pause_resume": 7,
+            "plan_improve_queue_replacements": 1,
+            "plan_queue_replacements": 1,
+            "repeat": 5,
+            "semantic_replays": 41,
+            "terminal_rejections": 2,
+            "work_queue_assertions": 101
+          },
+          "seed": 6867789578631967645,
+          "skill_edges": {
+            "with_skill": 1,
+            "without_skill": 1
+          },
+          "walk": 99
+        }
+      ],
+      "walks_completed": 100,
+      "walks_failed": 0,
+      "walks_requested": 100
+    },
+    "real_cli_processes": {
+      "base_cold_next_original_completion_and_replay": {
+        "accepted_transitions": 1,
+        "init": {
+          "init_stdout_bytes": 4283,
+          "prompt_bytes": 62
+        },
+        "later_cold_stage": "discovery",
+        "original_completion_returncode": 0,
+        "replay_returncode": 0,
+        "status": "passed",
+        "temporary_repo_entries": []
+      },
+      "counts": {
+        "conflicting_races_passed": 5,
+        "conflicting_races_requested": 5,
+        "duplicate_races_passed": 5,
+        "duplicate_races_requested": 5,
+        "two_process_races_completed": 10
+      },
+      "failures": [],
+      "lock_note": "The CLI's blocking fcntl.flock lock is exercised with two real subprocesses. The first is held while printing its padded post-save packet; an unexpected duplicate contender error gets one serialized post-winner replay attempt and remains a failure.",
+      "race_order": [
+        "duplicate",
+        "conflict",
+        "duplicate",
+        "duplicate",
+        "conflict",
+        "conflict",
+        "duplicate",
+        "conflict",
+        "duplicate",
+        "conflict"
+      ],
+      "race_seed": 20279845,
+      "races": [
+        {
+          "accepted_transitions": 1,
+          "first_process": {
+            "returncode": 0,
+            "stderr": "",
+            "stdout_bytes": 201443
+          },
+          "init": {
+            "init_stdout_bytes": 200892,
+            "prompt_bytes": 196671
+          },
+          "kind": "duplicate",
+          "later_cold_stage": "discovery",
+          "lock_window_observed": true,
+          "number": 1,
+          "second_process": {
+            "returncode": 0,
+            "stderr": "",
+            "stdout_bytes": 201443
+          },
+          "status": "passed",
+          "temporary_repo_entries": []
+        },
+        {
+          "accepted_transitions": 1,
+          "first_process": {
+            "returncode": 0,
+            "stderr": "",
+            "stdout_bytes": 201430
+          },
+          "init": {
+            "init_stdout_bytes": 200881,
+            "prompt_bytes": 196670
+          },
+          "kind": "conflict",
+          "later_cold_stage": "discovery",
+          "lock_window_observed": true,
+          "number": 1,
+          "post_winner_replay_or_retry": {
+            "returncode": 0,
+            "stderr": ""
+          },
+          "second_process": {
+            "returncode": 2,
+            "stderr": "ShipLoop navigator: conflicting result replay for accepted navigator action\nRead the current packet with next; the rejected request did not advance the graph.",
+            "stdout_bytes": 0
+          },
+          "status": "passed",
+          "temporary_repo_entries": []
+        },
+        {
+          "accepted_transitions": 1,
+          "first_process": {
+            "returncode": 0,
+            "stderr": "",
+            "stdout_bytes": 201443
+          },
+          "init": {
+            "init_stdout_bytes": 200892,
+            "prompt_bytes": 196671
+          },
+          "kind": "duplicate",
+          "later_cold_stage": "discovery",
+          "lock_window_observed": true,
+          "number": 2,
+          "second_process": {
+            "returncode": 0,
+            "stderr": "",
+            "stdout_bytes": 201443
+          },
+          "status": "passed",
+          "temporary_repo_entries": []
+        },
+        {
+          "accepted_transitions": 1,
+          "first_process": {
+            "returncode": 0,
+            "stderr": "",
+            "stdout_bytes": 201443
+          },
+          "init": {
+            "init_stdout_bytes": 200892,
+            "prompt_bytes": 196671
+          },
+          "kind": "duplicate",
+          "later_cold_stage": "discovery",
+          "lock_window_observed": true,
+          "number": 3,
+          "second_process": {
+            "returncode": 0,
+            "stderr": "",
+            "stdout_bytes": 201443
+          },
+          "status": "passed",
+          "temporary_repo_entries": []
+        },
+        {
+          "accepted_transitions": 1,
+          "first_process": {
+            "returncode": 0,
+            "stderr": "",
+            "stdout_bytes": 201430
+          },
+          "init": {
+            "init_stdout_bytes": 200881,
+            "prompt_bytes": 196670
+          },
+          "kind": "conflict",
+          "later_cold_stage": "discovery",
+          "lock_window_observed": true,
+          "number": 2,
+          "post_winner_replay_or_retry": {
+            "returncode": 0,
+            "stderr": ""
+          },
+          "second_process": {
+            "returncode": 2,
+            "stderr": "ShipLoop navigator: conflicting result replay for accepted navigator action\nRead the current packet with next; the rejected request did not advance the graph.",
+            "stdout_bytes": 0
+          },
+          "status": "passed",
+          "temporary_repo_entries": []
+        },
+        {
+          "accepted_transitions": 1,
+          "first_process": {
+            "returncode": 0,
+            "stderr": "",
+            "stdout_bytes": 201430
+          },
+          "init": {
+            "init_stdout_bytes": 200881,
+            "prompt_bytes": 196670
+          },
+          "kind": "conflict",
+          "later_cold_stage": "discovery",
+          "lock_window_observed": true,
+          "number": 3,
+          "post_winner_replay_or_retry": {
+            "returncode": 0,
+            "stderr": ""
+          },
+          "second_process": {
+            "returncode": 2,
+            "stderr": "ShipLoop navigator: conflicting result replay for accepted navigator action\nRead the current packet with next; the rejected request did not advance the graph.",
+            "stdout_bytes": 0
+          },
+          "status": "passed",
+          "temporary_repo_entries": []
+        },
+        {
+          "accepted_transitions": 1,
+          "first_process": {
+            "returncode": 0,
+            "stderr": "",
+            "stdout_bytes": 201443
+          },
+          "init": {
+            "init_stdout_bytes": 200892,
+            "prompt_bytes": 196671
+          },
+          "kind": "duplicate",
+          "later_cold_stage": "discovery",
+          "lock_window_observed": true,
+          "number": 4,
+          "second_process": {
+            "returncode": 0,
+            "stderr": "",
+            "stdout_bytes": 201443
+          },
+          "status": "passed",
+          "temporary_repo_entries": []
+        },
+        {
+          "accepted_transitions": 1,
+          "first_process": {
+            "returncode": 0,
+            "stderr": "",
+            "stdout_bytes": 201430
+          },
+          "init": {
+            "init_stdout_bytes": 200881,
+            "prompt_bytes": 196670
+          },
+          "kind": "conflict",
+          "later_cold_stage": "discovery",
+          "lock_window_observed": true,
+          "number": 4,
+          "post_winner_replay_or_retry": {
+            "returncode": 0,
+            "stderr": ""
+          },
+          "second_process": {
+            "returncode": 2,
+            "stderr": "ShipLoop navigator: conflicting result replay for accepted navigator action\nRead the current packet with next; the rejected request did not advance the graph.",
+            "stdout_bytes": 0
+          },
+          "status": "passed",
+          "temporary_repo_entries": []
+        },
+        {
+          "accepted_transitions": 1,
+          "first_process": {
+            "returncode": 0,
+            "stderr": "",
+            "stdout_bytes": 201443
+          },
+          "init": {
+            "init_stdout_bytes": 200892,
+            "prompt_bytes": 196671
+          },
+          "kind": "duplicate",
+          "later_cold_stage": "discovery",
+          "lock_window_observed": true,
+          "number": 5,
+          "second_process": {
+            "returncode": 0,
+            "stderr": "",
+            "stdout_bytes": 201443
+          },
+          "status": "passed",
+          "temporary_repo_entries": []
+        },
+        {
+          "accepted_transitions": 1,
+          "first_process": {
+            "returncode": 0,
+            "stderr": "",
+            "stdout_bytes": 201430
+          },
+          "init": {
+            "init_stdout_bytes": 200881,
+            "prompt_bytes": 196670
+          },
+          "kind": "conflict",
+          "later_cold_stage": "discovery",
+          "lock_window_observed": true,
+          "number": 5,
+          "post_winner_replay_or_retry": {
+            "returncode": 0,
+            "stderr": ""
+          },
+          "second_process": {
+            "returncode": 2,
+            "stderr": "ShipLoop navigator: conflicting result replay for accepted navigator action\nRead the current packet with next; the rejected request did not advance the graph.",
+            "stdout_bytes": 0
+          },
+          "status": "passed",
+          "temporary_repo_entries": []
+        }
+      ],
+      "status": "passed"
+    }
+  },
+  "failures": [],
+  "frozen_oracle": {
+    "default_path": [
+      "intake",
+      "discovery",
+      "research",
+      "research-improve",
+      "spec",
+      "spec-improve",
+      "test-strategy",
+      "plan",
+      "plan-improve",
+      "step-plan",
+      "step-plan-improve",
+      "implement",
+      "test-refine",
+      "test-author",
+      "document",
+      "verify",
+      "product-improve",
+      "integrate",
+      "carry-forward",
+      "system-test",
+      "outer-improve",
+      "release-plan",
+      "release",
+      "release-verify",
+      "handoff",
+      "done"
+    ],
+    "expected_rejections": [
+      "stale or forged action/result leaves input unchanged",
+      "semantic replay is idempotent and changed replay is rejected",
+      "terminal apply/control is rejected without mutation"
+    ],
+    "special_edges": {
+      "carry_forward_after_final_work": "system-test",
+      "carry_forward_with_future_work": "step-plan",
+      "document_with_skill": "skill-validate",
+      "document_without_skill": "verify"
+    },
+    "validated_before_execution": true
+  },
+  "generated_at_utc": "2026-09-14T20:07:23.271962+00:00",
+  "limitations": [
+    "Generated API walks do not prove every state combination.",
+    "Two-process races do not establish distributed-lock behavior or crash durability.",
+    "No project command, Git initialization, implementation action, test command, or deployment is requested."
+  ],
+  "overall_status": "passed",
+  "schema": "shiploop-navigator-mechanical-experiment/v1",
+  "scope": {
+    "normal_shiploop_suite_run": false,
+    "opt_in": true,
+    "project_work_or_git_requested": false,
+    "reliability_claim": "Deterministic mechanical samples are not a reliability rate, delivery proof, or production certification.",
+    "stdlib_only": true,
+    "temporary_repositories_and_run_state": "system temporary directory outside source"
+  },
+  "source": {
+    "cli": "<SOURCE_CHECKOUT>/skills/shiploop/scripts/shiploop",
+    "navigator": "<SOURCE_CHECKOUT>/skills/shiploop/scripts/shiploop_navigator.py",
+    "navigator_reference": "<SOURCE_CHECKOUT>/skills/shiploop/references/navigator.md",
+    "navigator_reference_sha256": "5fe6eaa47672a35c0c694a6e15ede2a24dd6504993e6102f7f55fd7c0fdde813",
+    "navigator_sha256": "95457f405cc689d1ce3da7bb63f9b47122aa871c645bbd8d96269293323eedda",
+    "repo_root": "<SOURCE_CHECKOUT>"
+  }
+}
