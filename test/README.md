@@ -92,6 +92,10 @@ Explicit runtime setup follows [GitHub's Python guidance](https://docs.github.co
 and [setup-node's version guidance](https://github.com/actions/setup-node#usage).
 This repository needs no pip/npm application dependencies for these tests.
 
-The separate review-coverage post-success retest gap remains outside this CI
-runner reorganization. This guide records the test-entrypoint contract; it does
-not claim that all documentation or quality debt is closed.
+Review Coverage now distinguishes residual-review convergence from final
+delivery verification. Its [Finalization contract](../skills/review-coverage/SKILL.md#finalization-after-completedlanded-review)
+requires current evidence after cleanup, with a concrete manual result when
+automated tests are explicitly N/A. `test/review-coverage.test.sh` checks that
+contract across source instructions and emitted goal/run packets; it does not
+prove that every host or model executes the instructions correctly. This guide
+does not claim that all documentation or quality debt is closed.

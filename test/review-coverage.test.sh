@@ -192,6 +192,198 @@ if ! printf '%s\n' "$CARD_STOP" | grep -qE 'SUCCESS =|HALT = stopped|unlimited o
 # failed preflight must not emit a run card body
 CARD_FAIL=$(python3 "$CLI" run-card --plan "$PREF_WAIVED" --preflight 2>&1 || true)
 if ! printf '%s\n' "$CARD_FAIL" | grep -q '### 1. Open host goal'; then ok run_card_preflight_fail_no_card; else bad run_card_preflight_fail_no_card; fi
+
+# Finalization is reference-owned policy: static/prompt checks prove these emitted
+# instructions, not that any host model obeys them at runtime.
+EXPECTED_STATIC='quality review changes and consider improvements, review the last 10 git commit messages for learnings, anchoring each spec item in code changes and verify use cases/corner cases, git commit between each iteration with a verbose message with key learnings, complete when only trivial findings remaining for 2 consecutive cycles'
+if [[ "$STATIC" == "$EXPECTED_STATIC" && "$SKILL_STATIC" == "$EXPECTED_STATIC" && "$SHORT_STATIC" == "$EXPECTED_STATIC" ]]; then
+  ok static_complete_when_byte_exact
+else
+  bad static_complete_when_byte_exact
+fi
+
+SKILL="$ROOT/skills/review-coverage/SKILL.md"
+SHORT="$ROOT/skills/review-coverage/references/review_coverage.short.md"
+if grep -Fq '## Finalization' "$SKILL" \
+  && grep -Fq 'Candidate SHA' "$SKILL" \
+  && grep -Fq 'ordinary Markdown' "$SKILL" \
+  && grep -Fq 'read it on resume' "$SKILL" \
+  && grep -Fq 'preserve terminal review-round history' "$SKILL" \
+  && grep -Fq 'no new state enum or engine' "$SKILL" \
+  && grep -Fq 'current second-pass evidence' "$SKILL" \
+  && grep -Fq 'N/A is not an automated PASS' "$SKILL" \
+  && grep -Fq 'concrete manual method and result' "$SKILL" \
+  && grep -Fq 'no delivery success' "$SKILL" \
+  && grep -Fq 'no duplicate commit' "$SKILL" \
+  && grep -Fq 'Retest is not a review round' "$SKILL" \
+  && grep -Fq 'operator-authorized reopen' "$SKILL"; then
+  ok finalization_skill_contract
+else
+  bad finalization_skill_contract
+fi
+if grep -Fq '### Finalization' "$REF" \
+  && grep -Fq 'Candidate SHA' "$REF" \
+  && grep -Fq 'ordinary Markdown' "$REF" \
+  && grep -Fq 'read it on resume' "$REF" \
+  && grep -Fq 'preserve terminal review-round history' "$REF" \
+  && grep -Fq 'no new state enum or engine' "$REF" \
+  && grep -Fq 'current second-pass evidence' "$REF" \
+  && grep -Fq 'N/A is not an automated PASS' "$REF" \
+  && grep -Fq 'concrete manual method and result' "$REF" \
+  && grep -Fq 'no delivery success' "$REF" \
+  && grep -Fq 'no duplicate commit' "$REF" \
+  && grep -Fq 'Retest is not a review round' "$REF" \
+  && grep -Fq 'operator-authorized reopen' "$REF"; then
+  ok finalization_full_reference_contract
+else
+  bad finalization_full_reference_contract
+fi
+if grep -Fq '### Finalization' "$SHORT" \
+  && grep -Fq 'Candidate SHA' "$SHORT" \
+  && grep -Fq 'current second-pass evidence' "$SHORT" \
+  && grep -Fq 'N/A is not an automated PASS' "$SHORT" \
+  && grep -Fq 'concrete manual method and result' "$SHORT" \
+  && grep -Fq 'no delivery success' "$SHORT" \
+  && grep -Fq 'Retest is not a review round' "$SHORT" \
+  && grep -Fq 'operator-authorized reopen' "$SHORT"; then
+  ok finalization_short_reference_contract
+else
+  bad finalization_short_reference_contract
+fi
+if grep -Fq 'Finalization' "$ROOT/skills/review-coverage/references/host-matrix.md" \
+  && grep -Fq 'no delivery success' "$ROOT/skills/review-coverage/references/host-matrix.md"; then
+  ok finalization_host_matrix_contract
+else
+  bad finalization_host_matrix_contract
+fi
+
+# Every previously immediate success path must be gated by finalization.
+if grep -Fq '`complete` + landed → **enter Finalization**' "$SKILL" \
+  && ! grep -Fq 'Then EXIT SUCCESS.' "$SKILL"; then
+  ok finalization_skill_exit_gate
+else
+  bad finalization_skill_exit_gate
+fi
+if grep -Fq '| S1 | `complete` AND Log **landed** | **Run Finalization**' "$REF" \
+  && ! grep -Fq 'HALT or SUCCESS per Status' "$REF"; then
+  ok finalization_full_exit_gate
+else
+  bad finalization_full_exit_gate
+fi
+if grep -Fq '| S1 | `complete` AND landed → **Run Finalization**' "$SHORT" \
+  && ! grep -Fq 'HALT or SUCCESS per Status' "$SHORT"; then
+  ok finalization_short_exit_gate
+else
+  bad finalization_short_exit_gate
+fi
+if ! grep -Fq 'then EXIT if still not landed' "$SKILL" \
+  && ! grep -Fq 'then EXIT if still not landed' "$REF" \
+  && ! grep -Fq 'then EXIT if still not landed' "$SHORT"; then
+  ok finalization_no_unlanded_success
+else
+  bad finalization_no_unlanded_success
+fi
+if grep -Fq 'Never run another residual round after complete or stopped (...); a completed/landed review enters Finalization.' "$SKILL" \
+  && grep -Fq 'Never run another residual round after complete or stopped (...); a completed/landed review enters Finalization.' "$REF"; then
+  ok finalization_not_a_residual_round
+else
+  bad finalization_not_a_residual_round
+fi
+
+SECOND_PASS_NA='Second clean: automated Test command PASS when applicable; otherwise N/A requires concrete manual method and result (never an automated PASS).'
+if grep -Fq "$SECOND_PASS_NA" "$SKILL" \
+  && grep -Fq "$SECOND_PASS_NA" "$REF" \
+  && grep -Fq "$SECOND_PASS_NA" "$SHORT" \
+  && ! grep -Fq 'second clean must run Test command PASS' "$REF"; then
+  ok finalization_na_second_pass_contract
+else
+  bad finalization_na_second_pass_contract
+fi
+if printf '%s\n' "$GBO" | grep -Fq "$SECOND_PASS_NA" \
+  && printf '%s\n' "$CARD" | grep -Fq "$SECOND_PASS_NA"; then
+  ok finalization_na_second_pass_packets
+else
+  bad finalization_na_second_pass_packets
+fi
+TMPNA=$(mktemp)
+cat >"$TMPNA" <<'EOF'
+## Review Coverage
+
+| Field | Value |
+|-------|--------|
+| Base ref | abcdef1234567890deadbeef |
+| Target paths | src/foo.ts |
+| Test command | N/A — no automated tests: concrete UX walk-through |
+| Materiality bar | material (P0/P1) |
+| Driver | review-converge under /goal |
+
+1. Forward audit of specs to code.
+2. Reverse audit of code vs base.
+two consecutive clean residual rounds with manual verification
+EOF
+NA_GBO=$(python3 "$CLI" goal-body --plan "$TMPNA")
+if printf '%s\n' "$NA_GBO" | grep -Fq 'Test command: N/A — no automated tests: concrete UX walk-through' \
+  && printf '%s\n' "$NA_GBO" | grep -Fq "$SECOND_PASS_NA"; then
+  ok finalization_na_goal_body_contract
+else
+  bad finalization_na_goal_body_contract
+fi
+rm -f "$TMPNA"
+
+RECEIPT_ALLOWED='A bookkeeping-only receipt commit may follow verification and does not invalidate proof.'
+RECEIPT_BINDING='It must name the prior tested product/policy/configuration Candidate SHA and must not pretend to test the receipt commit.'
+RECEIPT_INVALIDATION='Any later in-scope product/policy/configuration change invalidates affected evidence.'
+if grep -Fq "$RECEIPT_ALLOWED" "$SKILL" \
+  && grep -Fq "$RECEIPT_BINDING" "$SKILL" \
+  && grep -Fq "$RECEIPT_INVALIDATION" "$SKILL" \
+  && grep -Fq "$RECEIPT_ALLOWED" "$REF" \
+  && grep -Fq "$RECEIPT_BINDING" "$REF" \
+  && grep -Fq "$RECEIPT_INVALIDATION" "$REF" \
+  && grep -Fq "$RECEIPT_ALLOWED" "$SHORT" \
+  && grep -Fq "$RECEIPT_BINDING" "$SHORT" \
+  && grep -Fq "$RECEIPT_INVALIDATION" "$SHORT"; then
+  ok finalization_receipt_commit_contract
+else
+  bad finalization_receipt_commit_contract
+fi
+if printf '%s\n' "$GBO" | grep -Fq "$RECEIPT_ALLOWED" \
+  && printf '%s\n' "$GBO" | grep -Fq "$RECEIPT_BINDING" \
+  && printf '%s\n' "$GBO" | grep -Fq "$RECEIPT_INVALIDATION" \
+  && printf '%s\n' "$CARD" | grep -Fq "$RECEIPT_ALLOWED" \
+  && printf '%s\n' "$CARD" | grep -Fq "$RECEIPT_BINDING" \
+  && printf '%s\n' "$CARD" | grep -Fq "$RECEIPT_INVALIDATION"; then
+  ok finalization_receipt_commit_packets
+else
+  bad finalization_receipt_commit_packets
+fi
+
+# The full-reference trailer must carry the contract into both emitted packets.
+FINALIZATION_TRAILER='Changed candidate (including wrap-up) requires verification after final edit: Test command PASS when applicable, or the manual alternative. N/A is not an automated PASS: record concrete manual method and result. Missing, stale, failed, or interrupted evidence means no delivery success; HALT.'
+if printf '%s\n' "$GBO" | grep -Fq "$FINALIZATION_TRAILER" \
+  && printf '%s\n' "$GBO" | grep -Fq 'Candidate SHA' \
+  && printf '%s\n' "$GBO" | grep -Fq 'read it on resume' \
+  && printf '%s\n' "$GBO" | grep -Fq 'no duplicate commit' \
+  && printf '%s\n' "$GBO" | grep -Fq 'operator-authorized reopen'; then
+  ok goal_body_finalization_trailer
+else
+  bad goal_body_finalization_trailer
+fi
+if printf '%s\n' "$CARD" | grep -Fq "$FINALIZATION_TRAILER" \
+  && printf '%s\n' "$CARD" | grep -Fq 'Candidate SHA' \
+  && printf '%s\n' "$CARD" | grep -Fq 'read it on resume' \
+  && printf '%s\n' "$CARD" | grep -Fq 'no duplicate commit' \
+  && printf '%s\n' "$CARD" | grep -Fq 'operator-authorized reopen'; then
+  ok run_card_finalization_trailer
+else
+  bad run_card_finalization_trailer
+fi
+if grep -Fq 'do not prove actual model compliance' "$SKILL" \
+  && grep -Fq 'do not prove actual model compliance' "$REF"; then
+  ok finalization_prompt_tests_not_model_compliance
+else
+  bad finalization_prompt_tests_not_model_compliance
+fi
+
 rm -f "$PREF_PLAN" "$PREF_WAIVED"
 rm -rf "$PREF_REPO"
 
@@ -457,7 +649,7 @@ else
   bad full_template_no_goal_body
 fi
 
-if grep -q '^version: 0.2.4$' "$ROOT/skills/review-coverage/SKILL.md"; then ok skill_version; else bad skill_version; fi
+if grep -q '^version: 0.2.5$' "$ROOT/skills/review-coverage/SKILL.md"; then ok skill_version; else bad skill_version; fi
 # Skill-first invoke (primary); CLI remains optional helper
 if grep -qE '/review-coverage|## Invocation' "$ROOT/skills/review-coverage/SKILL.md" \
   && grep -qiE 'not the primary|optional CLI helpers|not a script-first' "$ROOT/skills/review-coverage/SKILL.md"; then
