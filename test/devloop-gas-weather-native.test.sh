@@ -2,10 +2,10 @@
 # Native e2e: invoke real devloop-run (engine shim) for a GAS weather DoD.
 #
 # Env:
-#   DEVLOOP_LIVE_WEATHER=1  — run live multi-model engine (required for success path)
+#   DEVLOOP_LIVE_WEATHER=1  — run live multi-model engine (explicit selection)
 #   DEVLOOP_LIVE_WEATHER=0  — hermetic wiring only (probe + offline contract on existing files)
-#   DEVLOOP_WEATHER_REPO    — absolute repo path (default: ~/src/gas-weather-devloop-e2e)
-#   DEVLOOP_HOME            — engine root
+#   DEVLOOP_WEATHER_REPO    — existing, non-symlink absolute repo path (required)
+#   DEVLOOP_HOME            — existing, non-symlink engine root (required)
 #   SCRATCH / GROK_GOAL_SCRATCH — log dir
 #     LIVE=1 → devloop-weather-native.log (canonical LIVE proof; never clobbered by hermetic)
 #     LIVE=0 → devloop-weather-native-hermetic.log
@@ -14,14 +14,59 @@ set -euo pipefail
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 run="$root/skills/devloop/scripts/devloop-run"
 shim="$root/test/fixtures/ollama-hermes-shim"
+: "${DEVLOOP_LIVE_WEATHER:=}"
+: "${DEVLOOP_WEATHER_REPO:=}"
+: "${DEVLOOP_HOME:=}"
+
+preflight_fail() {
+  printf 'devloop-gas-weather-native: preflight: %s\n' "$*" >&2
+  exit 2
+}
+
+live="$DEVLOOP_LIVE_WEATHER"
+repo="$DEVLOOP_WEATHER_REPO"
+engine="$DEVLOOP_HOME"
+
+# Do not create a scratch directory, chmod a helper, initialize git, or touch
+# the selected project until every target has been explicitly validated.
+[[ "$live" == "0" || "$live" == "1" ]] || \
+  preflight_fail "DEVLOOP_LIVE_WEATHER must be explicitly 0 (offline) or 1 (live)"
+[[ -n "$repo" ]] || preflight_fail "DEVLOOP_WEATHER_REPO is required"
+[[ "$repo" == /* && -d "$repo" && ! -L "$repo" ]] || \
+  preflight_fail "DEVLOOP_WEATHER_REPO must be an existing, non-symlink absolute directory"
+[[ -n "$engine" ]] || preflight_fail "DEVLOOP_HOME is required"
+[[ "$engine" == /* && -d "$engine" && ! -L "$engine" ]] || \
+  preflight_fail "DEVLOOP_HOME must be an existing, non-symlink absolute directory"
+[[ -f "$engine/scripts/devloop_cli.py" && ! -L "$engine/scripts/devloop_cli.py" ]] || \
+  preflight_fail "DEVLOOP_HOME must contain scripts/devloop_cli.py"
+[[ -f "$engine/engine-capabilities.json" && ! -L "$engine/engine-capabilities.json" ]] || \
+  preflight_fail "DEVLOOP_HOME must contain engine-capabilities.json"
+[[ -x "$run" ]] || preflight_fail "missing executable $run"
+
+# LIVE resets product files and README in the exact repository selected above;
+# never permit a broad directory to become that reset target.
+repo_real="$(cd "$repo" && pwd -P)"
+home_real=""
+if [[ -n "${HOME:-}" && -d "$HOME" ]]; then
+  home_real="$(cd "$HOME" && pwd -P)"
+fi
+[[ "$repo_real" != "/" && "$repo_real" != "$root" && "$repo_real" != "$home_real" ]] || \
+  preflight_fail "DEVLOOP_WEATHER_REPO must not be /, this skill-craft checkout, or the home directory"
+
+if [[ "$live" == "1" ]]; then
+  [[ -f "$shim" && ! -L "$shim" ]] || preflight_fail "missing native shim at $shim"
+else
+  [[ -f "$repo/common-js/weather.gs" ]] || \
+    preflight_fail "offline mode requires $repo/common-js/weather.gs; it will not seed a home project"
+  [[ -f "$repo/appsscript.json" ]] || \
+    preflight_fail "offline mode requires $repo/appsscript.json; it will not seed a home project"
+fi
+
 scratch_default="${GROK_GOAL_SCRATCH:-${SCRATCH:-}}"
 if [[ -z "$scratch_default" ]]; then
   scratch_default="$(mktemp -d "${TMPDIR:-/tmp}/devloop-weather-XXXXXX")"
 fi
 mkdir -p "$scratch_default"
-repo="${DEVLOOP_WEATHER_REPO:-$HOME/src/gas-weather-devloop-e2e}"
-engine="${DEVLOOP_HOME:-$HOME/.hermes/skills/software-development/devloop}"
-live="${DEVLOOP_LIVE_WEATHER:-1}"
 # Keep LIVE and hermetic logs distinct so a later LIVE=0 run cannot erase LIVE proof.
 if [[ "$live" == "1" ]]; then
   log="$scratch_default/devloop-weather-native.log"
@@ -30,12 +75,6 @@ else
 fi
 
 fail() { printf 'devloop-gas-weather-native: FAIL %s\n' "$*" | tee -a "$log" >&2; exit 1; }
-
-[[ -x "$run" ]] || fail "missing executable $run"
-[[ -f "$shim" ]] || fail "missing shim $shim"
-chmod +x "$shim"
-[[ -d "$engine" && -f "$engine/scripts/devloop_cli.py" ]] || fail "engine missing: $engine"
-[[ -f "$engine/engine-capabilities.json" ]] || fail "engine lacks engine-capabilities.json"
 
 {
   echo "=== native weather e2e $(date -u +%Y-%m-%dT%H:%M:%SZ) ==="
@@ -134,6 +173,7 @@ engine_exit=1
 engine_json="$scratch_default/devloop-weather-engine.json"
 
 if [[ "$live" == "1" ]]; then
+  chmod +x "$shim"
   prepare_clean_live_repo
   echo "=== live engine invoke via devloop-run ===" | tee -a "$log"
   export HERMES_BIN="$shim"
@@ -196,19 +236,8 @@ if [[ "$live" == "1" ]]; then
 else
   echo "=== live engine skipped (DEVLOOP_LIVE_WEATHER=$live) hermetic wiring ===" | tee -a "$log"
   write_offline_contract_tests
-  # Hermetic: require existing product files (from prior live or reference project)
-  if [[ ! -f "$repo/common-js/weather.gs" ]]; then
-    if [[ -f "$HOME/src/gas-weather-devloop/common-js/weather.gs" ]]; then
-      mkdir -p "$repo/common-js"
-      cp "$HOME/src/gas-weather-devloop/common-js/weather.gs" "$repo/common-js/weather.gs"
-      cp "$HOME/src/gas-weather-devloop/appsscript.json" "$repo/appsscript.json"
-      echo "hermetic_seeded_from=gas-weather-devloop" | tee -a "$log"
-    else
-      fail "hermetic mode needs existing weather.gs (run LIVE=1 first or seed project)"
-    fi
-  fi
-  DEVLOOP_HOME="$engine" DEVLOOP_HOST=grok GROK_BIN="$(command -v grok)" \
-    bash "$run" --host grok --probe --no-bootstrap 2>&1 | tee -a "$log"
+  DEVLOOP_HOME="$engine" DEVLOOP_HOST=auto \
+    bash "$run" --host auto --probe --no-bootstrap 2>&1 | tee -a "$log"
   engine_exit=0
 fi
 

@@ -4,12 +4,43 @@ on:
   push:
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
-  hermetic:
-    runs-on: ubuntu-latest
+  checks:
+    name: ${{ matrix.group }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        group: [core, shiploop]
     steps:
       - uses: actions/checkout@v4
-      - name: Hermetic suite
-        run: bash test/run-all.sh
-      - name: Plugin views in sync
-        run: bash scripts/sync-plugin-views.sh --check
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          package-manager-cache: false
+      - name: Hermetic group
+        run: bash test/run-all.sh --group "${{ matrix.group }}"
+      - name: Plugin views in sync and tracked checkout unchanged
+        if: ${{ always() && matrix.group == 'core' }}
+        run: |
+          bash scripts/sync-plugin-views.sh --check
+          git diff --exit-code HEAD
+
+  # Preserve the existing required-check name; skipped/failed groups cannot pass.
+  hermetic:
+    if: ${{ always() }}
+    needs: checks
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Require all hermetic groups
+        env:
+          CHECKS_RESULT: ${{ needs.checks.result }}
+        run: test "$CHECKS_RESULT" = success

@@ -31,6 +31,8 @@ plugins, use **claude-craft**.
 | Skill | Purpose |
 |-------|---------|
 | **shiploop** | Markdown-authoritative delivery harness (not DevLoop): script-owned action packets, evidence-gated planning/implementation/outer loops, and an HTML achievement report. [Operator README](skills/shiploop/README.md); [completed proposals and deferred boundaries](docs/shiploop-proposal-closeout.md) |
+| **devloop** | Optional autonomous-engine launcher; real execution needs a compatible engine and transport. [Skill card](skills/devloop/SKILL.md) |
+| **evidence-gates** | Offline freeze/prove/stop evidence checks, without the autonomous engine. [Skill card](skills/evidence-gates/SKILL.md) |
 | **improve** | Review a repository candidate using seven full commit messages, meaningful checks, and two consecutive qualifying reviews. Bundles its compatible Until Loop runtime. [Guide and release-candidate limits](skills/improve/README.md) |
 | **skill-interop** | Author/review portable multi-host skills; scaffold; install; marketplace facade |
 | **c-plan** | Ambiguous-prompt clarifier (EVQ / FASTPATH) |
@@ -135,8 +137,17 @@ skills/<name>/
 ## Tests
 
 ```sh
-bash test/run-all.sh
+bash test/run-all.sh                   # all hermetic tests; no installed AI host
+bash test/run-all.sh --group core      # packaging, installer and contract checks
+bash test/run-all.sh --group shiploop  # ShipLoop, including one full action walk
+bash test/run-all.sh --list            # inspect the exact suite inventory
 ```
+
+Hermes is an optional integration, not a prerequisite for repository CI.
+Mocked host-binding tests remain in the hermetic suite; tests needing real engines,
+installed skills, credentials or environment-specific projects are explicitly
+opt-in through `bash test/run-integration.sh --help`.
+See [test/README.md](test/README.md) for test groups, prerequisites and evidence boundaries.
 
 ## License
 

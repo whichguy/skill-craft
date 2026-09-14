@@ -5,7 +5,6 @@ set -euo pipefail
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 run="$root/skills/devloop/scripts/devloop-run"
 fixture_tgz="$root/test/fixtures/devloop-engine-fixture.tar.gz"
-fixture_pin="$root/test/fixtures/engine-pin-fixture.json"
 
 fail() {
   printf 'devloop-run.test.sh: FAIL %s\n' "$*" >&2
@@ -20,17 +19,18 @@ fail() {
 python3 -c 'import json;d=json.load(open("'"$root"'/skills/devloop/references/engine-pin.json")); assert "version" in d and "url" in d and "sha256" in d; assert "grok" in d.get("transports", [])' \
   || fail "engine-pin.json schema"
 
-# Refresh fixture pin absolute path + sha
+tmpdir="$(mktemp -d "${TMPDIR:-/tmp}/devloop-run-test.XXXXXX")"
+cleanup() { rm -rf "$tmpdir"; }
+trap cleanup EXIT
+fixture_pin="$tmpdir/engine-pin-fixture.json"
+
+# Checkout-local paths belong in scratch, never in a tracked fixture.
 python3 - "$fixture_tgz" "$fixture_pin" <<'PY'
 import hashlib, json, pathlib, sys
 tgz, pin = pathlib.Path(sys.argv[1]), pathlib.Path(sys.argv[2])
 sha = hashlib.sha256(tgz.read_bytes()).hexdigest()
 pin.write_text(json.dumps({"version": "fixture", "url": f"file://{tgz.resolve()}", "sha256": sha}, indent=2) + "\n")
 PY
-
-tmpdir="$(mktemp -d "${TMPDIR:-/tmp}/devloop-run-test.XXXXXX")"
-cleanup() { rm -rf "$tmpdir"; }
-trap cleanup EXIT
 
 # D1: --help
 unset DEVLOOP_HOME HERMES_HOME DEVLOOP_BOOTSTRAP_CMD DEVLOOP_ENGINE_URL DEVLOOP_DATA_HOME DEVLOOP_ENGINE_PIN DEVLOOP_ENGINE_SHA256 \

@@ -111,9 +111,14 @@ host checkout into a tree that is bind-mounted into the container as `/opt/data`
 
 ### Operator / CI (**implemented**)
 
-- Hermetic suite: `bash test/run-all.sh` (**implemented**)
+- Hermetic suite: `bash test/run-all.sh` (**implemented**); `--group core|shiploop`
+  selects independent groups and `--list` prints the same catalog used to execute.
+  No installed AI host or engine is required; mocked Hermes binding remains covered.
 - Plugin view drift: `bash scripts/sync-plugin-views.sh --check` (**implemented**)
-- CI: `.github/workflows/ci.yml` (**implemented**)
+- CI: `.github/workflows/ci.yml` (**implemented**); independent core/ShipLoop jobs,
+  explicit Python/Node versions and a fail-closed aggregate `hermetic` status.
+- External integrations: explicitly selected via `bash test/run-integration.sh`;
+  never pulled into the required CI aggregate. See [test runners](../test/README.md).
 
 ## Materialization policy (Hermes)
 
