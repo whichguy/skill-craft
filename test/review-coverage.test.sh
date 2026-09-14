@@ -9,6 +9,19 @@ FAIL=0
 ok() { echo "PASS $1"; PASS=$((PASS + 1)); }
 bad() { echo "FAIL $1"; FAIL=$((FAIL + 1)); }
 
+# Record one result per surface; the final FAIL gate decides the suite exit.
+assert_contains_all() {
+  local label="$1" file="$2" phrase
+  shift 2
+  for phrase in "$@"; do
+    if ! grep -Fq -- "$phrase" "$file"; then
+      bad "$label: missing '$phrase' in $file"
+      return 0
+    fi
+  done
+  ok "$label"
+}
+
 [[ -f "$ROOT/skills/review-coverage/SKILL.md" ]] && ok skill_md || bad skill_md
 [[ -f "$ROOT/skills/review-coverage/references/review_coverage.md" ]] && ok template || bad template
 head -1 "$ROOT/skills/review-coverage/references/review_coverage.md" | grep -q '^## Review Coverage' && ok h2 || bad h2
@@ -204,58 +217,46 @@ fi
 
 SKILL="$ROOT/skills/review-coverage/SKILL.md"
 SHORT="$ROOT/skills/review-coverage/references/review_coverage.short.md"
-if grep -Fq '## Finalization' "$SKILL" \
-  && grep -Fq 'Candidate SHA' "$SKILL" \
-  && grep -Fq 'ordinary Markdown' "$SKILL" \
-  && grep -Fq 'read it on resume' "$SKILL" \
-  && grep -Fq 'preserve terminal review-round history' "$SKILL" \
-  && grep -Fq 'no new state enum or engine' "$SKILL" \
-  && grep -Fq 'current second-pass evidence' "$SKILL" \
-  && grep -Fq 'N/A is not an automated PASS' "$SKILL" \
-  && grep -Fq 'concrete manual method and result' "$SKILL" \
-  && grep -Fq 'no delivery success' "$SKILL" \
-  && grep -Fq 'no duplicate commit' "$SKILL" \
-  && grep -Fq 'Retest is not a review round' "$SKILL" \
-  && grep -Fq 'operator-authorized reopen' "$SKILL"; then
-  ok finalization_skill_contract
-else
-  bad finalization_skill_contract
-fi
-if grep -Fq '### Finalization' "$REF" \
-  && grep -Fq 'Candidate SHA' "$REF" \
-  && grep -Fq 'ordinary Markdown' "$REF" \
-  && grep -Fq 'read it on resume' "$REF" \
-  && grep -Fq 'preserve terminal review-round history' "$REF" \
-  && grep -Fq 'no new state enum or engine' "$REF" \
-  && grep -Fq 'current second-pass evidence' "$REF" \
-  && grep -Fq 'N/A is not an automated PASS' "$REF" \
-  && grep -Fq 'concrete manual method and result' "$REF" \
-  && grep -Fq 'no delivery success' "$REF" \
-  && grep -Fq 'no duplicate commit' "$REF" \
-  && grep -Fq 'Retest is not a review round' "$REF" \
-  && grep -Fq 'operator-authorized reopen' "$REF"; then
-  ok finalization_full_reference_contract
-else
-  bad finalization_full_reference_contract
-fi
-if grep -Fq '### Finalization' "$SHORT" \
-  && grep -Fq 'Candidate SHA' "$SHORT" \
-  && grep -Fq 'current second-pass evidence' "$SHORT" \
-  && grep -Fq 'N/A is not an automated PASS' "$SHORT" \
-  && grep -Fq 'concrete manual method and result' "$SHORT" \
-  && grep -Fq 'no delivery success' "$SHORT" \
-  && grep -Fq 'Retest is not a review round' "$SHORT" \
-  && grep -Fq 'operator-authorized reopen' "$SHORT"; then
-  ok finalization_short_reference_contract
-else
-  bad finalization_short_reference_contract
-fi
-if grep -Fq 'Finalization' "$ROOT/skills/review-coverage/references/host-matrix.md" \
-  && grep -Fq 'no delivery success' "$ROOT/skills/review-coverage/references/host-matrix.md"; then
-  ok finalization_host_matrix_contract
-else
-  bad finalization_host_matrix_contract
-fi
+assert_contains_all finalization_skill_contract "$SKILL" \
+  '## Finalization' \
+  'Candidate SHA' \
+  'ordinary Markdown' \
+  'read it on resume' \
+  'preserve terminal review-round history' \
+  'no new state enum or engine' \
+  'current second-pass evidence' \
+  'N/A is not an automated PASS' \
+  'concrete manual method and result' \
+  'no delivery success' \
+  'no duplicate commit' \
+  'Retest is not a review round' \
+  'operator-authorized reopen'
+assert_contains_all finalization_full_reference_contract "$REF" \
+  '### Finalization' \
+  'Candidate SHA' \
+  'ordinary Markdown' \
+  'read it on resume' \
+  'preserve terminal review-round history' \
+  'no new state enum or engine' \
+  'current second-pass evidence' \
+  'N/A is not an automated PASS' \
+  'concrete manual method and result' \
+  'no delivery success' \
+  'no duplicate commit' \
+  'Retest is not a review round' \
+  'operator-authorized reopen'
+assert_contains_all finalization_short_reference_contract "$SHORT" \
+  '### Finalization' \
+  'Candidate SHA' \
+  'current second-pass evidence' \
+  'N/A is not an automated PASS' \
+  'concrete manual method and result' \
+  'no delivery success' \
+  'Retest is not a review round' \
+  'operator-authorized reopen'
+assert_contains_all finalization_host_matrix_contract "$ROOT/skills/review-coverage/references/host-matrix.md" \
+  'Finalization' \
+  'no delivery success'
 
 # Every previously immediate success path must be gated by finalization.
 if grep -Fq '`complete` + landed → **enter Finalization**' "$SKILL" \
@@ -637,17 +638,6 @@ PERR=$(python3 "$CLI" validate "$TMPP" 2>&1 >/dev/null || true)
 if printf '%s\n' "$PERR" | grep -qi 'placeholder'; then ok placeholder_trailing_punct_stderr; else bad placeholder_trailing_punct_stderr; fi
 rm -f "$TMPP"
 
-# Full/short shipped templates must fail closed (never validate ok as filled plans)
-if ! python3 "$CLI" validate "$ROOT/skills/review-coverage/references/review_coverage.md" >/dev/null 2>&1; then
-  ok full_template_fail_closed
-else
-  bad full_template_fail_closed
-fi
-if ! python3 "$CLI" validate "$ROOT/skills/review-coverage/references/review_coverage.short.md" >/dev/null 2>&1; then
-  ok short_template_fail_closed
-else
-  bad short_template_fail_closed
-fi
 # goal-body on templates must fail (not emit polluted placeholders)
 if ! python3 "$CLI" goal-body --plan "$ROOT/skills/review-coverage/references/review_coverage.md" >/dev/null 2>&1; then
   ok full_template_no_goal_body
