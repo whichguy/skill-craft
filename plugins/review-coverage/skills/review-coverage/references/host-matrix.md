@@ -69,11 +69,15 @@ Before claiming a clean residual×2 streak:
 3. Do not start residual with unfinished WIP in Target paths (plugin/version drift).
 4. Prefer skill Phase B preflight (hard stop on foreign terminal ledger), or optional
    `run-card --preflight` for humans.
+5. After completed/landed review, perform the documented **Finalization** in
+   `REVIEW_CONVERGE.md`; there is no delivery success without current-candidate
+   evidence, including after a trivial wrap-up commit.
 
 ## Optional plan-oversight
 
 If plan-oversight is installed, residual hooks are **optional adapters**. Product success =
-directive in the plan + residual×2 after implement. Prefer hooks that recognize
+directive in the plan + residual×2 after implement + current-candidate Finalization.
+Prefer hooks that recognize
 `## Review Coverage` and/or call this skill’s CLI — legacy
 `## Post-Implementation Residual Loop` only is incomplete. Do not claim Review Coverage
 support if the nudge only matches the legacy H2.
