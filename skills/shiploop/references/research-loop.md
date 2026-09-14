@@ -34,7 +34,12 @@ For each question, distinguish:
 Research begins with `body` and `research_state` in the normal Markdown result.
 The script maintains `research.md` and `research-evidence.md` as candidate
 components; host-authored result drafts belong in the printed inbox. The typed
-evidence structure is:
+legacy evidence structure is shown below. For a versioned run, use the packet's
+extended template and the required
+[result shape](research-result-schema.md#result-shape) and
+[replacement rules](research-result-schema.md#replacement-rules), not this
+legacy-only example. Those sections define every row shape, allowed enum and
+stable-identity/link rule; no validator source inspection should be necessary.
 
 ```json
 {
@@ -112,6 +117,40 @@ illustrates that an adapter boundary does not grant authority; and
 [Google AIP-194](https://google.aip.dev/194) illustrates why retry ownership and
 idempotency must come from the actual API contract. These are investigation
 anchors, not a mandate to install an MCP server or adopt an RPC design.
+
+## Decision boundaries
+
+Classify the next useful action in the existing question's `answer`,
+`rationale` and `revalidate` fields; these are not new status values or another
+journal. Keep the distinction visible in the report and improvement plan:
+
+- **Researchable unknown:** name the missing fact, the relevant repository or
+  primary contract, a permitted probe and what observation would settle it.
+  Investigate or independently recheck it, including consequential downstream
+  behavior justified by the selected scope and risk.
+- **Owner decision or authority:** name the precise policy, target, role or
+  permission needed, and its consequence. Retain `open`/`blocked` status and
+  request direction; use the existing pause route when progress depends on it.
+  More public-document reading cannot establish account access or select the
+  owner's policy. Do not invent a default or relabel the gap not-applicable.
+- **Later-phase implementation:** when the underlying contract is established,
+  record the known requirement and its downstream consumer (behavior/spec/test
+  planning or an existing handoff route). Do not implement it during research.
+  A genuinely unanswered prerequisite remains open; calling it future work
+  does not resolve it or permit research finalization.
+
+Derive safety expectations that hold independently of a missing policy. For
+example, whatever identity or retention policy the owner selects, an unauthorized
+state mutation must not be reported as accepted. Record that expectation and
+its basis without claiming an identity scheme was selected or a security test
+passed. Reserve the detailed test matrix for behavior/spec and the test phases.
+Do not grow an unselected optional feature just to make its research exhaustive.
+
+Each review distinguishes **new discoveries** from **unchanged blockers**.
+Open/blocked questions still reset the current convergence streak even if this
+pass found nothing new. Two quiet reviews with a missing owner decision are not
+two successful trivial passes. Use the existing gates, result records and
+carry-forward/outer-work routes; do not add a nested investigation engine.
 
 ## Review
 

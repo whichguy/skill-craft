@@ -271,6 +271,78 @@ class SystemContextTests(unittest.TestCase):
         with self.assertRaisesRegex(system_context.SystemContextError, "acyclic"):
             system_context.validate_research_state(cycle, machine())
 
+    def test_enum_fields_reject_malformed_values_with_safe_diagnostics(self) -> None:
+        """Every enum boundary rejects non-strings before set membership."""
+        enum_fields = (
+            (
+                "system_context.scope",
+                ("integrated", "local-only"),
+                lambda state, value: state["system_context"].__setitem__("scope", value),
+            ),
+            (
+                "system_context.roles[0].status",
+                ("blocked", "not-applicable", "observed"),
+                lambda state, value: state["system_context"]["roles"][0].__setitem__(
+                    "status", value
+                ),
+            ),
+            (
+                "system_context.interfaces[0].status",
+                ("blocked", "not-applicable", "resolved"),
+                lambda state, value: state["system_context"]["interfaces"][0].__setitem__(
+                    "status", value
+                ),
+            ),
+            (
+                "system_context.interactions[0].status",
+                ("blocked", "not-applicable", "resolved"),
+                lambda state, value: state["system_context"]["interactions"][0].__setitem__(
+                    "status", value
+                ),
+            ),
+            (
+                "system_context.interactions[0].risk",
+                ("high", "low", "medium"),
+                lambda state, value: state["system_context"]["interactions"][0].__setitem__(
+                    "risk", value
+                ),
+            ),
+            (
+                "system_context.observations[0].kind",
+                ("code", "environment-role", "state", "system"),
+                lambda state, value: state["system_context"]["observations"][0].__setitem__(
+                    "kind", value
+                ),
+            ),
+            (
+                "system_context.observations[0].status",
+                ("blocked", "not-applicable", "observed"),
+                lambda state, value: state["system_context"]["observations"][0].__setitem__(
+                    "status", value
+                ),
+            ),
+        )
+        malformed_values = (
+            "untrusted-enum-value",
+            ["untrusted-enum-value"],
+            {"untrusted-enum-value": "payload"},
+            None,
+        )
+
+        for label, allowed, mutate in enum_fields:
+            expected = (
+                f"{label} is invalid; expected a string enum value: "
+                + ", ".join(allowed)
+            )
+            for value in malformed_values:
+                with self.subTest(field=label, value_type=type(value).__name__):
+                    state = evidence()
+                    mutate(state, value)
+                    with self.assertRaises(system_context.SystemContextError) as raised:
+                        system_context.validate_research_state(state, machine())
+                    self.assertEqual(str(raised.exception), expected)
+                    self.assertNotIn("untrusted-enum-value", str(raised.exception))
+
     def test_required_unresolved_boundary_is_exposed_without_faking_completion(self) -> None:
         blocked = evidence()
         blocked["questions"][1]["status"] = "blocked"

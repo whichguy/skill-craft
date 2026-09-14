@@ -39,6 +39,7 @@ investigate present behavior.
 | [System-test sequencing](shiploop-system-test-plan.md) | `8b98d57`: catalog, prerequisite ordering and final evidence closure. |
 | This closeout | `b391c74`: local-loop/terminal distinction, historical reader placement and advisory packet counts. |
 | [Script-enforcement map](../skills/shiploop/README.md#script-enforced-state-machine) | `42f815d`: documentation and real-CLI traversal proof, with 100 targeted passing tests at that increment. No runtime rewrite. |
+| [Research-pilot fixes](shiploop-research-pilot-closeout.md) | Implemented follow-up to the two-scenario pilot: version-correct research packets, safe system-context enum errors and decision guidance. Retains the experimental wording and live-target replication as deferred. |
 
 Do not reopen completed proposals merely because their historical filename ends
 in `-plan.md`. Deferred ideas in the ledger below remain deferred; new findings

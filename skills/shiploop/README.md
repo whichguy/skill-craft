@@ -618,6 +618,39 @@ source, credential, or deployment will remain current. Use the detailed
 [evidence-and-freshness boundary](references/research-loop.md#evidence-and-freshness)
 rather than inventing a parallel report format.
 
+#### Research packets, unanswered decisions, and safe revisions
+
+The script selects the research result template from the run's recorded
+version. Legacy runs keep exactly `questions`/`sources`; version-1 runs also
+receive the question links and `system_context` fields. Both draft and apply
+packets select the complete [research result contract](references/research-result-schema.md#result-shape),
+including every row shape and allowed enum. The inline `local-only` example is
+not a scope decision: applicable surveyed platforms require `integrated` scope
+and the corresponding roles, exact surveyed references, and interaction records.
+Example rows are not evidence and their open questions cannot finalize research.
+
+For an apply action, start from the current durable inventory, not the example.
+Preserve source and context identities; refine the mutable contract details.
+For example, clarifying an operation's error envelope changes `failure_semantics`,
+not its stable `operation` identity. Question/interaction references must be
+reciprocal. See [replacement rules](references/research-result-schema.md#replacement-rules).
+Malformed system-context enum inputs return field-specific expected values
+without printing the rejected payload. Rejection leaves the action unfinished; correct the inbox
+result and use the exact callback again, never edit the cursor.
+
+Draft, review, plan and apply also read [decision boundaries](references/research-loop.md#decision-boundaries):
+investigate researchable facts, ask for missing owner policy or authority, and
+carry established requirements to their later behavior/spec/test consumers.
+Record these distinctions in existing question/report fields, not a new journal.
+Derive policy-independent safety expectations without inventing a policy or
+claiming tests ran. An unchanged open question still blocks convergence; it is
+not evidence of a new discovery, nor a reason to count a trivial pass.
+
+This guidance uses the same embedded Until cycle: review, plan from the required
+Git history, apply improvements, verify, and commit learnings. There is no extra
+investigation engine. More research is justified by a consequential in-scope gap,
+not by an unselected optional feature or a numeric depth quota.
+
 Research uses in-scope evidence and safe read-only probes. It does not require a
 particular provider or a new tool, and it does not authorize installation,
 configuration changes, destructive experiments, or publication. After

@@ -14,6 +14,7 @@ import shlex
 from typing import Any, Mapping
 
 import shiploop_history_policy as history_policy
+import shiploop_system_context as system_context
 from shiploop_privacy import redact_text, sensitive_text
 from shiploop_until import action_reasoning, review_improve_cycle
 
@@ -759,16 +760,9 @@ def _platform_revalidation_packet(
     )
 
 
-def _planning_template(stage: str, state: Mapping[str, Any], api: Mapping[str, Any]) -> tuple[dict[str, Any] | None, list[str]]:
-    planning = _value(api, "planning")
-    kind_for_stage = getattr(planning, "kind_for_stage", None)
-    kind = kind_for_stage(stage) if callable(kind_for_stage) else None
-    if kind is None:
-        return None, []
-    rubrics = getattr(planning, "RUBRICS", {})
-    rubric = list(rubrics.get(kind, ())) if isinstance(rubrics, Mapping) else []
-    coverage = {key: "Evidence or inapplicability reason." for key in rubric}
-    research_state = {
+def _research_state_template(state: Mapping[str, Any]) -> tuple[dict[str, Any], list[str]]:
+    """Show the selected wire shape without inventing evidence or readiness."""
+    value = {
         "questions": [
             {
                 "id": "RQ-1",
@@ -783,8 +777,61 @@ def _planning_template(stage: str, state: Mapping[str, Any], api: Mapping[str, A
         ],
         "sources": [],
     }
+    notes = [
+        "Research rows are examples, not evidence. Replace them with the scoped inventory; add rows, not undeclared fields. Read the selected research-result-schema.md for all row shapes and enum values.",
+    ]
+    if not system_context.context_current(state):
+        return value, notes
+    value["questions"][0].update(
+        parents=[], contract_refs=[], role_refs=["ROLE-1"], interface_refs=[]
+    )
+    value["system_context"] = {
+        "version": 1,
+        "scope": "local-only",
+        "rationale": "Example only; establish scope from the frozen survey.",
+        "observations": [
+            {
+                "id": f"OBS-{kind}",
+                "kind": kind,
+                "status": "blocked",
+                "summary": f"The {kind} facet needs scoped evidence or a concrete inapplicability reason.",
+                "source_refs": [],
+                "role_refs": ["ROLE-1"],
+                "interface_refs": [],
+            }
+            for kind in ("code", "state", "system", "environment-role")
+        ],
+        "roles": [{
+            "id": "ROLE-1",
+            "label": "Example role; establish its stable identity before submission.",
+            "status": "blocked",
+            "permitted_actions": "Not established; do not infer external authority.",
+            "isolation": "Not established; inspect the selected environment.",
+            "platform_refs": [],
+            "source_refs": [],
+            "revalidate": "Before relying on this role for an operation.",
+        }],
+        "interfaces": [],
+        "interactions": [],
+    }
+    notes.append(
+        "Selected schema: system_context_protocol_version=1. scope is the string local-only or integrated; local-only is only this example, not an inferred decision. Applicable surveyed platforms require integrated scope, platform role coverage, exact surveyed interface references and interaction rows. Do not copy empty inventories to omit required boundaries."
+    )
+    return value, notes
+
+
+def _planning_template(stage: str, state: Mapping[str, Any], api: Mapping[str, Any]) -> tuple[dict[str, Any] | None, list[str]]:
+    planning = _value(api, "planning")
+    kind_for_stage = getattr(planning, "kind_for_stage", None)
+    kind = kind_for_stage(stage) if callable(kind_for_stage) else None
+    if kind is None:
+        return None, []
+    rubrics = getattr(planning, "RUBRICS", {})
+    rubric = list(rubrics.get(kind, ())) if isinstance(rubrics, Mapping) else []
+    coverage = {key: "Evidence or inapplicability reason." for key in rubric}
     if stage == "research":
-        return {"summary": "Research candidate drafted.", "body": "# Research\n...", "research_state": research_state}, []
+        research_state, notes = _research_state_template(state)
+        return {"summary": "Research candidate drafted.", "body": "# Research\n...", "research_state": research_state}, notes
     if stage == "behavior":
         return {"summary": "Behavior candidate drafted.", "body": "# Behavior model\n..."}, []
     if stage == "spec":
@@ -816,6 +863,7 @@ def _planning_template(stage: str, state: Mapping[str, Any], api: Mapping[str, A
             "addresses": ["F-001"],
         }, ["addresses must list every and only currently open finding ID; use [] when none."]
     if stage.endswith("-apply"):
+        notes = ["resolutions may cover only planned, currently open IDs; preserve all prior research IDs when applicable."]
         template: dict[str, Any] = {
             "summary": f"{kind} candidate updated.",
             "body": "# Complete replacement candidate\n...",
@@ -825,7 +873,11 @@ def _planning_template(stage: str, state: Mapping[str, Any], api: Mapping[str, A
             "learnings": "A durable learning for the audit commit.",
         }
         if kind == "research":
-            template["research_state"] = research_state
+            template["research_state"], research_notes = _research_state_template(state)
+            notes.extend(research_notes)
+            notes.append(
+                "Start the complete replacement from current research-evidence.md, not the sample inventory. Preserve role label, interface identity/survey_ref and interaction caller/callee/operation under their stable IDs. Refine mutable semantics instead; question.contract_refs and interaction.question_refs must link both ways. Read the selected replacement rules before submitting."
+            )
         elif kind == "spec":
             template["lifecycle"] = {
                 "acceptance": ["A named observable acceptance case passes."],
@@ -850,7 +902,7 @@ def _planning_template(stage: str, state: Mapping[str, Any], api: Mapping[str, A
                         "rationale": "No dependency maintenance workflow is selected for this scoped change.",
                     },
                 }
-        return template, ["resolutions may cover only planned, currently open IDs; preserve all prior research IDs when applicable."]
+        return template, notes
     if stage.endswith("-verify") or stage.endswith("-finalize"):
         return {"summary": f"Fresh {kind} candidate check passed."}, ["finalize must not include body, lifecycle, or research_state."]
     if stage.endswith("-commit"):
@@ -1863,6 +1915,10 @@ def _guidance_lines(core: Any, stage: str, api: Mapping[str, Any]) -> list[str]:
         ("Planning-loop guidance", "planning-loops.md", _value(api, "PLANNING_SECTIONS", {})),
         ("Step-planning guidance", "execution-planning.md", _value(api, "STEP_PLANNING_SECTIONS", {})),
         ("Research-loop guidance", "research-loop.md", _value(api, "RESEARCH_SECTIONS", {})),
+        ("Research result schema", "research-result-schema.md", {
+            "research": ("result-shape", "replacement-rules"),
+            "research-apply": ("result-shape", "replacement-rules"),
+        }),
         ("Objective-loop guidance", "objective-loops.md", _value(api, "OBJECTIVE_SECTIONS", {})),
         ("Local merge guidance", "activities/implement.md", {"merge": ("merge-and-recovery",)}),
         ("Coverage evidence guidance", "activities/residual.md", {"coverage": ("coverage",)}),

@@ -73,6 +73,15 @@ def _text(value: Any, label: str) -> str:
     return result
 
 
+def _enum(value: Any, label: str, allowed: set[str]) -> str:
+    """Validate a bounded string enum without hashing untrusted payloads."""
+    need(
+        isinstance(value, str) and value in allowed,
+        f"{label} is invalid; expected a string enum value: {', '.join(sorted(allowed))}",
+    )
+    return value
+
+
 def _id(value: Any, label: str) -> str:
     need(
         isinstance(value, str) and _ID_RE.fullmatch(value) is not None,
@@ -266,8 +275,7 @@ def _role(
         "system-context role has an unexpected schema",
     )
     label = f"system_context.roles[{index}]"
-    status = value["status"]
-    need(status in _ROLE_STATUSES, f"{label}.status is invalid")
+    status = _enum(value["status"], f"{label}.status", _ROLE_STATUSES)
     result = {
         "id": _id(value["id"], f"{label}.id"),
         "label": _text(value["label"], f"{label}.label"),
@@ -334,8 +342,7 @@ def _interface(
         "system-context interface has an unexpected schema",
     )
     label = f"system_context.interfaces[{index}]"
-    status = value["status"]
-    need(status in _CONTRACT_STATUSES, f"{label}.status is invalid")
+    status = _enum(value["status"], f"{label}.status", _CONTRACT_STATUSES)
     result = {
         "id": _id(value["id"], f"{label}.id"),
         "kind": _text(value["kind"], f"{label}.kind"),
@@ -392,8 +399,8 @@ def _interaction(
         "system-context interaction has an unexpected schema",
     )
     label = f"system_context.interactions[{index}]"
-    status = value["status"]
-    need(status in _CONTRACT_STATUSES, f"{label}.status is invalid")
+    status = _enum(value["status"], f"{label}.status", _CONTRACT_STATUSES)
+    risk = _enum(value["risk"], f"{label}.risk", _RISK_LEVELS)
     need(type(value["required"]) is bool, f"{label}.required must be a boolean")
     caller = _id(value["caller_interface_id"], f"{label}.caller_interface_id")
     callee = _id(value["callee_interface_id"], f"{label}.callee_interface_id")
@@ -434,7 +441,7 @@ def _interaction(
             value["failure_semantics"], f"{label}.failure_semantics"
         ),
         "idiom": _text(value["idiom"], f"{label}.idiom"),
-        "risk": value["risk"],
+        "risk": risk,
         "depth_rationale": _text(value["depth_rationale"], f"{label}.depth_rationale"),
         "status": status,
         "required": value["required"],
@@ -444,7 +451,6 @@ def _interaction(
             required=value["required"],
         ),
     }
-    need(result["risk"] in _RISK_LEVELS, f"{label}.risk is invalid")
     need(
         not (result["required"] and result["status"] == "not-applicable"),
         f"{label}.required interaction cannot be not-applicable",
@@ -475,10 +481,8 @@ def _observation(
         "system-context observation has an unexpected schema",
     )
     label = f"system_context.observations[{index}]"
-    kind = value["kind"]
-    status = value["status"]
-    need(kind in _OBSERVATION_KINDS, f"{label}.kind is invalid")
-    need(status in _OBSERVATION_STATUSES, f"{label}.status is invalid")
+    kind = _enum(value["kind"], f"{label}.kind", _OBSERVATION_KINDS)
+    status = _enum(value["status"], f"{label}.status", _OBSERVATION_STATUSES)
     result = {
         "id": _id(value["id"], f"{label}.id"),
         "kind": kind,
@@ -541,8 +545,7 @@ def _validate_context(
         type(value["version"]) is int and value["version"] == SYSTEM_CONTEXT_PROTOCOL_VERSION,
         f"system_context.version must be {SYSTEM_CONTEXT_PROTOCOL_VERSION}",
     )
-    scope = value["scope"]
-    need(scope in _SCOPES, "system_context.scope is invalid")
+    scope = _enum(value["scope"], "system_context.scope", _SCOPES)
     platforms, surveyed_interfaces, platform_applicable = _survey_index(machine)
     sources = research_state["sources"]
     known_sources = {row["id"] for row in sources}

@@ -14,6 +14,8 @@ for suite in \
   test/shiploop-validators.test.py \
   test/shiploop-discovery.test.py \
   test/shiploop-system-context.test.py \
+  test/shiploop-research-template.test.py \
+  test/shiploop-research-packet-protocol.test.py \
   test/shiploop-system-tests.test.py \
   test/shiploop-system-tests-protocol.test.py \
   test/shiploop-system-tests-report.test.py \
