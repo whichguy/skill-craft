@@ -50,7 +50,7 @@ The complete ShipLoop group passed 639 cases across 63 unittest suites,
 plus its shell checks. The complete core package group, generated package parity,
 portable skill hygiene, frontmatter and scoped Ruff/diff checks passed. The
 generated package CLI also passed all eight dry-run scenarios; their task
-results are explicitly synthetic. Source-release revision and CI receipts are
+results are explicitly synthetic. Source-release revision and CI receipts must be
 recorded in the delivery run after publication.
 
 A consumer search found three older opt-in scripts that assumed the v1 root
