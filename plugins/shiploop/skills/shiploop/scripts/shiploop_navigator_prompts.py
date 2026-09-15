@@ -74,6 +74,9 @@ commands, evidence, and whether work has converged. Follow the user’s scope
 and permissions; do not infer permission to release, push, install, delete, or
 change unrelated work.
 
+Use this packet's Current node and Action for your assignment and callback;
+the Last accepted transition describes earlier work, not the current action.
+
 Inspect current repository and run context before relying on prior notes. Keep
 the candidate and adjacent context explicitly scoped, preserve unrelated user
 work, and treat a missing prerequisite, access, decision, or trustworthy check
@@ -117,6 +120,18 @@ gate. Use a fresh independent reviewer when available; otherwise record the
 self-review limitation. Commit authorized changes only after their checks;
 never manufacture an empty commit, and honor an explicit user request not to
 commit.
+
+Schedule available independent review against the final candidate before
+declaring convergence. Record what it actually reviewed; later material edits
+invalidate affected review evidence and require reconsideration of that scope,
+including another independent look when available. Reviewer agreement alone
+does not establish correct behavior.
+
+For persistent failures or recurring findings, state a testable diagnosis and
+the smallest observation that distinguishes plausible causes. Use the result
+to choose the next action; repeated failure without new evidence calls for a
+different experiment or a revised plan. Keep this diagnosis in ordinary notes,
+without inventing another loop, counter, or result field.
 
 Repeat complete, distinct cycles internally until you assess two consecutive
 trivial-only completed reviews with current checks and no unresolved material
@@ -216,14 +231,24 @@ Plan the current authorized work item in enough detail to implement safely:
 the bounded candidate, prerequisites, affected code and consumers, intended
 behavior, independent expected outcomes, test cases, fixtures, documentation,
 skill/reuse questions, and checks. Resolve or block missing inputs before code;
-this is planning, not permission to skip directly to unverified edits."""
+this is planning, not permission to skip directly to unverified edits.
+Where acceptance could have different meanings, state a positive example and
+a nearby negative example. Select operational and security checks for changed
+boundaries: authorization, data integrity, dependency provenance/compatibility,
+migration recovery, or useful diagnostics as relevant. Keep the selection
+proportionate; record a missing required prerequisite as incomplete.
+If delegating, define bounded task/file ownership, shared interface contracts,
+inputs, expected outputs and evidence, and the owner responsible for checking
+the assembled result. Delegation remains within the current action."""
     ),
     "step-plan-improve": _prompt(
         """\
 Improve the local step plan as the current candidate. Recheck the bounded
 scope, prerequisite evidence, Backchain dependencies, expected outcomes,
 tests, documentation, reuse/skill choice, and any system-test impact. Refresh
-the affected plan and its planned checks before implementation.""",
+the affected plan and its planned checks before implementation. Challenge
+ambiguous acceptance examples, selected risk checks, and any delegation
+boundaries rather than assuming the draft plan resolved them.""",
         improve=True,
     ),
     "implement": _prompt(
@@ -231,21 +256,35 @@ the affected plan and its planned checks before implementation.""",
 Implement the authorized bounded plan. Inspect the actual code as it changes,
 preserve unrelated work, and record material discoveries. Do not treat a code
 edit as verification: send the learned implementation context forward so cases
-can be refined and executable tests authored before the final checks."""
+can be refined and executable tests authored before the final checks.
+When delegating, give each worker bounded ownership, shared contracts, inputs,
+and expected outputs/checks. Reconcile overlapping or conflicting work and
+inspect actual changes and evidence; the owning agent remains responsible for
+the assembled result and the one completion callback."""
     ),
     "test-refine": _prompt(
         """\
 Refine the earlier test cases from the code that now exists. Correct stale
 assumptions, retain meaningful coverage, and state current expected outcomes,
 failure behavior, fixtures, and selectors. Do not weaken an oracle merely to
-obtain a green result and do not claim a planned or edited test has run."""
+obtain a green result and do not claim a planned or edited test has run.
+Challenge expected results independently against the specification, including
+positive and nearby negative boundaries where useful. Check that mocks or
+implementation-derived expectations do not hide the behavior being tested;
+resolve a genuine specification ambiguity before treating disagreement as a
+code defect."""
     ),
     "test-author": _prompt(
         """\
 Author or refine executable tests and fixtures from the current case set.
 Map important behavior and failure cases to meaningful checks, preserving
 adequate existing tests where they already cover the outcome. Record any
-blocked test need honestly; final linters and tests still run at verify."""
+blocked test need honestly; final linters and tests still run at verify.
+For an important regression where practical, show that its check rejects the
+known-bad baseline or an isolated deliberately broken variant and passes the
+candidate. Reuse an adequate existing reproduction; avoid extra mutation
+testing when it adds no meaningful coverage. Keep experiments isolated from
+the deliverable and preserve caller/user data."""
     ),
     "document": _prompt(
         """\
@@ -255,7 +294,11 @@ existing relevant skill, or create/update a repo-local skill when repeated work
 demonstrates a concrete benefit. Otherwise explain why none is needed. Do not
 install or publish a skill without authority. Set `choices.skill_required: true` when the next
 `skill-validate` node is genuinely required; otherwise omit that choice. A
-documentation or reuse change may require affected checks to be refreshed."""
+documentation or reuse change may require affected checks to be refreshed.
+For a consequential learning, record whether it stays in this run, becomes a
+repo-local regression/example, or warrants a shared improvement proposal.
+Keep the evidence, intended scope, and cross-task validation need with that
+decision; a one-off workaround is not sufficient grounds for a general rule."""
     ),
     "skill-validate": _prompt(
         """\
@@ -263,7 +306,11 @@ Validate the selected reusable skill or skill-related change against its real
 executable examples, inputs, failure behavior, and consumer documentation;
 check the claimed host portability when applicable. Do not claim
 a skill is usable from its presence alone. Refresh all plan, code, test, or
-documentation checks affected by this work before final verification."""
+documentation checks affected by this work before final verification.
+For a proposed shared lesson or prompt change, check the triggering example,
+a relevant failure case, and other representative tasks for regressions before
+adoption. Record the tested scope and limits; one successful example does not
+establish a broadly reusable rule."""
     ),
     "verify": _prompt(
         """\
@@ -271,7 +318,12 @@ Run the actual relevant linters, executable tests, and other checks for the
 current candidate. Inspect failures, fix justified defects, and rerun affected
 checks until they are current; explain an invalid test before changing it. Tie
 results to expected outcomes and disclose any unrun, blocked, or environment-
-limited check rather than treating a partial green run as completion."""
+limited check rather than treating a partial green run as completion.
+For persistent or repeated failure, separate evidence of a product defect,
+invalid test, and environment problem. State the current testable diagnosis,
+choose a small discriminating check, and record its observation and the reason
+for the next action. Revisit the approach when retries add no evidence; never
+waive a required check because a retry budget or investigation allowance ended."""
     ),
     "product-improve": _prompt(
         """\
@@ -279,7 +331,10 @@ Improve the assembled product candidate as a whole, including the integrated
 plan, code, tests, documentation, skill/reuse decision, and verification
 evidence. Reconsider consumers, cross-step behavior, dependencies, and
 system-test needs. Any plan, code, test, documentation, or skill change made
-inside this action refreshes every affected check before convergence.""",
+inside this action refreshes every affected check before convergence. Revisit
+the selected operational/security checks, test-oracle adequacy, actual combined
+worker outputs, and final-candidate review coverage in proportion to this
+candidate's risk.""",
         improve=True,
     ),
     "integrate": _prompt(
@@ -288,7 +343,13 @@ Perform only authorized Git and worktree integration work. Inspect the actual
 branches, diffs, conflicts, identities, and resulting candidate; preserve user
 work and do not infer that a merge, commit, push, or deployment occurred from
 a plan or command attempt. Recheck integration-affected tests and surface a
-permission or conflict blocker rather than forcing an external operation."""
+permission or conflict blocker rather than forcing an external operation.
+Verify shared interfaces and consumer behavior on the assembled candidate;
+separate workers' passing checks do not establish that their combination works.
+A material merge or conflict-resolution edit invalidates affected prior review
+evidence: review that changed scope and refresh its checks before completion,
+using an independent reviewer when available. Keep broader unfinished review
+obligations explicit for carry-forward and outer Improve."""
     ),
     "carry-forward": _prompt(
         """\
@@ -296,7 +357,12 @@ Review broad remaining scope, dependencies, discoveries, system-test needs,
 consumer impacts, release prerequisites, and reusable-skill obligations. Keep
 current work separate from honest future work. If needed, return ordered
 future-only `work_items`; do not use them to claim a future test, integration,
-or release has already occurred."""
+or release has already occurred.
+For a consequential learning, decide whether to retain it in this run, add a
+repo-local regression/example, or propose a shared skill/prompt improvement.
+Record the supporting evidence and target; avoid promoting a one-off workaround
+into a general rule. Carry pending cross-task validation into the outer review
+before shared adoption, without silently editing unrelated global guidance."""
     ),
     "system-test": _prompt(
         """\
@@ -312,7 +378,10 @@ Improve the entire product and delivery candidate, not a single local file.
 Review cross-cutting requirements, integration and system evidence, release
 readiness, consumer impact, documentation, skills, and handoff facts. Refresh
 all checks affected by any plan, code, test, documentation, or skill change
-made during the complete improvement campaign.""",
+made during the complete improvement campaign. Resolve pending learning
+promotion proposals against representative regression evidence and existing
+authority; retain, revise, or decline them explicitly. Unvalidated proposals
+may remain documented future work but cannot be reported as adopted.""",
         improve=True,
     ),
     "release-plan": _prompt(

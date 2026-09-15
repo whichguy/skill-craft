@@ -13,6 +13,17 @@ owns execution and evaluation.
 recorded protocol without conversion. Navigation completion records the host's
 declared result; it does not certify tests, Git state or deployment.
 
+## Agentic inner-loop duties
+
+Existing stages now explicitly challenge acceptance examples and test quality,
+assign ownership when work is delegated, diagnose persistent failures with
+small experiments, and select operational checks for the changed boundaries.
+Available independent review covers the final candidate; integration refreshes
+affected reviews and checks. Consequential learnings remain scoped until shared
+adoption is justified by representative regression evidence and existing authority.
+See [stage responsibilities and an integration example](references/navigator.md#agentic-responsibilities-inside-existing-stages).
+Improve campaigns still iterate internally and submit one completion each.
+
 ## Bounded recursive discovery
 
 Discovery follows task-relevant boundaries behind an MCP or other gateway and

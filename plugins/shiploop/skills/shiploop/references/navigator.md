@@ -48,6 +48,9 @@ for example:
 ```
 ````
 
+The packet's Current node and Action identify the assignment. Its Last accepted
+transition is historical context and does not replace the current action.
+
 The semantic result contract is small:
 
 | Field | Meaning |
@@ -104,11 +107,17 @@ The navigator’s binding is:
 - Commit authorized changes after their checks, without artificial empty
   commits. An explicit user no-commit direction overrides this default.
 - Use a fresh independent reviewer when available; otherwise record that the
-  pass was self-reviewed and its limitation.
+  pass was self-reviewed and its limitation. Schedule available independent
+  review against the final candidate before convergence and record its actual
+  scope. Later material edits invalidate affected review evidence; reconsider
+  that scope and obtain another independent look when available.
 - Execute review, history-informed planning, apply, checks, record, and assess
   cycles internally until the host judges two distinct consecutive
   trivial-only completed reviews with current checks and no open material
   finding. Then submit a single graph `done`. A blocker is incomplete.
+- When failures or findings recur, record a testable diagnosis, a small check
+  that distinguishes plausible causes, its observation, and the next action.
+  Revisit the hypothesis or plan when retries add no evidence.
 
 The policy tells an owner that **splits** a review cycle into phases to execute
 only its assigned phase and return to its owner. Navigator deliberately assigns
@@ -160,6 +169,32 @@ limits as facts.
 | Host agent | Inspect and interpret evidence; choose commands; plan and execute authorized work; write/refine tests; assess materiality, convergence, and applicability; record honest evidence. |
 | User | Sets desired outcome, scope, permission, and overrides such as no commit or no release. |
 
+### Agentic responsibilities inside existing stages
+
+These are host-executed prompt duties within the existing graph. They add no
+nodes, result fields, scripted evidence validators, or required subagents.
+
+| Responsibility | Stage | Expected evidence or decision |
+| --- | --- | --- |
+| Challenge acceptance and tests | `step-plan-improve`, `test-refine`, `test-author` | Resolve ambiguous meaning with positive and nearby negative examples; derive expected results from the specification. For important regressions where practical, show an adequate check rejects the known-bad behavior and passes the candidate. |
+| Own delegated work | `step-plan`, `implement`, `integrate` | If delegating, identify bounded task/file ownership, shared interfaces, inputs, outputs/checks and the integrating owner. The owner inspects actual contributions and checks their combined behavior before its one completion. |
+| Diagnose persistent failure | `verify`, all Improve campaigns | Distinguish product, test and environment explanations with a small observable experiment. Record the conclusion and why the next action follows; a repeated attempt alone is not progress. |
+| Select relevant operational checks | `step-plan`, `product-improve` | Identify changed authorization/data boundaries, dependencies, recovery or diagnostic needs. Choose proportional checks and retain genuinely missing prerequisites as incomplete. |
+| Review the resulting candidate | Improve campaigns, `integrate` | Available independent review covers the final candidate. Material later edits invalidate affected evidence; integration rechecks shared interfaces and re-reviews changed scope. Whole-product obligations continue to outer Improve. |
+| Place validated learnings | `document`, `skill-validate`, `carry-forward`, `outer-improve` | Retain a run-specific lesson, add a repo-local regression/example, or propose a shared change with evidence and a target. Validate shared changes on triggering, failure and other representative cases before adoption within existing authority. |
+
+For example, suppose two worker contributions each pass their local tests, but
+one emits milliseconds while its consumer interprets seconds. At `integrate`,
+the owner checks the shared specification and runs the combined path. The
+observed unit mismatch prompts a scoped repair, review and affected rechecks;
+only then is an honest completion submitted. This hypothetical trace explains
+the duty, not a claim that the script detects units or runs these tests.
+
+Negative controls are proportional: an existing failing regression can be enough.
+Keep deliberately broken variants in isolated experiments, and never change
+the expected behavior merely to make a test pass. A missing required external
+check remains incomplete even when an investigation allowance expires.
+
 ## Implementation constitution
 
 Keep scope ahead of abstraction: solve the approved problem before introducing
@@ -168,6 +203,12 @@ test oracles tied to observable outcomes and choose checks in proportion to the
 change and its risk. Treat materiality semantically, preserve unrelated work,
 and stop for user direction when permission, scope, external effects, or an
 irreversible decision is not already authorized.
+
+Make acceptance and test expectations independently challengeable. Keep the
+owning agent accountable for delegated results. Let observed failures change
+the investigation. Refresh affected test and review evidence after material
+changes, including integration. Promote lessons only as far as their evidence
+and the user's authority support; preserve unvalidated proposals as proposals.
 
 ## Compatibility and limits
 
