@@ -30,6 +30,16 @@ bash test/shiploop-walk-journal.test.sh
 
 It is not part of the aggregate; the `shiploop` group owns the action walk once.
 
+The ShipLoop group also owns the opt-in navigator review-receipts checks:
+`improve-review-progress.test.py` covers the pure Improve convergence rule,
+`shiploop-review-receipts.test.py` covers Markdown recovery, replay and routing,
+and `improve-review-progress-package.test.py` relocates ShipLoop without a
+sibling Improve installation. These are synthetic protocol checks, not proof
+that a model performed a substantive review. The group checks the generated
+receipt helper/reference with `scripts/sync-improve-review-progress.py`; after
+reviewing canonical Improve changes, regenerate them with `--write`, then run
+`bash scripts/sync-plugin-views.sh improve shiploop` and rerun the checks.
+
 ## Explicit integration targets
 
 Integration checks never run as a default dependency of the hermetic aggregate.

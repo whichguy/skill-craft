@@ -1,11 +1,14 @@
 # ShipLoop navigator
 
-New runs use the prompt navigator: explicit SDLC actions, one complete Improve
-loop per assigned Improve action, and a small declaration-based transition
-contract. The script owns the cursor and safe Markdown persistence; the host
-owns execution and evaluation.
+New runs default to navigator protocol 1: explicit SDLC actions, one
+host-judged Improve campaign per assigned Improve action, and a small
+declaration-based transition contract. The script owns the cursor and safe
+Markdown persistence; the host owns execution and evaluation. A separately
+selected protocol-2 review-receipts pilot uses one complete Improve iteration
+per action instead.
 
 - [Navigator guide and flat SDLC diagram](references/navigator.md)
+- [Review-receipt progress contract](references/improve-review-progress.md)
 - [Graph dry-run commands and examples](references/graph-dry-run.md)
 - [Skill entrypoint](SKILL.md)
 
@@ -36,6 +39,30 @@ task/repository identity or remain incomplete, never become a replacement `init`
 The script does not retain the host handoff, launch a fresh model, reset a model
 context, or force a host to use its tools. See the [Navigator recovery contract](references/navigator.md#recover-one-existing-run).
 
+## Review-receipts pilot
+
+`init --review-receipts` is an explicit, new-run-only selection for navigator
+protocol 2. It is not the default navigator path, a migration for saved runs,
+or an installation/release claim. The packet for an Improve node then assigns
+one complete review/plan/apply/check/record/assess iteration; the exact
+result-only callback printed by the script retains the action identity through
+its generated result path.
+
+| Run | Selection | Improve behavior |
+| --- | --- | --- |
+| Navigator protocol 1 | `init` without `--review-receipts` | The existing host-judged whole campaign remains inside one Improve action. |
+| Navigator protocol 2 pilot | A genuinely new `init --review-receipts` | One receipt-bearing iteration per Improve action; two eligible contiguous receipts advance the SDLC. |
+| Existing managed or legacy | Their saved mode/marker | Unchanged, including managed controller audit-SHA and certificate behavior. |
+
+Protocol 2 persists the same Markdown state and result ledger. A package-local
+copy of Improve's pure `review_progress.py` derives the streak from those
+accepted receipts; ShipLoop does not add a second durable counter or launch a
+standalone Until Loop. Candidate descriptors, classifications, check status,
+findings and evidence references remain host claims rather than machine proof.
+See the [navigator pilot binding](references/navigator.md#review-receipt-pilot)
+for the packet lifecycle, and the [receipt contract with a compact trace](references/improve-review-progress.md)
+for its schema and reset rules.
+
 ## Agentic inner-loop duties
 
 Existing stages now explicitly challenge acceptance examples and test quality,
@@ -45,7 +72,9 @@ Available independent review covers the final candidate; integration refreshes
 affected reviews and checks. Consequential learnings remain scoped until shared
 adoption is justified by representative regression evidence and existing authority.
 See [stage responsibilities and an integration example](references/navigator.md#agentic-responsibilities-inside-existing-stages).
-Improve campaigns still iterate internally and submit one completion each.
+Protocol-1 Improve campaigns still iterate internally and submit one completion
+each; the opt-in protocol-2 pilot submits one completed iteration receipt and
+lets receipt-derived progress decide whether the same node repeats.
 
 ## Bounded recursive discovery
 

@@ -26,7 +26,9 @@ metadata:
 
 The script returns the current SDLC prompt and maintains durable Markdown
 navigation state. The host chooses how to do the work, evaluates its results,
-and runs each assigned Improve loop to completion inside that one action.
+and records honest evidence. Navigator protocol 1 keeps one host-judged
+Improve campaign inside an action. The opt-in protocol-2 review-receipts pilot
+instead makes each Improve action one complete review iteration.
 
 ## Start or resume
 
@@ -40,7 +42,16 @@ another run or substitute another repository.
 python3 "$CLI" init --repo "$REPO" --run-dir "$RUN_DIR" --prompt='<user request>'
 ```
 
-New runs use the **navigator** protocol. To recover an existing run:
+Omitting `--review-receipts` creates the unchanged navigator protocol 1. To
+start the **opt-in review-receipts pilot** for a genuinely new run, select it at
+initialization:
+
+```sh
+python3 "$CLI" init --review-receipts --repo "$REPO" --run-dir "$RUN_DIR" --prompt='<user request>'
+```
+
+That flag creates navigator protocol 2 only for that new run. It is not a
+conversion command, release claim, or new default. To recover an existing run:
 
 ```sh
 python3 "$CLI" next --run-dir "$RUN_DIR"
@@ -86,17 +97,23 @@ the host handoff, or force any host tool call.
    run meaningful tests and available linters, fix failures and recheck. Record
    outcomes and limitations honestly. Do not weaken tests to obtain a pass.
 3. At an Improve action, read the packaged shared policy and the
-   [navigator owner binding](references/navigator.md). Perform the entire
-   review/plan/apply/check/record/assess loop internally until its stopping
-   condition is met. Preserve useful learnings across its iterations. ShipLoop
-   receives one completion for that action; it does not schedule child phases,
-   count reviews, or classify edits by their bytes.
-4. The owning agent writes the packet's generic Markdown result and runs its
-   exact completion command, retaining the action ID. `done` and `complete` are
-   aliases. `done` follows the graph, `repeat` requests another attempt at the
-   current node, and `blocked` preserves unfinished work. These are result
-   outcomes, not permission to pick an arbitrary successor. Consume the
-   returned packet before beginning another stage.
+   [navigator owner binding](references/navigator.md). **Protocol 1** preserves
+   the existing behavior: finish its entire review/plan/apply/check/record/assess
+   campaign internally, then submit one completion. **Protocol 2**, selected
+   only by `init --review-receipts`, assigns one complete
+   review/plan/apply/check/record/assess iteration. Its `done` result must carry
+   the required review receipt and nonempty evidence references described in
+   [the receipt contract](references/improve-review-progress.md). The helper
+   derives progress from accepted receipts; do not keep a second counter or
+   launch standalone Improve or Until Loop.
+4. The owning agent writes the packet's result and runs its exact completion
+   command. `done` and `complete` are aliases. In protocol 2, the printed
+   callback is result-only: the generated result path retains the script-issued
+   action identity, so do not add or reconstruct an action ID. `done` follows
+   the graph, `repeat` requests another attempt at the current node, and
+   `blocked` preserves unfinished work. These are result outcomes, not
+   permission to pick an arbitrary successor. Consume the returned packet
+   before beginning another stage.
 5. After interruption, use the saved recovery command (`next`) before repeating
    an uncertain operation. Inspect saved history and actual effects, reconcile
    any already-applied work, then follow the reprinted current packet. An
@@ -107,11 +124,15 @@ the host handoff, or force any host tool call.
    software was tested, deployed, or accepted by a consumer.
 
 The navigator validates action identity, result shape, allowed transitions and
-safe state writes. It does not run Git/tests, fingerprint products, freeze
-artifacts or policy text, or demand certificates. The host remains responsible
-for evidence, authorized commits/merges, scope, meaningful review and validation.
-A packet grants no new permission to deploy, install tools, change credentials,
-send messages or overwrite unrelated work. Do not put secrets in results.
+safe state writes. Protocol 2 additionally validates the review-receipt shape
+and asks Improve-owned pure progress logic to derive the streak; it does not
+machine-prove a host's candidate descriptor, materiality, checks, findings or
+evidence claim. The navigator does not run Git/tests, fingerprint products,
+freeze artifacts or policy text, or demand certificates. The host remains
+responsible for evidence, authorized commits/merges, scope, meaningful review
+and validation. A packet grants no new permission to deploy, install tools,
+change credentials, send messages or overwrite unrelated work. Do not put
+secrets in results.
 
 Use [the navigator guide](references/navigator.md) for the flat SDLC diagram,
 Improve binding, constitution, work-item ordering, recovery and completion
@@ -120,13 +141,15 @@ producers before consumers in the ordered work queue.
 
 ## Existing protocols
 
-Existing managed and legacy runs retain their recorded protocol. `next` resumes
-that protocol; it never converts a run or discards its child state. Follow its
-printed stage-specific callbacks and references, including its established
-Improve binding. The navigator binding above applies only to navigator packets.
-The [compatibility README](README.md#compatibility-protocols) describes these
-older routes. Explicit `init --execution-mode=managed` or `legacy` remains
-available for compatibility fixtures; normal new work uses the navigator.
+Existing navigator protocol-1, managed, and legacy runs retain their recorded
+protocol. `next` resumes that protocol; it never converts a run or discards its
+child state. Follow its printed stage-specific callbacks and references,
+including its established Improve binding. The review-receipts pilot does not
+alter managed-controller audit-SHA/certificate semantics. The
+[compatibility README](README.md#compatibility-protocols) describes the older
+routes. Explicit `init --execution-mode=managed` or `legacy` remains available
+for compatibility fixtures; normal new work uses navigator protocol 1 unless
+the new-run pilot flag is explicitly supplied.
 
 ## Inspect the graph without project work
 

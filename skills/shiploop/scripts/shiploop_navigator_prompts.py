@@ -70,7 +70,7 @@ ENVIRONMENT_DISCOVERY_REQUIREMENTS = {
 COMMON = """\
 The script owns only this cursor, action identity, durable state, and graph
 routing. You own repository review, judgment, planning, edits, test design,
-commands, evidence, and whether work has converged. Follow the user’s scope
+commands, evidence, and honest semantic assessments. Follow the user’s scope
 and permissions; do not infer permission to release, push, install, delete, or
 change unrelated work.
 
@@ -144,13 +144,55 @@ it is not a completed review, a clean pass, or a successful completion.
 """
 
 
-def _prompt(duty: str, *, improve: bool = False) -> str:
-    """Assemble a concrete prompt while keeping shared obligations in one place."""
-    parts = (COMMON, duty, IMPROVE) if improve else (COMMON, duty)
-    return "\n\n".join(parts)
+IMPROVE_ITERATION = """\
+This action owns ONE complete Improve review iteration, not the whole campaign.
+Read the linked Improve review policy and the review-receipt owner binding.
+Review the current candidate, plan from the last seven full Git commit messages
+(all available if fewer), apply warranted improvements including trivial fixes,
+refresh affected tests and available linters, record evidence and assess this
+iteration. Do not start standalone Improve or until-loop, invent child phases,
+or run another review iteration before submitting this action's result.
+
+Rehydrate prior review notes and actual candidate/context before working.
+Describe candidate_before and candidate_after precisely enough to distinguish
+revisions of the reviewed code, plan, docs, tests, scope and relevant environment;
+a bare branch name or reused generic label cannot establish continuity. They
+are host declarations, not fingerprints independently verified by the script.
+Use the prior candidate_after exactly as candidate_before ONLY when inspection
+confirms that candidate and relevant context are unchanged. An unexplained
+change between reviews breaks the streak; report it truthfully, never hide it.
+
+In the review receipt classify material, trivial, none, or uncertain. Any
+material finding OR material edit makes this iteration material even when fixed.
+Record actual check status, whether every accepted improvement has been applied,
+and remaining open findings. Use none for a substantive no-change review; do
+not manufacture edits or empty commits. Honor no-commit directions. Otherwise
+commit authorized scoped changes after checks with Review, Plan, Changes,
+Validation, Key learnings and Remaining work. Read history again next iteration.
+Schedule available independent review against the resulting candidate and record
+its scope or the self-review limitation; material edits invalidate affected
+review/check evidence. Diagnose recurring failures with an observable experiment.
+
+Write the durable review note and reference it in evidence_refs. Submit done
+for this iteration with its review receipt, not a claimed campaign completion
+or supplied counter. Improve derives the streak from accepted receipts; the
+script returns the next iteration or SDLC stage. Failed/stale/incomplete checks,
+uncertain/material findings, unapplied improvements or open findings cannot
+qualify. A blocker remains incomplete: use blocked without a review receipt.
+Repeat restarts unfinished work without a review receipt. Both break the streak.
+Pause/resume does not count a pass; on resumption recheck candidate and context.
+An identical callback retry is not another review. All semantic judgments and
+evidence truth remain your responsibility; two accepted receipts alone do not
+prove engineering quality. Context may be cleared after the returned packet.
+"""
 
 
-PROMPTS = {
+def _prompt(duty: str, *, improve: bool = False) -> tuple[str, bool]:
+    """Keep one duty definition for both navigator protocol bindings."""
+    return duty, improve
+
+
+_TEMPLATES = {
     "intake": _prompt(
         """\
 Establish the requested outcome, repository and run boundaries, explicit user
@@ -422,6 +464,20 @@ or conversational summary into completion evidence."""
 }
 
 
+def prompt_for(stage: str, *, review_iteration: bool = False) -> str | None:
+    template = _TEMPLATES.get(stage)
+    if template is None:
+        return None
+    duty, improve = template
+    parts = [COMMON, duty]
+    if improve:
+        parts.append(IMPROVE_ITERATION if review_iteration else IMPROVE)
+    return "\n\n".join(parts)
+
+
+PROMPTS = {stage: prompt_for(stage) for stage in _TEMPLATES}
+
+
 if set(PROMPTS) != set(PRELUDE + INNER + OUTER):
     raise RuntimeError("navigator prompt catalog does not cover its graph")
 
@@ -435,4 +491,5 @@ __all__ = (
     "OUTER",
     "PRELUDE",
     "PROMPTS",
+    "prompt_for",
 )

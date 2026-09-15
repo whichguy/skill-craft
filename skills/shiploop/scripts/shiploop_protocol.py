@@ -7554,6 +7554,8 @@ def main(core, argv=None):
             sub.add_argument("--repo")
             sub.add_argument("--bound-plan", default="")
             sub.add_argument("--force", action="store_true")
+            sub.add_argument("--review-receipts", action="store_true",
+                             help="opt-in navigator pilot: one Improve review iteration per action")
             sub.add_argument("--execution-mode", choices=("navigator", "managed", "legacy"), default="navigator",
                              help="new-run protocol; existing runs retain their recorded mode")
             sub.add_argument("--independent-review", choices=("optional", "required", "required-with-fallback"), default="optional",
@@ -7570,7 +7572,7 @@ def main(core, argv=None):
             "revisit",
             "planning-upgrade",
         ):
-            sub.add_argument("--action", required=True)
+            sub.add_argument("--action", required=name != "complete")
         if name == "plan-status":
             sub.add_argument("--loop", required=True)
         if name in ("complete", "journal", "replan"):
@@ -7671,6 +7673,8 @@ def main(core, argv=None):
         if name in ("halt", "pause", "repair", "merge-recover", "revisit"):
             sub.add_argument("--reason", required=True)
     args = parser.parse_args(argv)
+    if args.command == "init" and args.review_receipts and args.execution_mode != "navigator":
+        parser.error("--review-receipts requires navigator mode")
     if args.command == "graph-dry-run":
         # Deliberately before run-directory discovery, locking or state access.
         return navigator_dry_run.run(args)
@@ -7699,7 +7703,14 @@ def main(core, argv=None):
                     need(not getattr(args, "force", False),
                          "--force cannot replace an existing run; use a fresh --run-dir")
                     navigator.validate(existing)
+                    if getattr(args, "review_receipts", False):
+                        need(existing["navigator_protocol_version"] == navigator.REVIEW_PROTOCOL_VERSION,
+                             "existing run retains its protocol; --review-receipts requires a new run")
                     return navigator.dispatch(core, root, existing, args)
+            if args.command == "complete":
+                need(bool(args.action), "non-navigator completion requires --action")
+            if getattr(args, "review_receipts", False) and (root / "state.md").exists():
+                need(False, "existing run retains its protocol; --review-receipts requires a new run")
             saved_prompt = None
             if args.command == "init":
                 need(bool(args.prompt.strip()), "prompt must not be empty")
@@ -7739,6 +7750,7 @@ def main(core, argv=None):
                     state = navigator.new_state(
                         str(Path(args.repo or os.getcwd()).resolve()), args.prompt,
                         str(Path(args.bound_plan).resolve()) if args.bound_plan else "",
+                        review_receipts=args.review_receipts,
                     )
                     navigator.save(root, state)
                     print(navigator.render(core, root, state))

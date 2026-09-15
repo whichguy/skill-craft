@@ -20,14 +20,16 @@ from typing import Any
 
 import shiploop_navigator_prompts as guidance
 import shiploop_store as store
+import _improve_review_progress as review_progress
 
 
 STATE_VERSION = 3
 PROTOCOL_VERSION = 1
+REVIEW_PROTOCOL_VERSION = 2
 _ACTION_ID = re.compile(r"^[A-Za-z][A-Za-z0-9_-]{0,159}$")
 _WORK_ITEM_ID = re.compile(r"^[A-Za-z][A-Za-z0-9_-]{0,63}$")
 _STATUSES = frozenset(("active", "paused", "blocked", "halted", "done"))
-_RESULT_KEYS = frozenset(("outcome", "summary", "evidence_refs", "work_items", "choices"))
+_RESULT_KEYS = frozenset(("outcome", "summary", "evidence_refs", "work_items", "choices", "review"))
 _STATE_KEYS = frozenset(
     (
         "version",
@@ -134,7 +136,7 @@ def _normalise_choices(value: Any, stage: str) -> dict[str, bool]:
     return {"skill_required": required}
 
 
-def _canonical_result(value: Any, *, stage: str) -> dict[str, Any]:
+def _canonical_result(value: Any, *, stage: str, protocol_version: int = PROTOCOL_VERSION) -> dict[str, Any]:
     _need(isinstance(value, Mapping), "result must be an object")
     keys = set(value)
     _need({"outcome", "summary"} <= keys, "result requires outcome and summary")
@@ -160,6 +162,16 @@ def _canonical_result(value: Any, *, stage: str) -> dict[str, Any]:
         )
     if "choices" in value:
         result["choices"] = _normalise_choices(value["choices"], stage)
+    iteration = protocol_version == REVIEW_PROTOCOL_VERSION and stage in _IMPROVE_STAGES
+    if "review" in value:
+        _need(iteration and outcome == "done", "review is allowed only for a protocol-2 Improve iteration done result")
+        try:
+            result["review"] = review_progress.normalize_review(value["review"])
+        except review_progress.ReviewProgressError as exc:
+            raise NavigatorError(str(exc)) from exc
+    if iteration and outcome == "done":
+        _need("review" in result, "Improve iteration done requires a review receipt")
+        _need(bool(result["evidence_refs"]), "Improve iteration requires evidence_refs for its review record")
     return result
 
 
@@ -188,14 +200,15 @@ def _next_stage(stage: str, result: Mapping[str, Any]) -> str:
         raise NavigatorError(f"no next navigator stage after {stage}") from exc
 
 
-def new_state(repo: str, prompt: str, bound_plan: str = "") -> dict[str, Any]:
+def new_state(repo: str, prompt: str, bound_plan: str = "", *, review_receipts: bool = False) -> dict[str, Any]:
     """Create an unpersisted navigator cursor with one initial work item."""
     _text(repo, "repo")
     _text(prompt, "prompt")
     _text(bound_plan, "bound_plan", allow_empty=True)
+    _need(type(review_receipts) is bool, "review_receipts must be boolean")
     state: dict[str, Any] = {
         "version": STATE_VERSION,
-        "navigator_protocol_version": PROTOCOL_VERSION,
+        "navigator_protocol_version": REVIEW_PROTOCOL_VERSION if review_receipts else PROTOCOL_VERSION,
         "execution_mode": "navigator",
         "run_id": "nav-" + uuid.uuid4().hex,
         "revision": 0,
@@ -222,7 +235,8 @@ def validate(state: Any) -> None:
     _need(keys <= _STATE_KEYS and _STATE_KEYS - {"status_reason"} <= keys,
           "navigator state has unsupported or missing fields")
     _need(state.get("version") == STATE_VERSION, "unsupported navigator state version")
-    _need(state.get("navigator_protocol_version") == PROTOCOL_VERSION,
+    _need(type(state.get("navigator_protocol_version")) is int
+          and state["navigator_protocol_version"] in (PROTOCOL_VERSION, REVIEW_PROTOCOL_VERSION),
           "unsupported navigator protocol version")
     _need(state.get("execution_mode") == "navigator", "state is not navigator mode")
     run_id = state.get("run_id")
@@ -289,7 +303,8 @@ def validate(state: Any) -> None:
         _need(entry_action not in history_ids, "navigator history repeats an action")
         history_ids.append(entry_action)
         _need(entry_action in accepted, "navigator history action has no accepted result")
-        canonical = _canonical_result(accepted[entry_action], stage=entry_stage)
+        canonical = _canonical_result(accepted[entry_action], stage=entry_stage,
+                                      protocol_version=state["navigator_protocol_version"])
         _need(canonical == accepted[entry_action], "accepted navigator result is not canonical")
         _need(entry.get("outcome") == canonical["outcome"], "navigator history outcome disagrees")
         _need(entry.get("summary") == canonical["summary"], "navigator history summary disagrees")
@@ -337,6 +352,21 @@ def _record_acceptance(
     )
 
 
+def _review_decision(state: Mapping[str, Any]) -> dict[str, Any]:
+    """Project this stage/work item's receipts; Improve alone computes readiness."""
+    receipts = []
+    for entry in reversed(state["history"]):
+        if entry["stage"] != state["stage"] or entry["workitem"] != _current_work_item(state):
+            break
+        result = state["accepted"][entry["action"]]
+        receipts.append({"id": entry["action"], "outcome": result["outcome"],
+                         "review": result.get("review")})
+    try:
+        return review_progress.decide(list(reversed(receipts)))
+    except review_progress.ReviewProgressError as exc:
+        raise NavigatorError(str(exc)) from exc
+
+
 def apply(state: Mapping[str, Any], action_id: str, result: Any) -> dict[str, Any]:
     """Accept one current result and return a new state without persisting it."""
     validate(state)
@@ -346,7 +376,8 @@ def apply(state: Mapping[str, Any], action_id: str, result: Any) -> dict[str, An
     replay = _action_history(state, action_id)
     if action_id in accepted:
         _need(replay is not None, "accepted navigator result has no history")
-        submitted = _canonical_result(result, stage=replay["stage"])
+        submitted = _canonical_result(result, stage=replay["stage"],
+                                      protocol_version=state["navigator_protocol_version"])
         _need(submitted == accepted[action_id],
               "conflicting result replay for accepted navigator action")
         return deepcopy(dict(state))
@@ -354,7 +385,8 @@ def apply(state: Mapping[str, Any], action_id: str, result: Any) -> dict[str, An
     _need(state["status"] == "active", "navigator is not active; resume or inspect it first")
     _need(action_id == state["action"]["id"], "stale navigator action ID")
     stage = state["stage"]
-    canonical = _canonical_result(result, stage=stage)
+    canonical = _canonical_result(result, stage=stage,
+                                  protocol_version=state["navigator_protocol_version"])
     updated = deepcopy(dict(state))
     _record_acceptance(updated, action_id, stage, canonical)
     updated["revision"] += 1
@@ -375,6 +407,11 @@ def apply(state: Mapping[str, Any], action_id: str, result: Any) -> dict[str, An
 
     if stage in ("plan", "plan-improve") and "work_items" in canonical:
         _replace_plan_work_items(updated, canonical["work_items"])
+    if (state["navigator_protocol_version"] == REVIEW_PROTOCOL_VERSION
+            and stage in _IMPROVE_STAGES and not _review_decision(updated)["ready"]):
+        updated["action"] = _new_action(stage)
+        validate(updated)
+        return updated
     if stage == "carry-forward":
         if "work_items" in canonical:
             _replace_future_work_items(updated, canonical["work_items"])
@@ -441,9 +478,18 @@ def _result_input_path(root: Path, action_id: str) -> Path:
     return root / "inbox" / f"{action_id}.md"
 
 
-def _result_template() -> str:
+def _result_template(*, review_iteration: bool = False) -> str:
+    result = {"outcome": "done", "summary": "...", "evidence_refs": []}
+    if review_iteration:
+        result["evidence_refs"] = ["path to the durable review record"]
+        result["review"] = {
+            "candidate_before": "actual candidate and context descriptor before this review",
+            "candidate_after": "actual candidate and context descriptor after improvements",
+            "classification": "uncertain", "checks": "incomplete",
+            "improvements_complete": False, "open_findings": ["unresolved findings, or an empty list"],
+        }
     return store.dumps(
-        {"outcome": "done", "summary": "...", "evidence_refs": []},
+        result,
         "ShipLoop navigator result",
     )
 
@@ -461,8 +507,11 @@ def render(core: Any, root: Path, state: Mapping[str, Any]) -> str:
     root = Path(root)
     action = state["action"]
     stage = state["stage"]
+    review_iteration = state["navigator_protocol_version"] == REVIEW_PROTOCOL_VERSION and stage in _IMPROVE_STAGES
     lines = [
         f"ShipLoop navigator | {stage} | revision {state['revision']}",
+        f"Current node: {stage}",
+        f"Action: {action['id']}",
         f"State: {root / 'state.md'}",
         f"Result records: {root / 'results'}",
         f"Result inbox: {root / 'inbox'}",
@@ -550,7 +599,7 @@ def render(core: Any, root: Path, state: Mapping[str, Any]) -> str:
         )
         return "\n".join(lines) + "\n"
 
-    instruction = guidance.PROMPTS.get(stage)
+    instruction = guidance.prompt_for(stage, review_iteration=review_iteration)
     _need(isinstance(instruction, str) and bool(instruction.strip()),
           f"navigator prompt is unavailable for {stage}")
     reference_dir = _reference_dir(core)
@@ -590,15 +639,28 @@ def render(core: Any, root: Path, state: Mapping[str, Any]) -> str:
         lines.append(
             "Improve review policy: " + str(reference_dir / "improve-review-policy.md")
         )
+        if review_iteration:
+            progress = _review_decision(state)
+            lines.extend([
+                "Improve iteration binding: " + str(reference_dir / "navigator.md") + "#review-receipt-pilot",
+                "Improve receipt contract: " + str(reference_dir / "improve-review-progress.md"),
+                f"Current review note: {root / 'notes' / (action['id'] + '.md')}",
+                f"Completed qualifying review streak: {progress['trivial_streak']}/2 (derived by Improve from accepted receipts).",
+                "You are here: one review iteration, not the entire Improve campaign. Submit this iteration; the script decides whether another is required.",
+                "Rehydrate scope and candidate context from state.md, the prior result references, and the shared review policy; never supply or retain your own counter.",
+            ])
     result_path = _result_input_path(root, action["id"])
+    completion_flags = {"result": str(result_path)}
+    if state["navigator_protocol_version"] == PROTOCOL_VERSION:
+        completion_flags = {"action": action["id"], **completion_flags}
     lines.extend(
         [
             "",
             f"Write the structured result to: {result_path}",
             "Result template:",
-            _result_template().rstrip(),
+            _result_template(review_iteration=review_iteration).rstrip(),
             "Call this when done:",
-            _callback(core, root, "complete", action=action["id"], result=str(result_path)),
+            _callback(core, root, "complete", **completion_flags),
             "If work cannot continue, submit outcome 'blocked' with a truthful summary, then follow the printed resume route.",
             "Pause without consuming the action: " + _callback(core, root, "pause", reason="reason"),
             "Halt unfinished: " + _callback(core, root, "halt", reason="reason"),
@@ -660,7 +722,7 @@ def _latest_result_record(state: Mapping[str, Any]) -> tuple[str, str] | None:
     entry = state["history"][-1]
     action_id = entry["action"]
     record = {
-        "navigator_protocol_version": PROTOCOL_VERSION,
+        "navigator_protocol_version": state["navigator_protocol_version"],
         "run_id": state["run_id"],
         "action": action_id,
         "stage": entry["stage"],
@@ -689,15 +751,17 @@ def save(root: Path, state: Mapping[str, Any]) -> None:
     store.transaction(Path(root), writes)
 
 
-def _submitted_result(root: Path, args: Any) -> Any:
+def _submitted_result(root: Path, args: Any) -> tuple[str, Any]:
     action_id = getattr(args, "action", None)
-    _need(isinstance(action_id, str) and _ACTION_ID.fullmatch(action_id) is not None,
-          "unsafe navigator action ID")
     raw_path = getattr(args, "result", None)
     _need(isinstance(raw_path, str) and bool(raw_path),
           "navigator complete requires a result Markdown path")
-    expected = _result_input_path(Path(root), action_id)
     path = Path(raw_path)
+    if action_id is None:
+        action_id = path.stem
+    _need(isinstance(action_id, str) and _ACTION_ID.fullmatch(action_id) is not None,
+          "unsafe navigator action ID")
+    expected = _result_input_path(Path(root), action_id)
     _need(path == expected, "navigator result path must be the current generated path")
     _need(path.is_file() and not path.is_symlink(),
           "navigator result must be a regular non-symlink Markdown file")
@@ -705,7 +769,7 @@ def _submitted_result(root: Path, args: Any) -> Any:
         _need(not parent.is_symlink(), "navigator result path contains a symlink")
         if parent == Path(root):
             break
-    return store.read_record(path)
+    return action_id, store.read_record(path)
 
 
 def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any) -> int:
@@ -735,11 +799,10 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any) -> int:
         print(_render_report(state), end="")
         return 0
     if command == "complete":
-        updated = apply(
-            state,
-            getattr(args, "action", None),
-            _submitted_result(root, args),
-        )
+        if state["navigator_protocol_version"] == PROTOCOL_VERSION:
+            _need(bool(getattr(args, "action", None)), "protocol-1 navigator completion requires --action")
+        action_id, result = _submitted_result(root, args)
+        updated = apply(state, action_id, result)
     else:
         updated = control(state, command, getattr(args, "reason", ""))
     if updated != state:

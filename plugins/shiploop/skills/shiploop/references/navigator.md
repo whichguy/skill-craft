@@ -1,9 +1,11 @@
 # Navigator execution mode
 
-Navigator is the default mode for new ShipLoop runs. It is a small directed
-graph that returns one current prompt and records one state transition from a
-concise host result. It keeps durable state and routing in the script while the
-host decides how to inspect, plan, edit, test, review, and assess the work.
+Navigator protocol 1 is the default mode for new ShipLoop runs. It is a small
+directed graph that returns one current prompt and records one state transition
+from a concise host result. It keeps durable state and routing in the script
+while the host decides how to inspect, plan, edit, test, review, and assess the
+work. A new-run-only `--review-receipts` selection creates navigator protocol 2
+for an opt-in pilot; it changes only the Improve-node receipt boundary.
 
 ```mermaid
 flowchart LR
@@ -38,14 +40,18 @@ missing or relocated run with a new one.
 
 ```sh
 python3 "$CLI" init --repo="$REPO" --run-dir="$RUN_DIR" --prompt='requested outcome'
+# Explicit protocol-2 pilot for a genuinely new run only:
+python3 "$CLI" init --review-receipts --repo="$REPO" --run-dir="$RUN_DIR" --prompt='requested outcome'
 python3 "$CLI" next --run-dir="$RUN_DIR"
 python3 "$CLI" done --run-dir="$RUN_DIR" --action="$ACTION" --result="$RESULT"
 ```
 
-`init` creates a new navigator-marked run and returns the `intake` cursor and
-its prompt. `next` rereads the saved current action after a context reset; it
-does not select or persist a successor. `done` reads one result file containing
-a `shiploop-state` fenced JSON object, for example:
+Plain `init` creates the unchanged protocol-1 navigator run. Only the explicit
+flag above creates protocol 2, and only at creation; `next` never converts a
+saved navigator, managed, or legacy run. `next` rereads the saved current
+action after a context reset; it does not select or persist a successor. `done`
+reads one result file containing a `shiploop-state` fenced JSON object, for
+example:
 
 ````markdown
 ```shiploop-state
@@ -91,13 +97,16 @@ The semantic result contract is small:
 | `evidence_refs` | Optional safe references to source, test, note, or external-operation evidence. |
 | `work_items` | Optional ordered `{id,title,context?}` list at `plan` or `plan-improve` before execution for all approved work, or at `carry-forward` for future-only work. |
 | `choices.skill_required` | Optional at `document` only. `true` selects `skill-validate`; omit it when no skill validation is required. |
+| `review` | Required only for a protocol-2 `done` result at an Improve node. Its exact receipt shape and nonempty outer `evidence_refs` requirement are in [the review-receipt contract](improve-review-progress.md). |
 
 `repeat` allocates another action at the same node, so the host can continue
 with new information. `blocked` retains unfinished work; after the condition
 is resolved, `resume` returns the same node. Neither is a successful advance.
-At Improve nodes, normal review iterations continue internally. An explicit
-`repeat` restarts the attempt; it never counts as a completed review or clean
-pass. Each converged campaign submits one successful `done`.
+At a protocol-1 Improve node, normal review iterations continue internally and
+one successful `done` follows a host-judged converged campaign. At a
+protocol-2 Improve node, each `done` is one complete iteration and is assessed
+from its receipt; an explicit `repeat` or `blocked` never counts. The packet
+prints the only legal callback in either protocol.
 Each new run begins with `W1`, titled from the original goal. A `plan` or
 pre-execution `plan-improve` result can replace the pending plan with ordered
 work items, while completed work-item records remain durable history; optional
@@ -116,14 +125,22 @@ authorization question were recorded. Only then does `done` move the cursor to
 and local-skill facts. This is an example of the intended input → cursor →
 prompt path, not evidence that any repository inspection occurred.
 
-## Improve nodes own their full campaign
+## Improve nodes: preserved protocol 1 and review-receipt pilot
 
 `research-improve`, `spec-improve`, `plan-improve`, `step-plan-improve`,
 `product-improve`, and `outer-improve` each invoke the packaged reusable
-[Improve review policy](improve-review-policy.md). Each is one graph action,
-not a wrapper around another state machine.
+[Improve review policy](improve-review-policy.md). Neither navigator protocol
+starts standalone Improve or Until Loop, creates a child phase cursor, or
+adds a second state store.
 
-The navigator’s binding is:
+### Protocol 1: one host-judged whole campaign
+
+Navigator protocol 1 is the default and preserves the existing whole-campaign
+binding. One Improve graph action remains one host-owned campaign, not a
+wrapper around another state machine. The host completes its internal cycles,
+then submits one `done` only when it judges the campaign converged.
+
+Its binding is:
 
 - Inspect the latest seven full Git commit messages in every cycle; inspect all
   available messages when fewer exist and state when no history exists.
@@ -151,16 +168,68 @@ The navigator’s binding is:
   Revisit the hypothesis or plan when retries add no evidence.
 
 The policy tells an owner that **splits** a review cycle into phases to execute
-only its assigned phase and return to its owner. Navigator deliberately assigns
-the complete cycle to one Improve node, so that split-phase restriction does
-not divide this action. It does not launch standalone Improve or until-loop,
-make child-phase cursors, inspect ambient loop state, or add a second
-convergence wrapper.
+only its assigned phase and return to its owner. Protocol 1 deliberately
+assigns the complete cycle to one Improve node, so that split-phase restriction
+does not divide this action. Any plan, code, test, documentation, or skill
+change made during the campaign refreshes the checks it affects. The result is
+still a host judgment; protocol 1 does not count reviews or classify edits by
+their bytes.
 
-Any plan, code, test, documentation, or skill change made during an Improve
-campaign refreshes the checks it affects. The result is still a host judgment;
-the script neither counts reviews nor classifies materiality, runs Git/tests,
-reads artifacts, verifies policy hashes, or issues certificates.
+## Review-receipt pilot
+
+### One complete iteration per action
+
+`init --review-receipts` creates navigator protocol 2 for a genuinely new run.
+It is not a default, migration, or change to any existing navigator, managed,
+or legacy record. At a protocol-2 Improve node, the assignment is exactly one
+complete **review → plan → apply → check → record → assess** iteration. The
+host must complete all six duties before returning the current packet's `done`
+result; it does not submit subphase callbacks.
+
+The packet prints an exact **result-only** completion command. Its generated
+result path retains the script-issued action identity internally, so the host
+does not recreate an action ID, choose a successor, or hand-construct a
+different callback. A `done` result must include a nonempty outer
+`evidence_refs` list and this `review` object:
+
+````markdown
+```shiploop-state
+{
+  "outcome": "done",
+  "summary": "Reviewed the current candidate; no worthwhile change remained.",
+  "evidence_refs": ["notes/nav-example.md"],
+  "review": {
+    "candidate_before": "host descriptor for the candidate and scope before review",
+    "candidate_after": "host descriptor for the candidate and scope after review",
+    "classification": "none",
+    "checks": "passed",
+    "improvements_complete": true,
+    "open_findings": []
+  }
+}
+```
+````
+
+`candidate_before` and `candidate_after` are nonempty host descriptors;
+`classification` is `material`, `trivial`, `none`, or `uncertain`; `checks` is
+`passed`, `failed`, `stale`, or `incomplete`; and `open_findings` is a list of
+nonempty finding strings. The exact canonical schema, continuity rule, compact
+trace, reset conditions, no-change handling, and single-counter boundary are in
+[the Improve review-progress reference](improve-review-progress.md).
+
+ShipLoop persists only its existing `state.md` and `results/` Markdown ledger.
+It passes contiguous accepted receipts to the package-local copy of Improve's
+pure `review_progress.py`, which is the sole owner of streak derivation. The
+helper returns whether two eligible contiguous receipts are ready; ShipLoop
+then either emits another Improve action or advances the SDLC. It does not add
+a second persistent counter, launch standalone Improve/Until Loop, or
+machine-prove semantic host assertions. Candidate descriptors, classifications,
+check claims, completeness, findings, and evidence references remain host
+claims requiring honest supporting evidence.
+
+The pilot does not modify the managed controller's binding, audit-SHA, or
+terminal-certificate semantics. It does not reinterpret managed or legacy
+receipts.
 
 ## SDLC responsibilities
 
@@ -247,10 +316,11 @@ and the user's authority support; preserve unvalidated proposals as proposals.
 
 ## Compatibility and limits
 
-New runs persist `execution_mode: navigator` and
-`navigator_protocol_version: 1`. Existing markerless managed or legacy states
-retain the protocol their established records select, including a managed marker
-such as `managed_improve_protocol_version`; they are not converted or
+New default navigator runs persist `execution_mode: navigator` and
+`navigator_protocol_version: 1`; the explicit new-run review-receipts pilot
+persists `navigator_protocol_version: 2`. Existing markerless managed or legacy
+states retain the protocol their established records select, including a managed
+marker such as `managed_improve_protocol_version`; they are not converted or
 reinterpreted. New navigator markers alone select navigator dispatch. Do not
 edit durable mode state to bypass that boundary.
 

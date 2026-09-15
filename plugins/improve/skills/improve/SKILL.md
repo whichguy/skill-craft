@@ -83,6 +83,41 @@ fallback is allowed; absent that authorization, unavailable independent review
 blocks the child. The controller must never infer a fallback from availability
 or a desire to finish.
 
+## ShipLoop navigator review-receipts pilot
+
+The review-receipts pilot is a third, narrow consumer of the shared policy. It
+applies only when a genuinely new ShipLoop navigator run was initialized with
+`--review-receipts` and its packet identifies protocol 2. It does not select a
+new default, alter a protocol-1 navigator campaign, convert an existing run,
+or change the managed controller described above.
+
+Read [the receipt-derived progress contract](references/review-progress.md),
+the shared policy, and the parent packet in full. The current Improve action is
+one complete review/plan/apply/check/record/assess iteration, not an entire
+campaign and not a split child phase. Return exactly the packet's result-only
+completion callback after recording a complete result. Its generated result
+path retains the ShipLoop action identity; do not invent an action ID or
+successor.
+
+For a `done` iteration, supply nonempty outer `evidence_refs` and the required
+receipt fields: nonempty `candidate_before` and `candidate_after` descriptors;
+`classification` (`material`, `trivial`, `none`, or `uncertain`); `checks`
+(`passed`, `failed`, `stale`, or `incomplete`); boolean
+`improvements_complete`; and a list of string `open_findings`. The pure
+Improve-owned `review_progress.py` derives the two-pass streak from accepted
+receipts. ShipLoop only persists its existing Markdown state/results ledger and
+uses its package-local copy of that pure helper; do not retain another counter,
+create an ambient `.until-loop` directory, or invoke this card's standalone
+adapter.
+
+The receipt shape and its derived decision do not prove semantic claims. The
+host must still inspect the full seven-message Git history window, make
+authorized changes, run current checks, preserve unrelated work, record
+learnings, and follow the shared-policy commit rule. A no-change/no-commit
+iteration is permitted when honest and authorized; it does not waive a required
+learning/audit commit or justify an artificial empty change. Managed-controller
+audit-SHA and terminal-certificate semantics remain untouched.
+
 ## Standalone owner binding
 
 - **History window:** at the start of every completed review cycle, read the

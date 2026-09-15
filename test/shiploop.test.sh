@@ -7,9 +7,13 @@ cd "$root"
 
 printf '==> scripts/sync-improve-managed.py\n'
 PYTHONDONTWRITEBYTECODE=1 python3 scripts/sync-improve-managed.py
+PYTHONDONTWRITEBYTECODE=1 python3 scripts/sync-improve-review-progress.py
 
 for suite in \
   test/shiploop-navigator.test.py \
+  test/improve-review-progress.test.py \
+  test/improve-review-progress-package.test.py \
+  test/shiploop-review-receipts.test.py \
   test/shiploop-navigator-dry-run.test.py \
   test/improve-managed.test.py \
   test/shiploop-graph-driver.test.py \

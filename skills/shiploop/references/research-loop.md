@@ -363,16 +363,29 @@ investigation. Do not restart settled research just because a later node reads
 this guide. The same investigation's allowance follows its notes across nodes
 and context resets; entering an Improve action never refills it.
 
-An Improve node owns its entire review/plan/apply/check/record/assess campaign.
-Perform those cycles internally under the navigator binding and preserve their
-learnings. Do not submit a callback for each compatibility child phase. Required
-unresolved questions prevent a host declaration of convergence; navigator
-validates the result envelope, not the truth or completeness of those findings.
+Follow the current packet's navigator binding and preserve the learnings:
+
+- **Protocol 1:** an Improve node owns its entire
+  review/plan/apply/check/record/assess campaign. Perform those cycles internally
+  before submitting one completion.
+- **Protocol 2 (`--review-receipts` pilot):** an Improve action owns
+  **one complete iteration**, not the whole campaign. Complete its six duties,
+  then submit the packet's required review receipt and evidence references.
+  Improve derives progress from accepted receipts; follow the returned packet
+  rather than starting another review internally. See the
+  [pilot binding](navigator.md#review-receipt-pilot).
+
+Neither protocol accepts callbacks for individual compatibility child phases.
+Required unresolved questions prevent convergence: in protocol 2, report them
+honestly as open findings, uncertain conclusions or incomplete checks in a
+completed iteration, or use `repeat`/`blocked` for unfinished work. Navigator
+validates result shape, not the truth or completeness of those findings.
 
 Use the closing reserve with the current packet's protocol:
 
-- If the action's duties are complete, submit its valid generic result and pause
-  the returned action when the investigation allowance is exhausted.
+- If the action's duties are complete, submit its protocol-valid result
+  (including the review receipt for protocol-2 Improve iterations) and pause the
+  returned action when the investigation allowance is exhausted.
 - For unfinished duties, retain the **unaccepted draft** at the current printed
   inbox path and call `pause` with the note/draft locator, remaining allowance,
   and next gap. Cold `next` and `resume` preserve that action ID and draft; neither
@@ -382,7 +395,8 @@ Use the closing reserve with the current packet's protocol:
   `outcome: blocked` result with durable evidence references. That is an accepted
   blocker report and allocates a **new action ID at the same stage**; it is not a
   same-action draft checkpoint or a successful advance. Follow its returned
-  blocked/resume packet. Never mark an unfinished campaign `done` just to save it.
+  blocked/resume packet. Never mark unfinished assigned duties `done` just to save
+  them; protocol 2 completes one iteration, not a claim of campaign convergence.
 
 ## Decision boundaries
 
