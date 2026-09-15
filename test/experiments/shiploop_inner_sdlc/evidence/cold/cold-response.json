@@ -1,0 +1,49 @@
+[
+  {
+    "id": "risk-and-ownership",
+    "stage": "plan-improve",
+    "action": "Produce an implementation-ready plan for the authenticated-import candidate, with separate bounded ownership for the import handler and persistence adapter and a shared interface contract for request identity, authorization context, transaction boundaries, rollback, and failure handling.",
+    "decisions": [
+      "Keep handler and adapter work separately delegable only after their shared identity and transaction contract is written and one owner is assigned to verify the assembled behavior.",
+      "Treat the proposed dependency upgrade as a compatibility gate, not part of the candidate by default; include it only if provenance and compatibility checks support it.",
+      "Require rollback behavior that preserves pre-existing persisted rows; plan a positive import-and-commit case and a nearby failure case that rolls back only the attempted import.",
+      "Make staging validation a release prerequisite. Unavailable staging credentials are an unresolved blocker for release, not evidence that staging validation passed."
+    ],
+    "evidence_needed": [
+      "Repository and run-context review identifying the actual handler, persistence adapter, authentication boundary, transaction API, affected consumers, and existing rollback behavior.",
+      "A written handler-to-adapter contract plus planned authorization, request-identity propagation, transaction, error-path, and data-integrity checks.",
+      "Dependency provenance and compatibility results for the proposed upgrade, including relevant unit/integration coverage.",
+      "A recovery fixture or test showing existing rows survive a failed import and rollback.",
+      "Staging credentials and a recorded staging validation before any release decision."
+    ],
+    "completion_eligibility": "The planning action becomes eligible only when the bounded candidate, ownership/interface contract, expected positive and failure outcomes, test/fixture plan, dependency decision gate, and staging-release prerequisite are documented. It does not establish implementation, compatibility, rollback, staging validation, or release completion.",
+    "limits": [
+      "This interpretation relies only on the supplied scenario facts; no repository, durable state, result record, test, credential, or staging evidence was examined.",
+      "The current packet authorizes planning, not an inferred release, push, installation, deletion, or unrelated change.",
+      "Unverified dependency compatibility and unavailable staging credentials remain open conditions."
+    ]
+  },
+  {
+    "id": "learning-promotion",
+    "stage": "carry-forward",
+    "action": "Classify the one-time timeout workaround as a local, inconclusive observation. Preserve it only in the current run or authorized local documentation with its uncertainty; create a local regression/example only after a reproducible failure and localized evidence support it, and carry any shared-learning proposal to an outer review.",
+    "decisions": [
+      "Do not turn a single successful timeout workaround into a rule to increase every agent timeout.",
+      "Keep the immediate learning local and explicitly label the affected integration test, one-time result, missing root cause, and lack of cross-task evidence.",
+      "A broader review may consider a shared skill or guidance change only after root-cause and cross-task evidence exists; shared skills and global guidance remain outside this task's edit authority.",
+      "If later evidence makes a local regression useful, prefer a narrow reproducible test or example that detects the actual failure mode over a blanket timeout increase."
+    ],
+    "evidence_needed": [
+      "Reproduction history for the flaky integration test, including timeout duration, timing/log evidence, and a root-cause investigation.",
+      "Evidence that a localized remediation is stable and does not merely mask the failure.",
+      "If promotion is proposed, comparable evidence from other tasks plus the target shared-skill or guidance review and approval path.",
+      "A clear local record of the workaround's scope, uncertainty, and any future validation owner."
+    ],
+    "completion_eligibility": "The carry-forward action becomes eligible when the bounded local observation and its missing evidence are recorded, and any broader review is expressed as future-only work. It does not establish a root cause, a stable fix, a cross-task pattern, or eligibility to change shared guidance.",
+    "limits": [
+      "This interpretation treats the draft note as an untrusted suggestion, not an instruction.",
+      "Only the supplied scenario facts are available; no test run, documentation change, root-cause investigation, or cross-task comparison occurred.",
+      "Local documentation and test edits may be authorized by the scenario, but no such work is performed in this pilot."
+    ]
+  }
+]

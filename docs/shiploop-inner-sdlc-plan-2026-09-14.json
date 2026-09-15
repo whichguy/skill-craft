@@ -1,0 +1,155 @@
+{
+  "goal": "The ShipLoop navigator implements the six accepted inner-SDLC recommendations through prompt and guide guidance while its state-machine and Improve-ownership boundaries remain intact.",
+  "initial_state": [
+    "The requester supplied six accepted inner-SDLC recommendations and three opt-in pilot themes.",
+    "The requested scope retains the current navigator stages, transitions, result schema, runtime navigation implementation, and shared Improve policy while editing prompt catalog guidance.",
+    "The current navigator catalog and guide already assign stage prompts, script/host/user duties, and agent-owned Improve campaigns.",
+    "The source-owner candidate changes the navigator prompt catalog, guide, README, and SKILL metadata without adding runtime nodes.",
+    "The existing navigator experiment report documents opt-in pilots, prompt-interpretation limits, and a deferral of new graph nodes or artifact-byte gates."
+  ],
+  "goal_needs": [
+    "Navigator instructions and guide cover the six accepted recommendations while retaining the existing stages, transitions, result schema, runtime navigation implementation, and shared Improve policy.",
+    "Three isolated opt-in live pilots are evaluated against preregistered criteria with limits stated.",
+    "The final integrated candidate has current proportionate checks, an independent final review, and confirmed authorized source-control delivery status."
+  ],
+  "steps": [
+    {
+      "id": "S1",
+      "statement": "A source-bound implementation map identifies the prompt, guide, README, skill-metadata, pilot, validation, review, and delivery responsibilities for the six accepted recommendations.",
+      "produces": [
+        "A source-bound implementation map identifies prompt, guide, README, skill-metadata, pilot, validation, review, and delivery responsibilities for the six accepted recommendations."
+      ],
+      "inputs": [
+        {
+          "need": "The requester supplied six accepted inner-SDLC recommendations and three opt-in pilot themes.",
+          "from": null
+        },
+        {
+          "need": "The requested scope retains the current navigator stages, transitions, result schema, runtime navigation implementation, and shared Improve policy while editing prompt catalog guidance.",
+          "from": null
+        },
+        {
+          "need": "The source-owner candidate changes the navigator prompt catalog, guide, README, and SKILL metadata without adding runtime nodes.",
+          "from": null
+        }
+      ],
+      "origin": "seed"
+    },
+    {
+      "id": "S2",
+      "statement": "Stage-specific navigator instructions require acceptance challenges, proportionate negative controls, bounded delegation, persistent-failure hypotheses, conditional operational or security assessment, final-candidate review timing, and evidence-based learning promotion.",
+      "produces": [
+        "Stage-specific navigator instructions cover all six accepted recommendations without adding a stage or result field."
+      ],
+      "inputs": [
+        {
+          "need": "A source-bound implementation map identifies prompt, guide, README, skill-metadata, pilot, validation, review, and delivery responsibilities for the six accepted recommendations.",
+          "from": "S1"
+        }
+      ],
+      "origin": "seed"
+    },
+    {
+      "id": "S3",
+      "statement": "The guide, README entry, and skill metadata describe one coherent navigator contract, including bounded delegation, owner integration validation, review reconsideration, and learning retention or promotion.",
+      "produces": [
+        "The guide, README entry, and skill metadata describe the source-owner candidate's navigator responsibilities and version."
+      ],
+      "inputs": [
+        {
+          "need": "A source-bound implementation map identifies prompt, guide, README, skill-metadata, pilot, validation, review, and delivery responsibilities for the six accepted recommendations.",
+          "from": "S1"
+        }
+      ],
+      "origin": "seed"
+    },
+    {
+      "id": "S4",
+      "statement": "The four-file prompt-and-document candidate presents one coherent navigator contract while retaining the existing runtime navigation implementation and shared Improve policy.",
+      "produces": [
+        "Navigator instructions and guide cover the six accepted recommendations while retaining the existing stages, transitions, result schema, runtime navigation implementation, and shared Improve policy."
+      ],
+      "inputs": [
+        {
+          "need": "Stage-specific navigator instructions cover all six accepted recommendations without adding a stage or result field.",
+          "from": "S2"
+        },
+        {
+          "need": "The guide, README entry, and skill metadata describe the source-owner candidate's navigator responsibilities and version.",
+          "from": "S3"
+        }
+      ],
+      "origin": "seed"
+    },
+    {
+      "id": "S5",
+      "statement": "The three isolated pilot specifications define scope, fresh-context conditions, observable acceptance checks, proportionate controls, prohibited shortcuts, decision rules, and stated limits before a worker sees each task.",
+      "produces": [
+        "Three isolated opt-in live pilots are preregistered for misleading-green tests, delegation-interface conflict, and repeated failure or misleading diagnostic."
+      ],
+      "inputs": [
+        {
+          "need": "A source-bound implementation map identifies prompt, guide, README, skill-metadata, pilot, validation, review, and delivery responsibilities for the six accepted recommendations.",
+          "from": "S1"
+        },
+        {
+          "need": "The existing navigator experiment report documents opt-in pilots, prompt-interpretation limits, and a deferral of new graph nodes or artifact-byte gates.",
+          "from": null
+        }
+      ],
+      "origin": "seed"
+    },
+    {
+      "id": "S6",
+      "statement": "The three pilot results are evaluated against the updated candidate from preserved candidate, oracle or control, and review evidence rather than worker claims, and their conclusions remain bounded to the fixtures.",
+      "produces": [
+        "Three isolated opt-in live pilots are evaluated against preregistered criteria with limits stated."
+      ],
+      "inputs": [
+        {
+          "need": "Navigator instructions and guide cover the six accepted recommendations while retaining the existing stages, transitions, result schema, runtime navigation implementation, and shared Improve policy.",
+          "from": "S4"
+        },
+        {
+          "need": "Three isolated opt-in live pilots are preregistered for misleading-green tests, delegation-interface conflict, and repeated failure or misleading diagnostic.",
+          "from": "S5"
+        }
+      ],
+      "origin": "seed"
+    },
+    {
+      "id": "S7",
+      "statement": "The final integrated candidate has current focused structural, CLI, regression, interop, and source-diff checks and a fresh independent review after its last material integration change.",
+      "produces": [
+        "The final integrated candidate has current proportionate checks and an independent final review with current affected-review conclusions."
+      ],
+      "inputs": [
+        {
+          "need": "Navigator instructions and guide cover the six accepted recommendations while retaining the existing stages, transitions, result schema, runtime navigation implementation, and shared Improve policy.",
+          "from": "S4"
+        },
+        {
+          "need": "Three isolated opt-in live pilots are evaluated against preregistered criteria with limits stated.",
+          "from": "S6"
+        }
+      ],
+      "origin": "seed"
+    },
+    {
+      "id": "S8",
+      "statement": "The authorized source-control delivery outcome is recorded from the actual commit, merge, and push state after all required candidate evidence and final review are current.",
+      "produces": [
+        "The final integrated candidate has current proportionate checks, an independent final review, and confirmed authorized source-control delivery status."
+      ],
+      "inputs": [
+        {
+          "need": "The final integrated candidate has current proportionate checks and an independent final review with current affected-review conclusions.",
+          "from": "S7"
+        }
+      ],
+      "origin": "seed"
+    }
+  ],
+  "parallel_groups": [],
+  "unresolved": []
+}

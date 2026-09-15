@@ -1,0 +1,46 @@
+{
+  "source_base": "{SOURCE}",
+  "source_commit": "44fcfbc1cfa77278187468c4cc194be103e2b5c0",
+  "cases": [
+    {
+      "id": "misleading-green",
+      "stage": "product-improve",
+      "fixture": "{TRIAL}/fixtures/misleading-green",
+      "run": "{TRIAL}/runs/misleading-green",
+      "packet": "{TRIAL}/packets/misleading-green.md",
+      "source_base": "{SOURCE}",
+      "action": "nav-099dc4f70406402f845bd5fb64df72fb",
+      "baseline": "83fc31394a28be57eb2407ca082ee4e028775fbd",
+      "reference": "{TRIAL}/calibration/references/misleading-green",
+      "test_file": "test_allocation.py",
+      "evidence_file": "EVIDENCE.md"
+    },
+    {
+      "id": "delegation-conflict",
+      "stage": "integrate",
+      "fixture": "{TRIAL}/fixtures/delegation-conflict",
+      "run": "{TRIAL}/runs/delegation-conflict",
+      "packet": "{TRIAL}/packets/delegation-conflict.md",
+      "source_base": "{SOURCE}",
+      "action": "nav-beb1b4b2d51644239efc0a21bb8c1845",
+      "baseline": "46c0bc9371c82171f2604709a644378cc00d1d67",
+      "reference": "{TRIAL}/calibration/references/delegation-conflict",
+      "test_file": "test_quote.py",
+      "evidence_file": "INTEGRATION_EVIDENCE.md"
+    },
+    {
+      "id": "repeated-failure",
+      "stage": "verify",
+      "fixture": "{TRIAL}/fixtures/repeated-failure",
+      "run": "{TRIAL}/runs/repeated-failure",
+      "packet": "{TRIAL}/packets/repeated-failure.md",
+      "source_base": "{SOURCE}",
+      "action": "nav-2a79d3c9b7074ce681359d42708fb217",
+      "baseline": "31e23a17a1ba53270b803ed3c83eff39d37d45bb",
+      "reference": "{TRIAL}/calibration/references/repeated-failure",
+      "test_file": "test_config.py",
+      "evidence_file": "VERIFY_EVIDENCE.md"
+    }
+  ],
+  "calibration": "{TRIAL}/calibration/calibration.json"
+}

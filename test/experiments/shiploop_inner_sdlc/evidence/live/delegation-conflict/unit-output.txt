@@ -1,0 +1,9 @@
+test_local_conversion (test_conversion.ConversionTests.test_local_conversion) ... ok
+test_local_pricing (test_pricing.PricingTests.test_local_pricing) ... ok
+test_public_input_validation_crosses_the_adapter (test_quote.QuoteBoundaryTests.test_public_input_validation_crosses_the_adapter) ... ok
+test_public_kilometres_are_converted_before_pricing (test_quote.QuoteBoundaryTests.test_public_kilometres_are_converted_before_pricing) ... ok
+
+----------------------------------------------------------------------
+Ran 4 tests in 0.000s
+
+OK

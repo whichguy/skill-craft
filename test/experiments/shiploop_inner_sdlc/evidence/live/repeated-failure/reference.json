@@ -1,0 +1,103 @@
+{
+  "case": "repeated-failure",
+  "checks": 14,
+  "passed": 14,
+  "failed": 0,
+  "results": [
+    {
+      "case": "default",
+      "passed": true,
+      "actual": 8080,
+      "expected": 8080,
+      "input_preserved": true
+    },
+    {
+      "case": "minimum",
+      "passed": true,
+      "actual": 1,
+      "expected": 1,
+      "input_preserved": true
+    },
+    {
+      "case": "maximum",
+      "passed": true,
+      "actual": 65535,
+      "expected": 65535,
+      "input_preserved": true
+    },
+    {
+      "case": "app_port",
+      "passed": true,
+      "actual": 9001,
+      "expected": 9001,
+      "input_preserved": true
+    },
+    {
+      "case": "both_keys_app_wins",
+      "passed": true,
+      "actual": 9001,
+      "expected": 9001,
+      "input_preserved": true
+    },
+    {
+      "case": "port_ignored",
+      "passed": true,
+      "actual": 8080,
+      "expected": 8080,
+      "input_preserved": true
+    },
+    {
+      "case": "present_none",
+      "passed": true,
+      "exception": "ValueError",
+      "input_preserved": true
+    },
+    {
+      "case": "integer",
+      "passed": true,
+      "exception": "ValueError",
+      "input_preserved": true
+    },
+    {
+      "case": "whitespace",
+      "passed": true,
+      "exception": "ValueError",
+      "input_preserved": true
+    },
+    {
+      "case": "sign",
+      "passed": true,
+      "exception": "ValueError",
+      "input_preserved": true
+    },
+    {
+      "case": "unicode",
+      "passed": true,
+      "exception": "ValueError",
+      "input_preserved": true
+    },
+    {
+      "case": "empty",
+      "passed": true,
+      "exception": "ValueError",
+      "input_preserved": true
+    },
+    {
+      "case": "zero",
+      "passed": true,
+      "exception": "ValueError",
+      "input_preserved": true
+    },
+    {
+      "case": "too_large",
+      "passed": true,
+      "exception": "ValueError",
+      "input_preserved": true
+    }
+  ],
+  "observations": {
+    "spec_preserved": true,
+    "test_file_changed": false,
+    "evidence_file_changed": false
+  }
+}

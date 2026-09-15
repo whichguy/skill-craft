@@ -1,0 +1,10 @@
+test_divisible_shares (test_allocation.AllocationTests.test_divisible_shares) ... ok
+test_invalid_inputs_raise_value_error (test_allocation.AllocationTests.test_invalid_inputs_raise_value_error) ... ok
+test_remainder_cents_preserve_total_in_input_order (test_allocation.AllocationTests.test_remainder_cents_preserve_total_in_input_order) ... ok
+test_unequal_remainder_preserves_order_and_weights (test_allocation.AllocationTests.test_unequal_remainder_preserves_order_and_weights) ... ok
+test_zero_total_returns_zero_shares (test_allocation.AllocationTests.test_zero_total_returns_zero_shares) ... ok
+
+----------------------------------------------------------------------
+Ran 5 tests in 0.000s
+
+OK

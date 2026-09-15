@@ -1,0 +1,4 @@
+def kilometres_to_metres(kilometres):
+    if type(kilometres) is not int or kilometres < 0:
+        raise ValueError('kilometres')
+    return kilometres * 1000

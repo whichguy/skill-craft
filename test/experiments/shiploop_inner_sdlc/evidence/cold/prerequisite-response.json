@@ -1,0 +1,67 @@
+{
+  "current_node": "step-plan",
+  "action_id": "nav-f347df8441284049a6b3e5ba384bdaea",
+  "decisions": [
+    {
+      "topic": "W1 scope",
+      "decision": "Treat W1 as a planning-only supplier-contract task. Before any implementation assignment, identify the existing authenticated-import handler, persistence adapter, and the consumer-facing request and transaction interfaces they must preserve."
+    },
+    {
+      "topic": "delegation and ownership",
+      "decision": "The handler owner may own authentication, input validation, request-identity propagation, and boundary error behavior. The persistence owner may own transaction-bound import writes and rollback preservation. An integrating owner must define and check their shared identity and transaction contract after the two bounded contributions are assembled."
+    },
+    {
+      "topic": "dependency proposal",
+      "decision": "Keep the proposed dependency upgrade out of implementation scope until its provenance, supported version range, transitive effects, and compatibility with the existing service are assessed. The assessment is an implementation prerequisite if the feature depends on that upgrade."
+    },
+    {
+      "topic": "data integrity acceptance",
+      "decision": "Plan an atomicity case in which an import fails after a write is attempted: pre-existing persisted rows remain unchanged and the failed import leaves no partial new rows. Also plan a successful authenticated import and a nearby unauthenticated or mismatched-identity rejection case."
+    },
+    {
+      "topic": "release condition",
+      "decision": "Record staging access and successful staging validation as a downstream release condition, owned by the release operator or user-designated release owner. Establish it at release planning and require it before release; it does not block independently authorized local planning or local implementation."
+    }
+  ],
+  "evidence_needed": [
+    {
+      "for": "current step-plan completion",
+      "items": [
+        "Repository-specific locations and current behavior of the import handler, authentication boundary, persistence adapter, and their consumers.",
+        "The actual request-identity representation, authorization rule, transaction boundary, rollback behavior, and error contract shared by the handler and adapter.",
+        "A bounded work split naming file or module ownership, shared inputs and outputs, and the integrating owner responsible for combined-path verification.",
+        "Test fixtures and independent expected outcomes for a successful authorized import, unauthorized or identity-mismatched input, a mid-transaction failure, rollback preservation of existing rows, and dependency compatibility when applicable."
+      ]
+    },
+    {
+      "for": "implementation readiness",
+      "items": [
+        "Dependency provenance and compatibility assessment if the proposed upgrade is required by the feature.",
+        "Executable local checks that exercise authorization, identity propagation, atomic persistence, rollback recovery, and useful diagnostics."
+      ]
+    },
+    {
+      "for": "release readiness",
+      "items": [
+        "Available staging credentials or access, a defined staging validation procedure, and recorded successful staging results before release."
+      ]
+    }
+  ],
+  "completion_eligibility": {
+    "preview_only": true,
+    "current_action": "Not eligible for a truthful done result from the supplied preview inputs alone.",
+    "reason": "The durable state contains only synthetic prior transitions and no repository or run-context evidence for the handler, adapter, shared contract, dependency compatibility, or test fixtures.",
+    "becomes_eligible_when": [
+      "The current repository and scoped run context establish the concrete handler, adapter, consumers, interfaces, and ownership boundaries.",
+      "The plan records the shared identity and transaction contract plus positive and nearby negative expected outcomes.",
+      "Any feature-required dependency compatibility prerequisite is resolved or explicitly retained as an incomplete gate before code.",
+      "Local implementation checks and the downstream staging-release gate are assigned to their earliest applicable stages without asserting that either has run."
+    ],
+    "downstream_only": "Unavailable staging credentials do not prevent this planning action from being prepared; they remain an unresolved release condition that must be satisfied before release."
+  },
+  "limits": [
+    "This is an interpretation-only preview based on the supplied scenario facts and durable navigator state.",
+    "It does not assert repository inspection, code changes, delegation, command execution, test execution, dependency compatibility, rollback behavior, staging access, staging validation, release, or callback completion.",
+    "No source tests, sibling trials, grading material, project work, run mutation, or ShipLoop callback is used as evidence here."
+  ]
+}

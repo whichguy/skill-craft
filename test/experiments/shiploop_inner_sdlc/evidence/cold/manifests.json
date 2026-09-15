@@ -1,0 +1,42 @@
+{
+  "initial": [
+    {
+      "id": "risk-and-ownership",
+      "packet": "{INITIAL_TRIAL}/risk-and-ownership/packet.md",
+      "stage": "step-plan",
+      "action": "nav-63ba89e7e4da42ed97c50ae7847367be",
+      "characters": 5804
+    },
+    {
+      "id": "learning-promotion",
+      "packet": "{INITIAL_TRIAL}/learning-promotion/packet.md",
+      "stage": "carry-forward",
+      "action": "nav-4e4310b410bf4410b01a09cb0adb843d",
+      "characters": 5513
+    }
+  ],
+  "repeat": [
+    {
+      "id": "risk-and-ownership",
+      "packet": "{REPEAT_TRIAL}/risk-and-ownership/packet.md",
+      "stage": "step-plan",
+      "action": "nav-9872c731abd44c65917fb8db5bdb4881",
+      "characters": 6028
+    },
+    {
+      "id": "learning-promotion",
+      "packet": "{REPEAT_TRIAL}/learning-promotion/packet.md",
+      "stage": "carry-forward",
+      "action": "nav-849dc335b5874b6f88c79377901a06aa",
+      "characters": 5737
+    }
+  ],
+  "prerequisite": [
+    {
+      "id": "risk-and-ownership",
+      "packet": "{PREREQUISITE_TRIAL}/risk-and-ownership/packet.md",
+      "stage": "step-plan",
+      "action": "nav-f347df8441284049a6b3e5ba384bdaea"
+    }
+  ]
+}

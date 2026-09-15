@@ -1,0 +1,14 @@
+import unittest
+
+from quote import quote_cents
+
+
+class QuoteBoundaryTests(unittest.TestCase):
+    def test_public_kilometres_are_converted_before_pricing(self):
+        self.assertEqual(quote_cents(3), 425)
+
+    def test_public_input_validation_crosses_the_adapter(self):
+        for distance_km in (-1, True, 1.5):
+            with self.subTest(distance_km=distance_km):
+                with self.assertRaises(ValueError):
+                    quote_cents(distance_km)
