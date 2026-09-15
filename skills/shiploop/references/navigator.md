@@ -1,22 +1,24 @@
 # Navigator execution mode
 
-Navigator is the default mode for new ShipLoop runs. It is a small directed
-graph that returns one current prompt and records one state transition from a
-concise host result. It keeps durable state and routing in the script while the
-host decides how to inspect, plan, edit, test, review, and assess the work.
+Navigator protocol 2 is the default for new ShipLoop runs. It is a small
+directed graph that returns one effective prompt and records one state
+transition from a concise host result. One shared INNER graph serves every work
+item; `state.md` holds the per-item execution records. The script keeps durable
+state and routing while the host decides how to inspect, plan, edit, test,
+review, and assess the work.
 
 ```mermaid
 flowchart LR
-  I[Intake] --> D[Discovery] --> R[Research] --> RI[Improve: research - repeats internally]
-  RI --> S[Specification] --> SI[Improve: spec - repeats internally] --> TS[Test strategy]
-  TS --> P[Plan] --> PI[Improve: plan - repeats internally] --> SP[Step plan]
-  SP --> SPI[Improve: step plan - repeats internally] --> IM[Implement] --> TR[Test refine]
+  I[Intake] --> D[Discovery] --> R[Research] --> RI[Improve: research - one campaign]
+  RI --> S[Specification] --> SI[Improve: spec - one campaign] --> TS[Test strategy]
+  TS --> P[Plan] --> PI[Improve: plan - one campaign] --> SP[Step plan]
+  SP --> SPI[Improve: step plan - one campaign] --> IM[Implement] --> TR[Test refine]
   TR --> TA[Test author] --> DOC[Document and reuse decision]
   DOC -->|skill required| SV[Skill validate] --> V[Verify]
   DOC -->|no skill required| V
-  V --> PRI[Improve: product - repeats internally] --> IN[Integrate] --> CF[Carry forward]
+  V --> PRI[Improve: product - one campaign] --> IN[Integrate] --> CF[Carry forward]
   CF -->|next work item| SP
-  CF -->|all work items complete| ST[System test] --> OI[Improve: whole product - repeats internally]
+  CF -->|all work items complete| ST[System test] --> OI[Improve: whole product - one campaign]
   OI --> RP[Release plan] --> REL[Release or honest N/A] --> RV[Release verify]
   RV --> H[Handoff] --> DONE[Done]
 ```
@@ -38,14 +40,16 @@ missing or relocated run with a new one.
 
 ```sh
 python3 "$CLI" init --repo="$REPO" --run-dir="$RUN_DIR" --prompt='requested outcome'
+# Compatibility fixtures only; normal new runs use protocol 2 above.
+python3 "$CLI" init --repo="$REPO" --run-dir="$RUN_DIR" --execution-mode=navigator-v1 --prompt='fixture outcome'
 python3 "$CLI" next --run-dir="$RUN_DIR"
 python3 "$CLI" done --run-dir="$RUN_DIR" --action="$ACTION" --result="$RESULT"
 ```
 
-`init` creates a new navigator-marked run and returns the `intake` cursor and
-its prompt. `next` rereads the saved current action after a context reset; it
-does not select or persist a successor. `done` reads one result file containing
-a `shiploop-state` fenced JSON object, for example:
+Default `init` creates a protocol-2 navigator-marked run and returns the
+`intake` cursor and its prompt. `next` rereads the saved effective action after
+a context reset; it does not select or persist a successor. `done` reads one
+result file containing a `shiploop-state` fenced JSON object, for example:
 
 ````markdown
 ```shiploop-state
@@ -103,6 +107,66 @@ pre-execution `plan-improve` result can replace the pending plan with ordered
 work items, while completed work-item records remain durable history; optional
 `context` is host-written context, not script-inferred progress.
 
+Results cannot set a successor, INNER stage, Improve phase, review count, or
+another item's action. The one accepted action determines the next effective
+cursor. A malformed duplicate owner or a stale/conflicting callback is rejected
+without selecting another item.
+
+## One shared INNER graph and per-item records
+
+The flat SDLC path from `step-plan` through `carry-forward` is one shared INNER
+graph, not a graph copy per work item. Root owns the run's global `status`,
+`status_reason`, ordered queue, and `work_index`. While an item is active, root
+is parked at `stage: inner-loop` with `action: null`; the active item's entry in
+`inner_loops` exclusively owns the effective stage and action. Outside INNER
+work, root exclusively owns both stage and action.
+
+```mermaid
+flowchart LR
+  R[Root: status, queue, work_index, inner-loop, action null] --> A[Active W2 record: stage and action]
+  A --> P[One effective prompt and callback]
+  R --> D[Completed W1 record: done and action null]
+```
+
+This compact state is illustrative rather than a complete persisted schema:
+
+```json
+{
+  "navigator_protocol_version": 2,
+  "execution_mode": "navigator",
+  "status": "active",
+  "stage": "inner-loop",
+  "action": null,
+  "work_index": 1,
+  "work_items": [
+    {"id": "W1", "title": "First approved change"},
+    {"id": "W2", "title": "Second approved change"}
+  ],
+  "inner_loops": {
+    "W1": {"stage": "done", "action": null},
+    "W2": {
+      "stage": "step-plan",
+      "action": {"id": "W2-step-plan-1", "stage": "step-plan"}
+    }
+  }
+}
+```
+
+No record exists for a future W3 until ShipLoop enters it. At an accepted W1
+`carry-forward`, one locked transaction marks W1 `done`/`null`, advances the
+selection, and creates W2 at `step-plan`; if W1 is final, it instead restores
+root ownership at `system-test`. W1 remains retained after W2 becomes active.
+Calling `next` after a context reset reprints W2's same effective action rather
+than advancing it. An identical accepted W1 replay after W2 selection is
+non-mutating; a conflicting or unknown old callback fails without changing W2.
+
+`repeat` replaces only the active item's action while root remains active.
+An accepted `blocked` result records the root blocker and a fresh pending action
+for that item because its reported action is already accepted; no further
+new completion is accepted until `resume`. An identical accepted replay remains
+non-mutating. Pause/resume preserves the pending item action. Halt is terminal
+at the root.
+
 ### Illustrative trace, not a recorded run
 
 For a hypothetical request, “add an endpoint that returns the current account
@@ -120,8 +184,10 @@ prompt path, not evidence that any repository inspection occurred.
 
 `research-improve`, `spec-improve`, `plan-improve`, `step-plan-improve`,
 `product-improve`, and `outer-improve` each invoke the packaged reusable
-[Improve review policy](improve-review-policy.md). Each is one graph action,
-not a wrapper around another state machine.
+[Improve review policy](improve-review-policy.md). Each is one call-and-return
+graph action. The campaign's work occurs under its assigned action; it does not
+become DAG nodes, `inner_loops` records, child callbacks, or ShipLoop review
+counters.
 
 The navigator’s binding is:
 
@@ -150,12 +216,13 @@ The navigator’s binding is:
   that distinguishes plausible causes, its observation, and the next action.
   Revisit the hypothesis or plan when retries add no evidence.
 
-The policy tells an owner that **splits** a review cycle into phases to execute
-only its assigned phase and return to its owner. Navigator deliberately assigns
-the complete cycle to one Improve node, so that split-phase restriction does
-not divide this action. It does not launch standalone Improve or until-loop,
-make child-phase cursors, inspect ambient loop state, or add a second
-convergence wrapper.
+The reusable policy tells an owner that **splits** a review campaign into phases
+to execute only its assigned phase and return to its owner. Navigator deliberately
+assigns the complete campaign to one Improve node, so that split-phase
+restriction does not divide this action. It preserves the existing
+whole-campaign owner binding: it does not launch standalone Improve or
+until-loop, make child-phase cursors, inspect ambient loop state, or add a
+second convergence wrapper.
 
 Any plan, code, test, documentation, or skill change made during an Improve
 campaign refreshes the checks it affects. The result is still a host judgment;
@@ -248,11 +315,13 @@ and the user's authority support; preserve unvalidated proposals as proposals.
 ## Compatibility and limits
 
 New runs persist `execution_mode: navigator` and
-`navigator_protocol_version: 1`. Existing markerless managed or legacy states
-retain the protocol their established records select, including a managed marker
-such as `managed_improve_protocol_version`; they are not converted or
-reinterpreted. New navigator markers alone select navigator dispatch. Do not
-edit durable mode state to bypass that boundary.
+`navigator_protocol_version: 2`. The explicit `navigator-v1` fixture mode
+persists version 1 and retains its strict root keys and cursor rules. Existing
+v1, markerless managed, and legacy states retain the protocol their established
+records select; they are not converted, migrated into `inner_loops`, or
+reinterpreted. A managed marker such as `managed_improve_protocol_version`
+continues to select its established route. Do not edit durable mode state to
+bypass that boundary.
 
 Navigator prompts and graph-walk tests can show that the script returns the
 expected stage and transitions only after accepted result envelopes. They cannot

@@ -226,7 +226,7 @@ def make_repo(path: Path, case: dict, *, fixed: bool) -> str:
 
 
 def state_at(repo: Path, goal: str, target: str) -> dict:
-    state = nav.new_state(str(repo), goal)
+    state = nav.new_state(str(repo), goal, protocol_version=1)
     for _ in range(70):
         if state["stage"] == target:
             return state

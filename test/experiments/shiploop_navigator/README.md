@@ -5,6 +5,9 @@ and real agent work. They add no runtime gate or new dependency. Results from
 September 14, 2026 are summarized in
 [the experiment report](../../../docs/shiploop-navigator-experiments-2026-09-14.md).
 
+These historical fixtures remain pinned to navigator protocol 1. The new
+`inner_state` trial covers protocol 2.
+
 ## Run mechanical coverage
 
 From the repository root:

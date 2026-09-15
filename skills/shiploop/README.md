@@ -1,21 +1,24 @@
-# ShipLoop navigator
+# ShipLoop navigator 0.10.0
 
-New runs use the prompt navigator: explicit SDLC actions, one complete Improve
-loop per assigned Improve action, and a small declaration-based transition
-contract. The script owns the cursor and safe Markdown persistence; the host
-owns execution and evaluation.
+New runs use navigator protocol 2: explicit SDLC actions, one shared INNER
+graph with per-work-item execution records, one complete Improve campaign per
+assigned Improve action, and a small declaration-based transition contract. The
+script owns global status and safe Markdown persistence; the host owns execution
+and evaluation.
 
 - [Navigator guide and flat SDLC diagram](references/navigator.md)
 - [Graph dry-run commands and examples](references/graph-dry-run.md)
 - [Skill entrypoint](SKILL.md)
 
-`init` defaults to `--execution-mode=navigator`. Existing runs resume their
-recorded protocol without conversion. Navigation completion records the host's
-declared result; it does not certify tests, Git state or deployment.
+`init` defaults to `--execution-mode=navigator` and protocol 2.
+`--execution-mode=navigator-v1` exists for compatibility fixtures. Existing v1,
+managed, and legacy runs resume their recorded protocol without conversion.
+Navigation completion records the host's declared result; it does not certify
+tests, Git state or deployment.
 
 ## Navigator task entry and recovery
 
-ShipLoop 0.9.3 makes the existing navigator's task-entry contract explicit.
+ShipLoop 0.10.0 makes the navigator's per-item execution ownership explicit.
 Before stage work, use `init` once for a genuinely new request or use `next` to
 recover the same existing run, then verify the printed original goal and
 repository. `next` rereads saved state; it does not advance the graph.
@@ -36,7 +39,21 @@ task/repository identity or remain incomplete, never become a replacement `init`
 The script does not retain the host handoff, launch a fresh model, reset a model
 context, or force a host to use its tools. See the [Navigator recovery contract](references/navigator.md#recover-one-existing-run).
 
-## Agentic inner-loop duties
+## Per-item navigator ownership
+
+The same `state.md` stores the root's global status, queue, and `work_index`,
+plus an `inner_loops` record for each entered work item. In protocol 2, while
+W2 is active, root stays at `inner-loop` with no action; W2 alone owns the
+current inner stage, action, effective prompt, and callback. A completed W1 remains
+`done` with no action. `carry-forward` atomically retains W1 and creates W2's
+first action, or returns the root to `system-test` after the final item.
+
+The [navigator guide's ownership diagram, state example, and trace](references/navigator.md#one-shared-inner-graph-and-per-item-records)
+show the exact boundary. Improve is a single call-and-return action under the
+existing shared policy: ShipLoop stores no Improve child phases or review
+counters, and it does not start a standalone Improve or Until runtime.
+
+## Agentic duties within a work item
 
 Existing stages now explicitly challenge acceptance examples and test quality,
 assign ownership when work is delegated, diagnose persistent failures with
@@ -45,7 +62,8 @@ Available independent review covers the final candidate; integration refreshes
 affected reviews and checks. Consequential learnings remain scoped until shared
 adoption is justified by representative regression evidence and existing authority.
 See [stage responsibilities and an integration example](references/navigator.md#agentic-responsibilities-inside-existing-stages).
-Improve campaigns still iterate internally and submit one completion each.
+Improve campaigns run independently inside their assigned action and submit one
+completion each.
 
 ## Bounded recursive discovery
 
@@ -85,12 +103,14 @@ runs. Historical examples of unqualified `init` in this section require an
 explicit `--execution-mode=managed` or `--execution-mode=legacy` to select the
 protocol being described.
 
-# ShipLoop 0.9
+# ShipLoop 0.10
 
 ShipLoop is a Markdown-authoritative session harness for delivering one bounded
 piece of work through a complete SDLC loop. It turns a long-running request into
 small, durable actions so a host with a short context window can resume from
-recorded evidence rather than chat memory.
+recorded evidence rather than chat memory. The retained sections below document
+managed and legacy compatibility routes; new navigator work follows the 0.10
+guide above.
 
 It does **not** implement product changes, decide whether tests are meaningful,
 or prove a human-facing, remote, or deployed outcome. The host performs those
@@ -2451,7 +2471,7 @@ The compact stdout packet is authoritative for the current action. The command
 surface is:
 
 ```sh
-shiploop init     --repo REPO [--run-dir RUN] [--execution-mode=navigator|managed|legacy] --prompt=TEXT
+shiploop init     --repo REPO [--run-dir RUN] [--execution-mode=navigator|navigator-v1|managed|legacy] --prompt=TEXT
 shiploop next     --run-dir RUN
 shiploop status   --run-dir RUN
 shiploop report   --run-dir RUN
@@ -2477,8 +2497,10 @@ shiploop halt     --run-dir RUN --reason=TEXT
 shiploop migrate  --run-dir RUN
 ```
 
-`navigator` is the default for `init`; see the navigator guide for its commands.
-Use `managed` or `legacy` explicitly for these compatibility routes. A managed parent has no separate import or continuation
+`navigator` protocol 2 is the default for `init`; see the navigator guide for
+its commands. `navigator-v1` is a compatibility-fixture mode and preserves the
+recorded v1 cursor contract. Use `managed` or `legacy` explicitly for those
+compatibility routes. A managed parent has no separate import or continuation
 command: call `next`, follow the child packet, and read `context --section sdlc`
 when it is printed or needed for the current responsibility. Only the script can
 import the child's current validated certificate.

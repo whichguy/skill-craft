@@ -1,0 +1,131 @@
+{
+  "passed": true,
+  "checks": {
+    "protocol2": true,
+    "one_revision": true,
+    "one_history_entry": true,
+    "history_prefix_preserved": true,
+    "one_accepted_action": true,
+    "prior_results_preserved": true,
+    "w1_unchanged": true,
+    "root_parked": true,
+    "same_selection": true,
+    "one_improve_return": true,
+    "w2_integrate_pending": true,
+    "no_inner_subphases_or_counters": true,
+    "fixture_oracle": true,
+    "fixture_unit_tests": true
+  },
+  "oracle": {
+    "passed": 12,
+    "total": 12,
+    "observations": [
+      {
+        "case": "''",
+        "passed": true,
+        "expected": [],
+        "actual": []
+      },
+      {
+        "case": "' \\t\\n  '",
+        "passed": true,
+        "expected": [],
+        "actual": []
+      },
+      {
+        "case": "' a \\n \\n b\\n a '",
+        "passed": true,
+        "expected": [
+          "a",
+          "b",
+          "a"
+        ],
+        "actual": [
+          "a",
+          "b",
+          "a"
+        ]
+      },
+      {
+        "case": "' x\\r\\ny \\r\\n'",
+        "passed": true,
+        "expected": [
+          "x",
+          "y"
+        ],
+        "actual": [
+          "x",
+          "y"
+        ]
+      },
+      {
+        "case": "'\\u2003hello\\u2003\\n\\u2003'",
+        "passed": true,
+        "expected": [
+          "hello"
+        ],
+        "actual": [
+          "hello"
+        ]
+      },
+      {
+        "case": "'# keep\\n x y '",
+        "passed": true,
+        "expected": [
+          "# keep",
+          "x y"
+        ],
+        "actual": [
+          "# keep",
+          "x y"
+        ]
+      },
+      {
+        "case": "'one\\x0b two\\x0cthree'",
+        "passed": true,
+        "expected": [
+          "one",
+          "two",
+          "three"
+        ],
+        "actual": [
+          "one",
+          "two",
+          "three"
+        ]
+      },
+      {
+        "case": "None",
+        "passed": true,
+        "expected": "TypeError",
+        "actual": "TypeError"
+      },
+      {
+        "case": "1",
+        "passed": true,
+        "expected": "TypeError",
+        "actual": "TypeError"
+      },
+      {
+        "case": "True",
+        "passed": true,
+        "expected": "TypeError",
+        "actual": "TypeError"
+      },
+      {
+        "case": "[]",
+        "passed": true,
+        "expected": "TypeError",
+        "actual": "TypeError"
+      },
+      {
+        "case": "b'x'",
+        "passed": true,
+        "expected": "TypeError",
+        "actual": "TypeError"
+      }
+    ]
+  },
+  "unit_test_output": "test_empty_and_whitespace_only_text_are_empty (test_lines.CleanLinesTests.test_empty_and_whitespace_only_text_are_empty) ... ok\ntest_non_strings_raise_type_error (test_lines.CleanLinesTests.test_non_strings_raise_type_error) ... ok\ntest_strips_discards_blanks_and_preserves_order_and_duplicates (test_lines.CleanLinesTests.test_strips_discards_blanks_and_preserves_order_and_duplicates) ... ok\ntest_uses_splitlines_for_multiple_line_endings (test_lines.CleanLinesTests.test_uses_splitlines_for_multiple_line_endings) ... ok\n\n----------------------------------------------------------------------\nRan 4 tests in 0.000s\n\nOK\n",
+  "limit": "Mechanical checks do not count or validate semantic review cycles; inspect campaign/reviewer notes separately."
+}

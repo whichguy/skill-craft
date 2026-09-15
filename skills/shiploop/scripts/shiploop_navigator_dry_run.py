@@ -59,6 +59,23 @@ def scenarios():
     return result
 
 
+def _owner(state):
+    """Name the serialized cursor owner without creating another cursor schema."""
+    if state.get('navigator_protocol_version') == 2 and state.get('stage') == 'inner-loop':
+        return state['work_items'][state['work_index']]['id']
+    return 'root'
+
+
+def _completed_instances(state):
+    """Expose only durable completed-instance evidence in synthetic reports."""
+    loops = state.get('inner_loops', {})
+    return [
+        item['id']
+        for item in state['work_items']
+        if loops.get(item['id']) == {'stage': 'done', 'action': None}
+    ]
+
+
 def run_scenario(name, scenario):
     report = {'name': name, 'simulation_only': True, 'ok': False, 'events': []}
     try:
@@ -71,23 +88,42 @@ def run_scenario(name, scenario):
         for index, step in enumerate(rows, 1):
             if not isinstance(step, dict) or not {'at', 'expect'} <= set(step):
                 raise ValueError('each step needs at and expect')
-            if state['stage'] != step['at']:
-                raise ValueError(f"event {index}: expected current {step['at']}, got {state['stage']}")
-            row = {'sequence': index, 'from': state['stage'], 'expected': step['expect'],
-                   'prompt': navigator.render(CORE, RUN, state)}
+            current_stage = navigator.current_stage(state)
+            current_action = navigator.current_action(state)
+            if current_stage != step['at']:
+                raise ValueError(f"event {index}: expected current {step['at']}, got {current_stage}")
+            row = {
+                'sequence': index,
+                'simulation_only': True,
+                'from': current_stage,
+                'owner': _owner(state),
+                'expected': step['expect'],
+                'prompt': navigator.render(CORE, RUN, state),
+            }
             report['events'].append(row)
             command = step.get('command', 'done')
             if command == 'done':
-                state = navigator.apply(state, state['action']['id'], step.get('result', {
+                state = navigator.apply(state, current_action['id'], step.get('result', {
                     'outcome': 'done', 'summary': 'Synthetic declaration; no work executed.'}))
             elif command in ('pause', 'resume', 'halt'):
                 state = navigator.control(state, command, 'Synthetic control event.')
             else:
                 raise ValueError(f'unknown synthetic command: {command}')
-            row.update(command=command, to=state['stage'], status=state['status'])
-            if state['stage'] != step['expect'] or state['status'] != step.get('status', 'active'):
-                raise ValueError(f"event {index}: expected {step['expect']}/{step.get('status', 'active')}, got {state['stage']}/{state['status']}")
-        report.update(ok=True, simulated_status=state['status'])
+            next_stage = navigator.current_stage(state)
+            row.update(
+                command=command,
+                to=next_stage,
+                next_owner=_owner(state),
+                completed_instances=_completed_instances(state),
+                status=state['status'],
+            )
+            if next_stage != step['expect'] or state['status'] != step.get('status', 'active'):
+                raise ValueError(f"event {index}: expected {step['expect']}/{step.get('status', 'active')}, got {next_stage}/{state['status']}")
+        report.update(
+            ok=True,
+            simulated_status=state['status'],
+            completed_instances=_completed_instances(state),
+        )
     except (ValueError, KeyError, TypeError) as exc:
         report['error'] = str(exc)
     return report
@@ -123,7 +159,7 @@ def run(args):
             print(f"\n{'PASS' if report['ok'] else 'FAIL'} {report['name']}: {len(report['events'])} events; simulated status: {report.get('simulated_status', 'mismatch')}")
             if args.format == 'markdown':
                 for row in report['events']:
-                    print(f"\n## {row['sequence']}. {row['from']} -> {row.get('to', 'ERROR')}\n\n{row['prompt']}")
+                    print(f"\n## {row['sequence']}. {row['owner']}: {row['from']} -> {row.get('to', 'ERROR')}\n\n{row['prompt']}")
             if report.get('error'):
                 print(report['error'])
     return 0 if all(report['ok'] for report in reports) else 1

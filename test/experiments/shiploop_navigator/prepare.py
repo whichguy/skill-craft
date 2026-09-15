@@ -79,7 +79,7 @@ def current_packet(run: Path) -> str:
 
 
 def state_at(repo: Path, goal: str, stage: str, *, second_work: bool = False):
-    state = nav.new_state(str(repo), goal)
+    state = nav.new_state(str(repo), goal, protocol_version=1)
     for _ in range(70):
         if state["stage"] == stage and (not second_work or state["work_index"] == 1):
             return state

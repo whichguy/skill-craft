@@ -23,12 +23,13 @@ import shiploop_store as store
 
 
 STATE_VERSION = 3
-PROTOCOL_VERSION = 1
+PROTOCOL_VERSION = 2
+_PROTOCOL_VERSIONS = frozenset((1, PROTOCOL_VERSION))
 _ACTION_ID = re.compile(r"^[A-Za-z][A-Za-z0-9_-]{0,159}$")
 _WORK_ITEM_ID = re.compile(r"^[A-Za-z][A-Za-z0-9_-]{0,63}$")
 _STATUSES = frozenset(("active", "paused", "blocked", "halted", "done"))
 _RESULT_KEYS = frozenset(("outcome", "summary", "evidence_refs", "work_items", "choices"))
-_STATE_KEYS = frozenset(
+_STATE_KEYS_V1 = frozenset(
     (
         "version",
         "navigator_protocol_version",
@@ -49,6 +50,7 @@ _STATE_KEYS = frozenset(
         "history",
     )
 )
+_STATE_KEYS_V2 = _STATE_KEYS_V1 | frozenset(("inner_loops",))
 
 PRELUDE = tuple(guidance.PRELUDE)
 INNER = tuple(guidance.INNER)
@@ -65,6 +67,8 @@ __all__ = [
     "STATE_VERSION",
     "apply",
     "control",
+    "current_action",
+    "current_stage",
     "dispatch",
     "new_state",
     "render",
@@ -171,9 +175,38 @@ def _action_history(state: Mapping[str, Any], action_id: str) -> Mapping[str, An
 
 
 def _current_work_item(state: Mapping[str, Any]) -> str | None:
-    if state["stage"] not in _INNER_SET:
+    if state["stage"] not in _INNER_SET and not _is_v2_inner_root(state):
         return None
     return state["work_items"][state["work_index"]]["id"]
+
+
+def _is_v2_inner_root(state: Mapping[str, Any]) -> bool:
+    return (
+        state.get("navigator_protocol_version") == PROTOCOL_VERSION
+        and state.get("stage") == "inner-loop"
+    )
+
+
+def _active_cursor(state: Mapping[str, Any]) -> tuple[str, Mapping[str, str], str | None]:
+    """Return the one effective stage, action, and owner without validating."""
+    workitem = _current_work_item(state)
+    if _is_v2_inner_root(state):
+        _need(workitem is not None, "inner-loop root has no current work item")
+        loop = state["inner_loops"][workitem]
+        return loop["stage"], loop["action"], workitem
+    return state["stage"], state["action"], workitem
+
+
+def current_stage(state: Mapping[str, Any]) -> str:
+    """Return the effective stage, including a protocol-2 item's inner node."""
+    validate(state)
+    return _active_cursor(state)[0]
+
+
+def current_action(state: Mapping[str, Any]) -> Mapping[str, str]:
+    """Return the sole effective action, including a protocol-2 item action."""
+    validate(state)
+    return _active_cursor(state)[1]
 
 
 def _next_stage(stage: str, result: Mapping[str, Any]) -> str:
@@ -188,14 +221,22 @@ def _next_stage(stage: str, result: Mapping[str, Any]) -> str:
         raise NavigatorError(f"no next navigator stage after {stage}") from exc
 
 
-def new_state(repo: str, prompt: str, bound_plan: str = "") -> dict[str, Any]:
+def new_state(
+    repo: str,
+    prompt: str,
+    bound_plan: str = "",
+    *,
+    protocol_version: int = 2,
+) -> dict[str, Any]:
     """Create an unpersisted navigator cursor with one initial work item."""
+    _need(type(protocol_version) is int and protocol_version in _PROTOCOL_VERSIONS,
+          "unsupported navigator protocol version")
     _text(repo, "repo")
     _text(prompt, "prompt")
     _text(bound_plan, "bound_plan", allow_empty=True)
     state: dict[str, Any] = {
         "version": STATE_VERSION,
-        "navigator_protocol_version": PROTOCOL_VERSION,
+        "navigator_protocol_version": protocol_version,
         "execution_mode": "navigator",
         "run_id": "nav-" + uuid.uuid4().hex,
         "revision": 0,
@@ -211,18 +252,19 @@ def new_state(repo: str, prompt: str, bound_plan: str = "") -> dict[str, Any]:
         "accepted": {},
         "history": [],
     }
+    if protocol_version == PROTOCOL_VERSION:
+        state["inner_loops"] = {}
     validate(state)
     return state
 
 
-def validate(state: Any) -> None:
-    """Validate only navigator-owned data shape and cursor safety."""
-    _need(isinstance(state, Mapping), "navigator state must be an object")
+def _validate_v1(state: Mapping[str, Any]) -> None:
+    """Keep protocol-1 state validation and shape exactly self-contained."""
     keys = set(state)
-    _need(keys <= _STATE_KEYS and _STATE_KEYS - {"status_reason"} <= keys,
+    _need(keys <= _STATE_KEYS_V1 and _STATE_KEYS_V1 - {"status_reason"} <= keys,
           "navigator state has unsupported or missing fields")
     _need(state.get("version") == STATE_VERSION, "unsupported navigator state version")
-    _need(state.get("navigator_protocol_version") == PROTOCOL_VERSION,
+    _need(state.get("navigator_protocol_version") == 1,
           "unsupported navigator protocol version")
     _need(state.get("execution_mode") == "navigator", "state is not navigator mode")
     run_id = state.get("run_id")
@@ -305,6 +347,140 @@ def validate(state: Any) -> None:
     _need(action_id not in accepted, "current navigator action is already accepted")
 
 
+def _validate_action(action: Any, stage: str, label: str) -> str:
+    _need(isinstance(action, Mapping) and set(action) == {"id", "stage"},
+          f"{label} is invalid")
+    action_id = action.get("id")
+    _need(isinstance(action_id, str) and _ACTION_ID.fullmatch(action_id) is not None,
+          f"unsafe {label} ID")
+    _need(action.get("stage") == stage, f"{label} does not match stage")
+    return action_id
+
+
+def _validate_v2(state: Mapping[str, Any]) -> None:
+    keys = set(state)
+    _need(keys <= _STATE_KEYS_V2 and _STATE_KEYS_V2 - {"status_reason"} <= keys,
+          "navigator state has unsupported or missing fields")
+    _need(state.get("version") == STATE_VERSION, "unsupported navigator state version")
+    _need(state.get("navigator_protocol_version") == PROTOCOL_VERSION,
+          "unsupported navigator protocol version")
+    _need(state.get("execution_mode") == "navigator", "state is not navigator mode")
+    run_id = state.get("run_id")
+    _need(isinstance(run_id, str) and _ACTION_ID.fullmatch(run_id) is not None,
+          "unsafe navigator run ID")
+    revision = state.get("revision")
+    _need(type(revision) is int and revision >= 0, "navigator revision is invalid")
+    _text(state.get("repo"), "repo")
+    _text(state.get("prompt"), "prompt")
+    _text(state.get("bound_plan"), "bound_plan", allow_empty=True)
+
+    stage = state.get("stage")
+    _need(stage in frozenset((*PRELUDE, "inner-loop", *OUTER, "done")),
+          "unknown navigator stage")
+    action = state.get("action")
+    if stage == "inner-loop":
+        _need(action is None, "inner-loop root must not own an action")
+        root_action_id = None
+    else:
+        root_action_id = _validate_action(action, stage, "navigator action")
+
+    status = state.get("status")
+    _need(status in _STATUSES, "unknown navigator status")
+    if stage == "done":
+        _need(status == "done", "done stage requires done status")
+    else:
+        _need(status != "done", "done status requires done stage")
+    if status in ("paused", "blocked", "halted"):
+        _text(state.get("status_reason"), "navigator status reason")
+    else:
+        _need("status_reason" not in state, "active or done state has a status reason")
+
+    items = _normalise_work_items(state.get("work_items"), allow_empty=False)
+    _need(items == state["work_items"], "work_items are not canonical")
+    item_ids = [item["id"] for item in items]
+    work_index = state.get("work_index")
+    _need(type(work_index) is int and 0 <= work_index <= len(items),
+          "navigator work index is invalid")
+    completed = state.get("completed_work_items")
+    _need(isinstance(completed, list) and completed == item_ids[:work_index],
+          "completed work items do not match navigator cursor")
+    if stage == "inner-loop":
+        _need(work_index < len(items), "inner-loop root has no current work item")
+    elif stage in _OUTER_SET or stage == "done":
+        _need(work_index == len(items), "outer stage requires all work items complete")
+    else:
+        _need(work_index == 0 and not completed,
+              "prelude stage cannot have completed work items")
+
+    loops = state.get("inner_loops")
+    _need(isinstance(loops, Mapping), "navigator inner loops are invalid")
+    entered_ids = item_ids[:work_index]
+    if stage == "inner-loop":
+        entered_ids = [*entered_ids, item_ids[work_index]]
+    _need(set(loops) == set(entered_ids),
+          "inner loops must contain completed items and the active item only")
+    for item_id in item_ids[:work_index]:
+        loop = loops[item_id]
+        _need(isinstance(loop, Mapping) and set(loop) == {"stage", "action"},
+              "completed inner loop is invalid")
+        _need(loop.get("stage") == "done" and loop.get("action") is None,
+              "completed inner loop must be done without an action")
+    child_action_id = None
+    if stage == "inner-loop":
+        loop = loops[item_ids[work_index]]
+        _need(isinstance(loop, Mapping) and set(loop) == {"stage", "action"},
+              "active inner loop is invalid")
+        child_stage = loop.get("stage")
+        _need(child_stage in _INNER_SET, "active inner loop stage is invalid")
+        child_action_id = _validate_action(loop.get("action"), child_stage, "inner-loop action")
+
+    accepted = state.get("accepted")
+    history = state.get("history")
+    _need(isinstance(accepted, Mapping), "navigator accepted ledger is invalid")
+    _need(isinstance(history, list), "navigator history is invalid")
+    history_ids: list[str] = []
+    for entry in history:
+        _need(isinstance(entry, Mapping) and set(entry) == {
+            "stage", "outcome", "summary", "workitem", "action"
+        }, "navigator history entry is invalid")
+        entry_stage = entry.get("stage")
+        _need(entry_stage in _STAGE_SET, "navigator history stage is invalid")
+        entry_action = entry.get("action")
+        _need(isinstance(entry_action, str) and _ACTION_ID.fullmatch(entry_action) is not None,
+              "navigator history action is unsafe")
+        _need(entry_action not in history_ids, "navigator history repeats an action")
+        history_ids.append(entry_action)
+        _need(entry_action in accepted, "navigator history action has no accepted result")
+        canonical = _canonical_result(accepted[entry_action], stage=entry_stage)
+        _need(canonical == accepted[entry_action], "accepted navigator result is not canonical")
+        _need(entry.get("outcome") == canonical["outcome"], "navigator history outcome disagrees")
+        _need(entry.get("summary") == canonical["summary"], "navigator history summary disagrees")
+        workitem = entry.get("workitem")
+        if entry_stage in _INNER_SET:
+            _need(workitem in loops, "navigator history work item is invalid")
+        else:
+            _need(workitem is None, "non-inner navigator history has a work item")
+    _need(set(accepted) == set(history_ids), "accepted navigator results disagree with history")
+    for accepted_id in accepted:
+        _need(isinstance(accepted_id, str) and _ACTION_ID.fullmatch(accepted_id) is not None,
+              "unsafe accepted navigator action ID")
+    effective_action_id = child_action_id if child_action_id is not None else root_action_id
+    _need(effective_action_id is not None and effective_action_id not in accepted,
+          "current navigator action is already accepted")
+
+
+def validate(state: Any) -> None:
+    """Validate only navigator-owned data shape and cursor safety."""
+    _need(isinstance(state, Mapping), "navigator state must be an object")
+    protocol_version = state.get("navigator_protocol_version")
+    _need(type(protocol_version) is int and protocol_version in _PROTOCOL_VERSIONS,
+          "unsupported navigator protocol version")
+    if protocol_version == 1:
+        _validate_v1(state)
+        return
+    _validate_v2(state)
+
+
 def _replace_plan_work_items(state: dict[str, Any], rows: list[dict[str, str]]) -> None:
     _need(state["stage"] in ("plan", "plan-improve") and state["work_index"] == 0
           and not state["completed_work_items"],
@@ -337,6 +513,27 @@ def _record_acceptance(
     )
 
 
+def _begin_v2_inner_loop(state: dict[str, Any]) -> None:
+    _need(_is_v2_inner_root(state), "active item requires the inner-loop root")
+    item_id = _current_work_item(state)
+    _need(item_id is not None and item_id not in state["inner_loops"],
+          "inner loop already exists or has no current work item")
+    state["inner_loops"][item_id] = {
+        "stage": "step-plan",
+        "action": _new_action("step-plan"),
+    }
+
+
+def _replace_v2_inner_action(state: dict[str, Any], stage: str) -> None:
+    item_id = _current_work_item(state)
+    _need(_is_v2_inner_root(state) and item_id is not None,
+          "active item requires the inner-loop root")
+    state["inner_loops"][item_id] = {
+        "stage": stage,
+        "action": _new_action(stage),
+    }
+
+
 def apply(state: Mapping[str, Any], action_id: str, result: Any) -> dict[str, Any]:
     """Accept one current result and return a new state without persisting it."""
     validate(state)
@@ -352,8 +549,9 @@ def apply(state: Mapping[str, Any], action_id: str, result: Any) -> dict[str, An
         return deepcopy(dict(state))
 
     _need(state["status"] == "active", "navigator is not active; resume or inspect it first")
-    _need(action_id == state["action"]["id"], "stale navigator action ID")
-    stage = state["stage"]
+    stage = current_stage(state)
+    action = current_action(state)
+    _need(action_id == action["id"], "stale navigator action ID")
     canonical = _canonical_result(result, stage=stage)
     updated = deepcopy(dict(state))
     _record_acceptance(updated, action_id, stage, canonical)
@@ -362,30 +560,78 @@ def apply(state: Mapping[str, Any], action_id: str, result: Any) -> dict[str, An
     if canonical["outcome"] == "blocked":
         updated["status"] = "blocked"
         updated["status_reason"] = canonical["summary"]
-        updated["action"] = _new_action(stage)
+        if _is_v2_inner_root(updated):
+            _replace_v2_inner_action(updated, stage)
+        else:
+            updated["action"] = _new_action(stage)
         validate(updated)
         return updated
 
     updated.pop("status_reason", None)
     updated["status"] = "active"
     if canonical["outcome"] == "repeat":
-        updated["action"] = _new_action(stage)
+        if _is_v2_inner_root(updated):
+            _replace_v2_inner_action(updated, stage)
+        else:
+            updated["action"] = _new_action(stage)
+        validate(updated)
+        return updated
+
+    if updated["navigator_protocol_version"] == 1:
+        if stage in ("plan", "plan-improve") and "work_items" in canonical:
+            _replace_plan_work_items(updated, canonical["work_items"])
+        if stage == "carry-forward":
+            if "work_items" in canonical:
+                _replace_future_work_items(updated, canonical["work_items"])
+            current_id = updated["work_items"][updated["work_index"]]["id"]
+            updated["completed_work_items"].append(current_id)
+            updated["work_index"] += 1
+
+        if stage == "carry-forward" and updated["work_index"] < len(updated["work_items"]):
+            next_stage = "step-plan"
+        else:
+            next_stage = _next_stage(stage, canonical)
+        updated["stage"] = next_stage
+        updated["action"] = _new_action(next_stage)
+        updated["status"] = "done" if next_stage == "done" else "active"
         validate(updated)
         return updated
 
     if stage in ("plan", "plan-improve") and "work_items" in canonical:
         _replace_plan_work_items(updated, canonical["work_items"])
-    if stage == "carry-forward":
+    if _is_v2_inner_root(updated) and stage == "carry-forward":
         if "work_items" in canonical:
             _replace_future_work_items(updated, canonical["work_items"])
         current_id = updated["work_items"][updated["work_index"]]["id"]
+        updated["inner_loops"][current_id] = {"stage": "done", "action": None}
         updated["completed_work_items"].append(current_id)
         updated["work_index"] += 1
 
-    if stage == "carry-forward" and updated["work_index"] < len(updated["work_items"]):
-        next_stage = "step-plan"
-    else:
+        if updated["work_index"] < len(updated["work_items"]):
+            _begin_v2_inner_loop(updated)
+        else:
+            next_stage = _next_stage(stage, canonical)
+            updated["stage"] = next_stage
+            updated["action"] = _new_action(next_stage)
+            updated["status"] = "done" if next_stage == "done" else "active"
+        validate(updated)
+        return updated
+
+    if _is_v2_inner_root(updated):
         next_stage = _next_stage(stage, canonical)
+        _need(next_stage in _INNER_SET, "inner loop cannot advance outside its graph")
+        _replace_v2_inner_action(updated, next_stage)
+        validate(updated)
+        return updated
+
+    if stage == "plan-improve":
+        updated["stage"] = "inner-loop"
+        updated["action"] = None
+        _begin_v2_inner_loop(updated)
+        validate(updated)
+        return updated
+
+    next_stage = _next_stage(stage, canonical)
     updated["stage"] = next_stage
     updated["action"] = _new_action(next_stage)
     updated["status"] = "done" if next_stage == "done" else "active"
@@ -459,8 +705,9 @@ def render(core: Any, root: Path, state: Mapping[str, Any]) -> str:
     """Render a cold-start packet from navigator state without reading files."""
     validate(state)
     root = Path(root)
-    action = state["action"]
-    stage = state["stage"]
+    stage = current_stage(state)
+    action = current_action(state)
+    workitem = _current_work_item(state)
     lines = [
         f"ShipLoop navigator | {stage} | revision {state['revision']}",
         f"State: {root / 'state.md'}",
@@ -488,6 +735,14 @@ def render(core: Any, root: Path, state: Mapping[str, Any]) -> str:
         state["prompt"],
         "----- END ORIGINAL REQUEST -----",
     ]
+    if state["navigator_protocol_version"] == PROTOCOL_VERSION:
+        if workitem is None:
+            lines.append("Owner: root navigator (state.md root stage/action).")
+        else:
+            lines.append(
+                "Owner: " + workitem
+                + f" (state.md inner_loops.{workitem})."
+            )
     if state["bound_plan"]:
         lines.append(f"Bound plan locator: {state['bound_plan']}")
     if state["history"]:
@@ -635,6 +890,41 @@ def _render_report(state: Mapping[str, Any]) -> str:
     reason_html = (
         "" if reason is None else f"<p>Reason: {html.escape(str(reason))}</p>"
     )
+    progress: list[str] = []
+    if state["navigator_protocol_version"] == PROTOCOL_VERSION:
+        for index, item in enumerate(state["work_items"]):
+            if index < state["work_index"]:
+                progress_label = "done"
+            elif state["stage"] == "inner-loop" and index == state["work_index"]:
+                progress_label = (
+                    state["status"]
+                    + ": "
+                    + state["inner_loops"][item["id"]]["stage"]
+                )
+            else:
+                progress_label = "pending"
+            progress.append(
+                "<tr>"
+                f"<td>{html.escape(item['id'])}</td>"
+                f"<td>{html.escape(item['title'])}</td>"
+                f"<td>{html.escape(progress_label)}</td>"
+                "</tr>"
+            )
+    progress_section = (
+        []
+        if not progress
+        else [
+            "<h2>Work item progress</h2>",
+            "<table><thead><tr><th>Work item</th><th>Title</th><th>Progress</th></tr></thead><tbody>",
+            *progress,
+            "</tbody></table>",
+        ]
+    )
+    report_tail = (
+        ["</tbody></table>", *progress_section, "</body></html>"]
+        if state["navigator_protocol_version"] == PROTOCOL_VERSION
+        else ["</tbody></table></body></html>"]
+    )
     return "\n".join(
         [
             "<!doctype html>",
@@ -649,7 +939,7 @@ def _render_report(state: Mapping[str, Any]) -> str:
             "<h2>Accepted transitions</h2>",
             "<table><thead><tr><th>Stage</th><th>Outcome</th><th>Work item</th><th>Summary</th><th>Evidence references</th></tr></thead><tbody>",
             *rows,
-            "</tbody></table></body></html>",
+            *report_tail,
         ]
     ) + "\n"
 
@@ -660,7 +950,7 @@ def _latest_result_record(state: Mapping[str, Any]) -> tuple[str, str] | None:
     entry = state["history"][-1]
     action_id = entry["action"]
     record = {
-        "navigator_protocol_version": PROTOCOL_VERSION,
+        "navigator_protocol_version": state["navigator_protocol_version"],
         "run_id": state["run_id"],
         "action": action_id,
         "stage": entry["stage"],
