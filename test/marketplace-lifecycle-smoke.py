@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import io
 import json
 import os
 from pathlib import Path
@@ -19,8 +20,10 @@ import select
 import shutil
 import subprocess
 import sys
+import tempfile
 import time
 import tomllib
+import threading
 import uuid
 from typing import Any, Iterable
 
@@ -29,6 +32,8 @@ CLT_GIT = Path("/Library/Developer/CommandLineTools/usr/bin/git")
 PAYLOAD_KEY = "SKILL_CRAFT_E2E_PAYLOAD"
 HOSTS = ("claude", "grok", "codex")
 HOME_PATH = str(Path.home())
+BASE_ENV_KEYS = ("PATH", "LANG", "LC_ALL", "LC_CTYPE", "TERM", "TMPDIR", "DEVELOPER_DIR")
+CODEX_ENV_KEYS = ("HOME", "XDG_CONFIG_HOME", "XDG_DATA_HOME", "XDG_STATE_HOME", *BASE_ENV_KEYS)
 
 
 class VerificationError(RuntimeError):
@@ -52,9 +57,9 @@ def sanitize(text: str) -> str:
     """Keep command evidence useful without retaining user paths or token-like text."""
     if HOME_PATH:
         text = text.replace(HOME_PATH, "$USER_HOME")
-    text = re.sub(r"(?i)(bearer\\s+)[\\w.+/=-]+", r"\\1[REDACTED]", text)
+    text = re.sub(r"(?i)(bearer\s+)[\w.+/=-]+", r"\1[REDACTED]", text)
     return re.sub(
-        r"\\b(?:sk-[A-Za-z0-9_-]{12,}|gh[pousr]_[A-Za-z0-9_]{12,}|github_pat_[A-Za-z0-9_]{12,})",
+        r"\b(?:sk-[A-Za-z0-9_-]{12,}|xai-[A-Za-z0-9_-]{12,}|gh[pousr]_[A-Za-z0-9_]{12,}|github_pat_[A-Za-z0-9_]{12,})",
         "[REDACTED]",
         text,
     )
@@ -68,6 +73,29 @@ def receipt_text(text: str, limit: int = 12_000) -> str:
         safe[:limit]
         + f"\\n[truncated; sha256={sha256_bytes(safe.encode()):s} bytes={len(safe)}]\\n"
     )
+
+
+def collect_sanitized_stream(stream: Any, limit: int = 12_000) -> str:
+    """Drain a text stream without writing its raw contents to disk."""
+    pieces: list[str] = []
+    retained = 0
+    truncated = False
+    for line in stream:
+        safe = sanitize(line)
+        remaining = limit - retained
+        if remaining <= 0:
+            truncated = True
+            continue
+        if len(safe) > remaining:
+            pieces.append(safe[:remaining])
+            retained += remaining
+            truncated = True
+            continue
+        pieces.append(safe)
+        retained += len(safe)
+    if truncated:
+        pieces.append("\n[truncated sanitized stderr after 12000 characters]\n")
+    return "".join(pieces)
 
 
 def safe_value(value: Any) -> Any:
@@ -90,8 +118,7 @@ def require_clt_git() -> str:
 
 def command_environment(host: str | None = None, profile: Path | None = None) -> dict[str, str]:
     """Build a credential-free profile environment without assigning HOME/CODEX_HOME."""
-    allowed = ("PATH", "LANG", "LC_ALL", "LC_CTYPE", "TERM", "TMPDIR", "DEVELOPER_DIR")
-    env = {key: os.environ[key] for key in allowed if key in os.environ}
+    env = {key: os.environ[key] for key in BASE_ENV_KEYS if key in os.environ}
     existing_path = env.get("PATH", "")
     env["PATH"] = str(CLT_GIT.parent) + (os.pathsep + existing_path if existing_path else "")
     env.update(
@@ -118,8 +145,10 @@ def command_environment(host: str | None = None, profile: Path | None = None) ->
 
 
 def codex_environment() -> dict[str, str]:
-    """Preserve Codex's normal config lookup; do not change HOME or CODEX_HOME."""
-    env = os.environ.copy()
+    """Use an allowlist while forwarding the existing on-disk config location unchanged."""
+    env = {key: os.environ[key] for key in CODEX_ENV_KEYS if key in os.environ}
+    existing_path = env.get("PATH", "")
+    env["PATH"] = str(CLT_GIT.parent) + (os.pathsep + existing_path if existing_path else "")
     env["NO_COLOR"] = "1"
     return env
 
@@ -401,6 +430,17 @@ def cache_cards(host: str, profile: Path, plugin_name: str) -> list[Path]:
     )
 
 
+def owned_cache_state(cache_root: Path) -> dict[str, Any]:
+    """Describe only the uniquely named fixture cache; never remove it here."""
+    if not cache_root.exists():
+        return {"path": str(cache_root), "exists": False, "entries": []}
+    entries = [
+        str(path.relative_to(cache_root))
+        for path in sorted(cache_root.rglob("*"))[:20]
+    ]
+    return {"path": str(cache_root), "exists": True, "entries": entries}
+
+
 def assert_installed_card(
     *, host: str, profile: Path, plugin_name: str, expected: Path, payload: str
 ) -> dict[str, Any]:
@@ -427,6 +467,8 @@ def remove_profile(profile: Path, host_dir: Path) -> None:
         raise VerificationError(f"refusing to remove unexpected profile path: {sanitize(str(profile))}")
     if profile.exists():
         shutil.rmtree(profile)
+    if profile.exists():
+        raise VerificationError(f"disposable profile still exists after cleanup: {sanitize(str(profile))}")
 
 
 def host_command(host: str, binary: str, leader_socket: Path, parts: list[str]) -> list[str]:
@@ -452,14 +494,13 @@ def lifecycle_claude_or_grok(
     binary = host_binary(host)
     env = command_environment(host, profile)
     leader_socket = profile / "leader-e2e.sock"
-    installed = False
+    cleanup_needed = False
     failure: Exception | None = None
     result: dict[str, Any] = {
         "host": host,
         "fixture": {"marketplace": market_name, "plugin": plugin_name},
         "isolation": {
             "profile_variable": "CLAUDE_CONFIG_DIR" if host == "claude" else "GROK_HOME",
-            "profile_disposed": not keep_profile,
             "consumer_state_sentinel_sha256": sentinel_hash,
         },
     }
@@ -484,8 +525,8 @@ def lifecycle_claude_or_grok(
         available_v1 = parse_json(call(["list", "--available", "--json"], "inventory.available-v1"), "inventory.available-v1")
 
         install = ["install", f"{plugin_name}@{market_name}", "--json"] if host == "claude" else ["install", plugin_name, "--trust"]
+        cleanup_needed = True
         call(install, "plugin.install-v1")
-        installed = True
         installed_v1 = parse_json(call(["list", "--json"], "inventory.installed-v1"), "inventory.installed-v1")
         assert_inventory_version(installed_v1, plugin_name=plugin_name, version="1.0.0", label="inventory.installed-v1")
         card_v1 = assert_installed_card(
@@ -514,9 +555,14 @@ def lifecycle_claude_or_grok(
 
         remove = ["uninstall", f"{plugin_name}@{market_name}", "--json"] if host == "claude" else ["uninstall", plugin_name, "--confirm"]
         call(remove, "plugin.uninstall")
-        installed = False
+        cleanup_needed = False
         after_remove = parse_json(call(["list", "--json"], "inventory.after-uninstall-fresh"), "inventory.after-uninstall-fresh")
         assert_absent(after_remove, plugin_name=plugin_name, label="inventory.after-uninstall-fresh")
+        remaining_cards = cache_cards(host, profile, plugin_name)
+        if remaining_cards:
+            raise VerificationError(
+                f"uninstall left fixture cache cards: {safe_value([str(card) for card in remaining_cards])}"
+            )
         if not sentinel.is_file() or sentinel.read_bytes() != sentinel_bytes or sha256_file(sentinel) != sentinel_hash:
             raise VerificationError("consumer-state sentinel changed or disappeared")
         result.update(
@@ -536,6 +582,7 @@ def lifecycle_claude_or_grok(
                     "v2_installed_inventory_exactly_once": True,
                     "v2_installed_card": card_v2,
                     "uninstall_removed_inventory_entry": True,
+                    "fixture_cache_cards_absent_after_uninstall": True,
                     "consumer_state_sentinel_preserved": True,
                 },
             }
@@ -543,7 +590,7 @@ def lifecycle_claude_or_grok(
     except Exception as error:  # Evidence and owned cleanup must still be written.
         failure = error
     finally:
-        if installed:
+        if cleanup_needed:
             try:
                 cleanup = call(
                     ["uninstall", f"{plugin_name}@{market_name}", "--json"] if host == "claude" else ["uninstall", plugin_name, "--confirm"],
@@ -558,13 +605,25 @@ def lifecycle_claude_or_grok(
                 result["cleanup_error"] = sanitize(str(cleanup_error))
                 if failure is None:
                     failure = cleanup_error
+        post_cleanup_cards = cache_cards(host, profile, plugin_name)
+        result["isolation"]["fixture_cache_after_cleanup"] = {
+            "matching_card_count": len(post_cleanup_cards),
+            "cards": [str(card) for card in post_cleanup_cards],
+        }
+        if post_cleanup_cards and failure is None:
+            failure = VerificationError("fixture cache cards remained after uninstall cleanup")
         if not keep_profile:
+            result["isolation"]["profile_disposed"] = False
             try:
                 remove_profile(profile, host_dir)
+                result["isolation"]["profile_disposed"] = not profile.exists()
             except Exception as cleanup_error:
                 result["cleanup_error"] = sanitize(str(cleanup_error))
                 if failure is None:
                     failure = cleanup_error
+        else:
+            result["isolation"]["profile_disposed"] = False
+            result["isolation"]["profile_retained_for_diagnosis"] = profile.exists()
         result["commands"] = receipts
         if failure is not None:
             result.update({"status": "failed", "error": sanitize(str(failure))})
@@ -621,20 +680,39 @@ def scan_codex_skills(
     identity: str,
 ) -> list[dict[str, Any]]:
     argv = [binary, *config_args, "app-server", "--stdio"]
-    stderr_path = cwd / f"{label}.stderr.log"
     started = time.monotonic()
-    stderr_handle = stderr_path.open("w", encoding="utf-8")
-    proc = subprocess.Popen(
-        argv,
-        cwd=cwd,
-        env=env,
-        text=True,
-        stdin=subprocess.PIPE,
-        stdout=subprocess.PIPE,
-        stderr=stderr_handle,
-        bufsize=1,
-    )
+    try:
+        proc = subprocess.Popen(
+            argv,
+            cwd=cwd,
+            env=env,
+            text=True,
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            bufsize=1,
+        )
+    except OSError as error:
+        receipts.append(
+            {
+                "label": label,
+                "argv": [sanitize(value) for value in argv],
+                "cwd": sanitize(str(cwd)),
+                "exit": None,
+                "stderr": receipt_text(str(error)),
+            }
+        )
+        raise VerificationError(f"{label} could not start app server: {sanitize(str(error))}") from error
+    stderr_output: list[str] = []
+
+    def drain_stderr() -> None:
+        assert proc.stderr is not None
+        stderr_output.append(collect_sanitized_stream(proc.stderr))
+
+    stderr_thread = threading.Thread(target=drain_stderr, name=f"{label}-stderr", daemon=True)
+    stderr_thread.start()
     protocol: list[dict[str, Any]] = []
+    completed = False
 
     def request(request_id: int, method: str, params: dict[str, Any]) -> dict[str, Any]:
         assert proc.stdin is not None and proc.stdout is not None
@@ -652,7 +730,7 @@ def scan_codex_skills(
                 message = json.loads(line)
             except json.JSONDecodeError as error:
                 raise VerificationError(f"{label} app server emitted invalid JSON") from error
-            protocol.append(message)
+            protocol.append({"id": message.get("id"), "has_error": "error" in message})
             if message.get("id") == request_id:
                 return message
         raise VerificationError(f"{label} app server timed out on {method}")
@@ -683,20 +761,11 @@ def scan_codex_skills(
             if isinstance(skill, dict)
             and (skill.get("name") == plugin_name or skill.get("pluginId") == identity)
         ]
-        receipts.append(
-            {
-                "label": label,
-                "argv": [sanitize(value) for value in argv],
-                "cwd": sanitize(str(cwd)),
-                "exit": 0,
-                "app_server_elapsed_seconds": round(time.monotonic() - started, 3),
-                "skill_match_count": len(skills),
-                "stderr_log": sanitize(str(stderr_path)),
-                "protocol": safe_value(protocol),
-            }
-        )
+        completed = True
         return skills
     finally:
+        if proc.stdin is not None and not proc.stdin.closed:
+            proc.stdin.close()
         if proc.poll() is None:
             proc.terminate()
             try:
@@ -704,9 +773,21 @@ def scan_codex_skills(
             except subprocess.TimeoutExpired:
                 proc.kill()
                 proc.wait()
-        stderr_handle.close()
-        if stderr_path.exists():
-            stderr_path.write_text(receipt_text(stderr_path.read_text(encoding="utf-8")), encoding="utf-8")
+        stderr_thread.join()
+        if proc.stdout is not None:
+            proc.stdout.close()
+        receipts.append(
+            {
+                "label": label,
+                "argv": [sanitize(value) for value in argv],
+                "cwd": sanitize(str(cwd)),
+                "exit": 0 if completed else proc.returncode,
+                "app_server_elapsed_seconds": round(time.monotonic() - started, 3),
+                "skill_match_count": len(skills) if completed else 0,
+                "stderr": stderr_output[0] if stderr_output else "",
+                "protocol_events": protocol,
+            }
+        )
 
 
 def assert_codex_skill(
@@ -743,10 +824,11 @@ def lifecycle_codex(*, host_dir: Path, token: str) -> dict[str, Any]:
     market_name = f"skill-craft-e2e-codex-{token}"
     plugin_name = f"skill-craft-e2e-codex-plugin-{token}"
     identity = f"{plugin_name}@{market_name}"
+    cache_root = Path.home() / ".codex" / "plugins" / "cache" / market_name / plugin_name
     binary = host_binary(host)
     env = codex_environment()
     before_config = config_snapshot()
-    installed = False
+    cleanup_needed = False
     failure: Exception | None = None
     result: dict[str, Any] = {
         "host": host,
@@ -756,6 +838,7 @@ def lifecycle_codex(*, host_dir: Path, token: str) -> dict[str, Any]:
             "native_plugin_cleanup": "plugin remove unique-plugin@unique-marketplace",
             "consumer_state_sentinel_sha256": sentinel_hash,
             "config_before": before_config,
+            "fixture_cache_before": owned_cache_state(cache_root),
         },
     }
 
@@ -777,13 +860,15 @@ def lifecycle_codex(*, host_dir: Path, token: str) -> dict[str, Any]:
         _, worktree, v1_commit = make_fixture_repository(
             host_dir, market_name=market_name, plugin_name=plugin_name, receipts=receipts
         )
+        if cache_root.exists():
+            raise VerificationError("unique Codex fixture cache already exists before install")
         available_v1 = parse_json(
             call(["plugin", "list", "--marketplace", market_name, "--available", "--json"], "inventory.available-v1"),
             "inventory.available-v1",
         )
         assert_inventory_version(available_v1, plugin_name=plugin_name, version="1.0.0", label="inventory.available-v1")
+        cleanup_needed = True
         call(["plugin", "add", identity, "--json"], "plugin.add-v1", enable_plugin=True)
-        installed = True
         installed_v1 = parse_json(
             call(["plugin", "list", "--marketplace", market_name, "--json"], "inventory.installed-v1", enable_plugin=True),
             "inventory.installed-v1",
@@ -829,7 +914,7 @@ def lifecycle_codex(*, host_dir: Path, token: str) -> dict[str, Any]:
         )
 
         call(["plugin", "remove", identity, "--json"], "plugin.remove", allow_failure=False)
-        installed = False
+        cleanup_needed = False
         after_remove = parse_json(
             call(["plugin", "list", "--marketplace", market_name, "--json"], "inventory.after-remove-fresh"),
             "inventory.after-remove-fresh",
@@ -847,6 +932,12 @@ def lifecycle_codex(*, host_dir: Path, token: str) -> dict[str, Any]:
         )
         if removed:
             raise VerificationError(f"runtime.after-remove-fresh still found {safe_value(removed)}")
+        cache_after_remove = owned_cache_state(cache_root)
+        result["isolation"]["fixture_cache_after_remove"] = cache_after_remove
+        if cache_after_remove["exists"]:
+            raise VerificationError(
+                f"native removal left unique fixture cache: {safe_value(cache_after_remove)}"
+            )
         if not sentinel.is_file() or sentinel.read_bytes() != sentinel_bytes or sha256_file(sentinel) != sentinel_hash:
             raise VerificationError("consumer-state sentinel changed or disappeared")
         result.update(
@@ -861,6 +952,7 @@ def lifecycle_codex(*, host_dir: Path, token: str) -> dict[str, Any]:
                     "v2_runtime_card": skill_v2,
                     "uninstall_removed_inventory_entry": True,
                     "runtime_absent_after_remove": True,
+                    "fixture_cache_absent_after_remove": True,
                     "consumer_state_sentinel_preserved": True,
                 },
             }
@@ -868,7 +960,7 @@ def lifecycle_codex(*, host_dir: Path, token: str) -> dict[str, Any]:
     except Exception as error:  # Preserve evidence and clean only the unique native key.
         failure = error
     finally:
-        if installed:
+        if cleanup_needed:
             try:
                 cleanup = call(["plugin", "remove", identity, "--json"], "cleanup.plugin.remove", allow_failure=True)
                 if cleanup.returncode:
@@ -879,6 +971,12 @@ def lifecycle_codex(*, host_dir: Path, token: str) -> dict[str, Any]:
                 result["cleanup_error"] = sanitize(str(cleanup_error))
                 if failure is None:
                     failure = cleanup_error
+        cache_after_cleanup = owned_cache_state(cache_root)
+        result["isolation"]["fixture_cache_after_cleanup"] = cache_after_cleanup
+        if cache_after_cleanup["exists"] and failure is None:
+            failure = VerificationError(
+                f"unique fixture cache remains after cleanup: {safe_value(cache_after_cleanup)}"
+            )
         try:
             after_config = config_snapshot()
             result["isolation"]["config_after"] = after_config
@@ -920,16 +1018,84 @@ def report_markdown(results: list[dict[str, Any]]) -> str:
     return "\n".join(lines) + "\n"
 
 
+def run_self_test() -> int:
+    """Exercise redaction, environment isolation, and owned cleanup without a host CLI."""
+    raw = "Bearer bearer-secret-123456 sk-abcdefghijklmnop xai-abcdefghijklmnop github_pat_abcdefghijklmnop\n"
+    safe = sanitize(raw)
+    if (
+        "bearer-secret-123456" in safe
+        or "sk-abcdefghijklmnop" in safe
+        or "xai-abcdefghijklmnop" in safe
+        or "github_pat_abcdefghijklmnop" in safe
+    ):
+        raise VerificationError("sanitize did not redact representative credential-shaped text")
+    if "Bearer [REDACTED]" not in safe:
+        raise VerificationError("sanitize did not preserve and redact a Bearer value")
+    stream_safe = collect_sanitized_stream(io.StringIO(raw))
+    if stream_safe != safe:
+        raise VerificationError("stream stderr sanitization diverged from direct sanitization")
+
+    ambient_key = "SKILL_CRAFT_E2E_AMBIENT_SECRET"
+    had_ambient = ambient_key in os.environ
+    old_ambient = os.environ.get(ambient_key)
+    os.environ[ambient_key] = "must-not-reach-codex-child"
+    try:
+        env = codex_environment()
+    finally:
+        if had_ambient:
+            assert old_ambient is not None
+            os.environ[ambient_key] = old_ambient
+        else:
+            del os.environ[ambient_key]
+    unexpected = set(env) - (set(CODEX_ENV_KEYS) | {"NO_COLOR"})
+    if unexpected or ambient_key in env or "CODEX_HOME" in env:
+        raise VerificationError(f"Codex child environment was not minimized: {sorted(unexpected)}")
+    if "HOME" in os.environ and env.get("HOME") != os.environ["HOME"]:
+        raise VerificationError("Codex child HOME was changed instead of forwarded unchanged")
+
+    with tempfile.TemporaryDirectory(prefix="skill-craft-lifecycle-self-test-") as temp:
+        root = Path(temp)
+        host_dir = root / "claude"
+        profile = host_dir / "profile"
+        profile.mkdir(parents=True)
+        write_text(profile / "consumer-state-sentinel", "preserve\n")
+        remove_profile(profile, host_dir)
+        if profile.exists():
+            raise VerificationError("profile disposal self-test left its profile behind")
+
+        cache_root = root / "unique-fixture-cache"
+        if owned_cache_state(cache_root)["exists"]:
+            raise VerificationError("empty fixture cache unexpectedly exists")
+        write_text(cache_root / "v1" / "SKILL.md", "fixture\n")
+        residual = owned_cache_state(cache_root)
+        if not residual["exists"] or not residual["entries"]:
+            raise VerificationError("fixture cache residual self-test did not detect an owned cache")
+        receipt = root / "sanitized-stderr.txt"
+        write_text(receipt, stream_safe)
+        if "bearer-secret-123456" in receipt.read_text(encoding="utf-8"):
+            raise VerificationError("sanitized stderr self-test wrote raw credential-shaped text")
+
+    print(json.dumps({"self_test": "passed", "checks": ["redaction", "env-allowlist", "profile-disposal", "cache-residual"]}))
+    return 0
+
+
 def parse_args(argv: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--host", required=True, choices=(*HOSTS, "all"), help="native host lane to exercise")
-    parser.add_argument("--output", required=True, type=Path, help="new directory for sanitized evidence and disposable fixtures")
+    parser.add_argument("--host", choices=(*HOSTS, "all"), help="native host lane to exercise")
+    parser.add_argument("--output", type=Path, help="new directory for sanitized evidence and disposable fixtures")
+    parser.add_argument("--self-test", action="store_true", help="run no-host redaction and owned-cleanup checks")
     parser.add_argument(
         "--keep-profile",
         action="store_true",
         help="retain only Claude/Grok disposable profiles for diagnosis (default: remove them)",
     )
     args = parser.parse_args(argv)
+    if args.self_test:
+        if args.host is not None or args.output is not None or args.keep_profile:
+            parser.error("--self-test cannot be combined with --host, --output, or --keep-profile")
+        return args
+    if args.host is None or args.output is None:
+        parser.error("--host and --output are required unless --self-test is selected")
     args.output = args.output.expanduser().resolve()
     if args.output.exists():
         parser.error("--output must name a path that does not already exist")
@@ -938,6 +1104,8 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
 
 def main(argv: list[str]) -> int:
     args = parse_args(argv)
+    if args.self_test:
+        return run_self_test()
     args.output.mkdir(parents=True)
     token = uuid.uuid4().hex[:10]
     selected = HOSTS if args.host == "all" else (args.host,)
