@@ -1,8 +1,8 @@
-# Navigator graph dry runs
+# Navigator protocol-2 graph dry runs
 
-The default graph driver now exercises the actual navigator and full returned
-packets. Synthetic declarations stand in for project work; the driver runs no
-LLM, Git operation, implementation, test command, or delivery action.
+The default graph driver exercises the actual protocol-2 navigator and its full
+returned packets. Synthetic declarations stand in for project work; the driver
+runs no LLM, Git operation, implementation, test command, or delivery action.
 
 ```sh
 python3 skills/shiploop/scripts/shiploop graph-dry-run
@@ -11,16 +11,31 @@ python3 skills/shiploop/scripts/shiploop graph-dry-run --scenario two-work-items
 python3 skills/shiploop/scripts/shiploop graph-dry-run --scenario blocked-resume --format json
 ```
 
-The eight built-in scenarios cover delivery, multiple work items, conditional
-skill validation, a repeated Improve action, blockers, pause/resume, halt and
-new corrective work. Expectations are authored independently of the routing
-tables. Each trace contains the actual prompt before its synthetic declaration
-and the resulting stage/status. No entire prompt snapshot is a pass condition.
+Built-in scenarios cover delivery, multiple work items, conditional skill
+validation, a repeated Improve action, blockers, pause/resume, halt, and new
+corrective work. Expectations are authored independently of the routing tables.
+Each trace contains the effective packet before its synthetic declaration and
+the resulting stage, status, owner, and completed-instance IDs. The packet
+contains the current action's callback. No entire prompt snapshot is a pass
+condition.
 
-Custom JSON uses `steps`, each with `at`, `expect`, optional `status` (default
-`active`), and either a generic `result` or `command: pause|resume|halt`.
-The last completion expects stage/status `done`. Run it with `--script PATH`.
-An example prefix is in `navigator-dry-run-example.json`.
+The two-work-item trace must distinguish W1 from W2: W1 owns its
+`carry-forward` callback, then the returned packet is owned by W2 at
+`step-plan`. The synthetic carry-forward result records W1 as done and causes
+W2's execution record to be created in the same simulated transition. In a
+persisted run, `next` reports W2's pending effective action; it does not advance W2 or expose
+an actionable root `inner-loop` container. Future work items have no execution
+record until entered.
+
+The repeated-Improve scenario replaces only the active item's action. It does
+not simulate, count, or render the campaign's internal review cycles: Improve
+remains one call-and-return graph action under the normal owner binding.
+
+Custom JSON uses `steps`, each with an effective `at`, `expect`, optional
+`status` (default `active`), and either a generic `result` or
+`command: pause|resume|halt`. The last completion expects stage/status `done`.
+Run it with `--script PATH`. An example prefix is in
+`navigator-dry-run-example.json`.
 
 Exit 0 means expectations matched, including an intentionally halted or partial
 scenario. Exit 1 means an expectation failed; exit 2 means the input could not
@@ -32,6 +47,9 @@ be read. Simulation success never establishes project completion. See the
 The remainder describes the previous managed-controller driver and its real
 outer fixture. These remain useful for existing managed runs. They do not
 exercise the default navigator and their evidence gates do not apply to it.
+`init --execution-mode=navigator-v1` is a separate fixture compatibility route:
+it preserves recorded protocol-1 cursor behavior rather than migrating a run
+into protocol 2's `inner_loops` records.
 
 # Dry-run graph activities
 
@@ -130,6 +148,7 @@ the full CLI responses with their contextual packet material.
 ## Scope of this addition
 
 These tools make graph and prompt changes cheap to inspect while the runtime
-is simplified. They do not remove or bypass the current production evidence
-gates. Test inputs that resemble receipts remain in memory and are never
+is simplified. They do not remove or bypass production evidence gates, create a
+host installation, start a standalone Improve/Until runtime, or regenerate
+packages. Test inputs that resemble receipts remain in memory and are never
 exported as a child certificate or accepted completion record.

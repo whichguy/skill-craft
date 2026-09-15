@@ -5,6 +5,9 @@ one current ShipLoop action on an isolated local repository. They do not run a
 worker, change production, or estimate model reliability. They are capability
 validation, not a matched-prompt causal comparison.
 
+These historical fixtures remain pinned to navigator protocol 1. The new
+`inner_state` trial covers protocol 2.
+
 From the source checkout root, prepare a fresh trial directory:
 
 ```sh

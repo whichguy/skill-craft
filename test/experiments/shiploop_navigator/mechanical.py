@@ -193,7 +193,9 @@ def add_noise(state: dict[str, Any], rng: random.Random, walk: int, step: int, q
 def walk(number: int, seed: int, end: float) -> dict[str, Any]:
     rng, counts = random.Random(seed), Counter()
     prompt = f"Mechanical navigator walk {number}: no project work is requested."
-    state = navigator.new_state(f"/mechanical/no-project-{number}", prompt)
+    state = navigator.new_state(
+        f"/mechanical/no-project-{number}", prompt, protocol_version=1
+    )
     queue, index, completed = [{"id": "W1", "title": prompt}], 0, []
     expect(state, "intake", "active", queue, index, completed, counts, f"walk {number} initial")
     carry_decided, steps, skill_edges = False, 0, Counter()
@@ -308,7 +310,23 @@ def fresh(base: Path, name: str, end: float, *, padded: bool = False) -> tuple[P
     repo, root = base / name / "ordinary-project", base / name / "run-state"
     repo.mkdir(parents=True)
     prompt = f"Mechanical CLI {name}; no project work is requested." + ("\n" + "x" * RACE_PROMPT_BYTES if padded else "")
-    init = run([sys.executable, str(CLI), "init", "--repo", str(repo), "--run-dir", str(root), "--prompt", prompt], repo, end, name + " init")
+    init = run(
+        [
+            sys.executable,
+            str(CLI),
+            "init",
+            "--repo",
+            str(repo),
+            "--run-dir",
+            str(root),
+            "--prompt",
+            prompt,
+            "--execution-mode=navigator-v1",
+        ],
+        repo,
+        end,
+        name + " init",
+    )
     need(init.returncode == 0, f"{name} init failed: {(init.stdout + init.stderr)[:500]}")
     state = state_at(root, name + " init")
     need(state["stage"] == "intake" and state["status"] == "active", f"{name} did not initialize intake")

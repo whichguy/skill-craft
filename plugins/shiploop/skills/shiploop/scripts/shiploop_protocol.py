@@ -7554,7 +7554,7 @@ def main(core, argv=None):
             sub.add_argument("--repo")
             sub.add_argument("--bound-plan", default="")
             sub.add_argument("--force", action="store_true")
-            sub.add_argument("--execution-mode", choices=("navigator", "managed", "legacy"), default="navigator",
+            sub.add_argument("--execution-mode", choices=("navigator", "navigator-v1", "managed", "legacy"), default="navigator",
                              help="new-run protocol; existing runs retain their recorded mode")
             sub.add_argument("--independent-review", choices=("optional", "required", "required-with-fallback"), default="optional",
                              help="bind managed review requirements; fallback must be explicitly recorded")
@@ -7733,12 +7733,13 @@ def main(core, argv=None):
                     root != Path(args.repo or os.getcwd()).resolve(),
                     "run directory cannot be the product repository root",
                 )
-                if args.execution_mode == "navigator":
+                if args.execution_mode in ("navigator", "navigator-v1"):
                     need(args.independent_review == "optional",
                          "--independent-review is a managed-mode option; state navigator review requirements in the prompt")
                     state = navigator.new_state(
                         str(Path(args.repo or os.getcwd()).resolve()), args.prompt,
                         str(Path(args.bound_plan).resolve()) if args.bound_plan else "",
+                        protocol_version=1 if args.execution_mode == "navigator-v1" else 2,
                     )
                     navigator.save(root, state)
                     print(navigator.render(core, root, state))

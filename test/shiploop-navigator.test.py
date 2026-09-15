@@ -105,6 +105,15 @@ class NavigatorTests(unittest.TestCase):
 
     def new_state(self) -> dict:
         return navigator.new_state(
+            str(self.repo),
+            self.goal,
+            "/not/a/real/or/required/plan.md",
+            protocol_version=1,
+        )
+
+    def new_v2_state(self) -> dict:
+        """Create a current-protocol fixture; legacy fixtures stay pinned to v1."""
+        return navigator.new_state(
             str(self.repo), self.goal, "/not/a/real/or/required/plan.md"
         )
 
@@ -127,11 +136,18 @@ class NavigatorTests(unittest.TestCase):
         return completed.stdout
 
     def _navigator_cli(self, *args: str) -> str:
+        argv = list(args)
+        if argv and argv[0] == "init" and not any(
+            value == "--execution-mode"
+            or value.startswith("--execution-mode=")
+            for value in argv
+        ):
+            argv.append("--execution-mode=navigator-v1")
         return self._run_public_command(
             [
                 sys.executable,
                 str(SCRIPTS / "shiploop"),
-                *args,
+                *argv,
                 "--run-dir",
                 str(self.root),
             ]
@@ -166,6 +182,44 @@ class NavigatorTests(unittest.TestCase):
         navigator.validate(next_state)
         return next_state
 
+    def assert_v2_cursor(self, state: dict, stage: str, *, owner: str | None) -> dict:
+        """Assert serialized authority as well as the public effective cursor."""
+        self.assertEqual(state["navigator_protocol_version"], 2)
+        self.assertEqual(navigator.current_stage(state), stage)
+        action = navigator.current_action(state)
+        self.assertIsInstance(action, dict)
+        self.assertEqual(action["stage"], stage)
+        if owner is None:
+            self.assertNotEqual(state["stage"], "inner-loop")
+            self.assertEqual(state["stage"], stage)
+            self.assertEqual(state["action"], action)
+            return action
+
+        self.assertEqual(state["stage"], "inner-loop")
+        self.assertIsNone(state["action"])
+        self.assertEqual(state["work_items"][state["work_index"]]["id"], owner)
+        self.assertIn(owner, state["inner_loops"])
+        instance = state["inner_loops"][owner]
+        self.assertEqual(set(instance), {"stage", "action"})
+        self.assertEqual(instance["stage"], stage)
+        self.assertEqual(instance["action"], action)
+        return action
+
+    def advance_v2(self, state: dict, stage: str, **extra) -> dict:
+        """Apply one effective v2 action without treating root inner-loop as work."""
+        owner = (
+            state["work_items"][state["work_index"]]["id"]
+            if stage in EXPECTED_INNER
+            else None
+        )
+        action = self.assert_v2_cursor(state, stage, owner=owner)
+        before = copy.deepcopy(state)
+        next_state = navigator.apply(state, action["id"], self.result(**extra))
+        self.assertEqual(state, before)
+        self.assertIsNot(next_state, state)
+        navigator.validate(next_state)
+        return next_state
+
     @staticmethod
     def two_work_items() -> list[dict]:
         return [
@@ -188,6 +242,17 @@ class NavigatorTests(unittest.TestCase):
         state = self.advance(state, "plan", work_items=work_items)
         self.assertEqual(state["stage"], "plan-improve")
         return self.advance(state, "plan-improve")
+
+    def advance_v2_to_first_work_item(
+        self, state: dict, work_items: list[dict]
+    ) -> dict:
+        for stage in EXPECTED_PRELUDE[:-2]:
+            state = self.advance_v2(state, stage)
+        state = self.advance_v2(state, "plan", work_items=work_items)
+        self.assert_v2_cursor(state, "plan-improve", owner=None)
+        state = self.advance_v2(state, "plan-improve")
+        self.assert_v2_cursor(state, "step-plan", owner="W1")
+        return state
 
     def complete_work_item(self, state: dict, *, skill_required: bool) -> dict:
         """Finish the current opaque work item through its fixed node sequence."""
@@ -212,6 +277,31 @@ class NavigatorTests(unittest.TestCase):
             self.assertEqual(state["stage"], "verify")
         for stage in ("verify", "product-improve", "integrate"):
             state = self.advance(state, stage)
+        return state
+
+    def complete_v2_work_item(self, state: dict, *, skill_required: bool) -> dict:
+        """Finish one active v2 instance through its one opaque Improve action."""
+        for stage in (
+            "step-plan",
+            "step-plan-improve",
+            "implement",
+            "test-refine",
+            "test-author",
+        ):
+            state = self.advance_v2(state, stage)
+
+        state = self.advance_v2(
+            state,
+            "document",
+            choices={"skill_required": skill_required},
+        )
+        if skill_required:
+            self.assertEqual(navigator.current_stage(state), "skill-validate")
+            state = self.advance_v2(state, "skill-validate")
+        else:
+            self.assertEqual(navigator.current_stage(state), "verify")
+        for stage in ("verify", "product-improve", "integrate"):
+            state = self.advance_v2(state, stage)
         return state
 
     def test_new_state_is_minimal_navigator_and_retains_cold_context(self) -> None:
@@ -276,6 +366,233 @@ class NavigatorTests(unittest.TestCase):
         self.assertIn("agent-declared completion", terminal_packet)
         self.assertIn("does not independently prove", terminal_packet)
 
+    def test_default_v2_serializes_one_authority_per_entered_work_item(self) -> None:
+        """The shared graph has one root cursor or one active item cursor, never both."""
+        state = self.new_v2_state()
+        self.assertEqual(state["navigator_protocol_version"], 2)
+        self.assertEqual(state["execution_mode"], "navigator")
+        self.assertEqual(state["inner_loops"], {})
+        self.assert_v2_cursor(state, "intake", owner=None)
+
+        state = self.advance_v2_to_first_work_item(state, self.two_work_items())
+        self.assertEqual(set(state["inner_loops"]), {"W1"})
+        self.assert_v2_cursor(state, "step-plan", owner="W1")
+
+        state = self.complete_v2_work_item(state, skill_required=True)
+        self.assert_v2_cursor(state, "carry-forward", owner="W1")
+        active_instance = state["inner_loops"]["W1"]
+        self.assertEqual(set(active_instance), {"stage", "action"})
+        self.assertFalse({"phase", "subphase", "counter", "review_count"} & set(active_instance))
+
+        state = self.advance_v2(state, "carry-forward")
+        self.assertEqual(state["completed_work_items"], ["W1"])
+        self.assertEqual(
+            state["inner_loops"]["W1"], {"stage": "done", "action": None}
+        )
+        self.assertEqual(set(state["inner_loops"]), {"W1", "W2"})
+        self.assert_v2_cursor(state, "step-plan", owner="W2")
+
+        state = self.complete_v2_work_item(state, skill_required=False)
+        state = self.advance_v2(state, "carry-forward")
+        self.assertEqual(state["completed_work_items"], ["W1", "W2"])
+        self.assertEqual(
+            state["inner_loops"]["W2"], {"stage": "done", "action": None}
+        )
+        self.assert_v2_cursor(state, "system-test", owner=None)
+
+    def test_v2_cold_packet_uses_the_effective_item_cursor_and_owner(self) -> None:
+        """A cold `next` renders W1's action, not the root inner-loop container."""
+        default_root = self.base / "default-v2-run"
+        initial = self._run_public_command(
+            [
+                sys.executable,
+                str(SCRIPTS / "shiploop"),
+                "init",
+                "--repo",
+                str(self.repo),
+                "--prompt",
+                self.goal,
+                "--run-dir",
+                str(default_root),
+            ]
+        )
+        default_state = store.read_record(default_root / "state.md")
+        self.assertEqual(default_state["navigator_protocol_version"], 2)
+        self.assertIn("ShipLoop navigator | intake", initial)
+
+        state = self.advance_v2_to_first_work_item(self.new_v2_state(), self.two_work_items())
+        navigator.save(self.root, state)
+        before = (self.root / "state.md").read_bytes()
+        action = navigator.current_action(state)
+        packet = self._navigator_cli("next")
+
+        self.assertEqual((self.root / "state.md").read_bytes(), before)
+        self.assertIn("ShipLoop navigator | step-plan", packet)
+        self.assertIn("Owner: W1", packet)
+        self.assertIn(action["id"], packet)
+        self.assertNotIn("ShipLoop navigator | inner-loop", packet)
+        self.assertEqual(packet.count("Call this when done:"), 1)
+        callback = Path(
+            packet.split("Write the structured result to: ", 1)[1].splitlines()[0]
+        )
+        self.assertEqual(callback, self.root.resolve() / "inbox" / f"{action['id']}.md")
+
+    def test_v2_controls_keep_the_root_parked_and_the_item_action_isolated(self) -> None:
+        state = self.advance_v2_to_first_work_item(self.new_v2_state(), self.two_work_items())
+        first_action = navigator.current_action(state)
+        repeated = navigator.apply(
+            state, first_action["id"], self.result("repeat", "Try the item again.")
+        )
+        self.assert_v2_cursor(repeated, "step-plan", owner="W1")
+        self.assertIsNone(repeated["action"])
+        self.assertNotEqual(navigator.current_action(repeated)["id"], first_action["id"])
+        self.assertNotIn("W2", repeated["inner_loops"])
+
+        blocked_action = navigator.current_action(repeated)
+        blocked = navigator.apply(
+            repeated,
+            blocked_action["id"],
+            self.result("blocked", "Synthetic prerequisite is unavailable."),
+        )
+        self.assertEqual(blocked["status"], "blocked")
+        self.assert_v2_cursor(blocked, "step-plan", owner="W1")
+        self.assertNotEqual(navigator.current_action(blocked)["id"], blocked_action["id"])
+        with self.assertRaises(navigator.NavigatorError):
+            navigator.apply(
+                blocked,
+                navigator.current_action(blocked)["id"],
+                self.result(),
+            )
+
+        resumed = navigator.control(blocked, "resume", "Synthetic prerequisite arrived.")
+        paused = navigator.control(resumed, "pause", "Pause W1 only.")
+        self.assertEqual(paused["status"], "paused")
+        self.assert_v2_cursor(paused, "step-plan", owner="W1")
+        self.assertEqual(
+            navigator.current_action(paused), navigator.current_action(resumed)
+        )
+        active = navigator.control(paused, "resume", "Resume W1.")
+        halted = navigator.control(active, "halt", "Synthetic cancellation.")
+        self.assertEqual(halted["status"], "halted")
+        self.assert_v2_cursor(halted, "step-plan", owner="W1")
+
+    def test_v2_cross_item_replay_keeps_the_selected_next_instance_unchanged(self) -> None:
+        state = self.advance_v2_to_first_work_item(self.new_v2_state(), self.two_work_items())
+        state = self.complete_v2_work_item(state, skill_required=False)
+        w1_carry = navigator.current_action(state)
+        accepted = self.result("done", "W1 carried forward to W2.")
+        state = navigator.apply(state, w1_carry["id"], accepted)
+        self.assert_v2_cursor(state, "step-plan", owner="W2")
+        completed_w1 = {"stage": "done", "action": None}
+        self.assertEqual(state["inner_loops"]["W1"], completed_w1)
+        before = copy.deepcopy(state)
+
+        with self.assertRaises(navigator.NavigatorError):
+            navigator.apply(state, "nav-unknown-stale", self.result())
+        self.assertEqual(state, before)
+        replay = navigator.apply(state, w1_carry["id"], copy.deepcopy(accepted))
+        self.assertEqual(replay, state)
+        self.assertEqual(state, before)
+
+        w2_action = navigator.current_action(state)
+        blocked = navigator.apply(
+            state,
+            w2_action["id"],
+            self.result("blocked", "Synthetic W2 prerequisite is unavailable."),
+        )
+        self.assertEqual(blocked["status"], "blocked")
+        self.assert_v2_cursor(blocked, "step-plan", owner="W2")
+        self.assertEqual(blocked["inner_loops"]["W1"], completed_w1)
+        blocked_before = copy.deepcopy(blocked)
+        blocked_replay = navigator.apply(
+            blocked, w1_carry["id"], copy.deepcopy(accepted)
+        )
+        self.assertEqual(blocked_replay, blocked)
+        self.assertEqual(blocked, blocked_before)
+
+        resumed = navigator.control(blocked, "resume", "Synthetic W2 prerequisite arrived.")
+        self.assert_v2_cursor(resumed, "step-plan", owner="W2")
+        self.assertEqual(resumed["inner_loops"]["W1"], completed_w1)
+        w2_pending_action = navigator.current_action(resumed)
+        paused = navigator.control(resumed, "pause", "Pause W2 without replacing it.")
+        self.assertEqual(paused["status"], "paused")
+        self.assert_v2_cursor(paused, "step-plan", owner="W2")
+        self.assertEqual(navigator.current_action(paused), w2_pending_action)
+        self.assertEqual(paused["inner_loops"]["W1"], completed_w1)
+        state = navigator.control(paused, "resume", "Resume W2.")
+        self.assert_v2_cursor(state, "step-plan", owner="W2")
+        self.assertEqual(navigator.current_action(state), w2_pending_action)
+        self.assertEqual(state["inner_loops"]["W1"], completed_w1)
+        before = copy.deepcopy(state)
+        with self.assertRaises(navigator.NavigatorError):
+            navigator.apply(
+                state,
+                w1_carry["id"],
+                self.result("done", "Conflicting W1 carry-forward replay."),
+            )
+        self.assertEqual(state, before)
+
+    def test_v2_rejects_duplicate_or_future_serialized_cursor_authority(self) -> None:
+        state = self.advance_v2_to_first_work_item(self.new_v2_state(), self.two_work_items())
+        root_and_child = copy.deepcopy(state)
+        root_and_child["action"] = {"id": "nav-root-cursor", "stage": "inner-loop"}
+        future_child = copy.deepcopy(state)
+        future_child["inner_loops"]["W2"] = {
+            "stage": "step-plan",
+            "action": copy.deepcopy(future_child["inner_loops"]["W1"]["action"]),
+        }
+        completed_current = copy.deepcopy(state)
+        completed_current["inner_loops"]["W1"] = {"stage": "done", "action": None}
+
+        for label, malformed in (
+            ("root and active child", root_and_child),
+            ("unentered future child", future_child),
+            ("completed current child", completed_current),
+        ):
+            with self.subTest(label=label):
+                with self.assertRaises(navigator.NavigatorError):
+                    navigator.validate(malformed)
+        navigator.validate(state)
+
+    def test_v2_optional_skill_and_carry_forward_replace_only_future_queue(self) -> None:
+        state = self.advance_v2_to_first_work_item(self.new_v2_state(), self.two_work_items())
+        for stage in (
+            "step-plan",
+            "step-plan-improve",
+            "implement",
+            "test-refine",
+            "test-author",
+        ):
+            state = self.advance_v2(state, stage)
+        state = self.advance_v2(
+            state, "document", choices={"skill_required": True}
+        )
+        self.assert_v2_cursor(state, "skill-validate", owner="W1")
+        state = self.advance_v2(state, "skill-validate")
+        for stage in ("verify", "product-improve", "integrate"):
+            state = self.advance_v2(state, stage)
+
+        future = [
+            {
+                "id": "W2",
+                "title": "Revised second capability",
+                "context": "Future work can be refined after W1.",
+            },
+            {
+                "id": "W3",
+                "title": "New follow-up capability",
+                "context": "Discovered during W1's synthetic work.",
+            },
+        ]
+        state = self.advance_v2(state, "carry-forward", work_items=future)
+        self.assertEqual([item["id"] for item in state["work_items"]], ["W1", "W2", "W3"])
+        self.assertEqual(state["completed_work_items"], ["W1"])
+        self.assertEqual(
+            state["inner_loops"]["W1"], {"stage": "done", "action": None}
+        )
+        self.assertNotIn("W3", state["inner_loops"])
+        self.assert_v2_cursor(state, "step-plan", owner="W2")
+
     def test_public_cli_completes_two_work_items_from_cold_processes(self) -> None:
         """Exercise CLI mode selection, callbacks and persistence end to end."""
         def run(argv: list[str]) -> str:
@@ -292,7 +609,14 @@ class NavigatorTests(unittest.TestCase):
             return run([sys.executable, str(SCRIPTS / "shiploop"), *args,
                         "--run-dir", str(self.root)])
 
-        packet = cli("init", "--repo", str(self.repo), "--prompt", self.goal)
+        packet = cli(
+            "init",
+            "--repo",
+            str(self.repo),
+            "--prompt",
+            self.goal,
+            "--execution-mode=navigator-v1",
+        )
         expected = (
             *EXPECTED_PRELUDE, *EXPECTED_INNER,
             *(stage for stage in EXPECTED_INNER if stage != "skill-validate"),
@@ -372,6 +696,7 @@ class NavigatorTests(unittest.TestCase):
                 str(repo),
                 "--prompt",
                 self.goal,
+                "--execution-mode=navigator-v1",
                 "--run-dir",
                 str(run_dir),
             ],
@@ -1020,6 +1345,86 @@ class NavigatorTests(unittest.TestCase):
         with self.assertRaises(navigator.NavigatorError):
             navigator.save(inbox_link_root, self.new_state())
         self.assertFalse((outside / ".keep").exists())
+
+    def test_v2_carry_forward_recovers_after_each_sorted_target_write(self) -> None:
+        """Recover the actual receipt-before-state and after-state interruption seams."""
+        state = self.advance_v2_to_first_work_item(self.new_v2_state(), self.two_work_items())
+        state = self.complete_v2_work_item(state, skill_required=False)
+        self.assert_v2_cursor(state, "carry-forward", owner="W1")
+        action = navigator.current_action(state)
+        result = self.result("done", "Synthetic W1 carry-forward result.")
+        updated = navigator.apply(state, action["id"], result)
+        self.assert_v2_cursor(updated, "step-plan", owner="W2")
+        expected_targets = (f"results/{action['id']}.md", "state.md")
+
+        for fault_index, label in ((1, "receipt-before-state"), (2, "after-state")):
+            with self.subTest(interruption=label):
+                root = self.base / f"carry-forward-{fault_index}"
+                root.mkdir()
+                navigator.save(root, state)
+                real_transaction = store.transaction
+                observed_targets: list[tuple[str, ...]] = []
+
+                def crash_after_target(transaction_root, writes, deletes=None, **kwargs):
+                    self.assertNotIn("fault", kwargs)
+                    observed_targets.append(tuple(sorted(writes)))
+
+                    def fault(phase: str, index: int) -> None:
+                        if phase == "after-target" and index == fault_index:
+                            raise SimulatedCrash(label)
+
+                    return real_transaction(
+                        transaction_root, writes, deletes, fault=fault, **kwargs
+                    )
+
+                with patch.object(
+                    navigator.store, "transaction", side_effect=crash_after_target
+                ):
+                    with self.assertRaisesRegex(SimulatedCrash, label):
+                        navigator.save(root, updated)
+                self.assertEqual(observed_targets, [expected_targets])
+                self.assertTrue((root / "transaction.md").is_file())
+                journal = store.read_record(root / "transaction.md")
+                self.assertEqual(
+                    [entry["path"] for entry in journal["writes"]],
+                    list(expected_targets),
+                )
+                self.assertTrue(store.recover(root))
+                recovered = store.read_record(root / "state.md")
+                self.assertEqual(recovered, updated)
+                self.assertEqual(
+                    recovered["inner_loops"]["W1"],
+                    {"stage": "done", "action": None},
+                )
+                self.assert_v2_cursor(recovered, "step-plan", owner="W2")
+                receipt = store.read_record(root / "results" / f"{action['id']}.md")
+                self.assertEqual(receipt["navigator_protocol_version"], 2)
+                self.assertEqual(receipt["workitem"], "W1")
+                self.assertEqual(receipt["result"], updated["accepted"][action["id"]])
+
+                callback = root / "inbox" / f"{action['id']}.md"
+                store.write_record(callback, result, title="Synthetic replay callback")
+                before = (root / "state.md").read_bytes()
+                history_length = len(recovered["history"])
+                with redirect_stdout(StringIO()):
+                    self.assertEqual(
+                        navigator.dispatch(
+                            SimpleNamespace(PACKAGE_ROOT=ROOT / "skills" / "shiploop"),
+                            root,
+                            recovered,
+                            SimpleNamespace(
+                                command="complete",
+                                action=action["id"],
+                                result=str(callback),
+                            ),
+                        ),
+                        0,
+                    )
+                self.assertEqual((root / "state.md").read_bytes(), before)
+                replayed = store.read_record(root / "state.md")
+                self.assertEqual(len(replayed["history"]), history_length)
+                self.assertEqual(replayed["work_index"], 1)
+                self.assert_v2_cursor(replayed, "step-plan", owner="W2")
 
     def test_dispatch_refuses_a_symlinked_result_callback_without_mutating_state(self) -> None:
         state = self.new_state()

@@ -32,8 +32,30 @@ class NavigatorDryRunTests(unittest.TestCase):
                 self.assertTrue(report['ok'], report.get('error'))
                 self.assertEqual((len(report['events']), report['simulated_status']), expected[name])
                 for event in report['events']:
+                    self.assertTrue(event['simulation_only'])
+                    self.assertIn('owner', event)
+                    self.assertIn('next_owner', event)
+                    self.assertIn('completed_instances', event)
                     self.assertIn('Inspect the SDLC graph', event['prompt'])
                     self.assertIn(event['from'], event['prompt'])
+                    self.assertFalse(
+                        {'phase', 'subphase', 'counter', 'review_count'} & set(event)
+                    )
+
+        two_items = driver.run_scenario('two-work-items', driver.scenarios()['two-work-items'])
+        self.assertTrue(two_items['ok'], two_items.get('error'))
+        inner_owners = {
+            event['owner'] for event in two_items['events'] if event['owner'] != 'root'
+        }
+        self.assertEqual(inner_owners, {'W1', 'W2'})
+        w1_carry = next(
+            event
+            for event in two_items['events']
+            if event['owner'] == 'W1' and event['from'] == 'carry-forward'
+        )
+        self.assertEqual(w1_carry['next_owner'], 'W2')
+        self.assertEqual(w1_carry['completed_instances'], ['W1'])
+        self.assertEqual(two_items['completed_instances'], ['W1', 'W2'])
 
     def test_wrong_edge_and_unknown_command_fail(self):
         wrong = copy.deepcopy(driver.scenarios()['delivery'])
