@@ -31,6 +31,11 @@ stage’s substantive judgment and retain evidence that another host can find.
 Resolve the installed or checkout-local `scripts/shiploop` path as `CLI`, and
 use absolute repository and run-directory paths.
 
+Before any stage duty, choose exactly one entry route: `init` for a genuinely
+new request, or `next` for its existing run. For an existing run, verify the
+printed original goal and repository identity before acting. Do not replace a
+missing or relocated run with a new one.
+
 ```sh
 python3 "$CLI" init --repo="$REPO" --run-dir="$RUN_DIR" --prompt='requested outcome'
 python3 "$CLI" next --run-dir="$RUN_DIR"
@@ -38,9 +43,9 @@ python3 "$CLI" done --run-dir="$RUN_DIR" --action="$ACTION" --result="$RESULT"
 ```
 
 `init` creates a new navigator-marked run and returns the `intake` cursor and
-its prompt. `next` reprints the saved current action after a context reset.
-`done` reads one result file containing a `shiploop-state` fenced JSON object,
-for example:
+its prompt. `next` rereads the saved current action after a context reset; it
+does not select or persist a successor. `done` reads one result file containing
+a `shiploop-state` fenced JSON object, for example:
 
 ````markdown
 ```shiploop-state
@@ -50,6 +55,32 @@ for example:
 
 The packet's Current node and Action identify the assignment. Its Last accepted
 transition is historical context and does not replace the current action.
+
+## Recover one existing run
+
+Every navigator packet includes absolute CLI, repository, and run-directory
+locators. It also prints `Recovery command:` followed by an exact shell-quoted
+`next` command. Copy those locators and that command to host-owned durable
+handoff material before transferring work or discarding context. The handoff is
+a locator only: do not copy the current node, action ID, result path, status,
+or an expected successor as another source of graph state.
+
+A fresh host starts with the recorded recovery command, reads the reprinted
+packet and only its relevant references, then performs that one current action.
+The owner of the run submits the action-bound callback and consumes the packet
+it returns. A delegated worker may do bounded work under that packet, but does
+not initialize a child run or advance its parent's graph.
+
+After an interruption, run `next`, inspect durable evidence and actual effects,
+and reconcile work that may already have happened before deciding what remains.
+If the reprinted packet is paused or blocked, resolve its stated condition and
+use its printed `resume` command once. A halted or done packet remains stopped.
+If the CLI, repository, or run path is unavailable or relocated, recover the
+same run and verify its task/repository identity first; otherwise leave the
+delivery incomplete. Never use `init` as a replacement for missing state.
+
+The script neither preserves this host handoff nor launches/resets a model or
+host process. The host must retain an accessible locator and run directory.
 
 The semantic result contract is small:
 

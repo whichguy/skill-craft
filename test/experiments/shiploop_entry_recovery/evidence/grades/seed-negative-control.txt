@@ -1,0 +1,120 @@
+test_empty_and_whitespace_only_text_are_empty (test_lines.CleanLinesTests.test_empty_and_whitespace_only_text_are_empty) ... FAIL
+test_non_strings_raise_type_error (test_lines.CleanLinesTests.test_non_strings_raise_type_error) ...
+  test_non_strings_raise_type_error (test_lines.CleanLinesTests.test_non_strings_raise_type_error) (value=None) ... ERROR
+  test_non_strings_raise_type_error (test_lines.CleanLinesTests.test_non_strings_raise_type_error) (value=1) ... ERROR
+  test_non_strings_raise_type_error (test_lines.CleanLinesTests.test_non_strings_raise_type_error) (value=b'line') ... FAIL
+  test_non_strings_raise_type_error (test_lines.CleanLinesTests.test_non_strings_raise_type_error) (value=['line']) ... ERROR
+test_strips_discards_blanks_and_preserves_order_and_duplicates (test_lines.CleanLinesTests.test_strips_discards_blanks_and_preserves_order_and_duplicates) ... FAIL
+test_uses_splitlines_for_multiple_line_endings (test_lines.CleanLinesTests.test_uses_splitlines_for_multiple_line_endings) ... FAIL
+
+======================================================================
+ERROR: test_non_strings_raise_type_error (test_lines.CleanLinesTests.test_non_strings_raise_type_error) (value=None)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/entry-seed-control-53txfedm/test_lines.py", line 24, in test_non_strings_raise_type_error
+    clean_lines(value)
+    ~~~~~~~~~~~^^^^^^^
+  File "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/entry-seed-control-53txfedm/lines.py", line 2, in clean_lines
+    return text.splitlines()
+           ^^^^^^^^^^^^^^^
+AttributeError: 'NoneType' object has no attribute 'splitlines'
+
+======================================================================
+ERROR: test_non_strings_raise_type_error (test_lines.CleanLinesTests.test_non_strings_raise_type_error) (value=1)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/entry-seed-control-53txfedm/test_lines.py", line 24, in test_non_strings_raise_type_error
+    clean_lines(value)
+    ~~~~~~~~~~~^^^^^^^
+  File "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/entry-seed-control-53txfedm/lines.py", line 2, in clean_lines
+    return text.splitlines()
+           ^^^^^^^^^^^^^^^
+AttributeError: 'int' object has no attribute 'splitlines'
+
+======================================================================
+ERROR: test_non_strings_raise_type_error (test_lines.CleanLinesTests.test_non_strings_raise_type_error) (value=['line'])
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/entry-seed-control-53txfedm/test_lines.py", line 24, in test_non_strings_raise_type_error
+    clean_lines(value)
+    ~~~~~~~~~~~^^^^^^^
+  File "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/entry-seed-control-53txfedm/lines.py", line 2, in clean_lines
+    return text.splitlines()
+           ^^^^^^^^^^^^^^^
+AttributeError: 'list' object has no attribute 'splitlines'
+
+======================================================================
+FAIL: test_empty_and_whitespace_only_text_are_empty (test_lines.CleanLinesTests.test_empty_and_whitespace_only_text_are_empty)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/entry-seed-control-53txfedm/test_lines.py", line 18, in test_empty_and_whitespace_only_text_are_empty
+    self.assertEqual(clean_lines(" \n\t\r\n "), [])
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Lists differ: [' ', '\t', ' '] != []
+
+First list contains 3 additional elements.
+First extra element 0:
+' '
+
+- [' ', '\t', ' ']
++ []
+
+======================================================================
+FAIL: test_non_strings_raise_type_error (test_lines.CleanLinesTests.test_non_strings_raise_type_error) (value=b'line')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/entry-seed-control-53txfedm/test_lines.py", line 23, in test_non_strings_raise_type_error
+    with self.assertRaises(TypeError):
+         ~~~~~~~~~~~~~~~~~^^^^^^^^^^^
+AssertionError: TypeError not raised
+
+======================================================================
+FAIL: test_strips_discards_blanks_and_preserves_order_and_duplicates (test_lines.CleanLinesTests.test_strips_discards_blanks_and_preserves_order_and_duplicates)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/entry-seed-control-53txfedm/test_lines.py", line 8, in test_strips_discards_blanks_and_preserves_order_and_duplicates
+    self.assertEqual(clean_lines(" a \n \n b\n a "), ["a", "b", "a"])
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Lists differ: [' a ', ' ', ' b', ' a '] != ['a', 'b', 'a']
+
+First differing element 0:
+' a '
+'a'
+
+First list contains 1 additional elements.
+First extra element 3:
+' a '
+
+- [' a ', ' ', ' b', ' a ']
+?   - -    ------     - -
+
++ ['a', 'b', 'a']
+
+======================================================================
+FAIL: test_uses_splitlines_for_multiple_line_endings (test_lines.CleanLinesTests.test_uses_splitlines_for_multiple_line_endings)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/entry-seed-control-53txfedm/test_lines.py", line 11, in test_uses_splitlines_for_multiple_line_endings
+    self.assertEqual(
+    ~~~~~~~~~~~~~~~~^
+        clean_lines(" one\r\ntwo\r three\v\tfour\u2028five "),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        ["one", "two", "three", "four", "five"],
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+AssertionError: Lists differ: [' one', 'two', ' three', '\tfour', 'five '] != ['one', 'two', 'three', 'four', 'five']
+
+First differing element 0:
+' one'
+'one'
+
+- [' one', 'two', ' three', '\tfour', 'five ']
+?   -              -         --            -
+
++ ['one', 'two', 'three', 'four', 'five']
+
+----------------------------------------------------------------------
+Ran 4 tests in 0.001s
+
+FAILED (failures=4, errors=3)

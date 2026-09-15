@@ -1,0 +1,9 @@
+test_empty_and_whitespace_only_text_are_empty (test_lines.CleanLinesTests.test_empty_and_whitespace_only_text_are_empty) ... ok
+test_non_strings_raise_type_error (test_lines.CleanLinesTests.test_non_strings_raise_type_error) ... ok
+test_strips_discards_blanks_and_preserves_order_and_duplicates (test_lines.CleanLinesTests.test_strips_discards_blanks_and_preserves_order_and_duplicates) ... ok
+test_uses_splitlines_for_multiple_line_endings (test_lines.CleanLinesTests.test_uses_splitlines_for_multiple_line_endings) ... ok
+
+----------------------------------------------------------------------
+Ran 4 tests in 0.000s
+
+OK
