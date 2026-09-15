@@ -558,10 +558,14 @@ def lifecycle_claude_or_grok(
         cleanup_needed = False
         after_remove = parse_json(call(["list", "--json"], "inventory.after-uninstall-fresh"), "inventory.after-uninstall-fresh")
         assert_absent(after_remove, plugin_name=plugin_name, label="inventory.after-uninstall-fresh")
-        remaining_cards = cache_cards(host, profile, plugin_name)
-        if remaining_cards:
+        native_cache_cards = cache_cards(host, profile, plugin_name)
+        result["isolation"]["fixture_cache_after_native_uninstall"] = {
+            "matching_card_count": len(native_cache_cards),
+            "cards": [str(card) for card in native_cache_cards],
+        }
+        if host == "grok" and native_cache_cards:
             raise VerificationError(
-                f"uninstall left fixture cache cards: {safe_value([str(card) for card in remaining_cards])}"
+                f"Grok uninstall left fixture cache cards: {safe_value([str(card) for card in native_cache_cards])}"
             )
         if not sentinel.is_file() or sentinel.read_bytes() != sentinel_bytes or sha256_file(sentinel) != sentinel_hash:
             raise VerificationError("consumer-state sentinel changed or disappeared")
@@ -582,7 +586,8 @@ def lifecycle_claude_or_grok(
                     "v2_installed_inventory_exactly_once": True,
                     "v2_installed_card": card_v2,
                     "uninstall_removed_inventory_entry": True,
-                    "fixture_cache_cards_absent_after_uninstall": True,
+                    "native_fixture_cache_cards_absent_after_uninstall": not native_cache_cards,
+                    "native_fixture_cache_retention_observed": host == "claude" and bool(native_cache_cards),
                     "consumer_state_sentinel_preserved": True,
                 },
             }
@@ -605,18 +610,26 @@ def lifecycle_claude_or_grok(
                 result["cleanup_error"] = sanitize(str(cleanup_error))
                 if failure is None:
                     failure = cleanup_error
-        post_cleanup_cards = cache_cards(host, profile, plugin_name)
-        result["isolation"]["fixture_cache_after_cleanup"] = {
-            "matching_card_count": len(post_cleanup_cards),
-            "cards": [str(card) for card in post_cleanup_cards],
+        post_native_cleanup_cards = cache_cards(host, profile, plugin_name)
+        result["isolation"]["fixture_cache_after_native_cleanup"] = {
+            "matching_card_count": len(post_native_cleanup_cards),
+            "cards": [str(card) for card in post_native_cleanup_cards],
         }
-        if post_cleanup_cards and failure is None:
-            failure = VerificationError("fixture cache cards remained after uninstall cleanup")
+        if host == "grok" and post_native_cleanup_cards and failure is None:
+            failure = VerificationError("Grok fixture cache cards remained after native uninstall cleanup")
         if not keep_profile:
             result["isolation"]["profile_disposed"] = False
             try:
                 remove_profile(profile, host_dir)
                 result["isolation"]["profile_disposed"] = not profile.exists()
+                post_profile_cards = cache_cards(host, profile, plugin_name)
+                result["isolation"]["fixture_cache_after_profile_disposal"] = {
+                    "matching_card_count": len(post_profile_cards),
+                    "cards": [str(card) for card in post_profile_cards],
+                }
+                if post_profile_cards:
+                    raise VerificationError("fixture cache cards remained after disposable-profile deletion")
+                result.setdefault("assertions", {})["fixture_cache_absent_after_profile_disposal"] = True
             except Exception as cleanup_error:
                 result["cleanup_error"] = sanitize(str(cleanup_error))
                 if failure is None:
@@ -624,6 +637,7 @@ def lifecycle_claude_or_grok(
         else:
             result["isolation"]["profile_disposed"] = False
             result["isolation"]["profile_retained_for_diagnosis"] = profile.exists()
+            result["isolation"]["fixture_cache_after_profile_disposal"] = {"not_run": True}
         result["commands"] = receipts
         if failure is not None:
             result.update({"status": "failed", "error": sanitize(str(failure))})
@@ -999,16 +1013,25 @@ def report_markdown(results: list[dict[str, Any]]) -> str:
         "",
         "This is an opt-in native-CLI fixture test. It creates a local Git marketplace, checks v1 to v2 lifecycle behavior, and uses no model invocation.",
         "",
-        "| Host | Result | Upgrade | Fresh discovery | Removal | Consumer state |",
-        "|---|---|---|---|---|---|",
+        "| Host | Result | Upgrade | Fresh discovery | Fresh inventory | Native cache | Profile cleanup | Consumer state |",
+        "|---|---|---|---|---|---|---|",
     ]
     for result in results:
         if result.get("status") == "passed":
             fixture = result["fixture"]
+            assertions = result["assertions"]
+            cache_absent = assertions.get(
+                "native_fixture_cache_cards_absent_after_uninstall",
+                assertions.get("fixture_cache_absent_after_remove", False),
+            )
+            native_cache = "absent" if cache_absent else "retained and recorded"
+            profile_cleanup = "disposed" if result["isolation"].get("profile_disposed", True) else "retained by option"
             upgrade = f"`{fixture.get('v1_commit', '')[:12]}` to `{fixture.get('v2_commit', '')[:12]}`"
-            lines.append(f"| {result['host']} | passed | {upgrade} | exact one v2 | absent | preserved |")
+            lines.append(
+                f"| {result['host']} | passed | {upgrade} | exact one v2 | absent | {native_cache} | {profile_cleanup} | preserved |"
+            )
         else:
-            lines.append(f"| {result['host']} | failed | — | — | — | — |")
+            lines.append(f"| {result['host']} | failed | — | — | — | — | — | — |")
     lines.extend(
         [
             "",

@@ -36,17 +36,25 @@ network behavior. The native lifecycle is:
 3. Publish `1.0.1`, refresh or re-add the fixture as the host requires, and
    verify a fresh inventory/runtime view contains exactly one v2 plugin whose
    installed skill-card bytes match the fixture.
-4. Uninstall the unique plugin, verify a fresh view no longer contains it, and
-   verify the consumer-state sentinel is unchanged.
+4. Uninstall the unique plugin, verify a fresh view no longer contains it,
+   record its native cache state, and verify the consumer-state sentinel is
+   unchanged.
 
 Claude uses a disposable `CLAUDE_CONFIG_DIR`; Grok uses a disposable
 `GROK_HOME`. The harness never assigns `HOME` or `CODEX_HOME`, and its
 restricted child environment does not pass arbitrary credentials through.
 Those profiles are removed after the assertions by default, and a run reports
-them as disposed only after deletion succeeds. It fails if a fixture cache card
-or profile cleanup remains. `--keep-profile` retains the disposable profile
-only for diagnosis and should be used with an output directory the operator can
-delete afterwards.
+them as disposed only after deletion succeeds. Grok must remove fixture cache
+cards through native uninstall. Claude Code 2.1.272 removes the installed
+registry entry but retains downloaded version-cache cards; the harness records
+that retention explicitly, then requires the exact disposable profile and its
+fixture cards to be absent after profile deletion. `--keep-profile` retains the
+disposable profile only for diagnosis and should be used with an output
+directory the operator can delete afterwards.
+
+Claude and Grok runtime evidence is a new native `plugin list --json` inventory
+plus exact installed-card bytes. It proves the installed-plugin lifecycle; it
+does not open an authenticated chat or invoke a model.
 
 Codex plugin management does not support the profile isolation used by Claude
 and Grok. Its lane instead supplies a command-scoped, unique local marketplace,
