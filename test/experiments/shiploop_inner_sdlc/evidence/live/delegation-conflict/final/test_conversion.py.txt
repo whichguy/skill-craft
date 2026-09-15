@@ -1,0 +1,6 @@
+import unittest
+from conversion import kilometres_to_metres
+
+class ConversionTests(unittest.TestCase):
+    def test_local_conversion(self):
+        self.assertEqual(kilometres_to_metres(3), 3000)

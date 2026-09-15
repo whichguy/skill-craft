@@ -1,0 +1,59 @@
+{
+  "misleading-green": {
+    "before": {
+      "checks": 11,
+      "passed": 9,
+      "failed": 2
+    },
+    "after": {
+      "checks": 11,
+      "passed": 11,
+      "failed": 0
+    },
+    "reference": {
+      "checks": 11,
+      "passed": 11,
+      "failed": 0
+    },
+    "baseline": "83fc31394a28be57eb2407ca082ee4e028775fbd",
+    "reference_baseline": "cbd8eb2a16fd737bd34ead57717dfa2ba5644dd4"
+  },
+  "delegation-conflict": {
+    "before": {
+      "checks": 7,
+      "passed": 5,
+      "failed": 2
+    },
+    "after": {
+      "checks": 7,
+      "passed": 7,
+      "failed": 0
+    },
+    "reference": {
+      "checks": 7,
+      "passed": 7,
+      "failed": 0
+    },
+    "baseline": "46c0bc9371c82171f2604709a644378cc00d1d67",
+    "reference_baseline": "05fdd9d0a64c79af3908d92bbb99395c02fed44f"
+  },
+  "repeated-failure": {
+    "before": {
+      "checks": 14,
+      "passed": 1,
+      "failed": 13
+    },
+    "after": {
+      "checks": 14,
+      "passed": 14,
+      "failed": 0
+    },
+    "reference": {
+      "checks": 14,
+      "passed": 14,
+      "failed": 0
+    },
+    "baseline": "31e23a17a1ba53270b803ed3c83eff39d37d45bb",
+    "reference_baseline": "7ae6f7b7f31b9b6bebc5be0d98682d9ecabac19c"
+  }
+}

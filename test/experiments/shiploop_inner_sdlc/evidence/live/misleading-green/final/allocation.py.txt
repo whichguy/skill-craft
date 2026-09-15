@@ -1,0 +1,10 @@
+def allocate_cents(total_cents, weights):
+    if type(total_cents) is not int or total_cents < 0:
+        raise ValueError('total_cents')
+    if not isinstance(weights, list) or not weights or any(type(w) is not int or w <= 0 for w in weights):
+        raise ValueError('weights')
+    total_weight = sum(weights)
+    shares = [total_cents * weight // total_weight for weight in weights]
+    for index in range(total_cents - sum(shares)):
+        shares[index] += 1
+    return shares

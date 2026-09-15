@@ -1,0 +1,6 @@
+import unittest
+from pricing import price_for_metres
+
+class PricingTests(unittest.TestCase):
+    def test_local_pricing(self):
+        self.assertEqual(price_for_metres(3000), 425)

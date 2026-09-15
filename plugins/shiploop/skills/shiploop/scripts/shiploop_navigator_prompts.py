@@ -237,6 +237,9 @@ a nearby negative example. Select operational and security checks for changed
 boundaries: authorization, data integrity, dependency provenance/compatibility,
 migration recovery, or useful diagnostics as relevant. Keep the selection
 proportionate; record a missing required prerequisite as incomplete.
+Distinguish prerequisites for the current work item from downstream integration,
+system-test, or release conditions. Record downstream-only conditions, their
+owner and earliest gating stage without blocking independently authorized work.
 If delegating, define bounded task/file ownership, shared interface contracts,
 inputs, expected outputs and evidence, and the owner responsible for checking
 the assembled result. Delegation remains within the current action."""

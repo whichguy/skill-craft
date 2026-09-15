@@ -195,6 +195,10 @@ Keep deliberately broken variants in isolated experiments, and never change
 the expected behavior merely to make a test pass. A missing required external
 check remains incomplete even when an investigation allowance expires.
 
+Prerequisites apply at the stage that needs them. A missing release-only staging
+credential stays an open release condition, with its owner and earliest gating
+stage recorded; it does not block otherwise-ready authorized local work.
+
 ## Implementation constitution
 
 Keep scope ahead of abstraction: solve the approved problem before introducing

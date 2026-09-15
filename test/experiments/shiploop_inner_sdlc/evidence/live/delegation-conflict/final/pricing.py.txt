@@ -1,0 +1,4 @@
+def price_for_metres(distance_m):
+    if type(distance_m) is not int or distance_m < 0:
+        raise ValueError('distance_m')
+    return 200 + (distance_m // 1000) * 75

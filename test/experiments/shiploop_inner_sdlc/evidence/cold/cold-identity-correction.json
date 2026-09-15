@@ -1,0 +1,14 @@
+[
+  {
+    "id": "risk-and-ownership",
+    "current_node": "step-plan",
+    "action_id": "nav-63ba89e7e4da42ed97c50ae7847367be",
+    "discrepancy_from_prior_response": "The prior response used stage 'plan-improve', which was the packet's last accepted transition, rather than the literal current node 'step-plan'. It did not include an action_id."
+  },
+  {
+    "id": "learning-promotion",
+    "current_node": "carry-forward",
+    "action_id": "nav-4e4310b410bf4410b01a09cb0adb843d",
+    "discrepancy_from_prior_response": "The prior response's stage 'carry-forward' matches the literal current node. It did not include an action_id."
+  }
+]

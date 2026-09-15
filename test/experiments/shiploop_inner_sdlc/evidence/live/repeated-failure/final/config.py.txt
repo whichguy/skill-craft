@@ -1,0 +1,12 @@
+APP_PORT_KEY = 'APP_PORT'
+
+def server_port(env):
+    if APP_PORT_KEY not in env:
+        return 8080
+    raw = env[APP_PORT_KEY]
+    if not isinstance(raw, str) or not raw.isascii() or not raw.isdigit():
+        raise ValueError('port')
+    value = int(raw)
+    if not 1 <= value <= 65535:
+        raise ValueError('port')
+    return value

@@ -1,0 +1,5 @@
+from conversion import kilometres_to_metres
+from pricing import price_for_metres
+
+def quote_cents(distance_km):
+    return price_for_metres(kilometres_to_metres(distance_km))

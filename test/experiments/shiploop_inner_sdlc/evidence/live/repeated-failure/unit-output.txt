@@ -1,0 +1,9 @@
+test_absent_app_port_defaults_and_port_is_ignored (test_config.ConfigTests.test_absent_app_port_defaults_and_port_is_ignored) ... ok
+test_app_port_is_used (test_config.ConfigTests.test_app_port_is_used) ... ok
+test_ascii_decimal_boundaries_are_accepted (test_config.ConfigTests.test_ascii_decimal_boundaries_are_accepted) ... ok
+test_invalid_present_app_port_values_raise_value_error (test_config.ConfigTests.test_invalid_present_app_port_values_raise_value_error) ... ok
+
+----------------------------------------------------------------------
+Ran 4 tests in 0.000s
+
+OK

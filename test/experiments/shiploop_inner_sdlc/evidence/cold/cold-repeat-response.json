@@ -1,0 +1,52 @@
+[
+  {
+    "id": "risk-and-ownership",
+    "current_node": "step-plan",
+    "action_id": "nav-9872c731abd44c65917fb8db5bdb4881",
+    "decisions": [
+      "Plan the authenticated-import boundary so the handler owns authentication and explicitly passes the same authenticated request identity and transaction contract to the persistence adapter; name an integration owner to validate their assembled behavior.",
+      "Keep the proposed dependency upgrade behind a compatibility decision: use it only after provenance, supported-version, and service-compatibility evidence is available; otherwise plan against the currently supported dependency path.",
+      "Require a recovery design and test plan that seeds existing persisted rows, exercises the import change, and proves forward migration plus rollback preserve those rows.",
+      "Treat staging access as a release prerequisite: obtain authorized non-secret staging access and run authenticated-import validation there before considering release readiness."
+    ],
+    "evidence_needed": [
+      "A written handler-to-adapter interface contract covering authenticated request identity, transaction ownership, failure behavior, and the integration owner's acceptance checks.",
+      "Dependency provenance and compatibility evidence, including supported versions, changelog or vendor guidance, and focused compatibility-test results.",
+      "Migration and rollback test evidence using pre-existing persisted-row fixtures, with recorded expected preservation outcomes.",
+      "Non-secret evidence of authorized staging access and staging authenticated-import validation results."
+    ],
+    "completion_eligibility": [
+      "The step-plan action can be considered complete only as a detailed plan once its ownership contract, dependency gate, recovery checks, and staging gate are explicitly recorded.",
+      "Implementation, integration, rollback safety, and release remain ineligible until their corresponding checks and required staging validation produce trustworthy evidence."
+    ],
+    "limits": [
+      "This is a preview interpretation of supplied facts; no repository review, delegation, edit, test, migration, or staging operation occurred.",
+      "Unverified dependency compatibility and unavailable staging credentials cannot be treated as satisfied prerequisites.",
+      "The two components may be separately assigned only with the shared identity and transaction contract preserved and an owner accountable for assembled validation."
+    ]
+  },
+  {
+    "id": "learning-promotion",
+    "current_node": "carry-forward",
+    "action_id": "nav-849dc335b5874b6f88c79377901a06aa",
+    "decisions": [
+      "Retain the timeout workaround only as a narrowly scoped, tentative local observation tied to the identified flaky integration test; do not convert it into a general timeout policy.",
+      "Carry forward a focused local investigation to capture the exact test, timeout configuration, timing or failure diagnostics, reproducibility, and root cause before deciding whether a local regression test, documentation note, or durable fix is warranted.",
+      "Send any possible shared-skill or global-guidance change to broader review only after independent cross-task evidence establishes that the diagnosed cause and remedy generalize."
+    ],
+    "evidence_needed": [
+      "The exact integration-test identity, original and workaround timeout settings, and the single observed run record.",
+      "Reproduction and diagnosis evidence, such as baseline-versus-workaround results, timing or failure diagnostics, and a root-cause finding.",
+      "Independent evidence from other tasks before proposing shared timeout guidance or a cross-task policy."
+    ],
+    "completion_eligibility": [
+      "The carry-forward action can be considered complete as an interpretation once it records the local, tentative learning and an explicit broader-review gate.",
+      "No shared promotion, global guidance revision, or claim that flakiness is fixed is eligible without root-cause and independent validation evidence."
+    ],
+    "limits": [
+      "A one-time helpful workaround is insufficient evidence of a general rule.",
+      "The draft instruction to increase every timeout is not authoritative and remains outside the authorized local scope.",
+      "This preview did not edit local documentation or tests, run a test, inspect other tasks, or promote a learning."
+    ]
+  }
+]

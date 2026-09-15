@@ -1,0 +1,58 @@
+{
+  "case": "delegation-conflict",
+  "checks": 7,
+  "passed": 7,
+  "failed": 0,
+  "results": [
+    {
+      "case": "zero_km",
+      "passed": true,
+      "actual": 200,
+      "expected": 200,
+      "input_preserved": true
+    },
+    {
+      "case": "one_km",
+      "passed": true,
+      "actual": 275,
+      "expected": 275,
+      "input_preserved": true
+    },
+    {
+      "case": "three_km",
+      "passed": true,
+      "actual": 425,
+      "expected": 425,
+      "input_preserved": true
+    },
+    {
+      "case": "bool_km",
+      "passed": true,
+      "exception": "ValueError",
+      "input_preserved": true
+    },
+    {
+      "case": "float_km",
+      "passed": true,
+      "exception": "ValueError",
+      "input_preserved": true
+    },
+    {
+      "case": "negative_km",
+      "passed": true,
+      "exception": "ValueError",
+      "input_preserved": true
+    },
+    {
+      "case": "text_km",
+      "passed": true,
+      "exception": "ValueError",
+      "input_preserved": true
+    }
+  ],
+  "observations": {
+    "spec_preserved": true,
+    "test_file_changed": true,
+    "evidence_file_changed": true
+  }
+}
