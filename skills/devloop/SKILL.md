@@ -4,15 +4,15 @@ description: >-
   DevLoop (default): invoke the autonomous engine for a machine-verifiable
   build or debug goal. Use when the user says devloop, DevLoop, /devloop, or
   wants an isolated fail-closed build with executable tests. Thin shim: resolve
-  or bootstrap the engine, then exec scripts/devloop-run. Runtime hosts: Grok
-  and Hermes. Claude/Codex/Cursor: discovery and bootstrap only (transport TBD).
+  a preinstalled engine, then exec scripts/devloop-run. Runtime hosts: Grok
+  and Hermes. Claude/Codex/Cursor require an explicit external transport.
   NOT the demoted offline skill evidence-gates. NOT host-agent DEFINE/PROVE/BUILD.
 when-to-use: >-
   User says devloop or DevLoop, runs /devloop, or asks for an isolated
   fail-closed loop with tests. Do not use for prompt tuning, visual design, or
   offline freeze/prove/stop (that is evidence-gates).
 argument-hint: plain-English goal
-version: 0.5.4
+version: 0.6.0
 license: MIT
 platforms:
   - linux
@@ -46,7 +46,7 @@ or plugin path, not the physical checkout behind a symlink).
 
 - Prompt/content optimization, subjective design, trivial one-line edits
 - Offline freeze/prove/stop only → **`evidence-gates`** (not DevLoop)
-- Expecting the engine without `--setup` / pin on a fresh machine
+- A fresh machine without a separately provisioned engine
 
 ## Compose
 
@@ -125,11 +125,24 @@ bash "$SKILL_ROOT/scripts/devloop-run" -- --lang command "<goal + verify_cmd exa
 
 Omit `--lang` / `--repo` when step 2 said to omit them. Pass through only
 flags the user typed plus what step 2 interpolated (`--repo`, `--lang`,
-`--keep-branch`, `--json`, typed `--setup-spec`). `--setup` once on a fresh
-machine (engine **install**). `--host grok` is an override. Shim STATE
+`--keep-branch`, `--json`, typed `--setup-spec`). `--host grok` is an override.
+Shim STATE
 (`target=explicit reason=repo_flag` vs `target=scratch reason=default`,
 `lang=… reason=explicit|none`) labels what the shim received — it does
 not scrape goal phrases.
+
+The installed marketplace package **never provisions an engine**. If the shim
+returns exit 2 because no engine is present, stop and report the prerequisite.
+An operator may use `scripts/devloop-setup.sh` only from an already trusted
+skill-craft checkout; it is deliberately outside this package and is never a
+fallback command for the skill. `--setup-spec` remains an engine request field,
+not an operator provisioning command.
+
+Operator setup uses the engine's `.venv/bin/python3` when present, otherwise
+`python3`, and checks the current `pytest` + CLI import contract without
+installing packages. Claude, Codex (including marketplace cache paths), Cursor,
+and unknown `auto` invocations have no native engine transport: pass explicit
+`DEVLOOP_TRANSPORT=grok` or `=hermes`, or stop with exit 2.
 
 Relay `[devloop-run] BEFORE` / `AFTER` / `STATE` as-is. Cite identity
 (`DevLoop — mode=engine …`), last `STATE`, and exit code. **COMPLETE** only

@@ -1,0 +1,450 @@
+#!/usr/bin/env python3
+"""Hermetic installed-package invocation checks for script-backed skill leaves.
+
+Each case copies the generated plugin's shipped skill package beneath a path
+containing spaces, makes that copy read-only, and invokes it from an unrelated
+writable cwd. It does not install a host plugin or use a live host/model
+session.
+"""
+from __future__ import annotations
+
+import json
+import os
+import shutil
+import stat
+import subprocess
+import sys
+import tempfile
+import unittest
+from pathlib import Path
+from typing import Mapping, Sequence
+
+
+ROOT = Path(__file__).resolve().parents[1]
+LEAVES = (
+    "review-coverage",
+    "skill-interop",
+    "evidence-gates",
+    "shiploop",
+    "improve",
+)
+
+
+class InstalledSkillInvocationTest(unittest.TestCase):
+    """Exercise bundled CLIs without a checkout-relative or ambient-skill path."""
+
+    def test_review_campaign_dependency_is_not_silently_invented(self) -> None:
+        body = (self.package("review-coverage") / "SKILL.md").read_text()
+        self.assertIn("driver is an external skill, not bundled", body)
+        self.assertIn("missing prerequisite", body)
+        self.assertIn("status-only `update_goal` tool cannot", body)
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.temp = tempfile.TemporaryDirectory(prefix="skill-craft-installed-skill-")
+        cls.temp_root = Path(cls.temp.name)
+        cls.package_parent = cls.temp_root / "installed marketplace packages with spaces"
+        cls.package_parent.mkdir()
+        cls.consumer = cls.temp_root / "unrelated consumer project with spaces"
+        cls.consumer.mkdir()
+        cls.home = cls.temp_root / "isolated home"
+        cls.home.mkdir()
+        cls.packages: dict[str, Path] = {}
+        for leaf in LEAVES:
+            source = ROOT / "plugins" / leaf / "skills" / leaf
+            destination = cls.package_parent / leaf
+            shutil.copytree(
+                source,
+                destination,
+                ignore=shutil.ignore_patterns("__pycache__", "*.pyc"),
+            )
+            cls.packages[leaf] = destination
+            cls._make_read_only(destination)
+
+    @classmethod
+    def tearDownClass(cls) -> None:
+        # Restore permissions only inside this test's disposable directory so
+        # TemporaryDirectory can remove it on every supported platform.
+        for package in cls.packages.values():
+            cls._make_writable(package)
+        cls.temp.cleanup()
+
+    @staticmethod
+    def _make_read_only(root: Path) -> None:
+        paths = sorted(root.rglob("*"), key=lambda path: len(path.parts), reverse=True)
+        for path in paths:
+            if path.is_dir():
+                path.chmod(0o555)
+            elif path.is_file():
+                executable = bool(path.stat().st_mode & stat.S_IXUSR)
+                path.chmod(0o555 if executable else 0o444)
+        root.chmod(0o555)
+
+    @staticmethod
+    def _make_writable(root: Path) -> None:
+        paths = sorted(root.rglob("*"), key=lambda path: len(path.parts), reverse=True)
+        for path in paths:
+            if path.is_dir():
+                path.chmod(0o755)
+            elif path.is_file():
+                executable = bool(path.stat().st_mode & stat.S_IXUSR)
+                path.chmod(0o755 if executable else 0o644)
+        root.chmod(0o755)
+
+    def package(self, leaf: str) -> Path:
+        package = self.packages[leaf]
+        self.assertTrue((package / "SKILL.md").is_file(), package)
+        self.assertFalse(
+            bool(package.stat().st_mode & stat.S_IWUSR),
+            f"package must be read-only: {package}",
+        )
+        return package
+
+    def base_env(self, extra: Mapping[str, str] | None = None) -> dict[str, str]:
+        env = dict(os.environ)
+        env.pop("PYTHONPATH", None)
+        env["HOME"] = str(self.home)
+        env["PYTHONNOUSERSITE"] = "1"
+        env["PYTHONDONTWRITEBYTECODE"] = "1"
+        if extra:
+            env.update(extra)
+        return env
+
+    def invoke(
+        self,
+        argv: Sequence[str | Path],
+        *,
+        extra_env: Mapping[str, str] | None = None,
+    ) -> subprocess.CompletedProcess[str]:
+        return subprocess.run(
+            [str(item) for item in argv],
+            cwd=self.consumer,
+            capture_output=True,
+            text=True,
+            check=False,
+            env=self.base_env(extra_env),
+        )
+
+    def invoke_python(
+        self,
+        script: Path,
+        *args: str,
+        extra_env: Mapping[str, str] | None = None,
+    ) -> subprocess.CompletedProcess[str]:
+        return self.invoke(
+            (sys.executable, "-B", script, *args),
+            extra_env=extra_env,
+        )
+
+    def assert_ok(self, result: subprocess.CompletedProcess[str], label: str) -> None:
+        self.assertEqual(
+            result.returncode,
+            0,
+            f"{label} failed ({result.returncode})\nstdout:\n{result.stdout}\nstderr:\n{result.stderr}",
+        )
+
+    def assert_no_bytecode(self) -> None:
+        for package in self.packages.values():
+            leftovers = [
+                path.relative_to(package)
+                for path in package.rglob("*")
+                if path.name == "__pycache__" or path.suffix == ".pyc"
+            ]
+            self.assertEqual(leftovers, [], f"package was mutated: {package}: {leftovers}")
+
+    def test_card_contracts_bind_selected_loaded_skill(self) -> None:
+        expected = {
+            "review-coverage": (
+                "selected, loaded",
+                'CLI="$SKILL_ROOT/scripts/review-coverage"',
+                "Do not infer",
+            ),
+            "skill-interop": (
+                "selected,\nloaded",
+                'MARKETPLACE_RUN="$SKILL_ROOT/scripts/marketplace-run.sh"',
+                "MARKETPLACE_INSTALL_SH",
+            ),
+            "evidence-gates": (
+                "selected, loaded",
+                'CLI="$SKILL_ROOT/scripts/evidence-gates"',
+                "rather than invoking a same-named program from",
+            ),
+            "shiploop": (
+                "selected, loaded",
+                'CLI="$SKILL_ROOT/scripts/shiploop"',
+                "SHIPLOOP_REVIEW_COVERAGE_ROOT",
+            ),
+            "improve": (
+                "selected, loaded",
+                'RUNTIME_CLI="$SKILL_ROOT/runtime/until-loop/scripts/until-loop"',
+                "ambient Until Loop installation",
+            ),
+        }
+        for leaf, phrases in expected.items():
+            text = (ROOT / "skills" / leaf / "SKILL.md").read_text(encoding="utf-8")
+            for phrase in phrases:
+                self.assertIn(phrase, text, f"{leaf} missing invocation contract: {phrase}")
+
+        interop_card = (ROOT / "skills/skill-interop/SKILL.md").read_text(encoding="utf-8")
+        self.assertNotIn("bash skills/skill-interop/scripts/", interop_card)
+        graph = (ROOT / "skills/shiploop/references/graph-dry-run.md").read_text(encoding="utf-8")
+        self.assertNotIn("python3 skills/shiploop/scripts/shiploop", graph)
+        for doc in (
+            ROOT / "skills/skill-interop/references/checklist.md",
+            ROOT / "skills/skill-interop/references/host-paths.md",
+        ):
+            text = doc.read_text(encoding="utf-8")
+            self.assertNotIn("../../../../docs/ARCHITECTURE.md", text)
+            self.assertIn(
+                "https://github.com/whichguy/skill-craft/blob/main/docs/ARCHITECTURE.md",
+                text,
+            )
+
+    def test_review_coverage_cli_from_read_only_copy(self) -> None:
+        package = self.package("review-coverage")
+        cli = package / "scripts/review-coverage"
+
+        template = self.invoke_python(cli, "template", "--short")
+        self.assert_ok(template, "review-coverage template")
+        self.assertIn("## Review Coverage", template.stdout)
+        self.assertIn("residual", template.stdout.lower())
+
+        plan = self.consumer / "filled plan.md"
+        plan.write_text(
+            """## Review Coverage
+
+| Field | Value |
+|-------|-------|
+| Base ref | abcdef1234567890deadbeef |
+| Repo | /tmp/consumer-repo |
+| Target paths | src/example.py |
+| Test command | python3 -m unittest |
+| Materiality bar | material (P0/P1) |
+| Driver | review-converge under /goal |
+
+1. Forward audit of specs to code.
+2. Reverse audit of code vs base.
+two consecutive clean residual rounds with green suite
+""",
+            encoding="utf-8",
+        )
+        validate = self.invoke_python(cli, "validate", str(plan))
+        self.assert_ok(validate, "review-coverage validate")
+        self.assertEqual(validate.stdout.strip(), "ok")
+
+        missing = self.invoke_python(cli, "validate", str(self.consumer / "missing plan.md"))
+        self.assertEqual(missing.returncode, 2, missing.stderr)
+        self.assertIn("cannot read", missing.stderr)
+        self.assert_no_bytecode()
+
+    def test_skill_interop_facade_routes_from_read_only_copy(self) -> None:
+        package = self.package("skill-interop")
+        cli = package / "scripts/marketplace-run.sh"
+        bin_dir = self.temp_root / "facade host stubs"
+        bin_dir.mkdir(exist_ok=True)
+        overrides: dict[str, str] = {}
+        for host, variable in (
+            ("claude", "CLAUDE_BIN"),
+            ("grok", "GROK_BIN"),
+            ("codex", "CODEX_BIN"),
+        ):
+            stub = bin_dir / host
+            stub.write_text("#!/usr/bin/env sh\nexit 97\n", encoding="utf-8")
+            stub.chmod(0o755)
+            overrides[variable] = str(stub)
+
+        hosts = self.invoke(("/bin/bash", cli, "hosts", "--json"), extra_env=overrides)
+        self.assert_ok(hosts, "marketplace-run hosts")
+        payload = json.loads(hosts.stdout)
+        self.assertEqual([row["host"] for row in payload["hosts"]], ["claude", "grok", "codex"])
+        self.assertTrue(all(row["status"] == "available" for row in payload["hosts"]))
+
+        routes = (
+            ("claude", "fixture@market", "plugin install fixture@market"),
+            ("grok", "owner/fixture", "plugin install owner/fixture"),
+            ("codex", "fixture@market", "plugin add fixture@market"),
+        )
+        for host, identifier, expected_argv in routes:
+            result = self.invoke(
+                (
+                    "/bin/bash",
+                    cli,
+                    "plugins",
+                    "install",
+                    identifier,
+                    "--host",
+                    host,
+                    "--dry-run",
+                ),
+                extra_env=overrides,
+            )
+            self.assert_ok(result, f"marketplace-run {host} dry-run")
+            self.assertIn(expected_argv, result.stdout)
+
+        no_checkout = self.invoke(
+            ("/bin/bash", cli, "install-local", "--dry-run"),
+            extra_env=overrides,
+        )
+        self.assertEqual(no_checkout.returncode, 4, no_checkout.stderr)
+        self.assertIn("MARKETPLACE_INSTALL_SH", no_checkout.stderr)
+
+        installer = self.consumer / "chosen checkout installer.sh"
+        installer.write_text("#!/usr/bin/env sh\nexit 0\n", encoding="utf-8")
+        installer.chmod(0o755)
+        explicit_checkout = self.invoke(
+            ("/bin/bash", cli, "install-local", "--dry-run"),
+            extra_env={**overrides, "MARKETPLACE_INSTALL_SH": str(installer)},
+        )
+        self.assert_ok(explicit_checkout, "marketplace-run explicit checkout installer")
+        self.assertIn(str(installer), explicit_checkout.stdout)
+        self.assert_no_bytecode()
+
+    def test_evidence_gates_self_check_from_read_only_copy(self) -> None:
+        package = self.package("evidence-gates")
+        cli = package / "scripts/evidence-gates"
+        self_check = self.invoke_python(cli, "self-check")
+        self.assert_ok(self_check, "evidence-gates self-check")
+        payload = json.loads(self_check.stdout)
+        self.assertTrue(payload["ok"])
+        self.assertEqual(payload["mode"], "native")
+        self.assertEqual(payload["package_root"], str(package.resolve()))
+
+        charter = self.consumer / "charter.json"
+        charter.write_text('{"criteria": []}\n', encoding="utf-8")
+        package_write = self.invoke_python(
+            cli,
+            "freeze",
+            "--charter",
+            str(charter),
+            "--repo",
+            str(package),
+        )
+        self.assertEqual(package_write.returncode, 2, package_write.stderr)
+        self.assertIn("package_root_write", package_write.stderr)
+        self.assert_no_bytecode()
+
+    def test_shiploop_graph_and_recovery_from_read_only_copy(self) -> None:
+        package = self.package("shiploop")
+        cli = package / "scripts/shiploop"
+
+        dry_run = self.invoke_python(
+            cli,
+            "graph-dry-run",
+            "--scenario",
+            "blocked-resume",
+            "--format",
+            "json",
+        )
+        self.assert_ok(dry_run, "shiploop graph dry-run")
+        trace = json.loads(dry_run.stdout)
+        self.assertIn("blocked-resume", json.dumps(trace))
+        self.assertIn("simulation_only", json.dumps(trace))
+
+        run_dir = self.consumer / ".shiploop"
+        init = self.invoke_python(
+            cli,
+            "init",
+            "--repo",
+            str(self.consumer),
+            "--run-dir",
+            str(run_dir),
+            "--prompt=verify installed package invocation",
+        )
+        self.assert_ok(init, "shiploop init")
+        self.assertIn("ShipLoop navigator | intake", init.stdout)
+        self.assertIn(str(cli.resolve()), init.stdout)
+        self.assertTrue((run_dir / "state.md").is_file())
+
+        resumed = self.invoke_python(cli, "next", "--run-dir", str(run_dir))
+        self.assert_ok(resumed, "shiploop next")
+        self.assertIn("ShipLoop navigator | intake", resumed.stdout)
+
+        absent = self.invoke_python(
+            cli,
+            "next",
+            "--run-dir",
+            str(self.consumer / "missing run"),
+        )
+        self.assertNotEqual(absent.returncode, 0)
+        self.assertIn("error:", absent.stderr)
+        self.assert_no_bytecode()
+
+    def test_improve_bound_adapter_ignores_ambient_runtime(self) -> None:
+        package = self.package("improve")
+        runtime = package / "runtime/until-loop/scripts/until-loop"
+        collector = package / "scripts/capture_evidence.py"
+        contract = self.consumer / "preview contract.json"
+        contract.write_text(
+            json.dumps(
+                {
+                    "version": 1,
+                    "policy": "decision-rubric/2",
+                    "original_request": "Preview a bounded Improve review.",
+                    "interpretation": (
+                        "Execute: inspect the selected candidate. Continue while a "
+                        "required criterion lacks current evidence. Success: every "
+                        "criterion has current evidence. Early stop: a real blocker "
+                        "prevents useful progress."
+                    ),
+                    "criteria": [
+                        {
+                            "id": "C1",
+                            "text": "Review the selected candidate before proposing changes.",
+                            "basis": {
+                                "kind": "request",
+                                "reference": "Preview a bounded Improve review.",
+                            },
+                        }
+                    ],
+                }
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        fake_bin = self.temp_root / "ambient until-loop bin"
+        fake_bin.mkdir(exist_ok=True)
+        sentinel = self.consumer / "ambient-runtime-was-used"
+        fake_runtime = fake_bin / "until-loop"
+        fake_runtime.write_text(
+            "#!/usr/bin/env sh\n: > \"$AMBIENT_UNTIL_SENTINEL\"\nexit 97\n",
+            encoding="utf-8",
+        )
+        fake_runtime.chmod(0o755)
+        env = {
+            "PATH": f"{fake_bin}{os.pathsep}{os.environ.get('PATH', '')}",
+            "AMBIENT_UNTIL_SENTINEL": str(sentinel),
+        }
+        preview = self.invoke_python(
+            runtime,
+            "v2",
+            "preview",
+            "--contract-file",
+            str(contract),
+            extra_env=env,
+        )
+        self.assert_ok(preview, "Improve bundled Until Loop preview")
+        payload = json.loads(preview.stdout)
+        self.assertEqual(payload["mode"], "preview")
+        self.assertEqual(payload["status"], "not_initialized")
+        self.assertFalse(sentinel.exists(), "bundled adapter invoked ambient until-loop")
+
+        missing_repo = self.invoke_python(
+            collector,
+            "snapshot",
+            "--repo",
+            str(self.consumer / "missing workspace"),
+            "--owner",
+            "standalone-improve",
+            "--history-window",
+            "1",
+            "--scope",
+            "candidate.txt",
+            extra_env=env,
+        )
+        self.assertEqual(missing_repo.returncode, 2, missing_repo.stderr)
+        self.assertIn("repository directory does not exist", missing_repo.stderr)
+        self.assert_no_bytecode()
+
+
+if __name__ == "__main__":
+    unittest.main(verbosity=2)

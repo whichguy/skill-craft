@@ -1,7 +1,7 @@
 ---
 name: prompt-migrate
-description: TDD-based prompt migration — given a target agent/skill prompt and a remediation list from prompt-audit, writes failing tests first, then updates the prompt to make them pass, and commits both in a single atomic commit.
-version: 0.1.0
+description: TDD-based prompt migration — given a target agent/skill prompt and a remediation list, writes failing tests first, then updates the prompt to make them pass. Commits remain user-controlled.
+version: 0.1.1
 license: MIT
 platforms:
   - linux
@@ -16,7 +16,8 @@ metadata:
 
 # /prompt-migrate
 
-Migrate a prompt file using TDD. Never commits failing tests without the corresponding prompt fix in the same commit.
+Migrate a prompt file using TDD. Never leave failing test assertions behind after a completed
+migration. Version-control actions remain outside this skill unless the user asks for them.
 
 ## Invocation
 
@@ -24,7 +25,9 @@ Migrate a prompt file using TDD. Never commits failing tests without the corresp
 /prompt-migrate <path-to-prompt-file> [--remediation <audit-output-file>]
 ```
 
-If `--remediation` is omitted, run `/prompt-audit <path-to-prompt-file>` first and use its output.
+If `--remediation` is omitted, resolve an installed `prompt-audit` skill through the current
+host's skill discovery and use its output. If it is unavailable, perform the documented audit
+steps inline, label the result `inline audit`, and do not pretend a sibling skill ran.
 
 ## Step 1 — Load remediation list
 
@@ -34,19 +37,18 @@ Read the remediation list. For each CRITICAL or HIGH item, classify it:
 
 ## Step 2 — Read existing tests
 
-```bash
-find "<repo-root>/test" -name "*.test.js" | xargs grep -l "<prompt-file-basename>"
-```
+Search the target repository's test and fixture directories using the host's available scoped
+search. Include every matching test format actually present; do not restrict the search to one
+language or assume a sibling checkout.
 
 Read each test file in full.
 
 ## Step 3 — Write failing test assertions (test-verifiable items only)
 
-For each test-verifiable CRITICAL/HIGH item, add a new `it(...)` assertion to the appropriate test file. Verify tests fail before proceeding:
-
-```bash
-cd "<repo-root>/.." && npm test -- --grep "<suite name>"
-```
+For each test-verifiable CRITICAL/HIGH item, add a focused assertion using the target
+repository's existing test style. Before proceeding, detect the target repository's actual test
+command from contributor documentation, build configuration, package scripts, and nearby tests;
+run the narrowest relevant command and verify the new assertion fails.
 
 Expected: ≥1 failure per test-verifiable item. **Do not commit.**
 
@@ -56,19 +58,14 @@ For each CRITICAL and HIGH remediation item (both test-verifiable and prose-only
 
 ## Step 5 — Run tests — confirm green
 
-```bash
-cd "<repo-root>/.." && npm test -- --grep "<suite name>"
-```
+Run the same discovered target-repository command and confirm the relevant tests are green.
 
 Expected: All green (including the assertions added in Step 3).
 
 If any test still fails, diagnose and fix before proceeding.
 
-## Step 6 — Commit test changes and prompt changes together
+## Step 6 — Handoff or optional commit
 
-```bash
-git -C "<repo-root>/.." add <test-file(s)> <prompt-file>
-git -C "<repo-root>/.." commit -m "<type>(<scope>): <summary of migration>"
-```
-
-Never split test changes and prompt changes into separate commits.
+Report changed files, the detected test command, and its result. Stage or commit changes **only
+when the user explicitly requests a commit**. If requested, include the prompt and its related
+tests in the same reviewable change, but never create a commit merely because this skill ran.

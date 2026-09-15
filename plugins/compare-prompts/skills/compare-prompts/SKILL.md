@@ -19,8 +19,7 @@ description: |
   order, results remapped before aggregation.
 
 argument-hint: "<prompt-file> [inputs-dir | inline text] [prompt-b] [free-form options]"
-allowed-tools: Agent, Task, TaskCreate, TaskGet, TaskList, TaskUpdate, TaskStop, TaskOutput, Bash, Read, Glob, Write
-version: 0.1.0
+version: 0.1.1
 license: MIT
 platforms:
   - linux
@@ -48,8 +47,8 @@ to extract the following values:
 | `prompt_b_path` | no | A second file path labeled "B", "candidate", "new", "after", or simply the second path | HEAD~1 of prompt A |
 | `label_a` | no | A short label for prompt A. Look for "label-a", "baseline label" | "A" |
 | `label_b` | no | A short label for prompt B. Look for "label-b", "candidate label" | "B" |
-| `run_model` | no | A model name (claude-*) for running prompts | claude-sonnet-4-6 |
-| `judge_model` | no | A model name for the quality judge | claude-opus-4-6 |
+| `run_model` | no | A model available on the current host | host-default model |
+| `judge_model` | no | A model available to an independent evaluator | host-default model |
 
 **Input sources** (at least one recommended, but both optional):
 - `inputs_dir` — directory of test files (each file = one test case)
@@ -62,7 +61,7 @@ to extract the following values:
 /compare-prompts agents/code-reviewer.md inputs/
 /compare-prompts agents/code-reviewer.md with inputs from inputs/
 /compare-prompts compare agents/code-reviewer.md against agents/code-reviewer-v2.md using inputs/
-/compare-prompts baseline agents/old.md vs candidate agents/new.md, test with inputs/, use haiku as judge
+/compare-prompts baseline agents/old.md vs candidate agents/new.md, test with inputs/, use a host-available judge
 /compare-prompts agents/summarizer.md "The quick brown fox jumped over the lazy dog"
 /compare-prompts agents/translator.md with text "Hello world, how are you?"
 /compare-prompts agents/code-reviewer.md   (no input — runs prompt with empty input)
@@ -86,8 +85,8 @@ paths, natural language, or any combination:
 | `input_text` | Inline text to use as test input. Look for quoted strings, or text after "with input", "using text", "test with". Also: any substantial free-form text that is clearly meant as input content (not a path, label, or model). If `--input` or `--text` flag is present, use its value. Optional — may be absent. |
 | `label_a` | Display label for prompt A. Look for "label-a", "baseline label", or `--label-a`. |
 | `label_b` | Display label for prompt B. Look for "label-b", "candidate label", or `--label-b`. |
-| `run_model` | A model identifier (claude-*). Look for "model", "use", "with", or `--model`. |
-| `judge_model` | A model for judging. Look for "judge", "judge-model", or `--judge-model`. |
+| `run_model` | A host-valid model identifier. Look for "model", "use", "with", or `--model`. |
+| `judge_model` | A host-valid model for an independent evaluator. Look for "judge", "judge-model", or `--judge-model`. |
 
 **Defaults** (apply when not found in arguments):
 - `prompt_b_path` = derived from git HEAD~1 of prompt_a_path (existing resolution logic)
@@ -95,8 +94,8 @@ paths, natural language, or any combination:
 - `input_text` = none (no inline input)
 - `label_a` = "A"
 - `label_b` = "B"
-- `run_model` = claude-sonnet-4-6
-- `judge_model` = claude-opus-4-6
+- `run_model` = host-default model
+- `judge_model` = host-default model
 
 **Resolve prompt_b_path** (if not explicitly provided):
 1. Determine REPO_ROOT: `git -C "$(dirname <prompt_a_path>)" rev-parse --show-toplevel`
@@ -124,7 +123,9 @@ After interpreting the arguments, check:
    - prompt_a_path must exist on disk
    - prompt_b_path must exist on disk (after git HEAD~1 resolution if not explicit)
    - If `inputs_dir` was identified: it must exist on disk
-   - run_model and judge_model must match `claude-*`
+   - If a model was requested, verify it is selectable on the current host. If selection is
+     not exposed, omit the model override and record `host-default model`; never translate a
+     vendor-specific identifier by guesswork.
 
 After all validations pass, emit the start banner as a fenced code block:
 
@@ -216,12 +217,17 @@ ELSE:
 
     Record `start_time_ms = Date.now()` per task before spawning.
 
-    **Spawn all 2×N Tasks in a single parallel message** with `run_in_background: true`.
+    **Start all 2×N runs in parallel** when the host supports independent
+    work. Each run must start in a **fresh independent session**: do not pass output from A
+    to B, reuse a transcript, or let a judge see either trial before judging. If the host only
+    supports sequential work, run A then B in separate fresh independent sessions. If it cannot
+    create independent sessions, stop measured mode with a prerequisite error rather than
+    presenting correlated runs as a benchmark.
+
     Each task:
-    - `subagent_type`: general-purpose
-    - `model`: run_model (default claude-sonnet-4-6)
+    - uses the host's general independent-work capability
+    - uses `run_model` only when it was verified host-valid; otherwise uses the host-default model
     - `prompt`: constructed task_prompt (above)
-    - `run_in_background`: true
 
     Name tasks for tracking: `run-A-<filename>`, `run-B-<filename>`.
 
@@ -235,7 +241,8 @@ IF IS_LARGE_PROMPT:
     Print: "[4/6] ✅ runs complete ── (skipped — diff-based mode)"
     Skip remaining steps in this section — no run tasks were spawned. Proceed directly to Step 4.
 
-Poll all 2×N tasks until complete. Use TaskGet or await completion notifications. Wrap each TaskGet call in try/catch — if a poll throws, treat that task as failed and proceed to error handling below.
+Wait for all 2×N runs through the current host's completion mechanism. If a completion read
+fails, treat that run as failed and proceed to the documented error handling below.
 
 For each completed task, collect the raw output text then apply **file-artifact resolution**:
 
@@ -289,7 +296,7 @@ with 10 inputs, 20 raw outputs could bloat the context significantly.
 IF IS_LARGE_PROMPT:
     # DIFF-BASED JUDGING — judge receives diff + input context (no run outputs)
 
-    **Spawn all N judge tasks in a single parallel message** with `run_in_background: true`.
+    **Start all N independent judge runs in parallel** when the host supports it.
 
     For each input file i:
 
@@ -300,7 +307,8 @@ IF IS_LARGE_PROMPT:
     # if swapped: diff direction is noted as reversed in prompt
     ```
 
-    Diff-based judge task prompt (use judge_model):
+    Diff-based judge task prompt (run in a fresh independent session; use `judge_model` only
+    when it was verified host-valid):
     ```
     You are comparing two versions of a prompt or skill.
     Version B (candidate) differs from version A (baseline) as shown in the diff below.
@@ -339,7 +347,7 @@ IF IS_LARGE_PROMPT:
 ELSE:
     # STANDARD JUDGING — judge receives both prompt texts + run outputs
 
-    **Spawn all N judge tasks in a single parallel message** with `run_in_background: true`.
+    **Start all N independent judge runs in parallel** when the host supports it.
 
     For each input file i:
 
@@ -362,7 +370,7 @@ ELSE:
         swapped[i] = false
     ```
 
-    Spawn agent `compare-prompts-judge` with prompt:
+    Spawn a fresh independent evaluator with prompt:
     ```
     <PROMPT_A>
     {judge_prompt_a}
@@ -388,7 +396,7 @@ ELSE:
     {"scores":{"task_adherence":"?","factual_accuracy":"?","completeness":"?","instruction_following":"?","structural_clarity":"?","precision":"?","conciseness":"?"},"winner":"?","reasoning":"<1-2 sentences>"}
     ```
 
-    Use `judge_model` (default claude-opus-4-6) as model parameter.
+    Use `judge_model` only when the host validated it; otherwise use the host-default model.
 
     [5/6] ⚖️  judging ── {N} tasks launched
 

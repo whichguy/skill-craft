@@ -55,6 +55,10 @@ run core integration-boundaries python3 test/integration-boundaries.test.py
 run core skill-interop-hygiene bash test/skill-interop-hygiene.test.sh
 run core sync-plugin-views bash test/sync-plugin-views.test.sh
 run core native-marketplace-adapters bash test/native-marketplace-adapters.test.sh
+run core marketplace-package python3 test/marketplace-package.test.py
+run core marketplace-host-isolation python3 test/marketplace-host-isolation.test.py
+run core installed-skill-invocation python3 test/installed-skill-invocation.test.py
+run core prompt-marketplace-contract python3 test/prompt-marketplace-contract.test.py
 run core skill-frontmatter node test/skill-frontmatter.test.js
 run core scaffold-skill bash test/scaffold-skill.test.sh
 run core marketplace-run bash test/marketplace-run.test.sh

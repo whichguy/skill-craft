@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Materialize plugin views from skills/ SoT.
 # Plugin installs must not depend on a symlink outside the plugin directory,
-# so plugins/<name>/skills/<name> must be a real tree (copy). Claude and
-# Cursor manifests plus the Cursor/Grok marketplace indexes are derived from
-# SKILL.md.
+# so plugins/<name>/skills/<name> must be a real tree (copy). Claude, Codex,
+# and Cursor manifests plus the Cursor/Grok marketplace indexes are derived
+# from SKILL.md.
 #
 # Usage:
 #   ./scripts/sync-plugin-views.sh           # sync all skills/* with SKILL.md
@@ -17,6 +17,9 @@ set -euo pipefail
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 cd "$root"
 derive_js="$root/scripts/skill-frontmatter-to-plugin-json.js"
+source_license="$root/LICENSE"
+[[ -f "$derive_js" ]] || { printf 'sync-plugin-views: missing %s\n' "$derive_js" >&2; exit 1; }
+[[ -f "$source_license" ]] || { printf 'sync-plugin-views: missing source root LICENSE\n' >&2; exit 1; }
 
 check_only=0
 names=()
@@ -180,6 +183,8 @@ for name in "${names[@]}"; do
   dest_agent="$view/agents/${name}.md"
   agent_sot="$root/agents/${name}.md"
   plugin_json="$view/.claude-plugin/plugin.json"
+  codex_plugin_json="$view/.codex-plugin/plugin.json"
+  package_license="$view/LICENSE"
 
   [[ -d "$sot" ]] || { printf 'sync-plugin-views: missing SoT skills/%s\n' "$name" >&2; exit 1; }
   [[ -f "$sot/SKILL.md" ]] || { printf 'sync-plugin-views: missing skills/%s/SKILL.md\n' "$name" >&2; exit 1; }
@@ -187,6 +192,21 @@ for name in "${names[@]}"; do
   if [[ "$check_only" -eq 1 ]]; then
     if [[ ! -f "$plugin_json" ]]; then
       printf 'sync-plugin-views: FAIL missing plugins/%s/.claude-plugin/plugin.json\n' "$name" >&2
+      fail=1
+      continue
+    fi
+    if [[ ! -f "$codex_plugin_json" ]]; then
+      printf 'sync-plugin-views: FAIL missing plugins/%s/.codex-plugin/plugin.json\n' "$name" >&2
+      fail=1
+      continue
+    fi
+    if [[ ! -f "$package_license" ]]; then
+      printf 'sync-plugin-views: FAIL missing plugins/%s/LICENSE\n' "$name" >&2
+      fail=1
+      continue
+    fi
+    if ! cmp -s "$source_license" "$package_license"; then
+      printf 'sync-plugin-views: FAIL plugins/%s/LICENSE differs from source root LICENSE\n' "$name" >&2
       fail=1
       continue
     fi
@@ -224,8 +244,9 @@ for name in "${names[@]}"; do
 
   # Validate SoT symlinks before any write (fail closed; no partial plugin view).
   validate_skill_package_symlinks "$sot" "$name"
-  mkdir -p "$view/skills" "$view/agents" "$view/.claude-plugin"
+  mkdir -p "$view/skills" "$view/agents" "$view/.claude-plugin" "$view/.codex-plugin"
   node "$derive_js" "$name" --write
+  cp "$source_license" "$package_license"
   # Remove symlink or stale tree, then copy with package-internal symlink dereference
   # (escape refuse also inside copy_skill_package_deref).
   copy_skill_package_deref "$sot" "$dest_skill" "$name"

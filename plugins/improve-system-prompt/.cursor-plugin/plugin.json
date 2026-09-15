@@ -1,7 +1,7 @@
 {
   "name": "improve-system-prompt",
-  "version": "0.1.0",
-  "description": "Benchmark and compare system prompt variants (V2/V2a/V2b/V2c) for Sheets Chat by running test scenarios through the real GAS-side ClaudeConversation pipeline. Tests both system-placement and user-placement, then evaluates with heuristic scoring (ABTestHarness) and LLM-as-judge.",
+  "version": "0.1.1",
+  "description": "Benchmark and compare system prompt variants (V2/V2a/V2b/V2c) for Sheets Chat by running test scenarios through the real GAS-side ClaudeConversation pipeline. Tests both system-placement and user-placement, then evaluates with heuristic scoring (ABTestHarness) and LLM-as-judge. Product-specific: requires an authorized Sheets Chat/GAS execution integration.",
   "author": {
     "name": "whichguy"
   },

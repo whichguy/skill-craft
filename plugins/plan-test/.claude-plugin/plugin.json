@@ -1,7 +1,7 @@
 {
   "name": "plan-test",
-  "version": "0.1.0",
-  "description": "Generate comprehensive tests for code. Dispatches to qa-analyst agent for complex components requiring test architecture decisions.",
+  "version": "0.1.1",
+  "description": "Generate comprehensive tests for code. Uses an inline strategy or an available independent test specialist for complex components.",
   "author": {
     "name": "whichguy",
     "url": "https://github.com/whichguy"

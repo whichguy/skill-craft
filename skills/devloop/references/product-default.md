@@ -5,8 +5,8 @@
 **Default DevLoop** = the **engine** via the user-facing skill **`devloop`**
 (package leaf `devloop`; `scripts/devloop-run` → `scripts/devloop_cli.py`).
 
-Harnesses (Grok, Claude, Codex, Cursor, Hermes chat) are **shims only**: resolve,
-bootstrap if needed, exec the engine, report exit codes and receipts.
+Harnesses (Grok, Claude, Codex, Cursor, Hermes chat) are **shims only**: resolve
+a preinstalled engine, exec it, and report exit codes and receipts.
 They must **not** reimplement DEFINE / PROVE / BUILD / DELIVER+LEARN.
 
 ## Package leaves
@@ -30,9 +30,9 @@ selects the live Hermes leaf unless `DEVLOOP_ALLOW_HERMES_SEED=1`. Nested invoke
 (`DEVLOOP_DEPTH`≠0) exits 2. Full engines without a declared `grok` transport
 capability fail closed at invoke (override: `DEVLOOP_ALLOW_LEGACY_ENGINE=1`).
 
-Pin 0.2.0 declares `transports: ["hermes","grok"]`. Until a matching host-local
-engine is bootstrapped, the card must fail closed with exit **2** and next steps —
-not fall back to host-agent improvisation or `evidence-gates`.
+Until a matching host-local engine is provisioned by an operator, the card must
+fail closed with exit **2** and next steps — not fall back to host-agent
+improvisation or `evidence-gates`.
 
 **Write-safe:** prefer `DEVLOOP_WRITE_SAFE_ROOT`; host-local default under
 `$XDG_STATE_HOME/devloop` (not `/opt/data` unless that path is a writable container root).

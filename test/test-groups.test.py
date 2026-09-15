@@ -15,6 +15,8 @@ RUNNER = ROOT / "test" / "run-all.sh"
 CORE = {
     "test-groups", "integration-boundaries", "skill-interop-hygiene",
     "sync-plugin-views", "native-marketplace-adapters", "skill-frontmatter",
+    "marketplace-package", "installed-skill-invocation", "prompt-marketplace-contract",
+    "marketplace-host-isolation",
     "scaffold-skill", "marketplace-run", "install-targets",
     "install-arbitrary-skill", "hermes-binding", "install-status-uninstall",
     "devloop-run", "evidence-gates", "improve", "improve-plugin", "shiploop-testkit", "review-coverage",

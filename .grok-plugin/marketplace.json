@@ -7,8 +7,8 @@
   "plugins": [
     {
       "name": "architect",
-      "version": "0.1.0",
-      "description": "Design system architecture and make technology decisions. Dispatches to system-architect agent for comprehensive design work.",
+      "version": "0.1.1",
+      "description": "Design system architecture and make technology decisions. Uses a structured inline design or an available independent reviewer for comprehensive work.",
       "category": "productivity",
       "source": {
         "type": "local",
@@ -17,7 +17,7 @@
     },
     {
       "name": "c-plan",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "description": "Resolve ambiguous user prompts by choosing whether to answer now, answer with assumptions, ask 1–2 high-value clarification questions, replan, or stop. Use when the best response depends on hidden intent, audience, scope, constraints, risk, output format, or desired depth.",
       "category": "productivity",
       "source": {
@@ -27,7 +27,7 @@
     },
     {
       "name": "compare-prompts",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "description": "Compare two prompt versions (A vs B) by running both against a directory of test input files, then evaluating results on three dimensions in priority order: quality > tokens > time.",
       "category": "productivity",
       "source": {
@@ -37,7 +37,7 @@
     },
     {
       "name": "derive-questions",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "description": "Iteratively researches real software project failures and wins, extracts key planning questions via 5-whys analysis, validates them against synthetic test plans, judges their effectiveness via a parallel judge agent, refines them, and persists to a growing questions library. Builds a curated, language/system-agnostic question library that prevents known failure modes when applied during software planning.",
       "category": "productivity",
       "source": {
@@ -47,8 +47,8 @@
     },
     {
       "name": "devloop",
-      "version": "0.5.4",
-      "description": "DevLoop (default): invoke the autonomous engine for a machine-verifiable build or debug goal. Use when the user says devloop, DevLoop, /devloop, or wants an isolated fail-closed build with executable tests. Thin shim: resolve or bootstrap the engine, then exec scripts/devloop-run. Runtime hosts: Grok and Hermes. Claude/Codex/Cursor: discovery and bootstrap only (transport TBD). NOT the demoted offline skill evidence-gates. NOT host-agent DEFINE/PROVE/BUILD.",
+      "version": "0.6.0",
+      "description": "DevLoop (default): invoke the autonomous engine for a machine-verifiable build or debug goal. Use when the user says devloop, DevLoop, /devloop, or wants an isolated fail-closed build with executable tests. Thin shim: resolve a preinstalled engine, then exec scripts/devloop-run. Runtime hosts: Grok and Hermes. Claude/Codex/Cursor require an explicit external transport. NOT the demoted offline skill evidence-gates. NOT host-agent DEFINE/PROVE/BUILD.",
       "category": "productivity",
       "source": {
         "type": "local",
@@ -57,7 +57,7 @@
     },
     {
       "name": "evidence-gates",
-      "version": "0.2.1",
+      "version": "0.2.2",
       "description": "Optional offline evidence gates (freeze/prove/stop with guard digests) for machine-checkable red→green contracts without the autonomous engine. Use when the user says evidence-gates, offline evidence gates, freeze prove stop, or host-native verify gates. NOT the autonomous engine product.",
       "category": "software-development",
       "source": {
@@ -67,7 +67,7 @@
     },
     {
       "name": "improve",
-      "version": "0.1.0-rc.1",
+      "version": "0.1.0-rc.2",
       "description": "Use when a repository candidate needs a deliberate review-and-improvement loop: use recent Git history, make warranted changes, run meaningful checks, and require two consecutive trivial-only review passes. Supports a read-only interpretation preview; not a one-off code review.",
       "category": "productivity",
       "source": {
@@ -77,8 +77,8 @@
     },
     {
       "name": "improve-system-prompt",
-      "version": "0.1.0",
-      "description": "Benchmark and compare system prompt variants (V2/V2a/V2b/V2c) for Sheets Chat by running test scenarios through the real GAS-side ClaudeConversation pipeline. Tests both system-placement and user-placement, then evaluates with heuristic scoring (ABTestHarness) and LLM-as-judge.",
+      "version": "0.1.1",
+      "description": "Benchmark and compare system prompt variants (V2/V2a/V2b/V2c) for Sheets Chat by running test scenarios through the real GAS-side ClaudeConversation pipeline. Tests both system-placement and user-placement, then evaluates with heuristic scoring (ABTestHarness) and LLM-as-judge. Product-specific: requires an authorized Sheets Chat/GAS execution integration.",
       "category": "productivity",
       "source": {
         "type": "local",
@@ -87,8 +87,8 @@
     },
     {
       "name": "plan-test",
-      "version": "0.1.0",
-      "description": "Generate comprehensive tests for code. Dispatches to qa-analyst agent for complex components requiring test architecture decisions.",
+      "version": "0.1.1",
+      "description": "Generate comprehensive tests for code. Uses an inline strategy or an available independent test specialist for complex components.",
       "category": "productivity",
       "source": {
         "type": "local",
@@ -97,7 +97,7 @@
     },
     {
       "name": "prompt-align",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "description": "Compare an agent or skill prompt against its test harness skill for phase-model, skip-condition, and wiring consistency. Reports mismatches and identifies which file is authoritative.",
       "category": "productivity",
       "source": {
@@ -107,7 +107,7 @@
     },
     {
       "name": "prompt-audit",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "description": "Audit an agent or skill prompt file for internal inconsistencies (phase numbering, behavioral contracts, terminology, stale references). Produces a Q&A with info-gain scores, a learnings section, and a remediation list. Use before any prompt migration.",
       "category": "productivity",
       "source": {
@@ -117,8 +117,8 @@
     },
     {
       "name": "prompt-migrate",
-      "version": "0.1.0",
-      "description": "TDD-based prompt migration — given a target agent/skill prompt and a remediation list from prompt-audit, writes failing tests first, then updates the prompt to make them pass, and commits both in a single atomic commit.",
+      "version": "0.1.1",
+      "description": "TDD-based prompt migration — given a target agent/skill prompt and a remediation list, writes failing tests first, then updates the prompt to make them pass. Commits remain user-controlled.",
       "category": "productivity",
       "source": {
         "type": "local",
@@ -127,7 +127,7 @@
     },
     {
       "name": "prompt-refine",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "description": "Full prompt-improvement workflow — runs prompt-audit to find inconsistencies, presents a remediation plan, then runs prompt-migrate to apply fixes and prompt-align to verify harness consistency. Use for any agent or skill prompt that needs structural repair.",
       "category": "productivity",
       "source": {
@@ -137,7 +137,7 @@
     },
     {
       "name": "question-bench",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "description": "Benchmark review-plan question effectiveness via experiment-based ablation. Applies different question subsets to a plan (or directory of plans) in parallel experiments, evaluates each against fixed plan-quality questions (Q-PQ1..Q-PQ8), and compares quality spreads to identify which questions drive real improvement.",
       "category": "productivity",
       "source": {
@@ -147,7 +147,7 @@
     },
     {
       "name": "review-coverage",
-      "version": "0.2.5",
+      "version": "0.2.6",
       "description": "Add a post-ship improve-to-exhaustion directive to a plan, or run that directive after implementation. Invoke like any skill: /review-coverage, \"review-coverage on this plan\", residual×2 after ship, or ensure the plan has a /goal-ready ## Review Coverage section. Not for pre-exit plan quality (use review-plan) or raw residual×2 engine mechanics alone (use review-converge under /goal).",
       "category": "productivity",
       "source": {
@@ -157,8 +157,8 @@
     },
     {
       "name": "review-fix-bench",
-      "version": "0.1.0",
-      "description": "A/B benchmarking skill for code reviewer agent prompts. Runs two versions of a reviewer agent against fixture ground truth using an LLM judge for semantic evaluation, then compares precision/recall/F1 metrics side-by-side. Defaults to comparing current agent vs git HEAD~1. Reports IMPROVED / REGRESSED / NEUTRAL verdict on F1.",
+      "version": "0.1.1",
+      "description": "Compare two code-review prompt versions against supplied fixture ground truth using an explicitly configured external benchmark runner. Reports an F1-based verdict only when the runner completes both evaluations and comparison.",
       "category": "productivity",
       "source": {
         "type": "local",
@@ -167,7 +167,7 @@
     },
     {
       "name": "shiploop",
-      "version": "0.10.0",
+      "version": "0.10.1",
       "description": "Markdown-authoritative delivery harness. Start or resume once, follow the script's current action packet, and submit its exact completion call until the script reports completion with an HTML achievement report. Use when the user says shiploop, ship the project, or requests a durable delivery loop.",
       "category": "software-development",
       "source": {
@@ -177,7 +177,7 @@
     },
     {
       "name": "skill-interop",
-      "version": "0.2.0",
+      "version": "0.2.1",
       "description": "Use when authoring or reviewing a portable multi-host agent skill (Grok, Claude Code, Codex, Hermes): scaffold a prompt-only skill, make a skill host-agnostic, create skill layout, review skill for interop, or install across hosts. Covers prompt-first design, host matrix, anti-patterns (divergent copies, silent mode fallback, abs symlinks), and script-backed CLI contracts.",
       "category": "software-development",
       "source": {

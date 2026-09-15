@@ -99,3 +99,21 @@ automated tests are explicitly N/A. `test/review-coverage.test.sh` checks that
 contract across source instructions and emitted goal/run packets; it does not
 prove that every host or model executes the instructions correctly. This guide
 does not claim that all documentation or quality debt is closed.
+
+## Marketplace package and consumer gates
+
+The core group runs `marketplace-package`, `installed-skill-invocation` and
+`prompt-marketplace-contract`. These check all generated native payloads, execute
+bundled helpers from copied read-only package trees (including paths with spaces),
+and check prompt dependency/capability contracts. They do not run model benchmarks.
+DevLoop's core suite separately proves that missing-engine invocation cannot
+bootstrap; checksum/extraction/replacement tests target the repository-only
+operator setup helper.
+
+`bash test/run-integration.sh marketplace-claude|marketplace-grok|marketplace-codex`
+means choose **one** named target. Each requires that real CLI and uses a temporary
+local catalog and disposable profile with an allowlisted environment. The test
+installs the Skill Interop helper, exercises it after installation, then installs,
+runs and removes Review Coverage. No ambient provider credentials are inherited,
+no model call is made, and no personal plugin state should change. These checks
+prove local installed behavior only, not published-pin readiness or public review.

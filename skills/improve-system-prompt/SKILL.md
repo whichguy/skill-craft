@@ -4,7 +4,8 @@ description: |
   Benchmark and compare system prompt variants (V2/V2a/V2b/V2c) for Sheets Chat by
   running test scenarios through the real GAS-side ClaudeConversation pipeline.
   Tests both system-placement and user-placement, then evaluates with heuristic
-  scoring (ABTestHarness) and LLM-as-judge.
+  scoring (ABTestHarness) and LLM-as-judge. Product-specific: requires an
+  authorized Sheets Chat/GAS execution integration.
 
   **AUTOMATICALLY INVOKE** when:
   - User says "benchmark system prompts", "compare prompt variants"
@@ -12,10 +13,8 @@ description: |
   - User says "which prompt variant is best", "run prompt benchmark"
 
   **NOT for:** General prompt engineering, non-GAS prompts, one-off prompt writing.
-  Use /optimize-system-prompt for editing/refining the active prompt.
-model: claude-sonnet-4-6
-allowed-tools: Agent, Task, TaskCreate, TaskGet, TaskList, TaskUpdate, TaskStop, TaskOutput, Bash, Read, Glob, Write, mcp__gas__exec, mcp__gas__ls, mcp__gas__status
-version: 0.1.0
+  Use an ordinary prompt-editing workflow for editing/refining an active prompt.
+version: 0.1.1
 license: MIT
 platforms:
   - linux
@@ -32,13 +31,20 @@ real GAS-side `ClaudeConversation` pipeline. Compares content variants (V2/V2a/V
 and placement modes (system param vs user message prepend) with dual evaluation:
 heuristic scoring (ABTestHarness 8-dim rubric) + LLM-as-judge.
 
-## Project Context
+## Product-specific prerequisites
 
-- **ScriptId**: `1Y72rigcMUAwRd7bwl3CR57O6ENo5sKTn0xAl2C4HoZys75N5utGfkCUG`
-- **GAS execution**: inline JS via mcp__gas__exec — no module to deploy
+- **Project selector**: the user must provide `--gas-project <id-or-configured-selector>`.
+  It is never defaulted from this skill or another checkout.
+- **GAS execution**: an authorized GAS execution integration exposing an equivalent of
+  `mcp__gas__status`, `mcp__gas__ls`, and `mcp__gas__exec` for that selected project.
+  This is a product-specific MCP dependency, not a general marketplace capability.
 - **Scenarios**: `require('sheets-chat/ABTestHarness').SCENARIOS` — 12 scenarios total (indices 0–11)
 - **Variants**: `require('sheets-chat/SystemPrompt')['buildSystemPromptV2|a|b|c'](null, null, SP.gatherEnvironmentContext())`
 - **Variant map**: `{ V2: 'buildSystemPromptV2', V2a: 'buildSystemPromptV2a', V2b: 'buildSystemPromptV2b', V2c: 'buildSystemPromptV2c' }`
+
+This skill is unavailable until the integration can prove authorization and the selected
+project exposes the named modules. A static package check or a visible MCP connection is not
+evidence that inference or the benchmark completed.
 
 ## Argument Reference
 
@@ -50,8 +56,9 @@ Arguments are free-form text after `/improve-system-prompt`. Parse them using th
 | `--scenarios` | `0-9` | range `0-9` or comma `0,1,5` | Indices into 12-scenario array |
 | `--placement` | `both` | `system` \| `user` \| `both` | Placement mode to test |
 | `--runs` | `1` | integer | Runs per cell (increases averaging) |
-| `--model` | `claude-haiku-4-5-20251001` | Claude model ID | Model for GAS-side inference |
-| `--judge-model` | `claude-opus-4-6` | Claude model ID | Model for LLM-as-judge |
+| `--gas-project` | — | configured selector or ID | Required target for the authorized GAS integration |
+| `--model` | selected project's configured default | configured model ID | Model for GAS-side inference |
+| `--judge-model` | selected project's configured default | configured model ID | Model for LLM-as-judge |
 
 **Default matrix**: 2 variants × 2 placements × 10 scenarios × 1 run = **40 cells**
 
@@ -59,7 +66,22 @@ Arguments are free-form text after `/improve-system-prompt`. Parse them using th
 
 ## Step 0 — Parse & Config Banner
 
-Parse `$ARGUMENTS` free-form. Extract parameters from the table above.
+Parse `$ARGUMENTS` free-form. Extract parameters from the table above. `--gas-project` is
+required; if it is absent, stop before any integration call with an example that includes it.
+
+Run an **authorization preflight** before building the matrix:
+
+1. Query the configured GAS integration's status and select only `--gas-project`.
+2. Confirm the caller is authorized for the selected project and that its reported identity
+   matches the user-supplied selector or ID.
+3. Run a non-mutating module check through the selected project to confirm
+   `sheets-chat/ABTestHarness`, `sheets-chat/SystemPrompt`, and `chat-core/ClaudeConversation`
+   are readable.
+4. Confirm any supplied `--model` or `--judge-model` is accepted by that configured project;
+   otherwise use only the project's configured default and report that choice.
+
+If any check fails, print the failed prerequisite and stop. Do not substitute another GAS
+project, deployment, account, or model.
 
 Emit config table:
 
@@ -71,8 +93,9 @@ Emit config table:
 ║  Scenarios: 0-9 (10 scenarios)           ║
 ║  Placement: both (system + user)         ║
 ║  Cells    : 40                           ║
-║  Model    : claude-haiku-4-5-20251001    ║
-║  Judge    : claude-opus-4-6              ║
+║  Project  : {gas_project}                ║
+║  Model    : {configured_model}           ║
+║  Judge    : {configured_judge_model}     ║
 ╚══════════════════════════════════════════╝
 ```
 

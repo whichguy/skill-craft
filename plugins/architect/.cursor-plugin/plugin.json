@@ -1,7 +1,7 @@
 {
   "name": "architect",
-  "version": "0.1.0",
-  "description": "Design system architecture and make technology decisions. Dispatches to system-architect agent for comprehensive design work.",
+  "version": "0.1.1",
+  "description": "Design system architecture and make technology decisions. Uses a structured inline design or an available independent reviewer for comprehensive work.",
   "author": {
     "name": "whichguy"
   },

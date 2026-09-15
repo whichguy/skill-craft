@@ -5,7 +5,7 @@ description: >-
   loop: use recent Git history, make warranted changes, run meaningful checks,
   and require two consecutive trivial-only review passes. Supports a read-only
   interpretation preview; not a one-off code review.
-version: 0.1.0-rc.1
+version: 0.1.0-rc.2
 license: MIT
 platforms:
   - linux
@@ -33,6 +33,34 @@ this card's physical directory before resolving relative links. Read that bound
 card in full and follow its adapter. The package-relative binding is
 authoritative: do not substitute a separately installed runtime, an older card,
 or a runtime that lacks the requested preview behavior.
+
+## Installed package binding
+
+Start with the absolute path of the **selected, loaded** `SKILL.md` supplied by
+the host. If the host exposes a selected skill-root alias, expand that alias
+first. Keep that logical `SKILL_ROOT` as the host's selected identity; it is not
+the target repository cwd, an author checkout, `PATH`, a same-named skill, or a
+guessed cache. Claude Code may render `${CLAUDE_SKILL_DIR}` in card text where
+supported, but it is not a portable shell environment variable.
+
+```sh
+# Replace this illustrative path with the selected absolute location before running.
+SKILL_ROOT="/absolute/directory-containing-the-loaded-SKILL.md"
+RUNTIME_CLI="$SKILL_ROOT/runtime/until-loop/scripts/until-loop"
+EVIDENCE_CLI="$SKILL_ROOT/scripts/capture_evidence.py"
+python3 "$RUNTIME_CLI" v2 preview --contract-file /absolute/path/to/contract.json
+python3 "$EVIDENCE_CLI" snapshot --repo /absolute/workspace \
+  --owner standalone-improve --history-window 7 --scope path/to/file
+```
+
+Quote the absolute paths and bind them again for each independent tool call.
+The bundled adapter may resolve package-local resources physically, but must
+remain the selected package's bound runtime. Do not replace `RUNTIME_CLI` with
+an ambient Until Loop installation or call `managed_controller.py` as a
+standalone runtime. Runtime/evidence state belongs under the target workspace,
+not the read-only package. If `python3`, the bundled file, or the repository
+prerequisite is missing, report that condition rather than silently changing
+runtimes.
 
 That bound card is the only CLI caller for standalone execution. Pass the following intent as natural
 language, retaining the user's exact request and any more specific constraints.

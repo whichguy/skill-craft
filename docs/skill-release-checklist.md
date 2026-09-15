@@ -1,12 +1,21 @@
 # Skill release checklist (skill-craft → skill-craft-market)
 
-After shipping a skill package change to `main`:
+Before publishing a changed skill package, freeze the candidate bytes:
 
-1. **Green suite** for that skill (`bash test/<skill>.test.sh` or `bash test/run-all.sh`).
+1. **Version the changed leaf first**, including packaging-only changes. Do not
+   change its version or package bytes after final verification without rerunning
+   affected checks. Preserve unrelated work in shared checkouts.
 2. **Plugin views and native catalogs in sync:** `bash scripts/sync-plugin-views.sh`, then
    `bash scripts/sync-plugin-views.sh --check`. Full sync also regenerates the Grok/Cursor
    catalogs and README inventory. Commit generated metadata with the package change.
-3. **Tag** skill-craft at the ship tip, e.g. `git tag -a v0.3.2 -m "…" && git push origin v0.3.2`.
+3. **Verify the frozen candidate:** `bash test/run-all.sh`,
+   `python3 scripts/check-marketplace-packages.py`, and the opt-in
+   `marketplace-claude`, `marketplace-grok`, `marketplace-codex` targets of
+   `test/run-integration.sh`. The latter require actual host CLIs and disposable
+   profiles, not personal installs. Record host versions and separate parser,
+   installation, installed-script and model-workflow evidence. Any unavailable
+   check stays explicitly unverified. Then, with publication authorization,
+   commit/publish the source and **tag** the verified tip (no further byte changes).
 4. **Market pin:** only root skill-craft-market `.claude-plugin/marketplace.json` (no second catalog under `faces/`):
    - `source.path` = `plugins/<skill>` (not bare `skills/`)
    - `source.sha` = the full 40-character commit SHA containing the package
@@ -20,8 +29,12 @@ After shipping a skill package change to `main`:
 5. **Verify the catalog** from skill-craft-market: run
    `python3 scripts/check-catalog.py --skill-craft-root ../skill-craft`,
    `python3 test/catalog.test.py`, `python3 test/pins.test.py`, and
-   `python3 scripts/check-pins.py`. The remote check reads manifests and skill
-   bodies at their SHAs; private sources require an existing `GH_TOKEN` with read access.
+   `python3 scripts/check-pins.py --full-payload`. The full-payload check reads the
+   complete packaged tree at immutable SHAs, not just catalog metadata. The CI
+   release-diff gate requires complete payload checks for new/changed native pins;
+   unchanged legacy pins are not silently upgraded. Private sources require an
+   existing `GH_TOKEN` with read access. The default check without this flag
+   explicitly reports that complete payload readiness was not checked.
 6. **Push market** and operators run `claude plugin marketplace update skill-craft-market`
    or `codex plugin marketplace upgrade skill-craft-market` for a Git-backed catalog.
    Local registrations read their checkout. Codex reads the same Claude-compatible catalog;

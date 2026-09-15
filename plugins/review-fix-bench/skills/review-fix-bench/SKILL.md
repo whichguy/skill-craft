@@ -1,9 +1,11 @@
 ---
 name: review-fix-bench
-description: A/B benchmarking skill for code reviewer agent prompts. Runs two versions of a reviewer agent against fixture ground truth using an LLM judge for semantic evaluation, then compares precision/recall/F1 metrics side-by-side. Defaults to comparing current agent vs git HEAD~1. Reports IMPROVED / REGRESSED / NEUTRAL verdict on F1.
-argument-hint: "[--candidate <path>] [--agent <name>] [--judge <path>] [--fixtures <dir>] [--runs N] [--label-a NAME] [--label-b NAME]"
-allowed-tools: Bash, Read, Glob, Grep, TaskCreate, TaskGet, TaskOutput, TaskStop
-version: 0.1.0
+description: >-
+  Compare two code-review prompt versions against supplied fixture ground truth
+  using an explicitly configured external benchmark runner. Reports an F1-based
+  verdict only when the runner completes both evaluations and comparison.
+argument-hint: "--target <prompt> --runner <executable> --fixtures <dir> --judge <prompt> [--candidate <prompt>] [--runs N] [--repo <dir>]"
+version: 0.1.1
 license: MIT
 platforms:
   - linux
@@ -13,173 +15,87 @@ metadata:
     kind: prompt-only
 ---
 
-> **skill-craft port** of a claude-craft suite skill. Host-neutral: use repo-root search instead of Claude plugin paths. SoT: whichguy/skill-craft `skills/review-fix-bench/`.
+# review-fix-bench
 
+Benchmark a review-prompt candidate against ground-truth fixtures. This package
+contains the orchestration contract only. **No installed runner is bundled**:
+the target, fixtures, judge rubric, and benchmark runner are explicit inputs so
+the skill never reaches into a sibling plugin, a personal checkout, or a host cache.
 
-## Step 0 — Parse Arguments
+## Invocation
 
-Parse the user's invocation:
-
-```
-/review-fix-bench                               # current vs git HEAD~1, code-reviewer agent
-/review-fix-bench --candidate path/to/new.md   # current vs explicit candidate file
-/review-fix-bench --agent review-fix            # benchmark review-fix instead of code-reviewer
-/review-fix-bench --judge path/to/judge.md     # custom judge agent
-/review-fix-bench --fixtures path/to/dir/      # custom fixtures directory
-/review-fix-bench --runs N                      # N runs per fixture (max 3)
-/review-fix-bench --label-a NAME --label-b NAME # custom labels for reports
-```
-
-Set defaults:
-- `agent` = `code-reviewer`
-- `fixtures_dir` = `test/fixtures/review-fix/`
-- `runs` = `1`
-- `judge_file` = `agents/review-fix-judge.md` (can be overridden with `--judge`)
-- `label_a` = `current`
-- `label_b` = `candidate` (or `prev` if using git HEAD~1)
-
-## Step 1 — Resolve File Paths and Pre-flight Checks
-
-> **Cross-plugin spec note:** This skill reads files under
-> `plugins/review-suite/agents/` (the agents under test). Per marketplace
-> spec, plugins should not reach into siblings via filesystem — but this
-> is an A/B benchmark harness whose entire purpose is introspecting the
-> live agent files of its target plugin and their git history. Bundling
-> defeats the bench. The cross-plugin dependency is declared in
-> `plugin.json#dependencies` (`review-suite`) and the path is overridable
-> via `REVIEW_SUITE_AGENTS_DIR` env for non-default layouts.
-
-**Resolve repo root and target agents dir:**
-```bash
-REPO_DIR=$(git -C "$(pwd)" rev-parse --show-toplevel)
-REVIEW_SUITE_AGENTS_DIR="${REVIEW_SUITE_AGENTS_DIR:-$REPO_DIR/plugins/review-suite/agents}"
+```text
+/review-fix-bench \
+  --target /absolute/path/to/current-reviewer.md \
+  --runner /absolute/path/to/review-fix-bench.sh \
+  --fixtures /absolute/path/to/fixtures \
+  --judge /absolute/path/to/judge-rubric.md \
+  [--candidate /absolute/path/to/candidate-reviewer.md] \
+  [--repo /absolute/path/to/target-repository] [--runs 1..3]
 ```
 
-**Pre-flight checks — verify these exist before proceeding:**
+`--target`, `--runner`, `--fixtures`, and `--judge` are required. The runner is a
+**separately installed** and licensed dependency chosen by the operator; this
+marketplace package neither declares an imaginary plugin dependency nor downloads
+one. `--candidate` is preferred. Without it, derive the candidate from `HEAD~1`
+only after the supplied `--repo` is confirmed to contain `--target`; otherwise
+stop and ask for `--candidate`.
 
-1. Judge agent: `$REVIEW_SUITE_AGENTS_DIR/review-fix-judge.md` (or `--judge` override)
-   - Must exist and contain `"tp"`, `"fn"`, `"fp_count"` — grep to verify
-   - If missing: error with "Judge agent not found in plugins/review-suite/agents/ — verify review-suite plugin is installed (claude /plugin list)"
+## Step 1 — Resolve and preflight
 
-2. Bench harness: `<skill-or-plugin-root>/tools/review-fix-bench.sh`
-   - Must exist and contain `JUDGE_FILE` — grep to verify
-   - If missing `JUDGE_FILE`: error with "Harness missing --judge-file support — ensure Phase 2 was applied"
+1. Canonicalize each supplied path. Do not infer any path from the current working
+   directory, an installed skill directory, an environment variable, or a host cache.
+2. Confirm `--target`, `--judge`, and every fixture file exist and are readable.
+   Require at least one `*.ground-truth.json` fixture.
+3. Confirm `--runner` is executable and is the intended separately installed runner.
+   Read its documented interface or call its non-mutating help command. It must support
+   `--run`, `--compare`, `--agent-file`, `--judge-file`, `--fixtures`, and `--runs`.
+   If it does not, stop with `ERROR: configured runner lacks the required bench interface`.
+4. If deriving `HEAD~1`, confirm the supplied repository is a Git worktree and compute the
+   target's repository-relative path. On missing history, stop with `ERROR: provide --candidate`.
+5. State the resolved absolute inputs and selected candidate source before any evaluation.
 
-3. Fixtures directory: `$REPO_DIR/$fixtures_dir`
-   - Must contain at least one `*.ground-truth.json` file
+Do not report a benchmark result after only these checks. A missing runner, fixture, judge,
+or history is a blocked prerequisite, not a neutral or passing result.
 
-**Resolve Version A** (always the current agent file):
-```
-version_a_path = "$REVIEW_SUITE_AGENTS_DIR/${agent}.md"
-```
-- Validate it exists; error if not
+## Step 2 — Run isolated A/B evaluations
 
-**Resolve Version B** (candidate or git HEAD~1):
+Run the configured runner twice with identical fixtures, judge, run count, and isolation
+settings; vary only the agent prompt and label:
 
-If `--candidate <path>` was provided:
-- `version_b_path = <path>` (resolve relative to cwd if not absolute)
-- Validate the file exists; if not, error: "Candidate file not found: <path>"
-- `version_b_source = "candidate: <path>"`
-- Set `label_b = "candidate"` if not overridden
-
-Otherwise, extract from git:
-```bash
-tmp_b=$(mktemp /tmp/bench-agent-b.XXXXXX)
-# Compute repo-relative path from REVIEW_SUITE_AGENTS_DIR for `git show`
-agents_relpath="${REVIEW_SUITE_AGENTS_DIR#$REPO_DIR/}"
-git -C "$REPO_DIR" show HEAD~1:"$agents_relpath/${agent}.md" > "$tmp_b" 2>/dev/null
-```
-- If this fails (exit non-zero or empty file): error with clear message:
-  "Cannot extract HEAD~1 version of agents/${agent}.md — file may be new or only one commit exists.
-   Use --candidate <path> to specify version B explicitly."
-- `version_b_path = "$tmp_b"` (will be cleaned up after bench completes)
-- `version_b_source = "git HEAD~1: agents/${agent}.md"`
-- Set `label_b = "prev"` if not overridden
-
-**Git hash for version A:**
-```bash
-git_hash_a=$(git -C "$REPO_DIR" rev-parse --short HEAD 2>/dev/null || echo "unknown")
+```sh
+"$RUNNER" --run --label current --fixtures "$FIXTURES" --runs "$RUNS" \
+  --agent-file "$TARGET" --judge-file "$JUDGE"
+"$RUNNER" --run --label candidate --fixtures "$FIXTURES" --runs "$RUNS" \
+  --agent-file "$CANDIDATE" --judge-file "$JUDGE"
 ```
 
-## Step 2 — Run Bench A and Bench B in Parallel
+If the runner evaluates prompts through an agent host, each evaluation must use a fresh
+independent session. Do not reuse the current result as context for the candidate. Parallel
+execution is permitted only when the runner guarantees that the two runs do not share state.
+Capture stdout, stderr, exit code, and the reported result path for both runs.
 
-Spawn two Task agents **in a single parallel message** (`run_in_background: true`) to execute:
+## Step 3 — Compare only completed result files
 
-**Task A** — benchmark current agent:
-```bash
-"<skill-or-plugin-root>/tools/review-fix-bench.sh" \
-  --run \
-  --label "${label_a}" \
-  --fixtures "${fixtures_dir}" \
-  --runs "${runs}" \
-  --agent-file "${version_a_path}" \
-  --judge-file "${judge_file}"
+Proceed only when both evaluations exited zero and each emitted an existing result file.
+Run:
+
+```sh
+"$RUNNER" --compare "$RESULT_CURRENT" "$RESULT_CANDIDATE"
 ```
 
-**Task B** — benchmark candidate agent:
-```bash
-"<skill-or-plugin-root>/tools/review-fix-bench.sh" \
-  --run \
-  --label "${label_b}" \
-  --fixtures "${fixtures_dir}" \
-  --runs "${runs}" \
-  --agent-file "${version_b_path}" \
-  --judge-file "${judge_file}"
-```
+Treat malformed output, missing F1 metrics, or a non-zero comparison as a benchmark failure.
+Do not infer an IMPROVED, REGRESSED, or NEUTRAL verdict from partial output.
 
-Both tasks capture stdout. The harness prints `Results written to: <path>` — parse this line to get the result JSON path for each run.
+## Step 4 — Report
 
-**On failure:** If either task exits non-zero, print the captured stderr and abort. Clean up `$tmp_b` if set.
+Report the target/candidate paths, source revision when used, runner path and version,
+fixture digest or inventory, judge path, run count, result paths, exit codes, and the raw
+comparison verdict. Label the result as an evaluation by the configured runner; this skill
+does not itself validate reviewer behavior. Keep temporary candidate files only until the
+comparison completes, then remove only those files created for this invocation.
 
-**After both complete:** Extract result paths:
-```
-result_a = line matching "Results written to:" from Task A stdout
-result_b = line matching "Results written to:" from Task B stdout
-```
+## Not for
 
-If either path is missing or the file doesn't exist, error: "Bench run failed to produce results file — check stderr above."
-
-## Step 3 — Compare in a Task Agent
-
-Spawn a third Task agent to run:
-```bash
-"<skill-or-plugin-root>/tools/review-fix-bench.sh" --compare "${result_a}" "${result_b}"
-```
-
-Capture the full output (delta table + per-fixture breakdown + verdict line).
-
-**On failure:** If the compare exits non-zero or produces no output, print error and exit cleanly.
-
-## Step 4 — Summary Output
-
-After the compare Task completes, print inline:
-
-```
-## Review-Fix Bench Results
-
-**Version A** (baseline): agents/${agent}.md @ ${git_hash_a}
-**Version B** (candidate): ${version_b_source}
-**Judge**: ${judge_file}
-**Fixtures**: ${fixtures_dir} | Runs per fixture: ${runs}
-
---- Delta Table ---
-[compare output here]
-
---- Verdict ---
-Overall: IMPROVED / REGRESSED / NEUTRAL (on F1)
-[If IMPROVED]: Recommendation: adopt candidate — F1 improved without precision regression
-[If REGRESSED]: Recommendation: revert or revise candidate — F1 declined
-[If NEUTRAL]: No significant difference detected (|ΔF1| < 0.01)
-```
-
-Parse the `Verdict: ...` line from the compare output to determine IMPROVED / REGRESSED / NEUTRAL.
-
-## Step 5 — Cleanup and Symlink Verification
-
-Clean up temp file if created: `rm -f "$tmp_b"`
-
-Verify the plugin is installed via the marketplace:
-```bash
-claude /plugin list | grep review-bench
-```
-If missing, install it: `claude /plugin install review-bench@claude-craft`.
+Installing a benchmark runner, discovering arbitrary sibling plugins, or claiming a model
+evaluation from static package checks. Supply a compatible runner and fixtures first.

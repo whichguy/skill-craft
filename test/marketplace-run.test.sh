@@ -358,14 +358,14 @@ fi
 printf 'M8 ok\n'
 
 # ---------------------------------------------------------------------------
-# M9: plugins install Claude-style id --host grok → exit 4; no grok install call
+# M9: unqualified name@marketplace is ambiguous on Grok → exit 4; no install call
 # ---------------------------------------------------------------------------
 : >"$STUB_LOG"
 set +e
 out="$(run_mp plugins install code-review@claude-plugins-official --host grok 2>&1)"
 ec=$?
 set -e
-[[ "$ec" -eq 4 ]] || fail "M9 expected exit 4 for grok Claude-style id, got $ec: $out"
+[[ "$ec" -eq 4 ]] || fail "M9 expected exit 4 for ambiguous Grok id, got $ec: $out"
 printf '%s\n' "$out" | grep -qiE 'git URL|GitHub|local path|git ref' \
   || fail "M9 should explain Grok accepts git/path only: $out"
 if grep -E 'grok plugin install code-review@' "$STUB_LOG" >/dev/null 2>&1; then
@@ -377,7 +377,7 @@ fi
 printf 'M9 ok\n'
 
 # ---------------------------------------------------------------------------
-# M10: dry-run Claude-style id --host grok → also no install call (precondition)
+# M10: dry-run ambiguous Grok id → also no install call (precondition)
 # ---------------------------------------------------------------------------
 : >"$STUB_LOG"
 set +e
@@ -395,7 +395,7 @@ fi
 printf 'M10 ok\n'
 
 # ---------------------------------------------------------------------------
-# M11: marketplace-run from relocated tree finds install.sh via walk-up
+# M11: install-local requires an explicitly chosen checkout installer
 # ---------------------------------------------------------------------------
 reloc="$tmpdir/reloc-root"
 mkdir -p "$reloc/skills/skill-interop/scripts"
@@ -403,19 +403,37 @@ printf '#!/usr/bin/env bash\necho "dummy-install $*"\n' >"$reloc/install.sh"
 chmod +x "$reloc/install.sh"
 cp "$mp" "$reloc/skills/skill-interop/scripts/marketplace-run.sh"
 chmod +x "$reloc/skills/skill-interop/scripts/marketplace-run.sh"
-# Global flag parse only knows marketplace-run flags; pass skill args after -- if needed.
-# Walk-up is exercised by install-local resolving reloc/install.sh (no MARKETPLACE_INSTALL_SH).
-out="$(bash "$reloc/skills/skill-interop/scripts/marketplace-run.sh" install-local --dry-run 2>&1)" \
-  || fail "M11 install-local dry-run from relocated tree failed: $out"
+set +e
+out="$(bash "$reloc/skills/skill-interop/scripts/marketplace-run.sh" install-local --dry-run 2>&1)"
+ec=$?
+set -e
+[[ "$ec" -eq 4 ]] || fail "M11 missing installer should exit 4, got $ec: $out"
+printf '%s\n' "$out" | grep -qiE 'checkout-only|MARKETPLACE_INSTALL_SH' \
+  || fail "M11 must explain explicit installer requirement: $out"
+if printf '%s\n' "$out" | grep -qE 'reloc-root/install\.sh'; then
+  fail "M11 must not search upward for any install.sh: $out"
+fi
+if printf '%s\n' "$out" | grep -qF "$root/install.sh"; then
+  fail "M11 must not use the source checkout installer: $out"
+fi
+
+out="$(MARKETPLACE_INSTALL_SH="$reloc/install.sh" \
+  bash "$reloc/skills/skill-interop/scripts/marketplace-run.sh" install-local --dry-run 2>&1)" \
+  || fail "M11 explicit installer dry-run failed: $out"
 # macOS may resolve /var → /private/var; match on leaf path under reloc-root.
 printf '%s\n' "$out" | grep -qE 'reloc-root/install\.sh' \
-  || fail "M11 should resolve install.sh under relocated root: $out"
+  || fail "M11 should use the explicitly selected installer: $out"
 printf '%s\n' "$out" | grep -qi 'would-run' || fail "M11 missing would-run: $out"
-# Must not still point at the real skill-craft repo install.sh
-if printf '%s\n' "$out" | grep -qF "$root/install.sh"; then
-  fail "M11 walk-up must not use repo root install.sh: $out"
-fi
-# Allowed git-style install for grok still works (not Claude-style)
+
+set +e
+out="$(MARKETPLACE_INSTALL_SH='relative/install.sh' \
+  bash "$reloc/skills/skill-interop/scripts/marketplace-run.sh" install-local --dry-run 2>&1)"
+ec=$?
+set -e
+[[ "$ec" -eq 4 ]] || fail "M11 relative installer should exit 4, got $ec: $out"
+printf '%s\n' "$out" | grep -qi 'absolute path' \
+  || fail "M11 relative installer explanation missing: $out"
+# A documented Grok git shorthand source still works.
 : >"$STUB_LOG"
 out="$(run_mp plugins install example/fixture-plugin --host grok 2>&1)" \
   || fail "M11b grok git shorthand install failed: $out"
@@ -423,5 +441,72 @@ grep -q 'grok plugin install example/fixture-plugin' "$STUB_LOG" \
   || fail "M11b expected grok install of user/repo: $(cat "$STUB_LOG")"
 printf 'M11 ok\n'
 
-printf 'marketplace-run.test.sh: PASS M1–M11\n'
+# ---------------------------------------------------------------------------
+# M12: Grok's qualified marketplace selector is deliberately passed unchanged.
+# It disambiguates duplicate plugin names; the wrapper must not mistake its
+# slash qualifier for a Claude-only id or add trust implicitly.
+# ---------------------------------------------------------------------------
+: >"$STUB_LOG"
+out="$(run_mp plugins install review-coverage@local/local-marketplace --host grok 2>&1)" \
+  || fail "M12 qualified Grok selector failed: $out"
+grep -Fqx 'grok plugin install review-coverage@local/local-marketplace' "$STUB_LOG" \
+  || fail "M12 selector was not passed unchanged: $(cat "$STUB_LOG")"
+if grep -F -- '--trust' "$STUB_LOG" >/dev/null 2>&1; then
+  fail "M12 must not trust Grok plugins unless explicitly requested: $(cat "$STUB_LOG")"
+fi
+printf 'M12 ok\n'
+
+# ---------------------------------------------------------------------------
+# M13: --trust is an explicit Grok-only opt-in and reaches Grok unchanged.
+# ---------------------------------------------------------------------------
+: >"$STUB_LOG"
+out="$(run_mp plugins install review-coverage@local/local-marketplace --trust --host grok 2>&1)" \
+  || fail "M13 explicit Grok trust failed: $out"
+grep -Fqx 'grok plugin install review-coverage@local/local-marketplace --trust' "$STUB_LOG" \
+  || fail "M13 must forward explicit --trust to Grok: $(cat "$STUB_LOG")"
+printf 'M13 ok\n'
+
+# ---------------------------------------------------------------------------
+# M14: --trust is not a cross-host flag; reject rather than drop or reinterpret it.
+# ---------------------------------------------------------------------------
+: >"$STUB_LOG"
+set +e
+out="$(run_mp plugins install x@y --trust --host claude 2>&1)"
+ec=$?
+set -e
+[[ "$ec" -eq 4 ]] || fail "M14 expected exit 4 for unsupported Claude --trust, got $ec: $out"
+printf '%s\n' "$out" | grep -qi -- '--host grok' \
+  || fail "M14 should explain Grok-only trust: $out"
+if grep -E 'claude plugin install|grok plugin install|codex plugin add' "$STUB_LOG" >/dev/null 2>&1; then
+  fail "M14 must reject before invoking any install: $(cat "$STUB_LOG")"
+fi
+printf 'M14 ok\n'
+
+# ---------------------------------------------------------------------------
+# M15: the default multi-host selection also rejects --trust before any install.
+# ---------------------------------------------------------------------------
+: >"$STUB_LOG"
+set +e
+out="$(run_mp plugins install review-coverage@local/local-marketplace --trust --host all 2>&1)"
+ec=$?
+set -e
+[[ "$ec" -eq 4 ]] || fail "M15 expected exit 4 for --trust with --host all, got $ec: $out"
+printf '%s\n' "$out" | grep -qi -- '--host grok' \
+  || fail "M15 should require an explicit Grok host: $out"
+if grep -E 'claude plugin install|grok plugin install|codex plugin add' "$STUB_LOG" >/dev/null 2>&1; then
+  fail "M15 must reject before invoking any install: $(cat "$STUB_LOG")"
+fi
+printf 'M15 ok\n'
+
+# ---------------------------------------------------------------------------
+# M16: Grok removal consumes the installed short name, not its install selector.
+# ---------------------------------------------------------------------------
+: >"$STUB_LOG"
+out="$(run_mp plugins uninstall review-coverage --host grok 2>&1)" \
+  || fail "M16 Grok uninstall by installed name failed: $out"
+grep -Fqx 'grok plugin uninstall review-coverage' "$STUB_LOG" \
+  || fail "M16 must pass the Grok installed name unchanged: $(cat "$STUB_LOG")"
+printf 'M16 ok\n'
+
+printf 'marketplace-run.test.sh: PASS M1–M16\n'
 exit 0
