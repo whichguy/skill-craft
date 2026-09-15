@@ -1,0 +1,110 @@
+{
+  "passed": 12,
+  "total": 12,
+  "observations": [
+    {
+      "case": "''",
+      "passed": true,
+      "expected": [],
+      "actual": []
+    },
+    {
+      "case": "' \\t\\n  '",
+      "passed": true,
+      "expected": [],
+      "actual": []
+    },
+    {
+      "case": "' a \\n \\n b\\n a '",
+      "passed": true,
+      "expected": [
+        "a",
+        "b",
+        "a"
+      ],
+      "actual": [
+        "a",
+        "b",
+        "a"
+      ]
+    },
+    {
+      "case": "' x\\r\\ny \\r\\n'",
+      "passed": true,
+      "expected": [
+        "x",
+        "y"
+      ],
+      "actual": [
+        "x",
+        "y"
+      ]
+    },
+    {
+      "case": "'\\u2003hello\\u2003\\n\\u2003'",
+      "passed": true,
+      "expected": [
+        "hello"
+      ],
+      "actual": [
+        "hello"
+      ]
+    },
+    {
+      "case": "'# keep\\n x y '",
+      "passed": true,
+      "expected": [
+        "# keep",
+        "x y"
+      ],
+      "actual": [
+        "# keep",
+        "x y"
+      ]
+    },
+    {
+      "case": "'one\\x0b two\\x0cthree'",
+      "passed": true,
+      "expected": [
+        "one",
+        "two",
+        "three"
+      ],
+      "actual": [
+        "one",
+        "two",
+        "three"
+      ]
+    },
+    {
+      "case": "None",
+      "passed": true,
+      "expected": "TypeError",
+      "actual": "TypeError"
+    },
+    {
+      "case": "1",
+      "passed": true,
+      "expected": "TypeError",
+      "actual": "TypeError"
+    },
+    {
+      "case": "True",
+      "passed": true,
+      "expected": "TypeError",
+      "actual": "TypeError"
+    },
+    {
+      "case": "[]",
+      "passed": true,
+      "expected": "TypeError",
+      "actual": "TypeError"
+    },
+    {
+      "case": "b'x'",
+      "passed": true,
+      "expected": "TypeError",
+      "actual": "TypeError"
+    }
+  ]
+}

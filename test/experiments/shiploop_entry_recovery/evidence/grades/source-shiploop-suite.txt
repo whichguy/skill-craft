@@ -1,0 +1,694 @@
+==> shiploop
+==> scripts/sync-improve-managed.py
+Managed Improve controller copy verified: 68a5445e2fb16972b722cc468a49128dc5f606dff84df39a117ec94a8b43e781
+==> test/shiploop-navigator.test.py
+test_dispatch_preserves_cold_context_reads_only_its_result_callback_and_escapes_report (__main__.NavigatorTests.test_dispatch_preserves_cold_context_reads_only_its_result_callback_and_escapes_report) ... ok
+test_dispatch_refuses_a_symlinked_result_callback_without_mutating_state (__main__.NavigatorTests.test_dispatch_refuses_a_symlinked_result_callback_without_mutating_state) ... ok
+test_new_state_is_minimal_navigator_and_retains_cold_context (__main__.NavigatorTests.test_new_state_is_minimal_navigator_and_retains_cold_context) ... ok
+test_plan_and_carry_forward_manage_only_future_work_and_preserve_completion (__main__.NavigatorTests.test_plan_and_carry_forward_manage_only_future_work_and_preserve_completion) ... ok
+test_plan_improve_can_refresh_the_unstarted_queue (__main__.NavigatorTests.test_plan_improve_can_refresh_the_unstarted_queue) ... ok
+test_public_cli_blocked_result_retains_generic_receipt_and_new_action (__main__.NavigatorTests.test_public_cli_blocked_result_retains_generic_receipt_and_new_action)
+An accepted blocker advances the receipt but keeps the same stage pending. ... ok
+test_public_cli_cold_environment_packets_use_shared_policy_and_generic_results (__main__.NavigatorTests.test_public_cli_cold_environment_packets_use_shared_policy_and_generic_results)
+The navigator links the one discovery policy without importing legacy state. ... ok
+test_public_cli_completes_two_work_items_from_cold_processes (__main__.NavigatorTests.test_public_cli_completes_two_work_items_from_cold_processes)
+Exercise CLI mode selection, callbacks and persistence end to end. ... ok
+test_public_cli_pause_preserves_unaccepted_budget_draft_across_cold_resume (__main__.NavigatorTests.test_public_cli_pause_preserves_unaccepted_budget_draft_across_cold_resume)
+A budget checkpoint leaves the current navigator action unconsumed. ... ok
+test_public_cli_recovery_locator_reopens_relocated_package_from_unrelated_cwd (__main__.NavigatorTests.test_public_cli_recovery_locator_reopens_relocated_package_from_unrelated_cwd)
+A cold handoff returns the saved action without trusting old packets. ... ok
+test_rejects_forged_next_wrong_action_and_corrupt_navigator_state (__main__.NavigatorTests.test_rejects_forged_next_wrong_action_and_corrupt_navigator_state) ... ok
+test_repeat_block_pause_resume_and_halt_are_pure_control_paths (__main__.NavigatorTests.test_repeat_block_pause_resume_and_halt_are_pure_control_paths) ... ok
+test_replay_compares_semantic_results_and_rejects_conflicts_without_mutation (__main__.NavigatorTests.test_replay_compares_semantic_results_and_rejects_conflicts_without_mutation) ... ok
+test_results_are_opaque_and_navigation_never_inspects_git_or_evidence (__main__.NavigatorTests.test_results_are_opaque_and_navigation_never_inspects_git_or_evidence) ... ok
+test_save_is_transactional_recovers_after_fault_and_refuses_symlink_escape (__main__.NavigatorTests.test_save_is_transactional_recovers_after_fault_and_refuses_symlink_escape) ... ok
+test_two_work_walk_follows_the_declared_graph_without_project_work (__main__.NavigatorTests.test_two_work_walk_follows_the_declared_graph_without_project_work) ... ok
+
+----------------------------------------------------------------------
+Ran 16 tests in 8.680s
+
+OK
+==> test/shiploop-navigator-dry-run.test.py
+....
+----------------------------------------------------------------------
+Ran 4 tests in 0.212s
+
+OK
+==> test/improve-managed.test.py
+test_child_replay_rejects_tampered_cursor_or_pass_counter (__main__.ManagedImproveCertificateTests.test_child_replay_rejects_tampered_cursor_or_pass_counter) ... ok
+test_controller_stays_pure_and_has_no_runtime_backend_import (__main__.ManagedImproveCertificateTests.test_controller_stays_pure_and_has_no_runtime_backend_import) ... ok
+test_execution_projection_is_allowed_but_cannot_change_phase (__main__.ManagedImproveCertificateTests.test_execution_projection_is_allowed_but_cannot_change_phase) ... ok
+test_terminal_certificate_binds_child_and_rejects_stale_or_tampered_forms (__main__.ManagedImproveCertificateTests.test_terminal_certificate_binds_child_and_rejects_stale_or_tampered_forms) ... ok
+test_commit_requires_complete_current_evidence_and_rejects_repeated_commit (__main__.ManagedImproveEvidenceTests.test_commit_requires_complete_current_evidence_and_rejects_repeated_commit) ... ok
+test_final_phase_requires_shaped_fresh_evidence_not_a_done_claim (__main__.ManagedImproveEvidenceTests.test_final_phase_requires_shaped_fresh_evidence_not_a_done_claim) ... ok
+test_incomplete_status_is_never_a_certificate (__main__.ManagedImproveEvidenceTests.test_incomplete_status_is_never_a_certificate) ... ok
+test_material_pass_resets_before_two_later_trivial_passes_converge (__main__.ManagedImproveEvidenceTests.test_material_pass_resets_before_two_later_trivial_passes_converge) ... ok
+test_missing_evidence_or_generic_done_cannot_advance (__main__.ManagedImproveEvidenceTests.test_missing_evidence_or_generic_done_cannot_advance) ... ok
+test_open_findings_after_verified_commit_keep_the_child_active (__main__.ManagedImproveEvidenceTests.test_open_findings_after_verified_commit_keep_the_child_active) ... ok
+test_pause_keeps_active_child_at_carry_forward_until_continue (__main__.ManagedImproveEvidenceTests.test_pause_keeps_active_child_at_carry_forward_until_continue) ... ok
+test_repair_resets_epoch_and_resume_restores_the_same_child_phase (__main__.ManagedImproveEvidenceTests.test_repair_resets_epoch_and_resume_restores_the_same_child_phase) ... ok
+test_required_reviewer_requires_performed_or_explicit_fallback (__main__.ManagedImproveEvidenceTests.test_required_reviewer_requires_performed_or_explicit_fallback) ... ok
+test_carry_forward_requires_explicit_continue_pause_or_repair (__main__.ManagedImproveRouteTests.test_carry_forward_requires_explicit_continue_pause_or_repair) ... ok
+test_commit_admits_final_only_after_two_completed_passes (__main__.ManagedImproveRouteTests.test_commit_admits_final_only_after_two_completed_passes) ... ok
+test_decide_preserves_shiploop_readiness_shape (__main__.ManagedImproveRouteTests.test_decide_preserves_shiploop_readiness_shape) ... ok
+test_final_phase_cannot_be_skipped_or_entered_without_ready_passes (__main__.ManagedImproveRouteTests.test_final_phase_cannot_be_skipped_or_entered_without_ready_passes) ... ok
+test_product_documentation_and_skill_decisions_are_explicit (__main__.ManagedImproveRouteTests.test_product_documentation_and_skill_decisions_are_explicit) ... ok
+test_product_plan_verification_does_not_start_nested_plan_convergence (__main__.ManagedImproveRouteTests.test_product_plan_verification_does_not_start_nested_plan_convergence) ... ok
+test_profile_routes_are_closed_and_separate (__main__.ManagedImproveRouteTests.test_profile_routes_are_closed_and_separate) ... ok
+test_step_plan_disposition_is_explicit_and_restarts_review (__main__.ManagedImproveRouteTests.test_step_plan_disposition_is_explicit_and_restarts_review) ... ok
+test_step_plan_repair_can_require_disposition_without_a_fake_review (__main__.ManagedImproveRouteTests.test_step_plan_repair_can_require_disposition_without_a_fake_review) ... ok
+
+----------------------------------------------------------------------
+Ran 22 tests in 0.067s
+
+OK
+==> test/shiploop-graph-driver.test.py
+.........
+----------------------------------------------------------------------
+Ran 9 tests in 0.979s
+
+OK
+==> test/shiploop-graph-trace.test.py
+......
+----------------------------------------------------------------------
+Ran 6 tests in 0.002s
+
+OK
+==> test/shiploop-store.test.py
+test_markdown_round_trip_and_no_raw_json_fallback (__main__.ShipLoopStoreTests.test_markdown_round_trip_and_no_raw_json_fallback) ... ok
+test_recover_rolls_forward_after_crash_following_first_target_write (__main__.ShipLoopStoreTests.test_recover_rolls_forward_after_crash_following_first_target_write) ... ok
+test_refuses_edits_to_its_own_journal (__main__.ShipLoopStoreTests.test_refuses_edits_to_its_own_journal) ... ok
+test_refuses_symlink_targets_and_parents_that_escape_root (__main__.ShipLoopStoreTests.test_refuses_symlink_targets_and_parents_that_escape_root) ... ok
+test_rejects_malformed_duplicate_or_ambiguous_payloads (__main__.ShipLoopStoreTests.test_rejects_malformed_duplicate_or_ambiguous_payloads) ... ok
+test_transaction_applies_sorted_writes_and_deletes (__main__.ShipLoopStoreTests.test_transaction_applies_sorted_writes_and_deletes) ... ok
+test_unsafe_manifest_has_no_partial_writes (__main__.ShipLoopStoreTests.test_unsafe_manifest_has_no_partial_writes) ... ok
+
+----------------------------------------------------------------------
+Ran 7 tests in 0.005s
+
+OK
+==> test/shiploop-evidence.test.py
+test_fingerprint_tracks_missing_modes_and_symlink_target_without_following (__main__.ShipLoopEvidenceTests.test_fingerprint_tracks_missing_modes_and_symlink_target_without_following) ... ok
+test_history_returns_full_bodies_and_honors_pagination (__main__.ShipLoopEvidenceTests.test_history_returns_full_bodies_and_honors_pagination) ... ok
+test_run_checks_rejects_timeout_and_content_change (__main__.ShipLoopEvidenceTests.test_run_checks_rejects_timeout_and_content_change) ... ok
+test_run_checks_writes_logs_and_validate_results_rejects_failed_missing_stale_and_mismatched (__main__.ShipLoopEvidenceTests.test_run_checks_writes_logs_and_validate_results_rejects_failed_missing_stale_and_mismatched) ... ok
+test_timeout_cancels_spawned_posix_child_without_writing_outside_fixture (__main__.ShipLoopEvidenceTests.test_timeout_cancels_spawned_posix_child_without_writing_outside_fixture) ... ok
+test_validate_commit_rejects_missing_sections_and_subjective_quality_claims (__main__.ShipLoopEvidenceTests.test_validate_commit_rejects_missing_sections_and_subjective_quality_claims) ... ok
+test_validate_commit_requires_new_head_structured_evidence_and_allows_empty_audit (__main__.ShipLoopEvidenceTests.test_validate_commit_requires_new_head_structured_evidence_and_allows_empty_audit) ... ok
+test_validate_manifest_requires_test_coverage_and_lint_or_noncode_reason (__main__.ShipLoopEvidenceTests.test_validate_manifest_requires_test_coverage_and_lint_or_noncode_reason) ... ok
+
+----------------------------------------------------------------------
+Ran 8 tests in 2.778s
+
+OK
+==> test/shiploop-file-safety.test.py
+test_ignore_aliases_block_without_changing_external_sentinel (__main__.ShipLoopFileSafetyTests.test_ignore_aliases_block_without_changing_external_sentinel) ... error: unsafe Git common-directory exclude path
+error: unsafe Git exclude file: /private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-file-safety-51l0b8k9/hardlink/.git/info/exclude
+ok
+test_ignore_is_added_once_and_works_from_a_linked_worktree (__main__.ShipLoopFileSafetyTests.test_ignore_is_added_once_and_works_from_a_linked_worktree) ... ok
+test_ignore_reasserts_after_local_negation_and_blocks_product_negation (__main__.ShipLoopFileSafetyTests.test_ignore_reasserts_after_local_negation_and_blocks_product_negation) ... error: worktree ignore remains ineffective after updating .git/info/exclude; a higher-priority product rule may negate .worktrees/
+ok
+test_ignore_rejects_symlink_ancestor_and_nonregular_leaf (__main__.ShipLoopFileSafetyTests.test_ignore_rejects_symlink_ancestor_and_nonregular_leaf) ... error: unsafe Git common-directory exclude path
+error: unsafe Git exclude file: /private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-file-safety-cxsauuv0/ignore-directory/.git/info/exclude
+ok
+test_ignore_validates_owned_metadata_before_check_ignore (__main__.ShipLoopFileSafetyTests.test_ignore_validates_owned_metadata_before_check_ignore) ... error: unsafe Git exclude file: /private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-file-safety-v4e9fg_i/ignore-order/.git/info/exclude
+ok
+test_log_aliases_and_symlink_ancestor_preserve_sentinels (__main__.ShipLoopFileSafetyTests.test_log_aliases_and_symlink_ancestor_preserve_sentinels) ... ok
+test_log_rejects_nonregular_leaf_and_allows_safe_retry_overwrite (__main__.ShipLoopFileSafetyTests.test_log_rejects_nonregular_leaf_and_allows_safe_retry_overwrite) ... ok
+test_run_checks_rejects_a_symlinked_evidence_ancestor_before_creation (__main__.ShipLoopFileSafetyTests.test_run_checks_rejects_a_symlinked_evidence_ancestor_before_creation) ... ok
+
+----------------------------------------------------------------------
+Ran 8 tests in 0.989s
+
+OK
+==> test/shiploop-prompt-integrity.test.py
+..........
+----------------------------------------------------------------------
+Ran 10 tests in 2.807s
+
+OK
+==> test/shiploop-literal-transport.test.py
+test_documented_entry_round_trips_literal_requests (__main__.LiteralTransportTests.test_documented_entry_round_trips_literal_requests) ... ok
+
+----------------------------------------------------------------------
+Ran 1 test in 0.753s
+
+OK
+==> test/shiploop-validators.test.py
+test_destination_route_source_must_be_a_survey_reference (__main__.DestinationIdentityTests.test_destination_route_source_must_be_a_survey_reference) ... ok
+test_exclusive_gaps_reject_competing_or_opposing_writer_routes (__main__.DestinationIdentityTests.test_exclusive_gaps_reject_competing_or_opposing_writer_routes) ... ok
+test_exclusive_gaps_require_refs_layout_and_routing_for_destination_writer (__main__.DestinationIdentityTests.test_exclusive_gaps_require_refs_layout_and_routing_for_destination_writer) ... ok
+test_exclusive_gaps_requires_explicit_empty_or_structured_exclusive_key (__main__.DestinationIdentityTests.test_exclusive_gaps_requires_explicit_empty_or_structured_exclusive_key) ... ok
+test_ui_craft_requires_its_reference_path (__main__.DestinationIdentityTests.test_ui_craft_requires_its_reference_path) ... ok
+test_unresolved_environment_handles_block_destination_planning (__main__.DestinationIdentityTests.test_unresolved_environment_handles_block_destination_planning) ... ok
+test_load_environment_accepts_canonical_machine (__main__.EnvironmentValidationTests.test_load_environment_accepts_canonical_machine) ... ok
+test_load_environment_refuses_unclosed_or_non_json_machine_fence (__main__.EnvironmentValidationTests.test_load_environment_refuses_unclosed_or_non_json_machine_fence) ... ok
+test_load_environment_requires_one_machine_heading_and_brief (__main__.EnvironmentValidationTests.test_load_environment_requires_one_machine_heading_and_brief) ... ok
+test_validate_machine_rejects_invalid_handle_and_initiation_contracts (__main__.EnvironmentValidationTests.test_validate_machine_rejects_invalid_handle_and_initiation_contracts) ... ok
+test_validate_machine_rejects_kind_augment_and_brownfield_reference_mismatch (__main__.EnvironmentValidationTests.test_validate_machine_rejects_kind_augment_and_brownfield_reference_mismatch) ... ok
+test_validate_machine_rejects_ui_craft_shape_mismatch (__main__.EnvironmentValidationTests.test_validate_machine_rejects_ui_craft_shape_mismatch) ... ok
+test_validate_machine_rejects_uninventoried_or_unsafe_exclusive_rows (__main__.EnvironmentValidationTests.test_validate_machine_rejects_uninventoried_or_unsafe_exclusive_rows) ... ok
+test_blocked_transition_is_the_intentional_drift_rebind_hatch (__main__.FrozenArtifactValidationTests.test_blocked_transition_is_the_intentional_drift_rebind_hatch) ... ok
+test_frozen_environment_drift_is_blocked (__main__.FrozenArtifactValidationTests.test_frozen_environment_drift_is_blocked) ... ok
+test_frozen_hashes_accept_unchanged_authoritative_files (__main__.FrozenArtifactValidationTests.test_frozen_hashes_accept_unchanged_authoritative_files) ... ok
+test_frozen_markdown_dag_drift_is_blocked (__main__.FrozenArtifactValidationTests.test_frozen_markdown_dag_drift_is_blocked) ... ok
+test_frozen_spec_drift_is_blocked (__main__.FrozenArtifactValidationTests.test_frozen_spec_drift_is_blocked) ... ok
+test_latest_round_commit_must_contain_the_current_ledger_blob (__main__.LedgerLandingValidationTests.test_latest_round_commit_must_contain_the_current_ledger_blob) ... ok
+test_plain_documented_committed_marker_matches_bold_grammar (__main__.LedgerLandingValidationTests.test_plain_documented_committed_marker_matches_bold_grammar) ... ok
+test_untracked_or_dirty_ledger_cannot_claim_landed_review_coverage (__main__.LedgerLandingValidationTests.test_untracked_or_dirty_ledger_cannot_claim_landed_review_coverage) ... ok
+test_dag_rejects_initial_state_claims_without_a_source (__main__.MarkdownDagValidationTests.test_dag_rejects_initial_state_claims_without_a_source) ... ok
+test_dag_rejects_unknown_dependencies_and_cycles (__main__.MarkdownDagValidationTests.test_dag_rejects_unknown_dependencies_and_cycles) ... ok
+test_dag_rejects_unresolved_work_before_implementation (__main__.MarkdownDagValidationTests.test_dag_rejects_unresolved_work_before_implementation) ... ok
+test_dag_rejects_unsafe_and_duplicate_step_ids (__main__.MarkdownDagValidationTests.test_dag_rejects_unsafe_and_duplicate_step_ids) ... ok
+test_dag_requires_goal_until_clause_and_each_declared_product (__main__.MarkdownDagValidationTests.test_dag_requires_goal_until_clause_and_each_declared_product) ... ok
+test_seed_dag_requires_tools_line_and_reference_citation (__main__.MarkdownDagValidationTests.test_seed_dag_requires_tools_line_and_reference_citation) ... ok
+test_seed_writer_prompt_protects_reserved_destination_paths (__main__.MarkdownDagValidationTests.test_seed_writer_prompt_protects_reserved_destination_paths) ... ok
+test_ui_dag_requires_a_design_seed (__main__.MarkdownDagValidationTests.test_ui_dag_requires_a_design_seed) ... ok
+test_ui_design_dependency_is_accepted (__main__.MarkdownDagValidationTests.test_ui_design_dependency_is_accepted) ... ok
+test_ui_design_seed_must_feed_another_seed (__main__.MarkdownDagValidationTests.test_ui_design_seed_must_feed_another_seed) ... ok
+test_valid_dag_is_loaded_from_markdown_authority_without_json_twin (__main__.MarkdownDagValidationTests.test_valid_dag_is_loaded_from_markdown_authority_without_json_twin) ... ok
+test_writer_prompt_requires_designated_use_and_every_dont_use_token (__main__.MarkdownDagValidationTests.test_writer_prompt_requires_designated_use_and_every_dont_use_token) ... ok
+test_only_a_hashed_bound_review_coverage_section_can_waive_outer_ledger (__main__.PlanWaiverValidationTests.test_only_a_hashed_bound_review_coverage_section_can_waive_outer_ledger) ... ok
+test_load_spec_requires_checkable_and_singleton_labels (__main__.SpecAndWrapperValidationTests.test_load_spec_requires_checkable_and_singleton_labels) ... ok
+test_load_spec_requires_question_for_uncheckable_work (__main__.SpecAndWrapperValidationTests.test_load_spec_requires_question_for_uncheckable_work) ... ok
+test_load_spec_uses_only_unquoted_unfenced_labels (__main__.SpecAndWrapperValidationTests.test_load_spec_uses_only_unquoted_unfenced_labels) ... ok
+test_wrapper_pair_rejects_duplicate_done_sentence (__main__.SpecAndWrapperValidationTests.test_wrapper_pair_rejects_duplicate_done_sentence) ... ok
+test_wrapper_pair_requires_one_matching_done_sentence (__main__.SpecAndWrapperValidationTests.test_wrapper_pair_requires_one_matching_done_sentence) ... ok
+
+----------------------------------------------------------------------
+Ran 39 tests in 1.230s
+
+OK
+==> test/shiploop-discovery.test.py
+.................
+----------------------------------------------------------------------
+Ran 17 tests in 4.460s
+
+OK
+==> test/shiploop-system-context.test.py
+........
+----------------------------------------------------------------------
+Ran 8 tests in 0.010s
+
+OK
+==> test/shiploop-research-template.test.py
+.......
+----------------------------------------------------------------------
+Ran 7 tests in 0.004s
+
+OK
+==> test/shiploop-research-packet-protocol.test.py
+.....
+----------------------------------------------------------------------
+Ran 5 tests in 44.782s
+
+OK
+==> test/shiploop-question-resume.test.py
+.
+----------------------------------------------------------------------
+Ran 1 test in 7.758s
+
+OK
+==> test/shiploop-iteration-docs.test.py
+.......
+----------------------------------------------------------------------
+Ran 7 tests in 0.010s
+
+OK
+==> test/shiploop-iteration-docs-protocol.test.py
+..
+----------------------------------------------------------------------
+Ran 2 tests in 0.853s
+
+OK
+==> test/shiploop-system-tests.test.py
+........
+----------------------------------------------------------------------
+Ran 8 tests in 0.002s
+
+OK
+==> test/shiploop-system-tests-protocol.test.py
+............
+----------------------------------------------------------------------
+Ran 12 tests in 1.473s
+
+OK
+==> test/shiploop-system-tests-report.test.py
+test_legacy_absence_is_not_rendered_as_an_uncertified_catalog (__main__.SystemTestsReportTests.test_legacy_absence_is_not_rendered_as_an_uncertified_catalog) ... ok
+test_terminal_malformed_present_catalog_fails_closed_without_marker (__main__.SystemTestsReportTests.test_terminal_malformed_present_catalog_fails_closed_without_marker) ... ok
+test_terminal_marker_requires_a_catalog (__main__.SystemTestsReportTests.test_terminal_marker_requires_a_catalog) ... ok
+test_valid_catalog_is_escaped_and_labels_receipt_pointers_as_historical (__main__.SystemTestsReportTests.test_valid_catalog_is_escaped_and_labels_receipt_pointers_as_historical) ... ok
+
+----------------------------------------------------------------------
+Ran 4 tests in 0.018s
+
+OK
+==> test/shiploop-history-policy.test.py
+........
+----------------------------------------------------------------------
+Ran 8 tests in 3.819s
+
+OK
+==> test/shiploop-improve-policy.test.py
+.....
+----------------------------------------------------------------------
+Ran 5 tests in 131.215s
+
+OK
+==> test/shiploop-outer-work.test.py
+..............
+----------------------------------------------------------------------
+Ran 14 tests in 6.984s
+
+OK
+==> test/shiploop-outer-work-protocol.test.py
+.....
+----------------------------------------------------------------------
+Ran 5 tests in 34.229s
+
+OK
+==> test/shiploop-observations.test.py
+test_checkpoint_uses_explicit_unverified_provenance_and_preserves_history (__main__.ShipLoopObservationTests.test_checkpoint_uses_explicit_unverified_provenance_and_preserves_history) ... ok
+test_current_repair_and_credential_routes_are_conservative (__main__.ShipLoopObservationTests.test_current_repair_and_credential_routes_are_conservative) ... ok
+test_exact_replay_is_accepted_and_changed_payload_is_rejected (__main__.ShipLoopObservationTests.test_exact_replay_is_accepted_and_changed_payload_is_rejected) ... ok
+test_late_informational_observation_can_not_preserve_bound_proof (__main__.ShipLoopObservationTests.test_late_informational_observation_can_not_preserve_bound_proof) ... ok
+test_legacy_verified_provenance_remains_accepted_and_fake_early_check_is_rejected (__main__.ShipLoopObservationTests.test_legacy_verified_provenance_remains_accepted_and_fake_early_check_is_rejected) ... ok
+test_previous_ledger_hash_and_receipt_route_are_bound (__main__.ShipLoopObservationTests.test_previous_ledger_hash_and_receipt_route_are_bound) ... ok
+test_stale_revision_and_resolution_side_channel_are_rejected (__main__.ShipLoopObservationTests.test_stale_revision_and_resolution_side_channel_are_rejected) ... ok
+test_ticket_is_deterministic_and_binds_only_parent_action_and_revision (__main__.ShipLoopObservationTests.test_ticket_is_deterministic_and_binds_only_parent_action_and_revision) ... ok
+test_timestamp_prefixed_protocol_parent_action_is_valid (__main__.ShipLoopObservationTests.test_timestamp_prefixed_protocol_parent_action_is_valid) ... ok
+
+----------------------------------------------------------------------
+Ran 9 tests in 0.001s
+
+OK
+==> test/shiploop-observations-protocol.test.py
+test_objective_observation_pauses_then_repair_rebinds_the_future_action (__main__.ObservationProtocolTests.test_objective_observation_pauses_then_repair_rebinds_the_future_action) ... ok
+test_preflight_observation_is_durable_replay_safe_and_never_completes_parent (__main__.ObservationProtocolTests.test_preflight_observation_is_durable_replay_safe_and_never_completes_parent) ... ok
+test_preflight_permission_pause_is_rejected_before_any_durable_mutation (__main__.ObservationProtocolTests.test_preflight_permission_pause_is_rejected_before_any_durable_mutation) ... ok
+test_repair_availability_rejects_outer_quality_handoff_and_keeps_existing_routes (__main__.ObservationProtocolTests.test_repair_availability_rejects_outer_quality_handoff_and_keeps_existing_routes) ... ok
+
+----------------------------------------------------------------------
+Ran 4 tests in 1.802s
+
+OK
+==> test/shiploop-artifacts.test.py
+.......
+----------------------------------------------------------------------
+Ran 7 tests in 0.167s
+
+OK
+==> test/shiploop-artifact-consumers.test.py
+test_catalog_has_a_closed_named_inventory_with_honest_conditional_route (__main__.ArtifactConsumerMatrixTests.test_catalog_has_a_closed_named_inventory_with_honest_conditional_route) ... ok
+test_delivery_report_and_operational_recovery_consume_changed_source_content (__main__.ArtifactConsumerMatrixTests.test_delivery_report_and_operational_recovery_consume_changed_source_content) ... ok
+test_observation_receipt_callback_projects_unverified_knowledge_without_consuming_parent (__main__.ArtifactConsumerMatrixTests.test_observation_receipt_callback_projects_unverified_knowledge_without_consuming_parent) ... ok
+test_outer_work_ledger_callback_and_read_receipt_are_content_sensitive (__main__.ArtifactConsumerMatrixTests.test_outer_work_ledger_callback_and_read_receipt_are_content_sensitive) ... ok
+test_preflight_and_approach_are_real_producers_with_cold_context_readers (__main__.ArtifactConsumerMatrixTests.test_preflight_and_approach_are_real_producers_with_cold_context_readers) ... ok
+
+----------------------------------------------------------------------
+Ran 5 tests in 5.077s
+
+OK
+==> test/shiploop-privacy.test.py
+.......
+----------------------------------------------------------------------
+Ran 7 tests in 0.001s
+
+OK
+==> test/shiploop-revalidation.test.py
+........
+----------------------------------------------------------------------
+Ran 8 tests in 48.683s
+
+OK
+==> test/shiploop-revalidation-context.test.py
+.
+----------------------------------------------------------------------
+Ran 1 test in 0.743s
+
+OK
+==> test/shiploop-risk.test.py
+...........
+----------------------------------------------------------------------
+Ran 11 tests in 0.001s
+
+OK
+==> test/shiploop-boundaries.test.py
+..........
+----------------------------------------------------------------------
+Ran 10 tests in 0.796s
+
+OK
+==> test/shiploop-objectives.test.py
+test_late_commit_or_staged_edit_is_rejected_before_final_check (__main__.FinalVerifyBindingTests.test_late_commit_or_staged_edit_is_rejected_before_final_check) ... ok
+test_index_alone_is_rejected_but_ten_one_commit_pages_are_accepted (__main__.FullHistoryPagingTests.test_index_alone_is_rejected_but_ten_one_commit_pages_are_accepted) ... ok
+test_approach_is_tentative_until_generic_objective_finalization (__main__.ObjectiveProtocolSmokeTests.test_approach_is_tentative_until_generic_objective_finalization) ... ok
+test_approach_repair_archives_the_pass_and_rebinds_fresh_context (__main__.ObjectiveProtocolSmokeTests.test_approach_repair_archives_the_pass_and_rebinds_fresh_context) ... ok
+test_candidate_rewrite_cannot_claim_a_trivial_objective_apply (__main__.ObjectiveProtocolSmokeTests.test_candidate_rewrite_cannot_claim_a_trivial_objective_apply) ... ok
+test_history_index_does_not_satisfy_objective_review (__main__.ObjectiveProtocolSmokeTests.test_history_index_does_not_satisfy_objective_review) ... ok
+test_objective_start_snapshots_an_imported_dag_without_its_draft_path (__main__.ObjectiveProtocolSmokeTests.test_objective_start_snapshots_an_imported_dag_without_its_draft_path) ... ok
+test_single_commit_full_pages_cover_the_latest_ten_objective_bodies (__main__.ObjectiveProtocolSmokeTests.test_single_commit_full_pages_cover_the_latest_ten_objective_bodies) ... ok
+test_survey_revisit_archives_the_active_objective_pass (__main__.ObjectiveProtocolSmokeTests.test_survey_revisit_archives_the_active_objective_pass) ... ok
+test_two_trivial_audited_passes_need_a_fresh_final_check_before_approach_applies (__main__.ObjectiveProtocolSmokeTests.test_two_trivial_audited_passes_need_a_fresh_final_check_before_approach_applies) ... ok
+test_abandoned_objective_cannot_be_certified (__main__.ObjectiveRecordTests.test_abandoned_objective_cannot_be_certified) ... ok
+test_candidate_and_context_are_bound_to_markdown_receipt (__main__.ObjectiveRecordTests.test_candidate_and_context_are_bound_to_markdown_receipt) ... ok
+test_closed_optional_context_groups_preserve_outer_and_handoff_evidence (__main__.ObjectiveRecordTests.test_closed_optional_context_groups_preserve_outer_and_handoff_evidence) ... ok
+test_handoff_context_survives_completed_and_next_pass_validation (__main__.ObjectiveRecordTests.test_handoff_context_survives_completed_and_next_pass_validation) ... ok
+test_material_review_resets_until_streak_and_all_open_findings_need_evidence (__main__.ObjectiveRecordTests.test_material_review_resets_until_streak_and_all_open_findings_need_evidence) ... ok
+test_outer_work_only_repair_restarts_any_objective_without_rebinding_other_inputs (__main__.ObjectiveRecordTests.test_outer_work_only_repair_restarts_any_objective_without_rebinding_other_inputs)
+A new bound journal may restart handoff convergence, nothing else. ... ok
+test_review_requires_full_body_history_and_preserves_open_findings (__main__.ObjectiveRecordTests.test_review_requires_full_body_history_and_preserves_open_findings) ... ok
+test_two_verified_trivial_audits_are_only_ready (__main__.ObjectiveRecordTests.test_two_verified_trivial_audits_are_only_ready) ... ok
+
+----------------------------------------------------------------------
+Ran 18 tests in 16.237s
+
+OK
+==> test/shiploop-contracts.test.py
+..........
+----------------------------------------------------------------------
+Ran 10 tests in 0.002s
+
+OK
+==> test/shiploop-contract-protocol.test.py
+..........
+----------------------------------------------------------------------
+Ran 10 tests in 2.162s
+
+OK
+==> test/shiploop-delivery.test.py
+...........
+----------------------------------------------------------------------
+Ran 11 tests in 0.069s
+
+OK
+==> test/shiploop-report.test.py
+................
+----------------------------------------------------------------------
+Ran 16 tests in 0.120s
+
+OK
+==> test/shiploop-packets.test.py
+.......................[shiploop size advisory] platform-revalidation packet: 1386 characters (within 6000-character guideline)
+...........[shiploop size advisory] step-contract packet: 10646 characters (within 15000-character guideline)
+.....
+----------------------------------------------------------------------
+Ran 39 tests in 5.668s
+
+OK
+==> test/shiploop-orientation.test.py
+......[shiploop size advisory] paused packet: 1375 characters (within 7000-character guideline)
+[shiploop size advisory] blocked packet: 1169 characters (within 7000-character guideline)
+[shiploop size advisory] terminal packet: 754 characters (within 7000-character guideline)
+....[shiploop size advisory] initial long-path packet: 3208 characters (within 7000-character guideline)
+[shiploop size advisory] objective long-path packet: 5667 characters (within 7000-character guideline)
+[shiploop size advisory] nested-plan long-path packet: 7498 characters (over 7000-character guideline)
+[shiploop size advisory] product long-path packet: 4524 characters (within 7000-character guideline)
+[shiploop size advisory] outer long-path packet: 3243 characters (within 7000-character guideline)
+.....
+----------------------------------------------------------------------
+Ran 15 tests in 0.020s
+
+OK
+==> test/shiploop-loop-scope.test.py
+test_baseline_reader_precedes_quality_summary_and_never_invents_availability (__main__.LoopScopeTests.test_baseline_reader_precedes_quality_summary_and_never_invents_availability) ... ok
+test_every_converging_family_distinguishes_loop_exit_from_delivery (__main__.LoopScopeTests.test_every_converging_family_distinguishes_loop_exit_from_delivery) ... ok
+test_real_reader_and_callback_preserve_action_and_loop_boundaries (__main__.LoopScopeTests.test_real_reader_and_callback_preserve_action_and_loop_boundaries) ... ok
+
+----------------------------------------------------------------------
+Ran 3 tests in 1.127s
+
+OK
+==> test/shiploop-orientation-context.test.py
+........
+----------------------------------------------------------------------
+Ran 8 tests in 1.567s
+
+OK
+==> test/shiploop-orientation-integration.test.py
+test_changed_candidate_retains_original_assessment_as_history (__main__.OrientationIntegrationTests.test_changed_candidate_retains_original_assessment_as_history) ... ok
+test_corrupt_accepted_origin_blocks_orientation_without_mutating_cursor (__main__.OrientationIntegrationTests.test_corrupt_accepted_origin_blocks_orientation_without_mutating_cursor) ... ok
+test_real_callbacks_bind_origin_and_first_review_without_counting_a_cycle (__main__.OrientationIntegrationTests.test_real_callbacks_bind_origin_and_first_review_without_counting_a_cycle) ... ok
+test_supporting_context_safe_return_executes_the_actual_cli (__main__.OrientationIntegrationTests.test_supporting_context_safe_return_executes_the_actual_cli) ... ok
+
+----------------------------------------------------------------------
+Ran 4 tests in 3.231s
+
+OK
+==> test/shiploop-reference-routing.test.py
+test_damaged_packets_and_supporting_responses_remain_non_advancing (__main__.ReferenceRoutingTests.test_damaged_packets_and_supporting_responses_remain_non_advancing) ... ok
+test_every_prompt_stage_routes_to_existing_package_reference_heading (__main__.ReferenceRoutingTests.test_every_prompt_stage_routes_to_existing_package_reference_heading) ... ok
+test_merge_and_coverage_are_the_only_activity_specific_routes (__main__.ReferenceRoutingTests.test_merge_and_coverage_are_the_only_activity_specific_routes) ... ok
+test_new_activity_guides_have_resolvable_local_links (__main__.ReferenceRoutingTests.test_new_activity_guides_have_resolvable_local_links) ... ok
+test_safe_orientation_uses_real_optional_references_without_reading_state (__main__.ReferenceRoutingTests.test_safe_orientation_uses_real_optional_references_without_reading_state) ... ok
+
+----------------------------------------------------------------------
+Ran 5 tests in 0.318s
+
+OK
+==> test/shiploop-backchain-guidance.test.py
+....
+----------------------------------------------------------------------
+Ran 4 tests in 0.025s
+
+OK
+==> test/shiploop-teachback.test.py
+test_changed_prompt_is_refused_before_grading (__main__.TeachBackTests.test_changed_prompt_is_refused_before_grading) ... ok
+test_correct_mechanics_always_require_semantic_review_and_never_execute (__main__.TeachBackTests.test_correct_mechanics_always_require_semantic_review_and_never_execute) ... ok
+test_empty_or_malformed_explanations_fail (__main__.TeachBackTests.test_empty_or_malformed_explanations_fail) ... ok
+test_exports_never_overwrite_existing_directory (__main__.TeachBackTests.test_exports_never_overwrite_existing_directory) ... ok
+test_failed_capture_leaves_no_export_and_write_failure_never_claims_success (__main__.TeachBackTests.test_failed_capture_leaves_no_export_and_write_failure_never_claims_success) ... Teach-back probe failed: capture failed
+Teach-back probe failed: write failed
+ok
+test_malformed_oracle_reports_input_failure_without_traceback (__main__.TeachBackTests.test_malformed_oracle_reports_input_failure_without_traceback) ... Teach-back probe failed: 'prompt_sha256'
+ok
+test_paused_cannot_invent_callback_or_result (__main__.TeachBackTests.test_paused_cannot_invent_callback_or_result) ... ok
+test_real_captures_separate_oracle_and_preserve_current_action_boundaries (__main__.TeachBackTests.test_real_captures_separate_oracle_and_preserve_current_action_boundaries) ... ok
+test_wrong_identity_callback_result_path_and_absent_fields_fail (__main__.TeachBackTests.test_wrong_identity_callback_result_path_and_absent_fields_fail) ... ok
+
+----------------------------------------------------------------------
+Ran 9 tests in 1.949s
+
+OK
+==> test/shiploop-protocol.test.py
+........................[shiploop size advisory] bootstrap packet: 4597 characters (within 7000-character guideline)
+..[shiploop size advisory] behavior packet stage improve-plan-verify: 4418 characters (within 7000-character guideline)
+[shiploop size advisory] behavior packet stage test-refine: 5497 characters (within 7000-character guideline)
+[shiploop size advisory] behavior packet stage test-author: 5086 characters (within 7000-character guideline)
+[shiploop size advisory] behavior packet stage skill-validate: 5101 characters (within 7000-character guideline)
+[shiploop size advisory] behavior packet stage preflight: 4437 characters (within 7000-character guideline)
+[shiploop size advisory] behavior packet stage approach: 4502 characters (within 7000-character guideline)
+[shiploop size advisory] behavior-model guidance approach: 84 characters (within 500-character guideline)
+[shiploop size advisory] behavior packet stage survey: 5805 characters (within 7000-character guideline)
+[shiploop size advisory] behavior-model guidance survey: 84 characters (within 500-character guideline)
+[shiploop size advisory] behavior packet stage prepare: 4133 characters (within 7000-character guideline)
+[shiploop size advisory] behavior packet stage implement: 7497 characters (over 7000-character guideline)
+[shiploop size advisory] behavior-model guidance implement: 85 characters (within 500-character guideline)
+[shiploop size advisory] behavior packet stage review: 8773 characters (over 7000-character guideline)
+[shiploop size advisory] behavior-model guidance review: 85 characters (within 500-character guideline)
+[shiploop size advisory] behavior packet stage improve-plan: 11609 characters (over 7000-character guideline)
+[shiploop size advisory] behavior-model guidance improve-plan: 85 characters (within 500-character guideline)
+[shiploop size advisory] behavior packet stage improve-apply: 6795 characters (within 7000-character guideline)
+[shiploop size advisory] behavior-model guidance improve-apply: 85 characters (within 500-character guideline)
+[shiploop size advisory] behavior packet stage iteration-document: 7784 characters (over 7000-character guideline)
+[shiploop size advisory] behavior-model guidance iteration-document: 85 characters (within 500-character guideline)
+[shiploop size advisory] behavior packet stage verify: 7379 characters (over 7000-character guideline)
+[shiploop size advisory] behavior-model guidance verify: 85 characters (within 500-character guideline)
+[shiploop size advisory] behavior packet stage carry-forward: 7758 characters (over 7000-character guideline)
+[shiploop size advisory] behavior-model guidance carry-forward: 85 characters (within 500-character guideline)
+[shiploop size advisory] behavior packet stage post-inner: 7649 characters (over 7000-character guideline)
+[shiploop size advisory] behavior-model guidance post-inner: 85 characters (within 500-character guideline)
+[shiploop size advisory] behavior packet stage merge: 5368 characters (within 7000-character guideline)
+[shiploop size advisory] behavior packet stage coverage: 4082 characters (within 7000-character guideline)
+[shiploop size advisory] behavior packet stage quality: 7810 characters (over 7000-character guideline)
+[shiploop size advisory] behavior-model guidance quality: 85 characters (within 500-character guideline)
+[shiploop size advisory] behavior packet stage publish: 4841 characters (within 7000-character guideline)
+[shiploop size advisory] behavior packet stage handoff: 4692 characters (within 7000-character guideline)
+[shiploop size advisory] behavior-model guidance handoff: 85 characters (within 500-character guideline)
+.[shiploop size advisory] packet stage improve-plan-verify: 4410 characters (within 7000-character guideline)
+[shiploop size advisory] testing/docs guidance improve-plan-verify: 190 characters (within 500-character guideline)
+[shiploop size advisory] packet stage test-refine: 5489 characters (within 7000-character guideline)
+[shiploop size advisory] testing/docs guidance test-refine: 190 characters (within 500-character guideline)
+[shiploop size advisory] packet stage test-author: 5078 characters (within 7000-character guideline)
+[shiploop size advisory] testing/docs guidance test-author: 190 characters (within 500-character guideline)
+[shiploop size advisory] packet stage skill-validate: 5093 characters (within 7000-character guideline)
+[shiploop size advisory] testing/docs guidance skill-validate: 190 characters (within 500-character guideline)
+[shiploop size advisory] packet stage preflight: 4429 characters (within 7000-character guideline)
+[shiploop size advisory] testing/docs guidance preflight: 79 characters (within 500-character guideline)
+[shiploop size advisory] packet stage approach: 4494 characters (within 7000-character guideline)
+[shiploop size advisory] packet stage survey: 5797 characters (within 7000-character guideline)
+[shiploop size advisory] testing/docs guidance survey: 79 characters (within 500-character guideline)
+[shiploop size advisory] packet stage prepare: 4125 characters (within 7000-character guideline)
+[shiploop size advisory] testing/docs guidance prepare: 150 characters (within 500-character guideline)
+[shiploop size advisory] packet stage implement: 7487 characters (over 7000-character guideline)
+[shiploop size advisory] testing/docs guidance implement: 101 characters (within 500-character guideline)
+[shiploop size advisory] packet stage review: 8761 characters (over 7000-character guideline)
+[shiploop size advisory] testing/docs guidance review: 101 characters (within 500-character guideline)
+[shiploop size advisory] packet stage improve-plan: 11601 characters (over 7000-character guideline)
+[shiploop size advisory] testing/docs guidance improve-plan: 101 characters (within 500-character guideline)
+[shiploop size advisory] packet stage improve-apply: 6787 characters (within 7000-character guideline)
+[shiploop size advisory] testing/docs guidance improve-apply: 101 characters (within 500-character guideline)
+[shiploop size advisory] packet stage iteration-document: 7776 characters (over 7000-character guideline)
+[shiploop size advisory] testing/docs guidance iteration-document: 125 characters (within 500-character guideline)
+[shiploop size advisory] packet stage verify: 7369 characters (over 7000-character guideline)
+[shiploop size advisory] testing/docs guidance verify: 102 characters (within 500-character guideline)
+[shiploop size advisory] packet stage carry-forward: 7750 characters (over 7000-character guideline)
+[shiploop size advisory] testing/docs guidance carry-forward: 71 characters (within 500-character guideline)
+[shiploop size advisory] packet stage post-inner: 7641 characters (over 7000-character guideline)
+[shiploop size advisory] testing/docs guidance post-inner: 71 characters (within 500-character guideline)
+[shiploop size advisory] packet stage merge: 5360 characters (within 7000-character guideline)
+[shiploop size advisory] packet stage coverage: 4074 characters (within 7000-character guideline)
+[shiploop size advisory] packet stage quality: 7800 characters (over 7000-character guideline)
+[shiploop size advisory] testing/docs guidance quality: 84 characters (within 500-character guideline)
+[shiploop size advisory] packet stage publish: 4833 characters (within 7000-character guideline)
+[shiploop size advisory] testing/docs guidance publish: 84 characters (within 500-character guideline)
+[shiploop size advisory] packet stage handoff: 4684 characters (within 7000-character guideline)
+[shiploop size advisory] testing/docs guidance handoff: 84 characters (within 500-character guideline)
+........
+----------------------------------------------------------------------
+Ran 35 tests in 13.450s
+
+OK
+==> test/shiploop-history-pages.test.py
+..........
+----------------------------------------------------------------------
+Ran 10 tests in 64.257s
+
+OK
+==> test/shiploop-merge-recovery.test.py
+.......
+----------------------------------------------------------------------
+Ran 7 tests in 3.141s
+
+OK
+==> test/shiploop-migration-prompt.test.py
+...
+----------------------------------------------------------------------
+Ran 3 tests in 1.714s
+
+OK
+==> test/shiploop-knowledge.test.py
+....
+----------------------------------------------------------------------
+Ran 4 tests in 484.216s
+
+OK
+==> test/shiploop-planning.test.py
+.....[shiploop size advisory] cold behavior planning packet: 7367 characters (over 7000-character guideline)
+.......................
+----------------------------------------------------------------------
+Ran 28 tests in 346.175s
+
+OK
+==> test/shiploop-until.test.py
+test_accepts_a_full_sha256_commit (__main__.UntilDecisionTests.test_accepts_a_full_sha256_commit) ... ok
+test_action_guidance_allows_optional_memory_but_never_cached_authority (__main__.UntilDecisionTests.test_action_guidance_allows_optional_memory_but_never_cached_authority) ... ok
+test_all_short_outcome_histories_recompute_streak_and_readiness_from_evidence (__main__.UntilDecisionTests.test_all_short_outcome_histories_recompute_streak_and_readiness_from_evidence)
+No host-cached streak can change any material/trivial decision. ... ok
+test_empty_completed_passes_are_active (__main__.UntilDecisionTests.test_empty_completed_passes_are_active) ... ok
+test_material_pass_resets_the_current_repair_epoch_streak (__main__.UntilDecisionTests.test_material_pass_resets_the_current_repair_epoch_streak) ... ok
+test_open_findings_keep_a_two_trivial_streak_active (__main__.UntilDecisionTests.test_open_findings_keep_a_two_trivial_streak_active) ... ok
+test_rejects_noncanonical_or_replayed_evidence (__main__.UntilDecisionTests.test_rejects_noncanonical_or_replayed_evidence) ... ok
+test_review_improve_cycle_rejects_an_unsafe_history_window (__main__.UntilDecisionTests.test_review_improve_cycle_rejects_an_unsafe_history_window) ... ok
+test_review_improve_cycle_states_the_complete_order_for_new_and_legacy_history (__main__.UntilDecisionTests.test_review_improve_cycle_states_the_complete_order_for_new_and_legacy_history)
+One shared packet says what a converging pass actually means. ... ok
+test_two_consecutive_verified_trivial_receipts_are_ready_not_success (__main__.UntilDecisionTests.test_two_consecutive_verified_trivial_receipts_are_ready_not_success) ... ok
+
+----------------------------------------------------------------------
+Ran 10 tests in 0.010s
+
+OK
+==> test/shiploop-step-planning.test.py
+test_finalized_plan_artifacts_are_required_by_actual_implementation_completion (__main__.StepPlanningCliTests.test_finalized_plan_artifacts_are_required_by_actual_implementation_completion) ... ok
+test_improve_plan_is_a_second_bound_loop_and_carries_parent_learnings (__main__.StepPlanningCliTests.test_improve_plan_is_a_second_bound_loop_and_carries_parent_learnings) ... ok
+test_initial_step_plan_is_repeatable_cold_and_gates_implementation (__main__.StepPlanningCliTests.test_initial_step_plan_is_repeatable_cold_and_gates_implementation) ... [shiploop size advisory] initial step-planning packet: 12006 characters (over 12000-character guideline)
+[shiploop size advisory] cold step-planning packet: 14666 characters (over 14000-character guideline)
+ok
+test_material_scope_finding_requires_explicit_disposition_before_fresh_review (__main__.StepPlanningCliTests.test_material_scope_finding_requires_explicit_disposition_before_fresh_review) ... ok
+test_step_plan_repair_archives_a_drifted_pass_and_rebinds_a_new_epoch (__main__.StepPlanningCliTests.test_step_plan_repair_archives_a_drifted_pass_and_rebinds_a_new_epoch) ... ok
+test_certificate_requires_two_verified_trivial_passes_before_any_handoff (__main__.StepPlanningRecordTests.test_certificate_requires_two_verified_trivial_passes_before_any_handoff) ... ok
+test_completed_and_abandoned_archives_are_exact_byte_bound_evidence (__main__.StepPlanningRecordTests.test_completed_and_abandoned_archives_are_exact_byte_bound_evidence)
+A receipt cannot be replayed against altered pass archive Markdown. ... ok
+test_completed_passes_are_exactly_ordered_before_the_current_cursor (__main__.StepPlanningRecordTests.test_completed_passes_are_exactly_ordered_before_the_current_cursor) ... ok
+test_context_and_coverage_require_the_full_bounded_rubric (__main__.StepPlanningRecordTests.test_context_and_coverage_require_the_full_bounded_rubric) ... ok
+test_initial_and_improve_routes_have_distinct_bound_receipts (__main__.StepPlanningRecordTests.test_initial_and_improve_routes_have_distinct_bound_receipts) ... ok
+test_material_scope_or_behavior_finding_cannot_be_reclassified_in_a_later_review (__main__.StepPlanningRecordTests.test_material_scope_or_behavior_finding_cannot_be_reclassified_in_a_later_review) ... ok
+test_material_scope_or_behavior_findings_cannot_be_closed_by_a_step_plan_revise (__main__.StepPlanningRecordTests.test_material_scope_or_behavior_findings_cannot_be_closed_by_a_step_plan_revise) ... ok
+test_real_timestamp_run_id_and_exact_pass_cursor_are_accepted (__main__.StepPlanningRecordTests.test_real_timestamp_run_id_and_exact_pass_cursor_are_accepted) ... ok
+test_receipt_binds_candidate_context_and_current_pass_to_markdown_bytes (__main__.StepPlanningRecordTests.test_receipt_binds_candidate_context_and_current_pass_to_markdown_bytes) ... ok
+test_repair_epoch_rebinds_context_without_erasing_completed_passes (__main__.StepPlanningRecordTests.test_repair_epoch_rebinds_context_without_erasing_completed_passes) ... ok
+test_review_keeps_old_open_findings_and_rejects_severity_downgrade (__main__.StepPlanningRecordTests.test_review_keeps_old_open_findings_and_rejects_severity_downgrade) ... ok
+test_revise_requires_every_open_finding_and_records_concrete_resolution (__main__.StepPlanningRecordTests.test_revise_requires_every_open_finding_and_records_concrete_resolution) ... ok
+
+----------------------------------------------------------------------
+Ran 17 tests in 207.996s
+
+OK
+==> test/shiploop-sdlc.test.py
+..............
+----------------------------------------------------------------------
+Ran 14 tests in 0.019s
+
+OK
+==> test/shiploop-improve-bridge.test.py
+test_cli_shaped_repair_pause_resume_and_halt_need_no_completion_event (__main__.ShipLoopImproveBridgeTests.test_cli_shaped_repair_pause_resume_and_halt_need_no_completion_event)
+The ordinary protocol commands do not call ``set_evidence``. ... ok
+test_cli_shaped_step_plan_repair_and_cross_profile_replan_preserve_old_child (__main__.ShipLoopImproveBridgeTests.test_cli_shaped_step_plan_repair_and_cross_profile_replan_preserve_old_child) ... ok
+test_evidence_snapshot_allows_historical_alias_reuse_but_final_check_stays_live (__main__.ShipLoopImproveBridgeTests.test_evidence_snapshot_allows_historical_alias_reuse_but_final_check_stays_live) ... ok
+test_imported_objective_allows_a_successor_step_allocation (__main__.ShipLoopImproveBridgeTests.test_imported_objective_allows_a_successor_step_allocation) ... ok
+test_legacy_is_inert_and_every_profile_starts_with_a_fixed_parent (__main__.ShipLoopImproveBridgeTests.test_legacy_is_inert_and_every_profile_starts_with_a_fixed_parent) ... ok
+test_planning_revisit_abandons_without_starting_or_certifying_a_child (__main__.ShipLoopImproveBridgeTests.test_planning_revisit_abandons_without_starting_or_certifying_a_child) ... ok
+test_product_active_step_scope_and_candidate_definition_are_bound (__main__.ShipLoopImproveBridgeTests.test_product_active_step_scope_and_candidate_definition_are_bound) ... ok
+test_product_commit_accepts_only_the_staged_typed_cycle_receipt (__main__.ShipLoopImproveBridgeTests.test_product_commit_accepts_only_the_staged_typed_cycle_receipt) ... ok
+test_product_pause_is_preserved_in_the_child_packet (__main__.ShipLoopImproveBridgeTests.test_product_pause_is_preserved_in_the_child_packet) ... ok
+test_repair_pause_and_same_child_resume_are_controller_owned (__main__.ShipLoopImproveBridgeTests.test_repair_pause_and_same_child_resume_are_controller_owned) ... ok
+test_required_step_plan_repair_resumes_at_disposition_only (__main__.ShipLoopImproveBridgeTests.test_required_step_plan_repair_resumes_at_disposition_only) ... ok
+test_stale_receipts_policy_input_and_parent_overlay_fail_closed (__main__.ShipLoopImproveBridgeTests.test_stale_receipts_policy_input_and_parent_overlay_fail_closed) ... ok
+test_start_fault_recovers_parent_and_child_together (__main__.ShipLoopImproveBridgeTests.test_start_fault_recovers_parent_and_child_together) ... ok
+test_terminal_import_is_atomic_and_binds_bytes_and_evidence (__main__.ShipLoopImproveBridgeTests.test_terminal_import_is_atomic_and_binds_bytes_and_evidence) ... ok
+test_terminal_import_rejects_conflicting_child_or_parent_result_bindings (__main__.ShipLoopImproveBridgeTests.test_terminal_import_rejects_conflicting_child_or_parent_result_bindings) ... ok
+test_terminal_output_identity_rejects_candidate_drift_before_import (__main__.ShipLoopImproveBridgeTests.test_terminal_output_identity_rejects_candidate_drift_before_import) ... ok
+
+----------------------------------------------------------------------
+Ran 16 tests in 1.245s
+
+OK
+==> test/shiploop-managed-contracts.test.py
+..........
+----------------------------------------------------------------------
+Ran 10 tests in 1.081s
+
+OK
+==> test/shiploop-invalidation.test.py
+...........
+----------------------------------------------------------------------
+Ran 11 tests in 0.003s
+
+OK
+==> test/shiploop-managed-invalidation.test.py
+.....
+----------------------------------------------------------------------
+Ran 5 tests in 1.754s
+
+OK
+==> test/shiploop-managed-package.test.py
+.
+----------------------------------------------------------------------
+Ran 1 test in 0.350s
+
+OK
+==> test/shiploop-managed-walk.test.py
+.
+----------------------------------------------------------------------
+Ran 1 test in 177.904s
+
+OK
+==> test/shiploop-action-walk.test.py
+.............
+----------------------------------------------------------------------
+Ran 13 tests in 745.912s
+
+OK
+shiploop.test.sh: PASS
+OK  shiploop
+run-all.sh: PASS (shiploop hermetic group selection)

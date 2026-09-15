@@ -13,6 +13,29 @@ owns execution and evaluation.
 recorded protocol without conversion. Navigation completion records the host's
 declared result; it does not certify tests, Git state or deployment.
 
+## Navigator task entry and recovery
+
+ShipLoop 0.9.3 makes the existing navigator's task-entry contract explicit.
+Before stage work, use `init` once for a genuinely new request or use `next` to
+recover the same existing run, then verify the printed original goal and
+repository. `next` rereads saved state; it does not advance the graph.
+
+Each navigator packet provides absolute CLI, repository, and run-directory
+locators plus an exact `Recovery command:`. Preserve those in host-owned durable
+handoff material, but do not copy the current node, action ID, result path,
+status, or successor as graph authority. A fresh host recovers with that command,
+reads one current packet and its relevant references, and performs only that
+action. The run owner alone submits its callback and consumes the returned
+packet; a delegated worker does not initialize a child run or advance the parent.
+
+After interruption, call `next`, inspect durable evidence and actual effects,
+then reconcile what has already happened before continuing. A paused or blocked
+packet waits for its stated condition and printed `resume` command; halted or
+done packets stop. A missing or relocated locator must recover the same run and
+task/repository identity or remain incomplete, never become a replacement `init`.
+The script does not retain the host handoff, launch a fresh model, reset a model
+context, or force a host to use its tools. See the [Navigator recovery contract](references/navigator.md#recover-one-existing-run).
+
 ## Agentic inner-loop duties
 
 Existing stages now explicitly challenge acceptance examples and test quality,

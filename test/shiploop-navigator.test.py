@@ -16,6 +16,7 @@ import json
 import os
 from pathlib import Path
 import shlex
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -327,8 +328,134 @@ class NavigatorTests(unittest.TestCase):
         self.assertEqual(final["completed_work_items"], ["W1", "W2"])
         self.assertEqual(len(final["history"]), len(expected))
         self.assertIn("agent-declared completion", packet)
+        self.assertIn("Recovery command:\n", packet)
+        self.assertNotIn("Call this when done:", packet)
         self.assertTrue((self.root / "report.html").is_file())
         self.assertEqual(list(self.repo.iterdir()), [])
+
+    def test_public_cli_recovery_locator_reopens_relocated_package_from_unrelated_cwd(
+        self,
+    ) -> None:
+        """A cold handoff returns the saved action without trusting old packets."""
+        portable = self.base / "portable ' package with spaces"
+        shutil.copytree(
+            ROOT / "skills" / "shiploop",
+            portable,
+            ignore=shutil.ignore_patterns("__pycache__", "*.pyc", ".DS_Store"),
+        )
+        repo = self.base / "ordinary repo ' with $literal"
+        repo.mkdir()
+        run_dir = self.base / "run ' $(touch recovery-shell-expanded) $literal [state]"
+        unrelated = self.base / "unrelated cwd"
+        unrelated.mkdir()
+        cli = portable / "scripts" / "shiploop"
+        environment = {**os.environ, "PYTHONDONTWRITEBYTECODE": "1"}
+
+        def run(argv: list[str], *, cwd: Path) -> str:
+            completed = subprocess.run(
+                argv,
+                cwd=cwd,
+                env=environment,
+                text=True,
+                capture_output=True,
+                timeout=30,
+            )
+            self.assertEqual(completed.returncode, 0, completed.stdout + completed.stderr)
+            return completed.stdout
+
+        initial = run(
+            [
+                sys.executable,
+                str(cli),
+                "init",
+                "--repo",
+                str(repo),
+                "--prompt",
+                self.goal,
+                "--run-dir",
+                str(run_dir),
+            ],
+            cwd=repo,
+        )
+        before = store.read_record(run_dir / "state.md")
+        before_bytes = (run_dir / "state.md").read_bytes()
+        action_id = before["action"]["id"]
+        self.assertIn(f"CLI locator: {cli.resolve()}", initial)
+        self.assertIn(f"Run directory locator: {run_dir.resolve()}", initial)
+        self.assertIn(f"Repository locator: {repo.resolve()}", initial)
+        self.assertEqual(initial.count("Current stage guidance:"), 1)
+        self.assertEqual(initial.count("Call this when done:"), 1)
+
+        recovery_command = initial.split("Recovery command:\n", 1)[1].splitlines()[0]
+        recovery_argv = shlex.split(recovery_command)
+        self.assertEqual(recovery_argv[0], "python3")
+        self.assertEqual(Path(recovery_argv[1]).resolve(), cli.resolve())
+        self.assertEqual(recovery_argv[2:], ["next", f"--run-dir={run_dir.resolve()}"])
+        recovered = subprocess.run(
+            recovery_command,
+            shell=True,
+            cwd=unrelated,
+            env=environment,
+            text=True,
+            capture_output=True,
+            timeout=30,
+        )
+        self.assertEqual(recovered.returncode, 0, recovered.stdout + recovered.stderr)
+        self.assertFalse((unrelated / "recovery-shell-expanded").exists())
+        self.assertIn(action_id, recovered.stdout)
+        self.assertIn(self.goal, recovered.stdout)
+        self.assertEqual((run_dir / "state.md").read_bytes(), before_bytes)
+        self.assertEqual(store.read_record(run_dir / "state.md"), before)
+
+        callback = Path(
+            recovered.stdout.split("Write the structured result to: ", 1)[1].splitlines()[0]
+        )
+        completion_command = recovered.stdout.split("Call this when done:\n", 1)[1].splitlines()[0]
+        self.assertEqual(callback, run_dir.resolve() / "inbox" / f"{action_id}.md")
+        self.assertEqual(completion_command.count("--action=" + action_id), 1)
+        accepted_result = self.result(summary="Intake completed after cold recovery.")
+        callback.write_text(
+            store.dumps(accepted_result, "Synthetic recovered callback"),
+            encoding="utf-8",
+        )
+        accepted = subprocess.run(
+            completion_command,
+            shell=True,
+            cwd=unrelated,
+            env=environment,
+            text=True,
+            capture_output=True,
+            timeout=30,
+        )
+        self.assertEqual(accepted.returncode, 0, accepted.stdout + accepted.stderr)
+        after_accept = store.read_record(run_dir / "state.md")
+        self.assertEqual((after_accept["stage"], after_accept["status"]), ("discovery", "active"))
+        self.assertNotEqual(after_accept["action"]["id"], action_id)
+
+        callback.write_text(
+            store.dumps(
+                self.result(summary="Changed old callback must be rejected."),
+                "Conflicting recovered callback",
+            ),
+            encoding="utf-8",
+        )
+        accepted_bytes = (run_dir / "state.md").read_bytes()
+        conflicting_replay = subprocess.run(
+            completion_command,
+            shell=True,
+            cwd=unrelated,
+            env=environment,
+            text=True,
+            capture_output=True,
+            timeout=30,
+        )
+        self.assertNotEqual(
+            conflicting_replay.returncode,
+            0,
+            conflicting_replay.stdout + conflicting_replay.stderr,
+        )
+        self.assertEqual((run_dir / "state.md").read_bytes(), accepted_bytes)
+        self.assertEqual(store.read_record(run_dir / "state.md"), after_accept)
 
     def test_public_cli_cold_environment_packets_use_shared_policy_and_generic_results(self) -> None:
         """The navigator links the one discovery policy without importing legacy state."""
@@ -449,9 +576,13 @@ class NavigatorTests(unittest.TestCase):
         self.assertEqual(draft.read_bytes(), draft_bytes)
         self.assertIn("Paused, unfinished", paused_packet)
         self.assertIn(reason, paused_packet)
+        self.assertIn("Recovery command:\n", paused_packet)
+        self.assertNotIn("Call this when done:", paused_packet)
 
         cold_paused = self._navigator_cli("next")
         self.assertIn("Paused, unfinished", cold_paused)
+        self.assertIn("Recovery command:\n", cold_paused)
+        self.assertNotIn("Call this when done:", cold_paused)
         self.assertEqual((self.root / "state.md").read_bytes(), paused_bytes)
         self.assertEqual(store.read_record(self.root / "state.md")["action"]["id"], action_id)
 
@@ -501,10 +632,14 @@ class NavigatorTests(unittest.TestCase):
             & set(receipt["result"])
         )
         self.assertFalse(any(key.startswith("frozen") for key in receipt["result"]))
+        self.assertIn("Recovery command:\n", blocked_packet)
+        self.assertNotIn("Call this when done:", blocked_packet)
 
         blocked_bytes = (self.root / "state.md").read_bytes()
         cold_blocked = self._navigator_cli("next")
         self.assertIn("Blocked, unfinished", cold_blocked)
+        self.assertIn("Recovery command:\n", cold_blocked)
+        self.assertNotIn("Call this when done:", cold_blocked)
         self.assertEqual((self.root / "state.md").read_bytes(), blocked_bytes)
         self.assertEqual(store.read_record(self.root / "state.md")["action"]["id"], next_action)
 

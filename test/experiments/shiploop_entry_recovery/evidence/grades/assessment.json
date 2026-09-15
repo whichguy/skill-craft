@@ -1,0 +1,24 @@
+{
+  "initial_action": {
+    "id": "nav-76f88582c7eb4dc69b4d0b315dde207b",
+    "stage": "implement"
+  },
+  "final_action": {
+    "id": "nav-b823b4b46c5c4cecb71b0814e18e40d3",
+    "stage": "document"
+  },
+  "accepted_real_stages": [
+    "implement",
+    "test-refine",
+    "test-author"
+  ],
+  "interrupted_state_unchanged": true,
+  "recovery_reused_source": true,
+  "fixed_oracle": {
+    "passed": 12,
+    "total": 12
+  },
+  "final_unit_tests_exit": 0,
+  "seed_control_exit": 1,
+  "authoring_timing_deviation": "A authored initial tests, C refined them, D retained adequate tests and ran a mutation check; D did not make the new test edit anticipated by preregistration. This follows the actual test-author packet."
+}
