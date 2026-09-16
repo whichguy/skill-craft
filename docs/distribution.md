@@ -101,11 +101,23 @@ and **Skills**. Do not link the whole monorepo there as a single plugin. Remove
 the test link when finished. This tests an individual package; it is not a public
 catalog submission.
 
-Team marketplace import requires a Cursor Teams or Enterprise admin to use
-**Dashboard → Settings → Plugins → Import from Repo**, selecting the published
-`whichguy/skill-craft` repository. A public listing additionally requires submitting
-the public repository through [Cursor's publication form](https://cursor.com/marketplace/publish)
-and passing review. See [Cursor plugin distribution](https://cursor.com/docs/plugins).
+Cursor also supports a personal marketplace import in the current desktop UI:
+**Customize → Browse Marketplace → Add Marketplace → Import from GitHub**. Select
+**Scope: User** and enter the source repository root exactly as
+`https://github.com/whichguy/skill-craft`. This User import was verified in Cursor
+3.20.21, where all 18 packages appeared as available additions. That repository
+owns the required root
+`.cursor-plugin/marketplace.json`; do not use the catalog-only `skill-craft-market`
+sibling for Cursor import. Cursor does not document a ref or `/tree/<branch>` URL syntax for
+this field, so use the repository root. To stage a different default branch without
+changing the production repository, use a separate staging repository with a valid
+root marketplace index.
+
+Team-scoped marketplace import remains a Teams or Enterprise administrator action
+through **Dashboard → Settings → Plugins → Import from Repo**. A public listing
+additionally requires submitting the public repository through
+[Cursor's publication form](https://cursor.com/marketplace/publish) and passing
+review. See [Cursor plugin distribution](https://cursor.com/docs/plugins).
 
 ## Keeping generated files in sync
 
