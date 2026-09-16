@@ -5,7 +5,7 @@ description: >-
   script's current action packet, and submit its exact completion call until
   the script reports completion with an HTML achievement report. Use when the
   user says shiploop, ship the project, or requests a durable delivery loop.
-version: 0.10.1
+version: 0.10.2
 allowed-tools: all
 license: MIT
 platforms:
@@ -93,7 +93,8 @@ the host handoff, or force any host tool call.
    run meaningful tests and available linters, fix failures and recheck. Record
    outcomes and limitations honestly. Do not weaken tests to obtain a pass.
    Follow the packet's implementation quality indicator: plan and implement
-   relevant error checking and concise, LLM-readable code contracts, then
+   relevant error checking, opt-in debug diagnostics, safe failure context,
+   and concise, LLM-readable code contracts, then
    verify their behavior and accuracy. Keep material caveats; avoid boilerplate.
 3. At an Improve action, read the packaged shared policy and the
    [navigator owner binding](references/navigator.md). It is a call-and-return

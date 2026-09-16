@@ -149,6 +149,21 @@ Implementation quality: error checking + token-efficient code documentation
 - Error checking: validate changed input/state boundaries; handle relevant
   dependency failures and cleanup/recovery proportionately. Preserve actionable
   errors; do not silently turn failures into success or add speculative defenses.
+- Debug diagnostics: reuse existing logger/debug controls for opt-in debug
+  diagnostics at selected major actions. Emit bounded, redacted before/after
+  summaries and failure outcomes, correlated by operation/request ID as relevant.
+  Choose useful IDs, counts, decisions, state changes and timings; avoid whole-state
+  dumps and expensive diagnostic construction when debug is off.
+- Exception context: snapshot safe relevant values before cleanup or mutation,
+  including expected versus observed conditions and the operation/phase. Use
+  stable copies, not mutable references. Retain essential error context even when
+  debug is off. Expose only safe, concise audience-appropriate messages; keep
+  bounded structured context internal. Redact sensitive fields and emitted
+  exception details, including causes and stacks. Preserve the original type,
+  cause and traceback for propagation;
+  diagnostics must not mask the original error. Record at the owning handling
+  boundary without duplicate stacks on rethrow; expected control-flow exceptions
+  are not automatically incidents.
 - Token-efficient code documentation: make changed public interfaces and
   non-obvious logic understandable to a fresh LLM or human with concise
   colocated contracts: purpose, preconditions, outputs/errors, material side
@@ -261,6 +276,8 @@ skill/reuse questions, and checks. Resolve or block missing inputs before code;
 this is planning, not permission to skip directly to unverified edits.
 Name the relevant failure boundaries, expected error handling and negative
 checks, and locations needing concise in-code contracts before implementation.
+Select major actions needing diagnostics, safe snapshot fields, existing debug
+controls, and expected before/after/failure observations. Reuse adequate coverage.
 Where acceptance could have different meanings, state a positive example and
 a nearby negative example. Select operational and security checks for changed
 boundaries: authorization, data integrity, dependency provenance/compatibility,
@@ -282,7 +299,7 @@ tests, documentation, reuse/skill choice, and any system-test impact. Refresh
 the affected plan and its planned checks before implementation. Challenge
 ambiguous acceptance examples, selected risk checks, and any delegation
 boundaries rather than assuming the draft plan resolved them. Check that planned
-error coverage and code contracts satisfy the implementation quality criteria
+error coverage, diagnostic context and code contracts satisfy the quality criteria
 below without speculative defenses or boilerplate.""",
         improve=True,
         implementation_quality=True,
@@ -293,8 +310,8 @@ Implement the authorized bounded plan. Inspect the actual code as it changes,
 preserve unrelated work, and record material discoveries. Do not treat a code
 edit as verification: send the learned implementation context forward so cases
 can be refined and executable tests authored before the final checks.
-Implement the planned error behavior and concise colocated documentation with
-the code; carry both implementation quality criteria into delegated task prompts.
+Implement the planned error behavior, diagnostics and concise colocated contracts
+with the code; carry all implementation quality criteria into delegated prompts.
 When delegating, give each worker bounded ownership, shared contracts, inputs,
 and expected outputs/checks. Reconcile overlapping or conflicting work and
 inspect actual changes and evidence; the owning agent remains responsible for
@@ -312,7 +329,10 @@ positive and nearby negative boundaries where useful. Check that mocks or
 implementation-derived expectations do not hide the behavior being tested;
 resolve a genuine specification ambiguity before treating disagreement as a
 code defect. Include the planned error paths and observable diagnostics in the
-negative cases, checking their expected behavior independently.""",
+negative cases, checking their expected behavior independently. Where diagnostics
+change, check debug on/off behavior, context retained across cleanup, redaction,
+causal preservation, and logging/serialization failures that must not mask the
+original error. Keep checks proportionate to the changed boundaries.""",
         implementation_quality=True,
     ),
     "test-author": _prompt(
@@ -333,7 +353,8 @@ the deliverable and preserve caller/user data.""",
 Update necessary code, API, user, or operator documentation from the completed
 implementation and test learning. Reconcile concise in-code contracts with the
 actual error behavior and relevant tests; remove stale or duplicate explanations
-while preserving material caveats. Make an explicit reuse decision: use an
+while preserving material caveats. Explain relevant debug controls and diagnostic
+fields where operators need them. Make an explicit reuse decision: use an
 existing relevant skill, or create/update a repo-local skill when repeated work
 demonstrates a concrete benefit. Otherwise explain why none is needed. Do not
 install or publish a skill without authority. Set `choices.skill_required: true` when the next

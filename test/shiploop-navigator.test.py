@@ -1464,6 +1464,15 @@ class NavigatorTests(unittest.TestCase):
         normalized = " ".join(packet.split())
         for concept in (
             "actionable errors",
+            "opt-in debug diagnostics",
+            "bounded, redacted before/after summaries",
+            "snapshot safe relevant values before cleanup or mutation",
+            "stable copies, not mutable references",
+            "essential error context even when debug is off",
+            "Expose only safe, concise audience-appropriate messages; keep bounded structured context internal",
+            "Redact sensitive fields and emitted exception details",
+            "Preserve the original type, cause and traceback for propagation",
+            "diagnostics must not mask the original error",
             "concise colocated contracts",
             "Preserve material caveats",
         ):
