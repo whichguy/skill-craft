@@ -120,11 +120,15 @@ host checkout into a tree that is bind-mounted into the container as `/opt/data`
 ### Operator / CI (**implemented**)
 
 - Hermetic suite: `bash test/run-all.sh` (**implemented**); `--group core|shiploop`
-  selects independent groups and `--list` prints the same catalog used to execute.
-  No installed AI host or engine is required; mocked Hermes binding remains covered.
+  preserves the stable local groups and `--list` prints the same catalog used to
+  execute. CI-only `shiploop-1|shiploop-2|shiploop-3` aliases select deterministic
+  thirds of the one ordered ShipLoop inventory; `all` excludes those aliases and
+  still runs the full serial ShipLoop suite once. No installed AI host or engine
+  is required; mocked Hermes binding remains covered.
 - Plugin view drift: `bash scripts/sync-plugin-views.sh --check` (**implemented**)
-- CI: `.github/workflows/ci.yml` (**implemented**); independent core/ShipLoop jobs,
-  explicit Python/Node versions and a fail-closed aggregate `hermetic` status.
+- CI: `.github/workflows/ci.yml` (**implemented**); independent core plus three
+  deterministic ShipLoop-shard jobs, explicit Python/Node versions and a
+  fail-closed aggregate `hermetic` status.
   Both checkouts independently reject staged or unstaged tracked changes after
   their suites, including failed suites; package parity remains core-only.
 - External integrations: explicitly selected via `bash test/run-integration.sh`;

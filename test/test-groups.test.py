@@ -12,6 +12,10 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 RUNNER = ROOT / "test" / "run-all.sh"
+SHIPLOOP_RUNNER = ROOT / "test" / "shiploop.test.sh"
+SHIPLOOP_SUITE_COUNT = 63
+ACTION_WALK = "test/shiploop-action-walk.test.py"
+CI_GROUPS = ("core", "shiploop-1", "shiploop-2", "shiploop-3")
 CORE = {
     "test-groups", "integration-boundaries", "skill-interop-hygiene",
     "sync-plugin-views", "native-marketplace-adapters", "skill-frontmatter",
@@ -39,6 +43,22 @@ class TestGroupTests(unittest.TestCase):
         self.assertTrue(all(len(row) == 3 for row in rows), result.stdout)
         return rows
 
+    def invoke_shiploop(self, *args, root=ROOT, env=None):
+        return subprocess.run(
+            ["bash", str(root / "test" / "shiploop.test.sh"), *args],
+            cwd=root, env=env, capture_output=True, text=True, timeout=20,
+        )
+
+    def shiploop_inventory(self, shard=None):
+        args = ["--list"]
+        if shard is not None:
+            args = ["--shard", shard, "--list"]
+        result = self.invoke_shiploop(*args)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        suites = result.stdout.splitlines()
+        self.assertTrue(suites)
+        return suites
+
     def fixture(self):
         temp = tempfile.TemporaryDirectory(prefix="skill-craft-test-groups-")
         self.addCleanup(temp.cleanup)
@@ -57,15 +77,46 @@ class TestGroupTests(unittest.TestCase):
             self.assertIn(argv[0], ("bash", "node", "python3"))
             target = root / argv[1]
             target.parent.mkdir(parents=True, exist_ok=True)
-            target.write_text(
-                f'#!/bin/sh\nprintf "%s\\n" "{name}" >> "$TEST_TRACE"\n'
-                f'[ "${{FAIL_SUITE:-}}" != "{name}" ] || exit 7\n'
-            )
+            if name == "shiploop":
+                target.write_text(
+                    "#!/bin/sh\n"
+                    'suite_name="shiploop"\n'
+                    'if [ "${1:-}" = "--shard" ]; then suite_name="shiploop-${2%%/*}"; fi\n'
+                    'printf "%s\\n" "$suite_name" >> "$TEST_TRACE"\n'
+                    '[ "${FAIL_SUITE:-}" != "$suite_name" ] || exit 7\n'
+                )
+            else:
+                target.write_text(
+                    f'#!/bin/sh\nprintf "%s\\n" "{name}" >> "$TEST_TRACE"\n'
+                    f'[ "${{FAIL_SUITE:-}}" != "{name}" ] || exit 7\n'
+                )
         env = dict(os.environ)
         env.update(PATH=f"{root / 'bin'}:{env['PATH']}", TEST_TRACE=str(root / "trace"))
         # A fresh user home prevents installed host state from being a fixture input.
         (root / "empty-home").mkdir()
         env["HOME"] = str(root / "empty-home")
+        return root, env
+
+    def shiploop_fixture(self):
+        temp = tempfile.TemporaryDirectory(prefix="skill-craft-shiploop-shard-")
+        self.addCleanup(temp.cleanup)
+        root = Path(temp.name)
+        (root / "test").mkdir()
+        shutil.copyfile(SHIPLOOP_RUNNER, root / "test" / "shiploop.test.sh")
+        (root / "bin").mkdir()
+        python = root / "bin" / "python3"
+        python.write_text(
+            "#!/bin/sh\n"
+            "if [ \"$1\" = \"scripts/sync-improve-managed.py\" ]; then\n"
+            "  printf '%s\\n' sync >> \"$TEST_TRACE\"\n"
+            "  exit 0\n"
+            "fi\n"
+            "printf '%s\\n' \"$1\" >> \"$TEST_TRACE\"\n"
+            "[ \"${FAIL_SUITE:-}\" != \"$1\" ] || exit 7\n"
+        )
+        python.chmod(0o755)
+        env = dict(os.environ)
+        env.update(PATH=f"{root / 'bin'}:{env['PATH']}", TEST_TRACE=str(root / "trace"))
         return root, env
 
     def workflow_step(self, workflow, name):
@@ -123,10 +174,25 @@ class TestGroupTests(unittest.TestCase):
     def test_catalog_is_complete_disjoint_and_host_free(self):
         core = self.inventory("core")
         shiploop = self.inventory("shiploop")
+        shard_rows = [self.inventory(f"shiploop-{index}") for index in range(1, 4)]
         all_rows = self.inventory()
         self.assertEqual({name for _, name, _ in core}, CORE)
         self.assertEqual([(group, name) for group, name, _ in shiploop], [("shiploop", "shiploop")])
+        self.assertEqual(
+            [
+                [(group, name, command.strip()) for group, name, command in rows]
+                for rows in shard_rows
+            ],
+            [
+                [(f"shiploop-{index}", f"shiploop-{index}",
+                  f"bash test/shiploop.test.sh --shard {index}/3")]
+                for index in range(1, 4)
+            ],
+        )
         self.assertEqual(all_rows, core + shiploop)
+        self.assertNotIn("shiploop-1", [group for group, _, _ in all_rows])
+        self.assertNotIn("shiploop-2", [group for group, _, _ in all_rows])
+        self.assertNotIn("shiploop-3", [group for group, _, _ in all_rows])
         names = [name for _, name, _ in all_rows]
         self.assertEqual(len(names), len(set(names)))
         for _, _, command in all_rows:
@@ -156,7 +222,10 @@ class TestGroupTests(unittest.TestCase):
     def test_default_and_group_selection_execute_each_suite_once(self):
         root, env = self.fixture()
         for group, args in (("all", ()), ("core", ("--group", "core")),
-                            ("shiploop", ("--group", "shiploop"))):
+                            ("shiploop", ("--group", "shiploop")),
+                            ("shiploop-1", ("--group", "shiploop-1")),
+                            ("shiploop-2", ("--group", "shiploop-2")),
+                            ("shiploop-3", ("--group", "shiploop-3"))):
             with self.subTest(group=group):
                 trace = root / "trace"
                 trace.unlink(missing_ok=True)
@@ -173,6 +242,59 @@ class TestGroupTests(unittest.TestCase):
         self.assertNotIn("run-all.sh: PASS", result.stdout)
         self.assertEqual((root / "trace").read_text().splitlines(), [row[1] for row in self.inventory()])
 
+    def test_shiploop_shards_partition_the_one_canonical_inventory(self):
+        source = SHIPLOOP_RUNNER.read_text()
+        self.assertEqual(source.count("suites=("), 1)
+        canonical = self.shiploop_inventory()
+        shards = [self.shiploop_inventory(f"{index}/3") for index in range(1, 4)]
+        self.assertEqual(len(canonical), SHIPLOOP_SUITE_COUNT)
+        self.assertEqual(len(set(canonical)), SHIPLOOP_SUITE_COUNT)
+        self.assertEqual(sum(map(len, shards)), SHIPLOOP_SUITE_COUNT)
+        self.assertEqual(set().union(*map(set, shards)), set(canonical))
+        for index, shard in enumerate(shards):
+            self.assertEqual(shard, canonical[index::3])
+        self.assertEqual(canonical.count(ACTION_WALK), 1)
+        self.assertEqual(sum(shard.count(ACTION_WALK) for shard in shards), 1)
+
+    def test_shiploop_list_and_invalid_arguments_have_no_side_effects(self):
+        temp = tempfile.TemporaryDirectory(prefix="skill-craft-shiploop-list-")
+        self.addCleanup(temp.cleanup)
+        root = Path(temp.name)
+        (root / "test").mkdir()
+        shutil.copyfile(SHIPLOOP_RUNNER, root / "test" / "shiploop.test.sh")
+        trace = root / "trace"
+        env = dict(os.environ)
+        env["TEST_TRACE"] = str(trace)
+        for args in (("--list",), ("--shard", "1/3", "--list")):
+            with self.subTest(args=args):
+                result = self.invoke_shiploop(*args, root=root, env=env)
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                self.assertFalse(trace.exists())
+        for args in (
+            ("--shard",), ("--shard", "0/3"), ("--shard", "1/2"),
+            ("--shard", "4/3"), ("--shard", "1/3", "--shard", "2/3"),
+            ("--list", "--list"), ("--wat",),
+        ):
+            with self.subTest(args=args):
+                result = self.invoke_shiploop(*args, root=root, env=env)
+                self.assertEqual(result.returncode, 64, result.stdout + result.stderr)
+                self.assertFalse(trace.exists())
+
+    def test_shiploop_shard_fixture_executes_only_its_selected_suites(self):
+        selected = self.shiploop_inventory("2/3")
+        self.assertGreaterEqual(len(selected), 2)
+        root, env = self.shiploop_fixture()
+        trace = root / "trace"
+        result = self.invoke_shiploop("--shard", "2/3", root=root, env=env)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(trace.read_text().splitlines(), ["sync", *selected])
+
+        trace.unlink()
+        env["FAIL_SUITE"] = selected[1]
+        result = self.invoke_shiploop("--shard", "2/3", root=root, env=env)
+        self.assertEqual(result.returncode, 7, result.stdout + result.stderr)
+        self.assertEqual(trace.read_text().splitlines(), ["sync", *selected[:2]])
+
     def test_action_walk_has_one_aggregate_owner(self):
         entrypoint = (ROOT / "test" / "shiploop.test.sh").read_text()
         self.assertEqual(entrypoint.count("test/shiploop-action-walk.test.py"), 1)
@@ -181,7 +303,7 @@ class TestGroupTests(unittest.TestCase):
 
     def test_ci_preserves_a_fail_closed_aggregate_check(self):
         workflow = (ROOT / ".github" / "workflows" / "ci.yml").read_text()
-        self.assertIn("group: [core, shiploop]", workflow)
+        self.assertIn(f"group: [{', '.join(CI_GROUPS)}]", workflow)
         self.assertIn('bash test/run-all.sh --group "${{ matrix.group }}"', workflow)
         self.assertIn("fail-fast: false", workflow)
         self.assertIn("python-version: '3.12'", workflow)
