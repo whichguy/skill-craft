@@ -282,12 +282,40 @@ scripted pass/fail gate. It appears at `plan`, `plan-improve`, `step-plan`,
 `verify`, `product-improve`, `integrate`, and `outer-improve`.
 
 Planning names relevant failure boundaries, expected handling, negative checks,
-and code-contract locations. Implementation handles those failures and writes
-the concise contracts alongside code, including these criteria in any delegated
-task prompt. Testing exercises meaningful error paths and observable diagnostics;
+diagnostic actions/fields and code-contract locations. Implementation handles
+those failures, adds the selected diagnostics and writes concise contracts
+alongside code, including these criteria in any delegated task prompt.
+Testing exercises meaningful error paths and observable diagnostics;
 documentation and review check the contracts against the actual candidate.
 Improve assesses these criteria within its own complete campaign; no new Improve
 phase or DAG transition is introduced.
+
+Reuse the project's logger and debug controls for **opt-in debug diagnostics**
+before and after selected major actions (for example, external calls, writes,
+batches or retries). Use bounded, redacted summaries of relevant IDs, counts,
+decisions, state changes and timings, with operation/request correlation when
+useful. Avoid whole-state dumps and expensive collection while debug is off.
+
+At meaningful failure detection, **snapshot safe relevant context before cleanup
+or mutation**; retain stable values rather than references to mutable state.
+Include the operation/phase and expected versus observed conditions. Essential
+failure context remains available with debug off. Keep messages concise and
+appropriate to their audience; internal structured details can carry more context,
+with a correlation ID connecting a public message to internal diagnostics when
+needed. Redact sensitive fields and emitted exception details. Preserve the
+original error type, cause and traceback for propagation, while redacting emitted
+causes and stacks; logging or serialization failures must
+not mask the original error. Record at the owning handling boundary, avoid
+duplicate stacks on rethrow, and distinguish expected control-flow exceptions
+from incidents. This guidance does not prescribe a logging framework.
+
+When diagnostics change, select meaningful checks for debug on/off behavior,
+pre-cleanup context surviving recovery, redaction, original cause preservation,
+and diagnostic failure behavior. Reuse adequate tests and avoid mandatory
+instrumentation on every function. For example, a failed reservation might retain
+`requested=5, available=3, phase=reserved` even after recovery changes the live
+phase to `rolled_back`; verbose tracing can be off while that safe failure context
+remains available. This is an illustrative contract, not an implemented logger.
 
 Error checking is proportional to changed boundaries: preserve actionable errors
 and needed cleanup/recovery, without swallowing failures or adding speculative
