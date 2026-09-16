@@ -272,6 +272,40 @@ limits as facts.
 These are host-executed prompt duties within the existing graph. They add no
 nodes, result fields, scripted evidence validators, or required subagents.
 
+#### Implementation quality indicator
+
+The planning and code-quality packets carry the explicit indicator
+`Implementation quality: error checking + token-efficient code documentation`.
+It is prompt guidance for the current assignment, not a result field or a
+scripted pass/fail gate. It appears at `plan`, `plan-improve`, `step-plan`,
+`step-plan-improve`, `implement`, `test-refine`, `test-author`, `document`,
+`verify`, `product-improve`, `integrate`, and `outer-improve`.
+
+Planning names relevant failure boundaries, expected handling, negative checks,
+and code-contract locations. Implementation handles those failures and writes
+the concise contracts alongside code, including these criteria in any delegated
+task prompt. Testing exercises meaningful error paths and observable diagnostics;
+documentation and review check the contracts against the actual candidate.
+Improve assesses these criteria within its own complete campaign; no new Improve
+phase or DAG transition is introduced.
+
+Error checking is proportional to changed boundaries: preserve actionable errors
+and needed cleanup/recovery, without swallowing failures or adding speculative
+defensive layers. Token-efficient documentation helps a fresh LLM or human
+understand purpose, preconditions, outputs/errors, material side effects,
+invariants, and rationale. Prefer clear names and concise colocated contracts
+over narration or duplicate explanations. Reuse adequate checks/docs, preserve
+material caveats and required API/user docs, and explain genuine non-applicability
+in ordinary notes. This follows the existing
+[code documentation guidance](testing-and-documentation.md#documentation).
+
+For example, a work item that parses configuration should plan its invalid-input
+behavior and a negative case, implement that behavior, and document the accepted
+input and error contract near the parser. Verification runs the case and reviews
+the contract. A docs-only correction need not invent a runtime guard. These are
+illustrative expectations; the navigator records the host's completion judgment
+and cannot prove that the host performed the checks or wrote good documentation.
+
 | Responsibility | Stage | Expected evidence or decision |
 | --- | --- | --- |
 | Challenge acceptance and tests | `step-plan-improve`, `test-refine`, `test-author` | Resolve ambiguous meaning with positive and nearby negative examples; derive expected results from the specification. For important regressions where practical, show an adequate check rejects the known-bad behavior and passes the candidate. |
@@ -311,6 +345,10 @@ owning agent accountable for delegated results. Let observed failures change
 the investigation. Refresh affected test and review evidence after material
 changes, including integration. Promote lessons only as far as their evidence
 and the user's authority support; preserve unvalidated proposals as proposals.
+
+Carry error checking and concise, accurate code documentation from planning
+through implementation and review. Token efficiency means removing redundancy,
+not omitting a material contract or safety caveat.
 
 ## Compatibility and limits
 
