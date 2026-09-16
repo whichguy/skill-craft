@@ -339,6 +339,50 @@ class NavigatorTests(unittest.TestCase):
             for stage in (*EXPECTED_PRELUDE, *EXPECTED_INNER, *EXPECTED_OUTER)
         ))
 
+    def test_discovery_and_planning_packets_bind_one_improve_campaign(self) -> None:
+        # Contract/wiring coverage, not evidence of semantic review quality.
+        successors = {
+            "discovery": "research", "test-strategy": "plan", "release-plan": "release",
+        }
+        combined = set(successors)
+        dedicated = {
+            "research-improve", "spec-improve", "plan-improve",
+            "step-plan-improve", "product-improve", "outer-improve",
+        }
+        self.assertEqual(navigator_prompts.IMPROVE_STAGES, combined | dedicated)
+        core = SimpleNamespace(PACKAGE_ROOT=ROOT / "skills" / "shiploop")
+        for protocol in (1, 2):
+            state = navigator.new_state(str(self.repo), self.goal, protocol_version=protocol)
+            while state["status"] != "done":
+                stage = navigator.current_stage(state)
+                with self.subTest(protocol=protocol, stage=stage):
+                    before = copy.deepcopy(state)
+                    packet = navigator.render(core, self.root, state)
+                    self.assertEqual(state, before)
+                    self.assertIn(f"CLI locator: {SCRIPTS / 'shiploop'}", packet)
+                    if stage in combined | dedicated:
+                        self.assertEqual(packet.count(navigator_prompts.IMPROVE), 1)
+                        self.assertIn("Improve review policy: ", packet)
+                        self.assertIn(str(ROOT / "skills/shiploop/references/improve-review-policy.md"), packet)
+                    else:
+                        # In particular, do not double-wrap research/spec/plan/step-plan.
+                        self.assertNotIn(navigator_prompts.IMPROVE, packet)
+                    self.assertEqual(packet.count("Call this when done:"), 1)
+                    action = navigator.current_action(state)
+                    if stage in combined:
+                        # Recover a saved v1/v2 action through a fresh CLI process;
+                        # updated guidance must not change its durable identity.
+                        navigator.save(self.root, state)
+                        saved_bytes = (self.root / "state.md").read_bytes()
+                        recovered = self._navigator_cli("next")
+                        self.assertEqual((self.root / "state.md").read_bytes(), saved_bytes)
+                        self.assertEqual(recovered.count(navigator_prompts.IMPROVE), 1)
+                        self.assertEqual(recovered.count("Call this when done:"), 1)
+                        self.assertIn(action["id"], recovered)
+                    state = navigator.apply(state, action["id"], self.result())
+                    if stage in combined:
+                        self.assertEqual(navigator.current_stage(state), successors[stage])
+
     def test_two_work_walk_follows_the_declared_graph_without_project_work(self) -> None:
         state = self.advance_to_first_work_item(self.new_state(), self.two_work_items())
         self.assertEqual(state["stage"], "step-plan")

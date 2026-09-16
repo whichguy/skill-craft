@@ -30,6 +30,14 @@ bash test/shiploop-walk-journal.test.sh
 
 It is not part of the aggregate; the `shiploop` group owns the action walk once.
 
+The ShipLoop group includes opt-in consumer-delivery declaration checks, public
+CLI compatibility/relocation tests, synthetic prompt/fake-boundary fixtures, and
+temporary loopback HTTP checks of the browser fixture's distinct served cases.
+The guard tests check retained requirements and declared observations, not the
+truth of remote evidence. Fresh-context interpretation responses are a separate
+bounded study, not a deterministic LLM gate or proof of Improve convergence.
+See [consumer-delivery experiments](experiments/shiploop_delivery/README.md).
+
 ## Explicit integration targets
 
 Integration checks never run as a default dependency of the hermetic aggregate.

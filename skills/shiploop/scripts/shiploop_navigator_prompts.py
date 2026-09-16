@@ -40,12 +40,15 @@ OUTER = (
 )
 
 IMPROVE_STAGES = {
+    "discovery",
     "research-improve",
     "spec-improve",
+    "test-strategy",
     "plan-improve",
     "step-plan-improve",
     "product-improve",
     "outer-improve",
+    "release-plan",
 }
 
 # These stages can cross an environment boundary before, during, or after the
@@ -73,6 +76,18 @@ routing. You own repository review, judgment, planning, edits, test design,
 commands, evidence, and whether work has converged. Follow the user’s scope
 and permissions; do not infer permission to release, push, install, delete, or
 change unrelated work.
+
+For work that may affect a user, retain the original requested outcome and
+identify the actual or likely consumer and entry point. A repository or Git
+history is a source of context, not automatically the consumer boundary.
+Keep separate: whether a consumer update or check is necessary, whether its
+exact target and operation are authorized, and evidence of operation/effect,
+artifact identity, and consumer behavior. An applicable user-approved
+repository policy can grant a scoped operation; an agent-authored plan, a
+visible connection, or a prior operation cannot. Absence of an explicit publish
+wording does not silently make work source-only. A necessary operation or check
+without authority or current evidence is unresolved or blocked, not
+non-applicable; do not perform it merely to resolve the uncertainty.
 
 Use this packet's Current node and Action for your assignment and callback;
 the Last accepted transition describes earlier work, not the current action.
@@ -109,6 +124,14 @@ applying them. Classify materiality
 semantically: a one-line defect can be material, and cosmetic changes are not
 automatically material. Investigate uncertainty. Any material finding or edit
 resets the clean-review condition.
+
+In every cycle, compare the plan to the original request, not only the generated
+specification: if all planned steps succeed, will the intended user receive the
+requested behavior at the intended entry point? Identify a missing update
+operation, authorization decision, consumer check, or consequential second-
+order effect. Preserve source/effect, artifact identity, and consumer-behavior
+observations separately. This is a review question inside this existing
+campaign; do not create another stage, wrapper, counter, or standalone loop.
 
 After every affected plan, code, test, documentation, or skill change, refresh
 the checks it can affect. Keep a durable human-readable record under the run
@@ -192,10 +215,12 @@ PROMPTS = {
     "intake": _prompt(
         """\
 Establish the requested outcome, repository and run boundaries, explicit user
-constraints, authority limits, consumers, known risks, and unanswered
-questions. Distinguish facts from assumptions. Identify what discovery must
-establish before research, specification, planning, tests, or release work can
-be trusted; do not implement or silently expand scope yet."""
+constraints, authority limits, consumers and entry points, known risks, and
+unanswered questions. For a likely existing consumer, distinguish whether a
+usable update is necessary from whether a specific remote operation is
+authorized. Distinguish facts from assumptions. Identify what discovery must
+establish before research, specification, planning, pre/post-update tests, or
+release work can be trusted; do not implement or silently expand scope yet."""
     ),
     "discovery": _prompt(
         """\
@@ -203,7 +228,22 @@ Inspect the current repository, Git/worktree state, instructions, relevant
 code, tests, documentation, environment, consumers, and useful local skills.
 Record current facts and gaps that shape the work. Review the candidate before
 planning; neither old commits nor a visible file proves current behavior,
-authorization, or a passing check."""
+authorization, or a passing check.
+For an existing system, locate the actual consumer/entry point and any
+user-approved delivery policy or activation mechanism. A hosted consumer makes
+delivery a material question, not automatic authority or an automatic
+source-only conclusion. When its answer changes scope or authority, ask or
+durably retain one high-value unresolved question while continuing independent
+authorized work.
+First produce the discovery record, then run the complete Improve campaign
+below on that record before returning done. Challenge existing-versus-new
+system assumptions, affected actors and flows, access claims, missing evidence,
+and consequential second-order effects. Improve the investigation and its
+durable findings, not product code. An unanswered downstream question may be
+recorded with its owner and gating stage; an unresolved prerequisite for this
+discovery remains incomplete. Reuse the shared investigation allowance across
+reviews; exhaustion is not convergence.""",
+        improve=True,
     ),
     "research": _prompt(
         """\
@@ -227,7 +267,9 @@ Define the approved behavior, boundaries, acceptance criteria, nonfunctional
 expectations, failure cases, and consumer-facing outcomes. State independent
 expected outcomes early, including local tests and plausible integration,
 system-test, or outer-loop obligations. Mark unresolved prerequisites or user
-decisions instead of burying them in implementation detail."""
+decisions instead of burying them in implementation detail. For any consumer
+update, record whether it is required, source-only, or unresolved and keep that
+necessity separate from authority for a target operation."""
     ),
     "spec-improve": _prompt(
         """\
@@ -243,7 +285,15 @@ Turn the specification into independent, observable expected outcomes before
 coding. Cover normal, failure, boundary, and relevant consumer behavior;
 separate executable local tests from integration, runtime, and system tests.
 Name necessary fixtures, data, environments, authorization, and evidence
-limits. A planned test is not a passed test."""
+limits. Place pre-update candidate checks separately from post-update consumer
+checks, and distinguish source/effect, artifact identity, and behavior
+observations. A planned test is not a passed test.
+First produce this test strategy, then run the complete Improve campaign below
+on its cases, independent expected outcomes, coverage gaps, and prerequisite
+placement before returning done. Check the plan's adequacy using relevant
+source/specification evidence; do not claim unimplemented tests passed or
+require future implementation merely to review the strategy.""",
+        improve=True,
     ),
     "plan": _prompt(
         """\
@@ -252,18 +302,21 @@ outcome: required behavior, prerequisites, suppliers, affected consumers, and
 verification. Use Backchain-style reasoning to expose missing inputs or cycles.
 Order approved work by actual dependencies and retain early test and outer/
 system-test obligations. Carry the implementation quality criteria below into
-each applicable work item's acceptance expectations. If useful, return ordered
-`work_items` covering the whole approved plan; do not turn them into a second
-scheduler.""",
+each applicable work item's acceptance expectations. For a required consumer outcome, plan the exact update
+operation, target, authority source, and pre/post-update checks; leave an
+unknown authority unresolved rather than deleting the outcome. If useful,
+return ordered `work_items` covering the whole approved plan; do not turn them
+into a second scheduler.""",
         implementation_quality=True,
     ),
     "plan-improve": _prompt(
         """\
 Improve the complete delivery plan. Recheck prerequisites, dependency order,
 scope, expected outcomes, test strategy, system-test obligations, consumers,
-and release assumptions. Refresh affected planned checks before deciding the
-plan is ready for local step planning. If the approved work queue changes
-before execution, return ordered `work_items` for the whole updated plan.""",
+release assumptions, required consumer updates, and their authority. Refresh
+affected planned checks before deciding the plan is ready for local step
+planning. If the approved work queue changes before execution, return ordered
+`work_items` for the whole updated plan.""",
         improve=True,
         implementation_quality=True,
     ),
@@ -284,8 +337,10 @@ boundaries: authorization, data integrity, dependency provenance/compatibility,
 migration recovery, or useful diagnostics as relevant. Keep the selection
 proportionate; record a missing required prerequisite as incomplete.
 Distinguish prerequisites for the current work item from downstream integration,
-system-test, or release conditions. Record downstream-only conditions, their
-owner and earliest gating stage without blocking independently authorized work.
+system-test, consumer-update, or release conditions. Record downstream-only
+conditions, their owner and earliest gating stage without blocking independently
+authorized work. Preserve a new delivery implication for carry-forward instead
+of assuming a later stage will rediscover it.
 If delegating, define bounded task/file ownership, shared interface contracts,
 inputs, expected outputs and evidence, and the owner responsible for checking
 the assembled result. Delegation remains within the current action.""",
@@ -399,7 +454,8 @@ waive a required check because a retry budget or investigation allowance ended."
 Improve the assembled product candidate as a whole, including the integrated
 plan, code, tests, documentation, skill/reuse decision, and verification
 evidence. Reconsider consumers, cross-step behavior, dependencies, and
-system-test needs. Any plan, code, test, documentation, or skill change made
+system-test needs, including whether a required consumer update or post-update
+check has changed. Any plan, code, test, documentation, or skill change made
 inside this action refreshes every affected check before convergence. Revisit
 the selected operational/security checks, test-oracle adequacy, actual combined
 worker outputs, and final-candidate review coverage in proportion to this
@@ -428,7 +484,9 @@ Review broad remaining scope, dependencies, discoveries, system-test needs,
 consumer impacts, release prerequisites, and reusable-skill obligations. Keep
 current work separate from honest future work. If needed, return ordered
 future-only `work_items`; do not use them to claim a future test, integration,
-or release has already occurred.
+or release has already occurred. Carry unresolved required delivery, exact
+target/authority, and pre/post-update verification obligations forward with
+their evidence and owner; do not let an ordinary summary erase them.
 For a consequential learning, decide whether to retain it in this run, add a
 repo-local regression/example, or propose a shared skill/prompt improvement.
 Record the supporting evidence and target; avoid promoting a one-off workaround
@@ -441,7 +499,10 @@ Run or honestly assess the actual authorized integration, end-to-end, runtime,
 or system checks that were planned. Verify the real target, prerequisites,
 fixtures, authorization, and observed behavior; distinguish a planned case or
 local mock from an executed system boundary. A genuinely non-applicable check
-needs a concrete reason, while unknown access or target state is blocked."""
+needs a concrete reason, while unknown access or target state is blocked.
+Complete due pre-update checks here; leave required post-update consumer checks
+explicitly pending for their assigned release-verification boundary rather than
+calling them passed."""
     ),
     "outer-improve": _prompt(
         """\
@@ -452,7 +513,9 @@ all checks affected by any plan, code, test, documentation, or skill change
 made during the complete improvement campaign. Resolve pending learning
 promotion proposals against representative regression evidence and existing
 authority; retain, revise, or decline them explicitly. Unvalidated proposals
-may remain documented future work but cannot be reported as adopted.""",
+may remain documented future work but cannot be reported as adopted. Recheck
+that required consumer updates and post-update checks remain carried forward
+with their necessity, authority, and distinct evidence needs.""",
         improve=True,
         implementation_quality=True,
     ),
@@ -462,7 +525,27 @@ Plan a release only within granted authority. Identify the intended target,
 identity and version checks, permissions, prerequisites, user impact,
 rollback/recovery path, monitoring, and pre/post-release verification. A plan
 does not authorize the release or prove target access; leave unsupported
-decisions blocked for direction."""
+decisions blocked for direction.
+First determine whether a consumer update is necessary; then separately
+determine its exact target, operation, and scoped authority. A required but
+unauthorized or unverified update is blocked, not non-applicable. Source
+synchronization, artifact identity, consumer behavior, versioned deployment,
+promotion, and access changes are distinct operations or observations.
+This current action's deliverable is a non-executing release plan. After its
+Improve campaign and planning-level prerequisite review, `done` means that plan
+is complete, not that an update or consumer check has occurred. The existing
+`release` action owns an authorized synchronization or update; `release-verify`
+owns post-update consumer behavior. Do not block this plan merely because those
+future actions have not run. Block only when a fact needed to scope the plan
+safely, such as required authority, target, operation, or necessary current
+pre-update condition, remains unresolved.
+First produce the release plan or a justified non-applicable assessment, then
+run the complete Improve campaign below on that candidate before returning
+done. Challenge target identity, authority, ordering, recovery, and consumer
+checks without performing the release. A non-applicable release still needs
+review of that conclusion; it is valid only when no necessary in-scope
+activation remains and does not require invented deployment work.""",
+        improve=True,
     ),
     "release": _prompt(
         """\
@@ -470,7 +553,9 @@ Execute a release only when it is explicitly authorized and the planned target,
 checks, and rollback conditions are satisfied. Inspect the real result before
 claiming an external effect. When no release applies, report an honest,
 concrete non-applicable reason; do not invent a deployment, commit, push, or
-consumer change to advance the graph."""
+consumer change to advance the graph. Record operation/effect and artifact
+identity separately. If an outcome is uncertain, reconcile it before retrying;
+do not blindly repeat an update merely to obtain a new observation."""
     ),
     "release-verify": _prompt(
         """\
@@ -478,7 +563,11 @@ Verify the actual relevant release and consumer/runtime boundary using current
 target evidence. Confirm the observed behavior, version or identity where
 available, and release-specific checks; distinguish unavailable evidence from
 a passed check. If release was genuinely non-applicable, verify the applicable
-final consumer boundary and retain that reason."""
+final consumer boundary and retain that reason. Source synchronization, an
+artifact string, a URL, or a successful GET cannot replace a required consumer
+interaction. If an update succeeded but consumer access is blocked, preserve the
+update evidence and report behavior as blocked or unverified; do not re-upload
+without evidence that retrying is appropriate."""
     ),
     "handoff": _prompt(
         """\
@@ -486,7 +575,10 @@ Produce an honest handoff of actual source, test, integration, release, and
 consumer status. Name completed evidence, current limitations, unresolved
 blockers, follow-up work, operational/revalidation needs, and the exact scope
 of any non-applicable release. Do not convert a planned action, stale check,
-or conversational summary into completion evidence."""
+or conversational summary into completion evidence. Report separately what was
+implemented, what update was performed or already current, what artifact
+identity was checked, what consumer behavior was verified, and what remains
+blocked or unverified."""
     ),
 }
 

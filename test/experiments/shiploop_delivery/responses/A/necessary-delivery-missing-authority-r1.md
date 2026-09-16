@@ -1,0 +1,5 @@
+outcome: blocked
+
+summary: Request the user's explicit choice of hosted target and release operation, plus authority for that operation. Before a release plan can converge, obtain current evidence for the selected environment's identity and deployed version, access and prerequisites, expected user impact, rollback/recovery path and owner, monitoring, and pre-/post-release consumer checks showing the cue in the hosted app. Once supplied, prepare a non-executing release plan, complete its required review campaign, and submit `done` only when all authorized planning and review evidence is complete. Do not submit `repeat`: ordinary reviews belong inside this action, while the missing authority prevents progress. Submit `blocked` now and resume only when the decision and evidence are available.
+
+Do not inspect the repository or runtime, run tests or commands, create a ShipLoop run or notes, contact or deploy to a target, push, install, delete, or change files other than this response, or invoke a completion callback. Do not claim a release or consumer effect.

@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Candidate 2 — broken movement cue</title>
+</head>
+<body data-candidate="candidate-2" data-ui-mode="broken" data-result="pending">
+  <main>
+    <h1>Checkers movement cue</h1>
+    <p id="candidate">Candidate: candidate-2</p>
+    <button id="move-piece" type="button">Move piece</button>
+    <p id="movement-result" aria-live="polite">No movement evaluated.</p>
+  </main>
+  <script>
+    document.querySelector("#move-piece").addEventListener("click", () => {
+      document.body.dataset.result = "failed";
+      document.querySelector("#movement-result").textContent =
+        "Movement cue did not become visible.";
+    });
+  </script>
+</body>
+</html>
