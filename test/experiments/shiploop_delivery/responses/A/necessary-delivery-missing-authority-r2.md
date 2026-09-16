@@ -1,0 +1,5 @@
+outcome: blocked
+
+summary: The next appropriate action is to ask the user to identify one hosted deployment target and explicitly authorize the exact remote update. Request current evidence for target identity, deployed version or commit, source artifact or version, access and prerequisites, expected user impact or window, rollback owner and path, monitoring, and pre- and post-release consumer-visible cue verification. Then, within confirmed authority, produce and review a release plan and complete the required review campaign; report done only after the authorized plan, current checks, and consumer-delivery evidence establish success. Do not use repeat merely to wait for authority; use it only if a new same-node attempt must restart with materially new, actionable context. This attempt is blocked now because no target, operation, or approved authority exists.
+
+I would not inspect the repository, run context, or other references; run tests; invoke runtime or completion callbacks; authenticate or contact a target; deploy, release, push, or install; alter source or configuration; or claim an external effect. No callback will be submitted in this exercise.

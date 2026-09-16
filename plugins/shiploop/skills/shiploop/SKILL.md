@@ -5,7 +5,7 @@ description: >-
   script's current action packet, and submit its exact completion call until
   the script reports completion with an HTML achievement report. Use when the
   user says shiploop, ship the project, or requests a durable delivery loop.
-version: 0.10.1
+version: 0.10.3
 allowed-tools: all
 license: MIT
 platforms:
@@ -68,6 +68,12 @@ an existing run:
 python3 "$CLI" next --run-dir "$RUN_DIR"
 ```
 
+For a new run explicitly piloting consumer-delivery declaration checks, add
+`--delivery-contract` to `init`. Read [consumer delivery](references/consumer-delivery.md)
+for its result contract, source-only cases, and recovery boundaries. The option
+does not grant publication authority or retrofit an existing run. Use the
+packet's generated assessment template; the script supplies its binding.
+
 For a settled navigator run, `next` rereads the saved current state: it neither
 advances it nor chooses a successor. Use `init` only once for a new run. Before
 working from an existing run, confirm the printed original goal and repository
@@ -117,7 +123,15 @@ the host handoff, or force any host tool call.
    test criteria before implementation, refine cases using the actual code,
    run meaningful tests and available linters, fix failures and recheck. Record
    outcomes and limitations honestly. Do not weaken tests to obtain a pass.
-3. At an Improve action, read the packaged shared policy and the
+   Follow the packet's implementation quality indicator: plan and implement
+   relevant error checking, opt-in debug diagnostics, safe failure context,
+   and concise, LLM-readable code contracts, then
+   verify their behavior and accuracy. Keep material caveats; avoid boilerplate.
+3. Discovery, test-strategy, and release-plan first produce their candidate,
+   then run Improve before completing that same action. Research, specification,
+   overall planning, and step planning use their existing immediate Improve
+   successor; do not add a duplicate campaign to their draft action.
+   At an Improve action, read the packaged shared policy and the
    [navigator owner binding](references/navigator.md). It is a call-and-return
    action: perform the entire review/plan/apply/check/record/assess campaign
    internally until its stopping condition is met. Preserve useful learnings
@@ -138,6 +152,14 @@ the host handoff, or force any host tool call.
    and use its printed `resume` command once. Halted or done packets stop.
 6. Completion records the host's declaration. It is not independent proof that
    software was tested, deployed, or accepted by a consumer.
+
+Establish where the requested behavior must become usable, especially for an
+incremental change to an existing system. Absence of the word "publish" does
+not make hosted delivery optional; it also does not grant remote-write authority.
+Keep update necessity, scoped authority, and consumer verification distinct.
+If scope is unclear, ask and retain the answer in durable evidence, then follow
+the current callback. Improve must challenge whether the plan delivers the
+original user outcome, not only whether it satisfies the generated spec.
 
 The navigator validates action identity, result shape, allowed transitions and
 safe state writes. It does not run Git/tests, fingerprint products, freeze

@@ -32,7 +32,7 @@ bash test/shiploop-walk-journal.test.sh
 
 It is not part of the aggregate; the `shiploop` group owns the action walk once.
 
-`test/shiploop.test.sh` owns one ordered 63-suite inventory. Its no-argument
+`test/shiploop.test.sh` owns one ordered ShipLoop inventory. Its no-argument
 form remains the complete serial runner. `--list` prints only the selected
 inventory and does not run synchronization or a test. `--shard 1/3`, `2/3`, or
 `3/3` selects every third suite from that same order, so the three inventories
@@ -40,6 +40,14 @@ are disjoint and contain the action walk once in total. CI calls those shards
 through `shiploop-1`, `shiploop-2`, and `shiploop-3`; they are scheduling
 aliases and are intentionally excluded from `--group all`, which still runs
 the full serial ShipLoop runner exactly once.
+
+The ShipLoop group includes opt-in consumer-delivery declaration checks, public
+CLI compatibility/relocation tests, synthetic prompt/fake-boundary fixtures, and
+temporary loopback HTTP checks of the browser fixture's distinct served cases.
+The guard tests check retained requirements and declared observations, not the
+truth of remote evidence. Fresh-context interpretation responses are a separate
+bounded study, not a deterministic LLM gate or proof of Improve convergence.
+See [consumer-delivery experiments](experiments/shiploop_delivery/README.md).
 
 ## Explicit integration targets
 

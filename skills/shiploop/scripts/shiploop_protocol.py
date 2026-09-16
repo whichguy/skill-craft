@@ -7556,6 +7556,8 @@ def main(core, argv=None):
             sub.add_argument("--force", action="store_true")
             sub.add_argument("--execution-mode", choices=("navigator", "navigator-v1", "managed", "legacy"), default="navigator",
                              help="new-run protocol; existing runs retain their recorded mode")
+            sub.add_argument("--delivery-contract", action="store_true",
+                             help="opt in a new navigator-v2 run to consumer-delivery declaration checks")
             sub.add_argument("--independent-review", choices=("optional", "required", "required-with-fallback"), default="optional",
                              help="bind managed review requirements; fallback must be explicitly recorded")
         if name in (
@@ -7671,6 +7673,9 @@ def main(core, argv=None):
         if name in ("halt", "pause", "repair", "merge-recover", "revisit"):
             sub.add_argument("--reason", required=True)
     args = parser.parse_args(argv)
+    if (args.command == "init" and args.delivery_contract
+            and args.execution_mode != "navigator"):
+        parser.error("--delivery-contract requires a new navigator-v2 run")
     if args.command == "graph-dry-run":
         # Deliberately before run-directory discovery, locking or state access.
         return navigator_dry_run.run(args)
@@ -7694,6 +7699,10 @@ def main(core, argv=None):
             # A marker mismatch is an error, never an implicit protocol change.
             if (root / "state.md").exists():
                 existing = core.load_state(root)
+                need(not getattr(args, "delivery_contract", False)
+                     or (existing.get("navigator_protocol_version") == 2
+                         and existing.get("delivery_contract_version") == 1),
+                     "--delivery-contract cannot retrofit an existing run; preserve it and use its recorded protocol")
                 if ("navigator_protocol_version" in existing
                         or existing.get("execution_mode") == "navigator"):
                     need(not getattr(args, "force", False),
@@ -7740,6 +7749,7 @@ def main(core, argv=None):
                         str(Path(args.repo or os.getcwd()).resolve()), args.prompt,
                         str(Path(args.bound_plan).resolve()) if args.bound_plan else "",
                         protocol_version=1 if args.execution_mode == "navigator-v1" else 2,
+                        delivery_contract=args.delivery_contract,
                     )
                     navigator.save(root, state)
                     print(navigator.render(core, root, state))

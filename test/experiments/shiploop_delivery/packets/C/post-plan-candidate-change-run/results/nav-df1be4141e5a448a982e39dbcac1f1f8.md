@@ -1,0 +1,16 @@
+# ShipLoop navigator result
+
+```shiploop-state
+{
+  "action": "nav-df1be4141e5a448a982e39dbcac1f1f8",
+  "navigator_protocol_version": 2,
+  "result": {
+    "evidence_refs": [],
+    "outcome": "done",
+    "summary": "Synthetic local navigator result."
+  },
+  "run_id": "nav-72867728cd75414f99586cc05e3c1ca4",
+  "stage": "spec",
+  "workitem": null
+}
+```

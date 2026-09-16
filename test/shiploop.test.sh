@@ -10,6 +10,11 @@ cd "$root"
 suites=(
   test/shiploop-navigator.test.py \
   test/shiploop-navigator-dry-run.test.py \
+  test/shiploop-consumer-delivery.test.py \
+  test/shiploop-consumer-delivery-cli.test.py \
+  test/shiploop-delivery-prompts.test.py \
+  test/experiments/shiploop_delivery/fake_deployment.test.py \
+  test/experiments/shiploop_delivery/browser_consumer/serve_fixture.test.py \
   test/improve-managed.test.py \
   test/shiploop-graph-driver.test.py \
   test/shiploop-graph-trace.test.py \

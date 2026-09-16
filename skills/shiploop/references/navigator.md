@@ -9,8 +9,8 @@ review, and assess the work.
 
 ```mermaid
 flowchart LR
-  I[Intake] --> D[Discovery] --> R[Research] --> RI[Improve: research - one campaign]
-  RI --> S[Specification] --> SI[Improve: spec - one campaign] --> TS[Test strategy]
+  I[Intake] --> D[Discovery plus Improve] --> R[Research] --> RI[Improve: research - one campaign]
+  RI --> S[Specification] --> SI[Improve: spec - one campaign] --> TS[Test strategy plus Improve]
   TS --> P[Plan] --> PI[Improve: plan - one campaign] --> SP[Step plan]
   SP --> SPI[Improve: step plan - one campaign] --> IM[Implement] --> TR[Test refine]
   TR --> TA[Test author] --> DOC[Document and reuse decision]
@@ -19,7 +19,7 @@ flowchart LR
   V --> PRI[Improve: product - one campaign] --> IN[Integrate] --> CF[Carry forward]
   CF -->|next work item| SP
   CF -->|all work items complete| ST[System test] --> OI[Improve: whole product - one campaign]
-  OI --> RP[Release plan] --> REL[Release or honest N/A] --> RV[Release verify]
+  OI --> RP[Release plan plus Improve] --> REL[Release or honest N/A] --> RV[Release verify]
   RV --> H[Handoff] --> DONE[Done]
 ```
 
@@ -95,6 +95,7 @@ The semantic result contract is small:
 | `evidence_refs` | Optional safe references to source, test, note, or external-operation evidence. |
 | `work_items` | Optional ordered `{id,title,context?}` list at `plan` or `plan-improve` before execution for all approved work, or at `carry-forward` for future-only work. |
 | `choices.skill_required` | Optional at `document` only. `true` selects `skill-validate`; omit it when no skill validation is required. |
+| `delivery_assessment` | Only for new v2 runs initialized with `--delivery-contract`: a full consumer-delivery contract/correction or bound observations, using the packet template. See [consumer delivery](consumer-delivery.md). |
 
 `repeat` allocates another action at the same node, so the host can continue
 with new information. `blocked` retains unfinished work; after the condition
@@ -182,12 +183,29 @@ prompt path, not evidence that any repository inspection occurred.
 
 ## Improve nodes own their full campaign
 
+`discovery`, `test-strategy`, `release-plan`,
 `research-improve`, `spec-improve`, `plan-improve`, `step-plan-improve`,
 `product-improve`, and `outer-improve` each invoke the packaged reusable
 [Improve review policy](improve-review-policy.md). Each is one call-and-return
 graph action. The campaign's work occurs under its assigned action; it does not
 become DAG nodes, `inner_loops` records, child callbacks, or ShipLoop review
 counters.
+
+Discovery, test strategy, and release planning first produce their initial
+candidate, then run their full Improve campaign **inside the same action before
+its one completion**. Research, specification, overall planning, and step
+planning retain their immediate dedicated Improve successor; do not wrap their
+draft actions again. Intake remains scope/authority framing. These are prompt
+duties on existing nodes, not new stages or a saved-run migration.
+
+Review the actual stage artifact: discovery facts and consequential unknowns,
+test cases and independent expected outcomes, or release prerequisites and
+recovery/verification plans. A plan check need not execute future product tests,
+and release-plan review must not perform the release. A justified non-applicable
+release is itself a reviewable conclusion. An empty/new repo has no seven-commit
+history to invent: disclose the absence and use current evidence. Discovery
+review shares the existing investigation allowance; exhausting it with required
+work unfinished is incomplete, not two clean passes.
 
 The navigator’s binding is:
 
@@ -253,6 +271,12 @@ from intent. `carry-forward` reviews broad scope, dependencies, future
 system-test requirements, and skill obligations without pretending future work
 is complete.
 
+Delivery planning names the intended consumer and distinguishes source updates,
+versioned releases, promotion, and access changes by their actual effects and
+authority. A local-only decision must match the user's scope; missing access
+does not turn a required update into N/A. Improve challenges the original user
+outcome rather than treating the generated spec as its own authority.
+
 `system-test` is for actual authorized integration, end-to-end, runtime, or
 system-boundary checks, distinct from merely planning them. `outer-improve`
 reviews the whole assembled product. `release-plan` establishes permission,
@@ -260,6 +284,16 @@ target, rollback, and checks; `release` may honestly be non-applicable;
 `release-verify` examines the actual consumer/runtime boundary. `handoff`
 reports source, test, integration, release, consumer status, and remaining
 limits as facts.
+
+For an opt-in delivery-contract run, the existing ledger also carries typed
+requirements and separate source/update/identity/behavior observations. The
+script checks declared coverage at the relevant boundary, while the host
+executes and judges checks. Pre-update checks can be refreshed during outer
+Improve/release planning. A material post-plan candidate or target change that
+needs replanning blocks for direction; `repeat` does not jump backward.
+An unchanged candidate with a completed update and blocked browser check resumes
+verification without automatically re-uploading. See the [full contract and
+recovery examples](consumer-delivery.md). No new stages or Improve counters apply.
 
 | Owner | Duties |
 | --- | --- |
@@ -271,6 +305,68 @@ limits as facts.
 
 These are host-executed prompt duties within the existing graph. They add no
 nodes, result fields, scripted evidence validators, or required subagents.
+
+#### Implementation quality indicator
+
+The planning and code-quality packets carry the explicit indicator
+`Implementation quality: error checking + token-efficient code documentation`.
+It is prompt guidance for the current assignment, not a result field or a
+scripted pass/fail gate. It appears at `plan`, `plan-improve`, `step-plan`,
+`step-plan-improve`, `implement`, `test-refine`, `test-author`, `document`,
+`verify`, `product-improve`, `integrate`, and `outer-improve`.
+
+Planning names relevant failure boundaries, expected handling, negative checks,
+diagnostic actions/fields and code-contract locations. Implementation handles
+those failures, adds the selected diagnostics and writes concise contracts
+alongside code, including these criteria in any delegated task prompt.
+Testing exercises meaningful error paths and observable diagnostics;
+documentation and review check the contracts against the actual candidate.
+Improve assesses these criteria within its own complete campaign; no new Improve
+phase or DAG transition is introduced.
+
+Reuse the project's logger and debug controls for **opt-in debug diagnostics**
+before and after selected major actions (for example, external calls, writes,
+batches or retries). Use bounded, redacted summaries of relevant IDs, counts,
+decisions, state changes and timings, with operation/request correlation when
+useful. Avoid whole-state dumps and expensive collection while debug is off.
+
+At meaningful failure detection, **snapshot safe relevant context before cleanup
+or mutation**; retain stable values rather than references to mutable state.
+Include the operation/phase and expected versus observed conditions. Essential
+failure context remains available with debug off. Keep messages concise and
+appropriate to their audience; internal structured details can carry more context,
+with a correlation ID connecting a public message to internal diagnostics when
+needed. Redact sensitive fields and emitted exception details. Preserve the
+original error type, cause and traceback for propagation, while redacting emitted
+causes and stacks; logging or serialization failures must
+not mask the original error. Record at the owning handling boundary, avoid
+duplicate stacks on rethrow, and distinguish expected control-flow exceptions
+from incidents. This guidance does not prescribe a logging framework.
+
+When diagnostics change, select meaningful checks for debug on/off behavior,
+pre-cleanup context surviving recovery, redaction, original cause preservation,
+and diagnostic failure behavior. Reuse adequate tests and avoid mandatory
+instrumentation on every function. For example, a failed reservation might retain
+`requested=5, available=3, phase=reserved` even after recovery changes the live
+phase to `rolled_back`; verbose tracing can be off while that safe failure context
+remains available. This is an illustrative contract, not an implemented logger.
+
+Error checking is proportional to changed boundaries: preserve actionable errors
+and needed cleanup/recovery, without swallowing failures or adding speculative
+defensive layers. Token-efficient documentation helps a fresh LLM or human
+understand purpose, preconditions, outputs/errors, material side effects,
+invariants, and rationale. Prefer clear names and concise colocated contracts
+over narration or duplicate explanations. Reuse adequate checks/docs, preserve
+material caveats and required API/user docs, and explain genuine non-applicability
+in ordinary notes. This follows the existing
+[code documentation guidance](testing-and-documentation.md#documentation).
+
+For example, a work item that parses configuration should plan its invalid-input
+behavior and a negative case, implement that behavior, and document the accepted
+input and error contract near the parser. Verification runs the case and reviews
+the contract. A docs-only correction need not invent a runtime guard. These are
+illustrative expectations; the navigator records the host's completion judgment
+and cannot prove that the host performed the checks or wrote good documentation.
 
 | Responsibility | Stage | Expected evidence or decision |
 | --- | --- | --- |
@@ -311,6 +407,10 @@ owning agent accountable for delegated results. Let observed failures change
 the investigation. Refresh affected test and review evidence after material
 changes, including integration. Promote lessons only as far as their evidence
 and the user's authority support; preserve unvalidated proposals as proposals.
+
+Carry error checking and concise, accurate code documentation from planning
+through implementation and review. Token efficiency means removing redundancy,
+not omitting a material contract or safety caveat.
 
 ## Compatibility and limits
 

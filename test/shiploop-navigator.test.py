@@ -339,6 +339,50 @@ class NavigatorTests(unittest.TestCase):
             for stage in (*EXPECTED_PRELUDE, *EXPECTED_INNER, *EXPECTED_OUTER)
         ))
 
+    def test_discovery_and_planning_packets_bind_one_improve_campaign(self) -> None:
+        # Contract/wiring coverage, not evidence of semantic review quality.
+        successors = {
+            "discovery": "research", "test-strategy": "plan", "release-plan": "release",
+        }
+        combined = set(successors)
+        dedicated = {
+            "research-improve", "spec-improve", "plan-improve",
+            "step-plan-improve", "product-improve", "outer-improve",
+        }
+        self.assertEqual(navigator_prompts.IMPROVE_STAGES, combined | dedicated)
+        core = SimpleNamespace(PACKAGE_ROOT=ROOT / "skills" / "shiploop")
+        for protocol in (1, 2):
+            state = navigator.new_state(str(self.repo), self.goal, protocol_version=protocol)
+            while state["status"] != "done":
+                stage = navigator.current_stage(state)
+                with self.subTest(protocol=protocol, stage=stage):
+                    before = copy.deepcopy(state)
+                    packet = navigator.render(core, self.root, state)
+                    self.assertEqual(state, before)
+                    self.assertIn(f"CLI locator: {SCRIPTS / 'shiploop'}", packet)
+                    if stage in combined | dedicated:
+                        self.assertEqual(packet.count(navigator_prompts.IMPROVE), 1)
+                        self.assertIn("Improve review policy: ", packet)
+                        self.assertIn(str(ROOT / "skills/shiploop/references/improve-review-policy.md"), packet)
+                    else:
+                        # In particular, do not double-wrap research/spec/plan/step-plan.
+                        self.assertNotIn(navigator_prompts.IMPROVE, packet)
+                    self.assertEqual(packet.count("Call this when done:"), 1)
+                    action = navigator.current_action(state)
+                    if stage in combined:
+                        # Recover a saved v1/v2 action through a fresh CLI process;
+                        # updated guidance must not change its durable identity.
+                        navigator.save(self.root, state)
+                        saved_bytes = (self.root / "state.md").read_bytes()
+                        recovered = self._navigator_cli("next")
+                        self.assertEqual((self.root / "state.md").read_bytes(), saved_bytes)
+                        self.assertEqual(recovered.count(navigator_prompts.IMPROVE), 1)
+                        self.assertEqual(recovered.count("Call this when done:"), 1)
+                        self.assertIn(action["id"], recovered)
+                    state = navigator.apply(state, action["id"], self.result())
+                    if stage in combined:
+                        self.assertEqual(navigator.current_stage(state), successors[stage])
+
     def test_two_work_walk_follows_the_declared_graph_without_project_work(self) -> None:
         state = self.advance_to_first_work_item(self.new_state(), self.two_work_items())
         self.assertEqual(state["stage"], "step-plan")
@@ -1447,6 +1491,138 @@ class NavigatorTests(unittest.TestCase):
                 ),
             )
         self.assertEqual((self.root / "state.md").read_bytes(), before)
+
+    def assert_current_packet_quality(
+        self, packet: str, stage: str, action_id: str, *, required: bool
+    ) -> None:
+        """Check one current action packet without snapshotting its prose."""
+        marker = "Implementation quality: error checking + token-efficient code documentation"
+        self.assertIn(f"ShipLoop navigator | {stage} |", packet)
+        self.assertEqual(packet.count("Current stage guidance:"), 1)
+        self.assertEqual(packet.count("Call this when done:"), 1)
+        self.assertEqual(packet.count(f"--action={action_id}"), 1)
+        if not required:
+            self.assertNotIn(marker, packet)
+            return
+        self.assertEqual(packet.count(marker), 1)
+        normalized = " ".join(packet.split())
+        for concept in (
+            "actionable errors",
+            "opt-in debug diagnostics",
+            "bounded, redacted before/after summaries",
+            "snapshot safe relevant values before cleanup or mutation",
+            "stable copies, not mutable references",
+            "essential error context even when debug is off",
+            "Expose only safe, concise audience-appropriate messages; keep bounded structured context internal",
+            "Redact sensitive fields and emitted exception details",
+            "Preserve the original type, cause and traceback for propagation",
+            "diagnostics must not mask the original error",
+            "concise colocated contracts",
+            "Preserve material caveats",
+        ):
+            self.assertIn(concept, normalized)
+
+    def test_implementation_quality_guidance_follows_two_work_items_without_state_expansion(
+        self,
+    ) -> None:
+        """Quality guidance belongs only in the selected rendered action packets."""
+        quality_stages = frozenset(
+            (
+                "plan",
+                "plan-improve",
+                "step-plan",
+                "step-plan-improve",
+                "implement",
+                "test-refine",
+                "test-author",
+                "document",
+                "verify",
+                "product-improve",
+                "integrate",
+                "outer-improve",
+            )
+        )
+        expected_stages = (
+            *EXPECTED_PRELUDE,
+            *EXPECTED_INNER,
+            *(stage for stage in EXPECTED_INNER if stage != "skill-validate"),
+            *EXPECTED_OUTER,
+        )
+
+        self.assertTrue(quality_stages <= set(expected_stages))
+        for protocol_version in (1, 2):
+            with self.subTest(protocol_version=protocol_version):
+                state = self.new_state() if protocol_version == 1 else self.new_v2_state()
+                initial_fields = set(state)
+                seen_stages = []
+                for expected_stage in expected_stages:
+                    self.assertEqual(set(state), initial_fields)
+                    self.assertEqual(navigator.current_stage(state), expected_stage)
+                    action = navigator.current_action(state)
+                    self.assert_current_packet_quality(
+                        navigator.render(None, self.root, state),
+                        expected_stage,
+                        action["id"],
+                        required=expected_stage in quality_stages,
+                    )
+                    result = self.result(summary=f"Synthetic traversal at {expected_stage}.")
+                    if expected_stage == "plan":
+                        result["work_items"] = self.two_work_items()
+                    if expected_stage == "document":
+                        result["choices"] = {
+                            "skill_required": state["work_index"] == 0
+                        }
+                    before = copy.deepcopy(state)
+                    state = navigator.apply(state, action["id"], result)
+                    self.assertEqual(set(before), initial_fields)
+                    seen_stages.append(expected_stage)
+
+                self.assertEqual(tuple(seen_stages), expected_stages)
+                self.assertEqual(set(state), initial_fields)
+
+    def test_cold_next_recovers_implementation_quality_packet_without_state_mutation(
+        self,
+    ) -> None:
+        """A cold host receives the pending implementation action and its obligations."""
+        for protocol_version in (1, 2):
+            with self.subTest(protocol_version=protocol_version):
+                state = self.new_state() if protocol_version == 1 else self.new_v2_state()
+                initial_fields = set(state)
+                if protocol_version == 1:
+                    state = self.advance_to_first_work_item(state, self.two_work_items())
+                    state = self.advance(state, "step-plan")
+                    state = self.advance(state, "step-plan-improve")
+                else:
+                    state = self.advance_v2_to_first_work_item(
+                        state, self.two_work_items()
+                    )
+                    state = self.advance_v2(state, "step-plan")
+                    state = self.advance_v2(state, "step-plan-improve")
+
+                self.assertEqual(navigator.current_stage(state), "implement")
+                action = navigator.current_action(state)
+                run_root = self.base / f"cold-implementation-quality-v{protocol_version}"
+                run_root.mkdir()
+                navigator.save(run_root, state)
+                before = store.read_record(run_root / "state.md")
+                self.assertEqual(set(before), initial_fields)
+
+                packet = self._run_public_command(
+                    [
+                        sys.executable,
+                        str(SCRIPTS / "shiploop"),
+                        "next",
+                        "--run-dir",
+                        str(run_root),
+                    ]
+                )
+                recovered = store.read_record(run_root / "state.md")
+
+                self.assertEqual(recovered, before)
+                self.assertEqual(navigator.current_action(recovered), action)
+                self.assert_current_packet_quality(
+                    packet, "implement", action["id"], required=True
+                )
 
 
 if __name__ == "__main__":

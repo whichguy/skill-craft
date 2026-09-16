@@ -53,6 +53,101 @@ show the exact boundary. Improve is a single call-and-return action under the
 existing shared policy: ShipLoop stores no Improve child phases or review
 counters, and it does not start a standalone Improve or Until runtime.
 
+## Improve discovery and planning before proceeding
+
+Navigator packets require the host to run the shared Improve campaign on each
+substantive discovery/planning candidate. There are two placements, with the
+same host-assessed completion rule:
+
+| Candidate | Improve placement |
+| --- | --- |
+| Initial discovery | Produce facts/gaps, then Improve inside `discovery` before its callback. |
+| Research and specification | Existing `research-improve` and `spec-improve` successor actions. |
+| Test strategy | Draft cases/outcomes, then Improve inside `test-strategy`. |
+| Overall plan and each step plan | Existing `plan-improve` and `step-plan-improve` successor actions. |
+| Release plan, including a justified N/A | Draft it, then Improve inside `release-plan`; do not perform the release here. |
+
+Each campaign reviews the candidate and last seven full Git commit messages,
+plans worthwhile improvements, applies them, refreshes affected checks, and
+records learnings. Material findings or changes reset the clean-review streak.
+Finish only after two distinct consecutive trivial-only or no-change reviews,
+including applying their trivial fixes and completing relevant checks. Missing
+history is disclosed, not fabricated; a blocker or exhausted investigation
+allowance is not convergence. Commit only authorized changes after checks,
+preserving unrelated work and explicit no-commit instructions.
+
+For example, discovery for a new feature may find an existing API consumer
+missing from its first inventory. Improve updates the discovery record and its
+downstream test implications, then reviews again. Only after convergence does
+the host submit discovery's callback; the script returns `research`. Existing
+and new repositories use this same quality contract.
+
+This uses Improve's packaged shared policy and
+[navigator owner binding](references/navigator.md#improve-nodes-own-their-full-campaign),
+not a second standalone Improve/Until runtime. The graph, state schema, and one
+callback per action are unchanged. The host performs and records the reviews;
+the script does not independently count or prove them. Updated navigator
+packets apply to pending v1/v2 actions without rerouting saved runs or reopening
+completed work. Managed/legacy bindings are unchanged.
+
+## Consumer delivery: an incremental feature must reach its intended user
+
+```mermaid
+flowchart LR
+  D[Discover consumer and scope] --> P[Plan plus Improve]
+  P --> I[Implement and test candidate]
+  I --> R[Plan authorized update]
+  R --> U[Release updates target]
+  U --> V[Verify consumer behavior]
+  V --> H[Report separate facts]
+```
+
+The consumer may be an existing hosted page, API caller, local CLI user, library
+consumer, or documentation reader. A Git commit is not automatically that
+boundary. Discovery and planning distinguish a genuinely new product from an
+existing system and identify how the requested change becomes usable. Explicit
+source-only work is valid; an ambiguous hosted-feature request needs a scope
+decision, not an invented local-only completion criterion.
+
+Improve reviews the original outcome as well as the generated plan: **if every
+step succeeds, will the intended user actually receive the requested behavior?**
+Its existing seven-commit, two-consecutive-trivial-review campaign remains
+unchanged. No extra graph node, review counter, or standalone Until runtime is
+introduced.
+
+For a new navigator-v2 run, `init --delivery-contract` enables an **opt-in
+declaration guard**. The script retains the accepted delivery contract in the
+existing authoritative `state.md` ledger and reprints it with pending checks
+and evidence references after a context reset. Full contract corrections and
+partial observations are distinct: a partial result cannot erase requirements.
+Even an explicitly source-only contract needs a required local consumer-behavior
+check; no remote activation does not mean no verification.
+The normal completion template supplies the binding; the host does not calculate
+another cursor or successor. See the [contract, examples, and recovery rules](references/consumer-delivery.md).
+
+| Boundary | Required distinction |
+| --- | --- |
+| Discovery / plan | Intended consumer, target, needed operation, authority source, and expected behavior. |
+| System test / release planning | Current pre-update checks versus checks that need the updated consumer. |
+| Release | Update effect and target/candidate identity, including an evidenced already-current target. |
+| Release verify | Actual required consumer behavior; source matching or a URL alone is insufficient. |
+| Handoff / HTML | What was implemented, updated, identity-checked, behavior-verified, and left unresolved. |
+
+For example, an incremental visual change to an existing hosted game may require
+an approved private source update without any public or versioned deployment.
+The existing release action owns that update. If it succeeds but the browser
+reaches a login screen, preserve the update evidence and leave visual behavior
+unverified; do not retry the write merely to obtain another receipt or report
+the feature complete. Resolve access within authority, then resume verification.
+
+The guard checks declared coverage, consistency, and bindings. It does **not**
+authenticate approval, inspect a live target, execute tests, or prove an evidence
+claim true. Required but unauthorized/unverified is incomplete, not N/A. A repo
+file grants no permission merely because an agent wrote it. New authority,
+public access, credentials, and unrelated targets remain outside the packet's
+power. Old unmarked runs retain their existing schemas; the option cannot
+silently enable on resume. Default adoption is separate from this pilot.
+
 ## Agentic duties within a work item
 
 Existing stages now explicitly challenge acceptance examples and test quality,
