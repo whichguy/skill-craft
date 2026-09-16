@@ -144,9 +144,32 @@ it is not a completed review, a clean pass, or a successful completion.
 """
 
 
-def _prompt(duty: str, *, improve: bool = False) -> str:
+IMPLEMENTATION_QUALITY = """\
+Implementation quality: error checking + token-efficient code documentation
+- Error checking: validate changed input/state boundaries; handle relevant
+  dependency failures and cleanup/recovery proportionately. Preserve actionable
+  errors; do not silently turn failures into success or add speculative defenses.
+- Token-efficient code documentation: make changed public interfaces and
+  non-obvious logic understandable to a fresh LLM or human with concise
+  colocated contracts: purpose, preconditions, outputs/errors, material side
+  effects/invariants, and rationale. Prefer clear names and one authoritative
+  explanation over narration, repeated signatures, or boilerplate. Preserve
+  material caveats and required API/user documentation.
+Apply these criteria to this stage's assignment. Reuse adequate existing
+checks/docs; when a criterion has no relevant change, explain why in ordinary
+notes rather than adding unnecessary code or documentation.
+"""
+
+
+def _prompt(
+    duty: str, *, improve: bool = False, implementation_quality: bool = False
+) -> str:
     """Assemble a concrete prompt while keeping shared obligations in one place."""
-    parts = (COMMON, duty, IMPROVE) if improve else (COMMON, duty)
+    parts = [COMMON, duty]
+    if implementation_quality:
+        parts.append(IMPLEMENTATION_QUALITY)
+    if improve:
+        parts.append(IMPROVE)
     return "\n\n".join(parts)
 
 
@@ -213,8 +236,11 @@ Create a dependency-aware implementation plan by reverse-walking each required
 outcome: required behavior, prerequisites, suppliers, affected consumers, and
 verification. Use Backchain-style reasoning to expose missing inputs or cycles.
 Order approved work by actual dependencies and retain early test and outer/
-system-test obligations. If useful, return ordered `work_items` covering the
-whole approved plan; do not turn them into a second scheduler."""
+system-test obligations. Carry the implementation quality criteria below into
+each applicable work item's acceptance expectations. If useful, return ordered
+`work_items` covering the whole approved plan; do not turn them into a second
+scheduler.""",
+        implementation_quality=True,
     ),
     "plan-improve": _prompt(
         """\
@@ -224,6 +250,7 @@ and release assumptions. Refresh affected planned checks before deciding the
 plan is ready for local step planning. If the approved work queue changes
 before execution, return ordered `work_items` for the whole updated plan.""",
         improve=True,
+        implementation_quality=True,
     ),
     "step-plan": _prompt(
         """\
@@ -232,6 +259,8 @@ the bounded candidate, prerequisites, affected code and consumers, intended
 behavior, independent expected outcomes, test cases, fixtures, documentation,
 skill/reuse questions, and checks. Resolve or block missing inputs before code;
 this is planning, not permission to skip directly to unverified edits.
+Name the relevant failure boundaries, expected error handling and negative
+checks, and locations needing concise in-code contracts before implementation.
 Where acceptance could have different meanings, state a positive example and
 a nearby negative example. Select operational and security checks for changed
 boundaries: authorization, data integrity, dependency provenance/compatibility,
@@ -242,7 +271,8 @@ system-test, or release conditions. Record downstream-only conditions, their
 owner and earliest gating stage without blocking independently authorized work.
 If delegating, define bounded task/file ownership, shared interface contracts,
 inputs, expected outputs and evidence, and the owner responsible for checking
-the assembled result. Delegation remains within the current action."""
+the assembled result. Delegation remains within the current action.""",
+        implementation_quality=True,
     ),
     "step-plan-improve": _prompt(
         """\
@@ -251,8 +281,11 @@ scope, prerequisite evidence, Backchain dependencies, expected outcomes,
 tests, documentation, reuse/skill choice, and any system-test impact. Refresh
 the affected plan and its planned checks before implementation. Challenge
 ambiguous acceptance examples, selected risk checks, and any delegation
-boundaries rather than assuming the draft plan resolved them.""",
+boundaries rather than assuming the draft plan resolved them. Check that planned
+error coverage and code contracts satisfy the implementation quality criteria
+below without speculative defenses or boilerplate.""",
         improve=True,
+        implementation_quality=True,
     ),
     "implement": _prompt(
         """\
@@ -260,10 +293,13 @@ Implement the authorized bounded plan. Inspect the actual code as it changes,
 preserve unrelated work, and record material discoveries. Do not treat a code
 edit as verification: send the learned implementation context forward so cases
 can be refined and executable tests authored before the final checks.
+Implement the planned error behavior and concise colocated documentation with
+the code; carry both implementation quality criteria into delegated task prompts.
 When delegating, give each worker bounded ownership, shared contracts, inputs,
 and expected outputs/checks. Reconcile overlapping or conflicting work and
 inspect actual changes and evidence; the owning agent remains responsible for
-the assembled result and the one completion callback."""
+the assembled result and the one completion callback.""",
+        implementation_quality=True,
     ),
     "test-refine": _prompt(
         """\
@@ -275,7 +311,9 @@ Challenge expected results independently against the specification, including
 positive and nearby negative boundaries where useful. Check that mocks or
 implementation-derived expectations do not hide the behavior being tested;
 resolve a genuine specification ambiguity before treating disagreement as a
-code defect."""
+code defect. Include the planned error paths and observable diagnostics in the
+negative cases, checking their expected behavior independently.""",
+        implementation_quality=True,
     ),
     "test-author": _prompt(
         """\
@@ -287,12 +325,15 @@ For an important regression where practical, show that its check rejects the
 known-bad baseline or an isolated deliberately broken variant and passes the
 candidate. Reuse an adequate existing reproduction; avoid extra mutation
 testing when it adds no meaningful coverage. Keep experiments isolated from
-the deliverable and preserve caller/user data."""
+the deliverable and preserve caller/user data.""",
+        implementation_quality=True,
     ),
     "document": _prompt(
         """\
 Update necessary code, API, user, or operator documentation from the completed
-implementation and test learning. Make an explicit reuse decision: use an
+implementation and test learning. Reconcile concise in-code contracts with the
+actual error behavior and relevant tests; remove stale or duplicate explanations
+while preserving material caveats. Make an explicit reuse decision: use an
 existing relevant skill, or create/update a repo-local skill when repeated work
 demonstrates a concrete benefit. Otherwise explain why none is needed. Do not
 install or publish a skill without authority. Set `choices.skill_required: true` when the next
@@ -301,7 +342,8 @@ documentation or reuse change may require affected checks to be refreshed.
 For a consequential learning, record whether it stays in this run, becomes a
 repo-local regression/example, or warrants a shared improvement proposal.
 Keep the evidence, intended scope, and cross-task validation need with that
-decision; a one-off workaround is not sufficient grounds for a general rule."""
+decision; a one-off workaround is not sufficient grounds for a general rule.""",
+        implementation_quality=True,
     ),
     "skill-validate": _prompt(
         """\
@@ -322,11 +364,14 @@ current candidate. Inspect failures, fix justified defects, and rerun affected
 checks until they are current; explain an invalid test before changing it. Tie
 results to expected outcomes and disclose any unrun, blocked, or environment-
 limited check rather than treating a partial green run as completion.
+Check important planned failure behavior and inspect that code documentation
+matches the current candidate; test success alone does not establish doc quality.
 For persistent or repeated failure, separate evidence of a product defect,
 invalid test, and environment problem. State the current testable diagnosis,
 choose a small discriminating check, and record its observation and the reason
 for the next action. Revisit the approach when retries add no evidence; never
-waive a required check because a retry budget or investigation allowance ended."""
+waive a required check because a retry budget or investigation allowance ended.""",
+        implementation_quality=True,
     ),
     "product-improve": _prompt(
         """\
@@ -339,6 +384,7 @@ the selected operational/security checks, test-oracle adequacy, actual combined
 worker outputs, and final-candidate review coverage in proportion to this
 candidate's risk.""",
         improve=True,
+        implementation_quality=True,
     ),
     "integrate": _prompt(
         """\
@@ -352,7 +398,8 @@ separate workers' passing checks do not establish that their combination works.
 A material merge or conflict-resolution edit invalidates affected prior review
 evidence: review that changed scope and refresh its checks before completion,
 using an independent reviewer when available. Keep broader unfinished review
-obligations explicit for carry-forward and outer Improve."""
+obligations explicit for carry-forward and outer Improve.""",
+        implementation_quality=True,
     ),
     "carry-forward": _prompt(
         """\
@@ -386,6 +433,7 @@ promotion proposals against representative regression evidence and existing
 authority; retain, revise, or decline them explicitly. Unvalidated proposals
 may remain documented future work but cannot be reported as adopted.""",
         improve=True,
+        implementation_quality=True,
     ),
     "release-plan": _prompt(
         """\
@@ -431,6 +479,7 @@ __all__ = (
     "ENVIRONMENT_DISCOVERY_REQUIREMENTS",
     "IMPROVE",
     "IMPROVE_STAGES",
+    "IMPLEMENTATION_QUALITY",
     "INNER",
     "OUTER",
     "PRELUDE",
