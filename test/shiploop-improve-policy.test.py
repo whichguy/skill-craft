@@ -348,9 +348,19 @@ class ImprovePolicyActionWalkTests(ACTION.ShipLoopActionWalkFixture):
 
         before_resume = self.authoritative_snapshot("steps/S1.md")
         before_policy = snapshot.read_bytes()
+        # A new request must not be consumed as a resume of this frozen run.
+        changed_request = self.cli(
+            "init", "--repo", str(self.repo), "--execution-mode", self.execution_mode,
+            "--prompt", "resume fixture", code=2,
+        )
+        self.assertIn("init request/repository differs", changed_request.stderr)
+        self.assert_authority_unchanged(before_resume, "steps/S1.md")
+        self.assertEqual(snapshot.read_bytes(), before_policy)
+
+        # An identical init remains an idempotent recovery, including its policy.
         self.cli(
             "init", "--repo", str(self.repo), "--execution-mode", self.execution_mode,
-            "--prompt", "resume fixture",
+            "--prompt", initial["prompt"],
         )
         self.assert_authority_unchanged(before_resume, "steps/S1.md")
         self.assertEqual(snapshot.read_bytes(), before_policy)
