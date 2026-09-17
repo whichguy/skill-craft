@@ -15,7 +15,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        group: [core, shiploop]
+        group: [core, shiploop-1, shiploop-2, shiploop-3]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v7

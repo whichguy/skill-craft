@@ -1,7 +1,7 @@
 ---
 name: prompt-align
 description: Compare an agent or skill prompt against its test harness skill for phase-model, skip-condition, and wiring consistency. Reports mismatches and identifies which file is authoritative.
-version: 0.1.0
+version: 0.1.1
 license: MIT
 platforms:
   - linux
@@ -21,14 +21,17 @@ Compare an agent/skill prompt against its test harness. Emit a mismatch report.
 ## Invocation
 
 ```
-/prompt-align <path-to-agent-or-skill> [--harness <path-to-harness-skill>]
+/prompt-align <path-to-agent-or-skill> [--harness <path-to-harness-skill>] [--repo <path>]
 ```
 
-If `--harness` is omitted, search for the harness automatically:
+Resolve the target repository from `--repo` or the supplied target path. If `--harness` is
+omitted, search **only that repository** for an explicitly related harness; do not inspect an
+installed skill home, a sibling checkout, or a guessed plugin cache. Use the host's available
+file-search capability with the target basename and its documented phase/test markers. If more
+than one candidate remains, present the paths and ask the user to select one; if none exists,
+stop with a missing-harness result.
 
-```bash
-find "<repo-root>" -name "SKILL.md" | xargs grep -l "test.*<agent-basename>\|<agent-basename>.*test" 2>/dev/null
-```
+Record the canonical target, harness, and repository paths in the report.
 
 ## Step 1 — Read both files
 
@@ -72,3 +75,10 @@ State which file is authoritative for each conflict and why (usually the agent i
 For each `⚠ minor` or `✗ conflict` row, emit a one-line fix recommendation:
 - Which file to change
 - The exact string to replace or add
+
+## Verification discovery
+
+If the user asks to implement an alignment fix, first detect the target repository's actual
+test command from its testing documentation, build configuration, scripts, and nearby tests.
+Use the narrowest relevant command and report when none can be determined; do not assume a
+language, package manager, or globally installed test runner.

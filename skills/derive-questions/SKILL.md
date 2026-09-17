@@ -16,8 +16,7 @@ description: |
   - "mine post-mortems", "extract planning questions"
 
 argument-hint: "[questions-file] [--iterations N | --duration Xm | --tokens N] [--min-q N] [--max-q N] [--research-model MODEL] [--application-model MODEL] [--judge-model MODEL] [--reorganize-every N]"
-allowed-tools: Agent, Bash, Read, Glob, Write, Edit, WebSearch, WebFetch, Skill
-version: 0.1.0
+version: 0.1.1
 license: MIT
 platforms:
   - linux
@@ -46,9 +45,9 @@ Arguments after `/derive-questions` are free-form text. Interpret them to extrac
 | `tokens` | — | A number associated with "tokens", "--tokens". Maps to floor(N/12000) iterations |
 | `min_q` | 3 | Number associated with "min-q", "--min-q", "minimum questions" |
 | `max_q` | 10 | Number associated with "max-q", "--max-q", "maximum questions" |
-| `research_model` | claude-opus-4-6 | Model for research agents. Look for "research-model", "--research-model" |
-| `application_model` | claude-sonnet-4-6 | Model for question application agents. Look for "application-model", "--application-model" |
-| `judge_model` | claude-opus-4-6 | Model for judge agent. Look for "judge-model", "--judge-model" |
+| `research_model` | host-default model | Model for research agents. Look for "research-model", "--research-model" |
+| `application_model` | host-default model | Model for question application agents. Look for "application-model", "--application-model" |
+| `judge_model` | host-default model | Model for judge agent. Look for "judge-model", "--judge-model" |
 | `reorganize_every` | 5 | Number associated with "reorganize-every", "--reorganize-every" |
 
 **Examples:**
@@ -59,7 +58,7 @@ Arguments after `/derive-questions` are free-form text. Interpret them to extrac
 /derive-questions --tokens 50000
 /derive-questions skills/my-questions/questions.md --iterations 5
 /derive-questions --iterations 2 --min-q 5 --max-q 8
-/derive-questions --duration 1h --research-model claude-sonnet-4-6
+/derive-questions --duration 1h --research-model <host-valid-model>
 ```
 
 ---
@@ -100,9 +99,12 @@ ELSE:
 
 **Startup validation** (abort on first failure with actionable error):
 
-1. `research_model` must match `claude-*`; if absent use default `claude-opus-4-6`
-2. `application_model` must match `claude-*`; if absent use default `claude-sonnet-4-6`
-3. `judge_model` must match `claude-*`; if absent use default `claude-opus-4-6`
+1. If supplied, `research_model` must be selectable on the current host; otherwise use the
+   host-default model.
+2. If supplied, `application_model` must be selectable on the current host; otherwise use the
+   host-default model.
+3. If supplied, `judge_model` must be selectable on the current host; otherwise use the
+   host-default model.
 4. `questions_path` parent directory must be writable:
    - If not: `"ERROR: Cannot write to {dir} — check permissions or provide a writable --questions-file path"`
 5. `duration` if set: must be positive and ≥5 minutes; if in the past:
@@ -280,7 +282,15 @@ Compute domains NOT yet in `coverage_map` (across all sessions + current session
 - `uncovered = [d for d in all_domains if coverage_map[d] is empty]`
 - If all covered: `uncovered = all_domains` (cycle through all again)
 
-**Spawn 2 research agents simultaneously** (parallel Agent tool calls):
+**Research-source preflight:** The host must expose WebSearch/WebFetch or the user must supply
+a source corpus with stable URLs or local source files. If neither is available, stop with
+`ERROR: research requires web access or a user-provided source corpus`; do not call an
+unresearched model-knowledge summary "research".
+
+**Spawn 2 research agents simultaneously** when independent work is available. Each starts in
+a **fresh independent session**. If only sequential work is available, run the two roles one
+after another in fresh independent sessions without passing one role's conclusions into the
+other. Do not reuse a transcript and describe it as independent research.
 
 **Agent A — Failure Research (WebSearch + WebFetch):**
 

@@ -20,9 +20,8 @@ description: |
 
   NOT for: reviewing a plan (use /review-plan), comparing prompts (use /compare-prompts)
 
-argument-hint: "<plan-file|plans-dir> [--reference <known-good>] [--questions <selector>] [--experiments N|\"subset1 | subset2\"] [--dry-run]"
-allowed-tools: Agent, Bash, Read, Glob, Write, Edit
-version: 0.1.0
+argument-hint: "<plan-file|plans-dir> --questions-file <path> [--judge-rubric <path>] [--questions <selector>] [--reference <known-good>] [--questions-l3-file <path>] [--crossref-file <path>] [--experiments N|\"subset1 | subset2\"] [--dry-run]"
+version: 0.1.1
 license: MIT
 platforms:
   - linux
@@ -128,7 +127,11 @@ Parse the free-form arguments after `/question-bench`:
 | QUESTION_SELECTOR | no | `all` | After `--questions` |
 | EXPERIMENTS | no | `3` | After `--experiments`; number 1-4 or quoted string with `\|` |
 | DRY_RUN | no | false | `--dry-run` flag present |
-| JUDGE_MODEL | no | `claude-opus-4-6` | After `--judge-model` |
+| JUDGE_MODEL | no | host-default model | After `--judge-model`; must be host-valid if supplied |
+| QUESTIONS_FILE | yes | — | After `--questions-file`; source definitions for selected questions |
+| JUDGE_RUBRIC | no | bundled `references/judge-rubric.md` | Override with `--judge-rubric` when a different rubric is required |
+| QUESTIONS_L3_FILE | conditional | — | After `--questions-l3-file`; required only when selecting L3 questions |
+| CROSSREF_FILE | no | — | After `--crossref-file`; optional known-overlap map |
 
 **Plan resolution:**
 ```
@@ -169,12 +172,27 @@ ELSE:
 - Each experiment subset must have >= 1 question
 - PLAN_INPUT must exist
 
-**Derive paths:**
+**Resolve portable inputs:**
 ```
-QUESTIONS_PATH = find review-plan/QUESTIONS.md (search ~/.claude/skills/review-plan/ then ../claude-craft/skills/review-plan/)
-QUESTIONS_L3_PATH = same directory + QUESTIONS-L3.md
-CROSSREF_PATH = find shared/question-cross-reference.md
+QUESTIONS_PATH = canonical absolute path from --questions-file
+JUDGE_RUBRIC_PATH = canonical override from --judge-rubric, or the bundled
+  references/judge-rubric.md resource beside this loaded SKILL.md
+QUESTIONS_L3_PATH = canonical absolute path from --questions-l3-file, only for L3 selection
+CROSSREF_PATH = canonical absolute path from --crossref-file, or null
 ```
+
+Do not search a personal skill home, a sibling checkout, or a guessed plugin cache. If the
+user wants to use an installed `review-plan` dependency, first resolve that package through
+the current host's discovery metadata, show the observed path, and ask the user to confirm
+the definition file. If the host cannot expose a trustworthy installed path, require
+`--questions-file` explicitly. The bundled judge rubric is a package resource, so do not
+invent a specialized judge agent or silently substitute an unreviewed rubric.
+
+Preflight each supplied file and the bundled judge rubric for readability. If an L3 selector is
+used without `--questions-l3-file`, stop with an actionable prerequisite error. If no
+cross-reference file is supplied, continue with overlap classification marked `unknown` rather
+than claiming it was checked against an ambient library. If `--judge-model` is supplied, verify
+it is selectable on the current host; otherwise use the host-default model.
 
 **State output:** Store as BENCH_CONFIG:
 - PLANS[] — list of plan file paths
@@ -184,6 +202,7 @@ CROSSREF_PATH = find shared/question-cross-reference.md
 - EXPERIMENT_SUBSETS[][] — per experiment: list of Q-IDs
 - E — experiment count
 - JUDGE_MODEL
+- JUDGE_RUBRIC_PATH
 - IS_MULTI_PLAN — boolean
 - QUESTIONS_PATH, QUESTIONS_L3_PATH, CROSSREF_PATH
 Consumed by: Steps 2a-5.
@@ -480,7 +499,10 @@ Consumed by: Steps 4, 5.
 
 **Uses:** EXPERIMENT_RESULTS from Step 2b, SCOPE_RESULTS from Step 3.
 
-For each surviving experiment in the current batch (GATE_VERDICT != "FAIL" AND STATUS != "no_changes"), spawn a question-bench-judge agent Task comparing original vs planB.
+For each surviving experiment in the current batch (GATE_VERDICT != "FAIL" AND STATUS != "no_changes"),
+use a fresh independent evaluator to compare original vs planB. The evaluator must receive the
+bundled judge rubric (or the explicit `--judge-rubric` override); without a readable rubric,
+stop rather than substitute an unreviewed one.
 
 Experiments with STATUS == "no_changes" receive automatic NEUTRAL verdict with quality_spread = 0.0 and all Q-PQ dimensions = TIE. This avoids wasting compute comparing identical plans.
 
@@ -507,9 +529,12 @@ ELSE:
     swapped = false
 ```
 
-**Spawn judge agent** (subagent_type: question-bench-judge):
+**Spawn fresh independent evaluator:**
 
 ```
+Read and follow this bundled judge rubric (or explicit user override):
+JUDGE_RUBRIC_PATH
+
 <plan_x>
 VERSION_X_TEXT
 </plan_x>
@@ -522,6 +547,10 @@ VERSION_Y_TEXT
 *Substitution rules:*
 - VERSION_X_TEXT → version_x (per randomization above)
 - VERSION_Y_TEXT → version_y (per randomization above)
+- JUDGE_RUBRIC_PATH → contents of the bundled rubric or explicit `--judge-rubric` file
+
+Each judging run must begin in a fresh independent session. If the host lacks that capability,
+stop the benchmark; do not reuse an editor or scope-check transcript and label it independent.
 
 **Position remapping** after parsing judge JSON:
 ```
@@ -612,12 +641,15 @@ For each plan P:
       overlap_candidates.append({q_a, q_b, section: section_a, plan: P})
 
 # Cross-reference validation
-Read CROSSREF_PATH
-For each overlap candidate:
-  IF (q_a, q_b) appears in cross-reference overlap map:
-    classify as "known (confirmed)"
-  ELSE:
-    classify as "new (investigate)"
+IF CROSSREF_PATH is present:
+  Read CROSSREF_PATH
+  For each overlap candidate:
+    IF (q_a, q_b) appears in cross-reference overlap map:
+      classify as "known (confirmed)"
+    ELSE:
+      classify as "new (investigate)"
+ELSE:
+  classify every overlap candidate as "unknown (no cross-reference supplied)"
 ```
 
 ### "Never fired" tracking

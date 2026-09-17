@@ -4,11 +4,17 @@ The default graph driver exercises the actual protocol-2 navigator and its full
 returned packets. Synthetic declarations stand in for project work; the driver
 runs no LLM, Git operation, implementation, test command, or delivery action.
 
+Bind `CLI` from the selected loaded ShipLoop card before running these commands:
+`SKILL_ROOT` is the absolute directory containing that card's `SKILL.md`, and
+`CLI="$SKILL_ROOT/scripts/shiploop"`. Do not derive it from the caller cwd or a
+checkout-relative `skills/shiploop` path. The parent card explains how to obtain
+the selected host path; use the resulting absolute `CLI` quoted in each call.
+
 ```sh
-python3 skills/shiploop/scripts/shiploop graph-dry-run
-python3 skills/shiploop/scripts/shiploop graph-dry-run --list
-python3 skills/shiploop/scripts/shiploop graph-dry-run --scenario two-work-items --format markdown
-python3 skills/shiploop/scripts/shiploop graph-dry-run --scenario blocked-resume --format json
+python3 "$CLI" graph-dry-run
+python3 "$CLI" graph-dry-run --list
+python3 "$CLI" graph-dry-run --scenario two-work-items --format markdown
+python3 "$CLI" graph-dry-run --scenario blocked-resume --format json
 ```
 
 Built-in scenarios cover delivery, multiple work items, conditional skill
@@ -67,13 +73,14 @@ flowchart LR
     C --> T[Print simulated transition trace]
 ```
 
-Locate the package's `scripts/shiploop` as `CLI`. From a repository checkout:
+Use the already-bound installed-package `CLI`; these compatibility graph probes
+also work from an unrelated cwd:
 
 ```sh
-python3 skills/shiploop/scripts/shiploop managed-graph-dry-run
-python3 skills/shiploop/scripts/shiploop managed-graph-dry-run --list
-python3 skills/shiploop/scripts/shiploop managed-graph-dry-run --scenario product-skill --format markdown
-python3 skills/shiploop/scripts/shiploop managed-graph-dry-run --scenario product-pause-resume --format json
+python3 "$CLI" managed-graph-dry-run
+python3 "$CLI" managed-graph-dry-run --list
+python3 "$CLI" managed-graph-dry-run --scenario product-skill --format markdown
+python3 "$CLI" managed-graph-dry-run --scenario product-pause-resume --format json
 ```
 
 The default runs every built-in scenario. Exit 0 means the simulated path
@@ -101,8 +108,8 @@ LLM or human review task.
 The included `graph-dry-run-example.json` walks a short product planning prefix:
 
 ```sh
-python3 skills/shiploop/scripts/shiploop managed-graph-dry-run \
-  --script skills/shiploop/references/graph-dry-run-example.json --format json
+python3 "$CLI" managed-graph-dry-run \
+  --script "$SKILL_ROOT/references/graph-dry-run-example.json" --format json
 ```
 
 Each step names the expected current phase (`at`), synthetic event (`event`),

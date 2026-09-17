@@ -1,7 +1,0 @@
-{
-  "version": "0.2.0",
-  "url": "https://github.com/whichguy/skill-craft/releases/download/devloop-engine-v0.2.0/devloop-engine-0.2.0.tar.gz",
-  "sha256": "62ec01f3969ed48def0abfe9bd08bf67ed0f50ba1fb5a0a8981fa48a6fc95c57",
-  "tarball": "devloop-engine-0.2.0.tar.gz",
-  "transports": ["hermes", "grok"]
-}

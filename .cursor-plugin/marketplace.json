@@ -10,7 +10,7 @@
     {
       "name": "architect",
       "source": "./plugins/architect",
-      "description": "Design system architecture and make technology decisions. Dispatches to system-architect agent for comprehensive design work."
+      "description": "Design system architecture and make technology decisions. Uses a structured inline design or an available independent reviewer for comprehensive work."
     },
     {
       "name": "c-plan",
@@ -30,7 +30,7 @@
     {
       "name": "devloop",
       "source": "./plugins/devloop",
-      "description": "DevLoop (default): invoke the autonomous engine for a machine-verifiable build or debug goal. Use when the user says devloop, DevLoop, /devloop, or wants an isolated fail-closed build with executable tests. Thin shim: resolve or bootstrap the engine, then exec scripts/devloop-run. Runtime hosts: Grok and Hermes. Claude/Codex/Cursor: discovery and bootstrap only (transport TBD). NOT the demoted offline skill evidence-gates. NOT host-agent DEFINE/PROVE/BUILD."
+      "description": "DevLoop (default): invoke the autonomous engine for a machine-verifiable build or debug goal. Use when the user says devloop, DevLoop, /devloop, or wants an isolated fail-closed build with executable tests. Thin shim: resolve a preinstalled engine, then exec scripts/devloop-run. Runtime hosts: Grok and Hermes. Claude/Codex/Cursor require an explicit external transport. NOT the demoted offline skill evidence-gates. NOT host-agent DEFINE/PROVE/BUILD."
     },
     {
       "name": "evidence-gates",
@@ -45,12 +45,12 @@
     {
       "name": "improve-system-prompt",
       "source": "./plugins/improve-system-prompt",
-      "description": "Benchmark and compare system prompt variants (V2/V2a/V2b/V2c) for Sheets Chat by running test scenarios through the real GAS-side ClaudeConversation pipeline. Tests both system-placement and user-placement, then evaluates with heuristic scoring (ABTestHarness) and LLM-as-judge."
+      "description": "Benchmark and compare system prompt variants (V2/V2a/V2b/V2c) for Sheets Chat by running test scenarios through the real GAS-side ClaudeConversation pipeline. Tests both system-placement and user-placement, then evaluates with heuristic scoring (ABTestHarness) and LLM-as-judge. Product-specific: requires an authorized Sheets Chat/GAS execution integration."
     },
     {
       "name": "plan-test",
       "source": "./plugins/plan-test",
-      "description": "Generate comprehensive tests for code. Dispatches to qa-analyst agent for complex components requiring test architecture decisions."
+      "description": "Generate comprehensive tests for code. Uses an inline strategy or an available independent test specialist for complex components."
     },
     {
       "name": "prompt-align",
@@ -65,7 +65,7 @@
     {
       "name": "prompt-migrate",
       "source": "./plugins/prompt-migrate",
-      "description": "TDD-based prompt migration — given a target agent/skill prompt and a remediation list from prompt-audit, writes failing tests first, then updates the prompt to make them pass, and commits both in a single atomic commit."
+      "description": "TDD-based prompt migration — given a target agent/skill prompt and a remediation list, writes failing tests first, then updates the prompt to make them pass. Commits remain user-controlled."
     },
     {
       "name": "prompt-refine",
@@ -85,7 +85,7 @@
     {
       "name": "review-fix-bench",
       "source": "./plugins/review-fix-bench",
-      "description": "A/B benchmarking skill for code reviewer agent prompts. Runs two versions of a reviewer agent against fixture ground truth using an LLM judge for semantic evaluation, then compares precision/recall/F1 metrics side-by-side. Defaults to comparing current agent vs git HEAD~1. Reports IMPROVED / REGRESSED / NEUTRAL verdict on F1."
+      "description": "Compare two code-review prompt versions against supplied fixture ground truth using an explicitly configured external benchmark runner. Reports an F1-based verdict only when the runner completes both evaluations and comparison."
     },
     {
       "name": "shiploop",

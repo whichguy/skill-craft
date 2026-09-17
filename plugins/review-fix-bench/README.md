@@ -1,0 +1,23 @@
+# Review Fix Bench
+
+Compare two code-review prompt versions against supplied fixture ground truth using an explicitly configured external benchmark runner. Reports an F1-based verdict only when the runner completes both evaluations and comparison.
+
+## Install
+
+Install the `review-fix-bench` package from a configured Skill Craft marketplace, then start a fresh host session so it loads the packaged skill.
+
+## Use
+
+Ask the host to use `$review-fix-bench` for a matching request. Read [SKILL.md](skills/review-fix-bench/SKILL.md) before execution; it defines the workflow and any task-specific limits.
+
+## Runtime and prerequisites
+
+This is a `prompt-only` skill for linux, macos. Consult the packaged card for its required tools, credentials, filesystem writes, network behavior, and recovery steps. When it invokes a bundled helper, resolve it from the loaded skill directory (for example, `skills/review-fix-bench/scripts/...`), never from the consumer project's current directory.
+
+## Documentation
+
+The packaged [skill instructions](skills/review-fix-bench/SKILL.md) are the authoritative guide.
+
+## Support
+
+[Skill Craft source and issue tracker](https://github.com/whichguy/skill-craft)

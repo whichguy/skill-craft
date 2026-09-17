@@ -1,0 +1,107 @@
+# Marketplace lifecycle E2E testing
+
+`test/marketplace-lifecycle-smoke.py` is an explicit native-CLI check. It is
+not part of `test/run-all.sh`, `test/run-integration.sh`, or CI. Run it only
+when a machine has the selected host CLI installed and it is appropriate to
+exercise that host's local plugin cache.
+
+```sh
+python3 test/marketplace-lifecycle-smoke.py \
+  --host codex \
+  --output /tmp/skill-craft-marketplace-codex-e2e
+```
+
+`--output` must name a path that does not exist. The harness creates all
+fixture repositories, consumer sentinels, command receipts, and reports below
+that directory. Use `--host claude`, `--host grok`, `--host codex`, or
+`--host all`. `results.json` and `REPORT.md` are the review artifacts.
+
+Run the no-host safety check when changing the harness itself:
+
+```sh
+python3 test/marketplace-lifecycle-smoke.py --self-test
+```
+
+It checks Bearer, OpenAI- and XAI/Grok-shaped credential redaction, the Codex
+child-environment allowlist, disposable-profile deletion, and detection of an
+owned cache residual. It does not contact a host CLI or validate marketplace
+behavior.
+
+Each host receives a unique fixture marketplace and plugin name. The fixture
+contains only a versioned `SKILL.md`: it has no commands, hooks, MCP server, or
+network behavior. The native lifecycle is:
+
+1. Create and publish a local Git fixture at `1.0.0`.
+2. Install it through the host's marketplace command and record native inventory.
+3. Publish `1.0.1`, refresh or re-add the fixture as the host requires, and
+   verify a fresh inventory/runtime view contains exactly one v2 plugin whose
+   installed skill-card bytes match the fixture.
+4. Uninstall the unique plugin, verify a fresh view no longer contains it,
+   record its native cache state, and verify the consumer-state sentinel is
+   unchanged.
+
+Claude uses a disposable `CLAUDE_CONFIG_DIR`; Grok uses a disposable
+`GROK_HOME`. The harness never assigns `HOME` or `CODEX_HOME`, and its
+restricted child environment does not pass arbitrary credentials through.
+Those profiles are removed after the assertions by default, and a run reports
+them as disposed only after deletion succeeds. Grok must remove fixture cache
+cards through native uninstall. Claude Code 2.1.272 removes the installed
+registry entry but retains downloaded version-cache cards; the harness records
+that retention explicitly, then requires the exact disposable profile and its
+fixture cards to be absent after profile deletion. `--keep-profile` retains the
+disposable profile only for diagnosis and should be used with an output
+directory the operator can delete afterwards.
+
+Claude and Grok runtime evidence is a new native `plugin list --json` inventory
+plus exact installed-card bytes. It proves the installed-plugin lifecycle; it
+does not open an authenticated chat or invoke a model.
+
+Codex plugin management does not support the profile isolation used by Claude
+and Grok. Its lane instead supplies a command-scoped, unique local marketplace,
+uses native `codex plugin add` and `codex plugin remove` only for its unique
+`plugin@marketplace` identity, and snapshots the existing Codex configuration
+before and after. The test fails if the configuration's bytes or parsed
+top-level values change. It never writes or replaces the saved configuration.
+Its child environment is an explicit allowlist: it forwards the existing
+`HOME` and standard XDG configuration paths unchanged so Codex can read its
+normal on-disk configuration/auth state, but does not forward arbitrary ambient
+environment variables or set `CODEX_HOME`.
+
+Codex's runtime proof comes from a new `codex app-server --stdio` process and
+a `skills/list` request after each install/upgrade/removal stage. This catches
+cache-only success: a v2 install must expose one runtime skill whose card hash
+matches the v2 fixture, and removal must make it disappear.
+The app-server stderr stream is drained through a pipe, redacted in memory, and
+stored only as sanitized command-receipt text; the harness never creates a raw
+stderr artifact or persists the full runtime skill inventory. After native removal, it checks only the uniquely named
+fixture cache path and fails with its residual inventory if that path remains.
+It never deletes a normal-user cache path itself.
+
+## Codex plugin ID override
+
+For command-scoped activation, keep a `plugin@marketplace` ID inside one inline
+TOML `plugins` table:
+
+```sh
+codex -c 'plugins={"fixture@marketplace"={enabled=true}}' app-server --stdio
+```
+
+Do not express that same key as a dotted override such as
+`plugins."fixture@marketplace".enabled=true`. The affected Codex CLI treats
+the quoted dotted segment as literal quotes, so the plugin ID does not resolve
+correctly. The harness uses the inline-table form and leaves no plugin override
+in the saved config.
+
+## Preconditions and evidence boundary
+
+The harness needs Python 3.11+ for `tomllib`, an installed selected CLI, and
+`/Library/Developer/CommandLineTools/usr/bin/git`. It uses that Command Line
+Tools Git executable rather than accepting an Xcode license prompt. Claude
+uses a local checkout because its CLI rejects a `file://` marketplace source;
+Grok uses a local `file://` Git remote so that its marketplace refresh performs
+a real local fetch.
+
+This is marketplace lifecycle evidence only. It does not invoke a model, so it
+does not prove model routing, prompt selection, output quality, authentication,
+quota, or paid-account permissions. It also does not test Cursor's UI import
+path and does not publish, install, or update a production marketplace.

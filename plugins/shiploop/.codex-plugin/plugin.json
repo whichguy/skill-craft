@@ -1,0 +1,33 @@
+{
+  "name": "shiploop",
+  "version": "0.10.4",
+  "description": "Markdown-authoritative delivery harness. Start or resume once, follow the script's current action packet, and submit its exact completion call until the script reports completion with an HTML achievement report. Use when the user says shiploop, ship the project, or requests a durable delivery loop.",
+  "author": {
+    "name": "whichguy",
+    "url": "https://github.com/whichguy"
+  },
+  "homepage": "https://github.com/whichguy/skill-craft",
+  "repository": "https://github.com/whichguy/skill-craft",
+  "license": "MIT",
+  "keywords": [
+    "skill-craft",
+    "shiploop",
+    "portable-skills",
+    "script-backed"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "ShipLoop",
+    "shortDescription": "Markdown-authoritative delivery harness. Start or resume once, follow the script's current action packet, and submit…",
+    "longDescription": "Markdown-authoritative delivery harness. Start or resume once, follow the script's current action packet, and submit its exact completion call until the script reports completion with an HTML achievement report. Use when the user says shiploop, ship the project, or requests a durable delivery loop.",
+    "developerName": "whichguy",
+    "category": "Software Development",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Use $shiploop for this task."
+    ]
+  }
+}

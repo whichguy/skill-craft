@@ -1,7 +1,7 @@
 ---
 name: prompt-audit
 description: Audit an agent or skill prompt file for internal inconsistencies (phase numbering, behavioral contracts, terminology, stale references). Produces a Q&A with info-gain scores, a learnings section, and a remediation list. Use before any prompt migration.
-version: 0.1.0
+version: 0.1.1
 license: MIT
 platforms:
   - linux
@@ -21,22 +21,22 @@ Audit a prompt file for internal inconsistencies. Every finding cites `file:line
 ## Invocation
 
 ```
-/prompt-audit <path-to-prompt-file>
+/prompt-audit <path-to-prompt-file> [--repo <path>]
 ```
 
-`<path-to-prompt-file>` is a repo-relative path to any `agents/*.md` or `skills/*/SKILL.md`.
+`<path-to-prompt-file>` is a path inside the target repository. Resolve the repository from
+`--repo` or the target path; never assume this skill's checkout or a personal skill home.
 
 ## Step 1 — Read target file
 
-Read the full content of `<path-to-prompt-file>` using the Read tool.
+Read the full content of `<path-to-prompt-file>` using a host-available file reader.
 
 ## Step 2 — Identify ecosystem files
 
-Search for files that reference the target prompt:
-
-```bash
-grep -rn "<prompt-file-basename>" <repo-root>/ --include="*.md" --include="*.js" -l
-```
+Search only the resolved target repository for files that reference the target basename.
+Use the host's available scoped text search, restrict it to source, prompt, fixture, and test
+formats present in that repository, and report the search scope. Do not scan arbitrary parent
+directories or installed marketplace caches.
 
 Read each related file (envelope template, test harness skill, test fixtures, test JS file).
 
@@ -83,7 +83,12 @@ List non-obvious discoveries that a future prompt author should know:
 
 ## Step 6 — Remediation list
 
-Emit a prioritized list of changes needed:
+Emit a prioritized list of changes needed.
+
+For remediation that changes executable behavior, detect the target repository's actual test
+command from its documentation, build files, package scripts, and nearby tests. Include the
+observed command or a clear `no command discovered` result in the audit; do not infer a default
+test runner.
 
 ```
 ## Remediation

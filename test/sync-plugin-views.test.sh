@@ -75,10 +75,16 @@ node scripts/skill-frontmatter-to-plugin-json.js c-plan --check \
   || fail "c-plan plugin.json not derived from frontmatter"
 
 # Default enumeration is skills/ — every skill leaf must have a plugin view after sync
+[[ -f LICENSE ]] || fail "source root LICENSE missing"
 for d in skills/*/; do
   n="$(basename "$d")"
   [[ -f "skills/$n/SKILL.md" ]] || continue
   [[ -f "plugins/$n/.claude-plugin/plugin.json" ]] || fail "missing plugin view for skills/$n"
+  [[ -f "plugins/$n/.codex-plugin/plugin.json" ]] || fail "missing Codex manifest for skills/$n"
+  [[ -f "plugins/$n/LICENSE" ]] || fail "missing package-root LICENSE for skills/$n"
+  cmp -s LICENSE "plugins/$n/LICENSE" \
+    || fail "package-root LICENSE drift for skills/$n"
+  [[ -s "plugins/$n/README.md" ]] || fail "missing package-root README for skills/$n"
 done
 
 # --check fails on orphan plugins/<leaf> with no skills/<leaf>
@@ -115,6 +121,35 @@ mv "$pj.bak-sync-test" "$pj"
 [[ "$rc_drift" -ne 0 ]] || fail "drifted plugin.json should fail --check: $out_drift"
 bash scripts/sync-plugin-views.sh --check || fail "check failed after drift restore"
 
+# Package-root distribution artifacts are generated as part of the same leaf
+# contract. A changed license must fail closed rather than silently publishing
+# a package whose subdirectory no longer carries the source license.
+license_path="plugins/c-plan/LICENSE"
+cp "$license_path" "$license_path.bak-sync-test"
+printf 'license drift fixture\n' >"$license_path"
+set +e
+out_license_drift="$(bash scripts/sync-plugin-views.sh --check c-plan 2>&1)"
+rc_license_drift=$?
+set -e
+mv "$license_path.bak-sync-test" "$license_path"
+[[ "$rc_license_drift" -ne 0 ]] || fail "drifted package LICENSE should fail --check: $out_license_drift"
+printf '%s\n' "$out_license_drift" | grep -Fq 'LICENSE' \
+  || fail "package LICENSE drift message missing: $out_license_drift"
+bash scripts/sync-plugin-views.sh --check || fail "check failed after license drift restore"
+
+readme_path="plugins/c-plan/README.md"
+cp "$readme_path" "$readme_path.bak-sync-test"
+printf '# stale package README\n' >"$readme_path"
+set +e
+out_readme_drift="$(bash scripts/sync-plugin-views.sh --check c-plan 2>&1)"
+rc_readme_drift=$?
+set -e
+mv "$readme_path.bak-sync-test" "$readme_path"
+[[ "$rc_readme_drift" -ne 0 ]] || fail "drifted package README should fail --check: $out_readme_drift"
+printf '%s\n' "$out_readme_drift" | grep -Fq 'README' \
+  || fail "package README drift message missing: $out_readme_drift"
+bash scripts/sync-plugin-views.sh --check || fail "check failed after README drift restore"
+
 # base checks ok; continue to SA8 sample-leaf cases
 
 pass_sync() { printf '  ok %s\n' "$*"; }
@@ -137,6 +172,9 @@ bash scripts/sync-plugin-views.sh "$sample" || fail "internal symlink sync faile
 [[ -f "plugins/$sample/skills/$sample/alias.txt" ]] || fail "alias missing in view"
 [[ ! -L "plugins/$sample/skills/$sample/alias.txt" ]] || fail "alias still symlink in view"
 [[ "$(cat "plugins/$sample/skills/$sample/alias.txt")" == "target-body" ]] || fail "alias content"
+[[ -f "plugins/$sample/.codex-plugin/plugin.json" ]] || fail "sample Codex manifest missing"
+[[ -s "plugins/$sample/README.md" ]] || fail "sample package README missing"
+cmp -s LICENSE "plugins/$sample/LICENSE" || fail "sample package LICENSE mismatch"
 # residual no symlinks under this plugin view
 if find "plugins/$sample" -type l 2>/dev/null | grep -q .; then
   fail "residual symlink in plugin view after internal deref"

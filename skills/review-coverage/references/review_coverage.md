@@ -128,10 +128,11 @@ Plan: {plan}. Base ref: {base_ref}. Target paths: {target_paths}. Test command: 
 session** until residual×2 or halt. On Grok, `/goal` is a **user-typed** pager
 slash — putting `/goal …` in a plan does not execute it.
 
-**Optional operator paste:** `scripts/review-coverage goal-body --plan <ABS_PLAN> --slash`
+**Optional operator paste:** after the Review Coverage card binds its installed
+`CLI`, run `python3 "$CLI" goal-body --plan <ABS_PLAN> --slash`
 (user types that line). The agent must not type `/goal` and wait.
 
-Optional human/CI helper only: `scripts/review-coverage goal-body --plan <ABS_PLAN> --slash`
+Optional human/CI helper only: `python3 "$CLI" goal-body --plan <ABS_PLAN> --slash`
 (or `run-card --preflight`). Do not treat the CLI as the skill entrypoint.
 
 ### Cycle log

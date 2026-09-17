@@ -5,8 +5,12 @@ description: Markdown-authoritative SDLC session harness with action-bound evide
 
 # ShipLoop
 
-Load and follow the canonical ShipLoop skill at `skills/shiploop/SKILL.md`.
-ShipLoop 0.10.0 gives one durable action at a time; its Markdown records—not
+Load and follow the canonical ShipLoop skill selected by the host for this
+plugin or skill-dir installation. Resolve its absolute loaded-card path and
+follow that card's installed-package CLI binding; do not resolve a source-tree
+path from the user's project or guess an ambient same-named skill. If the host
+cannot identify the selected card, report the missing prerequisite.
+ShipLoop gives one durable action at a time; its Markdown records—not
 chat memory or a sidecar—are authoritative. New navigator runs use protocol 2:
 one shared INNER graph and per-work-item `{stage, action}` records in the same
 state. While an item is active, root is `inner-loop` with no action and the

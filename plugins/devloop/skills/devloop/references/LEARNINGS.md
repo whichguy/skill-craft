@@ -19,7 +19,8 @@ host-affinity + Grok `chat_raw` (2026-08-09).
 
 | Layer | Change |
 |-------|--------|
-| Card `devloop-run` 0.4.1 | Default product; `DEVLOOP_HOST`; skip Hermes seed on Grok; nesting refuse; capability preflight; atomic swap |
+| Card `devloop-run` 0.4.1 | Default product; `DEVLOOP_HOST`; skip implicit Hermes on Grok; nesting refuse; capability preflight |
+| Repository operator setup | Verified archive staging, ownership marker, lock, and atomic replacement outside the marketplace payload |
 | Card `devloop` 0.5.0 | Source leaf is `skills/devloop`; dest = leaf; Hermes card install skipped |
 | `evidence-gates` (was `devloop-native`) | Renamed so it cannot steal DevLoop discovery |
 | Engine transport | `resolve_transport`, `build_grok_cmd`, multi-transport `chat_raw`; `engine-capabilities.json` with `transports: [hermes, grok]` |
@@ -34,11 +35,10 @@ host-affinity + Grok `chat_raw` (2026-08-09).
 2. **Distinct models (honest, not silent 5×).** On Grok transport, skip
    `assert_distinct_models` and record `model_identity: {policy: grok-host-single,
    distinct: false, model: grok-4.6}`. Do not claim five roles ran.
-3. **Pin 0.2.0 published.** GitHub Release `devloop-engine-v0.2.0` is live
-   (`https://github.com/whichguy/skill-craft/releases/tag/devloop-engine-v0.2.0`).
-   `--host grok --setup` bootstraps from the pin URL+sha256
-   (`62ec01f3969ed48def0abfe9bd08bf67ed0f50ba1fb5a0a8981fa48a6fc95c57`).
-   Local `file://` URL remains valid for offline/air-gapped machines.
+3. **Engine provision is operator-owned.** A verified archive may be staged by
+   `scripts/devloop-setup.sh` from a trusted checkout. The installed marketplace
+   shim never fetches it, even when it is missing. A local verified archive can
+   support air-gapped operator provisioning.
 4. **Judge stdout (shipped predicates).** `_is_yes` strips Grok banners
    (`You are using XAI_API_KEY.`, `Default model:`, `Available models:`). Ambiguity
    still fail-closes.
@@ -47,12 +47,13 @@ host-affinity + Grok `chat_raw` (2026-08-09).
 
 ## Operator recipe (Grok, no Hermes required for dispatch)
 
-Happy path is **host-local** (`~/.local/share/devloop` after `--setup`), never
-`DEVLOOP_HOME` pointed at the live Hermes leaf (that is the dual-install hijack).
+Happy path is **host-local** (`~/.local/share/devloop` after an operator
+provisions it), never `DEVLOOP_HOME` pointed at the live Hermes leaf (that is
+the dual-install hijack).
 
 ```sh
-# once on a fresh machine
-bash ~/.grok/skills/devloop/scripts/devloop-run --setup
+# once on a fresh machine, from an already trusted repository checkout
+bash /absolute/path/to/skill-craft/scripts/devloop-setup.sh --host grok
 
 # interactive or headless — prompt, not flag soup
 grok -p '/devloop new repo. Create result.txt containing exactly one line: devloop-ok. verify_cmd exactly ["bash", "-c", "test \"$(cat result.txt)\" = devloop-ok"]' --always-approve
@@ -149,4 +150,3 @@ in time to answer. Card 0.5.1: do **not** background the shim; on the
 first `HUMAN_REVIEW` / `NEEDS YOUR INPUT` / `AFTER exec exit=2`, **prompt
 the user** with the engine reason and `— ANSWERS:`. Do not wait out
 further automatic attempts in silence.
-

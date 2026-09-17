@@ -1,0 +1,32 @@
+{
+  "name": "compare-prompts",
+  "version": "0.1.1",
+  "description": "Compare two prompt versions (A vs B) by running both against a directory of test input files, then evaluating results on three dimensions in priority order: quality > tokens > time.",
+  "author": {
+    "name": "whichguy",
+    "url": "https://github.com/whichguy"
+  },
+  "homepage": "https://github.com/whichguy/skill-craft",
+  "repository": "https://github.com/whichguy/skill-craft",
+  "license": "MIT",
+  "keywords": [
+    "skill-craft",
+    "compare-prompts",
+    "portable-skills",
+    "prompt-only"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Compare Prompts",
+    "shortDescription": "Compare two prompt versions (A vs B) by running both against a directory of test input files, then evaluating results…",
+    "longDescription": "Compare two prompt versions (A vs B) by running both against a directory of test input files, then evaluating results on three dimensions in priority order: quality > tokens > time.",
+    "developerName": "whichguy",
+    "category": "Productivity",
+    "capabilities": [
+      "Read"
+    ],
+    "defaultPrompt": [
+      "Use $compare-prompts for this task."
+    ]
+  }
+}

@@ -5,7 +5,7 @@ description: >-
   script's current action packet, and submit its exact completion call until
   the script reports completion with an HTML achievement report. Use when the
   user says shiploop, ship the project, or requests a durable delivery loop.
-version: 0.10.3
+version: 0.10.4
 allowed-tools: all
 license: MIT
 platforms:
@@ -32,11 +32,29 @@ each assigned Improve campaign to completion inside that one action.
 
 ## Start or resume
 
-Before doing any ShipLoop-managed stage work, locate this package's
-`scripts/shiploop` as `CLI`; resolve the user's repository and run directory to
-absolute paths (`REPO` and `RUN_DIR`, normally `REPO/.shiploop`). Determine
-whether this is a genuinely new request or the same existing run. Never replace
-another run or substitute another repository.
+Before doing any ShipLoop-managed stage work, bind this package's `CLI` from
+the **selected, loaded** `SKILL.md`. Obtain its absolute location from the
+host's skill context; if the host shows a selected skill-root alias, expand that
+alias first. The logical selected path is the host identity. It is not the
+user's cwd, a source checkout, `PATH`, a same-named skill, or a guessed cache.
+The bundled Python files may resolve their own package-local resources
+physically; do not replace the logical selected package with an ambient skill.
+
+```sh
+# Replace this illustrative path with the selected absolute location before running.
+SKILL_ROOT="/absolute/directory-containing-the-loaded-SKILL.md"
+CLI="$SKILL_ROOT/scripts/shiploop"
+python3 "$CLI" --help
+```
+
+Claude Code may render `${CLAUDE_SKILL_DIR}` in skill text where supported, but
+that is not a portable shell environment variable. Rebind the absolute `CLI`
+for each independent tool call and quote it. If `python3` or the bundled CLI is
+unavailable, report the missing prerequisite; never substitute a similarly
+named executable. Resolve the user's repository and run directory to absolute
+paths (`REPO` and `RUN_DIR`, normally `REPO/.shiploop`). Determine whether this
+is a genuinely new request or the same existing run. Never replace another run
+or substitute another repository.
 
 ```sh
 python3 "$CLI" init --repo "$REPO" --run-dir "$RUN_DIR" --prompt='<user request>'
@@ -67,6 +85,13 @@ Use structured argv where possible. Arbitrary text is one `--name=value`
 argument (`--prompt=--help`). In a shell, single-quote literal text and escape
 embedded quotes; never paste raw user text into double quotes. Preserve the
 original request, including multiline and Unicode text.
+
+If a current packet requires another skill, set an explicit dependency root
+only from that dependency's own observed, selected `SKILL.md` path (for example
+`SHIPLOOP_REVIEW_COVERAGE_ROOT` or `SHIPLOOP_BACKCHAIN_ROOT`). Do not infer a
+neighboring package or host cache. An unavailable dependency remains an
+incomplete precondition; record it and follow the packet's blocked/recovery
+route rather than generating a replacement workflow.
 
 ## Durable handoff
 

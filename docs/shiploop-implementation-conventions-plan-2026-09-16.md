@@ -132,3 +132,12 @@ bounded observed choices, not a compliance rate, token benchmark, executed code
 check or proof that durable decision notes were written. Fixtures and raw local
 logs are retained under `/tmp/shiploop-conventions-evidence`; full remote CI is a
 separate post-push delivery check.
+
+## Concurrent-main reconciliation
+
+The first normal push found remote `main` had advanced to `621534a` with
+independent marketplace and CI work. Reconcile that committed work in the
+isolated worktree and retain its test sharding and packaging changes. The remote
+already used ShipLoop `0.10.3`, so the combined conventions package is `0.10.4`.
+Recheck package parity, navigator tests and core checks on the combined candidate;
+preserve unrelated local pending content during the final main integration.

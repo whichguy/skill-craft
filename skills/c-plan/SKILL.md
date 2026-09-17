@@ -5,8 +5,7 @@ description: |
   answer with assumptions, ask 1–2 high-value clarification questions,
   replan, or stop. Use when the best response depends on hidden intent,
   audience, scope, constraints, risk, output format, or desired depth.
-allowed-tools: all
-version: 0.1.0
+version: 0.1.1
 license: MIT
 platforms:
   - linux
@@ -299,7 +298,10 @@ code reviewer agent:
 
 Do not delegate just because an agent exists. Delegate only when the agent has higher EVQ than direct parent work.
 
-**In this repo:** `Explore` is built-in. `code-reviewer` (review-suite) covers code review and security-adjacent work. `system-architect` (planning-suite) covers planner/architect work. `qa-analyst` (planning-suite) covers test/debug strategy. There is no dedicated `WebResearch`/`web-researcher`, `security-reviewer`, or `docs-writer` agent — treat references to those as capability descriptions, not literal agent names. Use `WebSearch`/`WebFetch` tools directly for external research instead of spawning a `web-researcher` subagent.
+Resolve optional agents from the current host's advertised inventory by capability, not by a
+personal suite name or assumed installation. If no suitable agent is available, use direct
+repository or web tools that the current host exposes, or answer with the limitation stated.
+Do not invent a named agent, custom agent file, or host-only route.
 
 ### Parallel Agent Work
 
@@ -368,17 +370,13 @@ agent can return compact evidence
 expected value exceeds overhead
 ```
 
-Use built-in Explore for codebase research.
+For repository research, use the host's available file-search/read capability. For external
+research, use an available direct web-research capability and prefer primary sources. Do not
+create a custom agent merely to satisfy this skill.
 
-Use or create a custom `web-researcher` agent for web research:
-
-```text
-name: web-researcher
-purpose: current external evidence
-allowed tools: WebSearch, WebFetch
-output: evidence packet only
-sources: official/primary first
-```
+When a response plan includes changing or verifying code, detect the target repository's
+actual test command from its contributor documentation, scripts, build files, and nearby tests.
+Do not prescribe a generic package-manager command when the repository exposes a different one.
 
 If using forked skill execution, the skill body must contain an explicit task. Passive guidelines alone are not enough for a useful forked run.
 

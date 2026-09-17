@@ -87,4 +87,4 @@ Only when `agents/<leaf>.md` exists in the repo. **Claude + Grok only** — Code
 
 Sources in this repo: every `skills/<name>` with `SKILL.md`. Agent cards: `agents/<leaf>.md`.
 
-Architecture: [docs/ARCHITECTURE.md](../../../../docs/ARCHITECTURE.md).
+Architecture: [published skill-craft architecture](https://github.com/whichguy/skill-craft/blob/main/docs/ARCHITECTURE.md).

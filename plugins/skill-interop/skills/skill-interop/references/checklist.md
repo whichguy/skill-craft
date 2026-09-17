@@ -1,6 +1,6 @@
 # skill-interop checklist
 
-See also [docs/ARCHITECTURE.md](../../../../docs/ARCHITECTURE.md) for packaging layers and status labels.
+See also the [published skill-craft architecture](https://github.com/whichguy/skill-craft/blob/main/docs/ARCHITECTURE.md) for packaging layers and status labels.
 
 ## Classification
 
@@ -38,6 +38,8 @@ See also [docs/ARCHITECTURE.md](../../../../docs/ARCHITECTURE.md) for packaging 
 ## Runtime binding (SC-L3)
 
 - [ ] Package root = directory containing `SKILL.md`  
+- [ ] Script path is bound from the selected loaded `SKILL.md`, not ambient cwd, `PATH`, or a guessed cache; host aliases are expanded before binding
+- [ ] Claude-only `${CLAUDE_SKILL_DIR}` text substitution is optional, never assumed as a cross-host shell variable
 - [ ] Scripts resolve relative to package root (or documented `SKILL_ROOT`), not ambient cwd alone  
 - [ ] Write-safe / runtime home / transport bins named separately (do not collapse into one env var)  
 - [ ] Hermes skill-dir: materialization is a managed copy (not abs-symlink to external checkout)  

@@ -15,6 +15,9 @@ Optional commands (never part of default CI):
   weather-offline    Validate the weather project through a local DevLoop probe.
   weather-live       Run the explicitly selected live weather integration.
   cursor-imports     Verify imported Cursor skills are available on this host.
+  marketplace-claude  Install local candidate plugins in a disposable Claude profile.
+  marketplace-grok    Install local candidate plugins in a disposable Grok profile.
+  marketplace-codex   Install local candidate plugins in a disposable Codex profile.
 
 weather-* requires DEVLOOP_HOME and DEVLOOP_WEATHER_REPO. weather-live is the
 only command that can enter the live weather path; it sets the mode itself.
@@ -50,6 +53,10 @@ case "${1:-list}" in
   cursor-imports)
     [[ "$#" == "1" ]] || { usage >&2; exit 64; }
     exec bash "$root/test/cursor-imported-skills.test.sh"
+    ;;
+  marketplace-claude|marketplace-grok|marketplace-codex)
+    [[ "$#" == "1" ]] || { usage >&2; exit 64; }
+    exec python3 "$root/test/marketplace-host-smoke.py" --host "${1#marketplace-}"
     ;;
   *)
     printf 'run-integration: unknown command %q\n' "$1" >&2

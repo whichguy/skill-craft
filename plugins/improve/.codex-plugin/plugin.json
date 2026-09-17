@@ -1,19 +1,25 @@
 {
   "name": "improve",
-  "version": "0.1.0-rc.1",
+  "version": "0.1.0-rc.2",
   "description": "Use when a repository candidate needs a deliberate review-and-improvement loop: use recent Git history, make warranted changes, run meaningful checks, and require two consecutive trivial-only review passes. Supports a read-only interpretation preview; not a one-off code review.",
   "author": {
     "name": "whichguy",
     "url": "https://github.com/whichguy"
   },
-  "homepage": "https://github.com/whichguy/skill-craft/tree/main/skills/improve",
+  "homepage": "https://github.com/whichguy/skill-craft",
   "repository": "https://github.com/whichguy/skill-craft",
   "license": "MIT",
+  "keywords": [
+    "skill-craft",
+    "improve",
+    "portable-skills",
+    "script-backed"
+  ],
   "skills": "./skills/",
   "interface": {
     "displayName": "Improve",
-    "shortDescription": "Review, test and improve with explicit stopping rules",
-    "longDescription": "Release-candidate repository improvement workflow with preview, seven-message history, scoped local commits, evidence capture, and a bundled Until Loop runtime. Publishing source does not prove execution on every host.",
+    "shortDescription": "Review and improve until two clean passes",
+    "longDescription": "Use when a repository candidate needs a deliberate review-and-improvement loop: use recent Git history, make warranted changes, run meaningful checks, and require two consecutive trivial-only review passes. Supports a read-only interpretation preview; not a one-off code review.",
     "developerName": "whichguy",
     "category": "Productivity",
     "capabilities": [
@@ -21,8 +27,7 @@
       "Write"
     ],
     "defaultPrompt": [
-      "Dry-run $improve on these changes without writing files.",
-      "Use $improve on these changes, preserving unrelated work."
+      "Use $improve for this task."
     ]
   }
 }

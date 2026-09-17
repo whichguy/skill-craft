@@ -8,7 +8,7 @@ cd "$root"
 group=all
 list_only=0
 usage() {
-  printf 'Usage: bash test/run-all.sh [--group all|core|shiploop] [--list]\n'
+  printf 'Usage: bash test/run-all.sh [--group all|core|shiploop|shiploop-1|shiploop-2|shiploop-3] [--list]\n'
   printf 'Default: all hermetic groups. External tests: bash test/run-integration.sh --help\n'
 }
 while [[ $# -gt 0 ]]; do
@@ -24,7 +24,7 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 case "$group" in
-  all|core|shiploop) ;;
+  all|core|shiploop|shiploop-1|shiploop-2|shiploop-3) ;;
   *) usage >&2; exit 64 ;;
 esac
 
@@ -32,7 +32,13 @@ fail=0
 run() {
   local suite_group="$1" name="$2"
   shift 2
-  [[ "$group" == all || "$group" == "$suite_group" ]] || return 0
+  if [[ "$suite_group" == shiploop-[123] ]]; then
+    # CI scheduling aliases are intentionally excluded from the stable all
+    # aggregate, whose shiploop entry remains the one full serial runner.
+    [[ "$group" == "$suite_group" ]] || return 0
+  else
+    [[ "$group" == all || "$group" == "$suite_group" ]] || return 0
+  fi
   if [[ "$list_only" -eq 1 ]]; then
     printf '%s\t%s\t' "$suite_group" "$name"
     printf '%q ' "$@"
@@ -55,6 +61,10 @@ run core integration-boundaries python3 test/integration-boundaries.test.py
 run core skill-interop-hygiene bash test/skill-interop-hygiene.test.sh
 run core sync-plugin-views bash test/sync-plugin-views.test.sh
 run core native-marketplace-adapters bash test/native-marketplace-adapters.test.sh
+run core marketplace-package python3 test/marketplace-package.test.py
+run core marketplace-host-isolation python3 test/marketplace-host-isolation.test.py
+run core installed-skill-invocation python3 test/installed-skill-invocation.test.py
+run core prompt-marketplace-contract python3 test/prompt-marketplace-contract.test.py
 run core skill-frontmatter node test/skill-frontmatter.test.js
 run core scaffold-skill bash test/scaffold-skill.test.sh
 run core marketplace-run bash test/marketplace-run.test.sh
@@ -72,6 +82,11 @@ run core dual-body-guard bash test/dual-body-guard.test.sh
 # shiploop.test.sh owns the full action walk. The old walk-journal entrypoint
 # remains available for direct calls, but must not run again in this aggregate.
 run shiploop shiploop bash test/shiploop.test.sh
+# These aliases are CI scheduling targets. They derive from the same ordered
+# inventory as the full runner and are deliberately excluded from all.
+run shiploop-1 shiploop-1 bash test/shiploop.test.sh --shard 1/3
+run shiploop-2 shiploop-2 bash test/shiploop.test.sh --shard 2/3
+run shiploop-3 shiploop-3 bash test/shiploop.test.sh --shard 3/3
 
 [[ "$list_only" -eq 0 ]] || exit 0
 

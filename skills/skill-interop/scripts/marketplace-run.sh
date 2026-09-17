@@ -7,14 +7,16 @@
 #   2  usage / bad args
 #   3  no selected host is available (bin missing) for an operation that needs one
 #   4  host-specific precondition failed before CLI
-#      (Codex bare name without @; Grok Claude-style name@marketplace)
+#      (Codex bare name without @; Grok ambiguous unqualified name@marketplace;
+#       --trust outside Grok plugins install;
+#       install-local missing an explicit readable checkout installer)
 #
 # Multi-host policy: exit 1 if ANY selected available host fails.
 # Missing CLIs are reported as unavailable and skipped (not a failure by themselves).
 #
 # Env overrides (testable):
 #   CLAUDE_BIN  CODEX_BIN  GROK_BIN   (default: command -v claude|codex|grok)
-#   MARKETPLACE_INSTALL_SH            (default: <repo>/install.sh for install-local)
+#   MARKETPLACE_INSTALL_SH            (required absolute installer for install-local)
 set -euo pipefail
 
 usage() {
@@ -27,60 +29,21 @@ Verbs:
   marketplaces add <src>
   marketplaces update [name]
   plugins list [--q QUERY]
-  plugins install <id>
+  plugins install <id> [--trust]
   plugins uninstall <id>
   plugins update [id]
-  install-local [skill-args...]   # exec repo install.sh (skill-dir side-load)
+  install-local [skill-args...]   # exec explicitly selected checkout install.sh
 
 Global:
   --host claude|grok|codex|all   (default: all)
   --json
   --dry-run
+  --trust                         Grok plugins install only; explicitly skip Grok confirmation
   -h|--help
 
 Exit codes: 0 ok · 1 any available host failed · 2 usage · 3 no host available · 4 precondition
 EOF
 }
-
-script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
-
-# Walk up from script_dir until a dir contains install.sh OR .git (prefer install.sh).
-# Cap depth so a relocated/broken tree fails clearly instead of scanning the whole FS.
-find_repo_dir() {
-  local start="$1"
-  local max_depth="${2:-8}"
-  local cur="$start"
-  local depth=0
-  local found_git=""
-  while [[ "$depth" -le "$max_depth" ]]; do
-    if [[ -f "$cur/install.sh" ]]; then
-      printf '%s' "$cur"
-      return 0
-    fi
-    # .git may be a directory (normal clone) or a file (worktree / gitdir pointer).
-    if [[ -z "$found_git" && -e "$cur/.git" ]]; then
-      found_git="$cur"
-    fi
-    local parent
-    parent="$(cd "$cur/.." && pwd -P)"
-    if [[ "$parent" == "$cur" ]]; then
-      break
-    fi
-    cur="$parent"
-    depth=$((depth + 1))
-  done
-  if [[ -n "$found_git" ]]; then
-    printf '%s' "$found_git"
-    return 0
-  fi
-  return 1
-}
-
-repo_dir=""
-if ! repo_dir="$(find_repo_dir "$script_dir" 8)"; then
-  # install-local still allows MARKETPLACE_INSTALL_SH override; other verbs don't need repo_dir.
-  repo_dir=""
-fi
 
 # ---------------------------------------------------------------------------
 # Globals / defaults
@@ -91,14 +54,19 @@ DRY_RUN=0
 PLUGIN_Q=""
 ANY_HOST_FAILED=0
 HAD_AVAILABLE_HOST=0
-# Exit 4 when a host precondition fails (Codex bare name, Grok Claude-style id).
+# Exit 4 when a host precondition fails (Codex bare name, ambiguous Grok selector,
+# unsupported --trust, or missing explicit checkout installer).
 PRECONDITION_FAILED=0
+GROK_TRUST=0
 
 declare -a SELECTED_HOSTS=()
 
-# Claude-style marketplace plugin id: name@marketplace with no path/scheme.
-# Grok treats @ as a git ref, so the facade rejects this form for --host grok.
-is_claude_style_marketplace_id() {
+# An unqualified name@marketplace is a Claude/Codex-style selector, not an
+# unambiguous Grok source. The no-slash check is deliberate: current Grok
+# marketplace inventory can emit qualified selectors such as
+# name@local/local-marketplace for duplicate names. Those have a slash and
+# must be passed to Grok unchanged.
+is_ambiguous_unqualified_marketplace_id() {
   local id="$1"
   # Must contain exactly one @, no scheme (://), no path slash, no git@ host form.
   [[ "$id" != *"://"* ]] || return 1
@@ -169,6 +137,10 @@ while [[ $# -gt 0 ]]; do
       DRY_RUN=1
       shift
       ;;
+    --trust)
+      GROK_TRUST=1
+      shift
+      ;;
     --q)
       if [[ $# -lt 2 ]]; then
         printf 'Missing value for --q\n' >&2
@@ -217,6 +189,20 @@ esac
 
 verb1="${1:-}"
 verb2="${2:-}"
+
+# Grok documents --trust as an install confirmation bypass. It has no portable
+# equivalent on Claude or Codex, so reject an incompatible host selection rather
+# than silently dropping, translating, or broadening the consent flag.
+if [[ "$GROK_TRUST" -eq 1 ]]; then
+  if [[ "$verb1" != "plugins" || "$verb2" != "install" ]]; then
+    printf 'marketplace-run: --trust is only valid with plugins install --host grok\n' >&2
+    exit 2
+  fi
+  if [[ "$HOST_FILTER" != "grok" ]]; then
+    printf 'marketplace-run: --trust is supported only for Grok plugins install; use --host grok explicitly\n' >&2
+    exit 4
+  fi
+fi
 
 # ---------------------------------------------------------------------------
 # Host capability matrix
@@ -814,19 +800,23 @@ cmd_plugins_install() {
         note_host_result "$host" "plugins install" "$LAST_EC"
         ;;
       grok)
-        # Grok accepts git URL / GitHub shorthand / local path only.
-        # Claude-style name@marketplace is rejected: @ means git ref on Grok, not marketplace.
-        if is_claude_style_marketplace_id "$id"; then
-          printf 'marketplace-run: grok does not accept Claude-style marketplace ids (%q).\n' "$id" >&2
-          printf '  Grok accepts git URL, GitHub shorthand (user/repo or user/repo@ref), or a local path only.\n' >&2
-          printf '  On Grok, @ is a git ref — not a marketplace selector. Use install-local for skill-dir side-load,\n' >&2
-          printf '  or install via Claude/Codex for name@marketplace plugins.\n' >&2
+        # Grok accepts documented git/path sources and observed qualified
+        # marketplace selectors (name@scope/marketplace). Keep the latter
+        # intact to disambiguate duplicate plugin names.
+        if is_ambiguous_unqualified_marketplace_id "$id"; then
+          printf 'marketplace-run: grok cannot safely resolve unqualified marketplace id %q.\n' "$id" >&2
+          printf '  Use the qualified selector emitted by Grok marketplace inventory, for example\n' >&2
+          printf '  review-coverage@local/local-marketplace, or supply a git URL, GitHub shorthand, or local path.\n' >&2
           ANY_HOST_FAILED=1
           HAD_AVAILABLE_HOST=1
           PRECONDITION_FAILED=1
           continue
         fi
-        run_host_cmd "$DRY_RUN" "$bin" plugin install "$id"
+        if [[ "$GROK_TRUST" -eq 1 ]]; then
+          run_host_cmd "$DRY_RUN" "$bin" plugin install "$id" --trust
+        else
+          run_host_cmd "$DRY_RUN" "$bin" plugin install "$id"
+        fi
         note_host_result "$host" "plugins install" "$LAST_EC"
         ;;
     esac
@@ -838,7 +828,7 @@ cmd_plugins_install() {
     printf 'marketplace-run: no selected host available\n' >&2
     exit 3
   fi
-  # Host preconditions (Codex bare name, Grok Claude-style id): exit 4 when that was the only host.
+  # Host preconditions (Codex bare name, ambiguous Grok selector): exit 4 when that was the only host.
   if [[ "$ANY_HOST_FAILED" -ne 0 ]]; then
     if [[ "$PRECONDITION_FAILED" -eq 1 && "${#SELECTED_HOSTS[@]}" -eq 1 ]]; then
       exit 4
@@ -863,6 +853,8 @@ cmd_plugins_uninstall() {
     case "$host" in
       claude) run_host_cmd "$DRY_RUN" "$bin" plugin uninstall "$id" ;;
       codex)  run_host_cmd "$DRY_RUN" "$bin" plugin remove "$id" ;;
+      # Grok uninstall takes the installed short name from `grok plugin list`;
+      # it is not the qualified selector that may have been used at install time.
       grok)   run_host_cmd "$DRY_RUN" "$bin" plugin uninstall "$id" ;;
     esac
     note_host_result "$host" "plugins uninstall" "$LAST_EC"
@@ -923,20 +915,21 @@ cmd_plugins_update() {
 }
 
 # ---------------------------------------------------------------------------
-# install-local → repo install.sh (skill-dir side-load, not marketplace)
+# install-local → explicitly selected checkout installer (not marketplace)
 # ---------------------------------------------------------------------------
 cmd_install_local() {
   local install_sh="${MARKETPLACE_INSTALL_SH:-}"
   if [[ -z "$install_sh" ]]; then
-    if [[ -z "$repo_dir" ]]; then
-      printf 'marketplace-run: could not locate install.sh (walked up from %s; set MARKETPLACE_INSTALL_SH)\n' "$script_dir" >&2
-      exit 2
-    fi
-    install_sh="$repo_dir/install.sh"
+    printf 'marketplace-run: install-local is checkout-only; set MARKETPLACE_INSTALL_SH to an absolute chosen install.sh\n' >&2
+    exit 4
   fi
-  if [[ ! -f "$install_sh" ]]; then
-    printf 'marketplace-run: install.sh not found at %s\n' "$install_sh" >&2
-    exit 2
+  if [[ "$install_sh" != /* ]]; then
+    printf 'marketplace-run: MARKETPLACE_INSTALL_SH must be an absolute path (got %s)\n' "$install_sh" >&2
+    exit 4
+  fi
+  if [[ ! -f "$install_sh" || ! -r "$install_sh" ]]; then
+    printf 'marketplace-run: MARKETPLACE_INSTALL_SH is not a readable file at %s\n' "$install_sh" >&2
+    exit 4
   fi
   if [[ "$DRY_RUN" -eq 1 ]]; then
     printf 'would-run: %s %s\n' "$install_sh" "$*"

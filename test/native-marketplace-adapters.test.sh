@@ -84,6 +84,56 @@ for (const plugin of grok.plugins) {
     throw new Error(`Grok entry invalid for ${plugin.name}`);
   }
 }
+for (const leaf of leaves) {
+  const root = `plugins/${leaf}`;
+  const claude = JSON.parse(fs.readFileSync(`${root}/.claude-plugin/plugin.json`, "utf8"));
+  const codex = JSON.parse(fs.readFileSync(`${root}/.codex-plugin/plugin.json`, "utf8"));
+  for (const key of ["name", "version", "description", "author", "repository", "license"]) {
+    if (JSON.stringify(codex[key]) !== JSON.stringify(claude[key])) {
+      throw new Error(`Codex identity drift for ${leaf}: ${key}`);
+    }
+  }
+  if (codex.skills !== "./skills/") {
+    throw new Error(`Codex skill path invalid for ${leaf}`);
+  }
+  if ("hooks" in codex || "mcpServers" in codex || "apps" in codex) {
+    throw new Error(`Codex manifest must not invent components for ${leaf}`);
+  }
+  const requiredInterface = [
+    "displayName",
+    "shortDescription",
+    "longDescription",
+    "developerName",
+    "category",
+  ];
+  for (const key of requiredInterface) {
+    if (typeof codex.interface?.[key] !== "string" || !codex.interface[key].trim()) {
+      throw new Error(`Codex interface ${key} missing for ${leaf}`);
+    }
+  }
+  if (!Array.isArray(codex.interface?.capabilities) || codex.interface.capabilities.length === 0 ||
+      !Array.isArray(codex.interface?.defaultPrompt) || codex.interface.defaultPrompt.length === 0) {
+    throw new Error(`Codex interface actions missing for ${leaf}`);
+  }
+  if (!fs.existsSync(`${root}/LICENSE`) || fs.readFileSync(`${root}/LICENSE`, "utf8") !== fs.readFileSync("LICENSE", "utf8")) {
+    throw new Error(`package root LICENSE missing or drifted for ${leaf}`);
+  }
+  if (!fs.existsSync(`${root}/README.md`) || !fs.readFileSync(`${root}/README.md`, "utf8").trim()) {
+    throw new Error(`package root README missing for ${leaf}`);
+  }
+  const cards = [];
+  const visit = (dir) => {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = `${dir}/${entry.name}`;
+      if (entry.isDirectory()) visit(full);
+      else if (entry.isFile() && entry.name === "SKILL.md") cards.push(full);
+    }
+  };
+  visit(`${root}/skills`);
+  if (JSON.stringify(cards.sort()) !== JSON.stringify([`${root}/skills/${leaf}/SKILL.md`])) {
+    throw new Error(`unexpected public skill cards for ${leaf}: ${cards.join(", ")}`);
+  }
+}
 NODE
 
 # A leaf check only owns that leaf. It must not reject unrelated root-index
@@ -108,6 +158,29 @@ expect_failure "missing Cursor manifest" "missing" \
 bash scripts/sync-plugin-views.sh c-plan || fail "restore missing Cursor manifest"
 bash scripts/sync-plugin-views.sh --check c-plan \
   || fail "restored Cursor manifest"
+
+# Codex is a generated peer adapter, not a hand-maintained special case.
+rm -f plugins/c-plan/.codex-plugin/plugin.json
+expect_failure "missing Codex manifest" "missing" \
+  bash scripts/sync-plugin-views.sh --check c-plan
+bash scripts/sync-plugin-views.sh c-plan || fail "restore missing Codex manifest"
+bash scripts/sync-plugin-views.sh --check c-plan \
+  || fail "restored Codex manifest"
+
+codex_manifest="plugins/c-plan/.codex-plugin/plugin.json"
+cp "$codex_manifest" "$codex_manifest.bak-native-test"
+node - <<'NODE'
+const fs = require("fs");
+const path = "plugins/c-plan/.codex-plugin/plugin.json";
+const manifest = JSON.parse(fs.readFileSync(path, "utf8"));
+manifest.interface.defaultPrompt = ["stale fixture"];
+fs.writeFileSync(path, JSON.stringify(manifest, null, 2) + "\n");
+NODE
+expect_failure "drifted Codex manifest" "Codex plugin manifest" \
+  bash scripts/sync-plugin-views.sh --check c-plan
+mv "$codex_manifest.bak-native-test" "$codex_manifest"
+bash scripts/sync-plugin-views.sh --check c-plan \
+  || fail "restored Codex manifest after drift"
 
 # Exact generated index content rejects entries that are not backed by a skill.
 node - <<'NODE'

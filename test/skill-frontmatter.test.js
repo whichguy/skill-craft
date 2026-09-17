@@ -10,6 +10,7 @@ const path = require("path");
 
 const skillsDir = path.join(__dirname, "..", "skills");
 const KINDS = new Set(["prompt-only", "script-backed", "mixed"]);
+const SEMVER_RE = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*)(?:\.(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*))*)?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/;
 
 function fail(msg) {
   console.error(`skill-frontmatter.test.js: FAIL ${msg}`);
@@ -80,7 +81,10 @@ for (const leaf of leaves) {
   requireLine(fm, leaf, new RegExp(`^name:\\s*${leaf}\\s*$`, "m"), `name: ${leaf}`);
   requireLine(fm, leaf, /^description:\s/m, "description");
   descriptionNonEmpty(fm, leaf);
-  requireLine(fm, leaf, /^version:\s*\S+/m, "version");
+  const versionMatch = fm.match(/^version:\s*(\S+)\s*$/m);
+  if (!versionMatch || !SEMVER_RE.test(versionMatch[1])) {
+    fail(`${leaf}: version must be strict semver`);
+  }
   requireLine(fm, leaf, /^license:\s*\S+/m, "license");
   requireLine(fm, leaf, /^platforms:\s*$/m, "platforms");
   requireLine(fm, leaf, /^\s+-\s+(linux|macos)\s*$/m, "platforms entry linux|macos");

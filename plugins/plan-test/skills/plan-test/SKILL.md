@@ -1,18 +1,17 @@
 ---
 name: plan-test
 description: |
-  Generate comprehensive tests for code. Dispatches to qa-analyst agent for complex
-  components requiring test architecture decisions.
+  Generate comprehensive tests for code. Uses an inline strategy or an available
+  independent test specialist for complex components.
 
   AUTOMATICALLY INVOKE when:
   - "write tests", "test this", "generate tests", "add test coverage"
   - "test plan", "what should I test"
   - After feature implementation is complete
 
-  NOT for: Running existing tests (use `npm test`)
+  NOT for: Only running an existing suite without designing or changing coverage.
 argument-hint: "[file-path or function-name]"
-allowed-tools: all
-version: 0.1.0
+version: 0.1.1
 license: MIT
 platforms:
   - linux
@@ -46,7 +45,7 @@ git diff --name-only HEAD~1
 
 Scan the project for existing test setup:
 1. Check package.json for test scripts and dependencies (mocha, jest, vitest, chai)
-2. Find existing test files: `Glob("**/*.test.*")` and `Glob("**/*.spec.*")`
+2. Find existing test files matching `**/*.test.*` and `**/*.spec.*`
 3. Read 1-2 existing test files to match style (imports, describe/it patterns, assertion style)
 4. Identify test directory convention (test/, __tests__/, co-located)
 
@@ -73,20 +72,28 @@ Scan the project for existing test setup:
    - Error cases: invalid input, missing dependencies
 4. Write the test file to the conventional location
 
-## Step 3b — Agent Dispatch
+## Step 3b — Capability-Assisted Test Design
 
+If the host exposes an **available independent test specialist** and the component's
+interaction/mocking risk warrants a separate analysis, give it this bounded task:
+
+```text
+Create a comprehensive test plan and generate tests for: [target].
+Existing test framework: [detected framework].
+Existing test patterns: [patterns found in Step 1].
+Match the project's test style and identify untestable assumptions.
 ```
-Use the Agent tool:
-  subagent_type: "qa-analyst"
-  prompt: "Create a comprehensive test plan and generate tests for: [target].
-           Existing test framework: [detected framework].
-           Existing test patterns: [patterns found in Step 1].
-           Match the project's test style."
-```
+
+Otherwise develop the same test strategy inline. Do not require a named agent or a
+specific host tool.
 
 ## Step 4 — Verify
 
 After tests are written:
-1. Run the new tests to verify they pass
-2. Report coverage if possible
-3. List any functions/paths not covered with rationale
+1. Detect the target repository's actual test command before running anything:
+   read its contributor/testing documentation first, then inspect relevant package scripts,
+   Makefiles, Python/Java test configuration, and nearby tests. Prefer the narrowest command
+   that covers the changed test; do not default to a JavaScript package command.
+2. Run the new tests to verify they pass
+3. Report coverage if possible
+4. List any functions/paths not covered with rationale
