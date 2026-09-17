@@ -79,6 +79,13 @@ claims.  Keep scope, target authority, artifact identity, operation effects, and
 consumer behavior distinct.  A missing prerequisite, permission, access, or
 trustworthy check is unresolved or blocked; it is not a successful N/A.
 
+During discovery, spec development, global planning and step planning, use the
+packet's Interaction design guide to identify relevant actors, interaction
+directions, channels, and state ownership. Choose the simplest suitable mechanism,
+preferring existing capabilities for this request and environment; a hosted UI
+does not imply server state for each action. Retain decision/evidence locators in
+existing notes and affected work-item context for later planning and Improve reviews.
+
 Return the packet's concise producer result with a truthful outcome, summary,
 and useful evidence locators.  A justified N/A is still an output that states
 what was assessed and why it does not apply.  Do not embed an Improve review
@@ -439,6 +446,12 @@ Invoke the selected actual Improve skill for {IMPROVE_SCOPES[stage]}.  Read the
 selected skill card and follow the Until Loop runtime bound by that card.  Use the
 parent-provided candidate scope, prior producer result, relevant lessons, expected
 check state, allowed edits, authority, and evidence/return locators.
+
+When the candidate concerns actor interactions, channels, or state ownership,
+read the packet's Interaction design guide and relevant decision/evidence notes.
+Carry those locators into the child contract for cold recovery; revalidate the
+choice against this request, environment, and affected tests without inventing
+distributed infrastructure or expanding the assigned scope.
 
 Improve owns its own review iterations, evidence notebook, continuation, and
 completion judgment.  Do not replace it with an inline review algorithm, copied

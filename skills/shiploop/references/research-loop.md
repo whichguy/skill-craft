@@ -195,6 +195,12 @@ need one trace; a multi-service write can need several trust and persistence
 boundaries. No route found is a recorded gap, not evidence that the system has no
 behavior.
 
+For interface decisions, apply the
+[actors, channels, and state ownership guide](behavioral-requirements.md#actors-channels-and-state-ownership).
+Trace the requested actor interactions before choosing transports or shared
+state; retain the decision and its evidence in the existing notes for spec,
+global planning, step planning, and affected Improve reviews to consume.
+
 ### Early access readiness
 
 Notify early; block only work that needs the missing access. Start once a system,

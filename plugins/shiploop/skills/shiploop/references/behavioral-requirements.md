@@ -61,6 +61,68 @@ file or exploring infinite paths. A simple/stateless transformation still needs
 an input-to-output flow and error contract; record why a lifecycle state model
 is unnecessary. Do not invent queues, services, or states to fill a template.
 
+## Actors, channels, and state ownership
+
+During discovery, spec development, global planning, and step planning, design
+the interactions needed for the **current request in the actual environment**.
+Revisit affected decisions during Improve and integration; reuse established
+decisions when their assumptions still hold. This is a proportional design
+assessment, not a requirement to add a server, queue, broker, or transport.
+
+1. **Actors and direction:** identify the relevant people, services, devices,
+   and external systems, their roles and trust boundaries. Trace who initiates,
+   who receives, who responds or is notified, and the intended observable effect.
+   Consider user-to-system, system-to-system, and system-to-user interactions
+   only where applicable. Distinguish product-runtime actors from development
+   tools: an MCP used to deploy an app need not be part of its runtime.
+2. **Channel per hop:** choose a suitable path for each interaction, preferring
+   existing capabilities: local event/function call, request/response, or
+   asynchronous message or notification. Add a new mechanism only for a
+   demonstrated requirement or gap. State whether a return path is needed and
+   what acknowledgment means; accepting a request is not proof its recipient
+   observed the result.
+   Let required latency/freshness, delivery expectations, offline behavior,
+   privacy, platform capabilities, and operating cost drive relevant tradeoffs.
+   Words such as “live” or “message” do not by themselves require sockets,
+   polling, a queue, or bidirectional communication.
+3. **State and authority:** separate transient presentation state from the
+   authoritative domain state. Identify who may read or change it, its lifetime,
+   whether independent clients must agree, and whether recovery needs durable
+   storage. Local memory can be sufficient for a single-context interaction;
+   hosting the page remotely does not make every action a server operation.
+   Separate-browser shared state needs an explicit coordination/conflict rule,
+   but not necessarily a new dedicated server. Sharing, durability, and trust
+   are separate decisions: recovering after a client disconnect does not alone
+   require saved games or survival of an authority/service restart. Define the
+   required lifetime and recovery boundary. Conversely, one client can still
+   require service-side authority for sensitive or consequential operations.
+4. **Consequences and checks:** describe the happy path and material alternatives
+   with expected outcomes. Where the chosen boundary makes them relevant, check
+   invalid/unauthorized actions, stale or concurrent changes, duplicate/out-of-order
+   messages, disconnect/reconnect, retries, and partial delivery. Distinguish
+   delivery, persistence, and display evidence. Do not manufacture distributed
+   failure cases for a local-only flow. Investigate unresolved choices only as
+   deeply as their impact on this spec warrants; use bounded experiments when
+   they could change the decision.
+
+Keep a compact actor → interaction/channel → state owner → observable outcome
+trace, the chosen rationale, consequential alternatives, evidence, and open
+questions in **existing** discovery/design/spec notes. For a small change, a
+paragraph may suffice. Carry their path/section locators into the plan and
+affected work-item context; read and revalidate them at step planning and affected
+Improve reviews. Update the existing notes when learning changes the decision,
+and preserve reusable conclusions in project documentation for later runs.
+Use the active protocol's existing result/evidence fields; no new ledger,
+mandatory table, state schema, or graph stage is needed.
+
+These are hypothetical applicability examples, not prescribed architectures:
+
+| Requested behavior | Proportionate starting decision | An important check |
+| --- | --- | --- |
+| Two people take turns on one browser's in-memory Tic-Tac-Toe board; no saved games | UI events update local game state and render locally; no per-move server call needed. | Legal/illegal moves and game-over outcomes; refresh behavior matches the stated lifetime. |
+| Players share a match from different browsers | Establish shared authority, move validation, synchronization, and conflict/recovery rules using suitable existing capabilities; local UI state can remain local. | Concurrent/stale moves do not create divergent accepted boards; reconnect recovers the agreed state. |
+| A user requests a message, or an external service sends a notification to a user | Trace sender → receiving service → recipient/channel and any needed reply; choose immediate or delayed delivery from the actual contract. | Acceptance versus delivery/display is explicit; permissions and duplicate/failure behavior are covered where relevant. |
+
 ## Behavior model
 
 At `behavior`, retrieve the incoming prompt, approach, environment and research
@@ -271,3 +333,8 @@ Use [Mermaid state notation](https://mermaid.js.org/syntax/stateDiagram.html) an
 [sequence notation](https://mermaid.js.org/syntax/sequenceDiagram.html) as optional
 portable Markdown illustrations. Research depth follows behavior risk; full
 formal modeling or enumerating every interleaving is not mandated.
+
+For channel tradeoffs, the [Microsoft event-driven architecture guide](https://learn.microsoft.com/en-us/azure/architecture/guide/architecture-styles/event-driven)
+describes producers, consumers, and channels, and cautions against adding
+asynchronous infrastructure when simple request/response meets the requirements.
+Use that tradeoff as a design question, not a dependency or vendor preference.

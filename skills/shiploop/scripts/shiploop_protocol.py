@@ -6916,6 +6916,20 @@ BEHAVIOR_SECTIONS = {
 }
 
 
+# Reuse the behavioral guide for compatibility planning/review packets too;
+# interaction choices remain prose/evidence, not another graph or state schema.
+for _interaction_stage in (
+    "approach", "survey", "research", "research-review", "research-plan",
+    "research-apply", "behavior", "behavior-review", "spec", "spec-review",
+    "sequence", "step-plan", "step-plan-review", "step-plan-revise",
+    "review", "improve-plan", "improve-apply", "quality", "handoff",
+):
+    BEHAVIOR_SECTIONS[_interaction_stage] = (
+        *BEHAVIOR_SECTIONS.get(_interaction_stage, ()),
+        "actors-channels-and-state-ownership",
+    )
+
+
 # Planning convergence is a separate durable loop.  Packets page only the
 # section needed by the active action instead of loading its full guide.
 PLANNING_SECTIONS = {

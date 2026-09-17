@@ -152,6 +152,14 @@ it is not a prior operation receipt. Revalidate
 relevant facts against the current repository/target and retain useful changes
 in project documentation so later runs need not rediscover them.
 
+During discovery, spec development, global planning and step planning, use the
+packet's Interaction design guide to identify relevant actors, interaction
+directions, channels, and state ownership. Choose the simplest suitable mechanism,
+preferring existing capabilities for this request and environment; a hosted UI
+does not imply server state for each action. Retain decision/evidence locators in
+existing notes and affected work-item context; read and revalidate them in
+affected Improve reviews.
+
 Use this packet's Current node and Action for your assignment and callback;
 the Last accepted transition describes earlier work, not the current action.
 

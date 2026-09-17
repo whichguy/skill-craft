@@ -1055,6 +1055,9 @@ def render(core: Any, root: Path, state: Mapping[str, Any]) -> str:
         "Consumer testing guide: "
         + str(reference_dir / "testing-and-documentation.md")
         + "#lightweight-and-browser-checks",
+        "Interaction design guide: "
+        + str(reference_dir / "behavioral-requirements.md")
+        + "#actors-channels-and-state-ownership",
         "Worktree and artifact policy: "
         + str(reference_dir / "workspace-lifecycle.md"),
         "Recovery command:",

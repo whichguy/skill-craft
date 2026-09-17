@@ -557,6 +557,42 @@ durable notes referenced by its generic result. Unaccepted draft + pause retains
 the action; an accepted blocker report creates a new action at the same stage.
 Existing managed/legacy runs use the same policy with their own record binding.
 
+### Plan actor interactions before choosing channels
+
+Discovery and planning use the
+[interaction design guide](references/behavioral-requirements.md#actors-channels-and-state-ownership)
+to connect actor needs to interface and state decisions:
+
+```mermaid
+flowchart LR
+  A[Request and existing environment] --> B[Actors and interaction directions]
+  B --> C[Channels and state authority]
+  C --> D[Decision notes and expected outcomes]
+  D --> E[Spec and step plans]
+  E --> F[Improve affected decisions]
+  F --> D
+```
+
+Identify people/services/systems, who initiates or receives each interaction,
+its channel and observable effect, and where authoritative versus presentation
+state belongs. Prefer existing capabilities; justify a new mechanism with a real
+requirement or gap. For example,
+a single-browser in-memory Tic-Tac-Toe game can handle moves locally even when
+the page is hosted. Separate-browser multiplayer needs an agreed shared-state
+contract. A message service needs an explicit sender/recipient path and a clear
+distinction between acceptance and delivery; it does not automatically need a
+queue or bidirectional connection.
+
+Discovery retains the rationale, sources and unresolved questions in existing
+notes. Spec/global planning and step planning read those locators, carry them in
+affected work-item context, and derive relevant success/failure cases. Improve
+rechecks affected decisions and updates the same notes. Fresh navigator producer
+and child packets include the guide locator; the child carries relevant locators
+into its own contract. Compatibility packets select the same reference section.
+This adds design guidance, **not** a new stage, state field, or script claim that
+the architecture has been proven correct. Simple cases need only a short trace;
+shared-state, security and delivery complexity must be justified by the spec.
+
 ## Historical compatibility protocols
 
 The material below documents retained **v1, v2, managed, and legacy runs** for

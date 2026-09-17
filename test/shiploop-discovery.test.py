@@ -10,6 +10,7 @@ from pathlib import Path
 import subprocess
 import sys
 import tempfile
+from types import SimpleNamespace
 import unittest
 
 
@@ -20,6 +21,9 @@ if str(SCRIPTS) not in sys.path:
     sys.path.insert(0, str(SCRIPTS))
 
 import shiploop_discovery as discovery  # noqa: E402
+import shiploop_navigator as navigator  # noqa: E402
+import shiploop_navigator_prompts as navigator_prompts  # noqa: E402
+import shiploop_navigator_v3_prompts as navigator_v3_prompts  # noqa: E402
 import shiploop_packets as packets  # noqa: E402
 import shiploop_protocol as protocol  # noqa: E402
 import shiploop_store as store  # noqa: E402
@@ -406,6 +410,210 @@ class DiscoverySchemaTests(unittest.TestCase):
             self.assertEqual(
                 packet_projection["platform_discovery"]["platforms_omitted"], 1
             )
+
+
+class InteractionGuidanceTests(unittest.TestCase):
+    """Focused contracts for the shared interaction-design guidance locator."""
+
+    ANCHOR = "actors-channels-and-state-ownership"
+    REQUIRED_CLASSIC_STAGES = frozenset(
+        (
+            "approach",
+            "survey",
+            "research",
+            "research-review",
+            "spec",
+            "spec-review",
+            "sequence",
+            "step-plan",
+            "step-plan-review",
+            "step-plan-revise",
+            "improve-plan",
+            "quality",
+            "handoff",
+        )
+    )
+
+    def setUp(self) -> None:
+        self.tmp = tempfile.TemporaryDirectory(prefix="shiploop-interaction-guide-")
+        self.root = Path(self.tmp.name)
+        self.repo = self.root / "project"
+        self.repo.mkdir()
+        self.guide = (
+            ROOT / "skills" / "shiploop" / "references" / "behavioral-requirements.md"
+        ).resolve()
+        self.locator = f"Interaction design guide: {self.guide}#{self.ANCHOR}"
+
+    def tearDown(self) -> None:
+        self.tmp.cleanup()
+
+    def navigator_state(self, protocol_version: int) -> dict:
+        kwargs = {"protocol_version": protocol_version}
+        if protocol_version == 3:
+            kwargs["improve_skill"] = ""
+        return navigator.new_state(
+            str(self.repo),
+            "Assess the requested interaction boundary.",
+            str(self.root / "bound-plan.md"),
+            **kwargs,
+        )
+
+    def bind_synthetic_v3_child(self, state: dict) -> dict:
+        """Use the established synthetic binding fixture without running Improve."""
+        child = state["active_improve"]
+        self.assertIsNotNone(child)
+        child.update(
+            {
+                "version": 1,
+                "contract_marker": (
+                    "ShipLoop standalone Improve binding: " + child["binding_id"]
+                ),
+                "skill": {
+                    "skill_card": str(
+                        (self.repo / "selected-improve" / "SKILL.md").resolve()
+                    ),
+                    "runtime_card": str(
+                        (self.repo / "until-loop" / "SKILL.md").resolve()
+                    ),
+                    "runtime_cli": str(
+                        (
+                            self.repo / "until-loop" / "scripts" / "until-loop"
+                        ).resolve()
+                    ),
+                    "skill_version": "synthetic",
+                    "runtime_version": "synthetic",
+                },
+            }
+        )
+        navigator.validate(state)
+        return state
+
+    def assert_cold_packet_keeps_locator_and_cursor(
+        self, state: dict, *, label: str
+    ) -> str:
+        run_root = self.root / label
+        run_root.mkdir()
+        navigator.save(run_root, state)
+        before_bytes = (run_root / "state.md").read_bytes()
+        recovered = store.read_record(run_root / "state.md")
+        before_state = deepcopy(recovered)
+        before_action = dict(navigator.current_action(recovered))
+
+        packet = navigator.render(None, run_root, recovered)
+
+        self.assertIn(self.locator, packet)
+        self.assertEqual(recovered, before_state)
+        self.assertEqual(dict(navigator.current_action(recovered)), before_action)
+        self.assertEqual((run_root / "state.md").read_bytes(), before_bytes)
+        return packet
+
+    def test_interaction_design_guide_has_canonical_heading(self) -> None:
+        self.assertTrue(self.guide.is_absolute())
+        self.assertTrue(self.guide.is_file())
+        self.assertIn(
+            "## Actors, channels, and state ownership",
+            self.guide.read_text(encoding="utf-8"),
+        )
+
+    def test_cold_navigator_packets_keep_interaction_guide_without_cursor_mutation(
+        self,
+    ) -> None:
+        for protocol_version in (1, 2, 3):
+            with self.subTest(protocol_version=protocol_version, packet="producer"):
+                self.assert_cold_packet_keeps_locator_and_cursor(
+                    self.navigator_state(protocol_version),
+                    label=f"producer-v{protocol_version}",
+                )
+
+        child_state = self.navigator_state(3)
+        child_action = dict(navigator.current_action(child_state))
+        waiting = navigator.apply(
+            child_state,
+            child_action["id"],
+            {"outcome": "done", "summary": "Synthetic producer result."},
+        )
+        self.assertIsNotNone(waiting["active_improve"])
+        self.assert_cold_packet_keeps_locator_and_cursor(
+            waiting, label="pending-v3-improve-child"
+        )
+
+    def test_cold_bound_v3_child_keeps_interaction_guidance_without_running_improve(
+        self,
+    ) -> None:
+        """A schema-valid synthetic child binding covers rendering, not execution."""
+        state = self.navigator_state(3)
+        action = dict(navigator.current_action(state))
+        waiting = navigator.apply(
+            state,
+            action["id"],
+            {"outcome": "done", "summary": "Synthetic producer result."},
+        )
+        packet = self.assert_cold_packet_keeps_locator_and_cursor(
+            self.bind_synthetic_v3_child(waiting),
+            label="bound-v3-improve-child",
+        )
+
+        self.assertIn(self.locator, packet)
+        self.assertIn("Selected Improve skill:", packet)
+        for term in (
+            "actor interactions",
+            "channels",
+            "state ownership",
+            "Carry those locators into the child contract",
+        ):
+            self.assertIn(term, packet)
+
+    def test_prompt_catalogs_direct_relevant_work_to_interaction_design(self) -> None:
+        shared_terms = (
+            "interaction design guide",
+            "discovery",
+            "spec development",
+            "global planning",
+            "step planning",
+            "actors",
+            "channels",
+            "state ownership",
+        )
+        for catalog in (navigator_prompts.COMMON, navigator_v3_prompts.COMMON):
+            normalized = " ".join(catalog.split()).lower()
+            for term in shared_terms:
+                self.assertIn(term, normalized)
+
+        for stage in ("discovery", "spec", "plan", "step-plan"):
+            self.assertIn("Interaction design guide", navigator_prompts.PROMPTS[stage])
+            self.assertIn("Interaction design guide", navigator_v3_prompts.prompt(stage))
+            improve = navigator_v3_prompts.improve_prompt(stage)
+            for term in ("actor interactions", "channels", "state ownership"):
+                self.assertIn(term, improve)
+
+    def test_classic_protocol_routes_interaction_guidance_for_required_stages(self) -> None:
+        self.assertTrue(self.REQUIRED_CLASSIC_STAGES <= set(protocol.BEHAVIOR_SECTIONS))
+        core = SimpleNamespace(REF_DIR=self.guide.parent)
+        api = {"BEHAVIOR_SECTIONS": protocol.BEHAVIOR_SECTIONS}
+        for stage in sorted(self.REQUIRED_CLASSIC_STAGES):
+            with self.subTest(stage=stage):
+                self.assertIn(self.ANCHOR, protocol.BEHAVIOR_SECTIONS[stage])
+                guidance = packets._guidance_lines(core, stage, api)
+                behavior_line = next(
+                    line
+                    for line in guidance
+                    if line.startswith("Behavior-model guidance: read only ")
+                )
+                self.assertIn("#" + self.ANCHOR, behavior_line)
+                rendered_path = behavior_line.split("read only ", 1)[1].split(
+                    "#", 1
+                )[0]
+                if Path(rendered_path).is_absolute():
+                    resolved = Path(rendered_path)
+                else:
+                    directory_line = next(
+                        line
+                        for line in guidance
+                        if line.startswith("Guidance directory: ")
+                    )
+                    directory = directory_line.removeprefix("Guidance directory: ")
+                    resolved = Path(directory) / rendered_path
+                self.assertEqual(resolved, self.guide)
 
 
 class DiscoveryCliTests(unittest.TestCase):
