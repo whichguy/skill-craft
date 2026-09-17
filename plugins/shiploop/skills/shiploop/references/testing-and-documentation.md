@@ -271,6 +271,57 @@ flaky failure until lucky green and call its cause resolved.
 
 ## Surface selection
 
+### Lightweight and browser checks
+
+Apply this tool-choice policy during discovery, test planning, INNER verification,
+system tests and post-release verification; perform only the current stage's
+authorized duties. It adds no stage, required product, or result schema.
+
+Prefer the smallest, lowest-overhead **available tool that establishes the
+expected outcome**. Use `curl` or an existing HTTP/API client for suitable status,
+headers, response-body/contract and service checks. Set bounded timeouts and safe
+request limits; inspect the intended target, response and relevant redirects,
+not only an exit code or HTTP 200. A login page can itself return 200. Avoid
+unnecessary frameworks, persistent integrations and redundant probes.
+
+For every destination-test plan, explicitly consider whether a browser is needed.
+Use an available authorized browser surface (Chrome DevTools, browser automation,
+or equivalent) when the requirement concerns rendered UI, JavaScript, navigation,
+drag/drop, accessibility, or session/SSO/MFA/other browser-specific authentication
+that a raw request does not establish. Do not require a failed curl attempt first
+when the needed observation is clearly browser-only. An API-only check does not
+need a browser merely because a web interface also exists. These tools can be
+complementary: cheap protocol checks plus the smallest necessary real UI journey.
+
+If curl reaches a redirect/login or gives an ambiguous access failure, preserve
+what was observed and inspect the relevant authorized browser route before
+concluding the destination is inaccessible. Confirm the intended account/role,
+tenant, target and actual app behavior; a successful service/deployment identity
+or logged-in browser is not proof the intended consumer can use the feature.
+When user sign-in or approval is genuinely needed, follow
+[early access readiness](research-loop.md#early-access-readiness), ask promptly
+and recheck after the response. Do not bypass access controls, disable TLS
+verification, export browser cookies/tokens to force curl to work, or put secrets
+in commands, notes, Git, screenshots or network traces. Use supported credential
+handling; redact/minimize diagnostic artifacts and never commit browser auth state.
+
+Record the selected tool/surface, target and non-secret user role, expected versus
+observed behavior, evidence location and limits in the existing test plan/results.
+Relate a browser observation to the intended target and current candidate/version
+where observable; disclose any missing identity link rather than claiming that
+an interaction with an older or different deployment verifies the new artifact.
+Retain reusable access/test procedures in project knowledge, not credentials.
+If the required browser capability or authorized session is unavailable, keep
+that check blocked/unverified; do not replace it with source inspection, a mock
+or a curl success. Preserve a successful deployment receipt separately, and do
+not redeploy merely because a browser check needs login. Browser tests that
+write data still need suitable authorization, fixtures and cleanup.
+
+The boundary is supported by the [curl FAQ](https://curl.se/docs/faq.html)
+(curl does not execute page JavaScript), [DevTools network inspection](https://developer.chrome.com/docs/devtools/network/reference/)
+and [Playwright's authentication guidance](https://playwright.dev/docs/auth)
+(browser auth state is sensitive). These are examples, not required dependencies.
+
 ### Security, fuzzing, and ongoing maintenance
 
 The lifecycle must explicitly assess security testing, fuzzing, and dependency

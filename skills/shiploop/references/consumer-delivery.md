@@ -38,6 +38,11 @@ of the word "publish" is neither a source-only decision nor a remote-write grant
 Ask if that distinction materially changes the work; record the answer, then
 follow the current callback instead of abandoning the run.
 
+Apply [delivery authority readiness](delivery-authority.md) as soon as discovery
+makes the consumer, target/account, and necessary operation concrete. It is
+ordinary navigator guidance, not a consequence of selecting this pilot: ask
+promptly for missing authority and whether a user grant is run-only or standing.
+
 This pilot has **one activation target and operation per contract**. Multiple
 consumers/checks may share that update, and each required check must be satisfied.
 Distinct activation targets require separate scoped authority; do not silently
@@ -46,6 +51,22 @@ request direction rather than inventing a multi-target scheduler.
 
 The script does not decide whether the initial interpretation is correct. Improve
 must ask whether the plan would actually deliver the original user outcome.
+
+## Map authority readiness to existing fields
+
+This opt-in guard records the ordinary current-run assessment; it does not make
+the assessment authentic or add a second authority record. Point ordinary result
+`evidence_refs` to the canonical `notes/environment-lifecycle.md` note, which
+records necessity, match inputs, sources/current binding evidence, the grant or
+outstanding question with owner/earliest gate, and required effect, identity, and
+behavior evidence.
+
+Map those facts into existing fields only: `necessity` and `basis`; `consumer`,
+`target`, `operation`, and `exclusions`; `authority` (with a user `approval_ref`
+for `repo-policy`); and the required effect, identity, and behavior obligations.
+The script checks declared shape, coverage, consistency, and bindings, not the
+authenticity of an approval, policy, remote result, or browser observation. This
+does not default-enable the guard or retrofit an existing unmarked run.
 
 ## Result contract
 
@@ -135,11 +156,17 @@ system-test record. A material post-plan change that needs replanning blocks:
 for a new planning run referencing the prior contract/effects, rather than
 performing an unplanned update or automatically replacing the old run.
 
+Before Improve converges, resolve a contradiction such as delivery marked
+required in the specification but optional in the plan against the original
+request and approved scope. A changed delivery scope needs an actual user
+disposition; editing generated plan text is not authority to change it.
+
 For example, source synchronization succeeds and target identity matches, but a
 browser check reaches login. Preserve effect/identity and mark behavior blocked.
 After appropriate access is restored within authority, resume verification of
-the same candidate. Do not upload again just to create a fresh receipt. If the
-candidate/target changes instead, follow the replanning boundary.
+the same candidate. The feature remains unverified; do not automatically repush
+or upload again just to create a fresh receipt. If the candidate/target changes
+instead, follow the replanning boundary.
 
 ## Evidence and limits
 

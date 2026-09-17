@@ -310,6 +310,65 @@ class ConsumerDeliveryTests(unittest.TestCase):
             )
         self.assertEqual(state, before)
 
+    def test_repo_policy_requires_approval_ref_without_mutation(self) -> None:
+        state = self.to_plan_improve(self.new_state())
+        invalid = contract()
+        invalid["authority"].pop("approval_ref")
+        action = navigator.current_action(state)
+        before = copy.deepcopy(state)
+        with self.assertRaisesRegex(navigator.NavigatorError, "approval_ref"):
+            navigator.apply(
+                state,
+                action["id"],
+                self.result(delivery_assessment={"kind": "contract", "contract": invalid}),
+            )
+        self.assertEqual(state, before)
+
+    def test_repo_policy_scope_must_match_contract_without_mutation(self) -> None:
+        for field, mismatch, message in (
+            ("target", "other-target", "authority target"),
+            ("operation", "sync another target", "authority operation"),
+        ):
+            with self.subTest(field=field):
+                state = self.to_plan_improve(self.new_state())
+                invalid = contract()
+                invalid["authority"][field] = mismatch
+                action = navigator.current_action(state)
+                before = copy.deepcopy(state)
+                with self.assertRaisesRegex(navigator.NavigatorError, message):
+                    navigator.apply(
+                        state,
+                        action["id"],
+                        self.result(
+                            delivery_assessment={"kind": "contract", "contract": invalid}
+                        ),
+                    )
+                self.assertEqual(state, before)
+
+    def test_fresh_run_accepts_new_repo_policy_without_copying_old_one_off_grant(self) -> None:
+        one_off = contract()
+        one_off["authority"] = {
+            "status": "approved",
+            "kind": "request",
+            "reference": "The earlier request approved only its own source update.",
+            "target": one_off["target"],
+            "operation": one_off["operation"],
+        }
+        old = self.accepted_contract(self.new_state(), one_off)
+        old_anchor = consumer_delivery.project(old)["anchor"]
+        old_before = copy.deepcopy(old)
+
+        fresh = self.new_state()
+        self.assertIsNone(consumer_delivery.project(fresh)["contract"])
+        self.assertEqual(fresh["accepted"], {})
+        self.assertNotIn(old_anchor, fresh["accepted"])
+
+        fresh = self.accepted_contract(fresh)
+        fresh_contract = consumer_delivery.project(fresh)["contract"]
+        self.assertEqual(fresh_contract, contract())
+        self.assertEqual(fresh_contract["authority"]["kind"], "repo-policy")
+        self.assertEqual(old, old_before)
+
     def test_required_phase_obligations_block_false_completion_and_preserve_effect(self) -> None:
         state = self.to_outer(self.accepted_contract(self.new_state()))
         action = navigator.current_action(state)
@@ -565,6 +624,12 @@ class ConsumerDeliveryTests(unittest.TestCase):
                 }),
             )
         self.assertEqual(state, before)
+        preserved = consumer_delivery.project(state)["contract"]
+        self.assertEqual(preserved, contract())
+        self.assertEqual(
+            {row["kind"] for row in preserved["obligations"]},
+            {"pre-update", "effect", "identity", "behavior"},
+        )
 
         with self.assertRaisesRegex(navigator.NavigatorError, "contract anchor"):
             navigator.apply(
@@ -687,6 +752,7 @@ class ConsumerDeliveryTests(unittest.TestCase):
         projection = consumer_delivery.project(state)
         self.assertNotIn("visual-drag", projection["observations"])
         self.assertIn("update-effect", projection["observations"])
+        self.assertIn("update-identity", projection["observations"])
         self.assertIn("replanning", projection["replan_required"])
         state = navigator.control(state, "resume")
         action = navigator.current_action(state)

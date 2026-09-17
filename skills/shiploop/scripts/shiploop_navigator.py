@@ -242,6 +242,7 @@ def new_state(
     *,
     protocol_version: int = 2,
     delivery_contract: bool = False,
+    worktree: bool = False,
 ) -> dict[str, Any]:
     """Create an unpersisted navigator cursor with one initial work item."""
     _need(type(protocol_version) is int and protocol_version in _PROTOCOL_VERSIONS,
@@ -249,13 +250,15 @@ def new_state(
     _need(type(delivery_contract) is bool, "delivery_contract must be boolean")
     _need(not delivery_contract or protocol_version == PROTOCOL_VERSION,
           "delivery_contract requires navigator protocol 2")
+    _need(type(worktree) is bool and (not worktree or protocol_version == PROTOCOL_VERSION),
+          "worktree mode requires navigator protocol 2")
     _text(repo, "repo")
     _text(prompt, "prompt")
     _text(bound_plan, "bound_plan", allow_empty=True)
     state: dict[str, Any] = {
         "version": STATE_VERSION,
         "navigator_protocol_version": protocol_version,
-        "execution_mode": "navigator",
+        "execution_mode": "navigator-worktree" if worktree else "navigator",
         "run_id": "nav-" + uuid.uuid4().hex,
         "revision": 0,
         "repo": repo,
@@ -390,7 +393,8 @@ def _validate_v2(state: Mapping[str, Any]) -> None:
         _need(type(state.get("delivery_contract_version")) is int
               and state.get("delivery_contract_version") == consumer_delivery.DELIVERY_CONTRACT_VERSION,
               "unsupported delivery contract version")
-    _need(state.get("execution_mode") == "navigator", "state is not navigator mode")
+    _need(state.get("execution_mode") in ("navigator", "navigator-worktree"),
+          "state is not navigator mode")
     run_id = state.get("run_id")
     _need(isinstance(run_id, str) and _ACTION_ID.fullmatch(run_id) is not None,
           "unsafe navigator run ID")
@@ -768,6 +772,24 @@ def render(core: Any, root: Path, state: Mapping[str, Any]) -> str:
         f"Repository locator: {state['repo']}",
         f"CLI locator: {_command(core)}",
         f"Run directory locator: {root}",
+        "Access-readiness policy: "
+        + str(reference_dir / "research-loop.md")
+        + "#early-access-readiness",
+        "Delivery-authority policy: "
+        + str(reference_dir / "delivery-authority.md"),
+        "Environment lifecycle policy: "
+        + str(reference_dir / "environment-lifecycle.md"),
+        "Environment lifecycle note (host-authored, if present): "
+        + str(root / "notes" / "environment-lifecycle.md"),
+        "Cross-run knowledge policy: "
+        + str(reference_dir / "project-knowledge.md"),
+        "Repository knowledge index (host-authored, if present): "
+        + str(Path(state["repo"]) / "SHIPLOOP.md"),
+        "Consumer testing guide: "
+        + str(reference_dir / "testing-and-documentation.md")
+        + "#lightweight-and-browser-checks",
+        "Worktree and artifact policy: "
+        + str(reference_dir / "workspace-lifecycle.md"),
         "Recovery command:",
         _callback(core, root, "next"),
         "Retain these locators and recovery command in durable task handoff material; "
@@ -786,6 +808,35 @@ def render(core: Any, root: Path, state: Mapping[str, Any]) -> str:
         state["prompt"],
         "----- END ORIGINAL REQUEST -----",
     ]
+    if state["execution_mode"] == "navigator-worktree":
+        workspace_root = root.parent
+        lines.extend([
+            "Execution checkout: " + state["repo"]
+            + " (isolated worktree; not the original branch checkout)",
+            "Workspace authority and original branch: " + str(workspace_root / "workspace.md"),
+            "Return plan: " + str(workspace_root / "return-plan.md"),
+            "Return receipt: " + str(workspace_root / "return-receipt.md"),
+            "All product work happens in the execution checkout. Keep run state, "
+            "results and reports outside it. Inner integrate assembles here, not "
+            "back into the original branch. Read the workspace policy before return.",
+            "To review the final candidate for return:",
+            shlex.join(["python3", _command(core), "workspace", "plan-return",
+                        "--workspace-root", str(workspace_root)]),
+            "Review every return-plan disposition, retaining product code/tests and "
+            "durable knowledge but excluding transient output.",
+            "Handoff completion requires a current script-verified return receipt. "
+            "A dirty-source working-tree return is not a Git merge or commit. "
+            "No automatic push, cleanup, or publication is implied.",
+        ])
+        if stage in ("release", "handoff") and state["status"] == "active":
+            lines.extend([
+                "After review and authorization at this planned final integration boundary:",
+                shlex.join(["python3", _command(core), "workspace", "return",
+                            "--workspace-root", str(workspace_root)]),
+            ])
+        else:
+            lines.append("The return operation is unavailable here; the script permits it "
+                         "only at active release or handoff after assembled-candidate checks.")
     if state["navigator_protocol_version"] == PROTOCOL_VERSION:
         if workitem is None:
             lines.append("Owner: root navigator (state.md root stage/action).")
@@ -1055,7 +1106,8 @@ def _submitted_result(root: Path, args: Any) -> Any:
     return store.read_record(path)
 
 
-def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any) -> int:
+def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
+             *, completion_guard: Any = None) -> int:
     """Execute one navigator CLI verb; callers hold the run lock."""
     command = getattr(args, "command", None)
     _need(isinstance(command, str), "navigator command is missing")
@@ -1087,6 +1139,8 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any) -> int:
             getattr(args, "action", None),
             _submitted_result(root, args),
         )
+        if completion_guard is not None and updated != state:
+            completion_guard(state, updated)
     else:
         updated = control(state, command, getattr(args, "reason", ""))
     if updated != state:

@@ -7511,12 +7511,119 @@ def planning_repair(core, root, state, aid, reason):
     persist(root, state, "planning-repair", writes)
 
 
+def workspace_command(core, argv):
+    """One CLI family; workspace effects stay outside the opaque navigator."""
+    import shiploop_workspace as workspace
+    import shiploop_navigator as navigator
+
+    parser = argparse.ArgumentParser(prog="shiploop workspace")
+    subs = parser.add_subparsers(dest="operation", required=True)
+    start = subs.add_parser("start", help="isolate the current branch and begin a new run")
+    start.add_argument("--repo", required=True)
+    start.add_argument("--workspace-root", required=True)
+    start.add_argument("--prompt", required=True)
+    start.add_argument("--include-untracked", action="append", default=[])
+    start.add_argument("--exclude", action="append", default=[])
+    start.add_argument("--delivery-contract", action="store_true")
+    for name in ("plan-return", "return"):
+        child = subs.add_parser(name)
+        child.add_argument("--workspace-root", required=True)
+    args = parser.parse_args(argv)
+    root = Path(args.workspace_root).absolute()
+    try:
+        if args.operation == "start":
+            need(bool(args.prompt.strip()), "prompt must not be empty")
+            saved = root / "run" / "state.md"
+            if saved.exists():
+                existing = store.read_record(saved)
+                navigator.validate(existing)
+                need(existing.get("prompt") == args.prompt,
+                     "new request needs a fresh workspace root; use next for the saved request")
+                need(existing.get("execution_mode") == "navigator-worktree",
+                     "workspace start cannot replace an existing direct or compatibility run")
+                record = workspace.assert_binding(root, Path(existing["repo"]))
+                need(str(Path(args.repo).resolve()) == record["source_repo"],
+                     "workspace source differs from this saved run")
+                need(sorted({Path(value).as_posix() for value in args.include_untracked})
+                     == record["selected_untracked"]
+                     and sorted({Path(value).as_posix() for value in args.exclude})
+                     == record["excluded"],
+                     "workspace start cannot change capture options on retry; use next to recover")
+                need(not args.delivery_contract or existing.get("delivery_contract_version") == 1,
+                     "cannot retrofit delivery-contract on an existing run")
+                # Identical re-entry is recovery, not another capture of the
+                # source after product work or a completed integration.
+                return main(core, ["next", "--run-dir", str(root / "run")])
+            record = workspace.prepare(Path(args.repo), root,
+                                       args.include_untracked, args.exclude)
+            init = ["init", "--repo", record["worktree"],
+                    "--run-dir", record["run_dir"],
+                    "--execution-mode", "navigator-worktree", "--prompt=" + args.prompt]
+            if args.delivery_contract:
+                init.append("--delivery-contract")
+            return main(core, init)
+        if args.operation == "plan-return":
+            workspace.plan_return(root)
+            print(f"Review all keep/exclude dispositions in {root / 'return-plan.md'}.")
+            print("Keep only intended product changes and durable knowledge, not run artifacts.")
+            print("Return policy: fast-forward only for a clean starting checkout and a "
+                  "clean committed candidate with all reviewed paths kept; otherwise return "
+                  "only the kept working-tree delta, without a Git merge or commit.")
+            print("When reviewed, run:")
+            print(shlex.join(["python3", str(core.PACKAGE_ROOT / "scripts" / "shiploop"),
+                              "workspace", "return", "--workspace-root", str(root)]))
+        else:
+            saved = store.read_record(root / "run" / "state.md")
+            navigator.validate(saved)
+            workspace.assert_binding(root, Path(saved["repo"]))
+            with core.run_lock(root / "run"):
+                saved = core.load_state(root / "run")
+                navigator.validate(saved)
+                need(saved.get("execution_mode") == "navigator-worktree"
+                     and saved.get("status") == "active"
+                     and navigator.current_stage(saved) in ("release", "handoff"),
+                     "workspace return is allowed only at active release or handoff, "
+                     "after the graph's assembled-candidate checks")
+                workspace.assert_binding(root, Path(saved["repo"]))
+                receipt = workspace.execute_return(root)
+            print(f"Verified workspace return: {receipt['kind']}.")
+            print(f"Receipt: {root / 'return-receipt.md'}")
+            print(f"Original checkout/branch and baseline: {root / 'workspace.md'}")
+            print("Return does not advance ShipLoop. Recover the current packet, finish its "
+                  "remaining duties, then submit its exact completion call:")
+            print(shlex.join(["python3", str(core.PACKAGE_ROOT / "scripts" / "shiploop"),
+                              "next", "--run-dir", str(root / "run")]))
+        return 0
+    except (workspace.WorkspaceError, ProtocolError, store.StorageError, OSError, ValueError) as exc:
+        print(f"ShipLoop workspace blocked: {exc}", file=sys.stderr)
+        print("Preserve the workspace and source checkout; do not force, stash, reset, "
+              "or create a replacement run to bypass this condition.", file=sys.stderr)
+        return 2
+
+
+def workspace_completion_guard(root, previous, updated):
+    """A new isolated run cannot declare completion before verified return."""
+    if (previous.get("execution_mode") == "navigator-worktree"
+            and updated.get("status") == "done"):
+        import shiploop_workspace as workspace
+        try:
+            receipt = workspace.completed_receipt(root.parent, Path(previous["repo"]))
+            need(receipt is not None,
+                 "handoff requires a verified workspace return; read the workspace policy")
+        except workspace.WorkspaceError as exc:
+            raise ProtocolError(str(exc)) from exc
+
+
 def main(core, argv=None):
+    raw_argv = list(sys.argv[1:] if argv is None else argv)
+    if raw_argv and raw_argv[0] == "workspace":
+        return workspace_command(core, raw_argv[1:])
     parser = argparse.ArgumentParser(
         prog="shiploop",
         description="Markdown-authoritative, action-oriented session harness",
     )
     subs = parser.add_subparsers(dest="command", required=True)
+    subs.add_parser("workspace", help="isolated start, return-plan review, and guarded return")
     import shiploop_dry_run
     import shiploop_navigator as navigator
     import shiploop_navigator_dry_run as navigator_dry_run
@@ -7554,7 +7661,7 @@ def main(core, argv=None):
             sub.add_argument("--repo")
             sub.add_argument("--bound-plan", default="")
             sub.add_argument("--force", action="store_true")
-            sub.add_argument("--execution-mode", choices=("navigator", "navigator-v1", "managed", "legacy"), default="navigator",
+            sub.add_argument("--execution-mode", choices=("navigator", "navigator-worktree", "navigator-v1", "managed", "legacy"), default="navigator",
                              help="new-run protocol; existing runs retain their recorded mode")
             sub.add_argument("--delivery-contract", action="store_true",
                              help="opt in a new navigator-v2 run to consumer-delivery declaration checks")
@@ -7674,7 +7781,7 @@ def main(core, argv=None):
             sub.add_argument("--reason", required=True)
     args = parser.parse_args(argv)
     if (args.command == "init" and args.delivery_contract
-            and args.execution_mode != "navigator"):
+            and args.execution_mode not in ("navigator", "navigator-worktree")):
         parser.error("--delivery-contract requires a new navigator-v2 run")
     if args.command == "graph-dry-run":
         # Deliberately before run-directory discovery, locking or state access.
@@ -7699,6 +7806,19 @@ def main(core, argv=None):
             # A marker mismatch is an error, never an implicit protocol change.
             if (root / "state.md").exists():
                 existing = core.load_state(root)
+                if args.command == "init":
+                    # Idempotent entry must never substitute a saved request for
+                    # a new one. Compare identity before either protocol routes.
+                    need(
+                        args.prompt == existing.get("prompt")
+                        and (args.repo is None
+                             or str(Path(args.repo).resolve())
+                             == existing.get("repo", existing.get("repo_root"))),
+                        "init request/repository differs from this saved run; "
+                        "use next to resume the same request, or a fresh --run-dir "
+                        "with the new --prompt for new work. Preserve the prior run; "
+                        "completed runs stay complete.",
+                    )
                 need(not getattr(args, "delivery_contract", False)
                      or (existing.get("navigator_protocol_version") == 2
                          and existing.get("delivery_contract_version") == 1),
@@ -7708,7 +7828,10 @@ def main(core, argv=None):
                     need(not getattr(args, "force", False),
                          "--force cannot replace an existing run; use a fresh --run-dir")
                     navigator.validate(existing)
-                    return navigator.dispatch(core, root, existing, args)
+                    return navigator.dispatch(
+                        core, root, existing, args,
+                        completion_guard=lambda before, after: workspace_completion_guard(root, before, after),
+                    )
             saved_prompt = None
             if args.command == "init":
                 need(bool(args.prompt.strip()), "prompt must not be empty")
@@ -7742,17 +7865,26 @@ def main(core, argv=None):
                     root != Path(args.repo or os.getcwd()).resolve(),
                     "run directory cannot be the product repository root",
                 )
-                if args.execution_mode in ("navigator", "navigator-v1"):
+                if args.execution_mode in ("navigator", "navigator-worktree", "navigator-v1"):
                     need(args.independent_review == "optional",
                          "--independent-review is a managed-mode option; state navigator review requirements in the prompt")
+                    if args.execution_mode == "navigator-worktree":
+                        import shiploop_workspace as workspace
+                        try:
+                            binding = workspace.assert_binding(root.parent, Path(args.repo or os.getcwd()))
+                            need(binding["run_dir"] == str(root),
+                                 "workspace navigator must use its prepared run directory")
+                        except workspace.WorkspaceError as exc:
+                            raise ProtocolError(str(exc)) from exc
                     state = navigator.new_state(
                         str(Path(args.repo or os.getcwd()).resolve()), args.prompt,
                         str(Path(args.bound_plan).resolve()) if args.bound_plan else "",
                         protocol_version=1 if args.execution_mode == "navigator-v1" else 2,
                         delivery_contract=args.delivery_contract,
+                        worktree=args.execution_mode == "navigator-worktree",
                     )
                     navigator.save(root, state)
-                    print(navigator.render(core, root, state))
+                    print(navigator.render(core, root, state), end="")
                     return 0
                 state = core.default_state(
                     root,

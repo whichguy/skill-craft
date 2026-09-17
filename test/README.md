@@ -49,6 +49,38 @@ truth of remote evidence. Fresh-context interpretation responses are a separate
 bounded study, not a deterministic LLM gate or proof of Improve convergence.
 See [consumer-delivery experiments](experiments/shiploop_delivery/README.md).
 
+`python3 test/shiploop-auth-readiness.test.py` exercises the shared access-policy
+locator and cold authentication-blocker recovery using synthetic host reports.
+The navigator dry-run suite also checks that the policy remains reachable across
+the real graph and pause/blocked routes. These tests prove packet wiring and
+state continuity, not that an LLM asks promptly or that a live account is usable.
+The [bounded interpretation check](experiments/shiploop_auth/README.md) records
+ten fictional access scenarios and the stage-skipping ambiguity they exposed.
+
+`python3 test/shiploop-environment-lifecycle.test.py` checks the existing
+navigator's preparation → feature → staged-candidate work-item ordering,
+blocked/cold recovery, local-only path, and selected-package policy locators.
+It uses synthetic declarations: queue traversal does not prove that a host
+selected all prerequisites, created a sandbox, or promoted a live candidate.
+The [environment interpretation study](experiments/shiploop_environment/README.md)
+records three fictional topology cases and the planning-versus-execution
+ambiguity corrected through a fresh-reader follow-up.
+
+`python3 test/shiploop-cross-run.test.py` checks new-request versus repeated-init
+identity across protocols, terminal-run preservation, fresh-run isolation, and
+cold packets' persistent knowledge locators. The navigator dry-run suite covers
+those locators across stage/recovery routes. These are routing tests, not proof
+that an LLM read or correctly reused a historical environment document.
+The [cross-run interpretation check](experiments/shiploop_cross_run/README.md)
+records four fresh-reader scenarios and the boundaries actually observed.
+
+`python3 test/shiploop-workspace.test.py` uses disposable real-Git repositories
+to check dirty-baseline capture, source-index preservation, candidate-bound path
+review, transient-history rejection, guarded clean/dirty return, and the
+workspace-mode handoff gate. It never merges the source checkout running the
+test. [Workspace experiments](experiments/shiploop_workspace/README.md) explain
+why starting at HEAD and deleting transient files at the tip were insufficient.
+
 ## Explicit integration targets
 
 Integration checks never run as a default dependency of the hermetic aggregate.
@@ -111,6 +143,13 @@ certification. Local checks may use other Python/Node versions.
 Explicit runtime setup follows [GitHub's Python guidance](https://docs.github.com/en/actions/tutorials/build-and-test-code/python#specifying-a-python-version)
 and [setup-node's version guidance](https://github.com/actions/setup-node#usage).
 This repository needs no pip/npm application dependencies for these tests.
+
+The ShipLoop group also runs the capability-study fixture, runtime/collector and
+local async-client regressions. They use synthetic data, temporary files and
+loopback services without credentials or installed MCP servers. The actual
+macOS sandbox/CLI preflight is an explicit experiment check; a hermetic pass does
+not establish that host-specific boundary. See the
+[capability apparatus](experiments/shiploop_capabilities/README.md).
 
 Review Coverage now distinguishes residual-review convergence from final
 delivery verification. Its [Finalization contract](../skills/review-coverage/SKILL.md#finalization-after-completedlanded-review)

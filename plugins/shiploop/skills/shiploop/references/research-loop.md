@@ -6,6 +6,12 @@ incoming prompt, surveyed environment, available spec and recorded discoveries.
 Follow the printed action; retain everything needed by the next iteration in
 Markdown. Read only the section the current packet selects.
 
+For a later feature, consult the [cross-run knowledge policy](project-knowledge.md):
+read persistent environment/decision documents and relevant prior-run evidence,
+revalidate what affects this request, and retain useful updates in repository
+documentation. The new incoming prompt defines scope; an old prompt or work queue
+is historical context, not a request to execute it again.
+
 ```mermaid
 flowchart TD
   Q[Scoped questions] --> S[Review sources and investigate]
@@ -120,6 +126,16 @@ anchors, not a mandate to install an MCP server or adopt an RPC design.
 
 ## Recursive discovery and experiments
 
+This is a generic discovery process for arbitrary referenced systems, whether
+local or remote. Derive the concrete questions, access routes, libraries, patterns,
+and experiments from the task and inspected contracts. Named technologies,
+applications, transports, and example probes illustrate the method; they are not
+required dependencies or a fixed discovery sequence. Do not assume an MCP server,
+browser, client/server architecture, or remote deployment exists. Apply the same
+method during environment investigation, inner-loop development, outer-loop
+delivery, and test expansion when a consequential unknown arises; reuse existing
+evidence instead of requiring a fresh investigation at every checkpoint.
+
 ### Scope, coverage, and frontier
 
 Start with the task's affected flows, not a fixed number of hops. Read the repo
@@ -136,10 +152,20 @@ uncertainty. A listed tool, credential-status response, local binding error, or
 catalog does not establish account/project reachability. Do not create a target
 solely to claim discovery access.
 
+Apply [early access readiness](#early-access-readiness) at that first relevant
+probe and whenever investigation exposes a new required access boundary.
+Investigate the [environment lifecycle](environment-lifecycle.md) before planning
+code: actual workspace/runtime/data isolation, setup prerequisites, automated
+deployment triggers, and how the tested candidate reaches its intended consumer.
+Retain preparation and promotion needs separately for their downstream owners.
+
 Screen every affected flow and every consequential newly encountered boundary for
 all eight areas below. Mark an area established, unresolved, or not applicable
 with its reason and evidence. The screen is task-scoped: it does not authorize an
 audit of every platform feature or private account.
+These are analytical categories, not required components. Use the encountered
+system's corresponding concepts; when an area has no counterpart, record why it
+is not applicable rather than inventing a client, service, library, or cache.
 
 | Area | Ask enough to choose or reuse safely |
 | --- | --- |
@@ -169,10 +195,88 @@ need one trace; a multi-service write can need several trust and persistence
 boundaries. No route found is a recorded gap, not evidence that the system has no
 behavior.
 
+### Early access readiness
+
+Notify early; block only work that needs the missing access. Start once a system,
+target/environment role, and task-relevant need are concrete, normally during
+`discovery` after the repository scan and before deeper dependent research. A
+speculative technology or merely available connector is not a reason to sign in.
+For a selected downstream test or delivery dependency, surface known access needs
+now even if that later activity need not run yet.
+
+Independent work stays within the current action and granted scope. Discovery
+may continue local inspection, not future implementation; do not skip graph
+stages or begin another action while this one is paused/blocked. When only a
+downstream requirement remains and this action is genuinely complete, its
+callback lets the script advance normally toward that later work.
+
+First try one bounded, non-mutating read through the existing connection under
+the current grant; ordinary supported credential refresh may suffice. Check the
+intended target/role, not just tool availability. Reuse a sufficiently current
+receipt for the same boundary instead of probing again on every Improve pass.
+If no safe authorized probe exists, explain that limit and ask the necessary
+scope/setup question; do not perform a write, create a resource, switch accounts,
+or broaden access merely to test readiness.
+
+| Observation | Next action |
+| --- | --- |
+| Relevant read succeeds in the intended role | Record what that read establishes and continue without a login request. It does not prove write permission or consumer/browser access. |
+| Missing/expired session remains after supported refresh | Prompt the user promptly for the required sign-in/reconnection, before more research that depends on it. |
+| Wrong account/tenant, insufficient role, or consent required | Explain the specific selection/permission decision and ask the appropriate user or administrator; another login may not fix it. Never expand scopes automatically. |
+| Missing tool/binding, network failure, or target not provisioned | Record a setup, connectivity, or provisioning gap. Do not diagnose authentication from a failed call alone; use bounded safe checks to distinguish causes. |
+| Optional or unselected system | Defer access requests until the system becomes a concrete dependency. |
+
+Give the user the system and non-secret environment/role alias, why access is
+needed, the safe check attempted and its sanitized result, the smallest necessary
+user action, the earliest activity it blocks, and what independent work can
+continue. Use the supported host/provider authentication surface; never request
+passwords, tokens, cookies, or credential-bearing links in chat or notes. A
+request to authenticate is not permission to grant broader access or deploy.
+Raise a known admin/approval lead time early, but do not front-load speculative
+or unrelated privileges. Distinguish connector, downstream service, deployment,
+and browser-consumer identities when they are separate boundaries.
+
+Select the [lowest-overhead sufficient testing surface](testing-and-documentation.md#lightweight-and-browser-checks).
+A curl/API probe may not share the browser's session or authentication flow.
+Consider an existing authorized browser route for a real consumer-access need;
+do not diagnose the destination as unavailable solely from a login redirect or
+assume connector access establishes browser-user access.
+
+Retain this request and its pending/declined/deferred/verified disposition in the
+existing authored Markdown with the observed-at context, evidence locator,
+affected work, owner, and safe recheck/resume condition. These are descriptive
+notes, not new result fields or an authentication state machine. Reuse an existing
+request for the same system/role/scope; do not repeatedly prompt on unchanged
+blockers or after refusal. A changed need or new user direction can reopen it.
+Before `plan-improve` completes, check that each concrete external dependency
+has relevant access evidence or a disclosed access/setup requirement, owner,
+and earliest gating stage.
+An undisclosed known requirement is a planning defect; a disclosed downstream
+requirement need not block independent work. A prerequisite for the current
+action remains incomplete and uses that packet's pause/blocked route.
+
+After the user responds, recover the current packet if context was cleared and
+follow its resume route if paused/blocked. Recheck the relevant safe operation;
+the user's confirmation alone is not access evidence. Keep failed verification
+unresolved. Once access and the current action's remaining duties, including
+any assigned Improve campaign, are complete, submit its exact current callback
+and consume the next packet. Do not stop at a question answer, mark the whole
+phase done just because login succeeded, or replay a pre-block callback.
+Revalidate stale evidence or changed target/role/scope before use, especially at
+step and release planning; do not rediscover settled access at every node.
+
+This is host-executed policy. The navigator returns its reference and preserves
+ordinary notes/result locators and pause/resume state; it neither authenticates
+nor proves that a probe or user prompt occurred. Contextual minimum-scope requests
+follow [OAuth incremental-authorization guidance](https://developers.google.com/identity/protocols/oauth2/resources/best-practices#use-incremental-authorization);
+apply the actual provider's error and permission contract, not a universal
+HTTP-status-to-login rule.
+
 ### Acquire a reader and establish access only when authorized
 
-If a consequential observation is unavailable, compare existing MCP/API/CLI/SDK/
-browser routes using [platform discovery](platform-discovery.md#discover-before-choosing-a-mechanism).
+If a consequential observation is unavailable, compare available access routes,
+such as MCP/API/CLI/SDK/browser interfaces, using
+[platform discovery](platform-discovery.md#discover-before-choosing-a-mechanism).
 Prefer an existing authorized tool or native facility. A missing skill, MCP
 server, SDK, client, or test environment is a setup question before it becomes a
 final access blocker, but acquire one only for a named gap that could change
@@ -227,14 +331,24 @@ and how each outcome changes the plan or reuse decision. Prefer non-mutating
 inspection, then an authorized isolated fixture. Stop on unexpected effects or
 missing authority; never use production merely because it is the only target.
 
-Select only the experiments needed from this ladder:
+Select only the experiments needed from this ladder, adapting each to the
+encountered contract. The specific probes below are conditional examples, not
+universal acceptance criteria:
 
 - **Access setup:** acquire/configure a reader, initialize/catalog it, and make
   one authorized relevant read; distinguish package, startup, identity,
   permission, target, and data-access failures.
-- **Client/server contract:** exercise supported valid and invalid calls to learn
-  serialization, callbacks/errors, ordering, and completion; a local RPC mock
-  proves only its adapter.
+- **Interaction contract:** exercise supported valid and invalid interactions to
+  learn the applicable input/output, error, ordering, and completion semantics.
+  For example, when asynchronous results can affect newer consumer state,
+  identify the existing result-acceptance policy. In an authorized isolated
+  fixture or existing safe test, force reversed completion of two relevant
+  operations and check the affected state, such as rendered or client-held state
+  in a UI; mark absent surfaces not applicable. Do not assume a successful result
+  is still current or duplicate a live mutation to test it.
+  Record whether an existing sequence/version/cancellation mechanism can be
+  reused, or a small extension needs implementation.
+  A local RPC mock proves only its adapter.
 - **Library and design compatibility:** run representative existing code or an
   official example under the actual framework or a clearly labeled local harness.
 - **State and concurrency:** compare valid, stale, repeated, or concurrent
@@ -249,7 +363,10 @@ Select only the experiments needed from this ladder:
   or security criterion.
 
 Record actual positive, negative, or unresolved outcomes, source versions,
-artifacts, and cleanup. Label fidelity precisely: source-only inference, local
+artifacts, and cleanup. Preserve non-secret request/outcome evidence such as a
+role alias, operation, response status, and state effect independently of prose.
+Redact sensitive fields; if the remaining receipt cannot substantiate a claim,
+keep that claim unresolved. Label fidelity precisely: source-only inference, local
 mock, actual framework test, actual service read, deployed endpoint, or
 intended-user test. A successful local test cannot become a claim about a
 deployed endpoint or user behavior. A material result re-enters the existing
@@ -348,6 +465,12 @@ envelope. Do not add `body`, `research_state`, `system_context`, or other legacy
 fields to that envelope or create compatibility candidate files. Named
 questions/sources/`depth_rationale` in the shared section describe information to
 retain, not a mandatory navigator schema or note layout.
+
+For [access requests](#early-access-readiness), keep the probe, user-facing ask,
+disposition, owner, earliest gating stage and recheck condition in that same
+note. Carry its locator in dependent results' `evidence_refs` and applicable
+planned work-item `context` so a cold host can find it without conversation
+memory. Update the existing note rather than creating a duplicate request.
 
 Record the selected mutation route and its authorization boundaries. Extra
 readers do not grant authority to change that route or evade a real denial.

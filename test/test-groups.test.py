@@ -13,7 +13,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 RUNNER = ROOT / "test" / "run-all.sh"
 SHIPLOOP_RUNNER = ROOT / "test" / "shiploop.test.sh"
-SHIPLOOP_SUITE_COUNT = 68
+SHIPLOOP_SUITE_COUNT = 75
 ACTION_WALK = "test/shiploop-action-walk.test.py"
 CI_GROUPS = ("core", "shiploop-1", "shiploop-2", "shiploop-3")
 CORE = {
@@ -115,6 +115,9 @@ class TestGroupTests(unittest.TestCase):
             "[ \"${FAIL_SUITE:-}\" != \"$1\" ] || exit 7\n"
         )
         python.chmod(0o755)
+        node = root / "bin" / "node"
+        shutil.copyfile(python, node)
+        node.chmod(0o755)
         env = dict(os.environ)
         env.update(PATH=f"{root / 'bin'}:{env['PATH']}", TEST_TRACE=str(root / "trace"))
         return root, env
@@ -294,6 +297,28 @@ class TestGroupTests(unittest.TestCase):
         result = self.invoke_shiploop("--shard", "2/3", root=root, env=env)
         self.assertEqual(result.returncode, 7, result.stdout + result.stderr)
         self.assertEqual(trace.read_text().splitlines(), ["sync", *selected[:2]])
+
+    def test_shiploop_mixed_interpreters_are_sharded_and_fail_closed(self):
+        node_suite = "test/shiploop-capability-async.test.cjs"
+        canonical = self.shiploop_inventory()
+        self.assertEqual(canonical.count(node_suite), 1)
+        root, env = self.shiploop_fixture()
+        trace = root / "trace"
+        for shard in (None, "1/3", "2/3", "3/3"):
+            with self.subTest(shard=shard):
+                trace.unlink(missing_ok=True)
+                selected = self.shiploop_inventory(shard)
+                args = () if shard is None else ("--shard", shard)
+                result = self.invoke_shiploop(*args, root=root, env=env)
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                self.assertEqual(trace.read_text().splitlines(), ["sync", *selected])
+
+        trace.unlink()
+        env["FAIL_SUITE"] = node_suite
+        result = self.invoke_shiploop(root=root, env=env)
+        self.assertEqual(result.returncode, 7, result.stdout + result.stderr)
+        self.assertEqual(trace.read_text().splitlines(),
+                         ["sync", *canonical[:canonical.index(node_suite) + 1]])
 
     def test_action_walk_has_one_aggregate_owner(self):
         entrypoint = (ROOT / "test" / "shiploop.test.sh").read_text()

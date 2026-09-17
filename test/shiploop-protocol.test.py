@@ -455,10 +455,14 @@ class ProtocolTests(unittest.TestCase):
         )
         out1, err1 = one.communicate(timeout=15)
         out2, err2 = two.communicate(timeout=15)
-        self.assertEqual(one.returncode, 0, err1)
-        self.assertEqual(two.returncode, 0, err2)
-        self.assertIn(self.state()["action"]["id"], out1)
-        self.assertIn(self.state()["action"]["id"], out2)
+        # Concurrent different requests must not silently share one prompt.
+        # The lock selects one winner; the other needs a distinct run directory.
+        self.assertEqual(sorted([one.returncode, two.returncode]), [0, 2], err1 + err2)
+        winner, loser, prompt = ((out1, err2, "first") if one.returncode == 0
+                                 else (out2, err1, "second"))
+        self.assertIn(self.state()["action"]["id"], winner)
+        self.assertIn("fresh --run-dir", loser)
+        self.assertEqual(self.state()["prompt"], prompt)
         self.assertEqual(
             (self.run_dir / "prompt.md").read_text().strip(), self.state()["prompt"]
         )

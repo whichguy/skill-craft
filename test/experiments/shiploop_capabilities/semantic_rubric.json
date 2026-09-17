@@ -1,0 +1,45 @@
+{
+  "version": "shiploop-capabilities-blind-v1",
+  "origin": "Independent reviewer, frozen before worker trials",
+  "global": {
+    "blind_to": ["arm", "prompt_variant", "skill_body_availability", "capability_catalog_variant", "mutant_inventory", "expected_score"],
+    "rules": [
+      "Use tool receipts, returned service data, source hashes and executed tests; planned checks and prose alone do not establish execution.",
+      "Native HTTP is valid. Mandatory workspace MCP is instrumentation, not discovered capability value.",
+      "Grade supported outcomes and limits, not counts of skills or MCP tools used.",
+      "Screen message passing, connections, authentication, design, client libraries, storage, caching and security with evidence or explicit task-specific gaps.",
+      "A material unsupported access, runtime, deployment, authorization, test-pass or repair claim is fatal."
+    ],
+    "dispositions": {
+      "pass": "All mandatory observations and the correct decision are evidenced.",
+      "partial": "No fatal claim; explicitly unresolved requirements remain but stated decision is supported.",
+      "inconclusive": "Evidence cannot establish the required decision, honestly reported.",
+      "fatal_unsupported_claim": "A material claim exceeds evidence.",
+      "invalid": "Missing, contaminated or unblinded evaluation evidence."
+    }
+  },
+  "ENV": {
+    "mandatory": ["actual runtime/target", "correct stale browser-MCP claim", "distinguish application HTTP from inspection", "actual request-to-service/state trace or explicit inability", "respect denied resource", "eight-area screen"],
+    "decision": "Bound findings to local demonstrated evidence; no deployment or denied-resource claim."
+  },
+  "OUTER": {
+    "mandatory": ["compare candidate and served revision/config", "actual served evidence following mutation attempt or explicit inability", "identify cache/config mismatch and consequence", "readiness based on served boundary", "eight-area screen"],
+    "decision": "Block release pending served-candidate/cache reconciliation and verification."
+  },
+  "OUTER_HOLDOUT": {
+    "mandatory": ["actual served authorization/config evidence", "intended actor effective authorization observation or explicit inability", "separate candidate/served config", "readiness based on observed authorization", "eight-area screen"],
+    "decision": "Block release when the client mutation scope is not authorized by the served service."
+  },
+  "TIMING_STABLE": {
+    "mandatory": ["reuse earlier supported finding", "recognize unchanged uncertainty", "carry remaining budget and limits", "no unsupported new claims"],
+    "decision": "Continue without renewed broad research or acquisition."
+  },
+  "TIMING_CHANGED": {
+    "mandatory": ["preserve earlier facts and limits", "recognize new authorization question", "targeted served observation or explicit inability", "derive access/readiness disposition from observation"],
+    "decision": "Reassess the new authorization gap without restarting unrelated discovery."
+  },
+  "GAS": {
+    "mandatory": ["selected target/reader access from authorized result", "discovery vs deployment/player distinction", "supported invocation/auth/source/config/library facts", "eight-area screen", "honest deployment/player limit"],
+    "decision": "Read-only findings may support discovery/readiness; no new deployment or intended-player claim without actual evidence."
+  }
+}

@@ -1,4 +1,4 @@
-# ShipLoop navigator 0.10.0
+# ShipLoop navigator 0.11.0
 
 New runs use navigator protocol 2: explicit SDLC actions, one shared INNER
 graph with per-work-item execution records, one complete Improve campaign per
@@ -9,17 +9,100 @@ and evaluation.
 - [Navigator guide and flat SDLC diagram](references/navigator.md)
 - [Graph dry-run commands and examples](references/graph-dry-run.md)
 - [Skill entrypoint](SKILL.md)
+- [Isolated workspace and artifact return policy](references/workspace-lifecycle.md)
+- [Delivery-authority readiness](references/delivery-authority.md)
 
 `init` defaults to `--execution-mode=navigator` and protocol 2.
 `--execution-mode=navigator-v1` exists for compatibility fixtures. Existing v1,
 managed, and legacy runs resume their recorded protocol without conversion.
+The skill uses `workspace start` for new Git-backed work. It selects the same
+protocol-2 graph with mode `navigator-worktree`, an isolated execution checkout
+and a script-checked final return. Direct `init` remains available for explicit
+in-place/non-Git use and compatibility; existing runs are never retrofitted.
 Navigation completion records the host's declared result; it does not certify
-tests, Git state or deployment.
+tests or deployment. Workspace-mode completion additionally requires its actual
+local return receipt, not just a host assertion that integration happened.
+
+## Worktree isolation and artifact-safe return
+
+```mermaid
+flowchart LR
+  A[Current branch plus local edits] --> B[Isolated execution worktree]
+  B --> C[Inner work then whole-product checks]
+  C --> D[Review product paths and history]
+  D --> E[Guarded return to original checkout]
+  E --> F[Verified receipt then handoff complete]
+  B --> G[External run state and reports]
+```
+
+Start once with the selected package's CLI:
+
+```sh
+python3 "$CLI" workspace start --repo "$REPO" \
+  --workspace-root "$WORKSPACE_ROOT" --prompt='<new request>'
+```
+
+Choose a dedicated durable external workspace directory, for example a fresh
+`<repo-parent>/.shiploop-runs/<request-name>`, outside the product repository.
+The script records the actual starting branch and captures tracked working
+content, including unstaged edits, without changing the source index. Needed
+non-ignored untracked inputs must be named with `--include-untracked`; ignored
+credentials/caches are not copied. It does not default to `main`, pull, push,
+stash, reset, or commit the original checkout to make isolation possible.
+
+The returned packets point to the execution checkout at `WORKSPACE_ROOT/worktree`
+and navigator state at `WORKSPACE_ROOT/run`. `workspace.md` records source and
+baseline provenance. Work and INNER integration stay in the execution checkout;
+the original branch receives nothing after an individual item. System checks
+and outer Improve evaluate the assembled candidate before final return.
+
+At the planned final integration boundary, the packet supplies `workspace
+plan-return` and `workspace return`. Review the candidate-bound Markdown plan's
+path dispositions: keep intended code/tests/configuration and maintained project
+knowledge; exclude transient output. The helper blocks pending/stale decisions,
+known runtime paths, source drift and unsafe merges. For a clean start it also
+checks reachable commit paths, so committing then deleting a runtime artifact
+does not hide it from the return guard.
+
+| Starting checkout | Result of guarded return |
+| --- | --- |
+| Clean | A clean, committed, reviewed worktree branch can fast-forward the exact original branch. |
+| Staged/unstaged work or selected untracked inputs | Return only the new baseline-relative working-tree delta. Original staged content is unchanged; no private snapshot commit or automatic product commit enters the original branch. |
+| Reviewed exclusions or an uncommitted candidate | Return only kept working-tree changes, even for a clean start. Excluded artifacts and their commits do not enter the original branch. This is not a merge/commit. |
+| No kept changes or new history to integrate | Record `no-change-return`; do not manufacture a merge or commit. |
+| Changed source, unsafe history, stale plan or unresolved collision | Refuse the return and retain both checkouts for reconciliation. Do not force/reset/stash. |
+
+For example, staged plus unstaged edits to `game.js` become the worktree's
+starting contents. New drag behavior is implemented and checked there. Return
+adds that new delta to the original working file while keeping its original
+index exactly intact. This is explicitly reported as a working-tree return,
+**not a Git merge or commit**. The helper does not silently decide to commit the
+user's earlier edits merely because ShipLoop used them as context.
+
+Durable README/environment/design/decision updates and `SHIPLOOP.md` belong in
+the reviewed product set. Run prompts/results, scratch, raw logs, credentials,
+return manifests and the generated HTML achievement report do not. Reports stay
+under external run storage; reusable facts are promoted into project docs. The
+host must judge ambiguous/custom artifacts—the guard cannot infer their meaning.
+
+Handoff cannot declare completion without a current verified return receipt.
+If branch integration activates deployment, plan it as an authorized release
+operation and verify that effect separately. A local return never proves remote
+delivery. All source documentation intended for return must be finalized before
+the return; subsequent changes require renewed reconciliation/validation.
+Worktrees and run records are retained, not automatically deleted.
+Never push all workspace branches: a local private baseline may contain earlier
+uncommitted inputs. Push only the intended reviewed branch when authorized.
+
+See [workspace lifecycle](references/workspace-lifecycle.md) for exact storage,
+review duties, recoverability, unsupported-state boundaries and compatibility.
+Focused checks: `python3 test/shiploop-workspace.test.py`.
 
 ## Navigator task entry and recovery
 
 ShipLoop 0.10.0 makes the navigator's per-item execution ownership explicit.
-Before stage work, use `init` once for a genuinely new request or use `next` to
+Before stage work, use `workspace start` once for new Git-backed work (`init`
+for explicitly selected direct mode), or use `next` to
 recover the same existing run, then verify the printed original goal and
 repository. `next` rereads saved state; it does not advance the graph.
 
@@ -38,6 +121,67 @@ done packets stop. A missing or relocated locator must recover the same run and
 task/repository identity or remain incomplete, never become a replacement `init`.
 The script does not retain the host handoff, launch a fresh model, reset a model
 context, or force a host to use its tools. See the [Navigator recovery contract](references/navigator.md#recover-one-existing-run).
+
+## New feature, retained project knowledge, fresh run
+
+```mermaid
+flowchart LR
+  A[New incoming request] --> B[Fresh run with its own prompt]
+  K[Project docs and prior run references] --> C[Discover and revalidate context]
+  B --> C
+  C --> D[Plan the requested delta plus Improve]
+  D --> E[Implement and verify the change]
+  E --> F[Update lasting knowledge and hand off]
+  F --> K
+```
+
+A new ShipLoop invocation for a later feature must not resume the previous
+feature's prompt. Keep the same original repository, preserve its prior runs,
+and start the new request in a fresh dedicated external workspace. For example,
+after a run completed “create a checkers game,” use a new sibling workspace
+`.shiploop-runs/drag-animation-01` for “make checkers visually drag.” The
+host supplies the new incoming text verbatim to `workspace start` (or `init`
+in direct mode). `next` is exclusively
+same-run recovery; it is not a new-feature entrypoint.
+
+The script refuses an existing-run `init` whose prompt or explicitly supplied
+repository differs from the saved identity. It preserves existing state and
+directs the caller to a fresh `--run-dir`. A matching retry is idempotent,
+including on a completed run: it remains complete and does not replay work.
+Even identical wording needs a fresh run if it is genuinely a separate request.
+Recorded execution protocols/options are not changed by re-entry.
+
+Every navigator packet supplies the absolute repository `SHIPLOOP.md` knowledge
+index locator and the [cross-run knowledge policy](references/project-knowledge.md).
+The index is ordinary host-maintained Markdown, not another scheduler or a copy
+of run state. It points to existing environment, architecture/design/decision,
+testing and deployment documents plus useful historical run/report references.
+Stable knowledge lives in repository documents outside disposable run storage;
+the index need not duplicate their contents. Preserve existing index content and
+repository conventions. No particular environment-document filename is required.
+
+| Existing phase | Cross-run responsibility |
+| --- | --- |
+| Intake and discovery | Read README/AGENTS, the index if present, relevant environment/decision documents and known prior-run artifacts. Verify applicability against current code/targets; record reused facts, sources, stale facts and gaps. A missing index does not mean an empty repo. |
+| Discovery Improve, research/specification | Challenge the context assessment and resolve consequential unknowns. Preserve current scope instead of importing old requirements. |
+| Overall and step planning, their Improve campaigns | Plan only the new delta from verified existing behavior; reference applicable persistent decisions and new checks in work-item context. |
+| Document and carry-forward | Incrementally update reusable knowledge and its index; keep observed facts, proposed changes and pending outer work distinct. |
+| Handoff | Reconcile knowledge with final outcomes, retain provenance and relevant run/report locators, and verify useful knowledge survives beyond temporary run notes. |
+
+In the checkers example, discovery reuses the existing game's deployment target,
+design rationale and test setup after appropriate revalidation; planning adds
+drag behavior to the existing game. It does not rebuild the game, copy old work
+items, replay a deployment, or treat earlier tests as proof the new feature works.
+If the old environment points at a removed sandbox or conflicts with the current
+request, record the discrepancy and resolve the relevant prerequisite before
+dependent work. Earlier approvals do not automatically authorize new writes.
+
+This keeps the graph and Markdown state schema unchanged. Scripts enforce run
+identity and expose stable references; hosts perform reads, curate the project
+knowledge and judge applicability. Packet locators and synthetic routing tests
+do not prove an LLM consulted the files or that historical remote facts are current.
+From the source checkout, run `python3 test/shiploop-cross-run.test.py` for the
+focused regression checks.
 
 ## Per-item navigator ownership
 
@@ -147,6 +291,196 @@ file grants no permission merely because an agent wrote it. New authority,
 public access, credentials, and unrelated targets remain outside the packet's
 power. Old unmarked runs retain their existing schemas; the option cannot
 silently enable on resume. Default adoption is separate from this pilot.
+
+## Delivery authority readiness: ask early, reuse narrowly
+
+```mermaid
+flowchart LR
+  D[Discovery names consumer target operation] --> G{Explicit grant applies}
+  G -->|No| Q[Ask run-only or standing]
+  Q --> N[Record question owner earliest gate]
+  N -->|After user reply| V[Match and revalidate scope]
+  G -->|Yes| V
+  V --> E[Perform only authorized effect and verify]
+```
+
+This is ordinary navigator guidance for any necessary external operation, with
+or without `--delivery-contract`; it does not add a phase, parser, automatic
+deployment, or new authority store. At discovery, once the consumer,
+target/account, and operation are concrete, check for an explicit applicable
+grant. If it is missing, ask promptly rather than waiting for `release`: name
+the operation, target/account, environment, exclusions, expected effect, and
+whether approval is for this run or standing. Silence, a login, an old one-off
+approval or receipt, and agent-authored policy are not grants.
+
+Record the assessment in the canonical current-run
+[`notes/environment-lifecycle.md`](references/environment-lifecycle.md#durable-record-and-responsibility)
+note and point ordinary result `evidence_refs` to it. Include necessity, the
+consumer/target/account/operation match inputs, actual sources/current binding
+evidence, the grant or outstanding question with owner/earliest gate, and
+required effect, identity, and behavior evidence. This is not a new ledger or
+proof that a claimed grant or observation is authentic.
+
+Once the missing question has been recorded, do not ask it again on every
+action. Discovery and other independent authorized work may continue; the gap
+blocks at the earliest dependent write or `release-plan`, not merely because it
+exists. After the user replies, recover the current action if needed, record the
+answer, finish its assigned Improve work, and use its normal callback. A reply
+does not create a new phase or itself complete the current action.
+
+A standing policy is reusable only when it still matches product and consumer,
+target/account, operation, environment/access, exclusions, its user approval
+reference, and current revocation/expiry state. It must also cover the current
+effect without broader access, data exposure, or security impact. The current
+request can narrow or override a standing permission: an explicit source-only
+request wins over a policy that otherwise permits a private sync. An ordinary
+new feature behavior within the unchanged approved scope needs no repeat
+approval; ask again only when changed effects fall outside that scope. Keep a
+standing policy in an existing repository-owned `SHIPLOOP.md`, `AGENTS.md`, or
+deployment document linked from the knowledge index, never solely in run notes.
+
+For example, an existing policy may permit a user-approved standing sync of the
+current candidate to one private development account, excluding public release.
+For a source-only request, do not sync despite that permission. For a request to
+make the private page usable, revalidate the exact account, environment, and
+exclusions, then perform the unchanged in-scope sync without seeking a duplicate
+approval. If the sync succeeds but the browser reaches login, preserve the sync
+and identity evidence, mark behavior blocked, and report the feature unverified.
+Do not automatically repush merely to create another receipt; restore suitable
+access and verify the same candidate, or replan if scope/target/authority changes.
+
+The optional declaration guard maps these same facts to its existing contract
+fields and checks declarations rather than approval authenticity. It remains
+opt-in and cannot be silently enabled for an existing run. See
+[delivery-authority readiness](references/delivery-authority.md) for the full
+current-run and durable-policy record.
+
+## Lightweight checks, browser evidence when needed
+
+Prefer `curl` or an existing HTTP/API client when it can prove the required
+outcome. Choose tools by evidence coverage and overhead, not by a fixed ladder.
+Always consider Chrome DevTools, browser automation or an equivalent available
+browser surface for rendered behavior, interactions, or browser-specific auth
+such as session/SSO/MFA flows. No new browser integration is required by default.
+
+Discovery and test planning establish the target, intended user role, expected
+behavior and access prerequisites. INNER/system/release verification uses that
+selection and revisits it when observations change. A JSON response contract
+may need only curl; checkers dragging needs an actual browser interaction.
+HTTP 200 on a login page is not app success, and a curl redirect does not prove
+that an authorized browser cannot reach the app. Inspect that route or retain
+the required check as blocked; do not hide the gap with a lighter but insufficient
+test. Successful deployment and browser verification remain separate evidence.
+
+Each navigator packet links the [shared testing guide](references/testing-and-documentation.md#lightweight-and-browser-checks).
+Use supported authentication, ask for necessary user action early, and keep
+cookies, tokens and browser auth state out of commands, reports and Git. This
+changes prompt guidance and reference routing, not the state graph or permissions.
+
+## Early authentication without premature sign-in requests
+
+```mermaid
+flowchart LR
+  D[Identify a concrete dependency] --> P[Try a safe existing connection]
+  P -->|Access works| C[Continue investigation]
+  P -->|User action needed| A[Ask promptly and retain the request]
+  A --> W[Continue independent current work or pause]
+  W --> V[Recheck after the user responds]
+  V --> F[Finish current duties and callback]
+```
+
+Discovery performs this checkpoint after identifying the relevant system and
+environment, before deeper research needs its access. The same policy applies
+when later research or an Improve campaign discovers a new required boundary.
+Do not request sign-in for every available connector or speculative technology.
+Reuse a current successful probe; do not prompt on every iteration.
+
+If an existing-connection read reports an expired session, ask the user promptly
+to reconnect through the supported provider/host surface. Name the non-secret
+target/role, attempted check, needed action, earliest blocked activity, and work
+that can continue. A missing tool or a network failure is not an auth diagnosis;
+a wrong role may need an administrator rather than another login. Do not test
+write permission by publishing, and never collect credentials in chat or notes.
+
+For example, a hosted-app change can continue local code inspection during
+discovery while a known development-account login is pending, provided that
+inspection does not depend on the missing remote facts. Independent work stays
+within the current action; it does not allow coding early or skipping graph
+stages. Only its completed callback lets the script advance. `plan-improve`
+checks that each concrete external dependency has access evidence or a disclosed
+access/setup requirement with an owner and gating stage. Step and release
+planning recheck stale or changed access, not blindly reuse an old login.
+Connector access and the browser user's access can require separate checks.
+
+The host retains the request, disposition and recheck condition in an existing
+run note, carries its locator through dependent results and work-item context,
+and avoids duplicate requests. After a user reply, recover/resume the current
+packet as needed and retry the safe read. A reply or successful login alone does
+not complete discovery: finish its duties and assigned Improve campaign, then
+use the packet's current callback. Required current access remains incomplete
+if verification fails; downstream-only requirements need not block independent
+work and cannot silently become N/A.
+
+Every navigator packet links the [shared access-readiness policy](references/research-loop.md#early-access-readiness),
+including cold paused/blocked packets. Scripts own those locators and the
+existing transitions; the host owns probes and timely questions. No new graph
+node, auth schema, OAuth client, or grant is introduced, and the script does not
+certify that a host performed authentication. Sign-in is not deployment authority.
+
+## Prepare the development area, then promote the result
+
+```mermaid
+flowchart LR
+  D[Discover actual environment topology] --> P[Plan prerequisites and promotion]
+  P --> B[Complete required preparation items]
+  B --> F[Implement feature items]
+  F --> S[Stage candidate if needed and run system tests]
+  S --> R[Outer review and release planning]
+  R --> A[Authorized final promotion and consumer verification]
+```
+
+This is a responsibility view, not a new graph. Some work is entirely local;
+other systems use sandbox/prod, dev/stage/prod, ephemeral previews, or a different
+promotion route. Discover the real one and reuse it where appropriate. A branch
+or worktree isolates source changes, not necessarily remote data or services.
+Read deployment automation too: commit/push/merge can trigger an external update.
+
+| Point in the existing navigator | Responsibility |
+| --- | --- |
+| `discovery`, research and their Improve campaigns | Identify where code is edited, built, run, tested and consumed; inspect existing areas, access, isolation, baseline behavior, deployment triggers and promotion rules. Do not provision during investigation. |
+| `test-strategy`, `plan`, `plan-improve` | Plan readiness checks, environment preparation, candidate staging and final promotion before feature coding. Put required setup producers before their consumers in `work_items`, with definitions of ready/done and authority. |
+| Preparation work item through INNER | Perform only authorized setup; verify the intended target, binding, isolation and baseline; document its receipt and complete Improve before dependent feature work begins. An already-ready environment needs no artificial setup item. |
+| Feature work and `carry-forward` | Recheck applicable readiness, use only the planned workspace/target, and retain newly discovered staging/migration/approval requirements in the shared environment note. |
+| `system-test`, `outer-improve` | Use the planned candidate and environment, inspect real readiness/check evidence, and reconcile pending deployment work. A required test deployment must already have an explicit producer; do not improvise a production update to make tests run. |
+| `release-plan`, `release`, `release-verify`, `handoff` | Read the retained route, plan and execute only remaining authorized hops, preserve candidate identity and partial receipts, verify the final consumer, and report cleanup ownership and unresolved work. |
+
+For example, a sandbox/prod app might plan `PREP` (ready the authorized sandbox),
+`FEATURE` (implement and verify the change there), and, only if needed, `STAGE`
+(install the candidate in the selected test area). The script completes each
+item before selecting its successor. Outer system tests then inspect the
+prepared candidate; release planning reviews production promotion and its
+approval, release performs it when authorized, and release verification checks
+the production consumer. Sandbox success alone is not production success or
+permission. This is an illustrative sequence, not a report of a live deployment.
+
+Every packet prints the canonical run-note path `notes/environment-lifecycle.md`,
+even after later work items or a cold restart. When relevant, retain setup facts,
+receipts and pending outer requirements there, or point it to adequate existing
+environment/deployment documentation without copying its body. Dependent
+results/work items also carry useful evidence locators. No empty note is needed
+for irrelevant local-only work. A fresh context can find and update it without
+duplicating requests; an absent expected note is a gap. Missing coding isolation blocks
+dependent code changes; a release-only staging requirement need not block
+independent local work. Never silently substitute production for a missing test
+area or clone sensitive production data into a sandbox.
+
+The [shared environment lifecycle policy](references/environment-lifecycle.md)
+defines these boundaries. Navigator uses existing ordered work items, **not a
+new outer-before node**; scripts enforce their declared order, while the host
+must identify all required setup and establish real readiness. No automatic
+provisioning, deployment authority, new schema, or environment-name convention is
+introduced. Existing managed/legacy runs retain their conditional
+`preparation: outer-before` and DAG-preparation routes described below.
 
 ## Agentic duties within a work item
 

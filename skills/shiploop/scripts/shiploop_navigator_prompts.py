@@ -88,6 +88,54 @@ visible connection, or a prior operation cannot. Absence of an explicit publish
 wording does not silently make work source-only. A necessary operation or check
 without authority or current evidence is unresolved or blocked, not
 non-applicable; do not perform it merely to resolve the uncertainty.
+Follow the packet's Delivery-authority policy when an update may be needed.
+Reuse a user-approved standing policy only after checking its applicability to
+this request and actual target, operation, access boundary and exclusions.
+Record the current assessment in the Environment lifecycle note, with its
+evidence_refs in the action result; do not create another authority ledger.
+Silence, authentication and an ordinary skill invocation are not approval.
+
+For a concrete external dependency, follow the packet's Access-readiness policy:
+try a safe existing-connection read, promptly ask when user authentication is
+needed, and retain the non-secret request and recheck condition in existing
+notes. Do not prompt for speculative systems or confuse setup/network failure
+with login failure. Carry the note locator through dependent results. After a
+user reply, recheck access, finish the current duties and any assigned Improve
+campaign, and use the current callback; the reply alone is not completion.
+Independent work stays within this action; never skip graph stages while waiting.
+
+For destination checks, follow the packet's Consumer testing guide. Prefer the
+lowest-overhead available tool that proves the expected behavior: curl or an
+existing HTTP/API client when sufficient. Always consider an authorized browser
+route such as Chrome DevTools or equivalent for rendered interactions or
+browser-specific authentication. Do not force a curl attempt when it cannot
+answer the question, treat a login page as product success, or weaken a required
+browser check because HTTP succeeds. Retain the chosen boundary and evidence limits.
+
+Follow the packet's Environment lifecycle policy for relevant setup or delivery
+work. Check the packet's canonical Environment lifecycle note and relevant linked
+material; create it when needed or point it at adequate existing documentation.
+Keep its locator in dependent results/work-item context and update new requirements.
+Preparation, intermediate test deployment, and final consumer promotion are
+different obligations; environment names and Git branches do not prove isolation.
+
+Follow the Worktree and artifact policy. In an isolated workspace run, the
+repository locator is the execution checkout; workspace.md records the original
+branch. Keep run state, scratch, raw evidence, credentials and generated reports
+outside product commits. Keep intended code/tests/docs and reusable knowledge
+inside the product. Review paths explicitly before any commit or return; never
+use a blanket add/merge to transfer the entire run. Prior user changes are a
+baseline to preserve, not permission to commit them or overwrite new source edits.
+
+Follow the packet's Cross-run knowledge policy. Check its Repository knowledge
+index and relevant linked project documents; prior environment facts and decisions
+are reusable context, not a replacement request or current completion evidence.
+The Original request in THIS packet is this run's scope. Do not replay an earlier
+prompt, queue or callback, or treat an old one-off approval as new authority.
+An applicable user-approved standing policy may be reused after revalidation;
+it is not a prior operation receipt. Revalidate
+relevant facts against the current repository/target and retain useful changes
+in project documentation so later runs need not rediscover them.
 
 Use this packet's Current node and Action for your assignment and callback;
 the Last accepted transition describes earlier work, not the current action.
@@ -137,6 +185,16 @@ operation, authorization decision, consumer check, or consequential second-
 order effect. Preserve source/effect, artifact identity, and consumer-behavior
 observations separately. This is a review question inside this existing
 campaign; do not create another stage, wrapper, counter, or standalone loop.
+Compare delivery necessity across discovery, spec, plan, step notes and release
+assessment. A required update called optional or N/A elsewhere is a material
+contradiction: reconcile it against the original request and approved scope
+before convergence. Missing approval or a login redirect does not remove the
+obligation. Restore an accidental generated-plan downgrade to the original
+required outcome; that correction alone needs no new scope approval. A genuine
+change to user-approved scope needs a user disposition. Once the contradiction
+is corrected, a downstream approval question may stay explicitly unresolved
+with an owner and gating stage without blocking this review's convergence;
+it must not masquerade as approval or optional work.
 
 After every affected plan, code, test, documentation, or skill change, refresh
 the checks it can affect. Keep a durable human-readable record under the run
@@ -229,7 +287,11 @@ Establish the requested outcome, repository and run boundaries, explicit user
 constraints, authority limits, consumers and entry points, known risks, and
 unanswered questions. For a likely existing consumer, distinguish whether a
 usable update is necessary from whether a specific remote operation is
-authorized. Distinguish facts from assumptions. Identify what discovery must
+authorized. Identify new-product versus incremental scope from this run's incoming
+request and actual repository. Locate persistent project knowledge and prior-run
+references for discovery; do not substitute an earlier goal or assume a missing
+index means starting from scratch. Distinguish facts from assumptions.
+Identify what discovery must
 establish before research, specification, planning, pre/post-update tests, or
 release work can be trusted; do not implement or silently expand scope yet."""
     ),
@@ -237,6 +299,12 @@ release work can be trusted; do not implement or silently expand scope yet."""
         """\
 Inspect the current repository, Git/worktree state, instructions, relevant
 code, tests, documentation, environment, consumers, and useful local skills.
+Always read README and applicable AGENTS instructions. Follow the Cross-run
+knowledge policy to find existing environment.md (or its actual equivalent),
+design/decision records and relevant prior-run artifacts. Record sources reused,
+current validation, stale/conflicting facts and the new feature's implications
+in discovery notes; create/update the project knowledge index without duplicating
+adequate documents. Prior completed work is the baseline, not a new work queue.
 Identify implementation conventions relevant to this product's purpose:
 supported runtime/dependency versions, canonical code/test examples, relevant
 MCP/API contracts and existing reusable skills. Distinguish binding requirements,
@@ -251,9 +319,24 @@ authorization, or a passing check.
 For an existing system, locate the actual consumer/entry point and any
 user-approved delivery policy or activation mechanism. A hosted consumer makes
 delivery a material question, not automatic authority or an automatic
-source-only conclusion. When its answer changes scope or authority, ask or
-durably retain one high-value unresolved question while continuing independent
-authorized work.
+source-only conclusion. Follow the Delivery-authority policy: once the needed
+consumer update, target and operation are concrete, check applicable current or
+standing user approval. If missing, promptly ask the scoped question now, not
+only at release. Distinguish this-run approval from permission for future runs;
+never presume the latter. A still-valid matching standing policy needs no repeat
+approval. Record sources, target-binding evidence, exclusions and the decision
+or pending question/owner/earliest gate in the Environment lifecycle note and
+link it from this result. Continue independent authorized work while waiting;
+silence leaves authority unresolved. Do not ask about speculative destinations.
+After the relevant system and environment are concrete, check
+existing access before deeper dependent investigation and promptly surface a
+proven user-authentication need. Do not postpone that request until release;
+record downstream-only needs without blocking independent discovery.
+Discover where code is edited, built, tested and consumed, existing sandbox/dev/
+staging areas, and the real promotion path (if any). Inspect automation that a
+commit, push or merge may trigger. Identify reuse, isolation, baseline checks,
+setup/approval lead time and data/migration constraints before planning code;
+do not provision resources or deploy during investigation.
 First produce the discovery record, then run the complete Improve campaign
 below on that record before returning done. Challenge existing-versus-new
 system assumptions, affected actors and flows, access claims, missing evidence,
@@ -270,7 +353,10 @@ Resolve the material unknowns using appropriate primary repository or external
 evidence. Relate each conclusion to its source, uncertainty, affected
 requirement, consumer, prerequisite, and likely verification need. Keep
 research bounded to the request and leave unsupported questions open rather
-than inventing answers or implementation."""
+than inventing answers or implementation. Vet consequential environment links:
+shared data/services, configuration differences, candidate/artifact movement,
+automated release triggers and approvals. Distinguish observed readiness from
+proposed preparation; investigate only boundaries relevant to the request."""
     ),
     "research-improve": _prompt(
         """\
@@ -309,6 +395,14 @@ Name necessary fixtures, data, environments, authorization, and evidence
 limits. Place pre-update candidate checks separately from post-update consumer
 checks, and distinguish source/effect, artifact identity, and behavior
 observations. A planned test is not a passed test.
+Record whether HTTP/API checks suffice or browser evidence is needed, including
+the intended user role/session, target, expected behavior and access prerequisites.
+Plan browser-specific access early; a connector credential need not authenticate
+the consumer's browser. Reuse existing supported tools rather than install a stack.
+Assign readiness/baseline checks before dependent code changes, non-final staged
+candidate checks before final promotion, and final consumer checks afterward
+where applicable. Name how each test environment becomes ready; never use live
+production as an implicit fixture or require environments the task does not need.
 First produce this test strategy, then run the complete Improve campaign below
 on its cases, independent expected outcomes, coverage gaps, and prerequisite
 placement before returning done. Check the plan's adequacy using relevant
@@ -318,9 +412,17 @@ require future implementation merely to review the strategy.""",
     ),
     "plan": _prompt(
         """\
+This is a non-executing planning action. Do not provision, change feature code,
+install a candidate or deploy here, even when that later operation is authorized.
+Return the plan; the script will assign its execution after planning and Improve.
 Create a dependency-aware implementation plan by reverse-walking each required
 outcome: required behavior, prerequisites, suppliers, affected consumers, and
 verification. Use Backchain-style reasoning to expose missing inputs or cycles.
+Read the current discovery context assessment and referenced persistent decisions.
+Plan the requested delta against verified existing behavior: retain what still
+applies, change what this request requires, and resolve material conflicts.
+Carry the relevant document paths into plan notes and work-item context; do not
+copy an old plan, redo completed features or silently adopt old follow-up tasks.
 Select the applicable implementation conventions from discovery and current
 sources. Retain their scope, rationale, source examples and useful checks in one
 appropriate project document or durable plan note. Include its locator in plan
@@ -331,18 +433,43 @@ Order approved work by actual dependencies and retain early test and outer/
 system-test obligations. Carry the implementation quality criteria below into
 each applicable work item's acceptance expectations. For a required consumer outcome, plan the exact update
 operation, target, authority source, and pre/post-update checks; leave an
-unknown authority unresolved rather than deleting the outcome. If useful,
+unknown authority unresolved rather than deleting the outcome. Read the current
+Environment lifecycle note and keep the same required delivery obligation in
+spec, plan and work-item context. No response to an approval question is not a
+source-only decision. If useful,
 return ordered `work_items` covering the whole approved plan; do not turn them
-into a second scheduler.""",
+into a second scheduler.
+When preparation is required, return explicit preparation work items before
+their dependent feature items. Reuse ready areas; do not force dev/stage/prod.
+Plan sandbox/worktree bindings, baseline/data checks and setup authority before
+coding; give producers and consumers clear readiness/done criteria and the
+environment-note locator. Put a required non-final candidate deployment before
+the system tests that need it, after its code producer. Reserve final consumer
+activation/promotion and its checks for the outer release path; plan that route
+now, not for the first time at release.""",
         implementation_quality=True,
     ),
     "plan-improve": _prompt(
         """\
+Improve the plan and its evidence, not the planned environment or product.
+Do not perform preparation, feature implementation or deployment in this action.
 Improve the complete delivery plan. Recheck prerequisites, dependency order,
 scope, expected outcomes, test strategy, system-test obligations, consumers,
 release assumptions, required consumer updates, and their authority. Refresh
+the cross-run context assessment when its facts change; challenge stale decisions,
+accidental rebuilds and requirements inherited from an earlier prompt. Refresh
 affected planned checks before deciding the plan is ready for local step
-planning. If the approved work queue changes before execution, return ordered
+planning. Check that each concrete external dependency has relevant access
+evidence or a disclosed access/setup requirement, owner, and earliest gating
+stage; a known undisclosed login need is a planning defect, not deferred
+discovery. Preserve access-note locators in applicable work-item context. A
+disclosed downstream need need not block independent work, but current
+prerequisites remain required.
+Check that the actual environment topology, automatic release triggers, setup
+producers, staged-candidate tests and final promotion are represented in the
+correct order. Setup needed before coding must not be deferred to final release;
+release-only prerequisites must not become artificial blockers for local work.
+If the approved work queue changes before execution, return ordered
 `work_items` for the whole updated plan. Preserve applicable convention locators
 and decision summaries in revised work-item context, or record why they changed.""",
         improve=True,
@@ -355,6 +482,15 @@ the bounded candidate, prerequisites, affected code and consumers, intended
 behavior, independent expected outcomes, test cases, fixtures, documentation,
 skill/reuse questions, and checks. Resolve or block missing inputs before code;
 this is planning, not permission to skip directly to unverified edits.
+Read the linked project knowledge and current discovery assessment for this item;
+use only applicable, revalidated decisions and plan its current incremental delta.
+Read existing access requests before probing or asking again. Revalidate changed
+or stale target/role/scope evidence and apply early access readiness to newly
+required systems; retain downstream needs at their actual gating stage.
+Check the current item's environment role, bindings, preparation receipts and
+baseline before dependent changes. A preparation item creates its named output;
+do not demand that output as its own prerequisite. Keep later promotion needs in
+the shared environment note, including newly learned approvals or migrations.
 Read the implementation conventions referenced by this work item's context;
 if the locator is absent or inaccessible, recover it from accepted discovery/plan
 records and canonical repository sources. Never infer binding rules from a summary.
@@ -401,6 +537,10 @@ Implement the authorized bounded plan. Inspect the actual code as it changes,
 preserve unrelated work, and record material discoveries. Do not treat a code
 edit as verification: send the learned implementation context forward so cases
 can be refined and executable tests authored before the final checks.
+Use only the planned target/workspace after its current readiness and authority
+are established. For a preparation item, perform only its authorized setup and
+record readiness evidence. Missing isolation is not permission to use production;
+reconcile partial operations before retrying and retain new outer requirements.
 Implement the planned error behavior, diagnostics and concise colocated contracts
 with the code; carry all implementation quality criteria into delegated prompts.
 When delegating, give each worker bounded ownership, shared contracts, inputs,
@@ -442,7 +582,11 @@ the deliverable and preserve caller/user data.""",
     "document": _prompt(
         """\
 Update necessary code, API, user, or operator documentation from the completed
-implementation and test learning. Reconcile concise in-code contracts with the
+implementation and test learning. Update the project's maintained
+environment/design/decision documents and knowledge index as needed;
+preserve useful new facts beyond disposable run notes with their sources and
+revalidation conditions. Keep historical tasks separate from current requirements.
+Reconcile concise in-code contracts with the
 actual error behavior and relevant tests; remove stale or duplicate explanations
 while preserving material caveats. Explain relevant debug controls and diagnostic
 fields where operators need them. Retain validated implementation conventions
@@ -509,6 +653,9 @@ branches, diffs, conflicts, identities, and resulting candidate; preserve user
 work and do not infer that a merge, commit, push, or deployment occurred from
 a plan or command attempt. Recheck integration-affected tests and surface a
 permission or conflict blocker rather than forcing an external operation.
+In workspace mode, this INNER action assembles worker changes inside the isolated
+execution checkout. It must not return to the original branch yet. Keep runtime
+artifacts out of commits, including commits that later delete those artifacts.
 Verify shared interfaces and consumer behavior on the assembled candidate;
 separate workers' passing checks do not establish that their combination works.
 A material merge or conflict-resolution edit invalidates affected prior review
@@ -526,6 +673,14 @@ future-only `work_items`; do not use them to claim a future test, integration,
 or release has already occurred. Carry unresolved required delivery, exact
 target/authority, and pre/post-update verification obligations forward with
 their evidence and owner; do not let an ordinary summary erase them.
+Read and update the canonical environment/deployment note when applicable.
+Retain reusable facts/decisions in repository documentation and refresh the
+knowledge index; distinguish this run's remaining obligations from unauthorized
+future work. Do not leave lasting knowledge only in a temporary run directory.
+Append newly needed
+staging, promotion, migration, approval or cleanup work with prerequisites and
+owners. Keep setup receipts and pending actions distinct; link the note for
+later system-test, outer-improve and release planning to consume.
 Carry the implementation-conventions locator into applicable future work-item
 context. Retain validated changes for later items without expanding their scope.
 For a consequential learning, decide whether to retain it in this run, add a
@@ -541,6 +696,10 @@ or system checks that were planned. Verify the real target, prerequisites,
 fixtures, authorization, and observed behavior; distinguish a planned case or
 local mock from an executed system boundary. A genuinely non-applicable check
 needs a concrete reason, while unknown access or target state is blocked.
+Read any environment note and check the intended staged/development candidate
+and prior deployment/readiness receipts when those tests require them. Do not
+silently run against production or perform an unplanned deployment to unblock a
+test. Missing required candidate preparation remains incomplete.
 Complete due pre-update checks here; leave required post-update consumer checks
 explicitly pending for their assigned release-verification boundary rather than
 calling them passed."""
@@ -556,7 +715,9 @@ promotion proposals against representative regression evidence and existing
 authority; retain, revise, or decline them explicitly. Unvalidated proposals
 may remain documented future work but cannot be reported as adopted. Recheck
 that required consumer updates and post-update checks remain carried forward
-with their necessity, authority, and distinct evidence needs.""",
+with their necessity, authority, and distinct evidence needs. Read any retained
+environment/deployment note; reconcile setup receipts, staged-candidate checks,
+new migrations/approvals and remaining promotion work before release planning.""",
         improve=True,
         implementation_quality=True,
     ),
@@ -567,15 +728,36 @@ identity and version checks, permissions, prerequisites, user impact,
 rollback/recovery path, monitoring, and pre/post-release verification. A plan
 does not authorize the release or prove target access; leave unsupported
 decisions blocked for direction.
+For workspace mode, plan the final return only after whole-candidate checks.
+Inspect whether merging the original branch activates CI or deployment: if so,
+the guarded return is an authorized release operation, not an innocuous handoff.
+Otherwise place return at handoff after final durable documentation. Audit the
+return set and reachable commit history, not just the tip's file listing. Do not
+commit a private dirty baseline back to the original branch; a dirty-source
+return preserves its index and leaves the combined working changes uncommitted.
+Read any retained environment/deployment note and reconcile the promotion route
+planned before coding with actual setup and staged-candidate results. Identify
+remaining hops, candidate identity, migrations, approvals, checks and stop/
+recovery conditions. Sandbox or staging success alone does not authorize or
+establish final-consumer delivery; do not repeat completed setup without need.
+Revalidate the planned access and previously disclosed user actions, including
+separate deployment and consumer identities where relevant. Surface newly
+discovered needs immediately; do not use a write as an authentication probe.
 First determine whether a consumer update is necessary; then separately
 determine its exact target, operation, and scoped authority. A required but
 unauthorized or unverified update is blocked, not non-applicable. Source
 synchronization, artifact identity, consumer behavior, versioned deployment,
 promotion, and access changes are distinct operations or observations.
+Recheck the discovery authority assessment and any standing policy against the
+current candidate, destination and effects. Reuse an unchanged applicable grant;
+target, operation, visibility, security/data effects or policy changes outside
+its scope need renewed direction, not automatic permission. Resolve any
+required-versus-optional contradiction before completing this release plan.
 This current action's deliverable is a non-executing release plan. After its
 Improve campaign and planning-level prerequisite review, `done` means that plan
 is complete, not that an update or consumer check has occurred. The existing
-`release` action owns an authorized synchronization or update; `release-verify`
+`release` action owns the final authorized synchronization or promotion; planned
+non-final test deployments belong to their prerequisite work items. `release-verify`
 owns post-update consumer behavior. Do not block this plan merely because those
 future actions have not run. Block only when a fact needed to scope the plan
 safely, such as required authority, target, operation, or necessary current
@@ -596,7 +778,9 @@ claiming an external effect. When no release applies, report an honest,
 concrete non-applicable reason; do not invent a deployment, commit, push, or
 consumer change to advance the graph. Record operation/effect and artifact
 identity separately. If an outcome is uncertain, reconcile it before retrying;
-do not blindly repeat an update merely to obtain a new observation."""
+do not blindly repeat an update merely to obtain a new observation. Follow the
+planned promotion path: validate each remaining hop's prerequisites and approval,
+retain partial receipts, and stop before later hops when a required check fails."""
     ),
     "release-verify": _prompt(
         """\
@@ -608,7 +792,10 @@ final consumer boundary and retain that reason. Source synchronization, an
 artifact string, a URL, or a successful GET cannot replace a required consumer
 interaction. If an update succeeded but consumer access is blocked, preserve the
 update evidence and report behavior as blocked or unverified; do not re-upload
-without evidence that retrying is appropriate."""
+without evidence that retrying is appropriate. Verify the final intended consumer
+and candidate, not only a successful development or staging deployment. A
+required consumer check that is blocked or unrun prevents done; preserve the
+successful update receipt and resolve only the missing verification."""
     ),
     "handoff": _prompt(
         """\
@@ -619,7 +806,25 @@ of any non-applicable release. Do not convert a planned action, stale check,
 or conversational summary into completion evidence. Report separately what was
 implemented, what update was performed or already current, what artifact
 identity was checked, what consumer behavior was verified, and what remains
-blocked or unverified."""
+blocked or unverified. Reconcile the repository knowledge index and maintained
+documents with the current delivery assessment. A missing required update or
+behavior check prevents done; report blocked rather than claim feature delivery.
+Keep only genuinely approved standing policy for later runs, not this run's
+one-off grant. Retain relevant run/report locators,
+decision rationale, superseded facts and revalidation needs for the next feature
+request. Check that useful knowledge is not stored solely in disposable run
+notes and that references resolve. Do not copy this run's prompt or cursor into
+the index as future instructions; report any persistence gap honestly.
+In workspace mode, finish intended product documentation first, then use the
+packet's plan-return command and review each disposition. Keep lasting knowledge;
+exclude transient run files, debug output and generated evidence. Invoke the
+guarded return at its authorized boundary unless already verified there, then
+record the receipt. Clean-source fast-forward merge and dirty-source working-tree
+return are different outcomes; neither proves push, deployment or live behavior.
+Do not delete the workspace or historical run automatically. A missing/stale
+receipt, unresolved source drift or a transient commit prevents completion;
+resolve it without stash/reset/force. Source edits after return require renewed
+validation, not reuse of the earlier receipt."""
     ),
 }
 

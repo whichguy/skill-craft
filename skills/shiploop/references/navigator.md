@@ -7,6 +7,13 @@ item; `state.md` holds the per-item execution records. The script keeps durable
 state and routing while the host decides how to inspect, plan, edit, test,
 review, and assess the work.
 
+New Git-backed skill invocations enter through `workspace start`, recording
+`execution_mode: navigator-worktree`. The graph below is unchanged. A separate
+[workspace adapter](workspace-lifecycle.md) handles Git capture/return and gates
+handoff completion on its verified receipt; the navigator itself remains a
+pure routing/result component. Existing/direct `navigator` runs retain their
+declaration-only integration contract and are not silently upgraded.
+
 ```mermaid
 flowchart LR
   I[Intake] --> D[Discovery plus Improve] --> R[Research] --> RI[Improve: research - one campaign]
@@ -33,12 +40,25 @@ stage’s substantive judgment and retain evidence that another host can find.
 Resolve the installed or checkout-local `scripts/shiploop` path as `CLI`, and
 use absolute repository and run-directory paths.
 
-Before any stage duty, choose exactly one entry route: `init` for a genuinely
-new request, or `next` for its existing run. For an existing run, verify the
+Before any stage duty, choose exactly one entry route: `workspace start` for
+new Git-backed work, direct `init` for an explicitly selected in-place/non-Git
+run, or `next` for an existing run. For an existing run, verify the
 printed original goal and repository identity before acting. Do not replace a
 missing or relocated run with a new one.
 
+A later feature is a different request: preserve the earlier run, select a fresh
+external `--workspace-root` (or empty `--run-dir` for direct mode), and initialize
+with the new prompt verbatim against the existing product repo. Changed
+prompt/repository re-entry is refused, while
+matching retries do not reopen completed work. Every packet links the project
+`SHIPLOOP.md` index and [cross-run knowledge policy](project-knowledge.md).
+Reuse revalidated environment facts and decisions in discovery/planning, not
+the old prompt, queue or action state. Maintain lasting knowledge in repository
+documents at document/carry-forward/handoff; no new graph node or importer exists.
+
 ```sh
+python3 "$CLI" workspace start --repo="$REPO" --workspace-root="$WORKSPACE_ROOT" --prompt='requested outcome'
+# Explicit direct/non-Git mode, without automatic workspace-return protection:
 python3 "$CLI" init --repo="$REPO" --run-dir="$RUN_DIR" --prompt='requested outcome'
 # Compatibility fixtures only; normal new runs use protocol 2 above.
 python3 "$CLI" init --repo="$REPO" --run-dir="$RUN_DIR" --execution-mode=navigator-v1 --prompt='fixture outcome'
@@ -46,7 +66,9 @@ python3 "$CLI" next --run-dir="$RUN_DIR"
 python3 "$CLI" done --run-dir="$RUN_DIR" --action="$ACTION" --result="$RESULT"
 ```
 
-Default `init` creates a protocol-2 navigator-marked run and returns the
+`workspace start` returns a protocol-2 packet bound to the execution worktree
+and external `WORKSPACE_ROOT/run`. Direct `init` creates a protocol-2
+navigator-marked run without Git preparation. Both return the
 `intake` cursor and its prompt. `next` rereads the saved effective action after
 a context reset; it does not select or persist a successor. `done` reads one
 result file containing a `shiploop-state` fenced JSON object, for example:
@@ -85,6 +107,14 @@ delivery incomplete. Never use `init` as a replacement for missing state.
 
 The script neither preserves this host handoff nor launches/resets a model or
 host process. The host must retain an accessible locator and run directory.
+
+Every packet also links [early access readiness](research-loop.md#early-access-readiness),
+including paused/blocked recovery. The host probes a concrete dependency safely,
+raises a needed user sign-in promptly, and retains its non-secret request and
+recheck condition in the existing notes. Follow the returned resume/callback
+route after the response; do not count the response itself as verified access
+or completed stage work. This adds guidance, not an authentication executor or
+another graph/state schema.
 
 The semantic result contract is small:
 
@@ -261,6 +291,24 @@ expected outcomes, local test strategy, and prerequisite-aware planning before
 implementation. `plan` uses Backchain-style reverse reasoning from outcomes to
 suppliers and verification. `step-plan` preserves those prerequisites and test
 cases at the local work-item boundary.
+
+The [environment lifecycle policy](environment-lifecycle.md) supplies the
+preparation/promotion binding. Discovery maps existing and intended workspace,
+runtime and data boundaries. Planning places required preparation producers
+before feature consumers, and any necessary staged-candidate producer before
+its system tests. Each producer traverses the existing INNER graph; there is
+no new outer-before navigator node or change to saved v1/v2 routing. The older
+managed protocol retains its existing conditional `prepare` route.
+
+Every packet links the policy and the canonical host-authored
+`notes/environment-lifecycle.md`, including cold paused/blocked and outer
+packets. The note is optional when irrelevant; it may reference adequate
+existing repo documentation instead of copying it. Carry useful work-item
+`context` and result `evidence_refs` too, but the canonical locator does not
+depend on the last result retaining them. Inner work updates pending needs there;
+system-test, outer Improve and release planning read it and reconcile actual
+readiness with the remaining route. Script-enforced queue order is not proof
+that the host included all prerequisites or actually prepared a remote target.
 
 The inner path makes post-code quality visible: implementation is followed by
 test-case refinement from the code actually written, executable test authoring,
@@ -458,8 +506,9 @@ not omitting a material contract or safety caveat.
 
 ## Compatibility and limits
 
-New runs persist `execution_mode: navigator` and
-`navigator_protocol_version: 2`. The explicit `navigator-v1` fixture mode
+Workspace entry persists `execution_mode: navigator-worktree`; direct `init`
+persists `execution_mode: navigator`. Both use `navigator_protocol_version: 2`
+and the same existing state keys and stage graph. The explicit `navigator-v1` fixture mode
 persists version 1 and retains its strict root keys and cursor rules. Existing
 v1, markerless managed, and legacy states retain the protocol their established
 records select; they are not converted, migrated into `inner_loops`, or

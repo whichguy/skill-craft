@@ -5,7 +5,7 @@ description: >-
   script's current action packet, and submit its exact completion call until
   the script reports completion with an HTML achievement report. Use when the
   user says shiploop, ship the project, or requests a durable delivery loop.
-version: 0.10.4
+version: 0.11.0
 allowed-tools: all
 license: MIT
 platforms:
@@ -52,15 +52,56 @@ that is not a portable shell environment variable. Rebind the absolute `CLI`
 for each independent tool call and quote it. If `python3` or the bundled CLI is
 unavailable, report the missing prerequisite; never substitute a similarly
 named executable. Resolve the user's repository and run directory to absolute
-paths (`REPO` and `RUN_DIR`, normally `REPO/.shiploop`). Determine whether this
+paths. Determine whether this
 is a genuinely new request or the same existing run. Never replace another run
 or substitute another repository.
+
+For a later feature request, keep the existing product repository but choose a
+fresh external workspace root (for example a new `<repo-parent>/.shiploop-runs/<name>`).
+Pass the **new incoming prompt verbatim**, not a prior run's goal. Preserve old
+runs, even completed ones. An `init` retry with a different prompt or a different
+explicitly supplied repository is rejected; an identical retry of a completed run stays complete.
+Use `next` only to recover the same request, never to start the new feature.
+Follow [cross-run knowledge reuse](references/project-knowledge.md): discover
+README, AGENTS, existing environment/decision documents and prior-run references,
+then plan the new delta. Keep the repository's `SHIPLOOP.md` knowledge index and
+its linked documents useful across runs. Old one-off approvals and receipts in
+run state are not imported; a current applicable user-approved standing policy
+may be reused only after [delivery-authority revalidation](references/delivery-authority.md).
+
+For new work in an existing Git repository, use the isolated entry below. First
+inspect the branch/status and applicable repository instructions. The script
+captures current tracked working content, including staged and unstaged changes,
+without changing the source index. Select needed non-ignored untracked inputs
+explicitly with repeated `--include-untracked=<repo-relative-file>`; never sweep
+credentials or caches into a baseline. Use `--exclude=<repo-relative-path>` for
+known additional transient paths. Keep this external directory durable across
+context resets. Read [workspace lifecycle](references/workspace-lifecycle.md).
+
+```sh
+python3 "$CLI" workspace start --repo "$REPO" --workspace-root "$WORKSPACE_ROOT" --prompt='<user request>'
+```
+
+The returned packet binds its repository locator to the execution worktree and
+its run directory to `WORKSPACE_ROOT/run`. `WORKSPACE_ROOT/workspace.md` retains
+the original checkout/branch and baseline. Do all product work in that worktree;
+do not silently fall back to editing the source. At the final planned integration
+boundary, follow the packet's return-plan and guarded return commands. Completion
+requires a verified return receipt. A dirty starting checkout receives only the
+new delta and keeps its original index; this is not a Git merge/commit.
+
+For a genuinely new/non-Git repository, investigate/bootstrap Git within scope
+first if appropriate, then use the workspace route. An explicitly selected
+in-place/non-Git run may instead use the compatibility entry, documenting why
+isolation is not used; it has no automatic workspace-return protection:
 
 ```sh
 python3 "$CLI" init --repo "$REPO" --run-dir "$RUN_DIR" --prompt='<user request>'
 ```
 
-New runs use navigator **protocol 2**. `init --execution-mode=navigator-v1`
+New workspace runs use navigator **protocol 2**, mode `navigator-worktree`,
+with the same SDLC graph. Direct `init` remains mode `navigator` for compatibility.
+`init --execution-mode=navigator-v1`
 is available only for compatibility fixtures and records protocol 1. To recover
 an existing run:
 
@@ -69,7 +110,7 @@ python3 "$CLI" next --run-dir "$RUN_DIR"
 ```
 
 For a new run explicitly piloting consumer-delivery declaration checks, add
-`--delivery-contract` to `init`. Read [consumer delivery](references/consumer-delivery.md)
+`--delivery-contract` to `workspace start` (or direct `init`). Read [consumer delivery](references/consumer-delivery.md)
 for its result contract, source-only cases, and recovery boundaries. The option
 does not grant publication authority or retrofit an existing run. Use the
 packet's generated assessment template; the script supplies its binding.
@@ -160,13 +201,41 @@ Establish where the requested behavior must become usable, especially for an
 incremental change to an existing system. Absence of the word "publish" does
 not make hosted delivery optional; it also does not grant remote-write authority.
 Keep update necessity, scoped authority, and consumer verification distinct.
-If scope is unclear, ask and retain the answer in durable evidence, then follow
-the current callback. Improve must challenge whether the plan delivers the
-original user outcome, not only whether it satisfies the generated spec.
+Once discovery makes the consumer, target/account, and necessary operation
+concrete, follow [delivery authority readiness](references/delivery-authority.md):
+promptly ask for an applicable explicit grant when needed, including whether it
+is for this run or standing. Do not defer that question merely until release.
+Retain the assessment, owner, earliest gate, and actual binding evidence in the
+canonical environment-lifecycle note; independent authorized work can continue,
+but do not write or complete `release-plan` while required authority is
+unresolved. If scope is unclear, ask and retain the answer in durable evidence,
+then follow the current callback. Improve must challenge whether the plan
+delivers the original user outcome, not only whether it satisfies the generated
+spec.
+
+For a concrete external dependency, follow the packet's
+[access-readiness policy](references/research-loop.md#early-access-readiness):
+try a safe existing connection first, promptly surface a proven user-auth need,
+and retain its request and recheck condition in the existing notes. After the
+user replies, verify access and finish the current duties before its callback;
+authentication alone neither completes the phase nor authorizes deployment.
+
+For testing, prefer the lowest-overhead sufficient tool, such as `curl`; always
+consider an available authorized browser for rendered behavior or browser-specific
+authentication. Follow the packet's [consumer testing guide](references/testing-and-documentation.md#lightweight-and-browser-checks).
+HTTP success or a login screen cannot replace the required consumer observation.
+
+Use the packet's [environment lifecycle policy](references/environment-lifecycle.md)
+to discover actual development/test/delivery areas and promotion routes. Plan
+required preparation producers before dependent feature work; carry their notes
+and remaining promotion obligations into the outer release phases. Reuse ready
+environments, keep authority distinct, and do not impose a fixed environment ladder.
 
 The navigator validates action identity, result shape, allowed transitions and
-safe state writes. It does not run Git/tests, fingerprint products, freeze
-artifacts or policy text, or demand certificates. The host remains responsible
+safe state writes. Its workspace adapter additionally snapshots/checks Git state
+and gates final completion on the guarded return receipt for workspace-mode runs.
+It does not run tests, judge artifact semantics, freeze policy text, or certify
+consumer delivery. The host remains responsible
 for evidence, authorized commits/merges, scope, meaningful review and validation.
 A packet grants no new permission to deploy, install tools, change credentials,
 send messages or overwrite unrelated work. Do not put secrets in results.

@@ -171,6 +171,34 @@ class DeliveryPromptPilotTests(unittest.TestCase):
             self.assertEqual(len(written), 4)
             self.assertTrue(all("Variant: B2" in path.read_text(encoding="utf-8") for path in written))
 
+    def test_authority_cases_have_private_oracles_and_reproducible_packets(self) -> None:
+        cases = json.loads((EXPERIMENT / "authority-cases.json").read_text(encoding="utf-8"))
+        oracles = json.loads((EXPERIMENT / "authority-oracles.json").read_text(encoding="utf-8"))
+        expected_ids = {
+            "standing-current", "one-off-only", "standing-target-drift",
+            "unanswered-request", "explicit-source-only", "required-optional-conflict",
+            "sync-without-behavior", "same-target-broader-effects",
+        }
+        self.assertEqual({case["id"] for case in cases}, expected_ids)
+        self.assertEqual(set(oracles), expected_ids)
+        with tempfile.TemporaryDirectory(prefix="shiploop-authority-packets-") as temp:
+            output = Path(temp) / "packets"
+            written = prepare_packets.prepare("authority", output)
+            self.assertEqual(len(written), len(cases) * 2)
+            for case in cases:
+                with self.subTest(case=case["id"]):
+                    self.assertTrue(oracles[case["id"]]["must"])
+                    self.assertTrue(oracles[case["id"]]["must_not"])
+                    packet = (output / f"{case['id']}-r1.md").read_text(encoding="utf-8")
+                    self.assertIn(case["request"], packet)
+                    self.assertIn(PROMPTS[case["stage"]], packet)
+                    self.assertIn("delivery-authority.md", packet)
+                    self.assertNotIn("authority-oracles.json", packet)
+                    for criterion in oracles[case["id"]]["must"]:
+                        self.assertNotIn(criterion, packet)
+            with self.assertRaises(FileExistsError):
+                prepare_packets.prepare("authority", output)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

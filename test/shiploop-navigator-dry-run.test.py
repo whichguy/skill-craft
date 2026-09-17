@@ -20,6 +20,35 @@ import shiploop_store as store  # noqa: E402
 
 
 class NavigatorDryRunTests(unittest.TestCase):
+    def test_access_policy_is_reachable_through_actual_graph_and_recovery(self):
+        # A routing/locator contract, not proof that a host follows auth advice.
+        policy = ROOT / 'skills/shiploop/references/research-loop.md'
+        for name in ('delivery', 'blocked-resume', 'pause-resume'):
+            report = driver.run_scenario(name, driver.scenarios()[name])
+            self.assertTrue(report['ok'], report.get('error'))
+            for event in report['events']:
+                with self.subTest(scenario=name, stage=event['from']):
+                    self.assertEqual(event['prompt'].count(
+                        f'Access-readiness policy: {policy}#early-access-readiness'
+                    ), 1)
+                    self.assertEqual(event['prompt'].count(
+                        'Cross-run knowledge policy: '
+                        + str(policy.parent / 'project-knowledge.md')
+                    ), 1)
+                    self.assertIn(
+                        'Repository knowledge index (host-authored, if present): ',
+                        event['prompt'],
+                    )
+                    self.assertEqual(event['prompt'].count(
+                        'Consumer testing guide: '
+                        + str(policy.parent / 'testing-and-documentation.md')
+                        + '#lightweight-and-browser-checks'
+                    ), 1)
+                    self.assertEqual(event['prompt'].count(
+                        'Worktree and artifact policy: '
+                        + str(policy.parent / 'workspace-lifecycle.md')
+                    ), 1)
+
     def test_expected_paths_and_full_packets(self):
         expected = {'delivery': (25, 'done'), 'two-work-items': (35, 'done'),
                     'skill': (26, 'done'), 'repeat-improve': (26, 'done'),

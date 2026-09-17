@@ -75,7 +75,22 @@ would end in `done`, `blocked`, or `repeat`. Do not claim an external effect.
 def prepare(
     variant: str, output: Path, scenario_ids: tuple[str, ...] = ()
 ) -> list[Path]:
-    scenarios = load_json("scenarios.json")
+    if variant == "authority":
+        # Keep grading criteria private; interpreters receive facts, current
+        # stage instructions and the policy locator, never the oracle file.
+        policy = ROOT / "skills" / "shiploop" / "references" / "delivery-authority.md"
+        scenarios = [
+            {
+                "id": case["id"],
+                "stage": case["stage"],
+                "original_request": case["request"],
+                "durable_facts": case["facts"],
+                "reference_materials": [f"Read the packaged delivery-authority policy: {policy}"],
+            }
+            for case in load_json("authority-cases.json")
+        ]
+    else:
+        scenarios = load_json("scenarios.json")
     by_id = {scenario["id"]: scenario for scenario in scenarios}
     if scenario_ids:
         unknown = set(scenario_ids) - set(by_id)
@@ -94,7 +109,7 @@ def prepare(
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--variant", choices=("A", "B", "B2"), required=True)
+    parser.add_argument("--variant", choices=("A", "B", "B2", "authority"), required=True)
     parser.add_argument(
         "--output",
         type=Path,

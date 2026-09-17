@@ -26,9 +26,10 @@ flowchart TD
 ## Discover before choosing a mechanism
 
 Start with the requested artifact and actual environment, not a preferred stack.
-Inspect available MCP/resource inventories, repository configuration, installed
-CLIs, platform SDKs, and primary documentation. Record version and source for
-the selected interface. Discovering an MCP name does not prove it is connected;
+Inspect available evidence such as MCP/resource inventories, repository
+configuration, installed CLIs, platform SDKs, and primary documentation. These
+are examples, not required interfaces or an exhaustive list. Record version and
+source for the selected interface. Discovering an MCP name does not prove it is connected;
 finding a CLI does not prove that the current account has permission. Do not
 install a connector, change credentials, or create a remote target implicitly.
 When the user's request or current task context authorizes bounded discovery
@@ -40,7 +41,8 @@ that is not a persistent integration, a credential grant, or a new writer.
 An MCP server can be a gateway, not the whole system. Identify the system behind
 it and the access actually needed for this task. If a relevant system has no
 usable route, investigate whether a supported MCP server, existing API/CLI/SDK,
-or authorized browser session could supply the missing observation or operation.
+or authorized browser session could supply the missing observation or operation;
+these are examples of possible routes, not an exhaustive list.
 Compare coverage, publisher/provenance, authentication, data exposure, maintenance
 and verification against existing tools. Registry presence is a lead, not trust
 or access proof. Record adopt/pilot/defer/reject and why in survey/research prose.
@@ -58,8 +60,8 @@ second gateway is not permission to invoke it or traverse unrelated accounts.
 
 Research the destination's language, metadata/schema, module boundaries,
 registration or bootstrap, generated/reserved files, syntax validation,
-client–service invocation, deployment/package mechanics, and real acceptance
-path. Keep the compact decision and source pointers in the survey; expand
+applicable invocation or interaction contracts, deployment/package mechanics,
+and real acceptance path. Keep the compact decision and source pointers in the survey; expand
 uncertain facts through the existing research convergence loop. Required
 unknowns remain unresolved rather than guessed.
 
@@ -110,6 +112,13 @@ identity/readiness probe. Use non-secret role aliases, never credentials,
 account addresses, session IDs, or secret resource identifiers. Preserve the
 observation's as-of context in the evidence narrative. A planned probe is not
 an observed result; tool availability is not mutation authorization.
+
+Use [early access readiness](research-loop.md#early-access-readiness): after a
+safe existing-connection probe identifies a concrete user authentication need,
+prompt promptly and retain the request/recheck condition in existing Markdown.
+Do not delay a known request until release or mistake setup/network failure for
+missing authentication. Keep current prerequisites distinct from disclosed
+downstream access needs.
 
 Known credential patterns in platform strings and common environment fields
 are rejected without echoing their values. Cold environment projections also
@@ -197,6 +206,10 @@ runs without the marker keep their earlier callback shape; an explicitly
 invalid marker is rejected, never silently treated as legacy.
 
 ## Bootstrap, validation, and publication are different obligations
+
+For navigator runs, use the [environment lifecycle policy](environment-lifecycle.md)
+and ordered work-item binding; the lifecycle/schema routes below belong to the
+recorded managed/legacy protocol and are not navigator result fields.
 
 Bootstrap establishes prerequisites such as project structure, target binding,
 configuration and an isolated development area. Development validation proves

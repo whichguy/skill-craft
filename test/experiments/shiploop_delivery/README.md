@@ -6,6 +6,34 @@ for an actual system. Recovery snapshots retain their originating absolute
 checkout paths as audit locators, not portable runtime defaults. A packet is a
 read-only teaching artifact, not authorization to execute a ShipLoop callback.
 
+## Standing authority follow-up
+
+`authority-cases.json` exercises eight independent contexts: current standing
+approval, one-off-only history, changed target, unanswered question, explicit
+source-only scope, required/optional contradiction, synchronized source without
+consumer behavior, and matching target with excluded new effects. Grading
+criteria live separately in `authority-oracles.json`; never give them to the
+interpreter. These cases extend the study without changing the frozen A/B sets.
+
+Generate repeatable packets into a new temporary directory:
+
+```sh
+python3 test/experiments/shiploop_delivery/prepare_packets.py --variant authority --output /tmp/shiploop-authority-packets
+python3 test/shiploop-delivery-prompts.test.py
+python3 test/shiploop-consumer-delivery.test.py
+python3 test/shiploop-auth-readiness.test.py
+```
+
+The generator refuses to overwrite an existing directory. For each interpretation,
+give a fresh reviewer only its packet and the linked packaged authority policy;
+ask for its next actions, questions, durable record and completion/blocking
+decision. Grade against the hidden oracle afterward. Two generated repetitions
+are not proof that either was executed. Unit tests verify fixture/packet wiring
+and existing declaration guards, not model compliance or approval authenticity.
+
+See [the implementation and observed assessment](authority-assessment.md) for
+the actual study scope, timing refinement, executable results, and limitations.
+
 ## Variants and fixed sample
 
 `packets/A/` freezes the current prompt catalog before the delivery wording

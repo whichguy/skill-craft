@@ -10,6 +10,10 @@ cd "$root"
 suites=(
   test/shiploop-navigator.test.py \
   test/shiploop-navigator-dry-run.test.py \
+  test/shiploop-auth-readiness.test.py \
+  test/shiploop-environment-lifecycle.test.py \
+  test/shiploop-cross-run.test.py \
+  test/shiploop-workspace.test.py \
   test/shiploop-consumer-delivery.test.py \
   test/shiploop-consumer-delivery-cli.test.py \
   test/shiploop-delivery-prompts.test.py \
@@ -25,6 +29,9 @@ suites=(
   test/shiploop-literal-transport.test.py \
   test/shiploop-validators.test.py \
   test/shiploop-discovery.test.py \
+  test/shiploop-capability-fixture.test.py \
+  test/shiploop-capability-runtime.test.py \
+  test/shiploop-capability-async.test.cjs \
   test/shiploop-system-context.test.py \
   test/shiploop-research-template.test.py \
   test/shiploop-research-packet-protocol.test.py \
@@ -135,7 +142,11 @@ for index in "${!suites[@]}"; do
   fi
   suite="${suites[$index]}"
   printf '==> %s\n' "$suite"
-  PYTHONDONTWRITEBYTECODE=1 python3 "$suite"
+  case "$suite" in
+    *.py) PYTHONDONTWRITEBYTECODE=1 python3 "$suite" ;;
+    *.cjs) node "$suite" ;;
+    *) printf 'Unknown suite interpreter: %s\n' "$suite" >&2; exit 64 ;;
+  esac
 done
 
 printf 'shiploop.test.sh: PASS\n'
