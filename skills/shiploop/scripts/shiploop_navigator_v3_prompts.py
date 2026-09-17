@@ -57,19 +57,28 @@ STAGES = PRELUDE + INNER + OUTER
 
 PROGRESS_REPORTING = """\
 Progress: report the saved Done / Current / Pending / Blocked snapshot at
-start/recovery and material milestones.  Only the current owner reports overall
-progress.  State labels say which action is assigned, not that work, tests, or
+start/recovery and after each major completed step. Only the current owner reports
+overall progress. State labels say which action is assigned, not that work, tests, or
 Improve iterations have occurred.  Describe Improve activity only from its own
 observed records; do not infer a review count, completion percentage, or ETA.
+Run to completion by default within scope and authority. Emit progress as an
+intermediate update, then immediately continue the active packet's current owner
+while authorized runnable work remains. Do not wait for acknowledgement, ask
+whether to continue, or end the turn merely to deliver a report. Follow the exact
+callback and its returned packet, including a bound Improve child; a producer's
+done or a child's completion is not run completion. Respect explicit user stops
+and paused/blocked/halted/done states; resolve recoverable conditions through the
+printed route and ask only for an actually missing decision, authority, or access.
 """
 
 
 COMMON = """\
 This packet assigns one script-selected SDLC producer step.  The script owns the
 durable graph, action identity, and legal successor; you own the engineering
-judgment, repository work, evidence, and result.  Perform only the current
-step.  Preserve unrelated work and do not choose a successor, advance parent
-state, or treat a previous packet as the current assignment.
+judgment, repository work, evidence, and result. Perform only the current step
+before its callback, then immediately follow the newly returned packet.
+Preserve unrelated work and do not choose a successor, advance parent state
+yourself, or treat a previous packet as the current assignment.
 
 Read the current repository, run state, applicable instructions, and relevant
 durable lessons before relying on earlier notes.  Treat Git history, plans, tool
