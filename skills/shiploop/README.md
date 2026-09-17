@@ -1,10 +1,12 @@
-# ShipLoop navigator 0.11.0
+# ShipLoop navigator 0.12.0
 
-New runs use navigator protocol 2: explicit SDLC actions, one shared INNER
-graph with per-work-item execution records, one complete Improve campaign per
-assigned Improve action, and a small declaration-based transition contract. The
-script owns global status and safe Markdown persistence; the host owns execution
-and evaluation.
+New runs use navigator protocol 3: the script persists and traverses the SDLC
+graph, issues one producer prompt, and then parks that parent action for the
+selected actual Improve skill. Improve follows the Until Loop runtime bound by
+its selected card and owns its own iterations, evidence, and convergence. The
+script imports one accepted child result before choosing the next producer; it
+does not recreate Improve's review logic, phases, counters, or policy in a
+ShipLoop prompt.
 
 - [Navigator guide and flat SDLC diagram](references/navigator.md)
 - [Graph dry-run commands and examples](references/graph-dry-run.md)
@@ -12,16 +14,59 @@ and evaluation.
 - [Isolated workspace and artifact return policy](references/workspace-lifecycle.md)
 - [Delivery-authority readiness](references/delivery-authority.md)
 
-`init` defaults to `--execution-mode=navigator` and protocol 2.
-`--execution-mode=navigator-v1` exists for compatibility fixtures. Existing v1,
-managed, and legacy runs resume their recorded protocol without conversion.
-The skill uses `workspace start` for new Git-backed work. It selects the same
-protocol-2 graph with mode `navigator-worktree`, an isolated execution checkout
-and a script-checked final return. Direct `init` remains available for explicit
-in-place/non-Git use and compatibility; existing runs are never retrofitted.
+`init` and `workspace start` default to navigator protocol 3 for new runs. Pass
+`--execution-mode=navigator-v2` only for the retained v2 route; v1, managed,
+and legacy modes remain for explicit compatibility use. Existing runs resume
+their recorded protocol without conversion. The skill uses `workspace start` for
+new Git-backed work and direct `init` for explicit in-place/non-Git use; existing
+runs are never retrofitted.
 Navigation completion records the host's declared result; it does not certify
 tests or deployment. Workspace-mode completion additionally requires its actual
 local return receipt, not just a host assertion that integration happened.
+
+## Navigator v3: producer, Improve child, then transition
+
+```mermaid
+flowchart LR
+  S[Script selects one producer] --> R[Producer result]
+  R --> I[Selected Improve skill]
+  I --> U[Bound Until Loop child]
+  U -->|Accepted completion| M[Import evidence and lessons once]
+  U -->|Blocked or interrupted| U
+  M --> N[Script selects next producer]
+  N --> S
+```
+
+Every one of the 34 instantiated v3 producers has this sequence. The full flat
+order is: `intake`, `discovery`, `research`, `spec`, `test-strategy`, `plan`,
+`prepare`; then, for each ready item, `select-work`, `step-plan`, `test-spec`,
+`baseline`, `test-author`, `test-red`, `implement`, `test-green`, `test-refine`,
+`regression`, `document`, `skill-assess`, `skill-validate`, `static-checks`,
+`verify`, `integrate`, `integration-verify`, `carry-forward`; then
+`system-test-author`, `system-test`, `product-acceptance`, `release-plan`,
+`release-check`, `release`, `release-verify`, `operations`, and `handoff`.
+
+`skill-validate`, preparation, release, and operations still produce a reviewed
+result when they are inapplicable; they record a concrete N/A disposition rather
+than disappearing from the graph. `test-red` records an expected failure for the
+specified missing behavior and must not make production edits to turn it green.
+Release and verification never replay an uncertain external operation merely to
+make traversal continue.
+
+At initialization, `--improve-skill=ABSOLUTE_SELECTED_SKILL_CARD` may bind the
+actual card. If omitted, the first checkpoint remains pending until the packet
+instructs the owner to use `improve-bind --action ... --skill-card ...`. The
+packet is authoritative for argument values and recovery. It then supplies one
+actual Improve handoff; a recorded child is resumed through its own state, and
+`improve-complete` imports matching successful completion evidence once. New
+children inherit a no-commit constraint unless an explicit user or repository
+policy authorizes an exception. `.shiploop` remains SDLC-state authority and the
+child's `.until-loop` state remains child-execution authority.
+
+The material below preserves detailed v1/v2/managed/legacy documentation for
+recorded compatibility runs. When it describes an embedded Improve campaign,
+policy snapshot, or a protocol-2 default, it is historical behavior and must not
+be used to operate a v3 packet.
 
 ## Worktree isolation and artifact-safe return
 
@@ -86,8 +131,12 @@ under external run storage; reusable facts are promoted into project docs. The
 host must judge ambiguous/custom artifacts—the guard cannot infer their meaning.
 
 Handoff cannot declare completion without a current verified return receipt.
+Protocol 3 performs its once-only source return after the final handoff Improve
+child completes, then imports that child. Earlier or unfinished work cannot return.
 If branch integration activates deployment, plan it as an authorized release
-operation and verify that effect separately. A local return never proves remote
+operation from the execution checkout where possible; a required source-return
+prerequisite remains incomplete for reconciliation. Verify effects separately.
+A local return never proves remote
 delivery. All source documentation intended for return must be finalized before
 the return; subsequent changes require renewed reconciliation/validation.
 Worktrees and run records are retained, not automatically deleted.
@@ -185,54 +234,39 @@ focused regression checks.
 
 ## Per-item navigator ownership
 
-The same `state.md` stores the root's global status, queue, and `work_index`,
-plus an `inner_loops` record for each entered work item. In protocol 2, while
-W2 is active, root stays at `inner-loop` with no action; W2 alone owns the
-current inner stage, action, effective prompt, and callback. A completed W1 remains
-`done` with no action. `carry-forward` atomically retains W1 and creates W2's
-first action, or returns the root to `system-test` after the final item.
+The same `state.md` stores the root's global status, queue and `work_index`,
+plus an `inner_loops` record for each entered work item. In protocols 2 and 3,
+while W2 is active, root stays at `inner-loop` with no action; W2 owns the
+current inner stage and parent action. A completed W1 remains `done` with no
+action. Protocol 3 parks that action while its actual Improve child runs.
 
-The [navigator guide's ownership diagram, state example, and trace](references/navigator.md#one-shared-inner-graph-and-per-item-records)
-show the exact boundary. Improve is a single call-and-return action under the
-existing shared policy: ShipLoop stores no Improve child phases or review
-counters, and it does not start a standalone Improve or Until runtime.
+After `carry-forward` and its child are accepted, v3 selects the next item's
+`select-work`, or returns ownership to `system-test-author` after the final item.
+Legacy v2 selects `step-plan` or `system-test` respectively. The
+[navigator ownership guide](references/navigator.md#one-shared-inner-graph-and-per-item-records)
+explains the shared cursor boundary. ShipLoop stores the actual child binding
+and imports its outcome; the selected Improve skill and its bound Until Loop
+runtime own child iterations. ShipLoop has no second review counter.
 
 ## Improve discovery and planning before proceeding
 
-Navigator packets require the host to run the shared Improve campaign on each
-substantive discovery/planning candidate. There are two placements, with the
-same host-assessed completion rule:
+Protocol 3 applies the same actual-skill handoff after every producer, including
+intake, discovery, research, specification, test strategy, global/local plans,
+and release planning. The producer callback first saves its attempt. The next
+packet binds or resumes the selected Improve skill; the graph advances only
+when that skill completes and the bound outcome is imported. Read the actual
+selected skill's instructions for its review, history, evidence and commit
+policy. ShipLoop does not reproduce those instructions as its own campaign.
 
-| Candidate | Improve placement |
-| --- | --- |
-| Initial discovery | Produce facts/gaps, then Improve inside `discovery` before its callback. |
-| Research and specification | Existing `research-improve` and `spec-improve` successor actions. |
-| Test strategy | Draft cases/outcomes, then Improve inside `test-strategy`. |
-| Overall plan and each step plan | Existing `plan-improve` and `step-plan-improve` successor actions. |
-| Release plan, including a justified N/A | Draft it, then Improve inside `release-plan`; do not perform the release here. |
+For example, Improve may find an omitted API consumer in a discovery result,
+repair the inventory and test implications, and perform its required subsequent
+reviews. The parent remains at `discovery` until the child completion is imported;
+then the script returns the `research` producer. An incomplete child stays pending.
 
-Each campaign reviews the candidate and last seven full Git commit messages,
-plans worthwhile improvements, applies them, refreshes affected checks, and
-records learnings. Material findings or changes reset the clean-review streak.
-Finish only after two distinct consecutive trivial-only or no-change reviews,
-including applying their trivial fixes and completing relevant checks. Missing
-history is disclosed, not fabricated; a blocker or exhausted investigation
-allowance is not convergence. Commit only authorized changes after checks,
-preserving unrelated work and explicit no-commit instructions.
-
-For example, discovery for a new feature may find an existing API consumer
-missing from its first inventory. Improve updates the discovery record and its
-downstream test implications, then reviews again. Only after convergence does
-the host submit discovery's callback; the script returns `research`. Existing
-and new repositories use this same quality contract.
-
-This uses Improve's packaged shared policy and
-[navigator owner binding](references/navigator.md#improve-nodes-own-their-full-campaign),
-not a second standalone Improve/Until runtime. The graph, state schema, and one
-callback per action are unchanged. The host performs and records the reviews;
-the script does not independently count or prove them. Updated navigator
-packets apply to pending v1/v2 actions without rerouting saved runs or reopening
-completed work. Managed/legacy bindings are unchanged.
+Saved v1/v2 runs retain their embedded campaigns and selective `*-improve` nodes.
+Those compatibility instructions are in the
+[historical v2 guide](references/navigator.md#historical-v2-embedded-improve-nodes-own-their-full-campaign).
+They do not govern a protocol-3 checkpoint. Managed/legacy bindings are unchanged.
 
 ## Consumer delivery: an incremental feature must reach its intended user
 
@@ -255,11 +289,11 @@ decision, not an invented local-only completion criterion.
 
 Improve reviews the original outcome as well as the generated plan: **if every
 step succeeds, will the intended user actually receive the requested behavior?**
-Its existing seven-commit, two-consecutive-trivial-review campaign remains
-unchanged. No extra graph node, review counter, or standalone Until runtime is
-introduced.
+In protocol 3 the actual selected Improve skill performs that review through
+its bound Until Loop runtime. Its own convergence policy remains authoritative;
+ShipLoop adds neither an internal review graph nor a second review counter.
 
-For a new navigator-v2 run, `init --delivery-contract` enables an **opt-in
+For a new navigator-v2 or protocol-3 default run, `init --delivery-contract` enables an **opt-in
 declaration guard**. The script retains the accepted delivery contract in the
 existing authoritative `state.md` ledger and reprints it with pending checks
 and evidence references after a context reset. Full contract corrections and
@@ -523,14 +557,14 @@ durable notes referenced by its generic result. Unaccepted draft + pause retains
 the action; an accepted blocker report creates a new action at the same stage.
 Existing managed/legacy runs use the same policy with their own record binding.
 
-## Compatibility protocols
+## Historical compatibility protocols
 
-The material below documents **managed and legacy runs**, retained for existing
-state and regression fixtures. Its frozen hashes, manifests, certificates and
-child-phase gates do not apply to navigator runs. Use the guide above for new
-runs. Historical examples of unqualified `init` in this section require an
-explicit `--execution-mode=managed` or `--execution-mode=legacy` to select the
-protocol being described.
+The material below documents retained **v1, v2, managed, and legacy runs** for
+existing state and regression fixtures. Its embedded Improve policy, frozen
+hashes, manifests, certificates, and child-phase gates do not apply to v3.
+Use the guide above for new runs. Historical examples of unqualified `init` in
+this section require their explicit `--execution-mode` selection; they do not
+override v3's actual Improve-skill handoff.
 
 # ShipLoop 0.10
 
@@ -2900,10 +2934,12 @@ The compact stdout packet is authoritative for the current action. The command
 surface is:
 
 ```sh
-shiploop init     --repo REPO [--run-dir RUN] [--execution-mode=navigator|navigator-v1|managed|legacy] --prompt=TEXT
+shiploop init     --repo REPO [--run-dir RUN] [--execution-mode=navigator|navigator-v2|navigator-v1|managed|legacy] [--navigator-version=2|3] [--improve-skill ABSOLUTE_SKILL_CARD] --prompt=TEXT
 shiploop next     --run-dir RUN
 shiploop status   --run-dir RUN
 shiploop report   --run-dir RUN
+shiploop improve-bind --run-dir RUN --action ACTION --skill-card ABSOLUTE_SKILL_CARD
+shiploop improve-complete --run-dir RUN --action ACTION --result SKILL_COMPLETION.md
 shiploop plan-status --run-dir RUN --loop STEP_PLAN_LOOP
 shiploop context  --run-dir RUN --section SECTION --offset 0 --limit 4000 [--digest SHA256]
 shiploop context  --run-dir RUN --section review-history --record ARCHIVE_PATH --offset 0 --limit 4000 [--digest SHA256]
@@ -2926,13 +2962,13 @@ shiploop halt     --run-dir RUN --reason=TEXT
 shiploop migrate  --run-dir RUN
 ```
 
-`navigator` protocol 2 is the default for `init`; see the navigator guide for
-its commands. `navigator-v1` is a compatibility-fixture mode and preserves the
-recorded v1 cursor contract. Use `managed` or `legacy` explicitly for those
-compatibility routes. A managed parent has no separate import or continuation
-command: call `next`, follow the child packet, and read `context --section sdlc`
-when it is printed or needed for the current responsibility. Only the script can
-import the child's current validated certificate.
+The default `navigator` mode starts protocol 3 for new `init` and workspace
+runs; see the navigator guide for its producer/child handoff commands. The exact
+packet is authoritative for `improve-bind` and `improve-complete` arguments and
+recovery. `navigator-v2` and `navigator-v1` preserve their recorded cursor
+contracts; use managed or legacy modes explicitly for those compatibility routes.
+A v3 parent imports only matching accepted child evidence and never replaces a
+blocked child with inline review work.
 
 `TEXT` is literal data: use one `--name=value` argument, including with
 structured argv. In a shell single-quote it, escaping embedded `'` as `'\''`.

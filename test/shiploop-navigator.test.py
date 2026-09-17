@@ -453,7 +453,7 @@ class NavigatorTests(unittest.TestCase):
 
     def test_v2_cold_packet_uses_the_effective_item_cursor_and_owner(self) -> None:
         """A cold `next` renders W1's action, not the root inner-loop container."""
-        default_root = self.base / "default-v2-run"
+        default_root = self.base / "explicit-v2-run"
         initial = self._run_public_command(
             [
                 sys.executable,
@@ -465,6 +465,7 @@ class NavigatorTests(unittest.TestCase):
                 self.goal,
                 "--run-dir",
                 str(default_root),
+                "--execution-mode=navigator-v2",
             ]
         )
         default_state = store.read_record(default_root / "state.md")
@@ -487,6 +488,27 @@ class NavigatorTests(unittest.TestCase):
             packet.split("Write the structured result to: ", 1)[1].splitlines()[0]
         )
         self.assertEqual(callback, self.root.resolve() / "inbox" / f"{action['id']}.md")
+
+    def test_public_cli_defaults_to_protocol_v3(self) -> None:
+        root = self.base / "default-v3-run"
+        packet = self._run_public_command(
+            [
+                sys.executable,
+                str(SCRIPTS / "shiploop"),
+                "init",
+                "--repo",
+                str(self.repo),
+                "--prompt",
+                self.goal,
+                "--run-dir",
+                str(root),
+            ]
+        )
+        state = store.read_record(root / "state.md")
+        self.assertEqual(state["navigator_protocol_version"], 3)
+        self.assertEqual(state["execution_mode"], "navigator")
+        self.assertIsNone(state["active_improve"])
+        self.assertIn("ShipLoop navigator | intake", packet)
 
     def test_v2_controls_keep_the_root_parked_and_the_item_action_isolated(self) -> None:
         state = self.advance_v2_to_first_work_item(self.new_v2_state(), self.two_work_items())

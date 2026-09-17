@@ -7525,6 +7525,8 @@ def workspace_command(core, argv):
     start.add_argument("--include-untracked", action="append", default=[])
     start.add_argument("--exclude", action="append", default=[])
     start.add_argument("--delivery-contract", action="store_true")
+    start.add_argument("--improve-skill", default="")
+    start.add_argument("--protocol-version", type=int, choices=(2, 3), default=3)
     for name in ("plan-return", "return"):
         child = subs.add_parser(name)
         child.add_argument("--workspace-root", required=True)
@@ -7558,7 +7560,8 @@ def workspace_command(core, argv):
                                        args.include_untracked, args.exclude)
             init = ["init", "--repo", record["worktree"],
                     "--run-dir", record["run_dir"],
-                    "--execution-mode", "navigator-worktree", "--prompt=" + args.prompt]
+                    "--execution-mode", "navigator-worktree", "--prompt=" + args.prompt,
+                    "--navigator-version", str(args.protocol_version), "--improve-skill", args.improve_skill]
             if args.delivery_contract:
                 init.append("--delivery-contract")
             return main(core, init)
@@ -7585,6 +7588,27 @@ def workspace_command(core, argv):
                      "workspace return is allowed only at active release or handoff, "
                      "after the graph's assembled-candidate checks")
                 workspace.assert_binding(root, Path(saved["repo"]))
+                child = saved.get("active_improve")
+                if saved["navigator_protocol_version"] == 3:
+                    # Return is a once-only effect. Wait for the last review so
+                    # later child edits cannot invalidate an already-used receipt.
+                    need(navigator.current_stage(saved) == "handoff" and child is not None,
+                         "v3 workspace return requires the completed final handoff Improve child")
+                    import shiploop_standalone_improve as standalone
+                    need(child.get("skill") is not None,
+                         "workspace return awaits a bound, completed Improve child")
+                    result_path = root / "run" / "inbox" / (child["action_id"] + "-improve.md")
+                    submission = navigator._submitted_result(
+                        root / "run", argparse.Namespace(action=child["action_id"], result=str(result_path)),
+                        suffix="-improve")
+                    try:
+                        record, _ = standalone.complete(child, submission)
+                        preview = navigator.finish_improve(
+                            saved, child["action_id"], record, submission.get("final_result"))
+                        need(preview["status"] == "done",
+                             "workspace return requires a successful final handoff disposition")
+                    except standalone.StandaloneImproveError as exc:
+                        raise ProtocolError("workspace return awaits completed Improve: " + str(exc)) from exc
                 receipt = workspace.execute_return(root)
             print(f"Verified workspace return: {receipt['kind']}.")
             print(f"Receipt: {root / 'return-receipt.md'}")
@@ -7634,6 +7658,8 @@ def main(core, argv=None):
         "graph-dry-run", help="inspect navigator routes and prompts without project work"))
     for name in (
         "init",
+        "improve-bind",
+        "improve-complete",
         "next",
         "status",
         "report",
@@ -7661,14 +7687,20 @@ def main(core, argv=None):
             sub.add_argument("--repo")
             sub.add_argument("--bound-plan", default="")
             sub.add_argument("--force", action="store_true")
-            sub.add_argument("--execution-mode", choices=("navigator", "navigator-worktree", "navigator-v1", "managed", "legacy"), default="navigator",
+            sub.add_argument("--execution-mode", choices=("navigator", "navigator-worktree", "navigator-v1", "navigator-v2", "managed", "legacy"), default="navigator",
                              help="new-run protocol; existing runs retain their recorded mode")
+            sub.add_argument("--navigator-version", type=int, choices=(2, 3), default=3)
+            sub.add_argument("--improve-skill", default="")
             sub.add_argument("--delivery-contract", action="store_true",
                              help="opt in a new navigator-v2 run to consumer-delivery declaration checks")
             sub.add_argument("--independent-review", choices=("optional", "required", "required-with-fallback"), default="optional",
                              help="bind managed review requirements; fallback must be explicitly recorded")
+        if name == "improve-bind":
+            sub.add_argument("--skill-card", required=True)
         if name in (
             "complete",
+            "improve-bind",
+            "improve-complete",
             "verify",
             "planning-verify",
             "history",
@@ -7682,7 +7714,7 @@ def main(core, argv=None):
             sub.add_argument("--action", required=True)
         if name == "plan-status":
             sub.add_argument("--loop", required=True)
-        if name in ("complete", "journal", "replan"):
+        if name in ("complete", "journal", "replan", "improve-complete"):
             sub.add_argument("--result", required=True)
         if name == "journal":
             sub.add_argument("--target", choices=("skill", "outer"), default="skill")
@@ -7781,8 +7813,8 @@ def main(core, argv=None):
             sub.add_argument("--reason", required=True)
     args = parser.parse_args(argv)
     if (args.command == "init" and args.delivery_contract
-            and args.execution_mode not in ("navigator", "navigator-worktree")):
-        parser.error("--delivery-contract requires a new navigator-v2 run")
+            and args.execution_mode not in ("navigator", "navigator-worktree", "navigator-v2")):
+        parser.error("--delivery-contract requires navigator protocol 2 or 3")
     if args.command == "graph-dry-run":
         # Deliberately before run-directory discovery, locking or state access.
         return navigator_dry_run.run(args)
@@ -7820,7 +7852,7 @@ def main(core, argv=None):
                         "completed runs stay complete.",
                     )
                 need(not getattr(args, "delivery_contract", False)
-                     or (existing.get("navigator_protocol_version") == 2
+                     or (existing.get("navigator_protocol_version") in (2, 3)
                          and existing.get("delivery_contract_version") == 1),
                      "--delivery-contract cannot retrofit an existing run; preserve it and use its recorded protocol")
                 if ("navigator_protocol_version" in existing
@@ -7865,7 +7897,7 @@ def main(core, argv=None):
                     root != Path(args.repo or os.getcwd()).resolve(),
                     "run directory cannot be the product repository root",
                 )
-                if args.execution_mode in ("navigator", "navigator-worktree", "navigator-v1"):
+                if args.execution_mode in ("navigator", "navigator-worktree", "navigator-v1", "navigator-v2"):
                     need(args.independent_review == "optional",
                          "--independent-review is a managed-mode option; state navigator review requirements in the prompt")
                     if args.execution_mode == "navigator-worktree":
@@ -7879,7 +7911,9 @@ def main(core, argv=None):
                     state = navigator.new_state(
                         str(Path(args.repo or os.getcwd()).resolve()), args.prompt,
                         str(Path(args.bound_plan).resolve()) if args.bound_plan else "",
-                        protocol_version=1 if args.execution_mode == "navigator-v1" else 2,
+                        protocol_version=(1 if args.execution_mode == "navigator-v1" else
+                                          2 if args.execution_mode == "navigator-v2" else args.navigator_version),
+                        improve_skill=args.improve_skill,
                         delivery_contract=args.delivery_contract,
                         worktree=args.execution_mode == "navigator-worktree",
                     )

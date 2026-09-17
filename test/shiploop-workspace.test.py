@@ -366,6 +366,21 @@ class ShipLoopWorkspaceTests(unittest.TestCase):
         self._assert_source_unchanged(before)
         self.assertFalse((root / "workspace.md").exists())
 
+    def test_prepare_rejects_until_loop_runtime_artifacts_without_mutation(self) -> None:
+        """Actual Improve runtime state is evidence, never candidate product input."""
+        self._seed_dirty_source()
+        runtime = self.repo / ".until-loop" / "working.md"
+        runtime.parent.mkdir()
+        runtime.write_text("runtime evidence only\n", encoding="utf-8")
+        before = self._source_snapshot()
+        root = self.base / "rejected until-loop runtime source"
+
+        with self.assertRaises(workspace.WorkspaceError):
+            self._call(workspace.prepare, self.repo, root)
+
+        self._assert_source_unchanged(before)
+        self.assertFalse((root / "workspace.md").exists())
+
     def test_prepare_refuses_a_staged_runtime_deletion_without_repairing_user_work(self) -> None:
         """A removed old run file is still an unsafe tracked baseline, not cleanup."""
         runtime = self.repo / ".shiploop" / "old-run.md"
@@ -944,6 +959,8 @@ class ShipLoopWorkspaceTests(unittest.TestCase):
             str(self.repo),
             "--workspace-root",
             str(root),
+            "--protocol-version",
+            "2",
             "--prompt",
             "Add one small isolated feature.",
         )
@@ -979,6 +996,8 @@ class ShipLoopWorkspaceTests(unittest.TestCase):
             str(self.repo),
             "--workspace-root",
             str(root),
+            "--protocol-version",
+            "2",
             "--prompt",
             "Do not return before the outer lifecycle is ready.",
         )
@@ -1004,6 +1023,8 @@ class ShipLoopWorkspaceTests(unittest.TestCase):
             str(self.repo),
             "--workspace-root",
             str(root),
+            "--protocol-version",
+            "2",
             "--prompt",
             prompt,
         )
@@ -1018,6 +1039,8 @@ class ShipLoopWorkspaceTests(unittest.TestCase):
             str(self.repo),
             "--workspace-root",
             str(root),
+            "--protocol-version",
+            "2",
             "--prompt",
             prompt,
         )
@@ -1033,6 +1056,8 @@ class ShipLoopWorkspaceTests(unittest.TestCase):
             str(self.repo),
             "--workspace-root",
             str(root),
+            "--protocol-version",
+            "2",
             "--prompt",
             "A distinct request must use a new workspace.",
             code=2,
@@ -1045,6 +1070,8 @@ class ShipLoopWorkspaceTests(unittest.TestCase):
             str(self.repo),
             "--workspace-root",
             str(root),
+            "--protocol-version",
+            "2",
             "--prompt",
             prompt,
             "--include-untracked",
@@ -1089,6 +1116,8 @@ class ShipLoopWorkspaceTests(unittest.TestCase):
             str(self.repo),
             "--workspace-root",
             str(root),
+            "--protocol-version",
+            "2",
             "--prompt",
             "Guard the isolated workspace handoff.",
         )
@@ -1134,6 +1163,8 @@ class ShipLoopWorkspaceTests(unittest.TestCase):
             str(self.repo),
             "--workspace-root",
             str(root),
+            "--protocol-version",
+            "2",
             "--prompt",
             "Complete one isolated handoff after a verified return.",
         )
@@ -1176,8 +1207,26 @@ class ShipLoopWorkspaceTests(unittest.TestCase):
         )
         self.assertEqual(store.read_record(root / "return-receipt.md")["status"], "returned")
 
-    def test_existing_direct_navigator_and_v1_cold_recovery_remain_unchanged(self) -> None:
-        for mode in ("navigator", "navigator-v1"):
+    def test_workspace_start_defaults_to_protocol_v3(self) -> None:
+        root = self.base / "v3 default workspace"
+        started = self.cli(
+            "workspace",
+            "start",
+            "--repo",
+            str(self.repo),
+            "--workspace-root",
+            str(root),
+            "--prompt",
+            "Use the actual Improve skill after each step.",
+        )
+        state = store.read_record(root / "run" / "state.md")
+        self.assertEqual(state["navigator_protocol_version"], 3)
+        self.assertEqual(state["execution_mode"], "navigator-worktree")
+        self.assertIsNone(state["active_improve"])
+        self.assertIn("ShipLoop navigator | intake", started.stdout)
+
+    def test_explicit_v2_and_v1_direct_navigator_cold_recovery_remain_unchanged(self) -> None:
+        for mode in ("navigator-v2", "navigator-v1"):
             with self.subTest(mode=mode):
                 run = self.base / f"{mode} direct run"
                 created = self.cli(

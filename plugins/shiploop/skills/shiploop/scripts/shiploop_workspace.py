@@ -58,7 +58,7 @@ RETURN_RECEIPT = "return-receipt.md"
 # Only ShipLoop/Git control locations are universally transient.  Framework
 # names such as ``coverage`` or ``.next`` can be intentional product content;
 # callers can list those under ``exclude`` and must review every other path.
-FORBIDDEN_PARTS = frozenset({".git", ".shiploop", ".worktrees", ".shiploop-workspaces", ".shiploop-runs"})
+FORBIDDEN_PARTS = frozenset({".git", ".shiploop", ".until-loop", ".worktrees", ".shiploop-workspaces", ".shiploop-runs"})
 
 _SHA = re.compile(r"[0-9a-f]{40,64}")
 _LOCK_LOCAL = threading.local()

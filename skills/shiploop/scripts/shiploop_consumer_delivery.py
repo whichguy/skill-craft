@@ -531,9 +531,12 @@ def validate_transition(
     projection = _project_submission(state, action_id, stage, result)
     if result["outcome"] != "done":
         return projection
-    if stage == "plan-improve":
+    required_contract_stage = (
+        "plan" if state.get("navigator_protocol_version") == 3 else "plan-improve"
+    )
+    if stage == required_contract_stage:
         _need(projection["contract"] is not None,
-              "delivery contract is required before successful plan-improve")
+              f"delivery contract is required before successful {required_contract_stage}")
     elif stage == "system-test":
         _need(not _pending(projection, phase="system-test"),
               "required pre-update obligations are not current")
@@ -652,10 +655,11 @@ def packet_lines(state: Mapping[str, Any]) -> list[str]:
     ]
     contract = projection["contract"]
     if contract is None:
+        required_stage = "plan" if state.get("navigator_protocol_version") == 3 else "plan-improve"
         lines.extend(
             [
                 "Delivery contract: none accepted yet.",
-                "Before successful plan-improve, submit a full delivery_assessment with kind 'contract'. An unresolved contract may validly have no obligations; see the schema reference before declaring necessity required.",
+                f"Before successful {required_stage}, submit a full delivery_assessment with kind 'contract'. An unresolved contract may validly have no obligations; see the schema reference before declaring necessity required.",
             ]
         )
         return lines

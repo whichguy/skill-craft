@@ -9,6 +9,9 @@ cd "$root"
 # this array so a suite cannot silently drift between their inventories.
 suites=(
   test/shiploop-navigator.test.py \
+  test/shiploop-navigator-v3.test.py \
+  test/shiploop-standalone-improve.test.py \
+  test/shiploop-actual-improve-cli.test.py \
   test/shiploop-navigator-dry-run.test.py \
   test/shiploop-auth-readiness.test.py \
   test/shiploop-environment-lifecycle.test.py \

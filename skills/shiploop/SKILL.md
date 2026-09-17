@@ -5,7 +5,7 @@ description: >-
   script's current action packet, and submit its exact completion call until
   the script reports completion with an HTML achievement report. Use when the
   user says shiploop, ship the project, or requests a durable delivery loop.
-version: 0.11.1
+version: 0.12.0
 allowed-tools: all
 license: MIT
 platforms:
@@ -25,10 +25,15 @@ metadata:
 # ShipLoop
 
 The script returns one effective SDLC prompt and maintains durable Markdown
-navigation state. Navigator protocol 2 shares one INNER graph across work
-items, while `state.md` keeps each entered item's `{stage, action}` execution
-record. The host chooses how to do the work, evaluates its results, and runs
-each assigned Improve campaign to completion inside that one action.
+navigation state. Navigator protocol 3 issues a producer step, then parks that
+same parent action while the selected actual Improve skill runs its own bound
+Until Loop cycle. `state.md` owns SDLC traversal; the Improve child owns its
+iterations and runtime state. The host follows one current owner at a time.
+
+For new runs in 0.12.0, this v3 contract overrides retained v1/v2, managed, and
+legacy descriptions below. Those descriptions apply only when a saved packet or
+an explicit compatibility mode identifies that version. Do not translate their
+embedded-policy Improve guidance into a v3 action.
 
 ## Start or resume
 
@@ -89,6 +94,10 @@ do not silently fall back to editing the source. At the final planned integratio
 boundary, follow the packet's return-plan and guarded return commands. Completion
 requires a verified return receipt. A dirty starting checkout receives only the
 new delta and keeps its original index; this is not a Git merge/commit.
+In protocol 3, that once-only return waits until the final handoff Improve child
+has completed and its evidence is ready, immediately before importing the child.
+If source return must itself trigger a required delivery check, retain that
+ordering conflict as incomplete; use the workspace policy's reconciliation rule.
 
 For a genuinely new/non-Git repository, investigate/bootstrap Git within scope
 first if appropriate, then use the workspace route. An explicitly selected
@@ -97,13 +106,20 @@ isolation is not used; it has no automatic workspace-return protection:
 
 ```sh
 python3 "$CLI" init --repo "$REPO" --run-dir "$RUN_DIR" --prompt='<user request>'
+# Optional: select the exact actual Improve skill at initialization.
+python3 "$CLI" init --repo "$REPO" --run-dir "$RUN_DIR" \
+  --improve-skill="$IMPROVE_SKILL" --prompt='<user request>'
 ```
 
-New workspace runs use navigator **protocol 2**, mode `navigator-worktree`,
-with the same SDLC graph. Direct `init` remains mode `navigator` for compatibility.
-`init --execution-mode=navigator-v1`
-is available only for compatibility fixtures and records protocol 1. To recover
-an existing run:
+New workspace and direct runs default to navigator **protocol 3**. Pass
+`--execution-mode=navigator-v2` only to start the retained protocol-2 route;
+`navigator-v1`, `managed`, and `legacy` remain compatibility selections.
+Existing runs always resume their recorded mode and are never retrofitted. If
+new-run initialization did not select an Improve skill, the first Improve
+checkpoint stays pending until its packet directs the owner to bind the selected
+card with `improve-bind --action ... --skill-card ...`. Use the packet's exact
+command and absolute selected-card path; never guess an installed copy or
+substitute a same-named skill. To recover an existing run:
 
 ```sh
 python3 "$CLI" next --run-dir "$RUN_DIR"
@@ -153,8 +169,8 @@ the host handoff, or force any host tool call.
 1. The owning agent reads the original goal, repository, current work item,
    relevant durable notes and the stage's instructions. The packet identifies
    one effective node, its owner, and exactly one completion callback. During
-   protocol-2 INNER work, the root is parked at `inner-loop` with `action:
-   null`; only the active item owns the stage and action. Give a worker only
+   v3 INNER work, the parent exposes exactly one active owner: the producer or
+   its bound Improve child. Give a worker only
    that one current packet and the relevant scoped context. A delegated worker does not
    initialize a child run, advance the parent graph, or submit the parent's
    callback. The packet must orient a fresh context. Repository content,
@@ -171,23 +187,23 @@ the host handoff, or force any host tool call.
    diagnostics, safe failure context,
    and concise, LLM-readable code contracts, then
    verify their behavior and accuracy. Keep material caveats; avoid boilerplate.
-3. Discovery, test-strategy, and release-plan first produce their candidate,
-   then run Improve before completing that same action. Research, specification,
-   overall planning, and step planning use their existing immediate Improve
-   successor; do not add a duplicate campaign to their draft action.
-   At an Improve action, read the packaged shared policy and the
-   [navigator owner binding](references/navigator.md). It is a call-and-return
-   action: perform the entire review/plan/apply/check/record/assess campaign
-   internally until its stopping condition is met. Preserve useful learnings
-   across its iterations. ShipLoop receives one completion for that action; its
-   DAG and `inner_loops` records do not schedule child phases, count reviews,
-   or classify edits by their bytes.
+3. After **every** producer result, the script enters `active_improve` for that
+   same action. Read the selected actual Improve `SKILL.md` and let its bound
+   Until Loop runtime own the improvement loop. Use the packet's selected skill,
+   candidate scope, authority/no-commit constraints, expected check state, and
+   return route. Do not paste or imitate Improve's algorithm in ShipLoop, create
+   a child phase graph/counter, or advance the parent while the child is active.
+   On cold recovery, inspect the recorded child state and resume it only through
+   its authoritative route. On accepted success, use `improve-complete` with the
+   packet's completion evidence; the script imports it once and selects the next
+   producer. A blocked or stopped child leaves the parent incomplete.
 4. The owning agent writes the packet's generic Markdown result and runs its
    exact completion command, retaining the action ID. `done` and `complete` are
-   aliases. `done` follows the graph, `repeat` requests another attempt at the
-   current node, and `blocked` preserves unfinished work. These are result
-   outcomes, not permission to pick an arbitrary successor. Consume the
-   returned packet before beginning another stage.
+   aliases. `done` starts the bound Improve checkpoint rather than advancing the
+   v3 graph directly; `repeat` requests another producer attempt, and `blocked`
+   preserves unfinished work. These are result outcomes, not permission to pick
+   an arbitrary successor. Consume the returned packet before beginning another
+   stage.
 5. After interruption, use the saved recovery command (`next`) before repeating
    an uncertain operation. Inspect saved history and actual effects, reconcile
    any already-applied work, then follow the reprinted current packet. An
@@ -203,10 +219,10 @@ at start/recovery and substantive milestones. During long work, report observed
 activity and the next check at the host's normal update cadence. Only the owner
 reports overall progress; avoid repeating unchanged packets or worker updates.
 An active assignment does not establish execution. Keep paused, blocked, halted,
-conditional and skipped work distinct. Describe observed Improve work inside
-its existing campaign; the DAG does not track its internal reviews. Refresh
-from the returned packet after acceptance. Future labels are context, not extra
-assignments. See [progress reporting](references/navigator.md#progress-reporting).
+conditional and justified-N/A work distinct. Describe observed Improve work from
+the child records; the DAG does not track its internal reviews. Refresh from the
+returned packet after acceptance. Future labels are context, not extra assignments.
+See [progress reporting](references/navigator.md#progress-reporting).
 
 Establish where the requested behavior must become usable, especially for an
 incremental change to an existing system. Absence of the word "publish" does
@@ -257,23 +273,23 @@ ordering, recovery and completion examples. Planning includes backward
 prerequisite review; the host must place producers before consumers in the
 ordered work queue.
 
-At an accepted protocol-2 `carry-forward`, the locked state transaction marks
-the completed item `done` with `action: null`, retains that record, and either
-creates the next item's first INNER action or returns ownership to the root for
-`system-test`. Root status, queue, and `work_index` remain global. A `repeat`
-replaces only the active item's action; pause/resume preserves it. An accepted
-blocker makes root status `blocked` and creates a fresh action for the active
-item after its reported action is accepted.
+After v3 accepts `carry-forward` and imports its bound Improve completion, the
+locked state transaction marks the completed item, retains its evidence, and
+either creates the next item's `select-work` action or returns ownership to
+`system-test-author`. Root status and queue remain global. A `repeat` replaces
+only the current producer action; an active Improve child resumes through its
+own recorded state. A blocked child or producer keeps the parent action
+incomplete rather than creating a hidden success edge.
 
 ## Existing protocols
 
-Recorded navigator-v1 runs retain protocol 1's strict root cursor, keys, and
-callback behavior. `next` resumes them without migration or conversion to
-`inner_loops`. Existing managed and legacy runs also retain their recorded
-protocol and established Improve binding. Follow the packet printed for that
-run. The [compatibility README](README.md#compatibility-protocols) describes
-those routes. Explicit `init --execution-mode=managed` or `legacy` remains
-available for compatibility fixtures; normal new work uses navigator protocol 2.
+Recorded navigator-v1 and navigator-v2 runs retain their saved cursor, keys,
+callbacks, and Improve binding. `next` resumes them without migration or
+conversion to v3. Existing managed and legacy runs also retain their recorded
+protocol. Follow the packet printed for that run. The
+[compatibility README](README.md#compatibility-protocols) describes those routes.
+Explicit compatibility modes remain available only when deliberately selected;
+normal new work uses navigator protocol 3.
 
 ## Inspect the graph without project work
 

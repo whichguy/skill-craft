@@ -1,6 +1,6 @@
 # Consumer delivery declaration guard
 
-Read this reference when a navigator-v2 packet names `delivery_contract_version: 1`
+Read this reference when a protocol 2 or 3 navigator packet names `delivery_contract_version: 1`
 or when explicitly selecting the pilot at new-run initialization. It adds no
 stages, remote executor, credential store, or Improve counter. The host still
 performs the work; the script checks declared requirements and observations.
@@ -23,7 +23,7 @@ python3 "$CLI" init --repo="$REPO" --run-dir="$RUN_DIR" --delivery-contract --pr
 python3 "$CLI" next --run-dir="$RUN_DIR"
 ```
 
-Only new navigator-v2 runs can opt in. Existing marked runs preserve the option
+New protocol 2 or 3 navigator runs can opt in. Existing marked runs preserve the option
 without repeating the flag. The CLI refuses to retrofit unmarked, v1, managed,
 and legacy runs; do not bypass that rule by manually editing state. Default adoption is not
 implied. The initial run and its effective contracts are stored in the same

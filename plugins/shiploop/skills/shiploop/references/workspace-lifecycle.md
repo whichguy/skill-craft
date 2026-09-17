@@ -108,12 +108,22 @@ checkout**. It does not merge into the original branch after each item. All
 remaining items, system tests, outer Improve and authorized release work use
 the same assembled candidate. Recheck any integration-affected behavior.
 
+Protocol 3 defers the once-only source return until the final `handoff` Improve
+child has completed and its evidence receipt is ready. Review the final return
+plan, perform the authorized return, then import that child. Earlier producers
+and unfinished children cannot return the candidate; no subsequent producer
+can silently change a returned candidate. The return command validates the
+child completion and successful final disposition without advancing the graph.
+
 At release planning, determine whether returning to the original branch itself
-triggers CI/deployment or another material effect. If so, place the authorized
-guarded return at the release boundary, followed by the planned verification.
-Otherwise return at handoff, after final product documentation and checks. The
-helper never grants authority for a deployment, remote push, or branch policy
-bypass. A final return is not evidence that a hosted consumer has been updated.
+triggers CI/deployment or another material effect. For v3, use an authorized
+delivery/verification route from the execution checkout when available. If
+source return is a prerequisite for a required consumer check, record that
+unresolved ordering boundary and keep the run incomplete for reconciliation;
+do not claim a pre-return check observed the later effect or bypass the final
+return guard. Legacy v1/v2 retain their earlier release-or-handoff return route.
+The helper never grants deployment, push or branch-policy authority. Source
+return is not evidence that a hosted consumer has been updated.
 
 1. Run the packet's `workspace plan-return --workspace-root EXTERNAL` command.
    It binds a Markdown path review to the current candidate. Review **every**

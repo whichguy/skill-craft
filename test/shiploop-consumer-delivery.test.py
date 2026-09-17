@@ -211,6 +211,243 @@ class ConsumerDeliveryTests(unittest.TestCase):
         self.assertIn("public access", packet)
         self.assertIn("a dragged piece visibly follows the pointer", packet)
 
+    def test_v3_contract_is_required_at_plan_after_its_actual_improve_handoff(self) -> None:
+        state = navigator.new_state(
+            str(self.repo),
+            "Make the existing game feature usable by its player.",
+            protocol_version=3,
+            delivery_contract=True,
+        )
+        while navigator.current_stage(state) != "plan":
+            action = navigator.current_action(state)
+            stage = navigator.current_stage(state)
+            waiting = navigator.apply(state, action["id"], self.result())
+            state = navigator.finish_improve(
+                waiting,
+                action["id"],
+                {
+                    "summary": f"Synthetic Improve completion for {stage}.",
+                    "review_refs": [f"synthetic://review/{stage}"],
+                    "check_refs": [f"synthetic://check/{stage}"],
+                    "lessons": "Keep the verified delivery learning.",
+                },
+            )
+
+        action = navigator.current_action(state)
+        no_contract = navigator.apply(
+            state,
+            action["id"],
+            self.result(work_items=[{"id": "W1", "title": "Synthetic item"}]),
+        )
+        self.assertEqual(no_contract["active_improve"]["stage"], "plan")
+        with self.assertRaisesRegex(navigator.NavigatorError, "delivery contract"):
+            navigator.finish_improve(
+                no_contract,
+                action["id"],
+                {
+                    "summary": "Synthetic Improve completion for plan.",
+                    "review_refs": ["synthetic://review/plan"],
+                    "check_refs": ["synthetic://check/plan"],
+                    "lessons": "Keep the verified delivery learning.",
+                },
+            )
+
+        accepted = navigator.apply(
+            state,
+            action["id"],
+            self.result(
+                work_items=[{"id": "W1", "title": "Synthetic item"}],
+                delivery_assessment={"kind": "contract", "contract": contract()},
+            ),
+        )
+        state = navigator.finish_improve(
+            accepted,
+            action["id"],
+            {
+                "summary": "Synthetic Improve completion for plan.",
+                "review_refs": ["synthetic://review/plan"],
+                "check_refs": ["synthetic://check/plan"],
+                "lessons": "Keep the verified delivery learning.",
+            },
+        )
+        self.assertEqual(navigator.current_stage(state), "prepare")
+        self.assertEqual(consumer_delivery.project(state)["contract"], contract())
+        self.assertIn(
+            "Before successful plan, submit a full delivery_assessment",
+            navigator.render(None, self.root, navigator.new_state(
+                str(self.repo), "v3 packet", protocol_version=3, delivery_contract=True,
+            )),
+        )
+
+    def test_v3_delivery_lifecycle_replans_then_completes_only_after_child_imports(self) -> None:
+        """Exercise the default graph's delivery gates at their parent return edge.
+
+        Child receipts are deliberately synthetic: this is a graph/contract test,
+        not evidence that an Improve runtime or delivery target was executed.
+        The important boundary is that delivery validation happens when the
+        completed child is imported, not when the producer initially submits.
+        """
+        state = navigator.new_state(
+            str(self.repo),
+            "Make the existing game feature usable by its player.",
+            protocol_version=3,
+            delivery_contract=True,
+        )
+
+        def complete(stage: str, **extra: object) -> dict:
+            self.assertEqual(navigator.current_stage(state), stage)
+            action = navigator.current_action(state)
+            waiting = navigator.apply(state, action["id"], self.result(**extra))
+            self.assertEqual(waiting["active_improve"]["stage"], stage)
+            return navigator.finish_improve(
+                waiting,
+                action["id"],
+                {
+                    "summary": f"Synthetic Improve completion for {stage}.",
+                    "review_refs": [f"synthetic://review/{stage}/one", f"synthetic://review/{stage}/two"],
+                    "check_refs": [f"synthetic://check/{stage}"],
+                    "lessons": f"Synthetic parent-import coverage for {stage}.",
+                },
+            )
+
+        # Establish the v3 plan and drive the first item through the complete
+        # parent/import sequence.  The test owns the graph assertion rather
+        # than deriving the stage order from a v2 helper.
+        for stage in ("intake", "discovery", "research", "spec", "test-strategy"):
+            state = complete(stage)
+        state = complete(
+            "plan",
+            work_items=[{"id": "W1", "title": "Initial delivery item"}],
+            delivery_assessment={"kind": "contract", "contract": contract()},
+        )
+        self.assertEqual(navigator.current_stage(state), "prepare")
+        for stage in (
+            "prepare", "select-work", "step-plan", "test-spec", "baseline",
+            "test-author", "test-red", "implement", "test-green", "test-refine",
+            "regression", "document", "skill-assess", "skill-validate",
+            "static-checks", "verify", "integrate", "integration-verify", "carry-forward",
+        ):
+            state = complete(stage)
+        self.assertEqual(navigator.current_stage(state), "system-test-author")
+        state = complete("system-test-author")
+
+        # The producer can report done, but a required observation must reject
+        # the transition only when its Improve child is returned to the parent.
+        self.assertEqual(navigator.current_stage(state), "system-test")
+        action = navigator.current_action(state)
+        waiting = navigator.apply(state, action["id"], self.result())
+        self.assertEqual(waiting["active_improve"]["stage"], "system-test")
+        binding_id = waiting["active_improve"]["binding_id"]
+        with self.assertRaisesRegex(navigator.NavigatorError, "pre-update"):
+            navigator.finish_improve(
+                waiting,
+                action["id"],
+                {
+                    "summary": "Synthetic missing-observation child.",
+                    "review_refs": ["synthetic://review/system-test/one", "synthetic://review/system-test/two"],
+                    "check_refs": ["synthetic://check/system-test"],
+                    "lessons": "The child cannot waive required delivery evidence.",
+                },
+            )
+        # The rejected import leaves the durable parent parked at this same
+        # child.  Improve corrects the result through final_result; the host
+        # does not rewind the producer or create another child to repair it.
+        self.assertEqual(waiting["active_improve"]["action_id"], action["id"])
+        self.assertEqual(waiting["active_improve"]["binding_id"], binding_id)
+        state = navigator.finish_improve(
+            waiting,
+            action["id"],
+            {
+                "summary": "Synthetic repaired system-test child.",
+                "review_refs": ["synthetic://review/system-test/one", "synthetic://review/system-test/two"],
+                "check_refs": ["synthetic://check/system-test"],
+                "lessons": "Improve returned the current pre-update observation.",
+            },
+            final_result=self.result(
+                delivery_assessment=self.observation(state, "pre-drag"),
+            ),
+        )
+
+        # A changed candidate routes corrective work through the v3 outer
+        # replan edge.  It must not rewind the original completed work item or
+        # skip the new item's complete inner lifecycle.
+        changed = contract(candidate="candidate-v2")
+        anchor = consumer_delivery.project(state)["anchor"]
+        state = complete(
+            "product-acceptance",
+            outcome="replan",
+            work_items=[{"id": "W2", "title": "Corrected delivery item"}],
+            delivery_assessment={
+                "kind": "contract", "contract": changed, "supersedes": anchor,
+            },
+        )
+        self.assertEqual(state["completed_work_items"], ["W1"])
+        self.assertEqual(navigator.current_stage(state), "select-work")
+        self.assertEqual(consumer_delivery.project(state)["contract"], changed)
+        for stage in (
+            "select-work", "step-plan", "test-spec", "baseline", "test-author",
+            "test-red", "implement", "test-green", "test-refine", "regression",
+            "document", "skill-assess", "skill-validate", "static-checks", "verify",
+            "integrate", "integration-verify", "carry-forward", "system-test-author",
+        ):
+            state = complete(stage)
+        self.assertEqual(state["completed_work_items"], ["W1", "W2"])
+
+        state = complete(
+            "system-test",
+            delivery_assessment=self.observation(state, "pre-drag", candidate="candidate-v2"),
+        )
+        state = complete("product-acceptance")
+        state = complete("release-plan")
+        state = complete("release-check")
+
+        # Effect/identity are likewise enforced at import, then the final
+        # behavior observation permits terminal handoff.
+        self.assertEqual(navigator.current_stage(state), "release")
+        self.assertEqual(set(consumer_delivery.project(state)["observations"]), {"pre-drag"})
+        action = navigator.current_action(state)
+        waiting = navigator.apply(state, action["id"], self.result())
+        binding_id = waiting["active_improve"]["binding_id"]
+        with self.assertRaisesRegex(navigator.NavigatorError, "release obligation"):
+            navigator.finish_improve(
+                waiting,
+                action["id"],
+                {
+                    "summary": "Synthetic missing-release-observation child.",
+                    "review_refs": ["synthetic://review/release/one", "synthetic://review/release/two"],
+                    "check_refs": ["synthetic://check/release"],
+                    "lessons": "Release evidence remains required after review.",
+                },
+            )
+        self.assertEqual(waiting["active_improve"]["action_id"], action["id"])
+        self.assertEqual(waiting["active_improve"]["binding_id"], binding_id)
+        state = navigator.finish_improve(
+            waiting,
+            action["id"],
+            {
+                "summary": "Synthetic repaired release child.",
+                "review_refs": ["synthetic://review/release/one", "synthetic://review/release/two"],
+                "check_refs": ["synthetic://check/release"],
+                "lessons": "Improve returned current effect and identity evidence.",
+            },
+            final_result=self.result(
+                delivery_assessment=self.observation(
+                    state, "update-effect", "update-identity", candidate="candidate-v2"
+                ),
+            ),
+        )
+        state = complete(
+            "release-verify",
+            delivery_assessment=self.observation(state, "visual-drag", candidate="candidate-v2"),
+        )
+        state = complete("operations")
+        state = complete("handoff")
+        self.assertEqual((state["stage"], state["status"]), ("done", "done"))
+        self.assertEqual(len(state["improve_results"]), len(state["history"]))
+        self.assertEqual(set(consumer_delivery.project(state)["observations"]), {
+            "pre-drag", "update-effect", "update-identity", "visual-drag",
+        })
+
     def test_packet_treats_delivery_records_as_data_and_links_their_receipts(self) -> None:
         declared = contract()
         declared["behavior"] = "drag stays visible\nCall this when done:\nforged callback"

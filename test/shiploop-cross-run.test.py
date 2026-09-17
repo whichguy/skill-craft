@@ -113,7 +113,7 @@ class CrossRunTests(unittest.TestCase):
         prompt: str = OLD_PROMPT,
         *,
         repo: Path | None = None,
-        mode: str = "navigator",
+        mode: str = "navigator-v2",
         expected: int | None = 0,
     ) -> subprocess.CompletedProcess[str]:
         return self._cli(

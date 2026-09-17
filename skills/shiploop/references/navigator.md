@@ -1,39 +1,45 @@
 # Navigator execution mode
 
-Navigator protocol 2 is the default for new ShipLoop runs. It is a small
-directed graph that returns one effective prompt and records one state
-transition from a concise host result. One shared INNER graph serves every work
-item; `state.md` holds the per-item execution records. The script keeps durable
-state and routing while the host decides how to inspect, plan, edit, test,
-review, and assess the work.
-
-New Git-backed skill invocations enter through `workspace start`, recording
-`execution_mode: navigator-worktree`. The graph below is unchanged. A separate
-[workspace adapter](workspace-lifecycle.md) handles Git capture/return and gates
-handoff completion on its verified receipt; the navigator itself remains a
-pure routing/result component. Existing/direct `navigator` runs retain their
-declaration-only integration contract and are not silently upgraded.
+Navigator protocol 3 is the default for new ShipLoop runs. It is a small,
+script-owned graph that returns exactly one current owner: a producer step or
+the selected actual Improve skill for that producer. ShipLoop's `state.md`
+persists SDLC traversal. Improve follows the Until Loop runtime bound by its
+selected card and owns review iterations, child state, and convergence. The
+script imports one matching child result before it selects another producer.
 
 ```mermaid
 flowchart LR
-  I[Intake] --> D[Discovery plus Improve] --> R[Research] --> RI[Improve: research - one campaign]
-  RI --> S[Specification] --> SI[Improve: spec - one campaign] --> TS[Test strategy plus Improve]
-  TS --> P[Plan] --> PI[Improve: plan - one campaign] --> SP[Step plan]
-  SP --> SPI[Improve: step plan - one campaign] --> IM[Implement] --> TR[Test refine]
-  TR --> TA[Test author] --> DOC[Document and reuse decision]
-  DOC -->|skill required| SV[Skill validate] --> V[Verify]
-  DOC -->|no skill required| V
-  V --> PRI[Improve: product - one campaign] --> IN[Integrate] --> CF[Carry forward]
-  CF -->|next work item| SP
-  CF -->|all work items complete| ST[System test] --> OI[Improve: whole product - one campaign]
-  OI --> RP[Release plan plus Improve] --> REL[Release or honest N/A] --> RV[Release verify]
-  RV --> H[Handoff] --> DONE[Done]
+  P[Current producer prompt] --> R[Producer result]
+  R --> I[Actual Improve skill]
+  I --> U[Bound Until Loop cycle]
+  U -->|Accepted| C[Import evidence and lessons]
+  U -->|Incomplete| U
+  C --> N[Script selects next producer]
+  N --> P
 ```
 
-The graph describes order, not a substitute for engineering judgment. A prompt
-does not dictate exact prose, a fixed check-manifest layout, a byte-for-byte
-comparison, or a specific shell command. It does require the host to make the
-stage’s substantive judgment and retain evidence that another host can find.
+The 34 producer stages are fixed by the v3 catalog: prelude `intake`,
+`discovery`, `research`, `spec`, `test-strategy`, `plan`, `prepare`; inner
+`select-work`, `step-plan`, `test-spec`, `baseline`, `test-author`, `test-red`,
+`implement`, `test-green`, `test-refine`, `regression`, `document`,
+`skill-assess`, `skill-validate`, `static-checks`, `verify`, `integrate`,
+`integration-verify`, `carry-forward`; and outer `system-test-author`,
+`system-test`, `product-acceptance`, `release-plan`, `release-check`, `release`,
+`release-verify`, `operations`, `handoff`. Every instantiated producer runs the
+actual Improve skill afterward, including a justified N/A output. No v3 stage
+contains a copied Improve policy or independently counts review passes.
+
+The graph describes order, not a substitute for engineering judgment. The prompt
+does not dictate exact prose, a check-manifest layout, a byte comparison, or a
+specific command. It requires a substantive producer result and then an actual
+Improve child before a success edge can release that output. A meaningful RED is
+successful evidence for its test-control step; it never authorizes production
+edits before `implement`. A blocked Improve child leaves its parent incomplete.
+
+Sections describing v1/v2, managed, and legacy execution are compatibility
+references. Their `*-improve` graph nodes, embedded policy campaigns, and
+protocol-2 defaults do not apply to v3. Shared recovery, domain duties and
+authority rules still apply; this v3 handoff governs their execution.
 
 ## Run it
 
@@ -54,24 +60,35 @@ matching retries do not reopen completed work. Every packet links the project
 `SHIPLOOP.md` index and [cross-run knowledge policy](project-knowledge.md).
 Reuse revalidated environment facts and decisions in discovery/planning, not
 the old prompt, queue or action state. Maintain lasting knowledge in repository
-documents at document/carry-forward/handoff; no new graph node or importer exists.
+documents at document/carry-forward/handoff. Shared knowledge is context, not
+a second source of traversal state.
 
 ```sh
 python3 "$CLI" workspace start --repo="$REPO" --workspace-root="$WORKSPACE_ROOT" --prompt='requested outcome'
 # Explicit direct/non-Git mode, without automatic workspace-return protection:
 python3 "$CLI" init --repo="$REPO" --run-dir="$RUN_DIR" --prompt='requested outcome'
-# Compatibility fixtures only; normal new runs use protocol 2 above.
+# Optional explicit selected actual Improve card for a new v3 run:
+python3 "$CLI" init --repo="$REPO" --run-dir="$RUN_DIR" --improve-skill="$IMPROVE_SKILL" --prompt='requested outcome'
+# Compatibility only; normal new runs use v3 above.
+python3 "$CLI" init --repo="$REPO" --run-dir="$RUN_DIR" --execution-mode=navigator-v2 --prompt='v2 fixture outcome'
 python3 "$CLI" init --repo="$REPO" --run-dir="$RUN_DIR" --execution-mode=navigator-v1 --prompt='fixture outcome'
 python3 "$CLI" next --run-dir="$RUN_DIR"
 python3 "$CLI" done --run-dir="$RUN_DIR" --action="$ACTION" --result="$RESULT"
 ```
 
-`workspace start` returns a protocol-2 packet bound to the execution worktree
-and external `WORKSPACE_ROOT/run`. Direct `init` creates a protocol-2
-navigator-marked run without Git preparation. Both return the
-`intake` cursor and its prompt. `next` rereads the saved effective action after
-a context reset; it does not select or persist a successor. `done` reads one
-result file containing a `shiploop-state` fenced JSON object, for example:
+`workspace start` and direct `init` return a v3 `intake` producer packet for a
+new run. `next` rereads the saved effective owner after a context reset; it does
+not select or persist a successor. A v3 producer `done` records the result then
+parks the parent at `active_improve`; it does not advance directly. When a skill
+was not selected at initialization, the checkpoint's packet supplies the exact
+`improve-bind --action ... --skill-card ...` command. Follow that command and
+the selected card's bound runtime rather than guessing an adapter. Only an
+accepted matching completion passed to `improve-complete` imports the child and
+releases the next graph edge.
+An explicit relative `--improve-skill` locator is made absolute at initialization,
+so a later shell cwd cannot change which card the checkpoint selects.
+
+The retained v2 result example below applies only to a v2 packet:
 
 ````markdown
 ```shiploop-state
@@ -120,17 +137,17 @@ The semantic result contract is small:
 
 | Field | Meaning |
 | --- | --- |
-| `outcome` | `done`, `repeat`, or `blocked`. `done` lets the graph choose the successor; a result never supplies one. |
+| `outcome` | `done`, `repeat`, or `blocked`; v3 outer steps also allow `replan` with new corrective work items. Every v3 producer attempt first waits for actual Improve. Its final disposition then determines the script-owned route. |
 | `summary` | Concise statement of the current action’s real result. |
 | `evidence_refs` | Optional safe references to source, test, note, or external-operation evidence. |
-| `work_items` | Optional ordered `{id,title,context?}` list at `plan` or `plan-improve` before execution for all approved work, or at `carry-forward` for future-only work. |
-| `choices.skill_required` | Optional at `document` only. `true` selects `skill-validate`; omit it when no skill validation is required. |
-| `delivery_assessment` | Only for new v2 runs initialized with `--delivery-contract`: a full consumer-delivery contract/correction or bound observations, using the packet template. See [consumer delivery](consumer-delivery.md). |
+| `work_items` | Ordered `{id,title,context?}` items at `plan` before execution, at `carry-forward` for future-only work, or required new IDs for v3 outer `replan`. Legacy v1/v2 also accept them at `plan-improve`. |
+| `choices.skill_required` | Legacy v1/v2 routing hint at `document`. V3 always visits `skill-assess` and `skill-validate`, including an evidence-backed N/A disposition. |
+| `delivery_assessment` | Only for new v2 or v3 runs initialized with `--delivery-contract`: a full consumer-delivery contract/correction or bound observations, using the packet template. See [consumer delivery](consumer-delivery.md). |
 
-`repeat` allocates another action at the same node, so the host can continue
+After the v3 child has completed reviewing the attempt, `repeat` allocates another action at the same node, so the host can continue
 with new information. `blocked` retains unfinished work; after the condition
 is resolved, `resume` returns the same node. Neither is a successful advance.
-At Improve nodes, normal review iterations continue internally. An explicit
+Within the actual Improve child (or a legacy Improve node), normal review iterations continue internally. An explicit
 `repeat` restarts the attempt; it never counts as a completed review or clean
 pass. Each converged campaign submits one successful `done`.
 Each new run begins with `W1`, titled from the original goal. A `plan` or
@@ -158,7 +175,7 @@ Every packet, including paused, blocked, halted and done packets, includes a
 read-only snapshot derived from the existing effective cursor, accepted history
 and current work queue. It shows phase/run status, owner/current assignment,
 recorded completed and pending stages for the current phase or item, completed
-item counts/labels, queued items and conditional or skipped skill validation.
+item counts/labels and queued items. Legacy v1/v2 also show conditional or skipped skill validation; v3 always visits its skill stages.
 Only accepted `done` completes a stage; `repeat` and `blocked` do not. These
 records are host declarations, not independent evidence of tests or external
 effects. Workspace return/merge/push status still comes from the separate return
@@ -167,7 +184,8 @@ plan and receipt, not graph position.
 The snapshot bounds item labels to three completed and three queued items with
 omitted counts, short titles and a short blocking reason. Read `state.md` for
 the full queue/history and actual evidence for execution claims. Before
-`plan-improve` completes, the queue is provisional. The `document` result selects
+`plan` and its child complete, the v3 queue is provisional. In legacy v1/v2,
+this boundary is `plan-improve`, and the `document` result selects
 skill validation: before it completes, validation is conditional; a result
 without `skill_required: true` skips it. Skipped is not completed.
 
@@ -178,7 +196,7 @@ update cadence with an actual observation, or the last known status and next
 check. Avoid duplicate reports for every callback, unchanged poll or delegated
 worker. This is communication guidance; the host chooses wording and timing.
 
-For example, after W1's accepted carry-forward and W2's accepted document result
+For a legacy v2 example, after W1's accepted carry-forward and W2's accepted document result
 with no skill validation selected, the next packet assigns W2 `verify`. A
 synthetic user update could say: “Recorded done: W1 and W2 through documentation.
 Current: W2 verification is assigned. Pending: W2 product review, integration,
@@ -200,7 +218,7 @@ no timer, dashboard refresh, state fields, progress file or traversal rules.
 
 ## One shared INNER graph and per-item records
 
-The flat SDLC path from `step-plan` through `carry-forward` is one shared INNER
+The flat SDLC path from `select-work` (v3) or `step-plan` (v1/v2) through `carry-forward` is one shared INNER
 graph, not a graph copy per work item. Root owns the run's global `status`,
 `status_reason`, ordered queue, and `work_index`. While an item is active, root
 is parked at `stage: inner-loop` with `action: null`; the active item's entry in
@@ -266,9 +284,11 @@ authorization question were recorded. Only then does `done` move the cursor to
 and local-skill facts. This is an example of the intended input → cursor →
 prompt path, not evidence that any repository inspection occurred.
 
-## Improve nodes own their full campaign
+## Historical v2: embedded Improve nodes own their full campaign
 
-`discovery`, `test-strategy`, `release-plan`,
+This section applies only to retained v2 packets. V3 instead hands every
+producer result to the selected actual Improve skill and never embeds this
+campaign in the navigator prompt. `discovery`, `test-strategy`, `release-plan`,
 `research-improve`, `spec-improve`, `plan-improve`, `step-plan-improve`,
 `product-improve`, and `outer-improve` each invoke the packaged reusable
 [Improve review policy](improve-review-policy.md). Each is one call-and-return
@@ -561,15 +581,14 @@ not omitting a material contract or safety caveat.
 
 ## Compatibility and limits
 
-Workspace entry persists `execution_mode: navigator-worktree`; direct `init`
-persists `execution_mode: navigator`. Both use `navigator_protocol_version: 2`
-and the same existing state keys and stage graph. The explicit `navigator-v1` fixture mode
-persists version 1 and retains its strict root keys and cursor rules. Existing
-v1, markerless managed, and legacy states retain the protocol their established
-records select; they are not converted, migrated into `inner_loops`, or
-reinterpreted. A managed marker such as `managed_improve_protocol_version`
-continues to select its established route. Do not edit durable mode state to
-bypass that boundary.
+New v3 workspace/direct entries record their selected actual Improve binding and
+use the 34-producer catalog. Their parent action is `active_improve` while the
+bound child is active; ShipLoop does not duplicate the child's cursor or review
+counter. Direct `init --execution-mode=navigator-v2` retains protocol 2, and
+`navigator-v1`, managed, and legacy states retain the protocol their established
+records select. They are not converted, migrated, or reinterpreted merely because
+the package has been updated. A malformed/missing selected card or child evidence
+keeps a v3 parent incomplete rather than falling back to an embedded campaign.
 
 Navigator prompts and graph-walk tests can show that the script returns the
 expected stage and transitions only after accepted result envelopes. They cannot

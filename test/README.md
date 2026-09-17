@@ -176,3 +176,12 @@ installs the Skill Interop helper, exercises it after installation, then install
 runs and removes Review Coverage. No ambient provider credentials are inherited,
 no model call is made, and no personal plugin state should change. These checks
 prove local installed behavior only, not published-pin readiness or public review.
+
+### Navigator protocol 3 and actual Improve
+
+`shiploop-navigator-v3.test.py` and `graph-dry-run --protocol-version 3`
+exercise universal child handoffs and correction routes with synthetic receipts.
+`shiploop-standalone-improve.test.py` and `shiploop-actual-improve-cli.test.py`
+exercise the real bundled Until Loop runtime and parent import/recovery boundary.
+Their review judgments are fixtures; they do not prove a live model followed
+Improve. The implementation validation report records separate live skill trials.

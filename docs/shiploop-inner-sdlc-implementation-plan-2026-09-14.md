@@ -1,5 +1,12 @@
 # ShipLoop inner-SDLC recommendation implementation plan
 
+**Historical prompt-guidance implementation plan.** Its unchanged-graph and
+embedded-policy constraints describe the earlier work below. For subsequent
+development, the [revised overall SDLC plan](shiploop-improve-owned-sdlc-plan-2026-09-14.md)
+requires the actual Improve skill backed by Until Loop after every graph step
+by default. That runtime integration is now implemented separately in protocol 3;
+see the [actual-skill validation record](shiploop-actual-improve-validation-2026-09-17.md).
+
 ```mermaid
 flowchart LR
   M[Map six recommendations] --> P[Stage prompts]

@@ -166,6 +166,8 @@ class EnvironmentLifecycleNavigatorTests(unittest.TestCase):
         ]
         if protocol_version == 1:
             args.append("--execution-mode=navigator-v1")
+        elif protocol_version == 2:
+            args.append("--execution-mode=navigator-v2")
         return self._cli(run_dir, *args)
 
     @staticmethod

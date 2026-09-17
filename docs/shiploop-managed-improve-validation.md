@@ -1,5 +1,11 @@
 # Managed Improve implementation and validation
 
+**Historical execution-mode record.** The September 17 revision of the
+[overall SDLC plan](shiploop-improve-owned-sdlc-plan-2026-09-14.md)
+now requires the actual standalone Improve skill, backed by Until Loop, after
+every graph step by default. The managed-controller results below establish
+the earlier mode's behavior; they do not validate that revised integration.
+
 **Status: implementation and local validation complete.**
 Implemented in the isolated `codex/managed-improve-sdlc` worktree from
 `d8b8432beb6d3cef26e4402a80f8e778f64f129d`, then brought forward to
@@ -7,12 +13,10 @@ Implemented in the isolated `codex/managed-improve-sdlc` worktree from
 overlapping paths. The final evidence table below
 distinguishes executed tests from the original acceptance criteria.
 
-The lifecycle is the approved
-[36-node flat SDLC view](shiploop-improve-owned-sdlc-plan-2026-09-14.md#proposed-sdlc-with-improve-owning-convergence).
-That diagram shows discrete planning, local-test, system-test, skill and
-deployment duties. This document defines the managed child boundary that lets
-Improve own repetition within a selected node without turning the product DAG
-into a cyclic scheduler.
+This implementation followed the earlier 36-node SDLC proposal. That proposal
+has since been revised at the same linked plan location. This document retains
+the original managed child boundary and its evidence; it is a compatibility
+record, not the target design for the new standalone-skill integration.
 
 ## Implemented contract
 
