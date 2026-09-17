@@ -143,6 +143,61 @@ another item's action. The one accepted action determines the next effective
 cursor. A malformed duplicate owner or a stale/conflicting callback is rejected
 without selecting another item.
 
+## Progress reporting
+
+```mermaid
+flowchart LR
+  S[Saved Markdown state] --> P[Derived progress snapshot]
+  P --> U[Owner reports progress]
+  P --> A[One current assignment]
+  A --> R[Accepted result]
+  R --> S
+```
+
+Every packet, including paused, blocked, halted and done packets, includes a
+read-only snapshot derived from the existing effective cursor, accepted history
+and current work queue. It shows phase/run status, owner/current assignment,
+recorded completed and pending stages for the current phase or item, completed
+item counts/labels, queued items and conditional or skipped skill validation.
+Only accepted `done` completes a stage; `repeat` and `blocked` do not. These
+records are host declarations, not independent evidence of tests or external
+effects. Workspace return/merge/push status still comes from the separate return
+plan and receipt, not graph position.
+
+The snapshot bounds item labels to three completed and three queued items with
+omitted counts, short titles and a short blocking reason. Read `state.md` for
+the full queue/history and actual evidence for execution claims. Before
+`plan-improve` completes, the queue is provisional. The `document` result selects
+skill validation: before it completes, validation is conditional; a result
+without `skill_required: true` skips it. Skipped is not completed.
+
+The owner gives a concise **Done / Current / Pending / Blocked** update at
+start/recovery, substantive milestones, queue changes or changed blockers.
+Group adjacent short stages. During long actions or waits, follow the host's
+update cadence with an actual observation, or the last known status and next
+check. Avoid duplicate reports for every callback, unchanged poll or delegated
+worker. This is communication guidance; the host chooses wording and timing.
+
+For example, after W1's accepted carry-forward and W2's accepted document result
+with no skill validation selected, the next packet assigns W2 `verify`. A
+synthetic user update could say: “Recorded done: W1 and W2 through documentation.
+Current: W2 verification is assigned. Pending: W2 product review, integration,
+carry-forward and six outer stages. Skill validation was skipped. No blocker
+is recorded.” Add “The focused tests are running” only when the host has actually
+started and observed that test process. A blocked packet instead reports the
+condition and requires resume; a halted packet has unfinished work and no
+runnable assignment.
+
+Improve remains one host-owned campaign. Report observed findings, edits,
+checks or review results within it as host-reported activity. Never infer its
+internal phase, review count or convergence from the DAG. Likewise, do not infer
+percent completion, elapsed execution or an ETA from a changing queue. Refresh
+after acceptance; future stage labels are context, not additional prompts.
+
+`report` uses the same escaped snapshot in its on-demand HTML output. Automatic
+`report.html` persistence remains limited to done/halted runs; this change adds
+no timer, dashboard refresh, state fields, progress file or traversal rules.
+
 ## One shared INNER graph and per-item records
 
 The flat SDLC path from `step-plan` through `carry-forward` is one shared INNER

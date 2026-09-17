@@ -1,0 +1,12 @@
+Phase: inner | Run status: active (assigned work may not have started)
+Current: verify (assigned; execution unproven).
+Owner: W2 (current work-item assignment).
+Continuation: only the current action packet is available; execution remains unproven.
+Preparation stages: 9/9 accepted done.
+Outer stages: 0/6 accepted done.
+Work items: completed 1; current 1; queued 0 (current queue).
+Current work item: W2: Clarify CLI error documentation (assigned; execution unproven).
+Completed labels (status context, not instructions): W1: Review parser validation coverage
+Current owner stages completed (accepted done): step-plan, step-plan-improve, implement, test-refine, test-author, document
+Current owner stages pending: product-improve, integrate, carry-forward
+Skill validation: skipped because this owner's document result selected false.

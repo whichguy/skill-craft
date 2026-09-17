@@ -70,6 +70,21 @@ ENVIRONMENT_DISCOVERY_REQUIREMENTS = {
     ),
 }
 
+PROGRESS_REPORTING = """\
+User progress reporting: Briefly report Done / Current / Pending / Blocked from
+this snapshot at start/recovery, substantive milestones, queue changes or changed
+blockers. Group adjacent short stages; do not echo each packet or unchanged poll.
+For long work/waits, follow the host's update cadence: give an actual observation
+or the last known status and next check; do not invent continuing execution.
+Active means assigned, not proof work started. Paused/blocked work awaits resume;
+halted/done has no runnable assignment. Accepted done records are declarations,
+not verification evidence. Distinguish conditional/skipped work and observed
+checks. Refresh after acceptance; do not infer completion, percentages or ETA
+from graph position. Separately label observed Improve activity as host-reported;
+never infer internal reviews or convergence from DAG state. Only the owner
+communicates overall progress; future step labels are context, not assignments.
+"""
+
 COMMON = """\
 The script owns only this cursor, action identity, durable state, and graph
 routing. You own repository review, judgment, planning, edits, test design,
@@ -162,6 +177,10 @@ This one action owns the entire reusable Improve review cycle. Read
 apply, checks, record, and assessment work internally. Do not start standalone
 Improve or until-loop, create child phases or ambient state, or add another
 loop wrapper around this action.
+
+Keep the user informed during a long campaign with concise observed findings,
+edits, checks or review results. Label these as host-reported activity within
+this action; the navigator cannot report internal review progress or convergence.
 
 For every distinct cycle, inspect the seven latest full Git commit messages;
 when fewer exist inspect all available messages, and when none exist disclose

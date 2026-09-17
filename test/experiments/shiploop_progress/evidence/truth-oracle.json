@@ -1,0 +1,37 @@
+{
+  "blocked-improve-after-repeat": {
+    "completed_preparation_stages": [
+      "intake",
+      "discovery",
+      "research"
+    ],
+    "current_stage": "research-improve",
+    "improve_limit": "one host-owned campaign; no stored internal phase or iteration count",
+    "phase": "preparation",
+    "repeat_and_blocked_results": "accepted but not completed stages",
+    "run_status": "blocked and unfinished"
+  },
+  "limitations": [
+    "Accepted done is a navigator declaration, not proof of tests, deployment, or consumer behavior.",
+    "The snapshot does not establish that an LLM reads, follows, or reports any packet correctly.",
+    "The state does not expose Improve subiterations, elapsed time, percentage, ETA, or real execution start.",
+    "Future labels describe current recorded status and are not instructions or extra graph actions."
+  ],
+  "normal-w2-verify": {
+    "completed_work_items": [
+      "W1"
+    ],
+    "current_owner": "W2",
+    "current_stage": "verify",
+    "phase": "inner",
+    "run_status": "active",
+    "skill_validation": "skipped only because W2 document accepted done with false"
+  },
+  "plan-improve-replaced-queue-unselected-skill": {
+    "current_stage": "plan-improve",
+    "optional_skill": "conditional; no document result accepted done",
+    "phase": "preparation",
+    "queue": "current plan queue is provisional until plan-improve accepted done",
+    "run_status": "active"
+  }
+}
