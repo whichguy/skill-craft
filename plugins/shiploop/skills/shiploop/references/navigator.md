@@ -306,6 +306,50 @@ recovery examples](consumer-delivery.md). No new stages or Improve counters appl
 These are host-executed prompt duties within the existing graph. They add no
 nodes, result fields, scripted evidence validators, or required subagents.
 
+#### Project implementation conventions
+
+Discover practices early, select them in planning, and revalidate the relevant
+subset for each work item. These are ordinary host judgments within the existing
+stages; no conventions schema, extra graph node or new Improve campaign applies.
+
+- **Discovery/research:** identify product purpose and behavior to preserve,
+  supported runtime/dependency versions, canonical code/test examples, relevant
+  MCP/API contracts and reusable skills. Cite current sources and versions where
+  material. Distinguish binding requirements from observed practice and proposals.
+  Requirements come from current user/repository instructions and verified
+  contracts; historical code and tool descriptions are not automatic authority.
+- **Specification:** preserve applicable binding constraints, such as runtime
+  compatibility and public interfaces, while defining the requested behavior.
+  A discovered default does not become a new requirement merely by being noted.
+- **Overall plan:** select applicable conventions, their scope/rationale, useful
+  examples and verification commands. Retain one concise section in an appropriate
+  existing project document or durable plan note. Include its locator in plan
+  `evidence_refs` and applicable work-item `context`; keep context to a short
+  locator/decision summary, not a copied manual. Preserve locators on queue edits.
+- **Inner planning and implementation:** read that subset and check changed
+  assumptions. If a locator is absent or inaccessible, recover it from accepted
+  discovery/plan records and canonical sources. Use targeted discovery for stale
+  or conflicting facts; block only an unresolved prerequisite for dependent work.
+  Record justified departures, rationale and checks. Pass the relevant decisions
+  and references to delegated workers; do not copy unsafe or obsolete precedent.
+- **Existing Improve, documentation and carry-forward:** challenge unjustified
+  drift and stale conventions within the current campaign. Retain validated
+  decisions and references for later items; keep proposals and task-specific
+  exceptions distinct. Create a focused project document only when authorized
+  reuse needs it and no existing home fits. Do not duplicate a general coding guide.
+
+An MCP interface or skill often governs how the agent obtains evidence or does
+work; it does not automatically prescribe product architecture, authorize an
+external operation, or require adding a dependency. Select only relevant tools
+and practices. A docs-only item should not invent runtime conventions.
+
+For example, this repository's `skills/` source and generated `plugins/` layout
+means a prompt change belongs in the canonical skill followed by package sync
+and parity checks. A work-item context can point to the layout rule and selected
+commands. If a dependency change makes an older code example invalid, investigate
+the affected API, record a justified exception and update the relevant checks;
+do not repeat all discovery or blindly preserve the old pattern.
+
 #### Implementation quality indicator
 
 The planning and code-quality packets carry the explicit indicator
