@@ -1,0 +1,12 @@
+Phase: preparation | Run status: active (assigned work may not have started)
+Current: plan-improve (assigned; execution unproven).
+Owner: root navigator.
+Continuation: only the current action packet is available; execution remains unproven.
+Preparation stages: 8/9 accepted done.
+Outer stages: 0/6 accepted done.
+Work items: completed 0; current 0; queued 2 (provisional until plan-improve is accepted done).
+Queued labels (status context, not instructions): W1: Review parser validation coverage; W2: Clarify CLI error documentation
+Preparation stages completed (accepted done): intake, discovery, research, research-improve, spec, spec-improve, test-strategy, plan
+Preparation stages pending: none
+Skill validation: conditional; no queued work item has a document result accepted done.
+Improve detail: one host-owned campaign; internal phase and iterations are unavailable.

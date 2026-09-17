@@ -1,0 +1,28 @@
+{
+  "coordinator_mapping": [
+    {
+      "augmented_characters": 11681,
+      "baseline_characters": 9812,
+      "case": "normal-w2-verify",
+      "packet_1": "packet-1.txt",
+      "packet_2": "packet-2.txt",
+      "saved_state_unchanged_after_public_next": true
+    },
+    {
+      "augmented_characters": 5035,
+      "baseline_characters": 3077,
+      "case": "blocked-improve-after-repeat",
+      "packet_1": "packet-1.txt",
+      "packet_2": "packet-2.txt",
+      "saved_state_unchanged_after_public_next": true
+    },
+    {
+      "augmented_characters": 15461,
+      "baseline_characters": 13551,
+      "case": "plan-improve-replaced-queue-unselected-skill",
+      "packet_1": "packet-1.txt",
+      "packet_2": "packet-2.txt",
+      "saved_state_unchanged_after_public_next": true
+    }
+  ]
+}

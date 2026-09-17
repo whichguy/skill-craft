@@ -1,0 +1,5 @@
+{
+  "batch_started_utc": "2026-09-17T11:09:18Z",
+  "observed_at_epoch": 1789643447.303452,
+  "timing_limitation": "Individual spawn timestamps not retained; no per-variant latency comparison will be claimed."
+}

@@ -1,0 +1,107 @@
+{
+  "base": "ddca30d",
+  "quality_wins": {
+    "A": 0,
+    "B": 3,
+    "TIE": 0
+  },
+  "trials": [
+    {
+      "case": "normal-w2-verify",
+      "winner": "B",
+      "scores": {
+        "task_adherence": "B",
+        "factual_accuracy": "B",
+        "completeness": "B",
+        "instruction_following": "B",
+        "structural_clarity": "B",
+        "precision": "B",
+        "conciseness": "TIE"
+      },
+      "material_errors": {
+        "B": [],
+        "A": [
+          "It presents accepted navigator records as completed execution, including 'all W1 work' and W2 implementation, although the supplied state does not prove actual execution, tests, deployment, or consumer behavior.",
+          "Its next-step wording centers only successful verification and does not preserve the possible repeat or blocked outcome at the current stage."
+        ]
+      },
+      "a": {
+        "packet_chars": 9812,
+        "report_chars": 862,
+        "packet_plus_report_tokens_est": 2668.5
+      },
+      "b": {
+        "packet_chars": 11681,
+        "report_chars": 871,
+        "packet_plus_report_tokens_est": 3138.0
+      }
+    },
+    {
+      "case": "blocked-improve-after-repeat",
+      "winner": "B",
+      "scores": {
+        "task_adherence": "B",
+        "factual_accuracy": "B",
+        "completeness": "B",
+        "instruction_following": "B",
+        "structural_clarity": "B",
+        "precision": "B",
+        "conciseness": "TIE"
+      },
+      "material_errors": {
+        "A": [
+          "It presents intake, discovery, and research as simply complete rather than navigator-recorded accepted-done status, which the snapshot does not elevate to proof of execution effects.",
+          "Its pending sequence suggests that creating an improvement plan is the only remaining planning gate before the queued item can begin; spec, spec-improve, test strategy, plan, and accepted plan-improve remain required preparation stages."
+        ],
+        "B": []
+      },
+      "a": {
+        "packet_chars": 3077,
+        "report_chars": 724,
+        "packet_plus_report_tokens_est": 950.25
+      },
+      "b": {
+        "packet_chars": 5035,
+        "report_chars": 748,
+        "packet_plus_report_tokens_est": 1445.75
+      }
+    },
+    {
+      "case": "plan-improve-replaced-queue-unselected-skill",
+      "winner": "B",
+      "scores": {
+        "task_adherence": "B",
+        "factual_accuracy": "B",
+        "completeness": "B",
+        "instruction_following": "B",
+        "structural_clarity": "B",
+        "precision": "B",
+        "conciseness": "A"
+      },
+      "material_errors": {
+        "A": [
+          "Claims that the plan-improvement review is in progress and reassessing the plan, despite the snapshot proving only an active assigned action and not execution or internal Improve activity.",
+          "Presents prior stages as completed without qualifying them as accepted-done declarations rather than proof of executed work or results.",
+          "Does not label the two work items as provisional until plan-improve is accepted done, and omits the six outer stages that remain."
+        ],
+        "B": []
+      },
+      "a": {
+        "packet_chars": 13551,
+        "report_chars": 640,
+        "packet_plus_report_tokens_est": 3547.75
+      },
+      "b": {
+        "packet_chars": 15461,
+        "report_chars": 869,
+        "packet_plus_report_tokens_est": 4082.5
+      }
+    }
+  ],
+  "mean_packet_plus_report_tokens_est": {
+    "a": 2388.8333333333335,
+    "b": 2888.75
+  },
+  "latency": "Not compared: individual dispatch timestamps were not retained. Batch observation only.",
+  "token_limit": "Character/4 estimate includes supplied packet and final report only; excludes state-file reads, tool/system context, reasoning and judge cost. Not actual model token usage."
+}

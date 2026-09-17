@@ -1,0 +1,17 @@
+[
+  {
+    "case": "normal-w2-verify",
+    "judge_A": "b",
+    "judge_B": "a"
+  },
+  {
+    "case": "blocked-improve-after-repeat",
+    "judge_A": "a",
+    "judge_B": "b"
+  },
+  {
+    "case": "plan-improve-replaced-queue-unselected-skill",
+    "judge_A": "a",
+    "judge_B": "b"
+  }
+]

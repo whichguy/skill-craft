@@ -5,7 +5,7 @@ description: >-
   script's current action packet, and submit its exact completion call until
   the script reports completion with an HTML achievement report. Use when the
   user says shiploop, ship the project, or requests a durable delivery loop.
-version: 0.11.0
+version: 0.11.1
 allowed-tools: all
 license: MIT
 platforms:
@@ -196,6 +196,17 @@ the host handoff, or force any host tool call.
    and use its printed `resume` command once. Halted or done packets stop.
 6. Completion records the host's declaration. It is not independent proof that
    software was tested, deployed, or accepted by a consumer.
+
+Use each packet's derived progress snapshot to keep the user oriented: briefly
+group recorded completions, the current assignment, pending work and blockers
+at start/recovery and substantive milestones. During long work, report observed
+activity and the next check at the host's normal update cadence. Only the owner
+reports overall progress; avoid repeating unchanged packets or worker updates.
+An active assignment does not establish execution. Keep paused, blocked, halted,
+conditional and skipped work distinct. Describe observed Improve work inside
+its existing campaign; the DAG does not track its internal reviews. Refresh
+from the returned packet after acceptance. Future labels are context, not extra
+assignments. See [progress reporting](references/navigator.md#progress-reporting).
 
 Establish where the requested behavior must become usable, especially for an
 incremental change to an existing system. Absence of the word "publish" does
