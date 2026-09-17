@@ -12,7 +12,7 @@ URL, web app, remote runtime). Answer these five slots from discovery —
 5. **misread** — how do you tell “handlers ran, none claimed” from “platform down”?
 
 **Read** (session order; first hits win): user text → matching session MCP
-descriptions / `llmGuidance` → provisioned tree (runtime/bootstrap/README)
+descriptions / `llmGuidance` → provisioned tree (runtime/operator docs/README)
 → optional live `status` / HEAD. Unanswered slot = `unknown` or fail-closed
 and ask. Worked instances (one destination’s answers) live in
 [destination-instances.md](destination-instances.md), not as this protocol.

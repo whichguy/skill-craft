@@ -5,10 +5,9 @@ set -euo pipefail
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 cd "$root"
 
-printf '==> scripts/sync-improve-managed.py\n'
-PYTHONDONTWRITEBYTECODE=1 python3 scripts/sync-improve-managed.py
-
-for suite in \
+# The one ordered ShipLoop inventory. Full runs and CI shards select only from
+# this array so a suite cannot silently drift between their inventories.
+suites=(
   test/shiploop-navigator.test.py \
   test/shiploop-navigator-dry-run.test.py \
   test/shiploop-consumer-delivery.test.py \
@@ -76,7 +75,65 @@ for suite in \
   test/shiploop-managed-invalidation.test.py \
   test/shiploop-managed-package.test.py \
   test/shiploop-managed-walk.test.py \
-  test/shiploop-action-walk.test.py; do
+  test/shiploop-action-walk.test.py
+)
+
+usage() {
+  printf 'Usage: bash test/shiploop.test.sh [--shard 1/3|2/3|3/3] [--list]\n'
+}
+
+shard=""
+list_only=0
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --shard)
+      [[ $# -ge 2 && -z "$shard" ]] || { usage >&2; exit 64; }
+      case "$2" in
+        1/3|2/3|3/3) shard="$2" ;;
+        *) usage >&2; exit 64 ;;
+      esac
+      shift 2
+      ;;
+    --list)
+      [[ "$list_only" -eq 0 ]] || { usage >&2; exit 64; }
+      list_only=1
+      shift
+      ;;
+    -h|--help)
+      usage
+      exit 0
+      ;;
+    *)
+      usage >&2
+      exit 64
+      ;;
+  esac
+done
+
+shard_index=0
+if [[ -n "$shard" ]]; then
+  shard_index="${shard%%/*}"
+fi
+
+for index in "${!suites[@]}"; do
+  if [[ -n "$shard" ]] && (( index % 3 != shard_index - 1 )); then
+    continue
+  fi
+  if [[ "$list_only" -eq 1 ]]; then
+    printf '%s\n' "${suites[$index]}"
+  fi
+done
+
+[[ "$list_only" -eq 0 ]] || exit 0
+
+printf '==> scripts/sync-improve-managed.py\n'
+PYTHONDONTWRITEBYTECODE=1 python3 scripts/sync-improve-managed.py
+
+for index in "${!suites[@]}"; do
+  if [[ -n "$shard" ]] && (( index % 3 != shard_index - 1 )); then
+    continue
+  fi
+  suite="${suites[$index]}"
   printf '==> %s\n' "$suite"
   PYTHONDONTWRITEBYTECODE=1 python3 "$suite"
 done

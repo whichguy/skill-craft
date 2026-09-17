@@ -8,7 +8,7 @@ description: >
   (use review-plan) or raw residual×2 engine mechanics alone (use
   review-converge under /goal).
 allowed-tools: all
-version: 0.2.5
+version: 0.2.6
 license: MIT
 platforms:
   - linux
@@ -55,6 +55,29 @@ run residual×2 / post-ship coverage for this plan
 Resolve the plan path from the invocation, the current session plan, or ask once.
 Do **not** require the user to run shell scripts to use this skill.
 
+### Optional helper binding from an installed package
+
+Use a CLI helper only after the host has identified the **selected, loaded**
+`SKILL.md`. Let `SKILL_ROOT` be the absolute directory containing that file and
+bind the bundled helper from it for the current tool call:
+
+```sh
+# Replace this illustrative path with the selected absolute location before running.
+SKILL_ROOT="/absolute/directory-containing-the-loaded-SKILL.md"
+CLI="$SKILL_ROOT/scripts/review-coverage"
+python3 "$CLI" template --short
+```
+
+Do not infer `SKILL_ROOT` from the user's project cwd, a source checkout,
+`PATH`, a same-named skill, or a guessed cache layout. If the host presents a
+skill-root alias, expand the alias selected for this loaded card first. Claude
+Code may render `${CLAUDE_SKILL_DIR}` in card text on versions that support that
+substitution; it is not a portable shell environment variable. Rebind the
+absolute `CLI` in each independent shell call, quote it, and keep plan/run
+state under the target repository rather than this package. If the bundled file
+or `python3` is unavailable, report that prerequisite instead of falling back
+to a similarly named executable.
+
 ## Definitions
 
 | Term | Meaning |
@@ -81,7 +104,7 @@ and wait. Prefer CLI when available (avoids compose drift) **for the optional
 operator paste**:
 
 ```sh
-scripts/review-coverage goal-body --plan <ABS_PLAN> --slash
+python3 "$CLI" goal-body --plan <ABS_PLAN> --slash
 ```
 
 Show that output to the operator labeled **user-typed slash — not
@@ -152,6 +175,11 @@ waiver. Report what you wrote; do not require the user to run a CLI.
 1. Preconditions: implementation landed; applicable suite green or concrete manual
    verification for an explicitly N/A Test command; optional first-pass `/review-fix` done.
 2. **Preflight (hard stops — do not open `/goal` if any fail):**
+   - The selected `review-converge` driver is an external skill, not bundled
+     here. Resolve it through the host's advertised skill inventory and read its
+     loaded card before starting Phase B. If it is unavailable, stop with that
+     missing prerequisite; do not invent a slash command or substitute a different
+     review lifecycle. Phase A and this package's CLI helpers remain usable.
    - Plan has filled `## Review Coverage` (or run Phase A first).
    - Not waived (if waived, stop — no residual campaign).
    - Base ref looks real; if git repo available, prefer resolvable.
@@ -165,8 +193,8 @@ waiver. Report what you wrote; do not require the user to run a CLI.
    - If `git status --porcelain -- <Target paths>` shows foreign dirt under
      Target paths (excluding the ledger), **warn**; refuse unattended start
      until paths are clean or dirt is confirmed in-scope.
-   - Optional: `scripts/review-coverage preflight --plan ABS` (use `--strict`
-     in CI). Prefer when the CLI is on PATH.
+   - Optional: after the installed-package binding above, run
+     `python3 "$CLI" preflight --plan ABS` (use `--strict` in CI).
 3. **Outer driver (host-aware — Grok cannot agent-execute `/goal`):**
    - **Executable (Grok default, and any host without an agent-callable `/goal`
      or `update_goal` tool):** invoke skill **review-converge** in **this
@@ -174,11 +202,13 @@ waiver. Report what you wrote; do not require the user to run a CLI.
      `active`, immediately run another round. Do not stop for the user. Do
      **not** type a `/goal` slash and wait — on Grok that is a user-typed
      pager command and a `/goal` line in a plan does not execute.
-   - **If `update_goal` exists** (Grok with workflows off): set the objective
-     to the composed complete-when sentence + trailer; one review-converge
-     per outer turn.
-   - **Optional operator paste:** if `scripts/review-coverage` exists, run
-     `goal-body --plan <ABS> --slash` and show that line labeled
+   - **If the host advertises an objective-creation tool:** use its actual schema
+     and authorization rules to set the composed complete-when sentence + trailer;
+     one review-converge per outer turn. A status-only `update_goal` tool cannot
+     create an objective. Never infer authorization to create a persistent goal
+     merely from the presence of that tool.
+   - **Optional operator paste:** if the bound `CLI` exists, run
+     `python3 "$CLI" goal-body --plan <ABS> --slash` and show that line labeled
      **user-typed slash — not agent-executable on Grok**. The operator may
      paste it for host max-turns/budget. **Do not paraphrase** the static
      sentence. CLI missing → compose from Definitions (STATIC + trailer).
@@ -254,15 +284,15 @@ Humans or CI may lint/print without loading the agent skill. Agents may use thes
 when convenient; **skill Phase A/B above is authoritative**.
 
 ```sh
-# From skill package root (install.sh or skill-craft clone)
-scripts/review-coverage template
-scripts/review-coverage template --short
-scripts/review-coverage validate /path/to/plan.md
-scripts/review-coverage preflight --plan /path/to/plan.md
-scripts/review-coverage preflight --plan /path/to/plan.md --strict
-scripts/review-coverage run-card --plan /path/to/plan.md --preflight
-scripts/review-coverage goal-body --plan /path/to/plan.md
-scripts/review-coverage goal-body --plan /path/to/plan.md --slash
+# CLI is bound from the selected loaded SKILL.md above; cwd is irrelevant.
+python3 "$CLI" template
+python3 "$CLI" template --short
+python3 "$CLI" validate /path/to/plan.md
+python3 "$CLI" preflight --plan /path/to/plan.md
+python3 "$CLI" preflight --plan /path/to/plan.md --strict
+python3 "$CLI" run-card --plan /path/to/plan.md --preflight
+python3 "$CLI" goal-body --plan /path/to/plan.md
+python3 "$CLI" goal-body --plan /path/to/plan.md --slash
 ```
 
 | Helper | Role |
@@ -299,6 +329,7 @@ Unfilled templates (including example `None — residual loop waived: <reason>`)
 ## Install
 
 ```sh
+# Checkout-only skill-dir side-load; this installer is not part of a marketplace package.
 ./install.sh --skill review-coverage
 # → host skill dir (symlink). Then: /review-coverage …
 ```

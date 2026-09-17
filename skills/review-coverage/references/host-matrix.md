@@ -56,7 +56,9 @@ Before residual×2, the skill agent confirms (no script required):
    or in-session loop. Do not require the agent to type `/goal` on Grok.
    Optional: operator pastes `/goal` for host max-turns/budget.
 
-Optional CLI: `scripts/review-coverage preflight --plan <plan>` / `goal-body --slash`.
+Optional CLI: after the parent card binds `CLI` from its selected loaded
+`SKILL.md`, use `python3 "$CLI" preflight --plan <plan>` /
+`python3 "$CLI" goal-body --plan <plan> --slash`. Do not derive it from cwd.
 
 ## Residual campaign hygiene
 

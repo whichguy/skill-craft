@@ -1,0 +1,33 @@
+{
+  "name": "devloop",
+  "version": "0.6.0",
+  "description": "DevLoop (default): invoke the autonomous engine for a machine-verifiable build or debug goal. Use when the user says devloop, DevLoop, /devloop, or wants an isolated fail-closed build with executable tests. Thin shim: resolve a preinstalled engine, then exec scripts/devloop-run. Runtime hosts: Grok and Hermes. Claude/Codex/Cursor require an explicit external transport. NOT the demoted offline skill evidence-gates. NOT host-agent DEFINE/PROVE/BUILD.",
+  "author": {
+    "name": "whichguy",
+    "url": "https://github.com/whichguy"
+  },
+  "homepage": "https://github.com/whichguy/skill-craft",
+  "repository": "https://github.com/whichguy/skill-craft",
+  "license": "MIT",
+  "keywords": [
+    "skill-craft",
+    "devloop",
+    "portable-skills",
+    "script-backed"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "DevLoop",
+    "shortDescription": "Run the DevLoop engine (shim only)",
+    "longDescription": "DevLoop (default): invoke the autonomous engine for a machine-verifiable build or debug goal. Use when the user says devloop, DevLoop, /devloop, or wants an isolated fail-closed build with executable tests. Thin shim: resolve a preinstalled engine, then exec scripts/devloop-run. Runtime hosts: Grok and Hermes. Claude/Codex/Cursor require an explicit external transport. NOT the demoted offline skill evidence-gates. NOT host-agent DEFINE/PROVE/BUILD.",
+    "developerName": "whichguy",
+    "category": "Productivity",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Use $devloop for this task."
+    ]
+  }
+}

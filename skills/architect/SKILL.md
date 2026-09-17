@@ -1,17 +1,16 @@
 ---
 name: architect
 description: |
-  Design system architecture and make technology decisions. Dispatches to system-architect
-  agent for comprehensive design work.
+  Design system architecture and make technology decisions. Uses a structured inline
+  design or an available independent reviewer for comprehensive work.
 
   AUTOMATICALLY INVOKE when:
   - "design architecture", "what tech stack", "system design"
   - "how should I structure", "architecture for", "design system"
   - "technology recommendation", "compare frameworks"
 
-  NOT for: Implementation (use superpowers:executing-plans), task breakdown (use superpowers:writing-plans)
-allowed-tools: all
-version: 0.1.0
+  NOT for: Direct implementation or a routine task breakdown.
+version: 0.1.1
 license: MIT
 platforms:
   - linux
@@ -24,7 +23,8 @@ metadata:
 # /architect — Architecture & Technology Decisions
 
 Design system architecture, evaluate technology options, and make informed
-stack decisions. Quick comparisons inline; full designs via agent.
+stack decisions. Quick comparisons stay inline; comprehensive designs use an
+available independent review capability when it adds material value.
 
 ## Step 0 — Parse Arguments
 
@@ -67,49 +67,29 @@ From the invocation args, extract:
 **Recommendation**: [choice] because [reason tied to project context]
 ```
 
-After building the comparison table, present the recommendation using AskUserQuestion
-with markdown previews so the user can visually compare options:
+After the table, state the recommendation and its decisive trade-off. If a user choice is
+needed, ask it in ordinary conversation with the same concise option labels; do not require
+a host-specific question UI.
 
-```
-AskUserQuestion({
-  questions: [{
-    question: "Which option fits your project best?",
-    header: "Architecture",
-    options: [
-      {
-        label: "[Option A] (Recommended)",
-        description: "[1-line rationale tied to project context]",
-        markdown: "[Full comparison table for Option A:\n| Criterion | Rating |\n|---|---|\n| Fits stack | ... |\n| Performance | ... |]"
-      },
-      {
-        label: "[Option B]",
-        description: "[1-line rationale]",
-        markdown: "[Full comparison table for Option B]"
-      }
-    ],
-    multiSelect: false
-  }]
-})
+## Step 2b — Capability-Assisted Design
+
+If the host exposes an **available independent architecture reviewer** and a second
+analysis would materially improve the decision, give it this bounded task:
+
+```text
+Design architecture for: [question].
+Existing codebase context: [patterns found].
+Constraints: [context].
+Return an implementation blueprint with specific files, components, data flows,
+alternatives, and unresolved assumptions.
 ```
 
-This enables side-by-side comparison in the Claude Code UI when the user focuses each option.
-
-## Step 2b — Agent Dispatch
-
-```
-Use the Agent tool:
-  subagent_type: "system-architect"
-  prompt: "Design architecture for: [question].
-           Existing codebase context: [patterns found].
-           Constraints: [context].
-           Provide implementation blueprint with specific files, components, and data flows."
-```
-
-The system-architect agent may internally spawn recommend-tech for technology evaluation.
+Otherwise perform that same structured analysis inline and label it `single-pass analysis`.
+Do not invent an agent name, model, or tool that the current host has not advertised.
 
 ## Step 3 — Post-Processing
 
 After design completes:
 - Summarize key decisions and rationale
 - List files that would be created/modified
-- Suggest next step: superpowers:writing-plans to break down, then superpowers:executing-plans to implement
+- Suggest the next user-approved planning or implementation step

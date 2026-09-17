@@ -1,0 +1,23 @@
+# Prompt Migrate
+
+TDD-based prompt migration — given a target agent/skill prompt and a remediation list, writes failing tests first, then updates the prompt to make them pass. Commits remain user-controlled.
+
+## Install
+
+Install the `prompt-migrate` package from a configured Skill Craft marketplace, then start a fresh host session so it loads the packaged skill.
+
+## Use
+
+Ask the host to use `$prompt-migrate` for a matching request. Read [SKILL.md](skills/prompt-migrate/SKILL.md) before execution; it defines the workflow and any task-specific limits.
+
+## Runtime and prerequisites
+
+This is a `prompt-only` skill for linux, macos. Consult the packaged card for its required tools, credentials, filesystem writes, network behavior, and recovery steps. When it invokes a bundled helper, resolve it from the loaded skill directory (for example, `skills/prompt-migrate/scripts/...`), never from the consumer project's current directory.
+
+## Documentation
+
+The packaged [skill instructions](skills/prompt-migrate/SKILL.md) are the authoritative guide.
+
+## Support
+
+[Skill Craft source and issue tracker](https://github.com/whichguy/skill-craft)

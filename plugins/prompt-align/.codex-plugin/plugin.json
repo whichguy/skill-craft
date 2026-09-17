@@ -1,0 +1,32 @@
+{
+  "name": "prompt-align",
+  "version": "0.1.1",
+  "description": "Compare an agent or skill prompt against its test harness skill for phase-model, skip-condition, and wiring consistency. Reports mismatches and identifies which file is authoritative.",
+  "author": {
+    "name": "whichguy",
+    "url": "https://github.com/whichguy"
+  },
+  "homepage": "https://github.com/whichguy/skill-craft",
+  "repository": "https://github.com/whichguy/skill-craft",
+  "license": "MIT",
+  "keywords": [
+    "skill-craft",
+    "prompt-align",
+    "portable-skills",
+    "prompt-only"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Prompt Align",
+    "shortDescription": "Compare an agent or skill prompt against its test harness skill for phase-model, skip-condition, and wiring…",
+    "longDescription": "Compare an agent or skill prompt against its test harness skill for phase-model, skip-condition, and wiring consistency. Reports mismatches and identifies which file is authoritative.",
+    "developerName": "whichguy",
+    "category": "Productivity",
+    "capabilities": [
+      "Read"
+    ],
+    "defaultPrompt": [
+      "Use $prompt-align for this task."
+    ]
+  }
+}

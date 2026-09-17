@@ -19,6 +19,7 @@ const path = require("path");
 
 const root = path.resolve(__dirname, "..");
 const MAX_DESC = 1024;
+const SEMVER_RE = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*)(?:\.(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*))*)?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/;
 const REPOSITORY = "https://github.com/whichguy/skill-craft";
 const MARKETPLACE_DESCRIPTION =
   "Portable multi-host agent skills for Grok, Claude, Cursor, and Codex.";
@@ -79,6 +80,51 @@ function kindFromFm(fm) {
   return m ? m[1] : null;
 }
 
+function metadataScalar(fm, key) {
+  const m = fm.match(new RegExp(`^\\s+${key}:\\s*(.+?)\\s*$`, "m"));
+  return m ? m[1].trim().replace(/^['"]|['"]$/g, "") : null;
+}
+
+function displayNameFromLeaf(leaf) {
+  const known = {
+    "c-plan": "C Plan",
+    devloop: "DevLoop",
+    shiploop: "ShipLoop",
+  };
+  if (known[leaf]) return known[leaf];
+  return leaf
+    .split("-")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+function titleCase(value) {
+  return value
+    .split(/[-_\s]+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+function shortDescriptionFromFm(fm, description) {
+  const declared = metadataScalar(fm, "short-description");
+  if (declared) return declared;
+  if (description.length <= 120) return description;
+  const cut = description.slice(0, 119);
+  const boundary = cut.lastIndexOf(" ");
+  return (boundary > 60 ? cut.slice(0, boundary) : cut).replace(/[.,;:]+$/, "") + "…";
+}
+
+function platformsFromFm(fm) {
+  const match = fm.match(/^platforms:\s*\n((?:[ \t]+-\s+\S+.*\n?)*)/m);
+  if (!match) return [];
+  return match[1]
+    .split("\n")
+    .map((line) => line.match(/^\s+-\s+(.+?)\s*$/))
+    .filter(Boolean)
+    .map((parts) => parts[1]);
+}
+
 function buildPlugin(leaf, fm) {
   const name = scalar(fm, "name") || leaf;
   if (name !== leaf) {
@@ -87,6 +133,9 @@ function buildPlugin(leaf, fm) {
   const version = scalar(fm, "version");
   if (!version) {
     fail("missing version");
+  }
+  if (!SEMVER_RE.test(version)) {
+    fail(`version must be strict semver: ${version}`);
   }
   const license = scalar(fm, "license") || "MIT";
   const description = flattenDescription(fm);
@@ -141,6 +190,24 @@ function buildCursorPlugin(leaf, fm) {
     // Cursor otherwise discovers this by convention. Pinning the component
     // path makes the package contract explicit without creating a second body.
     skills: "skills",
+  };
+}
+
+function buildCodexPlugin(leaf, fm) {
+  const plugin = buildPlugin(leaf, fm);
+  const kind = kindFromFm(fm) || "portable";
+  return {
+    ...plugin,
+    skills: "./skills/",
+    interface: {
+      displayName: displayNameFromLeaf(leaf),
+      shortDescription: shortDescriptionFromFm(fm, plugin.description),
+      longDescription: plugin.description,
+      developerName: plugin.author.name,
+      category: titleCase(categoryFromFm(fm)),
+      capabilities: kind === "prompt-only" ? ["Read"] : ["Read", "Write"],
+      defaultPrompt: [`Use $${leaf} for this task.`],
+    },
   };
 }
 
@@ -264,6 +331,61 @@ function checkClaudePlugin(outPath, plugin, leaf) {
   }
   if (!parsed.author || parsed.author.name !== plugin.author.name) {
     fail(`${leaf} plugin.json author.name mismatch`);
+  }
+}
+
+function packageReadmePath(leaf) {
+  return path.join(root, "plugins", leaf, "README.md");
+}
+
+function buildPackageReadme(leaf, fm) {
+  const plugin = buildPlugin(leaf, fm);
+  const kind = kindFromFm(fm) || "portable";
+  const platforms = platformsFromFm(fm);
+  const authoredGuide = path.join(root, "skills", leaf, "README.md");
+  const guide = fs.existsSync(authoredGuide)
+    ? `This package preserves its authored guide at [skills/${leaf}/README.md](skills/${leaf}/README.md).`
+    : `The packaged [skill instructions](skills/${leaf}/SKILL.md) are the authoritative guide.`;
+  const platformText = platforms.length > 0 ? platforms.join(", ") : "the platforms declared by the skill";
+  return [
+    `# ${displayNameFromLeaf(leaf)}`,
+    "",
+    plugin.description,
+    "",
+    "## Install",
+    "",
+    `Install the \`${leaf}\` package from a configured Skill Craft marketplace, then start a fresh host session so it loads the packaged skill.`,
+    "",
+    "## Use",
+    "",
+    `Ask the host to use \`$${leaf}\` for a matching request. Read [SKILL.md](skills/${leaf}/SKILL.md) before execution; it defines the workflow and any task-specific limits.`,
+    "",
+    "## Runtime and prerequisites",
+    "",
+    `This is a \`${kind}\` skill for ${platformText}. Consult the packaged card for its required tools, credentials, filesystem writes, network behavior, and recovery steps. When it invokes a bundled helper, resolve it from the loaded skill directory (for example, \`skills/${leaf}/scripts/...\`), never from the consumer project's current directory.`,
+    "",
+    "## Documentation",
+    "",
+    guide,
+    "",
+    "## Support",
+    "",
+    `[Skill Craft source and issue tracker](${REPOSITORY})`,
+    "",
+  ].join("\n");
+}
+
+function writeGeneratedText(outPath, value) {
+  fs.mkdirSync(path.dirname(outPath), { recursive: true });
+  fs.writeFileSync(outPath, value);
+}
+
+function checkGeneratedText(outPath, value, label) {
+  if (!fs.existsSync(outPath)) {
+    fail(`missing ${outPath}`);
+  }
+  if (fs.readFileSync(outPath, "utf8") !== value) {
+    fail(`${label} out of sync with SKILL.md derivation`);
   }
 }
 
@@ -400,7 +522,17 @@ function main() {
     ".cursor-plugin",
     "plugin.json"
   );
+  const codexPath = path.join(
+    root,
+    "plugins",
+    leaf,
+    ".codex-plugin",
+    "plugin.json"
+  );
   const cursorPlugin = buildCursorPlugin(leaf, fm);
+  const codexPlugin = buildCodexPlugin(leaf, fm);
+  const readmePath = packageReadmePath(leaf);
+  const packageReadme = buildPackageReadme(leaf, fm);
 
   if (doCheck) {
     checkClaudePlugin(claudePath, plugin, leaf);
@@ -409,6 +541,8 @@ function main() {
       cursorPlugin,
       `${leaf} Cursor plugin manifest`
     );
+    checkGeneratedJson(codexPath, codexPlugin, `${leaf} Codex plugin manifest`);
+    checkGeneratedText(readmePath, packageReadme, `${leaf} package README`);
     process.stdout.write(`skill-frontmatter-to-plugin-json: CHECK OK ${leaf}\n`);
     return;
   }
@@ -416,8 +550,10 @@ function main() {
   if (doWrite) {
     writeGeneratedJson(claudePath, plugin);
     writeGeneratedJson(cursorPath, cursorPlugin);
+    writeGeneratedJson(codexPath, codexPlugin);
+    writeGeneratedText(readmePath, packageReadme);
     process.stdout.write(
-      `skill-frontmatter-to-plugin-json: wrote plugins/${leaf}/.claude-plugin/plugin.json and .cursor-plugin/plugin.json\n`
+      `skill-frontmatter-to-plugin-json: wrote plugins/${leaf} host manifests and README.md\n`
     );
     return;
   }

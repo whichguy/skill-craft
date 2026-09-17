@@ -1,7 +1,7 @@
 ---
 name: prompt-refine
 description: Full prompt-improvement workflow — runs prompt-audit to find inconsistencies, presents a remediation plan, then runs prompt-migrate to apply fixes and prompt-align to verify harness consistency. Use for any agent or skill prompt that needs structural repair.
-version: 0.1.0
+version: 0.1.1
 license: MIT
 platforms:
   - linux
@@ -26,7 +26,10 @@ End-to-end prompt improvement: audit → plan → migrate → align.
 
 ## Step 1 — Audit
 
-Invoke `/prompt-audit <path-to-prompt-file>`. Read its full output (Q&A, learnings, remediation list).
+Resolve an installed `prompt-audit` skill through current-host discovery. If it is available,
+use it and read its full output (Q&A, learnings, remediation list). If it is unavailable,
+perform its documented audit procedure inline and label the result `inline audit`; do not
+assume a personal suite or a sibling filesystem layout.
 
 ## Step 2 — Confirm scope with user
 
@@ -37,24 +40,23 @@ Wait for confirmation before proceeding. If the user defers any items, note them
 
 ## Step 3 — Migrate
 
-Invoke `/prompt-migrate <path-to-prompt-file> --remediation <audit-output>` using only the confirmed items.
+Resolve an installed `prompt-migrate` skill through current-host discovery and use it only for
+the confirmed items. If it is unavailable, follow its documented TDD procedure inline and
+label that route. In either route, detect the target repository's actual test command before
+running tests.
 
 ## Step 4 — Align
 
-Invoke `/prompt-align <path-to-prompt-file>`. If any `✗ conflict` rows remain after migration, fix them inline (they were missed by the migrate step) and commit:
-
-```bash
-git -C "<repo-root>/.." add <files>
-git -C "<repo-root>/.." commit -m "fix(<scope>): align harness after prompt migration"
-```
+Resolve an installed `prompt-align` skill through current-host discovery. If any `✗ conflict`
+rows remain after migration, fix them inline and rerun alignment. If the sibling is unavailable,
+follow its documented comparison procedure inline and label that route.
 
 ## Step 5 — Final verification
 
-```bash
-cd "<repo-root>/.." && npm test && ./tools/lint-marketplace.sh
-```
-
-Expected: All green.
+Run the target repository's actual test command discovered from its documentation, build files,
+package scripts, and nearby tests. Run an additional lint or marketplace check only when that
+repository documents it. Report a missing test command as a prerequisite rather than inventing
+one.
 
 ## Step 6 — Summary
 
@@ -68,3 +70,6 @@ Deferred: <items>
 Test result: PASS
 Harness alignment: clean | <N conflicts fixed>
 ```
+
+Stage or commit the result **only when the user explicitly requests a commit**. A successful
+refinement run does not authorize a version-control mutation by itself.

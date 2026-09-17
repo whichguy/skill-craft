@@ -17,6 +17,8 @@ bash test/run-all.sh --group core
 bash test/run-all.sh --group shiploop
 bash test/run-all.sh --group all
 bash test/run-all.sh --list
+bash test/shiploop.test.sh --list
+bash test/shiploop.test.sh --shard 1/3 --list
 ```
 
 The default is `--group all`. `core` covers packaging, installation, and
@@ -29,6 +31,15 @@ bash test/shiploop-walk-journal.test.sh
 ```
 
 It is not part of the aggregate; the `shiploop` group owns the action walk once.
+
+`test/shiploop.test.sh` owns one ordered ShipLoop inventory. Its no-argument
+form remains the complete serial runner. `--list` prints only the selected
+inventory and does not run synchronization or a test. `--shard 1/3`, `2/3`, or
+`3/3` selects every third suite from that same order, so the three inventories
+are disjoint and contain the action walk once in total. CI calls those shards
+through `shiploop-1`, `shiploop-2`, and `shiploop-3`; they are scheduling
+aliases and are intentionally excluded from `--group all`, which still runs
+the full serial ShipLoop runner exactly once.
 
 The ShipLoop group includes opt-in consumer-delivery declaration checks, public
 CLI compatibility/relocation tests, synthetic prompt/fake-boundary fixtures, and
@@ -82,10 +93,11 @@ Self-contained mocked Hermes-install tests establish installer behavior only.
 They do not provide an actual Hermes runtime, engine availability, live-host
 execution, or certification. A green hermetic aggregate has the same boundary.
 
-CI sets Python 3.12 and Node 22 explicitly, runs `core` and `shiploop` as
-independent groups on Ubuntu 24.04, and preserves the existing `hermetic` status
-as an aggregate gate. Failed, cancelled or skipped required groups cannot make
-that gate pass. Package drift is reported even when another core check fails.
+CI sets Python 3.12 and Node 22 explicitly, runs `core` and the three
+deterministic ShipLoop shards as independent groups on Ubuntu 24.04, and
+preserves the existing `hermetic` status as an aggregate gate. Failed, cancelled
+or skipped required groups cannot make that gate pass. Package drift is reported
+even when another core check fails.
 Both CI jobs reject staged or unstaged tracked-file changes left by tests,
 even after a suite or package-parity failure. The worktree and index are checked
 separately so restoring a working file cannot hide its staged changes.
@@ -107,3 +119,21 @@ automated tests are explicitly N/A. `test/review-coverage.test.sh` checks that
 contract across source instructions and emitted goal/run packets; it does not
 prove that every host or model executes the instructions correctly. This guide
 does not claim that all documentation or quality debt is closed.
+
+## Marketplace package and consumer gates
+
+The core group runs `marketplace-package`, `installed-skill-invocation` and
+`prompt-marketplace-contract`. These check all generated native payloads, execute
+bundled helpers from copied read-only package trees (including paths with spaces),
+and check prompt dependency/capability contracts. They do not run model benchmarks.
+DevLoop's core suite separately proves that missing-engine invocation cannot
+bootstrap; checksum/extraction/replacement tests target the repository-only
+operator setup helper.
+
+`bash test/run-integration.sh marketplace-claude|marketplace-grok|marketplace-codex`
+means choose **one** named target. Each requires that real CLI and uses a temporary
+local catalog and disposable profile with an allowlisted environment. The test
+installs the Skill Interop helper, exercises it after installation, then installs,
+runs and removes Review Coverage. No ambient provider credentials are inherited,
+no model call is made, and no personal plugin state should change. These checks
+prove local installed behavior only, not published-pin readiness or public review.

@@ -37,7 +37,7 @@ Do **not** renumber legacy Layer 0–2. Skill-interop reviews and checklists alr
 | Prompts | **Layer 1** | **implemented** |
 | Scripts / CLI | **Layer 2** | **implemented** |
 | Skill card (`SKILL.md` router) | review step (not a Layer 1 rename) | **implemented** |
-| Runtime binding | append (**SC-L3**) | **implemented** for Hermes materialize + `devloop` resolve/bootstrap; **Grok multi-transport required for Grok parity** (in progress); Claude/Codex transport optional |
+| Runtime binding | append (**SC-L3**) | **implemented** for Hermes materialize + installed `devloop` resolution; explicit operator setup is outside packages; Grok/Hermes engine transports, no native Claude/Codex transport |
 | Host adapters + distribution | append (**SC-L4 / SC-L5**) | **implemented** (skill-dir install, shared plugin views, Grok/Cursor indexes, Claude/Codex pins) |
 | Provenance (managed installs) | append | **implemented** — schema-2 marker + append-only `receipts.jsonl` + `--status` / `--uninstall` |
 | Operator / CI | control plane (not a runtime layer) | **implemented** — hermetic suite + GitHub Actions |
@@ -60,7 +60,7 @@ One CLI family per skill; injectable seams; scripts do not re-author planning po
 
 `SKILL.md` is the discovery/router surface. Engines that are CLI-first load this as documentation for chat models, not as the engine’s system prompt.
 
-### Runtime binding — SC-L3 (**implemented** for Hermes materialize + `devloop` resolve/bootstrap)
+### Runtime binding — SC-L3 (**implemented** for Hermes materialize + installed `devloop` resolution)
 
 Binding surfaces are **distinct** (do not collapse into one env var).
 
@@ -76,18 +76,25 @@ is **`evidence-gates`** (demoted; not default). See
 | Package root | Directory containing `SKILL.md` |
 | Runtime home | e.g. Hermes hub / container data root |
 | Write-safe root | Where engines may create workspaces/traces |
-| Host-local engine | `~/.local/share/devloop` (pin+sha bootstrap; marker-owned) |
+| Host-local engine | `~/.local/share/devloop` (explicit operator setup; marker-owned) |
 | Transport / launcher bins | Overridable (`HERMES_BIN`, `GROK_BIN`, `DEVLOOP_TRANSPORT`, …) |
 | Target repository | Effectful git work for engines |
 
-**Transport honesty:** Hermes host uses Hermes chat transport. **Grok parity** requires
-engine Grok transport with **no Hermes runtime dependency** (host-local engine +
-`GROK_BIN`). Until that ships in the engine pin, Grok must fail closed at the card —
-not fall back to host-agent DevLoop improvisation.
+**Transport honesty:** Hermes host uses Hermes chat transport. Grok uses an installed
+engine with Grok capability and `GROK_BIN`, without requiring a Hermes runtime.
+Claude/Codex/Cursor require an explicitly selected supported external transport;
+the card does not claim those hosts have native engine transports. Missing engines
+or unsupported capabilities fail closed, without host-agent loop improvisation.
 
-**devloop clean-laptop path:** card installs on Grok/Claude/Codex/Cursor skill-dir; engine
-materializes host-locally from `references/engine-pin.json` (url+sha256, safe extract,
-mkdir lock). Never clobbers Hermes leaf `devloop` (card install skipped on Hermes).
+**devloop clean-laptop path:** the card installs on Grok/Claude/Codex/Cursor, but
+never downloads or installs an engine at invocation time. An operator separately
+runs `bash scripts/devloop-setup.sh --host grok` from a trusted source checkout.
+That repository-only command owns `scripts/devloop-engine-pin.json`, SHA-256
+verification, safe extraction, locking and atomic replacement. Before activation,
+it checks `pytest` and the engine CLI using the same interpreter selection as the
+runtime. Dependencies must already be installed; neither setup nor the packaged
+launcher installs them. The card never clobbers the Hermes engine leaf (card install skipped
+on Hermes). Missing prerequisites exit 2 with operator guidance.
 
 **Hermes skill-dir install (implemented):** materialize a **managed copy** under
 `~/.hermes/skills/software-development/<leaf>` with provenance at
@@ -106,18 +113,22 @@ host checkout into a tree that is bind-mounted into the container as `/opt/data`
 | skill-craft-market pins (catalog only; no skill bodies) | **implemented** |
 | `install.sh --status` / `--uninstall` (owned only) | **implemented** |
 | skillctl | **optional / not planned** (use `install.sh`) |
-| Default DevLoop card `skills/devloop` | **implemented** (discovery on Claude/Grok/Codex/Cursor; Hermes card skipped; host-local bootstrap + seed resolve; strict shim SKILL) |
+| Default DevLoop card `skills/devloop` | **implemented** (discovery on Claude/Grok/Codex/Cursor; Hermes card skipped; installed-engine resolution only; separate operator provisioning) |
 | Demoted evidence gates `skills/evidence-gates` | **implemented** (offline freeze/prove/stop; not DevLoop) |
 | Grok engine transport (no Hermes) | **implemented** (card host affinity + pin `transports: [hermes, grok]`; [`devloop-engine-v0.2.0` was published on GitHub](https://github.com/whichguy/skill-craft/releases/tag/devloop-engine-v0.2.0) on 2026-08-15; publication does not establish host installation or execution) |
 
 ### Operator / CI (**implemented**)
 
 - Hermetic suite: `bash test/run-all.sh` (**implemented**); `--group core|shiploop`
-  selects independent groups and `--list` prints the same catalog used to execute.
-  No installed AI host or engine is required; mocked Hermes binding remains covered.
+  preserves the stable local groups and `--list` prints the same catalog used to
+  execute. CI-only `shiploop-1|shiploop-2|shiploop-3` aliases select deterministic
+  thirds of the one ordered ShipLoop inventory; `all` excludes those aliases and
+  still runs the full serial ShipLoop suite once. No installed AI host or engine
+  is required; mocked Hermes binding remains covered.
 - Plugin view drift: `bash scripts/sync-plugin-views.sh --check` (**implemented**)
-- CI: `.github/workflows/ci.yml` (**implemented**); independent core/ShipLoop jobs,
-  explicit Python/Node versions and a fail-closed aggregate `hermetic` status.
+- CI: `.github/workflows/ci.yml` (**implemented**); independent core plus three
+  deterministic ShipLoop-shard jobs, explicit Python/Node versions and a
+  fail-closed aggregate `hermetic` status.
   Both checkouts independently reject staged or unstaged tracked changes after
   their suites, including failed suites; package parity remains core-only.
 - External integrations: explicitly selected via `bash test/run-integration.sh`;

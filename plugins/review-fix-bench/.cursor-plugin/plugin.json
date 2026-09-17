@@ -1,7 +1,7 @@
 {
   "name": "review-fix-bench",
-  "version": "0.1.0",
-  "description": "A/B benchmarking skill for code reviewer agent prompts. Runs two versions of a reviewer agent against fixture ground truth using an LLM judge for semantic evaluation, then compares precision/recall/F1 metrics side-by-side. Defaults to comparing current agent vs git HEAD~1. Reports IMPROVED / REGRESSED / NEUTRAL verdict on F1.",
+  "version": "0.1.1",
+  "description": "Compare two code-review prompt versions against supplied fixture ground truth using an explicitly configured external benchmark runner. Reports an F1-based verdict only when the runner completes both evaluations and comparison.",
   "author": {
     "name": "whichguy"
   },

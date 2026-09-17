@@ -101,11 +101,23 @@ and **Skills**. Do not link the whole monorepo there as a single plugin. Remove
 the test link when finished. This tests an individual package; it is not a public
 catalog submission.
 
-Team marketplace import requires a Cursor Teams or Enterprise admin to use
-**Dashboard → Settings → Plugins → Import from Repo**, selecting the published
-`whichguy/skill-craft` repository. A public listing additionally requires submitting
-the public repository through [Cursor's publication form](https://cursor.com/marketplace/publish)
-and passing review. See [Cursor plugin distribution](https://cursor.com/docs/plugins).
+Cursor also supports a personal marketplace import in the current desktop UI:
+**Customize → Browse Marketplace → Add Marketplace → Import from GitHub**. Select
+**Scope: User** and enter the source repository root exactly as
+`https://github.com/whichguy/skill-craft`. This User import was verified in Cursor
+3.20.21, where all 18 packages appeared as available additions. That repository
+owns the required root
+`.cursor-plugin/marketplace.json`; do not use the catalog-only `skill-craft-market`
+sibling for Cursor import. Cursor does not document a ref or `/tree/<branch>` URL syntax for
+this field, so use the repository root. To stage a different default branch without
+changing the production repository, use a separate staging repository with a valid
+root marketplace index.
+
+Team-scoped marketplace import remains a Teams or Enterprise administrator action
+through **Dashboard → Settings → Plugins → Import from Repo**. A public listing
+additionally requires submitting the public repository through
+[Cursor's publication form](https://cursor.com/marketplace/publish) and passing
+review. See [Cursor plugin distribution](https://cursor.com/docs/plugins).
 
 ## Keeping generated files in sync
 
@@ -113,12 +125,43 @@ and passing review. See [Cursor plugin distribution](https://cursor.com/docs/plu
 ./scripts/sync-plugin-views.sh
 ./scripts/sync-plugin-views.sh --check
 bash test/sync-plugin-views.test.sh
+python3 scripts/check-marketplace-packages.py
+python3 test/installed-skill-invocation.test.py
 ```
 
 Full sync updates both native catalogs and the README inventory. It refuses an
 empty source tree or missing inventory markers. Leaf-only sync updates that package;
 run full sync before release so catalog descriptions and versions match. Never
 hand-edit generated manifests or copy bodies into `skill-craft-market`.
+
+Every package contains its own LICENSE, generated root README, canonical skill
+tree, and Claude, Cursor and Codex manifests. Authored skill READMEs remain next
+to their SKILL.md. The Codex adapter declares `./skills/`; it does not require
+an MCP server or hooks. The offline package checker rejects incomplete payloads,
+escaping paths, leftover symlinks and invalid metadata. It is not host approval.
+
+Script-backed cards bind the directory of the **loaded** SKILL.md before running
+a quoted absolute bundled-script path. The consumer's working directory remains
+the target project. Package resources are read-only; state belongs in that
+project or a declared writable data location. In particular, the installed
+Skill Interop marketplace helper works without a source checkout. Its optional
+`install-local` route instead requires an explicit absolute `MARKETPLACE_INSTALL_SH`
+pointing to a trusted source checkout's installer.
+
+Optional real-host checks (installed CLIs required):
+
+```sh
+bash test/run-integration.sh marketplace-claude
+bash test/run-integration.sh marketplace-grok
+bash test/run-integration.sh marketplace-codex
+```
+
+These create disposable host profiles and local catalogs, install Skill Interop,
+invoke its installed marketplace helper, install Review Coverage, run its bundled
+script from an unrelated project, and remove the target. They do not inherit
+provider credentials, alter personal plugin registrations, call a model, or prove
+that remote pins already serve these bytes. Cursor import and public marketplace
+review remain separate manual checks.
 
 Commit and publish the source adapters and catalog repairs before giving remote
 install instructions to other people. Validate pins with the sibling catalog's
@@ -132,5 +175,11 @@ that changes are published or that every script can execute on every host.
 Skill discovery is separate from execution. Prompt skills can still reference
 optional host agents, external CLIs, or project-specific harnesses. In particular,
 the DevLoop engine has Grok/Hermes runtime bindings; discovery in Claude, Codex,
-or Cursor does not add another engine transport. Check each skill's own runtime
-requirements before running its scripts.
+or Cursor does not add another engine transport. The distributed DevLoop runtime
+never downloads or provisions an engine. An operator may explicitly provision it
+from a trusted source checkout with `bash scripts/devloop-setup.sh --host grok`;
+see that command's `--help` for pin and destination controls. Missing engines
+fail with exit 2 and setup guidance. Claude/Codex/Cursor can use an explicitly
+selected supported external transport, not a claimed native transport.
+Benchmark skills retain declared independent-session, harness and project-access
+prerequisites; packaging does not manufacture unavailable capabilities.

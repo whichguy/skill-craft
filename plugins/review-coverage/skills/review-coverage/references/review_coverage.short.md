@@ -61,11 +61,12 @@ quality review changes and consider improvements, review the last 10 git commit 
 and loop rounds in this session. On Grok, `/goal` is user-typed only — a `/goal`
 line in a plan does not execute.
 
-Optional operator paste: `scripts/review-coverage goal-body --plan <ABS_PLAN> --slash`
+Optional operator paste: after the Review Coverage card binds its installed
+`CLI`, run `python3 "$CLI" goal-body --plan <ABS_PLAN> --slash`
 
 Printer trailer (halt/ledger/finalization slots) lives in `review_coverage.md` — do not paraphrase it here.
 
-Optional human/CI helper (not required): `scripts/review-coverage goal-body --plan <ABS_PLAN> --slash`
+Optional human/CI helper (not required): `python3 "$CLI" goal-body --plan <ABS_PLAN> --slash`
 
 ### Waiver
 

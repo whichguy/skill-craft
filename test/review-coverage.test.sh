@@ -645,7 +645,7 @@ else
   bad full_template_no_goal_body
 fi
 
-if grep -q '^version: 0.2.5$' "$ROOT/skills/review-coverage/SKILL.md"; then ok skill_version; else bad skill_version; fi
+if grep -q '^version: 0.2.6$' "$ROOT/skills/review-coverage/SKILL.md"; then ok skill_version; else bad skill_version; fi
 # Skill-first invoke (primary); CLI remains optional helper
 if grep -qE '/review-coverage|## Invocation' "$ROOT/skills/review-coverage/SKILL.md" \
   && grep -qiE 'not the primary|optional CLI helpers|not a script-first' "$ROOT/skills/review-coverage/SKILL.md"; then

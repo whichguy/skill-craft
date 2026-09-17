@@ -6,7 +6,7 @@ description: >-
   the user says evidence-gates, offline evidence gates, freeze prove stop, or
   host-native verify gates. NOT the autonomous engine product.
 allowed-tools: all
-version: 0.2.1
+version: 0.2.2
 license: MIT
 platforms:
   - linux
@@ -61,7 +61,7 @@ evidence-gates — mode=native host=<this-host> root=<package-root> charter=<pat
 
 | Phase | Actor | Gate |
 |-------|--------|------|
-| **freeze** | Agent writes charter JSON | `scripts/evidence-gates freeze --charter … --repo …` |
+| **freeze** | Agent writes charter JSON | `python3 "$CLI" freeze --charter … --repo …` |
 | **prove** | Agent orchestrates | `… prove --run-dir …` — baseline; **change** criteria must be observed **red** |
 | **build-on-host** | Agent + **this host’s** tools only | No CLI `build` / `run` |
 | **stop** | Agent requests evidence | `… stop --run-dir …` — re-check digests; re-run **all** verifiers; script writes receipt |
@@ -80,7 +80,16 @@ See `references/loop.md` and `references/charter-v1.schema.json`.
 
 ## CLI (optional hard gates)
 
+Bind `SKILL_ROOT` from the absolute path of the **selected, loaded**
+`SKILL.md`, then bind the package-local CLI. A host-provided selected skill-root
+alias must be expanded before this step. Do not derive either path from the
+target repo cwd, an author checkout, `PATH`, a same-named skill, or a guessed
+cache. Claude Code may render `${CLAUDE_SKILL_DIR}` in card text where
+supported; it is not a portable shell environment variable.
+
 ```sh
+# Replace this illustrative path with the selected absolute location before running.
+SKILL_ROOT="/absolute/directory-containing-the-loaded-SKILL.md"
 CLI="$SKILL_ROOT/scripts/evidence-gates"
 python3 "$CLI" self-check
 python3 "$CLI" freeze --charter CHARTER.json --repo REPO [--run-dir REPO/.evidence-gates/run]
@@ -89,7 +98,10 @@ python3 "$CLI" stop   --run-dir …
 python3 "$CLI" doctor [--repo REPO]
 ```
 
-Resolve `SKILL_ROOT` from the installed skill directory that contains this `SKILL.md`.
+Keep the selected logical path for host identity while the script resolves its
+own package-local resources. Rebind and quote `CLI` for each independent shell
+call. `python3` is required; if it or the bundled file is unavailable, report
+the prerequisite rather than invoking a same-named program from `PATH`.
 
 | Exit | Meaning |
 |------|---------|
