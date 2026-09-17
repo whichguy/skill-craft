@@ -507,6 +507,9 @@ silent override. Never relax safety or acceptance to claim simplicity.
    conventions; avoid unrelated cleanup, speculative features, new dependencies,
    configuration knobs or fallback paths without a present need. A no-change
    result is valid; do not manufacture edits to satisfy an iteration.
+   Apply the selected [project implementation conventions](navigator.md#project-implementation-conventions)
+   for this work item, revalidate changed assumptions and justify departures.
+   Existing code is evidence, not a mandate to copy stale or unsafe practice.
 2. **Useful abstraction.** Prefer direct, readable code and cohesive functions.
    Extract a helper/interface when it clarifies current behavior, removes actual
    duplication, or isolates a real boundary. Explain the present benefit of new

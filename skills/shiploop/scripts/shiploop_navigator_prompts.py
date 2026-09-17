@@ -125,6 +125,11 @@ semantically: a one-line defect can be material, and cosmetic changes are not
 automatically material. Investigate uncertainty. Any material finding or edit
 resets the clean-review condition.
 
+Where engineering choices are in scope, assess the applicable implementation
+conventions and justified departures. Review only the relevant subset; investigate
+named changed assumptions. Challenge stale or unsafe precedents; recorded practice
+is evidence to evaluate, not automatic authority.
+
 In every cycle, compare the plan to the original request, not only the generated
 specification: if all planned steps succeed, will the intended user receive the
 requested behavior at the intended entry point? Identify a missing update
@@ -169,6 +174,12 @@ it is not a completed review, a clean pass, or a successful completion.
 
 IMPLEMENTATION_QUALITY = """\
 Implementation quality: error checking + token-efficient code documentation
+- Project conventions: read the retained implementation conventions and source
+  examples relevant to this assignment. Check product purpose, runtime/dependency
+  versions, interface/tool contracts and selected skills. Prefer applicable,
+  supported patterns; do not copy stale or unsafe code. Record justified departures
+  and required checks, and refresh affected decisions when assumptions change.
+  Tool or skill availability does not require adding a product dependency.
 - Error checking: validate changed input/state boundaries; handle relevant
   dependency failures and cleanup/recovery proportionately. Preserve actionable
   errors; do not silently turn failures into success or add speculative defenses.
@@ -226,6 +237,14 @@ release work can be trusted; do not implement or silently expand scope yet."""
         """\
 Inspect the current repository, Git/worktree state, instructions, relevant
 code, tests, documentation, environment, consumers, and useful local skills.
+Identify implementation conventions relevant to this product's purpose:
+supported runtime/dependency versions, canonical code/test examples, relevant
+MCP/API contracts and existing reusable skills. Distinguish binding requirements,
+observed practices and proposals; resolve consequential gaps through research.
+Ground binding constraints in current user/repository requirements and verified
+runtime/interface contracts; tool or skill descriptions do not grant authority.
+Record concise findings with source/version references in an appropriate existing
+project document or durable discovery notes; avoid a generic coding manual.
 Record current facts and gaps that shape the work. Review the candidate before
 planning; neither old commits nor a visible file proves current behavior,
 authorization, or a passing check.
@@ -269,7 +288,9 @@ expected outcomes early, including local tests and plausible integration,
 system-test, or outer-loop obligations. Mark unresolved prerequisites or user
 decisions instead of burying them in implementation detail. For any consumer
 update, record whether it is required, source-only, or unresolved and keep that
-necessity separate from authority for a target operation."""
+necessity separate from authority for a target operation. Preserve applicable
+binding implementation constraints; observed practices or proposals do not become
+requirements merely because they appear in discovery notes."""
     ),
     "spec-improve": _prompt(
         """\
@@ -300,6 +321,12 @@ require future implementation merely to review the strategy.""",
 Create a dependency-aware implementation plan by reverse-walking each required
 outcome: required behavior, prerequisites, suppliers, affected consumers, and
 verification. Use Backchain-style reasoning to expose missing inputs or cycles.
+Select the applicable implementation conventions from discovery and current
+sources. Retain their scope, rationale, source examples and useful checks in one
+appropriate project document or durable plan note. Include its locator in plan
+`evidence_refs` and each applicable work item's `context`; keep context to a short
+locator and decision summary, not copied convention text. Preserve those references
+when revising the queue. Reuse adequate documents rather than copying them.
 Order approved work by actual dependencies and retain early test and outer/
 system-test obligations. Carry the implementation quality criteria below into
 each applicable work item's acceptance expectations. For a required consumer outcome, plan the exact update
@@ -316,7 +343,8 @@ scope, expected outcomes, test strategy, system-test obligations, consumers,
 release assumptions, required consumer updates, and their authority. Refresh
 affected planned checks before deciding the plan is ready for local step
 planning. If the approved work queue changes before execution, return ordered
-`work_items` for the whole updated plan.""",
+`work_items` for the whole updated plan. Preserve applicable convention locators
+and decision summaries in revised work-item context, or record why they changed.""",
         improve=True,
         implementation_quality=True,
     ),
@@ -327,6 +355,14 @@ the bounded candidate, prerequisites, affected code and consumers, intended
 behavior, independent expected outcomes, test cases, fixtures, documentation,
 skill/reuse questions, and checks. Resolve or block missing inputs before code;
 this is planning, not permission to skip directly to unverified edits.
+Read the implementation conventions referenced by this work item's context;
+if the locator is absent or inaccessible, recover it from accepted discovery/plan
+records and canonical repository sources. Never infer binding rules from a summary.
+Apply the relevant subset and revalidate changed assumptions rather than repeat
+full discovery. Record any justified departure, its rationale and verification
+needs. Resolve material conflicts with requirements or supported interfaces
+through targeted discovery before dependent edits; block only unresolved
+prerequisites. A historical pattern is not a mandate to copy a defect.
 Name the relevant failure boundaries, expected error handling and negative
 checks, and locations needing concise in-code contracts before implementation.
 Select major actions needing diagnostics, safe snapshot fields, existing debug
@@ -409,9 +445,12 @@ Update necessary code, API, user, or operator documentation from the completed
 implementation and test learning. Reconcile concise in-code contracts with the
 actual error behavior and relevant tests; remove stale or duplicate explanations
 while preserving material caveats. Explain relevant debug controls and diagnostic
-fields where operators need them. Make an explicit reuse decision: use an
-existing relevant skill, or create/update a repo-local skill when repeated work
-demonstrates a concrete benefit. Otherwise explain why none is needed. Do not
+fields where operators need them. Retain validated implementation conventions
+and their rationale/source examples in existing appropriate project docs; create
+a focused document only when needed for reuse and none fits. Keep proposals and
+task-specific exceptions distinct from adopted defaults. Make an explicit reuse
+decision: use an existing relevant skill, or create/update a repo-local skill when
+repeated work demonstrates a concrete benefit. Otherwise explain why none is needed. Do not
 install or publish a skill without authority. Set `choices.skill_required: true` when the next
 `skill-validate` node is genuinely required; otherwise omit that choice. A
 documentation or reuse change may require affected checks to be refreshed.
@@ -487,6 +526,8 @@ future-only `work_items`; do not use them to claim a future test, integration,
 or release has already occurred. Carry unresolved required delivery, exact
 target/authority, and pre/post-update verification obligations forward with
 their evidence and owner; do not let an ordinary summary erase them.
+Carry the implementation-conventions locator into applicable future work-item
+context. Retain validated changes for later items without expanding their scope.
 For a consequential learning, decide whether to retain it in this run, add a
 repo-local regression/example, or propose a shared skill/prompt improvement.
 Record the supporting evidence and target; avoid promoting a one-off workaround
