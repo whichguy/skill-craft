@@ -33,11 +33,12 @@ Use **skill-craft** for portable skill packages and their plugin distribution. U
 
 <!-- skill-craft:inventory:start -->
 
-**18 skills.** Generated from skill frontmatter by `scripts/sync-plugin-views.sh`.
+**19 skills.** Generated from skill frontmatter by `scripts/sync-plugin-views.sh`.
 
 | Skill | Version | Purpose |
 |-------|---------|---------|
 | [architect](skills/architect/SKILL.md) | 0.1.1 | Design system architecture and make technology decisions. Uses a structured inline design or an available independent reviewer for comprehensive work. |
+| [ask-agent](skills/ask-agent/SKILL.md) | 0.3.0 | A delegation skill, not an agent type. Ask native agents to work in the background, continue useful work in the main conversation, and incorporate their results when they return.… |
 | [c-plan](skills/c-plan/SKILL.md) | 0.1.1 | Resolve ambiguous user prompts by choosing whether to answer now, answer with assumptions, ask 1–2 high-value clarification questions, replan, or stop. Use when the best response… |
 | [compare-prompts](skills/compare-prompts/SKILL.md) | 0.1.1 | Compare two prompt versions (A vs B) by running both against a directory of test input files, then evaluating results on three dimensions in priority order: quality > tokens >… |
 | [derive-questions](skills/derive-questions/SKILL.md) | 0.1.1 | Iteratively researches real software project failures and wins, extracts key planning questions via 5-whys analysis, validates them against synthetic test plans, judges their… |
