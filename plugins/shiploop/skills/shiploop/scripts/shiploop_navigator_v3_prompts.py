@@ -70,6 +70,7 @@ STAGE_REFERENCES: dict[str, tuple[tuple[str, str], ...]] = {
     ),
     "discovery": (
         ("Persistent project-context guidance", "project-knowledge.md#discover-persistent-context-before-planning"),
+        ("Repository-local skill guidance", "testing-and-documentation.md#reusable-product-skills"),
         ("Environment and source-return discovery", "environment-lifecycle.md#discover-before-planning-code"),
     ),
     "research": (
@@ -103,6 +104,7 @@ STAGE_REFERENCES: dict[str, tuple[tuple[str, str], ...]] = {
     ),
     "step-plan": (
         ("Repeatable test-suite guide", "repeatable-test-suites.md#select-or-revalidate-the-harness"),
+        ("Repository-local skill guidance", "testing-and-documentation.md#reusable-product-skills"),
         ("Implementation constitution", "testing-and-documentation.md#implementation-constitution"),
         ("Decision carry-forward guidance", "project-knowledge.md#carry-context-into-the-new-plan"),
         ("State and data assessment", "requirements-definition.md#state-and-data-change-assessment"),
@@ -145,9 +147,10 @@ STAGE_REFERENCES: dict[str, tuple[tuple[str, str], ...]] = {
     ),
     "skill-assess": (
         ("Reuse-before-build guidance", "research-loop.md#reuse-before-a-new-mechanism"),
+        ("Repository-local skill guidance", "testing-and-documentation.md#reusable-product-skills"),
     ),
     "skill-validate": (
-        ("Documentation and reuse guidance", "testing-and-documentation.md#iteration-documentation-and-reuse"),
+        ("Repository-local skill guidance", "testing-and-documentation.md#reusable-product-skills"),
     ),
     "static-checks": (
         ("Iteration and verification guidance", "testing-and-documentation.md#iteration"),
@@ -377,6 +380,12 @@ actual route and uncertainty in existing environment/deployment notes; inspectin
 it does not authorize a return, deployment, or early final-handoff action.
 Locate existing specs and quality policies, establish their scope/status, and
 screen applicable non-functional requirements using the Requirements definition guide.
+Use the Repository-local skill guidance to inspect existing repo index/README/AGENTS
+skill links and plausible skill contracts before proposing implementation. Record
+fit or no fit with source locators; for a selection retain its entrypoint, effective
+input/default sources, applicable product contract and revalidation conditions in
+ordinary evidence_refs and linked notes. Inspect skill packages without editing
+them here; preserve the existing project-knowledge recording/index policy.
 Use the packet's Initial repository baseline guide. For every new change to an
 existing implementation, after only the minimum inspection needed to identify
 the packet's designated starting repository directory, instructions, and safe
@@ -490,6 +499,9 @@ environment or delivery decision, and approved exception as a short source
 locator plus decision, rationale, and revalidation condition in existing plan
 evidence. Put only the item-specific compact summary in the existing work-item
 `context` and preserve the source locators in ordinary `evidence_refs`.
+For a selected local skill, include the repo index/selection-note locator and what
+must be revalidated for that item's inputs. Treat no fit as a current observation;
+later items must reread the index for skills learned during this run.
 Use the packet's Run-wide test strategy source. Carry its locator and the
 applicable compact test decisions into each work item's existing `context`;
 include execution/target location, fixture and suite choices, and what to recheck.
@@ -524,6 +536,13 @@ and interfaces, behavior and failure cases, tests/fixtures/commands, existing
 conventions and reusable capabilities, diagnostic/error-handling obligations,
 documentation changes, integration impact, and required checks.  Revalidate
 environment, skill/MCP/library, and project-practice choices for this exact item.
+Use the Repository-local skill guidance. Reopen the repo's current skill index or
+README/AGENTS links, even if earlier context reported no fit: a preceding item may
+have created or evolved a skill. Prefer unchanged reuse with supported inputs and
+defaults. Record the selection or no-fit rationale in the linked plan/evidence
+note; retain the entrypoint, effective inputs/default sources, product contract,
+validation locators and revalidation condition in ordinary evidence_refs. Keep
+later decision changes in these notes, not edits to the script-owned work queue.
 For affected interactions, recheck the guide's relevant subsections instead of
 copying the prior plan unchecked. Retain a compact Design basis paragraph or
 exact section links: baseline/delta; state/event/connection agreements and planned
@@ -660,9 +679,19 @@ README/index links to the authoritative home without duplicating its contract.
 Assess whether an existing skill, helper, MCP capability, library pattern, or
 repo-local skill change is warranted for this work.  Check actual task fit,
 maintenance/portability implications, available examples, and expected consumer
-value.  Record a clear reuse, update, or justified N/A disposition.  Presence or
+value. Record a clear reuse, update, create, or justified N/A disposition. Presence or
 installation does not prove execution, and this step does not authorize a new
 dependency or publication.
+Read any existing skill index, README or AGENTS skill links and the linked
+local-skill guidance; absence of an index is not a blocker. Prefer unchanged
+reuse with existing inputs/defaults, then a compatible local update; create a
+separate local skill only for an evidenced gap or incompatible contract. Perform
+the warranted skill/index edits within this item's scope, preserving supported
+older uses. Keep generated skills in the product repository, never install them
+globally. Link the disposition note and applicable repo index, selected entrypoint,
+effective input/default sources, product contract and validation evidence in
+ordinary evidence_refs so Improve and the next context can recover them. Do not
+invent entrypoints or validation for a no-fit disposition.
 """,
     "skill-validate": """\
 Validate the selected reusable skill/helper or skill-related change against its
@@ -670,6 +699,10 @@ real examples, inputs, failure behavior, and consumer documentation.  If the
 prior assessment found no applicable skill work, emit and verify the justified N/A
 result instead of silently skipping this graph step.  Record the tested scope and
 limitations; discovery or installation alone is not validation.
+For a changed skill, exercise the triggering case and a retained older use; check
+applicable defaults/overrides and a relevant failure boundary. A cross-context
+reuse claim needs a fresh-reader trial using only the repo index, skill and new
+task; otherwise record that cold-context reuse remains untested.
 """,
     "static-checks": """\
 Run the selected formatting, lint, type, build, packaging, and static analysis
@@ -714,6 +747,12 @@ context. Link pending full-suite or real-boundary checks with their owner; do no
 leave the only rerun procedure in transient run notes.
 Retain the originating strategy locator alongside current item-specific test
 decisions so later items and whole-system tests can revalidate their basis.
+For selected local skills, retain the repo index/entrypoint, applicable inputs or
+overrides, validation evidence and revalidation trigger; keep the reusable
+procedure outside disposable run storage.
+Maintain the existing skill index/README links and their short SHIPLOOP.md locator
+so the next item or run can find newly created or evolved local skills. Keep
+task-specific values in evidence and revalidate prior selections for each new task.
 """,
     "system-test-author": """\
 Reopen the Run-wide test strategy source. From accepted history, select the
@@ -837,7 +876,7 @@ IMPROVE_SCOPES = {
     "test-refine": "post-implementation test refinement and oracle integrity",
     "regression": "regression, negative, compatibility, and recovery evidence",
     "document": "code and user/operator/project documentation updates",
-    "skill-assess": "the reuse or skill-update decision, including a justified N/A",
+    "skill-assess": "the reuse, update or creation decision, including a justified N/A",
     "skill-validate": "skill/helper execution evidence or its justified N/A",
     "static-checks": "lint, type, format, build, packaging, and static-check evidence",
     "verify": "work-item acceptance evidence and remaining limitations",
@@ -1127,6 +1166,16 @@ and revalidate only the sources relevant to this candidate, then retain a compac
 current locator, decision, rationale, and revalidation result in the child review
 notebook. Do not replace those source locators with copied transcripts, a new child
 ledger, or an unverified summary.
+
+When this candidate selects, uses or changes a repository-local skill, carry its
+repo index, selected entrypoint, effective input/default sources, applicable
+product contract and validation locators from the parent's evidence/selection
+note into this child's existing contract/review notes before the first review.
+Review task fit, supported overrides, current defaults and preserved older uses;
+for a split, check distinct triggers and retained consumers. Reuse of an unchanged
+skill does not require an edit. A no-fit decision needs its inspected sources and
+rationale. Missing execution or fresh-reader evidence stays untested. The host
+authors this handoff; a successful runtime receipt alone cannot prove skill use.
 
 For test plans, authored/refined tests, fixtures, suite wiring or test evidence,
 read the packet's Repeatable test-suite guide. Carry the harness, case and suite

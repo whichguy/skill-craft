@@ -1,0 +1,25 @@
+{
+  "workflow": "incident-v1",
+  "incident": "INC-42",
+  "target": "production",
+  "checks": [
+    "unit",
+    "integration"
+  ],
+  "receipts": [
+    {
+      "incident": "INC-42",
+      "target": "production",
+      "check": "unit",
+      "attempt": 1,
+      "status": "pass"
+    },
+    {
+      "incident": "INC-42",
+      "target": "production",
+      "check": "integration",
+      "attempt": 1,
+      "status": "fail"
+    }
+  ]
+}

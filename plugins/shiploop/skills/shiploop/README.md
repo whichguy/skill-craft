@@ -63,6 +63,17 @@ specified missing behavior and must not make production edits to turn it green.
 Release and verification never replay an uncertain external operation merely to
 make traversal continue.
 
+[Reusable product skills](references/testing-and-documentation.md#reusable-product-skills)
+stay in the product repository. `discovery` inspects the local index before
+planning; each `step-plan` rereads it for skills learned by earlier items.
+Prefer unchanged reuse with supported inputs/defaults, then a compatible local
+update, or a separate skill when contracts differ. `skill-assess` captures new
+learnings; `skill-validate` checks changed and retained uses. Carry selected-skill
+references into Improve's host-authored contract and maintain the repository index
+at `carry-forward`. This uses ordinary evidence/plan notes and work-item context;
+it adds no global installation or skill-specific runtime schema. Fresh-reader
+reuse remains untested until a reader actually finds and applies the local skill.
+
 Testing builds a [repeatable repository suite](references/repeatable-test-suites.md).
 Initial planning selects or revalidates the harness and focused/smoke/full commands.
 Each INNER change considers setup, test, teardown, and suite inclusion; stateless

@@ -1,0 +1,26 @@
+{
+  "case": "reuse",
+  "fixture": "/Users/dadleet/tmp/shiploop-local-skills-20260918/b02/fixture",
+  "checks": [
+    {
+      "name": "exact decision.json",
+      "passed": true
+    },
+    {
+      "name": "skill inventory captured",
+      "passed": true
+    },
+    {
+      "name": "preexisting local skills preserved",
+      "passed": true
+    }
+  ],
+  "before_skill_digests": {
+    "skills/release-evidence-triage": "1cb71b73acf249173e2adacafdef167470a749e3dc807b6c9439801704fc2402"
+  },
+  "after_skill_digests": {
+    "skills/release-evidence-triage": "1cb71b73acf249173e2adacafdef167470a749e3dc807b6c9439801704fc2402"
+  },
+  "skill_inventory_changed": false,
+  "passed": true
+}

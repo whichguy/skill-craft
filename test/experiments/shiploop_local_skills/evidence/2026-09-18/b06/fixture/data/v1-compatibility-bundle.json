@@ -1,0 +1,20 @@
+{
+  "workflow": "release-v1",
+  "candidate": "candidate-compatible",
+  "receipts": [
+    {
+      "candidate": "candidate-compatible",
+      "target": "staging",
+      "check": "unit",
+      "attempt": 1,
+      "status": "pass"
+    },
+    {
+      "candidate": "candidate-compatible",
+      "target": "staging",
+      "check": "integration",
+      "attempt": 1,
+      "status": "pass"
+    }
+  ]
+}

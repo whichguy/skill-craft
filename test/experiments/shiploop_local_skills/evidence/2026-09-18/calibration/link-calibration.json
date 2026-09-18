@@ -1,0 +1,68 @@
+{
+  "known_good": {
+    "case": "initial",
+    "fixture": "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/local-skill-link-calibration-fz83p1c8/fixture",
+    "checks": [
+      {
+        "name": "exact decision.json",
+        "passed": true
+      },
+      {
+        "name": "skill inventory captured",
+        "passed": true
+      },
+      {
+        "name": "existing local skill entrypoints indexed",
+        "passed": true
+      },
+      {
+        "name": "existing local skill links resolve inside repo",
+        "passed": true
+      }
+    ],
+    "observed_skill_count": 1,
+    "broken_skill_links": [],
+    "before_skill_digests": {},
+    "after_skill_digests": {
+      "skills/release-evidence-triage": "1cb71b73acf249173e2adacafdef167470a749e3dc807b6c9439801704fc2402"
+    },
+    "skill_inventory_changed": true,
+    "passed": true
+  },
+  "broken_reference": {
+    "case": "initial",
+    "fixture": "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/local-skill-link-calibration-fz83p1c8/fixture",
+    "checks": [
+      {
+        "name": "exact decision.json",
+        "passed": true
+      },
+      {
+        "name": "skill inventory captured",
+        "passed": true
+      },
+      {
+        "name": "existing local skill entrypoints indexed",
+        "passed": true
+      },
+      {
+        "name": "existing local skill links resolve inside repo",
+        "passed": false
+      }
+    ],
+    "observed_skill_count": 1,
+    "broken_skill_links": [
+      {
+        "card": "skills/release-evidence-triage/SKILL.md",
+        "link": "../../docs/absent-contract.md"
+      }
+    ],
+    "before_skill_digests": {},
+    "after_skill_digests": {
+      "skills/release-evidence-triage": "efad2537269603cf1b31cf57ef92d095df388e604c02151b8464a02886a221c3"
+    },
+    "skill_inventory_changed": true,
+    "passed": false
+  },
+  "passed": true
+}

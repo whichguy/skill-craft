@@ -37,6 +37,16 @@ REUSABLE_TEST_FACILITY_ROUTE = (
     "Reusable test facilities: "
     + str(REFERENCES / "repeatable-test-suites.md#reuse-and-define-test-facilities")
 )
+
+# Deliberately independent of the prompt catalog: these are the only stages
+# where a local skill must be discoverable before or during a skill decision.
+LOCAL_SKILL_ROUTE_STAGES = (
+    "discovery", "step-plan", "skill-assess", "skill-validate",
+)
+LOCAL_SKILL_GUIDE_ROUTE = (
+    "Repository-local skill guidance: "
+    + str(REFERENCES / "testing-and-documentation.md#reusable-product-skills")
+)
 if str(SCRIPTS) not in sys.path:
     sys.path.insert(0, str(SCRIPTS))
 
@@ -188,6 +198,106 @@ class V3GuidanceTests(unittest.TestCase):
             state, _action_id = self.complete_stage(state, **extra)
 
         self.assertEqual(tuple(observed), TEST_HARNESS_STAGES)
+
+    def test_cold_local_skill_routes_cover_early_and_late_decisions(self) -> None:
+        """Fresh producer and pending-child packets retain the local skill route.
+
+        Navigation and child state here are synthetic protocol setup only.  The
+        assertions prove packet routing and cold recovery, not that a host
+        interpreted an index or authored a child contract.
+        """
+        index = self.repo / "SHIPLOOP.md"
+        index.write_text("# Fixture local skill index\n", encoding="utf-8")
+        index_route = "Repository knowledge index (host-authored, if present): " + str(index)
+        observed: list[str] = []
+
+        for target in LOCAL_SKILL_ROUTE_STAGES:
+            with self.subTest(stage=target):
+                state = self.state()
+                while navigator.current_stage(state) != target:
+                    stage = navigator.current_stage(state)
+                    extra: dict[str, object] = {}
+                    if stage == "plan":
+                        extra["work_items"] = [{"id": "W1", "title": "Fixture item"}]
+                    state, _action_id = self.complete_stage(state, **extra)
+
+                producer, producer_packet = self.cold_packet(state)
+                self.assertEqual(navigator.current_stage(producer), target)
+                self.assertTrue(index.is_file())
+                self.assertEqual(producer_packet.count(LOCAL_SKILL_GUIDE_ROUTE), 1, producer_packet)
+                self.assertEqual(producer_packet.count(index_route), 1, producer_packet)
+
+                action = dict(navigator.current_action(producer))
+                pending = navigator.apply(producer, action["id"], result(target))
+                recovered_pending, pending_packet = self.cold_packet(pending)
+                self.assertIsNotNone(recovered_pending["active_improve"])
+                self.assertEqual(navigator.current_stage(recovered_pending), target)
+                self.assertEqual(pending_packet.count(LOCAL_SKILL_GUIDE_ROUTE), 1, pending_packet)
+                self.assertEqual(pending_packet.count(index_route), 1, pending_packet)
+                observed.append(target)
+
+        self.assertEqual(tuple(observed), LOCAL_SKILL_ROUTE_STAGES)
+
+    def test_next_item_reopens_repo_index_without_inheriting_prior_skill_selection(self) -> None:
+        """The generic item context keeps selections scoped to their owner.
+
+        This is synthetic navigation and packet recovery.  It deliberately does
+        not parse the index or a product skill: the host still decides whether a
+        current task fits either one.
+        """
+        index = self.repo / "SHIPLOOP.md"
+        selected_card = self.repo / "skills/release-evidence-triage/SKILL.md"
+        index_ref = str(index) + "#local-skills"
+        w1_selection = (
+            "W1 selected local skill: " + str(selected_card)
+            + "; effective input contract: docs/release-contract.md#v1; "
+            + "revalidate when the contract moves."
+        )
+        w2_context = (
+            "W2 start by reopening the current repository index " + index_ref
+            + "; no prior skill selection applies until task fit is reassessed."
+        )
+        index.write_text(
+            "# Fixture repository index\n\n## Local skills\n\n"
+            "- [Release evidence](skills/release-evidence-triage/SKILL.md)\n",
+            encoding="utf-8",
+        )
+        selected_card.parent.mkdir(parents=True)
+        selected_card.write_text("# Fixture local skill\n", encoding="utf-8")
+        state = self.state()
+        while navigator.current_stage(state) != "plan":
+            state, _action_id = self.complete_stage(state)
+        state, plan_action = self.complete_stage(
+            state,
+            evidence_refs=[index_ref],
+            work_items=[
+                {"id": "W1", "title": "Assess release evidence", "context": w1_selection},
+                {"id": "W2", "title": "Reassess another boundary", "context": w2_context},
+            ],
+        )
+        state = self.save_reload(state)
+        self.assertEqual(state["accepted"][plan_action]["evidence_refs"], [index_ref])
+
+        while navigator.current_stage(state) != "step-plan":
+            state, _action_id = self.complete_stage(state)
+            state = self.save_reload(state)
+        first_item, first_packet = self.cold_packet(state)
+        self.assertEqual(navigator._current_work_item(first_item), "W1")
+        self.assertIn("Work item context: " + w1_selection, first_packet)
+        self.assertIn("Repository knowledge index (host-authored, if present): " + str(index), first_packet)
+
+        while not (
+            navigator.current_stage(state) == "step-plan"
+            and navigator._current_work_item(state) == "W2"
+        ):
+            state, _action_id = self.complete_stage(state)
+            state = self.save_reload(state)
+        second_item, second_packet = self.cold_packet(state)
+        self.assertEqual(navigator._current_work_item(second_item), "W2")
+        self.assertIn("Work item context: " + w2_context, second_packet)
+        self.assertIn("Repository knowledge index (host-authored, if present): " + str(index), second_packet)
+        self.assertNotIn(str(selected_card), second_packet)
+        self.assertNotIn(w1_selection, second_packet)
 
     def test_cold_step_plan_keeps_compact_context_and_evidence_locators(self) -> None:
         context = (

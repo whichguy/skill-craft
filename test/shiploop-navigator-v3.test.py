@@ -262,6 +262,32 @@ class NavigatorV3Tests(unittest.TestCase):
         with self.assertRaises(navigator.NavigatorError):
             navigator.apply(waiting, action["id"], result(summary="Conflicting producer report."))
 
+    def test_skill_assess_rejects_legacy_skill_result_carriers_without_mutation(self) -> None:
+        """V3 retains reusable-skill evidence in its generic envelope only."""
+        state = self.state()
+        while navigator.current_stage(state) != "skill-assess":
+            stage = navigator.current_stage(state)
+            extra = {}
+            if stage == "plan":
+                extra["work_items"] = [{"id": "W1", "title": "Synthetic local-skill item"}]
+            state = self._produce(state, stage, **extra)
+
+        action = self._action(state)
+        before = copy.deepcopy(state)
+        legacy_values = {
+            "reusable_skill": {"entrypoint": "skills/old/SKILL.md"},
+            "documentation": ["docs/old-skill.md"],
+            "material": ["legacy payload"],
+            "learnings": "legacy outcome field",
+        }
+        for field, value in legacy_values.items():
+            with self.subTest(field=field):
+                with self.assertRaisesRegex(navigator.NavigatorError, "unsupported fields"):
+                    navigator.apply(state, action["id"], result(**{field: value}))
+                self.assertEqual(state, before)
+                self.assertEqual(navigator.current_stage(state), "skill-assess")
+                self.assertEqual(self._action(state), action)
+
     def test_incomplete_child_and_blocked_producer_do_not_advance_parent(self) -> None:
         state = self.state()
         action = self._action(state)

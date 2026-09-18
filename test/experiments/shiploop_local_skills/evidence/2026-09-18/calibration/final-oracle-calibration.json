@@ -1,0 +1,202 @@
+{
+  "known-good": {
+    "expected_passed": true,
+    "passed": true,
+    "checks": [
+      {
+        "name": "exact decision.json",
+        "passed": true
+      },
+      {
+        "name": "skill inventory captured",
+        "passed": true
+      },
+      {
+        "name": "existing local skill entrypoints indexed",
+        "passed": true
+      },
+      {
+        "name": "existing local skill links resolve inside repo",
+        "passed": true
+      }
+    ]
+  },
+  "missing-output": {
+    "expected_passed": false,
+    "passed": false,
+    "checks": [
+      {
+        "name": "exact decision.json",
+        "passed": false
+      },
+      {
+        "name": "skill inventory captured",
+        "passed": true
+      },
+      {
+        "name": "existing local skill entrypoints indexed",
+        "passed": true
+      },
+      {
+        "name": "existing local skill links resolve inside repo",
+        "passed": true
+      }
+    ]
+  },
+  "wrong-latest": {
+    "expected_passed": false,
+    "passed": false,
+    "checks": [
+      {
+        "name": "exact decision.json",
+        "passed": false
+      },
+      {
+        "name": "skill inventory captured",
+        "passed": true
+      },
+      {
+        "name": "existing local skill entrypoints indexed",
+        "passed": true
+      },
+      {
+        "name": "existing local skill links resolve inside repo",
+        "passed": true
+      }
+    ]
+  },
+  "wrong-identity": {
+    "expected_passed": false,
+    "passed": false,
+    "checks": [
+      {
+        "name": "exact decision.json",
+        "passed": false
+      },
+      {
+        "name": "skill inventory captured",
+        "passed": true
+      },
+      {
+        "name": "existing local skill entrypoints indexed",
+        "passed": true
+      },
+      {
+        "name": "existing local skill links resolve inside repo",
+        "passed": true
+      }
+    ]
+  },
+  "changed-contract": {
+    "expected_passed": false,
+    "passed": false,
+    "checks": [
+      {
+        "name": "exact decision.json",
+        "passed": true
+      },
+      {
+        "name": "skill inventory captured",
+        "passed": true
+      },
+      {
+        "name": "existing local skill entrypoints indexed",
+        "passed": true
+      },
+      {
+        "name": "existing local skill links resolve inside repo",
+        "passed": true
+      },
+      {
+        "name": "v1 contract preserved",
+        "passed": false
+      },
+      {
+        "name": "v1 compatibility output",
+        "passed": true
+      }
+    ]
+  },
+  "noop-mutation": {
+    "expected_passed": false,
+    "passed": false,
+    "checks": [
+      {
+        "name": "exact decision.json",
+        "passed": true
+      },
+      {
+        "name": "skill inventory captured",
+        "passed": true
+      },
+      {
+        "name": "existing local skill entrypoints indexed",
+        "passed": true
+      },
+      {
+        "name": "existing local skill links resolve inside repo",
+        "passed": true
+      },
+      {
+        "name": "local skill packages unchanged",
+        "passed": false
+      },
+      {
+        "name": "README prose typo corrected",
+        "passed": true
+      }
+    ]
+  },
+  "broken-link": {
+    "expected_passed": false,
+    "passed": false,
+    "checks": [
+      {
+        "name": "exact decision.json",
+        "passed": true
+      },
+      {
+        "name": "skill inventory captured",
+        "passed": true
+      },
+      {
+        "name": "existing local skill entrypoints indexed",
+        "passed": true
+      },
+      {
+        "name": "existing local skill links resolve inside repo",
+        "passed": false
+      }
+    ]
+  },
+  "incident-corrected": {
+    "expected_passed": true,
+    "passed": true,
+    "checks": [
+      {
+        "name": "exact decision.json",
+        "passed": true
+      },
+      {
+        "name": "skill inventory captured",
+        "passed": true
+      },
+      {
+        "name": "existing local skill entrypoints indexed",
+        "passed": true
+      },
+      {
+        "name": "existing local skill links resolve inside repo",
+        "passed": true
+      },
+      {
+        "name": "v1 contract preserved",
+        "passed": true
+      },
+      {
+        "name": "v1 compatibility output",
+        "passed": true
+      }
+    ]
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "contracts": {
+    "docs/release-contract-v2.md": "e26665a58fe2cb7681d1698dbb66ff8cbecd9a7892721c7eedc00c1570afb148",
+    "specs/release-contract.md": "d72c485f51ecc58857d81c26cf3e34928286622dc64d53eed67f2953840327a7"
+  },
+  "fixture": "/Users/dadleet/tmp/shiploop-local-skills-20260918/b06/fixture",
+  "skills": {
+    "skills/release-evidence-triage": "cb4a5e58eca0e0efd7a8f791d8eb8eab015512dd3205ad0c180b36d53a2d557f"
+  },
+  "source": "/Users/dadleet/tmp/shiploop-local-skills-20260918/b06/fixture"
+}
