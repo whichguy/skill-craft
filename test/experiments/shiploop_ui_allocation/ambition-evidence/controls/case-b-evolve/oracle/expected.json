@@ -1,0 +1,13 @@
+{
+  "case": "case-b-evolve",
+  "producer_blindness": "The producer brief excludes this oracle directory.",
+  "criteria": {
+    "ambitious_interaction": "Defines a concrete rich compact-to-expanded activity experience that preserves the existing note journey and does not fabricate unsupported status detail.",
+    "three_ui_views": "Covers component/state contracts, human and machine interaction/lifecycle state, and preserved or intentional visual-system evolution.",
+    "gap_and_options": "Identifies the current reusable motion/component gap and compares actual DOM/CSS evolution, unverified target-native API, and non-assumed framework/package paths.",
+    "conditional_adoption": "Does not claim View Transitions or a package is available; assigns a target-compatible probe/decision before adoption and retains a safe fallback.",
+    "decision_economics": "States assumption-bound rough effort, user benefit, maintenance/performance/accessibility/target tradeoffs, and no duplicate system/harness plan.",
+    "async_integrity": "Addresses identity, revisions, visible/foreground recovery, state cue truthfulness, stale/error persistence, coalescing, focus, interruption, and reduced motion."
+  },
+  "limits": "This oracle assesses only written plan artifacts and persisted navigator structure. It cannot establish target capability, component behavior, browser evidence, package fit, or deployment."
+}

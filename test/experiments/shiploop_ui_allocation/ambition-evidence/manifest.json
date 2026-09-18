@@ -1,0 +1,594 @@
+{
+  "schema": "ui-ambition-content-copies/v1",
+  "limits": "Historical content copies, not executable/resumable state. Study, implementation and home roots are tokenized; transcript whitespace is retained. Original and published digests differ. Frozen package files are represented by manifests and the exact source digest verification; source is the published 0.15.2 skill. Synthetic predecessors and unrun Improve handoffs do not prove earlier producer/review completion.",
+  "files": [
+    {
+      "path": "controls/README.md",
+      "source": "ambition-followup/README.md",
+      "original_sha256": "cf2eed76b47a322f5d62328fa8543c29914934592aa3d2fbc5a3d68565494690",
+      "published_sha256": "cf2eed76b47a322f5d62328fa8543c29914934592aa3d2fbc5a3d68565494690"
+    },
+    {
+      "path": "controls/SUMMARY.md",
+      "source": "ambition-followup/SUMMARY.md",
+      "original_sha256": "9f39939537a0ddbdc75bb921037c888d6a738221925c32980a2552715dd4a156",
+      "published_sha256": "9f39939537a0ddbdc75bb921037c888d6a738221925c32980a2552715dd4a156"
+    },
+    {
+      "path": "controls/case-a-reuse/evidence/controlled-status-contract.md",
+      "source": "ambition-followup/case-a-reuse/evidence/controlled-status-contract.md",
+      "original_sha256": "0cdf2e773ab89903f41f2b6279503296b9a12022df300d06d8f94ecdad3df5bd",
+      "published_sha256": "0cdf2e773ab89903f41f2b6279503296b9a12022df300d06d8f94ecdad3df5bd"
+    },
+    {
+      "path": "controls/case-a-reuse/evidence/freeze-inputs.raw.json",
+      "source": "ambition-followup/case-a-reuse/evidence/freeze-inputs.raw.json",
+      "original_sha256": "5858bed6cbc9b9d687232e4a1ef8cddd04036160cfb931920ca4102d4229563b",
+      "published_sha256": "3e81260806d6aecb1b92927291e130ed560feae927c760ce57fd5fba783d2da1"
+    },
+    {
+      "path": "controls/case-a-reuse/evidence/freeze_inputs.py",
+      "source": "ambition-followup/case-a-reuse/evidence/freeze_inputs.py",
+      "original_sha256": "fb5f1329dac892a56c92eeaad11e2242d08af16d2709a0252cae0d170ae7e9e1",
+      "published_sha256": "fb5f1329dac892a56c92eeaad11e2242d08af16d2709a0252cae0d170ae7e9e1"
+    },
+    {
+      "path": "controls/case-a-reuse/evidence/frozen-input-manifest.json",
+      "source": "ambition-followup/case-a-reuse/evidence/frozen-input-manifest.json",
+      "original_sha256": "2b75e5e81d8fccb6943f1b940e94be1e7c922ae3423c9ad6a58264e7a24fa16b",
+      "published_sha256": "56cd30173b4cec8d0acc81650059b481acbd81a81221313ab830e16f44ed05a4"
+    },
+    {
+      "path": "controls/case-a-reuse/evidence/initial-packet.txt",
+      "source": "ambition-followup/case-a-reuse/evidence/initial-packet.txt",
+      "original_sha256": "aa57e0d04026bf5953a564ec21b33fc0c2640d2c8898b59b7eb2f433f733f634",
+      "published_sha256": "256b51ffa1eeb9b79599ebebc1f2525196deaf844b3fb3e416f1dd27ab331955"
+    },
+    {
+      "path": "controls/case-a-reuse/evidence/input-verification-final.raw.json",
+      "source": "ambition-followup/case-a-reuse/evidence/input-verification-final.raw.json",
+      "original_sha256": "3720f4f1a8e76db6010ed7e861475c755b7756803589c33f24e521d0d8aec3e2",
+      "published_sha256": "2483408ba82b1cfdfb284d12d3a96ac3b831406e48b5c792eb6756aa6bcdbbbc"
+    },
+    {
+      "path": "controls/case-a-reuse/evidence/observed-state.json",
+      "source": "ambition-followup/case-a-reuse/evidence/observed-state.json",
+      "original_sha256": "9516e2880e6ec5e6c841a5f5249c7b175a7492b601bb2ef6d43fa3081e05b7b3",
+      "published_sha256": "b2bb3ef46657ecfab23c1253c24ae67a29bcfa1ef9bdf5a87b23d4e1b83e3507"
+    },
+    {
+      "path": "controls/case-a-reuse/evidence/post-producer-packet.txt",
+      "source": "ambition-followup/case-a-reuse/evidence/post-producer-packet.txt",
+      "original_sha256": "88da9b0165d2a9c091d83e31f9fff67d3e93ce4c0ec4d4d1bd888ef57aa32aa3",
+      "published_sha256": "a60b28c4ac45c635b485ac69ed047925cfdb1bb773231d94c469883536329cdb"
+    },
+    {
+      "path": "controls/case-a-reuse/evidence/producer-boundary.md",
+      "source": "ambition-followup/case-a-reuse/evidence/producer-boundary.md",
+      "original_sha256": "4879d057f55e314fca5841e7233d1268c016722c3c41db91d57d151508dbd0bc",
+      "published_sha256": "4879d057f55e314fca5841e7233d1268c016722c3c41db91d57d151508dbd0bc"
+    },
+    {
+      "path": "controls/case-a-reuse/evidence/request.md",
+      "source": "ambition-followup/case-a-reuse/evidence/request.md",
+      "original_sha256": "ecf2ff663785d60a9678c7c84c003264110778056c2e245007b7ccbbd65b01ec",
+      "published_sha256": "ecf2ff663785d60a9678c7c84c003264110778056c2e245007b7ccbbd65b01ec"
+    },
+    {
+      "path": "controls/case-a-reuse/evidence/seed-claims.md",
+      "source": "ambition-followup/case-a-reuse/evidence/seed-claims.md",
+      "original_sha256": "ec3eb12ba6dc63859e4c6fa991dafaac7a0bad90a2ba5c406962b3777edfb266",
+      "published_sha256": "ec3eb12ba6dc63859e4c6fa991dafaac7a0bad90a2ba5c406962b3777edfb266"
+    },
+    {
+      "path": "controls/case-a-reuse/evidence/seed-state-first-attempt.raw.txt",
+      "source": "ambition-followup/case-a-reuse/evidence/seed-state-first-attempt.raw.txt",
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "published_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "controls/case-a-reuse/evidence/seed-state.raw.json",
+      "source": "ambition-followup/case-a-reuse/evidence/seed-state.raw.json",
+      "original_sha256": "797aff6c49cb279b141147089ff16b926f7eb11a41321c948fd6348cd2810d35",
+      "published_sha256": "797aff6c49cb279b141147089ff16b926f7eb11a41321c948fd6348cd2810d35"
+    },
+    {
+      "path": "controls/case-a-reuse/evidence/seed_state.py",
+      "source": "ambition-followup/case-a-reuse/evidence/seed_state.py",
+      "original_sha256": "49ccc57e8fe706735a4ff997f8d0b9d64b224fbe45c38baf1297c6e4e410d187",
+      "published_sha256": "49ccc57e8fe706735a4ff997f8d0b9d64b224fbe45c38baf1297c6e4e410d187"
+    },
+    {
+      "path": "controls/case-a-reuse/evidence/tooling-facts.md",
+      "source": "ambition-followup/case-a-reuse/evidence/tooling-facts.md",
+      "original_sha256": "75e4ffe862fe206f24690dd103699dbc9deef3624db2daf109c0aa43109bf908",
+      "published_sha256": "e65839f956371b6bbdb1c1371fda6088b6b30b64d18adf15f3b3357c94ab095f"
+    },
+    {
+      "path": "controls/case-a-reuse/evidence/w1-node-check.txt",
+      "source": "ambition-followup/case-a-reuse/evidence/w1-node-check.txt",
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "published_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "controls/case-a-reuse/evidence/w1-node-test.txt",
+      "source": "ambition-followup/case-a-reuse/evidence/w1-node-test.txt",
+      "original_sha256": "9025512a609c45ab1b4f9c75744ae75f809b92dc7faa3081b3455ce44d4a5de3",
+      "published_sha256": "9025512a609c45ab1b4f9c75744ae75f809b92dc7faa3081b3455ce44d4a5de3"
+    },
+    {
+      "path": "controls/case-a-reuse/evidence/w1-probe-environment.txt",
+      "source": "ambition-followup/case-a-reuse/evidence/w1-probe-environment.txt",
+      "original_sha256": "1b2ffc6e40b4a25d85a3b7a8001ff54259b1a9fe461db609fe1c8e04ccb3668d",
+      "published_sha256": "1b2ffc6e40b4a25d85a3b7a8001ff54259b1a9fe461db609fe1c8e04ccb3668d"
+    },
+    {
+      "path": "controls/case-a-reuse/evidence/w1-step-plan.md",
+      "source": "ambition-followup/case-a-reuse/evidence/w1-step-plan.md",
+      "original_sha256": "e74ce53e6a324432a3e8cde91e9209a72da96f6d3230166636f79ea24e002c17",
+      "published_sha256": "e4f9de2e1ad3c5ee1ac74c56571a7de06eff6a4173f75e758053dc5964caa63e"
+    },
+    {
+      "path": "controls/case-a-reuse/oracle/assessment.md",
+      "source": "ambition-followup/case-a-reuse/oracle/assessment.md",
+      "original_sha256": "c688c17cf53e3988a6927fcd5ec22af6c29a3a59a4f983f1fe2a500fac953b3d",
+      "published_sha256": "c688c17cf53e3988a6927fcd5ec22af6c29a3a59a4f983f1fe2a500fac953b3d"
+    },
+    {
+      "path": "controls/case-a-reuse/oracle/expected.json",
+      "source": "ambition-followup/case-a-reuse/oracle/expected.json",
+      "original_sha256": "7a9034ff1d44f9de4a01447ab16c209e026942bffa2ee04389c334d49427d651",
+      "published_sha256": "7a9034ff1d44f9de4a01447ab16c209e026942bffa2ee04389c334d49427d651"
+    },
+    {
+      "path": "controls/case-a-reuse/product/README.md",
+      "source": "ambition-followup/case-a-reuse/product/README.md",
+      "original_sha256": "4faae9b31e39d5da0967ce4e5482f96a5277f8c9bb5769a58dc7d9b5f602b604",
+      "published_sha256": "4faae9b31e39d5da0967ce4e5482f96a5277f8c9bb5769a58dc7d9b5f602b604"
+    },
+    {
+      "path": "controls/case-a-reuse/product/SHIPLOOP.md",
+      "source": "ambition-followup/case-a-reuse/product/SHIPLOOP.md",
+      "original_sha256": "b570909d3f879ab80462a5fff2c313da77bc02f7f988654e31d6e8932e8918bf",
+      "published_sha256": "b570909d3f879ab80462a5fff2c313da77bc02f7f988654e31d6e8932e8918bf"
+    },
+    {
+      "path": "controls/case-a-reuse/product/app.js",
+      "source": "ambition-followup/case-a-reuse/product/app.js",
+      "original_sha256": "729f0db397fe3b0eaae3fadff9de10facd82b071fb7bbe00a95dcb9d9b5f8ac2",
+      "published_sha256": "729f0db397fe3b0eaae3fadff9de10facd82b071fb7bbe00a95dcb9d9b5f8ac2"
+    },
+    {
+      "path": "controls/case-a-reuse/product/docs/api.md",
+      "source": "ambition-followup/case-a-reuse/product/docs/api.md",
+      "original_sha256": "862db25f3187bdf02a2d1da27bd041faca855e3ff4b3a235e153cda67dd37a27",
+      "published_sha256": "862db25f3187bdf02a2d1da27bd041faca855e3ff4b3a235e153cda67dd37a27"
+    },
+    {
+      "path": "controls/case-a-reuse/product/docs/design.md",
+      "source": "ambition-followup/case-a-reuse/product/docs/design.md",
+      "original_sha256": "f3e6dce3dcab93d5d0b7fd294d9ab908c116e5416d7456b568ba01025e9699f9",
+      "published_sha256": "f3e6dce3dcab93d5d0b7fd294d9ab908c116e5416d7456b568ba01025e9699f9"
+    },
+    {
+      "path": "controls/case-a-reuse/product/docs/platform.md",
+      "source": "ambition-followup/case-a-reuse/product/docs/platform.md",
+      "original_sha256": "b8dfe6ff0a442cfe5a13947afe8bdc7d5bf4eb77aa66cd6d39fff1b0adba8007",
+      "published_sha256": "b8dfe6ff0a442cfe5a13947afe8bdc7d5bf4eb77aa66cd6d39fff1b0adba8007"
+    },
+    {
+      "path": "controls/case-a-reuse/product/host-observation.json",
+      "source": "ambition-followup/case-a-reuse/product/host-observation.json",
+      "original_sha256": "40a3900ae08cf109734f411f62c8a89dbd5fae84c5f04d127ff000ea3038c878",
+      "published_sha256": "40a3900ae08cf109734f411f62c8a89dbd5fae84c5f04d127ff000ea3038c878"
+    },
+    {
+      "path": "controls/case-a-reuse/product/index.html",
+      "source": "ambition-followup/case-a-reuse/product/index.html",
+      "original_sha256": "f52423358a46b6210774533586602fb75267deb631129ba9bf96293e68f88213",
+      "published_sha256": "f52423358a46b6210774533586602fb75267deb631129ba9bf96293e68f88213"
+    },
+    {
+      "path": "controls/case-a-reuse/product/scripts/probe_environment.py",
+      "source": "ambition-followup/case-a-reuse/product/scripts/probe_environment.py",
+      "original_sha256": "c54f52e5bd7f8a5801dee4f336ed2fe4989ffdfd035c30340835d0883ff41ec4",
+      "published_sha256": "c54f52e5bd7f8a5801dee4f336ed2fe4989ffdfd035c30340835d0883ff41ec4"
+    },
+    {
+      "path": "controls/case-a-reuse/product/styles.css",
+      "source": "ambition-followup/case-a-reuse/product/styles.css",
+      "original_sha256": "cd3106112e5ddff749af99d9e3de730274f7786ccde2a2c4e75c172753b646bf",
+      "published_sha256": "cd3106112e5ddff749af99d9e3de730274f7786ccde2a2c4e75c172753b646bf"
+    },
+    {
+      "path": "controls/case-a-reuse/run/inbox/nav-95757de496574e288945d6d2c991ffd8.md",
+      "source": "ambition-followup/case-a-reuse/run/inbox/nav-95757de496574e288945d6d2c991ffd8.md",
+      "original_sha256": "6e5112c2d975a04e6670eefc6be7c46ac6a98c33ee8729d55464d2de6d824239",
+      "published_sha256": "66ce04879cab1e50ddfa5abee63d0a461a90c7f333990510b2821e0e5836ed8e"
+    },
+    {
+      "path": "controls/case-a-reuse/run/results/nav-3a9c53f9ac9244e2b54b316549130956.md",
+      "source": "ambition-followup/case-a-reuse/run/results/nav-3a9c53f9ac9244e2b54b316549130956.md",
+      "original_sha256": "d401a9b9e5ff51917fec2bbbf29ff325006195c85ccf35536bceb0aed7ddd457",
+      "published_sha256": "d4caf853afdc5031f54fb68b0b11fb3da8b21cb25f9f1004ebda48f4d875bcfd"
+    },
+    {
+      "path": "controls/case-a-reuse/run/state.md",
+      "source": "ambition-followup/case-a-reuse/run/state.md",
+      "original_sha256": "5a1509a141d0e1f8232cc0f81671745ce853a9e6756363aadc9a9d4f51a51f50",
+      "published_sha256": "736f6ac13afcb2a1fbf2b29600fb2c16b76fec4c4568cc022d63ada87c10ce3b"
+    },
+    {
+      "path": "controls/case-b-evolve/evidence/controlled-status-contract.md",
+      "source": "ambition-followup/case-b-evolve/evidence/controlled-status-contract.md",
+      "original_sha256": "1442d6b2f0ffb5a8802ecab12fb0183cb9ddc725d001acff65b994eacdfd0811",
+      "published_sha256": "1442d6b2f0ffb5a8802ecab12fb0183cb9ddc725d001acff65b994eacdfd0811"
+    },
+    {
+      "path": "controls/case-b-evolve/evidence/freeze-inputs.raw.json",
+      "source": "ambition-followup/case-b-evolve/evidence/freeze-inputs.raw.json",
+      "original_sha256": "ff59261ad1afb19f601b83ce575491d70e22d0d93a76dfcee86343e133745c2b",
+      "published_sha256": "77ab68764be34f479131a98cfec345c8243450f872c9f43bc8efdc9b78305270"
+    },
+    {
+      "path": "controls/case-b-evolve/evidence/freeze_inputs.py",
+      "source": "ambition-followup/case-b-evolve/evidence/freeze_inputs.py",
+      "original_sha256": "b9050498361bdeec1ad35df66a0e718f6aebab7307eddeeab96e2ab8813b583b",
+      "published_sha256": "b9050498361bdeec1ad35df66a0e718f6aebab7307eddeeab96e2ab8813b583b"
+    },
+    {
+      "path": "controls/case-b-evolve/evidence/frozen-input-manifest.json",
+      "source": "ambition-followup/case-b-evolve/evidence/frozen-input-manifest.json",
+      "original_sha256": "1fca75894a4b46b2ac4b0994fec9b6ae0e23b20fe5ae749f4565c1804b3848c8",
+      "published_sha256": "6558f1ab61a922bbf6b38e7590340616dcef749d9b04449bf8b0ab73d6d8da4d"
+    },
+    {
+      "path": "controls/case-b-evolve/evidence/initial-packet.txt",
+      "source": "ambition-followup/case-b-evolve/evidence/initial-packet.txt",
+      "original_sha256": "b4f26ee3f24d0f276a8b92b1e643a2adb248b1f5fe0f774504c23f9707baf0af",
+      "published_sha256": "00eee64727eba1deaf1286973223e391722e29790e5521556a16a8f51400b5ae"
+    },
+    {
+      "path": "controls/case-b-evolve/evidence/input-verification-final.raw.json",
+      "source": "ambition-followup/case-b-evolve/evidence/input-verification-final.raw.json",
+      "original_sha256": "f41bb44ca03f8af4f59905550882cc8fafbb7a26dff1db9c8b9fae206aab6318",
+      "published_sha256": "e645c7db8aaf16f881315e5ce09cc8f731e8bdec48d92629d997c51f2e46b1e9"
+    },
+    {
+      "path": "controls/case-b-evolve/evidence/observed-state.json",
+      "source": "ambition-followup/case-b-evolve/evidence/observed-state.json",
+      "original_sha256": "51861a8bc4f1f8d1608d1def64e2e6110d1aee866a8c0b8602c086a6c0b53efb",
+      "published_sha256": "4a8fa53c707fd5efd88b90d8d6c5db06e77e8f75fa6d037a875a9716eab8eb2e"
+    },
+    {
+      "path": "controls/case-b-evolve/evidence/post-producer-packet.txt",
+      "source": "ambition-followup/case-b-evolve/evidence/post-producer-packet.txt",
+      "original_sha256": "be5c880ce23b9c117d5b9df84c15ac2270b75af47c4035dbc090eb9c2bbb6903",
+      "published_sha256": "9d714817aed1642f19ac890f8c241476e4d2e83dce22ce7a04765edd3d632c5e"
+    },
+    {
+      "path": "controls/case-b-evolve/evidence/producer-boundary.md",
+      "source": "ambition-followup/case-b-evolve/evidence/producer-boundary.md",
+      "original_sha256": "e8cccd867d352e6e6ae762230801db0d625eecdf101cabd6fc7280c9d70a038c",
+      "published_sha256": "e8cccd867d352e6e6ae762230801db0d625eecdf101cabd6fc7280c9d70a038c"
+    },
+    {
+      "path": "controls/case-b-evolve/evidence/request.md",
+      "source": "ambition-followup/case-b-evolve/evidence/request.md",
+      "original_sha256": "f661591e3d4576269579001188d26c6620774773128dee566e475e84b19d15e0",
+      "published_sha256": "f661591e3d4576269579001188d26c6620774773128dee566e475e84b19d15e0"
+    },
+    {
+      "path": "controls/case-b-evolve/evidence/seed-claims.md",
+      "source": "ambition-followup/case-b-evolve/evidence/seed-claims.md",
+      "original_sha256": "4fb7a2206699ffb3cf1f54cf50323b3c54150f90337e3afda5895262052e9bc4",
+      "published_sha256": "4fb7a2206699ffb3cf1f54cf50323b3c54150f90337e3afda5895262052e9bc4"
+    },
+    {
+      "path": "controls/case-b-evolve/evidence/seed-state-first-attempt.raw.txt",
+      "source": "ambition-followup/case-b-evolve/evidence/seed-state-first-attempt.raw.txt",
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "published_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "controls/case-b-evolve/evidence/seed-state.raw.json",
+      "source": "ambition-followup/case-b-evolve/evidence/seed-state.raw.json",
+      "original_sha256": "43056f7b21402a082d4bdc6638cb0887ba67dba34034559169f112ae8e82814c",
+      "published_sha256": "43056f7b21402a082d4bdc6638cb0887ba67dba34034559169f112ae8e82814c"
+    },
+    {
+      "path": "controls/case-b-evolve/evidence/seed_state.py",
+      "source": "ambition-followup/case-b-evolve/evidence/seed_state.py",
+      "original_sha256": "9d1cff840afaacd711176aebed294872e899c6e9c114b3ccc07039394291ce1c",
+      "published_sha256": "9d1cff840afaacd711176aebed294872e899c6e9c114b3ccc07039394291ce1c"
+    },
+    {
+      "path": "controls/case-b-evolve/evidence/tooling-facts.md",
+      "source": "ambition-followup/case-b-evolve/evidence/tooling-facts.md",
+      "original_sha256": "7885bde6057784866b396fc0b44bbe3f5fd554de6bde6f31aae3f306d3d6fa79",
+      "published_sha256": "b1a90f3f9bcbedb9910a79c0c070789d7910b19aaf7acdded1fa7fdca802095d"
+    },
+    {
+      "path": "controls/case-b-evolve/evidence/w1-node-check.raw.txt",
+      "source": "ambition-followup/case-b-evolve/evidence/w1-node-check.raw.txt",
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "published_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "controls/case-b-evolve/evidence/w1-node-test.raw.txt",
+      "source": "ambition-followup/case-b-evolve/evidence/w1-node-test.raw.txt",
+      "original_sha256": "7d4fffe73f8d42cedbc44b9ef60643f8be2ec6b8b1971d60c550e59a3f088790",
+      "published_sha256": "7d4fffe73f8d42cedbc44b9ef60643f8be2ec6b8b1971d60c550e59a3f088790"
+    },
+    {
+      "path": "controls/case-b-evolve/evidence/w1-probe-environment.raw.json",
+      "source": "ambition-followup/case-b-evolve/evidence/w1-probe-environment.raw.json",
+      "original_sha256": "1b2ffc6e40b4a25d85a3b7a8001ff54259b1a9fe461db609fe1c8e04ccb3668d",
+      "published_sha256": "1b2ffc6e40b4a25d85a3b7a8001ff54259b1a9fe461db609fe1c8e04ccb3668d"
+    },
+    {
+      "path": "controls/case-b-evolve/evidence/w1-step-plan.md",
+      "source": "ambition-followup/case-b-evolve/evidence/w1-step-plan.md",
+      "original_sha256": "d999a0de0f2b855b2d97717bc55846d587977fb7d8577fca71821fc48e3053ea",
+      "published_sha256": "c0fd7cb73eb54eff635f6e7db048f544065ac3eb208dafe724489ee22c35eb88"
+    },
+    {
+      "path": "controls/case-b-evolve/oracle/assessment.md",
+      "source": "ambition-followup/case-b-evolve/oracle/assessment.md",
+      "original_sha256": "3a5390b64236d2feb1da27493bb01b764fd7f8c6156f0b2bc046b4e8fb28b2af",
+      "published_sha256": "3a5390b64236d2feb1da27493bb01b764fd7f8c6156f0b2bc046b4e8fb28b2af"
+    },
+    {
+      "path": "controls/case-b-evolve/oracle/expected.json",
+      "source": "ambition-followup/case-b-evolve/oracle/expected.json",
+      "original_sha256": "f7cc736d91f0f96c77cc442a4cedb719726e3b2fb5af7e4a71f1a3187d0381b6",
+      "published_sha256": "f7cc736d91f0f96c77cc442a4cedb719726e3b2fb5af7e4a71f1a3187d0381b6"
+    },
+    {
+      "path": "controls/case-b-evolve/product/README.md",
+      "source": "ambition-followup/case-b-evolve/product/README.md",
+      "original_sha256": "4faae9b31e39d5da0967ce4e5482f96a5277f8c9bb5769a58dc7d9b5f602b604",
+      "published_sha256": "4faae9b31e39d5da0967ce4e5482f96a5277f8c9bb5769a58dc7d9b5f602b604"
+    },
+    {
+      "path": "controls/case-b-evolve/product/SHIPLOOP.md",
+      "source": "ambition-followup/case-b-evolve/product/SHIPLOOP.md",
+      "original_sha256": "b570909d3f879ab80462a5fff2c313da77bc02f7f988654e31d6e8932e8918bf",
+      "published_sha256": "b570909d3f879ab80462a5fff2c313da77bc02f7f988654e31d6e8932e8918bf"
+    },
+    {
+      "path": "controls/case-b-evolve/product/app.js",
+      "source": "ambition-followup/case-b-evolve/product/app.js",
+      "original_sha256": "729f0db397fe3b0eaae3fadff9de10facd82b071fb7bbe00a95dcb9d9b5f8ac2",
+      "published_sha256": "729f0db397fe3b0eaae3fadff9de10facd82b071fb7bbe00a95dcb9d9b5f8ac2"
+    },
+    {
+      "path": "controls/case-b-evolve/product/docs/api.md",
+      "source": "ambition-followup/case-b-evolve/product/docs/api.md",
+      "original_sha256": "862db25f3187bdf02a2d1da27bd041faca855e3ff4b3a235e153cda67dd37a27",
+      "published_sha256": "862db25f3187bdf02a2d1da27bd041faca855e3ff4b3a235e153cda67dd37a27"
+    },
+    {
+      "path": "controls/case-b-evolve/product/docs/design.md",
+      "source": "ambition-followup/case-b-evolve/product/docs/design.md",
+      "original_sha256": "f3e6dce3dcab93d5d0b7fd294d9ab908c116e5416d7456b568ba01025e9699f9",
+      "published_sha256": "f3e6dce3dcab93d5d0b7fd294d9ab908c116e5416d7456b568ba01025e9699f9"
+    },
+    {
+      "path": "controls/case-b-evolve/product/docs/platform.md",
+      "source": "ambition-followup/case-b-evolve/product/docs/platform.md",
+      "original_sha256": "b8dfe6ff0a442cfe5a13947afe8bdc7d5bf4eb77aa66cd6d39fff1b0adba8007",
+      "published_sha256": "b8dfe6ff0a442cfe5a13947afe8bdc7d5bf4eb77aa66cd6d39fff1b0adba8007"
+    },
+    {
+      "path": "controls/case-b-evolve/product/host-observation.json",
+      "source": "ambition-followup/case-b-evolve/product/host-observation.json",
+      "original_sha256": "40a3900ae08cf109734f411f62c8a89dbd5fae84c5f04d127ff000ea3038c878",
+      "published_sha256": "40a3900ae08cf109734f411f62c8a89dbd5fae84c5f04d127ff000ea3038c878"
+    },
+    {
+      "path": "controls/case-b-evolve/product/index.html",
+      "source": "ambition-followup/case-b-evolve/product/index.html",
+      "original_sha256": "f52423358a46b6210774533586602fb75267deb631129ba9bf96293e68f88213",
+      "published_sha256": "f52423358a46b6210774533586602fb75267deb631129ba9bf96293e68f88213"
+    },
+    {
+      "path": "controls/case-b-evolve/product/scripts/probe_environment.py",
+      "source": "ambition-followup/case-b-evolve/product/scripts/probe_environment.py",
+      "original_sha256": "c54f52e5bd7f8a5801dee4f336ed2fe4989ffdfd035c30340835d0883ff41ec4",
+      "published_sha256": "c54f52e5bd7f8a5801dee4f336ed2fe4989ffdfd035c30340835d0883ff41ec4"
+    },
+    {
+      "path": "controls/case-b-evolve/product/styles.css",
+      "source": "ambition-followup/case-b-evolve/product/styles.css",
+      "original_sha256": "cd3106112e5ddff749af99d9e3de730274f7786ccde2a2c4e75c172753b646bf",
+      "published_sha256": "cd3106112e5ddff749af99d9e3de730274f7786ccde2a2c4e75c172753b646bf"
+    },
+    {
+      "path": "controls/case-b-evolve/run/inbox/nav-6cc2b4b520224a8ca7c0999858ceba5a.md",
+      "source": "ambition-followup/case-b-evolve/run/inbox/nav-6cc2b4b520224a8ca7c0999858ceba5a.md",
+      "original_sha256": "9091bd958d4f798ce61279517c56a73c5670e719211263a31f1c98f9d7050461",
+      "published_sha256": "630faa410518cbb71f591cd3d6c15d04c81eb3875db9755049d3c83c5d35e055"
+    },
+    {
+      "path": "controls/case-b-evolve/run/results/nav-32590dc3795741cd918dac1f3298ff17.md",
+      "source": "ambition-followup/case-b-evolve/run/results/nav-32590dc3795741cd918dac1f3298ff17.md",
+      "original_sha256": "469347a16c3fed7a7052eb9c4ffe711bd2dd831090093b41d611b4df9075eeda",
+      "published_sha256": "7e39c9d8b6d422241721326b8840125966f0cdcf7a1a62118efdb89c850a8cd0"
+    },
+    {
+      "path": "controls/case-b-evolve/run/state.md",
+      "source": "ambition-followup/case-b-evolve/run/state.md",
+      "original_sha256": "4221741a006632ed0296d08840be0c026edba8739de2df69bf13df4f362b1404",
+      "published_sha256": "3388b5a0b7ff36e53f434dec2db9a081dc13c26a7f3acb7c2d2686f6131e481b"
+    },
+    {
+      "path": "controls/package-content-final.sha256",
+      "source": "ambition-followup/package-content-final.sha256",
+      "original_sha256": "c765de846defc1d9b14261062d3471f8cc275179f7c232223fda57ded8486d55",
+      "published_sha256": "de84ebdeec7b96c2e5ad11f713abd1e1f163630de02370f26f5edf802f759207"
+    },
+    {
+      "path": "controls/package-content.sha256",
+      "source": "ambition-followup/package-content.sha256",
+      "original_sha256": "c765de846defc1d9b14261062d3471f8cc275179f7c232223fda57ded8486d55",
+      "published_sha256": "de84ebdeec7b96c2e5ad11f713abd1e1f163630de02370f26f5edf802f759207"
+    },
+    {
+      "path": "implementation-review/00-contract.json",
+      "source": "ambition-implementation-improve/00-contract.json",
+      "original_sha256": "ff5fcc10d8f2cf4bc7c4ebd16d904949ab58c46fa15a8f2e065531b904e22a0c",
+      "published_sha256": "7f26e55d18cceeace161684450cddefd3ff47c5c4df46d9449304edfe7e08209"
+    },
+    {
+      "path": "implementation-review/00-contract.pretty.json",
+      "source": "ambition-implementation-improve/00-contract.pretty.json",
+      "original_sha256": "2851283c13a2c8ac34011a2a2334e85f4774169a7642e2aeda3a050e8b5f5cd5",
+      "published_sha256": "b3804047b438ef7596bb2765710eeda3ca7d3e514d53abf1bea2e02eddfc1ee0"
+    },
+    {
+      "path": "implementation-review/01-start.pretty.json",
+      "source": "ambition-implementation-improve/01-start.pretty.json",
+      "original_sha256": "8d31e6a68d48d81308bd9eb501799850853a21888917637565a1a6f966394048",
+      "published_sha256": "51907576600775a5e845cb3a399ec4df0defa20ae578f347e5cfe6c0792d7207"
+    },
+    {
+      "path": "implementation-review/01-start.stderr.txt",
+      "source": "ambition-implementation-improve/01-start.stderr.txt",
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "published_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "implementation-review/01-start.stdout.raw.json",
+      "source": "ambition-implementation-improve/01-start.stdout.raw.json",
+      "original_sha256": "32d272237aa2fb2c2ff89fa7d29861e1213fef51f14058f98bd70a65cfbc512c",
+      "published_sha256": "a1f9a854b97ab146c42fe995c26dea7580055aa92b85e7b92d309e5389a3758a"
+    },
+    {
+      "path": "implementation-review/02-action1-history.txt",
+      "source": "ambition-implementation-improve/02-action1-history.txt",
+      "original_sha256": "2dfd5d5e6e00864441ba6e743b033d335870ebd0c8fda414ff429e8d996d9013",
+      "published_sha256": "2dfd5d5e6e00864441ba6e743b033d335870ebd0c8fda414ff429e8d996d9013"
+    },
+    {
+      "path": "implementation-review/03-action1-link-validation.md",
+      "source": "ambition-implementation-improve/03-action1-link-validation.md",
+      "original_sha256": "a7a8ab208966f0460f5f1e7e1d97cf570fab650c71439378c3a4f24d0661a0e1",
+      "published_sha256": "a7a8ab208966f0460f5f1e7e1d97cf570fab650c71439378c3a4f24d0661a0e1"
+    },
+    {
+      "path": "implementation-review/04-action1-guidance.stderr.txt",
+      "source": "ambition-implementation-improve/04-action1-guidance.stderr.txt",
+      "original_sha256": "3b8957cdf9c1398fd84d265663923a5c8243f1819b10876e6487da862e5bf99e",
+      "published_sha256": "3b8957cdf9c1398fd84d265663923a5c8243f1819b10876e6487da862e5bf99e"
+    },
+    {
+      "path": "implementation-review/04-action1-guidance.stdout.txt",
+      "source": "ambition-implementation-improve/04-action1-guidance.stdout.txt",
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "published_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "implementation-review/05-action1-plugin-parity.stderr.txt",
+      "source": "ambition-implementation-improve/05-action1-plugin-parity.stderr.txt",
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "published_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "implementation-review/05-action1-plugin-parity.stdout.txt",
+      "source": "ambition-implementation-improve/05-action1-plugin-parity.stdout.txt",
+      "original_sha256": "70efbadbd75138441e410400701a167bf357aad1ed45ce50872e9e17f9fffc22",
+      "published_sha256": "70efbadbd75138441e410400701a167bf357aad1ed45ce50872e9e17f9fffc22"
+    },
+    {
+      "path": "implementation-review/06-action1-review.md",
+      "source": "ambition-implementation-improve/06-action1-review.md",
+      "original_sha256": "6de658cd703a038075c1e197ed66f79e65fedb090e1ab15def8ae2119ffa448c",
+      "published_sha256": "6de658cd703a038075c1e197ed66f79e65fedb090e1ab15def8ae2119ffa448c"
+    },
+    {
+      "path": "implementation-review/07-action1-report.json",
+      "source": "ambition-implementation-improve/07-action1-report.json",
+      "original_sha256": "aa31dd3d4742be1bf3e55d05156d29f08bc0efdb58c06d530501fa9ac3d6023f",
+      "published_sha256": "e37ee6d6da06b4f1551526cd787ea8a202fc72c4243b0c849ad5b1174588c524"
+    },
+    {
+      "path": "implementation-review/08-action1-done.pretty.json",
+      "source": "ambition-implementation-improve/08-action1-done.pretty.json",
+      "original_sha256": "171c4fe3eb8ab084ab2a29a79d57c442bba218a44574c56da820b7a19343c25b",
+      "published_sha256": "50ab205e74cf15cbb45fcb6c44fd82f90201da99d382c4b758356fe29673891c"
+    },
+    {
+      "path": "implementation-review/08-action1-done.stderr.txt",
+      "source": "ambition-implementation-improve/08-action1-done.stderr.txt",
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "published_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "implementation-review/08-action1-done.stdout.raw.json",
+      "source": "ambition-implementation-improve/08-action1-done.stdout.raw.json",
+      "original_sha256": "da6744bd70cc5abc322d800fcfb2a6561196bb79e7f7968d63557eac59cceac0",
+      "published_sha256": "5bae36d19ce2804efb8b6b091b55b8cdf829fe43c2c0fa721007bc98782ae730"
+    },
+    {
+      "path": "implementation-review/09-action2-history.txt",
+      "source": "ambition-implementation-improve/09-action2-history.txt",
+      "original_sha256": "e5049aaba356dac6204106341e3e15393e3a829446b682b070bc7bd92d4aa806",
+      "published_sha256": "e5049aaba356dac6204106341e3e15393e3a829446b682b070bc7bd92d4aa806"
+    },
+    {
+      "path": "implementation-review/10-action2-review.md",
+      "source": "ambition-implementation-improve/10-action2-review.md",
+      "original_sha256": "aeb7155e141cf45b13da69ea926680594a724c96eaf3b1f423dc7144c86463f7",
+      "published_sha256": "aeb7155e141cf45b13da69ea926680594a724c96eaf3b1f423dc7144c86463f7"
+    },
+    {
+      "path": "implementation-review/11-action2-report.json",
+      "source": "ambition-implementation-improve/11-action2-report.json",
+      "original_sha256": "769f553a752657539014dd0b79c69ab00017127593d2222533e3f97dd81f69e0",
+      "published_sha256": "9d75bb91a86636078d1724d6429cdbe0b0419cac6b94ee2514b666707b5d84ef"
+    },
+    {
+      "path": "implementation-review/12-action2-done.pretty.json",
+      "source": "ambition-implementation-improve/12-action2-done.pretty.json",
+      "original_sha256": "1fea9b2216d83a63ce6d01d1fb898a0ef6f67f760b4a36996c17fad830c3277d",
+      "published_sha256": "1e0bf201e1bd5d9b76395f39b07f988be2514b8a6a2e60d88a45ba80535f7584"
+    },
+    {
+      "path": "implementation-review/12-action2-done.stderr.txt",
+      "source": "ambition-implementation-improve/12-action2-done.stderr.txt",
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "published_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "implementation-review/12-action2-done.stdout.raw.json",
+      "source": "ambition-implementation-improve/12-action2-done.stdout.raw.json",
+      "original_sha256": "bdb1da6852f66a6ea28e4c56347d002bbfd93af55b081332ddca5935a3698771",
+      "published_sha256": "bbb379f686c4b3a9cb4e5b7030bcdca3636ae8bc73bffa922bb89dda7ac4d5a9"
+    },
+    {
+      "path": "implementation-review/13-final-ephemeral-progress.json",
+      "source": "ambition-implementation-improve/13-final-ephemeral-progress.json",
+      "original_sha256": "e0cc92598276a650308a88a2703d4e6da6c3171e8672e7f65154e79b0d3cfd05",
+      "published_sha256": "e0cc92598276a650308a88a2703d4e6da6c3171e8672e7f65154e79b0d3cfd05"
+    },
+    {
+      "path": "implementation-review/14-final-receipt-and-hygiene.md",
+      "source": "ambition-implementation-improve/14-final-receipt-and-hygiene.md",
+      "original_sha256": "830fb6c3d360a65ecafd14ad6f09a707d3af643f808614da4e4ce69392e229d3",
+      "published_sha256": "830fb6c3d360a65ecafd14ad6f09a707d3af643f808614da4e4ce69392e229d3"
+    },
+    {
+      "path": "source-verification.json",
+      "source": "ambition-source-verification.json",
+      "original_sha256": "a631159328cd253b9ffdc3981aaa3210a7f441df55b91f7992b5fb2e3a75031d",
+      "published_sha256": "a631159328cd253b9ffdc3981aaa3210a7f441df55b91f7992b5fb2e3a75031d"
+    },
+    {
+      "path": "independent-review.md",
+      "source": "ambition-independent-review.md",
+      "original_sha256": "c4b93a7228c846d6eb0713bdb009662fb8b190b509d9ca98e93ad961cd28427f",
+      "published_sha256": "c4b93a7228c846d6eb0713bdb009662fb8b190b509d9ca98e93ad961cd28427f"
+    }
+  ]
+}

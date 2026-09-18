@@ -1,0 +1,136 @@
+commit 3d45d186e8caf605660e1f49efded1fb3d31dffa
+Merge: be3ed4d bf6fe17
+Author:     Jim Wiese <dadleet@BigDog.local>
+AuthorDate: Fri Sep 18 12:00:47 2026 -0700
+Commit:     Jim Wiese <dadleet@BigDog.local>
+CommitDate: Fri Sep 18 12:00:47 2026 -0700
+
+    merge: integrate UI allocation with current ShipLoop experiment coverage
+    
+    Review
+    The additive probe-decision study changed no skill source. Both branches added
+    a distinct suite while independently updating inventory from 88 to 89.
+    
+    Plan
+    Preserve both experiment trees, runner entries and documentation; reconcile the
+    combined inventory before publishing the reviewed UI-planning source.
+    
+    Changes
+    Merge origin/main bf6fe17 and set the combined ShipLoop suite count to 90.
+    Record final integration provenance and local verification beside UI evidence.
+    
+    Validation
+    Inventory 15/15, upstream probe apparatus 16/16, UI evidence reader 11/11 and
+    full generated-plugin parity pass. Authored-file whitespace checks pass;
+    archived transcripts retain their original whitespace. Exact-commit CI pending.
+    
+    Key learnings
+    Identical textual counter edits can merge cleanly while undercounting distinct
+    additive suites; inventory assertions must verify the integrated result.
+    
+    Remaining work
+    Push this fast-forward merge to main and verify its exact aggregate CI result.
+
+commit be3ed4db54bcd1cfab6258eaf0d84a04f7131ac1
+Author:     Jim Wiese <dadleet@BigDog.local>
+AuthorDate: Fri Sep 18 11:59:19 2026 -0700
+Commit:     Jim Wiese <dadleet@BigDog.local>
+CommitDate: Fri Sep 18 11:59:19 2026 -0700
+
+    feat(shiploop): allocate UI planning across architecture and feature work
+    
+    Review
+    Isolated planning controls exposed missing prerequisite ownership, scope drift,
+    and recovery ambiguity after reviewed global-plan corrections. Actual Improve
+    fixed recovery coverage and an evidence-label ambiguity before two clean reviews.
+    
+    Plan
+    Allocate shared UI/environment decisions before dependent consumers, then carry
+    selected feature deltas and reviewed replacement authority through existing
+    ShipLoop and Improve handoffs.
+    
+    Changes
+    Add prompt-first owner guidance and cold-recovery regressions; retain eleven
+    bounded planning cases, three browser capability controls, independent criteria,
+    raw callback/review evidence and source-versus-published digests. Version 0.15.1.
+    
+    Validation
+    Pre-integration full hermetic suite passed. Integrated focused checks pass,
+    including 18 guidance, 11 evidence-reader, 8 local-skills and 15 inventory checks.
+    Plugin parity and evidence manifest checks pass. Exact published-commit CI is
+    required after merging the additive upstream experiment/inventory change.
+    
+    Key learnings
+    Rendering does not prove persistence or identity readiness. A missing supplier
+    contract can block one feature without blocking independent work. Authorized
+    preparation may produce its own absent output. Keep synthetic predecessor state
+    and real callbacks distinct; reviewed plans need explicit replacement precedence.
+    
+    Remaining work
+    Planning controls do not prove fixture product implementation or live deployment.
+    Preserve documented review churn, source-read-only and cold-fixture limitations.
+
+commit bf6fe176bf52e20cdd4c285db4e3f25289144b5f
+Author:     Jim Wiese <dadleet@BigDog.local>
+AuthorDate: Fri Sep 18 11:43:50 2026 -0700
+Commit:     Jim Wiese <dadleet@BigDog.local>
+CommitDate: Fri Sep 18 11:43:50 2026 -0700
+
+    test(shiploop): preserve probe-decision experiments and evidence
+    
+    Retain the four calibrated probe-decision families, frozen paired-study adapter, preregistered plan, results, and complete evidence archive. Register no-model checks in the ShipLoop inventory. Keep production guidance unchanged after four tied comparisons.
+
+commit 5a073503bcfe35e620461498b3fa438afe94d0bc
+Merge: 10733ee f2c891a
+Author:     Jim Wiese <dadleet@BigDog.local>
+AuthorDate: Fri Sep 18 11:04:46 2026 -0700
+Commit:     Jim Wiese <dadleet@BigDog.local>
+CommitDate: Fri Sep 18 11:04:46 2026 -0700
+
+    Merge current main before publishing release-transition guidance
+    
+    Preserve upstream repository-local skill discovery, assessment and validation
+    alongside the release-operation, recovery and standalone Improve guidance.
+    Resolve additive test route constants and retain both sets of recovery tests.
+    
+    Validation: 90 focused tests pass (16 guidance, 22 Navigator v3, 29 delivery,
+    8 reference routing, 8 local-skill and 7 actual Improve CLI), plus ShipLoop
+    package parity and interop hygiene. Independent source merge review passed.
+    The ten-file feature delta passes diff checks against current main; upstream
+    raw experiment-evidence whitespace remains unchanged.
+
+commit 10733eeec82f28bfedffa9178a6f6ec1aea9b682
+Merge: 88e59f9 5e30bd9
+Author:     Jim Wiese <dadleet@BigDog.local>
+AuthorDate: Fri Sep 18 11:02:47 2026 -0700
+Commit:     Jim Wiese <dadleet@BigDog.local>
+CommitDate: Fri Sep 18 11:02:47 2026 -0700
+
+    Merge ShipLoop release-transition guidance into main
+    
+    Preserve current Backchain convergence, release test planning, reusable test
+    facilities and outer test handoffs alongside release operation ownership,
+    recovery guidance and the standalone Improve boundary.
+    
+    Resolve additive prompt and guidance-test conflicts; regenerate ShipLoop views.
+    Validation: 72 focused tests pass (14 guidance, 21 Navigator v3, 29 delivery,
+    8 reference routing), plus plugin parity, interop hygiene and diff checks.
+    Independent merge review found no actionable issue.
+
+commit f2c891a6f1b57cc33bda3d76dc1948a66c521f42
+Merge: 061ad49 88e59f9
+Author:     Jim Wiese <dadleet@BigDog.local>
+AuthorDate: Fri Sep 18 11:00:32 2026 -0700
+Commit:     Jim Wiese <dadleet@BigDog.local>
+CommitDate: Fri Sep 18 11:00:32 2026 -0700
+
+    Merge upstream Backchain convergence and record release checks
+
+commit 061ad49003ad96677a3a2da637d0646f57415082
+Merge: 4d3b382 08fb3ca
+Author:     Jim Wiese <dadleet@BigDog.local>
+AuthorDate: Fri Sep 18 10:57:21 2026 -0700
+Commit:     Jim Wiese <dadleet@BigDog.local>
+CommitDate: Fri Sep 18 10:57:21 2026 -0700
+
+    Merge upstream CI trigger policy

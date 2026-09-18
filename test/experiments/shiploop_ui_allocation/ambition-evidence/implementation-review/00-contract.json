@@ -1,0 +1,39 @@
+{
+  "workspace": "<implementation>",
+  "work": "Complete exactly one standalone Improve review cycle for the bounded ShipLoop 0.15.2 UI-ambition candidate: read the last seven full Git commit messages, inspect the ownership-scoped candidate and relevant consumers, plan only warranted fixes, implement them only when warranted, run the required focused guidance and parity checks once, retain an ordered external review record, and preserve all root-owned work and constraints.",
+  "exit_condition": "Two distinct full reviews of the frozen 3d45d18 candidate find only trivial or no changes after any material repair, the required focused guidance and source/generated parity checks pass for the resulting candidate, and no material issue remains. Root-owned exact-commit CI is a separate later verification and is not claimed or substituted here.",
+  "repeat_condition": "Repeat while a required distinct review or useful authorized scoped repair remains. Stop incomplete on an actual blocker, a requested stop, or a required check failure. Do not create a nested improvement campaign, expand into new features, or treat any browser/producer control as evidence unless its result is actually needed and available.",
+  "required_trivial_reviews": 2,
+  "context": {
+    "request": "Run a new bounded actual standalone Improve review for the ShipLoop 0.15.2 UI-ambition refinement. The prior 0.15.1 Improve terminal is historical only. ShipLoop standalone Improve binding: allocation-ambition-implementation-improve. Preserve the selected frozen Improve package and its bound ephemeral Until Loop runtime. Root owns commits, publishing, study/producer controls and later exact-commit CI.",
+    "scope": "Frozen history/base HEAD 3d45d186e8caf605660e1f49efded1fb3d31dffa. Review current changes only within skills/shiploop/{SKILL.md,references/behavioral-requirements.md,scripts/shiploop_navigator_v3_prompts.py}; generated plugins/shiploop counterparts and plugin metadata; test/{shiploop-v3-guidance.test.py,shiploop.test.sh,test-groups.test.py}; and test/experiments/shiploop_ui_allocation/{evidence.py,test_evidence.py,browser-capability-probe.cjs}. Preserve README.md, .grok-plugin/marketplace.json, all docs, test/experiment README, fixtures, snapshots, study artifacts, root work, and unrelated staged/unstaged/untracked/ignored files. No new test that merely mirrors prompt wording. Before any material source edit, notify root so frozen producer-control snapshot provenance remains honest.",
+    "authority": "No commits, empty commits, pushes, merges, publication, deployment, installs, study completion, docs/artifact edits, source edit without the required prior root notification, nested state machine, scheduler, or broad duplicate CI. Use only the selected frozen Improve and bound runtime. The root owns upstream integration and exact-commit CI. Preserve unrelated work. If an authorized source edit follows root notification, synchronize generated ShipLoop views only with root coordination and inspect the resulting scope/parity.",
+    "environment": "Operate in <implementation> with DEVELOPER_DIR=/Library/Developer/CommandLineTools and PYTHONDONTWRITEBYTECODE=1. Required focused check once: python3 -B test/shiploop-v3-guidance.test.py, expected 18 tests. Required parity once: compare the three source ShipLoop files against generated plugin copies and check version metadata. Root-owned GitHub base CI 35383508418 is running; do not start or claim a replacement aggregate. Existing producer controls run in parallel; inspect only if a concrete review question requires their completed result.",
+    "resources": [
+      {
+        "purpose": "selected frozen Improve card",
+        "locator": "<study>/frozen/improve/SKILL.md"
+      },
+      {
+        "purpose": "Improve review policy",
+        "locator": "<study>/frozen/improve/references/review-policy.md"
+      },
+      {
+        "purpose": "Improve callback evidence policy",
+        "locator": "<study>/frozen/improve/references/callback-evidence.md"
+      },
+      {
+        "purpose": "bound Until Loop adapter",
+        "locator": "<study>/frozen/improve/runtime/until-loop/ADAPTER.md"
+      },
+      {
+        "purpose": "bound ephemeral Until Loop runtime",
+        "locator": "<study>/frozen/improve/runtime/until-loop/scripts/until_loop_ephemeral.py"
+      },
+      {
+        "purpose": "ordered external Improve evidence directory",
+        "locator": "<study>/ambition-implementation-improve"
+      }
+    ]
+  }
+}

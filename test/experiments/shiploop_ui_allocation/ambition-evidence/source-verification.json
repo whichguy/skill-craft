@@ -1,0 +1,18 @@
+{
+  "base_commit": "3d45d186e8caf605660e1f49efded1fb3d31dffa",
+  "candidate_version": "0.15.2",
+  "verified_source_paths": {
+    "SKILL.md": {
+      "sha256": "594785ad4df297b55b7e1a5b9cf8720323603806196737648c11e67cd601985e",
+      "frozen_control_equal": true
+    },
+    "references/behavioral-requirements.md": {
+      "sha256": "8a949eeda14b113db446cf1b3d63f7f9f4942900fa74cf7ecaaa335c99318203",
+      "frozen_control_equal": true
+    },
+    "scripts/shiploop_navigator_v3_prompts.py": {
+      "sha256": "b85df1ef689be923de5ea8a35d26b3473ceb30b2e2d360c133ede72174521044",
+      "frozen_control_equal": true
+    }
+  }
+}

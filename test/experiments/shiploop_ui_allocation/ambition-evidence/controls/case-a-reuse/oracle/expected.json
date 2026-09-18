@@ -1,0 +1,13 @@
+{
+  "case": "case-a-reuse",
+  "producer_blindness": "The producer brief excludes this oracle directory.",
+  "criteria": {
+    "ambitious_truthful_experience": "Names a specific polished status experience and avoids unsupported progress, completion, or delivery claims.",
+    "three_ui_views": "Covers component contracts/states, interaction and local-versus-authoritative state, and preserved or intentionally changed skin.",
+    "reuse_decision": "Compares reuse, evolution, and a non-assumed upgrade/tool option; selects an existing-primitives route or marks an upgrade as unverified.",
+    "decision_economics": "Includes a rough, assumption-bound effort estimate, user benefit, target/accessibility/maintenance tradeoffs, and a way to resolve material uncertainty.",
+    "async_integrity": "Addresses account identity, generation, revision, visible/foreground reads, stale and failure recovery, coalescing, focus preservation, and reduced motion.",
+    "system_reuse": "Uses the existing product verification/design path and explicitly avoids package installation, framework migration, and a parallel harness."
+  },
+  "limits": "This oracle can assess planned text and persisted navigation structure only. It cannot prove model quality, actual component behavior, target compatibility, or deployment."
+}

@@ -12,6 +12,10 @@ human-surface condition, and candidate 3 adds the reviewed-decision handoff rule
 The final integration retains identical UI guidance; upstream changes are
 validated separately, not retroactively attributed to earlier model runs.
 
+The later `0.15.2` ambition/upgrade refinement is documented separately in
+[the UI design ambition follow-up](shiploop-ui-design-ambition-2026-09-18.md).
+It does not change the frozen inputs or outcomes reported here.
+
 ## Decision and scope
 
 Determine whether ShipLoop elicits the UI decisions needed before architecture
@@ -260,6 +264,11 @@ because the ownership reference was absent. Its synthetic judgments test
 retained references and the blocked state transition; the separate producer
 experiments assess model decisions. The evidence reader likewise reports
 `semantic_verification: false` even for structurally valid imported receipts.
+
+The published `0.15.1` merge `3d45d186e8caf605660e1f49efded1fb3d31dffa`
+subsequently passed [all four CI groups and the required hermetic aggregate](https://github.com/whichguy/skill-craft/actions/runs/35383508418).
+That exact-commit result covers this allocation implementation; the later ambition
+follow-up has its own release verification.
 
 ## Observed outcome summary
 

@@ -69,3 +69,12 @@ Run a syntax check without launching a browser:
 ```sh
 node --check test/experiments/shiploop_ui_allocation/browser-capability-probe.cjs
 ```
+
+## Design ambition follow-up
+
+The [0.15.2 follow-up report](../../../docs/shiploop-ui-design-ambition-2026-09-18.md)
+and [content-copy manifest](ambition-evidence/manifest.json) retain two further
+producer controls for ambitious reuse and a probe-gated native enhancement. They
+reuse this apparatus; no new product harness or controller is introduced. Both
+stop at unrun Improve, while the implementation itself has a separate completed
+Improve receipt. See the report for the remaining authorization-policy ambiguity.

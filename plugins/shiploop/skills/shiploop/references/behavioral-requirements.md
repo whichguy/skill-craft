@@ -205,9 +205,12 @@ applicable decisions. Do not wait until post-implementation skill assessment.
 An absent optional skill uses repository guidance and this section as fallback;
 do not install a skill, hard-code host paths or claim unexecuted skill use.
 
-Plan a fairly rich, coherent UI by default: polished reusable components,
-responsive composition, complete loading/empty/error/success states and useful
-task-specific interactions. Keep scope proportional. For meaningful async
+Aim for the most polished, elegant and richly interactive experience feasible
+within the user's goals, accepted scope and target constraints. Reuse should
+raise quality, not settle for a bare functional screen. Plan distinctive visual
+hierarchy, polished reusable components, responsive composition, complete
+loading/empty/error/success states and useful task-specific interactions. Keep
+effort proportional to expected user value. For meaningful async
 activity, map trigger -> truthful state -> cue/status -> outcome/recovery.
 Use restrained motion to communicate pending work, accepted confirmation or a
 relevant remote change; preserve focus, input and reading position. Distinguish
@@ -226,7 +229,36 @@ delivery, CSP, routing/embedding, native lifecycle, accessibility, performance
 and maintenance/licensing where relevant. Resolve consequential uncertainty
 with a bounded production-artifact probe in the target; a preview proves only
 the constraints it reproduces. Do not silently weaken host policies or migrate
-frameworks to obtain a richer appearance.
+frameworks solely for appearance; an evidenced interaction or design-system gap
+can justify a compatible, scoped upgrade.
+
+At consequential UI planning decisions, use the current tooling inventory to
+compare reusing existing capability, evolving it, and a credible upgrade or new
+tool where it materially improves the intended experience. Reuse the strongest
+existing components, tokens, assets, interactions and motion before rebuilding.
+Do not treat a merely adequate baseline as the ceiling. Record a compact decision
+in the existing design basis: desired experience and concrete interactions;
+viable alternatives and selected approach; rough effort/cost range or relative
+size with assumptions and uncertainty; expected user benefit; compatibility,
+performance/accessibility and maintenance impact; and the check or bounded probe
+that would resolve a consequential unknown. Do not fabricate package capabilities,
+estimates or tool availability. A new dependency remains a candidate until its
+fit is established; a local preview does not establish deployed compatibility.
+
+Apply relevant principles from respected primary design guidance, such as
+[Google Material's expressive-design research](https://design.google/library/expressive-material-design-google-research),
+[the Gemini team's evolving visual language](https://design.google/library/gemini-ai-visual-design),
+or the target platform's human-interface guidance. Identify the source and the
+principle applied, adapting it to the product's identity and journeys rather
+than copying a brand or adding a provider dependency. Expressive hierarchy,
+direct feedback and purposeful motion must preserve clarity and control.
+
+Extend the established application architecture and design, build, test and
+browser facilities. Do not create a parallel UI stack or duplicate harness to
+demonstrate polish. An isolated design comparison or probe must feed its accepted
+result back into the existing specification, components and verification path.
+Feature planning reuses the accepted decision and estimates only its affected
+delta; reconsider shared choices when a new opportunity or evidence warrants it.
 
 ### Allocate UI decisions to their planning owner
 
@@ -234,7 +266,8 @@ Apply this subsection only when a human-facing surface is affected; a headless
 service or CLI without such a surface does not need UI premises or a design skill.
 During initial architecture and environment evaluation, establish or augment the
 shared component, interaction/state and skin premises before features rely on
-them. Connect requested user and machine outcomes to the actual toolkit,
+them. Apply the [UI ambition and tooling decision](#ui-specific-planning) at
+that scope. Connect requested user and machine outcomes to the actual toolkit,
 asset/runtime, storage, transport and lifecycle capabilities they need. An
 available API or library is an option, not a requirement to expose every action.
 For an existing product, retain adequate foundations and identify only the
@@ -278,6 +311,9 @@ Carry compact baseline/delta, interaction/state/connection and applicable UI
 premise locators into global planning, each affected feature and its existing
 Improve review. Review the decisions automatically at the normal handoff; do
 not add a second invocation, graph node, review counter or nested campaign.
+Check whether worthwhile polish and interaction improvements were considered,
+their estimates and selected reuse/upgrade path are credible, and the existing
+architecture and verification facilities remain authoritative.
 During planning, review the specification and proposed checks; do not implement
 future features or demand rendered proof before the UI exists. Later checks
 verify the actual receiving, processing, state and consumer outcome separately,

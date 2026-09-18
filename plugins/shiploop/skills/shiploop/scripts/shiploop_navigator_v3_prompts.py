@@ -484,8 +484,10 @@ recovery checks (including a crash after acknowledgment but before processing
 accepted work where applicable); and source/check locators. For UI, include component/interaction/skin
 premises, selected design guidance locator plus identity/version or digest (or
 named fallback), and meaningful async cues with their purpose and reduced-motion
-alternative, or an explicit static choice. The next review is the packet's
-automatic Improve handoff immediately after this producer result, before
+alternative, or an explicit static choice. For consequential UI choices, include
+the guide's ambition, reuse/evolve/upgrade decision, rough effort/benefit and
+compatibility check; reuse accepted choices for unaffected scope and the existing
+design/test facilities. The next review is the packet's automatic Improve handoff immediately after this producer result, before
 implementation. Do not schedule a review stage or claim it ran. Link this plan in
 evidence_refs; keep these as ordinary notes, not new result fields.
 Use the packet's Initial repository baseline guide. Carry initial-baseline
@@ -564,8 +566,10 @@ recovery checks (including a crash after acknowledgment but before processing
 accepted work where applicable); and source/check locators. For UI, include component/interaction/skin
 premises, selected design guidance locator plus identity/version or digest (or
 named fallback), and meaningful async cues with their purpose and reduced-motion
-alternative, or an explicit static choice. The next review is the packet's
-automatic Improve handoff immediately after this producer result, before
+alternative, or an explicit static choice. For consequential UI choices, include
+the guide's ambition, reuse/evolve/upgrade decision, rough effort/benefit and
+compatibility check; reuse accepted choices for unaffected scope and the existing
+design/test facilities. The next review is the packet's automatic Improve handoff immediately after this producer result, before
 implementation. Do not schedule a review stage or claim it ran. Link this plan in
 evidence_refs; keep these as ordinary notes, not new result fields.
 Use the packet's Initial repository baseline guide. Revalidate the initial
@@ -1193,6 +1197,8 @@ where a UI is affected. Keep planning reviews scoped to decisions and proposed
 checks; later reviews require actual consumer evidence. Revalidate reused choices.
 Apply UI planning ownership at the candidate's stage: check the selected-item
 boundary and prerequisite supplier/disposition without demanding later-stage work.
+Check UI ambition, credible reuse/upgrade estimates and existing-facility reuse
+where a consequential UI choice is affected.
 Carry reviewed replacement locators and their precedence through the existing
 handoff when these decisions change.
 Carry those locators into the child contract for cold recovery. This is conditional

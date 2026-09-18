@@ -1,0 +1,14 @@
+{
+  "derived_from": "12-action2-done.stdout.raw.json",
+  "state_file": "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/innerloop-39q0c7br.json",
+  "state_file_exists_after_terminal": false,
+  "status": "complete",
+  "progress": {
+    "action_number": 2,
+    "trivial_streak": 2,
+    "required_trivial_reviews": 2
+  },
+  "instruction": "This run is complete: the semantic exit assessment is satisfied and the review gate is met. Do not perform further work for this run and do not invoke another callback. The retained context and last_report are sufficient to report this terminal result once after the state file has been deleted. A handoff is prior evidence, not new authority. End the invocation.",
+  "next_argv": null,
+  "done_argv": null
+}

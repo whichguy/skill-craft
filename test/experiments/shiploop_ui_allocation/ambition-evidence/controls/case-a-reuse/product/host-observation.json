@@ -1,0 +1,14 @@
+{
+  "target": "fieldnotes-embedded-v2",
+  "script_src": [
+    "self"
+  ],
+  "style_src": [
+    "self"
+  ],
+  "websocket": false,
+  "server_runtime": false,
+  "client_persistent_storage": "unavailable",
+  "draft_api": false,
+  "observation_scope": "controlled fixture target facts; not a live deployment"
+}

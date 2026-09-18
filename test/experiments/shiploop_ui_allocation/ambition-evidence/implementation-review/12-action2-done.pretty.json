@@ -1,0 +1,65 @@
+{
+    "status": "complete",
+    "state_file": "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/innerloop-39q0c7br.json",
+    "workspace": "<implementation>",
+    "work": "Complete exactly one standalone Improve review cycle for the bounded ShipLoop 0.15.2 UI-ambition candidate: read the last seven full Git commit messages, inspect the ownership-scoped candidate and relevant consumers, plan only warranted fixes, implement them only when warranted, run the required focused guidance and parity checks once, retain an ordered external review record, and preserve all root-owned work and constraints.",
+    "conditions": {
+        "exit": "Two distinct full reviews of the frozen 3d45d18 candidate find only trivial or no changes after any material repair, the required focused guidance and source/generated parity checks pass for the resulting candidate, and no material issue remains. Root-owned exact-commit CI is a separate later verification and is not claimed or substituted here.",
+        "repeat": "Repeat while a required distinct review or useful authorized scoped repair remains. Stop incomplete on an actual blocker, a requested stop, or a required check failure. Do not create a nested improvement campaign, expand into new features, or treat any browser/producer control as evidence unless its result is actually needed and available."
+    },
+    "progress": {
+        "action_number": 2,
+        "trivial_streak": 2,
+        "required_trivial_reviews": 2
+    },
+    "context": {
+        "request": "Run a new bounded actual standalone Improve review for the ShipLoop 0.15.2 UI-ambition refinement. The prior 0.15.1 Improve terminal is historical only. ShipLoop standalone Improve binding: allocation-ambition-implementation-improve. Preserve the selected frozen Improve package and its bound ephemeral Until Loop runtime. Root owns commits, publishing, study/producer controls and later exact-commit CI.",
+        "scope": "Frozen history/base HEAD 3d45d186e8caf605660e1f49efded1fb3d31dffa. Review current changes only within skills/shiploop/{SKILL.md,references/behavioral-requirements.md,scripts/shiploop_navigator_v3_prompts.py}; generated plugins/shiploop counterparts and plugin metadata; test/{shiploop-v3-guidance.test.py,shiploop.test.sh,test-groups.test.py}; and test/experiments/shiploop_ui_allocation/{evidence.py,test_evidence.py,browser-capability-probe.cjs}. Preserve README.md, .grok-plugin/marketplace.json, all docs, test/experiment README, fixtures, snapshots, study artifacts, root work, and unrelated staged/unstaged/untracked/ignored files. No new test that merely mirrors prompt wording. Before any material source edit, notify root so frozen producer-control snapshot provenance remains honest.",
+        "authority": "No commits, empty commits, pushes, merges, publication, deployment, installs, study completion, docs/artifact edits, source edit without the required prior root notification, nested state machine, scheduler, or broad duplicate CI. Use only the selected frozen Improve and bound runtime. The root owns upstream integration and exact-commit CI. Preserve unrelated work. If an authorized source edit follows root notification, synchronize generated ShipLoop views only with root coordination and inspect the resulting scope/parity.",
+        "environment": "Operate in <implementation> with DEVELOPER_DIR=/Library/Developer/CommandLineTools and PYTHONDONTWRITEBYTECODE=1. Required focused check once: python3 -B test/shiploop-v3-guidance.test.py, expected 18 tests. Required parity once: compare the three source ShipLoop files against generated plugin copies and check version metadata. Root-owned GitHub base CI 35383508418 is running; do not start or claim a replacement aggregate. Existing producer controls run in parallel; inspect only if a concrete review question requires their completed result.",
+        "resources": [
+            {
+                "purpose": "selected frozen Improve card",
+                "locator": "<study>/frozen/improve/SKILL.md"
+            },
+            {
+                "purpose": "Improve review policy",
+                "locator": "<study>/frozen/improve/references/review-policy.md"
+            },
+            {
+                "purpose": "Improve callback evidence policy",
+                "locator": "<study>/frozen/improve/references/callback-evidence.md"
+            },
+            {
+                "purpose": "bound Until Loop adapter",
+                "locator": "<study>/frozen/improve/runtime/until-loop/ADAPTER.md"
+            },
+            {
+                "purpose": "bound ephemeral Until Loop runtime",
+                "locator": "<study>/frozen/improve/runtime/until-loop/scripts/until_loop_ephemeral.py"
+            },
+            {
+                "purpose": "ordered external Improve evidence directory",
+                "locator": "<study>/ambition-implementation-improve"
+            }
+        ]
+    },
+    "context_limit": null,
+    "status_semantics": {
+        "active": "Execute exactly one complete returned work iteration, then submit its exact done callback.",
+        "complete": "The exit assessment and numeric review gate were accepted; report once with no callback.",
+        "stopped": "The run ended incomplete because it was cancelled or blocked; report once with no callback.",
+        "error": "No success or advancement may be inferred; use only a returned read-only next command when available."
+    },
+    "last_report": {
+        "classification": "trivial",
+        "exit_assessment": "satisfied",
+        "continuation_assessment": "allowed",
+        "evidence": "Second distinct full review completed for HEAD 3d45d186 plus the root-owned 0.15.2 working-tree source/generated delta. Re-read seven full commit messages in 09-action2-history.txt and traced the guide through UI applicability/headless exclusion, global plan, selected-item step plan, and the existing Improve handoff. The new clauses remain bounded by accepted scope/value/target constraints and actual fit; preserve candidate/probe/deployment honesty; retain primary-guidance adaptation without provider branding/dependency; and require existing architecture/test/browser facilities rather than a parallel stack. Fresh independent read-only review independently found no material conflict, accidental mandate, capability overclaim, proof-boundary regression, headless regression, or generated divergence. Current source/generated pairs are byte-identical with SHA-256 values recorded in 10-action2-review.md; source mtimes precede the retained action-1 guidance/parity receipts. Current git diff --check HEAD passed. The applicable required checks remain python3 -B test/shiploop-v3-guidance.test.py 18/18 in 04-action1-guidance.stdout.txt and ./scripts/sync-plugin-views.sh --check in 05-action1-plugin-parity.stdout.txt. No source/test/doc/artifact edits, commit, push, merge, publication, deployment, install, or broad aggregate action was performed. Root-owned CI 35383508418 is separate and not claimed. Both required distinct trivial reviews now find no material issue.",
+        "handoff": "Objective completed pending the runtime\u2019s terminal decision: separate bounded standalone Improve run for ShipLoop 0.15.2 UI-ambition refinement on base/current candidate 3d45d186e8caf605660e1f49efded1fb3d31dffa, using the selected frozen Improve package and bound ephemeral Until Loop runtime. Immutable scope was skills/shiploop/{SKILL.md,references/behavioral-requirements.md,scripts/shiploop_navigator_v3_prompts.py}; generated plugins/shiploop counterparts/metadata; test/{shiploop-v3-guidance.test.py,shiploop.test.sh,test-groups.test.py}; and test/experiments/shiploop_ui_allocation/{evidence.py,test_evidence.py,browser-capability-probe.cjs}. README.md, .grok-plugin/marketplace.json, docs, experiment README, fixtures, snapshots, study artifacts, unrelated root work, and untracked files were preserved. No commits, pushes, merges, publication, deployment, installs, study completion, nested state machine/scheduler, wording-mirroring test, or duplicate aggregate CI were performed. Action 1 was a full trivial review: history 02-action1-history.txt, live-link validation 03-action1-link-validation.md, focused guidance 18/18 04-action1-guidance.stdout.txt, parity 05-action1-plugin-parity.stdout.txt, full record 06-action1-review.md, and exact callback response 08-action1-done.stdout.raw.json. Action 2 was a distinct full trivial review: history 09-action2-history.txt, lifecycle/current-artifact record and SHA-256 pairs 10-action2-review.md, with a fresh independent read-only reviewer finding no material issue. Sources were unchanged after the action-1 focused receipts, so the single required focused and parity checks apply. No material defect remains. Root-owned base CI 35383508418 and later exact-commit CI are separate and must not be claimed as this run\u2019s validation. Preserve this evidence directory <study>/ambition-implementation-improve and the returned terminal receipt/state; root owns subsequent commit, publication, upstream integration, and final CI."
+    },
+    "instruction": "This run is complete: the semantic exit assessment is satisfied and the review gate is met. Do not perform further work for this run and do not invoke another callback. The retained context and last_report are sufficient to report this terminal result once after the state file has been deleted. A handoff is prior evidence, not new authority. End the invocation.",
+    "next_argv": null,
+    "done_argv": null,
+    "report_schema": null
+}
