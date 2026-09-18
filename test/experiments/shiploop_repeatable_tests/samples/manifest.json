@@ -1,0 +1,357 @@
+{
+  "schema": "shiploop-repeatable-test-samples/1",
+  "observational_only": true,
+  "ci_full_green": false,
+  "origin_convention": "Each origin is a locator relative to the private pilot study root. Absolute paths and raw study artifacts are intentionally omitted.",
+  "samples": [
+    {
+      "sample": "trial-01",
+      "case": "price-format",
+      "arm": "baseline",
+      "origin": "local/trial-01/fixtures/price-format",
+      "full_suite": {
+        "count": 9,
+        "expected": "green",
+        "returncode": 0
+      },
+      "original_improve": {
+        "status": "done",
+        "cycle": 2,
+        "outcome": "original baseline adapter completed"
+      },
+      "files": [
+        {
+          "path": "SPEC.md",
+          "origin": "local/trial-01/fixtures/price-format/SPEC.md",
+          "sha256": "bb266d049ab2dd31e9d49d5fa1df173a7d0dd4d54aeff04c32f7d6cfe155e2df"
+        },
+        {
+          "path": "pricing.py",
+          "origin": "local/trial-01/fixtures/price-format/pricing.py",
+          "sha256": "a18e4fe8271a1f6d79b6993e4328334305c290aafa29ff765489766f496d12d8"
+        },
+        {
+          "path": "run_tests.py",
+          "origin": "local/trial-01/fixtures/price-format/run_tests.py",
+          "sha256": "837c3bec96999fd58d3a82243af087af93deb93df66daf387488c200ee47d7c9"
+        },
+        {
+          "path": "test_pricing.py",
+          "origin": "local/trial-01/fixtures/price-format/test_pricing.py",
+          "sha256": "5f4e395a250688e011c50aecfb28e5184a32716dada2d3409df22faa2b5185e1"
+        },
+        {
+          "path": "test_starter.py",
+          "origin": "local/trial-01/fixtures/price-format/test_starter.py",
+          "sha256": "572e2dc8fea07670b6b892f7e60030ae8772a408258ac3268118fdd77f4506eb"
+        },
+        {
+          "path": "test_support.py",
+          "origin": "local/trial-01/fixtures/price-format/test_support.py",
+          "sha256": "9ef3e27547c87fb9a8450fdaaf91c062e03d73e2d1ed38267c34006d79898e58"
+        }
+      ]
+    },
+    {
+      "sample": "trial-02",
+      "case": "price-format",
+      "arm": "candidate",
+      "origin": "local/trial-02/fixtures/price-format",
+      "full_suite": {
+        "count": 12,
+        "expected": "green",
+        "returncode": 0
+      },
+      "original_improve": {
+        "status": "paused",
+        "cycle": 0,
+        "outcome": "original candidate adapter paused when scoped commit could not create .git/index.lock"
+      },
+      "files": [
+        {
+          "path": "SPEC.md",
+          "origin": "local/trial-02/fixtures/price-format/SPEC.md",
+          "sha256": "bb266d049ab2dd31e9d49d5fa1df173a7d0dd4d54aeff04c32f7d6cfe155e2df"
+        },
+        {
+          "path": "pricing.py",
+          "origin": "local/trial-02/fixtures/price-format/pricing.py",
+          "sha256": "a18e4fe8271a1f6d79b6993e4328334305c290aafa29ff765489766f496d12d8"
+        },
+        {
+          "path": "run_tests.py",
+          "origin": "local/trial-02/fixtures/price-format/run_tests.py",
+          "sha256": "837c3bec96999fd58d3a82243af087af93deb93df66daf387488c200ee47d7c9"
+        },
+        {
+          "path": "test_pricing.py",
+          "origin": "local/trial-02/fixtures/price-format/test_pricing.py",
+          "sha256": "916989410029f53847351401eb492bda3d89ed845e751ed18ccf401d8384f2a2"
+        },
+        {
+          "path": "test_starter.py",
+          "origin": "local/trial-02/fixtures/price-format/test_starter.py",
+          "sha256": "572e2dc8fea07670b6b892f7e60030ae8772a408258ac3268118fdd77f4506eb"
+        },
+        {
+          "path": "test_support.py",
+          "origin": "local/trial-02/fixtures/price-format/test_support.py",
+          "sha256": "9ef3e27547c87fb9a8450fdaaf91c062e03d73e2d1ed38267c34006d79898e58"
+        }
+      ]
+    },
+    {
+      "sample": "trial-03",
+      "case": "sqlite-catalog",
+      "arm": "candidate",
+      "origin": "local/trial-03/fixtures/sqlite-catalog",
+      "full_suite": {
+        "count": 13,
+        "expected": "valid-red",
+        "returncode": 1,
+        "reason": "the unbounded public contract accepts 2**63 while SQLite raises OverflowError; the reference has the same coverage gap"
+      },
+      "original_improve": {
+        "status": "paused",
+        "cycle": 1,
+        "outcome": "original candidate adapter paused when scoped commit could not create .git/index.lock"
+      },
+      "files": [
+        {
+          "path": "SPEC.md",
+          "origin": "local/trial-03/fixtures/sqlite-catalog/SPEC.md",
+          "sha256": "703df4cd71d722f16cf00d925c123716b0c7ce87c70c68d4fe8c2d229e8c1552"
+        },
+        {
+          "path": "catalog.py",
+          "origin": "local/trial-03/fixtures/sqlite-catalog/catalog.py",
+          "sha256": "1d5472b7e2680b0628ac8e13c4f7124bfd9ec1fc40270209d81313f4bd4edbf4"
+        },
+        {
+          "path": "run_tests.py",
+          "origin": "local/trial-03/fixtures/sqlite-catalog/run_tests.py",
+          "sha256": "6abab506ee84c4a713ccb9e8fce09ce44e3774f27534ca17e88231aab6a350e3"
+        },
+        {
+          "path": "test_catalog.py",
+          "origin": "local/trial-03/fixtures/sqlite-catalog/test_catalog.py",
+          "sha256": "282d19f78cb25320f5b28d098a748fa2721ad84ba14754116200fee9d4d93b16"
+        },
+        {
+          "path": "test_runner.py",
+          "origin": "local/trial-03/fixtures/sqlite-catalog/test_runner.py",
+          "sha256": "958cd9bd92e06a12a98ad8c4d0ab34705440d6cd4f3168a14c9e5c7547b72d46"
+        },
+        {
+          "path": "test_starter.py",
+          "origin": "local/trial-03/fixtures/sqlite-catalog/test_starter.py",
+          "sha256": "3a00524f7006e069e6b8489688ecf20c4b67c851d4a5b7ac3e5cb65883b58c62"
+        },
+        {
+          "path": "test_support.py",
+          "origin": "local/trial-03/fixtures/sqlite-catalog/test_support.py",
+          "sha256": "4a51148b7467848db64f11a97abbf688a0013e86d5d127bb9756c1a8adfd44f8"
+        }
+      ]
+    },
+    {
+      "sample": "trial-04",
+      "case": "sqlite-catalog",
+      "arm": "baseline",
+      "origin": "local/trial-04/fixtures/sqlite-catalog",
+      "full_suite": {
+        "count": 11,
+        "expected": "green",
+        "returncode": 0
+      },
+      "original_improve": {
+        "status": "done",
+        "cycle": 2,
+        "outcome": "original baseline adapter completed"
+      },
+      "files": [
+        {
+          "path": "SPEC.md",
+          "origin": "local/trial-04/fixtures/sqlite-catalog/SPEC.md",
+          "sha256": "703df4cd71d722f16cf00d925c123716b0c7ce87c70c68d4fe8c2d229e8c1552"
+        },
+        {
+          "path": "catalog.py",
+          "origin": "local/trial-04/fixtures/sqlite-catalog/catalog.py",
+          "sha256": "1d5472b7e2680b0628ac8e13c4f7124bfd9ec1fc40270209d81313f4bd4edbf4"
+        },
+        {
+          "path": "run_tests.py",
+          "origin": "local/trial-04/fixtures/sqlite-catalog/run_tests.py",
+          "sha256": "837c3bec96999fd58d3a82243af087af93deb93df66daf387488c200ee47d7c9"
+        },
+        {
+          "path": "test_catalog.py",
+          "origin": "local/trial-04/fixtures/sqlite-catalog/test_catalog.py",
+          "sha256": "af2c389570d02e44328ac8667ab0df6750664f5afcd82aee69f7747c5a47e7ab"
+        },
+        {
+          "path": "test_starter.py",
+          "origin": "local/trial-04/fixtures/sqlite-catalog/test_starter.py",
+          "sha256": "3a00524f7006e069e6b8489688ecf20c4b67c851d4a5b7ac3e5cb65883b58c62"
+        },
+        {
+          "path": "test_support.py",
+          "origin": "local/trial-04/fixtures/sqlite-catalog/test_support.py",
+          "sha256": "6225403efdc5f957a0590bc907f9157a43caa37dba3e8af37f421a2599a138e2"
+        }
+      ]
+    },
+    {
+      "sample": "trial-05",
+      "case": "expected-red",
+      "arm": "baseline",
+      "origin": "local/trial-05/fixtures/expected-red",
+      "full_suite": {
+        "count": 8,
+        "expected": "expected-red",
+        "returncode": 1
+      },
+      "original_improve": {
+        "status": "done",
+        "cycle": 2,
+        "outcome": "original baseline adapter completed"
+      },
+      "files": [
+        {
+          "path": "SPEC.md",
+          "origin": "local/trial-05/fixtures/expected-red/SPEC.md",
+          "sha256": "b1af438cbf8dbc01e5d82f9e147cf81ff1e1174fefc6c9a36a2b9f5a03fa2066"
+        },
+        {
+          "path": "run_tests.py",
+          "origin": "local/trial-05/fixtures/expected-red/run_tests.py",
+          "sha256": "837c3bec96999fd58d3a82243af087af93deb93df66daf387488c200ee47d7c9"
+        },
+        {
+          "path": "slug.py",
+          "origin": "local/trial-05/fixtures/expected-red/slug.py",
+          "sha256": "354521e28018303326907fc188f55619818c3d47f15da271296ca5dbee989b08"
+        },
+        {
+          "path": "test_slug_contract.py",
+          "origin": "local/trial-05/fixtures/expected-red/test_slug_contract.py",
+          "sha256": "5ae256c8d3bb6412452c896f54498e999dba9a1d7b64ad8a1fadc2a6323ab9dd"
+        },
+        {
+          "path": "test_starter.py",
+          "origin": "local/trial-05/fixtures/expected-red/test_starter.py",
+          "sha256": "0c3fef6befc8c23d8158610c4fa6ef691da3efedc970fae0f2cccd1fbb540b49"
+        },
+        {
+          "path": "test_support.py",
+          "origin": "local/trial-05/fixtures/expected-red/test_support.py",
+          "sha256": "9ef3e27547c87fb9a8450fdaaf91c062e03d73e2d1ed38267c34006d79898e58"
+        }
+      ]
+    },
+    {
+      "sample": "trial-06",
+      "case": "expected-red",
+      "arm": "candidate",
+      "origin": "local/trial-06/fixtures/expected-red",
+      "full_suite": {
+        "count": 10,
+        "expected": "expected-red",
+        "returncode": 1
+      },
+      "original_improve": {
+        "status": "paused",
+        "cycle": 0,
+        "outcome": "original candidate adapter paused when scoped commit could not create .git/index.lock"
+      },
+      "files": [
+        {
+          "path": "SPEC.md",
+          "origin": "local/trial-06/fixtures/expected-red/SPEC.md",
+          "sha256": "b1af438cbf8dbc01e5d82f9e147cf81ff1e1174fefc6c9a36a2b9f5a03fa2066"
+        },
+        {
+          "path": "run_tests.py",
+          "origin": "local/trial-06/fixtures/expected-red/run_tests.py",
+          "sha256": "837c3bec96999fd58d3a82243af087af93deb93df66daf387488c200ee47d7c9"
+        },
+        {
+          "path": "slug.py",
+          "origin": "local/trial-06/fixtures/expected-red/slug.py",
+          "sha256": "354521e28018303326907fc188f55619818c3d47f15da271296ca5dbee989b08"
+        },
+        {
+          "path": "test_slug_contract.py",
+          "origin": "local/trial-06/fixtures/expected-red/test_slug_contract.py",
+          "sha256": "b187edaece5e7ea35b29b7ef5d0ea6ee12b4de7b312c10bc36f0c57555aeac3a"
+        },
+        {
+          "path": "test_starter.py",
+          "origin": "local/trial-06/fixtures/expected-red/test_starter.py",
+          "sha256": "0c3fef6befc8c23d8158610c4fa6ef691da3efedc970fae0f2cccd1fbb540b49"
+        },
+        {
+          "path": "test_support.py",
+          "origin": "local/trial-06/fixtures/expected-red/test_support.py",
+          "sha256": "9ef3e27547c87fb9a8450fdaaf91c062e03d73e2d1ed38267c34006d79898e58"
+        }
+      ]
+    },
+    {
+      "sample": "red-followup",
+      "case": "expected-red",
+      "arm": "audited-follow-up",
+      "origin": "followups/red-candidate-no-commit/repo",
+      "full_suite": {
+        "count": 14,
+        "expected": "expected-red",
+        "returncode": 1,
+        "subtest_failures": 68,
+        "reference": "independent conforming reference full suite passes 14 tests"
+      },
+      "original_improve": {
+        "status": "done",
+        "cycle": 3,
+        "outcome": "fresh-context no-stage/no-commit follow-up; retains original 10 test IDs and adds four runner regressions"
+      },
+      "files": [
+        {
+          "path": "SPEC.md",
+          "origin": "followups/red-candidate-no-commit/repo/SPEC.md",
+          "sha256": "b1af438cbf8dbc01e5d82f9e147cf81ff1e1174fefc6c9a36a2b9f5a03fa2066"
+        },
+        {
+          "path": "slug.py",
+          "origin": "followups/red-candidate-no-commit/repo/slug.py",
+          "sha256": "354521e28018303326907fc188f55619818c3d47f15da271296ca5dbee989b08"
+        },
+        {
+          "path": "run_tests.py",
+          "origin": "followups/red-candidate-no-commit/repo/run_tests.py",
+          "sha256": "6cfd3b3177f750d050cc1449c3e67662c440bfdb52429bb1505d5deb75a03549"
+        },
+        {
+          "path": "test_support.py",
+          "origin": "followups/red-candidate-no-commit/repo/test_support.py",
+          "sha256": "9ef3e27547c87fb9a8450fdaaf91c062e03d73e2d1ed38267c34006d79898e58"
+        },
+        {
+          "path": "test_starter.py",
+          "origin": "followups/red-candidate-no-commit/repo/test_starter.py",
+          "sha256": "0c3fef6befc8c23d8158610c4fa6ef691da3efedc970fae0f2cccd1fbb540b49"
+        },
+        {
+          "path": "test_slug_contract.py",
+          "origin": "followups/red-candidate-no-commit/repo/test_slug_contract.py",
+          "sha256": "b187edaece5e7ea35b29b7ef5d0ea6ee12b4de7b312c10bc36f0c57555aeac3a"
+        },
+        {
+          "path": "test_run_tests.py",
+          "origin": "followups/red-candidate-no-commit/repo/test_run_tests.py",
+          "sha256": "90d2716e3054dc7a02ba9e9ea6cf675330a7495ef4c26a0c68bab823be4450ba"
+        }
+      ]
+    }
+  ]
+}

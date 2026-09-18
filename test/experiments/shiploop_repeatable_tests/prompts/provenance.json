@@ -1,0 +1,10 @@
+{
+  "comparison": "guidance-component ablation, not complete installed package A/B",
+  "baseline_source": "2523be87aaac0ce34698b19eb8f2758393b0c01e:skills/shiploop/references/testing-and-documentation.md#test-cases",
+  "candidate_addition_source": "/Users/dadleet/tmp/shiploop-test-pilot-xgt7naw0/frozen/shiploop/references/repeatable-test-suites.md",
+  "common_instruction": "Identical explicit test authoring scope; candidate alone adds retained repeatable-suite reference. Relative links in excerpts are informational; no unprovided linked policy is required for this bounded action.",
+  "sha256": {
+    "baseline.md": "24ac03e4a5b27bcc18ed38b6f2d75756fd3b9987899192890b05ed0a5ffc271b",
+    "candidate.md": "8c29f4d0e5819495d3126ed25b35d1decc0c9a672466218a99c02d19aa973142"
+  }
+}

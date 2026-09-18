@@ -1,0 +1,459 @@
+{
+  "rows": [
+    {
+      "label": "01-smoke",
+      "name": "exec",
+      "success": true,
+      "isError": false,
+      "disposition": "completed",
+      "error": null,
+      "result": {
+        "suiteId": "shiploop-remote-repeatability-v1",
+        "sourceRevision": "sha256:853dc9df6047c8101179f769690fe63e0cfde98aed263af0f72190b392084914",
+        "testDefinitionRevision": "repeatable-tests-v1",
+        "selection": "smoke",
+        "selectedIds": [
+          "TC-01",
+          "TC-03"
+        ],
+        "executedIds": [
+          "TC-01",
+          "TC-03"
+        ],
+        "summary": {
+          "passed": 2,
+          "failed": 0,
+          "blocked": 0
+        },
+        "cleanup": {
+          "attempted": 1,
+          "removed": 1,
+          "failed": 0,
+          "unverified": 0
+        },
+        "cases": [
+          {
+            "id": "TC-01",
+            "outcome": "passed",
+            "setup": "not-required",
+            "teardown": "not-required",
+            "cleanup": {
+              "attempted": false,
+              "removed": null
+            },
+            "errorPhases": []
+          },
+          {
+            "id": "TC-03",
+            "outcome": "passed",
+            "setup": "passed",
+            "teardown": "passed",
+            "cleanup": {
+              "attempted": true,
+              "removed": true
+            },
+            "errorPhases": []
+          }
+        ]
+      }
+    },
+    {
+      "label": "01-smoke-state",
+      "name": "exec",
+      "success": true,
+      "isError": false,
+      "disposition": "completed",
+      "error": null,
+      "result": {
+        "count": 0,
+        "keys": 0
+      }
+    },
+    {
+      "label": "02-full-first",
+      "name": "exec",
+      "success": true,
+      "isError": false,
+      "disposition": "completed",
+      "error": null,
+      "result": {
+        "suiteId": "shiploop-remote-repeatability-v1",
+        "sourceRevision": "sha256:853dc9df6047c8101179f769690fe63e0cfde98aed263af0f72190b392084914",
+        "testDefinitionRevision": "repeatable-tests-v1",
+        "selection": "full",
+        "selectedIds": [
+          "TC-01",
+          "TC-02",
+          "TC-03",
+          "TC-04"
+        ],
+        "executedIds": [
+          "TC-01",
+          "TC-02",
+          "TC-03",
+          "TC-04"
+        ],
+        "summary": {
+          "passed": 4,
+          "failed": 0,
+          "blocked": 0
+        },
+        "cleanup": {
+          "attempted": 2,
+          "removed": 2,
+          "failed": 0,
+          "unverified": 0
+        },
+        "cases": [
+          {
+            "id": "TC-01",
+            "outcome": "passed",
+            "setup": "not-required",
+            "teardown": "not-required",
+            "cleanup": {
+              "attempted": false,
+              "removed": null
+            },
+            "errorPhases": []
+          },
+          {
+            "id": "TC-02",
+            "outcome": "passed",
+            "setup": "not-required",
+            "teardown": "not-required",
+            "cleanup": {
+              "attempted": false,
+              "removed": null
+            },
+            "errorPhases": []
+          },
+          {
+            "id": "TC-03",
+            "outcome": "passed",
+            "setup": "passed",
+            "teardown": "passed",
+            "cleanup": {
+              "attempted": true,
+              "removed": true
+            },
+            "errorPhases": []
+          },
+          {
+            "id": "TC-04",
+            "outcome": "passed",
+            "setup": "passed",
+            "teardown": "passed",
+            "cleanup": {
+              "attempted": true,
+              "removed": true
+            },
+            "errorPhases": []
+          }
+        ]
+      }
+    },
+    {
+      "label": "02-full-first-state",
+      "name": "exec",
+      "success": true,
+      "isError": false,
+      "disposition": "completed",
+      "error": null,
+      "result": {
+        "count": 0,
+        "keys": 0
+      }
+    },
+    {
+      "label": "03-full-second",
+      "name": "exec",
+      "success": true,
+      "isError": false,
+      "disposition": "completed",
+      "error": null,
+      "result": {
+        "suiteId": "shiploop-remote-repeatability-v1",
+        "sourceRevision": "sha256:853dc9df6047c8101179f769690fe63e0cfde98aed263af0f72190b392084914",
+        "testDefinitionRevision": "repeatable-tests-v1",
+        "selection": "full",
+        "selectedIds": [
+          "TC-01",
+          "TC-02",
+          "TC-03",
+          "TC-04"
+        ],
+        "executedIds": [
+          "TC-01",
+          "TC-02",
+          "TC-03",
+          "TC-04"
+        ],
+        "summary": {
+          "passed": 4,
+          "failed": 0,
+          "blocked": 0
+        },
+        "cleanup": {
+          "attempted": 2,
+          "removed": 2,
+          "failed": 0,
+          "unverified": 0
+        },
+        "cases": [
+          {
+            "id": "TC-01",
+            "outcome": "passed",
+            "setup": "not-required",
+            "teardown": "not-required",
+            "cleanup": {
+              "attempted": false,
+              "removed": null
+            },
+            "errorPhases": []
+          },
+          {
+            "id": "TC-02",
+            "outcome": "passed",
+            "setup": "not-required",
+            "teardown": "not-required",
+            "cleanup": {
+              "attempted": false,
+              "removed": null
+            },
+            "errorPhases": []
+          },
+          {
+            "id": "TC-03",
+            "outcome": "passed",
+            "setup": "passed",
+            "teardown": "passed",
+            "cleanup": {
+              "attempted": true,
+              "removed": true
+            },
+            "errorPhases": []
+          },
+          {
+            "id": "TC-04",
+            "outcome": "passed",
+            "setup": "passed",
+            "teardown": "passed",
+            "cleanup": {
+              "attempted": true,
+              "removed": true
+            },
+            "errorPhases": []
+          }
+        ]
+      }
+    },
+    {
+      "label": "03-full-second-state",
+      "name": "exec",
+      "success": true,
+      "isError": false,
+      "disposition": "completed",
+      "error": null,
+      "result": {
+        "count": 0,
+        "keys": 0
+      }
+    },
+    {
+      "label": "04-reversed",
+      "name": "exec",
+      "success": true,
+      "isError": false,
+      "disposition": "completed",
+      "error": null,
+      "result": {
+        "suiteId": "shiploop-remote-repeatability-v1",
+        "sourceRevision": "sha256:853dc9df6047c8101179f769690fe63e0cfde98aed263af0f72190b392084914",
+        "testDefinitionRevision": "repeatable-tests-v1",
+        "selection": "explicit",
+        "selectedIds": [
+          "TC-04",
+          "TC-03",
+          "TC-02",
+          "TC-01"
+        ],
+        "executedIds": [
+          "TC-04",
+          "TC-03",
+          "TC-02",
+          "TC-01"
+        ],
+        "summary": {
+          "passed": 4,
+          "failed": 0,
+          "blocked": 0
+        },
+        "cleanup": {
+          "attempted": 2,
+          "removed": 2,
+          "failed": 0,
+          "unverified": 0
+        },
+        "cases": [
+          {
+            "id": "TC-04",
+            "outcome": "passed",
+            "setup": "passed",
+            "teardown": "passed",
+            "cleanup": {
+              "attempted": true,
+              "removed": true
+            },
+            "errorPhases": []
+          },
+          {
+            "id": "TC-03",
+            "outcome": "passed",
+            "setup": "passed",
+            "teardown": "passed",
+            "cleanup": {
+              "attempted": true,
+              "removed": true
+            },
+            "errorPhases": []
+          },
+          {
+            "id": "TC-02",
+            "outcome": "passed",
+            "setup": "not-required",
+            "teardown": "not-required",
+            "cleanup": {
+              "attempted": false,
+              "removed": null
+            },
+            "errorPhases": []
+          },
+          {
+            "id": "TC-01",
+            "outcome": "passed",
+            "setup": "not-required",
+            "teardown": "not-required",
+            "cleanup": {
+              "attempted": false,
+              "removed": null
+            },
+            "errorPhases": []
+          }
+        ]
+      }
+    },
+    {
+      "label": "04-reversed-state",
+      "name": "exec",
+      "success": true,
+      "isError": false,
+      "disposition": "completed",
+      "error": null,
+      "result": {
+        "count": 0,
+        "keys": 0
+      }
+    },
+    {
+      "label": "05-focused-first",
+      "name": "exec",
+      "success": true,
+      "isError": false,
+      "disposition": "completed",
+      "error": null,
+      "result": {
+        "suiteId": "shiploop-remote-repeatability-v1",
+        "sourceRevision": "sha256:853dc9df6047c8101179f769690fe63e0cfde98aed263af0f72190b392084914",
+        "testDefinitionRevision": "repeatable-tests-v1",
+        "selection": "explicit",
+        "selectedIds": [
+          "TC-03"
+        ],
+        "executedIds": [
+          "TC-03"
+        ],
+        "summary": {
+          "passed": 1,
+          "failed": 0,
+          "blocked": 0
+        },
+        "cleanup": {
+          "attempted": 1,
+          "removed": 1,
+          "failed": 0,
+          "unverified": 0
+        },
+        "cases": [
+          {
+            "id": "TC-03",
+            "outcome": "passed",
+            "setup": "passed",
+            "teardown": "passed",
+            "cleanup": {
+              "attempted": true,
+              "removed": true
+            },
+            "errorPhases": []
+          }
+        ]
+      }
+    },
+    {
+      "label": "05-focused-first-state",
+      "name": "exec",
+      "success": true,
+      "isError": false,
+      "disposition": "completed",
+      "error": null,
+      "result": {
+        "count": 0,
+        "keys": 0
+      }
+    },
+    {
+      "label": "06-focused-second",
+      "name": "exec",
+      "success": true,
+      "isError": false,
+      "disposition": "completed",
+      "error": null,
+      "result": {
+        "suiteId": "shiploop-remote-repeatability-v1",
+        "sourceRevision": "sha256:853dc9df6047c8101179f769690fe63e0cfde98aed263af0f72190b392084914",
+        "testDefinitionRevision": "repeatable-tests-v1",
+        "selection": "explicit",
+        "selectedIds": [
+          "TC-03"
+        ],
+        "executedIds": [
+          "TC-03"
+        ],
+        "summary": {
+          "passed": 1,
+          "failed": 0,
+          "blocked": 0
+        },
+        "cleanup": {
+          "attempted": 1,
+          "removed": 1,
+          "failed": 0,
+          "unverified": 0
+        },
+        "cases": [
+          {
+            "id": "TC-03",
+            "outcome": "passed",
+            "setup": "passed",
+            "teardown": "passed",
+            "cleanup": {
+              "attempted": true,
+              "removed": true
+            },
+            "errorPhases": []
+          }
+        ]
+      }
+    }
+  ],
+  "failure": "MCP error -32001: Request timed out"
+}

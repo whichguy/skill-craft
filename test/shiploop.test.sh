@@ -43,6 +43,7 @@ suites=(
   test/shiploop-capability-runtime.test.py \
   test/shiploop-generalized-discovery.test.py \
   test/shiploop-capability-async.test.cjs \
+  test/shiploop-repeatable-experiments.test.py \
   test/shiploop-system-context.test.py \
   test/shiploop-research-template.test.py \
   test/shiploop-research-packet-protocol.test.py \

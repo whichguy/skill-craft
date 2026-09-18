@@ -1,0 +1,154 @@
+{
+  "schema": "repeatable-test-followups/1",
+  "commit_policy": "explicit no-stage/no-commit",
+  "original_trials_replaced": false,
+  "trials": [
+    {
+      "name": "price-candidate-no-commit",
+      "native_status": "exited",
+      "elapsed_seconds": 921.29,
+      "actual_improve": {
+        "status": "paused",
+        "cycle": 1,
+        "state_sha256": "670f823e7b75e6dd4b78c7f8c3d173775dcbe26ed26b65e287625eecdd68a0f2",
+        "evidence_boundary": "adapter state observed; transcript and review records require independent audit"
+      },
+      "terminal_usage": [
+        {
+          "input_tokens": 2265224,
+          "cached_input_tokens": 2155520,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 24702,
+          "reasoning_output_tokens": 6026
+        }
+      ],
+      "runtime_unchanged": true,
+      "requested_model": "gpt-6-astra",
+      "requested_effort": "ultra",
+      "observed_models": [],
+      "before": {
+        "GUIDANCE.md": "8c29f4d0e5819495d3126ed25b35d1decc0c9a672466218a99c02d19aa973142",
+        "PRIOR_RUN.md": "872f7a8d07af88349aa1ba4d4937ff91ca8643b4125de941ab9e77bcbe1e408f",
+        "SPEC.md": "bb266d049ab2dd31e9d49d5fa1df173a7d0dd4d54aeff04c32f7d6cfe155e2df",
+        "TESTING.md": "56289eb3e0f99fc5473893ec32745e08a8e98c0324707e2e1516c3ca1e95caf3",
+        "pricing.py": "a18e4fe8271a1f6d79b6993e4328334305c290aafa29ff765489766f496d12d8",
+        "run_tests.py": "837c3bec96999fd58d3a82243af087af93deb93df66daf387488c200ee47d7c9",
+        "test_pricing.py": "916989410029f53847351401eb492bda3d89ed845e751ed18ccf401d8384f2a2",
+        "test_starter.py": "572e2dc8fea07670b6b892f7e60030ae8772a408258ac3268118fdd77f4506eb",
+        "test_support.py": "9ef3e27547c87fb9a8450fdaaf91c062e03d73e2d1ed38267c34006d79898e58"
+      },
+      "after": {
+        "GUIDANCE.md": "8c29f4d0e5819495d3126ed25b35d1decc0c9a672466218a99c02d19aa973142",
+        "PRIOR_RUN.md": "872f7a8d07af88349aa1ba4d4937ff91ca8643b4125de941ab9e77bcbe1e408f",
+        "SPEC.md": "bb266d049ab2dd31e9d49d5fa1df173a7d0dd4d54aeff04c32f7d6cfe155e2df",
+        "TESTING.md": "41e016b6532dd4c1943363ae5bd9e9f091b026b718f3211e4618aca4806794b4",
+        "pricing.py": "a18e4fe8271a1f6d79b6993e4328334305c290aafa29ff765489766f496d12d8",
+        "run_tests.py": "c36bff8e87f3ae90993912f54ed113fd9f8d0b4b677b5e4637c2569bf00aa0aa",
+        "test_pricing.py": "af5da749945c710493451bd5ee95708870d84a8dc9de12b38404552c21f2e805",
+        "test_run_tests.py": "d16492c55159425cf013d78bb25859762a1bea66b076abdc0972b110adb03d07",
+        "test_starter.py": "572e2dc8fea07670b6b892f7e60030ae8772a408258ac3268118fdd77f4506eb",
+        "test_support.py": "9ef3e27547c87fb9a8450fdaaf91c062e03d73e2d1ed38267c34006d79898e58"
+      },
+      "raw_result_sha256": "51060c5b571e0c74e5f3582ceb7094867f01b9634f7afa42784d80a703fa2615"
+    },
+    {
+      "name": "red-candidate-no-commit",
+      "native_status": "exited",
+      "elapsed_seconds": 725.36,
+      "actual_improve": {
+        "status": "done",
+        "cycle": 3,
+        "state_sha256": "7bd77486afc021fe3a14be54853efcc0eed95c6e703f1cdb0643242a82a84611",
+        "evidence_boundary": "adapter state observed; transcript and review records require independent audit"
+      },
+      "terminal_usage": [
+        {
+          "input_tokens": 1455664,
+          "cached_input_tokens": 1350784,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 20896,
+          "reasoning_output_tokens": 3502
+        }
+      ],
+      "runtime_unchanged": true,
+      "requested_model": "gpt-6-astra",
+      "requested_effort": "ultra",
+      "observed_models": [],
+      "before": {
+        "GUIDANCE.md": "8c29f4d0e5819495d3126ed25b35d1decc0c9a672466218a99c02d19aa973142",
+        "PRIOR_RUN.md": "872f7a8d07af88349aa1ba4d4937ff91ca8643b4125de941ab9e77bcbe1e408f",
+        "SPEC.md": "b1af438cbf8dbc01e5d82f9e147cf81ff1e1174fefc6c9a36a2b9f5a03fa2066",
+        "TESTING.md": "75cd5fc018e34928cb8a77b4eb579866a22148ca956e7c8e2dc71333c67a80d4",
+        "TEST_RESULTS.txt": "7c8efa0884e5e3d7c0257497df2ea772afabb728dfdbfc7db14ff926830d6136",
+        "run_tests.py": "837c3bec96999fd58d3a82243af087af93deb93df66daf387488c200ee47d7c9",
+        "slug.py": "354521e28018303326907fc188f55619818c3d47f15da271296ca5dbee989b08",
+        "test_slug_contract.py": "b187edaece5e7ea35b29b7ef5d0ea6ee12b4de7b312c10bc36f0c57555aeac3a",
+        "test_starter.py": "0c3fef6befc8c23d8158610c4fa6ef691da3efedc970fae0f2cccd1fbb540b49",
+        "test_support.py": "9ef3e27547c87fb9a8450fdaaf91c062e03d73e2d1ed38267c34006d79898e58"
+      },
+      "after": {
+        "GUIDANCE.md": "8c29f4d0e5819495d3126ed25b35d1decc0c9a672466218a99c02d19aa973142",
+        "PRIOR_RUN.md": "872f7a8d07af88349aa1ba4d4937ff91ca8643b4125de941ab9e77bcbe1e408f",
+        "SPEC.md": "b1af438cbf8dbc01e5d82f9e147cf81ff1e1174fefc6c9a36a2b9f5a03fa2066",
+        "TESTING.md": "b9e86699762a172b98d2e8d776ef0a0540e09c44c4d78a912b688bbbd1fa03d5",
+        "TEST_RESULTS.txt": "7c8efa0884e5e3d7c0257497df2ea772afabb728dfdbfc7db14ff926830d6136",
+        "run_tests.py": "6cfd3b3177f750d050cc1449c3e67662c440bfdb52429bb1505d5deb75a03549",
+        "slug.py": "354521e28018303326907fc188f55619818c3d47f15da271296ca5dbee989b08",
+        "test_run_tests.py": "90d2716e3054dc7a02ba9e9ea6cf675330a7495ef4c26a0c68bab823be4450ba",
+        "test_slug_contract.py": "b187edaece5e7ea35b29b7ef5d0ea6ee12b4de7b312c10bc36f0c57555aeac3a",
+        "test_starter.py": "0c3fef6befc8c23d8158610c4fa6ef691da3efedc970fae0f2cccd1fbb540b49",
+        "test_support.py": "9ef3e27547c87fb9a8450fdaaf91c062e03d73e2d1ed38267c34006d79898e58"
+      },
+      "raw_result_sha256": "4de14561b6e3f040d2e1eafb812dbff72c07eecd954a6ef1664696a6715603f1"
+    },
+    {
+      "name": "sqlite-candidate-no-commit",
+      "native_status": "exited",
+      "elapsed_seconds": 781.1,
+      "actual_improve": {
+        "status": "paused",
+        "cycle": 1,
+        "state_sha256": "87114a9298b0c98835af1aaceb5a46df9db7e8e8a1dfdc001cb95dcd7bdc93bc",
+        "evidence_boundary": "adapter state observed; transcript and review records require independent audit"
+      },
+      "terminal_usage": [
+        {
+          "input_tokens": 2218814,
+          "cached_input_tokens": 2112896,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 21335,
+          "reasoning_output_tokens": 4100
+        }
+      ],
+      "runtime_unchanged": true,
+      "requested_model": "gpt-6-astra",
+      "requested_effort": "ultra",
+      "observed_models": [],
+      "before": {
+        "GUIDANCE.md": "8c29f4d0e5819495d3126ed25b35d1decc0c9a672466218a99c02d19aa973142",
+        "PRIOR_RUN.md": "872f7a8d07af88349aa1ba4d4937ff91ca8643b4125de941ab9e77bcbe1e408f",
+        "SPEC.md": "703df4cd71d722f16cf00d925c123716b0c7ce87c70c68d4fe8c2d229e8c1552",
+        "TESTING.md": "beea91ef25aaa5e1b7d8e52054da3f8b8ba64e16a3635fd69f200dce16be16ad",
+        "catalog.py": "1d5472b7e2680b0628ac8e13c4f7124bfd9ec1fc40270209d81313f4bd4edbf4",
+        "run_tests.py": "6abab506ee84c4a713ccb9e8fce09ce44e3774f27534ca17e88231aab6a350e3",
+        "test_catalog.py": "282d19f78cb25320f5b28d098a748fa2721ad84ba14754116200fee9d4d93b16",
+        "test_runner.py": "958cd9bd92e06a12a98ad8c4d0ab34705440d6cd4f3168a14c9e5c7547b72d46",
+        "test_starter.py": "3a00524f7006e069e6b8489688ecf20c4b67c851d4a5b7ac3e5cb65883b58c62",
+        "test_support.py": "4a51148b7467848db64f11a97abbf688a0013e86d5d127bb9756c1a8adfd44f8"
+      },
+      "after": {
+        "GUIDANCE.md": "8c29f4d0e5819495d3126ed25b35d1decc0c9a672466218a99c02d19aa973142",
+        "PRIOR_RUN.md": "872f7a8d07af88349aa1ba4d4937ff91ca8643b4125de941ab9e77bcbe1e408f",
+        "SPEC.md": "703df4cd71d722f16cf00d925c123716b0c7ce87c70c68d4fe8c2d229e8c1552",
+        "TESTING.md": "b8ef3ab043136deaea98b2d29bdf7b64d65e01aee6ccb33e7ea7c3550b08ead4",
+        "catalog.py": "1d5472b7e2680b0628ac8e13c4f7124bfd9ec1fc40270209d81313f4bd4edbf4",
+        "run_tests.py": "3a92dc8bad38e2f0beb253410ffff6f10fc7423a65e3be53f9c86e987a9f5db0",
+        "test_catalog.py": "282d19f78cb25320f5b28d098a748fa2721ad84ba14754116200fee9d4d93b16",
+        "test_runner.py": "67e96baf330811f972864e61b8547315ee991f8f651eb9476def5b9c3a0d13b1",
+        "test_starter.py": "3a00524f7006e069e6b8489688ecf20c4b67c851d4a5b7ac3e5cb65883b58c62",
+        "test_support.py": "4a51148b7467848db64f11a97abbf688a0013e86d5d127bb9756c1a8adfd44f8"
+      },
+      "raw_result_sha256": "ca0dc2a30f7c527de858be21e6d8004edde21c27244dc847227d2e1cdcd614b6"
+    }
+  ]
+}
