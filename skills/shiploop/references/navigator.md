@@ -183,7 +183,7 @@ without selecting another item.
 flowchart LR
   S[Saved Markdown state] --> P[Derived progress snapshot]
   P --> U[Owner reports progress]
-  P --> A[One current assignment]
+  U --> A[Owner continues active assignment]
   A --> R[Accepted result]
   R --> S
 ```
@@ -207,11 +207,24 @@ skill validation: before it completes, validation is conditional; a result
 without `skill_required: true` skips it. Skipped is not completed.
 
 The owner gives a concise **Done / Current / Pending / Blocked** update at
-start/recovery, substantive milestones, queue changes or changed blockers.
+start/recovery, each major completed step, queue changes or changed blockers.
 Group adjacent short stages. During long actions or waits, follow the host's
 update cadence with an actual observation, or the last known status and next
 check. Avoid duplicate reports for every callback, unchanged poll or delegated
 worker. This is communication guidance; the host chooses wording and timing.
+
+Run to completion by default within the user's scope and existing authority.
+Emit these reports as intermediate updates and immediately continue the active
+packet's current owner without waiting for acknowledgement or asking whether to
+continue. Do not end the turn merely because a milestone report was delivered.
+Submit the exact callback and follow its returned packet, including a bound
+Improve child; a producer's `done` or a child's completion does not finish the
+whole run. Stop at run completion, an explicit user stop/pause, or a real blocker
+that prevents further authorized work. Resolve recoverable conditions within
+scope through the printed resume route; ask only for actually missing decisions,
+authority, or access. Paused, blocked, halted and done packets retain their
+existing boundaries. Reporting itself neither advances nor pauses the graph,
+and ShipLoop cannot keep a host process alive or force another tool call.
 
 For a legacy v2 example, after W1's accepted carry-forward and W2's accepted document result
 with no skill validation selected, the next packet assigns W2 `verify`. A

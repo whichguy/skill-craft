@@ -179,6 +179,21 @@ the host handoff, or force any host tool call.
 
 ## Follow the current packet
 
+Run to completion by default within the user's scope and existing authority.
+Progress reports are intermediate updates, not turn-ending handoffs or approval
+requests. After each major completed step, briefly report the milestone and
+immediately follow the returned packet's current owner, including a bound
+Improve child. Do not wait for acknowledgement, ask whether to continue, or end
+the turn while authorized runnable work remains. A step's `done` or an Improve
+child's completion is not completion of the whole run.
+
+Stop when the script reports the run done, the user explicitly requests a stop
+or pause, or a real blocker prevents further authorized work. Resolve recoverable
+conditions within scope and follow the printed resume route; ask only for a
+decision, authority, or access that is actually missing. Preserve paused,
+blocked, halted, and child-owner boundaries. If the host interrupts execution,
+retain the recovery locators and resume the same run when execution resumes.
+
 1. The owning agent reads the original goal, repository, current work item,
    relevant durable notes and the stage's instructions. The packet identifies
    one effective node, its owner, and exactly one completion callback. During
@@ -228,8 +243,8 @@ the host handoff, or force any host tool call.
 
 Use each packet's derived progress snapshot to keep the user oriented: briefly
 group recorded completions, the current assignment, pending work and blockers
-at start/recovery and substantive milestones. During long work, report observed
-activity and the next check at the host's normal update cadence. Only the owner
+at start/recovery and after each major completed step. During long work, report
+observed activity and the next check at the host's normal update cadence. Only the owner
 reports overall progress; avoid repeating unchanged packets or worker updates.
 An active assignment does not establish execution. Keep paused, blocked, halted,
 conditional and justified-N/A work distinct. Describe observed Improve work from

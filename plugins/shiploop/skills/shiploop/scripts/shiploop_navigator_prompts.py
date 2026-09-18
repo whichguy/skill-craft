@@ -72,8 +72,16 @@ ENVIRONMENT_DISCOVERY_REQUIREMENTS = {
 
 PROGRESS_REPORTING = """\
 User progress reporting: Briefly report Done / Current / Pending / Blocked from
-this snapshot at start/recovery, substantive milestones, queue changes or changed
+this snapshot at start/recovery, each major completed step, queue changes or changed
 blockers. Group adjacent short stages; do not echo each packet or unchanged poll.
+Run to completion by default within scope and authority. Emit progress as an
+intermediate update, then immediately continue the active packet's current owner
+while authorized runnable work remains. Do not wait for acknowledgement, ask
+whether to continue, or end the turn merely to deliver a report. After the exact
+callback, consume and follow its returned packet; a step's done is not run
+completion. Respect explicit user stops and paused/blocked/halted/done states;
+resolve recoverable conditions through the printed route and ask only for an
+actually missing decision, authority, or access.
 For long work/waits, follow the host's update cadence: give an actual observation
 or the last known status and next check; do not invent continuing execution.
 Active means assigned, not proof work started. Paused/blocked work awaits resume;
