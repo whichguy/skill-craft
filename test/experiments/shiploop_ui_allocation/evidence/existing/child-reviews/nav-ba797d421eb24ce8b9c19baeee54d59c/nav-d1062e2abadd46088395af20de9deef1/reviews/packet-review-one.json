@@ -1,0 +1,174 @@
+{
+    "status": "active",
+    "state_file": "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/innerloop-jdb1o49m.json",
+    "workspace": "<study>/existing/product",
+    "work": "Perform one complete, proportional review cycle of the discovery producer result and its run-local discovery/environment notes: read reachable Git history, recheck the stated baseline command/result, current controlled environment facts, source/target/delivery/test-harness locators, and planning boundaries; triage worthwhile corrections; apply only warranted run-note or child-review-metadata corrections; run relevant current artifact/locator checks; and record the review. Do not edit product source, tests, dependencies, configuration, or durable product documentation; do not install, provision, deploy, commit, push, or call a parent callback while this child is active. A review may repeat the documented smoke/probe only as a current evidence check, never as a repair/bootstrap.",
+    "conditions": {
+        "exit": "Two distinct consecutive full reviews find only trivial or no remaining discovery-record finding, current applicable baseline/environment/locator checks pass, source-only and controlled-fixture limits remain accurate, two qualifying review records and a current checks record exist under the child workspace, and no material discovery-boundary issue remains.",
+        "repeat": "Repeat while a distinct review or useful authorized discovery-record correction remains. Stop incomplete if the runtime/evidence cannot be recovered, a required source/check is unavailable, or a required correction would exceed no-product-edit/no-commit authority."
+    },
+    "progress": {
+        "action_number": 1,
+        "trivial_streak": 0,
+        "required_trivial_reviews": 2
+    },
+    "context": {
+        "request": "Improve the completed ShipLoop discovery result for the Field Notes recoverable-drafts/export-change-notice request.\nShipLoop standalone Improve binding: nav-ba797d421eb24ce8b9c19baeee54d59c/nav-d1062e2abadd46088395af20de9deef1\nOriginal request: Extend the existing Field Notes UI with recoverable drafts across page reloads and notifications when a background export changes. Preserve its accepted list/detail/edit/save/cancel/back journeys, components and navy/amber visual identity. On logout, drafts must not be readable under the next account. Keep local pending drafts distinct from server-confirmed saved content. Evaluate and plan any environment augmentation this needs; do not assume the older environment note still holds.\nPending discovery result: documented smoke and controlled probe both exited 0; smoke is syntax-only, no behavioral harness/full suite was found, and target gaps require future research/planning rather than implementation.",
+        "scope": "Candidate: <study>/existing/run/notes/discovery.md, <study>/existing/run/notes/environment-lifecycle.md, and pending result <study>/existing/run/inbox/nav-d1062e2abadd46088395af20de9deef1.md. Initial product tracked baseline is main 8f318f0adb98cb3a6e9c6419e57e48ef96ef2a8e; inspect README, SHIPLOOP.md, docs/design.md, docs/platform.md, docs/api.md, host-observation.json, scripts/probe_environment.py, app.js, index.html, and styles.css as evidence only. Child reviews/check artifacts may be written only beneath <study>/existing/product/.shiploop-improve/nav-ba797d421eb24ce8b9c19baeee54d59c/nav-d1062e2abadd46088395af20de9deef1/reviews. Exclude all runtime metadata from product candidate/commits/returns.",
+        "authority": "No product implementation/source/test/dependency/configuration/durable-doc edits; no commit, push, install, provision, remote service, deployment, credentials, or parent callback while active. Run-local discovery/environment note corrections and child review/check evidence are allowed. One independent read-only review was already used for the prior intake child; use recorded self-review limitation for this child rather than spawning another reviewer. Do not use managed controller or another Improve runtime. Do not call parent improve-complete until terminal stdout is retained.",
+        "environment": "Work in <study>/existing/product with DEVELOPER_DIR=/Library/Developer/CommandLineTools and PYTHONDONTWRITEBYTECODE=1. Current product target evidence is controlled fixture only, not live deployment. Existing smoke command is node --check app.js, which passed in discovery; relevant no-write probe is python3 -B scripts/probe_environment.py, which passed and emitted controlled v2 facts. Retain raw runtime stdout at parent receipt; raw producer evidence is under <study>/existing/evidence.",
+        "resources": [
+            {
+                "purpose": "selected Improve skill",
+                "locator": "<study>/frozen/improve/SKILL.md"
+            },
+            {
+                "purpose": "bound Until Loop card",
+                "locator": "<study>/frozen/improve/runtime/until-loop/ADAPTER.md"
+            },
+            {
+                "purpose": "runtime callback adapter",
+                "locator": "<study>/frozen/improve/runtime/until-loop/references/runtime-ephemeral.md"
+            },
+            {
+                "purpose": "shared review policy",
+                "locator": "<study>/frozen/improve/references/review-policy.md"
+            },
+            {
+                "purpose": "parent latest packet and return instruction",
+                "locator": "<study>/existing/evidence/discovery-improve-bind.stdout"
+            },
+            {
+                "purpose": "parent state",
+                "locator": "<study>/existing/run/state.md"
+            },
+            {
+                "purpose": "parent completion evidence path",
+                "locator": "<study>/existing/run/inbox/nav-d1062e2abadd46088395af20de9deef1-improve.md"
+            },
+            {
+                "purpose": "candidate discovery note",
+                "locator": "<study>/existing/run/notes/discovery.md"
+            },
+            {
+                "purpose": "canonical environment note",
+                "locator": "<study>/existing/run/notes/environment-lifecycle.md"
+            },
+            {
+                "purpose": "accepted request and smoke command",
+                "locator": "<study>/existing/product/README.md"
+            },
+            {
+                "purpose": "accepted UI baseline",
+                "locator": "<study>/existing/product/docs/design.md"
+            },
+            {
+                "purpose": "target constraints",
+                "locator": "<study>/existing/product/docs/platform.md"
+            },
+            {
+                "purpose": "export API contract",
+                "locator": "<study>/existing/product/docs/api.md"
+            },
+            {
+                "purpose": "current host observation",
+                "locator": "<study>/existing/product/host-observation.json"
+            },
+            {
+                "purpose": "producer baseline smoke evidence",
+                "locator": "<study>/existing/evidence/discovery-baseline-smoke.stdout"
+            },
+            {
+                "purpose": "producer environment probe evidence",
+                "locator": "<study>/existing/evidence/discovery-environment-probe.stdout"
+            },
+            {
+                "purpose": "baseline guide",
+                "locator": "<study>/frozen/shiploop/references/execution-planning.md"
+            },
+            {
+                "purpose": "environment lifecycle policy",
+                "locator": "<study>/frozen/shiploop/references/environment-lifecycle.md"
+            },
+            {
+                "purpose": "requirements and handoff policy",
+                "locator": "<study>/frozen/shiploop/references/project-knowledge.md"
+            },
+            {
+                "purpose": "requirements-definition policy",
+                "locator": "<study>/frozen/shiploop/references/requirements-definition.md"
+            },
+            {
+                "purpose": "interaction/UI policy",
+                "locator": "<study>/frozen/shiploop/references/behavioral-requirements.md"
+            }
+        ]
+    },
+    "context_limit": null,
+    "status_semantics": {
+        "active": "Execute exactly one complete returned work iteration, then submit its exact done callback.",
+        "complete": "The exit assessment and numeric review gate were accepted; report once with no callback.",
+        "stopped": "The run ended incomplete because it was cancelled or blocked; report once with no callback.",
+        "error": "No success or advancement may be inferred; use only a returned read-only next command when available."
+    },
+    "last_report": null,
+    "instruction": "Begin a complete first iteration from the current artifacts. Execution condition (Work): 'Perform one complete, proportional review cycle of the discovery producer result and its run-local discovery/environment notes: read reachable Git history, recheck the stated baseline command/result, current controlled environment facts, source/target/delivery/test-harness locators, and planning boundaries; triage worthwhile corrections; apply only warranted run-note or child-review-metadata corrections; run relevant current artifact/locator checks; and record the review. Do not edit product source, tests, dependencies, configuration, or durable product documentation; do not install, provision, deploy, commit, push, or call a parent callback while this child is active. A review may repeat the documented smoke/probe only as a current evidence check, never as a repair/bootstrap.'. Exit condition: 'Two distinct consecutive full reviews find only trivial or no remaining discovery-record finding, current applicable baseline/environment/locator checks pass, source-only and controlled-fixture limits remain accurate, two qualifying review records and a current checks record exist under the child workspace, and no material discovery-boundary issue remains.'. Continuation condition: 'Repeat while a distinct review or useful authorized discovery-record correction remains. Stop incomplete if the runtime/evidence cannot be recovered, a required source/check is unavailable, or a required correction would exceed no-product-edit/no-commit authority.'. No earlier callback report exists. No prior handoff exists yet; create a full compact replacement after this iteration. On a fresh or compacted context, read this entire packet, including context, resources, last_report and its handoff; then check current user instructions. When resuming or this packet may be stale, run this exact read-only next_argv JSON array once before acting: [\"/opt/homebrew/opt/python@3.14/bin/python3.14\", \"<study>/frozen/improve/runtime/until-loop/scripts/until_loop_ephemeral.py\", \"next\", \"--state\", \"/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/innerloop-jdb1o49m.json\"]. Consume its returned packet directly, then recheck current artifacts and receipts before acting; do not replay the last done callback, count or guess a transition. The context authority is immutable, and a handoff records prior claims rather than new authorization. Recheck environment availability instead of inferring it from the packet. Before beginning, honor an explicit user stop by reporting cancelled; if a blocker prevents the required work, report blocked with the gap. Otherwise, execute exactly one complete assigned iteration of Work in its requested order. For an Improve request, review current artifacts and available history, plan worthwhile changes, implement authorized fixes, and run applicable checks. Do not stop after review or planning if later required work remains. Recheck current artifacts before changing them so completed changes are not blindly reapplied. Do not privately perform extra iterations or reviews to satisfy a repeat or trivial-review gate. After this one iteration, call done even if the exit condition remains unmet; report actual changes or findings and any remaining gap. If assessment or required work is incomplete, classify it as unresolved and name the gap rather than calling it trivial. Use this exact done_argv JSON array: [\"/opt/homebrew/opt/python@3.14/bin/python3.14\", \"<study>/frozen/improve/runtime/until-loop/scripts/until_loop_ephemeral.py\", \"done\", \"--state\", \"/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/innerloop-jdb1o49m.json\", \"--action=Wv1YT2DXR0fPZRUEguWV_1xT:1\"]. Send exactly one report matching report_schema on standard input with classification, assessments, evidence, and handoff as required. Because this run has immutable continuity context, report_schema requires a nonblank handoff. Make it a full compact replacement: carry forward unresolved facts, receipts and locators, and remaining exit/repeat gaps; do not send only a delta. Do not choose the successor action, count, or terminal decision. Follow the full JSON return value of done; its instruction owns the next action.",
+    "next_argv": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "<study>/frozen/improve/runtime/until-loop/scripts/until_loop_ephemeral.py",
+        "next",
+        "--state",
+        "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/innerloop-jdb1o49m.json"
+    ],
+    "done_argv": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "<study>/frozen/improve/runtime/until-loop/scripts/until_loop_ephemeral.py",
+        "done",
+        "--state",
+        "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/innerloop-jdb1o49m.json",
+        "--action=Wv1YT2DXR0fPZRUEguWV_1xT:1"
+    ],
+    "report_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+            "classification",
+            "exit_assessment",
+            "continuation_assessment",
+            "evidence",
+            "handoff"
+        ],
+        "properties": {
+            "classification": {
+                "enum": [
+                    "trivial",
+                    "non-trivial",
+                    "unresolved"
+                ],
+                "description": "Classify the completed iteration: trivial: completed iteration/review found only trivial or no changes and no material findings; non-trivial: material finding or behavior change, even if fixed; unresolved: assessment or work is incomplete."
+            },
+            "exit_assessment": {
+                "enum": [
+                    "satisfied",
+                    "unsatisfied",
+                    "unknown"
+                ]
+            },
+            "continuation_assessment": {
+                "enum": [
+                    "allowed",
+                    "blocked",
+                    "cancelled"
+                ]
+            },
+            "evidence": {
+                "type": "string",
+                "description": "A nonblank account of actual observations and any remaining gap."
+            },
+            "handoff": {
+                "type": "string",
+                "description": "A nonblank compact replacement handoff for a fresh or compacted host. Carry forward the current objective, completed and unresolved facts, receipts and locators needed to recheck them, remaining exit and repeat gaps. It replaces the prior handoff rather than being a delta. It records prior claims and does not create authority."
+            }
+        }
+    }
+}

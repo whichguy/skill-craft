@@ -1,0 +1,8 @@
+{
+  "expected": [
+    "Treat missing harness as W1-owned output rather than self-blocking.",
+    "Plan concrete local build and verification checks before a feature consumer.",
+    "Keep deployment and remote/server work outside scope."
+  ],
+  "id": "preparer-own-output"
+}

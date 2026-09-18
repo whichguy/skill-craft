@@ -85,6 +85,13 @@ The [environment interpretation study](experiments/shiploop_environment/README.m
 records three fictional topology cases and the planning-versus-execution
 ambiguity corrected through a fresh-reader follow-up.
 
+`python3 test/experiments/shiploop_ui_allocation/test_evidence.py` checks the
+UI-planning study's evidence reader with hermetic corruption controls. It
+distinguishes explicitly synthetic predecessors from archived Improve imports,
+validates archive identities, and reports the current inner action. These checks
+do not run a model/browser or establish the truth of review judgments. See the
+[UI allocation study](../docs/shiploop-ui-planning-allocation-2026-09-18.md).
+
 `python3 test/shiploop-cross-run.test.py` checks new-request versus repeated-init
 identity across protocols, terminal-run preservation, fresh-run isolation, and
 cold packets' persistent knowledge locators. The navigator dry-run suite covers

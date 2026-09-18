@@ -1,0 +1,334 @@
+{
+  "case_root": "<study>/new",
+  "callback_content": "reported evidence only; it does not prove semantics",
+  "structurally_valid": true,
+  "semantic_verification": false,
+  "errors": [],
+  "kind": "persisted-run",
+  "stage": "prepare",
+  "parent_stage": "prepare",
+  "status": "active",
+  "action_identity": {
+    "id": "nav-92891b8519df47679978c3e159e63f00",
+    "stage": "prepare"
+  },
+  "accepted_stage_record_count": 6,
+  "imports": [
+    {
+      "action_id": "nav-1b434e5fb57642ffb50300e60540f005",
+      "structurally_valid": true,
+      "errors": [],
+      "binding_id": "nav-2148a17cdff14eef8c90236660d96142/nav-1b434e5fb57642ffb50300e60540f005",
+      "binding_marker": "ShipLoop standalone Improve binding: nav-2148a17cdff14eef8c90236660d96142/nav-1b434e5fb57642ffb50300e60540f005",
+      "terminal_path": "<study>/new/run/improve/nav-1b434e5fb57642ffb50300e60540f005/terminal.json",
+      "terminal_sha256": "d64ff083761a9fe04cabfb5f2955fa83c36ea49fecce62835ae1cfabe6605448",
+      "progress": {
+        "action_number": 3,
+        "trivial_streak": 2,
+        "required_trivial_reviews": 2
+      },
+      "identities": {
+        "context_sha256": "a6f1cdd90022d1f3ad7606271d4ac1c4d01c8d029ce54194be54df44035c6d78",
+        "evidence_sha256": {
+          ".shiploop-improve/nav-2148a17cdff14eef8c90236660d96142/nav-1b434e5fb57642ffb50300e60540f005/reviews/checks-cycle-three.md": "e58c19dc55debef3bfa456e1bd5b691da13e141e5c23ab23b6731056598dedda",
+          ".shiploop-improve/nav-2148a17cdff14eef8c90236660d96142/nav-1b434e5fb57642ffb50300e60540f005/reviews/review-three.md": "04819eacb7a940eebb59bcc22c6838a9d5b1bfee2ef4bb7eb78efe155356a3bb",
+          ".shiploop-improve/nav-2148a17cdff14eef8c90236660d96142/nav-1b434e5fb57642ffb50300e60540f005/reviews/review-two.md": "a657ec181fc55b7f9c693dfb8b8fb702a4aae7c517510f537a383b81af9e51fb"
+        },
+        "last_report_sha256": "0089394b0c69ec163173f9114510989f99c69e87daeb4591e2f2fec10129d121",
+        "terminal_packet_sha256": "d64ff083761a9fe04cabfb5f2955fa83c36ea49fecce62835ae1cfabe6605448"
+      },
+      "receipt_refs": {
+        "review_refs": [
+          ".shiploop-improve/nav-2148a17cdff14eef8c90236660d96142/nav-1b434e5fb57642ffb50300e60540f005/reviews/review-two.md",
+          ".shiploop-improve/nav-2148a17cdff14eef8c90236660d96142/nav-1b434e5fb57642ffb50300e60540f005/reviews/review-three.md"
+        ],
+        "check_refs": [
+          ".shiploop-improve/nav-2148a17cdff14eef8c90236660d96142/nav-1b434e5fb57642ffb50300e60540f005/reviews/checks-cycle-three.md"
+        ]
+      },
+      "evidence_sources": [
+        {
+          "source": ".shiploop-improve/nav-2148a17cdff14eef8c90236660d96142/nav-1b434e5fb57642ffb50300e60540f005/reviews/review-two.md",
+          "archive": "improve/nav-1b434e5fb57642ffb50300e60540f005/evidence/01-review-two.md",
+          "sha256": "a657ec181fc55b7f9c693dfb8b8fb702a4aae7c517510f537a383b81af9e51fb"
+        },
+        {
+          "source": ".shiploop-improve/nav-2148a17cdff14eef8c90236660d96142/nav-1b434e5fb57642ffb50300e60540f005/reviews/review-three.md",
+          "archive": "improve/nav-1b434e5fb57642ffb50300e60540f005/evidence/02-review-three.md",
+          "sha256": "04819eacb7a940eebb59bcc22c6838a9d5b1bfee2ef4bb7eb78efe155356a3bb"
+        },
+        {
+          "source": ".shiploop-improve/nav-2148a17cdff14eef8c90236660d96142/nav-1b434e5fb57642ffb50300e60540f005/reviews/checks-cycle-three.md",
+          "archive": "improve/nav-1b434e5fb57642ffb50300e60540f005/evidence/03-checks-cycle-three.md",
+          "sha256": "e58c19dc55debef3bfa456e1bd5b691da13e141e5c23ab23b6731056598dedda"
+        }
+      ]
+    },
+    {
+      "action_id": "nav-3198ccc6204f4d208922cc7023893ea0",
+      "structurally_valid": true,
+      "errors": [],
+      "binding_id": "nav-2148a17cdff14eef8c90236660d96142/nav-3198ccc6204f4d208922cc7023893ea0",
+      "binding_marker": "ShipLoop standalone Improve binding: nav-2148a17cdff14eef8c90236660d96142/nav-3198ccc6204f4d208922cc7023893ea0",
+      "terminal_path": "<study>/new/run/improve/nav-3198ccc6204f4d208922cc7023893ea0/terminal.json",
+      "terminal_sha256": "7e94f3ef7f6016a237d7393a8d72c97fa45f499f17309a6e9b6881e52a88c551",
+      "progress": {
+        "action_number": 4,
+        "trivial_streak": 2,
+        "required_trivial_reviews": 2
+      },
+      "identities": {
+        "context_sha256": "64b5d43e7f3fde5506d610c0be7c5f711f2050e59021b64eff13fce807eb5d4d",
+        "evidence_sha256": {
+          ".shiploop-improve/nav-2148a17cdff14eef8c90236660d96142/nav-3198ccc6204f4d208922cc7023893ea0/reviews/checks-cycle-four.md": "5ba430b00584f90739616ffffc4232178771b7004326f86d50ca74608c803f48",
+          ".shiploop-improve/nav-2148a17cdff14eef8c90236660d96142/nav-3198ccc6204f4d208922cc7023893ea0/reviews/review-four.md": "ecd211552bdc13028aedbe3b2d35ae7183e7f8693bd7c21bf288ffcb2922c319",
+          ".shiploop-improve/nav-2148a17cdff14eef8c90236660d96142/nav-3198ccc6204f4d208922cc7023893ea0/reviews/review-three.md": "6278623ddb965ad1a2f0a5c693d3486fec1fa7ae44c2473f1fc01a6639176708"
+        },
+        "last_report_sha256": "7efe424eff043467519db5ac000721726ef5944e42e5ccc5b9e21f200b830d1b",
+        "terminal_packet_sha256": "7e94f3ef7f6016a237d7393a8d72c97fa45f499f17309a6e9b6881e52a88c551"
+      },
+      "receipt_refs": {
+        "review_refs": [
+          ".shiploop-improve/nav-2148a17cdff14eef8c90236660d96142/nav-3198ccc6204f4d208922cc7023893ea0/reviews/review-three.md",
+          ".shiploop-improve/nav-2148a17cdff14eef8c90236660d96142/nav-3198ccc6204f4d208922cc7023893ea0/reviews/review-four.md"
+        ],
+        "check_refs": [
+          ".shiploop-improve/nav-2148a17cdff14eef8c90236660d96142/nav-3198ccc6204f4d208922cc7023893ea0/reviews/checks-cycle-four.md"
+        ]
+      },
+      "evidence_sources": [
+        {
+          "source": ".shiploop-improve/nav-2148a17cdff14eef8c90236660d96142/nav-3198ccc6204f4d208922cc7023893ea0/reviews/review-three.md",
+          "archive": "improve/nav-3198ccc6204f4d208922cc7023893ea0/evidence/01-review-three.md",
+          "sha256": "6278623ddb965ad1a2f0a5c693d3486fec1fa7ae44c2473f1fc01a6639176708"
+        },
+        {
+          "source": ".shiploop-improve/nav-2148a17cdff14eef8c90236660d96142/nav-3198ccc6204f4d208922cc7023893ea0/reviews/review-four.md",
+          "archive": "improve/nav-3198ccc6204f4d208922cc7023893ea0/evidence/02-review-four.md",
+          "sha256": "ecd211552bdc13028aedbe3b2d35ae7183e7f8693bd7c21bf288ffcb2922c319"
+        },
+        {
+          "source": ".shiploop-improve/nav-2148a17cdff14eef8c90236660d96142/nav-3198ccc6204f4d208922cc7023893ea0/reviews/checks-cycle-four.md",
+          "archive": "improve/nav-3198ccc6204f4d208922cc7023893ea0/evidence/03-checks-cycle-four.md",
+          "sha256": "5ba430b00584f90739616ffffc4232178771b7004326f86d50ca74608c803f48"
+        }
+      ]
+    },
+    {
+      "action_id": "nav-55623ddc4321455996450a51afa4fd0c",
+      "structurally_valid": true,
+      "errors": [],
+      "binding_id": "nav-2148a17cdff14eef8c90236660d96142/nav-55623ddc4321455996450a51afa4fd0c",
+      "binding_marker": "ShipLoop standalone Improve binding: nav-2148a17cdff14eef8c90236660d96142/nav-55623ddc4321455996450a51afa4fd0c",
+      "terminal_path": "<study>/new/run/improve/nav-55623ddc4321455996450a51afa4fd0c/terminal.json",
+      "terminal_sha256": "62a8cb9e914367e83b937abd35a5737c61ccd164e1e16dd44d25280c414bcac9",
+      "progress": {
+        "action_number": 2,
+        "trivial_streak": 2,
+        "required_trivial_reviews": 2
+      },
+      "identities": {
+        "context_sha256": "c89862d83a4d87d1088f2456ece0e9c46dca4cddb0b44c54a0c3964dded92da6",
+        "evidence_sha256": {
+          ".shiploop-improve/nav-2148a17cdff14eef8c90236660d96142/nav-55623ddc4321455996450a51afa4fd0c/reviews/checks-cycle-two.md": "13c402fe04122c692c496fb5d05e0fe1cd439c247560e709e0b27b617b723121",
+          ".shiploop-improve/nav-2148a17cdff14eef8c90236660d96142/nav-55623ddc4321455996450a51afa4fd0c/reviews/review-one.md": "95d645e517a3e6fadf9be85e3c912ca3b1b26969dd7025f273e75bd3a7d61edd",
+          ".shiploop-improve/nav-2148a17cdff14eef8c90236660d96142/nav-55623ddc4321455996450a51afa4fd0c/reviews/review-two.md": "e35a51be1d9af280a7ff959b1f4dc19d609a4be86ad21088f18ed39b692fee88"
+        },
+        "last_report_sha256": "edc2312cda5652004968f3c71fb7830f84761553c58c194984aaa9bb11bfea58",
+        "terminal_packet_sha256": "62a8cb9e914367e83b937abd35a5737c61ccd164e1e16dd44d25280c414bcac9"
+      },
+      "receipt_refs": {
+        "review_refs": [
+          ".shiploop-improve/nav-2148a17cdff14eef8c90236660d96142/nav-55623ddc4321455996450a51afa4fd0c/reviews/review-one.md",
+          ".shiploop-improve/nav-2148a17cdff14eef8c90236660d96142/nav-55623ddc4321455996450a51afa4fd0c/reviews/review-two.md"
+        ],
+        "check_refs": [
+          ".shiploop-improve/nav-2148a17cdff14eef8c90236660d96142/nav-55623ddc4321455996450a51afa4fd0c/reviews/checks-cycle-two.md"
+        ]
+      },
+      "evidence_sources": [
+        {
+          "source": ".shiploop-improve/nav-2148a17cdff14eef8c90236660d96142/nav-55623ddc4321455996450a51afa4fd0c/reviews/review-one.md",
+          "archive": "improve/nav-55623ddc4321455996450a51afa4fd0c/evidence/01-review-one.md",
+          "sha256": "95d645e517a3e6fadf9be85e3c912ca3b1b26969dd7025f273e75bd3a7d61edd"
+        },
+        {
+          "source": ".shiploop-improve/nav-2148a17cdff14eef8c90236660d96142/nav-55623ddc4321455996450a51afa4fd0c/reviews/review-two.md",
+          "archive": "improve/nav-55623ddc4321455996450a51afa4fd0c/evidence/02-review-two.md",
+          "sha256": "e35a51be1d9af280a7ff959b1f4dc19d609a4be86ad21088f18ed39b692fee88"
+        },
+        {
+          "source": ".shiploop-improve/nav-2148a17cdff14eef8c90236660d96142/nav-55623ddc4321455996450a51afa4fd0c/reviews/checks-cycle-two.md",
+          "archive": "improve/nav-55623ddc4321455996450a51afa4fd0c/evidence/03-checks-cycle-two.md",
+          "sha256": "13c402fe04122c692c496fb5d05e0fe1cd439c247560e709e0b27b617b723121"
+        }
+      ]
+    },
+    {
+      "action_id": "nav-5a5e9e2846cb4077af072160793107c5",
+      "structurally_valid": true,
+      "errors": [],
+      "binding_id": "nav-2148a17cdff14eef8c90236660d96142/nav-5a5e9e2846cb4077af072160793107c5",
+      "binding_marker": "ShipLoop standalone Improve binding: nav-2148a17cdff14eef8c90236660d96142/nav-5a5e9e2846cb4077af072160793107c5",
+      "terminal_path": "<study>/new/run/improve/nav-5a5e9e2846cb4077af072160793107c5/terminal.json",
+      "terminal_sha256": "5372697cc6bf411d6f41b2d5bf20c6b4d895b559c658c24b6caa3041ff71cdd0",
+      "progress": {
+        "action_number": 3,
+        "trivial_streak": 2,
+        "required_trivial_reviews": 2
+      },
+      "identities": {
+        "context_sha256": "e94eb6f06e67c85f352eded8fc71e22559dfcd9bc9c0f96bc98c542231484e94",
+        "evidence_sha256": {
+          ".shiploop-improve/nav-2148a17cdff14eef8c90236660d96142/nav-5a5e9e2846cb4077af072160793107c5/reviews/cycle-three-final-audit-stdout.json": "1370626cf181b26c1a2b9d82a4901edc57486ba9fb3fb50fce2df5e257806a0a",
+          ".shiploop-improve/nav-2148a17cdff14eef8c90236660d96142/nav-5a5e9e2846cb4077af072160793107c5/reviews/review-three.md": "d62fab3008a9f4aa9fbaa15e1a22b1ebae36672a272a225c672bb99f84ff75a7",
+          ".shiploop-improve/nav-2148a17cdff14eef8c90236660d96142/nav-5a5e9e2846cb4077af072160793107c5/reviews/review-two.md": "bf0fe4ec7662967b41a61e65e1c32a1d87acb850a9d8720fb335b44d0bcc9192",
+          ".shiploop-improve/nav-2148a17cdff14eef8c90236660d96142/nav-5a5e9e2846cb4077af072160793107c5/reviews/terminal-integrity.json": "e3e2cc05ea94290c0128bbd43bf5f99c79fe8f2eac84fd1260ab696b381258ea",
+          ".shiploop-improve/nav-2148a17cdff14eef8c90236660d96142/nav-5a5e9e2846cb4077af072160793107c5/reviews/terminal-verification.md": "00d1bc5758e0daeddf7776c7a6262cead952ee5e60d277a5c6c1c0994d50562f"
+        },
+        "last_report_sha256": "65aae7667c08ffec515e10cbd7a708889ffdf491d351cd313181ad9c1c495701",
+        "terminal_packet_sha256": "5372697cc6bf411d6f41b2d5bf20c6b4d895b559c658c24b6caa3041ff71cdd0"
+      },
+      "receipt_refs": {
+        "review_refs": [
+          ".shiploop-improve/nav-2148a17cdff14eef8c90236660d96142/nav-5a5e9e2846cb4077af072160793107c5/reviews/review-two.md",
+          ".shiploop-improve/nav-2148a17cdff14eef8c90236660d96142/nav-5a5e9e2846cb4077af072160793107c5/reviews/review-three.md"
+        ],
+        "check_refs": [
+          ".shiploop-improve/nav-2148a17cdff14eef8c90236660d96142/nav-5a5e9e2846cb4077af072160793107c5/reviews/cycle-three-final-audit-stdout.json",
+          ".shiploop-improve/nav-2148a17cdff14eef8c90236660d96142/nav-5a5e9e2846cb4077af072160793107c5/reviews/terminal-verification.md",
+          ".shiploop-improve/nav-2148a17cdff14eef8c90236660d96142/nav-5a5e9e2846cb4077af072160793107c5/reviews/terminal-integrity.json"
+        ]
+      },
+      "evidence_sources": [
+        {
+          "source": ".shiploop-improve/nav-2148a17cdff14eef8c90236660d96142/nav-5a5e9e2846cb4077af072160793107c5/reviews/review-two.md",
+          "archive": "improve/nav-5a5e9e2846cb4077af072160793107c5/evidence/01-review-two.md",
+          "sha256": "bf0fe4ec7662967b41a61e65e1c32a1d87acb850a9d8720fb335b44d0bcc9192"
+        },
+        {
+          "source": ".shiploop-improve/nav-2148a17cdff14eef8c90236660d96142/nav-5a5e9e2846cb4077af072160793107c5/reviews/review-three.md",
+          "archive": "improve/nav-5a5e9e2846cb4077af072160793107c5/evidence/02-review-three.md",
+          "sha256": "d62fab3008a9f4aa9fbaa15e1a22b1ebae36672a272a225c672bb99f84ff75a7"
+        },
+        {
+          "source": ".shiploop-improve/nav-2148a17cdff14eef8c90236660d96142/nav-5a5e9e2846cb4077af072160793107c5/reviews/cycle-three-final-audit-stdout.json",
+          "archive": "improve/nav-5a5e9e2846cb4077af072160793107c5/evidence/03-cycle-three-final-audit-stdout.json",
+          "sha256": "1370626cf181b26c1a2b9d82a4901edc57486ba9fb3fb50fce2df5e257806a0a"
+        },
+        {
+          "source": ".shiploop-improve/nav-2148a17cdff14eef8c90236660d96142/nav-5a5e9e2846cb4077af072160793107c5/reviews/terminal-verification.md",
+          "archive": "improve/nav-5a5e9e2846cb4077af072160793107c5/evidence/04-terminal-verification.md",
+          "sha256": "00d1bc5758e0daeddf7776c7a6262cead952ee5e60d277a5c6c1c0994d50562f"
+        },
+        {
+          "source": ".shiploop-improve/nav-2148a17cdff14eef8c90236660d96142/nav-5a5e9e2846cb4077af072160793107c5/reviews/terminal-integrity.json",
+          "archive": "improve/nav-5a5e9e2846cb4077af072160793107c5/evidence/05-terminal-integrity.json",
+          "sha256": "e3e2cc05ea94290c0128bbd43bf5f99c79fe8f2eac84fd1260ab696b381258ea"
+        }
+      ]
+    },
+    {
+      "action_id": "nav-70d0ab5e215b4977a1131b00914b8baa",
+      "structurally_valid": true,
+      "errors": [],
+      "binding_id": "nav-2148a17cdff14eef8c90236660d96142/nav-70d0ab5e215b4977a1131b00914b8baa",
+      "binding_marker": "ShipLoop standalone Improve binding: nav-2148a17cdff14eef8c90236660d96142/nav-70d0ab5e215b4977a1131b00914b8baa",
+      "terminal_path": "<study>/new/run/improve/nav-70d0ab5e215b4977a1131b00914b8baa/terminal.json",
+      "terminal_sha256": "28f3eb7dbabd9012ddc702814c2820683d0093d32ec0ead5da0b2d6004851d93",
+      "progress": {
+        "action_number": 4,
+        "trivial_streak": 2,
+        "required_trivial_reviews": 2
+      },
+      "identities": {
+        "context_sha256": "2e8aa3f9133917ec9039628f4146abd4956e34c60a339db67195f4816fd2bd0e",
+        "evidence_sha256": {
+          ".shiploop-improve/nav-2148a17cdff14eef8c90236660d96142/nav-70d0ab5e215b4977a1131b00914b8baa/reviews/checks-cycle-four.md": "b0466172a955654d47206eac8f67e61774787b61485baea3353084646874155b",
+          ".shiploop-improve/nav-2148a17cdff14eef8c90236660d96142/nav-70d0ab5e215b4977a1131b00914b8baa/reviews/review-four.md": "e694c1fc1a670629b3b176040345be4d07fb59c7108d2b6f045737585ea1ad12",
+          ".shiploop-improve/nav-2148a17cdff14eef8c90236660d96142/nav-70d0ab5e215b4977a1131b00914b8baa/reviews/review-three.md": "fba7dbc89c8afab2be10738be0461eb15a8e18f27246d2cb3a1b8edc836d50ca"
+        },
+        "last_report_sha256": "1ea92d2d2a5a4d90bf9474b7f26c0248051babfb49fb56b68a8a20695fee71cf",
+        "terminal_packet_sha256": "28f3eb7dbabd9012ddc702814c2820683d0093d32ec0ead5da0b2d6004851d93"
+      },
+      "receipt_refs": {
+        "review_refs": [
+          ".shiploop-improve/nav-2148a17cdff14eef8c90236660d96142/nav-70d0ab5e215b4977a1131b00914b8baa/reviews/review-three.md",
+          ".shiploop-improve/nav-2148a17cdff14eef8c90236660d96142/nav-70d0ab5e215b4977a1131b00914b8baa/reviews/review-four.md"
+        ],
+        "check_refs": [
+          ".shiploop-improve/nav-2148a17cdff14eef8c90236660d96142/nav-70d0ab5e215b4977a1131b00914b8baa/reviews/checks-cycle-four.md"
+        ]
+      },
+      "evidence_sources": [
+        {
+          "source": ".shiploop-improve/nav-2148a17cdff14eef8c90236660d96142/nav-70d0ab5e215b4977a1131b00914b8baa/reviews/review-three.md",
+          "archive": "improve/nav-70d0ab5e215b4977a1131b00914b8baa/evidence/01-review-three.md",
+          "sha256": "fba7dbc89c8afab2be10738be0461eb15a8e18f27246d2cb3a1b8edc836d50ca"
+        },
+        {
+          "source": ".shiploop-improve/nav-2148a17cdff14eef8c90236660d96142/nav-70d0ab5e215b4977a1131b00914b8baa/reviews/review-four.md",
+          "archive": "improve/nav-70d0ab5e215b4977a1131b00914b8baa/evidence/02-review-four.md",
+          "sha256": "e694c1fc1a670629b3b176040345be4d07fb59c7108d2b6f045737585ea1ad12"
+        },
+        {
+          "source": ".shiploop-improve/nav-2148a17cdff14eef8c90236660d96142/nav-70d0ab5e215b4977a1131b00914b8baa/reviews/checks-cycle-four.md",
+          "archive": "improve/nav-70d0ab5e215b4977a1131b00914b8baa/evidence/03-checks-cycle-four.md",
+          "sha256": "b0466172a955654d47206eac8f67e61774787b61485baea3353084646874155b"
+        }
+      ]
+    },
+    {
+      "action_id": "nav-793d0de0fad045efa34073325b4a3233",
+      "structurally_valid": true,
+      "errors": [],
+      "binding_id": "nav-2148a17cdff14eef8c90236660d96142/nav-793d0de0fad045efa34073325b4a3233",
+      "binding_marker": "ShipLoop standalone Improve binding: nav-2148a17cdff14eef8c90236660d96142/nav-793d0de0fad045efa34073325b4a3233",
+      "terminal_path": "<study>/new/run/improve/nav-793d0de0fad045efa34073325b4a3233/terminal.json",
+      "terminal_sha256": "ee83f77b3960bee134166f3a9fcc4c2ca803914d3d76572862b7680974d2189a",
+      "progress": {
+        "action_number": 2,
+        "trivial_streak": 2,
+        "required_trivial_reviews": 2
+      },
+      "identities": {
+        "context_sha256": "d04a2410fdc4754e8579e6170f3164b00ae6a638f445710b0b47d5cd05a57b92",
+        "evidence_sha256": {
+          ".shiploop-improve/nav-2148a17cdff14eef8c90236660d96142/nav-793d0de0fad045efa34073325b4a3233/reviews/checks-cycle-two.md": "612644e777d75acef1a9547c6366b44f0a546950fa4fcd1624262c03d70f9248",
+          ".shiploop-improve/nav-2148a17cdff14eef8c90236660d96142/nav-793d0de0fad045efa34073325b4a3233/reviews/review-one.md": "67c7f6ba8cacff88f950805985f1c196e42071e41a86c8001fba8a454c8b7bcd",
+          ".shiploop-improve/nav-2148a17cdff14eef8c90236660d96142/nav-793d0de0fad045efa34073325b4a3233/reviews/review-two.md": "12292a20a8e21d60b19fe73214428b6807b1f1063d0ed8322110f464f8cd0b0d"
+        },
+        "last_report_sha256": "10f8f7edabbd3513dc7a08b01fe519d94002290c5c63e8f0d68d00739744350b",
+        "terminal_packet_sha256": "ee83f77b3960bee134166f3a9fcc4c2ca803914d3d76572862b7680974d2189a"
+      },
+      "receipt_refs": {
+        "review_refs": [
+          ".shiploop-improve/nav-2148a17cdff14eef8c90236660d96142/nav-793d0de0fad045efa34073325b4a3233/reviews/review-one.md",
+          ".shiploop-improve/nav-2148a17cdff14eef8c90236660d96142/nav-793d0de0fad045efa34073325b4a3233/reviews/review-two.md"
+        ],
+        "check_refs": [
+          ".shiploop-improve/nav-2148a17cdff14eef8c90236660d96142/nav-793d0de0fad045efa34073325b4a3233/reviews/checks-cycle-two.md"
+        ]
+      },
+      "evidence_sources": [
+        {
+          "source": ".shiploop-improve/nav-2148a17cdff14eef8c90236660d96142/nav-793d0de0fad045efa34073325b4a3233/reviews/review-one.md",
+          "archive": "improve/nav-793d0de0fad045efa34073325b4a3233/evidence/01-review-one.md",
+          "sha256": "67c7f6ba8cacff88f950805985f1c196e42071e41a86c8001fba8a454c8b7bcd"
+        },
+        {
+          "source": ".shiploop-improve/nav-2148a17cdff14eef8c90236660d96142/nav-793d0de0fad045efa34073325b4a3233/reviews/review-two.md",
+          "archive": "improve/nav-793d0de0fad045efa34073325b4a3233/evidence/02-review-two.md",
+          "sha256": "12292a20a8e21d60b19fe73214428b6807b1f1063d0ed8322110f464f8cd0b0d"
+        },
+        {
+          "source": ".shiploop-improve/nav-2148a17cdff14eef8c90236660d96142/nav-793d0de0fad045efa34073325b4a3233/reviews/checks-cycle-two.md",
+          "archive": "improve/nav-793d0de0fad045efa34073325b4a3233/evidence/03-checks-cycle-two.md",
+          "sha256": "612644e777d75acef1a9547c6366b44f0a546950fa4fcd1624262c03d70f9248"
+        }
+      ]
+    }
+  ],
+  "synthetic_predecessors": [],
+  "import_status": "real-imports-observed"
+}

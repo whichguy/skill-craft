@@ -1,0 +1,96 @@
+{
+  "case": "candidate-status-complete",
+  "oracle_visibility": "oracle_only records were frozen before launch and excluded from the producer brief.",
+  "purpose": "Freeze controlled inputs before a blind W1 producer; no production or host claim.",
+  "records": {
+    "oracle_only": {
+      "<study>/candidate-status-complete/oracle/expected.json": {
+        "bytes": 973,
+        "sha256": "9f7f7943cef28f93941942e19e20160484f17fd0425a13ca88b1436b5de01127"
+      }
+    },
+    "producer_inputs": {
+      "<study>/candidate-2/shiploop/SKILL.md": {
+        "bytes": 27065,
+        "sha256": "38aaa231c9771905ccd5131d36889a4983f1e38387b6460dd634d3b1ffe8ba9c"
+      },
+      "<study>/candidate-2/shiploop/references/behavioral-requirements.md": {
+        "bytes": 35220,
+        "sha256": "ac5acd9e3c28804b55050f6909f1feecf5b3de9260a1ae2cd337344adf3f13eb"
+      },
+      "<study>/candidate-2/shiploop/scripts/shiploop": {
+        "bytes": 70390,
+        "sha256": "df6e1c95cad905c1fdb36a62fc52645cec8e4baacb07a5e2c1d84d67c2c02cb1"
+      },
+      "<study>/candidate-status-complete/evidence/controlled-status-identity-contract.md": {
+        "bytes": 4218,
+        "sha256": "5a5ecfc21a98e2cae6f58b7829c07535eca569334f7980088784979036f851ec"
+      },
+      "<study>/candidate-status-complete/evidence/producer-boundary.md": {
+        "bytes": 2058,
+        "sha256": "dc07599cde655c18a9a40e1bbad09c2ad747d572959484f025f865b3dca044e9"
+      },
+      "<study>/candidate-status-complete/evidence/request.md": {
+        "bytes": 793,
+        "sha256": "17109e85d4d94b63cb8c5f53656fa7aba55d85302272789dd6688a208714a633"
+      },
+      "<study>/candidate-status-complete/evidence/seed-claims.md": {
+        "bytes": 1130,
+        "sha256": "d7a5399c94d7566be46661a9eb151a3f80bfcc6723253ea5cd5f4dc92abe9bcb"
+      },
+      "<study>/candidate-status-complete/product/README.md": {
+        "bytes": 733,
+        "sha256": "4faae9b31e39d5da0967ce4e5482f96a5277f8c9bb5769a58dc7d9b5f602b604"
+      },
+      "<study>/candidate-status-complete/product/SHIPLOOP.md": {
+        "bytes": 166,
+        "sha256": "b570909d3f879ab80462a5fff2c313da77bc02f7f988654e31d6e8932e8918bf"
+      },
+      "<study>/candidate-status-complete/product/app.js": {
+        "bytes": 9422,
+        "sha256": "729f0db397fe3b0eaae3fadff9de10facd82b071fb7bbe00a95dcb9d9b5f8ac2"
+      },
+      "<study>/candidate-status-complete/product/docs/api.md": {
+        "bytes": 766,
+        "sha256": "862db25f3187bdf02a2d1da27bd041faca855e3ff4b3a235e153cda67dd37a27"
+      },
+      "<study>/candidate-status-complete/product/docs/design.md": {
+        "bytes": 774,
+        "sha256": "f3e6dce3dcab93d5d0b7fd294d9ab908c116e5416d7456b568ba01025e9699f9"
+      },
+      "<study>/candidate-status-complete/product/docs/platform.md": {
+        "bytes": 995,
+        "sha256": "b8dfe6ff0a442cfe5a13947afe8bdc7d5bf4eb77aa66cd6d39fff1b0adba8007"
+      },
+      "<study>/candidate-status-complete/product/host-observation.json": {
+        "bytes": 306,
+        "sha256": "40a3900ae08cf109734f411f62c8a89dbd5fae84c5f04d127ff000ea3038c878"
+      },
+      "<study>/candidate-status-complete/product/index.html": {
+        "bytes": 3212,
+        "sha256": "f52423358a46b6210774533586602fb75267deb631129ba9bf96293e68f88213"
+      },
+      "<study>/candidate-status-complete/product/scripts/probe_environment.py": {
+        "bytes": 230,
+        "sha256": "c54f52e5bd7f8a5801dee4f336ed2fe4989ffdfd035c30340835d0883ff41ec4"
+      },
+      "<study>/candidate-status-complete/product/styles.css": {
+        "bytes": 6892,
+        "sha256": "cd3106112e5ddff749af99d9e3de730274f7786ccde2a2c4e75c172753b646bf"
+      },
+      "<study>/capabilities/frontend-design/SKILL.md": {
+        "bytes": 8260,
+        "sha256": "1608ea77fbb6fc30d13a97d12cfa8ebf31358d40f0dd97beed24829d6b3f45dd"
+      },
+      "<study>/frozen/improve/SKILL.md": {
+        "bytes": 17551,
+        "sha256": "8c12fd39d2b7baf792e3054b464a34e912ae10800613218689ec905017dc1ef8"
+      },
+      "<study>/frozen/improve/runtime/until-loop/ADAPTER.md": {
+        "bytes": 16200,
+        "sha256": "609959649f69f3ee5408bedbd6331806799495a8f59418e8d097c3d9f3c08028"
+      }
+    }
+  },
+  "schema": "shiploop-ui-allocation-status-complete-freeze/v1"
+}

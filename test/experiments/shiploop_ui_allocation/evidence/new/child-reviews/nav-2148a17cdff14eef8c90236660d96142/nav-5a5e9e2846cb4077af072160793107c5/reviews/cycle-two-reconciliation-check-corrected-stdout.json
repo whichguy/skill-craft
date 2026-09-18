@@ -1,0 +1,16 @@
+{
+  "candidate_sha256": "f70908cb6049a90a1f2c3797085a3df6c31b6b363fb8fa2bc0f5a4b31ef17e51",
+  "checks": {
+    "all_draft_refs_are_current_files": true,
+    "decision_preserves_no_rewrite_and_external_boundary": true,
+    "draft_is_current_canonical_plan_result": true,
+    "source_plan_still_matches_cycle_one_digest": true,
+    "w1_retains_durable_requirements_authority": true,
+    "w2_is_local_bootstrap_without_target_gate": true,
+    "w3_carries_api_persistence_assets_and_durable_publication": true,
+    "w4_carries_corrected_state_test_route": true,
+    "w5_carries_design_and_markup_smoke_route": true,
+    "w6_is_only_actual_target_consumer_boundary": true
+  },
+  "passed": true
+}

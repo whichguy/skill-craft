@@ -1,0 +1,15 @@
+{
+  "completion_path": "<study>/candidate-status-complete/run/inbox/nav-b6aa8ba5f6ef4c66b878c853184790e3-improve.md",
+  "receipt_check_refs": [
+    ".shiploop-improve/nav-feb81a8fc7cd4f7fa1ecfdfb0887a90d/nav-b6aa8ba5f6ef4c66b878c853184790e3/reviews/final-checks.md"
+  ],
+  "receipt_review_refs": [
+    ".shiploop-improve/nav-feb81a8fc7cd4f7fa1ecfdfb0887a90d/nav-b6aa8ba5f6ef4c66b878c853184790e3/reviews/review-three.md",
+    ".shiploop-improve/nav-feb81a8fc7cd4f7fa1ecfdfb0887a90d/nav-b6aa8ba5f6ef4c66b878c853184790e3/reviews/review-four.md"
+  ],
+  "terminal_report_classification": "trivial",
+  "terminal_report_exit_assessment": "satisfied",
+  "terminal_required_reviews": 2,
+  "terminal_status": "complete",
+  "terminal_trivial_streak": 2
+}

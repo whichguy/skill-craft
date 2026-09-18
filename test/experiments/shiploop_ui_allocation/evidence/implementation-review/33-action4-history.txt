@@ -1,0 +1,95 @@
+commit 5a073503bcfe35e620461498b3fa438afe94d0bc
+Merge current main before publishing release-transition guidance
+
+Preserve upstream repository-local skill discovery, assessment and validation
+alongside the release-operation, recovery and standalone Improve guidance.
+Resolve additive test route constants and retain both sets of recovery tests.
+
+Validation: 90 focused tests pass (16 guidance, 22 Navigator v3, 29 delivery,
+8 reference routing, 8 local-skill and 7 actual Improve CLI), plus ShipLoop
+package parity and interop hygiene. Independent source merge review passed.
+The ten-file feature delta passes diff checks against current main; upstream
+raw experiment-evidence whitespace remains unchanged.
+
+---
+commit 10733eeec82f28bfedffa9178a6f6ec1aea9b682
+Merge ShipLoop release-transition guidance into main
+
+Preserve current Backchain convergence, release test planning, reusable test
+facilities and outer test handoffs alongside release operation ownership,
+recovery guidance and the standalone Improve boundary.
+
+Resolve additive prompt and guidance-test conflicts; regenerate ShipLoop views.
+Validation: 72 focused tests pass (14 guidance, 21 Navigator v3, 29 delivery,
+8 reference routing), plus plugin parity, interop hygiene and diff checks.
+Independent merge review found no actionable issue.
+
+---
+commit f2c891a6f1b57cc33bda3d76dc1948a66c521f42
+Merge upstream Backchain convergence and record release checks
+
+---
+commit 061ad49003ad96677a3a2da637d0646f57415082
+Merge upstream CI trigger policy
+
+---
+commit 88e59f9a3dc034e2377d53943d63ba59e26b2ff8
+Merge current main into direct Backchain Until Loop integration
+
+Preserve upstream reusable test-facility and OUTER test-planning handoffs beside
+the direct Backchain-to-Until Loop binding. The mirrored prompts merged cleanly.
+
+Validation: combined navigator-v3 (21), v3-guidance (13), reference-routing (8)
+and test-group checks passed; ShipLoop and Improve plugin parity checks passed.
+
+---
+commit 2e0c064c7865951b036f30ec1f9d9db05de0baf3
+fix(shiploop): consume Backchain direct Until Loop convergence
+
+Require the selected Backchain package to expose the direct Until Loop binding
+before native planning selection. Preserve the actual terminal packet and final
+domain evidence, reject the older custom loop, and keep the child plan-only.
+ShipLoop delegates whole draft/revise operations without a second controller;
+ordinary Improve reviews stay separate and can use one-pass Backchain primitives.
+
+Validation: 81 focused navigator, routing, guidance, Improve and marketplace
+checks passed; generated plugin views match source. Improve remains unchanged.
+Record controlled runtime execution and free-form host compliance limits without
+claiming unattended reliability or a full local skill-craft test run.
+
+---
+commit 5e30bd9d6fe3a93a354383fac5ac6b6d94a11fab
+fix(shiploop): clarify release operation ownership and recovery
+
+Review:
+Inspect the frozen 7f8ef5d release-guidance candidate and seven full commit
+messages. Classification: non-trivial; clean-review streak remains zero.
+Independent review found no state or authority contradiction. Literal wording
+test suggestions were declined in favor of routing and interpretation evidence.
+
+Plan:
+Keep Navigator stages and Improve ownership unchanged. Clarify ordered release
+operations, recovery semantics, local-only checks and earlier prerequisite repair.
+
+Changes:
+Route release-operation guidance through all four release stages and their
+Improve handoffs. Separate operation postconditions from final consumer checks;
+route unmet earlier deployment/test work through existing outer replan. Retain
+frozen decision fixtures and cold blocked/resume regression coverage. Sync package.
+
+Validation:
+70 focused tests passed: 12 guidance, 8 reference-routing, 21 Navigator v3,
+29 consumer-delivery. Generated plugin parity, skill interop hygiene and diff
+checks pass. Fresh hypothetical decisions exposed and exercised the two stage
+boundary repairs. No real provider operation was run.
+
+Key learnings:
+Do not combine the current producer and future Improve prompts in an exercise.
+A local cursor cannot establish provider idempotency or exclude another writer.
+Keep final consumer verification after the release Improve return.
+
+Remaining work:
+Finish independent decision evaluation and two clean standalone Improve reviews.
+No merge, push, publication, or real-provider validation in this change.
+
+---

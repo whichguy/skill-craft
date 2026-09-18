@@ -1,0 +1,1 @@
+OK completion state parses; final refs are regular child files; evidence refs exist; terminal complete with deleted state; all three plan corrections named

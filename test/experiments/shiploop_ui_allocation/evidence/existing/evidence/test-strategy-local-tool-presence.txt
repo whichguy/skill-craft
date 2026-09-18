@@ -1,0 +1,3 @@
+/opt/homebrew/bin/node
+/opt/homebrew/bin/npm
+/System/Cryptexes/App/usr/bin/safaridriver

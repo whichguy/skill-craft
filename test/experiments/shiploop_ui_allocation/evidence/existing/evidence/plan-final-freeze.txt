@@ -1,0 +1,6 @@
+final-plan-freeze
+full-status:
+?? .shiploop-improve/
+tracked-only-status:
+tracked-only-diff:
+OK plan accepted and Improve archived; prepare is assigned but unexecuted; no source change claimed

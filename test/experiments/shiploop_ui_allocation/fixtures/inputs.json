@@ -1,0 +1,126 @@
+{
+  "schema": "ui-planning-allocation-inputs/v1",
+  "experiment_baseline": "2003cfd5fa33eb8d57a95ed977b09b7c5257c13d",
+  "cases": {
+    "new": {
+      "files": {
+        "README.md": {
+          "original_sha256": "baa01be7a8ef154e1ac2d5f5528ac616be05b599a523da7202bd9c640d4fe33e",
+          "content": "# Archive Exports\n\nCreate a rich but restrained export-status web application for a community archive. Archivists choose a collection, request an export, see queued/running/complete/failure status, and open the completed export. Make keyboard and narrow-screen use effective. Use meaningful minimal asynchronous feedback with reduced-motion support. Decide the components, interaction/state model, visual identity, and suitable UI technology for the documented target. Plan and justify all preparation needed before features can run there. The API service already exists; this request is for its client.\n\nRead docs/platform.md and docs/api.md. Current environment observation: `python3 scripts/probe_environment.py`. No UI, build or harness exists yet.\n"
+        },
+        "docs/platform.md": {
+          "original_sha256": "b8dfe6ff0a442cfe5a13947afe8bdc7d5bf4eb77aa66cd6d39fff1b0adba8007",
+          "content": "# Deployment target\nThe intended target is a static embedded web surface. Build tooling may run locally; no Node or other server process can run in the deployed artifact. All scripts, styles, fonts and images must be bundled same-origin files. The current enforced script-src and style-src policies are self only; inline script/style and external CDNs are disallowed. The host permits same-origin HTTPS API request/response. Persistent WebSocket connections are unsupported. The host controls authorization/account identity. Hidden pages may suspend; on foreground the client can read current authoritative state. Existing APIs are in api.md. Local preview evidence only proves constraints it actually reproduces. There is no remote deployment access in this experiment.\n\nFor current storage and target identity, run scripts/probe_environment.py. This reads the fixture's current host observation without changing it. These are controlled target facts, not evidence of a real hosted deployment.\n"
+        },
+        "docs/api.md": {
+          "original_sha256": "862db25f3187bdf02a2d1da27bd041faca855e3ff4b3a235e153cda67dd37a27",
+          "content": "# Existing API\nGET /api/exports returns current authorized collection export statuses and monotonically increasing revisions. POST /api/exports accepts collectionId and clientOperationId, durably accepts one operation in that account scope before confirmation, and returns jobId/status. A lost confirmation is reconciled through GET /api/operations/:clientOperationId; unresolved results must not claim success. GET /api/exports/:jobId returns the current status and a same-origin download path only when complete. Server owns job state independently of any UI. Poll while visible, reconcile on foreground; notifications are invalidation hints only. No subscription or draft-storage endpoint is available. This is the fixture contract, not a deployed service claim.\n"
+        },
+        "host-observation.json": {
+          "original_sha256": "4234ca2a0b1535bab72aa9388b97f8d6140d7363ac0215a30858c77c415d2699",
+          "content": "{\n  \"target\": \"archive-static-v1\",\n  \"script_src\": [\n    \"self\"\n  ],\n  \"style_src\": [\n    \"self\"\n  ],\n  \"websocket\": false,\n  \"server_runtime\": false,\n  \"client_persistent_storage\": \"not_assessed\",\n  \"draft_api\": false,\n  \"observation_scope\": \"controlled fixture target facts; not a live deployment\"\n}\n"
+        },
+        "scripts/probe_environment.py": {
+          "original_sha256": "c54f52e5bd7f8a5801dee4f336ed2fe4989ffdfd035c30340835d0883ff41ec4",
+          "content": "import hashlib,json\nfrom pathlib import Path\np=Path(__file__).resolve().parents[1]/'host-observation.json'\nb=p.read_bytes()\nv=json.loads(b);v['observation_sha256']=hashlib.sha256(b).hexdigest()\nprint(json.dumps(v,sort_keys=True))\n"
+        }
+      }
+    },
+    "existing": {
+      "files": {
+        "README.md": {
+          "original_sha256": "4faae9b31e39d5da0967ce4e5482f96a5277f8c9bb5769a58dc7d9b5f602b604",
+          "content": "# Field Notes\n\nExtend the existing Field Notes UI with recoverable drafts across page reloads and notifications when a background export changes. Preserve its accepted list/detail/edit/save/cancel/back journeys, components and navy/amber visual identity. On logout, drafts must not be readable under the next account. Keep local pending drafts distinct from server-confirmed saved content. Evaluate and plan any environment augmentation this needs; do not assume the older environment note still holds.\n\nRead docs/platform.md and docs/api.md. Current environment observation: `python3 scripts/probe_environment.py`. Baseline static product exists. Smoke command: `node --check app.js`. The old architecture record is docs/design.md.\n"
+        },
+        "docs/platform.md": {
+          "original_sha256": "b8dfe6ff0a442cfe5a13947afe8bdc7d5bf4eb77aa66cd6d39fff1b0adba8007",
+          "content": "# Deployment target\nThe intended target is a static embedded web surface. Build tooling may run locally; no Node or other server process can run in the deployed artifact. All scripts, styles, fonts and images must be bundled same-origin files. The current enforced script-src and style-src policies are self only; inline script/style and external CDNs are disallowed. The host permits same-origin HTTPS API request/response. Persistent WebSocket connections are unsupported. The host controls authorization/account identity. Hidden pages may suspend; on foreground the client can read current authoritative state. Existing APIs are in api.md. Local preview evidence only proves constraints it actually reproduces. There is no remote deployment access in this experiment.\n\nFor current storage and target identity, run scripts/probe_environment.py. This reads the fixture's current host observation without changing it. These are controlled target facts, not evidence of a real hosted deployment.\n"
+        },
+        "docs/api.md": {
+          "original_sha256": "862db25f3187bdf02a2d1da27bd041faca855e3ff4b3a235e153cda67dd37a27",
+          "content": "# Existing API\nGET /api/exports returns current authorized collection export statuses and monotonically increasing revisions. POST /api/exports accepts collectionId and clientOperationId, durably accepts one operation in that account scope before confirmation, and returns jobId/status. A lost confirmation is reconciled through GET /api/operations/:clientOperationId; unresolved results must not claim success. GET /api/exports/:jobId returns the current status and a same-origin download path only when complete. Server owns job state independently of any UI. Poll while visible, reconcile on foreground; notifications are invalidation hints only. No subscription or draft-storage endpoint is available. This is the fixture contract, not a deployed service claim.\n"
+        },
+        "docs/design.md": {
+          "original_sha256": "f3e6dce3dcab93d5d0b7fd294d9ab908c116e5416d7456b568ba01025e9699f9",
+          "content": "# Accepted UI and previous environment\n## UI identity\nKeep the native account selector, note list, stable textarea editor, save/cancel/back controls; preserve focus, keyboard/touch behavior, narrow layout, reading position and draft text. Navy #15324f, amber #c08722, white cards, system body and Georgia display type. No approved framework migration. Local in-memory editing is separate from server-confirmed notes.\n## Previous environment assumption\nThe earlier fieldnotes-embedded-v1 target allowed account-scoped persistent browser storage. This historical observation supported a proposed reload recovery design but no draft persistence is implemented. Revalidate when target or policy changes. Current target observation is obtained with scripts/probe_environment.py.\n"
+        },
+        "host-observation.json": {
+          "original_sha256": "40a3900ae08cf109734f411f62c8a89dbd5fae84c5f04d127ff000ea3038c878",
+          "content": "{\n  \"target\": \"fieldnotes-embedded-v2\",\n  \"script_src\": [\n    \"self\"\n  ],\n  \"style_src\": [\n    \"self\"\n  ],\n  \"websocket\": false,\n  \"server_runtime\": false,\n  \"client_persistent_storage\": \"unavailable\",\n  \"draft_api\": false,\n  \"observation_scope\": \"controlled fixture target facts; not a live deployment\"\n}\n"
+        },
+        "scripts/probe_environment.py": {
+          "original_sha256": "c54f52e5bd7f8a5801dee4f336ed2fe4989ffdfd035c30340835d0883ff41ec4",
+          "content": "import hashlib,json\nfrom pathlib import Path\np=Path(__file__).resolve().parents[1]/'host-observation.json'\nb=p.read_bytes()\nv=json.loads(b);v['observation_sha256']=hashlib.sha256(b).hexdigest()\nprint(json.dumps(v,sort_keys=True))\n"
+        }
+      },
+      "code_source": "test/experiments/shiploop_ui_consumer/baseline",
+      "code_sha256": {
+        "app.js": "729f0db397fe3b0eaae3fadff9de10facd82b071fb7bbe00a95dcb9d9b5f8ac2",
+        "index.html": "f52423358a46b6210774533586602fb75267deb631129ba9bf96293e68f88213",
+        "styles.css": "cd3106112e5ddff749af99d9e3de730274f7786ccde2a2c4e75c172753b646bf"
+      }
+    }
+  },
+  "preregistered_semantic_criteria": {
+    "new": [
+      [
+        "G1",
+        "Initial architecture assigns service-owned export state and browser-owned presentation/pending intent; truthful accepted versus complete and lost-confirmation recovery."
+      ],
+      [
+        "G2",
+        "Same-origin external asset and no deployed server/socket constraints affect toolkit/build/runtime choices; no unsupported claims, policy weakening, or CDN."
+      ],
+      [
+        "G3",
+        "Component, interaction, skin and selected design guidance identity are concrete and retrievable before global plan."
+      ],
+      [
+        "G4",
+        "Global plan maps real preparation or evidenced existing supplier to earliest dependent UI consumer and target-compatible planned check."
+      ],
+      [
+        "G5",
+        "Planning performs observations, not unauthorized preparation/product implementation; unavailable remote validation remains explicit."
+      ]
+    ],
+    "existing": [
+      [
+        "I1",
+        "Inspect baseline actual code and accepted design; execute existing smoke; preserve listed journeys/brand and plan feature delta."
+      ],
+      [
+        "I2",
+        "Read current probe, detect v1 to v2 storage contradiction; persistence across reload cannot be claimed using unavailable browser storage or absent draft API."
+      ],
+      [
+        "I3",
+        "Retain accepted reload/account-isolation requirement; identify architectural/environment prerequisite and block dependent behavior without blocking unrelated status work unnecessarily."
+      ],
+      [
+        "I4",
+        "Separate local drafts, pending intent, confirmed notes and remote status; protect late update/draft/account boundaries; meaningful async/reduced-motion outcomes."
+      ]
+    ],
+    "cold": [
+      [
+        "C1",
+        "Reopen authoritative component/interaction/skin and design guidance/check locators from ordinary durable context with no earlier chat."
+      ],
+      [
+        "C2",
+        "Failed current readiness blocks dependent work and retains actual observation, prerequisite owner and scoped correction route."
+      ],
+      [
+        "C3",
+        "New target contradiction reopens affected architecture assumption and affected consumers before implementation; cannot silently relax accepted scope or invent capabilities."
+      ]
+    ]
+  },
+  "design_guidance": {
+    "name": "frontend-design",
+    "sha256": "1608ea77fbb6fc30d13a97d12cfa8ebf31358d40f0dd97beed24829d6b3f45dd",
+    "body_redistributed": false
+  },
+  "limits": "Controlled fixture facts; not a deployment. Case prose roots tokenized. Code source is the retained prior pilot baseline."
+}

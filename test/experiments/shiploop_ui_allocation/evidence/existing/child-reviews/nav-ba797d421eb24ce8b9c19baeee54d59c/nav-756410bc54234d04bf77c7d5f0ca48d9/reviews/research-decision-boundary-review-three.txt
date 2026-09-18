@@ -1,0 +1,3 @@
+OK all seven question dispositions are explicit and correctly separated
+OK research note contains no unsupported selected draft/export mechanism
+OK saved controlled probe still matches current host observation bytes

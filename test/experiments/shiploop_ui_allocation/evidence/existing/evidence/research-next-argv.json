@@ -1,0 +1,7 @@
+[
+  "python3",
+  "-B",
+  "<study>/frozen/shiploop/scripts/shiploop",
+  "next",
+  "--run-dir=<study>/existing/run"
+]

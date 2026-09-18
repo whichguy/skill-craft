@@ -1,0 +1,107 @@
+{
+  "cases": {
+    "new": {
+      "stage": "prepare",
+      "status": "active",
+      "accepted_stage_record_count": 6,
+      "structurally_valid": true,
+      "semantic_verification": false,
+      "real_imports": 6,
+      "synthetic_predecessors": 0
+    },
+    "existing": {
+      "stage": "prepare",
+      "status": "active",
+      "accepted_stage_record_count": 6,
+      "structurally_valid": true,
+      "semantic_verification": false,
+      "real_imports": 6,
+      "synthetic_predecessors": 0
+    },
+    "cold-dependent": {
+      "stage": "step-plan",
+      "status": "active",
+      "accepted_stage_record_count": 8,
+      "structurally_valid": true,
+      "semantic_verification": false,
+      "real_imports": 0,
+      "synthetic_predecessors": 8
+    },
+    "cold-independent": {
+      "stage": "test-spec",
+      "status": "active",
+      "accepted_stage_record_count": 9,
+      "structurally_valid": true,
+      "semantic_verification": false,
+      "real_imports": 1,
+      "synthetic_predecessors": 8
+    },
+    "candidate-dependent": {
+      "stage": "step-plan",
+      "status": "blocked",
+      "accepted_stage_record_count": 9,
+      "structurally_valid": true,
+      "semantic_verification": false,
+      "real_imports": 1,
+      "synthetic_predecessors": 8
+    },
+    "candidate-independent": {
+      "stage": "step-plan",
+      "status": "active",
+      "accepted_stage_record_count": 8,
+      "structurally_valid": true,
+      "semantic_verification": false,
+      "real_imports": 0,
+      "synthetic_predecessors": 8
+    },
+    "candidate-preparer": {
+      "stage": "step-plan",
+      "status": "active",
+      "accepted_stage_record_count": 8,
+      "structurally_valid": true,
+      "semantic_verification": false,
+      "real_imports": 0,
+      "synthetic_predecessors": 8
+    },
+    "candidate-headless": {
+      "stage": "step-plan",
+      "status": "active",
+      "accepted_stage_record_count": 8,
+      "structurally_valid": true,
+      "semantic_verification": false,
+      "real_imports": 0,
+      "synthetic_predecessors": 8
+    },
+    "candidate-status-ready": {
+      "stage": "step-plan",
+      "status": "blocked",
+      "accepted_stage_record_count": 9,
+      "structurally_valid": true,
+      "semantic_verification": false,
+      "real_imports": 1,
+      "synthetic_predecessors": 8
+    },
+    "candidate-status-complete": {
+      "stage": "test-spec",
+      "status": "active",
+      "accepted_stage_record_count": 9,
+      "structurally_valid": true,
+      "semantic_verification": false,
+      "real_imports": 1,
+      "synthetic_predecessors": 8
+    },
+    "candidate-supersession": {
+      "stage": "step-plan",
+      "status": "active",
+      "accepted_stage_record_count": 8,
+      "structurally_valid": true,
+      "semantic_verification": false,
+      "real_imports": 0,
+      "synthetic_predecessors": 8,
+      "producer_callback_evidence": "candidate-supersession/evidence/w2-producer-to-improve.packet.txt",
+      "producer_assessment": "candidate-supersession/oracle/assessment.md",
+      "boundary": "One actual producer callback observed; parent Improve remains unrun and unimported."
+    }
+  },
+  "limits": "Observed structural state, not semantic proof. Original cold predecessors were synthetic. See assessments and study report."
+}

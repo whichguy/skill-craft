@@ -1,0 +1,218 @@
+index.html-19-        <p class="subtitle">Review observations before they leave the field.</p>
+index.html-20-      </div>
+index.html:21:      <label class="account-control" for="account">
+index.html-22-        <span>Account</span>
+index.html:23:        <select id="account" name="account">
+index.html-24-          <option value="alpha">Alpha</option>
+index.html-25-          <option value="beta">Beta</option>
+--
+index.html-42-      <section id="detail" hidden aria-labelledby="note-title">
+index.html-43-        <div class="detail-header">
+index.html:44:          <button id="back" class="text-button" type="button">Back to notes</button>
+index.html-45-          <p class="folio">Record <span id="revision">—</span></p>
+index.html-46-        </div>
+--
+index.html-60-          </div>
+index.html-61-
+index.html:62:          <div class="editor-card">
+index.html-63-            <label class="field-label" for="note-input">Working note</label>
+index.html-64-            <textarea
+--
+index.html-76-          <p id="save-status" class="save-status" role="status" aria-live="polite"></p>
+index.html-77-          <div class="actions">
+index.html:78:            <button id="edit" class="secondary-action" type="button">Edit note</button>
+index.html-79-            <button id="cancel" class="secondary-action" type="button" hidden>Cancel</button>
+index.html-80-            <button id="save" class="primary-action" type="button" hidden>Save changes</button>
+--
+index.html-86-    <footer>
+index.html-87-      <span class="footer-rule" aria-hidden="true"></span>
+index.html:88:      Local field record · Saved changes update this account’s current note.
+index.html-89-    </footer>
+index.html-90-  </body>
+--
+app.js-3-
+app.js-4-  const state = {
+app.js:5:    account: "alpha",
+app.js-6-    notes: [],
+app.js-7-    record: null,
+app.js-8-    selectedId: null,
+app.js:9:    editing: false,
+app.js-10-    requestGeneration: 0,
+app.js-11-    listController: null,
+--
+app.js-15-
+app.js-16-  const elements = {
+app.js:17:    account: document.querySelector("#account"),
+app.js-18-    notesView: document.querySelector("#notes-view"),
+app.js-19-    listMessage: document.querySelector("#list-message"),
+--
+app.js-24-    revision: document.querySelector("#revision"),
+app.js-25-    noteInput: document.querySelector("#note-input"),
+app.js:26:    back: document.querySelector("#back"),
+app.js:27:    edit: document.querySelector("#edit"),
+app.js-28-    save: document.querySelector("#save"),
+app.js-29-    cancel: document.querySelector("#cancel"),
+--
+app.js-31-  };
+app.js-32-
+app.js:33:  function noteUrl(account, id) {
+app.js:34:    return `/api/accounts/${encodeURIComponent(account)}/notes/${encodeURIComponent(id)}`;
+app.js-35-  }
+app.js-36-
+--
+app.js-55-    elements.save.disabled = isSaving;
+app.js-56-    elements.cancel.disabled = isSaving;
+app.js:57:    elements.back.disabled = isSaving;
+app.js:58:    elements.edit.disabled = isSaving;
+app.js-59-  }
+app.js-60-
+app.js:61:  function setEditing(editing) {
+app.js:62:    state.editing = editing;
+app.js:63:    elements.noteInput.readOnly = !editing;
+app.js:64:    elements.noteInput.setAttribute("aria-readonly", String(!editing));
+app.js:65:    elements.edit.hidden = editing;
+app.js:66:    elements.cancel.hidden = !editing;
+app.js:67:    elements.save.hidden = !editing;
+app.js-68-  }
+app.js-69-
+app.js:70:  function showList() {
+app.js-71-    state.selectedId = null;
+app.js-72-    state.record = null;
+app.js:73:    setEditing(false);
+app.js-74-    elements.detail.hidden = true;
+app.js-75-    elements.notesView.hidden = false;
+--
+app.js-77-  }
+app.js-78-
+app.js:79:  function showDetail() {
+app.js-80-    elements.notesView.hidden = true;
+app.js-81-    elements.detail.hidden = false;
+--
+app.js-143-  async function loadList() {
+app.js-144-    state.listController?.abort();
+app.js:145:    const controller = new AbortController();
+app.js-146-    state.listController = controller;
+app.js-147-    const generation = ++state.requestGeneration;
+--
+app.js-151-
+app.js-152-    try {
+app.js:153:      const response = await fetch(
+app.js:154:        `/api/accounts/${encodeURIComponent(state.account)}/notes`,
+app.js-155-        { signal: controller.signal, headers: { Accept: "application/json" } },
+app.js-156-      );
+--
+app.js-164-      setMessage(
+app.js-165-        elements.listMessage,
+app.js:166:        state.notes.length === 0 ? "No notes are available for this account." : "",
+app.js-167-      );
+app.js-168-    } catch (error) {
+--
+app.js-170-        return;
+app.js-171-      }
+app.js:172:      setMessage(elements.listMessage, "Notes could not be loaded. Choose the account again to try again.", "error");
+app.js-173-    }
+app.js-174-  }
+--
+app.js-176-  async function openNote(noteId) {
+app.js-177-    state.detailController?.abort();
+app.js:178:    const controller = new AbortController();
+app.js-179-    state.detailController = controller;
+app.js:180:    const account = state.account;
+app.js-181-    const generation = ++state.requestGeneration;
+app.js-182-
+app.js:183:    showDetail();
+app.js:184:    setEditing(false);
+app.js-185-    elements.noteTitle.textContent = "Loading note";
+app.js-186-    elements.confirmedNote.textContent = "";
+--
+app.js-190-
+app.js-191-    try {
+app.js:192:      const response = await fetch(noteUrl(account, noteId), {
+app.js-193-        signal: controller.signal,
+app.js-194-        headers: { Accept: "application/json" },
+app.js-195-      });
+app.js-196-      const record = await responseJson(response);
+app.js:197:      if (controller.signal.aborted || generation !== state.requestGeneration || account !== state.account) {
+app.js-198-        return;
+app.js-199-      }
+--
+app.js-216-    }
+app.js-217-    setMessage(elements.saveStatus, "");
+app.js:218:    setEditing(true);
+app.js-219-    elements.noteInput.focus();
+app.js-220-    elements.noteInput.setSelectionRange(elements.noteInput.value.length, elements.noteInput.value.length);
+app.js-221-  }
+app.js-222-
+app.js:223:  function cancelEditing() {
+app.js-224-    if (!state.record) {
+app.js-225-      return;
+app.js-226-    }
+app.js-227-    elements.noteInput.value = state.record.note;
+app.js:228:    setEditing(false);
+app.js-229-    setMessage(elements.saveStatus, "Changes discarded.");
+app.js:230:    elements.edit.focus();
+app.js-231-  }
+app.js-232-
+app.js:233:  async function saveEditing() {
+app.js:234:    if (!state.record || !state.selectedId || !state.editing) {
+app.js-235-      return;
+app.js-236-    }
+app.js-237-
+app.js-238-    const recordAtSave = state.record;
+app.js:239:    const accountAtSave = state.account;
+app.js-240-    const noteIdAtSave = state.selectedId;
+app.js-241-    const draft = elements.noteInput.value;
+app.js-242-    const requestId = operationId();
+app.js:243:    const controller = new AbortController();
+app.js-244-    state.saveController?.abort();
+app.js-245-    state.saveController = controller;
+--
+app.js-249-
+app.js-250-    try {
+app.js:251:      const response = await fetch(noteUrl(accountAtSave, noteIdAtSave), {
+app.js:252:        method: "POST",
+app.js-253-        signal: controller.signal,
+app.js-254-        headers: {
+--
+app.js-265-      const saved = payload && payload.record;
+app.js-266-
+app.js:267:      if (!saved || controller.signal.aborted || accountAtSave !== state.account || noteIdAtSave !== state.selectedId) {
+app.js-268-        return;
+app.js-269-      }
+--
+app.js-271-      state.record = saved;
+app.js-272-      renderRecord();
+app.js:273:      setEditing(false);
+app.js-274-      setMessage(elements.saveStatus, "Changes saved.");
+app.js-275-      await loadList();
+app.js-276-    } catch (error) {
+app.js:277:      if (!controller.signal.aborted && accountAtSave === state.account && noteIdAtSave === state.selectedId) {
+app.js-278-        setMessage(elements.saveStatus, "Changes could not be saved. Your working text is still here.", "error");
+app.js-279-      }
+--
+app.js-286-  }
+app.js-287-
+app.js:288:  function switchAccount() {
+app.js:289:    state.account = elements.account.value;
+app.js-290-    state.detailController?.abort();
+app.js-291-    state.saveController?.abort();
+app.js:292:    showList();
+app.js-293-    loadList();
+app.js-294-  }
+app.js-295-
+app.js:296:  elements.account.addEventListener("change", switchAccount);
+app.js-297-  elements.noteList.addEventListener("click", (event) => {
+app.js-298-    const button = event.target.closest("button[data-note-id]");
+--
+app.js-301-    }
+app.js-302-  });
+app.js:303:  elements.back.addEventListener("click", () => {
+app.js-304-    state.detailController?.abort();
+app.js:305:    showList();
+app.js-306-    elements.noteList.querySelector("button")?.focus();
+app.js-307-  });
+app.js:308:  elements.edit.addEventListener("click", beginEditing);
+app.js:309:  elements.cancel.addEventListener("click", cancelEditing);
+app.js:310:  elements.save.addEventListener("click", saveEditing);
+app.js-311-
+app.js-312-  loadList();

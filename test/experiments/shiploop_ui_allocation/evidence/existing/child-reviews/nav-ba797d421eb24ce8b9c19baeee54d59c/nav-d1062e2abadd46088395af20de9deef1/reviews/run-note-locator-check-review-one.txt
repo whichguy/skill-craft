@@ -1,0 +1,11 @@
+../../evidence/discovery-baseline-smoke-argv.json OK
+../../evidence/discovery-baseline-smoke.stdout OK
+../../evidence/discovery-baseline-smoke.stderr OK
+../../evidence/discovery-environment-probe-argv.json OK
+../../evidence/discovery-environment-probe.stdout OK
+../../evidence/discovery-environment-probe.stderr OK
+../../evidence/discovery-post-baseline-source-hash.txt OK
+../../evidence/discovery-post-baseline-git-status.txt OK
+../../evidence/discovery-post-baseline-tracked-diff.txt OK
+../../evidence/discovery-client-flow-locators.txt OK
+../../evidence/discovery-contract-locators.txt OK

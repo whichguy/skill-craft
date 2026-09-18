@@ -1,0 +1,4 @@
+# node --check app.js
+# exit_code: 0
+# stdout: empty
+# stderr: empty

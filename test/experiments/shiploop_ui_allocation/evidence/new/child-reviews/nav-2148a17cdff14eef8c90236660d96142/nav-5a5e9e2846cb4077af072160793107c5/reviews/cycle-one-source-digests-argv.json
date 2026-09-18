@@ -1,0 +1,18 @@
+{
+  "argv": [
+    "shasum",
+    "-a",
+    "256",
+    "<study>/new/run/notes/global-plan.md",
+    "<study>/new/run/notes/spec.md",
+    "<study>/new/run/notes/test-strategy.md",
+    "<study>/new/product/README.md",
+    "<study>/new/product/docs/platform.md",
+    "<study>/new/product/docs/api.md"
+  ],
+  "cwd": "<study>/new/product",
+  "env": {
+    "DEVELOPER_DIR": "/Library/Developer/CommandLineTools",
+    "PYTHONDONTWRITEBYTECODE": "1"
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "candidate_sha256": "f70908cb6049a90a1f2c3797085a3df6c31b6b363fb8fa2bc0f5a4b31ef17e51",
+  "checks": {
+    "all_final_result_refs_exist": true,
+    "bootstrap_and_real_boundary_are_separated": true,
+    "child_records_are_regular_single_link_files": true,
+    "corrected_schedule_has_all_six_distinct_items": true,
+    "current_runtime_packet_is_action_three_with_one_trivial_streak": true,
+    "decision_no_rewrite_and_no_external_action_remain_explicit": true,
+    "design_and_authority_limits_remain_carried": true,
+    "draft_is_canonical_current_plan_result": true,
+    "durable_contract_and_local_test_routes_remain_carried": true,
+    "previous_runtime_packets_parse": true,
+    "source_plan_still_matches_cycle_one_digest": true
+  },
+  "passed": true
+}

@@ -1,0 +1,11 @@
+{
+  "argv": [
+    "/opt/homebrew/opt/python@3.14/bin/python3.14",
+    "<inline cycle-three final plan/recovery audit>"
+  ],
+  "cwd": "<study>/new/product",
+  "env": {
+    "DEVELOPER_DIR": "/Library/Developer/CommandLineTools",
+    "PYTHONDONTWRITEBYTECODE": "1"
+  }
+}

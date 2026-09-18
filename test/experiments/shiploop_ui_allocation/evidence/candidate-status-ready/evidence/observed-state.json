@@ -1,0 +1,187 @@
+{
+  "case_root": "<study>/candidate-status-ready",
+  "callback_content": "reported evidence only; it does not prove semantics",
+  "structurally_valid": true,
+  "semantic_verification": false,
+  "errors": [],
+  "kind": "persisted-run",
+  "stage": "step-plan",
+  "parent_stage": "inner-loop",
+  "status": "blocked",
+  "action_identity": {
+    "id": "nav-be496b3cec444cae8140475cb5c36c8d",
+    "stage": "step-plan"
+  },
+  "accepted_stage_record_count": 9,
+  "imports": [
+    {
+      "action_id": "nav-1e3a81ef6d1f4221b788dd048a4de07e",
+      "structurally_valid": true,
+      "errors": [],
+      "binding_id": "nav-ce7a63cc5b074b0e838c1362973dad11/nav-1e3a81ef6d1f4221b788dd048a4de07e",
+      "binding_marker": "ShipLoop standalone Improve binding: nav-ce7a63cc5b074b0e838c1362973dad11/nav-1e3a81ef6d1f4221b788dd048a4de07e",
+      "terminal_path": "<study>/candidate-status-ready/run/improve/nav-1e3a81ef6d1f4221b788dd048a4de07e/terminal.json",
+      "terminal_sha256": "872321a370e765b225396a8ceeec48f242b7b9c08202b9fb794bf76ab846367d",
+      "progress": {
+        "action_number": 12,
+        "trivial_streak": 2,
+        "required_trivial_reviews": 2
+      },
+      "identities": {
+        "context_sha256": "8366252953c474197df5aac2e943e9a13e10945c22150cba1fd2b621f4cdb5ea",
+        "evidence_sha256": {
+          ".shiploop-improve/nav-ce7a63cc5b074b0e838c1362973dad11/nav-1e3a81ef6d1f4221b788dd048a4de07e/reviews/checks.md": "a4c99c07d9c503dd263d5c09319723195fc15bb30d18a7d2599a348d75b5fad0",
+          ".shiploop-improve/nav-ce7a63cc5b074b0e838c1362973dad11/nav-1e3a81ef6d1f4221b788dd048a4de07e/reviews/review-eleven.md": "00e3f8e2533c215603b3bbfbb164a90c06f65a67e426ecac784191c29d6f5541",
+          ".shiploop-improve/nav-ce7a63cc5b074b0e838c1362973dad11/nav-1e3a81ef6d1f4221b788dd048a4de07e/reviews/review-twelve.md": "02573371cae2d08fba6868432503ac467fcbc970453798f57f39ba485c168400"
+        },
+        "last_report_sha256": "24d3bf9869f7b90e216fa0a76e046e1a6b68c9e39c887d90a077f76c505078a1",
+        "terminal_packet_sha256": "872321a370e765b225396a8ceeec48f242b7b9c08202b9fb794bf76ab846367d"
+      },
+      "receipt_refs": {
+        "review_refs": [
+          ".shiploop-improve/nav-ce7a63cc5b074b0e838c1362973dad11/nav-1e3a81ef6d1f4221b788dd048a4de07e/reviews/review-eleven.md",
+          ".shiploop-improve/nav-ce7a63cc5b074b0e838c1362973dad11/nav-1e3a81ef6d1f4221b788dd048a4de07e/reviews/review-twelve.md"
+        ],
+        "check_refs": [
+          ".shiploop-improve/nav-ce7a63cc5b074b0e838c1362973dad11/nav-1e3a81ef6d1f4221b788dd048a4de07e/reviews/checks.md"
+        ]
+      },
+      "evidence_sources": [
+        {
+          "source": ".shiploop-improve/nav-ce7a63cc5b074b0e838c1362973dad11/nav-1e3a81ef6d1f4221b788dd048a4de07e/reviews/review-eleven.md",
+          "archive": "improve/nav-1e3a81ef6d1f4221b788dd048a4de07e/evidence/01-review-eleven.md",
+          "sha256": "00e3f8e2533c215603b3bbfbb164a90c06f65a67e426ecac784191c29d6f5541"
+        },
+        {
+          "source": ".shiploop-improve/nav-ce7a63cc5b074b0e838c1362973dad11/nav-1e3a81ef6d1f4221b788dd048a4de07e/reviews/review-twelve.md",
+          "archive": "improve/nav-1e3a81ef6d1f4221b788dd048a4de07e/evidence/02-review-twelve.md",
+          "sha256": "02573371cae2d08fba6868432503ac467fcbc970453798f57f39ba485c168400"
+        },
+        {
+          "source": ".shiploop-improve/nav-ce7a63cc5b074b0e838c1362973dad11/nav-1e3a81ef6d1f4221b788dd048a4de07e/reviews/checks.md",
+          "archive": "improve/nav-1e3a81ef6d1f4221b788dd048a4de07e/evidence/03-checks.md",
+          "sha256": "a4c99c07d9c503dd263d5c09319723195fc15bb30d18a7d2599a348d75b5fad0"
+        }
+      ]
+    }
+  ],
+  "synthetic_predecessors": [
+    {
+      "action_id": "nav-0585c747ffd54690932af44e6bb48a16",
+      "kind": "synthetic-fixture-predecessor",
+      "claim": "No actual Improve runtime or semantic review occurred.",
+      "stage": "plan",
+      "seed_result": {
+        "evidence_refs": [
+          "../evidence/seed-claims.md"
+        ],
+        "outcome": "done",
+        "summary": "SYNTHETIC clarified-control predecessor for plan; no producer, model, semantic review, or Improve runtime occurred.",
+        "work_items": [
+          {
+            "context": "Clarified ready read-only status control. Read product/README.md, product/docs/design.md#UI identity, product/docs/platform.md, product/docs/api.md, product/scripts/probe_environment.py and evidence/controlled-status-schema.md. Selected W1 observes existing account-scoped GET /api/exports status changes only. The supplied schema is complete: stable job IDs, label, queued/running/complete/failed status enum and monotonic account revision. Do not add POST, collection selection, operation reconciliation, download behavior, mutation, or a dependency on unavailable persistent draft storage. Preserve the existing list/editor focus and dirty draft text; use restrained reduced-motion-compatible status announcements. Poll while visible and refetch on foreground; plan error retention/retry behavior. A focused local test harness may be produced within W1 scope and is not a missing-environment blocker. W2 is separate blocked persistent-drafts work.\n",
+            "id": "W1",
+            "title": "Observe existing account-scoped export status changes"
+          },
+          {
+            "context": "Separate blocked future work. Current controlled host facts report client persistent storage unavailable and no draft API; do not use W2 to expand W1.",
+            "id": "W2",
+            "title": "Resolve blocked persistent account-scoped drafts after storage availability is established"
+          }
+        ]
+      }
+    },
+    {
+      "action_id": "nav-131af2d40bd94ea086f45d2b4d043a0b",
+      "kind": "synthetic-fixture-predecessor",
+      "claim": "No actual Improve runtime or semantic review occurred.",
+      "stage": "test-strategy",
+      "seed_result": {
+        "evidence_refs": [
+          "../evidence/seed-claims.md"
+        ],
+        "outcome": "done",
+        "summary": "SYNTHETIC clarified-control predecessor for test-strategy; no producer, model, semantic review, or Improve runtime occurred."
+      }
+    },
+    {
+      "action_id": "nav-134fde2060e74605a5dd43997d4aae44",
+      "kind": "synthetic-fixture-predecessor",
+      "claim": "No actual Improve runtime or semantic review occurred.",
+      "stage": "spec",
+      "seed_result": {
+        "evidence_refs": [
+          "../evidence/seed-claims.md"
+        ],
+        "outcome": "done",
+        "summary": "SYNTHETIC clarified-control predecessor for spec; no producer, model, semantic review, or Improve runtime occurred."
+      }
+    },
+    {
+      "action_id": "nav-2791e3c4a43941fdbeb8b37eb3f13574",
+      "kind": "synthetic-fixture-predecessor",
+      "claim": "No actual Improve runtime or semantic review occurred.",
+      "stage": "prepare",
+      "seed_result": {
+        "evidence_refs": [
+          "../evidence/seed-claims.md"
+        ],
+        "outcome": "done",
+        "summary": "SYNTHETIC clarified-control predecessor for prepare; no producer, model, semantic review, or Improve runtime occurred."
+      }
+    },
+    {
+      "action_id": "nav-50f70e3ffd0c4367aea327af5d971869",
+      "kind": "synthetic-fixture-predecessor",
+      "claim": "No actual Improve runtime or semantic review occurred.",
+      "stage": "research",
+      "seed_result": {
+        "evidence_refs": [
+          "../evidence/seed-claims.md"
+        ],
+        "outcome": "done",
+        "summary": "SYNTHETIC clarified-control predecessor for research; no producer, model, semantic review, or Improve runtime occurred."
+      }
+    },
+    {
+      "action_id": "nav-5f5d1e79e35147ee86a002f7f51caa8e",
+      "kind": "synthetic-fixture-predecessor",
+      "claim": "No actual Improve runtime or semantic review occurred.",
+      "stage": "select-work",
+      "seed_result": {
+        "evidence_refs": [
+          "../evidence/seed-claims.md"
+        ],
+        "outcome": "done",
+        "summary": "SYNTHETIC clarified-control predecessor for select-work; no producer, model, semantic review, or Improve runtime occurred."
+      }
+    },
+    {
+      "action_id": "nav-72ba90609adc43c9b1aaf2d4c901911c",
+      "kind": "synthetic-fixture-predecessor",
+      "claim": "No actual Improve runtime or semantic review occurred.",
+      "stage": "intake",
+      "seed_result": {
+        "evidence_refs": [
+          "../evidence/seed-claims.md"
+        ],
+        "outcome": "done",
+        "summary": "SYNTHETIC clarified-control predecessor for intake; no producer, model, semantic review, or Improve runtime occurred."
+      }
+    },
+    {
+      "action_id": "nav-cb0f6b6e9b0442f1a5df4dc031ea403b",
+      "kind": "synthetic-fixture-predecessor",
+      "claim": "No actual Improve runtime or semantic review occurred.",
+      "stage": "discovery",
+      "seed_result": {
+        "evidence_refs": [
+          "../evidence/seed-claims.md"
+        ],
+        "outcome": "done",
+        "summary": "SYNTHETIC clarified-control predecessor for discovery; no producer, model, semantic review, or Improve runtime occurred."
+      }
+    }
+  ],
+  "import_status": "real-imports-observed"
+}

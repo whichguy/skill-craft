@@ -1,0 +1,5 @@
+[
+  "node",
+  "--check",
+  "app.js"
+]

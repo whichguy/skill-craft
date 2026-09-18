@@ -1,0 +1,1 @@
+OK FN-TC-1..FN-TC-7 plus FN-NFR-1, blocked real-boundary surfaces, lifecycle/cleanup, expected-RED, commands, source boundary, and runtime-artifact distinction are explicit

@@ -1,0 +1,2 @@
+OK no current export endpoint or collection binding exists in client source
+OK observed account switch changes state and aborts detail/save only

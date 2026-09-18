@@ -1,0 +1,12 @@
+[
+  "python3",
+  "-B",
+  "<study>/frozen/shiploop/scripts/shiploop",
+  "improve-bind",
+  "--run-dir",
+  "<study>/cold-dependent/run",
+  "--action",
+  "nav-3781f15703ef4f3085bee2d4de9f9152",
+  "--skill-card",
+  "<study>/frozen/improve/SKILL.md"
+]

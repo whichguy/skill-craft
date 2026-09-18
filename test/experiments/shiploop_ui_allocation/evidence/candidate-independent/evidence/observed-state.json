@@ -1,0 +1,136 @@
+{
+  "case_root": "<study>/candidate-independent",
+  "callback_content": "reported evidence only; it does not prove semantics",
+  "structurally_valid": true,
+  "semantic_verification": false,
+  "errors": [],
+  "kind": "persisted-run",
+  "stage": "step-plan",
+  "parent_stage": "inner-loop",
+  "status": "active",
+  "action_identity": {
+    "id": "nav-967cf4518b7f434da0320a6435948bf5",
+    "stage": "step-plan"
+  },
+  "accepted_stage_record_count": 8,
+  "imports": [],
+  "synthetic_predecessors": [
+    {
+      "action_id": "nav-1807e925e3274e24a40f04bb8afcc640",
+      "kind": "synthetic-fixture-predecessor",
+      "claim": "No actual selected Improve runtime was invoked or imported.",
+      "stage": "research",
+      "seed_result": {
+        "evidence_refs": [
+          "../evidence/seed-claims.md"
+        ],
+        "outcome": "done",
+        "summary": "SYNTHETIC fixture predecessor for research; no producer execution, semantic review, or Improve cycle occurred."
+      }
+    },
+    {
+      "action_id": "nav-40de5827799a4eaa8005dfaa5e0b69a3",
+      "kind": "synthetic-fixture-predecessor",
+      "claim": "No actual selected Improve runtime was invoked or imported.",
+      "stage": "test-strategy",
+      "seed_result": {
+        "evidence_refs": [
+          "../evidence/seed-claims.md"
+        ],
+        "outcome": "done",
+        "summary": "SYNTHETIC fixture predecessor for test-strategy; no producer execution, semantic review, or Improve cycle occurred."
+      }
+    },
+    {
+      "action_id": "nav-66ef0d791c134e05b3d67b34eee9beae",
+      "kind": "synthetic-fixture-predecessor",
+      "claim": "No actual selected Improve runtime was invoked or imported.",
+      "stage": "discovery",
+      "seed_result": {
+        "evidence_refs": [
+          "../evidence/seed-claims.md"
+        ],
+        "outcome": "done",
+        "summary": "SYNTHETIC fixture predecessor for discovery; no producer execution, semantic review, or Improve cycle occurred."
+      }
+    },
+    {
+      "action_id": "nav-6eaaec73d8cf428eaa698090056886e5",
+      "kind": "synthetic-fixture-predecessor",
+      "claim": "No actual selected Improve runtime was invoked or imported.",
+      "stage": "intake",
+      "seed_result": {
+        "evidence_refs": [
+          "../evidence/seed-claims.md"
+        ],
+        "outcome": "done",
+        "summary": "SYNTHETIC fixture predecessor for intake; no producer execution, semantic review, or Improve cycle occurred."
+      }
+    },
+    {
+      "action_id": "nav-7271d3e7716e409a9c32bbf5273db056",
+      "kind": "synthetic-fixture-predecessor",
+      "claim": "No actual selected Improve runtime was invoked or imported.",
+      "stage": "spec",
+      "seed_result": {
+        "evidence_refs": [
+          "../evidence/seed-claims.md"
+        ],
+        "outcome": "done",
+        "summary": "SYNTHETIC fixture predecessor for spec; no producer execution, semantic review, or Improve cycle occurred."
+      }
+    },
+    {
+      "action_id": "nav-79ef5a5769f24a1d87cce67239accf9c",
+      "kind": "synthetic-fixture-predecessor",
+      "claim": "No actual selected Improve runtime was invoked or imported.",
+      "stage": "select-work",
+      "seed_result": {
+        "evidence_refs": [
+          "../evidence/seed-claims.md"
+        ],
+        "outcome": "done",
+        "summary": "SYNTHETIC fixture predecessor for select-work; no producer execution, semantic review, or Improve cycle occurred."
+      }
+    },
+    {
+      "action_id": "nav-84176c9f59cd44709a1f258d4756d845",
+      "kind": "synthetic-fixture-predecessor",
+      "claim": "No actual selected Improve runtime was invoked or imported.",
+      "stage": "plan",
+      "seed_result": {
+        "evidence_refs": [
+          "../evidence/seed-claims.md"
+        ],
+        "outcome": "done",
+        "summary": "SYNTHETIC fixture predecessor for plan; no producer execution, semantic review, or Improve cycle occurred.",
+        "work_items": [
+          {
+            "context": "Required retained sources: product/docs/design.md#UI identity and #Previous environment assumption; product/docs/platform.md; product/docs/api.md; product/scripts/probe_environment.py. UI premise: account selector, note list, stable textarea, controls, focus/touch/narrow layout and visual identity from design.md. Historical-only readiness: fieldnotes-embedded-v1 previously allowed account-scoped persistent browser storage; this is not current availability. Current controlled probe reports fieldnotes-embedded-v2 with client_persistent_storage unavailable and draft_api false. Plan the listed checks, including rerunning the current probe, source/behavior tests appropriate to the selected item, and an explicit unavailable-boundary result. Treat the historical v1 receipt and current v2 probe as distinct evidence; do not treat either as a completed producer or Improve review. Selected scope is remote export status using GET/POST /api/exports, GET /api/operations/:clientOperationId and GET /api/exports/:jobId from api.md; it has no persistent-draft dependency. Pending blocked draft persistence remains separate future work.",
+            "id": "W1",
+            "title": "Add remote export status using the existing API"
+          },
+          {
+            "context": "Required retained sources: product/docs/design.md#UI identity and #Previous environment assumption; product/docs/platform.md; product/docs/api.md; product/scripts/probe_environment.py. UI premise: account selector, note list, stable textarea, controls, focus/touch/narrow layout and visual identity from design.md. Historical-only readiness: fieldnotes-embedded-v1 previously allowed account-scoped persistent browser storage; this is not current availability. Current controlled probe reports fieldnotes-embedded-v2 with client_persistent_storage unavailable and draft_api false. Plan the listed checks, including rerunning the current probe, source/behavior tests appropriate to the selected item, and an explicit unavailable-boundary result. Treat the historical v1 receipt and current v2 probe as distinct evidence; do not treat either as a completed producer or Improve review. This is intentionally pending future work, not part of W1.",
+            "id": "W2",
+            "title": "Resolve blocked persistent account-scoped drafts after storage availability is established"
+          }
+        ]
+      }
+    },
+    {
+      "action_id": "nav-8435b09f49a746349f85e83556551aaf",
+      "kind": "synthetic-fixture-predecessor",
+      "claim": "No actual selected Improve runtime was invoked or imported.",
+      "stage": "prepare",
+      "seed_result": {
+        "evidence_refs": [
+          "../evidence/seed-claims.md"
+        ],
+        "outcome": "done",
+        "summary": "SYNTHETIC fixture predecessor for prepare; no producer execution, semantic review, or Improve cycle occurred."
+      }
+    }
+  ],
+  "import_status": "synthetic-predecessors-only"
+}

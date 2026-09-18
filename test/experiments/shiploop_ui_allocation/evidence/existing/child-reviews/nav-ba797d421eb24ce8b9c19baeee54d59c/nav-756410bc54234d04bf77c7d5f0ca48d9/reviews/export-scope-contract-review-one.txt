@@ -1,0 +1,139 @@
+# Existing API
+GET /api/exports returns current authorized collection export statuses and monotonically increasing revisions. POST /api/exports accepts collectionId and clientOperationId, durably accepts one operation in that account scope before confirmation, and returns jobId/status. A lost confirmation is reconciled through GET /api/operations/:clientOperationId; unresolved results must not claim success. GET /api/exports/:jobId returns the current status and a same-origin download path only when complete. Server owns job state independently of any UI. Poll while visible, reconcile on foreground; notifications are invalidation hints only. No subscription or draft-storage endpoint is available. This is the fixture contract, not a deployed service claim.
+# Deployment target
+The intended target is a static embedded web surface. Build tooling may run locally; no Node or other server process can run in the deployed artifact. All scripts, styles, fonts and images must be bundled same-origin files. The current enforced script-src and style-src policies are self only; inline script/style and external CDNs are disallowed. The host permits same-origin HTTPS API request/response. Persistent WebSocket connections are unsupported. The host controls authorization/account identity. Hidden pages may suspend; on foreground the client can read current authoritative state. Existing APIs are in api.md. Local preview evidence only proves constraints it actually reproduces. There is no remote deployment access in this experiment.
+
+For current storage and target identity, run scripts/probe_environment.py. This reads the fixture's current host observation without changing it. These are controlled target facts, not evidence of a real hosted deployment.
+index.html-19-        <p class="subtitle">Review observations before they leave the field.</p>
+index.html-20-      </div>
+index.html:21:      <label class="account-control" for="account">
+index.html-22-        <span>Account</span>
+index.html:23:        <select id="account" name="account">
+index.html-24-          <option value="alpha">Alpha</option>
+index.html-25-          <option value="beta">Beta</option>
+--
+index.html-43-        <div class="detail-header">
+index.html-44-          <button id="back" class="text-button" type="button">Back to notes</button>
+index.html:45:          <p class="folio">Record <span id="revision">—</span></p>
+index.html-46-        </div>
+index.html-47-
+--
+index.html-86-    <footer>
+index.html-87-      <span class="footer-rule" aria-hidden="true"></span>
+index.html:88:      Local field record · Saved changes update this account’s current note.
+index.html-89-    </footer>
+index.html-90-  </body>
+--
+app.js-3-
+app.js-4-  const state = {
+app.js:5:    account: "alpha",
+app.js-6-    notes: [],
+app.js-7-    record: null,
+--
+app.js-15-
+app.js-16-  const elements = {
+app.js:17:    account: document.querySelector("#account"),
+app.js-18-    notesView: document.querySelector("#notes-view"),
+app.js-19-    listMessage: document.querySelector("#list-message"),
+--
+app.js-22-    noteTitle: document.querySelector("#note-title"),
+app.js-23-    confirmedNote: document.querySelector("#confirmed-note"),
+app.js:24:    revision: document.querySelector("#revision"),
+app.js-25-    noteInput: document.querySelector("#note-input"),
+app.js-26-    back: document.querySelector("#back"),
+--
+app.js-31-  };
+app.js-32-
+app.js:33:  function noteUrl(account, id) {
+app.js:34:    return `/api/accounts/${encodeURIComponent(account)}/notes/${encodeURIComponent(id)}`;
+app.js-35-  }
+app.js-36-
+--
+app.js-119-    elements.noteTitle.textContent = record.title;
+app.js-120-    elements.confirmedNote.textContent = record.note;
+app.js:121:    elements.revision.textContent = String(record.revision);
+app.js-122-    elements.noteInput.value = record.note;
+app.js-123-  }
+--
+app.js-152-    try {
+app.js-153-      const response = await fetch(
+app.js:154:        `/api/accounts/${encodeURIComponent(state.account)}/notes`,
+app.js-155-        { signal: controller.signal, headers: { Accept: "application/json" } },
+app.js-156-      );
+--
+app.js-164-      setMessage(
+app.js-165-        elements.listMessage,
+app.js:166:        state.notes.length === 0 ? "No notes are available for this account." : "",
+app.js-167-      );
+app.js-168-    } catch (error) {
+--
+app.js-170-        return;
+app.js-171-      }
+app.js:172:      setMessage(elements.listMessage, "Notes could not be loaded. Choose the account again to try again.", "error");
+app.js-173-    }
+app.js-174-  }
+--
+app.js-178-    const controller = new AbortController();
+app.js-179-    state.detailController = controller;
+app.js:180:    const account = state.account;
+app.js-181-    const generation = ++state.requestGeneration;
+app.js-182-
+--
+app.js-185-    elements.noteTitle.textContent = "Loading note";
+app.js-186-    elements.confirmedNote.textContent = "";
+app.js:187:    elements.revision.textContent = "—";
+app.js-188-    elements.noteInput.value = "";
+app.js-189-    setMessage(elements.saveStatus, "Loading note…");
+app.js-190-
+app.js-191-    try {
+app.js:192:      const response = await fetch(noteUrl(account, noteId), {
+app.js-193-        signal: controller.signal,
+app.js-194-        headers: { Accept: "application/json" },
+app.js-195-      });
+app.js-196-      const record = await responseJson(response);
+app.js:197:      if (controller.signal.aborted || generation !== state.requestGeneration || account !== state.account) {
+app.js-198-        return;
+app.js-199-      }
+--
+app.js-237-
+app.js-238-    const recordAtSave = state.record;
+app.js:239:    const accountAtSave = state.account;
+app.js-240-    const noteIdAtSave = state.selectedId;
+app.js-241-    const draft = elements.noteInput.value;
+--
+app.js-249-
+app.js-250-    try {
+app.js:251:      const response = await fetch(noteUrl(accountAtSave, noteIdAtSave), {
+app.js-252-        method: "POST",
+app.js-253-        signal: controller.signal,
+--
+app.js-258-        body: JSON.stringify({
+app.js-259-          note: draft,
+app.js:260:          baseRevision: recordAtSave.revision,
+app.js-261-          operationId: requestId,
+app.js-262-        }),
+--
+app.js-265-      const saved = payload && payload.record;
+app.js-266-
+app.js:267:      if (!saved || controller.signal.aborted || accountAtSave !== state.account || noteIdAtSave !== state.selectedId) {
+app.js-268-        return;
+app.js-269-      }
+--
+app.js-275-      await loadList();
+app.js-276-    } catch (error) {
+app.js:277:      if (!controller.signal.aborted && accountAtSave === state.account && noteIdAtSave === state.selectedId) {
+app.js-278-        setMessage(elements.saveStatus, "Changes could not be saved. Your working text is still here.", "error");
+app.js-279-      }
+--
+app.js-286-  }
+app.js-287-
+app.js:288:  function switchAccount() {
+app.js:289:    state.account = elements.account.value;
+app.js-290-    state.detailController?.abort();
+app.js-291-    state.saveController?.abort();
+--
+app.js-294-  }
+app.js-295-
+app.js:296:  elements.account.addEventListener("change", switchAccount);
+app.js-297-  elements.noteList.addEventListener("click", (event) => {
+app.js-298-    const button = event.target.closest("button[data-note-id]");

@@ -1,0 +1,22 @@
+ M .grok-plugin/marketplace.json
+ M README.md
+ M plugins/shiploop/.claude-plugin/plugin.json
+ M plugins/shiploop/.codex-plugin/plugin.json
+ M plugins/shiploop/.cursor-plugin/plugin.json
+ M plugins/shiploop/skills/shiploop/SKILL.md
+ M plugins/shiploop/skills/shiploop/references/behavioral-requirements.md
+ M plugins/shiploop/skills/shiploop/scripts/shiploop_navigator_v3_prompts.py
+M  skills/shiploop/SKILL.md
+MM skills/shiploop/references/behavioral-requirements.md
+M  skills/shiploop/scripts/shiploop_navigator_v3_prompts.py
+M  test/README.md
+M  test/shiploop-v3-guidance.test.py
+M  test/shiploop.test.sh
+M  test/test-groups.test.py
+?? docs/shiploop-ui-planning-allocation-2026-09-18.md
+?? test/experiments/shiploop_ui_allocation/README.md
+?? test/experiments/shiploop_ui_allocation/browser-capability-probe.cjs
+?? test/experiments/shiploop_ui_allocation/evidence.py
+?? test/experiments/shiploop_ui_allocation/fixtures/controls.json
+?? test/experiments/shiploop_ui_allocation/fixtures/inputs.json
+?? test/experiments/shiploop_ui_allocation/test_evidence.py

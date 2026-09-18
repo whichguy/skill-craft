@@ -1,0 +1,1 @@
+OK tracked baseline is clean; package-bound runtime evidence is untracked; native Node is available; current check is syntax-only; no repository test/package registration was observed

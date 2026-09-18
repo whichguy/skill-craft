@@ -1,0 +1,1 @@
+OK consumers wait for their exact suppliers; local bootstrap does not wait for target access; final selectors wait for test evidence

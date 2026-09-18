@@ -1,0 +1,10 @@
+product/README.md: OK
+product/SHIPLOOP.md: OK
+product/docs/design.md: OK
+product/docs/platform.md: OK
+product/docs/api.md: OK
+product/host-observation.json: OK
+product/scripts/probe_environment.py: OK
+product/app.js: OK
+product/index.html: OK
+product/styles.css: OK

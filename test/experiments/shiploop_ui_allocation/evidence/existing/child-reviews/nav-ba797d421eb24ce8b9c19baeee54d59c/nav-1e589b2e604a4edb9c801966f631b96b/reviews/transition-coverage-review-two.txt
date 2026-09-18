@@ -1,0 +1,1 @@
+OK each T-1..T-7 has one planned FN-TC mapping; FN-NFR-1 preserves R-1; recovery, stale-response, and authoritative-notice negatives remain explicit

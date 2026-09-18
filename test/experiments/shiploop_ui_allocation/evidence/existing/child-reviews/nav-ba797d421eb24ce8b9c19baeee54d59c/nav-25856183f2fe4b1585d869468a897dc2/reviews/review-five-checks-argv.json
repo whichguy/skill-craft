@@ -1,0 +1,38 @@
+{
+  "review": "plan Improve action 5 recovery, locator, evidence, and importer-readiness audit",
+  "commands": [
+    [
+      "git",
+      "-C",
+      "<study>/existing/product",
+      "status",
+      "--short"
+    ],
+    [
+      "git",
+      "-C",
+      "<study>/existing/product",
+      "status",
+      "--short",
+      "--untracked-files=no"
+    ],
+    [
+      "git",
+      "-C",
+      "<study>/existing/product",
+      "diff",
+      "--no-ext-diff",
+      "--no-textconv"
+    ],
+    [
+      "node",
+      "--check",
+      "<study>/existing/product/app.js"
+    ],
+    [
+      "python3.14",
+      "-B",
+      "inline child packet/resource/review/plan assertions"
+    ]
+  ]
+}

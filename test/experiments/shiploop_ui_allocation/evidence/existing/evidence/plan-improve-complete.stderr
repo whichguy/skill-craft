@@ -1,0 +1,2 @@
+ShipLoop navigator: Until Loop terminal packet is not complete
+Read the current packet with next; the rejected request did not advance the graph.

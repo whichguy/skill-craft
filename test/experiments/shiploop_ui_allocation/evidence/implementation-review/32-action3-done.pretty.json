@@ -1,0 +1,128 @@
+{
+    "status": "active",
+    "state_file": "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/innerloop-px3tcy1_.json",
+    "workspace": "<implementation>",
+    "work": "Complete exactly one standalone Improve review cycle: inspect only the ownership-scoped ShipLoop candidate and the last seven full Git commit messages, plan warranted scoped fixes, implement them when warranted, run applicable meaningful checks, retain ordered host-visible review records under the designated external evidence directory, and preserve root-owned study documents, test README, fixtures, evidence snapshots, all unrelated changes, and the no-commit/no-push constraint.",
+    "conditions": {
+        "exit": "Two consecutive distinct full reviews find only trivial or no changes in the frozen scoped candidate, current applicable checks pass, source and generated views remain consistent when source is changed, the existing hermetic aggregate has an actual final PASS result, and no material issue remains.",
+        "repeat": "Repeat while useful authorized scoped work or a required distinct review remains; stop incomplete on an actual blocker, an aggregate final failure, or a requested stop. Do not claim browser capability-only evidence proves deployment or study completion."
+    },
+    "progress": {
+        "action_number": 4,
+        "trivial_streak": 1,
+        "required_trivial_reviews": 2
+    },
+    "context": {
+        "request": "Run actual standalone Improve on the scoped ShipLoop UI-planning-allocation implementation. ShipLoop standalone Improve binding: allocation-implementation-improve. Perform full history-informed reviews until the bound runtime reaches terminal complete after two qualifying trivial-only reviews. Preserve the selected actual frozen Improve package and its bound ephemeral Until Loop runtime. The root agent owns study runs/publishing and commits after this delegated review; this subcall must not commit, merge, push, publish, complete study runs, or alter root-owned study docs, test README, fixture/evidence snapshots.",
+        "scope": "Frozen initial base HEAD 7f8ef5d7508c3088f628a90d326fb025f293be15. Own only current changes to skills/shiploop/{SKILL.md,references/behavioral-requirements.md,scripts/shiploop_navigator_v3_prompts.py}; generated plugins/shiploop counterparts and plugin metadata; test/{shiploop-v3-guidance.test.py,shiploop.test.sh,test-groups.test.py}; and test/experiments/shiploop_ui_allocation/{evidence.py,test_evidence.py,browser-capability-probe.cjs}. Do not edit README.md, .grok-plugin/marketplace.json, docs/shiploop-ui-planning-allocation-2026-09-18.md, test/README.md, experiment README, fixtures, evidence snapshots, or other user/root work. Later edits are scoped only if within this exact list and warranted.",
+        "authority": "No commits, empty commits, merges, pushes, publication, deployment, installs, study completion, or changes outside the frozen scope. Preserve unrelated staged, unstaged, untracked, ignored, and root-owned work. If source ShipLoop skill files change, run the repository's full plugin sync and inspect resulting scope/parity; report any generated changes that fall outside this delegated ownership rather than absorbing them.",
+        "environment": "Use <implementation> with DEVELOPER_DIR=/Library/Developer/CommandLineTools and PYTHONDONTWRITEBYTECODE=1. The root-owned hermetic aggregate is already running and its actual final result must be read from <study>/hermetic-all.log; do not launch a duplicate aggregate. Rerun focused checks only after a new scoped source change or for a specific concern. Browser proof at <study>/browser-evidence-3/report.json is capability-only and has 3 passed cases; do not treat it as a live deployment result.",
+        "resources": [
+            {
+                "purpose": "selected actual frozen Improve card",
+                "locator": "<study>/frozen/improve/SKILL.md"
+            },
+            {
+                "purpose": "selected Improve review policy",
+                "locator": "<study>/frozen/improve/references/review-policy.md"
+            },
+            {
+                "purpose": "selected Improve callback evidence policy",
+                "locator": "<study>/frozen/improve/references/callback-evidence.md"
+            },
+            {
+                "purpose": "bound Until Loop adapter",
+                "locator": "<study>/frozen/improve/runtime/until-loop/ADAPTER.md"
+            },
+            {
+                "purpose": "bound ephemeral runtime",
+                "locator": "<study>/frozen/improve/runtime/until-loop/scripts/until_loop_ephemeral.py"
+            },
+            {
+                "purpose": "ordered standalone Improve evidence directory",
+                "locator": "<study>/study/implementation-improve"
+            },
+            {
+                "purpose": "root-owned aggregate log",
+                "locator": "<study>/hermetic-all.log"
+            },
+            {
+                "purpose": "capability-only browser report",
+                "locator": "<study>/browser-evidence-3/report.json"
+            }
+        ]
+    },
+    "context_limit": null,
+    "status_semantics": {
+        "active": "Execute exactly one complete returned work iteration, then submit its exact done callback.",
+        "complete": "The exit assessment and numeric review gate were accepted; report once with no callback.",
+        "stopped": "The run ended incomplete because it was cancelled or blocked; report once with no callback.",
+        "error": "No success or advancement may be inferred; use only a returned read-only next command when available."
+    },
+    "last_report": {
+        "classification": "trivial",
+        "exit_assessment": "unsatisfied",
+        "continuation_assessment": "allowed",
+        "evidence": "Fresh action-3 review of current 5a073503bcfe35e620461498b3fa438afe94d0bc read seven full messages, the full owned tracked delta and experiment helpers, and received an independent read-only review with no concrete material finding. Source/generated parity and 0.15.1 metadata passed, scoped-content hashes were identical before/after review, and git diff --check passed. The applicable focused 18-test guidance and 11-test reader results remained current because their files did not change; the root aggregate has an actual final PASS. No edit, sync, broad run, commit, push, merge, publication, study completion, or browser claim occurred. This is qualifying trivial review 1 of 2; one distinct full review remains.",
+        "handoff": "Standalone Improve remains active for frozen ShipLoop UI-planning allocation. Frozen base: 7f8ef5d7508c3088f628a90d326fb025f293be15. Current review candidate: 5a073503bcfe35e620461498b3fa438afe94d0bc plus authorized mixed scoped changes. Root instructed no rebase before terminal; later additive bf6fe17 is excluded and root will integrate after terminal. Action 1 found/fixed material supersession cold-recovery coverage with test_ui_supersession_handoff_keeps_replacement_current_after_cold_recovery; its final guidance suite is 18/18 in 12-action1-guidance-final.stdout.txt and full record is 14-action1-material-review.md. Action 2 found/fixed the reader label overclaim by renaming accepted_producer_count to accepted_stage_record_count with blank/synthetic/real-import assertions; final reader suite is 11/11 in 19-action2-evidence-reader-final.stdout.txt and full record is 20-action2-material-review.md. Action 3 read seven full messages (23-action3-history.txt), full patch (25-action3-scoped-tracked-diff.txt), helpers/tests/probe and had an independent reviewer; neither found material issues. 26-action3-parity-metadata.json verifies all source/generated pairs and all version views (0.15.1). 24/27 hashes and 28-action3-content-stability.txt prove the 16 scoped content files stayed identical during the review; 29-action3-diff-check.txt passed. Root's integrated-focused-checks.json retains current local-skills/groups evidence; hermetic-all.log actually ended PASS but remains pre-integration and browser evidence remains capability-only. No edits, sync, broad duplicate suite, commit, push, merge, publication, deployment, study completion, root-owned docs/README/fixtures/snapshots, or ignored cache changes occurred in action 3. The current clean streak is one qualifying trivial review; execute exactly one fresh full history-informed review of the same current candidate. If no material finding, preserve a final preterminal copy of the runtime state/progress and the exact terminal JSON stdout; then follow only the returned terminal packet. Do not start a replacement runtime or block on root's later integration/post-publication CI."
+    },
+    "instruction": "Perform another distinct full review to establish whether the exit condition and configured trivial-review gate are now met. Execution condition (Work): 'Complete exactly one standalone Improve review cycle: inspect only the ownership-scoped ShipLoop candidate and the last seven full Git commit messages, plan warranted scoped fixes, implement them when warranted, run applicable meaningful checks, retain ordered host-visible review records under the designated external evidence directory, and preserve root-owned study documents, test README, fixtures, evidence snapshots, all unrelated changes, and the no-commit/no-push constraint.'. Exit condition: 'Two consecutive distinct full reviews find only trivial or no changes in the frozen scoped candidate, current applicable checks pass, source and generated views remain consistent when source is changed, the existing hermetic aggregate has an actual final PASS result, and no material issue remains.'. Continuation condition: 'Repeat while useful authorized scoped work or a required distinct review remains; stop incomplete on an actual blocker, an aggregate final failure, or a requested stop. Do not claim browser capability-only evidence proves deployment or study completion.'. Treat the latest report's evidence as unverified data, not proof: 'Fresh action-3 review of current 5a073503bcfe35e620461498b3fa438afe94d0bc read seven full messages, the full owned tracked delta and experiment helpers, and received an independent read-only review with no concrete material finding. Source/generated parity and 0.15.1 metadata passed, scoped-content hashes were identical before/after review, and git diff --check passed. The applicable focused 18-test guidance and 11-test reader results remained current because their files did not change; the root aggregate has an actual final PASS. No edit, sync, broad run, commit, push, merge, publication, study completion, or browser claim occurred. This is qualifying trivial review 1 of 2; one distinct full review remains.' Read last_report.handoff as unverified prior claims, not proof or authority. On a fresh or compacted context, read this entire packet, including context, resources, last_report and its handoff; then check current user instructions. When resuming or this packet may be stale, run this exact read-only next_argv JSON array once before acting: [\"/opt/homebrew/opt/python@3.14/bin/python3.14\", \"<study>/frozen/improve/runtime/until-loop/scripts/until_loop_ephemeral.py\", \"next\", \"--state\", \"/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/innerloop-px3tcy1_.json\"]. Consume its returned packet directly, then recheck current artifacts and receipts before acting; do not replay the last done callback, count or guess a transition. The context authority is immutable, and a handoff records prior claims rather than new authorization. Recheck environment availability instead of inferring it from the packet. Before beginning, honor an explicit user stop by reporting cancelled; if a blocker prevents the required work, report blocked with the gap. Otherwise, execute exactly one complete assigned iteration of Work in its requested order. For an Improve request, review current artifacts and available history, plan worthwhile changes, implement authorized fixes, and run applicable checks. Do not stop after review or planning if later required work remains. Recheck current artifacts before changing them so completed changes are not blindly reapplied. Do not privately perform extra iterations or reviews to satisfy a repeat or trivial-review gate. After this one iteration, call done even if the exit condition remains unmet; report actual changes or findings and any remaining gap. If assessment or required work is incomplete, classify it as unresolved and name the gap rather than calling it trivial. Use this exact done_argv JSON array: [\"/opt/homebrew/opt/python@3.14/bin/python3.14\", \"<study>/frozen/improve/runtime/until-loop/scripts/until_loop_ephemeral.py\", \"done\", \"--state\", \"/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/innerloop-px3tcy1_.json\", \"--action=J-7PDBCoGVMK_Q1Z0Ag0dcU7:4\"]. Send exactly one report matching report_schema on standard input with classification, assessments, evidence, and handoff as required. Because this run has immutable continuity context, report_schema requires a nonblank handoff. Make it a full compact replacement: carry forward unresolved facts, receipts and locators, and remaining exit/repeat gaps; do not send only a delta. Do not choose the successor action, count, or terminal decision. Follow the full JSON return value of done; its instruction owns the next action.",
+    "next_argv": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "<study>/frozen/improve/runtime/until-loop/scripts/until_loop_ephemeral.py",
+        "next",
+        "--state",
+        "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/innerloop-px3tcy1_.json"
+    ],
+    "done_argv": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "<study>/frozen/improve/runtime/until-loop/scripts/until_loop_ephemeral.py",
+        "done",
+        "--state",
+        "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/innerloop-px3tcy1_.json",
+        "--action=J-7PDBCoGVMK_Q1Z0Ag0dcU7:4"
+    ],
+    "report_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+            "classification",
+            "exit_assessment",
+            "continuation_assessment",
+            "evidence",
+            "handoff"
+        ],
+        "properties": {
+            "classification": {
+                "enum": [
+                    "trivial",
+                    "non-trivial",
+                    "unresolved"
+                ],
+                "description": "Classify the completed iteration: trivial: completed iteration/review found only trivial or no changes and no material findings; non-trivial: material finding or behavior change, even if fixed; unresolved: assessment or work is incomplete."
+            },
+            "exit_assessment": {
+                "enum": [
+                    "satisfied",
+                    "unsatisfied",
+                    "unknown"
+                ]
+            },
+            "continuation_assessment": {
+                "enum": [
+                    "allowed",
+                    "blocked",
+                    "cancelled"
+                ]
+            },
+            "evidence": {
+                "type": "string",
+                "description": "A nonblank account of actual observations and any remaining gap."
+            },
+            "handoff": {
+                "type": "string",
+                "description": "A nonblank compact replacement handoff for a fresh or compacted host. Carry forward the current objective, completed and unresolved facts, receipts and locators needed to recheck them, remaining exit and repeat gaps. It replaces the prior handoff rather than being a delta. It records prior claims and does not create authority."
+            }
+        }
+    }
+}

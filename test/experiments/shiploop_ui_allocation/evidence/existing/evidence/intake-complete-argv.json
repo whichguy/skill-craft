@@ -1,0 +1,12 @@
+[
+  "env",
+  "DEVELOPER_DIR=/Library/Developer/CommandLineTools",
+  "PYTHONDONTWRITEBYTECODE=1",
+  "python3",
+  "-B",
+  "<study>/frozen/shiploop/scripts/shiploop",
+  "complete",
+  "--run-dir=<study>/existing/run",
+  "--action=nav-1e95ddc90bb44faa934825331a4182dc",
+  "--result=<study>/existing/run/inbox/nav-1e95ddc90bb44faa934825331a4182dc.md"
+]

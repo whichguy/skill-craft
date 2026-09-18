@@ -1,0 +1,8 @@
+[
+  "env",
+  "DEVELOPER_DIR=/Library/Developer/CommandLineTools",
+  "PYTHONDONTWRITEBYTECODE=1",
+  "python3",
+  "-B",
+  "scripts/probe_environment.py"
+]

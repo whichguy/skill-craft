@@ -1,0 +1,65 @@
+product/host-observation.json:11:  "client_persistent_storage": "unavailable",
+product/host-observation.json:12:  "draft_api": false,
+product/app.js:9:    editing: false,
+product/app.js:11:    listController: null,
+product/app.js:12:    detailController: null,
+product/app.js:13:    saveController: null,
+product/app.js:19:    listMessage: document.querySelector("#list-message"),
+product/app.js:20:    noteList: document.querySelector("#note-list"),
+product/app.js:21:    detail: document.querySelector("#detail"),
+product/app.js:26:    back: document.querySelector("#back"),
+product/app.js:27:    edit: document.querySelector("#edit"),
+product/app.js:28:    save: document.querySelector("#save"),
+product/app.js:29:    cancel: document.querySelector("#cancel"),
+product/app.js:30:    saveStatus: document.querySelector("#save-status"),
+product/app.js:55:    elements.save.disabled = isSaving;
+product/app.js:56:    elements.cancel.disabled = isSaving;
+product/app.js:57:    elements.back.disabled = isSaving;
+product/app.js:58:    elements.edit.disabled = isSaving;
+product/app.js:61:  function setEditing(editing) {
+product/app.js:62:    state.editing = editing;
+product/app.js:63:    elements.noteInput.readOnly = !editing;
+product/app.js:64:    elements.noteInput.setAttribute("aria-readonly", String(!editing));
+product/app.js:65:    elements.edit.hidden = editing;
+product/app.js:66:    elements.cancel.hidden = !editing;
+product/app.js:67:    elements.save.hidden = !editing;
+product/app.js:74:    elements.detail.hidden = true;
+product/app.js:76:    setMessage(elements.saveStatus, "");
+product/app.js:81:    elements.detail.hidden = false;
+product/app.js:144:    state.listController?.abort();
+product/app.js:146:    state.listController = controller;
+product/app.js:149:    setMessage(elements.listMessage, "Loading notes…");
+product/app.js:165:        elements.listMessage,
+product/app.js:172:      setMessage(elements.listMessage, "Notes could not be loaded. Choose the account again to try again.", "error");
+product/app.js:177:    state.detailController?.abort();
+product/app.js:179:    state.detailController = controller;
+product/app.js:189:    setMessage(elements.saveStatus, "Loading note…");
+product/app.js:204:      setMessage(elements.saveStatus, "");
+product/app.js:209:      setMessage(elements.saveStatus, "This note could not be loaded. Return to notes and try again.", "error");
+product/app.js:217:    setMessage(elements.saveStatus, "");
+product/app.js:223:  function cancelEditing() {
+product/app.js:229:    setMessage(elements.saveStatus, "Changes discarded.");
+product/app.js:230:    elements.edit.focus();
+product/app.js:233:  async function saveEditing() {
+product/app.js:234:    if (!state.record || !state.selectedId || !state.editing) {
+product/app.js:244:    state.saveController?.abort();
+product/app.js:245:    state.saveController = controller;
+product/app.js:248:    setMessage(elements.saveStatus, "Saving changes…");
+product/app.js:265:      const saved = payload && payload.record;
+product/app.js:267:      if (!saved || controller.signal.aborted || accountAtSave !== state.account || noteIdAtSave !== state.selectedId) {
+product/app.js:271:      state.record = saved;
+product/app.js:274:      setMessage(elements.saveStatus, "Changes saved.");
+product/app.js:278:        setMessage(elements.saveStatus, "Changes could not be saved. Your working text is still here.", "error");
+product/app.js:281:      if (state.saveController === controller) {
+product/app.js:282:        state.saveController = null;
+product/app.js:290:    state.detailController?.abort();
+product/app.js:291:    state.saveController?.abort();
+product/app.js:303:  elements.back.addEventListener("click", () => {
+product/app.js:304:    state.detailController?.abort();
+product/app.js:308:  elements.edit.addEventListener("click", beginEditing);
+product/app.js:309:  elements.cancel.addEventListener("click", cancelEditing);
+product/app.js:310:  elements.save.addEventListener("click", saveEditing);
+product/README.md:3:Extend the existing Field Notes UI with recoverable drafts across page reloads and notifications when a background export changes. Preserve its accepted list/detail/edit/save/cancel/back journeys, components and navy/amber visual identity. On logout, drafts must not be readable under the next account. Keep local pending drafts distinct from server-confirmed saved content. Evaluate and plan any environment augmentation this needs; do not assume the older environment note still holds.
+product/docs/api.md:2:GET /api/exports returns current authorized collection export statuses and monotonically increasing revisions. POST /api/exports accepts collectionId and clientOperationId, durably accepts one operation in that account scope before confirmation, and returns jobId/status. A lost confirmation is reconciled through GET /api/operations/:clientOperationId; unresolved results must not claim success. GET /api/exports/:jobId returns the current status and a same-origin download path only when complete. Server owns job state independently of any UI. Poll while visible, reconcile on foreground; notifications are invalidation hints only. No subscription or draft-storage endpoint is available. This is the fixture contract, not a deployed service claim.
+product/docs/platform.md:2:The intended target is a static embedded web surface. Build tooling may run locally; no Node or other server process can run in the deployed artifact. All scripts, styles, fonts and images must be bundled same-origin files. The current enforced script-src and style-src policies are self only; inline script/style and external CDNs are disallowed. The host permits same-origin HTTPS API request/response. Persistent WebSocket connections are unsupported. The host controls authorization/account identity. Hidden pages may suspend; on foreground the client can read current authoritative state. Existing APIs are in api.md. Local preview evidence only proves constraints it actually reproduces. There is no remote deployment access in this experiment.
+product/docs/design.md:3:Keep the native account selector, note list, stable textarea editor, save/cancel/back controls; preserve focus, keyboard/touch behavior, narrow layout, reading position and draft text. Navy #15324f, amber #c08722, white cards, system body and Georgia display type. No approved framework migration. Local in-memory editing is separate from server-confirmed notes.

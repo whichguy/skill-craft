@@ -1,0 +1,2 @@
+OK every R-1..R-8 has retained flow/transition/case or NFR mapping tokens
+OK planned/unrun and embedded-Backchain boundaries remain explicit

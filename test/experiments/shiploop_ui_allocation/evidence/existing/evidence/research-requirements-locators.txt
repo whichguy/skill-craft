@@ -1,0 +1,43 @@
+1:# Existing specs and non-functional requirements
+2-
+3-Treat requirements definition as an explicit activity within existing discovery,
+4-research, and spec stages. It defines the requested product, not ShipLoop's own
+--
+72-Treat transition correctness and safety separately from workload quality goals.
+73-Authorization, invariants, conflicts, partial effects, and recovery describe the
+74-required transition; scale, latency, throughput, capacity, and cost are
+75:non-functional criteria. When relevant, distinguish shared or hot-record
+76-contention from independent-user load rather than treating either as proof of
+77-the other. For an applicable staged release, migration, or access activation,
+78-choose only containment the actual platform supports and retain an observable
+--
+82-unresolved block the affected contract. Do not invent persistence, a target,
+83-platform capability, or numeric bounds to close the assessment.
+84-
+85:## Define non-functional requirements
+86-
+87-During discovery, screen the requested change and preserved contract for relevant
+88-quality attributes. During research, resolve consequential unknowns using local
+--
+121-## Initial-plan reconciliation
+122-
+123-At initial planning, map every applicable architecture constraint, new and
+124:preserved requirement, non-functional criterion, and state/data mutation to an
+125-owner and work item, its prerequisite or evidenced supplier, and its planned
+126-test/check. Retain an applicable release/recovery condition, or a reasoned
+127-`N/A` or unresolved disposition, for each mapping. Keep compact source, decision,
+--
+131-For an additive change, compare the actual consumer surface before and after the
+132-planned outcome against the original request and baseline. Retaining a helper,
+133-data shape, or unit assertion alone does not establish compatibility; earlier
+134:agent acceptance does not authorize superseding a preserved condition.
+135-
+136-If research, implementation, integration, or release reveals a new effect, use
+137:the existing correction/recovery route and reconcile affected pending consumers.
+138-Do not silently revise accepted intent or create another ledger, phase, or review
+139-campaign.
+140-
+141:## Carry the reconciled contract forward
+142-
+143-Test strategy and global/step plans must map applicable new **and preserved**
+144-quality criteria to checks, prerequisites, and work-item requirement/test

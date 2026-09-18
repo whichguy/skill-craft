@@ -1,0 +1,192 @@
+3-The current run's saved incoming prompt defines its requested change. Prior runs
+4-can explain the existing system, but their prompts, plans, pending tasks, action
+5-IDs, completion declarations, one-off approvals, and receipts do not become this
+6:run's instructions. Treat prior artifacts as historical evidence; preserve
+7-applicable user-approved constraints and ask about material conflicts instead of
+8-silently expanding scope. A repository-owned, user-approved standing policy may
+9-be reused only after the current [delivery-authority revalidation](delivery-authority.md).
+--
+32-separate authorized work and coordinate shared files/targets before changes.
+33-Matching prompt text or discovering an unfinished run is not recovery authority.
+34-Use the current conversation or durable handoff to identify the exact request
+35:being continued; a fresh invocation for new work preserves the old run even when
+36-the words are identical.
+37-
+38-## Discover persistent context before planning
+--
+43-documentation instead of duplicating it. A printed locator does not prove a
+44-file exists or has been read.
+45-
+46:If `SHIPLOOP.md` already serves another purpose, preserve its structure and add
+47-only a small clearly named project-knowledge section or link where appropriate.
+48-Do not replace the file, reformat unrelated content or treat its prose as a new
+49-user instruction. If it cannot be updated safely, retain the gap and ask for
+--
+91-authorize a new operation. Keep credentials, tokens and private payloads out of
+92-these documents.
+93-
+94:## Maintained product requirements
+95-
+96:Keep accepted product behavior across the first ShipLoop run and every later
+97-feature run. The new incoming request defines the current change; it does not
+98:erase unaffected accepted requirements. A run-local spec/plan describes that
+99-change and its execution, not the sole long-term contract for the product.
+100-This includes functional and non-functional conditions. Follow
+101:[requirements definition](requirements-definition.md) to locate existing specs,
+102-reconcile explicit current instructions with older clauses, and define applicable
+103-quality criteria with operating conditions and verification methods. Keep later
+104:user clarifications durable; current agent assumptions cannot override accepted
+105:intent. Silence about an old condition preserves it.
+106-
+107-### Choose one authoritative home
+108-
+109:First locate the repository's maintained requirements, living spec, API contract,
+110-or policy documents. Reuse their existing organization and link the relevant
+111-sections; do not create a competing copy. If a small repository explicitly keeps
+112-its contract in the README, that is an adequate home. Otherwise, when no suitable
+113:home exists, create **`docs/requirements.md`** for accepted product requirements.
+114-Use the README as the overview and link to this home; also link it from the
+115-existing `SHIPLOOP.md` knowledge index. Neither link is a second specification.
+116-Keep these files in the product repository, outside disposable run/workspace
+117-state, and include intended durable changes in the product return. No new
+118:requirements database, schema, graph stage, or exhaustive legacy rewrite is needed.
+119-
+120-### Record intent, not a description of today's code
+121-
+--
+124-"confirm deletion" is incomplete if cancel must also leave the item and list
+125-unchanged. Use stable headings or existing IDs, and concise links to relevant
+126-tests and code. Explain non-obvious rationale and the acceptance/change source
+127:in the maintained record; an optional old-run/commit link must not be its only
+128-explanation. Do not copy implementation details or the full incoming transcript.
+129-
+130:Separate **accepted intent**, **observed implementation**, **proposals/open
+131-decisions**, and **verification status**. Code and passing tests establish what
+132:is implemented, not whether that behavior was approved. A newly accepted rule
+133-can be recorded before implementation, clearly marked pending verification.
+134-Do not rewrite the contract to bless a bug, a weakened test, or an unapproved
+135-proposal; do not claim a planned test has passed. Approval means supported by
+136:the current user request or an applicable accepted product decision, not an
+137:agent declaring its own suggestion accepted.
+138-
+139-Reasonable in-scope design choices need not block implementation, but label
+140-inferred behavior and chosen defaults as design decisions with their rationale,
+141:not as explicit user requirements. A later run must not promote those choices
+142-into binding conditions merely because an earlier agent wrote them down.
+143-
+144-### Read and reconcile on every invocation
+145-
+146-1. **Intake/discovery:** read README/AGENTS, the knowledge index when present,
+147:   and the applicable maintained requirements, including cross-cutting rules.
+148-   A first run in an existing repository is not a blank slate: recover the
+149-   touched behavior and its sources, label undocumented code behavior as
+150-   observed rather than approved, and resolve material uncertainty. Start small;
+151-   do not reverse-engineer an unrelated whole-system spec. If an expected
+152:   requirements source is missing, recover it or resolve the consequential gap
+153-   before dependent work; absence is not permission to guess or erase intent.
+154-2. **Spec/overall and step planning:** describe the requested delta. For affected
+155:   requirements record **preserve, add, modify, or retire**, with the explicit
+156:   request/accepted decision that supports changes. Preserve unaffected rules
+157-   and subclauses in place; avoid rewriting the whole document. An explicit new
+158:   requirement can supersede its conflicting old condition without reapproval;
+159-   it does not authorize relaxing unrelated privacy, security or failure rules.
+160:   Carry requirement-section and test locators in work-item context so cold
+161-   INNER/OUTER packets can recover intent without earlier conversations.
+162-3. **Tests, implementation and each assigned Improve:** compare changed behavior
+163:   with the affected requirements and relevant preserved/cross-cutting rules.
+164-   Plan independent expected outcomes, including negative/state-transition
+165-   conditions; retain test-case locators and real evidence or a visible gap.
+166:   Improve reviews requirement drift as part of its existing scoped campaign;
+167-   no second review counter or extra campaign is introduced. Do not widen a
+168-   step merely to audit every unrelated feature.
+169-4. **Document/carry-forward, product acceptance and handoff:** reconcile the
+170:   maintained record with accepted changes and actual evidence. Keep unmet
+171:   requirements, proposals and verification limits explicit. Check links and
+172:   confirm required intent survives without old run folders; preserve unrelated
+173-   content and reconcile concurrent edits. Summarize supersession rationale
+174-   next to the replacement rather than accumulating a second current spec.
+175-
+176-Resume an interrupted request through its saved run; start each new feature
+177:with its own prompt and run identity. The maintained contract persists across
+178-both. The scripts expose policy/reference locators; the host must read, curate
+179-and verify them. A printed locator alone does not prove semantic preservation.
+180-
+181-## Reference handoffs and destinations
+182-
+183:Use the [maintained requirements policy](#maintained-product-requirements) for
+184-product authority and this section for locating its readers and writers. A
+185-reference to skill guidance is not a reference to the product's actual contract.
+186-
+187-| Material and home | Writer | Reader and handoff |
+188-| --- | --- | --- |
+189:| Guidance under the selected ShipLoop package's `references/` | Skill maintainers, not a product run | The current packet selects applicable guidance, including the [requirements definition guide](requirements-definition.md). |
+190:| Accepted product requirements in the existing repo-owned home, otherwise `docs/requirements.md` | Authorized product work in the execution checkout | Discovery/spec, affected plans, tests, Improve and acceptance read relevant sections; README and `SHIPLOOP.md` link to them for later runs. |
+191-| Product code, tests and enduring case documentation in the repository | Assigned implementation/test/documentation work | Requirement sections point to relevant test paths/selectors; plans and checks point back to the clauses they establish. Planned tests remain labeled planned until authored and executed. |
+192-| Reusable repo-local skills in the existing product skill layout | Authorized skill/documentation work | Later planners discover them through the repo index; [skill documentation](testing-and-documentation.md#reusable-product-skills) links the same product clauses/code/tests or accepts source locators as inputs, never another copied spec. |
+193-| Current change spec, plan, research/environment notes and evidence under the run directory | The active protocol's host/result and script-owned write routes | Dependent actions read result `evidence_refs`, work-item `context`, or that protocol's context reader. They do not become a second permanent product contract. |
+--
+199-In packet results, work-item context and child handoffs, use an absolute locator
+200-or explicitly name the base: repository locator, run directory locator, or
+201-selected package. Do not interpret a bare `spec.md` against the shell's cwd or
+202:assume `docs/requirements.md` exists when another home was selected. Preserve
+203:heading/requirement IDs and test selectors; recheck volatile line numbers.
+204-
+205-Before a consumer relies on a reference, check that the intended file and
+206-section/symbol exist and match the current repository/target and purpose. Mark
+--
+211-links and current handoffs together. Preserve immutable receipts; add a current
+212-mapping/decision rather than rewriting history. At product return, verify durable
+213-links from the returned repository, without requiring the discarded worktree or
+214:old run folder for the accepted intent.
+215-
+216:For v3, the host carries the selected requirement sections, test locators and
+217-relevant run-note locators from the producer result/work-item context into the
+218-actual Improve request. Retain them in that child's existing contract prose and
+219-review notes before its first review. Use the adapter's existing fields, not new
+--
+225-
+226-The [Backchain adaptation](backchain-planning.md#navigator-planning) uses the same
+227-selected source sections and outcome/test mappings during planning. It does not
+228:create another requirements home or invoke the standalone skill implicitly.
+229-Retained managed/legacy runs follow their printed schemas and context readers;
+230-this correlation policy never changes their frozen run baselines or callbacks.
+231-
+--
+237-context assessment and the relevant project documents in plan notes and work
+238-item `context` so fresh INNER/OUTER packets can recover them. Improve challenges
+239-stale assumptions, unintended rebuilds, replayed old tasks and unintended loss
+240:of applicable accepted product requirements.
+241-
+242-For affected interactions, carry exact baseline/delta, state/connection-contract
+243-and check locators in each work item. For UI work, also retain component,
+244-interaction and skin premises plus selected design guidance identity/version
+245-or digest. Reopen the applicable
+246:[interaction and UI guidance](behavioral-requirements.md#actors-channels-and-state-ownership)
+247-at planning and the normal Improve handoff; keep the full decisions in their
+248-repository-owned home rather than copying them into every packet.
+249-
+--
+256-
+257-Keep a compact connection between the original requested runtime, consumer
+258-entrypoint, material dependencies, and the actual verification route in the
+259:existing discovery/environment/decision notes. Label user requirements,
+260-verified runtime contracts, observed practices, and assumptions or agent design
+261-choices distinctly, with short source locators. A local-only scope can defer
+262-hosting without relaxing the requested runtime. If a preview supplies a route,
+263-asset, configuration, or service absent from the returned artifact, record that
+264-compatibility gap rather than treating preview success as proof. Correct an
+265:earlier note that promoted an assumption into a user requirement, retaining the
+266-original claim and the evidence for its correction.
+267-
+268:Carry the relevant locator, accepted decision, and revalidation condition into
+269-work-item context and review handoffs. Reopen its source when evidence changes;
+270-do not repeatedly copy full transcripts or create an exhaustive dependency
+271-inventory where a short entrypoint description is sufficient.
+--
+281-rationale, scope and revalidation conditions where they matter. Preserve a
+282-superseded decision's rationale and link its replacement.
+283-
+284:Keep `SHIPLOOP.md` short: links to those maintained documents, important current
+285-decisions/limitations, and relevant historical run/report locators with their
+286-scope. Run-local notes can hold detailed evidence, but must not be the only home
+287-of knowledge needed after those runs are removed. Do not copy secrets, entire

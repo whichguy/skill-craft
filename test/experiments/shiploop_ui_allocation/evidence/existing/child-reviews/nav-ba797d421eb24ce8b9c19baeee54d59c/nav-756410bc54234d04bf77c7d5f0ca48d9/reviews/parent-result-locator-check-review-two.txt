@@ -1,0 +1,7 @@
+OK <study>/existing/run/notes/research.md
+OK <study>/existing/run/notes/environment-lifecycle.md
+OK <study>/existing/evidence/research-artifact-check.txt
+OK <study>/existing/evidence/research-current-source-hash.txt
+OK <study>/existing/evidence/research-product-contract-locators.txt
+OK <study>/existing/evidence/research-design-card-sha256.txt
+RESOLVED 6 pending-result evidence refs

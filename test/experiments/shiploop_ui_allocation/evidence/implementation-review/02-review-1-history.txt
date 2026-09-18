@@ -1,0 +1,56 @@
+commit 7f8ef5d7508c3088f628a90d326fb025f293be15
+fix(shiploop): delegate planning convergence to Backchain
+Treat native draft and bounded revise as whole Backchain operations with two consecutive qualifying reviews. Preserve opaque convergence records for recovery, require the selected convergence capability, and keep diagnostics and Improve ownership separate.
+
+Validation: 74 focused tests and generated ShipLoop plugin parity passed.
+
+---
+commit 2003cfd5fa33eb8d57a95ed977b09b7c5257c13d
+Merge pull request #2 from whichguy/codex/shiploop-latest-until
+feat(shiploop): bind the latest ephemeral Until Loop through Improve
+---
+commit 491eb51fe3b9f4aff1fc6a381651a4e0139add8e
+chore(shiploop): version Until Loop integration after context-reset release
+
+---
+commit b00ab437b63da6cf491d2464a3afce0414b422be
+test(packages): require Improve ephemeral runtime in release payloads
+
+---
+commit d146f439f1470ec88ca7d5449fc1ffb1271e68cc
+feat(shiploop): use the latest ephemeral Until Loop through Improve
+Refresh canonical Improve to 0.2.0-rc.1 with the byte-identical Until Loop
+0.4.0-rc.2 runtime from upstream 458f40ac35c8254906898890c25a784a6e3eb39c.
+Keep explicit durable and managed compatibility routes and record provenance.
+
+ShipLoop 0.14.0 now resolves the selected card's declared runtime, lets each
+child own its temporary callback state, and imports a validated raw terminal
+packet after the child deletes that state. The packet retains scoped context,
+parent identity, evidence and return routes for compaction recovery. ShipLoop
+still owns only parent traversal; semantic review judgments remain with Improve.
+
+Key learning: replacing a runtime binding alone was insufficient because the
+old importer required durable v2 state/history. Terminal output must survive as
+an import receipt. Another integration finding was that the final workspace
+return precedes child import: excluded untracked child receipts must remain in
+the private worktree, while staged, committed and historical runtime files must
+still block return. Do not create another child journal or scheduler.
+
+Validate real material/trivial/trivial callbacks, wrong or missing receipts,
+legacy compatibility, relocated read-only packages, terminal cleanup, return
+ordering, and actual 34-stage source/generated/observer composition. A fresh
+agent given only a terminal packet successfully imported one parent result;
+these protocol fixtures do not prove live product review quality.
+
+Focused checks and core suite passed; full regression groups and PR CI provide
+the publication gate. Regenerate plugin packages and marketplace versions.
+
+---
+commit 719483d8d63008b69071f975dddd8cf133e1c772
+feat(shiploop): enable context reset by default for new runs
+
+---
+commit ff4c77412a9246a732aa12b31d20261bbec7ee6d
+docs(shiploop): record live intake findings and next experiments
+
+---

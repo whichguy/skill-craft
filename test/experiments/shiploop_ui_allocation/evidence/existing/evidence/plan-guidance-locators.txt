@@ -1,0 +1,9 @@
+OK <study>/frozen/shiploop/references/backchain-planning.md
+OK <study>/frozen/shiploop/references/project-knowledge.md
+OK <study>/frozen/shiploop/references/requirements-definition.md
+OK <study>/frozen/shiploop/references/behavioral-requirements.md
+OK <study>/existing/run/notes/spec.md
+OK <study>/existing/run/notes/test-strategy.md
+OK <study>/existing/product/docs/design.md
+OK <study>/existing/product/docs/platform.md
+OK <study>/existing/product/docs/api.md

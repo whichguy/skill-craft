@@ -1,0 +1,16 @@
+[
+  "python3",
+  "-B",
+  "<study>/frozen/shiploop/scripts/shiploop",
+  "init",
+  "--repo",
+  "<study>/existing/product",
+  "--run-dir",
+  "<study>/existing/run",
+  "--navigator-version",
+  "3",
+  "--improve-skill",
+  "<study>/frozen/improve/SKILL.md",
+  "--prompt",
+  "Extend the existing Field Notes UI with recoverable drafts across page reloads and notifications when a background export changes. Preserve its accepted list/detail/edit/save/cancel/back journeys, components and navy/amber visual identity. On logout, drafts must not be readable under the next account. Keep local pending drafts distinct from server-confirmed saved content. Evaluate and plan any environment augmentation this needs; do not assume the older environment note still holds."
+]

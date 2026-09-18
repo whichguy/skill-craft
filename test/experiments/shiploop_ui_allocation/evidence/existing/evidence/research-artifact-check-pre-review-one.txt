@@ -1,0 +1,3 @@
+OK six stable research question IDs and dispositions
+OK 6 absolute source locators and all relative evidence locators resolve
+OK authority and unresolved-decision boundaries are explicit
