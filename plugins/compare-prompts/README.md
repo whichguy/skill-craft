@@ -8,7 +8,7 @@ Install the `compare-prompts` package from a configured Skill Craft marketplace,
 
 ## Use
 
-Ask the host to use `$compare-prompts` for a matching request. Read [SKILL.md](skills/compare-prompts/SKILL.md) before execution; it defines the workflow and any task-specific limits.
+Use the installed plugin skill: in Codex, ask for `$compare-prompts:compare-prompts`; in Claude, invoke `/compare-prompts:compare-prompts`; in other hosts, select the installed plugin skill. Read [SKILL.md](skills/compare-prompts/SKILL.md) before execution; it defines the workflow and any task-specific limits.
 
 ## Runtime and prerequisites
 

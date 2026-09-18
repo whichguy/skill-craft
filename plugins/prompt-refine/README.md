@@ -8,7 +8,7 @@ Install the `prompt-refine` package from a configured Skill Craft marketplace, t
 
 ## Use
 
-Ask the host to use `$prompt-refine` for a matching request. Read [SKILL.md](skills/prompt-refine/SKILL.md) before execution; it defines the workflow and any task-specific limits.
+Use the installed plugin skill: in Codex, ask for `$prompt-refine:prompt-refine`; in Claude, invoke `/prompt-refine:prompt-refine`; in other hosts, select the installed plugin skill. Read [SKILL.md](skills/prompt-refine/SKILL.md) before execution; it defines the workflow and any task-specific limits.
 
 ## Runtime and prerequisites
 

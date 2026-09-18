@@ -1,6 +1,6 @@
 {
   "name": "plan-test",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Generate comprehensive tests for code. Uses an inline strategy or an available independent test specialist for complex components.",
   "author": {
     "name": "whichguy",

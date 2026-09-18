@@ -10,7 +10,7 @@ description: |
   - "technology recommendation", "compare frameworks"
 
   NOT for: Direct implementation or a routine task breakdown.
-version: 0.1.1
+version: 0.1.2
 license: MIT
 platforms:
   - linux

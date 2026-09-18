@@ -115,23 +115,17 @@ workspace-mode handoff gate. It never merges the source checkout running the
 test. [Workspace experiments](experiments/shiploop_workspace/README.md) explain
 why starting at HEAD and deleting transient files at the tip were insufficient.
 
-## Optional context-host checks
+## Skill and script execution boundary
 
-`shiploop-context-host.test.py` exercises the packaged public CLI, saved owner
-identity, exact boundary reset, copied-package relocation, and conservative
-interruption recovery with synthetic Navigator/Improve receipts. The three
-`shiploop-host-{codex,grok,claude}.test.py` suites test native protocol adapters
-without installed host binaries or model calls. All four belong to the required
-ShipLoop aggregate.
+`shiploop-no-model-launch.test.py` exercises the packaged CLI with model-binary
+tripwires. Ordinary initialization and recovery stay in the invoking conversation,
+and the removed `drive` command must fail without launching a model. The package
+must not contain the retired controller or host transports. This boundary test
+belongs to the required ShipLoop aggregate.
 
-The optional host trials use installed authenticated hosts, seeded recall
-controls, fresh sessions, retained-session resumes, and harmless continuation
-scripts. They never run in default CI. Publication documents summarize their
-local observations without publishing host identifiers, raw receipts, or
-transcripts; failed trials remain local. The local host checks do not imply a
-full Improve/product completion or lower token cost. See
-`docs/shiploop-context-reset-integration-2026-09-17.md` and
-`experiments/shiploop_context_reset/production-validation.md`.
+The retained context-reset experiment records describe historical trials of the
+removed controller; they are not current invocation instructions. Real model
+launches for ShipLoop evaluation belong to the external E2E harness.
 
 ## Explicit integration targets
 

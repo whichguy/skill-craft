@@ -16,7 +16,7 @@ description: |
   - "mine post-mortems", "extract planning questions"
 
 argument-hint: "[questions-file] [--iterations N | --duration Xm | --tokens N] [--min-q N] [--max-q N] [--research-model MODEL] [--application-model MODEL] [--judge-model MODEL] [--reorganize-every N]"
-version: 0.1.1
+version: 0.1.2
 license: MIT
 platforms:
   - linux

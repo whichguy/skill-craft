@@ -115,11 +115,22 @@ for (const leaf of leaves) {
       !Array.isArray(codex.interface?.defaultPrompt) || codex.interface.defaultPrompt.length === 0) {
     throw new Error(`Codex interface actions missing for ${leaf}`);
   }
+  const expectedCodexPrompt = `Use $${leaf}:${leaf} for this task.`;
+  if (JSON.stringify(codex.interface.defaultPrompt) !== JSON.stringify([expectedCodexPrompt])) {
+    throw new Error(`Codex default prompt must use the qualified plugin skill for ${leaf}`);
+  }
   if (!fs.existsSync(`${root}/LICENSE`) || fs.readFileSync(`${root}/LICENSE`, "utf8") !== fs.readFileSync("LICENSE", "utf8")) {
     throw new Error(`package root LICENSE missing or drifted for ${leaf}`);
   }
   if (!fs.existsSync(`${root}/README.md`) || !fs.readFileSync(`${root}/README.md`, "utf8").trim()) {
     throw new Error(`package root README missing for ${leaf}`);
+  }
+  const readme = fs.readFileSync(`${root}/README.md`, "utf8");
+  if (!readme.includes(`\`$${leaf}:${leaf}\``) || !readme.includes(`\`/${leaf}:${leaf}\``)) {
+    throw new Error(`package README must document qualified host invocations for ${leaf}`);
+  }
+  if (readme.includes(`\`$${leaf}\``)) {
+    throw new Error(`package README must not claim bare Codex invocation for ${leaf}`);
   }
   const cards = [];
   const visit = (dir) => {

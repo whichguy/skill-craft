@@ -11,7 +11,7 @@ description: |
 
   NOT for: Only running an existing suite without designing or changing coverage.
 argument-hint: "[file-path or function-name]"
-version: 0.1.1
+version: 0.1.2
 license: MIT
 platforms:
   - linux

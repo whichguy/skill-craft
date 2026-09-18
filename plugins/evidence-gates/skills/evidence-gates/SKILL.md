@@ -6,7 +6,7 @@ description: >-
   the user says evidence-gates, offline evidence gates, freeze prove stop, or
   host-native verify gates. NOT the autonomous engine product.
 allowed-tools: all
-version: 0.2.2
+version: 0.2.3
 license: MIT
 platforms:
   - linux

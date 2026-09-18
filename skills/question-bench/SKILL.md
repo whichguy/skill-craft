@@ -21,7 +21,7 @@ description: |
   NOT for: reviewing a plan (use /review-plan), comparing prompts (use /compare-prompts)
 
 argument-hint: "<plan-file|plans-dir> --questions-file <path> [--judge-rubric <path>] [--questions <selector>] [--reference <known-good>] [--questions-l3-file <path>] [--crossref-file <path>] [--experiments N|\"subset1 | subset2\"] [--dry-run]"
-version: 0.1.1
+version: 0.1.2
 license: MIT
 platforms:
   - linux

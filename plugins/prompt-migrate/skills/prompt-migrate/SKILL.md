@@ -1,7 +1,7 @@
 ---
 name: prompt-migrate
 description: TDD-based prompt migration — given a target agent/skill prompt and a remediation list, writes failing tests first, then updates the prompt to make them pass. Commits remain user-controlled.
-version: 0.1.1
+version: 0.1.2
 license: MIT
 platforms:
   - linux

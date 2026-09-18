@@ -1,0 +1,72 @@
+{
+  "events": [
+    {
+      "rawInput": {
+        "command": "python3 \"__SELECTED_CLI__\" complete --run-dir=/fixture/run --action=fixture-action --result=/fixture/result.json; exit 0"
+      },
+      "toolCallId": "synthetic-mutant-exit-zero",
+      "type": "tool_call"
+    },
+    {
+      "rawOutput": {
+        "exitCode": 0
+      },
+      "status": "completed",
+      "toolCallId": "synthetic-mutant-exit-zero",
+      "type": "tool_call_update"
+    }
+  ],
+  "expectation": {
+    "attribution": "unknown",
+    "reason": "host-zero-can-describe-trailing-exit-not-the-selected-callback",
+    "success_observed": false
+  },
+  "id": "synthetic-failed-callback-followed-by-exit-zero",
+  "observer": {
+    "grok_adapter_sha256": "32130e8da2bd8c4dfaf6b9bbe160c50c117653c6b910f65edda548b94b3cba33",
+    "source_edit_policy": "parser-source-mismatch-invalidates-attribution",
+    "previous_grok_adapter_sha256": "3571fc09cb2ba76a939c345272a2e08402086041f8274cbc4b8d2350266e415e",
+    "revalidation": "Launch selection rejects ambiguous literal ShipLoop routes while accepting normal omitted-alias records; all five golden attribution expectations independently replayed unchanged. Original capture provenance and events are unchanged.",
+    "revalidation_history": [
+      {
+        "grok_adapter_sha256": "d1ff9c7208061a70857aa1ae95513823ebf26f69b0951f4890388d37011c8d66",
+        "previous_grok_adapter_sha256": "3fe86e382d0e01335ceec7882ad70025ac5d3ffe1caec9536bac020a10f040f8",
+        "revalidation": "Protocol-3 callback support added; all five existing golden attribution expectations independently replayed unchanged."
+      },
+      {
+        "grok_adapter_sha256": "3571fc09cb2ba76a939c345272a2e08402086041f8274cbc4b8d2350266e415e",
+        "previous_grok_adapter_sha256": "d1ff9c7208061a70857aa1ae95513823ebf26f69b0951f4890388d37011c8d66",
+        "revalidation": "Launch argv now defaults omitted and None reasoning effort to xhigh; all five golden attribution expectations independently replayed unchanged. Capture provenance and events are unchanged."
+      }
+    ]
+  },
+  "provenance": {
+    "base_capture_sha256": "160f2646cf5651da457d30cb398197a991393349a626578ded9840ed3b3f271b",
+    "base_fixture_id": "ttt-literal-standalone-complete",
+    "base_hash_basis": {
+      "base_capture_sha256": "full events.jsonl byte stream",
+      "base_tool_call_sha256": "UTF-8 source JSONL line without its terminal newline"
+    },
+    "base_retained_capture": "shiploop-e2e-20260917-ttt-full-80m/trials/ttt-create/capture/events.jsonl",
+    "base_tool_call": {
+      "call_id": "call-e5a8c66f-e4ed-45ef-bef6-b2c1dcc73de6-35",
+      "line": 856,
+      "sha256": "2273fafc8e5cd3914d91e4452b5cf747e4c7138b0e8a95493cea4abfa11c9c9f"
+    },
+    "kind": "synthetic-mutant",
+    "mutation": "append a trailing exit 0 after a callback assumed to fail; this was not observed in the retained trace",
+    "shape": {
+      "physical_lines": 1,
+      "reduced_shape": "literal selected CLI callback followed by a successful shell terminal command",
+      "trailing_terminal_control": "exit 0"
+    }
+  },
+  "sanitization": {
+    "absolute_paths_replaced": true,
+    "heredoc_bodies_reduced": true,
+    "prompts_removed": true,
+    "raw_transcript_stored": false,
+    "selected_cli_token": "__SELECTED_CLI__"
+  },
+  "schema": "shiploop-e2e-host-command-shape/v1"
+}

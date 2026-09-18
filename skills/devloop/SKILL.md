@@ -12,7 +12,7 @@ when-to-use: >-
   fail-closed loop with tests. Do not use for prompt tuning, visual design, or
   offline freeze/prove/stop (that is evidence-gates).
 argument-hint: plain-English goal
-version: 0.6.0
+version: 0.6.1
 license: MIT
 platforms:
   - linux

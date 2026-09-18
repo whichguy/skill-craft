@@ -8,7 +8,7 @@ description: >
   (use review-plan) or raw residual×2 engine mechanics alone (use
   review-converge under /goal).
 allowed-tools: all
-version: 0.2.6
+version: 0.2.7
 license: MIT
 platforms:
   - linux

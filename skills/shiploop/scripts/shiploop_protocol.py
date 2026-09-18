@@ -7663,9 +7663,6 @@ def workspace_completion_guard(root, previous, updated):
 
 def main(core, argv=None):
     raw_argv = list(sys.argv[1:] if argv is None else argv)
-    if raw_argv and raw_argv[0] == "drive":
-        import shiploop_context_host
-        return shiploop_context_host.main(raw_argv[1:], cli=Path(core.__file__).absolute())
     if raw_argv and raw_argv[0] == "workspace":
         return workspace_command(core, raw_argv[1:])
     parser = argparse.ArgumentParser(
@@ -7674,7 +7671,6 @@ def main(core, argv=None):
     )
     subs = parser.add_subparsers(dest="command", required=True)
     subs.add_parser("workspace", help="isolated start, return-plan review, and guarded return")
-    subs.add_parser("drive", help="supervised host execution with optional inner-loop context reset")
     import shiploop_dry_run
     import shiploop_navigator as navigator
     import shiploop_navigator_dry_run as navigator_dry_run

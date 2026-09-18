@@ -318,7 +318,7 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         self.assertEqual(self.state["navigator_protocol_version"], 3)
         self.assertEqual(self.bound["skill"]["runtime_cli"], str(EPHEMERAL.resolve()))
         self.assertEqual(self.bound["skill"]["runtime_version"], "0.4.0-rc.2")
-        self.assertEqual(self.bound["skill"]["skill_version"], "0.2.0-rc.1")
+        self.assertEqual(self.bound["skill"]["skill_version"], "0.2.0-rc.2")
         parent_packet = self.invoke(CLI, "next", "--run-dir", self.run).stdout
         for text in (self.bound["contract_marker"], "Bound Until Loop CLI locator: " + str(EPHEMERAL.resolve()),
                      "Child latest packet receipt: " + str(bridge.receipt_path(self.bound)), "no-commit",

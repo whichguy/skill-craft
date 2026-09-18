@@ -1,7 +1,7 @@
 ---
 name: prompt-align
 description: Compare an agent or skill prompt against its test harness skill for phase-model, skip-condition, and wiring consistency. Reports mismatches and identifies which file is authoritative.
-version: 0.1.1
+version: 0.1.2
 license: MIT
 platforms:
   - linux

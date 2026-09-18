@@ -8,7 +8,7 @@ Install the `architect` package from a configured Skill Craft marketplace, then 
 
 ## Use
 
-Ask the host to use `$architect` for a matching request. Read [SKILL.md](skills/architect/SKILL.md) before execution; it defines the workflow and any task-specific limits.
+Use the installed plugin skill: in Codex, ask for `$architect:architect`; in Claude, invoke `/architect:architect`; in other hosts, select the installed plugin skill. Read [SKILL.md](skills/architect/SKILL.md) before execution; it defines the workflow and any task-specific limits.
 
 ## Runtime and prerequisites
 

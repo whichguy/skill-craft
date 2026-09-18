@@ -1,7 +1,7 @@
 ---
 name: prompt-audit
 description: Audit an agent or skill prompt file for internal inconsistencies (phase numbering, behavioral contracts, terminology, stale references). Produces a Q&A with info-gain scores, a learnings section, and a remediation list. Use before any prompt migration.
-version: 0.1.1
+version: 0.1.2
 license: MIT
 platforms:
   - linux

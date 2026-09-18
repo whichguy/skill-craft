@@ -8,7 +8,7 @@ Install the `improve-system-prompt` package from a configured Skill Craft market
 
 ## Use
 
-Ask the host to use `$improve-system-prompt` for a matching request. Read [SKILL.md](skills/improve-system-prompt/SKILL.md) before execution; it defines the workflow and any task-specific limits.
+Use the installed plugin skill: in Codex, ask for `$improve-system-prompt:improve-system-prompt`; in Claude, invoke `/improve-system-prompt:improve-system-prompt`; in other hosts, select the installed plugin skill. Read [SKILL.md](skills/improve-system-prompt/SKILL.md) before execution; it defines the workflow and any task-specific limits.
 
 ## Runtime and prerequisites
 

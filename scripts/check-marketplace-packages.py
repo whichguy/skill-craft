@@ -46,6 +46,11 @@ NATIVE_SCRIPT_ENTRYPOINTS: dict[str, dict[str, str]] = {
     },
     "review-coverage": {"scripts/review-coverage": "python3"},
     "shiploop": {"scripts/shiploop": "python3"},
+    "shiploop-e2e-audit": {
+        "scripts/resolve_harness.py": "python3",
+        "harness/run.py": "python3",
+        "harness/check_suite.py": "python3",
+    },
     "skill-interop": {
         "scripts/marketplace-run.sh": "bash",
         "scripts/scaffold-skill.sh": "bash",

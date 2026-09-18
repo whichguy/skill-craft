@@ -1,6 +1,6 @@
 {
   "name": "architect",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Design system architecture and make technology decisions. Uses a structured inline design or an available independent reviewer for comprehensive work.",
   "author": {
     "name": "whichguy",
@@ -26,7 +26,7 @@
       "Read"
     ],
     "defaultPrompt": [
-      "Use $architect for this task."
+      "Use $architect:architect for this task."
     ]
   }
 }
