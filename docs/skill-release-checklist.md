@@ -8,10 +8,21 @@ Before publishing a changed skill package, freeze the candidate bytes:
 2. **Plugin views and native catalogs in sync:** `bash scripts/sync-plugin-views.sh`, then
    `bash scripts/sync-plugin-views.sh --check`. Full sync also regenerates the Grok/Cursor
    catalogs and README inventory. Commit generated metadata with the package change.
-3. **Verify the frozen candidate:** `bash test/run-all.sh`,
-   `python3 scripts/check-marketplace-packages.py`, and the opt-in
-   `marketplace-claude`, `marketplace-grok`, `marketplace-codex` targets of
-   `test/run-integration.sh`. The latter require actual host CLIs and disposable
+3. **Verify the frozen candidate at the appropriate tier:** start with
+   `bash test/run-all.sh --group smoke` and affected package checks such as
+   `python3 scripts/check-marketplace-packages.py`. Smoke is partial evidence,
+   not exhaustive regression evidence. Run the complete hermetic aggregate
+   (`bash test/run-all.sh`) or a manual CI full tier for runtime, durable-state,
+   graph, callback, or recovery changes, and for release qualification. A
+   metadata-only package change may use smoke plus affected checks. Do not require
+   local full, PR full, and post-merge full runs when one qualifying run tested an
+   identical final tree; if bytes change, reselect the checks for the new tree.
+   A manual full CI run is started with
+   `gh workflow run ci.yml --ref <candidate-branch> -f tier=full`; confirm its
+   tested SHA and tree still match the final candidate before relying on it. It is
+   qualification evidence, not a replacement for the required PR smoke check.
+   The opt-in `marketplace-claude`, `marketplace-grok`, `marketplace-codex`
+   targets of `test/run-integration.sh` require actual host CLIs and disposable
    profiles, not personal installs. Record host versions and separate parser,
    installation, installed-script and model-workflow evidence. Any unavailable
    check stays explicitly unverified. Then, with publication authorization,

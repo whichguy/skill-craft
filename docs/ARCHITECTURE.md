@@ -119,20 +119,26 @@ host checkout into a tree that is bind-mounted into the container as `/opt/data`
 
 ### Operator / CI (**implemented**)
 
-- Hermetic suite: `bash test/run-all.sh` (**implemented**); `--group core|shiploop`
-  preserves the stable local groups and `--list` prints the same catalog used to
-  execute. CI-only `shiploop-1|shiploop-2|shiploop-3` aliases select deterministic
-  thirds of the one ordered ShipLoop inventory; `all` excludes those aliases and
-  still runs the full serial ShipLoop suite once. No installed AI host or engine
-  is required; mocked Hermes binding remains covered.
+- Hermetic suite: `bash test/run-all.sh` (**implemented**) remains the complete
+  local aggregate. `--group smoke` runs core plus six selected ShipLoop graph and
+  boundary suites; it is partial evidence, never a full-regression claim.
+  `test/shiploop.test.sh --smoke` selects those six from the one canonical
+  inventory, while no-argument/all and `--shard 1/3|2/3|3/3` preserve the full
+  behavior. No installed AI host or engine is required; core's bundled mock also
+  covers marketplace-style binding from an empty unrelated directory.
 - Plugin view drift: `bash scripts/sync-plugin-views.sh --check` (**implemented**)
-- CI: `.github/workflows/ci.yml` (**implemented**); independent core plus three
-  deterministic ShipLoop-shard jobs, explicit Python/Node versions and a
-  fail-closed aggregate `hermetic` status.
-  Both checkouts independently reject staged or unstaged tracked changes after
-  their suites, including failed suites; package parity remains core-only.
+- CI: `.github/workflows/ci.yml` (**implemented**); pull requests and `main`
+  pushes use the smoke tier. Manual dispatch defaults to smoke and can select
+  `tier=full`, which runs core plus three deterministic ShipLoop shards for
+  runtime/state/graph/callback changes and release qualification. The fail-closed
+  `hermetic` status remains the aggregate gate. A full run only qualifies the
+  matching final SHA/tree; it is not a substitute for the PR smoke gate.
+  Each selected test job rejects staged or unstaged tracked changes after
+  their suites, including failed suites; package parity runs with core or smoke.
 - External integrations: explicitly selected via `bash test/run-integration.sh`;
-  never pulled into the required CI aggregate. See [test runners](../test/README.md).
+  never pulled into the required CI aggregate. Live Grok E2E audits are also
+  opt-in, use `xhigh` with a 7,200-second cap, and are distinct from hermetic
+  graph checks. See [test runners](../test/README.md).
 
 ## Materialization policy (Hermes)
 
@@ -227,15 +233,20 @@ Foreign trees are never clobbered; refusals are **nonzero** so automation cannot
 
 ## Residual / quality review discipline
 
-Hermetic residual×2 and similar loops should run in a **detached git worktree** at a pinned SHA (not a dirty shared checkout). Capture suite status mechanically:
+Hermetic residual×2 and similar loops should run in a **detached git worktree**
+at a pinned SHA (not a dirty shared checkout). Use smoke for routine iteration;
+use full regression for runtime/state/graph/callback changes and release
+qualification. Capture the chosen suite status mechanically:
 
 ```bash
 set -o pipefail
-bash test/run-all.sh 2>&1 | tee run-all.log
+test_tier=smoke
+bash test/run-all.sh --group "$test_tier" 2>&1 | tee run-all.log
 echo "EXIT=${PIPESTATUS[0]}" | tee -a run-all.log
 ```
 
-A cycle may not claim PASS without a trailing `EXIT=0` line (or attributed non-packaging failures only).
+A smoke cycle may not claim full-regression coverage. Any cycle may not claim
+PASS without a trailing `EXIT=0` line (or attributed non-packaging failures only).
 
 ## devloop bootstrap (host-local)
 

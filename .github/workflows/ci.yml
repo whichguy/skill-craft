@@ -1,10 +1,18 @@
 name: ci
+run-name: CI ${{ inputs.tier || 'smoke' }}
 
 on:
   push:
     branches: [main]
   pull_request:
   workflow_dispatch:
+    inputs:
+      tier:
+        description: Smoke for routine feedback; full for candidate qualification
+        type: choice
+        required: true
+        default: smoke
+        options: [smoke, full]
 
 # A PR revision supersedes its earlier CI run. Main and manual runs each use a
 # unique run ID, so this policy never cancels those required checks.
@@ -23,7 +31,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        group: [core, shiploop-1, shiploop-2, shiploop-3]
+        group: ${{ fromJSON(github.event_name == 'workflow_dispatch' && inputs.tier == 'full' && '["core","shiploop-1","shiploop-2","shiploop-3"]' || '["smoke"]') }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v7
@@ -36,7 +44,7 @@ jobs:
       - name: Hermetic group
         run: bash test/run-all.sh --group "${{ matrix.group }}"
       - name: Plugin views in sync
-        if: ${{ always() && matrix.group == 'core' }}
+        if: ${{ always() && (matrix.group == 'core' || matrix.group == 'smoke') }}
         run: bash scripts/sync-plugin-views.sh --check
       - name: Tracked checkout unchanged
         if: ${{ always() }}
@@ -45,14 +53,15 @@ jobs:
           git diff --exit-code
           git diff --cached --exit-code
 
-  # Preserve the existing required-check name; skipped/failed groups cannot pass.
+  # Preserve the required-check name for the selected tier. Smoke is partial;
+  # full regression is an explicit candidate qualification, not a PR default.
   hermetic:
     if: ${{ always() }}
     needs: checks
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
-      - name: Require all hermetic groups
+      - name: Require all selected hermetic groups
         env:
           CHECKS_RESULT: ${{ needs.checks.result }}
         run: test "$CHECKS_RESULT" = success

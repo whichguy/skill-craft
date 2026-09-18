@@ -1,30 +1,40 @@
 # Test runners
 
-`bash test/run-all.sh` is the required hermetic aggregate. It needs no network,
-installed host skill, live engine, credential, or environment-specific test
-target. The group interface is deliberately small:
+`bash test/run-all.sh` is the complete local hermetic aggregate. It needs no
+network, installed host skill, live engine, credential, or environment-specific
+test target. The group interface is deliberately small:
 
 ```mermaid
 flowchart LR
-    C["core hermetic fixtures"] --> A["all hermetic aggregate"]
-    S["shiploop tests and one action walk"] --> A
-    I["explicit integration target"] --> H["host or environment opt-in"]
+    C["core hermetic fixtures"] --> S["smoke aggregate"]
+    G["six ShipLoop graph and boundary suites"] --> S
+    S --> P["PR and main CI"]
+    C --> A["complete local aggregate"]
+    F["full ShipLoop suite and action walk"] --> A
+    A --> M["manual full qualification"]
 ```
 
 ```sh
 bash test/run-all.sh
+bash test/run-all.sh --group smoke
 bash test/run-all.sh --group core
 bash test/run-all.sh --group shiploop
 bash test/run-all.sh --group all
 bash test/run-all.sh --list
 bash test/shiploop.test.sh --list
+bash test/shiploop.test.sh --smoke
+bash test/shiploop.test.sh --smoke --list
 bash test/shiploop.test.sh --shard 1/3 --list
 ```
 
 The default is `--group all`. `core` covers packaging, installation, and
-contract-fixture tests without an installed host. `shiploop` runs the ShipLoop
-suite and exactly one action walk. `all` is the stable hermetic aggregate of
-those two groups. The legacy direct command remains available for compatibility:
+contract-fixture tests without an installed host. `smoke` runs that full core
+group plus six selected ShipLoop suites: `no-model-launch`, `navigator-v3`,
+`packet-bounds`, `navigator-dry-run`, `graph-driver`, and `graph-trace`.
+It is a fast partial signal, not a replacement for the full suite. `shiploop`
+runs the complete ShipLoop suite and exactly one action walk. `all` is the
+stable complete hermetic aggregate of `core` and `shiploop`. The legacy direct
+command remains available for compatibility:
 
 ```sh
 bash test/shiploop-walk-journal.test.sh
@@ -34,12 +44,14 @@ It is not part of the aggregate; the `shiploop` group owns the action walk once.
 
 `test/shiploop.test.sh` owns one ordered ShipLoop inventory. Its no-argument
 form remains the complete serial runner. `--list` prints only the selected
-inventory and does not run synchronization or a test. `--shard 1/3`, `2/3`, or
-`3/3` selects every third suite from that same order, so the three inventories
-are disjoint and contain the action walk once in total. CI calls those shards
-through `shiploop-1`, `shiploop-2`, and `shiploop-3`; they are scheduling
-aliases and are intentionally excluded from `--group all`, which still runs
-the full serial ShipLoop runner exactly once.
+inventory and does not run synchronization or a test. `--smoke` selects the
+same six suites listed above from that canonical inventory; `--smoke --list` is
+the fastest way to inspect the subset. `--smoke` and `--shard` are mutually
+exclusive. `--shard 1/3`, `2/3`, or `3/3` selects every third suite from the
+same order, so the three inventories are disjoint and contain the action walk
+once in total. Full CI calls those shards through `shiploop-1`, `shiploop-2`,
+and `shiploop-3`; they are scheduling aliases and are intentionally excluded
+from `--group all`, which still runs the full serial ShipLoop runner exactly once.
 
 `python3 test/shiploop-probe-decisions.test.py` checks the separate decision-driven
 probe corpus and its thin frozen-study adapter without launching a model. It
@@ -154,6 +166,12 @@ an offline suite pass proves model compliance, a working hosted game, or a
 deployment. Live host/browser/MCP tests remain explicit authorized experiments,
 not default CI dependencies.
 
+The core `installed-skill-invocation` check includes the bundled mock path from
+an empty unrelated directory, covering marketplace-style audit binding without
+launching a model. Live Grok audits remain separate opt-in E2E work: use the
+audit harness's `xhigh` setting and its 7,200-second cap, then assess retained
+stdout/stderr and product evidence independently of smoke or full hermetic CI.
+
 ### Host and environment targets
 
 Integration checks never run as a default dependency of the hermetic aggregate.
@@ -198,15 +216,29 @@ Self-contained mocked Hermes-install tests establish installer behavior only.
 They do not provide an actual Hermes runtime, engine availability, live-host
 execution, or certification. A green hermetic aggregate has the same boundary.
 
-CI runs the full hermetic matrix for pull requests, pushes to `main`, and manual
-dispatches. It ignores tag and feature-branch pushes. A newer run for the same
-pull request cancels the superseded run; main-push and manual runs use unique
-concurrency keys and are never cancelled by this policy. CI sets Python 3.12 and
-Node 22 explicitly, runs `core` and the three deterministic ShipLoop shards as
-independent groups on Ubuntu 24.04, and preserves the existing `hermetic` status
-as an aggregate gate. Failed, cancelled or skipped required groups cannot make
-that gate pass. Package drift is reported even when another core check fails.
-Both CI jobs reject staged or unstaged tracked-file changes left by tests,
+CI runs the `smoke` aggregate for pull requests and pushes to `main`; it ignores
+tag and feature-branch pushes. A manual dispatch accepts `tier=smoke` (the
+default) or `tier=full`. Full dispatch runs `core` and the three deterministic
+ShipLoop shards; use it for runtime, state, graph, or callback changes and for
+release qualification. Start it against the candidate branch with:
+
+```sh
+gh workflow run ci.yml --ref <candidate-branch> -f tier=full
+```
+
+Before treating that run as qualification evidence, check that its tested SHA
+and tree still match the final candidate. A manual full run is qualification
+evidence; it does not replace the required pull-request smoke check. Metadata-only
+changes may use smoke plus their affected checks. Do not repeat local full, PR
+full, and post-merge full runs for an identical tested tree; a new tree needs
+the checks appropriate to its changes.
+
+A newer run for the same pull request cancels the superseded run; main-push and
+manual runs use unique concurrency keys and are never cancelled by this policy.
+CI sets Python 3.12 and Node 22 explicitly and preserves the existing `hermetic`
+status as an aggregate gate. Failed, cancelled or skipped required groups cannot
+make that gate pass. Package drift is reported even when another core check fails.
+Each selected test job rejects staged or unstaged tracked-file changes left by tests,
 even after a suite or package-parity failure. The worktree and index are checked
 separately so restoring a working file cannot hide its staged changes.
 Checkout-local bootstrap pins are generated in temporary directories, not

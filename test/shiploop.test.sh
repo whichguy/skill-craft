@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Stable CI entrypoint for ShipLoop's Markdown-authoritative protocol suites.
+# Stable entrypoint for ShipLoop's full, smoke, and sharded protocol suites.
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
@@ -99,20 +99,26 @@ suites=(
 )
 
 usage() {
-  printf 'Usage: bash test/shiploop.test.sh [--shard 1/3|2/3|3/3] [--list]\n'
+  printf 'Usage: bash test/shiploop.test.sh [--smoke | --shard 1/3|2/3|3/3] [--list]\n'
 }
 
 shard=""
+smoke=0
 list_only=0
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --shard)
-      [[ $# -ge 2 && -z "$shard" ]] || { usage >&2; exit 64; }
+      [[ $# -ge 2 && -z "$shard" && "$smoke" -eq 0 ]] || { usage >&2; exit 64; }
       case "$2" in
         1/3|2/3|3/3) shard="$2" ;;
         *) usage >&2; exit 64 ;;
       esac
       shift 2
+      ;;
+    --smoke)
+      [[ "$smoke" -eq 0 && -z "$shard" ]] || { usage >&2; exit 64; }
+      smoke=1
+      shift
       ;;
     --list)
       [[ "$list_only" -eq 0 ]] || { usage >&2; exit 64; }
@@ -135,10 +141,29 @@ if [[ -n "$shard" ]]; then
   shard_index="${shard%%/*}"
 fi
 
-for index in "${!suites[@]}"; do
+selected() {
+  local index="$1"
   if [[ -n "$shard" ]] && (( index % 3 != shard_index - 1 )); then
-    continue
+    return 1
   fi
+  if [[ "$smoke" -eq 1 ]]; then
+    # Select from the full inventory; never maintain a second execution list.
+    # Core already runs the marketplace-copied audit mock suite.
+    case "${suites[$index]}" in
+      test/shiploop-no-model-launch.test.py|\
+      test/shiploop-navigator-v3.test.py|\
+      test/shiploop-packet-bounds.test.py|\
+      test/shiploop-navigator-dry-run.test.py|\
+      test/shiploop-graph-driver.test.py|\
+      test/shiploop-graph-trace.test.py) ;;
+      *) return 1 ;;
+    esac
+  fi
+  return 0
+}
+
+for index in "${!suites[@]}"; do
+  selected "$index" || continue
   if [[ "$list_only" -eq 1 ]]; then
     printf '%s\n' "${suites[$index]}"
   fi
@@ -150,9 +175,7 @@ printf '==> scripts/sync-improve-managed.py\n'
 PYTHONDONTWRITEBYTECODE=1 python3 scripts/sync-improve-managed.py
 
 for index in "${!suites[@]}"; do
-  if [[ -n "$shard" ]] && (( index % 3 != shard_index - 1 )); then
-    continue
-  fi
+  selected "$index" || continue
   suite="${suites[$index]}"
   printf '==> %s\n' "$suite"
   case "$suite" in

@@ -2,7 +2,9 @@
 """Aggregate-test selection must be explicit, host-free and duplicate-free."""
 
 from pathlib import Path
+import json
 import os
+import re
 import shlex
 import shutil
 import subprocess
@@ -16,6 +18,14 @@ SHIPLOOP_RUNNER = ROOT / "test" / "shiploop.test.sh"
 SHIPLOOP_SUITE_COUNT = 87
 ACTION_WALK = "test/shiploop-action-walk.test.py"
 CI_GROUPS = ("core", "shiploop-1", "shiploop-2", "shiploop-3")
+SHIPLOOP_SMOKE = (
+    "test/shiploop-no-model-launch.test.py",
+    "test/shiploop-navigator-v3.test.py",
+    "test/shiploop-packet-bounds.test.py",
+    "test/shiploop-navigator-dry-run.test.py",
+    "test/shiploop-graph-driver.test.py",
+    "test/shiploop-graph-trace.test.py",
+)
 CORE = {
     "test-groups", "integration-boundaries", "skill-interop-hygiene",
     "sync-plugin-views", "native-marketplace-adapters", "skill-frontmatter",
@@ -82,6 +92,7 @@ class TestGroupTests(unittest.TestCase):
                     "#!/bin/sh\n"
                     'suite_name="shiploop"\n'
                     'if [ "${1:-}" = "--shard" ]; then suite_name="shiploop-${2%%/*}"; fi\n'
+                    'if [ "${1:-}" = "--smoke" ]; then suite_name="shiploop-smoke"; fi\n'
                     'printf "%s\\n" "$suite_name" >> "$TEST_TRACE"\n'
                     '[ "${FAIL_SUITE:-}" != "$suite_name" ] || exit 7\n'
                 )
@@ -208,7 +219,8 @@ class TestGroupTests(unittest.TestCase):
 
     def test_help_and_list_do_not_execute_suites(self):
         root, env = self.fixture()
-        for args in (("--list",), ("--help",), ("--group", "core", "--list")):
+        for args in (("--list",), ("--help",), ("--group", "core", "--list"),
+                     ("--group", "smoke", "--list")):
             with self.subTest(args=args):
                 result = self.invoke(*args, root=root, env=env)
                 self.assertEqual(result.returncode, 0, result.stderr)
@@ -225,6 +237,7 @@ class TestGroupTests(unittest.TestCase):
     def test_default_and_group_selection_execute_each_suite_once(self):
         root, env = self.fixture()
         for group, args in (("all", ()), ("core", ("--group", "core")),
+                            ("smoke", ("--group", "smoke")),
                             ("shiploop", ("--group", "shiploop")),
                             ("shiploop-1", ("--group", "shiploop-1")),
                             ("shiploop-2", ("--group", "shiploop-2")),
@@ -244,6 +257,43 @@ class TestGroupTests(unittest.TestCase):
         self.assertIn("FAIL test-groups", result.stderr)
         self.assertNotIn("run-all.sh: PASS", result.stdout)
         self.assertEqual((root / "trace").read_text().splitlines(), [row[1] for row in self.inventory()])
+
+    def test_smoke_includes_core_and_graph_subset_without_full_walk(self):
+        smoke = self.inventory("smoke")
+        self.assertEqual(smoke[:-1], self.inventory("core"))
+        self.assertEqual(smoke[-1][:2], ["smoke", "shiploop-smoke"])
+        self.assertEqual(smoke[-1][2].strip(), "bash test/shiploop.test.sh --smoke")
+        result = self.invoke_shiploop("--smoke", "--list")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        selected = result.stdout.splitlines()
+        self.assertEqual(selected, list(SHIPLOOP_SMOKE))
+        self.assertEqual(selected, [s for s in self.shiploop_inventory() if s in SHIPLOOP_SMOKE])
+        self.assertNotIn(ACTION_WALK, selected)
+        self.assertNotIn("shiploop-smoke", [name for _, name, _ in self.inventory()])
+
+    def test_smoke_fails_for_either_core_or_graph_failure(self):
+        root, env = self.fixture()
+        for failure in ("test-groups", "shiploop-smoke"):
+            with self.subTest(failure=failure):
+                (root / "trace").unlink(missing_ok=True)
+                env["FAIL_SUITE"] = failure
+                result = self.invoke("--group", "smoke", root=root, env=env)
+                self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+                self.assertNotIn("run-all.sh: PASS", result.stdout)
+                self.assertEqual((root / "trace").read_text().splitlines(),
+                                 [row[1] for row in self.inventory("smoke")])
+
+    def test_shiploop_smoke_executes_selected_suites_and_propagates_failure(self):
+        root, env = self.shiploop_fixture()
+        trace = root / "trace"
+        result = self.invoke_shiploop("--smoke", root=root, env=env)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(trace.read_text().splitlines(), ["sync", *SHIPLOOP_SMOKE])
+        trace.unlink()
+        env["FAIL_SUITE"] = SHIPLOOP_SMOKE[1]
+        result = self.invoke_shiploop("--smoke", root=root, env=env)
+        self.assertEqual(result.returncode, 7, result.stdout + result.stderr)
+        self.assertEqual(trace.read_text().splitlines(), ["sync", *SHIPLOOP_SMOKE[:2]])
 
     def test_shiploop_shards_partition_the_one_canonical_inventory(self):
         source = SHIPLOOP_RUNNER.read_text()
@@ -268,7 +318,7 @@ class TestGroupTests(unittest.TestCase):
         trace = root / "trace"
         env = dict(os.environ)
         env["TEST_TRACE"] = str(trace)
-        for args in (("--list",), ("--shard", "1/3", "--list")):
+        for args in (("--list",), ("--shard", "1/3", "--list"), ("--smoke", "--list")):
             with self.subTest(args=args):
                 result = self.invoke_shiploop(*args, root=root, env=env)
                 self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
@@ -277,6 +327,8 @@ class TestGroupTests(unittest.TestCase):
             ("--shard",), ("--shard", "0/3"), ("--shard", "1/2"),
             ("--shard", "4/3"), ("--shard", "1/3", "--shard", "2/3"),
             ("--list", "--list"), ("--wat",),
+            ("--smoke", "--smoke"), ("--smoke", "--shard", "1/3"),
+            ("--shard", "1/3", "--smoke"),
         ):
             with self.subTest(args=args):
                 result = self.invoke_shiploop(*args, root=root, env=env)
@@ -341,9 +393,26 @@ class TestGroupTests(unittest.TestCase):
             workflow,
         )
 
+    def test_ci_defaults_to_smoke_and_full_requires_explicit_manual_selection(self):
+        workflow = (ROOT / ".github" / "workflows" / "ci.yml").read_text()
+        triggers = workflow.split("\nconcurrency:\n", 1)[0]
+        self.assertIn("        type: choice\n", triggers)
+        self.assertIn("        default: smoke\n", triggers)
+        self.assertIn("        options: [smoke, full]\n", triggers)
+        # Keep this small dispatch expression auditable; parse the actual matrix
+        # choices rather than execute an independent copy of CI routing code.
+        matrix = re.search(
+            r"group: \$\{\{ fromJSON\((.*?) && '([^']+)' \|\| '([^']+)'\) \}\}",
+            workflow,
+        )
+        self.assertIsNotNone(matrix)
+        self.assertEqual(matrix[1], "github.event_name == 'workflow_dispatch' && inputs.tier == 'full'")
+        self.assertEqual(json.loads(matrix[2]), list(CI_GROUPS))
+        self.assertEqual(json.loads(matrix[3]), ["smoke"])
+        self.assertIn("run-name: CI ${{ inputs.tier || 'smoke' }}", workflow)
+
     def test_ci_preserves_a_fail_closed_aggregate_check(self):
         workflow = (ROOT / ".github" / "workflows" / "ci.yml").read_text()
-        self.assertIn(f"group: [{', '.join(CI_GROUPS)}]", workflow)
         self.assertIn('bash test/run-all.sh --group "${{ matrix.group }}"', workflow)
         self.assertIn("fail-fast: false", workflow)
         self.assertIn("python-version: '3.12'", workflow)
@@ -366,7 +435,7 @@ class TestGroupTests(unittest.TestCase):
         workflow = (ROOT / ".github" / "workflows" / "ci.yml").read_text()
         parity = self.workflow_step(workflow, "Plugin views in sync")
         guard = self.workflow_step(workflow, "Tracked checkout unchanged")
-        self.assertIn("if: ${{ always() && matrix.group == 'core' }}", parity)
+        self.assertIn("if: ${{ always() && (matrix.group == 'core' || matrix.group == 'smoke') }}", parity)
         self.assertIn("bash scripts/sync-plugin-views.sh --check", parity)
         self.assertNotIn("git diff", parity)
         self.assertIn("if: ${{ always() }}", guard)
