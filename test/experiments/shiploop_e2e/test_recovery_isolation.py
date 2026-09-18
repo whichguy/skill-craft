@@ -42,6 +42,21 @@ class RecoveryIsolationTests(unittest.TestCase):
         self.assertEqual(assess_isolation(self.initial, self.initial, events, prompt=self.prompt)["status"], "unverified")
         self.assertEqual(assess_isolation(self.initial, self.initial, events, prompt=self.prompt, mode="explicit-recovery")["status"], "not-applicable")
 
+    def test_failed_completed_callbacks_do_not_support_isolation_attribution(self):
+        for argv in (
+            ["next", "--run-dir=/prior/run"],
+            ["improve-complete", "--run-dir=/prior/run", "--action=old-action"],
+        ):
+            with self.subTest(argv=argv):
+                events = {"cli_calls": [{
+                    "call_id": "conflict", "argv_tail": argv, "completed": True,
+                    "failed": True, "exit_codes": [0],
+                }]}
+                result = assess_isolation(self.initial, self.initial, events, prompt=self.prompt)
+                self.assertEqual(result["status"], "unverified")
+                self.assertEqual(result["prior_runs_recovered"], [])
+                self.assertEqual(result["prior_run_callbacks"], [])
+
 
 if __name__ == "__main__":
     unittest.main()

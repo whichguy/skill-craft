@@ -84,6 +84,59 @@ class AuditTest(unittest.TestCase):
         self.assertNotIn("inputTokens", json.dumps(summary["usage"]))
         self.assertIn("terminal-usage-unavailable", summary["warnings"])
 
+    def test_tool_exit_codes_require_terminal_updates_and_failed_never_succeeds(self) -> None:
+        for name, updates, expected_codes, failed, succeeded in (
+            (
+                "final-missing",
+                [("in_progress", {"exit_code": 0}), ("completed", {})],
+                [], False, False,
+            ),
+            (
+                "final-zero",
+                [("in_progress", {"exitCode": 0}), ("completed", {"exit_code": 0})],
+                [0], False, True,
+            ),
+            (
+                "final-nonzero",
+                [("in_progress", {"exit_code": 0}), ("completed", {"exitCode": 9})],
+                [9], True, False,
+            ),
+            (
+                "failed-after-zero",
+                [
+                    ("in_progress", {"exit_code": 0}),
+                    ("completed", {"exitCode": 0}),
+                    ("failed", {"exit_code": 0}),
+                ],
+                [0, 0], True, False,
+            ),
+        ):
+            with self.subTest(case=name):
+                with tempfile.TemporaryDirectory() as temporary:
+                    rows = [receipt(
+                        "2026-09-17T10:00:00Z", "stdout",
+                        {"type": "tool_call", "toolCallId": "t1", "toolName": "Bash"},
+                    )]
+                    rows.extend(receipt(
+                        f"2026-09-17T10:00:0{index}Z", "stdout",
+                        {
+                            "type": "tool_call_update", "toolCallId": "t1", "status": status,
+                            "rawOutput": raw_output,
+                        },
+                    ) for index, (status, raw_output) in enumerate(updates, 1))
+                    summary = audit.summarize_trial(
+                        {"duration_seconds": 1}, {"states": []},
+                        self.write_events(Path(temporary), rows),
+                    )
+
+                tool = summary["tools"][0]
+                self.assertEqual(tool["statuses"], [status for status, _ in updates])
+                self.assertEqual(tool["exit_codes"], expected_codes)
+                self.assertEqual(tool["failed"], failed)
+                self.assertEqual(tool["succeeded"], succeeded)
+                self.assertEqual(summary["native_events"]["tool_failed_count"], int(failed))
+                self.assertEqual(summary["native_events"]["tool_succeeded_count"], int(succeeded))
+
 
 if __name__ == "__main__":
     unittest.main()

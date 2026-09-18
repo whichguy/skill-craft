@@ -26,7 +26,7 @@ def assess_isolation(initial: dict, final: dict, events: dict, *, prompt: str, m
     for call in events.get("cli_calls", []):
         # Unknown exit status is insufficient for a supported violation.
         codes = call.get("exit_codes", [])
-        if not call.get("completed") or not codes or any(code != 0 for code in codes):
+        if call.get("failed") or not call.get("completed") or not codes or any(code != 0 for code in codes):
             continue
         argv = call.get("argv_tail", [])
         flags = {}

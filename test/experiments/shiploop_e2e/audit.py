@@ -60,11 +60,17 @@ def _command(event: Mapping[str, Any]) -> Any:
 
 
 def _exit(event: Mapping[str, Any]) -> int | None:
+    status = event.get("status")
+    if not isinstance(status, str) or status.lower() not in {"completed", "failed"}:
+        return None
     raw = event.get("rawOutput")
     if not isinstance(raw, Mapping):
         return None
-    value = raw.get("exitCode", raw.get("exit_code"))
-    return value if isinstance(value, int) and not isinstance(value, bool) else None
+    for key in ("exitCode", "exit_code"):
+        value = raw.get(key)
+        if isinstance(value, int) and not isinstance(value, bool):
+            return value
+    return None
 
 
 def _state_rows(navigation: Mapping[str, Any], warnings: list[str]) -> list[dict[str, Any]]:
@@ -182,7 +188,10 @@ def summarize_trial(process: dict, navigation: dict, events_path: Path) -> dict:
         status_failed = any(status.lower() in _FAILED for status in row["statuses"])
         exit_failed = any(code != 0 for code in row["exit_codes"])
         completed = any(status.lower() == "completed" for status in row["statuses"])
-        row.update(observer_duration_seconds=duration_seconds, failed=status_failed or exit_failed, succeeded=completed and bool(row["exit_codes"]) and all(code == 0 for code in row["exit_codes"]))
+        failed = status_failed or exit_failed
+        row.update(observer_duration_seconds=duration_seconds, failed=failed,
+                   succeeded=not failed and completed and bool(row["exit_codes"])
+                   and all(code == 0 for code in row["exit_codes"]))
         tool_rows.append(row)
     if any(not row["statuses"] for row in tool_rows):
         warnings.append("tool-update-missing")

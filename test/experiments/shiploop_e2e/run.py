@@ -949,7 +949,7 @@ def lifecycle_observation(events: dict, navigation: dict, prompt: str, repo: Pat
         return isinstance(value, str) and Path(value).is_absolute() and Path(value).resolve() == expected.resolve()
 
     for call in events.get("cli_calls", []):
-        if (call_counts[call.get("call_id")] != 1 or not call.get("completed")
+        if (call_counts[call.get("call_id")] != 1 or not call.get("completed") or call.get("failed")
                 or not call.get("exit_codes")
                 or any(code != 0 for code in call.get("exit_codes", []))):
             continue

@@ -188,6 +188,7 @@ class GrokAdapterTests(unittest.TestCase):
                     "call_id": "invoke-1",
                     "argv_tail": ["init", "--repo", str(self.repo)],
                     "completed": True,
+                    "failed": False,
                     "exit_codes": [0],
                 }
             ],
@@ -252,6 +253,38 @@ class GrokAdapterTests(unittest.TestCase):
                 self.assertEqual(summary["cli_calls"][0]["completed"], status == "completed")
                 self.assertEqual(summary["shiploop_cli_exit_code_observed"], bool(expected_codes))
                 self.assertEqual(summary["shiploop_cli_success_observed"], expected_codes == [0])
+
+    def test_completed_zero_then_terminal_failure_remains_observed_but_is_failed(self) -> None:
+        for failure_status, raw_output, expected_codes, expected_nonzero in (
+            ("failed", {}, [0], []),
+            ("failed", {"exit_code": 0}, [0, 0], []),
+            ("failed", {"exitCode": 9}, [0, 9], ["call"]),
+            ("error", {}, [0], []),
+            ("cancelled", {}, [0], []),
+            ("canceled", {}, [0], []),
+            ("timeout", {}, [0], []),
+        ):
+            with self.subTest(status=failure_status, raw_output=raw_output):
+                records = [
+                    {"type": "tool_call", "toolCallId": "call", "rawInput": {
+                        "argv": ["python3", str(self.cli), "complete"]}},
+                    {"type": "tool_call_update", "toolCallId": "call", "status": "completed",
+                     "rawOutput": {"exitCode": 0}},
+                    {"type": "tool_call_update", "toolCallId": "call", "status": failure_status,
+                     "rawOutput": raw_output},
+                ]
+                events = self.root / "completion-conflict-events.jsonl"
+                events.write_text("\n".join(json.dumps(row) for row in records), encoding="utf-8")
+
+                summary = summarize_events(events, self.cli)
+                call = summary["cli_calls"][0]
+                self.assertTrue(call["completed"])
+                self.assertTrue(call["failed"])
+                self.assertEqual(call["exit_codes"], expected_codes)
+                self.assertEqual(summary["tool_completion"]["completed_call_ids"], ["call"])
+                self.assertEqual(summary["tool_completion"]["zero_exit_code_call_ids"], ["call"])
+                self.assertEqual(summary["tool_completion"]["nonzero_exit_code_call_ids"], expected_nonzero)
+                self.assertTrue(summary["shiploop_cli_success_observed"])
 
     def test_summarize_events_unwraps_stdout_receipts_and_ignores_stderr_json(self) -> None:
         events = self.root / "captured-events.jsonl"
@@ -537,6 +570,7 @@ class GrokAdapterTests(unittest.TestCase):
                         f"--result={result_two}",
                     ],
                     "completed": True,
+                    "failed": False,
                     "exit_codes": [0],
                 },
             ],
@@ -604,6 +638,7 @@ class GrokAdapterTests(unittest.TestCase):
                         str(workspace),
                     ],
                     "completed": False,
+                    "failed": False,
                     "exit_codes": [],
                 }
             ],
@@ -670,6 +705,7 @@ class GrokAdapterTests(unittest.TestCase):
                         f"--result={result}",
                     ],
                     "completed": False,
+                    "failed": False,
                     "exit_codes": [],
                 }
             ],
@@ -919,6 +955,28 @@ class GrokAdapterTests(unittest.TestCase):
                 self.assertTrue(reference["completed_status_observed"])
                 self.assertEqual(reference["zero_exit_code_observed"], final_code == 0)
                 self.assertEqual(reference["successful_read_observed"], final_code == 0)
+
+    def test_control_read_completion_conflict_stays_observed_but_not_successful(self) -> None:
+        control = self.root / "observer"
+        control.mkdir()
+        events = self.root / "completion-conflict-control-read.jsonl"
+        records = [
+            {"type": "tool_call", "toolCallId": "read", "toolName": "read_file",
+             "rawInput": {"target_file": str(control / "control.json")}},
+            {"type": "tool_call_update", "toolCallId": "read", "status": "completed",
+             "rawOutput": {"exitCode": 0}},
+            {"type": "tool_call_update", "toolCallId": "read", "status": "failed",
+             "rawOutput": {"exit_code": 0}},
+        ]
+        events.write_text("\n".join(json.dumps(row) for row in records), encoding="utf-8")
+
+        observed = observe_control_input_references(events, {"observer_source": control})
+        reference = observed["references"][0]
+        self.assertTrue(observed["exposure_observed"])
+        self.assertTrue(reference["completed_status_observed"])
+        self.assertTrue(reference["failed_status_observed"])
+        self.assertTrue(reference["zero_exit_code_observed"])
+        self.assertFalse(reference["successful_read_observed"])
 
     def test_control_input_observer_resolves_unrelated_symlink_aliases(self) -> None:
         campaign = self.root / "campaign-control"

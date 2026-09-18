@@ -59,11 +59,12 @@ class ProtocolCompatibilityTests(unittest.TestCase):
         return state, navigation, captured
 
     def call(self, call_id: str, argv_tail: list[str], *, completed: bool = True,
-             exit_codes: list[int] | None = None) -> dict:
+             failed: bool = False, exit_codes: list[int] | None = None) -> dict:
         return {
             "call_id": call_id,
             "argv_tail": argv_tail,
             "completed": completed,
+            "failed": failed,
             "exit_codes": [0] if exit_codes is None else exit_codes,
         }
 
@@ -187,6 +188,25 @@ class ProtocolCompatibilityTests(unittest.TestCase):
                     else:
                         self.assertEqual(0, observed["observed_callback_count"])
                         self.assertEqual([state["history"][0]["action"]], observed["missing_callback_actions"])
+
+    def test_failed_completed_call_cannot_support_lifecycle_attribution(self) -> None:
+        state, navigation, _ = self.state_and_navigation(2, ("plan-improve",), current_stage="step-plan")
+        events = self.events_for(state, "complete")
+        self.assertTrue(self.lifecycle(navigation, events)["complete"])
+
+        for call in events["cli_calls"]:
+            with self.subTest(boundary=call["call_id"]):
+                self.assertTrue(call["completed"])
+                self.assertEqual(call["exit_codes"], [0])
+                call["failed"] = True
+                observed = self.lifecycle(navigation, events)
+                call["failed"] = False
+                self.assertFalse(observed["complete"], observed)
+                if call["call_id"] == "start":
+                    self.assertFalse(observed["start_observed"])
+                else:
+                    self.assertEqual(0, observed["observed_callback_count"])
+                    self.assertEqual([state["history"][0]["action"]], observed["missing_callback_actions"])
 
 
 if __name__ == "__main__":

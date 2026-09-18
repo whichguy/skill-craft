@@ -54,6 +54,7 @@ _SHELL_ASSIGNMENT = re.compile(r"^([A-Za-z_][A-Za-z0-9_]*)=(.*)$", re.DOTALL)
 _SHELL_VARIABLE = re.compile(r"\$(?:\{([A-Za-z_][A-Za-z0-9_]*)\}|([A-Za-z_][A-Za-z0-9_]*))")
 _SHELL_SEPARATORS = frozenset({";", "|", "||", "&", "&&"})
 _UNATTRIBUTABLE_SHELL_OPERATORS = frozenset({"|", "||", "&", "&&"})
+_FAILED_TOOL_STATUSES = frozenset({"failed", "error", "cancelled", "canceled", "timeout"})
 _UNATTRIBUTABLE_SHELL_WORDS = frozenset(
     {
         "!",
@@ -979,6 +980,7 @@ def observe_control_input_references(
         statuses = [row["status"] for row in updates_for_call if isinstance(row.get("status"), str)]
         exit_codes = [code for row in updates_for_call if (code := _reported_exit_code(row)) is not None]
         completed = any(status.lower() == "completed" for status in statuses)
+        failed = any(status.lower() in _FAILED_TOOL_STATUSES for status in statuses)
         tool = _tool_name(event)
         for field, path, matched_controls in _input_path_references(raw_input, controls):
             key = (call_id, field, path)
@@ -996,8 +998,11 @@ def observe_control_input_references(
                     "matched_control_roots": matched_controls,
                     "attempt": "attempted-input-reference",
                     "completed_status_observed": completed,
+                    "failed_status_observed": failed,
                     "zero_exit_code_observed": any(code == 0 for code in exit_codes),
-                    "successful_read_observed": bool(native_read and completed and any(code == 0 for code in exit_codes)),
+                    "successful_read_observed": bool(
+                        native_read and completed and not failed and any(code == 0 for code in exit_codes)
+                    ),
                 }
             )
     result["references"] = references
@@ -1127,6 +1132,7 @@ def summarize_events(events_file: Path, selected_cli: Path) -> dict[str, Any]:
     invocation_ids = sorted(matched_invocations)
     completion_statuses: Counter[str] = Counter()
     completed_call_ids: list[str] = []
+    failed_call_ids: list[str] = []
     completion_call_ids: list[str] = []
     exit_code_call_ids: list[str] = []
     zero_exit_code_call_ids: list[str] = []
@@ -1140,6 +1146,8 @@ def summarize_events(events_file: Path, selected_cli: Path) -> dict[str, Any]:
             completion_statuses[status] += 1
         if any(status.lower() == "completed" for status in statuses):
             completed_call_ids.append(call_id)
+        if any(status.lower() in _FAILED_TOOL_STATUSES for status in statuses):
+            failed_call_ids.append(call_id)
         exit_codes = update_exit_codes.get(call_id, [])
         if exit_codes:
             matched_exit_codes[call_id] = list(exit_codes)
@@ -1164,6 +1172,7 @@ def summarize_events(events_file: Path, selected_cli: Path) -> dict[str, Any]:
             "call_id": call_id,
             "argv_tail": list(argv_tail),
             "completed": call_id in completed_call_ids,
+            "failed": call_id in failed_call_ids,
             "exit_codes": list(update_exit_codes.get(call_id, [])),
         }
         for call_id, argv_tail in cli_invocations
