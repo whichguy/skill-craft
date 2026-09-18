@@ -1,5 +1,9 @@
 # Backchain internal convergence correction — 2026-09-18
 
+Historical implementation: [the Until Loop reuse correction](backchain-until-loop-reuse-2026-09-18.md)
+supersedes the custom Backchain pass controller described below. The user intended an
+direct Until Loop subcall inside Backchain with a dependency-specific cycle.
+
 The earlier source-aware integration let the caller decide when to revise based on material findings. The user's clarified requirement is unconditional repeated evaluation **inside Backchain** until two consecutive distinct reviews find only trivial or no changes. This correction supersedes that earlier ownership and stopping decision; it does not reinterpret the earlier audit pilot as convergence evidence.
 
 ## Implementation plan and delivered contract

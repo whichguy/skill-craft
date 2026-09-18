@@ -863,43 +863,37 @@ their recorded mode. For a new v3 plan, current embedded adaptation remains the
 compatibility default until an explicit run-note selection chooses
 `source-aware-native`.
 
-A `source-aware-native` call is allowed only when existing run notes identify an
-observed selected Backchain `SKILL.md`, adjacent `backchain-caller/v1`
-caller-contract resource, `references/convergence.md`,
-`prompts/convergence-review.prompt.md`, and the resource for the requested
-action/stage. Read those observed resources and their identities before use; the
-card and convergence resources must describe compatible converging whole
-operations. A card that has caller/v1 alone, including an older package, is
-incompatible. Do not guess a sibling, cache, or matching skill name.
+A `source-aware-native` call is allowed only when run notes identify an observed
+selected Backchain `SKILL.md`, `backchain-caller/v1` resource for this action/stage,
+`references/convergence.md`, and `prompts/convergence-review.prompt.md`, plus a selected
+physical Until Loop root with its `SKILL.md`,
+`references/runtime-ephemeral.md`, and `scripts/until_loop_ephemeral.py` capability.
+Read the Backchain convergence resources and verify each selected identity and capability
+before use. They must support the direct natural-language handoff under
+`Backchain standalone Until Loop binding: <binding-id>` for a plan-only child where the
+actual loaded Until Loop card starts its adapter, is the sole CLI caller, and returns the
+exact terminal packet. Caller/v1 alone is insufficient; an observed old custom Backchain
+loop is incompatible even when an Until Loop package is installed. Do not guess a sibling,
+cache, or ambient Until Loop. A missing, stale, ambiguous, or incompatible selected resource
+leaves the request incomplete/blocked with its recovery locator; there is no silent fallback.
+This is host-judged semantic compatibility; the navigator does not machine-enforce it.
 
-Persist the selected card/contract/convergence-resource identities, original
-source and candidate identities/digests, edit bounds, receipt locators, and every
-resolved source locator/base (the resolved source locator) or observed absolute
-locator in existing run notes, `evidence_refs`, and necessary work-item `context`.
-A fresh context rereads that record rather than assuming its CWD or deriving
-sources from the skill root. The current packet carries
-`convergence_policy.max_passes`. The remaining allowance in deprecated `edit_bounds.iteration_budget`
-(`limit - used`) is another cap when present; Backchain uses the smaller of both
-and neither weakens its two-pass completion condition.
+Preserve selected Backchain/Until Loop identities, original source/candidate identities,
+resolved bases/locators, protected bounds, action ID/owner, exact
+`Backchain standalone Until Loop binding: <binding-id>`, and receipt locations in
+ordinary run notes, `evidence_refs`, and necessary work-item `context`. Backchain passes
+dependency-specific review/fix/check work, plan candidate files, source/lens context,
+and protected bounds to Until Loop. ShipLoop records opaque actual Until Loop terminal
+evidence and Backchain domain evidence:
+binding_id, owner, candidate input/output digests, resolved resources, opaque
+`terminal_receipt`, domain_evidence, planning_gaps, execution_blockers, and
+next_action. It does not interpret child runtime progress, own a counter, schedule
+retries, or claim completion from an intermediate candidate. A structural plan, planned check,
+or experiment that merely ran is not execution evidence or a passed experiment.
+Material findings remain visible and cannot clear ordinary Improve.
 
-Preserve and return the full opaque `review.convergence` companion, including
-passes, passes_used, max_passes, context and candidate identities, status, and
-stop_reason, in ordinary run notes/evidence references. ShipLoop does not interpret,
-increment, or own that count. Missing, stale, ambiguous, or incompatible native
-resources leave the request incomplete/blocked with the recovery locator: there
-is no silent fallback. Label `embedded` only when intentionally selected; do not
-describe it as a native invocation. Host reasoning checks capability identity and
-packet compatibility; these prompts do not pretend navigator machine-enforces it.
-
-A source-aware packet preserves the original request/source clauses, workflow
-stage, action/stage, action ID and owner; selection identities; explicit locator
-bases and resolved locators; candidate input/output identities and disposition;
-source authority/provenance/currentness/revision/supersession; requirements index,
-lens findings, observed evidence, open questions, dependency neighborhood, edit
-bounds, `convergence_policy.max_passes`, prior findings, and result receipts.
-Missing or stale material sources remain unresolved. A structural plan, planned
-check, or experiment that merely ran is not execution evidence or a passed
-experiment. Material findings remain visible and cannot clear Improve.
+The Until Loop child is plan-only: it may change the candidate plan and permitted planning
+companions, but may not commit, push, merge, execute the project, or broaden scope.
 """
     if improve_owner:
         return selection + """\
@@ -908,24 +902,26 @@ and the returned candidate as ordinary parent inputs, but it does not request
 Backchain passes, count them, or make a Backchain completion claim. Do not create
 an `active_backchain` child, a nested Until Loop, a retry dispatcher, or a new
 callback; a protected/out-of-scope change follows the existing blocked or
-recovery route.
+recovery route. If a dependency diagnostic is relevant, use a one-pass Backchain
+primitive; do not start a whole Backchain→Until Loop child.
 """
     if stage in BACKCHAIN_NATIVE_CALLS:
         action, operation = BACKCHAIN_NATIVE_CALLS[stage]
         return selection + f"""\
 When `source-aware-native` is selected for this stage, the current stage host may
 request exactly one action `{action}` / stage `{operation}` within the packet's
-scope. This is a whole native Backchain operation: Backchain, not ShipLoop or
-Improve, performs its internal convergence assessment/revision loop. It requires
-two consecutive distinct trivial/no-change assessments before it can report a
-converged candidate, subject to its default maximum of six assessment passes.
-A caller may cap resources but cannot weaken that condition. A material finding
-resets the streak; after Backchain resolves it, assessment continues. Only an
-unresolved planning_gap, unknown, blocker, or exhausted cap prevents planning
-convergence and must not be submitted as a completed parent action. An accurately
-modeled `execution_blocker` (for example CAB approval or future passing evidence)
-may coexist with converged planning while execution remains incomplete. The draft
-is a proposed candidate; ShipLoop still owns acceptance and lifecycle state.
+scope. Backchain invokes the selected actual Until Loop for its dependency-specific
+review/fix/check cycle using `Backchain standalone Until Loop binding: <binding-id>`.
+Until Loop owns the callback handle, progress, its `required_trivial_reviews: 2` gate for
+two consecutive distinct complete trivial/no-change dependency reviews, recovery, and
+terminal transition; Backchain and ShipLoop do not copy that runtime or create another
+controller.
+Backchain returns opaque actual Until Loop terminal evidence only after the child reports
+`complete` and its exact receipt is saved. A nonterminal, unresolved, or incompatible
+child leaves this parent action incomplete and must not be submitted as a completed parent
+action. Only that exact `complete` receipt plus final candidate identity and domain evidence
+permits Backchain planning convergence. The draft is a proposed candidate; ShipLoop still owns
+acceptance and lifecycle state.
 """
     if stage in BACKCHAIN_AUDIT_STAGES:
         return selection + """\
@@ -935,13 +931,11 @@ is a read-only, one-pass diagnostic: it does not mutate a candidate, converge a
 plan, replace consumer verification, or complete the parent action. If it reports
 a material finding, route that finding to the current stage owner. Within explicit
 authorized edit bounds, that owner may request exactly one action `repair` / stage
-`revise`; it is another whole native Backchain operation with the same internal
-two-consecutive-distinct-trivial/no-change convergence rule and default maximum
-of six assessment passes. A material finding resets the streak; when resolved,
-Backchain continues assessment. A forbidden revision, unresolved planning_gap,
-unknown, blocker, or exhausted cap remains incomplete and must not be submitted as
-a completed parent action. An accurately modeled `execution_blocker` may coexist
-with converged planning while execution remains incomplete.
+`revise`; it is another whole native Backchain operation with a dependency-specific
+review/fix/check cycle in the selected actual Until Loop. Audit itself remains read-only
+and does not start that child. A forbidden revision, nonterminal child, unresolved finding, or
+incompatible selected package remains incomplete and must not be submitted as a
+completed parent action.
 """
     return selection + """\
 This stage has no native Backchain action. Keep relevant findings in ordinary

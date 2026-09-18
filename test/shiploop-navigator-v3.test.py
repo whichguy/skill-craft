@@ -490,8 +490,8 @@ class NavigatorV3Tests(unittest.TestCase):
             prompts.IMPROVE_SCOPES["spec"],
         )
 
-    def test_v3_native_backchain_operations_keep_convergence_with_backchain(self) -> None:
-        """ShipLoop requests one whole operation; it never counts Backchain passes."""
+    def test_v3_native_backchain_operations_reuse_selected_until_loop_subcall(self) -> None:
+        """Backchain owns dependency work; Until Loop owns its runtime and terminal."""
         operations = {
             "draft": "action `plan` / stage `draft`",
             "audit": "action `review` / stage `audit`",
@@ -517,25 +517,50 @@ class NavigatorV3Tests(unittest.TestCase):
                     [],
                 )
         plan = " ".join(prompts.prompt("plan").split())
-        self.assertIn("two consecutive distinct trivial/no-change assessments", plan)
-        self.assertIn("default maximum of six assessment passes", plan)
         audit = " ".join(prompts.prompt("step-plan").split())
-        self.assertIn("read-only, one-pass diagnostic", audit)
-        self.assertIn("must not be submitted as a completed parent action", audit)
-        self.assertNotIn("only the active Improve iteration executor", plan)
-        for capability in (
+        for required in (
+            "Backchain standalone Until Loop binding:",
+            "selected physical Until Loop root",
+            "references/runtime-ephemeral.md",
+            "scripts/until_loop_ephemeral.py",
             "references/convergence.md",
             "prompts/convergence-review.prompt.md",
-            "convergence_policy.max_passes",
-            "edit_bounds.iteration_budget",
-            "`limit - used`",
-            "stop_reason",
-            "full opaque `review.convergence`",
-            "material finding resets the streak",
-            "execution_blocker",
+            "Read the Backchain convergence resources",
+            "direct natural-language handoff",
+            "actual loaded Until Loop card starts its adapter, is the sole CLI caller",
+            "old custom Backchain loop",
+            "host-judged semantic compatibility",
+            "opaque actual Until Loop terminal evidence",
+            "only after the child reports `complete`",
+            "must not be submitted as a completed parent action",
+            "terminal_receipt",
+            "planning_gaps",
+            "execution_blockers",
+            "next_action",
+            "two consecutive distinct complete trivial/no-change dependency reviews",
+            "The Until Loop child is plan-only",
         ):
-            with self.subTest(capability=capability):
-                self.assertIn(capability, plan)
+            with self.subTest(required=required):
+                self.assertIn(required, plan)
+        self.assertIn("read-only, one-pass diagnostic", audit)
+        self.assertIn("required_trivial_reviews: 2", plan)
+        self.assertIn("final candidate identity and domain evidence", plan)
+        self.assertIn("one-pass Backchain primitive", " ".join(prompts.improve_prompt("plan").split()))
+        self.assertNotIn("Backchain standalone Improve binding:", plan)
+        self.assertNotIn("selected physical Improve root", plan)
+        self.assertNotIn("convergence_policy.max_passes", plan)
+        self.assertNotIn("default maximum of six assessment passes", plan)
+        for source in (self.backchain_planning_guide, SCRIPTS.parent / "SKILL.md"):
+            with self.subTest(source=source):
+                source_text = " ".join(source.read_text(encoding="utf-8").split())
+                for requirement in (
+                    "`references/convergence.md`",
+                    "`prompts/convergence-review.prompt.md`",
+                    "sole CLI caller",
+                    "old custom Backchain loop",
+                ):
+                    self.assertIn(requirement, source_text)
+
 
     def test_v3_backchain_planning_guidance_is_scoped_to_selected_stages(self) -> None:
         """Producer and actual Improve prompts use the guide only for planning decisions."""
