@@ -8,7 +8,7 @@ cd "$root"
 group=all
 list_only=0
 usage() {
-  printf 'Usage: bash test/run-all.sh [--group all|core|shiploop|shiploop-1|shiploop-2|shiploop-3] [--list]\n'
+  printf 'Usage: bash test/run-all.sh [--group all|smoke|core|shiploop|shiploop-1|shiploop-2|shiploop-3] [--list]\n'
   printf 'Default: all hermetic groups. External tests: bash test/run-integration.sh --help\n'
 }
 while [[ $# -gt 0 ]]; do
@@ -24,7 +24,7 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 case "$group" in
-  all|core|shiploop|shiploop-1|shiploop-2|shiploop-3) ;;
+  all|smoke|core|shiploop|shiploop-1|shiploop-2|shiploop-3) ;;
   *) usage >&2; exit 64 ;;
 esac
 
@@ -32,12 +32,13 @@ fail=0
 run() {
   local suite_group="$1" name="$2"
   shift 2
-  if [[ "$suite_group" == shiploop-[123] ]]; then
-    # CI scheduling aliases are intentionally excluded from the stable all
-    # aggregate, whose shiploop entry remains the one full serial runner.
+  if [[ "$suite_group" == smoke || "$suite_group" == shiploop-[123] ]]; then
+    # Subset/scheduling aliases are excluded from all, whose shiploop entry
+    # remains the one full serial runner.
     [[ "$group" == "$suite_group" ]] || return 0
   else
-    [[ "$group" == all || "$group" == "$suite_group" ]] || return 0
+    [[ "$group" == all || "$group" == "$suite_group" ||
+       ( "$group" == smoke && "$suite_group" == core ) ]] || return 0
   fi
   if [[ "$list_only" -eq 1 ]]; then
     printf '%s\t%s\t' "$suite_group" "$name"
@@ -82,6 +83,7 @@ run core dual-body-guard bash test/dual-body-guard.test.sh
 # shiploop.test.sh owns the full action walk. The old walk-journal entrypoint
 # remains available for direct calls, but must not run again in this aggregate.
 run shiploop shiploop bash test/shiploop.test.sh
+run smoke shiploop-smoke bash test/shiploop.test.sh --smoke
 # These aliases are CI scheduling targets. They derive from the same ordered
 # inventory as the full runner and are deliberately excluded from all.
 run shiploop-1 shiploop-1 bash test/shiploop.test.sh --shard 1/3

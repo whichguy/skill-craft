@@ -170,11 +170,19 @@ skills/<name>/
 ## Tests
 
 ```sh
-bash test/run-all.sh                   # all hermetic tests; no installed AI host
+bash test/run-all.sh                   # complete local hermetic aggregate; no installed AI host
+bash test/run-all.sh --group smoke     # core plus six ShipLoop graph/boundary checks
 bash test/run-all.sh --group core      # packaging, installer and contract checks
-bash test/run-all.sh --group shiploop  # ShipLoop, including one full action walk
+bash test/run-all.sh --group shiploop  # complete ShipLoop suite, including one action walk
+bash test/shiploop.test.sh --smoke     # only the selected ShipLoop smoke subset
 bash test/run-all.sh --list            # inspect the exact suite inventory
 ```
+
+`smoke` is the routine CI tier for pull requests and `main` pushes. It is deliberately
+partial: it covers the core package checks and the selected ShipLoop graph, callback,
+packet, and no-model-launch checks, but it is not full-regression evidence. The
+no-argument local command remains the complete aggregate. See
+[test/README.md](test/README.md) for selection, qualification, and live-E2E boundaries.
 
 Hermes is an optional integration, not a prerequisite for repository CI.
 Mocked host-binding tests remain in the hermetic suite; tests needing real engines,
