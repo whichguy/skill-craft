@@ -1,0 +1,4 @@
+# Live probe receipts contain local paths and native session identifiers.
+# Keep them local; publish only reviewed summaries and portable probe source.
+*.json
+*.jsonl

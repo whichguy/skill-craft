@@ -89,6 +89,24 @@ workspace-mode handoff gate. It never merges the source checkout running the
 test. [Workspace experiments](experiments/shiploop_workspace/README.md) explain
 why starting at HEAD and deleting transient files at the tip were insufficient.
 
+## Optional context-host checks
+
+`shiploop-context-host.test.py` exercises the packaged public CLI, saved owner
+identity, exact boundary reset, copied-package relocation, and conservative
+interruption recovery with synthetic Navigator/Improve receipts. The three
+`shiploop-host-{codex,grok,claude}.test.py` suites test native protocol adapters
+without installed host binaries or model calls. All four belong to the required
+ShipLoop aggregate.
+
+The optional host trials use installed authenticated hosts, seeded recall
+controls, fresh sessions, retained-session resumes, and harmless continuation
+scripts. They never run in default CI. Publication documents summarize their
+local observations without publishing host identifiers, raw receipts, or
+transcripts; failed trials remain local. The local host checks do not imply a
+full Improve/product completion or lower token cost. See
+`docs/shiploop-context-reset-integration-2026-09-17.md` and
+`experiments/shiploop_context_reset/production-validation.md`.
+
 ## Explicit integration targets
 
 Integration checks never run as a default dependency of the hermetic aggregate.

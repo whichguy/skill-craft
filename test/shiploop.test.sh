@@ -8,6 +8,10 @@ cd "$root"
 # The one ordered ShipLoop inventory. Full runs and CI shards select only from
 # this array so a suite cannot silently drift between their inventories.
 suites=(
+  test/shiploop-context-host.test.py \
+  test/shiploop-host-codex.test.py \
+  test/shiploop-host-grok.test.py \
+  test/shiploop-host-claude.test.py \
   test/shiploop-navigator.test.py \
   test/shiploop-navigator-v3.test.py \
   test/shiploop-standalone-improve.test.py \
