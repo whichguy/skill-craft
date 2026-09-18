@@ -1,0 +1,32 @@
+{
+  "name": "ask-agent",
+  "version": "0.3.0",
+  "description": "A delegation skill, not an agent type. Ask native agents to work in the background, continue useful work in the main conversation, and incorporate their results when they return. Use for \"ask an agent\", named agent roles, parallel delegation, or launch-and-notify work.",
+  "author": {
+    "name": "whichguy",
+    "url": "https://github.com/whichguy"
+  },
+  "homepage": "https://github.com/whichguy/skill-craft",
+  "repository": "https://github.com/whichguy/skill-craft",
+  "license": "MIT",
+  "keywords": [
+    "skill-craft",
+    "ask-agent",
+    "portable-skills",
+    "prompt-only"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Ask Agent",
+    "shortDescription": "A delegation skill, not an agent type. Ask native agents to work in the background, continue useful work in the main…",
+    "longDescription": "A delegation skill, not an agent type. Ask native agents to work in the background, continue useful work in the main conversation, and incorporate their results when they return. Use for \"ask an agent\", named agent roles, parallel delegation, or launch-and-notify work.",
+    "developerName": "whichguy",
+    "category": "Productivity",
+    "capabilities": [
+      "Read"
+    ],
+    "defaultPrompt": [
+      "Use $ask-agent for this task."
+    ]
+  }
+}
