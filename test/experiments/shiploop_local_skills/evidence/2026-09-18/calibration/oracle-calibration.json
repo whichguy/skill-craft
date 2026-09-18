@@ -1,0 +1,196 @@
+{
+  "expected_codes": {
+    "empty_output": 1,
+    "known_good": 0,
+    "wrong_latest_attempt": 1,
+    "wrong_stale_identity": 1,
+    "changed_v1_contract": 1,
+    "noop_known_good": 0,
+    "noop_skill_mutation": 1
+  },
+  "codes": {
+    "empty_output": 1,
+    "known_good": 0,
+    "wrong_latest_attempt": 1,
+    "wrong_stale_identity": 1,
+    "changed_v1_contract": 1,
+    "noop_known_good": 0,
+    "noop_skill_mutation": 1
+  },
+  "passed": true,
+  "reports": {
+    "empty_output": {
+      "returncode": 1,
+      "report": {
+        "case": "initial",
+        "fixture": "/Users/dadleet/tmp/shiploop-local-skills-20260918/calibration-work/initial/fixture",
+        "checks": [
+          {
+            "name": "exact decision.json",
+            "passed": false
+          },
+          {
+            "name": "skill inventory captured",
+            "passed": true
+          }
+        ],
+        "before_skill_digests": {},
+        "after_skill_digests": {},
+        "skill_inventory_changed": false,
+        "passed": false
+      }
+    },
+    "known_good": {
+      "returncode": 0,
+      "report": {
+        "case": "initial",
+        "fixture": "/Users/dadleet/tmp/shiploop-local-skills-20260918/calibration-work/initial/fixture",
+        "checks": [
+          {
+            "name": "exact decision.json",
+            "passed": true
+          },
+          {
+            "name": "skill inventory captured",
+            "passed": true
+          }
+        ],
+        "before_skill_digests": {},
+        "after_skill_digests": {},
+        "skill_inventory_changed": false,
+        "passed": true
+      }
+    },
+    "wrong_latest_attempt": {
+      "returncode": 1,
+      "report": {
+        "case": "initial",
+        "fixture": "/Users/dadleet/tmp/shiploop-local-skills-20260918/calibration-work/initial/fixture",
+        "checks": [
+          {
+            "name": "exact decision.json",
+            "passed": false
+          },
+          {
+            "name": "skill inventory captured",
+            "passed": true
+          }
+        ],
+        "before_skill_digests": {},
+        "after_skill_digests": {},
+        "skill_inventory_changed": false,
+        "passed": false
+      }
+    },
+    "wrong_stale_identity": {
+      "returncode": 1,
+      "report": {
+        "case": "initial",
+        "fixture": "/Users/dadleet/tmp/shiploop-local-skills-20260918/calibration-work/initial/fixture",
+        "checks": [
+          {
+            "name": "exact decision.json",
+            "passed": false
+          },
+          {
+            "name": "skill inventory captured",
+            "passed": true
+          }
+        ],
+        "before_skill_digests": {},
+        "after_skill_digests": {},
+        "skill_inventory_changed": false,
+        "passed": false
+      }
+    },
+    "changed_v1_contract": {
+      "returncode": 1,
+      "report": {
+        "case": "evolve",
+        "fixture": "/Users/dadleet/tmp/shiploop-local-skills-20260918/calibration-work/evolve/fixture",
+        "checks": [
+          {
+            "name": "exact decision.json",
+            "passed": true
+          },
+          {
+            "name": "skill inventory captured",
+            "passed": true
+          },
+          {
+            "name": "v1 contract preserved",
+            "passed": false
+          },
+          {
+            "name": "v1 compatibility output",
+            "passed": true
+          }
+        ],
+        "before_skill_digests": {},
+        "after_skill_digests": {},
+        "skill_inventory_changed": false,
+        "passed": false
+      }
+    },
+    "noop_known_good": {
+      "returncode": 0,
+      "report": {
+        "case": "noop",
+        "fixture": "/Users/dadleet/tmp/shiploop-local-skills-20260918/calibration-work/noop/fixture",
+        "checks": [
+          {
+            "name": "exact decision.json",
+            "passed": true
+          },
+          {
+            "name": "skill inventory captured",
+            "passed": true
+          },
+          {
+            "name": "local skill packages unchanged",
+            "passed": true
+          },
+          {
+            "name": "README prose typo corrected",
+            "passed": true
+          }
+        ],
+        "before_skill_digests": {},
+        "after_skill_digests": {},
+        "skill_inventory_changed": false,
+        "passed": true
+      }
+    },
+    "noop_skill_mutation": {
+      "returncode": 1,
+      "report": {
+        "case": "noop",
+        "fixture": "/Users/dadleet/tmp/shiploop-local-skills-20260918/calibration-work/noop/fixture",
+        "checks": [
+          {
+            "name": "exact decision.json",
+            "passed": true
+          },
+          {
+            "name": "skill inventory captured",
+            "passed": true
+          },
+          {
+            "name": "local skill packages unchanged",
+            "passed": false
+          },
+          {
+            "name": "README prose typo corrected",
+            "passed": true
+          }
+        ],
+        "before_skill_digests": {},
+        "after_skill_digests": {
+          "skills/test": "3976f8e2b680d7c8b1cf351256b3a4fc5ff965e8278a196f76fd3dc622b0cabc"
+        },
+        "skill_inventory_changed": true,
+        "passed": false
+      }
+    }
+  }
+}

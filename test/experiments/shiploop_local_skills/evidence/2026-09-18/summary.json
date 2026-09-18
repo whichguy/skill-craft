@@ -1,0 +1,72 @@
+[
+  {
+    "trial": "baseline",
+    "case": "initial",
+    "task_checks_passed": true,
+    "skill_count": 1,
+    "skill_inventory_changed": true
+  },
+  {
+    "trial": "a02",
+    "case": "reuse",
+    "task_checks_passed": true,
+    "skill_count": 1,
+    "skill_inventory_changed": false
+  },
+  {
+    "trial": "candidate",
+    "case": "initial",
+    "task_checks_passed": true,
+    "skill_count": 1,
+    "skill_inventory_changed": true
+  },
+  {
+    "trial": "b02",
+    "case": "reuse",
+    "task_checks_passed": true,
+    "skill_count": 1,
+    "skill_inventory_changed": false
+  },
+  {
+    "trial": "b03",
+    "case": "evolve",
+    "task_checks_passed": true,
+    "skill_count": 1,
+    "skill_inventory_changed": false
+  },
+  {
+    "trial": "b04",
+    "case": "fork",
+    "task_checks_passed": false,
+    "skill_count": 2,
+    "skill_inventory_changed": true
+  },
+  {
+    "trial": "b04r",
+    "case": "fork",
+    "task_checks_passed": true,
+    "skill_count": 2,
+    "skill_inventory_changed": true
+  },
+  {
+    "trial": "b05",
+    "case": "noop",
+    "task_checks_passed": true,
+    "skill_count": 1,
+    "skill_inventory_changed": false
+  },
+  {
+    "trial": "b06",
+    "case": "relocate",
+    "task_checks_passed": true,
+    "skill_count": 1,
+    "skill_inventory_changed": true
+  },
+  {
+    "trial": "b07",
+    "case": "reuse",
+    "task_checks_passed": true,
+    "skill_count": 1,
+    "skill_inventory_changed": false
+  }
+]

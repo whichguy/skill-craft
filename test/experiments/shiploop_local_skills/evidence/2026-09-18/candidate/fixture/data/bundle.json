@@ -1,0 +1,41 @@
+{
+  "workflow": "release-v1",
+  "candidate": "candidate-alpha",
+  "receipts": [
+    {
+      "candidate": "candidate-old",
+      "target": "staging",
+      "check": "integration",
+      "attempt": 99,
+      "status": "pass"
+    },
+    {
+      "candidate": "candidate-alpha",
+      "target": "production",
+      "check": "unit",
+      "attempt": 88,
+      "status": "pass"
+    },
+    {
+      "candidate": "candidate-alpha",
+      "target": "staging",
+      "check": "unit",
+      "attempt": 1,
+      "status": "pass"
+    },
+    {
+      "candidate": "candidate-alpha",
+      "target": "staging",
+      "check": "integration",
+      "attempt": 1,
+      "status": "pass"
+    },
+    {
+      "candidate": "candidate-alpha",
+      "target": "staging",
+      "check": "integration",
+      "attempt": 2,
+      "status": "fail"
+    }
+  ]
+}

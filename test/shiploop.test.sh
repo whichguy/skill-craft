@@ -18,6 +18,7 @@ suites=(
   test/shiploop-actual-improve-cli.test.py \
   test/shiploop-packet-bounds.test.py \
   test/shiploop-v3-guidance.test.py \
+  test/shiploop-local-skills.test.py \
   test/shiploop-full-runtime.test.py \
   test/shiploop-navigator-dry-run.test.py \
   test/shiploop-auth-readiness.test.py \

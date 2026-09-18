@@ -1,0 +1,108 @@
+--- before/skills/shiploop/scripts/shiploop_navigator_v3_prompts.py
++++ after/skills/shiploop/scripts/shiploop_navigator_v3_prompts.py
+@@ -135,9 +135,10 @@
+     ),
+     "skill-assess": (
+         ("Reuse-before-build guidance", "research-loop.md#reuse-before-a-new-mechanism"),
++        ("Repository-local skill guidance", "testing-and-documentation.md#reusable-product-skills"),
+     ),
+     "skill-validate": (
+-        ("Documentation and reuse guidance", "testing-and-documentation.md#iteration-documentation-and-reuse"),
++        ("Repository-local skill guidance", "testing-and-documentation.md#reusable-product-skills"),
+     ),
+     "static-checks": (
+         ("Iteration and verification guidance", "testing-and-documentation.md#iteration"),
+@@ -629,6 +630,14 @@
+ value.  Record a clear reuse, update, or justified N/A disposition.  Presence or
+ installation does not prove execution, and this step does not authorize a new
+ dependency or publication.
++Read any existing skill index, README or AGENTS skill links and the linked
++local-skill guidance; absence of an index is not a blocker. Prefer unchanged
++reuse with existing inputs/defaults, then a compatible local update; create a
++separate local skill only for an evidenced gap or incompatible contract. Perform
++the warranted skill/index edits within this item's scope, preserving supported
++older uses. Keep generated skills in the product repository, never install them
++globally. Retain the decision, entrypoint and validation locators in ordinary
++evidence_refs so the next context can recover them.
+ """,
+     "skill-validate": """\
+ Validate the selected reusable skill/helper or skill-related change against its
+@@ -636,6 +645,10 @@
+ prior assessment found no applicable skill work, emit and verify the justified N/A
+ result instead of silently skipping this graph step.  Record the tested scope and
+ limitations; discovery or installation alone is not validation.
++For a changed skill, exercise the triggering case and a retained older use; check
++applicable defaults/overrides and a relevant failure boundary. A cross-context
++reuse claim needs a fresh-reader trial using only the repo index, skill and new
++task; otherwise record that cold-context reuse remains untested.
+ """,
+     "static-checks": """\
+ Run the selected formatting, lint, type, build, packaging, and static analysis
+@@ -680,6 +693,9 @@
+ leave the only rerun procedure in transient run notes.
+ Retain the originating strategy locator alongside current item-specific test
+ decisions so later items and whole-system tests can revalidate their basis.
++For selected local skills, retain the repo index/entrypoint, applicable inputs or
++overrides, validation evidence and revalidation trigger; keep the reusable
++procedure outside disposable run storage.
+ """,
+     "system-test-author": """\
+ Reopen the Run-wide test strategy source and relevant retained INNER test
+--- before/skills/shiploop/references/testing-and-documentation.md
++++ after/skills/shiploop/references/testing-and-documentation.md
+@@ -561,6 +561,26 @@
+ established. Keep it inside the product worktree; no global installation, new
+ connector or privilege change follows from this decision.
+ 
++Choose the smallest useful disposition after reading the candidate's actual
++contract and examples:
++
++- **Reuse unchanged** when existing inputs/defaults cover the task; different
++  data or parameter values alone do not require another skill.
++- **Update locally** when a small compatible extension captures a demonstrated
++  lesson. Preserve supported inputs, defaults and older examples; add only the
++  conditional rule or helper the new evidence warrants.
++- **Create separately** when no suitable skill exists or combining contracts
++  would obscure selection or break an existing consumer. Keep the older skill
++  when its use remains supported and distinguish their triggers in the index.
++- **No skill work** when a normal code/test/doc change captures the learning
++  adequately. Assessment does not require skill creation or edits.
++
++Treat installed/shared skills as reusable inputs, not edit targets for a product
++run. If specialization is needed, place it in the product's local skill layout,
++and record the adaptation rationale. When copying or deriving external skill
++content, retain its source/revision and applicable license. Avoid a dependency
++on a machine-specific installed path. Do not modify or install global skills.
++
+ A useful local skill documents:
+ 
+ - a discriminating name/description and when to use it (and meaningful exclusions);
+@@ -571,6 +591,12 @@
+ - relative references to relevant code, tests and design/environment material,
+   with revalidation triggers for volatile assumptions.
+ 
++Default stable repository conventions, not changing identities, credentials or
++authorization. Explicit task inputs override defaults only within the skill's
++supported contract. Re-read current source contracts/configuration when the
++default depends on them. Keep task-specific values and observations in the task
++evidence; save the reusable decision rule and its rationale in the skill.
++
+ When behavior depends on maintained product requirements, link the applicable
+ sections using [the reference handoff policy](project-knowledge.md#reference-handoffs-and-destinations).
+ Do not copy those clauses into a second skill-owned spec or point a reusable
+@@ -584,6 +610,15 @@
+ exercise changed helpers/examples when applicable, and record unrun limitations
+ honestly. A file-existence check is not proof the procedure works. Keep new work
+ inside the accepted step; broader missing outputs use existing replan/pause routes.
++
++For changed skills, validate both the motivating example and an older supported
++use, plus meaningful default/override and failure cases. For a cold-context trial,
++give a fresh reader only the repository index, linked skill/resources and a new
++task; preserve whether it actually found and applied the procedure. Record the
++selected entrypoint, effective inputs, disposition, checks and remaining limits
++in ordinary evidence. A missing fresh-reader trial remains untested, not proof
++of cross-context reuse. Do not copy the conversation into the skill to make a
++trial pass.
+ 
+ The script saves the result in the ordinary Markdown action/iteration records.
+ Verification and commit consume its binding; future reviews/plans read the local

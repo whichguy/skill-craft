@@ -213,8 +213,9 @@ mapping/decision rather than rewriting history. At product return, verify durabl
 links from the returned repository, without requiring the discarded worktree or
 old run folder for the accepted intent.
 
-For v3, the host carries the selected requirement sections, test locators and
-relevant run-note locators from the producer result/work-item context into the
+For v3, the host carries the selected requirement sections, test locators,
+relevant local-skill entrypoint/input/validation locators and run-note locators
+from the producer result/work-item context into the
 actual Improve request. Retain them in that child's existing contract prose and
 review notes before its first review. Use the adapter's existing fields, not new
 JSON keys or a copied ShipLoop policy. Until Loop recovers what the host supplied;
@@ -289,6 +290,15 @@ prompts, execution cursors or full result histories into the index. Avoid a
 duplicate environment document if the repository already has one. Preserve
 unrelated edits and reconcile concurrent knowledge edits; do not last-write-win
 another run's discoveries. No commit/push is implied by maintaining the files.
+
+For reusable local skills, link the existing skill index or README section from
+`SHIPLOOP.md`; keep that index's entrypoints and selection triggers current after
+creation or evolution. Retain stable input/default sources and revalidation
+conditions in the skill and linked product documentation. Reopen this index at
+the next item's `step-plan`, including when its earlier context said no skill
+fit. Do not promote prior task values or passing checks into permanent defaults.
+Use the [local-skill guidance](testing-and-documentation.md#reusable-product-skills)
+for unchanged reuse, compatible updates, separate skills and validation.
 
 For a reusable test route, retain or link the selected harness and exact
 non-secret commands, stable selectors/suite membership, fixture lifecycle,

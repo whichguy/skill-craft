@@ -1,0 +1,75 @@
+[
+  {
+    "status": "fulfilled",
+    "value": {
+      "name": "navigator-v3",
+      "cmd": "PYTHONDONTWRITEBYTECODE=1 python3 -B test/shiploop-navigator-v3.test.py",
+      "chunk_id": "936e89",
+      "wall_time_seconds": 0.000020084,
+      "exit_code": 0,
+      "original_token_count": 1188,
+      "output": "test_cold_recovery_preserves_the_pending_child_binding_without_advancing (__main__.NavigatorV3Tests.test_cold_recovery_preserves_the_pending_child_binding_without_advancing) ... ok\ntest_duplicate_or_conflicting_producer_callback_cannot_create_another_child (__main__.NavigatorV3Tests.test_duplicate_or_conflicting_producer_callback_cannot_create_another_child) ... ok\ntest_every_v3_stage_waits_for_one_actual_improve_completion (__main__.NavigatorV3Tests.test_every_v3_stage_waits_for_one_actual_improve_completion) ... ok\ntest_incomplete_child_and_blocked_producer_do_not_advance_parent (__main__.NavigatorV3Tests.test_incomplete_child_and_blocked_producer_do_not_advance_parent) ... ok\ntest_malformed_bound_skill_fails_with_controlled_recovery_error (__main__.NavigatorV3Tests.test_malformed_bound_skill_fails_with_controlled_recovery_error) ... ok\ntest_outer_replan_adds_corrective_work_without_rewinding_completed_work (__main__.NavigatorV3Tests.test_outer_replan_adds_corrective_work_without_rewinding_completed_work) ... ok\ntest_v3_backchain_planning_guidance_is_scoped_to_selected_stages (__main__.NavigatorV3Tests.test_v3_backchain_planning_guidance_is_scoped_to_selected_stages)\nProducer and actual Improve prompts use the guide only for planning decisions. ... ok\ntest_v3_bound_child_carries_requirement_and_test_locators_through_cold_recovery (__main__.NavigatorV3Tests.test_v3_bound_child_carries_requirement_and_test_locators_through_cold_recovery)\nAssert structural packet propagation, not that a model interpreted the sources. ... ok\ntest_v3_cold_next_retains_requirements_definition_child_context (__main__.NavigatorV3Tests.test_v3_cold_next_retains_requirements_definition_child_context)\nA recovered Improve packet retains the guide and an existing-spec locator. ... ok\ntest_v3_common_and_improve_prompts_preserve_requirements_review_cues (__main__.NavigatorV3Tests.test_v3_common_and_improve_prompts_preserve_requirements_review_cues)\nKeep concise review duties without inventing child state or counters. ... ok\ntest_v3_current_and_cold_child_packets_retain_review_note_recovery_context (__main__.NavigatorV3Tests.test_v3_current_and_cold_child_packets_retain_review_note_recovery_context)\nA selected child retains receipt-reference duties before and after recovery. ... ok\ntest_v3_declares_the_flat_sdlc_graph_independently (__main__.NavigatorV3Tests.test_v3_declares_the_flat_sdlc_graph_independently) ... ok\ntest_v3_initial_baseline_guidance_survives_improve_and_cold_step_plan (__main__.NavigatorV3Tests.test_v3_initial_baseline_guidance_survives_improve_and_cold_step_plan)\nInitial-baseline evidence stays in ordinary records without new graph state. ... ok\ntest_v3_native_backchain_operations_reach_only_the_assigned_packets (__main__.NavigatorV3Tests.test_v3_native_backchain_operations_reach_only_the_assigned_packets)\nCheck emitted dispatch targets; live trials assess policy semantics. ... ok\ntest_v3_packets_keep_runtime_and_selected_case_evidence_visible (__main__.NavigatorV3Tests.test_v3_packets_keep_runtime_and_selected_case_evidence_visible)\nSynthetic prompt traversal keeps runtime and real-boundary gaps explicit. ... ok\ntest_v3_platform_testing_contract_routes_to_every_test_stage (__main__.NavigatorV3Tests.test_v3_platform_testing_contract_routes_to_every_test_stage)\nThe global choice and each testing checkpoint retain the same guide route. ... ok\ntest_v3_remote_test_routes_keep_local_and_remote_evidence_distinct (__main__.NavigatorV3Tests.test_v3_remote_test_routes_keep_local_and_remote_evidence_distinct)\nRoute remote test assets without treating a local result as their evidence. ... ok\ntest_v3_requirements_definition_duties_stay_in_existing_stages (__main__.NavigatorV3Tests.test_v3_requirements_definition_duties_stay_in_existing_stages)\nExisting discovery, research, and spec nodes cover the new guide duties. ... ok\ntest_v3_requirements_policy_routes_through_unbound_and_bound_improve_recovery (__main__.NavigatorV3Tests.test_v3_requirements_policy_routes_through_unbound_and_bound_improve_recovery)\nBoth child forms retain packet locators before and after cold recovery. ... ok\ntest_v3_test_lifecycle_and_child_handoff_keep_repeatable_suite_boundaries (__main__.NavigatorV3Tests.test_v3_test_lifecycle_and_child_handoff_keep_repeatable_suite_boundaries)\nCheck packet routing and boundaries, without claiming model compliance. ... ok\ntest_v3_test_strategy_requires_repeatable_harness_revalidation_and_suite_tiers (__main__.NavigatorV3Tests.test_v3_test_strategy_requires_repeatable_harness_revalidation_and_suite_tiers)\nThe global strategy chooses rerunnable coverage before item work starts. ... ok\n\n----------------------------------------------------------------------\nRan 21 tests in 0.453s\n\nOK\n"
+    }
+  },
+  {
+    "status": "fulfilled",
+    "value": {
+      "name": "reference-routing",
+      "cmd": "PYTHONDONTWRITEBYTECODE=1 python3 -B test/shiploop-reference-routing.test.py",
+      "chunk_id": "22717b",
+      "wall_time_seconds": 0.587855167,
+      "exit_code": 0,
+      "original_token_count": 378,
+      "output": "test_damaged_packets_and_supporting_responses_remain_non_advancing (__main__.ReferenceRoutingTests.test_damaged_packets_and_supporting_responses_remain_non_advancing) ... ok\ntest_every_prompt_stage_routes_to_existing_package_reference_heading (__main__.ReferenceRoutingTests.test_every_prompt_stage_routes_to_existing_package_reference_heading) ... ok\ntest_every_prompt_stage_routes_to_maintained_requirements_handoffs (__main__.ReferenceRoutingTests.test_every_prompt_stage_routes_to_maintained_requirements_handoffs) ... ok\ntest_maintained_requirements_guides_keep_package_local_links_when_relocated (__main__.ReferenceRoutingTests.test_maintained_requirements_guides_keep_package_local_links_when_relocated) ... ok\ntest_merge_and_coverage_are_the_only_activity_specific_routes (__main__.ReferenceRoutingTests.test_merge_and_coverage_are_the_only_activity_specific_routes) ... ok\ntest_new_activity_guides_have_resolvable_local_links (__main__.ReferenceRoutingTests.test_new_activity_guides_have_resolvable_local_links) ... ok\ntest_normative_markdown_graph_rejects_missing_links_and_keeps_explicit_aliases (__main__.ReferenceRoutingTests.test_normative_markdown_graph_rejects_missing_links_and_keeps_explicit_aliases) ... ok\ntest_safe_orientation_uses_real_optional_references_without_reading_state (__main__.ReferenceRoutingTests.test_safe_orientation_uses_real_optional_references_without_reading_state) ... ok\n\n----------------------------------------------------------------------\nRan 8 tests in 0.923s\n\nOK\n"
+    }
+  },
+  {
+    "status": "fulfilled",
+    "value": {
+      "name": "v3-guidance",
+      "cmd": "PYTHONDONTWRITEBYTECODE=1 python3 -B test/shiploop-v3-guidance.test.py",
+      "chunk_id": "c341a7",
+      "wall_time_seconds": 0.108467625,
+      "exit_code": 0,
+      "original_token_count": 409,
+      "output": "test_cold_packets_route_the_repeatable_test_suite_guide_to_each_testing_stage (__main__.V3GuidanceTests.test_cold_packets_route_the_repeatable_test_suite_guide_to_each_testing_stage)\nPersisted v3 states retain the direct guide route at testing checkpoints. ... ok\ntest_cold_step_plan_keeps_compact_context_and_evidence_locators (__main__.V3GuidanceTests.test_cold_step_plan_keeps_compact_context_and_evidence_locators) ... ok\ntest_current_item_test_decision_source_is_revised_and_item_scoped (__main__.V3GuidanceTests.test_current_item_test_decision_source_is_revised_and_item_scoped)\nOnly the current item's latest accepted decision is retained in a packet. ... ok\ntest_each_current_v3_packet_renders_its_selected_stage_references (__main__.V3GuidanceTests.test_each_current_v3_packet_renders_its_selected_stage_references) ... ok\ntest_stage_reference_catalog_is_complete_and_resolves (__main__.V3GuidanceTests.test_stage_reference_catalog_is_complete_and_resolves) ... ok\ntest_v1_and_v2_packets_do_not_gain_the_v3_strategy_projection (__main__.V3GuidanceTests.test_v1_and_v2_packets_do_not_gain_the_v3_strategy_projection) ... ok\ntest_v3_cold_packets_keep_the_latest_done_root_test_strategy (__main__.V3GuidanceTests.test_v3_cold_packets_keep_the_latest_done_root_test_strategy)\nStrategy locators survive later evidence without reading it into packets. ... ok\ntest_v3_improve_and_source_return_guidance_keep_the_existing_boundary (__main__.V3GuidanceTests.test_v3_improve_and_source_return_guidance_keep_the_existing_boundary) ... ok\n\n----------------------------------------------------------------------\nRan 8 tests in 0.317s\n\nOK\n"
+    }
+  },
+  {
+    "status": "fulfilled",
+    "value": {
+      "name": "iteration-docs",
+      "cmd": "PYTHONDONTWRITEBYTECODE=1 python3 -B test/shiploop-iteration-docs.test.py",
+      "chunk_id": "efe2e4",
+      "wall_time_seconds": 0.000007875,
+      "exit_code": 0,
+      "original_token_count": 27,
+      "output": ".......\n----------------------------------------------------------------------\nRan 7 tests in 0.016s\n\nOK\n"
+    }
+  },
+  {
+    "status": "fulfilled",
+    "value": {
+      "name": "local-packet-routes",
+      "cmd": "PYTHONDONTWRITEBYTECODE=1 python3 -B test/experiments/shiploop_local_skills/test_packet_routes.py",
+      "chunk_id": "25054b",
+      "wall_time_seconds": 0.000005875,
+      "exit_code": 0,
+      "original_token_count": 25,
+      "output": ".\n----------------------------------------------------------------------\nRan 1 test in 0.018s\n\nOK\n"
+    }
+  },
+  {
+    "status": "fulfilled",
+    "value": {
+      "name": "package-parity",
+      "cmd": "bash scripts/sync-plugin-views.sh --check shiploop",
+      "chunk_id": "2acb7c",
+      "wall_time_seconds": 0.090540458,
+      "exit_code": 0,
+      "original_token_count": 20,
+      "output": "skill-frontmatter-to-plugin-json: CHECK OK shiploop\nsync-plugin-views: CHECK OK\n"
+    }
+  }
+]
+

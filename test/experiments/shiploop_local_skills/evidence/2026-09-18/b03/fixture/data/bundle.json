@@ -1,0 +1,23 @@
+{
+  "workflow": "release-v2",
+  "candidate": "candidate-charlie",
+  "max_age": 3,
+  "receipts": [
+    {
+      "candidate": "candidate-charlie",
+      "target": "staging",
+      "check": "unit",
+      "attempt": 1,
+      "status": "pass",
+      "age": 2
+    },
+    {
+      "candidate": "candidate-charlie",
+      "target": "staging",
+      "check": "integration",
+      "attempt": 1,
+      "status": "pass",
+      "age": 5
+    }
+  ]
+}

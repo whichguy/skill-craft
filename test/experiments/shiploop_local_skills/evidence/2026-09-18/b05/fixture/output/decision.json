@@ -1,0 +1,12 @@
+{
+  "workflow": "release-v1",
+  "candidate": "candidate-delta",
+  "target": "staging",
+  "required_checks": ["unit", "integration"],
+  "selected_receipts": [
+    {"check": "unit", "attempt": 1, "status": "pass"},
+    {"check": "integration", "attempt": 1, "status": "pass"}
+  ],
+  "decision": "clear",
+  "deployment_authorized": false
+}

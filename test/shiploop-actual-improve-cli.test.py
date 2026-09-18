@@ -100,6 +100,49 @@ class ImproveCliFixture(unittest.TestCase):
         self.invoke(CLI, "done", "--run-dir", self.run, "--action", self.action, "--result", self.input)
         self.bind_current(card)
 
+    def _start_parent_at_stage(self, stage, evidence_refs, card=CARD):
+        """Create a real CLI parent at a target stage after synthetic setup only.
+
+        The pure navigator transitions below deliberately do not claim preceding
+        Improve execution.  The test's target-stage bind, child runtime and
+        parent import still use the actual command-line interfaces.
+        """
+        run = self.base / ("parent-" + stage)
+        self.invoke(CLI, "init", "--repo", self.repo, "--run-dir", run,
+                    "--prompt", "Synthetic predecessor navigation for CLI composition.",
+                    "--improve-skill", card)
+        state = store.read_record(run / "state.md")
+        while navigator.current_stage(state) != stage:
+            predecessor = navigator.current_stage(state)
+            action = navigator.current_action(state)["id"]
+            setup = {
+                "outcome": "done",
+                "summary": (
+                    "Synthetic predecessor navigation only for " + predecessor
+                    + "; no child Improve runtime executed."
+                ),
+            }
+            if predecessor == "plan":
+                setup["work_items"] = [{"id": "W1", "title": "Synthetic local-skill item"}]
+            state = navigator.apply(state, action, setup)
+            state = navigator.finish_improve(state, action, {
+                "summary": "Synthetic predecessor receipt only; no semantic review claim.",
+            })
+        navigator.save(run, state)
+        self.run = run
+        self.state = state
+        self.action = navigator.current_action(state)["id"]
+        self.parent_evidence_refs = list(evidence_refs)
+        self.producer = {
+            "outcome": "done",
+            "summary": "Fixture local-skill assessment; synthetic prior navigation is setup only.",
+            "evidence_refs": self.parent_evidence_refs,
+        }
+        self.input = self.run / "inbox" / (self.action + ".md")
+        store.write_record(self.input, self.producer)
+        self.invoke(CLI, "done", "--run-dir", self.run, "--action", self.action, "--result", self.input)
+        self.bind_current(card)
+
     def bind_current(self, card=CARD):
         self.invoke(CLI, "improve-bind", "--run-dir", self.run, "--action", self.action,
                     "--skill-card", card)
@@ -328,6 +371,108 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         store.write_record(completion, dict(receipt, summary="Conflicting callback"))
         self.invoke(CLI, "improve-complete", "--run-dir", self.run, "--action", self.action, "--result", completion, status=2)
         self.assertEqual(after, (self.run / "state.md").read_bytes())
+
+    def test_skill_assess_local_skill_bundle_survives_actual_child_cold_recovery(self):
+        """A host-authored child contract retains concrete local-skill locators.
+
+        Earlier navigation and the review judgments are synthetic fixtures.  The
+        selected skill-assess parent, ephemeral callbacks, terminal receipt, and
+        parent resume use the real ShipLoop/Improve CLIs.
+        """
+        index = self.repo / "SHIPLOOP.md"
+        local_card = self.repo / "skills/release-evidence-triage/SKILL.md"
+        input_contract = self.repo / "docs/release-contract.md"
+        validation = self.repo / "test/test_release_evidence.py"
+        index.write_text(
+            "# Fixture repository index\n\n## Local skills\n\n"
+            "- [Release evidence](skills/release-evidence-triage/SKILL.md)\n",
+            encoding="utf-8",
+        )
+        local_card.parent.mkdir(parents=True)
+        local_card.write_text("# Release evidence triage\n", encoding="utf-8")
+        input_contract.parent.mkdir(parents=True)
+        input_contract.write_text("# Release contract\n\n## current-input\n", encoding="utf-8")
+        validation.parent.mkdir(exist_ok=True)
+        validation.write_text("def test_current_contract():\n    pass\n", encoding="utf-8")
+        local_skill_refs = [
+            str(index) + "#local-skills",
+            str(local_card) + "#release-evidence-triage",
+            str(input_contract) + "#current-input",
+            str(validation) + "::test_current_contract",
+        ]
+        self._start_parent_at_stage("skill-assess", local_skill_refs)
+        self.assertEqual(navigator.current_stage(self.state), "skill-assess")
+        parent_packet = self.invoke(CLI, "next", "--run-dir", self.run).stdout
+        self.assertIn("Current action: Improve the completed skill-assess result.", parent_packet)
+        for locator in local_skill_refs:
+            self.assertIn(locator, parent_packet)
+
+        # This separate-process cold packet must tell the host to author the
+        # transfer below. Resource transport alone would pass without that duty.
+        handoff = " ".join(parent_packet.split())
+        for clause in (
+            "When this candidate selects, uses or changes a repository-local skill",
+            "effective input/default sources",
+            "into this child's existing contract/review notes before the first review",
+            "current defaults and preserved older uses",
+            "A no-fit decision needs its inspected sources and rationale",
+            "a successful runtime receipt alone cannot prove skill use",
+        ):
+            self.assertIn(clause, handoff)
+
+        base_context = self.child_context()
+        manual_context = {
+            "request": (
+                "Host-authored fixture child contract for the selected local skill; "
+                "the parent packet cannot create this semantic handoff.\n"
+                + self.bound["contract_marker"]
+            ),
+            "scope": "Review only the frozen skill-assess evidence bundle and its retained locators.",
+            "authority": "ShipLoop v3 no-commit authority: do not commit, merge, push, or broaden scope.",
+            "environment": "Use the current fixture workspace and declared Python/Git commands only.",
+            "resources": base_context["resources"][:6] + [
+                {"purpose": "repository local skill index", "locator": local_skill_refs[0]},
+                {"purpose": "selected repository local skill card", "locator": local_skill_refs[1]},
+                {"purpose": "selected skill input contract", "locator": local_skill_refs[2]},
+                {"purpose": "selected skill validation", "locator": local_skill_refs[3]},
+            ],
+        }
+        contract = self.child_contract()
+        contract["work"] = "Host-authored fixture review of a frozen local-skill selection."
+        contract["context"] = manual_context
+        start_raw, first = self.invoke_argv(
+            [sys.executable, "-B", str(EPHEMERAL), "start", "--directory", str(self.base)], contract
+        )
+        self.assertEqual(first["status"], "active")
+        self.save_packet(start_raw)
+        state_file = Path(first["state_file"])
+        before_cold_next = state_file.read_bytes()
+        cold_raw, cold = self.invoke_argv(first["next_argv"])
+        self.assertEqual(start_raw.stdout, cold_raw.stdout)
+        self.assertEqual(before_cold_next, state_file.read_bytes())
+        self.assertEqual(cold["context"], manual_context)
+        self.assertEqual(cold["context"]["resources"][-4:], manual_context["resources"][-4:])
+        self.save_packet(cold_raw)
+
+        _raw, second = self.done_ephemeral(
+            cold, self.child_report("non-trivial", "unsatisfied", "allowed", "synthetic fixture finding")
+        )
+        _raw, third = self.done_ephemeral(
+            second, self.child_report("trivial", "unsatisfied", "allowed", "synthetic first review")
+        )
+        terminal_raw, terminal = self.done_ephemeral(
+            third, self.child_report("trivial", "satisfied", "allowed", "synthetic second review")
+        )
+        self.assertEqual(terminal["status"], "complete")
+        self.assertEqual(terminal["context"], manual_context)
+        completion, _receipt = self.completion_receipt()
+        self.invoke(CLI, "improve-complete", "--run-dir", self.run, "--action", self.action, "--result", completion)
+        resumed = store.read_record(self.run / "state.md")
+        self.assertEqual(navigator.current_stage(resumed), "skill-validate")
+        self.assertEqual(resumed["improve_results"][self.action]["seed_result"]["evidence_refs"], local_skill_refs)
+        self.assertEqual(self.packet_path.read_bytes(), terminal_raw.stdout)
+        resumed_packet = self.invoke(CLI, "next", "--run-dir", self.run).stdout
+        self.assertIn("ShipLoop navigator | skill-validate |", resumed_packet)
 
     def test_active_stopped_and_missing_ephemeral_receipts_do_not_release_parent(self):
         completion, _receipt = self.completion_receipt()

@@ -521,7 +521,14 @@ documentation before actual verification, and it must complete the explicit
 phase/result shape takes precedence over the legacy `iteration-document`
 callback; do not run both routes for one candidate.
 
-The result has `summary`, `documentation`, `reusable_skill`, Boolean `material`
+### Legacy documentation receipt fields
+
+The following result schema and script checks apply only to the legacy
+`iteration_documentation_protocol_version: 1` route. Navigator v3 uses the
+generic result described under [Reusable product skills](#reusable-product-skills);
+managed children follow their own printed phase/result schema.
+
+The legacy result has `summary`, `documentation`, `reusable_skill`, Boolean `material`
 and `learnings`. Both assessment objects start with `decision`, `rationale`,
 `paths` and `references`. Decisions are `created`, `updated`, `reused` or
 `not-needed`. For `not-needed`, both path arrays are empty and the rationale
@@ -553,6 +560,23 @@ the existing appropriate index instead of duplicating it.
 This content guidance applies across modes; use the current packet's result
 format, not a different protocol's documentation receipt.
 
+For navigator v3, describe the disposition in `summary` and link its evidence in
+`evidence_refs`, alongside the packet's `outcome`. Do not emit legacy
+`documentation`, `reusable_skill`, `material` or `learnings` result fields.
+V3 preserves those ordinary references; it does not validate skill frontmatter,
+index links, meaningful execution or compatibility through a skill-specific
+receipt. Those remain host review and verification obligations.
+
+During `discovery`, read the existing repo skill index or relevant README/AGENTS
+links and inspect plausible skills before proposing new implementation. A missing
+index is not a blocker and does not itself justify creating a skill. During each
+`step-plan`, reopen the current index and relevant contracts: an earlier item may
+have created or evolved a skill since the plan was written. Record fit or no fit
+and revalidate any earlier selection against this item's requirements. Discovery
+inspects skill packages without editing them and records findings under the
+existing project-knowledge notes/index policy. Create or evolve skill packages
+during authorized implementation or documentation work.
+
 Ask whether a reusable repo-local skill would materially help later steps or
 maintenance. Check existing skills first. Record a decision and rationale even
 when the answer is no. Create or update one only for a demonstrated reusable
@@ -560,6 +584,26 @@ procedure or boundary, not a narrow transcript of this step or a speculative
 framework. Reuse existing repo layout, or `skills/<name>/SKILL.md` when none is
 established. Keep it inside the product worktree; no global installation, new
 connector or privilege change follows from this decision.
+
+Choose the smallest useful disposition after reading the candidate's actual
+contract and examples:
+
+- **Reuse unchanged** when existing inputs/defaults cover the task; different
+  data or parameter values alone do not require another skill.
+- **Update locally** when a small compatible extension captures a demonstrated
+  lesson. Preserve supported inputs, defaults and older examples; add only the
+  conditional rule or helper the new evidence warrants.
+- **Create separately** when no suitable skill exists or combining contracts
+  would obscure selection or break an existing consumer. Keep the older skill
+  when its use remains supported and distinguish their triggers in the index.
+- **No skill work** when a normal code/test/doc change captures the learning
+  adequately. Assessment does not require skill creation or edits.
+
+Treat installed/shared skills as reusable inputs, not edit targets for a product
+run. If specialization is needed, place it in the product's local skill layout,
+and record the adaptation rationale. When copying or deriving external skill
+content, retain its source/revision and applicable license. Avoid a dependency
+on a machine-specific installed path. Do not modify or install global skills.
 
 A useful local skill documents:
 
@@ -570,6 +614,12 @@ A useful local skill documents:
   permission boundaries without embedding credentials or machine-specific IDs;
 - relative references to relevant code, tests and design/environment material,
   with revalidation triggers for volatile assumptions.
+
+Default stable repository conventions, not changing identities, credentials or
+authorization. Explicit task inputs override defaults only within the skill's
+supported contract. Re-read current source contracts/configuration when the
+default depends on them. Keep task-specific values and observations in the task
+evidence; save the reusable decision rule and its rationale in the skill.
 
 When behavior depends on maintained product requirements, link the applicable
 sections using [the reference handoff policy](project-knowledge.md#reference-handoffs-and-destinations).
@@ -584,6 +634,38 @@ discovers every local skill folder. Validate frontmatter and referenced paths,
 exercise changed helpers/examples when applicable, and record unrun limitations
 honestly. A file-existence check is not proof the procedure works. Keep new work
 inside the accepted step; broader missing outputs use existing replan/pause routes.
+
+For changed skills, validate both the motivating example and an older supported
+use, plus meaningful default/override and failure cases. For a cold-context trial,
+give a fresh reader only the repository index, linked skill/resources and a new
+task; preserve whether it actually found and applied the procedure. Record the
+selected entrypoint, effective inputs, disposition, checks and remaining limits
+in ordinary evidence. A missing fresh-reader trial remains untested, not proof
+of cross-context reuse. Do not copy the conversation into the skill to make a
+trial pass.
+
+Keep a compact selection note in the existing plan/evidence home: disposition
+and rationale; repo index and selected entrypoint; effective non-secret inputs
+and their default/override sources; applicable product contract; validation
+locators and limits; and what changes require revalidation. Link the relevant
+sources in ordinary `evidence_refs`, with explicit repository/run bases. No fit
+needs a reason and the inspected sources, not an invented entrypoint or check.
+When creating the work queue, put only the relevant selection/index locator and
+revalidation condition in the item's `context`. Later changes update the linked
+plan/evidence note, not the script-owned queue. Before Improve's first review,
+carry relevant locators into its host-authored contract/review notes; a parent
+packet alone does not populate the child contract.
+
+At `carry-forward`, maintain the existing repo index/README link and link that
+entrypoint from `SHIPLOOP.md` so another item or run can discover the current
+local skills. Retain stable procedures/default sources outside disposable run
+storage. Keep task-specific values and raw checks in evidence; a prior selection
+or passing check is a revalidation input, not authority for the next task.
+
+### Legacy receipt binding and invalidation
+
+The following binding and convergence rules apply to the legacy versioned
+documentation route above, not navigator v3's generic producer results.
 
 The script saves the result in the ordinary Markdown action/iteration records.
 Verification and commit consume its binding; future reviews/plans read the local
