@@ -112,6 +112,20 @@ has completed and its evidence is ready, immediately before importing the child.
 If source return must itself trigger a required delivery check, retain that
 ordering conflict as incomplete; use the workspace policy's reconciliation rule.
 
+For each new request changing an existing implementation, follow the
+[initial repository baseline](references/execution-planning.md#initial-repository-baseline).
+After minimal instruction, command and environment inspection, run the existing
+smoke suite or practical full suite as discovery's first verification activity
+in the packet's repository (execution worktree, or the explicitly selected
+in-place/non-Git starting directory), before product/test/config/dependency edits. Record
+the actual command, starting content, target, outcome, limits and evidence
+locator. Carry failures or missing tests into planning as explicit prerequisites;
+they are not passes. Discovery and baseline reviews do not repair the product or
+its tests. A planned repair or test-bootstrap may establish its own starting
+failure/missing-coverage evidence before its scoped edits; dependent feature work
+waits for the required passing checks. Reuse only applicable same-run evidence;
+a new follow-up request runs a fresh baseline.
+
 For a genuinely new/non-Git repository, investigate/bootstrap Git within scope
 first if appropriate, then use the workspace route. An explicitly selected
 in-place/non-Git run may instead use the compatibility entry, documenting why

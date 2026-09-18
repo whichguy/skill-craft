@@ -1055,6 +1055,9 @@ def render(core: Any, root: Path, state: Mapping[str, Any]) -> str:
         + "#maintained-product-requirements",
         "Requirements definition guide: "
         + str(reference_dir / "requirements-definition.md"),
+        "Initial repository baseline guide: "
+        + str(reference_dir / "execution-planning.md")
+        + "#initial-repository-baseline",
         "Reference handoff policy: "
         + str(reference_dir / "project-knowledge.md")
         + "#reference-handoffs-and-destinations",

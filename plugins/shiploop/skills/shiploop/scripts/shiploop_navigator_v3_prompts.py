@@ -195,6 +195,20 @@ facts, conflicts, and consequential gaps without installing or provisioning
 anything.
 Locate existing specs and quality policies, establish their scope/status, and
 screen applicable non-functional requirements using the Requirements definition guide.
+Use the packet's Initial repository baseline guide. For every new change to an
+existing implementation, after only the minimum inspection needed to identify
+the packet's designated starting repository directory, instructions, and safe
+existing command. Then run the established full suite when practical or
+established smoke suite otherwise on
+the unchanged starting content there. This is discovery's first verification activity:
+actual execution, rather than selecting a command or citing an old pass, is
+required. Record command/cwd, checked content and target, result, coverage
+limits, and an evidence locator in ordinary evidence_refs. Classify a failure,
+missing coverage, setup/access block, uncertainty, or expected repair RED before
+planning; it is not healthy. Preserve the observation for prerequisite planning;
+do not edit product source, tests, dependency definitions, or configuration to
+turn it green. Discovery may finish its investigation with a failed baseline,
+but that does not make dependent feature work ready.
 """,
     "research": """\
 Resolve material unknowns with repository, primary-interface, or otherwise
@@ -229,6 +243,12 @@ evidence and identify meaningful expected-RED controls where test-first work is
 applicable.
 Map applicable new and preserved non-functional criteria to checks and their
 environment/workload prerequisites; missing evidence or access is not N/A.
+Use the packet's Initial repository baseline guide and consume the observed
+initial baseline rather than treating suite selection as proof. Retain its
+coverage and limits; distinguish a passing subset from a failed, blocked,
+intermittent, missing-test, or expected-RED observation. Name the setup, repair,
+or test-bootstrap prerequisite and its required evidence before dependent feature
+checks, using ordinary evidence_refs and planned work-item context.
 """,
     "plan": """\
 Create a dependency-aware delivery plan from desired outcomes back to required
@@ -248,6 +268,18 @@ alternative, or an explicit static choice. The next review is the packet's
 automatic Improve handoff immediately after this producer result, before
 implementation. Do not schedule a review stage or claim it ran. Link this plan in
 evidence_refs; keep these as ordinary notes, not new result fields.
+Use the packet's Initial repository baseline guide. Carry initial-baseline
+evidence and classification through ordinary evidence_refs and affected work-item
+context. Put an affected foundation repair, setup prerequisite, or missing-test
+bootstrap in the earliest feasible work item before its dependent feature, with
+the original check's passing rerun when available, or a separately recorded
+passing post-bootstrap characterization against unchanged application behavior,
+as feature readiness. Preserve the original no-suite observation. An expected-RED
+repair may start its own work. A bootstrap may make the smallest justified
+test-only harness, dependency, or configuration edits while testing unchanged
+application behavior; its producer completion does not make the repository
+healthy or unblock dependent features. Unknown relatedness stays blocking; do not
+silently waive or expand unrelated failures.
 """,
     "prepare": """\
 Prepare or verify the approved development/test environment and prerequisites.
@@ -255,6 +287,11 @@ Confirm isolation, runtime/configuration/data safety, access, fixture readiness,
 and baseline identity using safe observations.  Record a justified N/A only when
 no preparation is needed for this candidate; missing required access or setup is
 blocked.  Do not use production or deploy merely to make local work possible.
+Use the packet's Initial repository baseline guide. When setup or access blocked
+the initial baseline, prepare only the approved prerequisite, retain the original
+observation, then rerun the original initial check against unchanged product and
+tests before dependent feature edits. Do not replace it with an easier route or
+describe the blocked baseline as passed.
 """,
     "select-work": """\
 Select the next ready work item from the script-owned queue.  Confirm its
@@ -279,6 +316,13 @@ alternative, or an explicit static choice. The next review is the packet's
 automatic Improve handoff immediately after this producer result, before
 implementation. Do not schedule a review stage or claim it ran. Link this plan in
 evidence_refs; keep these as ordinary notes, not new result fields.
+Use the packet's Initial repository baseline guide. Revalidate the initial
+baseline evidence for this item's starting content, command, runtime/configuration,
+target, and fixture assumptions; reuse only when they still apply, otherwise rerun
+the relevant existing check. Retain its locator and readiness condition in the
+item context. A named repair or test-bootstrap item may carry expected RED or
+missing coverage into its owned edits; a dependent feature waits for the required
+passing rerun.
 """,
     "test-spec": """\
 Specify executable tests before production edits when applicable.  Map the item
@@ -291,7 +335,16 @@ the oracle.  A test specification is not execution evidence.
 Run and record the relevant pre-change baseline checks.  Separate known existing
 failures from failures introduced by the candidate, retain commands and observed
 results, and establish the baseline needed to interpret RED/GREEN and later
-regressions.  A blocked or invalid baseline remains incomplete.
+regressions. A blocked or invalid baseline remains incomplete for dependent
+feature readiness.
+Use the packet's Initial repository baseline guide. Check whether the initial
+evidence still applies to this item's current starting state and reuse it only
+when it does; otherwise execute the relevant existing check before edits. Keep
+failure classification and evidence locators in ordinary results/context. A named
+repair or test-bootstrap producer may retain an expected RED or missing coverage
+as its baseline classification so it can perform its assigned work. That result
+does not certify health or unblock a dependent feature without its required
+passing rerun.
 """,
     "test-author": """\
 Author or refine executable tests and fixtures from the independent test
@@ -463,7 +516,7 @@ conversational summary into completion evidence.
 
 IMPROVE_SCOPES = {
     "intake": "the scope, authority, consumer, and unanswered-question record",
-    "discovery": "repository/environment facts, conventions, reuse findings, and material gaps",
+    "discovery": "repository/environment facts, initial-baseline evidence and classification, conventions, reuse findings, and material gaps",
     "research": "source-backed conclusions, uncertainty, and reuse recommendations",
     "spec": "behavior, acceptance, non-functional criteria, existing-spec reconciliation, failure boundaries, and consumer outcomes",
     "test-strategy": "independent test/risk strategy and required test boundaries",
@@ -472,7 +525,7 @@ IMPROVE_SCOPES = {
     "select-work": "the ready-item selection and prerequisite assessment",
     "step-plan": "the bounded item plan, conventions, checks, and diagnostic obligations",
     "test-spec": "test-first cases, independent oracles, and RED/GREEN definitions",
-    "baseline": "baseline commands, observations, and pre-existing failure classification",
+    "baseline": "baseline commands, observations, initial-baseline applicability, and pre-existing failure classification",
     "test-author": "new or refined executable tests and fixtures",
     "test-red": "the expected-RED control and its observed failure reason",
     "implement": "the scoped implementation, code contracts, diagnostics, and error behavior",
@@ -551,6 +604,17 @@ def improve_prompt(stage: str) -> str:
     """Return the actual Improve-skill handoff for a completed producer stage."""
     _require_stage(stage)
     backchain = BACKCHAIN_GUIDANCE if stage in BACKCHAIN_STAGES else ""
+    baseline_guard = ""
+    if stage in {"discovery", "baseline"}:
+        baseline_guard = """\
+For this discovery/baseline handoff, use the packet's Initial repository baseline
+guide to review evidence, commands, and classification only. You may improve
+run notes and repeat authorized checks, but may not edit product source, tests,
+dependency definitions, or product configuration, install dependencies, provision
+targets, or perform a repair/bootstrap to make the observation green. Keep an
+expected-RED repair or missing-coverage bootstrap as evidence for its named
+producer; a completed evidence review does not certify repository health.
+"""
     return f"""\
 This producer attempt has returned a result; its parent action now awaits Improve.
 Invoke the selected actual Improve skill for {IMPROVE_SCOPES[stage]}.  Read the
@@ -571,6 +635,11 @@ bases explicit; a parent packet alone does not populate the child's contract.
 Use the packet's Requirements definition guide for affected quality criteria and
 existing-spec reconciliation. Retain source and current-decision locators; check
 measurability, preserved conditions, and unresolved targets within this scope.
+Use the packet's Initial repository baseline guide when baseline evidence is
+relevant. Retain its locator, command/result evidence, classification, and
+readiness conditions in the child contract/review notes for cold recovery.
+
+{baseline_guard}
 
 {backchain}
 

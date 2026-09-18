@@ -73,6 +73,9 @@ class NavigatorV3Tests(unittest.TestCase):
         self.backchain_planning_guide = (
             SCRIPTS.parent / "references" / "backchain-planning.md"
         ).resolve()
+        self.initial_baseline_guide = (
+            SCRIPTS.parent / "references" / "execution-planning.md"
+        ).resolve()
 
     def state(self) -> dict:
         return navigator.new_state(
@@ -107,6 +110,16 @@ class NavigatorV3Tests(unittest.TestCase):
             + "#navigator-planning"
         )
         self.assertEqual(packet.count(locator), 1 if expected else 0, packet)
+
+    def _assert_initial_baseline_locator(self, packet: str) -> None:
+        """Assert packet routing for the shared initial-baseline policy."""
+        locator = (
+            "Initial repository baseline guide: "
+            + str(self.initial_baseline_guide)
+            + "#initial-repository-baseline"
+        )
+        self.assertTrue(self.initial_baseline_guide.is_file(), self.initial_baseline_guide)
+        self.assertEqual(packet.count(locator), 1, packet)
 
     @staticmethod
     def _action(state: dict) -> dict:
@@ -506,6 +519,105 @@ class NavigatorV3Tests(unittest.TestCase):
             "measurable bounds or observable criteria",
             " ".join(prompts.DUTIES["spec"].split()),
         )
+
+    def test_v3_initial_baseline_guidance_survives_improve_and_cold_step_plan(self) -> None:
+        """Initial-baseline evidence stays in ordinary records without new graph state."""
+        self.assertEqual(len(EXPECTED_STAGES), 34)
+        self.assertTrue(self.initial_baseline_guide.is_file())
+        initial_baseline = str(self.repo / ".shiploop" / "evidence" / "smoke.log")
+        prerequisite_context = (
+            "Initial baseline failed: "
+            + initial_baseline
+            + "; repair the affected startup check and rerun it before Feature W1."
+        )
+
+        discovery = " ".join(prompts.DUTIES["discovery"].split())
+        strategy = " ".join(prompts.DUTIES["test-strategy"].split())
+        plan = " ".join(prompts.DUTIES["plan"].split())
+        prepare = " ".join(prompts.DUTIES["prepare"].split())
+        step_plan = " ".join(prompts.DUTIES["step-plan"].split())
+        baseline = " ".join(prompts.DUTIES["baseline"].split())
+        for prompt in (discovery, strategy, plan, prepare, step_plan, baseline):
+            self.assertIn("Initial repository baseline guide", prompt)
+        self.assertIn("first verification activity", discovery)
+        self.assertIn("actual execution", discovery)
+        self.assertIn("observed initial baseline", strategy)
+        self.assertIn("earliest", plan)
+        self.assertIn("repair", plan)
+        self.assertIn("post-bootstrap characterization", plan)
+        self.assertIn("rerun the original initial check", prepare)
+        self.assertIn("reuse only when", step_plan)
+        self.assertIn("repair or test-bootstrap", baseline)
+        for stage in ("discovery", "baseline"):
+            improve = " ".join(prompts.improve_prompt(stage).split())
+            self.assertIn("Initial repository baseline guide", improve)
+            self.assertIn("may not edit product source, tests", improve)
+
+        state = self._produce(self.state(), "intake")
+        self.assertEqual(navigator.current_stage(state), "discovery")
+        discovery_packet = navigator.render(None, self.repo / ".shiploop", state)
+        self._assert_initial_baseline_locator(discovery_packet)
+        self.assertIn("first verification activity", " ".join(discovery_packet.split()))
+
+        action = self._action(state)
+        waiting = navigator.apply(
+            state,
+            action["id"],
+            result(
+                summary="The existing smoke route failed before feature edits.",
+                evidence_refs=[initial_baseline],
+            ),
+        )
+        unbound = navigator.render(None, self.repo / ".shiploop", waiting)
+        bound = self._bind_synthetic_child(copy.deepcopy(waiting))
+        bound_packet = navigator.render(None, self.repo / ".shiploop", bound)
+        run_root = self.repo / ".shiploop" / "cold-initial-baseline"
+        run_root.mkdir(parents=True)
+        navigator.save(run_root, bound)
+        before = (run_root / "state.md").read_bytes()
+        cold = self._cold_next(run_root)
+        self.assertEqual((run_root / "state.md").read_bytes(), before)
+        for packet in (unbound, bound_packet, cold):
+            self._assert_initial_baseline_locator(packet)
+            self.assertIn(initial_baseline, packet)
+        for packet in (bound_packet, cold):
+            self.assertIn("may not edit product source, tests", " ".join(packet.split()))
+
+        state = self._complete_improve(waiting, action, "discovery")
+        for stage in ("research", "spec", "test-strategy"):
+            state = self._produce(state, stage)
+        self.assertEqual(navigator.current_stage(state), "plan")
+        action = self._action(state)
+        waiting = navigator.apply(
+            state,
+            action["id"],
+            result(
+                evidence_refs=[initial_baseline],
+                work_items=[
+                    {
+                        "id": "R1",
+                        "title": "Repair the initial startup baseline",
+                        "context": prerequisite_context,
+                    },
+                    {
+                        "id": "W1",
+                        "title": "Add the requested feature",
+                        "context": "Wait for R1's passing baseline rerun.",
+                    },
+                ],
+            ),
+        )
+        state = self._complete_improve(waiting, action, "plan")
+        state = self._produce(state, "prepare")
+        state = self._produce(state, "select-work")
+        self.assertEqual(navigator.current_stage(state), "step-plan")
+        self.assertEqual(state["work_items"][0]["context"], prerequisite_context)
+        cold_root = self.repo / ".shiploop" / "cold-prerequisite-context"
+        cold_root.mkdir()
+        navigator.save(cold_root, state)
+        cold_packet = self._cold_next(cold_root)
+        self._assert_initial_baseline_locator(cold_packet)
+        self.assertIn(prerequisite_context, cold_packet)
 
     def test_v3_packets_keep_runtime_and_selected_case_evidence_visible(self) -> None:
         """Synthetic prompt traversal keeps runtime and real-boundary gaps explicit."""

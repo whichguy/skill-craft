@@ -182,6 +182,11 @@ machine interactions. Put exact relevant source/section locators and short decis
 in each affected work-item context and evidence_refs, including planned check locators,
 for cold recovery and the normal Improve handoff; do not start a nested review.
 
+When applicable, use the packet's Initial repository baseline guide. Keep its
+command/result/classification and readiness locators in ordinary evidence_refs
+and relevant work-item context; a prior pass or planned command is not current
+execution evidence.
+
 Use this packet's Current node and Action for your assignment and callback;
 the Last accepted transition describes earlier work, not the current action.
 
@@ -292,6 +297,13 @@ unfinished convergence prevents `done`. If you cannot continue, report `blocked`
 Ordinary review iterations continue inside this action. If an attempt must be
 restarted, the generic `repeat` outcome requests a fresh attempt at this node;
 it is not a completed review, a clean pass, or a successful completion.
+
+For discovery's initial-baseline campaign, use the packet's Initial repository
+baseline guide to review evidence, commands, and classification only. You may
+improve run notes and repeat authorized checks, but may not edit product source,
+tests, dependency definitions, or product configuration, install dependencies,
+provision targets, or perform the planned repair/bootstrap. A completed evidence
+review does not certify repository health.
 """
 
 
@@ -386,6 +398,18 @@ project document or durable discovery notes; avoid a generic coding manual.
 Record current facts and gaps that shape the work. Review the candidate before
 planning; neither old commits nor a visible file proves current behavior,
 authorization, or a passing check.
+Use the packet's Initial repository baseline guide. For every new change to an
+existing implementation, after only the minimum inspection of the packet's
+designated starting repository directory, instructions, runner, and environment
+needed for safe execution, run the established full
+suite when practical or the established smoke suite otherwise on the unchanged
+starting repository content there. This
+is discovery's first verification activity:
+actual execution, not selecting a command or citing an old pass. Record the
+command/cwd, checked content and target, result, coverage limits, and evidence
+locator. Classify failures, missing coverage, setup/access blocks, uncertainty,
+or an expected repair RED before planning; preserve them for prerequisites rather
+than calling the repository healthy or editing source/tests to make it green.
 For an existing system, locate the actual consumer/entry point and any
 user-approved delivery policy or activation mechanism. A hosted consumer makes
 delivery a material question, not automatic authority or an automatic
@@ -476,6 +500,12 @@ checks, and distinguish source/effect, artifact identity, and behavior
 observations. A planned test is not a passed test.
 Map applicable new and preserved non-functional criteria to checks and their
 environment/workload prerequisites; missing evidence or access is not N/A.
+Use the packet's Initial repository baseline guide and consume the observed
+initial baseline rather than treating suite selection as proof. Retain coverage
+and limits; distinguish passed subsets from failed, blocked, intermittent,
+missing-test, or expected-RED observations. Name the setup, repair, or
+test-bootstrap prerequisite and its passing readiness evidence before dependent
+feature checks, carrying ordinary evidence_refs and work-item context.
 Record whether HTTP/API checks suffice or browser evidence is needed, including
 the intended user role/session, target, expected behavior and access prerequisites.
 Plan browser-specific access early; a connector credential need not authenticate
@@ -527,7 +557,18 @@ coding; give producers and consumers clear readiness/done criteria and the
 environment-note locator. Put a required non-final candidate deployment before
 the system tests that need it, after its code producer. Reserve final consumer
 activation/promotion and its checks for the outer release path; plan that route
-now, not for the first time at release.""",
+now, not for the first time at release.
+Use the packet's Initial repository baseline guide. Carry initial-baseline
+evidence and classification through ordinary evidence_refs and affected work-item
+context. Put an affected repair, setup prerequisite, or test-bootstrap in the
+earliest feasible work item before its dependent feature, with the original
+check's passing rerun when available, or a separately recorded passing
+post-bootstrap characterization against unchanged application behavior, as
+feature readiness. Preserve the original no-suite observation. An expected-RED
+repair or bootstrap may start its own work. A bootstrap may make the smallest
+justified test-only harness, dependency, or configuration edits while testing
+unchanged application behavior, but does not certify health or unblock dependent
+features; unknown relatedness remains blocking.""",
         implementation_quality=True,
     ),
     "plan-improve": _prompt(
@@ -572,6 +613,12 @@ Check the current item's environment role, bindings, preparation receipts and
 baseline before dependent changes. A preparation item creates its named output;
 do not demand that output as its own prerequisite. Keep later promotion needs in
 the shared environment note, including newly learned approvals or migrations.
+Use the packet's Initial repository baseline guide. Revalidate its evidence for
+this item's starting content, command, runtime/configuration, target, and fixture
+assumptions; reuse only when they still apply, otherwise rerun the relevant
+existing check. Retain its locator and readiness condition in item context. A
+named repair or test-bootstrap may carry expected RED or missing coverage into
+its owned edits, while dependent feature work waits for the passing rerun.
 Read the implementation conventions referenced by this work item's context;
 if the locator is absent or inaccessible, recover it from accepted discovery/plan
 records and canonical repository sources. Never infer binding rules from a summary.

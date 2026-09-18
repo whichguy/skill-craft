@@ -94,6 +94,13 @@ environment, artifact, and check identities internally. See
    implementation, interfaces, call sites, tests, configuration, and docs that
    a step would affect. Git explains prior decisions; it does not replace an
    inspection of the current tree or current environment.
+   Consume the observed
+   [initial repository baseline](../execution-planning.md#initial-repository-baseline),
+   retaining its command, starting content, outcome and evidence locator. Do not
+   infer execution from a selected command or old pass. Name missing setup,
+   affected repairs or test-bootstrap work as earliest prerequisites; dependent
+   features require their passing checks. This sequence action plans that work,
+   rather than editing tests or repairing the product itself.
    Always inspect README or record absence, follow applicable existing AGENTS.md,
    architecture/design/environment notes and local skill indexes. Use
    [baseline tests and migrations](../execution-planning.md#baseline-tests-and-migrations)
