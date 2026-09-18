@@ -20,6 +20,8 @@ Delegate the user's task through this session's native agents. Do not do the
 delegated task yourself or create a script, subprocess launcher, nested harness
 CLI, SDK runner, or recurring schedule.
 The name `ask-agent` selects this skill; it is not a native worker type.
+Each invocation adds one or more jobs to the initiating conversation's pending
+work. The parent owns that collection, its status updates and the returned results.
 
 ## Choose the available capability
 
@@ -27,12 +29,26 @@ Use the tools and agent roles actually exposed in this session; the model name
 does not determine the tool interface. If native delegation is unavailable,
 report that limitation without simulating an agent.
 
-Use an explicitly named installed agent when available. For a descriptive role
-such as reviewer or costing agent, use a suitable native role or a general-purpose
-worker with that role in its task. Include any role substitution in the final
+Default to the broadest general-purpose native worker, with a descriptive role
+such as reviewer or costing agent expressed in its task. Do not select a
+restricted specialist merely because its name matches the assignment. Use an
+explicitly requested installed agent when available and disclose any relevant
+capability restriction. Include any role substitution in the final
 answer, even if it was already mentioned during dispatch. If the
 user requires an exact agent that is unavailable, report it rather than substituting.
 Inherit the host's model choice unless the user requests another supported model.
+
+Inherit the parent's available tools, skills, permissions and execution facilities
+where the harness supports that. Do not add tool allowlists/denylists, a read-only
+worker mode, model downgrades or other capability limits on your own. Task scope,
+write ownership, explicit user constraints and host permissions still apply;
+capability access is not authorization for unrelated actions. Workers may use
+further native agents and any other available facilities that help their task.
+Some harnesses filter child tools even for general-purpose workers. Disclose
+material differences instead of promising identical capabilities or copying
+parent history to obtain them. When useful and supported, a worker can request a
+parent-only operation through native messaging; the parent performs authorized
+work and returns its result. Otherwise report the missing capability.
 
 ## Launch, continue, and handle completion
 
@@ -55,6 +71,8 @@ Inherit the host's model choice unless the user requests another supported model
    explicitly selecting background mode where exposed. Start independent workers
    within host capacity before collecting them. Retain each native handle and
    user-facing task label. Report RUNNING only after launch is confirmed.
+   Announce the confirmed launch with the assignment and what the parent will
+   do next. Add it to the parent's pending jobs without losing earlier jobs.
    If the host cannot support background continuation, report that limitation;
    do not silently block and call it background work.
 3. After native launch confirmation, continue the user's independent work in the
@@ -73,6 +91,9 @@ Inherit the host's model choice unless the user requests another supported model
    the requested outcome, BLOCKED if required input is missing, or FAILED if it
    encountered an error. A missing required value must not be guessed.
 5. Treat native completion notifications as incoming results in this conversation.
+   Acknowledge each return promptly with its task label and reported outcome;
+   distinguish a returned report from a verified/accepted result. Update the
+   pending jobs and keep the others running.
    Incorporate the actual worker result when delivered; never predict it from the
    task prompt. A report path is a reference to read, not an already verified
    result. Use the compact handoff procedure before accepting a file-based result.
@@ -83,8 +104,9 @@ Inherit the host's model choice unless the user requests another supported model
    until collection. Do not exit a headless invocation with required results
    uncollected. Distinguish this explicit join from automatic notification.
    A wait may return early; continue native collection until required workers finish.
-   Do not create timers, schedules, shell sleeps, no-ops, polling loops, or output-file
-   watchers to wait. Follow the live tool schema and disclose rejected collection
+   Follow the waiting-status procedure below. Do not create custom timers,
+   schedules, shell sleeps, no-ops, polling loops, or output-file watchers to wait.
+   Follow the live tool schema and disclose rejected collection
    calls and recovery. If native notification/collection is unavailable, report it.
 6. Return each completed task using these fields, in a table or compact list:
    Task; Status; Result or blocker; Native agent type; Role substitution.
@@ -98,6 +120,37 @@ Inherit the host's model choice unless the user requests another supported model
    Successful task results do not erase collection errors. Keep this synthesis
    concise; link retained deliverables instead of reproducing detailed reports.
    For code changes, also state integration status and the next action/owner.
+
+## Pending jobs and waiting status
+
+Keep a lightweight parent-owned record in the existing task state: task label,
+native handle, assignment, last observed status/update, and result/report plus
+next action when available. Native handles control execution; this record is
+for coordination and recovery, not another scheduler. Refresh it from actual
+native events/collection. Do not infer progress from elapsed time or file existence.
+
+While the parent is only waiting, give a concise status about every two minutes
+unless the harness is already providing equivalent visible progress. Summarize
+all pending jobs together, what is known, and what is being awaited. Say that no
+new detail is available when that is the truth; do not invent percentages or
+interrupt useful worker execution to demand a progress report. Launches, returns,
+blockers and user requests deserve prompt updates without waiting for that interval.
+
+Prefer native wait/collection with an observation timeout that lets the parent
+provide these updates. A timeout ends that observation wait, not the worker's
+execution; keep collecting afterward. If the host instead exposes a native
+current-session wakeup facility, it may be used solely for the requested waiting
+status: supply a status-check prompt, use the requested cadence, and clear owned
+pending wakeups when no jobs remain where supported. A wakeup is not worker
+completion and never substitutes for collecting actual results. Do not create
+external automations, custom timer scripts or one timer per worker.
+
+When the host cannot return control periodically or wake this live parent,
+explain that interval updates are unavailable; keep launch/return updates and
+native collection. Timing is approximate and subject to host delivery. Do not
+promise notifications after session exit or fabricate periodicity with busywork.
+Respect a user request to change the cadence or stay quiet. Keep pending state
+and unresolved handoffs available when the parent must recover its context.
 
 ## Compact result handoff
 
@@ -176,7 +229,11 @@ Host hints; follow the live schema when it differs:
   omit unavailable mode arguments. In an interactive session retained between
   turns, return an ordinary interim response to hand control back. In headless
   mode, keep the invocation open through native notification/collection.
-  Do not call ScheduleWakeup or another timer/no-op to manufacture a later turn.
+  Prefer native collection/notifications. If the live schema offers ScheduleWakeup
+  for requested waiting-status updates, use a real status-check prompt and the
+  requested interval; a promptless or arbitrary long-delay call is not collection.
+  Fresh background workers may have a host-filtered tool set; do not promise
+  full tool parity or switch to an inherited fork to conceal that difference.
 - Grok: spawn_subagent with background=true; omit resume_from. In a headless
   invocation that requires the result, report useful parent work first, then call
   get_command_or_subagent_output with the pending task_ids and a positive timeout_ms
