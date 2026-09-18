@@ -74,15 +74,19 @@ STAGE_REFERENCES: dict[str, tuple[tuple[str, str], ...]] = {
     "spec": (
         ("Behavior-model guidance", "behavioral-requirements.md#behavior-model"),
         ("Behavior traceability guidance", "behavioral-requirements.md#traceability-and-review"),
+        ("State and data assessment", "requirements-definition.md#state-and-data-change-assessment"),
     ),
     "test-strategy": (
         ("Repeatable test-suite guide", "repeatable-test-suites.md#select-or-revalidate-the-harness"),
         ("Test-case planning guidance", "testing-and-documentation.md#test-cases"),
         ("System-test catalog guidance", "system-tests.md#catalog-shape"),
+        ("State and data assessment", "requirements-definition.md#state-and-data-change-assessment"),
     ),
     "plan": (
         ("Dependency-planning guidance", "backchain-planning.md#dependency-audit"),
         ("Decision carry-forward guidance", "project-knowledge.md#carry-context-into-the-new-plan"),
+        ("State and data assessment", "requirements-definition.md#state-and-data-change-assessment"),
+        ("Initial-plan reconciliation", "requirements-definition.md#initial-plan-reconciliation"),
     ),
     "prepare": (
         ("Environment preparation guidance", "environment-lifecycle.md#plan-preparation-before-its-first-consumer"),
@@ -96,6 +100,7 @@ STAGE_REFERENCES: dict[str, tuple[tuple[str, str], ...]] = {
         ("Repeatable test-suite guide", "repeatable-test-suites.md#select-or-revalidate-the-harness"),
         ("Implementation constitution", "testing-and-documentation.md#implementation-constitution"),
         ("Decision carry-forward guidance", "project-knowledge.md#carry-context-into-the-new-plan"),
+        ("State and data assessment", "requirements-definition.md#state-and-data-change-assessment"),
     ),
     "test-spec": (
         ("Repeatable test-suite guide", "repeatable-test-suites.md#select-or-revalidate-the-harness"),
@@ -157,6 +162,7 @@ STAGE_REFERENCES: dict[str, tuple[tuple[str, str], ...]] = {
     "carry-forward": (
         ("Carry-forward mapping guidance", "carry-forward.md#mandatory-post-inner-mapping"),
         ("Persistent project-knowledge guidance", "project-knowledge.md#retain-learnings-for-the-next-invocation"),
+        ("State and data assessment", "requirements-definition.md#state-and-data-change-assessment"),
     ),
     "system-test-author": (
         ("Repeatable test-suite guide", "repeatable-test-suites.md#select-or-revalidate-the-harness"),
@@ -174,6 +180,7 @@ STAGE_REFERENCES: dict[str, tuple[tuple[str, str], ...]] = {
     "release-plan": (
         ("Environment promotion guidance", "environment-lifecycle.md#carry-the-route-into-final-delivery"),
         ("Workspace return guidance", "workspace-lifecycle.md#inner-assembly-and-final-return"),
+        ("State and data assessment", "requirements-definition.md#state-and-data-change-assessment"),
     ),
     "release-check": (
         ("Delivery completion guidance", "consumer-delivery.md#where-completion-is-enforced"),
@@ -392,6 +399,8 @@ Complete the Requirements definition guide's non-functional assessment: record
 operating conditions, measurable bounds or observable criteria, verification
 methods, justified exclusions, and material unresolved targets. Do not invent
 targets or declare dependent work ready with material requirement conflicts open.
+Use the State and data assessment to identify affected resources, target identities,
+before/after invariants and recovery; retain applicable checks and unknowns.
 """,
     "test-strategy": """\
 Create a risk-based test and verification strategy from the specification before
@@ -430,6 +439,11 @@ and release work so consumers do not run before their prerequisites.  Define
 ready/done conditions, candidate scope, check evidence, authority boundaries,
 and correction routes.  Do not use the plan to imply unrun tests or authorized
 external operations.
+Apply Initial-plan reconciliation to the architecture, reconciled spec, NFRs and
+State and data assessment. Map each applicable obligation to its responsible work
+item, prerequisites, observing test and relevant release/recovery conditions, or
+retain a reasoned exclusion or unresolved need. Preserve the mapping in existing
+plan notes, item context and evidence_refs; a completed template is not proof.
 For affected interactions, recheck the guide's relevant subsections instead of
 copying the prior plan unchecked. Retain a compact Design basis paragraph or
 exact section links: baseline/delta; state/event/connection agreements and planned
@@ -925,6 +939,16 @@ def improve_prompt(stage: str) -> str:
     """Return the actual Improve-skill handoff for a completed producer stage."""
     _require_stage(stage)
     backchain = _backchain_guidance(stage, improve_owner=True) if stage in BACKCHAIN_STAGES else ""
+    assessment = ""
+    if any(label == "State and data assessment" for label, _ in STAGE_REFERENCES[stage]):
+        assessment = """\
+Review the packet's State and data assessment for the affected slice. Check actual
+resource/consumer identity, transition correctness, workload criteria and applicable
+release/recovery conditions against the proposed work and tests. At initial plan,
+apply Initial-plan reconciliation; carry its selected source/test locators into
+this child's contract and notes. Keep unknowns visible and use existing correction
+routes for newly discovered effects. This is part of this Improve call.
+"""
     baseline_guard = ""
     if stage in {"discovery", "baseline"}:
         baseline_guard = """\
@@ -963,6 +987,8 @@ readiness conditions in the child contract/review notes for cold recovery.
 {baseline_guard}
 
 {backchain}
+
+{assessment}
 
 When the candidate concerns actor interactions, channels, incoming/outgoing events,
 connection lifecycle, state ownership or UI, read the applicable Interaction design

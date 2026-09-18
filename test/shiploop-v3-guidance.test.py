@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from pathlib import Path
 import re
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -546,6 +547,75 @@ class V3GuidanceTests(unittest.TestCase):
 
                 self.assertEqual((run / "state.md").read_bytes(), before)
                 self.assertNotIn(marker, packet)
+
+    def test_state_assessment_is_routed_to_planning_and_its_improve_handoffs(self) -> None:
+        assessment = "requirements-definition.md#state-and-data-change-assessment"
+        reconciliation = "requirements-definition.md#initial-plan-reconciliation"
+        stages = {"spec", "test-strategy", "plan", "step-plan", "carry-forward", "release-plan"}
+        for stage in prompts.STAGES:
+            locators = {locator for _label, locator in prompts.STAGE_REFERENCES[stage]}
+            with self.subTest(stage=stage):
+                self.assertEqual(assessment in locators, stage in stages)
+                self.assertEqual(reconciliation in locators, stage == "plan")
+                if stage in stages:
+                    self.assertIn("State and data assessment", prompts.improve_prompt(stage))
+        self.assertIn("Initial-plan reconciliation", prompts.prompt("plan"))
+        self.assertIn("State and data assessment", prompts.prompt("spec"))
+        # This is guidance within existing stages, not another runtime owner.
+        self.assertFalse(any("assessment" in stage or "reconciliation" in stage for stage in prompts.STAGES))
+
+    def test_synthetic_planning_fixtures_have_executable_baselines(self) -> None:
+        """Fixture health is not evidence that a model produced an adequate plan."""
+        fixtures = ROOT / "test" / "experiments" / "shiploop_state_planning"
+        commands = {
+            "memory-utility": ["-m", "unittest", "test_minute_tally.py"],
+            "crm-board": ["verify_board.py"],
+            "import-projection": ["-m", "unittest", "test_imports.py"],
+        }
+        for case, args in commands.items():
+            with self.subTest(case=case):
+                root = fixtures / case
+                self.assertTrue((root / "request.md").read_text().strip())
+                self.assertTrue((root / "frozen-rubric.md").read_text().strip())
+                self.assertFalse((root / "repo" / "frozen-rubric.md").exists())
+                checked = subprocess.run(
+                    [sys.executable, "-B", *args], cwd=root / "repo",
+                    text=True, capture_output=True, timeout=10,
+                )
+                self.assertEqual(checked.returncode, 0, checked.stdout + checked.stderr)
+
+    def test_cold_initial_plan_preserves_state_obligations_through_improve(self) -> None:
+        state = self.state()
+        while navigator.current_stage(state) != "plan":
+            state, _ = self.complete_stage(state)
+        action = dict(navigator.current_action(state))
+        refs = ["docs/architecture.md#access", "docs/spec.md#staff-board", "test/access.py#wrong-user"]
+        context = (
+            "Intended consumer: staff; deploy operator is separate. "
+            "Access proof and wrong-user check: docs/spec.md#staff-board; "
+            "test/access.py#wrong-user. Revalidate target before verification."
+        )
+        state = navigator.apply(state, action["id"], result(
+            "plan", evidence_refs=refs,
+            work_items=[{"id": "ACCESS", "title": "Establish intended consumer access", "context": context}],
+        ))
+        navigator.save(self.run, state)
+        recovered = store.read_record(self.run / "state.md")
+        packet = navigator.render(None, self.run, recovered)
+        self.assertEqual(navigator.current_stage(recovered), "plan")
+        self.assertEqual(navigator.current_action(recovered)["id"], action["id"])
+        self.assertEqual(recovered["active_improve"]["seed_result"]["evidence_refs"], refs)
+        self.assertIn("Initial-plan reconciliation", packet)
+        self.assertIn("State and data assessment", packet)
+        # Synthetic review receipt exercises transport only, not semantic review.
+        recovered = navigator.finish_improve(recovered, action["id"], receipt("plan"))
+        while navigator.current_stage(recovered) != "step-plan":
+            recovered, _ = self.complete_stage(recovered)
+        navigator.save(self.run, recovered)
+        cold = store.read_record(self.run / "state.md")
+        self.assertEqual(cold["work_items"][0]["context"], context)
+        self.assertEqual(cold["accepted"][action["id"]]["evidence_refs"], refs)
+        self.assertIn("Work item context: " + context, navigator.render(None, self.run, cold))
 
     def test_v3_improve_and_source_return_guidance_keep_the_existing_boundary(self) -> None:
         card = IMPROVE_CARD.read_text(encoding="utf-8")
