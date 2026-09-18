@@ -413,8 +413,9 @@ passing post-bootstrap characterization against unchanged application behavior,
 as feature readiness. Preserve the original no-suite observation. An expected-RED
 repair may start its own work. A bootstrap may make the smallest justified
 test-only harness, dependency, or configuration edits while testing unchanged
-application behavior; its producer completion does not make the repository
-healthy or unblock dependent features. Unknown relatedness stays blocking; do not
+application behavior; its producer completion alone does not make the repository
+healthy or unblock dependent features without the required passing evidence.
+Unknown relatedness stays blocking; do not
 silently waive or expand unrelated failures.
 Where this plan creates work items, retain each applicable
 convention, canonical test/example, verified skill/MCP/library contract,

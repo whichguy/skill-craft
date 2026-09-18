@@ -567,8 +567,9 @@ post-bootstrap characterization against unchanged application behavior, as
 feature readiness. Preserve the original no-suite observation. An expected-RED
 repair or bootstrap may start its own work. A bootstrap may make the smallest
 justified test-only harness, dependency, or configuration edits while testing
-unchanged application behavior, but does not certify health or unblock dependent
-features; unknown relatedness remains blocking.""",
+unchanged application behavior. Completion alone does not certify health or
+unblock dependent features without the required passing evidence; unknown
+relatedness remains blocking.""",
         implementation_quality=True,
     ),
     "plan-improve": _prompt(
