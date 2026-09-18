@@ -90,10 +90,11 @@ producer after the feature work and before `system-test`; waiting until final
 `release` would be too late. A multi-hop route is a set of real dependencies,
 not a reason to bypass a prerequisite or invent a fixed number of environments.
 
-`carry-forward` and `outer-improve` reconcile new environment/deployment needs
-with the existing plan. `release-plan` reads that record, revalidates current
-targets and readiness, and plans only the remaining authorized consumer update
-or promotion. Keep intermediate test deployments distinct from final delivery.
+`carry-forward` and affected standalone Improve handoffs reconcile new
+environment/deployment needs with the existing plan. `release-plan` reads that
+record, revalidates current targets and readiness, and plans only the remaining
+authorized consumer update or promotion. Keep intermediate test deployments
+distinct from final delivery.
 Track the exact candidate being promoted and whether a rebuild, configuration
 change or migration invalidates earlier checks. Retain each hop's approval,
 preconditions, expected effect, checks, stop/rollback conditions and owner;
@@ -105,6 +106,36 @@ receipts, and reconcile before retrying. `release-verify` checks the intended
 final consumer, not just the sandbox or staging URL. `handoff` reports actual
 environment/candidate status and any authorized cleanup or outstanding owner.
 Never delete a shared environment merely because the run ended.
+
+## Release operation ownership
+
+Use the final-delivery route above and durable record below; this section adds
+neither a stage nor a cursor. For consequential ordered work—schema, data,
+service, configuration, or cutover—retain the actual execution owner, exact
+candidate and target, predecessor/prerequisites, authority, expected before/after
+state, observation method, and recovery limit. An operation can be **accepted**,
+**running**, then **terminal**; its effect is **verified** only after the required
+operation postcondition is observed. Final consumer behavior belongs to
+`release-verify`, after `release` returns through its standalone Improve handoff.
+A lost reply or
+receipt requires reconciliation against documented provider job/key lookup and
+parameter-binding semantics; a local ID alone does not provide idempotency.
+
+Prefer an existing capable runner only when its durable record owns the required
+operation order/dependencies, authority, current state, and reconciliation.
+Otherwise, an unresolved execution-owner or readiness gap blocks affected
+operations. Navigator retains graph routing, not a sub-operation cursor; the
+environment note, work-item `context`, and `evidence_refs` retain plans and
+receipts rather than a second scheduler.
+
+Where concurrent releases matter, use target-enforced conditional mutation,
+lease, or other documented exclusion; a local lock cannot exclude another owner.
+Preserve compatibility by making additive changes before consumer migration and
+defer destructive contraction until old consumers are absent. An irreversible
+effect has only forward recovery unless actual rollback support is established.
+A local-only scope can make external release work N/A, but candidate identity and
+current local consumer evidence remain required. A stage-scoped Improve may assess
+a plan/check and record its handoff; it cannot execute or replay a release effect.
 
 ## Durable record and responsibility
 

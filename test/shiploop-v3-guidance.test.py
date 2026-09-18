@@ -29,6 +29,19 @@ REPEATABLE_TEST_SUITE_ROUTE = (
     "Repeatable test-suite guide: "
     + str(REFERENCES / "repeatable-test-suites.md#select-or-revalidate-the-harness")
 )
+RELEASE_OPERATION_STAGES = (
+    "release-plan",
+    "release-check",
+    "release",
+    "release-verify",
+)
+RELEASE_OPERATION_LABEL = "Release operation guidance"
+RELEASE_OPERATION_REFERENCE = "environment-lifecycle.md#release-operation-ownership"
+RELEASE_OPERATION_PATH = REFERENCES / "environment-lifecycle.md"
+RELEASE_OPERATION_ANCHOR = "release-operation-ownership"
+RELEASE_OPERATION_ROUTE = (
+    RELEASE_OPERATION_LABEL + ": " + str(REFERENCES / RELEASE_OPERATION_REFERENCE)
+)
 if str(SCRIPTS) not in sys.path:
     sys.path.insert(0, str(SCRIPTS))
 
@@ -179,6 +192,100 @@ class V3GuidanceTests(unittest.TestCase):
             state, _action_id = self.complete_stage(state, **extra)
 
         self.assertEqual(tuple(observed), TEST_HARNESS_STAGES)
+
+    def test_cold_release_operation_route_recovers_outer_parents_and_partial_blocker(self) -> None:
+        """Synthetic records exercise recovery only; no Improve or release is run."""
+        self.assertTrue(RELEASE_OPERATION_PATH.is_file(), RELEASE_OPERATION_PATH)
+        headings = {
+            heading_anchor(match.group(2))
+            for match in re.finditer(
+                r"(?m)^(#{1,6})\s+(.+?)\s*$",
+                RELEASE_OPERATION_PATH.read_text(encoding="utf-8"),
+            )
+        }
+        self.assertIn(RELEASE_OPERATION_ANCHOR, headings)
+
+        state = self.state()
+        observed: list[str] = []
+        release_blocked_once = False
+        partial_release_refs = [
+            "synthetic://release/candidate-identity",
+            "synthetic://release/target-evidence-pending",
+        ]
+
+        while True:
+            stage = navigator.current_stage(state)
+            if stage not in RELEASE_OPERATION_STAGES:
+                extra: dict[str, object] = {}
+                if stage == "plan":
+                    extra["work_items"] = [{"id": "W1", "title": "Synthetic item"}]
+                state, _action_id = self.complete_stage(state, **extra)
+                state = self.save_reload(state)
+                continue
+
+            action = dict(navigator.current_action(state))
+            recovered, producer_packet = self.cold_packet(state)
+            self.assertEqual(navigator.current_stage(recovered), stage)
+            self.assertEqual(navigator.current_action(recovered)["id"], action["id"])
+            self.assertEqual(producer_packet.count(RELEASE_OPERATION_ROUTE), 1, producer_packet)
+
+            seed_refs = ["synthetic://release-operation/" + stage + "/candidate"]
+            waiting = navigator.apply(
+                recovered, action["id"], result(stage, evidence_refs=seed_refs)
+            )
+            binding_id = waiting["active_improve"]["binding_id"]
+            pending, improve_packet = self.cold_packet(waiting)
+            child = pending["active_improve"]
+            self.assertEqual(navigator.current_action(pending)["id"], action["id"])
+            self.assertEqual(child["action_id"], action["id"])
+            self.assertEqual(child["stage"], stage)
+            self.assertEqual(child["binding_id"], binding_id)
+            self.assertEqual(child["binding_id"], pending["run_id"] + "/" + action["id"])
+            self.assertEqual(child["seed_result"]["evidence_refs"], seed_refs)
+            self.assertEqual(improve_packet.count(RELEASE_OPERATION_ROUTE), 1, improve_packet)
+
+            if stage == "release" and not release_blocked_once:
+                release_blocked_once = True
+                blocked = navigator.finish_improve(
+                    pending,
+                    action["id"],
+                    receipt(stage),
+                    result(
+                        stage,
+                        outcome="blocked",
+                        summary="Synthetic release evidence is partial.",
+                        evidence_refs=partial_release_refs,
+                    ),
+                )
+                blocked, blocked_packet = self.cold_packet(blocked)
+                self.assertEqual(blocked["status"], "blocked")
+                self.assertEqual(navigator.current_stage(blocked), stage)
+                self.assertEqual(
+                    blocked["accepted"][action["id"]]["evidence_refs"], partial_release_refs
+                )
+                self.assertEqual(
+                    blocked["improve_results"][action["id"]]["seed_result"]["evidence_refs"],
+                    seed_refs,
+                )
+                self.assertEqual(blocked_packet.count(RELEASE_OPERATION_ROUTE), 1, blocked_packet)
+
+                resumed = navigator.control(blocked, "resume")
+                state, resumed_packet = self.cold_packet(resumed)
+                self.assertEqual(state["status"], "active")
+                self.assertEqual(navigator.current_stage(state), stage)
+                self.assertEqual(
+                    state["accepted"][action["id"]]["evidence_refs"], partial_release_refs
+                )
+                self.assertEqual(resumed_packet.count(RELEASE_OPERATION_ROUTE), 1, resumed_packet)
+                continue
+
+            state = navigator.finish_improve(pending, action["id"], receipt(stage))
+            state = self.save_reload(state)
+            observed.append(stage)
+            if stage == "release-verify":
+                break
+
+        self.assertEqual(tuple(observed), RELEASE_OPERATION_STAGES)
 
     def test_cold_step_plan_keeps_compact_context_and_evidence_locators(self) -> None:
         context = (

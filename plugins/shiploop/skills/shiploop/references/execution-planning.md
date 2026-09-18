@@ -316,9 +316,14 @@ Time/availability constraints may justify a bulk migration; explain why it is
 safer or simpler here, its blast radius, checkpoint/stop criteria and recovery
 evidence. Never run a migration implicitly during research or plan review.
 Rehearse on authorized representative isolated data when needed, then revalidate
-target/version immediately before the permitted operation. Journal outer-only
-actions through `outer-work`; inner scope does not authorize deployment. Material
-new findings require renewed review or broader planning, not silent plan drift.
+target/version immediately before the permitted operation. Managed/legacy
+protocols journal outer-only actions through `outer-work`; its established
+behavior remains unchanged. Navigator retains the same authority, target,
+observation, receipt, and recovery obligations in the environment note,
+affected work-item `context`, and `evidence_refs`; inner scope does not
+authorize deployment.
+Material new findings require renewed review or broader planning, not silent plan
+drift.
 
 Revisit the relevant actor/data/trust frontier from research at each step's changed
 boundary, including second-order consumers and environment-role differences.
