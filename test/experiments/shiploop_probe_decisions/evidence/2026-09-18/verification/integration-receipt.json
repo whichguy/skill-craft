@@ -1,0 +1,27 @@
+{
+  "source": "/Users/dadleet/src/skill-craft",
+  "files": {
+    "test/README.md": "0842d6308c56735730ffec8e1884b75f89dbf0328483df648364b9c9a376c81a",
+    "test/shiploop.test.sh": "81581607de4038e605521e6ab1194852be89f996a4498aed7e492c3701795f44",
+    "test/test-groups.test.py": "5fa4116ebcbb288f80e5aaec1e8f7bd701a299ac85971f339a6c037a5b72dc9c",
+    "test/shiploop-probe-decisions.test.py": "b04f8df9f71ed3904594d1783de3646aec5457556f476084842dea56802d303f",
+    "docs/shiploop-probe-decisions-plan-2026-09-18.md": "30f0c999235b3de135ea776e2c9c657dc5325fc615e7af0f302570188a31240b",
+    "docs/shiploop-probe-decisions-results-2026-09-18.md": "4d5bd86ffe8e24887b233de78ee38cb0df3a207ffb2382820c0dfaa519a620a6",
+    "test/experiments/shiploop_probe_decisions/JUDGE.md": "2a428e8ca27560c7497bd02ad330bfae7e8212886d3a3ce90a9ac3bf2d20bc52",
+    "test/experiments/shiploop_probe_decisions/baseline-prompt.md": "bcec517df0a3ca0aaac42d06904de56f8def6522a7e1f3d2f8cb9f96bc08605d",
+    "test/experiments/shiploop_probe_decisions/test_study.py": "03a68182aa12da72f89b68eeb15708b82f664288e00342d88aab727e424c5fed",
+    "test/experiments/shiploop_probe_decisions/README.md": "56dc32a446e5d84c63ec634c99246398f408f30de5d1ee93a10d78ddfafb6b98",
+    "test/experiments/shiploop_probe_decisions/test_fixtures.py": "846eb4363b88e593e0210d57ff98cb5d9f66e64f9fe793627a865ba92e77df88",
+    "test/experiments/shiploop_probe_decisions/candidate-cue.txt": "d21c5db5fa8c9bccb4f36f95d5acd80991c38cdcbe0fc468cff8e02fe45019a8",
+    "test/experiments/shiploop_probe_decisions/candidate-prompt.md": "8e38fd2ac7e8cd714deac04f6df7e1fde9dcecde8c93584e4b264b09b9724230",
+    "test/experiments/shiploop_probe_decisions/study.py": "52ff9d087598c24c22aa1693a84c7fac34ae0e3a809ba87af58d9349699a3499",
+    "test/experiments/shiploop_probe_decisions/fixtures.py": "48161102a6cda8d36ab54f5f61249d7d62bd7d024553a79444f2a4edf9632ff6"
+  },
+  "preserved_concurrent_changes": [
+    "local-skills inventory entry and test docs",
+    "Grok E2E harness documentation",
+    "Ask Agent live handoff experiment documentation appended after integration"
+  ],
+  "source_suite_count": 85,
+  "isolated_suite_count": 84
+}

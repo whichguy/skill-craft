@@ -1,0 +1,3 @@
+{"active_parser": "2.6.4", "launcher": "bin/launcher.py", "manifest_parser": "3.1.0", "operation": "version", "simulation": "local-read-only-fixture"}
+{"operation": "preview", "rendered": {"format": "json", "rows": [{"amount": 4, "id": "first"}, {"amount": 9}]}, "simulation": "local-read-only-fixture", "status": "accepted"}
+{"error": "KeyError", "operation": "write-preservation", "previous_output_preserved": true, "simulation": "local-read-only-fixture", "status": "error", "temporary_exists": false}

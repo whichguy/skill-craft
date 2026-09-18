@@ -1,0 +1,710 @@
+==> test-groups
+..............
+----------------------------------------------------------------------
+Ran 14 tests in 3.180s
+
+OK
+OK  test-groups
+==> integration-boundaries
+.....
+----------------------------------------------------------------------
+Ran 5 tests in 0.279s
+
+OK
+OK  integration-boundaries
+==> skill-interop-hygiene
+skill-interop-hygiene.test.sh: PASS (prompts, templates, scaffold, anti-patterns, host-paths, no pins)
+OK  skill-interop-hygiene
+==> sync-plugin-views
+sync-plugin-views.test.sh: FAIL leaf-only __pycache__ should not fail --check: skill-frontmatter-to-plugin-json: CHECK OK shiploop
+sync-plugin-views: FAIL plugins/shiploop/skills/shiploop out of sync with skills/shiploop
+sync-plugin-views: CHECK FAILED (run ./scripts/sync-plugin-views.sh)
+FAIL sync-plugin-views
+==> native-marketplace-adapters
+skill-frontmatter-to-plugin-json: CHECK OK architect
+sync-plugin-views: FAIL missing plugins/ask-agent/.claude-plugin/plugin.json
+skill-frontmatter-to-plugin-json: CHECK OK c-plan
+skill-frontmatter-to-plugin-json: CHECK OK compare-prompts
+skill-frontmatter-to-plugin-json: CHECK OK derive-questions
+skill-frontmatter-to-plugin-json: CHECK OK devloop
+skill-frontmatter-to-plugin-json: CHECK OK evidence-gates
+skill-frontmatter-to-plugin-json: CHECK OK improve
+sync-plugin-views: FAIL plugins/improve/skills/improve out of sync with skills/improve
+skill-frontmatter-to-plugin-json: CHECK OK improve-system-prompt
+skill-frontmatter-to-plugin-json: CHECK OK plan-test
+skill-frontmatter-to-plugin-json: CHECK OK prompt-align
+skill-frontmatter-to-plugin-json: CHECK OK prompt-audit
+skill-frontmatter-to-plugin-json: CHECK OK prompt-migrate
+skill-frontmatter-to-plugin-json: CHECK OK prompt-refine
+skill-frontmatter-to-plugin-json: CHECK OK question-bench
+skill-frontmatter-to-plugin-json: CHECK OK review-coverage
+skill-frontmatter-to-plugin-json: CHECK OK review-fix-bench
+skill-frontmatter-to-plugin-json: CHECK OK shiploop
+sync-plugin-views: FAIL plugins/shiploop/skills/shiploop out of sync with skills/shiploop
+sync-plugin-views: FAIL missing plugins/shiploop-e2e-audit/.claude-plugin/plugin.json
+skill-frontmatter-to-plugin-json: CHECK OK skill-interop
+skill-frontmatter-to-plugin-json: CHECK OK marketplaces (20 skills)
+sync-plugin-views: CHECK FAILED (run ./scripts/sync-plugin-views.sh)
+native-marketplace-adapters.test.sh: FAIL baseline adapter check
+FAIL native-marketplace-adapters
+==> marketplace-package
+.......FFF..F................
+======================================================================
+FAIL: test_every_generated_source_package_passes (__main__.PackageTests.test_every_generated_source_package_passes) (package='ask-agent')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-probe-strategy-pulxuyar/worktree/test/marketplace-package.test.py", line 230, in test_every_generated_source_package_passes
+    self.assertEqual([], CHECK.validate_package(ROOT / "plugins" / name))
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Lists differ: [] != ['/private/var/folders/_n/cth41tgs171367b_[107 chars]ory']
+
+Second list contains 1 additional elements.
+First extra element 0:
+'/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-probe-strategy-pulxuyar/worktree/plugins/ask-agent: package must be a real directory'
+
+- []
++ ['/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-probe-strategy-pulxuyar/worktree/plugins/ask-agent: '
++  'package must be a real directory']
+
+======================================================================
+FAIL: test_every_generated_source_package_passes (__main__.PackageTests.test_every_generated_source_package_passes) (package='improve')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-probe-strategy-pulxuyar/worktree/test/marketplace-package.test.py", line 230, in test_every_generated_source_package_passes
+    self.assertEqual([], CHECK.validate_package(ROOT / "plugins" / name))
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Lists differ: [] != ['script-backed declared entrypoint runtim[74 chars]ile']
+
+Second list contains 1 additional elements.
+First extra element 0:
+'script-backed declared entrypoint runtime/until-loop/scripts/until_loop_ephemeral.py is missing or not a regular file'
+
+- []
++ ['script-backed declared entrypoint '
++  'runtime/until-loop/scripts/until_loop_ephemeral.py is missing or not a '
++  'regular file']
+
+======================================================================
+FAIL: test_every_generated_source_package_passes (__main__.PackageTests.test_every_generated_source_package_passes) (package='shiploop-e2e-audit')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-probe-strategy-pulxuyar/worktree/test/marketplace-package.test.py", line 230, in test_every_generated_source_package_passes
+    self.assertEqual([], CHECK.validate_package(ROOT / "plugins" / name))
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Lists differ: [] != ['/private/var/folders/_n/cth41tgs171367b_[116 chars]ory']
+
+Second list contains 1 additional elements.
+First extra element 0:
+'/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-probe-strategy-pulxuyar/worktree/plugins/shiploop-e2e-audit: package must be a real directory'
+
+- []
++ ['/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-probe-strategy-pulxuyar/worktree/plugins/shiploop-e2e-audit: '
++  'package must be a real directory']
+
+======================================================================
+FAIL: test_improve_native_inventory_requires_ephemeral_runtime (__main__.PackageTests.test_improve_native_inventory_requires_ephemeral_runtime)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-probe-strategy-pulxuyar/worktree/test/marketplace-package.test.py", line 197, in test_improve_native_inventory_requires_ephemeral_runtime
+    self.assertTrue(runtime.is_file())
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true
+
+----------------------------------------------------------------------
+Ran 27 tests in 0.320s
+
+FAILED (failures=4)
+FAIL marketplace-package
+==> marketplace-host-isolation
+..
+----------------------------------------------------------------------
+Ran 2 tests in 0.000s
+
+OK
+OK  marketplace-host-isolation
+==> installed-skill-invocation
+test_card_contracts_bind_selected_loaded_skill (__main__.InstalledSkillInvocationTest.test_card_contracts_bind_selected_loaded_skill) ... ok
+test_evidence_gates_self_check_from_read_only_copy (__main__.InstalledSkillInvocationTest.test_evidence_gates_self_check_from_read_only_copy) ... ok
+test_improve_bound_adapter_ignores_ambient_runtime (__main__.InstalledSkillInvocationTest.test_improve_bound_adapter_ignores_ambient_runtime) ... ok
+test_improve_ephemeral_runtime_from_read_only_installed_copy (__main__.InstalledSkillInvocationTest.test_improve_ephemeral_runtime_from_read_only_installed_copy) ... FAIL
+test_review_campaign_dependency_is_not_silently_invented (__main__.InstalledSkillInvocationTest.test_review_campaign_dependency_is_not_silently_invented) ... ok
+test_review_coverage_cli_from_read_only_copy (__main__.InstalledSkillInvocationTest.test_review_coverage_cli_from_read_only_copy) ... ok
+test_shiploop_graph_and_recovery_from_read_only_copy (__main__.InstalledSkillInvocationTest.test_shiploop_graph_and_recovery_from_read_only_copy) ... ok
+test_skill_interop_facade_routes_from_read_only_copy (__main__.InstalledSkillInvocationTest.test_skill_interop_facade_routes_from_read_only_copy) ... ok
+
+======================================================================
+FAIL: test_improve_ephemeral_runtime_from_read_only_installed_copy (__main__.InstalledSkillInvocationTest.test_improve_ephemeral_runtime_from_read_only_installed_copy)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-probe-strategy-pulxuyar/worktree/test/installed-skill-invocation.test.py", line 393, in test_improve_ephemeral_runtime_from_read_only_installed_copy
+    packet = call([sys.executable, "-B", str(runtime), "start"], contract)
+  File "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-probe-strategy-pulxuyar/worktree/test/installed-skill-invocation.test.py", line 390, in call
+    self.assert_ok(result, "installed ephemeral callback")
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-probe-strategy-pulxuyar/worktree/test/installed-skill-invocation.test.py", line 140, in assert_ok
+    self.assertEqual(
+    ~~~~~~~~~~~~~~~~^
+        result.returncode,
+        ^^^^^^^^^^^^^^^^^^
+        0,
+        ^^
+        f"{label} failed ({result.returncode})\nstdout:\n{result.stdout}\nstderr:\n{result.stderr}",
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+AssertionError: 2 != 0 : installed ephemeral callback failed (2)
+stdout:
+
+stderr:
+/opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/Resources/Python.app/Contents/MacOS/Python: can't open file '/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/skill-craft-installed-skill-kpq8s5be/installed marketplace packages with spaces/improve/runtime/until-loop/scripts/until_loop_ephemeral.py': [Errno 2] No such file or directory
+
+
+----------------------------------------------------------------------
+Ran 8 tests in 1.668s
+
+FAILED (failures=1)
+FAIL installed-skill-invocation
+==> prompt-marketplace-contract
+test_architect_and_plan_test_use_capabilities_not_author_agents (__main__.PromptMarketplaceContractTests.test_architect_and_plan_test_use_capabilities_not_author_agents) ... ok
+test_benchmark_models_are_host_valid_and_trials_remain_independent (__main__.PromptMarketplaceContractTests.test_benchmark_models_are_host_valid_and_trials_remain_independent) ... ok
+test_improve_system_prompt_requires_explicit_product_configuration (__main__.PromptMarketplaceContractTests.test_improve_system_prompt_requires_explicit_product_configuration) ... ok
+test_owned_prompt_leaves_have_canonical_cards (__main__.PromptMarketplaceContractTests.test_owned_prompt_leaves_have_canonical_cards) ... ok
+test_prompt_suite_resolves_siblings_and_detects_target_tests (__main__.PromptMarketplaceContractTests.test_prompt_suite_resolves_siblings_and_detects_target_tests) ... ok
+test_question_bench_uses_bundled_rubric_and_generic_independent_evaluator (__main__.PromptMarketplaceContractTests.test_question_bench_uses_bundled_rubric_and_generic_independent_evaluator) ... ok
+test_review_fix_bench_requires_explicit_external_runner_inputs (__main__.PromptMarketplaceContractTests.test_review_fix_bench_requires_explicit_external_runner_inputs) ... ok
+
+----------------------------------------------------------------------
+Ran 7 tests in 0.002s
+
+OK
+OK  prompt-marketplace-contract
+==> skill-frontmatter
+skill-frontmatter.test.js: PASS 20 skills (name/version/license/platforms/kind; skill-interop hermes extras)
+OK  skill-frontmatter
+==> scaffold-skill
+scaffold-skill.test.sh: PASS S1–S6
+OK  scaffold-skill
+==> marketplace-run
+M1 ok
+M2 ok
+M3 ok
+M4 ok
+M5 ok
+M6 ok
+M7 ok
+M8 ok
+M9 ok
+M10 ok
+M11 ok
+M12 ok
+M13 ok
+M14 ok
+M15 ok
+M16 ok
+marketplace-run.test.sh: PASS M1–M16
+OK  marketplace-run
+==> install-targets
+Usage: install.sh [flags]
+
+Install skill package(s) into local skill homes.
+Claude/Grok/Codex/Cursor: symlink. Hermes: materialized copy (default).
+Optionally install thin agent cards (Claude + Grok only).
+
+Flags:
+  --help | -h
+  --claude-only | --grok-only | --codex-only | --hermes-only | --cursor-only
+  --all                 # all five hosts (Claude, Grok, Codex, Hermes, Cursor)
+  --skill NAME          # all (default) | any skills/<name> with SKILL.md
+  --from DIR            # install only basename(DIR) from that path
+                        # (must contain SKILL.md); exclusive with --skill
+  --agents              # also symlink agents/<leaf>.md for Claude/Grok
+  --relink | --force    # replace wrong/dangling skill or agent symlinks
+                        # (never clobbers a real file/directory)
+  --copy                # force copy mode for all hosts (Hermes default)
+  --symlink             # force symlink mode for all hosts (overrides Hermes copy)
+  --status              # report install state (no writes); outcomes per host
+  --uninstall           # remove only owned installs (symlink-owned or managed copy)
+  --dry-run             # print actions only, no writes
+
+Default (no host flags): install ALL five hosts.
+Default (no --skill/--from): install every skills/<leaf> with SKILL.md.
+Default action: install. --status / --uninstall are exclusive with each other.
+
+Skill destinations (per skill leaf):
+  Claude:  ~/.claude/skills/<dest>  (symlink)
+  Grok:    ~/.grok/skills/<dest>  (symlink)
+  Codex:   ~/.codex/skills/<dest>  (symlink)
+  Cursor:  ~/.cursor/skills/<dest>  (symlink; never ~/.cursor/skills-cursor)
+  Hermes:  ~/.hermes/skills/software-development/<dest>  (copy)
+           (container bind: /opt/data/skills/software-development/<dest>)
+           Provenance: ~/.hermes/skills/software-development/.skill-craft/<dest>.json
+  dest = leaf. Leaf devloop skips Hermes (engine owns software-development/devloop).
+  Leftover dest devloop-run is removed on Claude/Grok/Codex/Cursor.
+  Grok slash: skills/devloop/commands/devloop.md → ~/.grok/commands/devloop.md
+
+Status outcomes: absent | symlink-owned | symlink-wrong | copy-owned |
+  copy-owned-stale | foreign | foreign-file
+When Claude plugin inventory is available, --status also reports plugin-track
+and warns on double-install only when a matching plugin is confirmed enabled.
+Plugin state is confirmed-enabled only for literal JSON enabled:true; otherwise
+it is cached-state-unknown or disabled.
+Override inventory path: CLAUDE_INSTALLED_PLUGINS_JSON (default
+~/.claude/plugins/installed_plugins.json). Set empty to skip plugin probe.
+
+Agent destinations (only with --agents; Claude + Grok):
+  Claude:  ~/.claude/agents/<leaf>.md
+  Grok:    ~/.grok/agents/<leaf>.md
+  Codex/Hermes: skipped (no agent install)
+
+Sources: skills/<name> under this repo, or --from DIR.
+Foreign real directories are never overwritten or uninstalled.
+With --relink, only wrong or dangling symlinks are replaced.
+Hermes managed copies are refreshed on re-run; foreign trees are skipped.
+
+Exit codes:
+  0  success (all requested actions completed without refusal)
+  2  needs human / binding incomplete (reserved; engines)
+  3  foreign-refused (install/uninstall hit unowned path)
+  4  absent (uninstall: nothing owned present)
+  8  drift-blocked (reserved for drift-aware uninstall)
+  64 usage / flag error
+install-targets.test.sh: PASS I1–I17 (skill-craft install, 5 hosts, identity dest, flags, dry-run, skip-if-exists, --relink, --agents)
+OK  install-targets
+==> install-arbitrary-skill
+install-arbitrary-skill.test.sh: PASS E1–E5 (--from, --skill all, exclusivity)
+OK  install-arbitrary-skill
+==> hermes-binding
+hermes-binding.test.sh: PASS H1–H18 (copy lifecycle, internal symlink deref, receipts)
+OK  hermes-binding
+==> install-status-uninstall
+install-status-uninstall.test.sh: PASS S1–S8 (continued)
+  ok S9 malformed JSON
+  ok S10 schema!=2
+  ok S11 wrong leaf
+  ok S12 mode!=copy
+  ok S13 wrong source
+  ok S14 absent uninstall exit 4
+  ok S15 double-install warn
+  ok S16 plugin-only no double-install
+  ok S17 empty inv env skips probe
+  ok S18 disabled plugin no double-install
+  ok S19 unknown plugin state no double-install
+  ok S20 string boolean remains unknown
+  ok S21 later array item confirmed enabled
+  ok S22 enabled other market wins disabled preferred cache
+  ok S23 mixed false and unknown remains unknown
+install-status-uninstall.test.sh: PASS S1–S23
+OK  install-status-uninstall
+==> devloop-run
+LAYER simple: D1 help OK
+LAYER simple: D1b no-bootstrap refuse OK
+LAYER marketplace: M1 missing engine never fetches or bootstraps OK
+LAYER simple: D2 DEVLOOP_HOME exec OK
+LAYER marketplace: D2b path-space argv + cancellation propagation OK
+name: devloop
+LAYER simple: D6 probe OK
+LAYER integration: D8 operator-setup+probe+exec fixture OK
+LAYER integration: D9b import health + D9c selected interpreter dependency check OK
+LAYER simple: D16 version + ownership docs OK
+LAYER e2e: D21 force-bootstrap seed-copy + host-local exec OK
+LAYER integration: D22 dual-install grok affinity OK
+LAYER simple: D23 nesting refuse OK
+LAYER integration: D24 grok capability preflight OK
+LAYER simple: D25 bootstrap honesty OK
+LAYER integration: D26 grok skill-dir symlink host detect OK
+LAYER integration: D27 pin without grok transport refused OK
+LAYER integration: D28 identity+lifecycle traces OK
+LAYER simple: D29 --repo flag → explicit OK
+LAYER simple: D30 card-documented designation (shim does not scrape) OK
+LAYER simple: D31 default scratch reason OK
+LAYER simple: D32 card conservative phrases + shim flag-only OK
+LAYER simple: D33 SKILL.md designation docs OK
+LAYER simple: D34 no auto --lang from verify_cmd exactly (host must pass --lang) OK
+LAYER simple: D35 explicit --lang wins + STATE lang=<value> reason=explicit OK
+LAYER simple: D36 no verify_cmd leaves lang alone, STATE lang=none OK
+LAYER simple: D37 SKILL.md interpolation procedure docs OK
+LAYER simple: D39 SKILL.md flags-free parse + hosted-identity setup exactly OK
+LAYER simple: D40 SKILL.md no host phase-table + no harness invoke OK
+LAYER simple: D38 STATE lang always emitted OK
+LAYER simple: D41 /devloop alias alignment OK (/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-probe-strategy-pulxuyar/worktree/skills/devloop/commands/devloop.md)
+LAYER integration: D42 cursor skill-dir symlink host detect OK
+LAYER integration: D47 cursor unset transport fail-closed + explicit hermes OK
+LAYER integration: D47c Claude/Codex explicit external transport preserved
+LAYER integration: D47d Codex plugin cache fail-closed + explicit transport OK
+LAYER simple: D43 MCP-first inventory + fixture table OK
+LAYER simple: D44 destination-contract protocol (not vendor nouns) OK
+LAYER simple: D45 foreground shim + prompt on HUMAN_REVIEW OK
+LAYER simple: D46 loop-engineering SoT + prompt-align OK
+LAYER simple: D48 validate-spec Before overlay OK
+devloop-run.test.sh: PASS D1–D48
+OK  devloop-run
+==> evidence-gates
+LAYER simple: entry+structure+purity OK
+LAYER simple: self-check OK
+LAYER simple: no-cmd usage fail-closed OK
+LAYER e2e: freeze→prove(red)→build→prove(sticky)→stop PASS OK
+LAYER simple: doctor clean OK
+LAYER simple: doctor purity fail-closed OK
+LAYER integration: copy+symlink package layouts OK
+LAYER e2e: mock-host freeze/prove/edit/stop OK
+evidence-gates.test.sh: PASS
+OK  evidence-gates
+==> improve
+improve.test.sh: PASS isolated_tree_has_no_external_binding
+improve.test.sh: PASS relocated_v2_preview_is_read_only
+improve.test.sh: PASS ephemeral_runtime_provenance_matches_v0_4_0_rc_2
+improve.test.sh: PASS relocated_ephemeral_start_next_done_two_trivial_gate_and_terminal_deletion
+improve.test.sh: PASS collector_uses_bundled_v2_validator
+improve.test.sh: PASS collector_rejects_bad_bundled_v2_state
+improve.test.sh: PASS package=/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-probe-strategy-pulxuyar/worktree/skills/improve
+OK  improve
+==> improve-plugin
+improve-plugin.test.py: PASS host metadata parity and one public skill
+OK  improve-plugin
+==> shiploop-testkit
+shiploop-testkit.test.sh: PASS
+OK  shiploop-testkit
+==> review-coverage
+PASS skill_md
+PASS template
+PASS h2
+PASS no_legacy_h2
+PASS check_install
+PASS validate_ok
+PASS goal_body_static_exact
+PASS goal_body_static_start
+PASS goal_body_static_complete
+PASS goal_body_commit_each_iteration
+PASS goal_body_review_git_learnings
+PASS goal_body_plan_absolute
+PASS goal_body_base
+PASS goal_body_repo
+PASS goal_body_paths
+PASS goal_body_test
+PASS goal_body_driver
+PASS goal_body_max_default
+PASS goal_body_halt_rules
+PASS goal_body_ledger_landed
+PASS goal_body_clean_trivial
+PASS goal_body_no_zero_material
+PASS goal_body_no_legacy_labels
+PASS goal_body_no_legacy_procedure
+PASS goal_body_slash_exact
+PASS goal_body_slash
+PASS goal_body_slash_head
+PASS goal_body_no_slash
+PASS ref_printer_trailer
+PASS cli_no_static_prose
+PASS cli_no_halt_prose
+PASS cli_no_halt_author
+PASS static_copies_match
+PASS fill_slots_presence
+PASS fence_immediate_only
+PASS goal_body_custom_max
+PASS validate_missing
+PASS preflight_ok
+PASS preflight_missing
+PASS preflight_waived
+PASS preflight_waived_line
+PASS run_card_goal_matches_goal_body
+PASS run_card_fields
+PASS run_card_points_at_ref
+PASS run_card_no_halt_author
+PASS run_card_preflight_fail_no_card
+PASS static_complete_when_byte_exact
+PASS finalization_skill_contract
+PASS finalization_full_reference_contract
+PASS finalization_short_reference_contract
+PASS finalization_host_matrix_contract
+PASS finalization_skill_exit_gate
+PASS finalization_full_exit_gate
+PASS finalization_short_exit_gate
+PASS finalization_no_unlanded_success
+PASS finalization_not_a_residual_round
+PASS finalization_na_second_pass_contract
+PASS finalization_na_second_pass_packets
+PASS finalization_start_and_resume_contract
+PASS finalization_na_goal_body_contract
+PASS finalization_receipt_commit_contract
+PASS finalization_receipt_commit_packets
+PASS goal_body_finalization_trailer
+PASS run_card_finalization_trailer
+PASS finalization_prompt_tests_not_model_compliance
+PASS template_not_valid_plan
+PASS template_placeholder_stderr
+PASS short_template_not_valid_plan
+PASS waiver_validate
+PASS waiver_goal_body_msg
+PASS waiver_no_goal_body
+PASS bad_driver_rejects
+PASS bad_driver_stderr
+PASS improve_loop_driver_rejects
+PASS max_rounds_unlimited_rejects
+PASS max_rounds_zero_rejects
+PASS goal_body_pathspec
+PASS missing_forward_reverse
+PASS fenced_only_rejects
+PASS incomplete_goal_body_err
+PASS template_cmd
+PASS template_short_cmd
+PASS plugin_json
+skill-frontmatter-to-plugin-json: CHECK OK review-coverage
+sync-plugin-views: CHECK OK
+PASS plugin_synced
+PASS plugin_script_match
+PASS plugin_skill_match
+PASS plugin_template_match
+PASS field_table_wins_validate
+PASS field_table_wins_base
+PASS field_table_wins_cmd
+PASS driver_fixed_canonical
+PASS placeholder_trailing_punct
+PASS placeholder_trailing_punct_stderr
+PASS full_template_no_goal_body
+PASS skill_version
+PASS skill_invoke_docs
+PASS skill_slash_docs
+PASS skill_phase_b_cli_prefer
+PASS row_e_validate
+PASS row_e_goal_body
+PASS row_e_body_text
+PASS row_e_not_waived
+PASS row_f_validate
+PASS row_f_missing_msg
+PASS row_f_goal_body
+PASS row_f_gb_missing
+PASS row_f_not_waived_msg
+PASS row_g_validate
+PASS row_g_goal_body
+PASS row_g_body
+PASS row_h_validate
+PASS row_h_conflict_msg
+PASS row_h_goal_body
+PASS row_h_gb_conflict
+PASS row_i_validate_exit2
+PASS row_i_validate_msg
+PASS row_i_no_traceback
+PASS row_i_goal_body_exit2
+PASS row_j_validate_exit2
+PASS row_j_validate_msg
+PASS row_j_no_traceback
+PASS row_k_h1_rejects
+PASS row_k_h3_rejects
+PASS skill_exit_codes_docs
+PASS skill_h2_contract_docs
+PASS skill_md_no_zero_material
+PASS skill_md_trivial_findings_ledger
+PASS skill_md_wrap_up_trivials
+PASS skill_md_grok_goal_user_typed
+PASS skill_md_migrate_legacy_h2
+PASS cursor_check_install
+PASS cursor_validate_ok
+PASS cursor_symlink_source
+======== review-coverage: PASS=133 FAIL=0 ========
+OK  review-coverage
+==> dual-body-guard
+dual-body-guard.test.sh: PASS
+OK  dual-body-guard
+==> shiploop
+==> scripts/sync-improve-managed.py
+Managed Improve controller copy verified: 68a5445e2fb16972b722cc468a49128dc5f606dff84df39a117ec94a8b43e781
+==> test/shiploop-navigator.test.py
+test_classic_remote_test_routes_keep_local_and_remote_evidence_distinct (__main__.NavigatorTests.test_classic_remote_test_routes_keep_local_and_remote_evidence_distinct)
+Keep strategy, execution, and Improve from collapsing remote work into local green. ... ok
+test_classic_test_prompts_consider_platform_testing_and_browser_tools (__main__.NavigatorTests.test_classic_test_prompts_consider_platform_testing_and_browser_tools)
+Legacy packets retain the global choice and INNER revalidation boundary. ... ok
+test_cold_next_recovers_implementation_quality_packet_without_state_mutation (__main__.NavigatorTests.test_cold_next_recovers_implementation_quality_packet_without_state_mutation)
+A cold host receives the pending implementation action and its obligations. ... ok
+test_cold_progress_snapshot_is_read_only_with_one_active_callback (__main__.NavigatorTests.test_cold_progress_snapshot_is_read_only_with_one_active_callback)
+A fresh CLI process recovers the same compact state context only. ... ok
+test_cold_step_plan_preserves_convention_sources_without_interpreting_them (__main__.NavigatorTests.test_cold_step_plan_preserves_convention_sources_without_interpreting_them)
+Cold recovery retains opaque convention sources without claiming agent judgment. ... ok
+test_cold_step_plan_routes_repeatable_suite_guidance_and_persists_case_harness_locators (__main__.NavigatorTests.test_cold_step_plan_routes_repeatable_suite_guidance_and_persists_case_harness_locators)
+Cold next preserves opaque rerun and remote-asset locators. ... ok
+test_default_v2_serializes_one_authority_per_entered_work_item (__main__.NavigatorTests.test_default_v2_serializes_one_authority_per_entered_work_item)
+The shared graph has one root cursor or one active item cursor, never both. ... ok
+test_discovery_and_planning_packets_bind_one_improve_campaign (__main__.NavigatorTests.test_discovery_and_planning_packets_bind_one_improve_campaign) ... ok
+test_dispatch_preserves_cold_context_reads_only_its_result_callback_and_escapes_report (__main__.NavigatorTests.test_dispatch_preserves_cold_context_reads_only_its_result_callback_and_escapes_report) ... ok
+test_dispatch_refuses_a_symlinked_result_callback_without_mutating_state (__main__.NavigatorTests.test_dispatch_refuses_a_symlinked_result_callback_without_mutating_state) ... ok
+test_implementation_quality_guidance_follows_two_work_items_without_state_expansion (__main__.NavigatorTests.test_implementation_quality_guidance_follows_two_work_items_without_state_expansion)
+Quality guidance belongs only in the selected rendered action packets. ... ok
+test_legacy_initial_baseline_guidance_reaches_cold_step_plan (__main__.NavigatorTests.test_legacy_initial_baseline_guidance_reaches_cold_step_plan)
+Legacy packets retain initial-baseline evidence without a new graph node. ... ok
+test_new_state_is_minimal_navigator_and_retains_cold_context (__main__.NavigatorTests.test_new_state_is_minimal_navigator_and_retains_cold_context) ... ok
+test_plan_and_carry_forward_manage_only_future_work_and_preserve_completion (__main__.NavigatorTests.test_plan_and_carry_forward_manage_only_future_work_and_preserve_completion) ... ok
+test_plan_improve_can_refresh_the_unstarted_queue (__main__.NavigatorTests.test_plan_improve_can_refresh_the_unstarted_queue) ... ok
+test_progress_report_escapes_status_context_without_persisting_it (__main__.NavigatorTests.test_progress_report_escapes_status_context_without_persisting_it)
+The HTML report reuses the derived view and retains no progress field. ... ok
+test_progress_snapshot_ignores_repeat_progress_and_marks_controls_truthfully (__main__.NavigatorTests.test_progress_snapshot_ignores_repeat_progress_and_marks_controls_truthfully)
+Assigned work, retry records, and stopped work remain distinct facts. ... ok
+test_progress_snapshot_tracks_done_stages_and_document_choice_for_both_protocols (__main__.NavigatorTests.test_progress_snapshot_tracks_done_stages_and_document_choice_for_both_protocols)
+The projection reports graph facts, including the optional branch. ... ok
+test_progress_snapshot_uses_the_revised_queue_and_bounds_large_queues (__main__.NavigatorTests.test_progress_snapshot_uses_the_revised_queue_and_bounds_large_queues)
+Only the current queue is shown, with bounded IDs, titles, and labels. ... ok
+test_public_cli_blocked_result_retains_generic_receipt_and_new_action (__main__.NavigatorTests.test_public_cli_blocked_result_retains_generic_receipt_and_new_action)
+An accepted blocker advances the receipt but keeps the same stage pending. ... ok
+test_public_cli_cold_environment_packets_use_shared_policy_and_generic_results (__main__.NavigatorTests.test_public_cli_cold_environment_packets_use_shared_policy_and_generic_results)
+The navigator links the one discovery policy without importing legacy state. ... ok
+test_public_cli_completes_two_work_items_from_cold_processes (__main__.NavigatorTests.test_public_cli_completes_two_work_items_from_cold_processes)
+Exercise CLI mode selection, callbacks and persistence end to end. ... ok
+test_public_cli_defaults_to_protocol_v3 (__main__.NavigatorTests.test_public_cli_defaults_to_protocol_v3) ... ok
+test_public_cli_pause_preserves_unaccepted_budget_draft_across_cold_resume (__main__.NavigatorTests.test_public_cli_pause_preserves_unaccepted_budget_draft_across_cold_resume)
+A budget checkpoint leaves the current navigator action unconsumed. ... ok
+test_public_cli_recovery_locator_reopens_relocated_package_from_unrelated_cwd (__main__.NavigatorTests.test_public_cli_recovery_locator_reopens_relocated_package_from_unrelated_cwd)
+A cold handoff returns the saved action without trusting old packets. ... ok
+test_rejects_forged_next_wrong_action_and_corrupt_navigator_state (__main__.NavigatorTests.test_rejects_forged_next_wrong_action_and_corrupt_navigator_state) ... ok
+test_repeat_block_pause_resume_and_halt_are_pure_control_paths (__main__.NavigatorTests.test_repeat_block_pause_resume_and_halt_are_pure_control_paths) ... ok
+test_replay_compares_semantic_results_and_rejects_conflicts_without_mutation (__main__.NavigatorTests.test_replay_compares_semantic_results_and_rejects_conflicts_without_mutation) ... ok
+test_requirements_definition_duties_stay_in_existing_v1_v2_stages (__main__.NavigatorTests.test_requirements_definition_duties_stay_in_existing_v1_v2_stages)
+The guide adds duties to the stable graph instead of adding state or nodes. ... ok
+test_results_are_opaque_and_navigation_never_inspects_git_or_evidence (__main__.NavigatorTests.test_results_are_opaque_and_navigation_never_inspects_git_or_evidence) ... ok
+test_save_is_transactional_recovers_after_fault_and_refuses_symlink_escape (__main__.NavigatorTests.test_save_is_transactional_recovers_after_fault_and_refuses_symlink_escape) ... ok
+test_two_work_walk_follows_the_declared_graph_without_project_work (__main__.NavigatorTests.test_two_work_walk_follows_the_declared_graph_without_project_work) ... ok
+test_v1_v2_cold_next_retains_requirements_definition_context_without_mutation (__main__.NavigatorTests.test_v1_v2_cold_next_retains_requirements_definition_context_without_mutation)
+A current spec packet keeps the guide, user request, and prior spec locator. ... ok
+test_v2_carry_forward_recovers_after_each_sorted_target_write (__main__.NavigatorTests.test_v2_carry_forward_recovers_after_each_sorted_target_write)
+Recover the actual receipt-before-state and after-state interruption seams. ... ok
+test_v2_cold_packet_uses_the_effective_item_cursor_and_owner (__main__.NavigatorTests.test_v2_cold_packet_uses_the_effective_item_cursor_and_owner)
+A cold `next` renders W1's action, not the root inner-loop container. ... ok
+test_v2_cold_verify_packet_keeps_the_selected_case_reminder (__main__.NavigatorTests.test_v2_cold_verify_packet_keeps_the_selected_case_reminder)
+Synthetic retained protocol-2 state keeps the reminder after recovery. ... ok
+test_v2_controls_keep_the_root_parked_and_the_item_action_isolated (__main__.NavigatorTests.test_v2_controls_keep_the_root_parked_and_the_item_action_isolated) ... ok
+test_v2_cross_item_replay_keeps_the_selected_next_instance_unchanged (__main__.NavigatorTests.test_v2_cross_item_replay_keeps_the_selected_next_instance_unchanged) ... ok
+test_v2_optional_skill_and_carry_forward_replace_only_future_queue (__main__.NavigatorTests.test_v2_optional_skill_and_carry_forward_replace_only_future_queue) ... ok
+test_v2_rejects_duplicate_or_future_serialized_cursor_authority (__main__.NavigatorTests.test_v2_rejects_duplicate_or_future_serialized_cursor_authority) ... ok
+
+----------------------------------------------------------------------
+Ran 40 tests in 39.952s
+
+OK
+==> test/shiploop-navigator-v3.test.py
+test_cold_recovery_preserves_the_pending_child_binding_without_advancing (__main__.NavigatorV3Tests.test_cold_recovery_preserves_the_pending_child_binding_without_advancing) ... ok
+test_duplicate_or_conflicting_producer_callback_cannot_create_another_child (__main__.NavigatorV3Tests.test_duplicate_or_conflicting_producer_callback_cannot_create_another_child) ... ok
+test_every_v3_stage_waits_for_one_actual_improve_completion (__main__.NavigatorV3Tests.test_every_v3_stage_waits_for_one_actual_improve_completion) ... ok
+test_incomplete_child_and_blocked_producer_do_not_advance_parent (__main__.NavigatorV3Tests.test_incomplete_child_and_blocked_producer_do_not_advance_parent) ... ok
+test_malformed_bound_skill_fails_with_controlled_recovery_error (__main__.NavigatorV3Tests.test_malformed_bound_skill_fails_with_controlled_recovery_error) ... ok
+test_outer_replan_adds_corrective_work_without_rewinding_completed_work (__main__.NavigatorV3Tests.test_outer_replan_adds_corrective_work_without_rewinding_completed_work) ... ok
+test_skill_assess_rejects_legacy_skill_result_carriers_without_mutation (__main__.NavigatorV3Tests.test_skill_assess_rejects_legacy_skill_result_carriers_without_mutation)
+V3 retains reusable-skill evidence in its generic envelope only. ... ok
+test_v3_backchain_planning_guidance_is_scoped_to_selected_stages (__main__.NavigatorV3Tests.test_v3_backchain_planning_guidance_is_scoped_to_selected_stages)
+Producer and actual Improve prompts use the guide only for planning decisions. ... ok
+test_v3_bound_child_carries_requirement_and_test_locators_through_cold_recovery (__main__.NavigatorV3Tests.test_v3_bound_child_carries_requirement_and_test_locators_through_cold_recovery)
+Assert structural packet propagation, not that a model interpreted the sources. ... ok
+test_v3_cold_next_retains_requirements_definition_child_context (__main__.NavigatorV3Tests.test_v3_cold_next_retains_requirements_definition_child_context)
+A recovered Improve packet retains the guide and an existing-spec locator. ... ok
+test_v3_common_and_improve_prompts_preserve_requirements_review_cues (__main__.NavigatorV3Tests.test_v3_common_and_improve_prompts_preserve_requirements_review_cues)
+Keep concise review duties without inventing child state or counters. ... ok
+test_v3_current_and_cold_child_packets_retain_review_note_recovery_context (__main__.NavigatorV3Tests.test_v3_current_and_cold_child_packets_retain_review_note_recovery_context)
+A selected child retains receipt-reference duties before and after recovery. ... ok
+test_v3_declares_the_flat_sdlc_graph_independently (__main__.NavigatorV3Tests.test_v3_declares_the_flat_sdlc_graph_independently) ... ok
+test_v3_initial_baseline_guidance_survives_improve_and_cold_step_plan (__main__.NavigatorV3Tests.test_v3_initial_baseline_guidance_survives_improve_and_cold_step_plan)
+Initial-baseline evidence stays in ordinary records without new graph state. ... ok
+test_v3_native_backchain_operations_reach_only_the_assigned_packets (__main__.NavigatorV3Tests.test_v3_native_backchain_operations_reach_only_the_assigned_packets)
+Check emitted dispatch targets; live trials assess policy semantics. ... ok
+test_v3_packets_keep_runtime_and_selected_case_evidence_visible (__main__.NavigatorV3Tests.test_v3_packets_keep_runtime_and_selected_case_evidence_visible)
+Synthetic prompt traversal keeps runtime and real-boundary gaps explicit. ... ok
+test_v3_platform_testing_contract_routes_to_every_test_stage (__main__.NavigatorV3Tests.test_v3_platform_testing_contract_routes_to_every_test_stage)
+The global choice and each testing checkpoint retain the same guide route. ... ok
+test_v3_remote_test_routes_keep_local_and_remote_evidence_distinct (__main__.NavigatorV3Tests.test_v3_remote_test_routes_keep_local_and_remote_evidence_distinct)
+Route remote test assets without treating a local result as their evidence. ... ok
+test_v3_requirements_definition_duties_stay_in_existing_stages (__main__.NavigatorV3Tests.test_v3_requirements_definition_duties_stay_in_existing_stages)
+Existing discovery, research, and spec nodes cover the new guide duties. ... ok
+test_v3_requirements_policy_routes_through_unbound_and_bound_improve_recovery (__main__.NavigatorV3Tests.test_v3_requirements_policy_routes_through_unbound_and_bound_improve_recovery)
+Both child forms retain packet locators before and after cold recovery. ... ok
+test_v3_test_lifecycle_and_child_handoff_keep_repeatable_suite_boundaries (__main__.NavigatorV3Tests.test_v3_test_lifecycle_and_child_handoff_keep_repeatable_suite_boundaries)
+Check packet routing and boundaries, without claiming model compliance. ... ok
+test_v3_test_strategy_requires_repeatable_harness_revalidation_and_suite_tiers (__main__.NavigatorV3Tests.test_v3_test_strategy_requires_repeatable_harness_revalidation_and_suite_tiers)
+The global strategy chooses rerunnable coverage before item work starts. ... ok
+
+----------------------------------------------------------------------
+Ran 22 tests in 0.865s
+
+OK
+==> test/shiploop-standalone-improve.test.py
+..............
+----------------------------------------------------------------------
+Ran 14 tests in 1.906s
+
+OK
+==> test/shiploop-actual-improve-cli.test.py
+.......
+----------------------------------------------------------------------
+Ran 7 tests in 16.057s
+
+OK
+==> test/shiploop-packet-bounds.test.py
+.......
+----------------------------------------------------------------------
+Ran 7 tests in 0.087s
+
+OK
+==> test/shiploop-v3-guidance.test.py
+test_cold_local_skill_routes_cover_early_and_late_decisions (__main__.V3GuidanceTests.test_cold_local_skill_routes_cover_early_and_late_decisions)
+Fresh producer and pending-child packets retain the local skill route. ... ok
+test_cold_packets_route_the_repeatable_test_suite_guide_to_each_testing_stage (__main__.V3GuidanceTests.test_cold_packets_route_the_repeatable_test_suite_guide_to_each_testing_stage)
+Persisted v3 states retain the direct guide route at testing checkpoints. ... ok
+test_cold_step_plan_keeps_compact_context_and_evidence_locators (__main__.V3GuidanceTests.test_cold_step_plan_keeps_compact_context_and_evidence_locators) ... ok
+test_current_item_test_decision_source_is_revised_and_item_scoped (__main__.V3GuidanceTests.test_current_item_test_decision_source_is_revised_and_item_scoped)
+Only the current item's latest accepted decision is retained in a packet. ... ok
+test_each_current_v3_packet_renders_its_selected_stage_references (__main__.V3GuidanceTests.test_each_current_v3_packet_renders_its_selected_stage_references) ... ok
+test_next_item_reopens_repo_index_without_inheriting_prior_skill_selection (__main__.V3GuidanceTests.test_next_item_reopens_repo_index_without_inheriting_prior_skill_selection)
+The generic item context keeps selections scoped to their owner. ... ok
+test_stage_reference_catalog_is_complete_and_resolves (__main__.V3GuidanceTests.test_stage_reference_catalog_is_complete_and_resolves) ... ok
+test_v1_and_v2_packets_do_not_gain_the_v3_strategy_projection (__main__.V3GuidanceTests.test_v1_and_v2_packets_do_not_gain_the_v3_strategy_projection) ... ok
+test_v3_cold_packets_keep_the_latest_done_root_test_strategy (__main__.V3GuidanceTests.test_v3_cold_packets_keep_the_latest_done_root_test_strategy)
+Strategy locators survive later evidence without reading it into packets. ... ok
+test_v3_improve_and_source_return_guidance_keep_the_existing_boundary (__main__.V3GuidanceTests.test_v3_improve_and_source_return_guidance_keep_the_existing_boundary) ... ok
+
+----------------------------------------------------------------------
+Ran 10 tests in 0.391s
+
+OK
+==> test/shiploop-full-runtime.test.py
+test_full_v3_runtime_composition_and_recovery_variants (__main__.FullRuntimeCompositionTests.test_full_v3_runtime_composition_and_recovery_variants)
+Exercise all stages, then a delayed contract correction and recovery. ... ok
+test_generated_payload_binds_its_own_selected_improve_runtime (__main__.FullRuntimeCompositionTests.test_generated_payload_binds_its_own_selected_improve_runtime)
+A copied generated payload must not fall back to an ambient skill path. ... FAIL
+test_v3_intake_host_observer_bridge (__main__.FullRuntimeCompositionTests.test_v3_intake_host_observer_bridge)
+Observe one real v3 intake prefix through synthetic host stream records. ... ok
+
+======================================================================
+FAIL: test_generated_payload_binds_its_own_selected_improve_runtime (__main__.FullRuntimeCompositionTests.test_generated_payload_binds_its_own_selected_improve_runtime)
+A copied generated payload must not fall back to an ambient skill path.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-probe-strategy-pulxuyar/worktree/test/shiploop-full-runtime.test.py", line 1220, in test_generated_payload_binds_its_own_selected_improve_runtime
+    state, context = self._accept_stage(
+                     ~~~~~~~~~~~~~~~~~~^
+        shiploop=self.generated_shiploop, improve=self.generated_improve,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        repo=repo, run=run, stage="intake",
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-probe-strategy-pulxuyar/worktree/test/shiploop-full-runtime.test.py", line 634, in _accept_stage
+    context = self._begin_stage(
+        shiploop=shiploop, improve=improve, repo=repo, run=run,
+        expected_stage=stage, payload=payload,
+    )
+  File "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-probe-strategy-pulxuyar/worktree/test/shiploop-full-runtime.test.py", line 380, in _begin_stage
+    self._run(
+    ~~~~~~~~~^
+        self._script(shiploop), "improve-bind", "--run-dir", run,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        "--action", action_id, "--skill-card", self._card(improve),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-probe-strategy-pulxuyar/worktree/test/shiploop-full-runtime.test.py", line 229, in _run
+    self.assertEqual(result.returncode, code, result.stdout + result.stderr)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 2 != 0 : ShipLoop navigator: bound Until Loop CLI is unavailable: /private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-full-runtime-ejgaxtws/relocated payloads/generated/skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py
+Read the current packet with next; the rejected request did not advance the graph.
+
+
+----------------------------------------------------------------------
+Ran 3 tests in 93.803s
+
+FAILED (failures=1)
+FAIL shiploop
+run-all.sh: FAILED

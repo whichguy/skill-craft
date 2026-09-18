@@ -1,0 +1,8 @@
+{
+  "path": "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-probe-strategy-pulxuyar/study/blind/f3-r0/ready-to-evaluate.md",
+  "sha256": "4842bb21428c461812950c115c2831ac5373b786c5c2a51cad8103d18d910380",
+  "default_model": true,
+  "timeout_seconds": 180,
+  "hard_deadline_epoch": 1789758549.124179,
+  "prior_measured_subprocess_seconds": 620.220464
+}

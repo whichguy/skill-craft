@@ -1,0 +1,175 @@
+{
+  "bundle_sha256": "06691dbc1b61bfd4fe01c9c9a34357c8ee3f7fb7df548ce22425bfe654817628",
+  "common_sources": [
+    {
+      "bytes": 578,
+      "id": "SRC-001",
+      "labels": [
+        "Left",
+        "Right"
+      ],
+      "path": "README.md",
+      "sha256": "8adad33f8f8652c767bd3ced00106ba37437446aecefe52b60aec98bc84533b0"
+    },
+    {
+      "bytes": 952,
+      "id": "SRC-002",
+      "labels": [
+        "Left",
+        "Right"
+      ],
+      "path": "capability.py",
+      "sha256": "d97551c8612da831ffc713f93180acc25ebea3403aa900fabe466f4eaba508b1"
+    },
+    {
+      "bytes": 518,
+      "id": "SRC-003",
+      "labels": [
+        "Left",
+        "Right"
+      ],
+      "path": "connections.json",
+      "sha256": "a5b40de582bdae5658a7de33301f69e509b7a56534fd3cb96448880877fa6551"
+    },
+    {
+      "bytes": 546,
+      "id": "SRC-004",
+      "labels": [
+        "Left",
+        "Right"
+      ],
+      "path": "contracts/service-receipt-v1.md",
+      "sha256": "6e6917b3e92c832987e956d03be934938ab5960098a07a10fa4bf262ae1929df"
+    },
+    {
+      "bytes": 209,
+      "id": "SRC-005",
+      "labels": [
+        "Left",
+        "Right"
+      ],
+      "path": "evidence/fulfillment-prior.json",
+      "sha256": "1c466f768c52fd7e87210e8b362ccf1737fc3dfa26e4cbd6648ae3657679095f"
+    },
+    {
+      "bytes": 210,
+      "id": "SRC-006",
+      "labels": [
+        "Left",
+        "Right"
+      ],
+      "path": "evidence/ledger-current.json",
+      "sha256": "1b0b8035084ffab67b05161343a1c645441fcfb2f3e5e13dbc6c7d57ac03fb3c"
+    },
+    {
+      "bytes": 548,
+      "id": "SRC-007",
+      "labels": [
+        "Left",
+        "Right"
+      ],
+      "path": "fixture_support.py",
+      "sha256": "2e16f60261eb86c5a7275289e734bf8fed23fd34fc49a8235ad28827870372ec"
+    }
+  ],
+  "family": "f1",
+  "mapping_sha256": "9b06f5720accbe24589e0e303c7cc6674fe43c27ac40f30cf465c868d0d873e2",
+  "omission_policy": "Only repeated successful common-source reads, REPORT write content, and guide-variant content are compacted; exec/probe/error results remain unless guide content itself is withheld.",
+  "raw_receipts": {
+    "lines": 103,
+    "path": "receipts.jsonl",
+    "sha256": "04a7ac539de7652c2d855632cffdd728c5dd385841ec1fdf4a297a1a6c8a0373"
+  },
+  "receipt_counts": {
+    "Left": 17,
+    "Right": 16
+  },
+  "repetition": 0,
+  "reports": {
+    "Left": {
+      "path": "REPORT.md",
+      "sha256": "07ad4caf70c238818d0d28a79d5b2fe2722a7e4ead3327fcc217f740c60dd339"
+    },
+    "Right": {
+      "path": "REPORT.md",
+      "sha256": "4596c08ed5de3b2d4b920aa4e02a59c3e39129b383686bc0ff2b819c37687244"
+    }
+  },
+  "runner_observations": {
+    "Left": {
+      "contexts": [
+        {
+          "context": 1,
+          "elapsed_seconds": 84.65,
+          "exit_code": 0,
+          "termination_reason": null
+        }
+      ],
+      "ledger_phase_counts": {
+        "exploration": 17
+      },
+      "observed_action_count": 17,
+      "status": "observed"
+    },
+    "Right": {
+      "contexts": [
+        {
+          "context": 1,
+          "elapsed_seconds": 75.991,
+          "exit_code": 0,
+          "termination_reason": null
+        }
+      ],
+      "ledger_phase_counts": {
+        "exploration": 16
+      },
+      "observed_action_count": 16,
+      "status": "observed"
+    }
+  },
+  "schema": "generalized-discovery-compact-bundle/1",
+  "withheld": [
+    {
+      "call": 1,
+      "kind": "guidance_read",
+      "label": "Left",
+      "operation": "read",
+      "path": "guidance/research-loop.md"
+    },
+    {
+      "call": 3,
+      "kind": "guidance_read",
+      "label": "Left",
+      "operation": "read",
+      "path": "guidance/research-prompt.md"
+    },
+    {
+      "call": 14,
+      "kind": "guidance_execution",
+      "label": "Left",
+      "operation": "exec",
+      "path": null
+    },
+    {
+      "call": 1,
+      "kind": "guidance_read",
+      "label": "Right",
+      "operation": "read",
+      "path": "guidance/research-prompt.md"
+    },
+    {
+      "call": 2,
+      "kind": "guidance_read",
+      "label": "Right",
+      "operation": "read",
+      "path": "guidance/research-loop.md"
+    },
+    {
+      "call": 13,
+      "kind": "guidance_read",
+      "label": "Right",
+      "operation": "read",
+      "path": "guidance/research-loop.md"
+    }
+  ]
+}

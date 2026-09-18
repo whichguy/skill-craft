@@ -1,0 +1,3 @@
+{"effect_status": "not_started", "operation": "read", "simulation": "local-read-only-fixture", "status": "scope_required", "target": "ledger-target"}
+{"effect_status": "unknown", "operation": "read", "simulation": "local-read-only-fixture", "status": "timeout", "target": "catalog-target"}
+{"offered_connectors": [{"name": "calendar-preview", "purpose": "unrelated preview", "target": "calendar-target"}], "operation": "list", "simulation": "local-read-only-fixture", "status": "ok", "tools": ["read_target"]}

@@ -1,0 +1,2 @@
+{"effect_status": "not_started", "operation": "read", "simulation": "local-read-only-fixture", "status": "scope_required", "target": "ledger-target"}
+{"effect_status": "unknown", "operation": "read", "simulation": "local-read-only-fixture", "status": "timeout", "target": "catalog-target"}

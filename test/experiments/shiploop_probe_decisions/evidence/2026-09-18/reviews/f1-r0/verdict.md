@@ -1,0 +1,76 @@
+{
+  "winner": "Tie",
+  "material_improvement": false,
+  "reasoning": "Both reports make the same supported decision: retain both required inputs (SRC-003), reuse the matching ledger receipt (SRC-006), reject the legacy fulfillment receipt for the current binding (SRC-005 and SRC-004), and accept one changed fulfillment read. Actual execution is supported by Left call 13 and Right call 14, with retained-record confirmation at Left call 15 and Right call 15. Both stop at modeled readiness and attach remaining prerequisites to actual export implementation. Neither loses a consequential finding or demonstrates a material correctness improvement.",
+  "arms": {
+    "Left": {
+      "findings": [
+        "Both ledger and fulfillment are mandatory, with current targets and export.read roles (SRC-003).",
+        "Receipt acceptance requires v1 schema, ok status, current scope, and exact effective target/role match (SRC-004).",
+        "There is no separate receipt expiry rule; unchanged qualifying evidence is reusable (SRC-004).",
+        "The supplied ledger receipt satisfies the contract; no new ledger read was performed or needed (SRC-006; retained calls).",
+        "The prior fulfillment receipt records fulfillment-legacy/viewer; its current scope and ok status do not establish fulfillment-current/export.read readiness (SRC-005; SRC-003).",
+        "The fulfillment mismatch does not establish authentication failure (SRC-004 and SRC-005).",
+        "One current fulfillment read produced a qualifying modeled receipt, sufficient to close the local readiness gap (Left call 13 stdout; call 15 log readback).",
+        "The reader selects configured targets and emits receipt fields rather than business export rows (SRC-002).",
+        "The fixture contacts no network and reads no credentials; modeled success proves no real authorization, deployment compatibility, or delivery (SRC-001 and SRC-007).",
+        "The probe prints and appends its observation to scratch JSONL; the record is retained (SRC-007; Left call 15).",
+        "The supplied sources establish no actual payload, combination, daily scheduling, or publication contract; those remain prerequisites for the corresponding implementation decisions (SRC-001 through SRC-007).",
+        "Receipt evidence must be reconsidered when its effective binding or acceptance conditions change (SRC-004)."
+      ],
+      "missing_required": [],
+      "violations": [],
+      "checks": {
+        "decision_correct": "pass",
+        "evidence_fidelity": "pass",
+        "block_scope": "pass",
+        "probe_proportionality": "pass",
+        "revalidation": "pass"
+      }
+    },
+    "Right": {
+      "findings": [
+        "Both ledger and fulfillment are mandatory, with current targets and export.read roles (SRC-003).",
+        "Receipt acceptance requires v1 schema, ok status, current scope, and exact effective target/role match (SRC-004).",
+        "There is no separate receipt expiry rule; unchanged qualifying evidence is reusable (SRC-004).",
+        "The supplied ledger receipt satisfies the contract; no new ledger read was performed or needed (SRC-006; retained calls).",
+        "The prior fulfillment receipt records fulfillment-legacy/viewer; its current scope and ok status do not establish fulfillment-current/export.read readiness (SRC-005; SRC-003).",
+        "The fulfillment mismatch does not establish authentication failure (SRC-004 and SRC-005).",
+        "One current fulfillment read produced a qualifying modeled receipt, sufficient to close the local readiness gap (Right call 14 stdout; call 15 log readback).",
+        "The reader selects configured targets and emits receipt fields rather than business export rows (SRC-002).",
+        "The fixture contacts no network and reads no credentials; modeled success proves no real authorization, deployment compatibility, or delivery (SRC-001 and SRC-007).",
+        "The probe prints and appends its observation to scratch JSONL; the record is retained (SRC-007; Right call 15).",
+        "The supplied sources establish no actual payload, combination, daily scheduling, or publication contract; those remain prerequisites for the corresponding implementation decisions (SRC-001 through SRC-007).",
+        "Receipt evidence must be reconsidered when its effective binding or acceptance conditions change (SRC-004)."
+      ],
+      "missing_required": [],
+      "violations": [],
+      "checks": {
+        "decision_correct": "pass",
+        "evidence_fidelity": "pass",
+        "block_scope": "pass",
+        "probe_proportionality": "pass",
+        "revalidation": "pass"
+      }
+    }
+  },
+  "lost_findings": {
+    "Left": [],
+    "Right": []
+  },
+  "scores": {
+    "task_adherence": "Tie",
+    "factual_accuracy": "Tie",
+    "completeness": "Tie",
+    "instruction_following": "Tie",
+    "structural_clarity": "Tie",
+    "precision": "Tie",
+    "conciseness": "Right"
+  },
+  "evidence_limits": [
+    "Manual pre-judge audit found no explicit baseline/candidate mapping. Arm-specific trial paths, guide hashes and byte counts, timestamps, and session metadata remain visible; these were excluded from quality judgments and were not used to infer instruction provenance.",
+    "Guide contents and full raw coordinator receipts are withheld. Compliance with undisclosed guide requirements cannot be independently assessed.",
+    "All observed reads are deterministic local simulations. Neither arm supplies real service authorization, business export data, scheduling, deployment, or consumer-delivery evidence.",
+    "Failure, timeout, and nonmatching-output alternatives were described but not executed; no actual-execution credit is assigned to those planned cases."
+  ]
+}

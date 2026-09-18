@@ -1,0 +1,17 @@
+{"at": "2026-09-18T17:39:39.997362Z", "call": 1, "event": "workspace_call", "operation": "read", "path": "guidance/research-loop.md", "phase": "exploration"}
+{"at": "2026-09-18T17:39:40.000837Z", "call": 2, "event": "workspace_call", "operation": "list", "path": ".", "phase": "exploration"}
+{"at": "2026-09-18T17:39:40.001889Z", "call": 3, "event": "workspace_call", "operation": "read", "path": "guidance/research-prompt.md", "phase": "exploration"}
+{"at": "2026-09-18T17:39:44.437879Z", "call": 4, "event": "workspace_call", "operation": "read", "path": "README.md", "phase": "exploration"}
+{"at": "2026-09-18T17:39:44.438668Z", "call": 5, "event": "workspace_call", "operation": "read", "path": "connections.json", "phase": "exploration"}
+{"at": "2026-09-18T17:39:44.439617Z", "call": 6, "event": "workspace_call", "operation": "list", "path": "contracts", "phase": "exploration"}
+{"at": "2026-09-18T17:39:44.440587Z", "call": 7, "event": "workspace_call", "operation": "list", "path": "evidence", "phase": "exploration"}
+{"at": "2026-09-18T17:39:48.206999Z", "call": 8, "event": "workspace_call", "operation": "read", "path": "contracts/service-receipt-v1.md", "phase": "exploration"}
+{"at": "2026-09-18T17:39:48.207806Z", "call": 9, "event": "workspace_call", "operation": "read", "path": "evidence/ledger-current.json", "phase": "exploration"}
+{"at": "2026-09-18T17:39:48.208488Z", "call": 10, "event": "workspace_call", "operation": "read", "path": "evidence/fulfillment-prior.json", "phase": "exploration"}
+{"at": "2026-09-18T17:39:48.209215Z", "call": 11, "event": "workspace_call", "operation": "read", "path": "capability.py", "phase": "exploration"}
+{"at": "2026-09-18T17:39:48.209938Z", "call": 12, "event": "workspace_call", "operation": "read", "path": "fixture_support.py", "phase": "exploration"}
+{"at": "2026-09-18T17:39:55.429784Z", "call": 13, "event": "workspace_call", "operation": "exec", "path": null, "phase": "exploration"}
+{"at": "2026-09-18T17:39:55.474225Z", "call": 14, "event": "workspace_call", "operation": "exec", "path": null, "phase": "exploration"}
+{"at": "2026-09-18T17:40:02.151374Z", "call": 15, "event": "workspace_call", "operation": "exec", "path": null, "phase": "exploration"}
+{"at": "2026-09-18T17:40:46.085426Z", "call": 16, "event": "workspace_call", "operation": "write", "path": "REPORT.md", "phase": "exploration"}
+{"at": "2026-09-18T17:40:49.442762Z", "call": 17, "event": "workspace_call", "operation": "read", "path": "REPORT.md", "phase": "exploration"}

@@ -1,0 +1,333 @@
+{
+  "arm": "trial-01",
+  "completion": {
+    "exit_code": 0,
+    "reasons": [],
+    "status": "completed",
+    "termination_reason": null
+  },
+  "context_output": "final-1.md",
+  "contexts": [
+    {
+      "cleanup": {
+        "exit_code": 0,
+        "kill_sent": false,
+        "term_sent": false
+      },
+      "context": 1,
+      "elapsed_seconds": 75.991,
+      "events": "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-probe-strategy-pulxuyar/study/arms/trial-01/run/events-1.jsonl",
+      "exit_code": 0,
+      "final_present": true,
+      "stderr": "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-probe-strategy-pulxuyar/study/arms/trial-01/run/stderr-1.txt",
+      "termination_reason": null
+    }
+  ],
+  "cutoff_epoch": 1789753528.474407,
+  "deadline_epoch": 1789753648.474407,
+  "finished_at": "2026-09-18T17:40:44.486254Z",
+  "fixture_edits": {},
+  "fixture_edits_flagged": false,
+  "gateway_ledger": {
+    "call_limit": 32,
+    "exploration_cutoff_epoch": 1789753528.474407,
+    "exploration_limit": 24,
+    "hard_deadline_epoch": 1789753648.474407,
+    "records": [
+      {
+        "at": "2026-09-18T17:39:43.689690Z",
+        "call": 1,
+        "operation": "read",
+        "path": "guidance/research-prompt.md",
+        "phase": "exploration"
+      },
+      {
+        "at": "2026-09-18T17:39:43.691709Z",
+        "call": 2,
+        "operation": "read",
+        "path": "guidance/research-loop.md",
+        "phase": "exploration"
+      },
+      {
+        "at": "2026-09-18T17:39:43.696218Z",
+        "call": 3,
+        "operation": "list",
+        "path": ".",
+        "phase": "exploration"
+      },
+      {
+        "at": "2026-09-18T17:39:45.948552Z",
+        "call": 4,
+        "operation": "read",
+        "path": "README.md",
+        "phase": "exploration"
+      },
+      {
+        "at": "2026-09-18T17:39:45.949877Z",
+        "call": 5,
+        "operation": "read",
+        "path": "connections.json",
+        "phase": "exploration"
+      },
+      {
+        "at": "2026-09-18T17:39:45.950963Z",
+        "call": 6,
+        "operation": "list",
+        "path": "contracts",
+        "phase": "exploration"
+      },
+      {
+        "at": "2026-09-18T17:39:45.951908Z",
+        "call": 7,
+        "operation": "list",
+        "path": "evidence",
+        "phase": "exploration"
+      },
+      {
+        "at": "2026-09-18T17:39:48.895913Z",
+        "call": 8,
+        "operation": "read",
+        "path": "contracts/service-receipt-v1.md",
+        "phase": "exploration"
+      },
+      {
+        "at": "2026-09-18T17:39:48.896906Z",
+        "call": 9,
+        "operation": "read",
+        "path": "evidence/fulfillment-prior.json",
+        "phase": "exploration"
+      },
+      {
+        "at": "2026-09-18T17:39:48.897602Z",
+        "call": 10,
+        "operation": "read",
+        "path": "evidence/ledger-current.json",
+        "phase": "exploration"
+      },
+      {
+        "at": "2026-09-18T17:39:48.898674Z",
+        "call": 11,
+        "operation": "read",
+        "path": "capability.py",
+        "phase": "exploration"
+      },
+      {
+        "at": "2026-09-18T17:39:48.899744Z",
+        "call": 12,
+        "operation": "read",
+        "path": "fixture_support.py",
+        "phase": "exploration"
+      },
+      {
+        "at": "2026-09-18T17:39:53.273405Z",
+        "call": 13,
+        "operation": "read",
+        "path": "guidance/research-loop.md",
+        "phase": "exploration"
+      },
+      {
+        "at": "2026-09-18T17:39:56.727664Z",
+        "call": 14,
+        "operation": "exec",
+        "path": null,
+        "phase": "exploration"
+      },
+      {
+        "at": "2026-09-18T17:39:58.684648Z",
+        "call": 15,
+        "operation": "read",
+        "path": "scratch/probe-log.jsonl",
+        "phase": "exploration"
+      },
+      {
+        "at": "2026-09-18T17:40:39.975625Z",
+        "call": 16,
+        "operation": "write",
+        "path": "REPORT.md",
+        "phase": "exploration"
+      }
+    ],
+    "started_epoch": 1789753168.474407,
+    "tool_calls": 16,
+    "version": 1
+  },
+  "input_hashes": {
+    "post": "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-probe-strategy-pulxuyar/study/arms/trial-01/run/input-hashes-post.json",
+    "pre": "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-probe-strategy-pulxuyar/study/arms/trial-01/run/input-hashes-pre.json"
+  },
+  "limits": {
+    "calls_per_arm": 32,
+    "exploration_calls": 24,
+    "exploration_seconds": 360,
+    "seconds_per_arm": 480
+  },
+  "model_selection": {
+    "observed": null,
+    "reason": "selected CLI model/config was not observed",
+    "requested": "host_default",
+    "status": "unavailable"
+  },
+  "observed_actions": {
+    "by_type": {
+      "mcp_tool_call": 16
+    },
+    "observed_unique": 16,
+    "records": [
+      {
+        "context": 1,
+        "event": "item.started",
+        "phase": "exploration",
+        "server": "shiploop_workspace",
+        "tool": "workspace",
+        "type": "mcp_tool_call"
+      },
+      {
+        "context": 1,
+        "event": "item.started",
+        "phase": "exploration",
+        "server": "shiploop_workspace",
+        "tool": "workspace",
+        "type": "mcp_tool_call"
+      },
+      {
+        "context": 1,
+        "event": "item.started",
+        "phase": "exploration",
+        "server": "shiploop_workspace",
+        "tool": "workspace",
+        "type": "mcp_tool_call"
+      },
+      {
+        "context": 1,
+        "event": "item.started",
+        "phase": "exploration",
+        "server": "shiploop_workspace",
+        "tool": "workspace",
+        "type": "mcp_tool_call"
+      },
+      {
+        "context": 1,
+        "event": "item.started",
+        "phase": "exploration",
+        "server": "shiploop_workspace",
+        "tool": "workspace",
+        "type": "mcp_tool_call"
+      },
+      {
+        "context": 1,
+        "event": "item.started",
+        "phase": "exploration",
+        "server": "shiploop_workspace",
+        "tool": "workspace",
+        "type": "mcp_tool_call"
+      },
+      {
+        "context": 1,
+        "event": "item.started",
+        "phase": "exploration",
+        "server": "shiploop_workspace",
+        "tool": "workspace",
+        "type": "mcp_tool_call"
+      },
+      {
+        "context": 1,
+        "event": "item.started",
+        "phase": "exploration",
+        "server": "shiploop_workspace",
+        "tool": "workspace",
+        "type": "mcp_tool_call"
+      },
+      {
+        "context": 1,
+        "event": "item.started",
+        "phase": "exploration",
+        "server": "shiploop_workspace",
+        "tool": "workspace",
+        "type": "mcp_tool_call"
+      },
+      {
+        "context": 1,
+        "event": "item.started",
+        "phase": "exploration",
+        "server": "shiploop_workspace",
+        "tool": "workspace",
+        "type": "mcp_tool_call"
+      },
+      {
+        "context": 1,
+        "event": "item.started",
+        "phase": "exploration",
+        "server": "shiploop_workspace",
+        "tool": "workspace",
+        "type": "mcp_tool_call"
+      },
+      {
+        "context": 1,
+        "event": "item.started",
+        "phase": "exploration",
+        "server": "shiploop_workspace",
+        "tool": "workspace",
+        "type": "mcp_tool_call"
+      },
+      {
+        "context": 1,
+        "event": "item.started",
+        "phase": "exploration",
+        "server": "shiploop_workspace",
+        "tool": "workspace",
+        "type": "mcp_tool_call"
+      },
+      {
+        "context": 1,
+        "event": "item.started",
+        "phase": "exploration",
+        "server": "shiploop_workspace",
+        "tool": "workspace",
+        "type": "mcp_tool_call"
+      },
+      {
+        "context": 1,
+        "event": "item.started",
+        "phase": "exploration",
+        "server": "shiploop_workspace",
+        "tool": "workspace",
+        "type": "mcp_tool_call"
+      },
+      {
+        "context": 1,
+        "event": "item.started",
+        "phase": "exploration",
+        "server": "shiploop_workspace",
+        "tool": "workspace",
+        "type": "mcp_tool_call"
+      }
+    ],
+    "stop_reason": null
+  },
+  "report": {
+    "bytes": 11257,
+    "exists": true,
+    "path": "REPORT.md",
+    "valid_task_required_report": true,
+    "validation": "nonempty_utf8_transport"
+  },
+  "schema": "generalized-discovery-run/1",
+  "usage": {
+    "records": [
+      {
+        "cached_input_tokens": 332928,
+        "input_tokens": 379024,
+        "output_tokens": 3048
+      }
+    ],
+    "status": "observed"
+  },
+  "workspace_delta": {
+    "created": [
+      "REPORT.md",
+      "scratch/probe-log.jsonl"
+    ],
+    "deleted": [],
+    "modified": []
+  }
+}

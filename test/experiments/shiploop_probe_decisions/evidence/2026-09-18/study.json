@@ -1,0 +1,93 @@
+{
+  "aggregate_active_limit_note": "Coordinator responsibility; runner has no global native-agent watchdog.",
+  "aggregate_active_limit_seconds": 10800,
+  "arms": {
+    "trial-01": {
+      "family": "f1",
+      "input_hashes_sha256": "46c4040790497a6ea0d165605fd7175918bd9f2e76f500387cf83aa8f8c77853",
+      "prompt_sha256": "d70273b5a5c243e4f9804966ae6d77a377614989d1172c7f14279b4a4f86287a",
+      "repetition": 0,
+      "variant": "baseline"
+    },
+    "trial-02": {
+      "family": "f1",
+      "input_hashes_sha256": "1bacc382cfc39bb234f35a2cfbe977e0e897f7dae4986a67f3588f992b7032a6",
+      "prompt_sha256": "d70273b5a5c243e4f9804966ae6d77a377614989d1172c7f14279b4a4f86287a",
+      "repetition": 0,
+      "variant": "candidate"
+    },
+    "trial-03": {
+      "family": "f2",
+      "input_hashes_sha256": "6b1bb0afbc6be0d4ddcc8b7dc9bdcfffc5629c8e7d5b5815deba1bf801c78601",
+      "prompt_sha256": "7172e9e1e6a65779bf0b8944d13bc2e421207d72b9a6866e4c9f13cd46d59070",
+      "repetition": 0,
+      "variant": "candidate"
+    },
+    "trial-04": {
+      "family": "f2",
+      "input_hashes_sha256": "e5f88ecf52c2ab801350653c54c05491407de93e309e61356a46df17e57c3c8f",
+      "prompt_sha256": "7172e9e1e6a65779bf0b8944d13bc2e421207d72b9a6866e4c9f13cd46d59070",
+      "repetition": 0,
+      "variant": "baseline"
+    },
+    "trial-05": {
+      "family": "f3",
+      "input_hashes_sha256": "02783be8d2f02e16dbed239b9920b952b8a7123b15559136f065737a7664df8d",
+      "prompt_sha256": "2da0c3df93f083e09d0ead3fdd1e18754b350a1597d990c095c61f8f2e0df49b",
+      "repetition": 0,
+      "variant": "baseline"
+    },
+    "trial-06": {
+      "family": "f3",
+      "input_hashes_sha256": "60917a5fca4be3742b923585aced536da1fd56de3f400a8b99a4602cdf77bdb8",
+      "prompt_sha256": "2da0c3df93f083e09d0ead3fdd1e18754b350a1597d990c095c61f8f2e0df49b",
+      "repetition": 0,
+      "variant": "candidate"
+    },
+    "trial-07": {
+      "family": "f4",
+      "input_hashes_sha256": "743bad3b715badd5cf513f7df604dd5c50a281067f6ad41c109e8de5bdf913c4",
+      "prompt_sha256": "40140e128b7cc241955aa01d05109d9bd3bf4c47fffee186201650702473f69a",
+      "repetition": 0,
+      "variant": "candidate"
+    },
+    "trial-08": {
+      "family": "f4",
+      "input_hashes_sha256": "1b6600f0fc5ef8a706566f47f770980d85b6ca7a30b58962c35c23ceefab9d02",
+      "prompt_sha256": "40140e128b7cc241955aa01d05109d9bd3bf4c47fffee186201650702473f69a",
+      "repetition": 0,
+      "variant": "baseline"
+    }
+  },
+  "blind_order_seed": 29017,
+  "calls_per_arm": 32,
+  "closeout_start_epoch": 1789757649.124179,
+  "exploration_calls": 24,
+  "exploration_seconds": 360,
+  "frozen_inputs_manifest": "frozen-inputs.json",
+  "guide_hashes": {
+    "baseline-research-prompt.md": "bcec517df0a3ca0aaac42d06904de56f8def6522a7e1f3d2f8cb9f96bc08605d",
+    "candidate-research-prompt.md": "8e38fd2ac7e8cd714deac04f6df7e1fde9dcecde8c93584e4b264b09b9724230"
+  },
+  "hard_deadline_epoch": 1789758549.124179,
+  "hashes": {
+    "baseline": "bcec517df0a3ca0aaac42d06904de56f8def6522a7e1f3d2f8cb9f96bc08605d",
+    "candidate": "8e38fd2ac7e8cd714deac04f6df7e1fde9dcecde8c93584e4b264b09b9724230",
+    "frozen_inputs_manifest": "04dfdb8be34be679b8a2734b100eb75ba3167deb9fc912d6119815b74c6176d9",
+    "oracle_calibration": "70605573bb75be8eaf2e480a44e19ca207eef52d7ae0f611e60052c3f26542fb",
+    "plan": "30f0c999235b3de135ea776e2c9c657dc5325fc615e7af0f302570188a31240b"
+  },
+  "judge_packet_hashes": {
+    "f1": "d14b04a7e2bde1fa9a30f3b2c5783c14adff97bfb56b727756980531c0f95f22",
+    "f2": "cb977c2f787f58e2806a08e1e1e94aed5f72a915d610f7dab1f6e2cc6b98041c",
+    "f3": "29af3311547138a15c2ac0f6eac9c1c8d84c80684082026670fc25dcc7d4e7b2",
+    "f4": "0a729c97cb3bf30ff3b96c753107e58045e7858e9d86e47bc27d3efb89be6874"
+  },
+  "max_arm_launches": 12,
+  "parallel": 3,
+  "schema": "generalized-discovery-study/1",
+  "seconds_per_arm": 480,
+  "started_epoch": 1789753149.124179,
+  "status": "ready_to_prepare",
+  "study_kind": "shiploop-probe-decisions/1"
+}

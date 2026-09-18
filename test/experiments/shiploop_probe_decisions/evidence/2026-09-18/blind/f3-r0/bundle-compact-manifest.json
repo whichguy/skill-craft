@@ -1,0 +1,219 @@
+{
+  "bundle_sha256": "b4e6ad70b2b273da1b1166d6929c1b12bdd4132dbc81b798b65b657713422040",
+  "common_sources": [
+    {
+      "bytes": 563,
+      "id": "SRC-001",
+      "labels": [
+        "Left",
+        "Right"
+      ],
+      "path": "README.md",
+      "sha256": "60f04bc79baba4d0944f738dcaecca128957465defa2a4d4226cace63d669d64"
+    },
+    {
+      "bytes": 73,
+      "id": "SRC-002",
+      "labels": [
+        "Left",
+        "Right"
+      ],
+      "path": "data/rows.json",
+      "sha256": "c93abf5103f22df8a2e5353d52425fa2048e7ff0b8aa2916d20c2444495cf51c"
+    },
+    {
+      "bytes": 548,
+      "id": "SRC-003",
+      "labels": [
+        "Left",
+        "Right"
+      ],
+      "path": "fixture_support.py",
+      "sha256": "2e16f60261eb86c5a7275289e734bf8fed23fd34fc49a8235ad28827870372ec"
+    },
+    {
+      "bytes": 636,
+      "id": "SRC-004",
+      "labels": [
+        "Left",
+        "Right"
+      ],
+      "path": "probe.py",
+      "sha256": "578a6bff5594647c7a3f66017dbf39ff5dd9e4eb276c16194f164018cfcce652"
+    },
+    {
+      "bytes": 178,
+      "id": "SRC-005",
+      "labels": [
+        "Left",
+        "Right"
+      ],
+      "path": "skills/native-format/SKILL.md",
+      "sha256": "03ad3e81ae437ec2fbcd4c5c3154dea99d159444b34754ee481e372731d84e16"
+    },
+    {
+      "bytes": 192,
+      "id": "SRC-006",
+      "labels": [
+        "Left",
+        "Right"
+      ],
+      "path": "skills/preview-accelerator/SKILL.md",
+      "sha256": "a07813bbb59af9a5f30220d9aca6582c754aef7f550d54068fcf063095de21ef"
+    },
+    {
+      "bytes": 114,
+      "id": "SRC-007",
+      "labels": [
+        "Left",
+        "Right"
+      ],
+      "path": "skills/preview-accelerator/preview_only.py",
+      "sha256": "42493959d416831fc604cb66950558b59606a41109804d03c269d1b556c7b3e0"
+    },
+    {
+      "bytes": 1,
+      "id": "SRC-008",
+      "labels": [
+        "Left",
+        "Right"
+      ],
+      "path": "src/__init__.py",
+      "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+    },
+    {
+      "bytes": 373,
+      "id": "SRC-009",
+      "labels": [
+        "Left",
+        "Right"
+      ],
+      "path": "src/native_format.py",
+      "sha256": "7440c37d28d421f8b3a13c1945428e4e736395917ec61e8722505e919c2ef022"
+    },
+    {
+      "bytes": 346,
+      "id": "SRC-010",
+      "labels": [
+        "Left",
+        "Right"
+      ],
+      "path": "test_native_format.py",
+      "sha256": "68e1035e66a73e1b8b69c364ea598ed2861eede45380d9fadf2380332ba812f0"
+    }
+  ],
+  "family": "f3",
+  "mapping_sha256": "bebc8c6b17bfce921c6754288fde7c89d76baabf6855eb2a3e4f7e9456e6e6d2",
+  "omission_policy": "Only repeated successful common-source reads, REPORT write content, and guide-variant content are compacted; exec/probe/error results remain unless guide content itself is withheld.",
+  "raw_receipts": {
+    "lines": 164,
+    "path": "receipts.jsonl",
+    "sha256": "0723b27804f5be73fa2a0ff615ca7fe3e4424c12109820791addba0b4eae5e63"
+  },
+  "receipt_counts": {
+    "Left": 21,
+    "Right": 22
+  },
+  "repetition": 0,
+  "reports": {
+    "Left": {
+      "path": "REPORT.md",
+      "sha256": "caf4586188ebb3613c6d8ddac87039f6a0e4a5f2358a645a26e1222ee2c7f1e8"
+    },
+    "Right": {
+      "path": "REPORT.md",
+      "sha256": "de9996e29e05be5e83a2c7c306d1afefc59849a75b818e540d5127cb13525abc"
+    }
+  },
+  "runner_observations": {
+    "Left": {
+      "contexts": [
+        {
+          "context": 1,
+          "elapsed_seconds": 80.437,
+          "exit_code": 0,
+          "termination_reason": null
+        }
+      ],
+      "ledger_phase_counts": {
+        "exploration": 21
+      },
+      "observed_action_count": 21,
+      "status": "observed"
+    },
+    "Right": {
+      "contexts": [
+        {
+          "context": 1,
+          "elapsed_seconds": 93.16,
+          "exit_code": 0,
+          "termination_reason": null
+        }
+      ],
+      "ledger_phase_counts": {
+        "exploration": 22
+      },
+      "observed_action_count": 22,
+      "status": "observed"
+    }
+  },
+  "schema": "generalized-discovery-compact-bundle/1",
+  "withheld": [
+    {
+      "call": 1,
+      "kind": "guidance_read",
+      "label": "Left",
+      "operation": "read",
+      "path": "guidance/research-prompt.md"
+    },
+    {
+      "call": 2,
+      "kind": "guidance_read",
+      "label": "Left",
+      "operation": "read",
+      "path": "guidance/research-loop.md"
+    },
+    {
+      "call": 15,
+      "kind": "guidance_execution",
+      "label": "Left",
+      "operation": "exec",
+      "path": null
+    },
+    {
+      "call": 1,
+      "kind": "guidance_read",
+      "label": "Right",
+      "operation": "read",
+      "path": "guidance/research-prompt.md"
+    },
+    {
+      "call": 2,
+      "kind": "guidance_read",
+      "label": "Right",
+      "operation": "read",
+      "path": "guidance/research-loop.md"
+    },
+    {
+      "call": 8,
+      "kind": "guidance_execution",
+      "label": "Right",
+      "operation": "exec",
+      "path": null
+    },
+    {
+      "call": 15,
+      "kind": "guidance_execution",
+      "label": "Right",
+      "operation": "exec",
+      "path": null
+    },
+    {
+      "call": 18,
+      "kind": "guidance_execution",
+      "label": "Right",
+      "operation": "exec",
+      "path": null
+    }
+  ]
+}

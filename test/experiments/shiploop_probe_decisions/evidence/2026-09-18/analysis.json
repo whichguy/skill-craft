@@ -1,0 +1,244 @@
+{
+  "schema": "shiploop-probe-decisions-results/1",
+  "recorded_at": "2026-09-18T17:46:28.959998+00:00",
+  "workers": [
+    {
+      "arm": "trial-01",
+      "family": "f1",
+      "input_hashes_sha256": "46c4040790497a6ea0d165605fd7175918bd9f2e76f500387cf83aa8f8c77853",
+      "prompt_sha256": "d70273b5a5c243e4f9804966ae6d77a377614989d1172c7f14279b4a4f86287a",
+      "repetition": 0,
+      "variant": "baseline",
+      "completion": "completed",
+      "calls": 16,
+      "elapsed_seconds": 75.991,
+      "cached_input_tokens": 332928,
+      "input_tokens": 379024,
+      "output_tokens": 3048,
+      "model": {
+        "observed": null,
+        "reason": "selected CLI model/config was not observed",
+        "requested": "host_default",
+        "status": "unavailable"
+      },
+      "source_edits": {}
+    },
+    {
+      "arm": "trial-02",
+      "family": "f1",
+      "input_hashes_sha256": "1bacc382cfc39bb234f35a2cfbe977e0e897f7dae4986a67f3588f992b7032a6",
+      "prompt_sha256": "d70273b5a5c243e4f9804966ae6d77a377614989d1172c7f14279b4a4f86287a",
+      "repetition": 0,
+      "variant": "candidate",
+      "completion": "completed",
+      "calls": 17,
+      "elapsed_seconds": 84.65,
+      "cached_input_tokens": 284544,
+      "input_tokens": 328998,
+      "output_tokens": 3494,
+      "model": {
+        "observed": null,
+        "reason": "selected CLI model/config was not observed",
+        "requested": "host_default",
+        "status": "unavailable"
+      },
+      "source_edits": {}
+    },
+    {
+      "arm": "trial-03",
+      "family": "f2",
+      "input_hashes_sha256": "6b1bb0afbc6be0d4ddcc8b7dc9bdcfffc5629c8e7d5b5815deba1bf801c78601",
+      "prompt_sha256": "7172e9e1e6a65779bf0b8944d13bc2e421207d72b9a6866e4c9f13cd46d59070",
+      "repetition": 0,
+      "variant": "candidate",
+      "completion": "completed",
+      "calls": 24,
+      "elapsed_seconds": 69.175,
+      "cached_input_tokens": 289920,
+      "input_tokens": 337550,
+      "output_tokens": 2934,
+      "model": {
+        "observed": null,
+        "reason": "selected CLI model/config was not observed",
+        "requested": "host_default",
+        "status": "unavailable"
+      },
+      "source_edits": {}
+    },
+    {
+      "arm": "trial-04",
+      "family": "f2",
+      "input_hashes_sha256": "e5f88ecf52c2ab801350653c54c05491407de93e309e61356a46df17e57c3c8f",
+      "prompt_sha256": "7172e9e1e6a65779bf0b8944d13bc2e421207d72b9a6866e4c9f13cd46d59070",
+      "repetition": 0,
+      "variant": "baseline",
+      "completion": "completed",
+      "calls": 24,
+      "elapsed_seconds": 84.675,
+      "cached_input_tokens": 289024,
+      "input_tokens": 341128,
+      "output_tokens": 3231,
+      "model": {
+        "observed": null,
+        "reason": "selected CLI model/config was not observed",
+        "requested": "host_default",
+        "status": "unavailable"
+      },
+      "source_edits": {}
+    },
+    {
+      "arm": "trial-05",
+      "family": "f3",
+      "input_hashes_sha256": "02783be8d2f02e16dbed239b9920b952b8a7123b15559136f065737a7664df8d",
+      "prompt_sha256": "2da0c3df93f083e09d0ead3fdd1e18754b350a1597d990c095c61f8f2e0df49b",
+      "repetition": 0,
+      "variant": "baseline",
+      "completion": "completed",
+      "calls": 22,
+      "elapsed_seconds": 93.16,
+      "cached_input_tokens": 248064,
+      "input_tokens": 300084,
+      "output_tokens": 3929,
+      "model": {
+        "observed": null,
+        "reason": "selected CLI model/config was not observed",
+        "requested": "host_default",
+        "status": "unavailable"
+      },
+      "source_edits": {}
+    },
+    {
+      "arm": "trial-06",
+      "family": "f3",
+      "input_hashes_sha256": "60917a5fca4be3742b923585aced536da1fd56de3f400a8b99a4602cdf77bdb8",
+      "prompt_sha256": "2da0c3df93f083e09d0ead3fdd1e18754b350a1597d990c095c61f8f2e0df49b",
+      "repetition": 0,
+      "variant": "candidate",
+      "completion": "completed",
+      "calls": 21,
+      "elapsed_seconds": 80.437,
+      "cached_input_tokens": 278656,
+      "input_tokens": 327132,
+      "output_tokens": 3473,
+      "model": {
+        "observed": null,
+        "reason": "selected CLI model/config was not observed",
+        "requested": "host_default",
+        "status": "unavailable"
+      },
+      "source_edits": {}
+    },
+    {
+      "arm": "trial-07",
+      "family": "f4",
+      "input_hashes_sha256": "743bad3b715badd5cf513f7df604dd5c50a281067f6ad41c109e8de5bdf913c4",
+      "prompt_sha256": "40140e128b7cc241955aa01d05109d9bd3bf4c47fffee186201650702473f69a",
+      "repetition": 0,
+      "variant": "candidate",
+      "completion": "completed",
+      "calls": 20,
+      "elapsed_seconds": 74.648,
+      "cached_input_tokens": 285312,
+      "input_tokens": 332954,
+      "output_tokens": 3173,
+      "model": {
+        "observed": null,
+        "reason": "selected CLI model/config was not observed",
+        "requested": "host_default",
+        "status": "unavailable"
+      },
+      "source_edits": {}
+    },
+    {
+      "arm": "trial-08",
+      "family": "f4",
+      "input_hashes_sha256": "1b6600f0fc5ef8a706566f47f770980d85b6ca7a30b58962c35c23ceefab9d02",
+      "prompt_sha256": "40140e128b7cc241955aa01d05109d9bd3bf4c47fffee186201650702473f69a",
+      "repetition": 0,
+      "variant": "baseline",
+      "completion": "completed",
+      "calls": 22,
+      "elapsed_seconds": 71.531,
+      "cached_input_tokens": 261120,
+      "input_tokens": 300171,
+      "output_tokens": 2902,
+      "model": {
+        "observed": null,
+        "reason": "selected CLI model/config was not observed",
+        "requested": "host_default",
+        "status": "unavailable"
+      },
+      "source_edits": {}
+    }
+  ],
+  "verdicts": [
+    {
+      "family": "f1",
+      "winner": "Tie",
+      "material_improvement": false,
+      "mapping": {
+        "Left": "trial-02",
+        "Right": "trial-01"
+      },
+      "reasoning": "Both reports make the same supported decision: retain both required inputs (SRC-003), reuse the matching ledger receipt (SRC-006), reject the legacy fulfillment receipt for the current binding (SRC-005 and SRC-004), and accept one changed fulfillment read. Actual execution is supported by Left call 13 and Right call 14, with retained-record confirmation at Left call 15 and Right call 15. Both stop at modeled readiness and attach remaining prerequisites to actual export implementation. Neither loses a consequential finding or demonstrates a material correctness improvement.",
+      "lost_findings": {
+        "Left": [],
+        "Right": []
+      }
+    },
+    {
+      "family": "f2",
+      "winner": "Tie",
+      "material_improvement": false,
+      "mapping": {
+        "Left": "trial-03",
+        "Right": "trial-04"
+      },
+      "reasoning": "Both reports support the same thin CLI adapter and retain all consequential findings. SRC-007 establishes staged serialization followed by replacement; Left calls 19\u201320 and Right calls 18\u201319 confirm representative failure preservation and successful replacement. Left calls 17\u201318 and Right calls 16\u201317 establish the active-parser mismatch and preview acceptance without write validity. Neither report invents a blanket implementation block or claims completed CLI delivery. Right's additional acceptance cases are useful proposals, but do not establish a material correctness improvement.",
+      "lost_findings": {
+        "Left": [],
+        "Right": []
+      }
+    },
+    {
+      "family": "f3",
+      "winner": "Tie",
+      "material_improvement": false,
+      "mapping": {
+        "Left": "trial-06",
+        "Right": "trial-05"
+      },
+      "reasoning": "Both reports correctly recommend native formatter reuse and scope the unresolved prerequisite to report integration. SRC-009:7-9 establishes NFC, string-ID ordering with label tie-breaking, and compact Unicode JSON; SRC-004:14 and SRC-003:13 establish why the representative envelope cannot prove formatter bytes. Left calls 18/20 and Right calls 19/20 retain direct byte evidence. Right exercises additional boundaries, but Left already retains their consequential ordering, input-policy, and coverage implications through source inspection. No consequential finding is lost. Manual pre-judge audit found distinguishing paths, guide hashes, byte counts, and runtime metadata, but no supplied baseline/candidate mapping; these were excluded from merit assessment.",
+      "lost_findings": {
+        "Left": [],
+        "Right": []
+      }
+    },
+    {
+      "family": "f4",
+      "winner": "Tie",
+      "material_improvement": false,
+      "mapping": {
+        "Left": "trial-08",
+        "Right": "trial-07"
+      },
+      "reasoning": "Both reports preserve the same consequential decisions: require both export targets, resolve ledger scope, retain catalog's unknown effect without diagnosing authentication failure, reject calendar substitution, and keep formatting independent. These decisions match SRC-007:2\u201312, SRC-006:7, and SRC-002:3\u20135. Actual modeled reads are supported by Left calls 15\u201316 and Right calls 11\u201312; passing formatter baselines by each arm's call 18. Left's additional listing probe adds no decision-changing evidence beyond inspected SRC-002 and SRC-006:17\u201320, but this procedural excess does not establish a material improvement in correctness, fidelity, or decision linkage for Right. Manual pre-judge audit found identifying paths, timestamps, session metadata, and differing guide hashes/sizes, but no explicit baseline/candidate mapping; none was inferred or used.",
+      "lost_findings": {
+        "Left": [],
+        "Right": []
+      }
+    }
+  ],
+  "median_call_delta_candidate_minus_baseline": -0.5,
+  "worker_seconds": 634.267,
+  "review_seconds": 126.31013300000001,
+  "adoption": "retain_baseline",
+  "reason": "zero material family improvements; replication prerequisite not met",
+  "replications_launched": 0,
+  "limits": [
+    "single-host synthetic research producer, not full delivery or live service",
+    "host-default selected model identity unavailable",
+    "guide byte counts and hashes retained in blind bundle; judge reports no variant mapping inferred",
+    "private rubric integrity independently reconstructed from frozen sources; f1-f3 review already launched at check, f4 not yet launched"
+  ]
+}

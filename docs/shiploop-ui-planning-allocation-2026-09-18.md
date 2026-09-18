@@ -3,7 +3,9 @@
 Status: bounded experiments completed; planning allocation implemented.
 The state claims below stop at the observed action boundaries, not shipped fixture applications.
 Baseline: published `2003cfd5fa33eb8d57a95ed977b09b7c5257c13d`.
-Final implementation integration base: `5a073503bcfe35e620461498b3fa438afe94d0bc`.
+Source integration base: `5a073503bcfe35e620461498b3fa438afe94d0bc`.
+Final additive upstream integration: `bf6fe176bf52e20cdd4c285db4e3f25289144b5f`
+(probe-study documentation, artifacts and one test-suite entry; no skill change).
 The experiment packages remain frozen: the first paired candidate adds UI-owner
 guidance to the original source, candidate 2 incorporates `7f8ef5d` and the
 human-surface condition, and candidate 3 adds the reviewed-decision handoff rule.
@@ -234,8 +236,15 @@ records 51 passing focused checks: guidance/recovery 17, repository-local
 skills 8, evidence reader 11, and suite inventory 15. The subsequent implementation
 review added one cold supersession regression; the [later guidance result](../test/experiments/shiploop_ui_allocation/evidence/implementation-review/12-action1-guidance-final.stderr.txt)
 passes 18 tests, bringing the distinct focused checks to 52. Both independently added
-suite entries are retained and the combined ShipLoop inventory is 89. Full
+suite entries are retained; inventory was 89 at that source integration. The
+subsequent additive upstream probe-suite merge retains both entries and brings
+the final inventory to 90. Full
 generated-plugin parity and `git diff HEAD --check` passed.
+
+After that additive merge, the [integration checks](../test/experiments/shiploop_ui_allocation/evidence/post-merge-checks.json)
+passed: 15 inventory tests, 16 upstream probe-apparatus tests, 11 evidence-reader
+tests and full plugin parity. Exact published-commit CI is a separate release
+check; these local receipts do not stand in for it.
 
 The actual standalone implementation Improve completed four review cycles:
 two material repairs (a missing cold supersession regression and an ambiguous

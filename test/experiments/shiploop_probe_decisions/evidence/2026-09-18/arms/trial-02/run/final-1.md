@@ -1,0 +1,1 @@
+[REPORT.md](/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-probe-strategy-pulxuyar/study/arms/trial-02/workspace/REPORT.md) contains evidence-backed findings, plan recommendations, and unresolved prerequisites. Ledger evidence was reused; the current fulfillment binding was verified with one documented local probe.

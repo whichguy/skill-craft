@@ -1,0 +1,24 @@
+{"at": "2026-09-18T17:39:38.346090Z", "call": 1, "event": "workspace_call", "operation": "read", "path": "guidance/research-prompt.md", "phase": "exploration"}
+{"at": "2026-09-18T17:39:38.349173Z", "call": 2, "event": "workspace_call", "operation": "read", "path": "guidance/research-loop.md", "phase": "exploration"}
+{"at": "2026-09-18T17:39:38.353264Z", "call": 3, "event": "workspace_call", "operation": "list", "path": ".", "phase": "exploration"}
+{"at": "2026-09-18T17:39:40.705354Z", "call": 4, "event": "workspace_call", "operation": "read", "path": "README.md", "phase": "exploration"}
+{"at": "2026-09-18T17:39:40.706651Z", "call": 5, "event": "workspace_call", "operation": "read", "path": "exporter.py", "phase": "exploration"}
+{"at": "2026-09-18T17:39:40.708062Z", "call": 6, "event": "workspace_call", "operation": "read", "path": "manifest.json", "phase": "exploration"}
+{"at": "2026-09-18T17:39:40.709525Z", "call": 7, "event": "workspace_call", "operation": "read", "path": "probe.py", "phase": "exploration"}
+{"at": "2026-09-18T17:39:40.711657Z", "call": 8, "event": "workspace_call", "operation": "read", "path": "fixture_support.py", "phase": "exploration"}
+{"at": "2026-09-18T17:39:40.713382Z", "call": 9, "event": "workspace_call", "operation": "read", "path": "test_exporter.py", "phase": "exploration"}
+{"at": "2026-09-18T17:39:43.983573Z", "call": 10, "event": "workspace_call", "operation": "list", "path": "bin", "phase": "exploration"}
+{"at": "2026-09-18T17:39:43.984695Z", "call": 11, "event": "workspace_call", "operation": "list", "path": "bundled", "phase": "exploration"}
+{"at": "2026-09-18T17:39:43.985847Z", "call": 12, "event": "workspace_call", "operation": "read", "path": "data/rows.json", "phase": "exploration"}
+{"at": "2026-09-18T17:39:43.986706Z", "call": 13, "event": "workspace_rejected", "operation": "read", "path": "guidance/research-loop.md#reuse-before-a-new-mechanism", "reason": "path does not exist"}
+{"at": "2026-09-18T17:39:48.463957Z", "call": 14, "event": "workspace_call", "operation": "read", "path": "guidance/research-loop.md", "phase": "exploration"}
+{"at": "2026-09-18T17:39:48.467533Z", "call": 15, "event": "workspace_call", "operation": "read", "path": "bin/launcher.py", "phase": "exploration"}
+{"at": "2026-09-18T17:39:48.468600Z", "call": 16, "event": "workspace_call", "operation": "read", "path": "bundled/parser.py", "phase": "exploration"}
+{"at": "2026-09-18T17:39:53.996046Z", "call": 17, "event": "workspace_call", "operation": "exec", "path": null, "phase": "exploration"}
+{"at": "2026-09-18T17:39:54.058808Z", "call": 18, "event": "workspace_call", "operation": "exec", "path": null, "phase": "exploration"}
+{"at": "2026-09-18T17:39:54.123970Z", "call": 19, "event": "workspace_call", "operation": "exec", "path": null, "phase": "exploration"}
+{"at": "2026-09-18T17:39:54.198734Z", "call": 20, "event": "workspace_call", "operation": "exec", "path": null, "phase": "exploration"}
+{"at": "2026-09-18T17:39:54.200732Z", "call": 21, "event": "workspace_call", "operation": "read", "path": "scratch/probe-log.jsonl", "phase": "exploration"}
+{"at": "2026-09-18T17:39:57.535984Z", "call": 22, "event": "workspace_call", "operation": "read", "path": "exporter.py", "phase": "exploration"}
+{"at": "2026-09-18T17:39:57.538053Z", "call": 23, "event": "workspace_call", "operation": "read", "path": "probe.py", "phase": "exploration"}
+{"at": "2026-09-18T17:40:34.173762Z", "call": 24, "event": "workspace_call", "operation": "write", "path": "REPORT.md", "phase": "exploration"}
