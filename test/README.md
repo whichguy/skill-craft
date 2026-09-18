@@ -189,11 +189,14 @@ Self-contained mocked Hermes-install tests establish installer behavior only.
 They do not provide an actual Hermes runtime, engine availability, live-host
 execution, or certification. A green hermetic aggregate has the same boundary.
 
-CI sets Python 3.12 and Node 22 explicitly, runs `core` and the three
-deterministic ShipLoop shards as independent groups on Ubuntu 24.04, and
-preserves the existing `hermetic` status as an aggregate gate. Failed, cancelled
-or skipped required groups cannot make that gate pass. Package drift is reported
-even when another core check fails.
+CI runs the full hermetic matrix for pull requests, pushes to `main`, and manual
+dispatches. It ignores tag and feature-branch pushes. A newer run for the same
+pull request cancels the superseded run; main-push and manual runs use unique
+concurrency keys and are never cancelled by this policy. CI sets Python 3.12 and
+Node 22 explicitly, runs `core` and the three deterministic ShipLoop shards as
+independent groups on Ubuntu 24.04, and preserves the existing `hermetic` status
+as an aggregate gate. Failed, cancelled or skipped required groups cannot make
+that gate pass. Package drift is reported even when another core check fails.
 Both CI jobs reject staged or unstaged tracked-file changes left by tests,
 even after a suite or package-parity failure. The worktree and index are checked
 separately so restoring a working file cannot hide its staged changes.
