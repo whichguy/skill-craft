@@ -183,18 +183,22 @@ STAGE_REFERENCES: dict[str, tuple[tuple[str, str], ...]] = {
         ("Consumer delivery guidance", "consumer-delivery.md#what-to-establish"),
     ),
     "release-plan": (
+        ("Release operation guidance", "environment-lifecycle.md#release-operation-ownership"),
         ("Environment promotion guidance", "environment-lifecycle.md#carry-the-route-into-final-delivery"),
         ("Workspace return guidance", "workspace-lifecycle.md#inner-assembly-and-final-return"),
         ("State and data assessment", "requirements-definition.md#state-and-data-change-assessment"),
     ),
     "release-check": (
+        ("Release operation guidance", "environment-lifecycle.md#release-operation-ownership"),
         ("Delivery completion guidance", "consumer-delivery.md#where-completion-is-enforced"),
     ),
     "release": (
+        ("Release operation guidance", "environment-lifecycle.md#release-operation-ownership"),
         ("Delivery authority mapping", "consumer-delivery.md#map-authority-readiness-to-existing-fields"),
         ("Workspace return guidance", "workspace-lifecycle.md#inner-assembly-and-final-return"),
     ),
     "release-verify": (
+        ("Release operation guidance", "environment-lifecycle.md#release-operation-ownership"),
         ("Deployment and handoff guidance", "testing-and-documentation.md#deployment-and-handoff"),
         ("Consumer delivery evidence guidance", "consumer-delivery.md#evidence-and-limits"),
     ),
@@ -776,6 +780,11 @@ setup/test/teardown, fixture isolation/sharing and cost, cleanup and stop condit
 Reuse applicable tests; define additional checks only for changed boundaries or
 coverage gaps. Retain this release test plan in ordinary evidence_refs, including
 what release-check must establish before release and release-verify after it.
+
+Use Release operation guidance to order remaining schema/data/service/cutover
+work and establish its durable execution owner, observations, and recovery limits.
+If earlier deployment/test prerequisites are still unmet, return an outer replan
+with corrective work and retained evidence; let the script rerun the outer stages.
 For isolated runs, source return occurs only after the final handoff Improve
 child. Use an authorized delivery route from the execution checkout if available.
 If source return itself is required before consumer checks can run, record the
@@ -787,6 +796,8 @@ Verify final release-candidate readiness without performing the release.  Check
 candidate identity, current evidence, target/prerequisite status, required
 approvals, rollback readiness, and pre-release validation.  Preserve any stale or
 failed evidence and do not replay or promote merely to obtain a new observation.
+Check applicable execution-owner readiness and target-enforced concurrency
+conditions. External release N/A does not waive current local candidate checks.
 """,
     "release": """\
 Perform the planned release only when the exact target, operation, authority, and
@@ -794,12 +805,19 @@ conditions are current.  Record operation/effect and artifact identity separatel
 If release is genuinely non-applicable, record the concrete reason.  Reconcile an
 uncertain external outcome before retrying; never replay a merge, push, deployment,
 or promotion simply to complete the graph.
+Use Release operation guidance: distinguish accepted/running from terminal and
+verified; retain partial receipts and reconcile with supported provider lookup,
+retry, parameter-binding, and conditional-mutation semantics before proceeding.
+Check operation postconditions here, then return through this stage's Improve.
+The script-selected release-verify owns final consumer behavior checks afterward.
 """,
     "release-verify": """\
 Verify the actual release and required deployed consumer/runtime behavior using
 current target evidence.  Distinguish source synchronization, artifact identity,
 operation receipt, and real consumer behavior.  A blocked or unknown post-release
 check remains incomplete; preserve prior receipts and do not re-release blindly.
+For local-only work, verify the current local candidate and consumer behavior;
+external activation N/A does not make these checks N/A.
 """,
     "operations": """\
 Verify applicable operational readiness: monitoring, alerting, logging/diagnostic
@@ -1049,6 +1067,17 @@ def improve_prompt(stage: str) -> str:
     backchain = _backchain_guidance(stage, improve_owner=True) if stage in BACKCHAIN_STAGES else ""
     outer_handshake = OUTER_TEST_HANDOFF if stage in OUTER else ""
     test_facilities = TEST_FACILITY_HANDOFF if stage in TEST_FACILITY_STAGES else ""
+
+    release_guard = ""
+    if any(label == "Release operation guidance" for label, _ in STAGE_REFERENCES[stage]):
+        release_guard = """\
+Read and retain Release operation guidance and the current operation/evidence
+locators. Review this stage's plan, readiness checks, or observed outcome within
+its authority; Improve does not initiate or replay release effects for convergence.
+Reconcile uncertain or partial outcomes without inventing provider guarantees.
+Material candidate changes require corrective planning and affected revalidation.
+External release N/A still requires applicable local candidate and consumer checks.
+"""
     assessment = ""
     if any(label == "State and data assessment" for label, _ in STAGE_REFERENCES[stage]):
         assessment = """\
@@ -1103,6 +1132,8 @@ readiness conditions in the child contract/review notes for cold recovery.
 {outer_handshake}
 
 {test_facilities}
+
+{release_guard}
 
 When the candidate concerns actor interactions, channels, incoming/outgoing events,
 connection lifecycle, state ownership or UI, read the applicable Interaction design
