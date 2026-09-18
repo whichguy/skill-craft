@@ -1,14 +1,15 @@
-# ShipLoop navigator 0.15.0
+# ShipLoop navigator 0.15.3
 
-New protocol-3 skill runs on Codex, Grok, and Claude use supervised context
-reset by default. `python3 "$CLI" drive --run-dir "$RUN_DIR" --host codex`
-starts a fresh native host session after accepted carry-forward Improve
-completes each work item. Use `--context-reset=off` or
-`SHIPLOOP_CONTEXT_RESET=off` to opt out. Saved controller policies persist,
-and existing unsupervised runs keep their current owner. Other hosts and
-compatibility protocols retain ordinary packet-following. Read
-[context reset](references/context-reset.md) for invocation, host permissions,
-recovery and measurement limits.
+Install and update ShipLoop through the host's marketplace. Use one marketplace
+installation per host; do not also expose a source-checkout skill-directory copy.
+Source checkouts are for development and release preparation.
+
+ShipLoop runs in the conversation that invoked it. That conversation follows
+the current action packets and performs the producer and Improve work; the
+scripts manage durable state and callbacks. An isolated worktree does not create
+a separate model session. Separate supervised execution is available only when
+the user explicitly requests it, or to recover an already supervised run. See
+[context reset](references/context-reset.md) for that optional route and recovery.
 
 New runs use navigator protocol 3: the script persists and traverses the SDLC
 graph, issues one producer prompt, and then parks that parent action for the

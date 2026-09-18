@@ -9,30 +9,53 @@ flowchart LR
     E --> A
 ```
 
-New protocol-3 skill runs on Codex, Grok, and Claude release accumulated conversation context after each completed work item by default. An explicit `off` selection opts out. Initial experiments established fresh-session behavior; they did not establish lower billing or subscription usage. Resetting can lose prompt-cache reuse and requires rereading durable records.
+Ordinary ShipLoop invocations execute in the invoking conversation. The route
+below is optional separate execution: use it only when the user explicitly
+requests a supervised host session, or to recover an already supervised run.
+Neither an environment setting nor a request for a durable loop authorizes
+moving an ordinary invocation into another session. Initial experiments
+established fresh-session behavior, not lower billing or subscription usage.
+Resetting can lose prompt-cache reuse and requires rereading durable records.
 
 ## Invocation
 
-Bind `CLI` from the selected loaded skill as usual. Initialize an isolated run with `workspace start`, or recover the existing run. Pass its printed absolute run directory to the controller:
+For ordinary execution, initialize or recover the run and follow its current
+packet in the invoking conversation. Do not call `drive`.
+
+For explicitly requested separate execution, bind `CLI` from the selected loaded
+skill. Initialize an isolated run with `workspace start`, or recover the existing
+run, and pass its absolute run directory to the controller:
 
 ```sh
-python3 "$CLI" drive --run-dir "$RUN_DIR" --host codex
-# Grok and Claude use the same default:
-python3 "$CLI" drive --run-dir "$RUN_DIR" --host grok
-python3 "$CLI" drive --run-dir "$RUN_DIR" --host claude
-# Explicit opt-out for a new controller:
-python3 "$CLI" drive --run-dir "$RUN_DIR" --host codex --context-reset=off
-# Or supply the opt-out through the environment:
-SHIPLOOP_CONTEXT_RESET=off python3 "$CLI" drive --run-dir "$RUN_DIR" --host grok
+# Optional separate host process/session; HOST is codex, grok, or claude.
+python3 "$CLI" drive --run-dir "$RUN_DIR" --host "$HOST"
+# Keep that separate session across work-item boundaries:
+python3 "$CLI" drive --run-dir "$RUN_DIR" --host "$HOST" --context-reset=off
 ```
 
-`--host` is required. The skill selects the actual calling native host unless the user explicitly chooses another supported host. Use its existing authentication; an unavailable host is an incomplete prerequisite. No silent host substitution, installs, login changes or model overrides occur. `drive --context-reset=off` retains a host session across boundaries while still using the controller. A new skill invocation with explicit `off` instead follows packets in the calling host without starting a controller.
+`--host` is required. Honor the requested supported host and its existing
+authentication; an unavailable host is an incomplete prerequisite. No silent host
+substitution, installs, login changes or model overrides occur. Every `drive`
+invocation uses a separate host session. `--context-reset=off` does not restore
+the invoking conversation; it only disables later resets inside that controller.
 
-The flag overrides `SHIPLOOP_CONTEXT_RESET`; allowed values are exactly `off` and `inner-loop`. The first-controller default is `inner-loop`. A saved policy, including `off`, persists when both are absent; an explicit conflicting value is rejected. The parser leaves an omitted selection unset so resuming never overwrites that saved policy. The flag is a `drive` option, not an `init`, `next`, or `workspace start` option. New supported skill runs route to `drive` after initialization unless explicitly opted out. Plain script callbacks do not interpret slash commands from stdout.
+The flag overrides `SHIPLOOP_CONTEXT_RESET`; allowed values are exactly `off` and
+`inner-loop`. These settings apply only after separate execution has been chosen.
+The first-controller default remains `inner-loop`. A saved policy, including
+`off`, persists when both are absent; an explicit conflicting value is rejected.
+The flag is a `drive` option, not an `init`, `next`, or `workspace start` option.
+Plain script callbacks do not interpret slash commands from stdout.
 
-An existing run without `context-host.md` keeps its current unsupervised owner; the new skill default does not take it over. Starting `drive` for such a run is an explicit ownership transfer and requires the previous owner to be stopped. Existing supervised runs resume their saved host and policy. Compatibility protocols and unsupported hosts retain ordinary packet-following; a request for automatic reset there remains unsupported rather than silently switching hosts.
+An existing run without `context-host.md` keeps its invoking owner. Starting
+`drive` for it requires an explicit request for separate execution and a stopped
+prior owner. Existing supervised runs retain their saved host and policy; inspect
+and settle their owner before recovery or transfer, as described below.
+Compatibility protocols and unsupported hosts retain ordinary packet-following.
 
-The controller requires Navigator protocol 3 and the same durable run. It keeps its selected CLI locator and verifies that it belongs to the current package. A copied installed skill package works without an author checkout. No fields are added to Navigator `state.md`.
+The controller requires Navigator protocol 3 and the same durable run. It keeps
+its selected CLI locator and verifies that it belongs to the current package.
+A copied installed skill package works without an author checkout. No fields are
+added to Navigator `state.md`.
 
 ## Boundary and continuation
 

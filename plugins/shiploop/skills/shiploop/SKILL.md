@@ -5,7 +5,7 @@ description: >-
   script's current action packet, and submit its exact completion call until
   the script reports completion with an HTML achievement report. Use when the
   user says shiploop, ship the project, or requests a durable delivery loop.
-version: 0.15.2
+version: 0.15.3
 allowed-tools: all
 license: MIT
 platforms:
@@ -36,6 +36,13 @@ an explicit compatibility mode identifies that version. Do not translate their
 embedded-policy Improve guidance into a v3 action.
 
 ## Start or resume
+
+Execute ShipLoop in the conversation that invoked this skill. The current
+conversation reads the script's packets, performs the work (including Improve),
+and submits each callback. A worktree isolates files, not the model session.
+Do not move the workflow to another model process or session, background the
+whole run, or automatically clear context unless the user explicitly requests
+separate execution. An environment setting alone is not such a request.
 
 Before doing any ShipLoop-managed stage work, bind this package's `CLI` from
 the **selected, loaded** `SKILL.md`. Obtain its absolute location from the
@@ -146,11 +153,15 @@ new-run initialization did not select an Improve skill, the first Improve
 checkpoint stays pending until its packet directs the owner to bind the selected
 card with `improve-bind --action ... --skill-card ...`. Use the packet's exact
 command and absolute selected-card path; never guess an installed copy or
-substitute a same-named skill. To recover an existing run:
+substitute a same-named skill. For an existing run without `context-host.md`,
+recover its current packet with:
 
 ```sh
 python3 "$CLI" next --run-dir "$RUN_DIR"
 ```
+
+For a controller-owned run, follow **Optional separate execution** below before
+executing any recovered packet.
 
 For a new run explicitly piloting consumer-delivery declaration checks, add
 `--delivery-contract` to `workspace start` (or direct `init`). Read [consumer delivery](references/consumer-delivery.md)
@@ -177,42 +188,28 @@ neighboring package or host cache. An unavailable dependency remains an
 incomplete precondition; record it and follow the packet's blocked/recovery
 route rather than generating a replacement workflow.
 
-## Context reset by default
+## Optional separate execution
 
-Check `SHIPLOOP_CONTEXT_HOST_WORKER` first. When it is `1`, perform only the
-given producer or Improve campaign, submit its callback, and return to the
-controller. Never initialize another run or start another `drive`.
+Ordinary invocations stay in the invoking conversation. No context-reset flag
+or environment override is needed for that behavior.
 
-For a **new protocol-3 run on Codex, Grok, or Claude**, use the supervised host
-route in [context reset](references/context-reset.md) by default. Initialize
-the run normally, then hand its current owner to `drive` before executing the
-initial packet yourself. Set `HOST` to the actual calling host (`codex`,
-`grok`, or `claude`); honor an explicit host selection without silently
-substituting another host:
+If `SHIPLOOP_CONTEXT_HOST_WORKER=1`, this is already a supervised owner:
+perform only the given producer or Improve campaign, submit its callback, and
+return to its controller. Never initialize another run or start another `drive`.
 
-```sh
-python3 "$CLI" drive --run-dir "$RUN_DIR" --host "$HOST"
-```
+Only when the user explicitly requests a separate supervised host session,
+read [context reset](references/context-reset.md). `drive` launches another
+model process/session; it cannot preserve the invoking conversation.
+`drive --context-reset=off` still launches that process and only retains its
+session across later boundaries. `SHIPLOOP_CONTEXT_RESET` configures an
+explicitly chosen controller; it does not select one for an ordinary skill call.
 
-The new-controller default is `inner-loop`. Explicit
-`--context-reset=off` or `SHIPLOOP_CONTEXT_RESET=off` opts a new skill run out
-to ordinary packet-following; the explicit flag wins over the environment.
-An explicit `drive --context-reset=off` instead keeps the controller while
-retaining its host session across boundaries. These are not flags on
-`init`/`workspace start`. The selected native CLI must be installed and signed
-in; a missing prerequisite stops this route rather than disabling reset.
-
-For an existing run with `context-host.md`, resume `drive` with its saved host
-and policy; omit a new policy selection unless the user explicitly supplies
-one. The controller rejects a conflicting selection. An existing run without
-that receipt keeps its current packet-following owner unless the user
-explicitly requests supervision and the prior owner has stopped. Compatibility
-protocols and other hosts keep ordinary execution; explicitly report that
-automatic context reset is unavailable there if requested.
-
-The controller alone continues with the next packet and creates fresh context
-after accepted carry-forward Improve. Use its saved receipt to recover; do not
-run another owner concurrently.
+An existing `context-host.md` records a supervised owner. Inspect its receipt
+and settle any running or uncertain owner before resuming or switching execution
+modes; never execute the same run from this conversation concurrently. To resume
+the controller, use its saved host and policy. Switching back to this conversation
+requires reconciling its saved state and effects first; changing a flag does not
+transfer ownership. See the reference's recovery section.
 
 ## Durable handoff
 
@@ -226,7 +223,7 @@ or predicted successor into the handoff as graph authority.
 The host must keep the locator and run directory accessible across handoffs. If
 it cannot, restore the same run and verify its task/repository identity before
 continuing. Ordinary packet-following does not launch a fresh model, reset a host context,
-or retain host handoff state. The supervised `drive` route above
+or retain host handoff state. The explicitly requested `drive` route above
 uses native host sessions and its separate receipt; it does not reset this
 conversation or make script output into a host command.
 
