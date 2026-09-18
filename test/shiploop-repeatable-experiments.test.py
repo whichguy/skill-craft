@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 """Hermetic repeatable-test pilot checks; never launch models or remote calls."""
 from pathlib import Path
+import sys
 import unittest
 
 
 if __name__ == '__main__':
+    sys.dont_write_bytecode = True
     root = Path(__file__).resolve().parent / 'experiments' / 'shiploop_repeatable_tests'
     if (root / 'samples' / '__init__.py').exists():
         raise SystemExit('observed RED samples must remain outside apparatus discovery')
