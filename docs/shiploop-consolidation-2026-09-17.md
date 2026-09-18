@@ -16,12 +16,14 @@ application deployment, marketplace pin, installed host profile, or credential.
 | E2E series `e68ae90`, `d2c42e0`, `2db1f21` | Import publication-reviewed apparatus content, not its unrelated ancestor history. Its runtime/support tests were already represented. |
 | Ready E2E observer followup | Retain current-run-state checks, explicit exit evidence, and a real v3 intake observer-bridge regression. |
 | Verified E2E terminal-exit correction | Ignore interim zero placeholders, retain explicit terminal exits, and align behavior diagnostics with both host exit-code spellings. |
+| Published initial-baseline guidance `97b6269` | Preserve the repository-baseline evidence and prerequisite guidance alongside repeatable-test planning; keep both regression families. |
 | Generalized discovery `004447f` | Import portable study apparatus and a publication-safe report, excluding private raw experiment evidence and original commit ancestry. |
 
-Published main advanced to `b5854f2` and then `eee78a0` during integration.
-Ordinary merges preserve that published ancestry with no content change: the
-study, fixture repair, and runtime changes were already present. Final
-publication must descend from the latest remote main, not replace it.
+Published main advanced to `b5854f2`, `eee78a0`, and then `97b6269` during
+integration. The first two ancestry reconciliations needed no content changes;
+the repository-baseline update combines its guidance and regression tests with
+the repeatable-test material. Final publication must descend from the latest
+remote main, not replace it.
 
 Canonical `skills/` sources remain authoritative. Conflict resolution combines
 compatible duties and assertions; `plugins/` copies are regenerated from those

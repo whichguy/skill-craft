@@ -42,6 +42,14 @@ and adapt it rather than guessing booleans, lists, or conditional fields.
 
 ## Survey
 
+After minimal repository/instruction/runner inspection, execute the
+[initial repository baseline](../execution-planning.md#initial-repository-baseline)
+as the first verification for existing product behavior. Retain the observed
+command, starting content, result and limits in the Environment body, without
+new machine fields. Survey and its reviews do not repair code or tests; retain
+failed/missing checks for named preparation, repair or test-bootstrap producers
+before dependent feature edits. Follow the current action's callback contract.
+
 The survey result body becomes environment.md. Write a concise prose brief,
 then exactly one H2 named machine and one fenced JSON object. The JSON is
 structured content within authoritative Markdown. It is not a separate

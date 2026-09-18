@@ -1847,6 +1847,91 @@ class NavigatorTests(unittest.TestCase):
             " ".join(navigator_prompts.PROMPTS["spec"].split()),
         )
 
+    def test_legacy_initial_baseline_guidance_reaches_cold_step_plan(self) -> None:
+        """Legacy packets retain initial-baseline evidence without a new graph node."""
+        guide = (SCRIPTS.parent / "references" / "execution-planning.md").resolve()
+        locator = "Initial repository baseline guide: " + str(guide) + "#initial-repository-baseline"
+        self.assertTrue(guide.is_file())
+        baseline_evidence = str(self.repo / ".shiploop" / "evidence" / "smoke.log")
+        prerequisite_context = (
+            "Initial baseline failed: "
+            + baseline_evidence
+            + "; repair the startup check and rerun it before Feature W1."
+        )
+
+        discovery = " ".join(navigator_prompts.PROMPTS["discovery"].split())
+        strategy = " ".join(navigator_prompts.PROMPTS["test-strategy"].split())
+        plan = " ".join(navigator_prompts.PROMPTS["plan"].split())
+        step_plan = " ".join(navigator_prompts.PROMPTS["step-plan"].split())
+        for prompt in (discovery, strategy, plan, step_plan):
+            self.assertIn("Initial repository baseline guide", prompt)
+        self.assertIn("first verification activity", discovery)
+        self.assertIn("actual execution", discovery)
+        self.assertIn("may not edit product source, tests", discovery)
+        self.assertIn("observed initial baseline", strategy)
+        self.assertIn("earliest", plan)
+        self.assertIn("test-bootstrap", plan)
+        self.assertIn("post-bootstrap characterization", plan)
+        self.assertIn("reuse only when", step_plan)
+
+        for protocol_version in (1, 2):
+            with self.subTest(protocol_version=protocol_version):
+                state = self.new_state() if protocol_version == 1 else self.new_v2_state()
+                advance = self.advance if protocol_version == 1 else self.advance_v2
+                state = advance(state, "intake")
+                self.assertEqual(navigator.current_stage(state), "discovery")
+                discovery_packet = navigator.render(None, self.root, state)
+                self.assertEqual(discovery_packet.count(locator), 1, discovery_packet)
+                self.assertIn("first verification activity", " ".join(discovery_packet.split()))
+
+                state = advance(state, "discovery", evidence_refs=[baseline_evidence])
+                for stage in (
+                    "research",
+                    "research-improve",
+                    "spec",
+                    "spec-improve",
+                    "test-strategy",
+                ):
+                    state = advance(state, stage)
+                self.assertEqual(navigator.current_stage(state), "plan")
+                state = advance(
+                    state,
+                    "plan",
+                    evidence_refs=[baseline_evidence],
+                    work_items=[
+                        {
+                            "id": "R1",
+                            "title": "Repair the initial startup baseline",
+                            "context": prerequisite_context,
+                        },
+                        {
+                            "id": "W1",
+                            "title": "Add the requested feature",
+                            "context": "Wait for R1's passing baseline rerun.",
+                        },
+                    ],
+                )
+                state = advance(state, "plan-improve")
+                self.assertEqual(navigator.current_stage(state), "step-plan")
+                self.assertEqual(state["work_items"][0]["context"], prerequisite_context)
+
+                run_root = self.base / f"cold-initial-baseline-v{protocol_version}"
+                run_root.mkdir()
+                navigator.save(run_root, state)
+                before = (run_root / "state.md").read_bytes()
+                packet = self._run_public_command(
+                    [
+                        sys.executable,
+                        str(SCRIPTS / "shiploop"),
+                        "next",
+                        "--run-dir",
+                        str(run_root),
+                    ]
+                )
+                self.assertEqual((run_root / "state.md").read_bytes(), before)
+                self.assertEqual(packet.count(locator), 1, packet)
+                self.assertIn(prerequisite_context, packet)
+
     def test_v1_v2_cold_next_retains_requirements_definition_context_without_mutation(
         self,
     ) -> None:

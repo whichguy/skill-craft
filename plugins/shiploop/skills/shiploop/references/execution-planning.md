@@ -1,5 +1,82 @@
 # Execution-plan convergence
 
+## Initial repository baseline
+
+For every new request that changes an existing implementation, run the existing
+repository before feature edits. After the minimum worktree, instruction, runner
+and environment inspection needed for safe execution, make this discovery's
+first verification activity. Run in the packet's repository: the execution
+worktree for an isolated run, or the designated starting directory for an
+explicit in-place/non-Git run. The latter retains its existing isolation limits.
+Include captured starting user changes, before changing product code, tests, dependency
+definitions or product configuration. Inspect command effects and use the
+existing authorized fixture/isolation route; do not deploy, install or provision
+during discovery to make a check run. Test-generated outputs are not feature
+edits, but check for unexpected source/test/config mutations afterward and
+preserve unrelated user work.
+
+Use the established full suite when practical; otherwise run the established
+smoke suite and retain the reason and unrun full coverage. When no smoke command
+exists, use the full suite or justify a representative selection of existing
+executable tests with exact selectors. A focused test, lint/build command or
+import probe is not automatically repository smoke coverage. A passing smoke
+run proves only the selected subset. Zero-selected, all-skipped, timed-out,
+blocked and unrun checks are not passing evidence. Do not narrow a failing suite
+or retry until green and describe the original baseline as healthy.
+
+Record the exact non-secret command and cwd, selected coverage, revision plus
+working-content identity, runtime/configuration, execution location and target,
+fixture assumptions, observed counts/outcome, evidence/log locator and limits
+in existing discovery/planning notes. When Git is unavailable, retain a
+non-secret content identity instead of inventing a revision. Link them through ordinary `evidence_refs`
+and relevant work-item `context`; older modes use their existing evidence/body
+fields. Raw logs stay with run evidence outside product commits. Retain reusable
+commands in maintained repository test documentation. A prior pass is a lead,
+not proof of the current starting state. A local pass does not establish remote
+health, and missing remote access does not authorize a deployment or a mock
+substitute for a required check.
+
+Classify non-passing observations before any repair:
+
+| Observation | Planning and execution consequence |
+| --- | --- |
+| Required behavior already passes | Retain the scope and evidence as a feature prerequisite; continue planning. |
+| Affected foundation fails | Name an earliest scoped repair item and its required passing rerun. Dependent feature items wait for that evidence. Do not repair source or tests during discovery. |
+| The failing behavior is the requested repair | Preserve its expected failure as the repair baseline. The repair's own baseline stage may complete that classification; its later GREEN and regression checks must pass. Do not require the defect to be fixed before its repair can begin. |
+| Apparently unrelated existing failure | Retain the failing evidence and an explicit impact/scope disposition. Scoped continuation requires demonstrated separation, a passing check of the feature's actual prerequisites, and applicable authority. Unknown relatedness blocks dependent edits; do not silently waive failures or broaden the request into unrelated cleanup. |
+| Setup/access missing, timeout or uncertain target | Keep the baseline blocked/inconclusive and plan its concrete prerequisite. Existing preparation ownership resolves authorized setup/access, then reruns the original check against unchanged product/tests before dependent feature edits. A source defect requires a repair item, not an environment preparation shortcut. |
+| Existing implementation lacks adequate executable tests | Record no existing executable baseline, not N/A or green. Reuse an adequate established behavior check when available; otherwise name an earliest test-bootstrap item. Under its execution plan and existing authority it may make the smallest justified test/harness, test-only dependency and configuration changes, while testing unchanged application behavior. Keep its post-bootstrap characterization result separate from the original missing-suite observation. Discovery and its review do not author the missing tests. |
+| No existing implementation | Record why no prior product behavior can be checked and plan the first executable checks. Repository age, empty history or missing tests does not establish this case; imported code is existing behavior. |
+| Intermittent failure or unexpected test mutation | Preserve every attempt and the actual checked content. Diagnose through a bounded observation; a later pass does not erase the first failure. Resolve or explicitly disposition the uncertainty before dependent edits. |
+
+A completed discovery investigation may record a failed or blocked baseline
+and still proceed to prerequisite planning. Its producer `done` means the
+investigation is complete, not that the repository is healthy. Use the existing
+blocked callback when the current action itself cannot progress. For v3's
+per-item `baseline`, an explicitly planned repair may retain expected failure,
+and a test-bootstrap item may retain missing coverage, so those producers can
+reach their own authorized edits. Those dispositions never unblock a dependent
+feature without the required passing rerun. Keep callback formats, phase owners
+and stage order unchanged.
+
+Discovery and baseline Improve review evidence, commands and classification.
+They may improve run notes and repeat authorized checks; they may not edit
+product source, tests, dependency definitions or product configuration, install
+dependencies, provision targets, or perform the planned repair/bootstrap. Keep
+other pre-implementation reviews within their planning scope. A completed
+evidence review does not certify missing product health.
+
+A new follow-up request needs a fresh initial baseline. Within the same run,
+reuse only evidence whose checked content, command, relevant runtime/config,
+target, fixture assumptions and outcome still apply; do not rerun solely because
+context was cleared. Carry locators through intervening planning results and
+each affected item. The later per-item baseline checks the current item starting
+state, rerunning when those conditions change. The initial baseline remains
+historical and never substitutes for post-change regression checks. For an
+older run that already made edits without initial evidence, perform current
+checks and record the historical gap; do not replay discovery or invent an
+untouched starting result.
+
 ## Execution mode and one convergence owner
 
 ShipLoop has two deliberately separate execution routes. Existing runs without
@@ -202,10 +279,12 @@ instruction to open arbitrary external paths. Drafts and revisions must supply
 the assessment; a changed selection/assessment requires fresh convergence even
 if the surrounding plan prose is unchanged.
 
-Decide which baseline checks must run before modifying the affected area. Prefer
-targeted existing tests; introduce a characterization/regression test when current
-behavior is unclear, with an independent expected outcome rather than blessing
-a bug. Capture the checked revision, target role, fixture and observed failures.
+Apply the [initial repository baseline](#initial-repository-baseline) before
+feature edits, then decide which current checks are needed for the affected
+area. Targeted tests supplement the initial smoke/full evidence. Plan a
+characterization/regression test when current behavior is unclear, with an
+independent expected outcome rather than blessing a bug. Capture the checked
+revision, target role, fixture and observed failures.
 Distinguish three cases:
 
 1. A required foundation is healthy: cite passing checks before dependent edits.
