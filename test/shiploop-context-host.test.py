@@ -96,7 +96,7 @@ class DriverTests(unittest.TestCase):
             work_items=[{'id': 'W1', 'title': 'one'}, {'id': 'W2', 'title': 'two'}])
         navigator.save(self.run, self.state)
         self.args = Namespace(cli=str(CLI), run_dir=str(self.run), host='codex',
-                              context_reset='inner-loop', max_turns=3, allow_network=False)
+                              context_reset=None, max_turns=3, allow_network=False)
         self.host = FakeTransport(self)
 
     def tearDown(self):
@@ -186,7 +186,8 @@ for line in sys.stdin:
         executable.chmod(0o755)
         env = {**os.environ, 'PATH': str(bins) + os.pathsep + os.environ['PATH'],
                'SHIPLOOP_TEST_SCRIPTS': str(cli.parent), 'SHIPLOOP_TEST_RUN': str(self.run),
-               'SHIPLOOP_TEST_CLI': str(cli), 'SHIPLOOP_CONTEXT_RESET': 'inner-loop'}
+               'SHIPLOOP_TEST_CLI': str(cli)}
+        env.pop('SHIPLOOP_CONTEXT_RESET', None)
         env.pop('SHIPLOOP_CONTEXT_HOST_WORKER', None)
         result = subprocess.run([sys.executable, '-B', str(cli), 'drive', '--run-dir', str(self.run),
                                  '--host', 'codex', '--max-turns=3'], text=True, capture_output=True,
@@ -215,9 +216,11 @@ for line in sys.stdin:
         self.assertEqual(self.host.ids, [])
 
     def test_policy_precedence_and_strict_values(self):
-        self.assertEqual(selected_policy(None, {}), 'off')
+        self.assertEqual(selected_policy(None, {}), 'inner-loop')
         self.assertEqual(selected_policy(None, {}, 'inner-loop'), 'inner-loop')
+        self.assertEqual(selected_policy(None, {}, 'off'), 'off')
         self.assertEqual(selected_policy('off', {'SHIPLOOP_CONTEXT_RESET': 'inner-loop'}), 'off')
+        self.assertEqual(selected_policy(None, {'SHIPLOOP_CONTEXT_RESET': 'off'}), 'off')
         self.assertEqual(selected_policy(None, {'SHIPLOOP_CONTEXT_RESET': 'inner-loop'}), 'inner-loop')
         for value in ('', 'INNER-LOOP', 'inner-loop '):
             with self.assertRaises(DriverError):
@@ -252,6 +255,19 @@ for line in sys.stdin:
         self.assertEqual(len(self.receipt()['reset_boundaries']), 1)
         self.assertFalse(self.receipt()['need_fresh'])
         self.assertEqual(self.receipt()['policy'], 'inner-loop')
+
+    def test_saved_off_policy_survives_default_on_resume(self):
+        self.args.context_reset = 'off'
+        self.args.max_turns = 2
+        self.run_driver()
+        self.args.context_reset = None
+        self.args.max_turns = 1
+        self.run_driver()
+        self.assertEqual(self.receipt()['policy'], 'off')
+        self.assertEqual(self.receipt()['reset_boundaries'], [])
+        self.assertEqual(self.host.ids, ['task-1'])
+        self.assertEqual(self.host.resumed, ['task-1'])
+        self.assertEqual([task for task, _ in self.host.prompts], ['task-1'] * 3)
 
     def test_safe_restart_resumes_same_task(self):
         self.args.max_turns = 1

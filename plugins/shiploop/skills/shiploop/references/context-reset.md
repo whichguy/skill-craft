@@ -1,4 +1,4 @@
-# Optional context reset
+# Context reset
 
 ```mermaid
 flowchart LR
@@ -9,23 +9,28 @@ flowchart LR
     E --> A
 ```
 
-Use this option when the user wants ShipLoop to release accumulated conversation context after each completed work item. It is off by default. Initial experiments established fresh-session behavior; they did not establish lower billing or subscription usage. Resetting can lose prompt-cache reuse and requires rereading durable records.
+New protocol-3 skill runs on Codex, Grok, and Claude release accumulated conversation context after each completed work item by default. An explicit `off` selection opts out. Initial experiments established fresh-session behavior; they did not establish lower billing or subscription usage. Resetting can lose prompt-cache reuse and requires rereading durable records.
 
 ## Invocation
 
 Bind `CLI` from the selected loaded skill as usual. Initialize an isolated run with `workspace start`, or recover the existing run. Pass its printed absolute run directory to the controller:
 
 ```sh
-python3 "$CLI" drive --run-dir "$RUN_DIR" --host codex --context-reset=inner-loop
-# Or the environment default:
-SHIPLOOP_CONTEXT_RESET=inner-loop python3 "$CLI" drive --run-dir "$RUN_DIR" --host grok
-# Claude uses the same contract:
-python3 "$CLI" drive --run-dir "$RUN_DIR" --host claude --context-reset=inner-loop
+python3 "$CLI" drive --run-dir "$RUN_DIR" --host codex
+# Grok and Claude use the same default:
+python3 "$CLI" drive --run-dir "$RUN_DIR" --host grok
+python3 "$CLI" drive --run-dir "$RUN_DIR" --host claude
+# Explicit opt-out for a new controller:
+python3 "$CLI" drive --run-dir "$RUN_DIR" --host codex --context-reset=off
+# Or supply the opt-out through the environment:
+SHIPLOOP_CONTEXT_RESET=off python3 "$CLI" drive --run-dir "$RUN_DIR" --host grok
 ```
 
-`--host` is required. Use the chosen native host and its existing authentication; an unavailable host is an incomplete prerequisite. No silent host substitution, installs, login changes or model overrides occur. `--context-reset=off` retains a host session across boundaries while still using the controller. Ordinary skill execution without opt-in stays in the calling host and does not start a controller.
+`--host` is required. The skill selects the actual calling native host unless the user explicitly chooses another supported host. Use its existing authentication; an unavailable host is an incomplete prerequisite. No silent host substitution, installs, login changes or model overrides occur. `drive --context-reset=off` retains a host session across boundaries while still using the controller. A new skill invocation with explicit `off` instead follows packets in the calling host without starting a controller.
 
-The flag overrides `SHIPLOOP_CONTEXT_RESET`; allowed values are exactly `off` and `inner-loop`. The first-launch default is `off`. A saved policy persists when both are absent; an explicit conflicting value is rejected. The flag is a `drive` option, not an `init`, `next`, or `workspace start` option. A skill receiving the user's reset request routes to `drive` after initialization. Plain script callbacks do not interpret slash commands from stdout.
+The flag overrides `SHIPLOOP_CONTEXT_RESET`; allowed values are exactly `off` and `inner-loop`. The first-controller default is `inner-loop`. A saved policy, including `off`, persists when both are absent; an explicit conflicting value is rejected. The parser leaves an omitted selection unset so resuming never overwrites that saved policy. The flag is a `drive` option, not an `init`, `next`, or `workspace start` option. New supported skill runs route to `drive` after initialization unless explicitly opted out. Plain script callbacks do not interpret slash commands from stdout.
+
+An existing run without `context-host.md` keeps its current unsupervised owner; the new skill default does not take it over. Starting `drive` for such a run is an explicit ownership transfer and requires the previous owner to be stopped. Existing supervised runs resume their saved host and policy. Compatibility protocols and unsupported hosts retain ordinary packet-following; a request for automatic reset there remains unsupported rather than silently switching hosts.
 
 The controller requires Navigator protocol 3 and the same durable run. It keeps its selected CLI locator and verifies that it belongs to the current package. A copied installed skill package works without an author checkout. No fields are added to Navigator `state.md`.
 

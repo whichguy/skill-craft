@@ -1,9 +1,12 @@
-# ShipLoop navigator 0.13.0
+# ShipLoop navigator 0.14.0
 
-Optional `python3 "$CLI" drive --run-dir "$RUN_DIR" --host codex --context-reset=inner-loop` starts a fresh native host session after accepted
-carry-forward Improve completes each work item. The environment equivalent is
-`SHIPLOOP_CONTEXT_RESET=inner-loop`; `grok` and `claude` are also supported
-host choices. Default behavior remains unchanged. Read
+New protocol-3 skill runs on Codex, Grok, and Claude use supervised context
+reset by default. `python3 "$CLI" drive --run-dir "$RUN_DIR" --host codex`
+starts a fresh native host session after accepted carry-forward Improve
+completes each work item. Use `--context-reset=off` or
+`SHIPLOOP_CONTEXT_RESET=off` to opt out. Saved controller policies persist,
+and existing unsupervised runs keep their current owner. Other hosts and
+compatibility protocols retain ordinary packet-following. Read
 [context reset](references/context-reset.md) for invocation, host permissions,
 recovery and measurement limits.
 

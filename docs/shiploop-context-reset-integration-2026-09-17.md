@@ -1,6 +1,7 @@
 # ShipLoop context-reset integration
 
-Status: experimental and opt-in.
+Status: enabled by default for new protocol-3 skill runs on Codex, Grok, and
+Claude; workflow and cost evidence remain bounded as described below.
 
 ShipLoop can start a fresh native host session after an accepted carry-forward
 completion. The goal is to release accumulated conversational context while
@@ -27,8 +28,10 @@ Improve result is accepted and the work item advances.
 
 The `drive` controller accepts `--context-reset=inner-loop` or the
 `SHIPLOOP_CONTEXT_RESET=inner-loop` environment setting. The first-launch
-default is `off`; a saved policy continues to bind a resumed controller. The
-feature is scoped to `drive`, leaving ordinary ShipLoop invocation unchanged.
+default is `inner-loop`; a saved policy, including `off`, continues to bind a
+resumed controller. New supported skill runs route to `drive` automatically;
+explicit `off` opts out. Existing unsupervised runs keep their current owner,
+and compatibility protocols and unsupported hosts retain ordinary execution.
 
 `state.md` remains the graph authority. The controller records its separate
 host receipt, binds it to the selected run and host, locks one controller per
@@ -102,6 +105,6 @@ Fresh sessions may lose prompt-cache reuse, and a proper evaluation must compare
 whole paired tasks, including rehydration and cache behavior.
 
 No full live multi-item ShipLoop campaign with an actual Improve loop was run
-across reset boundaries. The integration is therefore suitable only as an
-explicit experiment until a workflow-faithful end-to-end run establishes both
+across reset boundaries. Enabling the default does not establish that missing
+evidence; a workflow-faithful end-to-end run is still needed to assess full
 continuity and delivery quality.

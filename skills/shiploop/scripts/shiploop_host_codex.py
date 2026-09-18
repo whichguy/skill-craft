@@ -52,7 +52,7 @@ class CodexTransport:
             )
             threading.Thread(target=self._read, daemon=True).start()
             self._rpc("initialize", {
-                "clientInfo": {"name": "shiploop_context_host", "title": None, "version": "0.13.0"},
+                "clientInfo": {"name": "shiploop_context_host", "title": None, "version": "0.14.0"},
                 "capabilities": None,
             })
             self._send({"method": "initialized"})

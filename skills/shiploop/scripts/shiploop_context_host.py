@@ -47,7 +47,7 @@ def digest(state):
 def selected_policy(explicit, environ, previous=None):
     value = explicit if explicit is not None else environ.get(POLICY_ENV)
     if value is None:
-        return previous or OFF
+        return previous or INNER_LOOP
     if value not in POLICIES:
         raise DriverError(f"{POLICY_ENV}/--context-reset must be off or inner-loop")
     if previous is not None and value != previous:
@@ -292,7 +292,8 @@ def main(argv=None, *, cli=CLI):
     parser = argparse.ArgumentParser(prog="shiploop drive", description=__doc__)
     parser.add_argument("--run-dir", required=True, help="Existing initialized Navigator v3 run")
     parser.add_argument("--host", choices=HOSTS, required=True)
-    parser.add_argument("--context-reset", choices=sorted(POLICIES), default=None)
+    parser.add_argument("--context-reset", choices=sorted(POLICIES), default=None,
+                        help="New controller default: inner-loop; an existing receipt keeps its saved policy")
     parser.add_argument("--max-turns", type=int, default=1000)
     parser.add_argument("--allow-network", action="store_true", help="Codex shell sandbox: allow network; repeat when resuming")
     args = parser.parse_args(argv)

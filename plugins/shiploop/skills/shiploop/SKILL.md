@@ -5,7 +5,7 @@ description: >-
   script's current action packet, and submit its exact completion call until
   the script reports completion with an HTML achievement report. Use when the
   user says shiploop, ship the project, or requests a durable delivery loop.
-version: 0.13.0
+version: 0.14.0
 allowed-tools: all
 license: MIT
 platforms:
@@ -177,27 +177,42 @@ neighboring package or host cache. An unavailable dependency remains an
 incomplete precondition; record it and follow the packet's blocked/recovery
 route rather than generating a replacement workflow.
 
-## Optional context reset
+## Context reset by default
 
-When the user selects `--context-reset=inner-loop`, or the environment sets
-`SHIPLOOP_CONTEXT_RESET=inner-loop`, use the bundled supervised host route in
-[context reset](references/context-reset.md). Initialize or recover the same
-run normally, then hand its current owner to `drive` instead of executing the
-initial packet yourself:
+Check `SHIPLOOP_CONTEXT_HOST_WORKER` first. When it is `1`, perform only the
+given producer or Improve campaign, submit its callback, and return to the
+controller. Never initialize another run or start another `drive`.
+
+For a **new protocol-3 run on Codex, Grok, or Claude**, use the supervised host
+route in [context reset](references/context-reset.md) by default. Initialize
+the run normally, then hand its current owner to `drive` before executing the
+initial packet yourself. Set `HOST` to the actual calling host (`codex`,
+`grok`, or `claude`); honor an explicit host selection without silently
+substituting another host:
 
 ```sh
-python3 "$CLI" drive --run-dir "$RUN_DIR" --host codex --context-reset=inner-loop
+python3 "$CLI" drive --run-dir "$RUN_DIR" --host "$HOST"
 ```
 
-Select `codex`, `grok`, or `claude` for the actual requested host; do not silently
-switch hosts. The default is `off`, retaining ordinary packet-following behavior.
-The environment option affects `drive`; it is not a native slash command or a
-flag on `init`/`workspace start`. The selected host must be installed and signed
-in. A supervised owner (`SHIPLOOP_CONTEXT_HOST_WORKER=1`) performs only its given
-producer or Improve campaign, submits that callback, and returns to the
-controller; it never starts another `drive`. The controller alone continues
-with the next packet and creates fresh context after accepted carry-forward
-Improve. Use its saved receipt to recover; do not run another owner concurrently.
+The new-controller default is `inner-loop`. Explicit
+`--context-reset=off` or `SHIPLOOP_CONTEXT_RESET=off` opts a new skill run out
+to ordinary packet-following; the explicit flag wins over the environment.
+An explicit `drive --context-reset=off` instead keeps the controller while
+retaining its host session across boundaries. These are not flags on
+`init`/`workspace start`. The selected native CLI must be installed and signed
+in; a missing prerequisite stops this route rather than disabling reset.
+
+For an existing run with `context-host.md`, resume `drive` with its saved host
+and policy; omit a new policy selection unless the user explicitly supplies
+one. The controller rejects a conflicting selection. An existing run without
+that receipt keeps its current packet-following owner unless the user
+explicitly requests supervision and the prior owner has stopped. Compatibility
+protocols and other hosts keep ordinary execution; explicitly report that
+automatic context reset is unavailable there if requested.
+
+The controller alone continues with the next packet and creates fresh context
+after accepted carry-forward Improve. Use its saved receipt to recover; do not
+run another owner concurrently.
 
 ## Durable handoff
 
@@ -211,7 +226,7 @@ or predicted successor into the handoff as graph authority.
 The host must keep the locator and run directory accessible across handoffs. If
 it cannot, restore the same run and verify its task/repository identity before
 continuing. Ordinary packet-following does not launch a fresh model, reset a host context,
-or retain host handoff state. The explicit supervised `drive` option above
+or retain host handoff state. The supervised `drive` route above
 uses native host sessions and its separate receipt; it does not reset this
 conversation or make script output into a host command.
 
