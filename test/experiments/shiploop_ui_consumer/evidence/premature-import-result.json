@@ -1,0 +1,6 @@
+{
+  "returncode": 2,
+  "stderr": "ShipLoop navigator: Improve child is not completed\nRead the current packet with next; the rejected request did not advance the graph.\n",
+  "parent_unchanged": true,
+  "child_phase": "active"
+}

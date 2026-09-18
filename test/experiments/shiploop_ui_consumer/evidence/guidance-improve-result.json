@@ -1,0 +1,12 @@
+{
+  "phase": "done",
+  "cycles": 3,
+  "clean_reviews": [
+    2,
+    3
+  ],
+  "candidate_sha256": "905c17b98c644e3e8e1bdc38bc6ac2b38013d36678b238a5fcb8784c9c3a381b",
+  "check": "<study-root>/guidance-review/.until-loop/evidence/cycle3-check.json",
+  "review": "<study-root>/guidance-review/.until-loop/review3.md",
+  "runtime_state_sha256": "3048c57544b64caf31dadabdcd0c830a8f4910c037fdd6f9984bc8a6d0745b2c"
+}

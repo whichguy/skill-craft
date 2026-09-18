@@ -1,0 +1,1015 @@
+{
+  "harness": "shiploop-ui-consumer-browser",
+  "startedAt": "2026-09-18T02:52:23.368Z",
+  "command": [
+    "--mode",
+    "full",
+    "--product",
+    "feature",
+    "--baseline-report",
+    "<study-root>/evidence/retained-baseline-run/report.json",
+    "--output",
+    "<study-root>/evidence/retained-feature-run"
+  ],
+  "mode": "full",
+  "product": "<workspace>/test/experiments/shiploop_ui_consumer/feature",
+  "productSha256": "dfb3624b988d6e0f3edb3e16ac80220323eba801f439014c38ddd897bcfbe437",
+  "servedProductFiles": [
+    "app.js",
+    "index.html",
+    "styles.css"
+  ],
+  "harnessSha256": "9aa60cb495b5b509639eceaf9dc3903297965a2e6d95e1279855f6623901e162",
+  "harnessSourceFiles": [
+    "browser-tests.cjs",
+    "README.md",
+    "service-double.cjs"
+  ],
+  "playwrightModule": "<home>/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright",
+  "browserExecutable": "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+  "browserVersion": "153.0.8010.48",
+  "csp": "default-src 'self'; base-uri 'none'; object-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'self'; font-src 'self'; frame-ancestors 'none'",
+  "visibilityClaim": "P8 records whether two-tab browser visibility occurred. When it does not, the test labels synthetic visibility injection and makes no browser-lifecycle claim.",
+  "baselineComparison": {
+    "report": "<study-root>/evidence/retained-baseline-run/report.json",
+    "productSha256": "938fa3765acab49c7ca4d85a79a744e85f4958b2b83db59bccd05006b79fde2a"
+  },
+  "cases": [
+    {
+      "id": "P1",
+      "family": "primary",
+      "title": "existing list/detail/edit/save/cancel/back journeys",
+      "status": "passed",
+      "startedAt": "2026-09-18T02:52:23.368Z",
+      "screenshots": [
+        "<study-root>/evidence/retained-feature-run/P1/after.png",
+        "<study-root>/evidence/retained-feature-run/P1/before.png"
+      ],
+      "evidence": {
+        "screenshots": [
+          "<study-root>/evidence/retained-feature-run/P1/before.png",
+          "<study-root>/evidence/retained-feature-run/P1/after.png"
+        ],
+        "observations": {
+          "presentation": {
+            "stable": {
+              "labels": {
+                "account": "Account",
+                "back": "Back to notes",
+                "edit": "Edit note",
+                "save": "Save changes",
+                "cancel": "Cancel"
+              },
+              "tokens": {
+                "navy": "#15324f",
+                "amber": "#c08722",
+                "paper": "#ffffff",
+                "mist": "#eef3f7"
+              },
+              "typography": {
+                "bodyFontFamily": "-apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+                "headingFontFamily": "Georgia, \"Times New Roman\", serif",
+                "noteTitleFontFamily": "Georgia, \"Times New Roman\", serif",
+                "headingColor": "rgb(12, 36, 59)"
+              }
+            },
+            "initialFocus": "BODY"
+          },
+          "cancelFocus": "edit",
+          "backFocus": "a1",
+          "touch": {
+            "listTargetHeight": 577.0625,
+            "backTargetHeight": 44,
+            "emulatedTouch": true
+          }
+        },
+        "baselineComparison": {
+          "report": "<study-root>/evidence/retained-baseline-run/report.json",
+          "productSha256": "938fa3765acab49c7ca4d85a79a744e85f4958b2b83db59bccd05006b79fde2a",
+          "matched": true
+        },
+        "saveRequest": {
+          "note": "P1 saved field observation",
+          "baseRevision": 10,
+          "operationId": "46aba37a-b822-4f92-a646-71b7bd5d1ef4"
+        },
+        "requests": [
+          {
+            "method": "GET",
+            "pathname": "/api/accounts/alpha/notes",
+            "body": null,
+            "at": "2026-09-18T02:52:23.636Z"
+          },
+          {
+            "method": "GET",
+            "pathname": "/api/accounts/alpha/notes/a1",
+            "body": null,
+            "at": "2026-09-18T02:52:23.776Z"
+          },
+          {
+            "method": "POST",
+            "pathname": "/api/accounts/alpha/notes/a1",
+            "body": {
+              "note": "P1 saved field observation",
+              "baseRevision": 10,
+              "operationId": "46aba37a-b822-4f92-a646-71b7bd5d1ef4"
+            },
+            "at": "2026-09-18T02:52:23.891Z",
+            "committed": true
+          },
+          {
+            "method": "GET",
+            "pathname": "/api/accounts/alpha/notes",
+            "body": null,
+            "at": "2026-09-18T02:52:23.905Z"
+          },
+          {
+            "method": "GET",
+            "pathname": "/api/accounts/alpha/notes/a2",
+            "body": null,
+            "at": "2026-09-18T02:52:24.031Z"
+          }
+        ]
+      },
+      "finishedAt": "2026-09-18T02:52:24.388Z"
+    },
+    {
+      "id": "P2",
+      "family": "primary",
+      "title": "export update preserves active editor state",
+      "status": "passed",
+      "startedAt": "2026-09-18T02:52:24.388Z",
+      "screenshots": [
+        "<study-root>/evidence/retained-feature-run/P2/after.png",
+        "<study-root>/evidence/retained-feature-run/P2/before.png"
+      ],
+      "evidence": {
+        "screenshots": [
+          "<study-root>/evidence/retained-feature-run/P2/before.png",
+          "<study-root>/evidence/retained-feature-run/P2/after.png"
+        ],
+        "before": {
+          "activeId": "note-input",
+          "value": "P2 dirty local text remains intact",
+          "selectionStart": 4,
+          "selectionEnd": 14,
+          "scrollTop": 120
+        },
+        "after": {
+          "activeId": "note-input",
+          "value": "P2 dirty local text remains intact",
+          "selectionStart": 4,
+          "selectionEnd": 14,
+          "scrollTop": 120
+        },
+        "requests": [
+          {
+            "method": "GET",
+            "pathname": "/api/accounts/alpha/notes",
+            "body": null,
+            "at": "2026-09-18T02:52:24.550Z"
+          },
+          {
+            "method": "GET",
+            "pathname": "/api/accounts/alpha/notes/a1",
+            "body": null,
+            "at": "2026-09-18T02:52:24.604Z"
+          },
+          {
+            "method": "GET",
+            "pathname": "/api/accounts/alpha/notes/a1",
+            "body": null,
+            "at": "2026-09-18T02:52:24.734Z"
+          }
+        ]
+      },
+      "finishedAt": "2026-09-18T02:52:24.786Z"
+    },
+    {
+      "id": "P3",
+      "family": "primary",
+      "title": "reversed responses cannot regress confirmed state",
+      "status": "passed",
+      "startedAt": "2026-09-18T02:52:24.786Z",
+      "screenshots": [
+        "<study-root>/evidence/retained-feature-run/P3/after-late-response.png",
+        "<study-root>/evidence/retained-feature-run/P3/before-late-response.png"
+      ],
+      "evidence": {
+        "screenshots": [
+          "<study-root>/evidence/retained-feature-run/P3/before-late-response.png",
+          "<study-root>/evidence/retained-feature-run/P3/after-late-response.png"
+        ],
+        "barrier": {
+          "heldRequest": {
+            "method": "GET",
+            "pathname": "/api/accounts/alpha/notes/a1",
+            "body": null,
+            "at": "2026-09-18T02:52:25.098Z",
+            "scripted": "late-revision-10"
+          },
+          "releaseAfterConfirmedRevision": "11",
+          "releasedResponse": {
+            "entry": {
+              "method": "GET",
+              "pathname": "/api/accounts/alpha/notes/a1",
+              "body": null,
+              "at": "2026-09-18T02:52:25.098Z",
+              "scripted": "late-revision-10"
+            },
+            "status": 200
+          }
+        },
+        "requests": [
+          {
+            "method": "GET",
+            "pathname": "/api/accounts/alpha/notes",
+            "body": null,
+            "at": "2026-09-18T02:52:24.938Z"
+          },
+          {
+            "method": "GET",
+            "pathname": "/api/accounts/alpha/notes/a1",
+            "body": null,
+            "at": "2026-09-18T02:52:24.983Z"
+          },
+          {
+            "method": "GET",
+            "pathname": "/api/accounts/alpha/notes/a1",
+            "body": null,
+            "at": "2026-09-18T02:52:25.098Z",
+            "scripted": "late-revision-10"
+          },
+          {
+            "method": "GET",
+            "pathname": "/api/accounts/alpha/notes/a1",
+            "body": null,
+            "at": "2026-09-18T02:52:25.131Z",
+            "scripted": "current-revision-11"
+          }
+        ]
+      },
+      "finishedAt": "2026-09-18T02:52:25.350Z"
+    },
+    {
+      "id": "P4",
+      "family": "primary",
+      "title": "conflict reapply uses current revision and a new operation id",
+      "status": "passed",
+      "startedAt": "2026-09-18T02:52:25.350Z",
+      "screenshots": [
+        "<study-root>/evidence/retained-feature-run/P4/after-reapply.png",
+        "<study-root>/evidence/retained-feature-run/P4/before-reapply.png"
+      ],
+      "evidence": {
+        "screenshots": [
+          "<study-root>/evidence/retained-feature-run/P4/before-reapply.png",
+          "<study-root>/evidence/retained-feature-run/P4/after-reapply.png"
+        ],
+        "first": {
+          "note": "P4 local reapply text",
+          "baseRevision": 10,
+          "operationId": "8393a1c1-db7a-4c00-985c-75e99a2b2752"
+        },
+        "second": {
+          "note": "P4 local reapply text",
+          "baseRevision": 11,
+          "operationId": "16d52bb2-611a-440b-bbc9-68cd877c61d1"
+        },
+        "requests": [
+          {
+            "method": "GET",
+            "pathname": "/api/accounts/alpha/notes",
+            "body": null,
+            "at": "2026-09-18T02:52:25.512Z"
+          },
+          {
+            "method": "GET",
+            "pathname": "/api/accounts/alpha/notes/a1",
+            "body": null,
+            "at": "2026-09-18T02:52:25.566Z"
+          },
+          {
+            "method": "POST",
+            "pathname": "/api/accounts/alpha/notes/a1",
+            "body": {
+              "note": "P4 local reapply text",
+              "baseRevision": 10,
+              "operationId": "8393a1c1-db7a-4c00-985c-75e99a2b2752"
+            },
+            "at": "2026-09-18T02:52:25.699Z",
+            "conflict": true
+          },
+          {
+            "method": "POST",
+            "pathname": "/api/accounts/alpha/notes/a1",
+            "body": {
+              "note": "P4 local reapply text",
+              "baseRevision": 11,
+              "operationId": "16d52bb2-611a-440b-bbc9-68cd877c61d1"
+            },
+            "at": "2026-09-18T02:52:25.815Z",
+            "committed": true
+          },
+          {
+            "method": "GET",
+            "pathname": "/api/accounts/alpha/notes",
+            "body": null,
+            "at": "2026-09-18T02:52:25.830Z"
+          }
+        ]
+      },
+      "finishedAt": "2026-09-18T02:52:25.899Z"
+    },
+    {
+      "id": "P5",
+      "family": "primary",
+      "title": "lost save response retries by operation lookup without duplicate effect",
+      "status": "passed",
+      "startedAt": "2026-09-18T02:52:25.899Z",
+      "screenshots": [
+        "<study-root>/evidence/retained-feature-run/P5/committed-lookup/after-committed-lookup.png",
+        "<study-root>/evidence/retained-feature-run/P5/committed-lookup/after-response-loss.png",
+        "<study-root>/evidence/retained-feature-run/P5/unknown-replay/after-response-loss.png",
+        "<study-root>/evidence/retained-feature-run/P5/unknown-replay/after-unknown-replay.png"
+      ],
+      "evidence": {
+        "screenshots": [
+          "<study-root>/evidence/retained-feature-run/P5/committed-lookup/after-response-loss.png",
+          "<study-root>/evidence/retained-feature-run/P5/committed-lookup/after-committed-lookup.png",
+          "<study-root>/evidence/retained-feature-run/P5/unknown-replay/after-response-loss.png",
+          "<study-root>/evidence/retained-feature-run/P5/unknown-replay/after-unknown-replay.png"
+        ],
+        "committedLookup": {
+          "screenshots": [
+            "<study-root>/evidence/retained-feature-run/P5/committed-lookup/after-response-loss.png",
+            "<study-root>/evidence/retained-feature-run/P5/committed-lookup/after-committed-lookup.png"
+          ],
+          "operationId": "acca7d64-d665-4cf2-a995-53b7896301e4",
+          "transportAttempts": [
+            {
+              "method": "POST",
+              "pathname": "/api/accounts/alpha/notes/a1",
+              "body": {
+                "note": "P5 committed lookup effect",
+                "baseRevision": 10,
+                "operationId": "acca7d64-d665-4cf2-a995-53b7896301e4"
+              },
+              "at": "2026-09-18T02:52:26.215Z",
+              "committed": true,
+              "confirmationLost": true,
+              "transportAttempt": 1
+            }
+          ],
+          "applicationReplayPosts": [],
+          "requests": [
+            {
+              "method": "GET",
+              "pathname": "/api/accounts/alpha/notes",
+              "body": null,
+              "at": "2026-09-18T02:52:26.064Z"
+            },
+            {
+              "method": "GET",
+              "pathname": "/api/accounts/alpha/notes/a1",
+              "body": null,
+              "at": "2026-09-18T02:52:26.116Z"
+            },
+            {
+              "method": "POST",
+              "pathname": "/api/accounts/alpha/notes/a1",
+              "body": {
+                "note": "P5 committed lookup effect",
+                "baseRevision": 10,
+                "operationId": "acca7d64-d665-4cf2-a995-53b7896301e4"
+              },
+              "at": "2026-09-18T02:52:26.215Z",
+              "committed": true,
+              "confirmationLost": true,
+              "transportAttempt": 1
+            },
+            {
+              "method": "GET",
+              "pathname": "/api/accounts/alpha/notes/a1/operations/acca7d64-d665-4cf2-a995-53b7896301e4",
+              "body": null,
+              "at": "2026-09-18T02:52:26.381Z",
+              "releasedLostSaveConfirmation": true
+            },
+            {
+              "method": "GET",
+              "pathname": "/api/accounts/alpha/notes",
+              "body": null,
+              "at": "2026-09-18T02:52:26.397Z"
+            }
+          ],
+          "commitCount": 1
+        },
+        "unknownReplay": {
+          "screenshots": [
+            "<study-root>/evidence/retained-feature-run/P5/unknown-replay/after-response-loss.png",
+            "<study-root>/evidence/retained-feature-run/P5/unknown-replay/after-unknown-replay.png"
+          ],
+          "operationId": "a3c951c4-b9bb-42f1-b478-37d0f74fb3a3",
+          "transportAttempts": [
+            {
+              "method": "POST",
+              "pathname": "/api/accounts/alpha/notes/a1",
+              "body": {
+                "note": "P5 unknown replay effect",
+                "baseRevision": 10,
+                "operationId": "a3c951c4-b9bb-42f1-b478-37d0f74fb3a3"
+              },
+              "at": "2026-09-18T02:52:26.788Z",
+              "committed": true,
+              "confirmationLost": true,
+              "transportAttempt": 1
+            }
+          ],
+          "applicationReplayPosts": [
+            {
+              "method": "POST",
+              "pathname": "/api/accounts/alpha/notes/a1",
+              "body": {
+                "note": "P5 unknown replay effect",
+                "baseRevision": 10,
+                "operationId": "a3c951c4-b9bb-42f1-b478-37d0f74fb3a3"
+              },
+              "at": "2026-09-18T02:52:27.036Z",
+              "deduped": true
+            }
+          ],
+          "requests": [
+            {
+              "method": "GET",
+              "pathname": "/api/accounts/alpha/notes",
+              "body": null,
+              "at": "2026-09-18T02:52:26.639Z"
+            },
+            {
+              "method": "GET",
+              "pathname": "/api/accounts/alpha/notes/a1",
+              "body": null,
+              "at": "2026-09-18T02:52:26.689Z"
+            },
+            {
+              "method": "POST",
+              "pathname": "/api/accounts/alpha/notes/a1",
+              "body": {
+                "note": "P5 unknown replay effect",
+                "baseRevision": 10,
+                "operationId": "a3c951c4-b9bb-42f1-b478-37d0f74fb3a3"
+              },
+              "at": "2026-09-18T02:52:26.788Z",
+              "committed": true,
+              "confirmationLost": true,
+              "transportAttempt": 1
+            },
+            {
+              "method": "GET",
+              "pathname": "/api/accounts/alpha/notes/a1/operations/a3c951c4-b9bb-42f1-b478-37d0f74fb3a3",
+              "body": null,
+              "at": "2026-09-18T02:52:26.956Z",
+              "releasedLostSaveConfirmation": true,
+              "scripted": "controlled-failure"
+            },
+            {
+              "method": "GET",
+              "pathname": "/api/accounts/alpha/notes/a1/operations/a3c951c4-b9bb-42f1-b478-37d0f74fb3a3",
+              "body": null,
+              "at": "2026-09-18T02:52:27.022Z",
+              "scripted": "controlled-unknown-operation"
+            },
+            {
+              "method": "POST",
+              "pathname": "/api/accounts/alpha/notes/a1",
+              "body": {
+                "note": "P5 unknown replay effect",
+                "baseRevision": 10,
+                "operationId": "a3c951c4-b9bb-42f1-b478-37d0f74fb3a3"
+              },
+              "at": "2026-09-18T02:52:27.036Z",
+              "deduped": true
+            },
+            {
+              "method": "GET",
+              "pathname": "/api/accounts/alpha/notes",
+              "body": null,
+              "at": "2026-09-18T02:52:27.037Z"
+            }
+          ],
+          "commitCount": 1
+        }
+      },
+      "finishedAt": "2026-09-18T02:52:27.107Z"
+    },
+    {
+      "id": "P6",
+      "family": "primary",
+      "title": "account change invalidates old callbacks and drafts",
+      "status": "passed",
+      "startedAt": "2026-09-18T02:52:27.107Z",
+      "screenshots": [
+        "<study-root>/evidence/retained-feature-run/P6/after-old-alpha-arrives.png",
+        "<study-root>/evidence/retained-feature-run/P6/before-old-alpha-arrives.png"
+      ],
+      "evidence": {
+        "screenshots": [
+          "<study-root>/evidence/retained-feature-run/P6/before-old-alpha-arrives.png",
+          "<study-root>/evidence/retained-feature-run/P6/after-old-alpha-arrives.png"
+        ],
+        "barrier": {
+          "heldRequest": {
+            "method": "GET",
+            "pathname": "/api/accounts/alpha/notes/a1",
+            "body": null,
+            "at": "2026-09-18T02:52:27.405Z",
+            "scripted": "late-alpha-callback"
+          },
+          "sessionBeforeRelease": {
+            "account": "alpha",
+            "revision": "12"
+          },
+          "releasedResponse": {
+            "entry": {
+              "method": "GET",
+              "pathname": "/api/accounts/alpha/notes/a1",
+              "body": null,
+              "at": "2026-09-18T02:52:27.405Z",
+              "scripted": "late-alpha-callback"
+            },
+            "status": 200
+          }
+        },
+        "requests": [
+          {
+            "method": "GET",
+            "pathname": "/api/accounts/alpha/notes",
+            "body": null,
+            "at": "2026-09-18T02:52:27.263Z"
+          },
+          {
+            "method": "GET",
+            "pathname": "/api/accounts/alpha/notes/a1",
+            "body": null,
+            "at": "2026-09-18T02:52:27.306Z"
+          },
+          {
+            "method": "GET",
+            "pathname": "/api/accounts/alpha/notes/a1",
+            "body": null,
+            "at": "2026-09-18T02:52:27.405Z",
+            "scripted": "late-alpha-callback"
+          },
+          {
+            "method": "GET",
+            "pathname": "/api/accounts/beta/notes",
+            "body": null,
+            "at": "2026-09-18T02:52:27.410Z"
+          },
+          {
+            "method": "GET",
+            "pathname": "/api/accounts/beta/notes/a1",
+            "body": null,
+            "at": "2026-09-18T02:52:27.471Z"
+          },
+          {
+            "method": "GET",
+            "pathname": "/api/accounts/alpha/notes",
+            "body": null,
+            "at": "2026-09-18T02:52:27.506Z"
+          },
+          {
+            "method": "GET",
+            "pathname": "/api/accounts/alpha/notes/a1",
+            "body": null,
+            "at": "2026-09-18T02:52:27.538Z"
+          }
+        ]
+      },
+      "finishedAt": "2026-09-18T02:52:27.754Z"
+    },
+    {
+      "id": "P7",
+      "family": "primary",
+      "title": "interrupted normal/reduced-motion status cues",
+      "status": "passed",
+      "startedAt": "2026-09-18T02:52:27.754Z",
+      "screenshots": [
+        "<study-root>/evidence/retained-feature-run/P7/no-preference-after-interruption.png",
+        "<study-root>/evidence/retained-feature-run/P7/no-preference-before-interruption.png",
+        "<study-root>/evidence/retained-feature-run/P7/reduce-after-interruption.png",
+        "<study-root>/evidence/retained-feature-run/P7/reduce-before-interruption.png"
+      ],
+      "evidence": {
+        "screenshots": [
+          "<study-root>/evidence/retained-feature-run/P7/no-preference-before-interruption.png",
+          "<study-root>/evidence/retained-feature-run/P7/no-preference-after-interruption.png",
+          "<study-root>/evidence/retained-feature-run/P7/reduce-before-interruption.png",
+          "<study-root>/evidence/retained-feature-run/P7/reduce-after-interruption.png"
+        ],
+        "normal": {
+          "screenshots": [
+            "<study-root>/evidence/retained-feature-run/P7/no-preference-before-interruption.png",
+            "<study-root>/evidence/retained-feature-run/P7/no-preference-after-interruption.png"
+          ],
+          "reducedMotion": "no-preference",
+          "oldAnimation": {
+            "playState": "running",
+            "currentTime": 0
+          },
+          "cue": {
+            "playState": "idle",
+            "currentTime": null
+          },
+          "requests": [
+            {
+              "method": "GET",
+              "pathname": "/api/accounts/alpha/notes",
+              "body": null,
+              "at": "2026-09-18T02:52:27.911Z"
+            },
+            {
+              "method": "GET",
+              "pathname": "/api/accounts/alpha/notes/a1",
+              "body": null,
+              "at": "2026-09-18T02:52:27.956Z"
+            },
+            {
+              "method": "GET",
+              "pathname": "/api/accounts/alpha/notes/a1",
+              "body": null,
+              "at": "2026-09-18T02:52:28.049Z"
+            },
+            {
+              "method": "GET",
+              "pathname": "/api/accounts/alpha/notes/a1",
+              "body": null,
+              "at": "2026-09-18T02:52:28.121Z"
+            }
+          ]
+        },
+        "reduced": {
+          "screenshots": [
+            "<study-root>/evidence/retained-feature-run/P7/reduce-before-interruption.png",
+            "<study-root>/evidence/retained-feature-run/P7/reduce-after-interruption.png"
+          ],
+          "reducedMotion": "reduce",
+          "cue": null,
+          "requests": [
+            {
+              "method": "GET",
+              "pathname": "/api/accounts/alpha/notes",
+              "body": null,
+              "at": "2026-09-18T02:52:28.335Z"
+            },
+            {
+              "method": "GET",
+              "pathname": "/api/accounts/alpha/notes/a1",
+              "body": null,
+              "at": "2026-09-18T02:52:28.375Z"
+            },
+            {
+              "method": "GET",
+              "pathname": "/api/accounts/alpha/notes/a1",
+              "body": null,
+              "at": "2026-09-18T02:52:28.467Z"
+            },
+            {
+              "method": "GET",
+              "pathname": "/api/accounts/alpha/notes/a1",
+              "body": null,
+              "at": "2026-09-18T02:52:28.789Z"
+            }
+          ]
+        }
+      },
+      "finishedAt": "2026-09-18T02:52:28.843Z"
+    },
+    {
+      "id": "P8",
+      "family": "primary",
+      "title": "hidden/resume reconciliation and burst coalescing",
+      "status": "passed",
+      "startedAt": "2026-09-18T02:52:28.844Z",
+      "screenshots": [
+        "<study-root>/evidence/retained-feature-run/P8/after-resume-recovery.png",
+        "<study-root>/evidence/retained-feature-run/P8/hidden-before-resume.png",
+        "<study-root>/evidence/retained-feature-run/P8/polling-clock/clock-visible-poll.png",
+        "<study-root>/evidence/retained-feature-run/P8/polling-clock/clock-visible-resume.png"
+      ],
+      "evidence": {
+        "screenshots": [
+          "<study-root>/evidence/retained-feature-run/P8/hidden-before-resume.png",
+          "<study-root>/evidence/retained-feature-run/P8/after-resume-recovery.png",
+          "<study-root>/evidence/retained-feature-run/P8/polling-clock/clock-visible-poll.png",
+          "<study-root>/evidence/retained-feature-run/P8/polling-clock/clock-visible-resume.png"
+        ],
+        "visibility": {
+          "actual": false,
+          "before": "visible",
+          "after": "visible",
+          "mode": "synthetic-visibility-injection"
+        },
+        "statusHistory": {
+          "names": [
+            "list-message",
+            "save-status",
+            "export-status"
+          ],
+          "events": [
+            {
+              "kind": "snapshot",
+              "label": "initial",
+              "at": 324.5999999642372,
+              "values": [
+                "",
+                "",
+                "Export status: idle."
+              ]
+            },
+            {
+              "kind": "mark",
+              "label": "before-hidden",
+              "at": 325.30000001192093,
+              "values": [
+                "",
+                "",
+                "Export status: idle."
+              ]
+            },
+            {
+              "kind": "mark",
+              "label": "after-hidden-burst",
+              "at": 449.19999998807907,
+              "values": [
+                "",
+                "",
+                "Export status: idle."
+              ]
+            },
+            {
+              "kind": "mark",
+              "label": "before-resume",
+              "at": 495.5999999642372,
+              "values": [
+                "",
+                "",
+                "Export status: idle."
+              ]
+            },
+            {
+              "kind": "mutation",
+              "label": null,
+              "at": 498.19999998807907,
+              "values": [
+                "",
+                "",
+                "Could not refresh the current export status. Refresh to try again."
+              ]
+            },
+            {
+              "kind": "mark",
+              "label": "after-error",
+              "at": 694.5999999642372,
+              "values": [
+                "",
+                "",
+                "Could not refresh the current export status. Refresh to try again."
+              ]
+            },
+            {
+              "kind": "mark",
+              "label": "before-retry",
+              "at": 697,
+              "values": [
+                "",
+                "",
+                "Could not refresh the current export status. Refresh to try again."
+              ]
+            },
+            {
+              "kind": "mutation",
+              "label": null,
+              "at": 730.5,
+              "values": [
+                "",
+                "",
+                "Export status: complete."
+              ]
+            },
+            {
+              "kind": "mark",
+              "label": "after-complete",
+              "at": 790,
+              "values": [
+                "",
+                "",
+                "Export status: complete."
+              ]
+            },
+            {
+              "kind": "mark",
+              "label": "after-settled",
+              "at": 1014,
+              "values": [
+                "",
+                "",
+                "Export status: complete."
+              ]
+            }
+          ]
+        },
+        "polling": {
+          "screenshots": [
+            "<study-root>/evidence/retained-feature-run/P8/polling-clock/clock-visible-poll.png",
+            "<study-root>/evidence/retained-feature-run/P8/polling-clock/clock-visible-resume.png"
+          ],
+          "clock": {
+            "mode": "playwright-clock-emulation",
+            "visiblePollAfterMs": 15000,
+            "visibleNoPollThroughMs": 14000,
+            "visibleObservationAdvanceMs": 15500,
+            "hiddenAdvanceMs": 45000,
+            "visibility": "synthetic-visibility-injection",
+            "claim": "Timer behavior exercised with Playwright clock emulation; this is not wall-clock or operating-system background validation."
+          },
+          "requests": [
+            {
+              "method": "GET",
+              "pathname": "/api/accounts/alpha/notes",
+              "body": null,
+              "at": "2026-09-18T02:52:30.178Z"
+            },
+            {
+              "method": "GET",
+              "pathname": "/api/accounts/alpha/notes/a1",
+              "body": null,
+              "at": "2026-09-18T02:52:30.240Z"
+            },
+            {
+              "method": "GET",
+              "pathname": "/api/accounts/alpha/notes/a1",
+              "body": null,
+              "at": "2026-09-18T02:52:30.285Z"
+            },
+            {
+              "method": "GET",
+              "pathname": "/api/accounts/alpha/notes/a1",
+              "body": null,
+              "at": "2026-09-18T02:52:30.364Z"
+            }
+          ]
+        },
+        "requests": [
+          {
+            "method": "GET",
+            "pathname": "/api/accounts/alpha/notes",
+            "body": null,
+            "at": "2026-09-18T02:52:28.986Z"
+          },
+          {
+            "method": "GET",
+            "pathname": "/api/accounts/alpha/notes/a1",
+            "body": null,
+            "at": "2026-09-18T02:52:29.040Z"
+          },
+          {
+            "method": "GET",
+            "pathname": "/api/accounts/alpha/notes",
+            "body": null,
+            "at": "2026-09-18T02:52:29.117Z"
+          },
+          {
+            "method": "GET",
+            "pathname": "/api/accounts/alpha/notes/a1",
+            "body": null,
+            "at": "2026-09-18T02:52:29.470Z",
+            "scripted": "controlled-failure"
+          },
+          {
+            "method": "GET",
+            "pathname": "/api/accounts/alpha/notes/a1",
+            "body": null,
+            "at": "2026-09-18T02:52:29.690Z"
+          }
+        ]
+      },
+      "finishedAt": "2026-09-18T02:52:30.464Z"
+    },
+    {
+      "id": "X1",
+      "family": "extra",
+      "title": "newer draft survives delayed save success",
+      "status": "passed",
+      "startedAt": "2026-09-18T02:52:30.465Z",
+      "screenshots": [
+        "<study-root>/evidence/retained-feature-run/X1/after-delayed-success.png",
+        "<study-root>/evidence/retained-feature-run/X1/before-delayed-success.png"
+      ],
+      "evidence": {
+        "screenshots": [
+          "<study-root>/evidence/retained-feature-run/X1/before-delayed-success.png",
+          "<study-root>/evidence/retained-feature-run/X1/after-delayed-success.png"
+        ],
+        "barrier": {
+          "committed": {
+            "entry": {
+              "method": "POST",
+              "pathname": "/api/accounts/alpha/notes/a1",
+              "body": {
+                "note": "X1 first save intent",
+                "baseRevision": 10,
+                "operationId": "c8385a2a-e6b0-475c-8165-1756638e1239"
+              },
+              "at": "2026-09-18T02:52:30.821Z",
+              "committed": true
+            },
+            "record": {
+              "id": "a1",
+              "title": "Alpha marsh observations",
+              "note": "X1 first save intent",
+              "revision": 11,
+              "exportStatus": "idle",
+              "exportRevision": 1
+            }
+          },
+          "releasedResponse": {
+            "entry": {
+              "method": "POST",
+              "pathname": "/api/accounts/alpha/notes/a1",
+              "body": {
+                "note": "X1 first save intent",
+                "baseRevision": 10,
+                "operationId": "c8385a2a-e6b0-475c-8165-1756638e1239"
+              },
+              "at": "2026-09-18T02:52:30.821Z",
+              "committed": true
+            },
+            "status": 200
+          }
+        },
+        "requests": [
+          {
+            "method": "GET",
+            "pathname": "/api/accounts/alpha/notes",
+            "body": null,
+            "at": "2026-09-18T02:52:30.653Z"
+          },
+          {
+            "method": "GET",
+            "pathname": "/api/accounts/alpha/notes/a1",
+            "body": null,
+            "at": "2026-09-18T02:52:30.719Z"
+          },
+          {
+            "method": "POST",
+            "pathname": "/api/accounts/alpha/notes/a1",
+            "body": {
+              "note": "X1 first save intent",
+              "baseRevision": 10,
+              "operationId": "c8385a2a-e6b0-475c-8165-1756638e1239"
+            },
+            "at": "2026-09-18T02:52:30.821Z",
+            "committed": true
+          },
+          {
+            "method": "GET",
+            "pathname": "/api/accounts/alpha/notes",
+            "body": null,
+            "at": "2026-09-18T02:52:30.884Z"
+          }
+        ]
+      },
+      "finishedAt": "2026-09-18T02:52:30.939Z"
+    }
+  ],
+  "registeredPrimaryCaseFamilies": [
+    "P1",
+    "P2",
+    "P3",
+    "P4",
+    "P5",
+    "P6",
+    "P7",
+    "P8"
+  ],
+  "registeredExtraCases": [
+    "X1"
+  ],
+  "finishedAt": "2026-09-18T02:52:31.147Z",
+  "passed": 9,
+  "failed": 0,
+  "executedPrimaryCaseFamilies": [
+    "P1",
+    "P2",
+    "P3",
+    "P4",
+    "P5",
+    "P6",
+    "P7",
+    "P8"
+  ],
+  "executedExtraCases": [
+    "X1"
+  ]
+}

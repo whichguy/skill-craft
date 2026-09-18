@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; connect-src 'self'; script-src 'self'; style-src 'self'; base-uri 'none'; form-action 'none'"
+    />
+    <title>Field Notes</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script src="app.js" defer></script>
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="masthead">
+        <p class="eyebrow">Research notebook</p>
+        <h1>Field Notes</h1>
+        <p class="subtitle">Review observations before they leave the field.</p>
+      </div>
+      <label class="account-control" for="account">
+        <span>Account</span>
+        <select id="account" name="account">
+          <option value="alpha">Alpha</option>
+          <option value="beta">Beta</option>
+        </select>
+      </label>
+    </header>
+
+    <main>
+      <section id="notes-view" aria-labelledby="notes-heading">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Current folio</p>
+            <h2 id="notes-heading">Notes on hand</h2>
+          </div>
+          <p id="list-message" class="quiet-message" role="status" aria-live="polite"></p>
+        </div>
+        <div id="note-list" class="note-list" aria-live="polite"></div>
+      </section>
+
+      <section id="detail" hidden aria-labelledby="note-title">
+        <div class="detail-header">
+          <button id="back" class="text-button" type="button">Back to notes</button>
+          <p class="folio">Record <span id="revision">—</span></p>
+        </div>
+
+        <div class="detail-scroll" tabindex="-1">
+          <div class="detail-title-row">
+            <div>
+              <p class="eyebrow">Field entry</p>
+              <h2 id="note-title">Loading note</h2>
+            </div>
+            <span class="amber-mark" aria-hidden="true"></span>
+          </div>
+
+          <div class="reading-card">
+            <p class="field-label">Confirmed note</p>
+            <p id="confirmed-note" class="confirmed-note"></p>
+          </div>
+
+          <div class="editor-card">
+            <label class="field-label" for="note-input">Working note</label>
+            <textarea
+              id="note-input"
+              name="note"
+              rows="12"
+              readonly
+              aria-readonly="true"
+              spellcheck="true"
+            ></textarea>
+          </div>
+        </div>
+
+        <div class="action-bar">
+          <div class="status-stack">
+            <p id="save-status" class="save-status" role="status" aria-live="polite"></p>
+            <p id="export-status" class="export-status" role="status" aria-live="polite"></p>
+          </div>
+          <div class="actions">
+            <button id="refresh" class="secondary-action" type="button">Refresh</button>
+            <button id="edit" class="secondary-action" type="button">Edit note</button>
+            <button id="cancel" class="secondary-action" type="button" hidden>Cancel</button>
+            <button id="save" class="primary-action" type="button" hidden>Save changes</button>
+            <button id="retry-save" class="secondary-action" type="button" hidden>Retry save</button>
+            <button id="reapply" class="primary-action" type="button" hidden>Reapply my text</button>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <span class="footer-rule" aria-hidden="true"></span>
+      Local field record · Saved changes update this account’s current note.
+    </footer>
+  </body>
+</html>

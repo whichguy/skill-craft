@@ -1,0 +1,148 @@
+{
+  "harness": "shiploop-ui-consumer-browser",
+  "startedAt": "2026-09-18T02:52:12.247Z",
+  "command": [
+    "--mode",
+    "baseline",
+    "--product",
+    "baseline",
+    "--output",
+    "<study-root>/evidence/retained-baseline-run"
+  ],
+  "mode": "baseline",
+  "product": "<workspace>/test/experiments/shiploop_ui_consumer/baseline",
+  "productSha256": "938fa3765acab49c7ca4d85a79a744e85f4958b2b83db59bccd05006b79fde2a",
+  "servedProductFiles": [
+    "app.js",
+    "index.html",
+    "styles.css"
+  ],
+  "harnessSha256": "9aa60cb495b5b509639eceaf9dc3903297965a2e6d95e1279855f6623901e162",
+  "harnessSourceFiles": [
+    "browser-tests.cjs",
+    "README.md",
+    "service-double.cjs"
+  ],
+  "playwrightModule": "<home>/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright",
+  "browserExecutable": "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+  "browserVersion": "153.0.8010.48",
+  "csp": "default-src 'self'; base-uri 'none'; object-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'self'; font-src 'self'; frame-ancestors 'none'",
+  "visibilityClaim": "P8 records whether two-tab browser visibility occurred. When it does not, the test labels synthetic visibility injection and makes no browser-lifecycle claim.",
+  "baselineComparison": null,
+  "cases": [
+    {
+      "id": "P1",
+      "family": "primary",
+      "title": "existing list/detail/edit/save/cancel/back journeys",
+      "status": "passed",
+      "startedAt": "2026-09-18T02:52:12.248Z",
+      "screenshots": [
+        "<study-root>/evidence/retained-baseline-run/P1/after.png",
+        "<study-root>/evidence/retained-baseline-run/P1/before.png"
+      ],
+      "evidence": {
+        "screenshots": [
+          "<study-root>/evidence/retained-baseline-run/P1/before.png",
+          "<study-root>/evidence/retained-baseline-run/P1/after.png"
+        ],
+        "observations": {
+          "presentation": {
+            "stable": {
+              "labels": {
+                "account": "Account",
+                "back": "Back to notes",
+                "edit": "Edit note",
+                "save": "Save changes",
+                "cancel": "Cancel"
+              },
+              "tokens": {
+                "navy": "#15324f",
+                "amber": "#c08722",
+                "paper": "#ffffff",
+                "mist": "#eef3f7"
+              },
+              "typography": {
+                "bodyFontFamily": "-apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+                "headingFontFamily": "Georgia, \"Times New Roman\", serif",
+                "noteTitleFontFamily": "Georgia, \"Times New Roman\", serif",
+                "headingColor": "rgb(12, 36, 59)"
+              }
+            },
+            "initialFocus": "BODY"
+          },
+          "cancelFocus": "edit",
+          "backFocus": "a1",
+          "touch": {
+            "listTargetHeight": 577.0625,
+            "backTargetHeight": 44,
+            "emulatedTouch": true
+          }
+        },
+        "baselineComparison": null,
+        "saveRequest": {
+          "note": "P1 saved field observation",
+          "baseRevision": 10,
+          "operationId": "9162e755-39be-4032-8120-08c62ec8d5ef"
+        },
+        "requests": [
+          {
+            "method": "GET",
+            "pathname": "/api/accounts/alpha/notes",
+            "body": null,
+            "at": "2026-09-18T02:52:12.504Z"
+          },
+          {
+            "method": "GET",
+            "pathname": "/api/accounts/alpha/notes/a1",
+            "body": null,
+            "at": "2026-09-18T02:52:12.602Z"
+          },
+          {
+            "method": "POST",
+            "pathname": "/api/accounts/alpha/notes/a1",
+            "body": {
+              "note": "P1 saved field observation",
+              "baseRevision": 10,
+              "operationId": "9162e755-39be-4032-8120-08c62ec8d5ef"
+            },
+            "at": "2026-09-18T02:52:12.718Z",
+            "committed": true
+          },
+          {
+            "method": "GET",
+            "pathname": "/api/accounts/alpha/notes",
+            "body": null,
+            "at": "2026-09-18T02:52:12.731Z"
+          },
+          {
+            "method": "GET",
+            "pathname": "/api/accounts/alpha/notes/a2",
+            "body": null,
+            "at": "2026-09-18T02:52:12.856Z"
+          }
+        ]
+      },
+      "finishedAt": "2026-09-18T02:52:13.212Z"
+    }
+  ],
+  "registeredPrimaryCaseFamilies": [
+    "P1",
+    "P2",
+    "P3",
+    "P4",
+    "P5",
+    "P6",
+    "P7",
+    "P8"
+  ],
+  "registeredExtraCases": [
+    "X1"
+  ],
+  "finishedAt": "2026-09-18T02:52:13.383Z",
+  "passed": 1,
+  "failed": 0,
+  "executedPrimaryCaseFamilies": [
+    "P1"
+  ],
+  "executedExtraCases": []
+}

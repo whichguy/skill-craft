@@ -1,0 +1,13 @@
+{
+  "child_phase": "done",
+  "child_cycles": 3,
+  "first_import_exit": 0,
+  "duplicate_import_exit": 0,
+  "duplicate_parent_unchanged": true,
+  "one_new_import": true,
+  "parent_stage": "test-spec",
+  "parent_sha256": "028440999426eab912de508d47a53e73cfbd7e72111924f6b952dc1bb664aa6f",
+  "plan_sha256": "f041dfe2236e44defa2687345c58940a10af110a6997acde62fa1ddbbef2a29c",
+  "feature_files_still_baseline": true,
+  "scope": "Current step-plan+actual child+parent import only; predecessor states synthetic; stop here, no further graph execution claimed."
+}

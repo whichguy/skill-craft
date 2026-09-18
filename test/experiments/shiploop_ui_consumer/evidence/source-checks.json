@@ -1,0 +1,36 @@
+{
+  "recorded_at": "2026-09-18T02:47:39.839592+00:00",
+  "checks": [
+    {
+      "command": "python3 -B test/shiploop-discovery.test.py",
+      "passed": 27,
+      "returncode": 0
+    },
+    {
+      "command": "python3 -B test/shiploop-reference-routing.test.py",
+      "passed": 8,
+      "returncode": 0
+    },
+    {
+      "command": "python3 -B test/shiploop-navigator-v3.test.py",
+      "passed": 19,
+      "returncode": 0
+    },
+    {
+      "command": "python3 -B test/shiploop-actual-improve-cli.test.py",
+      "passed": 4,
+      "returncode": 0
+    }
+  ],
+  "total_passed": 58,
+  "package_parity": {
+    "command": "bash scripts/sync-plugin-views.sh --check shiploop",
+    "returncode": 0
+  },
+  "source_files": {
+    "skills/shiploop/references/testing-and-documentation.md": "905c17b98c644e3e8e1bdc38bc6ac2b38013d36678b238a5fcb8784c9c3a381b",
+    "skills/shiploop/references/behavioral-requirements.md": "d54244700a30d4402ac8ae992cde5d6df1104363c3e92ef6b8d1ea1ecafa4bf1",
+    "skills/shiploop/scripts/shiploop_navigator_v3_prompts.py": "166823bcc7dc2fab64c65622a22aa6bff8011dd76e1dfc7b4624982627c9074f"
+  },
+  "basis": "Actual tools executed and observed this turn; compact owner record, not a fresh execution wrapper."
+}

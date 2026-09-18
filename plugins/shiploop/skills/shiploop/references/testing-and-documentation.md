@@ -28,6 +28,12 @@ or reconciliation. Planning reviews proposed checks; later execution records
 actual results and unresolved gaps. These checks use the existing stage and
 Improve handoff, not a new campaign.
 
+When correctness depends on ordering or interruption, control the operation's
+release or retain a trace showing the required intermediate states in order.
+An arbitrary delay followed by an eventual-state assertion does not prove that
+the intended interleaving occurred. Bound waits and release any held work during
+teardown, including when an assertion fails.
+
 ## Managed Improve checkpoints
 
 This section applies only when the current packet is a managed Improve child

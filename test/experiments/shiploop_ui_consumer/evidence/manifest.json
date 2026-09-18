@@ -1,0 +1,30 @@
+{
+  "format": "shiploop-ui-publication-evidence/v1",
+  "scope": "Content-only copies of observed results. Machine-local roots are tokenized for publication; original file digests are retained separately. Screenshots and full runtime logs are not bundled. Rerun the README commands for current executable evidence.",
+  "path_tokens": {
+    "<workspace>": "original skill-craft checkout",
+    "<study-root>": "original bounded UI consumer temporary study",
+    "<home>": "original host home",
+    "<temporary>": "original host temporary directory"
+  },
+  "source_record_sha256": {
+    "premature-import-result.json": "84a801b3691f693c4aa85b079abf7eb72ada92754768b2ab8d6a581c13922e3f",
+    "actual-handoff-result.json": "9aeb1e619e58be359ff5536c989e0e1ca4c2012e86e35da3f4761559163022cd",
+    "feature-browser-report.json": "71af104caaec2f6944276d6db189e9c7b84d46ce9f4868003a85b21902cbdf20",
+    "independent-feature-review.md": "45441a00ab98d302b2591dace5ba6656523857d4f79e98c71019cf390e870b9d",
+    "guidance-improve-result.json": "c4d81e0130ffffdee40879c8f40fec674a4b8ba53ee35c4860a18d63b6d9bca4",
+    "source-checks.json": "20f0742b7c1fd0d087647f5f88b25612f91a00336541b42dec9e29d22fe2bdf8",
+    "baseline-browser-report.json": "f1551b35ce8a273f5a698c640540b4f065a55b205297a0375a6e583bdb6f75e4",
+    "post-concurrent-change-checks.json": "365dd80c33d58f2a6d644de3879bc83b42f77af29f088add13a01b656caf49f8"
+  },
+  "files": {
+    "premature-import-result.json": "84a801b3691f693c4aa85b079abf7eb72ada92754768b2ab8d6a581c13922e3f",
+    "actual-handoff-result.json": "9aeb1e619e58be359ff5536c989e0e1ca4c2012e86e35da3f4761559163022cd",
+    "feature-browser-report.json": "249d414adadea90a6f5e0cd5f788ac5b8a5558a3f59a74316a0841e9e6315616",
+    "independent-feature-review.md": "45441a00ab98d302b2591dace5ba6656523857d4f79e98c71019cf390e870b9d",
+    "guidance-improve-result.json": "8da251acd3d16616143c4cdbed939d6c2e6e112fc7f85bf7488065b930d8798f",
+    "source-checks.json": "20f0742b7c1fd0d087647f5f88b25612f91a00336541b42dec9e29d22fe2bdf8",
+    "baseline-browser-report.json": "c6855ee0441c6eec2af5c81fda26374865be707a63efc28323b2f8c15f7d6bdd",
+    "post-concurrent-change-checks.json": "365dd80c33d58f2a6d644de3879bc83b42f77af29f088add13a01b656caf49f8"
+  }
+}

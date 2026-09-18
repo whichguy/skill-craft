@@ -1,0 +1,44 @@
+{
+  "reason": "Another task changed shared v3 prompt after previous58-check run; recheck affected suites on current bytes. Prior4 actualImproveCLI checks remain separate.",
+  "recorded_at": "2026-09-18T02:55:00.743855+00:00",
+  "before": {
+    "skills/shiploop/scripts/shiploop_navigator_v3_prompts.py": "b5a9c925a9fb1b30fa199e66169f967d0b74f6ea8c6ea0af08ce71d0bc6383e1",
+    "skills/shiploop/references/behavioral-requirements.md": "d54244700a30d4402ac8ae992cde5d6df1104363c3e92ef6b8d1ea1ecafa4bf1",
+    "skills/shiploop/references/testing-and-documentation.md": "905c17b98c644e3e8e1bdc38bc6ac2b38013d36678b238a5fcb8784c9c3a381b"
+  },
+  "after": {
+    "skills/shiploop/scripts/shiploop_navigator_v3_prompts.py": "b5a9c925a9fb1b30fa199e66169f967d0b74f6ea8c6ea0af08ce71d0bc6383e1",
+    "skills/shiploop/references/behavioral-requirements.md": "d54244700a30d4402ac8ae992cde5d6df1104363c3e92ef6b8d1ea1ecafa4bf1",
+    "skills/shiploop/references/testing-and-documentation.md": "905c17b98c644e3e8e1bdc38bc6ac2b38013d36678b238a5fcb8784c9c3a381b"
+  },
+  "stable": true,
+  "checks": [
+    {
+      "command": [
+        "python3",
+        "-B",
+        "test/shiploop-discovery.test.py"
+      ],
+      "returncode": 0,
+      "output": "...........................\n----------------------------------------------------------------------\nRan 27 tests in 5.716s\n\nOK\n"
+    },
+    {
+      "command": [
+        "python3",
+        "-B",
+        "test/shiploop-reference-routing.test.py"
+      ],
+      "returncode": 0,
+      "output": "test_damaged_packets_and_supporting_responses_remain_non_advancing (__main__.ReferenceRoutingTests.test_damaged_packets_and_supporting_responses_remain_non_advancing) ... ok\ntest_every_prompt_stage_routes_to_existing_package_reference_heading (__main__.ReferenceRoutingTests.test_every_prompt_stage_routes_to_existing_package_reference_heading) ... ok\ntest_every_prompt_stage_routes_to_maintained_requirements_handoffs (__main__.ReferenceRoutingTests.test_every_prompt_stage_routes_to_maintained_requirements_handoffs) ... ok\ntest_maintained_requirements_guides_keep_package_local_links_when_relocated (__main__.ReferenceRoutingTests.test_maintained_requirements_guides_keep_package_local_links_when_relocated) ... ok\ntest_merge_and_coverage_are_the_only_activity_specific_routes (__main__.ReferenceRoutingTests.test_merge_and_coverage_are_the_only_activity_specific_routes) ... ok\ntest_new_activity_guides_have_resolvable_local_links (__main__.ReferenceRoutingTests.test_new_activity_guides_have_resolvable_local_links) ... ok\ntest_normative_markdown_graph_rejects_missing_links_and_keeps_explicit_aliases (__main__.ReferenceRoutingTests.test_normative_markdown_graph_rejects_missing_links_and_keeps_explicit_aliases) ... ok\ntest_safe_orientation_uses_real_optional_references_without_reading_state (__main__.ReferenceRoutingTests.test_safe_orientation_uses_real_optional_references_without_reading_state) ... ok\n\n----------------------------------------------------------------------\nRan 8 tests in 0.807s\n\nOK\n"
+    },
+    {
+      "command": [
+        "python3",
+        "-B",
+        "test/shiploop-navigator-v3.test.py"
+      ],
+      "returncode": 0,
+      "output": "test_cold_recovery_preserves_the_pending_child_binding_without_advancing (__main__.NavigatorV3Tests.test_cold_recovery_preserves_the_pending_child_binding_without_advancing) ... ok\ntest_duplicate_or_conflicting_producer_callback_cannot_create_another_child (__main__.NavigatorV3Tests.test_duplicate_or_conflicting_producer_callback_cannot_create_another_child) ... ok\ntest_every_v3_stage_waits_for_one_actual_improve_completion (__main__.NavigatorV3Tests.test_every_v3_stage_waits_for_one_actual_improve_completion) ... ok\ntest_incomplete_child_and_blocked_producer_do_not_advance_parent (__main__.NavigatorV3Tests.test_incomplete_child_and_blocked_producer_do_not_advance_parent) ... ok\ntest_malformed_bound_skill_fails_with_controlled_recovery_error (__main__.NavigatorV3Tests.test_malformed_bound_skill_fails_with_controlled_recovery_error) ... ok\ntest_outer_replan_adds_corrective_work_without_rewinding_completed_work (__main__.NavigatorV3Tests.test_outer_replan_adds_corrective_work_without_rewinding_completed_work) ... ok\ntest_v3_backchain_planning_guidance_is_scoped_to_selected_stages (__main__.NavigatorV3Tests.test_v3_backchain_planning_guidance_is_scoped_to_selected_stages)\nProducer and actual Improve prompts use the guide only for planning decisions. ... ok\ntest_v3_bound_child_carries_requirement_and_test_locators_through_cold_recovery (__main__.NavigatorV3Tests.test_v3_bound_child_carries_requirement_and_test_locators_through_cold_recovery)\nAssert structural packet propagation, not that a model interpreted the sources. ... ok\ntest_v3_cold_next_retains_requirements_definition_child_context (__main__.NavigatorV3Tests.test_v3_cold_next_retains_requirements_definition_child_context)\nA recovered Improve packet retains the guide and an existing-spec locator. ... ok\ntest_v3_common_and_improve_prompts_preserve_requirements_review_cues (__main__.NavigatorV3Tests.test_v3_common_and_improve_prompts_preserve_requirements_review_cues)\nKeep concise review duties without inventing child state or counters. ... ok\ntest_v3_current_and_cold_child_packets_retain_review_note_recovery_context (__main__.NavigatorV3Tests.test_v3_current_and_cold_child_packets_retain_review_note_recovery_context)\nA selected child retains receipt-reference duties before and after recovery. ... ok\ntest_v3_declares_the_flat_sdlc_graph_independently (__main__.NavigatorV3Tests.test_v3_declares_the_flat_sdlc_graph_independently) ... ok\ntest_v3_initial_baseline_guidance_survives_improve_and_cold_step_plan (__main__.NavigatorV3Tests.test_v3_initial_baseline_guidance_survives_improve_and_cold_step_plan)\nInitial-baseline evidence stays in ordinary records without new graph state. ... ok\ntest_v3_packets_keep_runtime_and_selected_case_evidence_visible (__main__.NavigatorV3Tests.test_v3_packets_keep_runtime_and_selected_case_evidence_visible)\nSynthetic prompt traversal keeps runtime and real-boundary gaps explicit. ... ok\ntest_v3_platform_testing_contract_routes_to_every_test_stage (__main__.NavigatorV3Tests.test_v3_platform_testing_contract_routes_to_every_test_stage)\nThe global choice and each testing checkpoint retain the same guide route. ... ok\ntest_v3_remote_test_routes_keep_local_and_remote_evidence_distinct (__main__.NavigatorV3Tests.test_v3_remote_test_routes_keep_local_and_remote_evidence_distinct)\nRoute remote test assets without treating a local result as their evidence. ... ok\ntest_v3_requirements_definition_duties_stay_in_existing_stages (__main__.NavigatorV3Tests.test_v3_requirements_definition_duties_stay_in_existing_stages)\nExisting discovery, research, and spec nodes cover the new guide duties. ... ok\ntest_v3_requirements_policy_routes_through_unbound_and_bound_improve_recovery (__main__.NavigatorV3Tests.test_v3_requirements_policy_routes_through_unbound_and_bound_improve_recovery)\nBoth child forms retain packet locators before and after cold recovery. ... ok\ntest_v3_test_lifecycle_and_child_handoff_keep_repeatable_suite_boundaries (__main__.NavigatorV3Tests.test_v3_test_lifecycle_and_child_handoff_keep_repeatable_suite_boundaries)\nCheck packet routing and boundaries, without claiming model compliance. ... ok\ntest_v3_test_strategy_requires_repeatable_harness_revalidation_and_suite_tiers (__main__.NavigatorV3Tests.test_v3_test_strategy_requires_repeatable_harness_revalidation_and_suite_tiers)\nThe global strategy chooses rerunnable coverage before item work starts. ... ok\n\n----------------------------------------------------------------------\nRan 20 tests in 0.412s\n\nOK\n"
+    }
+  ]
+}
