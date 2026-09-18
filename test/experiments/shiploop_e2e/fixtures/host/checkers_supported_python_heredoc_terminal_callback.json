@@ -1,0 +1,77 @@
+{
+  "events": [
+    {
+      "rawInput": {
+        "command": "WT=\"/fixture/worktree\"\ngit -C \"$WT\" status --short\nnode -e \"process.exit(0)\"\npython3 - <<'PY'\nfrom pathlib import Path\nPath(\"/fixture/result.json\").write_text(\"plan\")\nPY\npython3 \"__SELECTED_CLI__\" complete --run-dir=/fixture/run --action=fixture-action --result=/fixture/result.json"
+      },
+      "toolCallId": "call-a17279cd-aeb1-404b-b066-654d36d7aa6f-192",
+      "type": "tool_call"
+    },
+    {
+      "rawOutput": {
+        "exitCode": 0
+      },
+      "status": "completed",
+      "toolCallId": "call-a17279cd-aeb1-404b-b066-654d36d7aa6f-192",
+      "type": "tool_call_update"
+    }
+  ],
+  "expectation": {
+    "argv_tail": [
+      "complete",
+      "--run-dir=/fixture/run",
+      "--action=fixture-action",
+      "--result=/fixture/result.json"
+    ],
+    "attribution": "observed",
+    "completed": true,
+    "exit_codes": [
+      0
+    ],
+    "success_observed": true
+  },
+  "id": "checkers-supported-python-heredoc-terminal-callback",
+  "observer": {
+    "grok_adapter_sha256": "98b1161b28ab6e17b528792923ad382c3f38243c570cfdd91ae7924f3a7fd206",
+    "source_edit_policy": "parser-source-mismatch-invalidates-attribution",
+    "previous_grok_adapter_sha256": "3fe86e382d0e01335ceec7882ad70025ac5d3ffe1caec9536bac020a10f040f8",
+    "revalidation": "Protocol-3 callback support added; all five existing golden attribution expectations independently replayed unchanged."
+  },
+  "provenance": {
+    "capture_sha256": "9711d5f6f4d450864c101111ed694356f954ea6dc5b6f278a836ac0d7f2dcacf",
+    "completed_update": {
+      "exit_code": 0,
+      "line": 10945,
+      "sha256": "418edaf97975c588e5aa17b444bf45a0bfeddb8e498bd314a0c8bcd6586049a6",
+      "status": "completed"
+    },
+    "hash_basis": {
+      "capture_sha256": "full events.jsonl byte stream",
+      "tool_call_and_completed_update_sha256": "UTF-8 source JSONL line without its terminal newline"
+    },
+    "kind": "retained-trace",
+    "retained_capture": "shiploop-e2e-20260917-checkers-full-80m/trials/checkers-create/capture/events.jsonl",
+    "shape": {
+      "command_substitution_count": 0,
+      "heredoc_marker_count": 1,
+      "physical_lines": 25,
+      "quoted_python_heredoc": true,
+      "reduced_shape": "ordinary git/node prelude, one quoted Python heredoc, literal complete callback last",
+      "selected_cli_mentions": 8,
+      "terminal_cli_line": true
+    },
+    "tool_call": {
+      "call_id": "call-a17279cd-aeb1-404b-b066-654d36d7aa6f-192",
+      "line": 10938,
+      "sha256": "32af4b8cfa6c2d38ffb8b63f890612008247f89d3672e454752ac36c9fee4498"
+    }
+  },
+  "sanitization": {
+    "absolute_paths_replaced": true,
+    "heredoc_bodies_reduced": true,
+    "prompts_removed": true,
+    "raw_transcript_stored": false,
+    "selected_cli_token": "__SELECTED_CLI__"
+  },
+  "schema": "shiploop-e2e-host-command-shape/v1"
+}

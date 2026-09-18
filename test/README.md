@@ -91,6 +91,33 @@ why starting at HEAD and deleting transient files at the tip were insufficient.
 
 ## Explicit integration targets
 
+### Offline experiment apparatus versus live product verification
+
+The [generalized-discovery study](experiments/shiploop_generalized_discovery/README.md)
+has a hermetic wrapper, `python3 test/shiploop-generalized-discovery.test.py`,
+registered once in the ShipLoop inventory. Its synthetic tests check apparatus
+contracts; they do not reproduce the original model trials. Private raw study
+evidence is not part of the published fixture set.
+
+The [ShipLoop E2E harness](experiments/shiploop_e2e/README.md) separately supports
+offline observer, receipt, game-oracle, and synthetic-host checks:
+
+```sh
+python3 test/experiments/shiploop_e2e/check_suite.py --suite regressions
+python3 -m unittest discover -s test/experiments/shiploop_e2e -p 'test_*.py'
+```
+
+These no-model apparatus checks are independent of live Grok runs. Retained
+external-product cases are explicitly opt-in and reported as skipped when their
+fixtures are unavailable; those skips do not establish product behavior. The
+aggregate full-runtime test also exercises one real protocol-3 intake prefix
+through synthetic host-stream observations. Neither synthetic observations nor
+an offline suite pass proves model compliance, a working hosted game, or a
+deployment. Live host/browser/MCP tests remain explicit authorized experiments,
+not default CI dependencies.
+
+### Host and environment targets
+
 Integration checks never run as a default dependency of the hermetic aggregate.
 Discover their names and requirements before selecting one:
 

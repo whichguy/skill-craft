@@ -27,6 +27,15 @@ SOURCE_SHIPLOOP = ROOT / "skills" / "shiploop"
 SOURCE_IMPROVE = ROOT / "skills" / "improve"
 GENERATED_SHIPLOOP = ROOT / "plugins" / "shiploop" / "skills" / "shiploop"
 GENERATED_IMPROVE = ROOT / "plugins" / "improve" / "skills" / "improve"
+E2E_ROOT = ROOT / "test" / "experiments" / "shiploop_e2e"
+
+if str(E2E_ROOT) not in sys.path:
+    sys.path.insert(0, str(E2E_ROOT))
+
+import capture  # noqa: E402
+import evidence  # noqa: E402
+import grok_adapter  # noqa: E402
+import run as e2e_run  # noqa: E402
 
 
 # This expectation is intentionally independent of the prompt catalog and
@@ -856,6 +865,255 @@ class FullRuntimeCompositionTests(unittest.TestCase):
         )
         self.assertEqual(self.source_fingerprint["shiploop"], _fingerprint(self.source_shiploop))
         self.assertEqual(self.source_fingerprint["improve"], _fingerprint(self.source_improve))
+
+    def test_v3_intake_host_observer_bridge(self) -> None:
+        """Observe one real v3 intake prefix through synthetic host stream records."""
+        observer_root = self.base / "observer bridge"
+        initial = evidence.capture_run_artifacts(
+            [self.unrelated_cwd], observer_root / "initial-artifacts"
+        )
+        executions: list[dict] = []
+        pending_checkpoints: list[dict] = []
+        original_run = self._run
+        original_begin_stage = self._begin_stage
+
+        def record_run(
+            executable: Path, *args: object, code: int = 0
+        ) -> subprocess.CompletedProcess[str]:
+            result = original_run(executable, *args, code=code)
+            executions.append({
+                "argv": list(result.args),
+                "exit_code": result.returncode,
+                "stdout": result.stdout,
+                "stderr": result.stderr,
+            })
+            return result
+
+        def checkpoint_pending(**kwargs: object) -> dict:
+            context = original_begin_stage(**kwargs)
+            capture_root = observer_root / "pending-artifacts"
+            pending_checkpoints.append({
+                "capture": evidence.capture_run_artifacts([context["run"]], capture_root),
+                "execution_count": len(executions),
+            })
+            return context
+
+        self._run = record_run
+        self._begin_stage = checkpoint_pending
+        try:
+            repo, run_dir = self._start_direct(
+                "v3 intake observer bridge", self.source_shiploop, self.source_improve
+            )
+            accepted_state, context = self._accept_stage(
+                shiploop=self.source_shiploop,
+                improve=self.source_improve,
+                repo=repo,
+                run=run_dir,
+                stage="intake",
+            )
+            accepted_capture = evidence.capture_run_artifacts(
+                [run_dir], observer_root / "accepted-artifacts"
+            )
+        finally:
+            self._run = original_run
+            self._begin_stage = original_begin_stage
+
+        self.assertEqual(len(pending_checkpoints), 1, executions)
+        pending_checkpoint = pending_checkpoints[0]
+        pending_navigation = evidence.inspect_run_artifacts(pending_checkpoint["capture"])
+        accepted_navigation = evidence.inspect_run_artifacts(accepted_capture)
+        self.assertEqual(len(pending_navigation["states"]), 1, pending_navigation)
+        self.assertEqual(len(accepted_navigation["states"]), 1, accepted_navigation)
+        pending_state = pending_navigation["states"][0]["state"]
+        captured_accepted_state = accepted_navigation["states"][0]["state"]
+        self.assertEqual(captured_accepted_state, accepted_state)
+        self.assertEqual(pending_state["run_id"], accepted_state["run_id"])
+        self.assertEqual(pending_state["active_improve"]["action_id"], context["action"])
+        self.assertEqual(pending_state["history"], [])
+        self.assertEqual(self._cursor(accepted_state)[0], "discovery")
+        self.assertNotEqual(accepted_state["status"], "done")
+        self.assertEqual(
+            [row["action"] for row in accepted_state["history"]], [context["action"]]
+        )
+        record = accepted_state["improve_results"][context["action"]]
+        self.assertEqual(Path(record["skill"]["skill_card"]), self._card(self.source_improve).resolve())
+        self.assertEqual(Path(record["skill"]["runtime_cli"]), self._until(self.source_improve).resolve())
+
+        pending_count = pending_checkpoint["execution_count"]
+        pending_records = tuple(
+            json.loads(json.dumps(row, sort_keys=True)) for row in executions[:pending_count]
+        )
+        accepted_records = tuple(
+            json.loads(json.dumps(row, sort_keys=True)) for row in executions
+        )
+        self.assertGreater(len(pending_records), 1, pending_records)
+        self.assertGreater(len(accepted_records), len(pending_records), accepted_records)
+        self.assertTrue(all(row["exit_code"] == 0 for row in accepted_records), accepted_records)
+        self.assertTrue(
+            all(isinstance(row["stdout"], str) and isinstance(row["stderr"], str)
+                for row in accepted_records),
+            accepted_records,
+        )
+
+        selected_script = self._script(self.source_shiploop)
+
+        def observed_argv(row: dict) -> list[str]:
+            actual_argv = row["argv"]
+            self.assertEqual(actual_argv[:2], [sys.executable, "-B"], row)
+            return [actual_argv[2], *actual_argv[3:]]
+
+        accepted_argv = [observed_argv(row) for row in accepted_records]
+        completion_indexes = [
+            index
+            for index, argv in enumerate(accepted_argv)
+            if argv[:2] == [str(selected_script), "improve-complete"]
+        ]
+        self.assertEqual(completion_indexes, [len(accepted_argv) - 1], accepted_argv)
+        completion_call_id = f"actual-{completion_indexes[0]}"
+
+        def synthetic_events(
+            records: tuple[dict, ...],
+            *,
+            omit_completion_update: bool = False,
+            duplicate_completion_call: bool = False,
+            omit_completion_exit_code: bool = False,
+            include_terminal_end: bool = True,
+        ) -> list[dict]:
+            events: list[dict] = []
+            for index, row in enumerate(records):
+                call_id = f"actual-{index}"
+                invocation = {
+                    "type": "tool_call",
+                    "toolCallId": call_id,
+                    "toolName": "run_terminal_cmd",
+                    "rawInput": {"argv": observed_argv(row)},
+                    # The envelope is explicit test-only provenance. The actual
+                    # recorded process data remains separate from Grok's input.
+                    "syntheticFromActualProcess": row,
+                }
+                events.append(invocation)
+                if duplicate_completion_call and call_id == completion_call_id:
+                    events.append(json.loads(json.dumps(invocation, sort_keys=True)))
+                if omit_completion_update and call_id == completion_call_id:
+                    continue
+                raw_output = {
+                    "stdout": row["stdout"],
+                    "stderr": row["stderr"],
+                }
+                if not (omit_completion_exit_code and call_id == completion_call_id):
+                    raw_output["exitCode"] = row["exit_code"]
+                events.append({
+                    "type": "tool_call_update",
+                    "toolCallId": call_id,
+                    "status": "completed",
+                    "rawOutput": raw_output,
+                })
+            if include_terminal_end:
+                events.append({"type": "end", "stopReason": "completed"})
+            return events
+
+        def observe(label: str, events: list[dict], navigation: dict) -> tuple[dict, dict]:
+            stream = observer_root / f"{label}.jsonl"
+            stream.write_text(
+                "\n".join(json.dumps(event, ensure_ascii=False, sort_keys=True) for event in events) + "\n",
+                encoding="utf-8",
+            )
+            output = observer_root / f"{label}-capture"
+            captured = capture.capture_process(
+                [
+                    sys.executable,
+                    "-B",
+                    "-c",
+                    (
+                        "import pathlib, sys; "
+                        "sys.stdout.write(pathlib.Path(sys.argv[1]).read_text(encoding='utf-8'))"
+                    ),
+                    str(stream),
+                ],
+                self.unrelated_cwd,
+                output,
+                10,
+                env=self.environment,
+            )
+            self.assertEqual(captured["exit_code"], 0, captured)
+            self.assertFalse(captured["timed_out"], captured)
+            self.assertIsNone(captured["capture_error"], captured)
+            summary = grok_adapter.summarize_events(output / "events.jsonl", selected_script)
+            lifecycle = e2e_run.lifecycle_observation(
+                summary, navigation, accepted_state["prompt"], repo, initial
+            )
+            return summary, lifecycle
+
+        valid_summary, valid_lifecycle = observe(
+            "valid-prefix", synthetic_events(accepted_records), accepted_navigation
+        )
+        self.assertTrue(valid_summary["terminal_end_observed"], valid_summary)
+        self.assertTrue(valid_lifecycle["complete"], valid_lifecycle)
+        self.assertEqual(valid_lifecycle["protocol_version"], 3)
+        self.assertEqual(valid_lifecycle["run_id"], accepted_state["run_id"])
+        self.assertEqual(valid_lifecycle["callback_commands"], ["improve-complete"])
+        self.assertEqual(valid_lifecycle["accepted_action_count"], 1)
+        self.assertEqual(valid_lifecycle["observed_callback_count"], 1)
+        self.assertEqual(valid_lifecycle["missing_callback_actions"], [])
+
+        producer_summary, producer_lifecycle = observe(
+            "producer-only", synthetic_events(pending_records), pending_navigation
+        )
+        self.assertTrue(producer_summary["tool_completion_completed"], producer_summary)
+        self.assertFalse(producer_lifecycle["complete"], producer_lifecycle)
+        self.assertEqual(producer_lifecycle["accepted_action_count"], 0)
+        self.assertEqual(producer_lifecycle["missing_callback_actions"], [])
+
+        missing_update_summary, missing_update_lifecycle = observe(
+            "missing-completion-update",
+            synthetic_events(accepted_records, omit_completion_update=True),
+            accepted_navigation,
+        )
+        missing_update_call = next(
+            call for call in missing_update_summary["cli_calls"]
+            if call["call_id"] == completion_call_id
+        )
+        self.assertFalse(missing_update_call["completed"], missing_update_summary)
+        self.assertFalse(missing_update_lifecycle["complete"], missing_update_lifecycle)
+        self.assertEqual(missing_update_lifecycle["missing_callback_actions"], [context["action"]])
+
+        duplicate_summary, duplicate_lifecycle = observe(
+            "duplicate-tool-event",
+            synthetic_events(accepted_records, duplicate_completion_call=True),
+            accepted_navigation,
+        )
+        self.assertFalse(duplicate_lifecycle["complete"], duplicate_lifecycle)
+        self.assertEqual(duplicate_lifecycle["accepted_action_count"], 1)
+        self.assertEqual(duplicate_lifecycle["missing_callback_actions"], [context["action"]])
+        self.assertIn(completion_call_id, duplicate_lifecycle["ambiguous_tool_call_ids"])
+        self.assertEqual(
+            [call["call_id"] for call in duplicate_summary["cli_calls"]].count(completion_call_id), 2,
+            duplicate_summary,
+        )
+
+        missing_end_summary, missing_end_lifecycle = observe(
+            "missing-terminal-end",
+            synthetic_events(accepted_records, include_terminal_end=False),
+            accepted_navigation,
+        )
+        self.assertFalse(missing_end_summary["terminal_end_observed"], missing_end_summary)
+        self.assertTrue(missing_end_lifecycle["complete"], missing_end_lifecycle)
+        self.assertEqual(missing_end_lifecycle["accepted_action_count"], 1)
+        self.assertEqual(missing_end_lifecycle["observed_callback_count"], 1)
+
+        unknown_exit_summary, unknown_exit_lifecycle = observe(
+            "unknown-completion-exit",
+            synthetic_events(accepted_records, omit_completion_exit_code=True),
+            accepted_navigation,
+        )
+        unknown_exit_call = next(
+            call for call in unknown_exit_summary["cli_calls"]
+            if call["call_id"] == completion_call_id
+        )
+        self.assertTrue(unknown_exit_call["completed"], unknown_exit_summary)
+        self.assertEqual(unknown_exit_call["exit_codes"], [], unknown_exit_summary)
+        self.assertFalse(unknown_exit_lifecycle["complete"], unknown_exit_lifecycle)
+        self.assertEqual(unknown_exit_lifecycle["missing_callback_actions"], [context["action"]])
 
     def test_generated_payload_binds_its_own_selected_improve_runtime(self) -> None:
         """A copied generated payload must not fall back to an ambient skill path."""

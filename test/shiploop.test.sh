@@ -37,6 +37,7 @@ suites=(
   test/shiploop-discovery.test.py \
   test/shiploop-capability-fixture.test.py \
   test/shiploop-capability-runtime.test.py \
+  test/shiploop-generalized-discovery.test.py \
   test/shiploop-capability-async.test.cjs \
   test/shiploop-system-context.test.py \
   test/shiploop-research-template.test.py \
