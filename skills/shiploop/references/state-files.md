@@ -1,5 +1,10 @@
 # Durable run files (`.shiploop/`)
 
+This catalog describes retained managed/legacy protocols. For navigator v3,
+use the [navigator guide](navigator.md) and the packet's actual run/child locations.
+Neither catalog replaces the repository's
+[maintained product requirements](project-knowledge.md#maintained-product-requirements).
+
 Everything below belongs to a run directory, normally `<repo>/.shiploop`,
 not to the installed ShipLoop package. Markdown is the authoritative state.
 Each structured record has one `shiploop-state` JSON fence inside its Markdown
@@ -32,7 +37,7 @@ file. There is no writable JSON mirror.
 | `step-planning/<loop>/passes/<pass>.md` | A completed nested plan pass with its review rubric, context evidence, revisions, checks, and audit-commit binding. A fresh packet does not load all passes. |
 | `step-planning/<loop>/abandoned/<pass>.md` | An interrupted, repaired, or `no-contract-change`-disposed nested pass retained with its reason and material outcome; it does not count toward convergence. |
 | `step-planning/<loop>/certificate.md` | Fresh-finalization proof for the exact step plan: candidate/ledger, accepted planning checks, audit history, and whether it released `implement` or `improve-apply`. |
-| `spec.md` | Checkable `done_sentence:` and `checkable: true`; promoted product contract only after spec-loop finalization. |
+| `spec.md` | Checkable `done_sentence:` and `checkable: true`; frozen current-run contract only after spec-loop finalization, not the sole cross-run product requirements home. |
 | `lifecycle.md` | Whether preparation, quality, and publication belong in the DAG or outer loop, plus acceptance criteria, rationale and versioned `risk_policy` decisions. |
 | `plan.md` | Human-readable sequence plan, including matching `done_sentence:` and the bound Review Coverage section. |
 | `backchain/plan.md` | Canonical dependency DAG in a Markdown record. The JSON fence is authoritative for steps, dependencies, prompts, produces, and unresolved facts. |

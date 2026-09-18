@@ -5,14 +5,28 @@ requirements within existing stages, not new CLI fields or semantic guarantees.
 Reuse repository conventions and available tools; do not install a framework or
 create a service just to satisfy a test-category label.
 
-Before execution, the [planning loops](planning-loops.md) repeatedly review case
-expectations and run lint/tests of the research/behavior/specification artifacts through
-`planning-verify`. Those checks do not certify future product test results.
-Product acceptance remains blocked until its real implementation checks run.
+Before product execution, use the current packet's planning checks. Compatibility
+planning-loop runs repeatedly review case expectations and run lint/tests of the
+research/behavior/specification artifacts through `planning-verify`; a v3 navigator
+uses its `test-strategy`, `plan`, and `step-plan` producer duties, each followed by
+its standalone Improve handoff. Neither route's planning checks certify future product
+test results. Product acceptance remains blocked until its real implementation checks
+run.
 Research tests use the exact `research evidence` acceptance and inspect the
 question/source relationships and asserted contracts; they do not prove that a
 live environment stayed unchanged. See
 [Research evidence and freshness](research-loop.md#evidence-and-freshness).
+
+For affected interactions, follow the shared
+[review and evidence guidance](behavioral-requirements.md#review-evidence-and-reuse).
+Separate event receipt, durable acceptance, processing/state effects and the
+required consumer outcome. Plan independent expected recovery outcomes for
+applicable crash/retry and stale-session boundaries. For UI work, test actual
+rendered behavior, accessibility and meaningful async cues, including reduced
+motion and interruption where applicable; a screenshot cannot establish timing
+or reconciliation. Planning reviews proposed checks; later execution records
+actual results and unresolved gaps. These checks use the existing stage and
+Improve handoff, not a new campaign.
 
 ## Managed Improve checkpoints
 
@@ -207,6 +221,12 @@ support silently discarding obsolete commands. Changes to those contracts
 require explicit corrective planning and compatible executable evidence.
 
 ## Test cases
+
+Use the selected [maintained product requirements](project-knowledge.md#maintained-product-requirements),
+not only the current change's spec. Follow the
+[reference handoff map](project-knowledge.md#reference-handoffs-and-destinations)
+to retain the requirement section, test path/selector and actual result location
+as distinct locators; planned cases and source inspection are not passing evidence.
 
 Define expected behavior before implementation when possible. In the spec, name
 observable acceptance criteria. Before source code, the existing planning result
@@ -411,6 +431,15 @@ entrypoint boundary. Retain that real-boundary check or mark it blocked. Reasses
 the selection after discoveries, and propagate additional work through
 pending-only replanning.
 
+When the original request names a runtime, entry point, or material dependency,
+retain it as a user requirement distinct from verified contracts, observed
+practices, and assumptions. A local fixture or preview can exercise its local
+route, and its route evidence stays separate from target compatibility, but it
+cannot supply a capability absent from the requested target. Delivery outside the
+authorized scope does not by itself make that compatibility non-applicable.
+Establish compatibility with target-compatible source or local evidence where
+possible; otherwise retain the gap as unresolved or blocked.
+
 Environment is separate from test layer. Record the intended local/test/staging/
 deployment role, artifact/version identity, readiness probe, required non-secret
 configuration/role, isolated data, and cleanup. A mock, local server, or staging
@@ -427,6 +456,9 @@ data without appropriate authority and controlled fixtures/cleanup.
 
 Maintain documentation with the changed behavior, before that iteration's final
 checks and commit. Respect the existing language/tooling conventions.
+Keep the [maintained requirements home and incoming links](project-knowledge.md#reference-handoffs-and-destinations)
+consistent with accepted changes; comments and README link to that home rather
+than replacing it with a description of the latest implementation.
 
 For changed public functions/interfaces and non-obvious internal boundaries,
 provide a small, colocated contract: purpose; inputs/preconditions; outputs;
@@ -506,6 +538,11 @@ short stable project navigation/conventions when useful, not run state, secrets,
 raw observations or copied manuals. Link detailed durable knowledge once from
 the existing appropriate index instead of duplicating it.
 
+### Reusable product skills
+
+This content guidance applies across modes; use the current packet's result
+format, not a different protocol's documentation receipt.
+
 Ask whether a reusable repo-local skill would materially help later steps or
 maintenance. Check existing skills first. Record a decision and rationale even
 when the answer is no. Create or update one only for a demonstrated reusable
@@ -523,6 +560,12 @@ A useful local skill documents:
   permission boundaries without embedding credentials or machine-specific IDs;
 - relative references to relevant code, tests and design/environment material,
   with revalidation triggers for volatile assumptions.
+
+When behavior depends on maintained product requirements, link the applicable
+sections using [the reference handoff policy](project-knowledge.md#reference-handoffs-and-destinations).
+Do not copy those clauses into a second skill-owned spec or point a reusable
+product skill at disposable run/worktree paths. Portable skills accept the
+repository/source locators they need as inputs instead of guessing another package.
 
 Expose the skill through an existing repo skill index, README or a short relevant
 AGENTS.md reference, stating when future planners should read it. Name the intended
@@ -581,13 +624,16 @@ silent override. Never relax safety or acceptance to claim simplicity.
    actual tests; run required lint/tests after edits. Update affected README/docs.
    Prefer existing tools and focused cases over checklist-driven test layers.
    Preserve the independent expected outcome and required real-boundary evidence.
-6. **One convergence owner.** A managed Improve child owns its review, plan,
-   apply, check and two-trivial assessment for the bound candidate. ShipLoop
-   owns its parent action, DAG and certificate import. Do not wrap the child's
-   per-iteration plan in another converging Improve loop, count its passes in
-   the parent, or use a legacy callback in parallel. A material change reopens
-   affected evidence; an unavailable mandatory reviewer blocks unless the
-   binding explicitly records an authorized self-review fallback.
+6. **One convergence owner.** A v3 standalone Improve child uses the selected
+   Improve card and its bound Until Loop for review, plan, apply, check and
+   two-trivial assessment within the parent-supplied scope/no-commit constraint.
+   A versioned managed Improve child retains its managed binding for the same
+   ownership boundary. ShipLoop owns its parent action, DAG and certificate
+   import. Do not wrap either child's per-iteration plan in another converging
+   Improve loop, count its passes in the parent, or use a legacy callback in
+   parallel. A material change reopens affected evidence; an unavailable
+   mandatory reviewer blocks unless the binding explicitly records an authorized
+   self-review fallback.
 
 In existing `body`/`plan`, note consequential design choices. During review use
 existing findings; record changes or justified exceptions in `summary`/`learnings`

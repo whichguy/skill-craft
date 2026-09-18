@@ -29,6 +29,13 @@ field-level detail; it adds host duties, not result fields or a second schema.
 Follow [Behavioral requirements](../behavioral-requirements.md) at the section
 selected by the packet: discovery/research first, behavior-model convergence,
 then spec improvement. Product states and flows are not ShipLoop's own stages.
+Use [requirements definition](../requirements-definition.md) within these actions:
+survey locates existing specs and applicable quality conditions; research resolves
+consequential gaps; spec reconciles old and new intent and defines verifiable
+non-functional requirements. Preserve unaffected accepted conditions, let explicit
+current requirements supersede conflicting clauses, and keep material unknowns
+open before dependent work. Review these duties in the existing behavior/spec
+loops; no extra action or result fields are introduced.
 For a cold start, begin with the minimal typed machine record in
 [the survey guide](../survey.md#minimal-valid-local-greenfield-machine-record)
 and adapt it rather than guessing booleans, lists, or conditional fields.

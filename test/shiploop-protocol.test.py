@@ -1188,7 +1188,7 @@ schema or sidecar is needed.
 
         import shiploop_protocol
 
-        expected = {
+        base_routes = {
             "approach": ("discovery-and-research",),
             "survey": ("discovery-and-research",),
             "behavior": ("behavior-model",),
@@ -1218,14 +1218,47 @@ schema or sidecar is needed.
             "quality": ("traceability-and-review",),
             "handoff": ("traceability-and-review",),
         }
-        no_guidance = {
-            "managed-improve",
-            "preflight",
-            "prepare",
+        interaction_routes = {
+            "approach",
+            "survey",
             "research",
             "research-review",
             "research-plan",
             "research-apply",
+            "behavior",
+            "behavior-review",
+            "spec",
+            "spec-review",
+            "sequence",
+            "step-plan",
+            "step-plan-review",
+            "step-plan-revise",
+            "review",
+            "improve-plan",
+            "improve-apply",
+            "quality",
+            "handoff",
+        }
+        requirements_routes = set(base_routes) | interaction_routes | {
+            "test-refine",
+            "test-author",
+        }
+        expected = {
+            stage: (
+                base_routes.get(stage, ())
+                + (
+                    ("actors-channels-and-state-ownership",)
+                    if stage in interaction_routes
+                    else ()
+                )
+                + ("requirements-definition",)
+            )
+            for stage in requirements_routes
+        }
+        no_guidance = {
+            "managed-improve",
+            "preflight",
+            "prepare",
             "research-verify",
             "research-commit",
             "research-finalize",
@@ -1239,19 +1272,30 @@ schema or sidecar is needed.
             "objective-verify",
             "objective-commit",
             "objective-finalize",
-            "step-plan",
-            "step-plan-review",
             "step-plan-disposition",
-            "step-plan-revise",
             "step-plan-verify",
             "step-plan-commit",
             "step-plan-finalize",
             "improve-plan-verify",
-            "test-refine",
-            "test-author",
             "skill-validate",
         }
         self.assertEqual(shiploop_protocol.BEHAVIOR_SECTIONS, expected)
+        self.assertEqual(
+            {
+                stage
+                for stage, sections in shiploop_protocol.BEHAVIOR_SECTIONS.items()
+                if "actors-channels-and-state-ownership" in sections
+            },
+            interaction_routes,
+        )
+        self.assertEqual(
+            {
+                stage
+                for stage, sections in shiploop_protocol.BEHAVIOR_SECTIONS.items()
+                if "requirements-definition" in sections
+            },
+            requirements_routes,
+        )
         self.assertEqual(
             set(shiploop_protocol.PROMPTS), set(expected) | no_guidance
         )

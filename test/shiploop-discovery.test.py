@@ -416,6 +416,7 @@ class InteractionGuidanceTests(unittest.TestCase):
     """Focused contracts for the shared interaction-design guidance locator."""
 
     ANCHOR = "actors-channels-and-state-ownership"
+    REQUIREMENTS_DEFINITION_ANCHOR = "requirements-definition"
     REQUIRED_CLASSIC_STAGES = frozenset(
         (
             "approach",
@@ -431,6 +432,19 @@ class InteractionGuidanceTests(unittest.TestCase):
             "improve-plan",
             "quality",
             "handoff",
+        )
+    )
+    REQUIRED_REQUIREMENTS_DEFINITION_STAGES = frozenset(
+        (
+            "approach",
+            "survey",
+            "research",
+            "research-review",
+            "spec",
+            "spec-review",
+            "step-plan",
+            "test-refine",
+            "test-author",
         )
     )
 
@@ -586,6 +600,211 @@ class InteractionGuidanceTests(unittest.TestCase):
             for term in ("actor interactions", "channels", "state ownership"):
                 self.assertIn(term, improve)
 
+    def test_interaction_guide_has_canonical_shared_and_ui_subsections(self) -> None:
+        """The specialized guidance remains nested under the shared interaction anchor."""
+        text = self.guide.read_text(encoding="utf-8")
+        anchor = text.index("## Actors, channels, and state ownership")
+        next_peer_heading = text.index("\n## Behavior model", anchor)
+        headings = (
+            "Incoming events, connections, and state agreement",
+            "UI-specific planning",
+            "Review, evidence, and reuse",
+        )
+        positions = []
+        for heading in headings:
+            with self.subTest(heading=heading):
+                position = text.find("\n### " + heading + "\n", anchor)
+                self.assertNotEqual(position, -1)
+                self.assertLess(anchor, position)
+                self.assertLess(position, next_peer_heading)
+                positions.append(position)
+        self.assertEqual(positions, sorted(positions))
+
+    def test_v3_step_plan_and_improve_cue_shared_and_ui_interactions(self) -> None:
+        """Routing cues name the applicable concerns without testing design quality."""
+        producer = navigator_v3_prompts.prompt("step-plan").lower()
+        improve = navigator_v3_prompts.improve_prompt("step-plan").lower()
+        for prompt_name, prompt in (("producer", producer), ("improve", improve)):
+            with self.subTest(prompt=prompt_name):
+                for cue in (
+                    "incoming/outgoing events",
+                    "connection lifecycle",
+                    "baseline/delta",
+                    "ui-specific planning",
+                ):
+                    self.assertIn(cue, prompt)
+        for cue in ("design guidance", "fallback", "evidence_refs"):
+            with self.subTest(cue=cue):
+                self.assertIn(cue, producer)
+
+    def test_v3_planning_stages_keep_design_basis_records_stage_local(self) -> None:
+        """Require record-routing cues, not an LLM judgment about their substance."""
+        required_cues = (
+            "Retain a compact Design basis paragraph or exact section links:",
+            (
+                "For UI, include component/interaction/skin premises, selected design "
+                "guidance locator plus identity/version or digest (or named fallback),"
+            ),
+            "evidence_refs; keep these as ordinary notes, not new result fields.",
+        )
+        for stage in ("plan", "step-plan"):
+            with self.subTest(stage=stage):
+                prompt = " ".join(navigator_v3_prompts.prompt(stage).split())
+                for cue in required_cues:
+                    self.assertIn(cue, prompt)
+
+        implementation_prompt = " ".join(
+            navigator_v3_prompts.prompt("implement").split()
+        )
+        self.assertNotIn(required_cues[0], implementation_prompt)
+
+    @staticmethod
+    def _synthetic_improve_record(stage: str) -> dict:
+        """A state-machine fixture only; it makes no review-quality claim."""
+        return {
+            "summary": f"Synthetic Improve completion for {stage}; no runtime executed.",
+            "review_refs": [],
+            "check_refs": [],
+            "lessons": f"Synthetic routing fixture for {stage}.",
+        }
+
+    def _finish_synthetic_v3_step(self, state: dict, **extra: object) -> dict:
+        """Advance one v3 producer through the pure, explicitly synthetic return."""
+        stage = navigator.current_stage(state)
+        action = dict(navigator.current_action(state))
+        waiting = navigator.apply(
+            state,
+            action["id"],
+            {
+                "outcome": "done",
+                "summary": f"Synthetic producer result for {stage}.",
+                **extra,
+            },
+        )
+        return navigator.finish_improve(
+            waiting, action["id"], self._synthetic_improve_record(stage)
+        )
+
+    def _v3_step_plan_state(self, work_item: dict[str, str]) -> dict:
+        """Reach a real v3 step-plan cursor through its regular producer returns."""
+        state = self.navigator_state(3)
+        for stage in ("intake", "discovery", "research", "spec", "test-strategy"):
+            self.assertEqual(navigator.current_stage(state), stage)
+            state = self._finish_synthetic_v3_step(state)
+
+        self.assertEqual(navigator.current_stage(state), "plan")
+        state = self._finish_synthetic_v3_step(state, work_items=[work_item])
+        for stage in ("prepare", "select-work"):
+            self.assertEqual(navigator.current_stage(state), stage)
+            state = self._finish_synthetic_v3_step(state)
+
+        self.assertEqual(navigator.current_stage(state), "step-plan")
+        return state
+
+    def test_cold_v3_step_plan_and_improve_preserve_ui_and_headless_context(
+        self,
+    ) -> None:
+        """Synthetic receipt routing preserves locators and summaries, not their merit."""
+        cases = (
+            {
+                "id": "UI1",
+                "title": "Surface export completion in the existing interface",
+                "source": "docs/ui-notifications.md#export-complete",
+                "decision": (
+                    "UI decision summary: reuse the existing notification component; "
+                    "respect reduced motion and show recovered completion once."
+                ),
+                "design_basis": (
+                    "Design guidance: skills/frontend-design/SKILL.md; "
+                    "version fixture-v1; digest sha256:0123456789abcdef."
+                ),
+            },
+            {
+                "id": "EV1",
+                "title": "Accept report-complete events without a user surface",
+                "source": "docs/events.md#report-complete",
+                "decision": (
+                    "Headless decision summary: deduplicate event IDs, retain accepted "
+                    "state, and recover the subscription cursor after reconnect."
+                ),
+            },
+        )
+        for case in cases:
+            with self.subTest(work_item=case["id"]):
+                work_item = {
+                    "id": case["id"],
+                    "title": case["title"],
+                    "context": "\n".join(
+                        value
+                        for value in (
+                            case["source"],
+                            case["decision"],
+                            case.get("design_basis"),
+                        )
+                        if value
+                    ),
+                }
+                state = self._v3_step_plan_state(work_item)
+                run_root = self.root / ("cold-" + case["id"])
+                run_root.mkdir()
+
+                navigator.save(run_root, state)
+                producer_bytes = (run_root / "state.md").read_bytes()
+                recovered = store.read_record(run_root / "state.md")
+                self.assertEqual(recovered, state)
+                producer_packet = navigator.render(None, run_root, recovered)
+                self.assertEqual((run_root / "state.md").read_bytes(), producer_bytes)
+
+                action = dict(navigator.current_action(recovered))
+                waiting = navigator.apply(
+                    recovered,
+                    action["id"],
+                    {
+                        "outcome": "done",
+                        "summary": "Synthetic step-plan decision: " + case["decision"],
+                        "evidence_refs": [case["source"]],
+                    },
+                )
+                navigator.save(run_root, waiting)
+                pending_bytes = (run_root / "state.md").read_bytes()
+                pending = store.read_record(run_root / "state.md")
+                pending_packet = navigator.render(None, run_root, pending)
+                self.assertEqual((run_root / "state.md").read_bytes(), pending_bytes)
+
+                bound = self.bind_synthetic_v3_child(pending)
+                navigator.save(run_root, bound)
+                bound_bytes = (run_root / "state.md").read_bytes()
+                recovered_bound = store.read_record(run_root / "state.md")
+                bound_packet = navigator.render(None, run_root, recovered_bound)
+                self.assertEqual((run_root / "state.md").read_bytes(), bound_bytes)
+
+                self.assertEqual(navigator.current_stage(recovered_bound), "step-plan")
+                self.assertEqual(
+                    recovered_bound["active_improve"]["action_id"], action["id"]
+                )
+                for packet in (producer_packet, pending_packet, bound_packet):
+                    self.assertIn(self.locator, packet)
+                    self.assertIn(case["source"], packet)
+                    self.assertIn(case["decision"], packet)
+                    if case.get("design_basis"):
+                        self.assertIn(case["design_basis"], packet)
+                self.assertIn("Parent step remains pending", pending_packet)
+                self.assertIn("Load the actual Improve skill selected by this host.", pending_packet)
+                self.assertIn("Selected Improve skill:", bound_packet)
+                self.assertIn("Invoke the selected actual Improve skill for", bound_packet)
+
+    @staticmethod
+    def _resolve_behavior_guide(guidance: list[str], behavior_line: str) -> Path:
+        """Resolve a packet locator whether its directory was factored out or not."""
+        rendered_path = behavior_line.split("read only ", 1)[1].split("#", 1)[0]
+        if Path(rendered_path).is_absolute():
+            return Path(rendered_path)
+        directory_line = next(
+            line for line in guidance if line.startswith("Guidance directory: ")
+        )
+        directory = directory_line.removeprefix("Guidance directory: ")
+        return Path(directory) / rendered_path
+
     def test_classic_protocol_routes_interaction_guidance_for_required_stages(self) -> None:
         self.assertTrue(self.REQUIRED_CLASSIC_STAGES <= set(protocol.BEHAVIOR_SECTIONS))
         core = SimpleNamespace(REF_DIR=self.guide.parent)
@@ -600,20 +819,41 @@ class InteractionGuidanceTests(unittest.TestCase):
                     if line.startswith("Behavior-model guidance: read only ")
                 )
                 self.assertIn("#" + self.ANCHOR, behavior_line)
-                rendered_path = behavior_line.split("read only ", 1)[1].split(
-                    "#", 1
-                )[0]
-                if Path(rendered_path).is_absolute():
-                    resolved = Path(rendered_path)
-                else:
-                    directory_line = next(
-                        line
-                        for line in guidance
-                        if line.startswith("Guidance directory: ")
-                    )
-                    directory = directory_line.removeprefix("Guidance directory: ")
-                    resolved = Path(directory) / rendered_path
-                self.assertEqual(resolved, self.guide)
+                self.assertEqual(
+                    self._resolve_behavior_guide(guidance, behavior_line), self.guide
+                )
+
+    def test_classic_protocol_routes_requirements_definition_for_required_stages(
+        self,
+    ) -> None:
+        """Legacy packets retain the anchored guide at existing spec-related nodes."""
+        self.assertTrue(
+            self.REQUIRED_REQUIREMENTS_DEFINITION_STAGES
+            <= set(protocol.BEHAVIOR_SECTIONS)
+        )
+        self.assertIn(
+            "## Requirements definition", self.guide.read_text(encoding="utf-8")
+        )
+        core = SimpleNamespace(REF_DIR=self.guide.parent)
+        api = {"BEHAVIOR_SECTIONS": protocol.BEHAVIOR_SECTIONS}
+        for stage in sorted(self.REQUIRED_REQUIREMENTS_DEFINITION_STAGES):
+            with self.subTest(stage=stage):
+                self.assertIn(
+                    self.REQUIREMENTS_DEFINITION_ANCHOR,
+                    protocol.BEHAVIOR_SECTIONS[stage],
+                )
+                guidance = packets._guidance_lines(core, stage, api)
+                behavior_line = next(
+                    line
+                    for line in guidance
+                    if line.startswith("Behavior-model guidance: read only ")
+                )
+                self.assertIn(
+                    "#" + self.REQUIREMENTS_DEFINITION_ANCHOR, behavior_line
+                )
+                self.assertEqual(
+                    self._resolve_behavior_guide(guidance, behavior_line), self.guide
+                )
 
 
 class DiscoveryCliTests(unittest.TestCase):

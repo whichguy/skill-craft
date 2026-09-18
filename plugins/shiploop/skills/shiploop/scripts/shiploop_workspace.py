@@ -367,7 +367,7 @@ def _snapshot_tree(repo: Path, root: Path, extras: Sequence[str] = ()) -> str:
         # The copied index retains staged-new/staged-delete information that a
         # HEAD seed loses.  ``add -u`` then replaces it with the exact current
         # working content, all inside the alternate index.
-        result = _git(repo, "add", "-u", "--", ".", env=env, readonly=True)
+        result = _git(repo, "add", "-u", env=env, readonly=True)
         if result.returncode:
             _fail("cannot capture working tree with git add -u")
         for path in extras:

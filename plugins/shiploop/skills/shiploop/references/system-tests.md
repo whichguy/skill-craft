@@ -1,5 +1,12 @@
 # Global system-test catalog
 
+This is the retained managed/legacy catalog contract. Navigator v3 uses its
+[test and outer stages](navigator.md) with ordinary notes/results instead.
+Keep the catalog's run-wide test requirements distinct from the
+[maintained product requirements](project-knowledge.md#maintained-product-requirements):
+cases cite the applicable product clauses, but a derived test view is not a
+second editable product spec or proof that those clauses passed.
+
 `backchain/plan.md` is the authoritative Markdown home for the run-wide
 system-test catalog. It is part of the accepted DAG, not a second workflow,
 test runner, mutable checklist, or authority to deploy. The protocol may derive

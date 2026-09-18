@@ -7,11 +7,13 @@ import copy
 from pathlib import Path
 import re
 import runpy
+import shutil
 import sys
 import tempfile
 from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
+from urllib.parse import unquote, urlsplit
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -27,14 +29,72 @@ import shiploop_protocol as protocol  # noqa: E402
 
 READ_ONLY = ": read only "
 OPTIONAL_REFERENCE = "Reference (optional; "
+NORMATIVE_GUIDE_ROOTS = (
+    Path("SKILL.md"),
+    Path("README.md"),
+    Path("references/project-knowledge.md"),
+    Path("references/requirements-definition.md"),
+    Path("references/navigator.md"),
+    Path("references/backchain-planning.md"),
+    Path("references/testing-and-documentation.md"),
+)
+HISTORICAL_ARTIFACT_DIRECTORIES = frozenset({".shiploop", "experiments", "reports"})
+FENCE_RE = re.compile(r"^[ \t]{0,3}(`{3,}|~{3,})")
+HEADING_RE = re.compile(r"^(#{1,6})[ \t]+(.+?)[ \t]*$")
+HTML_ID_RE = re.compile(
+    r"<[^>]+\bid\s*=\s*(?:\"(?P<double>[^\"]+)\"|'(?P<single>[^']+)'|(?P<bare>[^\s>]+))",
+    re.IGNORECASE,
+)
+MARKDOWN_LINK_RE = re.compile(
+    r"(?<!!)\[[^\]\n]+\]\(\s*(?P<target><[^>\n]+>|[^)\s]+)"
+    r"(?:\s+['\"][^)]*['\"])?\s*\)"
+)
 
 
 def heading_anchor(text: str) -> str:
-    """Match the simple heading IDs used by ShipLoop's package references."""
+    """Match GitHub-style anchors from rendered Markdown heading text."""
     value = text.strip().lower()
-    value = re.sub(r"\s+#+$", "", value)
+    value = re.sub(r"\s+#+\s*$", "", value)
+    value = re.sub(r"!?\[([^\]]*)\]\([^)]+\)", r"\1", value)
+    value = re.sub(r"<[^>]*>", "", value)
+    value = re.sub(r"\\([\\`*{}\[\]()#+\-.!_>])", r"\1", value)
     value = re.sub(r"[^\w\s-]", "", value)
-    return re.sub(r"-+", "-", re.sub(r"\s+", "-", value)).strip("-")
+    return re.sub(r"\s", "-", value).strip("-")
+
+
+def active_markdown_lines(text: str) -> list[tuple[int, str]]:
+    """Return Markdown lines outside fenced examples, which do not create links."""
+    lines: list[tuple[int, str]] = []
+    fence: str | None = None
+    for number, line in enumerate(text.splitlines(), start=1):
+        match = FENCE_RE.match(line)
+        if match:
+            marker = match.group(1)
+            if fence is None:
+                fence = marker
+            elif marker[0] == fence[0] and len(marker) >= len(fence):
+                fence = None
+            continue
+        if fence is None:
+            lines.append((number, line))
+    return lines
+
+
+def markdown_heading_anchors(path: Path) -> set[str]:
+    """Build heading IDs plus explicit HTML anchor aliases in one guide."""
+    occurrences: dict[str, int] = {}
+    anchors: set[str] = set()
+    for _number, line in active_markdown_lines(path.read_text(encoding="utf-8")):
+        for explicit_anchor in HTML_ID_RE.finditer(line):
+            anchors.add(next(value for value in explicit_anchor.groups() if value is not None))
+        match = HEADING_RE.match(line)
+        if not match:
+            continue
+        base = heading_anchor(match.group(2))
+        occurrence = occurrences.get(base, 0)
+        occurrences[base] = occurrence + 1
+        anchors.add(base if occurrence == 0 else f"{base}-{occurrence}")
+    return anchors
 
 
 class ReferenceRoutingTests(unittest.TestCase):
@@ -54,11 +114,80 @@ class ReferenceRoutingTests(unittest.TestCase):
             path.resolve().relative_to(REF_DIR.resolve())
         except ValueError as exc:
             self.fail(f"reference escapes package references: {path} ({exc})")
-        headings = {
-            heading_anchor(match.group(2))
-            for match in re.finditer(r"(?m)^(#{1,6})\s+(.+?)\s*$", path.read_text(encoding="utf-8"))
-        }
+        headings = markdown_heading_anchors(path)
         self.assertIn(anchor, headings, f"missing #{anchor} heading in {path}")
+
+    def local_markdown_links(self, source: Path) -> list[tuple[int, str, str, str]]:
+        """Extract active package-local Markdown-document links from one guide."""
+        links: list[tuple[int, str, str, str]] = []
+        for line_number, line in active_markdown_lines(source.read_text(encoding="utf-8")):
+            for match in MARKDOWN_LINK_RE.finditer(line):
+                raw_target = match.group("target").strip()
+                if raw_target.startswith("<") and raw_target.endswith(">"):
+                    raw_target = raw_target[1:-1]
+                parsed = urlsplit(raw_target)
+                if parsed.scheme or parsed.netloc:
+                    continue
+                relative_path = unquote(parsed.path)
+                fragment = unquote(parsed.fragment)
+                if relative_path and Path(relative_path).suffix.lower() != ".md":
+                    continue
+                if relative_path or fragment:
+                    links.append((line_number, raw_target, relative_path, fragment))
+        return links
+
+    def assert_normative_markdown_graph(self, package_root: Path) -> set[Path]:
+        """Walk the bounded package-owned guide graph and validate each destination."""
+        package_root = package_root.resolve()
+        pending = [package_root / relative for relative in NORMATIVE_GUIDE_ROOTS]
+        visited: set[Path] = set()
+
+        while pending:
+            source = pending.pop().resolve()
+            if source in visited:
+                continue
+            relative_source = source.relative_to(package_root)
+            self.assertTrue(
+                source.is_file(),
+                f"normative ShipLoop guide is absent: {relative_source}",
+            )
+            visited.add(source)
+
+            for line_number, raw_target, raw_path, fragment in self.local_markdown_links(source):
+                destination = (source.parent / raw_path).resolve() if raw_path else source
+                with self.subTest(
+                    source=f"{relative_source}:{line_number}",
+                    target=raw_target,
+                ):
+                    try:
+                        relative_destination = destination.relative_to(package_root)
+                    except ValueError as exc:
+                        self.fail(
+                            "local Markdown link escapes ShipLoop package: "
+                            f"{relative_source}:{line_number} -> {raw_target} ({exc})"
+                        )
+                    if any(
+                        directory in HISTORICAL_ARTIFACT_DIRECTORIES
+                        for directory in relative_destination.parts
+                    ):
+                        continue
+                    self.assertTrue(
+                        destination.is_file(),
+                        "local Markdown destination is absent: "
+                        f"{relative_source}:{line_number} -> {relative_destination}",
+                    )
+                    if fragment:
+                        self.assertIn(
+                            fragment,
+                            markdown_heading_anchors(destination),
+                            "local Markdown fragment is absent: "
+                            f"{relative_source}:{line_number} -> "
+                            f"{relative_destination}#{fragment}",
+                        )
+                    if destination not in visited:
+                        pending.append(destination)
+
+        return {path.relative_to(package_root) for path in visited}
 
     def guidance_references(self, stage: str) -> list[tuple[Path, str, str]]:
         """Parse both direct and shared-``Guidance directory`` packet forms."""
@@ -124,6 +253,24 @@ class ReferenceRoutingTests(unittest.TestCase):
                 )
                 for path, anchor, _line in references:
                     self.assert_reference_resolves(path, anchor)
+
+    def test_every_prompt_stage_routes_to_maintained_requirements_handoffs(self) -> None:
+        expected = (
+            REF_DIR / "project-knowledge.md",
+            "reference-handoffs-and-destinations",
+        )
+        for stage in protocol.PROMPTS:
+            with self.subTest(stage=stage):
+                selected = {
+                    (path, anchor)
+                    for path, anchor, _line in self.guidance_references(stage)
+                }
+                self.assertIn(
+                    expected,
+                    selected,
+                    f"{stage} must route maintained-requirements handoffs",
+                )
+                self.assert_reference_resolves(*expected)
 
     def test_merge_and_coverage_are_the_only_activity_specific_routes(self) -> None:
         routes = {
@@ -210,6 +357,58 @@ class ReferenceRoutingTests(unittest.TestCase):
                             )
                         }
                         self.assertIn(anchor, headings, target)
+
+    def test_maintained_requirements_guides_keep_package_local_links_when_relocated(self) -> None:
+        source_graph = self.assert_normative_markdown_graph(SCRIPTS.parent)
+        with tempfile.TemporaryDirectory(prefix="shiploop-reference-graph-") as raw:
+            relocated_package = Path(raw) / "relocated" / "shiploop"
+            shutil.copytree(SCRIPTS.parent, relocated_package)
+            relocated_graph = self.assert_normative_markdown_graph(relocated_package)
+        self.assertEqual(source_graph, relocated_graph)
+
+    def test_normative_markdown_graph_rejects_missing_links_and_keeps_explicit_aliases(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="shiploop-reference-graph-fixture-") as raw:
+            package_root = Path(raw) / "shiploop"
+            references = package_root / "references"
+            references.mkdir(parents=True)
+            readme = package_root / "README.md"
+            readme.write_text(
+                "# Root\n\n"
+                '<a id="legacy-alias"></a>\n\n'
+                "[alias](#legacy-alias)\n"
+                "[formatted](#p1--frame)\n\n"
+                "## P1 — Frame\n\n"
+                "[child](references/child.md#child)\n",
+                encoding="utf-8",
+            )
+            (references / "child.md").write_text("# Child\n", encoding="utf-8")
+
+            with patch.object(
+                sys.modules[__name__],
+                "NORMATIVE_GUIDE_ROOTS",
+                (Path("README.md"),),
+            ):
+                self.assertEqual(
+                    self.assert_normative_markdown_graph(package_root),
+                    {Path("README.md"), Path("references/child.md")},
+                )
+
+                readme.write_text(
+                    "# Root\n[missing](references/missing.md)\n",
+                    encoding="utf-8",
+                )
+                with self.assertRaisesRegex(
+                    AssertionError,
+                    r"local Markdown destination is absent: README\.md:2 -> references/missing\.md",
+                ):
+                    ReferenceRoutingTests().assert_normative_markdown_graph(package_root)
+
+                readme.write_text("# Root\n[missing](#absent)\n", encoding="utf-8")
+                with self.assertRaisesRegex(
+                    AssertionError,
+                    r"local Markdown fragment is absent: README\.md:2 -> README\.md#absent",
+                ):
+                    ReferenceRoutingTests().assert_normative_markdown_graph(package_root)
 
     def test_damaged_packets_and_supporting_responses_remain_non_advancing(self) -> None:
         with tempfile.TemporaryDirectory(prefix="shiploop-reference-routing-") as raw:

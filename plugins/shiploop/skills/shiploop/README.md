@@ -212,7 +212,7 @@ repository conventions. No particular environment-document filename is required.
 | Existing phase | Cross-run responsibility |
 | --- | --- |
 | Intake and discovery | Read README/AGENTS, the index if present, relevant environment/decision documents and known prior-run artifacts. Verify applicability against current code/targets; record reused facts, sources, stale facts and gaps. A missing index does not mean an empty repo. |
-| Discovery Improve, research/specification | Challenge the context assessment and resolve consequential unknowns. Preserve current scope instead of importing old requirements. |
+| Discovery Improve, research/specification | Challenge the context assessment and resolve consequential unknowns. Preserve applicable accepted product conditions without replaying old task scope. |
 | Overall and step planning, their Improve campaigns | Plan only the new delta from verified existing behavior; reference applicable persistent decisions and new checks in work-item context. |
 | Document and carry-forward | Incrementally update reusable knowledge and its index; keep observed facts, proposed changes and pending outer work distinct. |
 | Handoff | Reconcile knowledge with final outcomes, retain provenance and relevant run/report locators, and verify useful knowledge survives beyond temporary run notes. |
@@ -231,6 +231,93 @@ knowledge and judge applicability. Packet locators and synthetic routing tests
 do not prove an LLM consulted the files or that historical remote facts are current.
 From the source checkout, run `python3 test/shiploop-cross-run.test.py` for the
 focused regression checks.
+
+## Product requirements that survive every feature run
+
+```mermaid
+flowchart LR
+  A[New feature request] --> B[Read maintained product requirements]
+  B --> C[Plan explicit delta and retained conditions]
+  C --> D[Implement and test against intent]
+  D --> E[Assigned Improve reviews drift]
+  E --> F[Update durable contract and evidence]
+  F --> B
+```
+
+The current request defines the **change**; it does not erase unrelated accepted
+behavior. The first run establishes or locates the maintained product contract.
+Every later run reads the relevant contract and cross-cutting conditions, even
+when old run folders and conversations are unavailable. A first ShipLoop run
+against an existing product documents only the touched scope rather than
+inventing a new whole-system specification from code.
+
+| Material | Home and authority |
+| --- | --- |
+| Accepted logical requirements | Reuse the existing maintained spec, requirements, API or policy document. If none is suitable, use **`docs/requirements.md`**. An existing tiny README contract is sufficient; do not create a duplicate. |
+| Project introduction | README summarizes the product and links to its contract. It is the front door, not another copy of detailed requirements. |
+| Recovery/discovery index | `SHIPLOOP.md` links to the actual requirements home and other lasting knowledge. No new state cursor or duplicated spec. |
+| Implementation and evidence | Code and concise comments explain how/why; tests check independent expected outcomes. Passing code/tests cannot redefine approved intent. |
+| This change's execution | Run-local spec, plan, prompts and receipts remain historical or recovery records. They must not be the only home of a condition needed by future runs. |
+
+Keep observable behavior, invariants, state transitions, negative cases and
+material constraints with stable headings/IDs, short rationale/change sources,
+and test pointers. Distinguish accepted intent from design choices, proposals,
+observed behavior and verification status. Reasonable defaults can be chosen
+within scope without being mislabeled as explicit user requirements.
+Review **preserve / add / modify / retire** for affected
+conditions; keep unrelated sections and meaningful subclauses intact. No new
+formal schema, required database, DAG node or duplicate Improve loop is added.
+
+[Requirements definition](references/requirements-definition.md) is an explicit
+activity within discovery, research, and spec. It screens relevant performance,
+reliability, security/privacy, accessibility, compatibility, operations, and
+maintainability conditions; records operating conditions and observable criteria;
+and maps new and preserved requirements to verification. Existing specs and
+policies remain the baseline. Current explicit user instructions supersede only
+conflicting older clauses; silence preserves unaffected conditions. Missing
+targets remain open rather than becoming invented defaults. Navigator packets
+and the managed spec guide both expose this guidance for fresh and resumed work.
+
+For example, a notes app may require "confirm deletion; cancel leaves the note
+and list unchanged." A later search feature must retain both clauses. A request
+to preserve notes across refresh deliberately replaces an earlier reset rule,
+but does not remove deletion safeguards or local-only privacy. A test that passes
+while deleting immediately is a conflict to investigate, not permission to
+rewrite the requirement. Missing consequential intent stays a visible gap.
+
+Existing spec/planning, test, document/carry-forward, acceptance and handoff
+stages perform this work. Their assigned **actual Improve** campaigns review
+drift within the candidate's scope. Shared navigator packets, including fresh
+and recovered Improve handoffs, print the
+[Maintained requirements policy](references/project-knowledge.md#maintained-product-requirements).
+Hosts retain requirement/test locators in work-item context and child notes;
+scripts provide routes, not proof that a model read or preserved every condition.
+Keep maintained docs in the product return, outside transient run storage, so
+the next invocation can recover intent without replaying the previous request.
+
+### Correlated references across skills and prompts
+
+The [reference handoff map](references/project-knowledge.md#reference-handoffs-and-destinations)
+names each artifact's home, writer and downstream readers. It distinguishes
+package guidance from product requirements, current-run notes and Improve child
+state. Current navigator packets and compatibility action guidance route to this
+same map; they do not invent another requirements registry.
+
+For example, when the accepted rule lives in `docs/product-rules.md#deletion`,
+planning retains that section and its test selector in work-item context. The
+producer includes those locators and relevant run evidence in `evidence_refs`;
+the host passes them into the selected Improve skill's existing contract prose
+and review notes. Its bound Until Loop runtime persists that contract for child
+recovery. ShipLoop imports completion evidence, not a new product specification.
+This last transfer is a host duty, not an automatic semantic guarantee.
+
+[Backchain planning guidance](references/backchain-planning.md#navigator-planning)
+uses the same outcome/source/test mapping in the relevant v3 planning and review
+packets. It is the packaged adaptation, not a second standalone planning run.
+Keep product-document links portable across worktree return; verify destination
+files and anchors, distinguish planned tests from evidence, and repair affected
+links together when an authorized change moves a destination. Improve/Until Loop
+remain standalone skills; neither acquires a dependency on ShipLoop's filenames.
 
 ## Per-item navigator ownership
 

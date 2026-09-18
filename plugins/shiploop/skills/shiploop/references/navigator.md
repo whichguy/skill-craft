@@ -88,6 +88,14 @@ releases the next graph edge.
 An explicit relative `--improve-skill` locator is made absolute at initialization,
 so a later shell cwd cannot change which card the checkpoint selects.
 
+Every packet prints the shared
+[reference handoff policy](project-knowledge.md#reference-handoffs-and-destinations).
+Use its explicit package/repository/run/child roots for requirement and test
+locators. Before invoking actual Improve, the host must retain relevant producer
+and work-item references in the child's existing contract prose and review notes;
+the parent packet alone does not populate that contract. Relevant planning
+packets also select the [Backchain adaptation](backchain-planning.md#navigator-planning).
+
 The retained v2 result example below applies only to a v2 packet:
 
 ````markdown

@@ -6930,6 +6930,15 @@ for _interaction_stage in (
     )
 
 
+# Retain requirements guidance in cold compatibility packets, including the
+# test-authoring actions that do not otherwise select a behavior-model section.
+for _requirements_stage in (*BEHAVIOR_SECTIONS, "test-refine", "test-author"):
+    BEHAVIOR_SECTIONS[_requirements_stage] = (
+        *BEHAVIOR_SECTIONS.get(_requirements_stage, ()),
+        "requirements-definition",
+    )
+
+
 # Planning convergence is a separate durable loop.  Packets page only the
 # section needed by the active action instead of loading its full guide.
 PLANNING_SECTIONS = {

@@ -213,6 +213,15 @@ Later steps consume that output rather than substituting a generic template.
 When the surface calls a service, HTML/page-side call conventions belong in
 Client–service invocation, not as a later implementation guess.
 
+Apply the shared [UI-specific planning](behavioral-requirements.md#ui-specific-planning)
+guidance when selecting available design guidance and recording component,
+interaction and skin premises. Inspect existing design and code first; the early
+design output may preserve a sound premise and specify its incremental delta.
+Retain host-compatible toolkit and async/state decisions with source locators.
+Machine-originated interactions also use the shared
+[interaction contract](behavioral-requirements.md#actors-channels-and-state-ownership),
+whether or not a human-facing surface exists.
+
 ## Freeze discipline
 
 Research extends the survey evidence before behavior/spec. Accepting the survey

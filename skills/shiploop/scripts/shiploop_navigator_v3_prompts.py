@@ -55,6 +55,7 @@ OUTER = (
 STAGES = PRELUDE + INNER + OUTER
 
 
+
 PROGRESS_REPORTING = """\
 Progress: report the saved Done / Current / Pending / Blocked snapshot at
 start/recovery and material milestones.  Only the current owner reports overall
@@ -79,19 +80,76 @@ claims.  Keep scope, target authority, artifact identity, operation effects, and
 consumer behavior distinct.  A missing prerequisite, permission, access, or
 trustworthy check is unresolved or blocked; it is not a successful N/A.
 
-During discovery, spec development, global planning and step planning, use the
-packet's Interaction design guide to identify relevant actors, interaction
-directions, channels, and state ownership. Choose the simplest suitable mechanism,
-preferring existing capabilities for this request and environment; a hosted UI
-does not imply server state for each action. Retain decision/evidence locators in
-existing notes and affected work-item context for later planning and Improve reviews.
+Requested runtime / entry point / material dependency: preserve each original
+user requirement, and distinguish it from a verified contract, observed practice,
+or assumption in the existing notes/results. Record local-test-route evidence
+separately from target compatibility. A local fixture or preview cannot supply a
+target capability absent from the requested runtime. Delivery outside the present
+scope does not by itself make requested-runtime compatibility N/A. Establish
+compatibility with target-compatible source or local evidence where possible;
+otherwise keep the gap unresolved.
+
+Follow the packet's Maintained requirements policy. Read the applicable accepted
+product requirements, including preserved and cross-cutting conditions, from
+their repository-owned home; a new request changes scope without erasing
+unaffected rules. Carry requirement and test locators into work-item context.
+Do not infer approved intent from code/tests or silently relax a condition to
+match them. Keep proposals and verification gaps distinct from accepted intent.
+Follow the packet's Reference handoff policy: distinguish package guidance,
+repository-owned requirements/tests and run-local evidence. Resolve and verify
+the selected file/section against its named root; retain exact applicable
+locators for downstream work, not merely a link to this policy.
+Use the packet's Requirements definition guide to reconcile existing specs and
+define applicable non-functional requirements. Current explicit user instructions
+supersede conflicting older clauses; preserve unaffected conditions and retain
+clarification, requirement, and verification locators for cold recovery.
+Later clarifications must be actual user instructions for this same request with
+their durable user-source/decision basis; an unverified host summary is not an
+instruction. Use the active correction/revision route for affected frozen contracts.
+
+During discovery, research, spec development, global planning and step planning,
+use the packet's Interaction design guide and its incoming-events, UI-specific planning
+and review sections as applicable. Identify actors, channels, incoming/outgoing events,
+connection lifecycle and state ownership; retain the existing baseline/delta.
+For affected UI, read and apply suitable available design guidance before consequential
+decisions; record its identity/version or digest, or the repository-guidance fallback.
+Establish or preserve component, interaction and skin premises, truthful async feedback
+and deployment fit. Prefer existing capabilities; no UI does not skip applicable
+machine interactions. Put exact relevant source/section locators and short decisions
+in each affected work-item context and evidence_refs, including planned check locators,
+for cold recovery and the normal Improve handoff; do not start a nested review.
 
 Return the packet's concise producer result with a truthful outcome, summary,
-and useful evidence locators.  A justified N/A is still an output that states
+and useful evidence locators. For relevant product work, include the selected
+maintained requirement sections and test/evidence locators in the result's
+existing evidence_refs so the next Improve packet can recover them. If a required
+source is missing, report the gap rather than inventing a locator or omitting it.
+A justified N/A is still an output that states
 what was assessed and why it does not apply.  Do not embed an Improve review
 campaign in this result: every producer attempt result is followed by a separate
 actual Improve-skill handoff before this graph can advance.
 """
+
+
+SELECTED_CASE_RECONCILIATION = """\
+Selected-case reconciliation: in the existing plan/results, classify every
+selected case as passed, failed, blocked, not-run, or justified N/A, preserving
+required gaps. Source, HTTP, or DOM structure alone cannot close a selected
+rendered interaction; retain the observed rendered action/outcome or leave it
+incomplete.
+"""
+
+
+RECONCILIATION_STAGES = frozenset(
+    {
+        "verify",
+        "integration-verify",
+        "system-test",
+        "product-acceptance",
+        "release-verify",
+        "handoff",
+    }
+)
 
 
 IMPLEMENTATION_CONSTITUTION = """\
@@ -135,6 +193,8 @@ examples, relevant MCP/API contracts, and reusable skills/libraries.  Separate
 binding requirements, observed practices, and proposals; record source-backed
 facts, conflicts, and consequential gaps without installing or provisioning
 anything.
+Locate existing specs and quality policies, establish their scope/status, and
+screen applicable non-functional requirements using the Requirements definition guide.
 """,
     "research": """\
 Resolve material unknowns with repository, primary-interface, or otherwise
@@ -143,6 +203,8 @@ affected requirement, consumer, prerequisite, reuse choice, and verification
 need.  Assess relevant skills, MCP servers, libraries, and environment patterns
 for actual fit and support; discovery alone is not successful use or authority to
 install a dependency.  Leave unsupported questions open.
+Research consequential quality-target and feasibility unknowns from existing
+contracts and appropriate evidence; measured baselines do not choose user policy.
 """,
     "spec": """\
 Define the required behavior, boundaries, acceptance criteria, nonfunctional
@@ -150,6 +212,13 @@ expectations, error behavior, and user/consumer outcomes.  State independent
 positive, failure, and boundary expectations before coding.  Preserve approved
 scope and mark unresolved prerequisites or user decisions explicitly rather than
 hiding them in implementation detail.
+Reconcile the delta with maintained product requirements: preserve, add, modify,
+or retire affected conditions with their request/decision basis. Retain accepted
+intent outside transient run notes, with pending implementation/checks explicit.
+Complete the Requirements definition guide's non-functional assessment: record
+operating conditions, measurable bounds or observable criteria, verification
+methods, justified exclusions, and material unresolved targets. Do not invent
+targets or declare dependent work ready with material requirement conflicts open.
 """,
     "test-strategy": """\
 Create a risk-based test and verification strategy from the specification before
@@ -158,6 +227,8 @@ negative cases, fixtures/data, environment and authorization needs, and the
 owner/boundary for each required check.  Distinguish planned checks from executed
 evidence and identify meaningful expected-RED controls where test-first work is
 applicable.
+Map applicable new and preserved non-functional criteria to checks and their
+environment/workload prerequisites; missing evidence or access is not N/A.
 """,
     "plan": """\
 Create a dependency-aware delivery plan from desired outcomes back to required
@@ -166,6 +237,17 @@ and release work so consumers do not run before their prerequisites.  Define
 ready/done conditions, candidate scope, check evidence, authority boundaries,
 and correction routes.  Do not use the plan to imply unrun tests or authorized
 external operations.
+For affected interactions, recheck the guide's relevant subsections instead of
+copying the prior plan unchecked. Retain a compact Design basis paragraph or
+exact section links: baseline/delta; state/event/connection agreements and planned
+recovery checks (including a crash after acknowledgment but before processing
+accepted work where applicable); and source/check locators. For UI, include component/interaction/skin
+premises, selected design guidance locator plus identity/version or digest (or
+named fallback), and meaningful async cues with their purpose and reduced-motion
+alternative, or an explicit static choice. The next review is the packet's
+automatic Improve handoff immediately after this producer result, before
+implementation. Do not schedule a review stage or claim it ran. Link this plan in
+evidence_refs; keep these as ordinary notes, not new result fields.
 """,
     "prepare": """\
 Prepare or verify the approved development/test environment and prerequisites.
@@ -186,6 +268,17 @@ and interfaces, behavior and failure cases, tests/fixtures/commands, existing
 conventions and reusable capabilities, diagnostic/error-handling obligations,
 documentation changes, integration impact, and required checks.  Revalidate
 environment, skill/MCP/library, and project-practice choices for this exact item.
+For affected interactions, recheck the guide's relevant subsections instead of
+copying the prior plan unchecked. Retain a compact Design basis paragraph or
+exact section links: baseline/delta; state/event/connection agreements and planned
+recovery checks (including a crash after acknowledgment but before processing
+accepted work where applicable); and source/check locators. For UI, include component/interaction/skin
+premises, selected design guidance locator plus identity/version or digest (or
+named fallback), and meaningful async cues with their purpose and reduced-motion
+alternative, or an explicit static choice. The next review is the packet's
+automatic Improve handoff immediately after this producer result, before
+implementation. Do not schedule a review stage or claim it ran. Link this plan in
+evidence_refs; keep these as ordinary notes, not new result fields.
 """,
     "test-spec": """\
 Specify executable tests before production edits when applicable.  Map the item
@@ -246,6 +339,9 @@ from observed implementation and test results.  Keep public/error/debug behavior
 accurate, concise, and discoverable.  Promote durable facts and lessons into the
 appropriate repository documentation rather than leaving them only in transient
 run notes; preserve uncertainty and material caveats.
+Reconcile maintained requirements with accepted changes, not merely observed code:
+preserve unaffected conditions and link tests/evidence or unresolved gaps. Update
+README/index links to the authoritative home without duplicating its contract.
 """,
     "skill-assess": """\
 Assess whether an existing skill, helper, MCP capability, library pattern, or
@@ -369,7 +465,7 @@ IMPROVE_SCOPES = {
     "intake": "the scope, authority, consumer, and unanswered-question record",
     "discovery": "repository/environment facts, conventions, reuse findings, and material gaps",
     "research": "source-backed conclusions, uncertainty, and reuse recommendations",
-    "spec": "behavior, acceptance, failure boundaries, and consumer outcomes",
+    "spec": "behavior, acceptance, non-functional criteria, existing-spec reconciliation, failure boundaries, and consumer outcomes",
     "test-strategy": "independent test/risk strategy and required test boundaries",
     "plan": "dependency plan, readiness/done conditions, and correction routes",
     "prepare": "environment readiness evidence or its justified N/A disposition",
@@ -422,6 +518,16 @@ IMPLEMENTATION_STAGES = frozenset(
 )
 
 
+BACKCHAIN_STAGES = frozenset({"spec", "plan", "step-plan", "carry-forward", "product-acceptance"})
+BACKCHAIN_GUIDANCE = """\
+Follow the packet's Backchain planning guide for this stage's scoped outcome,
+prerequisite and consumer review. Carry selected requirement sections and test
+locators through the plan and existing result/context fields. This is the
+packaged reasoning adaptation, not a standalone Backchain invocation, another
+state machine, or permission to import a different protocol's result schema.
+"""
+
+
 def _require_stage(stage: str) -> None:
     if stage not in DUTIES:
         raise ValueError(f"unknown navigator-v3 stage: {stage!r}")
@@ -431,6 +537,10 @@ def prompt(stage: str) -> str:
     """Return the single current producer instruction for a v3 graph stage."""
     _require_stage(stage)
     parts = [COMMON, DUTIES[stage]]
+    if stage in BACKCHAIN_STAGES:
+        parts.append(BACKCHAIN_GUIDANCE)
+    if stage in RECONCILIATION_STAGES:
+        parts.append(SELECTED_CASE_RECONCILIATION)
     if stage in IMPLEMENTATION_STAGES:
         parts.append(IMPLEMENTATION_CONSTITUTION)
     parts.append(PROGRESS_REPORTING)
@@ -440,6 +550,7 @@ def prompt(stage: str) -> str:
 def improve_prompt(stage: str) -> str:
     """Return the actual Improve-skill handoff for a completed producer stage."""
     _require_stage(stage)
+    backchain = BACKCHAIN_GUIDANCE if stage in BACKCHAIN_STAGES else ""
     return f"""\
 This producer attempt has returned a result; its parent action now awaits Improve.
 Invoke the selected actual Improve skill for {IMPROVE_SCOPES[stage]}.  Read the
@@ -447,11 +558,32 @@ selected skill card and follow the Until Loop runtime bound by that card.  Use t
 parent-provided candidate scope, prior producer result, relevant lessons, expected
 check state, allowed edits, authority, and evidence/return locators.
 
-When the candidate concerns actor interactions, channels, or state ownership,
-read the packet's Interaction design guide and relevant decision/evidence notes.
-Carry those locators into the child contract for cold recovery; revalidate the
-choice against this request, environment, and affected tests without inventing
-distributed infrastructure or expanding the assigned scope.
+Follow the packet's Maintained requirements policy for the candidate's applicable
+accepted product requirements. Read and retain requirement and test locators in
+the child contract/review notes for cold recovery; preserve unaffected conditions
+and relevant cross-cutting rules. Review material subclauses and intentional
+supersession, not just feature names. Do not let code, a passing test or a draft
+proposal silently redefine accepted intent; keep verification gaps visible.
+Follow the packet's Reference handoff policy. Before the first review, carry
+the actual selected requirement, test and relevant run-note locators into the
+child's existing contract prose and review notes. Keep their package/repository/run
+bases explicit; a parent packet alone does not populate the child's contract.
+Use the packet's Requirements definition guide for affected quality criteria and
+existing-spec reconciliation. Retain source and current-decision locators; check
+measurability, preserved conditions, and unresolved targets within this scope.
+
+{backchain}
+
+When the candidate concerns actor interactions, channels, incoming/outgoing events,
+connection lifecycle, state ownership or UI, read the applicable Interaction design
+guide sections, including UI-specific planning when relevant, and the current
+baseline/delta, contract and UI-premise locators. Review acknowledgment/recovery and
+deployment assumptions, plus component/interaction/skin, motion and design guidance
+where a UI is affected. Keep planning reviews scoped to decisions and proposed
+checks; later reviews require actual consumer evidence. Revalidate reused choices.
+Carry those locators into the child contract for cold recovery. This is conditional
+review scope within the existing handoff, not another Improve run; do not invent
+infrastructure or expand the assigned scope.
 
 Improve owns its own review iterations, evidence notebook, continuation, and
 completion judgment.  Do not replace it with an inline review algorithm, copied
@@ -460,6 +592,12 @@ The parent action remains pending while the child is active or blocked.  Resume 
 recorded child through its authoritative state; do not initialize a replacement.
 On accepted child completion, use the packet's parent return route to import the
 bound evidence and lessons once.  Do not advance the SDLC graph yourself.
+
+Ordinary child review notes retain candidate and scope identity; independent
+reviewer availability, use, or permitted fallback; whether reused evidence still
+applies; findings, current checks, and limits; and short decision and reference
+locators for cold recovery. This is review-note guidance, not a synthetic receipt
+schema or a new parent validation rule.
 
 Children have no commit authority by default: preserve the parent no-commit
 constraint unless the packet explicitly supplies a user- or repository-authorized
