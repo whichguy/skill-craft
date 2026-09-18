@@ -515,8 +515,12 @@ limits. Place pre-update candidate checks separately from post-update consumer
 checks, and distinguish source/effect, artifact identity, and behavior
 observations. A planned test is not a passed test.
 Use the Repeatable test-suite guide to select the major harnesses before code,
-or revalidate a prior-run harness. Retain exact focused, smoke and full-suite
-commands, inclusion rules, fixture prerequisites and setup/run/teardown cost.
+or revalidate a prior-run harness.
+Consider supported platform/library testing systems and available browser tools
+such as Chrome DevTools or equivalent where relevant. Record their roles, fit,
+availability and prerequisites; distinguish inspection from retained assertions.
+Retain exact focused, smoke and full-suite commands, inclusion rules, fixture
+prerequisites and setup/run/teardown cost.
 Keep executable regression cases beyond this run; smoke is a bounded subset,
 not full-suite evidence. Plan execution location separately from target location:
 local, a client checking a deployed target, or remote-resident tests. Discover the
@@ -630,6 +634,9 @@ the bounded candidate, prerequisites, affected code and consumers, intended
 behavior, independent expected outcomes, test cases, fixtures, documentation,
 skill/reuse questions, and checks. Resolve or block missing inputs before code;
 this is planning, not permission to skip directly to unverified edits.
+Revalidate platform/library testing systems and available browser tools for the
+changed surfaces; reuse supported choices or record a justified revision. Turn
+useful inspection findings into retained tests or explicit manual procedures.
 For every INNER change, follow the Repeatable test-suite guide: reassess setup,
 test/assertions and teardown together, or justify stateless no-setup/no-teardown.
 Share expensive fixtures only with demonstrated noninterference; if in doubt,

@@ -18,6 +18,15 @@ ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS = ROOT / "skills" / "shiploop" / "scripts"
 REFERENCES = SCRIPTS.parent / "references"
 IMPROVE_CARD = ROOT / "skills" / "improve" / "SKILL.md"
+TEST_HARNESS_STAGES = (
+    "test-strategy", "step-plan", "test-spec", "baseline", "test-author", "test-red",
+    "implement", "test-green", "test-refine", "regression", "verify",
+    "integration-verify", "system-test-author", "system-test",
+)
+REPEATABLE_TEST_SUITE_ROUTE = (
+    "Repeatable test-suite guide: "
+    + str(REFERENCES / "repeatable-test-suites.md#select-or-revalidate-the-harness")
+)
 if str(SCRIPTS) not in sys.path:
     sys.path.insert(0, str(SCRIPTS))
 
@@ -120,6 +129,30 @@ class V3GuidanceTests(unittest.TestCase):
             if stage == "plan":
                 extra["work_items"] = [{"id": "W1", "title": "Synthetic item"}]
             state, _action_id = self.complete_stage(state, **extra)
+
+    def test_cold_packets_route_the_repeatable_test_suite_guide_to_each_testing_stage(self) -> None:
+        """Persisted v3 states retain the direct guide route at testing checkpoints."""
+        state = self.state()
+        observed: list[str] = []
+        while state["status"] != "done":
+            stage = navigator.current_stage(state)
+            if stage in TEST_HARNESS_STAGES:
+                navigator.save(self.run, state)
+                before = (self.run / "state.md").read_bytes()
+                recovered = store.read_record(self.run / "state.md")
+                packet = navigator.render(None, self.run, recovered)
+
+                self.assertEqual((self.run / "state.md").read_bytes(), before)
+                self.assertEqual(navigator.current_stage(recovered), stage)
+                self.assertEqual(packet.count(REPEATABLE_TEST_SUITE_ROUTE), 1, packet)
+                observed.append(stage)
+
+            extra: dict[str, object] = {}
+            if stage == "plan":
+                extra["work_items"] = [{"id": "W1", "title": "Synthetic item"}]
+            state, _action_id = self.complete_stage(state, **extra)
+
+        self.assertEqual(tuple(observed), TEST_HARNESS_STAGES)
 
     def test_cold_step_plan_keeps_compact_context_and_evidence_locators(self) -> None:
         context = (

@@ -76,6 +76,7 @@ STAGE_REFERENCES: dict[str, tuple[tuple[str, str], ...]] = {
         ("Behavior traceability guidance", "behavioral-requirements.md#traceability-and-review"),
     ),
     "test-strategy": (
+        ("Repeatable test-suite guide", "repeatable-test-suites.md#select-or-revalidate-the-harness"),
         ("Test-case planning guidance", "testing-and-documentation.md#test-cases"),
         ("System-test catalog guidance", "system-tests.md#catalog-shape"),
     ),
@@ -92,31 +93,40 @@ STAGE_REFERENCES: dict[str, tuple[tuple[str, str], ...]] = {
         ("Decision carry-forward guidance", "project-knowledge.md#carry-context-into-the-new-plan"),
     ),
     "step-plan": (
+        ("Repeatable test-suite guide", "repeatable-test-suites.md#select-or-revalidate-the-harness"),
         ("Implementation constitution", "testing-and-documentation.md#implementation-constitution"),
         ("Decision carry-forward guidance", "project-knowledge.md#carry-context-into-the-new-plan"),
     ),
     "test-spec": (
+        ("Repeatable test-suite guide", "repeatable-test-suites.md#select-or-revalidate-the-harness"),
         ("Test-case planning guidance", "testing-and-documentation.md#test-cases"),
     ),
     "baseline": (
+        ("Repeatable test-suite guide", "repeatable-test-suites.md#select-or-revalidate-the-harness"),
         ("Baseline-test guidance", "execution-planning.md#baseline-tests-and-migrations"),
     ),
     "test-author": (
+        ("Repeatable test-suite guide", "repeatable-test-suites.md#select-or-revalidate-the-harness"),
         ("Test-case planning guidance", "testing-and-documentation.md#test-cases"),
     ),
     "test-red": (
+        ("Repeatable test-suite guide", "repeatable-test-suites.md#select-or-revalidate-the-harness"),
         ("Test-case planning guidance", "testing-and-documentation.md#test-cases"),
     ),
     "implement": (
+        ("Repeatable test-suite guide", "repeatable-test-suites.md#select-or-revalidate-the-harness"),
         ("Implementation constitution", "testing-and-documentation.md#implementation-constitution"),
     ),
     "test-green": (
+        ("Repeatable test-suite guide", "repeatable-test-suites.md#select-or-revalidate-the-harness"),
         ("Iteration and verification guidance", "testing-and-documentation.md#iteration"),
     ),
     "test-refine": (
+        ("Repeatable test-suite guide", "repeatable-test-suites.md#select-or-revalidate-the-harness"),
         ("Test-case planning guidance", "testing-and-documentation.md#test-cases"),
     ),
     "regression": (
+        ("Repeatable test-suite guide", "repeatable-test-suites.md#select-or-revalidate-the-harness"),
         ("Real-boundary test guidance", "testing-and-documentation.md#layers-and-real-boundaries"),
     ),
     "document": (
@@ -133,6 +143,7 @@ STAGE_REFERENCES: dict[str, tuple[tuple[str, str], ...]] = {
         ("Iteration and verification guidance", "testing-and-documentation.md#iteration"),
     ),
     "verify": (
+        ("Repeatable test-suite guide", "repeatable-test-suites.md#select-or-revalidate-the-harness"),
         ("Test-case planning guidance", "testing-and-documentation.md#test-cases"),
         ("Real-boundary test guidance", "testing-and-documentation.md#layers-and-real-boundaries"),
     ),
@@ -140,6 +151,7 @@ STAGE_REFERENCES: dict[str, tuple[tuple[str, str], ...]] = {
         ("Workspace integration guidance", "workspace-lifecycle.md#inner-assembly-and-final-return"),
     ),
     "integration-verify": (
+        ("Repeatable test-suite guide", "repeatable-test-suites.md#select-or-revalidate-the-harness"),
         ("Real-boundary test guidance", "testing-and-documentation.md#layers-and-real-boundaries"),
     ),
     "carry-forward": (
@@ -147,9 +159,11 @@ STAGE_REFERENCES: dict[str, tuple[tuple[str, str], ...]] = {
         ("Persistent project-knowledge guidance", "project-knowledge.md#retain-learnings-for-the-next-invocation"),
     ),
     "system-test-author": (
+        ("Repeatable test-suite guide", "repeatable-test-suites.md#select-or-revalidate-the-harness"),
         ("System-test catalog guidance", "system-tests.md#catalog-shape"),
     ),
     "system-test": (
+        ("Repeatable test-suite guide", "repeatable-test-suites.md#select-or-revalidate-the-harness"),
         ("System-test placement guidance", "system-tests.md#placement-and-dependency-rules"),
         ("Real-boundary test guidance", "testing-and-documentation.md#layers-and-real-boundaries"),
     ),
@@ -390,6 +404,9 @@ Map applicable new and preserved non-functional criteria to checks and their
 environment/workload prerequisites; missing evidence or access is not N/A.
 Read the Repeatable test-suite guide. Select the major harnesses and suite entry
 points now; reuse a prior-run harness only after revalidating its current fit.
+Consider supported platform/library testing systems and available browser tools
+such as Chrome DevTools or equivalent where relevant. Record their roles, fit,
+availability and prerequisites; distinguish inspection from retained assertions.
 Retain exact focused, smoke, and full-suite commands, inclusion rules, expected
 cost and environment/fixture prerequisites. Plan durable regression tests, not
 one-off probes; smoke is a bounded subset, never evidence for the full suite.
@@ -496,6 +513,9 @@ apply. Record a changed decision or exception with its short locator and reason 
 the existing plan/result evidence rather than relying on copied chat context.
 For every INNER change, use the Repeatable test-suite guide to reassess setup,
 the test and independent oracle, teardown, and focused/smoke/full-suite placement.
+Revalidate platform/library testing systems and available browser tools for the
+changed surfaces; reuse supported choices or record a justified revision. Turn
+useful inspection findings into retained tests or explicit manual procedures.
 Retain the harness and case locators in the existing plan and work-item context.
 For remote-resident cases, revalidate framework availability and the authorized
 setup, test-definition/invocation, result retrieval and teardown route.

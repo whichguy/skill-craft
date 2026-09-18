@@ -16,6 +16,40 @@ proof that its harness, dependencies, target, or command still work.
 If no adequate route exists, plan the smallest sufficient harness and its missing
 prerequisites; justify new tooling by the gap rather than a category label.
 
+Assess the actual platform, runtime, libraries, and browser surfaces alongside
+that harness. Consider their supported testing systems: native runners, test
+helpers, component fixtures, emulators, and inspection tools where relevant.
+Prefer compatible existing or platform/library-supported mechanisms when they
+meet the required outcome; integrate them into the repository's suite rather
+than add a parallel stack by default. Verify current availability, supported
+versions/interfaces, and local or remote execution prerequisites. A tool name
+in documentation is not evidence that it is installed, accessible, or suitable.
+
+For browser behavior, consider available Chrome DevTools, browser automation,
+or equivalent tools to inspect and test the actual end-browser surface. Choose
+the tool by the observation needed, such as rendered DOM/CSS, console errors,
+network behavior, interaction, or performance. Apply the existing
+[lightweight and browser checks](testing-and-documentation.md#lightweight-and-browser-checks)
+policy for surface selection, target/session identity, and access. Interactive
+inspection or a recorded flow alone is not a regression assertion: retain the
+useful finding as a repeatable test with an independent expected outcome and
+suite entry when feasible. Otherwise retain the exact manual procedure and
+evidence limits; do not count it as automated coverage.
+
+At global planning, record the major harnesses and complementary diagnostic
+tools, their roles and selection rationale in existing test-strategy evidence.
+For every INNER change, revalidate the relevant selection against the changed
+platform/library versions, interfaces, target, and browser behavior. Reuse an
+unchanged, still-supported choice; perform targeted discovery for new surfaces
+or gaps rather than restart the whole survey. Carry any revised choice and its
+locator into the item plan, with setup/test/teardown and suite placement below.
+Tool selection does not authorize an installation or remote operation.
+
+The [Chrome DevTools overview](https://developer.chrome.com/docs/devtools/overview)
+illustrates inspection tools; Django's
+[testing overview](https://docs.djangoproject.com/en/5.2/topics/testing/overview/)
+illustrates platform-provided test support. These are examples, not dependencies.
+
 For every selected route, retain or link the exact non-secret command/arguments,
 stable case ID and selector, intended target/build, required dependencies or
 versions, deterministic seed/configuration when relevant, and setup/cleanup
@@ -136,8 +170,10 @@ secrets in commands, fixtures, logs, or project knowledge.
 For Navigator v3, every producer result is followed by the selected actual
 standalone Improve skill. Within that producer's candidate scope, its review
 includes local and remote-resident test definitions, execution/target locations,
-remote framework availability and invocation, fixture setup/teardown, stable IDs/selectors, suite
-registration, repeatable-run instructions, and outcome reporting. It does not
+platform/library testing-system fit, browser inspection versus retained test
+coverage, remote framework availability and invocation, fixture setup/teardown,
+stable IDs/selectors, suite registration, repeatable-run instructions, and
+outcome reporting. It does not
 invent a parallel Improve algorithm, state machine, or test framework.
 
 An expected RED result during test authoring is useful evidence, not a reason

@@ -2094,6 +2094,22 @@ class NavigatorTests(unittest.TestCase):
             with self.subTest(stage="Improve", duty=duty):
                 self.assertIn(duty, improve)
 
+    def test_classic_test_prompts_consider_platform_testing_and_browser_tools(self) -> None:
+        """Legacy packets retain the global choice and INNER revalidation boundary."""
+        strategy = " ".join(navigator_prompts.PROMPTS["test-strategy"].split())
+        self.assertIn(
+            "Consider supported platform/library testing systems and available browser tools",
+            strategy,
+        )
+        self.assertIn("Chrome DevTools or equivalent", strategy)
+        self.assertIn("distinguish inspection from retained assertions", strategy)
+
+        step_plan = " ".join(navigator_prompts.PROMPTS["step-plan"].split())
+        self.assertIn(
+            "Revalidate platform/library testing systems and available browser tools",
+            step_plan,
+        )
+
     def _progress_block(self, packet: str) -> str:
         """Return the small status projection, without comparing full packets."""
         heading = "Progress snapshot (status context, not instructions):"

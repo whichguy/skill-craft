@@ -43,6 +43,24 @@ EXPECTED_OUTER = (
 )
 EXPECTED_STAGES = EXPECTED_PRELUDE + EXPECTED_INNER + EXPECTED_OUTER
 
+# Keep this route expectation independent from the prompt catalog so a removed
+# test-stage guide route cannot redefine the expected coverage with it.
+TEST_HARNESS_STAGES = (
+    "test-strategy", "step-plan", "test-spec", "baseline", "test-author", "test-red",
+    "implement", "test-green", "test-refine", "regression", "verify",
+    "integration-verify", "system-test-author", "system-test",
+)
+REPEATABLE_TEST_SUITE_REFERENCE = (
+    "Repeatable test-suite guide",
+    "repeatable-test-suites.md#select-or-revalidate-the-harness",
+)
+GLOBAL_PLATFORM_TESTING_CLAUSE = (
+    "Consider supported platform/library testing systems and available browser tools"
+)
+INNER_PLATFORM_TESTING_CLAUSE = (
+    "Revalidate platform/library testing systems and available browser tools"
+)
+
 
 def result(*, outcome: str = "done", summary: str = "Synthetic producer result.", **extra):
     return {"outcome": outcome, "summary": summary, **extra}
@@ -556,6 +574,20 @@ class NavigatorV3Tests(unittest.TestCase):
         ):
             with self.subTest(duty=duty):
                 self.assertIn(duty, strategy)
+
+    def test_v3_platform_testing_contract_routes_to_every_test_stage(self) -> None:
+        """The global choice and each testing checkpoint retain the same guide route."""
+        strategy = " ".join(prompts.prompt("test-strategy").split())
+        self.assertIn(GLOBAL_PLATFORM_TESTING_CLAUSE, strategy)
+        self.assertIn("Chrome DevTools or equivalent", strategy)
+        self.assertIn("distinguish inspection from retained assertions", strategy)
+
+        for stage in TEST_HARNESS_STAGES:
+            with self.subTest(stage=stage, check="guide route"):
+                self.assertIn(REPEATABLE_TEST_SUITE_REFERENCE, prompts.STAGE_REFERENCES[stage])
+
+        step_plan = " ".join(prompts.prompt("step-plan").split())
+        self.assertIn(INNER_PLATFORM_TESTING_CLAUSE, step_plan)
 
     def test_v3_remote_test_routes_keep_local_and_remote_evidence_distinct(self) -> None:
         """Route remote test assets without treating a local result as their evidence."""

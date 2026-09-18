@@ -37,6 +37,7 @@ NORMATIVE_GUIDE_ROOTS = (
     Path("references/navigator.md"),
     Path("references/backchain-planning.md"),
     Path("references/testing-and-documentation.md"),
+    Path("references/repeatable-test-suites.md"),
 )
 HISTORICAL_ARTIFACT_DIRECTORIES = frozenset({".shiploop", "experiments", "reports"})
 FENCE_RE = re.compile(r"^[ \t]{0,3}(`{3,}|~{3,})")
