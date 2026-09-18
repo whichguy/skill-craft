@@ -1,0 +1,20 @@
+{
+  "workflow": "release-v1",
+  "candidate": "candidate-delta",
+  "receipts": [
+    {
+      "candidate": "candidate-delta",
+      "target": "staging",
+      "check": "unit",
+      "attempt": 1,
+      "status": "pass"
+    },
+    {
+      "candidate": "candidate-delta",
+      "target": "staging",
+      "check": "integration",
+      "attempt": 1,
+      "status": "pass"
+    }
+  ]
+}

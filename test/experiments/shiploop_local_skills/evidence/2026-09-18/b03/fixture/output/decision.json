@@ -1,0 +1,13 @@
+{
+  "workflow": "release-v2",
+  "candidate": "candidate-charlie",
+  "target": "staging",
+  "required_checks": ["unit", "integration"],
+  "selected_receipts": [
+    {"check": "unit", "attempt": 1, "status": "pass", "age": 2},
+    {"check": "integration", "attempt": 1, "status": "pass", "age": 5}
+  ],
+  "decision": "blocked",
+  "deployment_authorized": false,
+  "max_age": 3
+}

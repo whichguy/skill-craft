@@ -1,0 +1,31 @@
+{
+  "case": "fork",
+  "fixture": "/Users/dadleet/tmp/shiploop-local-skills-20260918/b04/fixture",
+  "checks": [
+    {
+      "name": "exact decision.json",
+      "passed": false
+    },
+    {
+      "name": "skill inventory captured",
+      "passed": true
+    },
+    {
+      "name": "v1 contract preserved",
+      "passed": true
+    },
+    {
+      "name": "v1 compatibility output",
+      "passed": true
+    }
+  ],
+  "before_skill_digests": {
+    "skills/release-evidence-triage": "1cb71b73acf249173e2adacafdef167470a749e3dc807b6c9439801704fc2402"
+  },
+  "after_skill_digests": {
+    "skills/incident-evidence-triage": "aaf5db25bce612d88d0e1157b79d94662d43d30b3a5fa7285eb99677b46321d6",
+    "skills/release-evidence-triage": "1cb71b73acf249173e2adacafdef167470a749e3dc807b6c9439801704fc2402"
+  },
+  "skill_inventory_changed": true,
+  "passed": false
+}

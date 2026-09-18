@@ -49,6 +49,17 @@ Copied-package cases exercise portable payloads from an unrelated CWD without a
 marketplace installation. The v3-guidance and packet-bounds suites check relevant
 reference routing and recovery of large context from complete durable records.
 
+`python3 -B test/shiploop-local-skills.test.py` is in the ordinary ShipLoop/CI
+inventory. It regrades the ten archived local-skill observations from disposable
+relocated copies, including the preserved ambiguous incident result, then checks
+negative controls for wrong decisions or JSON scalar types, changed skill resources,
+compatibility, index/authority links and contract relocation. It also verifies
+that preparing a fresh trial retains skills but strips prior task outputs. This
+tests the experiment apparatus; saved-output replay is not a new model evaluation.
+The actual-Improve CLI suite separately protects both the cold handoff instructions
+and child-resource durability. Fresh model trials remain
+[explicit experiments](experiments/shiploop_local_skills/README.md).
+
 The ShipLoop group includes opt-in consumer-delivery declaration checks, public
 CLI compatibility/relocation tests, synthetic prompt/fake-boundary fixtures, and
 temporary loopback HTTP checks of the browser fixture's distinct served cases.
