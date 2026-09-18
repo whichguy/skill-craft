@@ -188,6 +188,24 @@ class PackageTests(unittest.TestCase):
         with mock.patch.object(CHECK, "NATIVE_SCRIPT_ENTRYPOINTS", inventory, create=True):
             self.assert_bad("expected bash")
 
+    def test_improve_native_inventory_requires_ephemeral_runtime(self):
+        source = ROOT / "plugins" / "improve"
+        with tempfile.TemporaryDirectory(prefix="marketplace improve ") as temporary:
+            package = Path(temporary) / "improve"
+            shutil.copytree(source, package)
+            runtime = package / "skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py"
+            self.assertTrue(runtime.is_file())
+            runtime.unlink()
+            errors = CHECK.validate_package(package)
+        self.assertTrue(
+            any(
+                "declared entrypoint "
+                "runtime/until-loop/scripts/until_loop_ephemeral.py is missing" in error
+                for error in errors
+            ),
+            errors,
+        )
+
     def test_python_helper_syntax_checked_without_execution(self):
         scripts = self.skill / "scripts"
         scripts.mkdir()
