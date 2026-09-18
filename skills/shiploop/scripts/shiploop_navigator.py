@@ -1075,6 +1075,8 @@ def render(core: Any, root: Path, state: Mapping[str, Any]) -> str:
         "Consumer testing guide: "
         + str(reference_dir / "testing-and-documentation.md")
         + "#lightweight-and-browser-checks",
+        "Repeatable test-suite guide: "
+        + str(reference_dir / "repeatable-test-suites.md"),
         "Selected-case reconciliation guide: "
         + str(reference_dir / "testing-and-documentation.md")
         + "#test-cases",

@@ -374,6 +374,15 @@ evidence and identify meaningful expected-RED controls where test-first work is
 applicable.
 Map applicable new and preserved non-functional criteria to checks and their
 environment/workload prerequisites; missing evidence or access is not N/A.
+Read the Repeatable test-suite guide. Select the major harnesses and suite entry
+points now; reuse a prior-run harness only after revalidating its current fit.
+Retain exact focused, smoke, and full-suite commands, inclusion rules, expected
+cost and environment/fixture prerequisites. Plan durable regression tests, not
+one-off probes; smoke is a bounded subset, never evidence for the full suite.
+Plan execution location separately from target location: local, client checks
+against a deployed target, or remote-resident tests. Discover the remote framework,
+availability, access and deployment prerequisites; retain the authorized route to
+define/register, install and invoke remote tests. A local pass is not a remote pass.
 """,
     "plan": """\
 Create a dependency-aware delivery plan from desired outcomes back to required
@@ -440,6 +449,11 @@ Reopen only the relevant item `context`, plan/evidence locators, and packet-sele
 reference sections; verify that their scope and revalidation conditions still
 apply. Record a changed decision or exception with its short locator and reason in
 the existing plan/result evidence rather than relying on copied chat context.
+For every INNER change, use the Repeatable test-suite guide to reassess setup,
+the test and independent oracle, teardown, and focused/smoke/full-suite placement.
+Retain the harness and case locators in the existing plan and work-item context.
+For remote-resident cases, revalidate framework availability and the authorized
+setup, test-definition/invocation, result retrieval and teardown route.
 """,
     "test-spec": """\
 Specify executable tests before production edits when applicable.  Map the item
@@ -447,6 +461,10 @@ to independent positive, boundary, and failure assertions, fixtures, and command
 paths.  Define what the baseline/expected RED should prove, what focused GREEN
 will prove after implementation, and how regression coverage prevents weakening
 the oracle.  A test specification is not execution evidence.
+Specify setup, test/assertions, and teardown together, or state why a stateless
+case needs no setup or teardown. Reuse fixture code without assuming mutable
+state is shareable. Share expensive setup only with demonstrated noninterference;
+if in doubt, use per-test isolation. Plan failure cleanup and suite registration.
 """,
     "baseline": """\
 Run and record the relevant pre-change baseline checks.  Separate known existing
@@ -460,6 +478,13 @@ specification before production implementation.  Preserve adequate coverage and
 keep experiments isolated.  Do not weaken or delete an assertion merely to make
 the eventual candidate pass; record a justified N/A only where test-first work
 cannot apply and name the alternative evidence.
+Retain tests and fixtures in the repository. Register each case in the full
+regression route and applicable focused entry points; decide smoke membership
+independently without duplicating tests. Follow the Repeatable
+test-suite guide for setup/teardown, safe fixture sharing, and rerun instructions;
+verify discovery selects the cases rather than merely recording their paths.
+For remote-resident cases, retain/version the remote definitions and registration
+with their authorized installation/invocation prerequisites.
 """,
     "test-red": """\
 Execute the selected pre-implementation tests and establish a meaningful expected
@@ -487,12 +512,18 @@ independent specification-based expectations.  Cover changed failure behavior,
 debug on/off behavior and safe diagnostic context where relevant.  Correct an
 oracle only with an independent reason; do not retrofit tests to the implementation
 solely to obtain green.
+Reassess setup/teardown and safe sharing from actual behavior; preserve stateless
+cases without boilerplate. Keep refined tests registered in the repeatable suites
+and refresh their case, fixture, command, and cost notes when those change.
 """,
     "regression": """\
 Execute relevant regression, negative, compatibility, and boundary checks on the
 current candidate.  Include selected error and recovery behavior.  Distinguish a
 product defect, invalid test, and environment issue with a small discriminating
 observation; repeated unchanged failure is not progress.
+Use the retained suite commands and report the selected scope. Check rerun and
+cleanup isolation when state or fixture sharing changed; exercise relevant order
+and parallel hazards. A smoke pass cannot stand for the required full suite.
 """,
     "document": """\
 Update necessary code, API, user, operator, design, and decision documentation
@@ -556,6 +587,10 @@ work item, carry only its applicable compact decision/convention locator, ration
 and revalidation condition in its existing `context`, with supporting source
 locators in ordinary `evidence_refs`; do not duplicate transcripts or invent a
 second decision store.
+Preserve repeatable tests, fixture lifecycle decisions, harness/case locators and
+focused/smoke/full-suite commands in repository test documentation and work-item
+context. Link pending full-suite or real-boundary checks with their owner; do not
+leave the only rerun procedure in transient run notes.
 """,
     "system-test-author": """\
 Author or refine whole-product/system test cases and fixtures from the assembled
@@ -563,6 +598,12 @@ candidate and global test strategy.  Cover real integration, consumer, runtime,
 security, accessibility, migration, compatibility, and operational boundaries as
 applicable.  A justified N/A records why that boundary does not apply; it does not
 erase a required external check with missing access.
+Integrate retained INNER cases with the repeatable full-suite entry point; retain
+the smoke selection and new system cases without copying tests into another suite.
+Review shared setup cost, independent assertions, isolation and failure teardown
+using the Repeatable test-suite guide. Verify actual discovery and rerun commands.
+Author/version remote-resident definitions and registration when the remote
+framework requires them, with repeatable authorized installation and invocation.
 """,
     "system-test": """\
 Execute authorized end-to-end, runtime, integration, or system tests against the
@@ -570,6 +611,12 @@ actual intended candidate and boundary.  Verify prerequisites, fixtures, target,
 identity, authorization, and observed behavior.  Do not substitute a planned case
 or local mock for a required system observation, deploy to unblock a test, or use
 production without authority.
+Run the planned retained suite, reconcile selected cases and cleanup outcomes,
+and record command, candidate/target, scope and unrun checks. When fixtures changed,
+check relevant repeatability; never blindly replay an uncertain external effect.
+Verify execution location, remote framework availability and deployed/test revision
+identity. A local pass cannot replace a blocked/unrun required remote check or
+establish a combined full-suite pass; preserve its assigned owner and boundary.
 """,
     "product-acceptance": """\
 Assess the assembled product against the original outcome, acceptance criteria,
@@ -756,6 +803,18 @@ and revalidate only the sources relevant to this candidate, then retain a compac
 current locator, decision, rationale, and revalidation result in the child review
 notebook. Do not replace those source locators with copied transcripts, a new child
 ledger, or an unverified summary.
+
+For test plans, authored/refined tests, fixtures, suite wiring or test evidence,
+read the packet's Repeatable test-suite guide. Carry the harness, case and suite
+locators into this child's contract/review notes. Review independent assertions,
+setup/test/teardown (including justified stateless cases), sharing noninterference,
+failure cleanup, repeatability, and focused/smoke/full-suite inclusion and cost.
+Improve the tests themselves and rerun affected checks after edits within the
+assigned stage's expected check state; authoring and expected RED do not require
+future production behavior to pass. Keep unresolved coverage visible.
+Include remote-resident definitions, framework availability, authorized invocation,
+execution location and deployed/test revision evidence; a local pass does not
+satisfy a required remote check.
 
 Improve owns its own review iterations, evidence notebook, continuation, and
 completion judgment.  Do not replace it with an inline review algorithm, copied

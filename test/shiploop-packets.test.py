@@ -998,6 +998,41 @@ class PacketTests(unittest.TestCase):
                 ):
                     self.assertIn(concept, normalized)
 
+    def test_step_plan_templates_preserve_repeatable_suite_fixture_lifecycle_and_tiers(self):
+        import shiploop_packets
+
+        api = {"step_planning": SimpleNamespace(RUBRIC=())}
+        for stage in ("step-plan", "improve-plan", "step-plan-revise"):
+            with self.subTest(stage=stage):
+                template, _ = shiploop_packets._step_plan_template(
+                    stage, {}, api, {}
+                )
+                self.assertIsInstance(template, dict)
+                body = template["body"]
+                for duty in (
+                    "## Repeatable suite and fixture lifecycle",
+                    "Revalidate the selected harness or prior-run reference.",
+                    "plan setup, test/assertions, and teardown together",
+                    "justify stateless no-setup/no-teardown.",
+                    "demonstrated noninterference; if in doubt, isolate per test.",
+                    "Retain executable tests, suite registration and exact focused/smoke/full-suite commands",
+                    "smoke is not full-suite evidence.",
+                    "failure cleanup and relevant rerun/isolation checks.",
+                    "references/repeatable-test-suites.md",
+                    "Plan execution location separately from target location:",
+                    "client checks against deployed targets",
+                    "remote-resident tests.",
+                    "remote framework availability",
+                    "prerequisites;",
+                    "remote definitions/registration",
+                    "authorized installation, invocation",
+                    "result retrieval and cleanup route.",
+                    "local pass cannot satisfy",
+                    "blocked/unrun required remote checks.",
+                ):
+                    with self.subTest(duty=duty):
+                        self.assertIn(duty, body)
+
     def test_step_plan_prompts_require_scoped_backchain_and_no_global_dag_authority(self):
         import shiploop_protocol
 

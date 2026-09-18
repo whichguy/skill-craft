@@ -290,6 +290,13 @@ duplicate environment document if the repository already has one. Preserve
 unrelated edits and reconcile concurrent knowledge edits; do not last-write-win
 another run's discoveries. No commit/push is implied by maintaining the files.
 
+For a reusable test route, retain or link the selected harness and exact
+non-secret commands, stable selectors/suite membership, fixture lifecycle,
+seed/configuration, dependencies, target limits, and rerun instructions. Mark
+the observed version/date and revalidation trigger; a prior passing run does
+not make those facts current. See [repeatable test suites](repeatable-test-suites.md)
+for the case, fixture, and outcome rules.
+
 For an approved policy intended to be standing, keep its scope, exclusions,
 user-approval reference, and revalidation conditions in an existing
 repository-owned `SHIPLOOP.md`, `AGENTS.md`, or deployment/operations document,

@@ -251,6 +251,14 @@ conventions and justified departures. Review only the relevant subset; investiga
 named changed assumptions. Challenge stale or unsafe precedents; recorded practice
 is evidence to evaluate, not automatic authority.
 
+For test plans, tests, fixtures or suite wiring, follow the Repeatable test-suite
+guide. Review setup/test/teardown, stateless exceptions, sharing noninterference,
+failure cleanup, repeatability, independent assertions and focused/smoke/full
+inclusion. Improve the retained tests themselves and refresh affected checks
+within this action's expected check state; preserve the saved protocol's owner.
+Include remote-resident definitions, execution location, remote framework
+availability and authorized invocation; a local pass does not satisfy remote checks.
+
 In every cycle, compare the plan to the original request, not only the generated
 specification: if all planned steps succeed, will the intended user receive the
 requested behavior at the intended entry point? Identify a missing update
@@ -482,6 +490,15 @@ Name necessary fixtures, data, environments, authorization, and evidence
 limits. Place pre-update candidate checks separately from post-update consumer
 checks, and distinguish source/effect, artifact identity, and behavior
 observations. A planned test is not a passed test.
+Use the Repeatable test-suite guide to select the major harnesses before code,
+or revalidate a prior-run harness. Retain exact focused, smoke and full-suite
+commands, inclusion rules, fixture prerequisites and setup/run/teardown cost.
+Keep executable regression cases beyond this run; smoke is a bounded subset,
+not full-suite evidence. Plan execution location separately from target location:
+local, a client checking a deployed target, or remote-resident tests. Discover the
+remote framework, availability, access and deployment prerequisites; retain its
+authorized test-definition, installation and invocation route. A local pass is
+not a remote pass.
 Map applicable new and preserved non-functional criteria to checks and their
 environment/workload prerequisites; missing evidence or access is not N/A.
 Record whether HTTP/API checks suffice or browser evidence is needed, including
@@ -571,6 +588,13 @@ the bounded candidate, prerequisites, affected code and consumers, intended
 behavior, independent expected outcomes, test cases, fixtures, documentation,
 skill/reuse questions, and checks. Resolve or block missing inputs before code;
 this is planning, not permission to skip directly to unverified edits.
+For every INNER change, follow the Repeatable test-suite guide: reassess setup,
+test/assertions and teardown together, or justify stateless no-setup/no-teardown.
+Share expensive fixtures only with demonstrated noninterference; if in doubt,
+use per-test isolation. Plan failure cleanup, retained tests, suite registration
+and focused/smoke/full-suite placement; preserve harness and case locators.
+For remote-resident cases, revalidate framework availability and the authorized
+setup, definition/invocation, result retrieval and teardown route.
 Read the linked project knowledge and current discovery assessment for this item;
 use only applicable, revalidated decisions and plan its current incremental delta.
 Read existing access requests before probing or asking again. Revalidate changed
@@ -644,6 +668,8 @@ Refine the earlier test cases from the code that now exists. Correct stale
 assumptions, retain meaningful coverage, and state current expected outcomes,
 failure behavior, fixtures, and selectors. Do not weaken an oracle merely to
 obtain a green result and do not claim a planned or edited test has run.
+Reassess fixture lifecycle, sharing safety and relevant repeatability from actual
+code; preserve stateless cases without boilerplate and update suite registration.
 Challenge expected results independently against the specification, including
 positive and nearby negative boundaries where useful. Check that mocks or
 implementation-derived expectations do not hide the behavior being tested;
@@ -661,6 +687,14 @@ Author or refine executable tests and fixtures from the current case set.
 Map important behavior and failure cases to meaningful checks, preserving
 adequate existing tests where they already cover the outcome. Record any
 blocked test need honestly; final linters and tests still run at verify.
+Retain executable cases and setup/teardown helpers in the repository. Register
+each case in the full regression route and applicable focused entry points;
+decide smoke membership independently without duplicating tests. Verify discovery. Keep
+exact rerun commands and isolation/cleanup notes per the Repeatable test-suite
+guide. Include these tests, fixtures and suite wiring in the saved protocol's
+subsequent product/outer Improve campaign; do not add an out-of-order checkpoint.
+When the remote framework requires remote-resident tests, retain their definitions,
+registration and repeatable authorized installation/invocation alongside local cases.
 For an important regression where practical, show that its check rejects the
 known-bad baseline or an isolated deliberately broken variant and passes the
 candidate. Reuse an adequate existing reproduction; avoid extra mutation
@@ -768,6 +802,9 @@ Read and update the canonical environment/deployment note when applicable.
 Retain reusable facts/decisions in repository documentation and refresh the
 knowledge index; distinguish this run's remaining obligations from unauthorized
 future work. Do not leave lasting knowledge only in a temporary run directory.
+Retain repeatable tests, harness/case/fixture locators and exact focused/smoke/full
+commands in repository test documentation and future work-item context. Carry
+unrun full-suite checks with their owner; smoke success cannot erase them.
 Append newly needed
 staging, promotion, migration, approval or cleanup work with prerequisites and
 owners. Keep setup receipts and pending actions distinct; link the note for
@@ -791,6 +828,14 @@ Read any environment note and check the intended staged/development candidate
 and prior deployment/readiness receipts when those tests require them. Do not
 silently run against production or perform an unplanned deployment to unblock a
 test. Missing required candidate preparation remains incomplete.
+Use the retained suite entry points and verify that selected cases actually run.
+Review safe fixture sharing and setup/test/teardown using the Repeatable test-suite
+guide; check repeatability when fixtures or mutable state change. Record cleanup
+outcomes and selected scope separately from a smoke or full-suite result.
+Retain/version remote-resident test definitions and registration when required by
+the available framework. Verify execution location, authorized installation and
+invocation, and deployed/test revision identity. A local pass cannot satisfy a
+blocked/unrun required remote check or establish a combined full-suite pass.
 Complete due pre-update checks here; leave required post-update consumer checks
 explicitly pending for their assigned release-verification boundary rather than
 calling them passed.""",

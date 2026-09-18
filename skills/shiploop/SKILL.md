@@ -208,6 +208,14 @@ retain the recovery locators and resume the same run when execution resumes.
    test criteria before implementation, refine cases using the actual code,
    run meaningful tests and available linters, fix failures and recheck. Record
    outcomes and limitations honestly. Do not weaken tests to obtain a pass.
+   Apply [repeatable test suites](references/repeatable-test-suites.md): select or
+   revalidate the harness during initial planning; for every INNER change assess
+   setup, test, teardown and focused/smoke/full-suite inclusion. Retain executable
+   cases and rerun commands; share expensive fixtures only with demonstrated
+   noninterference, otherwise isolate them. Stateless cases need no fixture ritual.
+   Distinguish local execution from checks against remote targets and remote-resident
+   tests. Plan the available remote framework, definitions, invocation and lifecycle;
+   local results cannot substitute for required unavailable remote checks.
    Follow the packet's implementation quality indicator: plan and implement
    from applicable project conventions, revalidate changed assumptions, and
    record justified departures. Carry the conventions reference into work-item
@@ -219,7 +227,9 @@ retain the recovery locators and resume the same run when execution resumes.
    same action. Read the selected actual Improve `SKILL.md` and let its bound
    Until Loop runtime own the improvement loop. Use the packet's selected skill,
    candidate scope, authority/no-commit constraints, expected check state, and
-   return route. Do not paste or imitate Improve's algorithm in ShipLoop, create
+   return route. Test creation/refinement checkpoints include the tests, fixtures,
+   repeatability and suite wiring in that actual Improve review. Do not paste or
+   imitate Improve's algorithm in ShipLoop, create
    a child phase graph/counter, or advance the parent while the child is active.
    On cold recovery, inspect the recorded child state and resume it only through
    its authoritative route. On accepted success, use `improve-complete` with the

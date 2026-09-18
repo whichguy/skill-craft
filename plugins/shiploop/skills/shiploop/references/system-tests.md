@@ -86,6 +86,20 @@ effects before product edits. After implementation learning, author or refine
 the real tests; run the declared manifest, retain failures, fix justified
 defects, and rerun. A grouped test step is valid when its cases share an
 honest fixture/boundary and its step contract names every included case.
+Apply [repeatable test suites](repeatable-test-suites.md) to the tests and
+fixtures owned by those cases, including the evidence needed to share expensive
+fixtures and the distinction between focused, smoke and full evidence. This
+guidance does not change the catalog shape or extend the protocol to a legacy
+run without its marker.
+
+Plan execution location separately from target location: a local check, a local
+client against a deployed target, or a remote-resident test executing within the
+remote runtime. Discover the available framework, invocation/access and deployment
+prerequisites. Retain remote test definitions/registration and their repeatable
+authorized install, invocation, result retrieval and cleanup route. The full suite
+may require both local and remote parts; a local pass cannot satisfy an unavailable
+remote check. Keep missing readiness/availability explicit at its existing
+pre/post-deployment boundary; do not invent another catalog or deploy to bypass it.
 
 Case prerequisites fan in: the `test_step` for a case depends on every listed
 DAG step ID, as well as any actual product/readiness producer it consumes. Do

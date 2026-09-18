@@ -1905,6 +1905,110 @@ class NavigatorTests(unittest.TestCase):
                         packet,
                     )
 
+    def test_cold_step_plan_routes_repeatable_suite_guidance_and_persists_case_harness_locators(
+        self,
+    ) -> None:
+        """Cold next preserves opaque rerun and remote-asset locators."""
+        harness_locator = "docs/testing.md#python-harness"
+        case_locator = "test/checkers.test.py::test_legal_move_rules"
+        suite_locator = "pyproject.toml#testpaths"
+        remote_definition_locator = "remote-tests/checkers.json#legal-moves"
+        remote_invocation_locator = "docs/remote-tests.md#authorized-invocation"
+        context = (
+            "Repeatable test-suite decision: harness locator: "
+            + harness_locator
+            + "; case locator: "
+            + case_locator
+            + "; suite locator: "
+            + suite_locator
+            + "; remote definition locator: "
+            + remote_definition_locator
+            + "; remote invocation locator: "
+            + remote_invocation_locator
+        )
+        expected_refs = (
+            harness_locator,
+            case_locator,
+            suite_locator,
+            remote_definition_locator,
+            remote_invocation_locator,
+        )
+        guide = (SCRIPTS.parent / "references" / "repeatable-test-suites.md").resolve()
+
+        for protocol_version in (1, 2):
+            with self.subTest(protocol_version=protocol_version):
+                state = self._convention_step_plan_state(
+                    protocol_version,
+                    context=context,
+                    evidence_refs=list(expected_refs),
+                )
+                action = navigator.current_action(state)
+                run_root = self.base / f"cold-repeatable-suite-v{protocol_version}"
+                run_root.mkdir()
+                navigator.save(run_root, state)
+                before_bytes = (run_root / "state.md").read_bytes()
+                before = store.read_record(run_root / "state.md")
+
+                packet = self._run_public_command(
+                    [
+                        sys.executable,
+                        str(SCRIPTS / "shiploop"),
+                        "next",
+                        "--run-dir",
+                        str(run_root),
+                    ]
+                )
+                recovered = store.read_record(run_root / "state.md")
+
+                self.assertEqual((run_root / "state.md").read_bytes(), before_bytes)
+                self.assertEqual(recovered, before)
+                self.assertEqual(navigator.current_action(recovered), action)
+                self.assertEqual(
+                    packet.count("Repeatable test-suite guide: " + str(guide)), 1
+                )
+                self.assertEqual(packet.count("Work item context: " + context), 1)
+                for reference in expected_refs:
+                    self.assertIn("- " + reference, packet)
+
+    def test_classic_remote_test_routes_keep_local_and_remote_evidence_distinct(self) -> None:
+        """Keep strategy, execution, and Improve from collapsing remote work into local green."""
+        strategy = " ".join(navigator_prompts.PROMPTS["test-strategy"].split())
+        for duty in (
+            "execution location separately from target location",
+            "client checking a deployed target",
+            "remote-resident tests",
+            "remote framework",
+            "availability, access and deployment prerequisites",
+            "test-definition, installation and invocation route",
+            "local pass is not a remote pass",
+        ):
+            with self.subTest(stage="test-strategy", duty=duty):
+                self.assertIn(duty, strategy)
+
+        system_test = " ".join(navigator_prompts.PROMPTS["system-test"].split())
+        for duty in (
+            "remote-resident test definitions and registration",
+            "available framework",
+            "execution location",
+            "authorized installation and invocation",
+            "deployed/test revision identity.",
+            "local pass cannot satisfy a blocked/unrun required remote check",
+            "combined full-suite pass",
+        ):
+            with self.subTest(stage="system-test", duty=duty):
+                self.assertIn(duty, system_test)
+
+        improve = " ".join(navigator_prompts.IMPROVE.split())
+        for duty in (
+            "remote-resident definitions",
+            "execution location",
+            "remote framework availability",
+            "authorized invocation",
+            "local pass does not satisfy remote checks",
+        ):
+            with self.subTest(stage="Improve", duty=duty):
+                self.assertIn(duty, improve)
+
     def _progress_block(self, packet: str) -> str:
         """Return the small status projection, without comparing full packets."""
         heading = "Progress snapshot (status context, not instructions):"

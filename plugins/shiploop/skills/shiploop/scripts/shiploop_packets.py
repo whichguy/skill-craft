@@ -70,6 +70,10 @@ Cite listed role/interface/interaction/question/observation/source IDs. Unresolv
 ## Coverage decisions
 Assess unit/integration/end-to-end; mock/fake; browser/service/API separately: selected, not applicable with reason, or required but blocked. Name target environment, fixtures, real/simulated dependencies, readiness/cleanup.
 
+## Repeatable suite and fixture lifecycle
+Revalidate the selected harness or prior-run reference. For each case, plan setup, test/assertions, and teardown together, or justify stateless no-setup/no-teardown. Share expensive fixtures only with demonstrated noninterference; if in doubt, isolate per test. Retain executable tests, suite registration and exact focused/smoke/full-suite commands; smoke is not full-suite evidence. Include failure cleanup and relevant rerun/isolation checks. Use references/repeatable-test-suites.md in the selected ShipLoop package.
+Plan execution location separately from target location: local checks, client checks against deployed targets, or remote-resident tests. Discover remote framework availability and prerequisites; retain remote definitions/registration plus the authorized installation, invocation, result retrieval and cleanup route. A local pass cannot satisfy blocked/unrun required remote checks.
+
 ## Execution and post-code test refinement
 Code; inspect diff/learnings; author/refine tests or justify reuse; lint/tests; diagnose/fix/rerun. Cover boundary/failure/regression gaps. Test corrections need independent requirement evidence; preserve acceptance/coverage.
 
@@ -2502,6 +2506,8 @@ def render(core: Any, root: Path, state: Mapping[str, Any], api: Mapping[str, An
         f"ShipLoop {getattr(core, 'VERSION', '?')} | {phase} / {stage} | revision {revision}",
         f"State: {root / 'state.md'}",
         f"Stage: {stage}",
+        "Repeatable test-suite guide: "
+        + str(Path(getattr(core, "REF_DIR", "references")) / "repeatable-test-suites.md"),
     ]
     managed = improve_bridge.packet_metadata(state)
     if managed:

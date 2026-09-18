@@ -53,6 +53,16 @@ specified missing behavior and must not make production edits to turn it green.
 Release and verification never replay an uncertain external operation merely to
 make traversal continue.
 
+Testing builds a [repeatable repository suite](references/repeatable-test-suites.md).
+Initial planning selects or revalidates the harness and focused/smoke/full commands.
+Each INNER change considers setup, test, teardown, and suite inclusion; stateless
+cases need no artificial lifecycle. Share expensive fixtures only when tests cannot
+interfere, otherwise isolate them. Retain cases and rerun instructions beyond the
+run, and include tests, fixtures and suite wiring in their actual Improve review.
+Plan local and remote execution explicitly. Where the remote framework requires
+in-system tests, retain their definitions and authorized setup/invocation/cleanup
+route; unavailable remote checks remain unrun even when local tests pass.
+
 At initialization, `--improve-skill=ABSOLUTE_SELECTED_SKILL_CARD` may bind the
 actual card. If omitted, the first checkpoint remains pending until the packet
 instructs the owner to use `improve-bind --action ... --skill-card ...`. The

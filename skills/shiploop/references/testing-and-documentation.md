@@ -236,6 +236,10 @@ output/state/side effect, planned test path/selector, check ID, and
 environment/fixture. This is the durable pre-code plan, not a new result schema
 or a second test catalog. In the sequence, plan tests/documentation as
 deliverables, not an afterthought.
+Use [repeatable test suites](repeatable-test-suites.md) to make those existing
+cases executable and reusable: select/revalidate the harness, give each case a
+setup/oracle/teardown decision, isolate fixtures, and link focused, smoke and
+full commands. It adds no protocol or framework requirement.
 For behavioral requirements, also link `R-/F-/T-` IDs from the
 [product behavior model](behavioral-requirements.md#behavior-model). Cases must
 state the expected source/destination or unchanged state, outputs and side

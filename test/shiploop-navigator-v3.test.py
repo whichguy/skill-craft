@@ -507,6 +507,122 @@ class NavigatorV3Tests(unittest.TestCase):
             " ".join(prompts.DUTIES["spec"].split()),
         )
 
+    def test_v3_test_strategy_requires_repeatable_harness_revalidation_and_suite_tiers(self) -> None:
+        """The global strategy chooses rerunnable coverage before item work starts."""
+        strategy = " ".join(prompts.prompt("test-strategy").split())
+        for duty in (
+            "Read the Repeatable test-suite guide.",
+            "Select the major harnesses and suite entry points now",
+            "reuse a prior-run harness only after revalidating its current fit",
+            "focused, smoke, and full-suite commands",
+            "smoke is a bounded subset, never evidence for the full suite",
+        ):
+            with self.subTest(duty=duty):
+                self.assertIn(duty, strategy)
+
+    def test_v3_remote_test_routes_keep_local_and_remote_evidence_distinct(self) -> None:
+        """Route remote test assets without treating a local result as their evidence."""
+        strategy = " ".join(prompts.prompt("test-strategy").split())
+        for duty in (
+            "execution location separately from target location",
+            "client checks against a deployed target",
+            "remote-resident tests",
+            "remote framework",
+            "availability, access and deployment prerequisites",
+            "define/register, install and invoke remote tests",
+            "local pass is not a remote pass",
+        ):
+            with self.subTest(stage="test-strategy", duty=duty):
+                self.assertIn(duty, strategy)
+
+        author = " ".join(prompts.prompt("test-author").split())
+        for duty in (
+            "remote-resident cases",
+            "remote definitions and registration",
+            "authorized installation/invocation prerequisites",
+        ):
+            with self.subTest(stage="test-author", duty=duty):
+                self.assertIn(duty, author)
+
+        system_author = " ".join(prompts.prompt("system-test-author").split())
+        for duty in (
+            "remote-resident definitions and registration",
+            "remote framework requires them",
+            "authorized installation and invocation",
+        ):
+            with self.subTest(stage="system-test-author", duty=duty):
+                self.assertIn(duty, system_author)
+
+        system_test = " ".join(prompts.prompt("system-test").split())
+        for duty in (
+            "execution location",
+            "remote framework availability",
+            "deployed/test revision identity",
+            "local pass cannot replace a blocked/unrun required remote check",
+            "combined full-suite pass",
+        ):
+            with self.subTest(stage="system-test", duty=duty):
+                self.assertIn(duty, system_test)
+
+    def test_v3_test_lifecycle_and_child_handoff_keep_repeatable_suite_boundaries(self) -> None:
+        """Check packet routing and boundaries, without claiming model compliance."""
+        test_spec = " ".join(prompts.prompt("test-spec").split())
+        for duty in (
+            "Specify setup, test/assertions, and teardown together",
+            "stateless case needs no setup or teardown",
+            "Share expensive setup only with demonstrated noninterference",
+            "if in doubt, use per-test isolation",
+            "Plan failure cleanup and suite registration.",
+        ):
+            with self.subTest(stage="test-spec", duty=duty):
+                self.assertIn(duty, test_spec)
+
+        test_author = " ".join(prompts.prompt("test-author").split())
+        for duty in (
+            "Retain tests and fixtures in the repository.",
+            "Register each case in the full regression route and applicable focused entry points; decide smoke membership independently without duplicating tests.",
+            "verify discovery selects the cases rather than merely recording their paths",
+        ):
+            with self.subTest(stage="test-author", duty=duty):
+                self.assertIn(duty, test_author)
+
+        state = self.state()
+        while navigator.current_stage(state) != "test-red":
+            stage = navigator.current_stage(state)
+            extra = {}
+            if stage == "plan":
+                extra["work_items"] = [{"id": "W1", "title": "Synthetic item"}]
+            state = self._produce(state, stage, **extra)
+
+        action = self._action(state)
+        producer_packet = navigator.render(None, self.repo / ".shiploop", state)
+        self.assertIn(
+            "Do not edit production code to make the test green at this stage.",
+            producer_packet,
+        )
+        waiting = navigator.apply(state, action["id"], result())
+        self.assertEqual(navigator.current_stage(waiting), "test-red")
+        self.assertEqual(waiting["active_improve"]["action_id"], action["id"])
+        bound = self._bind_synthetic_child(waiting)
+
+        handoff = " ".join(
+            navigator.render(None, self.repo / ".shiploop", bound).split()
+        )
+        for duty in (
+            "For test plans, authored/refined tests, fixtures, suite wiring or test evidence",
+            "harness, case and suite locators",
+            "setup/test/teardown (including justified stateless cases)",
+            "sharing noninterference, failure cleanup, repeatability, and focused/smoke/full-suite inclusion and cost",
+            "authoring and expected RED do not require future production behavior to pass.",
+            "remote-resident definitions",
+            "framework availability",
+            "authorized invocation",
+            "execution location",
+            "local pass does not satisfy a required remote check",
+        ):
+            with self.subTest(stage="Improve handoff", duty=duty):
+                self.assertIn(duty, handoff)
+
     def test_v3_packets_keep_runtime_and_selected_case_evidence_visible(self) -> None:
         """Synthetic prompt traversal keeps runtime and real-boundary gaps explicit."""
         original_request = (
