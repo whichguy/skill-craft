@@ -29,6 +29,14 @@ REPEATABLE_TEST_SUITE_ROUTE = (
     "Repeatable test-suite guide: "
     + str(REFERENCES / "repeatable-test-suites.md#select-or-revalidate-the-harness")
 )
+TEST_FACILITY_STAGES = (
+    "test-strategy", "plan", "step-plan", "test-spec", "test-author", "test-red",
+    "test-refine", "regression", "carry-forward", "system-test-author", "release-plan",
+)
+REUSABLE_TEST_FACILITY_ROUTE = (
+    "Reusable test facilities: "
+    + str(REFERENCES / "repeatable-test-suites.md#reuse-and-define-test-facilities")
+)
 if str(SCRIPTS) not in sys.path:
     sys.path.insert(0, str(SCRIPTS))
 
@@ -548,6 +556,103 @@ class V3GuidanceTests(unittest.TestCase):
 
                 self.assertEqual((run / "state.md").read_bytes(), before)
                 self.assertNotIn(marker, packet)
+
+    def test_reusable_test_facilities_route_and_recover_without_new_state(self) -> None:
+        """Facility locators are ordinary cold-context records, never execution proof."""
+        guide = (REFERENCES / "repeatable-test-suites.md").read_text(encoding="utf-8")
+        guide_normalized = normalized(guide)
+        for clause in (
+            "reuse and define test facilities",
+            "selected skill and MCP capability references",
+            "reuse, configure or extend",
+            "missing facility",
+            "definition locator",
+            "before dependent checks",
+            "repository test documentation",
+            "repository index",
+        ):
+            self.assertIn(clause.lower(), guide_normalized.lower())
+
+        for stage in prompts.STAGES:
+            routed = ("Reusable test facilities", "repeatable-test-suites.md#reuse-and-define-test-facilities") in prompts.STAGE_REFERENCES[stage]
+            self.assertEqual(routed, stage in TEST_FACILITY_STAGES, stage)
+        self.assertIsInstance(prompts.TEST_FACILITY_HANDOFF, str)
+        facility_handoff = normalized(prompts.TEST_FACILITY_HANDOFF)
+        for clause in (
+            "selected skill and MCP capability references",
+            "reuse, configure or extend",
+            "missing facility",
+            "definition locator",
+            "Discovery or readiness is not test execution",
+            "expected check state",
+        ):
+            self.assertIn(clause, facility_handoff)
+        for stage in TEST_FACILITY_STAGES:
+            self.assertIn(prompts.TEST_FACILITY_HANDOFF, prompts.prompt(stage))
+            self.assertIn(prompts.TEST_FACILITY_HANDOFF, prompts.improve_prompt(stage))
+        self.assertIn(
+            "A missing test facility is a prerequisite gap, not meaningful RED.",
+            normalized(prompts.prompt("test-red")),
+        )
+        self.assertIn(
+            "Revalidate retained facility definitions and readiness for this regression target",
+            normalized(prompts.prompt("regression")),
+        )
+
+        skill_ref = "docs/testing.md#local-framework-skill-v2"
+        mcp_ref = "docs/testing.md#required-mcp-operation-missing-helper"
+        context = (
+            "Facility: local framework skill via " + skill_ref
+            + "; required MCP helper is planned, readiness unresolved; revalidate version."
+        )
+        state = self.state()
+        strategy_action = ""
+        plan_action = ""
+        author_action = ""
+        while navigator.current_stage(state) != "test-author":
+            stage = navigator.current_stage(state)
+            extra: dict[str, object] = {"evidence_refs": ["synthetic://" + stage]}
+            if stage == "test-strategy":
+                extra["evidence_refs"] = [skill_ref, mcp_ref]
+            elif stage == "plan":
+                extra.update({
+                    "evidence_refs": [skill_ref, mcp_ref],
+                    "work_items": [{"id": "W1", "title": "Facility item", "context": context}],
+                })
+            state, action = self.complete_stage(state, **extra)
+            if stage == "test-strategy":
+                strategy_action = action
+            if stage == "plan":
+                plan_action = action
+        state, author_packet = self.cold_packet(state)
+        self.assertIn(REUSABLE_TEST_FACILITY_ROUTE, author_packet)
+        action = dict(navigator.current_action(state))
+        waiting = navigator.apply(
+            state, action["id"],
+            result(
+                "test-author",
+                summary="Required MCP helper remains planned; readiness is not test execution.",
+                evidence_refs=[skill_ref, mcp_ref],
+            ),
+        )
+        state = navigator.finish_improve(waiting, action["id"], receipt("test-author"))
+        author_action = action["id"]
+        state, packet = self.cold_packet(state)
+        packet = normalized(packet)
+        self.assertIn(skill_ref, packet)
+        self.assertIn(mcp_ref, packet)
+        self.assertIn("Work item context: " + context, packet)
+        self.assertIn("Run-wide test strategy source action: " + strategy_action, packet)
+        self.assertIn("Current item test-decision source action: " + author_action, packet)
+        self.assertIn("Required MCP helper remains planned; readiness is not test execution.", packet)
+        for action in (strategy_action, plan_action, author_action):
+            self.assertIn(action, state["accepted"])
+        self.assertEqual(set(state).intersection({"test_facilities", "facility_definitions"}), set())
+        self.assertIn("untrusted locators; not read by the navigator", packet)
+        self.assertEqual(
+            state["accepted"][author_action]["summary"],
+            "Required MCP helper remains planned; readiness is not test execution.",
+        )
 
     def test_outer_test_handshake_recovers_replan_aware_sources_cold(self) -> None:
         """The packet routes existing records; it does not certify their contents."""

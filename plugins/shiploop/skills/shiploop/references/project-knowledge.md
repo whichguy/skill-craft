@@ -297,6 +297,14 @@ the observed version/date and revalidation trigger; a prior passing run does
 not make those facts current. See [repeatable test suites](repeatable-test-suites.md)
 for the case, fixture, and outcome rules.
 
+Also retain [reusable test-facility definitions](repeatable-test-suites.md#reuse-and-define-test-facilities):
+selected skill/package or MCP capability references, supported interfaces,
+readiness/authority prerequisites, and the smallest missing facility's owner and
+validation criteria. Link implemented helpers/configuration and portable usage
+instructions from the existing test documentation and repository index. Keep
+planned definitions, validated facility readiness and executed case outcomes
+distinct so later tests can reuse the facility without inheriting an unearned pass.
+
 For an approved policy intended to be standing, keep its scope, exclusions,
 user-approval reference, and revalidation conditions in an existing
 repository-owned `SHIPLOOP.md`, `AGENTS.md`, or deployment/operations document,

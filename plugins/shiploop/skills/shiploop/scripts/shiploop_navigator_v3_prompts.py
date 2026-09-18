@@ -54,6 +54,11 @@ OUTER = (
 
 STAGES = PRELUDE + INNER + OUTER
 
+TEST_FACILITY_STAGES = frozenset({
+    "test-strategy", "plan", "step-plan", "test-spec", "test-author", "test-red",
+    "test-refine", "regression", "carry-forward", "system-test-author", "release-plan",
+})
+
 
 # Keep stage routing declarative and package-relative.  The navigator renders
 # these selected locators with the package reference directory; this catalog
@@ -206,6 +211,11 @@ STAGE_REFERENCES: dict[str, tuple[tuple[str, str], ...]] = {
 for _outer_stage in OUTER:
     STAGE_REFERENCES[_outer_stage] += (
         ("OUTER test-planning handshake", "repeatable-test-suites.md#outer-test-planning-handshake"),
+    )
+
+for _facility_stage in TEST_FACILITY_STAGES:
+    STAGE_REFERENCES[_facility_stage] += (
+        ("Reusable test facilities", "repeatable-test-suites.md#reuse-and-define-test-facilities"),
     )
 
 
@@ -593,6 +603,8 @@ with their authorized installation/invocation prerequisites.
 Execute the selected pre-implementation tests and establish a meaningful expected
 RED for the intended missing behavior.  Confirm that the failure is caused by the
 specified behavior rather than syntax, setup, fixture, or environment error.
+A missing test facility is a prerequisite gap, not meaningful RED. Facility
+readiness must not require future product behavior to pass.
 Do not edit production code to make the test green at this stage.  A valid RED is
 successful control evidence for this stage, not a product failure to hide.
 """,
@@ -624,6 +636,8 @@ and refresh their case, fixture, command, and cost notes when those change.
     "regression": """\
 Use the Run-wide test strategy source and current item context to recover the
 applicable retained suites, target prerequisites and justified decision changes.
+Revalidate retained facility definitions and readiness for this regression target;
+reuse the existing route when it still fits and retain any required correction.
 Execute relevant regression, negative, compatibility, and boundary checks on the
 current candidate.  Include selected error and recovery behavior.  Distinguish a
 product defect, invalid test, and environment issue with a small discriminating
@@ -863,6 +877,19 @@ IMPLEMENTATION_STAGES = frozenset(
 
 BACKCHAIN_STAGES = frozenset({"spec", "plan", "step-plan", "carry-forward", "product-acceptance"})
 TEST_DECISION_STAGES = frozenset({"step-plan", "test-spec", "test-author", "test-refine", "regression"})
+TEST_FACILITY_HANDOFF = """\
+Use the packet's Reusable test facilities guide. Read applicable selected skill
+and MCP capability references; reuse, configure or extend existing frameworks,
+helpers and supported facilities before defining the smallest missing facility.
+Retain its definition locator, supported interface, readiness evidence or gap,
+owner/prerequisites and revalidation conditions in ordinary evidence_refs and
+repository test documentation. Carry relevant locators into item context and the
+Improve child's context/notes. Planning names missing prerequisite work; the owning
+authoring/configuration work implements and validates it before dependent checks,
+within the assigned scope and expected check state. Discovery or readiness is not
+test execution. Reopen the durable definition for later tests instead of inventing
+another facility or assuming a named skill/MCP is available or authorized.
+"""
 TEST_DECISION_HANDOFF = """\
 Reopen the packet's Current item test-decision source when present, alongside
 the Run-wide test strategy source and initial item context. Keep applicable
@@ -1006,6 +1033,8 @@ def prompt(stage: str) -> str:
     """Return the single current producer instruction for a v3 graph stage."""
     _require_stage(stage)
     parts = [COMMON, DUTIES[stage]]
+    if stage in TEST_FACILITY_STAGES:
+        parts.append(TEST_FACILITY_HANDOFF)
     if stage in TEST_DECISION_STAGES:
         parts.append(TEST_DECISION_HANDOFF)
     if stage in OUTER:
@@ -1025,6 +1054,7 @@ def improve_prompt(stage: str) -> str:
     _require_stage(stage)
     backchain = _backchain_guidance(stage, improve_owner=True) if stage in BACKCHAIN_STAGES else ""
     outer_handshake = OUTER_TEST_HANDOFF if stage in OUTER else ""
+    test_facilities = TEST_FACILITY_HANDOFF if stage in TEST_FACILITY_STAGES else ""
     assessment = ""
     if any(label == "State and data assessment" for label, _ in STAGE_REFERENCES[stage]):
         assessment = """\
@@ -1078,6 +1108,8 @@ readiness conditions in the child contract/review notes for cold recovery.
 
 {outer_handshake}
 
+{test_facilities}
+
 When the candidate concerns actor interactions, channels, incoming/outgoing events,
 connection lifecycle, state ownership or UI, read the applicable Interaction design
 guide sections, including UI-specific planning when relevant, and the current
@@ -1109,6 +1141,10 @@ future production behavior to pass. Keep unresolved coverage visible.
 Include remote-resident definitions, framework availability, authorized invocation,
 execution location and deployed/test revision evidence; a local pass does not
 satisfy a required remote check.
+Review selected facility definitions and skill/MCP references for actual reuse,
+supported interfaces and readiness limits. Preserve their durable locators for
+later tests; verify an owned new/changed facility before its dependent checks
+without treating facility readiness as a passing product test.
 
 Improve owns its own review iterations, evidence notebook, continuation, and
 completion judgment.  Do not replace it with an inline review algorithm, copied

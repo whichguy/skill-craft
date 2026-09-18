@@ -69,6 +69,69 @@ registration and reuse the same test/selector rather than duplicating a case.
 A smoke result establishes only that selected subset; it is never evidence that
 the full suite passed.
 
+## Reuse and define test facilities
+
+A test facility is a reusable runner, fixture/helper, test environment, native
+testing tool, or supported access/inspection route. During test strategy and each
+affected plan, inspect existing test configuration, helpers, repository test
+documentation and applicable selected skill and MCP capability references.
+If the needed route is not described, discover relevant available skills and
+MCP tools/resources through the host's supported discovery route; select only
+capabilities that meet a named test need.
+Follow [reuse before a new mechanism](research-loop.md#reuse-before-a-new-mechanism):
+reuse, configure or extend a suitable existing facility before creating another.
+Record the concrete gap if none fits. No MCP server, skill wrapper or testing
+framework is mandatory; a direct stateless check may need none.
+
+For each selected facility, retain a definition locator in existing strategy/plan
+evidence and repository test documentation. Record only the relevant details:
+
+- purpose, test boundary, consuming case/suite selectors and reuse rationale;
+- source/package identity and version or digest where available, plus the selected
+  skill card and relevant reference/script locators, or MCP server identity and
+  supported tool/resource interface;
+- exact command or operation, required inputs, observable result/error contract,
+  non-secret configuration and execution versus target location;
+- availability/readiness evidence, access/authority prerequisites, fixture
+  setup/cleanup and isolation/sharing, limitations and revalidation triggers.
+
+Read the selected skill and its relevant resources before using its procedure;
+resolve its bundled helpers from that selected package. For MCP capabilities,
+inspect the actual available operation/resource contract and relevant schemas;
+do not infer an API, tool access, target readiness or authority from a server name
+or catalog entry. Discovery or readiness is not test execution, and a successful
+tool call is not a passing case without its independent expected outcome.
+Use the [existing acquisition and access policy](research-loop.md#acquire-a-reader-and-establish-access-only-when-authorized)
+when setup is needed. Selection alone does not authorize installation, login,
+provisioning or remote mutation. Reuse current applicable readiness evidence;
+use a bounded authorized probe only when a consequential uncertainty remains.
+
+If a required facility is missing, define the smallest missing facility with its
+purpose, interface, owner, prerequisites, fixture lifecycle, invocation/registration
+route and validation criteria. Assign its implementation or configuration as a
+prerequisite in the existing plan; create or extend it within the owning work's
+scope and validate readiness before dependent checks. Keep it labeled planned or
+blocked until supported by evidence. A planning result may record that unresolved
+execution prerequisite; it does not claim the facility exists. If its contract is
+unknown, resolve that planning gap before dependent authoring rather than invent
+an executable interface. Preserve the assigned stage's expected check state:
+facility readiness must not require future product behavior to pass during RED.
+
+Retain implemented helpers/configuration and definitions in the repository's
+existing test layout and documentation, with a minimal usage example and check
+result/limits. Link them from the repository index for later tests and runs;
+do not leave the only definition in chat or disposable run storage. Follow
+[reference destinations](project-knowledge.md#reference-handoffs-and-destinations):
+portable notes retain package/source identity and how to resolve it, while
+run evidence keeps the actual selected host locator and its explicit base.
+Do not copy credentials or require an old worktree/session for future reuse.
+Create a repo-local skill only when a reusable procedure warrants it under
+[reusable product skills](testing-and-documentation.md#reusable-product-skills).
+Carry the definition locator and current selection/readiness decision through
+ordinary evidence_refs and applicable item context into INNER/OUTER planning and
+Improve. Revalidate changed versions, interfaces, targets or access rather than
+duplicating the facility or treating its former availability as current proof.
+
 ## Carry test decisions through stages
 
 For Navigator v3, retain the run-wide strategy note in the `test-strategy`
