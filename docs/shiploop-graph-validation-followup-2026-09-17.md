@@ -28,7 +28,8 @@ the host researched the right question or retained sufficient evidence.
 The shared checkout was at `60da85a54e407211ecdabff0ccf4758d67028cb8` with concurrent
 uncommitted work. Calibration used an external copy of the current ShipLoop
 package, verified against source hashes before and after copying. No live model
-was invoked and no production ShipLoop file was edited by this follow-up.
+was invoked in this initial calibration, and it did not edit production ShipLoop
+files. The later live intake is recorded below.
 
 The ten existing DAG replay cases satisfied their assertions: nine positive
 cases and one expected-failure control. Across the cases, 383 callback/control
@@ -77,7 +78,7 @@ Implementation and regression tests are in `workflow_review.py` and
 external/private retained artifact (not included in this repository).
 Final targeted validation passed 14 workflow-review tests and 7 campaign tests.
 Independent review and root review also checked divergent snapshots, mixed
-protocol records, and malformed containers. These changes are uncommitted and
+protocol records, and malformed containers. At that review checkpoint these changes were uncommitted. They
 do not alter ShipLoop's production graph or rewrite earlier trial results.
 
 ## Minimal implementation plan — YAGNI/KISS revision
@@ -278,7 +279,8 @@ The new `test_v3_intake_host_observer_bridge` executes the real copied CLI and
 selected Improve child, captures the pending and accepted states, and exercises
 six synthetic host streams: valid, producer-only, missing completion update,
 duplicate tool event, missing terminal end, and unknown completion exit. Its
-focused run took 1.33 seconds (1.40 seconds wall time). It uses the existing test
+focused run with native interim-update placeholders took 1.48 seconds
+(1.55 seconds wall time). It uses the existing test
 class and observer functions; it adds no runner or event schema.
 
 Two additional observer defects were reproduced and fixed during review:
@@ -294,25 +296,76 @@ Two additional observer defects were reproduced and fixed during review:
 
 | Verification on the frozen candidate | Result |
 | --- | --- |
-| Final full E2E apparatus | 225 passed, zero failures/errors/skips, 163.88 seconds |
-| Full real CLI composition | 3 passed, including the 34-stage path and recovery, 75.85 seconds |
-| Short observer bridge | 1 passed, 1.33 seconds |
+| Final combined full E2E apparatus | 230 passed, zero failures/errors/skips, 194.80 seconds |
+| Full real CLI composition | 3 passed, including the 34-stage path and recovery, 86.77 seconds wall time |
+| Short observer bridge with interim events | 1 passed, 1.48 seconds |
 | Workflow and campaign regressions | 22 passed |
 | Protocol compatibility regressions | 5 passed |
 | Ruff F/E9 on edited Python files | Passed |
 | Independent review | Confirmed the two fixes and bridge; no remaining actionable findings |
 
 The final full-suite run verified unchanged source hashes across both commands.
+The combined apparatus includes the separately owned behavior-capture correction
+for terminal exit updates and both native exit-code field spellings. These are
+results on the frozen working content, not a claim about a later publication
+candidate or its CI. The initial 225-test pass preceded the live-derived controls.
 Red/green logs, command receipts, source manifests, and the isolated worktree are
 retained in an external/private validation workspace (not included in this repository).
 The short test commands and observation locations are documented in
 `test/experiments/shiploop_e2e/MOCK-REPLAY.md`.
 
-Live validation remains separate and is still in preflight at this handoff. The
-normal Grok CLI has no skill-directory flag, and disposable parent/project skill
-folders did not override global discovery. A frozen `--skill-root` assertion
-correctly rejected that mismatch before model launch. The remaining experiment
-is Grok's supported process-local `GROK_HOME` configuration directory, preserving
-the normal authentication reference and global installation. No new live model
-has been called by this increment yet; none of the offline results above proves
-one-shot instruction comprehension, generated gameplay, or hosted delivery.
+### Live intake result and resulting observer correction
+
+One unchanged one-shot tic-tac-toe intake smoke ran in an actually empty CWD,
+using Grok 4.6 with requested `xhigh`, a two-hour cap, and a 1,000-turn cap. It
+reached accepted intake after 20.22 minutes and advanced to discovery. The real
+selected Improve child made two material correction rounds followed by two
+trivial-only reviews; its imported receipt and the observed parent callback agree.
+The model strengthened GAS source compatibility and closed scope ambiguities.
+
+The recorded verdict is nevertheless `partial-smoke-failed`: the successful
+startup retry used `mkdir ... && shiploop workspace start ...`, which the observer
+deliberately leaves unattributed. The durable boundary was reached, with one
+accepted action and one observed callback, but startup attribution was missing.
+The intentional boundary stop produced no terminal end event. Source stability,
+capture integrity, and recorded isolation/control-input checks passed. No game
+was implemented or verified in this prefix. The full create/guidance chain
+remains unrun in this increment; this partial repository is not its baseline.
+
+The normal Grok CLI has no skill-directory flag, and parent/project skill folders
+did not override global discovery. A private process-local `GROK_HOME` profile
+proved the supported frozen-selection route. Its skill links resolve to standalone
+copies outside the observer checkout; existing authentication/config references
+remain in place without copying their contents or changing global skill links.
+Fresh candidate runs must recreate or refresh these isolated skill bindings and
+verify the expected `--skill-root` identity; that runner flag alone never changes
+Grok discovery. Both complete selected package inventories remained unchanged.
+
+Native capture revealed one further false-success defect: Grok reports placeholder
+zero exit codes while tools are still `in_progress`. These could supply a missing
+final exit or advertise success beside a final failure. The existing shared exit
+reader now accepts only explicit terminal exit evidence. CLI attribution and
+control-input successful-read observations use the same rule; attempted exposure
+still counts. The mock bridge now includes the observed interim-update pattern.
+Parser and bridge regressions failed before the correction and passed afterward.
+The five existing host-shape fixtures were revalidated and only their parser
+fingerprints refreshed; their events, expectations, and trace provenance remain
+unchanged. Historical live records were not rewritten after the observer change.
+
+The live duration is a useful `xhigh` cost observation, not a general per-stage
+estimate or reason alone to weaken Improve. Default sanitized trial snapshots
+also omit some executable source contents as credential-shaped input, so those
+archives alone are not reconstructible. Separate full frozen source copies are
+retained, including the original observer with an exact matching aggregate hash.
+Calibrate that redaction rule against ordinary source and synthetic
+secret-shaped fixtures before changing it. No graph or production completion-gate change is justified
+by this prefix.
+
+Detailed local review and source-pinning receipts are retained beside the existing
+validation artifacts in `LIVE-REVIEW.md`, `live-review-pins.json`, and
+`live-observer-source-receipt.json`. A subsequent full create/feature chain needs
+fresh identities, the newly frozen observer and consolidated skill candidate,
+and independent local application verification before guidance can be graded.
+
+The published observer corrections and remaining experiment sequence are recorded
+in [the next-experiments plan](shiploop-next-experiments-2026-09-17.md).
