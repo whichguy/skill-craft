@@ -26,6 +26,7 @@ LEAVES = (
     "skill-interop",
     "evidence-gates",
     "shiploop",
+    "shiploop-e2e-audit",
     "improve",
 )
 
@@ -38,6 +39,84 @@ class InstalledSkillInvocationTest(unittest.TestCase):
         self.assertIn("driver is an external skill, not bundled", body)
         self.assertIn("missing prerequisite", body)
         self.assertIn("status-only `update_goal` tool cannot", body)
+
+    def test_audit_copied_package_binds_without_checkout_from_unrelated_cwd(self) -> None:
+        package = self.package("shiploop-e2e-audit")
+        cli = package / "scripts/resolve_harness.py"
+        before = set(self.consumer.iterdir())
+        result = self.invoke_python(cli)
+        self.assert_ok(result, "audit copied-package binding without clone")
+        payload = json.loads(result.stdout)
+        self.assertEqual(payload["binding_source"], "package")
+        self.assertEqual(payload["harness"], str((package / "harness").resolve()))
+        self.assertIsNone(payload["checkout"])
+        self.assertTrue(payload["harness_sha256"])
+        self.assertEqual(set(self.consumer.iterdir()), before)
+        self.assert_no_bytecode()
+
+    def test_audit_copied_package_accepts_explicit_source_checkout(self) -> None:
+        package = self.package("shiploop-e2e-audit")
+        before = set(self.consumer.iterdir())
+        result = self.invoke_python(package / "scripts/resolve_harness.py", "--checkout", str(ROOT))
+        self.assert_ok(result, "audit copied-package explicit binding")
+        payload = json.loads(result.stdout)
+        self.assertEqual(payload["binding_source"], "explicit")
+        self.assertEqual(payload["checkout"], str(ROOT.resolve()))
+        self.assertEqual(payload["resolved_skill_file"], str((package / "SKILL.md").resolve()))
+        self.assertEqual(set(self.consumer.iterdir()), before)
+        self.assert_no_bytecode()
+
+    def test_audit_mock_runs_from_read_only_marketplace_copies_without_clone(self) -> None:
+        audit = self.package("shiploop-e2e-audit")
+        subject = self.package("shiploop")
+        output = self.temp_root / "packaged mock results"
+        before = set(self.consumer.iterdir())
+        result = self.invoke_python(audit / "harness/check_suite.py", "--suite", "mock",
+                                    "--skill-root", str(subject), "--output", str(output))
+        self.assert_ok(result, "audit mock from read-only marketplace copies")
+        payload = json.loads((output / "result.json").read_text())
+        self.assertEqual(payload["status"], "passed")
+        self.assertEqual(payload["model_calls"], 0)
+        self.assertEqual(payload["failures"], 0)
+        self.assertEqual(payload["errors"], 0)
+        self.assertEqual(payload["skipped"], 0)
+        self.assertGreater(payload["tests"], 0)
+        self.assertEqual(payload["harness"]["root"], str((audit / "harness").resolve()))
+        self.assertEqual(payload["selected_subject"]["root"], str(subject.resolve()))
+        self.assertTrue(payload["selected_subject"]["package_sha256"])
+        self.assertIsNone(payload["harness"]["source_checkout"])
+        self.assertEqual(set(self.consumer.iterdir()), before)
+        self.assert_no_bytecode()
+
+    def test_audit_mock_uses_isolated_installed_subject_default(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="audit installed default ") as temporary:
+            area = Path(temporary).resolve()
+            home = area / "home"
+            cwd = area / "empty folder"
+            cwd.mkdir()
+            copies = []
+            try:
+                for leaf in ("shiploop-e2e-audit", "shiploop"):
+                    destination = home / ".grok/skills" / leaf
+                    shutil.copytree(self.package(leaf), destination)
+                    copies.append(destination)
+                result = subprocess.run(
+                    [sys.executable, "-B", str(copies[0] / "harness/check_suite.py"),
+                     "--suite", "mock", "--output", str(area / "results")],
+                    cwd=cwd, env=self.base_env({"HOME": str(home)}),
+                    capture_output=True, text=True, timeout=60,
+                )
+                self.assert_ok(result, "audit mock using isolated installed subject default")
+                payload = json.loads((area / "results/result.json").read_text())
+                self.assertEqual(payload["status"], "passed")
+                self.assertEqual(payload["model_calls"], 0)
+                self.assertEqual(payload["selected_subject"]["root"], str(copies[1]))
+                self.assertEqual(payload["selected_subject"]["default_selection"], "installed-skill-dir")
+                self.assertIsNone(payload["harness"]["source_checkout"])
+                self.assertEqual(list(cwd.iterdir()), [])
+            finally:
+                for package in copies:
+                    self._make_writable(package)
 
     @classmethod
     def setUpClass(cls) -> None:

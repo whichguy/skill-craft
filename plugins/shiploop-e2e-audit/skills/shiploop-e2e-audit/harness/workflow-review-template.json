@@ -1,0 +1,90 @@
+{
+  "schema": "shiploop-e2e-workflow-review/2",
+  "trial_id": null,
+  "candidate_digest": null,
+  "baseline_digest": null,
+  "skill_digest": null,
+  "harness_digest": null,
+  "reviewed_at": null,
+  "reviewer": null,
+  "scope": "Analyst review; separate from automatic catalog/product grading",
+  "dimensions": [
+    {
+      "id": "literal-request-and-selected-source",
+      "status": "unverified",
+      "evidence": [],
+      "notes": ""
+    },
+    {
+      "id": "dag-execution-and-callback-attribution",
+      "status": "unverified",
+      "evidence": [],
+      "notes": ""
+    },
+    {
+      "id": "platform-and-consumer-contract-preserved",
+      "status": "unverified",
+      "evidence": [],
+      "notes": ""
+    },
+    {
+      "id": "planned-tests-reconciled-with-observations",
+      "status": "unverified",
+      "evidence": [],
+      "notes": ""
+    },
+    {
+      "id": "improve-evidence-and-reviewer-scope",
+      "status": "unverified",
+      "evidence": [],
+      "notes": ""
+    },
+    {
+      "id": "recovery-return-and-context-hygiene",
+      "status": "unverified",
+      "evidence": [],
+      "notes": ""
+    },
+    {
+      "id": "incremental-behavior-and-source-lineage",
+      "status": "unverified",
+      "evidence": [],
+      "notes": ""
+    },
+    {
+      "id": "performance-and-model-settings-observable",
+      "status": "unverified",
+      "evidence": [],
+      "notes": ""
+    }
+  ],
+  "findings": [],
+  "finding_fields": [
+    "id",
+    "priority",
+    "owner",
+    "trigger",
+    "observed",
+    "consequence",
+    "evidence",
+    "confidence",
+    "contrary_evidence",
+    "smallest_change",
+    "regression_or_pilot"
+  ],
+  "status_values": [
+    "supported-pass",
+    "supported-gap",
+    "unverified",
+    "not-applicable"
+  ],
+  "proposed_experiments": [],
+  "unresolved_limits": [],
+  "selected_tests": [],
+  "improve_reviews": [],
+  "inventory": {
+    "selected_test_ids": [],
+    "improve_action_ids": [],
+    "evidence": []
+  }
+}

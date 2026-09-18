@@ -1,7 +1,7 @@
 ---
 name: prompt-refine
 description: Full prompt-improvement workflow — runs prompt-audit to find inconsistencies, presents a remediation plan, then runs prompt-migrate to apply fixes and prompt-align to verify harness consistency. Use for any agent or skill prompt that needs structural repair.
-version: 0.1.1
+version: 0.1.2
 license: MIT
 platforms:
   - linux

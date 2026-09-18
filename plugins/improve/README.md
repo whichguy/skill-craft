@@ -8,7 +8,7 @@ Install the `improve` package from a configured Skill Craft marketplace, then st
 
 ## Use
 
-Ask the host to use `$improve` for a matching request. Read [SKILL.md](skills/improve/SKILL.md) before execution; it defines the workflow and any task-specific limits.
+Use the installed plugin skill: in Codex, ask for `$improve:improve`; in Claude, invoke `/improve:improve`; in other hosts, select the installed plugin skill. Read [SKILL.md](skills/improve/SKILL.md) before execution; it defines the workflow and any task-specific limits.
 
 ## Runtime and prerequisites
 

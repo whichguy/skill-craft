@@ -8,7 +8,7 @@ Install the `prompt-migrate` package from a configured Skill Craft marketplace, 
 
 ## Use
 
-Ask the host to use `$prompt-migrate` for a matching request. Read [SKILL.md](skills/prompt-migrate/SKILL.md) before execution; it defines the workflow and any task-specific limits.
+Use the installed plugin skill: in Codex, ask for `$prompt-migrate:prompt-migrate`; in Claude, invoke `/prompt-migrate:prompt-migrate`; in other hosts, select the installed plugin skill. Read [SKILL.md](skills/prompt-migrate/SKILL.md) before execution; it defines the workflow and any task-specific limits.
 
 ## Runtime and prerequisites
 

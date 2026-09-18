@@ -8,7 +8,7 @@ Install the `review-coverage` package from a configured Skill Craft marketplace,
 
 ## Use
 
-Ask the host to use `$review-coverage` for a matching request. Read [SKILL.md](skills/review-coverage/SKILL.md) before execution; it defines the workflow and any task-specific limits.
+Use the installed plugin skill: in Codex, ask for `$review-coverage:review-coverage`; in Claude, invoke `/review-coverage:review-coverage`; in other hosts, select the installed plugin skill. Read [SKILL.md](skills/review-coverage/SKILL.md) before execution; it defines the workflow and any task-specific limits.
 
 ## Runtime and prerequisites
 

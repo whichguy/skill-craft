@@ -1,6 +1,6 @@
 {
   "name": "prompt-refine",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Full prompt-improvement workflow — runs prompt-audit to find inconsistencies, presents a remediation plan, then runs prompt-migrate to apply fixes and prompt-align to verify harness consistency. Use for any agent or skill prompt that needs structural repair.",
   "author": {
     "name": "whichguy"

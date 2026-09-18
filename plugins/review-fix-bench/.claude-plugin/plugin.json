@@ -1,6 +1,6 @@
 {
   "name": "review-fix-bench",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Compare two code-review prompt versions against supplied fixture ground truth using an explicitly configured external benchmark runner. Reports an F1-based verdict only when the runner completes both evaluations and comparison.",
   "author": {
     "name": "whichguy",

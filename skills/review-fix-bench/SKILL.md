@@ -5,7 +5,7 @@ description: >-
   using an explicitly configured external benchmark runner. Reports an F1-based
   verdict only when the runner completes both evaluations and comparison.
 argument-hint: "--target <prompt> --runner <executable> --fixtures <dir> --judge <prompt> [--candidate <prompt>] [--runs N] [--repo <dir>]"
-version: 0.1.1
+version: 0.1.2
 license: MIT
 platforms:
   - linux

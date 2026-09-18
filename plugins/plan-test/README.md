@@ -8,7 +8,7 @@ Install the `plan-test` package from a configured Skill Craft marketplace, then 
 
 ## Use
 
-Ask the host to use `$plan-test` for a matching request. Read [SKILL.md](skills/plan-test/SKILL.md) before execution; it defines the workflow and any task-specific limits.
+Use the installed plugin skill: in Codex, ask for `$plan-test:plan-test`; in Claude, invoke `/plan-test:plan-test`; in other hosts, select the installed plugin skill. Read [SKILL.md](skills/plan-test/SKILL.md) before execution; it defines the workflow and any task-specific limits.
 
 ## Runtime and prerequisites
 

@@ -88,6 +88,40 @@ same name before changing its source. Refresh Git catalogs with Claude
 `plugin marketplace upgrade skill-craft-market`. Start a new Codex task after
 installing. See the [Codex marketplace reference](https://developers.openai.com/plugins/build/plugins#marketplace-metadata).
 
+### Install IDs and skill namespaces
+
+The marketplace selects a package; the plugin name supplies the skill namespace.
+Skill Craft keeps one independently installable plugin per source skill. Keep
+`name: shiploop` in the source card and `"name": "shiploop"` in its plugin
+manifests: the host adds the prefix when it loads the plugin. Do not put
+`skill-craft:` or `shiploop:` into the source card's name.
+
+| Identity | ShipLoop example | Purpose |
+|----------|------------------|---------|
+| Marketplace | `skill-craft-market` | Catalog registration for Claude and Codex |
+| Plugin install ID | `shiploop@skill-craft-market` | Select the package to install or remove |
+| Plugin skill in Codex | `$shiploop:shiploop` | Select the installed plugin's skill |
+| Plugin skill in Claude | `/shiploop:shiploop` | Select the installed plugin's skill |
+| Skill-dir skill in Codex | `$shiploop` | Select the separately side-loaded skill |
+
+For example, `codex plugin add shiploop@skill-craft-market` installs the pinned
+`plugins/shiploop` package. In a fresh task, the host exposes its
+`skills/shiploop/SKILL.md` as `shiploop:shiploop`. Use `$shiploop:shiploop` to
+request that copy. If a side-loaded `shiploop` also exists, a bare `$shiploop`
+does not establish that the marketplace copy was selected. Inspect the loaded
+card's path and plugin identity when verifying an installation.
+
+The generated Codex action prompts and package README examples use the
+qualified plugin identity. The source card retains its portable bare name for
+skill-dir installs. Changing the marketplace's display name does not change the
+plugin namespace; a shared `skill-craft:<skill>` namespace would require a
+different plugin packaging contract.
+
+This distinction follows the [OpenAI plugin namespace contract](https://developers.openai.com/plugins/build/plugins#create-a-plugin-manually)
+and [Claude plugin skill namespacing](https://code.claude.com/docs/en/plugins#create-your-first-plugin).
+`bash test/native-marketplace-adapters.test.sh` checks the generated invocation
+examples; runtime discovery remains a separate host check.
+
 ### Cursor
 
 Each package has a generated `.cursor-plugin/plugin.json`. The root marketplace

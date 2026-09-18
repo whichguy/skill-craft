@@ -8,7 +8,7 @@ Install the `skill-interop` package from a configured Skill Craft marketplace, t
 
 ## Use
 
-Ask the host to use `$skill-interop` for a matching request. Read [SKILL.md](skills/skill-interop/SKILL.md) before execution; it defines the workflow and any task-specific limits.
+Use the installed plugin skill: in Codex, ask for `$skill-interop:skill-interop`; in Claude, invoke `/skill-interop:skill-interop`; in other hosts, select the installed plugin skill. Read [SKILL.md](skills/skill-interop/SKILL.md) before execution; it defines the workflow and any task-specific limits.
 
 ## Runtime and prerequisites
 

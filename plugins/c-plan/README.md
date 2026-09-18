@@ -8,7 +8,7 @@ Install the `c-plan` package from a configured Skill Craft marketplace, then sta
 
 ## Use
 
-Ask the host to use `$c-plan` for a matching request. Read [SKILL.md](skills/c-plan/SKILL.md) before execution; it defines the workflow and any task-specific limits.
+Use the installed plugin skill: in Codex, ask for `$c-plan:c-plan`; in Claude, invoke `/c-plan:c-plan`; in other hosts, select the installed plugin skill. Read [SKILL.md](skills/c-plan/SKILL.md) before execution; it defines the workflow and any task-specific limits.
 
 ## Runtime and prerequisites
 

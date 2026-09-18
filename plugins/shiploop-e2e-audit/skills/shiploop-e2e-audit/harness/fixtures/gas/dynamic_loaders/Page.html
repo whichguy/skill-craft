@@ -1,0 +1,8 @@
+<!doctype html>
+<html><body><script>
+  fetch('engine.js').then(function (response) { return response.text(); }).then(eval);
+  var xhr = new XMLHttpRequest();
+  importScripts('worker.js');
+  var script = document.createElement('script');
+  script.src = 'engine.js';
+</script></body></html>

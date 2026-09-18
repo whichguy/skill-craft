@@ -5,7 +5,7 @@ description: |
   answer with assumptions, ask 1–2 high-value clarification questions,
   replan, or stop. Use when the best response depends on hidden intent,
   audience, scope, constraints, risk, output format, or desired depth.
-version: 0.1.1
+version: 0.1.2
 license: MIT
 platforms:
   - linux

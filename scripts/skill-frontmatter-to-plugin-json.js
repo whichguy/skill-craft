@@ -206,7 +206,7 @@ function buildCodexPlugin(leaf, fm) {
       developerName: plugin.author.name,
       category: titleCase(categoryFromFm(fm)),
       capabilities: kind === "prompt-only" ? ["Read"] : ["Read", "Write"],
-      defaultPrompt: [`Use $${leaf} for this task.`],
+      defaultPrompt: [`Use $${leaf}:${leaf} for this task.`],
     },
   };
 }
@@ -358,7 +358,7 @@ function buildPackageReadme(leaf, fm) {
     "",
     "## Use",
     "",
-    `Ask the host to use \`$${leaf}\` for a matching request. Read [SKILL.md](skills/${leaf}/SKILL.md) before execution; it defines the workflow and any task-specific limits.`,
+    `Use the installed plugin skill: in Codex, ask for \`$${leaf}:${leaf}\`; in Claude, invoke \`/${leaf}:${leaf}\`; in other hosts, select the installed plugin skill. Read [SKILL.md](skills/${leaf}/SKILL.md) before execution; it defines the workflow and any task-specific limits.`,
     "",
     "## Runtime and prerequisites",
     "",

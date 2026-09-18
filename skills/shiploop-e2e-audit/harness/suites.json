@@ -1,0 +1,266 @@
+{
+  "schema_version": 1,
+  "suites": [
+    {
+      "id": "launch-smoke",
+      "title": "Launch smoke: two fresh create requests through intake",
+      "description": "Confirms fresh Grok launch, selected-skill identity, literal prompt transport, and the first durable ShipLoop action for two independent new-product requests. This is a partial SDLC prefix, not a product test.",
+      "mode": "partial",
+      "cases": [
+        {
+          "id": "ttt-create-intake",
+          "step": "ttt-create",
+          "product_key": "tic-tac-toe-launch-smoke",
+          "depends_on": [],
+          "stop_after_stage": "intake",
+          "timeout_seconds": 7200,
+          "max_turns": 1000
+        },
+        {
+          "id": "checkers-create-intake",
+          "step": "checkers-create",
+          "product_key": "checkers-launch-smoke",
+          "depends_on": [],
+          "stop_after_stage": "intake",
+          "timeout_seconds": 7200,
+          "max_turns": 1000
+        }
+      ]
+    },
+    {
+      "id": "planning-smoke",
+      "title": "Planning smoke: tic-tac-toe through plan improve",
+      "description": "Observes one fresh create request through the complete prelude and plan-improve acceptance. It deliberately stops before implementation and cannot establish a completed application.",
+      "mode": "partial",
+      "cases": [
+        {
+          "id": "ttt-create-plan-improve",
+          "step": "ttt-create",
+          "product_key": "tic-tac-toe-planning-smoke",
+          "depends_on": [],
+          "stop_after_stage": "plan-improve",
+          "timeout_seconds": 7200,
+          "max_turns": 1000
+        }
+      ]
+    },
+    {
+      "id": "ttt-full",
+      "title": "Tic-tac-toe full create, feature, and refinement chain",
+      "description": "Runs the complete three-request tic-tac-toe lineage. Each case uses a fresh Grok process against the same returned product repository and Apps Script project, deploys the current candidate through the configured MCP path, and requires its declared predecessor receipt plus hosted verification before the next request.",
+      "mode": "full",
+      "cases": [
+        {
+          "id": "ttt-create",
+          "step": "ttt-create",
+          "product_key": "tic-tac-toe",
+          "depends_on": [],
+          "stop_after_stage": null,
+          "timeout_seconds": 7200,
+          "max_turns": 1000
+        },
+        {
+          "id": "ttt-guidance",
+          "step": "ttt-guidance",
+          "product_key": "tic-tac-toe",
+          "depends_on": [
+            "ttt-create"
+          ],
+          "stop_after_stage": null,
+          "timeout_seconds": 7200,
+          "max_turns": 1000
+        },
+        {
+          "id": "ttt-best-move",
+          "step": "ttt-best-move",
+          "product_key": "tic-tac-toe",
+          "depends_on": [
+            "ttt-guidance"
+          ],
+          "stop_after_stage": null,
+          "timeout_seconds": 7200,
+          "max_turns": 1000
+        }
+      ]
+    },
+    {
+      "id": "checkers-full",
+      "title": "Checkers full create, feature and refinement chain",
+      "description": "Runs the three literal requests against the same returned product repository and Apps Script project, with real configured MCP deployment, independent hosted verification, and predecessor gates.",
+      "mode": "full",
+      "cases": [
+        {
+          "id": "checkers-create",
+          "step": "checkers-create",
+          "product_key": "checkers",
+          "depends_on": [],
+          "stop_after_stage": null,
+          "timeout_seconds": 7200,
+          "max_turns": 1000
+        },
+        {
+          "id": "checkers-guidance",
+          "step": "checkers-guidance",
+          "product_key": "checkers",
+          "depends_on": [
+            "checkers-create"
+          ],
+          "stop_after_stage": null,
+          "timeout_seconds": 7200,
+          "max_turns": 1000
+        },
+        {
+          "id": "checkers-hint-toggle",
+          "step": "checkers-hint-toggle",
+          "product_key": "checkers",
+          "depends_on": [
+            "checkers-guidance"
+          ],
+          "stop_after_stage": null,
+          "timeout_seconds": 7200,
+          "max_turns": 1000
+        }
+      ]
+    },
+    {
+      "id": "battleship-full",
+      "title": "Battleship full create, feature and refinement chain",
+      "description": "Runs the three literal requests against the same returned product repository and Apps Script project, with real configured MCP deployment, independent hosted verification, and predecessor gates.",
+      "mode": "full",
+      "cases": [
+        {
+          "id": "battleship-create",
+          "step": "battleship-create",
+          "product_key": "battleship",
+          "depends_on": [],
+          "stop_after_stage": null,
+          "timeout_seconds": 7200,
+          "max_turns": 1000
+        },
+        {
+          "id": "battleship-status-history",
+          "step": "battleship-status-history",
+          "product_key": "battleship",
+          "depends_on": [
+            "battleship-create"
+          ],
+          "stop_after_stage": null,
+          "timeout_seconds": 7200,
+          "max_turns": 1000
+        },
+        {
+          "id": "battleship-history-filter",
+          "step": "battleship-history-filter",
+          "product_key": "battleship",
+          "depends_on": [
+            "battleship-status-history"
+          ],
+          "stop_after_stage": null,
+          "timeout_seconds": 7200,
+          "max_turns": 1000
+        }
+      ]
+    },
+    {
+      "id": "games-full",
+      "title": "All deployed game chains",
+      "description": "Runs all nine deployed requests as three independent full product chains. Each create publishes a dedicated test app; each feature reuses its original repository and Apps Script project. It is the broad campaign after smoke evidence and independent hosted verifier coverage are credible.",
+      "mode": "full",
+      "cases": [
+        {
+          "id": "ttt-create",
+          "step": "ttt-create",
+          "product_key": "tic-tac-toe",
+          "depends_on": [],
+          "stop_after_stage": null,
+          "timeout_seconds": 7200,
+          "max_turns": 1000
+        },
+        {
+          "id": "ttt-guidance",
+          "step": "ttt-guidance",
+          "product_key": "tic-tac-toe",
+          "depends_on": [
+            "ttt-create"
+          ],
+          "stop_after_stage": null,
+          "timeout_seconds": 7200,
+          "max_turns": 1000
+        },
+        {
+          "id": "ttt-best-move",
+          "step": "ttt-best-move",
+          "product_key": "tic-tac-toe",
+          "depends_on": [
+            "ttt-guidance"
+          ],
+          "stop_after_stage": null,
+          "timeout_seconds": 7200,
+          "max_turns": 1000
+        },
+        {
+          "id": "checkers-create",
+          "step": "checkers-create",
+          "product_key": "checkers",
+          "depends_on": [],
+          "stop_after_stage": null,
+          "timeout_seconds": 7200,
+          "max_turns": 1000
+        },
+        {
+          "id": "checkers-guidance",
+          "step": "checkers-guidance",
+          "product_key": "checkers",
+          "depends_on": [
+            "checkers-create"
+          ],
+          "stop_after_stage": null,
+          "timeout_seconds": 7200,
+          "max_turns": 1000
+        },
+        {
+          "id": "checkers-hint-toggle",
+          "step": "checkers-hint-toggle",
+          "product_key": "checkers",
+          "depends_on": [
+            "checkers-guidance"
+          ],
+          "stop_after_stage": null,
+          "timeout_seconds": 7200,
+          "max_turns": 1000
+        },
+        {
+          "id": "battleship-create",
+          "step": "battleship-create",
+          "product_key": "battleship",
+          "depends_on": [],
+          "stop_after_stage": null,
+          "timeout_seconds": 7200,
+          "max_turns": 1000
+        },
+        {
+          "id": "battleship-status-history",
+          "step": "battleship-status-history",
+          "product_key": "battleship",
+          "depends_on": [
+            "battleship-create"
+          ],
+          "stop_after_stage": null,
+          "timeout_seconds": 7200,
+          "max_turns": 1000
+        },
+        {
+          "id": "battleship-history-filter",
+          "step": "battleship-history-filter",
+          "product_key": "battleship",
+          "depends_on": [
+            "battleship-status-history"
+          ],
+          "stop_after_stage": null,
+          "timeout_seconds": 7200,
+          "max_turns": 1000
+        }
+      ]
+    }
+  ]
+}

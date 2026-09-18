@@ -5,7 +5,7 @@ description: >-
   script's current action packet, and submit its exact completion call until
   the script reports completion with an HTML achievement report. Use when the
   user says shiploop, ship the project, or requests a durable delivery loop.
-version: 0.15.2
+version: 0.16.0
 allowed-tools: all
 license: MIT
 platforms:
@@ -36,6 +36,14 @@ an explicit compatibility mode identifies that version. Do not translate their
 embedded-policy Improve guidance into a v3 action.
 
 ## Start or resume
+
+Execute ShipLoop in the conversation that invoked this skill. The current
+conversation reads the script's packets, performs the work (including Improve),
+and submits each callback. A worktree isolates files, not the model session.
+ShipLoop does not launch Grok, Claude, Codex, or any other model process. Do not
+background the workflow or automatically clear the invoking conversation. An
+external E2E harness may start a model before invoking this skill; that launcher
+remains outside ShipLoop. Environment settings do not change this boundary.
 
 Before doing any ShipLoop-managed stage work, bind this package's `CLI` from
 the **selected, loaded** `SKILL.md`. Obtain its absolute location from the
@@ -146,11 +154,15 @@ new-run initialization did not select an Improve skill, the first Improve
 checkpoint stays pending until its packet directs the owner to bind the selected
 card with `improve-bind --action ... --skill-card ...`. Use the packet's exact
 command and absolute selected-card path; never guess an installed copy or
-substitute a same-named skill. To recover an existing run:
+substitute a same-named skill. For an existing run without `context-host.md`,
+recover its current packet with:
 
 ```sh
 python3 "$CLI" next --run-dir "$RUN_DIR"
 ```
+
+For a run left by an older controller, follow **Recovery from older supervised
+runs** below before executing any recovered packet.
 
 For a new run explicitly piloting consumer-delivery declaration checks, add
 `--delivery-contract` to `workspace start` (or direct `init`). Read [consumer delivery](references/consumer-delivery.md)
@@ -177,42 +189,14 @@ neighboring package or host cache. An unavailable dependency remains an
 incomplete precondition; record it and follow the packet's blocked/recovery
 route rather than generating a replacement workflow.
 
-## Context reset by default
+## Recovery from older supervised runs
 
-Check `SHIPLOOP_CONTEXT_HOST_WORKER` first. When it is `1`, perform only the
-given producer or Improve campaign, submit its callback, and return to the
-controller. Never initialize another run or start another `drive`.
-
-For a **new protocol-3 run on Codex, Grok, or Claude**, use the supervised host
-route in [context reset](references/context-reset.md) by default. Initialize
-the run normally, then hand its current owner to `drive` before executing the
-initial packet yourself. Set `HOST` to the actual calling host (`codex`,
-`grok`, or `claude`); honor an explicit host selection without silently
-substituting another host:
-
-```sh
-python3 "$CLI" drive --run-dir "$RUN_DIR" --host "$HOST"
-```
-
-The new-controller default is `inner-loop`. Explicit
-`--context-reset=off` or `SHIPLOOP_CONTEXT_RESET=off` opts a new skill run out
-to ordinary packet-following; the explicit flag wins over the environment.
-An explicit `drive --context-reset=off` instead keeps the controller while
-retaining its host session across boundaries. These are not flags on
-`init`/`workspace start`. The selected native CLI must be installed and signed
-in; a missing prerequisite stops this route rather than disabling reset.
-
-For an existing run with `context-host.md`, resume `drive` with its saved host
-and policy; omit a new policy selection unless the user explicitly supplies
-one. The controller rejects a conflicting selection. An existing run without
-that receipt keeps its current packet-following owner unless the user
-explicitly requests supervision and the prior owner has stopped. Compatibility
-protocols and other hosts keep ordinary execution; explicitly report that
-automatic context reset is unavailable there if requested.
-
-The controller alone continues with the next packet and creates fresh context
-after accepted carry-forward Improve. Use its saved receipt to recover; do not
-run another owner concurrently.
+The former `drive` command and model transports are removed. A retained
+`context-host.md` records a historical controller; it does not authorize a new
+model launch. Follow [retired-controller recovery](references/context-reset.md)
+to settle that owner before continuing the same run in this conversation.
+Never execute a run concurrently with its old controller or rewrite its receipt
+to imply that an uncertain operation completed.
 
 ## Durable handoff
 
@@ -225,10 +209,8 @@ or predicted successor into the handoff as graph authority.
 
 The host must keep the locator and run directory accessible across handoffs. If
 it cannot, restore the same run and verify its task/repository identity before
-continuing. Ordinary packet-following does not launch a fresh model, reset a host context,
-or retain host handoff state. The supervised `drive` route above
-uses native host sessions and its separate receipt; it does not reset this
-conversation or make script output into a host command.
+continuing. ShipLoop does not launch a fresh model, reset a host context, retain
+the host handoff, or force any host tool call.
 
 ## Follow the current packet
 

@@ -1,6 +1,6 @@
 {
   "name": "compare-prompts",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Compare two prompt versions (A vs B) by running both against a directory of test input files, then evaluating results on three dimensions in priority order: quality > tokens > time.",
   "author": {
     "name": "whichguy",
@@ -26,7 +26,7 @@
       "Read"
     ],
     "defaultPrompt": [
-      "Use $compare-prompts for this task."
+      "Use $compare-prompts:compare-prompts for this task."
     ]
   }
 }

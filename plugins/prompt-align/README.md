@@ -8,7 +8,7 @@ Install the `prompt-align` package from a configured Skill Craft marketplace, th
 
 ## Use
 
-Ask the host to use `$prompt-align` for a matching request. Read [SKILL.md](skills/prompt-align/SKILL.md) before execution; it defines the workflow and any task-specific limits.
+Use the installed plugin skill: in Codex, ask for `$prompt-align:prompt-align`; in Claude, invoke `/prompt-align:prompt-align`; in other hosts, select the installed plugin skill. Read [SKILL.md](skills/prompt-align/SKILL.md) before execution; it defines the workflow and any task-specific limits.
 
 ## Runtime and prerequisites
 

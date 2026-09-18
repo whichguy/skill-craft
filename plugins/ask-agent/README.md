@@ -8,7 +8,7 @@ Install the `ask-agent` package from a configured Skill Craft marketplace, then 
 
 ## Use
 
-Ask the host to use `$ask-agent` for a matching request. Read [SKILL.md](skills/ask-agent/SKILL.md) before execution; it defines the workflow and any task-specific limits.
+Use the installed plugin skill: in Codex, ask for `$ask-agent:ask-agent`; in Claude, invoke `/ask-agent:ask-agent`; in other hosts, select the installed plugin skill. Read [SKILL.md](skills/ask-agent/SKILL.md) before execution; it defines the workflow and any task-specific limits.
 
 ## Runtime and prerequisites
 

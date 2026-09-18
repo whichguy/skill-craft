@@ -14,7 +14,7 @@ description: |
 
   **NOT for:** General prompt engineering, non-GAS prompts, one-off prompt writing.
   Use an ordinary prompt-editing workflow for editing/refining an active prompt.
-version: 0.1.1
+version: 0.1.2
 license: MIT
 platforms:
   - linux

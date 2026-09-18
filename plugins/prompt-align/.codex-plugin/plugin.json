@@ -1,6 +1,6 @@
 {
   "name": "prompt-align",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Compare an agent or skill prompt against its test harness skill for phase-model, skip-condition, and wiring consistency. Reports mismatches and identifies which file is authoritative.",
   "author": {
     "name": "whichguy",
@@ -26,7 +26,7 @@
       "Read"
     ],
     "defaultPrompt": [
-      "Use $prompt-align for this task."
+      "Use $prompt-align:prompt-align for this task."
     ]
   }
 }

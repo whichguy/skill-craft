@@ -19,7 +19,7 @@ description: |
   order, results remapped before aggregation.
 
 argument-hint: "<prompt-file> [inputs-dir | inline text] [prompt-b] [free-form options]"
-version: 0.1.1
+version: 0.1.2
 license: MIT
 platforms:
   - linux
