@@ -136,6 +136,9 @@ process capture layer, and the live observer parser. The negative streams remove
 completion evidence, duplicate a tool call, or omit the terminal event. They
 reuse immutable records; they do not rerun or alter the accepted state.
 Completed tool events with no reported exit code remain unattributed.
+The mock includes Grok's interim `in_progress` updates with placeholder zero exit
+codes. Only explicit terminal exit evidence can support successful attribution;
+an interim zero cannot replace a missing final code or conceal a final failure.
 
 An accepted action, an attributed callback, and a complete host stream are
 separate observations. A producer result alone leaves intake pending Improve;

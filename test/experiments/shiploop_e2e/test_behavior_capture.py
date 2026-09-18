@@ -205,6 +205,84 @@ class BehaviorCaptureTests(unittest.TestCase):
         self.assertEqual(bundle["native_events"]["error_counts"]["malformed-json"], 1)
         self.assertEqual(bundle["replay"]["status"], "not-replayable")
 
+    def test_tool_exit_buckets_require_terminal_updates_and_accept_both_aliases(self) -> None:
+        # An in-progress zero is a Grok placeholder, not terminal tool evidence.
+        for exit_key in ("exitCode", "exit_code"):
+            for final_status, final_code, expected_exits, expected_errors in (
+                (None, None, {}, {}),
+                ("completed", None, {}, {}),
+                ("completed", 9, {"nonzero": 1}, {"native-nonzero-exit": 1}),
+                ("completed", 0, {"zero": 1}, {}),
+                ("failed", 9, {"nonzero": 1}, {
+                    "native-failed-status": 1, "native-nonzero-exit": 1,
+                }),
+            ):
+                with self.subTest(exit_key=exit_key, status=final_status, code=final_code):
+                    trial = self.make_trial(
+                        name=f"terminal-exit-{exit_key}-{final_status}-{final_code}"
+                    )
+                    rows = [{
+                        "payload": {
+                            "type": "tool_call_update", "status": "in_progress",
+                            "rawOutput": {exit_key: 0},
+                        },
+                    }]
+                    if final_status is not None:
+                        rows.append({
+                            "payload": {
+                                "type": "tool_call_update", "status": final_status,
+                                "rawOutput": {} if final_code is None else {exit_key: final_code},
+                            },
+                        })
+                    events = trial / "capture" / "events.jsonl"
+                    events.write_text(
+                        "\n".join(json.dumps(row) for row in rows) + "\n", encoding="utf-8"
+                    )
+
+                    native = behavior_capture.export_trial(trial)["native_events"]
+                    expected_statuses = {"in_progress": 1}
+                    if final_status is not None:
+                        expected_statuses[final_status] = 1
+                    self.assertEqual(native["native_status_counts"], expected_statuses)
+                    self.assertEqual(native["exit_code_counts"], expected_exits)
+                    self.assertEqual(native["error_counts"], expected_errors)
+
+    def test_unhashable_tool_update_status_remains_partial_without_exit_evidence(self) -> None:
+        trial = self.make_trial(name="unhashable-tool-update-status")
+        events = trial / "capture" / "events.jsonl"
+        events.write_text(json.dumps({
+            "payload": {
+                "type": "tool_call_update", "status": ["secret-status"],
+                "rawOutput": {"exit_code": 0},
+            },
+        }) + "\n", encoding="utf-8")
+
+        bundle = behavior_capture.export_trial(trial)
+        native = bundle["native_events"]
+        self.assertEqual(bundle["capture_status"], "partial")
+        self.assertEqual(native["native_status_counts"], {})
+        self.assertEqual(native["exit_code_counts"], {})
+        self.assertEqual(native["error_counts"], {"unknown-native-status": 1})
+        self.assertNotIn("secret-status", json.dumps(bundle, sort_keys=True))
+
+    def test_end_top_level_exit_aliases_remain_observable(self) -> None:
+        for exit_key, exit_code, expected_exits, expected_errors in (
+            ("exitCode", 0, {"zero": 1}, {}),
+            ("exit_code", 9, {"nonzero": 1}, {"native-nonzero-exit": 1}),
+        ):
+            with self.subTest(exit_key=exit_key):
+                trial = self.make_trial(name=f"end-exit-{exit_key}")
+                events = trial / "capture" / "events.jsonl"
+                events.write_text(json.dumps({
+                    "payload": {"type": "end", exit_key: exit_code},
+                }) + "\n", encoding="utf-8")
+
+                native = behavior_capture.export_trial(trial)["native_events"]
+                self.assertEqual(native["native_event_counts"], {"end": 1})
+                self.assertEqual(native["native_status_counts"], {})
+                self.assertEqual(native["exit_code_counts"], expected_exits)
+                self.assertEqual(native["error_counts"], expected_errors)
+
     def test_unsupported_stage_or_control_does_not_invent_a_replay(self) -> None:
         bundle = behavior_capture.export_trial(
             self.make_trial(protocol=3, outcome="replan", unknown_stage="secret-control-at-/Users/private")

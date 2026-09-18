@@ -654,7 +654,10 @@ def _cli_invocation(event: dict[str, Any], textual_paths: set[str], resolved_pat
 
 
 def _reported_exit_code(event: dict[str, Any]) -> int | None:
-    """Read an explicit host-tool exit code without inventing one."""
+    """Read terminal exit evidence; interim Grok updates may contain zero placeholders."""
+    status = event.get("status")
+    if not isinstance(status, str) or status.lower() not in {"completed", "failed"}:
+        return None
     raw_output = event.get("rawOutput")
     if not isinstance(raw_output, dict):
         return None
@@ -1021,8 +1024,9 @@ def summarize_events(events_file: Path, selected_cli: Path) -> dict[str, Any]:
     only when a structured stdout tool input has a recognized execution shape
     and an exact selected CLI path (or its resolved package-root equivalent).
     ``cli tool completed`` means a matching tool call received a ``completed``
-    update. ``cli success observed`` means that update explicitly reported exit
-    code zero. Neither establishes ShipLoop compliance or product delivery.
+    update. ``cli success observed`` means a terminal tool update explicitly
+    reported exit code zero. Interim exit placeholders are ignored. Neither
+    establishes ShipLoop compliance or product delivery.
     """
     event_path = _absolute(events_file)
     if not event_path.is_file():

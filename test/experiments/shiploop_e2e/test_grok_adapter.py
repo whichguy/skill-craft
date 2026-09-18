@@ -225,6 +225,34 @@ class GrokAdapterTests(unittest.TestCase):
         self.assertEqual({"failed": 1}, summary["tool_completion"]["statuses"])
         self.assertEqual(["max_turn_requests"], summary["terminal"]["end_stop_reasons"])
 
+    def test_interim_exit_placeholders_do_not_supply_terminal_exit_evidence(self) -> None:
+        # Grok emits exit_code=0 while a Bash tool is still in_progress. That
+        # placeholder must not stand in for a missing or failing final result.
+        for status, final_code, expected_codes in (
+            (None, None, []),
+            ("completed", None, []),
+            ("completed", 9, [9]),
+            ("failed", 9, [9]),
+            ("completed", 0, [0]),
+        ):
+            with self.subTest(status=status, final_code=final_code):
+                records = [
+                    {"type": "tool_call", "toolCallId": "call", "rawInput": {
+                        "argv": ["python3", str(self.cli), "improve-complete"]}},
+                    {"type": "tool_call_update", "toolCallId": "call", "status": "in_progress",
+                     "rawOutput": {"exit_code": 0}},
+                ]
+                if status is not None:
+                    records.append({"type": "tool_call_update", "toolCallId": "call", "status": status,
+                                    "rawOutput": {} if final_code is None else {"exit_code": final_code}})
+                events = self.root / "interim-exit-events.jsonl"
+                events.write_text("\n".join(json.dumps(row) for row in records), encoding="utf-8")
+                summary = summarize_events(events, self.cli)
+                self.assertEqual(summary["cli_calls"][0]["exit_codes"], expected_codes)
+                self.assertEqual(summary["cli_calls"][0]["completed"], status == "completed")
+                self.assertEqual(summary["shiploop_cli_exit_code_observed"], bool(expected_codes))
+                self.assertEqual(summary["shiploop_cli_success_observed"], expected_codes == [0])
+
     def test_summarize_events_unwraps_stdout_receipts_and_ignores_stderr_json(self) -> None:
         events = self.root / "captured-events.jsonl"
         records = [
@@ -868,6 +896,29 @@ class GrokAdapterTests(unittest.TestCase):
         self.assertEqual("rawInput.command", observed["references"][0]["field"])
         self.assertFalse(observed["references"][0]["successful_read_observed"])
         self.assertIn("Relative, encoded, or unreported accesses", " ".join(observed["limitations"]))
+
+    def test_control_read_interim_exit_is_not_success_evidence(self) -> None:
+        control = self.root / "observer"
+        control.mkdir()
+        for final_code in (None, 2, 0):
+            with self.subTest(final_code=final_code):
+                records = [
+                    {"type": "tool_call", "toolCallId": "read", "toolName": "read_file",
+                     "rawInput": {"target_file": str(control / "control.json")}},
+                    {"type": "tool_call_update", "toolCallId": "read", "status": "in_progress",
+                     "rawOutput": {"exit_code": 0}},
+                    {"type": "tool_call_update", "toolCallId": "read", "status": "completed",
+                     "rawOutput": {} if final_code is None else {"exit_code": final_code}},
+                ]
+                events = self.root / "interim-control-read.jsonl"
+                events.write_text("\n".join(json.dumps(row) for row in records), encoding="utf-8")
+                observed = observe_control_input_references(events, {"observer_source": control})
+                self.assertTrue(observed["exposure_observed"])
+                self.assertEqual(observed["status"], "observed-control-input-reference")
+                reference = observed["references"][0]
+                self.assertTrue(reference["completed_status_observed"])
+                self.assertEqual(reference["zero_exit_code_observed"], final_code == 0)
+                self.assertEqual(reference["successful_read_observed"], final_code == 0)
 
     def test_control_input_observer_resolves_unrelated_symlink_aliases(self) -> None:
         campaign = self.root / "campaign-control"

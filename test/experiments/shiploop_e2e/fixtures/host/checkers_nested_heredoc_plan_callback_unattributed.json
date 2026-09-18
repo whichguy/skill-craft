@@ -23,7 +23,7 @@
   },
   "id": "checkers-nested-heredoc-plan-callback-unattributed",
   "observer": {
-    "grok_adapter_sha256": "98b1161b28ab6e17b528792923ad382c3f38243c570cfdd91ae7924f3a7fd206",
+    "grok_adapter_sha256": "49cf9a81740f39777beacddf93dcb0b0855be85fbf6bf6d0f2184165ee282bdc",
     "source_edit_policy": "parser-source-mismatch-invalidates-attribution",
     "previous_grok_adapter_sha256": "3fe86e382d0e01335ceec7882ad70025ac5d3ffe1caec9536bac020a10f040f8",
     "revalidation": "Protocol-3 callback support added; all five existing golden attribution expectations independently replayed unchanged."

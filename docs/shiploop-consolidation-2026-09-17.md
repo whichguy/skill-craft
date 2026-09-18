@@ -15,12 +15,13 @@ application deployment, marketplace pin, installed host profile, or credential.
 | Repeatable testing `bb84f1e`, `cacb778`, `6ff16e9` | Apply scoped deltas, retaining existing UI/requirements guidance and both cold-recovery test families. |
 | E2E series `e68ae90`, `d2c42e0`, `2db1f21` | Import publication-reviewed apparatus content, not its unrelated ancestor history. Its runtime/support tests were already represented. |
 | Ready E2E observer followup | Retain current-run-state checks, explicit exit evidence, and a real v3 intake observer-bridge regression. |
+| Verified E2E terminal-exit correction | Ignore interim zero placeholders, retain explicit terminal exits, and align behavior diagnostics with both host exit-code spellings. |
 | Generalized discovery `004447f` | Import portable study apparatus and a publication-safe report, excluding private raw experiment evidence and original commit ancestry. |
 
-Published main advanced to `b5854f2` during integration. A subsequent ordinary
-merge preserves that published ancestry with no content change: its study and
-fixture repair were already present. Final publication must descend from the
-latest remote main, not replace it.
+Published main advanced to `b5854f2` and then `eee78a0` during integration.
+Ordinary merges preserve that published ancestry with no content change: the
+study, fixture repair, and runtime changes were already present. Final
+publication must descend from the latest remote main, not replace it.
 
 Canonical `skills/` sources remain authoritative. Conflict resolution combines
 compatible duties and assertions; `plugins/` copies are regenerated from those
@@ -39,6 +40,11 @@ models. Their results establish test infrastructure and protocol properties, not
 a successful Grok app build, consumer browser interaction, or remote deployment.
 Optional retained external-product tests report skips when unavailable. See
 [test runners](../test/README.md) for distinct offline and live invocation paths.
+
+The observer correction was prompted by a failing synthetic regression derived
+from an observed host-stream shape. Its fixtures distinguish an interim zero
+from missing, failing, and successful terminal results. This repairs test
+attribution; it does not establish that a live application run passed.
 
 ## Deliberately not imported
 

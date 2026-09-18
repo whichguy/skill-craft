@@ -994,6 +994,15 @@ class FullRuntimeCompositionTests(unittest.TestCase):
                 events.append(invocation)
                 if duplicate_completion_call and call_id == completion_call_id:
                     events.append(json.loads(json.dumps(invocation, sort_keys=True)))
+                # Grok's native stream can report a placeholder zero exit code
+                # while the tool remains in progress. It must not certify the
+                # later completed callback when that final update lacks an exit.
+                events.append({
+                    "type": "tool_call_update",
+                    "toolCallId": call_id,
+                    "status": "in_progress",
+                    "rawOutput": {"exit_code": 0},
+                })
                 if omit_completion_update and call_id == completion_call_id:
                     continue
                 raw_output = {
@@ -1001,7 +1010,7 @@ class FullRuntimeCompositionTests(unittest.TestCase):
                     "stderr": row["stderr"],
                 }
                 if not (omit_completion_exit_code and call_id == completion_call_id):
-                    raw_output["exitCode"] = row["exit_code"]
+                    raw_output["exit_code"] = row["exit_code"]
                 events.append({
                     "type": "tool_call_update",
                     "toolCallId": call_id,

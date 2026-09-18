@@ -512,6 +512,15 @@ def _exit_bucket(value: Any) -> str | None:
     return "zero" if value == 0 else "nonzero"
 
 
+def _reported_exit_bucket(value: Mapping[str, Any]) -> str | None:
+    """Read an exit bucket from either observed native field spelling."""
+    for key in ("exitCode", "exit_code"):
+        bucket = _exit_bucket(value.get(key))
+        if bucket is not None:
+            return bucket
+    return None
+
+
 def _summarize_events(path: Path) -> tuple[dict[str, Any], bool]:
     """Hash and summarize events in a single bounded streaming pass."""
     if not path.is_file():
@@ -589,18 +598,24 @@ def _summarize_events(path: Path) -> tuple[dict[str, Any], bool]:
                         complete = False
                 if native_type == "error":
                     errors["native-error-event"] += 1
-                raw_output = payload.get("rawOutput")
-                if isinstance(raw_output, Mapping):
-                    bucket = _exit_bucket(raw_output.get("exitCode"))
+                exit_sources: tuple[Mapping[str, Any], ...] = ()
+                if (
+                    native_type == "tool_call_update"
+                    and isinstance(status, str)
+                    and status in {"completed", "failed"}
+                ):
+                    raw_output = payload.get("rawOutput")
+                    exit_sources = (raw_output, payload) if isinstance(raw_output, Mapping) else (payload,)
+                elif native_type == "end":
+                    # An end event has no update status, but a top-level exit
+                    # code is still terminal native evidence.
+                    exit_sources = (payload,)
+                for source in exit_sources:
+                    bucket = _reported_exit_bucket(source)
                     if bucket is not None:
                         exit_counts[bucket] += 1
                         if bucket == "nonzero":
                             errors["native-nonzero-exit"] += 1
-                bucket = _exit_bucket(payload.get("exitCode"))
-                if bucket is not None:
-                    exit_counts[bucket] += 1
-                    if bucket == "nonzero":
-                        errors["native-nonzero-exit"] += 1
     except OSError:
         return {"present": True, "readable": False}, False
     if in_oversized_line:
