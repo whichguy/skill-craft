@@ -171,3 +171,10 @@ After reconciliation, 107 affected tests across seven suites passed, including
 the full runtime composition again. The unchanged delivery and inventory checks
 remain covered by the preceding publication run. Scoped Ruff, source/package
 parity, whitespace and an independent merge review passed.
+
+Publication also exposed an existing upstream CI fixture issue: GitHub's global
+Git filter settings caused the actual-Improve workspace test to reject its
+fixture repository. A disposable global-filter configuration reproduced the
+failure. Isolating that test's Git and CLI subprocess configuration restored all
+four tests under both normal and hostile global settings; the production
+unsupported-filter guard is unchanged.

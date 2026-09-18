@@ -2,6 +2,7 @@
 """Real runtime/CLI composition; fixture judgments are synthetic, not a live review."""
 from pathlib import Path
 import json
+import os
 import subprocess
 import sys
 import tempfile
@@ -23,6 +24,16 @@ class ActualImproveCliTests(unittest.TestCase):
         self.base = Path(self.temp.name).resolve()
         self.repo = self.base / 'repo'
         self.run = self.base / 'run'
+        # This hermetic real-Git fixture must not inherit a runner image's
+        # global LFS or custom filter configuration. The workspace guard is
+        # intentionally exercised by dedicated unsupported-configuration tests.
+        self.environment = {
+            **os.environ,
+            'PYTHONDONTWRITEBYTECODE': '1',
+            'PYTHONNOUSERSITE': '1',
+            'GIT_CONFIG_NOSYSTEM': '1',
+            'GIT_CONFIG_GLOBAL': os.devnull,
+        }
         self.repo.mkdir()
         self.product_contract = self.repo / 'product' / 'contracts' / 'cold-recovery.md'
         self.product_contract.parent.mkdir(parents=True)
@@ -65,7 +76,8 @@ class ActualImproveCliTests(unittest.TestCase):
 
     def invoke(self, executable, *args, status=0):
         result = subprocess.run([sys.executable, '-B', str(executable), *map(str, args)],
-                                text=True, capture_output=True, cwd=self.base, timeout=30)
+                                text=True, capture_output=True, cwd=self.base, timeout=30,
+                                env=self.environment)
         self.assertEqual(result.returncode, status, result.stdout + result.stderr)
         return result
 
@@ -195,13 +207,15 @@ class ActualImproveCliTests(unittest.TestCase):
         self.invoke(CLI, 'done', '--run-dir', run, '--action', action, '--result', result)
         before = (run / 'state.md').read_bytes()
         cold = subprocess.run([sys.executable, '-B', str(CLI), 'next', '--run-dir', str(run)],
-                              cwd='/', text=True, capture_output=True, timeout=30)
+                              cwd='/', text=True, capture_output=True, timeout=30,
+                              env=self.environment)
         self.assertEqual(cold.returncode, 0, cold.stderr)
         self.assertIn('--skill-card=' + str(selected), cold.stdout)
         bound = subprocess.run([sys.executable, '-B', str(CLI), 'improve-bind',
                                 '--run-dir', str(run), '--action', action,
                                 '--skill-card', state['improve_skill']],
-                               cwd='/', text=True, capture_output=True, timeout=30)
+                               cwd='/', text=True, capture_output=True, timeout=30,
+                               env=self.environment)
         self.assertEqual(bound.returncode, 0, bound.stderr)
         self.assertNotEqual(before, (run / 'state.md').read_bytes())
         self.assertEqual(store.read_record(run / 'state.md')['active_improve']['skill']['skill_card'],
@@ -213,10 +227,13 @@ class ActualImproveCliTests(unittest.TestCase):
         for args in [('init', '-q'), ('config', 'user.email', 'fixture@example.invalid'),
                      ('config', 'user.name', 'Fixture'), ('config', 'commit.gpgsign', 'false'),
                      ('config', 'core.hooksPath', '/dev/null')]:
-            subprocess.run(['git', '-C', str(source), *args], check=True, capture_output=True)
+            subprocess.run(['git', '-C', str(source), *args], check=True, capture_output=True,
+                           env=self.environment)
         (source / 'product.txt').write_text('baseline\n')
-        subprocess.run(['git', '-C', str(source), 'add', 'product.txt'], check=True)
-        subprocess.run(['git', '-C', str(source), 'commit', '-qm', 'baseline'], check=True)
+        subprocess.run(['git', '-C', str(source), 'add', 'product.txt'], check=True,
+                       env=self.environment)
+        subprocess.run(['git', '-C', str(source), 'commit', '-qm', 'baseline'], check=True,
+                       env=self.environment)
         workspace = self.base / 'isolated'
         self.invoke(CLI, 'workspace', 'start', '--repo', source, '--workspace-root', workspace,
                     '--prompt', 'Synthetic final return boundary fixture', '--improve-skill', CARD)
