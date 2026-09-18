@@ -69,6 +69,69 @@ registration and reuse the same test/selector rather than duplicating a case.
 A smoke result establishes only that selected subset; it is never evidence that
 the full suite passed.
 
+## Reuse and define test facilities
+
+A test facility is a reusable runner, fixture/helper, test environment, native
+testing tool, or supported access/inspection route. During test strategy and each
+affected plan, inspect existing test configuration, helpers, repository test
+documentation and applicable selected skill and MCP capability references.
+If the needed route is not described, discover relevant available skills and
+MCP tools/resources through the host's supported discovery route; select only
+capabilities that meet a named test need.
+Follow [reuse before a new mechanism](research-loop.md#reuse-before-a-new-mechanism):
+reuse, configure or extend a suitable existing facility before creating another.
+Record the concrete gap if none fits. No MCP server, skill wrapper or testing
+framework is mandatory; a direct stateless check may need none.
+
+For each selected facility, retain a definition locator in existing strategy/plan
+evidence and repository test documentation. Record only the relevant details:
+
+- purpose, test boundary, consuming case/suite selectors and reuse rationale;
+- source/package identity and version or digest where available, plus the selected
+  skill card and relevant reference/script locators, or MCP server identity and
+  supported tool/resource interface;
+- exact command or operation, required inputs, observable result/error contract,
+  non-secret configuration and execution versus target location;
+- availability/readiness evidence, access/authority prerequisites, fixture
+  setup/cleanup and isolation/sharing, limitations and revalidation triggers.
+
+Read the selected skill and its relevant resources before using its procedure;
+resolve its bundled helpers from that selected package. For MCP capabilities,
+inspect the actual available operation/resource contract and relevant schemas;
+do not infer an API, tool access, target readiness or authority from a server name
+or catalog entry. Discovery or readiness is not test execution, and a successful
+tool call is not a passing case without its independent expected outcome.
+Use the [existing acquisition and access policy](research-loop.md#acquire-a-reader-and-establish-access-only-when-authorized)
+when setup is needed. Selection alone does not authorize installation, login,
+provisioning or remote mutation. Reuse current applicable readiness evidence;
+use a bounded authorized probe only when a consequential uncertainty remains.
+
+If a required facility is missing, define the smallest missing facility with its
+purpose, interface, owner, prerequisites, fixture lifecycle, invocation/registration
+route and validation criteria. Assign its implementation or configuration as a
+prerequisite in the existing plan; create or extend it within the owning work's
+scope and validate readiness before dependent checks. Keep it labeled planned or
+blocked until supported by evidence. A planning result may record that unresolved
+execution prerequisite; it does not claim the facility exists. If its contract is
+unknown, resolve that planning gap before dependent authoring rather than invent
+an executable interface. Preserve the assigned stage's expected check state:
+facility readiness must not require future product behavior to pass during RED.
+
+Retain implemented helpers/configuration and definitions in the repository's
+existing test layout and documentation, with a minimal usage example and check
+result/limits. Link them from the repository index for later tests and runs;
+do not leave the only definition in chat or disposable run storage. Follow
+[reference destinations](project-knowledge.md#reference-handoffs-and-destinations):
+portable notes retain package/source identity and how to resolve it, while
+run evidence keeps the actual selected host locator and its explicit base.
+Do not copy credentials or require an old worktree/session for future reuse.
+Create a repo-local skill only when a reusable procedure warrants it under
+[reusable product skills](testing-and-documentation.md#reusable-product-skills).
+Carry the definition locator and current selection/readiness decision through
+ordinary evidence_refs and applicable item context into INNER/OUTER planning and
+Improve. Revalidate changed versions, interfaces, targets or access rather than
+duplicating the facility or treating its former availability as current proof.
+
 ## Carry test decisions through stages
 
 For Navigator v3, retain the run-wide strategy note in the `test-strategy`
@@ -101,6 +164,66 @@ decision calls for scoped reassessment; do not guess from a previous tool name.
 The latest reviewed item decision can refine the global baseline within its
 scope. Conflicts or missing prerequisites remain explicit. Managed/legacy runs
 retain their existing test-plan/binding and context routes.
+
+## OUTER test-planning handshake
+
+The existing `system-test-author` and `release-plan` stages own two planning
+handshakes: the assembled product's integrated suite, then the checks appropriate
+to the actual release boundary. Their consumers acknowledge the applicable plan
+and revalidate its assumptions before execution. This is ordinary result and
+`evidence_refs` guidance, not a new stage, schema, approval or test catalog.
+
+At `system-test-author`, recover the latest completed test-decision record for
+each relevant completed INNER item from `state.md`'s accepted history, using
+`step-plan`, `test-spec`, `test-author`, `test-refine` or `regression` and the
+prior locators it retained. Read `results/<action>.md` and its relevant test notes.
+Reconcile these with the run-wide strategy and assembled candidate; the last
+transition or final item's decisions cannot stand for all completed items.
+Retain selected action/result and durable test-note locators in the integrated
+plan. The packet's current-item projection intentionally ends at the INNER
+boundary; OUTER recovery uses the existing history rather than an implicit item.
+
+The integrated plan records requirement-to-case coverage, independent oracles,
+focused/smoke/full commands and selectors, execution and target locations,
+candidate/test-definition identity, prerequisites, execution owners and boundary,
+setup/test/teardown or justified stateless cases, fixture isolation/sharing,
+runtime cost and cleanup/stop conditions. Reuse applicable existing decisions
+and note changes or gaps. Identify checks runnable at `system-test` separately
+from those that need an authorized release and belong to `release-verify`.
+An unavailable required boundary remains a named unrun/blocked obligation;
+neither authoring nor a local pass satisfies it.
+
+`system-test` confirms this plan still fits before running its assigned checks.
+`product-acceptance` reconciles coverage and observations with the accepted
+requirements, retaining later release obligations. `release-plan` revalidates the
+same suite for the actual release target and defines any necessary additional
+checks, including remote-resident definitions and native testing mechanisms.
+It assigns pre-release checks to `release-check`, post-release checks to
+`release-verify`, and applicable operational observations/cleanup to `operations`.
+`release` checks that those prerequisites and stop conditions still hold before
+its authorized operation; planning does not authorize deployment. `handoff`
+retains repeatable commands, evidence, ownership and unresolved obligations.
+
+For cold recovery, select root-owned, latest `done` `system-test-author` and
+`release-plan` records after the most recent accepted `replan`, where those
+producers have completed. Follow their relevant `evidence_refs`; keep pending
+Improve proposals separate from accepted plans. Pending, `repeat` and `blocked`
+attempts are not accepted plan sources. When a producer has not run yet, it owns
+creating its plan; a consumer with a missing source must recover it or use its
+supported incomplete/correction outcome. Do not require a future release plan
+to perform integrated system testing.
+
+A corrective replan makes earlier OUTER plans/results historical inputs. Reuse
+them only after reconciling the corrective INNER work and current candidate.
+Within the same OUTER pass, changes to product or test code, fixtures,
+configuration, dependencies, target or test definitions also invalidate affected
+observations. Preserve old receipts, identify the affected checks and rerun them
+through the authorized route; unchanged evidence may be reused with a stated
+identity and relevance basis. Record the plan being consumed, revalidation and
+any mismatch in ordinary result evidence. Improve reviews that handshake and
+its test assets within the existing producer subcall. These are host reasoning
+obligations: accepted history supplies provenance, not proof of applicability,
+test execution or a machine-enforced candidate/evidence match.
 
 ## Plan local and remote execution
 
@@ -140,7 +263,7 @@ to unblock it.
 
 ## Give each case a lifecycle
 
-For each INNER case, record and implement the smallest applicable lifecycle:
+For each INNER or OUTER case, record and implement the smallest applicable lifecycle:
 
 | Part | What it establishes |
 | --- | --- |

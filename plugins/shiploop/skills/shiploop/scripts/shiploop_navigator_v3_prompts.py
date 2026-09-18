@@ -54,6 +54,11 @@ OUTER = (
 
 STAGES = PRELUDE + INNER + OUTER
 
+TEST_FACILITY_STAGES = frozenset({
+    "test-strategy", "plan", "step-plan", "test-spec", "test-author", "test-red",
+    "test-refine", "regression", "carry-forward", "system-test-author", "release-plan",
+})
+
 
 # Keep stage routing declarative and package-relative.  The navigator renders
 # these selected locators with the package reference directory; this catalog
@@ -201,6 +206,17 @@ STAGE_REFERENCES: dict[str, tuple[tuple[str, str], ...]] = {
         ("Workspace return guidance", "workspace-lifecycle.md#inner-assembly-and-final-return"),
     ),
 }
+
+
+for _outer_stage in OUTER:
+    STAGE_REFERENCES[_outer_stage] += (
+        ("OUTER test-planning handshake", "repeatable-test-suites.md#outer-test-planning-handshake"),
+    )
+
+for _facility_stage in TEST_FACILITY_STAGES:
+    STAGE_REFERENCES[_facility_stage] += (
+        ("Reusable test facilities", "repeatable-test-suites.md#reuse-and-define-test-facilities"),
+    )
 
 
 PROGRESS_REPORTING = """\
@@ -587,6 +603,8 @@ with their authorized installation/invocation prerequisites.
 Execute the selected pre-implementation tests and establish a meaningful expected
 RED for the intended missing behavior.  Confirm that the failure is caused by the
 specified behavior rather than syntax, setup, fixture, or environment error.
+A missing test facility is a prerequisite gap, not meaningful RED. Facility
+readiness must not require future product behavior to pass.
 Do not edit production code to make the test green at this stage.  A valid RED is
 successful control evidence for this stage, not a product failure to hide.
 """,
@@ -618,6 +636,8 @@ and refresh their case, fixture, command, and cost notes when those change.
     "regression": """\
 Use the Run-wide test strategy source and current item context to recover the
 applicable retained suites, target prerequisites and justified decision changes.
+Revalidate retained facility definitions and readiness for this regression target;
+reuse the existing route when it still fits and retain any required correction.
 Execute relevant regression, negative, compatibility, and boundary checks on the
 current candidate.  Include selected error and recovery behavior.  Distinguish a
 product defect, invalid test, and environment issue with a small discriminating
@@ -696,8 +716,12 @@ Retain the originating strategy locator alongside current item-specific test
 decisions so later items and whole-system tests can revalidate their basis.
 """,
     "system-test-author": """\
-Reopen the Run-wide test strategy source and relevant retained INNER test
-decisions; reconcile their suite membership and prerequisites before adding cases.
+Reopen the Run-wide test strategy source. From accepted history, select the
+latest done test-decision record for every relevant completed item: step-plan,
+test-spec, test-author, test-refine or regression, with its retained prior locators.
+Keep selected action/result and durable test-note locators in evidence_refs.
+Do not infer whole-product coverage from the last transition or final item.
+Reconcile their suite membership and prerequisites before adding cases.
 Author or refine whole-product/system test cases and fixtures from the assembled
 candidate and global test strategy.  Cover real integration, consumer, runtime,
 security, accessibility, migration, compatibility, and operational boundaries as
@@ -709,6 +733,11 @@ Review shared setup cost, independent assertions, isolation and failure teardown
 using the Repeatable test-suite guide. Verify actual discovery and rerun commands.
 Author/version remote-resident definitions and registration when the remote
 framework requires them, with repeatable authorized installation and invocation.
+Retain an integrated test plan in ordinary evidence_refs using the OUTER
+test-planning handshake: current candidate/boundaries, selected cases and oracles,
+commands, lifecycle/sharing decisions, cost, prerequisites and execution owners.
+Identify which checks run now and which require the authorized release first;
+required post-release checks stay assigned to release-verify, not silently waived.
 """,
     "system-test": """\
 Execute authorized end-to-end, runtime, integration, or system tests against the
@@ -716,6 +745,10 @@ actual intended candidate and boundary.  Verify prerequisites, fixtures, target,
 identity, authorization, and observed behavior.  Do not substitute a planned case
 or local mock for a required system observation, deploy to unblock a test, or use
 production without authority.
+Before execution, acknowledge the applicable integrated test plan and revalidate
+its candidate, case selection, target and fixture assumptions. Record reuse or
+the concrete mismatch in ordinary evidence_refs; resolve a required planning gap
+through this stage's supported repeat, blocked or corrective replan outcome.
 Run the planned retained suite, reconcile selected cases and cleanup outcomes,
 and record command, candidate/target, scope and unrun checks. When fixtures changed,
 check relevant repeatability; never blindly replay an uncertain external effect.
@@ -736,6 +769,13 @@ permission, prerequisites, user impact, rollback, monitoring, pre/post-release
 checks, and stop conditions.  Distinguish source return, artifact publication,
 deployment, promotion, and consumer verification.  A plan does not authorize or
 perform an external operation; a required target or authority gap is blocked.
+Revalidate the integrated test plan for the release target. Retain the pre/post
+check owners, commands/case selectors, independent expected outcomes, prerequisites,
+execution versus target locations, remote test-definition revision where relevant,
+setup/test/teardown, fixture isolation/sharing and cost, cleanup and stop conditions.
+Reuse applicable tests; define additional checks only for changed boundaries or
+coverage gaps. Retain this release test plan in ordinary evidence_refs, including
+what release-check must establish before release and release-verify after it.
 For isolated runs, source return occurs only after the final handoff Improve
 child. Use an authorized delivery route from the execution checkout if available.
 If source return itself is required before consumer checks can run, record the
@@ -837,6 +877,19 @@ IMPLEMENTATION_STAGES = frozenset(
 
 BACKCHAIN_STAGES = frozenset({"spec", "plan", "step-plan", "carry-forward", "product-acceptance"})
 TEST_DECISION_STAGES = frozenset({"step-plan", "test-spec", "test-author", "test-refine", "regression"})
+TEST_FACILITY_HANDOFF = """\
+Use the packet's Reusable test facilities guide. Read applicable selected skill
+and MCP capability references; reuse, configure or extend existing frameworks,
+helpers and supported facilities before defining the smallest missing facility.
+Retain its definition locator, supported interface, readiness evidence or gap,
+owner/prerequisites and revalidation conditions in ordinary evidence_refs and
+repository test documentation. Carry relevant locators into item context and the
+Improve child's context/notes. Planning names missing prerequisite work; the owning
+authoring/configuration work implements and validates it before dependent checks,
+within the assigned scope and expected check state. Discovery or readiness is not
+test execution. Reopen the durable definition for later tests instead of inventing
+another facility or assuming a named skill/MCP is available or authorized.
+"""
 TEST_DECISION_HANDOFF = """\
 Reopen the packet's Current item test-decision source when present, alongside
 the Run-wide test strategy source and initial item context. Keep applicable
@@ -844,6 +897,25 @@ prior decision locators and any justified revision in this result's ordinary
 evidence_refs and durable test notes, so later stages can recover their basis.
 Missing decisions require scoped reassessment; recorded completion is not proof
 that a selected harness, fixture or target remains usable.
+"""
+OUTER_TEST_HANDOFF = """\
+Use the packet's OUTER test-planning handshake guide. Recover the latest done
+system-test-author and release-plan records from root-owned accepted history
+after the most recent accepted replan, when those producers have completed.
+Earlier OUTER records are historical inputs to revalidate, not current plan or
+pass authority; pending, repeat, and blocked results are not plan authority.
+Review a pending producer proposal separately during its Improve handoff.
+Read the selected results and relevant evidence_refs; retain their action/result
+and durable plan locators in this result and the Improve child's context/notes.
+At system-test-author or release-plan, create/reconcile the plan owned by that
+stage; do not require a future producer's plan. At consumers, acknowledge which
+plan applies and revalidate it for the current candidate and boundary before
+relying on its tests. Recover a missing plan or use the supported incomplete or
+correction outcome; never guess commands, erase required coverage, or deploy to
+make a check available. A plan is not execution evidence. Material changes to
+code, tests, fixtures, configuration or target invalidate affected observations;
+retain prior receipts, identify and rerun affected checks through the authorized
+route. Reuse unaffected evidence only with its identity and relevance established.
 """
 BACKCHAIN_NATIVE_CALLS = {
     "plan": ("plan", "draft"),
@@ -955,8 +1027,12 @@ def prompt(stage: str) -> str:
     """Return the single current producer instruction for a v3 graph stage."""
     _require_stage(stage)
     parts = [COMMON, DUTIES[stage]]
+    if stage in TEST_FACILITY_STAGES:
+        parts.append(TEST_FACILITY_HANDOFF)
     if stage in TEST_DECISION_STAGES:
         parts.append(TEST_DECISION_HANDOFF)
+    if stage in OUTER:
+        parts.append(OUTER_TEST_HANDOFF)
     if stage in BACKCHAIN_STAGES:
         parts.append(_backchain_guidance(stage))
     if stage in RECONCILIATION_STAGES:
@@ -971,6 +1047,8 @@ def improve_prompt(stage: str) -> str:
     """Return the actual Improve-skill handoff for a completed producer stage."""
     _require_stage(stage)
     backchain = _backchain_guidance(stage, improve_owner=True) if stage in BACKCHAIN_STAGES else ""
+    outer_handshake = OUTER_TEST_HANDOFF if stage in OUTER else ""
+    test_facilities = TEST_FACILITY_HANDOFF if stage in TEST_FACILITY_STAGES else ""
     assessment = ""
     if any(label == "State and data assessment" for label, _ in STAGE_REFERENCES[stage]):
         assessment = """\
@@ -1022,6 +1100,10 @@ readiness conditions in the child contract/review notes for cold recovery.
 
 {assessment}
 
+{outer_handshake}
+
+{test_facilities}
+
 When the candidate concerns actor interactions, channels, incoming/outgoing events,
 connection lifecycle, state ownership or UI, read the applicable Interaction design
 guide sections, including UI-specific planning when relevant, and the current
@@ -1053,6 +1135,10 @@ future production behavior to pass. Keep unresolved coverage visible.
 Include remote-resident definitions, framework availability, authorized invocation,
 execution location and deployed/test revision evidence; a local pass does not
 satisfy a required remote check.
+Review selected facility definitions and skill/MCP references for actual reuse,
+supported interfaces and readiness limits. Preserve their durable locators for
+later tests; verify an owned new/changed facility before its dependent checks
+without treating facility readiness as a passing product test.
 
 Improve owns its own review iterations, evidence notebook, continuation, and
 completion judgment.  Do not replace it with an inline review algorithm, copied

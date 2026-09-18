@@ -39,3 +39,9 @@ current graph/source/bounds receipts and retained terminal stdout. Until Loop
 returned streaks zero, one and two and then deleted its state file. This confirms
 the direct runtime path under controlled host execution; it does not test native
 caller-envelope execution or turn the free-form probes into passing results.
+
+Before publication, remote main advanced to `08fb3ca` with reusable test-facility
+and OUTER test-planning guidance. That change merged without conflicts. The
+combined tree passed navigator-v3 (21), v3-guidance (13), reference-routing (8),
+and test-group checks, plus ShipLoop/Improve plugin parity. Both upstream handoff
+routes and the direct Backchain binding remain present in the generated prompts.

@@ -326,6 +326,21 @@ class TestGroupTests(unittest.TestCase):
         wrapper = (ROOT / "test" / "shiploop-walk-journal.test.sh").read_text()
         self.assertIn("test/shiploop-action-walk.test.py", wrapper)
 
+    def test_ci_routes_events_and_cancels_only_superseded_pr_runs(self):
+        workflow = (ROOT / ".github" / "workflows" / "ci.yml").read_text()
+        triggers = workflow.split("\nconcurrency:\n", 1)[0]
+        self.assertIn(
+            "on:\n  push:\n    branches: [main]\n  pull_request:\n  workflow_dispatch:\n",
+            triggers,
+        )
+        self.assertNotIn("tags:", triggers)
+        self.assertIn(
+            "concurrency:\n"
+            "  group: ci-${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.run_id }}\n"
+            "  cancel-in-progress: ${{ github.event_name == 'pull_request' }}\n",
+            workflow,
+        )
+
     def test_ci_preserves_a_fail_closed_aggregate_check(self):
         workflow = (ROOT / ".github" / "workflows" / "ci.yml").read_text()
         self.assertIn(f"group: [{', '.join(CI_GROUPS)}]", workflow)
