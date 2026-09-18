@@ -8,6 +8,7 @@ transport cannot silently become part of the ordinary ShipLoop flow.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -38,6 +39,43 @@ def read_record(path: Path) -> dict[str, object]:
     if not isinstance(value, dict):
         raise AssertionError(f"record is not an object: {path}")
     return value
+
+
+def historical_context_host_receipt(
+    state: dict[str, object], *, repo: Path, run_dir: Path, cli: Path
+) -> bytes:
+    """Render the retired context-host receipt format without importing it."""
+    state_digest = hashlib.sha256(
+        json.dumps(state, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
+    receipt = {
+        "schema": "shiploop-context-host/v1",
+        "host": "grok",
+        "run_id": state["run_id"],
+        "repo": str(repo.resolve()),
+        "run_dir": str(run_dir.resolve()),
+        "cli": str(cli),
+        "policy": "inner-loop",
+        "network_access": None,
+        # This was a completed historical owner, not an active process to resume.
+        "status": "ready",
+        "thread_id": "historical-owner",
+        "need_fresh": False,
+        "state_digest": state_digest,
+        "turns": [
+            {
+                "status": "completed",
+                "thread_id": "historical-owner",
+                "text": "Historical owner already stopped.",
+                "usage": None,
+            }
+        ],
+        "reset_boundaries": [],
+        "owner_phase": "owner-completed",
+    }
+    text = "# ShipLoop context host receipt\n\n```shiploop-state\n"
+    text += json.dumps(receipt, ensure_ascii=False, indent=2, sort_keys=True, allow_nan=False)
+    return (text + "\n```\n").encode("utf-8")
 
 
 class ShipLoopNoModelLaunchTests(unittest.TestCase):
@@ -120,6 +158,36 @@ class ShipLoopNoModelLaunchTests(unittest.TestCase):
         self.assertEqual(after["run_id"], initial["run_id"])
         self.assertEqual(after["action"], initial_action)
         self.assertIn(initial_action["id"], continued.stdout)
+        self.assert_no_model_launch()
+
+    def test_next_ignores_a_stopped_historical_context_host_receipt(self) -> None:
+        run_dir = self.base / "historical run"
+        initialized = self.run_cli(
+            "init",
+            "--run-dir", str(run_dir),
+            "--repo", str(self.repo),
+            "--prompt", "Recover an ordinary saved run.",
+        )
+        self.assertEqual(initialized.returncode, 0, initialized.stdout + initialized.stderr)
+        initial = read_record(run_dir / "state.md")
+        self.assertEqual(initial["navigator_protocol_version"], 3)
+        initial_action = initial["action"]
+        self.assertIsInstance(initial_action, dict)
+
+        receipt_path = run_dir / "context-host.md"
+        receipt_bytes = historical_context_host_receipt(
+            initial, repo=self.repo, run_dir=run_dir, cli=self.cli
+        )
+        receipt_path.write_bytes(receipt_bytes)
+        self.assertEqual(read_record(receipt_path)["schema"], "shiploop-context-host/v1")
+
+        continued = self.run_cli("next", "--run-dir", str(run_dir))
+        self.assertEqual(continued.returncode, 0, continued.stdout + continued.stderr)
+        after = read_record(run_dir / "state.md")
+        self.assertEqual(after["run_id"], initial["run_id"])
+        self.assertEqual(after["action"], initial_action)
+        self.assertIn(initial_action["id"], continued.stdout)
+        self.assertEqual(receipt_path.read_bytes(), receipt_bytes)
         self.assert_no_model_launch()
 
 

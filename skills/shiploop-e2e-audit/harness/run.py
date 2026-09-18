@@ -439,8 +439,11 @@ def _paths_overlap(first: Path, second: Path) -> bool:
     return first == second or first.is_relative_to(second) or second.is_relative_to(first)
 
 
-def _new_suite_product_parent(campaign_root: Path, observer_root: Path) -> Path:
+def _new_suite_product_parent(campaign_root: Path, observer_root: Path, *, subject_root: Path | None = None) -> Path:
     """Allocate a retained product parent outside the observer and campaign trees."""
+    temporary_root = Path(tempfile.gettempdir()).resolve()
+    if any(layout.within(temporary_root, root) for root in layout.protected_roots(subject_root)):
+        raise ValueError("product must be separate from the audit package, source checkout, and selected ShipLoop subject")
     parent = Path(tempfile.mkdtemp(prefix="shiploop-e2e-products-")).resolve()
     if _paths_overlap(parent, campaign_root) or _paths_overlap(parent, observer_root):
         raise ValueError("temporary product parent must be outside campaign and observer roots")
@@ -716,6 +719,7 @@ def run_trial(args: argparse.Namespace) -> int:
         raise
     if _paths_overlap(output, repo):
         raise ValueError("product and trial output must be separate, non-nested directories")
+    layout.validate_external_product(repo, subject_root=selected_subject)
     if not repo.exists():
         if step["kind"] != "create":
             raise ValueError("existing feature repository does not exist")
@@ -1268,6 +1272,8 @@ def run_suite(args: argparse.Namespace) -> int:
     caller_repo = _resolved_path(args.repo) if args.repo else None
     if caller_repo is not None and _paths_overlap(campaign_root, caller_repo):
         raise ValueError("caller --repo and suite campaign output must be separate, non-nested directories")
+    if caller_repo is not None:
+        layout.validate_external_product(caller_repo, subject_root=selected_subject)
     root.mkdir(parents=True, mode=0o700)
     write_json(root / "suite-manifest.json", suite)
     product_keys = list(dict.fromkeys(case["product_key"] for case in cases))
@@ -1275,7 +1281,8 @@ def run_suite(args: argparse.Namespace) -> int:
         product_parent: Path | None = None
         product_repositories = {key: str(caller_repo) for key in product_keys}
     else:
-        product_parent = _new_suite_product_parent(campaign_root, Path(OBSERVER_ROOT).resolve())
+        product_parent = _new_suite_product_parent(campaign_root, Path(OBSERVER_ROOT).resolve(),
+                                                   subject_root=selected_subject)
         product_repositories = {
             key: str(Path(tempfile.mkdtemp(prefix="p-", dir=product_parent)).resolve())
             for key in product_keys

@@ -135,6 +135,41 @@ class RunTests(unittest.TestCase):
         self.assertFalse(protected_suite.exists())
         self.assertFalse(self.repo.exists())
 
+    def test_product_paths_cannot_overlap_packages_or_source_before_writes(self):
+        audit_package = self.root / "audit-package"
+        checkout = self.root / "source-checkout"
+        audit_package.mkdir()
+        checkout.mkdir()
+        alias = self.root / "subject-alias"
+        alias.symlink_to(self.skill, target_is_directory=True)
+        candidates = [self.skill / "product", audit_package / "product",
+                      checkout / "product", alias / "product", self.root]
+        for index, repo in enumerate(candidates):
+            for mode in ("run", "suite"):
+                output = self.root / "trials" / f"protected-{index}-{mode}"
+                mode_args = (["run", "--step", "ttt-create"] if mode == "run" else
+                             ["suite", "--suite", "ttt-full", "--only", "ttt-create"])
+                before = sorted(str(path) for path in self.root.rglob("*"))
+                with self.subTest(repo=repo, mode=mode), \
+                     patch.object(layout, "PACKAGE_ROOT", audit_package), \
+                     patch.object(layout, "canonical_source_checkout", return_value=checkout), \
+                     patch.object(run, "preflight", side_effect=ValueError("unexpected preflight")) as preflight, \
+                     patch.object(run, "capture_process") as launch:
+                    code = run.main([*mode_args, "--repo", str(repo), "--output", str(output),
+                                     "--model", "fixture", "--skill-root", str(self.skill)])
+                self.assertEqual(code, 2)
+                self.assertFalse(preflight.called, 'unsafe product reached preflight')
+                self.assertFalse(launch.called, 'unsafe product reached model launch')
+                self.assertFalse(output.exists())
+                self.assertEqual(before, sorted(str(path) for path in self.root.rglob("*")))
+
+    def test_automatically_allocated_product_parent_cannot_modify_selected_skill(self):
+        with patch.object(run.tempfile, "tempdir", str(self.skill)):
+            with self.assertRaisesRegex(ValueError, "product must be separate"):
+                run._new_suite_product_parent(self.root / "campaign", self.root / "observer",
+                                              subject_root=self.skill)
+        self.assertEqual(sorted(path.name for path in self.skill.iterdir()), ["SKILL.md", "scripts"])
+
     def observer_fixture(self, name="observer-inputs"):
         root = self.root / name
         root.mkdir()

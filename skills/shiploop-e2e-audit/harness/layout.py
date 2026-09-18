@@ -91,17 +91,31 @@ def resolve_skill_binding(value: Path | str | None) -> tuple[Path, str]:
     return Path(value).expanduser().resolve(), "explicit"
 
 
-def validate_new_external_output(path: Path | str, *, subject_root: Path | None = None) -> Path:
-    """Reject output that could modify the audit package, source, or subject."""
-    output = Path(path).expanduser().resolve()
-    if output.exists():
-        raise ValueError("output must be a new directory")
+def protected_roots(subject_root: Path | None = None) -> list[Path]:
+    """Execution inputs that a trial must not use as product or output space."""
     protected = [PACKAGE_ROOT]
     checkout = canonical_source_checkout()
     if checkout is not None:
         protected.append(checkout)
     if subject_root is not None:
         protected.append(Path(subject_root).expanduser().resolve())
+    return protected
+
+
+def validate_external_product(path: Path | str, *, subject_root: Path | None = None) -> Path:
+    """Reject product roots that contain or are contained by execution inputs."""
+    product = Path(path).expanduser().resolve()
+    if any(within(product, root) or within(root, product) for root in protected_roots(subject_root)):
+        raise ValueError("product must be separate from the audit package, source checkout, and selected ShipLoop subject")
+    return product
+
+
+def validate_new_external_output(path: Path | str, *, subject_root: Path | None = None) -> Path:
+    """Reject output that could modify the audit package, source, or subject."""
+    output = Path(path).expanduser().resolve()
+    if output.exists():
+        raise ValueError("output must be a new directory")
+    protected = protected_roots(subject_root)
     if any(within(output, root) for root in protected):
         raise ValueError("output must be outside the audit package, source checkout, and selected ShipLoop subject")
     return output
