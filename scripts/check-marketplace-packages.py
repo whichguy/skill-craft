@@ -40,6 +40,7 @@ NATIVE_SCRIPT_ENTRYPOINTS: dict[str, dict[str, str]] = {
     "devloop": {"scripts/devloop-run": "bash"},
     "evidence-gates": {"scripts/evidence-gates": "python3"},
     "improve": {
+        "runtime/until-loop/scripts/until_loop_ephemeral.py": "python3",
         "runtime/until-loop/scripts/until-loop": "python3",
         "scripts/capture_evidence.py": "python3",
     },

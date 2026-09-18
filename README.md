@@ -43,7 +43,7 @@ Use **skill-craft** for portable skill packages and their plugin distribution. U
 | [derive-questions](skills/derive-questions/SKILL.md) | 0.1.1 | Iteratively researches real software project failures and wins, extracts key planning questions via 5-whys analysis, validates them against synthetic test plans, judges their… |
 | [devloop](skills/devloop/SKILL.md) | 0.6.0 | DevLoop (default): invoke the autonomous engine for a machine-verifiable build or debug goal. Use when the user says devloop, DevLoop, /devloop, or wants an isolated fail-closed… |
 | [evidence-gates](skills/evidence-gates/SKILL.md) | 0.2.2 | Optional offline evidence gates (freeze/prove/stop with guard digests) for machine-checkable red→green contracts without the autonomous engine. Use when the user says… |
-| [improve](skills/improve/SKILL.md) | 0.1.0-rc.2 | Use when a repository candidate needs a deliberate review-and-improvement loop: use recent Git history, make warranted changes, run meaningful checks, and require two consecutive… |
+| [improve](skills/improve/SKILL.md) | 0.2.0-rc.1 | Use when a repository candidate needs a deliberate review-and-improvement loop: use recent Git history, make warranted changes, run meaningful checks, and require two consecutive… |
 | [improve-system-prompt](skills/improve-system-prompt/SKILL.md) | 0.1.1 | Benchmark and compare system prompt variants (V2/V2a/V2b/V2c) for Sheets Chat by running test scenarios through the real GAS-side ClaudeConversation pipeline. Tests both… |
 | [plan-test](skills/plan-test/SKILL.md) | 0.1.1 | Generate comprehensive tests for code. Uses an inline strategy or an available independent test specialist for complex components. |
 | [prompt-align](skills/prompt-align/SKILL.md) | 0.1.1 | Compare an agent or skill prompt against its test harness skill for phase-model, skip-condition, and wiring consistency. Reports mismatches and identifies which file is… |
@@ -53,7 +53,7 @@ Use **skill-craft** for portable skill packages and their plugin distribution. U
 | [question-bench](skills/question-bench/SKILL.md) | 0.1.1 | Benchmark review-plan question effectiveness via experiment-based ablation. Applies different question subsets to a plan (or directory of plans) in parallel experiments,… |
 | [review-coverage](skills/review-coverage/SKILL.md) | 0.2.6 | Add a post-ship improve-to-exhaustion directive to a plan, or run that directive after implementation. Invoke like any skill: /review-coverage, "review-coverage on this plan",… |
 | [review-fix-bench](skills/review-fix-bench/SKILL.md) | 0.1.1 | Compare two code-review prompt versions against supplied fixture ground truth using an explicitly configured external benchmark runner. Reports an F1-based verdict only when the… |
-| [shiploop](skills/shiploop/SKILL.md) | 0.14.0 | Markdown-authoritative delivery harness. Start or resume once, follow the script's current action packet, and submit its exact completion call until the script reports completion… |
+| [shiploop](skills/shiploop/SKILL.md) | 0.15.0 | Markdown-authoritative delivery harness. Start or resume once, follow the script's current action packet, and submit its exact completion call until the script reports completion… |
 | [skill-interop](skills/skill-interop/SKILL.md) | 0.2.1 | Use when authoring or reviewing a portable multi-host agent skill (Grok, Claude Code, Codex, Hermes): scaffold a prompt-only skill, make a skill host-agnostic, create skill… |
 
 <!-- skill-craft:inventory:end -->

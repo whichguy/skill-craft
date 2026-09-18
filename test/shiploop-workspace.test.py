@@ -431,6 +431,21 @@ class ShipLoopWorkspaceTests(unittest.TestCase):
         self._assert_source_unchanged(before)
         self.assertFalse((root / "workspace.md").exists())
 
+    def test_prepare_rejects_ephemeral_child_receipts_without_mutation(self) -> None:
+        """Saved terminal packets are parent evidence, never product baseline input."""
+        self._seed_dirty_source()
+        receipt = self.repo / ".shiploop-improve" / "parent-run" / "A-INTAKE-001" / "packet.json"
+        receipt.parent.mkdir(parents=True)
+        receipt.write_text('{"status":"complete"}\n', encoding="utf-8")
+        before = self._source_snapshot()
+        root = self.base / "rejected ephemeral receipt source"
+
+        with self.assertRaises(workspace.WorkspaceError):
+            self._call(workspace.prepare, self.repo, root)
+
+        self._assert_source_unchanged(before)
+        self.assertFalse((root / "workspace.md").exists())
+
     def test_runtime_artifact_removed_before_the_baseline_does_not_block_or_reappear(self) -> None:
         """Do not treat unrelated pre-baseline history as current candidate work."""
         runtime = self.repo / ".shiploop" / "historic.md"
@@ -685,6 +700,57 @@ class ShipLoopWorkspaceTests(unittest.TestCase):
             self.assertTrue(returned.is_symlink())
             self.assertEqual(os.readlink(returned), "target.txt")
         self.assertEqual((self.repo / ".git" / "index").read_bytes(), source_index)
+
+    def test_untracked_child_evidence_is_retained_but_cannot_be_returned(self) -> None:
+        root = self.base / "retained child evidence"
+        worktree = self._worktree(self._prepare(name=root.name))
+        child_receipt = worktree / ".shiploop-improve" / "run" / "action" / "packet.json"
+        child_receipt.parent.mkdir(parents=True)
+        child_receipt.write_text('{"status":"complete"}\n', encoding="utf-8")
+        review = child_receipt.parent / "reviews" / "review-one.md"
+        review.parent.mkdir()
+        review.write_text("retained child review evidence\n", encoding="utf-8")
+        (worktree / "product-output.txt").write_text("reviewed product\n", encoding="utf-8")
+        plan = self._plan(root)
+        for row in plan["paths"]:
+            row["disposition"] = "keep"
+        store.write_record(root / "return-plan.md", plan)
+        before = self._source_snapshot()
+        with self.assertRaises(workspace.WorkspaceError):
+            self._call(workspace.execute_return, root)
+        self._assert_source_unchanged(before)
+
+        for row in plan["paths"]:
+            if row["path"].startswith(".shiploop-improve/"):
+                row["disposition"] = "exclude"
+        store.write_record(root / "return-plan.md", plan)
+        self._execute(root)
+        self.assertEqual((self.repo / "product-output.txt").read_text(), "reviewed product\n")
+        self.assertFalse((self.repo / ".shiploop-improve").exists())
+        self.assertTrue(child_receipt.is_file())
+        self.assertTrue(review.is_file())
+
+    def test_tracked_or_historical_child_receipts_still_block_return(self) -> None:
+        for kind in ("staged", "committed", "deleted-in-history"):
+            with self.subTest(kind=kind):
+                root = self.base / ("tracked child " + kind)
+                worktree = self._worktree(self._prepare(name=root.name))
+                receipt = worktree / ".shiploop-improve" / "run" / "action" / "packet.json"
+                receipt.parent.mkdir(parents=True)
+                receipt.write_text("private child evidence\n", encoding="utf-8")
+                self.git("add", ".shiploop-improve", cwd=worktree)
+                if kind != "staged":
+                    self._commit_all(worktree, "accidentally commit runtime evidence")
+                if kind == "deleted-in-history":
+                    self.git("rm", str(receipt.relative_to(worktree)), cwd=worktree)
+                    self._commit_all(worktree, "delete runtime evidence")
+                before = self._source_snapshot()
+                self._plan(root)
+                self._resolve_plan(root)
+                with self.assertRaises(workspace.WorkspaceError):
+                    self._call(workspace.execute_return, root)
+                self._assert_source_unchanged(before)
+                self.assertFalse((root / "return-receipt.md").exists())
 
     def test_transient_candidate_and_transient_history_are_never_returnable(self) -> None:
         root = self.base / "forbidden candidate"

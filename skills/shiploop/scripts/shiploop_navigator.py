@@ -1410,7 +1410,33 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
         return "\n".join(lines) + "\n"
     skill = child["skill"]
     result_path = root / "inbox" / (action_id + "-improve.md")
-    evidence_root = Path(child["workspace"]) / ".until-loop" / "reviews"
+    ephemeral = Path(skill["runtime_cli"]).name == "until_loop_ephemeral.py"
+    if ephemeral:
+        import shiploop_standalone_improve as standalone_improve
+
+        packet_path = standalone_improve.receipt_path(child)
+        evidence_root = packet_path.parent / "reviews"
+        runtime_lines = [
+            "Child runtime authority: the unique temporary state_file returned by the selected runtime. ShipLoop does not write or count child state.",
+            "Child latest packet receipt: " + str(packet_path),
+            "Save exact, complete raw JSON stdout from each successful start, next and done call to that receipt using a JSON-aware runner or safe file capture. Never reconstruct, summarize, or truncate the packet. This receipt preserves the callback handle and terminal evidence; it is not a second runtime state machine.",
+            "For a genuinely new child, read the selected skills and start once. If this child has already started, read its saved receipt: for active status use its exact next_argv once to recover, then follow the returned instruction; for complete status import its retained receipt without starting or reviewing again. For stopped status keep the parent incomplete. If an existing child's receipt or temporary state is unavailable, report incomplete; never infer completion or silently create a replacement.",
+            "Include this parent identity as a separate line in frozen context.request:",
+            child["contract_marker"],
+            "Freeze the original request, step result and execution/exit/repeat conditions, permitted paths, expected check state, explicit no-commit authority and relevant environment in the child's context. Include context.resources locators for this latest-packet receipt, parent state.md, completion evidence path and exact parent return instructions below. The child terminal packet must be sufficient to locate and perform the parent return after context loss.",
+            "Execute the child's work instruction exactly once per action, then call its exact done_argv with a truthful trivial/non-trivial/unresolved classification, condition assessments, evidence and replacement handoff. Follow the returned instruction; do not advance the parent during active work or compress several reviews into one callback.",
+            "Completion deletes the child's temporary state. Preserve the complete terminal packet at the receipt above before calling improve-complete. If terminal output is lost, stop incomplete; a missing state file is not completion evidence.",
+        ]
+    else:
+        evidence_root = Path(child["workspace"]) / ".until-loop" / "reviews"
+        runtime_lines = [
+            "Child authority: " + str(Path(child["workspace"]) / ".until-loop" / "state.json"),
+            "Child review notebook: " + str(Path(child["workspace"]) / ".until-loop" / "working.md"),
+            "Include this parent identity as a separate line in the child contract original_request:",
+            child["contract_marker"],
+            "Keep the original request, this step result, relevant work-item context, permitted paths and expected check state in the child contract. Include an explicit no-commit constraint in the child original_request; parent integration retains the run's commit/merge/push policy.",
+            "Inspect the existing child using its bound adapter. Continue a matching active run; resume a paused child only when its recorded condition permits; import a matching completed child without rerunning it. For a genuinely new step, the adapter may restart only a settled previous run whose evidence was retained. Never replace an unrelated active run or bypass recovery.",
+        ]
     return_lines = []
     if state["execution_mode"] == "navigator-worktree" and child["stage"] == "handoff":
         return_lines = [
@@ -1425,15 +1451,10 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
         "Bound Until Loop card: " + skill["runtime_card"],
         "Bound Until Loop CLI locator: " + skill["runtime_cli"],
         "Child workspace: " + child["workspace"],
-        "Child authority: " + str(Path(child["workspace"]) / ".until-loop" / "state.json"),
-        "Child review notebook: " + str(Path(child["workspace"]) / ".until-loop" / "working.md"),
         "Read the selected Improve skill and its bound runtime instructions in full, then follow them. The skill owns all internal improvement iterations.",
-        "Include this parent identity as a separate line in the child contract original_request:",
-        child["contract_marker"],
+        *runtime_lines,
         guidance3.improve_prompt(child["stage"]),
-        "Keep the original request, this step result, relevant work-item context, permitted paths and expected check state in the child contract. Include an explicit no-commit constraint in the child original_request; parent integration retains the run's commit/merge/push policy.",
-        "Exclude .until-loop and ShipLoop runtime metadata from product candidates, edits and commits; adapter-owned state and notebook writes remain allowed. Explicitly named planning artifacts may be reviewed.",
-        "Inspect the existing child using its bound adapter. Continue a matching active run; resume a paused child only when its recorded condition permits; import a matching completed child without rerunning it. For a genuinely new step, the adapter may restart only a settled previous run whose evidence was retained. Never replace an unrelated active run or bypass recovery.",
+        "Exclude .until-loop, .shiploop-improve and ShipLoop runtime metadata from product candidates, edits and commits; adapter-owned state, packet receipts and review-note writes remain allowed. Explicitly named planning artifacts may be reviewed.",
         "The prior result and relevant accepted Improve lessons are in state.md improve_results and improve/<parent-action>/ receipts. Carry forward only relevant verified lessons; keep blocked-attempt notes in the child notebook.",
         "On completion, provide two distinct final qualifying review records and current check evidence as absolute local file references. A plan/RED disposition is checked against its own criteria, not future product success. Capture separate durable review files beneath Child workspace if the notebook contains both reviews.",
         "Receipt review_refs and check_refs must be absolute regular single-link non-symlink files under Child workspace above; the importer rejects sibling run/inbox/control paths outside that root. For example: "
@@ -1447,7 +1468,7 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
         *return_lines,
         "Return only after the bound runtime reports successful completion:",
         _callback(core, root, "improve-complete", action=action_id, result=str(result_path)),
-        "If incomplete, retain the child and its notebook; do not call complete on the producer again or advance the graph.",
+        "If incomplete, retain the child, its packet receipt and review notes; do not call complete on the producer again or advance the graph.",
         "Pause parent without losing child: " + _callback(core, root, "pause", reason="reason"),
     ])
     return "\n".join(lines) + "\n"

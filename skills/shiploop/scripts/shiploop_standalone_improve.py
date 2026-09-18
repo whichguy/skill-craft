@@ -25,11 +25,31 @@ VERSION = 1
 RUN_DIRECTORY = ".until-loop"
 _ACTION = re.compile(r"^[A-Za-z][A-Za-z0-9_-]{0,159}$")
 _MAX_BYTES = 4 * 1024 * 1024
+_EPHEMERAL_DECLARATION = "scripts/until_loop_ephemeral.py"
+_EPHEMERAL_CLI = "until_loop_ephemeral.py"
+_RECEIPT_DIRECTORY = ".shiploop-improve"
+_TERMINAL_PACKET_NAME = "packet.json"
+_SKILL_FIELDS = {"skill_card", "skill_version", "runtime_card", "runtime_cli", "runtime_version"}
+_BINDING_FIELDS = {
+    "version", "binding_id", "workspace", "action_id", "stage", "skill",
+    "contract_marker", "seed_result",
+}
+_CONTEXT_FIELDS = {"request", "scope", "authority", "environment", "resources"}
+_RESOURCE_FIELDS = {"purpose", "locator"}
+_REPORT_FIELDS = {
+    "classification", "exit_assessment", "continuation_assessment", "evidence", "handoff",
+}
+_TERMINAL_PACKET_FIELDS = {
+    "status", "state_file", "workspace", "work", "conditions", "progress", "context",
+    "context_limit", "status_semantics", "last_report", "instruction", "next_argv",
+    "done_argv", "report_schema",
+}
 
 __all__ = [
     "StandaloneImproveError",
     "binding",
     "complete",
+    "receipt_path",
     "resolve_skill",
 ]
 
@@ -187,6 +207,11 @@ def _declared_version(text: str) -> str:
     return match.group(1).strip() if match is not None else "unversioned"
 
 
+def _declares_ephemeral_runtime(text: str) -> bool:
+    """Return whether the selected bound card explicitly names the new runtime."""
+    return _EPHEMERAL_DECLARATION in text
+
+
 def resolve_skill(path: str) -> dict[str, str]:
     """Resolve only a caller-selected Improve card and its documented runtime.
 
@@ -203,18 +228,22 @@ def resolve_skill(path: str) -> dict[str, str]:
     root = skill_card.parent
 
     bundled_card = root / "runtime" / "until-loop" / "ADAPTER.md"
-    bundled_cli = root / "runtime" / "until-loop" / "scripts" / "until-loop"
     if bundled_card.exists() or bundled_card.is_symlink():
         runtime_card = _safe_file(bundled_card, "bound Until Loop adapter")
-        runtime_cli = _safe_file(bundled_cli, "bound Until Loop CLI")
+        runtime_root = runtime_card.parent
     elif "../../SKILL.md" in text:
         runtime_card = _safe_file(root.parent.parent / "SKILL.md", "bound Until Loop card")
-        runtime_cli = _safe_file(runtime_card.parent / "scripts" / "until-loop", "bound Until Loop CLI")
+        runtime_root = runtime_card.parent
     else:
         raise StandaloneImproveError("selected Improve card has no supported bound Until Loop layout")
     runtime_text = _card_text(runtime_card, "bound Until Loop card")
     _need(re.search(r"^name:\s*until-loop\s*$", runtime_text, re.MULTILINE) is not None,
           "bound runtime card is not Until Loop")
+    # The runtime choice comes only from the selected card's declared binding.
+    # Do not discover a same-named file or infer the protocol from an ambient
+    # workspace state file.
+    cli_name = _EPHEMERAL_CLI if _declares_ephemeral_runtime(runtime_text) else "until-loop"
+    runtime_cli = _safe_file(runtime_root / "scripts" / cli_name, "bound Until Loop CLI")
     return {
         "skill_card": str(skill_card),
         "skill_version": _declared_version(text),
@@ -242,23 +271,29 @@ def _binding_marker(binding_id: str) -> str:
     return f"ShipLoop standalone Improve binding: {binding_id}"
 
 
-def _marked_binding_id(state: Mapping[str, Any]) -> str | None:
-    """Return the one exact ShipLoop marker in a frozen child contract."""
-    contract = state.get("contract")
-    request = contract.get("original_request") if isinstance(contract, Mapping) else None
-    _need(isinstance(request, str), "Until Loop state has no original request")
+def _marked_request_binding_id(request: Any, label: str) -> str | None:
+    """Return the one exact ShipLoop marker in a frozen request string."""
+    request_text = _text(request, f"{label} request")
     prefix = "ShipLoop standalone Improve binding: "
     identifiers: list[str] = []
-    for line in request.splitlines():
+    for line in request_text.splitlines():
         if not line.startswith(prefix):
             continue
         identifier = line[len(prefix):]
         pieces = identifier.split("/")
         _need(len(pieces) == 2 and all(_ACTION.fullmatch(piece) is not None for piece in pieces),
-              "Until Loop ShipLoop binding marker is invalid")
+              f"{label} ShipLoop binding marker is invalid")
         identifiers.append(identifier)
-    _need(len(identifiers) <= 1, "Until Loop contract has multiple ShipLoop binding markers")
+    _need(len(identifiers) <= 1, f"{label} contract has multiple ShipLoop binding markers")
     return identifiers[0] if identifiers else None
+
+
+def _marked_binding_id(state: Mapping[str, Any]) -> str | None:
+    """Return the one exact ShipLoop marker in a frozen child contract."""
+    contract = state.get("contract")
+    request = contract.get("original_request") if isinstance(contract, Mapping) else None
+    _need(isinstance(request, str), "Until Loop state has no original request")
+    return _marked_request_binding_id(request, "Until Loop")
 
 
 def _state_for(workspace: Path) -> tuple[dict[str, Any], bytes, Path, bytes]:
@@ -329,6 +364,49 @@ def _current_child(workspace: Path) -> dict[str, Any] | None:
     return {"state": state, "digest": _digest(raw)}
 
 
+def _binding_identity(binding: Mapping[str, Any]) -> tuple[str, str, Path, str]:
+    """Validate stable binding identity without resolving its selected package."""
+    _need(isinstance(binding, Mapping) and set(binding) == _BINDING_FIELDS,
+          "standalone Improve binding has an unsupported schema")
+    _need(binding.get("version") == VERSION, "unsupported standalone Improve binding version")
+    action = _action(binding.get("action_id"), "binding action")
+    binding_id = _text(binding.get("binding_id"), "binding ID")
+    pieces = binding_id.split("/")
+    _need(len(pieces) == 2 and all(_ACTION.fullmatch(piece) is not None for piece in pieces),
+          "binding ID is invalid")
+    _need(pieces[1] == action, "binding ID does not match parent action")
+    workspace_value = _text(binding.get("workspace"), "binding workspace")
+    workspace = _workspace(workspace_value)
+    _text(binding.get("stage"), "binding stage")
+    _need(binding.get("contract_marker") == _binding_marker(binding_id), "binding marker is invalid")
+    _need(isinstance(binding.get("skill"), Mapping) and set(binding["skill"]) == _SKILL_FIELDS,
+          "skill binding has an unsupported schema")
+    for key, value in binding["skill"].items():
+        _text(value, f"bound skill {key}")
+    _copy(binding.get("seed_result"), "pending result")
+    return action, binding_id, workspace, workspace_value
+
+
+def _receipt_relative(binding_id: str, action: str) -> Path:
+    run_id, marked_action = binding_id.split("/", 1)
+    _need(marked_action == action, "binding ID does not match parent action")
+    return Path(_RECEIPT_DIRECTORY) / run_id / action / _TERMINAL_PACKET_NAME
+
+
+def receipt_path(binding: Mapping[str, Any]) -> Path:
+    """Return the deterministic host receipt location for an ephemeral child.
+
+    This is a host-owned copy of the latest raw runtime packet.  It is not an
+    Until Loop state file and this bridge never creates or advances it.
+    """
+    action, binding_id, _workspace, workspace_value = _binding_identity(binding)
+    # Preserve the parent-selected lexical locator for the printed recovery
+    # packet.  `_binding_identity` has already resolved and checked its
+    # physical directory; import reads below that physical identity with its
+    # no-follow helper.
+    return Path(workspace_value) / _receipt_relative(binding_id, action)
+
+
 def binding(
     state: Mapping[str, Any], parent_action: str, stage: str,
     pending_result: Mapping[str, Any] | None, skill: Mapping[str, Any],
@@ -341,26 +419,28 @@ def binding(
     workspace_value = state.get("repo", state.get("repo_root"))
     _need(isinstance(workspace_value, str) and workspace_value, "workspace must be an absolute path")
     workspace = _workspace(workspace_value)
-    expected_skill = {"skill_card", "skill_version", "runtime_card", "runtime_cli", "runtime_version"}
-    _need(isinstance(skill, Mapping) and set(skill) == expected_skill,
+    _need(isinstance(skill, Mapping) and set(skill) == _SKILL_FIELDS,
           "skill binding has an unsupported schema")
     resolved = resolve_skill(_text(skill.get("skill_card"), "skill card"))
     _need(resolved == dict(skill), "skill binding is not the selected card's bound runtime")
     binding_id = f"{run_id}/{action}"
-    existing = _current_child(workspace)
-    if existing is not None:
-        child_state = _assert_v2_state(existing["state"], workspace)
-        phase = child_state["phase"]
-        if phase == "done":
-            _settled_done(child_state)
-            prior_binding = _marked_binding_id(child_state)
-            if prior_binding is not None and prior_binding != binding_id:
-                _need(_binding_imported(state, prior_binding),
-                      "previous completed ShipLoop Improve child was not imported")
-        else:
-            _binding_matches(child_state, binding_id)
-        # A settled `done` child is preserved by Until Loop history and may be
-        # replaced by the host's authorized v2 init --force for this next action.
+    if Path(resolved["runtime_cli"]).name != _EPHEMERAL_CLI:
+        existing = _current_child(workspace)
+        if existing is not None:
+            child_state = _assert_v2_state(existing["state"], workspace)
+            phase = child_state["phase"]
+            if phase == "done":
+                _settled_done(child_state)
+                prior_binding = _marked_binding_id(child_state)
+                if prior_binding is not None and prior_binding != binding_id:
+                    _need(_binding_imported(state, prior_binding),
+                          "previous completed ShipLoop Improve child was not imported")
+            else:
+                _binding_matches(child_state, binding_id)
+            # A settled `done` child is preserved by Until Loop history and may be
+            # replaced by the host's authorized v2 init --force for this next action.
+    # An ephemeral child has one private tempfile per invocation.  It has no
+    # ambient .until-loop ownership record for this parent to inspect.
     return {
         "version": VERSION,
         "binding_id": binding_id,
@@ -498,24 +578,166 @@ def _terminal_receipt(history_raw: bytes, state: Mapping[str, Any]) -> None:
           "Until Loop terminal history does not match current state")
 
 
-def complete(binding: Mapping[str, Any], receipt: Mapping[str, Any]) -> tuple[dict[str, Any], dict[str, str]]:
-    """Validate an actual terminal child and return immutable parent archive writes.
+def _integer(value: Any, label: str, *, minimum: int = 0) -> int:
+    _need(type(value) is int and value >= minimum, f"{label} must be an integer of at least {minimum}")
+    return value
 
-    The caller must have already used the selected runtime's ``next`` command
-    for recovery.  This pure reader rejects pending journals rather than
-    duplicating the runtime's recovery implementation.
+
+def _ephemeral_context(value: Any) -> dict[str, Any]:
+    _need(isinstance(value, Mapping) and set(value) == _CONTEXT_FIELDS,
+          "Until Loop terminal context has an invalid schema")
+    resources = value.get("resources")
+    _need(isinstance(resources, list), "Until Loop terminal context.resources must be a list")
+    copied: dict[str, Any] = {
+        "request": _text(value.get("request"), "Until Loop terminal context.request"),
+        "scope": _text(value.get("scope"), "Until Loop terminal context.scope"),
+        "authority": _text(value.get("authority"), "Until Loop terminal context.authority"),
+        "environment": _text(value.get("environment"), "Until Loop terminal context.environment"),
+        "resources": [],
+    }
+    for index, resource in enumerate(resources):
+        _need(isinstance(resource, Mapping) and set(resource) == _RESOURCE_FIELDS,
+              f"Until Loop terminal context.resources[{index}] has an invalid schema")
+        copied["resources"].append({
+            "purpose": _text(resource.get("purpose"), f"Until Loop terminal context.resources[{index}].purpose"),
+            "locator": _text(resource.get("locator"), f"Until Loop terminal context.resources[{index}].locator"),
+        })
+    return copied
+
+
+def _ephemeral_report(value: Any) -> dict[str, str]:
+    _need(isinstance(value, Mapping) and set(value) == _REPORT_FIELDS,
+          "Until Loop terminal last_report has an invalid schema")
+    classification = value.get("classification")
+    exit_assessment = value.get("exit_assessment")
+    continuation = value.get("continuation_assessment")
+    _need(classification in {"trivial", "non-trivial", "unresolved"},
+          "Until Loop terminal report classification is invalid")
+    _need(exit_assessment in {"satisfied", "unsatisfied", "unknown"},
+          "Until Loop terminal report exit assessment is invalid")
+    _need(continuation in {"allowed", "blocked", "cancelled"},
+          "Until Loop terminal report continuation assessment is invalid")
+    return {
+        "classification": classification,
+        "exit_assessment": exit_assessment,
+        "continuation_assessment": continuation,
+        "evidence": _text(value.get("evidence"), "Until Loop terminal report evidence"),
+        "handoff": _text(value.get("handoff"), "Until Loop terminal report handoff"),
+    }
+
+
+def _ephemeral_terminal_packet(
+    packet: Mapping[str, Any], *, workspace: Path, binding_id: str,
+) -> tuple[dict[str, Any], dict[str, Any], dict[str, str]]:
+    """Validate the exact complete packet saved by the bound ephemeral runtime."""
+    _need(isinstance(packet, Mapping) and set(packet) == _TERMINAL_PACKET_FIELDS,
+          "Until Loop terminal packet has an unsupported schema")
+    _need(packet.get("status") == "complete", "Until Loop terminal packet is not complete")
+    state_file = _text(packet.get("state_file"), "Until Loop terminal state_file")
+    _need(Path(state_file).is_absolute(), "Until Loop terminal state_file must be absolute")
+    packet_workspace = _workspace(packet.get("workspace"), "Until Loop terminal workspace")
+    _need(packet_workspace == workspace, "Until Loop terminal packet is bound to another workspace")
+    _text(packet.get("work"), "Until Loop terminal work")
+    conditions = packet.get("conditions")
+    _need(isinstance(conditions, Mapping) and set(conditions) == {"exit", "repeat"},
+          "Until Loop terminal conditions have an invalid schema")
+    _text(conditions.get("exit"), "Until Loop terminal exit condition")
+    _text(conditions.get("repeat"), "Until Loop terminal repeat condition")
+    progress = packet.get("progress")
+    _need(isinstance(progress, Mapping) and set(progress) == {
+        "action_number", "trivial_streak", "required_trivial_reviews",
+    }, "Until Loop terminal progress has an invalid schema")
+    action_number = _integer(progress.get("action_number"), "Until Loop terminal action number", minimum=1)
+    trivial_streak = _integer(progress.get("trivial_streak"), "Until Loop terminal trivial streak")
+    required_reviews = _integer(
+        progress.get("required_trivial_reviews"), "Until Loop terminal required trivial reviews"
+    )
+    _need(required_reviews >= 2,
+          "Until Loop terminal packet does not meet Improve's two-review minimum")
+    _need(trivial_streak >= required_reviews,
+          "Until Loop terminal packet does not meet its required trivial-review gate")
+    _need(trivial_streak <= action_number,
+          "Until Loop terminal progress has an incoherent trivial streak")
+    _need(packet.get("context_limit") is None,
+          "Until Loop terminal packet lacks immutable continuity context")
+    context = _ephemeral_context(packet.get("context"))
+    _need(_marked_request_binding_id(context["request"], "Until Loop terminal context") == binding_id,
+          "Until Loop terminal context is not bound to this ShipLoop action")
+    semantics = packet.get("status_semantics")
+    _need(isinstance(semantics, Mapping) and set(semantics) == {
+        "active", "complete", "stopped", "error",
+    }, "Until Loop terminal status semantics have an invalid schema")
+    for status, description in semantics.items():
+        _text(status, "Until Loop terminal status semantics key")
+        _text(description, "Until Loop terminal status semantics value")
+    report = _ephemeral_report(packet.get("last_report"))
+    _need(report["classification"] == "trivial" and report["exit_assessment"] == "satisfied",
+          "Until Loop terminal report is not a satisfied trivial review")
+    _need(report["continuation_assessment"] != "cancelled",
+          "Until Loop terminal report was cancelled")
+    _text(packet.get("instruction"), "Until Loop terminal instruction")
+    _need(packet.get("next_argv") is None and packet.get("done_argv") is None
+          and packet.get("report_schema") is None,
+          "Until Loop terminal packet still exposes a callback")
+    return _copy(dict(packet), "Until Loop terminal packet"), context, report
+
+
+def _complete_ephemeral(
+    binding: Mapping[str, Any], receipt: Mapping[str, Any], *, action: str,
+    binding_id: str, workspace: Path, workspace_value: str, resolved: Mapping[str, str],
+) -> tuple[dict[str, Any], dict[str, str]]:
+    """Import a host-preserved terminal packet from the ephemeral runtime.
+
+    The packet proves only that the host saved a structurally valid terminal
+    response.  Its report fields remain agent declarations; this bridge does
+    not treat a deleted tempfile as completion or independently prove review
+    semantics, checks, candidate scope, or future freshness.
     """
-    expected = {"version", "binding_id", "workspace", "action_id", "stage", "skill", "contract_marker", "seed_result"}
-    _need(isinstance(binding, Mapping) and set(binding) == expected,
-          "standalone Improve binding has an unsupported schema")
-    _need(binding.get("version") == VERSION, "unsupported standalone Improve binding version")
-    action = _action(binding.get("action_id"), "binding action")
-    binding_id = _text(binding.get("binding_id"), "binding ID")
-    _need(binding_id.endswith("/" + action), "binding ID does not match parent action")
-    workspace = _workspace(binding.get("workspace"))
-    _need(binding.get("contract_marker") == _binding_marker(binding_id), "binding marker is invalid")
-    resolved = resolve_skill(_text(binding.get("skill", {}).get("skill_card") if isinstance(binding.get("skill"), Mapping) else None, "bound skill card"))
-    _need(resolved == binding.get("skill"), "bound Improve runtime differs from selected card")
+    packet_relative = _receipt_relative(binding_id, action)
+    packet_raw = _read_workspace(workspace, packet_relative, "Until Loop terminal packet")
+    packet, context, report = _ephemeral_terminal_packet(
+        _json(packet_raw, "Until Loop terminal packet"), workspace=workspace, binding_id=binding_id,
+    )
+    checked_receipt = _receipt(receipt, workspace, workspace_value)
+    evidence_digests = _reference_digests(workspace, checked_receipt)
+    prefix = f"improve/{action}"
+    archive: dict[str, str] = {
+        f"{prefix}/terminal.json": _utf8(packet_raw, "Until Loop terminal packet"),
+    }
+    evidence_writes, evidence_entries = _evidence_archives(workspace, action, checked_receipt)
+    archive.update(evidence_writes)
+    record = {
+        "version": VERSION,
+        "binding_id": binding_id,
+        "workspace": str(workspace),
+        "action_id": action,
+        "stage": binding["stage"],
+        "skill": dict(resolved),
+        "runtime_phase": "complete",
+        "identities": {
+            "terminal_packet_sha256": _digest(packet_raw),
+            "context_sha256": _runtime_digest(context),
+            "last_report_sha256": _runtime_digest(report),
+            "evidence_sha256": evidence_digests,
+        },
+        "evidence": evidence_entries,
+        "receipt": checked_receipt,
+        "stale_check_note": (
+            "This import records a host-preserved structurally valid terminal Until Loop packet "
+            "and current declared local evidence. It does not prove the packet was issued by the "
+            "runtime, review or check claims, candidate scope, semantic Improve convergence, or "
+            "future freshness; those remain the selected Improve skill and parent action's responsibility."
+        ),
+    }
+    archive[f"{prefix}/receipt.md"] = store.dumps(record, "ShipLoop standalone Improve receipt")
+    return record, archive
+
+
+def _complete_v2(
+    binding: Mapping[str, Any], receipt: Mapping[str, Any], *, action: str,
+    binding_id: str, workspace: Path, workspace_value: str, resolved: Mapping[str, str],
+) -> tuple[dict[str, Any], dict[str, str]]:
+    """Preserve the existing durable v2 import contract for explicit legacy runs."""
     state, state_raw, run_dir, history_raw = _state_for(workspace)
     _assert_v2_state(state, workspace)
     _binding_matches(state, binding_id)
@@ -528,7 +750,7 @@ def complete(binding: Mapping[str, Any], receipt: Mapping[str, Any]) -> tuple[di
         verify = state["last_verify"]
         _need(isinstance(verify, Mapping) and verify.get("ok") is True,
               "Improve child's configured verifier did not pass")
-    checked_receipt = _receipt(receipt, workspace, binding["workspace"])
+    checked_receipt = _receipt(receipt, workspace, workspace_value)
     evidence_digests = _reference_digests(workspace, checked_receipt)
     working_path = run_dir / "working.md"
     working_raw = _read_workspace(workspace, working_path.relative_to(workspace), "Improve working notebook")
@@ -560,7 +782,7 @@ def complete(binding: Mapping[str, Any], receipt: Mapping[str, Any]) -> tuple[di
         "workspace": str(workspace),
         "action_id": action,
         "stage": binding["stage"],
-        "skill": resolved,
+        "skill": dict(resolved),
         "runtime_phase": "done",
         "identities": identities,
         "evidence": evidence_entries,
@@ -569,3 +791,26 @@ def complete(binding: Mapping[str, Any], receipt: Mapping[str, Any]) -> tuple[di
     }
     archive[f"{prefix}/receipt.md"] = store.dumps(record, "ShipLoop standalone Improve receipt")
     return record, archive
+
+
+def complete(binding: Mapping[str, Any], receipt: Mapping[str, Any]) -> tuple[dict[str, Any], dict[str, str]]:
+    """Validate an actual terminal child and return immutable parent archive writes.
+
+    A durable legacy child must already be settled by its adapter. An ephemeral
+    child must have its final raw packet preserved by the host. This pure reader
+    never replays callbacks, creates a replacement run, or infers completion
+    from a missing child state file.
+    """
+    action, binding_id, workspace, workspace_value = _binding_identity(binding)
+    skill = binding["skill"]
+    resolved = resolve_skill(_text(skill.get("skill_card"), "bound skill card"))
+    _need(resolved == dict(skill), "bound Improve runtime differs from selected card")
+    if Path(resolved["runtime_cli"]).name == _EPHEMERAL_CLI:
+        return _complete_ephemeral(
+            binding, receipt, action=action, binding_id=binding_id, workspace=workspace,
+            workspace_value=workspace_value, resolved=resolved,
+        )
+    return _complete_v2(
+        binding, receipt, action=action, binding_id=binding_id, workspace=workspace,
+        workspace_value=workspace_value, resolved=resolved,
+    )

@@ -3,8 +3,11 @@
 
 from __future__ import annotations
 
+import copy
+import hashlib
 import json
 from pathlib import Path
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -14,7 +17,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS = ROOT / "skills" / "shiploop" / "scripts"
 IMPROVE = ROOT / "skills" / "improve" / "SKILL.md"
-UNTIL = ROOT / "skills" / "improve" / "runtime" / "until-loop" / "scripts" / "until-loop"
+LEGACY_RUNTIME = ROOT / "skills" / "improve" / "runtime" / "until-loop" / "scripts"
 sys.path.insert(0, str(SCRIPTS))
 import shiploop_standalone_improve as bridge  # noqa: E402
 
@@ -25,16 +28,39 @@ class StandaloneImproveBridgeTests(unittest.TestCase):
         self.workspace = Path(self.temp.name) / "workspace"
         self.workspace.mkdir()
         self.state = {"run_id": "run01", "repo": str(self.workspace)}
-        self.skill = bridge.resolve_skill(str(IMPROVE))
         self.parent = "nav-test"
+        self.skill = self._legacy_skill()
         self.binding = bridge.binding(self.state, self.parent, "implement", {}, self.skill)
+        self.ephemeral_skill = bridge.resolve_skill(str(IMPROVE))
+        self.ephemeral_binding = bridge.binding(
+            self.state, self.parent, "implement", {}, self.ephemeral_skill,
+        )
 
     def tearDown(self) -> None:
         self.temp.cleanup()
 
+    def _legacy_skill(self) -> dict[str, str]:
+        """Create an explicit selected legacy card, independent of the default package."""
+        root = self.workspace / "legacy-improve"
+        runtime = root / "runtime" / "until-loop"
+        scripts = runtime / "scripts"
+        scripts.mkdir(parents=True)
+        (root / "SKILL.md").write_text(
+            "---\nname: improve\nversion: test-legacy\n---\nUse the bundled until-loop adapter.\n",
+            encoding="utf-8",
+        )
+        (runtime / "ADAPTER.md").write_text(
+            "---\nname: until-loop\nversion: test-legacy\n---\nUse the durable v2 adapter.\n",
+            encoding="utf-8",
+        )
+        for name in ("until-loop", "until_loop_packet.py", "until_loop_v2.py"):
+            shutil.copy2(LEGACY_RUNTIME / name, scripts / name)
+        shutil.copytree(LEGACY_RUNTIME.parent / "references", runtime / "references")
+        return bridge.resolve_skill(str(root / "SKILL.md"))
+
     def command(self, *args: str) -> subprocess.CompletedProcess[str]:
         return subprocess.run(
-            [sys.executable, "-B", str(UNTIL), *args], text=True,
+            [sys.executable, "-B", self.skill["runtime_cli"], *args], text=True,
             stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False,
         )
 
@@ -83,6 +109,72 @@ class StandaloneImproveBridgeTests(unittest.TestCase):
             "lessons": "Keep the focused test before implementation.",
         }
 
+    def ephemeral_start(self, *, required_reviews: int = 2,
+                        marker: str | None = None) -> tuple[dict[str, object], str]:
+        contract = {
+            "workspace": str(self.workspace),
+            "work": "Perform one complete Improve review and applicable checks.",
+            "exit_condition": "Two qualifying trivial reviews and current evidence establish completion.",
+            "repeat_condition": "Continue while an authorized improvement or evidence gap remains.",
+            "required_trivial_reviews": required_reviews,
+            "context": {
+                "request": "Improve this ShipLoop action.\n" + (
+                    marker if marker is not None else self.ephemeral_binding["contract_marker"]
+                ),
+                "scope": "Only the ShipLoop action's candidate and listed evidence files.",
+                "authority": "Do not commit, merge, push, or broaden the parent scope.",
+                "environment": "Python is available; checks are recorded in check.md.",
+                "resources": [{
+                    "purpose": "selected Improve card",
+                    "locator": self.ephemeral_skill["skill_card"],
+                }],
+            },
+        }
+        completed = subprocess.run(
+            [sys.executable, "-B", self.ephemeral_skill["runtime_cli"], "start"],
+            input=json.dumps(contract), text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+            check=False,
+        )
+        self.assertEqual(completed.returncode, 0, completed.stderr)
+        return json.loads(completed.stdout), completed.stdout
+
+    def ephemeral_done(self, packet: dict[str, object], report: dict[str, str]) -> tuple[dict[str, object], str]:
+        argv = packet["done_argv"]
+        self.assertIsInstance(argv, list)
+        completed = subprocess.run(
+            argv, input=json.dumps(report), text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+            check=False,
+        )
+        self.assertEqual(completed.returncode, 0, completed.stderr)
+        return json.loads(completed.stdout), completed.stdout
+
+    def terminal_ephemeral(self, *, required_reviews: int = 2) -> tuple[dict[str, object], str]:
+        packet, _raw = self.ephemeral_start(required_reviews=required_reviews)
+        for index in range(required_reviews):
+            packet, raw = self.ephemeral_done(packet, {
+                "classification": "trivial",
+                "exit_assessment": "satisfied" if index == required_reviews - 1 else "unsatisfied",
+                "continuation_assessment": "allowed",
+                "evidence": f"distinct qualifying review {index + 1} found no material issue",
+                "handoff": (
+                    "Objective and scope remain unchanged; review " + str(index + 1)
+                    + " found no material issue; check.md is the current check record."
+                ),
+            })
+        self.assertEqual(packet["status"], "complete")
+        self.assertFalse(Path(packet["state_file"]).exists(), "terminal runtime state must be deleted")
+        return packet, raw
+
+    def save_terminal_packet(self, raw: str) -> Path:
+        path = bridge.receipt_path(self.ephemeral_binding)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(raw, encoding="utf-8")
+        return path
+
+    def write_evidence(self) -> None:
+        for name in ("review-a.md", "review-b.md", "check.md"):
+            (self.workspace / name).write_text(name, encoding="utf-8")
+
     def test_real_v2_completion_imports_read_only_archives(self) -> None:
         self.assertNotEqual(self.skill["skill_version"], "unversioned")
         self.assertNotEqual(self.skill["runtime_version"], "unversioned")
@@ -100,6 +192,111 @@ class StandaloneImproveBridgeTests(unittest.TestCase):
         self.assertEqual(len(evidence), 3)
         for item in evidence:
             self.assertEqual(writes[item["archive"]], (self.workspace / item["source"]).read_text(encoding="utf-8"))
+
+    def test_selected_package_runs_real_ephemeral_runtime_and_archives_terminal_packet(self) -> None:
+        self.assertEqual(Path(self.ephemeral_skill["runtime_cli"]).name, "until_loop_ephemeral.py")
+        packet, raw = self.terminal_ephemeral()
+        self.write_evidence()
+        packet_path = self.save_terminal_packet(raw)
+        self.assertEqual(
+            packet_path,
+            self.workspace / ".shiploop-improve" / "run01" / "nav-test" / "packet.json",
+        )
+        record, writes = bridge.complete(self.ephemeral_binding, self.receipt())
+        self.assertEqual(record["runtime_phase"], "complete")
+        self.assertEqual(record["binding_id"], "run01/nav-test")
+        self.assertIn("improve/nav-test/terminal.json", writes)
+        self.assertEqual(writes["improve/nav-test/terminal.json"], raw)
+        self.assertFalse(any(path.endswith("state.json") for path in writes))
+        self.assertEqual(record["identities"]["terminal_packet_sha256"], hashlib.sha256(raw.encode()).hexdigest())
+        # Import is a pure reader; duplicate protection remains ShipLoop's
+        # existing ledger/transaction responsibility rather than a second
+        # bridge-owned state machine.
+        self.assertEqual((record, writes), bridge.complete(self.ephemeral_binding, self.receipt()))
+        self.assertEqual(packet["last_report"]["classification"], "trivial")
+
+    def test_ephemeral_bindings_are_independent_of_durable_state_and_each_other(self) -> None:
+        # An unrelated durable child still blocks a legacy binding, but a
+        # selected ephemeral runtime has a private tempfile and no ambient
+        # .until-loop ownership relationship.
+        self.initialize(marker="ShipLoop standalone Improve binding: foreign/action")
+        first = bridge.binding(self.state, self.parent, "implement", {}, self.ephemeral_skill)
+        second = bridge.binding(
+            {"run_id": "run02", "repo": str(self.workspace)}, "nav-other", "document", {},
+            self.ephemeral_skill,
+        )
+        self.assertEqual(first["binding_id"], "run01/nav-test")
+        self.assertEqual(second["binding_id"], "run02/nav-other")
+        self.assertNotEqual(bridge.receipt_path(first), bridge.receipt_path(second))
+        self.assertEqual(
+            bridge.receipt_path(second),
+            self.workspace / ".shiploop-improve" / "run02" / "nav-other" / "packet.json",
+        )
+
+    def test_ephemeral_terminal_requires_two_review_minimum_even_when_runtime_gate_is_one(self) -> None:
+        packet, raw = self.terminal_ephemeral(required_reviews=1)
+        self.assertEqual(packet["progress"]["required_trivial_reviews"], 1)
+        self.write_evidence()
+        self.save_terminal_packet(raw)
+        with self.assertRaisesRegex(bridge.StandaloneImproveError, "two-review minimum"):
+            bridge.complete(self.ephemeral_binding, self.receipt())
+
+    def test_ephemeral_terminal_rejects_wrong_status_context_and_progress(self) -> None:
+        packet, raw = self.terminal_ephemeral()
+        self.write_evidence()
+        path = self.save_terminal_packet(raw)
+
+        bad_status = copy.deepcopy(packet)
+        bad_status["status"] = "stopped"
+        path.write_text(json.dumps(bad_status), encoding="utf-8")
+        with self.assertRaisesRegex(bridge.StandaloneImproveError, "not complete"):
+            bridge.complete(self.ephemeral_binding, self.receipt())
+
+        active = copy.deepcopy(packet)
+        active["status"] = "active"
+        path.write_text(json.dumps(active), encoding="utf-8")
+        with self.assertRaisesRegex(bridge.StandaloneImproveError, "not complete"):
+            bridge.complete(self.ephemeral_binding, self.receipt())
+
+        bad_context = copy.deepcopy(packet)
+        bad_context["context"]["request"] = "Improve this action.\nShipLoop standalone Improve binding: foreign/action"
+        path.write_text(json.dumps(bad_context), encoding="utf-8")
+        with self.assertRaisesRegex(bridge.StandaloneImproveError, "not bound"):
+            bridge.complete(self.ephemeral_binding, self.receipt())
+
+        bad_counter = copy.deepcopy(packet)
+        bad_counter["progress"]["trivial_streak"] = True
+        path.write_text(json.dumps(bad_counter), encoding="utf-8")
+        with self.assertRaisesRegex(bridge.StandaloneImproveError, "integer"):
+            bridge.complete(self.ephemeral_binding, self.receipt())
+
+        incoherent = copy.deepcopy(packet)
+        incoherent["progress"]["trivial_streak"] = incoherent["progress"]["action_number"] + 1
+        path.write_text(json.dumps(incoherent), encoding="utf-8")
+        with self.assertRaisesRegex(bridge.StandaloneImproveError, "incoherent"):
+            bridge.complete(self.ephemeral_binding, self.receipt())
+
+        malformed = copy.deepcopy(packet)
+        malformed.pop("last_report")
+        path.write_text(json.dumps(malformed), encoding="utf-8")
+        with self.assertRaisesRegex(bridge.StandaloneImproveError, "unsupported schema"):
+            bridge.complete(self.ephemeral_binding, self.receipt())
+
+    def test_ephemeral_terminal_receipt_is_required_and_never_follows_a_link(self) -> None:
+        packet, raw = self.terminal_ephemeral()
+        self.write_evidence()
+        # The runtime's deleted tempfile is not evidence of completion.  A
+        # host that lost the terminal stdout packet leaves the parent blocked.
+        with self.assertRaisesRegex(bridge.StandaloneImproveError, "unavailable"):
+            bridge.complete(self.ephemeral_binding, self.receipt())
+
+        path = self.save_terminal_packet(raw)
+        copied = self.workspace / "outside-packet.json"
+        copied.write_text(raw, encoding="utf-8")
+        path.unlink()
+        path.symlink_to(copied.name)
+        with self.assertRaisesRegex(bridge.StandaloneImproveError, "cannot be a symlink"):
+            bridge.complete(self.ephemeral_binding, self.receipt())
 
     def test_selected_symlink_uses_documented_installed_layout_without_home_path(self) -> None:
         runtime_root = self.workspace / "runtime-root"
