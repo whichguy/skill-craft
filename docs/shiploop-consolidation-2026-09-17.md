@@ -17,6 +17,7 @@ application deployment, marketplace pin, installed host profile, or credential.
 | Ready E2E observer followup | Retain current-run-state checks, explicit exit evidence, and a real v3 intake observer-bridge regression. |
 | Verified E2E terminal-exit correction | Ignore interim zero placeholders, retain explicit terminal exits, and align behavior diagnostics with both host exit-code spellings. |
 | Published initial-baseline guidance `97b6269` | Preserve the repository-baseline evidence and prerequisite guidance alongside repeatable-test planning; keep both regression families. |
+| Clean context-reset publication `f0d00a8` | Integrate the approved opt-in Codex/Grok/Claude host driver and four hermetic suites. Exclude earlier raw context-experiment history and keep only the required portable probe plus sanitized validation summaries. |
 | Generalized discovery `004447f` | Import portable study apparatus and a publication-safe report, excluding private raw experiment evidence and original commit ancestry. |
 
 Published main advanced to `b5854f2`, `eee78a0`, and then `97b6269` during
@@ -29,6 +30,8 @@ Canonical `skills/` sources remain authoritative. Conflict resolution combines
 compatible duties and assertions; `plugins/` copies are regenerated from those
 sources rather than independently edited. No new ShipLoop graph nodes or parent
 Improve counters are introduced by this consolidation.
+Context reset remains off by default; its host-driver behavior is separate from
+the script-owned delivery graph. The combined test inventory contains 86 suites.
 
 ## Evidence and publication boundaries
 

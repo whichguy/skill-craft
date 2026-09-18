@@ -5,7 +5,7 @@ description: >-
   script's current action packet, and submit its exact completion call until
   the script reports completion with an HTML achievement report. Use when the
   user says shiploop, ship the project, or requests a durable delivery loop.
-version: 0.12.0
+version: 0.13.0
 allowed-tools: all
 license: MIT
 platforms:
@@ -30,7 +30,7 @@ same parent action while the selected actual Improve skill runs its own bound
 Until Loop cycle. `state.md` owns SDLC traversal; the Improve child owns its
 iterations and runtime state. The host follows one current owner at a time.
 
-For new runs in 0.12.0, this v3 contract overrides retained v1/v2, managed, and
+For new runs since 0.12.0, this v3 contract overrides retained v1/v2, managed, and
 legacy descriptions below. Those descriptions apply only when a saved packet or
 an explicit compatibility mode identifies that version. Do not translate their
 embedded-policy Improve guidance into a v3 action.
@@ -177,6 +177,28 @@ neighboring package or host cache. An unavailable dependency remains an
 incomplete precondition; record it and follow the packet's blocked/recovery
 route rather than generating a replacement workflow.
 
+## Optional context reset
+
+When the user selects `--context-reset=inner-loop`, or the environment sets
+`SHIPLOOP_CONTEXT_RESET=inner-loop`, use the bundled supervised host route in
+[context reset](references/context-reset.md). Initialize or recover the same
+run normally, then hand its current owner to `drive` instead of executing the
+initial packet yourself:
+
+```sh
+python3 "$CLI" drive --run-dir "$RUN_DIR" --host codex --context-reset=inner-loop
+```
+
+Select `codex`, `grok`, or `claude` for the actual requested host; do not silently
+switch hosts. The default is `off`, retaining ordinary packet-following behavior.
+The environment option affects `drive`; it is not a native slash command or a
+flag on `init`/`workspace start`. The selected host must be installed and signed
+in. A supervised owner (`SHIPLOOP_CONTEXT_HOST_WORKER=1`) performs only its given
+producer or Improve campaign, submits that callback, and returns to the
+controller; it never starts another `drive`. The controller alone continues
+with the next packet and creates fresh context after accepted carry-forward
+Improve. Use its saved receipt to recover; do not run another owner concurrently.
+
 ## Durable handoff
 
 Each navigator packet supplies absolute CLI, repository, and run-directory
@@ -188,8 +210,10 @@ or predicted successor into the handoff as graph authority.
 
 The host must keep the locator and run directory accessible across handoffs. If
 it cannot, restore the same run and verify its task/repository identity before
-continuing. ShipLoop does not launch a fresh model, reset a host context, retain
-the host handoff, or force any host tool call.
+continuing. Ordinary packet-following does not launch a fresh model, reset a host context,
+or retain host handoff state. The explicit supervised `drive` option above
+uses native host sessions and its separate receipt; it does not reset this
+conversation or make script output into a host command.
 
 ## Follow the current packet
 

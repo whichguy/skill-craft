@@ -1,4 +1,11 @@
-# ShipLoop navigator 0.12.0
+# ShipLoop navigator 0.13.0
+
+Optional `python3 "$CLI" drive --run-dir "$RUN_DIR" --host codex --context-reset=inner-loop` starts a fresh native host session after accepted
+carry-forward Improve completes each work item. The environment equivalent is
+`SHIPLOOP_CONTEXT_RESET=inner-loop`; `grok` and `claude` are also supported
+host choices. Default behavior remains unchanged. Read
+[context reset](references/context-reset.md) for invocation, host permissions,
+recovery and measurement limits.
 
 New runs use navigator protocol 3: the script persists and traverses the SDLC
 graph, issues one producer prompt, and then parks that parent action for the
