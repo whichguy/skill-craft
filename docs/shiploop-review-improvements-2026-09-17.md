@@ -178,3 +178,14 @@ fixture repository. A disposable global-filter configuration reproduced the
 failure. Isolating that test's Git and CLI subprocess configuration restored all
 four tests under both normal and hostile global settings; the production
 unsupported-filter guard is unchanged.
+
+A subsequent CI attempt exposed an existing concurrent startup race in the
+capability experiment gateway: another process could consume its ledger while
+the initial JSON file was still empty. The repair publishes complete initial
+JSON without overwriting a competing starter, locks snapshots against concurrent
+updates, and flushes writes before unlocking. Existing malformed or empty ledgers
+remain failures rather than resetting a budget. A bounded stress run passed 100
+pairs of real gateway processes; independent review found no material issue.
+Two deterministic regressions failed against the saved pre-fix implementation
+and passed against the repair; the complete runtime suite passed all 13 tests.
+This repair affects experiment infrastructure, not ShipLoop graph traversal.
