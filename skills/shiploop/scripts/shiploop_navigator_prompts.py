@@ -147,18 +147,40 @@ index and relevant linked project documents; prior environment facts and decisio
 are reusable context, not a replacement request or current completion evidence.
 The Original request in THIS packet is this run's scope. Do not replay an earlier
 prompt, queue or callback, or treat an old one-off approval as new authority.
+Apply explicit later user clarifications of this same request with their durable
+user-source/decision basis; an unverified host summary is not an instruction.
+Use the active correction/revision route for affected frozen contracts.
 An applicable user-approved standing policy may be reused after revalidation;
 it is not a prior operation receipt. Revalidate
 relevant facts against the current repository/target and retain useful changes
 in project documentation so later runs need not rediscover them.
 
-During discovery, spec development, global planning and step planning, use the
-packet's Interaction design guide to identify relevant actors, interaction
-directions, channels, and state ownership. Choose the simplest suitable mechanism,
-preferring existing capabilities for this request and environment; a hosted UI
-does not imply server state for each action. Retain decision/evidence locators in
-existing notes and affected work-item context; read and revalidate them in
-affected Improve reviews.
+Follow the packet's Maintained requirements policy. Read applicable accepted
+product requirements from their repository-owned home, preserve unaffected
+conditions, and reconcile intentional changes with the current request. Carry
+requirement and test locators into planning and affected Improve reviews; code,
+passing tests and draft proposals do not by themselves establish approved intent.
+Retain the selected requirement sections and test/evidence locators in the
+existing result evidence_refs for cold handoff; report missing required sources.
+Follow the packet's Reference handoff policy: distinguish package guidance,
+repository-owned requirements/tests and run-local evidence; verify selected
+files/sections against their named roots and retain those locators for consumers.
+Use the packet's Requirements definition guide to reconcile existing specs and
+define applicable non-functional requirements. Current explicit user instructions
+supersede conflicting older clauses; preserve unaffected conditions and retain
+clarification, requirement, and verification locators for cold recovery.
+
+During discovery, research, spec development, global planning and step planning,
+use the packet's Interaction design guide and its incoming-events, UI-specific planning
+and review sections as applicable. Identify actors, channels, incoming/outgoing events,
+connection lifecycle and state ownership; retain the existing baseline/delta.
+For affected UI, read and apply suitable available design guidance before consequential
+decisions; record its identity/version or digest, or the repository-guidance fallback.
+Establish or preserve component, interaction and skin premises, truthful async feedback
+and deployment fit. Prefer existing capabilities; no UI does not skip applicable
+machine interactions. Put exact relevant source/section locators and short decisions
+in each affected work-item context and evidence_refs, including planned check locators,
+for cold recovery and the normal Improve handoff; do not start a nested review.
 
 Use this packet's Current node and Action for your assignment and callback;
 the Last accepted transition describes earlier work, not the current action.
@@ -177,6 +199,22 @@ keeps this work incomplete until the host resumes it. Only `plan` may include
 ordered `work_items` for all approved work. `plan-improve` may update that
 ordered queue before execution begins. Only `carry-forward` may include ordered
 future-only `work_items`.
+"""
+
+EVIDENCE_RECONCILIATION = """\
+Requested runtime / entry point / material dependency: retain original user
+requirements separately from verified contracts, observed practices and
+assumptions. Record local-test-route evidence separately from target compatibility.
+A local fixture or preview cannot supply an absent target capability. Delivery
+outside scope does not by itself make requested-runtime compatibility N/A.
+Establish compatibility with target-compatible source or local evidence where
+possible; otherwise keep the gap unresolved.
+
+Selected-case reconciliation: in the existing plan/results, classify every
+selected case as passed, failed, blocked, not-run, or justified N/A, preserving
+required gaps. Source, HTTP, or DOM structure alone cannot close a selected
+rendered interaction; retain the observed rendered action/outcome or leave it
+incomplete.
 """
 
 IMPROVE = """\
@@ -296,10 +334,13 @@ notes rather than adding unnecessary code or documentation.
 
 
 def _prompt(
-    duty: str, *, improve: bool = False, implementation_quality: bool = False
+    duty: str, *, improve: bool = False, implementation_quality: bool = False,
+    evidence_reconciliation: bool = False,
 ) -> str:
     """Assemble a concrete prompt while keeping shared obligations in one place."""
     parts = [COMMON, duty]
+    if evidence_reconciliation:
+        parts.append(EVIDENCE_RECONCILIATION)
     if implementation_quality:
         parts.append(IMPLEMENTATION_QUALITY)
     if improve:
@@ -332,6 +373,8 @@ design/decision records and relevant prior-run artifacts. Record sources reused,
 current validation, stale/conflicting facts and the new feature's implications
 in discovery notes; create/update the project knowledge index without duplicating
 adequate documents. Prior completed work is the baseline, not a new work queue.
+Locate existing specs and quality policies, establish their scope/status, and
+screen applicable non-functional requirements using the Requirements definition guide.
 Identify implementation conventions relevant to this product's purpose:
 supported runtime/dependency versions, canonical code/test examples, relevant
 MCP/API contracts and existing reusable skills. Distinguish binding requirements,
@@ -383,7 +426,9 @@ research bounded to the request and leave unsupported questions open rather
 than inventing answers or implementation. Vet consequential environment links:
 shared data/services, configuration differences, candidate/artifact movement,
 automated release triggers and approvals. Distinguish observed readiness from
-proposed preparation; investigate only boundaries relevant to the request."""
+proposed preparation; investigate only boundaries relevant to the request.
+Research consequential quality-target and feasibility unknowns from existing
+contracts and appropriate evidence; measured baselines do not choose user policy."""
     ),
     "research-improve": _prompt(
         """\
@@ -403,13 +448,20 @@ decisions instead of burying them in implementation detail. For any consumer
 update, record whether it is required, source-only, or unresolved and keep that
 necessity separate from authority for a target operation. Preserve applicable
 binding implementation constraints; observed practices or proposals do not become
-requirements merely because they appear in discovery notes."""
+requirements merely because they appear in discovery notes.
+Complete the Requirements definition guide's existing-spec reconciliation and
+non-functional assessment: record operating conditions, measurable bounds or
+observable criteria, verification methods, justified exclusions, and material
+unresolved targets. Do not invent targets or declare dependent work ready with
+material requirement conflicts open."""
     ),
     "spec-improve": _prompt(
         """\
 Improve the specification as the current candidate. Review behavior,
 acceptance criteria, failure paths, consumer impact, and early test/system-test
-expectations. Refresh every planned outcome or check affected by a changed
+expectations. Check existing-spec reconciliation, non-functional measurability,
+preserved conditions, and unresolved targets using the Requirements definition
+guide. Refresh every planned outcome or check affected by a changed
 requirement.""",
         improve=True,
     ),
@@ -422,6 +474,8 @@ Name necessary fixtures, data, environments, authorization, and evidence
 limits. Place pre-update candidate checks separately from post-update consumer
 checks, and distinguish source/effect, artifact identity, and behavior
 observations. A planned test is not a passed test.
+Map applicable new and preserved non-functional criteria to checks and their
+environment/workload prerequisites; missing evidence or access is not N/A.
 Record whether HTTP/API checks suffice or browser evidence is needed, including
 the intended user role/session, target, expected behavior and access prerequisites.
 Plan browser-specific access early; a connector credential need not authenticate
@@ -658,6 +712,7 @@ choose a small discriminating check, and record its observation and the reason
 for the next action. Revisit the approach when retries add no evidence; never
 waive a required check because a retry budget or investigation allowance ended.""",
         implementation_quality=True,
+        evidence_reconciliation=True,
     ),
     "product-improve": _prompt(
         """\
@@ -672,6 +727,7 @@ worker outputs, and final-candidate review coverage in proportion to this
 candidate's risk.""",
         improve=True,
         implementation_quality=True,
+        evidence_reconciliation=True,
     ),
     "integrate": _prompt(
         """\
@@ -729,7 +785,8 @@ silently run against production or perform an unplanned deployment to unblock a
 test. Missing required candidate preparation remains incomplete.
 Complete due pre-update checks here; leave required post-update consumer checks
 explicitly pending for their assigned release-verification boundary rather than
-calling them passed."""
+calling them passed.""",
+        evidence_reconciliation=True,
     ),
     "outer-improve": _prompt(
         """\
@@ -747,6 +804,7 @@ environment/deployment note; reconcile setup receipts, staged-candidate checks,
 new migrations/approvals and remaining promotion work before release planning.""",
         improve=True,
         implementation_quality=True,
+        evidence_reconciliation=True,
     ),
     "release-plan": _prompt(
         """\
@@ -822,7 +880,8 @@ update evidence and report behavior as blocked or unverified; do not re-upload
 without evidence that retrying is appropriate. Verify the final intended consumer
 and candidate, not only a successful development or staging deployment. A
 required consumer check that is blocked or unrun prevents done; preserve the
-successful update receipt and resolve only the missing verification."""
+successful update receipt and resolve only the missing verification.""",
+        evidence_reconciliation=True,
     ),
     "handoff": _prompt(
         """\
@@ -851,7 +910,8 @@ return are different outcomes; neither proves push, deployment or live behavior.
 Do not delete the workspace or historical run automatically. A missing/stale
 receipt, unresolved source drift or a transient commit prevents completion;
 resolve it without stash/reset/force. Source edits after return require renewed
-validation, not reuse of the earlier receipt."""
+validation, not reuse of the earlier receipt.""",
+        evidence_reconciliation=True,
     ),
 }
 

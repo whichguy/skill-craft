@@ -315,6 +315,39 @@ class ShipLoopWorkspaceTests(unittest.TestCase):
         self.assertFalse((worktree / "staged-new-delete.txt").exists())
         self._assert_source_unchanged(before)
 
+    def test_prepare_accepts_an_empty_initial_commit_without_a_readme(self) -> None:
+        """A new repository needs no bootstrap file before workspace capture."""
+        empty_repo = self.base / "empty initial source"
+        empty_repo.mkdir()
+        self.git("init", "-q", cwd=empty_repo)
+        self.git("branch", "-M", "main", cwd=empty_repo)
+        self.git("config", "user.name", "ShipLoop Workspace Test", cwd=empty_repo)
+        self.git("config", "user.email", "shiploop-workspace@example.invalid", cwd=empty_repo)
+        self.git("config", "commit.gpgsign", "false", cwd=empty_repo)
+        self.git("config", "core.hooksPath", os.devnull, cwd=empty_repo)
+        self.git("commit", "--allow-empty", "-qm", "initial", cwd=empty_repo)
+        source_index = (empty_repo / ".git" / "index").read_bytes()
+        source_head = self.git("rev-parse", "HEAD", cwd=empty_repo).stdout.strip()
+        root = self.base / "empty initial workspace"
+
+        record = self._call(workspace.prepare, empty_repo, root)
+        worktree = Path(record["worktree"])
+
+        self.assertEqual(record["source_head"], source_head)
+        self.assertEqual(record["baseline_tree"], self.git(
+            "rev-parse", "HEAD^{tree}", cwd=empty_repo
+        ).stdout.strip())
+        self.assertTrue(record["start_clean"])
+        self.assertFalse((empty_repo / "README.md").exists())
+        self.assertFalse((worktree / "README.md").exists())
+        self.assertEqual(self._file_tree(worktree), {})
+        self.assertEqual((empty_repo / ".git" / "index").read_bytes(), source_index)
+        self.assertEqual(self.git("rev-parse", "HEAD", cwd=empty_repo).stdout.strip(), source_head)
+        self.assertEqual(
+            self.git("status", "--porcelain=v1", "--untracked-files=all", cwd=empty_repo).stdout,
+            "",
+        )
+
     def test_prepare_sanitizes_ambient_git_redirection_and_disables_checkout_hooks(self) -> None:
         """A caller environment or repository hook cannot redirect workspace capture."""
         hooks = self.base / "hostile hooks"
@@ -564,6 +597,12 @@ class ShipLoopWorkspaceTests(unittest.TestCase):
         (worktree / "environment.md").write_text(
             "# Environment\n\nDurable updated environment.\n", encoding="utf-8"
         )
+        requirements = worktree / "docs" / "requirements.md"
+        requirements.parent.mkdir()
+        requirements.write_text(
+            "# Requirements\n\nCancel leaves the note and list unchanged.\n",
+            encoding="utf-8",
+        )
         output = worktree / "reports" / "transient-output.html"
         output.parent.mkdir()
         output.write_text("<p>run-local output</p>\n", encoding="utf-8")
@@ -574,9 +613,10 @@ class ShipLoopWorkspaceTests(unittest.TestCase):
         self.assertEqual(items["reports/transient-output.html"]["disposition"], "exclude")
         self.assertEqual(items["SHIPLOOP.md"]["disposition"], "pending")
         self.assertEqual(items["environment.md"]["disposition"], "pending")
+        self.assertEqual(items["docs/requirements.md"]["disposition"], "pending")
         self._resolve_plan(
             root,
-            keep={"SHIPLOOP.md", "environment.md"},
+            keep={"SHIPLOOP.md", "environment.md", "docs/requirements.md"},
             exclude={"reports/transient-output.html"},
         )
         source_head = self.git("rev-parse", "HEAD").stdout.strip()
@@ -589,7 +629,23 @@ class ShipLoopWorkspaceTests(unittest.TestCase):
         self.assertEqual((self.repo / ".git" / "index").read_bytes(), source_index)
         self.assertIn("Durable updated decision", (self.repo / "SHIPLOOP.md").read_text(encoding="utf-8"))
         self.assertIn("Durable updated environment", (self.repo / "environment.md").read_text(encoding="utf-8"))
+        self.assertEqual(
+            (self.repo / "docs" / "requirements.md").read_bytes(), requirements.read_bytes()
+        )
         self.assertFalse((self.repo / "reports" / "transient-output.html").exists())
+
+        # A newly returned document is untracked until an authorized commit.
+        # The next isolated run explicitly includes it, per the knowledge policy.
+        next_record = self._prepare(
+            name="next feature with retained requirements",
+            include_untracked=("docs/requirements.md",),
+        )
+        next_worktree = self._worktree(next_record)
+        self.assertEqual(
+            (next_worktree / "docs" / "requirements.md").read_bytes(),
+            requirements.read_bytes(),
+        )
+        self.assertFalse((next_worktree / "reports" / "transient-output.html").exists())
 
     def test_dirty_return_preserves_binary_delete_rename_mode_and_symlink_changes(self) -> None:
         self._seed_dirty_source()
@@ -1082,6 +1138,64 @@ class ShipLoopWorkspaceTests(unittest.TestCase):
         self._assert_source_unchanged(source_before)
         self.assertEqual((root / "workspace.md").read_bytes(), manifest_before)
         self.assertEqual((root / "run" / "state.md").read_bytes(), state_before)
+
+    def test_fresh_workspace_roots_isolate_identical_prompts(self) -> None:
+        """Same text in a new root creates a new run and preserves the old cursor."""
+        prompt = "Keep this request independent even when an identical run exists."
+        for label, protocol_args, protocol_version in (
+            ("default-v3", (), 3),
+            ("explicit-v2", ("--protocol-version", "2"), 2),
+        ):
+            with self.subTest(protocol=label):
+                old_root = self.base / f"{label} original workspace"
+                fresh_root = self.base / f"{label} fresh workspace"
+                self.cli(
+                    "workspace",
+                    "start",
+                    "--repo",
+                    str(self.repo),
+                    "--workspace-root",
+                    str(old_root),
+                    *protocol_args,
+                    "--prompt",
+                    prompt,
+                )
+                old_workspace_before = (old_root / "workspace.md").read_bytes()
+                old_state_before = (old_root / "run" / "state.md").read_bytes()
+                old_state = store.read_record(old_root / "run" / "state.md")
+
+                self.cli(
+                    "workspace",
+                    "start",
+                    "--repo",
+                    str(self.repo),
+                    "--workspace-root",
+                    str(fresh_root),
+                    *protocol_args,
+                    "--prompt",
+                    prompt,
+                )
+                fresh_workspace_before = (fresh_root / "workspace.md").read_bytes()
+                fresh_state_before = (fresh_root / "run" / "state.md").read_bytes()
+                fresh_state = store.read_record(fresh_root / "run" / "state.md")
+
+                self.assertEqual(old_state["status"], "active")
+                self.assertEqual(fresh_state["status"], "active")
+                self.assertEqual(old_state["navigator_protocol_version"], protocol_version)
+                self.assertEqual(fresh_state["navigator_protocol_version"], protocol_version)
+                self.assertEqual(old_state["prompt"].encode("utf-8"), prompt.encode("utf-8"))
+                self.assertEqual(fresh_state["prompt"].encode("utf-8"), prompt.encode("utf-8"))
+                self.assertNotEqual(old_state["run_id"], fresh_state["run_id"])
+                self.assertNotEqual(old_state["action"]["id"], fresh_state["action"]["id"])
+                self.assertEqual((old_root / "workspace.md").read_bytes(), old_workspace_before)
+                self.assertEqual((old_root / "run" / "state.md").read_bytes(), old_state_before)
+
+                recovered = self.cli("next", "--run-dir", str(old_root / "run"))
+                self.assertIn("ShipLoop navigator | intake", recovered.stdout)
+                self.assertEqual((old_root / "workspace.md").read_bytes(), old_workspace_before)
+                self.assertEqual((old_root / "run" / "state.md").read_bytes(), old_state_before)
+                self.assertEqual((fresh_root / "workspace.md").read_bytes(), fresh_workspace_before)
+                self.assertEqual((fresh_root / "run" / "state.md").read_bytes(), fresh_state_before)
 
     @staticmethod
     def _advance_to_handoff(state: dict) -> dict:

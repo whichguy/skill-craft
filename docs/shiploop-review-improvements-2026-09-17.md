@@ -161,3 +161,13 @@ The upstream inventory contains 78 ShipLoop suites; these three additions make
 generalized-discovery suite and is retained as historical evidence, not a claim
 about the publication inventory. The isolated publication candidate passes the
 core group and 137 focused tests before reconciliation with newer upstream work.
+
+Upstream main advanced to `8550406` during publication. Reconcile that published
+requirements/reference change with this task, retaining its broader protocol
+oracle and requirements/NFR/UI guidance. Regenerate the two package views after
+resolving the prompt overlaps; no local ask-agent or E2E ancestry is included.
+
+After reconciliation, 107 affected tests across seven suites passed, including
+the full runtime composition again. The unchanged delivery and inventory checks
+remain covered by the preceding publication run. Scoped Ruff, source/package
+parity, whitespace and an independent merge review passed.

@@ -67,12 +67,25 @@ Pass the **new incoming prompt verbatim**, not a prior run's goal. Preserve old
 runs, even completed ones. An `init` retry with a different prompt or a different
 explicitly supplied repository is rejected; an identical retry of a completed run stays complete.
 Use `next` only to recover the same request, never to start the new feature.
+Identical prompt text, an unfinished run, or a familiar repository does not by
+itself authorize recovery. A new incoming request still gets a new run; recover
+only when the current conversation or durable handoff identifies that same
+request and exact run. Coordinate an active prior run's overlapping work without
+advancing it on behalf of the new request.
 Follow [cross-run knowledge reuse](references/project-knowledge.md): discover
 README, AGENTS, existing environment/decision documents and prior-run references,
 then plan the new delta. Keep the repository's `SHIPLOOP.md` knowledge index and
 its linked documents useful across runs. Old one-off approvals and receipts in
 run state are not imported; a current applicable user-approved standing policy
 may be reused only after [delivery-authority revalidation](references/delivery-authority.md).
+During discovery, research, and spec, apply
+[requirements definition](references/requirements-definition.md): locate existing
+specs, reconcile current explicit instructions with their applicable conditions,
+and define verifiable non-functional requirements. Preserve unaffected intent
+and retain material unknowns; carry the resulting criteria into plans and checks.
+Use [reference handoffs and destinations](references/project-knowledge.md#reference-handoffs-and-destinations)
+to keep the selected product sections and test locators correlated across plans,
+results and Improve's own contract, without confusing package, repository and run files.
 
 For new work in an existing Git repository, use the isolated entry below. First
 inspect the branch/status and applicable repository instructions. The script
@@ -287,7 +300,7 @@ Recorded navigator-v1 and navigator-v2 runs retain their saved cursor, keys,
 callbacks, and Improve binding. `next` resumes them without migration or
 conversion to v3. Existing managed and legacy runs also retain their recorded
 protocol. Follow the packet printed for that run. The
-[compatibility README](README.md#compatibility-protocols) describes those routes.
+[compatibility README](README.md#historical-compatibility-protocols) describes those routes.
 Explicit compatibility modes remain available only when deliberately selected;
 normal new work uses navigator protocol 3.
 

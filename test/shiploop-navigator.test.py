@@ -489,6 +489,32 @@ class NavigatorTests(unittest.TestCase):
         )
         self.assertEqual(callback, self.root.resolve() / "inbox" / f"{action['id']}.md")
 
+    def test_v2_cold_verify_packet_keeps_the_selected_case_reminder(self) -> None:
+        """Synthetic retained protocol-2 state keeps the reminder after recovery."""
+        state = self.advance_v2_to_first_work_item(
+            self.new_v2_state(), self.two_work_items()
+        )
+        for stage in (
+            "step-plan", "step-plan-improve", "implement", "test-refine", "test-author",
+        ):
+            state = self.advance_v2(state, stage)
+        state = self.advance_v2(
+            state, "document", choices={"skill_required": False}
+        )
+        self.assert_v2_cursor(state, "verify", owner="W1")
+        navigator.save(self.root, state)
+        before = (self.root / "state.md").read_bytes()
+
+        packet = self._navigator_cli("next")
+
+        self.assertEqual((self.root / "state.md").read_bytes(), before)
+        normalized_packet = " ".join(packet.split())
+        self.assertIn("Record local-test-route evidence separately", normalized_packet)
+        self.assertIn("Establish compatibility with target-compatible source or local evidence", normalized_packet)
+        self.assertIn("Selected-case reconciliation", normalized_packet)
+        self.assertIn("passed, failed, blocked, not-run, or justified N/A", normalized_packet)
+        self.assertIn("Source, HTTP, or DOM structure", normalized_packet)
+
     def test_public_cli_defaults_to_protocol_v3(self) -> None:
         root = self.base / "default-v3-run"
         packet = self._run_public_command(
@@ -1798,6 +1824,86 @@ class NavigatorTests(unittest.TestCase):
                     self.assertIn(source_pointer, packet)
                     if case_id == "absent-locator":
                         self.assertNotIn("Work item context: Convention locator:", packet)
+
+    def test_requirements_definition_duties_stay_in_existing_v1_v2_stages(self) -> None:
+        """The guide adds duties to the stable graph instead of adding state or nodes."""
+        self.assertEqual(tuple(navigator_prompts.PRELUDE), EXPECTED_PRELUDE)
+        common = " ".join(navigator_prompts.COMMON.split())
+        self.assertIn(
+            "Requirements definition guide to reconcile existing specs and define "
+            "applicable non-functional requirements.",
+            common,
+        )
+        self.assertIn(
+            "Locate existing specs and quality policies",
+            " ".join(navigator_prompts.PROMPTS["discovery"].split()),
+        )
+        self.assertIn(
+            "Research consequential quality-target and feasibility unknowns",
+            " ".join(navigator_prompts.PROMPTS["research"].split()),
+        )
+        self.assertIn(
+            "measurable bounds or observable criteria",
+            " ".join(navigator_prompts.PROMPTS["spec"].split()),
+        )
+
+    def test_v1_v2_cold_next_retains_requirements_definition_context_without_mutation(
+        self,
+    ) -> None:
+        """A current spec packet keeps the guide, user request, and prior spec locator."""
+        guide = (SCRIPTS.parent / "references" / "requirements-definition.md").resolve()
+        self.assertTrue(guide.is_file())
+        guide_pointer = "Requirements definition guide: " + str(guide)
+        existing_spec = self.repo / "docs" / "existing-spec.md"
+        existing_spec.parent.mkdir()
+        existing_spec.write_text(
+            "# Existing specification\n\n## Response time\n\nPreserve the current bound.\n",
+            encoding="utf-8",
+        )
+        requirement_locator = str(existing_spec) + "#response-time"
+
+        for protocol_version in (1, 2):
+            with self.subTest(protocol_version=protocol_version):
+                state = self.new_state() if protocol_version == 1 else self.new_v2_state()
+                advance = self.advance if protocol_version == 1 else self.advance_v2
+                for stage in ("intake", "discovery", "research"):
+                    state = advance(state, stage)
+                state = advance(
+                    state,
+                    "research-improve",
+                    evidence_refs=[requirement_locator],
+                )
+                self.assertEqual(navigator.current_stage(state), "spec")
+                action = navigator.current_action(state)
+                run_root = self.base / f"cold-requirements-definition-v{protocol_version}"
+                run_root.mkdir()
+                current = navigator.render(None, run_root, state)
+                navigator.save(run_root, state)
+                before = (run_root / "state.md").read_bytes()
+                expected_state = store.read_record(run_root / "state.md")
+
+                cold = self._run_public_command(
+                    [
+                        sys.executable,
+                        str(SCRIPTS / "shiploop"),
+                        "next",
+                        "--run-dir",
+                        str(run_root),
+                    ]
+                )
+                recovered = store.read_record(run_root / "state.md")
+
+                self.assertEqual((run_root / "state.md").read_bytes(), before)
+                self.assertEqual(recovered, expected_state)
+                self.assertEqual(navigator.current_action(recovered), action)
+                for packet in (current, cold):
+                    self.assertEqual(packet.count(guide_pointer), 1, packet)
+                    self.assertIn(self.goal, packet)
+                    self.assertIn(requirement_locator, packet)
+                    self.assertIn(
+                        "Use the packet's Requirements definition guide",
+                        packet,
+                    )
 
     def _progress_block(self, packet: str) -> str:
         """Return the small status projection, without comparing full packets."""

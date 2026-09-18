@@ -2056,6 +2056,11 @@ def _guidance_lines(
         ("System-test guidance", "system-tests.md", _value(api, "SYSTEM_TEST_SECTIONS", {})),
     )
     selected = []
+    if stage in _value(api, "PROMPTS", {}):
+        selected.append((
+            "Reference handoff policy", "project-knowledge.md",
+            ("reference-handoffs-and-destinations",),
+        ))
     for label, filename, mapping in mappings:
         sections = mapping.get(stage) if isinstance(mapping, Mapping) else None
         if sections:

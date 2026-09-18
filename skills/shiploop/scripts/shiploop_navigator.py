@@ -1062,11 +1062,25 @@ def render(core: Any, root: Path, state: Mapping[str, Any]) -> str:
         + str(root / "notes" / "environment-lifecycle.md"),
         "Cross-run knowledge policy: "
         + str(reference_dir / "project-knowledge.md"),
+        "Maintained requirements policy: "
+        + str(reference_dir / "project-knowledge.md")
+        + "#maintained-product-requirements",
+        "Requirements definition guide: "
+        + str(reference_dir / "requirements-definition.md"),
+        "Reference handoff policy: "
+        + str(reference_dir / "project-knowledge.md")
+        + "#reference-handoffs-and-destinations",
         "Repository knowledge index (host-authored, if present): "
         + str(Path(state["repo"]) / "SHIPLOOP.md"),
         "Consumer testing guide: "
         + str(reference_dir / "testing-and-documentation.md")
         + "#lightweight-and-browser-checks",
+        "Selected-case reconciliation guide: "
+        + str(reference_dir / "testing-and-documentation.md")
+        + "#test-cases",
+        "Real-boundary selection guide: "
+        + str(reference_dir / "testing-and-documentation.md")
+        + "#surface-selection",
         "Interaction design guide: "
         + str(reference_dir / "behavioral-requirements.md")
         + "#actors-channels-and-state-ownership",
@@ -1140,6 +1154,12 @@ def render(core: Any, root: Path, state: Mapping[str, Any]) -> str:
         lines.append(
             "Consumer-delivery schema and examples: "
             + str(reference_dir / "consumer-delivery.md")
+        )
+    if state["navigator_protocol_version"] == 3 and stage in guidance3.BACKCHAIN_STAGES:
+        lines.append(
+            "Backchain planning guide: "
+            + str(reference_dir / "backchain-planning.md")
+            + "#navigator-planning"
         )
     if state["bound_plan"]:
         lines.append("Bound plan locator: " + _required_excerpt(state["bound_plan"], root, "bound_plan"))
@@ -1316,6 +1336,7 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
         return "\n".join(lines) + "\n"
     skill = child["skill"]
     result_path = root / "inbox" / (action_id + "-improve.md")
+    evidence_root = Path(child["workspace"]) / ".until-loop" / "reviews"
     return_lines = []
     if state["execution_mode"] == "navigator-worktree" and child["stage"] == "handoff":
         return_lines = [
@@ -1340,10 +1361,13 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
         "Exclude .until-loop and ShipLoop runtime metadata from product candidates, edits and commits; adapter-owned state and notebook writes remain allowed. Explicitly named planning artifacts may be reviewed.",
         "Inspect the existing child using its bound adapter. Continue a matching active run; resume a paused child only when its recorded condition permits; import a matching completed child without rerunning it. For a genuinely new step, the adapter may restart only a settled previous run whose evidence was retained. Never replace an unrelated active run or bypass recovery.",
         "The prior result and relevant accepted Improve lessons are in state.md improve_results and improve/<parent-action>/ receipts. Carry forward only relevant verified lessons; keep blocked-attempt notes in the child notebook.",
-        "On completion, provide two distinct final qualifying review records and current check evidence as absolute local file references. A plan/RED disposition is checked against its own criteria, not future product success. Capture separate durable review files in the child run if the notebook contains both reviews.",
+        "On completion, provide two distinct final qualifying review records and current check evidence as absolute local file references. A plan/RED disposition is checked against its own criteria, not future product success. Capture separate durable review files beneath Child workspace if the notebook contains both reviews.",
+        "Receipt review_refs and check_refs must be absolute regular single-link non-symlink files under Child workspace above; the importer rejects sibling run/inbox/control paths outside that root. For example: "
+        + str(evidence_root / "review-one.md"),
         "Write completion evidence to: " + str(result_path),
-        store.dumps({"summary": "...", "review_refs": ["/absolute/review-one.md", "/absolute/review-two.md"],
-                     "check_refs": ["/absolute/current-checks.md"], "lessons": "..."},
+        store.dumps({"summary": "...", "review_refs": [str(evidence_root / "review-one.md"),
+                                                           str(evidence_root / "review-two.md")],
+                     "check_refs": [str(evidence_root / "checks.md")], "lessons": "..."},
                     "Actual Improve completion evidence").rstrip(),
         "If Improve changed the producer's decisions, include final_result with the revised generic step result, preserving outcomes and authority. This can correct plan work_items or document choices without using the draft values.",
         *return_lines,

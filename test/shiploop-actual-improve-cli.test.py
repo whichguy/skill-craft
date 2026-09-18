@@ -24,11 +24,36 @@ class ActualImproveCliTests(unittest.TestCase):
         self.repo = self.base / 'repo'
         self.run = self.base / 'run'
         self.repo.mkdir()
+        self.product_contract = self.repo / 'product' / 'contracts' / 'cold-recovery.md'
+        self.product_contract.parent.mkdir(parents=True)
+        self.product_contract.write_text(
+            '# Product contract\n\n## child-contract-transfer\n\nRetain the selected acceptance boundary.\n'
+        )
+        self.product_test = self.repo / 'test' / 'product_contract_test.py'
+        self.product_test.parent.mkdir()
+        self.product_test.write_text(
+            'class ProductContractTests:\n'
+            '    def test_child_contract_transfer(self):\n'
+            '        pass\n'
+        )
         self.invoke(CLI, 'init', '--repo', self.repo, '--run-dir', self.run,
                     '--prompt', 'Protocol composition fixture', '--improve-skill', CARD)
+        self.run_note = self.run / 'notes' / 'parent-evidence.md'
+        self.run_note.parent.mkdir()
+        self.run_note.write_text(
+            '# parent-evidence-transfer\n\nKeep this parent run note locatable after import.\n'
+        )
+        self.parent_evidence_refs = [
+            str(self.product_contract) + '#child-contract-transfer',
+            str(self.product_test) + '::ProductContractTests::test_child_contract_transfer',
+            str(self.run_note) + '#parent-evidence-transfer',
+        ]
         self.state = store.read_record(self.run / 'state.md')
         self.action = self.state['action']['id']
-        self.producer = {'outcome': 'done', 'summary': 'Fixture intake evidence.'}
+        self.producer = {
+            'outcome': 'done', 'summary': 'Fixture intake evidence.',
+            'evidence_refs': self.parent_evidence_refs,
+        }
         self.input = self.run / 'inbox' / (self.action + '.md')
         store.write_record(self.input, self.producer)
         self.invoke(CLI, 'done', '--run-dir', self.run, '--action', self.action, '--result', self.input)
@@ -45,10 +70,24 @@ class ActualImproveCliTests(unittest.TestCase):
         return result
 
     def initialize_child(self):
+        parent_refs = self.bound['seed_result']['evidence_refs']
+        # This fixture host deliberately transfers opaque parent locators into
+        # fields the real v2 contract already permits. The runtimes preserve
+        # those bytes, but do not enforce their semantic applicability.
+        copied_refs = '\n'.join(parent_refs) if parent_refs else 'none'
         contract = {
             'version': 1, 'policy': 'decision-rubric/2',
-            'original_request': 'Protocol-only fixture. No semantic review claim.\n' + self.bound['contract_marker'],
-            'interpretation': 'Test real runtime completion and parent callback composition.',
+            'original_request': (
+                'Protocol-only fixture. No semantic review claim.\n'
+                + self.bound['contract_marker']
+                + '\nFixture host copied parent evidence references:\n'
+                + copied_refs
+            ),
+            'interpretation': (
+                'Test real runtime completion and parent callback composition. '
+                'Fixture host copied parent evidence references into this existing '
+                'contract field: ' + '; '.join(parent_refs or ['none'])
+            ),
             'criteria': [{'id': 'C1', 'text': 'Fixture evidence exists',
                           'basis': {'kind': 'request', 'reference': 'protocol fixture'}}],
         }
@@ -74,7 +113,21 @@ class ActualImproveCliTests(unittest.TestCase):
 
     def test_current_child_completion_imports_once_and_cold_next_recovers(self):
         self.assertEqual(self.state['navigator_protocol_version'], 3)
+        self.assertEqual(self.bound['seed_result']['evidence_refs'], self.parent_evidence_refs)
         child = self.initialize_child()
+        frozen_contract = child['contract']
+        self.assertEqual(set(frozen_contract), {
+            'version', 'policy', 'original_request', 'interpretation', 'criteria', 'revision',
+        })
+        for reference in self.parent_evidence_refs:
+            self.assertIn(reference, frozen_contract['original_request'])
+            self.assertIn(reference, frozen_contract['interpretation'])
+        child_state = self.repo / '.until-loop' / 'state.json'
+        child_before_cold_next = child_state.read_bytes()
+        child_cold = self.invoke(UNTIL, 'v2', 'next', '--repo', self.repo)
+        for reference in self.parent_evidence_refs:
+            self.assertIn(reference, child_cold.stdout)
+        self.assertEqual(child_before_cold_next, child_state.read_bytes())
         receipt = self.receipt()
         before = (self.run / 'state.md').read_bytes()
         self.invoke(CLI, 'improve-complete', '--run-dir', self.run, '--action', self.action,
@@ -82,7 +135,14 @@ class ActualImproveCliTests(unittest.TestCase):
         self.assertEqual(before, (self.run / 'state.md').read_bytes())
         self.invoke(UNTIL, 'v2', 'submit', '--repo', self.repo, '--action-id', child['action']['id'])
         recovered = self.invoke(CLI, 'next', '--run-dir', self.run)
-        self.assertIn(self.bound['contract_marker'], recovered.stdout)
+        normalized_packet = ' '.join(recovered.stdout.split())
+        self.assertIn(self.bound['contract_marker'], normalized_packet)
+        self.assertIn('Ordinary child review notes retain candidate and scope identity', normalized_packet)
+        self.assertIn('independent reviewer availability, use, or permitted fallback', normalized_packet)
+        self.assertIn('whether reused evidence still applies', normalized_packet)
+        self.assertIn('short decision and reference locators for cold recovery', normalized_packet)
+        for reference in self.parent_evidence_refs:
+            self.assertIn(reference, recovered.stdout)
         self.assertEqual(before, (self.run / 'state.md').read_bytes())
         self.invoke(CLI, 'improve-complete', '--run-dir', self.run, '--action', self.action, '--result', receipt)
         after = (self.run / 'state.md').read_bytes()
@@ -91,6 +151,13 @@ class ActualImproveCliTests(unittest.TestCase):
         self.assertIsNone(state['active_improve'])
         self.assertEqual(len(state['improve_results']), 1)
         self.assertTrue((self.run / 'improve' / self.action / 'working.md').is_file())
+        self.assertEqual(state['accepted'][self.action]['evidence_refs'], self.parent_evidence_refs)
+        self.assertEqual(state['improve_results'][self.action]['seed_result']['evidence_refs'],
+                         self.parent_evidence_refs)
+        archived_contract = json.loads(
+            (self.run / 'improve' / self.action / 'state.json').read_text()
+        )['contract']
+        self.assertEqual(archived_contract, frozen_contract)
         self.invoke(CLI, 'improve-complete', '--run-dir', self.run, '--action', self.action, '--result', receipt)
         self.invoke(CLI, 'done', '--run-dir', self.run, '--action', self.action, '--result', self.input)
         self.assertEqual(after, (self.run / 'state.md').read_bytes())

@@ -1188,44 +1188,72 @@ schema or sidecar is needed.
 
         import shiploop_protocol
 
-        # Include the accepted actor/state guide in retained planning routes.
-        # Keep this oracle explicit and independent of the production route map.
-        expected = {
-            "approach": ("discovery-and-research", "actors-channels-and-state-ownership"),
-            "survey": ("discovery-and-research", "actors-channels-and-state-ownership"),
-            "behavior": ("behavior-model", "actors-channels-and-state-ownership"),
-            "behavior-review": ("traceability-and-review", "actors-channels-and-state-ownership"),
+        base_routes = {
+            "approach": ("discovery-and-research",),
+            "survey": ("discovery-and-research",),
+            "behavior": ("behavior-model",),
+            "behavior-review": ("traceability-and-review",),
             "behavior-plan": ("traceability-and-review",),
             "behavior-apply": ("traceability-and-review",),
             "behavior-verify": ("traceability-and-review",),
             "behavior-commit": ("traceability-and-review",),
             "behavior-finalize": ("traceability-and-review",),
-            "spec": ("behavior-model", "actors-channels-and-state-ownership"),
-            "spec-review": ("traceability-and-review", "actors-channels-and-state-ownership"),
+            "spec": ("behavior-model",),
+            "spec-review": ("traceability-and-review",),
             "spec-plan": ("traceability-and-review",),
             "spec-apply": ("traceability-and-review",),
             "spec-verify": ("traceability-and-review",),
             "spec-commit": ("traceability-and-review",),
             "spec-finalize": ("traceability-and-review",),
-            "sequence": ("traceability-and-review", "actors-channels-and-state-ownership"),
+            "sequence": ("traceability-and-review",),
             "implement": ("traceability-and-review",),
-            "review": ("traceability-and-review", "actors-channels-and-state-ownership"),
-            "improve-plan": ("traceability-and-review", "actors-channels-and-state-ownership"),
-            "improve-apply": ("traceability-and-review", "actors-channels-and-state-ownership"),
+            "review": ("traceability-and-review",),
+            "improve-plan": ("traceability-and-review",),
+            "improve-apply": ("traceability-and-review",),
             "iteration-document": ("traceability-and-review",),
             "verify": ("traceability-and-review",),
             "carry-forward": ("traceability-and-review",),
             "final-verify": ("traceability-and-review",),
             "post-inner": ("traceability-and-review",),
-            "quality": ("traceability-and-review", "actors-channels-and-state-ownership"),
-            "handoff": ("traceability-and-review", "actors-channels-and-state-ownership"),
-            "research": ("actors-channels-and-state-ownership",),
-            "research-review": ("actors-channels-and-state-ownership",),
-            "research-plan": ("actors-channels-and-state-ownership",),
-            "research-apply": ("actors-channels-and-state-ownership",),
-            "step-plan": ("actors-channels-and-state-ownership",),
-            "step-plan-review": ("actors-channels-and-state-ownership",),
-            "step-plan-revise": ("actors-channels-and-state-ownership",),
+            "quality": ("traceability-and-review",),
+            "handoff": ("traceability-and-review",),
+        }
+        interaction_routes = {
+            "approach",
+            "survey",
+            "research",
+            "research-review",
+            "research-plan",
+            "research-apply",
+            "behavior",
+            "behavior-review",
+            "spec",
+            "spec-review",
+            "sequence",
+            "step-plan",
+            "step-plan-review",
+            "step-plan-revise",
+            "review",
+            "improve-plan",
+            "improve-apply",
+            "quality",
+            "handoff",
+        }
+        requirements_routes = set(base_routes) | interaction_routes | {
+            "test-refine",
+            "test-author",
+        }
+        expected = {
+            stage: (
+                base_routes.get(stage, ())
+                + (
+                    ("actors-channels-and-state-ownership",)
+                    if stage in interaction_routes
+                    else ()
+                )
+                + ("requirements-definition",)
+            )
+            for stage in requirements_routes
         }
         no_guidance = {
             "managed-improve",
@@ -1249,11 +1277,25 @@ schema or sidecar is needed.
             "step-plan-commit",
             "step-plan-finalize",
             "improve-plan-verify",
-            "test-refine",
-            "test-author",
             "skill-validate",
         }
         self.assertEqual(shiploop_protocol.BEHAVIOR_SECTIONS, expected)
+        self.assertEqual(
+            {
+                stage
+                for stage, sections in shiploop_protocol.BEHAVIOR_SECTIONS.items()
+                if "actors-channels-and-state-ownership" in sections
+            },
+            interaction_routes,
+        )
+        self.assertEqual(
+            {
+                stage
+                for stage, sections in shiploop_protocol.BEHAVIOR_SECTIONS.items()
+                if "requirements-definition" in sections
+            },
+            requirements_routes,
+        )
         self.assertEqual(
             set(shiploop_protocol.PROMPTS), set(expected) | no_guidance
         )

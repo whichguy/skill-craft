@@ -16,6 +16,13 @@ conditions, intended outcomes, non-goals, and unknowns. Distinguish user-require
 behavior, observed existing behavior, evidence-derived constraints, proposals,
 and unresolved decisions. Existing code is evidence, not authority to override a
 requested change. Do not translate vague language into invented business policy.
+Read the applicable [maintained product requirements](project-knowledge.md#maintained-product-requirements)
+before deriving a delta. Historical run scope is not a new instruction, but
+unaffected accepted conditions remain part of the product contract.
+Apply [requirements definition](requirements-definition.md) during discovery,
+research, and spec: inspect existing specs and quality policies, reconcile the
+current change, and define applicable non-functional criteria without inventing
+targets. Carry preserved quality conditions into the affected model and checks.
 
 At `approach`, identify modeling scope and high-risk questions. At `survey`,
 inventory the existing flows, state owners, persistence/communication boundaries,
@@ -60,6 +67,21 @@ for consequential rules and explicit exclusions. It does not mean reading every
 file or exploring infinite paths. A simple/stateless transformation still needs
 an input-to-output flow and error contract; record why a lifecycle state model
 is unnecessary. Do not invent queues, services, or states to fill a template.
+
+## Requirements definition
+
+Read the [existing-spec and non-functional requirements guide](requirements-definition.md)
+for this action's applicable slice. Discovery locates accepted specs and quality
+policies; research resolves consequential unknowns; spec reconciles preserved,
+added, modified, or retired clauses and defines verifiable quality criteria.
+Explicit current user requirements supersede conflicting older clauses while
+unaffected conditions remain. Later clarifications need their user source/basis;
+agent notes and observed implementation cannot redefine accepted intent.
+Planning and tests retain applicable new and preserved criteria, operating
+conditions, verification methods, and source/test locators. Assigned reviews
+check omissions, material conflicts, and unresolved targets before dependent
+work. Use existing result fields and correction routes, preserving frozen
+baselines and unrelated document content; no additional phase is introduced.
 
 ## Actors, channels, and state ownership
 
@@ -115,6 +137,118 @@ and preserve reusable conclusions in project documentation for later runs.
 Use the active protocol's existing result/evidence fields; no new ledger,
 mandatory table, state schema, or graph stage is needed.
 
+### Incoming events, connections, and state agreement
+
+For the affected interaction, inspect the existing entrypoints, protocols,
+state/storage contracts and observations. Specify the delta: preserve, reuse,
+change or reconcile; include older producers/consumers and persisted work where
+affected. Apply only the following relevant questions, in the existing notes:
+
+- Identify non-user initiators too: services, peers, devices, scheduled work and
+  lifecycle signals. Distinguish commands/queries, reported facts, snapshots,
+  deltas and invalidation hints. Name payload/schema, origin and authorized scope;
+  a claimed source/account in a message is not authentication or authorization.
+- Separate event/operation identity, correlation, resource revision and replay
+  position. Define acknowledgment meaning, ordering scope, duplicate/stale input,
+  unknown outcomes, retry/cancellation and partial effects. Received, accepted,
+  committed, synchronized and displayed are different milestones; record only
+  those needed. If acknowledgment transfers responsibility for durable work,
+  establish that acceptance boundary first; cover crashes before/after commit and
+  acknowledgment, including restart of accepted but unprocessed work. Bind retry identity to authorized
+  scope and original intent; handle non-atomic effects with the actual recovery
+  rule rather than an unqualified exactly-once claim.
+- For connections/subscriptions, cover applicable admission/authentication,
+  subscription, readiness, loss, reconnect/resubscribe, resynchronization and
+  cleanup. Connected does not imply current data. Define missed-event recovery,
+  expired-cursor fallback and the snapshot-to-live boundary where relevant;
+  prevent old-session/account callbacks from affecting a replacement session.
+  Check actual host protocol, proxy, execution and background-lifecycle limits.
+- Identify the UI/consumer read source, mutation authority, allowed writers,
+  durability and identity scope separately. For clients, distinguish presentation,
+  drafts, cached data, pending intent and confirmed state without requiring a
+  store per role. Define local-versus-shared confirmation, freshness, conflict
+  policy, restart/offline recovery and account/permission changes where needed.
+  Preserve newer drafts against late acknowledgments or remote updates.
+- Plan bounded capacity and failure/recovery ownership where relevant: slow
+  consumers, bursts, exhausted retries, invalid input or overlapping scheduled
+  work. Combining visual notifications does not authorize dropping domain events.
+  Record the observable result for each consumer, including headless consumers;
+  background work promised independently of a screen must have an owner that
+  operates without that screen. Local/stateless work need not invent queues,
+  persistence, connections, brokers or distributed failure cases.
+
+Use the existing sequence/transition and test records for these decisions. Reuse
+current supported mechanisms; neither these questions nor a message-format
+standard prescribe an event bus, global handler, transport or new ShipLoop state.
+
+### UI-specific planning
+
+When a human-facing surface is affected, retain all three UI planning views in
+an existing design/spec document and link the applicable sections from the
+project knowledge index and feature context:
+
+| View | Planning decisions |
+| --- | --- |
+| Components | Existing primitives/compositions and examples; responsibilities, input/event contracts, variants and visible states; keyboard/touch/focus/accessibility behavior. |
+| Interaction model | Human journeys and intent plus machine-originated updates; navigation, validation, local/shared state transitions, feedback, conflict/recovery actions and behavior with the UI absent. |
+| Branding / skin | Existing typography, semantic color/spacing/motion tokens, imagery, density and adaptive layout; preserved identity and intentional visual changes. |
+
+Inspect prior design and actual code/behavior before proposing a redesign.
+Distinguish accepted requirements from observed practice or defects. Reuse an
+adequate premise and specify the feature delta; missing design documents do not
+mean a new product. Preserve platform conventions on web/native/mobile clients.
+
+At the first consequential UI decision, discover, read and apply suitable design
+guidance available through the current host's capability/skill discovery (such
+as frontend-design). Record its actual identity/version or content digest and
+applicable decisions. Do not wait until post-implementation skill assessment.
+An absent optional skill uses repository guidance and this section as fallback;
+do not install a skill, hard-code host paths or claim unexecuted skill use.
+
+Plan a fairly rich, coherent UI by default: polished reusable components,
+responsive composition, complete loading/empty/error/success states and useful
+task-specific interactions. Keep scope proportional. For meaningful async
+activity, map trigger -> truthful state -> cue/status -> outcome/recovery.
+Use restrained motion to communicate pending work, accepted confirmation or a
+relevant remote change; preserve focus, input and reading position. Distinguish
+saved locally, queued and confirmed where applicable. A timer or completed
+animation cannot confirm domain success or own required domain processing.
+Define interruption/supersession, event-burst coalescing, accessible status and
+reduced-motion alternatives. Keep unresolved failures and necessary actions
+available beyond a transient toast; apply pause/dismiss/update controls where
+needed. Avoid replaying stale success animations after resume.
+
+Evaluate the existing UI toolkit first, then suitable alternatives such as
+Bootstrap or a runtime-appropriate Material implementation only for an actual
+gap. Record the exact package/version, required capabilities and tradeoff.
+Check build versus deployed runtime, framework/DOM ownership, asset/font/module
+delivery, CSP, routing/embedding, native lifecycle, accessibility, performance
+and maintenance/licensing where relevant. Resolve consequential uncertainty
+with a bounded production-artifact probe in the target; a preview proves only
+the constraints it reproduces. Do not silently weaken host policies or migrate
+frameworks to obtain a richer appearance.
+
+### Review, evidence, and reuse
+
+Carry compact baseline/delta, interaction/state/connection and applicable UI
+premise locators into global planning, each affected feature and its existing
+Improve review. Review the decisions automatically at the normal handoff; do
+not add a second invocation, graph node, review counter or nested campaign.
+During planning, review the specification and proposed checks; do not implement
+future features or demand rendered proof before the UI exists. Later checks
+verify the actual receiving, processing, state and consumer outcome separately,
+including rendered/accessibility/motion evidence when applicable. A screenshot
+cannot prove reconciliation or animation timing, and headless processing cannot
+prove a required UI updated. A feature with no UI still needs its applicable
+interaction contract; it needs no visual-design exercise.
+
+Revalidate affected decisions, use current evidence and preserve unresolved gaps.
+Keep reusable decisions in repository-owned documents, with a short summary and
+exact source/section locators in each affected work-item context and result
+evidence_refs for cold recovery. Include planned check locators, selected design
+guidance identity/version or digest, and the normal Improve handoff; a vague
+"see above" or a path relative to some other workspace is not a usable locator.
+
 These are hypothetical applicability examples, not prescribed architectures:
 
 | Requested behavior | Proportionate starting decision | An important check |
@@ -124,6 +258,12 @@ These are hypothetical applicability examples, not prescribed architectures:
 | A user requests a message, or an external service sends a notification to a user | Trace sender → receiving service → recipient/channel and any needed reply; choose immediate or delayed delivery from the actual contract. | Acceptance versus delivery/display is explicit; permissions and duplicate/failure behavior are covered where relevant. |
 
 ## Behavior model
+
+Reconcile this run's model with the repository's
+[maintained product requirements](project-knowledge.md#maintained-product-requirements):
+preserve, add, modify or retire affected conditions with an explicit basis.
+Keep lasting accepted intent outside this run's model; preserve the current
+protocol's existing freeze/revision rules rather than silently altering its baseline.
 
 At `behavior`, retrieve the incoming prompt, approach, environment and research
 in bounded sections. Store the proposed product behavior in the result `body`:
@@ -197,6 +337,11 @@ Material unresolved requirements block freeze; `checkable: true` is not evidence
 that a semantic completeness review occurred.
 
 ## Traceability and review
+
+Include the applicable [maintained product requirements](project-knowledge.md#maintained-product-requirements)
+and their negative/state-transition subclauses in affected checks and Improve
+reviews. Carry requirement/test locators into step context; update the durable
+home for accepted changes without deriving normative intent from observed bugs.
 
 Retrieve only the current requirement/flow/transition slice and adjacent affected
 paths from the durable behavior model, spec/draft, research, plan and current
