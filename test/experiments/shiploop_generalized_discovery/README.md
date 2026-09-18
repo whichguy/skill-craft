@@ -11,6 +11,11 @@ import. The accompanying results document is therefore a labeled historical
 summary, not independently auditable empirical evidence. A new study must
 create and retain its own evidence outside this source tree.
 
+The [bounded follow-up](../../../docs/shiploop-discovery-validation-results-2026-09-17.md)
+also retained the production prompt. Its reusable additions are subprocess review
+deadlines, a task-local acquisition probe, and [generic experiment recipes](EXPERIMENT_RECIPES.md).
+The follow-up summary carries the same historical-evidence limitation.
+
 ```mermaid
 flowchart LR
     A[Freeze guides and scripts] --> B[Calibrate observable facts]
@@ -86,6 +91,27 @@ concurrency require coordinator accounting; the runner does not implement a
 global watchdog for native helper agents. Record overruns rather than claiming
 perfect enforcement. A timeout, missing verdict, or exhausted budget is not
 success.
+
+For a subprocess-based reviewer, `review_runner.py` now supplies an explicitly
+bounded execution surface. Its `run_bounded(command, cwd, output_dir,
+timeout_seconds, hard_deadline_epoch=None, stdin_path=None)` function captures
+stdout/stderr to a new output directory and records launch/finish times, exit
+status, monotonic elapsed time, and cleanup. The optional absolute deadline
+clamps the relative allowance; expired deadlines refuse launch. `--stdin-file`
+can provide the frozen review prompt without placing its contents in argv.
+Use the study's existing deadline, never a fresh allowance that extends it.
+
+On POSIX, timeout or interruption triggers bounded TERM/KILL cleanup of the
+owned process group. Cleanup time is recorded separately and can extend beyond
+the exploration deadline; reserve time for it. Detached sessions/process groups
+and native host agents are outside this guarantee. Nonzero exit, timeout,
+interruption, or surviving descendants cannot be successful execution. Even a
+clean zero exit does not establish a valid semantic verdict: retain the frozen
+inputs and validate the review output separately before using it in a decision.
+The no-model CI suite exercises successful exit, nonzero/spawn failure, stalled
+review, descendants, interrupted evidence retention, expired/clamped deadlines,
+input redirection, invalid limits, and output-overwrite refusal.
+
 
 An arm is `completed` only when its context exits successfully without a
 termination reason, its report is valid, and its supplied files are unchanged.
