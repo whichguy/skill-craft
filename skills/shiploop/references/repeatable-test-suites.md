@@ -102,6 +102,66 @@ The latest reviewed item decision can refine the global baseline within its
 scope. Conflicts or missing prerequisites remain explicit. Managed/legacy runs
 retain their existing test-plan/binding and context routes.
 
+## OUTER test-planning handshake
+
+The existing `system-test-author` and `release-plan` stages own two planning
+handshakes: the assembled product's integrated suite, then the checks appropriate
+to the actual release boundary. Their consumers acknowledge the applicable plan
+and revalidate its assumptions before execution. This is ordinary result and
+`evidence_refs` guidance, not a new stage, schema, approval or test catalog.
+
+At `system-test-author`, recover the latest completed test-decision record for
+each relevant completed INNER item from `state.md`'s accepted history, using
+`step-plan`, `test-spec`, `test-author`, `test-refine` or `regression` and the
+prior locators it retained. Read `results/<action>.md` and its relevant test notes.
+Reconcile these with the run-wide strategy and assembled candidate; the last
+transition or final item's decisions cannot stand for all completed items.
+Retain selected action/result and durable test-note locators in the integrated
+plan. The packet's current-item projection intentionally ends at the INNER
+boundary; OUTER recovery uses the existing history rather than an implicit item.
+
+The integrated plan records requirement-to-case coverage, independent oracles,
+focused/smoke/full commands and selectors, execution and target locations,
+candidate/test-definition identity, prerequisites, execution owners and boundary,
+setup/test/teardown or justified stateless cases, fixture isolation/sharing,
+runtime cost and cleanup/stop conditions. Reuse applicable existing decisions
+and note changes or gaps. Identify checks runnable at `system-test` separately
+from those that need an authorized release and belong to `release-verify`.
+An unavailable required boundary remains a named unrun/blocked obligation;
+neither authoring nor a local pass satisfies it.
+
+`system-test` confirms this plan still fits before running its assigned checks.
+`product-acceptance` reconciles coverage and observations with the accepted
+requirements, retaining later release obligations. `release-plan` revalidates the
+same suite for the actual release target and defines any necessary additional
+checks, including remote-resident definitions and native testing mechanisms.
+It assigns pre-release checks to `release-check`, post-release checks to
+`release-verify`, and applicable operational observations/cleanup to `operations`.
+`release` checks that those prerequisites and stop conditions still hold before
+its authorized operation; planning does not authorize deployment. `handoff`
+retains repeatable commands, evidence, ownership and unresolved obligations.
+
+For cold recovery, select root-owned, latest `done` `system-test-author` and
+`release-plan` records after the most recent accepted `replan`, where those
+producers have completed. Follow their relevant `evidence_refs`; keep pending
+Improve proposals separate from accepted plans. Pending, `repeat` and `blocked`
+attempts are not accepted plan sources. When a producer has not run yet, it owns
+creating its plan; a consumer with a missing source must recover it or use its
+supported incomplete/correction outcome. Do not require a future release plan
+to perform integrated system testing.
+
+A corrective replan makes earlier OUTER plans/results historical inputs. Reuse
+them only after reconciling the corrective INNER work and current candidate.
+Within the same OUTER pass, changes to product or test code, fixtures,
+configuration, dependencies, target or test definitions also invalidate affected
+observations. Preserve old receipts, identify the affected checks and rerun them
+through the authorized route; unchanged evidence may be reused with a stated
+identity and relevance basis. Record the plan being consumed, revalidation and
+any mismatch in ordinary result evidence. Improve reviews that handshake and
+its test assets within the existing producer subcall. These are host reasoning
+obligations: accepted history supplies provenance, not proof of applicability,
+test execution or a machine-enforced candidate/evidence match.
+
 ## Plan local and remote execution
 
 Record the **execution location** separately from the target under test. Local
@@ -140,7 +200,7 @@ to unblock it.
 
 ## Give each case a lifecycle
 
-For each INNER case, record and implement the smallest applicable lifecycle:
+For each INNER or OUTER case, record and implement the smallest applicable lifecycle:
 
 | Part | What it establishes |
 | --- | --- |

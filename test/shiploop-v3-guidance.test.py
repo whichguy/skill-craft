@@ -34,6 +34,7 @@ if str(SCRIPTS) not in sys.path:
 
 import shiploop_navigator as navigator  # noqa: E402
 import shiploop_navigator_v3_prompts as prompts  # noqa: E402
+import shiploop_standalone_improve as standalone_improve  # noqa: E402
 import shiploop_store as store  # noqa: E402
 
 
@@ -547,6 +548,208 @@ class V3GuidanceTests(unittest.TestCase):
 
                 self.assertEqual((run / "state.md").read_bytes(), before)
                 self.assertNotIn(marker, packet)
+
+    def test_outer_test_handshake_recovers_replan_aware_sources_cold(self) -> None:
+        """The packet routes existing records; it does not certify their contents."""
+        label = "OUTER test-planning handshake"
+        locator = "repeatable-test-suites.md#outer-test-planning-handshake"
+        outer_sources = (
+            "latest done system-test-author and release-plan records",
+            "most recent accepted replan",
+            "pending, repeat, and blocked results are not plan authority",
+        )
+
+        # The shared contract must reach each root-owned OUTER producer and its
+        # standalone Improve handoff without adding a Navigator state field.
+        self.assertIsInstance(prompts.OUTER_TEST_HANDOFF, str)
+        system_author = normalized(prompts.prompt("system-test-author"))
+        for clause in (
+            "latest done test-decision record for every relevant completed item",
+            "Do not infer whole-product coverage from the last transition",
+            "current candidate/boundaries, selected cases and oracles",
+            "required post-release checks stay assigned to release-verify",
+        ):
+            self.assertIn(clause, system_author)
+        release_plan = normalized(prompts.prompt("release-plan"))
+        for clause in (
+            "Revalidate the integrated test plan for the release target",
+            "pre/post check owners, commands/case selectors",
+            "execution versus target locations, remote test-definition revision",
+        ):
+            self.assertIn(clause, release_plan)
+        system_test = normalized(prompts.prompt("system-test"))
+        self.assertIn("acknowledge the applicable integrated test plan", system_test)
+        self.assertIn("remote framework availability", system_test)
+        for stage in prompts.OUTER:
+            with self.subTest(stage=stage):
+                self.assertIn((label, locator), prompts.STAGE_REFERENCES[stage])
+                packet = normalized(prompts.prompt(stage))
+                improve_packet = normalized(prompts.improve_prompt(stage))
+                for source in outer_sources:
+                    self.assertIn(source, packet)
+                    self.assertIn(source, improve_packet)
+
+        strategy_ref = "docs/testing.md#strategy"
+        decisions = {
+            "W1": "docs/testing.md#w1-refined",
+            "W2": "docs/testing.md#w2-regression",
+            "W3": "docs/testing.md#w3-corrective",
+        }
+        state = self.state()
+        decision_actions: dict[str, str] = {}
+        while navigator.current_stage(state) != "plan":
+            stage = navigator.current_stage(state)
+            state, _action = self.complete_stage(
+                state,
+                evidence_refs=[strategy_ref if stage == "test-strategy" else "unrelated://" + stage],
+            )
+        state, _plan = self.complete_stage(
+            state,
+            evidence_refs=["docs/plan.md#items"],
+            work_items=[
+                {"id": "W1", "title": "First boundary", "context": "W1 isolated fixture."},
+                {"id": "W2", "title": "Second boundary", "context": "W2 compatibility fixture."},
+            ],
+        )
+        state = self.save_reload(state)
+
+        # Complete W1/W2 while retaining their latest local test-decision action.
+        while navigator.current_stage(state) != "system-test-author":
+            stage = navigator.current_stage(state)
+            owner = navigator._current_work_item(state)
+            refs = ["unrelated://" + stage]
+            if owner in decisions and stage == "regression":
+                refs = [decisions[owner]]
+            state, action = self.complete_stage(state, evidence_refs=refs)
+            state = self.save_reload(state)
+            if owner in decisions and stage == "regression":
+                decision_actions[owner] = action
+
+        state, packet = self.cold_packet(state)
+        packet = normalized(packet)
+        self.assertIn(label + ": " + str(REFERENCES / locator), packet)
+        self.assertIn("latest done system-test-author and release-plan records", packet)
+        # Neither current-item context nor an item-local projection leaks into
+        # root-owned outer planning. The handshake directs a bounded history lookup.
+        self.assertNotIn("W1 isolated fixture.", packet)
+        self.assertNotIn("W2 compatibility fixture.", packet)
+        for action in decision_actions.values():
+            self.assertTrue((self.run / "results" / (action + ".md")).is_file())
+            self.assertIn(action, state["accepted"])
+
+        state, system_author_action = self.complete_stage(
+            state, evidence_refs=["docs/testing.md#integrated-system-plan"]
+        )
+        state = self.save_reload(state)
+        state, _system_test_action = self.complete_stage(
+            state, evidence_refs=["docs/testing.md#system-execution"]
+        )
+        state = self.save_reload(state)
+        state, _acceptance_action = self.complete_stage(
+            state, evidence_refs=["docs/testing.md#acceptance"]
+        )
+        state = self.save_reload(state)
+        release_plan_action = dict(navigator.current_action(state))["id"]
+        release_plan_draft = "untrusted://release-plan-pending-draft"
+        waiting = navigator.apply(
+            state,
+            release_plan_action,
+            result("release-plan", evidence_refs=[release_plan_draft]),
+        )
+        navigator.save(self.run, waiting)
+        pending = store.read_record(self.run / "state.md")
+        selected_skill = standalone_improve.resolve_skill(str(IMPROVE_CARD))
+        bound_pending = dict(pending)
+        bound_pending["active_improve"] = standalone_improve.binding(
+            pending,
+            release_plan_action,
+            "release-plan",
+            pending["active_improve"]["seed_result"],
+            selected_skill,
+        )
+        navigator.save(self.run, bound_pending)
+        pending = store.read_record(self.run / "state.md")
+        pending_bytes = (self.run / "state.md").read_bytes()
+        pending_packet = normalized(navigator.render(None, self.run, pending))
+        self.assertEqual((self.run / "state.md").read_bytes(), pending_bytes)
+        self.assertEqual(pending["active_improve"]["action_id"], release_plan_action)
+        self.assertEqual(
+            pending["active_improve"]["seed_result"]["evidence_refs"],
+            [release_plan_draft],
+        )
+        self.assertNotIn(release_plan_action, pending["accepted"])
+        self.assertFalse(any(entry["action"] == release_plan_action for entry in pending["history"]))
+        self.assertIn("Parent step remains pending until actual Improve completion is imported.", pending_packet)
+        self.assertIn(label + ": " + str(REFERENCES / locator), pending_packet)
+        self.assertIn("latest done system-test-author and release-plan records", pending_packet)
+        self.assertIn(system_author_action, pending["accepted"])
+
+        release_plan_final = "docs/release.md#revalidated-target-and-checks"
+        state = navigator.finish_improve(
+            pending,
+            release_plan_action,
+            receipt("release-plan"),
+            result("release-plan", evidence_refs=[release_plan_final]),
+        )
+        state = self.save_reload(state)
+        self.assertEqual(state["accepted"][release_plan_action]["evidence_refs"], [release_plan_final])
+        self.assertNotIn(release_plan_draft, state["accepted"][release_plan_action]["evidence_refs"])
+        self.assertEqual(
+            [entry for entry in state["history"] if entry["action"] == release_plan_action][0]["outcome"],
+            "done",
+        )
+        self.assertEqual(navigator.current_stage(state), "release-check")
+
+        # An outer corrective replan is accepted history, then returns through a
+        # new INNER item. Its predecessor records remain durable, but are no
+        # longer presented as current outer-plan authority.
+        replan_result = result(
+            "release-check",
+            outcome="replan",
+            summary="A changed target needs a corrective compatibility item.",
+            evidence_refs=["docs/release.md#replan-target-change"],
+            work_items=[
+                {"id": "W3", "title": "Correct target compatibility", "context": "W3 new target fixture."}
+            ],
+        )
+        state, replan_action = self.complete_stage_with_final(
+            state, replan_result, evidence_refs=["unrelated://release-check-draft"]
+        )
+        state = self.save_reload(state)
+        self.assertEqual(navigator.current_stage(state), "select-work")
+        self.assertEqual(navigator._current_work_item(state), "W3")
+
+        while navigator.current_stage(state) != "system-test-author":
+            stage = navigator.current_stage(state)
+            owner = navigator._current_work_item(state)
+            refs = ["unrelated://" + stage]
+            if owner == "W3" and stage == "regression":
+                refs = [decisions["W3"]]
+            state, action = self.complete_stage(state, evidence_refs=refs)
+            state = self.save_reload(state)
+            if owner == "W3" and stage == "regression":
+                decision_actions["W3"] = action
+
+        state, packet = self.cold_packet(state)
+        packet = normalized(packet)
+        self.assertIn(label + ": " + str(REFERENCES / locator), packet)
+        for source in outer_sources:
+            self.assertIn(source, packet)
+        self.assertNotIn("W3 new target fixture.", packet)
+        self.assertIn(
+            "If this action depends on earlier accepted context, read the durable state",
+            packet,
+        )
+        # The original records remain immutable/reachable in accepted state and
+        # result files, while the recovery instructions mark them historical.
+        for action in (system_author_action, release_plan_action, replan_action):
+            self.assertIn(action, state["accepted"])
+            self.assertTrue((self.run / "results" / (action + ".md")).is_file())
+        self.assertEqual(state["accepted"][replan_action]["outcome"], "replan")
+        self.assertTrue(any(
+            entry["action"] == replan_action and entry["outcome"] == "replan"
+            for entry in state["history"]
+        ))
 
     def test_state_assessment_is_routed_to_planning_and_its_improve_handoffs(self) -> None:
         assessment = "requirements-definition.md#state-and-data-change-assessment"
