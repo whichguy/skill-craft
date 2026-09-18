@@ -9,4 +9,3 @@ ASSIGNMENTS = {
 
 def has_access(principal, permission):
     return permission in ASSIGNMENTS.get(principal, set())
-

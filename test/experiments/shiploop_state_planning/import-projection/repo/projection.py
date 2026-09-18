@@ -12,4 +12,3 @@ def for_reader(record, reader_version):
     if reader_version == 2:
         return {**payload, "summary": list(record["summary"])}
     raise ValueError("unknown reader version")
-

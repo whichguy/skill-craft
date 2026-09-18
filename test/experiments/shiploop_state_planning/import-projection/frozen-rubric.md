@@ -36,4 +36,3 @@ plans are acceptable; exact filenames and wording are not required.
    readers/writers back only while preserving compatible data; it cannot erase
    shared edits, pretend to safely downgrade an irreversible projection, or
    substitute a code rollback for reconciliation.
-

@@ -29,4 +29,3 @@ plans are acceptable; exact filenames and wording are not required.
    a candidate ready; the fixture has no release target. A later rollback can
    only reverse modeled source configuration and code—it cannot claim to revoke
    any external assignment.
-

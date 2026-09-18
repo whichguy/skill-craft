@@ -130,3 +130,11 @@ artifacts remain outside the checkout.
 [Aggregate receipt](/Users/dadleet/Documents/Codex/experiments/shiploop-state-planning-implementation-20260918/aggregate-completion.json),
 [current guidance results](/Users/dadleet/Documents/Codex/experiments/shiploop-state-planning-implementation-20260918/final-guidance.log),
 [current reference results](/Users/dadleet/Documents/Codex/experiments/shiploop-state-planning-implementation-20260918/final-references.log).
+
+Commit review found redundant blank lines at EOF in the new fixtures that an
+unstaged-only whitespace check had missed. The follow-up removes only those
+terminal blank lines and checks the whole change range. Exact experiment inputs
+and rubric hashes remain recoverable from commit `26a0aaa98797014aa0229fd474969e23433e1968`;
+current fixture content is identical apart from those trailing newlines. Original
+trial copies and scorecards were not rewritten.
+[Formatting provenance](/Users/dadleet/Documents/Codex/experiments/shiploop-state-planning-implementation-20260918/fixture-formatting-proof.json).

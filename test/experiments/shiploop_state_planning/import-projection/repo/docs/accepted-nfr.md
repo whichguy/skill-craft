@@ -15,4 +15,3 @@ release evidence requirements, not results already observed in this repository.
 The first three are workload/operational criteria. Explicit stale-edit rejection
 is a functional correctness condition that also needs observation at workload;
 passing a unit test alone does not establish the workload criteria.
-

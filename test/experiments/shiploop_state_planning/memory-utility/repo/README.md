@@ -16,4 +16,3 @@ Run the tests with:
 ```sh
 python3 -m unittest test_minute_tally.py
 ```
-

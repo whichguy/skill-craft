@@ -8,4 +8,3 @@ version 2 receives the new summary representation.
 Do not remove the version 1 representation or destructively rewrite stored
 projections until a separately recorded reader-retirement decision exists. A
 source test of one version is not evidence that the mixed-reader window works.
-

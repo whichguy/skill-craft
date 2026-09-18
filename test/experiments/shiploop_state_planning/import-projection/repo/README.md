@@ -13,4 +13,3 @@ python3 -m unittest test_imports.py
 
 Read `docs/` before proposing a change: the state contract, reader compatibility
 window, rollout sequence, and accepted workload criteria are separate inputs.
-

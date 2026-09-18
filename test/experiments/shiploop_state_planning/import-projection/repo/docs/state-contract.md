@@ -16,4 +16,3 @@ Summary edits are accepted only in `accepted` or `projecting`. Every edit carrie
 the caller's expected revision. A stale revision must receive a conflict result,
 not last-writer-wins behavior. A projection records the import ID and the source
 revision used to construct it.
-

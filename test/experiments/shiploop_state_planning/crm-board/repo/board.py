@@ -19,4 +19,3 @@ def cards_for(principal):
             renewal_window=CARD["renewal_window"],
         )
     return [card]
-

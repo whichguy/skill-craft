@@ -22,4 +22,3 @@ plans are acceptable; exact filenames and wording are not required.
 5. **Rollback boundary.** Any rollback is limited to the local source change.
    The plan correctly notes that there is no persisted activity history or data
    migration to undo.
-

@@ -10,4 +10,3 @@ Run the existing local verifier with:
 ```sh
 python3 verify_board.py
 ```
-

@@ -35,4 +35,3 @@ def append_summary_edit(record, expected_revision, text):
     updated["summary"] = [*record["summary"], text]
     updated["revision"] += 1
     return updated
-
