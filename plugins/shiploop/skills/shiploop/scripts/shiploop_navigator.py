@@ -912,6 +912,73 @@ def _required_excerpt(value: str, root: Path, field: str, *, limit: int = 1200) 
             + "; field " + field + ". Read the complete required context before acting.]")
 
 
+def _latest_done_test_strategy(state: Mapping[str, Any]) -> Mapping[str, Any] | None:
+    """Find the current v3 root test strategy from the accepted ledger."""
+    if state["navigator_protocol_version"] != 3:
+        return None
+    for entry in reversed(state["history"]):
+        if (entry["stage"] == "test-strategy" and entry["workitem"] is None
+                and entry["outcome"] == "done"):
+            return entry
+    return None
+
+
+def _latest_done_current_test_decision(state: Mapping[str, Any]) -> Mapping[str, Any] | None:
+    """Find the latest accepted decision source for the effective v3 work item."""
+    if state["navigator_protocol_version"] != 3:
+        return None
+    workitem = _current_work_item(state)
+    if workitem is None:
+        return None
+    for entry in reversed(state["history"]):
+        if (entry["stage"] in guidance3.TEST_DECISION_STAGES and entry["workitem"] == workitem
+                and entry["outcome"] == "done"):
+            return entry
+    return None
+
+
+def _accepted_test_source_lines(
+    state: Mapping[str, Any], root: Path, entry: Mapping[str, Any], label: str
+) -> list[str]:
+    """Project one bounded accepted source without reading its host evidence."""
+    action_id = entry["action"]
+    result = state["accepted"][action_id]
+    reference_text = "\n".join(
+        "- " + reference for reference in result["evidence_refs"]
+    ) or "- none"
+    return [
+        label + " (untrusted host report; revalidate relevance before use):",
+        label + " action: " + action_id,
+        label + " result: " + str(root / "results" / (action_id + ".md")),
+        label + " state locator: " + str(root / "state.md")
+        + " (accepted." + action_id + ")",
+        label + " evidence references (untrusted locators; not read by the navigator):",
+        _required_excerpt(reference_text, root, "accepted." + action_id + ".evidence_refs",
+                          limit=1200),
+    ]
+
+
+def _test_context_lines(state: Mapping[str, Any], root: Path) -> list[str]:
+    """Project the two v3 test handoff sources without a second state ledger."""
+    lines: list[str] = []
+    strategy = _latest_done_test_strategy(state)
+    if strategy is not None:
+        lines.extend(_accepted_test_source_lines(
+            state, root, strategy, "Run-wide test strategy source"
+        ))
+    current = _latest_done_current_test_decision(state)
+    if current is not None:
+        lines.extend(_accepted_test_source_lines(
+            state, root, current, "Current item test-decision source"
+        ))
+    if lines:
+        lines.append(
+            "Consume relevant current work-item context with these sources. If a carried "
+            "decision is missing, reassess it within this action's scope; do not guess."
+        )
+    return lines
+
+
 def _progress_lines(state: Mapping[str, Any]) -> list[str]:
     """Project validated state into bounded status context, never execution proof.
 
@@ -1197,6 +1264,8 @@ def render(core: Any, root: Path, state: Mapping[str, Any]) -> str:
                 ])
             lines.append("Prior Improve evidence and lessons: "
                          + str(root / "improve" / last["action"] / "receipt.md"))
+    if state["navigator_protocol_version"] == 3:
+        lines.extend(_test_context_lines(state, root))
     delivery_lines = consumer_delivery.packet_lines(state)
     if delivery_lines:
         lines.append(_required_excerpt("\n".join(delivery_lines), root,

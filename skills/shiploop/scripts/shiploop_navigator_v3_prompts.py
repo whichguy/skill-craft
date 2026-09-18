@@ -405,8 +405,10 @@ environment/workload prerequisites; missing evidence or access is not N/A.
 Read the Repeatable test-suite guide. Select the major harnesses and suite entry
 points now; reuse a prior-run harness only after revalidating its current fit.
 Consider supported platform/library testing systems and available browser tools
-such as Chrome DevTools or equivalent where relevant. Record their roles, fit,
+by required capability rather than product name. Record their roles, fit,
 availability and prerequisites; distinguish inspection from retained assertions.
+Link the durable strategy note in ordinary evidence_refs, with the selection
+rationale, fixture lifecycle, suite entry points and revalidation conditions.
 Retain exact focused, smoke, and full-suite commands, inclusion rules, expected
 cost and environment/fixture prerequisites. Plan durable regression tests, not
 one-off probes; smoke is a bounded subset, never evidence for the full suite.
@@ -458,6 +460,9 @@ environment or delivery decision, and approved exception as a short source
 locator plus decision, rationale, and revalidation condition in existing plan
 evidence. Put only the item-specific compact summary in the existing work-item
 `context` and preserve the source locators in ordinary `evidence_refs`.
+Use the packet's Run-wide test strategy source. Carry its locator and the
+applicable compact test decisions into each work item's existing `context`;
+include execution/target location, fixture and suite choices, and what to recheck.
 """,
     "prepare": """\
 Prepare or verify the approved development/test environment and prerequisites.
@@ -513,6 +518,8 @@ apply. Record a changed decision or exception with its short locator and reason 
 the existing plan/result evidence rather than relying on copied chat context.
 For every INNER change, use the Repeatable test-suite guide to reassess setup,
 the test and independent oracle, teardown, and focused/smoke/full-suite placement.
+Reopen the Run-wide test strategy source and this item's test context. Retain
+any justified changed decision and its evidence in the current plan/evidence_refs.
 Revalidate platform/library testing systems and available browser tools for the
 changed surfaces; reuse supported choices or record a justified revision. Turn
 useful inspection findings into retained tests or explicit manual procedures.
@@ -547,6 +554,8 @@ does not certify health or unblock a dependent feature without its required
 passing rerun.
 """,
     "test-author": """\
+Use the Run-wide test strategy source and current item context to select the
+applicable harness and test boundaries; revalidate the choice before authoring.
 Author or refine executable tests and fixtures from the independent test
 specification before production implementation.  Preserve adequate coverage and
 keep experiments isolated.  Do not weaken or delete an assertion merely to make
@@ -581,6 +590,8 @@ justified repair.  A passing command only supports the outcomes it actually
 exercises.
 """,
     "test-refine": """\
+Recheck the Run-wide test strategy source against the current item context and
+observed implementation; record revised test decisions in ordinary evidence_refs.
 Refine cases and executable tests using the code that now exists while preserving
 independent specification-based expectations.  Cover changed failure behavior,
 debug on/off behavior and safe diagnostic context where relevant.  Correct an
@@ -591,6 +602,8 @@ cases without boilerplate. Keep refined tests registered in the repeatable suite
 and refresh their case, fixture, command, and cost notes when those change.
 """,
     "regression": """\
+Use the Run-wide test strategy source and current item context to recover the
+applicable retained suites, target prerequisites and justified decision changes.
 Execute relevant regression, negative, compatibility, and boundary checks on the
 current candidate.  Include selected error and recovery behavior.  Distinguish a
 product defect, invalid test, and environment issue with a small discriminating
@@ -665,8 +678,12 @@ Preserve repeatable tests, fixture lifecycle decisions, harness/case locators an
 focused/smoke/full-suite commands in repository test documentation and work-item
 context. Link pending full-suite or real-boundary checks with their owner; do not
 leave the only rerun procedure in transient run notes.
+Retain the originating strategy locator alongside current item-specific test
+decisions so later items and whole-system tests can revalidate their basis.
 """,
     "system-test-author": """\
+Reopen the Run-wide test strategy source and relevant retained INNER test
+decisions; reconcile their suite membership and prerequisites before adding cases.
 Author or refine whole-product/system test cases and fixtures from the assembled
 candidate and global test strategy.  Cover real integration, consumer, runtime,
 security, accessibility, migration, compatibility, and operational boundaries as
@@ -805,6 +822,15 @@ IMPLEMENTATION_STAGES = frozenset(
 
 
 BACKCHAIN_STAGES = frozenset({"spec", "plan", "step-plan", "carry-forward", "product-acceptance"})
+TEST_DECISION_STAGES = frozenset({"step-plan", "test-spec", "test-author", "test-refine", "regression"})
+TEST_DECISION_HANDOFF = """\
+Reopen the packet's Current item test-decision source when present, alongside
+the Run-wide test strategy source and initial item context. Keep applicable
+prior decision locators and any justified revision in this result's ordinary
+evidence_refs and durable test notes, so later stages can recover their basis.
+Missing decisions require scoped reassessment; recorded completion is not proof
+that a selected harness, fixture or target remains usable.
+"""
 BACKCHAIN_NATIVE_CALLS = {
     "plan": ("plan", "draft"),
     "step-plan": ("review", "audit"),
@@ -883,6 +909,8 @@ def prompt(stage: str) -> str:
     """Return the single current producer instruction for a v3 graph stage."""
     _require_stage(stage)
     parts = [COMMON, DUTIES[stage]]
+    if stage in TEST_DECISION_STAGES:
+        parts.append(TEST_DECISION_HANDOFF)
     if stage in BACKCHAIN_STAGES:
         parts.append(_backchain_guidance(stage))
     if stage in RECONCILIATION_STAGES:
@@ -956,7 +984,9 @@ ledger, or an unverified summary.
 
 For test plans, authored/refined tests, fixtures, suite wiring or test evidence,
 read the packet's Repeatable test-suite guide. Carry the harness, case and suite
-locators into this child's contract/review notes. Review independent assertions,
+locators, the Run-wide test strategy source and Current item test-decision source
+when present, with the pending producer's proposed changes,
+into this child's contract/review notes. Review independent assertions,
 setup/test/teardown (including justified stateless cases), sharing noninterference,
 failure cleanup, repeatability, and focused/smoke/full-suite inclusion and cost.
 Improve the tests themselves and rerun affected checks after edits within the

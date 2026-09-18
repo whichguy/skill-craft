@@ -5,6 +5,21 @@ use the [navigator guide](navigator.md) and the packet's actual run/child locati
 Neither catalog replaces the repository's
 [maintained product requirements](project-knowledge.md#maintained-product-requirements).
 
+For Navigator v3 test planning, `state.md` retains accepted strategy results in
+`accepted`/`history`, and initial item test decisions in existing `work_items[*].context`.
+Packets derive a bounded **Run-wide test strategy source** from the latest
+completed root `test-strategy` result, with its `results/<action>.md` and
+`accepted.<action>` locators. The actual Improve handoff receives that same
+source plus the **Current item test-decision source**: the latest completed
+`step-plan`, `test-spec`, `test-author`, `test-refine` or `regression` result owned
+by the current item. These producers retain decision revisions in ordinary
+`evidence_refs`, not by rewriting the item's initial context. Improve receives
+the completed sources alongside its separate pending producer result.
+These are untrusted host reports
+to revalidate, not a new test-state schema or a passing-check receipt. Follow
+[test decision handoffs](repeatable-test-suites.md#carry-test-decisions-through-stages)
+to retain fixture, suite and local/remote choices through later work.
+
 Everything below belongs to a run directory, normally `<repo>/.shiploop`,
 not to the installed ShipLoop package. Markdown is the authoritative state.
 Each structured record has one `shiploop-state` JSON fence inside its Markdown

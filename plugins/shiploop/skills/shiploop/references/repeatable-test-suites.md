@@ -25,7 +25,7 @@ than add a parallel stack by default. Verify current availability, supported
 versions/interfaces, and local or remote execution prerequisites. A tool name
 in documentation is not evidence that it is installed, accessible, or suitable.
 
-For browser behavior, consider available Chrome DevTools, browser automation,
+For browser behavior, consider available inspection/debugging tools, browser automation,
 or equivalent tools to inspect and test the actual end-browser surface. Choose
 the tool by the observation needed, such as rendered DOM/CSS, console errors,
 network behavior, interaction, or performance. Apply the existing
@@ -49,6 +49,8 @@ The [Chrome DevTools overview](https://developer.chrome.com/docs/devtools/overvi
 illustrates inspection tools; Django's
 [testing overview](https://docs.djangoproject.com/en/5.2/topics/testing/overview/)
 illustrates platform-provided test support. These are examples, not dependencies.
+The contract is capability-based: no language, framework, vendor, browser or
+execution location is mandatory. Concrete choices belong to the current project.
 
 For every selected route, retain or link the exact non-secret command/arguments,
 stable case ID and selector, intended target/build, required dependencies or
@@ -66,6 +68,39 @@ applicable equivalent. Choose smoke membership independently from full-suite
 registration and reuse the same test/selector rather than duplicating a case.
 A smoke result establishes only that selected subset; it is never evidence that
 the full suite passed.
+
+## Carry test decisions through stages
+
+For Navigator v3, retain the run-wide strategy note in the `test-strategy`
+result's ordinary `evidence_refs`. Record selected capabilities and concrete
+project choices, rationale, execution versus target location, fixture lifecycle,
+suite commands/membership, prerequisites, and revalidation conditions there.
+During `plan`, put only each item's applicable decisions and strategy locator in
+its existing `context`; preserve detailed evidence in linked repository notes.
+
+The script projects the latest completed root `test-strategy` result as the
+**Run-wide test strategy source** in later packets. During an INNER item, it
+also projects the latest completed `step-plan`, `test-spec`, `test-author`,
+`test-refine` or `regression` result for that item as the **Current item
+test-decision source**. The item's initial `context` remains unchanged; these
+producers retain applicable prior decision locators and revisions through
+ordinary `evidence_refs` and durable test notes. Both sources reach the actual
+Improve handoff, alongside the separate pending producer result being reviewed.
+These pointers derive from `state.md`'s existing `history`/`accepted` records and
+immutable results; the script neither reads those evidence links nor
+proves the strategy is still applicable. Pending, repeated or blocked attempts
+are not promoted to completed sources. Their own result/Improve context
+continues to describe that attempt.
+
+Each INNER plan revalidates the relevant strategy and item context. Authoring,
+refinement and regression use those decisions and retain justified changes in
+ordinary plan/result evidence. Carry the originating strategy locator plus the
+current item-specific decisions into repository test documentation and future
+item context; whole-system testing reconciles that retained coverage. A missing
+decision calls for scoped reassessment; do not guess from a previous tool name.
+The latest reviewed item decision can refine the global baseline within its
+scope. Conflicts or missing prerequisites remain explicit. Managed/legacy runs
+retain their existing test-plan/binding and context routes.
 
 ## Plan local and remote execution
 

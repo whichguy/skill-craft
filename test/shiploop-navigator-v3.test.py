@@ -579,7 +579,7 @@ class NavigatorV3Tests(unittest.TestCase):
         """The global choice and each testing checkpoint retain the same guide route."""
         strategy = " ".join(prompts.prompt("test-strategy").split())
         self.assertIn(GLOBAL_PLATFORM_TESTING_CLAUSE, strategy)
-        self.assertIn("Chrome DevTools or equivalent", strategy)
+        self.assertIn("by required capability rather than product name", strategy)
         self.assertIn("distinguish inspection from retained assertions", strategy)
 
         for stage in TEST_HARNESS_STAGES:
@@ -588,6 +588,23 @@ class NavigatorV3Tests(unittest.TestCase):
 
         step_plan = " ".join(prompts.prompt("step-plan").split())
         self.assertIn(INNER_PLATFORM_TESTING_CLAUSE, step_plan)
+
+        self.assertIn("Link the durable strategy note in ordinary evidence_refs", strategy)
+        for stage in ("plan", "step-plan", "test-author", "test-refine", "regression", "system-test-author"):
+            with self.subTest(stage=stage, check="saved test strategy consumption"):
+                self.assertIn("Run-wide test strategy source", prompts.prompt(stage))
+        self.assertIn(
+            "originating strategy locator alongside current item-specific test",
+            prompts.prompt("carry-forward"),
+        )
+        self.assertIn("Run-wide test strategy source", prompts.improve_prompt("test-author"))
+        decision_stages = {"step-plan", "test-spec", "test-author", "test-refine", "regression"}
+        self.assertEqual(prompts.TEST_DECISION_STAGES, decision_stages)
+        for stage in decision_stages:
+            with self.subTest(stage=stage, check="current item decision carry-forward"):
+                instruction = " ".join(prompts.prompt(stage).split())
+                self.assertIn("Current item test-decision source", instruction)
+                self.assertIn("prior decision locators and any justified revision", instruction)
 
     def test_v3_remote_test_routes_keep_local_and_remote_evidence_distinct(self) -> None:
         """Route remote test assets without treating a local result as their evidence."""

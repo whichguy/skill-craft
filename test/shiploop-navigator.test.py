@@ -2101,7 +2101,7 @@ class NavigatorTests(unittest.TestCase):
             "Consider supported platform/library testing systems and available browser tools",
             strategy,
         )
-        self.assertIn("Chrome DevTools or equivalent", strategy)
+        self.assertIn("by required capability rather than product name", strategy)
         self.assertIn("distinguish inspection from retained assertions", strategy)
 
         step_plan = " ".join(navigator_prompts.PROMPTS["step-plan"].split())

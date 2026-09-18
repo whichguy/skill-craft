@@ -128,10 +128,10 @@ campaign, and use the current callback; the reply alone is not completion.
 Independent work stays within this action; never skip graph stages while waiting.
 
 For destination checks, follow the packet's Consumer testing guide. Prefer the
-lowest-overhead available tool that proves the expected behavior: curl or an
+lowest-overhead available tool that proves the expected behavior: an
 existing HTTP/API client when sufficient. Always consider an authorized browser
-route such as Chrome DevTools or equivalent for rendered interactions or
-browser-specific authentication. Do not force a curl attempt when it cannot
+inspection or automation route for rendered interactions or browser-specific
+authentication. Do not force a lower-level request when it cannot
 answer the question, treat a login page as product success, or weaken a required
 browser check because HTTP succeeds. Retain the chosen boundary and evidence limits.
 
@@ -517,7 +517,7 @@ observations. A planned test is not a passed test.
 Use the Repeatable test-suite guide to select the major harnesses before code,
 or revalidate a prior-run harness.
 Consider supported platform/library testing systems and available browser tools
-such as Chrome DevTools or equivalent where relevant. Record their roles, fit,
+by required capability rather than product name. Record their roles, fit,
 availability and prerequisites; distinguish inspection from retained assertions.
 Retain exact focused, smoke and full-suite commands, inclusion rules, fixture
 prerequisites and setup/run/teardown cost.
