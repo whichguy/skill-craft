@@ -1,4 +1,6 @@
 ```mermaid
+
+> Historical design, superseded on 2026-09-18 for recurrence ownership and stopping: Backchain now owns internal repetition until two consecutive distinct passes find only trivial/no changes. See [the correction and implementation record](backchain-convergence-2026-09-18.md). Earlier audit experiment results remain scoped to their original one-pass comparison.
 flowchart TD
     A[ShipLoop stage and source context] --> B[Backchain helper of the active owner]
     B --> C[Candidate plan or dependency findings]

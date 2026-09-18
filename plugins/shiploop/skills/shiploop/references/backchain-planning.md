@@ -14,8 +14,10 @@ At `spec`, check outcomes and missing prerequisites without authoring future
 receipts. At `plan`, apply [the dependency audit](#dependency-audit) to order
 producers before consumers. At `step-plan`, apply it to the scoped local
 microplan and its suppliers. At `carry-forward` and `product-acceptance`, use it
-only for affected pending/corrective work and newly exposed dependencies.
-The same stage's assigned Improve reviews those mappings and gaps.
+only for affected pending/corrective work and newly exposed dependencies. In an
+explicit native selection, a whole `plan`/`draft` or authorized `repair`/`revise`
+operation owns its internal convergence; the ordinary Improve handoff remains a
+separate broader review.
 
 Retain the audit in ordinary plan notes, result `evidence_refs` and work-item
 `context`. Use v3's current callback and allowed result fields; do not import
@@ -229,26 +231,46 @@ adaptation, not execution or a byte-identical snapshot of the external skill.
 
 `embedded` remains the current compatibility mode. A new run may intentionally
 select `source-aware-native` in ordinary run notes when the host has observed a
-selected Backchain `SKILL.md`, its adjacent `backchain-caller/v1` contract, and
-the resource for the requested action/stage. This is host-mediated prompt guidance,
-not navigator state, a callback, a controller, or a scheduler.
+selected Backchain `SKILL.md`, adjacent `backchain-caller/v1` contract,
+`references/convergence.md`, `prompts/convergence-review.prompt.md`, and the resource
+for the requested action/stage. Those observed resources must describe compatible
+converging whole operations; caller/v1 alone, including an older package, is
+incompatible. This is host-mediated prompt guidance, not navigator state, a
+callback, a controller, or a scheduler.
 
 The durable selection record names mode, interface, action/stage, action ID and
-owner; selected-card locator and digest; original request; candidate ID, locator,
-base, resolved locator and input/output digests; and each source's locator, base,
-resolved locator, authority, provenance, currentness, revision, digest and
+owner; selected-card/resource locators and digests; original request; candidate ID,
+locator, base, resolved locator and input/output digests; and each source's locator,
+base, resolved locator, authority, provenance, currentness, revision, digest and
 supersession. It retains requirements as an index, lens findings, edit bounds,
-iteration budget, findings, result dispositions and receipt locators in existing
-run notes, `evidence_refs` and compact work-item `context`. Cold recovery rereads
-those records; it never infers the caller root from the skill root or prior CWD.
+findings, result dispositions and receipt locators in existing run notes,
+`evidence_refs` and compact work-item `context`, plus the full opaque
+`review.convergence` companion: passes, passes_used, max_passes, context/candidate
+identities, status, and stop_reason. ShipLoop preserves and returns that receipt but
+does not interpret, increment, or own its count. `convergence_policy.max_passes` is
+current packet data. Deprecated `edit_bounds.iteration_budget` remaining allowance (`limit - used`) is an
+additional cap; Backchain uses the smaller when both are present, and neither can
+weaken Backchain's convergence condition. Cold recovery rereads those records; it
+never infers the caller root from the skill root or prior CWD.
 
-The plan-stage owner may request `plan`/`draft`; the step-plan owner may request
-`review`/`audit`. `spec`, `carry-forward`, and `product-acceptance` request audit
-only for a material dependency or acceptance gap. Only the active Improve iteration
-executor may request `repair`/`revise`, after a material finding and inside that
-child's allowed bounds. ShipLoop remains parked and Improve remains responsible for
-its own completion. A material finding, a planned check, or an experiment that
-merely ran cannot clear Improve or establish execution.
+The plan-stage owner may request one whole `plan`/`draft` operation. Backchain
+internally repeats assessment and authorized revision until it has two consecutive
+distinct trivial/no-change assessments; a material finding resets that streak and,
+once resolved, assessment continues. Only an unresolved planning_gap, unknown,
+blocker, or exhausted cap reports planning incomplete. An accurately modeled
+`execution_blocker`, such as CAB approval or future passing evidence, can coexist
+with converged planning while execution remains incomplete. The step-plan owner may
+request read-only one-pass `review`/`audit`; `spec`, `carry-forward`, and
+`product-acceptance` request that diagnostic only for a material dependency or
+acceptance gap. Audit neither mutates nor completes a candidate. Its material finding
+is routed to the authorized current stage owner, which may request one bounded whole
+`repair`/`revise` operation within explicit edit bounds. No permission to revise
+means incomplete, never a broadened scope. ShipLoop does not count assessment passes,
+schedule a Backchain retry, or invoke Improve to get another pass; it preserves the
+opaque convergence receipt for recovery. Improve remains its independent broader
+review. A material finding, planned check, or experiment that merely ran cannot clear
+Improve or establish execution, and an incomplete Backchain report must not be
+submitted as a completed parent action.
 
 An unavailable, stale, ambiguous, superseded-without-inspection, or incompatible
 material source/card/contract/resource is incomplete or blocked; do not silently

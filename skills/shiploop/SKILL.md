@@ -405,11 +405,31 @@ for compatibility testing.
 
 For a new navigator-v3 plan, retain `embedded` unless ordinary run notes
 intentionally select compatible `source-aware-native`. The native selection binds
-the observed selected Backchain `SKILL.md`, adjacent `backchain-caller/v1` contract
-and action/stage resource; action ID/owner; card identity; original source and
-candidate identities; locator bases plus resolved source/candidate paths; edit
-bounds; and receipts. A recovery reopens this record instead of deriving sources
-from the selected skill directory or current working directory.
+the observed selected Backchain `SKILL.md`, adjacent `backchain-caller/v1` contract,
+`references/convergence.md`, `prompts/convergence-review.prompt.md`, and action/stage
+resource; action ID/owner; card/resource identities; original source and candidate
+identities; locator bases plus resolved source/candidate paths; edit bounds; and
+receipts. The selected resources must describe compatible converging whole
+operations: caller/v1 alone, including an older package, is incompatible. A recovery
+reopens this record instead of deriving sources from the selected skill directory or
+current working directory.
+
+A selected native `plan`/`draft` or authorized `repair`/`revise` is one whole
+Backchain operation. Backchain performs its own assessment/revision convergence:
+it requires two consecutive distinct trivial/no-change assessments, and a material
+finding resets that streak until resolved. Only an unresolved planning_gap, unknown,
+blocker, or exhausted cap prevents planning convergence. An accurately modeled
+`execution_blocker`, such as CAB approval or a future passing-evidence condition,
+can coexist with converged planning while execution remains incomplete. ShipLoop
+preserves the full opaque `review.convergence` companion (passes, passes_used,
+max_passes, context/candidate identities, status, and stop_reason) in ordinary notes
+and evidence references, but never interprets, increments, or owns its counter,
+schedules a retry, or asks Improve to obtain passes. `convergence_policy.max_passes`
+is current packet data; the remaining allowance in deprecated `edit_bounds.iteration_budget` (`limit - used`) is
+another cap, and Backchain uses the smaller when both exist. `review`/`audit` remains
+a read-only one-pass diagnostic; it cannot complete planning. Its material finding
+must reach the authorized current stage owner for a bounded whole revision or remain
+incomplete.
 
 Use the selected card only when it and the contract/resource are observed and
 compatible. A missing, stale, ambiguous, or incompatible material input is an

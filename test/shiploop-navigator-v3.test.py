@@ -490,29 +490,52 @@ class NavigatorV3Tests(unittest.TestCase):
             prompts.IMPROVE_SCOPES["spec"],
         )
 
-    def test_v3_native_backchain_operations_reach_only_the_assigned_packets(self) -> None:
-        """Check emitted dispatch targets; live trials assess policy semantics."""
+    def test_v3_native_backchain_operations_keep_convergence_with_backchain(self) -> None:
+        """ShipLoop requests one whole operation; it never counts Backchain passes."""
         operations = {
             "draft": "action `plan` / stage `draft`",
             "audit": "action `review` / stage `audit`",
             "revise": "action `repair` / stage `revise`",
         }
         expected = {
-            "spec": "audit", "plan": "draft", "step-plan": "audit",
-            "carry-forward": "audit", "product-acceptance": "audit",
+            "spec": ["audit", "revise"],
+            "plan": ["draft"],
+            "step-plan": ["audit", "revise"],
+            "carry-forward": ["audit", "revise"],
+            "product-acceptance": ["audit", "revise"],
         }
         for stage in EXPECTED_STAGES:
             with self.subTest(stage=stage):
-                producer = prompts.prompt(stage)
-                improve = prompts.improve_prompt(stage)
+                producer = " ".join(prompts.prompt(stage).split())
+                improve = " ".join(prompts.improve_prompt(stage).split())
                 self.assertEqual(
                     [name for name, selector in operations.items() if selector in producer],
-                    [expected[stage]] if stage in expected else [],
+                    expected.get(stage, []),
                 )
                 self.assertEqual(
                     [name for name, selector in operations.items() if selector in improve],
-                    ["revise"] if stage in expected else [],
+                    [],
                 )
+        plan = " ".join(prompts.prompt("plan").split())
+        self.assertIn("two consecutive distinct trivial/no-change assessments", plan)
+        self.assertIn("default maximum of six assessment passes", plan)
+        audit = " ".join(prompts.prompt("step-plan").split())
+        self.assertIn("read-only, one-pass diagnostic", audit)
+        self.assertIn("must not be submitted as a completed parent action", audit)
+        self.assertNotIn("only the active Improve iteration executor", plan)
+        for capability in (
+            "references/convergence.md",
+            "prompts/convergence-review.prompt.md",
+            "convergence_policy.max_passes",
+            "edit_bounds.iteration_budget",
+            "`limit - used`",
+            "stop_reason",
+            "full opaque `review.convergence`",
+            "material finding resets the streak",
+            "execution_blocker",
+        ):
+            with self.subTest(capability=capability):
+                self.assertIn(capability, plan)
 
     def test_v3_backchain_planning_guidance_is_scoped_to_selected_stages(self) -> None:
         """Producer and actual Improve prompts use the guide only for planning decisions."""

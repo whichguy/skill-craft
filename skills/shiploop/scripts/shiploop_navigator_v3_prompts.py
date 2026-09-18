@@ -847,9 +847,10 @@ that a selected harness, fixture or target remains usable.
 """
 BACKCHAIN_NATIVE_CALLS = {
     "plan": ("plan", "draft"),
-    "step-plan": ("review", "audit"),
 }
-BACKCHAIN_CONDITIONAL_AUDIT_STAGES = frozenset({"spec", "carry-forward", "product-acceptance"})
+BACKCHAIN_AUDIT_STAGES = frozenset(
+    {"spec", "step-plan", "carry-forward", "product-acceptance"}
+)
 
 
 def _backchain_guidance(stage: str, *, improve_owner: bool = False) -> str:
@@ -863,51 +864,88 @@ compatibility default until an explicit run-note selection chooses
 `source-aware-native`.
 
 A `source-aware-native` call is allowed only when existing run notes identify an
-observed selected Backchain `SKILL.md`, its adjacent `backchain-caller/v1`
-caller-contract resource, and the resources for the requested action/stage. Read
-those observed resources before use; do not guess a sibling, cache, or a matching
-skill name. Persist the selected card/contract identities, original source and
-candidate identities/digests, edit bounds, receipt locators, and every resolved
-source locator/base (the resolved source locator) or observed absolute locator in existing run notes,
-`evidence_refs`, and necessary work-item `context`. A fresh context rereads that
-record rather than assuming its CWD or deriving sources from the skill root.
+observed selected Backchain `SKILL.md`, adjacent `backchain-caller/v1`
+caller-contract resource, `references/convergence.md`,
+`prompts/convergence-review.prompt.md`, and the resource for the requested
+action/stage. Read those observed resources and their identities before use; the
+card and convergence resources must describe compatible converging whole
+operations. A card that has caller/v1 alone, including an older package, is
+incompatible. Do not guess a sibling, cache, or matching skill name.
 
-If a requested native card, contract, source, candidate, digest, or resource is
-missing, stale, ambiguous, or incompatible, leave it incomplete/blocked with the
-recovery locator: there is no silent fallback. Label `embedded` only when it was
-intentionally selected; do not describe it as a native invocation. Host reasoning
-checks capability identity and packet compatibility; these prompts do not pretend
-that the navigator machine-enforces either.
+Persist the selected card/contract/convergence-resource identities, original
+source and candidate identities/digests, edit bounds, receipt locators, and every
+resolved source locator/base (the resolved source locator) or observed absolute
+locator in existing run notes, `evidence_refs`, and necessary work-item `context`.
+A fresh context rereads that record rather than assuming its CWD or deriving
+sources from the skill root. The current packet carries
+`convergence_policy.max_passes`. The remaining allowance in deprecated `edit_bounds.iteration_budget`
+(`limit - used`) is another cap when present; Backchain uses the smaller of both
+and neither weakens its two-pass completion condition.
 
-A source-aware packet preserves the original request/source clauses, workflow stage, action/stage, action ID and owner; selection skill locator/digest; explicit locator-base records and each resolved locator; candidate input kind, input/output digests and disposition; source authority/provenance/currentness/revision/supersession; requirements index, lens findings, observed evidence, open questions, dependency neighborhood, edit bounds/iteration budget, prior findings, and result receipts.
+Preserve and return the full opaque `review.convergence` companion, including
+passes, passes_used, max_passes, context and candidate identities, status, and
+stop_reason, in ordinary run notes/evidence references. ShipLoop does not interpret,
+increment, or own that count. Missing, stale, ambiguous, or incompatible native
+resources leave the request incomplete/blocked with the recovery locator: there
+is no silent fallback. Label `embedded` only when intentionally selected; do not
+describe it as a native invocation. Host reasoning checks capability identity and
+packet compatibility; these prompts do not pretend navigator machine-enforces it.
+
+A source-aware packet preserves the original request/source clauses, workflow
+stage, action/stage, action ID and owner; selection identities; explicit locator
+bases and resolved locators; candidate input/output identities and disposition;
+source authority/provenance/currentness/revision/supersession; requirements index,
+lens findings, observed evidence, open questions, dependency neighborhood, edit
+bounds, `convergence_policy.max_passes`, prior findings, and result receipts.
 Missing or stale material sources remain unresolved. A structural plan, planned
 check, or experiment that merely ran is not execution evidence or a passed
 experiment. Material findings remain visible and cannot clear Improve.
 """
     if improve_owner:
         return selection + """\
-only the active Improve iteration executor may ask for action `repair` / stage `revise`, and only after a material finding within that child's authorized
-candidate scope and edit bounds. ShipLoop stays parked while Improve uses the
-returned candidate or unresolved finding in its existing cycle. Do not create an
-`active_backchain` child, a nested Until Loop, a retry dispatcher, or a new
+Improve remains an independent broader review. It may inspect Backchain findings
+and the returned candidate as ordinary parent inputs, but it does not request
+Backchain passes, count them, or make a Backchain completion claim. Do not create
+an `active_backchain` child, a nested Until Loop, a retry dispatcher, or a new
 callback; a protected/out-of-scope change follows the existing blocked or
 recovery route.
 """
     if stage in BACKCHAIN_NATIVE_CALLS:
         action, operation = BACKCHAIN_NATIVE_CALLS[stage]
-        detail = (
-            "The draft is a proposed candidate; ShipLoop still owns acceptance and lifecycle state."
-            if stage == "plan"
-            else "The audit compares the scoped item, suppliers, consumers, and sources without mutating the candidate."
-        )
         return selection + f"""\
 When `source-aware-native` is selected for this stage, the current stage host may
-request action `{action}` / stage `{operation}` within the packet's scope. {detail}
+request exactly one action `{action}` / stage `{operation}` within the packet's
+scope. This is a whole native Backchain operation: Backchain, not ShipLoop or
+Improve, performs its internal convergence assessment/revision loop. It requires
+two consecutive distinct trivial/no-change assessments before it can report a
+converged candidate, subject to its default maximum of six assessment passes.
+A caller may cap resources but cannot weaken that condition. A material finding
+resets the streak; after Backchain resolves it, assessment continues. Only an
+unresolved planning_gap, unknown, blocker, or exhausted cap prevents planning
+convergence and must not be submitted as a completed parent action. An accurately
+modeled `execution_blocker` (for example CAB approval or future passing evidence)
+may coexist with converged planning while execution remains incomplete. The draft
+is a proposed candidate; ShipLoop still owns acceptance and lifecycle state.
+"""
+    if stage in BACKCHAIN_AUDIT_STAGES:
+        return selection + """\
+At this stage, request action `review` / stage `audit` only for a material
+prerequisite ambiguity, pending/corrective dependency, or acceptance gap. Audit
+is a read-only, one-pass diagnostic: it does not mutate a candidate, converge a
+plan, replace consumer verification, or complete the parent action. If it reports
+a material finding, route that finding to the current stage owner. Within explicit
+authorized edit bounds, that owner may request exactly one action `repair` / stage
+`revise`; it is another whole native Backchain operation with the same internal
+two-consecutive-distinct-trivial/no-change convergence rule and default maximum
+of six assessment passes. A material finding resets the streak; when resolved,
+Backchain continues assessment. A forbidden revision, unresolved planning_gap,
+unknown, blocker, or exhausted cap remains incomplete and must not be submitted as
+a completed parent action. An accurately modeled `execution_blocker` may coexist
+with converged planning while execution remains incomplete.
 """
     return selection + """\
-At this stage, request action `review` / stage `audit` only for a material
-prerequisite ambiguity, pending/corrective dependency, or acceptance gap. It is
-not a default stage call and cannot replace consumer verification.
+This stage has no native Backchain action. Keep relevant findings in ordinary
+notes and route a material planning gap through its authorized owner.
 """
 
 

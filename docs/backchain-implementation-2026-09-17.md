@@ -1,5 +1,7 @@
 # Backchain source-aware planning and ShipLoop integration
 
+> Historical design, superseded on 2026-09-18 for recurrence ownership and stopping: Backchain now owns internal repetition until two consecutive distinct passes find only trivial/no changes. See [the correction and implementation record](backchain-convergence-2026-09-18.md). Earlier audit experiment results remain scoped to their original one-pass comparison.
+
 Status: implementation completed locally and validation finished. Native ShipLoop use remains an explicitly selected pilot. This records the approved plan, measured adoption decision, and verification results; no commit or publication was performed.
 
 ```mermaid
