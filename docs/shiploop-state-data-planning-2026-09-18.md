@@ -113,7 +113,8 @@ both consumer paths. The raw frozen score remains four of five solely because
 it omits the overstrict empty-list case; the actual compatibility defect is
 repaired. This is targeted plan-repair evidence, not a fresh full-prelude result
 or a claim that default Improve always finds a regression. The linked report
-and runtime record retain the completion evidence independently of this summary.
+and runtime record retain its current review evidence; confirm adapter
+finalization from the recorded phase before claiming completion.
 [Repaired plan scorecard](/Users/dadleet/Documents/Codex/experiments/shiploop-state-planning-implementation-20260918/memory-repair-judgment.md),
 [repair review record](/Users/dadleet/Documents/Codex/experiments/shiploop-state-planning-implementation-20260918/memory-repair/improve-report.md).
 
