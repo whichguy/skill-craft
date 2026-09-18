@@ -230,53 +230,61 @@ adaptation, not execution or a byte-identical snapshot of the external skill.
 ## Source-aware native caller (navigator v3)
 
 `embedded` remains the current compatibility mode. A new run may intentionally
-select `source-aware-native` in ordinary run notes when the host has observed a
-selected Backchain `SKILL.md`, adjacent `backchain-caller/v1` contract,
-`references/convergence.md`, `prompts/convergence-review.prompt.md`, and the resource
-for the requested action/stage. Those observed resources must describe compatible
-converging whole operations; caller/v1 alone, including an older package, is
-incompatible. This is host-mediated prompt guidance, not navigator state, a
-callback, a controller, or a scheduler.
+select `source-aware-native` in ordinary run notes when the host has observed the
+selected Backchain `SKILL.md`, its `backchain-caller/v1` action/stage resource,
+`references/convergence.md`, and `prompts/convergence-review.prompt.md`, plus a selected
+physical Until Loop root with its `SKILL.md`, `references/runtime-ephemeral.md`, and
+`scripts/until_loop_ephemeral.py` capability. Read the Backchain convergence resources:
+they must support the direct natural-language handoff under
+`Backchain standalone Until Loop binding: <binding-id>` for a plan-only child where the
+actual loaded Until Loop card starts its adapter, is the sole CLI caller, and returns the
+exact terminal packet. This is host-mediated prompt guidance, not navigator state, a
+callback, a controller, or a scheduler. Caller/v1 alone does not establish this
+capability; an observed old custom Backchain loop is incompatible even when an Until
+Loop package is installed.
 
 The durable selection record names mode, interface, action/stage, action ID and
-owner; selected-card/resource locators and digests; original request; candidate ID,
-locator, base, resolved locator and input/output digests; and each source's locator,
-base, resolved locator, authority, provenance, currentness, revision, digest and
-supersession. It retains requirements as an index, lens findings, edit bounds,
-findings, result dispositions and receipt locators in existing run notes,
-`evidence_refs` and compact work-item `context`, plus the full opaque
-`review.convergence` companion: passes, passes_used, max_passes, context/candidate
-identities, status, and stop_reason. ShipLoop preserves and returns that receipt but
-does not interpret, increment, or own its count. `convergence_policy.max_passes` is
-current packet data. Deprecated `edit_bounds.iteration_budget` remaining allowance (`limit - used`) is an
-additional cap; Backchain uses the smaller when both are present, and neither can
-weaken Backchain's convergence condition. Cold recovery rereads those records; it
-never infers the caller root from the skill root or prior CWD.
+owner; selected Backchain and Until Loop card/resource locators and digests, including
+the Backchain convergence reference and review prompt; original request; candidate ID,
+locator, base, resolved locator and input/output digests;
+each source's locator, base, resolved locator, authority, provenance, currentness,
+revision, digest and supersession; protected bounds; and receipt locators. Backchain
+passes dependency-specific review/fix/check work, plan candidate files, source/lens
+context, and protected bounds to its child under
+`Backchain standalone Until Loop binding: <binding-id>`. ShipLoop preserves the full
+opaque actual Until Loop terminal evidence and Backchain domain evidence in ordinary
+run notes, `evidence_refs`, and compact work-item `context`: binding_id; owner; candidate
+input/output digests; resolved resources; opaque `terminal_receipt`; domain_evidence;
+planning_gaps; execution_blockers; and next_action. It does not interpret runtime
+progress, own a counter, schedule a retry, or make completion from an intermediate
+plan. Cold recovery rereads these records; it never infers either selected root from
+CWD or a neighboring package.
 
-The plan-stage owner may request one whole `plan`/`draft` operation. Backchain
-internally repeats assessment and authorized revision until it has two consecutive
-distinct trivial/no-change assessments; a material finding resets that streak and,
-once resolved, assessment continues. Only an unresolved planning_gap, unknown,
-blocker, or exhausted cap reports planning incomplete. An accurately modeled
-`execution_blocker`, such as CAB approval or future passing evidence, can coexist
-with converged planning while execution remains incomplete. The step-plan owner may
-request read-only one-pass `review`/`audit`; `spec`, `carry-forward`, and
-`product-acceptance` request that diagnostic only for a material dependency or
-acceptance gap. Audit neither mutates nor completes a candidate. Its material finding
-is routed to the authorized current stage owner, which may request one bounded whole
-`repair`/`revise` operation within explicit edit bounds. No permission to revise
-means incomplete, never a broadened scope. ShipLoop does not count assessment passes,
-schedule a Backchain retry, or invoke Improve to get another pass; it preserves the
-opaque convergence receipt for recovery. Improve remains its independent broader
-review. A material finding, planned check, or experiment that merely ran cannot clear
-Improve or establish execution, and an incomplete Backchain report must not be
-submitted as a completed parent action.
+The Until Loop child is plan-only: it may change the candidate plan and permitted planning
+companions, but may not commit, push, merge, execute the project, or broaden scope.
+
+The plan-stage owner may request one whole `plan`/`draft` operation. A material
+audit finding may be routed to the authorized current stage owner for one bounded
+whole `repair`/`revise` operation. Each whole operation lets Backchain invoke the
+selected actual Until Loop for its dependency-specific review/fix/check cycle. Until
+Loop alone owns callback progress, its `required_trivial_reviews: 2` gate for two
+consecutive distinct complete trivial/no-change dependency reviews, recovery, and terminal
+state. Backchain returns only after the child reports `complete`
+and the exact terminal evidence is saved; a blocked, stopped, unresolved, or
+incompatible child leaves the parent action incomplete and must not be submitted as
+completed. Only that exact `complete` receipt plus final candidate identity and domain
+evidence permits planning convergence. `review`/`audit` remains a read-only one-pass diagnostic: it neither
+mutates a candidate nor starts an Until Loop child. Improve's ordinary ShipLoop review
+remains independent. It must not launch a nested whole Backchain→Until Loop subcall;
+use a one-pass Backchain primitive for any relevant diagnostic.
+
 
 An unavailable, stale, ambiguous, superseded-without-inspection, or incompatible
 material source/card/contract/resource is incomplete or blocked; do not silently
 select embedded. A chosen embedded mode is recorded explicitly and is never called
 a native invocation. Host reasoning evaluates capability and packet compatibility:
-the script does not claim to enforce those semantic facts. A native output with
-invalid identity is unchanged/rejected/unresolved; no digest is invented. A revised
-plan starts with structural status unknown and empty `parallel_groups` until its
-exact output digest and structural check are independently recorded.
+the direct-handoff compatibility judgment remains host-judged and the script does not
+claim to enforce those semantic facts. A native output with invalid identity is
+unchanged/rejected/unresolved; no digest is invented. A revised plan starts with
+structural status unknown and empty `parallel_groups` until its exact output digest and
+structural check are independently recorded.

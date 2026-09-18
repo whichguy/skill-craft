@@ -152,4 +152,16 @@ copied into the release. Historical experiment artifacts remain byte-preserved,
 including literal diff-context whitespace in `guidance.patch` and the extra final
 newline in `final-checks.json`; source and test whitespace checks pass separately.
 
-Release verification is recorded below after the complete hermetic aggregate.
+Release verification on the merged composition through upstream `88e59f9`:
+82 focused tests passed across v3 guidance (15), navigator (22), actual Improve
+CLI (7), reference routing (8), local-skill apparatus (8), suite inventory (15),
+and packet bounds (7). Full generated-package parity passed for all 18 skills.
+The merge preserves upstream test-facility handoffs, CI trigger policy, and
+Backchain's direct Until Loop convergence contract. Independent compatibility
+review found no remaining publication blocker.
+
+A separate full `bash test/run-all.sh` aggregate was launched against committed
+feature `5aafc54` on base `7f8ef5d`; it is not included in the focused count above
+or claimed as validation of the later upstream composition. Normal main-branch
+CI checks the exact published merge. The original shared checkout and its empty
+staging area were left in place; publication used isolated worktrees.
