@@ -11,12 +11,14 @@ from __future__ import annotations
 
 import argparse
 import concurrent.futures
+import fcntl
 import importlib.util
 import json
 import os
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 import unittest
 from pathlib import Path
@@ -127,6 +129,7 @@ class CapabilityRuntimeTests(unittest.TestCase):
             subprocess.Popen(command(log), stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
             for log in (log_a, log_b)
         ]
+        cleanup_results: list[tuple[int | None, bool, str]] = []
 
         def call(proc: subprocess.Popen[str], request_id: str) -> dict[str, Any]:
             assert proc.stdin and proc.stdout
@@ -135,7 +138,21 @@ class CapabilityRuntimeTests(unittest.TestCase):
                 "params": {"name": "workspace", "arguments": {"operation": "list"}},
             }) + "\n")
             proc.stdin.flush()
-            response = json.loads(proc.stdout.readline())
+            raw_response = proc.stdout.readline()
+            if not raw_response:
+                try:
+                    returncode = proc.wait(timeout=10)
+                except subprocess.TimeoutExpired:
+                    self.fail(
+                        "gateway closed stdout but did not exit within 10 seconds "
+                        f"(returncode={proc.poll()!r}, stderr=<unavailable while process is live>)"
+                    )
+                stderr = proc.stderr.read() if proc.stderr is not None else ""
+                self.fail(
+                    "gateway exited before responding "
+                    f"(returncode={returncode!r}, stderr={stderr[-1000:]!r})"
+                )
+            response = json.loads(raw_response)
             return response["result"]
 
         try:
@@ -148,18 +165,196 @@ class CapabilityRuntimeTests(unittest.TestCase):
         finally:
             for proc in processes:
                 if proc.stdin and not proc.stdin.closed:
-                    proc.stdin.close()
-                proc.wait(timeout=10)
+                    try:
+                        proc.stdin.close()
+                    except BrokenPipeError:
+                        # Preserve the original response/EOF assertion when a
+                        # child has already closed its input pipe.
+                        pass
+            for proc in processes:
+                timed_out = False
+                try:
+                    returncode = proc.wait(timeout=10)
+                except subprocess.TimeoutExpired:
+                    timed_out = True
+                    proc.terminate()
+                    try:
+                        returncode = proc.wait(timeout=5)
+                    except subprocess.TimeoutExpired:
+                        returncode = proc.poll()
+                stderr = ""
+                if returncode is not None and proc.stderr:
+                    stderr = proc.stderr.read()
                 if proc.stdout:
                     proc.stdout.close()
                 if proc.stderr:
                     proc.stderr.close()
+                cleanup_results.append((returncode, timed_out, stderr))
+        for returncode, timed_out, stderr in cleanup_results:
+            self.assertFalse(timed_out, "gateway did not exit after normal stdin close")
+            self.assertEqual(returncode, 0, f"gateway exited unexpectedly: {stderr[-1000:]!r}")
         state = json.loads(ledger.read_text(encoding="utf-8"))
         records = state["records"]
         self.assertEqual(state["tool_calls"], 4)
         self.assertEqual([row["call"] for row in records], [1, 2, 3, 4])
         self.assertTrue(all(not any("request_id" in key for key in row) for row in records))
         self.assertNotIn("caller-id-", ledger.read_text(encoding="utf-8"))
+
+    def test_paused_initializer_never_publishes_empty_ledger_or_overwrites_consumer(self) -> None:
+        ledger_path = self.base / "race-ledger.json"
+        now = time.time()
+        options = {
+            "start_epoch": now,
+            "deadline_epoch": now + 60,
+            "cutoff_epoch": now + 30,
+            "call_limit": 8,
+            "exploration_limit": 8,
+        }
+        original_initial = gateway.Ledger._initial
+        first_initial_ready = threading.Event()
+        let_first_finish = threading.Event()
+        initial_guard = threading.Lock()
+        first_initial = True
+        first_errors: list[BaseException] = []
+
+        def pause_first_initial(instance: Any) -> dict[str, Any]:
+            nonlocal first_initial
+            with initial_guard:
+                pause_here = first_initial
+                first_initial = False
+            if pause_here:
+                first_initial_ready.set()
+                if not let_first_finish.wait(timeout=5):
+                    raise RuntimeError("test did not release the first ledger initializer")
+            return original_initial(instance)
+
+        def start_first() -> None:
+            try:
+                gateway.Ledger(ledger_path, **options)
+            except BaseException as exc:  # captured so cleanup never leaves the initializer paused
+                first_errors.append(exc)
+
+        gateway.Ledger._initial = pause_first_initial
+        first = threading.Thread(target=start_first)
+        second_error: BaseException | None = None
+        second_state: dict[str, Any] | None = None
+        second_phase: str | None = None
+        published_while_first_paused = False
+        visible_before_first_finishes: dict[str, Any] | None = None
+        try:
+            first.start()
+            self.assertTrue(first_initial_ready.wait(timeout=2), "first initializer did not reach its write boundary")
+            published_while_first_paused = ledger_path.exists()
+            second = gateway.Ledger(ledger_path, **options)
+            try:
+                second_state, second_phase = second.consume(operation="list", path=None)
+                visible_before_first_finishes = json.loads(ledger_path.read_text(encoding="utf-8"))
+            except BaseException as exc:
+                second_error = exc
+        finally:
+            let_first_finish.set()
+            first.join(timeout=5)
+            gateway.Ledger._initial = original_initial
+
+        self.assertFalse(first.is_alive(), "first initializer did not finish after release")
+        self.assertEqual(first_errors, [])
+        self.assertIsNone(second_error, f"second starter observed a partially initialized ledger: {second_error!r}")
+        self.assertFalse(published_while_first_paused, "an empty ledger became visible before its JSON was complete")
+        self.assertEqual(second_phase, "exploration")
+        self.assertIsNotNone(second_state)
+        self.assertIsNotNone(visible_before_first_finishes)
+        assert second_state is not None
+        assert visible_before_first_finishes is not None
+        self.assertEqual(second_state["tool_calls"], 1)
+        self.assertEqual([row["call"] for row in second_state["records"]], [1])
+        self.assertEqual(visible_before_first_finishes, second_state)
+        self.assertEqual(json.loads(ledger_path.read_text(encoding="utf-8")), second_state)
+
+    def test_snapshot_waits_for_writer_and_existing_bad_ledger_is_not_reinitialized(self) -> None:
+        ledger_path = self.base / "locked-ledger.json"
+        now = time.time()
+        options = {
+            "start_epoch": now,
+            "deadline_epoch": now + 60,
+            "cutoff_epoch": now + 30,
+            "call_limit": 8,
+            "exploration_limit": 8,
+        }
+        ledger = gateway.Ledger(ledger_path, **options)
+        expected = ledger.snapshot()
+        partial_written = threading.Event()
+        release_writer = threading.Event()
+        reader_started = threading.Event()
+        reader_finished = threading.Event()
+        writer_errors: list[BaseException] = []
+        reader_errors: list[BaseException] = []
+        snapshots: list[dict[str, Any]] = []
+
+        def write_partial_state() -> None:
+            try:
+                with ledger_path.open("r+", encoding="utf-8") as handle:
+                    fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
+                    try:
+                        handle.seek(0)
+                        handle.truncate()
+                        handle.write('{"tool_calls":')
+                        handle.flush()
+                        partial_written.set()
+                        if not release_writer.wait(timeout=5):
+                            raise RuntimeError("test did not release the ledger writer")
+                        handle.seek(0)
+                        json.dump(expected, handle, sort_keys=True)
+                        handle.write("\n")
+                        handle.truncate()
+                        handle.flush()
+                    finally:
+                        fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+            except BaseException as exc:  # surfaced after both threads are joined
+                writer_errors.append(exc)
+
+        def read_snapshot() -> None:
+            reader_started.set()
+            try:
+                snapshots.append(ledger.snapshot())
+            except BaseException as exc:
+                reader_errors.append(exc)
+            finally:
+                reader_finished.set()
+
+        writer = threading.Thread(target=write_partial_state)
+        reader = threading.Thread(target=read_snapshot)
+        reader_launched = False
+        writer.start()
+        try:
+            self.assertTrue(partial_written.wait(timeout=2), "writer did not expose its guarded partial state")
+            reader.start()
+            reader_launched = True
+            self.assertTrue(reader_started.wait(timeout=2), "snapshot reader did not start")
+            self.assertFalse(
+                reader_finished.wait(timeout=0.2),
+                "snapshot read a partial ledger instead of sharing the writer lock",
+            )
+        finally:
+            release_writer.set()
+            writer.join(timeout=5)
+            if reader_launched:
+                reader.join(timeout=5)
+
+        self.assertFalse(writer.is_alive(), "ledger writer did not finish after release")
+        self.assertFalse(reader.is_alive(), "snapshot reader did not finish after release")
+        self.assertEqual(writer_errors, [])
+        self.assertEqual(reader_errors, [])
+        self.assertEqual(snapshots, [expected])
+
+        for suffix, invalid_bytes in (("empty", b""), ("corrupt", b"{not-json}\n")):
+            with self.subTest(ledger=suffix):
+                invalid_path = self.base / f"{suffix}-ledger.json"
+                invalid_path.write_bytes(invalid_bytes)
+                invalid = gateway.Ledger(invalid_path, **options)
+                self.assertEqual(invalid_path.read_bytes(), invalid_bytes)
+                with self.assertRaises(gateway.GatewayError):
+                    invalid.consume(operation="list", path=None)
+                self.assertEqual(invalid_path.read_bytes(), invalid_bytes)
 
     def test_event_redaction_preserves_safe_structure_and_usage_without_code_or_output_bodies(self) -> None:
         secret = "super-secret-token-value"

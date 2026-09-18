@@ -12,6 +12,9 @@ suites=(
   test/shiploop-navigator-v3.test.py \
   test/shiploop-standalone-improve.test.py \
   test/shiploop-actual-improve-cli.test.py \
+  test/shiploop-packet-bounds.test.py \
+  test/shiploop-v3-guidance.test.py \
+  test/shiploop-full-runtime.test.py \
   test/shiploop-navigator-dry-run.test.py \
   test/shiploop-auth-readiness.test.py \
   test/shiploop-environment-lifecycle.test.py \

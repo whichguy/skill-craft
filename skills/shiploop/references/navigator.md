@@ -120,7 +120,16 @@ A fresh host starts with the recorded recovery command, reads the reprinted
 packet and only its relevant references, then performs that one current action.
 The owner of the run submits the action-bound callback and consumes the packet
 it returns. A delegated worker may do bounded work under that packet, but does
-not initialize a child run or advance its parent's graph.
+not initialize another ShipLoop run or advance its parent's graph. The selected
+Improve owner follows its separately bound Until Loop runtime.
+
+Packets keep long request/context fields, prior evidence lists and producer
+results compact. An excerpt identifies the exact field in `state.md`; read the
+complete required context there before acting or forming an Improve contract.
+Saved values remain complete. An excerpt is neither a revised requirement nor
+a structured result to submit. Short context remains inline. V3 packets also
+name the existing reference sections relevant to the current stage; recover
+applicable convention/decision locators and revalidate them for this item.
 
 After an interruption, run `next`, inspect durable evidence and actual effects,
 and reconcile work that may already have happened before deciding what remains.

@@ -181,6 +181,53 @@ class ConsumerDeliveryTests(unittest.TestCase):
             ],
         }
 
+    @staticmethod
+    def v3_receipt(stage: str) -> dict:
+        """Return a synthetic child receipt for a v3 graph/guard assertion."""
+        return {
+            "summary": f"Synthetic Improve completion for {stage}.",
+            "review_refs": [
+                f"synthetic://review/{stage}/one",
+                f"synthetic://review/{stage}/two",
+            ],
+            "check_refs": [f"synthetic://check/{stage}"],
+            "lessons": f"Synthetic parent-import coverage for {stage}.",
+        }
+
+    def advance_v3(self, state: dict, stage: str, **extra: object) -> dict:
+        """Accept a v3 producer result only through its Improve return edge."""
+        self.assertEqual(navigator.current_stage(state), stage)
+        action = navigator.current_action(state)
+        waiting = navigator.apply(state, action["id"], self.result(**extra))
+        self.assertEqual(waiting["active_improve"]["stage"], stage)
+        return navigator.finish_improve(waiting, action["id"], self.v3_receipt(stage))
+
+    def v3_to_system_test_author(self) -> dict:
+        """Build one v3 work item through its inner cycle without bypassing Improve."""
+        state = navigator.new_state(
+            str(self.repo),
+            "Make the existing game feature usable by its player.",
+            protocol_version=3,
+            delivery_contract=True,
+        )
+        for stage in ("intake", "discovery", "research", "spec", "test-strategy"):
+            state = self.advance_v3(state, stage)
+        state = self.advance_v3(
+            state,
+            "plan",
+            work_items=[{"id": "W1", "title": "Initial delivery item"}],
+            delivery_assessment={"kind": "contract", "contract": contract()},
+        )
+        for stage in (
+            "prepare", "select-work", "step-plan", "test-spec", "baseline",
+            "test-author", "test-red", "implement", "test-green", "test-refine",
+            "regression", "document", "skill-assess", "skill-validate",
+            "static-checks", "verify", "integrate", "integration-verify", "carry-forward",
+        ):
+            state = self.advance_v3(state, stage)
+        self.assertEqual(navigator.current_stage(state), "system-test-author")
+        return state
+
     def test_opt_in_marker_is_v2_only_and_unmarked_shapes_stay_unchanged(self) -> None:
         plain = navigator.new_state(str(self.repo), "Ordinary navigator fixture.")
         self.assertNotIn("delivery_contract_version", plain)
@@ -447,6 +494,269 @@ class ConsumerDeliveryTests(unittest.TestCase):
         self.assertEqual(set(consumer_delivery.project(state)["observations"]), {
             "pre-drag", "update-effect", "update-identity", "visual-drag",
         })
+
+    def test_v3_late_negative_observations_are_retained_at_new_due_stages(self) -> None:
+        """New v3 outer stages may retain failures for obligations already due."""
+        state = self.v3_to_system_test_author()
+        state = self.advance_v3(state, "system-test-author")
+        state = self.advance_v3(
+            state, "system-test", delivery_assessment=self.observation(state, "pre-drag")
+        )
+
+        action = navigator.current_action(state)
+        before = copy.deepcopy(state)
+        waiting = navigator.apply(
+            state,
+            action["id"],
+            self.result(
+                outcome="blocked",
+                summary="The not-yet-due release effect was not observed.",
+                delivery_assessment=self.observation(state, "update-effect", status="failed"),
+            ),
+        )
+        with self.assertRaisesRegex(navigator.NavigatorError, "negative delivery observation"):
+            navigator.finish_improve(waiting, action["id"], self.v3_receipt("product-acceptance"))
+        self.assertEqual(state, before)
+
+        state = self.advance_v3(
+            state,
+            "product-acceptance",
+            outcome="blocked",
+            summary="Product acceptance found the completed pre-update check no longer passes.",
+            delivery_assessment=self.observation(state, "pre-drag", status="failed"),
+        )
+        observation = consumer_delivery.project(state)["observations"]["pre-drag"]
+        self.assertEqual((observation["status"], observation["source_stage"]),
+                         ("failed", "product-acceptance"))
+
+        state = self.v3_to_system_test_author()
+        state = self.advance_v3(state, "system-test-author")
+        state = self.advance_v3(
+            state, "system-test", delivery_assessment=self.observation(state, "pre-drag")
+        )
+        state = self.advance_v3(state, "product-acceptance")
+        state = self.advance_v3(state, "release-plan")
+        state = self.advance_v3(
+            state,
+            "release-check",
+            outcome="blocked",
+            summary="Release readiness found the earlier pre-update check is stale.",
+            delivery_assessment=self.observation(state, "pre-drag", status="failed"),
+        )
+        observation = consumer_delivery.project(state)["observations"]["pre-drag"]
+        self.assertEqual((observation["status"], observation["source_stage"]),
+                         ("failed", "release-check"))
+
+        state = self.v3_to_system_test_author()
+        state = self.advance_v3(state, "system-test-author")
+        state = self.advance_v3(
+            state, "system-test", delivery_assessment=self.observation(state, "pre-drag")
+        )
+        state = self.advance_v3(state, "product-acceptance")
+        state = self.advance_v3(state, "release-plan")
+        state = self.advance_v3(state, "release-check")
+        state = self.advance_v3(
+            state,
+            "release",
+            delivery_assessment=self.observation(state, "update-effect", "update-identity"),
+        )
+        state = self.advance_v3(
+            state,
+            "release-verify",
+            delivery_assessment=self.observation(state, "visual-drag"),
+        )
+        state = self.advance_v3(
+            state,
+            "operations",
+            outcome="blocked",
+            summary="Operations found the observed consumer behavior is no longer current.",
+            delivery_assessment=self.observation(state, "visual-drag", status="failed"),
+        )
+        observation = consumer_delivery.project(state)["observations"]["visual-drag"]
+        self.assertEqual((observation["status"], observation["source_stage"]),
+                         ("failed", "operations"))
+
+    def test_v3_replan_clears_post_plan_requirement_only_after_fresh_tests_and_plan(self) -> None:
+        """A v3 corrective edge creates a new current-contract release-planning cycle."""
+        state = self.v3_to_system_test_author()
+        state = self.advance_v3(state, "system-test-author")
+        state = self.advance_v3(
+            state, "system-test", delivery_assessment=self.observation(state, "pre-drag")
+        )
+        state = self.advance_v3(state, "product-acceptance")
+        state = self.advance_v3(state, "release-plan")
+
+        prior = consumer_delivery.project(state)
+        changed = contract(candidate="candidate-v2")
+        state = self.advance_v3(
+            state,
+            "release-check",
+            outcome="replan",
+            summary="Release readiness found a corrected candidate is required.",
+            work_items=[{"id": "W2", "title": "Corrected delivery item"}],
+            delivery_assessment={
+                "kind": "contract",
+                "contract": changed,
+                "supersedes": prior["anchor"],
+            },
+        )
+        self.assertEqual(navigator.current_stage(state), "select-work")
+        self.assertIn("replanning", consumer_delivery.project(state)["replan_required"])
+        self.assertIn("accepted outer replan", navigator.render(None, self.root, state))
+
+        for stage in (
+            "select-work", "step-plan", "test-spec", "baseline", "test-author",
+            "test-red", "implement", "test-green", "test-refine", "regression",
+            "document", "skill-assess", "skill-validate", "static-checks", "verify",
+            "integrate", "integration-verify", "carry-forward", "system-test-author",
+        ):
+            state = self.advance_v3(state, stage)
+        state = self.advance_v3(
+            state,
+            "system-test",
+            delivery_assessment=self.observation(state, "pre-drag", candidate="candidate-v2"),
+        )
+        state = self.advance_v3(state, "product-acceptance")
+        state = self.advance_v3(state, "release-plan")
+        self.assertIsNone(consumer_delivery.project(state)["replan_required"])
+
+        state = self.advance_v3(state, "release-check")
+        state = self.advance_v3(
+            state,
+            "release",
+            delivery_assessment=self.observation(
+                state, "update-effect", "update-identity", candidate="candidate-v2"
+            ),
+        )
+        self.assertEqual(navigator.current_stage(state), "release-verify")
+
+    def test_v3_replan_without_immediate_contract_change_starts_a_fresh_plan_cycle(self) -> None:
+        """A corrective v3 work item can change the candidate after its replan action."""
+        state = self.v3_to_system_test_author()
+        state = self.advance_v3(state, "system-test-author")
+        state = self.advance_v3(
+            state, "system-test", delivery_assessment=self.observation(state, "pre-drag")
+        )
+        state = self.advance_v3(state, "product-acceptance")
+        state = self.advance_v3(state, "release-plan")
+        state = self.advance_v3(
+            state,
+            "release-check",
+            outcome="replan",
+            summary="Corrective implementation work is required before release.",
+            work_items=[{"id": "W2", "title": "Corrected delivery item"}],
+        )
+        self.assertIsNone(consumer_delivery.project(state)["replan_required"])
+
+        for stage in (
+            "select-work", "step-plan", "test-spec", "baseline", "test-author",
+            "test-red", "implement", "test-green", "test-refine", "regression",
+            "document", "skill-assess", "skill-validate", "static-checks", "verify",
+            "integrate", "integration-verify", "carry-forward", "system-test-author",
+        ):
+            state = self.advance_v3(state, stage)
+
+        prior = consumer_delivery.project(state)
+        changed = contract(candidate="candidate-v2")
+        state = self.advance_v3(
+            state,
+            "system-test",
+            delivery_assessment={
+                "kind": "contract",
+                "contract": changed,
+                "supersedes": prior["anchor"],
+                "observations": [
+                    {
+                        "obligation_id": "pre-drag",
+                        "status": "passed",
+                        "candidate": "candidate-v2",
+                        "target": "fixture-head",
+                        "evidence_refs": ["evidence/pre-drag-candidate-v2.md"],
+                    }
+                ],
+            },
+        )
+        projection = consumer_delivery.project(state)
+        self.assertEqual(projection["contract"], changed)
+        self.assertEqual(projection["observations"]["pre-drag"]["status"], "passed")
+        self.assertIsNone(projection["replan_required"])
+
+        state = self.advance_v3(state, "product-acceptance")
+        state = self.advance_v3(state, "release-plan")
+        self.assertIsNone(consumer_delivery.project(state)["replan_required"])
+
+    def test_v3_repeat_and_resume_do_not_clear_post_plan_replan_requirement(self) -> None:
+        """Only an accepted v3 replan starts the corrective release-planning cycle."""
+        state = self.v3_to_system_test_author()
+        state = self.advance_v3(state, "system-test-author")
+        state = self.advance_v3(
+            state, "system-test", delivery_assessment=self.observation(state, "pre-drag")
+        )
+        state = self.advance_v3(state, "product-acceptance")
+        state = self.advance_v3(state, "release-plan")
+
+        prior = consumer_delivery.project(state)
+        state = self.advance_v3(
+            state,
+            "release-check",
+            outcome="blocked",
+            summary="The candidate changed after release planning.",
+            delivery_assessment={
+                "kind": "contract",
+                "contract": contract(candidate="candidate-v2"),
+                "supersedes": prior["anchor"],
+            },
+        )
+        self.assertIn("replanning", consumer_delivery.project(state)["replan_required"])
+
+        state = navigator.control(state, "resume")
+        state = self.advance_v3(
+            state,
+            "release-check",
+            outcome="repeat",
+            summary="Rechecking without the corrective graph edge cannot repair the contract.",
+        )
+        self.assertIn("replanning", consumer_delivery.project(state)["replan_required"])
+
+        action = navigator.current_action(state)
+        waiting = navigator.apply(state, action["id"], self.result())
+        with self.assertRaisesRegex(navigator.NavigatorError, "replanning"):
+            navigator.finish_improve(waiting, action["id"], self.v3_receipt("release-check"))
+
+    def test_v3_operations_contract_change_requires_replan_after_release_plan(self) -> None:
+        """The later v3 operations stage cannot silently replace a planned contract."""
+        state = self.v3_to_system_test_author()
+        state = self.advance_v3(state, "system-test-author")
+        state = self.advance_v3(
+            state, "system-test", delivery_assessment=self.observation(state, "pre-drag")
+        )
+        state = self.advance_v3(state, "product-acceptance")
+        state = self.advance_v3(state, "release-plan")
+        state = self.advance_v3(state, "release-check")
+        state = self.advance_v3(
+            state,
+            "release",
+            delivery_assessment=self.observation(state, "update-effect", "update-identity"),
+        )
+        state = self.advance_v3(
+            state,
+            "release-verify",
+            delivery_assessment=self.observation(state, "visual-drag"),
+        )
+
+        prior = consumer_delivery.project(state)
+        state = self.advance_v3(
+            state,
+            "operations",
+            outcome="blocked",
+            summary="Operations found a corrected candidate after release planning.",
+            delivery_assessment={
+                "kind": "contract",
+                "contract": contract(candidate="candidate-v2"),
+                "supersedes": prior["anchor"],
+            },
+        )
+        self.assertIn("replanning", consumer_delivery.project(state)["replan_required"])
 
     def test_packet_treats_delivery_records_as_data_and_links_their_receipts(self) -> None:
         declared = contract()
