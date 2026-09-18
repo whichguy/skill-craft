@@ -20,6 +20,7 @@ import re
 import signal
 import subprocess
 import sys
+import tempfile
 import time
 from pathlib import Path
 from typing import Any
@@ -186,16 +187,28 @@ class Ledger:
         }
 
     def _write_initial(self) -> None:
-        try:
-            with self.path.open("x", encoding="utf-8") as handle:
-                json.dump(self._initial(), handle, sort_keys=True)
-                handle.write("\n")
-        except FileExistsError:
-            pass
+        # Publish complete JSON without replacing a competing starter's ledger
+        # or exposing an empty file before another process can take its lock.
+        with tempfile.NamedTemporaryFile(
+            mode="w", encoding="utf-8", dir=self.path.parent,
+            prefix=f".{self.path.name}.",
+        ) as handle:
+            json.dump(self._initial(), handle, sort_keys=True)
+            handle.write("\n")
+            handle.flush()
+            os.fsync(handle.fileno())
+            try:
+                os.link(handle.name, self.path)
+            except FileExistsError:
+                pass
 
     def snapshot(self) -> dict[str, Any]:
         with self.path.open("r", encoding="utf-8") as handle:
-            return json.load(handle)
+            fcntl.flock(handle.fileno(), fcntl.LOCK_SH)
+            try:
+                return json.load(handle)
+            finally:
+                fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
 
     def consume(
         self,
@@ -235,6 +248,9 @@ class Ledger:
                 json.dump(state, handle, sort_keys=True)
                 handle.write("\n")
                 handle.truncate()
+                # Make buffered bytes visible before another process acquires
+                # the lock; closing the handle happens after the unlock below.
+                handle.flush()
                 return state, phase
             finally:
                 fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
