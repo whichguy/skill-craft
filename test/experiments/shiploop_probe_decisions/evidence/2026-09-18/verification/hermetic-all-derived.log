@@ -1,0 +1,1869 @@
+==> test-groups
+..............
+----------------------------------------------------------------------
+Ran 14 tests in 3.197s
+
+OK
+OK  test-groups
+==> integration-boundaries
+.....
+----------------------------------------------------------------------
+Ran 5 tests in 0.297s
+
+OK
+OK  integration-boundaries
+==> skill-interop-hygiene
+skill-interop-hygiene.test.sh: PASS (prompts, templates, scaffold, anti-patterns, host-paths, no pins)
+OK  skill-interop-hygiene
+==> sync-plugin-views
+skill-frontmatter-to-plugin-json: CHECK OK architect
+skill-frontmatter-to-plugin-json: CHECK OK ask-agent
+skill-frontmatter-to-plugin-json: CHECK OK c-plan
+skill-frontmatter-to-plugin-json: CHECK OK compare-prompts
+skill-frontmatter-to-plugin-json: CHECK OK derive-questions
+skill-frontmatter-to-plugin-json: CHECK OK devloop
+skill-frontmatter-to-plugin-json: CHECK OK evidence-gates
+skill-frontmatter-to-plugin-json: CHECK OK improve
+skill-frontmatter-to-plugin-json: CHECK OK improve-system-prompt
+skill-frontmatter-to-plugin-json: CHECK OK plan-test
+skill-frontmatter-to-plugin-json: CHECK OK prompt-align
+skill-frontmatter-to-plugin-json: CHECK OK prompt-audit
+skill-frontmatter-to-plugin-json: CHECK OK prompt-migrate
+skill-frontmatter-to-plugin-json: CHECK OK prompt-refine
+skill-frontmatter-to-plugin-json: CHECK OK question-bench
+skill-frontmatter-to-plugin-json: CHECK OK review-coverage
+skill-frontmatter-to-plugin-json: CHECK OK review-fix-bench
+skill-frontmatter-to-plugin-json: CHECK OK shiploop
+skill-frontmatter-to-plugin-json: CHECK OK shiploop-e2e-audit
+skill-frontmatter-to-plugin-json: CHECK OK skill-interop
+skill-frontmatter-to-plugin-json: CHECK OK marketplaces (20 skills)
+sync-plugin-views: CHECK OK
+skill-frontmatter-to-plugin-json: CHECK OK skill-interop
+skill-frontmatter-to-plugin-json: CHECK OK c-plan
+skill-frontmatter-to-plugin-json: CHECK OK architect
+skill-frontmatter-to-plugin-json: CHECK OK ask-agent
+skill-frontmatter-to-plugin-json: CHECK OK c-plan
+skill-frontmatter-to-plugin-json: CHECK OK compare-prompts
+skill-frontmatter-to-plugin-json: CHECK OK derive-questions
+skill-frontmatter-to-plugin-json: CHECK OK devloop
+skill-frontmatter-to-plugin-json: CHECK OK evidence-gates
+skill-frontmatter-to-plugin-json: CHECK OK improve
+skill-frontmatter-to-plugin-json: CHECK OK improve-system-prompt
+skill-frontmatter-to-plugin-json: CHECK OK plan-test
+skill-frontmatter-to-plugin-json: CHECK OK prompt-align
+skill-frontmatter-to-plugin-json: CHECK OK prompt-audit
+skill-frontmatter-to-plugin-json: CHECK OK prompt-migrate
+skill-frontmatter-to-plugin-json: CHECK OK prompt-refine
+skill-frontmatter-to-plugin-json: CHECK OK question-bench
+skill-frontmatter-to-plugin-json: CHECK OK review-coverage
+skill-frontmatter-to-plugin-json: CHECK OK review-fix-bench
+skill-frontmatter-to-plugin-json: CHECK OK shiploop
+skill-frontmatter-to-plugin-json: CHECK OK shiploop-e2e-audit
+skill-frontmatter-to-plugin-json: CHECK OK skill-interop
+skill-frontmatter-to-plugin-json: CHECK OK marketplaces (20 skills)
+sync-plugin-views: CHECK OK
+skill-frontmatter-to-plugin-json: CHECK OK architect
+skill-frontmatter-to-plugin-json: CHECK OK ask-agent
+skill-frontmatter-to-plugin-json: CHECK OK c-plan
+skill-frontmatter-to-plugin-json: CHECK OK compare-prompts
+skill-frontmatter-to-plugin-json: CHECK OK derive-questions
+skill-frontmatter-to-plugin-json: CHECK OK devloop
+skill-frontmatter-to-plugin-json: CHECK OK evidence-gates
+skill-frontmatter-to-plugin-json: CHECK OK improve
+skill-frontmatter-to-plugin-json: CHECK OK improve-system-prompt
+skill-frontmatter-to-plugin-json: CHECK OK plan-test
+skill-frontmatter-to-plugin-json: CHECK OK prompt-align
+skill-frontmatter-to-plugin-json: CHECK OK prompt-audit
+skill-frontmatter-to-plugin-json: CHECK OK prompt-migrate
+skill-frontmatter-to-plugin-json: CHECK OK prompt-refine
+skill-frontmatter-to-plugin-json: CHECK OK question-bench
+skill-frontmatter-to-plugin-json: CHECK OK review-coverage
+skill-frontmatter-to-plugin-json: CHECK OK review-fix-bench
+skill-frontmatter-to-plugin-json: CHECK OK shiploop
+skill-frontmatter-to-plugin-json: CHECK OK shiploop-e2e-audit
+skill-frontmatter-to-plugin-json: CHECK OK skill-interop
+skill-frontmatter-to-plugin-json: CHECK OK marketplaces (20 skills)
+sync-plugin-views: CHECK OK
+skill-frontmatter-to-plugin-json: CHECK OK architect
+skill-frontmatter-to-plugin-json: CHECK OK ask-agent
+skill-frontmatter-to-plugin-json: CHECK OK c-plan
+skill-frontmatter-to-plugin-json: CHECK OK compare-prompts
+skill-frontmatter-to-plugin-json: CHECK OK derive-questions
+skill-frontmatter-to-plugin-json: CHECK OK devloop
+skill-frontmatter-to-plugin-json: CHECK OK evidence-gates
+skill-frontmatter-to-plugin-json: CHECK OK improve
+skill-frontmatter-to-plugin-json: CHECK OK improve-system-prompt
+skill-frontmatter-to-plugin-json: CHECK OK plan-test
+skill-frontmatter-to-plugin-json: CHECK OK prompt-align
+skill-frontmatter-to-plugin-json: CHECK OK prompt-audit
+skill-frontmatter-to-plugin-json: CHECK OK prompt-migrate
+skill-frontmatter-to-plugin-json: CHECK OK prompt-refine
+skill-frontmatter-to-plugin-json: CHECK OK question-bench
+skill-frontmatter-to-plugin-json: CHECK OK review-coverage
+skill-frontmatter-to-plugin-json: CHECK OK review-fix-bench
+skill-frontmatter-to-plugin-json: CHECK OK shiploop
+skill-frontmatter-to-plugin-json: CHECK OK shiploop-e2e-audit
+skill-frontmatter-to-plugin-json: CHECK OK skill-interop
+skill-frontmatter-to-plugin-json: CHECK OK marketplaces (20 skills)
+sync-plugin-views: CHECK OK
+skill-frontmatter-to-plugin-json: CHECK OK architect
+skill-frontmatter-to-plugin-json: CHECK OK ask-agent
+skill-frontmatter-to-plugin-json: CHECK OK c-plan
+skill-frontmatter-to-plugin-json: CHECK OK compare-prompts
+skill-frontmatter-to-plugin-json: CHECK OK derive-questions
+skill-frontmatter-to-plugin-json: CHECK OK devloop
+skill-frontmatter-to-plugin-json: CHECK OK evidence-gates
+skill-frontmatter-to-plugin-json: CHECK OK improve
+skill-frontmatter-to-plugin-json: CHECK OK improve-system-prompt
+skill-frontmatter-to-plugin-json: CHECK OK plan-test
+skill-frontmatter-to-plugin-json: CHECK OK prompt-align
+skill-frontmatter-to-plugin-json: CHECK OK prompt-audit
+skill-frontmatter-to-plugin-json: CHECK OK prompt-migrate
+skill-frontmatter-to-plugin-json: CHECK OK prompt-refine
+skill-frontmatter-to-plugin-json: CHECK OK question-bench
+skill-frontmatter-to-plugin-json: CHECK OK review-coverage
+skill-frontmatter-to-plugin-json: CHECK OK review-fix-bench
+skill-frontmatter-to-plugin-json: CHECK OK shiploop
+skill-frontmatter-to-plugin-json: CHECK OK shiploop-e2e-audit
+skill-frontmatter-to-plugin-json: CHECK OK skill-interop
+skill-frontmatter-to-plugin-json: CHECK OK marketplaces (20 skills)
+sync-plugin-views: CHECK OK
+skill-frontmatter-to-plugin-json: wrote plugins/_zz-sync-symlink-sample_ host manifests and README.md
+sync-plugin-views: synced plugins/_zz-sync-symlink-sample_ from skills/_zz-sync-symlink-sample_
+  ok internal symlink dereferenced
+openrsync: protocol version 29
+  ok dest-symlink tripwire (protected intact; rsync logged)
+sync-plugin-views.test.sh: PASS (incl. internal deref + escape refuse + B1)
+OK  sync-plugin-views
+==> native-marketplace-adapters
+skill-frontmatter-to-plugin-json: CHECK OK architect
+skill-frontmatter-to-plugin-json: CHECK OK ask-agent
+skill-frontmatter-to-plugin-json: CHECK OK c-plan
+skill-frontmatter-to-plugin-json: CHECK OK compare-prompts
+skill-frontmatter-to-plugin-json: CHECK OK derive-questions
+skill-frontmatter-to-plugin-json: CHECK OK devloop
+skill-frontmatter-to-plugin-json: CHECK OK evidence-gates
+skill-frontmatter-to-plugin-json: CHECK OK improve
+skill-frontmatter-to-plugin-json: CHECK OK improve-system-prompt
+skill-frontmatter-to-plugin-json: CHECK OK plan-test
+skill-frontmatter-to-plugin-json: CHECK OK prompt-align
+skill-frontmatter-to-plugin-json: CHECK OK prompt-audit
+skill-frontmatter-to-plugin-json: CHECK OK prompt-migrate
+skill-frontmatter-to-plugin-json: CHECK OK prompt-refine
+skill-frontmatter-to-plugin-json: CHECK OK question-bench
+skill-frontmatter-to-plugin-json: CHECK OK review-coverage
+skill-frontmatter-to-plugin-json: CHECK OK review-fix-bench
+skill-frontmatter-to-plugin-json: CHECK OK shiploop
+skill-frontmatter-to-plugin-json: CHECK OK shiploop-e2e-audit
+skill-frontmatter-to-plugin-json: CHECK OK skill-interop
+skill-frontmatter-to-plugin-json: CHECK OK marketplaces (20 skills)
+sync-plugin-views: CHECK OK
+skill-frontmatter-to-plugin-json: CHECK OK c-plan
+sync-plugin-views: CHECK OK
+skill-frontmatter-to-plugin-json: wrote plugins/architect host manifests and README.md
+sync-plugin-views: synced plugins/architect from skills/architect
+skill-frontmatter-to-plugin-json: wrote plugins/ask-agent host manifests and README.md
+sync-plugin-views: synced plugins/ask-agent from skills/ask-agent
+skill-frontmatter-to-plugin-json: wrote plugins/c-plan host manifests and README.md
+sync-plugin-views: synced plugins/c-plan from skills/c-plan
+skill-frontmatter-to-plugin-json: wrote plugins/compare-prompts host manifests and README.md
+sync-plugin-views: synced plugins/compare-prompts from skills/compare-prompts
+skill-frontmatter-to-plugin-json: wrote plugins/derive-questions host manifests and README.md
+sync-plugin-views: synced plugins/derive-questions from skills/derive-questions
+skill-frontmatter-to-plugin-json: wrote plugins/devloop host manifests and README.md
+sync-plugin-views: synced plugins/devloop from skills/devloop
+skill-frontmatter-to-plugin-json: wrote plugins/evidence-gates host manifests and README.md
+sync-plugin-views: synced plugins/evidence-gates from skills/evidence-gates
+skill-frontmatter-to-plugin-json: wrote plugins/improve host manifests and README.md
+sync-plugin-views: synced plugins/improve from skills/improve
+skill-frontmatter-to-plugin-json: wrote plugins/improve-system-prompt host manifests and README.md
+sync-plugin-views: synced plugins/improve-system-prompt from skills/improve-system-prompt
+skill-frontmatter-to-plugin-json: wrote plugins/plan-test host manifests and README.md
+sync-plugin-views: synced plugins/plan-test from skills/plan-test
+skill-frontmatter-to-plugin-json: wrote plugins/prompt-align host manifests and README.md
+sync-plugin-views: synced plugins/prompt-align from skills/prompt-align
+skill-frontmatter-to-plugin-json: wrote plugins/prompt-audit host manifests and README.md
+sync-plugin-views: synced plugins/prompt-audit from skills/prompt-audit
+skill-frontmatter-to-plugin-json: wrote plugins/prompt-migrate host manifests and README.md
+sync-plugin-views: synced plugins/prompt-migrate from skills/prompt-migrate
+skill-frontmatter-to-plugin-json: wrote plugins/prompt-refine host manifests and README.md
+sync-plugin-views: synced plugins/prompt-refine from skills/prompt-refine
+skill-frontmatter-to-plugin-json: wrote plugins/question-bench host manifests and README.md
+sync-plugin-views: synced plugins/question-bench from skills/question-bench
+skill-frontmatter-to-plugin-json: wrote plugins/review-coverage host manifests and README.md
+sync-plugin-views: synced plugins/review-coverage from skills/review-coverage
+skill-frontmatter-to-plugin-json: wrote plugins/review-fix-bench host manifests and README.md
+sync-plugin-views: synced plugins/review-fix-bench from skills/review-fix-bench
+skill-frontmatter-to-plugin-json: wrote plugins/shiploop host manifests and README.md
+sync-plugin-views: synced plugins/shiploop from skills/shiploop
+skill-frontmatter-to-plugin-json: wrote plugins/shiploop-e2e-audit host manifests and README.md
+sync-plugin-views: synced plugins/shiploop-e2e-audit from skills/shiploop-e2e-audit
+skill-frontmatter-to-plugin-json: wrote plugins/skill-interop host manifests and README.md
+sync-plugin-views: synced plugins/skill-interop from skills/skill-interop
+skill-frontmatter-to-plugin-json: wrote .cursor-plugin/marketplace.json
+skill-frontmatter-to-plugin-json: wrote .grok-plugin/marketplace.json
+skill-frontmatter-to-plugin-json: updated README inventory
+skill-frontmatter-to-plugin-json: wrote plugins/c-plan host manifests and README.md
+sync-plugin-views: synced plugins/c-plan from skills/c-plan
+skill-frontmatter-to-plugin-json: CHECK OK c-plan
+sync-plugin-views: CHECK OK
+skill-frontmatter-to-plugin-json: wrote plugins/c-plan host manifests and README.md
+sync-plugin-views: synced plugins/c-plan from skills/c-plan
+skill-frontmatter-to-plugin-json: CHECK OK c-plan
+sync-plugin-views: CHECK OK
+skill-frontmatter-to-plugin-json: CHECK OK c-plan
+sync-plugin-views: CHECK OK
+skill-frontmatter-to-plugin-json: wrote plugins/architect host manifests and README.md
+sync-plugin-views: synced plugins/architect from skills/architect
+skill-frontmatter-to-plugin-json: wrote plugins/ask-agent host manifests and README.md
+sync-plugin-views: synced plugins/ask-agent from skills/ask-agent
+skill-frontmatter-to-plugin-json: wrote plugins/c-plan host manifests and README.md
+sync-plugin-views: synced plugins/c-plan from skills/c-plan
+skill-frontmatter-to-plugin-json: wrote plugins/compare-prompts host manifests and README.md
+sync-plugin-views: synced plugins/compare-prompts from skills/compare-prompts
+skill-frontmatter-to-plugin-json: wrote plugins/derive-questions host manifests and README.md
+sync-plugin-views: synced plugins/derive-questions from skills/derive-questions
+skill-frontmatter-to-plugin-json: wrote plugins/devloop host manifests and README.md
+sync-plugin-views: synced plugins/devloop from skills/devloop
+skill-frontmatter-to-plugin-json: wrote plugins/evidence-gates host manifests and README.md
+sync-plugin-views: synced plugins/evidence-gates from skills/evidence-gates
+skill-frontmatter-to-plugin-json: wrote plugins/improve host manifests and README.md
+sync-plugin-views: synced plugins/improve from skills/improve
+skill-frontmatter-to-plugin-json: wrote plugins/improve-system-prompt host manifests and README.md
+sync-plugin-views: synced plugins/improve-system-prompt from skills/improve-system-prompt
+skill-frontmatter-to-plugin-json: wrote plugins/plan-test host manifests and README.md
+sync-plugin-views: synced plugins/plan-test from skills/plan-test
+skill-frontmatter-to-plugin-json: wrote plugins/prompt-align host manifests and README.md
+sync-plugin-views: synced plugins/prompt-align from skills/prompt-align
+skill-frontmatter-to-plugin-json: wrote plugins/prompt-audit host manifests and README.md
+sync-plugin-views: synced plugins/prompt-audit from skills/prompt-audit
+skill-frontmatter-to-plugin-json: wrote plugins/prompt-migrate host manifests and README.md
+sync-plugin-views: synced plugins/prompt-migrate from skills/prompt-migrate
+skill-frontmatter-to-plugin-json: wrote plugins/prompt-refine host manifests and README.md
+sync-plugin-views: synced plugins/prompt-refine from skills/prompt-refine
+skill-frontmatter-to-plugin-json: wrote plugins/question-bench host manifests and README.md
+sync-plugin-views: synced plugins/question-bench from skills/question-bench
+skill-frontmatter-to-plugin-json: wrote plugins/review-coverage host manifests and README.md
+sync-plugin-views: synced plugins/review-coverage from skills/review-coverage
+skill-frontmatter-to-plugin-json: wrote plugins/review-fix-bench host manifests and README.md
+sync-plugin-views: synced plugins/review-fix-bench from skills/review-fix-bench
+skill-frontmatter-to-plugin-json: wrote plugins/shiploop host manifests and README.md
+sync-plugin-views: synced plugins/shiploop from skills/shiploop
+skill-frontmatter-to-plugin-json: wrote plugins/shiploop-e2e-audit host manifests and README.md
+sync-plugin-views: synced plugins/shiploop-e2e-audit from skills/shiploop-e2e-audit
+skill-frontmatter-to-plugin-json: wrote plugins/skill-interop host manifests and README.md
+sync-plugin-views: synced plugins/skill-interop from skills/skill-interop
+skill-frontmatter-to-plugin-json: wrote .cursor-plugin/marketplace.json
+skill-frontmatter-to-plugin-json: wrote .grok-plugin/marketplace.json
+skill-frontmatter-to-plugin-json: updated README inventory
+skill-frontmatter-to-plugin-json: wrote plugins/architect host manifests and README.md
+sync-plugin-views: synced plugins/architect from skills/architect
+skill-frontmatter-to-plugin-json: wrote plugins/ask-agent host manifests and README.md
+sync-plugin-views: synced plugins/ask-agent from skills/ask-agent
+skill-frontmatter-to-plugin-json: wrote plugins/c-plan host manifests and README.md
+sync-plugin-views: synced plugins/c-plan from skills/c-plan
+skill-frontmatter-to-plugin-json: wrote plugins/catalog-fixture host manifests and README.md
+sync-plugin-views: synced plugins/catalog-fixture from skills/catalog-fixture
+skill-frontmatter-to-plugin-json: wrote plugins/compare-prompts host manifests and README.md
+sync-plugin-views: synced plugins/compare-prompts from skills/compare-prompts
+skill-frontmatter-to-plugin-json: wrote plugins/derive-questions host manifests and README.md
+sync-plugin-views: synced plugins/derive-questions from skills/derive-questions
+skill-frontmatter-to-plugin-json: wrote plugins/devloop host manifests and README.md
+sync-plugin-views: synced plugins/devloop from skills/devloop
+skill-frontmatter-to-plugin-json: wrote plugins/evidence-gates host manifests and README.md
+sync-plugin-views: synced plugins/evidence-gates from skills/evidence-gates
+skill-frontmatter-to-plugin-json: wrote plugins/improve host manifests and README.md
+sync-plugin-views: synced plugins/improve from skills/improve
+skill-frontmatter-to-plugin-json: wrote plugins/improve-system-prompt host manifests and README.md
+sync-plugin-views: synced plugins/improve-system-prompt from skills/improve-system-prompt
+skill-frontmatter-to-plugin-json: wrote plugins/plan-test host manifests and README.md
+sync-plugin-views: synced plugins/plan-test from skills/plan-test
+skill-frontmatter-to-plugin-json: wrote plugins/prompt-align host manifests and README.md
+sync-plugin-views: synced plugins/prompt-align from skills/prompt-align
+skill-frontmatter-to-plugin-json: wrote plugins/prompt-audit host manifests and README.md
+sync-plugin-views: synced plugins/prompt-audit from skills/prompt-audit
+skill-frontmatter-to-plugin-json: wrote plugins/prompt-migrate host manifests and README.md
+sync-plugin-views: synced plugins/prompt-migrate from skills/prompt-migrate
+skill-frontmatter-to-plugin-json: wrote plugins/prompt-refine host manifests and README.md
+sync-plugin-views: synced plugins/prompt-refine from skills/prompt-refine
+skill-frontmatter-to-plugin-json: wrote plugins/question-bench host manifests and README.md
+sync-plugin-views: synced plugins/question-bench from skills/question-bench
+skill-frontmatter-to-plugin-json: wrote plugins/review-coverage host manifests and README.md
+sync-plugin-views: synced plugins/review-coverage from skills/review-coverage
+skill-frontmatter-to-plugin-json: wrote plugins/review-fix-bench host manifests and README.md
+sync-plugin-views: synced plugins/review-fix-bench from skills/review-fix-bench
+skill-frontmatter-to-plugin-json: wrote plugins/shiploop host manifests and README.md
+sync-plugin-views: synced plugins/shiploop from skills/shiploop
+skill-frontmatter-to-plugin-json: wrote plugins/shiploop-e2e-audit host manifests and README.md
+sync-plugin-views: synced plugins/shiploop-e2e-audit from skills/shiploop-e2e-audit
+skill-frontmatter-to-plugin-json: wrote plugins/skill-interop host manifests and README.md
+sync-plugin-views: synced plugins/skill-interop from skills/skill-interop
+skill-frontmatter-to-plugin-json: wrote .cursor-plugin/marketplace.json
+skill-frontmatter-to-plugin-json: wrote .grok-plugin/marketplace.json
+skill-frontmatter-to-plugin-json: updated README inventory
+skill-frontmatter-to-plugin-json: CHECK OK c-plan
+sync-plugin-views: CHECK OK
+skill-frontmatter-to-plugin-json: wrote plugins/architect host manifests and README.md
+sync-plugin-views: synced plugins/architect from skills/architect
+skill-frontmatter-to-plugin-json: wrote plugins/ask-agent host manifests and README.md
+sync-plugin-views: synced plugins/ask-agent from skills/ask-agent
+skill-frontmatter-to-plugin-json: wrote plugins/c-plan host manifests and README.md
+sync-plugin-views: synced plugins/c-plan from skills/c-plan
+skill-frontmatter-to-plugin-json: wrote plugins/catalog-fixture host manifests and README.md
+sync-plugin-views: synced plugins/catalog-fixture from skills/catalog-fixture
+skill-frontmatter-to-plugin-json: wrote plugins/compare-prompts host manifests and README.md
+sync-plugin-views: synced plugins/compare-prompts from skills/compare-prompts
+skill-frontmatter-to-plugin-json: wrote plugins/derive-questions host manifests and README.md
+sync-plugin-views: synced plugins/derive-questions from skills/derive-questions
+skill-frontmatter-to-plugin-json: wrote plugins/devloop host manifests and README.md
+sync-plugin-views: synced plugins/devloop from skills/devloop
+skill-frontmatter-to-plugin-json: wrote plugins/evidence-gates host manifests and README.md
+sync-plugin-views: synced plugins/evidence-gates from skills/evidence-gates
+skill-frontmatter-to-plugin-json: wrote plugins/improve host manifests and README.md
+sync-plugin-views: synced plugins/improve from skills/improve
+skill-frontmatter-to-plugin-json: wrote plugins/improve-system-prompt host manifests and README.md
+sync-plugin-views: synced plugins/improve-system-prompt from skills/improve-system-prompt
+skill-frontmatter-to-plugin-json: wrote plugins/plan-test host manifests and README.md
+sync-plugin-views: synced plugins/plan-test from skills/plan-test
+skill-frontmatter-to-plugin-json: wrote plugins/prompt-align host manifests and README.md
+sync-plugin-views: synced plugins/prompt-align from skills/prompt-align
+skill-frontmatter-to-plugin-json: wrote plugins/prompt-audit host manifests and README.md
+sync-plugin-views: synced plugins/prompt-audit from skills/prompt-audit
+skill-frontmatter-to-plugin-json: wrote plugins/prompt-migrate host manifests and README.md
+sync-plugin-views: synced plugins/prompt-migrate from skills/prompt-migrate
+skill-frontmatter-to-plugin-json: wrote plugins/prompt-refine host manifests and README.md
+sync-plugin-views: synced plugins/prompt-refine from skills/prompt-refine
+skill-frontmatter-to-plugin-json: wrote plugins/question-bench host manifests and README.md
+sync-plugin-views: synced plugins/question-bench from skills/question-bench
+skill-frontmatter-to-plugin-json: wrote plugins/review-coverage host manifests and README.md
+sync-plugin-views: synced plugins/review-coverage from skills/review-coverage
+skill-frontmatter-to-plugin-json: wrote plugins/review-fix-bench host manifests and README.md
+sync-plugin-views: synced plugins/review-fix-bench from skills/review-fix-bench
+skill-frontmatter-to-plugin-json: wrote plugins/shiploop host manifests and README.md
+sync-plugin-views: synced plugins/shiploop from skills/shiploop
+skill-frontmatter-to-plugin-json: wrote plugins/shiploop-e2e-audit host manifests and README.md
+sync-plugin-views: synced plugins/shiploop-e2e-audit from skills/shiploop-e2e-audit
+skill-frontmatter-to-plugin-json: wrote plugins/skill-interop host manifests and README.md
+sync-plugin-views: synced plugins/skill-interop from skills/skill-interop
+skill-frontmatter-to-plugin-json: wrote .cursor-plugin/marketplace.json
+skill-frontmatter-to-plugin-json: wrote .grok-plugin/marketplace.json
+skill-frontmatter-to-plugin-json: updated README inventory
+skill-frontmatter-to-plugin-json: wrote plugins/architect host manifests and README.md
+sync-plugin-views: synced plugins/architect from skills/architect
+skill-frontmatter-to-plugin-json: wrote plugins/ask-agent host manifests and README.md
+sync-plugin-views: synced plugins/ask-agent from skills/ask-agent
+skill-frontmatter-to-plugin-json: wrote plugins/c-plan host manifests and README.md
+sync-plugin-views: synced plugins/c-plan from skills/c-plan
+skill-frontmatter-to-plugin-json: wrote plugins/compare-prompts host manifests and README.md
+sync-plugin-views: synced plugins/compare-prompts from skills/compare-prompts
+skill-frontmatter-to-plugin-json: wrote plugins/derive-questions host manifests and README.md
+sync-plugin-views: synced plugins/derive-questions from skills/derive-questions
+skill-frontmatter-to-plugin-json: wrote plugins/devloop host manifests and README.md
+sync-plugin-views: synced plugins/devloop from skills/devloop
+skill-frontmatter-to-plugin-json: wrote plugins/evidence-gates host manifests and README.md
+sync-plugin-views: synced plugins/evidence-gates from skills/evidence-gates
+skill-frontmatter-to-plugin-json: wrote plugins/improve host manifests and README.md
+sync-plugin-views: synced plugins/improve from skills/improve
+skill-frontmatter-to-plugin-json: wrote plugins/improve-system-prompt host manifests and README.md
+sync-plugin-views: synced plugins/improve-system-prompt from skills/improve-system-prompt
+skill-frontmatter-to-plugin-json: wrote plugins/plan-test host manifests and README.md
+sync-plugin-views: synced plugins/plan-test from skills/plan-test
+skill-frontmatter-to-plugin-json: wrote plugins/prompt-align host manifests and README.md
+sync-plugin-views: synced plugins/prompt-align from skills/prompt-align
+skill-frontmatter-to-plugin-json: wrote plugins/prompt-audit host manifests and README.md
+sync-plugin-views: synced plugins/prompt-audit from skills/prompt-audit
+skill-frontmatter-to-plugin-json: wrote plugins/prompt-migrate host manifests and README.md
+sync-plugin-views: synced plugins/prompt-migrate from skills/prompt-migrate
+skill-frontmatter-to-plugin-json: wrote plugins/prompt-refine host manifests and README.md
+sync-plugin-views: synced plugins/prompt-refine from skills/prompt-refine
+skill-frontmatter-to-plugin-json: wrote plugins/question-bench host manifests and README.md
+sync-plugin-views: synced plugins/question-bench from skills/question-bench
+skill-frontmatter-to-plugin-json: wrote plugins/review-coverage host manifests and README.md
+sync-plugin-views: synced plugins/review-coverage from skills/review-coverage
+skill-frontmatter-to-plugin-json: wrote plugins/review-fix-bench host manifests and README.md
+sync-plugin-views: synced plugins/review-fix-bench from skills/review-fix-bench
+skill-frontmatter-to-plugin-json: wrote plugins/shiploop host manifests and README.md
+sync-plugin-views: synced plugins/shiploop from skills/shiploop
+skill-frontmatter-to-plugin-json: wrote plugins/shiploop-e2e-audit host manifests and README.md
+sync-plugin-views: synced plugins/shiploop-e2e-audit from skills/shiploop-e2e-audit
+skill-frontmatter-to-plugin-json: wrote plugins/skill-interop host manifests and README.md
+sync-plugin-views: synced plugins/skill-interop from skills/skill-interop
+skill-frontmatter-to-plugin-json: wrote .cursor-plugin/marketplace.json
+skill-frontmatter-to-plugin-json: wrote .grok-plugin/marketplace.json
+skill-frontmatter-to-plugin-json: updated README inventory
+skill-frontmatter-to-plugin-json: CHECK OK architect
+skill-frontmatter-to-plugin-json: CHECK OK ask-agent
+skill-frontmatter-to-plugin-json: CHECK OK c-plan
+skill-frontmatter-to-plugin-json: CHECK OK compare-prompts
+skill-frontmatter-to-plugin-json: CHECK OK derive-questions
+skill-frontmatter-to-plugin-json: CHECK OK devloop
+skill-frontmatter-to-plugin-json: CHECK OK evidence-gates
+skill-frontmatter-to-plugin-json: CHECK OK improve
+skill-frontmatter-to-plugin-json: CHECK OK improve-system-prompt
+skill-frontmatter-to-plugin-json: CHECK OK plan-test
+skill-frontmatter-to-plugin-json: CHECK OK prompt-align
+skill-frontmatter-to-plugin-json: CHECK OK prompt-audit
+skill-frontmatter-to-plugin-json: CHECK OK prompt-migrate
+skill-frontmatter-to-plugin-json: CHECK OK prompt-refine
+skill-frontmatter-to-plugin-json: CHECK OK question-bench
+skill-frontmatter-to-plugin-json: CHECK OK review-coverage
+skill-frontmatter-to-plugin-json: CHECK OK review-fix-bench
+skill-frontmatter-to-plugin-json: CHECK OK shiploop
+skill-frontmatter-to-plugin-json: CHECK OK shiploop-e2e-audit
+skill-frontmatter-to-plugin-json: CHECK OK skill-interop
+skill-frontmatter-to-plugin-json: CHECK OK marketplaces (20 skills)
+sync-plugin-views: CHECK OK
+native-marketplace-adapters.test.sh: PASS (generated Cursor/Grok adapter drift checks)
+OK  native-marketplace-adapters
+==> marketplace-package
+...........................
+----------------------------------------------------------------------
+Ran 27 tests in 0.383s
+
+OK
+OK  marketplace-package
+==> marketplace-host-isolation
+..
+----------------------------------------------------------------------
+Ran 2 tests in 0.000s
+
+OK
+OK  marketplace-host-isolation
+==> installed-skill-invocation
+test_card_contracts_bind_selected_loaded_skill (__main__.InstalledSkillInvocationTest.test_card_contracts_bind_selected_loaded_skill) ... ok
+test_evidence_gates_self_check_from_read_only_copy (__main__.InstalledSkillInvocationTest.test_evidence_gates_self_check_from_read_only_copy) ... ok
+test_improve_bound_adapter_ignores_ambient_runtime (__main__.InstalledSkillInvocationTest.test_improve_bound_adapter_ignores_ambient_runtime) ... ok
+test_improve_ephemeral_runtime_from_read_only_installed_copy (__main__.InstalledSkillInvocationTest.test_improve_ephemeral_runtime_from_read_only_installed_copy) ... ok
+test_review_campaign_dependency_is_not_silently_invented (__main__.InstalledSkillInvocationTest.test_review_campaign_dependency_is_not_silently_invented) ... ok
+test_review_coverage_cli_from_read_only_copy (__main__.InstalledSkillInvocationTest.test_review_coverage_cli_from_read_only_copy) ... ok
+test_shiploop_graph_and_recovery_from_read_only_copy (__main__.InstalledSkillInvocationTest.test_shiploop_graph_and_recovery_from_read_only_copy) ... ok
+test_skill_interop_facade_routes_from_read_only_copy (__main__.InstalledSkillInvocationTest.test_skill_interop_facade_routes_from_read_only_copy) ... ok
+
+----------------------------------------------------------------------
+Ran 8 tests in 1.937s
+
+OK
+OK  installed-skill-invocation
+==> prompt-marketplace-contract
+test_architect_and_plan_test_use_capabilities_not_author_agents (__main__.PromptMarketplaceContractTests.test_architect_and_plan_test_use_capabilities_not_author_agents) ... ok
+test_benchmark_models_are_host_valid_and_trials_remain_independent (__main__.PromptMarketplaceContractTests.test_benchmark_models_are_host_valid_and_trials_remain_independent) ... ok
+test_improve_system_prompt_requires_explicit_product_configuration (__main__.PromptMarketplaceContractTests.test_improve_system_prompt_requires_explicit_product_configuration) ... ok
+test_owned_prompt_leaves_have_canonical_cards (__main__.PromptMarketplaceContractTests.test_owned_prompt_leaves_have_canonical_cards) ... ok
+test_prompt_suite_resolves_siblings_and_detects_target_tests (__main__.PromptMarketplaceContractTests.test_prompt_suite_resolves_siblings_and_detects_target_tests) ... ok
+test_question_bench_uses_bundled_rubric_and_generic_independent_evaluator (__main__.PromptMarketplaceContractTests.test_question_bench_uses_bundled_rubric_and_generic_independent_evaluator) ... ok
+test_review_fix_bench_requires_explicit_external_runner_inputs (__main__.PromptMarketplaceContractTests.test_review_fix_bench_requires_explicit_external_runner_inputs) ... ok
+
+----------------------------------------------------------------------
+Ran 7 tests in 0.003s
+
+OK
+OK  prompt-marketplace-contract
+==> skill-frontmatter
+skill-frontmatter.test.js: PASS 20 skills (name/version/license/platforms/kind; skill-interop hermes extras)
+OK  skill-frontmatter
+==> scaffold-skill
+scaffold-skill.test.sh: PASS S1–S6
+OK  scaffold-skill
+==> marketplace-run
+M1 ok
+M2 ok
+M3 ok
+M4 ok
+M5 ok
+M6 ok
+M7 ok
+M8 ok
+M9 ok
+M10 ok
+M11 ok
+M12 ok
+M13 ok
+M14 ok
+M15 ok
+M16 ok
+marketplace-run.test.sh: PASS M1–M16
+OK  marketplace-run
+==> install-targets
+Usage: install.sh [flags]
+
+Install skill package(s) into local skill homes.
+Claude/Grok/Codex/Cursor: symlink. Hermes: materialized copy (default).
+Optionally install thin agent cards (Claude + Grok only).
+
+Flags:
+  --help | -h
+  --claude-only | --grok-only | --codex-only | --hermes-only | --cursor-only
+  --all                 # all five hosts (Claude, Grok, Codex, Hermes, Cursor)
+  --skill NAME          # all (default) | any skills/<name> with SKILL.md
+  --from DIR            # install only basename(DIR) from that path
+                        # (must contain SKILL.md); exclusive with --skill
+  --agents              # also symlink agents/<leaf>.md for Claude/Grok
+  --relink | --force    # replace wrong/dangling skill or agent symlinks
+                        # (never clobbers a real file/directory)
+  --copy                # force copy mode for all hosts (Hermes default)
+  --symlink             # force symlink mode for all hosts (overrides Hermes copy)
+  --status              # report install state (no writes); outcomes per host
+  --uninstall           # remove only owned installs (symlink-owned or managed copy)
+  --dry-run             # print actions only, no writes
+
+Default (no host flags): install ALL five hosts.
+Default (no --skill/--from): install every skills/<leaf> with SKILL.md.
+Default action: install. --status / --uninstall are exclusive with each other.
+
+Skill destinations (per skill leaf):
+  Claude:  ~/.claude/skills/<dest>  (symlink)
+  Grok:    ~/.grok/skills/<dest>  (symlink)
+  Codex:   ~/.codex/skills/<dest>  (symlink)
+  Cursor:  ~/.cursor/skills/<dest>  (symlink; never ~/.cursor/skills-cursor)
+  Hermes:  ~/.hermes/skills/software-development/<dest>  (copy)
+           (container bind: /opt/data/skills/software-development/<dest>)
+           Provenance: ~/.hermes/skills/software-development/.skill-craft/<dest>.json
+  dest = leaf. Leaf devloop skips Hermes (engine owns software-development/devloop).
+  Leftover dest devloop-run is removed on Claude/Grok/Codex/Cursor.
+  Grok slash: skills/devloop/commands/devloop.md → ~/.grok/commands/devloop.md
+
+Status outcomes: absent | symlink-owned | symlink-wrong | copy-owned |
+  copy-owned-stale | foreign | foreign-file
+When Claude plugin inventory is available, --status also reports plugin-track
+and warns on double-install only when a matching plugin is confirmed enabled.
+Plugin state is confirmed-enabled only for literal JSON enabled:true; otherwise
+it is cached-state-unknown or disabled.
+Override inventory path: CLAUDE_INSTALLED_PLUGINS_JSON (default
+~/.claude/plugins/installed_plugins.json). Set empty to skip plugin probe.
+
+Agent destinations (only with --agents; Claude + Grok):
+  Claude:  ~/.claude/agents/<leaf>.md
+  Grok:    ~/.grok/agents/<leaf>.md
+  Codex/Hermes: skipped (no agent install)
+
+Sources: skills/<name> under this repo, or --from DIR.
+Foreign real directories are never overwritten or uninstalled.
+With --relink, only wrong or dangling symlinks are replaced.
+Hermes managed copies are refreshed on re-run; foreign trees are skipped.
+
+Exit codes:
+  0  success (all requested actions completed without refusal)
+  2  needs human / binding incomplete (reserved; engines)
+  3  foreign-refused (install/uninstall hit unowned path)
+  4  absent (uninstall: nothing owned present)
+  8  drift-blocked (reserved for drift-aware uninstall)
+  64 usage / flag error
+install-targets.test.sh: PASS I1–I17 (skill-craft install, 5 hosts, identity dest, flags, dry-run, skip-if-exists, --relink, --agents)
+OK  install-targets
+==> install-arbitrary-skill
+install-arbitrary-skill.test.sh: PASS E1–E5 (--from, --skill all, exclusivity)
+OK  install-arbitrary-skill
+==> hermes-binding
+hermes-binding.test.sh: PASS H1–H18 (copy lifecycle, internal symlink deref, receipts)
+OK  hermes-binding
+==> install-status-uninstall
+install-status-uninstall.test.sh: PASS S1–S8 (continued)
+  ok S9 malformed JSON
+  ok S10 schema!=2
+  ok S11 wrong leaf
+  ok S12 mode!=copy
+  ok S13 wrong source
+  ok S14 absent uninstall exit 4
+  ok S15 double-install warn
+  ok S16 plugin-only no double-install
+  ok S17 empty inv env skips probe
+  ok S18 disabled plugin no double-install
+  ok S19 unknown plugin state no double-install
+  ok S20 string boolean remains unknown
+  ok S21 later array item confirmed enabled
+  ok S22 enabled other market wins disabled preferred cache
+  ok S23 mixed false and unknown remains unknown
+install-status-uninstall.test.sh: PASS S1–S23
+OK  install-status-uninstall
+==> devloop-run
+LAYER simple: D1 help OK
+LAYER simple: D1b no-bootstrap refuse OK
+LAYER marketplace: M1 missing engine never fetches or bootstraps OK
+LAYER simple: D2 DEVLOOP_HOME exec OK
+LAYER marketplace: D2b path-space argv + cancellation propagation OK
+name: devloop
+LAYER simple: D6 probe OK
+LAYER integration: D8 operator-setup+probe+exec fixture OK
+LAYER integration: D9b import health + D9c selected interpreter dependency check OK
+LAYER simple: D16 version + ownership docs OK
+LAYER e2e: D21 force-bootstrap seed-copy + host-local exec OK
+LAYER integration: D22 dual-install grok affinity OK
+LAYER simple: D23 nesting refuse OK
+LAYER integration: D24 grok capability preflight OK
+LAYER simple: D25 bootstrap honesty OK
+LAYER integration: D26 grok skill-dir symlink host detect OK
+LAYER integration: D27 pin without grok transport refused OK
+LAYER integration: D28 identity+lifecycle traces OK
+LAYER simple: D29 --repo flag → explicit OK
+LAYER simple: D30 card-documented designation (shim does not scrape) OK
+LAYER simple: D31 default scratch reason OK
+LAYER simple: D32 card conservative phrases + shim flag-only OK
+LAYER simple: D33 SKILL.md designation docs OK
+LAYER simple: D34 no auto --lang from verify_cmd exactly (host must pass --lang) OK
+LAYER simple: D35 explicit --lang wins + STATE lang=<value> reason=explicit OK
+LAYER simple: D36 no verify_cmd leaves lang alone, STATE lang=none OK
+LAYER simple: D37 SKILL.md interpolation procedure docs OK
+LAYER simple: D39 SKILL.md flags-free parse + hosted-identity setup exactly OK
+LAYER simple: D40 SKILL.md no host phase-table + no harness invoke OK
+LAYER simple: D38 STATE lang always emitted OK
+LAYER simple: D41 /devloop alias alignment OK (/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-probe-strategy-pulxuyar/worktree/skills/devloop/commands/devloop.md)
+LAYER integration: D42 cursor skill-dir symlink host detect OK
+LAYER integration: D47 cursor unset transport fail-closed + explicit hermes OK
+LAYER integration: D47c Claude/Codex explicit external transport preserved
+LAYER integration: D47d Codex plugin cache fail-closed + explicit transport OK
+LAYER simple: D43 MCP-first inventory + fixture table OK
+LAYER simple: D44 destination-contract protocol (not vendor nouns) OK
+LAYER simple: D45 foreground shim + prompt on HUMAN_REVIEW OK
+LAYER simple: D46 loop-engineering SoT + prompt-align OK
+LAYER simple: D48 validate-spec Before overlay OK
+devloop-run.test.sh: PASS D1–D48
+OK  devloop-run
+==> evidence-gates
+LAYER simple: entry+structure+purity OK
+LAYER simple: self-check OK
+LAYER simple: no-cmd usage fail-closed OK
+LAYER e2e: freeze→prove(red)→build→prove(sticky)→stop PASS OK
+LAYER simple: doctor clean OK
+LAYER simple: doctor purity fail-closed OK
+LAYER integration: copy+symlink package layouts OK
+LAYER e2e: mock-host freeze/prove/edit/stop OK
+evidence-gates.test.sh: PASS
+OK  evidence-gates
+==> improve
+improve.test.sh: PASS isolated_tree_has_no_external_binding
+improve.test.sh: PASS relocated_v2_preview_is_read_only
+improve.test.sh: PASS ephemeral_runtime_provenance_matches_v0_4_0_rc_2
+improve.test.sh: PASS relocated_ephemeral_start_next_done_two_trivial_gate_and_terminal_deletion
+improve.test.sh: PASS collector_uses_bundled_v2_validator
+improve.test.sh: PASS collector_rejects_bad_bundled_v2_state
+improve.test.sh: PASS package=/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-probe-strategy-pulxuyar/worktree/skills/improve
+OK  improve
+==> improve-plugin
+improve-plugin.test.py: PASS host metadata parity and one public skill
+OK  improve-plugin
+==> shiploop-testkit
+shiploop-testkit.test.sh: PASS
+OK  shiploop-testkit
+==> review-coverage
+PASS skill_md
+PASS template
+PASS h2
+PASS no_legacy_h2
+PASS check_install
+PASS validate_ok
+PASS goal_body_static_exact
+PASS goal_body_static_start
+PASS goal_body_static_complete
+PASS goal_body_commit_each_iteration
+PASS goal_body_review_git_learnings
+PASS goal_body_plan_absolute
+PASS goal_body_base
+PASS goal_body_repo
+PASS goal_body_paths
+PASS goal_body_test
+PASS goal_body_driver
+PASS goal_body_max_default
+PASS goal_body_halt_rules
+PASS goal_body_ledger_landed
+PASS goal_body_clean_trivial
+PASS goal_body_no_zero_material
+PASS goal_body_no_legacy_labels
+PASS goal_body_no_legacy_procedure
+PASS goal_body_slash_exact
+PASS goal_body_slash
+PASS goal_body_slash_head
+PASS goal_body_no_slash
+PASS ref_printer_trailer
+PASS cli_no_static_prose
+PASS cli_no_halt_prose
+PASS cli_no_halt_author
+PASS static_copies_match
+PASS fill_slots_presence
+PASS fence_immediate_only
+PASS goal_body_custom_max
+PASS validate_missing
+PASS preflight_ok
+PASS preflight_missing
+PASS preflight_waived
+PASS preflight_waived_line
+PASS run_card_goal_matches_goal_body
+PASS run_card_fields
+PASS run_card_points_at_ref
+PASS run_card_no_halt_author
+PASS run_card_preflight_fail_no_card
+PASS static_complete_when_byte_exact
+PASS finalization_skill_contract
+PASS finalization_full_reference_contract
+PASS finalization_short_reference_contract
+PASS finalization_host_matrix_contract
+PASS finalization_skill_exit_gate
+PASS finalization_full_exit_gate
+PASS finalization_short_exit_gate
+PASS finalization_no_unlanded_success
+PASS finalization_not_a_residual_round
+PASS finalization_na_second_pass_contract
+PASS finalization_na_second_pass_packets
+PASS finalization_start_and_resume_contract
+PASS finalization_na_goal_body_contract
+PASS finalization_receipt_commit_contract
+PASS finalization_receipt_commit_packets
+PASS goal_body_finalization_trailer
+PASS run_card_finalization_trailer
+PASS finalization_prompt_tests_not_model_compliance
+PASS template_not_valid_plan
+PASS template_placeholder_stderr
+PASS short_template_not_valid_plan
+PASS waiver_validate
+PASS waiver_goal_body_msg
+PASS waiver_no_goal_body
+PASS bad_driver_rejects
+PASS bad_driver_stderr
+PASS improve_loop_driver_rejects
+PASS max_rounds_unlimited_rejects
+PASS max_rounds_zero_rejects
+PASS goal_body_pathspec
+PASS missing_forward_reverse
+PASS fenced_only_rejects
+PASS incomplete_goal_body_err
+PASS template_cmd
+PASS template_short_cmd
+PASS plugin_json
+skill-frontmatter-to-plugin-json: CHECK OK review-coverage
+sync-plugin-views: CHECK OK
+PASS plugin_synced
+PASS plugin_script_match
+PASS plugin_skill_match
+PASS plugin_template_match
+PASS field_table_wins_validate
+PASS field_table_wins_base
+PASS field_table_wins_cmd
+PASS driver_fixed_canonical
+PASS placeholder_trailing_punct
+PASS placeholder_trailing_punct_stderr
+PASS full_template_no_goal_body
+PASS skill_version
+PASS skill_invoke_docs
+PASS skill_slash_docs
+PASS skill_phase_b_cli_prefer
+PASS row_e_validate
+PASS row_e_goal_body
+PASS row_e_body_text
+PASS row_e_not_waived
+PASS row_f_validate
+PASS row_f_missing_msg
+PASS row_f_goal_body
+PASS row_f_gb_missing
+PASS row_f_not_waived_msg
+PASS row_g_validate
+PASS row_g_goal_body
+PASS row_g_body
+PASS row_h_validate
+PASS row_h_conflict_msg
+PASS row_h_goal_body
+PASS row_h_gb_conflict
+PASS row_i_validate_exit2
+PASS row_i_validate_msg
+PASS row_i_no_traceback
+PASS row_i_goal_body_exit2
+PASS row_j_validate_exit2
+PASS row_j_validate_msg
+PASS row_j_no_traceback
+PASS row_k_h1_rejects
+PASS row_k_h3_rejects
+PASS skill_exit_codes_docs
+PASS skill_h2_contract_docs
+PASS skill_md_no_zero_material
+PASS skill_md_trivial_findings_ledger
+PASS skill_md_wrap_up_trivials
+PASS skill_md_grok_goal_user_typed
+PASS skill_md_migrate_legacy_h2
+PASS cursor_check_install
+PASS cursor_validate_ok
+PASS cursor_symlink_source
+======== review-coverage: PASS=133 FAIL=0 ========
+OK  review-coverage
+==> dual-body-guard
+dual-body-guard.test.sh: PASS
+OK  dual-body-guard
+==> shiploop
+==> scripts/sync-improve-managed.py
+Managed Improve controller copy verified: 68a5445e2fb16972b722cc468a49128dc5f606dff84df39a117ec94a8b43e781
+==> test/shiploop-navigator.test.py
+test_classic_remote_test_routes_keep_local_and_remote_evidence_distinct (__main__.NavigatorTests.test_classic_remote_test_routes_keep_local_and_remote_evidence_distinct)
+Keep strategy, execution, and Improve from collapsing remote work into local green. ... ok
+test_classic_test_prompts_consider_platform_testing_and_browser_tools (__main__.NavigatorTests.test_classic_test_prompts_consider_platform_testing_and_browser_tools)
+Legacy packets retain the global choice and INNER revalidation boundary. ... ok
+test_cold_next_recovers_implementation_quality_packet_without_state_mutation (__main__.NavigatorTests.test_cold_next_recovers_implementation_quality_packet_without_state_mutation)
+A cold host receives the pending implementation action and its obligations. ... ok
+test_cold_progress_snapshot_is_read_only_with_one_active_callback (__main__.NavigatorTests.test_cold_progress_snapshot_is_read_only_with_one_active_callback)
+A fresh CLI process recovers the same compact state context only. ... ok
+test_cold_step_plan_preserves_convention_sources_without_interpreting_them (__main__.NavigatorTests.test_cold_step_plan_preserves_convention_sources_without_interpreting_them)
+Cold recovery retains opaque convention sources without claiming agent judgment. ... ok
+test_cold_step_plan_routes_repeatable_suite_guidance_and_persists_case_harness_locators (__main__.NavigatorTests.test_cold_step_plan_routes_repeatable_suite_guidance_and_persists_case_harness_locators)
+Cold next preserves opaque rerun and remote-asset locators. ... ok
+test_default_v2_serializes_one_authority_per_entered_work_item (__main__.NavigatorTests.test_default_v2_serializes_one_authority_per_entered_work_item)
+The shared graph has one root cursor or one active item cursor, never both. ... ok
+test_discovery_and_planning_packets_bind_one_improve_campaign (__main__.NavigatorTests.test_discovery_and_planning_packets_bind_one_improve_campaign) ... ok
+test_dispatch_preserves_cold_context_reads_only_its_result_callback_and_escapes_report (__main__.NavigatorTests.test_dispatch_preserves_cold_context_reads_only_its_result_callback_and_escapes_report) ... ok
+test_dispatch_refuses_a_symlinked_result_callback_without_mutating_state (__main__.NavigatorTests.test_dispatch_refuses_a_symlinked_result_callback_without_mutating_state) ... ok
+test_implementation_quality_guidance_follows_two_work_items_without_state_expansion (__main__.NavigatorTests.test_implementation_quality_guidance_follows_two_work_items_without_state_expansion)
+Quality guidance belongs only in the selected rendered action packets. ... ok
+test_legacy_initial_baseline_guidance_reaches_cold_step_plan (__main__.NavigatorTests.test_legacy_initial_baseline_guidance_reaches_cold_step_plan)
+Legacy packets retain initial-baseline evidence without a new graph node. ... ok
+test_new_state_is_minimal_navigator_and_retains_cold_context (__main__.NavigatorTests.test_new_state_is_minimal_navigator_and_retains_cold_context) ... ok
+test_plan_and_carry_forward_manage_only_future_work_and_preserve_completion (__main__.NavigatorTests.test_plan_and_carry_forward_manage_only_future_work_and_preserve_completion) ... ok
+test_plan_improve_can_refresh_the_unstarted_queue (__main__.NavigatorTests.test_plan_improve_can_refresh_the_unstarted_queue) ... ok
+test_progress_report_escapes_status_context_without_persisting_it (__main__.NavigatorTests.test_progress_report_escapes_status_context_without_persisting_it)
+The HTML report reuses the derived view and retains no progress field. ... ok
+test_progress_snapshot_ignores_repeat_progress_and_marks_controls_truthfully (__main__.NavigatorTests.test_progress_snapshot_ignores_repeat_progress_and_marks_controls_truthfully)
+Assigned work, retry records, and stopped work remain distinct facts. ... ok
+test_progress_snapshot_tracks_done_stages_and_document_choice_for_both_protocols (__main__.NavigatorTests.test_progress_snapshot_tracks_done_stages_and_document_choice_for_both_protocols)
+The projection reports graph facts, including the optional branch. ... ok
+test_progress_snapshot_uses_the_revised_queue_and_bounds_large_queues (__main__.NavigatorTests.test_progress_snapshot_uses_the_revised_queue_and_bounds_large_queues)
+Only the current queue is shown, with bounded IDs, titles, and labels. ... ok
+test_public_cli_blocked_result_retains_generic_receipt_and_new_action (__main__.NavigatorTests.test_public_cli_blocked_result_retains_generic_receipt_and_new_action)
+An accepted blocker advances the receipt but keeps the same stage pending. ... ok
+test_public_cli_cold_environment_packets_use_shared_policy_and_generic_results (__main__.NavigatorTests.test_public_cli_cold_environment_packets_use_shared_policy_and_generic_results)
+The navigator links the one discovery policy without importing legacy state. ... ok
+test_public_cli_completes_two_work_items_from_cold_processes (__main__.NavigatorTests.test_public_cli_completes_two_work_items_from_cold_processes)
+Exercise CLI mode selection, callbacks and persistence end to end. ... ok
+test_public_cli_defaults_to_protocol_v3 (__main__.NavigatorTests.test_public_cli_defaults_to_protocol_v3) ... ok
+test_public_cli_pause_preserves_unaccepted_budget_draft_across_cold_resume (__main__.NavigatorTests.test_public_cli_pause_preserves_unaccepted_budget_draft_across_cold_resume)
+A budget checkpoint leaves the current navigator action unconsumed. ... ok
+test_public_cli_recovery_locator_reopens_relocated_package_from_unrelated_cwd (__main__.NavigatorTests.test_public_cli_recovery_locator_reopens_relocated_package_from_unrelated_cwd)
+A cold handoff returns the saved action without trusting old packets. ... ok
+test_rejects_forged_next_wrong_action_and_corrupt_navigator_state (__main__.NavigatorTests.test_rejects_forged_next_wrong_action_and_corrupt_navigator_state) ... ok
+test_repeat_block_pause_resume_and_halt_are_pure_control_paths (__main__.NavigatorTests.test_repeat_block_pause_resume_and_halt_are_pure_control_paths) ... ok
+test_replay_compares_semantic_results_and_rejects_conflicts_without_mutation (__main__.NavigatorTests.test_replay_compares_semantic_results_and_rejects_conflicts_without_mutation) ... ok
+test_requirements_definition_duties_stay_in_existing_v1_v2_stages (__main__.NavigatorTests.test_requirements_definition_duties_stay_in_existing_v1_v2_stages)
+The guide adds duties to the stable graph instead of adding state or nodes. ... ok
+test_results_are_opaque_and_navigation_never_inspects_git_or_evidence (__main__.NavigatorTests.test_results_are_opaque_and_navigation_never_inspects_git_or_evidence) ... ok
+test_save_is_transactional_recovers_after_fault_and_refuses_symlink_escape (__main__.NavigatorTests.test_save_is_transactional_recovers_after_fault_and_refuses_symlink_escape) ... ok
+test_two_work_walk_follows_the_declared_graph_without_project_work (__main__.NavigatorTests.test_two_work_walk_follows_the_declared_graph_without_project_work) ... ok
+test_v1_v2_cold_next_retains_requirements_definition_context_without_mutation (__main__.NavigatorTests.test_v1_v2_cold_next_retains_requirements_definition_context_without_mutation)
+A current spec packet keeps the guide, user request, and prior spec locator. ... ok
+test_v2_carry_forward_recovers_after_each_sorted_target_write (__main__.NavigatorTests.test_v2_carry_forward_recovers_after_each_sorted_target_write)
+Recover the actual receipt-before-state and after-state interruption seams. ... ok
+test_v2_cold_packet_uses_the_effective_item_cursor_and_owner (__main__.NavigatorTests.test_v2_cold_packet_uses_the_effective_item_cursor_and_owner)
+A cold `next` renders W1's action, not the root inner-loop container. ... ok
+test_v2_cold_verify_packet_keeps_the_selected_case_reminder (__main__.NavigatorTests.test_v2_cold_verify_packet_keeps_the_selected_case_reminder)
+Synthetic retained protocol-2 state keeps the reminder after recovery. ... ok
+test_v2_controls_keep_the_root_parked_and_the_item_action_isolated (__main__.NavigatorTests.test_v2_controls_keep_the_root_parked_and_the_item_action_isolated) ... ok
+test_v2_cross_item_replay_keeps_the_selected_next_instance_unchanged (__main__.NavigatorTests.test_v2_cross_item_replay_keeps_the_selected_next_instance_unchanged) ... ok
+test_v2_optional_skill_and_carry_forward_replace_only_future_queue (__main__.NavigatorTests.test_v2_optional_skill_and_carry_forward_replace_only_future_queue) ... ok
+test_v2_rejects_duplicate_or_future_serialized_cursor_authority (__main__.NavigatorTests.test_v2_rejects_duplicate_or_future_serialized_cursor_authority) ... ok
+
+----------------------------------------------------------------------
+Ran 40 tests in 43.751s
+
+OK
+==> test/shiploop-navigator-v3.test.py
+test_cold_recovery_preserves_the_pending_child_binding_without_advancing (__main__.NavigatorV3Tests.test_cold_recovery_preserves_the_pending_child_binding_without_advancing) ... ok
+test_duplicate_or_conflicting_producer_callback_cannot_create_another_child (__main__.NavigatorV3Tests.test_duplicate_or_conflicting_producer_callback_cannot_create_another_child) ... ok
+test_every_v3_stage_waits_for_one_actual_improve_completion (__main__.NavigatorV3Tests.test_every_v3_stage_waits_for_one_actual_improve_completion) ... ok
+test_incomplete_child_and_blocked_producer_do_not_advance_parent (__main__.NavigatorV3Tests.test_incomplete_child_and_blocked_producer_do_not_advance_parent) ... ok
+test_malformed_bound_skill_fails_with_controlled_recovery_error (__main__.NavigatorV3Tests.test_malformed_bound_skill_fails_with_controlled_recovery_error) ... ok
+test_outer_replan_adds_corrective_work_without_rewinding_completed_work (__main__.NavigatorV3Tests.test_outer_replan_adds_corrective_work_without_rewinding_completed_work) ... ok
+test_skill_assess_rejects_legacy_skill_result_carriers_without_mutation (__main__.NavigatorV3Tests.test_skill_assess_rejects_legacy_skill_result_carriers_without_mutation)
+V3 retains reusable-skill evidence in its generic envelope only. ... ok
+test_v3_backchain_planning_guidance_is_scoped_to_selected_stages (__main__.NavigatorV3Tests.test_v3_backchain_planning_guidance_is_scoped_to_selected_stages)
+Producer and actual Improve prompts use the guide only for planning decisions. ... ok
+test_v3_bound_child_carries_requirement_and_test_locators_through_cold_recovery (__main__.NavigatorV3Tests.test_v3_bound_child_carries_requirement_and_test_locators_through_cold_recovery)
+Assert structural packet propagation, not that a model interpreted the sources. ... ok
+test_v3_cold_next_retains_requirements_definition_child_context (__main__.NavigatorV3Tests.test_v3_cold_next_retains_requirements_definition_child_context)
+A recovered Improve packet retains the guide and an existing-spec locator. ... ok
+test_v3_common_and_improve_prompts_preserve_requirements_review_cues (__main__.NavigatorV3Tests.test_v3_common_and_improve_prompts_preserve_requirements_review_cues)
+Keep concise review duties without inventing child state or counters. ... ok
+test_v3_current_and_cold_child_packets_retain_review_note_recovery_context (__main__.NavigatorV3Tests.test_v3_current_and_cold_child_packets_retain_review_note_recovery_context)
+A selected child retains receipt-reference duties before and after recovery. ... ok
+test_v3_declares_the_flat_sdlc_graph_independently (__main__.NavigatorV3Tests.test_v3_declares_the_flat_sdlc_graph_independently) ... ok
+test_v3_initial_baseline_guidance_survives_improve_and_cold_step_plan (__main__.NavigatorV3Tests.test_v3_initial_baseline_guidance_survives_improve_and_cold_step_plan)
+Initial-baseline evidence stays in ordinary records without new graph state. ... ok
+test_v3_native_backchain_operations_reach_only_the_assigned_packets (__main__.NavigatorV3Tests.test_v3_native_backchain_operations_reach_only_the_assigned_packets)
+Check emitted dispatch targets; live trials assess policy semantics. ... ok
+test_v3_packets_keep_runtime_and_selected_case_evidence_visible (__main__.NavigatorV3Tests.test_v3_packets_keep_runtime_and_selected_case_evidence_visible)
+Synthetic prompt traversal keeps runtime and real-boundary gaps explicit. ... ok
+test_v3_platform_testing_contract_routes_to_every_test_stage (__main__.NavigatorV3Tests.test_v3_platform_testing_contract_routes_to_every_test_stage)
+The global choice and each testing checkpoint retain the same guide route. ... ok
+test_v3_remote_test_routes_keep_local_and_remote_evidence_distinct (__main__.NavigatorV3Tests.test_v3_remote_test_routes_keep_local_and_remote_evidence_distinct)
+Route remote test assets without treating a local result as their evidence. ... ok
+test_v3_requirements_definition_duties_stay_in_existing_stages (__main__.NavigatorV3Tests.test_v3_requirements_definition_duties_stay_in_existing_stages)
+Existing discovery, research, and spec nodes cover the new guide duties. ... ok
+test_v3_requirements_policy_routes_through_unbound_and_bound_improve_recovery (__main__.NavigatorV3Tests.test_v3_requirements_policy_routes_through_unbound_and_bound_improve_recovery)
+Both child forms retain packet locators before and after cold recovery. ... ok
+test_v3_test_lifecycle_and_child_handoff_keep_repeatable_suite_boundaries (__main__.NavigatorV3Tests.test_v3_test_lifecycle_and_child_handoff_keep_repeatable_suite_boundaries)
+Check packet routing and boundaries, without claiming model compliance. ... ok
+test_v3_test_strategy_requires_repeatable_harness_revalidation_and_suite_tiers (__main__.NavigatorV3Tests.test_v3_test_strategy_requires_repeatable_harness_revalidation_and_suite_tiers)
+The global strategy chooses rerunnable coverage before item work starts. ... ok
+
+----------------------------------------------------------------------
+Ran 22 tests in 0.929s
+
+OK
+==> test/shiploop-standalone-improve.test.py
+..............
+----------------------------------------------------------------------
+Ran 14 tests in 2.223s
+
+OK
+==> test/shiploop-actual-improve-cli.test.py
+.......
+----------------------------------------------------------------------
+Ran 7 tests in 17.340s
+
+OK
+==> test/shiploop-packet-bounds.test.py
+.......
+----------------------------------------------------------------------
+Ran 7 tests in 0.099s
+
+OK
+==> test/shiploop-v3-guidance.test.py
+test_cold_local_skill_routes_cover_early_and_late_decisions (__main__.V3GuidanceTests.test_cold_local_skill_routes_cover_early_and_late_decisions)
+Fresh producer and pending-child packets retain the local skill route. ... ok
+test_cold_packets_route_the_repeatable_test_suite_guide_to_each_testing_stage (__main__.V3GuidanceTests.test_cold_packets_route_the_repeatable_test_suite_guide_to_each_testing_stage)
+Persisted v3 states retain the direct guide route at testing checkpoints. ... ok
+test_cold_step_plan_keeps_compact_context_and_evidence_locators (__main__.V3GuidanceTests.test_cold_step_plan_keeps_compact_context_and_evidence_locators) ... ok
+test_current_item_test_decision_source_is_revised_and_item_scoped (__main__.V3GuidanceTests.test_current_item_test_decision_source_is_revised_and_item_scoped)
+Only the current item's latest accepted decision is retained in a packet. ... ok
+test_each_current_v3_packet_renders_its_selected_stage_references (__main__.V3GuidanceTests.test_each_current_v3_packet_renders_its_selected_stage_references) ... ok
+test_next_item_reopens_repo_index_without_inheriting_prior_skill_selection (__main__.V3GuidanceTests.test_next_item_reopens_repo_index_without_inheriting_prior_skill_selection)
+The generic item context keeps selections scoped to their owner. ... ok
+test_stage_reference_catalog_is_complete_and_resolves (__main__.V3GuidanceTests.test_stage_reference_catalog_is_complete_and_resolves) ... ok
+test_v1_and_v2_packets_do_not_gain_the_v3_strategy_projection (__main__.V3GuidanceTests.test_v1_and_v2_packets_do_not_gain_the_v3_strategy_projection) ... ok
+test_v3_cold_packets_keep_the_latest_done_root_test_strategy (__main__.V3GuidanceTests.test_v3_cold_packets_keep_the_latest_done_root_test_strategy)
+Strategy locators survive later evidence without reading it into packets. ... ok
+test_v3_improve_and_source_return_guidance_keep_the_existing_boundary (__main__.V3GuidanceTests.test_v3_improve_and_source_return_guidance_keep_the_existing_boundary) ... ok
+
+----------------------------------------------------------------------
+Ran 10 tests in 0.453s
+
+OK
+==> test/shiploop-full-runtime.test.py
+test_full_v3_runtime_composition_and_recovery_variants (__main__.FullRuntimeCompositionTests.test_full_v3_runtime_composition_and_recovery_variants)
+Exercise all stages, then a delayed contract correction and recovery. ... ok
+test_generated_payload_binds_its_own_selected_improve_runtime (__main__.FullRuntimeCompositionTests.test_generated_payload_binds_its_own_selected_improve_runtime)
+A copied generated payload must not fall back to an ambient skill path. ... ok
+test_v3_intake_host_observer_bridge (__main__.FullRuntimeCompositionTests.test_v3_intake_host_observer_bridge)
+Observe one real v3 intake prefix through synthetic host stream records. ... ok
+
+----------------------------------------------------------------------
+Ran 3 tests in 100.427s
+
+OK
+==> test/shiploop-navigator-dry-run.test.py
+.......
+----------------------------------------------------------------------
+Ran 7 tests in 1.753s
+
+OK
+==> test/shiploop-auth-readiness.test.py
+....
+----------------------------------------------------------------------
+Ran 4 tests in 29.306s
+
+OK
+==> test/shiploop-environment-lifecycle.test.py
+.....
+----------------------------------------------------------------------
+Ran 5 tests in 59.794s
+
+OK
+==> test/shiploop-cross-run.test.py
+...........
+----------------------------------------------------------------------
+Ran 11 tests in 11.953s
+
+OK
+==> test/shiploop-workspace.test.py
+test_clean_candidate_fast_forwards_when_every_path_is_kept (__main__.ShipLoopWorkspaceTests.test_clean_candidate_fast_forwards_when_every_path_is_kept) ... ok
+test_clean_fast_forward_refuses_to_overwrite_an_ignored_source_sentinel (__main__.ShipLoopWorkspaceTests.test_clean_fast_forward_refuses_to_overwrite_an_ignored_source_sentinel)
+`merge --ff-only` must not silently replace ignored untracked data. ... ok
+test_dirty_return_applies_only_new_delta_and_preserves_source_index (__main__.ShipLoopWorkspaceTests.test_dirty_return_applies_only_new_delta_and_preserves_source_index) ... ok
+test_dirty_return_preserves_binary_delete_rename_mode_and_symlink_changes (__main__.ShipLoopWorkspaceTests.test_dirty_return_preserves_binary_delete_rename_mode_and_symlink_changes) ... ok
+test_dirty_return_refuses_to_overwrite_an_ignored_source_sentinel (__main__.ShipLoopWorkspaceTests.test_dirty_return_refuses_to_overwrite_an_ignored_source_sentinel)
+The reviewed patch route has the same ignored-file safety boundary. ... ok
+test_execute_refuses_a_duplicate_return_plan_row_without_source_mutation (__main__.ShipLoopWorkspaceTests.test_execute_refuses_a_duplicate_return_plan_row_without_source_mutation) ... ok
+test_execute_refuses_stale_candidate_and_stale_plan_without_mutation (__main__.ShipLoopWorkspaceTests.test_execute_refuses_stale_candidate_and_stale_plan_without_mutation) ... ok
+test_explicit_v2_and_v1_direct_navigator_cold_recovery_remain_unchanged (__main__.ShipLoopWorkspaceTests.test_explicit_v2_and_v1_direct_navigator_cold_recovery_remain_unchanged) ... ok
+test_explicitly_omitted_output_never_returns_but_durable_documents_do (__main__.ShipLoopWorkspaceTests.test_explicitly_omitted_output_never_returns_but_durable_documents_do) ... ok
+test_failed_named_git_reads_never_be_interpreted_as_an_empty_delta (__main__.ShipLoopWorkspaceTests.test_failed_named_git_reads_never_be_interpreted_as_an_empty_delta)
+A nonzero empty read must block rather than erase history or changes. ... ok
+test_fresh_workspace_roots_isolate_identical_prompts (__main__.ShipLoopWorkspaceTests.test_fresh_workspace_roots_isolate_identical_prompts)
+Same text in a new root creates a new run and preserves the old cursor. ... ok
+test_no_product_delta_returns_an_explicit_no_change_receipt (__main__.ShipLoopWorkspaceTests.test_no_product_delta_returns_an_explicit_no_change_receipt)
+Empty reviewed output is not a fake merge, commit, or empty apply. ... ok
+test_prepare_accepts_an_empty_initial_commit_without_a_readme (__main__.ShipLoopWorkspaceTests.test_prepare_accepts_an_empty_initial_commit_without_a_readme)
+A new repository needs no bootstrap file before workspace capture. ... ok
+test_prepare_refuses_a_staged_runtime_deletion_without_repairing_user_work (__main__.ShipLoopWorkspaceTests.test_prepare_refuses_a_staged_runtime_deletion_without_repairing_user_work)
+A removed old run file is still an unsafe tracked baseline, not cleanup. ... ok
+test_prepare_rejects_a_transient_source_artifact_without_mutation (__main__.ShipLoopWorkspaceTests.test_prepare_rejects_a_transient_source_artifact_without_mutation) ... ok
+test_prepare_rejects_ephemeral_child_receipts_without_mutation (__main__.ShipLoopWorkspaceTests.test_prepare_rejects_ephemeral_child_receipts_without_mutation)
+Saved terminal packets are parent evidence, never product baseline input. ... ok
+test_prepare_rejects_until_loop_runtime_artifacts_without_mutation (__main__.ShipLoopWorkspaceTests.test_prepare_rejects_until_loop_runtime_artifacts_without_mutation)
+Actual Improve runtime state is evidence, never candidate product input. ... ok
+test_prepare_replays_selected_dirty_inputs_without_touching_source_index (__main__.ShipLoopWorkspaceTests.test_prepare_replays_selected_dirty_inputs_without_touching_source_index) ... ok
+test_prepare_sanitizes_ambient_git_redirection_and_disables_checkout_hooks (__main__.ShipLoopWorkspaceTests.test_prepare_sanitizes_ambient_git_redirection_and_disables_checkout_hooks)
+A caller environment or repository hook cannot redirect workspace capture. ... ok
+test_prepare_uses_actual_working_content_for_staged_new_edit_and_delete (__main__.ShipLoopWorkspaceTests.test_prepare_uses_actual_working_content_for_staged_new_edit_and_delete)
+The private baseline follows current files, not only the source index. ... ok
+test_public_return_is_refused_before_release_or_handoff_without_mutation (__main__.ShipLoopWorkspaceTests.test_public_return_is_refused_before_release_or_handoff_without_mutation) ... ok
+test_public_workspace_commands_start_plan_and_return (__main__.ShipLoopWorkspaceTests.test_public_workspace_commands_start_plan_and_return) ... ok
+test_return_receipt_is_idempotent_but_candidate_mutation_invalidates_handoff (__main__.ShipLoopWorkspaceTests.test_return_receipt_is_idempotent_but_candidate_mutation_invalidates_handoff) ... ok
+test_runtime_artifact_removed_before_the_baseline_does_not_block_or_reappear (__main__.ShipLoopWorkspaceTests.test_runtime_artifact_removed_before_the_baseline_does_not_block_or_reappear)
+Do not treat unrelated pre-baseline history as current candidate work. ... ok
+test_source_content_index_and_branch_drift_refuse_without_repairing_source (__main__.ShipLoopWorkspaceTests.test_source_content_index_and_branch_drift_refuse_without_repairing_source) ... ok
+test_tracked_or_historical_child_receipts_still_block_return (__main__.ShipLoopWorkspaceTests.test_tracked_or_historical_child_receipts_still_block_return) ... ok
+test_transient_candidate_and_transient_history_are_never_returnable (__main__.ShipLoopWorkspaceTests.test_transient_candidate_and_transient_history_are_never_returnable) ... ok
+test_untracked_child_evidence_is_retained_but_cannot_be_returned (__main__.ShipLoopWorkspaceTests.test_untracked_child_evidence_is_retained_but_cannot_be_returned) ... ok
+test_verified_return_allows_the_same_worktree_handoff_to_complete (__main__.ShipLoopWorkspaceTests.test_verified_return_allows_the_same_worktree_handoff_to_complete)
+The terminal guard rejects missing proof without making valid proof unusable. ... ok
+test_workspace_start_defaults_to_protocol_v3 (__main__.ShipLoopWorkspaceTests.test_workspace_start_defaults_to_protocol_v3) ... ok
+test_workspace_start_replay_is_idempotent_and_rejects_changed_scope_or_capture (__main__.ShipLoopWorkspaceTests.test_workspace_start_replay_is_idempotent_and_rejects_changed_scope_or_capture) ... ok
+test_worktree_navigator_cannot_complete_handoff_without_return_receipt (__main__.ShipLoopWorkspaceTests.test_worktree_navigator_cannot_complete_handoff_without_return_receipt) ... ok
+
+----------------------------------------------------------------------
+Ran 32 tests in 96.796s
+
+OK
+==> test/shiploop-consumer-delivery.test.py
+test_additive_check_and_outer_improve_refresh_preserve_required_work (__main__.ConsumerDeliveryTests.test_additive_check_and_outer_improve_refresh_preserve_required_work) ... ok
+test_contract_is_required_at_plan_improve_and_packet_rehydrates_anchor (__main__.ConsumerDeliveryTests.test_contract_is_required_at_plan_improve_and_packet_rehydrates_anchor) ... ok
+test_contract_rejects_a_second_activation_target (__main__.ConsumerDeliveryTests.test_contract_rejects_a_second_activation_target) ... ok
+test_fresh_run_accepts_new_repo_policy_without_copying_old_one_off_grant (__main__.ConsumerDeliveryTests.test_fresh_run_accepts_new_repo_policy_without_copying_old_one_off_grant) ... ok
+test_full_correction_binds_its_same_action_observations_without_a_host_anchor (__main__.ConsumerDeliveryTests.test_full_correction_binds_its_same_action_observations_without_a_host_anchor) ... ok
+test_late_negative_release_observations_replace_old_success_without_backtracking (__main__.ConsumerDeliveryTests.test_late_negative_release_observations_replace_old_success_without_backtracking) ... ok
+test_local_only_contract_keeps_required_behavior_from_being_skipped (__main__.ConsumerDeliveryTests.test_local_only_contract_keeps_required_behavior_from_being_skipped) ... ok
+test_malformed_enum_and_status_values_raise_navigator_errors_without_mutation (__main__.ConsumerDeliveryTests.test_malformed_enum_and_status_values_raise_navigator_errors_without_mutation) ... ok
+test_multiple_required_consumers_cannot_be_completed_by_one_behavior_check (__main__.ConsumerDeliveryTests.test_multiple_required_consumers_cannot_be_completed_by_one_behavior_check) ... ok
+test_not_required_contract_rejects_optional_activation_rows_for_any_authority_state (__main__.ConsumerDeliveryTests.test_not_required_contract_rejects_optional_activation_rows_for_any_authority_state) ... ok
+test_opt_in_marker_is_v2_only_and_unmarked_shapes_stay_unchanged (__main__.ConsumerDeliveryTests.test_opt_in_marker_is_v2_only_and_unmarked_shapes_stay_unchanged) ... ok
+test_packet_treats_delivery_records_as_data_and_links_their_receipts (__main__.ConsumerDeliveryTests.test_packet_treats_delivery_records_as_data_and_links_their_receipts) ... ok
+test_post_plan_behavior_correction_invalidates_behavior_and_sticks_replanning (__main__.ConsumerDeliveryTests.test_post_plan_behavior_correction_invalidates_behavior_and_sticks_replanning) ... ok
+test_post_plan_candidate_change_stays_blocked_after_resume (__main__.ConsumerDeliveryTests.test_post_plan_candidate_change_stays_blocked_after_resume) ... ok
+test_post_plan_handoff_correction_requires_a_new_planning_run (__main__.ConsumerDeliveryTests.test_post_plan_handoff_correction_requires_a_new_planning_run) ... ok
+test_repo_policy_requires_approval_ref_without_mutation (__main__.ConsumerDeliveryTests.test_repo_policy_requires_approval_ref_without_mutation) ... ok
+test_repo_policy_scope_must_match_contract_without_mutation (__main__.ConsumerDeliveryTests.test_repo_policy_scope_must_match_contract_without_mutation) ... ok
+test_required_phase_obligations_block_false_completion_and_preserve_effect (__main__.ConsumerDeliveryTests.test_required_phase_obligations_block_false_completion_and_preserve_effect) ... ok
+test_resolved_local_contract_cannot_drop_all_consumer_behavior_checks (__main__.ConsumerDeliveryTests.test_resolved_local_contract_cannot_drop_all_consumer_behavior_checks) ... ok
+test_scope_weakening_and_stale_observations_are_rejected_without_erasure (__main__.ConsumerDeliveryTests.test_scope_weakening_and_stale_observations_are_rejected_without_erasure) ... ok
+test_templates_are_stage_aware_and_use_script_selected_obligation_ids (__main__.ConsumerDeliveryTests.test_templates_are_stage_aware_and_use_script_selected_obligation_ids) ... ok
+test_terminal_validation_rejects_completed_history_with_failed_required_observation (__main__.ConsumerDeliveryTests.test_terminal_validation_rejects_completed_history_with_failed_required_observation) ... ok
+test_v3_contract_is_required_at_plan_after_its_actual_improve_handoff (__main__.ConsumerDeliveryTests.test_v3_contract_is_required_at_plan_after_its_actual_improve_handoff) ... ok
+test_v3_delivery_lifecycle_replans_then_completes_only_after_child_imports (__main__.ConsumerDeliveryTests.test_v3_delivery_lifecycle_replans_then_completes_only_after_child_imports)
+Exercise the default graph's delivery gates at their parent return edge. ... ok
+test_v3_late_negative_observations_are_retained_at_new_due_stages (__main__.ConsumerDeliveryTests.test_v3_late_negative_observations_are_retained_at_new_due_stages)
+New v3 outer stages may retain failures for obligations already due. ... ok
+test_v3_operations_contract_change_requires_replan_after_release_plan (__main__.ConsumerDeliveryTests.test_v3_operations_contract_change_requires_replan_after_release_plan)
+The later v3 operations stage cannot silently replace a planned contract. ... ok
+test_v3_repeat_and_resume_do_not_clear_post_plan_replan_requirement (__main__.ConsumerDeliveryTests.test_v3_repeat_and_resume_do_not_clear_post_plan_replan_requirement)
+Only an accepted v3 replan starts the corrective release-planning cycle. ... ok
+test_v3_replan_clears_post_plan_requirement_only_after_fresh_tests_and_plan (__main__.ConsumerDeliveryTests.test_v3_replan_clears_post_plan_requirement_only_after_fresh_tests_and_plan)
+A v3 corrective edge creates a new current-contract release-planning cycle. ... ok
+test_v3_replan_without_immediate_contract_change_starts_a_fresh_plan_cycle (__main__.ConsumerDeliveryTests.test_v3_replan_without_immediate_contract_change_starts_a_fresh_plan_cycle)
+A corrective v3 work item can change the candidate after its replan action. ... ok
+
+----------------------------------------------------------------------
+Ran 29 tests in 0.749s
+
+OK
+==> test/shiploop-consumer-delivery-cli.test.py
+......
+----------------------------------------------------------------------
+Ran 6 tests in 2.619s
+
+OK
+==> test/shiploop-delivery-prompts.test.py
+test_a_is_frozen_baseline_and_b_contains_delivery_candidate_wording (__main__.DeliveryPromptPilotTests.test_a_is_frozen_baseline_and_b_contains_delivery_candidate_wording) ... ok
+test_authority_cases_have_private_oracles_and_reproducible_packets (__main__.DeliveryPromptPilotTests.test_authority_cases_have_private_oracles_and_reproducible_packets) ... ok
+test_exploratory_b2_is_separate_and_targets_only_phase_order_cases (__main__.DeliveryPromptPilotTests.test_exploratory_b2_is_separate_and_targets_only_phase_order_cases) ... ok
+test_fixed_sentinel_scenarios_have_separate_oracles (__main__.DeliveryPromptPilotTests.test_fixed_sentinel_scenarios_have_separate_oracles) ... ok
+test_frozen_a_and_candidate_b_packets_cover_two_fresh_repetitions (__main__.DeliveryPromptPilotTests.test_frozen_a_and_candidate_b_packets_cover_two_fresh_repetitions) ... ok
+test_packet_preparation_can_make_a_declared_narrow_follow_up_set (__main__.DeliveryPromptPilotTests.test_packet_preparation_can_make_a_declared_narrow_follow_up_set) ... ok
+test_packet_preparation_is_local_deterministic_and_refuses_overwrite (__main__.DeliveryPromptPilotTests.test_packet_preparation_is_local_deterministic_and_refuses_overwrite) ... ok
+
+----------------------------------------------------------------------
+Ran 7 tests in 0.013s
+
+OK
+==> test/experiments/shiploop_delivery/fake_deployment.test.py
+test_current_artifact_does_not_replace_failed_visual_interaction (__main__.FakeDeploymentTests.test_current_artifact_does_not_replace_failed_visual_interaction) ... ok
+test_forbidden_operation_is_visible_and_does_not_change_target (__main__.FakeDeploymentTests.test_forbidden_operation_is_visible_and_does_not_change_target) ... ok
+test_stale_served_artifact_is_not_current_consumer_behavior (__main__.FakeDeploymentTests.test_stale_served_artifact_is_not_current_consumer_behavior) ... ok
+test_successful_update_with_login_preserves_effect_without_retry (__main__.FakeDeploymentTests.test_successful_update_with_login_preserves_effect_without_retry) ... ok
+test_unknown_operation_outcome_is_not_retried_by_the_fixture (__main__.FakeDeploymentTests.test_unknown_operation_outcome_is_not_retried_by_the_fixture) ... ok
+
+----------------------------------------------------------------------
+Ran 5 tests in 0.000s
+
+OK
+==> test/experiments/shiploop_delivery/browser_consumer/serve_fixture.test.py
+test_each_case_serves_its_distinct_artifact_on_loopback (__main__.LoopbackFixtureTests.test_each_case_serves_its_distinct_artifact_on_loopback) ... ok
+test_local_candidate_is_newer_than_stale_served_artifact (__main__.LoopbackFixtureTests.test_local_candidate_is_newer_than_stale_served_artifact) ... ok
+
+----------------------------------------------------------------------
+Ran 2 tests in 2.522s
+
+OK
+==> test/improve-managed.test.py
+test_child_replay_rejects_tampered_cursor_or_pass_counter (__main__.ManagedImproveCertificateTests.test_child_replay_rejects_tampered_cursor_or_pass_counter) ... ok
+test_controller_stays_pure_and_has_no_runtime_backend_import (__main__.ManagedImproveCertificateTests.test_controller_stays_pure_and_has_no_runtime_backend_import) ... ok
+test_execution_projection_is_allowed_but_cannot_change_phase (__main__.ManagedImproveCertificateTests.test_execution_projection_is_allowed_but_cannot_change_phase) ... ok
+test_terminal_certificate_binds_child_and_rejects_stale_or_tampered_forms (__main__.ManagedImproveCertificateTests.test_terminal_certificate_binds_child_and_rejects_stale_or_tampered_forms) ... ok
+test_commit_requires_complete_current_evidence_and_rejects_repeated_commit (__main__.ManagedImproveEvidenceTests.test_commit_requires_complete_current_evidence_and_rejects_repeated_commit) ... ok
+test_final_phase_requires_shaped_fresh_evidence_not_a_done_claim (__main__.ManagedImproveEvidenceTests.test_final_phase_requires_shaped_fresh_evidence_not_a_done_claim) ... ok
+test_incomplete_status_is_never_a_certificate (__main__.ManagedImproveEvidenceTests.test_incomplete_status_is_never_a_certificate) ... ok
+test_material_pass_resets_before_two_later_trivial_passes_converge (__main__.ManagedImproveEvidenceTests.test_material_pass_resets_before_two_later_trivial_passes_converge) ... ok
+test_missing_evidence_or_generic_done_cannot_advance (__main__.ManagedImproveEvidenceTests.test_missing_evidence_or_generic_done_cannot_advance) ... ok
+test_open_findings_after_verified_commit_keep_the_child_active (__main__.ManagedImproveEvidenceTests.test_open_findings_after_verified_commit_keep_the_child_active) ... ok
+test_pause_keeps_active_child_at_carry_forward_until_continue (__main__.ManagedImproveEvidenceTests.test_pause_keeps_active_child_at_carry_forward_until_continue) ... ok
+test_repair_resets_epoch_and_resume_restores_the_same_child_phase (__main__.ManagedImproveEvidenceTests.test_repair_resets_epoch_and_resume_restores_the_same_child_phase) ... ok
+test_required_reviewer_requires_performed_or_explicit_fallback (__main__.ManagedImproveEvidenceTests.test_required_reviewer_requires_performed_or_explicit_fallback) ... ok
+test_carry_forward_requires_explicit_continue_pause_or_repair (__main__.ManagedImproveRouteTests.test_carry_forward_requires_explicit_continue_pause_or_repair) ... ok
+test_commit_admits_final_only_after_two_completed_passes (__main__.ManagedImproveRouteTests.test_commit_admits_final_only_after_two_completed_passes) ... ok
+test_decide_preserves_shiploop_readiness_shape (__main__.ManagedImproveRouteTests.test_decide_preserves_shiploop_readiness_shape) ... ok
+test_final_phase_cannot_be_skipped_or_entered_without_ready_passes (__main__.ManagedImproveRouteTests.test_final_phase_cannot_be_skipped_or_entered_without_ready_passes) ... ok
+test_product_documentation_and_skill_decisions_are_explicit (__main__.ManagedImproveRouteTests.test_product_documentation_and_skill_decisions_are_explicit) ... ok
+test_product_plan_verification_does_not_start_nested_plan_convergence (__main__.ManagedImproveRouteTests.test_product_plan_verification_does_not_start_nested_plan_convergence) ... ok
+test_profile_routes_are_closed_and_separate (__main__.ManagedImproveRouteTests.test_profile_routes_are_closed_and_separate) ... ok
+test_step_plan_disposition_is_explicit_and_restarts_review (__main__.ManagedImproveRouteTests.test_step_plan_disposition_is_explicit_and_restarts_review) ... ok
+test_step_plan_repair_can_require_disposition_without_a_fake_review (__main__.ManagedImproveRouteTests.test_step_plan_repair_can_require_disposition_without_a_fake_review) ... ok
+
+----------------------------------------------------------------------
+Ran 22 tests in 0.089s
+
+OK
+==> test/shiploop-graph-driver.test.py
+.........
+----------------------------------------------------------------------
+Ran 9 tests in 2.710s
+
+OK
+==> test/shiploop-graph-trace.test.py
+......
+----------------------------------------------------------------------
+Ran 6 tests in 0.003s
+
+OK
+==> test/shiploop-store.test.py
+test_markdown_round_trip_and_no_raw_json_fallback (__main__.ShipLoopStoreTests.test_markdown_round_trip_and_no_raw_json_fallback) ... ok
+test_recover_rolls_forward_after_crash_following_first_target_write (__main__.ShipLoopStoreTests.test_recover_rolls_forward_after_crash_following_first_target_write) ... ok
+test_refuses_edits_to_its_own_journal (__main__.ShipLoopStoreTests.test_refuses_edits_to_its_own_journal) ... ok
+test_refuses_symlink_targets_and_parents_that_escape_root (__main__.ShipLoopStoreTests.test_refuses_symlink_targets_and_parents_that_escape_root) ... ok
+test_rejects_malformed_duplicate_or_ambiguous_payloads (__main__.ShipLoopStoreTests.test_rejects_malformed_duplicate_or_ambiguous_payloads) ... ok
+test_transaction_applies_sorted_writes_and_deletes (__main__.ShipLoopStoreTests.test_transaction_applies_sorted_writes_and_deletes) ... ok
+test_unsafe_manifest_has_no_partial_writes (__main__.ShipLoopStoreTests.test_unsafe_manifest_has_no_partial_writes) ... ok
+
+----------------------------------------------------------------------
+Ran 7 tests in 0.007s
+
+OK
+==> test/shiploop-evidence.test.py
+test_fingerprint_tracks_missing_modes_and_symlink_target_without_following (__main__.ShipLoopEvidenceTests.test_fingerprint_tracks_missing_modes_and_symlink_target_without_following) ... ok
+test_history_returns_full_bodies_and_honors_pagination (__main__.ShipLoopEvidenceTests.test_history_returns_full_bodies_and_honors_pagination) ... ok
+test_run_checks_rejects_timeout_and_content_change (__main__.ShipLoopEvidenceTests.test_run_checks_rejects_timeout_and_content_change) ... ok
+test_run_checks_writes_logs_and_validate_results_rejects_failed_missing_stale_and_mismatched (__main__.ShipLoopEvidenceTests.test_run_checks_writes_logs_and_validate_results_rejects_failed_missing_stale_and_mismatched) ... ok
+test_timeout_cancels_spawned_posix_child_without_writing_outside_fixture (__main__.ShipLoopEvidenceTests.test_timeout_cancels_spawned_posix_child_without_writing_outside_fixture) ... ok
+test_validate_commit_rejects_missing_sections_and_subjective_quality_claims (__main__.ShipLoopEvidenceTests.test_validate_commit_rejects_missing_sections_and_subjective_quality_claims) ... ok
+test_validate_commit_requires_new_head_structured_evidence_and_allows_empty_audit (__main__.ShipLoopEvidenceTests.test_validate_commit_requires_new_head_structured_evidence_and_allows_empty_audit) ... ok
+test_validate_manifest_requires_test_coverage_and_lint_or_noncode_reason (__main__.ShipLoopEvidenceTests.test_validate_manifest_requires_test_coverage_and_lint_or_noncode_reason) ... ok
+
+----------------------------------------------------------------------
+Ran 8 tests in 4.261s
+
+OK
+==> test/shiploop-file-safety.test.py
+test_ignore_aliases_block_without_changing_external_sentinel (__main__.ShipLoopFileSafetyTests.test_ignore_aliases_block_without_changing_external_sentinel) ... error: unsafe Git common-directory exclude path
+error: unsafe Git exclude file: /private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-file-safety-a5p7e1et/hardlink/.git/info/exclude
+ok
+test_ignore_is_added_once_and_works_from_a_linked_worktree (__main__.ShipLoopFileSafetyTests.test_ignore_is_added_once_and_works_from_a_linked_worktree) ... ok
+test_ignore_reasserts_after_local_negation_and_blocks_product_negation (__main__.ShipLoopFileSafetyTests.test_ignore_reasserts_after_local_negation_and_blocks_product_negation) ... error: worktree ignore remains ineffective after updating .git/info/exclude; a higher-priority product rule may negate .worktrees/
+ok
+test_ignore_rejects_symlink_ancestor_and_nonregular_leaf (__main__.ShipLoopFileSafetyTests.test_ignore_rejects_symlink_ancestor_and_nonregular_leaf) ... error: unsafe Git common-directory exclude path
+error: unsafe Git exclude file: /private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-file-safety-n753wb29/ignore-directory/.git/info/exclude
+ok
+test_ignore_validates_owned_metadata_before_check_ignore (__main__.ShipLoopFileSafetyTests.test_ignore_validates_owned_metadata_before_check_ignore) ... error: unsafe Git exclude file: /private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-file-safety-6zdavkh6/ignore-order/.git/info/exclude
+ok
+test_log_aliases_and_symlink_ancestor_preserve_sentinels (__main__.ShipLoopFileSafetyTests.test_log_aliases_and_symlink_ancestor_preserve_sentinels) ... ok
+test_log_rejects_nonregular_leaf_and_allows_safe_retry_overwrite (__main__.ShipLoopFileSafetyTests.test_log_rejects_nonregular_leaf_and_allows_safe_retry_overwrite) ... ok
+test_run_checks_rejects_a_symlinked_evidence_ancestor_before_creation (__main__.ShipLoopFileSafetyTests.test_run_checks_rejects_a_symlinked_evidence_ancestor_before_creation) ... ok
+
+----------------------------------------------------------------------
+Ran 8 tests in 1.802s
+
+OK
+==> test/shiploop-prompt-integrity.test.py
+..........
+----------------------------------------------------------------------
+Ran 10 tests in 10.065s
+
+OK
+==> test/shiploop-literal-transport.test.py
+test_documented_entry_round_trips_literal_requests (__main__.LiteralTransportTests.test_documented_entry_round_trips_literal_requests) ... ok
+
+----------------------------------------------------------------------
+Ran 1 test in 2.733s
+
+OK
+==> test/shiploop-validators.test.py
+test_destination_route_source_must_be_a_survey_reference (__main__.DestinationIdentityTests.test_destination_route_source_must_be_a_survey_reference) ... ok
+test_exclusive_gaps_reject_competing_or_opposing_writer_routes (__main__.DestinationIdentityTests.test_exclusive_gaps_reject_competing_or_opposing_writer_routes) ... ok
+test_exclusive_gaps_require_refs_layout_and_routing_for_destination_writer (__main__.DestinationIdentityTests.test_exclusive_gaps_require_refs_layout_and_routing_for_destination_writer) ... ok
+test_exclusive_gaps_requires_explicit_empty_or_structured_exclusive_key (__main__.DestinationIdentityTests.test_exclusive_gaps_requires_explicit_empty_or_structured_exclusive_key) ... ok
+test_ui_craft_requires_its_reference_path (__main__.DestinationIdentityTests.test_ui_craft_requires_its_reference_path) ... ok
+test_unresolved_environment_handles_block_destination_planning (__main__.DestinationIdentityTests.test_unresolved_environment_handles_block_destination_planning) ... ok
+test_load_environment_accepts_canonical_machine (__main__.EnvironmentValidationTests.test_load_environment_accepts_canonical_machine) ... ok
+test_load_environment_refuses_unclosed_or_non_json_machine_fence (__main__.EnvironmentValidationTests.test_load_environment_refuses_unclosed_or_non_json_machine_fence) ... ok
+test_load_environment_requires_one_machine_heading_and_brief (__main__.EnvironmentValidationTests.test_load_environment_requires_one_machine_heading_and_brief) ... ok
+test_validate_machine_rejects_invalid_handle_and_initiation_contracts (__main__.EnvironmentValidationTests.test_validate_machine_rejects_invalid_handle_and_initiation_contracts) ... ok
+test_validate_machine_rejects_kind_augment_and_brownfield_reference_mismatch (__main__.EnvironmentValidationTests.test_validate_machine_rejects_kind_augment_and_brownfield_reference_mismatch) ... ok
+test_validate_machine_rejects_ui_craft_shape_mismatch (__main__.EnvironmentValidationTests.test_validate_machine_rejects_ui_craft_shape_mismatch) ... ok
+test_validate_machine_rejects_uninventoried_or_unsafe_exclusive_rows (__main__.EnvironmentValidationTests.test_validate_machine_rejects_uninventoried_or_unsafe_exclusive_rows) ... ok
+test_blocked_transition_is_the_intentional_drift_rebind_hatch (__main__.FrozenArtifactValidationTests.test_blocked_transition_is_the_intentional_drift_rebind_hatch) ... ok
+test_frozen_environment_drift_is_blocked (__main__.FrozenArtifactValidationTests.test_frozen_environment_drift_is_blocked) ... ok
+test_frozen_hashes_accept_unchanged_authoritative_files (__main__.FrozenArtifactValidationTests.test_frozen_hashes_accept_unchanged_authoritative_files) ... ok
+test_frozen_markdown_dag_drift_is_blocked (__main__.FrozenArtifactValidationTests.test_frozen_markdown_dag_drift_is_blocked) ... ok
+test_frozen_spec_drift_is_blocked (__main__.FrozenArtifactValidationTests.test_frozen_spec_drift_is_blocked) ... ok
+test_latest_round_commit_must_contain_the_current_ledger_blob (__main__.LedgerLandingValidationTests.test_latest_round_commit_must_contain_the_current_ledger_blob) ... ok
+test_plain_documented_committed_marker_matches_bold_grammar (__main__.LedgerLandingValidationTests.test_plain_documented_committed_marker_matches_bold_grammar) ... ok
+test_untracked_or_dirty_ledger_cannot_claim_landed_review_coverage (__main__.LedgerLandingValidationTests.test_untracked_or_dirty_ledger_cannot_claim_landed_review_coverage) ... ok
+test_dag_rejects_initial_state_claims_without_a_source (__main__.MarkdownDagValidationTests.test_dag_rejects_initial_state_claims_without_a_source) ... ok
+test_dag_rejects_unknown_dependencies_and_cycles (__main__.MarkdownDagValidationTests.test_dag_rejects_unknown_dependencies_and_cycles) ... ok
+test_dag_rejects_unresolved_work_before_implementation (__main__.MarkdownDagValidationTests.test_dag_rejects_unresolved_work_before_implementation) ... ok
+test_dag_rejects_unsafe_and_duplicate_step_ids (__main__.MarkdownDagValidationTests.test_dag_rejects_unsafe_and_duplicate_step_ids) ... ok
+test_dag_requires_goal_until_clause_and_each_declared_product (__main__.MarkdownDagValidationTests.test_dag_requires_goal_until_clause_and_each_declared_product) ... ok
+test_seed_dag_requires_tools_line_and_reference_citation (__main__.MarkdownDagValidationTests.test_seed_dag_requires_tools_line_and_reference_citation) ... ok
+test_seed_writer_prompt_protects_reserved_destination_paths (__main__.MarkdownDagValidationTests.test_seed_writer_prompt_protects_reserved_destination_paths) ... ok
+test_ui_dag_requires_a_design_seed (__main__.MarkdownDagValidationTests.test_ui_dag_requires_a_design_seed) ... ok
+test_ui_design_dependency_is_accepted (__main__.MarkdownDagValidationTests.test_ui_design_dependency_is_accepted) ... ok
+test_ui_design_seed_must_feed_another_seed (__main__.MarkdownDagValidationTests.test_ui_design_seed_must_feed_another_seed) ... ok
+test_valid_dag_is_loaded_from_markdown_authority_without_json_twin (__main__.MarkdownDagValidationTests.test_valid_dag_is_loaded_from_markdown_authority_without_json_twin) ... ok
+test_writer_prompt_requires_designated_use_and_every_dont_use_token (__main__.MarkdownDagValidationTests.test_writer_prompt_requires_designated_use_and_every_dont_use_token) ... ok
+test_only_a_hashed_bound_review_coverage_section_can_waive_outer_ledger (__main__.PlanWaiverValidationTests.test_only_a_hashed_bound_review_coverage_section_can_waive_outer_ledger) ... ok
+test_load_spec_requires_checkable_and_singleton_labels (__main__.SpecAndWrapperValidationTests.test_load_spec_requires_checkable_and_singleton_labels) ... ok
+test_load_spec_requires_question_for_uncheckable_work (__main__.SpecAndWrapperValidationTests.test_load_spec_requires_question_for_uncheckable_work) ... ok
+test_load_spec_uses_only_unquoted_unfenced_labels (__main__.SpecAndWrapperValidationTests.test_load_spec_uses_only_unquoted_unfenced_labels) ... ok
+test_wrapper_pair_rejects_duplicate_done_sentence (__main__.SpecAndWrapperValidationTests.test_wrapper_pair_rejects_duplicate_done_sentence) ... ok
+test_wrapper_pair_requires_one_matching_done_sentence (__main__.SpecAndWrapperValidationTests.test_wrapper_pair_requires_one_matching_done_sentence) ... ok
+
+----------------------------------------------------------------------
+Ran 39 tests in 1.692s
+
+OK
+==> test/shiploop-discovery.test.py
+...........................
+----------------------------------------------------------------------
+Ran 27 tests in 10.179s
+
+OK
+==> test/shiploop-capability-fixture.test.py
+test_case_layout_clears_ambient_receipts_until_explicitly_configured (__main__.CapabilityFixtureContractTests.test_case_layout_clears_ambient_receipts_until_explicitly_configured) ... ok
+test_create_case_rejects_nonempty_workspace (__main__.CapabilityFixtureContractTests.test_create_case_rejects_nonempty_workspace) ... ok
+test_grader_clears_ambient_receipt_paths_until_a_run_explicitly_sets_one (__main__.CapabilityFixtureContractTests.test_grader_clears_ambient_receipt_paths_until_a_run_explicitly_sets_one) ... ok
+test_http_calibration_detects_every_baked_mutant_and_the_test_gate_rejects_bad_reference (__main__.CapabilityFixtureContractTests.test_http_calibration_detects_every_baked_mutant_and_the_test_gate_rejects_bad_reference) ... ok
+test_malformed_actor_json_is_400_and_a_fresh_public_reader_sees_no_write (__main__.CapabilityFixtureContractTests.test_malformed_actor_json_is_400_and_a_fresh_public_reader_sees_no_write) ... ok
+test_normalization_precedes_auth_and_workspace_logs_redact_untrusted_values (__main__.CapabilityFixtureContractTests.test_normalization_precedes_auth_and_workspace_logs_redact_untrusted_values) ... ok
+test_reference_and_generated_metadata_are_explicitly_r2 (__main__.CapabilityFixtureContractTests.test_reference_and_generated_metadata_are_explicitly_r2) ... ok
+test_scope_denial_has_an_allowlisted_external_receipt_and_unchanged_persistence (__main__.CapabilityFixtureContractTests.test_scope_denial_has_an_allowlisted_external_receipt_and_unchanged_persistence) ... ok
+test_scored_http_stale_check_accepts_a_response_without_current_version_metadata (__main__.CapabilityFixtureContractTests.test_scored_http_stale_check_accepts_a_response_without_current_version_metadata) ... ok
+test_selector_calibration_is_diagnostic_not_evidence_grade (__main__.CapabilityFixtureContractTests.test_selector_calibration_is_diagnostic_not_evidence_grade) ... ok
+test_test_gate_rejects_partial_unknown_and_aliased_mutant_sources (__main__.CapabilityFixtureContractTests.test_test_gate_rejects_partial_unknown_and_aliased_mutant_sources) ... ok
+test_unavailable_configured_receipt_is_exposed_without_the_path (__main__.CapabilityFixtureContractTests.test_unavailable_configured_receipt_is_exposed_without_the_path) ... ok
+
+----------------------------------------------------------------------
+Ran 12 tests in 67.201s
+
+OK
+==> test/shiploop-capability-runtime.test.py
+test_authoritative_http_receipt_retains_actor_status_when_exec_is_wholly_redacted (__main__.CapabilityRuntimeTests.test_authoritative_http_receipt_retains_actor_status_when_exec_is_wholly_redacted) ... ok
+test_blind_accounting_keeps_note_report_and_cli_metadata_body_free (__main__.CapabilityRuntimeTests.test_blind_accounting_keeps_note_report_and_cli_metadata_body_free) ... ok
+test_event_redaction_preserves_safe_structure_and_usage_without_code_or_output_bodies (__main__.CapabilityRuntimeTests.test_event_redaction_preserves_safe_structure_and_usage_without_code_or_output_bodies) ... ok
+test_freeze_runtime_writes_versioned_snapshot_and_refuses_reuse (__main__.CapabilityRuntimeTests.test_freeze_runtime_writes_versioned_snapshot_and_refuses_reuse) ... ok
+test_frozen_entrypoints_do_not_create_bytecode_caches (__main__.CapabilityRuntimeTests.test_frozen_entrypoints_do_not_create_bytecode_caches) ... ok
+test_gateway_rejects_external_and_symlink_paths_and_receipt_target_inside_workspace (__main__.CapabilityRuntimeTests.test_gateway_rejects_external_and_symlink_paths_and_receipt_target_inside_workspace) ... ok
+test_prepared_arm_rejects_rehashed_runtime_manifest (__main__.CapabilityRuntimeTests.test_prepared_arm_rejects_rehashed_runtime_manifest) ... ok
+test_runtime_snapshot_rejects_tampering_and_unsafe_tree_entries (__main__.CapabilityRuntimeTests.test_runtime_snapshot_rejects_tampering_and_unsafe_tree_entries) ... ok
+test_service_http_receipts_enforce_semantics_without_causal_inference (__main__.CapabilityRuntimeTests.test_service_http_receipts_enforce_semantics_without_causal_inference) ... ok
+test_state_backed_lifecycle_receipt_requires_persisted_expected_action (__main__.CapabilityRuntimeTests.test_state_backed_lifecycle_receipt_requires_persisted_expected_action) ... ok
+test_two_gateway_processes_share_one_budget_without_persisting_request_identifiers (__main__.CapabilityRuntimeTests.test_two_gateway_processes_share_one_budget_without_persisting_request_identifiers) ... ok
+
+----------------------------------------------------------------------
+Ran 11 tests in 0.734s
+
+OK
+==> test/shiploop-capability-async.test.cjs
+{
+  "passed": true,
+  "fidelity": "local_mock",
+  "producer": {
+    "command": "node test/shiploop-capability-async.test.cjs",
+    "runtime": "v25.9.0",
+    "client_sha256": "9380d24de3760369f13ff9d41af4c3173311dfb40959fd8fa38fafe67e8a317f",
+    "test_sha256": "e33573b8435416f11d879115f82564146b31815c70dab25c7180b3a73613da37"
+  },
+  "finding": "Existing reversed completion regresses rendered and client-held state; the sequence comparison retains the newer refresh.",
+  "limits": "Synthetic DOM/fetch only; no browser, platform scheduling, service mutation, deployment or player access tested.",
+  "results": [
+    {
+      "variant": "existing",
+      "order": "ordinary",
+      "trace": [
+        {
+          "completedRequest": 0,
+          "returnedVersion": 2,
+          "renderedVersion": 2,
+          "clientHeldVersion": 2
+        },
+        {
+          "completedRequest": 1,
+          "returnedVersion": 3,
+          "renderedVersion": 3,
+          "clientHeldVersion": 3
+        }
+      ]
+    },
+    {
+      "variant": "existing",
+      "order": "reversed",
+      "trace": [
+        {
+          "completedRequest": 1,
+          "returnedVersion": 3,
+          "renderedVersion": 3,
+          "clientHeldVersion": 3
+        },
+        {
+          "completedRequest": 0,
+          "returnedVersion": 2,
+          "renderedVersion": 2,
+          "clientHeldVersion": 2
+        }
+      ]
+    },
+    {
+      "variant": "minimal_sequence_extension",
+      "order": "ordinary",
+      "trace": [
+        {
+          "completedRequest": 0,
+          "returnedVersion": 2,
+          "renderedVersion": null,
+          "clientHeldVersion": null
+        },
+        {
+          "completedRequest": 1,
+          "returnedVersion": 3,
+          "renderedVersion": 3,
+          "clientHeldVersion": 3
+        }
+      ]
+    },
+    {
+      "variant": "minimal_sequence_extension",
+      "order": "reversed",
+      "trace": [
+        {
+          "completedRequest": 1,
+          "returnedVersion": 3,
+          "renderedVersion": 3,
+          "clientHeldVersion": 3
+        },
+        {
+          "completedRequest": 0,
+          "returnedVersion": 2,
+          "renderedVersion": 3,
+          "clientHeldVersion": 3
+        }
+      ]
+    }
+  ]
+}
+==> test/shiploop-generalized-discovery.test.py
+test_cli_requires_explicit_output (test_acquisition_probe.AcquisitionProbeOutputSafetyTests.test_cli_requires_explicit_output) ... ok
+test_dangling_symlink_output_is_rejected_before_any_launch (test_acquisition_probe.AcquisitionProbeOutputSafetyTests.test_dangling_symlink_output_is_rejected_before_any_launch) ... ok
+test_existing_output_rejected_before_any_launch_or_overwrite (test_acquisition_probe.AcquisitionProbeOutputSafetyTests.test_existing_output_rejected_before_any_launch_or_overwrite) ... ok
+test_failure_summary_does_not_claim_success (test_acquisition_probe.AcquisitionProbeOutputSafetyTests.test_failure_summary_does_not_claim_success) ... ok
+test_fresh_external_output_is_accepted_without_a_network_command (test_acquisition_probe.AcquisitionProbeOutputSafetyTests.test_fresh_external_output_is_accepted_without_a_network_command) ... ok
+test_changed_input_fails_without_a_bundle (test_collect.CompactBundleTest.test_changed_input_fails_without_a_bundle) ... ok
+test_failed_context_cannot_be_presented_as_valid_blind_evidence (test_collect.CompactBundleTest.test_failed_context_cannot_be_presented_as_valid_blind_evidence) ... ok
+test_retains_probe_results_hides_guidance_and_deduplicates_sources (test_collect.CompactBundleTest.test_retains_probe_results_hides_guidance_and_deduplicates_sources) ... ok
+test_javascript_ordering_matches_the_calibrated_model (test_fixture_runtime.FixtureRuntimeTest.test_javascript_ordering_matches_the_calibrated_model) ... ok
+test_preview_does_not_validate_the_committed_row_contract (test_fixture_runtime.FixtureRuntimeTest.test_preview_does_not_validate_the_committed_row_contract) ... ok
+test_creates_calibrated_frozen_study_and_matched_pair (test_initialize.InitializeStudyTest.test_creates_calibrated_frozen_study_and_matched_pair) ... ok
+test_refuses_existing_destination_and_missing_inputs_without_mutation (test_initialize.InitializeStudyTest.test_refuses_existing_destination_and_missing_inputs_without_mutation) ... ok
+test_tampered_study_inputs_refuse_before_fixture_load (test_initialize.InitializeStudyTest.test_tampered_study_inputs_refuse_before_fixture_load) ... ok
+test_calibrates_each_reference_and_changed_observation_without_correctness_claim (test_oracle.OracleCalibrationTest.test_calibrates_each_reference_and_changed_observation_without_correctness_claim) ... ok
+test_calibration_hashes_materialized_sources_before_probe_pycache (test_oracle.OracleCalibrationTest.test_calibration_hashes_materialized_sources_before_probe_pycache) ... ok
+test_grade_cli_returns_nonzero_when_evidence_is_not_ready (test_oracle.OracleReceiptAndCompletionTest.test_grade_cli_returns_nonzero_when_evidence_is_not_ready) ... ok
+test_invalid_frozen_inputs_return_a_diagnostic_without_crashing (test_oracle.OracleReceiptAndCompletionTest.test_invalid_frozen_inputs_return_a_diagnostic_without_crashing) ... ok
+test_mismatched_probe_receipt_is_an_evidence_failure (test_oracle.OracleReceiptAndCompletionTest.test_mismatched_probe_receipt_is_an_evidence_failure) ... ok
+test_missing_arm_evidence_or_calibration_cannot_be_ready (test_oracle.OracleReceiptAndCompletionTest.test_missing_arm_evidence_or_calibration_cannot_be_ready) ... ok
+test_probe_execution_error_is_not_deterministic_success (test_oracle.OracleReceiptAndCompletionTest.test_probe_execution_error_is_not_deterministic_success) ... ok
+test_receipt_recognizes_only_documented_python_probe_forms (test_oracle.OracleReceiptAndCompletionTest.test_receipt_recognizes_only_documented_python_probe_forms) ... ok
+test_report_does_not_mask_missing_receipts_or_runtime_failure (test_oracle.OracleReceiptAndCompletionTest.test_report_does_not_mask_missing_receipts_or_runtime_failure) ... ok
+test_cli_accepts_command_remainder (test_review_runner.ReviewRunnerTest.test_cli_accepts_command_remainder) ... ok
+test_existing_output_directory_is_refused_without_overwrite (test_review_runner.ReviewRunnerTest.test_existing_output_directory_is_refused_without_overwrite) ... ok
+test_expired_deadline_is_recorded_without_launching (test_review_runner.ReviewRunnerTest.test_expired_deadline_is_recorded_without_launching) ... ok
+test_hard_deadline_clamps_the_relative_timeout (test_review_runner.ReviewRunnerTest.test_hard_deadline_clamps_the_relative_timeout) ... ok
+test_interrupt_persists_failed_cleanup_receipt_before_reraising (test_review_runner.ReviewRunnerTest.test_interrupt_persists_failed_cleanup_receipt_before_reraising) ... ok
+test_malformed_limits_are_rejected_before_creating_output (test_review_runner.ReviewRunnerTest.test_malformed_limits_are_rejected_before_creating_output) ... ok
+test_nonzero_exit_is_not_success (test_review_runner.ReviewRunnerTest.test_nonzero_exit_is_not_success) ... ok
+test_parent_exit_does_not_leave_same_group_descendant_running (test_review_runner.ReviewRunnerTest.test_parent_exit_does_not_leave_same_group_descendant_running) ... ok
+test_quick_success_captures_streams_without_returning_raw_output (test_review_runner.ReviewRunnerTest.test_quick_success_captures_streams_without_returning_raw_output) ... ok
+test_spawn_failure_is_not_success (test_review_runner.ReviewRunnerTest.test_spawn_failure_is_not_success) ... ok
+test_stalled_child_is_timed_out_with_bounded_cleanup (test_review_runner.ReviewRunnerTest.test_stalled_child_is_timed_out_with_bounded_cleanup) ... ok
+test_term_resistant_child_uses_the_finite_kill_reserve (test_review_runner.ReviewRunnerTest.test_term_resistant_child_uses_the_finite_kill_reserve) ... ok
+test_invalid_study_inputs_refuse_before_launch (test_runner.ArmOutcomeTest.test_invalid_study_inputs_refuse_before_launch) ... ok
+test_missing_report_is_incomplete_and_fixture_edit_fails (test_runner.ArmOutcomeTest.test_missing_report_is_incomplete_and_fixture_edit_fails) ... ok
+test_nonzero_exit_and_termination_fail (test_runner.ArmOutcomeTest.test_nonzero_exit_and_termination_fail) ... ok
+test_refused_precondition_and_batch_outcome_are_not_success (test_runner.ArmOutcomeTest.test_refused_precondition_and_batch_outcome_are_not_success) ... ok
+test_success_requires_clean_context_and_report (test_runner.ArmOutcomeTest.test_success_requires_clean_context_and_report) ... ok
+test_preserves_history_and_refuses_duplicate_or_over_cap (test_runner.LaunchLedgerTest.test_preserves_history_and_refuses_duplicate_or_over_cap) ... ok
+test_read_study_rejects_calibration_failed_with_consistent_hashes (test_runner.StudyInputValidationTest.test_read_study_rejects_calibration_failed_with_consistent_hashes) ... ok
+test_read_study_rejects_tampered_initialized_study (test_runner.StudyInputValidationTest.test_read_study_rejects_tampered_initialized_study) ... ok
+test_tampered_initialized_study_refuses_startup_before_runtime (test_runner.StudyInputValidationTest.test_tampered_initialized_study_refuses_startup_before_runtime) ... ok
+
+----------------------------------------------------------------------
+Ran 43 tests in 26.436s
+
+OK
+==> test/shiploop-probe-decisions.test.py
+test_calibration_distinguishes_all_reference_mutant_pairs (test_fixtures.ProbeDecisionFixtureTests.test_calibration_distinguishes_all_reference_mutant_pairs) ... ok
+test_f1_probe_logs_under_scratch_only (test_fixtures.ProbeDecisionFixtureTests.test_f1_probe_logs_under_scratch_only) ... ok
+test_f1_public_receipt_contract_binds_current_evidence (test_fixtures.ProbeDecisionFixtureTests.test_f1_public_receipt_contract_binds_current_evidence) ... ok
+test_materialize_rejects_unknown_or_nonempty_destinations (test_fixtures.ProbeDecisionFixtureTests.test_materialize_rejects_unknown_or_nonempty_destinations) ... ok
+test_public_probe_help_is_available (test_fixtures.ProbeDecisionFixtureTests.test_public_probe_help_is_available) ... ok
+test_worker_trees_exclude_coordinator_tasks_and_start_clean (test_fixtures.ProbeDecisionFixtureTests.test_worker_trees_exclude_coordinator_tasks_and_start_clean) ... ok
+test_candidate_must_be_exact_single_cue_insertion (test_study.StudyAdapterTests.test_candidate_must_be_exact_single_cue_insertion) ... ok
+test_freezes_prompts_references_helpers_and_calibration (test_study.StudyAdapterTests.test_freezes_prompts_references_helpers_and_calibration) ... ok
+test_leakage_scan_rejects_comparison_identity_but_not_ordinary_candidate_word (test_study.StudyAdapterTests.test_leakage_scan_rejects_comparison_identity_but_not_ordinary_candidate_word) ... ok
+test_mutated_frozen_input_blocks_preparation (test_study.StudyAdapterTests.test_mutated_frozen_input_blocks_preparation) ... ok
+test_optional_preregistered_prompt_hash_must_match (test_study.StudyAdapterTests.test_optional_preregistered_prompt_hash_must_match) ... ok
+test_prepared_completed_pair_collects_a_blind_bundle_without_a_model (test_study.StudyAdapterTests.test_prepared_completed_pair_collects_a_blind_bundle_without_a_model) ... Limited leakage scan passed; a manual pre-judge audit remains required.
+/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-probe-study-yed1ef2u/study/blind/f1-r0/bundle-compact.md
+ok
+test_prepares_matched_pairs_and_caps_preregistered_replications (test_study.StudyAdapterTests.test_prepares_matched_pairs_and_caps_preregistered_replications) ... ok
+test_private_family_judge_packets_bind_exact_calibrated_case_rules (test_study.StudyAdapterTests.test_private_family_judge_packets_bind_exact_calibrated_case_rules) ... ok
+test_private_packet_reconstruction_rejects_packet_and_mutable_state_tamper (test_study.StudyAdapterTests.test_private_packet_reconstruction_rejects_packet_and_mutable_state_tamper) ... ok
+test_run_request_rejects_rogue_duplicate_and_tampered_arm_inputs (test_study.StudyAdapterTests.test_run_request_rejects_rogue_duplicate_and_tampered_arm_inputs) ... ok
+
+----------------------------------------------------------------------
+Ran 16 tests in 1.714s
+
+OK
+/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-probe-study-yed1ef2u/study/blind/f1-r0/ready-to-evaluate.md
+==> test/shiploop-repeatable-experiments.test.py
+test_all_cases_calibrate_and_grade_synthetic_good_tests (test_fixtures.RepeatableFixtureTests.test_all_cases_calibrate_and_grade_synthetic_good_tests) ... ok
+test_cli_reports_mechanical_pass_with_manual_pending (test_fixtures.RepeatableFixtureTests.test_cli_reports_mechanical_pass_with_manual_pending) ... ok
+test_full_fallback_to_smoke_is_rejected_by_actual_execution (test_fixtures.RepeatableFixtureTests.test_full_fallback_to_smoke_is_rejected_by_actual_execution) ... ok
+test_immutable_spec_mutation_is_the_only_failed_scored_check (test_fixtures.RepeatableFixtureTests.test_immutable_spec_mutation_is_the_only_failed_scored_check) ... ok
+test_product_rewrite_in_grader_clone_is_rejected_without_touching_worker (test_fixtures.RepeatableFixtureTests.test_product_rewrite_in_grader_clone_is_rejected_without_touching_worker) ... ok
+test_subtests_with_docstrings_are_observed_as_parent_tests (test_fixtures.RepeatableFixtureTests.test_subtests_with_docstrings_are_observed_as_parent_tests) ... ok
+test_zero_focused_and_smoke_selection_is_not_a_pass (test_fixtures.RepeatableFixtureTests.test_zero_focused_and_smoke_selection_is_not_a_pass) ... ok
+test_remote_definitions_and_lifecycle_simulation (test_remote_fixture.RemoteFixtureTests.test_remote_definitions_and_lifecycle_simulation) ... ok
+test_cli_exit_is_not_improve_or_product_success (test_run.LaunchEvidenceTests.test_cli_exit_is_not_improve_or_product_success) ... ok
+test_observer_cannot_be_inside_worker_tree (test_run.LaunchEvidenceTests.test_observer_cannot_be_inside_worker_tree) ... ok
+test_zero_process_exit_does_not_hide_event_failure (test_run.LaunchEvidenceTests.test_zero_process_exit_does_not_hide_event_failure) ... ok
+test_manifest_binds_complete_nonimportable_sample_inventory (test_samples.SampleRetentionTests.test_manifest_binds_complete_nonimportable_sample_inventory) ... ok
+
+----------------------------------------------------------------------
+Ran 12 tests in 14.610s
+
+OK
+==> test/shiploop-system-context.test.py
+........
+----------------------------------------------------------------------
+Ran 8 tests in 0.013s
+
+OK
+==> test/shiploop-research-template.test.py
+.......
+----------------------------------------------------------------------
+Ran 7 tests in 0.004s
+
+OK
+==> test/shiploop-research-packet-protocol.test.py
+.....
+----------------------------------------------------------------------
+Ran 5 tests in 101.351s
+
+OK
+==> test/shiploop-question-resume.test.py
+.
+----------------------------------------------------------------------
+Ran 1 test in 17.886s
+
+OK
+==> test/shiploop-iteration-docs.test.py
+.......
+----------------------------------------------------------------------
+Ran 7 tests in 0.014s
+
+OK
+==> test/shiploop-iteration-docs-protocol.test.py
+..
+----------------------------------------------------------------------
+Ran 2 tests in 2.356s
+
+OK
+==> test/shiploop-system-tests.test.py
+........
+----------------------------------------------------------------------
+Ran 8 tests in 0.002s
+
+OK
+==> test/shiploop-system-tests-protocol.test.py
+............
+----------------------------------------------------------------------
+Ran 12 tests in 2.558s
+
+OK
+==> test/shiploop-system-tests-report.test.py
+test_legacy_absence_is_not_rendered_as_an_uncertified_catalog (__main__.SystemTestsReportTests.test_legacy_absence_is_not_rendered_as_an_uncertified_catalog) ... ok
+test_terminal_malformed_present_catalog_fails_closed_without_marker (__main__.SystemTestsReportTests.test_terminal_malformed_present_catalog_fails_closed_without_marker) ... ok
+test_terminal_marker_requires_a_catalog (__main__.SystemTestsReportTests.test_terminal_marker_requires_a_catalog) ... ok
+test_valid_catalog_is_escaped_and_labels_receipt_pointers_as_historical (__main__.SystemTestsReportTests.test_valid_catalog_is_escaped_and_labels_receipt_pointers_as_historical) ... ok
+
+----------------------------------------------------------------------
+Ran 4 tests in 0.021s
+
+OK
+==> test/shiploop-history-policy.test.py
+........
+----------------------------------------------------------------------
+Ran 8 tests in 6.103s
+
+OK
+==> test/shiploop-improve-policy.test.py
+.....
+----------------------------------------------------------------------
+Ran 5 tests in 247.918s
+
+OK
+==> test/shiploop-outer-work.test.py
+..............
+----------------------------------------------------------------------
+Ran 14 tests in 8.403s
+
+OK
+==> test/shiploop-outer-work-protocol.test.py
+.....
+----------------------------------------------------------------------
+Ran 5 tests in 70.100s
+
+OK
+==> test/shiploop-observations.test.py
+test_checkpoint_uses_explicit_unverified_provenance_and_preserves_history (__main__.ShipLoopObservationTests.test_checkpoint_uses_explicit_unverified_provenance_and_preserves_history) ... ok
+test_current_repair_and_credential_routes_are_conservative (__main__.ShipLoopObservationTests.test_current_repair_and_credential_routes_are_conservative) ... ok
+test_exact_replay_is_accepted_and_changed_payload_is_rejected (__main__.ShipLoopObservationTests.test_exact_replay_is_accepted_and_changed_payload_is_rejected) ... ok
+test_late_informational_observation_can_not_preserve_bound_proof (__main__.ShipLoopObservationTests.test_late_informational_observation_can_not_preserve_bound_proof) ... ok
+test_legacy_verified_provenance_remains_accepted_and_fake_early_check_is_rejected (__main__.ShipLoopObservationTests.test_legacy_verified_provenance_remains_accepted_and_fake_early_check_is_rejected) ... ok
+test_previous_ledger_hash_and_receipt_route_are_bound (__main__.ShipLoopObservationTests.test_previous_ledger_hash_and_receipt_route_are_bound) ... ok
+test_stale_revision_and_resolution_side_channel_are_rejected (__main__.ShipLoopObservationTests.test_stale_revision_and_resolution_side_channel_are_rejected) ... ok
+test_ticket_is_deterministic_and_binds_only_parent_action_and_revision (__main__.ShipLoopObservationTests.test_ticket_is_deterministic_and_binds_only_parent_action_and_revision) ... ok
+test_timestamp_prefixed_protocol_parent_action_is_valid (__main__.ShipLoopObservationTests.test_timestamp_prefixed_protocol_parent_action_is_valid) ... ok
+
+----------------------------------------------------------------------
+Ran 9 tests in 0.002s
+
+OK
+==> test/shiploop-observations-protocol.test.py
+test_objective_observation_pauses_then_repair_rebinds_the_future_action (__main__.ObservationProtocolTests.test_objective_observation_pauses_then_repair_rebinds_the_future_action) ... ok
+test_preflight_observation_is_durable_replay_safe_and_never_completes_parent (__main__.ObservationProtocolTests.test_preflight_observation_is_durable_replay_safe_and_never_completes_parent) ... ok
+test_preflight_permission_pause_is_rejected_before_any_durable_mutation (__main__.ObservationProtocolTests.test_preflight_permission_pause_is_rejected_before_any_durable_mutation) ... ok
+test_repair_availability_rejects_outer_quality_handoff_and_keeps_existing_routes (__main__.ObservationProtocolTests.test_repair_availability_rejects_outer_quality_handoff_and_keeps_existing_routes) ... ok
+
+----------------------------------------------------------------------
+Ran 4 tests in 5.642s
+
+OK
+==> test/shiploop-artifacts.test.py
+.......
+----------------------------------------------------------------------
+Ran 7 tests in 0.251s
+
+OK
+==> test/shiploop-artifact-consumers.test.py
+test_catalog_has_a_closed_named_inventory_with_honest_conditional_route (__main__.ArtifactConsumerMatrixTests.test_catalog_has_a_closed_named_inventory_with_honest_conditional_route) ... ok
+test_delivery_report_and_operational_recovery_consume_changed_source_content (__main__.ArtifactConsumerMatrixTests.test_delivery_report_and_operational_recovery_consume_changed_source_content) ... ok
+test_observation_receipt_callback_projects_unverified_knowledge_without_consuming_parent (__main__.ArtifactConsumerMatrixTests.test_observation_receipt_callback_projects_unverified_knowledge_without_consuming_parent) ... ok
+test_outer_work_ledger_callback_and_read_receipt_are_content_sensitive (__main__.ArtifactConsumerMatrixTests.test_outer_work_ledger_callback_and_read_receipt_are_content_sensitive) ... ok
+test_preflight_and_approach_are_real_producers_with_cold_context_readers (__main__.ArtifactConsumerMatrixTests.test_preflight_and_approach_are_real_producers_with_cold_context_readers) ... ok
+
+----------------------------------------------------------------------
+Ran 5 tests in 13.099s
+
+OK
+==> test/shiploop-privacy.test.py
+.......
+----------------------------------------------------------------------
+Ran 7 tests in 0.001s
+
+OK
+==> test/shiploop-revalidation.test.py
+........
+----------------------------------------------------------------------
+Ran 8 tests in 85.758s
+
+OK
+==> test/shiploop-revalidation-context.test.py
+.
+----------------------------------------------------------------------
+Ran 1 test in 2.522s
+
+OK
+==> test/shiploop-risk.test.py
+...........
+----------------------------------------------------------------------
+Ran 11 tests in 0.001s
+
+OK
+==> test/shiploop-boundaries.test.py
+..........
+----------------------------------------------------------------------
+Ran 10 tests in 1.114s
+
+OK
+==> test/shiploop-objectives.test.py
+test_late_commit_or_staged_edit_is_rejected_before_final_check (__main__.FinalVerifyBindingTests.test_late_commit_or_staged_edit_is_rejected_before_final_check) ... ok
+test_index_alone_is_rejected_but_ten_one_commit_pages_are_accepted (__main__.FullHistoryPagingTests.test_index_alone_is_rejected_but_ten_one_commit_pages_are_accepted) ... ok
+test_approach_is_tentative_until_generic_objective_finalization (__main__.ObjectiveProtocolSmokeTests.test_approach_is_tentative_until_generic_objective_finalization) ... ok
+test_approach_repair_archives_the_pass_and_rebinds_fresh_context (__main__.ObjectiveProtocolSmokeTests.test_approach_repair_archives_the_pass_and_rebinds_fresh_context) ... ok
+test_candidate_rewrite_cannot_claim_a_trivial_objective_apply (__main__.ObjectiveProtocolSmokeTests.test_candidate_rewrite_cannot_claim_a_trivial_objective_apply) ... ok
+test_history_index_does_not_satisfy_objective_review (__main__.ObjectiveProtocolSmokeTests.test_history_index_does_not_satisfy_objective_review) ... ok
+test_objective_start_snapshots_an_imported_dag_without_its_draft_path (__main__.ObjectiveProtocolSmokeTests.test_objective_start_snapshots_an_imported_dag_without_its_draft_path) ... ok
+test_single_commit_full_pages_cover_the_latest_ten_objective_bodies (__main__.ObjectiveProtocolSmokeTests.test_single_commit_full_pages_cover_the_latest_ten_objective_bodies) ... ok
+test_survey_revisit_archives_the_active_objective_pass (__main__.ObjectiveProtocolSmokeTests.test_survey_revisit_archives_the_active_objective_pass) ... ok
+test_two_trivial_audited_passes_need_a_fresh_final_check_before_approach_applies (__main__.ObjectiveProtocolSmokeTests.test_two_trivial_audited_passes_need_a_fresh_final_check_before_approach_applies) ... ok
+test_abandoned_objective_cannot_be_certified (__main__.ObjectiveRecordTests.test_abandoned_objective_cannot_be_certified) ... ok
+test_candidate_and_context_are_bound_to_markdown_receipt (__main__.ObjectiveRecordTests.test_candidate_and_context_are_bound_to_markdown_receipt) ... ok
+test_closed_optional_context_groups_preserve_outer_and_handoff_evidence (__main__.ObjectiveRecordTests.test_closed_optional_context_groups_preserve_outer_and_handoff_evidence) ... ok
+test_handoff_context_survives_completed_and_next_pass_validation (__main__.ObjectiveRecordTests.test_handoff_context_survives_completed_and_next_pass_validation) ... ok
+test_material_review_resets_until_streak_and_all_open_findings_need_evidence (__main__.ObjectiveRecordTests.test_material_review_resets_until_streak_and_all_open_findings_need_evidence) ... ok
+test_outer_work_only_repair_restarts_any_objective_without_rebinding_other_inputs (__main__.ObjectiveRecordTests.test_outer_work_only_repair_restarts_any_objective_without_rebinding_other_inputs)
+A new bound journal may restart handoff convergence, nothing else. ... ok
+test_review_requires_full_body_history_and_preserves_open_findings (__main__.ObjectiveRecordTests.test_review_requires_full_body_history_and_preserves_open_findings) ... ok
+test_two_verified_trivial_audits_are_only_ready (__main__.ObjectiveRecordTests.test_two_verified_trivial_audits_are_only_ready) ... ok
+
+----------------------------------------------------------------------
+Ran 18 tests in 33.855s
+
+OK
+==> test/shiploop-contracts.test.py
+..........
+----------------------------------------------------------------------
+Ran 10 tests in 0.008s
+
+OK
+==> test/shiploop-contract-protocol.test.py
+..........
+----------------------------------------------------------------------
+Ran 10 tests in 2.954s
+
+OK
+==> test/shiploop-delivery.test.py
+...........
+----------------------------------------------------------------------
+Ran 11 tests in 0.235s
+
+OK
+==> test/shiploop-report.test.py
+................
+----------------------------------------------------------------------
+Ran 16 tests in 0.179s
+
+OK
+==> test/shiploop-packets.test.py
+.......................[shiploop size advisory] platform-revalidation packet: 1441 characters (within 6000-character guideline)
+...........[shiploop size advisory] step-contract packet: 11267 characters (within 15000-character guideline)
+......
+----------------------------------------------------------------------
+Ran 40 tests in 11.879s
+
+OK
+==> test/shiploop-orientation.test.py
+......[shiploop size advisory] paused packet: 1666 characters (within 7000-character guideline)
+[shiploop size advisory] blocked packet: 1460 characters (within 7000-character guideline)
+[shiploop size advisory] terminal packet: 990 characters (within 7000-character guideline)
+....[shiploop size advisory] initial long-path packet: 3389 characters (within 7000-character guideline)
+[shiploop size advisory] objective long-path packet: 5848 characters (within 7000-character guideline)
+[shiploop size advisory] nested-plan long-path packet: 7679 characters (over 7000-character guideline)
+[shiploop size advisory] product long-path packet: 4705 characters (within 7000-character guideline)
+[shiploop size advisory] outer long-path packet: 3424 characters (within 7000-character guideline)
+.....
+----------------------------------------------------------------------
+Ran 15 tests in 0.072s
+
+OK
+==> test/shiploop-loop-scope.test.py
+test_baseline_reader_precedes_quality_summary_and_never_invents_availability (__main__.LoopScopeTests.test_baseline_reader_precedes_quality_summary_and_never_invents_availability) ... ok
+test_every_converging_family_distinguishes_loop_exit_from_delivery (__main__.LoopScopeTests.test_every_converging_family_distinguishes_loop_exit_from_delivery) ... ok
+test_real_reader_and_callback_preserve_action_and_loop_boundaries (__main__.LoopScopeTests.test_real_reader_and_callback_preserve_action_and_loop_boundaries) ... ok
+
+----------------------------------------------------------------------
+Ran 3 tests in 3.403s
+
+OK
+==> test/shiploop-orientation-context.test.py
+........
+----------------------------------------------------------------------
+Ran 8 tests in 4.142s
+
+OK
+==> test/shiploop-orientation-integration.test.py
+test_changed_candidate_retains_original_assessment_as_history (__main__.OrientationIntegrationTests.test_changed_candidate_retains_original_assessment_as_history) ... ok
+test_corrupt_accepted_origin_blocks_orientation_without_mutating_cursor (__main__.OrientationIntegrationTests.test_corrupt_accepted_origin_blocks_orientation_without_mutating_cursor) ... ok
+test_real_callbacks_bind_origin_and_first_review_without_counting_a_cycle (__main__.OrientationIntegrationTests.test_real_callbacks_bind_origin_and_first_review_without_counting_a_cycle) ... ok
+test_supporting_context_safe_return_executes_the_actual_cli (__main__.OrientationIntegrationTests.test_supporting_context_safe_return_executes_the_actual_cli) ... ok
+
+----------------------------------------------------------------------
+Ran 4 tests in 8.867s
+
+OK
+==> test/shiploop-reference-routing.test.py
+test_damaged_packets_and_supporting_responses_remain_non_advancing (__main__.ReferenceRoutingTests.test_damaged_packets_and_supporting_responses_remain_non_advancing) ... ok
+test_every_prompt_stage_routes_to_existing_package_reference_heading (__main__.ReferenceRoutingTests.test_every_prompt_stage_routes_to_existing_package_reference_heading) ... ok
+test_every_prompt_stage_routes_to_maintained_requirements_handoffs (__main__.ReferenceRoutingTests.test_every_prompt_stage_routes_to_maintained_requirements_handoffs) ... ok
+test_maintained_requirements_guides_keep_package_local_links_when_relocated (__main__.ReferenceRoutingTests.test_maintained_requirements_guides_keep_package_local_links_when_relocated) ... ok
+test_merge_and_coverage_are_the_only_activity_specific_routes (__main__.ReferenceRoutingTests.test_merge_and_coverage_are_the_only_activity_specific_routes) ... ok
+test_new_activity_guides_have_resolvable_local_links (__main__.ReferenceRoutingTests.test_new_activity_guides_have_resolvable_local_links) ... ok
+test_normative_markdown_graph_rejects_missing_links_and_keeps_explicit_aliases (__main__.ReferenceRoutingTests.test_normative_markdown_graph_rejects_missing_links_and_keeps_explicit_aliases) ... ok
+test_safe_orientation_uses_real_optional_references_without_reading_state (__main__.ReferenceRoutingTests.test_safe_orientation_uses_real_optional_references_without_reading_state) ... ok
+
+----------------------------------------------------------------------
+Ran 8 tests in 1.684s
+
+OK
+==> test/shiploop-backchain-guidance.test.py
+....
+----------------------------------------------------------------------
+Ran 4 tests in 0.054s
+
+OK
+==> test/shiploop-teachback.test.py
+test_changed_prompt_is_refused_before_grading (__main__.TeachBackTests.test_changed_prompt_is_refused_before_grading) ... ok
+test_correct_mechanics_always_require_semantic_review_and_never_execute (__main__.TeachBackTests.test_correct_mechanics_always_require_semantic_review_and_never_execute) ... ok
+test_empty_or_malformed_explanations_fail (__main__.TeachBackTests.test_empty_or_malformed_explanations_fail) ... ok
+test_exports_never_overwrite_existing_directory (__main__.TeachBackTests.test_exports_never_overwrite_existing_directory) ... ok
+test_failed_capture_leaves_no_export_and_write_failure_never_claims_success (__main__.TeachBackTests.test_failed_capture_leaves_no_export_and_write_failure_never_claims_success) ... Teach-back probe failed: capture failed
+Teach-back probe failed: write failed
+ok
+test_malformed_oracle_reports_input_failure_without_traceback (__main__.TeachBackTests.test_malformed_oracle_reports_input_failure_without_traceback) ... Teach-back probe failed: 'prompt_sha256'
+ok
+test_paused_cannot_invent_callback_or_result (__main__.TeachBackTests.test_paused_cannot_invent_callback_or_result) ... ok
+test_real_captures_separate_oracle_and_preserve_current_action_boundaries (__main__.TeachBackTests.test_real_captures_separate_oracle_and_preserve_current_action_boundaries) ... ok
+test_wrong_identity_callback_result_path_and_absent_fields_fail (__main__.TeachBackTests.test_wrong_identity_callback_result_path_and_absent_fields_fail) ... ok
+
+----------------------------------------------------------------------
+Ran 9 tests in 5.929s
+
+OK
+==> test/shiploop-protocol.test.py
+........................[shiploop size advisory] bootstrap packet: 5091 characters (within 7000-character guideline)
+..[shiploop size advisory] behavior packet stage improve-plan-verify: 4932 characters (within 7000-character guideline)
+[shiploop size advisory] behavior packet stage test-refine: 6097 characters (within 7000-character guideline)
+[shiploop size advisory] behavior-model guidance test-refine: 85 characters (within 500-character guideline)
+[shiploop size advisory] behavior packet stage test-author: 5686 characters (within 7000-character guideline)
+[shiploop size advisory] behavior-model guidance test-author: 85 characters (within 500-character guideline)
+[shiploop size advisory] behavior packet stage skill-validate: 5615 characters (within 7000-character guideline)
+[shiploop size advisory] behavior packet stage preflight: 4931 characters (within 7000-character guideline)
+[shiploop size advisory] behavior packet stage approach: 5060 characters (within 7000-character guideline)
+[shiploop size advisory] behavior-model guidance approach: 148 characters (within 500-character guideline)
+[shiploop size advisory] behavior packet stage survey: 6473 characters (within 7000-character guideline)
+[shiploop size advisory] behavior-model guidance survey: 148 characters (within 500-character guideline)
+[shiploop size advisory] behavior packet stage prepare: 4647 characters (within 7000-character guideline)
+[shiploop size advisory] behavior packet stage implement: 8072 characters (over 7000-character guideline)
+[shiploop size advisory] behavior-model guidance implement: 111 characters (within 500-character guideline)
+[shiploop size advisory] behavior packet stage review: 9441 characters (over 7000-character guideline)
+[shiploop size advisory] behavior-model guidance review: 149 characters (within 500-character guideline)
+[shiploop size advisory] behavior packet stage improve-plan: 13592 characters (over 7000-character guideline)
+[shiploop size advisory] behavior-model guidance improve-plan: 149 characters (within 500-character guideline)
+[shiploop size advisory] behavior packet stage improve-apply: 7353 characters (over 7000-character guideline)
+[shiploop size advisory] behavior-model guidance improve-apply: 149 characters (within 500-character guideline)
+[shiploop size advisory] behavior packet stage iteration-document: 8304 characters (over 7000-character guideline)
+[shiploop size advisory] behavior-model guidance iteration-document: 111 characters (within 500-character guideline)
+[shiploop size advisory] behavior packet stage verify: 7954 characters (over 7000-character guideline)
+[shiploop size advisory] behavior-model guidance verify: 111 characters (within 500-character guideline)
+[shiploop size advisory] behavior packet stage carry-forward: 8278 characters (over 7000-character guideline)
+[shiploop size advisory] behavior-model guidance carry-forward: 111 characters (within 500-character guideline)
+[shiploop size advisory] behavior packet stage post-inner: 8169 characters (over 7000-character guideline)
+[shiploop size advisory] behavior-model guidance post-inner: 111 characters (within 500-character guideline)
+[shiploop size advisory] behavior packet stage merge: 5882 characters (within 7000-character guideline)
+[shiploop size advisory] behavior packet stage coverage: 4576 characters (within 7000-character guideline)
+[shiploop size advisory] behavior packet stage quality: 8423 characters (over 7000-character guideline)
+[shiploop size advisory] behavior-model guidance quality: 149 characters (within 500-character guideline)
+[shiploop size advisory] behavior packet stage publish: 5335 characters (within 7000-character guideline)
+[shiploop size advisory] behavior packet stage handoff: 5250 characters (within 7000-character guideline)
+[shiploop size advisory] behavior-model guidance handoff: 149 characters (within 500-character guideline)
+.[shiploop size advisory] packet stage improve-plan-verify: 4924 characters (within 7000-character guideline)
+[shiploop size advisory] testing/docs guidance improve-plan-verify: 119 characters (within 500-character guideline)
+[shiploop size advisory] packet stage test-refine: 6089 characters (within 7000-character guideline)
+[shiploop size advisory] testing/docs guidance test-refine: 119 characters (within 500-character guideline)
+[shiploop size advisory] packet stage test-author: 5678 characters (within 7000-character guideline)
+[shiploop size advisory] testing/docs guidance test-author: 119 characters (within 500-character guideline)
+[shiploop size advisory] packet stage skill-validate: 5607 characters (within 7000-character guideline)
+[shiploop size advisory] testing/docs guidance skill-validate: 119 characters (within 500-character guideline)
+[shiploop size advisory] packet stage preflight: 4923 characters (within 7000-character guideline)
+[shiploop size advisory] testing/docs guidance preflight: 79 characters (within 500-character guideline)
+[shiploop size advisory] packet stage approach: 5052 characters (within 7000-character guideline)
+[shiploop size advisory] packet stage survey: 6465 characters (within 7000-character guideline)
+[shiploop size advisory] testing/docs guidance survey: 79 characters (within 500-character guideline)
+[shiploop size advisory] packet stage prepare: 4639 characters (within 7000-character guideline)
+[shiploop size advisory] testing/docs guidance prepare: 79 characters (within 500-character guideline)
+[shiploop size advisory] packet stage implement: 8062 characters (over 7000-character guideline)
+[shiploop size advisory] testing/docs guidance implement: 101 characters (within 500-character guideline)
+[shiploop size advisory] packet stage review: 9429 characters (over 7000-character guideline)
+[shiploop size advisory] testing/docs guidance review: 101 characters (within 500-character guideline)
+[shiploop size advisory] packet stage improve-plan: 13584 characters (over 7000-character guideline)
+[shiploop size advisory] testing/docs guidance improve-plan: 101 characters (within 500-character guideline)
+[shiploop size advisory] packet stage improve-apply: 7345 characters (over 7000-character guideline)
+[shiploop size advisory] testing/docs guidance improve-apply: 101 characters (within 500-character guideline)
+[shiploop size advisory] packet stage iteration-document: 8296 characters (over 7000-character guideline)
+[shiploop size advisory] testing/docs guidance iteration-document: 125 characters (within 500-character guideline)
+[shiploop size advisory] packet stage verify: 7944 characters (over 7000-character guideline)
+[shiploop size advisory] testing/docs guidance verify: 102 characters (within 500-character guideline)
+[shiploop size advisory] packet stage carry-forward: 8270 characters (over 7000-character guideline)
+[shiploop size advisory] testing/docs guidance carry-forward: 71 characters (within 500-character guideline)
+[shiploop size advisory] packet stage post-inner: 8161 characters (over 7000-character guideline)
+[shiploop size advisory] testing/docs guidance post-inner: 71 characters (within 500-character guideline)
+[shiploop size advisory] packet stage merge: 5874 characters (within 7000-character guideline)
+[shiploop size advisory] packet stage coverage: 4568 characters (within 7000-character guideline)
+[shiploop size advisory] packet stage quality: 8413 characters (over 7000-character guideline)
+[shiploop size advisory] testing/docs guidance quality: 84 characters (within 500-character guideline)
+[shiploop size advisory] packet stage publish: 5327 characters (within 7000-character guideline)
+[shiploop size advisory] testing/docs guidance publish: 84 characters (within 500-character guideline)
+[shiploop size advisory] packet stage handoff: 5242 characters (within 7000-character guideline)
+[shiploop size advisory] testing/docs guidance handoff: 84 characters (within 500-character guideline)
+........
+----------------------------------------------------------------------
+Ran 35 tests in 33.851s
+
+OK
+==> test/shiploop-history-pages.test.py
+..........
+----------------------------------------------------------------------
+Ran 10 tests in 136.054s
+
+OK
+==> test/shiploop-merge-recovery.test.py
+.......
+----------------------------------------------------------------------
+Ran 7 tests in 7.522s
+
+OK
+==> test/shiploop-migration-prompt.test.py
+...
+----------------------------------------------------------------------
+Ran 3 tests in 6.304s
+
+OK
+==> test/shiploop-knowledge.test.py
+....
+----------------------------------------------------------------------
+Ran 4 tests in 968.980s
+
+OK
+==> test/shiploop-planning.test.py
+....test/run-all.sh: line 32:  9766 Terminated: 15          "$@"
+FAIL shiploop
+run-all.sh: FAILED

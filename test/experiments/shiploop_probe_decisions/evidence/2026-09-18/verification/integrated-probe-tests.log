@@ -1,0 +1,24 @@
+test_calibration_distinguishes_all_reference_mutant_pairs (test_fixtures.ProbeDecisionFixtureTests.test_calibration_distinguishes_all_reference_mutant_pairs) ... ok
+test_f1_probe_logs_under_scratch_only (test_fixtures.ProbeDecisionFixtureTests.test_f1_probe_logs_under_scratch_only) ... ok
+test_f1_public_receipt_contract_binds_current_evidence (test_fixtures.ProbeDecisionFixtureTests.test_f1_public_receipt_contract_binds_current_evidence) ... ok
+test_materialize_rejects_unknown_or_nonempty_destinations (test_fixtures.ProbeDecisionFixtureTests.test_materialize_rejects_unknown_or_nonempty_destinations) ... ok
+test_public_probe_help_is_available (test_fixtures.ProbeDecisionFixtureTests.test_public_probe_help_is_available) ... ok
+test_worker_trees_exclude_coordinator_tasks_and_start_clean (test_fixtures.ProbeDecisionFixtureTests.test_worker_trees_exclude_coordinator_tasks_and_start_clean) ... ok
+test_candidate_must_be_exact_single_cue_insertion (test_study.StudyAdapterTests.test_candidate_must_be_exact_single_cue_insertion) ... ok
+test_freezes_prompts_references_helpers_and_calibration (test_study.StudyAdapterTests.test_freezes_prompts_references_helpers_and_calibration) ... ok
+test_leakage_scan_rejects_comparison_identity_but_not_ordinary_candidate_word (test_study.StudyAdapterTests.test_leakage_scan_rejects_comparison_identity_but_not_ordinary_candidate_word) ... ok
+test_mutated_frozen_input_blocks_preparation (test_study.StudyAdapterTests.test_mutated_frozen_input_blocks_preparation) ... ok
+test_optional_preregistered_prompt_hash_must_match (test_study.StudyAdapterTests.test_optional_preregistered_prompt_hash_must_match) ... ok
+test_prepared_completed_pair_collects_a_blind_bundle_without_a_model (test_study.StudyAdapterTests.test_prepared_completed_pair_collects_a_blind_bundle_without_a_model) ... Limited leakage scan passed; a manual pre-judge audit remains required.
+/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-probe-study-id3vx2wo/study/blind/f1-r0/bundle-compact.md
+ok
+test_prepares_matched_pairs_and_caps_preregistered_replications (test_study.StudyAdapterTests.test_prepares_matched_pairs_and_caps_preregistered_replications) ... ok
+test_private_family_judge_packets_bind_exact_calibrated_case_rules (test_study.StudyAdapterTests.test_private_family_judge_packets_bind_exact_calibrated_case_rules) ... ok
+test_private_packet_reconstruction_rejects_packet_and_mutable_state_tamper (test_study.StudyAdapterTests.test_private_packet_reconstruction_rejects_packet_and_mutable_state_tamper) ... ok
+test_run_request_rejects_rogue_duplicate_and_tampered_arm_inputs (test_study.StudyAdapterTests.test_run_request_rejects_rogue_duplicate_and_tampered_arm_inputs) ... ok
+
+----------------------------------------------------------------------
+Ran 16 tests in 1.776s
+
+OK
+/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-probe-study-id3vx2wo/study/blind/f1-r0/ready-to-evaluate.md

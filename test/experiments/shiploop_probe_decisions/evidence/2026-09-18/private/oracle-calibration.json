@@ -1,0 +1,467 @@
+{
+  "bindings": {
+    "PUBLIC_CONTRACTS.md": "5a40b1bf8bbd0f3e7ac8ab4054d4cb837488e59cf4d513b43b1f95c888f0911f",
+    "fixtures.py": "48161102a6cda8d36ab54f5f61249d7d62bd7d024553a79444f2a4edf9632ff6",
+    "oracle.py": "552eb65c0edc9a82ebf844f40a14384e2a1a0985e64c2c36521492b55c8de6e7"
+  },
+  "families": {
+    "f1": {
+      "checks": {
+        "mutant_removes_drift": true,
+        "one_changed_read": true,
+        "reference_receipt_drift": true
+      },
+      "mutant": {
+        "changed_read": {
+          "binding": {
+            "role": "export.read",
+            "target": "fulfillment-current"
+          },
+          "operation": "read",
+          "receipt_kind": "modeled_current_read",
+          "role": "export.read",
+          "schema": "service-read-receipt/v1",
+          "scope": "current",
+          "simulation": "local-read-only-fixture",
+          "status": "ok",
+          "target": "fulfillment-current"
+        },
+        "current_receipt": true,
+        "logs": [
+          {
+            "binding": {
+              "role": "export.read",
+              "target": "fulfillment-current"
+            },
+            "operation": "read",
+            "receipt_kind": "modeled_current_read",
+            "role": "export.read",
+            "schema": "service-read-receipt/v1",
+            "scope": "current",
+            "simulation": "local-read-only-fixture",
+            "status": "ok",
+            "target": "fulfillment-current"
+          }
+        ],
+        "receipt_drift": []
+      },
+      "passed": true,
+      "reference": {
+        "changed_read": {
+          "binding": {
+            "role": "export.read",
+            "target": "fulfillment-current"
+          },
+          "operation": "read",
+          "receipt_kind": "modeled_current_read",
+          "role": "export.read",
+          "schema": "service-read-receipt/v1",
+          "scope": "current",
+          "simulation": "local-read-only-fixture",
+          "status": "ok",
+          "target": "fulfillment-current"
+        },
+        "current_receipt": true,
+        "logs": [
+          {
+            "binding": {
+              "role": "export.read",
+              "target": "fulfillment-current"
+            },
+            "operation": "read",
+            "receipt_kind": "modeled_current_read",
+            "role": "export.read",
+            "schema": "service-read-receipt/v1",
+            "scope": "current",
+            "simulation": "local-read-only-fixture",
+            "status": "ok",
+            "target": "fulfillment-current"
+          }
+        ],
+        "receipt_drift": [
+          "fulfillment"
+        ]
+      }
+    },
+    "f2": {
+      "checks": {
+        "mutant_resolves_both": true,
+        "preview_and_write_differ": true,
+        "reference_version_differs": true
+      },
+      "mutant": {
+        "logs": [
+          {
+            "active_parser": "3.1.0",
+            "launcher": "bin/launcher.py",
+            "manifest_parser": "3.1.0",
+            "operation": "version",
+            "simulation": "local-read-only-fixture"
+          },
+          {
+            "operation": "preview",
+            "rendered": {
+              "format": "json",
+              "rows": [
+                {
+                  "amount": 4,
+                  "id": "first"
+                },
+                {
+                  "amount": 9
+                }
+              ]
+            },
+            "simulation": "local-read-only-fixture",
+            "status": "accepted"
+          },
+          {
+            "operation": "write-preservation",
+            "previous_output_replaced": true,
+            "simulation": "local-read-only-fixture",
+            "status": "ok"
+          }
+        ],
+        "preview": {
+          "operation": "preview",
+          "rendered": {
+            "format": "json",
+            "rows": [
+              {
+                "amount": 4,
+                "id": "first"
+              },
+              {
+                "amount": 9
+              }
+            ]
+          },
+          "simulation": "local-read-only-fixture",
+          "status": "accepted"
+        },
+        "version": {
+          "active_parser": "3.1.0",
+          "launcher": "bin/launcher.py",
+          "manifest_parser": "3.1.0",
+          "operation": "version",
+          "simulation": "local-read-only-fixture"
+        },
+        "write": {
+          "operation": "write-preservation",
+          "previous_output_replaced": true,
+          "simulation": "local-read-only-fixture",
+          "status": "ok"
+        }
+      },
+      "passed": true,
+      "reference": {
+        "logs": [
+          {
+            "active_parser": "2.6.4",
+            "launcher": "bin/launcher.py",
+            "manifest_parser": "3.1.0",
+            "operation": "version",
+            "simulation": "local-read-only-fixture"
+          },
+          {
+            "operation": "preview",
+            "rendered": {
+              "format": "json",
+              "rows": [
+                {
+                  "amount": 4,
+                  "id": "first"
+                },
+                {
+                  "amount": 9
+                }
+              ]
+            },
+            "simulation": "local-read-only-fixture",
+            "status": "accepted"
+          },
+          {
+            "error": "KeyError",
+            "operation": "write-preservation",
+            "previous_output_preserved": true,
+            "simulation": "local-read-only-fixture",
+            "status": "error",
+            "temporary_exists": false
+          }
+        ],
+        "preview": {
+          "operation": "preview",
+          "rendered": {
+            "format": "json",
+            "rows": [
+              {
+                "amount": 4,
+                "id": "first"
+              },
+              {
+                "amount": 9
+              }
+            ]
+          },
+          "simulation": "local-read-only-fixture",
+          "status": "accepted"
+        },
+        "version": {
+          "active_parser": "2.6.4",
+          "launcher": "bin/launcher.py",
+          "manifest_parser": "3.1.0",
+          "operation": "version",
+          "simulation": "local-read-only-fixture"
+        },
+        "write": {
+          "error": "KeyError",
+          "operation": "write-preservation",
+          "previous_output_preserved": true,
+          "simulation": "local-read-only-fixture",
+          "status": "error",
+          "temporary_exists": false
+        }
+      }
+    },
+    "f3": {
+      "checks": {
+        "mutant_loses_unicode": true,
+        "reference_native_unicode": true,
+        "representative_logged": true
+      },
+      "mutant": {
+        "logs": [
+          {
+            "implementation": "src.native_format.normalize_rows",
+            "operation": "representative",
+            "output": [
+              {
+                "id": "a",
+                "label": "So Paulo"
+              },
+              {
+                "id": "b",
+                "label": "Caf"
+              }
+            ],
+            "simulation": "local-read-only-fixture"
+          }
+        ],
+        "representative": {
+          "implementation": "src.native_format.normalize_rows",
+          "operation": "representative",
+          "output": [
+            {
+              "id": "a",
+              "label": "So Paulo"
+            },
+            {
+              "id": "b",
+              "label": "Caf"
+            }
+          ],
+          "simulation": "local-read-only-fixture"
+        }
+      },
+      "passed": true,
+      "reference": {
+        "logs": [
+          {
+            "implementation": "src.native_format.normalize_rows",
+            "operation": "representative",
+            "output": [
+              {
+                "id": "a",
+                "label": "S\u00e3o Paulo"
+              },
+              {
+                "id": "b",
+                "label": "Caf\u00e9"
+              }
+            ],
+            "simulation": "local-read-only-fixture"
+          }
+        ],
+        "representative": {
+          "implementation": "src.native_format.normalize_rows",
+          "operation": "representative",
+          "output": [
+            {
+              "id": "a",
+              "label": "S\u00e3o Paulo"
+            },
+            {
+              "id": "b",
+              "label": "Caf\u00e9"
+            }
+          ],
+          "simulation": "local-read-only-fixture"
+        }
+      }
+    },
+    "f4": {
+      "checks": {
+        "metadata_and_list_succeed": true,
+        "mutant_target_reads_succeed": true,
+        "reference_reads_are_decisive": true,
+        "unrelated_connector_remains_unmatched": true
+      },
+      "mutant": {
+        "list": {
+          "offered_connectors": [
+            {
+              "name": "calendar-preview",
+              "purpose": "unrelated preview",
+              "target": "calendar-target"
+            }
+          ],
+          "operation": "list",
+          "simulation": "local-read-only-fixture",
+          "status": "ok",
+          "tools": [
+            "read_target"
+          ]
+        },
+        "logs": [
+          {
+            "effect_status": "read_only_confirmed",
+            "operation": "read",
+            "simulation": "local-read-only-fixture",
+            "status": "ok",
+            "target": "ledger-target"
+          },
+          {
+            "effect_status": "read_only_confirmed",
+            "operation": "read",
+            "simulation": "local-read-only-fixture",
+            "status": "ok",
+            "target": "catalog-target"
+          },
+          {
+            "operation": "metadata",
+            "protocol": "fixture-mcp/1",
+            "simulation": "local-read-only-fixture",
+            "status": "ok"
+          },
+          {
+            "offered_connectors": [
+              {
+                "name": "calendar-preview",
+                "purpose": "unrelated preview",
+                "target": "calendar-target"
+              }
+            ],
+            "operation": "list",
+            "simulation": "local-read-only-fixture",
+            "status": "ok",
+            "tools": [
+              "read_target"
+            ]
+          }
+        ],
+        "metadata": {
+          "operation": "metadata",
+          "protocol": "fixture-mcp/1",
+          "simulation": "local-read-only-fixture",
+          "status": "ok"
+        },
+        "reads": [
+          {
+            "effect_status": "read_only_confirmed",
+            "operation": "read",
+            "simulation": "local-read-only-fixture",
+            "status": "ok",
+            "target": "ledger-target"
+          },
+          {
+            "effect_status": "read_only_confirmed",
+            "operation": "read",
+            "simulation": "local-read-only-fixture",
+            "status": "ok",
+            "target": "catalog-target"
+          }
+        ]
+      },
+      "passed": true,
+      "reference": {
+        "list": {
+          "offered_connectors": [
+            {
+              "name": "calendar-preview",
+              "purpose": "unrelated preview",
+              "target": "calendar-target"
+            }
+          ],
+          "operation": "list",
+          "simulation": "local-read-only-fixture",
+          "status": "ok",
+          "tools": [
+            "read_target"
+          ]
+        },
+        "logs": [
+          {
+            "effect_status": "not_started",
+            "operation": "read",
+            "simulation": "local-read-only-fixture",
+            "status": "scope_required",
+            "target": "ledger-target"
+          },
+          {
+            "effect_status": "unknown",
+            "operation": "read",
+            "simulation": "local-read-only-fixture",
+            "status": "timeout",
+            "target": "catalog-target"
+          },
+          {
+            "operation": "metadata",
+            "protocol": "fixture-mcp/1",
+            "simulation": "local-read-only-fixture",
+            "status": "ok"
+          },
+          {
+            "offered_connectors": [
+              {
+                "name": "calendar-preview",
+                "purpose": "unrelated preview",
+                "target": "calendar-target"
+              }
+            ],
+            "operation": "list",
+            "simulation": "local-read-only-fixture",
+            "status": "ok",
+            "tools": [
+              "read_target"
+            ]
+          }
+        ],
+        "metadata": {
+          "operation": "metadata",
+          "protocol": "fixture-mcp/1",
+          "simulation": "local-read-only-fixture",
+          "status": "ok"
+        },
+        "reads": [
+          {
+            "effect_status": "not_started",
+            "operation": "read",
+            "simulation": "local-read-only-fixture",
+            "status": "scope_required",
+            "target": "ledger-target"
+          },
+          {
+            "effect_status": "unknown",
+            "operation": "read",
+            "simulation": "local-read-only-fixture",
+            "status": "timeout",
+            "target": "catalog-target"
+          }
+        ]
+      }
+    }
+  },
+  "limits": "All observations are local simulations. They establish only modeled fixture behavior, never real service, MCP, identity, authorization, deployment, or network state.",
+  "passed": true,
+  "schema": "shiploop-probe-decisions-calibration/1"
+}

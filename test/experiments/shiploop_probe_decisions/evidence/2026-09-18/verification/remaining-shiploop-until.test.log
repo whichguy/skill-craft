@@ -1,0 +1,17 @@
+test_accepts_a_full_sha256_commit (__main__.UntilDecisionTests.test_accepts_a_full_sha256_commit) ... ok
+test_action_guidance_allows_optional_memory_but_never_cached_authority (__main__.UntilDecisionTests.test_action_guidance_allows_optional_memory_but_never_cached_authority) ... ok
+test_all_short_outcome_histories_recompute_streak_and_readiness_from_evidence (__main__.UntilDecisionTests.test_all_short_outcome_histories_recompute_streak_and_readiness_from_evidence)
+No host-cached streak can change any material/trivial decision. ... ok
+test_empty_completed_passes_are_active (__main__.UntilDecisionTests.test_empty_completed_passes_are_active) ... ok
+test_material_pass_resets_the_current_repair_epoch_streak (__main__.UntilDecisionTests.test_material_pass_resets_the_current_repair_epoch_streak) ... ok
+test_open_findings_keep_a_two_trivial_streak_active (__main__.UntilDecisionTests.test_open_findings_keep_a_two_trivial_streak_active) ... ok
+test_rejects_noncanonical_or_replayed_evidence (__main__.UntilDecisionTests.test_rejects_noncanonical_or_replayed_evidence) ... ok
+test_review_improve_cycle_rejects_an_unsafe_history_window (__main__.UntilDecisionTests.test_review_improve_cycle_rejects_an_unsafe_history_window) ... ok
+test_review_improve_cycle_states_the_complete_order_for_new_and_legacy_history (__main__.UntilDecisionTests.test_review_improve_cycle_states_the_complete_order_for_new_and_legacy_history)
+One shared packet says what a converging pass actually means. ... ok
+test_two_consecutive_verified_trivial_receipts_are_ready_not_success (__main__.UntilDecisionTests.test_two_consecutive_verified_trivial_receipts_are_ready_not_success) ... ok
+
+----------------------------------------------------------------------
+Ran 10 tests in 0.025s
+
+OK

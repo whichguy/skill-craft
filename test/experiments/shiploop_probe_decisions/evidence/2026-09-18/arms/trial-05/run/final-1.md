@@ -1,0 +1,1 @@
+[REPORT.md](/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-probe-strategy-pulxuyar/study/arms/trial-05/workspace/REPORT.md) contains evidence-backed reuse recommendations, verified Unicode and byte behavior, coverage gaps, and integration prerequisites.

@@ -1,0 +1,23 @@
+{
+  "isolated_hermetic_catalog": "partial",
+  "serial_completed_shiploop_suites": 73,
+  "parallel_completed_shiploop_suites": 5,
+  "unverified_shiploop_suites": [
+    "test/shiploop-planning.test.py",
+    "test/shiploop-step-planning.test.py",
+    "test/shiploop-improve-bridge.test.py",
+    "test/shiploop-invalidation.test.py",
+    "test/shiploop-managed-package.test.py",
+    "test/shiploop-action-walk.test.py"
+  ],
+  "serial_rerun_final_status": "interrupted to continue remaining suites in isolated copies",
+  "isolated_shiploop_inventory": 84,
+  "completed_isolated_shiploop_suites": 78,
+  "integrated_corpus_adapter_tests": 16,
+  "integrated_inventory_tests": 14,
+  "integrated_shiploop_inventory": 85,
+  "isolated_and_integrated_package_parity": "pass",
+  "initial_isolated_aggregate": "failed; incomplete generated package snapshot, retained log",
+  "independent_final_review": "no material findings",
+  "production_research_prompt_and_guide": "unchanged from experimental snapshot"
+}

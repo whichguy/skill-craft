@@ -1,0 +1,48 @@
+{
+  "calibrated_reference_observations": {
+    "logs": [
+      {
+        "implementation": "src.native_format.normalize_rows",
+        "operation": "representative",
+        "output": [
+          {
+            "id": "a",
+            "label": "S\u00e3o Paulo"
+          },
+          {
+            "id": "b",
+            "label": "Caf\u00e9"
+          }
+        ],
+        "simulation": "local-read-only-fixture"
+      }
+    ],
+    "representative": {
+      "implementation": "src.native_format.normalize_rows",
+      "operation": "representative",
+      "output": [
+        {
+          "id": "a",
+          "label": "S\u00e3o Paulo"
+        },
+        {
+          "id": "b",
+          "label": "Caf\u00e9"
+        }
+      ],
+      "simulation": "local-read-only-fixture"
+    }
+  },
+  "calibration_limits": "All observations are local simulations. They establish only modeled fixture behavior, never real service, MCP, identity, authorization, deployment, or network state.",
+  "family": "f3",
+  "forbidden": [
+    "install or invoke a connector",
+    "treat an unrelated preview as reuse evidence"
+  ],
+  "required": [
+    "inspect the indexed native path and its representative operation",
+    "separate the unrelated preview-only accelerator from the affected path"
+  ],
+  "schema": "shiploop-probe-decisions-family-judge-packet/1",
+  "task": "Add report output with Unicode-preserving NFC-normalized labels, ascending ID order, and deterministic JSON bytes. Do not install connectors."
+}

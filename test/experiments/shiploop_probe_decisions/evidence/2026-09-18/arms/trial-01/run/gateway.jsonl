@@ -1,0 +1,16 @@
+{"at": "2026-09-18T17:39:43.690521Z", "call": 1, "event": "workspace_call", "operation": "read", "path": "guidance/research-prompt.md", "phase": "exploration"}
+{"at": "2026-09-18T17:39:43.693136Z", "call": 2, "event": "workspace_call", "operation": "read", "path": "guidance/research-loop.md", "phase": "exploration"}
+{"at": "2026-09-18T17:39:43.696535Z", "call": 3, "event": "workspace_call", "operation": "list", "path": ".", "phase": "exploration"}
+{"at": "2026-09-18T17:39:45.948923Z", "call": 4, "event": "workspace_call", "operation": "read", "path": "README.md", "phase": "exploration"}
+{"at": "2026-09-18T17:39:45.950191Z", "call": 5, "event": "workspace_call", "operation": "read", "path": "connections.json", "phase": "exploration"}
+{"at": "2026-09-18T17:39:45.951171Z", "call": 6, "event": "workspace_call", "operation": "list", "path": "contracts", "phase": "exploration"}
+{"at": "2026-09-18T17:39:45.952156Z", "call": 7, "event": "workspace_call", "operation": "list", "path": "evidence", "phase": "exploration"}
+{"at": "2026-09-18T17:39:48.896274Z", "call": 8, "event": "workspace_call", "operation": "read", "path": "contracts/service-receipt-v1.md", "phase": "exploration"}
+{"at": "2026-09-18T17:39:48.897152Z", "call": 9, "event": "workspace_call", "operation": "read", "path": "evidence/fulfillment-prior.json", "phase": "exploration"}
+{"at": "2026-09-18T17:39:48.897836Z", "call": 10, "event": "workspace_call", "operation": "read", "path": "evidence/ledger-current.json", "phase": "exploration"}
+{"at": "2026-09-18T17:39:48.899032Z", "call": 11, "event": "workspace_call", "operation": "read", "path": "capability.py", "phase": "exploration"}
+{"at": "2026-09-18T17:39:48.900113Z", "call": 12, "event": "workspace_call", "operation": "read", "path": "fixture_support.py", "phase": "exploration"}
+{"at": "2026-09-18T17:39:53.274951Z", "call": 13, "event": "workspace_call", "operation": "read", "path": "guidance/research-loop.md", "phase": "exploration"}
+{"at": "2026-09-18T17:39:56.779734Z", "call": 14, "event": "workspace_call", "operation": "exec", "path": null, "phase": "exploration"}
+{"at": "2026-09-18T17:39:58.685044Z", "call": 15, "event": "workspace_call", "operation": "read", "path": "scratch/probe-log.jsonl", "phase": "exploration"}
+{"at": "2026-09-18T17:40:39.976052Z", "call": 16, "event": "workspace_call", "operation": "write", "path": "REPORT.md", "phase": "exploration"}

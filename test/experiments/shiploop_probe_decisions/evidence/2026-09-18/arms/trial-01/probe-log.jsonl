@@ -1,0 +1,1 @@
+{"binding": {"role": "export.read", "target": "fulfillment-current"}, "operation": "read", "receipt_kind": "modeled_current_read", "role": "export.read", "schema": "service-read-receipt/v1", "scope": "current", "simulation": "local-read-only-fixture", "status": "ok", "target": "fulfillment-current"}

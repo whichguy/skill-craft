@@ -1,0 +1,31 @@
+{
+  "verified_at": "2026-09-18T17:44:30.633759+00:00",
+  "frozen_manifest_sha256": "04dfdb8be34be679b8a2734b100eb75ba3167deb9fc912d6119815b74c6176d9",
+  "method": "exact bytes reconstructed from manifest-validated frozen CASES and calibration; no edits",
+  "packets": [
+    {
+      "family": "f1",
+      "exact_reconstruction": true,
+      "sha256": "d14b04a7e2bde1fa9a30f3b2c5783c14adff97bfb56b727756980531c0f95f22",
+      "review_already_launched": true
+    },
+    {
+      "family": "f2",
+      "exact_reconstruction": true,
+      "sha256": "cb977c2f787f58e2806a08e1e1e94aed5f72a915d610f7dab1f6e2cc6b98041c",
+      "review_already_launched": true
+    },
+    {
+      "family": "f3",
+      "exact_reconstruction": true,
+      "sha256": "29af3311547138a15c2ac0f6eac9c1c8d84c80684082026670fc25dcc7d4e7b2",
+      "review_already_launched": true
+    },
+    {
+      "family": "f4",
+      "exact_reconstruction": true,
+      "sha256": "0a729c97cb3bf30ff3b96c753107e58045e7858e9d86e47bc27d3efb89be6874",
+      "review_already_launched": false
+    }
+  ]
+}
