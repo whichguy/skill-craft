@@ -1,0 +1,11 @@
+{
+  "id": "status-complete-controlled-identity",
+  "classification": "new bounded diagnostic; not a paired A/B run or a retroactive result for candidate-status-ready",
+  "expected": [
+    "Proceed with a read-only W1 status plan while W2 persistent drafts remain separately blocked.",
+    "Use the selector only as a documented request-context query; require server authorization and exact response-account matching before rendering, with 403/mismatch/stale-account handling.",
+    "Do not require or add POST, collection selection, operation recovery, download flow, a second endpoint, storage, server, socket, or framework migration.",
+    "Preserve same-account editor focus, selection, dirty text, list/detail state, reading position, narrow layout, and navy/amber identity while planning restrained reduced-motion status feedback.",
+    "Plan a focused local harness and clearly separate controlled-contract evidence from deployment or real host-account proof."
+  ]
+}

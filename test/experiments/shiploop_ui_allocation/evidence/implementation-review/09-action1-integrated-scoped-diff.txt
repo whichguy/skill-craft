@@ -1,0 +1,365 @@
+diff --git a/plugins/shiploop/.claude-plugin/plugin.json b/plugins/shiploop/.claude-plugin/plugin.json
+index b2e1f35..824ef05 100644
+--- a/plugins/shiploop/.claude-plugin/plugin.json
++++ b/plugins/shiploop/.claude-plugin/plugin.json
+@@ -1,6 +1,6 @@
+ {
+   "name": "shiploop",
+-  "version": "0.15.0",
++  "version": "0.15.1",
+   "description": "Markdown-authoritative delivery harness. Start or resume once, follow the script's current action packet, and submit its exact completion call until the script reports completion with an HTML achievement report. Use when the user says shiploop, ship the project, or requests a durable delivery loop.",
+   "author": {
+     "name": "whichguy",
+diff --git a/plugins/shiploop/.codex-plugin/plugin.json b/plugins/shiploop/.codex-plugin/plugin.json
+index 5a3b755..c97e952 100644
+--- a/plugins/shiploop/.codex-plugin/plugin.json
++++ b/plugins/shiploop/.codex-plugin/plugin.json
+@@ -1,6 +1,6 @@
+ {
+   "name": "shiploop",
+-  "version": "0.15.0",
++  "version": "0.15.1",
+   "description": "Markdown-authoritative delivery harness. Start or resume once, follow the script's current action packet, and submit its exact completion call until the script reports completion with an HTML achievement report. Use when the user says shiploop, ship the project, or requests a durable delivery loop.",
+   "author": {
+     "name": "whichguy",
+diff --git a/plugins/shiploop/.cursor-plugin/plugin.json b/plugins/shiploop/.cursor-plugin/plugin.json
+index a3c8cb0..46e3c05 100644
+--- a/plugins/shiploop/.cursor-plugin/plugin.json
++++ b/plugins/shiploop/.cursor-plugin/plugin.json
+@@ -1,6 +1,6 @@
+ {
+   "name": "shiploop",
+-  "version": "0.15.0",
++  "version": "0.15.1",
+   "description": "Markdown-authoritative delivery harness. Start or resume once, follow the script's current action packet, and submit its exact completion call until the script reports completion with an HTML achievement report. Use when the user says shiploop, ship the project, or requests a durable delivery loop.",
+   "author": {
+     "name": "whichguy"
+diff --git a/plugins/shiploop/skills/shiploop/SKILL.md b/plugins/shiploop/skills/shiploop/SKILL.md
+index 9147ed5..5fd9308 100644
+--- a/plugins/shiploop/skills/shiploop/SKILL.md
++++ b/plugins/shiploop/skills/shiploop/SKILL.md
+@@ -5,7 +5,7 @@ description: >-
+   script's current action packet, and submit its exact completion call until
+   the script reports completion with an HTML achievement report. Use when the
+   user says shiploop, ship the project, or requests a durable delivery loop.
+-version: 0.15.0
++version: 0.15.1
+ allowed-tools: all
+ license: MIT
+ platforms:
+diff --git a/plugins/shiploop/skills/shiploop/references/behavioral-requirements.md b/plugins/shiploop/skills/shiploop/references/behavioral-requirements.md
+index 9887429..3144d51 100644
+--- a/plugins/shiploop/skills/shiploop/references/behavioral-requirements.md
++++ b/plugins/shiploop/skills/shiploop/references/behavioral-requirements.md
+@@ -228,6 +228,50 @@ with a bounded production-artifact probe in the target; a preview proves only
+ the constraints it reproduces. Do not silently weaken host policies or migrate
+ frameworks to obtain a richer appearance.
+ 
++### Allocate UI decisions to their planning owner
++
++Apply this subsection only when a human-facing surface is affected; a headless
++service or CLI without such a surface does not need UI premises or a design skill.
++During initial architecture and environment evaluation, establish or augment the
++shared component, interaction/state and skin premises before features rely on
++them. Connect requested user and machine outcomes to the actual toolkit,
++asset/runtime, storage, transport and lifecycle capabilities they need. An
++available API or library is an option, not a requirement to expose every action.
++For an existing product, retain adequate foundations and identify only the
++changed assumptions and affected consumers.
++
++Global planning maps those decisions to the existing
++[preparation producers and readiness checks](environment-lifecycle.md#plan-preparation-before-its-first-consumer):
++name who supplies a missing capability, which item needs it first, and the
++observation that will establish readiness. Preserve unresolved decisions and
++target-specific verification gaps; a rendered screen does not establish storage,
++identity, transport or background-lifecycle capability.
++
++At step planning, reopen the applicable shared premises and specify only the
++selected item's interaction delta, component states, visual changes and checks.
++Do not absorb other items from the original request or add user journeys because
++the service supports them. Reuse unchanged architecture; re-evaluate an affected
++premise when current target evidence or the feature's needs contradict it.
++
++If the missing prerequisite is outside the selected item's authorized work,
++name its owner or the missing ownership decision and use the packet's blocked
++or correction route before dependent work. Describe the supplier's required
++evidence without inventing its unresolved contract or protocol. A future
++"obtain capability" bullet
++is insufficient when it has no supplier or place in the delivery plan. A
++preparation item may plan to produce its own output; do not require that output
++before its authorized setup work. Keep independent ready features separate.
++The normal Improve handoff reviews decisions at this same planning level;
++intake may retain questions for research, and planning checks remain proposed
++until the responsible execution stage runs them.
++
++When review changes a premise or dependency order, use the existing result and
++reference handoff to identify the reviewed replacement and its precedence; update
++item contexts only where the current stage owns them. Preserve immutable producer
++evidence as historical. If a source update is forbidden, keep it pending and
++make the correction locator explicit instead of presenting an obsolete plan as
++current.
++
+ ### Review, evidence, and reuse
+ 
+ Carry compact baseline/delta, interaction/state/connection and applicable UI
+diff --git a/plugins/shiploop/skills/shiploop/scripts/shiploop_navigator_v3_prompts.py b/plugins/shiploop/skills/shiploop/scripts/shiploop_navigator_v3_prompts.py
+index 679e7dc..7356413 100644
+--- a/plugins/shiploop/skills/shiploop/scripts/shiploop_navigator_v3_prompts.py
++++ b/plugins/shiploop/skills/shiploop/scripts/shiploop_navigator_v3_prompts.py
+@@ -72,6 +72,7 @@ STAGE_REFERENCES: dict[str, tuple[tuple[str, str], ...]] = {
+         ("Persistent project-context guidance", "project-knowledge.md#discover-persistent-context-before-planning"),
+         ("Repository-local skill guidance", "testing-and-documentation.md#reusable-product-skills"),
+         ("Environment and source-return discovery", "environment-lifecycle.md#discover-before-planning-code"),
++        ("UI planning ownership when applicable", "behavioral-requirements.md#allocate-ui-decisions-to-their-planning-owner"),
+     ),
+     "research": (
+         ("Bounded research guidance", "research-loop.md#recursive-discovery-and-experiments"),
+@@ -93,9 +94,11 @@ STAGE_REFERENCES: dict[str, tuple[tuple[str, str], ...]] = {
+         ("Decision carry-forward guidance", "project-knowledge.md#carry-context-into-the-new-plan"),
+         ("State and data assessment", "requirements-definition.md#state-and-data-change-assessment"),
+         ("Initial-plan reconciliation", "requirements-definition.md#initial-plan-reconciliation"),
++        ("UI planning ownership when applicable", "behavioral-requirements.md#allocate-ui-decisions-to-their-planning-owner"),
+     ),
+     "prepare": (
+         ("Environment preparation guidance", "environment-lifecycle.md#plan-preparation-before-its-first-consumer"),
++        ("UI planning ownership when applicable", "behavioral-requirements.md#allocate-ui-decisions-to-their-planning-owner"),
+         ("Workspace and return guidance", "workspace-lifecycle.md#entry-identity-and-storage"),
+     ),
+     "select-work": (
+@@ -108,6 +111,7 @@ STAGE_REFERENCES: dict[str, tuple[tuple[str, str], ...]] = {
+         ("Implementation constitution", "testing-and-documentation.md#implementation-constitution"),
+         ("Decision carry-forward guidance", "project-knowledge.md#carry-context-into-the-new-plan"),
+         ("State and data assessment", "requirements-definition.md#state-and-data-change-assessment"),
++        ("UI planning ownership when applicable", "behavioral-requirements.md#allocate-ui-decisions-to-their-planning-owner"),
+     ),
+     "test-spec": (
+         ("Repeatable test-suite guide", "repeatable-test-suites.md#select-or-revalidate-the-harness"),
+@@ -547,6 +551,12 @@ defaults. Record the selection or no-fit rationale in the linked plan/evidence
+ note; retain the entrypoint, effective inputs/default sources, product contract,
+ validation locators and revalidation condition in ordinary evidence_refs. Keep
+ later decision changes in these notes, not edits to the script-owned work queue.
++
++Keep the interaction delta within the selected work item; available APIs and
++other features in the original request do not expand it. Apply UI planning
++ownership where relevant. An unresolved prerequisite outside this item's
++authorized scope needs its supplier/correction route and the packet's blocked
++disposition, not just a future implementation bullet.
+ For affected interactions, recheck the guide's relevant subsections instead of
+ copying the prior plan unchecked. Retain a compact Design basis paragraph or
+ exact section links: baseline/delta; state/event/connection agreements and planned
+@@ -1181,6 +1191,10 @@ baseline/delta, contract and UI-premise locators. Review acknowledgment/recovery
+ deployment assumptions, plus component/interaction/skin, motion and design guidance
+ where a UI is affected. Keep planning reviews scoped to decisions and proposed
+ checks; later reviews require actual consumer evidence. Revalidate reused choices.
++Apply UI planning ownership at the candidate's stage: check the selected-item
++boundary and prerequisite supplier/disposition without demanding later-stage work.
++Carry reviewed replacement locators and their precedence through the existing
++handoff when these decisions change.
+ Carry those locators into the child contract for cold recovery. This is conditional
+ review scope within the existing handoff, not another Improve run; do not invent
+ infrastructure or expand the assigned scope.
+diff --git a/skills/shiploop/SKILL.md b/skills/shiploop/SKILL.md
+index 9147ed5..5fd9308 100644
+--- a/skills/shiploop/SKILL.md
++++ b/skills/shiploop/SKILL.md
+@@ -5,7 +5,7 @@ description: >-
+   script's current action packet, and submit its exact completion call until
+   the script reports completion with an HTML achievement report. Use when the
+   user says shiploop, ship the project, or requests a durable delivery loop.
+-version: 0.15.0
++version: 0.15.1
+ allowed-tools: all
+ license: MIT
+ platforms:
+diff --git a/skills/shiploop/references/behavioral-requirements.md b/skills/shiploop/references/behavioral-requirements.md
+index 9887429..3144d51 100644
+--- a/skills/shiploop/references/behavioral-requirements.md
++++ b/skills/shiploop/references/behavioral-requirements.md
+@@ -228,6 +228,50 @@ with a bounded production-artifact probe in the target; a preview proves only
+ the constraints it reproduces. Do not silently weaken host policies or migrate
+ frameworks to obtain a richer appearance.
+ 
++### Allocate UI decisions to their planning owner
++
++Apply this subsection only when a human-facing surface is affected; a headless
++service or CLI without such a surface does not need UI premises or a design skill.
++During initial architecture and environment evaluation, establish or augment the
++shared component, interaction/state and skin premises before features rely on
++them. Connect requested user and machine outcomes to the actual toolkit,
++asset/runtime, storage, transport and lifecycle capabilities they need. An
++available API or library is an option, not a requirement to expose every action.
++For an existing product, retain adequate foundations and identify only the
++changed assumptions and affected consumers.
++
++Global planning maps those decisions to the existing
++[preparation producers and readiness checks](environment-lifecycle.md#plan-preparation-before-its-first-consumer):
++name who supplies a missing capability, which item needs it first, and the
++observation that will establish readiness. Preserve unresolved decisions and
++target-specific verification gaps; a rendered screen does not establish storage,
++identity, transport or background-lifecycle capability.
++
++At step planning, reopen the applicable shared premises and specify only the
++selected item's interaction delta, component states, visual changes and checks.
++Do not absorb other items from the original request or add user journeys because
++the service supports them. Reuse unchanged architecture; re-evaluate an affected
++premise when current target evidence or the feature's needs contradict it.
++
++If the missing prerequisite is outside the selected item's authorized work,
++name its owner or the missing ownership decision and use the packet's blocked
++or correction route before dependent work. Describe the supplier's required
++evidence without inventing its unresolved contract or protocol. A future
++"obtain capability" bullet
++is insufficient when it has no supplier or place in the delivery plan. A
++preparation item may plan to produce its own output; do not require that output
++before its authorized setup work. Keep independent ready features separate.
++The normal Improve handoff reviews decisions at this same planning level;
++intake may retain questions for research, and planning checks remain proposed
++until the responsible execution stage runs them.
++
++When review changes a premise or dependency order, use the existing result and
++reference handoff to identify the reviewed replacement and its precedence; update
++item contexts only where the current stage owns them. Preserve immutable producer
++evidence as historical. If a source update is forbidden, keep it pending and
++make the correction locator explicit instead of presenting an obsolete plan as
++current.
++
+ ### Review, evidence, and reuse
+ 
+ Carry compact baseline/delta, interaction/state/connection and applicable UI
+diff --git a/skills/shiploop/scripts/shiploop_navigator_v3_prompts.py b/skills/shiploop/scripts/shiploop_navigator_v3_prompts.py
+index 679e7dc..7356413 100644
+--- a/skills/shiploop/scripts/shiploop_navigator_v3_prompts.py
++++ b/skills/shiploop/scripts/shiploop_navigator_v3_prompts.py
+@@ -72,6 +72,7 @@ STAGE_REFERENCES: dict[str, tuple[tuple[str, str], ...]] = {
+         ("Persistent project-context guidance", "project-knowledge.md#discover-persistent-context-before-planning"),
+         ("Repository-local skill guidance", "testing-and-documentation.md#reusable-product-skills"),
+         ("Environment and source-return discovery", "environment-lifecycle.md#discover-before-planning-code"),
++        ("UI planning ownership when applicable", "behavioral-requirements.md#allocate-ui-decisions-to-their-planning-owner"),
+     ),
+     "research": (
+         ("Bounded research guidance", "research-loop.md#recursive-discovery-and-experiments"),
+@@ -93,9 +94,11 @@ STAGE_REFERENCES: dict[str, tuple[tuple[str, str], ...]] = {
+         ("Decision carry-forward guidance", "project-knowledge.md#carry-context-into-the-new-plan"),
+         ("State and data assessment", "requirements-definition.md#state-and-data-change-assessment"),
+         ("Initial-plan reconciliation", "requirements-definition.md#initial-plan-reconciliation"),
++        ("UI planning ownership when applicable", "behavioral-requirements.md#allocate-ui-decisions-to-their-planning-owner"),
+     ),
+     "prepare": (
+         ("Environment preparation guidance", "environment-lifecycle.md#plan-preparation-before-its-first-consumer"),
++        ("UI planning ownership when applicable", "behavioral-requirements.md#allocate-ui-decisions-to-their-planning-owner"),
+         ("Workspace and return guidance", "workspace-lifecycle.md#entry-identity-and-storage"),
+     ),
+     "select-work": (
+@@ -108,6 +111,7 @@ STAGE_REFERENCES: dict[str, tuple[tuple[str, str], ...]] = {
+         ("Implementation constitution", "testing-and-documentation.md#implementation-constitution"),
+         ("Decision carry-forward guidance", "project-knowledge.md#carry-context-into-the-new-plan"),
+         ("State and data assessment", "requirements-definition.md#state-and-data-change-assessment"),
++        ("UI planning ownership when applicable", "behavioral-requirements.md#allocate-ui-decisions-to-their-planning-owner"),
+     ),
+     "test-spec": (
+         ("Repeatable test-suite guide", "repeatable-test-suites.md#select-or-revalidate-the-harness"),
+@@ -547,6 +551,12 @@ defaults. Record the selection or no-fit rationale in the linked plan/evidence
+ note; retain the entrypoint, effective inputs/default sources, product contract,
+ validation locators and revalidation condition in ordinary evidence_refs. Keep
+ later decision changes in these notes, not edits to the script-owned work queue.
++
++Keep the interaction delta within the selected work item; available APIs and
++other features in the original request do not expand it. Apply UI planning
++ownership where relevant. An unresolved prerequisite outside this item's
++authorized scope needs its supplier/correction route and the packet's blocked
++disposition, not just a future implementation bullet.
+ For affected interactions, recheck the guide's relevant subsections instead of
+ copying the prior plan unchecked. Retain a compact Design basis paragraph or
+ exact section links: baseline/delta; state/event/connection agreements and planned
+@@ -1181,6 +1191,10 @@ baseline/delta, contract and UI-premise locators. Review acknowledgment/recovery
+ deployment assumptions, plus component/interaction/skin, motion and design guidance
+ where a UI is affected. Keep planning reviews scoped to decisions and proposed
+ checks; later reviews require actual consumer evidence. Revalidate reused choices.
++Apply UI planning ownership at the candidate's stage: check the selected-item
++boundary and prerequisite supplier/disposition without demanding later-stage work.
++Carry reviewed replacement locators and their precedence through the existing
++handoff when these decisions change.
+ Carry those locators into the child contract for cold recovery. This is conditional
+ review scope within the existing handoff, not another Improve run; do not invent
+ infrastructure or expand the assigned scope.
+diff --git a/test/shiploop-v3-guidance.test.py b/test/shiploop-v3-guidance.test.py
+index 94c4738..e797a9f 100644
+--- a/test/shiploop-v3-guidance.test.py
++++ b/test/shiploop-v3-guidance.test.py
+@@ -406,6 +406,50 @@ class V3GuidanceTests(unittest.TestCase):
+         self.assertNotIn(str(selected_card), second_packet)
+         self.assertNotIn(w1_selection, second_packet)
+ 
++    def test_ui_ownership_and_failed_readiness_survive_planning_review(self) -> None:
++        """Synthetic host judgments test routing and blocking, not model quality."""
++        locator = str(REFERENCES / "behavioral-requirements.md#allocate-ui-decisions-to-their-planning-owner")
++        docs = self.repo / "docs"
++        docs.mkdir()
++        design = docs / "ui.md"
++        design.write_text("# UI premises\n\nPreserve components, draft interaction and navy tokens.\n")
++        readiness = docs / "readiness.md"
++        readiness.write_text("# Current target\n\nStorage unavailable. Host owner must resolve it before draft work.\n")
++        sources = [str(design) + "#ui-premises", str(readiness) + "#current-target"]
++        context = "Draft item depends on host-owned storage readiness; " + "; ".join(sources)
++        state = self.state()
++        observed = []
++        while navigator.current_stage(state) != "step-plan":
++            stage = navigator.current_stage(state)
++            if stage in {"discovery", "plan", "prepare"}:
++                state, packet = self.cold_packet(state)
++                self.assertIn(locator, packet)
++                observed.append(stage)
++            extra = {}
++            if stage == "plan":
++                extra = {"evidence_refs": sources,
++                         "work_items": [{"id": "W1", "title": "Recover drafts", "context": context}]}
++            state, _ = self.complete_stage(state, **extra)
++        state, packet = self.cold_packet(state)
++        self.assertEqual(observed, ["discovery", "plan", "prepare"])
++        self.assertIn(locator, packet)
++        self.assertIn(context, packet)
++        action = dict(navigator.current_action(state))
++        blocked = {"outcome": "blocked", "summary": "Host storage prerequisite is unavailable; supplier decision pending.",
++                   "evidence_refs": sources}
++        waiting = navigator.apply(state, action["id"], blocked)
++        waiting, review_packet = self.cold_packet(waiting)
++        self.assertEqual(waiting["active_improve"]["seed_result"], blocked)
++        for source in sources:
++            self.assertIn(source, review_packet)
++        # The host's actual review is replaced only for this structural fixture.
++        stopped = navigator.finish_improve(waiting, action["id"], receipt("step-plan"))
++        stopped, stopped_packet = self.cold_packet(stopped)
++        self.assertEqual(stopped["status"], "blocked")
++        self.assertEqual(navigator.current_stage(stopped), "step-plan")
++        self.assertNotIn("W1", stopped["completed_work_items"])
++        self.assertIn("Host storage prerequisite", stopped_packet)
++
+     def test_cold_step_plan_keeps_compact_context_and_evidence_locators(self) -> None:
+         context = (
+             "Convention source: docs/client.md#requests; decision: reuse the existing "
+diff --git a/test/shiploop.test.sh b/test/shiploop.test.sh
+index 6f76dde..3d94b8a 100755
+--- a/test/shiploop.test.sh
++++ b/test/shiploop.test.sh
+@@ -19,6 +19,8 @@ suites=(
+   test/shiploop-packet-bounds.test.py \
+   test/shiploop-v3-guidance.test.py \
+   test/shiploop-local-skills.test.py \
++
++  test/experiments/shiploop_ui_allocation/test_evidence.py \
+   test/shiploop-full-runtime.test.py \
+   test/shiploop-navigator-dry-run.test.py \
+   test/shiploop-auth-readiness.test.py \
+diff --git a/test/test-groups.test.py b/test/test-groups.test.py
+index c61d160..0759b79 100644
+--- a/test/test-groups.test.py
++++ b/test/test-groups.test.py
+@@ -13,7 +13,7 @@ import unittest
+ ROOT = Path(__file__).resolve().parents[1]
+ RUNNER = ROOT / "test" / "run-all.sh"
+ SHIPLOOP_RUNNER = ROOT / "test" / "shiploop.test.sh"
+-SHIPLOOP_SUITE_COUNT = 88
++SHIPLOOP_SUITE_COUNT = 89
+ ACTION_WALK = "test/shiploop-action-walk.test.py"
+ CI_GROUPS = ("core", "shiploop-1", "shiploop-2", "shiploop-3")
+ CORE = {

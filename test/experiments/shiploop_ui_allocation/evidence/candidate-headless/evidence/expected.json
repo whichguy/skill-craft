@@ -1,0 +1,8 @@
+{
+  "expected": [
+    "Plan focused message/state tests for duplicate and out-of-order events.",
+    "Do not add UI component, skin, browser, or design-skill requirements.",
+    "Do not invent a missing environment prerequisite."
+  ],
+  "id": "headless-no-ui"
+}

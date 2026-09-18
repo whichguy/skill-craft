@@ -406,6 +406,110 @@ class V3GuidanceTests(unittest.TestCase):
         self.assertNotIn(str(selected_card), second_packet)
         self.assertNotIn(w1_selection, second_packet)
 
+    def test_ui_ownership_and_failed_readiness_survive_planning_review(self) -> None:
+        """Synthetic host judgments test routing and blocking, not model quality."""
+        locator = str(REFERENCES / "behavioral-requirements.md#allocate-ui-decisions-to-their-planning-owner")
+        docs = self.repo / "docs"
+        docs.mkdir()
+        design = docs / "ui.md"
+        design.write_text("# UI premises\n\nPreserve components, draft interaction and navy tokens.\n")
+        readiness = docs / "readiness.md"
+        readiness.write_text("# Current target\n\nStorage unavailable. Host owner must resolve it before draft work.\n")
+        sources = [str(design) + "#ui-premises", str(readiness) + "#current-target"]
+        context = "Draft item depends on host-owned storage readiness; " + "; ".join(sources)
+        state = self.state()
+        observed = []
+        while navigator.current_stage(state) != "step-plan":
+            stage = navigator.current_stage(state)
+            if stage in {"discovery", "plan", "prepare"}:
+                state, packet = self.cold_packet(state)
+                self.assertIn(locator, packet)
+                observed.append(stage)
+            extra = {}
+            if stage == "plan":
+                extra = {"evidence_refs": sources,
+                         "work_items": [{"id": "W1", "title": "Recover drafts", "context": context}]}
+            state, _ = self.complete_stage(state, **extra)
+        state, packet = self.cold_packet(state)
+        self.assertEqual(observed, ["discovery", "plan", "prepare"])
+        self.assertIn(locator, packet)
+        self.assertIn(context, packet)
+        action = dict(navigator.current_action(state))
+        blocked = {"outcome": "blocked", "summary": "Host storage prerequisite is unavailable; supplier decision pending.",
+                   "evidence_refs": sources}
+        waiting = navigator.apply(state, action["id"], blocked)
+        waiting, review_packet = self.cold_packet(waiting)
+        self.assertEqual(waiting["active_improve"]["seed_result"], blocked)
+        for source in sources:
+            self.assertIn(source, review_packet)
+        # The host's actual review is replaced only for this structural fixture.
+        stopped = navigator.finish_improve(waiting, action["id"], receipt("step-plan"))
+        stopped, stopped_packet = self.cold_packet(stopped)
+        self.assertEqual(stopped["status"], "blocked")
+        self.assertEqual(navigator.current_stage(stopped), "step-plan")
+        self.assertNotIn("W1", stopped["completed_work_items"])
+        self.assertIn("Host storage prerequisite", stopped_packet)
+
+    def test_ui_supersession_handoff_keeps_replacement_current_after_cold_recovery(self) -> None:
+        """A reviewed plan can replace a UI premise without erasing its seed evidence."""
+        original_locator = "docs/ui-plan.md#original-premise"
+        replacement_locator = "docs/ui-review.md#accepted-replacement"
+        original_context = (
+            "Original UI premise: use the original storage order from " + original_locator
+        )
+        replacement_context = (
+            "Reviewed replacement: " + replacement_locator
+            + "; precedence: this reviewed replacement supersedes the original storage order."
+        )
+        state = self.state()
+        while navigator.current_stage(state) != "plan":
+            state, _ = self.complete_stage(state)
+
+        action = dict(navigator.current_action(state))
+        waiting = navigator.apply(
+            state,
+            action["id"],
+            result(
+                "plan",
+                evidence_refs=[original_locator],
+                work_items=[{"id": "W1", "title": "Recover drafts", "context": original_context}],
+            ),
+        )
+        waiting, _review_packet = self.cold_packet(waiting)
+        final_plan = result(
+            "plan",
+            summary="Improve accepted a reviewed UI replacement with explicit precedence.",
+            evidence_refs=[replacement_locator],
+            work_items=[{"id": "W1", "title": "Recover drafts", "context": replacement_context}],
+        )
+        state = navigator.finish_improve(waiting, action["id"], receipt("plan"), final_plan)
+        self.assertEqual(
+            state["improve_results"][action["id"]]["seed_result"]["evidence_refs"],
+            [original_locator],
+        )
+        self.assertEqual(state["accepted"][action["id"]]["evidence_refs"], [replacement_locator])
+        self.assertEqual(
+            state["improve_results"][action["id"]]["seed_result"]["work_items"][0]["context"],
+            original_context,
+        )
+
+        state, replacement_packet = self.cold_packet(state)
+        self.assertIn(replacement_locator, replacement_packet)
+        self.assertIn("reviewed UI replacement with explicit precedence", replacement_packet)
+        self.assertNotIn(original_locator, replacement_packet)
+        state, _ = self.complete_stage(state)
+        self.assertEqual(navigator.current_stage(state), "select-work")
+        state, _ = self.complete_stage(state)
+        state, cold_packet = self.cold_packet(state)
+        self.assertEqual(navigator.current_stage(state), "step-plan")
+        self.assertIn("Work item context: " + replacement_context, cold_packet)
+        self.assertIn(replacement_locator, cold_packet)
+        self.assertNotIn(original_context, cold_packet)
+        self.assertIn(
+            "Carry reviewed replacement locators and their precedence through the existing handoff when these decisions change.",
+            normalized(prompts.improve_prompt("step-plan")),
+        )
+
     def test_cold_step_plan_keeps_compact_context_and_evidence_locators(self) -> None:
         context = (
             "Convention source: docs/client.md#requests; decision: reuse the existing "

@@ -1,0 +1,80 @@
+{
+  "winner": "Tie",
+  "material_improvement": false,
+  "reasoning": "Both reports support the same thin CLI adapter and retain all consequential findings. SRC-007 establishes staged serialization followed by replacement; Left calls 19\u201320 and Right calls 18\u201319 confirm representative failure preservation and successful replacement. Left calls 17\u201318 and Right calls 16\u201317 establish the active-parser mismatch and preview acceptance without write validity. Neither report invents a blanket implementation block or claims completed CLI delivery. Right's additional acceptance cases are useful proposals, but do not establish a material correctness improvement.",
+  "arms": {
+    "Left": {
+      "findings": [
+        "Reuse write_json: it stages projected id/amount rows as an array before replacing the destination (SRC-007:7\u201319).",
+        "Valid-row replacement passed the existing writer test; this is not CLI verification (SRC-011; call 20).",
+        "The later row missing id triggers KeyError while preserving prior output and removing the stage in the tested case (SRC-006; call 19).",
+        "Preview accepts the malformed fixture and uses a different envelope; it proves neither write validity nor committed replacement safety (SRC-007:4\u20135; calls 18\u201319).",
+        "Launcher-selected bundled parser is 2.6.4, while manifest declares 3.1.0 (SRC-003, SRC-005, SRC-009; call 17).",
+        "Bundled parser supplies only a version constant, so parser-specific capabilities are unestablished (SRC-005).",
+        "Visible invocation surfaces are diagnostic/version-only; a destination-taking production CLI remains to be implemented (SRC-003, SRC-010).",
+        "The public invocation and JSON response contract remain unspecified; proposed flags and semantics are not requirements.",
+        "Predictable staging permits concurrent-writer interference; single-writer scope or additional staging safeguards are needed before stronger claims (SRC-007:9\u201311).",
+        "Replacement is the commit boundary; subsequent response failure cannot imply preservation of the old destination (SRC-007:19\u201323).",
+        "Crash durability, hostile-path safety, and universal filesystem failure preservation are unproven; cleanup failure can mask the original error (SRC-007).",
+        "The inspected task is local; no remote service, authentication, deployment, or reconnect prerequisite is established (SRC-001, SRC-008, SRC-010)."
+      ],
+      "missing_required": [],
+      "violations": [],
+      "checks": {
+        "decision_correct": "pass",
+        "evidence_fidelity": "pass",
+        "block_scope": "pass",
+        "probe_proportionality": "pass",
+        "revalidation": "pass"
+      }
+    },
+    "Right": {
+      "findings": [
+        "Reuse write_json: it stages projected id/amount rows as an array before replacing the destination (SRC-007:7\u201319).",
+        "Valid-row replacement and native replacement metadata passed the existing writer test; this is not CLI verification (SRC-011; call 19).",
+        "The later row missing id triggers KeyError while preserving prior output and removing the stage in the tested case (SRC-006; call 18).",
+        "The diagnostic probe's zero exit does not establish the proposed CLI's failure exit contract (SRC-010; call 18).",
+        "Preview accepts the malformed fixture and uses a different envelope; it proves neither write validity nor committed replacement safety (SRC-007:4\u20135; calls 17\u201318).",
+        "Launcher-selected bundled parser is 2.6.4, while manifest declares 3.1.0; JSON advertisement does not establish callable CLI support (SRC-003, SRC-005, SRC-009; call 16).",
+        "Bundled parser supplies only a version constant, so parser-specific capabilities are unestablished (SRC-005).",
+        "Visible invocation surfaces are diagnostic/version-only; a destination-taking production CLI remains to be implemented (SRC-003, SRC-010; call 13).",
+        "The public invocation and JSON response contract remain unspecified; proposed flags and semantics are not requirements.",
+        "Predictable staging permits concurrent-writer interference and existing-file or symlink collisions; trusted-directory/single-writer scope or additional staging safeguards are needed before stronger claims (SRC-007:9\u201311).",
+        "Replacement is the commit boundary; subsequent response failure cannot imply preservation of the old destination (SRC-007:19\u201323).",
+        "Crash durability and universal filesystem failure preservation are unproven; cleanup failure can mask the original error (SRC-007).",
+        "The inspected task is local; no remote service, authentication, deployment, or reconnect prerequisite is established (SRC-001, SRC-008, SRC-010)."
+      ],
+      "missing_required": [],
+      "violations": [],
+      "checks": {
+        "decision_correct": "pass",
+        "evidence_fidelity": "pass",
+        "block_scope": "pass",
+        "probe_proportionality": "pass",
+        "revalidation": "pass"
+      }
+    }
+  },
+  "lost_findings": {
+    "Left": [],
+    "Right": []
+  },
+  "scores": {
+    "task_adherence": "Tie",
+    "factual_accuracy": "Tie",
+    "completeness": "Tie",
+    "instruction_following": "Tie",
+    "structural_clarity": "Tie",
+    "precision": "Tie",
+    "conciseness": "Tie"
+  },
+  "evidence_limits": [
+    "Manual pre-judge audit found no explicit baseline/candidate mapping. Variant-dependent guide sizes, hashes, a guide-section request, and arm-specific paths remain visible as fingerprints; no variant identity was inferred or used.",
+    "All retained observations concern local fixture behavior and establish no real remote access or authorization.",
+    "No production CLI exists in the supplied sources; planned acceptance checks receive no actual-execution credit. Revalidation passes reflect appropriate future verification plans, not completed CLI tests.",
+    "Preservation was observed for one ordinary KeyError path; crash, concurrency, hostile-path, cleanup, staged-open, replacement, and postcommit response failures were not experimentally established.",
+    "Right call 23's retained report text says six executions, whereas its displayed report says five. The receipts establish five; call 24 records a revised report write without retaining its complete text.",
+    "Both runners record 24 total calls. Left's 23-call statement excludes report writing; Right's 21-call statement describes research before report writing and rereading.",
+    "Full raw coordinator receipts are outside the supplied bundle; their existence or hashes were not treated as substitute evidence."
+  ]
+}

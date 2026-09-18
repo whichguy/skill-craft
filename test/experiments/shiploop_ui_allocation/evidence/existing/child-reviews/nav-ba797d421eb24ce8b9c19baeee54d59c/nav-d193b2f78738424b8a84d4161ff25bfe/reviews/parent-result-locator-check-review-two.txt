@@ -1,0 +1,9 @@
+OK <study>/existing/run/notes/spec.md
+OK <study>/existing/run/notes/research.md
+OK <study>/existing/run/notes/environment-lifecycle.md
+OK <study>/existing/evidence/spec-artifact-check.txt
+OK <study>/existing/evidence/spec-current-source-hash.txt
+OK <study>/existing/evidence/spec-guidance-locators.txt
+OK <study>/existing/evidence/research-design-card-sha256.txt
+EXPECTED seed summary lacks S-REV-01; terminal final_result must carry revised recovery wording.
+RESOLVED 7 seed-result evidence refs

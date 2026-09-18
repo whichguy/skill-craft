@@ -1,0 +1,18 @@
+usage: shiploop [-h]
+                {workspace,drive,managed-graph-dry-run,graph-dry-run,init,improve-bind,improve-complete,next,status,report,plan-status,context,complete,done,verify,planning-verify,planning-upgrade,history,journal,halt,pause,resume,repair,merge-recover,replan,revisit,migrate} ...
+
+Markdown-authoritative, action-oriented session harness
+
+positional arguments:
+  {workspace,drive,managed-graph-dry-run,graph-dry-run,init,improve-bind,improve-complete,next,status,report,plan-status,context,complete,done,verify,planning-verify,planning-upgrade,history,journal,halt,pause,resume,repair,merge-recover,replan,revisit,migrate}
+    workspace           isolated start, return-plan review, and guarded return
+    drive               supervised host execution with optional inner-loop
+                        context reset
+    managed-graph-dry-run
+                        inspect the compatibility managed controller without
+                        project work
+    graph-dry-run       inspect navigator routes and prompts without project
+                        work
+
+options:
+  -h, --help            show this help message and exit

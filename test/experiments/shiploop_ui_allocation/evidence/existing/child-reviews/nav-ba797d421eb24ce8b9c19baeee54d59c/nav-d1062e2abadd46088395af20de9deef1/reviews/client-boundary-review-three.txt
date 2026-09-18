@@ -1,0 +1,2 @@
+OK app.js has no observed browser persistence carrier
+OK current account-switch, pending-text, and cancel flow locators are present

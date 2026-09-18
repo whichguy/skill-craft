@@ -1,0 +1,15 @@
+OK discovery.md ../../evidence/discovery-baseline-smoke-argv.json -> <study>/existing/evidence/discovery-baseline-smoke-argv.json
+OK discovery.md ../../evidence/discovery-baseline-smoke.stdout -> <study>/existing/evidence/discovery-baseline-smoke.stdout
+OK discovery.md ../../evidence/discovery-baseline-smoke.stderr -> <study>/existing/evidence/discovery-baseline-smoke.stderr
+OK discovery.md ../../evidence/discovery-environment-probe-argv.json -> <study>/existing/evidence/discovery-environment-probe-argv.json
+OK discovery.md ../../evidence/discovery-environment-probe.stdout -> <study>/existing/evidence/discovery-environment-probe.stdout
+OK discovery.md ../../evidence/discovery-environment-probe.stderr -> <study>/existing/evidence/discovery-environment-probe.stderr
+OK discovery.md ../../evidence/discovery-post-baseline-source-hash.txt -> <study>/existing/evidence/discovery-post-baseline-source-hash.txt
+OK discovery.md ../../evidence/discovery-post-baseline-git-status.txt -> <study>/existing/evidence/discovery-post-baseline-git-status.txt
+OK discovery.md ../../evidence/discovery-post-baseline-tracked-diff.txt -> <study>/existing/evidence/discovery-post-baseline-tracked-diff.txt
+OK discovery.md ../../evidence/discovery-client-flow-locators.txt -> <study>/existing/evidence/discovery-client-flow-locators.txt
+OK discovery.md ../../evidence/discovery-contract-locators.txt -> <study>/existing/evidence/discovery-contract-locators.txt
+OK environment-lifecycle.md ../../evidence/discovery-baseline-smoke.stdout -> <study>/existing/evidence/discovery-baseline-smoke.stdout
+OK environment-lifecycle.md ../../evidence/discovery-baseline-smoke.stderr -> <study>/existing/evidence/discovery-baseline-smoke.stderr
+OK environment-lifecycle.md ../../evidence/discovery-environment-probe.stdout -> <study>/existing/evidence/discovery-environment-probe.stdout
+RESOLVED 14 note evidence locators

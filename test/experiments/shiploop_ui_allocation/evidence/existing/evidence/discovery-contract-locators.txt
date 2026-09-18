@@ -1,0 +1,25 @@
+host-observation.json-10-  "server_runtime": false,
+host-observation.json-11-  "client_persistent_storage": "unavailable",
+host-observation.json:12:  "draft_api": false,
+host-observation.json:13:  "observation_scope": "controlled fixture target facts; not a live deployment"
+host-observation.json-14-}
+--
+docs/api.md-1-# Existing API
+docs/api.md:2:GET /api/exports returns current authorized collection export statuses and monotonically increasing revisions. POST /api/exports accepts collectionId and clientOperationId, durably accepts one operation in that account scope before confirmation, and returns jobId/status. A lost confirmation is reconciled through GET /api/operations/:clientOperationId; unresolved results must not claim success. GET /api/exports/:jobId returns the current status and a same-origin download path only when complete. Server owns job state independently of any UI. Poll while visible, reconcile on foreground; notifications are invalidation hints only. No subscription or draft-storage endpoint is available. This is the fixture contract, not a deployed service claim.
+--
+docs/platform.md-1-# Deployment target
+docs/platform.md:2:The intended target is a static embedded web surface. Build tooling may run locally; no Node or other server process can run in the deployed artifact. All scripts, styles, fonts and images must be bundled same-origin files. The current enforced script-src and style-src policies are self only; inline script/style and external CDNs are disallowed. The host permits same-origin HTTPS API request/response. Persistent WebSocket connections are unsupported. The host controls authorization/account identity. Hidden pages may suspend; on foreground the client can read current authoritative state. Existing APIs are in api.md. Local preview evidence only proves constraints it actually reproduces. There is no remote deployment access in this experiment.
+docs/platform.md-3-
+docs/platform.md:4:For current storage and target identity, run scripts/probe_environment.py. This reads the fixture's current host observation without changing it. These are controlled target facts, not evidence of a real hosted deployment.
+--
+README.md-1-# Field Notes
+README.md-2-
+README.md:3:Extend the existing Field Notes UI with recoverable drafts across page reloads and notifications when a background export changes. Preserve its accepted list/detail/edit/save/cancel/back journeys, components and navy/amber visual identity. On logout, drafts must not be readable under the next account. Keep local pending drafts distinct from server-confirmed saved content. Evaluate and plan any environment augmentation this needs; do not assume the older environment note still holds.
+README.md-4-
+README.md:5:Read docs/platform.md and docs/api.md. Current environment observation: `python3 scripts/probe_environment.py`. Baseline static product exists. Smoke command: `node --check app.js`. The old architecture record is docs/design.md.
+--
+docs/design.md-1-# Accepted UI and previous environment
+docs/design.md-2-## UI identity
+docs/design.md:3:Keep the native account selector, note list, stable textarea editor, save/cancel/back controls; preserve focus, keyboard/touch behavior, narrow layout, reading position and draft text. Navy #15324f, amber #c08722, white cards, system body and Georgia display type. No approved framework migration. Local in-memory editing is separate from server-confirmed notes.
+docs/design.md-4-## Previous environment assumption
+docs/design.md:5:The earlier fieldnotes-embedded-v1 target allowed account-scoped persistent browser storage. This historical observation supported a proposed reload recovery design but no draft persistence is implemented. Revalidate when target or policy changes. Current target observation is obtained with scripts/probe_environment.py.

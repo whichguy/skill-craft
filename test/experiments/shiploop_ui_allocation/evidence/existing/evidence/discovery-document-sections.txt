@@ -1,0 +1,7 @@
+docs/platform.md:1:# Deployment target
+docs/api.md:1:# Existing API
+SHIPLOOP.md:1:# Project knowledge
+README.md:1:# Field Notes
+docs/design.md:1:# Accepted UI and previous environment
+docs/design.md:2:## UI identity
+docs/design.md:4:## Previous environment assumption

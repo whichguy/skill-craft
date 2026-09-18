@@ -1,0 +1,80 @@
+test_material_scope_or_behavior_finding_cannot_be_reclassified_in_a_later_review (__main__.StepPlanningRecordTests.test_material_scope_or_behavior_finding_cannot_be_reclassified_in_a_later_review) ... ok
+test_material_scope_or_behavior_findings_cannot_be_closed_by_a_step_plan_revise (__main__.StepPlanningRecordTests.test_material_scope_or_behavior_findings_cannot_be_closed_by_a_step_plan_revise) ... ok
+test_real_timestamp_run_id_and_exact_pass_cursor_are_accepted (__main__.StepPlanningRecordTests.test_real_timestamp_run_id_and_exact_pass_cursor_are_accepted) ... ok
+test_receipt_binds_candidate_context_and_current_pass_to_markdown_bytes (__main__.StepPlanningRecordTests.test_receipt_binds_candidate_context_and_current_pass_to_markdown_bytes) ... ok
+test_repair_epoch_rebinds_context_without_erasing_completed_passes (__main__.StepPlanningRecordTests.test_repair_epoch_rebinds_context_without_erasing_completed_passes) ... ok
+test_review_keeps_old_open_findings_and_rejects_severity_downgrade (__main__.StepPlanningRecordTests.test_review_keeps_old_open_findings_and_rejects_severity_downgrade) ... ok
+test_revise_requires_every_open_finding_and_records_concrete_resolution (__main__.StepPlanningRecordTests.test_revise_requires_every_open_finding_and_records_concrete_resolution) ... ok
+
+----------------------------------------------------------------------
+Ran 17 tests in 346.306s
+
+OK
+==> test/shiploop-sdlc.test.py
+..............
+----------------------------------------------------------------------
+Ran 14 tests in 0.026s
+
+OK
+==> test/shiploop-improve-bridge.test.py
+test_cli_shaped_repair_pause_resume_and_halt_need_no_completion_event (__main__.ShipLoopImproveBridgeTests.test_cli_shaped_repair_pause_resume_and_halt_need_no_completion_event)
+The ordinary protocol commands do not call ``set_evidence``. ... ok
+test_cli_shaped_step_plan_repair_and_cross_profile_replan_preserve_old_child (__main__.ShipLoopImproveBridgeTests.test_cli_shaped_step_plan_repair_and_cross_profile_replan_preserve_old_child) ... ok
+test_evidence_snapshot_allows_historical_alias_reuse_but_final_check_stays_live (__main__.ShipLoopImproveBridgeTests.test_evidence_snapshot_allows_historical_alias_reuse_but_final_check_stays_live) ... ok
+test_imported_objective_allows_a_successor_step_allocation (__main__.ShipLoopImproveBridgeTests.test_imported_objective_allows_a_successor_step_allocation) ... ok
+test_legacy_is_inert_and_every_profile_starts_with_a_fixed_parent (__main__.ShipLoopImproveBridgeTests.test_legacy_is_inert_and_every_profile_starts_with_a_fixed_parent) ... ok
+test_planning_revisit_abandons_without_starting_or_certifying_a_child (__main__.ShipLoopImproveBridgeTests.test_planning_revisit_abandons_without_starting_or_certifying_a_child) ... ok
+test_product_active_step_scope_and_candidate_definition_are_bound (__main__.ShipLoopImproveBridgeTests.test_product_active_step_scope_and_candidate_definition_are_bound) ... ok
+test_product_commit_accepts_only_the_staged_typed_cycle_receipt (__main__.ShipLoopImproveBridgeTests.test_product_commit_accepts_only_the_staged_typed_cycle_receipt) ... ok
+test_product_pause_is_preserved_in_the_child_packet (__main__.ShipLoopImproveBridgeTests.test_product_pause_is_preserved_in_the_child_packet) ... ok
+test_repair_pause_and_same_child_resume_are_controller_owned (__main__.ShipLoopImproveBridgeTests.test_repair_pause_and_same_child_resume_are_controller_owned) ... ok
+test_required_step_plan_repair_resumes_at_disposition_only (__main__.ShipLoopImproveBridgeTests.test_required_step_plan_repair_resumes_at_disposition_only) ... ok
+test_stale_receipts_policy_input_and_parent_overlay_fail_closed (__main__.ShipLoopImproveBridgeTests.test_stale_receipts_policy_input_and_parent_overlay_fail_closed) ... ok
+test_start_fault_recovers_parent_and_child_together (__main__.ShipLoopImproveBridgeTests.test_start_fault_recovers_parent_and_child_together) ... ok
+test_terminal_import_is_atomic_and_binds_bytes_and_evidence (__main__.ShipLoopImproveBridgeTests.test_terminal_import_is_atomic_and_binds_bytes_and_evidence) ... ok
+test_terminal_import_rejects_conflicting_child_or_parent_result_bindings (__main__.ShipLoopImproveBridgeTests.test_terminal_import_rejects_conflicting_child_or_parent_result_bindings) ... ok
+test_terminal_output_identity_rejects_candidate_drift_before_import (__main__.ShipLoopImproveBridgeTests.test_terminal_output_identity_rejects_candidate_drift_before_import) ... ok
+
+----------------------------------------------------------------------
+Ran 16 tests in 1.961s
+
+OK
+==> test/shiploop-managed-contracts.test.py
+..........
+----------------------------------------------------------------------
+Ran 10 tests in 2.042s
+
+OK
+==> test/shiploop-invalidation.test.py
+...........
+----------------------------------------------------------------------
+Ran 11 tests in 0.004s
+
+OK
+==> test/shiploop-managed-invalidation.test.py
+.....
+----------------------------------------------------------------------
+Ran 5 tests in 2.941s
+
+OK
+==> test/shiploop-managed-package.test.py
+.
+----------------------------------------------------------------------
+Ran 1 test in 0.584s
+
+OK
+==> test/shiploop-managed-walk.test.py
+.
+----------------------------------------------------------------------
+Ran 1 test in 301.406s
+
+OK
+==> test/shiploop-action-walk.test.py
+.............
+----------------------------------------------------------------------
+Ran 13 tests in 1368.303s
+
+OK
+shiploop.test.sh: PASS
+OK  shiploop
+run-all.sh: PASS (all hermetic group selection)

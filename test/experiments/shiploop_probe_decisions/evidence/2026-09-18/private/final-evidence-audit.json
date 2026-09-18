@@ -1,0 +1,12 @@
+{
+  "checks": [
+    "f1",
+    "f2",
+    "f3",
+    "f4"
+  ],
+  "judge_inputs_match_executed_hashes": true,
+  "all_verdicts_present": true,
+  "worker_launch_count": 8,
+  "manual_audit": "Report/receipt content screened for guidance quotation and comparison identity before each judge. Reports retain anonymous trial locators and guide hash/size metadata; no variant mapping supplied. Limits retained in results report."
+}

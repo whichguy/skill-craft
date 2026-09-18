@@ -1,0 +1,23 @@
+{
+  "checks": {
+    "all_final_result_refs_exist": true,
+    "all_review_and_check_artifacts_regular_single_link": true,
+    "final_result_is_canonical_plan_result": true,
+    "no_tracked_or_staged_product_diff": true,
+    "qualifying_reviews_are_distinct_files": true,
+    "runtime_state_deleted_after_terminal": true,
+    "source_plan_digest_unchanged": true,
+    "status_contains_only_shiploop_improve_untracked_root": true,
+    "terminal_action_number_three": true,
+    "terminal_packet_matches_done_three_raw_packet": true,
+    "terminal_packet_regular_single_link": true,
+    "terminal_status_complete": true,
+    "terminal_trivial_streak_two": true
+  },
+  "child": "<study>/new/product/.shiploop-improve/nav-2148a17cdff14eef8c90236660d96142/nav-5a5e9e2846cb4077af072160793107c5",
+  "git_cached_diff_returncode": 0,
+  "git_diff_returncode": 0,
+  "git_status": "?? .shiploop-improve/\n",
+  "passed": true,
+  "state_file": "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/innerloop-h55nia9h.json"
+}

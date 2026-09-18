@@ -1,0 +1,5 @@
+FN-TC labels: ['**FN-TC-1', '**FN-TC-2', '**FN-TC-3', '**FN-TC-4', '**FN-TC-5', '**FN-TC-6', '**FN-TC-7']
+list/detail/edit/save/cancel/back 1
+focus 6
+keyboard/touch/narrow-layout 1
+reading position 3

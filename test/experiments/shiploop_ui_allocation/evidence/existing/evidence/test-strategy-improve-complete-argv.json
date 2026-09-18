@@ -1,0 +1,8 @@
+[
+  "python3",
+  "<study>/frozen/shiploop/scripts/shiploop",
+  "improve-complete",
+  "--run-dir=<study>/existing/run",
+  "--action=nav-1e589b2e604a4edb9c801966f631b96b",
+  "--result=<study>/existing/run/inbox/nav-1e589b2e604a4edb9c801966f631b96b-improve.md"
+]

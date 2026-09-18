@@ -1,0 +1,213 @@
+{
+  "bundle_sha256": "5736dc333aca59ce790c216e69cca21289dcfd73d29b2b35a47c4c8a0b7018e7",
+  "common_sources": [
+    {
+      "bytes": 582,
+      "id": "SRC-001",
+      "labels": [
+        "Left",
+        "Right"
+      ],
+      "path": "README.md",
+      "sha256": "677f0f611a56dffb42e7a03afcc7f9efd1134871f2808cc47fa4671399f6e5f6"
+    },
+    {
+      "bytes": 112,
+      "id": "SRC-002",
+      "labels": [
+        "Left",
+        "Right"
+      ],
+      "path": "connectors/catalog.json",
+      "sha256": "4b6804e3aae8f94badaf113b1a990cd6abe83d21473b7ab1479aacda1adca4fb"
+    },
+    {
+      "bytes": 548,
+      "id": "SRC-003",
+      "labels": [
+        "Left",
+        "Right"
+      ],
+      "path": "fixture_support.py",
+      "sha256": "2e16f60261eb86c5a7275289e734bf8fed23fd34fc49a8235ad28827870372ec"
+    },
+    {
+      "bytes": 1,
+      "id": "SRC-004",
+      "labels": [
+        "Left",
+        "Right"
+      ],
+      "path": "formatting/__init__.py",
+      "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+    },
+    {
+      "bytes": 76,
+      "id": "SRC-005",
+      "labels": [
+        "Left",
+        "Right"
+      ],
+      "path": "formatting/local_format.py",
+      "sha256": "3c3bee6ab2dfd78ac72bf282beffae9990b130c74f18179034b623b50c6dc3c3"
+    },
+    {
+      "bytes": 1134,
+      "id": "SRC-006",
+      "labels": [
+        "Left",
+        "Right"
+      ],
+      "path": "mcp_sim.py",
+      "sha256": "41989a1b05b1f27946daee4b0193a27c9b68fbd4aad3c7e20324254c06fec6a3"
+    },
+    {
+      "bytes": 238,
+      "id": "SRC-007",
+      "labels": [
+        "Left",
+        "Right"
+      ],
+      "path": "requirements.json",
+      "sha256": "d336859d8175eca9049077b852b756013b7da9fc85cdb77888286b57f0492d42"
+    },
+    {
+      "bytes": 219,
+      "id": "SRC-008",
+      "labels": [
+        "Left",
+        "Right"
+      ],
+      "path": "test_formatting.py",
+      "sha256": "90be0ef7d54b9ce846746bffc4e9fabe4652b04860f9986cd4719d22c8bcb847"
+    }
+  ],
+  "family": "f4",
+  "mapping_sha256": "92b8dc92cb438eecd50dba58e502c9f850b79a78f3dfaf37c086aa85e1e2df8e",
+  "omission_policy": "Only repeated successful common-source reads, REPORT write content, and guide-variant content are compacted; exec/probe/error results remain unless guide content itself is withheld.",
+  "raw_receipts": {
+    "lines": 166,
+    "path": "receipts.jsonl",
+    "sha256": "6777d63d31b7b33e133851186c2edc06095946994eeae75a5247b7e26a0a5532"
+  },
+  "receipt_counts": {
+    "Left": 22,
+    "Right": 20
+  },
+  "repetition": 0,
+  "reports": {
+    "Left": {
+      "path": "REPORT.md",
+      "sha256": "d52c9303e0afcd633e4ef67a4952825130de5078abad305385650634301976e6"
+    },
+    "Right": {
+      "path": "REPORT.md",
+      "sha256": "9c611ea244d1f03bdf8b08d11911d682fb072687ed2c94fec11633e22b8717cf"
+    }
+  },
+  "runner_observations": {
+    "Left": {
+      "contexts": [
+        {
+          "context": 1,
+          "elapsed_seconds": 71.531,
+          "exit_code": 0,
+          "termination_reason": null
+        }
+      ],
+      "ledger_phase_counts": {
+        "exploration": 22
+      },
+      "observed_action_count": 22,
+      "status": "observed"
+    },
+    "Right": {
+      "contexts": [
+        {
+          "context": 1,
+          "elapsed_seconds": 74.648,
+          "exit_code": 0,
+          "termination_reason": null
+        }
+      ],
+      "ledger_phase_counts": {
+        "exploration": 20
+      },
+      "observed_action_count": 20,
+      "status": "observed"
+    }
+  },
+  "schema": "generalized-discovery-compact-bundle/1",
+  "withheld": [
+    {
+      "call": 1,
+      "kind": "guidance_read",
+      "label": "Left",
+      "operation": "read",
+      "path": "guidance/research-prompt.md"
+    },
+    {
+      "call": 2,
+      "kind": "guidance_read",
+      "label": "Left",
+      "operation": "read",
+      "path": "guidance/research-loop.md"
+    },
+    {
+      "call": 4,
+      "kind": "guidance_execution",
+      "label": "Left",
+      "operation": "exec",
+      "path": null
+    },
+    {
+      "call": 9,
+      "kind": "guidance_execution",
+      "label": "Left",
+      "operation": "exec",
+      "path": null
+    },
+    {
+      "call": 20,
+      "kind": "guidance_execution",
+      "label": "Left",
+      "operation": "exec",
+      "path": null
+    },
+    {
+      "call": 1,
+      "kind": "guidance_read",
+      "label": "Right",
+      "operation": "read",
+      "path": "guidance/research-prompt.md"
+    },
+    {
+      "call": 2,
+      "kind": "guidance_read",
+      "label": "Right",
+      "operation": "read",
+      "path": "guidance/research-loop.md"
+    },
+    {
+      "call": 8,
+      "kind": "guidance_execution",
+      "label": "Right",
+      "operation": "exec",
+      "path": null
+    },
+    {
+      "call": 10,
+      "kind": "guidance_execution",
+      "label": "Right",
+      "operation": "exec",
+      "path": null
+    },
+    {
+      "call": 16,
+      "kind": "guidance_execution",
+      "label": "Right",
+      "operation": "exec",
+      "path": null
+    }
+  ]
+}

@@ -1,0 +1,34 @@
+{
+  "record_kind": "host-observed tool results",
+  "integration_base": "5a073503bcfe35e620461498b3fa438afe94d0bc",
+  "checks": [
+    {
+      "command": "python3 -B test/shiploop-v3-guidance.test.py",
+      "exit_code": 0,
+      "tests": 17,
+      "tool_chunk": "22c44e"
+    },
+    {
+      "command": "python3 -B test/shiploop-local-skills.test.py",
+      "exit_code": 0,
+      "tests": 8,
+      "tool_chunk": "494553"
+    },
+    {
+      "command": "python3 -B test/experiments/shiploop_ui_allocation/test_evidence.py",
+      "exit_code": 0,
+      "tests": 11,
+      "tool_chunk": "180d33"
+    },
+    {
+      "command": "python3 -B test/test-groups.test.py",
+      "exit_code": 0,
+      "tests": 15,
+      "tool_chunk": "9c9dc8"
+    }
+  ],
+  "behavioral_guide_matches_candidate3": true,
+  "behavioral_guide_sha256": "5d9d07c1c7d38665370d0e4531c8b9e5342700ff1fb62a9d21975ceb6a50e909",
+  "replacement_handoff_matches_candidate3": true,
+  "limits": "candidate3 remains frozen at prior integration base; only shared UI guidance/handoff wording equality is asserted against final integration. Full old aggregate is pre-integration; final CI is separate."
+}

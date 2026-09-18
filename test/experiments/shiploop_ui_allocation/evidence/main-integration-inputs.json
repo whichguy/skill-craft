@@ -1,0 +1,22 @@
+{
+  "old_head": "7f8ef5d7508c3088f628a90d326fb025f293be15",
+  "upstream": "5a073503bcfe35e620461498b3fa438afe94d0bc",
+  "owned_tracked_paths": [
+    ".grok-plugin/marketplace.json",
+    "README.md",
+    "plugins/shiploop/.claude-plugin/plugin.json",
+    "plugins/shiploop/.codex-plugin/plugin.json",
+    "plugins/shiploop/.cursor-plugin/plugin.json",
+    "plugins/shiploop/skills/shiploop/SKILL.md",
+    "plugins/shiploop/skills/shiploop/references/behavioral-requirements.md",
+    "plugins/shiploop/skills/shiploop/scripts/shiploop_navigator_v3_prompts.py",
+    "skills/shiploop/SKILL.md",
+    "skills/shiploop/references/behavioral-requirements.md",
+    "skills/shiploop/scripts/shiploop_navigator_v3_prompts.py",
+    "test/README.md",
+    "test/shiploop-v3-guidance.test.py",
+    "test/shiploop.test.sh",
+    "test/test-groups.test.py"
+  ],
+  "patch_sha256": "35af36f566750a61155029439f437f557a924c0fe74901774462e383e13b3703"
+}

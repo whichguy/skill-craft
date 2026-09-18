@@ -1,0 +1,1 @@
+[REPORT.md](/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-probe-strategy-pulxuyar/study/arms/trial-01/workspace/REPORT.md) contains the evidence-backed plan, verified local receipt findings, and unresolved export prerequisites.

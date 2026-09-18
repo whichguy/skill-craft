@@ -1,0 +1,77 @@
+{
+  "winner": "Tie",
+  "material_improvement": false,
+  "reasoning": "Both reports preserve the same consequential decisions: require both export targets, resolve ledger scope, retain catalog's unknown effect without diagnosing authentication failure, reject calendar substitution, and keep formatting independent. These decisions match SRC-007:2\u201312, SRC-006:7, and SRC-002:3\u20135. Actual modeled reads are supported by Left calls 15\u201316 and Right calls 11\u201312; passing formatter baselines by each arm's call 18. Left's additional listing probe adds no decision-changing evidence beyond inspected SRC-002 and SRC-006:17\u201320, but this procedural excess does not establish a material improvement in correctness, fidelity, or decision linkage for Right. Manual pre-judge audit found identifying paths, timestamps, session metadata, and differing guide hashes/sizes, but no explicit baseline/candidate mapping; none was inferred or used.",
+  "arms": {
+    "Left": {
+      "findings": [
+        "Both ledger-target and catalog-target require export.read; neither contribution may silently be omitted (SRC-007:2\u201310).",
+        "Ledger models scope_required with effect not_started; permission resolution and a successful intended-target recheck precede ledger acquisition (SRC-006:7; Left call 15).",
+        "Catalog models timeout with unknown effect; reconciliation and safe retry semantics remain necessary, and timeout does not establish authentication failure (SRC-006:7; Left call 16).",
+        "Successful listing advertises read_target and only unrelated calendar-preview; it establishes neither required-target access nor valid substitute data (SRC-002:3\u20135; SRC-006:17\u201320; Left call 17).",
+        "The formatter independently collapses whitespace and lowercases; its existing Hello World example passes, but the requested behavioral delta is unspecified (SRC-005:1\u20132; SRC-008:5\u20136; SRC-007:12; Left call 18).",
+        "Export schemas, combination rules, destination, and acceptance behavior are unspecified; inspected executable paths contain no export assembler or writer (SRC-007; SRC-005; SRC-006).",
+        "All target results are deterministic local simulations, not evidence of real authorization, connectivity, data compatibility, or delivery; process exit 0 does not establish target success (SRC-001:3\u20136; SRC-006:7,23; Left calls 15\u201317).",
+        "Probe receipts append to local scratch storage and are not export data or authoritative target state (SRC-003:8\u201314; Left call 21).",
+        "The inspected code provides no reconciliation operation or readiness transition; repeating fixed target states cannot prove remediation (SRC-006:7,11,23).",
+        "The existing formatter, unittest, and standard-library facilities are reusable; no inspected cache, UI, SDK contract, or persistent integration justifies adding one (SRC-005; SRC-006; SRC-008).",
+        "Revalidate target evidence when identity, target, role, or grant changes, and schemas/combination behavior when their contracts change; future acceptance checks are explicitly planned rather than executed."
+      ],
+      "missing_required": [],
+      "violations": [
+        "Unnecessary listing probe: Left call 17 reproduces connector and advertised-tool facts already available in SRC-002 and SRC-006:17\u201320 without changing the export or formatting decision."
+      ],
+      "checks": {
+        "decision_correct": "pass",
+        "evidence_fidelity": "pass",
+        "block_scope": "pass",
+        "probe_proportionality": "fail",
+        "revalidation": "pass"
+      }
+    },
+    "Right": {
+      "findings": [
+        "Both ledger-target and catalog-target require export.read; neither contribution may silently be omitted (SRC-007:2\u201310).",
+        "Ledger models scope_required with effect not_started; permission resolution and a successful intended-target recheck precede ledger acquisition (SRC-006:7; Right call 11).",
+        "Catalog models timeout with unknown effect; reconciliation and safe retry semantics remain necessary, and timeout does not establish authentication failure (SRC-006:7; Right call 12).",
+        "The inspected listing branch advertises read_target and only unrelated calendar-preview; listing was not executed and cannot establish required-target access or valid substitute data (SRC-002:3\u20135; SRC-006:17\u201320).",
+        "The formatter independently collapses whitespace and lowercases; its existing Hello World example passes, but the requested behavioral delta is unspecified (SRC-005:1\u20132; SRC-008:5\u20136; SRC-007:12; Right call 18).",
+        "Export schemas, combination rules, destination, and acceptance behavior are unspecified; inspected executable paths contain no export assembler or writer (SRC-007; SRC-005; SRC-006).",
+        "All target results are deterministic local simulations, not evidence of real authorization, connectivity, data compatibility, or delivery; process exit 0 does not establish target success (SRC-001:3\u20136; SRC-006:7,23; Right calls 11\u201312).",
+        "Probe receipts append to local scratch storage and are not export data or authoritative target state (SRC-003:8\u201314; Right call 19).",
+        "The inspected code provides no reconciliation operation or readiness transition; repeating fixed target states cannot prove remediation (SRC-006:7,11,23).",
+        "The existing formatter, unittest, and standard-library facilities are reusable; no inspected cache, UI, SDK contract, or persistent integration justifies adding one (SRC-005; SRC-006; SRC-008).",
+        "Revalidate target evidence when identity, role, target, interface, or connection changes, and local tests after formatting changes; future acquisition and acceptance remain planned rather than executed."
+      ],
+      "missing_required": [],
+      "violations": [],
+      "checks": {
+        "decision_correct": "pass",
+        "evidence_fidelity": "pass",
+        "block_scope": "pass",
+        "probe_proportionality": "pass",
+        "revalidation": "pass"
+      }
+    }
+  },
+  "lost_findings": {
+    "Left": [],
+    "Right": []
+  },
+  "scores": {
+    "task_adherence": "Tie",
+    "factual_accuracy": "Tie",
+    "completeness": "Tie",
+    "instruction_following": "Right",
+    "structural_clarity": "Tie",
+    "precision": "Tie",
+    "conciseness": "Tie"
+  },
+  "evidence_limits": [
+    "Neither arm executed metadata; its successful modeled behavior is supplied by SRC-006:14\u201316 and the calibrated reference, not arm-specific execution.",
+    "No evidence establishes real remote access, effective identities, authorization, timeout cause, reconciliation, or safe retry behavior.",
+    "No approved export contract, formatting delta, completed implementation, combined artifact, or consumer acceptance observation is supplied.",
+    "Revalidation passes assess the research plans' stated triggers and checks, not completed live revalidation.",
+    "Guide contents and guide-reading commands are withheld; their substantive compliance and the full coordinator history cannot be independently audited from this bundle."
+  ]
+}

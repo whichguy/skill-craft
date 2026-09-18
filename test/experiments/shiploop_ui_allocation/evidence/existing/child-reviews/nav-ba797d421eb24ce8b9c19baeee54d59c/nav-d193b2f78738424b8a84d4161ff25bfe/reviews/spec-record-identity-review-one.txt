@@ -1,0 +1,2 @@
+e6b604cb7932253b23c917a5a6fa2e4e4f65392c67182b0ab5156cc3c37193eb  run/notes/spec.md
+bdc5dd74c7116c75eecf4adf543f9ae4d228881ab677af4f717a6685ad9e3dd2  evidence/spec-artifact-check.txt

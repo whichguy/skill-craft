@@ -1,0 +1,9 @@
+OK <study>/existing/run/notes/discovery.md
+OK <study>/existing/run/notes/environment-lifecycle.md
+OK <study>/existing/evidence/discovery-baseline-smoke-argv.json
+OK <study>/existing/evidence/discovery-baseline-smoke.stdout
+OK <study>/existing/evidence/discovery-environment-probe.stdout
+OK <study>/existing/evidence/discovery-post-baseline-source-hash.txt
+OK <study>/existing/evidence/discovery-test-artifacts.txt
+OK <study>/existing/evidence/discovery-contract-locators.txt
+RESOLVED 8 parent result evidence refs

@@ -1,0 +1,39 @@
+{
+  "review": "plan Improve action 1 dependency and target-case traceability audit",
+  "commands": [
+    [
+      "git",
+      "-C",
+      "<study>/existing/product",
+      "log",
+      "-7",
+      "--oneline"
+    ],
+    [
+      "git",
+      "-C",
+      "<study>/existing/product",
+      "status",
+      "--short",
+      "--untracked-files=no"
+    ],
+    [
+      "git",
+      "-C",
+      "<study>/existing/product",
+      "diff",
+      "--no-ext-diff",
+      "--no-textconv"
+    ],
+    [
+      "node",
+      "--check",
+      "<study>/existing/product/app.js"
+    ],
+    [
+      "python3.14",
+      "-B",
+      "inline plan/test dependency assertions"
+    ]
+  ]
+}

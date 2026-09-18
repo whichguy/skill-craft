@@ -1,0 +1,1 @@
+OK test-strategy result parses and all nine evidence refs are regular files

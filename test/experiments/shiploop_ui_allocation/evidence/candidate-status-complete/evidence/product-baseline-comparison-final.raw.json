@@ -1,0 +1,27 @@
+{
+  "all_match": true,
+  "candidate": "candidate-status-complete",
+  "complete_product": "<study>/candidate-status-complete/product",
+  "files": [
+    {
+      "complete_product_sha256": "729f0db397fe3b0eaae3fadff9de10facd82b071fb7bbe00a95dcb9d9b5f8ac2",
+      "file": "app.js",
+      "matches": true,
+      "ready_source_sha256": "729f0db397fe3b0eaae3fadff9de10facd82b071fb7bbe00a95dcb9d9b5f8ac2"
+    },
+    {
+      "complete_product_sha256": "f52423358a46b6210774533586602fb75267deb631129ba9bf96293e68f88213",
+      "file": "index.html",
+      "matches": true,
+      "ready_source_sha256": "f52423358a46b6210774533586602fb75267deb631129ba9bf96293e68f88213"
+    },
+    {
+      "complete_product_sha256": "cd3106112e5ddff749af99d9e3de730274f7786ccde2a2c4e75c172753b646bf",
+      "file": "styles.css",
+      "matches": true,
+      "ready_source_sha256": "cd3106112e5ddff749af99d9e3de730274f7786ccde2a2c4e75c172753b646bf"
+    }
+  ],
+  "product_git_exists": false,
+  "ready_source_product": "<study>/candidate-status-ready/product"
+}

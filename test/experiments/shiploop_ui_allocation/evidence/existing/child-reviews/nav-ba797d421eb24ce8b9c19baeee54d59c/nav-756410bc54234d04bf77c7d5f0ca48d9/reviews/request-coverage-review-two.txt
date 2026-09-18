@@ -1,0 +1,2 @@
+EXPECTED pending producer result lacks Q-R2a; terminal final_result must carry the reviewed correction.
+OK research note covers current user request, preserved UI, and Q-R1..Q-R6 frontier

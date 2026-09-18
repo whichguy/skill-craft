@@ -1,0 +1,1 @@
+OK plan contains independent suppliers, correctly separated local-vs-target test routing, explicit gates, outcome checks, embedded mode, and no execution claim

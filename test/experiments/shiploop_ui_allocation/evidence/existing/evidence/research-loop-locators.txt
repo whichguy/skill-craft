@@ -1,0 +1,346 @@
+121-[MCP security guidance](https://modelcontextprotocol.io/docs/2025-11-25/tutorials/security/security_best_practices)
+122-illustrates that an adapter boundary does not grant authority; and
+123-[Google AIP-194](https://google.aip.dev/194) illustrates why retry ownership and
+124:idempotency must come from the actual API contract. These are investigation
+125-anchors, not a mandate to install an MCP server or adopt an RPC design.
+126-
+127:## Recursive discovery and experiments
+128-
+129-This is a generic discovery process for arbitrary referenced systems, whether
+130:local or remote. Derive the concrete questions, access routes, libraries, patterns,
+131:and experiments from the task and inspected contracts. Named technologies,
+132-applications, transports, and example probes illustrate the method; they are not
+133-required dependencies or a fixed discovery sequence. Do not assume an MCP server,
+134:browser, client/server architecture, or remote deployment exists. Apply the same
+135:method during environment investigation, inner-loop development, outer-loop
+136-delivery, and test expansion when a consequential unknown arises; reuse existing
+137:evidence instead of requiring a fresh investigation at every checkpoint.
+138-
+139-### Scope, coverage, and frontier
+140-
+141-Start with the task's affected flows, not a fixed number of hops. Read the repo
+142-README and existing applicable AGENTS.md, architecture/design/environment notes,
+143-and local skills before rediscovering their subject. Record absence or stale
+144:claims explicitly. Recheck volatile facts; documentation is not live access proof.
+145-Use the existing `body`, questions, sources, role/interface/interaction records,
+146-and `depth_rationale`; do not add a recursive journal, schema, inventory, or
+147-sidecar.
+148-
+149-Before deep source or library research, make one cheap authorized read that
+150:crosses the actual target boundary when it could settle access or target
+151-uncertainty. A listed tool, credential-status response, local binding error, or
+152-catalog does not establish account/project reachability. Do not create a target
+153:solely to claim discovery access.
+154-
+155:Apply [early access readiness](#early-access-readiness) at that first relevant
+156:probe and whenever investigation exposes a new required access boundary.
+157-Investigate the [environment lifecycle](environment-lifecycle.md) before planning
+158-code: actual workspace/runtime/data isolation, setup prerequisites, automated
+159-deployment triggers, and how the tested candidate reaches its intended consumer.
+--
+172-| Message passing | Producers, consumers, operation/event contract, serialization, ordering, retries, duplicates, cancellation, errors, and the durable or user-visible effect. |
+173-| Client connections | How a client reaches the actual callable boundary, including transport/session lifecycle, cleanup, and reconnect/offline behavior when relevant. |
+174-| Service authentication | Discovery and runtime identities, delegation, credential-chain/refresh behavior, effective permissions, audience/scope, and proof limits without recording secrets. |
+175:| Design | Existing architecture, ownership, state flow, code conventions, and relevant UI loading, error, accessibility, and interaction patterns. |
+176-| Client-side libraries | Shipped dependencies and versions, initialization/wrappers, compatibility limits, and supported use before adding another dependency. |
+177:| Storage | Source of truth, schema/access path, ownership, authorization, transaction/concurrency, failure, retention, and migration boundaries. |
+178-| Caching | Relevant cache layers, scope/keys/TTL/invalidation, read-after-write and failure behavior, and separation from authoritative state. |
+179-| Security considerations | Trust and tenant boundaries, input/output handling, authorization, transport/data protection, logging/secret exposure, and dependency provenance. |
+180-
+--
+201-state; retain the decision and its evidence in the existing notes for spec,
+202-global planning, step planning, and affected Improve reviews to consume.
+203-
+204:### Early access readiness
+205-
+206:Notify early; block only work that needs the missing access. Start once a system,
+207-target/environment role, and task-relevant need are concrete, normally during
+208-`discovery` after the repository scan and before deeper dependent research. A
+209-speculative technology or merely available connector is not a reason to sign in.
+210:For a selected downstream test or delivery dependency, surface known access needs
+211-now even if that later activity need not run yet.
+212-
+213-Independent work stays within the current action and granted scope. Discovery
+--
+222-receipt for the same boundary instead of probing again on every Improve pass.
+223-If no safe authorized probe exists, explain that limit and ask the necessary
+224-scope/setup question; do not perform a write, create a resource, switch accounts,
+225:or broaden access merely to test readiness.
+226-
+227-| Observation | Next action |
+228-| --- | --- |
+229:| Relevant read succeeds in the intended role | Record what that read establishes and continue without a login request. It does not prove write permission or consumer/browser access. |
+230-| Missing/expired session remains after supported refresh | Prompt the user promptly for the required sign-in/reconnection, before more research that depends on it. |
+231-| Wrong account/tenant, insufficient role, or consent required | Explain the specific selection/permission decision and ask the appropriate user or administrator; another login may not fix it. Never expand scopes automatically. |
+232-| Missing tool/binding, network failure, or target not provisioned | Record a setup, connectivity, or provisioning gap. Do not diagnose authentication from a failed call alone; use bounded safe checks to distinguish causes. |
+233:| Optional or unselected system | Defer access requests until the system becomes a concrete dependency. |
+234-
+235:Give the user the system and non-secret environment/role alias, why access is
+236-needed, the safe check attempted and its sanitized result, the smallest necessary
+237-user action, the earliest activity it blocks, and what independent work can
+238-continue. Use the supported host/provider authentication surface; never request
+239-passwords, tokens, cookies, or credential-bearing links in chat or notes. A
+240:request to authenticate is not permission to grant broader access or deploy.
+241-Raise a known admin/approval lead time early, but do not front-load speculative
+242-or unrelated privileges. Distinguish connector, downstream service, deployment,
+243-and browser-consumer identities when they are separate boundaries.
+244-
+245-Select the [lowest-overhead sufficient testing surface](testing-and-documentation.md#lightweight-and-browser-checks).
+246-A curl/API probe may not share the browser's session or authentication flow.
+247:Consider an existing authorized browser route for a real consumer-access need;
+248-do not diagnose the destination as unavailable solely from a login redirect or
+249:assume connector access establishes browser-user access.
+250-
+251-Retain this request and its pending/declined/deferred/verified disposition in the
+252-existing authored Markdown with the observed-at context, evidence locator,
+--
+255-request for the same system/role/scope; do not repeatedly prompt on unchanged
+256-blockers or after refusal. A changed need or new user direction can reopen it.
+257-Before `plan-improve` completes, check that each concrete external dependency
+258:has relevant access evidence or a disclosed access/setup requirement, owner,
+259-and earliest gating stage.
+260-An undisclosed known requirement is a planning defect; a disclosed downstream
+261-requirement need not block independent work. A prerequisite for the current
+--
+263-
+264-After the user responds, recover the current packet if context was cleared and
+265-follow its resume route if paused/blocked. Recheck the relevant safe operation;
+266:the user's confirmation alone is not access evidence. Keep failed verification
+267:unresolved. Once access and the current action's remaining duties, including
+268-any assigned Improve campaign, are complete, submit its exact current callback
+269-and consume the next packet. Do not stop at a question answer, mark the whole
+270-phase done just because login succeeded, or replay a pre-block callback.
+271-Revalidate stale evidence or changed target/role/scope before use, especially at
+272:step and release planning; do not rediscover settled access at every node.
+273-
+274-This is host-executed policy. The navigator returns its reference and preserves
+275-ordinary notes/result locators and pause/resume state; it neither authenticates
+--
+278-apply the actual provider's error and permission contract, not a universal
+279-HTTP-status-to-login rule.
+280-
+281:### Acquire a reader and establish access only when authorized
+282-
+283:If a consequential observation is unavailable, compare available access routes,
+284-such as MCP/API/CLI/SDK/browser interfaces, using
+285-[platform discovery](platform-discovery.md#discover-before-choosing-a-mechanism).
+286-Prefer an existing authorized tool or native facility. A missing skill, MCP
+287-server, SDK, client, or test environment is a setup question before it becomes a
+288:final access blocker, but acquire one only for a named gap that could change
+289-discovery, reuse, implementation, or verification.
+290-
+291-When the user's request or current task context authorizes discovery setup, that
+--
+299-bytes' hash or package integrity and relevant support/compatibility evidence. Use
+300-a task-owned temporary workspace, dependency store, cache, and configuration;
+301-avoid global installation and unrelated host or repository changes. A skill
+302:supplies guidance, not credentials or implicit tool access.
+303-
+304-For an MCP server, inspect its startup requirements and relevant schemas, then
+305-initialize, catalog, and invoke one task-relevant operation through a supported
+--
+319-being selected, and target behavior being observed.
+320-
+321-Prefer an existing authorized sandbox, then a temporary project, official sample
+322:or test harness, emulator, or local service. Provision a disposable remote dev/
+323-test resource only when the user's authorization covers that account and resource
+324-type, its cost/quota and isolation, and cleanup. A temporary name does not make a
+325-production operation safe. Record acquired artifacts, non-secret command/config
+326:references, observed capabilities/effects, unresolved access, and task-owned
+327-process/resource cleanup in the existing authored Markdown.
+328-
+329:### Run bounded, discriminating experiments
+330-
+331:Use an experiment when it settles a consequential uncertainty better than another
+332:read. Before each experiment, record in the existing question/source/role/
+333-interface/interaction and report material: its hypothesis; plausible outcomes and
+334-the observation that distinguishes them; inspected existing mechanism; source,
+335-configuration, target, and identity; allowed effects; time/attempt limit; cleanup;
+--
+337-inspection, then an authorized isolated fixture. Stop on unexpected effects or
+338-missing authority; never use production merely because it is the only target.
+339-
+340:Select only the experiments needed from this ladder, adapting each to the
+341-encountered contract. The specific probes below are conditional examples, not
+342-universal acceptance criteria:
+343-
+344-- **Access setup:** acquire/configure a reader, initialize/catalog it, and make
+345-  one authorized relevant read; distinguish package, startup, identity,
+346:  permission, target, and data-access failures.
+347-- **Interaction contract:** exercise supported valid and invalid interactions to
+348-  learn the applicable input/output, error, ordering, and completion semantics.
+349-  For example, when asynchronous results can affect newer consumer state,
+--
+395-equivalent conditions when measured; otherwise give a concrete causal explanation.
+396-Account for the smallest change, migration/compatibility, maintenance,
+397-operational, dependency, and security costs. If the improvement is unproven or
+398:access is missing, keep the suitable existing option as the default and defer the
+399:alternative or frame it as a bounded experiment.
+400-Do not copy an evidenced obsolete, insecure, or incompatible mechanism unchanged.
+401-
+402-### Budget, stopping, and convergence
+403-
+404-Use a user-supplied exploration allowance when present. Otherwise, one
+405:investigation has at most 15 active minutes and 64 observable host actions, up to
+406:two capability candidates and three experiments. Reserve two active minutes and
+407-eight actions for reconciling findings, writing the result, and cleanup. The
+408-allowance is shared across every reader, tool, environment, context reset, and
+409:same-investigation review phase; opening a new tool or environment never refills
+410-it. Known sufficient evidence may finish without using the allowance.
+411-
+412-The host must check elapsed active work, observable-action counters, remaining
+--
+415-exploration and use the reserve only for reconciliation, writing, and cleanup.
+416-Set each exploration command's timeout within the remaining exploration allowance,
+417-not merely the full deadline. Do not charge inactive time waiting for the user as
+418:investigation activity. If the host cannot measure a counter honestly, state that
+419-limitation in the existing Markdown and use the available conservative bound.
+420-ShipLoop does not observe native host tools or kill them; this guidance is not a
+421-claim of a script watchdog.
+422-
+423:Record the investigation scope, start, elapsed active work, observed counters,
+424-remaining allowance, conclusions, and best next gap in the existing authored
+425-Markdown. Use the closing reserve to checkpoint before pausing:
+426-
+--
+449-limit. Unchanged blockers remain open. Two fully checked trivial passes can finish
+450-only with no required unresolved questions. Carry durable reusable conclusions to
+451-the existing plan, knowledge/outer-work records, and scoped product documentation
+452:tasks; never hand-edit frozen environment state or create a second investigation
+453-engine.
+454-
+455-## Navigator execution mode adapter
+456-
+457:Navigator packets select this adapter with the shared recursive-discovery
+458-section above. Apply the same eight-area screen, consequential recursion,
+459:authorized acquisition, experiments, reuse decisions, evidence fidelity, and
+460-shared allowance. This adapter supplies the current protocol's record and owner
+461-binding; the other detailed result-schema and child-phase sections in this guide
+462-describe managed/legacy compatibility runs.
+--
+464-For navigator, keep findings in a durable run note, such as
+465-`notes/<actionID>.md`, and include its locator in the current generic result's
+466-`evidence_refs`. Use ordinary Markdown to retain questions and parent/source
+467:links, visited boundaries, access and acquisition stages, observations and
+468-limitations, reuse choices, cleanup, active time/action accounting, remaining
+469-allowance, conclusions, and required open gaps. Use the current packet's result
+470-envelope. Do not add `body`, `research_state`, `system_context`, or other legacy
+--
+472-questions/sources/`depth_rationale` in the shared section describe information to
+473-retain, not a mandatory navigator schema or note layout.
+474-
+475:For [access requests](#early-access-readiness), keep the probe, user-facing ask,
+476-disposition, owner, earliest gating stage and recheck condition in that same
+477-note. Carry its locator in dependent results' `evidence_refs` and applicable
+478-planned work-item `context` so a cold host can find it without conversation
+--
+488-`discovery`, `research`, and `research-improve` use this policy for affected
+489-environment flows. At `product-improve` and `outer-improve`, use it when a
+490-consequential newly encountered boundary or conflicting evidence requires more
+491:investigation. Do not restart settled research just because a later node reads
+492:this guide. The same investigation's allowance follows its notes across nodes
+493-and context resets; entering an Improve action never refills it.
+494-
+495-An Improve node owns its entire review/plan/apply/check/record/assess campaign.
+--
+501-Use the closing reserve with the current packet's protocol:
+502-
+503-- If the action's duties are complete, submit its valid generic result and pause
+504:  the returned action when the investigation allowance is exhausted.
+505-- For unfinished duties, retain the **unaccepted draft** at the current printed
+506-  inbox path and call `pause` with the note/draft locator, remaining allowance,
+507-  and next gap. Cold `next` and `resume` preserve that action ID and draft; neither
+508-  accepts it or replenishes the allowance. Finish the actual duties before
+509-  submitting that action's result.
+510:- A substantiated access/owner blocker may instead be submitted as a valid
+511-  `outcome: blocked` result with durable evidence references. That is an accepted
+512-  blocker report and allocates a **new action ID at the same stage**; it is not a
+513-  same-action draft checkpoint or a successful advance. Follow its returned
+--
+526-- **Owner decision or authority:** name the precise policy, target, role or
+527-  permission needed, and its consequence. Retain `open`/`blocked` status and
+528-  request direction; use the existing pause route when progress depends on it.
+529:  More public-document reading cannot establish account access or select the
+530-  owner's policy. Do not invent a default or relabel the gap not-applicable.
+531-- **Later-phase implementation:** when the underlying contract is established,
+532-  record the known requirement and its downstream consumer (behavior/spec/test
+--
+545-Open/blocked questions still reset the current convergence streak even if this
+546-pass found nothing new. Two quiet reviews with a missing owner decision are not
+547-two successful trivial passes. Use the existing gates, result records and
+548:carry-forward/outer-work routes; do not add a nested investigation engine.
+549-
+550-## Review
+551-
+552-Each pass reads its current question/source records, finding ledger, selected
+553-candidate pages and required Git history. Use `next`, `context` and `history`;
+554:do not load every old research report. Perform a new investigation or independent
+555-recheck of the important conclusions, not merely a rewrite of prior prose.
+556-
+557-Cover every research rubric key with a concise evidence-based explanation:
+--
+563-| `source_quality` | Do inspected sources directly support each conclusion at the relevant version/environment? |
+564-| `contradictions` | Which sources, observations or requirements disagree, and what evidence or decision resolves the disagreement? |
+565-| `best_practices` | Which alternatives fit local constraints, and what are their benefits, costs, failure modes and adoption reasons? |
+566:| `access_readiness` | Are authorized roles, safe probes and prerequisite availability understood without recording secrets? |
+567-| `invocation_contracts` | Are relevant client/service operations, envelopes, serialization and error/async behavior established on both sides? |
+568-| `test_deploy_feasibility` | Which local, browser, service or API checks are required and possible in the intended environment? |
+569-| `remaining_unknowns` | Which material questions remain, what should be investigated next, and what requires user direction? |
+--
+596-commit, release, document revision or other immutable identifier for stable
+597-claims. Record when a volatile condition was observed and its safe point-of-use
+598-revalidation trigger. The script's finalization time is when the checkpoint was
+599:recorded, not proof that every remote source was freshly inspected then.
+600-
+601-Treat a new/changed conclusion, newly discovered material question, environment
+602-constraint, incompatibility, or test/deploy feasibility gap as material. A small
+--
+612-referential integrity, missing applicability/revalidation policy, contradictions
+613-detectable from a structured model, and the expected results of safe local probes.
+614-Test the asserted contract, not only file existence. Manual source interpretation
+615:is host-reported evidence, not executable proof or a passed remote acceptance test.
+616-Reconcile the report's required case map with the repeatable checks: every
+617-required case needs an expected outcome and current execution evidence. Label
+618-historical/manual observations separately; a passing subset does not validate
+--
+626-
+627-Keep secret values, credential-bearing URLs, account addresses and raw sensitive
+628-responses out of reports, results and logs. Research does not authorize a new
+629:credential grant, persistent configuration, destructive experiment, or
+630-publication. When the user's request or task context authorizes bounded discovery
+631:setup, a temporary task-local investigation reader, SDK, skill, or test dependency
+632:may be acquired under the recursive-discovery rules; that does not alter the frozen
+633-selected writer or interface inventory. Missing user policy is not resolvable by
+634-additional web citations.
+635-
+--
+637-
+638-Research completion accepts a versioned evidence baseline, not a permanent claim
+639-that discovery is over. Every implementation review explicitly assesses whether
+640:its current scope needs new investigation:
+641-
+642-```json
+643-{
+--
+651-```
+652-
+653-Statuses are `not-needed`, `resolved`, `required`, or `blocked`. Explain why no
+654:research is needed when that is the decision. Required/blocked investigation is
+655-material and cannot leave the improvement loop unresolved. Retain the answer,
+656-evidence and revalidation policy when resolving it; repeat review and checks.
+657:`resolved` means investigation was completed in this pass and still resets the
+658-trivial streak. In a later pass, use `not-needed` when rechecking the existing
+659:evidence reveals no new investigation need; explain why it remains applicable.
+660-Every status requires a summary; all except `not-needed` require nonempty
+661-`evidence` and `questions` lists. These are safe references and question text,
+662-not an invitation to copy raw source output into the result.
+--
+685-
+686-## Basis and limits
+687-
+688:Adaptive investigation and persistent artifacts are supported by
+689-[Anthropic's research-system engineering experience](https://www.anthropic.com/engineering/multi-agent-research-system).
+690:It also reports coordination and token costs, so parallel investigation is a
+691-choice for independent questions, not a requirement for every pass.
+692-[Self-Refine](https://arxiv.org/abs/2303.17651) reports task-specific improvements
+693-from revision, while [intrinsic self-correction research](https://arxiv.org/abs/2310.01798)

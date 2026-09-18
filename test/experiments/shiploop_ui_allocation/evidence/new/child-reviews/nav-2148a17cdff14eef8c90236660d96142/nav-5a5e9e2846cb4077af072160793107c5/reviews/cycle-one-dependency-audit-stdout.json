@@ -1,0 +1,9 @@
+{
+  "bootstrap_overgated_by_target_consumer_authority": true,
+  "candidate_sha256": "f70908cb6049a90a1f2c3797085a3df6c31b6b363fb8fa2bc0f5a4b31ef17e51",
+  "passed": false,
+  "scope": "Read-only candidate dependency audit; false indicates a material scheduling finding, not a product test failure.",
+  "w2_bundles_target_or_consumer_authority": true,
+  "w3_declares_w1_w2_as_direct_prerequisites": true,
+  "w6_is_the_authorized_target_consumer_boundary": true
+}

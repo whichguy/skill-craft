@@ -1,0 +1,4 @@
+OK unresolved Q-R gates are carried from research into conditional spec
+OK recovery states and three outcomes remain explicit
+OK no unapproved carrier/channel/native-Backchain outcome is asserted
+OK saved controlled probe still matches current host observation bytes

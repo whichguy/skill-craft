@@ -1,0 +1,4 @@
+OK requirements, flows, transitions, cases, and non-functional sections are present
+OK reload model distinguishes authorized draft, authorized absence, and carrier read failure
+OK 7 absolute source locators and all relative evidence locators resolve
+OK embedded Backchain mode and unresolved prerequisite boundaries are explicit

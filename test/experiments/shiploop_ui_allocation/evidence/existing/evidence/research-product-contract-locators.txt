@@ -1,0 +1,137 @@
+<study>/existing/product/docs/design.md-1-# Accepted UI and previous environment
+<study>/existing/product/docs/design.md-2-## UI identity
+<study>/existing/product/docs/design.md:3:Keep the native account selector, note list, stable textarea editor, save/cancel/back controls; preserve focus, keyboard/touch behavior, narrow layout, reading position and draft text. Navy #15324f, amber #c08722, white cards, system body and Georgia display type. No approved framework migration. Local in-memory editing is separate from server-confirmed notes.
+<study>/existing/product/docs/design.md-4-## Previous environment assumption
+<study>/existing/product/docs/design.md:5:The earlier fieldnotes-embedded-v1 target allowed account-scoped persistent browser storage. This historical observation supported a proposed reload recovery design but no draft persistence is implemented. Revalidate when target or policy changes. Current target observation is obtained with scripts/probe_environment.py.
+--
+<study>/existing/product/app.js-3-
+<study>/existing/product/app.js-4-  const state = {
+<study>/existing/product/app.js:5:    account: "alpha",
+<study>/existing/product/app.js-6-    notes: [],
+<study>/existing/product/app.js-7-    record: null,
+--
+<study>/existing/product/app.js-15-
+<study>/existing/product/app.js-16-  const elements = {
+<study>/existing/product/app.js:17:    account: document.querySelector("#account"),
+<study>/existing/product/app.js-18-    notesView: document.querySelector("#notes-view"),
+<study>/existing/product/app.js-19-    listMessage: document.querySelector("#list-message"),
+--
+<study>/existing/product/app.js-22-    noteTitle: document.querySelector("#note-title"),
+<study>/existing/product/app.js-23-    confirmedNote: document.querySelector("#confirmed-note"),
+<study>/existing/product/app.js:24:    revision: document.querySelector("#revision"),
+<study>/existing/product/app.js-25-    noteInput: document.querySelector("#note-input"),
+<study>/existing/product/app.js-26-    back: document.querySelector("#back"),
+--
+<study>/existing/product/app.js-31-  };
+<study>/existing/product/app.js-32-
+<study>/existing/product/app.js:33:  function noteUrl(account, id) {
+<study>/existing/product/app.js:34:    return `/api/accounts/${encodeURIComponent(account)}/notes/${encodeURIComponent(id)}`;
+<study>/existing/product/app.js-35-  }
+<study>/existing/product/app.js-36-
+--
+<study>/existing/product/app.js-119-    elements.noteTitle.textContent = record.title;
+<study>/existing/product/app.js-120-    elements.confirmedNote.textContent = record.note;
+<study>/existing/product/app.js:121:    elements.revision.textContent = String(record.revision);
+<study>/existing/product/app.js-122-    elements.noteInput.value = record.note;
+<study>/existing/product/app.js-123-  }
+--
+<study>/existing/product/app.js-152-    try {
+<study>/existing/product/app.js-153-      const response = await fetch(
+<study>/existing/product/app.js:154:        `/api/accounts/${encodeURIComponent(state.account)}/notes`,
+<study>/existing/product/app.js-155-        { signal: controller.signal, headers: { Accept: "application/json" } },
+<study>/existing/product/app.js-156-      );
+--
+<study>/existing/product/app.js-164-      setMessage(
+<study>/existing/product/app.js-165-        elements.listMessage,
+<study>/existing/product/app.js:166:        state.notes.length === 0 ? "No notes are available for this account." : "",
+<study>/existing/product/app.js-167-      );
+<study>/existing/product/app.js-168-    } catch (error) {
+--
+<study>/existing/product/app.js-170-        return;
+<study>/existing/product/app.js-171-      }
+<study>/existing/product/app.js:172:      setMessage(elements.listMessage, "Notes could not be loaded. Choose the account again to try again.", "error");
+<study>/existing/product/app.js-173-    }
+<study>/existing/product/app.js-174-  }
+--
+<study>/existing/product/app.js-178-    const controller = new AbortController();
+<study>/existing/product/app.js-179-    state.detailController = controller;
+<study>/existing/product/app.js:180:    const account = state.account;
+<study>/existing/product/app.js-181-    const generation = ++state.requestGeneration;
+<study>/existing/product/app.js-182-
+--
+<study>/existing/product/app.js-185-    elements.noteTitle.textContent = "Loading note";
+<study>/existing/product/app.js-186-    elements.confirmedNote.textContent = "";
+<study>/existing/product/app.js:187:    elements.revision.textContent = "—";
+<study>/existing/product/app.js-188-    elements.noteInput.value = "";
+<study>/existing/product/app.js-189-    setMessage(elements.saveStatus, "Loading note…");
+<study>/existing/product/app.js-190-
+<study>/existing/product/app.js-191-    try {
+<study>/existing/product/app.js:192:      const response = await fetch(noteUrl(account, noteId), {
+<study>/existing/product/app.js-193-        signal: controller.signal,
+<study>/existing/product/app.js-194-        headers: { Accept: "application/json" },
+<study>/existing/product/app.js-195-      });
+<study>/existing/product/app.js-196-      const record = await responseJson(response);
+<study>/existing/product/app.js:197:      if (controller.signal.aborted || generation !== state.requestGeneration || account !== state.account) {
+<study>/existing/product/app.js-198-        return;
+<study>/existing/product/app.js-199-      }
+--
+<study>/existing/product/app.js-237-
+<study>/existing/product/app.js-238-    const recordAtSave = state.record;
+<study>/existing/product/app.js:239:    const accountAtSave = state.account;
+<study>/existing/product/app.js-240-    const noteIdAtSave = state.selectedId;
+<study>/existing/product/app.js:241:    const draft = elements.noteInput.value;
+<study>/existing/product/app.js-242-    const requestId = operationId();
+<study>/existing/product/app.js-243-    const controller = new AbortController();
+--
+<study>/existing/product/app.js-249-
+<study>/existing/product/app.js-250-    try {
+<study>/existing/product/app.js:251:      const response = await fetch(noteUrl(accountAtSave, noteIdAtSave), {
+<study>/existing/product/app.js-252-        method: "POST",
+<study>/existing/product/app.js-253-        signal: controller.signal,
+--
+<study>/existing/product/app.js-257-        },
+<study>/existing/product/app.js-258-        body: JSON.stringify({
+<study>/existing/product/app.js:259:          note: draft,
+<study>/existing/product/app.js:260:          baseRevision: recordAtSave.revision,
+<study>/existing/product/app.js-261-          operationId: requestId,
+<study>/existing/product/app.js-262-        }),
+--
+<study>/existing/product/app.js-265-      const saved = payload && payload.record;
+<study>/existing/product/app.js-266-
+<study>/existing/product/app.js:267:      if (!saved || controller.signal.aborted || accountAtSave !== state.account || noteIdAtSave !== state.selectedId) {
+<study>/existing/product/app.js-268-        return;
+<study>/existing/product/app.js-269-      }
+--
+<study>/existing/product/app.js-275-      await loadList();
+<study>/existing/product/app.js-276-    } catch (error) {
+<study>/existing/product/app.js:277:      if (!controller.signal.aborted && accountAtSave === state.account && noteIdAtSave === state.selectedId) {
+<study>/existing/product/app.js-278-        setMessage(elements.saveStatus, "Changes could not be saved. Your working text is still here.", "error");
+<study>/existing/product/app.js-279-      }
+--
+<study>/existing/product/app.js-287-
+<study>/existing/product/app.js-288-  function switchAccount() {
+<study>/existing/product/app.js:289:    state.account = elements.account.value;
+<study>/existing/product/app.js-290-    state.detailController?.abort();
+<study>/existing/product/app.js-291-    state.saveController?.abort();
+--
+<study>/existing/product/app.js-294-  }
+<study>/existing/product/app.js-295-
+<study>/existing/product/app.js:296:  elements.account.addEventListener("change", switchAccount);
+<study>/existing/product/app.js-297-  elements.noteList.addEventListener("click", (event) => {
+<study>/existing/product/app.js-298-    const button = event.target.closest("button[data-note-id]");
+--
+<study>/existing/product/host-observation.json-8-  ],
+<study>/existing/product/host-observation.json-9-  "websocket": false,
+<study>/existing/product/host-observation.json:10:  "server_runtime": false,
+<study>/existing/product/host-observation.json:11:  "client_persistent_storage": "unavailable",
+<study>/existing/product/host-observation.json:12:  "draft_api": false,
+<study>/existing/product/host-observation.json-13-  "observation_scope": "controlled fixture target facts; not a live deployment"
+<study>/existing/product/host-observation.json-14-}
+--
+<study>/existing/product/docs/platform.md-1-# Deployment target
+<study>/existing/product/docs/platform.md:2:The intended target is a static embedded web surface. Build tooling may run locally; no Node or other server process can run in the deployed artifact. All scripts, styles, fonts and images must be bundled same-origin files. The current enforced script-src and style-src policies are self only; inline script/style and external CDNs are disallowed. The host permits same-origin HTTPS API request/response. Persistent WebSocket connections are unsupported. The host controls authorization/account identity. Hidden pages may suspend; on foreground the client can read current authoritative state. Existing APIs are in api.md. Local preview evidence only proves constraints it actually reproduces. There is no remote deployment access in this experiment.
+<study>/existing/product/docs/platform.md-3-
+<study>/existing/product/docs/platform.md:4:For current storage and target identity, run scripts/probe_environment.py. This reads the fixture's current host observation without changing it. These are controlled target facts, not evidence of a real hosted deployment.
+--
+<study>/existing/product/docs/api.md-1-# Existing API
+<study>/existing/product/docs/api.md:2:GET /api/exports returns current authorized collection export statuses and monotonically increasing revisions. POST /api/exports accepts collectionId and clientOperationId, durably accepts one operation in that account scope before confirmation, and returns jobId/status. A lost confirmation is reconciled through GET /api/operations/:clientOperationId; unresolved results must not claim success. GET /api/exports/:jobId returns the current status and a same-origin download path only when complete. Server owns job state independently of any UI. Poll while visible, reconcile on foreground; notifications are invalidation hints only. No subscription or draft-storage endpoint is available. This is the fixture contract, not a deployed service claim.

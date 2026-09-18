@@ -1,0 +1,2 @@
+OK discovery/environment retain the requested draft/export/account boundaries
+OK discovery/environment retain controlled-fixture and authorization limits

@@ -1,0 +1,17 @@
+{
+  "candidate_plan_sha256": "f70908cb6049a90a1f2c3797085a3df6c31b6b363fb8fa2bc0f5a4b31ef17e51",
+  "checks": {
+    "all_final_result_refs_exist": true,
+    "all_six_expected_items_present": true,
+    "corrected_decision_states_scope_and_no_rewrite": true,
+    "draft_is_canonical_generic_plan_result": true,
+    "original_plan_unchanged_since_cycle_one": true,
+    "w2_bootstrap_requires_w1_not_target_access": true,
+    "w3_publishes_durable_contract_before_behavior": true,
+    "w4_requires_bootstrap_and_durable_contract": true,
+    "w5_is_local_only_and_w6_owns_target_consumer_boundary": true
+  },
+  "corrected_final_result": "<study>/new/product/.shiploop-improve/nav-2148a17cdff14eef8c90236660d96142/nav-5a5e9e2846cb4077af072160793107c5/reviews/final-result-draft.json",
+  "missing_final_result_refs": [],
+  "passed": true
+}

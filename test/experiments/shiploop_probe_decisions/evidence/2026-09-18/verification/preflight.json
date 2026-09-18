@@ -1,0 +1,23 @@
+{
+  "checks": {
+    "catalog": true,
+    "full_receipts": true,
+    "hard_counter": true,
+    "initialized": true,
+    "outside_read_denied": true,
+    "report_reserve": true,
+    "safe_python": true
+  },
+  "cleanup": {
+    "exit_code": 0,
+    "killed": false
+  },
+  "error": null,
+  "receipt_count": 33,
+  "schema": "generalized-discovery-preflight/1",
+  "status": "verified",
+  "usage": {
+    "reason": "no model launched",
+    "status": "unavailable"
+  }
+}

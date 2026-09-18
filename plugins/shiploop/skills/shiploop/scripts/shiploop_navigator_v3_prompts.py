@@ -72,6 +72,7 @@ STAGE_REFERENCES: dict[str, tuple[tuple[str, str], ...]] = {
         ("Persistent project-context guidance", "project-knowledge.md#discover-persistent-context-before-planning"),
         ("Repository-local skill guidance", "testing-and-documentation.md#reusable-product-skills"),
         ("Environment and source-return discovery", "environment-lifecycle.md#discover-before-planning-code"),
+        ("UI planning ownership when applicable", "behavioral-requirements.md#allocate-ui-decisions-to-their-planning-owner"),
     ),
     "research": (
         ("Bounded research guidance", "research-loop.md#recursive-discovery-and-experiments"),
@@ -93,9 +94,11 @@ STAGE_REFERENCES: dict[str, tuple[tuple[str, str], ...]] = {
         ("Decision carry-forward guidance", "project-knowledge.md#carry-context-into-the-new-plan"),
         ("State and data assessment", "requirements-definition.md#state-and-data-change-assessment"),
         ("Initial-plan reconciliation", "requirements-definition.md#initial-plan-reconciliation"),
+        ("UI planning ownership when applicable", "behavioral-requirements.md#allocate-ui-decisions-to-their-planning-owner"),
     ),
     "prepare": (
         ("Environment preparation guidance", "environment-lifecycle.md#plan-preparation-before-its-first-consumer"),
+        ("UI planning ownership when applicable", "behavioral-requirements.md#allocate-ui-decisions-to-their-planning-owner"),
         ("Workspace and return guidance", "workspace-lifecycle.md#entry-identity-and-storage"),
     ),
     "select-work": (
@@ -108,6 +111,7 @@ STAGE_REFERENCES: dict[str, tuple[tuple[str, str], ...]] = {
         ("Implementation constitution", "testing-and-documentation.md#implementation-constitution"),
         ("Decision carry-forward guidance", "project-knowledge.md#carry-context-into-the-new-plan"),
         ("State and data assessment", "requirements-definition.md#state-and-data-change-assessment"),
+        ("UI planning ownership when applicable", "behavioral-requirements.md#allocate-ui-decisions-to-their-planning-owner"),
     ),
     "test-spec": (
         ("Repeatable test-suite guide", "repeatable-test-suites.md#select-or-revalidate-the-harness"),
@@ -547,6 +551,12 @@ defaults. Record the selection or no-fit rationale in the linked plan/evidence
 note; retain the entrypoint, effective inputs/default sources, product contract,
 validation locators and revalidation condition in ordinary evidence_refs. Keep
 later decision changes in these notes, not edits to the script-owned work queue.
+
+Keep the interaction delta within the selected work item; available APIs and
+other features in the original request do not expand it. Apply UI planning
+ownership where relevant. An unresolved prerequisite outside this item's
+authorized scope needs its supplier/correction route and the packet's blocked
+disposition, not just a future implementation bullet.
 For affected interactions, recheck the guide's relevant subsections instead of
 copying the prior plan unchecked. Retain a compact Design basis paragraph or
 exact section links: baseline/delta; state/event/connection agreements and planned
@@ -1181,6 +1191,10 @@ baseline/delta, contract and UI-premise locators. Review acknowledgment/recovery
 deployment assumptions, plus component/interaction/skin, motion and design guidance
 where a UI is affected. Keep planning reviews scoped to decisions and proposed
 checks; later reviews require actual consumer evidence. Revalidate reused choices.
+Apply UI planning ownership at the candidate's stage: check the selected-item
+boundary and prerequisite supplier/disposition without demanding later-stage work.
+Carry reviewed replacement locators and their precedence through the existing
+handoff when these decisions change.
 Carry those locators into the child contract for cold recovery. This is conditional
 review scope within the existing handoff, not another Improve run; do not invent
 infrastructure or expand the assigned scope.

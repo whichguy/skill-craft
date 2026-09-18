@@ -1,0 +1,3 @@
+OK seven stable research question IDs and dispositions
+OK 6 absolute source locators and all relative evidence locators resolve
+OK durable-draft and export-notice authority boundaries are explicit

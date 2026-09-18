@@ -1,0 +1,2 @@
+OBSERVED pre-correction spec modeled reload as Pending -> Restored without distinct no-draft/read-failure branches
+OBSERVED F-1 did not separately state authorized-draft, authorized-absence, and carrier-read-failure outcomes

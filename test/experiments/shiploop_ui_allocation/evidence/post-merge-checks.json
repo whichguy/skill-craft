@@ -1,0 +1,53 @@
+{
+  "schema": "ui-allocation-post-merge-checks/v1",
+  "source_commit": "be3ed4db54bcd1cfab6258eaf0d84a04f7131ac1",
+  "upstream_commit": "bf6fe176bf52e20cdd4c285db4e3f25289144b5f",
+  "shiploop_suite_inventory": 90,
+  "limit": "Local integration checks; exact published-commit CI is still required.",
+  "checks": [
+    {
+      "status": "fulfilled",
+      "value": {
+        "name": "inventory",
+        "chunk_id": "b75452",
+        "wall_time_seconds": 3.813953917,
+        "exit_code": 0,
+        "original_token_count": 29,
+        "output": "...............\n----------------------------------------------------------------------\nRan 15 tests in 3.952s\n\nOK\n"
+      }
+    },
+    {
+      "status": "fulfilled",
+      "value": {
+        "name": "probe",
+        "chunk_id": "43a665",
+        "wall_time_seconds": 2.047725708,
+        "exit_code": 0,
+        "original_token_count": 734,
+        "output": "test_calibration_distinguishes_all_reference_mutant_pairs (test_fixtures.ProbeDecisionFixtureTests.test_calibration_distinguishes_all_reference_mutant_pairs) ... ok\ntest_f1_probe_logs_under_scratch_only (test_fixtures.ProbeDecisionFixtureTests.test_f1_probe_logs_under_scratch_only) ... ok\ntest_f1_public_receipt_contract_binds_current_evidence (test_fixtures.ProbeDecisionFixtureTests.test_f1_public_receipt_contract_binds_current_evidence) ... ok\ntest_materialize_rejects_unknown_or_nonempty_destinations (test_fixtures.ProbeDecisionFixtureTests.test_materialize_rejects_unknown_or_nonempty_destinations) ... ok\ntest_public_probe_help_is_available (test_fixtures.ProbeDecisionFixtureTests.test_public_probe_help_is_available) ... ok\ntest_worker_trees_exclude_coordinator_tasks_and_start_clean (test_fixtures.ProbeDecisionFixtureTests.test_worker_trees_exclude_coordinator_tasks_and_start_clean) ... ok\ntest_candidate_must_be_exact_single_cue_insertion (test_study.StudyAdapterTests.test_candidate_must_be_exact_single_cue_insertion) ... ok\ntest_freezes_prompts_references_helpers_and_calibration (test_study.StudyAdapterTests.test_freezes_prompts_references_helpers_and_calibration) ... ok\ntest_leakage_scan_rejects_comparison_identity_but_not_ordinary_candidate_word (test_study.StudyAdapterTests.test_leakage_scan_rejects_comparison_identity_but_not_ordinary_candidate_word) ... ok\ntest_mutated_frozen_input_blocks_preparation (test_study.StudyAdapterTests.test_mutated_frozen_input_blocks_preparation) ... ok\ntest_optional_preregistered_prompt_hash_must_match (test_study.StudyAdapterTests.test_optional_preregistered_prompt_hash_must_match) ... ok\ntest_prepared_completed_pair_collects_a_blind_bundle_without_a_model (test_study.StudyAdapterTests.test_prepared_completed_pair_collects_a_blind_bundle_without_a_model) ... Limited leakage scan passed; a manual pre-judge audit remains required.\n/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-probe-study-hfpgt6d_/study/blind/f1-r0/bundle-compact.md\nok\ntest_prepares_matched_pairs_and_caps_preregistered_replications (test_study.StudyAdapterTests.test_prepares_matched_pairs_and_caps_preregistered_replications) ... ok\ntest_private_family_judge_packets_bind_exact_calibrated_case_rules (test_study.StudyAdapterTests.test_private_family_judge_packets_bind_exact_calibrated_case_rules) ... ok\ntest_private_packet_reconstruction_rejects_packet_and_mutable_state_tamper (test_study.StudyAdapterTests.test_private_packet_reconstruction_rejects_packet_and_mutable_state_tamper) ... ok\ntest_run_request_rejects_rogue_duplicate_and_tampered_arm_inputs (test_study.StudyAdapterTests.test_run_request_rejects_rogue_duplicate_and_tampered_arm_inputs) ... ok\n\n----------------------------------------------------------------------\nRan 16 tests in 2.107s\n\nOK\n/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-probe-study-hfpgt6d_/study/blind/f1-r0/ready-to-evaluate.md\n"
+      }
+    },
+    {
+      "status": "fulfilled",
+      "value": {
+        "name": "reader",
+        "chunk_id": "7e39ef",
+        "wall_time_seconds": 0.048178875,
+        "exit_code": 0,
+        "original_token_count": 28,
+        "output": "...........\n----------------------------------------------------------------------\nRan 11 tests in 0.595s\n\nOK\n"
+      }
+    },
+    {
+      "status": "fulfilled",
+      "value": {
+        "name": "parity",
+        "chunk_id": "3bde5c",
+        "wall_time_seconds": 2.076594792,
+        "exit_code": 0,
+        "original_token_count": 278,
+        "output": "skill-frontmatter-to-plugin-json: CHECK OK architect\nskill-frontmatter-to-plugin-json: CHECK OK c-plan\nskill-frontmatter-to-plugin-json: CHECK OK compare-prompts\nskill-frontmatter-to-plugin-json: CHECK OK derive-questions\nskill-frontmatter-to-plugin-json: CHECK OK devloop\nskill-frontmatter-to-plugin-json: CHECK OK evidence-gates\nskill-frontmatter-to-plugin-json: CHECK OK improve\nskill-frontmatter-to-plugin-json: CHECK OK improve-system-prompt\nskill-frontmatter-to-plugin-json: CHECK OK plan-test\nskill-frontmatter-to-plugin-json: CHECK OK prompt-align\nskill-frontmatter-to-plugin-json: CHECK OK prompt-audit\nskill-frontmatter-to-plugin-json: CHECK OK prompt-migrate\nskill-frontmatter-to-plugin-json: CHECK OK prompt-refine\nskill-frontmatter-to-plugin-json: CHECK OK question-bench\nskill-frontmatter-to-plugin-json: CHECK OK review-coverage\nskill-frontmatter-to-plugin-json: CHECK OK review-fix-bench\nskill-frontmatter-to-plugin-json: CHECK OK shiploop\nskill-frontmatter-to-plugin-json: CHECK OK skill-interop\nskill-frontmatter-to-plugin-json: CHECK OK marketplaces (18 skills)\nsync-plugin-views: CHECK OK\n"
+      }
+    }
+  ]
+}

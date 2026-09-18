@@ -1,0 +1,9 @@
+[
+  "python3",
+  "-B",
+  "<study>/frozen/shiploop/scripts/shiploop",
+  "improve-bind",
+  "--run-dir=<study>/existing/run",
+  "--action=nav-d193b2f78738424b8a84d4161ff25bfe",
+  "--skill-card=<study>/frozen/improve/SKILL.md"
+]

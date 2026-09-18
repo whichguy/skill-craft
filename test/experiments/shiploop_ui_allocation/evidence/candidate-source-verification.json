@@ -1,0 +1,5 @@
+{
+  "matched_source_files": 100,
+  "differences": [],
+  "excluded": "candidate-2/shiploop/manifest.json is experiment freeze metadata, not a canonical skill file."
+}

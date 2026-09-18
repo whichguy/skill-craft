@@ -1,0 +1,4 @@
+729f0db397fe3b0eaae3fadff9de10facd82b071fb7bbe00a95dcb9d9b5f8ac2  product/app.js
+f52423358a46b6210774533586602fb75267deb631129ba9bf96293e68f88213  product/index.html
+cd3106112e5ddff749af99d9e3de730274f7786ccde2a2c4e75c172753b646bf  product/styles.css
+46eac9978c26d15c187e6ca36b3bc79f79e55afcaf3815fefe4f294cffea8840  evidence/w1-step-plan.md

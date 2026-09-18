@@ -1,0 +1,16 @@
+[
+  "python3",
+  "-B",
+  "<study>/frozen/shiploop/scripts/shiploop",
+  "init",
+  "--repo",
+  "<study>/new/product",
+  "--run-dir",
+  "<study>/new/run",
+  "--navigator-version",
+  "3",
+  "--improve-skill",
+  "<study>/frozen/improve/SKILL.md",
+  "--prompt",
+  "Create a rich but restrained export-status web application for a community archive. Archivists choose a collection, request an export, see queued/running/complete/failure status, and open the completed export. Make keyboard and narrow-screen use effective. Use meaningful minimal asynchronous feedback with reduced-motion support. Decide the components, interaction/state model, visual identity, and suitable UI technology for the documented target. Plan and justify all preparation needed before features can run there. The API service already exists; this request is for its client."
+]

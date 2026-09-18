@@ -1,0 +1,1 @@
+OK every planned case has a stable identifier and the strategy records local isolation, cleanup, real-target tenancy, and manual-evidence limits

@@ -1,0 +1,1 @@
+OK FN-NFR-1 independently maps every accepted R-1 UI baseline clause to a blocked browser assertion

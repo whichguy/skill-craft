@@ -1,0 +1,248 @@
+9-
+10-## Discovery and research
+11-
+12:Start from the incoming request in `context --section prompt`, not recalled chat.
+13-Split it into atomic requirements with stable `R-` IDs and exact source pointers.
+14-Record actors/roles, entities, system and external boundaries, ownership, initial
+15-conditions, intended outcomes, non-goals, and unknowns. Distinguish user-required
+--
+45-2. For each high-risk transition, investigate success **and** failure/recovery:
+46-   who owns the state; when a change becomes durable; what is atomic; what an
+47-   acknowledgment proves; and what can happen if interruption occurs between
+48:   operations. Research ordering, retries, duplicate events, permissions, and
+49-   concurrency where the requested system makes them relevant.
+50-3. Verify uncertain external behavior against primary documentation for the
+51-   actual platform/version and exposed contract. For a client–service flow,
+--
+65-Completion means the in-scope behavior can be specified and checked, with sources
+66-for consequential rules and explicit exclusions. It does not mean reading every
+67-file or exploring infinite paths. A simple/stateless transformation still needs
+68:an input-to-output flow and error contract; record why a lifecycle state model
+69-is unnecessary. Do not invent queues, services, or states to fill a template.
+70-
+71-## Requirements definition
+--
+83-work. Use existing result fields and correction routes, preserving frozen
+84-baselines and unrelated document content; no additional phase is introduced.
+85-
+86:## Actors, channels, and state ownership
+87-
+88-During discovery, spec development, global planning, and step planning, design
+89-the interactions needed for the **current request in the actual environment**.
+--
+98-   only where applicable. Distinguish product-runtime actors from development
+99-   tools: an MCP used to deploy an app need not be part of its runtime.
+100-2. **Channel per hop:** choose a suitable path for each interaction, preferring
+101:   existing capabilities: local event/function call, request/response, or
+102-   asynchronous message or notification. Add a new mechanism only for a
+103-   demonstrated requirement or gap. State whether a return path is needed and
+104-   what acknowledgment means; accepting a request is not proof its recipient
+--
+137-Use the active protocol's existing result/evidence fields; no new ledger,
+138-mandatory table, state schema, or graph stage is needed.
+139-
+140:### Incoming events, connections, and state agreement
+141-
+142-For the affected interaction, inspect the existing entrypoints, protocols,
+143-state/storage contracts and observations. Specify the delta: preserve, reuse,
+--
+145-affected. Apply only the following relevant questions, in the existing notes:
+146-
+147-- Identify non-user initiators too: services, peers, devices, scheduled work and
+148:  lifecycle signals. Distinguish commands/queries, reported facts, snapshots,
+149-  deltas and invalidation hints. Name payload/schema, origin and authorized scope;
+150-  a claimed source/account in a message is not authentication or authorization.
+151:- Separate event/operation identity, correlation, resource revision and replay
+152-  position. Define acknowledgment meaning, ordering scope, duplicate/stale input,
+153-  unknown outcomes, retry/cancellation and partial effects. Received, accepted,
+154-  committed, synchronized and displayed are different milestones; record only
+--
+159-  rule rather than an unqualified exactly-once claim.
+160-- For connections/subscriptions, cover applicable admission/authentication,
+161-  subscription, readiness, loss, reconnect/resubscribe, resynchronization and
+162:  cleanup. Connected does not imply current data. Define missed-event recovery,
+163-  expired-cursor fallback and the snapshot-to-live boundary where relevant;
+164:  prevent old-session/account callbacks from affecting a replacement session.
+165:  Check actual host protocol, proxy, execution and background-lifecycle limits.
+166:- Identify the UI/consumer read source, mutation authority, allowed writers,
+167-  durability and identity scope separately. For clients, distinguish presentation,
+168-  drafts, cached data, pending intent and confirmed state without requiring a
+169-  store per role. Define local-versus-shared confirmation, freshness, conflict
+--
+171-  Preserve newer drafts against late acknowledgments or remote updates.
+172-- Plan bounded capacity and failure/recovery ownership where relevant: slow
+173-  consumers, bursts, exhausted retries, invalid input or overlapping scheduled
+174:  work. Combining visual notifications does not authorize dropping domain events.
+175-  Record the observable result for each consumer, including headless consumers;
+176-  background work promised independently of a screen must have an owner that
+177-  operates without that screen. Local/stateless work need not invent queues,
+--
+179-
+180-Use the existing sequence/transition and test records for these decisions. Reuse
+181-current supported mechanisms; neither these questions nor a message-format
+182:standard prescribe an event bus, global handler, transport or new ShipLoop state.
+183-
+184:### UI-specific planning
+185-
+186:When a human-facing surface is affected, retain all three UI planning views in
+187-an existing design/spec document and link the applicable sections from the
+188-project knowledge index and feature context:
+189-
+190-| View | Planning decisions |
+191-| --- | --- |
+192:| Components | Existing primitives/compositions and examples; responsibilities, input/event contracts, variants and visible states; keyboard/touch/focus/accessibility behavior. |
+193:| Interaction model | Human journeys and intent plus machine-originated updates; navigation, validation, local/shared state transitions, feedback, conflict/recovery actions and behavior with the UI absent. |
+194-| Branding / skin | Existing typography, semantic color/spacing/motion tokens, imagery, density and adaptive layout; preserved identity and intentional visual changes. |
+195-
+196-Inspect prior design and actual code/behavior before proposing a redesign.
+--
+198-adequate premise and specify the feature delta; missing design documents do not
+199-mean a new product. Preserve platform conventions on web/native/mobile clients.
+200-
+201:At the first consequential UI decision, discover, read and apply suitable design
+202-guidance available through the current host's capability/skill discovery (such
+203-as frontend-design). Record its actual identity/version or content digest and
+204-applicable decisions. Do not wait until post-implementation skill assessment.
+205-An absent optional skill uses repository guidance and this section as fallback;
+206-do not install a skill, hard-code host paths or claim unexecuted skill use.
+207-
+208:Plan a fairly rich, coherent UI by default: polished reusable components,
+209-responsive composition, complete loading/empty/error/success states and useful
+210-task-specific interactions. Keep scope proportional. For meaningful async
+211-activity, map trigger -> truthful state -> cue/status -> outcome/recovery.
+--
+213-relevant remote change; preserve focus, input and reading position. Distinguish
+214-saved locally, queued and confirmed where applicable. A timer or completed
+215-animation cannot confirm domain success or own required domain processing.
+216:Define interruption/supersession, event-burst coalescing, accessible status and
+217-reduced-motion alternatives. Keep unresolved failures and necessary actions
+218-available beyond a transient toast; apply pause/dismiss/update controls where
+219-needed. Avoid replaying stale success animations after resume.
+220-
+221:Evaluate the existing UI toolkit first, then suitable alternatives such as
+222-Bootstrap or a runtime-appropriate Material implementation only for an actual
+223-gap. Record the exact package/version, required capabilities and tradeoff.
+224-Check build versus deployed runtime, framework/DOM ownership, asset/font/module
+225:delivery, CSP, routing/embedding, native lifecycle, accessibility, performance
+226-and maintenance/licensing where relevant. Resolve consequential uncertainty
+227-with a bounded production-artifact probe in the target; a preview proves only
+228-the constraints it reproduces. Do not silently weaken host policies or migrate
+--
+230-
+231-### Review, evidence, and reuse
+232-
+233:Carry compact baseline/delta, interaction/state/connection and applicable UI
+234-premise locators into global planning, each affected feature and its existing
+235-Improve review. Review the decisions automatically at the normal handoff; do
+236-not add a second invocation, graph node, review counter or nested campaign.
+237-During planning, review the specification and proposed checks; do not implement
+238:future features or demand rendered proof before the UI exists. Later checks
+239-verify the actual receiving, processing, state and consumer outcome separately,
+240-including rendered/accessibility/motion evidence when applicable. A screenshot
+241-cannot prove reconciliation or animation timing, and headless processing cannot
+242:prove a required UI updated. A feature with no UI still needs its applicable
+243-interaction contract; it needs no visual-design exercise.
+244-
+245-Revalidate affected decisions, use current evidence and preserve unresolved gaps.
+--
+253-
+254-| Requested behavior | Proportionate starting decision | An important check |
+255-| --- | --- | --- |
+256:| Two people take turns on one browser's in-memory Tic-Tac-Toe board; no saved games | UI events update local game state and render locally; no per-move server call needed. | Legal/illegal moves and game-over outcomes; refresh behavior matches the stated lifetime. |
+257:| Players share a match from different browsers | Establish shared authority, move validation, synchronization, and conflict/recovery rules using suitable existing capabilities; local UI state can remain local. | Concurrent/stale moves do not create divergent accepted boards; reconnect recovers the agreed state. |
+258-| A user requests a message, or an external service sends a notification to a user | Trace sender → receiving service → recipient/channel and any needed reply; choose immediate or delayed delivery from the actual contract. | Acceptance versus delivery/display is explicit; permissions and duplicate/failure behavior are covered where relevant. |
+259-
+260-## Behavior model
+--
+265-Keep lasting accepted intent outside this run's model; preserve the current
+266-protocol's existing freeze/revision rules rather than silently altering its baseline.
+267-
+268:At `behavior`, retrieve the incoming prompt, approach, environment and research
+269-in bounded sections. Store the proposed product behavior in the result `body`:
+270-a requirement index, sequence flows, state inventory, transition ledger, and
+271-case mapping. Use compact Markdown tables and Mermaid diagrams where they make
+--
+273-diagrams, tables, tests, and implementation; a pretty diagram alone is not a spec.
+274-Apply [Discovery and research](#discovery-and-research) to unresolved rules before
+275-freezing them. Refine this model through the behavior loop. At `spec`, integrate
+276:the converged model with `done_sentence`, `checkable`, and lifecycle decisions
+277-in a draft, then run spec improvement. R/F/T model records remain Markdown prose;
+278-the separate loop's structured finding/rubric fields are specified in
+279-[Planning loops](planning-loops.md), not an invented model schema.
+--
+309-| Failure and recovery | Failure point, retained/partial effects, retry/idempotency, timeout, compensation or operator action as applicable. |
+310-| Validation | Stable case IDs, expected state/output/effect, selected test surface; later link actual evidence separately. |
+311-
+312:Model required valid transitions **and** behavior for invalid/forbidden events.
+313:For each relevant state/event class, record transition, guarded rejection,
+314-documented ignore/no-op, or unresolved rule. A rejection/ignore must specify
+315-whether data or external effects remain unchanged. Do not assume a self-loop
+316-means no-op: exit/re-entry or repeated side effects may matter. Distinguish
+317:termination from a state that still accepts retry, read, or cleanup events.
+318-
+319:Audit these event families for relevance, documenting exclusions with reasons:
+320-
+321-- normal entry/progression/completion; invalid input and unauthorized actors;
+322-- boundary/empty values; duplicate/repeated requests and idempotent replay;
+323-- timeout, bounded retries/exhaustion, cancellation, and resumption/restart;
+324-- partial persistence or external-effect failure, cleanup/compensation, recovery;
+325-- concurrent actors, stale/out-of-order callbacks, conflicting updates;
+326:- relevant lifecycle initialization, shutdown, deletion, migration or expiry.
+327-
+328-Enumerate all **required in-scope** transitions; partition equivalent states,
+329:events, and guard boundaries explicitly. List omissions/unknowns rather than
+330-claiming all possible paths are proven. Cover interactions between partitions
+331-where they carry risk. For a stateless component, document the applicability
+332-decision and equivalent valid/invalid input-output cases instead of a fake
+333:persistent lifecycle.
+334-
+335-On every planning review, perform [Traceability and review](#traceability-and-review).
+336-Material unresolved requirements block freeze; `checkable: true` is not evidence
+--
+348-step. Never assume the
+349-previous prompt's mental model survives. Use `context --section spec|research|plan`
+350-with one valid section value at a time and bounded pages. During planning use
+351:`behavior`, `spec-draft`, `lifecycle-draft`, `planning` and `iteration` as
+352-available. During execution use the active `step`, `iteration`, and current
+353-`knowledge`. A frozen model records the approved baseline; current observations
+354-are retrieved separately and must not silently redefine its acceptance.
+--
+362-2. **Structural coverage:** every modeled state is reachable or explicitly
+363-   justified; every nonterminal has a defined way forward/recovery; guards cover
+364-   relevant boundaries and conflicts; transitions preserve stated invariants.
+365:   Identify dead ends, missing actors/events, and inconsistent names.
+366:3. **Negative and temporal coverage:** inspect forbidden/no-op events and each
+367-   applicable failure/recovery family from the behavior model. Review important
+368-   multi-transition sequences and cross-entity races, not only isolated edges.
+369-   State coverage alone is not transition coverage; transition coverage alone
+370-   does not establish every meaningful sequence or concurrency interleaving.
+371-4. **Tests and evidence:** map required `R-/F-/T-` IDs to stable case IDs with
+372:   preconditions/events and explicit expected state, output, errors and effects.
+373:   Map cases to exact step `produces` and lifecycle acceptance strings as needed;
+374-   IDs supplement those strings, never replace the check manifest contract.
+375-   Select browser/service/API surfaces by risk and actual environment. Keep
+376-   expected outcomes separate from observed status/revision/evidence; required
+--
+459-```
+460-
+461-The sequence shows one slice, not all of `F-2`: rejection uses `T-3`. The ledger
+462:must also describe `T-4` invalid-event classes that a state diagram can omit.
+463-For example, `TC-4 / R-3 / T-4`: given Approved, when approve repeats, expect the
+464-defined invalid-state error, state Approved, and no additional side effects.
+465-Observed status is **not run** until evidence exists. A real spec must resolve
+--
+469-
+470-Adopt the modeling concepts, not a runtime or technology dependency. The
+471-[W3C SCXML core constructs](https://www.w3.org/TR/scxml/#CoreConstructs) distinguish
+472:states, events, guarded transitions and actions, including hierarchy and parallel
+473-states. ShipLoop does not impose SCXML execution semantics on a product.
+474-The [ISTQB Foundation syllabus, section 4.2.4](https://istqb.org/wp-content/uploads/2024/11/ISTQB_CTFL_Syllabus_v4.0.1.pdf)
+475-distinguishes state and transition coverage and describes invalid transitions;
+--
+479-portable Markdown illustrations. Research depth follows behavior risk; full
+480-formal modeling or enumerating every interleaving is not mandated.
+481-
+482:For channel tradeoffs, the [Microsoft event-driven architecture guide](https://learn.microsoft.com/en-us/azure/architecture/guide/architecture-styles/event-driven)
+483-describes producers, consumers, and channels, and cautions against adding
+484-asynchronous infrastructure when simple request/response meets the requirements.
+485-Use that tradeoff as a design question, not a dependency or vendor preference.

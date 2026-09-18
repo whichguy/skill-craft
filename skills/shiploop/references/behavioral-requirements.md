@@ -228,6 +228,50 @@ with a bounded production-artifact probe in the target; a preview proves only
 the constraints it reproduces. Do not silently weaken host policies or migrate
 frameworks to obtain a richer appearance.
 
+### Allocate UI decisions to their planning owner
+
+Apply this subsection only when a human-facing surface is affected; a headless
+service or CLI without such a surface does not need UI premises or a design skill.
+During initial architecture and environment evaluation, establish or augment the
+shared component, interaction/state and skin premises before features rely on
+them. Connect requested user and machine outcomes to the actual toolkit,
+asset/runtime, storage, transport and lifecycle capabilities they need. An
+available API or library is an option, not a requirement to expose every action.
+For an existing product, retain adequate foundations and identify only the
+changed assumptions and affected consumers.
+
+Global planning maps those decisions to the existing
+[preparation producers and readiness checks](environment-lifecycle.md#plan-preparation-before-its-first-consumer):
+name who supplies a missing capability, which item needs it first, and the
+observation that will establish readiness. Preserve unresolved decisions and
+target-specific verification gaps; a rendered screen does not establish storage,
+identity, transport or background-lifecycle capability.
+
+At step planning, reopen the applicable shared premises and specify only the
+selected item's interaction delta, component states, visual changes and checks.
+Do not absorb other items from the original request or add user journeys because
+the service supports them. Reuse unchanged architecture; re-evaluate an affected
+premise when current target evidence or the feature's needs contradict it.
+
+If the missing prerequisite is outside the selected item's authorized work,
+name its owner or the missing ownership decision and use the packet's blocked
+or correction route before dependent work. Describe the supplier's required
+evidence without inventing its unresolved contract or protocol. A future
+"obtain capability" bullet
+is insufficient when it has no supplier or place in the delivery plan. A
+preparation item may plan to produce its own output; do not require that output
+before its authorized setup work. Keep independent ready features separate.
+The normal Improve handoff reviews decisions at this same planning level;
+intake may retain questions for research, and planning checks remain proposed
+until the responsible execution stage runs them.
+
+When review changes a premise or dependency order, use the existing result and
+reference handoff to identify the reviewed replacement and its precedence; update
+item contexts only where the current stage owns them. Preserve immutable producer
+evidence as historical. If a source update is forbidden, keep it pending and
+make the correction locator explicit instead of presenting an obsolete plan as
+current.
+
 ### Review, evidence, and reuse
 
 Carry compact baseline/delta, interaction/state/connection and applicable UI

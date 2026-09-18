@@ -1,0 +1,1 @@
+{"client_persistent_storage": "not_assessed", "draft_api": false, "observation_scope": "controlled fixture target facts; not a live deployment", "observation_sha256": "4234ca2a0b1535bab72aa9388b97f8d6140d7363ac0215a30858c77c415d2699", "script_src": ["self"], "server_runtime": false, "style_src": ["self"], "target": "archive-static-v1", "websocket": false}

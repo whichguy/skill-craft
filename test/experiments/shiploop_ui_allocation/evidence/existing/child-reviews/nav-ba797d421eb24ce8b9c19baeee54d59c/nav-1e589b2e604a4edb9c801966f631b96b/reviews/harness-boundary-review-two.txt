@@ -1,0 +1,1 @@
+OK local commands are planned and conditional; browser/API/system routes are explicitly unavailable; expected-RED and tool-availability boundaries remain honest

@@ -1,0 +1,272 @@
+<study>/frozen/shiploop/references/requirements-definition.md:1:# Existing specs and non-functional requirements
+<study>/frozen/shiploop/references/requirements-definition.md-2-
+<study>/frozen/shiploop/references/requirements-definition.md-3-Treat requirements definition as an explicit activity within existing discovery,
+<study>/frozen/shiploop/references/requirements-definition.md-4-research, and spec stages. It defines the requested product, not ShipLoop's own
+--
+<study>/frozen/shiploop/references/requirements-definition.md-63-inventory.
+<study>/frozen/shiploop/references/requirements-definition.md-64-
+<study>/frozen/shiploop/references/requirements-definition.md-65-For each consequential read or mutation, retain its owner, before/after
+<study>/frozen/shiploop/references/requirements-definition.md:66:invariant, authorized actor and effect, partial-failure/recovery rule, and an
+<study>/frozen/shiploop/references/requirements-definition.md-67-observable check. Reuse the existing requirement/case IDs and applicable
+<study>/frozen/shiploop/references/requirements-definition.md:68:[behavior model and transition ledger](behavioral-requirements.md#states-and-transitions),
+<study>/frozen/shiploop/references/requirements-definition.md-69-sequence, context, and evidence locators; do not add a schema, phase, or mandatory
+<study>/frozen/shiploop/references/requirements-definition.md-70-ledger.
+<study>/frozen/shiploop/references/requirements-definition.md-71-
+<study>/frozen/shiploop/references/requirements-definition.md:72:Treat transition correctness and safety separately from workload quality goals.
+<study>/frozen/shiploop/references/requirements-definition.md:73:Authorization, invariants, conflicts, partial effects, and recovery describe the
+<study>/frozen/shiploop/references/requirements-definition.md:74:required transition; scale, latency, throughput, capacity, and cost are
+<study>/frozen/shiploop/references/requirements-definition.md:75:non-functional criteria. When relevant, distinguish shared or hot-record
+<study>/frozen/shiploop/references/requirements-definition.md-76-contention from independent-user load rather than treating either as proof of
+<study>/frozen/shiploop/references/requirements-definition.md-77-the other. For an applicable staged release, migration, or access activation,
+<study>/frozen/shiploop/references/requirements-definition.md-78-choose only containment the actual platform supports and retain an observable
+--
+<study>/frozen/shiploop/references/requirements-definition.md-82-unresolved block the affected contract. Do not invent persistence, a target,
+<study>/frozen/shiploop/references/requirements-definition.md-83-platform capability, or numeric bounds to close the assessment.
+<study>/frozen/shiploop/references/requirements-definition.md-84-
+<study>/frozen/shiploop/references/requirements-definition.md:85:## Define non-functional requirements
+<study>/frozen/shiploop/references/requirements-definition.md-86-
+<study>/frozen/shiploop/references/requirements-definition.md-87-During discovery, screen the requested change and preserved contract for relevant
+<study>/frozen/shiploop/references/requirements-definition.md-88-quality attributes. During research, resolve consequential unknowns using local
+--
+<study>/frozen/shiploop/references/requirements-definition.md-121-## Initial-plan reconciliation
+<study>/frozen/shiploop/references/requirements-definition.md-122-
+<study>/frozen/shiploop/references/requirements-definition.md-123-At initial planning, map every applicable architecture constraint, new and
+<study>/frozen/shiploop/references/requirements-definition.md:124:preserved requirement, non-functional criterion, and state/data mutation to an
+<study>/frozen/shiploop/references/requirements-definition.md-125-owner and work item, its prerequisite or evidenced supplier, and its planned
+<study>/frozen/shiploop/references/requirements-definition.md-126-test/check. Retain an applicable release/recovery condition, or a reasoned
+<study>/frozen/shiploop/references/requirements-definition.md-127-`N/A` or unresolved disposition, for each mapping. Keep compact source, decision,
+--
+<study>/frozen/shiploop/references/behavioral-requirements.md-21-unaffected accepted conditions remain part of the product contract.
+<study>/frozen/shiploop/references/behavioral-requirements.md-22-Apply [requirements definition](requirements-definition.md) during discovery,
+<study>/frozen/shiploop/references/behavioral-requirements.md-23-research, and spec: inspect existing specs and quality policies, reconcile the
+<study>/frozen/shiploop/references/behavioral-requirements.md:24:current change, and define applicable non-functional criteria without inventing
+<study>/frozen/shiploop/references/behavioral-requirements.md-25-targets. Carry preserved quality conditions into the affected model and checks.
+<study>/frozen/shiploop/references/behavioral-requirements.md-26-
+<study>/frozen/shiploop/references/behavioral-requirements.md-27-At `approach`, identify modeling scope and high-risk questions. At `survey`,
+--
+<study>/frozen/shiploop/references/behavioral-requirements.md-42-   callers, public boundaries, services/jobs, state writes, and external effects;
+<study>/frozen/shiploop/references/behavioral-requirements.md-43-   trace backwards from the observable outcome to its prerequisites. Read the
+<study>/frozen/shiploop/references/behavioral-requirements.md-44-   actual implementation, tests, docs, and relevant Git history when they exist.
+<study>/frozen/shiploop/references/behavioral-requirements.md:45:2. For each high-risk transition, investigate success **and** failure/recovery:
+<study>/frozen/shiploop/references/behavioral-requirements.md-46-   who owns the state; when a change becomes durable; what is atomic; what an
+<study>/frozen/shiploop/references/behavioral-requirements.md-47-   acknowledgment proves; and what can happen if interruption occurs between
+<study>/frozen/shiploop/references/behavioral-requirements.md-48-   operations. Research ordering, retries, duplicate events, permissions, and
+--
+<study>/frozen/shiploop/references/behavioral-requirements.md-70-
+<study>/frozen/shiploop/references/behavioral-requirements.md-71-## Requirements definition
+<study>/frozen/shiploop/references/behavioral-requirements.md-72-
+<study>/frozen/shiploop/references/behavioral-requirements.md:73:Read the [existing-spec and non-functional requirements guide](requirements-definition.md)
+<study>/frozen/shiploop/references/behavioral-requirements.md-74-for this action's applicable slice. Discovery locates accepted specs and quality
+<study>/frozen/shiploop/references/behavioral-requirements.md-75-policies; research resolves consequential unknowns; spec reconciles preserved,
+<study>/frozen/shiploop/references/behavioral-requirements.md-76-added, modified, or retired clauses and defines verifiable quality criteria.
+--
+<study>/frozen/shiploop/references/behavioral-requirements.md-177-  operates without that screen. Local/stateless work need not invent queues,
+<study>/frozen/shiploop/references/behavioral-requirements.md-178-  persistence, connections, brokers or distributed failure cases.
+<study>/frozen/shiploop/references/behavioral-requirements.md-179-
+<study>/frozen/shiploop/references/behavioral-requirements.md:180:Use the existing sequence/transition and test records for these decisions. Reuse
+<study>/frozen/shiploop/references/behavioral-requirements.md-181-current supported mechanisms; neither these questions nor a message-format
+<study>/frozen/shiploop/references/behavioral-requirements.md-182-standard prescribe an event bus, global handler, transport or new ShipLoop state.
+<study>/frozen/shiploop/references/behavioral-requirements.md-183-
+--
+<study>/frozen/shiploop/references/behavioral-requirements.md-190-| View | Planning decisions |
+<study>/frozen/shiploop/references/behavioral-requirements.md-191-| --- | --- |
+<study>/frozen/shiploop/references/behavioral-requirements.md-192-| Components | Existing primitives/compositions and examples; responsibilities, input/event contracts, variants and visible states; keyboard/touch/focus/accessibility behavior. |
+<study>/frozen/shiploop/references/behavioral-requirements.md:193:| Interaction model | Human journeys and intent plus machine-originated updates; navigation, validation, local/shared state transitions, feedback, conflict/recovery actions and behavior with the UI absent. |
+<study>/frozen/shiploop/references/behavioral-requirements.md-194-| Branding / skin | Existing typography, semantic color/spacing/motion tokens, imagery, density and adaptive layout; preserved identity and intentional visual changes. |
+<study>/frozen/shiploop/references/behavioral-requirements.md-195-
+<study>/frozen/shiploop/references/behavioral-requirements.md-196-Inspect prior design and actual code/behavior before proposing a redesign.
+--
+<study>/frozen/shiploop/references/behavioral-requirements.md-257-| Players share a match from different browsers | Establish shared authority, move validation, synchronization, and conflict/recovery rules using suitable existing capabilities; local UI state can remain local. | Concurrent/stale moves do not create divergent accepted boards; reconnect recovers the agreed state. |
+<study>/frozen/shiploop/references/behavioral-requirements.md-258-| A user requests a message, or an external service sends a notification to a user | Trace sender → receiving service → recipient/channel and any needed reply; choose immediate or delayed delivery from the actual contract. | Acceptance versus delivery/display is explicit; permissions and duplicate/failure behavior are covered where relevant. |
+<study>/frozen/shiploop/references/behavioral-requirements.md-259-
+<study>/frozen/shiploop/references/behavioral-requirements.md:260:## Behavior model
+<study>/frozen/shiploop/references/behavioral-requirements.md-261-
+<study>/frozen/shiploop/references/behavioral-requirements.md-262-Reconcile this run's model with the repository's
+<study>/frozen/shiploop/references/behavioral-requirements.md-263-[maintained product requirements](project-knowledge.md#maintained-product-requirements):
+--
+<study>/frozen/shiploop/references/behavioral-requirements.md-267-
+<study>/frozen/shiploop/references/behavioral-requirements.md-268-At `behavior`, retrieve the incoming prompt, approach, environment and research
+<study>/frozen/shiploop/references/behavioral-requirements.md-269-in bounded sections. Store the proposed product behavior in the result `body`:
+<study>/frozen/shiploop/references/behavioral-requirements.md:270:a requirement index, sequence flows, state inventory, transition ledger, and
+<study>/frozen/shiploop/references/behavioral-requirements.md:271:case mapping. Use compact Markdown tables and Mermaid diagrams where they make
+<study>/frozen/shiploop/references/behavioral-requirements.md-272-ordering or state changes clearer. Use consistent IDs and terminology across
+<study>/frozen/shiploop/references/behavioral-requirements.md-273-diagrams, tables, tests, and implementation; a pretty diagram alone is not a spec.
+<study>/frozen/shiploop/references/behavioral-requirements.md-274-Apply [Discovery and research](#discovery-and-research) to unresolved rules before
+--
+<study>/frozen/shiploop/references/behavioral-requirements.md-285-messages/actions, sync versus async boundaries, input/output semantics, state
+<study>/frozen/shiploop/references/behavioral-requirements.md-286-changes, and final observable outcome. Include relevant alternative branches,
+<study>/frozen/shiploop/references/behavioral-requirements.md-287-guards, failure responses, timeout, cancellation, cleanup, compensation, and
+<study>/frozen/shiploop/references/behavioral-requirements.md:288:recovery paths. Cross-reference transition IDs at state-changing messages.
+<study>/frozen/shiploop/references/behavioral-requirements.md-289-Split large flows by meaningful boundary and link them; do not hide alternatives
+<study>/frozen/shiploop/references/behavioral-requirements.md-290-in an unlabeled “error” branch. Record environment and real versus simulated
+<study>/frozen/shiploop/references/behavioral-requirements.md-291-dependencies in the associated cases. Reuse the actual invocation contract.
+<study>/frozen/shiploop/references/behavioral-requirements.md-292-
+<study>/frozen/shiploop/references/behavioral-requirements.md:293:### States and transitions
+<study>/frozen/shiploop/references/behavioral-requirements.md-294-
+<study>/frozen/shiploop/references/behavioral-requirements.md-295-Inventory each relevant stateful entity separately. For each state give its
+<study>/frozen/shiploop/references/behavioral-requirements.md:296:meaning, invariant, owner, durable versus transient status, and initial/terminal
+<study>/frozen/shiploop/references/behavioral-requirements.md:297:role. Name hierarchy, concurrent dimensions, and cross-entity invariants when
+<study>/frozen/shiploop/references/behavioral-requirements.md-298-needed; avoid an unnecessary Cartesian product of all possible system states.
+<study>/frozen/shiploop/references/behavioral-requirements.md-299-
+<study>/frozen/shiploop/references/behavioral-requirements.md:300:Use a transition ledger as the detailed complement to each state diagram:
+<study>/frozen/shiploop/references/behavioral-requirements.md-301-
+<study>/frozen/shiploop/references/behavioral-requirements.md:302:| Field | Required content for an applicable transition |
+<study>/frozen/shiploop/references/behavioral-requirements.md-303-| --- | --- |
+<study>/frozen/shiploop/references/behavioral-requirements.md-304-| Identity and origin | Stable `T-` ID; `R-` requirement and `F-` flow IDs; source or explicit decision. |
+<study>/frozen/shiploop/references/behavioral-requirements.md:305:| Before | Entity/state owner, source state or explicit state set, relevant data invariant. |
+<study>/frozen/shiploop/references/behavioral-requirements.md-306-| Trigger and guard | Event and actor; permission, data/time preconditions; mutually exclusive guard or explicit selection priority. |
+<study>/frozen/shiploop/references/behavioral-requirements.md-307-| Operation | Ordered actions, persistence boundary, side effects, entry/exit behavior where applicable. |
+<study>/frozen/shiploop/references/behavioral-requirements.md:308:| After and observation | Destination or unchanged state; invariant; caller-visible output/error and relevant time bound. |
+<study>/frozen/shiploop/references/behavioral-requirements.md-309-| Failure and recovery | Failure point, retained/partial effects, retry/idempotency, timeout, compensation or operator action as applicable. |
+<study>/frozen/shiploop/references/behavioral-requirements.md-310-| Validation | Stable case IDs, expected state/output/effect, selected test surface; later link actual evidence separately. |
+<study>/frozen/shiploop/references/behavioral-requirements.md-311-
+<study>/frozen/shiploop/references/behavioral-requirements.md:312:Model required valid transitions **and** behavior for invalid/forbidden events.
+<study>/frozen/shiploop/references/behavioral-requirements.md:313:For each relevant state/event class, record transition, guarded rejection,
+<study>/frozen/shiploop/references/behavioral-requirements.md-314-documented ignore/no-op, or unresolved rule. A rejection/ignore must specify
+<study>/frozen/shiploop/references/behavioral-requirements.md-315-whether data or external effects remain unchanged. Do not assume a self-loop
+<study>/frozen/shiploop/references/behavioral-requirements.md-316-means no-op: exit/re-entry or repeated side effects may matter. Distinguish
+--
+<study>/frozen/shiploop/references/behavioral-requirements.md-325-- concurrent actors, stale/out-of-order callbacks, conflicting updates;
+<study>/frozen/shiploop/references/behavioral-requirements.md-326-- relevant lifecycle initialization, shutdown, deletion, migration or expiry.
+<study>/frozen/shiploop/references/behavioral-requirements.md-327-
+<study>/frozen/shiploop/references/behavioral-requirements.md:328:Enumerate all **required in-scope** transitions; partition equivalent states,
+<study>/frozen/shiploop/references/behavioral-requirements.md-329-events, and guard boundaries explicitly. List omissions/unknowns rather than
+<study>/frozen/shiploop/references/behavioral-requirements.md-330-claiming all possible paths are proven. Cover interactions between partitions
+<study>/frozen/shiploop/references/behavioral-requirements.md-331-where they carry risk. For a stateless component, document the applicability
+--
+<study>/frozen/shiploop/references/behavioral-requirements.md-336-Material unresolved requirements block freeze; `checkable: true` is not evidence
+<study>/frozen/shiploop/references/behavioral-requirements.md-337-that a semantic completeness review occurred.
+<study>/frozen/shiploop/references/behavioral-requirements.md-338-
+<study>/frozen/shiploop/references/behavioral-requirements.md:339:## Traceability and review
+<study>/frozen/shiploop/references/behavioral-requirements.md-340-
+<study>/frozen/shiploop/references/behavioral-requirements.md-341-Include the applicable [maintained product requirements](project-knowledge.md#maintained-product-requirements)
+<study>/frozen/shiploop/references/behavioral-requirements.md:342:and their negative/state-transition subclauses in affected checks and Improve
+<study>/frozen/shiploop/references/behavioral-requirements.md-343-reviews. Carry requirement/test locators into step context; update the durable
+<study>/frozen/shiploop/references/behavioral-requirements.md-344-home for accepted changes without deriving normative intent from observed bugs.
+<study>/frozen/shiploop/references/behavioral-requirements.md-345-
+<study>/frozen/shiploop/references/behavioral-requirements.md:346:Retrieve only the current requirement/flow/transition slice and adjacent affected
+<study>/frozen/shiploop/references/behavioral-requirements.md-347-paths from the durable behavior model, spec/draft, research, plan and current
+<study>/frozen/shiploop/references/behavioral-requirements.md-348-step. Never assume the
+<study>/frozen/shiploop/references/behavioral-requirements.md-349-previous prompt's mental model survives. Use `context --section spec|research|plan`
+--
+<study>/frozen/shiploop/references/behavioral-requirements.md-357-cycle; at outer quality, reconcile the whole in-scope model:
+<study>/frozen/shiploop/references/behavioral-requirements.md-358-
+<study>/frozen/shiploop/references/behavioral-requirements.md-359-1. **Prompt to outcome:** every `R-` requirement has a flow/outcome, relevant
+<study>/frozen/shiploop/references/behavioral-requirements.md:360:   transitions, and acceptance cases, or a justified non-behavioral applicability
+<study>/frozen/shiploop/references/behavioral-requirements.md-361-   note. Every modeled feature traces back to scope, not an invented expansion.
+<study>/frozen/shiploop/references/behavioral-requirements.md-362-2. **Structural coverage:** every modeled state is reachable or explicitly
+<study>/frozen/shiploop/references/behavioral-requirements.md-363-   justified; every nonterminal has a defined way forward/recovery; guards cover
+<study>/frozen/shiploop/references/behavioral-requirements.md:364:   relevant boundaries and conflicts; transitions preserve stated invariants.
+<study>/frozen/shiploop/references/behavioral-requirements.md-365-   Identify dead ends, missing actors/events, and inconsistent names.
+<study>/frozen/shiploop/references/behavioral-requirements.md-366-3. **Negative and temporal coverage:** inspect forbidden/no-op events and each
+<study>/frozen/shiploop/references/behavioral-requirements.md-367-   applicable failure/recovery family from the behavior model. Review important
+<study>/frozen/shiploop/references/behavioral-requirements.md:368:   multi-transition sequences and cross-entity races, not only isolated edges.
+<study>/frozen/shiploop/references/behavioral-requirements.md:369:   State coverage alone is not transition coverage; transition coverage alone
+<study>/frozen/shiploop/references/behavioral-requirements.md-370-   does not establish every meaningful sequence or concurrency interleaving.
+<study>/frozen/shiploop/references/behavioral-requirements.md-371-4. **Tests and evidence:** map required `R-/F-/T-` IDs to stable case IDs with
+<study>/frozen/shiploop/references/behavioral-requirements.md-372-   preconditions/events and explicit expected state, output, errors and effects.
+--
+<study>/frozen/shiploop/references/behavioral-requirements.md-376-   expected outcomes separate from observed status/revision/evidence; required
+<study>/frozen/shiploop/references/behavioral-requirements.md-377-   failed, blocked, or unrun cases remain unfinished.
+<study>/frozen/shiploop/references/behavioral-requirements.md-378-5. **Documentation consistency:** reconcile diagrams, ledger, concise function
+<study>/frozen/shiploop/references/behavioral-requirements.md:379:   contracts, README usage/recovery guidance and tests. A missing transition or
+<study>/frozen/shiploop/references/behavioral-requirements.md-380-   misleading behavior contract is material even when fixing it is a tiny edit.
+<study>/frozen/shiploop/references/behavioral-requirements.md-381-   Record changed IDs and implications, or a specific no-change rationale.
+<study>/frozen/shiploop/references/behavioral-requirements.md-382-
+--
+<study>/frozen/shiploop/references/behavioral-requirements.md-389-| `sequence` | Map the behavior/test/documentation outputs and dependencies into pending steps. Put contract, environment and deployment prerequisites before their consumers. Keep product behavior order distinct from the work DAG. |
+<study>/frozen/shiploop/references/behavioral-requirements.md-390-| `implement` | Implement the active slice, cases, and enduring product diagrams/ledger where needed; compare with the frozen spec, not an improvised model. |
+<study>/frozen/shiploop/references/behavioral-requirements.md-391-| `review` / `improve-plan` / `improve-apply` | Read Git history first at review. Audit affected and adjacent paths, plan fixes, then update code/tests/docs before verification. Preserve learnings and model deltas in the existing result fields. |
+<study>/frozen/shiploop/references/behavioral-requirements.md:392:| `verify` / `final-verify` | Run lint and all required checks, compare expected transitions/effects with observations. Do not silently adjust expectations to match failures. |
+<study>/frozen/shiploop/references/behavioral-requirements.md-393-| `carry-forward` | After an execution iteration's checks, distill new observations with source, scope, revalidation guidance and impact. Current-step corrections restart review; broader obligations remain visible for post-inner; incompatible contracts pause. |
+<study>/frozen/shiploop/references/behavioral-requirements.md-394-| `post-inner` | Ask whether discovered behavior changes broader pending steps, prerequisites, cases, or documentation. Revise only pending work within the frozen spec; record no-change rationale otherwise. |
+<study>/frozen/shiploop/references/behavioral-requirements.md-395-| `quality` | Reconcile end-to-end flows and state interactions across merged steps with whole-product evidence; corrective work returns through pending DAG steps and full inner loops. |
+--
+<study>/frozen/shiploop/references/behavioral-requirements.md-418-durable state. Do not dump all histories or the human-oriented ShipLoop README
+<study>/frozen/shiploop/references/behavioral-requirements.md-419-into every action packet. Scripts preserve imported records and enforce the
+<study>/frozen/shiploop/references/behavioral-requirements.md-420-loop, ledger, rubric presence, check/commit evidence and promotion gates; they do
+<study>/frozen/shiploop/references/behavioral-requirements.md:421:not determine transition coverage or meaning automatically.
+<study>/frozen/shiploop/references/behavioral-requirements.md-422-
+<study>/frozen/shiploop/references/behavioral-requirements.md-423-## Worked example
+<study>/frozen/shiploop/references/behavioral-requirements.md-424-
+--
+<study>/frozen/shiploop/references/behavioral-requirements.md-469-
+<study>/frozen/shiploop/references/behavioral-requirements.md-470-Adopt the modeling concepts, not a runtime or technology dependency. The
+<study>/frozen/shiploop/references/behavioral-requirements.md-471-[W3C SCXML core constructs](https://www.w3.org/TR/scxml/#CoreConstructs) distinguish
+<study>/frozen/shiploop/references/behavioral-requirements.md:472:states, events, guarded transitions and actions, including hierarchy and parallel
+<study>/frozen/shiploop/references/behavioral-requirements.md-473-states. ShipLoop does not impose SCXML execution semantics on a product.
+<study>/frozen/shiploop/references/behavioral-requirements.md-474-The [ISTQB Foundation syllabus, section 4.2.4](https://istqb.org/wp-content/uploads/2024/11/ISTQB_CTFL_Syllabus_v4.0.1.pdf)
+<study>/frozen/shiploop/references/behavioral-requirements.md:475:distinguishes state and transition coverage and describes invalid transitions;
+<study>/frozen/shiploop/references/behavioral-requirements.md-476-this motivates a ledger alongside diagrams, not a claim of exhaustive testing.
+<study>/frozen/shiploop/references/behavioral-requirements.md-477-Use [Mermaid state notation](https://mermaid.js.org/syntax/stateDiagram.html) and
+<study>/frozen/shiploop/references/behavioral-requirements.md-478-[sequence notation](https://mermaid.js.org/syntax/sequenceDiagram.html) as optional
+--
+<study>/frozen/shiploop/references/backchain-planning.md:1:# Backchain planning in ShipLoop
+<study>/frozen/shiploop/references/backchain-planning.md-2-
+<study>/frozen/shiploop/references/backchain-planning.md-3-## Navigator planning
+<study>/frozen/shiploop/references/backchain-planning.md-4-
+<study>/frozen/shiploop/references/backchain-planning.md-5-In navigator v3's default `embedded` mode this is an incorporated reasoning
+<study>/frozen/shiploop/references/backchain-planning.md:6:guide, not a standalone Backchain invocation or a compatibility result schema.
+<study>/frozen/shiploop/references/backchain-planning.md-7-An explicitly selected `source-aware-native` run uses the caller contract in
+<study>/frozen/shiploop/references/backchain-planning.md-8-[Source-aware native caller](#source-aware-native-caller-navigator-v3) below. Read the selected
+<study>/frozen/shiploop/references/backchain-planning.md-9-product clauses using [reference handoffs and destinations](project-knowledge.md#reference-handoffs-and-destinations)
+--
+<study>/frozen/shiploop/references/backchain-planning.md-19-
+<study>/frozen/shiploop/references/backchain-planning.md-20-Retain the audit in ordinary plan notes, result `evidence_refs` and work-item
+<study>/frozen/shiploop/references/backchain-planning.md-21-`context`. Use v3's current callback and allowed result fields; do not import
+<study>/frozen/shiploop/references/backchain-planning.md:22:legacy result fields, frozen-plan certificates, a Backchain JSON schema, or
+<study>/frozen/shiploop/references/backchain-planning.md-23-another counter/dispatcher. The sections below describe the shared five lenses
+<study>/frozen/shiploop/references/backchain-planning.md-24-and retained compatibility bindings; legacy field names apply only to those
+<study>/frozen/shiploop/references/backchain-planning.md-25-recorded modes. A source path, matched label, or completed supplier declaration
+--
+<study>/frozen/shiploop/references/backchain-planning.md-27-
+<study>/frozen/shiploop/references/backchain-planning.md-28-## Owner binding
+<study>/frozen/shiploop/references/backchain-planning.md-29-
+<study>/frozen/shiploop/references/backchain-planning.md:30:In `embedded` mode this is ShipLoop's adaptation of the inspected Backchain
+<study>/frozen/shiploop/references/backchain-planning.md-31-planning method, not a call to its standalone skill, generator, elaborator, or
+<study>/frozen/shiploop/references/backchain-planning.md-32-harness. Explicit `source-aware-native` selection is the v3 exception and binds
+<study>/frozen/shiploop/references/backchain-planning.md-33-the current host to the observed standalone skill and caller resources below.
+--
+<study>/frozen/shiploop/references/backchain-planning.md-37-
+<study>/frozen/shiploop/references/backchain-planning.md-38-**Retained managed/legacy only:** ShipLoop owns the Markdown DAG, accepted spec, step contracts, review findings,
+<study>/frozen/shiploop/references/backchain-planning.md-39-checks, audit commits, two-trivial-pass gates, and pending-only replans. Keep its
+<study>/frozen/shiploop/references/backchain-planning.md:40:existing result shape. Do not add Backchain's `goal_needs`, `parallel_groups`,
+<study>/frozen/shiploop/references/backchain-planning.md-41-`match`, or `artifact` fields to it. Concrete carriers and review conclusions
+<study>/frozen/shiploop/references/backchain-planning.md-42-belong in existing output descriptions, evidence references and Markdown bodies.
+<study>/frozen/shiploop/references/backchain-planning.md-43-No second scheduler, per-row cursor, state file, or model dependency is needed.
+--
+<study>/frozen/shiploop/references/backchain-planning.md-102-steps, another environment, or a later lifecycle boundary.
+<study>/frozen/shiploop/references/backchain-planning.md-103-
+<study>/frozen/shiploop/references/backchain-planning.md-104-Apply the dependency audit below to every draft step and new or widened supplier.
+<study>/frozen/shiploop/references/backchain-planning.md:105:Record the outcome/case mapping, evidence sources, missing producers and final
+<study>/frozen/shiploop/references/backchain-planning.md-106-forward-order check in existing plan notes and evidence. Retained managed/legacy
+<study>/frozen/shiploop/references/backchain-planning.md-107-results use `plan` and `dependency_review`; v3 uses `evidence_refs` and work-item
+<study>/frozen/shiploop/references/backchain-planning.md-108-`context`. Ask a clarifying question
+--
+<study>/frozen/shiploop/references/backchain-planning.md-203-future work. A prerequisite that blocks the active step needs resolution or a
+<study>/frozen/shiploop/references/backchain-planning.md-204-pause now, not a journal entry that permits premature completion. Preserve
+<study>/frozen/shiploop/references/backchain-planning.md-205-running/completed definitions, accepted receipts, exact goal and initial-state
+<study>/frozen/shiploop/references/backchain-planning.md:206:baseline; incompatible changes need explicit replanning authority. No Backchain
+<study>/frozen/shiploop/references/backchain-planning.md-207-rule permits silently repairing or deleting frozen edges outside that path.
+<study>/frozen/shiploop/references/backchain-planning.md-208-
+<study>/frozen/shiploop/references/backchain-planning.md-209-## Provenance
+<study>/frozen/shiploop/references/backchain-planning.md-210-
+<study>/frozen/shiploop/references/backchain-planning.md:211:The incorporated `embedded` guide was inspected against Backchain checkout
+<study>/frozen/shiploop/references/backchain-planning.md-212-`8278e27a84aa3a28c8986f798e14a3cd9436be67`. Selected native calls record their own
+<study>/frozen/shiploop/references/backchain-planning.md-213-actual card and resource identities as described below.
+<study>/frozen/shiploop/references/backchain-planning.md-214-Sources: `prompts/generator.v1.md`, `prompts/dependency-review.prompt.md`,
+<study>/frozen/shiploop/references/backchain-planning.md-215-`prompts/elaborator.v1.md`, and their regression/experiment controls. This
+<study>/frozen/shiploop/references/backchain-planning.md-216-reference selectively incorporates outcome-first drafting, per-outcome checks,
+<study>/frozen/shiploop/references/backchain-planning.md-217-evidence-only closes, five lenses, carrier/layer distinctions, shared suppliers
+<study>/frozen/shiploop/references/backchain-planning.md:218:and conditional transition clocks. The upstream card's older blanket orphan
+<study>/frozen/shiploop/references/backchain-planning.md-219-rule is not imported: a required terminal deliverable is a legitimate outcome.
+<study>/frozen/shiploop/references/backchain-planning.md-220-
+<study>/frozen/shiploop/references/backchain-planning.md-221-Experimental replacement prompts, alternate model backends, NBQ/EVSI machinery,
+--
+<study>/frozen/shiploop/references/backchain-planning.md-229-
+<study>/frozen/shiploop/references/backchain-planning.md-230-`embedded` remains the current compatibility mode. A new run may intentionally
+<study>/frozen/shiploop/references/backchain-planning.md-231-select `source-aware-native` in ordinary run notes when the host has observed a
+<study>/frozen/shiploop/references/backchain-planning.md:232:selected Backchain `SKILL.md`, its adjacent `backchain-caller/v1` contract, and
+<study>/frozen/shiploop/references/backchain-planning.md-233-the resource for the requested action/stage. This is host-mediated prompt guidance,
+<study>/frozen/shiploop/references/backchain-planning.md-234-not navigator state, a callback, a controller, or a scheduler.
+<study>/frozen/shiploop/references/backchain-planning.md-235-

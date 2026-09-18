@@ -1,0 +1,9 @@
+{
+  "expected": [
+    "Proceed with a read-only status step plan while W2 drafts remain blocked.",
+    "Do not require mutation, collection selector, POST/operation recovery, download flow, or response-schema discovery.",
+    "Permit a focused test harness within W1 scope.",
+    "Preserve list/editor focus and dirty drafts with reduced-motion status announcements."
+  ],
+  "id": "clarified-status-ready"
+}

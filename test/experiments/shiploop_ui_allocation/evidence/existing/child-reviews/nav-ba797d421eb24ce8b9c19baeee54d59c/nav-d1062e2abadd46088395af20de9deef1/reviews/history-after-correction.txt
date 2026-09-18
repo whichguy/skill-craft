@@ -1,0 +1,4 @@
+8f318f0adb98cb3a6e9c6419e57e48ef96ef2a8e
+Fixture: freeze accepted request and controlled target facts
+
+---

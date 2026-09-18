@@ -1,0 +1,8 @@
+f70908cb6049a90a1f2c3797085a3df6c31b6b363fb8fa2bc0f5a4b31ef17e51  <study>/new/run/notes/global-plan.md
+2470e68e0e9d5294684e98d89e9f74c17a05ae2785d5797fa0eb488bd92b5d2b  <study>/new/run/notes/spec.md
+ab5fd2f2cea89ff6faf6492912545ac9923c266f808e7e7ee6600e641e95781c  <study>/new/run/notes/test-strategy.md
+baa01be7a8ef154e1ac2d5f5528ac616be05b599a523da7202bd9c640d4fe33e  <study>/new/product/README.md
+b8dfe6ff0a442cfe5a13947afe8bdc7d5bf4eb77aa66cd6d39fff1b0adba8007  <study>/new/product/docs/platform.md
+862db25f3187bdf02a2d1da27bd041faca855e3ff4b3a235e153cda67dd37a27  <study>/new/product/docs/api.md
+887cb0375db36e9d65d239ba40fc001a6bd8897345897f349bef4b99a0eaa7f6  <study>/new/product/.shiploop-improve/nav-2148a17cdff14eef8c90236660d96142/nav-5a5e9e2846cb4077af072160793107c5/reviews/global-plan-corrected-decision.md
+166c45760cc7417834a8f8404a29bc7dead6f1b357f63945caeb866b02107325  <study>/new/product/.shiploop-improve/nav-2148a17cdff14eef8c90236660d96142/nav-5a5e9e2846cb4077af072160793107c5/reviews/final-result-draft.json

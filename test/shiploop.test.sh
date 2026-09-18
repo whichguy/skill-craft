@@ -19,6 +19,8 @@ suites=(
   test/shiploop-packet-bounds.test.py \
   test/shiploop-v3-guidance.test.py \
   test/shiploop-local-skills.test.py \
+
+  test/experiments/shiploop_ui_allocation/test_evidence.py \
   test/shiploop-full-runtime.test.py \
   test/shiploop-navigator-dry-run.test.py \
   test/shiploop-auth-readiness.test.py \
@@ -43,6 +45,7 @@ suites=(
   test/shiploop-capability-fixture.test.py \
   test/shiploop-capability-runtime.test.py \
   test/shiploop-generalized-discovery.test.py \
+  test/shiploop-probe-decisions.test.py \
   test/shiploop-capability-async.test.cjs \
   test/shiploop-repeatable-experiments.test.py \
   test/shiploop-system-context.test.py \

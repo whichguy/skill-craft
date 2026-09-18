@@ -1,0 +1,48 @@
+{
+  "scope": "Controlled loopback Chromium host; no real deployment or native claim",
+  "cases": [
+    {
+      "id": "bundled-assets-and-inline-rejection",
+      "passed": true,
+      "observed": {
+        "text": "Ready to request export",
+        "color": "rgb(21, 50, 79)",
+        "inlineExecuted": false,
+        "stored": "retained draft"
+      }
+    },
+    {
+      "id": "ordinary-origin-storage-reload",
+      "passed": true
+    },
+    {
+      "id": "renders-but-persistence-blocked",
+      "passed": true,
+      "observed": {
+        "rendered": "Ready to request export",
+        "externalExecuted": true,
+        "storage": {
+          "available": false,
+          "error": "SecurityError"
+        }
+      }
+    }
+  ],
+  "requests": [
+    "/app",
+    "/app.css",
+    "/app.js",
+    "/favicon.ico",
+    "/app",
+    "/app.css",
+    "/app.js",
+    "/frame",
+    "/app",
+    "/app.css",
+    "/app.js"
+  ],
+  "browser": "153.0.8010.48",
+  "fixture_sha256": "646b6f5858969f2a184b60c1969b03d45cf2feeb64ee144a7259ec82d0c5b0e5",
+  "passed": 3,
+  "failed": 0
+}

@@ -1,0 +1,115 @@
+# Existing API
+GET /api/exports returns current authorized collection export statuses and monotonically increasing revisions. POST /api/exports accepts collectionId and clientOperationId, durably accepts one operation in that account scope before confirmation, and returns jobId/status. A lost confirmation is reconciled through GET /api/operations/:clientOperationId; unresolved results must not claim success. GET /api/exports/:jobId returns the current status and a same-origin download path only when complete. Server owns job state independently of any UI. Poll while visible, reconcile on foreground; notifications are invalidation hints only. No subscription or draft-storage endpoint is available. This is the fixture contract, not a deployed service claim.
+# Deployment target
+The intended target is a static embedded web surface. Build tooling may run locally; no Node or other server process can run in the deployed artifact. All scripts, styles, fonts and images must be bundled same-origin files. The current enforced script-src and style-src policies are self only; inline script/style and external CDNs are disallowed. The host permits same-origin HTTPS API request/response. Persistent WebSocket connections are unsupported. The host controls authorization/account identity. Hidden pages may suspend; on foreground the client can read current authoritative state. Existing APIs are in api.md. Local preview evidence only proves constraints it actually reproduces. There is no remote deployment access in this experiment.
+
+For current storage and target identity, run scripts/probe_environment.py. This reads the fixture's current host observation without changing it. These are controlled target facts, not evidence of a real hosted deployment.
+23-    confirmedNote: document.querySelector("#confirmed-note"),
+24-    revision: document.querySelector("#revision"),
+25:    noteInput: document.querySelector("#note-input"),
+26-    back: document.querySelector("#back"),
+27-    edit: document.querySelector("#edit"),
+--
+61-  function setEditing(editing) {
+62-    state.editing = editing;
+63:    elements.noteInput.readOnly = !editing;
+64:    elements.noteInput.setAttribute("aria-readonly", String(!editing));
+65-    elements.edit.hidden = editing;
+66-    elements.cancel.hidden = !editing;
+--
+111-  }
+112-
+113:  function renderRecord() {
+114-    const record = state.record;
+115-    if (!record) {
+--
+120-    elements.confirmedNote.textContent = record.note;
+121-    elements.revision.textContent = String(record.revision);
+122:    elements.noteInput.value = record.note;
+123-  }
+124-
+--
+147-    const generation = ++state.requestGeneration;
+148-
+149:    setMessage(elements.listMessage, "Loading notes…");
+150-    elements.noteList.replaceChildren();
+151-
+--
+170-        return;
+171-      }
+172:      setMessage(elements.listMessage, "Notes could not be loaded. Choose the account again to try again.", "error");
+173-    }
+174-  }
+--
+183-    showDetail();
+184-    setEditing(false);
+185:    elements.noteTitle.textContent = "Loading note";
+186-    elements.confirmedNote.textContent = "";
+187-    elements.revision.textContent = "—";
+188:    elements.noteInput.value = "";
+189:    setMessage(elements.saveStatus, "Loading note…");
+190-
+191-    try {
+--
+201-      state.selectedId = noteId;
+202-      state.record = record;
+203:      renderRecord();
+204-      setMessage(elements.saveStatus, "");
+205-    } catch (error) {
+--
+207-        return;
+208-      }
+209:      setMessage(elements.saveStatus, "This note could not be loaded. Return to notes and try again.", "error");
+210-    }
+211-  }
+--
+217-    setMessage(elements.saveStatus, "");
+218-    setEditing(true);
+219:    elements.noteInput.focus();
+220:    elements.noteInput.setSelectionRange(elements.noteInput.value.length, elements.noteInput.value.length);
+221-  }
+222-
+223:  function cancelEditing() {
+224-    if (!state.record) {
+225-      return;
+226-    }
+227:    elements.noteInput.value = state.record.note;
+228-    setEditing(false);
+229-    setMessage(elements.saveStatus, "Changes discarded.");
+--
+231-  }
+232-
+233:  async function saveEditing() {
+234-    if (!state.record || !state.selectedId || !state.editing) {
+235-      return;
+--
+239-    const accountAtSave = state.account;
+240-    const noteIdAtSave = state.selectedId;
+241:    const draft = elements.noteInput.value;
+242-    const requestId = operationId();
+243-    const controller = new AbortController();
+--
+270-
+271-      state.record = saved;
+272:      renderRecord();
+273-      setEditing(false);
+274-      setMessage(elements.saveStatus, "Changes saved.");
+--
+286-  }
+287-
+288:  function switchAccount() {
+289-    state.account = elements.account.value;
+290-    state.detailController?.abort();
+--
+294-  }
+295-
+296:  elements.account.addEventListener("change", switchAccount);
+297-  elements.noteList.addEventListener("click", (event) => {
+298-    const button = event.target.closest("button[data-note-id]");
+--
+307-  });
+308-  elements.edit.addEventListener("click", beginEditing);
+309:  elements.cancel.addEventListener("click", cancelEditing);
+310:  elements.save.addEventListener("click", saveEditing);
+311-
+312-  loadList();

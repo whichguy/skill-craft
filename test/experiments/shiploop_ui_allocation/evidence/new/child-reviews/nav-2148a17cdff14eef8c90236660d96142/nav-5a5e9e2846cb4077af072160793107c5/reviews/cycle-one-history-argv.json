@@ -1,0 +1,15 @@
+{
+  "argv": [
+    "git",
+    "-C",
+    "<study>/new/product",
+    "log",
+    "-7",
+    "--format=%H%n%s%n%b%n---"
+  ],
+  "cwd": "<study>/new/product",
+  "env": {
+    "DEVELOPER_DIR": "/Library/Developer/CommandLineTools",
+    "PYTHONDONTWRITEBYTECODE": "1"
+  }
+}

@@ -41,6 +41,14 @@ through `shiploop-1`, `shiploop-2`, and `shiploop-3`; they are scheduling
 aliases and are intentionally excluded from `--group all`, which still runs
 the full serial ShipLoop runner exactly once.
 
+`python3 test/shiploop-probe-decisions.test.py` checks the separate decision-driven
+probe corpus and its thin frozen-study adapter without launching a model. It
+calibrates evidence reuse, runtime drift, native/skill reuse, denied access, and
+indeterminate outcomes; verifies candidate/arm identity and source integrity;
+and checks blind evidence collection. Live prompt comparisons are explicit
+experiments, not CI dependencies. See the
+[probe-decision study](experiments/shiploop_probe_decisions/README.md).
+
 `python3 test/shiploop-full-runtime.test.py` composes public ShipLoop and selected
 bundled Until Loop CLIs across the protocol-3 graph, including cold recovery and
 corrective outcomes. Its review judgments are synthetic: it proves local runtime
@@ -84,6 +92,13 @@ selected all prerequisites, created a sandbox, or promoted a live candidate.
 The [environment interpretation study](experiments/shiploop_environment/README.md)
 records three fictional topology cases and the planning-versus-execution
 ambiguity corrected through a fresh-reader follow-up.
+
+`python3 test/experiments/shiploop_ui_allocation/test_evidence.py` checks the
+UI-planning study's evidence reader with hermetic corruption controls. It
+distinguishes explicitly synthetic predecessors from archived Improve imports,
+validates archive identities, and reports the current inner action. These checks
+do not run a model/browser or establish the truth of review judgments. See the
+[UI allocation study](../docs/shiploop-ui-planning-allocation-2026-09-18.md).
 
 `python3 test/shiploop-cross-run.test.py` checks new-request versus repeated-init
 identity across protocols, terminal-run preservation, fresh-run isolation, and

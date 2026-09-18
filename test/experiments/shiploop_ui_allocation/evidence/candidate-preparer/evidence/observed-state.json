@@ -1,0 +1,131 @@
+{
+  "case_root": "<study>/candidate-preparer",
+  "callback_content": "reported evidence only; it does not prove semantics",
+  "structurally_valid": true,
+  "semantic_verification": false,
+  "errors": [],
+  "kind": "persisted-run",
+  "stage": "step-plan",
+  "parent_stage": "inner-loop",
+  "status": "active",
+  "action_identity": {
+    "id": "nav-8178dc574a0a4c97ad44b4cdfa80a7a6",
+    "stage": "step-plan"
+  },
+  "accepted_stage_record_count": 8,
+  "imports": [],
+  "synthetic_predecessors": [
+    {
+      "action_id": "nav-143ed73c4f424a00811af6acae0ffcb6",
+      "kind": "synthetic-fixture-predecessor",
+      "claim": "No actual Improve runtime or semantic review occurred.",
+      "stage": "research",
+      "seed_result": {
+        "evidence_refs": [
+          "../evidence/seed-claims.md"
+        ],
+        "outcome": "done",
+        "summary": "SYNTHETIC candidate-2 predecessor for research; no producer, model, semantic review, or Improve runtime occurred."
+      }
+    },
+    {
+      "action_id": "nav-17c725e2ff964fb6a16d1c6032f384cd",
+      "kind": "synthetic-fixture-predecessor",
+      "claim": "No actual Improve runtime or semantic review occurred.",
+      "stage": "test-strategy",
+      "seed_result": {
+        "evidence_refs": [
+          "../evidence/seed-claims.md"
+        ],
+        "outcome": "done",
+        "summary": "SYNTHETIC candidate-2 predecessor for test-strategy; no producer, model, semantic review, or Improve runtime occurred."
+      }
+    },
+    {
+      "action_id": "nav-3a1a09b3798a4c9dba6fdc0c9deeac05",
+      "kind": "synthetic-fixture-predecessor",
+      "claim": "No actual Improve runtime or semantic review occurred.",
+      "stage": "prepare",
+      "seed_result": {
+        "evidence_refs": [
+          "../evidence/seed-claims.md"
+        ],
+        "outcome": "done",
+        "summary": "SYNTHETIC candidate-2 predecessor for prepare; no producer, model, semantic review, or Improve runtime occurred."
+      }
+    },
+    {
+      "action_id": "nav-4ac3a79a70b8403db17076cc8780c972",
+      "kind": "synthetic-fixture-predecessor",
+      "claim": "No actual Improve runtime or semantic review occurred.",
+      "stage": "discovery",
+      "seed_result": {
+        "evidence_refs": [
+          "../evidence/seed-claims.md"
+        ],
+        "outcome": "done",
+        "summary": "SYNTHETIC candidate-2 predecessor for discovery; no producer, model, semantic review, or Improve runtime occurred."
+      }
+    },
+    {
+      "action_id": "nav-656802fc5bd8493f9710f34825975c10",
+      "kind": "synthetic-fixture-predecessor",
+      "claim": "No actual Improve runtime or semantic review occurred.",
+      "stage": "select-work",
+      "seed_result": {
+        "evidence_refs": [
+          "../evidence/seed-claims.md"
+        ],
+        "outcome": "done",
+        "summary": "SYNTHETIC candidate-2 predecessor for select-work; no producer, model, semantic review, or Improve runtime occurred."
+      }
+    },
+    {
+      "action_id": "nav-7165b4e5ea9a4a069d5cb445880ab07d",
+      "kind": "synthetic-fixture-predecessor",
+      "claim": "No actual Improve runtime or semantic review occurred.",
+      "stage": "spec",
+      "seed_result": {
+        "evidence_refs": [
+          "../evidence/seed-claims.md"
+        ],
+        "outcome": "done",
+        "summary": "SYNTHETIC candidate-2 predecessor for spec; no producer, model, semantic review, or Improve runtime occurred."
+      }
+    },
+    {
+      "action_id": "nav-a42dc37676db45929706b4111da38983",
+      "kind": "synthetic-fixture-predecessor",
+      "claim": "No actual Improve runtime or semantic review occurred.",
+      "stage": "plan",
+      "seed_result": {
+        "evidence_refs": [
+          "../evidence/seed-claims.md"
+        ],
+        "outcome": "done",
+        "summary": "SYNTHETIC candidate-2 predecessor for plan; no producer, model, semantic review, or Improve runtime occurred.",
+        "work_items": [
+          {
+            "context": "Human-facing conditional applies. Read product/README.md, product/docs/platform.md, product/docs/api.md and product/scripts/probe_environment.py. Synthetic fixture premise for later feature consumers: collection selection, export-progress/status, and completed-or-failed recovery are distinct views; keyboard, narrow layout, pending/error feedback and same-origin static assets are relevant. Selected W1 is authorized preparation only: choose and produce the local static UI build and verification harness output, including its own proportional checks. The output is currently absent, but that absence is not a blocker because W1 owns creating it. Local Node/build tooling is authorized; installation, deployed server, remote requests and deployment are not. Retain a preparation-before-feature-consumer dependency and distinguish local verification from target/deployment proof.",
+            "id": "W1",
+            "title": "Prepare static UI build and verification harness"
+          }
+        ]
+      }
+    },
+    {
+      "action_id": "nav-e0e203a13e684bc294f7f13968b56f1c",
+      "kind": "synthetic-fixture-predecessor",
+      "claim": "No actual Improve runtime or semantic review occurred.",
+      "stage": "intake",
+      "seed_result": {
+        "evidence_refs": [
+          "../evidence/seed-claims.md"
+        ],
+        "outcome": "done",
+        "summary": "SYNTHETIC candidate-2 predecessor for intake; no producer, model, semantic review, or Improve runtime occurred."
+      }
+    }
+  ],
+  "import_status": "synthetic-predecessors-only"
+}

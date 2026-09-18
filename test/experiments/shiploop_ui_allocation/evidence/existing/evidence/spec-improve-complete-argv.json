@@ -1,0 +1,8 @@
+[
+  "/opt/homebrew/opt/python@3.14/bin/python3.14",
+  "<study>/frozen/shiploop/scripts/shiploop",
+  "improve-complete",
+  "--run-dir=<study>/existing/run",
+  "--action=nav-d193b2f78738424b8a84d4161ff25bfe",
+  "--result=<study>/existing/run/inbox/nav-d193b2f78738424b8a84d4161ff25bfe-improve.md"
+]

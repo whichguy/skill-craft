@@ -1,0 +1,9 @@
+[
+  "env",
+  "DEVELOPER_DIR=/Library/Developer/CommandLineTools",
+  "PYTHONDONTWRITEBYTECODE=1",
+  "python3",
+  "-B",
+  "<study>/frozen/shiploop/scripts/shiploop",
+  "--help"
+]
