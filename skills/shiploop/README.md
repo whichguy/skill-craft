@@ -1,4 +1,4 @@
-# ShipLoop navigator 0.14.0
+# ShipLoop navigator 0.15.0
 
 New protocol-3 skill runs on Codex, Grok, and Claude use supervised context
 reset by default. `python3 "$CLI" drive --run-dir "$RUN_DIR" --host codex`
