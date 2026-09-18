@@ -1,0 +1,85 @@
+{
+  "format": "skill-craft-until-loop-runtime-provenance/v1",
+  "upstream": {
+    "repository": "https://github.com/whichguy/until-loop.git",
+    "commit": "458f40ac35c8254906898890c25a784a6e3eb39c",
+    "version": "0.4.0-rc.2"
+  },
+  "default_ephemeral_runtime": [
+    {
+      "bundled_path": "ADAPTER.md",
+      "upstream_path": "SKILL.md",
+      "sha256": "609959649f69f3ee5408bedbd6331806799495a8f59418e8d097c3d9f3c08028"
+    },
+    {
+      "bundled_path": "LICENSE",
+      "upstream_path": "LICENSE",
+      "sha256": "5731f7a458ebc99f0b1abb1235b21e588ab90e333d09220b6008923c15b9420f"
+    },
+    {
+      "bundled_path": "scripts/until_loop_ephemeral.py",
+      "upstream_path": "scripts/until_loop_ephemeral.py",
+      "sha256": "6a4131f8a70b56a361556fbc61e924f060ebf1ba5d5f1387a6d6d735e89b4212"
+    },
+    {
+      "bundled_path": "references/runtime-ephemeral.md",
+      "upstream_path": "references/runtime-ephemeral.md",
+      "sha256": "8d59ea1b8dcbabc6cffbe333dbe60ec638aa9f2ecab6a9cd4c1891ded8f058bb"
+    },
+    {
+      "bundled_path": "references/legacy-skill.md",
+      "upstream_path": "references/legacy-skill.md",
+      "sha256": "b99b55383e500fefff18bc9554853fdd2583994d685bf5c3b90d9ffe1abc91c6"
+    }
+  ],
+  "retained_legacy_runtime": [
+    {
+      "bundled_path": "scripts/until-loop",
+      "upstream_path": "scripts/until-loop",
+      "sha256": "e35f26744f3c010f9548f4bf84c290427637db008bb47821d44d8fe2c2647e97"
+    },
+    {
+      "bundled_path": "scripts/until_loop_packet.py",
+      "upstream_path": "scripts/until_loop_packet.py",
+      "sha256": "d37a46a54f10284a5add9865b0a3eb98736a7a3ad2e3721d6232e1a561e44e96"
+    },
+    {
+      "bundled_path": "scripts/until_loop_v2.py",
+      "upstream_path": "scripts/until_loop_v2.py",
+      "sha256": "df0eecacce7a618b847551e19dfc00841dd804fc11fa1029ae20a2757cf5478a"
+    },
+    {
+      "bundled_path": "references/decision-rubric.md",
+      "upstream_path": "references/decision-rubric.md",
+      "sha256": "6d7f478e880d3b7858a79b850ca9b8ecbba4876e5c547ac642f4219126889ecd"
+    },
+    {
+      "bundled_path": "references/state.md",
+      "upstream_path": "references/state.md",
+      "sha256": "b6693e84d52ce5fb2fe58c9bd8517de83f79e5b3bdd4d08fb97587418ba339e5"
+    }
+  ],
+  "package_local_legacy_reference_adaptations": [
+    {
+      "bundled_path": "references/packet.md",
+      "upstream_path": "references/packet.md",
+      "upstream_sha256": "d18d41e6a9815ac5a62e553eb638f2c5543c611de9b459bb5b95e341222b67df",
+      "bundled_sha256": "c256483028654230f74d69a1cb8bb29359c0c7bbcf49a868753027366ead4c25",
+      "reason": "Keeps links inside the renamed ADAPTER.md package layout."
+    },
+    {
+      "bundled_path": "references/runtime-v2.md",
+      "upstream_path": "references/runtime-v2.md",
+      "upstream_sha256": "667632cbde0713a5bec683bd524b440b4777813d4b9ba8d9249c893cd15449d3",
+      "bundled_sha256": "3d9fc8feb467376f00ce5b1f989075ca8328db6b2af1f304a28350f4a013b5fb",
+      "reason": "Keeps explicit durable v2 links inside the renamed ADAPTER.md package layout."
+    },
+    {
+      "bundled_path": "references/runtime.md",
+      "upstream_path": "references/runtime.md",
+      "upstream_sha256": "bbac2e7e3d88567601d9fddbe28fa0d488ca8754e1081fc6dfd2d4ef94e47ed9",
+      "bundled_sha256": "5a866cdf57bcae7d643cd710e7d90e2195bd60c78d68de407c3e940807b2c33c",
+      "reason": "Keeps explicit durable v1 links and validation text inside the package layout."
+    }
+  ]
+}

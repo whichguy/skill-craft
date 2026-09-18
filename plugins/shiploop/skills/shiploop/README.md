@@ -80,8 +80,84 @@ packet is authoritative for argument values and recovery. It then supplies one
 actual Improve handoff; a recorded child is resumed through its own state, and
 `improve-complete` imports matching successful completion evidence once. New
 children inherit a no-commit constraint unless an explicit user or repository
-policy authorizes an exception. `.shiploop` remains SDLC-state authority and the
-child's `.until-loop` state remains child-execution authority.
+policy authorizes an exception. ShipLoop's `state.md` remains SDLC-state authority;
+the selected Until Loop runtime remains child-execution authority.
+
+### Current Improve and Until Loop binding
+
+The canonical Improve package bundles Until Loop **0.4.0-rc.2**, pinned to
+upstream commit `458f40ac35c8254906898890c25a784a6e3eb39c`. Its default child uses
+`scripts/until_loop_ephemeral.py`; the package provenance manifest records the
+copied source hashes. The explicit selected card determines this binding. An
+ambient same-named skill or an older `scripts/until-loop` on `PATH` cannot select
+the child runtime. Changing an external Until Loop installation alone does not
+refresh Improve's bundled copy.
+
+```mermaid
+flowchart LR
+  P[Parent producer finishes] --> I[Improve freezes scoped context]
+  I --> W[Execute one review iteration]
+  W --> D[Until Loop done updates state]
+  D -->|Active| W
+  D -->|Complete| R[Save terminal packet]
+  R --> A[ShipLoop validates and archives]
+  A --> N[Next producer]
+```
+
+The host saves complete raw `start`, `next` and `done` JSON responses at
+`<workspace>/.shiploop-improve/<parent-run-id>/<action>/packet.json`. This file
+is a receipt and recovery locator, not another loop controller. Until Loop owns
+one independent temporary file for the active child. Separate parents/actions
+have separate receipts and runtime files; overlapping product edits still need
+coordination. ShipLoop excludes `.shiploop-improve` from product return and
+commits, just as it excludes legacy `.until-loop` state.
+For the final worktree handoff, untracked receipt files remain in the execution
+worktree with an `exclude` return-plan disposition so import can read them after
+product return. Staging, committing or placing them in candidate history still
+blocks return. Generate the return plan after the terminal packet is saved:
+earlier active-packet bytes would make that plan stale.
+
+The child freezes the exact parent binding line in `context.request`, scope,
+no-commit authority, environment, and resource locators for the original request,
+parent state, latest packet and return instructions. Every `done` report provides
+a replacement `handoff`. Thus a compacted host can read the latest full packet,
+recover an active child through its exact `next_argv`, execute the returned work,
+and submit the exact `done_argv`. It does not remember or choose the next state.
+Relevant resources still have to be available; a locator does not embed their
+contents or grant authority to change them.
+
+For example, with `required_trivial_reviews: 2`, a material repair reported as
+`non-trivial` leaves the streak at zero. A qualifying `trivial` review raises it
+to one and returns another active action. A second qualifying review raises it
+to two; with `exit_assessment: satisfied`, Until Loop returns `status: complete`
+and deletes its temporary file. These are three separate execution/report
+cycles. The LLM judges the evidence and classification; the runtime applies the
+counter and transition. ShipLoop validates the terminal packet's parent/workspace
+identity, context and gate, then archives it as `improve/<action>/terminal.json`
+alongside two distinct final review files and current check evidence. Only an
+accepted import releases the parent action. Duplicate matching parent callbacks
+remain idempotent.
+
+**Failure boundary:** an active, stopped, foreign, malformed or missing terminal
+receipt cannot advance the parent. If a process loses terminal stdout after the
+runtime deletes its state, neither `next` nor a missing file proves success:
+leave the parent incomplete. There is deliberately no second state journal or
+automatic replacement child. Save stdout directly or through a JSON-aware
+runner; manually rewriting returned JSON risks destroying the only receipt.
+The importer verifies structure, identity and evidence-file availability; it
+does not independently prove the truth of the LLM's review claims.
+
+Existing durable-v2 packages remain supported through their explicitly selected
+legacy card and CLI, including their state/history validation. Already bound
+children are not migrated when a package changes: a binding/version mismatch
+requires access to the original selected package, not reinterpretation of old
+state as an ephemeral run. Embedded v1/v2/managed ShipLoop policies are separate
+compatibility paths and are unchanged by this bundled runtime update.
+
+The real-CLI composition tests in `test/shiploop-actual-improve-cli.test.py`
+exercise the material/trivial/trivial sequence, cold packet recovery, terminal
+cleanup, rejected imports and final workspace return. Their judgments are
+synthetic protocol fixtures, not evidence of live model review quality.
 
 The material below preserves detailed v1/v2/managed/legacy documentation for
 recorded compatibility runs. When it describes an embedded Improve campaign,

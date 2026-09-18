@@ -58,7 +58,7 @@ RETURN_RECEIPT = "return-receipt.md"
 # Only ShipLoop/Git control locations are universally transient.  Framework
 # names such as ``coverage`` or ``.next`` can be intentional product content;
 # callers can list those under ``exclude`` and must review every other path.
-FORBIDDEN_PARTS = frozenset({".git", ".shiploop", ".until-loop", ".worktrees", ".shiploop-workspaces", ".shiploop-runs"})
+FORBIDDEN_PARTS = frozenset({".git", ".shiploop", ".until-loop", ".shiploop-improve", ".worktrees", ".shiploop-workspaces", ".shiploop-runs"})
 
 _SHA = re.compile(r"[0-9a-f]{40,64}")
 _LOCK_LOCAL = threading.local()
@@ -1120,7 +1120,16 @@ def execute_return(workspace_root: Path) -> Dict[str, Any]:
     plan = _record(root, RETURN_PLAN, "return plan")
     candidate, changes, history = _candidate(manifest, root)
     rows = _validate_plan(root, manifest, plan, candidate, changes, history)
-    if any(_forbidden(row["path"]) for row in rows):
+    # The final Improve child must retain its terminal receipt until the parent
+    # imports it after return. Permit only excluded, untracked child evidence;
+    # a committed/staged receipt or a protected path in history still blocks.
+    untracked_paths = {row["path"] for row in candidate["untracked"]}
+    def retained_child_evidence(row: Mapping[str, Any]) -> bool:
+        return (row["path"].startswith(".shiploop-improve/")
+                and row["path"] in untracked_paths
+                and row["disposition"] == "exclude" and not row["in_history"])
+
+    if any(_forbidden(row["path"]) and not retained_child_evidence(row) for row in rows):
         _fail("candidate contains a protected transient/runtime path; preserve the workspace and remove it before return")
     _reject_added_path_collisions(source, manifest["baseline_tree"], rows)
 

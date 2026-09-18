@@ -284,8 +284,18 @@ retain the recovery locators and resume the same run when execution resumes.
    repeatability and suite wiring in that actual Improve review. Do not paste or
    imitate Improve's algorithm in ShipLoop, create
    a child phase graph/counter, or advance the parent while the child is active.
-   On cold recovery, inspect the recorded child state and resume it only through
-   its authoritative route. On accepted success, use `improve-complete` with the
+   With the current ephemeral Until Loop, save each exact returned JSON packet at
+   the parent packet's per-action receipt path. The one temporary `state_file`
+   owns the child's live counters; the saved packet retains its recovery command
+   and final completion evidence. Preserve parent identity, scoped authority and
+   return locators in frozen child `context`, and replace `handoff` on each `done`.
+   Execute one work iteration, submit its truthful classification and assessments,
+   then obey the returned instruction. A complete child deletes its state file,
+   so retain its terminal packet before the parent import. On cold recovery,
+   read the receipt and use its exact `next_argv` for an active child. Missing
+   state/output is incomplete, never evidence of success or permission to restart.
+   The retained durable-v2 route follows its recorded adapter instead.
+   On accepted success, use `improve-complete` with the
    packet's completion evidence; the script imports it once and selects the next
    producer. A blocked or stopped child leaves the parent incomplete.
 4. The owning agent writes the packet's generic Markdown result and runs its

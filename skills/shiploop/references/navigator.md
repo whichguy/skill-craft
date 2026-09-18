@@ -96,6 +96,17 @@ and work-item references in the child's existing contract prose and review notes
 the parent packet alone does not populate that contract. Relevant planning
 packets also select the [Backchain adaptation](backchain-planning.md#navigator-planning).
 
+For the current ephemeral adapter, carry those constraints and locators into
+frozen `context`, with the exact parent binding line in `context.request` and a
+fresh `handoff` on each `done`. Save complete raw runtime responses at the
+per-action `.shiploop-improve/<run-id>/<action>/packet.json` path printed by the
+parent. An active receipt supplies the exact read-only `next_argv`; a complete
+receipt survives temporary child state deletion and can be imported without
+another review. Missing or stopped child receipts leave the parent incomplete.
+The host never creates a replacement child to repair lost terminal output.
+See [the current runtime binding](../README.md#current-improve-and-until-loop-binding)
+for the transition example, legacy boundary and validation limits.
+
 The retained v2 result example below applies only to a v2 packet:
 
 ````markdown

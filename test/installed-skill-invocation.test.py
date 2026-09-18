@@ -176,7 +176,7 @@ class InstalledSkillInvocationTest(unittest.TestCase):
             ),
             "improve": (
                 "selected, loaded",
-                'RUNTIME_CLI="$SKILL_ROOT/runtime/until-loop/scripts/until-loop"',
+                'RUNTIME_SCRIPT="$SKILL_ROOT/runtime/until-loop/scripts/until_loop_ephemeral.py"',
                 "ambient Until Loop installation",
             ),
         }
@@ -367,6 +367,44 @@ two consecutive clean residual rounds with green suite
         )
         self.assertNotEqual(absent.returncode, 0)
         self.assertIn("error:", absent.stderr)
+        self.assert_no_bytecode()
+
+    def test_improve_ephemeral_runtime_from_read_only_installed_copy(self) -> None:
+        package = self.package("improve")
+        runtime = package / "runtime/until-loop/scripts/until_loop_ephemeral.py"
+        contract = {
+            "workspace": str(self.consumer),
+            "work": "Exercise one synthetic protocol review; do not change product files.",
+            "exit_condition": "Two synthetic qualifying reviews complete.",
+            "repeat_condition": "Continue while the review gate remains open.",
+            "required_trivial_reviews": 2,
+            "context": {"request": "Installed runtime protocol fixture", "scope": "Fixture only",
+                        "authority": "No product edits or commits", "environment": sys.executable,
+                        "resources": []},
+        }
+
+        def call(argv, payload=None):
+            result = subprocess.run(argv, input=None if payload is None else json.dumps(payload),
+                                    cwd=self.consumer, text=True, capture_output=True,
+                                    env=self.base_env(), timeout=30)
+            self.assert_ok(result, "installed ephemeral callback")
+            return json.loads(result.stdout)
+
+        packet = call([sys.executable, "-B", str(runtime), "start"], contract)
+        state = Path(packet["state_file"])
+        self.addCleanup(lambda: state.unlink(missing_ok=True))
+        self.assertNotIn(package, state.parents)
+        self.assertEqual(call(packet["next_argv"]), packet)
+        report = {"classification": "trivial", "exit_assessment": "satisfied",
+                  "continuation_assessment": "allowed", "evidence": "Synthetic review fixture",
+                  "handoff": "Retain this protocol-only fixture; no semantic review claim."}
+        first = call(packet["done_argv"], report)
+        self.assertEqual(first["status"], "active")
+        terminal = call(first["done_argv"], report)
+        self.assertEqual(terminal["status"], "complete")
+        self.assertEqual(terminal["context"], contract["context"])
+        self.assertFalse(state.exists())
+        self.assertFalse((self.consumer / ".until-loop").exists())
         self.assert_no_bytecode()
 
     def test_improve_bound_adapter_ignores_ambient_runtime(self) -> None:
