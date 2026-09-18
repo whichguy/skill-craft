@@ -136,6 +136,10 @@ matching user record; a deployment is not a same-build smoke receipt. A path
 through a related producer does not supply the missing layer. Retained
 managed/legacy DAGs require exact need-to-producer strings; v3 retains the
 mapping in ordinary plan/context prose. Matching strings are not proof of truth.
+Metadata existence also does not prove intended-consumer access: an assignment
+for another user does not supply the intended user's prerequisite, existing
+effective access may suffice, and the deployment operator need not be that
+consumer.
 
 Share one supplier among actual consumers of the same state and layer. Do not
 hoist it above its genuine prerequisites or introduce a global barrier for

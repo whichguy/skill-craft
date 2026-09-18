@@ -89,6 +89,10 @@ environment, artifact, and check identities internally. See
 
 ## Bounded method
 
+Apply [initial-plan reconciliation](../requirements-definition.md#initial-plan-reconciliation)
+to architecture, specification, NFR and state/data obligations. Preserve their
+source/test locators in the existing plan and affected work-item context.
+
 1. Read the durable prompt, converged research/behavior/spec slices, current
    survey/environment contract, relevant Git history, and the actual existing
    implementation, interfaces, call sites, tests, configuration, and docs that
