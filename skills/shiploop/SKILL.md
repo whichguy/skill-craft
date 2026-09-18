@@ -375,3 +375,20 @@ inspect full packets, or `--format json` for a trace. It does not run an LLM or
 perform implementation. See [dry-run activities](references/graph-dry-run.md).
 The old managed-controller probe remains available as `managed-graph-dry-run`
 for compatibility testing.
+
+## Source-aware Backchain selection
+
+For a new navigator-v3 plan, retain `embedded` unless ordinary run notes
+intentionally select compatible `source-aware-native`. The native selection binds
+the observed selected Backchain `SKILL.md`, adjacent `backchain-caller/v1` contract
+and action/stage resource; action ID/owner; card identity; original source and
+candidate identities; locator bases plus resolved source/candidate paths; edit
+bounds; and receipts. A recovery reopens this record instead of deriving sources
+from the selected skill directory or current working directory.
+
+Use the selected card only when it and the contract/resource are observed and
+compatible. A missing, stale, ambiguous, or incompatible material input is an
+incomplete/blocked native request with its recovery locator, not permission to
+guess, silently use another package, or call embedded native. The host judges
+capability and source adequacy; the ShipLoop script does not claim to machine
+enforce those judgments. Existing cold runs preserve their recorded mode.

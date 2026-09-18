@@ -472,6 +472,30 @@ class NavigatorV3Tests(unittest.TestCase):
             prompts.IMPROVE_SCOPES["spec"],
         )
 
+    def test_v3_native_backchain_operations_reach_only_the_assigned_packets(self) -> None:
+        """Check emitted dispatch targets; live trials assess policy semantics."""
+        operations = {
+            "draft": "action `plan` / stage `draft`",
+            "audit": "action `review` / stage `audit`",
+            "revise": "action `repair` / stage `revise`",
+        }
+        expected = {
+            "spec": "audit", "plan": "draft", "step-plan": "audit",
+            "carry-forward": "audit", "product-acceptance": "audit",
+        }
+        for stage in EXPECTED_STAGES:
+            with self.subTest(stage=stage):
+                producer = prompts.prompt(stage)
+                improve = prompts.improve_prompt(stage)
+                self.assertEqual(
+                    [name for name, selector in operations.items() if selector in producer],
+                    [expected[stage]] if stage in expected else [],
+                )
+                self.assertEqual(
+                    [name for name, selector in operations.items() if selector in improve],
+                    ["revise"] if stage in expected else [],
+                )
+
     def test_v3_backchain_planning_guidance_is_scoped_to_selected_stages(self) -> None:
         """Producer and actual Improve prompts use the guide only for planning decisions."""
         self.assertTrue(self.backchain_planning_guide.is_file())

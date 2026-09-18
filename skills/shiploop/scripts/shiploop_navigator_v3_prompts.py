@@ -785,13 +785,73 @@ IMPLEMENTATION_STAGES = frozenset(
 
 
 BACKCHAIN_STAGES = frozenset({"spec", "plan", "step-plan", "carry-forward", "product-acceptance"})
-BACKCHAIN_GUIDANCE = """\
+BACKCHAIN_NATIVE_CALLS = {
+    "plan": ("plan", "draft"),
+    "step-plan": ("review", "audit"),
+}
+BACKCHAIN_CONDITIONAL_AUDIT_STAGES = frozenset({"spec", "carry-forward", "product-acceptance"})
+
+
+def _backchain_guidance(stage: str, *, improve_owner: bool = False) -> str:
+    """Return host-mediated caller guidance without adding navigator state."""
+    selection = """\
 Follow the packet's Backchain planning guide for this stage's scoped outcome,
 prerequisite and consumer review. Carry selected requirement sections and test
-locators through the plan and existing result/context fields. This is the
-packaged reasoning adaptation, not a standalone Backchain invocation, another
-state machine, or permission to import a different protocol's result schema.
+locators through the plan and existing result/context fields. Existing runs retain
+their recorded mode. For a new v3 plan, current embedded adaptation remains the
+compatibility default until an explicit run-note selection chooses
+`source-aware-native`.
+
+A `source-aware-native` call is allowed only when existing run notes identify an
+observed selected Backchain `SKILL.md`, its adjacent `backchain-caller/v1`
+caller-contract resource, and the resources for the requested action/stage. Read
+those observed resources before use; do not guess a sibling, cache, or a matching
+skill name. Persist the selected card/contract identities, original source and
+candidate identities/digests, edit bounds, receipt locators, and every resolved
+source locator/base (the resolved source locator) or observed absolute locator in existing run notes,
+`evidence_refs`, and necessary work-item `context`. A fresh context rereads that
+record rather than assuming its CWD or deriving sources from the skill root.
+
+If a requested native card, contract, source, candidate, digest, or resource is
+missing, stale, ambiguous, or incompatible, leave it incomplete/blocked with the
+recovery locator: there is no silent fallback. Label `embedded` only when it was
+intentionally selected; do not describe it as a native invocation. Host reasoning
+checks capability identity and packet compatibility; these prompts do not pretend
+that the navigator machine-enforces either.
+
+A source-aware packet preserves the original request/source clauses, workflow stage, action/stage, action ID and owner; selection skill locator/digest; explicit locator-base records and each resolved locator; candidate input kind, input/output digests and disposition; source authority/provenance/currentness/revision/supersession; requirements index, lens findings, observed evidence, open questions, dependency neighborhood, edit bounds/iteration budget, prior findings, and result receipts.
+Missing or stale material sources remain unresolved. A structural plan, planned
+check, or experiment that merely ran is not execution evidence or a passed
+experiment. Material findings remain visible and cannot clear Improve.
 """
+    if improve_owner:
+        return selection + """\
+only the active Improve iteration executor may ask for action `repair` / stage `revise`, and only after a material finding within that child's authorized
+candidate scope and edit bounds. ShipLoop stays parked while Improve uses the
+returned candidate or unresolved finding in its existing cycle. Do not create an
+`active_backchain` child, a nested Until Loop, a retry dispatcher, or a new
+callback; a protected/out-of-scope change follows the existing blocked or
+recovery route.
+"""
+    if stage in BACKCHAIN_NATIVE_CALLS:
+        action, operation = BACKCHAIN_NATIVE_CALLS[stage]
+        detail = (
+            "The draft is a proposed candidate; ShipLoop still owns acceptance and lifecycle state."
+            if stage == "plan"
+            else "The audit compares the scoped item, suppliers, consumers, and sources without mutating the candidate."
+        )
+        return selection + f"""\
+When `source-aware-native` is selected for this stage, the current stage host may
+request action `{action}` / stage `{operation}` within the packet's scope. {detail}
+"""
+    return selection + """\
+At this stage, request action `review` / stage `audit` only for a material
+prerequisite ambiguity, pending/corrective dependency, or acceptance gap. It is
+not a default stage call and cannot replace consumer verification.
+"""
+
+
+BACKCHAIN_GUIDANCE = _backchain_guidance("plan")
 
 
 def _require_stage(stage: str) -> None:
@@ -804,7 +864,7 @@ def prompt(stage: str) -> str:
     _require_stage(stage)
     parts = [COMMON, DUTIES[stage]]
     if stage in BACKCHAIN_STAGES:
-        parts.append(BACKCHAIN_GUIDANCE)
+        parts.append(_backchain_guidance(stage))
     if stage in RECONCILIATION_STAGES:
         parts.append(SELECTED_CASE_RECONCILIATION)
     if stage in IMPLEMENTATION_STAGES:
@@ -816,7 +876,7 @@ def prompt(stage: str) -> str:
 def improve_prompt(stage: str) -> str:
     """Return the actual Improve-skill handoff for a completed producer stage."""
     _require_stage(stage)
-    backchain = BACKCHAIN_GUIDANCE if stage in BACKCHAIN_STAGES else ""
+    backchain = _backchain_guidance(stage, improve_owner=True) if stage in BACKCHAIN_STAGES else ""
     baseline_guard = ""
     if stage in {"discovery", "baseline"}:
         baseline_guard = """\

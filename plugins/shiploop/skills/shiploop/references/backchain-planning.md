@@ -2,8 +2,10 @@
 
 ## Navigator planning
 
-In navigator v3 this is an incorporated reasoning guide, not a standalone
-Backchain invocation or a compatibility result schema. Read the selected
+In navigator v3's default `embedded` mode this is an incorporated reasoning
+guide, not a standalone Backchain invocation or a compatibility result schema.
+An explicitly selected `source-aware-native` run uses the caller contract in
+[Source-aware native caller](#source-aware-native-caller-navigator-v3) below. Read the selected
 product clauses using [reference handoffs and destinations](project-knowledge.md#reference-handoffs-and-destinations)
 alongside the new request and current-run spec. Preserve unaffected conditions
 and map each required outcome to its own expected observation/test locator.
@@ -25,8 +27,10 @@ is not independent evidence that the needed state exists.
 
 ## Owner binding
 
-This is the native ShipLoop adaptation of the inspected Backchain planning
-method, not a call to its standalone skill, generator, elaborator, or harness.
+In `embedded` mode this is ShipLoop's adaptation of the inspected Backchain
+planning method, not a call to its standalone skill, generator, elaborator, or
+harness. Explicit `source-aware-native` selection is the v3 exception and binds
+the current host to the observed standalone skill and caller resources below.
 Read only the sections selected by the current packet. Perform that one action
 and submit its exact callback; a planning review never authorizes implementation,
 deployment, a new credential, or a different writer.
@@ -200,7 +204,9 @@ rule permits silently repairing or deleting frozen edges outside that path.
 
 ## Provenance
 
-Inspected Backchain checkout: `8278e27a84aa3a28c8986f798e14a3cd9436be67`.
+The incorporated `embedded` guide was inspected against Backchain checkout
+`8278e27a84aa3a28c8986f798e14a3cd9436be67`. Selected native calls record their own
+actual card and resource identities as described below.
 Sources: `prompts/generator.v1.md`, `prompts/dependency-review.prompt.md`,
 `prompts/elaborator.v1.md`, and their regression/experiment controls. This
 reference selectively incorporates outcome-first drafting, per-outcome checks,
@@ -214,3 +220,37 @@ current gates validate shapes, identities, links and receipts—not the semantic
 truth or exhaustiveness of this reasoning. Review against independent request
 criteria and meaningful checks remains necessary. This is an incorporated
 adaptation, not execution or a byte-identical snapshot of the external skill.
+
+## Source-aware native caller (navigator v3)
+
+`embedded` remains the current compatibility mode. A new run may intentionally
+select `source-aware-native` in ordinary run notes when the host has observed a
+selected Backchain `SKILL.md`, its adjacent `backchain-caller/v1` contract, and
+the resource for the requested action/stage. This is host-mediated prompt guidance,
+not navigator state, a callback, a controller, or a scheduler.
+
+The durable selection record names mode, interface, action/stage, action ID and
+owner; selected-card locator and digest; original request; candidate ID, locator,
+base, resolved locator and input/output digests; and each source's locator, base,
+resolved locator, authority, provenance, currentness, revision, digest and
+supersession. It retains requirements as an index, lens findings, edit bounds,
+iteration budget, findings, result dispositions and receipt locators in existing
+run notes, `evidence_refs` and compact work-item `context`. Cold recovery rereads
+those records; it never infers the caller root from the skill root or prior CWD.
+
+The plan-stage owner may request `plan`/`draft`; the step-plan owner may request
+`review`/`audit`. `spec`, `carry-forward`, and `product-acceptance` request audit
+only for a material dependency or acceptance gap. Only the active Improve iteration
+executor may request `repair`/`revise`, after a material finding and inside that
+child's allowed bounds. ShipLoop remains parked and Improve remains responsible for
+its own completion. A material finding, a planned check, or an experiment that
+merely ran cannot clear Improve or establish execution.
+
+An unavailable, stale, ambiguous, superseded-without-inspection, or incompatible
+material source/card/contract/resource is incomplete or blocked; do not silently
+select embedded. A chosen embedded mode is recorded explicitly and is never called
+a native invocation. Host reasoning evaluates capability and packet compatibility:
+the script does not claim to enforce those semantic facts. A native output with
+invalid identity is unchanged/rejected/unresolved; no digest is invented. A revised
+plan starts with structural status unknown and empty `parallel_groups` until its
+exact output digest and structural check are independently recorded.
