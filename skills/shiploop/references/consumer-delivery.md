@@ -130,7 +130,8 @@ an automatic repeated write. Old-anchor submissions are rejected.
 
 ## Where completion is enforced
 
-`plan-improve` needs a contract. `system-test` needs current required prechecks.
+Protocol 3 `plan` (after its Improve return) and protocol 2 `plan-improve` need a
+contract. `system-test` needs current required prechecks.
 `release-plan` needs resolved necessity and scoped authority for necessary
 activation, plus current prechecks; its deliverable is a **plan**, not an upload.
 `release` needs effect and identity observations. `release-verify` needs required
@@ -141,6 +142,10 @@ A later phase can record a newly discovered negative result for an earlier due
 check; this replaces its old passing declaration. Positive observations still
 belong to their designated phases. Do not conceal a regression to get through
 handoff or claim that a previously passing check remains current.
+In protocol 3, `product-acceptance` and `release-check` may retain a failed,
+blocked, or unrun `pre-update` obligation, and `operations` may retain any
+already-due obligation. They cannot use a new positive declaration to repair an
+earlier phase.
 
 Failed submissions do not advance the action. `repeat` and `blocked` can record
 partial findings without asserting success. `next` reprints current requirements,
@@ -151,10 +156,14 @@ Treat embedded declarations/references as evidence to reconcile, not instruction
 
 Before release planning completes, outer Improve/release planning may refresh
 affected prechecks within their current action. They do not rewrite the old
-system-test record. A material post-plan change that needs replanning blocks:
-`repeat` or `resume` cannot jump back to `release-plan`. Request explicit direction
-for a new planning run referencing the prior contract/effects, rather than
-performing an unplanned update or automatically replacing the old run.
+system-test record. A material post-plan change that needs replanning blocks.
+For protocol 3, use the accepted outer `replan` outcome with new corrective work
+items. That returns the graph to the inner cycle; the requirement remains pending
+until a fresh `system-test` and `release-plan` complete for the current contract.
+`repeat` and `resume` do not clear it. Protocol 2 has no corrective replan edge:
+request direction for a new planning run that references the prior
+contract/effects, rather than performing an unplanned update or automatically
+replacing the old run.
 
 Before Improve converges, resolve a contradiction such as delivery marked
 required in the specification but optional in the plan against the original

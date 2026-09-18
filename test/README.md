@@ -41,6 +41,14 @@ through `shiploop-1`, `shiploop-2`, and `shiploop-3`; they are scheduling
 aliases and are intentionally excluded from `--group all`, which still runs
 the full serial ShipLoop runner exactly once.
 
+`python3 test/shiploop-full-runtime.test.py` composes public ShipLoop and selected
+bundled Until Loop CLIs across the protocol-3 graph, including cold recovery and
+corrective outcomes. Its review judgments are synthetic: it proves local runtime
+composition, not semantic Improve quality, live host execution, or deployment.
+Copied-package cases exercise portable payloads from an unrelated CWD without a
+marketplace installation. The v3-guidance and packet-bounds suites check relevant
+reference routing and recovery of large context from complete durable records.
+
 The ShipLoop group includes opt-in consumer-delivery declaration checks, public
 CLI compatibility/relocation tests, synthetic prompt/fake-boundary fixtures, and
 temporary loopback HTTP checks of the browser fixture's distinct served cases.

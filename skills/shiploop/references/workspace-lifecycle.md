@@ -1,9 +1,9 @@
 # Isolate a run; return only lasting work
 
-This policy applies to new `workspace start` runs (`navigator-worktree`, protocol
-2). Direct `init`, saved navigator-v1/v2, managed and legacy runs keep their
-existing behavior; do not retrofit an active run or claim that those routes have
-this helper's return gate. The SDLC graph and Improve ownership are unchanged.
+This policy applies to new `workspace start` runs (`navigator-worktree`, navigator
+protocol 3). Direct `init`, saved navigator-v1/v2, managed and legacy runs keep
+their existing behavior; do not retrofit an active run or claim that those routes
+have this helper's return gate. The SDLC graph and Improve ownership are unchanged.
 
 ```mermaid
 flowchart LR
@@ -115,13 +115,15 @@ and unfinished children cannot return the candidate; no subsequent producer
 can silently change a returned candidate. The return command validates the
 child completion and successful final disposition without advancing the graph.
 
-At release planning, determine whether returning to the original branch itself
-triggers CI/deployment or another material effect. For v3, use an authorized
-delivery/verification route from the execution checkout when available. If
-source return is a prerequisite for a required consumer check, record that
-unresolved ordering boundary and keep the run incomplete for reconciliation;
-do not claim a pre-return check observed the later effect or bypass the final
-return guard. Legacy v1/v2 retain their earlier release-or-handoff return route.
+During discovery and prepare, determine whether returning to the original branch
+itself triggers CI/deployment or another material effect, and whether that return
+is a prerequisite for a required consumer check. At release planning, revalidate
+the finding against the selected candidate and authority. For v3, use an authorized
+delivery/verification route from the execution checkout when available. If source
+return is a prerequisite for a required consumer check, record that unresolved
+ordering boundary and keep the run incomplete for reconciliation; do not claim a
+pre-return check observed the later effect or bypass the final return guard. Legacy
+v1/v2 retain their earlier release-or-handoff return route.
 The helper never grants deployment, push or branch-policy authority. Source
 return is not evidence that a hosted consumer has been updated.
 

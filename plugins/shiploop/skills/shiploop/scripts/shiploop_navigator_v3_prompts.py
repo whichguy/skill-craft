@@ -55,6 +55,133 @@ OUTER = (
 STAGES = PRELUDE + INNER + OUTER
 
 
+# Keep stage routing declarative and package-relative.  The navigator renders
+# these selected locators with the package reference directory; this catalog
+# does not persist a second graph, decision ledger, or prompt copy.
+STAGE_REFERENCES: dict[str, tuple[tuple[str, str], ...]] = {
+    "intake": (
+        ("Prior-run and recovery guidance", "project-knowledge.md#new-work-versus-recovery"),
+        ("Delivery authority guidance", "delivery-authority.md#ask-at-the-first-concrete-boundary"),
+    ),
+    "discovery": (
+        ("Persistent project-context guidance", "project-knowledge.md#discover-persistent-context-before-planning"),
+        ("Environment and source-return discovery", "environment-lifecycle.md#discover-before-planning-code"),
+    ),
+    "research": (
+        ("Bounded research guidance", "research-loop.md#recursive-discovery-and-experiments"),
+        ("Reuse-before-build guidance", "research-loop.md#reuse-before-a-new-mechanism"),
+    ),
+    "spec": (
+        ("Behavior-model guidance", "behavioral-requirements.md#behavior-model"),
+        ("Behavior traceability guidance", "behavioral-requirements.md#traceability-and-review"),
+    ),
+    "test-strategy": (
+        ("Test-case planning guidance", "testing-and-documentation.md#test-cases"),
+        ("System-test catalog guidance", "system-tests.md#catalog-shape"),
+    ),
+    "plan": (
+        ("Dependency-planning guidance", "backchain-planning.md#dependency-audit"),
+        ("Decision carry-forward guidance", "project-knowledge.md#carry-context-into-the-new-plan"),
+    ),
+    "prepare": (
+        ("Environment preparation guidance", "environment-lifecycle.md#plan-preparation-before-its-first-consumer"),
+        ("Workspace and return guidance", "workspace-lifecycle.md#entry-identity-and-storage"),
+    ),
+    "select-work": (
+        ("Cold-start evidence guidance", "execution-planning.md#cold-start-evidence"),
+        ("Decision carry-forward guidance", "project-knowledge.md#carry-context-into-the-new-plan"),
+    ),
+    "step-plan": (
+        ("Implementation constitution", "testing-and-documentation.md#implementation-constitution"),
+        ("Decision carry-forward guidance", "project-knowledge.md#carry-context-into-the-new-plan"),
+    ),
+    "test-spec": (
+        ("Test-case planning guidance", "testing-and-documentation.md#test-cases"),
+    ),
+    "baseline": (
+        ("Baseline-test guidance", "execution-planning.md#baseline-tests-and-migrations"),
+    ),
+    "test-author": (
+        ("Test-case planning guidance", "testing-and-documentation.md#test-cases"),
+    ),
+    "test-red": (
+        ("Test-case planning guidance", "testing-and-documentation.md#test-cases"),
+    ),
+    "implement": (
+        ("Implementation constitution", "testing-and-documentation.md#implementation-constitution"),
+    ),
+    "test-green": (
+        ("Iteration and verification guidance", "testing-and-documentation.md#iteration"),
+    ),
+    "test-refine": (
+        ("Test-case planning guidance", "testing-and-documentation.md#test-cases"),
+    ),
+    "regression": (
+        ("Real-boundary test guidance", "testing-and-documentation.md#layers-and-real-boundaries"),
+    ),
+    "document": (
+        ("Documentation guidance", "testing-and-documentation.md#documentation"),
+        ("Documentation and reuse guidance", "testing-and-documentation.md#iteration-documentation-and-reuse"),
+    ),
+    "skill-assess": (
+        ("Reuse-before-build guidance", "research-loop.md#reuse-before-a-new-mechanism"),
+    ),
+    "skill-validate": (
+        ("Documentation and reuse guidance", "testing-and-documentation.md#iteration-documentation-and-reuse"),
+    ),
+    "static-checks": (
+        ("Iteration and verification guidance", "testing-and-documentation.md#iteration"),
+    ),
+    "verify": (
+        ("Test-case planning guidance", "testing-and-documentation.md#test-cases"),
+        ("Real-boundary test guidance", "testing-and-documentation.md#layers-and-real-boundaries"),
+    ),
+    "integrate": (
+        ("Workspace integration guidance", "workspace-lifecycle.md#inner-assembly-and-final-return"),
+    ),
+    "integration-verify": (
+        ("Real-boundary test guidance", "testing-and-documentation.md#layers-and-real-boundaries"),
+    ),
+    "carry-forward": (
+        ("Carry-forward mapping guidance", "carry-forward.md#mandatory-post-inner-mapping"),
+        ("Persistent project-knowledge guidance", "project-knowledge.md#retain-learnings-for-the-next-invocation"),
+    ),
+    "system-test-author": (
+        ("System-test catalog guidance", "system-tests.md#catalog-shape"),
+    ),
+    "system-test": (
+        ("System-test placement guidance", "system-tests.md#placement-and-dependency-rules"),
+        ("Real-boundary test guidance", "testing-and-documentation.md#layers-and-real-boundaries"),
+    ),
+    "product-acceptance": (
+        ("Behavior traceability guidance", "behavioral-requirements.md#traceability-and-review"),
+        ("Consumer delivery guidance", "consumer-delivery.md#what-to-establish"),
+    ),
+    "release-plan": (
+        ("Environment promotion guidance", "environment-lifecycle.md#carry-the-route-into-final-delivery"),
+        ("Workspace return guidance", "workspace-lifecycle.md#inner-assembly-and-final-return"),
+    ),
+    "release-check": (
+        ("Delivery completion guidance", "consumer-delivery.md#where-completion-is-enforced"),
+    ),
+    "release": (
+        ("Delivery authority mapping", "consumer-delivery.md#map-authority-readiness-to-existing-fields"),
+        ("Workspace return guidance", "workspace-lifecycle.md#inner-assembly-and-final-return"),
+    ),
+    "release-verify": (
+        ("Deployment and handoff guidance", "testing-and-documentation.md#deployment-and-handoff"),
+        ("Consumer delivery evidence guidance", "consumer-delivery.md#evidence-and-limits"),
+    ),
+    "operations": (
+        ("Deployment and handoff guidance", "testing-and-documentation.md#deployment-and-handoff"),
+    ),
+    "handoff": (
+        ("Deployment and handoff guidance", "testing-and-documentation.md#deployment-and-handoff"),
+        ("Workspace return guidance", "workspace-lifecycle.md#inner-assembly-and-final-return"),
+    ),
+}
+
+
 PROGRESS_REPORTING = """\
 Progress: report the saved Done / Current / Pending / Blocked snapshot at
 start/recovery and material milestones.  Only the current owner reports overall
@@ -83,8 +210,11 @@ During discovery, spec development, global planning and step planning, use the
 packet's Interaction design guide to identify relevant actors, interaction
 directions, channels, and state ownership. Choose the simplest suitable mechanism,
 preferring existing capabilities for this request and environment; a hosted UI
-does not imply server state for each action. Retain decision/evidence locators in
-existing notes and affected work-item context for later planning and Improve reviews.
+does not imply server state for each action. Where a plan creates or revises work
+items, retain only the relevant compact locator, decision, rationale, scope, and
+revalidation condition in existing plan notes and that item's `context`; retain
+the supporting source locator in the ordinary `evidence_refs`. Do not copy source
+transcripts, invent a decision ledger, or treat a context summary as proof.
 
 Return the packet's concise producer result with a truthful outcome, summary,
 and useful evidence locators.  A justified N/A is still an output that states
@@ -134,7 +264,11 @@ current conventions, supported runtime/dependency versions, canonical code/test
 examples, relevant MCP/API contracts, and reusable skills/libraries.  Separate
 binding requirements, observed practices, and proposals; record source-backed
 facts, conflicts, and consequential gaps without installing or provisioning
-anything.
+anything. Before planning, determine whether returning to the original source
+branch triggers CI, deployment, publication, or another material effect, and
+whether that return is a prerequisite for any required consumer check. Record the
+actual route and uncertainty in existing environment/deployment notes; inspecting
+it does not authorize a return, deployment, or early final-handoff action.
 """,
     "research": """\
 Resolve material unknowns with repository, primary-interface, or otherwise
@@ -165,20 +299,31 @@ producers.  Order readiness, test, implementation, integration, documentation,
 and release work so consumers do not run before their prerequisites.  Define
 ready/done conditions, candidate scope, check evidence, authority boundaries,
 and correction routes.  Do not use the plan to imply unrun tests or authorized
-external operations.
+external operations. Where this plan creates work items, retain each applicable
+convention, canonical test/example, verified skill/MCP/library contract,
+environment or delivery decision, and approved exception as a short source
+locator plus decision, rationale, and revalidation condition in existing plan
+evidence. Put only the item-specific compact summary in the existing work-item
+`context` and preserve the source locators in ordinary `evidence_refs`.
 """,
     "prepare": """\
 Prepare or verify the approved development/test environment and prerequisites.
 Confirm isolation, runtime/configuration/data safety, access, fixture readiness,
 and baseline identity using safe observations.  Record a justified N/A only when
 no preparation is needed for this candidate; missing required access or setup is
-blocked.  Do not use production or deploy merely to make local work possible.
+blocked. Recheck any discovered source-return trigger and an authorized
+execution-checkout delivery/verification route before its first dependent work.
+If source return must precede a required consumer check, record the ordering
+conflict and keep it unresolved for reconciliation; do not return early, deploy,
+or bypass the final-handoff return guard merely to make local work possible.
 """,
     "select-work": """\
 Select the next ready work item from the script-owned queue.  Confirm its
 dependencies, scope, owner, relevant lessons, expected outcomes, and prerequisites
 are current.  If no item is ready, return the concrete missing producer or
-correction need; do not invent a new queue transition.
+correction need; do not invent a new queue transition. Reopen the item's compact
+`context` and relevant plan/evidence locators, then revalidate their stated
+conditions before relying on an earlier convention or environment decision.
 """,
     "step-plan": """\
 Turn the selected item into a bounded implementation plan.  Name target files
@@ -186,6 +331,10 @@ and interfaces, behavior and failure cases, tests/fixtures/commands, existing
 conventions and reusable capabilities, diagnostic/error-handling obligations,
 documentation changes, integration impact, and required checks.  Revalidate
 environment, skill/MCP/library, and project-practice choices for this exact item.
+Reopen only the relevant item `context`, plan/evidence locators, and packet-selected
+reference sections; verify that their scope and revalidation conditions still
+apply. Record a changed decision or exception with its short locator and reason in
+the existing plan/result evidence rather than relying on copied chat context.
 """,
     "test-spec": """\
 Specify executable tests before production edits when applicable.  Map the item
@@ -294,7 +443,11 @@ Record reusable learning, unresolved dependencies, newly discovered risks,
 future work, system-test obligations, release prerequisites, and ownership.  Keep
 current completed evidence separate from future plans.  Update appropriate project
 knowledge and preserve concrete revalidation conditions; do not silently expand
-scope or convert tentative ideas into adopted policy.
+scope or convert tentative ideas into adopted policy. When creating a future
+work item, carry only its applicable compact decision/convention locator, rationale,
+and revalidation condition in its existing `context`, with supporting source
+locators in ordinary `evidence_refs`; do not duplicate transcripts or invent a
+second decision store.
 """,
     "system-test-author": """\
 Author or refine whole-product/system test cases and fixtures from the assembled
@@ -453,6 +606,13 @@ Carry those locators into the child contract for cold recovery; revalidate the
 choice against this request, environment, and affected tests without inventing
 distributed infrastructure or expanding the assigned scope.
 
+Treat the relevant work-item `context`, parent `evidence_refs`, plan notes, and
+packet-selected reference locators as parent-supplied cold-context inputs. Reopen
+and revalidate only the sources relevant to this candidate, then retain a compact
+current locator, decision, rationale, and revalidation result in the child review
+notebook. Do not replace those source locators with copied transcripts, a new child
+ledger, or an unverified summary.
+
 Improve owns its own review iterations, evidence notebook, continuation, and
 completion judgment.  Do not replace it with an inline review algorithm, copied
 policy, ShipLoop review counter, child phase graph, or guessed runtime command.
@@ -493,6 +653,7 @@ __all__ = (
     "PRELUDE",
     "PROGRESS_REPORTING",
     "PROMPTS",
+    "STAGE_REFERENCES",
     "STAGES",
     "improve_prompt",
     "prompt",

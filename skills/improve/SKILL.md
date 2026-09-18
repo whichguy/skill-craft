@@ -68,9 +68,31 @@ Do not make the user supply internal arguments or JSON. A skill-directory or
 marketplace installation must keep this entire package tree together; the
 nested runtime is an internal dependency, not a second standalone parent.
 
-## Owner-managed consumer entrypoint
+## ShipLoop v3 whole-skill subcall
 
-An owner-managed consumer must read
+When a ShipLoop v3 packet names a selected actual Improve card and prints a
+`ShipLoop standalone Improve binding: <binding-id>` marker, this is a
+**standalone whole-skill subcall**. Read and run this card's standalone owner
+binding with this card's bound Until Loop runtime. The ShipLoop packet supplies
+the bounded candidate scope, permitted paths, current producer result, relevant
+work-item `context`, evidence/reference locators, return route, and authority
+constraints; retain those as constraints in the child contract rather than
+inventing an alternate ShipLoop review protocol.
+
+The v3 default no-commit constraint overrides the standalone binding's ordinary
+commit policy: retain review records and validation evidence, but do not commit,
+merge, push, or broaden the parent scope unless the packet supplies an explicit
+user- or repository-authorized exception. Improve owns its review iterations and
+Until Loop state; ShipLoop keeps the parent graph action pending and imports the
+accepted child evidence once. Reopen only relevant parent locators for cold
+recovery, and retain concise current decision/revalidation locators in the child
+notebook. Do not use `managed_controller.py`, a `managed-improve` callback, or an
+ambient Until Loop runtime for this v3 route.
+
+## Other owner-managed consumer entrypoint
+
+An owner-managed consumer other than the explicit ShipLoop v3 whole-skill
+subcall above must read
 [the shared review policy](references/review-policy.md) and that owner's
 explicit binding in full. It must not run this standalone card or this card's
 until-loop adapter. The other owner supplies its own history window, scope,
@@ -83,7 +105,8 @@ finalization authority.
 separate consumer of the same shared policy. It applies only when a ShipLoop
 run has selected the versioned managed Improve protocol and printed a
 `managed-improve` packet. It does not replace the standalone owner binding
-above or change an existing ShipLoop run that lacks that protocol marker.
+for a v3 whole-skill subcall above or change an existing ShipLoop run that lacks
+that protocol marker.
 
 Read the managed-consumer binding and the parent-supplied child packet in full.
 The managed controller owns the child phase sequence, its completed review

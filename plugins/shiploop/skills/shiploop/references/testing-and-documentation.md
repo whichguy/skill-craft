@@ -5,10 +5,13 @@ requirements within existing stages, not new CLI fields or semantic guarantees.
 Reuse repository conventions and available tools; do not install a framework or
 create a service just to satisfy a test-category label.
 
-Before execution, the [planning loops](planning-loops.md) repeatedly review case
-expectations and run lint/tests of the research/behavior/specification artifacts through
-`planning-verify`. Those checks do not certify future product test results.
-Product acceptance remains blocked until its real implementation checks run.
+Before product execution, use the current packet's planning checks. Compatibility
+planning-loop runs repeatedly review case expectations and run lint/tests of the
+research/behavior/specification artifacts through `planning-verify`; a v3 navigator
+uses its `test-strategy`, `plan`, and `step-plan` producer duties, each followed by
+its standalone Improve handoff. Neither route's planning checks certify future product
+test results. Product acceptance remains blocked until its real implementation checks
+run.
 Research tests use the exact `research evidence` acceptance and inspect the
 question/source relationships and asserted contracts; they do not prove that a
 live environment stayed unchanged. See
@@ -581,13 +584,16 @@ silent override. Never relax safety or acceptance to claim simplicity.
    actual tests; run required lint/tests after edits. Update affected README/docs.
    Prefer existing tools and focused cases over checklist-driven test layers.
    Preserve the independent expected outcome and required real-boundary evidence.
-6. **One convergence owner.** A managed Improve child owns its review, plan,
-   apply, check and two-trivial assessment for the bound candidate. ShipLoop
-   owns its parent action, DAG and certificate import. Do not wrap the child's
-   per-iteration plan in another converging Improve loop, count its passes in
-   the parent, or use a legacy callback in parallel. A material change reopens
-   affected evidence; an unavailable mandatory reviewer blocks unless the
-   binding explicitly records an authorized self-review fallback.
+6. **One convergence owner.** A v3 standalone Improve child uses the selected
+   Improve card and its bound Until Loop for review, plan, apply, check and
+   two-trivial assessment within the parent-supplied scope/no-commit constraint.
+   A versioned managed Improve child retains its managed binding for the same
+   ownership boundary. ShipLoop owns its parent action, DAG and certificate
+   import. Do not wrap either child's per-iteration plan in another converging
+   Improve loop, count its passes in the parent, or use a legacy callback in
+   parallel. A material change reopens affected evidence; an unavailable
+   mandatory reviewer blocks unless the binding explicitly records an authorized
+   self-review fallback.
 
 In existing `body`/`plan`, note consequential design choices. During review use
 existing findings; record changes or justified exceptions in `summary`/`learnings`
