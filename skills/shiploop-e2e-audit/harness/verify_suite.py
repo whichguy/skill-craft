@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Composite independent verifier for the nine ShipLoop game scenarios.
+"""Composite independent verifier for ShipLoop game scenarios.
 
 This observer is intentionally outside the one-shot model process.  It does
 not choose selectors, build an app, mutate a product, or feed evidence back to
@@ -28,6 +28,7 @@ if str(HERE) not in sys.path:
 
 import driver_transport  # noqa: E402
 import grading  # noqa: E402
+import salesforce_proof as salesforce  # noqa: E402
 import verify_tictactoe as tictactoe  # noqa: E402
 
 
@@ -39,15 +40,25 @@ SOURCE_MAPPING_SCHEMA = "shiploop-e2e-source-deployment-mapping/1"
 HOSTED_OBSERVATION_SCHEMA = "shiploop-e2e-hosted-game-observation/1"
 HOSTED_BROWSER_TRACE_SCHEMA = "shiploop-e2e-hosted-browser-trace/1"
 DRIVER_REGISTRY_SCHEMA = "shiploop-e2e-drivers/1"
+SALESFORCE_TARGET_PREFLIGHT_SCHEMA = salesforce.TARGET_PREFLIGHT_SCHEMA
+SALESFORCE_DEPLOYMENT_OBSERVATION_SCHEMA = salesforce.DEPLOYMENT_OBSERVATION_SCHEMA
+SALESFORCE_DEPLOYMENT_RECEIPT_SCHEMA = salesforce.DEPLOYMENT_RECEIPT_SCHEMA
+SALESFORCE_SOURCE_MAPPING_SCHEMA = salesforce.SOURCE_MAPPING_SCHEMA
+SALESFORCE_HOSTED_OBSERVATION_SCHEMA = salesforce.HOSTED_OBSERVATION_SCHEMA
+SALESFORCE_LIGHTNING_BROWSER_TRACE_SCHEMA = salesforce.LIGHTNING_BROWSER_TRACE_SCHEMA
 DEFAULT_DRIVER_TIMEOUT_SECONDS = 60.0
 DEFAULT_DRIVER_MAX_OUTPUT_BYTES = 8 * 1024 * 1024
 MAX_DRIVER_TIMEOUT_SECONDS = 300.0
 MAX_DRIVER_OUTPUT_BYTES = 16 * 1024 * 1024
 REVIEW_OWNED_CHECKS = frozenset((
     "authorized-deployment", "hosted-game-behavior", "local-only-scope", "run-returned-to-product",
+    "salesforce-authorized-deployment", "salesforce-hosted-lightning-behavior",
+    "salesforce-source-candidate",
 ))
 NON_SEMANTIC_CHECKS = frozenset((
     "authorized-deployment", "hosted-game-behavior", "local-only-scope", "run-returned-to-product",
+    "salesforce-authorized-deployment", "salesforce-hosted-lightning-behavior",
+    "salesforce-source-candidate",
     "gas-compatible-local-artifact",
     "previous-behavior-preserved", "feature-before-absent-or-already-satisfied",
     "feature-passes-after-when-eligible", "incremental-integration-review",
@@ -356,8 +367,20 @@ def _validate_behavior_case(case: Any, *, family_id: str, requested_step: str) -
     return case
 
 
+def _oracle_family_id(family: Mapping[str, Any]) -> str:
+    """Return the game-rule oracle selected by a scenario family.
+
+    A platform-specific scenario can deliberately share a game oracle while
+    retaining a distinct family identity and deployment-proof contract.
+    """
+    value = family.get("oracle_family", family.get("id"))
+    if not _nonempty_string(value):
+        raise ValueError("scenario family lacks a valid oracle family")
+    return str(value)
+
+
 def _behavior_cases(family: Mapping[str, Any], step: Mapping[str, Any]) -> list[dict[str, Any]]:
-    family_id = str(family["id"])
+    family_id = _oracle_family_id(family)
     step_id = str(step["id"])
     if family_id == "tic-tac-toe":
         cases = _ttt_cases(step_id)
@@ -625,7 +648,7 @@ def _replay_rows(
         ],
     }
     variant_comparisons: list[dict[str, Any]] = []
-    if context["family"]["id"] == "checkers" and result.get("baseline_digest") is not None:
+    if _oracle_family_id(context["family"]) == "checkers" and result.get("baseline_digest") is not None:
         for case in cases:
             before_result = matrix[(case["id"], "before")]
             after_result = matrix[(case["id"], "after")]
@@ -989,6 +1012,132 @@ def _authorized_deployment_errors(
     return sorted(set(errors))
 
 
+def _salesforce_authorized_deployment_errors(
+    entry: Mapping[str, Any], *, context: Mapping[str, Any], source_root: Path,
+    forbidden_roots: tuple[Path, ...],
+) -> list[str]:
+    """Validate a pinned Salesforce DX deployment rather than a GAS receipt."""
+    entries = entry.get("evidence", [])
+    observation, errors = _read_review_json_reference(
+        entry.get("observation"), entries=entries, source_root=source_root,
+        forbidden_roots=forbidden_roots, label="salesforce-deployment-observation",
+    )
+    if observation is None:
+        return errors
+    preflight, preflight_errors = _read_review_json_reference(
+        observation.get("target_preflight"), entries=entries, source_root=source_root,
+        forbidden_roots=forbidden_roots, label="salesforce-target-preflight",
+    )
+    receipt, receipt_errors = _read_review_json_reference(
+        observation.get("deployment_receipt"), entries=entries, source_root=source_root,
+        forbidden_roots=forbidden_roots, label="salesforce-deployment-receipt",
+    )
+    raw_result, raw_result_errors = _read_review_json_reference(
+        observation.get("raw_deployment_result"), entries=entries, source_root=source_root,
+        forbidden_roots=forbidden_roots, label="salesforce-raw-deployment-result",
+    )
+    mapping, mapping_errors = _read_review_json_reference(
+        observation.get("source_mapping"), entries=entries, source_root=source_root,
+        forbidden_roots=forbidden_roots, label="salesforce-source-mapping",
+    )
+    errors.extend(preflight_errors)
+    errors.extend(receipt_errors)
+    errors.extend(raw_result_errors)
+    errors.extend(mapping_errors)
+    if preflight is None or receipt is None or raw_result is None or mapping is None:
+        return sorted(set(errors))
+    mapping_reference = observation.get("source_mapping")
+    mapping_sha256 = mapping_reference.get("sha256") if isinstance(mapping_reference, Mapping) else None
+    raw_result_reference = observation.get("raw_deployment_result")
+    raw_result_sha256 = raw_result_reference.get("sha256") if isinstance(raw_result_reference, Mapping) else None
+    expected = {
+        "trial_id": context["result"]["trial_id"],
+        "candidate_digest": context["result"]["candidate_digest"],
+    }
+    errors.extend(salesforce.deployment_errors(
+        observation, expected=expected, preflight=preflight, receipt=receipt, raw_result=raw_result,
+        raw_result_sha256=raw_result_sha256, mapping=mapping, mapping_sha256=mapping_sha256,
+        candidate_root=Path(context["repo"]),
+    ))
+    return sorted(set(errors))
+
+
+def _salesforce_source_candidate_errors(
+    entry: Mapping[str, Any], *, context: Mapping[str, Any], source_root: Path,
+    forbidden_roots: tuple[Path, ...],
+) -> list[str]:
+    """Validate the component map against returned candidate source files."""
+    entries = entry.get("evidence", [])
+    mapping, errors = _read_review_json_reference(
+        entry.get("observation"), entries=entries, source_root=source_root,
+        forbidden_roots=forbidden_roots, label="salesforce-source-mapping",
+    )
+    if mapping is None:
+        return errors
+    expected = {
+        "trial_id": context["result"]["trial_id"],
+        "candidate_digest": context["result"]["candidate_digest"],
+    }
+    errors.extend(salesforce.source_mapping_errors(
+        mapping, expected=expected, candidate_root=Path(context["repo"]),
+    ))
+    return sorted(set(errors))
+
+
+def _salesforce_hosted_lightning_behavior_errors(
+    entry: Mapping[str, Any], *, context: Mapping[str, Any], source_root: Path,
+    forbidden_roots: tuple[Path, ...],
+) -> list[str]:
+    """Validate authenticated Lightning browser evidence and Checkers replay IDs."""
+    entries = entry.get("evidence", [])
+    observation, errors = _read_review_json_reference(
+        entry.get("observation"), entries=entries, source_root=source_root,
+        forbidden_roots=forbidden_roots, label="salesforce-hosted-observation",
+    )
+    if observation is None:
+        return errors
+    trace, trace_errors = _read_review_json_reference(
+        observation.get("browser_trace"), entries=entries, source_root=source_root,
+        forbidden_roots=forbidden_roots, label="salesforce-lightning-browser-trace",
+    )
+    errors.extend(trace_errors)
+    if trace is None:
+        return sorted(set(errors))
+    expected = {
+        "trial_id": context["result"]["trial_id"],
+        "candidate_digest": context["result"]["candidate_digest"],
+    }
+    deployment = {
+        field: observation.get(field)
+        for field in ("org_id", "instance_url", "deployment_id", "lightning_host")
+    }
+    errors.extend(salesforce.hosted_errors(
+        observation, expected=expected, deployment=deployment, trace=trace,
+    ))
+    try:
+        oracle_cases = _behavior_cases(context["family"], context["step"])
+    except (ImportError, KeyError, TypeError, ValueError) as exc:
+        return sorted(set([*errors, f"salesforce-hosted-case-oracle-unavailable-{type(exc).__name__}"]))
+    case_errors, case_traces = _salesforce_oracle_case_errors(
+        observation.get("cases"), oracle_cases=oracle_cases, entries=entries,
+        label="salesforce-hosted", require_screenshots=True,
+    )
+    errors.extend(case_errors)
+    trace_case_errors, trace_traces = _salesforce_oracle_case_errors(
+        trace.get("cases"), oracle_cases=oracle_cases, entries=entries,
+        label="salesforce-lightning-browser-trace", require_screenshots=False,
+    )
+    errors.extend(trace_case_errors)
+    if set(case_traces) != set(trace_traces):
+        errors.append("salesforce-lightning-browser-trace-case-identity-mismatch")
+    else:
+        for case_id in case_traces:
+            if case_traces[case_id] != trace_traces[case_id]:
+                errors.append("salesforce-lightning-browser-trace-case-observations-mismatch")
+                break
+    return sorted(set(errors))
+
+
 def _nonempty_observation_value(value: Any) -> bool:
     if value is None:
         return False
@@ -997,6 +1146,67 @@ def _nonempty_observation_value(value: Any) -> bool:
     if isinstance(value, (dict, list)):
         return bool(value)
     return True
+
+
+def _salesforce_oracle_case_errors(
+    cases: Any, *, oracle_cases: list[dict[str, Any]], entries: Any, label: str,
+    require_screenshots: bool,
+) -> tuple[list[str], dict[str, dict[str, Any]]]:
+    """Validate retained Salesforce UI observations against the game oracle.
+
+    The Salesforce evidence is externally captured, so this function only
+    normalizes and checks it.  It deliberately does not accept prose or a
+    generic ``observed`` marker in place of one canonical observation per
+    Oracle action.
+    """
+    errors: list[str] = []
+    traces: dict[str, dict[str, Any]] = {}
+    if not isinstance(cases, list) or not cases:
+        return [f"{label}-cases-invalid"], traces
+    expected_by_id = {str(case["id"]): case for case in oracle_cases}
+    for record in cases:
+        if not isinstance(record, Mapping) or not _nonempty_string(record.get("id")):
+            errors.append(f"{label}-case-id-invalid")
+            continue
+        case_id = str(record["id"])
+        if case_id in traces:
+            errors.append(f"{label}-case-id-duplicate")
+            continue
+        oracle_case = expected_by_id.get(case_id)
+        if oracle_case is None:
+            errors.append(f"{label}-case-id-not-in-oracle")
+            continue
+        actions = record.get("actions")
+        observations = record.get("observations")
+        status = record.get("status")
+        if not isinstance(actions, list) or actions != oracle_case["actions"]:
+            errors.append(f"{label}-case-actions-mismatch")
+        if not isinstance(observations, list):
+            errors.append(f"{label}-case-observations-invalid")
+        else:
+            try:
+                issues = _evaluate_behavior(oracle_case, observations)
+            except Exception as exc:
+                errors.append(f"{label}-case-oracle-observations-invalid-{type(exc).__name__}")
+            else:
+                if issues:
+                    errors.append(f"{label}-case-oracle-failure")
+        if status != "pass":
+            errors.append(f"{label}-case-status-not-pass")
+        if require_screenshots:
+            screenshots = record.get("screenshots")
+            if not isinstance(screenshots, list) or not screenshots:
+                errors.append(f"{label}-case-screenshots-invalid")
+            elif any(not _entry_contains_reference(entries, screenshot) for screenshot in screenshots):
+                errors.append(f"{label}-case-screenshot-not-retained")
+        traces[case_id] = {
+            "actions": actions,
+            "observations": observations,
+            "status": status,
+        }
+    if set(traces) != set(expected_by_id):
+        errors.append(f"{label}-cases-do-not-cover-oracle")
+    return sorted(set(errors)), traces
 
 
 def _hosted_case_errors(
@@ -1120,6 +1330,18 @@ def _review_owned_pass_errors(
         return _hosted_game_behavior_errors(
             entry, context=context, source_root=source_root, forbidden_roots=forbidden_roots,
         )
+    if check_id == "salesforce-authorized-deployment":
+        return _salesforce_authorized_deployment_errors(
+            entry, context=context, source_root=source_root, forbidden_roots=forbidden_roots,
+        )
+    if check_id == "salesforce-hosted-lightning-behavior":
+        return _salesforce_hosted_lightning_behavior_errors(
+            entry, context=context, source_root=source_root, forbidden_roots=forbidden_roots,
+        )
+    if check_id == "salesforce-source-candidate":
+        return _salesforce_source_candidate_errors(
+            entry, context=context, source_root=source_root, forbidden_roots=forbidden_roots,
+        )
     return []
 
 
@@ -1141,6 +1363,36 @@ def _deployment_hosted_cross_binding_errors(
     for field in ("script_id", "version_number", "deployment_id", "web_app_url"):
         if deployment.get(field) != hosted.get(field):
             errors.append(f"deployment-hosted-{field}-mismatch")
+    return sorted(set(errors))
+
+
+def _salesforce_deployment_hosted_source_cross_binding_errors(
+    deployment_entry: Mapping[str, Any], hosted_entry: Mapping[str, Any], source_entry: Mapping[str, Any],
+    *, source_root: Path, forbidden_roots: tuple[Path, ...],
+) -> list[str]:
+    """Cross-bind three Salesforce proof records after each is individually valid."""
+    deployment, deployment_errors = _read_review_json_reference(
+        deployment_entry.get("observation"), entries=deployment_entry.get("evidence", []),
+        source_root=source_root, forbidden_roots=forbidden_roots, label="salesforce-deployment-observation",
+    )
+    hosted, hosted_errors = _read_review_json_reference(
+        hosted_entry.get("observation"), entries=hosted_entry.get("evidence", []),
+        source_root=source_root, forbidden_roots=forbidden_roots, label="salesforce-hosted-observation",
+    )
+    mapping, mapping_errors = _read_review_json_reference(
+        source_entry.get("observation"), entries=source_entry.get("evidence", []),
+        source_root=source_root, forbidden_roots=forbidden_roots, label="salesforce-source-mapping",
+    )
+    errors = [*deployment_errors, *hosted_errors, *mapping_errors]
+    if deployment is None or hosted is None or mapping is None:
+        return sorted(set(errors))
+    errors.extend(salesforce.cross_binding_errors(deployment, hosted, mapping))
+    deployment_mapping = deployment.get("source_mapping")
+    source_reference = source_entry.get("observation")
+    if not isinstance(deployment_mapping, Mapping) or not isinstance(source_reference, Mapping):
+        errors.append("salesforce-deployment-source-reference-invalid")
+    elif deployment_mapping.get("sha256") != source_reference.get("sha256"):
+        errors.append("salesforce-deployment-source-reference-mismatch")
     return sorted(set(errors))
 
 
@@ -1273,6 +1525,36 @@ def _review_assessment(path: Path | None, context: Mapping[str, Any]) -> dict[st
                     },
                 )
                 trace["deployment_hosted_cross_binding_errors"] = cross_errors
+    salesforce_checks = {
+        "salesforce-authorized-deployment",
+        "salesforce-hosted-lightning-behavior",
+        "salesforce-source-candidate",
+    }
+    if salesforce_checks.issubset(required_checks):
+        deployment_row = accepted_owned.get("salesforce-authorized-deployment")
+        hosted_row = accepted_owned.get("salesforce-hosted-lightning-behavior")
+        source_row = accepted_owned.get("salesforce-source-candidate")
+        if (
+            deployment_row is not None
+            and hosted_row is not None
+            and source_row is not None
+            and deployment_row["status"] == hosted_row["status"] == source_row["status"] == "pass"
+        ):
+            cross_errors = _salesforce_deployment_hosted_source_cross_binding_errors(
+                accepted_entries["salesforce-authorized-deployment"],
+                accepted_entries["salesforce-hosted-lightning-behavior"],
+                accepted_entries["salesforce-source-candidate"],
+                source_root=source_root, forbidden_roots=forbidden_roots,
+            )
+            if cross_errors:
+                for check_id in salesforce_checks:
+                    accepted_owned[check_id] = _unverified(
+                        check_id, {
+                            "reason": "salesforce-deployment-hosted-source-identity-invalid",
+                            "errors": cross_errors,
+                        },
+                    )
+                trace["salesforce_deployment_hosted_source_cross_binding_errors"] = cross_errors
     result["owned_rows"] = accepted_owned
     trace["review_owned_checks"] = {key: value["status"] for key, value in accepted_owned.items()}
     if rejected_owned:
@@ -1332,7 +1614,7 @@ def verifier_inputs_manifest(
 ) -> dict[str, Any]:
     """Fingerprint the observer/oracle/adapter inputs used for this receipt."""
     module_names = ("verify_suite.py", "driver_transport.py", "verify_tictactoe.py", "grading.py",
-                    "oracle_games.py", "gas_artifact.py", "scenarios.json")
+                    "oracle_games.py", "gas_artifact.py", "salesforce_proof.py", "scenarios.json")
     modules = [_input_file_row(name, HERE / name) for name in module_names]
     source_path = registry_info.get("source_path")
     registry_base = Path(source_path).parent if isinstance(source_path, str) and source_path else None
@@ -1488,7 +1770,7 @@ def verify(
         },
         "limitations": [
             "A semantic adapter is an external read-only observation boundary; its trace does not prove a particular browser implementation.",
-            "Local source closure does not prove a hosted Google Apps Script deployment or authorization path.",
+            "Local source closure does not prove a hosted deployment or authorization path for Google Apps Script or Salesforce.",
             "Reviewer-owned scope, return, and incremental conclusions stay unverified without a matching, pinned independent review.",
         ],
     }

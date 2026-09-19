@@ -69,6 +69,7 @@ from typing import Any
 
 
 CHECKERS_STEPS = ("checkers-create", "checkers-guidance", "checkers-hint-toggle")
+SALESFORCE_CHECKERS_CREATE_STEP = "salesforce-checkers-create"
 BATTLESHIP_STEPS = (
     "battleship-create",
     "battleship-status-history",
@@ -458,6 +459,16 @@ def cases(step_id: str) -> list[dict[str, Any]]:
     """
     if not isinstance(step_id, str):
         raise ValueError("step_id must be a string")
+    if step_id == SALESFORCE_CHECKERS_CREATE_STEP:
+        # The Salesforce scenario is an independent create trial, but it uses
+        # the same observable Checkers rules.  Preserve the requested step ID
+        # so the verifier can bind a hosted trace to the Salesforce catalog
+        # rather than silently treating it as the Apps Script trial.
+        return [
+            {**deepcopy(case), "step_id": step_id}
+            for case in _checkers_cases()
+            if case["level"] == "base"
+        ]
     if step_id in CHECKERS_STEPS:
         limit = CHECKERS_STEPS.index(step_id)
         selected = [

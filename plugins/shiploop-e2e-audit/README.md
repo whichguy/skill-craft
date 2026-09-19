@@ -1,6 +1,6 @@
 # Shiploop E2e Audit
 
-Run the ShipLoop test harness and audit its retained graph, review, test, product and incremental-change evidence. Use for ShipLoop mock checks, live one-shot E2E smoke/full campaigns, or review of existing trial output. Full Google Apps Script game cases require an authorized test deployment and hosted behavior evidence. Includes its harness for source and marketplace installs; tests a separately selected ShipLoop.
+Run the ShipLoop test harness and audit its retained graph, review, test, product and incremental-change evidence. Use for ShipLoop mock checks, live one-shot E2E smoke/full campaigns, or review of existing trial output. Full Google Apps Script and Salesforce game cases require an authorized test deployment and hosted behavior evidence. Includes its harness for source and marketplace installs; tests a separately selected ShipLoop.
 
 ## Install
 

@@ -1280,8 +1280,11 @@ def run_suite(args: argparse.Namespace) -> int:
     from suites import resolve_suite
     suite = resolve_suite(args.suite, scenarios(), only_case_ids=args.only)
     cases = suite["cases"]
-    if (args.repo or args.baseline) and len(cases) != 1:
-        raise ValueError("--repo/--baseline require a single selected suite case (--only)")
+    if len(cases) > 1:
+        raise ValueError(
+            f"suite {suite['id']} resolves to {len(cases)} cases; use exactly one --only "
+            "case/step ID and audit its result before continuing"
+        )
     if args.baseline and not args.repo:
         raise ValueError("a selected feature baseline also requires its original --repo")
     selected_subject = layout.resolve_skill_root(args.skill_root)
@@ -1384,10 +1387,10 @@ def main(argv: list[str] | None = None) -> int:
     run.add_argument("--diagnostic-unverified-baseline", action="store_true")
     run.add_argument("--verifier", help="external independent checker as JSON argv; stdout must be receipt JSON")
     run.add_argument("--verifier-timeout", type=float, default=300)
-    suite = sub.add_parser("suite", help="run a named suite; each case launches a fresh Grok session")
+    suite = sub.add_parser("suite", help="run exactly one named suite case in a fresh Grok session")
     suite.add_argument("--suite", required=True)
     suite.add_argument("--output", required=True, help="new campaign directory for products and trials")
-    suite.add_argument("--only", action="append", help="select case/step ID; repeat for several cases")
+    suite.add_argument("--only", action="append", help="select exactly one case/step ID from a multi-case suite")
     suite.add_argument("--repo", help="original product repository for one selected case")
     suite.add_argument("--baseline", help="verified predecessor result for one selected feature case")
     suite.add_argument("--model", required=True)

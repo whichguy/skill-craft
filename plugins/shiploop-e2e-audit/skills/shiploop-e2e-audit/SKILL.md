@@ -5,10 +5,10 @@ description: >-
   Run the ShipLoop test harness and audit its retained graph, review, test,
   product and incremental-change evidence. Use for ShipLoop mock checks, live
   one-shot E2E smoke/full campaigns, or review of existing trial output. Full
-  Google Apps Script game cases require an authorized test deployment and hosted
+  Google Apps Script and Salesforce game cases require an authorized test deployment and hosted
   behavior evidence.
   Includes its harness for source and marketplace installs; tests a separately selected ShipLoop.
-version: 0.2.1
+version: 0.2.2
 license: MIT
 platforms:
   - linux
@@ -31,8 +31,9 @@ immutable published package, and Grok's actual selected package by contents and
 executable modes. Equal version labels alone are insufficient. If newest source
 is unpublished, the installation is stale, or the comparison cannot be verified,
 report the retained freshness receipt and stop before the builder launches.
-The evaluator must not publish, install, update, repoint, or repair packages to
-make the test proceed. Package preparation is a separate operator action.
+The evaluator must not publish, install, update, repoint, or repair packages
+during a trial. Package preparation and authorized repairs happen between
+retained trials through the campaign checkpoint below.
 
 The external test harness owns the builder-process launch. Inside that builder
 conversation, ShipLoop remains a skill plus scripts: the invoking model reads
@@ -129,9 +130,9 @@ CLI or model access. Review of retained output needs no installed subject.
 | `mock` or no mode | Run `check_suite.py --suite mock` and retain its result; no live model calls. |
 | `harness`, `workflow`, `games`, `regressions`, `all` | Run that no-model `check_suite.py` group; skipped checks remain incomplete. |
 | `check` | Run `run.py check` to verify current source, published package, installed selection and Git without a model call; retain stdout/stderr. Unpublished, stale or unverifiable packages exit nonzero. |
-| `launch-smoke`, `planning-smoke` | Run the named `run.py suite`; these establish only an accepted graph prefix. |
-| A catalog step, such as `ttt-create` | Run one full `run.py run` request. Its literal prompt requires the builder to use the configured Google Apps Script deployment MCP and verify the hosted app. |
-| `ttt-full`, `checkers-full`, `battleship-full`, `games-full` | Run the named live suite with verified-predecessor gates, real configured Google Apps Script deployment, and independent candidate-specific hosted verification. |
+| `launch-smoke`, `planning-smoke` | Run one selected case from the named `run.py suite`; these establish only an accepted graph prefix. |
+| A catalog step, such as `ttt-create` or `salesforce-checkers-create` | Run one full `run.py run` request. Its literal prompt requires the configured platform deployment and verification of the hosted app. |
+| `ttt-full`, `checkers-full`, `battleship-full`, `games-full`, `salesforce-checkers-full` | Select one case at a time, with a campaign checkpoint before the next launch. GAS features retain verified predecessors; the Salesforce suite contains one independent create. |
 | `review <trial-or-suite-directory>` | Audit existing evidence without launching or resuming a model. |
 
 Use `run.py list` / `suites` to resolve actual IDs and literal prompts. Respect
@@ -143,8 +144,9 @@ to make a run pass. A live-mode request authorizes that selected run, not retrie
 or extra families. A selected full game case authorizes its builder to create or
 update the dedicated test application through the configured deployment MCP; a
 feature must reuse the prior product repository and Apps Script project. It does
-not authorize an auditor repair, redeployment, unrelated publication, or extra
-family. Do not expand a mock request into a live run.
+not by itself authorize an auditor repair, redeployment, unrelated publication,
+or extra family. An explicit repair-and-continue campaign additionally authorizes
+the bounded operator steps below. Do not expand a mock request into a live run.
 
 ## Argument reference
 
@@ -164,7 +166,7 @@ command's `--help` if this checkout differs from these defaults.
 | `output` | All | Mock → `check_suite.py --output`; live → `run.py run/suite --output`; check → operator capture directory; review → analyst directory. Check/review never pass `--output` to the runner. If omitted, choose and report a unique external directory; never reuse an existing result directory. |
 | `repo` | Live/check | `--repo`. Required existing original product for a feature. For a single create, choose a new external empty product directory if omitted. For a suite, omit by default so the suite allocates products; an override requires exactly one selected case. Check: use the supplied existing directory or allocate an empty preflight directory; never initialize Git. |
 | `baseline` | Feature only | `--baseline`: canonical predecessor `result.json`, matching that same product and its current digest and passing independent grade. Required for a standalone feature or a suite selection that omits its predecessor. Forbidden for create. |
-| `only` | Live suite only | One case/step ID → one `--only`. Repeat the field or supply a JSON array of strings to emit repeated flags. Omitted means all suite cases. Do not split comma-delimited strings or silently add omitted predecessors. |
+| `only` | Live suite only | Exactly one case/step ID → one `--only`. Required when the suite lists multiple cases. A one-case suite may omit it. Multiple resolved cases are rejected before launch. Do not silently add predecessors. |
 | `timeout` | Live | Positive finite seconds → `--timeout`. Single run defaults to 7200; suites use their catalog budgets (currently 7200 per case) unless overridden. This is per case, not a total campaign cap. |
 | `max-turns` | Live | Positive integer → `--max-turns`. Single run defaults to 1000; suites use their catalog values (currently 1000 per case) unless overridden. |
 | `reasoning-effort` | Live | `--reasoning-effort`, default `xhigh`; pass the host-supported value verbatim. This requests builder effort, not delegated-reviewer effort. |
@@ -174,7 +176,7 @@ command's `--help` if this checkout differs from these defaults.
 | `skill-root` | Mock/apparatus/live/check | Actual separate ShipLoop package directory → `check_suite.py --skill-root` or `run.py run/suite/check --skill-root`. If omitted in this skill, resolve the host-selected installed card, including marketplace installs. Live/check assert discovery; no install/repoint or Improve selection. Direct Python CLIs have their own documented defaults. |
 | `stop-after-stage` | Single live step only | `--stop-after-stage`: `intake`, `discovery`, `research`, `research-improve`, `spec`, `spec-improve`, `test-strategy`, `plan`, or `plan-improve`. Omit for a full attempt. Suites own their stop boundaries. |
 | `artifact-root` | Live | Additional known ShipLoop workspace directory → repeated `--artifact-root`; accept repeated fields or a JSON string array. Omit to retain the runner's normal product/sibling workspace scan. Must not contain trial output. |
-| `verifier` | Live | Nonempty JSON array of string arguments → one serialized JSON value for `--verifier`. No shell command string. Require a real checker and absolute executable/input paths because it runs from the evidence directory. For a qualifying full game result, it must bind the actual MCP stage/promotion receipts, `scriptId`, `versionNumber`, final production `deploymentId`, HTTPS `script.google.com` `/exec` web-app URL, candidate/release identity, and observed hosted browser interactions. Omitted means product verification remains unverified. |
+| `verifier` | Live | Nonempty JSON array of string arguments → one serialized JSON value for `--verifier`. No shell command string. Require a real checker and absolute executable/input paths because it runs from the evidence directory. Full results need the platform-specific deployment and hosted-browser evidence defined in `CASES.md`: GAS staging/promotion and published `/exec` identity, or Salesforce dev-org/deployment/component/Lightning identity. Omitted means product verification remains unverified. |
 | `verifier-timeout` | Live with verifier | Positive finite seconds → `--verifier-timeout`, default 300. Separate from the builder's time cap. |
 | `max-log-bytes` | Live | Positive integer → `--max-log-bytes`, default 268435456 (256 MiB) per captured stream/event file. |
 | `max-event-line-chars` | Live | Positive integer → `--max-event-line-chars`, default 4194304 (4 Mi characters) per native event. |
@@ -252,8 +254,9 @@ diagnostic unverified-baseline override for a qualifying audit.
 
 Run the README's actual shell commands using absolute paths and quote them.
 Retain runner stdout/stderr as external operator logs. Use the host's background
-execution/polling facility for long commands; its limit must allow the per-case
-budget plus capture cleanup, and a suite may contain several such cases. Do not
+execution/polling facility for long commands; its limit must allow the one selected
+case's budget plus capture cleanup. A later case starts a fresh command after
+its review checkpoint. Do not
 kill the runner at exactly the same deadline and lose its final receipt. If the
 host cannot retain the job, report that constraint rather than claiming it ran.
 Report progress from retained files without modifying the live product or state.
@@ -267,7 +270,7 @@ final assistant message without returning to write the audit. Do not send that
 final message until the runner has completed and the post-run review below has
 been written and validated. A nonzero runner exit still requires that review.
 
-For a full game case, wait for and inspect the builder's actual configured MCP
+For a full GAS game case, wait for and inspect the builder's actual configured MCP
 deployment result and its browser interaction at the resulting web-app URL.
 Retain evidence that binds `scriptId`, `versionNumber`, `deploymentId`, URL, and
 candidate/release identity to the current product. The auditor may observe the
@@ -277,7 +280,7 @@ redeployment, or seek a broader permission posture to obtain a receipt. A local
 fixture, static server, model mock, or model prose cannot replace that evidence.
 
 A nonzero exit, timeout, blocked prerequisite or missing callback remains an
-observation. Preserve the attempt and diagnose it before any separately requested
+observation. Preserve the attempt and diagnose it before an authorized fresh
 retry. Full suites need actual independent product drivers/review evidence,
 deployment receipts, and candidate-specific hosted interactions to qualify their
 creates; missing verification blocks dependent feature cases.
@@ -312,8 +315,73 @@ paths, test counts including skips, graph prefix and last accepted action,
 separate product/incrementality/workflow verdicts, and specific improvements
 with evidence and a smallest falsifiable follow-up. For mock mode report the
 apparatus receipt and its limits instead of fabricating a live-trial review.
-For a suite write an external `AUDIT.md` linking all case reviews. Do not commit,
-modify ShipLoop, launch new experiments, or repair/redeploy a product merely to
-finish an audit. This restriction does not prohibit the builder deployment that
+For a suite write an external `AUDIT.md` linking all case reviews and attempts.
+Do not commit, modify ShipLoop, launch new experiments, or repair/redeploy a
+product merely to finish an audit. An explicitly authorized repair-and-continue
+campaign follows the separate checkpoint below. This restriction does not prohibit the builder deployment that
 the selected full game prompt expressly requires; that deployment must remain
 bounded to its dedicated test application and current candidate.
+
+## Review each case before continuing
+
+A suite is a selection plan, not permission to launch a batch before reviewing
+it. Resolve its cases, then invoke exactly one `run` or one `suite --only` case
+in a new output directory. Preserve a campaign inventory linking planned,
+running, failed, unverified, repaired and retested attempts; never drop an
+earlier failure from the accounting. Do not start the next case until the
+current attempt has a recorded product and workflow assessment.
+
+While it runs, inspect retained stdout, stderr, events and durable state and
+report status periodically. Triage apparent errors immediately: distinguish a
+recoverable tool error, harness defect, external prerequisite, product defect,
+and ShipLoop defect. Do not coach the builder or mutate its product, selected
+packages or observer. An authorized repair may be prepared in an isolated
+checkout while evidence accumulates, but publication and installed-package
+changes wait until the trial and its owned work have stopped. If continued work
+is clearly invalid, stop it through the harness's retained process controls and
+keep the interrupted result; never turn interruption into a passing result.
+
+After each attempt, finish the independent product grade and evidence-backed
+workflow review. Inspect stderr and failed/recovered tool calls, callback and
+return logic, actual tests versus claims, Improve evidence, and hosted behavior.
+For enabled chains, leave the DAG/callback dimension unverified or supported-gap
+unless chain bindings, finish/event records, dispatcher and worker-handoff
+evidence have been independently retained and reviewed; the current artifact
+allowlist alone is insufficient. A zero exit or product pass does not close
+those semantic gaps.
+
+When the user authorizes repairs and continuation, act as the repair operator
+between trials: make the smallest evidence-supported ShipLoop or harness fix,
+run meaningful regressions, invoke the selected Improve skill on those changes
+through its completion rule, and use the authorized commit/merge/publication
+workflow. Publish changed packages to their existing marketplace entries,
+refresh the existing installations, and require a new `check` receipt proving
+the current published selection before the next builder launch. Do not add a
+parallel local registration or silently use an unpublished checkout.
+
+Retest the affected case first with a new trial ID, output path and recorded
+package identity. A create retest needs a fresh empty product repo and dedicated
+test app; a feature comparison needs equivalent verified predecessor input, not
+the already-modified failing product. Preserve every old attempt and evidence;
+do not relabel it as the repaired version. Only advance dependent cases from a
+qualifying predecessor. If an external prerequisite is unavailable, retain the
+blocked result and report it rather than rewriting ShipLoop to hide it. Avoid
+retries without a documented change or resolved prerequisite.
+
+## Salesforce dev-org preparation
+
+For `salesforce-checkers-create`, use the existing authenticated default target
+org through configured Salesforce DX capabilities. Before launch, independently
+confirm its org ID, instance URL, username and developer-org status match the
+user's selected target; retain a sanitized target receipt outside the product.
+If the default is missing, mismatched or ambiguous, stop before the model call.
+Never search for, copy, print or embed tokens/passwords in prompts or artifacts.
+Existing authentication may be checked without exposing secret fields.
+
+The builder creates a dedicated Lightning checkers app in that dev org; it must
+preserve unrelated metadata and use no replacement org or mock deployment.
+Afterward inspect actual deployment results, candidate source/component mapping
+and the authenticated Lightning UI. Bind these to the independently confirmed
+org and current candidate. This case does not use Apps Script staging/promotion
+or a public `/exec` URL. Missing deployment or rendered behavior evidence remains
+unverified, even when local tests pass.

@@ -15,9 +15,9 @@ HERE = layout.HARNESS_ROOT
 GROUPS = {
     "mock": ("test_behavior_capture", "test_dag_replay", "test_protocol_compat", "test_trace_corpus", "test_recovery_isolation"),
     "harness": ("test_capture", "test_timeout_cleanup", "test_evidence", "test_grok_adapter", "test_grading", "test_freshness", "test_run", "test_suites", "test_audit", "test_check_suite", "test_checkout_binding"),
-    "games": ("test_tictactoe", "test_oracle_games", "test_gas_artifact", "test_verify_suite", "test_driver_transport"),
+    "games": ("test_tictactoe", "test_oracle_games", "test_gas_artifact", "test_salesforce_proof", "test_verify_suite", "test_driver_transport"),
     "workflow": ("test_workflow_review", "test_campaign", "test_recovery_isolation"),
-    "regressions": ("test_trace_corpus", "test_gas_artifact", "test_verify_suite", "test_workflow_review", "test_recovery_isolation"),
+    "regressions": ("test_trace_corpus", "test_gas_artifact", "test_salesforce_proof", "test_verify_suite", "test_workflow_review", "test_recovery_isolation"),
 }
 
 

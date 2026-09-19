@@ -133,7 +133,7 @@ class RunTests(unittest.TestCase):
             "--skill-root", str(self.skill), "--timeout", "10", "--max-turns", "8",
         ])
         suite = run.main([
-            "suite", "--suite", "launch-smoke", "--output", str(protected_suite),
+            "suite", "--suite", "launch-smoke", "--only", "ttt-create-intake", "--output", str(protected_suite),
             "--model", "fixture-model", "--grok", str(self.grok), "--git", self.git,
             "--skill-root", str(self.skill), "--timeout", "10", "--max-turns", "8",
         ])
@@ -273,18 +273,18 @@ class RunTests(unittest.TestCase):
         self.assertFalse(checked["live_model_called"])
         self.assertFalse((self.root / "launches.jsonl").exists())
 
-    def test_suite_checks_freshness_for_each_case_without_launch_on_failure(self):
+    def test_single_case_suite_checks_freshness_without_launch_on_failure(self):
         output = self.root / "blocked-suite"
         self.freshness.return_value = {
             "ready": False, "status": "unpublished-source", "reason": "fixture unpublished source",
         }
         with patch.object(run, "capture_process") as capture:
-            code = run.main(["suite", "--suite", "launch-smoke", "--output", str(output),
+            code = run.main(["suite", "--suite", "launch-smoke", "--only", "ttt-create-intake", "--output", str(output),
                              "--model", "fixture-model", "--grok", str(self.grok),
                              "--git", self.git, "--skill-root", str(self.skill)])
         self.assertEqual(code, 2)
         cases = run.read_json(output / "suite-result.json")["cases"]
-        self.assertEqual(len(cases), 2)
+        self.assertEqual(len(cases), 1)
         self.assertEqual(self.freshness.call_count, len(cases))
         self.assertTrue(all(row["status"] == "blocked-preflight" for row in cases))
         capture.assert_not_called()
@@ -546,9 +546,15 @@ print(json.dumps(receipt))
 
     def test_catalog_dependencies_and_budget_boundaries(self):
         families = run.scenarios()
-        self.assertEqual(len(families), 3)
+        expected_kinds = {
+            "tic-tac-toe": ["create", "feature", "refine"],
+            "checkers": ["create", "feature", "refine"],
+            "salesforce-checkers": ["create"],
+            "battleship": ["create", "feature", "refine"],
+        }
+        self.assertEqual({family["id"] for family in families}, set(expected_kinds))
         for family in families:
-            self.assertEqual([step["kind"] for step in family["steps"]], ["create", "feature", "refine"])
+            self.assertEqual([step["kind"] for step in family["steps"]], expected_kinds[family["id"]])
             previous = None
             for step in family["steps"]:
                 self.assertEqual(step["depends_on"], previous)
@@ -679,7 +685,7 @@ print(json.dumps(receipt))
         self.assertFalse(graded["control_input_observation"]["observation_complete"])
         self.assertEqual("control-input-observation-incomplete", graded["statuses"]["control_input"])
 
-    def test_suite_executor_connects_same_repo_and_verified_baseline(self):
+    def test_manual_feature_cases_reuse_original_repo_and_verified_baselines(self):
         launches = []
 
         def fake_trial(args):
@@ -688,15 +694,37 @@ print(json.dumps(receipt))
             return 0
 
         with patch.object(run, "run_trial", side_effect=fake_trial):
-            code = run.main(["suite", "--suite", "ttt-full", "--output", str(self.root / "suite"), "--model", "fixture"])
-        self.assertEqual(code, 0)
+            create_code = run.main([
+                "suite", "--suite", "ttt-full", "--only", "ttt-create",
+                "--output", str(self.root / "suite-create"), "--model", "fixture",
+            ])
+            create = launches[-1]
+            guidance_code = run.main([
+                "suite", "--suite", "ttt-full", "--only", "ttt-guidance",
+                "--repo", create.repo, "--baseline", str(Path(create.output) / "result.json"),
+                "--output", str(self.root / "suite-guidance"), "--model", "fixture",
+            ])
+            guidance = launches[-1]
+            best_move_code = run.main([
+                "suite", "--suite", "ttt-full", "--only", "ttt-best-move",
+                "--repo", create.repo, "--baseline", str(Path(guidance.output) / "result.json"),
+                "--output", str(self.root / "suite-best-move"), "--model", "fixture",
+            ])
+            best_move = launches[-1]
+
+        self.assertEqual([create_code, guidance_code, best_move_code], [0, 0, 0])
         self.assertEqual(len(launches), 3)
         self.assertEqual(len({args.repo for args in launches}), 1)
-        self.assertIsNone(launches[0].baseline)
-        self.assertEqual(launches[1].baseline, str(Path(launches[0].output) / "result.json"))
-        self.assertEqual(launches[2].baseline, str(Path(launches[1].output) / "result.json"))
+        self.assertIsNone(create.baseline)
+        self.assertEqual(guidance.repo, create.repo)
+        self.assertEqual(guidance.baseline, str(Path(create.output) / "result.json"))
+        self.assertEqual(best_move.repo, create.repo)
+        self.assertEqual(best_move.baseline, str(Path(guidance.output) / "result.json"))
+        self.assertEqual([args.step for args in launches], ["ttt-create", "ttt-guidance", "ttt-best-move"])
         self.assertTrue(all(args.reasoning_effort == "xhigh" for args in launches))
-        self.addCleanup(shutil.rmtree, run.read_json(self.root / "suite" / "suite-execution.json")["product_parent"], ignore_errors=True)
+        self.addCleanup(shutil.rmtree,
+                        run.read_json(self.root / "suite-create" / "suite-execution.json")["product_parent"],
+                        ignore_errors=True)
 
     def test_suite_executor_uses_opaque_external_product_repositories_and_persists_lineage(self):
         launches = []
@@ -708,7 +736,10 @@ print(json.dumps(receipt))
 
         output = self.root / "isolated-suite"
         with patch.object(run, "run_trial", side_effect=fake_trial):
-            self.assertEqual(run.main(["suite", "--suite", "ttt-full", "--output", str(output), "--model", "fixture"]), 0)
+            self.assertEqual(run.main([
+                "suite", "--suite", "ttt-full", "--only", "ttt-create",
+                "--output", str(output), "--model", "fixture",
+            ]), 0)
 
         execution = run.read_json(output / "suite-execution.json")
         product_repo = Path(execution["product_repositories"]["tic-tac-toe"])
@@ -757,19 +788,51 @@ print(json.dumps(receipt))
             self.assertFalse(output.exists())
         self.assertFalse((self.root / "launches.jsonl").exists())
 
-    def test_suite_unverified_create_blocks_features_but_accounts_for_them(self):
-        def unverified(args):
-            run.write_json(Path(args.output) / "result.json", {"statuses": {"overall": "awaiting-independent-verification"}})
-            return 2
+    def test_suite_rejects_multiple_cases_before_creating_output_or_launching(self):
+        selections = [
+            ["suite", "--suite", "launch-smoke"],
+            ["suite", "--suite", "ttt-full", "--only", "ttt-create", "--only", "ttt-guidance"],
+        ]
+        for index, selection in enumerate(selections):
+            output = self.root / f"multi-case-{index}"
+            stderr = io.StringIO()
+            with self.subTest(selection=selection), \
+                    patch.object(layout, "validate_new_external_output") as validate_output, \
+                    patch.object(run, "preflight") as preflight, \
+                    patch.object(run, "capture_process") as capture, \
+                    patch.object(run, "run_trial") as launch, \
+                    patch("sys.stderr", stderr):
+                code = run.main([*selection, "--output", str(output), "--model", "fixture"])
+            self.assertEqual(code, 2)
+            self.assertIn("use exactly one --only case/step ID and audit its result before continuing", stderr.getvalue())
+            self.assertFalse(output.exists())
+            validate_output.assert_not_called()
+            preflight.assert_not_called()
+            capture.assert_not_called()
+            launch.assert_not_called()
+        self.assertFalse((self.root / "launches.jsonl").exists())
 
-        output = self.root / "unverified-suite"
-        with patch.object(run, "run_trial", side_effect=unverified) as launch:
-            self.assertEqual(run.main(["suite", "--suite", "ttt-full", "--output", str(output), "--model", "fixture"]), 2)
-        self.assertEqual(launch.call_count, 1)
-        result = run.read_json(output / "suite-result.json")
-        self.assertEqual(result["selected"], result["finished"])
-        self.assertEqual([row["status"] for row in result["cases"]][1:], ["blocked-predecessor"] * 2)
-        self.addCleanup(shutil.rmtree, run.read_json(output / "suite-execution.json")["product_parent"], ignore_errors=True)
+    def test_repeated_same_only_value_still_selects_one_case(self):
+        launches = []
+
+        def fake_trial(args):
+            launches.append(args)
+            run.write_json(Path(args.output) / "result.json", {"statuses": {"overall": "passed"}})
+            return 0
+
+        output = self.root / "deduplicated-only"
+        with patch.object(run, "run_trial", side_effect=fake_trial):
+            code = run.main([
+                "suite", "--suite", "ttt-full", "--only", "ttt-create", "--only", "ttt-create",
+                "--output", str(output), "--model", "fixture",
+            ])
+        self.assertEqual(code, 0)
+        self.assertEqual(len(launches), 1)
+        self.assertEqual(launches[0].step, "ttt-create")
+        self.assertEqual(run.read_json(output / "suite-result.json")["selected"], 1)
+        self.addCleanup(shutil.rmtree,
+                        run.read_json(output / "suite-execution.json")["product_parent"],
+                        ignore_errors=True)
 
     def test_external_verifier_argv_is_run_after_developer_and_bound(self):
         verifier = self.root / "independent fixture verifier.py"

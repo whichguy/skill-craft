@@ -2,6 +2,7 @@
 """No-model adversarial checks for the composite nine-case verifier."""
 from __future__ import annotations
 
+from copy import deepcopy
 import hashlib
 import json
 from pathlib import Path
@@ -16,6 +17,7 @@ HERE = Path(__file__).resolve().parent
 if str(HERE) not in sys.path:
     sys.path.insert(0, str(HERE))
 import grading  # noqa: E402
+import oracle_games as oracle  # noqa: E402
 import verify_suite as suite  # noqa: E402
 
 
@@ -307,6 +309,164 @@ class CompositeVerifierTests(unittest.TestCase):
         if not correct_binding:
             record["candidate_digest"] = "x" * 64
         path = trial / "review.json"
+        path.write_text(json.dumps(record), encoding="utf-8")
+        return path
+
+    def salesforce_review(
+        self, trial: Path, candidate: Path, result: dict, *, gas_schema: bool = False,
+        semantic_fault: str | None = None,
+    ) -> Path:
+        """Create pinned, offline Salesforce proof fixtures for one review."""
+        component = candidate / "force-app" / "main" / "default" / "lwc" / "checkers" / "checkers.js"
+        component.parent.mkdir(parents=True, exist_ok=True)
+        component.write_text("export default class Checkers {}\n", encoding="utf-8")
+        returned = trial / "salesforce-return.txt"
+        returned.write_text("independent return review", encoding="utf-8")
+        org_id = "00D000000000001AAA"
+        instance_url = "https://fixture-dev.my.salesforce.com"
+        lightning_host = "fixture-dev.lightning.force.com"
+        deployment_id = "0Af000000000001AAA"
+
+        def write_artifact(name: str, payload: dict) -> tuple[Path, dict[str, str]]:
+            path = trial / name
+            path.write_text(json.dumps(payload), encoding="utf-8")
+            return path, {"path": path.name, "sha256": sha256(path)}
+
+        _preflight, preflight_ref = write_artifact("salesforce-target-preflight.json", {
+            "schema": suite.SALESFORCE_TARGET_PREFLIGHT_SCHEMA,
+            "status": "connected",
+            "org_type": "developer",
+            "expected_org_id": org_id,
+            "observed_org_id": org_id,
+            "expected_instance_url": instance_url,
+            "observed_instance_url": instance_url,
+            "expected_lightning_host": lightning_host,
+            "observed_lightning_host": lightning_host,
+            "my_domain": "fixture-dev",
+            "is_sandbox": False,
+        })
+        _raw, raw_ref = write_artifact("salesforce-raw-deploy.json", {
+            "status": 0,
+            "result": {
+                "id": deployment_id,
+                "status": "Succeeded",
+                "checkOnly": False,
+                "details": {"componentFailures": [], "componentSuccesses": [{
+                    "componentType": "LightningComponentBundle", "fullName": "checkers", "success": True,
+                }]},
+            },
+        })
+        _mapping, mapping_ref = write_artifact("salesforce-source-mapping.json", {
+            "schema": suite.SALESFORCE_SOURCE_MAPPING_SCHEMA,
+            "trial_id": result["trial_id"],
+            "candidate_digest": result["candidate_digest"],
+            "org_id": org_id,
+            "instance_url": instance_url,
+            "deployment_id": deployment_id,
+            "rationale": "The retained candidate source files identify the deployed Lightning component.",
+            "components": [{
+                "path": component.relative_to(candidate).as_posix(),
+                "sha256": sha256(component),
+                "kind": "lightning-web-component",
+                "component_type": "LightningComponentBundle",
+                "full_name": "checkers",
+            }],
+        })
+        _receipt, receipt_ref = write_artifact("salesforce-dx-receipt.json", {
+            "schema": suite.SALESFORCE_DEPLOYMENT_RECEIPT_SCHEMA,
+            "provider": "salesforce-dx",
+            "status": "succeeded",
+            "job_id": deployment_id,
+            "candidate_digest": result["candidate_digest"],
+            "org_id": org_id,
+            "instance_url": instance_url,
+            "raw_deployment_result_sha256": raw_ref["sha256"],
+            "component_mapping_sha256": mapping_ref["sha256"],
+        })
+        deployment_schema = suite.DEPLOYMENT_OBSERVATION_SCHEMA if gas_schema else suite.SALESFORCE_DEPLOYMENT_OBSERVATION_SCHEMA
+        deployment_provider = "mcp-gas-deploy" if gas_schema else "salesforce-dx"
+        _deployment, deployment_ref = write_artifact("salesforce-deployment.json", {
+            "schema": deployment_schema,
+            "trial_id": result["trial_id"],
+            "candidate_digest": result["candidate_digest"],
+            "provider": deployment_provider,
+            "status": "succeeded",
+            "org_id": org_id,
+            "instance_url": instance_url,
+            "lightning_host": lightning_host,
+            "deployment_id": deployment_id,
+            "target_preflight": preflight_ref,
+            "raw_deployment_result": raw_ref,
+            "deployment_receipt": receipt_ref,
+            "source_mapping": mapping_ref,
+        })
+        family, step = self.scenario(result["step_id"])
+        oracle_cases = suite._behavior_cases(family, step)
+        screenshot = trial / "salesforce-hosted-screen.png"
+        screenshot.write_bytes(b"fixture Lightning screenshot")
+        screenshot_ref = {"path": screenshot.name, "sha256": sha256(screenshot)}
+        cases = [{
+            "id": case["id"],
+            "actions": case["actions"],
+            "observations": oracle._synthetic_observations(case),
+            "status": "pass",
+            "screenshots": [screenshot_ref],
+        } for case in oracle_cases]
+        if semantic_fault == "wrong-board":
+            cases[0]["observations"][0]["board"] = [[None] * 8 for _ in range(8)]
+        elif semantic_fault == "missing-observations":
+            cases[0].pop("observations")
+        elif semantic_fault is not None:
+            raise ValueError(f"unsupported Salesforce semantic fault: {semantic_fault}")
+        trace_cases = [{
+            key: deepcopy(case[key])
+            for key in ("id", "status", "actions", "observations")
+            if key in case
+        } for case in cases]
+        _trace, trace_ref = write_artifact("salesforce-lightning-browser-trace.json", {
+            "schema": suite.SALESFORCE_LIGHTNING_BROWSER_TRACE_SCHEMA,
+            "trial_id": result["trial_id"],
+            "candidate_digest": result["candidate_digest"],
+            "org_id": org_id,
+            "instance_url": instance_url,
+            "deployment_id": deployment_id,
+            "lightning_host": lightning_host,
+            "lightning_route": f"https://{lightning_host}/lightning/n/Checkers",
+            "authenticated": True,
+            "cases": trace_cases,
+        })
+        _hosted, hosted_ref = write_artifact("salesforce-hosted-observation.json", {
+            "schema": suite.SALESFORCE_HOSTED_OBSERVATION_SCHEMA,
+            "trial_id": result["trial_id"],
+            "candidate_digest": result["candidate_digest"],
+            "org_id": org_id,
+            "instance_url": instance_url,
+            "deployment_id": deployment_id,
+            "lightning_host": lightning_host,
+            "lightning_route": f"https://{lightning_host}/lightning/n/Checkers",
+            "authenticated": True,
+            "browser_trace": trace_ref,
+            "cases": cases,
+        })
+        record = {
+            "schema": suite.REVIEW_SCHEMA,
+            "step_id": result["step_id"],
+            "trial_id": result["trial_id"],
+            "candidate_digest": result["candidate_digest"],
+            "baseline_digest": result["baseline_digest"],
+            "rationale": "Pinned Salesforce DX and Lightning artifacts support this result.",
+            "review_owned_checks": [
+                {"id": "salesforce-authorized-deployment", "status": "pass", "observation": deployment_ref,
+                 "evidence": [deployment_ref, preflight_ref, raw_ref, receipt_ref, mapping_ref]},
+                {"id": "salesforce-hosted-lightning-behavior", "status": "pass", "observation": hosted_ref,
+                 "evidence": [hosted_ref, trace_ref, screenshot_ref]},
+                {"id": "salesforce-source-candidate", "status": "pass", "observation": mapping_ref,
+                 "evidence": [mapping_ref]},
+                {"id": "run-returned-to-product", "status": "pass",
+                 "evidence": [{"path": returned.name, "sha256": sha256(returned)}]},
+            ],
+        }
+        path = trial / "salesforce-review.json"
         path.write_text(json.dumps(record), encoding="utf-8")
         return path
 
@@ -751,13 +911,13 @@ class CompositeVerifierTests(unittest.TestCase):
         self.assertEqual(receipt["verifier_inputs_sha256"], "a" * 64)
         self.assertEqual(self.row(receipt, "ttt-turn-indicator-and-legal-highlights")["status"], "unverified")
 
-    def test_catalog_routes_all_nine_cases_through_family_adapters(self) -> None:
+    def test_catalog_routes_all_ten_cases_through_family_adapters(self) -> None:
         catalog = json.loads((HERE / "scenarios.json").read_text(encoding="utf-8"))
 
         def fake_cases(family: dict, step: dict) -> list[dict]:
             steps = family["steps"]
             position = next(index for index, value in enumerate(steps) if value["id"] == step["id"])
-            return [{"id": f"oracle-{value['id']}", "game": family["id"], "step_id": value["id"],
+            return [{"id": f"oracle-{value['id']}", "game": family.get("oracle_family", family["id"]), "step_id": value["id"],
                      "level": value["kind"], "actions": [{"type": "probe"}]}
                     for value in steps[:position + 1]]
 
@@ -767,7 +927,7 @@ class CompositeVerifierTests(unittest.TestCase):
             return [] if observations[0].get("semantic") == "pass" else [{"reason": "fixture"}]
 
         with patch.object(suite, "_behavior_cases", fake_cases), patch.object(suite, "_evaluate_behavior", fake_evaluate), patch.object(suite, "_closure_result", self.closure):
-            drivers = self.drivers("tic-tac-toe", "checkers", "battleship")
+            drivers = self.drivers("tic-tac-toe", "checkers", "salesforce-checkers", "battleship")
             for family in catalog["scenarios"]:
                 for step in family["steps"]:
                     with self.subTest(step=step["id"]):
@@ -776,7 +936,61 @@ class CompositeVerifierTests(unittest.TestCase):
                         semantic = [row for row in receipt["checks"] if row["id"] not in suite.NON_SEMANTIC_CHECKS]
                         self.assertEqual(len(semantic), 1)
                         self.assertEqual(semantic[0]["status"], "pass")
-                        self.assertEqual(self.row(receipt, "gas-compatible-local-artifact")["status"], "pass")
+                        if family.get("platform") == "salesforce-lightning":
+                            self.assertNotIn("gas-compatible-local-artifact", step["required_checks"])
+                            self.assertEqual(self.row(receipt, "salesforce-authorized-deployment")["status"], "unverified")
+                        else:
+                            self.assertEqual(self.row(receipt, "gas-compatible-local-artifact")["status"], "pass")
+
+    def test_salesforce_review_requires_bound_platform_proof_and_rejects_gas_schema(self) -> None:
+        env, trial, candidate, _baseline, _family, _step = self.fixture("salesforce-checkers-create")
+        result = json.loads((trial / "result.json").read_text(encoding="utf-8"))
+        review = self.salesforce_review(trial, candidate, result)
+        with patch.object(suite, "_closure_result", self.closure):
+            receipt = suite.verify(env, review_path=review)
+        for check_id in (
+            "salesforce-authorized-deployment",
+            "salesforce-hosted-lightning-behavior",
+            "salesforce-source-candidate",
+            "run-returned-to-product",
+        ):
+            self.assertEqual("pass", self.row(receipt, check_id)["status"])
+
+        env, trial, candidate, _baseline, _family, _step = self.fixture("salesforce-checkers-create")
+        result = json.loads((trial / "result.json").read_text(encoding="utf-8"))
+        gas_review = self.salesforce_review(trial, candidate, result, gas_schema=True)
+        with patch.object(suite, "_closure_result", self.closure):
+            gas_receipt = suite.verify(env, review_path=gas_review)
+        self.assertEqual("unverified", self.row(gas_receipt, "salesforce-authorized-deployment")["status"])
+
+        env, trial, candidate, _baseline, _family, _step = self.fixture("salesforce-checkers-create")
+        result = json.loads((trial / "result.json").read_text(encoding="utf-8"))
+        incomplete_review = self.salesforce_review(trial, candidate, result)
+        self.rewrite_observation(incomplete_review, "salesforce-deployment.json", lambda value: value.pop("raw_deployment_result"))
+        with patch.object(suite, "_closure_result", self.closure):
+            incomplete_receipt = suite.verify(env, review_path=incomplete_review)
+        self.assertEqual("unverified", self.row(incomplete_receipt, "salesforce-authorized-deployment")["status"])
+
+        env, _trial, _candidate, _baseline, _family, _step = self.fixture("salesforce-checkers-create")
+        with patch.object(suite, "_closure_result", self.closure):
+            missing_receipt = suite.verify(env)
+        self.assertEqual("unverified", self.row(missing_receipt, "salesforce-authorized-deployment")["status"])
+        self.assertEqual("unverified", self.row(missing_receipt, "salesforce-hosted-lightning-behavior")["status"])
+
+    def test_salesforce_hosted_proof_requires_canonical_oracle_observations(self) -> None:
+        for fault, expected_error in (
+            ("wrong-board", "salesforce-hosted-case-oracle-failure"),
+            ("missing-observations", "salesforce-hosted-case-observations-invalid"),
+        ):
+            with self.subTest(fault=fault):
+                env, trial, candidate, _baseline, _family, _step = self.fixture("salesforce-checkers-create")
+                result = json.loads((trial / "result.json").read_text(encoding="utf-8"))
+                review = self.salesforce_review(trial, candidate, result, semantic_fault=fault)
+                with patch.object(suite, "_closure_result", self.closure):
+                    receipt = suite.verify(env, review_path=review)
+                row = self.row(receipt, "salesforce-hosted-lightning-behavior")
+                self.assertEqual("unverified", row["status"])
+                self.assertIn(expected_error, row["details"]["errors"])
 
     def test_checkers_variant_drift_fails_predecessor_preservation(self) -> None:
         family, step = self.scenario("checkers-guidance")
