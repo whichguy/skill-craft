@@ -36,6 +36,7 @@ from evidence import (  # noqa: E402
     package_manifest, repo_snapshot,
 )
 from grading import validate_receipt, write_template  # noqa: E402
+from freshness import inspect_freshness  # noqa: E402
 from grok_adapter import (  # noqa: E402
     DEFAULT_REASONING_EFFORT,
     build_argv,
@@ -622,7 +623,8 @@ def _refresh_late_grade_observer_identity(output: Path, result: dict, manifest: 
         result.setdefault("statuses", {})["observer"] = "changed-after-trial-invalid"
 
 
-def preflight(args: argparse.Namespace, repo: Path, env: dict) -> dict:
+def preflight(args: argparse.Namespace, repo: Path, env: dict, *,
+              git: str | None = None, verify_freshness: bool = True) -> dict:
     expected = layout.resolve_skill_root(args.skill_root)
     package = package_manifest(expected)
     selection = inspect_selection(args.grok, repo, expected, env)
@@ -630,9 +632,12 @@ def preflight(args: argparse.Namespace, repo: Path, env: dict) -> dict:
                              capture_output=True, text=True, timeout=30)
     if version.returncode != 0:
         raise ValueError("Grok --version failed")
-    return {"package": package, "selection": selection,
-            "grok_version": version.stdout.strip(), "model_requested": args.model,
-            "python": sys.version.split()[0]}
+    checked = {"package": package, "selection": selection,
+               "grok_version": version.stdout.strip(), "model_requested": args.model,
+               "python": sys.version.split()[0]}
+    if verify_freshness:
+        checked["freshness"] = inspect_freshness(package, git or resolve_git(args.git), env)
+    return checked
 
 
 def report(output: Path, result: dict) -> None:
@@ -647,6 +652,9 @@ def report(output: Path, result: dict) -> None:
                   "`capture/events.jsonl`, `before.json`, `after.json`, and `artifacts/`.", ""])
     if result.get("error"):
         lines.extend(["Recorded error: " + result["error"], ""])
+    if result.get("freshness"):
+        lines.extend(["Publication and installed-package check: `freshness.json`.",
+                      result["freshness"]["reason"], ""])
     if result.get("audit"):
         audit = result["audit"]
         native = audit["native_events"]
@@ -796,7 +804,16 @@ def run_trial(args: argparse.Namespace) -> int:
         result["product_before"] = freeze_product(repo, before, output / "product-before")
         result["baseline_digest"] = candidate_digest(before) if baseline else None
         result["diagnostic"] = bool(args.diagnostic_unverified_baseline)
-        info = preflight(args, repo, env)
+        info = preflight(args, repo, env, git=git)
+        result["freshness"] = info["freshness"]
+        result["statuses"]["freshness"] = info["freshness"]["status"]
+        write_json(output / "freshness.json", info["freshness"])
+        print(json.dumps({"event": "shiploop-freshness", **info["freshness"]}), flush=True)
+        if not info["freshness"]["ready"]:
+            result["statuses"]["overall"] = "blocked-preflight"
+            result["error"] = info["freshness"]["reason"] + "; no model was launched"
+            report(output, result)
+            return 2
         _, observer_after_preflight = record_observer_phase("after_preflight")
         if not observer_after_preflight:
             result["observer_stable"] = False
@@ -870,6 +887,12 @@ def run_trial(args: argparse.Namespace) -> int:
             # not cause the model to keep building beyond the requested prefix.
             return boundary_seen.get("durable_boundary_reached", False)
 
+        # Recheck local discovery/bytes at the launch boundary. Publication is
+        # bound to the preflight receipt; an upstream release during a trial
+        # must not retroactively invalidate the selected candidate.
+        launch_selection = preflight(args, repo, env, verify_freshness=False)
+        if launch_selection["package"]["aggregate_sha256"] != info["package"]["aggregate_sha256"]:
+            raise ValueError("selected ShipLoop changed after freshness check; no model was launched")
         _, observer_at_launch = record_observer_phase("before_model_launch")
         if not observer_at_launch:
             result["observer_stable"] = False
@@ -891,7 +914,7 @@ def run_trial(args: argparse.Namespace) -> int:
         result["candidate_digest"] = candidate_digest(after)
         result["change"] = compare_repos(before, after, repo, git)
         write_json(output / "change.json", result["change"])
-        refreshed = preflight(args, repo, env)
+        refreshed = preflight(args, repo, env, verify_freshness=False)
         write_json(output / "preflight-after.json", refreshed)
         stable = info["package"]["aggregate_sha256"] == refreshed["package"]["aggregate_sha256"]
         result["skill_digest"] = info["package"]["aggregate_sha256"]
@@ -1335,7 +1358,7 @@ def main(argv: list[str] | None = None) -> int:
     sub = parser.add_subparsers(dest="command", required=True)
     sub.add_parser("list", help="show exact scenario prompts without host calls")
     sub.add_parser("suites", help="list named partial/full suites without host calls")
-    check = sub.add_parser("check", help="read installed skill selection/version and Git readiness; no model call")
+    check = sub.add_parser("check", help="verify latest source, publication, and installed selection; no model call")
     check.add_argument("--repo", required=True)
     check.add_argument("--model", default="not-selected")
     check.add_argument("--grok", default=shutil.which("grok") or str(Path.home() / ".local/bin/grok"))
@@ -1398,11 +1421,13 @@ def main(argv: list[str] | None = None) -> int:
             git = resolve_git(args.git)
             env = dict(os.environ)
             env["PATH"] = str(Path(git).parent) + os.pathsep + env.get("PATH", "")
-            checked = preflight(args, Path(args.repo).expanduser().resolve(), env)
+            env["GIT_TERMINAL_PROMPT"] = "0"
+            checked = preflight(args, Path(args.repo).expanduser().resolve(), env, git=git)
             print(json.dumps({"selection": checked["selection"], "package_sha256": checked["package"]["aggregate_sha256"],
                               "package_files": len(checked["package"]["files"]), "grok_version": checked["grok_version"],
-                              "git": git, "model": checked["model_requested"], "live_model_called": False}, indent=2))
-            return 0
+                              "git": git, "model": checked["model_requested"], "live_model_called": False,
+                              "freshness": checked["freshness"]}, indent=2))
+            return 0 if checked["freshness"]["ready"] else 2
         if args.command in {"run", "suite"}:
             if ((args.timeout is not None and (not math.isfinite(args.timeout) or args.timeout <= 0))
                     or (args.max_turns is not None and args.max_turns <= 0)

@@ -8,7 +8,7 @@ description: >-
   Google Apps Script game cases require an authorized test deployment and hosted
   behavior evidence.
   Includes its harness for source and marketplace installs; tests a separately selected ShipLoop.
-version: 0.2.0
+version: 0.2.1
 license: MIT
 platforms:
   - linux
@@ -24,6 +24,15 @@ Act as the **audit operator**. Run the existing harness, then explain what its
 evidence establishes about ShipLoop. The harness launches the separate application
 builder with the literal catalog `/shiploop` prompt. Do not start ShipLoop on the
 audit request, complete its callbacks yourself, or coach the builder.
+
+Every live case has a mandatory publication/freshness preflight. It compares
+the latest committed ShipLoop on authoritative source `main`, the marketplace's
+immutable published package, and Grok's actual selected package by contents and
+executable modes. Equal version labels alone are insufficient. If newest source
+is unpublished, the installation is stale, or the comparison cannot be verified,
+report the retained freshness receipt and stop before the builder launches.
+The evaluator must not publish, install, update, repoint, or repair packages to
+make the test proceed. Package preparation is a separate operator action.
 
 The external test harness owns the builder-process launch. Inside that builder
 conversation, ShipLoop remains a skill plus scripts: the invoking model reads
@@ -119,7 +128,7 @@ CLI or model access. Review of retained output needs no installed subject.
 | --- | --- |
 | `mock` or no mode | Run `check_suite.py --suite mock` and retain its result; no live model calls. |
 | `harness`, `workflow`, `games`, `regressions`, `all` | Run that no-model `check_suite.py` group; skipped checks remain incomplete. |
-| `check` | Run `run.py check` to inspect the installed subject and Git without a model call; retain stdout/stderr. |
+| `check` | Run `run.py check` to verify current source, published package, installed selection and Git without a model call; retain stdout/stderr. Unpublished, stale or unverifiable packages exit nonzero. |
 | `launch-smoke`, `planning-smoke` | Run the named `run.py suite`; these establish only an accepted graph prefix. |
 | A catalog step, such as `ttt-create` | Run one full `run.py run` request. Its literal prompt requires the builder to use the configured Google Apps Script deployment MCP and verify the hosted app. |
 | `ttt-full`, `checkers-full`, `battleship-full`, `games-full` | Run the named live suite with verified-predecessor gates, real configured Google Apps Script deployment, and independent candidate-specific hosted verification. |
@@ -226,7 +235,9 @@ not provide unattended full-chain verification.
 ## Execute with the existing harness
 
 Use Python 3.10+ and Git. Live runs require an authenticated Grok CLI; the
-no-model `check` command only requires a runnable Grok CLI.
+no-model `check` command requires a runnable Grok CLI, Git, and read access to
+the authoritative source and marketplace remotes. Offline checks cannot qualify
+freshness. A failed preflight must be explained before any evaluation launch.
 Follow the README preflight. Keep the selected ShipLoop/Improve packages and
 observer sources unchanged while the runner is active; record their actual
 selection and digests. `--skill-root` verifies discovery, it does not install
