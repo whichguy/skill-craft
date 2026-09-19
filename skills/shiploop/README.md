@@ -47,12 +47,12 @@ ShipLoop prompt.
   to execute an accepted step again. Existing bound v1/v2 chains retain their
   older single final-return lifecycle.
 
-Chain incorporation remains a draft. The historical pilot used explicitly
-selected Ask-Agent 0.3.1 and Plan Dispatcher 0.1.1. The 0.18.0 parent-import and
-per-step integration candidate requires its own native qualification and an
-explicitly selected compatible Ask-Agent 0.4 package. The bundled test fixture
-records that separate, unpublished contribution; it does not upgrade the
-marketplace or installed Ask-Agent 0.3 package. Binding a skill card freezes its
+The planning-artifact handoff published at `c33a103` and its bounded native
+Codex Ask-Agent `A/B → C` pilot were verified; see the [Native Ask-Agent
+pilot](https://github.com/whichguy/skill-craft/blob/c33a103cd394506de680bd574ff5b5ef6b8b1de7/docs/shiploop-planning-artifact-handoff-plan-2026-09-19.md#native-ask-agent-pilot).
+The goal-field omission was tested separately after that pilot. This evidence
+does not establish installed or marketplace activation, other-host behavior, or
+general Ask-Agent protocol compatibility. Binding a skill card freezes its
 bytes; it does not establish semantic protocol compatibility.
 
 `init` and `workspace start` default to navigator protocol 3 for new runs. Pass

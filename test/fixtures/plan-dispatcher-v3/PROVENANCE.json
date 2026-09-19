@@ -1,19 +1,19 @@
 {
   "purpose": "Hermetic planning-context integration fixture only; runtime uses the explicitly selected external package. No model runner.",
   "repository": "https://github.com/whichguy/plan-orchestrator",
-  "base_commit": "2d324d01471424d0f62db9dcf0edea3cea60059a",
-  "candidate_branch": "feat/planning-context-20260919",
+  "base_commit": "ef8a931916aa5fda06cfa87e2e1b6bd4ecc35e00",
+  "candidate_branch": "integrate/planning-findings-20260919",
   "candidate_status": "committed",
-  "source_worktree": "/Users/dadleet/src/.work-trees/backchain/planning-context-20260919",
+  "source_worktree": "/Users/dadleet/src/backchain/.worktrees/planning-findings-20260919",
   "path": "skills/plan-dispatcher",
   "version": "0.1.1",
   "files_sha256": {
-    "SKILL.md": "d311e1065d1f3ebf5d06b5741400c18c6059931899d9da6d3e0f629f4d6bfdf9",
-    "scripts/dispatch.js": "3aa77250ed5f4bdff610fe4ea02fe5bd341f6c3ac92b32d195d0a27a718bfc9f",
-    "scripts/state.js": "fcbba865894c418a316f06ecc83dd7809bd491a4e745517ddaa5e4b6042982a2",
+    "SKILL.md": "1a360c7ddc7f20587f7e88f5f91fc368960877001d38fecfb56a7c28bee4abdb",
+    "scripts/dispatch.js": "227185ebbb15540225da9cd247182d4504b40ed5ad602f9ec5180476a0ce62bb",
+    "scripts/state.js": "f947cb8139982789ed92577de225eadc92232d9b170deb8a8e80739cbd19f3d1",
     "scripts/planning-context.js": "93c8a3bf414c25451aee75879ba5145373e24462ab6ff0659049e1d985eaff89",
-    "references/protocol.md": "b8f23f08c26e816173c9ae25c00dcb45bf6884bfd0ed9d46bb9b012058dcaf68",
+    "references/protocol.md": "bb714dbb2fac4faa95e5e5fdeb97a5afdef5e43558ddc7588e44d36e80527ac2",
     "references/host-matrix.md": "afbe1e94e48a8134cce37a81c6f869ec123c71523b30c135e3d5c9e134602d4a"
   },
-  "source_commit": "ef8a931916aa5fda06cfa87e2e1b6bd4ecc35e00"
+  "source_commit": "9735a73785dce3c9e522dd5f53f0c287c13b5cf2"
 }

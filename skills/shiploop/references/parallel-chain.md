@@ -65,12 +65,21 @@ An input expected to change during execution needs an explicit stable planning
 snapshot. Never bind a whole mutable `state.md`, live dispatcher state, or a
 directory hash as planning context.
 
-`chain bind` checks the selected dispatcher capability before it writes the
-manifest, binding, or child-init intent. It passes the same `{path,sha256,source}`
-reference beside the unchanged graph to Plan Orchestrator `init`; the dispatcher
-retains it in its authoritative run state and projects it into fresh and cold
-recovery packets. The reference grants no claim, launch, successor, integration,
-or completion authority.
+For a new context-capable binding, `chain bind` first requires the selected
+dispatcher to advertise both `planning_context` and
+`graph_validation: "execution-graph/v1"`. It asks that same selected helper to
+validate the normalized graph through its run-free `validate-graph` command
+before collecting planning artifacts or writing a manifest, binding, or
+child-init intent. A rejected, unavailable, or malformed validation response
+leaves the parent state and chain namespace unchanged, so a corrected graph can
+be bound later. Existing bindings retain their frozen recovery contract and do
+not gain this requirement during replay.
+
+After that preflight, the bridge passes the same `{path,sha256,source}` reference
+beside the unchanged graph to Plan Orchestrator `init`; the dispatcher retains it
+in its authoritative run state and projects it into fresh and cold recovery
+packets. The reference grants no claim, launch, successor, integration, or
+completion authority.
 
 ### Required review after step creation
 

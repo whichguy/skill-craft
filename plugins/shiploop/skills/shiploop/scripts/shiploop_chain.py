@@ -52,6 +52,7 @@ _ACTION = re.compile(r"^[A-Za-z][A-Za-z0-9_-]{0,159}$")
 _ATTEMPT = re.compile(r"^[A-Za-z0-9_-]{1,160}$")
 _EVENT_SAFE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$")
 _NODE_TIMEOUT_SECONDS = 30
+_GRAPH_VALIDATION_SCHEMA = "execution-graph/v1"
 _GIT_ENV_KEYS = frozenset({
     "GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE", "GIT_COMMON_DIR",
     "GIT_OBJECT_DIRECTORY", "GIT_ALTERNATE_OBJECT_DIRECTORIES",
@@ -665,8 +666,13 @@ def _append_error(chain_dir: Path, operation: str, data: Mapping[str, Any], erro
 def _context_capability(package: Mapping[str, Any], node: str) -> None:
     """Check a selected helper before creating any chain files or child intent."""
     helper = package["files"]["scripts/dispatch.js"]["path"]
-    result = subprocess.run([node, helper, "capabilities"], text=True, capture_output=True,
-                            timeout=_NODE_TIMEOUT_SECONDS, check=False)
+    try:
+        result = subprocess.run([node, helper, "capabilities"], text=True, capture_output=True,
+                                timeout=_NODE_TIMEOUT_SECONDS, check=False)
+    except subprocess.TimeoutExpired as exc:
+        raise ChainError(f"selected dispatcher capabilities timed out after {_NODE_TIMEOUT_SECONDS}s") from exc
+    except OSError as exc:
+        raise ChainError(f"cannot invoke selected dispatcher capabilities: {exc}") from exc
     try:
         supported = json.loads(result.stdout) if result.returncode == 0 else {}
     except json.JSONDecodeError:
@@ -675,6 +681,61 @@ def _context_capability(package: Mapping[str, Any], node: str) -> None:
     if not isinstance(capabilities, Mapping) or capabilities.get("planning_context") != _PLANNING_SCHEMA:
         _fail("selected dispatcher does not support planning_context shiploop-planning-artifacts/v1; "
               "select a context-capable package before binding (no chain was created)")
+    if capabilities.get("graph_validation") != _GRAPH_VALIDATION_SCHEMA:
+        _fail("selected dispatcher does not support graph_validation execution-graph/v1; "
+              "select a graph-validation-capable package before binding (no chain was created)")
+
+
+def _preflight_graph(package: Mapping[str, Any], node: str, graph: Mapping[str, Any]) -> None:
+    """Ask the selected dispatcher to validate a new graph without a run directory."""
+    record = package["files"]["scripts/dispatch.js"]
+    helper = _resolved_existing(Path(record["path"]), "selected dispatcher helper", directory=False)
+    if _sha256(_read_regular(helper, "selected dispatcher helper")) != record["sha256"]:
+        _fail("selected dispatcher helper changed during graph preflight")
+    request_path: Path | None = None
+    try:
+        try:
+            descriptor, raw_path = tempfile.mkstemp(prefix="shiploop-chain-graph-", suffix=".json")
+            request_path = Path(raw_path)
+            with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
+                handle.write(_canonical_json({"graph": dict(graph)}))
+                handle.write("\n")
+                handle.flush()
+                os.fsync(handle.fileno())
+        except OSError as exc:
+            raise ChainError(f"cannot create selected dispatcher validate-graph request before binding: {exc}") from exc
+        try:
+            result = subprocess.run(
+                [node, str(helper), "validate-graph", str(request_path)],
+                text=True, capture_output=True, timeout=_NODE_TIMEOUT_SECONDS, check=False,
+            )
+        except subprocess.TimeoutExpired as exc:
+            raise ChainError(
+                f"selected dispatcher validate-graph timed out after {_NODE_TIMEOUT_SECONDS}s before binding"
+            ) from exc
+        except OSError as exc:
+            raise ChainError(f"cannot invoke selected dispatcher validate-graph before binding: {exc}") from exc
+        stdout = result.stdout.strip()
+        stderr = result.stderr.strip()
+        if result.returncode != 0:
+            detail = stderr or stdout or f"exit {result.returncode}"
+            _fail("selected dispatcher validate-graph rejected graph before binding: " + detail[:1600])
+        try:
+            response = json.loads(stdout)
+        except json.JSONDecodeError as exc:
+            raise ChainError(
+                f"selected dispatcher validate-graph returned invalid JSON before binding: {exc}"
+            ) from exc
+        if (not isinstance(response, Mapping) or set(response) != {"ok", "graph_sha256"}
+                or response.get("ok") is not True):
+            _fail("selected dispatcher validate-graph returned malformed response before binding")
+        _sha(response["graph_sha256"], "selected dispatcher validate-graph graph_sha256")
+    finally:
+        if request_path is not None:
+            try:
+                request_path.unlink(missing_ok=True)
+            except OSError:
+                pass
 
 
 def _planning_inputs(root: Path, state: Mapping[str, Any], graph: dict[str, Any],
@@ -3719,6 +3780,8 @@ def _bind(root: Path, state: dict[str, Any], args: argparse.Namespace) -> dict[s
             "SKILL.md", "scripts/dispatch.js", "scripts/state.js", "scripts/planning-context.js",
             "references/protocol.md",
         ))
+    if previous is None:
+        _preflight_graph(dispatcher, node, graph)
     ask_agent = _package(args.ask_agent_skill, "Ask-Agent", ("SKILL.md", "references/git-integration.md"))
     ask_agent_contract = None
     if lifecycle == "per-step":

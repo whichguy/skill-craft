@@ -1682,6 +1682,7 @@ function main() {
 
 module.exports = {
   validateGraph,
+  graphIdentity,
   init,
   inspect,
   describe,

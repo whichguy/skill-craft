@@ -72,8 +72,19 @@ produces an empty list. Inherited object properties are never input bindings.
 Before a caller creates a planning-context run, it queries the selected package:
 
 ```json
-{"capabilities":{"planning_context":"shiploop-planning-artifacts/v1"}}
+{"capabilities":{"planning_context":"shiploop-planning-artifacts/v1","graph_validation":"execution-graph/v1"}}
 ```
+
+Before a caller persists an immutable graph binding, use
+`node /absolute/dispatch.js validate-graph INPUT.json` with `{graph}`. This
+read-only operation uses the same graph and required task/ready/done validation
+as `init`, returning `{ok:true,graph_sha256}` for the canonical validated graph.
+It takes no RUN, creates no state, and returns no `next_argv`. Invalid
+dependencies, cycles, or contracts fail before the caller binds anything.
+This does not validate planning-reference availability or authorize execution;
+`init` still repeats validation and checks any supplied planning context.
+Callers requiring preflight must check `graph_validation` on their selected
+package. Existing bound runs can continue with their original package.
 
 The optional init field is an immutable wire reference:
 
@@ -127,6 +138,7 @@ the affected graph IDs. A context-bound `next` also includes the exact
 | Operation | INPUT.json fields | Effect |
 | --- | --- | --- |
 | capabilities | No RUN or file | Report selected-package context support |
+| validate-graph | No RUN; file contains `{graph}` | Validate graph and step contracts without creating a run; return canonical graph digest |
 | init | `{graph,owner,planning_context?}` | Exclusively create a new run; return next actions |
 | next | No file | Read ready IDs, active attempts, accepted IDs and recovery actions |
 | claim | `{owner,steps:["B","C"]}` | Reserve precisely these ready IDs atomically; return preparation packets |

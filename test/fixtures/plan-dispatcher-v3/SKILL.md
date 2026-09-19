@@ -52,6 +52,14 @@ reference material beside the reviewed graph; the step task/ready/done contract
 remains the sole execution assignment. It does not select successors, create a
 queue, change worker authority, or transport the original user prompt.
 
+Before saving a new immutable caller binding, require capability
+`graph_validation: execution-graph/v1` and call `validate-graph INPUT.json`
+with `{graph}`. It takes no run path and validates through the same graph and
+contract checks as init, without writing state. A rejected graph can therefore
+be corrected before a binding exists. This preflight does not check planning
+files or replace init's current-input checks; existing bound runs retain their
+selected package for recovery.
+
 ## Execute
 
 1. Use an agreed graph with per-step task, ready and done contracts. When the

@@ -170,7 +170,17 @@ function next(dir) {
 }
 
 function capabilities() {
-  return { capabilities: { planning_context: planningContext.SCHEMA } };
+  return { capabilities: {
+    planning_context: planningContext.SCHEMA,
+    graph_validation: 'execution-graph/v1',
+  } };
+}
+
+function validateGraph(input) {
+  fields(input, ['graph']);
+  requireContracts(input.graph);
+  const graph = state.validateGraph(input.graph);
+  return {ok: true, graph_sha256: state.graphIdentity(graph)};
 }
 
 function run(operation, dir, input) {
@@ -179,6 +189,10 @@ function run(operation, dir, input) {
       throw new Error('capabilities takes no RUN or input');
     }
     return capabilities();
+  }
+  if (operation === 'validate-graph') {
+    if (dir !== undefined) throw new Error('validate-graph takes no RUN');
+    return validateGraph(input);
   }
   dir = absoluteRun(dir);
   let response;
@@ -270,9 +284,13 @@ if (require.main === module) {
   try {
     const args = process.argv.slice(2);
     if (args.length === 1 && args[0] === '--help') {
-      process.stdout.write('Usage: node dispatch.js capabilities | init|next|claim|start|launched|report|receipt|settle|retry|takeover|packet|check-context /absolute/RUN [INPUT.json]\n');
+      process.stdout.write('Usage: node dispatch.js capabilities | validate-graph INPUT.json | init|next|claim|start|launched|report|receipt|settle|retry|takeover|packet|check-context /absolute/RUN [INPUT.json]\n');
     } else if (args.length === 1 && args[0].toLowerCase() === 'capabilities') {
       process.stdout.write(JSON.stringify(capabilities()) + '\n');
+    } else if (args[0] === 'validate-graph') {
+      if (args.length !== 2) throw new Error('usage: node dispatch.js validate-graph INPUT.json (no RUN)');
+      const input = JSON.parse(fs.readFileSync(args[1], 'utf8'));
+      process.stdout.write(JSON.stringify(run('validate-graph', undefined, input)) + '\n');
     } else {
       if (args.length < 2 || args.length > 3) throw new Error('usage: node dispatch.js OP /absolute/RUN [INPUT.json]');
       const input = args[2] === undefined ? undefined : JSON.parse(fs.readFileSync(args[2], 'utf8'));

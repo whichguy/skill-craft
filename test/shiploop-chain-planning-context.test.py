@@ -61,7 +61,7 @@ class PlanningContextChainTests(unittest.TestCase):
                 if stream is not None:
                     stream.close()
 
-    def bind(self, test, *, mode: str = "parallel", capacity: int | None = None):
+    def bind(self, test, *, mode: str = "parallel", capacity: int | None = None, ok: bool = True):
         extra = [
             "--graph", str(test.graph),
             "--dispatcher-skill", str(test.dispatcher / "SKILL.md"),
@@ -72,7 +72,7 @@ class PlanningContextChainTests(unittest.TestCase):
         ]
         if capacity is not None:
             extra += ["--capacity", str(capacity)]
-        return test.call("bind", extra=tuple(extra))
+        return test.call("bind", ok=ok, extra=tuple(extra))
 
     def planning_inputs(self, test):
         command = [
@@ -88,6 +88,15 @@ class PlanningContextChainTests(unittest.TestCase):
         context = binding["planning_context"]
         manifest = json.loads(Path(context["path"]).read_text())
         return binding, context, manifest
+
+    def validate_graph(self, test, graph: dict) -> subprocess.CompletedProcess[str]:
+        """Call the selected helper's run-free graph-validation boundary."""
+        request = test.write("validate-graph.json", {"graph": graph})
+        return subprocess.run(
+            [fixture.chain._node_path(), str(test.dispatcher / "scripts" / "dispatch.js"),
+             "validate-graph", str(request)],
+            text=True, capture_output=True, timeout=30,
+        )
 
     def assert_packet_context(self, test, packet, context, manifest) -> None:
         steps = {row["id"]: row["contract"] for row in json.loads(test.graph.read_text())["steps"]}
@@ -308,6 +317,50 @@ class PlanningContextChainTests(unittest.TestCase):
                 "contract": {"task": "Adapter task", "ready": ["input"], "done": ["output"]},
             }],
         })
+
+    def test_graph_preflight_rejects_invalid_graphs_without_binding_then_allows_retry(self) -> None:
+        valid = json.loads(self.f.graph.read_text())
+        before = self.f.run_bytes()
+        invalid_graphs = {
+            "unknown dependency": {
+                "version": 1,
+                "steps": [{
+                    "id": "A", "deps": ["missing"],
+                    "contract": {"task": "Implement A", "ready": ["input"], "done": ["output"]},
+                }],
+            },
+            "missing contract": {
+                "version": 1,
+                "steps": [{"id": "A", "deps": []}],
+            },
+            "empty definition of done": {
+                "version": 1,
+                "steps": [{
+                    "id": "A", "deps": [],
+                    "contract": {"task": "Implement A", "ready": ["input"], "done": []},
+                }],
+            },
+        }
+        for label, graph in invalid_graphs.items():
+            with self.subTest(graph=label):
+                public = self.validate_graph(self.f, graph)
+                self.assertNotEqual(public.returncode, 0, public.stdout)
+                self.assertEqual(self.f.run_bytes(), before)
+
+                self.f.graph = self.f.write("graph.json", graph)
+                refused = self.bind(self.f, ok=False)
+                self.assertIn("validate-graph", refused.stderr)
+                self.assertEqual(self.f.run_bytes(), before)
+                self.assertFalse((self.f.run / "chains").exists())
+
+        self.f.graph = self.f.write("graph.json", valid)
+        public = self.validate_graph(self.f, valid)
+        self.assertEqual(public.returncode, 0, public.stderr + public.stdout)
+        preflight = json.loads(public.stdout)
+        self.assertEqual(set(preflight), {"ok", "graph_sha256"})
+        self.assertTrue(preflight["ok"])
+        self.bind(self.f)
+        self.assertEqual(preflight["graph_sha256"], self.f.child_state()["graph_sha256"])
 
     def test_parallel_and_serial_cold_packets_keep_the_same_consolidated_context(self) -> None:
         self.bind(self.f, mode="parallel", capacity=2)
@@ -610,6 +663,17 @@ class PlanningContextChainTests(unittest.TestCase):
                 self.assertEqual(blocked.run_bytes(), before)
 
     def test_old_helper_refusal_and_existing_v1_binding_recovery(self) -> None:
+        context_only = self.new_fixture()
+        context_helper = context_only.dispatcher / "scripts" / "dispatch.js"
+        context_helper.write_text(context_helper.read_text().replace(
+            "    graph_validation: 'execution-graph/v1',\n", ""
+        ))
+        before = context_only.run_bytes()
+        refused = self.bind(context_only, ok=False)
+        self.assertIn("does not support graph_validation", refused.stderr)
+        self.assertEqual(context_only.run_bytes(), before)
+        self.assertFalse((context_only.run / "chains").exists())
+
         old = self.new_fixture()
         old.select_dispatcher(fixture.LEGACY_FIXTURE)
         before = old.run_bytes()
