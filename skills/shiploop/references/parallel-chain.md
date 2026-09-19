@@ -4,7 +4,7 @@ Use this optional route in parallel or serial mode for a reviewed dependency gra
 navigator-v3 `implement` action**. ShipLoop retains one parent action and its
 normal Improve/test sequence. The work-item queue remains ordered. Existing runs
 are unchanged unless their current implementation action is explicitly bound.
-Bound runs require ShipLoop 0.16.0 or later: binding adds an optional parent
+Bound runs require ShipLoop 0.17.0 or later: binding adds an optional parent
 `chain_bindings` locator/digest. Older readers reject that additional field;
 ordinary unbound v1/v2/v3 records retain their existing format.
 
