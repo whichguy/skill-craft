@@ -13,6 +13,11 @@ retain the handle returned by that tool, collect its actual completion, and
 attest stopped status before a bridge settlement. A saved handle, a timeout, or
 an output file alone is not evidence that a native worker has stopped.
 
+Run parent driver commands serially and wait for each command to finish before
+starting the next. A shell tool returning a live session handle is not command
+completion. The driver's command log has one parent writer; parallel work occurs
+in native worker contexts, not overlapping driver invocations.
+
 The initial navigator/Improve actions are deliberately synthetic only to place
 this disposable fixture at the current v3 `implement` action. Their record is
 `evidence/synthetic-prerequisites.json`. They make no claim that a live full
