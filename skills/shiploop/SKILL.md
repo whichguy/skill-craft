@@ -387,8 +387,9 @@ not the user prompt and not a replacement task directive. The dispatcher's
 step `contract.task`, `contract.ready`, and `contract.done` remain the worker's
 sole assignment. The reviewed graph stays unchanged; the manifest is a separate
 input reference for Plan Orchestrator and every worker packet.
-Forward the complete worker packet, including its engineering-guidance locators,
-to Ask-Agent. Each worker selects applicable coding, platform, and test guidance
+Use the complete worker packet, including its engineering-guidance locators.
+Pass it inline to Ask-Agent for parallel execution; execute it in the main context
+for serial mode. Each worker selects applicable coding, platform, and test guidance
 within its contract and retains decisions and checks in its existing handoff.
 Use the selected Plan Dispatcher and Ask-Agent packages, external sibling
 `.work-trees` checkouts, and the bridge's claim/start/import/prepare/done/finish flow.

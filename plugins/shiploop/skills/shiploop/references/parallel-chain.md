@@ -23,19 +23,22 @@ flowchart TD
 
 ## Bind the selected packages and reviewed graph
 
-Use the exact selected Plan Dispatcher and Ask-Agent 0.4 skill cards. ShipLoop does
-not install them, search host skill directories or silently choose a substitute.
-Plan Dispatcher requires Node.js; ShipLoop uses its public helper for state
-operations, never a model subprocess launcher. The parent invokes Ask-Agent
-through the host's available native delegation tools.
+Use the exact selected Plan Dispatcher and Ask-Agent 0.4.x adapter skill cards
+for every new per-step binding, including serial mode. This repository's
+`skills/ask-agent` 0.3.1 is not that adapter. ShipLoop does not install them,
+search host skill directories or silently choose a substitute. Plan Dispatcher
+requires Node.js; ShipLoop uses its public helper for state operations, never a
+model subprocess launcher. The parent invokes Ask-Agent through the host's
+available native delegation tools.
 
 The graph is Plan Dispatcher's execution graph with direct `deps` and each
 step's `contract.task`, `contract.ready` and `contract.done`. A reviewed Backchain
-plan can be converted with its checkout utility `harness/dispatcher-plan.js`.
-Review the graph against the **current implementation action's scope** before
-binding; do not submit the whole project's SDLC as one implementation graph.
-Keep missing prerequisites explicit rather than treating syntactic validation
-as a semantic readiness check.
+plan should use the selected Plan Orchestrator checkout's
+`scripts/export-execution-graph.js`; a compatible legacy checkout can retain
+`harness/dispatcher-plan.js`. Review the graph against the **current
+implementation action's scope** before binding; do not submit the whole project's
+SDLC as one implementation graph. Keep missing prerequisites explicit rather
+than treating syntactic validation as a semantic readiness check.
 
 ### Planning-artifact handoff
 
@@ -66,9 +69,9 @@ snapshot. Never bind a whole mutable `state.md`, live dispatcher state, or a
 directory hash as planning context.
 
 For a new context-capable binding, `chain bind` first requires the selected
-dispatcher to advertise both `planning_context` and
-`graph_validation: "execution-graph/v1"`. It asks that same selected helper to
-validate the normalized graph through its run-free `validate-graph` command
+dispatcher to advertise `planning_context: "shiploop-planning-artifacts/v1"`
+and `graph_validation: "execution-graph/v1"`. It asks that same selected helper
+to validate the normalized graph through its run-free `validate-graph` command
 before collecting planning artifacts or writing a manifest, binding, or
 child-init intent. A rejected, unavailable, or malformed validation response
 leaves the parent state and chain namespace unchanged, so a corrected graph can
@@ -135,8 +138,9 @@ python3 "$CLI" chain claim --run-dir "$RUN_DIR" --action "$ACTION" --input "$REQ
 
 ### Worker engineering guidance
 
-Pass the complete returned worker packet inline to Ask-Agent, including its
-`instructions`; forwarding only `task` drops the engineering guidance. The
+For parallel execution, pass the complete returned worker packet inline to
+Ask-Agent, including its `instructions`. For serial execution, use that complete
+packet in the main context. Forwarding only `task` drops the engineering guidance. The
 bridge adds package-local locators for the [coding decision guide](coding-guidance.md#select-guidance),
 [repeatable test suites](repeatable-test-suites.md#select-or-revalidate-the-harness),
 and [implementation constitution](testing-and-documentation.md#implementation-constitution)
@@ -307,12 +311,16 @@ Bind a new chain with `--mode serial`; omit `--capacity` or set it to `1`.
 `--mode parallel` is the default and retains native Ask-Agent execution. The
 mode is frozen for that chain; do not switch an existing active chain in place.
 Serial mode requires a selected Plan Dispatcher package with atomic
-main-context `start.executor` support (the 0.1.1 candidate). An older package
+main-context `start.executor` support as well as the planning-context and graph
+capabilities above. An older package
 cannot silently emulate it with a fake native handle: it rejects `start` before
-any execute grant. The binding and allocated workspace can remain for inspection;
-do not treat a successful bind as serial capability qualification or edit the
-frozen package in place. The selected Ask-Agent package still supplies the shared
-Git contribution reference, but serial chain execution does not invoke Ask-Agent.
+any execute grant. For each new serial attempt, the bridge prepares a sibling
+Git worktree and records the main-context executor without a native handle.
+Recovery reuses that attempt's workspace. The binding and
+allocated workspace can remain for inspection; do not treat a successful bind as
+serial capability qualification or edit the frozen package in place. The selected
+Ask-Agent package still supplies the shared Git contribution reference, but
+serial chain execution does not invoke Ask-Agent.
 
 ```sh
 python3 "$CLI" chain bind --run-dir "$RUN_DIR" --action "$ACTION" \

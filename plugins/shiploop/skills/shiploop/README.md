@@ -3,8 +3,10 @@
 ShipLoop runs in the conversation that invoked it. That conversation follows
 the current action packets and performs the producer and Improve work; the
 scripts manage durable state and callbacks. An isolated worktree does not create
-a separate model session. Model launching belongs to the external E2E harness,
-not to ShipLoop. The former `drive` command and model transports are removed.
+a separate model session. Shell model-CLI launching belongs only to the external
+E2E harness, not normal ShipLoop CLI operation. Optional bound implementation
+chains may still use a selected compatible Ask-Agent adapter through host-native
+delegation. The former `drive` command and model transports are removed.
 For a saved run from that older controller, read
 [retired-controller recovery](references/context-reset.md) before continuing.
 
@@ -29,13 +31,21 @@ ShipLoop prompt.
 - [Delivery-authority readiness](references/delivery-authority.md)
 - [Optional parallel or serial implementation chains](references/parallel-chain.md) — bind
   the selected Plan Dispatcher/Ask-Agent packages to one current implementation
-  action, use external sibling worktrees and append-only timestamped events,
-  then require verified integration before the usual Improve/test sequence.
+  action. Every new per-step binding, including `--mode serial`, requires a
+  selected compatible Plan Dispatcher and Ask-Agent 0.4.x adapter; this
+  repository's `skills/ask-agent` 0.3.1 is not that adapter. The Dispatcher must
+  advertise `planning_context: "shiploop-planning-artifacts/v1"` and
+  `graph_validation: "execution-graph/v1"`; [the chain preflight](references/parallel-chain.md#planning-artifact-handoff)
+  rejects an invalid graph before binding, leaving the parent unchanged for a
+  corrected retry. Use external sibling worktrees and append-only timestamped
+  events, then require verified integration before the usual Improve/test sequence.
   Initial steps and their graph must first complete the planning Improve loop;
   a later-created or materially revised graph needs review before binding.
   `chain bind --mode serial` walks the same dependency graph in the main context,
-  one ready step at a time, without agents. Default parallel mode uses native
-  Ask-Agent 0.4, which creates its own worker worktrees for verified adoption.
+  one ready step at a time. It prepares a sibling Git worktree and records a
+  main-context executor without a native handle; it does not invoke Ask-Agent.
+  Default parallel mode uses native Ask-Agent 0.4, which creates its own worker
+  worktrees for verified adoption.
   The parent imports worker-local results, prepares and tests the combination,
   merges each accepted contribution into the invoking branch, and removes the
   worker checkout. Accepted is the sole stored done state; the `completion` view lists

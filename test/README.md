@@ -82,12 +82,15 @@ python3 -B test/shiploop-chain-planning-context.test.py
 The collector suite checks accepted planning records, reference resolution,
 immutable inputs, and exclusion of the original user prompt. The composed suite
 uses the pinned `plan-dispatcher-v3` package and controlled worker processes to
-check cold recovery, parallel/serial code generation from references, dependency
+check invalid-graph rejection before binding with no parent mutation, corrected
+retry, cold recovery, parallel/serial code generation from references, dependency
 joins, import recovery, and worktree cleanup. Its failure-path check stops
 workers before removing their workspaces. Both suites run in the ordinary
 ShipLoop inventory; they do not establish model understanding or native-host
 delivery. The fixture's `PROVENANCE.json` identifies the upstream commit and
-every copied file hash, independently of the author's local checkout path.
+every copied file hash, independently of the author's local checkout path; it is
+a copied fixture, not a released package, installed-package qualification, or
+native-execution proof.
 
 `python3 -B test/experiments/shiploop_chain/test_native_pilot.py` checks the
 pilot's actual inline prompt adapter and current planning-context preparation
