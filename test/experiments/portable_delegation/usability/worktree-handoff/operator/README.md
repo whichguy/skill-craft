@@ -24,6 +24,11 @@ ignored/generated inputs to workers. Repeated snapshots must
 use new evidence filenames when retaining history.
 Git inspection disables optional index refresh and external diff/text conversion;
 snapshotting must preserve the caller's index bytes as well as its staged content.
+Per-file index entries also record Git's `ls-files -v` flags, so completion can
+detect changed assume-unchanged or skip-worktree state on nonpricing inputs.
+Earlier snapshots without those flags require a fresh baseline for these checks;
+do not rewrite historical receipts. Legitimate pricing integration may update the
+index, so completion compares nonpricing entries rather than all raw index bytes.
 
 `preflight` takes `--source`, `--manifest` (the prepared `paths.json`),
 `--parent-cwd`, `--launch` (JSON), and the actual `--prompt`, `--skill` and
@@ -37,7 +42,8 @@ snapshotting must preserve the caller's index bytes as well as its staged conten
 | `argv_mode` | Set `cwd-only` only when this invocation relies on process cwd and supplies no project override. |
 | `prompt_sha256`, `skill_sha256`, `reference_sha256` | Digests of the selected frozen inputs, matching the manifest and supplied files. |
 
-`READY` requires all three frozen input digests, including the Git reference,
+`READY` requires the baseline snapshot schema and source-checkout identity to
+match, plus all three frozen input digests, including the Git reference,
 and checks the registered launch and current files. Separately observe the
 actual native session cwd, selected inputs and effective model after launch.
 This helper cannot prove that an operator executed the registered command.
@@ -99,8 +105,9 @@ For each worker, events must establish `worker_terminal`, `worker_return`,
 parent's single successful `parent_final` (or `parent_finish`). Duplicate or
 contradictory final events do not qualify. Each event uses `kind`, native
 worker ID in `worker` when applicable, and a common-format `timestamp` when
-available. Keep all events in observed order; that order breaks equal-timestamp
-ties. A terminal child with no return
+available. Keep all events in observed order; that order handles missing
+timestamps and breaks equal-timestamp ties. Known timestamps must still agree
+across gaps. A terminal child with no return
 delivery event does not qualify. Required files must still exist and hash-match.
 
 The code worker's contribution is `pricing.json` only; report-worker changes

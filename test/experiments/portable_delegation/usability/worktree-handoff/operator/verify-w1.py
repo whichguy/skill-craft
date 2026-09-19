@@ -12,7 +12,8 @@ The JSON contracts are intentionally small and explicit:
   per-file type/mode/content-hash manifest.
 * ``preflight`` consumes a prepared ``paths.json`` plus a native observation of
   the form ``{"cwd": ..., "project_path": ..., "argv": [...],
-  "prompt_sha256": ..., "skill_sha256": ...}`` and returns ``READY`` only
+  "prompt_sha256": ..., "skill_sha256": ..., "reference_sha256": ...}``
+  and returns ``READY`` only
   when the source, launch paths, frozen hashes, and baseline still agree.
 * ``public-opencode`` reads SQLite through a read-only URI and emits only
   whitelisted scalar fields from ``session``, ``message``, and text/tool
@@ -122,6 +123,7 @@ def _decode_zlist(raw: bytes) -> list[str]:
 
 def _index_entries(source: Path) -> dict[str, dict[str, Any]]:
     entries: dict[str, dict[str, Any]] = {}
+    flags = {item[2:]: item[0] for item in _decode_zlist(_git(source, "ls-files", "-v", "-z"))}
     for item in _git(source, "ls-files", "-s", "-z").split(b"\0"):
         if not item:
             continue
@@ -129,7 +131,7 @@ def _index_entries(source: Path) -> dict[str, dict[str, Any]]:
         # ``git ls-files -s`` emits ``mode object stage<TAB>path``.
         mode, object_id, stage = header.decode("ascii").split()
         rel = raw_path.decode("utf-8", "surrogateescape")
-        entries[rel] = {"mode": mode, "stage": int(stage), "object": object_id}
+        entries[rel] = {"mode": mode, "stage": int(stage), "object": object_id, "flags": flags[rel]}
     return entries
 
 
@@ -284,7 +286,7 @@ def prepare_fixture(
 
 def _snapshot_differences(left: dict[str, Any], right: dict[str, Any]) -> list[str]:
     differences: list[str] = []
-    for key in ("git_root", "git_dir", "git_common_dir", "branch", "head", "status_sha256", "staged_diff_sha256", "unstaged_diff_sha256", "untracked_paths", "files"):
+    for key in ("schema", "source_checkout", "git_root", "git_dir", "git_common_dir", "branch", "head", "status_sha256", "staged_diff_sha256", "unstaged_diff_sha256", "untracked_paths", "files"):
         if left.get(key) != right.get(key):
             differences.append(key)
     return differences
@@ -597,13 +599,23 @@ def public_opencode(
 _TERMINAL = {"completed", "failed", "cancelled", "blocked", "unsupported"}
 
 
-def _event_time(event: dict[str, Any], position: int) -> tuple[int, float | str]:
+def _event_time(event: dict[str, Any]) -> tuple[int, float | str] | None:
     value = event.get("timestamp", event.get("time"))
     if isinstance(value, (int, float)):
         return (0, float(value))
     if isinstance(value, str) and value:
         return (1, value)
-    return (2, position)
+    return None
+
+
+def _events_out_of_order(events: list[tuple[int, dict[str, Any]]]) -> bool:
+    if any(before[0] >= after[0] for before, after in zip(events, events[1:])):
+        return True
+    times = [value for _, event in events if (value := _event_time(event)) is not None]
+    # Missing timestamps cannot contradict observed event order. Known times
+    # must still agree across gaps and use a common representation.
+    return any(before[0] != after[0] or before[1] > after[1]
+               for before, after in zip(times, times[1:]))
 
 
 def _required_report_paths(worker: dict[str, Any], inbox: Path) -> list[Path]:
@@ -829,9 +841,8 @@ def complete_w1(
         if final_event.get("status") not in {None, "completed", "finished", "finish", "stop"}:
             errors.append("native parent final event reports an unsuccessful state")
             final_after_returns = False
-        final_time = _event_time(final_event, final_position)
         for index, event in return_events:
-            if str(event.get("worker", "")) in actual_returns and (index >= final_position or _event_time(event, index) > final_time):
+            if str(event.get("worker", "")) in actual_returns and _events_out_of_order([(index, event), (final_position, final_event)]):
                 errors.append("parent final/finish occurred before all worker returns")
                 final_after_returns = False
         if len(actual_returns) != 2:
@@ -856,9 +867,8 @@ def complete_w1(
                           for kind in required_kinds]
             if all(per_worker) and final_events:
                 ordered = [items[0] for items in per_worker] + [final_events[-1]]
-                for (before_i, before), (after_i, after) in zip(ordered, ordered[1:]):
-                    if before_i >= after_i or _event_time(before, before_i) > _event_time(after, after_i):
-                        errors.append(f"{worker.get('role', key)} lifecycle events are out of order")
+                if _events_out_of_order(ordered):
+                    errors.append(f"{worker.get('role', key)} lifecycle events are out of order")
     if observations.get("parent_final_after_returns") is True and not return_events:
         unsupported.append("parent_final_after_returns boolean lacks native event provenance")
     if str(observations.get("parent_status", "")).lower() in {"finish", "stop"} and len(actual_returns) != 2:

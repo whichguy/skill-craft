@@ -249,6 +249,21 @@ class W1HarnessTests(unittest.TestCase):
         self.assertEqual(result["status"], "COMPLETE")
         self.assertEqual(result["checks"]["parent_final_after_returns"], "PASS")
 
+    def test_completion_uses_event_order_when_timestamps_are_partially_missing(self) -> None:
+        self._make_inbox()
+        self._integrate_pricing()
+        good = self._good_observations()
+        for missing in ({0}, {1, 5, 8}, set(range(len(good["events"])))):
+            observations = copy.deepcopy(good)
+            for position in missing:
+                observations["events"][position].pop("timestamp")
+            with self.subTest(missing=missing):
+                self.assertEqual(verify.complete_w1(self.source, self.baseline, observations, self.inbox)["status"], "COMPLETE")
+        observations = copy.deepcopy(good)
+        observations["events"][1].pop("timestamp")
+        observations["events"][2]["timestamp"] = 1
+        self.assertNotEqual(verify.complete_w1(self.source, self.baseline, observations, self.inbox)["status"], "COMPLETE")
+
     def test_finish_stop_with_pending_worker_is_incomplete(self) -> None:
         self._make_inbox()
         self._integrate_pricing()
@@ -386,6 +401,31 @@ class W1HarnessTests(unittest.TestCase):
         self.baseline.write_text(json.dumps(baseline))
         result = verify.complete_w1(self.source, self.baseline, observations, self.inbox)
         self.assertTrue(any("checkout/root" in error for error in result["errors"]))
+
+    def test_completion_rejects_nonpricing_index_flag_changes(self) -> None:
+        self._make_inbox()
+        self._integrate_pricing()
+        observations = self._good_observations()
+        for flag in ("assume-unchanged", "skip-worktree"):
+            with self.subTest(flag=flag):
+                verify._git(self.source, "update-index", "--" + flag, "feature.txt")
+                result = verify.complete_w1(self.source, self.baseline, observations, self.inbox)
+                self.assertNotEqual(result["status"], "COMPLETE")
+                verify._git(self.source, "update-index", "--no-" + flag, "feature.txt")
+
+    def test_preflight_rejects_wrong_baseline_schema_or_checkout(self) -> None:
+        original = json.loads(self.baseline.read_text())
+        launch = {"cwd": str(self.source), "project_path": str(self.source),
+                  "argv": ["codex", "exec", "-C", str(self.source)],
+                  "prompt_sha256": self.paths["frozen_prompt_sha256"],
+                  "skill_sha256": self.paths["frozen_skill_sha256"],
+                  "reference_sha256": self.paths["frozen_reference_sha256"]}
+        for field, wrong in (("schema", "not-a-snapshot"), ("source_checkout", str(self.root / "wrong"))):
+            with self.subTest(field=field):
+                self.baseline.write_text(json.dumps({**original, field: wrong}))
+                with self.assertRaises(verify.ContractError):
+                    verify.preflight(self.source, self.run / "paths.json", self.source, launch,
+                                     prompt=str(self.prompt), skill=str(self.skill), reference=str(self.reference))
 
     def test_pricing_commit_allowed_but_branch_switch_rejected(self) -> None:
         self._make_inbox()
