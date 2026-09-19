@@ -1,0 +1,176 @@
+{
+  "schema": "shiploop-chain-incorporation-qualification/v1",
+  "full_shiploop_status": "FAIL",
+  "inventory": {
+    "selected": 90,
+    "executed": 90,
+    "passed_suites": 89,
+    "failed_suites": 1,
+    "skipped_suites": 0
+  },
+  "core": {
+    "status": "PASS",
+    "groups": 23,
+    "log": "/tmp/shiploop-incorporate-core.log",
+    "log_sha256": "f36df031d8c0a247e9092cfa31c6c0b5c05c29a91b99c5b5d13799a761d250ab"
+  },
+  "groups": [
+    {
+      "group": "shiploop-1",
+      "source_commit": "4471993",
+      "status": "pass",
+      "executed_suites": [
+        "test/shiploop-no-model-launch.test.py",
+        "test/shiploop-standalone-improve.test.py",
+        "test/shiploop-v3-guidance.test.py",
+        "test/shiploop-full-runtime.test.py",
+        "test/shiploop-environment-lifecycle.test.py",
+        "test/shiploop-chain-ledger.test.py",
+        "test/shiploop-consumer-delivery.test.py",
+        "test/experiments/shiploop_delivery/fake_deployment.test.py",
+        "test/shiploop-graph-driver.test.py",
+        "test/shiploop-evidence.test.py",
+        "test/shiploop-literal-transport.test.py",
+        "test/shiploop-capability-fixture.test.py",
+        "test/shiploop-probe-decisions.test.py",
+        "test/shiploop-system-context.test.py",
+        "test/shiploop-question-resume.test.py",
+        "test/shiploop-system-tests.test.py",
+        "test/shiploop-history-policy.test.py",
+        "test/shiploop-outer-work-protocol.test.py",
+        "test/shiploop-artifacts.test.py",
+        "test/shiploop-revalidation.test.py",
+        "test/shiploop-boundaries.test.py",
+        "test/shiploop-contract-protocol.test.py",
+        "test/shiploop-packets.test.py",
+        "test/shiploop-orientation-context.test.py",
+        "test/shiploop-backchain-guidance.test.py",
+        "test/shiploop-history-pages.test.py",
+        "test/shiploop-knowledge.test.py",
+        "test/shiploop-step-planning.test.py",
+        "test/shiploop-managed-contracts.test.py",
+        "test/shiploop-managed-package.test.py"
+      ],
+      "log": "/tmp/shiploop-incorporate-shiploop-1.log",
+      "log_sha256": "36d8327d3f4599d0a89f612390c4af115e0397adbdecd51727d870853014983d"
+    },
+    {
+      "group": "shiploop-2",
+      "source_commit": "4471993",
+      "status": "pass",
+      "executed_suites": [
+        "test/shiploop-navigator.test.py",
+        "test/shiploop-actual-improve-cli.test.py",
+        "test/shiploop-local-skills.test.py",
+        "test/shiploop-navigator-dry-run.test.py",
+        "test/shiploop-cross-run.test.py",
+        "test/shiploop-chain-git.test.py",
+        "test/shiploop-consumer-delivery-cli.test.py",
+        "test/experiments/shiploop_delivery/browser_consumer/serve_fixture.test.py",
+        "test/shiploop-graph-trace.test.py",
+        "test/shiploop-file-safety.test.py",
+        "test/shiploop-validators.test.py",
+        "test/shiploop-capability-runtime.test.py",
+        "test/shiploop-capability-async.test.cjs",
+        "test/shiploop-research-template.test.py",
+        "test/shiploop-iteration-docs.test.py",
+        "test/shiploop-system-tests-protocol.test.py",
+        "test/shiploop-improve-policy.test.py",
+        "test/shiploop-observations.test.py",
+        "test/shiploop-artifact-consumers.test.py",
+        "test/shiploop-revalidation-context.test.py",
+        "test/shiploop-objectives.test.py",
+        "test/shiploop-delivery.test.py",
+        "test/shiploop-orientation.test.py",
+        "test/shiploop-orientation-integration.test.py",
+        "test/shiploop-teachback.test.py",
+        "test/shiploop-merge-recovery.test.py",
+        "test/shiploop-planning.test.py",
+        "test/shiploop-sdlc.test.py",
+        "test/shiploop-invalidation.test.py",
+        "test/shiploop-managed-walk.test.py"
+      ],
+      "log": "/tmp/shiploop-incorporate-shiploop-2.log",
+      "log_sha256": "ab03ee22458672a2ce26bdbaefa855912d01023105b89ef65ec1df8882f6d5c4"
+    },
+    {
+      "group": "shiploop-3",
+      "source_commit": "19ee7ad",
+      "status": "fail",
+      "executed_suites": [
+        "test/shiploop-navigator-v3.test.py",
+        "test/shiploop-packet-bounds.test.py",
+        "test/experiments/shiploop_ui_allocation/test_evidence.py",
+        "test/shiploop-auth-readiness.test.py",
+        "test/shiploop-workspace.test.py",
+        "test/shiploop-chain.test.py",
+        "test/shiploop-delivery-prompts.test.py",
+        "test/improve-managed.test.py",
+        "test/shiploop-store.test.py",
+        "test/shiploop-prompt-integrity.test.py",
+        "test/shiploop-discovery.test.py",
+        "test/shiploop-generalized-discovery.test.py",
+        "test/shiploop-repeatable-experiments.test.py",
+        "test/shiploop-research-packet-protocol.test.py",
+        "test/shiploop-iteration-docs-protocol.test.py",
+        "test/shiploop-system-tests-report.test.py",
+        "test/shiploop-outer-work.test.py",
+        "test/shiploop-observations-protocol.test.py",
+        "test/shiploop-privacy.test.py",
+        "test/shiploop-risk.test.py",
+        "test/shiploop-contracts.test.py",
+        "test/shiploop-report.test.py",
+        "test/shiploop-loop-scope.test.py",
+        "test/shiploop-reference-routing.test.py",
+        "test/shiploop-protocol.test.py",
+        "test/shiploop-migration-prompt.test.py",
+        "test/shiploop-until.test.py",
+        "test/shiploop-improve-bridge.test.py",
+        "test/shiploop-managed-invalidation.test.py",
+        "test/shiploop-action-walk.test.py"
+      ],
+      "log": "/tmp/shiploop-incorporate-shiploop-3-corrected.log",
+      "log_sha256": "5851ac430aefd3f783cedba8b7c5440996503acb0a920f7a1f2f18dafd4d6754"
+    }
+  ],
+  "failure": {
+    "suite": "test/shiploop-action-walk.test.py",
+    "case": "test_action_walk_enforces_evidence_history_commits_revision_and_terminal_journal",
+    "message": "check execution timestamps are inconsistent: objective-candidate",
+    "isolated_upstream": "PASS: 1e31cd8, 314.943s",
+    "isolated_candidate": "PASS: 4471993, 318.206s",
+    "resolution": "Unresolved; isolated passes do not replace full-run failure.",
+    "controlled_reproduction": {
+      "id": "objective-candidate",
+      "status": "passed",
+      "started_at": "2026-09-18T12:00:01.000Z",
+      "finished_at": "2026-09-18T12:00:00.999Z",
+      "duration_ms": 15,
+      "validation_error": "check execution timestamps are inconsistent: objective-candidate",
+      "scope": "Controlled rollback reproduces the error; original full-run trigger remains unproven."
+    },
+    "reproduction_script": {
+      "path": "/tmp/shiploop-incorporate-timestamp-repro.py",
+      "sha256": "58ccd2e33d8646e2ce38d3ced4cf3836a5ad8fd29d8ca84f52aba7ab52c89a9b"
+    },
+    "isolated_logs": [
+      {
+        "path": "/tmp/shiploop-incorporate-action-walk-upstream-baseline.log",
+        "sha256": "bbbd072873ed49013b7e132aa9b323bbf877ca5dce47bc4f16dd65841a750d33"
+      },
+      {
+        "path": "/tmp/shiploop-incorporate-action-walk-isolated-candidate.log",
+        "sha256": "48a1b6e9ad15195af71df787b5d73ab4a69db73659f3d0b55958e6d2f3910e7e"
+      }
+    ],
+    "original_trigger": "Not established: temporary check record removed by fixture teardown; unchanged writer permits independently sampled wall-clock rollback."
+  },
+  "initial_discovery_failure": {
+    "log": "/tmp/shiploop-incorporate-shiploop-3.log",
+    "repair_commit": "19ee7ad",
+    "corrected_focused_tests": 27,
+    "corrected_shard_discovery_result": "PASS",
+    "log_sha256": "f9b27d35e6cfacda6ad541ca39c0a27b48ecd3ab6e8084307fddd3b9c87e89a7"
+  },
+  "claim_boundary": "Hermetic mechanics only. Native Ask-Agent 0.3.1 pilot recorded separately. Ask-Agent 0.4 compatibility and activation remain unqualified."
+}

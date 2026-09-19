@@ -7,7 +7,8 @@ Ask-Agent 0.4 workflow.** The complete candidate is implemented on the ShipLoop
 0.17.0 integration branch and has a completed native pilot with explicitly
 selected Ask-Agent 0.3.1. The working Ask-Agent 0.4 contract requires a different
 handoff adapter; this is a concrete incorporation prerequisite, not a request to
-silently select the older package. Keep the contribution reviewable in
+silently select the older package. Full qualification also retains one unresolved
+timestamp failure. Keep the contribution reviewable in
 [skill-craft PR 8](https://github.com/whichguy/skill-craft/pull/8) and its
 [dispatcher prerequisite PR 2](https://github.com/whichguy/backchain/pull/2).
 
@@ -78,11 +79,41 @@ runner output explain the signal. The `Codex/Hermes: skipped` text is installer
 help about agent-card destinations, not a skipped test. The harness also retained
 an existing temporary-fixture cleanup note; it found no product-file changes.
 
-Full ShipLoop qualification results are recorded after the remaining shards
-finish. The first shard-3 attempt failed a brittle discovery prose assertion;
-`19ee7ad` changes it to check the two required cues independently. All 27 discovery
-tests passed on the repair, and the entire affected shard is rerun. The original
-failure remains in its log; it is not counted as a passing run.
+The [full qualification receipt](shiploop-chain-qualification-2026-09-18.json)
+records a **failed full gate: 89 of 90 ShipLoop suites passed, one failed, none
+were omitted**. The complete core group passed all 23 entries. Shards 1 and 2
+passed at `4471993`; shard 3 completed at `19ee7ad` after repairing a brittle
+discovery prose assertion to check the two required cues independently. All 27
+discovery tests passed on the repair, including in the rerun shard. The original
+discovery failure remains in its log.
+
+The remaining failure is the legacy action-walk case
+`test_action_walk_enforces_evidence_history_commits_revision_and_terminal_journal`:
+its coverage-objective finalization was refused with `check execution timestamps
+are inconsistent: objective-candidate`. The other 12 cases in that suite passed.
+The same case passed in isolation on both pristine upstream `1e31cd8` (314.943s)
+and candidate `4471993` (318.206s). The test and relevant timestamp writer and
+validator are unchanged. Those isolated passes do not replace the failed full-run
+result or establish a repaired gate.
+The complete gate must pass before R, in addition to the Ask-Agent 0.4 prerequisite.
+
+A controlled micro-experiment mocked the wall-clock finish of `objective-candidate`
+one millisecond before its start. The command passed with positive monotonic
+duration (15 ms), and the validator emitted the exact observed rejection. Local
+reproduction and output are retained at
+`/tmp/shiploop-incorporate-timestamp-repro.py` and
+`/tmp/shiploop-incorporate-timestamp-repro.json`. This proves the existing clock
+rollback path, not the environmental cause of the full-run failure: the test's
+teardown deleted its original temporary check record. A separate bounded
+follow-up should retain failed check records, add a backward-clock regression
+and define timestamp provenance using both wall time and monotonic duration.
+Preserve consistency validation and actual clock-adjustment evidence; do not
+silently discard the ordering check or rewrite ledger history to make it pass.
+
+The later commits change documentation and the discovery assertion, not the
+ShipLoop runtime or native-pilot implementation. Generated packages match all
+20 skill sources. Routine PR CI smoke is green; its `hermetic` aggregate covers
+the selected smoke tier, not the full 90-suite qualification.
 
 ### Completed native pilot
 
