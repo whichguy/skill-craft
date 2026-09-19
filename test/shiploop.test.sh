@@ -29,6 +29,8 @@ suites=(
   test/shiploop-chain.test.py \
   test/shiploop-chain-handoff.test.py \
   test/shiploop-chain-lifecycle.test.py \
+  test/shiploop-planning-context.test.py \
+  test/shiploop-chain-planning-context.test.py \
   test/experiments/shiploop_chain/test_trace.py \
   test/shiploop-consumer-delivery.test.py \
   test/shiploop-consumer-delivery-cli.test.py \

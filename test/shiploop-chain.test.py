@@ -27,8 +27,14 @@ import shiploop_chain_ledger as chain_ledger
 import shiploop_chain as chain
 
 CLI = SCRIPTS / "shiploop"
-FIXTURE = ROOT / "test/fixtures/plan-dispatcher-v1"
-SERIAL_FIXTURE = ROOT / "test/fixtures/plan-dispatcher-v2"
+# New bindings always carry the immutable planning-context contract.  Keep the
+# old pinned packages named separately: they are fixtures for recovery and
+# refusal cases, never implicit candidates for a fresh bind.
+LEGACY_FIXTURE = ROOT / "test/fixtures/plan-dispatcher-v1"
+LEGACY_SERIAL_FIXTURE = ROOT / "test/fixtures/plan-dispatcher-v2"
+CONTEXT_FIXTURE = ROOT / "test/fixtures/plan-dispatcher-v3"
+FIXTURE = CONTEXT_FIXTURE
+SERIAL_FIXTURE = CONTEXT_FIXTURE
 _improve_spec = importlib.util.spec_from_file_location(
     "chain_actual_improve_fixture", ROOT / "test/shiploop-actual-improve-cli.test.py")
 _improve_fixture = importlib.util.module_from_spec(_improve_spec)
@@ -61,22 +67,93 @@ class ChainIntegrationTests(unittest.TestCase):
         self.git(self.primary, "worktree", "add", "-q", "-b", "feature", str(self.target))
         self.run = self.base / "run"
         self.run.mkdir()
-        self.state = nav.new_state(str(self.target), "Implement a bounded parallel feature", protocol_version=3)
-        # Drive only the pure navigation API, explicitly synthetic Improve receipts.
+        self.original_prompt_sentinel = "ORIGINAL-USER-PROMPT-SENTINEL: never copy this into planning references"
+        self.state = nav.new_state(
+            str(self.target), self.original_prompt_sentinel, protocol_version=3
+        )
+        self.planning_dir = self.base / "planning-material"
+        self.planning_dir.mkdir()
+        self.architecture = self.write_text(
+            "planning-material/architecture.md",
+            "# Architecture decision\n\n"
+            "Use sibling worker worktrees. ShipLoop integrates only independently verified commits.\n",
+        )
+        self.test_strategy = self.write_text(
+            "planning-material/test-strategy.md",
+            "# Test strategy\n\n"
+            "Exercise independent A/B work, then verify the joined C behavior against both results.\n",
+        )
+        self.planning_contract = self.write_text(
+            "planning-material/context-code-contract.json",
+            json.dumps({
+                "schema": "chain-planning-context-fixture/v1",
+                "steps": {
+                    "A": {
+                        "path": "context_alpha.py",
+                        "source": "def alpha():\n    return 'alpha'\n",
+                        "check": "from context_alpha import alpha; assert alpha() == 'alpha'",
+                    },
+                    "B": {
+                        "path": "context_beta.py",
+                        "source": "def beta():\n    return 'beta'\n",
+                        "check": "from context_beta import beta; assert beta() == 'beta'",
+                    },
+                    "C": {
+                        "path": "context_join.py",
+                        "source": "from context_alpha import alpha\nfrom context_beta import beta\ndef joined():\n    return alpha() + '-' + beta()\n",
+                        "check": "from context_join import joined; assert joined() == 'alpha-beta'",
+                    },
+                    "J": {
+                        "path": "context_report.py",
+                        "source": "from context_join import joined\ndef report():\n    return 'report:' + joined()\n",
+                        "check": "from context_report import report; assert report() == 'report:alpha-beta'",
+                    },
+                },
+            }, indent=2) + "\n",
+        )
+        self.historical_missing = self.planning_dir / "retired-discovery.md"
+        self.planning_action_ids = []
+        repeated_discovery = False
+        # Drive only the pure navigation API, explicitly synthetic Improve
+        # receipts. Persist after every accepted action so the planning-context
+        # collector sees the same durable history a real run would provide.
         while nav.current_stage(self.state) != "implement":
             aid = nav.current_action(self.state)["id"]
-            value = {"outcome": "done", "summary": "Synthetic prerequisite fixture"}
-            if nav.current_stage(self.state) == "plan":
-                value["work_items"] = [{"id": "feature", "title": "Parallel feature"}]
+            stage = nav.current_stage(self.state)
+            if stage == "discovery" and not repeated_discovery:
+                repeated_discovery = True
+                value = {
+                    "outcome": "repeat",
+                    "summary": "Synthetic discovery draft superseded by the reviewed decision.",
+                    "evidence_refs": [str(self.historical_missing)],
+                }
+            else:
+                value = {
+                    "outcome": "done",
+                    "summary": "Synthetic " + stage
+                    + " decision: preserve the Architecture decision and reviewed context-code contract.",
+                    "evidence_refs": [str(self.architecture), str(self.test_strategy), str(self.planning_contract)],
+                }
+            if stage == "plan":
+                value["work_items"] = [{
+                    "id": "feature", "title": "Parallel feature",
+                    "context": "Use the reviewed context-code contract and the architecture decision.",
+                }]
             self.state = nav.apply(self.state, aid, value)
-            self.state = nav.finish_improve(self.state, aid, {"summary": "Synthetic prerequisite Improve"})
+            improve, improve_writes = self.synthetic_improve_record(aid, stage)
+            self.state = nav.finish_improve(self.state, aid, improve)
+            self.planning_action_ids.append(aid)
+            nav.save(self.run, self.state, improve_writes)
+        # Public navigator operations retain this generic run lock. Include it
+        # in the synthetic baseline so capability-preflight tests can prove
+        # that a legacy helper created no chain-side state.
+        (self.run / ".lock").touch()
         self.action = nav.current_action(self.state)["id"]
-        nav.save(self.run, self.state)
         self.dispatcher = self.base / "selected-dispatcher"
         self.select_dispatcher(FIXTURE)
         self.ask = self.base / "selected-ask-agent"
         shutil.copytree(ROOT / "skills/ask-agent", self.ask)
-        self.graph = self.write("graph.json", {"steps": [
+        self.graph = self.write("graph.json", {"version": 1, "steps": [
             {"id": name, "deps": deps, "contract": {"task": "Implement " + name,
              "ready": ["Required inputs are available"], "done": [name + " verified and committed"]}}
             for name, deps in (("A", []), ("B", []), ("C", ["A"]), ("J", ["B", "C"]))
@@ -108,6 +185,60 @@ class ChainIntegrationTests(unittest.TestCase):
         p.parent.mkdir(parents=True, exist_ok=True)
         p.write_text(json.dumps(value) + "\n")
         return p
+
+    def write_text(self, name, value):
+        p = self.base / name
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text(value)
+        return p
+
+    def synthetic_improve_record(self, action, stage):
+        """Create the durable standalone-Improve receipt shape used by a real run."""
+        prefix = "improve/" + action
+        source_text = {
+            "review-a.md": "Review A for " + stage + ": preserve the Architecture decision.\n",
+            "review-b.md": "Review B for " + stage + ": preserve the context-code contract.\n",
+            "check.md": "Check for " + stage + ": planning references are recorded.\n",
+        }
+        evidence = []
+        writes = {}
+        for index, source in enumerate(("review-a.md", "review-b.md", "check.md"), start=1):
+            archive = prefix + "/evidence/" + f"{index:02d}-" + source
+            text = source_text[source]
+            writes[archive] = text
+            evidence.append({
+                "source": source,
+                "archive": archive,
+                "sha256": hashlib.sha256(text.encode("utf-8")).hexdigest(),
+            })
+        receipt = {
+            "summary": "Synthetic Improve for " + stage + ": retain the reviewed behavior and evidence.",
+            "review_refs": ["review-a.md", "review-b.md"],
+            "check_refs": ["check.md"],
+            "lessons": "Keep the reviewed dependency graph and verify behavior from the planning contract.",
+        }
+        record = {
+            "version": 1,
+            "binding_id": self.state["run_id"] + "/" + action,
+            "workspace": str(self.target),
+            "action_id": action,
+            "stage": stage,
+            "skill": {
+                "skill_card": "synthetic-fixture",
+                "runtime_card": "synthetic-fixture",
+                "runtime_cli": "synthetic-fixture",
+                "skill_version": "1",
+                "runtime_version": "1",
+            },
+            "runtime_phase": "done",
+            "identities": {
+                "evidence_sha256": {entry["source"]: entry["sha256"] for entry in evidence},
+            },
+            "evidence": evidence,
+            "receipt": receipt,
+        }
+        writes[prefix + "/receipt.md"] = store.dumps(record, "ShipLoop standalone Improve receipt")
+        return record, writes
 
     def call(self, operation, value=None, *, ok=True, extra=()):
         argv = [sys.executable, "-B", str(CLI), "chain", operation,
@@ -591,39 +722,22 @@ class ChainIntegrationTests(unittest.TestCase):
             self.assertEqual(workspace.parent, self.parent)
         self.parent_complete(ok=True)
 
-    def test_v1_serial_start_refuses_without_native_fallback(self):
+    def test_legacy_serial_helper_refuses_fresh_context_bind_before_writes(self):
         initial_state = (self.run / "state.md").read_bytes()
-        self.bind(capacity=None, mode="serial")
-        binding = store.read_record(self.run / "chains" / self.action / "binding.md")
-        self.assertEqual(binding["mode"], "serial")
-        a = self.claim(["A"])["A"]
-        self.call("start", self.start_value("A", a), ok=False)
-        self.assertNotEqual((self.run / "state.md").read_bytes(), initial_state)
-        record = self.child_record(a)
-        self.assertEqual(record["status"], "claimed")
-        self.assertIsNone(record["handle"])
-        self.assertNotIn("executor", record)
-        self.assertFalse((Path(binding["dispatcher_run"]) / "inbox" / (a + ".json")).exists())
-        kinds = [row["event"]["kind"] for row in chain_ledger.read_events(
-            self.run / "chains" / self.action / "events")]
-        self.assertIn("start_error", kinds)
-        self.assertNotIn("start_result", kinds)
-        self.assertFalse(any(kind.startswith("launched_") for kind in kinds))
+        self.select_dispatcher(LEGACY_SERIAL_FIXTURE)
+        refused = self.bind(capacity=None, mode="serial", ok=False)
+        self.assertIn("does not support planning_context", refused.stderr)
+        self.assertEqual((self.run / "state.md").read_bytes(), initial_state)
+        self.assertFalse((self.run / "chains").exists())
 
-    def test_legacy_v1_binding_defaults_to_parallel(self):
+    def test_current_binding_defaults_to_parallel(self):
         self.bind(capacity=None)
         binding_path = self.run / "chains" / self.action / "binding.md"
-        legacy_binding = store.read_record(binding_path)
-        self.assertEqual(legacy_binding["mode"], "parallel")
-        self.assertEqual(legacy_binding["capacity"], 2)
-        legacy_binding["schema"] = "shiploop-chain-binding/v1"
-        legacy_binding.pop("mode")
-        legacy_text = store.dumps(legacy_binding, "ShipLoop chain binding")
-        state = store.read_record(self.run / "state.md")
-        state["chain_bindings"] = dict(state["chain_bindings"])
-        state["chain_bindings"][self.action] = hashlib.sha256(legacy_text.encode("utf-8")).hexdigest()
-        state["revision"] += 1
-        nav.save(self.run, state, {str(binding_path.relative_to(self.run)): legacy_text})
+        binding = store.read_record(binding_path)
+        self.assertEqual(binding["schema"], "shiploop-chain-binding/v4")
+        self.assertEqual(binding["mode"], "parallel")
+        self.assertEqual(binding["capacity"], 2)
+        self.assertIn("planning_context", binding)
 
         recovered = self.call("recover")
         self.assertEqual(recovered["shiploop_chain"]["mode"], "parallel")

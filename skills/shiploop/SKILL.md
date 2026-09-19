@@ -377,6 +377,16 @@ handoff owns that review; follow the linked guide for late graph creation or
 material revisions. Retain the completed review's graph identity and evidence.
 For a reviewed graph within the current v3 `implement` action, the main owner
 may explicitly bind [a parallel implementation chain](references/parallel-chain.md).
+Before binding, use the bridge's read-only `chain planning-inputs` view for that
+exact run, action, and reviewed graph. Resolve every current-required planning
+reference through its printed resolution contract, then bind the immutable
+planning-artifact manifest. Its deterministic `planning-brief.md` consolidates
+key reference statements, decisions, constraints, acceptance context, and
+reference locators from the accepted planning pass. It is supporting material,
+not the user prompt and not a replacement task directive. The dispatcher's
+step `contract.task`, `contract.ready`, and `contract.done` remain the worker's
+sole assignment. The reviewed graph stays unchanged; the manifest is a separate
+input reference for Plan Orchestrator and every worker packet.
 Use the selected Plan Dispatcher and Ask-Agent packages, external sibling
 `.work-trees` checkouts, and the bridge's claim/start/import/prepare/done/finish flow.
 For per-step chains, the script's `navigation` packet owns navigation. Perform
@@ -403,6 +413,15 @@ owns acceptance and the exact initiating-checkout return. The append-only,
 timestamped ledger records bridge events without replacing Markdown traversal
 or the child dispatcher's state. An unfinished chain blocks the normal producer
 callback; after verified integration, continue the existing Improve/test stages.
+The planning artifact reference is context, not graph navigation or execution
+authority. Workers verify required local files before using them and report a
+blocker when unavailable. Missing or drifted required inputs block fresh starts
+or positive acceptance, but preserve observation, report capture, negative
+settlement, retry, cleanup, and recovery. Do not copy runtime state, worker
+status, or a whole mutable `state.md` into the manifest. Register every generated
+planning file in the producer result's existing `evidence_refs`; explicitly
+registered external local specifications are valid, while URLs remain
+reference-only until materialized locally.
 Accepted is the only persisted step-done state. The derived `completion` view
 lists done/not-done; `done` aliases the existing verified `settle` transition.
 Use read-only `chain history` for timestamped audit events and `chain pending`

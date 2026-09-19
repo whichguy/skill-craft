@@ -1477,7 +1477,7 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
                                                            str(evidence_root / "review-two.md")],
                      "check_refs": [str(evidence_root / "checks.md")], "lessons": "..."},
                     "Actual Improve completion evidence").rstrip(),
-        "If Improve changed the producer's decisions, include final_result with the revised generic step result, preserving outcomes and authority. This can correct plan work_items or document choices without using the draft values.",
+        "If Improve changed the producer's decisions, include final_result with the revised generic step result, preserving outcomes and authority. This can correct plan work_items or document choices without using the draft values. Preserve existing registered evidence_refs and add every planning file produced or revised during this pass. Retain key planning decisions, constraints and acceptance expectations as reference statements with source locators. The step definition remains the execution prompt; do not substitute the original user request or a second consolidated directive.",
         *return_lines,
         "Return only after the bound runtime reports successful completion:",
         _callback(core, root, "improve-complete", action=action_id, result=str(result_path)),

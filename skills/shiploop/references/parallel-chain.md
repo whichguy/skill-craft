@@ -37,6 +37,41 @@ binding; do not submit the whole project's SDLC as one implementation graph.
 Keep missing prerequisites explicit rather than treating syntactic validation
 as a semantic readiness check.
 
+### Planning-artifact handoff
+
+For a new context-capable binding, inspect the read-only inventory first:
+
+```sh
+python3 "$CLI" chain planning-inputs --run-dir "$RUN_DIR" --action "$ACTION" --graph "$EXECUTION_GRAPH"
+```
+
+It lists accepted planning records, generated planning files, explicit local
+references, URL-only references, and entries requiring a caller-supplied
+resolution. Resolve only through its printed resolution input, then pass that
+file to `chain bind --planning-resolutions ...`. The bridge writes one immutable
+`chains/<action>/planning-artifacts.json` and deterministic `planning-brief.md`.
+The brief provides key reference statements, decisions, constraints, acceptance
+context, and relevant locators from the planning pass. It is supporting material,
+not the original user prompt or a second task directive. The selected dispatch
+step's `contract.task`, `contract.ready`, and `contract.done` are the sole worker
+assignment.
+
+The manifest records the raw reviewed graph identity and registered planning
+artifacts as absolute local references plus SHA-256, role, producer,
+classification, and `required_for` steps. It may register an external local
+project file only when an accepted result or bound plan explicitly names it.
+URLs are catalog references, not worker-readable material or proof of fetch.
+An input expected to change during execution needs an explicit stable planning
+snapshot. Never bind a whole mutable `state.md`, live dispatcher state, or a
+directory hash as planning context.
+
+`chain bind` checks the selected dispatcher capability before it writes the
+manifest, binding, or child-init intent. It passes the same `{path,sha256,source}`
+reference beside the unchanged graph to Plan Orchestrator `init`; the dispatcher
+retains it in its authoritative run state and projects it into fresh and cold
+recovery packets. The reference grants no claim, launch, successor, integration,
+or completion authority.
+
 ### Required review after step creation
 
 Create the chain's steps and dependency graph during `step-plan`, then include
@@ -61,6 +96,11 @@ the frozen binding in place.
 The host verifies this review evidence; `bind` validates and freezes the graph.
 Planning review checks dependencies, ready/done criteria, parallel paths, joins,
 shared resources and verification ownership. It does not run the planned tasks.
+Every planning producer and its Improve completion must retain each generated
+planning file in ordinary `evidence_refs`. If an Improve `final_result` refines
+the producer outcome, preserve earlier registered references and add the new
+ones; the consolidated reference material cannot displace the source material it
+uses.
 
 The run directory and worker container must be external to all Git checkouts.
 Use a clean, explicit initiating branch. In whole-run workspace mode the target
