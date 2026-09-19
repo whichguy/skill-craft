@@ -48,6 +48,9 @@ class ChainIntegrationTests(unittest.TestCase):
         self.primary = self.base / "primary"
         self.primary.mkdir()
         self.git(self.primary, "init", "-q", "-b", "main")
+        self.git(self.primary, "config", "--local", "user.useConfigOnly", "true")
+        self.git(self.primary, "config", "--local", "user.name", "Chain Fixture")
+        self.git(self.primary, "config", "--local", "user.email", "chain@example.invalid")
         (self.primary / "README.md").write_text("fixture\n")
         self.git(self.primary, "add", "README.md")
         self.git(self.primary, "commit", "-qm", "baseline")

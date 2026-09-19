@@ -182,3 +182,10 @@ The final published ShipLoop commit requires the existing full CI selection
 (`core`, `shiploop-1`, `shiploop-2`, `shiploop-3`) plus plugin synchronization.
 The PR records its exact commit and CI result. No native-model or deployment
 qualification is inferred from any of these local checks.
+
+The first full CI run exposed an additional setup gap: five real-merge lifecycle
+cases inherited a usable Git author identity on macOS but failed on a clean
+Linux runner. The disposable repository must configure its own local identity
+and require explicit identity with `user.useConfigOnly`; neither product code
+nor global Git configuration supplies a synthetic author. The representative
+fan-out regression and repeated full CI qualify this fixture correction.
