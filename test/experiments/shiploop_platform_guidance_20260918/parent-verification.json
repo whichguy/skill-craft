@@ -1,0 +1,54 @@
+{
+  "method": "Independent parent rerun to bind current fixtures to command receipts after review identified missing artifact identities. Original domain receipts preserved.",
+  "recorded_at": "2026-09-19T00:15:28.000183+00:00",
+  "checks": [
+    {
+      "domain": "apps_script",
+      "started_at": "2026-09-19T00:15:27.846740+00:00",
+      "argv": [
+        "/opt/homebrew/bin/node",
+        "--test",
+        "test/platform_guidance.test.mjs"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft/test/experiments/shiploop_platform_guidance_20260918/apps_script",
+      "source_sha256": {
+        "fixtures/bulk_operations.mjs": "1ced30e0c3fa4f01229348926d46fc700ac98e2be85b5d3893c86b2269141786",
+        "fixtures/rpc_contract.mjs": "cedd143f0282e89e4235b2ede9bf35b6b9ec445ed32f3af85795eade690407c9",
+        "fixtures/state_transaction.mjs": "e06a000c4236ba59e2df013b34813b375360c8841fdd9c68336e5302678f9c25",
+        "package.json": "0feef8d42d665cd170cfe57ea2efa7666f661fd23f95f717f398332519a3cff0",
+        "test/platform_guidance.test.mjs": "6d2707cef56ba568720c7700763aba674a832927077091e60ec449e656b12da2"
+      },
+      "sources_unchanged": true,
+      "returncode": 0,
+      "stdout": "\u2714 RPC reference copies legal values and rejects documented prohibited shapes (1.76425ms)\n\u2714 RPC reference reports independent asynchronous calls through handlers (0.259ms)\n\u2714 RPC seed and mutant fail the independent boundary probes (0.085167ms)\n\u2714 state reference serializes updates and persists idempotency across cache loss (0.357083ms)\n\u2714 state seed and mutants expose lost updates, volatile idempotency, and needless locking (0.261958ms)\n\u2714 contiguous grid reference preserves output with one synthetic service call (0.143167ms)\n\u2714 blind batching is rejected when effects need distinct payloads (0.380125ms)\n\u2139 tests 7\n\u2139 suites 0\n\u2139 pass 7\n\u2139 fail 0\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 68.572834\n",
+      "stderr": ""
+    },
+    {
+      "domain": "salesforce",
+      "started_at": "2026-09-19T00:15:27.848494+00:00",
+      "argv": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "run_checks.py"
+      ],
+      "cwd": "/Users/dadleet/src/skill-craft/test/experiments/shiploop_platform_guidance_20260918/salesforce",
+      "source_sha256": {
+        "fixtures/apex/mutant_dml_in_loop.trigger": "c231c897048f1d54c6f756dab32642436ebaa7e9742bc2cf1b85a69a5f633ac2",
+        "fixtures/apex/mutant_explicit_system_mode.cls": "7d4b9a7138a5e6f679e186ca1da9e763630b95fbd177bb88b8396b1e7462de94",
+        "fixtures/apex/reference_bulkified.trigger": "86f46cf34677a30a4cc6af7576e35dc6cedc91ca0a7649454b1a60b6fea6f1a3",
+        "fixtures/apex/reference_explicit_user_mode.cls": "402613347e6bf40bf31c142142313e9ec661d26d282255b38710c2cbe461acbb",
+        "fixtures/apex/seed_query_and_dml_in_loop.trigger": "e08e703e690f23ddb2496fceb176409341664089b3dc0909d4fde83d83c617f5",
+        "fixtures/apex/seed_sharing_only.cls": "6f6f55f6000d416f0f600961afd54ed6e162e711855d6cae478b701708e33bce",
+        "fixtures/lwc/contract.test.mjs": "1ad2f913176eb408bdb71ab40467a22b42a042050ed9726f2dcb2c76f439ec7a",
+        "fixtures/lwc/mutant.mjs": "aa6af4387a592e7c6f17860a28ff6a1f4d1f0bd7c83314a1b1f618d10565c8be",
+        "fixtures/lwc/reference.mjs": "5e7e48514ed0a21446be70c121524f78da8f4a1cfbd837836180e85fd89e28d6",
+        "fixtures/lwc/seed.mjs": "9ade82fe7d81e1054ee56acfe20db3d26fc55560c8520e1900d29fd2d5ceca38",
+        "run_checks.py": "4391805ab519e4af5bd251559294a1d307f569947f4cefd261a76734001a535e"
+      },
+      "sources_unchanged": true,
+      "returncode": 0,
+      "stdout": "{\n  \"command\": \"python3 run_checks.py\",\n  \"evidence_boundary\": \"Apex checks are source-text fixture checks only; Node executes a JavaScript model only. Neither is Apex runtime, org security, governor-limit, LDS, wire-service, or browser evidence.\",\n  \"failures\": [],\n  \"fixture_assertions\": {\n    \"apex_bulk\": {\n      \"mutant\": {\n        \"accepted_by_bulk_shape_rule\": false,\n        \"dml_in_loop\": true,\n        \"dml_outside_loop\": true,\n        \"has_loop_work\": true,\n        \"loop_count\": 1,\n        \"query_in_loop\": false,\n        \"query_outside_loop\": true\n      },\n      \"reference\": {\n        \"accepted_by_bulk_shape_rule\": true,\n        \"dml_in_loop\": false,\n        \"dml_outside_loop\": true,\n        \"has_loop_work\": true,\n        \"loop_count\": 1,\n        \"query_in_loop\": false,\n        \"query_outside_loop\": true\n      },\n      \"seed\": {\n        \"accepted_by_bulk_shape_rule\": false,\n        \"dml_in_loop\": true,\n        \"dml_outside_loop\": true,\n        \"has_loop_work\": true,\n        \"loop_count\": 1,\n        \"query_in_loop\": true,\n        \"query_outside_loop\": false\n      }\n    },\n    \"apex_security\": {\n      \"mutant\": {\n        \"accepted_by_explicit_intent_rule\": false,\n        \"explicit_sharing\": false,\n        \"explicit_user_dml\": false,\n        \"explicit_user_query\": false,\n        \"no_unexplained_system_mode\": false\n      },\n      \"reference\": {\n        \"accepted_by_explicit_intent_rule\": true,\n        \"explicit_sharing\": true,\n        \"explicit_user_dml\": true,\n        \"explicit_user_query\": true,\n        \"no_unexplained_system_mode\": true\n      },\n      \"seed\": {\n        \"accepted_by_explicit_intent_rule\": false,\n        \"explicit_sharing\": true,\n        \"explicit_user_dml\": false,\n        \"explicit_user_query\": false,\n        \"no_unexplained_system_mode\": true\n      }\n    },\n    \"lwc_state_and_async_model\": {\n      \"available\": true,\n      \"command\": \"/opt/homebrew/bin/node --test /Users/dadleet/src/skill-craft/test/experiments/shiploop_platform_guidance_20260918/salesforce/fixtures/lwc/contract.test.mjs\",\n      \"exit_code\": 0,\n      \"tap_tail\": \"\\u2139 tests 5\\n\\u2139 suites 0\\n\\u2139 pass 5\\n\\u2139 fail 0\\n\\u2139 cancelled 0\\n\\u2139 skipped 0\\n\\u2139 todo 0\\n\\u2139 duration_ms 65.340708\"\n    }\n  },\n  \"passed\": true,\n  \"runtime\": {\n    \"node_available\": true,\n    \"platform\": \"macOS-26.6.2-arm64-arm-64bit-Mach-O\",\n    \"python\": \"3.14.7\"\n  }\n}\n",
+      "stderr": ""
+    }
+  ],
+  "passed": true
+}

@@ -689,6 +689,12 @@ Respect user requirements, approved contracts, applicable repository instruction
 and established language/style tooling. A conflict needs clarification, not a
 silent override. Never relax safety or acceptance to claim simplicity.
 
+Use the [coding decision guide](coding-guidance.md#select-guidance) when planning,
+implementing or verifying an item. It links conditional practices and platform
+contracts; read only applicable sections and retain their decision/check locators
+in the existing plan and review notes. The rules below and the
+[documentation contract](#documentation) remain authoritative for their subjects.
+
 1. **Smallest sufficient change.** Solve the current requirement. Reuse local
    conventions; avoid unrelated cleanup, speculative features, new dependencies,
    configuration knobs or fallback paths without a present need. A no-change

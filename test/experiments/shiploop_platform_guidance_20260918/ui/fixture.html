@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Async note search fixture</title>
+    <style>
+      :root { color-scheme: light; font-family: system-ui, sans-serif; }
+      body { margin: 2rem; max-width: 42rem; color: #102a43; }
+      .controls { display: flex; flex-wrap: wrap; gap: .5rem; align-items: end; }
+      label { display: grid; gap: .25rem; font-weight: 650; }
+      input { min-width: 15rem; padding: .45rem; font: inherit; }
+      button, .button-like { border: 1px solid #0f4c81; border-radius: .25rem; background: #0f4c81; color: white; padding: .52rem .8rem; font: inherit; }
+      .button-like { cursor: pointer; }
+      #search-status { min-height: 1.5rem; }
+      #results { padding-left: 1.25rem; }
+    </style>
+  </head>
+  <body>
+    <main aria-labelledby="fixture-title">
+      <h1 id="fixture-title">Note finder</h1>
+      <p>Search a controlled local note index.</p>
+      <div class="controls">
+        <label>
+          Search notes
+          <input id="search-input" type="search" autocomplete="off" />
+        </label>
+        <span id="action-slot"></span>
+      </div>
+      <p id="search-status" role="status" aria-live="polite" aria-atomic="true">Ready.</p>
+      <ul id="results" aria-label="Search results"></ul>
+    </main>
+
+    <script>
+      (() => {
+        const allowedVariants = new Set(['reference', 'stale', 'div-button']);
+        const requestedVariant = new URLSearchParams(window.location.search).get('variant');
+        const variant = allowedVariants.has(requestedVariant) ? requestedVariant : 'reference';
+        const input = document.querySelector('#search-input');
+        const actionSlot = document.querySelector('#action-slot');
+        const status = document.querySelector('#search-status');
+        const results = document.querySelector('#results');
+        const pending = new Map();
+        const events = [];
+        let nextRequestId = 0;
+        let currentRequestId = 0;
+
+        function addEvent(type, details) {
+          events.push({ type, ...details });
+        }
+
+        function render(response) {
+          results.replaceChildren();
+          for (const label of response.labels) {
+            const item = document.createElement('li');
+            item.textContent = label;
+            results.append(item);
+          }
+        }
+
+        function controlledRequest(query, id) {
+          return new Promise((resolve, reject) => {
+            pending.set(id, { id, query, resolve, reject });
+            addEvent('requested', { id, query });
+          });
+        }
+
+        function startSearch() {
+          const query = input.value.trim() || 'all notes';
+          const id = ++nextRequestId;
+          currentRequestId = id;
+          results.replaceChildren();
+          status.textContent = `Loading results for ${query}.`;
+
+          controlledRequest(query, id).then(
+            (response) => {
+              if (variant !== 'stale' && id !== currentRequestId) {
+                addEvent('ignored-stale-result', { id, query, currentRequestId });
+                return;
+              }
+              render(response);
+              status.textContent = `Showing ${response.labels.length} result${response.labels.length === 1 ? '' : 's'} for ${query}.`;
+              addEvent('applied-result', { id, query });
+            },
+            (error) => {
+              if (variant !== 'stale' && id !== currentRequestId) {
+                addEvent('ignored-stale-error', { id, query, currentRequestId });
+                return;
+              }
+              status.textContent = `Could not search for ${query}: ${error.message}`;
+              addEvent('applied-error', { id, query });
+            },
+          );
+        }
+
+        const action = variant === 'div-button'
+          ? Object.assign(document.createElement('div'), {
+              id: 'search-button',
+              className: 'button-like',
+              textContent: 'Search',
+            })
+          : Object.assign(document.createElement('button'), {
+              id: 'search-button',
+              type: 'button',
+              textContent: 'Search',
+            });
+        action.addEventListener('click', startSearch);
+        actionSlot.replaceWith(action);
+
+        window.__shiploopFixture = {
+          variant,
+          pending: () => Array.from(pending.values(), ({ id, query }) => ({ id, query })),
+          resolve(id, labels) {
+            const request = pending.get(id);
+            if (!request) throw new Error(`No pending request ${id}`);
+            pending.delete(id);
+            request.resolve({ labels });
+          },
+          snapshot: () => ({
+            variant,
+            currentRequestId,
+            events: events.map((event) => ({ ...event })),
+            rendered: Array.from(results.children, (item) => item.textContent),
+            status: status.textContent,
+          }),
+        };
+      })();
+    </script>
+  </body>
+</html>

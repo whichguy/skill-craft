@@ -1,0 +1,149 @@
+{
+  "recorded_utc": "2026-09-19T01:39:15.376978+00:00",
+  "repo": "/Users/dadleet/src/skill-craft",
+  "head": "004447fd395d1820332cf454c9f966c4c85f63fe",
+  "starting_tree": "dirty; pre-existing changes preserved",
+  "python": "3.14.7",
+  "source_sha256": {
+    "skills/shiploop/SKILL.md": "4971603a8534013ad395a7b6deae404ffeecd7431c20b116e24fb3f03060e094",
+    "skills/shiploop/scripts/shiploop_navigator_v3_prompts.py": "b5c429efc82a118de50850d5f76423ddbf462aefdb434164d3e1396e8a3ef649",
+    "skills/shiploop/references/testing-and-documentation.md": "71112fa53c77ccef193e5a5fd7b24390607f01778aef8cf4bf70b923a954ee69",
+    "skills/shiploop/references/coding-guidance.md": "8be448c0d201ac451bd2296a5f6586b218911414d88a888224d0548c31bfe4c3",
+    "skills/shiploop/references/coding-practices.md": "f0e28315f2050874dc776671a64220c30272498174237daac5fbf0748840a6e1",
+    "test/shiploop-v3-guidance.test.py": "1c26b7312c44e5c7b9212d07d5b1a6ef47a0dcd1492a62cbc0aef178f760f700",
+    "skills/shiploop/references/platforms/ui.md": "7211ae59bab205c003d0920c33cd86a5f28fc53b2c39fa2bde594a9580203fd1",
+    "skills/shiploop/references/platforms/apps-script.md": "3794f5b045f09552123106ea154bd1a4ecc03def13b78bbcf1fc0855ad03f703",
+    "skills/shiploop/references/platforms/salesforce.md": "3f9c30e6168f58578012d14e879a8133fa9710378d90a7761f65bdd74d443a82",
+    "skills/shiploop/references/platforms/python.md": "ffe8bfeba6b5f9987f9246fb66c6784596f7263fb744e4c32839b1a38abbc05c",
+    "skills/shiploop/references/platforms/bash.md": "4e3a84336d682bb989e0915c4629a2bcbe506b18969aa2f526e98ff79f3368b3"
+  },
+  "note": "Source identities for local deterministic verification, not a hosted-platform or model-quality claim.",
+  "pre_edit_baseline": {
+    "guidance": 10,
+    "navigator_v3": 22,
+    "backchain_guidance": 4,
+    "result": "passed"
+  },
+  "new_guidance_suite": {
+    "tests": 13,
+    "added": 3,
+    "result": "passed"
+  },
+  "aggregate": {
+    "command": "bash test/run-all.sh",
+    "cwd": "/Users/dadleet/src/skill-craft",
+    "exit_code": 1,
+    "elapsed_seconds": 3111.423,
+    "log": "/tmp/shiploop-coding-guidance-hermetic-20260918.log",
+    "log_sha256": "71029bdbae995adec3c10c2536396f752e904f8c7ba2f55c37c073f064600b25"
+  },
+  "shiploop_group": {
+    "suite_entries": 87,
+    "result": "passed",
+    "final_action_walk_tests": 13
+  },
+  "initial_core_setup_failures": [
+    "sync-plugin-views",
+    "native-marketplace-adapters",
+    "improve"
+  ],
+  "targeted_reruns": [
+    {
+      "suite": "sync-plugin-views",
+      "exit_code": 0,
+      "log": "/tmp/shiploop-coding-guidance-recheck-sync-plugin-views.log",
+      "log_sha256": "916851f2f63de9131eab0aeb3316cdf1c5011794767f07128ddb866d5546b37f"
+    },
+    {
+      "suite": "native-marketplace-adapters",
+      "exit_code": 0,
+      "log": "/tmp/shiploop-coding-guidance-recheck-native-marketplace-adapters.log",
+      "log_sha256": "dcb01d84696086c196e6775489469b06631af1501f24e71e6920b61de542b560"
+    },
+    {
+      "suite": "improve",
+      "exit_code": 0,
+      "log": "/tmp/shiploop-coding-guidance-recheck-improve.log",
+      "log_sha256": "9ae731067c5523afbf7cf281b39606ec8f959ef707671d736562683819f2bd0c"
+    }
+  ],
+  "resolved_suite_disposition": "All selected suite outcomes passed, using successful targeted reruns for the three initial setup failures; the original aggregate exit remains 1.",
+  "final_plugin_parity": {
+    "command": "bash scripts/sync-plugin-views.sh --check shiploop",
+    "exit_code": 0
+  },
+  "final_guards": {
+    "scoped_source_unchanged": true,
+    "unexpected_tracked_changes_during_checks": [],
+    "diff_check_exit_code": 0
+  },
+  "evidence_limits": [
+    "Synthetic/runtime/reference checks do not establish model adherence or token/quality improvement.",
+    "No live Google Apps Script or Salesforce validation.",
+    "Separate installed checkout was not refreshed.",
+    "Raw logs are local temporary artifacts; hashes and outcomes are retained here."
+  ],
+  "git_delivery_candidate": {
+    "recorded_utc": "2026-09-19T02:17:15.769902+00:00",
+    "base_commit": "20f8f7d379af5773ad11c1c3965074c73b39a84d",
+    "source_sha256": {
+      "skills/shiploop/SKILL.md": "0216f64dd756e827afbc119a397fee962ee867fecded0b623d1782414c92eaf9",
+      "skills/shiploop/scripts/shiploop_navigator_v3_prompts.py": "f45bc4a7325210ca9a892d84e6ba0927fe93b35f1790a63f46fd427fbdc828ae",
+      "skills/shiploop/references/testing-and-documentation.md": "71112fa53c77ccef193e5a5fd7b24390607f01778aef8cf4bf70b923a954ee69",
+      "skills/shiploop/references/coding-guidance.md": "8be448c0d201ac451bd2296a5f6586b218911414d88a888224d0548c31bfe4c3",
+      "skills/shiploop/references/coding-practices.md": "f0e28315f2050874dc776671a64220c30272498174237daac5fbf0748840a6e1",
+      "test/shiploop-v3-guidance.test.py": "186d749e79c9b6ea95e65ae57be5149572781d7a9290768f855e00b5139b5778",
+      "skills/shiploop/references/platforms/ui.md": "7211ae59bab205c003d0920c33cd86a5f28fc53b2c39fa2bde594a9580203fd1",
+      "skills/shiploop/references/platforms/apps-script.md": "3794f5b045f09552123106ea154bd1a4ecc03def13b78bbcf1fc0855ad03f703",
+      "skills/shiploop/references/platforms/salesforce.md": "3f9c30e6168f58578012d14e879a8133fa9710378d90a7761f65bdd74d443a82",
+      "skills/shiploop/references/platforms/python.md": "ffe8bfeba6b5f9987f9246fb66c6784596f7263fb744e4c32839b1a38abbc05c",
+      "skills/shiploop/references/platforms/bash.md": "4e3a84336d682bb989e0915c4629a2bcbe506b18969aa2f526e98ff79f3368b3"
+    },
+    "upstream_guidance_baseline": {
+      "tests": 18,
+      "exit_code": 0
+    },
+    "checks": [
+      {
+        "command": "python3 -B test/shiploop-v3-guidance.test.py",
+        "tests": 21,
+        "exit_code": 0,
+        "log_sha256": "1e1c7b840b01b0a25425b54ae5c86c4ce6aa9af09d719c01fd15dd95664813e9"
+      },
+      {
+        "command": "python3 -B test/shiploop-navigator-v3.test.py",
+        "tests": 22,
+        "exit_code": 0,
+        "log_sha256": "8b39f2aca6bc071b643a9a87dea73df336f909f7d53225410c0c1c1a5a44b7c9"
+      },
+      {
+        "command": "bash test/run-all.sh --group smoke",
+        "exit_code": 0,
+        "log_sha256": "6a9112482a39bb937f6bedf3e2e1d1fe0c8941260cd9b6b7b8d913712c16924d"
+      },
+      {
+        "cwd": "test/experiments/shiploop_platform_guidance_20260918/python_bash",
+        "command": "python3 -B -m unittest -v test_python_guidance.py",
+        "tests": 6,
+        "exit_code": 0
+      },
+      {
+        "cwd": "test/experiments/shiploop_platform_guidance_20260918/python_bash",
+        "command": "/bin/bash test_bash_guidance.sh",
+        "assertions": 27,
+        "exit_code": 0
+      },
+      {
+        "cwd": "test/experiments/shiploop_platform_guidance_20260918/apps_script",
+        "command": "node --test test/platform_guidance.test.mjs",
+        "tests": 7,
+        "exit_code": 0
+      }
+    ],
+    "limits": [
+      "Full suite was not repeated on this newer upstream base.",
+      "No fresh browser, Salesforce, hosted-service or model-benefit trial.",
+      "Original dirty checkout and installed skill checkout are not updated."
+    ]
+  }
+}

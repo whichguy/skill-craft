@@ -1,0 +1,134 @@
+{
+  "schemaVersion": 1,
+  "experiment": "shiploop_platform_guidance_20260918/ui",
+  "kind": "calibration-only browser fixture; no coding-agent trial",
+  "startedAt": "2026-09-19T00:10:02.921Z",
+  "environment": {
+    "node": "v24.19.0",
+    "platform": "darwin",
+    "architecture": "arm64",
+    "playwright": "1.62.1",
+    "browserExecutable": "/Users/dadleet/.cache/puppeteer/chrome/mac_arm-151.0.7922.47/chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing",
+    "browserVersion": "151.0.7922.47"
+  },
+  "inputs": {
+    "fixture": {
+      "path": "fixture.html",
+      "sha256": "fd04a539addeb3ff77f69b42af1c671d4b5e697092eb7b16783afd6020a81c84"
+    },
+    "oracle": {
+      "path": "browser-oracle.mjs",
+      "sha256": "d2534c8ed15190e0ef435f06020b662faeba40ef3999eba2adf07bbcd17757ba"
+    }
+  },
+  "command": [
+    "/Users/dadleet/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node",
+    "/Users/dadleet/src/skill-craft/test/experiments/shiploop_platform_guidance_20260918/ui/browser-oracle.mjs",
+    "--output",
+    "results.json"
+  ],
+  "cases": [
+    {
+      "id": "UI-R1",
+      "label": "reference preserves newest async result",
+      "variant": "reference",
+      "expected": "pass",
+      "actual": "pass",
+      "matchesExpected": true,
+      "durationMs": 524,
+      "error": null
+    },
+    {
+      "id": "UI-R2",
+      "label": "stale-result mutant is rejected by reversal oracle",
+      "variant": "stale",
+      "expected": "fail",
+      "actual": "fail",
+      "matchesExpected": true,
+      "durationMs": 339,
+      "error": "A completed older request overwrote the newer visible result."
+    },
+    {
+      "id": "UI-A1",
+      "label": "reference exposes keyboard-operable semantics",
+      "variant": "reference",
+      "expected": "pass",
+      "actual": "pass",
+      "matchesExpected": true,
+      "durationMs": 271,
+      "error": null
+    },
+    {
+      "id": "UI-A2",
+      "label": "clickable div mutant is rejected by semantic keyboard oracle",
+      "variant": "div-button",
+      "expected": "fail",
+      "actual": "fail",
+      "matchesExpected": true,
+      "durationMs": 295,
+      "error": "Search needs one named button reached by Tab; buttons=0, active=<none>."
+    },
+    {
+      "id": "UI-O1",
+      "label": "reference supports ordinary pointer behavior",
+      "variant": "reference",
+      "expected": "pass",
+      "actual": "pass",
+      "matchesExpected": true,
+      "durationMs": 355,
+      "error": null
+    },
+    {
+      "id": "UI-O2",
+      "label": "stale-result mutant still passes an ordinary one-response flow",
+      "variant": "stale",
+      "expected": "pass",
+      "actual": "pass",
+      "matchesExpected": true,
+      "durationMs": 369,
+      "error": null
+    },
+    {
+      "id": "UI-O3",
+      "label": "clickable div mutant still passes an ordinary pointer flow",
+      "variant": "div-button",
+      "expected": "pass",
+      "actual": "pass",
+      "matchesExpected": true,
+      "durationMs": 349,
+      "error": null
+    },
+    {
+      "id": "UI-W1",
+      "label": "weak structural check accepts reference",
+      "variant": "reference",
+      "expected": "pass",
+      "actual": "pass",
+      "matchesExpected": true,
+      "durationMs": 314,
+      "error": null
+    },
+    {
+      "id": "UI-W2",
+      "label": "weak structural check also accepts stale-result mutant",
+      "variant": "stale",
+      "expected": "pass",
+      "actual": "pass",
+      "matchesExpected": true,
+      "durationMs": 294,
+      "error": null
+    }
+  ],
+  "limitations": [
+    "The response controller is a local fixture seam; it proves this UI mechanism under its schedule, not an HTTP, cache, service-worker, or framework integration.",
+    "Role and keyboard checks are browser-observable accessibility evidence. They do not establish screen-reader usability or WCAG conformance.",
+    "Calibration rejects two plausible mutants and shows one weak check can miss the stale-result mutant. It does not compare ShipLoop guidance arms or prove an instruction improves agent coding."
+  ],
+  "finishedAt": "2026-09-19T00:10:06.512Z",
+  "summary": {
+    "total": 9,
+    "matchedExpected": 9,
+    "mismatchedExpected": 0,
+    "calibrated": true
+  }
+}

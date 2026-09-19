@@ -1,0 +1,161 @@
+{
+  "observed_at": "2026-09-19T00:03:15.772495+00:00",
+  "python": "3.14.7 (main, Aug  5 2026, 10:29:49) [Clang 21.0.0 (clang-2100.1.1.101)]",
+  "ruff": "ruff 0.15.22",
+  "runner_sha256": "2b261fd2b797f5ef9078b5cf601e9c94570b2e7bf2f879fee0677f4097aa9039",
+  "seed_sha256": "4c2c57357ea636960b50dd40e52a3e5f0b75107d3d91e9bc1fd40111ebe05bf0",
+  "expected_contract": {
+    "ordinary": 7,
+    "empty": {
+      "exception": "IndexError"
+    }
+  },
+  "checks": [
+    {
+      "id": "R0",
+      "claim": "frozen original contract",
+      "expected": {
+        "ordinary": 7,
+        "empty": {
+          "exception": "IndexError"
+        }
+      },
+      "observed": {
+        "ordinary": 7,
+        "empty": {
+          "exception": "IndexError"
+        }
+      },
+      "pass": true
+    },
+    {
+      "id": "R1",
+      "claim": "default fix leaves this unsafe fix unapplied",
+      "observed": {
+        "ordinary": 7,
+        "empty": {
+          "exception": "IndexError"
+        }
+      },
+      "source_unchanged": true,
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "claim": "explicit unsafe fix changes empty-input contract",
+      "observed": {
+        "ordinary": 7,
+        "empty": {
+          "exception": "StopIteration"
+        }
+      },
+      "mutant_rejected": true,
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "claim": "explicit adaptation preserves tested contract",
+      "observed": {
+        "ordinary": 7,
+        "empty": {
+          "exception": "IndexError"
+        }
+      },
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "claim": "clean selected lint rules do not prove authorization",
+      "lint_exit": 0,
+      "observed_owner": "B",
+      "pass": true
+    }
+  ],
+  "commands": [
+    {
+      "argv": [
+        "/opt/homebrew/bin/ruff",
+        "check",
+        "--isolated",
+        "--no-cache",
+        "--select",
+        "RUF015",
+        "--output-format",
+        "json",
+        "--fix",
+        "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-ruff-probe-ab4h0umw/safe.py"
+      ],
+      "returncode": 1,
+      "stdout": "[\n  {\n    \"cell\": null,\n    \"code\": \"RUF015\",\n    \"end_location\": {\n      \"column\": 27,\n      \"row\": 2\n    },\n    \"filename\": \"/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-ruff-probe-ab4h0umw/safe.py\",\n    \"fix\": {\n      \"applicability\": \"unsafe\",\n      \"edits\": [\n        {\n          \"content\": \"next(iter(values))\",\n          \"end_location\": {\n            \"column\": 27,\n            \"row\": 2\n          },\n          \"location\": {\n            \"column\": 12,\n            \"row\": 2\n          }\n        }\n      ],\n      \"message\": \"Replace with `next(iter(values))`\"\n    },\n    \"location\": {\n      \"column\": 12,\n      \"row\": 2\n    },\n    \"message\": \"Prefer `next(iter(values))` over single element slice\",\n    \"name\": \"unnecessary-iterable-allocation-for-first-element\",\n    \"noqa_row\": 2,\n    \"severity\": \"error\",\n    \"url\": \"https://docs.astral.sh/ruff/rules/unnecessary-iterable-allocation-for-first-element\"\n  }\n]",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/opt/homebrew/bin/ruff",
+        "check",
+        "--isolated",
+        "--no-cache",
+        "--select",
+        "RUF015",
+        "--output-format",
+        "json",
+        "--fix",
+        "--unsafe-fixes",
+        "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-ruff-probe-ab4h0umw/unsafe.py"
+      ],
+      "returncode": 0,
+      "stdout": "[]",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/opt/homebrew/bin/ruff",
+        "check",
+        "--isolated",
+        "--no-cache",
+        "--select",
+        "RUF015",
+        "--output-format",
+        "json",
+        "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-ruff-probe-ab4h0umw/compatible.py"
+      ],
+      "returncode": 0,
+      "stdout": "[]",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/opt/homebrew/bin/ruff",
+        "check",
+        "--isolated",
+        "--no-cache",
+        "--select",
+        "E,F",
+        "--output-format",
+        "json",
+        "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-ruff-probe-ab4h0umw/authorization.py"
+      ],
+      "returncode": 0,
+      "stdout": "[]",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "-c",
+        "import runpy, sys; f=runpy.run_path(sys.argv[1])['read_record']; print(f({'b': {'owner':'B'}}, 'A', 'b')['owner'])",
+        "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-ruff-probe-ab4h0umw/authorization.py"
+      ],
+      "returncode": 0,
+      "stdout": "B\n",
+      "stderr": ""
+    }
+  ],
+  "passed": 5,
+  "total": 5,
+  "limits": [
+    "One installed version and selected rules, not all Ruff checks.",
+    "No performance measurement, hosted runtime, or model guidance efficacy trial.",
+    "A rejected deliberately wrong implementation is a successful probe, not production success."
+  ]
+}

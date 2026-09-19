@@ -1,0 +1,124 @@
+{
+  "schema_version": 1,
+  "executed_on": "2026-09-18",
+  "scope": "local fixture calibration for future coding-guidance experiments; no production or policy change",
+  "platform": {
+    "python": "Python 3.14.7",
+    "platform": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
+    "bash_path": "/bin/bash",
+    "bash": "GNU bash, version 3.2.57(1)-release (arm64-apple-darwin25)",
+    "shellcheck": {
+      "path": "/opt/homebrew/bin/shellcheck",
+      "version": "0.11.0"
+    },
+    "pytest": {
+      "path": "/opt/homebrew/bin/pytest",
+      "version": "9.1.1"
+    },
+    "ruff": {
+      "path": "/opt/homebrew/bin/ruff",
+      "version": "0.15.22"
+    },
+    "bats": "unavailable on PATH",
+    "hypothesis": "unavailable: ModuleNotFoundError"
+  },
+  "commands": [
+    {
+      "command": "python3 -B -m unittest -v test_python_guidance.py",
+      "exit_code": 0,
+      "observation": "6 tests passed; reference subprocess error/cause/cleanup and reference state invariants passed; stated mutants and happy-path controls were discriminated."
+    },
+    {
+      "command": "/bin/bash ./test_bash_guidance.sh",
+      "exit_code": 0,
+      "observation": "27 assertions passed on Bash 3.2.57, including reference behavior, named Bash mutants, the conditional-function counterexample, negative controls, and Bash syntax checks."
+    },
+    {
+      "command": "python3 -B -m py_compile fixtures/python/*.py test_python_guidance.py && /bin/bash -n fixtures/bash/*.sh test_bash_guidance.sh",
+      "exit_code": 0,
+      "observation": "All Python fixtures compiled and every Bash fixture parsed under /bin/bash. py_compile created bytecode caches despite -B, and those generated files were removed from this owned experiment directory before delivery."
+    },
+    {
+      "command": "/opt/homebrew/bin/shellcheck -s bash fixtures/bash/argv_reference.sh fixtures/bash/failing_probe.sh fixtures/bash/pipeline_reference.sh fixtures/bash/conditional_function_errexit_exception.sh test_bash_guidance.sh",
+      "exit_code": 0,
+      "observation": "Reference scripts and test runner had no ShellCheck diagnostic."
+    },
+    {
+      "command": "/opt/homebrew/bin/shellcheck -s bash fixtures/bash/argv_unquoted_mutant.sh",
+      "exit_code": 1,
+      "expected_nonzero": true,
+      "observation": "Expected mutant diagnostic: SC2068, double quote array expansions to avoid re-splitting elements."
+    }
+  ],
+  "hypotheses": {
+    "P1_subprocess_error_cleanup_argv": {
+      "reference": {
+        "error_kind": "CalledProcessError",
+        "returncode": 17,
+        "stderr": "root-cause: fixture child failed",
+        "workspace_removed": true
+      },
+      "mutants_rejected": [
+        "swallow nonzero child status",
+        "raise cleanup error that masks child cause",
+        "interpolate a path containing spaces into a shell command"
+      ],
+      "negative_control": "Reference, swallowed-status, and cleanup-masking variants all returned child-ok on a successful child."
+    },
+    "P2_state_isolation_and_invariant": {
+      "reference": {
+        "basic_credit_result": 7,
+        "second_instance_isolated": true,
+        "rejected_transition_preserved_state": true,
+        "trace_failures": []
+      },
+      "shared_state_mutant": {
+        "second_instance_isolated": false
+      },
+      "partial_commit_mutant": {
+        "rejected_transition_preserved_state": false,
+        "trace_failure_count": 127,
+        "first_two_trace_failures": [
+          "step 0: rejected transition changed state",
+          "step 0: negative balance survived"
+        ]
+      },
+      "negative_control": "Every implementation returned 7 for a single ordinary credit."
+    },
+    "B1_quoted_argv": {
+      "reference": "NUL-delimited output exactly matched whitespace, glob, empty, and leading-dash arguments.",
+      "mutant": "Unquoted positional expansion differed under adversarial arguments and was separately reported as ShellCheck SC2068.",
+      "negative_control": "Reference and mutant both matched ordinary nonempty tokens."
+    },
+    "B2_pipefail_conditional_cleanup": {
+      "reference": {
+        "exit_code": 42,
+        "stdout": "handled-pipeline-status=42",
+        "workspace_removed": true
+      },
+      "mutants_rejected": [
+        "no pipefail returned false success with unexpected-success output",
+        "direct errexit omitted recovery output",
+        "no cleanup trap preserved exit and output but leaked workspace"
+      ],
+      "negative_control": "The no-cleanup mutant shows that exit code and stdout alone cannot prove cleanup."
+    },
+    "B3_conditional_function_errexit_exception": {
+      "shell_options": "set -euo pipefail",
+      "observation": "A function evaluated as an if condition ran false, continued to a succeeding command, returned 0, and selected the if branch.",
+      "guidance_boundary": "The options remain useful baseline safety settings; expected failures in conditional control flow need explicit capture and assertion."
+    }
+  },
+  "decisions": {
+    "adopt": "Use reference, mutant, and negative-control discrimination as the fixture acceptance gate.",
+    "pilot": "Test a concise language-specific Python/Bash conditional card in a controlled worker-treatment arm; do not make it policy from these fixtures alone.",
+    "defer": "Do not require Hypothesis or bats-core until a pinned environment and added-value experiment justify them.",
+    "reject": "Do not accept static lint, happy-path checks, or markers as proof of the runtime contract."
+  },
+  "limitations": [
+    "No coding-agent treatment or comparison arm ran.",
+    "Local deterministic fixtures do not test production integrations, persistence, restart, threads, cancellation, hostile command injection, or signal delivery.",
+    "Bash results cover GNU Bash 3.2.57 on this macOS host, not POSIX sh or newer Bash-only features.",
+    "Repository source examples were inspected as concrete prior art, not as popularity-based quality proof or pinned dependencies."
+  ]
+}

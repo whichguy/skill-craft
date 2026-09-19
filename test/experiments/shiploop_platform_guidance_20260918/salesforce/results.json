@@ -1,0 +1,130 @@
+{
+  "study": "ShipLoop Salesforce platform-guidance bounded local experiment",
+  "date": "2026-09-18",
+  "scope": {
+    "owned_directory": "/Users/dadleet/src/skill-craft/test/experiments/shiploop_platform_guidance_20260918/salesforce",
+    "remote_org_calls": 0,
+    "deployments": 0,
+    "auth_or_secret_reads": 0,
+    "global_or_project_dependency_installs": 0
+  },
+  "commands": [
+    {
+      "command": "sf --version",
+      "result": "@salesforce/cli/2.150.6 darwin-arm64 node-v25.9.0",
+      "kind": "local CLI inventory only"
+    },
+    {
+      "command": "sf plugins --core",
+      "result": "@salesforce/sfdx-plugin-lwc-test 1.2.1 listed as an uninstalled JIT plugin",
+      "kind": "local CLI inventory only; no JIT installation invoked"
+    },
+    {
+      "command": "python3 run_checks.py",
+      "result": "passed",
+      "kind": "Python standard-library fixture scanner plus Node built-in test invocation",
+      "observed_assertions": "6 static fixture discriminator assertions plus 1 Node-suite exit assertion"
+    },
+    {
+      "command": "node --test fixtures/lwc/contract.test.mjs",
+      "result": "5 tests passed; 0 failed, skipped, cancelled, or todo; 69.4045 ms on the final runner invocation",
+      "kind": "real Node JavaScript execution of a state/cache model, not LWC Jest"
+    },
+    {
+      "command": "git -C /Users/dadleet/src/skill-craft diff --check -- test/experiments/shiploop_platform_guidance_20260918/salesforce",
+      "result": "passed with no output",
+      "kind": "artifact whitespace check"
+    }
+  ],
+  "actual_check_counts": {
+    "static_seed_reference_mutant_fixtures": 6,
+    "static_discriminator_assertions": 6,
+    "node_model_tests": 5,
+    "node_model_suite_exit_assertions": 1,
+    "remote_org_tests": 0
+  },
+  "runtime": {
+    "node": "v25.9.0",
+    "salesforce_cli": "@salesforce/cli/2.150.6",
+    "python": "3.14.7",
+    "host": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
+    "python_runner": "standard library only",
+    "lwc_jest": {
+      "available_in_local_dx_project": false,
+      "evidence": "The project declares @salesforce/sfdx-lwc-jest but has no local test binary; the CLI advertises a JIT plugin that was not installed."
+    }
+  },
+  "fixture_results": {
+    "apex_access_intent": {
+      "reference_explicit_user_mode": "accepted by the deliberately narrow text rule",
+      "seed_sharing_only": "rejected: explicit_sharing=true, explicit_user_query=false, explicit_user_dml=false, no_unexplained_system_mode=true",
+      "mutant_explicit_system_mode": "rejected: explicit_sharing=false, explicit_user_query=false, explicit_user_dml=false, no_unexplained_system_mode=false",
+      "boundary": "This is not an Apex parser, compiler, or security test. API 67 defaults mean the seed is not proven insecure by this result."
+    },
+    "apex_bulk_shape": {
+      "reference_bulkified": "accepted: 1 loop; query_in_loop=false; dml_in_loop=false; query_outside_loop=true; dml_outside_loop=true",
+      "seed_query_and_dml_in_loop": "rejected: 1 loop; query_in_loop=true; dml_in_loop=true",
+      "mutant_dml_in_loop": "rejected: 1 loop; query_in_loop=false; dml_in_loop=true",
+      "boundary": "This does not execute Apex or measure SOQL/DML governor consumption, selectivity, recursion, flows, or locks."
+    },
+    "lwc_state_async_model": {
+      "reference": "accepted: immutable identity replacement, mutation-before-invalidation, correct adapter selection",
+      "seed": "rejected by model assertions: in-place state and early invalidation",
+      "mutant": "rejected by model assertions: nested mutation and wrong adapter",
+      "boundary": "Node model result is not LWC engine, Jest, LDS, wire, browser, DOM, accessibility, or org evidence."
+    }
+  },
+  "sources": [
+    {
+      "url": "https://developer.salesforce.com/docs/platform/lwc/guide/apex-security",
+      "supports": "API-version security defaults; record sharing differs from CRUD/FLS; explicit modes remain recommended"
+    },
+    {
+      "url": "https://developer.salesforce.com/docs/platform/salesforce-soql-sosl/guide/sforce-api-calls-soql-select-with.html",
+      "supports": "WITH USER_MODE versus system-mode semantics"
+    },
+    {
+      "url": "https://developer.salesforce.com/blogs/2022/08/working-with-salesforce-records-using-soql-and-dml",
+      "supports": "100 SOQL and 150 DML transaction examples"
+    },
+    {
+      "url": "https://developer.salesforce.com/docs/platform/lwc/guide/reactivity-fields.html",
+      "supports": "object/array identity and @track reactivity behavior"
+    },
+    {
+      "url": "https://developer.salesforce.com/docs/platform/lwc/guide/apex-result-caching",
+      "supports": "refreshApex for stale Apex-wire results"
+    },
+    {
+      "url": "https://developer.salesforce.com/docs/platform/lwc/guide/reference-notify-record-update.html",
+      "supports": "LDS record invalidation and its completion Promise"
+    },
+    {
+      "url": "https://github.com/trailheadapps/apex-recipes/blob/main/force-app/main/default/classes/Data%20Recipes/DMLRecipes.cls",
+      "supports": "concrete user/system access-level DML examples"
+    },
+    {
+      "url": "https://github.com/trailheadapps/lwc-recipes/blob/main/force-app/main/default/lwc/ldsNotifyRecordUpdateAvailable/__tests__/ldsNotifyRecordUpdateAvailable.test.js",
+      "supports": "concrete mocked wire, async, success, and error test example"
+    }
+  ],
+  "recommendations": [
+    {
+      "candidate": "conditional Apex/LWC platform guidance card",
+      "decision": "pilot",
+      "reason": "The card has a clear local gap and bounded retrieval cost, but neither the local corpus nor research proves it improves ShipLoop worker outcomes."
+    },
+    {
+      "candidate": "global trigger framework, FFLIB, Graph Engine, or an MCP server",
+      "decision": "reject",
+      "reason": "No current source need justified persistent complexity, installation, or permissions; none replaces real-org tests."
+    }
+  ],
+  "required_before_genuine_org_claim": [
+    "Use an approved disposable scratch org or sandbox and freeze API version, permissions, sharing, automation, packages, and source identity.",
+    "Run allow and denial cases under a deliberately low-privilege user configuration and assert either the expected user-mode failure or stripInaccessible outcome with no protected side effect.",
+    "Run real Apex tests at 1 and 200 records, assert business output and Limits.getQueries()/Limits.getDmlStatements() deltas against a declared budget.",
+    "Install only declared project dependencies in an isolated checkout, run actual LWC Jest tests, then verify the user-visible flow in a browser/org.",
+    "Retain command output, test classes, source hash, permission/data fixture description, API version, and limits deltas as the evidence receipt."
+  ]
+}
