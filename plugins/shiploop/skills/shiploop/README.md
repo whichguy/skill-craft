@@ -27,6 +27,17 @@ ShipLoop prompt.
 - [Skill entrypoint](SKILL.md)
 - [Isolated workspace and artifact return policy](references/workspace-lifecycle.md)
 - [Delivery-authority readiness](references/delivery-authority.md)
+- [Optional parallel or serial implementation chains](references/parallel-chain.md) — bind
+  the selected Plan Dispatcher/Ask-Agent packages to one current implementation
+  action, use external sibling worktrees and append-only timestamped events,
+  then require verified integration before the usual Improve/test sequence.
+  `chain bind --mode serial` walks the same dependency graph in the main context,
+  one ready step at a time, without agents. Default parallel mode uses native
+  Ask-Agent. Accepted is the sole stored done state; the `completion` view lists
+  done/not-done, and `chain done` uses the same verified settlement as `settle`.
+  Read-only `chain history` shows timestamped audit events; `chain pending`
+  shows unfinished steps, unmet dependencies and available capacity.
+  Both modes continue through all required steps and the guarded combined return.
 
 `init` and `workspace start` default to navigator protocol 3 for new runs. Pass
 `--execution-mode=navigator-v2` only for the retained v2 route; v1, managed,

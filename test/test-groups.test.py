@@ -15,7 +15,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 RUNNER = ROOT / "test" / "run-all.sh"
 SHIPLOOP_RUNNER = ROOT / "test" / "shiploop.test.sh"
-SHIPLOOP_SUITE_COUNT = 87
+SHIPLOOP_SUITE_COUNT = 90
 ACTION_WALK = "test/shiploop-action-walk.test.py"
 CI_GROUPS = ("core", "shiploop-1", "shiploop-2", "shiploop-3")
 SHIPLOOP_SMOKE = (

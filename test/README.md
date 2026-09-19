@@ -127,6 +127,30 @@ workspace-mode handoff gate. It never merges the source checkout running the
 test. [Workspace experiments](experiments/shiploop_workspace/README.md) explain
 why starting at HEAD and deleting transient files at the tip were insufficient.
 
+The three `shiploop-chain{,-git,-ledger}.test.py` suites belong to the ordinary
+ShipLoop aggregate. They exercise the public bridge with a pinned Plan Dispatcher
+v1 fixture, disposable real Git worktrees, eager fan-out and joins, guarded return,
+and append-only event records under process contention. A separate v2 fixture
+pins the uncommitted executor-aware dispatcher candidate for serial cases: one
+main-context task at a time, no native launch/handle, dependency-respecting
+completion through final return, stale attempts, unsupported old packages and
+exact terminal replay after other steps progress. The state/ledger bytes must
+remain unchanged on identical terminal retries; a crash between child acceptance
+and bridge recording is reconciled once. Native handles, worker
+reports, and prerequisite Improve judgments are synthetic in these tests; these
+passes prove local composition, not live host delivery or semantic verification.
+The same public-CLI suite covers read-only `chain history` and `chain pending`:
+ready/waiting/claimed/running/reported/rejected states, retries, empty completion,
+serial capacity, past indexed actions, child drift, corrupt ledgers and explicit
+recovery boundaries. Queries must preserve every run file's bytes, avoid creating
+locks and leave pending transactions and interrupted event hardlinks untouched.
+The fixture's `PROVENANCE.json` records its upstream source and exact hashes.
+The separate [native pilot](experiments/shiploop_chain/README.md) runs the same
+public bridge with actual host-native workers and an independent code oracle.
+It is opt-in and must report observed results separately from synthetic setup.
+The [2026-09-18 pilot report](../docs/shiploop-chain-native-pilot-2026-09-18.md)
+records the actual local fan-out, rejected report, retry, join and feature return.
+
 ## Skill and script execution boundary
 
 `shiploop-no-model-launch.test.py` exercises the packaged CLI with model-binary

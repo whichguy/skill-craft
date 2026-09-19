@@ -7665,12 +7665,16 @@ def main(core, argv=None):
     raw_argv = list(sys.argv[1:] if argv is None else argv)
     if raw_argv and raw_argv[0] == "workspace":
         return workspace_command(core, raw_argv[1:])
+    if raw_argv and raw_argv[0] == "chain":
+        import shiploop_chain
+        return shiploop_chain.main(core, raw_argv[1:])
     parser = argparse.ArgumentParser(
         prog="shiploop",
         description="Markdown-authoritative, action-oriented session harness",
     )
     subs = parser.add_subparsers(dest="command", required=True)
     subs.add_parser("workspace", help="isolated start, return-plan review, and guarded return")
+    subs.add_parser("chain", help="bind and operate a parallel or serial chain within the current v3 implementation action")
     import shiploop_dry_run
     import shiploop_navigator as navigator
     import shiploop_navigator_dry_run as navigator_dry_run

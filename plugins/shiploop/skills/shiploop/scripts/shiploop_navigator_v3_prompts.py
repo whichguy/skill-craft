@@ -107,6 +107,7 @@ STAGE_REFERENCES: dict[str, tuple[tuple[str, str], ...]] = {
     ),
     "step-plan": (
         ("Coding decision guide", "coding-guidance.md#select-guidance"),
+        ("Optional parallel-chain guide", "parallel-chain.md#parallel-implementation-chains"),
         ("Repeatable test-suite guide", "repeatable-test-suites.md#select-or-revalidate-the-harness"),
         ("Repository-local skill guidance", "testing-and-documentation.md#reusable-product-skills"),
         ("Implementation constitution", "testing-and-documentation.md#implementation-constitution"),
@@ -132,6 +133,7 @@ STAGE_REFERENCES: dict[str, tuple[tuple[str, str], ...]] = {
     ),
     "implement": (
         ("Coding decision guide", "coding-guidance.md#select-guidance"),
+        ("Optional parallel-chain guide", "parallel-chain.md#parallel-implementation-chains"),
         ("Repeatable test-suite guide", "repeatable-test-suites.md#select-or-revalidate-the-harness"),
         ("Implementation constitution", "testing-and-documentation.md#implementation-constitution"),
     ),
@@ -556,6 +558,10 @@ completion and revalidation conditions. Identify the actual runtime/version,
 artifact and boundary; read only matching practice/platform sections. Link the
 accepted plan and selected sections in evidence_refs; do not copy every card or
 create boilerplate for inapplicable concerns. Planning does not authorize edits.
+For an explicitly selected parallel chain, retain direct dependencies, readiness
+and completion criteria, shared-resource exclusions and the integration node in
+the reviewed graph. Use the Optional parallel-chain guide; planning never starts
+the dispatcher or expands this item into a parallel whole-project lifecycle.
 Use the Repository-local skill guidance. Reopen the repo's current skill index or
 README/AGENTS links, even if earlier context reported no fit: a preceding item may
 have created or evolved a skill. Prefer unchanged reuse with supported inputs and
@@ -664,6 +670,14 @@ Use the Coding decision guide to reopen the accepted plan and only its relevant
 practice/platform sections. Check current code, versions and consumers before
 reuse or augmentation. Retain justified revisions in the linked note; a new
 prerequisite or authority boundary uses the existing correction route.
+For an explicitly selected parallel chain or serial chain, follow the Optional
+parallel-chain guide: bind this action's reviewed graph and recorded mode.
+Parallel mode uses native Ask-Agent; serial mode executes one ready step in the
+main context without spawning agents. Both use external sibling worktrees and
+the same verified acceptance transition. Keep observable combined status; only
+accepted steps are done. Continue until every required step is accepted and the
+combined return is verified, or retain an explicit incomplete blocker. Finish
+before this action's normal completion callback and Improve checkpoint.
 """,
     "test-green": """\
 Run focused checks against the implemented candidate and establish meaningful

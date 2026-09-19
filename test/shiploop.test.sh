@@ -24,6 +24,9 @@ suites=(
   test/shiploop-environment-lifecycle.test.py \
   test/shiploop-cross-run.test.py \
   test/shiploop-workspace.test.py \
+  test/shiploop-chain-ledger.test.py \
+  test/shiploop-chain-git.test.py \
+  test/shiploop-chain.test.py \
   test/shiploop-consumer-delivery.test.py \
   test/shiploop-consumer-delivery-cli.test.py \
   test/shiploop-delivery-prompts.test.py \

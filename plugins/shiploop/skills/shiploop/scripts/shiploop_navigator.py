@@ -57,7 +57,7 @@ _STATE_KEYS_V1 = frozenset(
     )
 )
 _STATE_KEYS_V2 = _STATE_KEYS_V1 | frozenset(("inner_loops", "delivery_contract_version"))
-_STATE_KEYS_V3 = _STATE_KEYS_V2 | frozenset(("improve_skill", "active_improve", "improve_results"))
+_STATE_KEYS_V3 = _STATE_KEYS_V2 | frozenset(("improve_skill", "active_improve", "improve_results", "chain_bindings"))
 
 PRELUDE = tuple(guidance.PRELUDE)
 INNER = tuple(guidance.INNER)
@@ -416,7 +416,7 @@ def _validate_v2(state: Mapping[str, Any]) -> None:
     prelude, inner, outer = graph(state)
     stages = prelude + inner + outer
     _need(keys <= allowed
-          and allowed - {"status_reason", "delivery_contract_version"} <= keys,
+          and allowed - {"status_reason", "delivery_contract_version", "chain_bindings"} <= keys,
           "navigator state has unsupported or missing fields")
     _need(state.get("version") == STATE_VERSION, "unsupported navigator state version")
     _need(version in (2, 3),
@@ -540,6 +540,16 @@ def _validate_v2(state: Mapping[str, Any]) -> None:
             raise NavigatorError(str(exc)) from exc
 
     if version == 3:
+        bindings = state.get("chain_bindings", {})
+        _need(isinstance(bindings, Mapping), "chain bindings must be an object")
+        chain_actions = {entry["action"] for entry in history if entry["stage"] == "implement"}
+        if _active_cursor(state)[0] == "implement":
+            chain_actions.add(effective_action_id)
+        for action_id, digest in bindings.items():
+            _need(isinstance(action_id, str) and action_id in chain_actions,
+                  "chain binding must belong to an implementation action")
+            _need(isinstance(digest, str) and re.fullmatch(r"[0-9a-f]{64}", digest) is not None,
+                  "chain binding digest is invalid")
         _text(state.get("improve_skill"), "improve_skill", allow_empty=True)
         records = state.get("improve_results")
         _need(isinstance(records, Mapping), "Improve results must be an object")
@@ -1293,6 +1303,9 @@ def render(core: Any, root: Path, state: Mapping[str, Any]) -> str:
             ]
         )
         return "\n".join(lines) + "\n"
+    if state.get("chain_bindings"):
+        import shiploop_chain
+        lines.extend(shiploop_chain.orientation(core, root, state))
     if state["status"] == "halted":
         lines.extend(
             [
@@ -1632,6 +1645,14 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
     }, f"navigator does not support legacy command {command!r}")
     validate(state)
     root = Path(root)
+    if command in ("complete", "improve-complete", "halt") and state.get("chain_bindings"):
+        import shiploop_chain
+        try:
+            guarded_action = (current_action(state)["id"] if command == "halt"
+                              else getattr(args, "action", None))
+            shiploop_chain.guard_completion(root, state, guarded_action)
+        except ValueError as exc:
+            raise NavigatorError(str(exc)) from exc
     if command == "init":
         print(render(core, root, state), end="")
         return 0

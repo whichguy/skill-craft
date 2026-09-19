@@ -369,6 +369,31 @@ only the current producer action; an active Improve child resumes through its
 own recorded state. A blocked child or producer keeps the parent action
 incomplete rather than creating a hidden success edge.
 
+## Parallel implementation chains
+
+For a reviewed graph within the current v3 `implement` action, the main owner
+may explicitly bind [a parallel implementation chain](references/parallel-chain.md).
+Use the selected Plan Dispatcher and Ask-Agent packages, external sibling
+`.work-trees` checkouts, and the bridge's claim/start/collect/verify/finish flow.
+Choose `chain bind --mode serial` to execute one dependency-ready step at a time
+in the main context with no agent dispatch; default parallel mode uses native
+Ask-Agent. Serial start atomically records local ownership before issuing an
+execute packet. Continue through all required steps and the verified return,
+or retain an explicit incomplete blocker; an empty ready list alone is not done.
+Only a fresh parallel launch packet permits native dispatch. Workers report; the parent
+owns acceptance and the exact initiating-checkout return. The append-only,
+timestamped ledger records bridge events without replacing Markdown traversal
+or the child dispatcher's state. An unfinished chain blocks the normal producer
+callback; after verified integration, continue the existing Improve/test stages.
+Accepted is the only persisted step-done state. The derived `completion` view
+lists done/not-done; `done` aliases the existing verified `settle` transition.
+Use read-only `chain history` for timestamped audit events and `chain pending`
+for all unfinished steps, unmet dependencies and capacity; neither dispatches
+work nor repairs state. Both take `--run-dir` and `--action` without an input file.
+Keep combined main-conversation status from actual execution observations and
+dispatcher state; progress reports never accept work or release dependencies.
+This does not parallelize whole work-item lifecycles or migrate existing runs.
+
 ## Existing protocols
 
 Recorded navigator-v1 and navigator-v2 runs retain their saved cursor, keys,

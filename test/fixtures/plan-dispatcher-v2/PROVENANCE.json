@@ -1,0 +1,18 @@
+{
+  "purpose": "Hermetic serial integration fixture. Uncommitted executor-aware candidate; runtime selects an external package. No model runner.",
+  "repository": "https://github.com/whichguy/backchain",
+  "base_commit": "1a7e6f6e8b2e79d1c1420928a18b22d9b4fb5dd0",
+  "candidate_branch": "feat/serial-dispatcher-20260918",
+  "candidate_status": "uncommitted",
+  "source_worktree": "/Users/dadleet/src/.work-trees/backchain/serial-dispatcher-20260918",
+  "path": "skills/plan-dispatcher",
+  "version": "0.1.1",
+  "files_sha256": {
+    "SKILL.md": "da8f8bda6f813d56a659e8a4a843002f09ab1e1626094fef9881f48f9abcfe46",
+    "scripts/dispatch.js": "22b8baf67972c041a93bfd7473800f28e5473384e3dac04cde8674bd23ca0a16",
+    "scripts/state.js": "7a1759da7361bdfb36fc11bd599a62f08b6cb41767be1456f1b649c666436b5d",
+    "references/protocol.md": "8ba8a06c5876ee43126e1297c5d03eb6a731ea53990c30def2046b6b243ff7d5",
+    "references/host-matrix.md": "afbe1e94e48a8134cce37a81c6f869ec123c71523b30c135e3d5c9e134602d4a",
+    "LICENSE": "f652c852dc01af6f21de199ba70c7b4366ec644f5e2e24d51f848cd9cb72e568"
+  }
+}

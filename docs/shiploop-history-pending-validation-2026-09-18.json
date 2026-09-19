@@ -1,0 +1,106 @@
+{
+  "recorded_at": "2026-09-19T00:21:54.424203+00:00",
+  "scope": "Incremental read-only chain history/pending and experimental ledger pending",
+  "delivery": {
+    "committed": false,
+    "merged": false,
+    "installed": false,
+    "pushed": false
+  },
+  "source_files": [
+    {
+      "path": "/Users/dadleet/src/.work-trees/skill-craft/shiploop-dispatcher-20260918/skills/shiploop/scripts/shiploop_chain.py",
+      "sha256": "8ecf1833bb5e8e9f1eeda858bcc5562ced6cf29a3ac0697d48e8d59cf695360d"
+    },
+    {
+      "path": "/Users/dadleet/src/.work-trees/skill-craft/shiploop-dispatcher-20260918/test/shiploop-chain.test.py",
+      "sha256": "dd049925e1dd1395ead1bad5f3739289f1d4f809fbcf41dbf165ea03fbdce650"
+    },
+    {
+      "path": "/Users/dadleet/src/.work-trees/skill-craft/shiploop-dispatcher-20260918/skills/shiploop/references/parallel-chain.md",
+      "sha256": "d9d54d05fb0c21f4b467b853e8859d1d4b60ef3689e3bb3797faac0d7060be85"
+    },
+    {
+      "path": "/Users/dadleet/src/.work-trees/backchain/serial-dispatcher-20260918/experiments/ledger-replay/ledger.js",
+      "sha256": "6c42e9d7dbb9ace50f9da445c2ac6e4410426ee54a665a462c305a1adcc2b1c8"
+    },
+    {
+      "path": "/Users/dadleet/src/.work-trees/backchain/serial-dispatcher-20260918/test/ledger-replay.test.js",
+      "sha256": "d998167502f8be3383a5b11d9706049e93ca28445d2e57f829546dbac5202647"
+    }
+  ],
+  "checks": [
+    {
+      "name": "chain_baseline",
+      "count": 25,
+      "result": "pass",
+      "path": "/tmp/shiploop-chain-views-baseline-20260918.log",
+      "sha256": "314da05c0a61224de91ec5dc36e3d6df7abda312a83f383e3e0c82fbb6a7a4a4"
+    },
+    {
+      "name": "chain_regression",
+      "count": 31,
+      "result": "pass",
+      "path": "/tmp/shiploop-chain-views-regression-20260918.log",
+      "sha256": "9973bc20595c20e1f12ab27cd74b4f55bbe694869f2a5d1aa9cdfb17fde37074"
+    },
+    {
+      "name": "additional_review_tests",
+      "count": 2,
+      "result": "pass",
+      "path": "/tmp/shiploop-chain-views-review-tests-20260918.log",
+      "sha256": "a8743c5b42b4130c8a3e9e5e900b94e126e4c89a7500920674ce85afe143cd94"
+    },
+    {
+      "name": "chain_ledger",
+      "count": 10,
+      "result": "pass",
+      "path": "/tmp/shiploop-chain-views-ledger-20260918.log",
+      "sha256": "52678cfaa1a5f2887d9d0f6b90ff2f3a6e2f48e1819eb10ccdcbbd455a13e829"
+    },
+    {
+      "name": "chain_git",
+      "count": 5,
+      "result": "pass",
+      "path": "/tmp/shiploop-chain-views-git-20260918.log",
+      "sha256": "146465b76d4c44f6955453a68053d6330fdf7de06948da226d7bbd1b5af77bcc"
+    },
+    {
+      "name": "prompt_integrity",
+      "count": 10,
+      "result": "pass",
+      "path": "/tmp/shiploop-chain-views-prompts-20260918.log",
+      "sha256": "2438487b33954f4245115210d03060eb52d3f07cc2460b402458603d560d8c71"
+    },
+    {
+      "name": "core_groups",
+      "count": 23,
+      "result": "pass",
+      "path": "/tmp/shiploop-chain-views-core-20260918.log",
+      "sha256": "32420eeb939ae8fd19715d965d48b982adfe27675287a5a6f91e9f5ef7472ace"
+    }
+  ],
+  "backchain_gate": {
+    "result": "PASS_CLEAN",
+    "command": "make test-fast",
+    "aggregate_file_entries": 66,
+    "ledger_cases": 15,
+    "path": "/Users/dadleet/.grok/runs/test-harness/serial-dispatcher-20260918/20260919T001537Z-0327be/chat-card.md",
+    "sha256": "ea8b38beef7b9da27f1bd715f026dd6271e83addf530aa5e5c83c6b06756e87a",
+    "reviewed_signals": "Expected negative controls/progress and installer help on stderr; help text about skipped agent installation is not a skipped test. Only test TMPDIR leftovers, material_delta=0."
+  },
+  "retained_native_pilot": {
+    "history_events": 51,
+    "pending": [],
+    "run_file_hashes_unchanged": true,
+    "path": "/tmp/shiploop-chain-views-retained-pilot-20260918.json",
+    "sha256": "8288e3bd2df3f35e260e061ca2315e77b316eb241f6020f3f689d6c546a375ac"
+  },
+  "limitations": [
+    "ShipLoop coverage in this increment is focused plus core; the full 93-suite ShipLoop aggregate was not rerun.",
+    "The 31-case regression and two post-review boundary cases are separate runs; 33 distinct chain cases passed.",
+    "Retained pilot queries are read-only inspection of prior U16 evidence, not a new native launch or U18 conformance campaign.",
+    "Ledger-derived execution remains experimental; ShipLoop child execution state remains authoritative."
+  ],
+  "packaging": "Source/generated synchronization and --check passed for 19 skills; no frozen dispatcher fixture was changed."
+}
