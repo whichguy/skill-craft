@@ -7,7 +7,10 @@ public `shiploop chain` lifecycle. It never launches a model, an agent CLI, a ti
 or a polling service. A native host must launch fresh workers and retain its
 own launch/completion trace.
 
-The pilot uses the frozen Ask-Agent 0.4 fixture and Plan Dispatcher v2 fixture.
+The pilot uses the frozen Ask-Agent 0.4 fixture and Plan Dispatcher v3 fixture.
+It preflights the selected Dispatcher `capabilities` response before creating a
+pilot directory; the required `planning_context` capability preserves the
+immutable planning references that ShipLoop attaches to each worker packet.
 It is not evidence that Ask-Agent 0.4 is generally qualified until a real
 native run has retained both the host trace and the final evidence described
 below.
@@ -51,10 +54,11 @@ target; it does not perform a final worker-to-target merge.
 Use a fresh absolute directory outside the source checkout.
 
 ```sh
-SOURCE_ROOT=/Users/dadleet/src/.work-trees/skill-craft/integrate-chain-20260918
+# Run this block from the source checkout.
+SOURCE_ROOT="$(git rev-parse --show-toplevel)"
 PILOT_DIR=/private/tmp/shiploop-native-chain-pilot-$(uuidgen | tr '[:upper:]' '[:lower:]')
 PILOT="$SOURCE_ROOT/test/experiments/shiploop_chain/native_pilot.py"
-DISPATCHER_SKILL="$SOURCE_ROOT/test/fixtures/plan-dispatcher-v2/SKILL.md"
+DISPATCHER_SKILL="$SOURCE_ROOT/test/fixtures/plan-dispatcher-v3/SKILL.md"
 ASK_AGENT_SKILL="$SOURCE_ROOT/test/fixtures/ask-agent-v04/SKILL.md"
 
 python3 -B "$PILOT" prepare \
@@ -100,8 +104,18 @@ python3 -B "$PILOT" start --pilot-dir "$PILOT_DIR" --step B --attempt '<B_ATTEMP
 
 A response with `"action": "launch"` includes
 `inline_native_assignment`. Give that exact text directly to a fresh native
-worker. A retained JSON packet is audit material only; it is never a worker
-prompt transport. Do not create a prompt file.
+worker. It embeds the complete returned worker packet as verbatim inline JSON:
+the packet's task, definition of ready, definition of done, planning context,
+and guidance instructions remain the authority for the work. The surrounding
+fixture text only supplies the external oracle and handoff mechanics. A retained
+JSON packet is audit material only; it is never a prompt-file transport. Do not
+create a prompt file.
+
+Only a `start` response with `"action": "launch"` grants a fresh native
+worker. An immediate exact `start` replay returns `"action": "reconcile"` and
+does not include an inline assignment. The `packet` command is the cold recovery
+route for its saved evidence; it also never includes an inline assignment and
+does not authorize a new launch.
 
 After the host actually returns a nonempty handle, save it and record it:
 
@@ -262,6 +276,19 @@ passes the worker assignment inline to the native host and
 does not turn a saved packet or prompt file into worker transport.
 `result.json` records `coverage.workspace_creation: "fixture_emulation"` and
 marks prompt-driven Ask-Agent workspace creation as not qualified.
+
+## Offline adapter verification
+
+The focused adapter test creates its own disposable Git fixture and exercises
+the public `prepare` → `claim` → `start` → cold `packet` path with the pinned
+Dispatcher v3 package. It verifies exact inline packet transport, v2 preflight
+rejection before a pilot directory is created, and non-launch start replay. It
+does not launch a model, Grok, or a native worker:
+
+```sh
+python3 -B "$SOURCE_ROOT/test/experiments/shiploop_chain/test_native_pilot.py"
+python3 -B "$SOURCE_ROOT/test/experiments/shiploop_chain/test_trace.py"
+```
 
 Inspect the raw host trace before qualifying a run: it must show fresh worker
 launches, actual completion collection, the recorded handles, A/B dispatch

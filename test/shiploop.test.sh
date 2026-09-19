@@ -32,6 +32,7 @@ suites=(
   test/shiploop-planning-context.test.py \
   test/shiploop-chain-planning-context.test.py \
   test/experiments/shiploop_chain/test_trace.py \
+  test/experiments/shiploop_chain/test_native_pilot.py \
   test/shiploop-consumer-delivery.test.py \
   test/shiploop-consumer-delivery-cli.test.py \
   test/shiploop-delivery-prompts.test.py \

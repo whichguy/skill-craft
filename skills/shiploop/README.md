@@ -1,4 +1,4 @@
-# ShipLoop navigator 0.18.1
+# ShipLoop navigator 0.18.2
 
 ShipLoop runs in the conversation that invoked it. That conversation follows
 the current action packets and performs the producer and Improve work; the

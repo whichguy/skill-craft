@@ -35,6 +35,7 @@ from typing import Any
 import uuid
 
 import shiploop_navigator as navigator
+import shiploop_navigator_v3_prompts as navigator_v3_prompts
 import shiploop_store as store
 
 
@@ -57,6 +58,14 @@ _GIT_ENV_KEYS = frozenset({
     "GIT_OBJECT_DIRECTORY", "GIT_ALTERNATE_OBJECT_DIRECTORIES",
     "GIT_CONFIG_COUNT", "GIT_CONFIG_PARAMETERS",
 })
+
+# Keep worker guidance aligned with the navigator's implementation-stage routes.
+# The parallel-chain guide is for the parent that owns chain selection and
+# scheduling, not a scoped worker packet.
+_WORKER_GUIDANCE_ROUTES = tuple(
+    route for route in navigator_v3_prompts.STAGE_REFERENCES["implement"]
+    if route[0] != "Optional parallel-chain guide"
+)
 
 
 class ChainError(ValueError):
@@ -695,14 +704,28 @@ def _require_planning_context(binding: Mapping[str, Any], attempt: str) -> None:
 
 
 def _planning_worker_instructions(packet: dict[str, Any]) -> None:
+    reference_dir = Path(__file__).resolve().parents[1] / "references"
+    instructions = [
+        f"{label}: {reference_dir / relative}"
+        for label, relative in _WORKER_GUIDANCE_ROUTES
+    ]
+    instructions.extend((
+        "Before scoped edits, select and apply only the relevant practice and platform guidance; consult the accepted planning/context, repository conventions, and applicable baseline.",
+        "Retain selected decisions, actual checks, and unresolved uncertainty in the existing handoff or result files.",
+        "If a required guidance locator is unavailable, mark the step BLOCKED and retain the uncertainty rather than guessing.",
+        "These references do not change the task, definition of ready/done, scope, or authority; they do not authorize a nested ShipLoop or Improve cycle or parent callbacks.",
+    ))
     if "planning_context" in packet:
-        packet["instructions"].append(
+        instructions.append(
             "The step contract defines your execution prompt. Verify the planning_context manifest and "
             "planning_brief hashes, then consult its key planning reference statements and applicable "
             "reference_material. Use the full manifest to locate supporting sources. These references "
             "do not replace the step definition, expand its scope, or grant permissions or scheduling "
             "authority. A missing required source blocks work."
         )
+    for instruction in instructions:
+        if instruction not in packet["instructions"]:
+            packet["instructions"].append(instruction)
 
 
 def _node(binding: Mapping[str, Any], operation: str, input_value: Mapping[str, Any] | None = None) -> dict[str, Any]:

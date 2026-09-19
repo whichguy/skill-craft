@@ -11,11 +11,13 @@ import hashlib
 import importlib.util
 import json
 from pathlib import Path
+import re
 import selectors
 import shutil
 import subprocess
 import sys
 import unittest
+from unittest.mock import patch
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -23,6 +25,11 @@ SCRIPTS = ROOT / "skills" / "shiploop" / "scripts"
 CLI = SCRIPTS / "shiploop"
 ASK = ROOT / "test" / "fixtures" / "ask-agent-v04"
 WORKER = ROOT / "test" / "fixtures" / "chain-planning-context-worker.py"
+GUIDANCE_ROUTES = {
+    "Coding decision guide": "coding-guidance.md#select-guidance",
+    "Repeatable test-suite guide": "repeatable-test-suites.md#select-or-revalidate-the-harness",
+    "Implementation constitution": "testing-and-documentation.md#implementation-constitution",
+}
 
 _fixture_spec = importlib.util.spec_from_file_location(
     "planning_context_chain_fixture", ROOT / "test" / "shiploop-chain.test.py"
@@ -61,14 +68,15 @@ class PlanningContextChainTests(unittest.TestCase):
                 if stream is not None:
                     stream.close()
 
-    def bind(self, test, *, mode: str = "parallel", capacity: int | None = None):
+    def bind(self, test, *, mode: str = "parallel", capacity: int | None = None,
+             lifecycle: str = "per-step"):
         extra = [
             "--graph", str(test.graph),
             "--dispatcher-skill", str(test.dispatcher / "SKILL.md"),
             "--ask-agent-skill", str(test.ask / "SKILL.md"),
             "--worktree-parent", str(test.parent),
             "--mode", mode,
-            "--lifecycle", "per-step",
+            "--lifecycle", lifecycle,
         ]
         if capacity is not None:
             extra += ["--capacity", str(capacity)]
@@ -116,6 +124,38 @@ class PlanningContextChainTests(unittest.TestCase):
         # Context is passed as immutable references, rather than copying the
         # large planning body into each worker packet.
         self.assertNotIn("Use sibling worker worktrees", json.dumps(packet))
+
+    def assert_worker_guidance(self, packet, package: Path = SCRIPTS.parent) -> None:
+        """Follow the actual worker's locators, including the selector's cards."""
+        references = package / "references"
+        for label, relative in GUIDANCE_ROUTES.items():
+            locator = str(references / relative)
+            self.assertEqual(packet["instructions"].count(label + ": " + locator), 1)
+            path, anchor = locator.split("#", 1)
+            body = Path(path).read_text()
+            headings = {
+                re.sub(r"[^a-z0-9 -]", "", line.lstrip("# ").lower()).replace(" ", "-")
+                for line in body.splitlines() if line.startswith("#")
+            }
+            self.assertIn(anchor, headings, locator)
+        selector = (references / "coding-guidance.md").read_text()
+        links = re.findall(r"\]\(([^)]+)\)", selector)
+        for relative in links:
+            path, _, anchor = relative.partition("#")
+            card = references / path
+            self.assertTrue(card.is_file(), relative)
+            if anchor:
+                headings = {
+                    re.sub(r"[^a-z0-9 -]", "", line.lstrip("# ").lower()).replace(" ", "-")
+                    for line in card.read_text().splitlines() if line.startswith("#")
+                }
+                self.assertIn(anchor, headings, relative)
+        self.assertTrue({"platforms/" + name + ".md" for name in (
+            "ui", "apps-script", "salesforce", "python", "bash"
+        )} <= set(links))
+        # Route references; do not paste every platform's implementation advice.
+        self.assertNotIn("google.script.run", json.dumps(packet))
+        self.assertNotIn("set -euo pipefail", json.dumps(packet))
 
     def claim(self, test, *steps: str) -> dict[str, str]:
         response = test.call("claim", {"steps": list(steps)})
@@ -179,6 +219,10 @@ class PlanningContextChainTests(unittest.TestCase):
         self.assertEqual(ready["phase"], "code_ready")
         self.assertEqual(ready["cwd"], assignment["workspace"])
         self.assertEqual(ready["planning_brief"], packet["planning_brief"]["path"])
+        self.assertEqual(ready["guidance_references"], {
+            label: str(SCRIPTS.parent / "references" / relative.split("#", 1)[0])
+            for label, relative in GUIDANCE_ROUTES.items()
+        })
         return process
 
     def finish_context_worker(self, process: subprocess.Popen[str]) -> dict:
@@ -317,8 +361,10 @@ class PlanningContextChainTests(unittest.TestCase):
         packet_b = self.start_parallel(self.f, "B", attempts["B"], ["context_beta.py"])
         for packet in (packet_a, packet_b):
             self.assert_packet_context(self.f, packet, context, manifest)
+            self.assert_worker_guidance(packet)
             cold = self.f.call("packet", {"attempt": packet["attempt"]})["packet"]
             self.assertEqual(cold, packet)
+            self.assert_worker_guidance(cold)
 
         serial = self.new_fixture()
         self.bind(serial, mode="serial", capacity=1)
@@ -326,8 +372,69 @@ class PlanningContextChainTests(unittest.TestCase):
         attempt = self.claim(serial, "A")["A"]
         packet = self.start_serial(serial, "A", attempt, ["context_alpha.py"])
         self.assert_packet_context(serial, packet, serial_context, serial_manifest)
+        self.assert_worker_guidance(packet)
         cold = serial.call("packet", {"attempt": attempt})["packet"]
         self.assertEqual(cold, packet)
+        self.assert_worker_guidance(cold)
+
+    def test_worker_guidance_uses_relocated_package_outside_worker_repository(self) -> None:
+        selected = self.f.base / "selected ShipLoop package"
+        shutil.copytree(SCRIPTS.parent, selected)
+        with patch.object(fixture, "CLI", selected / "scripts" / "shiploop"):
+            self.bind(self.f, mode="serial", capacity=1)
+            attempt = self.claim(self.f, "A")["A"]
+            packet = self.start_serial(self.f, "A", attempt, ["context_alpha.py"])
+            self.assert_worker_guidance(packet, selected)
+            self.assertNotIn(str(SCRIPTS.parent), json.dumps(packet["instructions"]))
+            cold = self.f.call("packet", {"attempt": attempt})["packet"]
+            self.assertEqual(cold, packet)
+            self.assert_worker_guidance(cold, selected)
+
+    def test_current_final_return_guidance_survives_parallel_and_serial_recovery(self) -> None:
+        for mode in ("parallel", "serial"):
+            with self.subTest(mode=mode):
+                test = self.new_fixture()
+                self.bind(test, mode=mode, capacity=1, lifecycle="final-return")
+                claimed = test.call("claim", {"steps": ["A"]})
+                # Parallel claim previews are readiness data, not launch
+                # payloads. The serial claim path decorates its own previews.
+                if mode == "serial":
+                    for packet in claimed.get("packets", []):
+                        self.assert_worker_guidance(packet)
+                attempt = claimed["claims"][0]["attempt"]
+                started = test.start("A", attempt) if mode == "parallel" else test.serial_start("A", attempt)
+                packet = started["packet"]
+                self.assertIn("planning_context", packet)
+                self.assert_worker_guidance(packet)
+                cold = test.call("packet", {"attempt": attempt})["packet"]
+                self.assert_worker_guidance(cold)
+                for key in ("task", "definition_of_ready", "definition_of_done", "planning_context"):
+                    self.assertEqual(cold[key], packet[key])
+
+    def test_consumer_fixture_stops_before_edits_when_guidance_is_unavailable(self) -> None:
+        self.bind(self.f, mode="serial", capacity=1)
+        attempt = self.claim(self.f, "A")["A"]
+        packet = self.start_serial(self.f, "A", attempt, ["context_alpha.py"])
+        self.assert_worker_guidance(packet)
+        prefix = "Coding decision guide: "
+        packet["instructions"] = [
+            prefix + str(self.f.base / "unavailable" / "coding-guidance.md") + "#select-guidance"
+            if text.startswith(prefix) else text for text in packet["instructions"]
+        ]
+        workspace = Path(packet["context"]["workspace"])
+        assignment = {
+            "step": "A", "run_id": packet["run_id"], "attempt": attempt,
+            "base_commit": packet["context"]["base_commit"],
+            "workspace": str(workspace), "packet": packet,
+        }
+        result = subprocess.run(
+            [sys.executable, "-B", str(WORKER)], input=json.dumps(assignment) + "\n",
+            text=True, capture_output=True, timeout=15,
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("unavailable worker guidance", result.stderr)
+        self.assertFalse((workspace / "context_alpha.py").exists())
+        self.assertEqual(self.f.git(workspace, "status", "--porcelain"), "")
 
     def test_parallel_context_workers_derive_code_then_join_and_cleanup(self) -> None:
         self.f.graph = self.f.write("context-graph.json", {
@@ -671,6 +778,13 @@ class PlanningContextChainTests(unittest.TestCase):
         self.assertNotIn("planning_context", recovered)
         self.assertEqual(recovered["ready"], ["A", "B"])
         self.assertEqual(recovered["shiploop_chain"]["lifecycle"], "final-return")
+        attempt = self.claim(legacy, "A")["A"]
+        packet = legacy.start("A", attempt)["packet"]
+        self.assertNotIn("planning_context", packet)
+        self.assert_worker_guidance(packet)
+        cold = legacy.call("packet", {"attempt": attempt})["packet"]
+        self.assert_worker_guidance(cold)
+        self.assertEqual(cold["task"], packet["task"])
 
 
 if __name__ == "__main__":

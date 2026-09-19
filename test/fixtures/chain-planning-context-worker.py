@@ -39,6 +39,23 @@ manifest_path = checked_reference(
     "planning_context",
 )
 manifest = json.loads(manifest_path.read_text())
+
+# Read the bridge's package references from the isolated worker, without
+# inheriting its parent's cwd, skill context, or conversation. This observes
+# transport/readability; it does not simulate a model's engineering judgment.
+guidance_references = {}
+for label in ("Coding decision guide", "Repeatable test-suite guide", "Implementation constitution"):
+    prefix = label + ": "
+    locators = [text[len(prefix):] for text in packet["instructions"] if text.startswith(prefix)]
+    if len(locators) != 1:
+        raise SystemExit("missing or duplicate worker guidance: " + label)
+    path = Path(locators[0].split("#", 1)[0])
+    if not path.is_absolute() or not path.is_file():
+        raise SystemExit("unavailable worker guidance: " + label)
+    if not path.read_text().strip():
+        raise SystemExit("empty worker guidance: " + label)
+    guidance_references[label] = str(path)
+
 brief_path = checked_reference(packet["planning_brief"], "planning_brief")
 brief = brief_path.read_text()
 if ("# Planning reference statements" not in brief or "Architecture decision" not in brief
@@ -81,6 +98,7 @@ print(json.dumps({
     "step": step,
     "planning_brief": str(brief_path),
     "planning_contract": name,
+    "guidance_references": guidance_references,
 }), flush=True)
 if sys.stdin.readline().strip() != "release":
     raise SystemExit("missing explicit fixture release")
@@ -98,6 +116,7 @@ checks.write_text(json.dumps({
     "cwd": str(workspace),
     "commit": commit,
     "planning_context_fixture": True,
+    "guidance_references": guidance_references,
 }) + "\n")
 manifest = {
     "schema": "shiploop-chain-handoff/v1",

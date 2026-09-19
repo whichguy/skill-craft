@@ -124,6 +124,24 @@ python3 "$CLI" chain claim --run-dir "$RUN_DIR" --action "$ACTION" --input "$REQ
 
 ## Main-dispatcher operations
 
+### Worker engineering guidance
+
+Pass the complete returned worker packet inline to Ask-Agent, including its
+`instructions`; forwarding only `task` drops the engineering guidance. The
+bridge adds package-local locators for the [coding decision guide](coding-guidance.md#select-guidance),
+[repeatable test suites](repeatable-test-suites.md#select-or-revalidate-the-harness),
+and [implementation constitution](testing-and-documentation.md#implementation-constitution)
+to parallel, serial, and recovered worker packets. Read only applicable practice
+and platform cards within the assigned contract. Retain decisions, check evidence,
+and unresolved questions in the existing handoff or result files.
+
+These are current-package references, not hash-frozen planning artifacts. The
+worker must be able to read them from its own execution environment; a missing
+required reference blocks work. They neither change the graph's task/ready/done
+contract nor grant parent callbacks, scheduling, deployment, or a nested ShipLoop
+or Improve cycle. The parent retains the existing post-chain Improve and test
+stages. Packet delivery proves reference availability, not model adherence.
+
 ### Script-owned navigation
 
 Every successful per-step flow operation returns `navigation` computed from the
