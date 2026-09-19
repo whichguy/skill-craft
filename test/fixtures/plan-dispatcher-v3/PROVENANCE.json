@@ -2,9 +2,6 @@
   "purpose": "Hermetic planning-context integration fixture only; runtime uses the explicitly selected external package. No model runner.",
   "repository": "https://github.com/whichguy/plan-orchestrator",
   "base_commit": "ef8a931916aa5fda06cfa87e2e1b6bd4ecc35e00",
-  "candidate_branch": "integrate/planning-findings-20260919",
-  "candidate_status": "committed",
-  "source_worktree": "/Users/dadleet/src/backchain/.worktrees/planning-findings-20260919",
   "path": "skills/plan-dispatcher",
   "version": "0.1.1",
   "files_sha256": {

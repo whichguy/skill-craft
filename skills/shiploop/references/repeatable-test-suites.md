@@ -69,6 +69,21 @@ registration and reuse the same test/selector rather than duplicating a case.
 A smoke result establishes only that selected subset; it is never evidence that
 the full suite passed.
 
+### Calibrate evaluators before costly trials
+
+When selecting or changing a grader, custom runner, output parser or execution
+restriction for model trials or other costly runs, does its actual subprocess
+accept valid solutions and reject known defects before work is launched? Exercise
+the same entrypoint, environment, limits and parsing with a known-bad case, a
+reference, and a different valid implementation when the task permits alternatives.
+Restrictions must match the task's allowed capabilities. Failed calibration must
+stop the launch path; a passing in-process helper or a prior shell command is
+insufficient. Distinguish evaluator errors from candidate failures and retain
+available usage for both. Preserve original results when correcting the evaluator;
+label post-outcome rechecks separately, without promoting them to a clean
+predeclared result. Apply [agent and experiment budgets](coding-practices.md#agent-and-experiment-budgets)
+when those trials consume tracked resources.
+
 ## Reuse and define test facilities
 
 A test facility is a reusable runner, fixture/helper, test environment, native

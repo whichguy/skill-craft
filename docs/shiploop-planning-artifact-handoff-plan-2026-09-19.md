@@ -1,10 +1,11 @@
 # ShipLoop planning artifacts → Plan Orchestrator
 
-Status: implemented and locally qualified for source publication. Installation
-and marketplace rollout are separate from repository publication.
-Prepared 2026-09-19 against the historical ShipLoop `a8716f6` and Plan
-Orchestrator `2d324d0` baseline. This document makes no installed-package,
-publication, or native-worker-success claim.
+Status: implemented and published in ShipLoop `c33a103` and Plan Orchestrator
+`ef8a931`. ShipLoop's [publication CI](https://github.com/whichguy/skill-craft/actions/runs/35470999352)
+passed. Installation and marketplace rollout were not part of this increment.
+The design below was prepared against ShipLoop `a8716f6` and Plan Orchestrator
+`2d324d0`; the implementation evidence records the completed checks and bounded
+native-worker pilot separately.
 
 ```mermaid
 flowchart LR
@@ -280,11 +281,11 @@ qualification.
 - No new queue, ledger, polling loop, automatic model subprocess, or Ask-Agent
   worktree/merge behavior is introduced.
 
-## Implementation sequence and ownership
+## Historical implementation sequence and ownership
 
-The table records intended responsibilities and qualification evidence. Source
-changes may exist for these steps; the listed observables are not all individually
-proven by this document.
+These implementation steps are complete. The table preserves their original
+responsibilities and intended evidence; the implementation evidence below
+records the checks actually performed.
 
 | Step | Depends on | Owned changes | Ready / done evidence |
 | --- | --- | --- | --- |
@@ -294,16 +295,14 @@ proven by this document.
 | D: ShipLoop binding and launch | B, C | `shiploop_chain.py` binding/init/recovery/enrichment; skill/reference documentation | New bindings pass exact manifest to dispatcher; serial and parallel packets preserve it |
 | E: Composed validation and docs | D | New focused tests plus existing real-Git lifecycle fixture; README/package views | Cold fan-out/join runs consume external planning files, merge all accepted work and clean workers |
 
-B and C can run in separate **sibling worktrees** after A, using the same
-fixture contract. D joins both. E is the release gate. Keep implementation and
-independent integration verification distinct, and update generated plugin
-views using the repository's synchronization script.
+B and C were independent workstreams after A, using the same fixture contract;
+D joined both, followed by E. Future changes still require independent
+integration verification and generated plugin-view synchronization.
 
-Add a separately pinned context-capable dispatcher fixture with source commit
-and file hashes. Retain `test/fixtures/plan-dispatcher-v1` and
-`plan-dispatcher-v2` for compatibility tests; do not relabel old fixture bytes as
-new support. Initial delivery is source integration; installed skill selection
-must explicitly choose the qualified context-capable package.
+The context-capable dispatcher is pinned in `test/fixtures/plan-dispatcher-v3`
+by source commit and file hashes. `plan-dispatcher-v1` and `plan-dispatcher-v2`
+remain compatibility fixtures. Installed skill selection must explicitly
+choose the qualified context-capable package.
 
 ## Qualification matrix
 
@@ -367,8 +366,8 @@ activation, and native qualification.
   needed for this handoff.
 
 The local evidence below records completed checks and remaining qualification
-separately. This document does not establish installed-package activation or
-publication.
+separately. Repository publication is recorded above; installed-package
+activation remains separate.
 
 ## Implementation evidence — 2026-09-19
 
@@ -461,9 +460,9 @@ when partial effects exist. The pilot used the context-capable dispatcher copy
 before the final goal-field omission; its graph had no `source.goal`. Dedicated
 final-source sentinel tests qualify that omission separately.
 
-The source and plugin mirror are qualified for repository publication. Git
-history records their commit and merge status. Installed-package activation
-and marketplace rollout were not performed by this increment.
+The source and plugin mirror were committed, merged, and pushed to repository
+`main`. Installed-package activation and marketplace rollout were not performed
+by this increment.
 
 The dispatcher fixture is pinned to Plan Orchestrator commit
 `ef8a931916aa5fda06cfa87e2e1b6bd4ecc35e00`; every copied package file matches its recorded hash.
