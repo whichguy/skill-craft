@@ -72,6 +72,23 @@ result preservation and hostile-path/replay controls. Both are in the full
 ShipLoop inventory. Use the [native pilot](experiments/shiploop_chain/README.md)
 for separate qualification with actual Ask-Agent contexts and completion events.
 
+Planning-material transport has two focused suites:
+
+```sh
+python3 -B test/shiploop-planning-context.test.py
+python3 -B test/shiploop-chain-planning-context.test.py
+```
+
+The collector suite checks accepted planning records, reference resolution,
+immutable inputs, and exclusion of the original user prompt. The composed suite
+uses the pinned `plan-dispatcher-v3` package and controlled worker processes to
+check cold recovery, parallel/serial code generation from references, dependency
+joins, import recovery, and worktree cleanup. Its failure-path check stops
+workers before removing their workspaces. Both suites run in the ordinary
+ShipLoop inventory; they do not establish model understanding or native-host
+delivery. The fixture's `PROVENANCE.json` identifies the upstream commit and
+every copied file hash, independently of the author's local checkout path.
+
 The lifecycle suite also verifies the script-owned `navigation` response:
 script-selected fan-out, exact continuation from an unrelated directory, no
 relaunch on recovery, capacity boundaries, serial execution, and cleanup/final

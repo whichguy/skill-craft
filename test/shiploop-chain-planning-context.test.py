@@ -16,6 +16,7 @@ import shutil
 import subprocess
 import sys
 import unittest
+from unittest.mock import patch
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -38,27 +39,26 @@ def digest(path: Path) -> str:
 
 class PlanningContextChainTests(unittest.TestCase):
     def setUp(self) -> None:
-        self.processes: list[subprocess.Popen[str]] = []
-        self.addCleanup(self.stop_processes)
         self.f = self.new_fixture()
 
     def new_fixture(self):
         test = fixture.ChainIntegrationTests(methodName="runTest")
-        test.setUp()
         self.addCleanup(test.doCleanups)
+        test.setUp()
         test.select_dispatcher(fixture.CONTEXT_FIXTURE)
         test.assert_fixture(ASK)
         shutil.rmtree(test.ask)
         shutil.copytree(ASK, test.ask)
         return test
 
-    def stop_processes(self) -> None:
-        for process in self.processes:
+    def stop_context_worker(self, process: subprocess.Popen[str]) -> None:
+        try:
             if process.poll() is None:
                 process.kill()
-                process.wait(timeout=10)
+            process.wait(timeout=10)
+        finally:
             for stream in (process.stdin, process.stdout, process.stderr):
-                if stream is not None:
+                if stream is not None and not stream.closed:
                     stream.close()
 
     def bind(self, test, *, mode: str = "parallel", capacity: int | None = None):
@@ -171,7 +171,7 @@ class PlanningContextChainTests(unittest.TestCase):
             [sys.executable, "-B", str(WORKER)], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
             stderr=subprocess.PIPE, text=True,
         )
-        self.processes.append(process)
+        self.addCleanup(self.stop_context_worker, process)
         assert process.stdin is not None
         process.stdin.write(json.dumps(assignment) + "\n")
         process.stdin.flush()
@@ -189,6 +189,81 @@ class PlanningContextChainTests(unittest.TestCase):
         self.assertEqual(process.wait(timeout=15), 0, process.stderr.read())
         self.assertEqual(result["phase"], "completed")
         return result
+
+    def test_failed_barrier_worker_stops_before_fixture_worktree_cleanup(self) -> None:
+        observations = []
+        state = {}
+
+        class FailedLaunch(PlanningContextChainTests):
+            def setUp(inner) -> None:
+                super().setUp()
+                inner.bind(inner.f, mode="parallel", capacity=1)
+                attempt = inner.claim(inner.f, "A")["A"]
+                inner.start_parallel(inner.f, "A", attempt, ["context_alpha.py"])
+                workspace = Path(inner.f.packets["A"]["context"]["workspace"])
+                process_ref = {}
+
+                def observe_cleanup() -> None:
+                    process = process_ref["process"]
+                    stopped = process.poll() is not None
+                    observations.append((stopped, workspace.exists()))
+                    inner.assertTrue(stopped, "worker must stop before fixture cleanup")
+                    inner.assertTrue(workspace.exists(), "fixture cleanup ran before worker cleanup")
+
+                # This observer is registered before Popen.  The worker's own
+                # cleanup must be added immediately after Popen, so it runs
+                # first; the fixture cleanup is older still.
+                inner.addCleanup(observe_cleanup)
+                process = inner.launch_context_worker(inner.f, "A")
+                process_ref["process"] = process
+                state["process"] = process
+                state["workspace"] = workspace
+
+            def runTest(inner) -> None:
+                inner.fail("intentional assertion after barrier-worker launch")
+
+        result = unittest.TestResult()
+        FailedLaunch().run(result)
+        self.assertEqual(len(result.failures), 1)
+        self.assertEqual(result.errors, [])
+        self.assertIn("intentional assertion after barrier-worker launch", result.failures[0][1])
+        self.assertEqual(observations, [(True, True)])
+        process = state["process"]
+        self.assertIsNotNone(process.poll())
+        self.assertTrue(all(
+            stream is None or stream.closed
+            for stream in (process.stdin, process.stdout, process.stderr)
+        ))
+        self.assertFalse(state["workspace"].exists())
+
+    def test_partial_nested_fixture_setup_runs_registered_cleanup(self) -> None:
+        observed = {}
+        original_setup = fixture.ChainIntegrationTests.setUp
+
+        def partial_setup(test) -> None:
+            original_setup(test)
+            observed["fixture"] = test
+            observed["base"] = test.base
+            raise RuntimeError("intentional partial fixture setup failure")
+
+        class PartialFixtureSetup(PlanningContextChainTests):
+            def setUp(inner) -> None:
+                with patch.object(fixture.ChainIntegrationTests, "setUp", partial_setup):
+                    super().setUp()
+
+            def runTest(inner) -> None:
+                inner.fail("partial fixture setup unexpectedly completed")
+
+        result = unittest.TestResult()
+        PartialFixtureSetup().run(result)
+        self.assertEqual(result.failures, [])
+        self.assertEqual(len(result.errors), 1)
+        self.assertIn("intentional partial fixture setup failure", result.errors[0][1])
+        nested = observed["fixture"]
+        try:
+            self.assertFalse(observed["base"].exists())
+        finally:
+            nested.doCleanups()
 
     def collect(self, test, step: str, result: dict):
         return test.call("import-handoff", {

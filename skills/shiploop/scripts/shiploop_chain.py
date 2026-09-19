@@ -1473,7 +1473,7 @@ def _per_step_worker_packet(root: Path, binding: Mapping[str, Any], packet: Mapp
         "base_commit": allocation.get("base_commit"),
         "workspace": workspace,
         "handoff": handoff,
-        "dependency_archives": _per_step_packet_dependencies(dependencies),
+        "dependency_archives": deepcopy(result["dependencies"]),
         "integration": {
             "owner": binding["owner"],
             "policy": "The parent archives this handoff, prepares the current target with your contribution, verifies it, fast-forwards the invoking checkout, accepts the dispatcher result, then removes this worktree.",
