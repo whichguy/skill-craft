@@ -129,16 +129,44 @@ class PerStepChainTests(unittest.TestCase):
         return proc
 
     def collect(self, step, proc):
+        result = self.finish_worker(step, proc)
+        imported = self.call("import-handoff", {"attempt": self.packets[step]["attempt"],
+            "confirmed_stopped": True, "handoff": {"path": result["handoff"], "sha256": result["sha256"]}})
+        self.imports[step] = imported["import"]
+        return imported
+
+    def finish_worker(self, step, proc):
         proc.stdin.write("release\n")
         proc.stdin.flush()
         result = self.read_json_line(proc)
         self.assertEqual(proc.wait(timeout=15), 0, proc.stderr.read())
         self.assertEqual(result["phase"], "completed")
         self.source_commits[step] = result["commit"]
-        imported = self.call("import-handoff", {"attempt": self.packets[step]["attempt"],
-            "confirmed_stopped": True, "handoff": {"path": result["handoff"], "sha256": result["sha256"]}})
-        self.imports[step] = imported["import"]
-        return imported
+        return result
+
+    def takeover(self):
+        binding = self.binding()
+        fixture.chain._node(binding, "takeover", {
+            "oldOwner": binding["owner"], "newOwner": binding["owner"] + "-replacement",
+            "confirmed_stopped": True, "reason": "fixture ownership handoff",
+        })
+
+    def assert_owner_refusal(self, operation, value):
+        before_head = self.head()
+        before_ledger = self.f.ledger_bytes()
+        before_child = self.f.child_state_path().read_bytes()
+        before_worktrees = self.f.git(self.f.target, "worktree", "list", "--porcelain")
+        refused = self.call(operation, value, ok=False)
+        self.assertIn("owner", refused.stderr)
+        self.assertEqual(self.head(), before_head)
+        self.assertEqual(self.f.ledger_bytes(), before_ledger)
+        self.assertEqual(self.f.child_state_path().read_bytes(), before_child)
+        self.assertEqual(self.f.git(self.f.target, "worktree", "list", "--porcelain"), before_worktrees)
+        # Observability stays available to the new dispatcher owner; a stale
+        # bridge may not turn a rejected mutation into a view outage.
+        self.call("history")
+        self.call("pending")
+        self.assertEqual(self.f.ledger_bytes(), before_ledger)
 
     def verify(self, workspace):
         check = """from pathlib import Path
@@ -527,6 +555,78 @@ if (p/'chain_report.py').exists():
                              and row["event"]["data"].get("attempt") == attempt
                              for row in self.bridge_events()))
 
+    def test_public_owner_takeover_refuses_serial_start_before_workspace_allocation(self):
+        self.bind(mode="serial", single=True)
+        attempt = self.claim("A")["A"]
+        value = self.f.start_value("A", attempt, base=self.head())
+        value["write_scope"] = ["chain_add.py"]
+        self.takeover()
+
+        self.assert_owner_refusal("start", value)
+        kinds = [row["event"]["kind"] for row in self.bridge_events()]
+        self.assertNotIn("serial_workspace_creation_intent", kinds)
+        self.assertNotIn("allocation_intent", kinds)
+        self.assertNotIn("start_intent", kinds)
+
+    def test_public_owner_takeover_refuses_accepted_cleanup_before_removal(self):
+        self.bind(single=True)
+        attempt = self.claim("A")["A"]
+        packet = self.start("A", attempt)
+        worker = Path(packet["context"]["workspace"])
+        self.collect("A", self.launch("A"))
+        value = self.prepared_input("A")
+        helper = fixture.chain._chain_git()
+        with patch.object(helper, "remove_worker", side_effect=ValueError("fixture removal refusal")):
+            accepted = fixture.chain._settle(self.f.run, self.binding(), value)
+        self.assertEqual(accepted["outcome"], "accepted")
+        self.assertTrue(worker.exists())
+
+        self.takeover()
+        self.assert_owner_refusal("cleanup", {"attempt": attempt, "confirmed_stopped": True})
+        self.assertTrue(worker.exists())
+
+    def test_public_owner_takeover_refuses_superseded_cleanup_before_removal(self):
+        self.bind(mode="serial", single=True)
+        old_attempt = self.claim("A")["A"]
+        old_packet = self.start("A", old_attempt, serial=True)
+        old_worker = Path(old_packet["context"]["workspace"])
+        self.collect("A", self.launch("A"))
+        receipt = fixture.chain._node(self.binding(), "receipt", {"attempt": old_attempt})
+        proof = self.f.write("owner-retired-rejection.json", {"passed": False, "checks": ["fixture rejection"]})
+        rejected = self.call("done", {"attempt": old_attempt, "confirmed_stopped": True,
+            "verification": {"receipt_sha256": receipt["sha256"], "passed": False,
+                "reason": "Independent fixture rejection", "evidence": {
+                    "path": str(proof), "sha256": fixture.digest(proof)}}})
+        self.assertEqual(rejected["outcome"], "rejected")
+        self.call("retry", {"attempt": old_attempt, "confirmed_stopped": True,
+                            "reason": "Replacement needs a fresh stopped workspace"})
+        replacement = self.claim("A")["A"]
+        self.start("A", replacement, serial=True)
+        self.complete_step("A")
+        self.assertTrue(old_worker.exists())
+
+        self.takeover()
+        self.assert_owner_refusal("cleanup", {"attempt": old_attempt, "confirmed_stopped": True,
+                                                "disposition": "superseded",
+                                                "reason": "Replacement independently accepted"})
+        self.assertTrue(old_worker.exists())
+
+    def test_public_owner_takeover_refuses_finish_before_audit_receipt(self):
+        self.bind(single=True)
+        attempt = self.claim("A")["A"]
+        self.start("A", attempt)
+        self.complete_step("A")
+        self.takeover()
+        proof = self.f.write("owner-finish.json", {"passed": True, "commit": self.head(),
+                            "checks": ["combined generated-code output"]})
+
+        self.assert_owner_refusal("finish", {"commit": self.head(), "confirmed_stopped": True,
+                                               "verification": {"path": str(proof),
+                                                                "sha256": fixture.digest(proof)}})
+        kinds = [row["event"]["kind"] for row in self.bridge_events()]
+        self.assertNotIn("finish_intent", kinds)
+        self.assertNotIn("finish_result", kinds)
+
     def test_cleanup_failure_does_not_repeat_acceptance_or_task(self):
         self.bind(single=True)
         attempt = self.claim("A")["A"]
@@ -738,6 +838,145 @@ if (p/'chain_report.py').exists():
         self.call("cleanup", cleanup)  # Idempotent retirement, never acceptance.
         self.assertEqual(self.f.child_record(old_attempt)["status"], "retried")
         self.finish()
+
+    def test_serial_rejected_retry_retires_old_workspace_without_merging_bad_code(self):
+        self.bind(mode="serial", single=True)
+        old_attempt = self.claim("A")["A"]
+        old_packet = self.start("A", old_attempt, serial=True)
+        old_workspace = Path(old_packet["context"]["workspace"])
+        self.collect("A", self.launch("A"))
+        old_commit = self.source_commits["A"]
+        old_plan = fixture.chain._per_step_allocation(self.bridge_events(), old_attempt)["plan"]
+        self.assertNotIn("worker", old_plan)
+        receipt = fixture.chain._node(self.binding(), "receipt", {"attempt": old_attempt})
+        proof = self.f.write("serial-retired-rejection.json", {"passed": False,
+                            "checks": ["fixture rejection before retry"]})
+        rejected = self.call("done", {"attempt": old_attempt, "confirmed_stopped": True,
+            "verification": {"receipt_sha256": receipt["sha256"], "passed": False,
+                "reason": "Independent fixture rejection", "evidence": {
+                    "path": str(proof), "sha256": fixture.digest(proof)}}})
+        self.assertEqual(rejected["outcome"], "rejected")
+        self.call("retry", {"attempt": old_attempt, "confirmed_stopped": True,
+                            "reason": "Replacement uses a fresh serial workspace"})
+
+        replacement = self.claim("A")["A"]
+        self.start("A", replacement, serial=True)
+        self.complete_step("A")
+        self.assertTrue(old_workspace.exists())
+        retired = self.call("cleanup", {"attempt": old_attempt, "confirmed_stopped": True,
+                                         "disposition": "superseded",
+                                         "reason": "Replacement independently accepted and integrated"})
+        self.assertFalse(old_workspace.exists())
+        self.assertFalse(retired["pending"])
+        self.assertEqual(self.f.git(self.f.target, "rev-parse", old_plan["branch"]), old_commit)
+        self.assertNotEqual(subprocess.run(["git", "merge-base", "--is-ancestor", old_commit, self.head()],
+            cwd=self.f.target, capture_output=True).returncode, 0)
+        self.finish()
+
+    def test_positive_done_requires_workspace_in_independent_evidence_before_mutation(self):
+        self.bind(single=True)
+        attempt = self.claim("A")["A"]
+        packet = self.start("A", attempt)
+        workspace = Path(packet["context"]["workspace"])
+        self.collect("A", self.launch("A"))
+        correct = self.prepared_input("A")
+        proof_path = Path(correct["verification"]["evidence"]["path"])
+        original = proof_path.read_bytes()
+
+        def assert_refusal(value):
+            before_head = self.head()
+            before_ledger = self.f.ledger_bytes()
+            before_child = self.f.child_state_path().read_bytes()
+            refused = self.call("done", value, ok=False)
+            self.assertIn("workspace", refused.stderr)
+            self.assertEqual(self.head(), before_head)
+            self.assertEqual(self.f.ledger_bytes(), before_ledger)
+            self.assertEqual(self.f.child_state_path().read_bytes(), before_child)
+            self.assertTrue(workspace.exists())
+
+        missing = json.loads(json.dumps(correct))
+        proof = json.loads(original)
+        del proof["integration"]["workspace"]
+        proof_path.write_text(json.dumps(proof) + "\n")
+        missing["verification"]["evidence"]["sha256"] = fixture.digest(proof_path)
+        assert_refusal(missing)
+
+        proof_path.write_bytes(original)
+        wrong = json.loads(json.dumps(correct))
+        proof = json.loads(original)
+        proof["integration"]["workspace"] = str(self.f.primary)
+        proof_path.write_text(json.dumps(proof) + "\n")
+        wrong["verification"]["evidence"]["sha256"] = fixture.digest(proof_path)
+        assert_refusal(wrong)
+
+        proof_path.write_bytes(original)
+        accepted = self.call("done", correct)
+        self.assertEqual(accepted["outcome"], "accepted")
+        self.assertFalse(workspace.exists())
+
+    def test_import_handoff_recovers_after_report_and_delete_receipt_crashes(self):
+        self.bind()
+        attempts = self.claim("A", "B")
+        for step in ("A", "B"):
+            self.start(step, attempts[step])
+        results = {step: self.finish_worker(step, self.launch(step)) for step in ("A", "B")}
+        requests = {
+            step: {"attempt": attempts[step], "confirmed_stopped": True,
+                   "handoff": {"path": results[step]["handoff"], "sha256": results[step]["sha256"]}}
+            for step in ("A", "B")
+        }
+        binding = self.binding()
+        append = fixture.chain._append
+
+        def crash_after_report(chain_dir, event_id, kind, data, **kwargs):
+            if kind == "handoff_reported":
+                raise OSError("fixture interruption after parent report")
+            return append(chain_dir, event_id, kind, data, **kwargs)
+
+        with patch.object(fixture.chain, "_append", side_effect=crash_after_report):
+            with self.assertRaises(OSError):
+                fixture.chain._import_handoff(self.f.run, binding, requests["A"])
+        first_receipt = fixture.chain._node(binding, "receipt", {"attempt": attempts["A"]})
+        self.assertTrue(Path(results["A"]["handoff"]).exists())
+        kinds = [row["event"]["kind"] for row in self.bridge_events()]
+        self.assertIn("handoff_archived", kinds)
+        self.assertNotIn("handoff_reported", kinds)
+        self.assertNotIn("handoff_import_result", kinds)
+
+        replayed_a = self.call("import-handoff", requests["A"])
+        self.assertEqual(replayed_a["receipt"]["sha256"], first_receipt["sha256"])
+        self.assertFalse(Path(results["A"]["handoff"]).exists())
+        events = self.bridge_events()
+        self.assertEqual(sum(row["event"]["kind"] == "handoff_reported"
+                             and row["event"]["data"].get("attempt") == attempts["A"] for row in events), 1)
+        self.assertEqual(sum(row["event"]["kind"] == "handoff_import_result"
+                             and row["event"]["data"].get("attempt") == attempts["A"] for row in events), 1)
+
+        def crash_after_delete(chain_dir, event_id, kind, data, **kwargs):
+            if kind == "handoff_files_removed":
+                raise OSError("fixture interruption after imported file deletion")
+            return append(chain_dir, event_id, kind, data, **kwargs)
+
+        with patch.object(fixture.chain, "_append", side_effect=crash_after_delete):
+            with self.assertRaises(OSError):
+                fixture.chain._import_handoff(self.f.run, binding, requests["B"])
+        second_receipt = fixture.chain._node(binding, "receipt", {"attempt": attempts["B"]})
+        self.assertFalse(Path(results["B"]["handoff"]).exists())
+        events = self.bridge_events()
+        self.assertTrue(any(row["event"]["kind"] == "handoff_reported"
+                            and row["event"]["data"].get("attempt") == attempts["B"] for row in events))
+        self.assertFalse(any(row["event"]["kind"] == "handoff_files_removed"
+                             and row["event"]["data"].get("attempt") == attempts["B"] for row in events))
+
+        replayed_b = self.call("import-handoff", requests["B"])
+        self.assertEqual(replayed_b["receipt"]["sha256"], second_receipt["sha256"])
+        events = self.bridge_events()
+        self.assertEqual(sum(row["event"]["kind"] == "handoff_reported"
+                             and row["event"]["data"].get("attempt") == attempts["B"] for row in events), 1)
+        self.assertEqual(sum(row["event"]["kind"] == "handoff_files_removed"
+                             and row["event"]["data"].get("attempt") == attempts["B"] for row in events), 1)
+        self.assertEqual(sum(row["event"]["kind"] == "handoff_import_result"
+                             and row["event"]["data"].get("attempt") == attempts["B"] for row in events), 1)
 
     def test_archive_corruption_blocks_prepare_and_final_audit_after_worker_removal(self):
         self.bind(single=True)

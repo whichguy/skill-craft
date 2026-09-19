@@ -230,6 +230,9 @@ Each retained source must be that step's exact `<STEP>-handle.json` file. A
 successful collection cannot hide a contradictory terminal failure for the same
 worker, and JSON booleans are not integer exit codes. Legitimate pending
 observations and repeated equivalent successful collection remain supported.
+Every worker start also needs a preceding successful claim receipt. A successful
+`finish` must follow all four completed integrations; a missing, failed or early
+finish cannot qualify the run. Identical successful finish replay remains valid.
 
 The observer requires A/B telemetry with compatible sub-second ISO timestamps
 or monotonic start/end values and proves strict interval overlap. Missing or

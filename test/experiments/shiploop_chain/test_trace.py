@@ -96,7 +96,7 @@ def bash_result(command: str, *, exit_code: int = 0, signal: object = None, time
 def driver(manifest: dict, action: str, step: str | None = None) -> list[dict]:
     command = [manifest["driver_python"], "-B", manifest["driver_path"], action, "--pilot-dir", manifest["pilot_dir"]]
     if action == "claim":
-        command += ["--steps", "A", "B"]
+        command += ["--steps", *([step] if step else ["A", "B"])]
     elif action not in {"show", "finish"}:
         detail = manifest["steps"][step]
         command += ["--step", step, "--attempt", detail["attempt"]]
@@ -162,6 +162,7 @@ def valid_events(manifest: dict) -> list[dict]:
     events += collect(manifest, ["A"], 1)
     for action in ("import-handoff", "prepare-integration", "done"):
         events += driver(manifest, action, "A")
+    events += driver(manifest, "claim", "C")
     events += driver(manifest, "start", "C")
     events += spawn(manifest, "C")
     events += driver(manifest, "launched", "C")
@@ -171,6 +172,7 @@ def valid_events(manifest: dict) -> list[dict]:
     events += collect(manifest, ["C"], 3)
     for action in ("import-handoff", "prepare-integration", "done"):
         events += driver(manifest, action, "C")
+    events += driver(manifest, "claim", "J")
     events += driver(manifest, "start", "J")
     events += spawn(manifest, "J")
     events += driver(manifest, "launched", "J")
@@ -194,6 +196,56 @@ class NativeHostTraceTests(unittest.TestCase):
 
     def evaluate(self, events: list[dict]) -> dict:
         return evaluate_events(events, self.manifest)
+
+    def test_requires_successful_claim_for_each_step_before_start(self) -> None:
+        for step, suffix in (("A", "all"), ("C", "C"), ("J", "J")):
+            for mutation in ("missing", "failed", "late"):
+                with self.subTest(step=step, mutation=mutation):
+                    events = valid_events(self.manifest)
+                    claim_id = f"driver-claim-{suffix}"
+                    claim = [event for event in events if event.get("toolCallId") == claim_id]
+                    if mutation == "failed":
+                        claim[1]["rawOutput"]["exit_code"] = 1
+                    else:
+                        events = [event for event in events if event.get("toolCallId") != claim_id]
+                        if mutation == "late":
+                            after_start = next(index for index, event in enumerate(events)
+                                               if event.get("toolCallId") == f"driver-start-{step}"
+                                               and event["type"] == "tool_call_update") + 1
+                            events[after_start:after_start] = claim
+                    result = self.evaluate(events)
+                    self.assertFalse(result["passed"], mutation)
+                    self.assertIn("claim", "\n".join(result["errors"]))
+
+    def test_requires_successful_finish_after_all_integrations(self) -> None:
+        for mutation in ("missing", "failed", "signalled", "timed-out", "early"):
+            with self.subTest(mutation=mutation):
+                events = valid_events(self.manifest)
+                finish = [event for event in events if event.get("toolCallId") == "driver-finish-all"]
+                if mutation == "failed":
+                    finish[1]["rawOutput"]["exit_code"] = 1
+                elif mutation == "signalled":
+                    finish[1]["rawOutput"]["signal"] = "SIGTERM"
+                elif mutation == "timed-out":
+                    finish[1]["rawOutput"]["timed_out"] = True
+                else:
+                    events = [event for event in events if event.get("toolCallId") != "driver-finish-all"]
+                    if mutation == "early":
+                        before_last_done = next(index for index, event in enumerate(events)
+                                                if event.get("toolCallId") == "driver-done-J")
+                        events[before_last_done:before_last_done] = finish
+                result = self.evaluate(events)
+                self.assertFalse(result["passed"], mutation)
+                self.assertIn("finish", "\n".join(result["errors"]))
+
+    def test_accepts_repeated_successful_finish_after_completion(self) -> None:
+        events = valid_events(self.manifest)
+        repeated = driver(self.manifest, "finish")
+        for event in repeated:
+            event["toolCallId"] = "driver-finish-replayed"
+        events[-1:-1] = repeated
+        result = self.evaluate(events)
+        self.assertTrue(result["passed"], result["errors"])
 
     def test_accepts_typed_four_worker_graph_with_overlap(self) -> None:
         result = self.evaluate(valid_events(self.manifest))

@@ -165,11 +165,19 @@ backend need the same key; worktrees do not isolate remote databases or accounts
 
 ## Done means accepted
 
-The selected dispatcher's `state.json` is authoritative for every graph step:
+The selected dispatcher's `plan-dispatcher-state.json` is the one authoritative
+runtime state file for every graph step, inside the binding's `dispatcher_run`:
 `status: accepted` means done. Pending, claimed, executing, reported, rejected
 and blocked steps are all **not done**. There is no second stored completion
 boolean to synchronize. `completion.done` and `completion.not_done` in bridge
 snapshots are derived lists; `completion` describes graph acceptance.
+Existing runs with only the legacy `state.json` continue in that same file;
+never copy or mirror it. If both names exist, stop and resolve the ambiguity
+before proceeding. The run directory is outside the project checkout. This is
+generated orchestration state, retained across interruptions and finish for
+recovery and inspection until the run is explicitly disposed of. Immutable
+bindings, result receipts and the append-only bridge ledger are configuration
+and evidence, not independently editable copies of current step status.
 The chain also exposes outstanding integration and cleanup work: accepted code
 stays accepted if worktree removal fails. Such a failure cannot trigger task
 reexecution and prevents final `finish` until cleanup is resolved.
@@ -183,7 +191,8 @@ An obsolete attempt cannot import new results, prepare a candidate or integrate
 code after retry. Identical replay of the current accepted attempt remains inert.
 An early completion cannot integrate until its native launch handle or serial
 execution identity is recorded. A dispatcher takeover invalidates the old
-binding's authority to import, prepare or complete work.
+binding's authority to mutate the chain, including start, import, prepare,
+cleanup and finish. Refuse the old owner before creating or removing a worktree.
 
 ## Serial execution in the main context
 

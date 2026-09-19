@@ -267,6 +267,27 @@ class ImproveCliFixture(unittest.TestCase):
         store.write_record(self.completion_path, receipt)
         return self.completion_path, receipt
 
+    def complete_current_stage_through_actual_improve(self, evidence_refs, summary):
+        """Advance one current stage through its existing Improve callbacks."""
+        state = store.read_record(self.run / "state.md")
+        stage = navigator.current_stage(state)
+        self.action = navigator.current_action(state)["id"]
+        self.parent_evidence_refs = list(evidence_refs)
+        self.producer = {
+            "outcome": "done",
+            "summary": summary,
+            "evidence_refs": self.parent_evidence_refs,
+        }
+        self.input = self.run / "inbox" / (self.action + ".md")
+        store.write_record(self.input, self.producer)
+        self.invoke(CLI, "done", "--run-dir", self.run, "--action", self.action, "--result", self.input)
+        self.bind_current()
+        self.finish_ephemeral()
+        completion, _receipt = self.completion_receipt()
+        self.invoke(CLI, "improve-complete", "--run-dir", self.run,
+                    "--action", self.action, "--result", completion)
+        return stage, self.action, store.read_record(self.run / "state.md")
+
     def legacy_card(self):
         root = self.base / "legacy-improve"
         runtime = root / "runtime/until-loop"
@@ -372,6 +393,44 @@ class EphemeralImproveCliTests(ImproveCliFixture):
                     [graph_identity],
                 )
                 self.assertEqual(self.packet_path.read_bytes(), terminal_raw.stdout)
+
+                if stage != "step-plan":
+                    continue
+
+                step_plan_action = self.action
+                for next_stage in ("test-spec", "baseline", "test-author", "test-red"):
+                    self.assertEqual(navigator.current_stage(resumed), next_stage)
+                    evidence = self.repo / "evidence" / (next_stage + ".md")
+                    evidence.parent.mkdir(parents=True, exist_ok=True)
+                    evidence.write_text("# " + next_stage + "\n", encoding="utf-8")
+                    observed_stage, _action, resumed = self.complete_current_stage_through_actual_improve(
+                        [str(evidence) + "#fixture"],
+                        "Fixture advance through actual Improve for " + next_stage + ".",
+                    )
+                    self.assertEqual(observed_stage, next_stage)
+
+                self.assertEqual(navigator.current_stage(resumed), "implement")
+                self.assertNotEqual(resumed["history"][-1]["action"], step_plan_action)
+                self.assertEqual(resumed["accepted"][step_plan_action]["evidence_refs"], [graph_identity])
+                self.assertEqual(
+                    resumed["improve_results"][step_plan_action]["seed_result"]["evidence_refs"],
+                    [graph_identity],
+                )
+
+                cold = self.invoke(CLI, "next", "--run-dir", self.run).stdout
+                self.assertIn("ShipLoop navigator | implement |", cold)
+                self.assertIn("State: " + str(self.run / "state.md"), cold)
+                self.assertIn(
+                    "If this action depends on earlier accepted context, read the durable state and the relevant result record",
+                    cold,
+                )
+                self.assertIn(
+                    "Optional parallel-chain guide: "
+                    + str(ROOT / "skills/shiploop/references/parallel-chain.md")
+                    + "#parallel-implementation-chains",
+                    cold,
+                )
+                self.assertIn("bind this action's reviewed graph and recorded mode.", cold)
 
     def test_default_ephemeral_callbacks_preserve_context_then_import_once(self):
         self.assertEqual(self.state["navigator_protocol_version"], 3)

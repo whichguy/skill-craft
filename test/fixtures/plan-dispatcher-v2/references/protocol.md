@@ -15,6 +15,15 @@ exit; `ELOCKED` means another writer or an orphan lock, not permission to relaun
 The internal state.js CLI exists for regression tests, not as a substitute for
 this contract. Keep the package code fixed for a run; no schema-upgrade mechanism.
 
+## Run state authority
+
+Each RUN has one mutable dispatcher snapshot. New `init` creates
+`plan-dispatcher-state.json`. A preexisting RUN that has only legacy `state.json`
+continues to read and update that file in place. If both names exist, or either
+present candidate is not a regular non-symlink file, operations fail rather than
+choose, copy, link, rename, or mirror a second state authority. The separate
+`inbox/` directory contains immutable report receipts, not another mutable state.
+
 ## Graph
 
 An init request has `{owner, graph}`. Owner is a unique nonempty dispatcher ID.
@@ -62,7 +71,7 @@ produces an empty list. Inherited object properties are never input bindings.
 | start | `{owner,attempt,context,executor?}` | Native path persists launch intent and returns launch; `main-context` executor atomically enters serial work and returns execute; exact replay reconciles |
 | launched | `{owner,attempt,handle}` | Save actual nonempty native handle returned by the host |
 | packet | `{attempt}` | Read frozen task/context and supplier evidence; never authorize another launch |
-| report | Envelope below | Publish one immutable inbox receipt; state.json unchanged |
+| report | Envelope below | Publish one immutable inbox receipt; dispatcher state unchanged |
 | receipt | `{attempt}` | Return the envelope and digest of its stored bytes |
 | settle | `{owner,attempt,verification}` | Record independent accepted/rejected decision and return next actions |
 | retry | `{owner,attempt,confirmed_stopped:true,reason}` | Retire nonaccepted attempt; next claim gets a fresh token |
@@ -149,8 +158,9 @@ Verifier evidence should include exact result/commit identity and independently
 observed checks, plus the appropriate completion/stoppage observation. Before
 settlement, native execution requires collecting the native task and confirming it
 stopped; accepted settlement releases its workspace/resources. For a main-context
-executor, `confirmed_stopped` means all task-owned commands finished, not that the
-main conversation terminated. A receipt or saved identity alone does not establish
+executor, record that all task-owned commands finished in the verifier evidence;
+the main conversation remains active. `settle` has no `confirmed_stopped` field.
+A receipt or saved identity alone does not establish
 this. Independent verification is a separate checking phase with actual tests or
 inspections; it need not run in a separate agent. This is a dispatcher precondition;
 the helper cannot inspect native liveness or conversation state.

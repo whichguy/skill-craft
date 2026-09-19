@@ -999,6 +999,14 @@ def _integration_proof(value: Any, label: str = "integration") -> dict[str, str]
     return result
 
 
+def _per_step_integration_proof(value: Any, label: str = "per-step integration") -> dict[str, str]:
+    """Require the workspace binding for new per-step code integration only."""
+    result = _integration_proof(value, label)
+    if "workspace" not in result:
+        _fail(label + ".workspace is required")
+    return result
+
+
 def _parse_per_step_done(value: dict[str, Any]) -> tuple[str, dict[str, Any], dict[str, str] | None]:
     row = _optional_keys(value, {"attempt", "confirmed_stopped", "verification"}, {"integration"},
                          "per-step done input")
@@ -1048,7 +1056,14 @@ def _child_full(binding: Mapping[str, Any]) -> dict[str, Any]:
     accepted child state to immutable audit pointers; it never writes or
     reconstructs child lifecycle state.
     """
-    path = Path(binding["dispatcher_run"]) / "state.json"
+    directory = Path(binding["dispatcher_run"])
+    candidates = [directory / name for name in ("plan-dispatcher-state.json", "state.json")]
+    present = [path for path in candidates if os.path.lexists(path)]
+    if len(present) > 1:
+        _fail("multiple dispatcher state files; restore the single authoritative run file before continuing")
+    # Old selected packages keep their original file in place. Never create,
+    # copy, migrate or reconstruct child state from the bridge's audit history.
+    path = present[0] if present else candidates[0]
     value = _json_object(_read_regular(path, "selected dispatcher state"), "selected dispatcher state")
     return value
 
@@ -1063,9 +1078,7 @@ def _record_for_attempt(full: Mapping[str, Any], attempt: str) -> dict[str, Any]
 def _per_step_require_current_attempt(binding: Mapping[str, Any], attempt: str, operation: str,
                                       *, allow_terminal_replay: bool = False) -> dict[str, Any]:
     """Refuse stale worker continuations before they can prepare or mutate Git."""
-    full = _child_full(binding)
-    if full.get("owner") != binding["owner"]:
-        _fail(f"{operation} requires the immutable selected dispatcher owner")
+    full = _per_step_require_dispatcher_owner(binding, operation)
     record = _record_for_attempt(full, attempt)
     if allow_terminal_replay and record.get("status") in {"accepted", "rejected"}:
         return record
@@ -1075,6 +1088,15 @@ def _per_step_require_current_attempt(binding: Mapping[str, Any], attempt: str, 
     if not isinstance(state, Mapping) or state.get("current_attempt") != attempt:
         _fail(f"{operation} requires the current dispatcher attempt; {attempt} is stale or retried")
     return record
+
+
+def _per_step_require_dispatcher_owner(binding: Mapping[str, Any], operation: str,
+                                       full: Mapping[str, Any] | None = None) -> dict[str, Any]:
+    """Fence a stale binding before a per-step public mutation writes bridge or Git state."""
+    selected = _child_full(binding) if full is None else dict(full)
+    if selected.get("owner") != binding["owner"]:
+        _fail(f"{operation} requires the immutable selected dispatcher owner")
+    return selected
 
 
 def _per_step_require_terminal_replay(record: Mapping[str, Any], rows: list[dict[str, Any]],
@@ -1489,6 +1511,7 @@ def _per_step_start(root: Path, binding: Mapping[str, Any], value: dict[str, Any
     """Adopt an Ask-Agent workspace or allocate the serial workspace, then start once."""
     _verify_frozen(binding)
     start = _parse_per_step_start(value)
+    full = _per_step_require_dispatcher_owner(binding, "start")
     chain_dir = _binding_dir(root, binding["action_id"])
     rows = _events(chain_dir)
     _per_step_require_no_open_integration(rows, "start")
@@ -1501,7 +1524,6 @@ def _per_step_start(root: Path, binding: Mapping[str, Any], value: dict[str, Any
     base = start["base_commit"] or expected_target["head"]
     if base != expected_target["head"]:
         _fail("per-step start.base_commit must equal the current integrated target HEAD")
-    full = _child_full(binding)
     record = _record_for_attempt(full, start["attempt"])
     dependencies = _per_step_direct_contributions(binding, full, start["attempt"], rows, expected_target)
     allocation = _allocation(rows, start["attempt"])
@@ -1889,6 +1911,8 @@ def _claim(root: Path, binding: Mapping[str, Any], value: dict[str, Any]) -> dic
     steps = _parse_claim(value)
     chain_dir = _binding_dir(root, binding["action_id"])
     full = _child_full(binding)
+    if _binding_lifecycle(binding) == "per-step":
+        full = _per_step_require_dispatcher_owner(binding, "claim", full)
     rows = _events(chain_dir)
     if _binding_lifecycle(binding) == "per-step":
         _per_step_require_no_open_integration(rows, "claim")
@@ -2102,6 +2126,8 @@ def _launched(root: Path, binding: Mapping[str, Any], value: dict[str, Any]) -> 
     if _binding_mode(binding) == "serial":
         _fail("launched is unavailable in serial mode; start records main-context ownership atomically")
     attempt, handle = _parse_launched(value)
+    if _binding_lifecycle(binding) == "per-step":
+        _per_step_require_dispatcher_owner(binding, "launched")
     chain_dir = _binding_dir(root, binding["action_id"])
     intent = {"attempt": attempt, "handle": handle}
     _append(chain_dir, _event_id("launched-intent", intent), "launched_intent", intent)
@@ -2383,7 +2409,7 @@ def _per_step_prepare(root: Path, binding: Mapping[str, Any], value: dict[str, A
         and _event_data(row).get("intent") == intent
     ), None)
     if existing_result is not None:
-        proof = _integration_proof(existing_result.get("integration"), "prepared integration")
+        proof = _per_step_integration_proof(existing_result.get("integration"), "prepared integration")
         return {"attempt": attempt, "integration": proof, "inspection": existing_result.get("inspection"),
                 "shiploop_chain": _binding_summary(root, binding, rows)}
     prior_intent = next((
@@ -2436,11 +2462,12 @@ def _per_step_evidence_integration(verification: Mapping[str, Any]) -> dict[str,
         for key in ("source_commit", "expected_target", "candidate_commit", "workspace")
         if key in nested
     }
-    return _integration_proof(facts, "per-step verification integration")
+    return _per_step_integration_proof(facts, "per-step verification integration")
 
 
 def _per_step_same_integration(left: Mapping[str, str], right: Mapping[str, str]) -> bool:
-    return all(left.get(key) == right.get(key) for key in ("source_commit", "expected_target", "candidate_commit"))
+    return all(left.get(key) == right.get(key)
+               for key in ("source_commit", "expected_target", "candidate_commit", "workspace"))
 
 
 def _per_step_publish_contribution(binding: Mapping[str, Any], attempt: str,
@@ -2515,6 +2542,7 @@ def _per_step_cleanup_attempt(root: Path, binding: Mapping[str, Any], attempt: s
                               *, confirmed_stopped: bool) -> dict[str, Any]:
     if not confirmed_stopped:
         _fail("cleanup requires confirmed_stopped: true")
+    _per_step_require_dispatcher_owner(binding, "cleanup")
     chain_dir = _binding_dir(root, binding["action_id"])
     rows = _events(chain_dir)
     allocation = _per_step_allocation(rows, attempt)
@@ -2563,20 +2591,17 @@ def _per_step_cleanup_attempt(root: Path, binding: Mapping[str, Any], attempt: s
 
 def _per_step_current_worker_commit(plan: Mapping[str, Any]) -> str:
     """Read the retained worker HEAD only while its registered path still exists."""
-    path = plan.get("path")
-    worker = plan.get("worker")
-    if not isinstance(path, str) or not isinstance(worker, Mapping):
-        _fail("superseded cleanup has an invalid per-step worker plan")
-    identity = _git_identity(Path(path))
-    for key in ("repo", "git_dir", "common_dir", "branch"):
-        if identity.get(key) != worker.get(key):
-            _fail("superseded cleanup worker identity no longer matches its adopted plan")
-    return identity["head"]
+    try:
+        identity = _chain_git().recover_allocation(plan)
+    except ValueError as exc:
+        raise ChainError(str(exc)) from exc
+    return _commit(identity.get("head"), "superseded cleanup worker HEAD")
 
 
 def _per_step_cleanup_superseded(root: Path, binding: Mapping[str, Any], attempt: str,
                                  reason: str) -> dict[str, Any]:
     """Retire only a clean, archived retry after its replacement is integrated."""
+    _per_step_require_dispatcher_owner(binding, "cleanup")
     chain_dir = _binding_dir(root, binding["action_id"])
     rows = _events(chain_dir)
     allocation = _per_step_allocation(rows, attempt)
@@ -2769,13 +2794,15 @@ def _per_step_done(root: Path, binding: Mapping[str, Any], value: dict[str, Any]
     if prepared_event is None:
         _fail("per-step done requires an independently prepared candidate")
     prepared = _event_data(prepared_event)
-    integration = _integration_proof(prepared.get("integration"), "prepared integration")
+    integration = _per_step_integration_proof(prepared.get("integration"), "prepared integration")
     evidence_integration = _per_step_evidence_integration(verification)
-    supplied = supplied_integration or evidence_integration
+    supplied = (evidence_integration if supplied_integration is None else
+                _per_step_integration_proof(supplied_integration, "per-step done integration"))
+    if (supplied["workspace"] != integration["workspace"]
+            or evidence_integration["workspace"] != integration["workspace"]):
+        _fail("per-step verification workspace conflicts with the prepared candidate")
     if not _per_step_same_integration(supplied, integration) or not _per_step_same_integration(evidence_integration, integration):
         _fail("per-step verification does not bind the exact W, T, and I prepared integration")
-    if supplied.get("workspace") is not None and supplied["workspace"] != integration.get("workspace"):
-        _fail("per-step integration workspace conflicts with the prepared candidate")
     allocation = _per_step_allocation(rows, attempt)
     _per_step_require_execution_identity(binding, rows, attempt, record)
     rows = _per_step_integrate(root, binding, attempt, verification, integration, allocation, rows)
@@ -2929,6 +2956,8 @@ def _settle(root: Path, binding: Mapping[str, Any], value: dict[str, Any]) -> di
 def _retry(root: Path, binding: Mapping[str, Any], value: dict[str, Any]) -> dict[str, Any]:
     _verify_frozen(binding)
     attempt, reason = _parse_retry(value)
+    if _binding_lifecycle(binding) == "per-step":
+        _per_step_require_dispatcher_owner(binding, "retry")
     chain_dir = _binding_dir(root, binding["action_id"])
     intent = {"attempt": attempt, "reason": reason, "confirmed_stopped": True}
     rows = _events(chain_dir)
@@ -3026,6 +3055,7 @@ def _per_step_finish(root: Path, binding: Mapping[str, Any], value: dict[str, An
     """Audit completed per-step integrations without a final aggregate merge."""
     _verify_frozen(binding)
     commit, verification = _parse_finish(value)
+    _per_step_require_dispatcher_owner(binding, "finish")
     chain_dir = _binding_dir(root, binding["action_id"])
     rows = _events(chain_dir)
     expected_target = _per_step_expected_target(binding, rows)

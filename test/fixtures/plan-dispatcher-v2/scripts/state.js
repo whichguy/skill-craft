@@ -13,7 +13,8 @@ const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
 
-const STATE_FILE = 'state.json';
+const STATE_FILE = 'plan-dispatcher-state.json';
+const LEGACY_STATE_FILE = 'state.json';
 const INBOX_DIR = 'inbox';
 const LOCK_FILE = '.dispatcher.lock';
 const ACTIVE_STATUSES = new Set(['claimed', 'launching', 'running', 'rejected']);
@@ -131,8 +132,32 @@ function opaqueId(prefix) {
   return prefix + '_' + crypto.randomBytes(16).toString('hex');
 }
 
+function existingStatePath(dir, filename) {
+  const candidate = path.join(dir, filename);
+  let details;
+  try {
+    details = fs.lstatSync(candidate);
+  } catch (error) {
+    if (error.code === 'ENOENT') {
+      return null;
+    }
+    fail('could not inspect dispatcher state file: ' + error.message);
+  }
+  if (!details.isFile()) {
+    fail('dispatcher state file must be a regular non-symlink file: ' + filename);
+  }
+  return candidate;
+}
+
 function statePath(dir) {
-  return path.join(dir, STATE_FILE);
+  const canonical = existingStatePath(dir, STATE_FILE);
+  const legacy = existingStatePath(dir, LEGACY_STATE_FILE);
+  if (canonical && legacy) {
+    fail('dispatcher run has both canonical and legacy state files');
+  }
+  // New runs use the canonical name. A legacy-only run remains in place so
+  // recovery never creates a second mutable state authority.
+  return canonical || legacy || path.join(dir, STATE_FILE);
 }
 
 function inboxDirectory(dir) {

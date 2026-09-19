@@ -431,6 +431,7 @@ def evaluate_events(events: list[dict[str, Any]], manifest: dict[str, Any]) -> d
     errors: list[str] = []
     calls: dict[str, dict[str, Any]] = {}
     driver_calls: dict[str, list[dict[str, Any]]] = {step: [] for step in STEPS}
+    global_driver_calls: list[dict[str, Any]] = []
     parent_end: int | None = None
     def fail(name: str, detail: str) -> None:
         checks.append({"name": name, "passed": False, "detail": detail})
@@ -480,6 +481,9 @@ def evaluate_events(events: list[dict[str, Any]], manifest: dict[str, Any]) -> d
                 safe, action, reason = _safe_driver_command(raw_input.get("command"), manifest)
                 if not safe:
                     fail("parent_authoring", reason)
+                elif action in {"claim", "finish"}:
+                    call["driver_action"] = action
+                    global_driver_calls.append(call)
                 elif action and action not in {"show", "finish", "claim"}:
                     step = _option(shlex.split(raw_input["command"]), "--step")
                     call["driver_action"] = action
@@ -514,6 +518,33 @@ def evaluate_events(events: list[dict[str, Any]], manifest: dict[str, Any]) -> d
                 fail("driver_receipt", f"{step} repeats parent {action} command")
                 continue
             driver_actions[step][action] = {"call": call["index"], "completed": terminal["index"]}
+
+    claim_receipts: dict[str, list[int]] = {step: [] for step in STEPS}
+    finish_calls: list[int] = []
+    for call in global_driver_calls:
+        action = call["driver_action"]
+        terminal, issue = _successful_driver_terminal(call)
+        if terminal is None:
+            fail("driver_receipt", f"{action} {issue}")
+            continue
+        if action == "finish":
+            finish_calls.append(call["index"])
+        else:
+            tokens = shlex.split(call["input"]["command"])
+            for step in tokens[tokens.index("--steps") + 1:]:
+                claim_receipts[step].append(terminal["index"])
+    for step in STEPS:
+        start = driver_actions[step].get("start")
+        if start is not None and not any(index < start["call"] for index in claim_receipts[step]):
+            fail("claim", f"{step} start has no preceding successful claim receipt")
+    done_receipts = [driver_actions[step]["done"]["completed"] for step in STEPS
+                     if "done" in driver_actions[step]]
+    if not finish_calls:
+        fail("finish", "host trace has no successful finish receipt")
+    elif len(done_receipts) != len(STEPS) or min(finish_calls) <= max(done_receipts):
+        fail("finish", "finish does not follow every completed integration")
+    else:
+        passed("finish", "successful finish follows all step integrations")
 
     workers: dict[str, dict[str, Any]] = {}
     ids: dict[str, str] = {}

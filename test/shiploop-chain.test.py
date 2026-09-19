@@ -227,7 +227,9 @@ class ChainIntegrationTests(unittest.TestCase):
 
     def child_state_path(self):
         binding = store.read_record(self.run / "chains" / self.action / "binding.md")
-        return Path(binding["dispatcher_run"]) / "state.json"
+        directory = Path(binding["dispatcher_run"])
+        current = directory / "plan-dispatcher-state.json"
+        return current if current.exists() else directory / "state.json"
 
     def child_state(self):
         return json.loads(self.child_state_path().read_text())
@@ -251,6 +253,63 @@ class ChainIntegrationTests(unittest.TestCase):
     def run_bytes(self):
         return {str(path.relative_to(self.run)): path.read_bytes()
                 for path in self.run.rglob("*") if path.is_file()}
+
+    def test_dispatcher_has_one_state_file_and_views_store_no_completion_copy(self):
+        self.select_dispatcher(SERIAL_FIXTURE)
+        self.bind()
+        authority = self.child_state_path()
+        self.assertEqual(authority.name, "plan-dispatcher-state.json")
+        self.assertFalse((authority.parent / "state.json").exists())
+        self.assertNotIn("completion", self.child_state())
+        before = self.run_bytes()
+        self.assert_completion(self.call("pending"), [], ["A", "B", "C", "J"])
+        self.call("history")
+        self.call("next")
+        self.assertEqual(self.run_bytes(), before)
+        self.claim(["A"])
+        self.assertEqual(self.child_state()["steps"]["A"]["status"], "claimed")
+        self.assertFalse((authority.parent / "state.json").exists())
+        # The audit is inspectable, but cannot recreate a missing authority.
+        authority.unlink()
+        before = self.run_bytes()
+        self.call("history")
+        self.call("pending", ok=False)
+        self.assertEqual(self.run_bytes(), before)
+
+    def test_dispatcher_resumes_legacy_state_in_place_without_a_new_copy(self):
+        self.select_dispatcher(SERIAL_FIXTURE)
+        self.bind()
+        authority = self.child_state_path()
+        self.assertEqual(authority.name, "plan-dispatcher-state.json")
+        legacy = authority.with_name("state.json")
+        authority.rename(legacy)
+        self.claim(["A"])
+        self.assertEqual(self.child_state_path(), legacy)
+        self.assertEqual(self.child_state()["steps"]["A"]["status"], "claimed")
+        before = self.run_bytes()
+        self.assertEqual(self.call("pending")["pending"][0]["status"], "claimed")
+        self.call("next")
+        self.assertEqual(self.run_bytes(), before)
+        self.assertFalse(authority.exists())
+
+    def test_duplicate_dispatcher_states_refuse_reads_and_mutation_without_fallback(self):
+        self.select_dispatcher(SERIAL_FIXTURE)
+        self.bind()
+        authority = self.child_state_path()
+        self.assertEqual(authority.name, "plan-dispatcher-state.json")
+        legacy = authority.with_name("state.json")
+        legacy.write_bytes(authority.read_bytes())
+        for content in (authority.read_bytes(), b"not JSON\n"):
+            with self.subTest(canonical=content[:20]):
+                authority.write_bytes(content)
+                before = self.run_bytes()
+                before_head = self.git(self.target, "rev-parse", "HEAD")
+                for operation, value in (("pending", None), ("claim", {"steps": ["A"]})):
+                    result = self.call(operation, value, ok=False)
+                    self.assertRegex(result.stdout + result.stderr,
+                                     r"multiple dispatcher state files|both canonical and legacy state files")
+                self.assertEqual(self.run_bytes(), before)
+                self.assertEqual(self.git(self.target, "rev-parse", "HEAD"), before_head)
 
     def test_history_and_pending_are_read_only_current_views(self):
         self.bind()

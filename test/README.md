@@ -81,6 +81,15 @@ valid pending observations and identical completion replay. These remain local
 tests; prompt-driven Ask-Agent worktree creation and native recovery need their
 separate live qualification.
 
+The [interaction audit](../docs/shiploop-chain-interaction-audit-2026-09-19.md)
+maps every supported chain operation to state, Git effects, context requirements
+and existing tests. It separates dispatcher snapshot authority from bridge audit
+history, and host-owned review judgments from mechanical checks. Selected gaps
+reuse these suites instead of adding another orchestration or test framework.
+The chain suite also checks that new runs have one `plan-dispatcher-state.json`,
+legacy runs keep their one existing file, status views save no completion copy,
+and ambiguous or missing state cannot silently select or reconstruct authority.
+
 `python3 test/shiploop-full-runtime.test.py` composes public ShipLoop and selected
 bundled Until Loop CLIs across the protocol-3 graph, including cold recovery and
 corrective outcomes. Its review judgments are synthetic: it proves local runtime
