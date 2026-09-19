@@ -1,0 +1,12 @@
+{
+  "name": "shiploop-apps-script-platform-guidance-fixture",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Non-hosted contract fixtures for bounded Apps Script guidance research.",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.mjs"
+  }
+}

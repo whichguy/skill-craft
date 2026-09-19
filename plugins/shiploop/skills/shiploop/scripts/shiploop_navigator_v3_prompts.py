@@ -106,6 +106,7 @@ STAGE_REFERENCES: dict[str, tuple[tuple[str, str], ...]] = {
         ("Decision carry-forward guidance", "project-knowledge.md#carry-context-into-the-new-plan"),
     ),
     "step-plan": (
+        ("Coding decision guide", "coding-guidance.md#select-guidance"),
         ("Repeatable test-suite guide", "repeatable-test-suites.md#select-or-revalidate-the-harness"),
         ("Repository-local skill guidance", "testing-and-documentation.md#reusable-product-skills"),
         ("Implementation constitution", "testing-and-documentation.md#implementation-constitution"),
@@ -130,6 +131,7 @@ STAGE_REFERENCES: dict[str, tuple[tuple[str, str], ...]] = {
         ("Test-case planning guidance", "testing-and-documentation.md#test-cases"),
     ),
     "implement": (
+        ("Coding decision guide", "coding-guidance.md#select-guidance"),
         ("Repeatable test-suite guide", "repeatable-test-suites.md#select-or-revalidate-the-harness"),
         ("Implementation constitution", "testing-and-documentation.md#implementation-constitution"),
     ),
@@ -160,6 +162,7 @@ STAGE_REFERENCES: dict[str, tuple[tuple[str, str], ...]] = {
         ("Iteration and verification guidance", "testing-and-documentation.md#iteration"),
     ),
     "verify": (
+        ("Coding decision guide", "coding-guidance.md#select-guidance"),
         ("Repeatable test-suite guide", "repeatable-test-suites.md#select-or-revalidate-the-harness"),
         ("Test-case planning guidance", "testing-and-documentation.md#test-cases"),
         ("Real-boundary test guidance", "testing-and-documentation.md#layers-and-real-boundaries"),
@@ -546,6 +549,13 @@ and interfaces, behavior and failure cases, tests/fixtures/commands, existing
 conventions and reusable capabilities, diagnostic/error-handling obligations,
 documentation changes, integration impact, and required checks.  Revalidate
 environment, skill/MCP/library, and project-practice choices for this exact item.
+Use the Coding decision guide to retain a compact decision record in the linked
+plan note: outcome and preserved invariants, changed responsibilities/contracts,
+applicable engineering decisions, ordered edits, independent checks, readiness,
+completion and revalidation conditions. Identify the actual runtime/version,
+artifact and boundary; read only matching practice/platform sections. Link the
+accepted plan and selected sections in evidence_refs; do not copy every card or
+create boilerplate for inapplicable concerns. Planning does not authorize edits.
 Use the Repository-local skill guidance. Reopen the repo's current skill index or
 README/AGENTS links, even if earlier context reported no fit: a preceding item may
 have created or evolved a skill. Prefer unchanged reuse with supported inputs and
@@ -650,6 +660,10 @@ Implement the authorized bounded change.  Preserve unrelated work, inspect the
 actual code as it changes, and carry discoveries into later test refinement.
 Apply the planned behavior, error handling, opt-in diagnostics, exception context,
 and concise code contracts.  Do not claim verification from an edit alone.
+Use the Coding decision guide to reopen the accepted plan and only its relevant
+practice/platform sections. Check current code, versions and consumers before
+reuse or augmentation. Retain justified revisions in the linked note; a new
+prerequisite or authority boundary uses the existing correction route.
 """,
     "test-green": """\
 Run focused checks against the implemented candidate and establish meaningful
@@ -730,6 +744,10 @@ and the condition for completing it rather than treating partial green as done.
 """,
     "verify": """\
 Verify the complete work item against its acceptance criteria and current evidence.
+Use the Coding decision guide to compare the actual diff and affected consumers
+with the accepted plan, justified revisions and selected practice/platform checks.
+Preserve any required real-boundary gap; a pattern name or tool pass is not proof
+of the behavior it did not exercise.
 Reconcile tests, static checks, documentation, error behavior, diagnostics,
 dependencies, and known limitations.  Refresh checks affected by material changes
 and retain failures or blocked boundaries honestly.  This is work-item acceptance,
@@ -966,6 +984,10 @@ Reopen the packet's Current item test-decision source when present, alongside
 the Run-wide test strategy source and initial item context. Keep applicable
 prior decision locators and any justified revision in this result's ordinary
 evidence_refs and durable test notes, so later stages can recover their basis.
+Retain the accepted step-plan note/result locator and applicable coding-guidance
+sections even when this later test decision becomes the packet's latest source.
+State which decisions are retained, refined or superseded and why; replacing the
+test strategy does not silently replace unrelated engineering decisions.
 Missing decisions require scoped reassessment; recorded completion is not proof
 that a selected harness, fixture or target remains usable.
 """
@@ -1118,6 +1140,16 @@ def improve_prompt(stage: str) -> str:
     """Return the actual Improve-skill handoff for a completed producer stage."""
     _require_stage(stage)
     backchain = _backchain_guidance(stage, improve_owner=True) if stage in BACKCHAIN_STAGES else ""
+    coding_review = ""
+    if stage in {"step-plan", "implement", "verify"}:
+        coding_review = """\
+Use the packet's Coding decision guide. Carry the accepted plan, proposed revisions
+and selected practice/platform locators into the child's existing contract/review
+notes. Read only applicable sections and compare decisions with independent
+requirements and checks. Planning review concerns decisions and proposed checks;
+implementation/verification review needs actual evidence. Keep the assigned edit
+scope and expected check state; this guide adds no review loop or authority.
+"""
     outer_handshake = OUTER_TEST_HANDOFF if stage in OUTER else ""
     test_facilities = TEST_FACILITY_HANDOFF if stage in TEST_FACILITY_STAGES else ""
 
@@ -1179,6 +1211,8 @@ readiness conditions in the child contract/review notes for cold recovery.
 {baseline_guard}
 
 {backchain}
+
+{coding_review}
 
 {assessment}
 

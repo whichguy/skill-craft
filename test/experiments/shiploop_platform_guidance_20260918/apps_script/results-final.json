@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 1,
+  "receiptKind": "final-deterministic-local-calibration",
+  "supersedesForFinalConclusion": "results.json",
+  "preservedInitialReceipt": "results.json",
+  "decision": {
+    "overall": "pilot",
+    "html_rpc_guidance": "pilot",
+    "state_lock_idempotency_guidance": "pilot",
+    "batch_guidance": "pilot",
+    "default_execution_identity_or_scope": "defer",
+    "local_or_source_sync_as_hosted_proof": "reject"
+  },
+  "scope": {
+    "modelOnly": true,
+    "hostedGoogleExecution": false,
+    "googleAuthentication": false,
+    "accountMutation": false,
+    "deployment": false,
+    "realEmailOrNotification": false,
+    "persistentInstall": false
+  },
+  "runtime": {
+    "node": "v25.9.0",
+    "python": "3.14.7",
+    "git": "2.54.0 (Apple Git-157)"
+  },
+  "checks": {
+    "existingApparatusBaseline": {
+      "command": "python3 test/shiploop-repeatable-experiments.test.py",
+      "workingDirectory": "/Users/dadleet/src/skill-craft",
+      "result": "pass",
+      "checks": 14,
+      "durationSeconds": 20.507,
+      "meaning": "Read-only baseline for existing apparatus; it is not evidence for this new platform fixture."
+    },
+    "newPlatformFixture": {
+      "command": "npm test",
+      "workingDirectory": "/Users/dadleet/src/skill-craft/test/experiments/shiploop_platform_guidance_20260918/apps_script",
+      "result": "pass",
+      "checks": 7,
+      "durationMilliseconds": 68.735,
+      "meaning": "New non-hosted seed/reference/mutant checks only."
+    }
+  },
+  "calibrationCounts": {
+    "hypotheses": 3,
+    "variantImplementations": 10,
+    "H1_html_rpc": {
+      "reference": 1,
+      "seed": 1,
+      "mutants": 1,
+      "checks": 3
+    },
+    "H2_state_lock_cache": {
+      "reference": 1,
+      "seed": 1,
+      "mutants": 2,
+      "checks": 2
+    },
+    "H3_batching": {
+      "reference": 1,
+      "seed": 1,
+      "mutants": 1,
+      "checks": 2
+    }
+  },
+  "concreteLocalObservations": {
+    "H1_html_rpc": {
+      "reference": "Copies legal DTO values; [undefined] becomes [null]; Date, function, and circular inputs reject; runner calls return undefined.",
+      "orderingControl": "Both calls enter explicit deferred gates. Releasing fast produces [fast]; releasing slow then produces [fast, slow]. No elapsed-delay ordering is used.",
+      "seedAndMutant": "The direct seed returns {value: immediate}; unsafe wire mutant returns the same Date object."
+    },
+    "H2_state_lock_cache": {
+      "reference": "Two distinct +1 commands finish with value 2, commitCount 2, receiptIds [first, second], and exactly one duplicate replay.",
+      "noLockSeed": "Two distinct +1 commands record commitCount 2 but finish at value 1.",
+      "cacheAuthorityMutant": "After a cache-loss restart, duplicate id once returns replayed=false; durable snapshot remains value 0 with no receipts.",
+      "blanketLockMutant": "Pure formatter produces READY without a lock; blanket-lock variant fails lock unavailable."
+    },
+    "H3_batching": {
+      "reference": "A 2x2 grid is preserved with one synthetic service crossing.",
+      "perCellSeed": "The same 2x2 grid uses four crossings and throws at a one-call synthetic budget.",
+      "blindBatchMutant": "operator@example.test receives approved instead of retry needed."
+    }
+  },
+  "claimLimits": [
+    "The runner and serializer are a selected-contract model, not HtmlService or browser execution.",
+    "The mutex, durable store, and cache are not LockService, PropertiesService, or CacheService.",
+    "Synthetic calls and budgets are not SpreadsheetApp latency, quota, or partial-failure measurements.",
+    "No result validates executeAs/access, manifest scopes, authorization denial, a deployment, or a consumer endpoint."
+  ],
+  "requiredLiveFollowUp": [
+    "Use an already-authorized disposable Apps Script project to observe actual HtmlService RPC serialization, handlers, and browser sandbox behavior.",
+    "Exercise chosen LockService/PropertiesService/CacheService scopes with isolated concurrent clients, duplicate keys, a cache-null/restart path, and a timeout/failure route.",
+    "Measure a disposable Sheet workload and verify exact active deployment identity, execution actor, scopes, authorization outcomes, and consumer-visible endpoint."
+  ]
+}

@@ -1,0 +1,47 @@
+{
+  "observed_at": "2026-09-19T00:11:10.819331+00:00",
+  "method": "read-only metadata and text hashing; instructions inspected as research, not invoked or installed",
+  "repositories": [
+    {
+      "full_name": "github/awesome-copilot",
+      "html_url": "https://github.com/github/awesome-copilot",
+      "stargazers_count": 39147,
+      "archived": false,
+      "pushed_at": "2026-09-18T20:53:10Z",
+      "default_branch": "main",
+      "inspected_files": [
+        {
+          "path": "instructions/shell.instructions.md",
+          "url": "https://raw.githubusercontent.com/github/awesome-copilot/main/instructions/shell.instructions.md",
+          "sha256": "3f44bbf86fea7526cc14a250cc23a357fbb861e6281a6ac6fc7a74d771304b8f",
+          "bytes": 4788,
+          "lines": 132
+        },
+        {
+          "path": "instructions/a11y.instructions.md",
+          "url": "https://raw.githubusercontent.com/github/awesome-copilot/main/instructions/a11y.instructions.md",
+          "sha256": "d85d6df4945f3816e5775915ab1eb051f289626e4ea85ba3ac9aa4eff6aa402c",
+          "bytes": 27608,
+          "lines": 731
+        }
+      ]
+    },
+    {
+      "full_name": "anthropics/skills",
+      "html_url": "https://github.com/anthropics/skills",
+      "stargazers_count": 177045,
+      "archived": false,
+      "pushed_at": "2026-09-10T19:44:11Z",
+      "default_branch": "main",
+      "inspected_files": [
+        {
+          "path": "skills/frontend-design/SKILL.md",
+          "url": "https://raw.githubusercontent.com/anthropics/skills/main/skills/frontend-design/SKILL.md",
+          "sha256": "d91970639e9f5c37682ac7ab60094d35f1c7c1f38d731bd56396563aee10c1d3",
+          "bytes": 9390,
+          "lines": 71
+        }
+      ]
+    }
+  ]
+}

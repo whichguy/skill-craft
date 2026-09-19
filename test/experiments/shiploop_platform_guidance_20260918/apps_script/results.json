@@ -1,0 +1,136 @@
+{
+  "schemaVersion": 1,
+  "experiment": "shiploop_platform_guidance_20260918/apps_script",
+  "status": "passed-local-only",
+  "decision": {
+    "overall": "pilot",
+    "html_rpc_guidance": "pilot",
+    "state_lock_idempotency_guidance": "pilot",
+    "batch_guidance": "pilot",
+    "default_execution_identity_or_scope": "defer",
+    "local_or_source_sync_as_hosted_proof": "reject"
+  },
+  "scope": {
+    "hostedGoogleExecution": false,
+    "googleAuthentication": false,
+    "accountMutation": false,
+    "deployment": false,
+    "realEmailOrNotification": false,
+    "persistentInstall": false
+  },
+  "runtime": {
+    "node": "v25.9.0",
+    "python": "3.14.7",
+    "git": "2.54.0 (Apple Git-157)"
+  },
+  "calibrationCounts": {
+    "hypotheses": 3,
+    "localTestCases": 7,
+    "variantImplementations": 10,
+    "H1_html_rpc": {
+      "reference": 1,
+      "seed": 1,
+      "mutants": 1,
+      "testCases": 3
+    },
+    "H2_state_lock_cache": {
+      "reference": 1,
+      "seed": 1,
+      "mutants": 2,
+      "testCases": 2
+    },
+    "H3_batching": {
+      "reference": 1,
+      "seed": 1,
+      "mutants": 1,
+      "testCases": 2
+    }
+  },
+  "commands": [
+    {
+      "command": "python3 test/shiploop-repeatable-experiments.test.py",
+      "workingDirectory": "/Users/dadleet/src/skill-craft",
+      "result": "pass",
+      "tests": 14,
+      "durationSeconds": 20.507,
+      "purpose": "Read-only baseline of existing experiment-fixture apparatus."
+    },
+    {
+      "command": "npm test",
+      "workingDirectory": "/Users/dadleet/src/skill-craft/test/experiments/shiploop_platform_guidance_20260918/apps_script",
+      "result": "pass",
+      "tests": 7,
+      "durationMilliseconds": 105.436,
+      "purpose": "Non-hosted Node seed/reference/mutant calibration."
+    }
+  ],
+  "iterationNotes": [
+    {
+      "command": "npm test",
+      "result": "superseded setup failure",
+      "detail": "The first run exposed a missing local test-module export. The test import was corrected before the recorded passing run; no hosted operation occurred."
+    }
+  ],
+  "fixtureClaims": [
+    {
+      "id": "H1",
+      "name": "HTML RPC boundary",
+      "reference": "Copied serializable values, delayed handler completion, and explicit failure callback.",
+      "seedOrMutant": [
+        "Immediate direct call",
+        "Wire pass-through accepting Date"
+      ],
+      "localObservation": "Reference copied a request, converted [undefined] to [null], returned handler results in fast-before-slow order for 0 ms versus 12 ms work, and reported an intentional failure. The direct seed returned {value: immediate}; the unsafe mutant returned the same Date object.",
+      "claimLimit": "Not an Apps Script or browser emulator."
+    },
+    {
+      "id": "H2",
+      "name": "State, locking, idempotency, and cache",
+      "reference": "Mutex-protected durable state and durable operation receipt; cache is derivative.",
+      "seedOrMutant": [
+        "No-lock read-modify-write",
+        "Cache-only authority",
+        "Lock around pure read"
+      ],
+      "localObservation": "Reference finished at value 2 with two durable commits and one duplicate replay. The no-lock seed made two commits but finished at value 1; cache-only restart replayed=false and durable snapshot stayed value 0 with no receipts; the pure read failed with lock unavailable only in the blanket-lock mutant.",
+      "claimLimit": "Does not validate LockService, PropertiesService, CacheService, host retries, or exactly-once external effects."
+    },
+    {
+      "id": "H3",
+      "name": "Compatible batching",
+      "reference": "One contiguous grid write.",
+      "seedOrMutant": [
+        "Per-cell grid writes",
+        "Collapsed distinct notifications"
+      ],
+      "localObservation": "Reference preserved a 2x2 grid with 1 synthetic call. The per-cell seed used 4 calls and exceeded a 1-call synthetic budget. The notification mutant changed operator@example.test from retry needed to approved.",
+      "claimLimit": "Synthetic call counts are not current Apps Script quota or timing measurements."
+    }
+  ],
+  "sourceIdentityChecks": [
+    {
+      "repository": "https://github.com/google/clasp.git",
+      "branch": "master",
+      "head": "e9441e57b0ae398fdb8524dada9372c1ed8590e0",
+      "method": "git ls-remote"
+    },
+    {
+      "repository": "https://github.com/googleworkspace/apps-script-samples.git",
+      "branch": "main",
+      "head": "1f297d16fdb72f819ae27eb1b07b9fa3bae9103e",
+      "method": "git ls-remote"
+    },
+    {
+      "repository": "https://github.com/googleworkspace/apps-script-oauth2.git",
+      "branch": "main",
+      "head": "12b6d6b30a7c80e72ecb736f1318941323574a4c",
+      "method": "git ls-remote"
+    }
+  ],
+  "unvalidatedLiveRequirements": [
+    "Actual HtmlService RPC serializer, global exposure, browser sandbox, handler behavior, and concurrency cap.",
+    "Deployment access and executeAs identity, manifest scopes, consent, missing-scope denial, and trusted-side authorization.",
+    "LockService timeout/fairness and scope behavior; PropertiesService persistence; CacheService eviction/null behavior; host retry behavior.",
+    "SpreadsheetApp batch performance, account-specific current quotas, partial failures, active deployment identity, and consumer-visible endpoint behavior."
+  ]
+}

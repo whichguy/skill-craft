@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from pathlib import Path
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -59,6 +60,10 @@ LOCAL_SKILL_ROUTE_STAGES = (
 LOCAL_SKILL_GUIDE_ROUTE = (
     "Repository-local skill guidance: "
     + str(REFERENCES / "testing-and-documentation.md#reusable-product-skills")
+)
+CODING_GUIDE_STAGES = ("step-plan", "implement", "verify")
+CODING_GUIDE_ROUTE = (
+    "Coding decision guide: " + str(REFERENCES / "coding-guidance.md#select-guidance")
 )
 if str(SCRIPTS) not in sys.path:
     sys.path.insert(0, str(SCRIPTS))
@@ -344,6 +349,118 @@ class V3GuidanceTests(unittest.TestCase):
                 observed.append(target)
 
         self.assertEqual(tuple(observed), LOCAL_SKILL_ROUTE_STAGES)
+
+    def test_coding_guide_is_selective_in_cold_producer_and_improve_packets(self) -> None:
+        """Route locators, not every card body; retain the same owner on recovery."""
+        state = self.state()
+        observed = []
+        while state["status"] != "done":
+            stage = navigator.current_stage(state)
+            recovered, packet = self.cold_packet(state)
+            expected_count = int(stage in CODING_GUIDE_STAGES)
+            self.assertEqual(packet.count(CODING_GUIDE_ROUTE), expected_count)
+            self.assertNotIn("google.script.run", packet)
+            self.assertNotIn("set -euo pipefail", packet)
+            if stage in CODING_GUIDE_STAGES:
+                action = dict(navigator.current_action(recovered))
+                waiting = navigator.apply(recovered, action["id"], result(stage))
+                pending, child_packet = self.cold_packet(waiting)
+                self.assertEqual(child_packet.count(CODING_GUIDE_ROUTE), 1)
+                self.assertIn("Current action: Improve the completed " + stage, child_packet)
+                self.assertIn(action["id"], child_packet)
+                self.assertEqual(navigator.current_stage(pending), stage)
+                self.assertEqual(pending["active_improve"], waiting["active_improve"])
+                # Bind only synthetic identity to test the separate bound-child
+                # render path; no skill or model is executed by this fixture.
+                child = pending["active_improve"]
+                child.update({
+                    "version": 1,
+                    "contract_marker": "ShipLoop standalone Improve binding: " + child["binding_id"],
+                    "skill": {
+                        "skill_card": str(self.repo / "improve/SKILL.md"),
+                        "runtime_card": str(self.repo / "until-loop/SKILL.md"),
+                        "runtime_cli": str(self.repo / "until-loop/scripts/until-loop"),
+                        "skill_version": "synthetic",
+                        "runtime_version": "synthetic",
+                    },
+                })
+                navigator.validate(pending)
+                bound, bound_packet = self.cold_packet(pending)
+                self.assertEqual(bound["active_improve"], pending["active_improve"])
+                self.assertEqual(bound_packet.count(CODING_GUIDE_ROUTE), 1)
+                self.assertIn("selected practice/platform locators", normalized(bound_packet))
+                observed.append(stage)
+            extra = {}
+            if stage == "plan":
+                extra["work_items"] = [{"id": "W1", "title": "Synthetic item"}]
+            state, _ = self.complete_stage(state, **extra)
+        self.assertEqual(tuple(observed), CODING_GUIDE_STAGES)
+
+    def test_coding_reference_links_survive_package_relocation(self) -> None:
+        """A packaged selector and its cards must work outside this checkout."""
+        relocated = (self.repo / "copied-package" / "references").resolve()
+        shutil.copytree(REFERENCES, relocated)
+        new_files = ["coding-guidance.md", "coding-practices.md"] + [
+            "platforms/" + name + ".md"
+            for name in ("ui", "apps-script", "salesforce", "python", "bash")
+        ]
+        selector = (relocated / "coding-guidance.md").read_text(encoding="utf-8")
+        for card in new_files[1:]:
+            self.assertIn(card, selector)
+        for filename in new_files:
+            page = relocated / filename
+            body = page.read_text(encoding="utf-8")
+            self.assertNotIn("/Users/", body)
+            self.assertNotIn("shiploop-coding-guidance-experiment-plan", body)
+            for link in re.findall(r"\[[^\]]+\]\(([^)]+)\)", body):
+                if link.startswith(("https://", "http://")):
+                    continue
+                with self.subTest(page=filename, link=link):
+                    path, _, anchor = link.partition("#")
+                    destination = (page.parent / path).resolve() if path else page
+                    self.assertTrue(destination.is_relative_to(relocated), link)
+                    self.assertTrue(destination.is_file(), link)
+                    if anchor:
+                        headings = {
+                            heading_anchor(match.group(2)) for match in re.finditer(
+                                r"(?m)^(#{1,6})\s+(.+?)\s*$",
+                                destination.read_text(encoding="utf-8"),
+                            )
+                        }
+                        self.assertIn(anchor, headings)
+
+    def test_accepted_coding_plan_can_survive_later_test_decisions_without_new_fields(self) -> None:
+        """Exercise host-authored evidence handoff, not automatic model compliance."""
+        state = self.state()
+        plan_ref = "docs/item-plan.md#accepted-decisions"
+        card_ref = str(REFERENCES / "platforms/python.md")
+        plan_action = ""
+        latest_decision = ""
+        while navigator.current_stage(state) != "implement":
+            stage = navigator.current_stage(state)
+            extra = {}
+            if stage == "plan":
+                extra["work_items"] = [{"id": "W1", "title": "Synthetic Python change"}]
+            if stage == "step-plan":
+                extra["evidence_refs"] = ["draft://not-accepted"]
+                state, plan_action = self.complete_stage_with_final(
+                    state, result(stage, evidence_refs=[plan_ref, card_ref]), **extra
+                )
+            else:
+                if stage in {"test-spec", "test-author"}:
+                    # A host follows the handoff instruction using ordinary fields.
+                    extra["summary"] = "Retain accepted decisions; refine only test cases."
+                    extra["evidence_refs"] = [plan_ref, card_ref, "tests/cases.py"]
+                state, action_id = self.complete_stage(state, **extra)
+                if stage in {"test-spec", "test-author"}:
+                    latest_decision = action_id
+            state = self.save_reload(state)
+        _, packet = self.cold_packet(state)
+        self.assertIn("Current item test-decision source action: " + latest_decision, packet)
+        self.assertIn(plan_ref, packet)
+        self.assertIn(card_ref, packet)
+        self.assertNotIn("draft://not-accepted", packet)
+        self.assertEqual(state["accepted"][plan_action]["evidence_refs"], [plan_ref, card_ref])
 
     def test_next_item_reopens_repo_index_without_inheriting_prior_skill_selection(self) -> None:
         """The generic item context keeps selections scoped to their owner.

@@ -1,0 +1,86 @@
+{
+  "recorded_at": "2026-09-19T00:17:21.240997+00:00",
+  "method": "Parent rerun with before/after hashes to resolve review finding; original domain receipt retained. Expected ShellCheck mutant failure is not a failed calibration.",
+  "source_sha256": {
+    "fixtures/bash/argv_reference.sh": "e9147902c1fec092b49993aff1659bd496810c2f7b2ea41c4adb7eaccc43b24a",
+    "fixtures/bash/argv_unquoted_mutant.sh": "1fb7a1c5c36157fc9f4d23764a374e85b64cd8ee47bc592c69a35870b6ba9455",
+    "fixtures/bash/conditional_function_errexit_exception.sh": "319085085a0b4a9c415924b8fc7f90cc08cc0cdfd47bc16b59954797cea6f678",
+    "fixtures/bash/failing_probe.sh": "e146abe8e8a670a14b1d2605474496d1c03d69f25f703f6abf79e71be559bbd0",
+    "fixtures/bash/pipeline_errexit_mutant.sh": "b54e8bf9d57af466f75f1b1a43818d496c9ac6da3da7a9422ce92167fd78eef0",
+    "fixtures/bash/pipeline_last_status_mutant.sh": "80e634f1683989fa505dec3e4fe1838ad3ef081baa9fac6cfaf428c7f72ce2bd",
+    "fixtures/bash/pipeline_no_cleanup_mutant.sh": "36efa194cbdb7b7172e31d681845ec5a6ead382fa3962cfe2edd510c21928fe4",
+    "fixtures/bash/pipeline_reference.sh": "993e7a1bff675c877ea0bb0e26dfbac705c1060ad02916fe8bc05e81fcaa5f4e",
+    "fixtures/python/child.py": "4b411538ebde5aa05f2d6ce8103636bdb5cd1bc1c4564c103ca7222e8d312815",
+    "fixtures/python/ledger_driver.py": "5873d40a3768dff05f8484a82ce037688009fbd4a083f17e69b2447e2a1dc4d3",
+    "fixtures/python/ledger_partial_commit_mutant.py": "0ac8e77f8d230a11318a88ffc248e9c22e10dacfe060d0a1d7c65bdc24460720",
+    "fixtures/python/ledger_reference.py": "f6bac93a289e0bebcff3ce07e673b626f250ddfee58dd1c0f34e2d9381392e09",
+    "fixtures/python/ledger_shared_state_mutant.py": "bbf069e662e59a71b175487d3f6ae3b87b3c19b9c079b91080c2a84eaba554de",
+    "fixtures/python/subprocess_masking_cleanup_mutant.py": "8c2bbb30247c15eac0f5df64c8ccb740032140f86f3e43d71ded8ddb5441d70e",
+    "fixtures/python/subprocess_reference.py": "6b91e82f299ed39852e69048ffa0930de498f8045df6fbc9f154125e45fe9527",
+    "fixtures/python/subprocess_string_command_mutant.py": "8f121c6c17004f2fa71efb8efd1f12fced4454883bf67fb462b0f24a9e9cca6b",
+    "fixtures/python/subprocess_swallow_mutant.py": "a7be996f7a1ed7971af37540482075efd62c0dfbb5744cfecb2d1311e575dde7",
+    "test_bash_guidance.sh": "e098999f461d7b43f38d612ac2d4c492b504ca395db6c04edc30af278b738597",
+    "test_python_guidance.py": "8e2d0f093ff9dca7a371b8d0cf294632a21aeadf4edab2cfc39bb39f5b80226a"
+  },
+  "sources_unchanged": true,
+  "cwd": "/Users/dadleet/src/skill-craft/test/experiments/shiploop_platform_guidance_20260918/python_bash",
+  "checks": [
+    {
+      "argv": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "-B",
+        "-m",
+        "unittest",
+        "-v",
+        "test_python_guidance.py"
+      ],
+      "expected_returncode": 0,
+      "returncode": 0,
+      "stdout": "",
+      "stderr": "test_basic_credit_is_a_negative_control (test_python_guidance.StateGuidanceTests.test_basic_credit_is_a_negative_control) ... ok\ntest_invariant_assertions_distinguish_shared_and_partial_commit_mutants (test_python_guidance.StateGuidanceTests.test_invariant_assertions_distinguish_shared_and_partial_commit_mutants) ... ok\ntest_reference_has_isolated_state_and_preserves_rejected_transitions (test_python_guidance.StateGuidanceTests.test_reference_has_isolated_state_and_preserves_rejected_transitions) ... ok\ntest_failure_path_discriminates_swallow_masking_and_string_command_mutants (test_python_guidance.SubprocessGuidanceTests.test_failure_path_discriminates_swallow_masking_and_string_command_mutants) ... ok\ntest_reference_preserves_child_cause_and_cleans_up (test_python_guidance.SubprocessGuidanceTests.test_reference_preserves_child_cause_and_cleans_up) ... ok\ntest_success_only_is_a_negative_control (test_python_guidance.SubprocessGuidanceTests.test_success_only_is_a_negative_control) ... ok\n\n----------------------------------------------------------------------\nRan 6 tests in 0.286s\n\nOK\n",
+      "matches_expected": true
+    },
+    {
+      "argv": [
+        "/bin/bash",
+        "test_bash_guidance.sh"
+      ],
+      "expected_returncode": 0,
+      "returncode": 0,
+      "stdout": "PASS argv reference preserves whitespace glob empty and dash arguments\nPASS argv unquoted mutant is rejected by adversarial arguments\nPASS argv reference passes plain-token control\nPASS argv mutant also passes plain-token control\nPASS conditional function counterexample exits successfully under set-euo-pipefail\nPASS conditional function counterexample continues after false\nPASS pipeline reference returns probe status\nPASS pipeline reference handles expected failure under errexit\nPASS pipeline reference removes owned workspace\nPASS pipeline no-pipefail mutant exposes false success\nPASS pipeline no-pipefail mutant reports false success\nPASS pipeline no-pipefail mutant still cleans its workspace\nPASS pipeline direct-errexit mutant returns probe status\nPASS pipeline direct-errexit mutant omits recovery report\nPASS pipeline direct-errexit mutant still runs EXIT cleanup\nPASS pipeline no-cleanup mutant preserves the status alone\nPASS pipeline no-cleanup mutant preserves the report alone\nPASS pipeline no-cleanup mutant is rejected by workspace assertion\nPASS bash-3.2 syntax /Users/dadleet/src/skill-craft/test/experiments/shiploop_platform_guidance_20260918/python_bash/fixtures/bash/argv_reference.sh\nPASS bash-3.2 syntax /Users/dadleet/src/skill-craft/test/experiments/shiploop_platform_guidance_20260918/python_bash/fixtures/bash/argv_unquoted_mutant.sh\nPASS bash-3.2 syntax /Users/dadleet/src/skill-craft/test/experiments/shiploop_platform_guidance_20260918/python_bash/fixtures/bash/conditional_function_errexit_exception.sh\nPASS bash-3.2 syntax /Users/dadleet/src/skill-craft/test/experiments/shiploop_platform_guidance_20260918/python_bash/fixtures/bash/failing_probe.sh\nPASS bash-3.2 syntax /Users/dadleet/src/skill-craft/test/experiments/shiploop_platform_guidance_20260918/python_bash/fixtures/bash/pipeline_errexit_mutant.sh\nPASS bash-3.2 syntax /Users/dadleet/src/skill-craft/test/experiments/shiploop_platform_guidance_20260918/python_bash/fixtures/bash/pipeline_last_status_mutant.sh\nPASS bash-3.2 syntax /Users/dadleet/src/skill-craft/test/experiments/shiploop_platform_guidance_20260918/python_bash/fixtures/bash/pipeline_no_cleanup_mutant.sh\nPASS bash-3.2 syntax /Users/dadleet/src/skill-craft/test/experiments/shiploop_platform_guidance_20260918/python_bash/fixtures/bash/pipeline_reference.sh\nPASS bash-3.2 syntax /Users/dadleet/src/skill-craft/test/experiments/shiploop_platform_guidance_20260918/python_bash/test_bash_guidance.sh\nSUMMARY passes=27 failures=0 bash=GNU bash, version 3.2.57(1)-release (arm64-apple-darwin25)\n",
+      "stderr": "",
+      "matches_expected": true
+    },
+    {
+      "argv": [
+        "/opt/homebrew/bin/shellcheck",
+        "-s",
+        "bash",
+        "fixtures/bash/argv_reference.sh",
+        "fixtures/bash/failing_probe.sh",
+        "fixtures/bash/pipeline_reference.sh",
+        "fixtures/bash/conditional_function_errexit_exception.sh",
+        "test_bash_guidance.sh"
+      ],
+      "expected_returncode": 0,
+      "returncode": 0,
+      "stdout": "",
+      "stderr": "",
+      "matches_expected": true
+    },
+    {
+      "argv": [
+        "/opt/homebrew/bin/shellcheck",
+        "-s",
+        "bash",
+        "fixtures/bash/argv_unquoted_mutant.sh"
+      ],
+      "expected_returncode": 1,
+      "returncode": 1,
+      "stdout": "\nIn fixtures/bash/argv_unquoted_mutant.sh line 7:\nprintf '%s\\0' $@ >\"$output\"\n              ^-- SC2068 (error): Double quote array expansions to avoid re-splitting elements.\n\nFor more information:\n  https://www.shellcheck.net/wiki/SC2068 -- Double quote array expansions to ...\n",
+      "stderr": "",
+      "matches_expected": true
+    }
+  ],
+  "passed": true
+}

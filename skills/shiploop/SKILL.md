@@ -94,6 +94,11 @@ and retain material unknowns; carry the resulting criteria into plans and checks
 Use [reference handoffs and destinations](references/project-knowledge.md#reference-handoffs-and-destinations)
 to keep the selected product sections and test locators correlated across plans,
 results and Improve's own contract, without confusing package, repository and run files.
+For item planning, coding and verification, use the
+[coding decision guide](references/coding-guidance.md#select-guidance). Keep a compact
+accepted plan and load only applicable engineering practices and UI, Apps Script,
+Salesforce, Python or Bash cards. Retain decision and check locators through the
+existing result/review notes; the guide does not change stage order or edit authority.
 
 For new work in an existing Git repository, use the isolated entry below. First
 inspect the branch/status and applicable repository instructions. The script
