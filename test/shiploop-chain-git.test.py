@@ -148,6 +148,22 @@ class ShipLoopChainGitTests(unittest.TestCase):
         self.git("commit", "-qm", message, cwd=worker)
         return self.git("rev-parse", "HEAD", cwd=worker).stdout.strip()
 
+    def workspace_filesystem_identity(self, root: Path, git_dir: Path) -> dict:
+        """Record only immutable allocation-instance fields, never mutable times."""
+        return {
+            "root": {"device": root.stat().st_dev, "inode": root.stat().st_ino},
+            "git_dir": {"device": git_dir.stat().st_dev, "inode": git_dir.stat().st_ino},
+        }
+
+    def recreate_registered_worktree(self, root: Path, branch: str) -> dict:
+        self.git("worktree", "remove", str(root), cwd=self.primary)
+        self.git("worktree", "add", "-q", str(root), branch, cwd=self.primary)
+        return self.call(chain_git.target_identity, root)
+
+    def assert_registered_worktree(self, root: Path) -> None:
+        worktrees = self.git("worktree", "list", "--porcelain", cwd=self.primary).stdout
+        self.assertIn(f"worktree {root}\n", worktrees)
+
     def contribution(self, name: str) -> str:
         plan = self.plan()
         worker = self.call(chain_git.allocate, plan)
@@ -515,6 +531,25 @@ else:
         self.assertEqual(plan["worker"]["repo"], str(root))
         self.assertEqual(plan["worker"]["git_dir"], self.call(chain_git.target_identity, root)["git_dir"])
         self.assertEqual(plan["branch"], "ask-agent/arbitrary-worker-branch")
+        self.assertEqual(set(plan["worker_instance"]), {"root", "git_dir"})
+        for entry in plan["worker_instance"].values():
+            self.assertEqual(set(entry), {"device", "inode"})
+            self.assertIs(type(entry["device"]), int)
+            self.assertIs(type(entry["inode"]), int)
+        malformed = dict(plan)
+        malformed["worker_instance"] = {
+            "root": {"device": True, "inode": 1},
+            "git_dir": {"device": 1, "inode": 1},
+        }
+        with self.assertRaisesRegex(chain_git.ChainGitError, "invalid device"):
+            self.call(chain_git.recover_allocation, malformed)
+        malformed["worker_instance"] = {
+            "root": {"device": 1, "inode": 1},
+            "git_dir": {"device": 1, "inode": 1},
+            "ctime": 1,
+        }
+        with self.assertRaisesRegex(chain_git.ChainGitError, "exactly root and git_dir"):
+            self.call(chain_git.recover_allocation, malformed)
 
         (root / ".gitignore").write_text("leftover.log\n", encoding="utf-8")
         (root / "adopted.txt").write_text("adopted worker\n", encoding="utf-8")
@@ -535,6 +570,16 @@ else:
         self.assertTrue(root.exists())
         ignored.unlink()
 
+        old_adopted_plan = dict(plan)
+        old_adopted_plan.pop("worker_instance")
+        self.assertEqual(
+            self.call(chain_git.recover_allocation, old_adopted_plan)["head"],
+            prepared["candidate_commit"],
+        )
+        with self.assertRaisesRegex(chain_git.ChainGitError, "recorded worker filesystem identity"):
+            self.call(chain_git.remove_worker, old_adopted_plan, prepared["candidate_commit"])
+        self.assertTrue(root.exists())
+
         removed = self.call(chain_git.remove_worker, plan, prepared["candidate_commit"])
         self.assertEqual(removed["workspace"], str(root))
         self.assertTrue(removed["removed"])
@@ -554,11 +599,47 @@ else:
         with self.assertRaises(chain_git.ChainGitError):
             self.call(chain_git.inspect_removed, plan, prepared["candidate_commit"])
 
+    def test_adopted_cleanup_refuses_an_aba_recreated_registered_worktree(self) -> None:
+        plan, root = self.adopted_plan(branch="ask-agent/aba-accepted")
+        (root / "accepted.txt").write_text("accepted worker\n", encoding="utf-8")
+        source = self.commit_worker(root, "accepted contribution")
+        prepared = self.call(
+            chain_git.prepare_integration,
+            plan,
+            source,
+            self.initial["head"],
+        )
+        self.call(chain_git.fast_forward, self.initial, prepared["candidate_commit"])
+        original = self.call(chain_git.target_identity, root)
+        original_instance = self.workspace_filesystem_identity(
+            root,
+            Path(original["git_dir"]),
+        )
+        self.assertEqual(plan["worker_instance"], original_instance)
+
+        replacement = self.recreate_registered_worktree(root, plan["branch"])
+        replacement_instance = self.workspace_filesystem_identity(
+            root,
+            Path(replacement["git_dir"]),
+        )
+        for key in ("repo", "git_dir", "common_dir", "branch", "head"):
+            self.assertEqual(replacement[key], original[key])
+        self.assertNotEqual(replacement_instance["root"], plan["worker_instance"]["root"])
+        self.assertNotEqual(replacement_instance["git_dir"], plan["worker_instance"]["git_dir"])
+
+        with self.assertRaises(chain_git.ChainGitError):
+            self.call(chain_git.remove_worker, plan, prepared["candidate_commit"])
+        self.assertTrue(root.is_dir())
+        self.assert_registered_worktree(root)
+
     def test_superseded_worker_cleanup_retains_unintegrated_ref_and_absence_proof(self) -> None:
         old_plan = self.plan(lifecycle="per-step")
         replacement_plan = self.plan(lifecycle="per-step")
         old_worker = self.call(chain_git.allocate, old_plan)
+        old_unbound_plan = dict(old_plan)
+        old_plan = self.call(chain_git.bind_worker_instance, old_plan)
         replacement_worker = self.call(chain_git.allocate, replacement_plan)
+        replacement_plan = self.call(chain_git.bind_worker_instance, replacement_plan)
         old_root = Path(old_worker["repo"])
         replacement_root = Path(replacement_worker["repo"])
 
@@ -576,6 +657,10 @@ else:
         replacement_commit = replacement["candidate_commit"]
         self.call(chain_git.fast_forward, self.initial, replacement_commit)
         self.git("merge-base", "--is-ancestor", old_commit, replacement_commit, cwd=old_root, code=1)
+        self.assertEqual(self.call(chain_git.recover_allocation, old_unbound_plan)["head"], old_commit)
+        with self.assertRaisesRegex(chain_git.ChainGitError, "recorded worker filesystem identity"):
+            self.call(chain_git.remove_superseded_worker, old_unbound_plan, replacement_commit)
+        self.assertTrue(old_root.exists())
         with self.assertRaises(chain_git.ChainGitError):
             self.call(chain_git.remove_worker, old_plan, replacement_commit)
 
@@ -636,6 +721,50 @@ else:
                 old_plan,
                 replacement_commit,
             )
+
+    def test_superseded_cleanup_refuses_an_aba_recreated_registered_worktree(self) -> None:
+        old_plan, old_root = self.adopted_plan(
+            name="ask-agent-aba-old",
+            branch="ask-agent/aba-superseded-old",
+        )
+        replacement_plan, replacement_root = self.adopted_plan(
+            name="ask-agent-aba-replacement",
+            branch="ask-agent/aba-superseded-replacement",
+        )
+        (old_root / "old.txt").write_text("failed worker\n", encoding="utf-8")
+        old_commit = self.commit_worker(old_root, "failed contribution")
+        (replacement_root / "replacement.txt").write_text("replacement worker\n", encoding="utf-8")
+        replacement_source = self.commit_worker(replacement_root, "replacement contribution")
+        prepared = self.call(
+            chain_git.prepare_integration,
+            replacement_plan,
+            replacement_source,
+            self.initial["head"],
+        )
+        replacement_commit = prepared["candidate_commit"]
+        self.call(chain_git.fast_forward, self.initial, replacement_commit)
+        original = self.call(chain_git.target_identity, old_root)
+        self.assertEqual(original["head"], old_commit)
+        original_instance = self.workspace_filesystem_identity(
+            old_root,
+            Path(original["git_dir"]),
+        )
+        self.assertEqual(old_plan["worker_instance"], original_instance)
+
+        replacement = self.recreate_registered_worktree(old_root, old_plan["branch"])
+        replacement_instance = self.workspace_filesystem_identity(
+            old_root,
+            Path(replacement["git_dir"]),
+        )
+        for key in ("repo", "git_dir", "common_dir", "branch", "head"):
+            self.assertEqual(replacement[key], original[key])
+        self.assertNotEqual(replacement_instance["root"], old_plan["worker_instance"]["root"])
+        self.assertNotEqual(replacement_instance["git_dir"], old_plan["worker_instance"]["git_dir"])
+
+        with self.assertRaises(chain_git.ChainGitError):
+            self.call(chain_git.remove_superseded_worker, old_plan, replacement_commit)
+        self.assertTrue(old_root.is_dir())
+        self.assert_registered_worktree(old_root)
 
     def test_plan_rejects_nested_symlink_and_foreign_workspace_containers(self) -> None:
         scoped_parent = self.worktrees / "repo-key"

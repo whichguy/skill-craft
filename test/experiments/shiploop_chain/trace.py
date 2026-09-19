@@ -25,6 +25,7 @@ UUID_RE = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]
 UUID_IN_TEXT_RE = re.compile(r"\bsubagent_id:\s*([0-9a-f-]{36})\b", re.IGNORECASE)
 PASSIVE_TYPES = {"available_commands", "thought", "text", "usage", "system", "session", "message"}
 MUTATING_TOOLS = {"write", "search_replace", "apply_patch", "edit_file", "write_file"}
+NONTERMINAL_TASK_STATUSES = {"", "pending", "running", "in_progress", "in-progress", "queued"}
 DRIVER_ACTIONS = {
     "claim", "start", "launched", "import-handoff", "prepare-integration", "done", "show", "finish", "packet",
 }
@@ -145,6 +146,9 @@ def build_manifest(pilot_dir: str | Path) -> dict[str, Any]:
         if not isinstance(native_handle, str) or UUID_RE.fullmatch(native_handle) is None:
             raise TraceError(f"native handle for {step} is not a Grok subagent UUID")
         source = _absolute(handle.get("source"), f"native handle source for {step}")
+        expected_source = str((pilot / f"{step}-handle.json").resolve(strict=False))
+        if source != expected_source:
+            raise TraceError(f"native handle source for {step} is not its canonical retained handle path")
         handoff = str(Path(workspace_path) / HANDOFF_DIRECTORY / attempt / "handoff.json")
         steps[step] = {
             "step": step,
@@ -258,7 +262,43 @@ def _row_succeeded(row: dict[str, Any], expected_id: str) -> bool:
     if str(row.get("status", "")).lower() != "completed":
         return False
     exit_code = row.get("exit_code", row.get("exitCode"))
-    return exit_code == 0
+    return type(exit_code) is int and exit_code == 0
+
+
+def _terminal_task_failure(row: dict[str, Any]) -> str | None:
+    """Describe a terminal task failure without treating pending polls as failures."""
+    status = row.get("status")
+    if not isinstance(status, str):
+        return None
+    normalized = status.strip().lower()
+    if normalized in NONTERMINAL_TASK_STATUSES:
+        return None
+    if normalized == "completed":
+        exit_code = row.get("exit_code", row.get("exitCode"))
+        if type(exit_code) is int and exit_code == 0:
+            return None
+        return f"completed with invalid exit_code {exit_code!r}"
+    return f"terminal status {status!r}"
+
+
+def _completion_identity(row: dict[str, Any], identifier: str, interval: dict[str, Any] | None) -> tuple[Any, ...]:
+    """Normalize durable task-result fields while excluding host-tool metadata."""
+    if interval is None:
+        timing: tuple[Any, ...] = (
+            "raw",
+            row.get("started", row.get("start")),
+            row.get("ended", row.get("end")),
+            row.get("started_monotonic_ms", row.get("started_ms", row.get("start_monotonic_ms", row.get("start_ms")))),
+            row.get("ended_monotonic_ms", row.get("ended_ms", row.get("end_monotonic_ms", row.get("end_ms")))),
+        )
+    else:
+        timing = ("normalized", interval["clock"], interval["started"], interval["ended"])
+    return (
+        identifier,
+        str(row.get("status", "")).strip().lower(),
+        row.get("exit_code", row.get("exitCode")),
+        timing,
+    )
 
 
 def _parse_iso(value: Any) -> tuple[float, bool] | None:
@@ -526,6 +566,9 @@ def evaluate_events(events: list[dict[str, Any]], manifest: dict[str, Any]) -> d
         else:
             passed("dispatch", f"{step} native spawn matches its retained UUID and workspace")
 
+    terminal_task_failures: dict[str, list[str]] = {step: [] for step in STEPS}
+    completion_identities: dict[str, tuple[Any, ...]] = {}
+    conflicting_completions: dict[str, list[str]] = {step: [] for step in STEPS}
     for call in calls.values():
         if call["tool"] != "get_command_or_subagent_output":
             continue
@@ -540,10 +583,21 @@ def evaluate_events(events: list[dict[str, Any]], manifest: dict[str, Any]) -> d
                 identifier = _row_identifier(row)
                 if identifier not in ids or identifier not in task_ids:
                     continue
+                failure = _terminal_task_failure(row)
+                if failure is not None:
+                    terminal_task_failures[ids[identifier]].append(failure)
+                    continue
                 if not _row_succeeded(row, identifier):
                     continue
                 interval, issue = _interval(row)
-                workers[ids[identifier]]["collections"].append({
+                step = ids[identifier]
+                identity = _completion_identity(row, identifier, interval)
+                previous = completion_identities.get(step)
+                if previous is None:
+                    completion_identities[step] = identity
+                elif previous != identity:
+                    conflicting_completions[step].append("same requested UUID has different status, exit, or timing")
+                workers[step]["collections"].append({
                     "call_index": call["index"], "receipt_index": update["index"], "row": row,
                     "interval": interval, "interval_issue": issue,
                 })
@@ -551,6 +605,10 @@ def evaluate_events(events: list[dict[str, Any]], manifest: dict[str, Any]) -> d
         worker = workers.get(step)
         if worker is None:
             continue
+        if terminal_task_failures[step]:
+            fail("collection", f"{step} has non-success terminal native collection: {terminal_task_failures[step][0]}")
+        if conflicting_completions[step]:
+            fail("collection", f"{step} has contradictory successful native completion records: {conflicting_completions[step][0]}")
         successful = worker["collections"]
         if not successful:
             fail("collection", f"{step} has no completed zero-exit typed native collection")

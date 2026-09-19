@@ -226,6 +226,10 @@ zero-exit `get_command_or_subagent_output` result for that same UUID before
 `import-handoff`. It rejects malformed or truncated host JSON, prose-only or
 forged handles, a cancelled host terminal event, direct parent workspace code
 writes, and parent terminal commands other than exact pilot driver commands.
+Each retained source must be that step's exact `<STEP>-handle.json` file. A
+successful collection cannot hide a contradictory terminal failure for the same
+worker, and JSON booleans are not integer exit codes. Legitimate pending
+observations and repeated equivalent successful collection remain supported.
 
 The observer requires A/B telemetry with compatible sub-second ISO timestamps
 or monotonic start/end values and proves strict interval overlap. Missing or

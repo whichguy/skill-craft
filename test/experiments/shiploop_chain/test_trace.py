@@ -49,7 +49,7 @@ def make_pilot(root: Path) -> tuple[Path, dict[str, str]]:
         workspace = root / f"worker-{step.lower()}"
         workspace.mkdir()
         workspaces[step] = str(workspace)
-        handle_source = pilot / f"{step.lower()}-handle.json"
+        handle_source = pilot / f"{step}-handle.json"
         write_json(pilot / "workspaces" / f"{step}-{attempt}.json", {
             "step": step, "attempt": attempt, "workspace": str(workspace),
         })
@@ -268,6 +268,99 @@ class NativeHostTraceTests(unittest.TestCase):
         self.assertFalse(result["passed"])
         self.assertIn("A start terminal result is not a Bash result", "\n".join(result["errors"]))
 
+    def test_rejects_terminal_worker_failure_after_success(self) -> None:
+        events = valid_events(self.manifest)
+        update = next(event for event in events if event.get("toolCallId") == "collect-1" and event["type"] == "tool_call_update")
+        update["rawOutput"]["MultiResult"]["results"].append({
+            "task_id": self.manifest["steps"]["A"]["handle"], "status": "failed", "exit_code": 1,
+        })
+        result = self.evaluate(events)
+        self.assertFalse(result["passed"])
+        self.assertIn("A has non-success terminal native collection", "\n".join(result["errors"]))
+
+    def test_rejects_terminal_worker_failure_before_success(self) -> None:
+        events = valid_events(self.manifest)
+        update = next(event for event in events if event.get("toolCallId") == "collect-1" and event["type"] == "tool_call_update")
+        update["rawOutput"]["MultiResult"]["results"].insert(0, {
+            "task_id": self.manifest["steps"]["A"]["handle"], "status": "failed", "exit_code": 1,
+        })
+        result = self.evaluate(events)
+        self.assertFalse(result["passed"])
+        self.assertIn("A has non-success terminal native collection", "\n".join(result["errors"]))
+
+    def test_rejects_boolean_worker_exit_code(self) -> None:
+        events = valid_events(self.manifest)
+        update = next(event for event in events if event.get("toolCallId") == "collect-1" and event["type"] == "tool_call_update")
+        update["rawOutput"]["MultiResult"]["results"][0]["exit_code"] = False
+        result = self.evaluate(events)
+        self.assertFalse(result["passed"])
+        self.assertIn("A has non-success terminal native collection", "\n".join(result["errors"]))
+
+    def test_accepts_pending_worker_poll_before_success(self) -> None:
+        events = valid_events(self.manifest)
+        pending = [
+            tool_call("collect-pending-A", "get_command_or_subagent_output", {
+                "task_ids": [self.manifest["steps"]["A"]["handle"]], "timeout_ms": 1000,
+            }),
+            tool_update("collect-pending-A", "completed", {"type": "TaskOutput", "Result": {
+                "task_id": self.manifest["steps"]["A"]["handle"], "status": "pending",
+            }}),
+        ]
+        first_collect = next(index for index, event in enumerate(events) if event.get("toolCallId") == "collect-1")
+        events[first_collect:first_collect] = pending
+        result = self.evaluate(events)
+        self.assertTrue(result["passed"], result["errors"])
+
+    def test_ignores_transient_collection_tool_failure_before_retry(self) -> None:
+        events = valid_events(self.manifest)
+        retry = [
+            tool_call("collect-retry-A", "get_command_or_subagent_output", {
+                "task_ids": [self.manifest["steps"]["A"]["handle"]], "timeout_ms": 1000,
+            }),
+            tool_update("collect-retry-A", "failed", {"type": "Text", "text": "temporary host transport failure"}),
+        ]
+        first_collect = next(index for index, event in enumerate(events) if event.get("toolCallId") == "collect-1")
+        events[first_collect:first_collect] = retry
+        result = self.evaluate(events)
+        self.assertTrue(result["passed"], result["errors"])
+
+    def test_accepts_equivalent_duplicate_completion_collection(self) -> None:
+        events = valid_events(self.manifest)
+        original = next(event for event in events if event.get("toolCallId") == "collect-1" and event["type"] == "tool_call_update")
+        row = dict(original["rawOutput"]["MultiResult"]["results"][0])
+        row["status"] = "COMPLETED"
+        row["started"] = "2026-09-19T12:00:01.100+00:00"
+        row["ended"] = "2026-09-19T12:00:07.900+00:00"
+        retry = [
+            tool_call("collect-repeat-A", "get_command_or_subagent_output", {
+                "task_ids": [self.manifest["steps"]["A"]["handle"]], "timeout_ms": 1000,
+            }),
+            tool_update("collect-repeat-A", "completed", {"type": "TaskOutput", "Result": row}),
+        ]
+        first_import = next(index for index, event in enumerate(events)
+                            if event.get("toolCallId") == "driver-import-handoff-A")
+        events[first_import:first_import] = retry
+        result = self.evaluate(events)
+        self.assertTrue(result["passed"], result["errors"])
+
+    def test_rejects_conflicting_successful_completion_identity(self) -> None:
+        events = valid_events(self.manifest)
+        original = next(event for event in events if event.get("toolCallId") == "collect-1" and event["type"] == "tool_call_update")
+        row = dict(original["rawOutput"]["MultiResult"]["results"][0])
+        row["ended"] = "2026-09-19T12:00:08.900Z"
+        retry = [
+            tool_call("collect-conflict-A", "get_command_or_subagent_output", {
+                "task_ids": [self.manifest["steps"]["A"]["handle"]], "timeout_ms": 1000,
+            }),
+            tool_update("collect-conflict-A", "completed", {"type": "TaskOutput", "Result": row}),
+        ]
+        first_import = next(index for index, event in enumerate(events)
+                            if event.get("toolCallId") == "driver-import-handoff-A")
+        events[first_import:first_import] = retry
+        result = self.evaluate(events)
+        self.assertFalse(result["passed"])
+        self.assertIn("A has contradictory successful native completion records", "\n".join(result["errors"]))
+
     def test_rejects_timed_out_driver_terminal_result(self) -> None:
         events = valid_events(self.manifest)
         update = next(event for event in events if event.get("toolCallId") == "driver-start-A" and event["type"] == "tool_call_update")
@@ -301,6 +394,14 @@ class NativeHostTraceTests(unittest.TestCase):
         result = self.evaluate(events)
         self.assertFalse(result["passed"])
         self.assertIn("terminal command does not use the selected native_pilot.py path", "\n".join(result["errors"]))
+
+    def test_rejects_noncanonical_per_step_handle_source(self) -> None:
+        record = self.pilot / "handles" / f"B-{ATTEMPTS['B']}.json"
+        value = json.loads(record.read_text(encoding="utf-8"))
+        value["source"] = str(self.pilot / "A-handle.json")
+        write_json(record, value)
+        with self.assertRaisesRegex(TraceError, "native handle source for B is not its canonical retained handle path"):
+            build_manifest(self.pilot)
 
     def test_rejects_parent_write_in_worker_workspace(self) -> None:
         events = valid_events(self.manifest)

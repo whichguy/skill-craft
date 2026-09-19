@@ -1060,6 +1060,53 @@ def _record_for_attempt(full: Mapping[str, Any], attempt: str) -> dict[str, Any]
     return dict(attempts[attempt])
 
 
+def _per_step_require_current_attempt(binding: Mapping[str, Any], attempt: str, operation: str,
+                                      *, allow_terminal_replay: bool = False) -> dict[str, Any]:
+    """Refuse stale worker continuations before they can prepare or mutate Git."""
+    full = _child_full(binding)
+    if full.get("owner") != binding["owner"]:
+        _fail(f"{operation} requires the immutable selected dispatcher owner")
+    record = _record_for_attempt(full, attempt)
+    if allow_terminal_replay and record.get("status") in {"accepted", "rejected"}:
+        return record
+    step = record.get("step")
+    steps = full.get("steps")
+    state = steps.get(step) if isinstance(steps, Mapping) and isinstance(step, str) else None
+    if not isinstance(state, Mapping) or state.get("current_attempt") != attempt:
+        _fail(f"{operation} requires the current dispatcher attempt; {attempt} is stale or retried")
+    return record
+
+
+def _per_step_require_terminal_replay(record: Mapping[str, Any], rows: list[dict[str, Any]],
+                                      attempt: str, verification: Mapping[str, Any]) -> None:
+    """Allow only the exact terminal verification to reach integration replay."""
+    if record.get("status") not in {"accepted", "rejected"}:
+        return
+    saved = record.get("verification")
+    if not isinstance(saved, Mapping) or dict(saved) != dict(verification):
+        _fail("per-step done conflicts with the durable terminal dispatcher settlement")
+    prior = _event(rows, "settle_result", attempt=attempt)
+    if prior is not None and _event_data(prior).get("verification") != verification:
+        _fail("per-step done conflicts with the durable bridge terminal settlement")
+
+
+def _per_step_require_execution_identity(binding: Mapping[str, Any], rows: list[dict[str, Any]],
+                                         attempt: str, record: Mapping[str, Any]) -> None:
+    """Require the launch identity before a positive report can mutate Git."""
+    if record.get("status") == "accepted":
+        # Exact accepted replays only reconcile durable bridge receipts.
+        return
+    if _binding_mode(binding) == "serial":
+        executor = _main_context_executor(binding, attempt)
+        start = _event(rows, "start_intent", attempt=attempt)
+        if (start is None or _event_data(start).get("executor") != executor
+                or record.get("executor") != executor):
+            _fail("per-step integration requires the recorded serial main-context execution identity")
+        return
+    if record.get("status") != "running" or record.get("handle") is None:
+        _fail("per-step integration requires a recorded native launch handle")
+
+
 def _step_for_attempt(full: Mapping[str, Any], attempt: str) -> dict[str, Any]:
     record = _record_for_attempt(full, attempt)
     step_id = record.get("step")
@@ -1239,6 +1286,25 @@ def _per_step_allocation_records(rows: list[dict[str, Any]]) -> dict[str, dict[s
     return records
 
 
+def _per_step_serial_creation_records(rows: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
+    records: dict[str, dict[str, Any]] = {}
+    for row in rows:
+        event = row.get("event") if isinstance(row, Mapping) else None
+        if not isinstance(event, Mapping) or event.get("kind") != "serial_workspace_creation_intent":
+            continue
+        data = _event_data(row)
+        attempt = data.get("attempt")
+        if isinstance(attempt, str):
+            records[attempt] = data
+    return records
+
+
+def _per_step_serial_creation_pending(rows: list[dict[str, Any]],
+                                      allocations: Mapping[str, Any] | None = None) -> list[str]:
+    allocated = _per_step_allocation_records(rows) if allocations is None else allocations
+    return [attempt for attempt in _per_step_serial_creation_records(rows) if attempt not in allocated]
+
+
 def _per_step_handoff_path(workspace: str, attempt: str) -> str:
     return str(Path(workspace) / ".shiploop-handoff" / _attempt(attempt) / "handoff.json")
 
@@ -1367,6 +1433,7 @@ def _per_step_internal_packet(rows: list[dict[str, Any]], attempt: str) -> dict[
 
 def _per_step_lifecycle_status(binding: Mapping[str, Any], rows: list[dict[str, Any]]) -> dict[str, Any]:
     allocations = _per_step_allocation_records(rows)
+    serial_creation_pending = _per_step_serial_creation_pending(rows, allocations)
     integrated = {
         _event_data(row).get("attempt")
         for row in rows
@@ -1394,6 +1461,10 @@ def _per_step_lifecycle_status(binding: Mapping[str, Any], rows: list[dict[str, 
             "instruction": "Reconcile the exact integration intent before launching or integrating another worker.",
         })
     actions.extend({
+        "action": "recover-workspace", "attempt": attempt,
+        "instruction": "Replay the exact serial start input to recover the recorded clean workspace; do not create or adopt another worktree.",
+    } for attempt in serial_creation_pending)
+    actions.extend({
         "action": "cleanup", "attempt": attempt,
         "instruction": "Retry only the accepted worker removal; do not launch, merge, or settle the task again.",
     } for attempt in cleanup_pending)
@@ -1406,6 +1477,7 @@ def _per_step_lifecycle_status(binding: Mapping[str, Any], rows: list[dict[str, 
         "lifecycle": "per-step",
         "expected_target": _per_step_expected_target(binding, rows),
         "unresolved_integration": None if open_intent is None else open_intent,
+        "serial_creation_pending": serial_creation_pending,
         "cleanup_pending": cleanup_pending,
         "superseded_cleanup_pending": superseded_pending,
         "retained_workers": retained,
@@ -1434,6 +1506,10 @@ def _per_step_start(root: Path, binding: Mapping[str, Any], value: dict[str, Any
     dependencies = _per_step_direct_contributions(binding, full, start["attempt"], rows, expected_target)
     allocation = _allocation(rows, start["attempt"])
     mode = _binding_mode(binding)
+    required_commits = [
+        _integration_proof(item.get("integration"), "accepted supplier integration")["candidate_commit"]
+        for item in dependencies
+    ]
     if allocation is None:
         if record.get("status") != "claimed":
             _fail("per-step attempt has no durable adoption and is no longer safely startable")
@@ -1465,11 +1541,36 @@ def _per_step_start(root: Path, binding: Mapping[str, Any], value: dict[str, Any
                 )
                 identity = plan.get("worker") if isinstance(plan, Mapping) else None
             else:
-                plan = helper.allocation_plan(
-                    expected_target, binding["worktree_parent"], _allocation_uuid(binding),
-                    _allocation_uuid(binding, start["attempt"]), base, lifecycle="per-step",
-                )
-                identity = helper.allocate(plan)
+                creation_inputs = {
+                    "attempt": start["attempt"], "base_commit": base,
+                    "write_scope": start["write_scope"], "resources": start["resources"],
+                    "ready_evidence": start["ready_evidence"], "required_commits": required_commits,
+                    "adoption": "serial-bridge",
+                }
+                prior_creation = _event(rows, "serial_workspace_creation_intent", attempt=start["attempt"])
+                if prior_creation is None:
+                    plan = helper.allocation_plan(
+                        expected_target, binding["worktree_parent"], _allocation_uuid(binding),
+                        _allocation_uuid(binding, start["attempt"]), base, lifecycle="per-step",
+                    )
+                    creation = dict(creation_inputs, plan=dict(plan))
+                    _append(chain_dir, _event_id("serial-workspace-create", creation),
+                            "serial_workspace_creation_intent", creation)
+                    rows = _events(chain_dir)
+                    identity = helper.allocate(plan)
+                else:
+                    creation = _event_data(prior_creation)
+                    saved_plan = creation.get("plan") if isinstance(creation, Mapping) else None
+                    if (not isinstance(saved_plan, Mapping)
+                            or {key: value for key, value in creation.items() if key != "plan"} != creation_inputs):
+                        _fail("serial workspace creation replay conflicts with the recorded plan and start inputs")
+                    plan = dict(saved_plan)
+                    if (plan.get("lifecycle") != "per-step" or plan.get("base_commit") != base
+                            or plan.get("target") != expected_target):
+                        _fail("serial workspace creation has an invalid durable target plan")
+                    path = _is_absolute_text(plan.get("path"), "serial workspace creation plan.path")
+                    identity = helper.recover_allocation(plan) if os.path.lexists(path) else helper.allocate(plan)
+                plan = helper.bind_worker_instance(plan)
         except ValueError as exc:
             raise ChainError(str(exc)) from exc
         if not isinstance(plan, Mapping) or not isinstance(identity, Mapping):
@@ -1489,10 +1590,7 @@ def _per_step_start(root: Path, binding: Mapping[str, Any], value: dict[str, Any
         allocation = {
             "attempt": start["attempt"], "plan": plan, "base_commit": base,
             "write_scope": start["write_scope"], "resources": start["resources"],
-            "ready_evidence": start["ready_evidence"], "required_commits": [
-                _integration_proof(item.get("integration"), "accepted supplier integration")["candidate_commit"]
-                for item in dependencies
-            ],
+            "ready_evidence": start["ready_evidence"], "required_commits": required_commits,
             "adoption": "ask-agent" if mode == "parallel" else "serial-bridge",
         }
         _append(chain_dir, _event_id("allocation-intent", allocation), "allocation_intent", allocation)
@@ -2141,6 +2239,7 @@ def _per_step_parent_report(binding: Mapping[str, Any], rows: list[dict[str, Any
 
 def _import_handoff(root: Path, binding: Mapping[str, Any], value: dict[str, Any]) -> dict[str, Any]:
     attempt, handoff = _parse_import_handoff(value)
+    _per_step_require_current_attempt(binding, attempt, "import-handoff")
     chain_dir = _binding_dir(root, binding["action_id"])
     rows = _events(chain_dir)
     allocation = _per_step_allocation(rows, attempt)
@@ -2239,6 +2338,7 @@ def _import_handoff(root: Path, binding: Mapping[str, Any], value: dict[str, Any
 
 def _per_step_prepare(root: Path, binding: Mapping[str, Any], value: dict[str, Any]) -> dict[str, Any]:
     attempt = _parse_prepare(value)
+    _per_step_require_current_attempt(binding, attempt, "prepare")
     chain_dir = _binding_dir(root, binding["action_id"])
     rows = _events(chain_dir)
     _per_step_require_no_open_integration(rows, "prepare")
@@ -2641,8 +2741,10 @@ def _per_step_integrate(root: Path, binding: Mapping[str, Any], attempt: str,
 
 def _per_step_done(root: Path, binding: Mapping[str, Any], value: dict[str, Any]) -> dict[str, Any]:
     attempt, verification, supplied_integration = _parse_per_step_done(value)
+    record = _per_step_require_current_attempt(binding, attempt, "done", allow_terminal_replay=True)
     chain_dir = _binding_dir(root, binding["action_id"])
     rows = _events(chain_dir)
+    _per_step_require_terminal_replay(record, rows, attempt, verification)
     imported_record = _per_step_import_record(rows, attempt)
     if imported_record is None:
         _fail("per-step done requires a parent-imported stopped handoff")
@@ -2675,6 +2777,7 @@ def _per_step_done(root: Path, binding: Mapping[str, Any], value: dict[str, Any]
     if supplied.get("workspace") is not None and supplied["workspace"] != integration.get("workspace"):
         _fail("per-step integration workspace conflicts with the prepared candidate")
     allocation = _per_step_allocation(rows, attempt)
+    _per_step_require_execution_identity(binding, rows, attempt, record)
     rows = _per_step_integrate(root, binding, attempt, verification, integration, allocation, rows)
     outcome, _terminal = _per_step_settle_child(
         root, binding, attempt, verification, integration=integration, imported=imported,
@@ -2831,6 +2934,8 @@ def _retry(root: Path, binding: Mapping[str, Any], value: dict[str, Any]) -> dic
     rows = _events(chain_dir)
     if _binding_lifecycle(binding) == "per-step":
         _per_step_require_no_open_integration(rows, "retry")
+        if attempt in _per_step_serial_creation_pending(rows):
+            _fail("retry is blocked by an unresolved serial workspace creation; replay the exact start input first")
     prior_intent = _event(rows, "retry_intent", attempt=attempt, reason=reason,
                           confirmed_stopped=True)
     if prior_intent is not None:
@@ -2929,6 +3034,8 @@ def _per_step_finish(root: Path, binding: Mapping[str, Any], value: dict[str, An
     lifecycle = _per_step_lifecycle_status(binding, rows)
     if lifecycle["unresolved_integration"] is not None:
         _fail("per-step finish is blocked by an unresolved integration intent")
+    if lifecycle["serial_creation_pending"]:
+        _fail("per-step finish is blocked by an unresolved serial workspace creation")
     if lifecycle["retained_workers"]:
         _fail("per-step finish requires every owned worker to be removed; retry cleanup first")
     child = _node(binding, "next")

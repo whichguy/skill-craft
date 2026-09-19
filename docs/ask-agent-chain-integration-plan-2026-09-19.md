@@ -310,9 +310,15 @@ package is a frozen fixture of the separate
 unpublished contribution, not a claim that the source or installed 0.3 package
 has been upgraded.
 
-## September 19 qualification record
+## September 19 baseline qualification record
 
-The candidate's focused checks pass: 10 composed lifecycle cases, 33 legacy
+This record describes commit `f8d9c0d`. Later compound-case repairs and their
+focused validation are recorded in the
+[compound coverage matrix](shiploop-chain-compound-coverage-2026-09-19.md).
+The 93-suite result below applies to the baseline, not automatically to those
+later changes.
+
+The baseline's focused checks passed: 10 composed lifecycle cases, 33 legacy
 chain cases, 14 real-Git cases, 16 archive cases, 23 synthetic native-trace
 controls, and 23 core packaging/installation groups. The lifecycle cases write
 and execute actual Python code in disposable sibling worktrees, prove A/B
@@ -337,7 +343,7 @@ The full **93-suite inventory passed** in three external sibling checkouts under
 and exited zero (1699.47, 1684.60 and 1832.18 seconds). All 13 action-walk cases
 passed. The separate 23-group core gate exited zero in 80.62 seconds. The trace
 observer received review corrections after the snapshot:
-the current 23-case focused result supersedes the snapshot's 11-case trace suite.
+the baseline's 23-case focused result supersedes the snapshot's 11-case trace suite.
 The evaluator now requires successful exact command receipts and full lifecycle
 ordering for every worker; it rejects no-op commands and a tool-level completion
 that contains a failed shell result. Independent review reran the four originally

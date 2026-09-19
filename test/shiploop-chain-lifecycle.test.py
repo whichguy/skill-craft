@@ -70,7 +70,7 @@ class PerStepChainTests(unittest.TestCase):
     def claim(self, *steps):
         return self.f.claim(list(steps))
 
-    def start(self, step, attempt, *, serial=False):
+    def start(self, step, attempt, *, serial=False, record_launch=True):
         base = self.head()
         names = {"A": "chain_add.py", "B": "chain_format.py", "C": "chain_sum.py", "J": "chain_report.py"}
         value = self.f.start_value(step, attempt, base=base)
@@ -97,7 +97,10 @@ class PerStepChainTests(unittest.TestCase):
             self.assertNotIn(external, packet)
         if not serial:
             self.assertEqual(Path(packet["context"]["workspace"]), workspace)
-            self.call("launched", {"attempt": attempt, "handle": {"host": "deterministic-process-fixture", "id": step}})
+            if record_launch:
+                self.call("launched", {"attempt": attempt, "handle": {
+                    "host": "deterministic-process-fixture", "id": step,
+                }})
         return packet
 
     def read_json_line(self, process):
@@ -191,6 +194,9 @@ if (p/'chain_report.py').exists():
     def binding(self):
         return fixture.store.read_record(self.f.run / "chains" / self.f.action / "binding.md")
 
+    def bridge_events(self):
+        return fixture.chain._events(self.f.run / "chains" / self.f.action)
+
     def complete_step(self, step):
         proc = self.launch(step)
         self.collect(step, proc)
@@ -263,8 +269,76 @@ if (p/'chain_report.py').exists():
         for step in ("A", "B", "C", "J"):
             attempt = self.claim(step)[step]
             self.start(step, attempt, serial=True)
+            plan = fixture.chain._per_step_allocation(self.bridge_events(), attempt)["plan"]
+            self.assertIn("worker_instance", plan)
             self.complete_step(step)
             self.assertIsNone(self.f.child_record(attempt).get("handle"))
+        self.finish()
+
+    def test_serial_creation_intent_recovers_exact_workspace_after_allocation_crash(self):
+        self.bind(mode="serial", single=True)
+        attempt = self.claim("A")["A"]
+        value = self.f.start_value("A", attempt, base=self.head())
+        value["write_scope"] = ["chain_add.py"]
+        original = fixture.chain._append
+        helper = fixture.chain._chain_git()
+
+        # The creation intent must survive an interruption before Git changes
+        # anything.  Its exact replay may allocate the still-absent path.
+        with patch.object(helper, "allocate", side_effect=OSError("fixture interruption before Git allocation")):
+            with self.assertRaises(OSError):
+                fixture.chain._per_step_start(self.f.run, self.binding(), value)
+        events = self.bridge_events()
+        creation = next(row["event"]["data"] for row in events
+                        if row["event"]["kind"] == "serial_workspace_creation_intent")
+        self.assertIsNone(fixture.chain._allocation(events, attempt))
+        workspace = Path(creation["plan"]["path"])
+        self.assertFalse(workspace.exists())
+        self.assertEqual(self.call("pending")["lifecycle"]["serial_creation_pending"], [attempt])
+
+        conflicting = json.loads(json.dumps(value))
+        conflicting["resources"] = ["different"]
+        refused = self.call("start", conflicting, ok=False)
+        self.assertIn("creation replay", refused.stderr)
+        self.assertFalse(workspace.exists())
+
+        def crash_before_allocation_receipt(chain_dir, event_id, kind, data, **kwargs):
+            if kind == "allocation_intent":
+                raise OSError("fixture interruption after serial worktree allocation")
+            return original(chain_dir, event_id, kind, data, **kwargs)
+
+        # The persisted intent has no path yet, so its first replay allocates;
+        # it must not mistake an absent path for an allocated recovery.
+        with patch.object(helper, "recover_allocation", side_effect=AssertionError("initial allocation must not recover")):
+            with patch.object(fixture.chain, "_append", side_effect=crash_before_allocation_receipt):
+                with self.assertRaises(OSError):
+                    fixture.chain._per_step_start(self.f.run, self.binding(), value)
+        events = self.bridge_events()
+        self.assertIsNone(fixture.chain._allocation(events, attempt))
+        self.assertTrue(workspace.exists())
+        before_worktrees = self.f.git(self.f.target, "worktree", "list", "--porcelain")
+        pending = self.call("pending")
+        self.assertEqual(pending["lifecycle"]["serial_creation_pending"], [attempt])
+        self.assertTrue(any(item.get("action") == "recover-workspace" and item.get("attempt") == attempt
+                            for item in self.call("next")["actions"]))
+        retry = self.call("retry", {"attempt": attempt, "confirmed_stopped": True,
+                                    "reason": "Do not orphan an unrecorded workspace"}, ok=False)
+        self.assertIn("serial workspace creation", retry.stderr)
+        self.assertEqual(self.f.child_record(attempt)["status"], "claimed")
+        refused = self.call("start", conflicting, ok=False)
+        self.assertIn("creation replay", refused.stderr)
+        self.assertEqual(self.f.git(self.f.target, "worktree", "list", "--porcelain"), before_worktrees)
+
+        output = self.call("start", value)
+        self.assertEqual(output["action"], "execute")
+        self.packets["A"] = output["packet"]
+        self.assertEqual(self.f.git(self.f.target, "worktree", "list", "--porcelain"), before_worktrees)
+        allocation = fixture.chain._per_step_allocation(self.bridge_events(), attempt)
+        self.assertEqual(allocation["plan"]["path"], str(workspace))
+        self.assertIn("worker_instance", allocation["plan"])
+        kinds = [row["event"]["kind"] for row in self.bridge_events()]
+        self.assertLess(kinds.index("serial_workspace_creation_intent"), kinds.index("allocation_intent"))
+        self.complete_step("A")
         self.finish()
 
     def test_unsupported_ask_agent_version_refused_before_any_worker(self):
@@ -296,6 +370,163 @@ if (p/'chain_report.py').exists():
         self.prepare_and_done("B")
         self.f.git(self.f.target, "merge-base", "--is-ancestor", after_a, self.head())
 
+    def test_parallel_semantic_rejection_cannot_resume_retried_worker(self):
+        self.bind()
+        attempts = self.claim("A", "B")
+        a_packet = self.start("A", attempts["A"], record_launch=False)
+        b_packet = self.start("B", attempts["B"])
+        a_worker = Path(a_packet["context"]["workspace"])
+        b_worker = Path(b_packet["context"]["workspace"])
+        a, b = self.launch("A"), self.launch("B")
+        # Each worker remains locally valid.  Together B's support module
+        # changes A's behavior only in the prepared combined candidate.
+        (a_worker / "chain_add.py").write_text(
+            "def add(left, right):\n"
+            "    try:\n"
+            "        from chain_format import adjust_total\n"
+            "    except ImportError:\n"
+            "        return left + right\n"
+            "    return adjust_total(left + right)\n"
+        )
+        (b_worker / "chain_format.py").write_text(
+            "def normalize(text):\n"
+            "    return ' '.join(text.strip().lower().split())\n\n"
+            "def adjust_total(total):\n"
+            "    return total - 1\n"
+        )
+        self.verify(a_worker)
+        self.verify(b_worker)
+        self.collect("A", a)
+        self.collect("B", b)
+        a_value = self.prepared_input("A")
+        before_fast_report_head = self.head()
+        before_fast_report_ledger = self.f.ledger_bytes()
+        fast_report = self.call("done", a_value, ok=False)
+        self.assertIn("native launch handle", fast_report.stderr)
+        self.assertEqual(self.head(), before_fast_report_head)
+        self.assertEqual(self.f.ledger_bytes(), before_fast_report_ledger)
+        self.assertFalse(any(row["event"]["kind"] == "integration_result"
+                             and row["event"]["data"].get("attempt") == attempts["A"]
+                             for row in self.bridge_events()))
+        self.call("launched", {"attempt": attempts["A"], "handle": {
+            "host": "deterministic-process-fixture", "id": "A",
+        }})
+        accepted_a = self.call("done", a_value)
+        self.assertEqual(accepted_a["outcome"], "accepted")
+        self.assertEqual(self.head(), a_value["integration"]["candidate_commit"])
+        self.assertFalse(a_worker.exists())
+        self.verify(self.f.target)
+        after_a = self.head()
+        old_b_prepared = self.call("prepare", {"attempt": attempts["B"], "confirmed_stopped": True})
+        combined = subprocess.run(
+            [sys.executable, "-B", "-c", "from chain_add import add; assert add(2,3)==5"],
+            cwd=b_worker, text=True, capture_output=True, timeout=15,
+        )
+        self.assertNotEqual(combined.returncode, 0, combined.stderr)
+        receipt = fixture.chain._node(self.binding(), "receipt", {"attempt": attempts["B"]})
+        proof = self.f.write("semantic-conflict-b.json", {
+            "passed": False, "integration": old_b_prepared["integration"],
+            "checks": ["combined add behavior after B support module is installed"],
+        })
+        rejected_input = {
+            "attempt": attempts["B"], "confirmed_stopped": True,
+            "verification": {
+                "receipt_sha256": receipt["sha256"], "passed": False,
+                "reason": "Combined candidate changes independently verified add behavior",
+                "evidence": {"path": str(proof), "sha256": fixture.digest(proof)},
+            },
+        }
+        rejected = self.call("done", rejected_input)
+        self.assertEqual(rejected["outcome"], "rejected")
+        self.assertEqual(self.head(), after_a)
+        self.assertNotIn("J", self.call("next")["ready"])
+        conflicting_proof = self.f.write("conflicting-terminal-b.json", {
+            "passed": True, "integration": old_b_prepared["integration"],
+            "checks": ["structurally exact stale W/T/I proof"],
+        })
+        conflicting_input = {
+            "attempt": attempts["B"], "confirmed_stopped": True,
+            "integration": old_b_prepared["integration"],
+            "verification": {
+                "receipt_sha256": receipt["sha256"], "passed": True,
+                "reason": "Conflicting terminal positive replay",
+                "evidence": {"path": str(conflicting_proof), "sha256": fixture.digest(conflicting_proof)},
+            },
+        }
+        before_conflict_head = self.head()
+        before_conflict_ledger = self.f.ledger_bytes()
+        before_conflict_worktrees = self.f.git(self.f.target, "worktree", "list", "--porcelain")
+        conflict = self.call("done", conflicting_input, ok=False)
+        self.assertIn("terminal", conflict.stderr)
+        self.assertEqual(self.head(), before_conflict_head)
+        self.assertEqual(self.f.ledger_bytes(), before_conflict_ledger)
+        self.assertEqual(self.f.git(self.f.target, "worktree", "list", "--porcelain"), before_conflict_worktrees)
+        self.assertFalse(any(row["event"]["kind"] == "integration_result"
+                             and row["event"]["data"].get("attempt") == attempts["B"]
+                             for row in self.bridge_events()))
+        self.call("retry", {"attempt": attempts["B"], "confirmed_stopped": True,
+                              "reason": "Repair cross-file semantic conflict"})
+
+        before_head = self.head()
+        before_ledger = self.f.ledger_bytes()
+        before_worktrees = self.f.git(self.f.target, "worktree", "list", "--porcelain")
+        for operation, value in (
+            ("prepare", {"attempt": attempts["B"], "confirmed_stopped": True}),
+            ("done", rejected_input),
+        ):
+            refused = self.call(operation, value, ok=False)
+            self.assertIn("stale or retried", refused.stderr)
+            self.assertEqual(self.head(), before_head)
+            self.assertEqual(self.f.ledger_bytes(), before_ledger)
+            self.assertEqual(self.f.git(self.f.target, "worktree", "list", "--porcelain"), before_worktrees)
+
+        self.start("B", self.claim("B")["B"])
+        self.complete_step("B")
+        self.call("cleanup", {"attempt": attempts["B"], "confirmed_stopped": True,
+                                "disposition": "superseded",
+                                "reason": "Replacement independently accepted and integrated"})
+        self.assertFalse(b_worker.exists())
+        self.start("C", self.claim("C")["C"])
+        self.complete_step("C")
+        self.start("J", self.claim("J")["J"])
+        self.complete_step("J")
+        self.finish()
+
+    def test_public_owner_takeover_refuses_prepared_candidate_before_integration(self):
+        self.bind(single=True)
+        attempt = self.claim("A")["A"]
+        packet = self.start("A", attempt)
+        workspace = Path(packet["context"]["workspace"])
+        self.collect("A", self.launch("A"))
+        value = self.prepared_input("A")
+        self.assertEqual(self.head(), self.f.initial)
+        self.assertEqual(value["integration"]["expected_target"], self.f.initial)
+        self.assertTrue(workspace.exists())
+
+        # The child accepts a public ownership handoff while the worker is
+        # stopped.  The old bridge binding must not integrate its positive
+        # W/T/I candidate before the child rejects that stale owner.
+        binding = self.binding()
+        fixture.chain._node(binding, "takeover", {
+            "oldOwner": binding["owner"], "newOwner": binding["owner"] + "-replacement",
+            "confirmed_stopped": True, "reason": "fixture ownership handoff",
+        })
+        before_head = self.head()
+        before_ledger = self.f.ledger_bytes()
+        before_worktrees = self.f.git(self.f.target, "worktree", "list", "--porcelain")
+        for operation, input_value in (
+            ("prepare", {"attempt": attempt, "confirmed_stopped": True}),
+            ("done", value),
+        ):
+            refused = self.call(operation, input_value, ok=False)
+            self.assertIn("owner", refused.stderr)
+            self.assertEqual(self.head(), before_head)
+            self.assertEqual(self.f.ledger_bytes(), before_ledger)
+            self.assertEqual(self.f.git(self.f.target, "worktree", "list", "--porcelain"), before_worktrees)
+        self.assertFalse(any(row["event"]["kind"] == "integration_result"
+                             and row["event"]["data"].get("attempt") == attempt
+                             for row in self.bridge_events()))
+
     def test_cleanup_failure_does_not_repeat_acceptance_or_task(self):
         self.bind(single=True)
         attempt = self.claim("A")["A"]
@@ -321,6 +552,55 @@ if (p/'chain_report.py').exists():
         self.assertEqual(len(self.f.terminal_events(attempt)), 1)
         self.finish()
 
+    def test_accepted_dependency_releases_successor_while_cleanup_is_pending(self):
+        self.bind()
+        attempts = self.claim("A", "B")
+        a_packet = self.start("A", attempts["A"])
+        self.start("B", attempts["B"])
+        a, b = self.launch("A"), self.launch("B")
+        self.collect("A", a)
+        a_value = self.prepared_input("A")
+        helper = fixture.chain._chain_git()
+        with patch.object(helper, "remove_worker", side_effect=ValueError("fixture removal refusal")):
+            accepted = fixture.chain._settle(self.f.run, self.binding(), a_value)
+        self.assertEqual(accepted["outcome"], "accepted")
+        self.assertIn(attempts["A"], accepted["lifecycle"]["cleanup_pending"])
+        a_worker = Path(a_packet["context"]["workspace"])
+        self.assertTrue(a_worker.exists())
+        self.assertIn("C", accepted["ready"])
+
+        c_attempt = self.claim("C")["C"]
+        c_packet = self.start("C", c_attempt)
+        self.assertTrue(a_worker.exists())
+        self.assertEqual([item["step"] for item in c_packet["dependencies"]], ["A"])
+        dependency = c_packet["dependencies"][0]
+        self.assertEqual(dependency["handoff"]["archived_path"], self.imports["A"]["handoff"]["archived_path"])
+        self.assertTrue(Path(dependency["handoff"]["archived_path"]).is_file())
+        self.assertNotEqual(dependency["handoff"]["archived_path"],
+                            str(a_worker / ".shiploop-handoff" / attempts["A"] / "handoff.json"))
+
+        c = self.launch("C")
+        self.assertTrue(a_worker.exists())
+        self.assertIn(attempts["A"], self.call("pending")["lifecycle"]["cleanup_pending"])
+        self.assertIsNone(b.poll())
+        self.assertIsNone(c.poll())
+        self.collect("B", b)
+        self.prepare_and_done("B")
+        self.collect("C", c)
+        self.prepare_and_done("C")
+        self.start("J", self.claim("J")["J"])
+        self.complete_step("J")
+        self.assertTrue(a_worker.exists())
+        self.assertEqual(len(self.f.terminal_events(attempts["A"])), 1)
+        self.assertEqual(sum(row["event"]["kind"] == "integration_result"
+                             and row["event"]["data"].get("attempt") == attempts["A"]
+                             for row in self.bridge_events()), 1)
+        head_before_cleanup = self.head()
+        self.call("cleanup", {"attempt": attempts["A"], "confirmed_stopped": True})
+        self.assertFalse(a_worker.exists())
+        self.assertEqual(self.head(), head_before_cleanup)
+        self.finish()
+
     def test_crash_after_target_update_recovers_without_duplicate_merge(self):
         self.bind(single=True)
         attempt = self.claim("A")["A"]
@@ -340,6 +620,66 @@ if (p/'chain_report.py').exists():
         self.call("done", value)
         self.assertEqual(len(self.f.terminal_events(attempt)), 1)
         self.assertFalse(Path(self.packets["A"]["context"]["workspace"]).exists())
+        self.finish()
+
+    def test_unresolved_integration_blocks_sibling_until_exact_recovery(self):
+        self.bind()
+        attempts = self.claim("A", "B")
+        for step in ("A", "B"):
+            self.start(step, attempts[step])
+            self.collect(step, self.launch(step))
+        a_value = self.prepared_input("A")
+        b_value = self.prepared_input("B")
+        initial = self.head()
+        helper = fixture.chain._chain_git()
+        with patch.object(helper, "fast_forward", side_effect=ValueError("fixture target write interruption")):
+            with self.assertRaises(fixture.chain.ChainError):
+                fixture.chain._settle(self.f.run, self.binding(), a_value)
+        self.assertEqual(self.head(), initial)
+        self.assertNotEqual(self.f.child_record(attempts["A"])["status"], "accepted")
+        events_after_failure = self.bridge_events()
+        self.assertTrue(any(row["event"]["kind"] == "integration_intent"
+                            and row["event"]["data"]["attempt"] == attempts["A"]
+                            for row in events_after_failure))
+        self.assertFalse(any(row["event"]["kind"] == "integration_result"
+                             and row["event"]["data"]["attempt"] == attempts["A"]
+                             for row in events_after_failure))
+
+        before_b = self.f.ledger_bytes()
+        for operation, value in (
+            ("prepare", {"attempt": attempts["B"], "confirmed_stopped": True}),
+            ("done", b_value),
+        ):
+            refused = self.call(operation, value, ok=False)
+            self.assertIn("unresolved integration intent", refused.stderr)
+            self.assertEqual(self.head(), initial)
+            self.assertEqual(self.f.ledger_bytes(), before_b)
+        recovery = self.call("next")
+        self.assertEqual(recovery["lifecycle"]["unresolved_integration"]["attempt"], attempts["A"])
+        self.assertTrue(any(item.get("action") == "recover-integration" and item.get("attempt") == attempts["A"]
+                            for item in recovery["actions"]))
+
+        accepted = self.call("done", a_value)
+        self.assertEqual(accepted["outcome"], "accepted")
+        after_a = self.head()
+        child_before_replay = self.f.child_state_path().read_bytes()
+        ledger_before_replay = self.f.ledger_bytes()
+        replay = self.call("done", a_value)
+        self.assertEqual(replay["outcome"], "accepted")
+        self.assertEqual(self.head(), after_a)
+        self.assertEqual(self.f.child_state_path().read_bytes(), child_before_replay)
+        self.assertEqual(self.f.ledger_bytes(), ledger_before_replay)
+        self.assertEqual(len(self.f.terminal_events(attempts["A"])), 1)
+
+        stale = self.call("done", b_value, ok=False)
+        self.assertTrue(any(word in stale.stderr.lower() for word in ("target", "stale", "head")), stale.stderr)
+        self.assertEqual(self.head(), after_a)
+        self.assertNotEqual(self.f.child_record(attempts["B"])["status"], "accepted")
+        self.prepare_and_done("B")
+        self.start("C", self.claim("C")["C"])
+        self.complete_step("C")
+        self.start("J", self.claim("J")["J"])
+        self.complete_step("J")
         self.finish()
 
     def test_rejected_retry_can_retire_old_workspace_without_merging_bad_code(self):

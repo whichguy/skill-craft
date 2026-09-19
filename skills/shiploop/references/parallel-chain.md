@@ -126,6 +126,13 @@ exclusive ownership, and never creates a second parallel checkout. The starting
 revision is the invoking branch's latest recorded integrated HEAD. First-version
 chain execution requires a clean target; it does not silently stash or discard
 changes to emulate generic Ask-Agent's broader dirty-snapshot capability.
+New parallel and serial allocations also bind the filesystem identities of the
+workspace root and private Git directory. A cleanup request must preserve a
+replacement worktree even if Git reuses its path, branch and commit. Older
+per-step allocation records without this binding cannot authorize destructive
+cleanup; retain those worktrees for explicit reconciliation. Do not manufacture
+an ownership binding from the directory found during cleanup. This cooperative
+identity check is not a security boundary against hostile filesystem changes.
 
 Put objective, relevant inputs, ready/done criteria, ownership and output contract
 directly in the native launch prompt. A saved packet is durable parent evidence,
@@ -172,6 +179,11 @@ record acceptance. An identical repeated completion is inert even after another
 step progresses. A conflicting verification is an error; an obsolete attempt
 cannot complete its replacement. A worker saying "done," a progress notice, or
 a report file alone cannot accept the step or unlock a dependent.
+An obsolete attempt cannot import new results, prepare a candidate or integrate
+code after retry. Identical replay of the current accepted attempt remains inert.
+An early completion cannot integrate until its native launch handle or serial
+execution identity is recorded. A dispatcher takeover invalidates the old
+binding's authority to import, prepare or complete work.
 
 ## Serial execution in the main context
 
@@ -203,6 +215,10 @@ The same main context performs this loop:
    atomically records the main-context executor and returns `action: execute`,
    not a native launch grant. No separate launch confirmation is needed.
    Replayed starts return reconciliation, never a second execution grant.
+   Serial creation records its intended workspace before Git creates it. If
+   interrupted before adoption, resume only that recorded clean baseline and
+   matching start inputs; preserve an ambiguous allocation rather than creating
+   another worker or silently abandoning it.
 3. Execute in the returned sibling worktree using explicit working directories.
    Do not spawn agents or move work into the initiating checkout. Keep readiness,
    scope, supplier ancestry and resource constraints. Update the main conversation

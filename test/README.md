@@ -72,6 +72,15 @@ result preservation and hostile-path/replay controls. Both are in the full
 ShipLoop inventory. Use the [native pilot](experiments/shiploop_chain/README.md)
 for separate qualification with actual Ask-Agent contexts and completion events.
 
+The [compound coverage matrix](../docs/shiploop-chain-compound-coverage-2026-09-19.md)
+adds interactions between retry, integration recovery, dependency readiness and
+pending cleanup. The Git suite checks that a stale cleanup cannot remove a
+replacement worktree recreated at the same path. Native-trace controls reject
+contradictory terminal outcomes and cross-step handle sources while preserving
+valid pending observations and identical completion replay. These remain local
+tests; prompt-driven Ask-Agent worktree creation and native recovery need their
+separate live qualification.
+
 `python3 test/shiploop-full-runtime.test.py` composes public ShipLoop and selected
 bundled Until Loop CLIs across the protocol-3 graph, including cold recovery and
 corrective outcomes. Its review judgments are synthetic: it proves local runtime

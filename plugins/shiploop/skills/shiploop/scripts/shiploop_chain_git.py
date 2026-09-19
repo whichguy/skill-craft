@@ -39,6 +39,7 @@ __all__ = [
     "adopt_workspace",
     "allocation_plan",
     "allocate",
+    "bind_worker_instance",
     "fast_forward",
     "inspect_contribution",
     "inspect_prepared",
@@ -54,6 +55,8 @@ __all__ = [
 
 
 _IDENTITY_KEYS = ("repo", "git_dir", "common_dir", "branch", "head")
+_WORKER_INSTANCE_KEYS = ("root", "git_dir")
+_FILESYSTEM_INSTANCE_KEYS = ("device", "inode")
 _SHA = re.compile(r"[0-9a-f]{40}|[0-9a-f]{64}")
 _STEM = re.compile(
     r"(?P<run>[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})-"
@@ -318,6 +321,49 @@ def _identity_values(value: Any) -> Dict[str, str]:
     if not _SHA.fullmatch(result["head"]):
         _fail("target identity has invalid head")
     return result
+
+
+def _filesystem_instance(path: Path, *, label: str) -> Dict[str, int]:
+    """Return the stable directory identity used by cooperative cleanup guards."""
+    try:
+        value = os.stat(path)
+    except OSError as exc:
+        _fail(f"cannot stat {label}: {exc}")
+        raise AssertionError from exc
+    if not stat.S_ISDIR(value.st_mode):
+        _fail(f"{label} is not a directory")
+    return {"device": value.st_dev, "inode": value.st_ino}
+
+
+def _worker_instance(root: Path, git_dir: Path) -> Dict[str, Dict[str, int]]:
+    # Device/inode values make a cooperating-writer ABA fence for recreated
+    # worktrees.  They are not a security guarantee: filesystems may reuse an
+    # inode pair, and a process that can rewrite Git/ledger state can race it.
+    return {
+        "root": _filesystem_instance(root, label="worker root"),
+        "git_dir": _filesystem_instance(git_dir, label="worker private Git directory"),
+    }
+
+
+def _filesystem_instance_values(value: Any, *, label: str) -> Dict[str, int]:
+    if not isinstance(value, Mapping) or set(value) != set(_FILESYSTEM_INSTANCE_KEYS):
+        _fail(f"{label} must contain exactly device and inode")
+    result: Dict[str, int] = {}
+    for key in _FILESYSTEM_INSTANCE_KEYS:
+        item = value[key]
+        if type(item) is not int or item < 0:
+            _fail(f"{label} has invalid {key}")
+        result[key] = item
+    return result
+
+
+def _worker_instance_values(value: Any) -> Dict[str, Dict[str, int]]:
+    if not isinstance(value, Mapping) or set(value) != set(_WORKER_INSTANCE_KEYS):
+        _fail("worker instance must contain exactly root and git_dir")
+    return {
+        key: _filesystem_instance_values(value[key], label=f"worker instance {key}")
+        for key in _WORKER_INSTANCE_KEYS
+    }
 
 
 def _current_target(identity: Mapping[str, Any], *, allow_head_drift: bool) -> Dict[str, str]:
@@ -660,11 +706,17 @@ def _normalized_plan(plan: Mapping[str, Any], *, allow_owned_allocation: bool) -
         _fail("allocation branch must differ from the target branch")
 
     worker: Optional[Dict[str, str]] = None
+    worker_instance: Optional[Dict[str, Dict[str, int]]] = None
     if lifecycle == _PER_STEP_LIFECYCLE:
         run = _uuid(plan.get("run_id"), label="per-step plan run ID")
         retry = _uuid(plan.get("attempt"), label="per-step plan attempt")
     elif "worker" in plan:
         _fail("legacy allocation plan cannot bind an adopted worker")
+
+    if "worker_instance" in plan:
+        if lifecycle != _PER_STEP_LIFECYCLE:
+            _fail("only per-step plans can bind a worker filesystem instance")
+        worker_instance = _worker_instance_values(plan["worker_instance"])
 
     if "worker" in plan:
         if lifecycle != _PER_STEP_LIFECYCLE:
@@ -703,6 +755,8 @@ def _normalized_plan(plan: Mapping[str, Any], *, allow_owned_allocation: bool) -
         result.update({"lifecycle": lifecycle, "run_id": run, "attempt": retry})
     if worker is not None:
         result["worker"] = worker
+    if worker_instance is not None:
+        result["worker_instance"] = worker_instance
     return result
 
 
@@ -751,9 +805,7 @@ def adopt_workspace(
         "attempt": retry,
         "worker": dict(worker),
     }
-    normalized = _normalized_plan(plan, allow_owned_allocation=True)
-    _assert_allocated_worker(normalized, worker, exact_base=True)
-    return normalized
+    return bind_worker_instance(plan)
 
 
 def _branch_exists(repo: Path, branch: str) -> bool:
@@ -799,6 +851,12 @@ def _assert_allocated_worker(plan: Mapping[str, Any], worker: Mapping[str, str],
         for key in ("repo", "git_dir", "common_dir", "branch"):
             if actual[key] != saved_worker[key]:
                 _fail(f"adopted worker {key} drifted")
+    bound_instance = plan.get("worker_instance")
+    if bound_instance is not None:
+        saved_instance = _worker_instance_values(bound_instance)
+        actual_instance = _worker_instance(Path(actual["repo"]), Path(actual["git_dir"]))
+        if actual_instance != saved_instance:
+            _fail("allocated worktree filesystem identity drifted")
     registered = _registered_worktrees(Path(target["repo"]))
     if path not in registered:
         _fail("allocated path is not a registered Git worktree")
@@ -877,6 +935,31 @@ def _per_step_plan(plan: Mapping[str, Any]) -> Dict[str, Any]:
     if normalized.get("lifecycle") != _PER_STEP_LIFECYCLE:
         _fail("per-step integration requires a per-step allocation plan")
     return normalized
+
+
+def bind_worker_instance(plan: Mapping[str, Any]) -> Dict[str, Any]:
+    """Bind a newly allocated per-step worker to its root and private Git dirs.
+
+    Call this immediately after allocation and persist the returned plan before
+    the worker performs work.  Repeating it validates an existing binding.
+    """
+    normalized = _per_step_plan(plan)
+    if "worker_instance" in normalized:
+        _recover_normalized(normalized)
+        return normalized
+    path = Path(normalized["path"])
+    if not os.path.lexists(path) or path.is_symlink() or not path.is_dir():
+        _fail("planned allocation path is unavailable for worker-instance binding")
+    worker = target_identity(path)
+    _assert_allocated_worker(normalized, worker, exact_base=True)
+    bound = dict(normalized)
+    bound["worker_instance"] = _worker_instance(
+        Path(worker["repo"]),
+        Path(worker["git_dir"]),
+    )
+    result = _per_step_plan(bound)
+    _assert_allocated_worker(result, worker, exact_base=True)
+    return result
 
 
 def _expected_target(plan: Mapping[str, Any], expected_target: str) -> tuple[Dict[str, str], str]:
@@ -1089,6 +1172,14 @@ def _integrated_target(plan: Mapping[str, Any], integrated_commit: str) -> tuple
     return target, exact
 
 
+def _require_worker_instance_for_cleanup(plan: Mapping[str, Any]) -> None:
+    if "worker_instance" not in plan:
+        _fail(
+            "per-step cleanup requires a recorded worker filesystem identity; "
+            "old unbound plans remain readable but cannot remove a worktree"
+        )
+
+
 def inspect_removed(plan: Mapping[str, Any], integrated_commit: str) -> Dict[str, Any]:
     """Prove an already-recorded cleanup left no reusable worker allocation."""
     normalized = _per_step_plan(plan)
@@ -1125,6 +1216,7 @@ def inspect_removed(plan: Mapping[str, Any], integrated_commit: str) -> Dict[str
 def remove_worker(plan: Mapping[str, Any], integrated_commit: str) -> Dict[str, Any]:
     """Remove one clean, integrated worker without force; keep its branch ref."""
     normalized = _per_step_plan(plan)
+    _require_worker_instance_for_cleanup(normalized)
     target, integrated = _integrated_target(normalized, integrated_commit)
     path = Path(normalized["path"])
     if not os.path.lexists(path):
@@ -1193,6 +1285,7 @@ def remove_superseded_worker(
 ) -> Dict[str, Any]:
     """Remove one clean retired worker without asserting its commit integrated."""
     normalized = _per_step_plan(plan)
+    _require_worker_instance_for_cleanup(normalized)
     target, replacement = _integrated_target(normalized, replacement_integrated_commit)
     path = Path(normalized["path"])
     if not os.path.lexists(path):
