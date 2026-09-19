@@ -34,6 +34,17 @@ and retained compatibility bindings; legacy field names apply only to those
 recorded modes. A source path, matched label, or completed supplier declaration
 is not independent evidence that the needed state exists.
 
+For a context-capable implementation chain, author coherent supporting planning
+reference material before binding: key statements, decisions, constraints,
+acceptance context, and exact locators from the accepted planning pass. It does
+not replace the dispatch step's `task`/`ready`/`done` assignment or restate the
+user prompt. Register every generated planning file in that producer's ordinary
+`evidence_refs`.
+Keep external local documents as explicit references and URLs as citations until
+their material is supplied locally. This is planning context for the immutable
+chain manifest, not a new Backchain review machine or a substitute for the
+unchanged reviewed execution graph.
+
 ## Owner binding
 
 In `embedded` mode this is ShipLoop's adaptation of the inspected Backchain

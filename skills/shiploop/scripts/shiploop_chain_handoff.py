@@ -1054,6 +1054,30 @@ def _recover_or_complete(
     return _load_replay(archive_dir, handoff_digest, expected, workspace, handoff_path)
 
 
+def validate_unarchived_handoff(
+    workspace: str | os.PathLike[str],
+    handoff_path: str | os.PathLike[str],
+    handoff_sha256: str,
+    expected: Mapping[str, Any],
+    archive_dir: str | os.PathLike[str],
+) -> None:
+    """Read-only admission before recording an import intent; reject any prior archive effects."""
+    source_workspace = _existing_directory(workspace, "workspace")
+    source_handoff = _candidate_path(handoff_path, "handoff_path")
+    identity = _expected(expected, source_workspace)
+    _handoff_source_path(source_workspace, identity["attempt"], source_handoff)
+    archive = _candidate_path(archive_dir, "archive_dir")
+    _no_symlinks(archive, "archive_dir", allow_missing=True)
+    if _inside(archive, source_workspace) or _inside(source_workspace, archive):
+        _fail("archive_dir must be disjoint from the worker workspace")
+    if os.path.lexists(archive):
+        archive = _existing_directory(archive, "archive_dir")
+        if any(archive.iterdir()):
+            _fail("handoff import already has archive effects; replay the exact prior input")
+    _git_workspace(source_workspace)
+    _snapshot(source_workspace, source_handoff, _digest(handoff_sha256, "handoff_sha256"), identity)
+
+
 def archive_handoff(
     workspace: str | os.PathLike[str],
     handoff_path: str | os.PathLike[str],

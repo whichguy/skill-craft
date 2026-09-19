@@ -1147,6 +1147,15 @@ def prompt(stage: str) -> str:
     """Return the single current producer instruction for a v3 graph stage."""
     _require_stage(stage)
     parts = [COMMON, DUTIES[stage]]
+    if stage in PRELUDE or stage in {"step-plan", "test-spec"}:
+        parts.append(
+            "Preserve this planning pass's key reference statements, decisions, constraints and acceptance "
+            "context in its summary and registered material. At plan and step-plan, consolidate applicable "
+            "upstream material for a fresh execution context as supporting references, not a replacement "
+            "assignment or a restatement of the user prompt. The dispatch step task/ready/done contract remains "
+            "the sole worker directive. Register every produced planning file and required source as an absolute "
+            "reference in evidence_refs; an unrecorded conversation is not a planning handoff."
+        )
     if stage in TEST_FACILITY_STAGES:
         parts.append(TEST_FACILITY_HANDOFF)
     if stage in TEST_DECISION_STAGES:
@@ -1285,6 +1294,17 @@ and revalidate only the sources relevant to this candidate, then retain a compac
 current locator, decision, rationale, and revalidation result in the child review
 notebook. Do not replace those source locators with copied transcripts, a new child
 ledger, or an unverified summary.
+
+For every planning-producing candidate, author coherent supporting reference
+material with key accepted statements, decisions, constraints, acceptance context,
+and exact source locators. It supplies planning-pass context; it is neither the
+user prompt nor a second worker directive. The dispatch step's task/ready/done
+contract remains the sole assignment. Register every generated planning file in
+the producer result's `evidence_refs`. If this Improve result supplies a revised
+`final_result`, preserve the prior registered references and add its new planning
+files; do not discard evidence just because the reference material was consolidated.
+Explicit local project documents may remain absolute references. A URL is a
+reference-only citation until its needed material is supplied as a local artifact.
 
 When this candidate selects, uses or changes a repository-local skill, carry its
 repo index, selected entrypoint, effective input/default sources, applicable

@@ -118,7 +118,7 @@ class PerStepChainTests(unittest.TestCase):
                 self.assertEqual(action.get("operation"), CALLBACK_BY_ACTION[semantic])
             elif semantic == "reconcile":
                 self.assertIn(action.get("operation"), (None, "launched"))
-            elif semantic in {"return-parent", "blocked", "resume-parent", "blocked-parent"}:
+            elif semantic in {"return-parent", "blocked", "resume-parent", "blocked-parent", "inspect-planning-context"}:
                 self.assertNotIn("operation", action)
             else:
                 self.fail("unknown navigation semantic action: " + semantic)

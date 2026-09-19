@@ -62,6 +62,8 @@ Use **skill-craft** for portable skill packages and their plugin distribution. U
 
 Operator guides: [ShipLoop](skills/shiploop/README.md),
 [script-driven chain navigation](skills/shiploop/references/parallel-chain.md#script-owned-navigation),
+[planning-artifact handoff design](docs/shiploop-planning-artifact-handoff-plan-2026-09-19.md)
+(supporting references; dispatcher step contracts remain the worker assignment),
 [Improve and release-candidate limits](skills/improve/README.md), and
 [completed ShipLoop proposals](docs/shiploop-proposal-closeout.md).
 
