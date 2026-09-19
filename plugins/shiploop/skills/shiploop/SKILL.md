@@ -5,7 +5,7 @@ description: >-
   script's current action packet, and submit its exact completion call until
   the script reports completion with an HTML achievement report. Use when the
   user says shiploop, ship the project, or requests a durable delivery loop.
-version: 0.17.0
+version: 0.18.0
 allowed-tools: all
 license: MIT
 platforms:
@@ -378,7 +378,13 @@ material revisions. Retain the completed review's graph identity and evidence.
 For a reviewed graph within the current v3 `implement` action, the main owner
 may explicitly bind [a parallel implementation chain](references/parallel-chain.md).
 Use the selected Plan Dispatcher and Ask-Agent packages, external sibling
-`.work-trees` checkouts, and the bridge's claim/start/collect/verify/finish flow.
+`.work-trees` checkouts, and the bridge's claim/start/import/prepare/done/finish flow.
+Ask-Agent creates each parallel worker worktree; the bridge verifies and adopts
+that workspace rather than creating another. New per-step chains require the
+selected Ask-Agent 0.4 contract. Each new worker starts from the invoking branch's
+current integrated HEAD. Workers keep results inside their checkout; the parent
+imports and archives them, prepares and checks the combination, merges it into
+the invoking checkout, accepts the step, then removes the worker worktree.
 Choose `chain bind --mode serial` to execute one dependency-ready step at a time
 in the main context with no agent dispatch; default parallel mode uses native
 Ask-Agent. Serial start atomically records local ownership before issuing an
@@ -392,11 +398,15 @@ callback; after verified integration, continue the existing Improve/test stages.
 Accepted is the only persisted step-done state. The derived `completion` view
 lists done/not-done; `done` aliases the existing verified `settle` transition.
 Use read-only `chain history` for timestamped audit events and `chain pending`
-for all unfinished steps, unmet dependencies and capacity; neither dispatches
+for unfinished steps, unmet dependencies, capacity and cleanup recovery; neither dispatches
 work nor repairs state. Both take `--run-dir` and `--action` without an input file.
 Keep combined main-conversation status from actual execution observations and
 dispatcher state; progress reports never accept work or release dependencies.
 This does not parallelize whole work-item lifecycles or migrate existing runs.
+Existing v1/v2 chain bindings retain final-return semantics. A cleanup failure
+leaves the step accepted and must be resolved without executing its work again.
+Final completion requires all contributions integrated and owned worker cleanup
+complete. Keep dirty targets, conflicts and unknown files as explicit blockers.
 
 ## Existing protocols
 

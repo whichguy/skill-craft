@@ -1,41 +1,61 @@
-# Native-agent chain pilot
+# Native Ask-Agent chain pilot
 
-`native_pilot.py` is a manual qualification apparatus for the optional ShipLoop
-parallel-chain bridge. It has only three graph nodes: independent `A` and `B`,
-then integration node `J`. It creates a disposable real Git repository with a
-linked `native-pilot-feature` worktree, allocates worker worktrees as siblings
-under an external `.work-trees/project` container, and retains every packet,
-command result, verification record, and bridge result outside the checkouts.
+`native_pilot.py` is a retained, opt-in qualification apparatus for the
+per-step ShipLoop chain bridge. It creates a disposable real-Git fixture,
+fixture-emulates caller-prepared workspaces with ordinary Git, and drives the
+public `shiploop chain` lifecycle. It never launches a model, an agent CLI, a timer,
+or a polling service. A native host must launch fresh workers and retain its
+own launch/completion trace.
 
-It never launches a model, an agent CLI, a fake worker, a timer, or a polling
-service. The parent conversation must use its actual native delegation tool,
-retain the handle returned by that tool, collect its actual completion, and
-attest stopped status before a bridge settlement. A saved handle, a timeout, or
-an output file alone is not evidence that a native worker has stopped.
+The pilot uses the frozen Ask-Agent 0.4 fixture and Plan Dispatcher v2 fixture.
+It is not evidence that Ask-Agent 0.4 is generally qualified until a real
+native run has retained both the host trace and the final evidence described
+below.
 
-Run parent driver commands serially and wait for each command to finish before
-starting the next. A shell tool returning a live session handle is not command
-completion. The driver's command log has one parent writer; parallel work occurs
-in native worker contexts, not overlapping driver invocations.
+The fixture workspace setup models the caller-worktree contract but does not
+prove that the native host followed Ask-Agent's prompt-driven worktree-creation
+instructions. A passing native run qualifies bridge adoption of the exact
+fixture-prepared workspace, real native worker execution, per-step integration,
+and cleanup under this fixture.
 
-The initial navigator/Improve actions are deliberately synthetic only to place
-this disposable fixture at the current v3 `implement` action. Their record is
-`evidence/synthetic-prerequisites.json`. They make no claim that a live full
-ShipLoop run or Improve cycle occurred. Every chain operation below uses the
-selected ShipLoop public CLI (`shiploop chain ...`).
+## Lifecycle
 
-## Prepare a new pilot
+```mermaid
+flowchart LR
+  P[Fixture Git emulates caller W preparation] --> S[Bridge adopts W]
+  S --> H[Worker commits and writes handoff]
+  H --> I[Parent imports to archive]
+  I --> G[Prepare candidate I]
+  G --> D[Done fast-forwards target]
+  D --> C[Accept then remove W]
+```
 
-Choose a fresh absolute directory outside this checkout. Do not reuse an old
-pilot directory: the harness refuses to overwrite it and does not clean up
-unfinished worktrees or receipts.
+The caller-side fixture preparation creates the exact sibling workspace `W`
+with ordinary Git and records it under `workspaces/`. It emulates the Ask-Agent
+caller-worktree contract; it is not evidence of prompt-driven Ask-Agent
+workspace creation. The bridge only adopts that exact workspace. After native
+completion, the parent copies the worker-local handoff into its durable archive, creates the Dispatcher control
+receipt, removes the worker-local handoff files, merges the current target into
+the stopped worker workspace to form candidate `I`, independently verifies
+that candidate, fast-forwards the invoking feature branch, settles the
+Dispatcher attempt, then removes `W`.
+
+The worker result is only its commit and declared handoff files. The immutable
+Dispatcher receipt, parent report artifact, and report envelope are
+parent-controlled control records; workers do not write them. The target
+advances after every accepted step. `finish` audits that already-integrated
+target; it does not perform a final worker-to-target merge.
+
+## Prepare
+
+Use a fresh absolute directory outside the source checkout.
 
 ```sh
-SOURCE_ROOT=/Users/dadleet/src/.work-trees/skill-craft/shiploop-dispatcher-20260918
+SOURCE_ROOT=/Users/dadleet/src/.work-trees/skill-craft/integrate-chain-20260918
 PILOT_DIR=/private/tmp/shiploop-native-chain-pilot-$(uuidgen | tr '[:upper:]' '[:lower:]')
 PILOT="$SOURCE_ROOT/test/experiments/shiploop_chain/native_pilot.py"
-DISPATCHER_SKILL="$SOURCE_ROOT/test/fixtures/plan-dispatcher-v1/SKILL.md"
-ASK_AGENT_SKILL="$SOURCE_ROOT/skills/ask-agent/SKILL.md"
+DISPATCHER_SKILL="$SOURCE_ROOT/test/fixtures/plan-dispatcher-v2/SKILL.md"
+ASK_AGENT_SKILL="$SOURCE_ROOT/test/fixtures/ask-agent-v04/SKILL.md"
 
 python3 -B "$PILOT" prepare \
   --pilot-dir "$PILOT_DIR" \
@@ -45,30 +65,31 @@ python3 -B "$PILOT" prepare \
   --capacity 2
 ```
 
-The printed JSON records the exact absolute paths selected for ShipLoop, Plan
-Dispatcher, and Ask-Agent; the initiating feature worktree; the external
-worker-worktree parent; the action ID; and the first ready nodes. The generated
-`context.json` freezes those locators for the manual run. The bridge itself
-also freezes its graph/package inputs and blocks later mutation if they drift.
+The generated `context.json` freezes the selected cards, oracle, graph,
+fixture paths, navigator run, and action. The fixture has four code-producing
+steps:
 
-The fixture code is intentionally tiny:
+| Step | Dependencies | Worker-owned file | Required behavior |
+| --- | --- | --- | --- |
+| A | — | `toy/add.py` | `add(2, 3) == 5` and `add(-4, 1) == -3` |
+| B | — | `toy/format.py` | normalize trims, lowercases, and collapses spaces |
+| C | A | `toy/aggregate.py` | `aggregate([2, 3, -1]) == 4`, using `add` |
+| J | B, C | `toy/composed.py` | `composed_output([2, 3]) == "result 5"` |
 
-| Node | Worker-owned path | Required behavior |
-| --- | --- | --- |
-| `A` | `toy/add.py` | `add(2, 3) == 5` and `add(-4, 1) == -3` |
-| `B` | `toy/format.py` | trim, lowercase, and collapse whitespace |
-| `J` | integration-only merge of both paths | merge exact accepted A/B commits and prove `normalize('Result ' + str(add(2, 3))) == 'result 5'` |
+The external oracle is generated outside all worker worktrees and its digest is
+stored in `context.json`. It checks actual code behavior, the exact commit,
+scope, cwd, Git root, dependencies, candidate state, and the final integrated
+feature branch.
 
-The oracle is generated under `$PILOT_DIR/oracle/verify.py`, outside all worker
-worktrees, marked read-only, and SHA-256 recorded in `context.json`. It checks
-the clean worker HEAD, required behavior, exact changed paths, and, for `J`,
-ancestry of both accepted supplier commits.
+## Start and launch workers
 
-## Claim and start ready work
-
-`A` and `B` are eligible independently. The `claim` command uses the real
-public bridge `claim` operation. Copy each returned attempt ID exactly into its
-matching `start` command.
+Claim A and B together, then prepare and launch both through the native host.
+The driver records a fixture-emulated caller workspace before `start`; this
+ordinary Git fixture action models the Ask-Agent caller-worktree path and is
+explicitly marked as fixture emulation. It does not establish that the native
+host created the workspace by following Ask-Agent instructions. ShipLoop
+receives that workspace in `start` and must adopt it rather than allocate
+another worktree.
 
 ```sh
 python3 -B "$PILOT" claim --pilot-dir "$PILOT_DIR" --steps A B
@@ -77,102 +98,176 @@ python3 -B "$PILOT" start --pilot-dir "$PILOT_DIR" --step A --attempt '<A_ATTEMP
 python3 -B "$PILOT" start --pilot-dir "$PILOT_DIR" --step B --attempt '<B_ATTEMPT>'
 ```
 
-Each `start` calls the public bridge `start`, writes its returned exact packet
-under `$PILOT_DIR/packets/`, and prints its worker workspace, packet path,
-result-artifact template, native dispatch brief, and real `report_argv` array.
-Only a fresh response with `"action": "launch"` permits the parent to dispatch
-a native worker. The harness does not interpret that grant as a launch.
+A response with `"action": "launch"` includes
+`inline_native_assignment`. Give that exact text directly to a fresh native
+worker. A retained JSON packet is audit material only; it is never a worker
+prompt transport. Do not create a prompt file.
 
-Give the native collaboration agent the printed `*-native-dispatch.md` and
-packet. It must work only in the packet's sibling worktree, commit the result,
-write the packet-assigned result artifact/envelope, execute its exact
-`report_argv`, and return normally through the native host. The result JSON must
-include the exact clean worker `commit`, `workspace`, actual `checks`, and a
-Git/handoff summary. Copy and fill the generated template so `step` and `attempt`
-remain explicit; do not recreate its identity fields from memory. Prose may vary,
-but missing or contradictory identity fields fail verification. The parent
-retains its own pending-job record and continues
-any independent work while native workers run.
-
-## Record the actual native handle
-
-After the native host confirms launch, write the real handle it returned to a
-small JSON file. The harness accepts the raw JSON value, or an object with only
-`handle`. It does not generate a handle and cannot validate host liveness.
+After the host actually returns a nonempty handle, save it and record it:
 
 ```sh
-# Replace this content with the handle returned by the actual native delegation tool.
-printf '%s\n' '{"handle":{"native_handle":"REAL_HANDLE_FROM_HOST"}}' > "$PILOT_DIR/A-handle.json"
+printf '%s\n' '{"handle":{"native_handle":"ACTUAL_HOST_HANDLE"}}' > "$PILOT_DIR/A-handle.json"
 
 python3 -B "$PILOT" launched \
   --pilot-dir "$PILOT_DIR" --step A --attempt '<A_ATTEMPT>' \
   --handle-file "$PILOT_DIR/A-handle.json"
 ```
 
-Repeat that after `B` launches. `launched` invokes the public bridge operation
-and saves the caller-provided handle under `$PILOT_DIR/handles/`; it never
-claims the worker has finished.
+Repeat for B, C, and J. A handle record proves only that the caller recorded
+what the host returned. It does not prove native completion.
 
-## Collect, verify, and settle each real worker result
+## Worker handoff contract
 
-After native collection confirms the worker returned, run `verify`. It invokes
-the real public `observe` operation, which requires that the worker actually
-published its receipt through the exact `report_argv`. It then checks the
-packet-assigned result artifact/envelope, exact clean worktree and HEAD, only
-the assigned files, and the external immutable behavior oracle.
+The inline assignment directs each worker to commit only its owned file, run
+the external oracle, and leave its workspace intact. It must then create exactly:
 
-```sh
-python3 -B "$PILOT" verify --pilot-dir "$PILOT_DIR" --step A --attempt '<A_ATTEMPT>'
-python3 -B "$PILOT" settle --pilot-dir "$PILOT_DIR" --step A --attempt '<A_ATTEMPT>' --confirmed-stopped
-
-python3 -B "$PILOT" verify --pilot-dir "$PILOT_DIR" --step B --attempt '<B_ATTEMPT>'
-python3 -B "$PILOT" settle --pilot-dir "$PILOT_DIR" --step B --attempt '<B_ATTEMPT>' --confirmed-stopped
+```text
+$WORKSPACE/.shiploop-handoff/<ATTEMPT>/handoff.json
 ```
 
-`--confirmed-stopped` is an explicit caller attestation after the host has
-confirmed termination. It is not inferred from the receipt, the handle, elapsed
-time, or a file. `settle` calls the public bridge operation and retains the
-accepted exact commit under `$PILOT_DIR/accepted/`. It should make `J` ready.
+The raw manifest has exactly this schema:
 
-## Join, inspect state, and return
-
-```sh
-python3 -B "$PILOT" show --pilot-dir "$PILOT_DIR"
-python3 -B "$PILOT" claim --pilot-dir "$PILOT_DIR" --steps J
-python3 -B "$PILOT" start --pilot-dir "$PILOT_DIR" --step J --attempt '<J_ATTEMPT>'
+```json
+{
+  "schema": "shiploop-chain-handoff/v1",
+  "run_id": "the packet run_id",
+  "step": "A",
+  "attempt": "the packet attempt",
+  "base_commit": "the packet base commit",
+  "status": "SUCCEEDED",
+  "commit": "the clean worker HEAD",
+  "summary": "what changed and checks run",
+  "files": [
+    {"path": "result.json", "sha256": "sha256 of that file"}
+  ]
+}
 ```
 
-Dispatch `J` natively only after its `start` response says `action=launch` and
-record its actual native handle as above. Its packet has
-`shiploop_chain.integration: true` and the exact accepted A/B commits in
-`shiploop_chain.required_commits`. `J` merges those commits in its own assigned
-worktree; it does not update the initiating feature branch.
+`result.json` remains inside that same handoff directory and records the
+observed workspace, cwd, Git root, base, commit, checks, and summary. The
+worker must not run a Dispatcher report command, write external
+artifacts/envelopes, merge into the invoking checkout, settle an attempt,
+select successors, remove a worktree, or alter the target.
 
-After collection and stopped-worker confirmation:
+## Import, prepare, accept, and clean up
+
+Only after the native host has collected and confirmed the worker stopped:
 
 ```sh
-python3 -B "$PILOT" verify --pilot-dir "$PILOT_DIR" --step J --attempt '<J_ATTEMPT>'
-python3 -B "$PILOT" settle --pilot-dir "$PILOT_DIR" --step J --attempt '<J_ATTEMPT>' --confirmed-stopped
+python3 -B "$PILOT" import-handoff \
+  --pilot-dir "$PILOT_DIR" --step A --attempt '<A_ATTEMPT>' \
+  --handoff-manifest '<A_WORKSPACE>/.shiploop-handoff/<A_ATTEMPT>/handoff.json' \
+  --confirmed-stopped
+
+python3 -B "$PILOT" prepare-integration \
+  --pilot-dir "$PILOT_DIR" --step A --attempt '<A_ATTEMPT>' --confirmed-stopped
+
+python3 -B "$PILOT" done \
+  --pilot-dir "$PILOT_DIR" --step A --attempt '<A_ATTEMPT>' --confirmed-stopped
+```
+
+`import-handoff` verifies the raw manifest and code result while the worker
+workspace exists, archives the declared bytes outside that workspace, and
+records two distinct digests:
+
+- the immutable worker-handoff receipt, which proves the archive transaction;
+- the immutable Dispatcher parent-report receipt, which binds the later
+  `done` verification.
+
+`prepare-integration` merges the current target into stopped `W` and returns
+one proof with `source_commit`, `expected_target`, `candidate_commit`, and
+`workspace`. The pilot runs the independent oracle against that exact
+candidate. `done` binds its verification to the Dispatcher parent-report
+receipt and the exact proof, fast-forwards the invoking target, accepts the
+attempt, and requires a completed cleanup receipt. It then proves `W` is
+gone from disk and Git registration while the external archives remain readable.
+
+After A is accepted, claim/start/launch C before B is accepted. Complete B and
+C with the same three parent operations, one parent command at a time. Start J
+only after B and C are accepted. J writes `toy/composed.py`; it does not
+manually merge branches or supplier commits because its adopted base already
+contains the accepted code.
+
+The pilot records that A/B handles were registered before either Dispatcher
+completion and that C started after A and before B's Dispatcher completion.
+Those are lifecycle facts, not proof that B's native process was still running;
+the native host trace is required to establish actual concurrent execution.
+
+## Final audit and replay
+
+```sh
 python3 -B "$PILOT" finish --pilot-dir "$PILOT_DIR"
 python3 -B "$PILOT" show --pilot-dir "$PILOT_DIR"
 ```
 
-`finish` invokes the real public bridge `finish` operation. Before it does so,
-the harness reruns the external `J` oracle, proves that the initiating feature
-worktree still equals the recorded baseline, and retains `finish.json` evidence.
-After the bridge fast-forward it proves that only the initiating feature points
-at `J` while the fixture's `main` worktree remains at its original commit.
+`finish` reruns code, target, primary-worktree, cleanup, and archive checks.
+A repeat invocation validates the original immutable finish proof, reruns those
+independent checks, replays the public `finish` call with the same proof, and
+creates a missing local result receipt only if a prior process stopped after the
+public call. It does not replace timestamped proof or duplicate the final
+event.
 
-## Retained evidence and limits
+A successful run retains `context.json`, packets, workspace records, native
+handle records, import/archive receipts, candidate verification, final audit,
+command records, and append-only `events.jsonl`. The optional
+`run_native.py` wrapper retains the raw Grok host trace and performs a second
+`finish` audit from a fresh process. Treat that trace, the final code behavior,
+the integrated target, and worktree cleanup as separate evidence; a green
+deterministic lifecycle test or a worker's prose alone does not qualify this
+fixture's bridge adoption and native execution result. Neither proves
+prompt-driven Ask-Agent workspace creation.
 
-The pilot directory is intentionally retained. `context.json`, `graph.json`,
-the immutable oracle, `run/`, `packets/`, `handles/`, `verification/`,
-`accepted/`, `commands/`, and append-only `events.jsonl` distinguish actual
-commands/results from the synthetic prerequisite setup. The public bridge keeps
-its own immutable Markdown event ledger under `run/chains/<action>/events/`.
+The wrapper also writes `host-events.jsonl`, which records local receipt time
+and monotonic order for each raw host line, and
+`native-trace-evaluation.json`. The latter is a fail-closed observer: every
+A/B/C/J record must have one background `spawn_subagent` receipt with the exact
+retained Grok UUID and fixture-prepared workspace, followed by a completed,
+zero-exit `get_command_or_subagent_output` result for that same UUID before
+`import-handoff`. It rejects malformed or truncated host JSON, prose-only or
+forged handles, a cancelled host terminal event, direct parent workspace code
+writes, and parent terminal commands other than exact pilot driver commands.
 
-This pilot qualifies a bounded local path only. It does not establish native
-agent behavior from a synthetic harness, cross-session native handle recovery,
-power-loss durability, remote publication, deployment, or a full live ShipLoop
-execution. Preserve a failed or incomplete pilot for recovery instead of
-deleting or recreating its worktrees.
+The observer requires A/B telemetry with compatible sub-second ISO timestamps
+or monotonic start/end values and proves strict interval overlap. Missing or
+coarse timing fails the native qualification rather than inferring overlap from
+dispatch order. It observes typed host events and parent behavior; the external
+oracle and Git receipts remain the proof of the resulting code and integrated
+target.
+
+## One-command native-host run
+
+The opt-in wrapper prepares a fresh pilot, sends the inline workflow to a Grok
+parent, retains the raw host trace, and invokes the pilot's independent
+`finish` audit from a fresh process. Its output directory must not already
+exist.
+
+```sh
+RUN_DIR=/private/tmp/shiploop-native-chain-run-$(uuidgen | tr '[:upper:]' '[:lower:]')
+python3 -B "$SOURCE_ROOT/test/experiments/shiploop_chain/run_native.py" \
+  --output "$RUN_DIR"
+```
+
+Optional `--grok`, `--ask-agent-skill`, `--dispatcher-skill`, and
+`--timeout` arguments select the host, frozen cards, and deadline. The
+wrapper retains `$RUN_DIR/host.ndjson`, `host.stderr`, `prepare.json`, and
+`result.json`, plus `host-events.jsonl` and `native-trace-evaluation.json`; it
+passes the worker assignment inline to the native host and
+does not turn a saved packet or prompt file into worker transport.
+`result.json` records `coverage.workspace_creation: "fixture_emulation"` and
+marks prompt-driven Ask-Agent workspace creation as not qualified.
+
+Inspect the raw host trace before qualifying a run: it must show fresh worker
+launches, actual completion collection, the recorded handles, A/B dispatch
+before either collection, C dispatch after A acceptance and before B
+Dispatcher completion, J only after B/C acceptance, and no fabricated
+handoffs. The pilot's Git and oracle evidence separately proves the code,
+target updates, archive retention, and cleanup.
+
+For a retained completed run, the observer can be rerun without launching a
+host:
+
+```sh
+python3 -B "$SOURCE_ROOT/test/experiments/shiploop_chain/trace.py" \
+  --host-trace "$RUN_DIR/host.ndjson" \
+  --pilot-dir "$RUN_DIR/pilot"
+```

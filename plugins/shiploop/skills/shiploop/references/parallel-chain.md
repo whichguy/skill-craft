@@ -4,9 +4,10 @@ Use this optional route in parallel or serial mode for a reviewed dependency gra
 navigator-v3 `implement` action**. ShipLoop retains one parent action and its
 normal Improve/test sequence. The work-item queue remains ordered. Existing runs
 are unchanged unless their current implementation action is explicitly bound.
-Bound runs require ShipLoop 0.17.0 or later: binding adds an optional parent
-`chain_bindings` locator/digest. Older readers reject that additional field;
-ordinary unbound v1/v2/v3 records retain their existing format.
+New chains use the per-step lifecycle in ShipLoop 0.18.0. Existing v1/v2 chain
+bindings retain their final-return behavior; `--lifecycle final-return` explicitly
+selects that legacy contract. Never switch a bound run in place. Ordinary
+unbound navigator records retain their existing format.
 
 ```mermaid
 flowchart TD
@@ -22,7 +23,7 @@ flowchart TD
 
 ## Bind the selected packages and reviewed graph
 
-Use the exact selected Plan Dispatcher and Ask-Agent skill cards. ShipLoop does
+Use the exact selected Plan Dispatcher and Ask-Agent 0.4 skill cards. ShipLoop does
 not install them, search host skill directories or silently choose a substitute.
 Plan Dispatcher requires Node.js; ShipLoop uses its public helper for state
 operations, never a model subprocess launcher. The parent invokes Ask-Agent
@@ -86,17 +87,27 @@ python3 "$CLI" chain claim --run-dir "$RUN_DIR" --action "$ACTION" --input "$REQ
 | Operation | Request / meaning |
 | --- | --- |
 | `claim` | `{"steps":["A","B"]}` selects an eligible subset within capacity. |
-| `start` | `attempt`, exact `base_commit`, relative `write_scope`, canonical `resources`, and `ready_evidence:{path,sha256}`; allocates a separate sibling worktree and returns the worker packet. |
+| `start` | `attempt`, current `base_commit`, relative `write_scope`, canonical `resources`, and `ready_evidence:{path,sha256}`. In parallel mode, without `workspace`, returns `prepare-workspace` without creating anything. Ask-Agent creates its worktree; resubmit with its absolute `workspace` for verified adoption and a launch packet. Serial mode allocates its own sibling workspace. |
 | `launched` | `attempt`, actual native `handle`; record only after the host confirms launch. |
 | `packet` | `attempt`; recover the existing packet, never a new launch grant. |
 | `observe` | `attempt`, optional source `occurred_at`; append receipt observation after native collection. It does not accept the task. |
-| `settle` | `attempt`, `confirmed_stopped:true`, and `verification:{receipt_sha256,passed,reason,evidence:{path,sha256}}`; independently verify the exact result and stopped worker before acceptance. |
+| `import-handoff` | `attempt`, `confirmed_stopped:true`, `handoff:{path,sha256}`; parent archives worker-local results and publishes the existing dispatcher report. |
+| `prepare` | `attempt`, `confirmed_stopped:true`; inspect original contribution, reconcile current target into the stopped worker checkout, and return the exact combined candidate for independent checks. |
+| `settle` | `attempt`, `confirmed_stopped:true`, candidate-bound `integration` and `verification:{receipt_sha256,passed,reason,evidence:{path,sha256}}`; verify, merge into the invoking checkout, accept, then remove the worker worktree. |
+| `cleanup` | `attempt`, `confirmed_stopped:true`; retry accepted-worker removal only. For a retired failed attempt add `disposition:"superseded"` and nonempty `reason`; its replacement must already be accepted and integrated. Neither form executes the task again. |
 | `done` | An alias for `settle` with the identical evidence contract; it invokes the same transition once. Rejected verification leaves the step not done. |
 | `retry` | `attempt`, `confirmed_stopped:true`, `reason`; preserve failed evidence/worktree, then claim a fresh attempt. |
 | `next` / `recover` | Inspect durable child state, bridge events and unresolved operations. No automatic relaunch. |
 | `history` | No input file. Read the timestamped bridge audit in append sequence, including past indexed actions; no recovery or child invocation. |
 | `pending` | No input file. List every unaccepted step with current status and unmet direct dependencies, plus capacity; no claim, launch or acceptance. |
-| `finish` | Final integrated `commit`, `confirmed_stopped:true`, and independent `verification:{path,sha256}`; require all contributions accepted and combined verification, then guard the return to the exact initiating target. |
+| `finish` | Current integrated target `commit`, `confirmed_stopped:true`, and independent `verification:{path,sha256}`; require all contributions accepted, final combined verification and completed cleanup. Per-step mode has already merged each result; this is a final audit. |
+
+Successful `done` evidence is a JSON object with `passed:true`, actual checks,
+and `integration` containing the exact `source_commit`, `expected_target`,
+`candidate_commit`, and `workspace` returned by `prepare`. These identify the
+worker contribution W, current target T, and checked combination I. Copying only
+the worker's checks cannot establish that the combined candidate works. If T
+advances before `done`, run `prepare` and independent checks again for the new I.
 
 The `finish` evidence is a JSON object with `passed:true`, `commit` equal to the
 requested exact candidate, and the checks actually performed. The dispatcher
@@ -109,14 +120,36 @@ where supported, retain the actual handle, and continue independent parent work.
 Follow the selected Ask-Agent waiting and result-collection guidance. A timeout,
 file appearance or elapsed lease does not establish completion.
 
-Workers use only their assigned workspace/scope and packet output paths. A code
-result must include `commit`, the exact clean worker HEAD, plus actual checks,
-limits and a concise handoff. Publish its packet-assigned immutable report through
-the returned `report_argv`. Return normally through the native host. Workers
-never call ShipLoop completion, modify its ledger or claim successors.
+Ask-Agent owns creation of the worker branch/worktree. The bridge registers the
+actual workspace and exact starting revision, verifies sibling topology and
+exclusive ownership, and never creates a second parallel checkout. The starting
+revision is the invoking branch's latest recorded integrated HEAD. First-version
+chain execution requires a clean target; it does not silently stash or discard
+changes to emulate generic Ask-Agent's broader dirty-snapshot capability.
+
+Put objective, relevant inputs, ready/done criteria, ownership and output contract
+directly in the native launch prompt. A saved packet is durable parent evidence,
+not a prompt-file transport. Follow all selected Ask-Agent context, tool/model,
+status and collection rules. Workers use their assigned workspace/scope, commit
+code there, leave result/scratch files inside it, and return normally through the
+native host. They never publish outside the checkout, call parent completion,
+modify its ledger or claim successors.
+
+The local handoff is `.shiploop-handoff/<attempt>/handoff.json` inside the worker
+checkout. Use schema `shiploop-chain-handoff/v1` with `run_id`, `step`, `attempt`,
+`base_commit`, actual `status`, exact `commit` (null for failed/blocked work),
+`summary` and `files:[{path,sha256}]`. File paths are relative to the handoff
+directory; declare every result/scratch file there. Keep code deliverables
+committed outside that directory. Parent import preserves exact bytes and evidence references
+in an external immutable archive, authors the dispatcher artifact/envelope, and
+removes only preserved, unchanged, declared local temporary files. A link, path
+escape, unknown file, wrong identity or digest blocks import without discarding
+results. Only the parent invokes the dispatcher's external report API.
 
 The main dispatcher collects the worker and its delegates, checks its evidence,
-then settles the report. `confirmed_stopped` is a caller attestation, not a
+then imports, prepares and independently checks the combined candidate.
+A successful `done` merges into the invoking branch before settling the report,
+then removes the registered worker worktree after its consumers have stopped. `confirmed_stopped` is a caller attestation, not a
 native cancellation or liveness detector. Accepted supplier commits and evidence
 unlock direct dependents. Refresh readiness immediately after settlement;
 independent work need not wait for an entire dependency wave. Resource keys are
@@ -129,8 +162,10 @@ The selected dispatcher's `state.json` is authoritative for every graph step:
 `status: accepted` means done. Pending, claimed, executing, reported, rejected
 and blocked steps are all **not done**. There is no second stored completion
 boolean to synchronize. `completion.done` and `completion.not_done` in bridge
-snapshots are derived lists; the existing `complete` flag means all graph steps
-are accepted. It does not replace the separate guarded `finish` return.
+snapshots are derived lists; `completion` describes graph acceptance.
+The chain also exposes outstanding integration and cleanup work: accepted code
+stays accepted if worktree removal fails. Such a failure cannot trigger task
+reexecution and prevents final `finish` until cleanup is resolved.
 
 Use `done` or `settle`, with the same exact attempt and verification receipt, to
 record acceptance. An identical repeated completion is inert even after another
@@ -172,23 +207,26 @@ The same main context performs this loop:
    Do not spawn agents or move work into the initiating checkout. Keep readiness,
    scope, supplier ancestry and resource constraints. Update the main conversation
    from the work actually performed.
-4. Write the assigned artifact/envelope and invoke its exact `report_argv`.
+4. Write the worker-local handoff, then use parent `import-handoff` and `prepare`.
    Perform a separate verification phase against the definition of done and
    record actual checks. This is evidence verification by the main context;
    it does not claim an independent reviewer agent. Confirm all step-owned
-   commands have stopped, then call `done`/`settle` with the bound verification.
+   commands have stopped, then call `done`/`settle` with the bound integration and verification.
+   It merges, accepts and removes the step worktree in that order.
    `confirmed_stopped` refers to that step's activity, not the main conversation.
+   Invoke parent integration/cleanup commands from the invoking checkout or an
+   external directory, not from a worker directory that will be removed.
 5. Re-read `next` and continue immediately with remaining eligible work. Do not
    end successfully after one step or merely because `ready` is empty. An active
    attempt requires continuation/reconciliation; a blocker requires resolution
    or an explicit incomplete handoff. Do not busy-loop on an unchanged blocker.
 6. After every required step is accepted, verify the combined candidate and call
-   `finish` to return it to the exact initiating checkout. Continue ShipLoop's
+   `finish` to audit the current invoking checkout and completed cleanup. Continue ShipLoop's
    normal completion callback and subsequent Improve/test stages.
 
 Serial steps still use separate sibling worktrees. They are never created inside
 the initiating worktree, and a dependency's accepted commit must be present in
-the next step's starting revision (or merged by an explicit integration node).
+the next step's starting revision.
 No background dispatcher or model CLI runs this loop: the current main context
 follows the returned actions. The mode applies to this bound implementation
 chain, not to unrelated later skills' internal behavior.
@@ -216,22 +254,40 @@ message bus, heartbeat ledger or a second completion authority.
 
 ## Join and return
 
-For ordinary dependent work, `base_commit` must already contain its accepted
-suppliers. An explicit integration node can pass `integration:true` to `start`,
-receive separate exact supplier commits and merge them in its assigned worktree.
-Its reported commit must include every direct supplier. A conflict stays
-incomplete; do not declare success or erase conflicting work to clear the graph.
+For new per-step chains, every worker starts from the current integrated target.
+Independent workers may share an earlier base. After collection, `prepare`
+merges the latest target into the stopped worker checkout; conflicts remain
+there for bounded repair. The resulting candidate must contain both the original
+worker commit and current target. Run affected combined checks against that
+exact candidate, then `done` performs a guarded fast-forward into the invoking
+checkout. If the target moved, reprepare and reverify. Clean textual merging is
+not evidence that the combined behavior works.
 
-Example: A and B start independently. C depends on A, so accepting A can start C
-while B runs. J depends on B and C. J merges those exact accepted commits and
-runs combined checks. Once all graph nodes are accepted, `finish` requires the
-candidate to contain every contribution and the recorded target baseline. It
-fast-forwards the unchanged initiating checkout once. This is the execution
-checkout when a whole-run ShipLoop workspace is in use; its later final source
-return still follows the existing workspace policy.
-The parent selects the exact combined candidate for `finish`; a final integration
-node is the recommended way to produce it. An ancestry-valid commit alone is
-insufficient without the separately checked, candidate-bound passing evidence.
+Example: A/B start at H0. A is integrated, accepted and removed; C starts from
+that updated branch while B runs. B later reconciles against the advanced target,
+so both changes survive. J waits for B and C acceptance and starts from their
+combined result. Keep an explicit join for meaningful cross-component tests or
+integration code, not merely to gather Git branches. `finish` verifies the final
+result and confirms every owned worker worktree was removed.
+
+Ask-Agent leaves returned workspaces intact. The parent archives required
+results, confirms all worktree users/delegates stopped, and removes the exact
+registered worker with `git worktree remove`. Unknown edits/files, active Git
+operations or remaining consumers block removal. There is no automatic force,
+reset or recursive deletion. Retain branches as recovery references; deleting
+them is a separate decision. Accepted-but-unremoved attempts appear as cleanup
+work; `cleanup` retries removal without rerunning the step. Failed attempts stay
+visible and preserve their workspace during `retry`. After a replacement is
+accepted and integrated, explicit `cleanup` with `disposition:"superseded"` and
+a reason retires the old clean worktree. It requires the old handoff archive,
+preserves the old branch commit, and never merges rejected code. Dirty or
+unpreserved failed work remains a blocker. Archive bytes are revalidated before
+use and final audit, including after the source workspace has been removed.
+
+Existing v1/v2 bindings use the legacy frozen-target lifecycle: contributions
+are accepted without intermediate target updates; an explicit integration node
+can gather exact supplier commits, and `finish` returns the combined candidate
+once. Retained old evidence does not qualify the new per-step lifecycle.
 
 Only after the chain finishes may the parent submit its normal current producer
 result. ShipLoop then invokes its existing actual Improve checkpoint and later
@@ -309,7 +365,8 @@ A Git commit or clean receipt import alone cannot establish task completion.
 
 Missing/drifted binding, selected package, graph, evidence or target identity
 blocks progress. Preserve incomplete initialization, unresolved attempts and
-their worktrees. No automatic cleanup, force reset, stash, push or background
+their worktrees. Successful per-step acceptance attempts owned cleanup; failures retain the
+workspace and a recovery action. No force reset, stash, push or background
 service is provided. The local process-crash contract does not establish
 power-loss/NFS durability, hostile-process isolation or cross-session native
 handle recovery. Tests using synthetic native handles prove orchestration

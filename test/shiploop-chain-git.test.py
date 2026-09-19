@@ -100,6 +100,7 @@ class ShipLoopChainGitTests(unittest.TestCase):
         run_id: str | None = None,
         attempt: str | None = None,
         base_commit: str | None = None,
+        lifecycle: str = "final-return",
     ) -> dict:
         return self.call(
             chain_git.allocation_plan,
@@ -108,7 +109,39 @@ class ShipLoopChainGitTests(unittest.TestCase):
             run_id or str(uuid.uuid4()),
             attempt or str(uuid.uuid4()),
             base_commit or self.initial["head"],
+            lifecycle=lifecycle,
         )
+
+    def adopted_plan(
+        self,
+        *,
+        name: str = "ask-agent-worker",
+        branch: str | None = None,
+        run_id: str | None = None,
+        attempt: str | None = None,
+    ) -> tuple[dict, Path]:
+        root = (self.worktrees / name).resolve()
+        worker_branch = branch or f"ask-agent/{uuid.uuid4()}"
+        self.git(
+            "worktree",
+            "add",
+            "-q",
+            "-b",
+            worker_branch,
+            str(root),
+            self.initial["head"],
+            cwd=self.primary,
+        )
+        plan = self.call(
+            chain_git.adopt_workspace,
+            self.initial,
+            self.worktrees,
+            run_id or str(uuid.uuid4()),
+            attempt or str(uuid.uuid4()),
+            self.initial["head"],
+            root,
+        )
+        return plan, root
 
     def commit_worker(self, worker: Path, message: str) -> str:
         self.git("add", "-A", cwd=worker)
@@ -280,6 +313,329 @@ else:
         self.assertEqual(self.git("rev-parse", "HEAD", cwd=self.primary).stdout.strip(), self.main_head)
         self.assertEqual(self.git("symbolic-ref", "--short", "HEAD", cwd=self.primary).stdout.strip(), "main")
         self.assertFalse((self.primary / "feature.txt").exists())
+
+    def test_per_step_workers_reconcile_against_an_advancing_target(self) -> None:
+        first_plan = self.plan(
+            lifecycle="per-step",
+            run_id="55555555-5555-4555-8555-555555555555",
+            attempt="66666666-6666-4666-8666-666666666666",
+        )
+        second_plan = self.plan(
+            lifecycle="per-step",
+            run_id="77777777-7777-4777-8777-777777777777",
+            attempt="88888888-8888-4888-8888-888888888888",
+        )
+        contained_plan = self.plan(
+            lifecycle="per-step",
+            run_id="99999999-9999-4999-8999-999999999999",
+            attempt="aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+        )
+        self.assertEqual(first_plan["lifecycle"], "per-step")
+        self.assertEqual(first_plan["run_id"], "55555555-5555-4555-8555-555555555555")
+        self.assertEqual(first_plan["attempt"], "66666666-6666-4666-8666-666666666666")
+
+        first = self.call(chain_git.allocate, first_plan)
+        second = self.call(chain_git.allocate, second_plan)
+        contained = self.call(chain_git.allocate, contained_plan)
+        first_root = Path(first["repo"])
+        second_root = Path(second["repo"])
+        (first_root / "first.txt").write_text("first worker\n", encoding="utf-8")
+        first_commit = self.commit_worker(first_root, "first worker contribution")
+        (second_root / "second.txt").write_text("second worker\n", encoding="utf-8")
+        second_commit = self.commit_worker(second_root, "second worker contribution")
+
+        self.assertEqual(
+            self.call(chain_git.inspect_contribution, first_plan, first_commit)["commit"],
+            first_commit,
+        )
+        self.assertEqual(
+            self.call(chain_git.inspect_contribution, second_plan, second_commit)["commit"],
+            second_commit,
+        )
+        prepared_first = self.call(
+            chain_git.prepare_integration,
+            first_plan,
+            first_commit,
+            self.initial["head"],
+        )
+        self.assertEqual(prepared_first["candidate_commit"], first_commit)
+        self.assertEqual(prepared_first["workspace"], str(first_root))
+        self.assertEqual(
+            self.call(
+                chain_git.inspect_prepared,
+                first_plan,
+                first_commit,
+                self.initial["head"],
+                first_commit,
+            ),
+            prepared_first,
+        )
+        self.call(chain_git.fast_forward, self.initial, first_commit)
+        self.assertEqual(
+            self.call(chain_git.recover_allocation, second_plan)["head"],
+            second_commit,
+        )
+
+        current = self.call(chain_git.target_identity, self.initiating)
+        self.assertEqual(current["head"], first_commit)
+        self.assertFalse((self.initiating / "second.txt").exists())
+        self.assertEqual(
+            self.call(chain_git.inspect_contribution, contained_plan, self.initial["head"])["commit"],
+            self.initial["head"],
+        )
+        contained_prepared = self.call(
+            chain_git.prepare_integration,
+            contained_plan,
+            self.initial["head"],
+            current["head"],
+        )
+        self.assertEqual(contained_prepared["candidate_commit"], current["head"])
+        self.assertEqual(
+            self.git("rev-parse", "HEAD", cwd=Path(contained["repo"])).stdout.strip(),
+            current["head"],
+        )
+        self.assertEqual(
+            self.call(
+                chain_git.inspect_prepared,
+                contained_plan,
+                self.initial["head"],
+                current["head"],
+                current["head"],
+            ),
+            contained_prepared,
+        )
+        prepared_second = self.call(
+            chain_git.prepare_integration,
+            second_plan,
+            second_commit,
+            current["head"],
+        )
+        candidate = prepared_second["candidate_commit"]
+        self.assertNotEqual(candidate, second_commit)
+        self.assertEqual(self.git("rev-parse", "HEAD", cwd=second_root).stdout.strip(), candidate)
+        self.git("merge-base", "--is-ancestor", first_commit, candidate, cwd=second_root)
+        self.git("merge-base", "--is-ancestor", second_commit, candidate, cwd=second_root)
+        self.assertEqual(
+            self.call(
+                chain_git.prepare_integration,
+                second_plan,
+                second_commit,
+                current["head"],
+            ),
+            prepared_second,
+        )
+        self.assertEqual(
+            self.call(
+                chain_git.inspect_prepared,
+                second_plan,
+                second_commit,
+                current["head"],
+                candidate,
+            ),
+            prepared_second,
+        )
+        with self.assertRaises(chain_git.ChainGitError):
+            self.call(chain_git.inspect_contribution, second_plan, second_commit)
+
+        self.call(chain_git.fast_forward, current, candidate)
+        self.assertEqual((self.initiating / "first.txt").read_text(encoding="utf-8"), "first worker\n")
+        self.assertEqual((self.initiating / "second.txt").read_text(encoding="utf-8"), "second worker\n")
+        self.assertEqual(self.git("rev-parse", "HEAD", cwd=self.primary).stdout.strip(), self.main_head)
+
+    def test_per_step_conflict_is_preserved_and_a_bounded_resolution_is_provable(self) -> None:
+        first_plan = self.plan(lifecycle="per-step")
+        second_plan = self.plan(lifecycle="per-step")
+        first = self.call(chain_git.allocate, first_plan)
+        second = self.call(chain_git.allocate, second_plan)
+        first_root = Path(first["repo"])
+        second_root = Path(second["repo"])
+        (first_root / "baseline.txt").write_text("first target value\n", encoding="utf-8")
+        first_commit = self.commit_worker(first_root, "first target change")
+        (second_root / "baseline.txt").write_text("second worker value\n", encoding="utf-8")
+        second_commit = self.commit_worker(second_root, "second worker change")
+
+        self.call(
+            chain_git.prepare_integration,
+            first_plan,
+            first_commit,
+            self.initial["head"],
+        )
+        self.call(chain_git.fast_forward, self.initial, first_commit)
+        current = self.call(chain_git.target_identity, self.initiating)
+        with self.assertRaises(chain_git.ChainGitError):
+            self.call(
+                chain_git.prepare_integration,
+                second_plan,
+                second_commit,
+                current["head"],
+            )
+        self.assertEqual(self.git("rev-parse", "HEAD", cwd=self.initiating).stdout.strip(), first_commit)
+        self.assertTrue((Path(second["git_dir"]) / "MERGE_HEAD").is_file())
+        self.assertIn("<<<<<<<", (second_root / "baseline.txt").read_text(encoding="utf-8"))
+        self.assertIn("UU baseline.txt", self.git("status", "--porcelain", cwd=second_root).stdout)
+
+        (second_root / "baseline.txt").write_text("resolved value\n", encoding="utf-8")
+        resolved = self.commit_worker(second_root, "resolve target conflict")
+        prepared = self.call(
+            chain_git.prepare_integration,
+            second_plan,
+            second_commit,
+            current["head"],
+        )
+        self.assertEqual(prepared["candidate_commit"], resolved)
+        self.assertEqual(
+            self.call(
+                chain_git.inspect_prepared,
+                second_plan,
+                second_commit,
+                current["head"],
+                resolved,
+            ),
+            prepared,
+        )
+        self.call(chain_git.fast_forward, current, resolved)
+        self.assertEqual((self.initiating / "baseline.txt").read_text(encoding="utf-8"), "resolved value\n")
+
+    def test_prepare_rejects_unrecognized_worker_drift(self) -> None:
+        plan = self.plan(lifecycle="per-step")
+        worker = self.call(chain_git.allocate, plan)
+        root = Path(worker["repo"])
+        (root / "source.txt").write_text("source\n", encoding="utf-8")
+        source = self.commit_worker(root, "source contribution")
+        (root / "unexpected.txt").write_text("unexpected\n", encoding="utf-8")
+        self.commit_worker(root, "unexpected worker drift")
+
+        with self.assertRaisesRegex(chain_git.ChainGitError, "worker HEAD drifted"):
+            self.call(chain_git.prepare_integration, plan, source, self.initial["head"])
+
+    def test_adopted_worker_cleanup_refuses_leftovers_and_proves_absence(self) -> None:
+        plan, root = self.adopted_plan(branch="ask-agent/arbitrary-worker-branch")
+        self.assertEqual(plan["lifecycle"], "per-step")
+        self.assertEqual(plan["path"], str(root))
+        self.assertEqual(plan["worker"]["repo"], str(root))
+        self.assertEqual(plan["worker"]["git_dir"], self.call(chain_git.target_identity, root)["git_dir"])
+        self.assertEqual(plan["branch"], "ask-agent/arbitrary-worker-branch")
+
+        (root / ".gitignore").write_text("leftover.log\n", encoding="utf-8")
+        (root / "adopted.txt").write_text("adopted worker\n", encoding="utf-8")
+        source = self.commit_worker(root, "adopted contribution")
+        self.assertEqual(self.call(chain_git.inspect_contribution, plan, source)["commit"], source)
+        prepared = self.call(chain_git.prepare_integration, plan, source, self.initial["head"])
+        self.call(chain_git.fast_forward, self.initial, prepared["candidate_commit"])
+
+        untracked = root / "untracked.txt"
+        untracked.write_text("must stay\n", encoding="utf-8")
+        with self.assertRaises(chain_git.ChainGitError):
+            self.call(chain_git.remove_worker, plan, prepared["candidate_commit"])
+        untracked.unlink()
+        ignored = root / "leftover.log"
+        ignored.write_text("must stay too\n", encoding="utf-8")
+        with self.assertRaisesRegex(chain_git.ChainGitError, "ignored paths"):
+            self.call(chain_git.remove_worker, plan, prepared["candidate_commit"])
+        self.assertTrue(root.exists())
+        ignored.unlink()
+
+        removed = self.call(chain_git.remove_worker, plan, prepared["candidate_commit"])
+        self.assertEqual(removed["workspace"], str(root))
+        self.assertTrue(removed["removed"])
+        self.assertFalse(root.exists())
+        self.assertEqual(
+            self.call(chain_git.inspect_removed, plan, prepared["candidate_commit"]),
+            removed,
+        )
+        self.assertEqual(
+            self.git("rev-parse", "--verify", f"refs/heads/{plan['branch']}", cwd=self.primary).stdout.strip(),
+            source,
+        )
+        with self.assertRaises(chain_git.ChainGitError):
+            self.call(chain_git.remove_worker, plan, prepared["candidate_commit"])
+
+        root.mkdir()
+        with self.assertRaises(chain_git.ChainGitError):
+            self.call(chain_git.inspect_removed, plan, prepared["candidate_commit"])
+
+    def test_superseded_worker_cleanup_retains_unintegrated_ref_and_absence_proof(self) -> None:
+        old_plan = self.plan(lifecycle="per-step")
+        replacement_plan = self.plan(lifecycle="per-step")
+        old_worker = self.call(chain_git.allocate, old_plan)
+        replacement_worker = self.call(chain_git.allocate, replacement_plan)
+        old_root = Path(old_worker["repo"])
+        replacement_root = Path(replacement_worker["repo"])
+
+        (old_root / ".gitignore").write_text("leftover.log\n", encoding="utf-8")
+        (old_root / "failed.txt").write_text("old failed worker\n", encoding="utf-8")
+        old_commit = self.commit_worker(old_root, "failed worker contribution")
+        (replacement_root / "replacement.txt").write_text("replacement worker\n", encoding="utf-8")
+        replacement_source = self.commit_worker(replacement_root, "replacement contribution")
+        replacement = self.call(
+            chain_git.prepare_integration,
+            replacement_plan,
+            replacement_source,
+            self.initial["head"],
+        )
+        replacement_commit = replacement["candidate_commit"]
+        self.call(chain_git.fast_forward, self.initial, replacement_commit)
+        self.git("merge-base", "--is-ancestor", old_commit, replacement_commit, cwd=old_root, code=1)
+        with self.assertRaises(chain_git.ChainGitError):
+            self.call(chain_git.remove_worker, old_plan, replacement_commit)
+
+        untracked = old_root / "untracked.txt"
+        untracked.write_text("must stay\n", encoding="utf-8")
+        with self.assertRaises(chain_git.ChainGitError):
+            self.call(chain_git.remove_superseded_worker, old_plan, replacement_commit)
+        self.assertTrue(old_root.exists())
+        untracked.unlink()
+        ignored = old_root / "leftover.log"
+        ignored.write_text("must stay too\n", encoding="utf-8")
+        with self.assertRaisesRegex(chain_git.ChainGitError, "ignored paths"):
+            self.call(chain_git.remove_superseded_worker, old_plan, replacement_commit)
+        self.assertTrue(old_root.exists())
+        ignored.unlink()
+
+        removed = self.call(
+            chain_git.remove_superseded_worker,
+            old_plan,
+            replacement_commit,
+        )
+        self.assertEqual(
+            removed,
+            {
+                "replacement_integrated_commit": replacement_commit,
+                "workspace": str(old_root),
+                "branch": old_plan["branch"],
+                "worker_commit": old_commit,
+                "removed": True,
+            },
+        )
+        self.assertFalse(old_root.exists())
+        self.git("merge-base", "--is-ancestor", old_commit, replacement_commit, cwd=self.primary, code=1)
+        self.assertEqual(
+            self.call(
+                chain_git.inspect_superseded_removed,
+                old_plan,
+                replacement_commit,
+            ),
+            removed,
+        )
+        self.assertEqual(
+            self.git(
+                "rev-parse",
+                "--verify",
+                f"refs/heads/{old_plan['branch']}",
+                cwd=self.primary,
+            ).stdout.strip(),
+            old_commit,
+        )
+        with self.assertRaises(chain_git.ChainGitError):
+            self.call(chain_git.remove_superseded_worker, old_plan, replacement_commit)
+
+        old_root.mkdir()
+        with self.assertRaises(chain_git.ChainGitError):
+            self.call(
+                chain_git.inspect_superseded_removed,
+                old_plan,
+                replacement_commit,
+            )
 
     def test_plan_rejects_nested_symlink_and_foreign_workspace_containers(self) -> None:
         scoped_parent = self.worktrees / "repo-key"

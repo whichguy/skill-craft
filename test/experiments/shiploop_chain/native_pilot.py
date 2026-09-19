@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
-"""Manual, native-agent-only pilot for the ShipLoop parallel-chain bridge.
+"""Manual, native-agent-only pilot for per-step Ask-Agent chain integration.
 
-This is deliberately an experiment apparatus, not a worker launcher.  It creates
-an isolated real Git fixture, calls the public ``shiploop chain`` CLI, retains
-the resulting packets, and independently checks returned worker artifacts.  A
-parent conversation must use its native delegation facility, retain the real
-handle, collect the result, and attest that the worker stopped before settle.
+This is deliberately an experiment apparatus, not a worker launcher.  It
+creates a real Git fixture and fixture-emulates caller-prepared sibling
+worktrees with ordinary Git, asks the public chain bridge to adopt those exact
+workspaces, and retains every parent receipt outside the worktrees.  It does
+not prove that a host followed Ask-Agent's prompt-driven worktree-creation
+instructions. A parent conversation must use its native delegation facility,
+retain the real handle, collect the result, and attest that the worker stopped
+before importing, preparing, or accepting it.
 """
 from __future__ import annotations
 
@@ -28,9 +31,12 @@ class PilotError(ValueError):
     """Raised for a pilot boundary that should remain visible to its operator."""
 
 
-STEP_RE = re.compile(r"^[ABJ]$")
+STEP_RE = re.compile(r"^[ABCJ]$")
 ATTEMPT_RE = re.compile(r"^[A-Za-z0-9_-]{1,160}$")
 COMMIT_RE = re.compile(r"^[0-9a-f]{40,64}$")
+HANDOFF_SCHEMA = "shiploop-chain-handoff/v1"
+HANDOFF_DIRECTORY = ".shiploop-handoff"
+HANDOFF_MANIFEST = "handoff.json"
 
 STEPS: dict[str, dict[str, Any]] = {
     "A": {
@@ -49,17 +55,24 @@ STEPS: dict[str, dict[str, Any]] = {
         "write_scope": ["toy/format.py"],
         "resources": ["native-pilot:format"],
     },
+    "C": {
+        "deps": ["A"],
+        "task": "Implement toy/aggregate.py with aggregate(values), using toy.add.add.",
+        "ready": ["Accepted A code is already present in the current invoking target."],
+        "done": ["toy/aggregate.py is committed and aggregate([2, 3, -1]) returns 4 via add."],
+        "write_scope": ["toy/aggregate.py"],
+        "resources": ["native-pilot:aggregate"],
+    },
     "J": {
-        "deps": ["A", "B"],
+        "deps": ["B", "C"],
         "task": (
-            "Integration node: merge each exact accepted A and B supplier commit from "
-            "shiploop_chain.required_commits, then verify both modules and their combined behavior."
+            "Implement toy/composed.py with composed_output(values), using the already-integrated "
+            "aggregate and normalize modules. Do not manually merge supplier branches."
         ),
-        "ready": ["Accepted A and B supplier commits are listed in the packet."],
-        "done": ["The commit contains both exact suppliers and the combined external oracle passes."],
-        "write_scope": ["toy/add.py", "toy/format.py"],
-        "resources": ["native-pilot:integration"],
-        "integration": True,
+        "ready": ["Accepted B and C code is already present in the current invoking target."],
+        "done": ["toy/composed.py is committed and composed_output([2, 3]) returns 'result 5'."],
+        "write_scope": ["toy/composed.py"],
+        "resources": ["native-pilot:composed"],
     },
 }
 
@@ -102,21 +115,26 @@ def module(path, name):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--workspace", required=True)
-    parser.add_argument("--node", choices=("A", "B", "J"), required=True)
+    parser.add_argument("--node", choices=("A", "B", "C", "J"), required=True)
     parser.add_argument("--commit", required=True)
     parser.add_argument("--supplier", action="append", default=[])
+    parser.add_argument("--allow-handoff-prefix")
     args = parser.parse_args()
     workspace = Path(args.workspace).resolve()
     if not workspace.is_dir():
         fail("workspace is not a directory")
     if git(workspace, "rev-parse", "HEAD") != args.commit:
         fail("workspace HEAD does not equal supplied commit")
-    if git(workspace, "status", "--porcelain=v1", "--untracked-files=all"):
+    status = [line for line in git(workspace, "status", "--porcelain=v1", "--untracked-files=all").splitlines() if line]
+    if args.allow_handoff_prefix:
+        allowed = "?? " + args.allow_handoff_prefix
+        status = [line for line in status if not line.startswith(allowed)]
+    if status:
         fail("workspace is not clean")
 
     checks = []
     add = None
-    if args.node in ("A", "J"):
+    if args.node in ("A", "C", "J"):
         add = module(workspace / "toy" / "add.py", "native_pilot_add")
         add_checks = [add.add(2, 3) == 5, add.add(-4, 1) == -3]
         if not all(add_checks):
@@ -127,17 +145,23 @@ def main():
         if formatting.normalize("  Hello   THERE ") != "hello there":
             fail("normalize behavior did not satisfy its oracle")
         checks.append("normalize collapses/strips/folds case")
+    if args.node in ("C", "J"):
+        aggregate = module(workspace / "toy" / "aggregate.py", "native_pilot_aggregate")
+        if aggregate.aggregate([2, 3, -1]) != 4 or aggregate.aggregate([]) != 0:
+            fail("aggregate behavior did not satisfy its oracle")
+        checks.extend(["aggregate([2, 3, -1]) == 4", "aggregate([]) == 0"])
     if args.node == "J":
         if len(args.supplier) != 2:
-            fail("J requires exactly two accepted supplier commits")
+            fail("J requires exactly two accepted B/C supplier commits")
         for supplier in args.supplier:
             result = subprocess.run(["git", "-C", str(workspace), "merge-base", "--is-ancestor", supplier, args.commit],
                                     text=True, capture_output=True, check=False, timeout=30)
             if result.returncode != 0:
                 fail("J commit does not contain exact supplier " + supplier)
-        if formatting.normalize("Result " + str(add.add(2, 3))) != "result 5":
-            fail("combined behavior did not satisfy its oracle")
-        checks.append("normalize('Result ' + str(add(2, 3))) == 'result 5'")
+        composed = module(workspace / "toy" / "composed.py", "native_pilot_composed")
+        if composed.composed_output([2, 3]) != "result 5":
+            fail("composed behavior did not satisfy its oracle")
+        checks.append("composed_output([2, 3]) == 'result 5'")
     print(json.dumps({"schema": "shiploop-native-pilot-oracle/v1", "passed": True,
                       "node": args.node, "workspace": str(workspace), "commit": args.commit,
                       "checks": checks, "suppliers": args.supplier}, sort_keys=True))
@@ -256,6 +280,10 @@ def read_context(root: Path) -> dict[str, Any]:
         fail("pilot context is incomplete")
     if context["pilot_dir"] != str(root):
         fail("pilot context belongs to a different directory")
+    run = context.get("run")
+    if not isinstance(run, dict) or not all(isinstance(run.get(key), str) and run[key] for key in
+                                            ("run_dir", "action", "run_id")):
+        fail("pilot context has no complete chain run identity")
     return context
 
 
@@ -390,7 +418,8 @@ def prepare(args: argparse.Namespace) -> dict[str, Any]:
         fail("--pilot-dir must be outside the selected source checkout")
     pilot.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
     pilot.mkdir(mode=0o700)
-    for name in ("commands", "inputs", "packets", "evidence", "verification", "accepted", "handles", "results", "oracle"):
+    for name in ("commands", "inputs", "packets", "evidence", "verification", "accepted", "handles", "results",
+                 "oracle", "workspaces", "imports", "prepared"):
         (pilot / name).mkdir(mode=0o700)
 
     primary = pilot / "fixture" / "primary"
@@ -429,7 +458,7 @@ def prepare(args: argparse.Namespace) -> dict[str, Any]:
         action = str(nav.current_action(state)["id"])
         result: dict[str, Any] = {"outcome": "done", "summary": "Synthetic prerequisite for native pilot only."}
         if stage == "plan":
-            result["work_items"] = [{"id": "native-chain-pilot", "title": "A/B/J native chain fixture"}]
+            result["work_items"] = [{"id": "native-chain-pilot", "title": "A/B/C/J native chain fixture"}]
         state = nav.apply(state, action, result)
         state = nav.finish_improve(state, action, {"summary": "Synthetic prerequisite Improve receipt for native pilot only."})
         synthetic_actions.append({"stage": stage, "action": action})
@@ -444,7 +473,7 @@ def prepare(args: argparse.Namespace) -> dict[str, Any]:
     }, "synthetic prerequisite record")
 
     context = {
-        "schema": "shiploop-native-chain-pilot/v1",
+        "schema": "shiploop-native-chain-pilot/v2",
         "pilot_dir": str(pilot),
         "created_at": utc_now(),
         "selected": {
@@ -462,7 +491,7 @@ def prepare(args: argparse.Namespace) -> dict[str, Any]:
             "main_head": main_head,
             "feature_head": feature_head,
         },
-        "run": {"run_dir": str(run_dir), "action": action},
+        "run": {"run_dir": str(run_dir), "action": action, "run_id": str(state["run_id"])},
         "graph": {"path": str(graph_path), "sha256": sha256_file(graph_path)},
         "oracle": {"path": str(oracle_path), "sha256": sha256_file(oracle_path)},
     }
@@ -470,6 +499,7 @@ def prepare(args: argparse.Namespace) -> dict[str, Any]:
     bound = bridge(context, "bind", extra=[
         "--graph", str(graph_path), "--dispatcher-skill", str(dispatcher_card),
         "--ask-agent-skill", str(ask_card), "--worktree-parent", str(worktree_parent),
+        "--lifecycle", "per-step",
         "--capacity", str(args.capacity),
     ])
     write_new_json(pilot / "results" / "prepare.json", {"bound": bound, "at": utc_now()}, "prepare result")
@@ -486,13 +516,149 @@ def prepare(args: argparse.Namespace) -> dict[str, Any]:
 
 def valid_step(value: str) -> str:
     if STEP_RE.fullmatch(value) is None:
-        fail("--step must be one of A, B, J")
+        fail("--step must be one of A, B, C, J")
     return value
 
 
 def valid_attempt(value: str) -> str:
     if ATTEMPT_RE.fullmatch(value) is None:
         fail("--attempt is invalid")
+    return value
+
+
+def workspace_record_path(root: Path, step: str, attempt: str) -> Path:
+    return root / "workspaces" / f"{step}-{attempt}.json"
+
+
+def import_record_path(root: Path, step: str, attempt: str) -> Path:
+    return root / "imports" / f"{step}-{attempt}.json"
+
+
+def import_intent_path(root: Path, step: str, attempt: str) -> Path:
+    return root / "imports" / f"{step}-{attempt}-intent.json"
+
+
+def prepared_record_path(root: Path, step: str, attempt: str) -> Path:
+    return root / "prepared" / f"{step}-{attempt}.json"
+
+
+def accepted_record_path(root: Path, step: str, attempt: str) -> Path:
+    return root / "accepted" / f"{step}-{attempt}.json"
+
+
+def handoff_path(workspace: Path, attempt: str) -> Path:
+    return workspace / HANDOFF_DIRECTORY / attempt / HANDOFF_MANIFEST
+
+
+def handoff_directory(workspace: Path, attempt: str) -> Path:
+    return handoff_path(workspace, attempt).parent
+
+
+def _status_lines(root: Path, repo: Path, label: str) -> list[str]:
+    text = git_text(root, repo, label, "status", "--porcelain=v1", "--untracked-files=all")
+    return [line for line in text.splitlines() if line]
+
+
+def assert_worker_clean_except_handoff(root: Path, workspace: Path, attempt: str, label: str) -> None:
+    prefix = f"?? {HANDOFF_DIRECTORY}/{attempt}/"
+    unexpected = [line for line in _status_lines(root, workspace, label + "-status") if not line.startswith(prefix)]
+    if unexpected:
+        fail(f"{label} has changes outside its declared handoff: {unexpected}")
+
+
+def _registered_worktrees(root: Path, target: Path) -> set[Path]:
+    output = git_text(root, target, "registered-worktrees", "worktree", "list", "--porcelain")
+    paths: set[Path] = set()
+    for line in output.splitlines():
+        if line.startswith("worktree "):
+            paths.add(Path(line.removeprefix("worktree ")).resolve())
+    return paths
+
+
+def _workspace_branch(context: dict[str, Any], step: str, attempt: str) -> str:
+    seed = "\x00".join((context["run"]["run_id"], step, attempt)).encode("utf-8")
+    return "shiploop/native-pilot/" + hashlib.sha256(seed).hexdigest()[:24]
+
+
+def _workspace_leaf(context: dict[str, Any], step: str, attempt: str) -> str:
+    seed = "\x00".join((context["run"]["run_id"], step, attempt)).encode("utf-8")
+    return f"ask-agent-{step.lower()}-{hashlib.sha256(seed).hexdigest()[:16]}"
+
+
+def _target_head(root: Path, context: dict[str, Any], label: str) -> str:
+    feature = Path(context["fixture"]["initiating_feature"])
+    assert_clean(root, feature, label)
+    return git_text(root, feature, label + "-head", "rev-parse", "HEAD")
+
+
+def _dependency_commits(root: Path, step: str) -> list[str]:
+    return [acceptance(root, dependency)["source_commit"] for dependency in STEPS[step]["deps"]]
+
+
+def _require_dependency_base(root: Path, context: dict[str, Any], step: str, base: str) -> None:
+    feature = Path(context["fixture"]["initiating_feature"])
+    for supplier in _dependency_commits(root, step):
+        result = git(root, feature, f"{step}-supplier-base", "merge-base", "--is-ancestor", supplier, base,
+                     allowed=(0, 1))
+        if result.returncode != 0:
+            fail(f"current target base for {step} excludes accepted supplier {supplier}")
+
+
+def host_prepare_workspace(root: Path, context: dict[str, Any], step: str, attempt: str) -> dict[str, Any]:
+    """Fixture-emulate caller workspace creation; do not claim host Ask-Agent creation."""
+    record_path = workspace_record_path(root, step, attempt)
+    feature = Path(context["fixture"]["initiating_feature"])
+    parent = Path(context["fixture"]["worktree_parent"])
+    if record_path.exists():
+        record = json_object(record_path, "caller-prepared workspace record")
+        required = {"schema", "step", "attempt", "workspace", "branch", "base_commit", "target", "prepared_by"}
+        if not required <= set(record) or record.get("step") != step or record.get("attempt") != attempt:
+            fail("caller-prepared workspace record does not match this step/attempt")
+        return record
+    base = _target_head(root, context, f"{step}-caller-target")
+    _require_dependency_base(root, context, step, base)
+    workspace = parent / _workspace_leaf(context, step, attempt)
+    branch = _workspace_branch(context, step, attempt)
+    if workspace.exists() or workspace.is_symlink() or workspace in _registered_worktrees(root, feature):
+        fail("refusing to replace an existing caller-prepared Ask-Agent workspace")
+    git(root, feature, f"{step}-ask-agent-workspace", "worktree", "add", "-b", branch, str(workspace), base)
+    if workspace.resolve() not in _registered_worktrees(root, feature):
+        fail("host preparation did not create a registered worker worktree")
+    if git_text(root, workspace, f"{step}-prepared-head", "rev-parse", "HEAD") != base:
+        fail("caller-prepared worker does not start at the current target HEAD")
+    assert_clean(root, workspace, f"{step} caller-prepared worker")
+    record = {
+        "schema": "shiploop-native-pilot-caller-workspace/v1",
+        "step": step,
+        "attempt": attempt,
+        "workspace": str(workspace.resolve()),
+        "branch": branch,
+        "base_commit": base,
+        "target": {"path": str(feature), "head": base},
+        "prepared_by": "Fixture emulation via ordinary Git; models Ask-Agent's caller-worktree contract but does not prove prompt-driven Ask-Agent creation or ShipLoop allocation",
+        "workspace_creation": "fixture_emulation",
+        "recorded_at": utc_now(),
+    }
+    write_new_json(record_path, record, "caller-prepared workspace record")
+    append_event(root, {"kind": "ask-agent-workspace-prepared", "at": utc_now(), "step": step,
+                        "attempt": attempt, "record": str(record_path), "workspace": record["workspace"],
+                        "base_commit": base, "workspace_creation": "fixture_emulation",
+                        "prompt_driven_ask_agent_creation": False})
+    return record
+
+
+def packet_workspace(packet: dict[str, Any]) -> str:
+    context = packet.get("context")
+    value = context.get("workspace") if isinstance(context, dict) else packet.get("workspace")
+    if not isinstance(value, str) or not value:
+        fail("bridge packet has no adopted workspace")
+    return value
+
+
+def packet_run_id(packet: dict[str, Any]) -> str:
+    value = packet.get("run_id")
+    if not isinstance(value, str) or not value:
+        fail("bridge packet has no dispatcher run_id")
     return value
 
 
@@ -507,101 +673,80 @@ def get_packet(root: Path, step: str, attempt: str) -> dict[str, Any]:
     return packet
 
 
-def ready_evidence(root: Path, context: dict[str, Any], step: str, attempt: str) -> dict[str, str]:
+def ready_evidence(root: Path, context: dict[str, Any], step: str, attempt: str, base_commit: str) -> dict[str, str]:
     path = root / "evidence" / f"ready-{step}-{attempt}.json"
     value = {
-        "schema": "shiploop-native-pilot-ready/v1", "step": step, "attempt": attempt,
-        "graph": context["graph"], "oracle": context["oracle"],
-        "statement": "Static pilot inputs and the immutable external oracle are available; native execution remains unstarted.",
+        "schema": "shiploop-native-pilot-ready/v2", "step": step, "attempt": attempt,
+        "base_commit": base_commit, "graph": context["graph"], "oracle": context["oracle"],
+        "statement": "The immutable oracle, fixture-emulated caller workspace, and accepted dependency code are available; native execution remains unstarted. This does not prove prompt-driven Ask-Agent workspace creation.",
     }
     write_same_or_new_json(path, value, "ready evidence")
     return {"path": str(path), "sha256": sha256_file(path)}
 
 
-def result_template(root: Path, context: dict[str, Any], step: str, attempt: str, packet: dict[str, Any]) -> Path:
-    path = root / "packets" / f"{step}-{attempt}-result-template.json"
-    template = {
-        "status": "SUCCEEDED",
+def inline_assignment(root: Path, context: dict[str, Any], step: str, attempt: str,
+                      packet: dict[str, Any], workspace: dict[str, Any]) -> str:
+    """Return the native prompt inline; never use a saved prompt as transport."""
+    worker = Path(workspace["workspace"])
+    handoff = handoff_path(worker, attempt)
+    handoff_dir = handoff.parent
+    dependencies = packet.get("shiploop_chain", {}).get("required_commits", _dependency_commits(root, step))
+    if not isinstance(dependencies, list) or not all(isinstance(value, str) for value in dependencies):
+        fail("worker packet has invalid supplier identities")
+    oracle_argv = [context["selected"]["python"], "-B", context["oracle"]["path"],
+                   "--workspace", str(worker), "--node", step,
+                   "--commit", "REPLACE_WITH_EXACT_CLEAN_WORKER_HEAD"]
+    for supplier in dependencies:
+        oracle_argv.extend(["--supplier", supplier])
+    result_path = handoff_dir / "result.json"
+    manifest_example = {
+        "schema": HANDOFF_SCHEMA,
+        "run_id": packet_run_id(packet),
         "step": step,
         "attempt": attempt,
-        "workspace": packet["context"]["workspace"],
+        "base_commit": workspace["base_commit"],
+        "status": "SUCCEEDED",
         "commit": "REPLACE_WITH_EXACT_CLEAN_WORKER_HEAD",
-        "checks": ["List commands actually run and their observed outcomes."],
-        "handoff": "Summarize the assigned work, starting revision, exact commit, integration state, and next owner.",
-        "integration_target": context["fixture"]["initiating_feature"],
-        "write_scope": STEPS[step]["write_scope"],
+        "summary": "State what changed, checks run, and remaining integration decision.",
+        "files": [{"path": "result.json", "sha256": "SHA-256 of result.json bytes"}],
     }
-    write_same_or_new_json(path, template, "worker artifact template")
-    return path
+    result_example = {
+        "schema": "shiploop-native-pilot-worker-result/v2",
+        "step": step,
+        "attempt": attempt,
+        "workspace": str(worker),
+        "base_commit": workspace["base_commit"],
+        "commit": "REPLACE_WITH_EXACT_CLEAN_WORKER_HEAD",
+        "cwd": str(worker),
+        "git_root": str(worker),
+        "checks": ["actual command and observed result"],
+        "summary": "Self-contained handoff summary and next action for parent integration.",
+    }
+    no_join = "Do not manually merge branches or supplier commits; they are already in your exact base." if step == "J" else "Do not merge, rebase, or change the integration target."
+    return textwrap.dedent(f"""\
+        You are the fresh native Ask-Agent worker for ShipLoop step {step}, attempt {attempt}.
 
+        Work only in the exclusively fixture-prepared caller workspace `{worker}`. Its exact base is
+        `{workspace['base_commit']}`. Record your observed cwd and Git root; they must equal this workspace.
+        Implement: {STEPS[step]['task']}
+        You may change only: {STEPS[step]['write_scope']}
+        Direct supplier commits already present in the base: {dependencies}
+        {no_join}
 
-def worker_brief(root: Path, context: dict[str, Any], step: str, attempt: str, packet: dict[str, Any], template: Path) -> Path:
-    path = root / "packets" / f"{step}-{attempt}-native-dispatch.md"
-    chain = packet.get("shiploop_chain", {})
-    git_reference = chain.get("ask_agent", {}).get("git_integration", {})
-    required = chain.get("required_commits", [])
-    oracle_argv = [context["selected"]["python"], "-B", context["oracle"]["path"],
-                   "--workspace", packet["context"]["workspace"], "--node", step,
-                   "--commit", "REPLACE_WITH_EXACT_CLEAN_WORKER_HEAD"]
-    for supplier in required:
-        oracle_argv.extend(["--supplier", supplier])
-    extra = ""
-    if step == "J":
-        extra = (
-            "\nFor J, merge every exact commit in `shiploop_chain.required_commits` with `git merge --no-ff` "
-            "inside this workspace. Do not substitute a branch name or a newer supplier. Run the immutable oracle "
-            f"with `--node J` and suppliers: {required}.\n"
-        )
-    text = f"""# Native worker dispatch: {step} / {attempt}
+        Before writing handoff files, commit the owned code, make the worktree clean, and run the external oracle:
+        {json.dumps(oracle_argv)}
 
-This file is a handoff for the parent conversation to give to one **fresh native
-background worker**. This harness does not create that worker and does not
-construct a native handle.
+        Then create `{handoff_dir}` inside the workspace. Write `{result_path}` with this JSON shape and actual
+        values:\n{json.dumps(result_example, indent=2)}
 
-Read the complete immutable packet at `{packet_path(root, step, attempt)}`.
-The assigned workspace is `{packet['context']['workspace']}`. You may change
-only `{STEPS[step]['write_scope']}` in that workspace and the two assigned output
-paths in the packet. The parent owns successors, settlement, and final return.
+        Hash that result file, then write `{handoff}` with exactly this handoff schema and actual values:\n{json.dumps(manifest_example, indent=2)}
 
-1. Read the packet and `{git_reference.get('path', '')}`; verify the reference
-   SHA-256 is `{git_reference.get('sha256', '')}`.
-2. Record the actual starting revision and branch before editing. Implement the
-   assigned task and produce a clean committed result in the assigned workspace;
-   an integration node may need multiple merge commits. Run the oracle below.
-   Do not modify the initiating feature worktree.
-3. Copy the template at `{template}` to `outputs.artifact` and fill in the actual
-   result. Preserve its required `status`, `step`, `attempt`, `workspace`,
-   `commit`, `checks`, and `handoff` fields. Check the attempt ID against this
-   packet before publication; its `commit` must be the exact clean worker HEAD.
-4. Hash that artifact, write `outputs.envelope` with the packet's exact identity,
-   the truthful task status, and the actual artifact digest. Use SUCCEEDED only
-   after the required checks pass; otherwise report BLOCKED or FAILED.
-5. Execute the packet's exact `report_argv` as an argv array, without shell interpolation.
-6. Return normally through the native host with SUCCEEDED/BLOCKED/FAILED, the exact
-   report paths, Git receipt, and next action. Do not call ShipLoop or launch a successor.
-{extra}
-External oracle: verify SHA-256 `{context['oracle']['sha256']}` before use.
-Replace only the commit placeholder with the exact clean worker HEAD, then
-execute this argv array. Success requires exit 0 and JSON `passed: true`:
-
-```json
-{json.dumps(oracle_argv, indent=2)}
-```
-
-The parent records the real native handle only after the host confirms launch,
-then collects the native completion before it verifies or settles this attempt.
-"""
-    write_same_or_new_json(path.with_suffix(".json"), {"packet": str(packet_path(root, step, attempt)),
-                                                        "workspace": packet["context"]["workspace"],
-                                                        "report_argv": packet["report_argv"]},
-                           "worker brief metadata")
-    encoded = textwrap.dedent(text).encode("utf-8")
-    if os.path.lexists(path):
-        if read_regular(path, "worker brief") != encoded:
-            fail(f"existing worker brief differs: {path}")
-    else:
-        write_new(path, encoded, "worker brief")
-    return path
+        Do not write Dispatcher artifacts, envelopes, or reports outside the workspace. Do not execute report_argv,
+        call ShipLoop, merge into the invoking checkout, select successors, delete the worktree, or create a prompt
+        file as a transport step. Leave this workspace and its handoff intact. Return normally through the native
+        host with SUCCEEDED/BLOCKED/FAILED, the actual workspace/Git root, exact commit, handoff path, checks, and
+        the parent-owned next action. The parent will import, integrate, accept, archive, and remove it.
+    """)
 
 
 def claim(args: argparse.Namespace) -> dict[str, Any]:
@@ -622,34 +767,36 @@ def start(args: argparse.Namespace) -> dict[str, Any]:
     context = read_context(root)
     step, attempt = valid_step(args.step), valid_attempt(args.attempt)
     spec = STEPS[step]
+    workspace = host_prepare_workspace(root, context, step, attempt)
     payload: dict[str, Any] = {
         "attempt": attempt,
-        "base_commit": context["fixture"]["feature_head"],
+        "workspace": workspace["workspace"],
+        "base_commit": workspace["base_commit"],
         "write_scope": spec["write_scope"],
         "resources": spec["resources"],
-        "ready_evidence": ready_evidence(root, context, step, attempt),
+        "ready_evidence": ready_evidence(root, context, step, attempt, workspace["base_commit"]),
     }
-    if spec.get("integration"):
-        payload["integration"] = True
     result = bridge(context, "start", payload=payload)
     packet = result.get("packet")
     if not isinstance(packet, dict):
         fail("public chain start did not return a worker packet")
     if packet.get("step") != step or packet.get("attempt") != attempt:
-        fail("public chain start returned a packet for a different step or attempt")
+        fail("public chain start returned a packet for a different step/attempt")
+    if Path(packet_workspace(packet)).resolve() != Path(workspace["workspace"]).resolve():
+        fail("bridge packet did not adopt the exact fixture-emulated caller workspace")
     saved = packet_path(root, step, attempt)
     write_same_or_new_json(saved, packet, "worker packet")
-    template = result_template(root, context, step, attempt, packet)
-    brief = worker_brief(root, context, step, attempt, packet, template)
+    assignment = inline_assignment(root, context, step, attempt, packet, workspace)
     append_event(root, {"kind": "start", "at": utc_now(), "step": step, "attempt": attempt,
-                         "action": result.get("action"), "packet": str(saved),
-                         "note": "The harness did not launch a native worker."})
+                        "action": result.get("action"), "packet": str(saved), "workspace": workspace["workspace"],
+                        "base_commit": workspace["base_commit"], "note": "The harness did not launch a native worker."})
     return {
         "step": step, "attempt": attempt, "action": result.get("action"), "packet": str(saved),
-        "native_dispatch_brief": str(brief), "result_template": str(template),
-        "workspace": packet["context"]["workspace"], "report_argv": packet["report_argv"],
-        "required_commits": packet.get("shiploop_chain", {}).get("required_commits", []),
-        "next": "Only action=launch authorizes the parent to spawn a real native worker. Record that returned native handle with launched after host confirmation.",
+        "workspace": workspace["workspace"], "caller_workspace_record": str(workspace_record_path(root, step, attempt)),
+        "inline_native_assignment": assignment,
+        "required_commits": packet.get("shiploop_chain", {}).get("required_commits", _dependency_commits(root, step)),
+        "handoff_manifest": str(handoff_path(Path(workspace["workspace"]), attempt)),
+        "next": "Only action=launch authorizes a real native launch. Give inline_native_assignment to that worker, then record its actual host handle after launch confirmation.",
     }
 
 
@@ -673,9 +820,9 @@ def launched(args: argparse.Namespace) -> dict[str, Any]:
              "handle": handle, "source": str(handle_path), "recorded_at": utc_now()}
     write_same_or_new_json(saved, value, "native handle record")
     append_event(root, {"kind": "native-launch-recorded", "at": utc_now(), "step": step, "attempt": attempt,
-                         "handle_record": str(saved), "note": "Caller supplied handle; this is not a liveness assertion."})
+                        "handle_record": str(saved), "note": "Caller supplied handle; this is not a liveness assertion."})
     return {"step": step, "attempt": attempt, "handle_record": str(saved), "status": result.get("status"),
-            "next": "Continue parent work and collect the native task through the host. A handle or report file is not completion."}
+            "next": "Continue parent work and collect the native task through the host. A handle or handoff file is not completion."}
 
 
 def acceptance(root: Path, step: str) -> dict[str, Any]:
@@ -686,11 +833,13 @@ def acceptance(root: Path, step: str) -> dict[str, Any]:
 
 
 def run_oracle(root: Path, context: dict[str, Any], step: str, workspace: str, commit: str,
-               suppliers: list[str]) -> dict[str, Any]:
+               suppliers: list[str], *, allow_handoff_attempt: str | None = None) -> dict[str, Any]:
     argv = [context["selected"]["python"], "-B", context["oracle"]["path"], "--workspace", workspace,
             "--node", step, "--commit", commit]
     for supplier in suppliers:
         argv.extend(["--supplier", supplier])
+    if allow_handoff_attempt is not None:
+        argv.extend(["--allow-handoff-prefix", f"{HANDOFF_DIRECTORY}/{allow_handoff_attempt}/"])
     result = run_command(root, "oracle-" + step, argv)
     try:
         value = json.loads(result.stdout)
@@ -701,136 +850,454 @@ def run_oracle(root: Path, context: dict[str, Any], step: str, workspace: str, c
     return value
 
 
-def check_worker(root: Path, context: dict[str, Any], step: str, attempt: str, packet: dict[str, Any],
-                 artifact: dict[str, Any]) -> tuple[str, str, list[str], dict[str, Any]]:
-    required = {"status", "step", "attempt", "workspace", "commit", "checks", "handoff"}
-    if not required <= set(artifact):
-        fail("worker result artifact is missing required handoff fields")
-    if artifact["status"] != "SUCCEEDED" or artifact["step"] != step or artifact["attempt"] != attempt:
-        fail("worker result artifact does not identify this succeeded step/attempt")
-    if not isinstance(artifact["checks"], list) or not artifact["checks"]:
-        fail("worker result artifact must retain actual checks")
-    if not artifact["handoff"]:
-        fail("worker result artifact must retain a handoff")
-    workspace = packet["context"]["workspace"]
-    if artifact["workspace"] != workspace:
-        fail("worker result artifact workspace differs from the assigned packet workspace")
-    commit = artifact["commit"]
-    if not isinstance(commit, str) or COMMIT_RE.fullmatch(commit) is None:
-        fail("worker result artifact commit is not a full lowercase Git SHA")
-    repo = Path(workspace)
-    head = git_text(root, repo, step + "-worker-head", "rev-parse", "HEAD")
-    if head != commit:
-        fail("worker result artifact commit does not equal exact worker HEAD")
-    assert_clean(root, repo, step + " worker")
-    base = context["fixture"]["feature_head"]
-    changed_text = git_text(root, repo, step + "-scope", "diff", "--name-only", base + ".." + commit)
+def _relative_handoff_file(directory: Path, value: Any) -> Path:
+    if not isinstance(value, str) or not value or value.startswith("/") or "\\" in value:
+        fail("handoff file path must be a nonempty relative POSIX path")
+    parts = value.split("/")
+    if any(part in {"", ".", ".."} for part in parts):
+        fail("handoff file path has an unsafe component")
+    candidate = directory.joinpath(*parts)
+    if not under(directory, candidate):
+        fail("handoff file path escapes its declared handoff directory")
+    return candidate
+
+
+def _handoff_file_entries(directory: Path, value: Any) -> list[dict[str, str]]:
+    if not isinstance(value, list) or not value:
+        fail("handoff files must be a nonempty list")
+    entries: list[dict[str, str]] = []
+    names: set[str] = set()
+    for item in value:
+        if not isinstance(item, dict) or set(item) != {"path", "sha256"}:
+            fail("handoff file entry must contain only path and sha256")
+        raw_path, digest = item["path"], item["sha256"]
+        _relative_handoff_file(directory, raw_path)
+        if not isinstance(digest, str) or re.fullmatch(r"[0-9a-f]{64}", digest) is None:
+            fail("handoff file digest is invalid")
+        if raw_path in names:
+            fail("handoff files repeat a relative path")
+        names.add(raw_path)
+        entries.append({"path": raw_path, "sha256": digest})
+    return entries
+
+
+def _worker_result(root: Path, workspace: dict[str, Any], step: str, attempt: str,
+                   manifest: dict[str, Any], files: list[dict[str, str]]) -> dict[str, Any]:
+    directory = handoff_directory(Path(workspace["workspace"]), attempt)
+    result_entries = [item for item in files if item["path"] == "result.json"]
+    if len(result_entries) != 1:
+        fail("handoff must retain exactly one result.json file")
+    result_path = _relative_handoff_file(directory, "result.json")
+    if sha256_file(result_path) != result_entries[0]["sha256"]:
+        fail("handoff result.json digest does not match its manifest")
+    result = json_object(result_path, "worker handoff result")
+    required = {"schema", "step", "attempt", "workspace", "base_commit", "commit", "cwd", "git_root", "checks", "summary"}
+    if not required <= set(result) or result.get("schema") != "shiploop-native-pilot-worker-result/v2":
+        fail("worker handoff result has an unsupported schema")
+    expected_workspace = workspace["workspace"]
+    for key, expected in (("step", step), ("attempt", attempt), ("workspace", expected_workspace),
+                          ("base_commit", workspace["base_commit"]), ("commit", manifest["commit"]),
+                          ("cwd", expected_workspace), ("git_root", expected_workspace)):
+        if result.get(key) != expected:
+            fail(f"worker handoff result {key} does not match its caller-prepared workspace")
+    if not isinstance(result.get("checks"), list) or not result["checks"]:
+        fail("worker handoff result has no actual checks")
+    if not isinstance(result.get("summary"), str) or not result["summary"].strip():
+        fail("worker handoff result has no summary")
+    return result
+
+
+def inspect_handoff(root: Path, context: dict[str, Any], step: str, attempt: str,
+                    manifest_path: Path) -> dict[str, Any]:
+    workspace = json_object(workspace_record_path(root, step, attempt), "caller-prepared workspace record")
+    worker = Path(workspace["workspace"])
+    expected_manifest = handoff_path(worker, attempt)
+    if manifest_path.resolve() != expected_manifest.resolve():
+        fail("handoff manifest must use the packet-assigned .shiploop-handoff/<attempt>/handoff.json path")
+    manifest = json_object(expected_manifest, "worker handoff manifest")
+    required = {"schema", "run_id", "step", "attempt", "base_commit", "status", "commit", "summary", "files"}
+    if set(manifest) != required or manifest.get("schema") != HANDOFF_SCHEMA:
+        fail("worker handoff manifest has an unsupported schema")
+    packet = get_packet(root, step, attempt)
+    for key, expected in (("run_id", packet_run_id(packet)), ("step", step), ("attempt", attempt),
+                          ("base_commit", workspace["base_commit"]), ("status", "SUCCEEDED")):
+        if manifest.get(key) != expected:
+            fail(f"worker handoff manifest {key} does not match this attempt")
+    if not isinstance(manifest.get("commit"), str) or COMMIT_RE.fullmatch(manifest["commit"]) is None:
+        fail("worker handoff manifest commit is invalid")
+    if not isinstance(manifest.get("summary"), str) or not manifest["summary"].strip():
+        fail("worker handoff manifest needs a nonempty summary")
+    directory = expected_manifest.parent
+    files = _handoff_file_entries(directory, manifest["files"])
+    for entry in files:
+        candidate = _relative_handoff_file(directory, entry["path"])
+        if sha256_file(candidate) != entry["sha256"]:
+            fail(f"handoff file digest changed: {entry['path']}")
+    result = _worker_result(root, workspace, step, attempt, manifest, files)
+    if git_text(root, worker, step + "-worker-head", "rev-parse", "HEAD") != manifest["commit"]:
+        fail("worker handoff commit is not the exact current worker HEAD")
+    if git_text(root, worker, step + "-worker-root", "rev-parse", "--show-toplevel") != str(worker):
+        fail("worker handoff workspace is not the actual Git root")
+    assert_worker_clean_except_handoff(root, worker, attempt, step + " worker")
+    changed_text = git_text(root, worker, step + "-scope", "diff", "--name-only",
+                            workspace["base_commit"] + ".." + manifest["commit"])
     changed = [line for line in changed_text.splitlines() if line]
     if set(changed) != set(STEPS[step]["write_scope"]):
-        fail(f"{step} commit changed {changed}; expected exactly {STEPS[step]['write_scope']}")
-    suppliers: list[str] = []
-    if step == "J":
-        suppliers = [acceptance(root, dependency)["commit"] for dependency in STEPS[step]["deps"]]
-        for supplier in suppliers:
-            ancestor = git(root, repo, "J-supplier-ancestor", "merge-base", "--is-ancestor", supplier, commit, allowed=(0, 1))
-            if ancestor.returncode != 0:
-                fail(f"J commit does not contain accepted supplier {supplier}")
-    oracle = run_oracle(root, context, step, workspace, commit, suppliers)
-    return workspace, commit, changed, oracle
-
-
-def verify(args: argparse.Namespace) -> dict[str, Any]:
-    root = pilot_root(args.pilot_dir)
-    context = read_context(root)
-    step, attempt = valid_step(args.step), valid_attempt(args.attempt)
-    evidence_path = root / "verification" / f"{step}-{attempt}.json"
-    if evidence_path.exists():
-        evidence = json_object(evidence_path, "existing verification evidence")
-        return {"step": step, "attempt": attempt, "verification": str(evidence_path),
-                "sha256": sha256_file(evidence_path), "receipt_sha256": evidence.get("receipt_sha256"),
-                "reused": True, "next": "Pass --confirmed-stopped to settle only after the native host has confirmed the worker stopped."}
-    handle_record = root / "handles" / f"{step}-{attempt}.json"
-    if not handle_record.is_file():
-        fail("verify requires a saved actual native handle from launched")
-    packet = get_packet(root, step, attempt)
-    observed = bridge(context, "observe", payload={"attempt": attempt, "occurred_at": utc_now()})
-    receipt = observed.get("receipt")
-    if not isinstance(receipt, dict) or not isinstance(receipt.get("envelope"), dict):
-        fail("public chain observe did not return the published worker receipt")
-    envelope = receipt["envelope"]
-    if envelope.get("status") != "SUCCEEDED":
-        fail("published worker envelope is not SUCCEEDED")
-    evidence = envelope.get("evidence")
-    expected_artifact = packet["outputs"]["artifact"]
-    if not isinstance(evidence, dict) or evidence.get("path") != expected_artifact:
-        fail("published worker envelope does not name its packet-assigned result artifact")
-    artifact_path = Path(expected_artifact)
-    artifact_bytes = read_regular(artifact_path, "worker result artifact")
-    artifact_sha = sha256_bytes(artifact_bytes)
-    if evidence.get("sha256") != artifact_sha:
-        fail("published worker envelope digest does not match its result artifact")
-    try:
-        artifact = json.loads(artifact_bytes.decode("utf-8"))
-    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
-        fail(f"worker result artifact is not JSON: {exc}")
-    if not isinstance(artifact, dict):
-        fail("worker result artifact must be a JSON object")
-    workspace, commit, changed, oracle = check_worker(root, context, step, attempt, packet, artifact)
-    record = {
-        "schema": "shiploop-native-pilot-verification/v1", "passed": True, "step": step, "attempt": attempt,
-        "receipt_sha256": receipt.get("sha256"), "packet": str(packet_path(root, step, attempt)),
-        "report_argv": packet["report_argv"], "result_artifact": {"path": str(artifact_path), "sha256": artifact_sha},
-        "worker": {"workspace": workspace, "commit": commit, "clean": True, "changed_paths": changed},
-        "oracle": oracle, "native_handle_record": str(handle_record),
-        "stoppage_boundary": "The parent must separately confirm the native worker stopped before settle; this verifier cannot inspect native liveness.",
-        "verified_at": utc_now(),
+        fail(f"{step} source commit changed {changed}; expected exactly {STEPS[step]['write_scope']}")
+    suppliers = _dependency_commits(root, step)
+    for supplier in suppliers:
+        ancestor = git(root, worker, step + "-supplier-ancestor", "merge-base", "--is-ancestor", supplier,
+                       manifest["commit"], allowed=(0, 1))
+        if ancestor.returncode != 0:
+            fail(f"{step} source commit excludes accepted supplier {supplier}")
+    oracle = run_oracle(root, context, step, str(worker), manifest["commit"], suppliers,
+                        allow_handoff_attempt=attempt)
+    return {
+        "workspace": workspace,
+        "manifest": {"path": str(expected_manifest), "sha256": sha256_file(expected_manifest), "value": manifest},
+        "worker_result": result,
+        "source_commit": manifest["commit"],
+        "changed_paths": changed,
+        "suppliers": suppliers,
+        "oracle": oracle,
     }
-    write_new_json(evidence_path, record, "verification evidence")
-    append_event(root, {"kind": "verified", "at": utc_now(), "step": step, "attempt": attempt,
-                         "evidence": str(evidence_path), "commit": commit})
-    return {"step": step, "attempt": attempt, "verification": str(evidence_path), "sha256": sha256_file(evidence_path),
-            "receipt_sha256": receipt["sha256"], "commit": commit, "workspace": workspace,
-            "next": "Only after native collection confirms stopped: call settle with --confirmed-stopped."}
 
 
-def settle(args: argparse.Namespace) -> dict[str, Any]:
+def _external_archive_ref(workspace: Path, path_value: Any, digest: Any, label: str) -> dict[str, str]:
+    if not isinstance(path_value, str) or not isinstance(digest, str) or re.fullmatch(r"[0-9a-f]{64}", digest) is None:
+        fail(f"{label} has no valid external path and SHA-256")
+    path = Path(path_value)
+    if not path.is_absolute() or under(workspace, path):
+        fail(f"{label} must be retained outside the worker workspace")
+    if sha256_file(path) != digest:
+        fail(f"{label} bytes do not match its retained SHA-256")
+    return {"path": str(path), "sha256": digest}
+
+
+def imported_archive_refs(value: dict[str, Any], workspace: Path) -> list[dict[str, str]]:
+    """Return immutable parent copies without treating dispatcher control data as worker output."""
+    imported = value.get("import")
+    if not isinstance(imported, dict):
+        fail("bridge import response has no handoff import receipt")
+    handoff = imported.get("handoff")
+    if not isinstance(handoff, dict):
+        fail("handoff import receipt has no archived manifest")
+    refs = [
+        _external_archive_ref(workspace, handoff.get("archived_path"), handoff.get("archived_sha256"),
+                              "archived worker handoff"),
+        _external_archive_ref(workspace, imported.get("receipt_path"), imported.get("receipt_sha256"),
+                              "archived handoff receipt"),
+    ]
+    archives = imported.get("archives")
+    if not isinstance(archives, list) or not archives:
+        fail("handoff import receipt has no archived worker result files")
+    for index, item in enumerate(archives):
+        if not isinstance(item, dict):
+            fail("handoff import receipt has a malformed archived result file")
+        refs.append(_external_archive_ref(workspace, item.get("archived_path"), item.get("sha256"),
+                                          f"archived worker result file {index}"))
+    unique: dict[tuple[str, str], dict[str, str]] = {}
+    for ref in refs:
+        unique[(ref["path"], ref["sha256"])] = ref
+    return list(unique.values())
+
+
+def handoff_receipt_sha(value: dict[str, Any]) -> str:
+    imported = value.get("import")
+    digest = imported.get("receipt_sha256") if isinstance(imported, dict) else None
+    if not isinstance(digest, str) or re.fullmatch(r"[0-9a-f]{64}", digest) is None:
+        fail("bridge import response did not expose the immutable handoff receipt SHA-256")
+    return digest
+
+
+def dispatcher_receipt_sha(value: dict[str, Any]) -> str:
+    receipt = value.get("receipt")
+    digest = receipt.get("sha256") if isinstance(receipt, dict) else None
+    if not isinstance(digest, str) or re.fullmatch(r"[0-9a-f]{64}", digest) is None:
+        fail("bridge import response did not expose the immutable Dispatcher report receipt SHA-256")
+    return digest
+
+
+def import_handoff(args: argparse.Namespace) -> dict[str, Any]:
     root = pilot_root(args.pilot_dir)
     context = read_context(root)
     step, attempt = valid_step(args.step), valid_attempt(args.attempt)
     if not args.confirmed_stopped:
-        fail("settle requires --confirmed-stopped after real native collection confirms termination")
-    evidence_path = root / "verification" / f"{step}-{attempt}.json"
-    evidence = json_object(evidence_path, "verification evidence")
-    if evidence.get("passed") is not True or evidence.get("step") != step or evidence.get("attempt") != attempt:
-        fail("verification evidence does not prove this step/attempt")
-    handle_path = Path(str(evidence.get("native_handle_record", "")))
-    if not handle_path.is_file():
-        fail("verification evidence has no retained actual native handle record")
+        fail("import-handoff requires --confirmed-stopped after actual native collection")
+    record_path = import_record_path(root, step, attempt)
+    if record_path.exists():
+        record = json_object(record_path, "existing imported handoff record")
+        return {"step": step, "attempt": attempt, "import": str(record_path), "reused": True,
+                "next": "Call prepare after confirming the native worker and all consumers remain stopped."}
+    handle_record = root / "handles" / f"{step}-{attempt}.json"
+    if not handle_record.is_file():
+        fail("import-handoff requires a retained actual native handle")
+    intent_path = import_intent_path(root, step, attempt)
+    if intent_path.exists():
+        intent = json_object(intent_path, "handoff import intent")
+        if (intent.get("schema") != "shiploop-native-pilot-import-intent/v1"
+                or intent.get("step") != step or intent.get("attempt") != attempt
+                or intent.get("native_handle_record") != str(handle_record)):
+            fail("retained handoff import intent does not match this stopped worker")
+        inspected = intent.get("inspected")
+        payload = intent.get("payload")
+        if not isinstance(inspected, dict) or not isinstance(payload, dict):
+            fail("retained handoff import intent is malformed")
+        handoff = payload.get("handoff")
+        if not isinstance(handoff, dict) or not isinstance(handoff.get("path"), str):
+            fail("retained handoff import intent has no handoff identity")
+        requested = Path(args.handoff_manifest).expanduser()
+        if not requested.is_absolute() or requested.resolve(strict=False) != Path(handoff["path"]).resolve(strict=False):
+            fail("--handoff-manifest conflicts with the retained stopped-worker import intent")
+    else:
+        manifest = absolute_path(args.handoff_manifest, "--handoff-manifest", exists=True)
+        inspected = inspect_handoff(root, context, step, attempt, manifest)
+        payload = {
+            "attempt": attempt,
+            "confirmed_stopped": True,
+            "handoff": {"path": inspected["manifest"]["path"], "sha256": inspected["manifest"]["sha256"]},
+        }
+        intent = {
+            "schema": "shiploop-native-pilot-import-intent/v1", "step": step, "attempt": attempt,
+            "native_handle_record": str(handle_record), "inspected": inspected, "payload": payload,
+        }
+        write_new_json(intent_path, intent, "handoff import intent")
+    result = bridge(context, "import-handoff", payload=payload)
+    archives = imported_archive_refs(result, Path(inspected["workspace"]["workspace"]))
+    record = {
+        "schema": "shiploop-native-pilot-import/v2", "step": step, "attempt": attempt,
+        "native_handle_record": str(handle_record), "intent": str(intent_path), "inspected": inspected, "bridge": result,
+        "handoff_receipt_sha256": handoff_receipt_sha(result),
+        "dispatcher_receipt_sha256": dispatcher_receipt_sha(result),
+        "external_archives": archives, "imported_at": utc_now(),
+    }
+    write_new_json(record_path, record, "parent handoff import record")
+    append_event(root, {"kind": "handoff-imported", "at": utc_now(), "step": step, "attempt": attempt,
+                        "record": str(record_path), "source_commit": inspected["source_commit"]})
+    return {"step": step, "attempt": attempt, "import": str(record_path),
+            "handoff_receipt_sha256": record["handoff_receipt_sha256"],
+            "dispatcher_receipt_sha256": record["dispatcher_receipt_sha256"],
+            "archives": archives, "next": "Call prepare; it will reconcile this stopped worker with the current target before acceptance."}
+
+
+def integration_proof(value: dict[str, Any]) -> dict[str, str]:
+    proof = value.get("integration")
+    required = {"source_commit", "expected_target", "candidate_commit", "workspace"}
+    if not isinstance(proof, dict) or set(proof) != required:
+        fail("prepare response has no exact per-step integration proof")
+    result: dict[str, str] = {}
+    for key in ("source_commit", "expected_target", "candidate_commit"):
+        candidate = proof.get(key)
+        if not isinstance(candidate, str) or COMMIT_RE.fullmatch(candidate) is None:
+            fail(f"prepare integration proof has an invalid {key}")
+        result[key] = candidate
+    workspace = proof.get("workspace")
+    if not isinstance(workspace, str):
+        fail("prepare integration proof has no workspace")
+    result["workspace"] = str(absolute_path(workspace, "prepare integration workspace", exists=True))
+    return result
+
+
+def prepare_integration(args: argparse.Namespace) -> dict[str, Any]:
+    root = pilot_root(args.pilot_dir)
+    context = read_context(root)
+    step, attempt = valid_step(args.step), valid_attempt(args.attempt)
+    if not args.confirmed_stopped:
+        fail("prepare-integration requires --confirmed-stopped after actual native collection")
+    record_path = prepared_record_path(root, step, attempt)
+    if record_path.exists():
+        record = json_object(record_path, "existing prepared integration record")
+        return {"step": step, "attempt": attempt, "prepared": str(record_path), "reused": True,
+                "next": "Call done with the retained candidate-bound verification; do not re-run the native worker."}
+    imported = json_object(import_record_path(root, step, attempt), "parent handoff import record")
+    result = bridge(context, "prepare", payload={"attempt": attempt, "confirmed_stopped": True})
+    integration = integration_proof(result)
+    source = imported["inspected"]
+    if integration["source_commit"] != source["source_commit"]:
+        fail("prepare worker identity does not equal the imported original worker contribution")
+    workspace = Path(integration["workspace"])
+    if workspace.resolve() != Path(source["workspace"]["workspace"]).resolve():
+        fail("prepared integration workspace differs from the original adopted worker workspace")
+    if git_text(root, workspace, step + "-candidate-head", "rev-parse", "HEAD") != integration["candidate_commit"]:
+        fail("prepared candidate is not the exact current stopped worker HEAD")
+    if handoff_path(workspace, attempt).exists():
+        fail("prepare left worker-local handoff files behind after parent archival/import")
+    assert_clean(root, workspace, step + " prepared candidate")
+    candidate_oracle = run_oracle(root, context, step, str(workspace), integration["candidate_commit"],
+                                  source["suppliers"])
+    record = {
+        "schema": "shiploop-native-pilot-prepared/v2", "step": step, "attempt": attempt,
+        "import": str(import_record_path(root, step, attempt)), "bridge": result,
+        "integration": integration,
+        "candidate_oracle": candidate_oracle, "prepared_at": utc_now(),
+    }
+    write_new_json(record_path, record, "prepared integration record")
+    append_event(root, {"kind": "integration-prepared", "at": utc_now(), "step": step, "attempt": attempt,
+                        "record": str(record_path), "source_commit": source["source_commit"],
+                        "target_commit": integration["expected_target"], "candidate_commit": integration["candidate_commit"]})
+    return {"step": step, "attempt": attempt, "prepared": str(record_path), "integration": integration,
+            "next": "Call done; it must fast-forward the invoking branch, accept this exact prepared proof, and remove the worker worktree."}
+
+
+def _assert_archives_retained(record: dict[str, Any]) -> None:
+    archives = record.get("external_archives")
+    if not isinstance(archives, list) or not archives:
+        fail("import record has no retained external archives")
+    for item in archives:
+        if not isinstance(item, dict):
+            fail("import record has malformed archive reference")
+        path = Path(str(item.get("path", "")))
+        digest = item.get("sha256")
+        if not isinstance(digest, str) or sha256_file(path) != digest:
+            fail("archived worker evidence is unavailable or changed after worker cleanup")
+
+
+def _assert_workspace_removed(root: Path, context: dict[str, Any], workspace: dict[str, Any]) -> None:
+    path = Path(workspace["workspace"])
+    feature = Path(context["fixture"]["initiating_feature"])
+    if path.exists() or os.path.lexists(path):
+        fail("done did not remove the accepted worker worktree")
+    if path.resolve(strict=False) in _registered_worktrees(root, feature):
+        fail("done left the removed worker registered with Git")
+
+
+def done(args: argparse.Namespace) -> dict[str, Any]:
+    root = pilot_root(args.pilot_dir)
+    context = read_context(root)
+    step, attempt = valid_step(args.step), valid_attempt(args.attempt)
+    if not args.confirmed_stopped:
+        fail("done requires --confirmed-stopped after actual native collection")
+    accepted_path = accepted_record_path(root, step, attempt)
+    if accepted_path.exists():
+        record = json_object(accepted_path, "existing accepted contribution")
+        return {"step": step, "attempt": attempt, "accepted": str(accepted_path), "reused": True,
+                "next": "Use show or claim newly ready work; this accepted attempt must never be executed again."}
+    imported = json_object(import_record_path(root, step, attempt), "parent handoff import record")
+    prepared = json_object(prepared_record_path(root, step, attempt), "prepared integration record")
+    feature = Path(context["fixture"]["initiating_feature"])
+    current_target = _target_head(root, context, step + " target before done")
+    integration = integration_proof(prepared)
+    if current_target not in {integration["expected_target"], integration["candidate_commit"]}:
+        fail("target moved after prepare; do not reuse stale candidate verification")
+    target_before = integration["expected_target"]
+    evidence_path = root / "verification" / f"{step}-{attempt}-candidate.json"
+    evidence = {
+        "schema": "shiploop-native-pilot-candidate-verification/v2", "passed": True,
+        "step": step, "attempt": attempt, "commit": integration["candidate_commit"],
+        "source_commit": imported["inspected"]["source_commit"], "target_before": target_before,
+        "prepared": str(prepared_record_path(root, step, attempt)),
+        "integration": integration, "candidate_oracle": prepared["candidate_oracle"],
+    }
+    write_same_or_new_json(evidence_path, evidence, "candidate verification evidence")
     payload = {
         "attempt": attempt,
         "confirmed_stopped": True,
         "verification": {
-            "receipt_sha256": evidence["receipt_sha256"], "passed": True,
-            "reason": "External native-pilot oracle verified the exact clean assigned worktree, result report, and commit.",
+            "receipt_sha256": imported["dispatcher_receipt_sha256"], "passed": True,
+            "reason": "Parent oracle verified the exact prepared integrated candidate after archived handoff import.",
             "evidence": {"path": str(evidence_path), "sha256": sha256_file(evidence_path)},
         },
+        "integration": integration,
     }
-    result = bridge(context, "settle", payload=payload)
-    contribution = result.get("contribution")
-    if not isinstance(contribution, dict):
-        fail("public chain settle did not retain an accepted contribution")
-    accepted = {"schema": "shiploop-native-pilot-accepted/v1", "step": step, "attempt": attempt,
-                "commit": evidence["worker"]["commit"], "workspace": evidence["worker"]["workspace"],
-                "verification": str(evidence_path), "contribution": contribution, "settled_at": utc_now()}
-    accepted_path = root / "accepted" / f"{step}-{attempt}.json"
-    write_same_or_new_json(accepted_path, accepted, "accepted contribution record")
-    append_event(root, {"kind": "settled", "at": utc_now(), "step": step, "attempt": attempt,
-                         "accepted": str(accepted_path), "commit": accepted["commit"]})
-    return {"step": step, "attempt": attempt, "commit": accepted["commit"], "accepted": str(accepted_path),
+    result = bridge(context, "done", payload=payload)
+    if result.get("outcome") != "accepted":
+        fail("done did not return an accepted dispatcher outcome")
+    cleanup = result.get("cleanup")
+    if not isinstance(cleanup, dict) or cleanup.get("pending") is not False:
+        fail("done accepted the contribution without a completed worker cleanup receipt")
+    target_after = _target_head(root, context, step + " target after done")
+    if target_after != integration["candidate_commit"]:
+        fail("done did not advance the invoking target to the exact prepared candidate")
+    workspace = imported["inspected"]["workspace"]
+    _assert_workspace_removed(root, context, workspace)
+    _assert_archives_retained(imported)
+    record = {
+        "schema": "shiploop-native-pilot-accepted/v2", "step": step, "attempt": attempt,
+        "source_commit": imported["inspected"]["source_commit"], "candidate_commit": target_after,
+        "target_before": target_before, "target_after": target_after,
+        "workspace": workspace, "verification": str(evidence_path), "integration": integration,
+        "archives": imported["external_archives"], "cleanup": cleanup, "done_result": result,
+        "accepted_at": utc_now(),
+    }
+    write_new_json(accepted_path, record, "accepted contribution record")
+    append_event(root, {"kind": "done", "at": utc_now(), "step": step, "attempt": attempt,
+                        "accepted": str(accepted_path), "source_commit": record["source_commit"],
+                        "target_before": target_before, "target_after": target_after})
+    return {"step": step, "attempt": attempt, "source_commit": record["source_commit"],
+            "candidate_commit": target_after, "accepted": str(accepted_path),
             "ready": result.get("ready", []), "active": result.get("active", []), "complete": result.get("complete"),
-            "next": ("All graph nodes are accepted; call finish to verify and return the combined candidate."
-                     if result.get("complete") else
-                     "Use show, then claim newly ready work. J must receive the exact accepted A/B commits from its packet.")}
+            "next": "Use show, then claim newly ready work. The deleted worker path is not a downstream input."}
+
+
+def _events(root: Path) -> list[dict[str, Any]]:
+    path = root / "events.jsonl"
+    if not path.is_file():
+        fail("pilot event log is missing")
+    output: list[dict[str, Any]] = []
+    for line in read_regular(path, "pilot event log").decode("utf-8").splitlines():
+        try:
+            value = json.loads(line)
+        except json.JSONDecodeError as exc:
+            fail(f"pilot event log is malformed: {exc}")
+        if not isinstance(value, dict):
+            fail("pilot event log has a non-object entry")
+        output.append(value)
+    return output
+
+
+def _event_index(events: list[dict[str, Any]], kind: str, step: str) -> int:
+    hits = [index for index, event in enumerate(events) if event.get("kind") == kind and event.get("step") == step]
+    if len(hits) != 1:
+        fail(f"expected exactly one {kind} event for {step}, found {len(hits)}")
+    return hits[0]
+
+
+def _assert_timeline(root: Path, context: dict[str, Any]) -> dict[str, Any]:
+    events = _events(root)
+    launched = {step: _event_index(events, "native-launch-recorded", step) for step in ("A", "B", "C", "J")}
+    started = {step: _event_index(events, "start", step) for step in ("A", "B", "C", "J")}
+    finished = {step: _event_index(events, "done", step) for step in ("A", "B", "C", "J")}
+    if max(launched["A"], launched["B"]) >= min(finished["A"], finished["B"]):
+        fail("pilot did not record both A and B as launched before either dispatcher completion")
+    if not (finished["A"] < started["C"] < finished["B"]):
+        fail("pilot did not start C after A acceptance and before B dispatcher completion")
+    if not (max(finished["B"], finished["C"]) < started["J"]):
+        fail("pilot started J before both B and C were accepted")
+    feature = Path(context["fixture"]["initiating_feature"])
+    final_head = git_text(root, feature, "timeline-final-head", "rev-parse", "HEAD")
+    done_order = sorted((finished[step], step) for step in STEPS)
+    expected_before = context["fixture"]["feature_head"]
+    target_trace: list[dict[str, str]] = []
+    for _index, step in done_order:
+        accepted = acceptance(root, step)
+        if accepted["target_before"] != expected_before:
+            fail("per-step target identity did not advance in durable integration order")
+        if accepted["target_after"] == accepted["target_before"]:
+            fail("accepted contribution did not advance the invoking target")
+        expected_before = accepted["target_after"]
+        source = accepted["source_commit"]
+        result = git(root, feature, "timeline-source-ancestor", "merge-base", "--is-ancestor", source, final_head,
+                     allowed=(0, 1))
+        if result.returncode != 0:
+            fail("final invoking target excludes an accepted original source commit")
+        target_trace.append({"step": step, "before": accepted["target_before"], "after": accepted["target_after"]})
+    if expected_before != final_head:
+        fail("final invoking target does not equal the latest per-step integration receipt")
+    primary = Path(context["fixture"]["primary_main"])
+    if git_text(root, primary, "timeline-main-head", "rev-parse", "HEAD") != context["fixture"]["main_head"]:
+        fail("primary checkout changed during per-step integration")
+    for step in STEPS:
+        accepted = acceptance(root, step)
+        _assert_workspace_removed(root, context, accepted["workspace"])
+        for archive in accepted["archives"]:
+            if sha256_file(Path(archive["path"])) != archive["sha256"]:
+                fail("accepted archive did not remain readable after cleanup")
+    return {"a_b_launches_before_either_dispatcher_done": True,
+            "c_after_a_before_b_dispatcher_done": True,
+            "j_after_b_c_dispatcher_done": True,
+            "native_overlap_requires_host_trace": True,
+            "target_trace": target_trace, "final_target": final_head,
+            "primary_unchanged": True, "zero_owned_worktrees": True, "archives_retained": True}
 
 
 def show(args: argparse.Namespace) -> dict[str, Any]:
@@ -842,62 +1309,129 @@ def show(args: argparse.Namespace) -> dict[str, Any]:
     feature = Path(fixture["initiating_feature"])
     view = {
         "pilot_dir": str(root), "run_dir": context["run"]["run_dir"], "action": context["run"]["action"],
-        "chain": {key: next_view.get(key) for key in ("ready", "active", "accepted", "complete", "actions")},
+        "chain": {key: next_view.get(key) for key in ("ready", "active", "accepted", "complete", "actions", "cleanup")},
         "fixture": {
             "primary_main_head": git_text(root, primary, "show-main", "rev-parse", "HEAD"),
             "initiating_feature_head": git_text(root, feature, "show-feature", "rev-parse", "HEAD"),
             "baseline_main_head": fixture["main_head"], "baseline_feature_head": fixture["feature_head"],
-            "primary_clean": not bool(git_text(root, primary, "show-main-status", "status", "--porcelain=v1", "--untracked-files=all")),
-            "feature_clean": not bool(git_text(root, feature, "show-feature-status", "status", "--porcelain=v1", "--untracked-files=all")),
+            "primary_clean": not bool(_status_lines(root, primary, "show-main-status")),
+            "feature_clean": not bool(_status_lines(root, feature, "show-feature-status")),
         },
         "retained": {"context": str(root / "context.json"), "commands": str(root / "commands"),
                      "events": str(root / "events.jsonl"), "packets": str(root / "packets"),
+                     "imports": str(root / "imports"), "prepared": str(root / "prepared"),
                      "verification": str(root / "verification")},
     }
     append_event(root, {"kind": "show", "at": utc_now(), "complete": next_view.get("complete")})
     return view
 
 
+def _finish_evidence(root: Path, context: dict[str, Any], trace: dict[str, Any], target_head: str,
+                     primary: Path, feature: Path) -> tuple[Path, bool]:
+    """Create one immutable local proof or validate it before a public finish replay."""
+    path = root / "verification" / "finish.json"
+    accepted = {step: acceptance(root, step)["source_commit"] for step in STEPS}
+    if path.exists():
+        value = json_object(path, "finish verification evidence")
+        required = {"schema", "passed", "commit", "accepted", "oracle", "trace", "target", "main", "verified_at"}
+        if set(value) != required or value.get("schema") != "shiploop-native-pilot-finish-verification/v2":
+            fail("retained finish verification has an unsupported schema")
+        if value.get("passed") is not True or value.get("commit") != target_head or value.get("accepted") != accepted:
+            fail("retained finish verification does not bind the current accepted contributions")
+        if value.get("trace") != trace:
+            fail("retained finish verification does not match the current lifecycle trace")
+        if value.get("target") != {"path": str(feature), "head": target_head}:
+            fail("retained finish verification binds a different invoking target")
+        if value.get("main") != {"path": str(primary), "head": context["fixture"]["main_head"]}:
+            fail("retained finish verification binds a different primary checkout")
+        oracle = value.get("oracle")
+        if not isinstance(oracle, dict) or oracle.get("passed") is not True:
+            fail("retained finish verification has no passing original oracle result")
+        return path, True
+    accepted_b, accepted_c = (acceptance(root, step) for step in ("B", "C"))
+    final_oracle = run_oracle(root, context, "J", str(feature), target_head,
+                              [accepted_b["source_commit"], accepted_c["source_commit"]])
+    evidence = {
+        "schema": "shiploop-native-pilot-finish-verification/v2", "passed": True, "commit": target_head,
+        "accepted": accepted, "oracle": final_oracle, "trace": trace,
+        "target": {"path": str(feature), "head": target_head},
+        "main": {"path": str(primary), "head": context["fixture"]["main_head"]}, "verified_at": utc_now(),
+    }
+    write_new_json(path, evidence, "finish verification")
+    return path, False
+
+
+def _validate_current_finish_state(root: Path, context: dict[str, Any], trace: dict[str, Any], target_head: str,
+                                   primary: Path, feature: Path) -> None:
+    """Rerun independent code/Git/cleanup checks even when the proof already exists."""
+    accepted_b, accepted_c = (acceptance(root, step) for step in ("B", "C"))
+    run_oracle(root, context, "J", str(feature), target_head,
+               [accepted_b["source_commit"], accepted_c["source_commit"]])
+    if _target_head(root, context, "finish-current-target") != target_head:
+        fail("finish target changed during independent final verification")
+    if git_text(root, primary, "finish-current-main", "rev-parse", "HEAD") != context["fixture"]["main_head"]:
+        fail("primary checkout changed during independent final verification")
+    # `trace` was just derived by _assert_timeline, which checks removed
+    # worktrees and retained external archives. Retain the parameter so this
+    # boundary cannot be weakened without an explicit caller change.
+    if trace.get("zero_owned_worktrees") is not True or trace.get("archives_retained") is not True:
+        fail("final lifecycle trace lacks cleanup or archive proof")
+
+
+def _write_finish_result_once(root: Path, result: dict[str, Any], target_head: str, trace: dict[str, Any]) -> Path:
+    path = root / "results" / "finish.json"
+    if path.exists():
+        saved = json_object(path, "retained finish result")
+        if (saved.get("target_after") != target_head or saved.get("trace") != trace
+                or not isinstance(saved.get("finish"), dict) or saved["finish"].get("complete") is not True):
+            fail("retained finish result conflicts with the replayed final state")
+        return path
+    value = {
+        "schema": "shiploop-native-pilot-finish-result/v2",
+        "finish": result,
+        "target_after": target_head,
+        "trace": trace,
+    }
+    write_new_json(path, value, "finish result")
+    return path
+
+
+def _append_finished_once(root: Path, target_head: str, feature: Path) -> None:
+    prior = [event for event in _events(root) if event.get("kind") == "finished"]
+    if prior:
+        if len(prior) != 1 or prior[0].get("commit") != target_head or prior[0].get("target") != str(feature):
+            fail("retained finished event conflicts with the replayed final state")
+        return
+    append_event(root, {"kind": "finished", "at": utc_now(), "commit": target_head,
+                        "target": str(feature), "main_unchanged": True})
+
+
 def finish(args: argparse.Namespace) -> dict[str, Any]:
     root = pilot_root(args.pilot_dir)
     context = read_context(root)
-    finish_evidence = root / "verification" / "finish.json"
-    if finish_evidence.exists():
-        fail(f"finish evidence already exists; preserve the completed/uncertain run and inspect it with show: {finish_evidence}")
-    accepted_a, accepted_b, accepted_j = (acceptance(root, step) for step in ("A", "B", "J"))
+    trace = _assert_timeline(root, context)
+    accepted_j = acceptance(root, "J")
     primary = Path(context["fixture"]["primary_main"])
     feature = Path(context["fixture"]["initiating_feature"])
-    if git_text(root, feature, "finish-feature-head", "rev-parse", "HEAD") != context["fixture"]["feature_head"]:
-        fail("initiating feature changed before finish; preserve and reconcile instead of fast-forwarding")
-    assert_clean(root, feature, "initiating feature before finish")
-    assert_clean(root, primary, "primary main before finish")
-    j_workspace = accepted_j["workspace"]
-    j_commit = accepted_j["commit"]
-    oracle = run_oracle(root, context, "J", j_workspace, j_commit, [accepted_a["commit"], accepted_b["commit"]])
-    evidence = {
-        "schema": "shiploop-native-pilot-finish-verification/v1", "passed": True, "commit": j_commit,
-        "accepted": {"A": accepted_a["commit"], "B": accepted_b["commit"], "J": j_commit}, "oracle": oracle,
-        "target_before": {"path": str(feature), "head": context["fixture"]["feature_head"]},
-        "main_before": {"path": str(primary), "head": context["fixture"]["main_head"]}, "verified_at": utc_now(),
-    }
-    write_new_json(finish_evidence, evidence, "finish verification")
+    target_head = _target_head(root, context, "finish-target")
+    if target_head != accepted_j["candidate_commit"]:
+        fail("finish target is not the last accepted J candidate")
+    finish_evidence, reused_proof = _finish_evidence(root, context, trace, target_head, primary, feature)
+    _validate_current_finish_state(root, context, trace, target_head, primary, feature)
     result = bridge(context, "finish", payload={
-        "commit": j_commit, "confirmed_stopped": True,
+        "commit": target_head, "confirmed_stopped": True,
         "verification": {"path": str(finish_evidence), "sha256": sha256_file(finish_evidence)},
     })
-    target_after = git_text(root, feature, "finish-target-after", "rev-parse", "HEAD")
-    main_after = git_text(root, primary, "finish-main-after", "rev-parse", "HEAD")
-    assert_clean(root, feature, "initiating feature after finish")
-    assert_clean(root, primary, "primary main after finish")
-    if target_after != j_commit or main_after != context["fixture"]["main_head"]:
-        fail("finish result did not fast-forward only the initiating feature to J")
-    final = {"finish": result, "target_after": target_after, "main_after": main_after, "at": utc_now()}
-    write_new_json(root / "results" / "finish.json", final, "finish result")
-    append_event(root, {"kind": "finished", "at": utc_now(), "commit": j_commit,
-                         "target": str(feature), "main_unchanged": main_after == context["fixture"]["main_head"]})
-    return {"complete": result.get("complete"), "commit": j_commit, "initiating_feature": str(feature),
-            "primary_main": str(primary), "primary_main_unchanged": main_after == context["fixture"]["main_head"],
-            "evidence": str(finish_evidence), "result": str(root / "results" / "finish.json")}
+    if _target_head(root, context, "finish-target-after") != target_head:
+        fail("finish changed an already integrated target")
+    if git_text(root, primary, "finish-main-after", "rev-parse", "HEAD") != context["fixture"]["main_head"]:
+        fail("finish changed the primary checkout")
+    result_path = _write_finish_result_once(root, result, target_head, trace)
+    _append_finished_once(root, target_head, feature)
+    return {"complete": result.get("complete"), "commit": target_head, "initiating_feature": str(feature),
+            "primary_main": str(primary), "primary_main_unchanged": True,
+            "trace": trace, "evidence": str(finish_evidence), "result": str(result_path),
+            "reused_proof": reused_proof}
 
 
 def packet(args: argparse.Namespace) -> dict[str, Any]:
@@ -909,22 +1443,26 @@ def packet(args: argparse.Namespace) -> dict[str, Any]:
     if not isinstance(current, dict) or current.get("step") != step:
         fail("public chain packet did not return the requested step")
     write_same_or_new_json(packet_path(root, step, attempt), current, "recovered worker packet")
-    return {"packet": str(packet_path(root, step, attempt)), "workspace": current["context"]["workspace"],
-            "report_argv": current["report_argv"], "required_commits": current.get("shiploop_chain", {}).get("required_commits", [])}
-
+    workspace = json_object(workspace_record_path(root, step, attempt), "caller-prepared workspace record")
+    return {"packet": str(packet_path(root, step, attempt)), "workspace": packet_workspace(current),
+            "inline_native_assignment": inline_assignment(root, context, step, attempt, current, workspace),
+            "handoff_manifest": str(handoff_path(Path(workspace["workspace"]), attempt)),
+            "required_commits": current.get("shiploop_chain", {}).get("required_commits", _dependency_commits(root, step))}
 
 def parser() -> argparse.ArgumentParser:
     program = argparse.ArgumentParser(description=__doc__)
     subs = program.add_subparsers(dest="command", required=True)
-    prep = subs.add_parser("prepare", help="make a new external real-Git pilot and bind A/B/J")
+    prep = subs.add_parser("prepare", help="make a new external real-Git pilot and bind A/B/C/J")
     prep.add_argument("--pilot-dir", required=True)
     prep.add_argument("--source-root", required=True)
     prep.add_argument("--dispatcher-skill", required=True)
     prep.add_argument("--ask-agent-skill", required=True)
     prep.add_argument("--capacity", type=int, default=2)
     prep.set_defaults(handler=prepare)
-    for name, handler in (("claim", claim), ("start", start), ("launched", launched), ("verify", verify),
-                          ("settle", settle), ("show", show), ("finish", finish), ("packet", packet)):
+    for name, handler in (("claim", claim), ("start", start), ("launched", launched),
+                          ("import-handoff", import_handoff), ("verify", import_handoff),
+                          ("prepare-integration", prepare_integration), ("done", done), ("settle", done),
+                          ("show", show), ("finish", finish), ("packet", packet)):
         item = subs.add_parser(name)
         item.add_argument("--pilot-dir", required=True)
         item.set_defaults(handler=handler)
@@ -935,7 +1473,9 @@ def parser() -> argparse.ArgumentParser:
             item.add_argument("--attempt", required=True)
         if name == "launched":
             item.add_argument("--handle-file", required=True)
-        if name == "settle":
+        if name in {"import-handoff", "verify"}:
+            item.add_argument("--handoff-manifest", required=True)
+        if name in {"import-handoff", "verify", "prepare-integration", "done", "settle"}:
             item.add_argument("--confirmed-stopped", action="store_true")
     return program
 

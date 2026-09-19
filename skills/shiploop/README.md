@@ -1,4 +1,4 @@
-# ShipLoop navigator 0.17.0
+# ShipLoop navigator 0.18.0
 
 ShipLoop runs in the conversation that invoked it. That conversation follows
 the current action packets and performs the producer and Improve work; the
@@ -35,17 +35,25 @@ ShipLoop prompt.
   a later-created or materially revised graph needs review before binding.
   `chain bind --mode serial` walks the same dependency graph in the main context,
   one ready step at a time, without agents. Default parallel mode uses native
-  Ask-Agent. Accepted is the sole stored done state; the `completion` view lists
+  Ask-Agent 0.4, which creates its own worker worktrees for verified adoption.
+  The parent imports worker-local results, prepares and tests the combination,
+  merges each accepted contribution into the invoking branch, and removes the
+  worker checkout. Accepted is the sole stored done state; the `completion` view lists
   done/not-done, and `chain done` uses the same verified settlement as `settle`.
   Read-only `chain history` shows timestamped audit events; `chain pending`
   shows unfinished steps, unmet dependencies and available capacity.
-  Both modes continue through all required steps and the guarded combined return.
+  Both modes continue through all required steps, verified integration and
+  completed worktree cleanup. A removal failure is cleanup work, not permission
+  to execute an accepted step again. Existing bound v1/v2 chains retain their
+  older single final-return lifecycle.
 
-Chain incorporation remains a draft: the bounded native pilot used explicitly
-selected Ask-Agent 0.3.1 and Plan Dispatcher 0.1.1. Ask-Agent 0.4's worker-local
-handoff requires a parent import adapter and a fresh native qualification before
-using this route with that package. Binding a skill card freezes its bytes; it
-does not establish semantic protocol compatibility.
+Chain incorporation remains a draft. The historical pilot used explicitly
+selected Ask-Agent 0.3.1 and Plan Dispatcher 0.1.1. The 0.18.0 parent-import and
+per-step integration candidate requires its own native qualification and an
+explicitly selected compatible Ask-Agent 0.4 package. The bundled test fixture
+records that separate, unpublished contribution; it does not upgrade the
+marketplace or installed Ask-Agent 0.3 package. Binding a skill card freezes its
+bytes; it does not establish semantic protocol compatibility.
 
 `init` and `workspace start` default to navigator protocol 3 for new runs. Pass
 `--execution-mode=navigator-v2` only for the retained v2 route; v1, managed,

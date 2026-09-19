@@ -2,6 +2,20 @@
 
 ## Decision and bounds
 
+**September 19 candidate update:** the requested lifecycle now integrates each
+verified contribution into the invoking checkout/branch, then removes its worker
+worktree. The [Ask-Agent integration plan](ask-agent-chain-integration-plan-2026-09-19.md)
+supersedes the adapter plan below, including its frozen-target/final-return
+assumptions. The 0.18.0 candidate is implemented and undergoing qualification;
+the evidence below retains its original scope.
+
+## Superseded September 18 assessment and retained evidence
+
+The remainder of this document records the earlier 0.17.0 decision, behavior and
+results. References below to an unimplemented 0.4 adapter describe that earlier
+candidate, not the current implementation. Use the linked September 19 plan for
+current APIs, qualification results and remaining release prerequisites.
+
 **Decision: pilot the integrated candidate; defer merge into the current
 Ask-Agent 0.4 workflow.** The complete candidate is implemented on the ShipLoop
 0.17.0 integration branch and has a completed native pilot with explicitly

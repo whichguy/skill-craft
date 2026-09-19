@@ -121,7 +121,8 @@ class ChainIntegrationTests(unittest.TestCase):
 
     def bind(self, capacity=2, *, mode=None, ok=True):
         extra = ["--graph", str(self.graph), "--dispatcher-skill", str(self.dispatcher / "SKILL.md"),
-                 "--ask-agent-skill", str(self.ask / "SKILL.md"), "--worktree-parent", str(self.parent)]
+                 "--ask-agent-skill", str(self.ask / "SKILL.md"), "--worktree-parent", str(self.parent),
+                 "--lifecycle", "final-return"]
         if mode is not None:
             extra += ["--mode", mode]
         if capacity is not None:
@@ -809,7 +810,7 @@ class ChainIntegrationTests(unittest.TestCase):
         self.action = nav.current_action(state)["id"]
         p = self.call("bind", ok=False, extra=("--graph", str(self.graph),
             "--dispatcher-skill", str(self.dispatcher / "SKILL.md"), "--ask-agent-skill", str(self.ask / "SKILL.md"),
-            "--worktree-parent", str(self.parent)))
+            "--worktree-parent", str(self.parent), "--lifecycle", "final-return"))
         self.assertFalse((self.run / "chains").exists())
 
     def test_unfinished_chain_blocks_halt_and_improve_import_but_can_pause(self):
@@ -923,7 +924,8 @@ class ChainIntegrationTests(unittest.TestCase):
         invalid.mkdir()
         self.call("bind", ok=False, extra=("--graph", str(self.graph),
             "--dispatcher-skill", str(self.dispatcher / "SKILL.md"),
-            "--ask-agent-skill", str(self.ask / "SKILL.md"), "--worktree-parent", str(invalid)))
+            "--ask-agent-skill", str(self.ask / "SKILL.md"), "--worktree-parent", str(invalid),
+            "--lifecycle", "final-return"))
         self.assertEqual((self.run / "state.md").read_bytes(), original)
         self.assertFalse((self.run / "chains").exists())
 

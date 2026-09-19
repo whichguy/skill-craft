@@ -61,6 +61,17 @@ and checks blind evidence collection. Live prompt comparisons are explicit
 experiments, not CI dependencies. See the
 [probe-decision study](experiments/shiploop_probe_decisions/README.md).
 
+`python3 -B test/shiploop-chain-lifecycle.test.py` repeats the code-producing
+parallel/dependent chain in a disposable Git repository. Independent worker
+processes generate and test Python code; A/B overlap, C starts after A while B
+still runs, and J waits for B+C. The parent verifies each combination, integrates
+it into the invoking linked checkout and removes accepted worker worktrees.
+The same suite checks serial execution. Worker processes are deterministic
+fixtures, not native/model agents. `shiploop-chain-handoff.test.py` covers local
+result preservation and hostile-path/replay controls. Both are in the full
+ShipLoop inventory. Use the [native pilot](experiments/shiploop_chain/README.md)
+for separate qualification with actual Ask-Agent contexts and completion events.
+
 `python3 test/shiploop-full-runtime.test.py` composes public ShipLoop and selected
 bundled Until Loop CLIs across the protocol-3 graph, including cold recovery and
 corrective outcomes. Its review judgments are synthetic: it proves local runtime

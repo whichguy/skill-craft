@@ -683,7 +683,11 @@ For an explicitly selected parallel chain or serial chain, follow the Optional
 parallel-chain guide: bind this action's reviewed graph and recorded mode.
 Parallel mode uses native Ask-Agent; serial mode executes one ready step in the
 main context without spawning agents. Both use external sibling worktrees and
-the same verified acceptance transition. Keep observable combined status; only
+the same verified acceptance transition. Ask-Agent creates parallel worker
+worktrees; orchestration verifies and adopts them, imports worker-local results,
+prepares and checks the combination, merges into the invoking branch, then
+accepts the step and removes its worktree. Retain conflicts and cleanup blockers;
+never repeat accepted work because removal failed. Keep observable combined status; only
 accepted steps are done. Continue until every required step is accepted and the
 combined return is verified, or retain an explicit incomplete blocker. Finish
 before this action's normal completion callback and Improve checkpoint.
