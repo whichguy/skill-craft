@@ -1,0 +1,165 @@
+{
+  "schema": "shiploop-chain-incorporation-native-evidence/v1",
+  "local_evidence_root": "/private/tmp/shiploop-chain-017-20260918",
+  "qualification": "bounded Codex native chain with selected Ask-Agent 0.3.1; not Ask-Agent 0.4 or full SDLC",
+  "source_commit": "4471993",
+  "dispatcher_port_commit": "0a11b1a2951b318ed10c097d9a80a9ae6a3430c4",
+  "jobs": [
+    {
+      "step": "A",
+      "attempt": "attempt_cb191453-7ce2-422e-a0d6-9e149ad9da98",
+      "status": "accepted",
+      "workspace": "/private/tmp/shiploop-chain-017-20260918/.work-trees/project/shiploop-chain-f73af18c-f383-57fb-a0c6-a0f55eb2e63d-3f65d47b-69c2-5a4d-a4c3-dda302d7b5a6-e1212339cd81b1c0",
+      "commit": "6c039f7b257af4149d0ee93d49bc71b2feae4798",
+      "verification": "/private/tmp/shiploop-chain-017-20260918/verification/A-attempt_cb191453-7ce2-422e-a0d6-9e149ad9da98.json",
+      "verification_sha256": "24e7032426c5fd3683b1428742f8627b36e6992f065a2b0edc745a698656edf5",
+      "result": {
+        "path": "/private/tmp/shiploop-chain-017-20260918/run/chains/nav-a98d4312bc154b25ac15e316e7ba9081/dispatcher/artifacts/attempt_cb191453-7ce2-422e-a0d6-9e149ad9da98/result.json",
+        "sha256": "675f7d42ce1e7e7db56f9eb58fcdfc06cb3fad0558e71675a44a436ac53a5074"
+      },
+      "native_type": "default",
+      "role_substitution": "none"
+    },
+    {
+      "step": "B",
+      "attempt": "attempt_8aed8860-2320-410e-a6e2-811fba684509",
+      "status": "accepted",
+      "workspace": "/private/tmp/shiploop-chain-017-20260918/.work-trees/project/shiploop-chain-f73af18c-f383-57fb-a0c6-a0f55eb2e63d-b607af18-30d8-5709-828d-d7a0b5a08807-f30a158b9f4d62fe",
+      "commit": "0ad03a739b6553aa4e611add749c945c043c8b4b",
+      "verification": "/private/tmp/shiploop-chain-017-20260918/verification/B-attempt_8aed8860-2320-410e-a6e2-811fba684509.json",
+      "verification_sha256": "d3620eb762bac9ffec957a2db7d47799e0e24ea2b701b12795f3f6e17ce46277",
+      "result": {
+        "path": "/private/tmp/shiploop-chain-017-20260918/run/chains/nav-a98d4312bc154b25ac15e316e7ba9081/dispatcher/artifacts/attempt_8aed8860-2320-410e-a6e2-811fba684509/result.json",
+        "sha256": "452216dbef82b7c5c58e2f694c16426025edefd8d9c5b14ad01c8af1753dc00e"
+      },
+      "native_type": "default",
+      "role_substitution": "none"
+    },
+    {
+      "step": "J",
+      "attempt": "attempt_bed9f99a-0a72-4940-b6ad-9ea7d336692d",
+      "status": "accepted",
+      "workspace": "/private/tmp/shiploop-chain-017-20260918/.work-trees/project/shiploop-chain-f73af18c-f383-57fb-a0c6-a0f55eb2e63d-559b94a3-e598-5434-b212-a9fc5868ab13-b8336fe6113dd9c6",
+      "commit": "c1ebd17744196583b35b689b63172a66ae4a109a",
+      "verification": "/private/tmp/shiploop-chain-017-20260918/verification/J-attempt_bed9f99a-0a72-4940-b6ad-9ea7d336692d.json",
+      "verification_sha256": "ccdfefb178ce5e843ce9ef11551867993177e6ea15421ca97400bdd107a4d33b",
+      "result": {
+        "path": "/private/tmp/shiploop-chain-017-20260918/run/chains/nav-a98d4312bc154b25ac15e316e7ba9081/dispatcher/artifacts/attempt_bed9f99a-0a72-4940-b6ad-9ea7d336692d/result.json",
+        "sha256": "3a04e773706cff463b4a065381c71eb3f4b6edbb37e9ea9ffac9ccf04233c2ee"
+      },
+      "native_type": "default",
+      "role_substitution": "none"
+    }
+  ],
+  "final": {
+    "action": "nav-a98d4312bc154b25ac15e316e7ba9081",
+    "chain": {
+      "accepted": [
+        "A",
+        "B",
+        "J"
+      ],
+      "actions": [],
+      "active": [],
+      "complete": true,
+      "ready": []
+    },
+    "fixture": {
+      "baseline_feature_head": "4ddd07dc5602266c42d4eb53900ef6d906e9194d",
+      "baseline_main_head": "4ddd07dc5602266c42d4eb53900ef6d906e9194d",
+      "feature_clean": true,
+      "initiating_feature_head": "c1ebd17744196583b35b689b63172a66ae4a109a",
+      "primary_clean": true,
+      "primary_main_head": "4ddd07dc5602266c42d4eb53900ef6d906e9194d"
+    },
+    "pilot_dir": "/private/tmp/shiploop-chain-017-20260918",
+    "retained": {
+      "commands": "/private/tmp/shiploop-chain-017-20260918/commands",
+      "context": "/private/tmp/shiploop-chain-017-20260918/context.json",
+      "events": "/private/tmp/shiploop-chain-017-20260918/events.jsonl",
+      "packets": "/private/tmp/shiploop-chain-017-20260918/packets",
+      "verification": "/private/tmp/shiploop-chain-017-20260918/verification"
+    },
+    "run_dir": "/private/tmp/shiploop-chain-017-20260918/run"
+  },
+  "history": {
+    "retained_prefix_events": 24,
+    "final_events": 46,
+    "prefix_bytes_unchanged": true
+  },
+  "topology": {
+    "pairwise_non_nested": true,
+    "workers_and_target_are_siblings": true
+  },
+  "pending": {
+    "action_id": "nav-a98d4312bc154b25ac15e316e7ba9081",
+    "capacity": {
+      "available": 2,
+      "limit": 2,
+      "reserved": 0
+    },
+    "complete": true,
+    "completion": {
+      "done": [
+        "A",
+        "B",
+        "J"
+      ],
+      "not_done": []
+    },
+    "instruction": "Read-only view. Ready means dependencies accepted; confirm current action, parent status, readiness evidence, resources and capacity before claiming. This view grants no execution or retry.",
+    "parent_status": "active",
+    "pending": [],
+    "ready": [],
+    "revision": 14,
+    "run_id": "nav-a020ddc86284466b860ddf067140a33e",
+    "shiploop_chain": {
+      "binding": "/private/tmp/shiploop-chain-017-20260918/run/chains/nav-a98d4312bc154b25ac15e316e7ba9081/binding.md",
+      "binding_sha256": "7333ae0736c16039d9a4623a087b5ac7349798a8291513468dc8f89f1d87b89b",
+      "capacity": 2,
+      "dispatcher_run": "/private/tmp/shiploop-chain-017-20260918/run/chains/nav-a98d4312bc154b25ac15e316e7ba9081/dispatcher",
+      "finished": {
+        "child_complete": true,
+        "commit": "c1ebd17744196583b35b689b63172a66ae4a109a",
+        "contributions": [
+          {
+            "attempt": "attempt_cb191453-7ce2-422e-a0d6-9e149ad9da98",
+            "commit": "6c039f7b257af4149d0ee93d49bc71b2feae4798",
+            "step": "A"
+          },
+          {
+            "attempt": "attempt_8aed8860-2320-410e-a6e2-811fba684509",
+            "commit": "0ad03a739b6553aa4e611add749c945c043c8b4b",
+            "step": "B"
+          },
+          {
+            "attempt": "attempt_bed9f99a-0a72-4940-b6ad-9ea7d336692d",
+            "commit": "c1ebd17744196583b35b689b63172a66ae4a109a",
+            "step": "J"
+          }
+        ],
+        "returned_target": {
+          "branch": "native-pilot-feature",
+          "common_dir": "/private/tmp/shiploop-chain-017-20260918/fixture/primary/.git",
+          "git_dir": "/private/tmp/shiploop-chain-017-20260918/fixture/primary/.git/worktrees/initiating-feature",
+          "head": "c1ebd17744196583b35b689b63172a66ae4a109a",
+          "repo": "/private/tmp/shiploop-chain-017-20260918/.work-trees/project/initiating-feature"
+        },
+        "target": {
+          "branch": "native-pilot-feature",
+          "common_dir": "/private/tmp/shiploop-chain-017-20260918/fixture/primary/.git",
+          "git_dir": "/private/tmp/shiploop-chain-017-20260918/fixture/primary/.git/worktrees/initiating-feature",
+          "head": "4ddd07dc5602266c42d4eb53900ef6d906e9194d",
+          "repo": "/private/tmp/shiploop-chain-017-20260918/.work-trees/project/initiating-feature"
+        },
+        "verification": {
+          "path": "/private/tmp/shiploop-chain-017-20260918/verification/finish.json",
+          "sha256": "b9020a6889a371cf4de19b8cebcb53c29d17853a93290bd6114b44ebe22fb91e"
+        }
+      },
+      "mode": "parallel"
+    },
+    "view": "pending"
+  },
+  "retention": "All worker worktrees and artifacts retained for reproducibility. Parent owns later removal; no pending native worker."
+}

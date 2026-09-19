@@ -41,6 +41,12 @@ ShipLoop prompt.
   shows unfinished steps, unmet dependencies and available capacity.
   Both modes continue through all required steps and the guarded combined return.
 
+Chain incorporation remains a draft: the bounded native pilot used explicitly
+selected Ask-Agent 0.3.1 and Plan Dispatcher 0.1.1. Ask-Agent 0.4's worker-local
+handoff requires a parent import adapter and a fresh native qualification before
+using this route with that package. Binding a skill card freezes its bytes; it
+does not establish semantic protocol compatibility.
+
 `init` and `workspace start` default to navigator protocol 3 for new runs. Pass
 `--execution-mode=navigator-v2` only for the retained v2 route; v1, managed,
 and legacy modes remain for explicit compatibility use. Existing runs resume
