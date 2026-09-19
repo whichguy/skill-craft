@@ -84,6 +84,46 @@ python3 "$CLI" chain claim --run-dir "$RUN_DIR" --action "$ACTION" --input "$REQ
 
 ## Main-dispatcher operations
 
+### Script-owned navigation
+
+Every successful per-step flow operation returns `navigation` computed from the
+selected dispatcher and bridge history. This is the skill's navigation authority;
+the skill performs the requested work and reports facts, rather than traversing
+dependencies or choosing its own next phase. `history` and `pending` remain
+read-only inspection views, not execution instructions.
+
+- `actions` names the permitted semantic actions and their existing script
+  `operation` callbacks. For example, `action: launch` means call the native host,
+  then report the actual handle through `operation: launched`; it is not a
+  nonexistent `chain launch` command. `action: verify` means perform the requested
+  independent checks before submitting evidence through `operation: done`.
+- `next_argv` is the exact continuation to run after handling an action or when
+  resuming. Pass its argument array without shell interpolation. Inside a bound
+  chain it returns to the ShipLoop bridge, never directly to the selected Node
+  helper. After recorded finish it returns to ShipLoop's parent navigation.
+- `complete` is true only after the durable chain finish receipt exists. All
+  steps being accepted can still require cleanup and final verification. The
+  older top-level `complete` retains its graph-acceptance meaning.
+
+Follow only current action identities. A claim action lists script-computed
+dependency-ready candidates and the bound capacity available for claims. The
+parent supplies actual readiness and host/resource availability and may defer a
+candidate; it cannot add an unlisted step. Only the immediate fresh start grant
+authorizes launch or first serial execution. Recovered packets never grant a
+second launch. After accepted completion, use the newly returned frontier rather
+than inferring successors from a remembered plan.
+
+Do available dispatch or verification work before waiting for a running worker.
+When only collection remains, await any native completion or host notification;
+the list order is not a required completion order. A paused parent suppresses
+new claims and starts. A changed dispatcher owner blocks this binding's
+callbacks until its ownership conflict is resolved.
+
+Navigation is a derived response, not another state file. A cleanup failure
+keeps an accepted step accepted and permits safe dependents to continue, but
+prevents chain finish. Unknown native outcomes require reconciliation; elapsed
+time and an empty ready list never authorize acceptance or completion.
+
 | Operation | Request / meaning |
 | --- | --- |
 | `claim` | `{"steps":["A","B"]}` selects an eligible subset within capacity. |

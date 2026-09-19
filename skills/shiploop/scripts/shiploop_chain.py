@@ -1767,8 +1767,10 @@ def _serial_next_response(response: Mapping[str, Any]) -> dict[str, Any]:
     return result
 
 
-def _next_response(root: Path, binding: Mapping[str, Any]) -> dict[str, Any]:
-    rows = _events(_binding_dir(root, binding["action_id"]))
+def _next_response(root: Path, binding: Mapping[str, Any], *,
+                   rows: list[dict[str, Any]] | None = None) -> dict[str, Any]:
+    if rows is None:
+        rows = _events(_binding_dir(root, binding["action_id"]))
     response = _node(binding, "next")
     if _binding_mode(binding) == "serial":
         response = _serial_next_response(response)
@@ -1781,6 +1783,331 @@ def _next_response(root: Path, binding: Mapping[str, Any]) -> dict[str, Any]:
         response["actions"] = [*actions, *lifecycle["actions"]]
     response["shiploop_chain"] = _binding_summary(root, binding, rows)
     return response
+
+
+def _navigation_argv(root: Path, binding: Mapping[str, Any], *, parent: bool = False) -> list[str]:
+    """Return the one public command that may refresh this derived view."""
+    argv = ["python3", str(Path(__file__).resolve().parent / "shiploop")]
+    if parent:
+        return [*argv, "next", "--run-dir", str(root)]
+    return [*argv, "chain", "next", "--run-dir", str(root), "--action", binding["action_id"]]
+
+
+def _navigation_action(action: str, *, operation: str | None = None, attempt: str | None = None,
+                       steps: list[str] | None = None, max_steps: int | None = None,
+                       disposition: str | None = None, required: tuple[str, ...] = (),
+                       instruction: str) -> dict[str, Any]:
+    """Describe a bridge transition without turning the projection into state."""
+    result: dict[str, Any] = {
+        "action": action,
+        "required": list(required),
+        "instruction": instruction,
+    }
+    if operation is not None:
+        result["operation"] = operation
+    if attempt is not None:
+        result["attempt"] = attempt
+    if steps is not None:
+        result["steps"] = steps
+    if max_steps is not None:
+        result["max_steps"] = max_steps
+    if disposition is not None:
+        result["disposition"] = disposition
+    return result
+
+
+def _per_step_import_status(rows: list[dict[str, Any]], attempt: str) -> str | None:
+    imported = _per_step_import_record(rows, attempt)
+    if imported is None:
+        return None
+    receipt = imported.get("import")
+    if not isinstance(receipt, Mapping) or receipt.get("status") not in {"SUCCEEDED", "FAILED", "BLOCKED"}:
+        _fail("per-step navigation has an invalid imported handoff receipt")
+    return str(receipt["status"])
+
+
+def _per_step_prepared_for_target(rows: list[dict[str, Any]], attempt: str,
+                                  expected_target: str) -> dict[str, str] | None:
+    """Return only a current prepared candidate; stale candidates require prepare."""
+    for row in reversed(rows):
+        event = row.get("event") if isinstance(row, Mapping) else None
+        if not isinstance(event, Mapping) or event.get("kind") != "prepare_result":
+            continue
+        data = _event_data(row)
+        if data.get("attempt") != attempt:
+            continue
+        integration = _per_step_integration_proof(data.get("integration"), "prepared navigation integration")
+        return integration if integration["expected_target"] == expected_target else None
+    return None
+
+
+def _per_step_navigation(root: Path, binding: Mapping[str, Any], result: Mapping[str, Any],
+                         snapshot: Mapping[str, Any], rows: list[dict[str, Any]],
+                         operation: str, parent_status: str) -> dict[str, Any]:
+    """Project exact bridge callbacks from the child snapshot and append-only audit."""
+    lifecycle = snapshot.get("lifecycle")
+    summary = snapshot.get("shiploop_chain")
+    if not isinstance(lifecycle, Mapping) or not isinstance(summary, Mapping):
+        _fail("per-step navigation requires a current bridge lifecycle snapshot")
+    finished = summary.get("finished")
+    if finished is not None:
+        if not isinstance(finished, Mapping):
+            _fail("per-step navigation finish receipt is invalid")
+        return {
+            "complete": True,
+            "actions": [_navigation_action(
+                "return-parent",
+                instruction="The durable chain finish receipt is present. Return to the parent ShipLoop next command; do not run another chain operation.",
+            )],
+            "instruction": "The chain is durably finished; resume the parent ShipLoop action.",
+            "next_argv": _navigation_argv(root, binding, parent=True),
+        }
+
+    if snapshot.get("owner") != binding["owner"]:
+        return {
+            "complete": False,
+            "actions": [_navigation_action(
+                "blocked",
+                required=("the immutable selected dispatcher owner",),
+                instruction="The selected dispatcher owner changed. Preserve the child and bridge evidence; this binding cannot safely issue another callback.",
+            )],
+            "instruction": "This binding is fenced by a different selected dispatcher owner.",
+            "next_argv": _navigation_argv(root, binding),
+        }
+    if not isinstance(parent_status, str) or not parent_status:
+        _fail("per-step navigation parent status is invalid")
+
+    expected_target = lifecycle.get("expected_target")
+    if not isinstance(expected_target, Mapping):
+        _fail("per-step navigation has no expected target")
+    target_head = _commit(expected_target.get("head"), "per-step navigation target HEAD")
+    ready = snapshot.get("ready")
+    active = snapshot.get("active")
+    if (not isinstance(ready, list) or not all(isinstance(step, str) and step for step in ready)
+            or len(set(ready)) != len(ready)
+            or not isinstance(active, list)):
+        _fail("per-step navigation selected dispatcher snapshot is invalid")
+    capacity = binding.get("capacity")
+    if type(capacity) is not int or capacity < 1 or len(active) > capacity:
+        _fail("per-step navigation capacity snapshot is invalid")
+    unresolved = lifecycle.get("unresolved_integration")
+    serial_pending = lifecycle.get("serial_creation_pending")
+    cleanup_pending = lifecycle.get("cleanup_pending")
+    superseded_pending = lifecycle.get("superseded_cleanup_pending")
+    retained = lifecycle.get("retained_workers")
+    for label, values in (("serial workspace", serial_pending), ("cleanup", cleanup_pending),
+                          ("superseded cleanup", superseded_pending), ("retained worker", retained)):
+        if not isinstance(values, list) or not all(isinstance(item, str) and item for item in values):
+            _fail("per-step navigation " + label + " state is invalid")
+    recovery_actions: list[dict[str, Any]] = []
+    dispatch_actions: list[dict[str, Any]] = []
+    claim_actions: list[dict[str, Any]] = []
+    cleanup_actions: list[dict[str, Any]] = []
+    collect_actions: list[dict[str, Any]] = []
+    block_start_or_claim = parent_status != "active"
+    if parent_status != "active":
+        recovery_actions.append(_navigation_action(
+            "resume-parent" if parent_status == "paused" else "blocked-parent",
+            required=("an active parent ShipLoop navigator",),
+            instruction=("Wait for an authorized parent ShipLoop resume before claim or start. Collection and reconciliation callbacks may still be used when their own guards allow them."
+                         if parent_status == "paused" else
+                         "The parent ShipLoop navigator is not active. Do not claim or start another worker."),
+        ))
+    block_integration = False
+    if unresolved is not None:
+        if not isinstance(unresolved, Mapping):
+            _fail("per-step navigation unresolved integration is invalid")
+        attempt = _attempt(unresolved.get("attempt"), "per-step navigation integration attempt")
+        recovery_actions.append(_navigation_action(
+            "recover-integration", operation="done", attempt=attempt,
+            required=("the exact prior done verification", "the exact prior W/T/I integration facts", "confirmed_stopped: true"),
+            instruction="Replay the exact done input to reconcile this integration intent before starting or claiming any worker.",
+        ))
+        block_start_or_claim = True
+        block_integration = True
+    for attempt in serial_pending:
+        if parent_status == "active":
+            recovery_actions.append(_navigation_action(
+                "recover-workspace", operation="start", attempt=attempt,
+                required=("the exact prior start input",),
+                instruction="Replay the exact serial start input to recover its recorded workspace before starting or claiming any worker.",
+            ))
+        block_start_or_claim = True
+
+    immediate_attempt = result.get("attempt") if isinstance(result.get("attempt"), str) else None
+    immediate_action = result.get("action") if isinstance(result.get("action"), str) else None
+    if operation == "start" and immediate_attempt is not None and immediate_action == "prepare-workspace":
+        dispatch_actions.append(_navigation_action(
+            "prepare-workspace", operation="start", attempt=immediate_attempt,
+            required=("one fresh Ask-Agent sibling workspace at the reported base", "the exact existing start inputs plus workspace"),
+            instruction="Ask-Agent must create the requested workspace, then resubmit this same start for bridge adoption. Do not launch work yet.",
+        ))
+    elif operation == "start" and immediate_attempt is not None and immediate_action in {"launch", "execute"}:
+        if immediate_action == "launch":
+            dispatch_actions.append(_navigation_action(
+                "launch", operation="launched", attempt=immediate_attempt,
+                required=("the fresh worker packet from this start response", "a confirmed native handle"),
+                instruction="Launch the worker once from this fresh start grant, then record its confirmed handle with launched. Do not grant another launch from packet or recovery.",
+            ))
+        else:
+            dispatch_actions.append(_navigation_action(
+                "execute", operation="import-handoff", attempt=immediate_attempt,
+                required=("the fresh serial worker packet from this start response", "confirmed_stopped: true", "handoff.path", "handoff.sha256"),
+                instruction="Execute this fresh serial grant in the main context. After it stops and writes its handoff, import the handoff; do not create a native launch handle.",
+            ))
+
+    import_recovery = {
+        _event_data(row).get("attempt")
+        for row in rows
+        if isinstance(row.get("event"), Mapping) and row["event"].get("kind") == "handoff_import_intent"
+        and _per_step_import_record(rows, _event_data(row).get("attempt")) is None
+        and isinstance(_event_data(row).get("attempt"), str)
+    }
+    immediate_handled = immediate_attempt if immediate_action in {"prepare-workspace", "launch", "execute"} else None
+    for item in active:
+        if not isinstance(item, Mapping):
+            _fail("per-step navigation active attempt is invalid")
+        attempt = _attempt(item.get("attempt"), "per-step navigation active attempt")
+        recovery = item.get("recovery")
+        if not isinstance(recovery, str):
+            _fail("per-step navigation active recovery is invalid")
+        if attempt == immediate_handled:
+            continue
+        if attempt in import_recovery:
+            dispatch_actions.append(_navigation_action(
+                "recover-import", operation="import-handoff", attempt=attempt,
+                required=("the exact prior handoff.path and handoff.sha256", "confirmed_stopped: true"),
+                instruction="Replay the exact import-handoff input to finish archival/report/deletion recovery. Do not collect or relaunch this worker.",
+            ))
+            continue
+        if recovery == "retry":
+            if not block_integration:
+                dispatch_actions.append(_navigation_action(
+                    "retry", operation="retry", attempt=attempt,
+                    required=("confirmed_stopped: true", "a nonempty retry reason"),
+                    instruction="Preserve the rejected worker evidence, then retry it through the selected dispatcher before claiming a replacement.",
+                ))
+            continue
+        # A parent import cannot establish a missing parallel native handle.
+        # Reconcile that child state before describing any prepare/done work.
+        if recovery == "reconcile" and _binding_mode(binding) == "parallel":
+            dispatch_actions.append(_navigation_action(
+                "reconcile", operation="launched", attempt=attempt,
+                required=("the original confirmed native handle, if native inventory can prove it",),
+                instruction="Reconcile this saved native launch from host inventory. Record only the original confirmed handle with launched; never launch another worker while it is uncertain.",
+            ))
+            continue
+        imported_status = _per_step_import_status(rows, attempt)
+        if imported_status is not None and block_integration:
+            # An exact unfinished integration must settle before another
+            # candidate can be prepared, verified, or submitted as done.
+            continue
+        if imported_status == "SUCCEEDED":
+            prepared = _per_step_prepared_for_target(rows, attempt, target_head)
+            if prepared is None:
+                dispatch_actions.append(_navigation_action(
+                    "prepare", operation="prepare", attempt=attempt,
+                    required=("confirmed_stopped: true", "the imported successful handoff"),
+                    instruction="Prepare a candidate against the current integrated target. A missing or stale candidate must be prepared again before verification.",
+                ))
+            else:
+                dispatch_actions.append(_navigation_action(
+                    "verify", operation="done", attempt=attempt,
+                    required=("confirmed_stopped: true", "independent verification evidence", "receipt_sha256", "exact prepared W/T/I including workspace"),
+                    instruction="Independently verify the exact current prepared candidate, then submit done with its matching W/T/I and verification evidence.",
+                ))
+            continue
+        if imported_status in {"FAILED", "BLOCKED"}:
+            dispatch_actions.append(_navigation_action(
+                "verify", operation="done", attempt=attempt,
+                required=("confirmed_stopped: true", "independent verification evidence", "receipt_sha256"),
+                instruction="Verify the reported negative outcome and submit done without prepare or integration facts.",
+            ))
+            continue
+        if recovery == "start":
+            if not block_start_or_claim:
+                requirements = ["base_commit matching the current integrated target", "write_scope", "resources", "ready_evidence"]
+                if _binding_mode(binding) == "parallel":
+                    requirements.append("Ask-Agent workspace when already prepared")
+                dispatch_actions.append(_navigation_action(
+                    "start", operation="start", attempt=attempt, required=tuple(requirements),
+                    instruction="Start this existing claim once with the current bridge inputs. A parallel start without workspace will return prepare-workspace; it is not a launch grant.",
+                ))
+            continue
+        if recovery == "reconcile":
+            dispatch_actions.append(_navigation_action(
+                "resume", operation="import-handoff", attempt=attempt,
+                required=("confirmed_stopped: true", "handoff.path", "handoff.sha256"),
+                instruction="Reconcile the recorded serial main-context work without another start. Once it is stopped and has a handoff, import it.",
+            ))
+            continue
+        if recovery == "collect":
+            collect_actions.append(_navigation_action(
+                "collect", operation="import-handoff", attempt=attempt,
+                required=("confirmed native completion", "confirmed_stopped: true", "handoff.path", "handoff.sha256"),
+                instruction="Collect the running native worker. After it is confirmed stopped and writes its handoff, import-handoff; do not infer completion from files or elapsed time.",
+            ))
+            continue
+        if recovery == "resume":
+            dispatch_actions.append(_navigation_action(
+                "resume", operation="import-handoff", attempt=attempt,
+                required=("confirmed_stopped: true", "handoff.path", "handoff.sha256"),
+                instruction="Resume only the recorded serial main-context attempt. After it stops and writes its handoff, import-handoff; do not start it again.",
+            ))
+            continue
+        if recovery == "verify":
+            dispatch_actions.append(_navigation_action(
+                "recover-import", operation="import-handoff", attempt=attempt,
+                required=("confirmed_stopped: true", "handoff.path", "handoff.sha256"),
+                instruction="The dispatcher has a receipt without a completed bridge import. Reconcile the parent handoff import before verification or settlement.",
+            ))
+            continue
+        _fail("per-step navigation has an unsupported dispatcher recovery action")
+
+    for attempt in cleanup_pending:
+        cleanup_actions.append(_navigation_action(
+            "cleanup", operation="cleanup", attempt=attempt, disposition="accepted",
+            required=("confirmed_stopped: true",),
+            instruction="Retry only this accepted worker removal. Cleanup never authorizes re-execution, merge, or settlement.",
+        ))
+    for attempt in superseded_pending:
+        cleanup_actions.append(_navigation_action(
+            "cleanup", operation="cleanup", attempt=attempt, disposition="superseded",
+            required=("confirmed_stopped: true", "a nonempty retirement reason", "an accepted integrated replacement"),
+            instruction="Retire only this clean superseded worker after its replacement is accepted and integrated; do not merge or rerun it.",
+        ))
+
+    if (snapshot.get("complete") is True and not retained and unresolved is None
+            and not serial_pending):
+        dispatch_actions.append(_navigation_action(
+            "finish", operation="finish",
+            required=("confirmed_stopped: true", "the current integrated target commit", "independent final verification evidence"),
+            instruction="Every dispatcher step is accepted and all worker cleanup is resolved. Verify the current target independently, then finish the chain.",
+        ))
+    elif not block_start_or_claim:
+        available = capacity - len(active)
+        if available > 0 and ready:
+            steps = list(ready)
+            claim_actions.append(_navigation_action(
+                "claim", operation="claim", steps=steps, max_steps=available,
+                required=("only these script-ready step IDs",),
+                instruction="Claim only a subset of these listed script-ready IDs, bounded by available capacity. Do not infer another DAG transition or claim a deferred step.",
+            ))
+
+    actions = [*recovery_actions, *dispatch_actions, *claim_actions, *cleanup_actions, *collect_actions]
+    only_collect = bool(actions) and all(action["action"] == "collect" for action in actions)
+    return {
+        "complete": False,
+        "actions": actions,
+        "instruction": (
+            "No non-waiting bridge callback is currently granted. Await any native completion or host notification, not a particular listed worker, then refresh this view."
+            if only_collect else
+            "Use a currently applicable listed action; do not wait for collection while a start, prepare, verification, claim, or cleanup action is available. Resolve recovery before any claim or start, then refresh this derived view after each callback."
+            if actions else
+            "No bridge callback is currently granted. Preserve the durable state and refresh this view; do not infer execution."
+        ),
+        "next_argv": _navigation_argv(root, binding),
+    }
 
 
 def _completion_projection(binding: Mapping[str, Any],
@@ -3479,7 +3806,18 @@ def main(core: Any, argv: list[str] | None = None) -> int:
                     else:  # pragma: no cover - parser constrains this branch
                         _fail("unsupported chain operation")
             if not read_only:
-                result["completion"] = _completion_projection(binding)
+                if _binding_lifecycle(binding) == "per-step":
+                    rows = _events(_binding_dir(root, binding["action_id"]))
+                    snapshot = _next_response(root, binding, rows=rows)
+                    # A selected dispatcher may expose its own recovery argv.
+                    # Per-step callers must resume through the bridge instead.
+                    result.pop("next_argv", None)
+                    result["navigation"] = _per_step_navigation(
+                        root, binding, result, snapshot, rows, args.operation, state["status"],
+                    )
+                    result["completion"] = _completion_projection(binding, snapshot)
+                else:
+                    result["completion"] = _completion_projection(binding)
         print(json.dumps(result, sort_keys=True, ensure_ascii=False, allow_nan=False))
         return 0
     except (ChainError, store.StorageError, OSError, subprocess.SubprocessError, ValueError) as exc:

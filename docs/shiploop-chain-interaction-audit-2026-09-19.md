@@ -189,3 +189,65 @@ Linux runner. The disposable repository must configure its own local identity
 and require explicit identity with `user.useConfigOnly`; neither product code
 nor global Git configuration supplies a synthetic author. The representative
 fan-out regression and repeated full CI qualify this fixture correction.
+
+## Script-owned navigation follow-up
+
+Baseline: ShipLoop `08add3f` and dispatcher `ea25f73`. The unchanged candidate
+passed full CI (93 ShipLoop suite entries and 23 core entries). Before this
+increment, ShipLoop smoke and the source dispatcher CLI suite were run again.
+
+The graph frontier was already script-owned, but some mutation responses required
+the host to infer the next callback. The bridge also exposed graph acceptance
+without an equally explicit instruction for the remaining integration lifecycle.
+The scoped correction preserves the graph/state implementation and adds derived
+instructions, not a second navigation store or scheduler.
+
+```mermaid
+flowchart LR
+    N[Script returns next actions] --> W[Skill performs requested work]
+    W --> O[Skill reports observations and checks]
+    O --> S[Script validates the transition]
+    S --> N
+    S --> F[Script confirms finished chain]
+```
+
+The dispatcher facade returns the exact `next_argv` after each successful
+operation. The ShipLoop per-step adapter owns its richer `navigation` packet and
+keeps continuation on the bridge until its finish receipt is recorded. Native
+launch, collection and independent verification remain host actions; script
+instructions name the existing callbacks used to report their results. The
+skill does not invent successor IDs, execute a recovered launch grant, or infer
+completion from the absence of ready work.
+
+| Boundary | Required observable behavior |
+| --- | --- |
+| Initial frontier and capacity | Only script-ready candidates appear; bound capacity limits claims. |
+| Fresh start and recovery | Only the immediate new start can instruct a native launch or first serial execution. |
+| Accepted A while B runs | Returned actions release C; the join remains absent until its other dependencies are accepted. |
+| Returned worker result | Script directs parent import, candidate preparation and independent verification before acceptance. |
+| Cleanup failure | Script requests removal without rerunning accepted work; safe dependents may proceed. |
+| Last accepted graph node | Navigation requires cleanup/final verification and `finish`; graph acceptance alone is not chain completion. |
+| Recorded finish | `navigation.complete` becomes true and the callback returns to ShipLoop's parent navigation. |
+
+These are local script/Git qualification predicates. Native notification,
+cancellation and prompt-driven Ask-Agent workspace creation remain separate.
+
+The retained real-Git trace follows these script responses: bind offers A/B;
+accepted A offers C while B runs; accepted B still waits for C; accepted C offers
+J; accepted J offers `finish` with navigation incomplete; finish returns the
+parent callback with navigation complete. The fixture executes that parent
+callback from an unrelated working directory. Its optional trace is retained
+with `SHIPLOOP_CHAIN_TRACE_DIR`; otherwise output stays in the disposable fixture.
+
+Review found and corrected guidance for rejected imported results, uncertain
+launch handles, unresolved integration, nonblocking fan-out, capacity, paused
+parents, and stale dispatcher owners. Regression assertions cover each boundary.
+Three focused capacity/pause/owner controls pass. The source dispatcher gate
+passes at `d4655c7`: `PASS_CLEAN`, 172 reported cases, zero failures, run
+`20260919T181312Z-958523`. Inspected stderr is fixture diagnostics/help; the only
+filesystem note is temporary fixture leftovers outside product paths. Its first
+run exposed a compound receipt test that compared the whole response; it now
+compares digest-bound receipt data and verifies the additive callback separately.
+
+The expanded 25-case lifecycle suite and required full CI must qualify the final
+published candidate; their exact results and commit are recorded in the PR.

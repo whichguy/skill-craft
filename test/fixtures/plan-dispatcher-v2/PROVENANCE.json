@@ -8,10 +8,10 @@
   "path": "skills/plan-dispatcher",
   "version": "0.1.1",
   "files_sha256": {
-    "SKILL.md": "da8f8bda6f813d56a659e8a4a843002f09ab1e1626094fef9881f48f9abcfe46",
-    "scripts/dispatch.js": "22b8baf67972c041a93bfd7473800f28e5473384e3dac04cde8674bd23ca0a16",
+    "SKILL.md": "196cad02d8974965877ca3f11f9899fb69a770f84b440a7c0161daa5618dcc3a",
+    "scripts/dispatch.js": "71a4c63a310c3c6d28f94ebac723e07759d324d7595aeed456e683a8432cfe01",
     "scripts/state.js": "95cc757a1dfe913d87d53a28ab49405049701829c9c8ae86722794e80daae00a",
-    "references/protocol.md": "460e8a979b4318626dc1ad90979589c989ada007386267664d0c484ccd89df9a",
+    "references/protocol.md": "76bda550f453a43bbf6c8345fdff1ac28e78479efe6f6e48ec7d6f04aff0a9ff",
     "references/host-matrix.md": "afbe1e94e48a8134cce37a81c6f869ec123c71523b30c135e3d5c9e134602d4a",
     "LICENSE": "f652c852dc01af6f21de199ba70c7b4366ec644f5e2e24d51f848cd9cb72e568"
   },
@@ -25,5 +25,17 @@
     ],
     "reason": "One specifically named mutable state file, legacy in-place compatibility, and current protocol documentation.",
     "source_commit": "ea25f7335c2b1cc6e7edd6bb3c256a771ad1dec0"
+  },
+  "navigation_refresh": {
+    "source_base_commit": "ea25f7335c2b1cc6e7edd6bb3c256a771ad1dec0",
+    "source_worktree": "/Users/dadleet/src/.work-trees/backchain/integrate-serial-20260918",
+    "status": "committed; repository gate PASS_CLEAN (20260919T181312Z-958523)",
+    "files": [
+      "SKILL.md",
+      "scripts/dispatch.js",
+      "references/protocol.md"
+    ],
+    "reason": "Script-owned navigation with exact parent next_argv continuation after every dispatcher operation.",
+    "source_commit": "d4655c77093f44897f2604c95195e7763e1d0d6c"
   }
 }

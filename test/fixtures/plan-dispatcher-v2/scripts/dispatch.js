@@ -23,6 +23,9 @@ function absoluteRun(dir) {
   if (typeof dir !== 'string' || !path.isAbsolute(dir)) throw new Error('RUN must be an absolute path shared by all workers');
   return path.resolve(dir);
 }
+function withNextArgv(dir, response) {
+  return {...response, next_argv: [process.execPath, path.resolve(__filename), 'next', dir]};
+}
 function requireContracts(graph) {
   if (!graph || !Array.isArray(graph.steps) || !graph.steps.length || graph.steps.some(s => !s.contract)) {
     throw new Error('every graph step requires a task, ready and done contract; use the Backchain exporter or the documented graph format');
@@ -143,20 +146,21 @@ function next(dir) {
 
 function run(operation, dir, input) {
   dir = absoluteRun(dir);
+  let response;
   switch (operation) {
     case 'init':
       fields(input, ['graph', 'owner']); requireContracts(input.graph);
-      state.init(dir, input.graph, input.owner); return next(dir);
+      state.init(dir, input.graph, input.owner); response = next(dir); break;
     case 'next':
       if (input !== undefined) throw new Error('next takes no input');
-      return next(dir);
+      response = next(dir); break;
     case 'claim': {
       fields(input, ['owner', 'steps']);
       if (!Array.isArray(input.steps) || !input.steps.length) throw new Error('claim steps must be a nonempty array');
       // Hydrate the supported contract before any mutation.
       requireContracts(state.describe(dir).graph);
       const claimed = state.claim(dir, input.owner, input.steps.length, input.steps);
-      return {...claimed, action: 'prepare', packets: claimed.claims.map(c => packet(dir, c.attempt))};
+      response = {...claimed, action: 'prepare', packets: claimed.claims.map(c => packet(dir, c.attempt))}; break;
     }
     case 'start': {
       fields(input, ['owner', 'attempt', 'context'], ['executor']);
@@ -171,36 +175,37 @@ function run(operation, dir, input) {
       // here leaves a claimed task startable; no external work has been issued.
       prepareOutputs(dir, input.attempt);
       const started = state.start(dir, input.owner, input.attempt, input.context, input.executor);
-      return {...started, packet: packet(dir, input.attempt), instruction: started.action === 'launch' ?
+      response = {...started, packet: packet(dir, input.attempt), instruction: started.action === 'launch' ?
         'Call ask-agent now with this complete packet in a fresh general-purpose native context unless the user requested an available named worker. Preserve available host capabilities within task authorization; do not add arbitrary tool restrictions. Save the confirmed native handle with launched, announce the assignment and parent next action, retain a pending-job record, then continue useful parent work before collecting.' :
         started.action === 'execute' ?
           'Execute this complete packet in the current main context. The executor is a caller attestation, not host-verifiable authentication. Do not call ask-agent, launch a native worker, or record a native handle. When task-owned commands finish, report the exact evidence and perform a distinct verification phase before settlement.' :
         started.executor ?
           'This main-context attempt is already entered. Confirm the current dispatcher may resume it in the current conversation, or verify its saved report; do not call ask-agent, launch a native worker, or wait for native completion.' :
-        'Reconcile this existing attempt through native tools. This replay does not authorize another launch.'};
+        'Reconcile this existing attempt through native tools. This replay does not authorize another launch.'}; break;
     }
-    case 'packet': fields(input, ['attempt']); return {action: 'inspect', packet: packet(dir, input.attempt)};
+    case 'packet': fields(input, ['attempt']); response = {action: 'inspect', packet: packet(dir, input.attempt)}; break;
     case 'launched': {
       fields(input, ['owner', 'attempt', 'handle']);
       const launched = state.launched(dir, input.owner, input.attempt, input.handle);
-      return {...launched, instruction: 'Confirmed native launch: announce the assignment and parent next action, then retain this handle and last observed status in the parent pending-job record.'};
+      response = {...launched, instruction: 'Confirmed native launch: announce the assignment and parent next action, then retain this handle and last observed status in the parent pending-job record.'}; break;
     }
     case 'report': {
       requireObject(input, 'report');
       const expected = outputPaths(dir, input.attempt).artifact;
       if (input.evidence?.path !== expected) throw new Error('report evidence.path must be the packet outputs.artifact path');
       const reported = state.report(dir, input);
-      return {...reported, instruction: 'This report is an inbox receipt, not a native return, completion or integration. After native event or collection returns, acknowledge the task label and reported outcome, update the pending-job record, read the handoff, and independently verify before acceptance.'};
+      response = {...reported, instruction: 'This report is an inbox receipt, not a native return, completion or integration. After native event or collection returns, acknowledge the task label and reported outcome, update the pending-job record, read the handoff, and independently verify before acceptance.'}; break;
     }
-    case 'receipt': fields(input, ['attempt']); return state.receipt(dir, input.attempt);
+    case 'receipt': fields(input, ['attempt']); response = state.receipt(dir, input.attempt); break;
     case 'settle': fields(input, ['owner', 'attempt', 'verification']); {
       const settled = state.settle(dir, input.owner, input.attempt, input.verification);
-      return {...next(dir), outcome: settled.outcome, attempt: settled.attempt};
+      response = {...next(dir), outcome: settled.outcome, attempt: settled.attempt}; break;
     }
-    case 'retry': fields(input, ['owner', 'attempt', 'confirmed_stopped', 'reason']); return state.retry(dir, input.owner, input.attempt, input);
-    case 'takeover': fields(input, ['oldOwner', 'newOwner', 'confirmed_stopped', 'reason']); return state.takeover(dir, input.oldOwner, input.newOwner, input);
+    case 'retry': fields(input, ['owner', 'attempt', 'confirmed_stopped', 'reason']); response = state.retry(dir, input.owner, input.attempt, input); break;
+    case 'takeover': fields(input, ['oldOwner', 'newOwner', 'confirmed_stopped', 'reason']); response = state.takeover(dir, input.oldOwner, input.newOwner, input); break;
     default: throw new Error(`unknown operation: ${operation}`);
   }
+  return withNextArgv(dir, response);
 }
 
 if (require.main === module) {

@@ -379,6 +379,14 @@ For a reviewed graph within the current v3 `implement` action, the main owner
 may explicitly bind [a parallel implementation chain](references/parallel-chain.md).
 Use the selected Plan Dispatcher and Ask-Agent packages, external sibling
 `.work-trees` checkouts, and the bridge's claim/start/import/prepare/done/finish flow.
+For per-step chains, the script's `navigation` packet owns navigation. Perform
+its returned actions, submit the requested observations or verification through
+the named `operation`, then follow its exact `next_argv` to refresh. Never compute
+successors, select an unlisted step, infer a launch from a recovered packet, or
+finish from an empty ready list. `navigation.complete` marks chain completion;
+the legacy top-level `complete` describes graph acceptance only. Supply actual
+readiness, capacity and verification facts; if they prevent an offered action,
+retain that blocker rather than inventing a transition.
 Ask-Agent creates each parallel worker worktree; the bridge verifies and adopts
 that workspace rather than creating another. New per-step chains require the
 selected Ask-Agent 0.4 contract. Each new worker starts from the invoking branch's

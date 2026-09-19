@@ -61,6 +61,7 @@ Use **skill-craft** for portable skill packages and their plugin distribution. U
 <!-- skill-craft:inventory:end -->
 
 Operator guides: [ShipLoop](skills/shiploop/README.md),
+[script-driven chain navigation](skills/shiploop/references/parallel-chain.md#script-owned-navigation),
 [Improve and release-candidate limits](skills/improve/README.md), and
 [completed ShipLoop proposals](docs/shiploop-proposal-closeout.md).
 

@@ -52,9 +52,12 @@ or recovering a run. Every helper call reloads durable state.
    documented format. Never discard unresolved needs to make a graph executable.
    Choose one absolute run directory shared by all workers, outside their
    workspaces, and a unique dispatcher owner. Initialize once; resume with `next`.
-2. `next` returns dependency-ready IDs and recovery actions. Check readiness
-   facts, including initial-world inputs, native capacity and shared resources.
-   `claim` selected IDs. A claim reserves work but does not mean an agent exists.
+2. Follow the current script response and its exact `next_argv`; the script owns
+   graph navigation. `next` returns dependency-ready IDs and recovery actions.
+   Check external readiness facts, including initial-world inputs, native capacity
+   and shared resources, before claiming returned candidates. These facts may defer
+   candidates, but never justify adding or inferring another successor ID. A claim
+   reserves work but does not mean an agent exists.
 3. Prepare a separate worktree/workspace per concurrent worker and an immutable
    readiness artifact describing the facts actually checked. Git workers use
    external sibling worktrees: never place a checkout inside another checkout.
@@ -103,8 +106,10 @@ or recovering a run. Every helper call reloads durable state.
    remains and `verify` after its receipt exists.
 5. A worker writes its result/envelope at the packet's concrete `outputs` paths,
    publishes a `report` using the returned argv, and returns those paths plus
-   SUCCEEDED, FAILED or BLOCKED with a brief assignment reminder and next action
-   and owner. Substantial results begin with a self-contained handoff summary;
+   SUCCEEDED, FAILED or BLOCKED, the report response's `next_argv`, and a brief
+   assignment reminder and next action/owner. The worker never follows `next_argv`
+   or dispatches successors; the parent does so after the report transition.
+   Substantial results begin with a self-contained handoff summary;
    repository results include the Git receipt, exact contribution/target
    revisions and integration state. The report writes only its inbox receipt.
    On native return, acknowledge the task label and reported outcome, update the
@@ -113,26 +118,28 @@ or recovering a run. Every helper call reloads durable state.
    relevant tests/artifacts and actual commit identity. Record the verifier's
    evidence and `settle` the exact receipt. Native execution requires verifying
    the worker stopped before settlement releases resources, including delegates.
-   For a main-context execution, `confirmed_stopped` means all task-owned commands
-   have finished; it does not mean the main conversation terminated. Independent
+   For a main-context execution, record that all task-owned commands have finished
+   in the verifier evidence; the main conversation remains active. Independent
    verification is a distinct checking phase with actual tests or inspections;
    it need not use a separate agent. Only accepted results unlock successors. Before integrating, recheck the target
    revision and reassess changed targets; serialize updates to that target and
    verify the combined behavior. Worker completion alone does not prove
    integration.
-6. Use each settlement's refreshed `ready` list immediately. It may offer multiple
-   successors and still-ready work deferred earlier. Check readiness/resources,
-   then claim as many eligible IDs as current native capacity permits; keep the
-   rest pending. Do not wait for an entire wave or reschedule accepted work.
-   After a confirmed-stopped retry or resume, refresh with `next` as well.
-   No ready IDs is not completion while work is active, blocked or unresolved.
+6. After every authorized action, report transition, settlement, retry, takeover,
+   or recovery observation, the parent follows the returned `next_argv` and obeys
+   its current actions. It may offer multiple successors and still-ready work
+   deferred earlier. Check readiness/resources, then claim only returned eligible
+   IDs that fit current native capacity; keep the rest pending. Do not wait for an
+   entire wave or reschedule accepted work. No ready IDs is not completion while
+   work is active, blocked or unresolved.
    See [completion-driven dispatch](references/protocol.md#completion-driven-dispatch).
    A dependent step receives accepted supplier evidence.
    If it needs integrated code, depend on an explicit merge-and-verify step and
    use that accepted commit as its base. Completion in an isolated branch does
    not put the code into another worktree.
-7. Finish when `next.complete` is true and the required integration/verification
-   outcomes have evidence. Report integration status and next action/owner;
+7. Finish only when the script's current `next` response reports `complete:true`
+   and the required integration/verification outcomes have evidence. Report
+   integration status and next action/owner;
    retain handoffs needed for unresolved work or recovery. Report failed or unresolved work honestly. Execution
    does not extend authorization for publication, deployment or external effects.
 

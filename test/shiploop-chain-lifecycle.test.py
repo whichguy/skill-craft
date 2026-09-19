@@ -25,6 +25,33 @@ spec.loader.exec_module(fixture)
 WORKER = ROOT / "test/fixtures/chain-code-worker.py"
 ASK = ROOT / "test/fixtures/ask-agent-v04"
 
+NAVIGATION_OPERATIONS = frozenset({
+    "bind", "next", "recover", "claim", "start", "launched", "import-handoff",
+    "prepare", "settle", "done", "retry", "packet", "cleanup", "finish", "observe",
+})
+CALLBACK_BY_ACTION = {
+    "claim": "claim",
+    "start": "start",
+    "prepare-workspace": "start",
+    "recover-workspace": "start",
+    "launch": "launched",
+    "execute": "import-handoff",
+    "collect": "import-handoff",
+    "resume": "import-handoff",
+    "recover-import": "import-handoff",
+    "prepare": "prepare",
+    "verify": "done",
+    "recover-integration": "done",
+    "cleanup": "cleanup",
+    "finish": "finish",
+    "retry": "retry",
+}
+ATTEMPT_ACTIONS = frozenset({
+    "start", "prepare-workspace", "recover-workspace", "launch", "reconcile",
+    "execute", "collect", "resume", "recover-import", "prepare", "verify", "recover-integration",
+    "cleanup", "retry",
+})
+
 
 class PerStepChainTests(unittest.TestCase):
     def setUp(self):
@@ -41,6 +68,8 @@ class PerStepChainTests(unittest.TestCase):
         self.source_commits = {}
         self.done_inputs = {}
         self.imports = {}
+        self.navigation_trace = []
+        self.start_inputs = {}
 
     def stop_processes(self):
         for proc in self.processes:
@@ -52,23 +81,142 @@ class PerStepChainTests(unittest.TestCase):
                     stream.close()
 
     def call(self, operation, value=None, **kwargs):
-        return self.f.call(operation, value, **kwargs)
+        output = self.f.call(operation, value, **kwargs)
+        if kwargs.get("ok", True):
+            if operation in NAVIGATION_OPERATIONS:
+                self.assert_navigation(operation, output)
+            elif operation in {"history", "pending"}:
+                self.assertNotIn("navigation", output)
+        return output
 
-    def bind(self, *, mode="parallel", single=False, ok=True):
+    def expected_next_argv(self, complete=False):
+        base = ["python3", str(ROOT / "skills/shiploop/scripts/shiploop")]
+        if complete:
+            return [*base, "next", "--run-dir", str(self.f.run)]
+        return [*base, "chain", "next", "--run-dir", str(self.f.run),
+                "--action", self.f.action]
+
+    def assert_navigation(self, operation, output):
+        self.assertIn("navigation", output, operation + " must return script-owned navigation")
+        navigation = output["navigation"]
+        self.assertEqual(set(navigation), {"complete", "actions", "instruction", "next_argv"})
+        self.assertIs(type(navigation["complete"]), bool)
+        self.assertIsInstance(navigation["instruction"], str)
+        self.assertTrue(navigation["instruction"].strip())
+        self.assertIsInstance(navigation["actions"], list)
+        self.assertEqual(navigation["next_argv"], self.expected_next_argv(navigation["complete"]))
+        for action in navigation["actions"]:
+            self.assertIsInstance(action, dict)
+            self.assertIsInstance(action.get("action"), str)
+            self.assertTrue(action["action"])
+            self.assertIsInstance(action.get("instruction"), str)
+            self.assertTrue(action["instruction"].strip())
+            self.assertIsInstance(action.get("required"), list)
+            self.assertTrue(all(isinstance(item, str) and item for item in action["required"]))
+            semantic = action["action"]
+            if semantic in CALLBACK_BY_ACTION:
+                self.assertEqual(action.get("operation"), CALLBACK_BY_ACTION[semantic])
+            elif semantic == "reconcile":
+                self.assertIn(action.get("operation"), (None, "launched"))
+            elif semantic in {"return-parent", "blocked", "resume-parent", "blocked-parent"}:
+                self.assertNotIn("operation", action)
+            else:
+                self.fail("unknown navigation semantic action: " + semantic)
+            if semantic in ATTEMPT_ACTIONS:
+                self.assertIsInstance(action.get("attempt"), str)
+                self.assertTrue(action["attempt"])
+            if "steps" in action:
+                self.assertEqual(semantic, "claim")
+                self.assertIsInstance(action["steps"], list)
+                self.assertTrue(all(isinstance(step, str) and step for step in action["steps"]))
+                self.assertIsInstance(action.get("max_steps"), int)
+                self.assertGreaterEqual(action["max_steps"], 0)
+            if "disposition" in action:
+                self.assertIn(action["disposition"], {"accepted", "superseded"})
+        self.navigation_trace.append({
+            "operation": operation,
+            "top_level_action": output.get("action"),
+            "outcome": output.get("outcome"),
+            "complete": navigation["complete"],
+            "actions": [{key: item[key] for key in
+                         ("action", "operation", "attempt", "steps", "max_steps", "disposition", "required")
+                         if key in item} for item in navigation["actions"]],
+            "next_argv": navigation["next_argv"],
+        })
+        return navigation
+
+    def execute_next_from_unrelated_cwd(self, response):
+        navigation = response["navigation"]
+        self.assertFalse(navigation["complete"])
+        result = subprocess.run(navigation["next_argv"], cwd=self.f.primary,
+                                text=True, capture_output=True, timeout=30)
+        self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+        refreshed = json.loads(result.stdout)
+        self.assertIn("navigation", refreshed)
+        self.assertEqual(refreshed["navigation"]["next_argv"], navigation["next_argv"])
+        self.assertNotIn("node", " ".join(navigation["next_argv"]).lower())
+        return refreshed
+
+    def execute_parent_next_from_unrelated_cwd(self, response):
+        navigation = response["navigation"]
+        self.assertTrue(navigation["complete"])
+        result = subprocess.run(navigation["next_argv"], cwd=self.f.primary,
+                                text=True, capture_output=True, timeout=30)
+        self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+        self.assertIn("ShipLoop navigator | implement |", result.stdout)
+        self.assertIn("State: " + str(self.f.run / "state.md"), result.stdout)
+        self.assertIn(self.f.action, result.stdout)
+        return result.stdout
+
+    def action_rows(self, response, semantic):
+        return [row for row in response["navigation"]["actions"] if row["action"] == semantic]
+
+    def retain_navigation_trace(self, labels):
+        configured = os.environ.get("SHIPLOOP_CHAIN_TRACE_DIR")
+        trace_dir = (Path(configured).expanduser().resolve()
+                     if configured else self.f.base / "navigation-trace")
+        trace_dir.mkdir(parents=True, exist_ok=True)
+        selected = []
+        for label, response in labels:
+            navigation = response["navigation"]
+            selected.append({
+                "label": label,
+                "top_level_action": response.get("action"),
+                "outcome": response.get("outcome"),
+                "top_level_complete": response.get("complete"),
+                "navigation_complete": navigation["complete"],
+                "actions": [{key: item[key] for key in
+                             ("action", "operation", "attempt", "steps", "max_steps", "disposition", "required")
+                             if key in item} for item in navigation["actions"]],
+                "next_argv": navigation["next_argv"],
+            })
+        output = trace_dir / "real-git-action-trace.json"
+        temporary = output.with_suffix(".tmp")
+        temporary.write_text(json.dumps({"test": self.id(), "trace": selected}, indent=2) + "\n")
+        temporary.replace(output)
+        return output
+
+    def bind(self, *, mode="parallel", capacity=None, single=False, ok=True):
         if single:
             graph = json.loads(self.f.graph.read_text())
             graph["steps"] = graph["steps"][:1]
             self.f.graph.write_text(json.dumps(graph) + "\n")
-        return self.call("bind", ok=ok, extra=(
+        extra = [
             "--graph", str(self.f.graph), "--dispatcher-skill", str(self.f.dispatcher / "SKILL.md"),
             "--ask-agent-skill", str(self.f.ask / "SKILL.md"), "--worktree-parent", str(self.f.parent),
-            "--mode", mode))
+            "--mode", mode,
+        ]
+        if capacity is not None:
+            extra += ["--capacity", str(capacity)]
+        return self.call("bind", ok=ok, extra=tuple(extra))
 
     def head(self):
         return self.f.git(self.f.target, "rev-parse", "HEAD")
 
     def claim(self, *steps):
-        return self.f.claim(list(steps))
+        output = self.call("claim", {"steps": list(steps)})
+        self.last_claim_response = output
+        return {claim["step"]: claim["attempt"] for claim in output["claims"]}
 
     def start(self, step, attempt, *, serial=False, record_launch=True):
         base = self.head()
@@ -86,11 +234,15 @@ class PerStepChainTests(unittest.TestCase):
             self.f.git(self.f.target, "worktree", "add", "-q", "-b", "ask-agent/" + attempt,
                        str(workspace), base)
             value["workspace"] = str(workspace)
+        self.start_inputs[step] = json.loads(json.dumps(value))
         output = self.call("start", value)
         self.assertEqual(output["action"], "execute" if serial else "launch")
+        self.last_start_response = output
         packet = output["packet"]
         self.packets[step] = packet
-        recovered = self.call("packet", {"attempt": attempt})["packet"]
+        packet_response = self.call("packet", {"attempt": attempt})
+        self.last_packet_response = packet_response
+        recovered = packet_response["packet"]
         self.assertEqual(recovered, packet, "cold recovery must preserve the worker-only assignment")
         self.assertEqual(packet["context"]["base_commit"], base)
         for external in ("outputs", "report_argv", "report_envelope"):
@@ -247,18 +399,58 @@ if (p/'chain_report.py').exists():
         return finished
 
     def test_parallel_code_fanout_eager_dependent_join_merges_and_removes_all_workers(self):
-        self.bind()
+        trace = []
+        bound = self.bind()
+        trace.append(("bind", bound))
+        initial_claim = self.action_rows(bound, "claim")
+        self.assertEqual(len(initial_claim), 1)
+        self.assertEqual(initial_claim[0]["steps"], ["A", "B"])
+        self.assertEqual(initial_claim[0]["max_steps"], 2)
+        self.execute_next_from_unrelated_cwd(bound)
         claims = self.claim("A", "B")
+        trace.append(("claim A,B", self.last_claim_response))
+        self.assertFalse(self.action_rows(self.last_claim_response, "claim"),
+                         "full capacity must suppress another claim grant")
         self.start("A", claims["A"])
+        self.assertEqual([row["attempt"] for row in self.action_rows(self.last_start_response, "launch")],
+                         [claims["A"]])
+        self.assertFalse(self.action_rows(self.last_packet_response, "launch"),
+                         "a packet view must not grant a second native launch")
         self.start("B", claims["B"])
+        self.assertEqual([row["attempt"] for row in self.action_rows(self.last_start_response, "launch")],
+                         [claims["B"]])
+        before_replayed_start = self.f.git(self.f.target, "worktree", "list", "--porcelain")
+        replayed_start = self.call("start", self.start_inputs["B"], ok=False)
+        self.assertNotEqual(replayed_start.returncode, 0)
+        self.assertEqual(self.f.git(self.f.target, "worktree", "list", "--porcelain"), before_replayed_start)
+        recovered = self.call("recover")
+        self.assertFalse(self.action_rows(recovered, "launch"),
+                         "cold recovery must not grant a fresh native launch")
+        self.assertTrue(recovered["navigation"]["actions"])
+        self.assertTrue(all(row["action"] == "collect" for row in recovered["navigation"]["actions"]))
+        self.assertIn("await any native completion", recovered["navigation"]["instruction"].lower())
         a, b = self.launch("A"), self.launch("B")
         self.assertIsNone(a.poll())
         self.assertIsNone(b.poll())
         self.collect("A", a)
         result = self.prepare_and_done("A")
+        trace.append(("done A", result))
         self.assertIn("C", result["ready"])
         self.assertNotIn("J", result["ready"])
         self.assertIsNone(b.poll(), "B must still run when C is released")
+        result_actions = result["navigation"]["actions"]
+        c_claim_index = next(index for index, row in enumerate(result_actions)
+                             if row["action"] == "claim" and row["steps"] == ["C"])
+        b_collect_index = next(index for index, row in enumerate(result_actions)
+                               if row["action"] == "collect" and row["attempt"] == claims["B"])
+        self.assertLess(c_claim_index, b_collect_index,
+                        "eligible C must be claimed before the caller is told to await B")
+        before_head = self.head()
+        before_child = self.f.child_state_path().read_bytes()
+        premature = self.call("claim", {"steps": ["J"]}, ok=False)
+        self.assertNotEqual(premature.returncode, 0)
+        self.assertEqual(self.head(), before_head)
+        self.assertEqual(self.f.child_state_path().read_bytes(), before_child)
         c_attempt = self.claim("C")["C"]
         archived = Path(self.imports["A"]["archives"][0]["archived_path"])
         original = archived.read_bytes()
@@ -278,13 +470,29 @@ if (p/'chain_report.py').exists():
         self.assertIsNone(b.poll())
         self.assertIsNone(c.poll())
         self.collect("B", b)
-        self.prepare_and_done("B")
+        b_done = self.prepare_and_done("B")
+        trace.append(("done B while C active", b_done))
+        self.assertFalse(any(row["action"] == "claim" and "J" in row.get("steps", [])
+                             for row in b_done["navigation"]["actions"]))
         self.assertNotIn("J", self.call("next")["ready"])
         self.collect("C", c)
-        self.prepare_and_done("C")
+        c_done = self.prepare_and_done("C")
+        trace.append(("done C", c_done))
+        self.assertEqual([row["steps"] for row in self.action_rows(c_done, "claim")], [["J"]])
         self.start("J", self.claim("J")["J"])
-        self.complete_step("J")
-        self.finish()
+        j_done = self.complete_step("J")
+        trace.append(("done J", j_done))
+        self.assertTrue(j_done["complete"], "top-level completion remains the child graph compatibility view")
+        self.assertFalse(j_done["navigation"]["complete"],
+                         "the parent return remains blocked until the durable finish receipt")
+        self.assertEqual([row["action"] for row in j_done["navigation"]["actions"]], ["finish"])
+        finished = self.finish()
+        trace.append(("finish", finished))
+        self.assertTrue(finished["navigation"]["complete"])
+        self.assertEqual([row["action"] for row in finished["navigation"]["actions"]], ["return-parent"])
+        self.execute_parent_next_from_unrelated_cwd(finished)
+        trace_path = self.retain_navigation_trace(trace)
+        self.assertTrue(trace_path.is_file())
         # All predecessor workspaces are gone; imports and graph views remain usable.
         replay = self.call("done", self.done_inputs["A"])
         self.assertEqual(replay["outcome"], "accepted")
@@ -292,11 +500,41 @@ if (p/'chain_report.py').exists():
         self.call("history")
         self.call("recover")
 
+    def test_navigation_advertises_full_ready_frontier_with_capacity_bound(self):
+        bound = self.bind(capacity=1)
+        claims = self.action_rows(bound, "claim")
+        self.assertEqual(len(claims), 1)
+        self.assertEqual(claims[0]["steps"], ["A", "B"])
+        self.assertEqual(claims[0]["max_steps"], 1)
+        self.assertEqual(claims[0]["operation"], "claim")
+
+    def test_navigation_paused_parent_grants_resume_only(self):
+        self.bind()
+        paused = subprocess.run([sys.executable, "-B", str(fixture.CLI), "pause",
+                                 "--run-dir", str(self.f.run), "--reason", "navigation fixture pause"],
+                                text=True, capture_output=True, timeout=30)
+        self.assertEqual(paused.returncode, 0, paused.stderr + paused.stdout)
+        next_response = self.call("next")
+        self.assertEqual([row["action"] for row in next_response["navigation"]["actions"]],
+                         ["resume-parent"])
+        self.assertFalse(any("operation" in row for row in next_response["navigation"]["actions"]))
+
+    def test_navigation_owner_takeover_is_blocked_without_callback(self):
+        self.bind()
+        self.takeover()
+        next_response = self.call("next")
+        self.assertEqual([row["action"] for row in next_response["navigation"]["actions"]], ["blocked"])
+        self.assertFalse(any("operation" in row for row in next_response["navigation"]["actions"]))
+
     def test_serial_code_graph_uses_same_integration_and_cleanup_without_native_handles(self):
         self.bind(mode="serial")
         for step in ("A", "B", "C", "J"):
             attempt = self.claim(step)[step]
             self.start(step, attempt, serial=True)
+            self.assertEqual([row["attempt"] for row in self.action_rows(self.last_start_response, "execute")],
+                             [attempt])
+            self.assertFalse(self.action_rows(self.last_start_response, "launch"),
+                             "serial navigation must not offer a native launch callback")
             plan = fixture.chain._per_step_allocation(self.bridge_events(), attempt)["plan"]
             self.assertIn("worker_instance", plan)
             self.complete_step(step)
@@ -405,6 +643,11 @@ if (p/'chain_report.py').exists():
         b_packet = self.start("B", attempts["B"])
         a_worker = Path(a_packet["context"]["workspace"])
         b_worker = Path(b_packet["context"]["workspace"])
+        missing_handle = self.call("next")
+        self.assertEqual([row["attempt"] for row in self.action_rows(missing_handle, "reconcile")],
+                         [attempts["A"]])
+        self.assertFalse(self.action_rows(missing_handle, "launch"),
+                         "a missing recorded handle must reconcile, never create a second launch grant")
         a, b = self.launch("A"), self.launch("B")
         # Each worker remains locally valid.  Together B's support module
         # changes A's behavior only in the prepared combined candidate.
@@ -643,10 +886,18 @@ if (p/'chain_report.py').exists():
         self.assertTrue(worker.exists())
         pending = self.call("pending")
         self.assertIn(attempt, json.dumps(pending))
+        cleanup_route = self.call("next")
+        self.assertEqual([row["attempt"] for row in self.action_rows(cleanup_route, "cleanup")], [attempt])
+        self.assertFalse(any(row["action"] in {"finish", "start", "launch", "execute", "prepare", "verify"}
+                             for row in cleanup_route["navigation"]["actions"]),
+                         "an accepted cleanup retry cannot become a new execution or finish grant")
         proof = self.f.write("premature-final.json", {"passed": True, "commit": head})
         self.call("finish", {"commit": head, "confirmed_stopped": True,
                   "verification": {"path": str(proof), "sha256": fixture.digest(proof)}}, ok=False)
-        self.call("cleanup", {"attempt": attempt, "confirmed_stopped": True})
+        still_pending = self.call("next")
+        self.assertEqual([row["attempt"] for row in self.action_rows(still_pending, "cleanup")], [attempt])
+        cleaned = self.call("cleanup", {"attempt": attempt, "confirmed_stopped": True})
+        self.assertEqual([row["action"] for row in cleaned["navigation"]["actions"]], ["finish"])
         self.assertFalse(worker.exists())
         self.assertEqual(self.head(), head)
         self.assertEqual(len(self.f.terminal_events(attempt)), 1)
@@ -668,6 +919,15 @@ if (p/'chain_report.py').exists():
         a_worker = Path(a_packet["context"]["workspace"])
         self.assertTrue(a_worker.exists())
         self.assertIn("C", accepted["ready"])
+        next_after_accepted = self.call("next")
+        next_actions = next_after_accepted["navigation"]["actions"]
+        c_claim_index = next(index for index, row in enumerate(next_actions)
+                             if row["action"] == "claim" and row["steps"] == ["C"])
+        b_collect_index = next(index for index, row in enumerate(next_actions)
+                               if row["action"] == "collect" and row["attempt"] == attempts["B"])
+        self.assertLess(c_claim_index, b_collect_index)
+        self.assertEqual([row["attempt"] for row in self.action_rows(next_after_accepted, "cleanup")],
+                         [attempts["A"]])
 
         c_attempt = self.claim("C")["C"]
         c_packet = self.start("C", c_attempt)
@@ -756,8 +1016,9 @@ if (p/'chain_report.py').exists():
             self.assertEqual(self.f.ledger_bytes(), before_b)
         recovery = self.call("next")
         self.assertEqual(recovery["lifecycle"]["unresolved_integration"]["attempt"], attempts["A"])
-        self.assertTrue(any(item.get("action") == "recover-integration" and item.get("attempt") == attempts["A"]
-                            for item in recovery["actions"]))
+        self.assertEqual([item["action"] for item in recovery["navigation"]["actions"]],
+                         ["recover-integration"])
+        self.assertEqual(recovery["navigation"]["actions"][0]["attempt"], attempts["A"])
 
         accepted = self.call("done", a_value)
         self.assertEqual(accepted["outcome"], "accepted")
@@ -807,6 +1068,11 @@ if (p/'chain_report.py').exists():
                     "path": str(proof), "sha256": fixture.digest(proof)}}})
         self.assertEqual(rejected["outcome"], "rejected")
         self.assertEqual(self.head(), self.f.initial)
+        rejected_route = self.call("next")
+        self.assertEqual([row["attempt"] for row in self.action_rows(rejected_route, "retry")], [old_attempt])
+        self.assertFalse(any(row["action"] in {"prepare", "verify", "recover-import"}
+                             for row in rejected_route["navigation"]["actions"]),
+                         "a terminal rejected attempt must route to retry before any new candidate work")
         cleanup = {"attempt": old_attempt, "confirmed_stopped": True,
                    "disposition": "superseded", "reason": "Replacement independently accepted"}
         self.call("cleanup", cleanup, ok=False)

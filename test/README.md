@@ -72,6 +72,12 @@ result preservation and hostile-path/replay controls. Both are in the full
 ShipLoop inventory. Use the [native pilot](experiments/shiploop_chain/README.md)
 for separate qualification with actual Ask-Agent contexts and completion events.
 
+The lifecycle suite also verifies the script-owned `navigation` response:
+script-selected fan-out, exact continuation from an unrelated directory, no
+relaunch on recovery, capacity boundaries, serial execution, and cleanup/final
+verification before `navigation.complete`. The skill supplies facts and follows
+these packets; it does not recompute the dependency frontier.
+
 The [compound coverage matrix](../docs/shiploop-chain-compound-coverage-2026-09-19.md)
 adds interactions between retry, integration recovery, dependency readiness and
 pending cleanup. The Git suite checks that a stale cleanup cannot remove a

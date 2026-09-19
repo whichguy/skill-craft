@@ -77,6 +77,13 @@ produces an empty list. Inherited object properties are never input bindings.
 | retry | `{owner,attempt,confirmed_stopped:true,reason}` | Retire nonaccepted attempt; next claim gets a fresh token |
 | takeover | `{oldOwner,newOwner,confirmed_stopped:true,reason}` | Fence old dispatcher owner, retain workers/receipts |
 
+Every successful `run` or CLI response includes `next_argv`, exactly
+`[node-executable, selected-helper-absolute-path, "next", absolute-run-path]`.
+After carrying out the response's authorized action or recording its transition,
+the parent uses that exact argv to read current actions. A worker returns the
+`next_argv` from its `report` response to the parent; it never follows it or
+dispatches successors.
+
 Context is exactly:
 
 ```json
