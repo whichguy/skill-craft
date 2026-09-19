@@ -52,6 +52,14 @@ configuration at an appropriate boundary, then verify through the real entry
 point and affected consumers. Do not add forwarding layers, factories, or a
 dependency-injection container solely for a hypothetical future.
 
+Which important structural constraint can an existing checker enforce? When
+useful, calibrate a repository-scoped rule with prohibited and permitted examples,
+including an approved boundary and misleading lookalikes. Include a case exposing
+a known limited rule or documented blind spot; use a deficient comparator when
+already available or cheap. State supported syntax and unresolved dynamic behavior
+before enforcement; structural matches do not prove runtime behavior or
+authorization. Do not add a checker merely to restate a preference.
+
 ## Flyweight and shared resources
 
 Measure the repeated cost and expected workload before sharing anything. Share
@@ -110,6 +118,31 @@ unbounded labels or payloads. A diagnostic failure must not replace the
 original error; honor a required fail-closed audit policy explicitly. Investigate
 with a small discriminating observation, keep a regression for the cause, and
 remove temporary unsafe instrumentation.
+
+## Tool output as evidence
+
+When using a shortened view, which facts and status must remain, and can omitted
+required evidence from that exact invocation be recovered? Preserve the command,
+exit/signal meaning, required counts/skips, material warnings and failure detail
+under existing access, redaction and retention rules. A locator alone is not
+recovery: verify it returns the needed evidence. If needed facts are missing and
+safe recovery is unavailable, keep the affected claim unverified. Do not rerun an
+effectful command to recreate lost output. Pilot filters on relevant failures and
+unknown formats before relying on them; smaller output alone does not establish
+correctness or net savings.
+
+## Agent and experiment budgets
+
+For affected agent execution or costly trials, which attempts consume budget,
+and what happens when usage is missing or the limit is reached? Reuse available
+usage records; include observed billed failures and retries, and distinguish
+provider-specific or unknown charges after cancellation or delegation. Receipt
+replay keeps the same operation identity; a new retry is a new attempt. Reconcile
+duplicates and conflicts without inventing zero usage. Define whether the bound
+is a post-call threshold or pre-call reservation, including in-flight work and
+whether the selected policy stops new calls under uncertainty. Label partial totals
+and unmeasured preparation or review costs. This is a scoped decision, not a new
+accounting store or scheduler.
 
 ## Feature flags
 
