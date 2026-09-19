@@ -31,6 +31,8 @@ ShipLoop prompt.
   the selected Plan Dispatcher/Ask-Agent packages to one current implementation
   action, use external sibling worktrees and append-only timestamped events,
   then require verified integration before the usual Improve/test sequence.
+  Initial steps and their graph must first complete the planning Improve loop;
+  a later-created or materially revised graph needs review before binding.
   `chain bind --mode serial` walks the same dependency graph in the main context,
   one ready step at a time, without agents. Default parallel mode uses native
   Ask-Agent. Accepted is the sole stored done state; the `completion` view lists

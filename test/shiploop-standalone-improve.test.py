@@ -20,6 +20,7 @@ IMPROVE = ROOT / "skills" / "improve" / "SKILL.md"
 LEGACY_RUNTIME = ROOT / "skills" / "improve" / "runtime" / "until-loop" / "scripts"
 sys.path.insert(0, str(SCRIPTS))
 import shiploop_standalone_improve as bridge  # noqa: E402
+import shiploop_navigator as navigator  # noqa: E402
 
 
 class StandaloneImproveBridgeTests(unittest.TestCase):
@@ -214,6 +215,94 @@ class StandaloneImproveBridgeTests(unittest.TestCase):
         # bridge-owned state machine.
         self.assertEqual((record, writes), bridge.complete(self.ephemeral_binding, self.receipt()))
         self.assertEqual(packet["last_report"]["classification"], "trivial")
+
+    def test_created_plans_wait_for_two_reviews_after_material_repair(self) -> None:
+        """Real callback/import mechanics; review judgments are synthetic, not LLM quality evidence."""
+        for stage, successor in (("plan", "prepare"), ("step-plan", "test-spec")):
+            with self.subTest(stage=stage):
+                state = navigator.new_state(
+                    str(self.workspace), "Create and review initial steps.", protocol_version=3,
+                )
+                # Only preceding stages use synthetic receipts to reach the boundary.
+                while navigator.current_stage(state) != stage:
+                    action = navigator.current_action(state)
+                    result = {"outcome": "done", "summary": "Synthetic prerequisite."}
+                    state = navigator.apply(state, action["id"], result)
+                    state = navigator.finish_improve(state, action["id"], self.receipt())
+
+                action = dict(navigator.current_action(state))
+                plan_path = self.workspace / f"{stage}-plan.md"
+                plan_path.write_text("Draft: implement feature; prerequisite missing.\n", encoding="utf-8")
+                seed = {
+                    "outcome": "done", "summary": "Initial steps created; review pending.",
+                    "evidence_refs": [plan_path.name],
+                }
+                if stage == "plan":
+                    seed["work_items"] = [{"id": "DRAFT", "title": "Unreviewed feature"}]
+                waiting = navigator.apply(state, action["id"], seed)
+                self.ephemeral_binding = bridge.binding(
+                    waiting, action["id"], stage, seed, self.ephemeral_skill,
+                )
+                waiting["active_improve"] = self.ephemeral_binding
+                navigator.validate(waiting)
+                before = copy.deepcopy(waiting)
+                packet, raw = self.ephemeral_start()
+                self.addCleanup(Path(packet["state_file"]).unlink, missing_ok=True)
+                self.write_evidence()
+
+                # An early clean review cannot survive an intervening material repair.
+                sequence = (("trivial", 1), ("non-trivial", 0), ("trivial", 1), ("trivial", 2))
+                for index, (classification, streak) in enumerate(sequence):
+                    if classification == "non-trivial":
+                        plan_path.write_text(
+                            "Revised: create prerequisite, then implement feature, then verify.\n",
+                            encoding="utf-8",
+                        )
+                    packet, raw = self.ephemeral_done(packet, {
+                        "classification": classification,
+                        # Even a declared pass cannot bypass the consecutive-review gate.
+                        "exit_assessment": "satisfied" if classification == "trivial" else "unsatisfied",
+                        "continuation_assessment": "allowed",
+                        "evidence": f"Synthetic review {index + 1} of {plan_path.name}: {classification}.",
+                        "handoff": "Retain planning-only scope and review the current plan again if pending.",
+                    })
+                    self.assertEqual(packet["progress"]["trivial_streak"], streak)
+                    self.save_terminal_packet(raw)
+                    if index < 3:
+                        self.assertEqual(packet["status"], "active")
+                        with self.assertRaisesRegex(bridge.StandaloneImproveError, "not complete"):
+                            bridge.complete(self.ephemeral_binding, self.receipt())
+                        self.assertEqual(navigator.apply(waiting, action["id"], seed), before)
+                        self.assertEqual(waiting, before)
+                        self.assertEqual(navigator.current_stage(waiting), stage)
+                        self.assertEqual(navigator.current_action(waiting), action)
+                        self.assertEqual(waiting["work_items"], state["work_items"])
+                        self.assertNotIn(action["id"], waiting["accepted"])
+
+                self.assertEqual(packet["status"], "complete")
+                self.assertFalse(Path(packet["state_file"]).exists())
+                final_result = copy.deepcopy(seed)
+                final_result["summary"] = "Reviewed steps include the missing prerequisite."
+                if stage == "plan":
+                    final_result["work_items"] = [
+                        {"id": "SETUP", "title": "Create prerequisite"},
+                        {"id": "FEATURE", "title": "Implement and verify feature"},
+                    ]
+                receipt = dict(self.receipt(), final_result=final_result)
+                record, archives = bridge.complete(self.ephemeral_binding, receipt)
+                self.assertEqual(archives[f"improve/{action['id']}/terminal.json"], raw)
+                advanced = navigator.finish_improve(
+                    waiting, action["id"], record, record["receipt"]["final_result"],
+                )
+                self.assertEqual(navigator.current_stage(advanced), successor)
+                self.assertIsNone(advanced["active_improve"])
+                self.assertEqual(advanced["accepted"][action["id"]], final_result)
+                if stage == "plan":
+                    self.assertEqual(advanced["work_items"], final_result["work_items"])
+                self.assertEqual(
+                    navigator.finish_improve(advanced, action["id"], record, final_result), advanced,
+                    "completion replay must not advance another stage",
+                )
 
     def test_ephemeral_bindings_are_independent_of_durable_state_and_each_other(self) -> None:
         # An unrelated durable child still blocks a legacy binding, but a

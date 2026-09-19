@@ -36,6 +36,31 @@ binding; do not submit the whole project's SDLC as one implementation graph.
 Keep missing prerequisites explicit rather than treating syntactic validation
 as a semantic readiness check.
 
+### Required review after step creation
+
+Create the chain's steps and dependency graph during `step-plan`, then include
+the graph's exact path and content digest in its existing plan notes and
+`evidence_refs`. The selected actual Improve skill must review those created
+steps and the graph through its full improvement loop before `chain bind`, in
+both parallel and serial mode. Use the existing planning handoff and its two
+consecutive qualifying reviews; retain the terminal receipt and reviewed graph
+identity in ordinary evidence. Backchain's dependency audit informs this review.
+
+If the graph is first created or materially changed after that planning review,
+keep it a draft and complete the selected actual Improve loop on the revised
+plan before binding or dispatching it. Preserve the current parent action,
+planning-only scope and the parent's commit/execution limits. Use an already
+active Improve owner when it covers that candidate; otherwise invoke the selected
+skill with those explicit bounds. Do not nest another review inside an active
+Improve child. Reuse a completed review only for the unchanged graph it covered.
+If review is blocked, stopped or unavailable, leave execution pending. For an
+already bound graph, use its existing recovery/replanning boundary; never edit
+the frozen binding in place.
+
+The host verifies this review evidence; `bind` validates and freezes the graph.
+Planning review checks dependencies, ready/done criteria, parallel paths, joins,
+shared resources and verification ownership. It does not run the planned tasks.
+
 The run directory and worker container must be external to all Git checkouts.
 Use a clean, explicit initiating branch. In whole-run workspace mode the target
 is ShipLoop's execution checkout, not its original source checkout.

@@ -314,6 +314,65 @@ class ImproveCliFixture(unittest.TestCase):
 
 
 class EphemeralImproveCliTests(ImproveCliFixture):
+    def test_planning_improve_packet_carries_graph_identity_through_real_child_callbacks(self):
+        """Synthetic predecessors reach both planning stages; child callbacks are real."""
+        for stage, expected_stage in (("plan", "prepare"), ("step-plan", "test-spec")):
+            with self.subTest(stage=stage):
+                graph = self.repo / "plans" / (stage + "-execution-graph.json")
+                graph.parent.mkdir(parents=True, exist_ok=True)
+                graph_bytes = (json.dumps({
+                    "version": 1,
+                    "steps": [
+                        {"id": "A", "deps": [], "contract": {
+                            "task": "Prepare " + stage,
+                            "ready": ["Planning inputs are available"],
+                            "done": ["Preparation evidence is recorded"],
+                        }},
+                        {"id": "B", "deps": ["A"], "contract": {
+                            "task": "Verify " + stage,
+                            "ready": ["Preparation evidence is recorded"],
+                            "done": ["Verification evidence is recorded"],
+                        }},
+                    ],
+                }, sort_keys=True) + "\n").encode("utf-8")
+                graph.write_bytes(graph_bytes)
+                graph_identity = str(graph) + "#sha256=" + hashlib.sha256(graph_bytes).hexdigest()
+
+                self._start_parent_at_stage(stage, [graph_identity])
+                parent_packet = self.invoke(CLI, "next", "--run-dir", self.run).stdout
+                self.assertIn(graph_identity, parent_packet)
+                # Check guidance routing, not paragraph wrapping or the model's judgment.
+                guidance = " ".join(parent_packet.split())
+                for clause in (
+                    "Review the actual steps after their creation", "any linked execution graph",
+                    "ready/done criteria", "independent paths", "resource exclusions",
+                    "integration/verification ownership",
+                ):
+                    self.assertIn(clause, guidance)
+
+                start_raw, first = self.start_ephemeral_child()
+                cold_raw, cold = self.invoke_argv(first["next_argv"])
+                self.assertEqual(start_raw.stdout, cold_raw.stdout)
+                self.assertEqual(cold["context"], self.child_context())
+                self.assertIn(
+                    {"purpose": "opaque parent evidence locator", "locator": graph_identity},
+                    cold["context"]["resources"],
+                )
+                self.save_packet(cold_raw)
+                terminal_raw, terminal = self.finish_ephemeral(cold)
+                self.assertEqual(terminal["context"], cold["context"])
+
+                completion, _receipt = self.completion_receipt()
+                self.invoke(CLI, "improve-complete", "--run-dir", self.run,
+                            "--action", self.action, "--result", completion)
+                resumed = store.read_record(self.run / "state.md")
+                self.assertEqual(navigator.current_stage(resumed), expected_stage)
+                self.assertEqual(
+                    resumed["improve_results"][self.action]["seed_result"]["evidence_refs"],
+                    [graph_identity],
+                )
+                self.assertEqual(self.packet_path.read_bytes(), terminal_raw.stdout)
+
     def test_default_ephemeral_callbacks_preserve_context_then_import_once(self):
         self.assertEqual(self.state["navigator_protocol_version"], 3)
         self.assertEqual(self.bound["skill"]["runtime_cli"], str(EPHEMERAL.resolve()))

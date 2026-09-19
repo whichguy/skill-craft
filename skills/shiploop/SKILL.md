@@ -371,6 +371,10 @@ incomplete rather than creating a hidden success edge.
 
 ## Parallel implementation chains
 
+After creating initial steps, require their plan and execution graph to complete
+the selected actual Improve loop before execution. The normal `plan`/`step-plan`
+handoff owns that review; follow the linked guide for late graph creation or
+material revisions. Retain the completed review's graph identity and evidence.
 For a reviewed graph within the current v3 `implement` action, the main owner
 may explicitly bind [a parallel implementation chain](references/parallel-chain.md).
 Use the selected Plan Dispatcher and Ask-Agent packages, external sibling
