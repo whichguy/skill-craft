@@ -1,5 +1,6 @@
 """Whole-run apparatus checks with a fake Grok process; never model evidence."""
 import hashlib
+import io
 import json
 import os
 from pathlib import Path
@@ -108,6 +109,13 @@ class RunTests(unittest.TestCase):
                                           "E2E_TEST_NAVIGATOR_ROOT": str(layout.selected_skill_root() / "scripts")})
         self.env.start()
         self.addCleanup(self.env.stop)
+        # Run tests exercise the process boundary with a fake Grok. Real Git
+        # publication comparisons have their own hermetic fixture suite.
+        freshness = patch.object(run, "inspect_freshness", return_value={
+            "ready": True, "status": "ready", "reason": "fixture publication matches selection",
+        })
+        self.freshness = freshness.start()
+        self.addCleanup(freshness.stop)
 
     def invoke(self, step="ttt-create", name="create", *extra):
         output = self.root / "trials" / name
@@ -236,6 +244,71 @@ class RunTests(unittest.TestCase):
         self.assertEqual(code, 2)
         self.assertIn("new empty product folder", result["error"])
         self.assertFalse((self.root / "launches.jsonl").exists())
+
+    def test_freshness_failures_retain_receipt_without_launching_builder(self):
+        for status in ("unpublished-source", "installed-stale", "freshness-unverified"):
+            with self.subTest(status=status), patch.object(run, "capture_process") as capture:
+                receipt = {"ready": False, "status": status, "reason": "fixture " + status}
+                self.freshness.return_value = receipt
+                code, output, result = self.invoke(name=status)
+                self.assertEqual(code, 2)
+                self.assertEqual(result["statuses"]["overall"], "blocked-preflight")
+                self.assertEqual(run.read_json(output / "freshness.json"), receipt)
+                self.assertIn("no model was launched", result["error"])
+                capture.assert_not_called()
+                self.assertFalse((self.root / "launches.jsonl").exists())
+
+    def test_check_reports_unpublished_source_and_nonzero_without_model(self):
+        self.repo.mkdir(parents=True)
+        self.freshness.return_value = {
+            "ready": False, "status": "unpublished-source", "reason": "same version, different bytes",
+        }
+        stdout = io.StringIO()
+        with patch("sys.stdout", stdout):
+            code = run.main(["check", "--repo", str(self.repo), "--grok", str(self.grok),
+                             "--git", self.git, "--skill-root", str(self.skill)])
+        checked = json.loads(stdout.getvalue())
+        self.assertEqual(code, 2)
+        self.assertEqual(checked["freshness"]["status"], "unpublished-source")
+        self.assertFalse(checked["live_model_called"])
+        self.assertFalse((self.root / "launches.jsonl").exists())
+
+    def test_suite_checks_freshness_for_each_case_without_launch_on_failure(self):
+        output = self.root / "blocked-suite"
+        self.freshness.return_value = {
+            "ready": False, "status": "unpublished-source", "reason": "fixture unpublished source",
+        }
+        with patch.object(run, "capture_process") as capture:
+            code = run.main(["suite", "--suite", "launch-smoke", "--output", str(output),
+                             "--model", "fixture-model", "--grok", str(self.grok),
+                             "--git", self.git, "--skill-root", str(self.skill)])
+        self.assertEqual(code, 2)
+        cases = run.read_json(output / "suite-result.json")["cases"]
+        self.assertEqual(len(cases), 2)
+        self.assertEqual(self.freshness.call_count, len(cases))
+        self.assertTrue(all(row["status"] == "blocked-preflight" for row in cases))
+        capture.assert_not_called()
+
+    def test_publication_is_checked_once_and_bound_before_launch(self):
+        _code, output, _result = self.invoke(name="publication-once")
+        self.freshness.assert_called_once()
+        self.assertEqual(run.read_json(output / "manifest.json")["preflight"]["freshness"]["status"], "ready")
+        self.assertNotIn("freshness", run.read_json(output / "preflight-after.json"))
+
+    def test_selected_skill_change_after_freshness_blocks_launch(self):
+        original = run.capture_run_artifacts
+
+        def change_selected_skill(*args, **kwargs):
+            captured = original(*args, **kwargs)
+            (self.skill / "SKILL.md").write_text("changed after publication check")
+            return captured
+
+        with patch.object(run, "capture_run_artifacts", side_effect=change_selected_skill), \
+                patch.object(run, "capture_process") as capture:
+            code, _output, result = self.invoke(name="changed-after-freshness")
+        self.assertEqual(code, 2)
+        self.assertIn("selected ShipLoop changed after freshness check", result["error"])
+        capture.assert_not_called()
 
     def test_optional_behavior_export_failure_preserves_original_trial_outcome(self):
         with (patch.object(run, "preflight", side_effect=ValueError("fixture preflight rejection")),

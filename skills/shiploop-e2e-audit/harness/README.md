@@ -375,11 +375,41 @@ subject and digest and label the default source. The `/shiploop-e2e-audit`
 operator always passes the actual host-selected subject explicitly, so its
 behavior does not depend on these convenience defaults.
 
-For a consumer campaign, update ShipLoop and Improve through the marketplace,
-then open a fresh Grok session and record their selected paths. To test a source
-candidate, use an isolated development profile with one selected subject; do not
-add source links to the normal marketplace profile. `checkout` changes the
-harness source only and does not select a different ShipLoop subject.
+Before a consumer campaign, the operator prepares ShipLoop and Improve through
+the existing marketplace entry, then opens a fresh Grok session and records their
+selected paths. The evaluator does not install, publish, update or repoint them.
+`checkout` changes the harness source only; it cannot bypass subject freshness.
+
+### Mandatory freshness gate before each evaluation
+
+`run.py check`, `run.py run`, and every live suite case compare three identities:
+the newest committed `skills/shiploop` and generated package on
+`whichguy/skill-craft` branch `main`, the immutable ShipLoop pin on
+`whichguy/skill-craft-market` branch `main`, and the actual selected local skill.
+The gate reads fresh remote heads using temporary bare Git repositories. It
+compares file bytes and executable modes, including published plugin metadata;
+matching version labels alone are not proof. Unrelated source commits do not
+require republishing an unchanged package. Uncommitted developer edits are not
+treated as a release candidate by this consumer evaluation path.
+
+| Status | Meaning and effect |
+| --- | --- |
+| `ready` | Current source, published package and selected installation agree; launch may proceed. |
+| `unpublished-source` | Newest source/package differs from the immutable published package, or generated views lag source; no builder launch. |
+| `installed-stale` | Selected local skill differs from the published current package; no builder launch. |
+| `freshness-unverified` | Network/Git/catalog/package verification failed; no builder launch. |
+
+A blocked trial exits 2, prints the reason, retains `freshness.json` and
+`result.json`, and marks its overall status `blocked-preflight`. `check` prints
+the receipt in its JSON and exits 2 when blocked, with `live_model_called: false`.
+There is no freshness bypass flag or silent local fallback. Preparation belongs
+outside the evaluator; after publication/update, rerun the same check.
+
+Each receipt binds the remote commits observed at preflight time. Local discovery
+and bytes are checked again immediately before launch and after completion;
+upstream is not rechecked after the run. A release that appears during an
+evaluation does not retroactively change its candidate or verdict. These checks
+do not lock remote branches or packages against concurrent changes.
 
 Do not edit the subject packages or the harness during a run. A fresh builder
 process re-inspects and fingerprints the selected source each request, so an
