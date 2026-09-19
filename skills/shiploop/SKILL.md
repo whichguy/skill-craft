@@ -5,7 +5,7 @@ description: >-
   script's current action packet, and submit its exact completion call until
   the script reports completion with an HTML achievement report. Use when the
   user says shiploop, ship the project, or requests a durable delivery loop.
-version: 0.16.0
+version: 0.18.0
 allowed-tools: all
 license: MIT
 platforms:
@@ -368,6 +368,53 @@ either creates the next item's `select-work` action or returns ownership to
 only the current producer action; an active Improve child resumes through its
 own recorded state. A blocked child or producer keeps the parent action
 incomplete rather than creating a hidden success edge.
+
+## Parallel implementation chains
+
+After creating initial steps, require their plan and execution graph to complete
+the selected actual Improve loop before execution. The normal `plan`/`step-plan`
+handoff owns that review; follow the linked guide for late graph creation or
+material revisions. Retain the completed review's graph identity and evidence.
+For a reviewed graph within the current v3 `implement` action, the main owner
+may explicitly bind [a parallel implementation chain](references/parallel-chain.md).
+Use the selected Plan Dispatcher and Ask-Agent packages, external sibling
+`.work-trees` checkouts, and the bridge's claim/start/import/prepare/done/finish flow.
+For per-step chains, the script's `navigation` packet owns navigation. Perform
+its returned actions, submit the requested observations or verification through
+the named `operation`, then follow its exact `next_argv` to refresh. Never compute
+successors, select an unlisted step, infer a launch from a recovered packet, or
+finish from an empty ready list. `navigation.complete` marks chain completion;
+the legacy top-level `complete` describes graph acceptance only. Supply actual
+readiness, capacity and verification facts; if they prevent an offered action,
+retain that blocker rather than inventing a transition.
+Ask-Agent creates each parallel worker worktree; the bridge verifies and adopts
+that workspace rather than creating another. New per-step chains require the
+selected Ask-Agent 0.4 contract. Each new worker starts from the invoking branch's
+current integrated HEAD. Workers keep results inside their checkout; the parent
+imports and archives them, prepares and checks the combination, merges it into
+the invoking checkout, accepts the step, then removes the worker worktree.
+Choose `chain bind --mode serial` to execute one dependency-ready step at a time
+in the main context with no agent dispatch; default parallel mode uses native
+Ask-Agent. Serial start atomically records local ownership before issuing an
+execute packet. Continue through all required steps and the verified return,
+or retain an explicit incomplete blocker; an empty ready list alone is not done.
+Only a fresh parallel launch packet permits native dispatch. Workers report; the parent
+owns acceptance and the exact initiating-checkout return. The append-only,
+timestamped ledger records bridge events without replacing Markdown traversal
+or the child dispatcher's state. An unfinished chain blocks the normal producer
+callback; after verified integration, continue the existing Improve/test stages.
+Accepted is the only persisted step-done state. The derived `completion` view
+lists done/not-done; `done` aliases the existing verified `settle` transition.
+Use read-only `chain history` for timestamped audit events and `chain pending`
+for unfinished steps, unmet dependencies, capacity and cleanup recovery; neither dispatches
+work nor repairs state. Both take `--run-dir` and `--action` without an input file.
+Keep combined main-conversation status from actual execution observations and
+dispatcher state; progress reports never accept work or release dependencies.
+This does not parallelize whole work-item lifecycles or migrate existing runs.
+Existing v1/v2 chain bindings retain final-return semantics. A cleanup failure
+leaves the step accepted and must be resolved without executing its work again.
+Final completion requires all contributions integrated and owned worker cleanup
+complete. Keep dirty targets, conflicts and unknown files as explicit blockers.
 
 ## Existing protocols
 

@@ -61,6 +61,41 @@ and checks blind evidence collection. Live prompt comparisons are explicit
 experiments, not CI dependencies. See the
 [probe-decision study](experiments/shiploop_probe_decisions/README.md).
 
+`python3 -B test/shiploop-chain-lifecycle.test.py` repeats the code-producing
+parallel/dependent chain in a disposable Git repository. Independent worker
+processes generate and test Python code; A/B overlap, C starts after A while B
+still runs, and J waits for B+C. The parent verifies each combination, integrates
+it into the invoking linked checkout and removes accepted worker worktrees.
+The same suite checks serial execution. Worker processes are deterministic
+fixtures, not native/model agents. `shiploop-chain-handoff.test.py` covers local
+result preservation and hostile-path/replay controls. Both are in the full
+ShipLoop inventory. Use the [native pilot](experiments/shiploop_chain/README.md)
+for separate qualification with actual Ask-Agent contexts and completion events.
+
+The lifecycle suite also verifies the script-owned `navigation` response:
+script-selected fan-out, exact continuation from an unrelated directory, no
+relaunch on recovery, capacity boundaries, serial execution, and cleanup/final
+verification before `navigation.complete`. The skill supplies facts and follows
+these packets; it does not recompute the dependency frontier.
+
+The [compound coverage matrix](../docs/shiploop-chain-compound-coverage-2026-09-19.md)
+adds interactions between retry, integration recovery, dependency readiness and
+pending cleanup. The Git suite checks that a stale cleanup cannot remove a
+replacement worktree recreated at the same path. Native-trace controls reject
+contradictory terminal outcomes and cross-step handle sources while preserving
+valid pending observations and identical completion replay. These remain local
+tests; prompt-driven Ask-Agent worktree creation and native recovery need their
+separate live qualification.
+
+The [interaction audit](../docs/shiploop-chain-interaction-audit-2026-09-19.md)
+maps every supported chain operation to state, Git effects, context requirements
+and existing tests. It separates dispatcher snapshot authority from bridge audit
+history, and host-owned review judgments from mechanical checks. Selected gaps
+reuse these suites instead of adding another orchestration or test framework.
+The chain suite also checks that new runs have one `plan-dispatcher-state.json`,
+legacy runs keep their one existing file, status views save no completion copy,
+and ambiguous or missing state cannot silently select or reconstruct authority.
+
 `python3 test/shiploop-full-runtime.test.py` composes public ShipLoop and selected
 bundled Until Loop CLIs across the protocol-3 graph, including cold recovery and
 corrective outcomes. Its review judgments are synthetic: it proves local runtime
@@ -126,6 +161,30 @@ review, transient-history rejection, guarded clean/dirty return, and the
 workspace-mode handoff gate. It never merges the source checkout running the
 test. [Workspace experiments](experiments/shiploop_workspace/README.md) explain
 why starting at HEAD and deleting transient files at the tip were insufficient.
+
+The three `shiploop-chain{,-git,-ledger}.test.py` suites belong to the ordinary
+ShipLoop aggregate. They exercise the public bridge with a pinned Plan Dispatcher
+v1 fixture, disposable real Git worktrees, eager fan-out and joins, guarded return,
+and append-only event records under process contention. A separate v2 fixture
+pins the uncommitted executor-aware dispatcher candidate for serial cases: one
+main-context task at a time, no native launch/handle, dependency-respecting
+completion through final return, stale attempts, unsupported old packages and
+exact terminal replay after other steps progress. The state/ledger bytes must
+remain unchanged on identical terminal retries; a crash between child acceptance
+and bridge recording is reconciled once. Native handles, worker
+reports, and prerequisite Improve judgments are synthetic in these tests; these
+passes prove local composition, not live host delivery or semantic verification.
+The same public-CLI suite covers read-only `chain history` and `chain pending`:
+ready/waiting/claimed/running/reported/rejected states, retries, empty completion,
+serial capacity, past indexed actions, child drift, corrupt ledgers and explicit
+recovery boundaries. Queries must preserve every run file's bytes, avoid creating
+locks and leave pending transactions and interrupted event hardlinks untouched.
+The fixture's `PROVENANCE.json` records its upstream source and exact hashes.
+The separate [native pilot](experiments/shiploop_chain/README.md) runs the same
+public bridge with actual host-native workers and an independent code oracle.
+It is opt-in and must report observed results separately from synthetic setup.
+The [2026-09-18 pilot report](../docs/shiploop-chain-native-pilot-2026-09-18.md)
+records the actual local fan-out, rejected report, retry, join and feature return.
 
 ## Skill and script execution boundary
 

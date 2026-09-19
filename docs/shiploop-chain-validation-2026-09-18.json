@@ -1,0 +1,21 @@
+{
+  "verified_at": "2026-09-18T22:42:42.583050+00:00",
+  "candidate_base": "9827ca52bd73ac68c1d7d1c3d15d72b9482bd919",
+  "shiploop_suite_count": 93,
+  "shiploop_ordered_inventory_matches_executed": true,
+  "shiploop_result": "PASS",
+  "core_result_after_inventory_correction": "PASS",
+  "core_groups_passed": 23,
+  "aggregate_exit_code": 1,
+  "aggregate_failure": "test-groups initially expected 90 ShipLoop suites rather than 93; corrected and reran the full core group successfully. ShipLoop ran to completion unchanged and passed. The original full aggregate was not rerun or relabeled green.",
+  "logs": {
+    "/tmp/shiploop-chain-full-aggregate-final.log": "1fe9149489700ccde37a30a50253f433a12b2a47d0f3c5e8d4798ab8d64ea7c9",
+    "/tmp/shiploop-chain-core-corrected.log": "f843287f0aad70b3a4269cc0a30b84aade02e70591f20a9ad74d3e0f5694adf7"
+  },
+  "new_focused_checks": {
+    "bridge": 18,
+    "git": 5,
+    "ledger": 10
+  },
+  "native_pilot": "completed with verified A/B2/J and preserved rejected B; target feature advanced, main unchanged"
+}

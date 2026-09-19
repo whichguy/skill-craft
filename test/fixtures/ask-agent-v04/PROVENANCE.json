@@ -1,0 +1,9 @@
+{
+  "purpose": "Frozen Ask-Agent 0.4 contract fixture for chain adapter tests; not a released package or native execution proof",
+  "source": "Selected working Ask-Agent contribution in skill-craft, inspected 2026-09-19",
+  "version": "0.4.0",
+  "files_sha256": {
+    "SKILL.md": "a1c08aa2a966b51103793e8432a0ad184f31fcdb088ec3c4186c812571f52bb5",
+    "references/git-integration.md": "557880e53a0e69a2a8ce599f368bedeacf42d95158ebc6593e03c7e35908c9e7"
+  }
+}

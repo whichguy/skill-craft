@@ -19,6 +19,13 @@ explicit native selection, a whole `plan`/`draft` or authorized `repair`/`revise
 operation owns its internal convergence; the ordinary Improve handoff remains a
 separate broader review.
 
+After the initial steps are created, both `plan` and `step-plan` must complete
+their actual Improve handoff before consumers use the plan. Include any serial
+or parallel execution graph in that review's candidate and evidence locators;
+Backchain's result does not bypass this broader planning review. Follow the
+[chain review requirement](parallel-chain.md#required-review-after-step-creation)
+when a graph is first created or materially changed after the checkpoint.
+
 Retain the audit in ordinary plan notes, result `evidence_refs` and work-item
 `context`. Use v3's current callback and allowed result fields; do not import
 legacy result fields, frozen-plan certificates, a Backchain JSON schema, or

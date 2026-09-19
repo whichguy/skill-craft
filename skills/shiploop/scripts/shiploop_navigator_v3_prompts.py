@@ -107,6 +107,7 @@ STAGE_REFERENCES: dict[str, tuple[tuple[str, str], ...]] = {
     ),
     "step-plan": (
         ("Coding decision guide", "coding-guidance.md#select-guidance"),
+        ("Optional parallel-chain guide", "parallel-chain.md#parallel-implementation-chains"),
         ("Repeatable test-suite guide", "repeatable-test-suites.md#select-or-revalidate-the-harness"),
         ("Repository-local skill guidance", "testing-and-documentation.md#reusable-product-skills"),
         ("Implementation constitution", "testing-and-documentation.md#implementation-constitution"),
@@ -132,6 +133,7 @@ STAGE_REFERENCES: dict[str, tuple[tuple[str, str], ...]] = {
     ),
     "implement": (
         ("Coding decision guide", "coding-guidance.md#select-guidance"),
+        ("Optional parallel-chain guide", "parallel-chain.md#parallel-implementation-chains"),
         ("Repeatable test-suite guide", "repeatable-test-suites.md#select-or-revalidate-the-harness"),
         ("Implementation constitution", "testing-and-documentation.md#implementation-constitution"),
     ),
@@ -490,9 +492,15 @@ named fallback), and meaningful async cues with their purpose and reduced-motion
 alternative, or an explicit static choice. For consequential UI choices, include
 the guide's ambition, reuse/evolve/upgrade decision, rough effort/benefit and
 compatibility check; reuse accepted choices for unaffected scope and the existing
-design/test facilities. The next review is the packet's automatic Improve handoff immediately after this producer result, before
-implementation. Do not schedule a review stage or claim it ran. Link this plan in
-evidence_refs; keep these as ordinary notes, not new result fields.
+design/test facilities.
+
+After creating the initial steps, submit this producer result to its mandatory
+actual Improve handoff. The plan remains a draft until
+that loop completes; dependent work waits. Link the created plan and any execution
+graph in evidence_refs so Improve reviews their actual contents. Do not schedule
+an extra review stage or claim the loop ran. Keep these as ordinary notes, not
+new result fields.
+
 Use the packet's Initial repository baseline guide. Carry initial-baseline
 evidence and classification through ordinary evidence_refs and affected work-item
 context. Put an affected foundation repair, setup prerequisite, or missing-test
@@ -556,6 +564,13 @@ completion and revalidation conditions. Identify the actual runtime/version,
 artifact and boundary; read only matching practice/platform sections. Link the
 accepted plan and selected sections in evidence_refs; do not copy every card or
 create boilerplate for inapplicable concerns. Planning does not authorize edits.
+For an explicitly selected parallel or serial chain, create its initial steps
+and graph here, with direct dependencies, readiness and completion criteria,
+shared-resource exclusions and the integration node. Link the graph's exact path
+and content digest in existing plan notes/evidence_refs. This producer's mandatory
+actual Improve loop must review the created steps and graph before they are used
+for execution. Use the Optional parallel-chain guide for late creation or revision;
+planning never starts the dispatcher or expands this item's scope.
 Use the Repository-local skill guidance. Reopen the repo's current skill index or
 README/AGENTS links, even if earlier context reported no fit: a preceding item may
 have created or evolved a skill. Prefer unchanged reuse with supported inputs and
@@ -664,6 +679,18 @@ Use the Coding decision guide to reopen the accepted plan and only its relevant
 practice/platform sections. Check current code, versions and consumers before
 reuse or augmentation. Retain justified revisions in the linked note; a new
 prerequisite or authority boundary uses the existing correction route.
+For an explicitly selected parallel chain or serial chain, follow the Optional
+parallel-chain guide: bind this action's reviewed graph and recorded mode.
+Parallel mode uses native Ask-Agent; serial mode executes one ready step in the
+main context without spawning agents. Both use external sibling worktrees and
+the same verified acceptance transition. Ask-Agent creates parallel worker
+worktrees; orchestration verifies and adopts them, imports worker-local results,
+prepares and checks the combination, merges into the invoking branch, then
+accepts the step and removes its worktree. Retain conflicts and cleanup blockers;
+never repeat accepted work because removal failed. Keep observable combined status; only
+accepted steps are done. Continue until every required step is accepted and the
+combined return is verified, or retain an explicit incomplete blocker. Finish
+before this action's normal completion callback and Improve checkpoint.
 """,
     "test-green": """\
 Run focused checks against the implemented candidate and establish meaningful
@@ -913,10 +940,10 @@ IMPROVE_SCOPES = {
     "research": "source-backed conclusions, uncertainty, and reuse recommendations",
     "spec": "behavior, acceptance, non-functional criteria, existing-spec reconciliation, failure boundaries, and consumer outcomes",
     "test-strategy": "independent test/risk strategy and required test boundaries",
-    "plan": "dependency plan, readiness/done conditions, and correction routes",
+    "plan": "the newly created steps and dependency graph, readiness/done conditions, and correction routes",
     "prepare": "environment readiness evidence or its justified N/A disposition",
     "select-work": "the ready-item selection and prerequisite assessment",
-    "step-plan": "the bounded item plan, conventions, checks, and diagnostic obligations",
+    "step-plan": "the newly created bounded steps and any parallel or serial execution graph, conventions, checks, and diagnostic obligations",
     "test-spec": "test-first cases, independent oracles, and RED/GREEN definitions",
     "baseline": "baseline commands, observations, initial-baseline applicability, and pre-existing failure classification",
     "test-author": "new or refined executable tests and fixtures",
@@ -1152,6 +1179,17 @@ scope and expected check state; this guide adds no review loop or authority.
 """
     outer_handshake = OUTER_TEST_HANDOFF if stage in OUTER else ""
     test_facilities = TEST_FACILITY_HANDOFF if stage in TEST_FACILITY_STAGES else ""
+    plan_guard = ""
+    if stage in {"plan", "step-plan"}:
+        plan_guard = """\
+Review the actual steps after their creation, including any linked execution
+graph. Carry the plan/graph locators and current content identities into this
+child's existing contract and review notes. Check direct dependencies, missing
+suppliers, ready/done criteria, independent paths, joins, resource exclusions,
+and integration/verification ownership. Recheck affected relationships after
+material repairs. Keep the plan pending until this actual Improve loop completes;
+structural validation or a Backchain result alone does not complete this handoff.
+"""
 
     release_guard = ""
     if any(label == "Release operation guidance" for label, _ in STAGE_REFERENCES[stage]):
@@ -1209,6 +1247,8 @@ relevant. Retain its locator, command/result evidence, classification, and
 readiness conditions in the child contract/review notes for cold recovery.
 
 {baseline_guard}
+
+{plan_guard}
 
 {backchain}
 

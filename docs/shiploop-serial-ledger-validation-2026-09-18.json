@@ -1,0 +1,104 @@
+{
+  "schema_version": 1,
+  "recorded_at": "2026-09-19T00:03:37.338487+00:00",
+  "purpose": "Serial chain and ledger API candidate validation; offline tests, not a new native-host qualification.",
+  "delivery": {
+    "committed": false,
+    "merged": false,
+    "pushed": false,
+    "installed": false,
+    "existing_runs_migrated": false
+  },
+  "skill_craft": {
+    "worktree": "/Users/dadleet/src/.work-trees/skill-craft/shiploop-dispatcher-20260918",
+    "branch": "feat/shiploop-dispatcher-20260918",
+    "base_commit": "9827ca52bd73ac68c1d7d1c3d15d72b9482bd919",
+    "aggregate_selection": "23 core groups plus three disjoint registered ShipLoop shards",
+    "shiploop_suites": 93,
+    "focused_chain_tests": 25,
+    "focused_git_tests": 5,
+    "focused_bridge_ledger_tests": 10,
+    "logs": [
+      {
+        "group": "core",
+        "groups": 23,
+        "exit_code": 0,
+        "path": "/tmp/shiploop-serial-core-20260918.log",
+        "sha256": "04f15fcb8f9594fa5e3c82668c79ea46e22d6c8591697fcaba0abad4f606e5f4"
+      },
+      {
+        "group": "shiploop-1",
+        "suites": 31,
+        "exit_code": 0,
+        "path": "/tmp/shiploop-serial-shiploop-1-20260918.log",
+        "sha256": "10c7e1a4db261c4bd76edc1fa409c1fc90fd87a751223ed3ef0c0dc435b97a35"
+      },
+      {
+        "group": "shiploop-2",
+        "suites": 31,
+        "exit_code": 0,
+        "path": "/tmp/shiploop-serial-shiploop-2-20260918.log",
+        "sha256": "0182d9b6fa4dc151b179b64d14068e97d595550cc53c9fbdb995327a56475039"
+      },
+      {
+        "group": "shiploop-3",
+        "suites": 31,
+        "exit_code": 0,
+        "path": "/tmp/shiploop-serial-shiploop-3-20260918.log",
+        "sha256": "d09c1b0422968324f1118c1dee3a94458b72ace0792e60b4b703cc924241779c"
+      }
+    ],
+    "source_sha256": {
+      "skills/shiploop/scripts/shiploop_chain.py": "7a6c9732a7b0a1573fa3c77521bf92adfebbf2c37ecd47b965968a34caa04467",
+      "skills/shiploop/scripts/shiploop_chain_git.py": "985cb454fdca4119fc57f6062316a5095670a9f07ffdff0a7bdbf0720c6792b6",
+      "skills/shiploop/scripts/shiploop_chain_ledger.py": "cca1ad56b0fda6ce66e64a5f55c24d637f17a6ed8601b49bf8e65c30ff418eef",
+      "skills/shiploop/scripts/shiploop_navigator.py": "3bb8a0032b648090058e8f71bcfdb5fc2a70fbad5ae8d2e4edb3d070298f6e9a",
+      "skills/shiploop/scripts/shiploop_navigator_v3_prompts.py": "e6ea88063d2311839114589c359ee6bbb53abf83e3a42bbfd13c8d24552c1df4",
+      "skills/shiploop/scripts/shiploop_protocol.py": "0bab5e8cbdb145510132ed8db6d7ee6dd0c2258a3fd0a4245a89427ae5c92e24",
+      "skills/shiploop/SKILL.md": "d8b7d9416d0790ebac78c5fe476dc9db3a0ab057832019d02da1dce699c12670",
+      "skills/shiploop/references/parallel-chain.md": "14445f6ed92f1604314fdbd69288b240121603d2af8ab5ab20a1a5c1f472cd75",
+      "test/shiploop-chain.test.py": "a2cafb6f091fc2de71696ae11bce0054354f13076fbfd1e56c71d65ffe00d17e",
+      "test/shiploop-chain-git.test.py": "6eb20f5d8501ad76ff4e269369845af2037d1106abd9cef14ac0be8e4eff449c",
+      "test/shiploop-chain-ledger.test.py": "e3dc7c5a4680d7f720b778e67768c9b814071b45788874d83b57b37103eab2be",
+      "test/fixtures/plan-dispatcher-v2/PROVENANCE.json": "53ef1c16752b72a35f496e376bf0235ca6487517f1b5c50e99f1c04f7b446b7a"
+    },
+    "remote_tracking_at_validation": {
+      "ref": "origin/main",
+      "commit": "20f8f7d379af5773ad11c1c3965074c73b39a84d",
+      "commits_ahead": 0,
+      "commits_behind": 2,
+      "note": "Observed local tracking ref only. New upstream commits were not rebased into this frozen candidate; reconcile before merge."
+    }
+  },
+  "backchain": {
+    "worktree": "/Users/dadleet/src/.work-trees/backchain/serial-dispatcher-20260918",
+    "branch": "feat/serial-dispatcher-20260918",
+    "base_commit": "1a7e6f6e8b2e79d1c1420928a18b22d9b4fb5dd0",
+    "gate_result": "PASS_CLEAN",
+    "gate_command": "make test-fast",
+    "gate_scope": "full offline suite and filesystem audit",
+    "aggregate_file_entries_passed": 66,
+    "ledger_replay_cases_passed": 13,
+    "gate_run": "/Users/dadleet/.grok/runs/test-harness/serial-dispatcher-20260918/20260918T233317Z-09500b",
+    "chat_card_sha256": "b54983784026aa7b0bec53959e32ce15cb6e65320875c0a14e5acda6292d22fd",
+    "duration_ms": 338001,
+    "source_sha256": {
+      "skills/plan-dispatcher/scripts/dispatch.js": "22b8baf67972c041a93bfd7473800f28e5473384e3dac04cde8674bd23ca0a16",
+      "skills/plan-dispatcher/scripts/state.js": "7a1759da7361bdfb36fc11bd599a62f08b6cb41767be1456f1b649c666436b5d",
+      "experiments/ledger-replay/ledger.js": "b15118c930aab7ca7c248e732ea0a2417eb539ee9c3e52e730b97d4e04ac6dec",
+      "test/ledger-replay.test.js": "f7eeff3f805d101bc613ec8d71122c5d0815f1543dec5304fecb8f060084abfc"
+    }
+  },
+  "review": {
+    "runtime": "no actionable remaining correctness finding",
+    "ledger": "calendar validation fixed; final focused pass clear",
+    "documentation": "no material contract contradiction"
+  },
+  "limits": [
+    "Current dispatcher state.json remains authoritative; append-only state API is a separate bounded experiment.",
+    "Prototype JSONL rejects torn history; no power-loss, NFS, hostile-filesystem, or automatic stale-lock recovery guarantee.",
+    "No new native model run or uniform cross-host progress claim. U16 pilot remains U16; U18 consumer qualification remains pending.",
+    "Existing planning packet size advisories match the prior baseline exactly.",
+    "Backchain stderr suspicion inspected: expected negative controls/progress/install help; skip text is help output. No product-path change during gate."
+  ]
+}

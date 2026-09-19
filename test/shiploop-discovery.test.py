@@ -645,7 +645,8 @@ class InteractionGuidanceTests(unittest.TestCase):
                 "For UI, include component/interaction/skin premises, selected design "
                 "guidance locator plus identity/version or digest (or named fallback),"
             ),
-            "evidence_refs; keep these as ordinary notes, not new result fields.",
+            "evidence_refs",
+            "ordinary notes, not new result fields.",
         )
         for stage in ("plan", "step-plan"):
             with self.subTest(stage=stage):
