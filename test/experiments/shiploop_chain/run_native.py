@@ -75,7 +75,7 @@ def main():
     parser.add_argument("--output", type=Path, help="new directory; retained on both success and failure")
     parser.add_argument("--grok", default="grok")
     parser.add_argument("--ask-agent-skill", type=Path, default=ROOT / "test/fixtures/ask-agent-v04/SKILL.md")
-    parser.add_argument("--dispatcher-skill", type=Path, default=ROOT / "test/fixtures/plan-dispatcher-v2/SKILL.md")
+    parser.add_argument("--dispatcher-skill", type=Path, default=ROOT / "test/fixtures/plan-dispatcher-v3/SKILL.md")
     parser.add_argument("--timeout", type=int, default=1800)
     args = parser.parse_args()
     executable = shutil.which(args.grok)

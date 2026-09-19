@@ -19,9 +19,9 @@ import json
 import os
 from pathlib import Path
 import re
+import shutil
 import subprocess
 import sys
-import textwrap
 import uuid
 from datetime import datetime, timezone
 from typing import Any, Iterable
@@ -394,6 +394,42 @@ def load_navigator(source_root: Path) -> Any:
     return importlib.import_module("shiploop_navigator")
 
 
+def selected_dispatcher_preflight(dispatcher_card: Path) -> dict[str, Any]:
+    """Reject a helper missing required immutable-context or graph-validation support."""
+    executable = shutil.which("node")
+    if executable is None:
+        fail("Node.js is required to preflight the selected dispatcher")
+    node = Path(executable).resolve()
+    if not node.is_file() or not os.access(node, os.X_OK):
+        fail("resolved Node.js executable is unavailable for dispatcher preflight")
+    helper = dispatcher_card.parent / "scripts" / "dispatch.js"
+    try:
+        result = subprocess.run([str(node), str(helper), "capabilities"], text=True, capture_output=True,
+                                timeout=30, check=False)
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        fail(f"selected dispatcher planning-context preflight could not run: {exc}")
+    try:
+        response = json.loads(result.stdout) if result.returncode == 0 else {}
+    except json.JSONDecodeError:
+        response = {}
+    capabilities = response.get("capabilities") if isinstance(response, dict) else None
+    if not isinstance(capabilities, dict) or capabilities.get("planning_context") != "shiploop-planning-artifacts/v1":
+        detail = (result.stderr or result.stdout).strip()
+        suffix = "" if not detail else ": " + detail[:400]
+        fail("selected dispatcher does not support planning_context shiploop-planning-artifacts/v1; "
+             "select a context-capable package before prepare (no pilot was created)" + suffix)
+    if capabilities.get("graph_validation") != "execution-graph/v1":
+        detail = (result.stderr or result.stdout).strip()
+        suffix = "" if not detail else ": " + detail[:400]
+        fail("selected dispatcher does not support graph_validation execution-graph/v1; "
+             "select a graph-validation-capable package before prepare (no pilot was created)" + suffix)
+    return {
+        "node": str(node),
+        "helper": str(helper.resolve()),
+        "capabilities": capabilities,
+    }
+
+
 def prepare(args: argparse.Namespace) -> dict[str, Any]:
     source_root = absolute_path(args.source_root, "--source-root", exists=True)
     cli = source_root / "skills" / "shiploop" / "scripts" / "shiploop"
@@ -408,6 +444,7 @@ def prepare(args: argparse.Namespace) -> dict[str, Any]:
                         (ask_card.parent / "references" / "git-integration.md", "Ask-Agent Git contract")):
         if not path.is_file() or path.is_symlink():
             fail(f"{label} must be a regular file: {path}")
+    dispatcher_info = selected_dispatcher_preflight(dispatcher_card)
     requested = Path(args.pilot_dir).expanduser()
     if not requested.is_absolute():
         fail("--pilot-dir must be an absolute path")
@@ -462,6 +499,7 @@ def prepare(args: argparse.Namespace) -> dict[str, Any]:
         state = nav.apply(state, action, result)
         state = nav.finish_improve(state, action, {"summary": "Synthetic prerequisite Improve receipt for native pilot only."})
         synthetic_actions.append({"stage": stage, "action": action})
+        nav.save(run_dir, state)
     action = str(nav.current_action(state)["id"])
     nav.save(run_dir, state)
     write_new_json(pilot / "evidence" / "synthetic-prerequisites.json", {
@@ -494,6 +532,7 @@ def prepare(args: argparse.Namespace) -> dict[str, Any]:
         "run": {"run_dir": str(run_dir), "action": action, "run_id": str(state["run_id"])},
         "graph": {"path": str(graph_path), "sha256": sha256_file(graph_path)},
         "oracle": {"path": str(oracle_path), "sha256": sha256_file(oracle_path)},
+        "dispatcher_preflight": dispatcher_info,
     }
     write_new_json(pilot / "context.json", context, "pilot context")
     bound = bridge(context, "bind", extra=[
@@ -509,7 +548,8 @@ def prepare(args: argparse.Namespace) -> dict[str, Any]:
         "pilot_dir": str(pilot), "run_dir": str(run_dir), "action": action,
         "primary_main": str(primary), "initiating_feature": str(feature),
         "worktree_parent": str(worktree_parent), "selected": context["selected"],
-        "graph": context["graph"], "oracle": context["oracle"], "ready": bound.get("ready", []),
+        "graph": context["graph"], "oracle": context["oracle"],
+        "dispatcher_preflight": dispatcher_info, "ready": bound.get("ready", []),
         "next": "Use claim, then start. A start response with action=launch is the only native-dispatch grant.",
     }
 
@@ -688,6 +728,16 @@ def inline_assignment(root: Path, context: dict[str, Any], step: str, attempt: s
                       packet: dict[str, Any], workspace: dict[str, Any]) -> str:
     """Return the native prompt inline; never use a saved prompt as transport."""
     worker = Path(workspace["workspace"])
+    if packet.get("step") != step or packet.get("attempt") != attempt:
+        fail("worker packet does not match the requested step/attempt")
+    if Path(packet_workspace(packet)).resolve() != worker.resolve():
+        fail("worker packet does not name the fixture-prepared workspace")
+    if not isinstance(packet.get("task"), str) or not packet["task"].strip():
+        fail("worker packet has no task authority")
+    if not isinstance(packet.get("definition_of_ready"), list) or not isinstance(packet.get("definition_of_done"), list):
+        fail("worker packet has no definition-of-ready/done authority")
+    if not isinstance(packet.get("instructions"), list):
+        fail("worker packet has no instructions")
     handoff = handoff_path(worker, attempt)
     handoff_dir = handoff.parent
     dependencies = packet.get("shiploop_chain", {}).get("required_commits", _dependency_commits(root, step))
@@ -723,30 +773,34 @@ def inline_assignment(root: Path, context: dict[str, Any], step: str, attempt: s
         "summary": "Self-contained handoff summary and next action for parent integration.",
     }
     no_join = "Do not manually merge branches or supplier commits; they are already in your exact base." if step == "J" else "Do not merge, rebase, or change the integration target."
-    return textwrap.dedent(f"""\
-        You are the fresh native Ask-Agent worker for ShipLoop step {step}, attempt {attempt}.
-
-        Work only in the exclusively fixture-prepared caller workspace `{worker}`. Its exact base is
-        `{workspace['base_commit']}`. Record your observed cwd and Git root; they must equal this workspace.
-        Implement: {STEPS[step]['task']}
-        You may change only: {STEPS[step]['write_scope']}
-        Direct supplier commits already present in the base: {dependencies}
-        {no_join}
-
-        Before writing handoff files, commit the owned code, make the worktree clean, and run the external oracle:
-        {json.dumps(oracle_argv)}
-
-        Then create `{handoff_dir}` inside the workspace. Write `{result_path}` with this JSON shape and actual
-        values:\n{json.dumps(result_example, indent=2)}
-
-        Hash that result file, then write `{handoff}` with exactly this handoff schema and actual values:\n{json.dumps(manifest_example, indent=2)}
-
-        Do not write Dispatcher artifacts, envelopes, or reports outside the workspace. Do not execute report_argv,
-        call ShipLoop, merge into the invoking checkout, select successors, delete the worktree, or create a prompt
-        file as a transport step. Leave this workspace and its handoff intact. Return normally through the native
-        host with SUCCEEDED/BLOCKED/FAILED, the actual workspace/Git root, exact commit, handoff path, checks, and
-        the parent-owned next action. The parent will import, integrate, accept, archive, and remove it.
-    """)
+    packet_json = json_bytes(packet).decode("utf-8")
+    header = (
+        f"You are the fresh native Ask-Agent worker for ShipLoop step {step}, attempt {attempt}.\n\n"
+        "The complete actual worker packet follows as verbatim JSON. Its task, definition_of_ready, and\n"
+        "definition_of_done are the sole execution assignment. Follow its instructions, including the\n"
+        "planning and guidance locators, before scoped work. The fixture overlay after the packet supplies\n"
+        "only oracle and handoff mechanics; it does not replace or expand the packet's authority.\n\n"
+        "Complete authoritative worker packet (verbatim JSON):\n```json\n"
+    )
+    footer = (
+        "```\n\n"
+        f"Work only in the exclusively fixture-prepared caller workspace `{worker}`. Its exact base is\n"
+        f"`{workspace['base_commit']}`. Record your observed cwd and Git root; they must equal this workspace.\n"
+        f"Direct supplier commits already present in the base: {dependencies}\n"
+        f"{no_join}\n\n"
+        "Before writing handoff files, commit the owned code, make the worktree clean, and run the external oracle:\n"
+        f"{json.dumps(oracle_argv)}\n\n"
+        f"Then create `{handoff_dir}` inside the workspace. Write `{result_path}` with this JSON shape and actual\n"
+        f"values:\n{json.dumps(result_example, indent=2)}\n\n"
+        f"Hash that result file, then write `{handoff}` with exactly this handoff schema and actual values:\n"
+        f"{json.dumps(manifest_example, indent=2)}\n\n"
+        "Do not write Dispatcher artifacts, envelopes, or reports outside the workspace. Do not execute report_argv,\n"
+        "call ShipLoop, merge into the invoking checkout, select successors, delete the worktree, or create a prompt\n"
+        "file as a transport step. Leave this workspace and its handoff intact. Return normally through the native\n"
+        "host with SUCCEEDED/BLOCKED/FAILED, the actual workspace/Git root, exact commit, handoff path, checks, and\n"
+        "the parent-owned next action. The parent will import, integrate, accept, archive, and remove it.\n"
+    )
+    return header + packet_json + footer
 
 
 def claim(args: argparse.Namespace) -> dict[str, Any]:
@@ -786,18 +840,25 @@ def start(args: argparse.Namespace) -> dict[str, Any]:
         fail("bridge packet did not adopt the exact fixture-emulated caller workspace")
     saved = packet_path(root, step, attempt)
     write_same_or_new_json(saved, packet, "worker packet")
-    assignment = inline_assignment(root, context, step, attempt, packet, workspace)
+    action = result.get("action")
     append_event(root, {"kind": "start", "at": utc_now(), "step": step, "attempt": attempt,
-                        "action": result.get("action"), "packet": str(saved), "workspace": workspace["workspace"],
+                        "action": action, "packet": str(saved), "workspace": workspace["workspace"],
                         "base_commit": workspace["base_commit"], "note": "The harness did not launch a native worker."})
-    return {
-        "step": step, "attempt": attempt, "action": result.get("action"), "packet": str(saved),
+    response = {
+        "step": step, "attempt": attempt, "action": action, "packet": str(saved),
         "workspace": workspace["workspace"], "caller_workspace_record": str(workspace_record_path(root, step, attempt)),
-        "inline_native_assignment": assignment,
         "required_commits": packet.get("shiploop_chain", {}).get("required_commits", _dependency_commits(root, step)),
         "handoff_manifest": str(handoff_path(Path(workspace["workspace"]), attempt)),
-        "next": "Only action=launch authorizes a real native launch. Give inline_native_assignment to that worker, then record its actual host handle after launch confirmation.",
     }
+    if action == "launch":
+        response["inline_native_assignment"] = inline_assignment(root, context, step, attempt, packet, workspace)
+        response["next"] = ("Only action=launch authorizes a real native launch. Give inline_native_assignment "
+                            "to that worker, then record its actual host handle after launch confirmation.")
+    else:
+        response["next"] = ("This dispatcher response does not authorize a fresh native launch. Preserve and "
+                            "reconcile the existing attempt through its retained host handle/status; packet is "
+                            "recovery evidence only.")
+    return response
 
 
 def read_handle(path: Path) -> Any:
@@ -1444,10 +1505,12 @@ def packet(args: argparse.Namespace) -> dict[str, Any]:
         fail("public chain packet did not return the requested step")
     write_same_or_new_json(packet_path(root, step, attempt), current, "recovered worker packet")
     workspace = json_object(workspace_record_path(root, step, attempt), "caller-prepared workspace record")
+    if Path(packet_workspace(current)).resolve() != Path(workspace["workspace"]).resolve():
+        fail("recovered worker packet did not retain the fixture-prepared workspace")
     return {"packet": str(packet_path(root, step, attempt)), "workspace": packet_workspace(current),
-            "inline_native_assignment": inline_assignment(root, context, step, attempt, current, workspace),
             "handoff_manifest": str(handoff_path(Path(workspace["workspace"]), attempt)),
-            "required_commits": current.get("shiploop_chain", {}).get("required_commits", _dependency_commits(root, step))}
+            "required_commits": current.get("shiploop_chain", {}).get("required_commits", _dependency_commits(root, step)),
+            "next": "Recovered packet is audit and recovery evidence only; it never authorizes a fresh native launch."}
 
 def parser() -> argparse.ArgumentParser:
     program = argparse.ArgumentParser(description=__doc__)

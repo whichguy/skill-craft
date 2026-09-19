@@ -89,6 +89,12 @@ ShipLoop inventory; they do not establish model understanding or native-host
 delivery. The fixture's `PROVENANCE.json` identifies the upstream commit and
 every copied file hash, independently of the author's local checkout path.
 
+`python3 -B test/experiments/shiploop_chain/test_native_pilot.py` checks the
+pilot's actual inline prompt adapter and current planning-context preparation
+without launching a model. It verifies complete worker-packet transport,
+including guidance instructions, and keeps recovery separate from a fresh
+launch. It is part of the full inventory; it does not qualify model adherence.
+
 The lifecycle suite also verifies the script-owned `navigation` response:
 script-selected fan-out, exact continuation from an unrelated directory, no
 relaunch on recovery, capacity boundaries, serial execution, and cleanup/final
