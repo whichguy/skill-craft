@@ -19,8 +19,10 @@ import sys
 import tempfile
 import threading
 import time
+from urllib.parse import quote
+import uuid
 
-from trace import TraceError, evaluate_host_trace, host_terminal
+from grok_trace import TraceError, evaluate_grok_trace, root_terminal
 
 ROOT = Path(__file__).resolve().parents[3]
 PILOT = Path(__file__).resolve().with_name("native_pilot.py")
@@ -94,12 +96,15 @@ def main():
     record = {
         "schema": "shiploop-native-chain-run/v1",
         "host": "grok",
+        "root_session_id": str(uuid.uuid4()),
         "output": str(output),
         "native_trace_review_required": True,
         "coverage": {
             "workspace_creation": "fixture_emulation",
             "prompt_driven_ask_agent_workspace_creation": "not_qualified",
             "bridge_adoption_native_execution_merge_cleanup": "qualified_only_if_all_gates_pass",
+            "overlap_control": "B waits after code verification until C launch is registered",
+            "simultaneous_code_writing": "not_qualified",
         },
         "passed": False,
     }
@@ -107,7 +112,7 @@ def main():
     try:
         prepared = json_command([sys.executable, "-B", str(PILOT), "prepare", "--pilot-dir", str(pilot_dir),
             "--source-root", str(ROOT), "--dispatcher-skill", str(args.dispatcher_skill.resolve()),
-            "--ask-agent-skill", str(args.ask_agent_skill.resolve())])
+            "--ask-agent-skill", str(args.ask_agent_skill.resolve()), "--hold-step", "B"])
         (output / "prepare.json").write_text(json.dumps(prepared, indent=2) + "\n")
         context = json.loads((pilot_dir / "context.json").read_text())
         feature = Path(context["fixture"]["initiating_feature"])
@@ -129,7 +134,11 @@ workspace. This run does not qualify prompt-driven Ask-Agent workspace creation.
 Driver prefix: {sys.executable} -B {PILOT}
 Every driver operation needs --pilot-dir {pilot_dir}. Execute parent driver calls
 serially and wait for each command to finish. Only workers execute concurrently.
-Use --help for current argument spelling. The ready graph is A/B roots, C after A,
+Use exactly one driver invocation per terminal call: no semicolons, echo,
+command chaining, pipes, redirections, or substitutions, including for help.
+The README supplies the command spelling; no implementation audit is needed.
+Use native read_file for references and native write for the handle files.
+The ready graph is A/B roots, C after A,
 J after B+C. Claim A and B together. Call start for A and retain its assignment,
 then call start for B and retain its assignment. Only after both start responses say
 action=launch, issue the two fresh background native spawn_subagent calls together
@@ -143,6 +152,11 @@ fabricate handles or worker results. The trace gate permits parent terminal comm
 only for exact native_pilot.py driver actions; do not use a parent shell command,
 write, or search_replace to create worker code or handoffs. Send both A/B before
 collecting either. Retain observed native status and completion.
+This experiment deliberately holds B after its code verification and before its
+handoff until C's launched call succeeds. Collect A independently; do not wait for
+B to finish before launching C. The bounded worker barrier is supplied in B's
+inline assignment. Do not bypass it. It proves overlapping native task lifetimes,
+not simultaneous code-writing or CPU execution.
 After A completes, import-handoff with --handoff-manifest WORKER_PATH and
 --confirmed-stopped, then prepare-integration --confirmed-stopped, then done
 --confirmed-stopped. These commands archive results, independently verify the
@@ -160,7 +174,8 @@ invoking feature, actual composed-code checks passing, the primary unchanged,
 all agent worktrees removed, and required evidence archived. Return the finish
 receipt path and any concrete limitations. Do not stop after planning.
 """
-        record["command"] = [executable, "--cwd", str(feature), "--permission-mode", "auto",
+        record["command"] = [executable, "--cwd", str(feature), "--session-id", record["root_session_id"],
+                             "--permission-mode", "auto",
                              "--output-format", "streaming-json", "--max-turns", "100", "-p", "<inline qualification prompt>"]
         record["prompt"] = prompt  # Diagnostic copy, never used as prompt-file transport.
         host_trace = output / "host.ndjson"
@@ -186,8 +201,15 @@ receipt path and any concrete limitations. Do not stop after planning.
                 capture_errors.append("host stdout capture did not finish after process exit")
             if capture_errors:
                 raise RuntimeError("native host trace capture failed: " + "; ".join(capture_errors))
+        # Stdout interleaves child tools without ownership labels. Preserve the
+        # selected root session's host-owned transcript on failures as well.
+        root_source = Path.home() / ".grok" / "sessions" / quote(str(feature), safe="") / record["root_session_id"] / "updates.jsonl"
+        root_updates = output / "root-updates.jsonl"
+        if root_source.is_file() and not root_source.is_symlink():
+            shutil.copyfile(root_source, root_updates)
+            record["root_transcript"] = {"source": str(root_source), "retained": str(root_updates)}
         try:
-            terminal = host_terminal(host_trace)
+            terminal = root_terminal(host_trace, record["root_session_id"])
         except TraceError as exc:
             terminal = {"complete": False, "error": str(exc)}
         record["host_terminal"] = terminal
@@ -207,11 +229,14 @@ receipt path and any concrete limitations. Do not stop after planning.
         audited = json_command([sys.executable, "-B", str(PILOT), "finish", "--pilot-dir", str(pilot_dir)])
         if audited.get("complete") is not True:
             raise RuntimeError("independent final verification did not establish completion")
-        trace_result = evaluate_host_trace(host_trace, pilot_dir)
+        if not root_updates.is_file():
+            raise RuntimeError("bound Grok root-session transcript is unavailable")
+        trace_result = evaluate_grok_trace(host_trace, root_updates, record["root_session_id"], pilot_dir)
         trace_path = output / "native-trace-evaluation.json"
         trace_path.write_text(json.dumps(trace_result, indent=2, sort_keys=True) + "\n", encoding="utf-8")
         record["native_trace"] = {
             "path": str(trace_path), "passed": trace_result.get("passed"), "overlap": trace_result.get("overlap"),
+            "overlap_pairs": trace_result.get("overlap_pairs"),
         }
         if trace_result.get("passed") is not True:
             detail = "; ".join(trace_result.get("errors", [])[:4])

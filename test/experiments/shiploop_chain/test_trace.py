@@ -111,6 +111,16 @@ def driver(manifest: dict, action: str, step: str | None = None) -> list[dict]:
     return [tool_call(identifier, "run_terminal_command", {"command": rendered}), tool_update(identifier, "completed", bash_result(rendered))]
 
 
+def driver_help(manifest: dict, action: str | None = None, *trailing: str) -> list[dict]:
+    command = [manifest["driver_python"], "-B", manifest["driver_path"]]
+    if action is not None:
+        command.append(action)
+    command.extend(("--help", *trailing))
+    identifier = f"driver-help-{action or 'root'}"
+    rendered = " ".join(command)
+    return [tool_call(identifier, "run_terminal_command", {"command": rendered}), tool_update(identifier, "completed", bash_result(rendered))]
+
+
 def prompt_for(manifest: dict, step: str) -> str:
     detail = manifest["steps"][step]
     return (
@@ -136,7 +146,7 @@ def collect(manifest: dict, steps: list[str], number: int) -> list[dict]:
     rows = []
     timing = {
         "A": ("2026-09-19T12:00:01.100Z", "2026-09-19T12:00:07.900Z"),
-        "B": ("2026-09-19T12:00:02.100Z", "2026-09-19T12:00:08.900Z"),
+        "B": ("2026-09-19T12:00:02.100Z", "2026-09-19T12:00:10.900Z"),
         "C": ("2026-09-19T12:00:09.100Z", "2026-09-19T12:00:11.900Z"),
         "J": ("2026-09-19T12:00:12.100Z", "2026-09-19T12:00:13.900Z"),
     }
@@ -197,6 +207,40 @@ class NativeHostTraceTests(unittest.TestCase):
     def evaluate(self, events: list[dict]) -> dict:
         return evaluate_events(events, self.manifest)
 
+    def collection_row(self, events: list[dict], step: str) -> dict:
+        number = {"A": 1, "B": 2, "C": 3, "J": 4}[step]
+        update = next(event for event in events
+                      if event.get("toolCallId") == f"collect-{number}" and event["type"] == "tool_call_update")
+        return update["rawOutput"]["MultiResult"]["results"][0]
+
+    @staticmethod
+    def set_monotonic_interval(row: dict, started: object, ended: object) -> None:
+        row.pop("started", None)
+        row.pop("ended", None)
+        row["started_monotonic_ms"] = started
+        row["ended_monotonic_ms"] = ended
+
+    @staticmethod
+    def set_iso_interval(row: dict, started: str, ended: str) -> None:
+        row["started"] = started
+        row["ended"] = ended
+
+    def set_chain_monotonic_intervals(self, events: list[dict]) -> None:
+        for step, started, ended in (
+            ("A", 1100, 7900),
+            ("B", 2100, 10900),
+            ("C", 9100, 11900),
+            ("J", 12100, 13900),
+        ):
+            self.set_monotonic_interval(self.collection_row(events, step), started, ended)
+
+    def append_driver_argument(self, events: list[dict], identifier: str, argument: str) -> None:
+        call = next(event for event in events if event.get("toolCallId") == identifier and event["type"] == "tool_call")
+        update = next(event for event in events if event.get("toolCallId") == identifier and event["type"] == "tool_call_update")
+        command = call["rawInput"]["command"] + argument
+        call["rawInput"]["command"] = command
+        update["rawOutput"]["command"] = command
+
     def test_requires_successful_claim_for_each_step_before_start(self) -> None:
         for step, suffix in (("A", "all"), ("C", "C"), ("J", "J")):
             for mutation in ("missing", "failed", "late"):
@@ -252,6 +296,119 @@ class NativeHostTraceTests(unittest.TestCase):
         self.assertTrue(result["passed"], result["errors"])
         self.assertTrue(result["overlap"]["observed"])
         self.assertTrue(result["overlap"]["passed"])
+        self.assertEqual(result["overlap_pairs"]["initial_fanout"], result["overlap"])
+        refill = result["overlap_pairs"]["eager_refill"]
+        self.assertEqual(refill["required"], ["B", "C"])
+        self.assertTrue(refill["observed"])
+        self.assertTrue(refill["passed"])
+
+    def test_accepts_monotonic_native_overlap_intervals(self) -> None:
+        events = valid_events(self.manifest)
+        self.set_chain_monotonic_intervals(events)
+        result = self.evaluate(events)
+        self.assertTrue(result["passed"], result["errors"])
+        self.assertEqual(result["overlap"]["clock"], "monotonic")
+        self.assertEqual(result["overlap_pairs"]["eager_refill"]["clock"], "monotonic")
+
+    def test_rejects_ambiguous_driver_identity_arguments(self) -> None:
+        cases = (
+            ("duplicate-step", " --step B", "repeats --step"),
+            ("duplicate-attempt", " --attempt attempt-b", "repeats --attempt"),
+            ("duplicate-pilot-dir", " --pilot-dir /forged", "repeats --pilot-dir"),
+            ("inline-step", " --step=B", "inline option assignment"),
+            ("abbreviated-pilot-dir", " --pil /forged", "unsupported option '--pil'"),
+        )
+        for name, argument, expected in cases:
+            with self.subTest(name=name):
+                events = valid_events(self.manifest)
+                self.append_driver_argument(events, "driver-start-A", argument)
+                result = self.evaluate(events)
+                self.assertFalse(result["passed"])
+                self.assertIn(expected, "\n".join(result["errors"]))
+
+    def test_rejects_parent_tool_between_initial_a_b_spawns(self) -> None:
+        cases = (
+            ("show", driver(self.manifest, "show")),
+            ("handle-write", [
+                tool_call("write-retained-handle", "write", {"target_file": self.manifest["steps"]["A"]["handle_source"]}),
+                tool_update("write-retained-handle", "completed", {"type": "Text", "text": "handle retained"}),
+            ]),
+        )
+        for name, between in cases:
+            with self.subTest(name=name):
+                events = valid_events(self.manifest)
+                before_b = next(index for index, event in enumerate(events)
+                                if event.get("toolCallId") == "spawn-B" and event["type"] == "tool_call")
+                events[before_b:before_b] = between
+                result = self.evaluate(events)
+                self.assertFalse(result["passed"])
+                self.assertIn("A/B native spawn calls are not adjacent", "\n".join(result["errors"]))
+
+    def test_accepts_passive_event_between_initial_a_b_spawns(self) -> None:
+        events = valid_events(self.manifest)
+        before_b = next(index for index, event in enumerate(events)
+                        if event.get("toolCallId") == "spawn-B" and event["type"] == "tool_call")
+        events.insert(before_b, {"type": "thought", "text": "A receipt is retained before B launch."})
+        result = self.evaluate(events)
+        self.assertTrue(result["passed"], result["errors"])
+
+    def test_rejects_unknown_parent_tool(self) -> None:
+        events = valid_events(self.manifest)
+        events.insert(1, tool_call("delete-worker", "delete_file", {"path": str(Path(self.workspaces["A"]) / "toy.py")}))
+        result = self.evaluate(events)
+        self.assertFalse(result["passed"])
+        self.assertIn("parent tool delete_file is not allowed", "\n".join(result["errors"]))
+
+    def test_accepts_known_read_only_parent_tools(self) -> None:
+        for name in ("read_file", "list_directory", "list_dir", "search", "grep", "glob"):
+            with self.subTest(name=name):
+                events = valid_events(self.manifest)
+                identifier = f"read-{name}"
+                events[1:1] = [
+                    tool_call(identifier, name, {"path": str(self.pilot / "context.json")}),
+                    tool_update(identifier, "completed", {"type": "Text", "text": "read-only"}),
+                ]
+                result = self.evaluate(events)
+                self.assertTrue(result["passed"], result["errors"])
+
+    def test_accepts_host_state_only_todo_write(self) -> None:
+        events = valid_events(self.manifest)
+        events[1:1] = [
+            tool_call("todo-write", "todo_write", {"todos": [{"content": "Inspect pilot help", "status": "in_progress"}]}),
+            tool_update("todo-write", "completed", {"type": "Text", "text": "checklist updated"}),
+        ]
+        result = self.evaluate(events)
+        self.assertTrue(result["passed"], result["errors"])
+
+    def test_accepts_exact_selected_driver_help_without_lifecycle_grant(self) -> None:
+        for action in (None, "claim", "start", "launched", "import-handoff", "prepare-integration", "done", "show", "finish", "packet"):
+            with self.subTest(action=action):
+                events = valid_events(self.manifest)
+                events[1:1] = driver_help(self.manifest, action)
+                result = self.evaluate(events)
+                self.assertTrue(result["passed"], result["errors"])
+
+    def test_help_does_not_grant_a_lifecycle_action(self) -> None:
+        events = [event for event in valid_events(self.manifest) if event.get("toolCallId") != "driver-start-A"]
+        before_spawn = next(index for index, event in enumerate(events)
+                            if event.get("toolCallId") == "spawn-A" and event["type"] == "tool_call")
+        events[before_spawn:before_spawn] = driver_help(self.manifest, "start")
+        result = self.evaluate(events)
+        self.assertFalse(result["passed"])
+        self.assertIn("A has no exact parent start command", "\n".join(result["errors"]))
+
+    def test_rejects_help_with_trailing_lifecycle_arguments(self) -> None:
+        cases = (
+            ("root-pilot-dir", None, ("--pilot-dir", self.manifest["pilot_dir"])),
+            ("action-confirmed-stopped", "done", ("--confirmed-stopped",)),
+        )
+        for name, action, trailing in cases:
+            with self.subTest(name=name):
+                events = valid_events(self.manifest)
+                events[1:1] = driver_help(self.manifest, action, *trailing)
+                result = self.evaluate(events)
+                self.assertFalse(result["passed"])
+                self.assertIn("terminal command uses --help with extra arguments", "\n".join(result["errors"]))
 
     def test_rejects_missing_host_terminal_event(self) -> None:
         events = valid_events(self.manifest)[:-1]
@@ -527,15 +684,161 @@ class NativeHostTraceTests(unittest.TestCase):
         self.assertFalse(result["passed"])
         self.assertIn("execution intervals are sequential", "\n".join(result["errors"]))
 
-    def test_rejects_a_b_without_precise_interval_telemetry(self) -> None:
+    def test_accepts_wide_coarse_iso_overlap_with_guaranteed_bounds(self) -> None:
+        events = valid_events(self.manifest)
+        self.set_iso_interval(self.collection_row(events, "A"), "2026-09-19T12:00:00Z", "2026-09-19T12:00:30Z")
+        self.set_iso_interval(self.collection_row(events, "B"), "2026-09-19T12:00:05Z", "2026-09-19T12:01:00Z")
+        self.set_iso_interval(self.collection_row(events, "C"), "2026-09-19T12:00:50Z", "2026-09-19T12:01:30Z")
+        result = self.evaluate(events)
+        self.assertTrue(result["passed"], result["errors"])
+        pair = result["overlap_pairs"]["eager_refill"]
+        self.assertEqual(pair["resolution"], {"B": "whole-second", "C": "whole-second"})
+        self.assertTrue(pair["raw_overlap"]["passed"])
+        self.assertTrue(pair["guaranteed_overlap"]["passed"])
+        self.assertGreater(pair["B"]["guaranteed_started"], pair["B"]["started"])
+        self.assertLess(pair["B"]["guaranteed_ended"], pair["B"]["ended"])
+
+    def test_rejects_ambiguous_coarse_a_b_interval_telemetry(self) -> None:
+        events = valid_events(self.manifest)
+        self.set_iso_interval(self.collection_row(events, "B"), "2026-09-19T12:00:07Z", "2026-09-19T12:00:11Z")
+        result = self.evaluate(events)
+        self.assertFalse(result["passed"])
+        pair = result["overlap_pairs"]["initial_fanout"]
+        self.assertEqual(pair["resolution"], {"A": "subsecond", "B": "whole-second"})
+        self.assertTrue(pair["raw_overlap"]["passed"])
+        self.assertFalse(pair["guaranteed_overlap"]["passed"])
+        self.assertIn("A/B typed native execution intervals overlap only ambiguously at reported resolution", "\n".join(result["errors"]))
+
+    def test_rejects_mixed_resolution_b_c_boundary_overlap(self) -> None:
+        events = valid_events(self.manifest)
+        self.set_iso_interval(self.collection_row(events, "B"), "2026-09-19T12:00:02.100Z", "2026-09-19T12:00:10.000Z")
+        self.set_iso_interval(self.collection_row(events, "C"), "2026-09-19T12:00:09Z", "2026-09-19T12:00:12Z")
+        result = self.evaluate(events)
+        self.assertFalse(result["passed"])
+        pair = result["overlap_pairs"]["eager_refill"]
+        self.assertEqual(pair["resolution"], {"B": "subsecond", "C": "whole-second"})
+        self.assertTrue(pair["raw_overlap"]["passed"])
+        self.assertFalse(pair["guaranteed_overlap"]["passed"])
+        self.assertEqual(pair["guaranteed_overlap"]["started"], pair["guaranteed_overlap"]["ended"])
+        self.assertIn("B/C typed native execution intervals overlap only ambiguously at reported resolution", "\n".join(result["errors"]))
+
+    def test_rejects_zero_or_reversed_iso_intervals(self) -> None:
+        cases = (
+            ("zero", "2026-09-19T12:00:10Z", "2026-09-19T12:00:10Z"),
+            ("reversed", "2026-09-19T12:00:11Z", "2026-09-19T12:00:10Z"),
+        )
+        for name, started, ended in cases:
+            with self.subTest(name=name):
+                events = valid_events(self.manifest)
+                self.set_iso_interval(self.collection_row(events, "B"), started, ended)
+                result = self.evaluate(events)
+                self.assertFalse(result["passed"])
+                self.assertIn("B/C interval telemetry is unavailable: ended at or before started", "\n".join(result["errors"]))
+
+    def test_rejects_delayed_b_settlement_without_b_c_execution_overlap(self) -> None:
         events = valid_events(self.manifest)
         update = next(event for event in events if event.get("toolCallId") == "collect-2" and event["type"] == "tool_call_update")
         row = update["rawOutput"]["MultiResult"]["results"][0]
-        row["started"] = "2026-09-19T12:00:02Z"
-        row["ended"] = "2026-09-19T12:00:08Z"
+        row["ended"] = "2026-09-19T12:00:08.900Z"
         result = self.evaluate(events)
         self.assertFalse(result["passed"])
-        self.assertIn("lacks sub-second or monotonic precision", "\n".join(result["errors"]))
+        self.assertIn("B/C typed native execution intervals are sequential", "\n".join(result["errors"]))
+
+    def test_rejects_b_c_touching_execution_intervals(self) -> None:
+        events = valid_events(self.manifest)
+        update = next(event for event in events if event.get("toolCallId") == "collect-2" and event["type"] == "tool_call_update")
+        row = update["rawOutput"]["MultiResult"]["results"][0]
+        row["ended"] = "2026-09-19T12:00:09.100Z"
+        result = self.evaluate(events)
+        self.assertFalse(result["passed"])
+        self.assertIn("B/C typed native execution intervals are sequential", "\n".join(result["errors"]))
+
+    def test_rejects_b_c_without_c_interval_telemetry(self) -> None:
+        events = valid_events(self.manifest)
+        update = next(event for event in events if event.get("toolCallId") == "collect-3" and event["type"] == "tool_call_update")
+        row = update["rawOutput"]["MultiResult"]["results"][0]
+        del row["started"]
+        del row["ended"]
+        result = self.evaluate(events)
+        self.assertFalse(result["passed"])
+        self.assertIn("B/C interval telemetry is unavailable", "\n".join(result["errors"]))
+
+    def test_rejects_b_c_with_incompatible_interval_clocks(self) -> None:
+        events = valid_events(self.manifest)
+        update = next(event for event in events if event.get("toolCallId") == "collect-3" and event["type"] == "tool_call_update")
+        row = update["rawOutput"]["MultiResult"]["results"][0]
+        del row["started"]
+        del row["ended"]
+        row["started_monotonic_ms"] = 9100
+        row["ended_monotonic_ms"] = 11900
+        result = self.evaluate(events)
+        self.assertFalse(result["passed"])
+        self.assertIn("B/C interval telemetry uses incompatible clocks", "\n".join(result["errors"]))
+
+    def test_rejects_ambiguous_coarse_b_c_interval_telemetry(self) -> None:
+        events = valid_events(self.manifest)
+        self.set_iso_interval(self.collection_row(events, "B"), "2026-09-19T12:00:08Z", "2026-09-19T12:00:11Z")
+        self.set_iso_interval(self.collection_row(events, "C"), "2026-09-19T12:00:09Z", "2026-09-19T12:00:12Z")
+        result = self.evaluate(events)
+        self.assertFalse(result["passed"])
+        pair = result["overlap_pairs"]["eager_refill"]
+        self.assertEqual(pair["resolution"], {"B": "whole-second", "C": "whole-second"})
+        self.assertTrue(pair["raw_overlap"]["passed"])
+        self.assertFalse(pair["guaranteed_overlap"]["passed"])
+        self.assertIn("B/C typed native execution intervals overlap only ambiguously at reported resolution", "\n".join(result["errors"]))
+
+    def test_rejects_nonfinite_or_nonexact_b_c_monotonic_bounds(self) -> None:
+        invalid_values = (
+            ("boolean", False),
+            ("nan", float("nan")),
+            ("positive-infinity", float("inf")),
+            ("negative-infinity", float("-inf")),
+            ("overflowing-integer", 10 ** 10000),
+        )
+        for step in ("B", "C"):
+            for field in ("started_monotonic_ms", "ended_monotonic_ms"):
+                for label, value in invalid_values:
+                    with self.subTest(step=step, field=field, value=label):
+                        events = valid_events(self.manifest)
+                        self.set_chain_monotonic_intervals(events)
+                        self.collection_row(events, step)[field] = value
+                        result = self.evaluate(events)
+                        self.assertFalse(result["passed"])
+                        errors = "\n".join(result["errors"])
+                        self.assertIn("B/C interval telemetry is unavailable", errors)
+                        self.assertIn("requires finite int or float started and ended monotonic timestamps", errors)
+
+    def test_accepts_lossless_large_monotonic_overlap_intervals(self) -> None:
+        boundary = 2 ** 53
+        events = valid_events(self.manifest)
+        for step, started, ended in (
+            ("A", boundary - 8, boundary - 1),
+            ("B", boundary - 2, boundary),
+            ("C", boundary - 1, boundary + 2),
+            ("J", boundary + 4, boundary + 6),
+        ):
+            self.set_monotonic_interval(self.collection_row(events, step), started, ended)
+        result = self.evaluate(events)
+        self.assertTrue(result["passed"], result["errors"])
+        self.assertTrue(result["overlap_pairs"]["eager_refill"]["passed"])
+
+    def test_rejects_lossy_monotonic_integer_ordering_or_overlap(self) -> None:
+        boundary = 2 ** 53
+        cases = (
+            ("reversed-ordering-collapses", (boundary + 1, boundary), (boundary - 1, boundary + 2)),
+            ("strict-overlap-erased", (boundary, boundary + 1), (boundary - 1, boundary + 1)),
+        )
+        for name, b_interval, c_interval in cases:
+            with self.subTest(name=name):
+                events = valid_events(self.manifest)
+                self.set_chain_monotonic_intervals(events)
+                self.set_monotonic_interval(self.collection_row(events, "B"), *b_interval)
+                self.set_monotonic_interval(self.collection_row(events, "C"), *c_interval)
+                result = self.evaluate(events)
+                self.assertFalse(result["passed"])
+                errors = "\n".join(result["errors"])
+                self.assertIn("B/C interval telemetry is unavailable", errors)
+                self.assertIn("without integer precision loss", errors)
 
     def test_rejects_truncated_raw_json(self) -> None:
         path = self.root / "host.ndjson"

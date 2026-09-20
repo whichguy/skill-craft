@@ -66,7 +66,11 @@ parallel/dependent chain in a disposable Git repository. Independent worker
 processes generate and test Python code; A/B overlap, C starts after A while B
 still runs, and J waits for B+C. The parent verifies each combination, integrates
 it into the invoking linked checkout and removes accepted worker worktrees.
-The same suite checks serial execution. Worker processes are deterministic
+The same suite checks serial execution, A-first/B-first/burst completion delivery,
+and an old B result arriving after its retry has been accepted. Required output
+files must exist; checks cannot silently skip missing contributions. Target
+updates must form one contiguous history containing every accepted source.
+Worker processes are deterministic
 fixtures, not native/model agents. `shiploop-chain-handoff.test.py` covers local
 result preservation and hostile-path/replay controls. Both are in the full
 ShipLoop inventory. Use the [native pilot](experiments/shiploop_chain/README.md)
@@ -112,6 +116,16 @@ contradictory terminal outcomes and cross-step handle sources while preserving
 valid pending observations and identical completion replay. These remain local
 tests; prompt-driven Ask-Agent worktree creation and native recovery need their
 separate live qualification.
+
+The [parallel integration test plan](../docs/parallel-integration-test-plan-2026-09-20.md)
+separates these real-Git fixtures from the native trace observer's strict A/B
+and B/C interval checks. The opt-in native runner holds B at a disclosed test
+barrier until C is launched; it proves overlapping task lifetimes and integrated
+code behavior, not simultaneous code-writing or other hosts' behavior.
+Grok qualification uses the host's root-session transcript to distinguish
+parent actions from interleaved worker events. Whole-second task event times
+must still overlap after conservative one-second bounds are applied at each
+end; receipt order cannot substitute for overlap evidence.
 
 The [interaction audit](../docs/shiploop-chain-interaction-audit-2026-09-19.md)
 maps every supported chain operation to state, Git effects, context requirements

@@ -3,8 +3,8 @@
 `native_pilot.py` is a retained, opt-in qualification apparatus for the
 per-step ShipLoop chain bridge. It creates a disposable real-Git fixture,
 fixture-emulates caller-prepared workspaces with ordinary Git, and drives the
-public `shiploop chain` lifecycle. It never launches a model, an agent CLI, a timer,
-or a polling service. A native host must launch fresh workers and retain its
+public `shiploop chain` lifecycle. It never launches a model or an agent CLI.
+A native host must launch fresh workers and retain its
 own launch/completion trace.
 
 The pilot uses the frozen Ask-Agent 0.4 fixture and Plan Dispatcher v3 fixture.
@@ -231,9 +231,18 @@ deterministic lifecycle test or a worker's prose alone does not qualify this
 fixture's bridge adoption and native execution result. Neither proves
 prompt-driven Ask-Agent workspace creation.
 
+Grok's raw stdout mixes parent and worker tool events without ownership labels.
+The wrapper binds a fresh `--session-id` and retains that root session's
+host-owned `updates.jsonl` as `root-updates.jsonl`. The Grok adapter requires the
+root identity on every update and validates the host's `subagent_spawned`
+parent/child mappings against all four retained handles. Parent policy is
+evaluated only from these root records. The raw stream supplies the typed root
+terminal event and remains diagnostic evidence; worker commands are never
+classified by their text, UUID shape, or workspace path.
+
 The wrapper also writes `host-events.jsonl`, which records local receipt time
-and monotonic order for each raw host line, and
-`native-trace-evaluation.json`. The latter is a fail-closed observer: every
+and monotonic order for each raw host line, and `native-trace-evaluation.json`.
+The latter is a fail-closed observer: every
 A/B/C/J record must have one background `spawn_subagent` receipt with the exact
 retained Grok UUID and fixture-prepared workspace, followed by a completed,
 zero-exit `get_command_or_subagent_output` result for that same UUID before
@@ -247,11 +256,26 @@ observations and repeated equivalent successful collection remain supported.
 Every worker start also needs a preceding successful claim receipt. A successful
 `finish` must follow all four completed integrations; a missing, failed or early
 finish cannot qualify the run. Identical successful finish replay remains valid.
+Initial A/B spawns must be adjacent parent tool calls. Driver options must use
+their exact, single-valued spelling; duplicate or abbreviated identities cannot
+be attributed to a different attempt. Unknown parent tools fail closed, while
+the supported read-only tools and host checklist remain allowed.
 
-The observer requires A/B telemetry with compatible sub-second ISO timestamps
-or monotonic start/end values and proves strict interval overlap. Missing or
-coarse timing fails the native qualification rather than inferring overlap from
-dispatch order. It observes typed host events and parent behavior; the external
+The observer requires A/B and B/C telemetry with compatible ISO timestamps or
+monotonic start/end values and proves strict interval overlap for both pairs.
+B must still be executing when C begins; postponing B's settlement
+after it has stopped cannot qualify eager refill. Touching intervals do not
+overlap. The legacy `overlap` field reports A/B; `overlap_pairs.initial_fanout`
+and `overlap_pairs.eager_refill` report A/B and B/C respectively. Whole-second
+host event times use a conservative guaranteed interval from `started + 1s` to
+`ended - 1s`, allowing for rounding or truncation within one second. Those
+guaranteed intervals must still strictly overlap. This assumes the host's
+`started`/`ended` fields are task event times quantized to seconds, not delayed
+report receipt times. Missing or ambiguous timing fails qualification; dispatch
+order never substitutes for timing evidence. Raw values, resolution, and the
+guaranteed overlap remain in the result. Boolean, non-finite, overflowing, and
+lossy monotonic values are invalid.
+It observes typed host events and parent behavior; the external
 oracle and Git receipts remain the proof of the resulting code and integrated
 target.
 
@@ -271,29 +295,41 @@ python3 -B "$SOURCE_ROOT/test/experiments/shiploop_chain/run_native.py" \
 Optional `--grok`, `--ask-agent-skill`, `--dispatcher-skill`, and
 `--timeout` arguments select the host, frozen cards, and deadline. The
 wrapper retains `$RUN_DIR/host.ndjson`, `host.stderr`, `prepare.json`, and
-`result.json`, plus `host-events.jsonl` and `native-trace-evaluation.json`; it
+`result.json`, plus `host-events.jsonl`, `root-updates.jsonl`, and
+`native-trace-evaluation.json`; it
 passes the worker assignment inline to the native host and
 does not turn a saved packet or prompt file into worker transport.
 `result.json` records `coverage.workspace_creation: "fixture_emulation"` and
 marks prompt-driven Ask-Agent workspace creation as not qualified.
+
+The wrapper opts into the pilot's `prepare --hold-step B` scheduling control.
+B writes and checks real code, then waits before handoff until C's successful
+`launched` command releases an experiment-only gate. This bounded worker wait
+removes timing luck: the parent must collect A independently, accept it, and
+launch C while B is still active. The barrier is outside the ShipLoop runtime;
+it proves overlapping native task lifetimes, not simultaneous code-writing or
+CPU execution. Typed host interval evidence is still mandatory. A timeout fails
+the worker and preserves evidence; the gate never fabricates native timestamps.
 
 ## Offline adapter verification
 
 The focused adapter test creates its own disposable Git fixture and exercises
 the public `prepare` → `claim` → `start` → cold `packet` path with the pinned
 Dispatcher v3 package. It verifies exact inline packet transport, v2 preflight
-rejection before a pilot directory is created, and non-launch start replay. It
+rejection before a pilot directory is created, non-launch start replay, and the
+opt-in refill barrier's identity, release, and timeout behavior. It
 does not launch a model, Grok, or a native worker:
 
 ```sh
 python3 -B "$SOURCE_ROOT/test/experiments/shiploop_chain/test_native_pilot.py"
 python3 -B "$SOURCE_ROOT/test/experiments/shiploop_chain/test_trace.py"
+python3 -B "$SOURCE_ROOT/test/experiments/shiploop_chain/test_grok_trace.py"
 ```
 
-Inspect the raw host trace before qualifying a run: it must show fresh worker
+Inspect the attributed root transcript before qualifying a run: it must show fresh worker
 launches, actual completion collection, the recorded handles, A/B dispatch
 before either collection, C dispatch after A acceptance and before B
-Dispatcher completion, J only after B/C acceptance, and no fabricated
+Dispatcher completion, strict B/C native interval overlap, J only after B/C acceptance, and no fabricated
 handoffs. The pilot's Git and oracle evidence separately proves the code,
 target updates, archive retention, and cleanup.
 
@@ -301,7 +337,9 @@ For a retained completed run, the observer can be rerun without launching a
 host:
 
 ```sh
-python3 -B "$SOURCE_ROOT/test/experiments/shiploop_chain/trace.py" \
+python3 -B "$SOURCE_ROOT/test/experiments/shiploop_chain/grok_trace.py" \
   --host-trace "$RUN_DIR/host.ndjson" \
+  --root-updates "$RUN_DIR/root-updates.jsonl" \
+  --session-id '<root_session_id from result.json>' \
   --pilot-dir "$RUN_DIR/pilot"
 ```

@@ -52,6 +52,29 @@ ATTEMPT_ACTIONS = frozenset({
     "cleanup", "retry",
 })
 
+CHAIN_MODULES = {
+    "A": {
+        "path": "chain_add.py",
+        "source": "def add(left, right):\n    return left + right\n",
+        "check": "from chain_add import add; assert add(-4,1)==-3 and add(2,3)==5",
+    },
+    "B": {
+        "path": "chain_format.py",
+        "source": "def normalize(text):\n    return ' '.join(text.strip().lower().split())\n",
+        "check": "from chain_format import normalize; assert normalize(' A   B ')== 'a b'",
+    },
+    "C": {
+        "path": "chain_sum.py",
+        "source": "from chain_add import add\ndef total(values):\n    result=0\n    for value in values:\n        result=add(result,value)\n    return result\n",
+        "check": "from chain_sum import total; assert total([2,3,-1])==4 and total([])==0",
+    },
+    "J": {
+        "path": "chain_report.py",
+        "source": "from chain_sum import total\nfrom chain_format import normalize\ndef report(label, values):\n    return f'{normalize(label)}: {total(values)}'\n",
+        "check": "from chain_report import report; assert report(' RESULT ',[2,3])=='result: 5'",
+    },
+}
+
 
 class PerStepChainTests(unittest.TestCase):
     def setUp(self):
@@ -236,9 +259,8 @@ class PerStepChainTests(unittest.TestCase):
 
     def start(self, step, attempt, *, serial=False, record_launch=True):
         base = self.head()
-        names = {"A": "chain_add.py", "B": "chain_format.py", "C": "chain_sum.py", "J": "chain_report.py"}
         value = self.f.start_value(step, attempt, base=base)
-        value["write_scope"] = [names[step]]
+        value["write_scope"] = [CHAIN_MODULES[step]["path"]]
         if not serial:
             # Emulates Ask-Agent's ordinary worktree preparation with real Git.
             # The bridge must adopt this workspace, not create another.
@@ -298,6 +320,9 @@ class PerStepChainTests(unittest.TestCase):
 
     def collect(self, step, proc):
         result = self.finish_worker(step, proc)
+        return self.import_finished(step, result)
+
+    def import_finished(self, step, result):
         imported = self.call("import-handoff", {"attempt": self.packets[step]["attempt"],
             "confirmed_stopped": True, "handoff": {"path": result["handoff"], "sha256": result["sha256"]}})
         self.imports[step] = imported["import"]
@@ -336,22 +361,71 @@ class PerStepChainTests(unittest.TestCase):
         self.call("pending")
         self.assertEqual(self.f.ledger_bytes(), before_ledger)
 
-    def verify(self, workspace):
-        check = """from pathlib import Path
-p=Path('.')
-if (p/'chain_add.py').exists():
- from chain_add import add
- assert add(-4,1)==-3 and add(2,3)==5
-if (p/'chain_format.py').exists():
- from chain_format import normalize
- assert normalize(' A   B ')== 'a b'
-if (p/'chain_sum.py').exists():
- from chain_sum import total
- assert total([2,3,-1])==4 and total([])==0
-if (p/'chain_report.py').exists():
- from chain_report import report
- assert report(' RESULT ',[2,3])=='result: 5'
-"""
+    def graph_steps(self):
+        return tuple(item["id"] for item in self.binding()["graph"]["steps"])
+
+    def expected_worker_steps(self, step):
+        graph = self.binding()["graph"]
+        dependencies = {item["id"]: tuple(item["deps"]) for item in graph["steps"]}
+        required = set()
+
+        def include(item):
+            if item in required:
+                return
+            required.add(item)
+            for dependency in dependencies[item]:
+                include(dependency)
+
+        include(step)
+        return tuple(item["id"] for item in graph["steps"] if item["id"] in required)
+
+    def expected_prepared_steps(self, step):
+        required = set(self.accepted_steps()) | set(self.expected_worker_steps(step))
+        return tuple(item for item in self.graph_steps() if item in required)
+
+    def accepted_steps(self):
+        state = self.f.child_state()
+        return tuple(step for step in self.graph_steps()
+                     if state["steps"][step]["status"] == "accepted")
+
+    def accepted_contributions(self):
+        state = self.f.child_state()
+        accepted = self.accepted_steps()
+        current = {step: state["steps"][step]["current_attempt"] for step in accepted}
+        contributions = {}
+        for row in self.bridge_events():
+            event = row["event"]
+            if event["kind"] == "contribution_recorded":
+                data = event["data"]
+                if data.get("attempt") in current.values():
+                    contributions[data["attempt"]] = data
+        self.assertEqual(set(contributions), set(current.values()))
+        for step, attempt in current.items():
+            self.assertEqual(contributions[attempt]["step"], step)
+        return tuple(contributions[current[step]] for step in accepted)
+
+    def assert_contiguous_integrations(self, attempts):
+        events = [row["event"]["data"] for row in self.bridge_events()
+                  if row["event"]["kind"] == "integration_result"]
+        self.assertEqual([event["attempt"] for event in events], list(attempts))
+        previous = self.binding()["target"]["head"]
+        for event in events:
+            self.assertEqual(event["target_before"]["head"], previous)
+            self.assertEqual(event["target_after"]["head"], event["integration"]["candidate_commit"])
+            previous = event["target_after"]["head"]
+        self.assertEqual(self.head(), previous)
+
+    def verify(self, workspace, *, expected_steps):
+        expected = tuple(expected_steps)
+        self.assertTrue(expected, "verification needs at least one expected contribution")
+        self.assertEqual(len(expected), len(set(expected)), "expected contributions must be unique")
+        self.assertTrue(set(expected).issubset(CHAIN_MODULES), "unknown expected contribution")
+        workspace = Path(workspace)
+        for step in expected:
+            module = CHAIN_MODULES[step]
+            self.assertTrue((workspace / module["path"]).is_file(),
+                            "missing expected contribution " + module["path"])
+        check = "\n".join(CHAIN_MODULES[step]["check"] for step in expected)
         result = subprocess.run([sys.executable, "-B", "-c", check], cwd=workspace,
                                 text=True, capture_output=True, timeout=15)
         self.assertEqual(result.returncode, 0, result.stderr)
@@ -360,7 +434,8 @@ if (p/'chain_report.py').exists():
         attempt = self.packets[step]["attempt"]
         prepared = self.call("prepare", {"attempt": attempt, "confirmed_stopped": True})
         integration = prepared["integration"]
-        self.verify(Path(self.packets[step]["context"]["workspace"]))
+        self.verify(Path(self.packets[step]["context"]["workspace"]),
+                    expected_steps=self.expected_prepared_steps(step))
         # Read the immutable child receipt through its public helper.
         binding = fixture.store.read_record(self.f.run / "chains" / self.f.action / "binding.md")
         immutable = fixture.chain._node(binding, "receipt", {"attempt": attempt})
@@ -386,7 +461,7 @@ if (p/'chain_report.py').exists():
         self.assertFalse(Path(self.packets[step]["context"]["workspace"]).exists())
         after = self.f.ledger_bytes()
         self.assertTrue(all(after.get(k) == v for k, v in before.items()))
-        self.verify(self.f.target)
+        self.verify(self.f.target, expected_steps=self.accepted_steps())
         return output
 
     def binding(self):
@@ -402,7 +477,9 @@ if (p/'chain_report.py').exists():
 
     def finish(self):
         head = self.head()
-        self.verify(self.f.target)
+        self.assertEqual(self.accepted_steps(), self.graph_steps())
+        self.verify(self.f.target, expected_steps=self.graph_steps())
+        contributions = self.accepted_contributions()
         proof = self.f.write("final-combined.json", {"passed": True, "commit": head,
                             "checks": ["combined generated-code output and all source ancestry"]})
         finished = self.call("finish", {"commit": head, "confirmed_stopped": True,
@@ -411,10 +488,207 @@ if (p/'chain_report.py').exists():
         self.assertEqual(self.f.git(self.f.primary, "rev-parse", "HEAD"), self.f.initial)
         listing = self.f.git(self.f.primary, "worktree", "list", "--porcelain")
         self.assertEqual(listing.count("worktree "), 2, listing)
-        for commit in self.source_commits.values():
-            self.f.git(self.f.target, "merge-base", "--is-ancestor", commit, head)
+        for contribution in contributions:
+            self.f.git(self.f.target, "merge-base", "--is-ancestor", contribution["source_commit"], head)
         self.assertEqual(self.call("pending")["completion"]["not_done"], [])
         return finished
+
+    def test_strict_verifier_requires_every_expected_module(self):
+        workspace = self.f.base / "strict-verifier"
+        workspace.mkdir()
+        for step in ("A", "B", "C"):
+            module = CHAIN_MODULES[step]
+            (workspace / module["path"]).write_text(module["source"])
+        self.verify(workspace, expected_steps=("A", "B", "C"))
+        with self.assertRaisesRegex(AssertionError, "chain_report.py"):
+            self.verify(workspace, expected_steps=("A", "B", "C", "J"))
+
+    def assert_claim_precedes_pending_attempt(self, response, step, attempt):
+        actions = response["navigation"]["actions"]
+        claim_index = next(index for index, action in enumerate(actions)
+                           if action["action"] == "claim" and action["steps"] == [step])
+        pending_indexes = [index for index, action in enumerate(actions)
+                           if action.get("attempt") == attempt
+                           and action["action"] in {"collect", "prepare", "verify"}]
+        self.assertTrue(pending_indexes, "fixture needs a pending sibling observation")
+        self.assertLess(claim_index, min(pending_indexes),
+                        "a completion must refill ready work before waiting on a sibling")
+
+    def exercise_parallel_completion_order(self, order):
+        self.assertIn(order, {"a-first", "b-first", "burst"})
+        self.bind()
+        attempts = self.claim("A", "B")
+        self.start("A", attempts["A"])
+        self.start("B", attempts["B"])
+        a = self.launch("A")
+        b = self.launch("B")
+        self.assertIsNone(a.poll())
+        self.assertIsNone(b.poll())
+
+        if order == "a-first":
+            self.collect("A", a)
+            a_done = self.prepare_and_done("A")
+            self.assertIsNone(b.poll(), "B must still execute after A releases C")
+            self.assert_claim_precedes_pending_attempt(a_done, "C", attempts["B"])
+            c_attempt = self.claim("C")["C"]
+            self.start("C", c_attempt)
+            c = self.launch("C")
+            self.assertIsNone(b.poll(), "C must start while B is still executing")
+            self.collect("B", b)
+            self.prepare_and_done("B")
+            self.assertNotIn("J", self.call("next")["ready"])
+            self.collect("C", c)
+            c_done = self.prepare_and_done("C")
+            expected_order = (attempts["A"], attempts["B"], c_attempt)
+        elif order == "b-first":
+            self.collect("B", b)
+            b_done = self.prepare_and_done("B")
+            self.assertIsNone(a.poll(), "A must still execute after B returns first")
+            self.assertNotIn("C", b_done["ready"])
+            self.assertNotIn("J", b_done["ready"])
+            self.collect("A", a)
+            a_done = self.prepare_and_done("A")
+            self.assertEqual([row["steps"] for row in self.action_rows(a_done, "claim")], [["C"]])
+            c_attempt = self.claim("C")["C"]
+            self.start("C", c_attempt)
+            c = self.launch("C")
+            self.assertNotIn("J", self.call("next")["ready"])
+            self.collect("C", c)
+            c_done = self.prepare_and_done("C")
+            expected_order = (attempts["B"], attempts["A"], c_attempt)
+        else:
+            # Both fixture workers reach the deterministic release barrier and
+            # return before the parent processes either completion event.
+            a_result = self.finish_worker("A", a)
+            b_result = self.finish_worker("B", b)
+            self.import_finished("A", a_result)
+            self.import_finished("B", b_result)
+            a_done = self.prepare_and_done("A")
+            self.assert_claim_precedes_pending_attempt(a_done, "C", attempts["B"])
+            c_attempt = self.claim("C")["C"]
+            self.start("C", c_attempt)
+            c = self.launch("C")
+            self.prepare_and_done("B")
+            self.assertNotIn("J", self.call("next")["ready"])
+            self.collect("C", c)
+            c_done = self.prepare_and_done("C")
+            expected_order = (attempts["A"], attempts["B"], c_attempt)
+
+        self.assertEqual([row["steps"] for row in self.action_rows(c_done, "claim")], [["J"]])
+        j_attempt = self.claim("J")["J"]
+        self.start("J", j_attempt)
+        self.complete_step("J")
+        self.assert_contiguous_integrations((*expected_order, j_attempt))
+        contributions = self.accepted_contributions()
+        self.assertEqual({item["step"] for item in contributions}, {"A", "B", "C", "J"})
+        self.verify(self.f.target, expected_steps=("A", "B", "C", "J"))
+        self.finish()
+
+    def test_parallel_completion_order_a_first_refills_while_b_runs(self):
+        self.exercise_parallel_completion_order("a-first")
+
+    def test_parallel_completion_order_b_first_waits_for_a_then_refills(self):
+        self.exercise_parallel_completion_order("b-first")
+
+    def test_parallel_completion_burst_refills_before_pending_verification(self):
+        self.exercise_parallel_completion_order("burst")
+
+    def test_late_retried_b_success_cannot_mutate_target_or_unlock_join(self):
+        self.bind()
+        attempts = self.claim("A", "B")
+        self.start("A", attempts["A"])
+        self.start("B", attempts["B"])
+        a = self.launch("A")
+        b = self.launch("B")
+
+        self.collect("A", a)
+        a_done = self.prepare_and_done("A")
+        self.assert_claim_precedes_pending_attempt(a_done, "C", attempts["B"])
+        c_attempt = self.claim("C")["C"]
+        self.start("C", c_attempt)
+        c = self.launch("C")
+
+        self.collect("B", b)
+        old_positive = self.prepared_input("B")
+        old_source = self.source_commits["B"]
+        rejection_proof = self.f.write("rejected-old-b.json", {
+            "passed": False,
+            "checks": ["fixture rejects the old B result before replacement"],
+        })
+        rejected = self.call("done", {
+            "attempt": attempts["B"], "confirmed_stopped": True,
+            "verification": {
+                "receipt_sha256": old_positive["verification"]["receipt_sha256"],
+                "passed": False,
+                "reason": "Fixture rejects the old B result",
+                "evidence": {"path": str(rejection_proof), "sha256": fixture.digest(rejection_proof)},
+            },
+        })
+        self.assertEqual((rejected["outcome"], rejected["step"], rejected["attempt"]),
+                         ("rejected", "B", attempts["B"]))
+        self.assertNotIn("J", self.call("next")["ready"])
+        self.call("retry", {"attempt": attempts["B"], "confirmed_stopped": True,
+                              "reason": "Replacement B needs a fresh attempt"})
+
+        replacement = self.claim("B")["B"]
+        self.assertNotEqual(replacement, attempts["B"])
+        self.start("B", replacement)
+        replacement_worker = self.launch("B")
+
+        self.collect("C", c)
+        c_done = self.prepare_and_done("C")
+        self.assertIsNone(replacement_worker.poll())
+        self.assertNotIn("J", c_done["ready"])
+
+        self.collect("B", replacement_worker)
+        replacement_positive = self.prepared_input("B")
+        replacement_source = self.source_commits["B"]
+        self.assertNotEqual(old_source, replacement_source)
+
+        def assert_rejected_without_mutation(value, phrase):
+            before_head = self.head()
+            before_child = self.f.child_state_path().read_bytes()
+            before_ledger = self.f.ledger_bytes()
+            before_worktrees = self.f.git(self.f.target, "worktree", "list", "--porcelain")
+            before_paths = [Path(line.removeprefix("worktree "))
+                            for line in before_worktrees.splitlines() if line.startswith("worktree ")]
+            before_status = self.f.git(self.f.target, "status", "--porcelain")
+            self.assertTrue(all(path.is_dir() for path in before_paths))
+            refused = self.call("done", value, ok=False)
+            self.assertIn(phrase, refused.stderr.lower())
+            self.assertEqual(self.head(), before_head)
+            self.assertEqual(self.f.child_state_path().read_bytes(), before_child)
+            self.assertEqual(self.f.ledger_bytes(), before_ledger)
+            self.assertEqual(self.f.git(self.f.target, "worktree", "list", "--porcelain"), before_worktrees)
+            self.assertTrue(all(path.is_dir() for path in before_paths))
+            self.assertEqual(self.f.git(self.f.target, "status", "--porcelain"), before_status)
+
+        wrong_step = json.loads(json.dumps(replacement_positive))
+        wrong_step["step"] = "A"
+        assert_rejected_without_mutation(wrong_step, "step")
+        assert_rejected_without_mutation(old_positive, "stale or retried")
+        self.assertNotIn("J", self.call("next")["ready"])
+
+        replacement_done = self.call("done", replacement_positive)
+        self.assertEqual((replacement_done["outcome"], replacement_done["step"], replacement_done["attempt"]),
+                         ("accepted", "B", replacement))
+        self.verify(self.f.target, expected_steps=("A", "B", "C"))
+        self.assertIn("J", replacement_done["ready"])
+
+        assert_rejected_without_mutation(old_positive, "stale or retried")
+        self.assertIn("J", self.call("next")["ready"])
+        old_ancestry = subprocess.run(["git", "merge-base", "--is-ancestor", old_source, self.head()],
+                                      cwd=self.f.target, capture_output=True, timeout=15)
+        self.assertNotEqual(old_ancestry.returncode, 0)
+
+        self.call("cleanup", {"attempt": attempts["B"], "confirmed_stopped": True,
+                                "disposition": "superseded",
+                                "reason": "Replacement B was accepted and integrated"})
+        j_attempt = self.claim("J")["J"]
+        self.start("J", j_attempt)
+        self.complete_step("J")
+        self.assert_contiguous_integrations((attempts["A"], c_attempt, replacement, j_attempt))
+        self.finish()
 
     def test_parallel_code_fanout_eager_dependent_join_merges_and_removes_all_workers(self):
         trace = []
@@ -721,8 +995,8 @@ if (p/'chain_report.py').exists():
             "def adjust_total(total):\n"
             "    return total - 1\n"
         )
-        self.verify(a_worker)
-        self.verify(b_worker)
+        self.verify(a_worker, expected_steps=("A",))
+        self.verify(b_worker, expected_steps=("B",))
         self.collect("A", a)
         self.collect("B", b)
         a_value = self.prepared_input("A")
@@ -742,7 +1016,7 @@ if (p/'chain_report.py').exists():
         self.assertEqual(accepted_a["outcome"], "accepted")
         self.assertEqual(self.head(), a_value["integration"]["candidate_commit"])
         self.assertFalse(a_worker.exists())
-        self.verify(self.f.target)
+        self.verify(self.f.target, expected_steps=("A",))
         after_a = self.head()
         old_b_prepared = self.call("prepare", {"attempt": attempts["B"], "confirmed_stopped": True})
         combined = subprocess.run(

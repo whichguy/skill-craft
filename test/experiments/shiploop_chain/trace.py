@@ -5,13 +5,14 @@ This is an external observer.  It neither starts Grok nor changes the pilot,
 worktrees, Git state, or worker handoff files.  A passing result establishes
 that the captured parent used typed native spawn and collection events tied to
 the retained pilot records.  It deliberately treats missing telemetry as
-insufficient for the A/B overlap claim.
+insufficient for native-overlap claims.
 """
 from __future__ import annotations
 
 import argparse
 from datetime import datetime
 import json
+import math
 from pathlib import Path
 import re
 import shlex
@@ -25,6 +26,8 @@ UUID_RE = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]
 UUID_IN_TEXT_RE = re.compile(r"\bsubagent_id:\s*([0-9a-f-]{36})\b", re.IGNORECASE)
 PASSIVE_TYPES = {"available_commands", "thought", "text", "usage", "system", "session", "message"}
 MUTATING_TOOLS = {"write", "search_replace", "apply_patch", "edit_file", "write_file"}
+READ_ONLY_TOOLS = {"read_file", "list_directory", "list_dir", "search", "grep", "glob"}
+HOST_STATE_ONLY_TOOLS = {"todo_write"}
 NONTERMINAL_TASK_STATUSES = {"", "pending", "running", "in_progress", "in-progress", "queued"}
 DRIVER_ACTIONS = {
     "claim", "start", "launched", "import-handoff", "prepare-integration", "done", "show", "finish", "packet",
@@ -73,13 +76,8 @@ def _under(value: str, root: str) -> bool:
 
 
 def _option(tokens: list[str], name: str) -> str | None:
-    try:
-        index = tokens.index(name)
-    except ValueError:
-        return None
-    if index + 1 >= len(tokens):
-        return None
-    return tokens[index + 1]
+    values = [tokens[index + 1] for index, token in enumerate(tokens[:-1]) if token == name]
+    return values[0] if len(values) == 1 else None
 
 
 def _packet_workspace(packet: dict[str, Any]) -> str:
@@ -315,6 +313,18 @@ def _parse_iso(value: Any) -> tuple[float, bool] | None:
     return parsed.timestamp(), fractional
 
 
+def _finite_monotonic(value: Any) -> float | None:
+    if type(value) not in (int, float):
+        return None
+    try:
+        normalized = float(value)
+    except (OverflowError, ValueError):
+        return None
+    if type(value) is int and normalized != value:
+        return None
+    return normalized if math.isfinite(normalized) else None
+
+
 def _interval(row: dict[str, Any]) -> tuple[dict[str, Any] | None, str | None]:
     start_iso = row.get("started", row.get("start"))
     end_iso = row.get("ended", row.get("end"))
@@ -327,16 +337,91 @@ def _interval(row: dict[str, Any]) -> tuple[dict[str, Any] | None, str | None]:
         end = _parse_iso(end_iso)
         if start is None or end is None:
             return None, "requires valid started and ended ISO timestamps"
-        if end[0] < start[0]:
-            return None, "ended before started"
-        return {"clock": "epoch", "started": start[0], "ended": end[0], "precise": start[1] and end[1]}, None
+        if end[0] <= start[0]:
+            return None, "ended at or before started"
+        precise = start[1] and end[1]
+        if precise:
+            guaranteed_started, guaranteed_ended, resolution = start[0], end[0], "subsecond"
+        else:
+            # Whole-second ISO fields are host task-event times quantized to seconds,
+            # not collection receipt times.  Only this inner interval is guaranteed.
+            guaranteed_started, guaranteed_ended, resolution = start[0] + 1.0, end[0] - 1.0, "whole-second"
+        return {
+            "clock": "epoch",
+            "started": start[0],
+            "ended": end[0],
+            "precise": precise,
+            "resolution": resolution,
+            "guaranteed_started": guaranteed_started,
+            "guaranteed_ended": guaranteed_ended,
+        }, None
     if has_mono:
-        if not isinstance(start_mono, (int, float)) or not isinstance(end_mono, (int, float)):
-            return None, "requires numeric started and ended monotonic timestamps"
-        if end_mono < start_mono:
-            return None, "ended before started"
-        return {"clock": "monotonic", "started": float(start_mono), "ended": float(end_mono), "precise": True}, None
+        start = _finite_monotonic(start_mono)
+        end = _finite_monotonic(end_mono)
+        if start is None or end is None:
+            return None, "requires finite int or float started and ended monotonic timestamps without integer precision loss"
+        if end <= start:
+            return None, "ended at or before started"
+        return {
+            "clock": "monotonic",
+            "started": start,
+            "ended": end,
+            "precise": True,
+            "resolution": "monotonic",
+            "guaranteed_started": start,
+            "guaranteed_ended": end,
+        }, None
     return None, "has no start/end telemetry"
+
+
+def _driver_options(tokens: list[str], action: str) -> tuple[dict[str, list[str]] | None, str | None]:
+    value_options = {"--pilot-dir"}
+    flag_options: set[str] = set()
+    if action == "claim":
+        value_options.add("--steps")
+    elif action not in {"show", "finish"}:
+        value_options.update({"--step", "--attempt"})
+        if action == "launched":
+            value_options.add("--handle-file")
+        if action == "import-handoff":
+            value_options.add("--handoff-manifest")
+        if action in {"import-handoff", "prepare-integration", "done"}:
+            flag_options.add("--confirmed-stopped")
+    required = value_options | flag_options
+    options: dict[str, list[str]] = {}
+    index = 0
+    while index < len(tokens):
+        token = tokens[index]
+        if not token.startswith("--"):
+            return None, f"terminal command has unexpected positional argument {token!r}"
+        if "=" in token:
+            return None, f"terminal command uses inline option assignment {token!r}"
+        if token not in value_options and token not in flag_options:
+            return None, f"terminal command has unsupported option {token!r}"
+        if token in options:
+            return None, f"terminal command repeats {token}"
+        if token in flag_options:
+            options[token] = []
+            index += 1
+            continue
+        if token == "--steps":
+            index += 1
+            values: list[str] = []
+            while index < len(tokens) and not tokens[index].startswith("--"):
+                values.append(tokens[index])
+                index += 1
+            if not values:
+                return None, "terminal command lacks values for --steps"
+            options[token] = values
+            continue
+        if index + 1 >= len(tokens) or tokens[index + 1].startswith("--"):
+            return None, f"terminal command lacks a value for {token}"
+        options[token] = [tokens[index + 1]]
+        index += 2
+    missing = sorted(required.difference(options))
+    if missing:
+        return None, f"terminal command lacks required option {missing[0]}"
+    return options, None
 
 
 def _safe_driver_command(command: Any, manifest: dict[str, Any]) -> tuple[bool, str | None, str]:
@@ -355,34 +440,40 @@ def _safe_driver_command(command: Any, manifest: dict[str, Any]) -> tuple[bool, 
         index += 1
     if index >= len(tokens) or str(Path(tokens[index]).resolve(strict=False)) != manifest["driver_path"]:
         return False, None, "terminal command does not use the selected native_pilot.py path"
-    if index + 1 >= len(tokens):
+    remaining = tokens[index + 1:]
+    if not remaining:
         return False, None, "terminal command lacks Python or driver action"
-    action = tokens[index + 1]
+    if remaining[0] == "--help":
+        if remaining == ["--help"]:
+            return True, None, ""
+        return False, None, "terminal command uses --help with extra arguments"
+    action = remaining[0]
     if action not in DRIVER_ACTIONS:
         return False, None, f"terminal command has unsupported pilot action {action!r}"
-    if _option(tokens, "--pilot-dir") != manifest["pilot_dir"]:
+    if "--help" in remaining[1:]:
+        if remaining[1:] == ["--help"]:
+            return True, None, ""
+        return False, None, "terminal command uses --help with extra arguments"
+    options, issue = _driver_options(remaining[1:], action)
+    if options is None:
+        return False, None, issue or "terminal command has invalid options"
+    if options["--pilot-dir"][0] != manifest["pilot_dir"]:
         return False, None, "terminal command targets a different pilot directory"
-    step = _option(tokens, "--step")
-    attempt = _option(tokens, "--attempt")
+    step = options.get("--step", [None])[0]
+    attempt = options.get("--attempt", [None])[0]
     if action not in {"show", "finish", "claim"}:
         if step not in manifest["steps"] or attempt != manifest["steps"][step]["attempt"]:
             return False, None, "terminal command has an unknown step or attempt"
     if action == "claim":
-        try:
-            claim_index = tokens.index("--steps")
-        except ValueError:
-            return False, None, "claim command lacks --steps"
-        claimed = tokens[claim_index + 1:]
-        if not claimed or any(item not in manifest["steps"] for item in claimed):
+        claimed = options["--steps"]
+        if any(item not in manifest["steps"] for item in claimed):
             return False, None, "claim command names an unknown step"
     if action == "launched":
-        source = _option(tokens, "--handle-file")
+        source = options["--handle-file"][0]
         if source != manifest["steps"][step]["handle_source"]:
             return False, None, "launched command does not use the retained handle source"
-    if action in {"import-handoff", "prepare-integration", "done"} and "--confirmed-stopped" not in tokens:
-        return False, None, f"{action} lacks --confirmed-stopped"
     if action == "import-handoff":
-        if _option(tokens, "--handoff-manifest") != manifest["steps"][step]["handoff"]:
+        if options["--handoff-manifest"][0] != manifest["steps"][step]["handoff"]:
             return False, None, "import-handoff does not use the exact worker-local handoff"
     return True, action, ""
 
@@ -495,6 +586,8 @@ def evaluate_events(events: list[dict[str, Any]], manifest: dict[str, Any]) -> d
                     fail("parent_authoring", f"parent {tool} has no absolute safe handle-file target")
                 elif str(Path(target).resolve(strict=False)) not in handle_sources:
                     fail("parent_authoring", f"parent {tool} is not limited to a retained native-handle file")
+            elif tool not in {"spawn_subagent", "get_command_or_subagent_output", *READ_ONLY_TOOLS, *HOST_STATE_ONLY_TOOLS}:
+                fail("parent_authoring", f"parent tool {tool} is not allowed")
             continue
         call = calls.get(call_id)
         if call is None:
@@ -678,7 +771,12 @@ def evaluate_events(events: list[dict[str, Any]], manifest: dict[str, Any]) -> d
     else:
         action_indexes = {step: driver_actions[step] for step in ("A", "B")}
         starts = [action_indexes[step].get("start") for step in ("A", "B")]
-        if (any(index is None for index in starts)
+        initial_spawns = sorted((a["spawn_index"], b["spawn_index"]))
+        interposed = [call["id"] for call in calls.values()
+                      if initial_spawns[0] < call["index"] < initial_spawns[1]]
+        if interposed:
+            fail("parallel_dispatch", "A/B native spawn calls are not adjacent among parent tool calls: " + ", ".join(interposed))
+        elif (any(index is None for index in starts)
                 or max(index["completed"] for index in starts if index is not None) >= min(a["spawn_index"], b["spawn_index"])):
             fail("parallel_dispatch", "A/B assignments were not both prepared before either native dispatch")
         else:
@@ -705,33 +803,62 @@ def evaluate_events(events: list[dict[str, Any]], manifest: dict[str, Any]) -> d
         else:
             passed("dependency_order", "C and J native dispatch follow the required dependent graph")
 
-    overlap: dict[str, Any] = {"required": ["A", "B"], "observed": False, "passed": False}
-    if not a or not b or "collection" not in a or "collection" not in b:
-        fail("native_overlap", "A/B typed collection is unavailable")
-    else:
-        left = a["collection"]["interval"]
-        right = b["collection"]["interval"]
+    def overlap_pair(left_step: str, right_step: str, check_name: str) -> dict[str, Any]:
+        label = f"{left_step}/{right_step}"
+        result: dict[str, Any] = {"required": [left_step, right_step], "observed": False, "passed": False}
+        left_worker, right_worker = workers.get(left_step), workers.get(right_step)
+        if not left_worker or not right_worker or "collection" not in left_worker or "collection" not in right_worker:
+            fail(check_name, f"{label} typed collection is unavailable")
+            return result
+        left_collection, right_collection = left_worker["collection"], right_worker["collection"]
+        left, right = left_collection["interval"], right_collection["interval"]
         if left is None or right is None:
-            reasons = [a["collection"].get("interval_issue"), b["collection"].get("interval_issue")]
-            fail("native_overlap", "A/B interval telemetry is unavailable: " + "; ".join(str(item) for item in reasons if item))
+            reasons = [left_collection.get("interval_issue"), right_collection.get("interval_issue")]
+            fail(check_name, f"{label} interval telemetry is unavailable: " + "; ".join(str(item) for item in reasons if item))
         elif left["clock"] != right["clock"]:
-            fail("native_overlap", "A/B interval telemetry uses incompatible clocks")
-        elif not left["precise"] or not right["precise"]:
-            fail("native_overlap", "A/B interval telemetry lacks sub-second or monotonic precision")
-        elif max(left["started"], right["started"]) < min(left["ended"], right["ended"]):
-            overlap = {"required": ["A", "B"], "observed": True, "passed": True, "clock": left["clock"],
-                       "A": left, "B": right}
-            passed("native_overlap", "A/B typed native execution intervals overlap")
+            fail(check_name, f"{label} interval telemetry uses incompatible clocks")
         else:
-            overlap = {"required": ["A", "B"], "observed": True, "passed": False, "clock": left["clock"],
-                       "A": left, "B": right}
-            fail("native_overlap", "A/B typed native execution intervals are sequential")
+            raw_overlap = {
+                "started": max(left["started"], right["started"]),
+                "ended": min(left["ended"], right["ended"]),
+            }
+            raw_overlap["passed"] = raw_overlap["started"] < raw_overlap["ended"]
+            guaranteed_overlap = {
+                "started": max(left["guaranteed_started"], right["guaranteed_started"]),
+                "ended": min(left["guaranteed_ended"], right["guaranteed_ended"]),
+            }
+            guaranteed_overlap["passed"] = guaranteed_overlap["started"] < guaranteed_overlap["ended"]
+            result = {
+                "required": [left_step, right_step],
+                "observed": True,
+                "passed": guaranteed_overlap["passed"],
+                "clock": left["clock"],
+                "resolution": {left_step: left["resolution"], right_step: right["resolution"]},
+                "raw_overlap": raw_overlap,
+                "guaranteed_overlap": guaranteed_overlap,
+                left_step: left,
+                right_step: right,
+            }
+            if not raw_overlap["passed"]:
+                fail(check_name, f"{label} typed native execution intervals are sequential")
+            elif guaranteed_overlap["passed"]:
+                passed(check_name, f"{label} typed native execution intervals guarantee strict overlap")
+            else:
+                fail(check_name, f"{label} typed native execution intervals overlap only ambiguously at reported resolution")
+        return result
+
+    overlap = overlap_pair("A", "B", "native_overlap")
+    eager_refill_overlap = overlap_pair("B", "C", "eager_refill_overlap")
     return {
         "schema": "shiploop-native-host-trace-evaluation/v1",
         "passed": not errors,
         "checks": checks,
         "errors": errors,
         "overlap": overlap,
+        "overlap_pairs": {
+            "initial_fanout": overlap,
+            "eager_refill": eager_refill_overlap,
+        },
         "workers": {
             step: {key: value for key, value in worker.items() if key != "collections"}
             for step, worker in workers.items()

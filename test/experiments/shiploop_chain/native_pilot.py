@@ -22,6 +22,7 @@ import re
 import shutil
 import subprocess
 import sys
+import time
 import uuid
 from datetime import datetime, timezone
 from typing import Any, Iterable
@@ -37,6 +38,11 @@ COMMIT_RE = re.compile(r"^[0-9a-f]{40,64}$")
 HANDOFF_SCHEMA = "shiploop-chain-handoff/v1"
 HANDOFF_DIRECTORY = ".shiploop-handoff"
 HANDOFF_MANIFEST = "handoff.json"
+TEST_HOLD_SCHEMA = "shiploop-native-pilot-refill-hold/v1"
+TEST_HOLD_ARMED_SCHEMA = "shiploop-native-pilot-refill-hold-armed/v1"
+TEST_HOLD_RELEASE_SCHEMA = "shiploop-native-pilot-refill-hold-release/v1"
+TEST_HOLD_DEFAULT_TIMEOUT_SECONDS = 1800
+TEST_HOLD_POLL_SECONDS = 0.05
 
 STEPS: dict[str, dict[str, Any]] = {
     "A": {
@@ -284,7 +290,167 @@ def read_context(root: Path) -> dict[str, Any]:
     if not isinstance(run, dict) or not all(isinstance(run.get(key), str) and run[key] for key in
                                             ("run_dir", "action", "run_id")):
         fail("pilot context has no complete chain run identity")
+    test_hold(root, context)
     return context
+
+
+def _hold_digest(hold: dict[str, Any]) -> str:
+    return sha256_bytes(json_bytes(hold))
+
+
+def _hold_armed_path(root: Path, attempt: str) -> Path:
+    return root / "holds" / "armed" / f"B-{attempt}.json"
+
+
+def _hold_release_path(root: Path, attempt: str) -> Path:
+    return root / "holds" / "released" / f"B-{attempt}-by-C.json"
+
+
+def test_hold(root: Path, context: dict[str, Any]) -> dict[str, Any] | None:
+    """Return the disclosed disposable-pilot hold; production has no such state."""
+    hold = context.get("test_only_hold")
+    if hold is None:
+        return None
+    required = {"schema", "test_only", "held_step", "release_step", "timeout_seconds", "phase", "purpose"}
+    if not isinstance(hold, dict) or set(hold) != required:
+        fail("pilot test-only hold configuration is malformed")
+    if (hold.get("schema") != TEST_HOLD_SCHEMA or hold.get("test_only") is not True
+            or hold.get("held_step") != "B" or hold.get("release_step") != "C"
+            or not isinstance(hold.get("timeout_seconds"), int) or hold["timeout_seconds"] < 1
+            or not isinstance(hold.get("phase"), str) or not isinstance(hold.get("purpose"), str)):
+        fail("pilot test-only hold configuration is invalid")
+    return hold
+
+
+def _armed_hold(root: Path, hold: dict[str, Any]) -> dict[str, Any] | None:
+    directory = root / "holds" / "armed"
+    paths = sorted(directory.glob("B-*.json")) if directory.is_dir() else []
+    if not paths:
+        return None
+    if len(paths) != 1:
+        fail("pilot has more than one active test-only B hold")
+    armed = json_object(paths[0], "active test-only hold")
+    required = {"schema", "hold_sha256", "held_step", "attempt", "release_step", "release_path", "armed_at"}
+    if (set(armed) != required or armed.get("schema") != TEST_HOLD_ARMED_SCHEMA
+            or armed.get("hold_sha256") != _hold_digest(hold) or armed.get("held_step") != "B"
+            or armed.get("release_step") != "C" or not isinstance(armed.get("attempt"), str)
+            or not isinstance(armed.get("release_path"), str)):
+        fail("active test-only hold does not match its immutable context")
+    if Path(armed["release_path"]).resolve(strict=False) != _hold_release_path(root, armed["attempt"]):
+        fail("active test-only hold has an invalid release path")
+    return armed
+
+
+def arm_test_hold(root: Path, hold: dict[str, Any], step: str, attempt: str) -> dict[str, Any] | None:
+    if step != hold["held_step"]:
+        return None
+    if _armed_hold(root, hold) is not None:
+        fail("pilot already has an active test-only B hold")
+    armed = {
+        "schema": TEST_HOLD_ARMED_SCHEMA,
+        "hold_sha256": _hold_digest(hold),
+        "held_step": step,
+        "attempt": attempt,
+        "release_step": hold["release_step"],
+        "release_path": str(_hold_release_path(root, attempt)),
+        "armed_at": utc_now(),
+    }
+    path = _hold_armed_path(root, attempt)
+    write_new_json(path, armed, "test-only hold")
+    os.chmod(path, 0o444)
+    return {"armed": str(path), "release": armed["release_path"], "timeout_seconds": hold["timeout_seconds"]}
+
+
+def _publish_test_hold_release(path: Path, value: dict[str, Any]) -> None:
+    """Make a completed release receipt visible atomically to the polling worker."""
+    if os.path.lexists(path):
+        fail(f"refusing to overwrite existing test-only hold release receipt: {path}")
+    path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+    staging = path.parent / f".{path.name}.{uuid.uuid4().hex}.tmp"
+    try:
+        write_new(staging, json_bytes(value), "test-only hold release staging receipt")
+        os.link(staging, path)
+    except FileExistsError:
+        fail(f"refusing to overwrite existing test-only hold release receipt: {path}")
+    except OSError as exc:
+        fail(f"cannot publish test-only hold release receipt: {exc}")
+    finally:
+        if os.path.lexists(staging):
+            try:
+                staging.unlink()
+            except OSError:
+                pass
+
+
+def _same_test_hold_release(path: Path, hold: dict[str, Any], armed: dict[str, Any], step: str,
+                            attempt: str, handle_record: Path) -> bool:
+    release = json_object(path, "test-only hold release receipt")
+    required = {"schema", "hold_sha256", "held_step", "held_attempt", "release_step", "release_attempt",
+                "handle_record", "bridge_status", "released_at"}
+    return (set(release) == required and release.get("schema") == TEST_HOLD_RELEASE_SCHEMA
+            and release.get("hold_sha256") == _hold_digest(hold) and release.get("held_step") == "B"
+            and release.get("held_attempt") == armed["attempt"] and release.get("release_step") == step
+            and release.get("release_attempt") == attempt and release.get("handle_record") == str(handle_record))
+
+
+def release_test_hold(root: Path, hold: dict[str, Any], step: str, attempt: str,
+                      handle_record: Path, bridge_result: dict[str, Any]) -> dict[str, Any] | None:
+    if step != hold["release_step"]:
+        return None
+    armed = _armed_hold(root, hold)
+    if armed is None:
+        return None
+    release = {
+        "schema": TEST_HOLD_RELEASE_SCHEMA,
+        "hold_sha256": _hold_digest(hold),
+        "held_step": armed["held_step"],
+        "held_attempt": armed["attempt"],
+        "release_step": step,
+        "release_attempt": attempt,
+        "handle_record": str(handle_record),
+        "bridge_status": bridge_result.get("status"),
+        "released_at": utc_now(),
+    }
+    path = Path(armed["release_path"])
+    if os.path.lexists(path):
+        if not _same_test_hold_release(path, hold, armed, step, attempt, handle_record):
+            fail("existing test-only hold release receipt conflicts with this C launched replay")
+        return {"release": str(path), "held_attempt": armed["attempt"], "released_by": step}
+    _publish_test_hold_release(path, release)
+    os.chmod(path, 0o444)
+    append_event(root, {"kind": "test-only-hold-released", "at": utc_now(), "step": step,
+                        "attempt": attempt, "held_attempt": armed["attempt"], "record": str(path)})
+    return {"release": str(path), "held_attempt": armed["attempt"], "released_by": step}
+
+
+def wait_hold(args: argparse.Namespace) -> dict[str, Any]:
+    """Read-only worker-side wait for the C launch receipt in this disposable pilot."""
+    root = pilot_root(args.pilot_dir)
+    context = read_context(root)
+    step, attempt = valid_step(args.step), valid_attempt(args.attempt)
+    hold = test_hold(root, context)
+    if hold is None:
+        fail("wait-hold requires a pilot prepared with --hold-step B")
+    if step != hold["held_step"]:
+        fail("wait-hold may only observe the configured held step B")
+    armed = _armed_hold(root, hold)
+    if armed is None or armed["attempt"] != attempt:
+        fail("wait-hold does not match an active B hold attempt")
+    release_path = Path(armed["release_path"])
+    deadline = time.monotonic() + hold["timeout_seconds"]
+    while not os.path.lexists(release_path):
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            fail(f"test-only B hold timed out after {hold['timeout_seconds']} seconds waiting for C launched receipt")
+        time.sleep(min(TEST_HOLD_POLL_SECONDS, remaining))
+    release = json_object(release_path, "test-only hold release receipt")
+    required = {"schema", "hold_sha256", "held_step", "held_attempt", "release_step", "release_attempt",
+                "handle_record", "bridge_status", "released_at"}
+    if (set(release) != required or release.get("schema") != TEST_HOLD_RELEASE_SCHEMA
+            or release.get("hold_sha256") != _hold_digest(hold) or release.get("held_step") != "B"
+            or release.get("held_attempt") != attempt or release.get("release_step") != "C"):
+        fail("test-only hold release receipt is invalid")
+    return {"held_step": step, "attempt": attempt, "released_by": "C", "release": str(release_path)}
 
 
 def next_command_number(root: Path) -> int:
@@ -510,6 +676,20 @@ def prepare(args: argparse.Namespace) -> dict[str, Any]:
         "state": str(run_dir / "state.md"),
     }, "synthetic prerequisite record")
 
+    hold: dict[str, Any] | None = None
+    if args.hold_step is not None:
+        if args.hold_step != "B" or args.hold_timeout_seconds < 1:
+            fail("--hold-step supports only B with a positive --hold-timeout-seconds")
+        hold = {
+            "schema": TEST_HOLD_SCHEMA,
+            "test_only": True,
+            "held_step": "B",
+            "release_step": "C",
+            "timeout_seconds": args.hold_timeout_seconds,
+            "phase": "after code, clean workspace, and external oracle; before handoff",
+            "purpose": "Disposable native-pilot task-lifetime overlap control; not ShipLoop runtime behavior or simultaneous code writing.",
+        }
+
     context = {
         "schema": "shiploop-native-chain-pilot/v2",
         "pilot_dir": str(pilot),
@@ -534,7 +714,11 @@ def prepare(args: argparse.Namespace) -> dict[str, Any]:
         "oracle": {"path": str(oracle_path), "sha256": sha256_file(oracle_path)},
         "dispatcher_preflight": dispatcher_info,
     }
+    if hold is not None:
+        context["test_only_hold"] = hold
     write_new_json(pilot / "context.json", context, "pilot context")
+    if hold is not None:
+        os.chmod(pilot / "context.json", 0o444)
     bound = bridge(context, "bind", extra=[
         "--graph", str(graph_path), "--dispatcher-skill", str(dispatcher_card),
         "--ask-agent-skill", str(ask_card), "--worktree-parent", str(worktree_parent),
@@ -544,7 +728,7 @@ def prepare(args: argparse.Namespace) -> dict[str, Any]:
     write_new_json(pilot / "results" / "prepare.json", {"bound": bound, "at": utc_now()}, "prepare result")
     append_event(pilot, {"kind": "prepared", "at": utc_now(), "ready": bound.get("ready", []),
                          "note": "No native model or agent was launched by prepare."})
-    return {
+    response = {
         "pilot_dir": str(pilot), "run_dir": str(run_dir), "action": action,
         "primary_main": str(primary), "initiating_feature": str(feature),
         "worktree_parent": str(worktree_parent), "selected": context["selected"],
@@ -552,6 +736,9 @@ def prepare(args: argparse.Namespace) -> dict[str, Any]:
         "dispatcher_preflight": dispatcher_info, "ready": bound.get("ready", []),
         "next": "Use claim, then start. A start response with action=launch is the only native-dispatch grant.",
     }
+    if hold is not None:
+        response["test_only_hold"] = hold
+    return response
 
 
 def valid_step(value: str) -> str:
@@ -782,6 +969,23 @@ def inline_assignment(root: Path, context: dict[str, Any], step: str, attempt: s
         "only oracle and handoff mechanics; it does not replace or expand the packet's authority.\n\n"
         "Complete authoritative worker packet (verbatim JSON):\n```json\n"
     )
+    hold_instruction = ""
+    hold = test_hold(root, context)
+    if hold is not None and step == hold["held_step"]:
+        armed = _armed_hold(root, hold)
+        if armed is None or armed["attempt"] != attempt:
+            fail("B inline assignment has no matching active test-only hold")
+        wait_argv = [context["selected"]["python"], "-B", str(Path(__file__).resolve()), "wait-hold",
+                     "--pilot-dir", str(root), "--step", step, "--attempt", attempt]
+        hold_instruction = (
+            "This disposable native-pilot test has a bounded task-lifetime hold. After the external oracle "
+            "succeeds and before creating any handoff files, run this exact read-only helper and wait for it to "
+            "return:\n"
+            f"{json.dumps(wait_argv)}\n"
+            "It can neither release itself nor alter ShipLoop state. It returns only after C's successful launched "
+            "receipt, or exits nonzero on its recorded timeout. Do not bypass it. This proves overlapping native "
+            "task lifetimes, not simultaneous code-writing or CPU execution.\n\n"
+        )
     footer = (
         "```\n\n"
         f"Work only in the exclusively fixture-prepared caller workspace `{worker}`. Its exact base is\n"
@@ -790,6 +994,7 @@ def inline_assignment(root: Path, context: dict[str, Any], step: str, attempt: s
         f"{no_join}\n\n"
         "Before writing handoff files, commit the owned code, make the worktree clean, and run the external oracle:\n"
         f"{json.dumps(oracle_argv)}\n\n"
+        f"{hold_instruction}"
         f"Then create `{handoff_dir}` inside the workspace. Write `{result_path}` with this JSON shape and actual\n"
         f"values:\n{json.dumps(result_example, indent=2)}\n\n"
         f"Hash that result file, then write `{handoff}` with exactly this handoff schema and actual values:\n"
@@ -851,7 +1056,11 @@ def start(args: argparse.Namespace) -> dict[str, Any]:
         "handoff_manifest": str(handoff_path(Path(workspace["workspace"]), attempt)),
     }
     if action == "launch":
+        hold = test_hold(root, context)
+        armed = None if hold is None else arm_test_hold(root, hold, step, attempt)
         response["inline_native_assignment"] = inline_assignment(root, context, step, attempt, packet, workspace)
+        if armed is not None:
+            response["test_only_hold"] = armed
         response["next"] = ("Only action=launch authorizes a real native launch. Give inline_native_assignment "
                             "to that worker, then record its actual host handle after launch confirmation.")
     else:
@@ -869,6 +1078,17 @@ def read_handle(path: Path) -> Any:
     return value
 
 
+def existing_handle_record(path: Path, step: str, attempt: str, handle: Any, source: Path) -> dict[str, Any]:
+    record = json_object(path, "existing native handle record")
+    required = {"schema", "step", "attempt", "handle", "source", "recorded_at"}
+    if (set(record) != required or record.get("schema") != "shiploop-native-pilot-handle/v1"
+            or record.get("step") != step or record.get("attempt") != attempt
+            or record.get("handle") != handle or record.get("source") != str(source)
+            or not isinstance(record.get("recorded_at"), str) or not record["recorded_at"]):
+        fail(f"existing native handle record differs from this invocation: {path}")
+    return record
+
+
 def launched(args: argparse.Namespace) -> dict[str, Any]:
     root = pilot_root(args.pilot_dir)
     context = read_context(root)
@@ -877,13 +1097,21 @@ def launched(args: argparse.Namespace) -> dict[str, Any]:
     handle = read_handle(handle_path)
     result = bridge(context, "launched", payload={"attempt": attempt, "handle": handle})
     saved = root / "handles" / f"{step}-{attempt}.json"
-    value = {"schema": "shiploop-native-pilot-handle/v1", "step": step, "attempt": attempt,
-             "handle": handle, "source": str(handle_path), "recorded_at": utc_now()}
-    write_same_or_new_json(saved, value, "native handle record")
-    append_event(root, {"kind": "native-launch-recorded", "at": utc_now(), "step": step, "attempt": attempt,
-                        "handle_record": str(saved), "note": "Caller supplied handle; this is not a liveness assertion."})
-    return {"step": step, "attempt": attempt, "handle_record": str(saved), "status": result.get("status"),
-            "next": "Continue parent work and collect the native task through the host. A handle or handoff file is not completion."}
+    if os.path.lexists(saved):
+        existing_handle_record(saved, step, attempt, handle, handle_path)
+    else:
+        value = {"schema": "shiploop-native-pilot-handle/v1", "step": step, "attempt": attempt,
+                 "handle": handle, "source": str(handle_path), "recorded_at": utc_now()}
+        write_new_json(saved, value, "native handle record")
+        append_event(root, {"kind": "native-launch-recorded", "at": utc_now(), "step": step, "attempt": attempt,
+                            "handle_record": str(saved), "note": "Caller supplied handle; this is not a liveness assertion."})
+    hold = test_hold(root, context)
+    released = None if hold is None else release_test_hold(root, hold, step, attempt, saved, result)
+    response = {"step": step, "attempt": attempt, "handle_record": str(saved), "status": result.get("status"),
+                "next": "Continue parent work and collect the native task through the host. A handle or handoff file is not completion."}
+    if released is not None:
+        response["test_only_hold"] = released
+    return response
 
 
 def acceptance(root: Path, step: str) -> dict[str, Any]:
@@ -1521,11 +1749,13 @@ def parser() -> argparse.ArgumentParser:
     prep.add_argument("--dispatcher-skill", required=True)
     prep.add_argument("--ask-agent-skill", required=True)
     prep.add_argument("--capacity", type=int, default=2)
+    prep.add_argument("--hold-step", choices=("B",))
+    prep.add_argument("--hold-timeout-seconds", type=int, default=TEST_HOLD_DEFAULT_TIMEOUT_SECONDS)
     prep.set_defaults(handler=prepare)
     for name, handler in (("claim", claim), ("start", start), ("launched", launched),
                           ("import-handoff", import_handoff), ("verify", import_handoff),
                           ("prepare-integration", prepare_integration), ("done", done), ("settle", done),
-                          ("show", show), ("finish", finish), ("packet", packet)):
+                          ("show", show), ("finish", finish), ("packet", packet), ("wait-hold", wait_hold)):
         item = subs.add_parser(name)
         item.add_argument("--pilot-dir", required=True)
         item.set_defaults(handler=handler)
