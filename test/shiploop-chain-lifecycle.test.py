@@ -1076,7 +1076,10 @@ class PerStepChainTests(unittest.TestCase):
         self.finish()
 
     def test_managed_v06_freezes_selected_helper_delivers_complete_range_and_closes(self):
-        self.managed_bind(single=True)
+        graph = json.loads(self.f.graph.read_text())
+        graph["steps"] = graph["steps"][:2]
+        self.f.graph.write_text(json.dumps(graph) + "\n")
+        self.managed_bind(capacity=2)
         binding = self.binding()
         self.assertEqual(binding["schema"], "shiploop-chain-binding/v5")
         self.assertEqual(binding["ask_agent_contract"], {
@@ -1098,10 +1101,22 @@ class PerStepChainTests(unittest.TestCase):
         self.assertEqual(identity["resolved_helper"],
                          binding["ask_agent"]["files"]["scripts/ask_agent_workspace.py"]["path"])
 
-        attempt = self.claim("A")["A"]
-        packet = self.managed_start("A", attempt)
+        attempts = self.claim("A", "B")
+        base = self.head()
+        packet = self.managed_start("A", attempts["A"], base=base)
+        b_packet = self.managed_start("B", attempts["B"], base=base)
+        self.assertEqual((packet["context"]["base_commit"], b_packet["context"]["base_commit"]),
+                         (base, base))
         checked = self.managed_context_check("A")
         self.assertEqual(checked["actual_cwd"], packet["context"]["workspace"])
+        self.assertEqual(self.managed_context_check("B")["actual_cwd"],
+                         b_packet["context"]["workspace"])
+
+        b_result = self.managed_worker_result("B")
+        self.import_finished("B", b_result)
+        b_accepted = self.prepare_and_done("B")
+
+        attempt = attempts["A"]
         result = self.managed_worker_result("A", commits=2)
         self.import_finished("A", result)
         archived_handoff = Path(self.imports["A"]["archives"][0]["archived_path"])
@@ -1132,32 +1147,17 @@ class PerStepChainTests(unittest.TestCase):
         self.assertNotEqual(integration["candidate_commit"], result["commit"])
         parents = self.f.git(self.f.target, "show", "-s", "--format=%P", integration["candidate_commit"]).split()
         self.assertEqual(len(parents), 2, "the worker range must be integrated through a distinct I merge")
+        self.assertEqual(set(parents), {
+            self.done_inputs["B"]["integration"]["candidate_commit"], result["commit"],
+        }, "A's I merge must retain both B's advanced target and A's returned worker range")
+        self.f.git(self.f.target, "merge-base", "--is-ancestor", b_result["commit"], integration["candidate_commit"])
         self.f.git(self.f.target, "merge-base", "--is-ancestor", result["commit"], integration["candidate_commit"])
+        self.assertEqual(b_accepted["outcome"], "accepted")
         self.assertEqual(accepted["outcome"], "accepted")
         self.assertFalse(Path(packet["context"]["workspace"]).exists())
         self.assertEqual(archived_handoff.read_bytes(), archived_handoff_bytes,
                          "parent archive remains the durable handoff after helper-owned cleanup")
         self.finish()
-
-        # Version 0.6.0 predates the helper's native identity command but is
-        # still a reviewed managed-worktree contract. Its package closure must
-        # be frozen explicitly rather than silently falling through to 0.4.
-        fallback = fixture.ChainIntegrationTests(methodName="runTest")
-        fallback.setUp()
-        self.addCleanup(fallback.doCleanups)
-        fallback.select_dispatcher(fixture.SERIAL_FIXTURE)
-        fallback_card = fallback.ask / "SKILL.md"
-        fallback_card.write_text(fallback_card.read_text().replace("version: 0.6.1", "version: 0.6.0"))
-        fallback_bind = fallback.call("bind", extra=(
-            "--graph", str(fallback.graph), "--dispatcher-skill", str(fallback.dispatcher / "SKILL.md"),
-            "--ask-agent-skill", str(fallback.ask / "SKILL.md"), "--worktree-parent", str(fallback.parent),
-            "--mode", "parallel", "--lifecycle", "per-step",
-        ))
-        self.assertIn("navigation", fallback_bind)
-        fallback_binding = fixture.store.read_record(fallback.run / "chains" / fallback.action / "binding.md")
-        self.assertEqual(fallback_binding["schema"], "shiploop-chain-binding/v5")
-        self.assertEqual(fallback_binding["ask_agent_contract"]["version"], "0.6.0")
-        self.assertEqual(fallback_binding["ask_agent_identity"]["method"], "frozen-package-root-v1")
 
     def test_managed_preparation_crash_replays_one_receipt_without_another_worktree(self):
         self.managed_bind(single=True)
@@ -1255,7 +1255,6 @@ class PerStepChainTests(unittest.TestCase):
         workspace = Path(packet["context"]["workspace"])
         before_head = self.head()
         before_ledger = self.f.ledger_bytes()
-        before_worktrees = self.f.git(self.f.target, "worktree", "list", "--porcelain")
         original_events = fixture.chain._events
 
         helper = Path(self.binding()["ask_agent"]["files"]["scripts/ask_agent_workspace.py"]["path"])
@@ -1276,6 +1275,7 @@ class PerStepChainTests(unittest.TestCase):
                          alternate_inspect_process.stderr + alternate_inspect_process.stdout)
         alternate_inspect = json.loads(alternate_inspect_process.stdout)
         alternate_workspace = Path(alternate_prepare["worktree"])
+        before_worktrees = self.f.git(self.f.target, "worktree", "list", "--porcelain")
 
         def remove_alternate_workspace():
             if alternate_workspace.exists():

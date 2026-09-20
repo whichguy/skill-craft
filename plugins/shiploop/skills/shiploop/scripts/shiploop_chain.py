@@ -840,21 +840,6 @@ def _managed_workspace_record(binding: Mapping[str, Any], value: Any, *,
         _fail("managed Ask-Agent receipt source conflicts with the immutable target/base")
     if receipt_value.get("store") != store:
         _fail("managed Ask-Agent receipt store conflicts with its preparation intent")
-    prepare = record["prepare"]
-    prepare_keys = {"status", "receipt", "worktree", "branch", "baseline", "source", "attempt", "ignored_dependencies_omitted"}
-    if (not isinstance(prepare, Mapping)
-            or set(prepare) not in (prepare_keys, prepare_keys | {"reused"})):
-        _fail("managed Ask-Agent prepare response has an unsupported schema")
-    if "reused" in prepare and prepare["reused"] is not True:
-        _fail("managed Ask-Agent recovered prepare response has an invalid reuse marker")
-    if (prepare.get("status"), prepare.get("receipt"), prepare.get("worktree"), prepare.get("branch"),
-            prepare.get("baseline"), prepare.get("source"), prepare.get("attempt")) != (
-                "prepared", str(receipt), str(worktree), record["branch"], str(baseline),
-                source["root"], receipt_value.get("attempt_id")):
-        _fail("managed Ask-Agent prepare response conflicts with its immutable receipt")
-    if not isinstance(prepare.get("ignored_dependencies_omitted"), list) or any(
-            not isinstance(item, str) for item in prepare["ignored_dependencies_omitted"]):
-        _fail("managed Ask-Agent prepare response has invalid ignored dependency evidence")
     prepared = record["prepared"]
     prepared_keys = {"status", "receipt", "worktree", "branch", "baseline", "phase", "fingerprint", "changed_paths", "contribution_paths"}
     if not isinstance(prepared, Mapping) or set(prepared) != prepared_keys:
@@ -866,6 +851,27 @@ def _managed_workspace_record(binding: Mapping[str, Any], value: Any, *,
     _sha(prepared.get("fingerprint"), "managed Ask-Agent prepared fingerprint")
     if prepared.get("changed_paths") != [] or prepared.get("contribution_paths") != []:
         _fail("managed Ask-Agent prepared inspection is not an unchanged baseline")
+    prepare = record["prepare"]
+    fresh_prepare_keys = {"status", "receipt", "worktree", "branch", "baseline", "source", "attempt", "ignored_dependencies_omitted"}
+    reused_prepare_keys = prepared_keys | {"reused"}
+    if not isinstance(prepare, Mapping):
+        _fail("managed Ask-Agent prepare response has an unsupported schema")
+    if set(prepare) == fresh_prepare_keys:
+        if (prepare.get("status"), prepare.get("receipt"), prepare.get("worktree"), prepare.get("branch"),
+                prepare.get("baseline"), prepare.get("source"), prepare.get("attempt")) != (
+                    "prepared", str(receipt), str(worktree), record["branch"], str(baseline),
+                    source["root"], receipt_value.get("attempt_id")):
+            _fail("managed Ask-Agent prepare response conflicts with its immutable receipt")
+        if not isinstance(prepare.get("ignored_dependencies_omitted"), list) or any(
+                not isinstance(item, str) for item in prepare["ignored_dependencies_omitted"]):
+            _fail("managed Ask-Agent prepare response has invalid ignored dependency evidence")
+    elif set(prepare) == reused_prepare_keys:
+        if prepare.get("reused") is not True:
+            _fail("managed Ask-Agent recovered prepare response has an invalid reuse marker")
+        if {key: item for key, item in prepare.items() if key != "reused"} != dict(prepared):
+            _fail("managed Ask-Agent recovered prepare response conflicts with its prepared inspection")
+    else:
+        _fail("managed Ask-Agent prepare response has an unsupported schema")
     if inspect_live:
         current = _ask_agent_workspace(binding, "inspect", "--receipt", str(receipt), "--phase", "prepared")
         if current != prepared:
@@ -2019,12 +2025,18 @@ def _managed_workspace_prepare_record(
     inspected: Mapping[str, Any],
 ) -> dict[str, Any]:
     """Validate the public helper receipts before they become chain evidence."""
-    prepare_keys = {"status", "receipt", "worktree", "branch", "baseline", "source", "attempt", "ignored_dependencies_omitted"}
-    if (not isinstance(prepared, Mapping) or set(prepared) not in (prepare_keys, prepare_keys | {"reused"})
-            or prepared.get("status") != "prepared"):
+    fresh_prepare_keys = {"status", "receipt", "worktree", "branch", "baseline", "source", "attempt", "ignored_dependencies_omitted"}
+    prepared_inspection_keys = {"status", "receipt", "worktree", "branch", "baseline", "phase", "fingerprint", "changed_paths", "contribution_paths"}
+    if not isinstance(prepared, Mapping) or prepared.get("status") != "prepared":
         _fail("Ask-Agent prepare did not return a prepared workspace")
-    if "reused" in prepared and prepared["reused"] is not True:
-        _fail("Ask-Agent recovered prepare returned an invalid reuse marker")
+    if set(prepared) == fresh_prepare_keys:
+        reused = False
+    elif set(prepared) == prepared_inspection_keys | {"reused"}:
+        reused = True
+        if prepared.get("reused") is not True:
+            _fail("Ask-Agent recovered prepare returned an invalid reuse marker")
+    else:
+        _fail("Ask-Agent prepare did not return a supported prepared workspace schema")
     receipt = _is_absolute_text(prepared.get("receipt"), "Ask-Agent prepare receipt")
     worktree = _is_absolute_text(prepared.get("worktree"), "Ask-Agent prepare worktree")
     baseline = _is_absolute_text(prepared.get("baseline"), "Ask-Agent prepare baseline")
@@ -2032,7 +2044,12 @@ def _managed_workspace_prepare_record(
         _fail("Ask-Agent prepare receipt must name receipt.json")
     if not isinstance(prepared.get("branch"), str) or not prepared["branch"]:
         _fail("Ask-Agent prepare branch is invalid")
-    if prepared.get("source") != expected_target["repo"]:
+    if reused:
+        if (prepared.get("phase"), prepared.get("changed_paths"), prepared.get("contribution_paths")) != (
+                "prepared", [], []):
+            _fail("Ask-Agent recovered prepare is not an unchanged prepared inspection")
+        _sha(prepared.get("fingerprint"), "Ask-Agent recovered prepare fingerprint")
+    elif prepared.get("source") != expected_target["repo"]:
         _fail("Ask-Agent prepare source conflicts with the current integrated target")
     receipt_value = _json_object(_read_regular(receipt, "Ask-Agent prepare receipt"), "Ask-Agent prepare receipt")
     source = receipt_value.get("source")
@@ -2040,13 +2057,15 @@ def _managed_workspace_prepare_record(
             or source.get("root") != expected_target["repo"]
             or source.get("common_dir") != expected_target["common_dir"] or source.get("head") != base):
         _fail("Ask-Agent prepare receipt does not bind the expected target and base")
-    if (receipt_value.get("worktree"), receipt_value.get("branch"), receipt_value.get("baseline"),
-            receipt_value.get("attempt_id")) != (
-                str(worktree), prepared["branch"], str(baseline), prepared.get("attempt")):
+    if (receipt_value.get("worktree"), receipt_value.get("branch"), receipt_value.get("baseline")) != (
+            str(worktree), prepared["branch"], str(baseline)):
         _fail("Ask-Agent prepare output conflicts with its immutable receipt")
-    if not isinstance(prepared.get("ignored_dependencies_omitted"), list) or any(
-            not isinstance(item, str) for item in prepared["ignored_dependencies_omitted"]):
-        _fail("Ask-Agent prepare returned invalid ignored dependency evidence")
+    if not reused:
+        if receipt_value.get("attempt_id") != prepared.get("attempt"):
+            _fail("Ask-Agent prepare output conflicts with its immutable receipt")
+        if not isinstance(prepared.get("ignored_dependencies_omitted"), list) or any(
+                not isinstance(item, str) for item in prepared["ignored_dependencies_omitted"]):
+            _fail("Ask-Agent prepare returned invalid ignored dependency evidence")
     helper = binding["ask_agent"]["files"].get("scripts/ask_agent_workspace.py")
     if not isinstance(helper, Mapping):
         _fail("managed Ask-Agent binding lacks its helper record")
@@ -3654,7 +3673,7 @@ def _import_handoff(root: Path, binding: Mapping[str, Any], value: dict[str, Any
             managed_delivery = _managed_returned_delivery(
                 binding, allocation, attempt=attempt, source_commit=source,
             )
-            stored_delivery = {"intent": delivery_intent, "delivery": managed_delivery}
+            stored_delivery = {"attempt": attempt, "intent": delivery_intent, "delivery": managed_delivery}
             _append(chain_dir, _event_id("managed-returned-delivery", stored_delivery),
                     "managed_returned_delivery", stored_delivery)
             rows = _events(chain_dir)
@@ -4043,7 +4062,7 @@ def _per_step_cleanup_managed(root: Path, binding: Mapping[str, Any], attempt: s
                 "attempt": attempt, "integration": dict(integration),
                 "receipt_sha256": post["receipt_sha256"], "discard": [],
             }
-            inspection_data = {"intent": inspection_intent, "post_integration": post}
+            inspection_data = {"attempt": attempt, "intent": inspection_intent, "post_integration": post}
             _append(chain_dir, _event_id("managed-close-inspection", inspection_data),
                     "managed_close_inspection", inspection_data)
             rows = _events(chain_dir)
