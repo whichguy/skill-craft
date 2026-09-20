@@ -470,15 +470,27 @@ Keep the [maintained requirements home and incoming links](project-knowledge.md#
 consistent with accepted changes; comments and README link to that home rather
 than replacing it with a description of the latest implementation.
 
-For changed public functions/interfaces and non-obvious internal boundaries,
-provide a small, colocated contract: purpose; inputs/preconditions; outputs;
+Review documentation for new or changed files/modules, classes, public
+functions/interfaces and non-obvious internal boundaries. Provide the small,
+colocated contract a caller or maintainer needs: purpose; inputs/preconditions; outputs;
 errors; side effects; and only relevant invariants, timing, ownership, or
 retry/idempotency constraints. Link to the applicable test cases. Use docstrings,
 comments, interface documentation, or a small module reference as appropriate.
+At file/module level explain responsibility and entry points; at class level
+explain ownership, lifetime and invariants; at function level explain the caller's
+contract. Include only what applies, following the repository's conventions.
 Do not narrate every line, repeat obvious types/signatures, or mandate boilerplate
 for trivial helpers. One authoritative explanation plus links is preferable to
 copies in source, README, run receipts, and chat. Add an index only when navigation
-needs it; token efficiency must not remove a material caveat.
+needs it. Precision takes priority over advisory word, character or token limits;
+never omit a necessary contract, error condition or material caveat to meet them.
+
+Add or preserve key **tombstone comments** where a tempting removed approach could
+reintroduce a defect: briefly name what must not return, why it failed, and the
+replacement or relevant regression/decision reference. Put the warning at the
+surviving decision point; do not retain dead code or add a tombstone for every
+deletion. Revalidate existing warnings when behavior changes; remove or update
+them only when their reason no longer applies.
 
 Review the **product README** on every implementation/Improve iteration. Update
 affected sections or explicitly record “unchanged” with why. Check, as relevant:
@@ -713,6 +725,11 @@ in the existing plan and review notes. The rules below and the
    defaults. Avoid redundant internal checks, but retain revalidation when state
    or trust can change. Validation is not authorization. Test invalid inputs and
    expected unchanged state where relevant.
+   At CLI, file, subprocess or service boundaries, distinguish missing/malformed
+   input, execution failure and a successful transport carrying an error result.
+   Check the documented response contract before using its payload. Keep required
+   evidence failures explicit; optional diagnostics may be unavailable without
+   replacing a valid result. A fallback must be supported by the contract.
 4. **Compact, useful documentation.** Prefer clear names. Comment on intent,
    invariants, surprising constraints and tradeoffs, not obvious syntax. Document
    changed public/non-obvious contracts as specified in [Documentation](#documentation).
@@ -722,6 +739,12 @@ in the existing plan and review notes. The rules below and the
    actual tests; run required lint/tests after edits. Update affected README/docs.
    Prefer existing tools and focused cases over checklist-driven test layers.
    Preserve the independent expected outcome and required real-boundary evidence.
+   Confirm a reused result applies to the candidate, command, configuration and
+   target it actually checked; revalidate affected evidence after changes. Missing, stale
+   or skipped required evidence is incomplete, never a pass. Evaluate acceptance
+   using its authoritative criterion; supporting diagnostic or health scores
+   cannot substitute for a different required outcome. For a changed decision rule, exercise a valid case
+   and a discriminating failure, including conflicting signals when relevant.
 6. **One convergence owner.** A v3 standalone Improve child uses the selected
    Improve card and its bound Until Loop for review, plan, apply, check and
    two-trivial assessment within the parent-supplied scope/no-commit constraint.

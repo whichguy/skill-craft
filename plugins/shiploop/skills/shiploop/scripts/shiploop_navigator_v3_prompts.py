@@ -348,11 +348,16 @@ RECONCILIATION_STAGES = frozenset(
 
 IMPLEMENTATION_CONSTITUTION = """\
 Implementation constitution for this step:
+- Apply KISS/YAGNI: make the smallest sufficient change for the accepted
+  requirement; retain necessary error checks and documentation. Add no speculative
+  abstraction, fallback or configuration; a verified no-change outcome is valid.
+  Precision and necessary caveats take priority over advisory size targets.
 - Derive practices from the product purpose, current runtime/dependency and
   interface contracts, repository conventions, applicable skills/MCP tools, and
   supported library examples.  Record a justified departure; do not add a
   dependency or integration merely because it is available.
-- Validate changed input and state boundaries.  Preserve actionable failures,
+- Validate changed input and state boundaries before effects; check response
+  contracts as well as process/transport success. Preserve actionable failures,
   proportional cleanup/recovery, and the original error type/cause/traceback;
   diagnostics must never mask the original failure.
 - Reuse the existing debug control where available.  With debug enabled, emit
@@ -363,10 +368,12 @@ Implementation constitution for this step:
   exception: operation/phase, expected versus observed conditions, relevant IDs
   and bounded state.  Keep sensitive values and duplicate stack traces out of
   user-facing messages; retain concise internal context and causal detail.
-- Make public interfaces and non-obvious logic understandable with concise,
-  colocated documentation of purpose, preconditions, outputs/errors, material
-  effects/invariants, and rationale.  Prefer clear names and one authoritative
-  explanation over boilerplate or repeated narration.
+- Make changed files/modules, classes, public interfaces and non-obvious logic
+  understandable with concise, colocated documentation of purpose, preconditions,
+  outputs/errors, material effects/invariants, and rationale. Prefer clear names
+  and one authoritative
+  explanation over boilerplate or repeated narration. Add or preserve key tombstone
+  comments explaining why a removed approach must not return; keep no dead code.
 """
 
 
@@ -771,6 +778,9 @@ and the condition for completing it rather than treating partial green as done.
 """,
     "verify": """\
 Verify the complete work item against its acceptance criteria and current evidence.
+Check evidence applies to the current candidate, command, configuration and target;
+stale, missing or skipped required evidence is incomplete. Use the authoritative
+acceptance criterion, keeping diagnostic scores separate from that decision.
 Use the Coding decision guide to compare the actual diff and affected consumers
 with the accepted plan, justified revisions and selected practice/platform checks.
 Preserve any required real-boundary gap; a pattern name or tool pass is not proof
