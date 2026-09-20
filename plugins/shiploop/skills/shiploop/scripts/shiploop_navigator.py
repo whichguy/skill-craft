@@ -901,6 +901,8 @@ def _result_template(state: Mapping[str, Any], stage: str) -> str:
         "summary": "...",
         "evidence_refs": [],
     }
+    if state["navigator_protocol_version"] == 3 and stage == "plan":
+        result["work_items"] = [{"id": "W1", "title": "...", "context": "..."}]
     assessment = consumer_delivery.template_assessment(state, stage)
     if assessment is not None:
         result["delivery_assessment"] = assessment
@@ -1319,6 +1321,27 @@ def render(core: Any, root: Path, state: Mapping[str, Any]) -> str:
             + str(reference_dir / "backchain-planning.md")
             + "#navigator-planning"
         )
+    if state["navigator_protocol_version"] == 3 and stage in ("plan", "select-work", "carry-forward"):
+        lines.append("Full ordered work queue: " + str(root / "state.md") + "; field work_items.")
+        child = state.get("active_improve")
+        if child is not None and "work_items" in child["seed_result"]:
+            lines.append("Proposed queue awaiting Improve: " + str(root / "state.md")
+                         + "; field active_improve.seed_result.work_items. These draft items "
+                         "have not replaced the accepted queue; reconcile both with approved "
+                         "scope when returning a revised final_result.")
+        if stage == "plan":
+            lines.append("At plan, supplied work_items replaces the complete ordered queue. "
+                         "Omission retains the existing queue (initially W1); use that only "
+                         "when it represents the whole approved plan.")
+        elif stage == "carry-forward":
+            lines.extend([
+                "Omit work_items to retain the future queue. Supplied work_items replaces "
+                "the entire future queue after the current item; it does not append.",
+                "Read every pending item's full title/context before replacing it. Return all "
+                "still-required future items in prerequisite order, excluding current/completed "
+                "items. An empty array removes all future work; use it only when none remains "
+                "required. Explain removals, merges or supersession in the linked plan note.",
+            ])
     if state["bound_plan"]:
         lines.append("Bound plan locator: " + _required_excerpt(state["bound_plan"], root, "bound_plan"))
     if state["history"]:

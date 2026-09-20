@@ -191,6 +191,26 @@ pre-execution `plan-improve` result can replace the pending plan with ordered
 work items, while completed work-item records remain durable history; optional
 `context` is host-written context, not script-inferred progress.
 
+V3's plan template explicitly includes `work_items`. Return the complete ordered
+queue when the plan has multiple implementation increments; a note alone does
+not populate it. Omission remains compatible when the existing queue represents
+the whole approved plan. The script visits queue order serially; `select-work`
+revalidates the selected item's prerequisite evidence rather than selecting
+among dependency-ready alternatives. Keep independent branches and file/resource
+conflicts distinct from causal dependencies in the linked plan notes.
+
+At `carry-forward`, omitting `work_items` preserves every future item. Supplying
+it replaces the **entire future queue** after the current item; it does not append.
+Read the full `state.md` field `work_items`, including pending contexts that the
+packet's short queue summary omits. Include all still-required future work and
+exclude current/completed items. An empty array removes all future work. Explain
+removals, merges or approved supersession in the plan note; independent required
+work cannot disappear just because no other item consumes it. During Improve,
+`active_improve.seed_result.work_items` holds proposed changes, while `work_items`
+still holds the accepted queue. Reconcile both against scope before revising the
+producer's final result. These are guidance and existing replacement semantics,
+not machine verification of semantic coverage or dependency readiness.
+
 Results cannot set a successor, INNER stage, Improve phase, review count, or
 another item's action. The one accepted action determines the next effective
 cursor. A malformed duplicate owner or a stale/conflicting callback is rejected

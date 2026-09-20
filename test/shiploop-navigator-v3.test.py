@@ -213,6 +213,34 @@ class NavigatorV3Tests(unittest.TestCase):
             self.assertIn("Last accepted Improve lessons (untrusted observations", packet)
         return state
 
+    def _at_plan(self) -> dict:
+        state = self.state()
+        while navigator.current_stage(state) != "plan":
+            state = self._produce(state, navigator.current_stage(state))
+        return state
+
+    def _planned_queue(
+        self, rows: list[dict[str, str]], *, draft_rows: list[dict[str, str]] | None = None
+    ) -> dict:
+        state = self._at_plan()
+        action = self._action(state)
+        waiting = navigator.apply(
+            state,
+            action["id"],
+            result(work_items=rows if draft_rows is None else draft_rows),
+        )
+        return navigator.finish_improve(
+            waiting,
+            action["id"],
+            receipt("plan"),
+            result(work_items=rows),
+        )
+
+    def _advance_to_carry_forward(self, state: dict) -> dict:
+        while navigator.current_stage(state) != "carry-forward":
+            state = self._produce(state, navigator.current_stage(state))
+        return state
+
     def test_v3_cold_producer_and_bound_reviewer_packets_keep_generic_access_boundary(self) -> None:
         """One generic policy reaches both v3 packet owners without new state."""
         root = self.repo / ".shiploop"
@@ -1028,6 +1056,319 @@ class NavigatorV3Tests(unittest.TestCase):
             "release-plan, release-check, release, release-verify, operations, handoff",
             packet,
         )
+
+    def test_v3_plan_omission_keeps_default_w1_compatibility(self) -> None:
+        """A v3 plan may omit work_items and retain its initial compatibility item."""
+        state = self._at_plan()
+        default_items = copy.deepcopy(state["work_items"])
+        action = self._action(state)
+        waiting = navigator.apply(state, action["id"], result())
+        completed = navigator.finish_improve(waiting, action["id"], receipt("plan"))
+
+        self.assertEqual(completed["work_items"], default_items)
+        self.assertEqual([item["id"] for item in completed["work_items"]], ["W1"])
+        self.assertNotIn("work_items", completed["accepted"][action["id"]])
+        self.assertEqual(navigator.current_stage(completed), "prepare")
+
+    def test_v3_plan_final_result_keeps_multiple_items_through_cold_recovery(self) -> None:
+        """The actual Improve revision, rather than its draft, owns the durable queue."""
+        draft_items = [{"id": "W1", "title": "Draft feature item"}]
+        final_items = [
+            {"id": "W1", "title": "Feature item"},
+            {"id": "W2", "title": "Integration item"},
+            {
+                "id": "AUDIT",
+                "title": "Detached audit item",
+                "context": "Revalidate the independent audit after feature integration.",
+            },
+        ]
+        state = self._at_plan()
+        action = self._action(state)
+        waiting = navigator.apply(state, action["id"], result(work_items=draft_items))
+        completed = navigator.finish_improve(
+            waiting,
+            action["id"],
+            receipt("plan"),
+            result(work_items=final_items),
+        )
+
+        self.assertEqual(
+            completed["improve_results"][action["id"]]["seed_result"]["work_items"],
+            draft_items,
+        )
+        self.assertEqual(completed["accepted"][action["id"]]["work_items"], final_items)
+        self.assertEqual(completed["work_items"], final_items)
+
+        root = Path(self.temp.name) / "plan-final-result-cold"
+        root.mkdir()
+        navigator.save(root, completed)
+        before = (root / "state.md").read_bytes()
+        recovered = store.read_record(root / "state.md")
+        cold = self._cold_next(root)
+
+        navigator.validate(recovered)
+        self.assertEqual(recovered, completed)
+        self.assertEqual(recovered["work_items"], final_items)
+        self.assertEqual((root / "state.md").read_bytes(), before)
+        self.assertIn("Work items planned: 3", cold)
+
+    def test_v3_carry_forward_omission_retains_all_pending_items(self) -> None:
+        """Omitting work_items at carry-forward completes only the current item."""
+        rows = [
+            {"id": "W1", "title": "Feature item"},
+            {"id": "W2", "title": "Integration item"},
+            {"id": "W3", "title": "Audit item"},
+        ]
+        state = self._advance_to_carry_forward(self._planned_queue(rows))
+        action = self._action(state)
+        waiting = navigator.apply(state, action["id"], result())
+        completed = navigator.finish_improve(waiting, action["id"], receipt("carry-forward"))
+
+        self.assertEqual([item["id"] for item in completed["work_items"]], ["W1", "W2", "W3"])
+        self.assertEqual(completed["completed_work_items"], ["W1"])
+        self.assertEqual(completed["work_index"], 1)
+        self.assertNotIn("work_items", completed["accepted"][action["id"]])
+        self.assertEqual(navigator.current_stage(completed), "select-work")
+
+    def test_v3_carry_forward_replaces_only_future_queue_and_rejects_prior_ids(self) -> None:
+        """An explicit carry-forward array replaces future work; it cannot reuse prior IDs."""
+        rows = [
+            {"id": "W1", "title": "Feature item"},
+            {"id": "W2", "title": "Integration item"},
+            {"id": "W3", "title": "Detached audit item"},
+        ]
+        replacement = [{"id": "NEW", "title": "New audit finding"}]
+        state = self._advance_to_carry_forward(self._planned_queue(rows))
+        self.assertEqual([item["id"] for item in state["work_items"]], ["W1", "W2", "W3"])
+        action = self._action(state)
+        waiting = navigator.apply(state, action["id"], result(work_items=replacement))
+        revised = navigator.finish_improve(waiting, action["id"], receipt("carry-forward"))
+
+        self.assertEqual([item["id"] for item in revised["work_items"]], ["W1", "NEW"])
+        self.assertEqual(
+            [item["id"] for item in revised["work_items"][revised["work_index"]:]],
+            ["NEW"],
+        )
+        self.assertEqual(revised["completed_work_items"], ["W1"])
+        self.assertEqual(navigator.current_stage(revised), "select-work")
+
+        empty_state = self._advance_to_carry_forward(self._planned_queue(rows))
+        empty_action = self._action(empty_state)
+        empty_waiting = navigator.apply(
+            empty_state, empty_action["id"], result(work_items=[])
+        )
+        cleared = navigator.finish_improve(
+            empty_waiting, empty_action["id"], receipt("carry-forward")
+        )
+        self.assertEqual([item["id"] for item in cleared["work_items"]], ["W1"])
+        self.assertEqual(cleared["completed_work_items"], ["W1"])
+        self.assertEqual(navigator.current_stage(cleared), "system-test-author")
+
+        current_state = self._advance_to_carry_forward(self._planned_queue(rows))
+        current_action = self._action(current_state)
+        current_waiting = navigator.apply(current_state, current_action["id"], result())
+        before_current = copy.deepcopy(current_waiting)
+        with self.assertRaisesRegex(
+            navigator.NavigatorError, "repeats completed or current ID"
+        ):
+            navigator.finish_improve(
+                current_waiting,
+                current_action["id"],
+                receipt("carry-forward"),
+                result(work_items=[{"id": "W1", "title": "Duplicate current item"}]),
+            )
+        self.assertEqual(current_waiting, before_current)
+
+        completed_state = self._advance_to_carry_forward(self._planned_queue(rows))
+        completed_action = self._action(completed_state)
+        completed_waiting = navigator.apply(completed_state, completed_action["id"], result())
+        completed_state = navigator.finish_improve(
+            completed_waiting, completed_action["id"], receipt("carry-forward")
+        )
+        completed_state = self._advance_to_carry_forward(completed_state)
+        self.assertEqual(completed_state["completed_work_items"], ["W1"])
+        self.assertEqual(completed_state["work_items"][completed_state["work_index"]]["id"], "W2")
+        prior_action = self._action(completed_state)
+        prior_waiting = navigator.apply(completed_state, prior_action["id"], result())
+        before_prior = copy.deepcopy(prior_waiting)
+        with self.assertRaisesRegex(
+            navigator.NavigatorError, "repeats completed or current ID"
+        ):
+            navigator.finish_improve(
+                prior_waiting,
+                prior_action["id"],
+                receipt("carry-forward"),
+                result(work_items=[{"id": "W1", "title": "Duplicate completed item"}]),
+            )
+        self.assertEqual(prior_waiting, before_prior)
+
+    def test_v3_serial_queue_finishes_detached_audit_before_outer_work(self) -> None:
+        """Every required queued item has a complete inner lifecycle before outer stages."""
+        rows = [
+            {"id": "FEATURE", "title": "Feature implementation"},
+            {"id": "INTEGRATION", "title": "Feature integration"},
+            {
+                "id": "AUDIT",
+                "title": "Detached independent audit",
+                "context": "Run after the feature and integration items are complete.",
+            },
+        ]
+        state = self._planned_queue(rows)
+        state = self._produce(state, "prepare")
+        self.assertEqual(navigator.current_stage(state), "select-work")
+        completed_stages = {item["id"]: [] for item in rows}
+        repeated = False
+        blocked = False
+
+        while navigator.current_stage(state) in EXPECTED_INNER:
+            stage = navigator.current_stage(state)
+            item_id = state["work_items"][state["work_index"]]["id"]
+            action = self._action(state)
+            if item_id == "AUDIT" and stage == "test-red" and not repeated:
+                waiting = navigator.apply(
+                    state,
+                    action["id"],
+                    result(outcome="repeat", summary="Repeat the audit RED evidence."),
+                )
+                state = navigator.finish_improve(
+                    waiting, action["id"], receipt(stage)
+                )
+                self.assertEqual(navigator.current_stage(state), "test-red")
+                self.assertEqual(state["work_index"], 2)
+                repeated = True
+                continue
+            if item_id == "AUDIT" and stage == "verify" and not blocked:
+                waiting = navigator.apply(
+                    state,
+                    action["id"],
+                    result(outcome="blocked", summary="Audit target is temporarily unavailable."),
+                )
+                blocked_state = navigator.finish_improve(
+                    waiting, action["id"], receipt(stage)
+                )
+                self.assertEqual(blocked_state["status"], "blocked")
+                self.assertEqual(navigator.current_stage(blocked_state), "verify")
+                self.assertEqual(blocked_state["work_index"], 2)
+                state = navigator.control(
+                    blocked_state, "resume", "Audit target became available."
+                )
+                self.assertEqual(navigator.current_stage(state), "verify")
+                self.assertEqual(state["work_index"], 2)
+                blocked = True
+                continue
+
+            state = self._produce(state, stage)
+            completed_stages[item_id].append(stage)
+            if item_id == "INTEGRATION" and stage == "carry-forward":
+                self.assertEqual(navigator.current_stage(state), "select-work")
+                self.assertEqual(
+                    state["work_items"][state["work_index"]]["id"], "AUDIT"
+                )
+                self.assertNotIn(navigator.current_stage(state), EXPECTED_OUTER)
+
+        self.assertTrue(repeated)
+        self.assertTrue(blocked)
+        for item_id in ("FEATURE", "INTEGRATION", "AUDIT"):
+            with self.subTest(item=item_id):
+                self.assertEqual(completed_stages[item_id], list(EXPECTED_INNER))
+                self.assertEqual(
+                    state["inner_loops"][item_id], {"stage": "done", "action": None}
+                )
+        self.assertEqual(state["completed_work_items"], ["FEATURE", "INTEGRATION", "AUDIT"])
+        self.assertEqual(navigator.current_stage(state), "system-test-author")
+        self.assertFalse(
+            any(entry["stage"] in EXPECTED_OUTER for entry in state["history"])
+        )
+        audit_outcomes = [
+            entry["outcome"] for entry in state["history"] if entry["workitem"] == "AUDIT"
+        ]
+        self.assertEqual(audit_outcomes.count("repeat"), 1)
+        self.assertEqual(audit_outcomes.count("blocked"), 1)
+
+    def test_v3_queue_packet_contracts_are_durable_and_serial(self) -> None:
+        """Packets expose the whole durable queue without inventing ready-item selection."""
+        root = (Path(self.temp.name) / "queue-packet-contracts").resolve()
+        root.mkdir()
+        queue_locator = f"Full ordered work queue: {root / 'state.md'}; field work_items."
+        proposed_queue_locator = (
+            f"Proposed queue awaiting Improve: {root / 'state.md'}; "
+            "field active_improve.seed_result.work_items."
+        )
+        replacement_rule = (
+            "Omit work_items to retain the future queue. Supplied work_items replaces "
+            "the entire future queue after the current item; it does not append."
+        )
+
+        plan = self._at_plan()
+        plan_packet = navigator.render(None, root, plan)
+        self.assertIn(queue_locator, plan_packet)
+        template_text = plan_packet.split("Result template:\n", 1)[1].split(
+            "\nCall this when done:", 1
+        )[0]
+        plan_template = store.loads(template_text)
+        self.assertIn("work_items", plan_template)
+        self.assertEqual(len(plan_template["work_items"]), 1)
+        self.assertEqual(
+            set(plan_template["work_items"][0]), {"id", "title", "context"}
+        )
+        self.assertNotIn(
+            "work_items", store.loads(navigator._result_template(plan, "carry-forward"))
+        )
+        v2 = navigator.new_state(str(self.repo), "Older protocol run.", protocol_version=2)
+        self.assertNotIn("work_items", store.loads(navigator._result_template(v2, "plan")))
+
+        plan_action = self._action(plan)
+        plan_child = self._bind_synthetic_child(
+            navigator.apply(
+                plan,
+                plan_action["id"],
+                result(work_items=[{"id": "DRAFT", "title": "Revised plan item"}]),
+            )
+        )
+        self.assertEqual([item["id"] for item in plan_child["work_items"]], ["W1"])
+        self.assertIn(queue_locator, navigator.render(None, root, plan_child))
+        self.assertIn(proposed_queue_locator, navigator.render(None, root, plan_child))
+        navigator.save(root, plan_child)
+        cold_plan_child_packet = self._cold_next(root)
+        self.assertIn(queue_locator, cold_plan_child_packet)
+        self.assertIn(proposed_queue_locator, cold_plan_child_packet)
+        state = navigator.finish_improve(plan_child, plan_action["id"], receipt("plan"))
+        state = self._produce(state, "prepare")
+        self.assertEqual(navigator.current_stage(state), "select-work")
+        select_packet = navigator.render(None, root, state)
+        self.assertIn(queue_locator, select_packet)
+        self.assertIn(
+            "Revalidate the current script-selected work item in queue order.", select_packet
+        )
+        self.assertNotIn("Select the next ready work item", select_packet)
+
+        select_action = self._action(state)
+        select_child = self._bind_synthetic_child(
+            navigator.apply(state, select_action["id"], result())
+        )
+        self.assertIn(queue_locator, navigator.render(None, root, select_child))
+        state = navigator.finish_improve(
+            select_child, select_action["id"], receipt("select-work")
+        )
+        state = self._advance_to_carry_forward(state)
+        carry_packet = navigator.render(None, root, state)
+        self.assertIn(queue_locator, carry_packet)
+        self.assertIn(replacement_rule, carry_packet)
+
+        carry_action = self._action(state)
+        carry_child = self._bind_synthetic_child(
+            navigator.apply(
+                state,
+                carry_action["id"],
+                result(work_items=[{"id": "FOLLOWUP", "title": "Carry-forward item"}]),
+            )
+        )
+        self.assertIn(proposed_queue_locator, navigator.render(None, root, carry_child))
+        navigator.save(root, carry_child)
+        cold_child_packet = self._cold_next(root)
+        self.assertIn(queue_locator, cold_child_packet)
+        self.assertIn(proposed_queue_locator, cold_child_packet)
+        self.assertIn(replacement_rule, cold_child_packet)
 
     def test_malformed_bound_skill_fails_with_controlled_recovery_error(self) -> None:
         state = self.state()
