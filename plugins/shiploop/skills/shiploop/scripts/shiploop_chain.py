@@ -4100,7 +4100,7 @@ def _per_step_cleanup_managed(root: Path, binding: Mapping[str, Any], attempt: s
             "artifacts": [], "discard": [],
         }
         acceptance = _write_parent_immutable_json(
-            _managed_acceptance_path(chain_dir, attempt, fingerprint), acceptance_value,
+            str(_managed_acceptance_path(chain_dir, attempt, fingerprint)), acceptance_value,
             "managed Ask-Agent close acceptance",
         )
         intent = {
