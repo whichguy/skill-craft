@@ -4095,6 +4095,8 @@ def main(core: Any, argv: list[str] | None = None) -> int:
                 if _binding_lifecycle(binding) == "per-step":
                     rows = _events(_binding_dir(root, binding["action_id"]))
                     snapshot = _next_response(root, binding, rows=rows)
+                    if isinstance(result.get("attempt"), str):
+                        result["step"] = _step_for_attempt(_child_full(binding), result["attempt"])["id"]
                     # A selected dispatcher may expose its own recovery argv.
                     # Per-step callers must resume through the bridge instead.
                     result.pop("next_argv", None)

@@ -106,6 +106,8 @@ class PerStepChainTests(unittest.TestCase):
         bound_steps = {item["id"] for item in graph["steps"]
                        if isinstance(item, dict) and isinstance(item.get("id"), str)}
         self.assertEqual(len(bound_steps), len(graph["steps"]))
+        if isinstance(output.get("attempt"), str):
+            self.assertEqual(output["step"], self.f.child_record(output["attempt"])["step"])
         self.assertEqual(set(navigation), {"complete", "actions", "instruction", "next_argv"})
         self.assertIs(type(navigation["complete"]), bool)
         self.assertIsInstance(navigation["instruction"], str)
@@ -1205,16 +1207,19 @@ if (p/'chain_report.py').exists():
         proof_path = Path(correct["verification"]["evidence"]["path"])
         original = proof_path.read_bytes()
 
-        def assert_refusal(value):
+        def assert_refusal(value, message="workspace"):
             before_head = self.head()
             before_ledger = self.f.ledger_bytes()
             before_child = self.f.child_state_path().read_bytes()
             refused = self.call("done", value, ok=False)
-            self.assertIn("workspace", refused.stderr)
+            self.assertIn(message, refused.stderr)
             self.assertEqual(self.head(), before_head)
             self.assertEqual(self.f.ledger_bytes(), before_ledger)
             self.assertEqual(self.f.child_state_path().read_bytes(), before_child)
             self.assertTrue(workspace.exists())
+
+        for supplied_step in ("A", "B"):
+            assert_refusal(dict(correct, step=supplied_step), "step")
 
         missing = json.loads(json.dumps(correct))
         proof = json.loads(original)
