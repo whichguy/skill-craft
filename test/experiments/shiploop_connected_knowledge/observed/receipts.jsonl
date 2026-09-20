@@ -1,0 +1,22 @@
+{"argv": ["--help"], "at": "2026-09-20T17:20:17.299451+00:00", "command": "help", "event": "invocation", "fixture": "synthetic-orion-enterprise-discovery"}
+{"at": "2026-09-20T17:20:17.308555+00:00", "command": "help", "event": "outcome", "exitCode": 0, "fixture": "synthetic-orion-enterprise-discovery", "outcome": "help_or_argument_error"}
+{"argv": ["catalog", "--help"], "at": "2026-09-20T17:20:22.424645+00:00", "command": "catalog", "event": "invocation", "fixture": "synthetic-orion-enterprise-discovery"}
+{"at": "2026-09-20T17:20:22.433385+00:00", "command": "catalog", "event": "outcome", "exitCode": 0, "fixture": "synthetic-orion-enterprise-discovery", "outcome": "help_or_argument_error"}
+{"argv": ["catalog"], "at": "2026-09-20T17:20:28.448355+00:00", "command": "catalog", "event": "invocation", "fixture": "synthetic-orion-enterprise-discovery"}
+{"at": "2026-09-20T17:20:28.456817+00:00", "command": "catalog", "event": "outcome", "exitCode": 0, "fixture": "synthetic-orion-enterprise-discovery", "outcome": "ok"}
+{"argv": ["search", "--help"], "at": "2026-09-20T17:20:34.288387+00:00", "command": "search", "event": "invocation", "fixture": "synthetic-orion-enterprise-discovery"}
+{"at": "2026-09-20T17:20:34.297106+00:00", "command": "search", "event": "outcome", "exitCode": 0, "fixture": "synthetic-orion-enterprise-discovery", "outcome": "help_or_argument_error"}
+{"argv": ["search", "--source", "private-git", "--query", "Orion retry"], "at": "2026-09-20T17:20:50.541164+00:00", "command": "search", "event": "invocation", "fixture": "synthetic-orion-enterprise-discovery"}
+{"at": "2026-09-20T17:20:50.551106+00:00", "command": "search", "event": "outcome", "exitCode": 0, "fixture": "synthetic-orion-enterprise-discovery", "outcome": "ok"}
+{"argv": ["search", "--source", "intranet", "--query", "Orion retry"], "at": "2026-09-20T17:20:50.583714+00:00", "command": "search", "event": "invocation", "fixture": "synthetic-orion-enterprise-discovery"}
+{"at": "2026-09-20T17:20:50.593952+00:00", "command": "search", "event": "outcome", "exitCode": 0, "fixture": "synthetic-orion-enterprise-discovery", "outcome": "ok"}
+{"argv": ["search", "--source", "slack", "--query", "Orion retry"], "at": "2026-09-20T17:20:50.626151+00:00", "command": "search", "event": "invocation", "fixture": "synthetic-orion-enterprise-discovery"}
+{"at": "2026-09-20T17:20:50.634350+00:00", "command": "search", "event": "outcome", "exitCode": 0, "fixture": "synthetic-orion-enterprise-discovery", "outcome": "ok"}
+{"argv": ["fetch", "--help"], "at": "2026-09-20T17:20:56.977969+00:00", "command": "fetch", "event": "invocation", "fixture": "synthetic-orion-enterprise-discovery"}
+{"at": "2026-09-20T17:20:56.986591+00:00", "command": "fetch", "event": "outcome", "exitCode": 0, "fixture": "synthetic-orion-enterprise-discovery", "outcome": "help_or_argument_error"}
+{"argv": ["fetch", "--source", "private-git", "--id", "orion-review-gateway-src-app"], "at": "2026-09-20T17:21:12.625847+00:00", "command": "fetch", "event": "invocation", "fixture": "synthetic-orion-enterprise-discovery"}
+{"at": "2026-09-20T17:21:12.635394+00:00", "command": "fetch", "event": "outcome", "exitCode": 0, "fixture": "synthetic-orion-enterprise-discovery", "outcome": "ok"}
+{"argv": ["fetch", "--source", "intranet", "--id", "adr-042-orion-review-gateway"], "at": "2026-09-20T17:21:12.668018+00:00", "command": "fetch", "event": "invocation", "fixture": "synthetic-orion-enterprise-discovery"}
+{"at": "2026-09-20T17:21:12.677478+00:00", "command": "fetch", "event": "outcome", "exitCode": 0, "fixture": "synthetic-orion-enterprise-discovery", "outcome": "ok"}
+{"argv": ["fetch", "--source", "slack", "--id", "slack-orion-review-1842"], "at": "2026-09-20T17:21:12.710645+00:00", "command": "fetch", "event": "invocation", "fixture": "synthetic-orion-enterprise-discovery"}
+{"at": "2026-09-20T17:21:12.719198+00:00", "command": "fetch", "event": "outcome", "exitCode": 0, "fixture": "synthetic-orion-enterprise-discovery", "outcome": "ok"}

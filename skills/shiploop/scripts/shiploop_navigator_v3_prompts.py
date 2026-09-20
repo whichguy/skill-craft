@@ -69,6 +69,7 @@ STAGE_REFERENCES: dict[str, tuple[tuple[str, str], ...]] = {
         ("Delivery authority guidance", "delivery-authority.md#ask-at-the-first-concrete-boundary"),
     ),
     "discovery": (
+        ("Connected knowledge discovery", "project-knowledge.md#connected-knowledge-discovery"),
         ("Discovery investigation guidance", "research-loop.md#plan-the-investigation"),
         ("Service discovery guidance", "service-discovery.md#select-scope"),
         ("Current-system baseline guide", "current-system-baseline.md#establish-or-refresh"),
@@ -78,6 +79,7 @@ STAGE_REFERENCES: dict[str, tuple[tuple[str, str], ...]] = {
         ("UI planning ownership when applicable", "behavioral-requirements.md#allocate-ui-decisions-to-their-planning-owner"),
     ),
     "research": (
+        ("Connected knowledge discovery", "project-knowledge.md#connected-knowledge-discovery"),
         ("Discovery investigation guidance", "research-loop.md#plan-the-investigation"),
         ("Service discovery guidance", "service-discovery.md#select-scope"),
         ("Current-system baseline guide", "current-system-baseline.md#evidence-and-authority"),
@@ -430,6 +432,12 @@ Establish the requested outcome, repository and run boundaries, explicit user
 constraints, authority limits, consumers/entry points, known risks, and open
 questions.  Distinguish facts from assumptions and identify what discovery must
 establish before planning, testing, implementation, or release work is trusted.
+Retain permitted source hints and ambiguous internal terms for discovery: relevant
+team/workspace, channels, internal sites/docs, private repositories and owners.
+Sanitize hints for their audience; sensitive locators belong only in an authorized
+knowledge home, not automatically in ordinary or public project notes.
+Hints are leads, not verified definitions or access; missing hints do not require
+a separate questionnaire when available evidence can resolve the question.
 Do not implement or silently broaden scope here.
 """,
     "discovery": """\
@@ -472,6 +480,13 @@ first and again when evidence conflicts or dependencies emerge. When one applies
 retain the plan and its outcome in the existing note: question, evidence route
 and order, owner, permitted effects, shared time/attempt bound, and stop condition.
 Otherwise take the direct path when inspection suffices.
+Use Connected knowledge discovery for internal terms, background, requirements
+and decisions beyond the checkout. Actively find relevant available MCP readers
+and use scoped search/read/resource access, following hits to supporting content;
+Slack/Teams, internal sites/design docs and private Git are examples. Resolve
+terms and conflicting claims with provenance, preserve access/coverage gaps and
+safe evidence locators, and keep private queries/content off public surfaces.
+An information reader is not automatically a product runtime dependency.
 Use the Current-system baseline guide after the initial repository baseline.
 Read README first; reuse/revalidate an adequate current-system account or recover
 one from relevant docs, code/tests and authorized read-only observations. Retain
@@ -510,6 +525,11 @@ affected requirement, consumer, prerequisite, reuse choice, and verification
 need.  Assess relevant skills, MCP servers, libraries, and environment patterns
 for actual fit and support; discovery alone is not successful use or authority to
 install a dependency.  Leave unsupported questions open.
+Use Connected knowledge discovery to resolve internal vocabulary and material
+context gaps through relevant available MCP/internal readers. Open supporting
+content rather than trusting snippets; retain authority, scope and safe source
+locators in the existing evidence handoff. Keep evidence readers distinct from
+runtime dependencies and do not disclose private context through public searches.
 Use Discovery investigation guidance to reuse or revise the current question
 frontier. Check its plan triggers first and again as evidence conflicts or
 dependencies emerge; retain any triggered plan and outcome. Use the direct path

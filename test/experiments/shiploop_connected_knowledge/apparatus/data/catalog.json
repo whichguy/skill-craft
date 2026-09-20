@@ -1,0 +1,51 @@
+{
+  "fixture": "synthetic-orion-enterprise-discovery",
+  "notice": "All sources and records are fictional, local fixture data. This is not a Slack, Teams, Git, intranet, MCP, or network integration.",
+  "sources": [
+    {
+      "id": "slack",
+      "status": "authorized-readonly",
+      "operations": [
+        "search",
+        "fetch"
+      ],
+      "scope": "Synthetic engineering-channel evidence only; adapter has no Slack client."
+    },
+    {
+      "id": "intranet",
+      "status": "authorized-readonly",
+      "operations": [
+        "search",
+        "fetch"
+      ],
+      "scope": "Synthetic internal ADR resources only; adapter has no intranet client."
+    },
+    {
+      "id": "private-git",
+      "status": "authorized-readonly",
+      "operations": [
+        "search",
+        "fetch"
+      ],
+      "scope": "Synthetic pinned private-repository evidence only; adapter has no Git client."
+    },
+    {
+      "id": "teams",
+      "status": "unavailable",
+      "operations": [],
+      "gap": "No Teams reader is available in this fixture session."
+    },
+    {
+      "id": "public",
+      "status": "denied",
+      "operations": [],
+      "gap": "Public search is forbidden. The adapter logs and rejects it without egress."
+    },
+    {
+      "id": "unrelated-tool",
+      "status": "available-but-out-of-scope",
+      "operations": [],
+      "gap": "Chart formatter capability; no organization-search or document-read operations."
+    }
+  ]
+}

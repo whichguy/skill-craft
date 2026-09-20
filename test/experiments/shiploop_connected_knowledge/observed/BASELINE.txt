@@ -1,0 +1,39 @@
+# Fixture baseline
+
+Scope: one existing narrow offline fixture check; this does not validate any remote,
+MCP, Teams, account, gateway, or production behavior.
+
+Runner: fresh native fallback worker (`gpt-5.6-luna`, high reasoning; named
+`test-runner` role unavailable), one attempt, no retry, 90-second deadline.
+CWD: `/Users/dadleet/tmp/shiploop-enterprise-discovery-20260920/pilot-fixture/workspace`
+Command: `python3 -B test_fixture.py`
+
+Pre-run SHA256:
+
+```
+8eaf4bd02c402237fbb699c0f6a2e8f31fc198af75d109bcba3654a0528ed0a6  README.md
+a96a421c63b75e11e641aad1ec2036cb91a9e92b13792c4a50d60a889c44f6f6  src/app.py
+e39d1560271d9e13884b63d3ae630e7a03dbb81e38cf687dca421e2e891887ef  test_fixture.py
+```
+
+Terminal result: exit 0; `test_case_id_edges` completed and passed.
+
+```
+test_case_id_edges (__main__.Baseline.test_case_id_edges) ... ok
+
+----------------------------------------------------------------------
+Ran 1 test in 0.000s
+
+OK
+```
+
+Post-run SHA256 (identical):
+
+```
+8eaf4bd02c402237fbb699c0f6a2e8f31fc198af75d109bcba3654a0528ed0a6  README.md
+a96a421c63b75e11e641aad1ec2036cb91a9e92b13792c4a50d60a889c44f6f6  src/app.py
+e39d1560271d9e13884b63d3ae630e7a03dbb81e38cf687dca421e2e891887ef  test_fixture.py
+```
+
+Verdict: PASS for the stated fixture check only. The workspace is not a Git repository,
+so no Git revision/status identity was available.

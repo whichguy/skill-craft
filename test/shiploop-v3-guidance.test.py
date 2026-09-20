@@ -104,6 +104,11 @@ DISCOVERY_INVESTIGATION_GUIDE = "research-loop.md"
 DISCOVERY_INVESTIGATION_ANCHOR = "plan-the-investigation"
 DISCOVERY_INVESTIGATION_STAGES = ("discovery", "research")
 
+CONNECTED_KNOWLEDGE_DISCOVERY_LABEL = "Connected knowledge discovery"
+CONNECTED_KNOWLEDGE_DISCOVERY_GUIDE = "project-knowledge.md"
+CONNECTED_KNOWLEDGE_DISCOVERY_ANCHOR = "connected-knowledge-discovery"
+CONNECTED_KNOWLEDGE_DISCOVERY_STAGES = ("discovery", "research")
+
 CURRENT_SYSTEM_BASELINE_GUIDE = "current-system-baseline.md"
 CURRENT_SYSTEM_BASELINE_GUIDANCE_LABEL = "Current-system baseline guide"
 CURRENT_SYSTEM_BASELINE_ANCHORS = (
@@ -1745,6 +1750,75 @@ class V3GuidanceTests(unittest.TestCase):
             observed.append(stage)
 
         self.assertEqual(tuple(observed), DISCOVERY_INVESTIGATION_STAGES)
+
+    def test_connected_knowledge_discovery_route_recovers_from_relocated_package(self) -> None:
+        """Relocated packets transport the selected locator; they do not prove live access."""
+        expected = [(
+            CONNECTED_KNOWLEDGE_DISCOVERY_LABEL,
+            CONNECTED_KNOWLEDGE_DISCOVERY_GUIDE + "#" + CONNECTED_KNOWLEDGE_DISCOVERY_ANCHOR,
+        )]
+        for stage in prompts.STAGES:
+            with self.subTest(stage=stage):
+                entries = [
+                    (label, locator)
+                    for label, locator in prompts.STAGE_REFERENCES[stage]
+                    if label == CONNECTED_KNOWLEDGE_DISCOVERY_LABEL
+                ]
+                self.assertEqual(
+                    entries,
+                    expected if stage in CONNECTED_KNOWLEDGE_DISCOVERY_STAGES else [],
+                )
+
+        relocated = (self.repo / "copied-package" / "references").resolve()
+        shutil.copytree(REFERENCES, relocated)
+        copied_guide = relocated / CONNECTED_KNOWLEDGE_DISCOVERY_GUIDE
+        headings = {
+            heading_anchor(match.group(2))
+            for match in re.finditer(
+                r"(?m)^(#{1,6})\s+(.+?)\s*$", copied_guide.read_text(encoding="utf-8")
+            )
+        }
+        self.assertIn(CONNECTED_KNOWLEDGE_DISCOVERY_ANCHOR, headings)
+        core = type("RelocatedCore", (), {"PACKAGE_ROOT": relocated.parent})()
+        relocated_route = (
+            CONNECTED_KNOWLEDGE_DISCOVERY_LABEL
+            + ": "
+            + str(
+                relocated / (
+                    CONNECTED_KNOWLEDGE_DISCOVERY_GUIDE
+                    + "#"
+                    + CONNECTED_KNOWLEDGE_DISCOVERY_ANCHOR
+                )
+            )
+        )
+        state = self.state()
+        observed: list[str] = []
+
+        while navigator.current_stage(state) != "spec":
+            stage = navigator.current_stage(state)
+            if stage not in CONNECTED_KNOWLEDGE_DISCOVERY_STAGES:
+                state, _action_id = self.complete_stage(state)
+                continue
+
+            navigator.save(self.run, state)
+            before = (self.run / "state.md").read_bytes()
+            recovered = store.read_record(self.run / "state.md")
+            packet = navigator.render(core, self.run, recovered)
+            self.assertEqual((self.run / "state.md").read_bytes(), before)
+            self.assertEqual(packet.count(relocated_route), 1, packet)
+            self.assertNotIn(str(REFERENCES), packet)
+
+            action = dict(navigator.current_action(recovered))
+            waiting = navigator.apply(recovered, action["id"], result(stage))
+            navigator.save(self.run, waiting)
+            pending = store.read_record(self.run / "state.md")
+            pending_packet = navigator.render(core, self.run, pending)
+            self.assertEqual(pending_packet.count(relocated_route), 1, pending_packet)
+            self.assertNotIn(str(REFERENCES), pending_packet)
+            state = navigator.finish_improve(pending, action["id"], receipt(stage))
+            observed.append(stage)
+
+        self.assertEqual(tuple(observed), CONNECTED_KNOWLEDGE_DISCOVERY_STAGES)
 
     def test_service_discovery_stage_routes_are_exact_and_selective(self) -> None:
         """Keep the conditional guide's routes independent of the prompt catalog."""
