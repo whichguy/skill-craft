@@ -1363,8 +1363,20 @@ class PerStepChainTests(unittest.TestCase):
             },
         })
         self.assertEqual(rejected["outcome"], "rejected")
-        self.call("retry", {"attempt": old_attempt, "confirmed_stopped": True,
-                            "reason": "Replacement managed attempt is required"})
+        retrying = self.call("retry", {"attempt": old_attempt, "confirmed_stopped": True,
+                                      "reason": "Replacement managed attempt is required"})
+        blocked = self.action_rows(retrying, "blocked")
+        self.assertEqual([row["attempt"] for row in blocked], [old_attempt])
+        self.assertNotIn("operation", blocked[0])
+        self.assertTrue(self.action_rows(retrying, "claim"),
+                        "retaining the failed worker must not hide the ready replacement")
+        self.assertLess(retrying["navigation"]["actions"].index(self.action_rows(retrying, "claim")[0]),
+                        retrying["navigation"]["actions"].index(blocked[0]))
+        self.assertFalse(any(row.get("attempt") == old_attempt
+                             for row in self.action_rows(retrying, "cleanup")))
+        retained_receipt = Path(old_packet["ask_agent_workspace"]["receipt"])
+        retained_receipt_bytes = retained_receipt.read_bytes()
+        retained_head = self.f.git(old_workspace, "rev-parse", "HEAD")
 
         def assert_late_refusal(operation, value):
             before_head = self.head()
@@ -1392,6 +1404,13 @@ class PerStepChainTests(unittest.TestCase):
         self.assertTrue(old_workspace.exists(), "late receipts must not remove the retained old workspace")
         pending = self.call("pending")
         self.assertIn(old_attempt, pending["lifecycle"]["retained_workers"])
+        retained_actions = [row for row in pending["lifecycle"]["actions"]
+                            if row.get("attempt") == old_attempt]
+        self.assertEqual([row["action"] for row in retained_actions], ["blocked"])
+        next_response = self.call("next")
+        self.assertEqual([row["action"] for row in next_response["navigation"]["actions"]], ["blocked"])
+        self.assertIn("incomplete", next_response["navigation"]["instruction"])
+        self.assertIn("no non-integrated cleanup", retained_actions[0]["instruction"])
         final_proof = self.f.write("managed-retried-final.json", {
             "passed": True, "commit": self.head(), "checks": ["replacement A integrated"],
         })
@@ -1400,6 +1419,10 @@ class PerStepChainTests(unittest.TestCase):
             "verification": {"path": str(final_proof), "sha256": fixture.digest(final_proof)},
         }, ok=False)
         self.assertIn("cleanup", refused_finish.stderr.lower())
+        self.assertIn("no non-integrated cleanup", refused_finish.stderr)
+        self.assertTrue(old_workspace.exists())
+        self.assertEqual(retained_receipt.read_bytes(), retained_receipt_bytes)
+        self.assertEqual(self.f.git(old_workspace, "rev-parse", "HEAD"), retained_head)
 
     def test_managed_preparation_crash_replays_one_receipt_without_another_worktree(self):
         self.managed_bind(single=True)

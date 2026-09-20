@@ -235,7 +235,7 @@ time and an empty ready list never authorize acceptance or completion.
 | `import-handoff` | `attempt`, `confirmed_stopped:true`, `handoff:{path,sha256}`; parent archives worker-local results and publishes the existing dispatcher report. |
 | `prepare` | `attempt`, `confirmed_stopped:true`; inspect original contribution, reconcile current target into the stopped worker checkout, and return the exact combined candidate for independent checks. |
 | `settle` | `attempt`, `confirmed_stopped:true`, candidate-bound `integration` and `verification:{receipt_sha256,passed,reason,evidence:{path,sha256}}`; verify, merge into the invoking checkout, accept and return the ready frontier. Managed 0.6 parallel cleanup is deferred; legacy/serial paths attempt removal inline. |
-| `cleanup` | `attempt`, `confirmed_stopped:true`; close or retry accepted-worker removal after refilling safe capacity. For a retired failed attempt add `disposition:"superseded"` and nonempty `reason`; its replacement must already be accepted and integrated. Neither form executes the task again. |
+| `cleanup` | `attempt`, `confirmed_stopped:true`; close or retry accepted-worker removal after refilling safe capacity. On legacy 0.4 and serial routes, a retired failed attempt also requires `disposition:"superseded"`, a nonempty `reason`, and an accepted, integrated replacement. Managed 0.6 superseded attempts remain blocked and have no supported cleanup callback. Neither form executes the task again. |
 | `done` | An alias for `settle` with the identical evidence contract; it invokes the same transition once. Rejected verification leaves the step not done. |
 | `retry` | `attempt`, `confirmed_stopped:true`, `reason`; preserve failed evidence/worktree, then claim a fresh attempt. |
 | `next` / `recover` | Inspect durable child state, bridge events and unresolved operations. No automatic relaunch. |
@@ -487,9 +487,13 @@ only after these acceptance checks; the bridge does not bypass it. Retain branch
 them is a separate decision. Accepted-but-unremoved attempts appear as cleanup
 work; `cleanup` retries removal without rerunning the step. Failed attempts stay
 visible and preserve their workspace during `retry`. The 0.6 adapter retains
-superseded helper-owned workspaces for explicit recovery because it has no
-accepted non-integrated close disposition; it does not bypass the receipt owner
-with direct Git removal or claim final cleanup is complete. On the 0.4 and serial
+superseded helper-owned workspaces because it has no accepted non-integrated close
+disposition. This adapter cannot finish that chain even after the replacement
+succeeds: it reports an attempt-bound blocker, not another cleanup callback, and
+provides no completion-capable recovery route for that superseded workspace.
+Preserve its receipt, results and worktree; do not bypass the receipt owner with
+direct Git removal or claim final cleanup is complete. Ready replacement and
+independent work remain visible before this finalization blocker. On the 0.4 and serial
 routes, after a replacement is
 accepted and integrated, explicit `cleanup` with `disposition:"superseded"` and
 a reason retires the old clean worktree. It requires the old handoff archive,

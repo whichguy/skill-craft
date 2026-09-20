@@ -1995,11 +1995,11 @@ def _per_step_lifecycle_status(binding: Mapping[str, Any], rows: list[dict[str, 
         "instruction": "Retry only the accepted worker removal; do not launch, merge, or settle the task again.",
     } for attempt in cleanup_pending)
     actions.extend({
-        "action": "cleanup", "attempt": attempt,
+        "action": "blocked" if _managed_parallel_ask_agent_adapter(binding) else "cleanup", "attempt": attempt,
         "disposition": "superseded",
         "instruction": (
-            "Retain this helper-managed failed workspace and its receipt for explicit recovery; "
-            "this adapter has no accepted non-integrated close disposition."
+            "Retain this helper-managed failed workspace and its receipt. This adapter has no non-integrated cleanup "
+            "for superseded managed attempts; chain finish remains blocked even after the replacement succeeds."
             if _managed_parallel_ask_agent_adapter(binding) else
             "After a replacement is accepted and integrated, archive the retained failed result and remove only this clean superseded worker."
         ),
@@ -2881,6 +2881,14 @@ def _per_step_navigation(root: Path, binding: Mapping[str, Any], result: Mapping
             instruction="Retry only this accepted worker removal. Cleanup never authorizes re-execution, merge, or settlement.",
         ))
     for attempt in superseded_pending:
+        if _managed_parallel_ask_agent_adapter(binding):
+            cleanup_actions.append(_navigation_action(
+                "blocked", attempt=attempt, disposition="superseded",
+                required=("receipt-owner-supported non-integrated cleanup, unavailable in this adapter",),
+                instruction="Retain this superseded managed workspace and its receipt. This adapter has no non-integrated cleanup; "
+                            "a successful replacement does not authorize deletion or chain finish. Report this blocker without retrying cleanup.",
+            ))
+            continue
         cleanup_actions.append(_navigation_action(
             "cleanup", operation="cleanup", attempt=attempt, disposition="superseded",
             required=("confirmed_stopped: true", "a nonempty retirement reason", "an accepted integrated replacement"),
@@ -2931,10 +2939,16 @@ def _per_step_navigation(root: Path, binding: Mapping[str, Any], result: Mapping
                 _fail("per-step navigation attempt references a step outside the bound graph")
             action["step"] = step
     only_collect = bool(actions) and all(action["action"] == "collect" for action in actions)
+    only_retention_blocked = bool(actions) and all(
+        action["action"] == "blocked" and action.get("disposition") == "superseded" for action in actions
+    )
     return {
         "complete": False,
         "actions": actions,
         "instruction": (
+            "The chain is incomplete. Report the listed blockers and preserve their workspaces and receipts; "
+            "no supported cleanup or finish callback is available for these superseded managed attempts."
+            if only_retention_blocked else
             "No non-waiting bridge callback is currently granted. Await any native completion or host notification, not a particular listed worker, then refresh this view."
             if only_collect else
             "Resolve only parent/owner, unresolved-integration, or serial-workspace recovery before claim or start. Process already available returns promptly, then start existing claims and fill safe eligible capacity before waiting on an unresolved per-attempt observation. Refresh this derived view after each callback; an unknown native attempt remains reserved."
@@ -4717,6 +4731,10 @@ def _per_step_finish(root: Path, binding: Mapping[str, Any], value: dict[str, An
     if lifecycle["serial_creation_pending"]:
         _fail("per-step finish is blocked by an unresolved serial workspace creation")
     if lifecycle["retained_workers"]:
+        if _managed_parallel_ask_agent_adapter(binding) and lifecycle["superseded_cleanup_pending"]:
+            _fail("per-step finish is blocked by retained superseded Ask-Agent workspaces: this adapter has no "
+                  "non-integrated cleanup; preserve these attempts and their receipts: "
+                  + ", ".join(lifecycle["superseded_cleanup_pending"]))
         _fail("per-step finish requires every owned worker to be removed; retry cleanup first")
     child = _node(binding, "next")
     if child.get("complete") is not True:
