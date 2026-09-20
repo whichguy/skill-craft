@@ -91,6 +91,75 @@ user authority or a revalidated, user-approved standing repository rule can
 authorize a new operation. Keep credentials, tokens and private payloads out of
 these documents.
 
+For consequential questions about an existing choice, use the
+[Git-history investigation below](#investigate-git-history-for-planning) during
+discovery and reopen it when specification or planning reveals a new question.
+
+## Investigate Git history for planning
+
+Use history to answer a concrete planning question: why a boundary exists,
+which failed approach to avoid, or whether a prior constraint still applies.
+Start from the affected behavior, file, symbol, test or decision document in the
+actual repository and current worktree. An initial history window is a starting
+point, not a relevance boundary; keep the active owner's required history read
+(including Improve's seven full messages) without imposing that quota on every
+planning action.
+
+Read promising commit messages in full. Follow their relevant commit references
+and linked decisions, PRs or discussions when needed to establish the rationale.
+Continue beyond the initial window and through further relevant links while a
+consequential question remains unresolved. Inspect a diff or historical file when
+the message is insufficient to establish the behavior or interaction. A reference
+is a lead, not evidence that its target was read or endorsed.
+
+Choose a targeted read for the question; expand only when its result calls for it:
+
+| Question | Useful Git read and limit |
+| --- | --- |
+| What rationale was recorded? | `git show -s --format=fuller <commit>` reads the complete message; a subject alone rarely explains the choice. |
+| How did this path evolve? | `git log --follow -- <path>` follows one file across renames; it is not a complete account of cross-file behavior or nonlinear history. |
+| Where did this behavior change? | `git log -S '<literal>' -- <paths>` searches changes in occurrence count; `-G '<regex>'` searches matching added/deleted lines. Neither proves intent. |
+| What changed, or existed then? | `git show <commit> -- <path>` or `git show <commit>:<path>` inspects historical content without switching the working checkout. |
+| Which change last touched these lines? | `git blame -L <start>,<end> -- <path>` supplies a lead, not the original rationale or deleted/replaced behavior. |
+
+Bound log output to manageable pages and inspect selected full messages; neither
+a page limit nor a fixed link depth is a stopping rule. Stop a branch when it
+no longer bears on the question, its evidence is already understood, or a source
+cannot be recovered within the authorized scope. Avoid revisiting the same
+commit/link for the same question. End the investigation when there is enough
+evidence for the decision, or explicitly retain the consequential uncertainty
+and the next evidence needed. Do not exhaustively traverse ancestors or references.
+
+Before reusing a lesson, look forward for relevant later changes, reversals or
+supersession and compare its assumptions with current requirements, code,
+dependency versions and checks, including uncommitted work. Distinguish recorded
+rationale, observed implementation, inference and current verified behavior.
+Historical intent does not itself establish accepted requirements or permission.
+Co-changing files suggest an interaction to inspect; they do not prove a dependency
+or create a plan edge. Check the actual producer/consumer contract.
+
+In the existing plan notes, explain the specific lesson and how it affected a
+constraint, preserved behavior, rejected alternative, prerequisite, ordering or
+verification case. Cite the resolved full commit ID and subject beside that
+decision only when consulting it materially helped; use exact section/URL
+locators for other useful sources. Do not copy ancestor reference lists or add
+consulted-but-unhelpful citations. Keep any required reading inventory separate.
+Check that each cited location supports the particular detail credited to it,
+not merely the same topic.
+New observations and reasoned design choices need no historical citation: explain
+their basis, uncertainty and applicability with the same care. Carry compact
+decisions, source locators and revalidation conditions through existing
+`evidence_refs` and work-item `context` (or the active protocol's existing fields).
+
+An absent Git repository, shallow history, rewritten/unavailable commit or missing
+discussion is a retrieval limit, not proof there was no prior decision. Use current
+documents/code/checks where sufficient; otherwise name the missing fact and make
+its resolution a prerequisite only for work that depends on it. Continue
+independent planning. Do not invent IDs, initialize Git, fetch or switch branches
+merely to satisfy this guidance. Preserve useful stable conclusions in the
+[existing maintained documents](#retain-learnings-for-the-next-invocation), with
+their rationale and revisit conditions; no new history index or state store is needed.
+
 ## Maintained product requirements
 
 Keep accepted product behavior across the first ShipLoop run and every later
@@ -231,6 +300,10 @@ Retained managed/legacy runs follow their printed schemas and context readers;
 this correlation policy never changes their frozen run baselines or callbacks.
 
 ## Carry context into the new plan
+
+Apply [Git-history investigation](#investigate-git-history-for-planning) when a
+planning question needs prior rationale. Reuse sufficient inspected evidence;
+reopen its sources when a changed assumption or unresolved question warrants it.
 
 The specification and overall/step plans describe the **delta** from verified
 existing behavior to the current requested outcome: what stays, what changes,

@@ -177,7 +177,7 @@ root = Path(sys.argv[1])
 manifest = json.loads((root / "runtime/until-loop/PROVENANCE.json").read_text(encoding="utf-8"))
 card = (root / "SKILL.md").read_text(encoding="utf-8")
 adapter = (root / "runtime/until-loop/ADAPTER.md").read_text(encoding="utf-8")
-assert "version: 0.2.0-rc.2" in card
+assert "version: 0.2.0-rc.3" in card
 assert "runtime/until-loop/scripts/until_loop_ephemeral.py" in card
 assert "version: 0.4.0-rc.2" in adapter
 assert manifest["format"] == "skill-craft-until-loop-runtime-provenance/v1"

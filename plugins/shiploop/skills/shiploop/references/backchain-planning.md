@@ -26,6 +26,11 @@ Backchain's result does not bypass this broader planning review. Follow the
 [chain review requirement](parallel-chain.md#required-review-after-step-creation)
 when a graph is first created or materially changed after the checkpoint.
 
+Use [question-driven history investigation](project-knowledge.md#investigate-git-history-for-planning)
+when a decision depends on prior rationale. Continue relevant history as needed,
+check later supersession against current evidence, and turn useful findings into
+specific plan constraints, prerequisites or checks rather than a citation inventory.
+
 Retain the audit in ordinary plan notes, result `evidence_refs` and work-item
 `context`. Use v3's current callback and allowed result fields; do not import
 legacy result fields, frozen-plan certificates, a Backchain JSON schema, or

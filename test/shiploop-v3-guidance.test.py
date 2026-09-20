@@ -188,6 +188,14 @@ class V3GuidanceTests(unittest.TestCase):
             for label, locator in prompts.STAGE_REFERENCES[stage]:
                 with self.subTest(stage=stage, locator=locator):
                     self.assertIn(label + ": " + str(REFERENCES / locator), packet)
+            if stage in ("plan", "step-plan"):
+                # Independent of the catalog: removing this route must not
+                # redefine the expected guidance available after cold recovery.
+                _recovered, cold_packet = self.cold_packet(state)
+                self.assertIn(
+                    str(REFERENCES / "project-knowledge.md#investigate-git-history-for-planning"),
+                    cold_packet,
+                )
             extra: dict[str, object] = {}
             if stage == "plan":
                 extra["work_items"] = [{"id": "W1", "title": "Synthetic item"}]
