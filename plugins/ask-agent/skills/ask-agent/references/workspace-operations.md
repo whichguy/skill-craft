@@ -9,17 +9,30 @@ requested isolation requires creating a worktree, branch and receipt. An
 ordinary code-review request permits isolated setup and reports while leaving
 the reviewed inputs unchanged.
 
-## Bind the selected package
+## Bind and verify the selected package
 
-Obtain the absolute path of the selected, loaded `SKILL.md` from the host's skill
-context. Its parent is `SKILL_ROOT`. Bind this again in every independent shell
-call; it is not the task cwd or an assumed sibling checkout.
+Obtain the absolute logical path of the selected, loaded `SKILL.md` from the
+host's skill context. Its parent is `SKILL_ROOT`. Bind this again in every
+independent shell call; it is not the task cwd or an assumed sibling checkout.
+Do not select a package by searching `PATH`, the task cwd, a cache, or similarly
+named installations.
 
 ```sh
+SKILL_CARD="/absolute/path/to/the/selected/ask-agent/SKILL.md"
 SKILL_ROOT="/absolute/path/to/the/selected/ask-agent"
 WORKSPACE_HELPER="$SKILL_ROOT/scripts/ask_agent_workspace.py"
-python3 "$WORKSPACE_HELPER" --help
+python3 "$WORKSPACE_HELPER" identity --skill-card "$SKILL_CARD"
 ```
+
+Run `identity` before every new `prepare`, stop on a nonzero result, and retain its JSON result with the
+pending job. It preserves the supplied logical card path, then returns the
+resolved card and helper paths, the card's frontmatter version, and SHA-256 for
+both files. It accepts host skill-directory or card symlinks only when they
+resolve to the package containing the executing helper, and rejects a copied or
+same-named card from another package. Give those exact identity fields to the
+worker and repeat them in the worker and parent self-contained handoffs. The
+command verifies a caller-supplied selection; it does not discover which skill
+the host chose.
 
 The paths below are placeholders. Substitute actual receipt values. Keep prompts
 in native launch arguments; the helper's JSON files are Git/acceptance evidence,
@@ -27,7 +40,8 @@ not a prompt transport or another job queue.
 
 ## Prepare before dispatch
 
-Coordinate active writers of the source checkout for the capture window. The
+Coordinate active writers of the source checkout for the capture window after a
+successful package identity check. The
 caller must not begin independent edits until preparation returns. The helper's
 race checks supplement this coordination; they cannot freeze external editors
 or detect every change-and-restore race.

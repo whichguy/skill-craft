@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
     inputs:
       tier:
-        description: Smoke for routine feedback; full for candidate qualification
+        description: Smoke for routine feedback; full for broad cross-subsystem checks
         type: choice
         required: true
         default: smoke
@@ -54,7 +54,7 @@ jobs:
           git diff --cached --exit-code
 
   # Preserve the required-check name for the selected tier. Smoke is partial;
-  # full regression is an explicit candidate qualification, not a PR default.
+  # Full regression is available for broad cross-subsystem qualification.
   hermetic:
     if: ${{ always() }}
     needs: checks

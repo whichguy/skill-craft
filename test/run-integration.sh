@@ -18,6 +18,7 @@ Optional commands (never part of default CI):
   marketplace-claude  Install local candidate plugins in a disposable Claude profile.
   marketplace-grok    Install local candidate plugins in a disposable Grok profile.
   marketplace-codex   Install local candidate plugins in a disposable Codex profile.
+  marketplace-codex-ask-agent  Exercise installed Ask Agent in a disposable Codex profile.
 
 weather-* requires DEVLOOP_HOME and DEVLOOP_WEATHER_REPO. weather-live is the
 only command that can enter the live weather path; it sets the mode itself.
@@ -57,6 +58,10 @@ case "${1:-list}" in
   marketplace-claude|marketplace-grok|marketplace-codex)
     [[ "$#" == "1" ]] || { usage >&2; exit 64; }
     exec python3 "$root/test/marketplace-host-smoke.py" --host "${1#marketplace-}"
+    ;;
+  marketplace-codex-ask-agent)
+    [[ "$#" == "1" ]] || { usage >&2; exit 64; }
+    exec python3 "$root/test/marketplace-host-smoke.py" --host codex --ask-agent
     ;;
   *)
     printf 'run-integration: unknown command %q\n' "$1" >&2

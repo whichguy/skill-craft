@@ -38,7 +38,7 @@ Use **skill-craft** for portable skill packages and their plugin distribution. U
 | Skill | Version | Purpose |
 |-------|---------|---------|
 | [architect](skills/architect/SKILL.md) | 0.1.2 | Design system architecture and make technology decisions. Uses a structured inline design or an available independent reviewer for comprehensive work. |
-| [ask-agent](skills/ask-agent/SKILL.md) | 0.6.0 | A delegation skill, not an agent type. Ask native agents to work in the background, continue useful work in the main conversation, and incorporate their results when they return.… |
+| [ask-agent](skills/ask-agent/SKILL.md) | 0.6.1 | A delegation skill, not an agent type. Ask native agents to work in the background, continue useful work in the main conversation, and incorporate their results when they return.… |
 | [c-plan](skills/c-plan/SKILL.md) | 0.1.2 | Resolve ambiguous user prompts by choosing whether to answer now, answer with assumptions, ask 1–2 high-value clarification questions, replan, or stop. Use when the best response… |
 | [compare-prompts](skills/compare-prompts/SKILL.md) | 0.1.2 | Compare two prompt versions (A vs B) by running both against a directory of test input files, then evaluating results on three dimensions in priority order: quality > tokens >… |
 | [derive-questions](skills/derive-questions/SKILL.md) | 0.1.2 | Iteratively researches real software project failures and wins, extracts key planning questions via 5-whys analysis, validates them against synthetic test plans, judges their… |
@@ -54,7 +54,7 @@ Use **skill-craft** for portable skill packages and their plugin distribution. U
 | [question-bench](skills/question-bench/SKILL.md) | 0.1.2 | Benchmark review-plan question effectiveness via experiment-based ablation. Applies different question subsets to a plan (or directory of plans) in parallel experiments,… |
 | [review-coverage](skills/review-coverage/SKILL.md) | 0.2.7 | Add a post-ship improve-to-exhaustion directive to a plan, or run that directive after implementation. Invoke like any skill: /review-coverage, "review-coverage on this plan",… |
 | [review-fix-bench](skills/review-fix-bench/SKILL.md) | 0.1.2 | Compare two code-review prompt versions against supplied fixture ground truth using an explicitly configured external benchmark runner. Reports an F1-based verdict only when the… |
-| [shiploop](skills/shiploop/SKILL.md) | 0.18.13 | Markdown-authoritative delivery harness. Start or resume once, follow the script's current action packet, and submit its exact completion call until the script reports completion… |
+| [shiploop](skills/shiploop/SKILL.md) | 0.18.14 | Markdown-authoritative delivery harness. Start or resume once, follow the script's current action packet, and submit its exact completion call until the script reports completion… |
 | [shiploop-e2e-audit](skills/shiploop-e2e-audit/SKILL.md) | 0.2.3 | Run the ShipLoop test harness and audit its retained graph, review, test, product and incremental-change evidence. Use for ShipLoop mock checks, live one-shot E2E smoke/full… |
 | [skill-interop](skills/skill-interop/SKILL.md) | 0.2.3 | Use when authoring or reviewing a portable multi-host agent skill (Grok, Claude Code, Codex, Hermes): scaffold a prompt-only skill, make a skill host-agnostic, create skill… |
 
@@ -67,10 +67,11 @@ Operator guides: [ShipLoop](skills/shiploop/README.md),
 [Improve and release-candidate limits](skills/improve/README.md), and
 [completed ShipLoop proposals](docs/shiploop-proposal-closeout.md).
 
-**External compatibility:** New per-step ShipLoop chains require selected compatible
-Plan Dispatcher and Ask Agent 0.4.x adapter packages. This repository supplies
-Ask Agent 0.6.0 for managed native delegation; it is not accepted by that existing
-chain adapter. Follow [the chain binding requirements](skills/shiploop/references/parallel-chain.md#bind-the-selected-packages-and-reviewed-graph).
+**External compatibility:** New per-step ShipLoop chains require a selected compatible
+Plan Dispatcher and Ask Agent package. Ask Agent 0.6.x uses the managed-worktree
+adapter for parallel workers; existing 0.4.x bindings keep the caller-prepared
+adapter. Serial execution retains ShipLoop's allocation path. Follow
+[the chain binding requirements](skills/shiploop/references/parallel-chain.md#bind-the-selected-packages-and-reviewed-graph).
 
 **External (not in this monorepo):** [lennox-s40](https://github.com/whichguy/lennox-s40) — thermostat skill; install from that clone. Catalog pin remains in skill-craft-market.
 

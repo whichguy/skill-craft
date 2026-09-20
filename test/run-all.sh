@@ -59,6 +59,7 @@ run() {
 # integrations out of this catalog; an unavailable host is not a skipped pass.
 run core test-groups python3 test/test-groups.test.py
 run core integration-boundaries python3 test/integration-boundaries.test.py
+run core release-push python3 test/release-push.test.py
 run core ask-agent-worktree-harness python3 test/ask-agent-worktree-harness.test.py
 run core ask-agent-workspace python3 test/ask-agent-workspace.test.py
 run core ask-agent-delivery python3 test/ask-agent-delivery.test.py

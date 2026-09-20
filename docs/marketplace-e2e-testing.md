@@ -27,6 +27,32 @@ child-environment allowlist, disposable-profile deletion, and detection of an
 owned cache residual. It does not contact a host CLI or validate marketplace
 behavior.
 
+## Ask Agent installed consumer probe
+
+Run the separate local-package probe when changing Ask Agent's installed
+workspace contract:
+
+```sh
+bash test/run-integration.sh marketplace-codex-ask-agent
+```
+
+It creates a disposable Codex profile and local catalog, installs the generated
+Ask Agent package, and invokes the installed helper from an unrelated project.
+The fixture makes a linked caller worktree with staged, unstaged, and untracked
+inputs. It verifies complete installed plugin-tree hashes (excluding Python
+bytecode on both sides), selected-card/helper identity, report archive and
+idempotent close, caller `HEAD`/raw index/file preservation, and removal from
+the native inventory. No model or native background task is launched.
+
+`test/marketplace-host-isolation.test.py` also runs this flow against a fake
+Codex CLI that materializes the real local package and records its argv and
+allowlisted environment. That core regression proves the consumer boundary,
+not a real Codex installation. Neither check proves a published marketplace
+pin, public catalog discovery, or asynchronous completion delivery; record
+those separately with an explicit immutable-catalog probe.
+
+## Lifecycle harness behavior
+
 Each host receives a unique fixture marketplace and plugin name. The fixture
 contains only a versioned `SKILL.md`: it has no commands, hooks, MCP server, or
 network behavior. The native lifecycle is:
@@ -56,8 +82,7 @@ Claude and Grok runtime evidence is a new native `plugin list --json` inventory
 plus exact installed-card bytes. It proves the installed-plugin lifecycle; it
 does not open an authenticated chat or invoke a model.
 
-Codex plugin management does not support the profile isolation used by Claude
-and Grok. Its lane instead supplies a command-scoped, unique local marketplace,
+The older Codex lifecycle lane supplies a command-scoped, unique local marketplace,
 uses native `codex plugin add` and `codex plugin remove` only for its unique
 `plugin@marketplace` identity, and snapshots the existing Codex configuration
 before and after. The test fails if the configuration's bytes or parsed
@@ -65,7 +90,8 @@ top-level values change. It never writes or replaces the saved configuration.
 Its child environment is an explicit allowlist: it forwards the existing
 `HOME` and standard XDG configuration paths unchanged so Codex can read its
 normal on-disk configuration/auth state, but does not forward arbitrary ambient
-environment variables or set `CODEX_HOME`.
+environment variables or set `CODEX_HOME`. For a disposable `CODEX_HOME` and
+installed-helper qualification, use the Ask Agent consumer probe above.
 
 Codex's runtime proof comes from a new `codex app-server --stdio` process and
 a `skills/list` request after each install/upgrade/removal stage. This catches

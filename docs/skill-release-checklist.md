@@ -11,22 +11,34 @@ Before publishing a changed skill package, freeze the candidate bytes:
 3. **Verify the frozen candidate at the appropriate tier:** start with
    `bash test/run-all.sh --group smoke` and affected package checks such as
    `python3 scripts/check-marketplace-packages.py`. Smoke is partial evidence,
-   not exhaustive regression evidence. Run the complete hermetic aggregate
-   (`bash test/run-all.sh`) or a manual CI full tier for runtime, durable-state,
-   graph, callback, or recovery changes, and for release qualification. A
-   metadata-only package change may use smoke plus affected checks. Do not require
-   local full, PR full, and post-merge full runs when one qualifying run tested an
-   identical final tree; if bytes change, reselect the checks for the new tree.
-   A manual full CI run is started with
+   not exhaustive regression evidence. Select additional suites from the changed
+   behavior and its dependencies: runtime, durable-state, graph, callback and
+   recovery changes need their affected regression suites, not automatically
+   every repository suite. Use the complete hermetic aggregate
+   (`bash test/run-all.sh`) or a manual CI full tier only for a concrete
+   cross-subsystem risk that narrower checks cannot cover; record that reason.
+   Delegate established-suite execution to the **test-runner** skill with the
+   exact source identity, commands, expected evidence, deadline and retry policy.
+   Keep selection and failure diagnosis with the parent.
+   Do not repeat local full, PR full, and post-merge full runs when one qualifying
+   run tested identical bytes; record the tested SHA and tree, and reselect only
+   affected checks if bytes change. A manual full CI run is started with
    `gh workflow run ci.yml --ref <candidate-branch> -f tier=full`; confirm its
    tested SHA and tree still match the final candidate before relying on it. It is
    qualification evidence, not a replacement for the required PR smoke check.
-   The opt-in `marketplace-claude`, `marketplace-grok`, `marketplace-codex`
+   The opt-in `marketplace-claude`, `marketplace-grok`, `marketplace-codex`,
+   and `marketplace-codex-ask-agent`
    targets of `test/run-integration.sh` require actual host CLIs and disposable
    profiles, not personal installs. Record host versions and separate parser,
-   installation, installed-script and model-workflow evidence. Any unavailable
+   installation, installed-script and model-workflow evidence. For Ask Agent,
+   record `identity --skill-card` from the host-selected package; a same-name
+   skill-directory link does not identify an independently installed plugin copy.
+   Any unavailable
    check stays explicitly unverified. Then, with publication authorization,
    commit/publish the source and **tag** the verified tip (no further byte changes).
+   For an authorized direct fast-forward publication, use the guarded push below
+   so a failed precondition cannot be followed accidentally by a separate push.
+   Protected-branch reviews, checks and merge-queue requirements still apply.
 4. **Market pin:** only root skill-craft-market `.claude-plugin/marketplace.json` (no second catalog under `faces/`):
    - `source.path` = `plugins/<skill>` (not bare `skills/`)
    - `source.sha` = the full 40-character commit SHA containing the package
@@ -37,14 +49,19 @@ Before publishing a changed skill package, freeze the candidate bytes:
      represent it as a tagged release.
    - `version` = SKILL.md / `plugin.json` version field (must match at that SHA)
    - Advance **this leaf only** when its content/version changes — **no bulk retarget** of content-identical pins
-5. **Verify the catalog** from skill-craft-market: run
-   `python3 scripts/check-catalog.py --skill-craft-root ../skill-craft`,
-   `python3 test/catalog.test.py`, `python3 test/pins.test.py`, and
-   `python3 scripts/check-pins.py --full-payload`. The full-payload check reads the
-   complete packaged tree at immutable SHAs, not just catalog metadata. The CI
-   release-diff gate requires complete payload checks for new/changed native pins;
-   unchanged legacy pins are not silently upgraded. Private sources require an
-   existing `GH_TOKEN` with read access. The default check without this flag
+5. **Verify the catalog** from skill-craft-market: validate shape with
+   `python3 scripts/check-catalog.py --skill-craft-root /absolute/source/checkout`
+   and verify every changed release payload with
+   `python3 scripts/check-release-payload.py --base <previous-catalog-commit>`.
+   The release-diff gate reads complete packaged trees at immutable SHAs for
+   changed native pins; it does not silently upgrade unchanged legacy pins.
+   Run affected verifier tests when changing verifier code, and collect required
+   catalog CI for the exact candidate. Reuse its unchanged-tree evidence instead
+   of repeating the same unit bank locally and after merge.
+   `python3 scripts/check-pins.py --full-payload` remains available for a complete
+   catalog audit or changed shared verification rules; an individual pin update need
+   not requalify every unchanged payload. Private sources require an existing
+   `GH_TOKEN` with read access. The default pin check without `--full-payload`
    explicitly reports that complete payload readiness was not checked.
 6. **Push market** and operators run `claude plugin marketplace update skill-craft-market`
    or `codex plugin marketplace upgrade skill-craft-market` for a Git-backed catalog.
@@ -57,5 +74,30 @@ Before publishing a changed skill package, freeze the candidate bytes:
    create a public marketplace listing.
 
 Pin lag after ship is a bug: marketplace install must not serve pre-ship wording.
+
+## Guarded publication
+
+Prepare and review a local merge candidate against the current remote base. The
+candidate must contain that base and be clean, including non-ignored untracked files. Record
+its full commit and tree IDs and the current remote branch ID. Run qualification
+against those bytes; an identical tree may reuse recorded evidence. Then run:
+
+```sh
+python3 scripts/release-push.py --repo /absolute/release/worktree \
+  --expected-head <full-candidate-commit> --expected-tree <full-candidate-tree> \
+  --expected-base <full-remote-main-commit> \
+  --check '["bash", "scripts/sync-plugin-views.sh", "--check"]' \
+  --check '["python3", "scripts/check-marketplace-packages.py"]'
+```
+
+The checks are operator-selected argument arrays, executed sequentially without
+a shell. They supplement the recorded qualification evidence; the helper does
+not select tests or independently certify that evidence. A failing check stops
+the operation. The helper rechecks the candidate, clean state and remote base
+before one non-forced push of the frozen commit. A divergent remote update racing
+the push is rejected by Git. It does not bypass hooks, server policy, or required
+reviews; use the host's approved merge path where direct pushes are prohibited.
+If a push result is uncertain, inspect the remote ref before retrying. Publish
+tags and catalog pins only after verifying the source commit on the remote.
 
 **External leaves** (e.g. lennox-s40): pin the standalone repo in the market; never re-add `skills/<same-name>/` to this monorepo (`test/dual-body-guard.test.sh`).

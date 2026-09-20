@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -1301,6 +1302,127 @@ raise SystemExit(module.main(sys.argv[2:]))
         self.assertTrue(Path(prepared["worktree"]).is_dir(), prepared)
         self.assertTrue(Path(prepared["receipt"]).is_file(), prepared)
         self.assertFalse(str(ROOT) in str(prepared["worktree"]))
+
+    def test_identity_binds_a_host_selected_card_to_its_executing_package(self) -> None:
+        copied_skill = self.root / "frozen-installed-package" / "ask-agent"
+        shutil.copytree(ROOT / "skills" / "ask-agent", copied_skill)
+        copied_card = copied_skill / "SKILL.md"
+        copied_helper = copied_skill / "scripts" / "ask_agent_workspace.py"
+        logical_directory = self.root / "logical-host-skill" / "ask-agent"
+        logical_directory.parent.mkdir()
+        logical_directory.symlink_to(copied_skill, target_is_directory=True)
+        logical_card = logical_directory / "SKILL.md"
+        card_alias_parent = self.root / "logical-card-alias"
+        card_alias_parent.mkdir()
+        card_alias = card_alias_parent / "SKILL.md"
+        card_alias.symlink_to(copied_card)
+
+        expected_card = copied_card.resolve()
+        expected_helper = copied_helper.resolve()
+        expected_version = next(
+            line.split(":", 1)[1].strip()
+            for line in expected_card.read_text(encoding="utf-8").splitlines()
+            if line.startswith("version:")
+        )
+        expected = {
+            "status": "verified",
+            "schema": "ask-agent.skill.identity.v1",
+            "resolved_skill_card": str(expected_card),
+            "resolved_helper": str(expected_helper),
+            "version": expected_version,
+            "skill_card_sha256": hashlib.sha256(expected_card.read_bytes()).hexdigest(),
+            "helper_sha256": hashlib.sha256(expected_helper.read_bytes()).hexdigest(),
+        }
+        for selected_card in (logical_card, card_alias):
+            with self.subTest(selected_card=selected_card):
+                identity = self._cli_success(
+                    "identity",
+                    "--skill-card",
+                    str(selected_card),
+                    helper=copied_helper,
+                    isolated_python=True,
+                )
+                self.assertEqual(
+                    set(identity),
+                    {
+                        "status",
+                        "schema",
+                        "skill_card",
+                        "resolved_skill_card",
+                        "resolved_helper",
+                        "version",
+                        "skill_card_sha256",
+                        "helper_sha256",
+                    },
+                )
+                self.assertEqual(identity["skill_card"], str(selected_card))
+                for field, value in expected.items():
+                    self.assertEqual(identity[field], value)
+
+    def test_identity_rejects_relative_missing_mismatched_and_malformed_cards(self) -> None:
+        copied_skill = self.root / "frozen-installed-package" / "ask-agent"
+        shutil.copytree(ROOT / "skills" / "ask-agent", copied_skill)
+        copied_helper = copied_skill / "scripts" / "ask_agent_workspace.py"
+        other_skill = self.root / "other-installed-package" / "ask-agent"
+        shutil.copytree(ROOT / "skills" / "ask-agent", other_skill)
+        malformed_skill = self.root / "malformed-installed-package" / "ask-agent"
+        shutil.copytree(ROOT / "skills" / "ask-agent", malformed_skill)
+        (malformed_skill / "SKILL.md").write_text(
+            "---\nname: ask-agent\nversion: not-a-version\n---\n# Ask agent\n",
+            encoding="utf-8",
+        )
+        redirected_helper_skill = self.root / "redirected-helper-package" / "ask-agent"
+        shutil.copytree(ROOT / "skills" / "ask-agent", redirected_helper_skill)
+        redirected_card_skill = self.root / "redirected-card-package" / "ask-agent"
+        shutil.copytree(ROOT / "skills" / "ask-agent", redirected_card_skill)
+        redirected_card = redirected_card_skill / "SKILL.md"
+        (redirected_helper_skill / "SKILL.md").unlink()
+        (redirected_helper_skill / "SKILL.md").symlink_to(redirected_card)
+
+        cases = (
+            (
+                "relative",
+                copied_helper,
+                Path("SKILL.md"),
+                "absolute",
+            ),
+            (
+                "missing",
+                copied_helper,
+                self.root / "missing-package" / "SKILL.md",
+                "resolve",
+            ),
+            (
+                "same-name other package",
+                copied_helper,
+                other_skill / "SKILL.md",
+                "executing helper package",
+            ),
+            (
+                "malformed metadata",
+                malformed_skill / "scripts" / "ask_agent_workspace.py",
+                malformed_skill / "SKILL.md",
+                "semantic version",
+            ),
+            (
+                "helper card redirected to another package",
+                redirected_helper_skill / "scripts" / "ask_agent_workspace.py",
+                redirected_card,
+                "executing helper package",
+            ),
+        )
+        for name, helper, card, message in cases:
+            with self.subTest(name=name):
+                result, identity = self._cli(
+                    "identity",
+                    "--skill-card",
+                    str(card),
+                    helper=helper,
+                    isolated_python=True,
+                )
+                self.assertNotEqual(result.returncode, 0, identity)
+                self.assertEqual(identity.get("status"), "error", identity)
+                self.assertIn(message, str(identity.get("error", "")).lower(), identity)
 
 
 if __name__ == "__main__":

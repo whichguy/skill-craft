@@ -1,7 +1,7 @@
 ---
 name: ask-agent
 description: A delegation skill, not an agent type. Ask native agents to work in the background, continue useful work in the main conversation, and incorporate their results when they return. Use for "ask an agent", named agent roles, parallel delegation, or launch-and-notify work.
-version: 0.6.0
+version: 0.6.1
 license: MIT
 platforms:
   - linux
@@ -60,9 +60,14 @@ and handoff constraints. It must collect its delegates before returning.
 ## Prepare, launch, continue, collect
 
 1. **Prepare through the skill.** Read [Workspace operations](references/workspace-operations.md)
-   and [Git integration](references/git-integration.md). Bind the helper from the
-   selected skill's absolute installation path. Coordinate source writers, then
-   call `prepare --source` with the actual caller checkout, including a linked worktree.
+   and [Git integration](references/git-integration.md). Obtain the host-selected,
+   absolute logical `SKILL.md` path, bind its helper, and run `identity --skill-card`
+   before `prepare`. Record the returned logical and resolved card/helper paths,
+   skill version, and both SHA-256 values with the pending job. This proves the
+   selected card and executing helper are one package; it does not discover a skill
+   from the task cwd, `PATH`, or a cache. Stop on identity failure; do not call
+   `prepare`. Coordinate source writers, then call
+   `prepare --source` with the actual caller checkout, including a linked worktree.
    The helper creates and verifies a new workspace carrying staged, unstaged,
    and non-ignored untracked inputs. The caller must not supply a worktree or
    reproduce the Git recipe. Do not begin independent caller edits until the
@@ -76,7 +81,8 @@ and handoff constraints. It must collect its delegates before returning.
    also prohibits setup; an ordinary review permits isolated setup and reports.
 
 2. **Give a fresh worker a complete assignment.** Put the objective, relevant
-   inputs, allowed actions, expected output and the filled
+   inputs, allowed actions, expected output, recorded package identity (logical
+   card, resolved card/helper, version, and card/helper SHA-256 values), and the filled
    [delivery clause](references/git-integration.md#reusable-fresh-worker-launch-clause)
    directly in the native launch prompt. Do not create a prompt transport file.
    Choose `patch`, `commits`, or `report-only` before launch. Read
@@ -92,7 +98,9 @@ and handoff constraints. It must collect its delegates before returning.
    directory before task work and to stop on failure. This checks real process
    cwd and Git root; reading a receipt or using `git -C` does not set shell cwd.
    Set directory scope on every subsequent command and absolute paths for file
-   tools. Disclose operation-only binding; it is not native startup binding or
+   tools. Include the recorded package identity in the worker's self-contained
+   return so the parent can prove which selected package created the workspace.
+   Disclose operation-only binding; it is not native startup binding or
    operating-system isolation. Follow the target's project instructions.
 
 4. **Launch and continue.** Immediately before every launch/retry/follow-up
@@ -130,15 +138,16 @@ and handoff constraints. It must collect its delegates before returning.
 
 Workers finish normally with their task label, assignment reminder,
 SUCCEEDED/BLOCKED/FAILED, result or blocker, observed workspace, receipt,
-delivery mode, context-check output or tool locator, handoff/report paths, and
-next action/owner. They leave their
+delivery mode, selected-package identity (logical card, resolved card/helper,
+version, card/helper SHA-256 values), context-check output or tool locator,
+handoff/report paths, and next action/owner. They leave their
 worktree intact. Return enough detail to be useful; put bulky evidence in reports.
 Do not guess missing values or bury workspace and lifecycle information only in
 a report the parent may not open.
 
 Return the self-contained [caller handoff](references/result-handoff.md#caller-facing-handoff)
 inline in both the worker return and the parent's final response. It names the
-actual worktree and branch, outcome and checks, exact patch or ordered commit
+selected package identity, actual worktree and branch, outcome and checks, exact patch or ordered commit
 SHAs, target checkout, integration state, and concrete integration/retention
 directive. The caller must be able to review or integrate using that response
 without opening a helper receipt, baseline JSON, or internal state directory.

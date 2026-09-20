@@ -27,7 +27,7 @@ SHIPLOOP_SMOKE = (
     "test/shiploop-graph-trace.test.py",
 )
 CORE = {
-    "test-groups", "integration-boundaries", "ask-agent-worktree-harness", "skill-interop-hygiene",
+    "test-groups", "integration-boundaries", "release-push", "ask-agent-worktree-harness", "skill-interop-hygiene",
     "ask-agent-workspace", "ask-agent-delivery", "ask-agent-managed-harness",
     "sync-plugin-views", "native-marketplace-adapters", "skill-frontmatter",
     "marketplace-package", "installed-skill-invocation", "prompt-marketplace-contract",

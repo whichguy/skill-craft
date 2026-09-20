@@ -33,9 +33,10 @@ ShipLoop prompt.
 - [Optional parallel or serial implementation chains](references/parallel-chain.md) — bind
   the selected Plan Dispatcher/Ask-Agent packages to one current implementation
   action. Every new per-step binding, including `--mode serial`, requires a
-  selected compatible Plan Dispatcher and Ask-Agent 0.4.x adapter; this
-  repository's `skills/ask-agent` 0.6.0 manages its own workspace and is not
-  accepted by the existing 0.4.x caller-prepared-worktree adapter. The Dispatcher must
+  selected compatible Plan Dispatcher and Ask-Agent package. Parallel workers
+  use Ask Agent 0.6.x's managed-worktree adapter or the legacy 0.4.x
+  caller-prepared adapter; frozen legacy bindings retain their original contract.
+  Serial execution keeps ShipLoop's own allocation path. The Dispatcher must
   advertise `planning_context: "shiploop-planning-artifacts/v1"` and
   `graph_validation: "execution-graph/v1"`; [the chain preflight](references/parallel-chain.md#planning-artifact-handoff)
   rejects an invalid graph before binding, leaving the parent unchanged for a
