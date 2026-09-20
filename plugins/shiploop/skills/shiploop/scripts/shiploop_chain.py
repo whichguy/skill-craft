@@ -587,14 +587,14 @@ def _selected_ask_agent_contract(package: Mapping[str, Any]) -> dict[str, Any]:
     managed = re.search(r"^version:\s*(0\.6\.[0-9]+)\s*$", text, flags=re.MULTILINE)
     if managed is None:
         _fail("per-step lifecycle requires an explicitly selected Ask-Agent 0.4.x or 0.6.x package")
-    contract_text = (text + "\n" + reference_text).replace("\n", " ")
+    contract_text = " ".join((text + "\n" + reference_text).split())
     required = (
         "The bundled helper owns Git workspace preparation and eligible cleanup",
         "call `prepare --source`",
         "inspect --phase prepared --receipt",
         "check-context --receipt",
         "Archive reports and call `close`",
-        "commit delivery requires a clean inherited snapshot",
+        "commit delivery still requires a clean inherited snapshot",
     )
     if any(marker not in contract_text for marker in required):
         _fail("selected Ask-Agent 0.6 package does not declare the required managed-worktree contract")
