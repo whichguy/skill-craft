@@ -37,6 +37,14 @@ the words are identical.
 
 ## Discover persistent context before planning
 
+Use [current-system recovery](current-system-baseline.md#establish-or-refresh)
+when an existing repository or identified remote system lacks an adequate baseline.
+Read README first, recover a bounded system overview and affected behavior, and
+retain the prior baseline separately from the incoming change spec. Existing specs
+still own accepted intent; recovered observations do not override them. For a
+remote-only engagement, the guide defines a durable local documentation home
+without claiming to possess the remote source repository.
+
 Every navigator packet supplies a **Repository knowledge index** locator at
 `REPO/SHIPLOOP.md` and this policy. The index is host-authored Markdown, not a
 second graph cursor. Reuse any existing content; it may link adequate project
@@ -217,7 +225,9 @@ into binding conditions merely because an earlier agent wrote them down.
    A first run in an existing repository is not a blank slate: recover the
    touched behavior and its sources, label undocumented code behavior as
    observed rather than approved, and resolve material uncertainty. Start small;
-   do not reverse-engineer an unrelated whole-system spec. If an expected
+   initialize a shallow system overview when missing, then deepen affected and
+   cross-cutting behavior using [current-system recovery](current-system-baseline.md).
+   Do not require an exhaustive unrelated whole-system spec. If an expected
    requirements source is missing, recover it or resolve the consequential gap
    before dependent work; absence is not permission to guess or erase intent.
 2. **Spec/overall and step planning:** describe the requested delta. For affected
@@ -260,6 +270,7 @@ reference to skill guidance is not a reference to the product's actual contract.
 | Product code, tests and enduring case documentation in the repository | Assigned implementation/test/documentation work | Requirement sections point to relevant test paths/selectors; plans and checks point back to the clauses they establish. Planned tests remain labeled planned until authored and executed. |
 | Reusable repo-local skills in the existing product skill layout | Authorized skill/documentation work | Later planners discover them through the repo index; [skill documentation](testing-and-documentation.md#reusable-product-skills) links the same product clauses/code/tests or accepts source locators as inputs, never another copied spec. |
 | Current change spec, plan, research/environment notes and evidence under the run directory | The active protocol's host/result and script-owned write routes | Dependent actions read result `evidence_refs`, work-item `context`, or that protocol's context reader. They do not become a second permanent product contract. |
+| Prior current-system baseline in run notes or at a retrievable immutable source revision | Discovery/research within the active stage's authority | Spec, test strategy, plans and Improve reopen selected sections and evidence limits; authorized documentation work retains useful recovered knowledge in the durable product home. Preserve the prior as-of account when later evidence changes. |
 | Improve contract, review notebook, checks and completion evidence under the packet's child locations | Selected Improve and its bound Until Loop adapter | Child recovery reads its own contract/state; ShipLoop imports the matching completion evidence. Child runtime files stay out of product returns. |
 
 **Resolve the root, then the section.** Package Markdown links are relative to
@@ -312,6 +323,12 @@ context assessment and the relevant project documents in plan notes and work
 item `context` so fresh INNER/OUTER packets can recover them. Improve challenges
 stale assumptions, unintended rebuilds, replayed old tasks and unintended loss
 of applicable accepted product requirements.
+
+Carry selected prior-baseline and incoming-spec sections together, using existing
+IDs or exact headings. Follow the [baseline handoff](current-system-baseline.md#planning-and-review-handoff)
+to demonstrate preservation through concrete before/after behavior and checks,
+and [retain recovered knowledge](current-system-baseline.md#retain-across-runs)
+outside transient notes for the next request.
 
 For affected interactions, carry exact baseline/delta, state/connection-contract
 and check locators in each work item. For UI work, also retain component,

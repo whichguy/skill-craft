@@ -65,6 +65,37 @@ CODING_GUIDE_STAGES = ("step-plan", "implement", "verify")
 CODING_GUIDE_ROUTE = (
     "Coding decision guide: " + str(REFERENCES / "coding-guidance.md#select-guidance")
 )
+CURRENT_SYSTEM_BASELINE_GUIDE = "current-system-baseline.md"
+CURRENT_SYSTEM_BASELINE_GUIDANCE_LABEL = "Current-system baseline guide"
+CURRENT_SYSTEM_BASELINE_ANCHORS = (
+    "establish-or-refresh",
+    "evidence-and-authority",
+    "remote-only-systems",
+    "planning-and-review-handoff",
+    "retain-across-runs",
+)
+# Deliberately independent of the prompt catalog: only these stages receive the
+# current-system baseline guide, with the named section for their decision.
+CURRENT_SYSTEM_BASELINE_STAGE_ANCHORS = {
+    "discovery": "establish-or-refresh",
+    "research": "evidence-and-authority",
+    "spec": "planning-and-review-handoff",
+    "test-strategy": "planning-and-review-handoff",
+    "plan": "planning-and-review-handoff",
+    "step-plan": "planning-and-review-handoff",
+    "document": "retain-across-runs",
+    "carry-forward": "retain-across-runs",
+    "product-acceptance": "retain-across-runs",
+    "handoff": "retain-across-runs",
+}
+CURRENT_SYSTEM_BASELINE_ROUTES = {
+    stage: (
+        CURRENT_SYSTEM_BASELINE_GUIDANCE_LABEL
+        + ": "
+        + str(REFERENCES / (CURRENT_SYSTEM_BASELINE_GUIDE + "#" + anchor))
+    )
+    for stage, anchor in CURRENT_SYSTEM_BASELINE_STAGE_ANCHORS.items()
+}
 if str(SCRIPTS) not in sys.path:
     sys.path.insert(0, str(SCRIPTS))
 
@@ -179,6 +210,183 @@ class V3GuidanceTests(unittest.TestCase):
                         )
                     }
                     self.assertIn(anchor, headings, locator)
+
+    def test_current_system_baseline_stage_routes_are_exact_and_selective(self) -> None:
+        """Keep the guide's graph projection independent of the prompt catalog."""
+        observed: list[str] = []
+        for stage in prompts.STAGES:
+            with self.subTest(stage=stage):
+                entries = [
+                    (label, locator)
+                    for label, locator in prompts.STAGE_REFERENCES[stage]
+                    if label == CURRENT_SYSTEM_BASELINE_GUIDANCE_LABEL
+                ]
+                anchor = CURRENT_SYSTEM_BASELINE_STAGE_ANCHORS.get(stage)
+                if anchor is None:
+                    self.assertEqual(entries, [])
+                else:
+                    self.assertEqual(
+                        entries,
+                        [(
+                            CURRENT_SYSTEM_BASELINE_GUIDANCE_LABEL,
+                            CURRENT_SYSTEM_BASELINE_GUIDE + "#" + anchor,
+                        )],
+                    )
+                    observed.append(stage)
+        self.assertEqual(tuple(observed), tuple(CURRENT_SYSTEM_BASELINE_STAGE_ANCHORS))
+
+    def test_current_system_baseline_guide_relocates_with_recovery_cue(self) -> None:
+        """The portable guide retains anchors and a minimal stale/missing recovery cue.
+
+        This checks durable guide material only, not whether a host detects or
+        refreshes a live snapshot.
+        """
+        guide = REFERENCES / CURRENT_SYSTEM_BASELINE_GUIDE
+        self.assertTrue(guide.is_file(), guide)
+        if not guide.is_file():
+            return
+        body = guide.read_text(encoding="utf-8")
+        headings = {
+            heading_anchor(match.group(2))
+            for match in re.finditer(r"(?m)^(#{1,6})\s+(.+?)\s*$", body)
+        }
+        for anchor in CURRENT_SYSTEM_BASELINE_ANCHORS:
+            with self.subTest(anchor=anchor):
+                self.assertIn(anchor, headings)
+
+        relocated = (self.repo / "copied-package" / "references").resolve()
+        shutil.copytree(REFERENCES, relocated)
+        copied_guide = relocated / CURRENT_SYSTEM_BASELINE_GUIDE
+        copied_body = copied_guide.read_text(encoding="utf-8")
+        self.assertNotIn("/Users/", copied_body)
+        recovery = normalized(copied_body).lower()
+        self.assertRegex(recovery, r"\b(?:missing|absent|stale|outdated)\b")
+        self.assertRegex(recovery, r"\b(?:refresh|re-establish|rebuild|recover)\b")
+        for stage, anchor in CURRENT_SYSTEM_BASELINE_STAGE_ANCHORS.items():
+            with self.subTest(stage=stage, anchor=anchor):
+                filename, separator, route_anchor = (
+                    CURRENT_SYSTEM_BASELINE_GUIDE + "#" + anchor
+                ).partition("#")
+                self.assertEqual(separator, "#")
+                destination = relocated / filename
+                self.assertTrue(destination.is_file(), destination)
+                destination_headings = {
+                    heading_anchor(match.group(2))
+                    for match in re.finditer(
+                        r"(?m)^(#{1,6})\s+(.+?)\s*$",
+                        destination.read_text(encoding="utf-8"),
+                    )
+                }
+                self.assertIn(route_anchor, destination_headings)
+
+        for link in re.findall(r"\[[^\]]+\]\(([^)]+)\)", copied_body):
+            if link.startswith(("https://", "http://")):
+                continue
+            with self.subTest(link=link):
+                path, _, anchor = link.partition("#")
+                destination = (copied_guide.parent / path).resolve() if path else copied_guide
+                self.assertTrue(destination.is_relative_to(relocated), link)
+                self.assertTrue(destination.is_file(), link)
+                if anchor:
+                    destination_headings = {
+                        heading_anchor(match.group(2))
+                        for match in re.finditer(
+                            r"(?m)^(#{1,6})\s+(.+?)\s*$",
+                            destination.read_text(encoding="utf-8"),
+                        )
+                    }
+                    self.assertIn(anchor, destination_headings)
+
+    def test_current_system_baseline_routes_survive_cold_lifecycle_and_pending_improve(self) -> None:
+        """Cold packets preserve only the relevant locator through one synthetic run.
+
+        This exercises save/reload and normal producer/Improve transitions. It
+        proves route plumbing and explicitly supplied handoff locators, not that
+        a model validated a source, understood a baseline, or performed a real
+        review.
+        """
+        routes = tuple(dict.fromkeys(CURRENT_SYSTEM_BASELINE_ROUTES.values()))
+        notes = self.run / "notes"
+        notes.mkdir()
+        prior_baseline = notes / "prior-baseline.md"
+        incoming_spec = notes / "incoming-spec.md"
+        prior_baseline.write_text(
+            "# Prior product baseline\n\n## Accepted baseline\n\nFixture baseline.\n",
+            encoding="utf-8",
+        )
+        incoming_spec.write_text(
+            "# Incoming specification\n\n## Requested delta\n\nFixture delta.\n",
+            encoding="utf-8",
+        )
+        prior_baseline_ref = str(prior_baseline) + "#accepted-baseline"
+        incoming_delta_ref = str(incoming_spec) + "#requested-delta"
+        product_refs = [prior_baseline_ref, incoming_delta_ref]
+        item_context = (
+            "W1 host-authored current-system handoff: reopen prior baseline "
+            + prior_baseline_ref
+            + " and incoming delta "
+            + incoming_delta_ref
+            + "; retain their selected sections and revalidation condition."
+        )
+        observed: list[str] = []
+        state = self.state()
+
+        def assert_packet(stage: str, packet: str) -> None:
+            expected = CURRENT_SYSTEM_BASELINE_ROUTES.get(stage)
+            for route in routes:
+                with self.subTest(stage=stage, route=route):
+                    self.assertEqual(packet.count(route), int(route == expected), packet)
+
+        while state["status"] != "done":
+            stage = navigator.current_stage(state)
+            recovered, producer_packet = self.cold_packet(state)
+            self.assertEqual(navigator.current_stage(recovered), stage)
+            assert_packet(stage, producer_packet)
+            if stage == "plan":
+                # The preceding host-authored test-strategy result explicitly
+                # carries these locators; the navigator did not discover them.
+                self.assertIn(prior_baseline_ref, producer_packet)
+                self.assertIn(incoming_delta_ref, producer_packet)
+            if stage == "step-plan":
+                self.assertEqual(navigator._current_work_item(recovered), "W1")
+                self.assertIn("Work item context: " + item_context, producer_packet)
+                self.assertIn(prior_baseline_ref, producer_packet)
+                self.assertIn(incoming_delta_ref, producer_packet)
+
+            extra: dict[str, object] = {}
+            if stage in {"discovery", "test-strategy", "plan", "step-plan"}:
+                # These are synthetic host-authored handoffs in ordinary result
+                # fields, never inferred by the navigator from the fixture files.
+                extra["evidence_refs"] = product_refs
+            if stage == "plan":
+                extra["work_items"] = [
+                    {
+                        "id": "W1",
+                        "title": "Retain current-system baseline",
+                        "context": item_context,
+                    }
+                ]
+            if stage in CURRENT_SYSTEM_BASELINE_STAGE_ANCHORS:
+                action = dict(navigator.current_action(recovered))
+                waiting = navigator.apply(recovered, action["id"], result(stage, **extra))
+                pending, pending_packet = self.cold_packet(waiting)
+                self.assertIsNotNone(pending["active_improve"])
+                self.assertEqual(navigator.current_stage(pending), stage)
+                self.assertIn("Current action: Improve the completed " + stage, pending_packet)
+                assert_packet(stage, pending_packet)
+                if stage == "discovery":
+                    self.assertIn(prior_baseline_ref, pending_packet)
+                    self.assertIn(incoming_delta_ref, pending_packet)
+                if stage == "step-plan":
+                    self.assertIn("Work item context: " + item_context, pending_packet)
+                    self.assertIn(prior_baseline_ref, pending_packet)
+                    self.assertIn(incoming_delta_ref, pending_packet)
+                observed.append(stage)
+                state = navigator.finish_improve(pending, action["id"], receipt(stage))
+            else:
+                state, _action_id = self.complete_stage(recovered, **extra)
+
+        self.assertEqual(tuple(observed), tuple(CURRENT_SYSTEM_BASELINE_STAGE_ANCHORS))
 
     def test_cold_lifecycle_packets_keep_clause_surface_and_due_phase(self) -> None:
         """A compact requirement survives planning and due-stage reconciliation.

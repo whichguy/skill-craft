@@ -5,7 +5,7 @@ description: >-
   script's current action packet, and submit its exact completion call until
   the script reports completion with an HTML achievement report. Use when the
   user says shiploop, ship the project, or requests a durable delivery loop.
-version: 0.18.6
+version: 0.18.7
 allowed-tools: all
 license: MIT
 platforms:
@@ -91,6 +91,11 @@ During discovery, research, and spec, apply
 specs, reconcile current explicit instructions with their applicable conditions,
 and define verifiable non-functional requirements. Preserve unaffected intent
 and retain material unknowns; carry the resulting criteria into plans and checks.
+Use [current-system recovery](references/current-system-baseline.md) to initialize
+a README-led baseline when an existing repo or remote system lacks one. Reuse and
+revalidate sufficient prior knowledge; retain the prior as-of baseline, incoming
+delta and maintained product knowledge through planning and the normal handoffs.
+Recovered observations do not become approved requirements.
 Use the [stage readiness and completion map](references/testing-and-documentation.md#stage-readiness-and-completion)
 to distinguish definition done, tests planned/authored, due verification and final
 delivery. Preserve each affected clause's required surface and due phase in the

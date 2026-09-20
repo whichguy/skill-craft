@@ -24,8 +24,14 @@ Follow [reference handoffs and destinations](project-knowledge.md#reference-hand
 when passing these sections to planning, test authors and Improve; a guide path
 alone does not identify the selected product requirements.
 If no suitable home exists, follow that policy's small-repository fallback.
-Recover only affected requirements and cross-cutting conditions, not an
-unrelated whole-system specification.
+When current behavior lacks an adequate account, use
+[current-system recovery](current-system-baseline.md#establish-or-refresh): README
+leads a shallow system overview, with deeper affected and cross-cutting behavior.
+Retain this descriptive baseline separately from approved intent and the incoming
+delta; accepted requirements alone do not prove what currently works. Recover
+only the requirements needed for the affected scope, not an exhaustive unrelated
+whole-system specification. Reopen the selected baseline at spec/planning and
+map preserve/add/modify/retire decisions to its sections and planned checks.
 
 ## Reconcile current context with existing intent
 

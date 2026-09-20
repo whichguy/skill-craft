@@ -1,4 +1,4 @@
-# ShipLoop navigator 0.18.6
+# ShipLoop navigator 0.18.7
 
 ShipLoop runs in the conversation that invoked it. That conversation follows
 the current action packets and performs the producer and Improve work; the
@@ -29,6 +29,7 @@ ShipLoop prompt.
 - [Skill entrypoint](SKILL.md)
 - [Isolated workspace and artifact return policy](references/workspace-lifecycle.md)
 - [Delivery-authority readiness](references/delivery-authority.md)
+- [README-led current-system baseline and planning handoff](references/current-system-baseline.md)
 - [Optional parallel or serial implementation chains](references/parallel-chain.md) — bind
   the selected Plan Dispatcher/Ask-Agent packages to one current implementation
   action. Every new per-step binding, including `--mode serial`, requires a
