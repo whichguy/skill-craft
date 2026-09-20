@@ -1,0 +1,47 @@
+{
+  "candidate_fingerprint": "16910395cf6145ce02f1ca56ad12e11d9a43ff85a3fe2ea915a85a9bb90e684c",
+  "cold_plan_words": 336,
+  "current_production_matches_frozen_package": true,
+  "frozen_package_files": 110,
+  "frozen_package_unchanged": true,
+  "limits": "Hash and transport evidence; not live enterprise access or measured prompt improvement.",
+  "post_test_finalization": {
+    "added_paths": "Experiment README and observed evidence only",
+    "changed_frozen_paths": [
+      "docs/shiploop-discovery-followup-2026-09-20.md",
+      "test/experiments/shiploop_connected_knowledge_followup/control/collect.py"
+    ],
+    "production_and_tests_unchanged": true
+  },
+  "prior_experiment_changes": [],
+  "producer_note_words": 654,
+  "producer_result_bytes_unchanged": true,
+  "producer_result_sha256": "7cb2db0030c0efc0be26e18cb6c348e9d44b3bd9ab33d54588839b36d6219279",
+  "protected_fixture_files": 7,
+  "protected_fixture_inputs_unchanged": true,
+  "retained_files": {
+    "observed/ASSESSMENT.md": "fcf4ed21c8a78a8c65a1d2cba8aa3a3b84b31ec5550b1b8da7b724cdae987ef1",
+    "observed/calibration/reader-preflight.json": "aae7c76b24b786d24042b9279ce0381e8f78ef3cd094484fc2f830f6a1489712",
+    "observed/calibration/reader-receipts.jsonl": "d03927142a793b9c286896248ffb212386dc1dc0109b5ea79288e501871538ca",
+    "observed/calibration/transport-calibration-fixed.json": "c907cb40690cd13ad38d85df1d2008fec159564fe93a81e921045e425ebd579b",
+    "observed/calibration/transport-calibration.json": "fab5b8c5af5204171c3f036e0f13cf6a4a23f16ea6834fe5099d0fba3da42178",
+    "observed/checks/candidate-checks.json": "25439e5a11bd3db8f2a38f7a8147dee71e0aa242c4169bae1bdcd73533975a87",
+    "observed/checks/candidate-identity.txt": "7fd23e642264316385ac53554974019d8262bf23cd004f3df8a93445e40a9452",
+    "observed/cold/LAUNCH.md": "5f40756bc3c95461be956c5c0ee87f1186326b4917b917335716e35b9173a254",
+    "observed/cold/PLAN.md": "cd2eed993e8fb62872ea58e92fd8e01c9fa5f05b44752c98f92fb0487925c316",
+    "observed/manifest.json": "c781b50a269cf4b189d2467f75990dbd8a68fbdabbe1933bc5d50a7a27c1bae7",
+    "observed/producer/BASELINE.txt": "ad9a84c8e431c839fc630086e50d56026673153cfbc8ff501ff159add489f642",
+    "observed/producer/DISCOVERY.md": "fa6d99f5741d5ddbfdbea31dc51675627fab992b0ad9eccb29102f0a4bf90ff8",
+    "observed/producer/LAUNCH.md": "a47b185852b3ec04406360b0f72a1156e466c5958dbcb49df419600117be6495",
+    "observed/producer/PACKET.md": "0dd0d1c7b179e50e689b1f62a851a17afcc22ec49c44302dd4bc0137c2b9ca7e",
+    "observed/producer/RESULT.json": "7cb2db0030c0efc0be26e18cb6c348e9d44b3bd9ab33d54588839b36d6219279",
+    "observed/producer/SHIPLOOP.md": "9eb3519b85de564ceb8e05aab193f8ba1233f94380e8fb6cb68da0fd3cf12f6c",
+    "observed/producer/receipts.jsonl": "72144a267979c7e0da9aeaffcff99dbf7e4fcc1b754ce555b8137c273ce6df18",
+    "observed/transport/accepted-discovery.md": "e7dd3782cc4abdecd01615b131740092e062111012c4055911eee74984bf90a5",
+    "observed/transport/checks.json": "ec524662300bcbb941e6b273cd8cc84c5183b62618ded3524b5abb00dc8290d1",
+    "observed/transport/collection.json": "eb7c2c282ed83bba41b7bec1b434c473ddbee876b045d35354d5c6b0a3fe0088",
+    "observed/transport/negative-missing-receipt.json": "e5101df121ad6c191a500d2bec44439e571b149e29285223dc764568a8eee4da",
+    "observed/transport/planning-brief.md": "a8bc751f68daa4d60da094a3e69a488d5d016240ae1d468e18a6b7d94a3f9956"
+  },
+  "source_base": "04c0c56e131bf1a12b115977da2bb06c30a57ece"
+}
