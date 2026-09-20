@@ -896,7 +896,7 @@ receipt = {'schema': 'shiploop-e2e-salesforce-target-preflight/1',
            'observed_instance_url': target['instanceUrl'].rstrip('/'),
            'expected_lightning_host': sys.argv[4],
            'observed_lightning_host': observed_lightning_host,
-           'is_sandbox': org.get('IsSandbox'),
+           'is_sandbox': org.get('IsSandbox'), 'product_cwd': str(Path.cwd().resolve()),
            'checked_at': datetime.datetime.now(datetime.timezone.utc).isoformat()}
 with Path(sys.argv[1]).open('x') as output:
     json.dump(receipt, output, indent=2)
@@ -916,8 +916,19 @@ prerequisite instead of changing authentication or using another org.
 Launch only when requested, through the ordinary one-shot route:
 
 ```text
-/shiploop-e2e-audit salesforce-checkers-full model=grok-4.6
+/shiploop-e2e-audit salesforce-checkers-full model=grok-4.6 repo=/absolute/empty-product salesforce-preflight=/absolute/new-target-preflight.json
 ```
+
+The receipt must be checked within 15 minutes of launch and name the same
+explicit empty product directory in `product_cwd`. Both `run` and `suite` require
+`--salesforce-preflight` for this Salesforce step; a Salesforce suite also needs
+`--repo`. The runner rejects missing, malformed, stale or mismatched receipts
+before output creation or a model call, and pins the accepted sanitized receipt
+in the manifest. Post-run deployment proof must use that same receipt hash.
+It accepts only the documented safe fields; tokens and other
+extra fields must never be included. This validates an independently obtained
+preflight, not live Salesforce authentication. Keep the default-org configuration
+unchanged between the external check and launch.
 
 The full literal prompt is in `scenarios.json`. This call may build and deploy
 the dedicated test app. It does not imply independent product verification is

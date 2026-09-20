@@ -46,6 +46,12 @@ SALESFORCE_DEPLOYMENT_RECEIPT_SCHEMA = salesforce.DEPLOYMENT_RECEIPT_SCHEMA
 SALESFORCE_SOURCE_MAPPING_SCHEMA = salesforce.SOURCE_MAPPING_SCHEMA
 SALESFORCE_HOSTED_OBSERVATION_SCHEMA = salesforce.HOSTED_OBSERVATION_SCHEMA
 SALESFORCE_LIGHTNING_BROWSER_TRACE_SCHEMA = salesforce.LIGHTNING_BROWSER_TRACE_SCHEMA
+SALESFORCE_PREFLIGHT_IDENTITY_FIELDS = (
+    "schema", "status", "org_type", "expected_org_id", "observed_org_id",
+    "expected_instance_url", "observed_instance_url", "expected_lightning_host",
+    "observed_lightning_host",
+)
+SALESFORCE_PREFLIGHT_OPTIONAL_IDENTITY_FIELDS = ("is_sandbox", "my_domain")
 DEFAULT_DRIVER_TIMEOUT_SECONDS = 60.0
 DEFAULT_DRIVER_MAX_OUTPUT_BYTES = 8 * 1024 * 1024
 MAX_DRIVER_TIMEOUT_SECONDS = 300.0
@@ -1012,6 +1018,64 @@ def _authorized_deployment_errors(
     return sorted(set(errors))
 
 
+def _salesforce_launch_preflight_pin_errors(
+    preflight_reference: Any, preflight: Mapping[str, Any], *, context: Mapping[str, Any],
+) -> list[str]:
+    """Bind deployment proof to the target receipt frozen before model launch.
+
+    This reads only the trial manifest.  It intentionally does not reopen the
+    original receipt or reassess its launch-time freshness; the retained digest
+    is the bounded link between launch selection and post-run evidence.
+    """
+    try:
+        manifest_path = Path(context["trial"]) / "manifest.json"
+        if manifest_path.is_symlink():
+            raise ValueError("manifest-symlink")
+        raw = manifest_path.read_bytes()
+        manifest = json.loads(raw.decode("utf-8"))
+    except (KeyError, OSError, UnicodeDecodeError, json.JSONDecodeError, ValueError, TypeError):
+        return ["salesforce-launch-manifest-unavailable"]
+    if not isinstance(manifest, Mapping):
+        return ["salesforce-launch-manifest-invalid"]
+    result = context.get("result")
+    step = context.get("step")
+    if not isinstance(result, Mapping) or manifest.get("trial_id") != result.get("trial_id"):
+        return ["salesforce-launch-manifest-trial-id-mismatch"]
+    scenario = manifest.get("scenario")
+    if not isinstance(step, Mapping) or not isinstance(scenario, Mapping) or scenario.get("id") != step.get("id"):
+        return ["salesforce-launch-manifest-scenario-mismatch"]
+    pin = manifest.get("salesforce_preflight")
+    if pin is None:
+        return ["salesforce-launch-manifest-preflight-missing"]
+    if not isinstance(pin, Mapping):
+        return ["salesforce-launch-manifest-preflight-invalid"]
+    if (
+        not _nonempty_string(pin.get("source_path"))
+        or not _valid_digest(pin.get("sha256"))
+        or not _nonempty_string(pin.get("checked_at"))
+        or not _nonempty_string(pin.get("product_cwd"))
+    ):
+        return ["salesforce-launch-manifest-preflight-invalid"]
+    identity = pin.get("identity")
+    allowed_identity_fields = set(SALESFORCE_PREFLIGHT_IDENTITY_FIELDS) | set(SALESFORCE_PREFLIGHT_OPTIONAL_IDENTITY_FIELDS)
+    if not isinstance(identity, Mapping) or set(identity) - allowed_identity_fields:
+        return ["salesforce-launch-manifest-preflight-invalid"]
+    if any(field not in identity for field in SALESFORCE_PREFLIGHT_IDENTITY_FIELDS):
+        return ["salesforce-launch-manifest-preflight-invalid"]
+    if salesforce.target_preflight_errors(identity):
+        return ["salesforce-launch-manifest-preflight-invalid"]
+    if any(identity.get(field) != preflight.get(field) for field in identity):
+        return ["salesforce-launch-manifest-preflight-identity-mismatch"]
+    try:
+        if Path(str(pin["product_cwd"])).expanduser().resolve() != Path(context["repo"]).resolve():
+            return ["salesforce-launch-manifest-preflight-product-cwd-mismatch"]
+    except (KeyError, OSError, TypeError, ValueError):
+        return ["salesforce-launch-manifest-preflight-invalid"]
+    if not isinstance(preflight_reference, Mapping) or preflight_reference.get("sha256") != pin.get("sha256"):
+        return ["salesforce-launch-manifest-preflight-sha256-mismatch"]
+    return []
+
+
 def _salesforce_authorized_deployment_errors(
     entry: Mapping[str, Any], *, context: Mapping[str, Any], source_root: Path,
     forbidden_roots: tuple[Path, ...],
@@ -1044,6 +1108,10 @@ def _salesforce_authorized_deployment_errors(
     errors.extend(receipt_errors)
     errors.extend(raw_result_errors)
     errors.extend(mapping_errors)
+    if preflight is not None:
+        errors.extend(_salesforce_launch_preflight_pin_errors(
+            observation.get("target_preflight"), preflight, context=context,
+        ))
     if preflight is None or receipt is None or raw_result is None or mapping is None:
         return sorted(set(errors))
     mapping_reference = observation.get("source_mapping")

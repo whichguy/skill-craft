@@ -314,7 +314,8 @@ class CompositeVerifierTests(unittest.TestCase):
 
     def salesforce_review(
         self, trial: Path, candidate: Path, result: dict, *, gas_schema: bool = False,
-        semantic_fault: str | None = None,
+        semantic_fault: str | None = None, checked_at: str = "2026-09-19T00:00:00Z",
+        review_checked_at: str | None = None,
     ) -> Path:
         """Create pinned, offline Salesforce proof fixtures for one review."""
         component = candidate / "force-app" / "main" / "default" / "lwc" / "checkers" / "checkers.js"
@@ -332,7 +333,7 @@ class CompositeVerifierTests(unittest.TestCase):
             path.write_text(json.dumps(payload), encoding="utf-8")
             return path, {"path": path.name, "sha256": sha256(path)}
 
-        _preflight, preflight_ref = write_artifact("salesforce-target-preflight.json", {
+        preflight = {
             "schema": suite.SALESFORCE_TARGET_PREFLIGHT_SCHEMA,
             "status": "connected",
             "org_type": "developer",
@@ -344,7 +345,28 @@ class CompositeVerifierTests(unittest.TestCase):
             "observed_lightning_host": lightning_host,
             "my_domain": "fixture-dev",
             "is_sandbox": False,
-        })
+            "checked_at": review_checked_at or checked_at,
+            "product_cwd": str(candidate.resolve()),
+        }
+        _preflight, preflight_ref = write_artifact("salesforce-target-preflight.json", preflight)
+        launch_payload = {**preflight, "checked_at": checked_at}
+        launch_preflight = self.root / f"launch-{trial.name}-salesforce-preflight.json"
+        launch_preflight.write_text(json.dumps(launch_payload), encoding="utf-8")
+        if review_checked_at is None:
+            self.assertEqual(preflight_ref["sha256"], sha256(launch_preflight))
+        identity_fields = suite.SALESFORCE_PREFLIGHT_IDENTITY_FIELDS + suite.SALESFORCE_PREFLIGHT_OPTIONAL_IDENTITY_FIELDS
+        trial.joinpath("manifest.json").write_text(json.dumps({
+            "schema_version": 1,
+            "trial_id": result["trial_id"],
+            "scenario": {"id": result["step_id"]},
+            "salesforce_preflight": {
+                "source_path": str(launch_preflight.resolve()),
+                "sha256": sha256(launch_preflight),
+                "identity": {field: launch_payload[field] for field in identity_fields if field in launch_payload},
+                "checked_at": checked_at,
+                "product_cwd": str(candidate.resolve()),
+            },
+        }), encoding="utf-8")
         _raw, raw_ref = write_artifact("salesforce-raw-deploy.json", {
             "status": 0,
             "result": {
@@ -976,6 +998,46 @@ class CompositeVerifierTests(unittest.TestCase):
             missing_receipt = suite.verify(env)
         self.assertEqual("unverified", self.row(missing_receipt, "salesforce-authorized-deployment")["status"])
         self.assertEqual("unverified", self.row(missing_receipt, "salesforce-hosted-lightning-behavior")["status"])
+
+    def test_salesforce_deployment_requires_the_launch_pinned_preflight(self) -> None:
+        env, trial, candidate, _baseline, _family, _step = self.fixture("salesforce-checkers-create")
+        result = json.loads((trial / "result.json").read_text(encoding="utf-8"))
+        missing_pin_review = self.salesforce_review(trial, candidate, result)
+        manifest_path = trial / "manifest.json"
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        manifest.pop("salesforce_preflight")
+        manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+        with patch.object(suite, "_closure_result", self.closure):
+            missing_pin_receipt = suite.verify(env, review_path=missing_pin_review)
+        missing_pin_row = self.row(missing_pin_receipt, "salesforce-authorized-deployment")
+        self.assertEqual("unverified", missing_pin_row["status"])
+        self.assertIn("salesforce-launch-manifest-preflight-missing", missing_pin_row["details"]["errors"])
+
+        env, trial, candidate, _baseline, _family, _step = self.fixture("salesforce-checkers-create")
+        result = json.loads((trial / "result.json").read_text(encoding="utf-8"))
+        replaced_preflight_review = self.salesforce_review(
+            trial, candidate, result, review_checked_at="2026-09-19T00:01:00Z",
+        )
+        with patch.object(suite, "_closure_result", self.closure):
+            replaced_preflight_receipt = suite.verify(env, review_path=replaced_preflight_review)
+        replaced_preflight_row = self.row(replaced_preflight_receipt, "salesforce-authorized-deployment")
+        self.assertEqual("unverified", replaced_preflight_row["status"])
+        self.assertIn(
+            "salesforce-launch-manifest-preflight-sha256-mismatch",
+            replaced_preflight_row["details"]["errors"],
+        )
+
+        env, trial, candidate, _baseline, _family, _step = self.fixture("salesforce-checkers-create")
+        result = json.loads((trial / "result.json").read_text(encoding="utf-8"))
+        old_but_pinned_review = self.salesforce_review(
+            trial, candidate, result, checked_at="2000-01-01T00:00:00Z",
+        )
+        with patch.object(suite, "_closure_result", self.closure):
+            old_but_pinned_receipt = suite.verify(env, review_path=old_but_pinned_review)
+        self.assertEqual(
+            "pass",
+            self.row(old_but_pinned_receipt, "salesforce-authorized-deployment")["status"],
+        )
 
     def test_salesforce_hosted_proof_requires_canonical_oracle_observations(self) -> None:
         for fault, expected_error in (

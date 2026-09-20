@@ -165,6 +165,7 @@ command's `--help` if this checkout differs from these defaults.
 | `model` | Live/check | Live: required explicit builder model ID → `--model`. Check: optional recorded label, default `not-selected`; preflight does not prove model availability. Does not change the current audit operator's own model. |
 | `output` | All | Mock → `check_suite.py --output`; live → `run.py run/suite --output`; check → operator capture directory; review → analyst directory. Check/review never pass `--output` to the runner. If omitted, choose and report a unique external directory; never reuse an existing result directory. |
 | `repo` | Live/check | `--repo`. Required existing original product for a feature. For a single create, choose a new external empty product directory if omitted. For a suite, omit by default so the suite allocates products; an override requires exactly one selected case. Check: use the supplied existing directory or allocate an empty preflight directory; never initialize Git. |
+| `salesforce-preflight` | Salesforce create only | Required external sanitized JSON receipt → `--salesforce-preflight`. It must identify the intended target, be checked within 15 minutes and name the explicit product `repo` as `product_cwd`. The Salesforce suite also requires `repo`; missing, stale or mismatched evidence blocks before launch. |
 | `baseline` | Feature only | `--baseline`: canonical predecessor `result.json`, matching that same product and its current digest and passing independent grade. Required for a standalone feature or a suite selection that omits its predecessor. Forbidden for create. |
 | `only` | Live suite only | Exactly one case/step ID → one `--only`. Required when the suite lists multiple cases. A one-case suite may omit it. Multiple resolved cases are rejected before launch. Do not silently add predecessors. |
 | `timeout` | Live | Positive finite seconds → `--timeout`. Single run defaults to 7200; suites use their catalog budgets (currently 7200 per case) unless overridden. This is per case, not a total campaign cap. |
@@ -374,6 +375,9 @@ For `salesforce-checkers-create`, use the existing authenticated default target
 org through configured Salesforce DX capabilities. Before launch, independently
 confirm its org ID, instance URL, username and developer-org status match the
 user's selected target; retain a sanitized target receipt outside the product.
+Pass it as `salesforce-preflight` with the explicit empty product `repo`. The
+runner requires matching expected/observed identities, a check no older than
+15 minutes, and the same `product_cwd`; it pins the receipt in the manifest.
 If the default is missing, mismatched or ambiguous, stop before the model call.
 Never search for, copy, print or embed tokens/passwords in prompts or artifacts.
 Existing authentication may be checked without exposing secret fields.

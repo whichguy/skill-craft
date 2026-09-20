@@ -169,9 +169,14 @@ records cannot qualify them. The operator's sanitized preflight uses
 `org_type: "developer"`, `observed_org_id`/`observed_instance_url`/
 `observed_lightning_host`, and independently supplied `expected_org_id`/
 `expected_instance_url`/`expected_lightning_host`. Expected and observed
-identities must match. See [the read-only preflight recipe](README.md#salesforce-default-dev-org-preflight).
+identities must match. For launch the receipt additionally requires a UTC
+`checked_at` within 15 minutes and `product_cwd` naming the explicit empty
+product directory. Pass it through `--salesforce-preflight`; the runner rejects
+it before launch if these checks fail. See [the read-only preflight recipe](README.md#salesforce-default-dev-org-preflight).
 Keep the target receipt outside the product and pin it alongside the actual
-deployment evidence. A schema-valid record is not proof of its authenticity;
+deployment evidence. Its hash must match `manifest.json`
+`salesforce_preflight.sha256` from launch; substituting another valid target
+receipt after the run cannot qualify the deployment. A schema-valid record is not proof of its authenticity;
 inspect its origin and confirm it represents the user's intended default org.
 
 The normal independent review's `review_owned_checks` includes these rows:

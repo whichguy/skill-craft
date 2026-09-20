@@ -1,4 +1,5 @@
 """Whole-run apparatus checks with a fake Grok process; never model evidence."""
+import datetime
 import hashlib
 import io
 import json
@@ -124,6 +125,27 @@ class RunTests(unittest.TestCase):
                          "--skill-root", str(self.skill), "--timeout", "10", "--max-turns", "8", *extra])
         return code, output, run.read_json(output / "result.json")
 
+    def salesforce_preflight(self, name="salesforce-target", *, product_cwd=None, checked_at=None):
+        cwd = self.repo if product_cwd is None else Path(product_cwd)
+        receipt = {
+            "schema": "shiploop-e2e-salesforce-target-preflight/1",
+            "status": "connected",
+            "org_type": "developer",
+            "expected_org_id": "00D000000000001AAA",
+            "observed_org_id": "00D000000000001AAA",
+            "expected_instance_url": "https://fixture-dev.my.salesforce.com",
+            "observed_instance_url": "https://fixture-dev.my.salesforce.com",
+            "expected_lightning_host": "fixture-dev.lightning.force.com",
+            "observed_lightning_host": "fixture-dev.lightning.force.com",
+            "is_sandbox": False,
+            "my_domain": "fixture-dev",
+            "checked_at": checked_at or datetime.datetime.now(datetime.timezone.utc).isoformat(),
+            "product_cwd": str(cwd.resolve()),
+        }
+        path = self.root / f"{name}.json"
+        path.write_text(json.dumps(receipt), encoding="utf-8")
+        return path, receipt
+
     def test_trial_and_suite_outputs_cannot_modify_selected_skill(self):
         protected_trial = self.skill / "forbidden-trial"
         protected_suite = self.skill / "forbidden-suite"
@@ -244,6 +266,101 @@ class RunTests(unittest.TestCase):
         self.assertEqual(code, 2)
         self.assertIn("new empty product folder", result["error"])
         self.assertFalse((self.root / "launches.jsonl").exists())
+
+    def test_salesforce_preflight_rejections_happen_before_output_or_launch(self):
+        stale = (datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(minutes=16)).isoformat()
+        future = (datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(seconds=120)).isoformat()
+        mutations = [
+            ("missing", None),
+            ("identity-mismatch", lambda receipt: receipt.update(observed_org_id="00D000000000002AAA")),
+            ("stale", lambda receipt: receipt.update(checked_at=stale)),
+            ("future", lambda receipt: receipt.update(checked_at=future)),
+            ("wrong-cwd", lambda receipt: receipt.update(product_cwd=str((self.root / "other-product").resolve()))),
+            ("secret-field", lambda receipt: receipt.update(access_token="TOP_SECRET")),
+            ("nested-sandbox", lambda receipt: receipt.update(is_sandbox={"access_token": "TOP_SECRET"})),
+        ]
+        for name, mutate in mutations:
+            output = self.root / "trials" / f"salesforce-{name}"
+            arguments = [
+                "run", "--step", "salesforce-checkers-create", "--repo", str(self.repo),
+                "--output", str(output), "--model", "fixture-model", "--grok", str(self.grok),
+                "--git", self.git, "--skill-root", str(self.skill),
+            ]
+            if mutate is not None:
+                receipt_path, receipt = self.salesforce_preflight(name)
+                mutate(receipt)
+                receipt_path.write_text(json.dumps(receipt), encoding="utf-8")
+                arguments.extend(["--salesforce-preflight", str(receipt_path)])
+            stderr = io.StringIO()
+            with self.subTest(name=name), \
+                    patch.object(layout, "validate_new_external_output") as validate_output, \
+                    patch.object(run, "preflight") as preflight, \
+                    patch.object(run, "capture_process") as capture, \
+                    patch("sys.stderr", stderr):
+                code = run.main(arguments)
+            self.assertEqual(code, 2)
+            self.assertFalse(output.exists())
+            self.assertFalse(self.repo.exists())
+            validate_output.assert_not_called()
+            preflight.assert_not_called()
+            capture.assert_not_called()
+            self.assertNotIn("TOP_SECRET", stderr.getvalue())
+        self.assertFalse((self.root / "launches.jsonl").exists())
+
+    def test_salesforce_preflight_flag_is_rejected_for_other_steps_before_output(self):
+        receipt_path, _receipt = self.salesforce_preflight()
+        output = self.root / "trials" / "non-salesforce-preflight"
+        with patch.object(run, "preflight") as preflight, patch.object(run, "capture_process") as capture:
+            code = run.main([
+                "run", "--step", "ttt-create", "--repo", str(self.repo), "--output", str(output),
+                "--model", "fixture-model", "--grok", str(self.grok), "--git", self.git,
+                "--skill-root", str(self.skill), "--salesforce-preflight", str(receipt_path),
+            ])
+        self.assertEqual(code, 2)
+        self.assertFalse(output.exists())
+        preflight.assert_not_called()
+        capture.assert_not_called()
+        self.assertFalse((self.root / "launches.jsonl").exists())
+
+    def test_salesforce_suite_requires_explicit_repo_before_output(self):
+        receipt_path, _receipt = self.salesforce_preflight()
+        output = self.root / "trials" / "salesforce-suite-without-repo"
+        with patch.object(run, "preflight") as preflight, patch.object(run, "capture_process") as capture:
+            code = run.main([
+                "suite", "--suite", "salesforce-checkers-full", "--output", str(output),
+                "--model", "fixture-model", "--salesforce-preflight", str(receipt_path),
+                "--skill-root", str(self.skill),
+            ])
+        self.assertEqual(code, 2)
+        self.assertFalse(output.exists())
+        self.assertFalse(self.repo.exists())
+        preflight.assert_not_called()
+        capture.assert_not_called()
+        self.assertFalse((self.root / "launches.jsonl").exists())
+
+    def test_salesforce_preflight_is_pinned_for_one_fake_suite_launch(self):
+        receipt_path, receipt = self.salesforce_preflight()
+        output = self.root / "trials" / "salesforce-suite"
+        code = run.main([
+            "suite", "--suite", "salesforce-checkers-full", "--repo", str(self.repo),
+            "--output", str(output), "--model", "fixture-model", "--grok", str(self.grok),
+            "--git", self.git, "--skill-root", str(self.skill), "--timeout", "10", "--max-turns", "8",
+            "--salesforce-preflight", str(receipt_path),
+        ])
+        self.assertEqual(code, 2)
+        manifest = run.read_json(output / "trials" / "salesforce-checkers-create" / "manifest.json")
+        pinned = manifest["salesforce_preflight"]
+        self.assertEqual(pinned["source_path"], str(receipt_path.resolve()))
+        self.assertEqual(pinned["sha256"], hashlib.sha256(receipt_path.read_bytes()).hexdigest())
+        self.assertEqual(pinned["checked_at"], receipt["checked_at"])
+        self.assertEqual(pinned["product_cwd"], str(self.repo.resolve()))
+        self.assertEqual(pinned["identity"], {
+            key: receipt[key] for key in run._SALESFORCE_PREFLIGHT_IDENTITY_KEYS if key in receipt
+        })
+        self.assertEqual(set(pinned), {"source_path", "sha256", "identity", "checked_at", "product_cwd"})
+        launches = [json.loads(line) for line in (self.root / "launches.jsonl").read_text().splitlines()]
+        self.assertEqual(len(launches), 1)
+        self.assertEqual(launches[0]["prompt"], run.find_step("salesforce-checkers-create")["prompt"])
 
     def test_freshness_failures_retain_receipt_without_launching_builder(self):
         for status in ("unpublished-source", "installed-stale", "freshness-unverified"):
