@@ -1,0 +1,14 @@
+{
+  "runtime_query": {
+    "identity": "crm-app-service",
+    "effect": "Contact data query"
+  },
+  "metadata_read": {
+    "identity": "crm-describe-reader",
+    "effect": "read-only describe"
+  },
+  "metadata_write": {
+    "identity": "crm-schema-writer",
+    "effect": "approval and target required"
+  }
+}

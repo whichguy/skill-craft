@@ -1,0 +1,8 @@
+{
+  "references/research-loop.md": true,
+  "references/behavioral-requirements.md": true,
+  "references/platform-discovery.md": true,
+  "references/project-knowledge.md": true,
+  "references/execution-planning.md": true,
+  "scripts/shiploop_navigator_v3_prompts.py": true
+}

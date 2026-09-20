@@ -1,0 +1,10 @@
+{
+  "as_of": "fixture",
+  "coverage": "fields approved for the old panel only",
+  "complete": false,
+  "fields": [
+    "Id",
+    "Name",
+    "Consent__c"
+  ]
+}

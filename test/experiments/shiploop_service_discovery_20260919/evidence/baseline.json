@@ -1,0 +1,46 @@
+{
+  "observed_at": "2026-09-20T03:45:47.813967+00:00",
+  "cwd": "/Users/dadleet/src/skill-craft",
+  "head": "7e4199c57a06cf9689780401c4f03f36887d9d66",
+  "python": "3.14.7 (main, Aug  5 2026, 10:29:49) [Clang 21.0.0 (clang-2100.1.1.101)]",
+  "dirty": true,
+  "tests": [
+    {
+      "suite": "shiploop-v3-guidance",
+      "passed": 15
+    },
+    {
+      "suite": "shiploop-discovery",
+      "passed": 27
+    },
+    {
+      "suite": "shiploop-research-template",
+      "passed": 7
+    },
+    {
+      "suite": "shiploop-reference-routing",
+      "passed": 8
+    },
+    {
+      "suite": "shiploop-packet-bounds",
+      "passed": 7
+    }
+  ],
+  "total_passed": 64,
+  "evidence": "Actual exec initial test run session 41264; coordinator summary, not independent receipt",
+  "snapshot_hashes": {
+    "skills/shiploop/SKILL.md": "4145be5619354055105c5f622593f0398de608dbc77d19b9eb99a77387519bec",
+    "skills/shiploop/README.md": "b6d0ef332a9b59270e9c6c809be000a69ca443cb375759366858534a3bf39fd1",
+    "skills/shiploop/references/research-loop.md": "3c778894693569cbb37e590d011f53c2af678aba1e7cb1c9efdf42607e33ca6b",
+    "skills/shiploop/references/behavioral-requirements.md": "d54244700a30d4402ac8ae992cde5d6df1104363c3e92ef6b8d1ea1ecafa4bf1",
+    "skills/shiploop/references/platform-discovery.md": "396831ff45df6d095d8141a55055e924dc5486d841a08e7239b36303aa6a2ec9",
+    "skills/shiploop/references/coding-practices.md": "e6b14580995e18785a9e84bbac4dc34c77a534aee2f5a849e9e8d1c951fe8f76",
+    "skills/shiploop/references/platforms/salesforce.md": "c6947b4ca084dfa958eb43c2e2419204219862f5d571af4be71d1137c491374d",
+    "skills/shiploop/scripts/shiploop_navigator_v3_prompts.py": "40a0f6cd563691cf93c6688d2e0eded4bb18ddbac353b1cdcd6298ef81994d1f",
+    "skills/shiploop/scripts/shiploop_navigator.py": "58596e95e35fadd05e781bf3c504e6e2d83665e2e107f61d99507d76955be882",
+    "test/shiploop-v3-guidance.test.py": "00ac7e3ade4008fa6879b43b62cc25375396baac1bc6f9eddd492c7c2a65740c",
+    "test/shiploop-reference-routing.test.py": "9bde00e25a81f7370f1e3de663cb9466b13e278aab19c72b90929199486dd1f3",
+    "test/shiploop.test.sh": "10fb2b4d02bda28d106c876304ca52c26a160535a770b02d90405372a91fbeed",
+    "docs/shiploop-remote-services-design-2026-09-19.md": "95973a5a98200001d6294977719cb25c243a3bafac23833e93bffb146c2d3d2a"
+  }
+}

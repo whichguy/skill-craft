@@ -1,0 +1,37 @@
+{
+  "scope": "Differences from frozen service candidate to later combined-source validation. Historical candidate artifacts are preserved.",
+  "changed": [
+    {
+      "path": "skills/shiploop/README.md",
+      "service_candidate_sha256": "a1ccf4e5e92d55f26ff1c3ad701e765596d5b992740e8c4bd26273630aa4080a",
+      "combined_sha256": "08c8da252dfd7d0d0a80b2ebc874cec55a3e276f6c58e3acb79f595d6c14a0b7"
+    },
+    {
+      "path": "skills/shiploop/SKILL.md",
+      "service_candidate_sha256": "7371483de1b431e70a9ef4c226f0a34c98c0105d4906af31779d75e0b9f345ce",
+      "combined_sha256": "43e426d7a47ae8d60d4131f4fed5899a076c433f65b083521aaf92d4563965f7"
+    },
+    {
+      "path": "skills/shiploop/references/requirements-definition.md",
+      "service_candidate_sha256": "0c647fab8ec8f151176dccf187292e3cc8285bfca5ccb4af74c8f38faeffe6fb",
+      "combined_sha256": "4413a0574be8310246e070a21afd20e2bddc3920f427c9518b9261b4002222e5"
+    },
+    {
+      "path": "skills/shiploop/references/project-knowledge.md",
+      "service_candidate_sha256": "0c8539a6ad96b5ecd75c239cd89c16a1562a4bf05c8b66e278d383599d840d16",
+      "combined_sha256": "58bd50299399a4f89c004fff1fcb152b82e532c2b62c98020483e7cfe6cb7972"
+    },
+    {
+      "path": "skills/shiploop/scripts/shiploop_navigator_v3_prompts.py",
+      "service_candidate_sha256": "9f5b961524e4b6f81f8c964dcdc5a0c5f7cd14e532fb45528e9efc1ba5b67299",
+      "combined_sha256": "60cf4e49f9ab098daa9be0fce3c534a35653eb5fc77c2cbb90a190dec2891388"
+    }
+  ],
+  "added": [
+    "skills/shiploop/references/current-system-baseline.md"
+  ],
+  "independent_review": {
+    "agent": "service_semantic_review",
+    "result": "No actionable conflict found. Current baseline routes coexist with service routes; existing evidence_refs/context ownership and dependent-only gates remain compatible. Service guide byte-identical to frozen candidate."
+  }
+}

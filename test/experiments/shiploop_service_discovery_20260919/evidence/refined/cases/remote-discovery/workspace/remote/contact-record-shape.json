@@ -1,0 +1,7 @@
+{
+  "Id": "synthetic-contact",
+  "Name": "Example",
+  "Consent__c": true,
+  "ComputedScore__c": 87,
+  "Lifecycle__c": "active"
+}

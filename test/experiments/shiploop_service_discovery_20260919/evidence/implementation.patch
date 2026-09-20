@@ -1,0 +1,1138 @@
+--- a/skills/shiploop/SKILL.md
++++ b/skills/shiploop/SKILL.md
+@@ -91,6 +91,11 @@
+ specs, reconcile current explicit instructions with their applicable conditions,
+ and define verifiable non-functional requirements. Preserve unaffected intent
+ and retain material unknowns; carry the resulting criteria into plans and checks.
++Use [current-system recovery](references/current-system-baseline.md) to initialize
++a README-led baseline when an existing repo or remote system lacks one. Reuse and
++revalidate sufficient prior knowledge; retain the prior as-of baseline, incoming
++delta and maintained product knowledge through planning and the normal handoffs.
++Recovered observations do not become approved requirements.
+ Use the [stage readiness and completion map](references/testing-and-documentation.md#stage-readiness-and-completion)
+ to distinguish definition done, tests planned/authored, due verification and final
+ delivery. Preserve each affected clause's required surface and due phase in the
+@@ -104,6 +109,11 @@
+ accepted plan and load only applicable engineering practices and UI, Apps Script,
+ Salesforce, Python or Bash cards. Retain decision and check locators through the
+ existing result/review notes; the guide does not change stage order or edit authority.
++During discovery and planning, use [service discovery](references/service-discovery.md#select-scope)
++to assess owned observability for local or remote flows and, when relevant, follow
++MCP/API boundaries into schema, query, cache and asynchronous service needs.
++Retain current decisions and affected file/check locators in indexed project
++notes and item context; load only the applicable sections.
+ 
+ For new work in an existing Git repository, use the isolated entry below. First
+ inspect the branch/status and applicable repository instructions. The script
+--- a/skills/shiploop/README.md
++++ b/skills/shiploop/README.md
+@@ -19,6 +19,7 @@
+ - [Skill entrypoint](SKILL.md)
+ - [Isolated workspace and artifact return policy](references/workspace-lifecycle.md)
+ - [Delivery-authority readiness](references/delivery-authority.md)
++- [README-led current-system baseline and planning handoff](references/current-system-baseline.md)
+ 
+ ## Run E2E audits from Grok
+ 
+@@ -803,6 +804,16 @@
+ completion each.
+ 
+ ## Bounded recursive discovery
++
++The [service discovery guide](references/service-discovery.md#select-scope) maps
++affected UI/business flows to actual service capabilities and existing remote
++state. It covers zero-copy/cache choices, permission-aware invalidation, durable
++async cooperation, and reuse of owned observability for local or remote systems.
++Decisions, prerequisites, affected files and checks travel through maintained
++project notes, the existing knowledge index, and work-item context. The navigator
++routes readers to these notes; it does not prove their semantic correctness or
++remote access. [Salesforce](references/platforms/salesforce.md) is an example,
++not a required stack. Local/stateless work can record a short no-change outcome.
+ 
+ Discovery follows task-relevant boundaries behind an MCP or other gateway and
+ screens message passing, client connections, service authentication, design,
+--- a/skills/shiploop/references/research-loop.md
++++ b/skills/shiploop/references/research-loop.md
+@@ -136,6 +136,12 @@
+ delivery, and test expansion when a consequential unknown arises; reuse existing
+ evidence instead of requiring a fresh investigation at every checkpoint.
+ 
++Use [service discovery](service-discovery.md#select-scope) when affected flows
++raise schema/state, query, caching, or asynchronous service choices behind an
++MCP/API or local boundary. Assess existing owned observability for local systems
++too; reuse event owners and sinks before adding coverage. Keep only relevant
++decisions and current evidence in the existing durable notes and knowledge index.
++
+ ### Scope, coverage, and frontier
+ 
+ Start with the task's affected flows, not a fixed number of hops. Read the repo
+--- a/skills/shiploop/references/behavioral-requirements.md
++++ b/skills/shiploop/references/behavioral-requirements.md
+@@ -90,6 +90,11 @@
+ Revisit affected decisions during Improve and integration; reuse established
+ decisions when their assumptions still hold. This is a proportional design
+ assessment, not a requirement to add a server, queue, broker, or transport.
++
++For service-backed flows, select the relevant [service discovery sections](service-discovery.md#select-scope)
++to establish current remote state, cache freshness and authorization, asynchronous
++completion, and owned observability. Carry their accepted contracts and checks
++into this behavior model; a transport choice alone does not establish them.
+ 
+ 1. **Actors and direction:** identify the relevant people, services, devices,
+    and external systems, their roles and trust boundaries. Trace who initiates,
+--- a/skills/shiploop/references/platform-discovery.md
++++ b/skills/shiploop/references/platform-discovery.md
+@@ -58,6 +58,12 @@
+ Local and remote boundaries need the same evidence discipline; discovering a
+ second gateway is not permission to invoke it or traverse unrelated accounts.
+ 
++Use [remote capabilities and state](service-discovery.md#remote-capabilities-and-state)
++to distinguish provisioning from runtime operations, metadata from record CRUD,
++and observed state from requested changes. Reconcile prior/local/remote/requested
++state before incremental changes; scoped authorized reads can resolve discovery
++questions without implying permission to mutate the target.
++
+ Research the destination's language, metadata/schema, module boundaries,
+ registration or bootstrap, generated/reserved files, syntax validation,
+ applicable invocation or interaction contracts, deployment/package mechanics,
+--- a/skills/shiploop/references/coding-practices.md
++++ b/skills/shiploop/references/coding-practices.md
+@@ -109,6 +109,11 @@
+ 
+ ## Logging and debugging
+ 
++Start from the discovered [observability coverage](service-discovery.md#observability-coverage):
++reuse authoritative event owners, existing loggers and sinks, then close only
++evidenced owned gaps. Include successful and failed logins where authentication
++is in scope; recording an event does not automatically make it an incident.
++
+ Follow existing controls and structured conventions. Retain a bounded operation
+ identity, consequential decision, state transition, and failure cause while
+ excluding secrets and unnecessary personal data. Distinguish operational logs,
+--- a/skills/shiploop/references/platforms/salesforce.md
++++ b/skills/shiploop/references/platforms/salesforce.md
+@@ -22,6 +22,33 @@
+ permission behavior, governor use, or org behavior; exercise those boundaries
+ in an identified disposable org when required.
+ 
++## Service discovery
++
++When Salesforce is an affected service boundary, apply the conditional
++[service discovery guide](../service-discovery.md). Record the observed selected
++tool or supported route, current org/role evidence, and the separate authority
++needed for metadata/schema, configuration, and record CRUD. An MCP inventory or
++developer deployment identity does not establish the runtime caller's access.
++For incremental work, reconcile prior accepted intent, current local source or
++metadata definition, observed org state, and the requested delta; preserve
++unrelated fields and automation. A safe authorized metadata/state read is
++discovery evidence, not authority to mutate the org.
++
++For each runtime read, record sharing, object CRUD, and field-level security
++(FLS) separately. `with sharing` alone does not establish CRUD/FLS enforcement.
++If caching is selected, identify its actual native owner and refresh mechanism:
++do not attach generic invalidation plumbing to Apex wire results or Lightning
++Data Service without verifying the selected source's supported refresh path.
++For an asynchronous metadata deployment or background operation, an accepted
++request/ID is not final status; retain the terminal status and authorized
++read-back.
++
++Example: before adding `ReviewStatus__c`, inspect the selected object's current
++metadata and preserve an observed `Consent__c` field and automation. Plan an
++additive change, keep remote records authoritative through the current runtime
++adapter, leave a cache conditional on authorization/invalidation evidence, and
++verify the final metadata/status read-back for the intended role.
++
+ For a Lightning consumer, distinguish the org/instance identity from the
+ feature's authenticated entry: an app, custom tab, component or other supported
+ page. Use supported navigation (for example a generated `PageReference` URL)
+--- a/skills/shiploop/scripts/shiploop_navigator_v3_prompts.py
++++ b/skills/shiploop/scripts/shiploop_navigator_v3_prompts.py
+@@ -64,24 +64,34 @@
+         ("Delivery authority guidance", "delivery-authority.md#ask-at-the-first-concrete-boundary"),
+     ),
+     "discovery": (
++        ("Current-system baseline guide", "current-system-baseline.md#establish-or-refresh"),
++        ("Service discovery guidance", "service-discovery.md#select-scope"),
+         ("Persistent project-context guidance", "project-knowledge.md#discover-persistent-context-before-planning"),
+         ("Repository-local skill guidance", "testing-and-documentation.md#reusable-product-skills"),
+         ("Environment and source-return discovery", "environment-lifecycle.md#discover-before-planning-code"),
+     ),
+     "research": (
++        ("Current-system baseline guide", "current-system-baseline.md#evidence-and-authority"),
++        ("Service discovery guidance", "service-discovery.md#select-scope"),
+         ("Bounded research guidance", "research-loop.md#recursive-discovery-and-experiments"),
+         ("Reuse-before-build guidance", "research-loop.md#reuse-before-a-new-mechanism"),
+     ),
+     "spec": (
++        ("Current-system baseline guide", "current-system-baseline.md#planning-and-review-handoff"),
++        ("Service discovery guidance", "service-discovery.md#verification"),
+         ("Behavior-model guidance", "behavioral-requirements.md#behavior-model"),
+         ("Behavior traceability guidance", "behavioral-requirements.md#traceability-and-review"),
+     ),
+     "test-strategy": (
++        ("Current-system baseline guide", "current-system-baseline.md#planning-and-review-handoff"),
++        ("Service discovery guidance", "service-discovery.md#verification"),
+         ("Repeatable test-suite guide", "repeatable-test-suites.md#select-or-revalidate-the-harness"),
+         ("Test-case planning guidance", "testing-and-documentation.md#test-cases"),
+         ("System-test catalog guidance", "system-tests.md#catalog-shape"),
+     ),
+     "plan": (
++        ("Current-system baseline guide", "current-system-baseline.md#planning-and-review-handoff"),
++        ("Service discovery guidance", "service-discovery.md#development-handoff"),
+         ("Dependency-planning guidance", "backchain-planning.md#dependency-audit"),
+         ("Git-history investigation guide", "project-knowledge.md#investigate-git-history-for-planning"),
+         ("Decision carry-forward guidance", "project-knowledge.md#carry-context-into-the-new-plan"),
+@@ -95,6 +105,8 @@
+         ("Decision carry-forward guidance", "project-knowledge.md#carry-context-into-the-new-plan"),
+     ),
+     "step-plan": (
++        ("Current-system baseline guide", "current-system-baseline.md#planning-and-review-handoff"),
++        ("Service discovery guidance", "service-discovery.md#development-handoff"),
+         ("Coding decision guide", "coding-guidance.md#select-guidance"),
+         ("Git-history investigation guide", "project-knowledge.md#investigate-git-history-for-planning"),
+         ("Repeatable test-suite guide", "repeatable-test-suites.md#select-or-revalidate-the-harness"),
+@@ -119,6 +131,7 @@
+         ("Test-case planning guidance", "testing-and-documentation.md#test-cases"),
+     ),
+     "implement": (
++        ("Service discovery guidance", "service-discovery.md#development-handoff"),
+         ("Coding decision guide", "coding-guidance.md#select-guidance"),
+         ("Repeatable test-suite guide", "repeatable-test-suites.md#select-or-revalidate-the-harness"),
+         ("Implementation constitution", "testing-and-documentation.md#implementation-constitution"),
+@@ -136,6 +149,8 @@
+         ("Real-boundary test guidance", "testing-and-documentation.md#layers-and-real-boundaries"),
+     ),
+     "document": (
++        ("Current-system baseline guide", "current-system-baseline.md#retain-across-runs"),
++        ("Service discovery guidance", "service-discovery.md#development-handoff"),
+         ("Documentation guidance", "testing-and-documentation.md#documentation"),
+         ("Documentation and reuse guidance", "testing-and-documentation.md#iteration-documentation-and-reuse"),
+     ),
+@@ -150,6 +165,7 @@
+         ("Iteration and verification guidance", "testing-and-documentation.md#iteration"),
+     ),
+     "verify": (
++        ("Service discovery guidance", "service-discovery.md#verification"),
+         ("Coding decision guide", "coding-guidance.md#select-guidance"),
+         ("Repeatable test-suite guide", "repeatable-test-suites.md#select-or-revalidate-the-harness"),
+         ("Test-case planning guidance", "testing-and-documentation.md#test-cases"),
+@@ -163,6 +179,7 @@
+         ("Real-boundary test guidance", "testing-and-documentation.md#layers-and-real-boundaries"),
+     ),
+     "carry-forward": (
++        ("Current-system baseline guide", "current-system-baseline.md#retain-across-runs"),
+         ("Carry-forward mapping guidance", "carry-forward.md#mandatory-post-inner-mapping"),
+         ("Persistent project-knowledge guidance", "project-knowledge.md#retain-learnings-for-the-next-invocation"),
+     ),
+@@ -176,6 +193,7 @@
+         ("Real-boundary test guidance", "testing-and-documentation.md#layers-and-real-boundaries"),
+     ),
+     "product-acceptance": (
++        ("Current-system baseline guide", "current-system-baseline.md#retain-across-runs"),
+         ("Behavior traceability guidance", "behavioral-requirements.md#traceability-and-review"),
+         ("Consumer delivery guidance", "consumer-delivery.md#what-to-establish"),
+     ),
+@@ -195,9 +213,12 @@
+         ("Consumer delivery evidence guidance", "consumer-delivery.md#evidence-and-limits"),
+     ),
+     "operations": (
++        ("Service discovery guidance", "service-discovery.md#observability-coverage"),
+         ("Deployment and handoff guidance", "testing-and-documentation.md#deployment-and-handoff"),
+     ),
+     "handoff": (
++        ("Current-system baseline guide", "current-system-baseline.md#retain-across-runs"),
++        ("Service discovery guidance", "service-discovery.md#development-handoff"),
+         ("Deployment and handoff guidance", "testing-and-documentation.md#deployment-and-handoff"),
+         ("Workspace return guidance", "workspace-lifecycle.md#inner-assembly-and-final-return"),
+     ),
+@@ -407,6 +428,28 @@
+ do not edit product source, tests, dependency definitions, or configuration to
+ turn it green. Discovery may finish its investigation with a failed baseline,
+ but that does not make dependent feature work ready.
++Use Service discovery guidance to assess owned observability for affected local
++or remote flows, reusing existing event owners and sinks. When service boundaries
++matter, trace consumer needs through business services to actual MCP/API/runtime
++capabilities, identities and current schema/state. Safe scoped authorized reads
++may resolve gaps; unavailable or partial observations are not absence. Select
++relevant cache/invalidation and async questions without inventing infrastructure.
++For unproven access or caching, state the safe interim policy-enforced read route
++or denial; privileged direct access is not a safe fallback. For a selected schema
++or projection delta, name preserved state and the reconciliation/read-back check.
++Turn unknown ownership or coverage into a scoped probe and conditional file/test
++change; gate only the work that actually depends on the missing evidence.
++If a selected flow depends on asynchronous work, identify or record as unknown
++its processor/recovery owner and durable acceptance-versus-completion boundary;
++a status poller alone does not establish them. Gate that dependent flow only.
++Index retained decisions and evidence in existing project knowledge for planning.
++Use the Current-system baseline guide after the initial repository baseline.
++Read README first; reuse/revalidate an adequate current-system account or recover
++one from relevant docs, code/tests and authorized read-only observations. Retain
++its as-of identity, coverage/conflicts, exact source locators and durable home in
++a run note or retrievable immutable revision; include the selected baseline in
++evidence_refs. A missing ShipLoop index does not mean a new system. Keep incoming
++changes separate and leave consequential gaps unready for dependent work.
+ """,
+     "research": """\
+ Resolve material unknowns with repository, primary-interface, or otherwise
+@@ -417,6 +460,13 @@
+ install a dependency.  Leave unsupported questions open.
+ Research consequential quality-target and feasibility unknowns from existing
+ contracts and appropriate evidence; measured baselines do not choose user policy.
++For affected service choices, use Service discovery guidance to resolve current
++state, zero-copy/cache tradeoffs, permission-aware invalidation, async recovery,
++and observability gaps with discriminating evidence. Reuse native facilities;
++retain unknowns and their actual dependent work in the indexed decision note.
++Reopen the selected current-system baseline and resolve its consequential gaps.
++Retain the prior as-of account and record corrections/new evidence separately;
++observations or synthetic fixtures cannot choose approved product intent.
+ """,
+     "spec": """\
+ Define the required behavior, boundaries, acceptance criteria, nonfunctional
+@@ -434,6 +484,13 @@
+ Separate independently verifiable clauses and their required observation surfaces;
+ keep bundled behaviors visible even when they share one requirement ID. Definition
+ completion establishes criteria, not implementation or test success.
++For selected service boundaries, specify current authority, freshness versus
++revocation, incremental state preservation, async completion/recovery, and owned
++event coverage. Use Service discovery guidance to make these contracts verifiable;
++mark inapplicable concerns briefly instead of adding services to fill a template.
++Read the selected prior current-system baseline as well as accepted requirements.
++Define the incoming delta with concrete preserved/changed behavior and retain
++both source-section locators and evidence limits for planning and Improve.
+ """,
+     "test-strategy": """\
+ Create a risk-based test and verification strategy from the specification before
+@@ -467,6 +524,13 @@
+ intermittent, missing-test, or expected-RED observation. Name the setup, repair,
+ or test-bootstrap prerequisite and its required evidence before dependent feature
+ checks, using ordinary evidence_refs and planned work-item context.
++Use Service discovery guidance for affected cache authorization/invalidation,
++remote reconciliation, async recovery and observability checks. Map each relevant
++contract to independent outcomes and its real observation boundary; fixture
++results do not prove live permissions, event delivery or operator log access.
++Use the selected prior baseline and incoming-spec sections to plan checks for
++new and preserved behavior. Unknown existing semantics need discovery before
++asserting a preservation target; old passing evidence is not a current pass.
+ """,
+     "plan": """\
+ Create a dependency-aware delivery plan from desired outcomes back to required
+@@ -511,6 +575,16 @@
+ Use the packet's Run-wide test strategy source. Carry its locator and the
+ applicable compact test decisions into each work item's existing `context`;
+ include execution/target location, fixture and suite choices, and what to recheck.
++Reopen the Repository knowledge index and current service decision sections.
++Use Service discovery guidance to map accepted choices to affected schema/config,
++query/cache, worker/status, business/UI, logging, tests and operator files only as
++needed. Order their actual prerequisites and checks. Retain exact current note
++locators and revalidation conditions in evidence_refs and item context; earlier
++stage references are not automatically replayed in every later packet.
++Reopen the selected current-system baseline and incoming change spec. Demonstrate
++use through before/after decisions and preservation checks. Carry their exact
++sections, gaps and revalidation conditions in evidence_refs and affected item
++context; plan durable documentation work when recovery exists only in run notes.
+ """,
+     "prepare": """\
+ Prepare or verify the approved development/test environment and prerequisites.
+@@ -588,6 +662,14 @@
+ Retain the harness and case locators in the existing plan and work-item context.
+ For remote-resident cases, revalidate framework availability and the authorized
+ setup, test-definition/invocation, result retrieval and teardown route.
++For affected service work, reopen the indexed current contract and item-specific
++sections from Service discovery guidance. Reconcile changed remote/local state,
++authority, cache invalidation, async recovery and owned logging before dependent
++edits; retain file roles, revalidation conditions and checks in the accepted plan.
++A superseded note or prior successful probe cannot replace current evidence.
++Reopen this item's selected prior-baseline and incoming-spec sections from context.
++Revalidate scope/freshness, retain preserved behavior and checks, and surface any
++missing consequential source before dependent implementation.
+ """,
+     "test-spec": """\
+ Specify executable tests before production edits when applicable.  Map the item
+@@ -653,6 +735,10 @@
+ practice/platform sections. Check current code, versions and consumers before
+ reuse or augmentation. Retain justified revisions in the linked note; a new
+ prerequisite or authority boundary uses the existing correction route.
++For service changes, apply the accepted current contract and relevant Service
++discovery guidance. Revalidate target state and authority before effects; preserve
++unrelated remote fields and existing operational owners. Unresolved cache access
++or async completion semantics require their recorded safe fallback or correction.
+ """,
+     "test-green": """\
+ Run focused checks against the implemented candidate and establish meaningful
+@@ -696,6 +782,13 @@
+ Reconcile maintained requirements with accepted changes, not merely observed code:
+ preserve unaffected conditions and link tests/evidence or unresolved gaps. Update
+ README/index links to the authoritative home without duplicating its contract.
++Maintain the indexed service decision note with accepted contracts, affected
++files, check evidence, operational owners and revalidation triggers. Follow Service
++discovery guidance to keep current and superseded choices distinguishable; do not
++leave the only usable handoff inside transient results or chat.
++Use the Current-system baseline guide to retain recovered observations and
++accepted deltas in durable product docs, preserving their distinct evidence status
++and the prior as-of baseline. Update README/index links to the selected homes.
+ """,
+     "skill-assess": """\
+ Assess whether an existing skill, helper, MCP capability, library pattern, or
+@@ -745,6 +838,10 @@
+ dependencies, and known limitations.  Refresh checks affected by material changes
+ and retain failures or blocked boundaries honestly.  This is work-item acceptance,
+ not an assertion that integration or release has happened.
++Use Service discovery guidance for the item's selected service and observability
++contracts. Verify the due outcomes, including safe fallback and failure cases;
++separate local simulation from required remote readback, permission enforcement,
++completion and event retrieval. Keep later-phase checks explicitly pending.
+ """,
+     "integrate": """\
+ Perform only authorized Git/worktree integration for the candidate.  Inspect
+@@ -782,6 +879,9 @@
+ Maintain the existing skill index/README links and their short SHIPLOOP.md locator
+ so the next item or run can find newly created or evolved local skills. Keep
+ task-specific values in evidence and revalidate prior selections for each new task.
++Carry the selected prior baseline, incoming delta and updated durable knowledge
++locators forward. Preserve historical snapshots and pending persistence work;
++new observations do not silently replace approved intent or old evidence.
+ """,
+     "system-test-author": """\
+ Reopen the Run-wide test strategy source and relevant retained INNER test
+@@ -821,6 +921,9 @@
+ Identify missing product work, stale evidence, or delivery prerequisites and route
+ them honestly.  Acceptance does not itself execute a release or prove a remote
+ consumer boundary.
++Reconcile new and preserved behavior against the selected prior baseline and
++incoming spec. Check durable knowledge and remaining gaps; a recovered description
++or planned check alone does not establish product acceptance.
+ """,
+     "release-plan": """\
+ Create an authorized release/recovery plan: target and candidate identity,
+@@ -864,6 +967,11 @@
+ needs.  Record a justified N/A only after assessing the actual operational
+ boundary.  Do not represent a plan or configuration file as evidence the service
+ is observed and supported in operation.
++Reopen the Repository knowledge index and current observability coverage note.
++Use Service discovery guidance to check authoritative event owners, existing
++sinks and operator retrieval, including successful/failed logins where applicable.
++Close only evidenced owned gaps; do not duplicate provider logs or treat every
++failure as an incident. Preserve required audit failure and recovery policy.
+ """,
+     "handoff": """\
+ Prepare an honest final handoff with source, test, integration, release, consumer,
+@@ -871,6 +979,13 @@
+ revalidation needs.  Reconcile durable project documentation and product-return
+ receipts where applicable.  Do not transform an intent, stale green result, or
+ conversational summary into completion evidence.
++Use Service discovery guidance to retain current service decisions, source and
++check locators, ownership, unresolved boundaries and revalidation conditions in
++indexed project documents. Verify those locators are usable by a fresh reader;
++work-item context and earlier result references alone are not a durable index.
++Verify that current system knowledge, accepted changes and unresolved limits
++survive outside transient run notes. Preserve the prior baseline's as-of account
++and verify durable README/index links from the returned project documentation home.
+ """,
+ }
+ 
+@@ -1110,6 +1225,11 @@
+ review scope within the existing handoff, not another Improve run; do not invent
+ infrastructure or expand the assigned scope.
+ 
++For current-system recovery or affected product work, carry selected prior-baseline
++and incoming-spec sections into this child's existing contract before review.
++Check preservation, evidence/intent separation, consequential gaps and durable
++retention within this candidate's scope; a package-guide link alone is insufficient.
++
+ Treat the relevant work-item `context`, parent `evidence_refs`, plan notes, and
+ packet-selected reference locators as parent-supplied cold-context inputs. Reopen
+ and revalidate only the sources relevant to this candidate, then retain a compact
+--- a/test/shiploop-v3-guidance.test.py
++++ b/test/shiploop-v3-guidance.test.py
+@@ -42,6 +42,71 @@
+ CODING_GUIDE_ROUTE = (
+     "Coding decision guide: " + str(REFERENCES / "coding-guidance.md#select-guidance")
+ )
++SERVICE_DISCOVERY_GUIDE = "service-discovery.md"
++SERVICE_DISCOVERY_GUIDANCE_LABEL = "Service discovery guidance"
++SERVICE_DISCOVERY_ANCHORS = (
++    "select-scope",
++    "remote-capabilities-and-state",
++    "cache-and-authorization",
++    "asynchronous-cooperation",
++    "observability-coverage",
++    "development-handoff",
++    "verification",
++)
++# Deliberately independent of the prompt catalog: this is the only default
++# stage routing for the conditional service-discovery guide.
++SERVICE_DISCOVERY_STAGE_ANCHORS = {
++    "discovery": "select-scope",
++    "research": "select-scope",
++    "spec": "verification",
++    "test-strategy": "verification",
++    "plan": "development-handoff",
++    "step-plan": "development-handoff",
++    "implement": "development-handoff",
++    "document": "development-handoff",
++    "verify": "verification",
++    "operations": "observability-coverage",
++    "handoff": "development-handoff",
++}
++SERVICE_DISCOVERY_ROUTES = {
++    stage: (
++        SERVICE_DISCOVERY_GUIDANCE_LABEL
++        + ": "
++        + str(REFERENCES / (SERVICE_DISCOVERY_GUIDE + "#" + anchor))
++    )
++    for stage, anchor in SERVICE_DISCOVERY_STAGE_ANCHORS.items()
++}
++CURRENT_SYSTEM_BASELINE_GUIDE = "current-system-baseline.md"
++CURRENT_SYSTEM_BASELINE_GUIDANCE_LABEL = "Current-system baseline guide"
++CURRENT_SYSTEM_BASELINE_ANCHORS = (
++    "establish-or-refresh",
++    "evidence-and-authority",
++    "remote-only-systems",
++    "planning-and-review-handoff",
++    "retain-across-runs",
++)
++# Deliberately independent of the prompt catalog: only these stages receive the
++# current-system baseline guide, with the named section for their decision.
++CURRENT_SYSTEM_BASELINE_STAGE_ANCHORS = {
++    "discovery": "establish-or-refresh",
++    "research": "evidence-and-authority",
++    "spec": "planning-and-review-handoff",
++    "test-strategy": "planning-and-review-handoff",
++    "plan": "planning-and-review-handoff",
++    "step-plan": "planning-and-review-handoff",
++    "document": "retain-across-runs",
++    "carry-forward": "retain-across-runs",
++    "product-acceptance": "retain-across-runs",
++    "handoff": "retain-across-runs",
++}
++CURRENT_SYSTEM_BASELINE_ROUTES = {
++    stage: (
++        CURRENT_SYSTEM_BASELINE_GUIDANCE_LABEL
++        + ": "
++        + str(REFERENCES / (CURRENT_SYSTEM_BASELINE_GUIDE + "#" + anchor))
++    )
++    for stage, anchor in CURRENT_SYSTEM_BASELINE_STAGE_ANCHORS.items()
++}
+ if str(SCRIPTS) not in sys.path:
+     sys.path.insert(0, str(SCRIPTS))
+ 
+@@ -155,6 +220,280 @@
+                         )
+                     }
+                     self.assertIn(anchor, headings, locator)
++
++    def test_service_discovery_stage_routes_are_exact_and_selective(self) -> None:
++        """Keep the conditional guide's routes independent of the prompt catalog."""
++        observed: list[str] = []
++        for stage in prompts.STAGES:
++            with self.subTest(stage=stage):
++                entries = [
++                    (label, locator)
++                    for label, locator in prompts.STAGE_REFERENCES[stage]
++                    if label == SERVICE_DISCOVERY_GUIDANCE_LABEL
++                ]
++                anchor = SERVICE_DISCOVERY_STAGE_ANCHORS.get(stage)
++                if anchor is None:
++                    self.assertEqual(entries, [])
++                else:
++                    self.assertEqual(
++                        entries,
++                        [(SERVICE_DISCOVERY_GUIDANCE_LABEL, SERVICE_DISCOVERY_GUIDE + "#" + anchor)],
++                    )
++                    observed.append(stage)
++        self.assertEqual(tuple(observed), tuple(SERVICE_DISCOVERY_STAGE_ANCHORS))
++
++    def test_service_discovery_routes_survive_cold_producer_and_improve_packets(self) -> None:
++        """Current-stage routing survives recovery without replaying earlier guide refs."""
++        index = self.repo / "SHIPLOOP.md"
++        index.write_text("# Fixture decision index\n", encoding="utf-8")
++        index_route = "Repository knowledge index (host-authored, if present): " + str(index)
++        routes = tuple(dict.fromkeys(SERVICE_DISCOVERY_ROUTES.values()))
++        observed: list[str] = []
++        state = self.state()
++
++        def assert_packet(stage: str, packet: str) -> None:
++            expected = SERVICE_DISCOVERY_ROUTES.get(stage)
++            self.assertEqual(packet.count(index_route), 1, packet)
++            for route in routes:
++                with self.subTest(stage=stage, route=route):
++                    self.assertEqual(packet.count(route), int(route == expected), packet)
++
++        while state["status"] != "done":
++            stage = navigator.current_stage(state)
++            producer, producer_packet = self.cold_packet(state)
++            self.assertEqual(navigator.current_stage(producer), stage)
++            assert_packet(stage, producer_packet)
++
++            if stage in SERVICE_DISCOVERY_ROUTES:
++                action = dict(navigator.current_action(producer))
++                waiting = navigator.apply(producer, action["id"], result(stage))
++                pending, pending_packet = self.cold_packet(waiting)
++                self.assertIsNotNone(pending["active_improve"])
++                self.assertEqual(navigator.current_stage(pending), stage)
++                assert_packet(stage, pending_packet)
++                observed.append(stage)
++
++            extra: dict[str, object] = {}
++            if stage == "plan":
++                extra["work_items"] = [{"id": "W1", "title": "Synthetic item"}]
++            state, _action_id = self.complete_stage(state, **extra)
++
++        self.assertEqual(tuple(observed), tuple(SERVICE_DISCOVERY_STAGE_ANCHORS))
++
++    def test_service_discovery_guide_sections_and_links_survive_package_relocation(self) -> None:
++        """The direct guide stays portable with its stable section anchors."""
++        guide = REFERENCES / SERVICE_DISCOVERY_GUIDE
++        self.assertTrue(guide.is_file(), guide)
++        if not guide.is_file():
++            return
++        body = guide.read_text(encoding="utf-8")
++        headings = {
++            heading_anchor(match.group(2))
++            for match in re.finditer(r"(?m)^(#{1,6})\s+(.+?)\s*$", body)
++        }
++        for anchor in SERVICE_DISCOVERY_ANCHORS:
++            with self.subTest(anchor=anchor):
++                self.assertIn(anchor, headings)
++
++        relocated = (self.repo / "copied-package" / "references").resolve()
++        shutil.copytree(REFERENCES, relocated)
++        copied_guide = relocated / SERVICE_DISCOVERY_GUIDE
++        copied_body = copied_guide.read_text(encoding="utf-8")
++        self.assertNotIn("/Users/", copied_body)
++        for link in re.findall(r"\[[^\]]+\]\(([^)]+)\)", copied_body):
++            if link.startswith(("https://", "http://")):
++                continue
++            with self.subTest(link=link):
++                path, _, anchor = link.partition("#")
++                destination = (copied_guide.parent / path).resolve() if path else copied_guide
++                self.assertTrue(destination.is_relative_to(relocated), link)
++                self.assertTrue(destination.is_file(), link)
++                if anchor:
++                    destination_headings = {
++                        heading_anchor(match.group(2))
++                        for match in re.finditer(
++                            r"(?m)^(#{1,6})\s+(.+?)\s*$",
++                            destination.read_text(encoding="utf-8"),
++                        )
++                    }
++                    self.assertIn(anchor, destination_headings)
++
++    def test_current_system_baseline_stage_routes_are_exact_and_selective(self) -> None:
++        """Keep the guide's graph projection independent of the prompt catalog."""
++        observed: list[str] = []
++        for stage in prompts.STAGES:
++            with self.subTest(stage=stage):
++                entries = [
++                    (label, locator)
++                    for label, locator in prompts.STAGE_REFERENCES[stage]
++                    if label == CURRENT_SYSTEM_BASELINE_GUIDANCE_LABEL
++                ]
++                anchor = CURRENT_SYSTEM_BASELINE_STAGE_ANCHORS.get(stage)
++                if anchor is None:
++                    self.assertEqual(entries, [])
++                else:
++                    self.assertEqual(
++                        entries,
++                        [(
++                            CURRENT_SYSTEM_BASELINE_GUIDANCE_LABEL,
++                            CURRENT_SYSTEM_BASELINE_GUIDE + "#" + anchor,
++                        )],
++                    )
++                    observed.append(stage)
++        self.assertEqual(tuple(observed), tuple(CURRENT_SYSTEM_BASELINE_STAGE_ANCHORS))
++
++    def test_current_system_baseline_guide_relocates_with_recovery_cue(self) -> None:
++        """The portable guide retains anchors and a minimal stale/missing recovery cue.
++
++        This checks durable guide material only, not whether a host detects or
++        refreshes a live snapshot.
++        """
++        guide = REFERENCES / CURRENT_SYSTEM_BASELINE_GUIDE
++        self.assertTrue(guide.is_file(), guide)
++        if not guide.is_file():
++            return
++        body = guide.read_text(encoding="utf-8")
++        headings = {
++            heading_anchor(match.group(2))
++            for match in re.finditer(r"(?m)^(#{1,6})\s+(.+?)\s*$", body)
++        }
++        for anchor in CURRENT_SYSTEM_BASELINE_ANCHORS:
++            with self.subTest(anchor=anchor):
++                self.assertIn(anchor, headings)
++
++        relocated = (self.repo / "copied-package" / "references").resolve()
++        shutil.copytree(REFERENCES, relocated)
++        copied_guide = relocated / CURRENT_SYSTEM_BASELINE_GUIDE
++        copied_body = copied_guide.read_text(encoding="utf-8")
++        self.assertNotIn("/Users/", copied_body)
++        recovery = normalized(copied_body).lower()
++        self.assertRegex(recovery, r"\b(?:missing|absent|stale|outdated)\b")
++        self.assertRegex(recovery, r"\b(?:refresh|re-establish|rebuild|recover)\b")
++        for stage, anchor in CURRENT_SYSTEM_BASELINE_STAGE_ANCHORS.items():
++            with self.subTest(stage=stage, anchor=anchor):
++                filename, separator, route_anchor = (
++                    CURRENT_SYSTEM_BASELINE_GUIDE + "#" + anchor
++                ).partition("#")
++                self.assertEqual(separator, "#")
++                destination = relocated / filename
++                self.assertTrue(destination.is_file(), destination)
++                destination_headings = {
++                    heading_anchor(match.group(2))
++                    for match in re.finditer(
++                        r"(?m)^(#{1,6})\s+(.+?)\s*$",
++                        destination.read_text(encoding="utf-8"),
++                    )
++                }
++                self.assertIn(route_anchor, destination_headings)
++
++        for link in re.findall(r"\[[^\]]+\]\(([^)]+)\)", copied_body):
++            if link.startswith(("https://", "http://")):
++                continue
++            with self.subTest(link=link):
++                path, _, anchor = link.partition("#")
++                destination = (copied_guide.parent / path).resolve() if path else copied_guide
++                self.assertTrue(destination.is_relative_to(relocated), link)
++                self.assertTrue(destination.is_file(), link)
++                if anchor:
++                    destination_headings = {
++                        heading_anchor(match.group(2))
++                        for match in re.finditer(
++                            r"(?m)^(#{1,6})\s+(.+?)\s*$",
++                            destination.read_text(encoding="utf-8"),
++                        )
++                    }
++                    self.assertIn(anchor, destination_headings)
++
++    def test_current_system_baseline_routes_survive_cold_lifecycle_and_pending_improve(self) -> None:
++        """Cold packets preserve only the relevant locator through one synthetic run.
++
++        This exercises save/reload and normal producer/Improve transitions. It
++        proves route plumbing and explicitly supplied handoff locators, not that
++        a model validated a source, understood a baseline, or performed a real
++        review.
++        """
++        routes = tuple(dict.fromkeys(CURRENT_SYSTEM_BASELINE_ROUTES.values()))
++        notes = self.run / "notes"
++        notes.mkdir()
++        prior_baseline = notes / "prior-baseline.md"
++        incoming_spec = notes / "incoming-spec.md"
++        prior_baseline.write_text(
++            "# Prior product baseline\n\n## Accepted baseline\n\nFixture baseline.\n",
++            encoding="utf-8",
++        )
++        incoming_spec.write_text(
++            "# Incoming specification\n\n## Requested delta\n\nFixture delta.\n",
++            encoding="utf-8",
++        )
++        prior_baseline_ref = str(prior_baseline) + "#accepted-baseline"
++        incoming_delta_ref = str(incoming_spec) + "#requested-delta"
++        product_refs = [prior_baseline_ref, incoming_delta_ref]
++        item_context = (
++            "W1 host-authored current-system handoff: reopen prior baseline "
++            + prior_baseline_ref
++            + " and incoming delta "
++            + incoming_delta_ref
++            + "; retain their selected sections and revalidation condition."
++        )
++        observed: list[str] = []
++        state = self.state()
++
++        def assert_packet(stage: str, packet: str) -> None:
++            expected = CURRENT_SYSTEM_BASELINE_ROUTES.get(stage)
++            for route in routes:
++                with self.subTest(stage=stage, route=route):
++                    self.assertEqual(packet.count(route), int(route == expected), packet)
++
++        while state["status"] != "done":
++            stage = navigator.current_stage(state)
++            recovered, producer_packet = self.cold_packet(state)
++            self.assertEqual(navigator.current_stage(recovered), stage)
++            assert_packet(stage, producer_packet)
++            if stage == "plan":
++                # The preceding host-authored test-strategy result explicitly
++                # carries these locators; the navigator did not discover them.
++                self.assertIn(prior_baseline_ref, producer_packet)
++                self.assertIn(incoming_delta_ref, producer_packet)
++            if stage == "step-plan":
++                self.assertEqual(navigator._current_work_item(recovered), "W1")
++                self.assertIn("Work item context: " + item_context, producer_packet)
++                self.assertIn(prior_baseline_ref, producer_packet)
++                self.assertIn(incoming_delta_ref, producer_packet)
++
++            extra: dict[str, object] = {}
++            if stage in {"discovery", "test-strategy", "plan", "step-plan"}:
++                # These are synthetic host-authored handoffs in ordinary result
++                # fields, never inferred by the navigator from the fixture files.
++                extra["evidence_refs"] = product_refs
++            if stage == "plan":
++                extra["work_items"] = [
++                    {
++                        "id": "W1",
++                        "title": "Retain current-system baseline",
++                        "context": item_context,
++                    }
++                ]
++            if stage in CURRENT_SYSTEM_BASELINE_STAGE_ANCHORS:
++                action = dict(navigator.current_action(recovered))
++                waiting = navigator.apply(recovered, action["id"], result(stage, **extra))
++                pending, pending_packet = self.cold_packet(waiting)
++                self.assertIsNotNone(pending["active_improve"])
++                self.assertEqual(navigator.current_stage(pending), stage)
++                self.assertIn("Current action: Improve the completed " + stage, pending_packet)
++                assert_packet(stage, pending_packet)
++                if stage == "discovery":
++                    self.assertIn(prior_baseline_ref, pending_packet)
++                    self.assertIn(incoming_delta_ref, pending_packet)
++                if stage == "step-plan":
++                    self.assertIn("Work item context: " + item_context, pending_packet)
++                    self.assertIn(prior_baseline_ref, pending_packet)
++                    self.assertIn(incoming_delta_ref, pending_packet)
++                observed.append(stage)
++                state = navigator.finish_improve(pending, action["id"], receipt(stage))
++            else:
++                state, _action_id = self.complete_stage(recovered, **extra)
++
++        self.assertEqual(tuple(observed), tuple(CURRENT_SYSTEM_BASELINE_STAGE_ANCHORS))
+ 
+     def test_cold_lifecycle_packets_keep_clause_surface_and_due_phase(self) -> None:
+         """A compact requirement survives planning and due-stage reconciliation.
+@@ -406,6 +745,108 @@
+         self.assertIn(card_ref, packet)
+         self.assertNotIn("draft://not-accepted", packet)
+         self.assertEqual(state["accepted"][plan_action]["evidence_refs"], [plan_ref, card_ref])
++
++    def test_service_discovery_context_and_final_improve_handoff_are_item_scoped(self) -> None:
++        """Carry final service decisions through one item without replaying them to the next."""
++        index = self.repo / "SHIPLOOP.md"
++        decision = self.repo / "docs" / "decisions" / "customer-review.md"
++        decision.parent.mkdir(parents=True)
++        index.write_text(
++            "# Fixture decision index\n\n## Customer review\n\n"
++            "- [Accepted remote-service decision](docs/decisions/customer-review.md#accepted)\n",
++            encoding="utf-8",
++        )
++        decision.write_text("# Customer review\n\n## Accepted\n", encoding="utf-8")
++        index_ref = str(index) + "#customer-review"
++        final_plan_ref = str(decision) + "#accepted"
++        final_step_ref = str(decision) + "#implementation-handoff"
++        plan_seed_ref = "untrusted://shared-cache-seed"
++        step_seed_ref = "untrusted://draft-service-handoff"
++        seed_context = "W1 seed: share customer cache before verifying authorization."
++        final_context = (
++            "W1 remote service: reopen " + index_ref + " and " + final_plan_ref
++            + "; preserve the remote schema delta, gate each cached read on current "
++            "authorization, use durable record rereads after asynchronous work, and reuse "
++            "the existing audit owner unless coverage is insufficient."
++        )
++        local_context = (
++            "W2 local change: reopen " + index_ref
++            + " and reassess its own scope; no customer-service decision carries over."
++        )
++        index_route = "Repository knowledge index (host-authored, if present): " + str(index)
++        state = self.state()
++
++        while navigator.current_stage(state) != "plan":
++            state, _action_id = self.complete_stage(state)
++        final_plan = result(
++            "plan",
++            evidence_refs=[final_plan_ref],
++            work_items=[
++                {"id": "W1", "title": "Harden customer service", "context": final_context},
++                {"id": "W2", "title": "Make local title change", "context": local_context},
++            ],
++        )
++        state, plan_action = self.complete_stage_with_final(
++            state,
++            final_plan,
++            evidence_refs=[plan_seed_ref],
++            work_items=[{"id": "W1", "title": "Seed plan", "context": seed_context}],
++        )
++        state = self.save_reload(state)
++        self.assertEqual(state["accepted"][plan_action]["evidence_refs"], [final_plan_ref])
++        self.assertEqual(state["work_items"][0]["context"], final_context)
++        self.assertNotIn(plan_seed_ref, state["accepted"][plan_action]["evidence_refs"])
++        self.assertNotEqual(state["work_items"][0]["context"], seed_context)
++
++        while navigator.current_stage(state) != "step-plan":
++            state, _action_id = self.complete_stage(state)
++            state = self.save_reload(state)
++        first_item, first_packet = self.cold_packet(state)
++        self.assertEqual(navigator._current_work_item(first_item), "W1")
++        self.assertEqual(first_packet.count(index_route), 1, first_packet)
++        self.assertEqual(first_packet.count(SERVICE_DISCOVERY_ROUTES["step-plan"]), 1, first_packet)
++        self.assertIn("Work item context: " + final_context, first_packet)
++        self.assertIn(final_plan_ref, first_packet)
++        self.assertNotIn(seed_context, first_packet)
++        self.assertNotIn(plan_seed_ref, first_packet)
++
++        final_step = result(
++            "step-plan",
++            summary="Improve retained the final service handoff.",
++            evidence_refs=[final_step_ref],
++        )
++        state, step_action = self.complete_stage_with_final(
++            first_item,
++            final_step,
++            evidence_refs=[step_seed_ref],
++        )
++        state, test_spec_packet = self.cold_packet(state)
++        self.assertEqual(navigator.current_stage(state), "test-spec")
++        self.assertEqual(state["accepted"][step_action]["evidence_refs"], [final_step_ref])
++        self.assertIn("Work item context: " + final_context, test_spec_packet)
++        self.assertIn(
++            "Current item test-decision source action: " + step_action,
++            test_spec_packet,
++        )
++        self.assertIn(final_step_ref, test_spec_packet)
++        self.assertNotIn(step_seed_ref, test_spec_packet)
++        self.assertNotIn(plan_seed_ref, test_spec_packet)
++
++        while not (
++            navigator.current_stage(state) == "step-plan"
++            and navigator._current_work_item(state) == "W2"
++        ):
++            state, _action_id = self.complete_stage(state)
++            state = self.save_reload(state)
++        second_item, second_packet = self.cold_packet(state)
++        self.assertEqual(navigator._current_work_item(second_item), "W2")
++        self.assertEqual(second_packet.count(index_route), 1, second_packet)
++        self.assertEqual(second_packet.count(SERVICE_DISCOVERY_ROUTES["step-plan"]), 1, second_packet)
++        self.assertIn("Work item context: " + local_context, second_packet)
++        self.assertNotIn(final_context, second_packet)
++        self.assertNotIn(final_plan_ref, second_packet)
++        self.assertNotIn(final_step_ref, second_packet)
++        self.assertNotIn(step_seed_ref, second_packet)
+ 
+     def test_next_item_reopens_repo_index_without_inheriting_prior_skill_selection(self) -> None:
+         """The generic item context keeps selections scoped to their owner.
+--- a/skills/shiploop/references/service-discovery.md
++++ b/skills/shiploop/references/service-discovery.md
+@@ -0,0 +1,227 @@
++# Service discovery
++
++Use this conditional guide when a requested behavior depends on another system's
++data, metadata, configuration, authority, or independently executing work. An
++MCP can be a route to that system; its name or tool inventory does not prove a
++runtime dependency, connection, identity, or authority. Use the existing
++[platform discovery](platform-discovery.md#discover-before-choosing-a-mechanism)
++and [behavior model](behavioral-requirements.md#actors-channels-and-state-ownership)
++for their applicable questions. Do not create a service, cache, broker, logging
++backend, or remote prerequisite merely to complete this guide.
++
++## Select scope
++
++Start from the requested user or business outcome. Trace the affected flow from
++its caller through services, state owners, and observable result. Identify the
++authoritative data and business-rule owner, current native/shared capabilities,
++and any actual remote boundary. Distinguish a development/provisioning MCP from
++the product's runtime caller, adapter, and identity; they may be unrelated.
++
++Classify each applicable need as **reuse**, **configure**, **extend**, **new
++justified component**, **unresolved**, or **not applicable**. A local or
++stateless change stays local when no consequential boundary exists. Still assess
++owned observability when the affected flow includes authentication, security, or
++an operationally consequential outcome; a small formatter does not acquire
++telemetry because this guide exists.
++
++Select only the cache, query, schema, asynchronous, and observability questions
++that can change the requested design. This is not a one-size-fits-all
++middle-tier blueprint.
++For a selected unresolved contract, retain the safe interim behavior, affected
++dependents, and smallest confirming observation or conditional change. Naming a
++gap alone is not an actionable handoff; unrelated ready work need not wait.
++
++For incremental work, reconcile four inputs before proposing a change:
++
++1. prior accepted intent and constraints;
++2. current local definitions, callers, and tests;
++3. current observed remote state; and
++4. the requested delta.
++
++Record differences as intended change, remote drift, local drift, or unknown.
++Preserve unrelated remote fields, configuration, automation, consumers, and
++data. A permission-denied read is not evidence that an object or record is
++absent. Recheck volatile schema, permissions, and dependencies before an
++authorized change; source files must not blindly overwrite remote drift.
++Before applying a selected delta, plan the compatible schema/configuration and
++consumer order, any required backfill/cutover and rollback or repair path. Bind
++the write to the revalidated target/revision where supported; retain final status
++and read-back, including partial or unknown outcomes, before dependent work.
++
++## Remote capabilities and state
++
++For every selected remote operation, retain a compact map: required behavior →
++observed supported route (MCP, API, CLI, SDK, or browser) → remote artifact →
++effective identity and required authority → completion and read-back evidence.
++Separate metadata/schema work, configuration, and record CRUD. Also map the
++runtime path separately: caller → business operation → adapter/query facade →
++source of truth. A tool available to a developer does not establish runtime
++permission or a product interface.
++
++For a selected read route, establish needed filtering, joins, pagination, source
++availability, quotas, latency, and retention only when they affect the choice of
++direct access, an existing query facade, cache, or projection.
++
++Scoped, authorized, read-only remote inspection is valid discovery when it can
++settle a named uncertainty about current schema, configuration, access, or
++state. Establish the target and effective role first; retrieve only what is
++needed; retain a sanitized operation/source, as-of time, coverage, and limit in
++the decision note. Do not copy secrets or unnecessary business records into
++durable context. A safe read does not authorize a write, deployment, test data,
++or persistent connector installation. If inspection cannot answer a material
++question, define a bounded experiment with its allowed effects, target,
++identity, expected observation, cleanup, and decision consequence as described
++by [research experiments](research-loop.md#run-bounded-discriminating-experiments).
++
++## Cache and authorization
++
++Make “zero copy” precise: it can mean no application database, no durable
++secondary copy, or no secondary retention at all. Record fields/results kept,
++where, lifetime, and policy. A direct query proxy need not retain results;
++transient caching is compatible with some zero-copy constraints and incompatible
++with others. Prefer direct/native access, then an existing facade, then a cache
++or projection only when measured benefit and the full correctness contract
++justify it.
++
++For each cache, specify data freshness and authorization freshness separately.
++Define maximum age, read-after-write behavior, outage behavior, and whether
++current authorization is required at response time. A user-specific key or TTL
++does not by itself make revocation safe. Build partitions from trusted,
++server-derived tenant/principal and relevant query, row, field, purpose, locale,
++and schema context; never caller-asserted entitlements. Cache an already filtered
++representation under that scope, or reapply complete current policy enforcement
++before every exposure. Do not expose protected information through cached errors,
++counts, or existence signals.
++
++List invalidation or revalidation sources: create/update/delete, membership and
++aggregate changes, schema/derived-result changes, sharing or policy changes, and
++logout/account switch. Cover a slow pre-invalidation fill that completes late,
++plus lost, delayed, duplicate, or reordered events and disconnected consumers.
++Use a supported generation/revision rule, resynchronization/rebuild, bypass, or
++denial policy; do not promise stronger consistency than the authorization source
++can establish. When trust in current authorization or isolation is missing,
++bypass the cache or deny the result according to the selected requirement.
++A bypass must route through a source or adapter that enforces current row, field,
++and query policy; reading a privileged source directly is not a safe bypass.
++Specify retention/purge independently from permission to serve. Apply the
++[state](coding-practices.md#state) and [security](coding-practices.md#security)
++cards when implementation follows.
++
++## Asynchronous cooperation
++
++Choose the simplest sufficient contract: synchronous completion, an existing
++durable operation record read through polling, or a notification that prompts an
++authoritative read-back. Polling is sufficient when its latency, load, and quota
++fit. A notification or accepted request is not proof of business completion, and
++the UI cannot be the only owner of work promised after it closes.
++For independently executing work, identify the processor and recovery owner or
++record that gap: a durable status record and its poller do not process the work.
++
++Define when acceptance becomes durable; the worker/dispatcher authority and
++abandoned-work recovery; allowed states and terminal result; and how final status
++is committed and read back. Reuse transactions, conditional updates, and
++recovery scans that meet the contract. Do not introduce a broker or outbox
++without a demonstrated dispatch/recovery gap.
++
++Keep operation, correlation, idempotency, resource revision, and replay
++identities distinct where relevant. State duplicate, stale/out-of-order,
++unknown-outcome, retry, cancellation, deadline, and worker-crash behavior. For
++consequential execution, choose current submitter authority, a permitted
++delegated snapshot, or service authority; do not assume a worker inherits a
++browser session. Specify the effect of revocation or cancellation after
++acceptance on queued and running work, final writes, and result visibility.
++Where supported, guard the final write atomically with a conditional revision,
++fencing token, or equivalent mechanism so a reclaimed or stale worker cannot
++overwrite a newer terminal result; an earlier lease check alone is insufficient. Otherwise
++define and test the actual reconciliation rule. Do not promise exactly-once.
++Authorize operation lookup, status/progress, result access, and notification
++recipients separately. Retain and purge operation inputs, errors, and results
++deliberately. Apply the existing
++[event and state agreement](behavioral-requirements.md#incoming-events-connections-and-state-agreement)
++guidance to the selected boundary.
++
++## Observability coverage
++
++Map relevant local and remote/MCP-adjacent events before adding instrumentation:
++event purpose, authoritative emitter, responsible operator, existing logger,
++audit trail, metric/trace facility, collector/destination, retrieval access,
++retention, and delivery limits. Reuse in this order: unchanged coverage,
++configuration of existing coverage, extension of owned instrumentation into its
++current destination, then a new facility only for a demonstrated unmet need. An
++inaccessible log is an evidence gap, not proof that logging is absent.
++
++Where authentication is part of the system, cover successful and failed login
++attempts. Reuse adequate identity-provider or platform events, and add only
++distinct application-owned outcomes such as session creation rejection,
++authorization denial, refresh, logout, or revocation where applicable. A failed
++login is an authentication outcome, not automatically a security incident or a
++page. Do not re-emit a provider's authoritative event, reproduce authentication
++internals the application cannot observe, or add duplicate storage without a
++need.
++
++For owned gaps, select useful operation outcomes, failures, timing, retries,
++cache invalidation/recovery, and background-work transitions. Use safe
++correlation identifiers across boundaries while keeping logs distinct from
++durable work state. Protect logs with minimum necessary data, access control, and
++retention/purge rules; omit passwords, tokens, session credentials, and raw
++sensitive payloads, and sanitize untrusted fields. Required audit events must
++not disappear under debug controls or sampling. Treat sink failure and any
++fail-closed audit rule as explicit behavior, preserving the original business
++error where diagnostic failure is ordinary. Follow
++[logging and debugging](coding-practices.md#logging-and-debugging) for safe
++implementation detail.
++If event ownership or coverage is unresolved, name the confirming probe and the
++conditional source/test change at the actual boundary. For example, add an owned
++login-success event after successful session creation only if existing adequate
++coverage does not already own that outcome; otherwise retain that coverage and
++its retrieval check. Do not defer the entire logging handoff to an unspecified
++future design, or claim that unknown provider coverage satisfies the requirement.
++
++## Development handoff
++
++Keep one concise, maintained decision in an existing architecture, design, or
++environment note. Its current, authoritative sections should state status
++(accepted, unresolved, superseded, or not applicable), target/role observations,
++the four-way delta, selected capability and runtime maps, data/cache and async
++contracts, observability coverage/reuse decision, evidence limits, file roles,
++ordered prerequisites, checks, and revalidation triggers. Link that note from
++the repository knowledge index at `REPO/SHIPLOOP.md`, preserving existing
++project-document links and structure. Do not impose a filename or duplicate a
++project's documentation.
++
++At planning and operations, reopen the index and the exact current sections,
++not a remembered chat transcript or arbitrary whole documents. Retain their
++locators in the accepted result's existing `evidence_refs`; where an INNER work
++item needs them, put a compact locator and decision/revalidation summary in that
++item's existing `context`. The Navigator transports these host-authored
++locators; it does not read, enforce, or replay all referenced decisions. No new
++result field, runtime projection, ledger, or stage is required.
++
++Discovery/research establishes observed facts and decisions; specification makes
++freshness, authorization, completion, retention, and observability criteria
++testable; test strategy identifies local/remote surfaces, identities, fixtures,
++setup, teardown, and suite membership. The plan orders metadata/configuration,
++service/adapter, cache/worker, UI, observability, test, and delivery work only
++when justified. Step planning reopens and revalidates its exact sections before
++edits. Operations and handoff retain current log/audit retrieval and recovery
++locators, observation dates, and unresolved limitations.
++
++## Verification
++
++For this guide's maintenance, verify package-relative links after relocation.
++For a product change, choose checks that prove the selected contract rather than
++keyword presence. Test the actual selected remote route and identity where
++authorized; local mocks do not prove remote schema, permissions, cache safety,
++or delivery. Retain blocked access as a prerequisite and use synthetic or
++isolated fixtures where that is the only authorized surface.
++
++Exercise relevant decisions: an incremental metadata/state read preserves
++unrelated remote changes; direct reads remain available when a cache is unsafe;
++cache hit/miss/write/expiry/outage, permission revocation without a data edit,
++delayed fill, and invalidation-event gaps follow the contract; durable polling
++remains correct without notification; worker crash, duplicate/stale completion,
++and unauthorized status/result access are handled; and observability reuses
++provider login coverage while testing any distinct owned success/failure event,
++safe destination retrieval, redaction, required-event filtering, and sink
++failure. Record the command, target/scope, observation, and limitation. A
++passing documentation or synthetic test is evidence of that surface only.

@@ -1,0 +1,6 @@
+{
+  "command": "bash scripts/sync-plugin-views.sh --check shiploop",
+  "exit": 0,
+  "checked_at": "2026-09-20T04:50:21.930239+00:00",
+  "log_sha256": "b0ecffee7637b068473f5d9348faa870a60bffb2d2a8ea9da71797d3944bdce5"
+}

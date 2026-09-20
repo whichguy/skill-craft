@@ -1,0 +1,46 @@
+{
+  "date_utc": "2026-09-20T03:25:33.335972+00:00",
+  "repo_head": "7e4199c57a06cf9689780401c4f03f36887d9d66",
+  "dirty_checkout": true,
+  "sources": {
+    "references/research-loop.md": {
+      "sha256": "3c778894693569cbb37e590d011f53c2af678aba1e7cb1c9efdf42607e33ca6b",
+      "selected_lines": [
+        126,
+        455
+      ]
+    },
+    "references/behavioral-requirements.md": {
+      "sha256": "d54244700a30d4402ac8ae992cde5d6df1104363c3e92ef6b8d1ea1ecafa4bf1",
+      "selected_lines": [
+        86,
+        182
+      ]
+    },
+    "references/platform-discovery.md": {
+      "sha256": "396831ff45df6d095d8141a55055e924dc5486d841a08e7239b36303aa6a2ec9",
+      "selected_lines": [
+        1,
+        77
+      ]
+    },
+    "references/project-knowledge.md": {
+      "sha256": "0c8539a6ad96b5ecd75c239cd89c16a1562a4bf05c8b66e278d383599d840d16",
+      "selected_lines": [
+        39,
+        107
+      ]
+    },
+    "references/execution-planning.md": {
+      "sha256": "727901b0fe083e5b4cf31660caae78029ee873d994c1e2ec5cc5df8f45cfd0c6",
+      "selected_lines": [
+        306,
+        333
+      ]
+    }
+  },
+  "v3_prompt_source_sha256": "40a0f6cd563691cf93c6688d2e0eded4bb18ddbac353b1cdcd6298ef81994d1f",
+  "baseline_chars": 43480,
+  "candidate_additional_chars": 3587,
+  "scope": "focused duty/reference slice; full stage strings retained for audit only"
+}

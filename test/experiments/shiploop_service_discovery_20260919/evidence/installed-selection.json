@@ -1,0 +1,21 @@
+{
+  "installed_codex_locator": "/Users/dadleet/.codex/skills/shiploop",
+  "symlink": true,
+  "resolved_package": "/Users/dadleet/src/skill-craft-coverage-release-20260919/skills/shiploop",
+  "matches_edited_source": false,
+  "service_guide_present": false,
+  "installation_changed_by_task": false,
+  "scoped_patch_check": {
+    "command": "git apply --check <evidence/implementation.patch>",
+    "cwd": "/Users/dadleet/src/skill-craft-coverage-release-20260919",
+    "exit": 1,
+    "conflicts": [
+      "skills/shiploop/SKILL.md",
+      "skills/shiploop/README.md",
+      "skills/shiploop/references/platforms/salesforce.md",
+      "skills/shiploop/scripts/shiploop_navigator_v3_prompts.py",
+      "test/shiploop-v3-guidance.test.py"
+    ],
+    "effects": "Read-only check; no release-checkout edit or installed-link change"
+  }
+}
