@@ -1127,7 +1127,8 @@ class PerStepChainTests(unittest.TestCase):
         self.assertTrue(any(row["event"]["kind"] == "handoff_files_removed"
                             for row in self.bridge_events()))
         returned = next(row["event"]["data"] for row in self.bridge_events()
-                        if row["event"]["kind"] == "managed_returned_delivery")
+                        if row["event"]["kind"] == "managed_returned_delivery"
+                        and row["event"]["data"]["attempt"] == attempt)
         self.assertEqual(returned["intent"], {
             "attempt": attempt, "source_commit": result["commit"],
             "base_commit": packet["context"]["base_commit"],
@@ -1326,6 +1327,7 @@ class PerStepChainTests(unittest.TestCase):
         self.assertEqual(self.head(), before_head)
         self.assertTrue(workspace.exists())
         (workspace / "prepared-drift.txt").unlink()
+        remove_alternate_workspace()
 
         self.call("launched", {"attempt": attempt, "handle": {
             "host": "deterministic-process-fixture", "id": "A",
