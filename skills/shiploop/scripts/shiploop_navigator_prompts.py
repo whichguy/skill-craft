@@ -122,7 +122,15 @@ For a concrete external dependency, follow the packet's Access-readiness policy:
 try a safe existing-connection read, promptly ask when user authentication is
 needed, and retain the non-secret request and recheck condition in existing
 notes. Do not prompt for speculative systems or confuse setup/network failure
-with login failure. Carry the note locator through dependent results. After a
+with login failure.
+
+For identity or access discovery, use supported non-mutating probes and
+sanitized evidence. Normal supported tool-managed authentication and tool
+configuration metadata without session material remain allowed. Builders and
+reviewers must not read, decode, retain, or report local authentication,
+session, or credential-store contents.
+
+Carry the note locator through dependent results. After a
 user reply, recheck access, finish the current duties and any assigned Improve
 campaign, and use the current callback; the reply alone is not completion.
 Independent work stays within this action; never skip graph stages while waiting.
