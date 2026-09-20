@@ -69,21 +69,25 @@ STAGE_REFERENCES: dict[str, tuple[tuple[str, str], ...]] = {
         ("Delivery authority guidance", "delivery-authority.md#ask-at-the-first-concrete-boundary"),
     ),
     "discovery": (
+        ("Current-system baseline guide", "current-system-baseline.md#establish-or-refresh"),
         ("Persistent project-context guidance", "project-knowledge.md#discover-persistent-context-before-planning"),
         ("Repository-local skill guidance", "testing-and-documentation.md#reusable-product-skills"),
         ("Environment and source-return discovery", "environment-lifecycle.md#discover-before-planning-code"),
         ("UI planning ownership when applicable", "behavioral-requirements.md#allocate-ui-decisions-to-their-planning-owner"),
     ),
     "research": (
+        ("Current-system baseline guide", "current-system-baseline.md#evidence-and-authority"),
         ("Bounded research guidance", "research-loop.md#recursive-discovery-and-experiments"),
         ("Reuse-before-build guidance", "research-loop.md#reuse-before-a-new-mechanism"),
     ),
     "spec": (
+        ("Current-system baseline guide", "current-system-baseline.md#planning-and-review-handoff"),
         ("Behavior-model guidance", "behavioral-requirements.md#behavior-model"),
         ("Behavior traceability guidance", "behavioral-requirements.md#traceability-and-review"),
         ("State and data assessment", "requirements-definition.md#state-and-data-change-assessment"),
     ),
     "test-strategy": (
+        ("Current-system baseline guide", "current-system-baseline.md#planning-and-review-handoff"),
         ("Repeatable test-suite guide", "repeatable-test-suites.md#select-or-revalidate-the-harness"),
         ("Target-native test selection", "repeatable-test-suites.md#select-target-native-tests"),
         ("Test-case planning guidance", "testing-and-documentation.md#test-cases"),
@@ -91,6 +95,7 @@ STAGE_REFERENCES: dict[str, tuple[tuple[str, str], ...]] = {
         ("State and data assessment", "requirements-definition.md#state-and-data-change-assessment"),
     ),
     "plan": (
+        ("Current-system baseline guide", "current-system-baseline.md#planning-and-review-handoff"),
         ("Dependency-planning guidance", "backchain-planning.md#dependency-audit"),
         ("Git-history investigation guide", "project-knowledge.md#investigate-git-history-for-planning"),
         ("Decision carry-forward guidance", "project-knowledge.md#carry-context-into-the-new-plan"),
@@ -108,6 +113,7 @@ STAGE_REFERENCES: dict[str, tuple[tuple[str, str], ...]] = {
         ("Decision carry-forward guidance", "project-knowledge.md#carry-context-into-the-new-plan"),
     ),
     "step-plan": (
+        ("Current-system baseline guide", "current-system-baseline.md#planning-and-review-handoff"),
         ("Coding decision guide", "coding-guidance.md#select-guidance"),
         ("Git-history investigation guide", "project-knowledge.md#investigate-git-history-for-planning"),
         ("Optional parallel-chain guide", "parallel-chain.md#parallel-implementation-chains"),
@@ -155,6 +161,7 @@ STAGE_REFERENCES: dict[str, tuple[tuple[str, str], ...]] = {
         ("Real-boundary test guidance", "testing-and-documentation.md#layers-and-real-boundaries"),
     ),
     "document": (
+        ("Current-system baseline guide", "current-system-baseline.md#retain-across-runs"),
         ("Documentation guidance", "testing-and-documentation.md#documentation"),
         ("Documentation and reuse guidance", "testing-and-documentation.md#iteration-documentation-and-reuse"),
     ),
@@ -182,6 +189,7 @@ STAGE_REFERENCES: dict[str, tuple[tuple[str, str], ...]] = {
         ("Real-boundary test guidance", "testing-and-documentation.md#layers-and-real-boundaries"),
     ),
     "carry-forward": (
+        ("Current-system baseline guide", "current-system-baseline.md#retain-across-runs"),
         ("Carry-forward mapping guidance", "carry-forward.md#mandatory-post-inner-mapping"),
         ("Persistent project-knowledge guidance", "project-knowledge.md#retain-learnings-for-the-next-invocation"),
         ("State and data assessment", "requirements-definition.md#state-and-data-change-assessment"),
@@ -196,6 +204,7 @@ STAGE_REFERENCES: dict[str, tuple[tuple[str, str], ...]] = {
         ("Real-boundary test guidance", "testing-and-documentation.md#layers-and-real-boundaries"),
     ),
     "product-acceptance": (
+        ("Current-system baseline guide", "current-system-baseline.md#retain-across-runs"),
         ("Behavior traceability guidance", "behavioral-requirements.md#traceability-and-review"),
         ("Consumer delivery guidance", "consumer-delivery.md#what-to-establish"),
     ),
@@ -224,6 +233,7 @@ STAGE_REFERENCES: dict[str, tuple[tuple[str, str], ...]] = {
         ("Deployment and handoff guidance", "testing-and-documentation.md#deployment-and-handoff"),
     ),
     "handoff": (
+        ("Current-system baseline guide", "current-system-baseline.md#retain-across-runs"),
         ("Deployment and handoff guidance", "testing-and-documentation.md#deployment-and-handoff"),
         ("Workspace return guidance", "workspace-lifecycle.md#inner-assembly-and-final-return"),
     ),
@@ -444,6 +454,13 @@ planning; it is not healthy. Preserve the observation for prerequisite planning;
 do not edit product source, tests, dependency definitions, or configuration to
 turn it green. Discovery may finish its investigation with a failed baseline,
 but that does not make dependent feature work ready.
+Use the Current-system baseline guide after the initial repository baseline.
+Read README first; reuse/revalidate an adequate current-system account or recover
+one from relevant docs, code/tests and authorized read-only observations. Retain
+its as-of identity, coverage/conflicts, exact source locators and durable home in
+a run note or retrievable immutable revision; include the selected baseline in
+evidence_refs. A missing ShipLoop index does not mean a new system. Keep incoming
+changes separate and leave consequential gaps unready for dependent work.
 """,
     "research": """\
 Resolve material unknowns with repository, primary-interface, or otherwise
@@ -454,6 +471,9 @@ for actual fit and support; discovery alone is not successful use or authority t
 install a dependency.  Leave unsupported questions open.
 Research consequential quality-target and feasibility unknowns from existing
 contracts and appropriate evidence; measured baselines do not choose user policy.
+Reopen the selected current-system baseline and resolve its consequential gaps.
+Retain the prior as-of account and record corrections/new evidence separately;
+observations or synthetic fixtures cannot choose approved product intent.
 """,
     "spec": """\
 Define the required behavior, boundaries, acceptance criteria, nonfunctional
@@ -473,6 +493,9 @@ before/after invariants and recovery; retain applicable checks and unknowns.
 Separate independently verifiable clauses and their required observation surfaces;
 keep bundled behaviors visible even when they share one requirement ID. Definition
 completion establishes criteria, not implementation or test success.
+Read the selected prior current-system baseline as well as accepted requirements.
+Define the incoming delta with concrete preserved/changed behavior and retain
+both source-section locators and evidence limits for planning and Improve.
 """,
     "test-strategy": """\
 Create a risk-based test and verification strategy from the specification before
@@ -508,6 +531,9 @@ coverage and limits; distinguish a passing subset from a failed, blocked,
 intermittent, missing-test, or expected-RED observation. Name the setup, repair,
 or test-bootstrap prerequisite and its required evidence before dependent feature
 checks, using ordinary evidence_refs and planned work-item context.
+Use the selected prior baseline and incoming-spec sections to plan checks for
+new and preserved behavior. Unknown existing semantics need discovery before
+asserting a preservation target; old passing evidence is not a current pass.
 """,
     "plan": """\
 Create a dependency-aware delivery plan from desired outcomes back to required
@@ -565,6 +591,10 @@ later items must reread the index for skills learned during this run.
 Use the packet's Run-wide test strategy source. Carry its locator and the
 applicable compact test decisions into each work item's existing `context`;
 include execution/target location, fixture and suite choices, and what to recheck.
+Reopen the selected current-system baseline and incoming change spec. Demonstrate
+use through before/after decisions and preservation checks. Carry their exact
+sections, gaps and revalidation conditions in evidence_refs and affected item
+context; plan durable documentation work when recovery exists only in run notes.
 """,
     "prepare": """\
 Prepare or verify the approved development/test environment and prerequisites.
@@ -657,6 +687,9 @@ useful inspection findings into retained tests or explicit manual procedures.
 Retain the harness and case locators in the existing plan and work-item context.
 For remote-resident cases, revalidate framework availability and the authorized
 setup, test-definition/invocation, result retrieval and teardown route.
+Reopen this item's selected prior-baseline and incoming-spec sections from context.
+Revalidate scope/freshness, retain preserved behavior and checks, and surface any
+missing consequential source before dependent implementation.
 """,
     "test-spec": """\
 Specify executable tests before production edits when applicable.  Map the item
@@ -785,6 +818,9 @@ run notes; preserve uncertainty and material caveats.
 Reconcile maintained requirements with accepted changes, not merely observed code:
 preserve unaffected conditions and link tests/evidence or unresolved gaps. Update
 README/index links to the authoritative home without duplicating its contract.
+Use the Current-system baseline guide to retain recovered observations and
+accepted deltas in durable product docs, preserving their distinct evidence status
+and the prior as-of baseline. Update README/index links to the selected homes.
 """,
     "skill-assess": """\
 Assess whether an existing skill, helper, MCP capability, library pattern, or
@@ -871,6 +907,9 @@ procedure outside disposable run storage.
 Maintain the existing skill index/README links and their short SHIPLOOP.md locator
 so the next item or run can find newly created or evolved local skills. Keep
 task-specific values in evidence and revalidate prior selections for each new task.
+Carry the selected prior baseline, incoming delta and updated durable knowledge
+locators forward. Preserve historical snapshots and pending persistence work;
+new observations do not silently replace approved intent or old evidence.
 """,
     "system-test-author": """\
 Reopen the Run-wide test strategy source. From accepted history, select the
@@ -923,6 +962,9 @@ release is not a claim that every requested consumer behavior has been observed.
 Identify missing product work, stale evidence, or delivery prerequisites and route
 them honestly.  Acceptance does not itself execute a release or prove a remote
 consumer boundary.
+Reconcile new and preserved behavior against the selected prior baseline and
+incoming spec. Check durable knowledge and remaining gaps; a recovered description
+or planned check alone does not establish product acceptance.
 """,
     "release-plan": """\
 Create an authorized release/recovery plan: target and candidate identity,
@@ -996,6 +1038,9 @@ and operational status; evidence locators; limits; blockers; follow-up work; and
 revalidation needs.  Reconcile durable project documentation and product-return
 receipts where applicable.  Do not transform an intent, stale green result, or
 conversational summary into completion evidence.
+Verify that current system knowledge, accepted changes and unresolved limits
+survive outside transient run notes. Preserve the prior baseline's as-of account
+and verify durable README/index links from the returned project documentation home.
 """,
 }
 
@@ -1367,6 +1412,11 @@ handoff when these decisions change.
 Carry those locators into the child contract for cold recovery. This is conditional
 review scope within the existing handoff, not another Improve run; do not invent
 infrastructure or expand the assigned scope.
+
+For current-system recovery or affected product work, carry selected prior-baseline
+and incoming-spec sections into this child's existing contract before review.
+Check preservation, evidence/intent separation, consequential gaps and durable
+retention within this candidate's scope; a package-guide link alone is insufficient.
 
 Treat the relevant work-item `context`, parent `evidence_refs`, plan notes, and
 packet-selected reference locators as parent-supplied cold-context inputs. Reopen

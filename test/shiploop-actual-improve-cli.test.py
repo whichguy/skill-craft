@@ -593,6 +593,66 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         self.assertEqual(requirements.read_text(encoding="utf-8"), "# Requirements\n\n- A player can move a piece.\n")
         self.assertEqual(scratch.read_text(encoding="utf-8"), "Unrelated working note.\n")
 
+    def test_current_system_baseline_and_delta_survive_bound_child_recovery(self):
+        """Host-authored references survive real child CLI recovery and import.
+
+        Predecessor navigation and judgments are synthetic. This does not prove
+        the child interpreted the spec; it verifies the explicit handoff duty
+        and transport of two distinct product artifacts through the bound runtime.
+        """
+        baseline = self.repo / "docs/current-system.md"
+        delta = self.base / "incoming-spec.md"
+        baseline.parent.mkdir(parents=True)
+        baseline.write_text(
+            "# Current system\n\n## as-of-v1\nObserved: polling runs missed jobs once.\n",
+            encoding="utf-8",
+        )
+        delta.write_text(
+            "# Incoming request\n\n## tag-filter\nAdd selection; preserve missed-run behavior.\n",
+            encoding="utf-8",
+        )
+        refs = [str(baseline) + "#as-of-v1", str(delta) + "#tag-filter"]
+        self._start_parent_at_stage("spec", refs)
+        packet = self.invoke(CLI, "next", "--run-dir", self.run).stdout
+        for locator in refs:
+            self.assertIn(locator, packet)
+        handoff = " ".join(packet.split())
+        self.assertIn("carry selected prior-baseline and incoming-spec sections", handoff)
+        self.assertIn("into this child's existing contract before review", handoff)
+
+        # The host must author this context; ShipLoop does not read the artifacts
+        # or populate the semantic child contract automatically.
+        contract = self.child_contract()
+        context = self.child_context()
+        context["resources"][-2:] = [
+            {"purpose": "prior as-of baseline", "locator": refs[0]},
+            {"purpose": "incoming change specification", "locator": refs[1]},
+        ]
+        contract["context"] = context
+        raw, first = self.invoke_argv(
+            [sys.executable, "-B", str(EPHEMERAL), "start", "--directory", str(self.base)],
+            contract,
+        )
+        self.save_packet(raw)
+        cold_raw, cold = self.invoke_argv(first["next_argv"])
+        self.assertEqual(cold["context"], context)
+        self.save_packet(cold_raw)
+        _raw, second = self.done_ephemeral(
+            cold, self.child_report("trivial", "unsatisfied", "allowed", "synthetic first review")
+        )
+        terminal_raw, terminal = self.done_ephemeral(
+            second, self.child_report("trivial", "satisfied", "allowed", "synthetic second review")
+        )
+        self.assertEqual(terminal["status"], "complete")
+        self.assertEqual(terminal["context"], context)
+        completion, _receipt = self.completion_receipt()
+        self.invoke(CLI, "improve-complete", "--run-dir", self.run,
+                    "--action", self.action, "--result", completion)
+        resumed = store.read_record(self.run / "state.md")
+        self.assertEqual(navigator.current_stage(resumed), "test-strategy")
+        self.assertEqual(resumed["improve_results"][self.action]["seed_result"]["evidence_refs"], refs)
+        self.assertEqual(self.packet_path.read_bytes(), terminal_raw.stdout)
+
     def test_skill_assess_local_skill_bundle_survives_actual_child_cold_recovery(self):
         """A host-authored child contract retains concrete local-skill locators.
 
