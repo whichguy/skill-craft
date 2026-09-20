@@ -29,6 +29,13 @@ import shiploop_store as store  # noqa: E402
 
 ACCESS_POLICY_LABEL = "Access-readiness policy: "
 ACCESS_POLICY_ANCHOR = "early-access-readiness"
+
+GENERIC_ACCESS_STORE_BOUNDARY = (
+    "For identity or access discovery, use supported non-mutating probes and sanitized "
+    "evidence. Normal supported tool-managed authentication and tool configuration metadata "
+    "without session material remain allowed. Builders and reviewers must not read, decode, "
+    "retain, or report local authentication, session, or credential-store contents."
+)
 EXPECTED_STAGES = (
     "intake",
     "discovery",
@@ -152,6 +159,9 @@ class AuthReadinessNavigatorTests(unittest.TestCase):
             + ACCESS_POLICY_ANCHOR
         )
 
+    def _assert_active_access_boundary(self, packet: str) -> None:
+        self.assertIn(GENERIC_ACCESS_STORE_BOUNDARY, " ".join(packet.split()))
+
     def _assert_access_policy(self, packet: str) -> None:
         expected = self._policy_locator()
         self.assertEqual(packet.count(expected), 1, packet)
@@ -180,6 +190,7 @@ class AuthReadinessNavigatorTests(unittest.TestCase):
         before = (run_dir / "state.md").read_bytes()
         packet = self._cli(run_dir, "next")
         self.assertEqual((run_dir / "state.md").read_bytes(), before)
+        self._assert_active_access_boundary(packet)
         self._assert_access_policy(packet)
         return packet
 
@@ -216,6 +227,17 @@ class AuthReadinessNavigatorTests(unittest.TestCase):
             **extra,
         }
 
+    def test_generic_access_store_boundary_reaches_cold_legacy_builder_packets(self) -> None:
+        """The shared policy is generic and reaches retained v1/v2 builder packets."""
+        reference = " ".join(self.research_loop.read_text(encoding="utf-8").split())
+        self.assertIn(GENERIC_ACCESS_STORE_BOUNDARY, reference)
+        for protocol_version in (1, 2):
+            with self.subTest(protocol_version=protocol_version):
+                packet = self._start(
+                    self.base / f"generic boundary v{protocol_version}", protocol_version
+                )
+                self._assert_active_access_boundary(packet)
+
     def test_relocated_reference_exposes_the_early_access_heading(self) -> None:
         self.assertTrue(self.research_loop.is_file())
         self.assertRegex(
@@ -238,6 +260,7 @@ class AuthReadinessNavigatorTests(unittest.TestCase):
                     action = self._current_action(state)
                     stage = action["stage"]
                     seen.append(stage)
+                    self._assert_active_access_boundary(packet)
                     self._assert_access_policy(packet)
                     cold = self._cold_packet(run_dir)
                     self.assertIn(action["id"], cold)
@@ -246,6 +269,7 @@ class AuthReadinessNavigatorTests(unittest.TestCase):
                         result["choices"] = {"skill_required": False}
                     packet, _callback, _command = self._submit(run_dir, cold, result)
                     if self._state(run_dir)["status"] == "active":
+                        self._assert_active_access_boundary(packet)
                         self._assert_access_policy(packet)
 
                 final = self._state(run_dir)
