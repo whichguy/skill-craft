@@ -1,0 +1,13 @@
+{
+  "outcome": "done",
+  "summary": "Completed one bounded offline discovery pass for CASE-17. Orion Analytics is a separate telemetry pipeline owned by Rina Patel and does not process reviewer case IDs. CASE-17 belongs to Orion Review Gateway; Avery Cole is its documented lead and the available engineering-ownership signal. Approved ADR-042 requires a retry to preserve the existing case and return it to manual review, with no automatic approval. Implementation remains unready until the Gateway interface/authorization/acknowledgement contract, retry recovery semantics, existing UI guidance, and real integration test route are confirmed. Teams was unavailable and no real account, network, callback, implementation, or runtime verification occurred.",
+  "evidence_refs": [
+    "/Users/dadleet/tmp/shiploop-discovery-followup-20260920/sample/case/workspace/DISCOVERY.md#case-17-retry-discovery",
+    "/Users/dadleet/tmp/shiploop-discovery-followup-20260920/sample/case/workspace/SHIPLOOP.md#case-17-retry-discovery",
+    "/Users/dadleet/tmp/shiploop-discovery-followup-20260920/sample/case/workspace/BASELINE.txt",
+    "/Users/dadleet/tmp/shiploop-discovery-followup-20260920/sample/case/receipts.jsonl",
+    "synthetic:intranet:adr-042-orion-review-gateway",
+    "synthetic:private-git:orion-review-gateway-src-app@4f6c2d1e8a9b0c7d6e5f4a3b2c1d0e9f8a7b6c5d",
+    "synthetic:slack:slack-orion-review-1842"
+  ]
+}
