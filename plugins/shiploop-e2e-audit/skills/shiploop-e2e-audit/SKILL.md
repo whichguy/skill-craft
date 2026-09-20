@@ -8,7 +8,7 @@ description: >-
   Google Apps Script and Salesforce game cases require an authorized test deployment and hosted
   behavior evidence.
   Includes its harness for source and marketplace installs; tests a separately selected ShipLoop.
-version: 0.2.2
+version: 0.2.3
 license: MIT
 platforms:
   - linux
@@ -26,11 +26,11 @@ builder with the literal catalog `/shiploop` prompt. Do not start ShipLoop on th
 audit request, complete its callbacks yourself, or coach the builder.
 
 Every live case has a mandatory publication/freshness preflight. It compares
-the latest committed ShipLoop on authoritative source `main`, the marketplace's
-immutable published package, and Grok's actual selected package by contents and
-executable modes. Equal version labels alone are insufficient. If newest source
-is unpublished, the installation is stale, or the comparison cannot be verified,
-report the retained freshness receipt and stop before the builder launches.
+each selected ShipLoop and Improve package with its latest committed authoritative
+source `main` and immutable marketplace package, by contents and executable modes.
+Equal version labels alone are insufficient. If either newest source is unpublished,
+either installation is stale, or either comparison cannot be verified, report the
+retained freshness receipt and stop before the builder launches.
 The evaluator must not publish, install, update, repoint, or repair packages
 during a trial. Package preparation and authorized repairs happen between
 retained trials through the campaign checkpoint below.
@@ -112,24 +112,27 @@ section **Run the audit from Grok** and the sections for the requested mode.
 For live or retained-trial review, also read `WORKFLOW-REVIEW.md` and the current
 `workflow-review-template.json`. These bundled files own commands and schemas.
 
-ShipLoop is a **separate dependency**, never a private copy inside this audit
-package. For mock/apparatus checks, resolve an explicit `skill-root` or the
-host-selected installed ShipLoop card and pass its parent as
+ShipLoop and Improve are **separate dependencies**, never private copies inside
+this audit package. For mock/apparatus checks, resolve an explicit `skill-root` or
+the host-selected installed ShipLoop card and pass its parent as
 `check_suite.py --skill-root`. In Grok, `grok inspect --json` from the starting
-CWD exposes the user-invocable `shiploop` record and its `source.path`; require
-one unambiguous selected card. For live/check, inspect from the intended product
-CWD, then pass that root to `run.py --skill-root` in the appropriate subcommand;
-the runner verifies discovery again. An explicit live/check `skill-root` must
-match the selected package; it does not repoint the host. If the subject is
-missing or ambiguous, report that prerequisite instead of searching caches or
-installing a different ShipLoop. A mock with an explicit subject needs no Grok
-CLI or model access. Review of retained output needs no installed subject.
+CWD must expose one unambiguous, user-invocable `shiploop` record and its
+`source.path`. For live/check, it must also expose one unambiguous,
+user-invocable `improve` record; Improve is selected only from that record, never
+from a cache path or `--skill-root`. Inspect from the intended product CWD, then
+pass the ShipLoop root to `run.py --skill-root` in the appropriate subcommand;
+the runner verifies both selections again. An explicit live/check `skill-root`
+must match selected ShipLoop; it does not repoint the host or select Improve. If
+either subject is missing or ambiguous, report that prerequisite instead of
+searching caches or installing a different package. A mock with an explicit
+ShipLoop subject needs no Grok CLI or model access. Review of retained output
+needs no installed subject.
 
 | Requested mode | Operation |
 | --- | --- |
 | `mock` or no mode | Run `check_suite.py --suite mock` and retain its result; no live model calls. |
 | `harness`, `workflow`, `games`, `regressions`, `all` | Run that no-model `check_suite.py` group; skipped checks remain incomplete. |
-| `check` | Run `run.py check` to verify current source, published package, installed selection and Git without a model call; retain stdout/stderr. Unpublished, stale or unverifiable packages exit nonzero. |
+| `check` | Run `run.py check` to verify current source, published package, and selected package for both ShipLoop and Improve, plus Git, without a model call; retain stdout/stderr. Unpublished, stale or unverifiable packages exit nonzero. |
 | `launch-smoke`, `planning-smoke` | Run one selected case from the named `run.py suite`; these establish only an accepted graph prefix. |
 | A catalog step, such as `ttt-create` or `salesforce-checkers-create` | Run one full `run.py run` request. Its literal prompt requires the configured platform deployment and verification of the hosted app. |
 | `ttt-full`, `checkers-full`, `battleship-full`, `games-full`, `salesforce-checkers-full` | Select one case at a time, with a campaign checkpoint before the next launch. GAS features retain verified predecessors; the Salesforce suite contains one independent create. |
@@ -174,7 +177,7 @@ command's `--help` if this checkout differs from these defaults.
 | `permission-mode` | Live | `--permission-mode`, default `default`; valid choices are `default`, `acceptEdits`, `auto`, `dontAsk`, `bypassPermissions`. Never silently escalate. |
 | `grok` | Live/preflight | `--grok`: executable path. Resolve an available Grok explicitly; the CLI's fallback is PATH lookup, then `~/.local/bin/grok`. |
 | `git` | Live/preflight | `--git`: optional executable path; otherwise the runner probes a working Git. Retain any selected macOS Command Line Tools override. |
-| `skill-root` | Mock/apparatus/live/check | Actual separate ShipLoop package directory → `check_suite.py --skill-root` or `run.py run/suite/check --skill-root`. If omitted in this skill, resolve the host-selected installed card, including marketplace installs. Live/check assert discovery; no install/repoint or Improve selection. Direct Python CLIs have their own documented defaults. |
+| `skill-root` | Mock/apparatus/live/check | Actual separate ShipLoop package directory → `check_suite.py --skill-root` or `run.py run/suite/check --skill-root`. If omitted in this skill, resolve the host-selected installed card, including marketplace installs. Live/check assert ShipLoop discovery; Improve is selected separately from one real user-invocable `grok inspect` record, with no override. Direct Python CLIs have their own documented defaults. |
 | `stop-after-stage` | Single live step only | `--stop-after-stage`: `intake`, `discovery`, `research`, `research-improve`, `spec`, `spec-improve`, `test-strategy`, `plan`, or `plan-improve`. Omit for a full attempt. Suites own their stop boundaries. |
 | `artifact-root` | Live | Additional known ShipLoop workspace directory → repeated `--artifact-root`; accept repeated fields or a JSON string array. Omit to retain the runner's normal product/sibling workspace scan. Must not contain trial output. |
 | `verifier` | Live | Nonempty JSON array of string arguments → one serialized JSON value for `--verifier`. No shell command string. Require a real checker and absolute executable/input paths because it runs from the evidence directory. Full results need the platform-specific deployment and hosted-browser evidence defined in `CASES.md`: GAS staging/promotion and published `/exec` identity, or Salesforce dev-org/deployment/component/Lightning identity. Omitted means product verification remains unverified. |

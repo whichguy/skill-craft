@@ -20,6 +20,8 @@ from typing import Any, Iterable, Mapping
 
 INSPECT_TIMEOUT_SECONDS = 30
 SHIPLOOP_SKILL_NAME = "shiploop"
+IMPROVE_SKILL_NAME = "improve"
+_SELECTED_SKILL_NAMES = frozenset((SHIPLOOP_SKILL_NAME, IMPROVE_SKILL_NAME))
 NATIVE_STREAM_FORMAT = "streaming-json"
 DEFAULT_REASONING_EFFORT = "xhigh"
 SHIPLOOP_DIRECT_SUBCOMMANDS = frozenset(
@@ -114,8 +116,8 @@ def _skill_file(path: Path) -> Path:
     return candidate.resolve()
 
 
-def _skill_records(value: Any) -> Iterable[dict[str, Any]]:
-    """Yield only complete user-invocable ShipLoop skill records.
+def _skill_records(value: Any, skill_name: str) -> Iterable[dict[str, Any]]:
+    """Yield user-invocable records for one fixed selected skill.
 
     ``grok inspect`` also reports agent cards.  An agent card may share the
     ShipLoop name but is not a slash-invocable skill, so it must not make an
@@ -123,16 +125,15 @@ def _skill_records(value: Any) -> Iterable[dict[str, Any]]:
     """
     if isinstance(value, dict):
         if (
-            value.get("name") == SHIPLOOP_SKILL_NAME
+            value.get("name") == skill_name
             and value.get("userInvocable") is True
-            and isinstance(value.get("source"), dict)
         ):
             yield value
         for child in value.values():
-            yield from _skill_records(child)
+            yield from _skill_records(child, skill_name)
     elif isinstance(value, list):
         for child in value:
-            yield from _skill_records(child)
+            yield from _skill_records(child, skill_name)
 
 
 def _require_literal_shiploop_route(record: Mapping[str, Any]) -> None:
@@ -158,19 +159,27 @@ def _require_literal_shiploop_route(record: Mapping[str, Any]) -> None:
 def inspect_selection(
     grok_bin: str,
     repo: Path,
-    expected_skill: Path,
+    expected_skill: Path | None = None,
     env: Mapping[str, str] | None = None,
+    *,
+    skill_name: str = SHIPLOOP_SKILL_NAME,
 ) -> dict[str, Any]:
-    """Verify that Grok discovers exactly the expected user-invocable ShipLoop skill.
+    """Verify that Grok discovers exactly one selected user-invocable skill.
 
     ``grok inspect`` does not have a ``--cwd`` flag, so the subprocess is started
     in ``repo``.  The returned dictionary intentionally excludes the full inspect
     document, which can describe unrelated local configuration.
     """
+    if skill_name not in _SELECTED_SKILL_NAMES:
+        raise GrokAdapterError("selected skill must be ShipLoop or Improve")
     repo_path = _absolute(repo)
     if not repo_path.is_dir():
         raise GrokAdapterError("inspection repository must be an existing directory")
-    expected_path = _skill_file(_absolute(expected_skill))
+    if skill_name == SHIPLOOP_SKILL_NAME and expected_skill is None:
+        raise GrokAdapterError("expected ShipLoop skill is required")
+    if skill_name == IMPROVE_SKILL_NAME and expected_skill is not None:
+        raise GrokAdapterError("Improve selection must come from grok inspect")
+    expected_path = _skill_file(_absolute(expected_skill)) if expected_skill is not None else None
     if not isinstance(grok_bin, str) or not grok_bin.strip():
         raise GrokAdapterError("grok binary path is required")
 
@@ -199,24 +208,38 @@ def inspect_selection(
 
     matching_records: list[tuple[dict[str, Any], Path, Path]] = []
     discovered_realpaths: set[Path] = set()
-    for record in _skill_records(document):
-        source = record["source"]
+    malformed = False
+    for record in _skill_records(document, skill_name):
+        source = record.get("source")
+        if not isinstance(source, Mapping):
+            malformed = True
+            continue
         source_path_value = source.get("path")
         if not isinstance(source_path_value, str) or not source_path_value:
+            malformed = True
             continue
         selected_path = _absolute(source_path_value)
         if not selected_path.is_file():
+            malformed = True
             continue
         selected_realpath = selected_path.resolve()
         discovered_realpaths.add(selected_realpath)
-        if selected_realpath == expected_path:
+        if expected_path is None or selected_realpath == expected_path:
             matching_records.append((record, selected_path, selected_realpath))
 
+    label = "ShipLoop" if skill_name == SHIPLOOP_SKILL_NAME else "Improve"
+    if skill_name == IMPROVE_SKILL_NAME and malformed:
+        raise GrokAdapterError("grok inspect reports a malformed user-invocable Improve skill")
     if len(matching_records) != 1:
         raise GrokAdapterError(
-            "grok inspect must report exactly one matching user-invocable ShipLoop skill"
+            f"grok inspect must report exactly one matching user-invocable {label} skill"
         )
     if len(discovered_realpaths) != 1:
+        if skill_name == IMPROVE_SKILL_NAME:
+            raise GrokAdapterError(
+                "grok inspect reports multiple distinct existing user-invocable Improve sources; "
+                "resolve the source selection in Grok, then rerun the audit from the product directory."
+            )
         raise GrokAdapterError(
             "grok inspect reports multiple distinct existing user-invocable ShipLoop sources; "
             "literal /shiploop cannot be proven to select the expected source. "
@@ -225,10 +248,11 @@ def inspect_selection(
 
     record, selected_path, selected_realpath = matching_records[0]
     source = record["source"]
-    _require_literal_shiploop_route(record)
+    if skill_name == SHIPLOOP_SKILL_NAME:
+        _require_literal_shiploop_route(record)
 
     return {
-        "skill": SHIPLOOP_SKILL_NAME,
+        "skill": skill_name,
         "source": {
             "path": str(selected_path),
             "realpath": str(selected_realpath),
@@ -238,8 +262,8 @@ def inspect_selection(
             "collides_with": record.get("collidesWith"),
         },
         "expected": {
-            "path": str(expected_path),
-            "realpath": str(expected_path),
+            "path": str(expected_path) if expected_path is not None else None,
+            "realpath": str(expected_path) if expected_path is not None else None,
         },
     }
 
