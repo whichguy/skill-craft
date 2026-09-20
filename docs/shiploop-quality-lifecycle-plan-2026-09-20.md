@@ -119,7 +119,7 @@ evidence rather than merely accepting a planned test or repeated conclusion.
 - Baseline: 22 navigator-v3, 29 consumer-delivery, 7 actual-Improve CLI,
   7 packet-bounds and 16 report tests passed. Workspace suite also passed.
   Full command logs and pre-edit files are retained in the external task snapshot.
-- Publication candidate: 23 v3-guidance, 22 navigator-v3, 30 consumer-delivery,
+- Publication candidate: 23 v3-guidance, 23 navigator-v3, 30 consumer-delivery,
   9 actual-Improve CLI, 7 packet-bounds, 8 reference-routing, 7 delivery-prompts,
   41 navigator and 34 workspace tests passed, plus the Improve shell checks.
   The final additional executable-extra/filemode fixture also passed after its
@@ -144,8 +144,10 @@ The user subsequently authorized commit, merge and push. The shared checkout was
 diverged and contained unrelated work, so only this task's delta was ported to an
 isolated checkout based on upstream `a79f84bb30969b2b7d0558e32b57b48ce7dfdf19`.
 The port preserves newer upstream state/data definition, initial-plan review,
-local-only release and Improve decision-provenance guidance. ShipLoop is versioned
-`0.18.5`, Improve `0.2.0-rc.4`; their package views are generated from those source
+local-only release and Improve decision-provenance guidance. Upstream access
+readiness changes through `2e6d2756bbcf4a8060c7d3e9f1a73e9bb71a32bc` were merged
+before final qualification. ShipLoop is versioned
+`0.18.6`, Improve `0.2.0-rc.4`; their package views are generated from those source
 cards. Full CI qualification of the committed candidate precedes the main-branch
 merge. Existing unrelated working changes and host installation links remain
 outside this publication.
