@@ -17,7 +17,7 @@
     },
     {
       "name": "ask-agent",
-      "version": "0.3.1",
+      "version": "0.6.0",
       "description": "A delegation skill, not an agent type. Ask native agents to work in the background, continue useful work in the main conversation, and incorporate their results when they return. Use for \"ask an agent\", named agent roles, parallel delegation, or launch-and-notify work.",
       "category": "productivity",
       "source": {
@@ -197,7 +197,7 @@
     },
     {
       "name": "skill-interop",
-      "version": "0.2.2",
+      "version": "0.2.3",
       "description": "Use when authoring or reviewing a portable multi-host agent skill (Grok, Claude Code, Codex, Hermes): scaffold a prompt-only skill, make a skill host-agnostic, create skill layout, review skill for interop, or install across hosts. Covers prompt-first design, host matrix, anti-patterns (divergent copies, silent mode fallback, abs symlinks), and script-backed CLI contracts.",
       "category": "software-development",
       "source": {

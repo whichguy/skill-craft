@@ -3,7 +3,7 @@
 ```mermaid
 flowchart TD
   S[Authoritative skills] --> I[Local installer]
-  I --> H[Grok Claude Cursor Codex]
+  I --> H[Grok Claude Cursor Codex OpenCode]
   S --> P[Generated plugin packages]
   P --> N[Grok and Cursor catalogs]
   P --> M[Pinned Claude and Codex catalog]
@@ -15,21 +15,30 @@ frontmatter. For example, `skills/shiploop/SKILL.md` produces the shared ShipLoo
 plugin and a `./plugins/shiploop` entry in each native catalog. All hosts receive
 the same skill body; host-specific files describe how to find it.
 
-## Your own use on four hosts
+## Your own use on five hosts
 
 From the source checkout:
 
 ```sh
-./install.sh --grok-only --claude-only --cursor-only --codex-only --dry-run
-./install.sh --grok-only --claude-only --cursor-only --codex-only
-./install.sh --grok-only --claude-only --cursor-only --codex-only --status
+./install.sh --grok-only --claude-only --cursor-only --codex-only --opencode-only --dry-run
+./install.sh --grok-only --claude-only --cursor-only --codex-only --opencode-only
+./install.sh --grok-only --claude-only --cursor-only --codex-only --opencode-only --status
 ```
 
 Host flags combine. These commands install all source skills; add
 `--skill shiploop` to select one. Without host flags the installer also targets
-Hermes. Links use `~/.grok/skills`, `~/.claude/skills`, `~/.cursor/skills`, and
-`~/.codex/skills`. Keep the checkout in place. Update with `git pull` and rerun
+Hermes. Links use `~/.grok/skills`, `~/.claude/skills`, `~/.cursor/skills`, `~/.codex/skills`, and
+`${XDG_CONFIG_HOME:-$HOME/.config}/opencode/skills`. Keep the checkout in place. Update with `git pull` and rerun
 the installer when new skills are added. Restart the host session to refresh discovery.
+
+OpenCode's [Agent Skills documentation](https://opencode.ai/docs/skills/) defines
+the XDG path above as its native global target. The installer does not edit
+`opencode.json`, permissions, provider configuration, or experimental flags. OpenCode
+also discovers `~/.claude/skills`. In an isolated OpenCode 1.18.31 check, matching
+Claude and native symlinks to the same `ask-agent` source produced one selected
+native skill root. Treat those links as one shared source, not independent copies.
+Do not rely on that selection for divergent source trees or copied versions: keep one
+source for each name, or use `--opencode-only` when the native path must be unambiguous.
 
 Cursor also discovers Claude/Codex skill directories. Its native links point to
 the same canonical files. Do not install another plugin copy of a skill already

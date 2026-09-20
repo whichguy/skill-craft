@@ -392,3 +392,65 @@ exercise universal child handoffs and correction routes with synthetic receipts.
 exercise the real bundled Until Loop runtime and parent import/recovery boundary.
 Their review judgments are fixtures; they do not prove a live model followed
 Improve. The implementation validation report records separate live skill trials.
+
+## Ask Agent live handoff experiments
+
+The managed-workspace helper and delivery contract have focused hermetic suites:
+
+```sh
+python3 -B test/ask-agent-workspace.test.py
+python3 -B test/ask-agent-delivery.test.py
+python3 -B test/ask-agent-managed-harness.test.py
+```
+
+These run in `core`. They exercise real Git preservation and contribution
+delivery, plus synthetic adversarial native-event records. A synthetic callback
+does not establish live host behavior. The
+[managed-workspace apparatus](experiments/ask_agent_managed_workspaces/README.md)
+qualifies current native hosts separately with frozen packages, actual worker
+identities, helper receipts, operation roots, terminal outcomes, parent work,
+acceptance, and retained artifacts. OpenCode's persistent TUI, one-shot lifecycle,
+and process-local experimental flag are distinct qualification cases.
+The [cross-harness conformance cases](experiments/ask_agent_managed_workspaces/CONFORMANCE.md)
+specify shared outcomes, host-specific negative controls, activation/profile
+boundaries, cancellation, live parent steering, and setup/teardown. The managed
+suite parameterizes normalized lifecycle and rejection cases across all five
+hosts, executes the generated inspection arguments against the real helper,
+and reports parent final-response evidence separately from Task completion.
+Raw native dispatch/freshness and actual child-tool provenance remain live
+qualification responsibilities; synthetic events do not validate those APIs.
+
+The [W1 worktree fixture](experiments/portable_delegation/usability/worktree-handoff/README.md)
+now has a test-only operator helper for repeatable setup, launch preflight,
+public evidence projection and completion checks. Its offline regression suite
+runs in the `core` hermetic group, or directly:
+
+```sh
+PYTHONDONTWRITEBYTECODE=1 python3 test/ask-agent-worktree-harness.test.py
+```
+
+It uses disposable Git repositories and synthetic public host records, makes no
+model calls and does not prove live skill compliance. The
+[U18 results](experiments/portable_delegation/usability/WORKTREE-RESULTS.md) retain
+native successes, behavior failures and invalid/interrupted attempts separately.
+
+The [Git integration plan](experiments/portable_delegation/usability/INTEGRATION-PLAN.md)
+and [native integration fixtures](experiments/portable_delegation/usability/integration/README.md)
+exercise parent-owned integration, worker synchronization/conflict repair,
+fresh-parent recovery from a self-contained handoff, and shared-checkout
+preservation. They are opt-in prompt/fixture recipes, not a custom dispatcher
+or deterministic claim that every host follows the skill.
+The [monitoring case](experiments/portable_delegation/usability/monitoring/README.md)
+checks multiple pending jobs, visible launch/return notices, waiting status and
+broad general-purpose worker selection. Timing is measured only when it occurs
+naturally; full parent-child tool parity is a separate, host-dependent claim.
+The [follow-up case](experiments/portable_delegation/usability/monitoring-followup/README.md)
+checks the explicit pre-idle native status choice and unsupported-route disclosure.
+
+The [Ask Agent protocol - native handoff: cases and candidate-specific criteria](experiments/portable_delegation/usability/HANDOFF-CASES.md)
+covers background continuation, parallel success/blocker returns, inline results
+when writes are forbidden, and simulated report failures. The
+[replay fixtures - exact prompts: opt-in native harness runs](experiments/portable_delegation/usability/handoff/README.md)
+need no custom dispatcher. These live experiments are separate from hermetic CI;
+the [results - host evidence: outcomes and retained limitations](experiments/portable_delegation/usability/HANDOFF-RESULTS.md)
+distinguish native behavior, correctness, context volume and cleanup.

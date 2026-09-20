@@ -60,6 +60,9 @@ run() {
 run core test-groups python3 test/test-groups.test.py
 run core integration-boundaries python3 test/integration-boundaries.test.py
 run core ask-agent-worktree-harness python3 test/ask-agent-worktree-harness.test.py
+run core ask-agent-workspace python3 test/ask-agent-workspace.test.py
+run core ask-agent-delivery python3 test/ask-agent-delivery.test.py
+run core ask-agent-managed-harness python3 test/ask-agent-managed-harness.test.py
 run core skill-interop-hygiene bash test/skill-interop-hygiene.test.sh
 run core sync-plugin-views bash test/sync-plugin-views.test.sh
 run core native-marketplace-adapters bash test/native-marketplace-adapters.test.sh

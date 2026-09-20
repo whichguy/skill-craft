@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Hermetic install.sh coverage for skill-craft: five hosts × repo skills, flags, skip-if-exists, dry-run, --relink.
+# Hermetic install.sh coverage for skill-craft: six hosts × repo skills, flags, skip-if-exists, dry-run, --relink.
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
@@ -25,6 +25,10 @@ assert_absent() {
   [[ ! -e "$path" && ! -L "$path" ]] || fail "expected absent: $path"
 }
 
+opencode_skills_dir() {
+  printf '%s/opencode/skills\n' "${XDG_CONFIG_HOME:-$HOME/.config}"
+}
+
 assert_hermes_copy() {
   local leaf="$1"
   local source="$2"
@@ -45,6 +49,7 @@ assert_all_hosts() {
   assert_symlink "$HOME/.grok/skills/$leaf" "$source"
   assert_symlink "$HOME/.codex/skills/$leaf" "$source"
   assert_symlink "$HOME/.cursor/skills/$leaf" "$source"
+  assert_symlink "$(opencode_skills_dir)/$leaf" "$source"
   assert_hermes_copy "$leaf" "$source"
 }
 
@@ -54,11 +59,13 @@ assert_no_hosts() {
   assert_absent "$HOME/.grok/skills/$leaf"
   assert_absent "$HOME/.codex/skills/$leaf"
   assert_absent "$HOME/.cursor/skills/$leaf"
+  assert_absent "$(opencode_skills_dir)/$leaf"
   assert_absent "$HOME/.hermes/skills/software-development/$leaf"
 }
 
 fresh_home() {
   export HOME="$tmpdir/home-$1"
+  unset XDG_CONFIG_HOME
   mkdir -p "$HOME"
 }
 
@@ -80,6 +87,7 @@ printf '%s\n' "$out" | grep -q 'Grok' || fail "I1 stdout missing Grok install li
 printf '%s\n' "$out" | grep -q 'Codex' || fail "I1 stdout missing Codex install line"
 printf '%s\n' "$out" | grep -q 'Hermes' || fail "I1 stdout missing Hermes install line"
 printf '%s\n' "$out" | grep -q 'Cursor' || fail "I1 stdout missing Cursor install line"
+printf '%s\n' "$out" | grep -q 'OpenCode' || fail "I1 stdout missing OpenCode install line"
 # Must NOT install product leaves that are not in this monorepo
 assert_no_hosts "backchain"
 
@@ -172,6 +180,7 @@ assert_no_hosts "skill-interop"
 [[ ! -d "$HOME/.grok" ]] || fail "I10 dry-run must not create ~/.grok"
 [[ ! -d "$HOME/.codex" ]] || fail "I10 dry-run must not create ~/.codex"
 [[ ! -d "$HOME/.cursor" ]] || fail "I10 dry-run must not create ~/.cursor"
+[[ ! -d "$HOME/.config" ]] || fail "I10 dry-run must not create ~/.config"
 [[ ! -d "$HOME/.hermes" ]] || fail "I10 dry-run must not create ~/.hermes"
 
 # ---------------------------------------------------------------------------
@@ -224,6 +233,7 @@ out14="$("$install_sh" --skill skill-interop --agents 2>&1)" || fail "I14 failed
 assert_symlink "$HOME/.claude/agents/skill-interop.md" "$agent_src"
 assert_symlink "$HOME/.grok/agents/skill-interop.md" "$agent_src"
 assert_absent "$HOME/.codex/agents/skill-interop.md"
+assert_absent "$(opencode_skills_dir)/../agents/skill-interop.md"
 
 # ---------------------------------------------------------------------------
 # I15: --cursor-only
@@ -237,7 +247,7 @@ assert_absent "$HOME/.codex/skills/skill-interop"
 assert_absent "$HOME/.hermes/skills/software-development/skill-interop"
 
 # ---------------------------------------------------------------------------
-# I16: --skill devloop is identity install on Claude/Grok/Codex/Cursor.
+# I16: --skill devloop is identity install on Claude/Grok/Codex/Cursor/OpenCode.
 # Hermes card install is skipped (engine owns software-development/devloop).
 # ---------------------------------------------------------------------------
 source_devloop="$root/skills/devloop"
@@ -248,12 +258,14 @@ assert_symlink "$HOME/.claude/skills/devloop" "$source_devloop"
 assert_symlink "$HOME/.grok/skills/devloop" "$source_devloop"
 assert_symlink "$HOME/.codex/skills/devloop" "$source_devloop"
 assert_symlink "$HOME/.cursor/skills/devloop" "$source_devloop"
+assert_symlink "$(opencode_skills_dir)/devloop" "$source_devloop"
 assert_absent "$HOME/.hermes/skills/software-development/devloop"
 assert_absent "$HOME/.hermes/skills/software-development/devloop-run"
 assert_absent "$HOME/.claude/skills/devloop-run"
 assert_absent "$HOME/.grok/skills/devloop-run"
 assert_absent "$HOME/.codex/skills/devloop-run"
 assert_absent "$HOME/.cursor/skills/devloop-run"
+assert_absent "$(opencode_skills_dir)/devloop-run"
 printf '%s\n' "$out16" | grep -qi 'Skipped Hermes card install' \
   || fail "I16 should skip Hermes card: $out16"
 assert_symlink "$HOME/.grok/commands/devloop.md" "$source_devloop/commands/devloop.md"
@@ -270,6 +282,31 @@ assert_symlink "$HOME/.grok/skills/devloop" "$source_devloop"
 assert_absent "$HOME/.grok/skills/devloop-run"
 printf '%s\n' "$out17" | grep -q 'Removed leftover dest' || fail "I17 should report leftover removal: $out17"
 
+# ---------------------------------------------------------------------------
+# I18: --opencode-only uses XDG_CONFIG_HOME (including spaces) and isolates
+# OpenCode from all other host skill and agent directories.
+# ---------------------------------------------------------------------------
+fresh_home i18
+export XDG_CONFIG_HOME="$tmpdir/opencode config i18"
+out18="$("$install_sh" --opencode-only --skill skill-interop --agents 2>&1)" || fail "I18 failed: $out18"
+assert_symlink "$XDG_CONFIG_HOME/opencode/skills/skill-interop" "$source_interop"
+assert_absent "$HOME/.config/opencode/skills/skill-interop"
+assert_absent "$HOME/.claude/skills/skill-interop"
+assert_absent "$HOME/.grok/skills/skill-interop"
+assert_absent "$HOME/.codex/skills/skill-interop"
+assert_absent "$HOME/.cursor/skills/skill-interop"
+assert_absent "$HOME/.hermes/skills/software-development/skill-interop"
+assert_absent "$XDG_CONFIG_HOME/opencode/agents/skill-interop.md"
+assert_absent "$XDG_CONFIG_HOME/opencode/opencode.json"
+printf '%s\n' "$out18" | grep -q 'OpenCode' || fail "I18 stdout missing OpenCode install line: $out18"
+
+# ---------------------------------------------------------------------------
+# I19: --all explicitly selects the same six host targets as the default.
+# ---------------------------------------------------------------------------
+fresh_home i19
+out19="$("$install_sh" --all --skill skill-interop 2>&1)" || fail "I19 failed: $out19"
+assert_all_hosts "skill-interop" "$source_interop"
+
 # --help exits 0
 "$install_sh" --help >/dev/null
 
@@ -280,4 +317,4 @@ rc=$?
 set -e
 [[ "$rc" -eq 64 ]] || fail "invalid flag should exit 64 (got $rc)"
 
-printf 'install-targets.test.sh: PASS I1–I17 (skill-craft install, 5 hosts, identity dest, flags, dry-run, skip-if-exists, --relink, --agents)\n'
+printf 'install-targets.test.sh: PASS I1–I19 (skill-craft install, 6 hosts, identity dest, flags, dry-run, skip-if-exists, --relink, --agents)\n'

@@ -1,0 +1,10 @@
+diff --git a/app/policy.py b/app/policy.py
+index d9f1465..82f6c9d 100644
+--- a/app/policy.py
++++ b/app/policy.py
+@@ -1,4 +1,4 @@
+-REQUIRED_APPROVERS = 2
++REQUIRED_APPROVERS = 4
+ MAX_NOTIFY_ATTEMPTS = 2
+ RETRY_DELAY_SECONDS = 5
+ 

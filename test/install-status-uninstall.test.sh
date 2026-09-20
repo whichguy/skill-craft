@@ -13,7 +13,12 @@ fail() {
 
 fresh_home() {
   export HOME="$tmpdir/home-$1"
+  unset XDG_CONFIG_HOME
   mkdir -p "$HOME"
+}
+
+opencode_skills_dir() {
+  printf '%s/opencode/skills\n' "${XDG_CONFIG_HOME:-$HOME/.config}"
 }
 
 tmpdir="$(mktemp -d "${TMPDIR:-/tmp}/skill-craft-status.XXXXXX")"
@@ -32,6 +37,7 @@ fresh_home s2
 "$install_sh" --skill skill-interop >/dev/null
 out2="$("$install_sh" --status --skill skill-interop 2>&1)" || fail "S2: $out2"
 printf '%s\n' "$out2" | grep -q 'Claude Code' || fail "S2 missing Claude"
+printf '%s\n' "$out2" | grep -q 'OpenCode' || fail "S2 missing OpenCode"
 printf '%s\n' "$out2" | grep -q 'state=symlink-owned' || fail "S2 symlink-owned: $out2"
 printf '%s\n' "$out2" | grep -q 'state=copy-owned' || fail "S2 copy-owned Hermes: $out2"
 
@@ -57,6 +63,7 @@ out4="$("$install_sh" --uninstall --skill skill-interop 2>&1)" || fail "S4: $out
 printf '%s\n' "$out4" | grep -q 'Uninstalled symlink' || fail "S4 symlink: $out4"
 printf '%s\n' "$out4" | grep -q 'Uninstalled copy' || fail "S4 copy: $out4"
 [[ ! -e "$HOME/.claude/skills/skill-interop" ]] || fail "S4 claude remains"
+[[ ! -e "$HOME/.config/opencode/skills/skill-interop" ]] || fail "S4 OpenCode remains"
 [[ ! -e "$HOME/.hermes/skills/software-development/skill-interop" ]] || fail "S4 hermes remains"
 [[ ! -f "$HOME/.hermes/skills/software-development/.skill-craft/skill-interop.json" ]] || fail "S4 marker remains"
 
@@ -327,4 +334,56 @@ printf '%s\n' "$out23" | grep -q 'plugin-track: skill-interop@other-market  vers
 printf '%s\n' "$out23" | grep -q 'double-install' && fail "S23 mixed cache false duplicate: $out23"
 pass "S23 mixed false and unknown remains unknown"
 
-printf 'install-status-uninstall.test.sh: PASS S1–S23\n'
+# S24: OpenCode's XDG target supports the normal symlink lifecycle from a path
+# with spaces: install, idempotent re-run, status, and owned uninstall.
+fresh_home s24
+export XDG_CONFIG_HOME="$tmpdir/opencode config s24"
+opencode_dest="$(opencode_skills_dir)/skill-interop"
+out24i="$("$install_sh" --opencode-only --skill skill-interop 2>&1)" || fail "S24 install: $out24i"
+[[ -L "$opencode_dest" ]] || fail "S24 expected symlink: $opencode_dest"
+[[ "$(readlink "$opencode_dest")" == "$source_interop" ]] || fail "S24 wrong symlink target"
+out24r="$("$install_sh" --opencode-only --skill skill-interop 2>&1)" || fail "S24 rerun: $out24r"
+printf '%s\n' "$out24r" | grep -q 'Already installed' || fail "S24 idempotent rerun: $out24r"
+out24s="$("$install_sh" --status --opencode-only --skill skill-interop 2>&1)" || fail "S24 status: $out24s"
+printf '%s\n' "$out24s" | grep -q 'OpenCode' || fail "S24 OpenCode status label: $out24s"
+printf '%s\n' "$out24s" | grep -q 'state=symlink-owned' || fail "S24 owned status: $out24s"
+out24u="$("$install_sh" --uninstall --opencode-only --skill skill-interop 2>&1)" || fail "S24 uninstall: $out24u"
+printf '%s\n' "$out24u" | grep -q 'Uninstalled symlink' || fail "S24 owned uninstall: $out24u"
+[[ ! -e "$opencode_dest" && ! -L "$opencode_dest" ]] || fail "S24 destination remains"
+
+# S25: a foreign real OpenCode tree is reported and survives install/uninstall.
+fresh_home s25
+export XDG_CONFIG_HOME="$tmpdir/opencode config s25"
+opencode_dest="$(opencode_skills_dir)/skill-interop"
+mkdir -p "$opencode_dest"
+printf 'foreign-opencode\n' >"$opencode_dest/SKILL.md"
+out25s="$("$install_sh" --status --opencode-only --skill skill-interop 2>&1)" || fail "S25 status: $out25s"
+printf '%s\n' "$out25s" | grep -q 'state=foreign' || fail "S25 foreign status: $out25s"
+out25i="$("$install_sh" --opencode-only --skill skill-interop 2>&1)" || fail "S25 install: $out25i"
+printf '%s\n' "$out25i" | grep -q 'Skipped existing path' || fail "S25 foreign install skip: $out25i"
+set +e
+out25u="$("$install_sh" --uninstall --opencode-only --skill skill-interop 2>&1)"
+rc25u=$?
+set -e
+[[ "$rc25u" -eq 3 ]] || fail "S25 uninstall want exit 3 got $rc25u: $out25u"
+printf '%s\n' "$out25u" | grep -q 'Skipped uninstall (not owned)' || fail "S25 foreign uninstall skip: $out25u"
+[[ "$(cat "$opencode_dest/SKILL.md")" == 'foreign-opencode' ]] || fail "S25 foreign content changed"
+
+# S26: --copy uses the marker-backed ownership lifecycle at the OpenCode path.
+fresh_home s26
+export XDG_CONFIG_HOME="$tmpdir/opencode config s26"
+opencode_skills="$(opencode_skills_dir)"
+opencode_dest="$opencode_skills/skill-interop"
+opencode_marker="$opencode_skills/.skill-craft/skill-interop.json"
+out26i="$("$install_sh" --opencode-only --copy --skill skill-interop 2>&1)" || fail "S26 copy install: $out26i"
+[[ -d "$opencode_dest" && ! -L "$opencode_dest" ]] || fail "S26 expected real copied directory"
+[[ -f "$opencode_marker" ]] || fail "S26 copy marker missing"
+diff -rq "$source_interop" "$opencode_dest" >/dev/null || fail "S26 copy differs from source"
+out26s="$("$install_sh" --status --opencode-only --skill skill-interop 2>&1)" || fail "S26 status: $out26s"
+printf '%s\n' "$out26s" | grep -q 'state=copy-owned' || fail "S26 copy-owned status: $out26s"
+out26u="$("$install_sh" --uninstall --opencode-only --skill skill-interop 2>&1)" || fail "S26 uninstall: $out26u"
+printf '%s\n' "$out26u" | grep -q 'Uninstalled copy' || fail "S26 copy uninstall: $out26u"
+[[ ! -e "$opencode_dest" ]] || fail "S26 copied destination remains"
+[[ ! -e "$opencode_marker" ]] || fail "S26 copy marker remains"
+
+printf 'install-status-uninstall.test.sh: PASS S1–S26\n'

@@ -7,7 +7,7 @@ description: >-
   across hosts. Covers prompt-first design, host matrix, anti-patterns
   (divergent copies, silent mode fallback, abs symlinks), and script-backed
   CLI contracts.
-version: 0.2.2
+version: 0.2.3
 author: Backchain / interop
 license: MIT
 platforms:
@@ -125,7 +125,7 @@ dual-home checkout; never overwrite foreign trees):
 # --skill all|skill-interop|<name>              # any skills/<name> with SKILL.md
 # --from /abs/path/to/skill                     # leaf = basename; exclusive with --skill
 # --agents                                      # thin agents/<leaf>.md for Claude + Grok only
-# host filters: --claude-only | --grok-only | --codex-only | --hermes-only | --cursor-only | --all
+# host filters: --claude-only | --grok-only | --codex-only | --hermes-only | --cursor-only | --opencode-only | --all
 # preview: --dry-run
 ```
 

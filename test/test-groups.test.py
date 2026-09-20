@@ -28,6 +28,7 @@ SHIPLOOP_SMOKE = (
 )
 CORE = {
     "test-groups", "integration-boundaries", "ask-agent-worktree-harness", "skill-interop-hygiene",
+    "ask-agent-workspace", "ask-agent-delivery", "ask-agent-managed-harness",
     "sync-plugin-views", "native-marketplace-adapters", "skill-frontmatter",
     "marketplace-package", "installed-skill-invocation", "prompt-marketplace-contract",
     "marketplace-host-isolation",

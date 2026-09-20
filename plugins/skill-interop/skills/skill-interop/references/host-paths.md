@@ -2,7 +2,7 @@
 
 Repo root `./install.sh` (skill-craft monorepo) installs skill packages into local skill homes:
 
-- **Claude / Grok / Codex / Cursor:** symlink into skill homes
+- **Claude / Grok / Codex / Cursor / OpenCode:** symlink into skill homes
 - **Hermes:** **materialized copy** (default), not an abs-symlink to an external checkout
 
 Optional `--agents` symlinks thin agent cards for Claude and Grok only.
@@ -21,6 +21,7 @@ Per skill leaf (`skill-interop`, or any `skills/<name>` / `--from DIR`):
 | Grok Build | `~/.grok/skills/<leaf>` | symlink |
 | Codex | `~/.codex/skills/<leaf>` | symlink |
 | Cursor | `~/.cursor/skills/<leaf>` | symlink |
+| OpenCode | `${XDG_CONFIG_HOME:-$HOME/.config}/opencode/skills/<leaf>` | symlink |
 | Hermes (host) | `~/.hermes/skills/software-development/<leaf>` | **copy** |
 | Hermes (Docker bind) | `/opt/data/skills/software-development/<leaf>` when `~/.hermes` is mounted at `/opt/data` | same tree as host |
 
@@ -40,19 +41,21 @@ it does not write `~/.hermes/.gitignore`.
 
 ## Agents (optional, `--agents`)
 
-Only when `agents/<leaf>.md` exists in the repo. **Claude + Grok only** — Codex and Hermes are skipped.
+Only when `agents/<leaf>.md` exists in the repo. **Claude + Grok only** — Codex, Cursor, OpenCode, and Hermes are skipped.
 
 | Host | Destination |
 |------|-------------|
 | Claude Code | `~/.claude/agents/<leaf>.md` |
 | Grok Build | `~/.grok/agents/<leaf>.md` |
 | Codex | *(not installed)* |
+| Cursor | *(not installed)* |
+| OpenCode | *(not installed)* |
 | Hermes | *(not installed)* |
 
 ## Examples
 
 ```sh
-# All skills under skills/, all five hosts (skill-craft default)
+# All skills under skills/, all six hosts (skill-craft default)
 ./install.sh
 
 # skill-interop only
@@ -76,6 +79,7 @@ Only when `agents/<leaf>.md` exists in the repo. **Claude + Grok only** — Code
 ./install.sh --skill skill-interop --codex-only
 ./install.sh --skill skill-interop --hermes-only
 ./install.sh --skill skill-interop --cursor-only
+./install.sh --skill skill-interop --opencode-only
 
 # Force modes
 ./install.sh --skill skill-interop --symlink   # all hosts symlink (overrides Hermes copy)
@@ -86,5 +90,14 @@ Only when `agents/<leaf>.md` exists in the repo. **Claude + Grok only** — Code
 ```
 
 Sources in this repo: every `skills/<name>` with `SKILL.md`. Agent cards: `agents/<leaf>.md`.
+
+OpenCode's [Agent Skills documentation](https://opencode.ai/docs/skills/) defines
+its global location as the documented XDG config path. `install.sh` never
+creates or edits `opencode.json`, permission settings, provider configuration, or
+experimental task flags. OpenCode also searches the Claude-compatible global
+skill directory. Matching symlinks to one source package are a shared install;
+an isolated OpenCode 1.18.31 `debug skill` check selected one native `ask-agent`
+root in that arrangement. Divergent copies with the same name are not a portable
+selection contract, so keep one source per name or use `--opencode-only`.
 
 Architecture: [published skill-craft architecture](https://github.com/whichguy/skill-craft/blob/main/docs/ARCHITECTURE.md).

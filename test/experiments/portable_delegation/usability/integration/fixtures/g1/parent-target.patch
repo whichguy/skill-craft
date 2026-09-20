@@ -1,0 +1,7 @@
+diff --git a/app/retry.py b/app/retry.py
+new file mode 100644
+index 0000000..3e6ef74
+--- /dev/null
++++ b/app/retry.py
+@@ -0,0 +1 @@
++RETRY_MODE = "bounded"

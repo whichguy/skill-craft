@@ -1,6 +1,6 @@
 {
   "name": "ask-agent",
-  "version": "0.3.1",
+  "version": "0.6.0",
   "description": "A delegation skill, not an agent type. Ask native agents to work in the background, continue useful work in the main conversation, and incorporate their results when they return. Use for \"ask an agent\", named agent roles, parallel delegation, or launch-and-notify work.",
   "author": {
     "name": "whichguy"
@@ -12,7 +12,7 @@
     "skill-craft",
     "ask-agent",
     "portable-skills",
-    "prompt-only"
+    "mixed"
   ],
   "skills": "skills"
 }

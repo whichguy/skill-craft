@@ -1,0 +1,7 @@
+diff --git a/app/audit.py b/app/audit.py
+new file mode 100644
+index 0000000..2908091
+--- /dev/null
++++ b/app/audit.py
+@@ -0,0 +1 @@
++ENABLE_AUDIT = True

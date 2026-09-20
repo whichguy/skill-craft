@@ -425,12 +425,13 @@ class EphemeralImproveCliTests(ImproveCliFixture):
                     cold,
                 )
                 self.assertIn(
-                    "Optional parallel-chain guide: "
+                    "Parallel-chain guide: "
                     + str(ROOT / "skills/shiploop/references/parallel-chain.md")
                     + "#parallel-implementation-chains",
                     cold,
                 )
-                self.assertIn("bind this action's reviewed graph and recorded mode.", cold)
+                self.assertIn("bind this action to the default parallel", cold)
+                self.assertIn("mode when the selected Plan Dispatcher and Ask-Agent contracts are compatible", cold)
 
     def test_default_ephemeral_callbacks_preserve_context_then_import_once(self):
         self.assertEqual(self.state["navigator_protocol_version"], 3)
