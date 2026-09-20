@@ -1,0 +1,15 @@
+{
+  "checks": [
+    {
+      "case": "local",
+      "stage": "discovery",
+      "packet_hash_matches": true
+    },
+    {
+      "case": "multi",
+      "stage": "discovery",
+      "packet_hash_matches": true
+    }
+  ],
+  "note": "Replaces an invalid literal packet-heading calibration assertion; saved-state stage is authoritative."
+}

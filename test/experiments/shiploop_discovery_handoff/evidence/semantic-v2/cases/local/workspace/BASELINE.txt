@@ -1,0 +1,38 @@
+# Initial repository baseline — 2026-09-20
+
+Working directory:
+/Users/dadleet/tmp/shiploop-discovery-implementation-20260920/semantic-v2/cases/local/workspace
+
+Command:
+```sh
+python3 -B -m unittest discover -v
+```
+
+Observed output:
+```text
+test_edges (test_fixture.Baseline.test_edges) ... ok
+
+----------------------------------------------------------------------
+Ran 1 test in 0.000s
+
+OK
+```
+
+Result: exit 0. The command is the README-declared narrow fixture check
+(README.md:5). It selected one unit test, test_fixture.Baseline.test_edges
+(test_fixture.py:4-6), which observes edge trimming only. It does not exercise
+repeated internal whitespace, so it is not evidence that the requested
+normalization already works.
+
+Starting content identity before discovery-note edits (SHA-256):
+
+- README.md: d8713ac6d3d036ba0bd082eb9173e0a71603f88414ff865fd2b9d53dab5fc4a0
+- SHIPLOOP.md: 69788b811f1d337c97c1baf79906616d9c3944f6673b3745dd2f9a8bef8c803d
+- docs/environment.md: aacd7fe79ccd833a8a531e7f539b1e2d1ddd9ecd572ff9033d90d847e9dfed4f
+- src/app.py: 461ee13d024702e7bf85bef60fdea92a67c3a83a1f7d47b1e074674be732d568
+- test_fixture.py: 1d7a6659b3b85b3e31a8cf294720d1ccb3194e10b36b12787c8467e364bdee67
+
+Runtime observed: Python 3.14.7. Git is unavailable in this fixture directory:
+`git status --short --branch` exited 128 with “not a git repository”.
+No source change, test change, dependency change, installation, or external
+operation was made during this baseline.

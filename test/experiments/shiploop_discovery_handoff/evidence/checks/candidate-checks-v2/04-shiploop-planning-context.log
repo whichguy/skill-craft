@@ -1,0 +1,15 @@
+test_accepted_document_choices_are_preserved_as_reference_material (__main__.PlanningContextTests.test_accepted_document_choices_are_preserved_as_reference_material) ... ok
+test_collects_v3_records_without_legacy_path_assumptions (__main__.PlanningContextTests.test_collects_v3_records_without_legacy_path_assumptions) ... ok
+test_current_free_text_can_be_explicitly_cataloged_but_file_lookalikes_cannot (__main__.PlanningContextTests.test_current_free_text_can_be_explicitly_cataloged_but_file_lookalikes_cannot) ... ok
+test_current_missing_sources_are_visible_and_blocking (__main__.PlanningContextTests.test_current_missing_sources_are_visible_and_blocking) ... ok
+test_discovery_decision_and_receipt_refs_require_explicit_relative_resolution (__main__.PlanningContextTests.test_discovery_decision_and_receipt_refs_require_explicit_relative_resolution)
+This proves declared locator transport and recovery, never semantic review. ... ok
+test_large_inventory_is_not_truncated (__main__.PlanningContextTests.test_large_inventory_is_not_truncated) ... ok
+test_real_improve_archives_are_hashed_without_reading_the_child_workspace (__main__.PlanningContextTests.test_real_improve_archives_are_hashed_without_reading_the_child_workspace) ... ok
+test_run_state_cannot_be_bound_as_a_file_dependency (__main__.PlanningContextTests.test_run_state_cannot_be_bound_as_a_file_dependency) ... ok
+test_tampered_current_result_is_diagnosed_without_writing (__main__.PlanningContextTests.test_tampered_current_result_is_diagnosed_without_writing) ... ok
+
+----------------------------------------------------------------------
+Ran 9 tests in 0.310s
+
+OK

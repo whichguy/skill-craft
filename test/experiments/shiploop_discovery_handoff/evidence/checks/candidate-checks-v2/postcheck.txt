@@ -1,0 +1,32 @@
+head 98c72b65bdd3bae624bb4939497a58d0fdd25621
+manifest_head 98c72b65bdd3bae624bb4939497a58d0fdd25621
+status_begin
+## codex/shiploop-discovery-handoff...origin/main
+ M .grok-plugin/marketplace.json
+ M README.md
+ M plugins/shiploop/.claude-plugin/plugin.json
+ M plugins/shiploop/.codex-plugin/plugin.json
+ M plugins/shiploop/.cursor-plugin/plugin.json
+ M plugins/shiploop/skills/shiploop/SKILL.md
+ M plugins/shiploop/skills/shiploop/references/project-knowledge.md
+ M plugins/shiploop/skills/shiploop/references/research-loop.md
+ M plugins/shiploop/skills/shiploop/references/service-discovery.md
+ M plugins/shiploop/skills/shiploop/scripts/shiploop_navigator_v3_prompts.py
+ M skills/shiploop/SKILL.md
+ M skills/shiploop/references/project-knowledge.md
+ M skills/shiploop/references/research-loop.md
+ M skills/shiploop/references/service-discovery.md
+ M skills/shiploop/scripts/shiploop_navigator_v3_prompts.py
+ M test/shiploop-planning-context.test.py
+ M test/shiploop-v3-guidance.test.py
+?? docs/shiploop-discovery-handoff-2026-09-20.md
+?? test/experiments/shiploop_discovery_handoff/
+status_end
+file_count 3242
+manifest_file_count 3242
+fingerprint 230efb14a3ca271c38a048b2d5dd642e290d5e85b9e1053af007dc20fded3750
+manifest_fingerprint 230efb14a3ca271c38a048b2d5dd642e290d5e85b9e1053af007dc20fded3750
+missing_count 0
+extra_count 0
+mismatch_count 0
+postcheck PASS

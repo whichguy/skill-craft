@@ -266,6 +266,103 @@ class PlanningContextTests(unittest.TestCase):
             len(self.state["history"]),
         )
 
+    def test_discovery_decision_and_receipt_refs_require_explicit_relative_resolution(self) -> None:
+        """This proves declared locator transport and recovery, never semantic review."""
+        decision = self.write_text(
+            "decisions/decision.md",
+            "# Runtime state decision\n\n## State ownership\n\nThe runtime owns the selected state.\n",
+        )
+        receipt = self.write_text(
+            "receipts/discovery-readback.md",
+            "# Discovery readback\n\n## Receipt\n\nObserved target and principal.\n",
+        )
+        index_only_note = self.write_text(
+            "decisions/index-only.md",
+            "# Index-only decision\n\n## Do not collect through links\n",
+        )
+        index = self.write_text(
+            "SHIPLOOP.md",
+            "# Knowledge index\n\n"
+            "- [Runtime decision](decisions/decision.md#state-ownership)\n"
+            "- [Index-only decision](decisions/index-only.md#do-not-collect-through-links)\n",
+        )
+        decision_ref = str(decision.resolve()) + "#state-ownership"
+        receipt_ref = str(receipt.resolve()) + "#receipt"
+        index_ref = str(index.resolve()) + "#knowledge-index"
+        relative_ref = "decisions/decision.md#state-ownership"
+        self.to_implement({"discovery": [decision_ref, receipt_ref, index_ref, relative_ref]})
+        discovery_action = self.actions["discovery"][0]
+        navigator.save(self.run, self.state)
+        before_state = copy.deepcopy(self.state)
+        before_files = self.file_bytes(self.run)
+        recovered = store.read_record(self.run / "state.md")
+
+        self.assertEqual(
+            recovered["accepted"][discovery_action]["evidence_refs"],
+            [decision_ref, receipt_ref, index_ref, relative_ref],
+        )
+        unresolved = planning_context.collect(
+            self.run.resolve(), recovered, self.graph, self.graph_source
+        )
+        self.assertIn(
+            {
+                "action": discovery_action,
+                "index": 3,
+                "text": relative_ref,
+                "required_for": ["*"],
+            },
+            unresolved["manifest"]["unresolved_refs"],
+        )
+        self.assertTrue(any(
+            row["kind"] == "reference"
+            and row["action"] == discovery_action
+            and row["index"] == 3
+            and "explicit resolution" in row["reason"]
+            for row in unresolved["missing_required"]
+        ))
+
+        collected = planning_context.collect(
+            self.run.resolve(),
+            recovered,
+            self.graph,
+            self.graph_source,
+            {
+                "references": [{
+                    "action": discovery_action,
+                    "index": 3,
+                    "kind": "file",
+                    "path": str(decision.resolve()),
+                }]
+            },
+        )
+
+        self.assertEqual(self.state, before_state)
+        self.assertEqual(self.file_bytes(self.run), before_files)
+        self.assertEqual(collected["missing_required"], [])
+        self.assertEqual(collected["manifest"]["unresolved_refs"], [])
+        decision_artifact = self.artifact(collected["manifest"], decision)
+        self.assertEqual(decision_artifact["required_for"], ["*"])
+        self.assertEqual(
+            {row["text"] for row in decision_artifact["references"]},
+            {decision_ref, relative_ref},
+        )
+        receipt_artifact = self.artifact(collected["manifest"], receipt)
+        self.assertEqual(receipt_artifact["references"], [{
+            "action": discovery_action,
+            "index": 1,
+            "text": receipt_ref,
+        }])
+        self.assertIsNotNone(self.artifact(collected["manifest"], index))
+        self.assertFalse(any(
+            row["path"] == str(index_only_note.resolve())
+            for row in collected["manifest"]["artifacts"]
+        ))
+        brief_relative = str(Path(collected["manifest"]["briefing"]["path"]).relative_to(self.run.resolve()))
+        brief = collected["files"][brief_relative]
+        for reference in (decision_ref, receipt_ref, index_ref, relative_ref):
+            self.assertIn(reference, brief)
+        self.assertIn("These reference statements do not redefine or expand", brief)
+
     def test_current_missing_sources_are_visible_and_blocking(self) -> None:
         missing = self.external / "missing" / "required-spec.md"
         self.to_implement({"intake": [str(missing.resolve())]})

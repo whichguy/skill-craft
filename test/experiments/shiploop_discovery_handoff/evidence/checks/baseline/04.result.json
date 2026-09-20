@@ -1,0 +1,1 @@
+{"index":4,"command":"bash test/run-all.sh --group smoke","exit":0,"elapsed_ms":112691,"stdout":"04-run-all-smoke.stdout.log","stderr":"04-run-all-smoke.stderr.log"}

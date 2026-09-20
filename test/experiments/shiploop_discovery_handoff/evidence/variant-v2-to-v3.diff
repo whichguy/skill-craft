@@ -1,0 +1,31 @@
+--- semantic-v2/references/service-discovery.md
++++ semantic-v3/references/service-discovery.md
+@@ -109 +109,3 @@
+-user. Scope each permission observation to **principal, target, operation and
++user. Explicitly mark an unknown relevant role or permission, its affected
++consumer and due check; omission is not evidence of authority. Scope each
++permission observation to **principal, target, operation and
+--- semantic-v2/scripts/shiploop_navigator_v3_prompts.py
++++ semantic-v3/scripts/shiploop_navigator_v3_prompts.py
+@@ -472,2 +472,3 @@
+-retain the bounded plan and its outcome in the existing note; otherwise take the
+-direct path when inspection suffices.
++retain the plan and its outcome in the existing note: question, evidence route
++and order, owner, permitted effects, shared time/attempt bound, and stop condition.
++Otherwise take the direct path when inspection suffices.
+@@ -496 +497,4 @@
+-placement section. Before handoff, follow the project-knowledge discovery evidence
++placement section. Establish the current target and effective identity before
++dependent remote reads. Distinguish discovery operator, deployed runtime and end
++user; explicitly retain any unknown relevant role or authority and its affected
++consumer. Before handoff, follow the project-knowledge discovery evidence
+@@ -510 +514,3 @@
+-frontier; omit a separate plan when direct investigation suffices. Verify the
++frontier. Check its plan triggers first and again as evidence conflicts or
++dependencies emerge; retain any triggered plan and outcome. Use the direct path
++only when no trigger applies and direct investigation suffices. Verify the
+@@ -596,0 +603,4 @@
++Reopen the discovery evidence handoff. Distinguish researchable unknown contracts,
++owner/access gaps and known selected setup prerequisites. Name the first affected
++consumer of each gap; retain independent research and conditional planning as
++eligible under their own prerequisites when another boundary is blocked.

@@ -1,0 +1,15 @@
+{
+  "command": "python3 -B test/shiploop-reference-routing.test.py",
+  "cwd": "/Users/dadleet/src/skill-craft-discovery-handoff",
+  "elapsed_sec": 1.322610855102539,
+  "exit_code": 0,
+  "finished_epoch": 1789921740.108265,
+  "index": 2,
+  "result": "PASS",
+  "started_epoch": 1789921738.785654,
+  "stderr_bytes": 1512,
+  "stderr_path": "/Users/dadleet/tmp/shiploop-discovery-implementation-20260920/candidate-checks/command-02.stderr.log",
+  "stdout_bytes": 0,
+  "stdout_path": "/Users/dadleet/tmp/shiploop-discovery-implementation-20260920/candidate-checks/command-02.stdout.log",
+  "timed_out": false
+}

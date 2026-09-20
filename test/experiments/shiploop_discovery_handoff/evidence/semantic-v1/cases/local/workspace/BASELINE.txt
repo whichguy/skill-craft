@@ -1,0 +1,18 @@
+# Discovery baseline
+
+- Checked content: unchanged local discovery fixture before any proposed product edit.
+- Command: `python3 -B -m unittest discover -v`
+- Working directory: `/Users/dadleet/tmp/shiploop-discovery-implementation-20260920/semantic-v1/cases/local/workspace`
+- Result: exit 0; 1 test passed (`test_fixture.Baseline.test_edges`).
+- Output:
+
+```text
+test_edges (test_fixture.Baseline.test_edges) ... ok
+
+----------------------------------------------------------------------
+Ran 1 test in 0.000s
+
+OK
+```
+
+- Coverage limit: this narrow fixture exercises existing edge behavior only; it does not test the requested trim-and-collapse normalization change.

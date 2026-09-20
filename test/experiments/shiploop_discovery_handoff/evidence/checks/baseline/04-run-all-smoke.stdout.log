@@ -1,0 +1,692 @@
+==> test-groups
+OK  test-groups
+==> integration-boundaries
+OK  integration-boundaries
+==> ask-agent-worktree-harness
+OK  ask-agent-worktree-harness
+==> skill-interop-hygiene
+skill-interop-hygiene.test.sh: PASS (prompts, templates, scaffold, anti-patterns, host-paths, no pins)
+OK  skill-interop-hygiene
+==> sync-plugin-views
+skill-frontmatter-to-plugin-json: CHECK OK architect
+skill-frontmatter-to-plugin-json: CHECK OK ask-agent
+skill-frontmatter-to-plugin-json: CHECK OK c-plan
+skill-frontmatter-to-plugin-json: CHECK OK compare-prompts
+skill-frontmatter-to-plugin-json: CHECK OK derive-questions
+skill-frontmatter-to-plugin-json: CHECK OK devloop
+skill-frontmatter-to-plugin-json: CHECK OK evidence-gates
+skill-frontmatter-to-plugin-json: CHECK OK improve
+skill-frontmatter-to-plugin-json: CHECK OK improve-system-prompt
+skill-frontmatter-to-plugin-json: CHECK OK plan-test
+skill-frontmatter-to-plugin-json: CHECK OK prompt-align
+skill-frontmatter-to-plugin-json: CHECK OK prompt-audit
+skill-frontmatter-to-plugin-json: CHECK OK prompt-migrate
+skill-frontmatter-to-plugin-json: CHECK OK prompt-refine
+skill-frontmatter-to-plugin-json: CHECK OK question-bench
+skill-frontmatter-to-plugin-json: CHECK OK review-coverage
+skill-frontmatter-to-plugin-json: CHECK OK review-fix-bench
+skill-frontmatter-to-plugin-json: CHECK OK shiploop
+skill-frontmatter-to-plugin-json: CHECK OK shiploop-e2e-audit
+skill-frontmatter-to-plugin-json: CHECK OK skill-interop
+skill-frontmatter-to-plugin-json: CHECK OK marketplaces (20 skills)
+sync-plugin-views: CHECK OK
+skill-frontmatter-to-plugin-json: CHECK OK skill-interop
+skill-frontmatter-to-plugin-json: CHECK OK c-plan
+skill-frontmatter-to-plugin-json: CHECK OK architect
+skill-frontmatter-to-plugin-json: CHECK OK ask-agent
+skill-frontmatter-to-plugin-json: CHECK OK c-plan
+skill-frontmatter-to-plugin-json: CHECK OK compare-prompts
+skill-frontmatter-to-plugin-json: CHECK OK derive-questions
+skill-frontmatter-to-plugin-json: CHECK OK devloop
+skill-frontmatter-to-plugin-json: CHECK OK evidence-gates
+skill-frontmatter-to-plugin-json: CHECK OK improve
+skill-frontmatter-to-plugin-json: CHECK OK improve-system-prompt
+skill-frontmatter-to-plugin-json: CHECK OK plan-test
+skill-frontmatter-to-plugin-json: CHECK OK prompt-align
+skill-frontmatter-to-plugin-json: CHECK OK prompt-audit
+skill-frontmatter-to-plugin-json: CHECK OK prompt-migrate
+skill-frontmatter-to-plugin-json: CHECK OK prompt-refine
+skill-frontmatter-to-plugin-json: CHECK OK question-bench
+skill-frontmatter-to-plugin-json: CHECK OK review-coverage
+skill-frontmatter-to-plugin-json: CHECK OK review-fix-bench
+skill-frontmatter-to-plugin-json: CHECK OK shiploop
+skill-frontmatter-to-plugin-json: CHECK OK shiploop-e2e-audit
+skill-frontmatter-to-plugin-json: CHECK OK skill-interop
+skill-frontmatter-to-plugin-json: CHECK OK marketplaces (20 skills)
+sync-plugin-views: CHECK OK
+skill-frontmatter-to-plugin-json: CHECK OK architect
+skill-frontmatter-to-plugin-json: CHECK OK ask-agent
+skill-frontmatter-to-plugin-json: CHECK OK c-plan
+skill-frontmatter-to-plugin-json: CHECK OK compare-prompts
+skill-frontmatter-to-plugin-json: CHECK OK derive-questions
+skill-frontmatter-to-plugin-json: CHECK OK devloop
+skill-frontmatter-to-plugin-json: CHECK OK evidence-gates
+skill-frontmatter-to-plugin-json: CHECK OK improve
+skill-frontmatter-to-plugin-json: CHECK OK improve-system-prompt
+skill-frontmatter-to-plugin-json: CHECK OK plan-test
+skill-frontmatter-to-plugin-json: CHECK OK prompt-align
+skill-frontmatter-to-plugin-json: CHECK OK prompt-audit
+skill-frontmatter-to-plugin-json: CHECK OK prompt-migrate
+skill-frontmatter-to-plugin-json: CHECK OK prompt-refine
+skill-frontmatter-to-plugin-json: CHECK OK question-bench
+skill-frontmatter-to-plugin-json: CHECK OK review-coverage
+skill-frontmatter-to-plugin-json: CHECK OK review-fix-bench
+skill-frontmatter-to-plugin-json: CHECK OK shiploop
+skill-frontmatter-to-plugin-json: CHECK OK shiploop-e2e-audit
+skill-frontmatter-to-plugin-json: CHECK OK skill-interop
+skill-frontmatter-to-plugin-json: CHECK OK marketplaces (20 skills)
+sync-plugin-views: CHECK OK
+skill-frontmatter-to-plugin-json: CHECK OK architect
+skill-frontmatter-to-plugin-json: CHECK OK ask-agent
+skill-frontmatter-to-plugin-json: CHECK OK c-plan
+skill-frontmatter-to-plugin-json: CHECK OK compare-prompts
+skill-frontmatter-to-plugin-json: CHECK OK derive-questions
+skill-frontmatter-to-plugin-json: CHECK OK devloop
+skill-frontmatter-to-plugin-json: CHECK OK evidence-gates
+skill-frontmatter-to-plugin-json: CHECK OK improve
+skill-frontmatter-to-plugin-json: CHECK OK improve-system-prompt
+skill-frontmatter-to-plugin-json: CHECK OK plan-test
+skill-frontmatter-to-plugin-json: CHECK OK prompt-align
+skill-frontmatter-to-plugin-json: CHECK OK prompt-audit
+skill-frontmatter-to-plugin-json: CHECK OK prompt-migrate
+skill-frontmatter-to-plugin-json: CHECK OK prompt-refine
+skill-frontmatter-to-plugin-json: CHECK OK question-bench
+skill-frontmatter-to-plugin-json: CHECK OK review-coverage
+skill-frontmatter-to-plugin-json: CHECK OK review-fix-bench
+skill-frontmatter-to-plugin-json: CHECK OK shiploop
+skill-frontmatter-to-plugin-json: CHECK OK shiploop-e2e-audit
+skill-frontmatter-to-plugin-json: CHECK OK skill-interop
+skill-frontmatter-to-plugin-json: CHECK OK marketplaces (20 skills)
+sync-plugin-views: CHECK OK
+skill-frontmatter-to-plugin-json: CHECK OK architect
+skill-frontmatter-to-plugin-json: CHECK OK ask-agent
+skill-frontmatter-to-plugin-json: CHECK OK c-plan
+skill-frontmatter-to-plugin-json: CHECK OK compare-prompts
+skill-frontmatter-to-plugin-json: CHECK OK derive-questions
+skill-frontmatter-to-plugin-json: CHECK OK devloop
+skill-frontmatter-to-plugin-json: CHECK OK evidence-gates
+skill-frontmatter-to-plugin-json: CHECK OK improve
+skill-frontmatter-to-plugin-json: CHECK OK improve-system-prompt
+skill-frontmatter-to-plugin-json: CHECK OK plan-test
+skill-frontmatter-to-plugin-json: CHECK OK prompt-align
+skill-frontmatter-to-plugin-json: CHECK OK prompt-audit
+skill-frontmatter-to-plugin-json: CHECK OK prompt-migrate
+skill-frontmatter-to-plugin-json: CHECK OK prompt-refine
+skill-frontmatter-to-plugin-json: CHECK OK question-bench
+skill-frontmatter-to-plugin-json: CHECK OK review-coverage
+skill-frontmatter-to-plugin-json: CHECK OK review-fix-bench
+skill-frontmatter-to-plugin-json: CHECK OK shiploop
+skill-frontmatter-to-plugin-json: CHECK OK shiploop-e2e-audit
+skill-frontmatter-to-plugin-json: CHECK OK skill-interop
+skill-frontmatter-to-plugin-json: CHECK OK marketplaces (20 skills)
+sync-plugin-views: CHECK OK
+skill-frontmatter-to-plugin-json: wrote plugins/_zz-sync-symlink-sample_ host manifests and README.md
+sync-plugin-views: synced plugins/_zz-sync-symlink-sample_ from skills/_zz-sync-symlink-sample_
+  ok internal symlink dereferenced
+openrsync: protocol version 29
+  ok dest-symlink tripwire (protected intact; rsync logged)
+sync-plugin-views.test.sh: PASS (incl. internal deref + escape refuse + B1)
+OK  sync-plugin-views
+==> native-marketplace-adapters
+skill-frontmatter-to-plugin-json: CHECK OK architect
+skill-frontmatter-to-plugin-json: CHECK OK ask-agent
+skill-frontmatter-to-plugin-json: CHECK OK c-plan
+skill-frontmatter-to-plugin-json: CHECK OK compare-prompts
+skill-frontmatter-to-plugin-json: CHECK OK derive-questions
+skill-frontmatter-to-plugin-json: CHECK OK devloop
+skill-frontmatter-to-plugin-json: CHECK OK evidence-gates
+skill-frontmatter-to-plugin-json: CHECK OK improve
+skill-frontmatter-to-plugin-json: CHECK OK improve-system-prompt
+skill-frontmatter-to-plugin-json: CHECK OK plan-test
+skill-frontmatter-to-plugin-json: CHECK OK prompt-align
+skill-frontmatter-to-plugin-json: CHECK OK prompt-audit
+skill-frontmatter-to-plugin-json: CHECK OK prompt-migrate
+skill-frontmatter-to-plugin-json: CHECK OK prompt-refine
+skill-frontmatter-to-plugin-json: CHECK OK question-bench
+skill-frontmatter-to-plugin-json: CHECK OK review-coverage
+skill-frontmatter-to-plugin-json: CHECK OK review-fix-bench
+skill-frontmatter-to-plugin-json: CHECK OK shiploop
+skill-frontmatter-to-plugin-json: CHECK OK shiploop-e2e-audit
+skill-frontmatter-to-plugin-json: CHECK OK skill-interop
+skill-frontmatter-to-plugin-json: CHECK OK marketplaces (20 skills)
+sync-plugin-views: CHECK OK
+skill-frontmatter-to-plugin-json: CHECK OK c-plan
+sync-plugin-views: CHECK OK
+skill-frontmatter-to-plugin-json: wrote plugins/architect host manifests and README.md
+sync-plugin-views: synced plugins/architect from skills/architect
+skill-frontmatter-to-plugin-json: wrote plugins/ask-agent host manifests and README.md
+sync-plugin-views: synced plugins/ask-agent from skills/ask-agent
+skill-frontmatter-to-plugin-json: wrote plugins/c-plan host manifests and README.md
+sync-plugin-views: synced plugins/c-plan from skills/c-plan
+skill-frontmatter-to-plugin-json: wrote plugins/compare-prompts host manifests and README.md
+sync-plugin-views: synced plugins/compare-prompts from skills/compare-prompts
+skill-frontmatter-to-plugin-json: wrote plugins/derive-questions host manifests and README.md
+sync-plugin-views: synced plugins/derive-questions from skills/derive-questions
+skill-frontmatter-to-plugin-json: wrote plugins/devloop host manifests and README.md
+sync-plugin-views: synced plugins/devloop from skills/devloop
+skill-frontmatter-to-plugin-json: wrote plugins/evidence-gates host manifests and README.md
+sync-plugin-views: synced plugins/evidence-gates from skills/evidence-gates
+skill-frontmatter-to-plugin-json: wrote plugins/improve host manifests and README.md
+sync-plugin-views: synced plugins/improve from skills/improve
+skill-frontmatter-to-plugin-json: wrote plugins/improve-system-prompt host manifests and README.md
+sync-plugin-views: synced plugins/improve-system-prompt from skills/improve-system-prompt
+skill-frontmatter-to-plugin-json: wrote plugins/plan-test host manifests and README.md
+sync-plugin-views: synced plugins/plan-test from skills/plan-test
+skill-frontmatter-to-plugin-json: wrote plugins/prompt-align host manifests and README.md
+sync-plugin-views: synced plugins/prompt-align from skills/prompt-align
+skill-frontmatter-to-plugin-json: wrote plugins/prompt-audit host manifests and README.md
+sync-plugin-views: synced plugins/prompt-audit from skills/prompt-audit
+skill-frontmatter-to-plugin-json: wrote plugins/prompt-migrate host manifests and README.md
+sync-plugin-views: synced plugins/prompt-migrate from skills/prompt-migrate
+skill-frontmatter-to-plugin-json: wrote plugins/prompt-refine host manifests and README.md
+sync-plugin-views: synced plugins/prompt-refine from skills/prompt-refine
+skill-frontmatter-to-plugin-json: wrote plugins/question-bench host manifests and README.md
+sync-plugin-views: synced plugins/question-bench from skills/question-bench
+skill-frontmatter-to-plugin-json: wrote plugins/review-coverage host manifests and README.md
+sync-plugin-views: synced plugins/review-coverage from skills/review-coverage
+skill-frontmatter-to-plugin-json: wrote plugins/review-fix-bench host manifests and README.md
+sync-plugin-views: synced plugins/review-fix-bench from skills/review-fix-bench
+skill-frontmatter-to-plugin-json: wrote plugins/shiploop host manifests and README.md
+sync-plugin-views: synced plugins/shiploop from skills/shiploop
+skill-frontmatter-to-plugin-json: wrote plugins/shiploop-e2e-audit host manifests and README.md
+sync-plugin-views: synced plugins/shiploop-e2e-audit from skills/shiploop-e2e-audit
+skill-frontmatter-to-plugin-json: wrote plugins/skill-interop host manifests and README.md
+sync-plugin-views: synced plugins/skill-interop from skills/skill-interop
+skill-frontmatter-to-plugin-json: wrote .cursor-plugin/marketplace.json
+skill-frontmatter-to-plugin-json: wrote .grok-plugin/marketplace.json
+skill-frontmatter-to-plugin-json: updated README inventory
+skill-frontmatter-to-plugin-json: wrote plugins/c-plan host manifests and README.md
+sync-plugin-views: synced plugins/c-plan from skills/c-plan
+skill-frontmatter-to-plugin-json: CHECK OK c-plan
+sync-plugin-views: CHECK OK
+skill-frontmatter-to-plugin-json: wrote plugins/c-plan host manifests and README.md
+sync-plugin-views: synced plugins/c-plan from skills/c-plan
+skill-frontmatter-to-plugin-json: CHECK OK c-plan
+sync-plugin-views: CHECK OK
+skill-frontmatter-to-plugin-json: CHECK OK c-plan
+sync-plugin-views: CHECK OK
+skill-frontmatter-to-plugin-json: wrote plugins/architect host manifests and README.md
+sync-plugin-views: synced plugins/architect from skills/architect
+skill-frontmatter-to-plugin-json: wrote plugins/ask-agent host manifests and README.md
+sync-plugin-views: synced plugins/ask-agent from skills/ask-agent
+skill-frontmatter-to-plugin-json: wrote plugins/c-plan host manifests and README.md
+sync-plugin-views: synced plugins/c-plan from skills/c-plan
+skill-frontmatter-to-plugin-json: wrote plugins/compare-prompts host manifests and README.md
+sync-plugin-views: synced plugins/compare-prompts from skills/compare-prompts
+skill-frontmatter-to-plugin-json: wrote plugins/derive-questions host manifests and README.md
+sync-plugin-views: synced plugins/derive-questions from skills/derive-questions
+skill-frontmatter-to-plugin-json: wrote plugins/devloop host manifests and README.md
+sync-plugin-views: synced plugins/devloop from skills/devloop
+skill-frontmatter-to-plugin-json: wrote plugins/evidence-gates host manifests and README.md
+sync-plugin-views: synced plugins/evidence-gates from skills/evidence-gates
+skill-frontmatter-to-plugin-json: wrote plugins/improve host manifests and README.md
+sync-plugin-views: synced plugins/improve from skills/improve
+skill-frontmatter-to-plugin-json: wrote plugins/improve-system-prompt host manifests and README.md
+sync-plugin-views: synced plugins/improve-system-prompt from skills/improve-system-prompt
+skill-frontmatter-to-plugin-json: wrote plugins/plan-test host manifests and README.md
+sync-plugin-views: synced plugins/plan-test from skills/plan-test
+skill-frontmatter-to-plugin-json: wrote plugins/prompt-align host manifests and README.md
+sync-plugin-views: synced plugins/prompt-align from skills/prompt-align
+skill-frontmatter-to-plugin-json: wrote plugins/prompt-audit host manifests and README.md
+sync-plugin-views: synced plugins/prompt-audit from skills/prompt-audit
+skill-frontmatter-to-plugin-json: wrote plugins/prompt-migrate host manifests and README.md
+sync-plugin-views: synced plugins/prompt-migrate from skills/prompt-migrate
+skill-frontmatter-to-plugin-json: wrote plugins/prompt-refine host manifests and README.md
+sync-plugin-views: synced plugins/prompt-refine from skills/prompt-refine
+skill-frontmatter-to-plugin-json: wrote plugins/question-bench host manifests and README.md
+sync-plugin-views: synced plugins/question-bench from skills/question-bench
+skill-frontmatter-to-plugin-json: wrote plugins/review-coverage host manifests and README.md
+sync-plugin-views: synced plugins/review-coverage from skills/review-coverage
+skill-frontmatter-to-plugin-json: wrote plugins/review-fix-bench host manifests and README.md
+sync-plugin-views: synced plugins/review-fix-bench from skills/review-fix-bench
+skill-frontmatter-to-plugin-json: wrote plugins/shiploop host manifests and README.md
+sync-plugin-views: synced plugins/shiploop from skills/shiploop
+skill-frontmatter-to-plugin-json: wrote plugins/shiploop-e2e-audit host manifests and README.md
+sync-plugin-views: synced plugins/shiploop-e2e-audit from skills/shiploop-e2e-audit
+skill-frontmatter-to-plugin-json: wrote plugins/skill-interop host manifests and README.md
+sync-plugin-views: synced plugins/skill-interop from skills/skill-interop
+skill-frontmatter-to-plugin-json: wrote .cursor-plugin/marketplace.json
+skill-frontmatter-to-plugin-json: wrote .grok-plugin/marketplace.json
+skill-frontmatter-to-plugin-json: updated README inventory
+skill-frontmatter-to-plugin-json: wrote plugins/architect host manifests and README.md
+sync-plugin-views: synced plugins/architect from skills/architect
+skill-frontmatter-to-plugin-json: wrote plugins/ask-agent host manifests and README.md
+sync-plugin-views: synced plugins/ask-agent from skills/ask-agent
+skill-frontmatter-to-plugin-json: wrote plugins/c-plan host manifests and README.md
+sync-plugin-views: synced plugins/c-plan from skills/c-plan
+skill-frontmatter-to-plugin-json: wrote plugins/catalog-fixture host manifests and README.md
+sync-plugin-views: synced plugins/catalog-fixture from skills/catalog-fixture
+skill-frontmatter-to-plugin-json: wrote plugins/compare-prompts host manifests and README.md
+sync-plugin-views: synced plugins/compare-prompts from skills/compare-prompts
+skill-frontmatter-to-plugin-json: wrote plugins/derive-questions host manifests and README.md
+sync-plugin-views: synced plugins/derive-questions from skills/derive-questions
+skill-frontmatter-to-plugin-json: wrote plugins/devloop host manifests and README.md
+sync-plugin-views: synced plugins/devloop from skills/devloop
+skill-frontmatter-to-plugin-json: wrote plugins/evidence-gates host manifests and README.md
+sync-plugin-views: synced plugins/evidence-gates from skills/evidence-gates
+skill-frontmatter-to-plugin-json: wrote plugins/improve host manifests and README.md
+sync-plugin-views: synced plugins/improve from skills/improve
+skill-frontmatter-to-plugin-json: wrote plugins/improve-system-prompt host manifests and README.md
+sync-plugin-views: synced plugins/improve-system-prompt from skills/improve-system-prompt
+skill-frontmatter-to-plugin-json: wrote plugins/plan-test host manifests and README.md
+sync-plugin-views: synced plugins/plan-test from skills/plan-test
+skill-frontmatter-to-plugin-json: wrote plugins/prompt-align host manifests and README.md
+sync-plugin-views: synced plugins/prompt-align from skills/prompt-align
+skill-frontmatter-to-plugin-json: wrote plugins/prompt-audit host manifests and README.md
+sync-plugin-views: synced plugins/prompt-audit from skills/prompt-audit
+skill-frontmatter-to-plugin-json: wrote plugins/prompt-migrate host manifests and README.md
+sync-plugin-views: synced plugins/prompt-migrate from skills/prompt-migrate
+skill-frontmatter-to-plugin-json: wrote plugins/prompt-refine host manifests and README.md
+sync-plugin-views: synced plugins/prompt-refine from skills/prompt-refine
+skill-frontmatter-to-plugin-json: wrote plugins/question-bench host manifests and README.md
+sync-plugin-views: synced plugins/question-bench from skills/question-bench
+skill-frontmatter-to-plugin-json: wrote plugins/review-coverage host manifests and README.md
+sync-plugin-views: synced plugins/review-coverage from skills/review-coverage
+skill-frontmatter-to-plugin-json: wrote plugins/review-fix-bench host manifests and README.md
+sync-plugin-views: synced plugins/review-fix-bench from skills/review-fix-bench
+skill-frontmatter-to-plugin-json: wrote plugins/shiploop host manifests and README.md
+sync-plugin-views: synced plugins/shiploop from skills/shiploop
+skill-frontmatter-to-plugin-json: wrote plugins/shiploop-e2e-audit host manifests and README.md
+sync-plugin-views: synced plugins/shiploop-e2e-audit from skills/shiploop-e2e-audit
+skill-frontmatter-to-plugin-json: wrote plugins/skill-interop host manifests and README.md
+sync-plugin-views: synced plugins/skill-interop from skills/skill-interop
+skill-frontmatter-to-plugin-json: wrote .cursor-plugin/marketplace.json
+skill-frontmatter-to-plugin-json: wrote .grok-plugin/marketplace.json
+skill-frontmatter-to-plugin-json: updated README inventory
+skill-frontmatter-to-plugin-json: CHECK OK c-plan
+sync-plugin-views: CHECK OK
+skill-frontmatter-to-plugin-json: wrote plugins/architect host manifests and README.md
+sync-plugin-views: synced plugins/architect from skills/architect
+skill-frontmatter-to-plugin-json: wrote plugins/ask-agent host manifests and README.md
+sync-plugin-views: synced plugins/ask-agent from skills/ask-agent
+skill-frontmatter-to-plugin-json: wrote plugins/c-plan host manifests and README.md
+sync-plugin-views: synced plugins/c-plan from skills/c-plan
+skill-frontmatter-to-plugin-json: wrote plugins/catalog-fixture host manifests and README.md
+sync-plugin-views: synced plugins/catalog-fixture from skills/catalog-fixture
+skill-frontmatter-to-plugin-json: wrote plugins/compare-prompts host manifests and README.md
+sync-plugin-views: synced plugins/compare-prompts from skills/compare-prompts
+skill-frontmatter-to-plugin-json: wrote plugins/derive-questions host manifests and README.md
+sync-plugin-views: synced plugins/derive-questions from skills/derive-questions
+skill-frontmatter-to-plugin-json: wrote plugins/devloop host manifests and README.md
+sync-plugin-views: synced plugins/devloop from skills/devloop
+skill-frontmatter-to-plugin-json: wrote plugins/evidence-gates host manifests and README.md
+sync-plugin-views: synced plugins/evidence-gates from skills/evidence-gates
+skill-frontmatter-to-plugin-json: wrote plugins/improve host manifests and README.md
+sync-plugin-views: synced plugins/improve from skills/improve
+skill-frontmatter-to-plugin-json: wrote plugins/improve-system-prompt host manifests and README.md
+sync-plugin-views: synced plugins/improve-system-prompt from skills/improve-system-prompt
+skill-frontmatter-to-plugin-json: wrote plugins/plan-test host manifests and README.md
+sync-plugin-views: synced plugins/plan-test from skills/plan-test
+skill-frontmatter-to-plugin-json: wrote plugins/prompt-align host manifests and README.md
+sync-plugin-views: synced plugins/prompt-align from skills/prompt-align
+skill-frontmatter-to-plugin-json: wrote plugins/prompt-audit host manifests and README.md
+sync-plugin-views: synced plugins/prompt-audit from skills/prompt-audit
+skill-frontmatter-to-plugin-json: wrote plugins/prompt-migrate host manifests and README.md
+sync-plugin-views: synced plugins/prompt-migrate from skills/prompt-migrate
+skill-frontmatter-to-plugin-json: wrote plugins/prompt-refine host manifests and README.md
+sync-plugin-views: synced plugins/prompt-refine from skills/prompt-refine
+skill-frontmatter-to-plugin-json: wrote plugins/question-bench host manifests and README.md
+sync-plugin-views: synced plugins/question-bench from skills/question-bench
+skill-frontmatter-to-plugin-json: wrote plugins/review-coverage host manifests and README.md
+sync-plugin-views: synced plugins/review-coverage from skills/review-coverage
+skill-frontmatter-to-plugin-json: wrote plugins/review-fix-bench host manifests and README.md
+sync-plugin-views: synced plugins/review-fix-bench from skills/review-fix-bench
+skill-frontmatter-to-plugin-json: wrote plugins/shiploop host manifests and README.md
+sync-plugin-views: synced plugins/shiploop from skills/shiploop
+skill-frontmatter-to-plugin-json: wrote plugins/shiploop-e2e-audit host manifests and README.md
+sync-plugin-views: synced plugins/shiploop-e2e-audit from skills/shiploop-e2e-audit
+skill-frontmatter-to-plugin-json: wrote plugins/skill-interop host manifests and README.md
+sync-plugin-views: synced plugins/skill-interop from skills/skill-interop
+skill-frontmatter-to-plugin-json: wrote .cursor-plugin/marketplace.json
+skill-frontmatter-to-plugin-json: wrote .grok-plugin/marketplace.json
+skill-frontmatter-to-plugin-json: updated README inventory
+skill-frontmatter-to-plugin-json: wrote plugins/architect host manifests and README.md
+sync-plugin-views: synced plugins/architect from skills/architect
+skill-frontmatter-to-plugin-json: wrote plugins/ask-agent host manifests and README.md
+sync-plugin-views: synced plugins/ask-agent from skills/ask-agent
+skill-frontmatter-to-plugin-json: wrote plugins/c-plan host manifests and README.md
+sync-plugin-views: synced plugins/c-plan from skills/c-plan
+skill-frontmatter-to-plugin-json: wrote plugins/compare-prompts host manifests and README.md
+sync-plugin-views: synced plugins/compare-prompts from skills/compare-prompts
+skill-frontmatter-to-plugin-json: wrote plugins/derive-questions host manifests and README.md
+sync-plugin-views: synced plugins/derive-questions from skills/derive-questions
+skill-frontmatter-to-plugin-json: wrote plugins/devloop host manifests and README.md
+sync-plugin-views: synced plugins/devloop from skills/devloop
+skill-frontmatter-to-plugin-json: wrote plugins/evidence-gates host manifests and README.md
+sync-plugin-views: synced plugins/evidence-gates from skills/evidence-gates
+skill-frontmatter-to-plugin-json: wrote plugins/improve host manifests and README.md
+sync-plugin-views: synced plugins/improve from skills/improve
+skill-frontmatter-to-plugin-json: wrote plugins/improve-system-prompt host manifests and README.md
+sync-plugin-views: synced plugins/improve-system-prompt from skills/improve-system-prompt
+skill-frontmatter-to-plugin-json: wrote plugins/plan-test host manifests and README.md
+sync-plugin-views: synced plugins/plan-test from skills/plan-test
+skill-frontmatter-to-plugin-json: wrote plugins/prompt-align host manifests and README.md
+sync-plugin-views: synced plugins/prompt-align from skills/prompt-align
+skill-frontmatter-to-plugin-json: wrote plugins/prompt-audit host manifests and README.md
+sync-plugin-views: synced plugins/prompt-audit from skills/prompt-audit
+skill-frontmatter-to-plugin-json: wrote plugins/prompt-migrate host manifests and README.md
+sync-plugin-views: synced plugins/prompt-migrate from skills/prompt-migrate
+skill-frontmatter-to-plugin-json: wrote plugins/prompt-refine host manifests and README.md
+sync-plugin-views: synced plugins/prompt-refine from skills/prompt-refine
+skill-frontmatter-to-plugin-json: wrote plugins/question-bench host manifests and README.md
+sync-plugin-views: synced plugins/question-bench from skills/question-bench
+skill-frontmatter-to-plugin-json: wrote plugins/review-coverage host manifests and README.md
+sync-plugin-views: synced plugins/review-coverage from skills/review-coverage
+skill-frontmatter-to-plugin-json: wrote plugins/review-fix-bench host manifests and README.md
+sync-plugin-views: synced plugins/review-fix-bench from skills/review-fix-bench
+skill-frontmatter-to-plugin-json: wrote plugins/shiploop host manifests and README.md
+sync-plugin-views: synced plugins/shiploop from skills/shiploop
+skill-frontmatter-to-plugin-json: wrote plugins/shiploop-e2e-audit host manifests and README.md
+sync-plugin-views: synced plugins/shiploop-e2e-audit from skills/shiploop-e2e-audit
+skill-frontmatter-to-plugin-json: wrote plugins/skill-interop host manifests and README.md
+sync-plugin-views: synced plugins/skill-interop from skills/skill-interop
+skill-frontmatter-to-plugin-json: wrote .cursor-plugin/marketplace.json
+skill-frontmatter-to-plugin-json: wrote .grok-plugin/marketplace.json
+skill-frontmatter-to-plugin-json: updated README inventory
+skill-frontmatter-to-plugin-json: CHECK OK architect
+skill-frontmatter-to-plugin-json: CHECK OK ask-agent
+skill-frontmatter-to-plugin-json: CHECK OK c-plan
+skill-frontmatter-to-plugin-json: CHECK OK compare-prompts
+skill-frontmatter-to-plugin-json: CHECK OK derive-questions
+skill-frontmatter-to-plugin-json: CHECK OK devloop
+skill-frontmatter-to-plugin-json: CHECK OK evidence-gates
+skill-frontmatter-to-plugin-json: CHECK OK improve
+skill-frontmatter-to-plugin-json: CHECK OK improve-system-prompt
+skill-frontmatter-to-plugin-json: CHECK OK plan-test
+skill-frontmatter-to-plugin-json: CHECK OK prompt-align
+skill-frontmatter-to-plugin-json: CHECK OK prompt-audit
+skill-frontmatter-to-plugin-json: CHECK OK prompt-migrate
+skill-frontmatter-to-plugin-json: CHECK OK prompt-refine
+skill-frontmatter-to-plugin-json: CHECK OK question-bench
+skill-frontmatter-to-plugin-json: CHECK OK review-coverage
+skill-frontmatter-to-plugin-json: CHECK OK review-fix-bench
+skill-frontmatter-to-plugin-json: CHECK OK shiploop
+skill-frontmatter-to-plugin-json: CHECK OK shiploop-e2e-audit
+skill-frontmatter-to-plugin-json: CHECK OK skill-interop
+skill-frontmatter-to-plugin-json: CHECK OK marketplaces (20 skills)
+sync-plugin-views: CHECK OK
+native-marketplace-adapters.test.sh: PASS (generated Cursor/Grok adapter drift checks)
+OK  native-marketplace-adapters
+==> marketplace-package
+OK  marketplace-package
+==> marketplace-host-isolation
+OK  marketplace-host-isolation
+==> installed-skill-invocation
+OK  installed-skill-invocation
+==> prompt-marketplace-contract
+OK  prompt-marketplace-contract
+==> skill-frontmatter
+skill-frontmatter.test.js: PASS 20 skills (name/version/license/platforms/kind; skill-interop hermes extras)
+OK  skill-frontmatter
+==> scaffold-skill
+scaffold-skill.test.sh: PASS S1–S6
+OK  scaffold-skill
+==> marketplace-run
+M1 ok
+M2 ok
+M3 ok
+M4 ok
+M5 ok
+M6 ok
+M7 ok
+M8 ok
+M9 ok
+M10 ok
+M11 ok
+M12 ok
+M13 ok
+M14 ok
+M15 ok
+M16 ok
+marketplace-run.test.sh: PASS M1–M16
+OK  marketplace-run
+==> install-targets
+install-targets.test.sh: PASS I1–I17 (skill-craft install, 5 hosts, identity dest, flags, dry-run, skip-if-exists, --relink, --agents)
+OK  install-targets
+==> install-arbitrary-skill
+install-arbitrary-skill.test.sh: PASS E1–E5 (--from, --skill all, exclusivity)
+OK  install-arbitrary-skill
+==> hermes-binding
+hermes-binding.test.sh: PASS H1–H18 (copy lifecycle, internal symlink deref, receipts)
+OK  hermes-binding
+==> install-status-uninstall
+install-status-uninstall.test.sh: PASS S1–S8 (continued)
+  ok S9 malformed JSON
+  ok S10 schema!=2
+  ok S11 wrong leaf
+  ok S12 mode!=copy
+  ok S13 wrong source
+  ok S14 absent uninstall exit 4
+  ok S15 double-install warn
+  ok S16 plugin-only no double-install
+  ok S17 empty inv env skips probe
+  ok S18 disabled plugin no double-install
+  ok S19 unknown plugin state no double-install
+  ok S20 string boolean remains unknown
+  ok S21 later array item confirmed enabled
+  ok S22 enabled other market wins disabled preferred cache
+  ok S23 mixed false and unknown remains unknown
+install-status-uninstall.test.sh: PASS S1–S23
+OK  install-status-uninstall
+==> devloop-run
+LAYER simple: D1 help OK
+LAYER simple: D1b no-bootstrap refuse OK
+LAYER marketplace: M1 missing engine never fetches or bootstraps OK
+LAYER simple: D2 DEVLOOP_HOME exec OK
+LAYER marketplace: D2b path-space argv + cancellation propagation OK
+name: devloop
+LAYER simple: D6 probe OK
+LAYER integration: D8 operator-setup+probe+exec fixture OK
+LAYER integration: D9b import health + D9c selected interpreter dependency check OK
+LAYER simple: D16 version + ownership docs OK
+LAYER e2e: D21 force-bootstrap seed-copy + host-local exec OK
+LAYER integration: D22 dual-install grok affinity OK
+LAYER simple: D23 nesting refuse OK
+LAYER integration: D24 grok capability preflight OK
+LAYER simple: D25 bootstrap honesty OK
+LAYER integration: D26 grok skill-dir symlink host detect OK
+LAYER integration: D27 pin without grok transport refused OK
+LAYER integration: D28 identity+lifecycle traces OK
+LAYER simple: D29 --repo flag → explicit OK
+LAYER simple: D30 card-documented designation (shim does not scrape) OK
+LAYER simple: D31 default scratch reason OK
+LAYER simple: D32 card conservative phrases + shim flag-only OK
+LAYER simple: D33 SKILL.md designation docs OK
+LAYER simple: D34 no auto --lang from verify_cmd exactly (host must pass --lang) OK
+LAYER simple: D35 explicit --lang wins + STATE lang=<value> reason=explicit OK
+LAYER simple: D36 no verify_cmd leaves lang alone, STATE lang=none OK
+LAYER simple: D37 SKILL.md interpolation procedure docs OK
+LAYER simple: D39 SKILL.md flags-free parse + hosted-identity setup exactly OK
+LAYER simple: D40 SKILL.md no host phase-table + no harness invoke OK
+LAYER simple: D38 STATE lang always emitted OK
+LAYER simple: D41 /devloop alias alignment OK (/Users/dadleet/src/skill-craft-discovery-handoff/skills/devloop/commands/devloop.md)
+LAYER integration: D42 cursor skill-dir symlink host detect OK
+LAYER integration: D47 cursor unset transport fail-closed + explicit hermes OK
+LAYER integration: D47c Claude/Codex explicit external transport preserved
+LAYER integration: D47d Codex plugin cache fail-closed + explicit transport OK
+LAYER simple: D43 MCP-first inventory + fixture table OK
+LAYER simple: D44 destination-contract protocol (not vendor nouns) OK
+LAYER simple: D45 foreground shim + prompt on HUMAN_REVIEW OK
+LAYER simple: D46 loop-engineering SoT + prompt-align OK
+LAYER simple: D48 validate-spec Before overlay OK
+devloop-run.test.sh: PASS D1–D48
+OK  devloop-run
+==> evidence-gates
+LAYER simple: entry+structure+purity OK
+LAYER simple: self-check OK
+LAYER simple: no-cmd usage fail-closed OK
+LAYER e2e: freeze→prove(red)→build→prove(sticky)→stop PASS OK
+LAYER simple: doctor clean OK
+LAYER simple: doctor purity fail-closed OK
+LAYER integration: copy+symlink package layouts OK
+LAYER e2e: mock-host freeze/prove/edit/stop OK
+evidence-gates.test.sh: PASS
+OK  evidence-gates
+==> improve
+improve.test.sh: PASS isolated_tree_has_no_external_binding
+improve.test.sh: PASS relocated_v2_preview_is_read_only
+improve.test.sh: PASS ephemeral_runtime_provenance_matches_v0_4_0_rc_2
+improve.test.sh: PASS relocated_ephemeral_start_next_done_two_trivial_gate_and_terminal_deletion
+improve.test.sh: PASS collector_uses_bundled_v2_validator
+improve.test.sh: PASS collector_rejects_bad_bundled_v2_state
+improve.test.sh: PASS package=/Users/dadleet/src/skill-craft-discovery-handoff/skills/improve
+OK  improve
+==> improve-plugin
+improve-plugin.test.py: PASS host metadata parity and one public skill
+OK  improve-plugin
+==> shiploop-testkit
+shiploop-testkit.test.sh: PASS
+OK  shiploop-testkit
+==> review-coverage
+PASS skill_md
+PASS template
+PASS h2
+PASS no_legacy_h2
+PASS check_install
+PASS validate_ok
+PASS goal_body_static_exact
+PASS goal_body_static_start
+PASS goal_body_static_complete
+PASS goal_body_commit_each_iteration
+PASS goal_body_review_git_learnings
+PASS goal_body_plan_absolute
+PASS goal_body_base
+PASS goal_body_repo
+PASS goal_body_paths
+PASS goal_body_test
+PASS goal_body_driver
+PASS goal_body_max_default
+PASS goal_body_halt_rules
+PASS goal_body_ledger_landed
+PASS goal_body_clean_trivial
+PASS goal_body_no_zero_material
+PASS goal_body_no_legacy_labels
+PASS goal_body_no_legacy_procedure
+PASS goal_body_slash_exact
+PASS goal_body_slash
+PASS goal_body_slash_head
+PASS goal_body_no_slash
+PASS ref_printer_trailer
+PASS cli_no_static_prose
+PASS cli_no_halt_prose
+PASS cli_no_halt_author
+PASS static_copies_match
+PASS fill_slots_presence
+PASS fence_immediate_only
+PASS goal_body_custom_max
+PASS validate_missing
+PASS preflight_ok
+PASS preflight_missing
+PASS preflight_waived
+PASS preflight_waived_line
+PASS run_card_goal_matches_goal_body
+PASS run_card_fields
+PASS run_card_points_at_ref
+PASS run_card_no_halt_author
+PASS run_card_preflight_fail_no_card
+PASS static_complete_when_byte_exact
+PASS finalization_skill_contract
+PASS finalization_full_reference_contract
+PASS finalization_short_reference_contract
+PASS finalization_host_matrix_contract
+PASS finalization_skill_exit_gate
+PASS finalization_full_exit_gate
+PASS finalization_short_exit_gate
+PASS finalization_no_unlanded_success
+PASS finalization_not_a_residual_round
+PASS finalization_na_second_pass_contract
+PASS finalization_na_second_pass_packets
+PASS finalization_start_and_resume_contract
+PASS finalization_na_goal_body_contract
+PASS finalization_receipt_commit_contract
+PASS finalization_receipt_commit_packets
+PASS goal_body_finalization_trailer
+PASS run_card_finalization_trailer
+PASS finalization_prompt_tests_not_model_compliance
+PASS template_not_valid_plan
+PASS template_placeholder_stderr
+PASS short_template_not_valid_plan
+PASS waiver_validate
+PASS waiver_goal_body_msg
+PASS waiver_no_goal_body
+PASS bad_driver_rejects
+PASS bad_driver_stderr
+PASS improve_loop_driver_rejects
+PASS max_rounds_unlimited_rejects
+PASS max_rounds_zero_rejects
+PASS goal_body_pathspec
+PASS missing_forward_reverse
+PASS fenced_only_rejects
+PASS incomplete_goal_body_err
+PASS template_cmd
+PASS template_short_cmd
+PASS plugin_json
+skill-frontmatter-to-plugin-json: CHECK OK review-coverage
+sync-plugin-views: CHECK OK
+PASS plugin_synced
+PASS plugin_script_match
+PASS plugin_skill_match
+PASS plugin_template_match
+PASS field_table_wins_validate
+PASS field_table_wins_base
+PASS field_table_wins_cmd
+PASS driver_fixed_canonical
+PASS placeholder_trailing_punct
+PASS placeholder_trailing_punct_stderr
+PASS full_template_no_goal_body
+PASS skill_version
+PASS skill_invoke_docs
+PASS skill_slash_docs
+PASS skill_phase_b_cli_prefer
+PASS row_e_validate
+PASS row_e_goal_body
+PASS row_e_body_text
+PASS row_e_not_waived
+PASS row_f_validate
+PASS row_f_missing_msg
+PASS row_f_goal_body
+PASS row_f_gb_missing
+PASS row_f_not_waived_msg
+PASS row_g_validate
+PASS row_g_goal_body
+PASS row_g_body
+PASS row_h_validate
+PASS row_h_conflict_msg
+PASS row_h_goal_body
+PASS row_h_gb_conflict
+PASS row_i_validate_exit2
+PASS row_i_validate_msg
+PASS row_i_no_traceback
+PASS row_i_goal_body_exit2
+PASS row_j_validate_exit2
+PASS row_j_validate_msg
+PASS row_j_no_traceback
+PASS row_k_h1_rejects
+PASS row_k_h3_rejects
+PASS skill_exit_codes_docs
+PASS skill_h2_contract_docs
+PASS skill_md_no_zero_material
+PASS skill_md_trivial_findings_ledger
+PASS skill_md_wrap_up_trivials
+PASS skill_md_grok_goal_user_typed
+PASS skill_md_migrate_legacy_h2
+PASS cursor_check_install
+PASS cursor_validate_ok
+PASS cursor_symlink_source
+======== review-coverage: PASS=133 FAIL=0 ========
+OK  review-coverage
+==> dual-body-guard
+dual-body-guard.test.sh: PASS
+OK  dual-body-guard
+==> shiploop-smoke
+==> scripts/sync-improve-managed.py
+Managed Improve controller copy verified: 68a5445e2fb16972b722cc468a49128dc5f606dff84df39a117ec94a8b43e781
+==> test/shiploop-no-model-launch.test.py
+==> test/shiploop-navigator-v3.test.py
+==> test/shiploop-packet-bounds.test.py
+==> test/shiploop-navigator-dry-run.test.py
+==> test/shiploop-graph-driver.test.py
+==> test/shiploop-graph-trace.test.py
+shiploop.test.sh: PASS
+OK  shiploop-smoke
+run-all.sh: PASS (smoke hermetic group selection)

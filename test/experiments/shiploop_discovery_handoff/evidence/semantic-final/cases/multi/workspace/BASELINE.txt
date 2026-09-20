@@ -1,0 +1,14 @@
+Baseline recorded 2026-09-20 during discovery on unchanged fixture content.
+
+cwd: /Users/dadleet/tmp/shiploop-discovery-implementation-20260920/semantic-final/cases/multi/workspace
+command: python3 -B -m unittest discover -v
+target: local synthetic fixture only; no remote service or deployed-runtime behavior was exercised.
+
+test_binding_name (test_fixture.Baseline.test_binding_name) ... ok
+
+----------------------------------------------------------------------
+Ran 1 test in 0.000s
+
+OK
+
+Result: PASS (1 test). Coverage limit: this validates only the existing fixture binding, not CRM review, remote document generation, identity, persistence, or deployment behavior.

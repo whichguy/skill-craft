@@ -69,6 +69,7 @@ STAGE_REFERENCES: dict[str, tuple[tuple[str, str], ...]] = {
         ("Delivery authority guidance", "delivery-authority.md#ask-at-the-first-concrete-boundary"),
     ),
     "discovery": (
+        ("Discovery investigation guidance", "research-loop.md#plan-the-investigation"),
         ("Service discovery guidance", "service-discovery.md#select-scope"),
         ("Current-system baseline guide", "current-system-baseline.md#establish-or-refresh"),
         ("Persistent project-context guidance", "project-knowledge.md#discover-persistent-context-before-planning"),
@@ -77,6 +78,7 @@ STAGE_REFERENCES: dict[str, tuple[tuple[str, str], ...]] = {
         ("UI planning ownership when applicable", "behavioral-requirements.md#allocate-ui-decisions-to-their-planning-owner"),
     ),
     "research": (
+        ("Discovery investigation guidance", "research-loop.md#plan-the-investigation"),
         ("Service discovery guidance", "service-discovery.md#select-scope"),
         ("Current-system baseline guide", "current-system-baseline.md#evidence-and-authority"),
         ("Bounded research guidance", "research-loop.md#recursive-discovery-and-experiments"),
@@ -465,6 +467,11 @@ planning; it is not healthy. Preserve the observation for prerequisite planning;
 do not edit product source, tests, dependency definitions, or configuration to
 turn it green. Discovery may finish its investigation with a failed baseline,
 but that does not make dependent feature work ready.
+Use Discovery investigation guidance after the baseline: check its plan triggers
+first and again when evidence conflicts or dependencies emerge. When one applies,
+retain the plan and its outcome in the existing note: question, evidence route
+and order, owner, permitted effects, shared time/attempt bound, and stop condition.
+Otherwise take the direct path when inspection suffices.
 Use the Current-system baseline guide after the initial repository baseline.
 Read README first; reuse/revalidate an adequate current-system account or recover
 one from relevant docs, code/tests and authorized read-only observations. Retain
@@ -486,7 +493,15 @@ change; gate only the work that actually depends on the missing evidence.
 If a selected flow depends on asynchronous work, identify or record as unknown
 its processor/recovery owner and durable acceptance-versus-completion boundary;
 a status poller alone does not establish them. Gate that dependent flow only.
-Index retained decisions and evidence in existing project knowledge for planning.
+For retained application state, follow Service discovery guidance's Runtime state
+placement section. Establish the current target and effective identity, then pass
+that resolved target to dependent remote reads. Distinguish discovery operator, deployed runtime and end
+user; explicitly retain any unknown relevant role or authority and its affected
+consumer. Before handoff, follow the project-knowledge discovery evidence
+handoff: ensure the index links to the exact decision-note section, then reopen
+that link and its actual observations or receipts as a fresh reader would.
+Retain explicit evidence_refs for the consumer, with scoped prerequisites and
+due revalidation.
 """,
     "research": """\
 Resolve material unknowns with repository, primary-interface, or otherwise
@@ -495,6 +510,11 @@ affected requirement, consumer, prerequisite, reuse choice, and verification
 need.  Assess relevant skills, MCP servers, libraries, and environment patterns
 for actual fit and support; discovery alone is not successful use or authority to
 install a dependency.  Leave unsupported questions open.
+Use Discovery investigation guidance to reuse or revise the current question
+frontier. Check its plan triggers first and again as evidence conflicts or
+dependencies emerge; retain any triggered plan and outcome. Use the direct path
+only when no trigger applies and direct investigation suffices. Verify the
+project-knowledge discovery evidence handoff before passing conclusions onward.
 Research consequential quality-target and feasibility unknowns from existing
 contracts and appropriate evidence; measured baselines do not choose user policy.
 Reopen the selected current-system baseline and resolve its consequential gaps.
@@ -580,6 +600,10 @@ and release work so consumers do not run before their prerequisites.  Define
 ready/done conditions, candidate scope, check evidence, authority boundaries,
 and correction routes.  Do not use the plan to imply unrun tests or authorized
 external operations.
+Reopen the discovery evidence handoff. Distinguish researchable unknown contracts,
+owner/access gaps and known selected setup prerequisites. Name the first affected
+consumer of each gap; retain independent research and conditional planning as
+eligible under their own prerequisites when another boundary is blocked.
 Apply Initial-plan reconciliation to the architecture, reconciled spec, NFRs and
 State and data assessment. Map each applicable obligation to its responsible work
 item, prerequisites, observing test and relevant release/recovery conditions, or

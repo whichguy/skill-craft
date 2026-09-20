@@ -1,0 +1,17 @@
+Command: python3 -B -m unittest discover -v
+CWD: /Users/dadleet/tmp/shiploop-discovery-implementation-20260920/semantic-v2/cases/multi/workspace
+Checked content: unchanged discovery fixture at the start of this investigation.
+Target: local fixture test suite.
+
+Output:
+test_binding_name (test_fixture.Baseline.test_binding_name) ... ok
+
+----------------------------------------------------------------------
+Ran 1 test in 0.000s
+
+OK
+
+Result: PASS (1 test).
+Coverage limit: this only verifies that src.app.CRM_RUNTIME_ALIAS is
+"crm-review-service". It does not exercise either remote runtime, identity,
+write authority, durable execution, completion, or a consumer flow.

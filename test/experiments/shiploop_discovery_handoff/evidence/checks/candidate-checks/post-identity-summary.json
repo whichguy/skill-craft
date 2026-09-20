@@ -1,0 +1,19 @@
+{
+  "captured_at_epoch": 1789921768.038492,
+  "expected_generated_exclusions": [
+    "__pycache__/*.pyc"
+  ],
+  "file_count": 3242,
+  "fingerprint": "17737bf41c9c9ab497d6f40df1d18a4f3e45eb3325e9a7426275542c27e78d4b",
+  "head": "98c72b65bdd3bae624bb4939497a58d0fdd25621",
+  "identity_unchanged": true,
+  "manifest_file_count": 3242,
+  "manifest_fingerprint": "17737bf41c9c9ab497d6f40df1d18a4f3e45eb3325e9a7426275542c27e78d4b",
+  "manifest_hash_mismatches": [],
+  "manifest_head": "98c72b65bdd3bae624bb4939497a58d0fdd25621",
+  "missing_manifest_files": [],
+  "root": "/Users/dadleet/src/skill-craft-discovery-handoff",
+  "status": " M .grok-plugin/marketplace.json\n M README.md\n M plugins/shiploop/.claude-plugin/plugin.json\n M plugins/shiploop/.codex-plugin/plugin.json\n M plugins/shiploop/.cursor-plugin/plugin.json\n M plugins/shiploop/skills/shiploop/SKILL.md\n M plugins/shiploop/skills/shiploop/references/project-knowledge.md\n M plugins/shiploop/skills/shiploop/references/research-loop.md\n M plugins/shiploop/skills/shiploop/references/service-discovery.md\n M plugins/shiploop/skills/shiploop/scripts/shiploop_navigator_v3_prompts.py\n M skills/shiploop/SKILL.md\n M skills/shiploop/references/project-knowledge.md\n M skills/shiploop/references/research-loop.md\n M skills/shiploop/references/service-discovery.md\n M skills/shiploop/scripts/shiploop_navigator_v3_prompts.py\n M test/shiploop-planning-context.test.py\n M test/shiploop-v3-guidance.test.py\n?? docs/shiploop-discovery-handoff-2026-09-20.md\n?? test/experiments/shiploop_discovery_handoff/README.md\n?? test/experiments/shiploop_discovery_handoff/SEMANTIC-PROTOCOL.md\n?? test/experiments/shiploop_discovery_handoff/apparatus/prepare.py\n?? test/experiments/shiploop_discovery_handoff/apparatus/prepare_cold.py\n?? test/experiments/shiploop_discovery_handoff/apparatus/probe.py\n",
+  "status_exit": 0,
+  "unexpected_files": []
+}

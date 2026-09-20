@@ -1,0 +1,17 @@
+# Unchanged-content baseline
+
+- CWD: `/Users/dadleet/tmp/shiploop-discovery-implementation-20260920/semantic-v3/cases/local/workspace`
+- Command: `python3 -B -m unittest discover -v`
+- Target checked: the supplied local Python fixture before any product edit; this directory has no Git worktree, so no revision identifier is available.
+- Result: exit 0.
+
+```
+test_edges (test_fixture.Baseline.test_edges) ... ok
+
+----------------------------------------------------------------------
+Ran 1 test in 0.000s
+
+OK
+```
+
+Coverage limit: the one existing test proves trimming at the edges only. It does not exercise repeated internal whitespace, mixed whitespace, empty input, or non-string behavior.

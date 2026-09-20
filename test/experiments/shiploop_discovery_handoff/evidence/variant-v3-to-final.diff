@@ -1,0 +1,7 @@
+--- semantic-v3/scripts/shiploop_navigator_v3_prompts.py
++++ semantic-final/scripts/shiploop_navigator_v3_prompts.py
+@@ -497,2 +497,2 @@
+-placement section. Establish the current target and effective identity before
+-dependent remote reads. Distinguish discovery operator, deployed runtime and end
++placement section. Establish the current target and effective identity, then pass
++that resolved target to dependent remote reads. Distinguish discovery operator, deployed runtime and end

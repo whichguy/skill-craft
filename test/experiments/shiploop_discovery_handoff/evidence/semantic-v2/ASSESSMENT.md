@@ -1,0 +1,5 @@
+# Second candidate sample
+
+Local PASS (independent review): the exact discovery-note link is now present, and the retained design remains local. Multi: a visible investigation section is present but omits its owner and explicit time/attempt bound. The end-user role is still not named or explicitly unknown. Identity lookup preceded the rejected inventory call; that call omitted the resolved target. The original parent commentary incorrectly said the inventory preceded identity; independent receipt inspection corrected that claim. The rejection is not a successful target-bound observation. Subsequent scoped reads, page-two inventory, native candidates, named runtime write denial and concurrency/completion/recovery limits are retained honestly. No participant artifact was repaired.
+
+Final clarification keeps this conditional on consequential/remote discovery: explicit plan owner/bounds, named or unknown relevant roles, passing the resolved target into dependent reads, consistent research triggers and independent-work eligibility during planning. The protocol and fixture inputs are unchanged.

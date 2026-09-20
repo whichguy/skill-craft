@@ -1,0 +1,16 @@
+result PASS
+checkout /Users/dadleet/src/skill-craft-discovery-handoff
+head 98c72b65bdd3bae624bb4939497a58d0fdd25621
+manifest pre /Users/dadleet/tmp/shiploop-discovery-implementation-20260920/candidate-checks-v2/precheck.txt: PASS
+manifest post /Users/dadleet/tmp/shiploop-discovery-implementation-20260920/candidate-checks-v2/postcheck.txt: PASS
+source_changed_between_checks no
+commands_in_order
+1. python3 -B test/shiploop-research-template.test.py -> rc 0; log /Users/dadleet/tmp/shiploop-discovery-implementation-20260920/candidate-checks-v2/01-shiploop-research-template.log; bytes 105
+2. python3 -B test/shiploop-reference-routing.test.py -> rc 0; log /Users/dadleet/tmp/shiploop-discovery-implementation-20260920/candidate-checks-v2/02-shiploop-reference-routing.log; bytes 1512
+3. python3 -B test/shiploop-v3-guidance.test.py -> rc 0; log /Users/dadleet/tmp/shiploop-discovery-implementation-20260920/candidate-checks-v2/03-shiploop-v3-guidance.log; bytes 6994
+4. python3 -B test/shiploop-planning-context.test.py -> rc 0; log /Users/dadleet/tmp/shiploop-discovery-implementation-20260920/candidate-checks-v2/04-shiploop-planning-context.log; bytes 1637
+5. python3 -B test/shiploop-chain-planning-context.test.py -> rc 0; log /Users/dadleet/tmp/shiploop-discovery-implementation-20260920/candidate-checks-v2/05-shiploop-chain-planning-context.log; bytes 2849
+6. bash test/run-all.sh --group smoke -> rc 0; log /Users/dadleet/tmp/shiploop-discovery-implementation-20260920/candidate-checks-v2/06-run-all-smoke.log; bytes 55597
+7. bash scripts/sync-plugin-views.sh --check -> rc 0; log /Users/dadleet/tmp/shiploop-discovery-implementation-20260920/candidate-checks-v2/07-sync-plugin-views-check.log; bytes 1224
+8. python3 -B scripts/check-marketplace-packages.py -> rc 0; log /Users/dadleet/tmp/shiploop-discovery-implementation-20260920/candidate-checks-v2/08-check-marketplace-packages.log; bytes 997
+required checks completed 8/8

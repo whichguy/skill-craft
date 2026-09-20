@@ -1,0 +1,23 @@
+skill-frontmatter-to-plugin-json: CHECK OK architect
+skill-frontmatter-to-plugin-json: CHECK OK ask-agent
+skill-frontmatter-to-plugin-json: CHECK OK c-plan
+skill-frontmatter-to-plugin-json: CHECK OK compare-prompts
+skill-frontmatter-to-plugin-json: CHECK OK derive-questions
+skill-frontmatter-to-plugin-json: CHECK OK devloop
+skill-frontmatter-to-plugin-json: CHECK OK evidence-gates
+skill-frontmatter-to-plugin-json: CHECK OK improve
+skill-frontmatter-to-plugin-json: CHECK OK improve-system-prompt
+skill-frontmatter-to-plugin-json: CHECK OK plan-test
+skill-frontmatter-to-plugin-json: CHECK OK prompt-align
+skill-frontmatter-to-plugin-json: CHECK OK prompt-audit
+skill-frontmatter-to-plugin-json: CHECK OK prompt-migrate
+skill-frontmatter-to-plugin-json: CHECK OK prompt-refine
+skill-frontmatter-to-plugin-json: CHECK OK question-bench
+skill-frontmatter-to-plugin-json: CHECK OK review-coverage
+skill-frontmatter-to-plugin-json: CHECK OK review-fix-bench
+skill-frontmatter-to-plugin-json: CHECK OK shiploop
+skill-frontmatter-to-plugin-json: CHECK OK shiploop-e2e-audit
+skill-frontmatter-to-plugin-json: CHECK OK skill-interop
+skill-frontmatter-to-plugin-json: CHECK OK marketplaces (20 skills)
+sync-plugin-views: CHECK OK
+exit_code=0

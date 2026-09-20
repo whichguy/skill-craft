@@ -87,7 +87,8 @@ At intake/discovery:
 4. Record a concise context assessment in the current run's discovery notes:
    sources read, facts/decisions reused and why, changes since the prior run,
    unresolved conflicts/gaps, and implications for the new feature. Update or
-   create the project index with useful reference paths. Run discovery's
+   create the project index with useful reference paths and verify the
+   [discovery evidence handoff](#discovery-evidence-handoff). Run discovery's
    assigned Improve campaign on this candidate using the selected protocol's
    packet. In v3, submit the discovery producer result first, then run the
    standalone Improve child before the parent advances. Retained protocols
@@ -102,6 +103,37 @@ these documents.
 For consequential questions about an existing choice, use the
 [Git-history investigation below](#investigate-git-history-for-planning) during
 discovery and reopen it when specification or planning reveals a new question.
+
+## Discovery evidence handoff
+
+Before handing discovery/research to its next consumer, reopen the project index
+and follow its links as a fresh reader would. Link each retained consequential
+decision from the index to its exact note section; a summary copied into the index
+does not replace that link. The note needs a supporting observation/receipt locator, status
+(observed, inferred, proposed, accepted or unresolved), and due revalidation.
+Keep current decisions in the existing maintained documentation; retain dated
+observations separately. Link actual recorded evidence, not a promised future
+receipt or a filename that only exists in the author's conversation.
+
+Check that the section exists, supports the credited claim and identifies the
+target/principal/operation/time for access evidence. Resolve links from their
+containing document in the receiving workspace. An inaccessible source remains a
+named gap affecting its consumers; a working link does not prove the claim true.
+For a known setup prerequisite, name its producer, first consumer and confirming
+observation. Keep unknown contracts and owner/access decisions distinct, leaving
+independent discovery or planning eligible under its own prerequisites.
+
+Record the necessary decision and evidence locators in accepted `evidence_refs`,
+and a compact decision/prerequisite/revalidation summary in the affected item's
+`context`. For local files entering the selected chain planning collector, use
+absolute file paths (with `#heading` for a note section), or its explicit
+resolution mechanism; a repository-relative Markdown link alone is insufficient.
+Declare required supporting receipt files too: the collector does not recursively
+follow links inside an index or decision note. The index remains the human entry
+point, while declared references supply the existing transport. At planning,
+step planning and the affected operation, the consuming host reopens the selected
+sections and revalidates volatile facts before relying on them. File collection
+does not prove that reading, review or runtime verification occurred.
 
 ## Investigate Git history for planning
 
