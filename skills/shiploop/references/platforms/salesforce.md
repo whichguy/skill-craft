@@ -22,6 +22,20 @@ and rendered states. JavaScript doubles do not establish Apex execution,
 permission behavior, governor use, or org behavior; exercise those boundaries
 in an identified disposable org when required.
 
+Apply [target-native test selection](../repeatable-test-suites.md#select-target-native-tests)
+to the affected repo/org metadata and actual deployment route. LWC Jest checks
+components locally; Apex tests execute in the org; browser checks observe the
+Lightning consumer. None substitutes for the others' required boundary.
+Select Apex coverage for changed or affected Apex behavior, or when the actual
+deployment/packaging/CI gate requires it. Check the payload, target environment,
+effective test level and applicable coverage rule rather than inferring them
+from an org label. A verified LWC-only development deployment with no affected
+Apex and no Apex test gate may exclude Apex tests; do not add Apex or empty test
+classes to fill an inventory. Reopen that exclusion when its basis changes.
+[LWC testing](https://developer.salesforce.com/docs/platform/lwc/guide/testing)
+and the [deployment command's test-level contract](https://developer.salesforce.com/docs/platform/salesforce-cli-reference/guide/cli_reference_project_deploy_start.html)
+are starting points; verify the rules for the operation actually selected.
+
 For a Lightning consumer, distinguish the org/instance identity from the
 feature's authenticated entry: an app, custom tab, component or other supported
 page. Use supported navigation (for example a generated `PageReference` URL)

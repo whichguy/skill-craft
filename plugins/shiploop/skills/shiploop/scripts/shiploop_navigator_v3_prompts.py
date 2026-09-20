@@ -85,6 +85,7 @@ STAGE_REFERENCES: dict[str, tuple[tuple[str, str], ...]] = {
     ),
     "test-strategy": (
         ("Repeatable test-suite guide", "repeatable-test-suites.md#select-or-revalidate-the-harness"),
+        ("Target-native test selection", "repeatable-test-suites.md#select-target-native-tests"),
         ("Test-case planning guidance", "testing-and-documentation.md#test-cases"),
         ("System-test catalog guidance", "system-tests.md#catalog-shape"),
         ("State and data assessment", "requirements-definition.md#state-and-data-change-assessment"),
@@ -135,6 +136,7 @@ STAGE_REFERENCES: dict[str, tuple[tuple[str, str], ...]] = {
     ),
     "implement": (
         ("Coding decision guide", "coding-guidance.md#select-guidance"),
+        ("Target-native test selection", "repeatable-test-suites.md#select-target-native-tests"),
         ("Optional parallel-chain guide", "parallel-chain.md#parallel-implementation-chains"),
         ("Repeatable test-suite guide", "repeatable-test-suites.md#select-or-revalidate-the-harness"),
         ("Implementation constitution", "testing-and-documentation.md#implementation-constitution"),
@@ -145,6 +147,7 @@ STAGE_REFERENCES: dict[str, tuple[tuple[str, str], ...]] = {
     ),
     "test-refine": (
         ("Repeatable test-suite guide", "repeatable-test-suites.md#select-or-revalidate-the-harness"),
+        ("Target-native test selection", "repeatable-test-suites.md#select-target-native-tests"),
         ("Test-case planning guidance", "testing-and-documentation.md#test-cases"),
     ),
     "regression": (
@@ -198,6 +201,7 @@ STAGE_REFERENCES: dict[str, tuple[tuple[str, str], ...]] = {
     ),
     "release-plan": (
         ("Release operation guidance", "environment-lifecycle.md#release-operation-ownership"),
+        ("Target-native test selection", "repeatable-test-suites.md#select-target-native-tests"),
         ("Environment promotion guidance", "environment-lifecycle.md#carry-the-route-into-final-delivery"),
         ("Workspace return guidance", "workspace-lifecycle.md#inner-assembly-and-final-return"),
         ("State and data assessment", "requirements-definition.md#state-and-data-change-assessment"),
@@ -484,6 +488,8 @@ Map applicable new and preserved non-functional criteria to checks and their
 environment/workload prerequisites; missing evidence or access is not N/A.
 Read the Repeatable test-suite guide. Select the major harnesses and suite entry
 points now; reuse a prior-run harness only after revalidating its current fit.
+Use Target-native test selection to connect discovered remote code/test assets
+and the actual deployment gate to evidence-backed suite selections or exclusions.
 Consider supported platform/library testing systems and available browser tools
 by required capability rather than product name. Record their roles, fit,
 availability and prerequisites; distinguish inspection from retained assertions.
@@ -712,6 +718,8 @@ successful control evidence for this stage, not a product failure to hide.
     "implement": """\
 Implement the authorized bounded change.  Preserve unrelated work, inspect the
 actual code as it changes, and carry discoveries into later test refinement.
+Reopen Target-native test selection when actual local/remote code, configuration,
+dependencies or delivery route changes invalidate the earlier test decision.
 Apply the planned behavior, error handling, opt-in diagnostics, exception context,
 and concise code contracts.  Do not claim verification from an edit alone.
 Use the Coding decision guide to reopen the accepted plan and only its relevant
@@ -741,6 +749,8 @@ exercises.
     "test-refine": """\
 Recheck the Run-wide test strategy source against the current item context and
 observed implementation; record revised test decisions in ordinary evidence_refs.
+Use Target-native test selection to reassess affected native suites and prior
+exclusions against the actual local/remote changes and remaining test gates.
 Refine cases and executable tests using the code that now exists while preserving
 independent specification-based expectations.  Cover changed failure behavior,
 debug on/off behavior and safe diagnostic context where relevant.  Correct an
@@ -920,7 +930,9 @@ permission, prerequisites, user impact, rollback, monitoring, pre/post-release
 checks, and stop conditions.  Distinguish source return, artifact publication,
 deployment, promotion, and consumer verification.  A plan does not authorize or
 perform an external operation; a required target or authority gap is blocked.
-Revalidate the integrated test plan for the release target. Retain the pre/post
+Revalidate the integrated test plan for the release target. Use Target-native
+test selection for this actual payload and deployment/promotion operation,
+including any revised gate. Retain the pre/post
 check owners, commands/case selectors, independent expected outcomes, prerequisites,
 execution versus target locations, remote test-definition revision where relevant,
 setup/test/teardown, fixture isolation/sharing and cost, cleanup and stop conditions.
