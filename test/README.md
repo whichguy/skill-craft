@@ -77,6 +77,17 @@ result preservation and hostile-path/replay controls. Both are in the full
 ShipLoop inventory. Use the [native pilot](experiments/shiploop_chain/README.md)
 for separate qualification with actual Ask-Agent contexts and completion events.
 
+The managed lifecycle cases use the source Ask-Agent 0.6 helper with real sibling
+worktrees and immutable receipts. They exercise both return orders, stale combined
+verification after target movement, successor launch before accepted-worker
+cleanup, replay/retry fencing, and cleanup recovery with late worker changes.
+Managed `done` returns acceptance and ready actions first; the parent then uses
+the existing cleanup callback. `shiploop-chain-git.test.py` separately checks that
+an integrated-worker inspection rejects a newer HEAD, dirty or ignored files, and
+replacement worktree identities without removing them. Each case owns and tears
+down its disposable repositories; these are full-suite members, not live-host
+notification evidence.
+
 Planning-material transport has two focused suites:
 
 ```sh

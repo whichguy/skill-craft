@@ -228,14 +228,14 @@ time and an empty ready list never authorize acceptance or completion.
 | Operation | Request / meaning |
 | --- | --- |
 | `claim` | `{"steps":["A","B"]}` selects an eligible subset within capacity. |
-| `start` | `attempt`, current `base_commit`, relative `write_scope`, canonical `resources`, and `ready_evidence:{path,sha256}`. In parallel mode, without `workspace`, returns `prepare-workspace` without creating anything. Ask-Agent creates its worktree; resubmit with its absolute `workspace` for verified adoption and a launch packet. Serial mode allocates its own sibling workspace. |
+| `start` | `attempt`, current `base_commit`, relative `write_scope`, canonical `resources`, and `ready_evidence:{path,sha256}`. The 0.6 parallel adapter prepares through the selected Ask-Agent helper and returns its receipt and launch packet. The 0.4 adapter returns `prepare-workspace`; resubmit the same request with Ask-Agent's absolute `workspace` for adoption. Serial mode allocates its own sibling workspace. |
 | `launched` | `attempt`, actual native `handle`; record only after the host confirms launch. |
 | `packet` | `attempt`; recover the existing packet, never a new launch grant. |
 | `observe` | `attempt`, optional source `occurred_at`; append receipt observation after native collection. It does not accept the task. |
 | `import-handoff` | `attempt`, `confirmed_stopped:true`, `handoff:{path,sha256}`; parent archives worker-local results and publishes the existing dispatcher report. |
 | `prepare` | `attempt`, `confirmed_stopped:true`; inspect original contribution, reconcile current target into the stopped worker checkout, and return the exact combined candidate for independent checks. |
-| `settle` | `attempt`, `confirmed_stopped:true`, candidate-bound `integration` and `verification:{receipt_sha256,passed,reason,evidence:{path,sha256}}`; verify, merge into the invoking checkout, accept, then remove the worker worktree. |
-| `cleanup` | `attempt`, `confirmed_stopped:true`; retry accepted-worker removal only. For a retired failed attempt add `disposition:"superseded"` and nonempty `reason`; its replacement must already be accepted and integrated. Neither form executes the task again. |
+| `settle` | `attempt`, `confirmed_stopped:true`, candidate-bound `integration` and `verification:{receipt_sha256,passed,reason,evidence:{path,sha256}}`; verify, merge into the invoking checkout, accept and return the ready frontier. Managed 0.6 parallel cleanup is deferred; legacy/serial paths attempt removal inline. |
+| `cleanup` | `attempt`, `confirmed_stopped:true`; close or retry accepted-worker removal after refilling safe capacity. For a retired failed attempt add `disposition:"superseded"` and nonempty `reason`; its replacement must already be accepted and integrated. Neither form executes the task again. |
 | `done` | An alias for `settle` with the identical evidence contract; it invokes the same transition once. Rejected verification leaves the step not done. |
 | `retry` | `attempt`, `confirmed_stopped:true`, `reason`; preserve failed evidence/worktree, then claim a fresh attempt. |
 | `next` / `recover` | Inspect durable child state, bridge events and unresolved operations. No automatic relaunch. |
@@ -268,6 +268,11 @@ The launch packet contains the exact workspace, receipt, package identity, and
 `check-context` command the native worker must execute before work. Filesystem
 preparation is not native launch or completion evidence. The parent still uses
 the host's native delegation facility to run the worker asynchronously.
+This is Ask-Agent preparation performed by its coordinating parent. Continue
+with that exact receipt and package identity when launching; do not invoke a
+second `prepare --source` flow or allocate another native worktree after `start`.
+The frozen context workspace, receipt worktree and worker's observed Git root
+must be the same workspace.
 
 The 0.4 parallel route retains its caller-prepared workspace adoption protocol.
 Serial mode retains ShipLoop's existing Git allocator for either selected skill
@@ -316,7 +321,9 @@ are still imported with a null commit; they cannot be prepared or integrated.
 The main dispatcher collects the worker and its delegates, checks its evidence,
 then imports, prepares and independently checks the combined candidate.
 A successful `done` merges into the invoking branch before settling the report,
-then removes the registered worker worktree after its consumers have stopped. `confirmed_stopped` is a caller attestation, not a
+then returns the newly ready frontier. For managed 0.6 parallel workers, cleanup
+is deferred to the existing `cleanup` callback: fill safe launch capacity first,
+then close accepted worktrees while workers run. `confirmed_stopped` is a caller attestation, not a
 native cancellation or liveness detector. Accepted supplier commits and evidence
 unlock direct dependents. Refresh readiness immediately after settlement;
 independent work need not wait for an entire dependency wave. Resource keys are
@@ -452,8 +459,8 @@ exact candidate, then `done` performs a guarded fast-forward into the invoking
 checkout. If the target moved, reprepare and reverify. Clean textual merging is
 not evidence that the combined behavior works.
 
-Example: A/B start at H0. A is integrated, accepted and removed; C starts from
-that updated branch while B runs. B later reconciles against the advanced target,
+Example: A/B start at H0. A is integrated and accepted; C starts from
+that updated branch while B runs, then A's worktree is closed. B later reconciles against the advanced target,
 so both changes survive. J waits for B and C acceptance and starts from their
 combined result. Keep an explicit join for meaningful cross-component tests or
 integration code, not merely to gather Git branches. `finish` verifies the final
@@ -463,14 +470,20 @@ Ask-Agent leaves returned workspaces intact. The parent archives required
 results and confirms all worktree users/delegates stopped. For accepted 0.6
 parallel workers, the bridge obtains a new post-integration inspection and
 fingerprint-bound acceptance, then invokes the owning helper's `close` command.
+Before and after that inspection and before close, it proves the bound worker
+still has the exact accepted candidate as HEAD, a clean index and working tree,
+and no untracked or ignored extras. A late commit or file remains retained;
+cleanup cannot attest that newly observed work was integrated. These checks also
+apply when recovering a recorded inspection or close intent. Once removal has
+already succeeded, the helper reconciles its durable close receipt.
 This inspection deliberately omits commit delivery: the worker now contains the
 combined integration commit, which can be a merge. The original worker delivery
 evidence remains immutable. A durable close intent allows retry after removal
 without creating a replacement workspace. A retained close stays cleanup-pending
 and never undoes accepted code. The 0.4 and serial paths retain the registered
 worker removal through ShipLoop's Git helper. Unknown edits/files, active Git
-operations or remaining consumers block removal. There is no automatic force,
-reset or recursive deletion. Retain branches as recovery references; deleting
+operations or remaining consumers block removal. The managed helper owns removal
+only after these acceptance checks; the bridge does not bypass it. Retain branches as recovery references; deleting
 them is a separate decision. Accepted-but-unremoved attempts appear as cleanup
 work; `cleanup` retries removal without rerunning the step. Failed attempts stay
 visible and preserve their workspace during `retry`. The 0.6 adapter retains
@@ -565,7 +578,7 @@ A Git commit or clean receipt import alone cannot establish task completion.
 
 Missing/drifted binding, selected package, graph, evidence or target identity
 blocks progress. Preserve incomplete initialization, unresolved attempts and
-their worktrees. Successful per-step acceptance attempts owned cleanup; failures retain the
+their worktrees. Successful managed acceptance schedules owned cleanup; failures retain the
 workspace and a recovery action. No force reset, stash, push or background
 service is provided. The local process-crash contract does not establish
 power-loss/NFS durability, hostile-process isolation or cross-session native

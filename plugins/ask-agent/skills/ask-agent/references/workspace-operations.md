@@ -64,6 +64,14 @@ A same-attempt delivery retry can validate its existing preparation with
 `prepare --receipt /actual/receipt.json --writers-quiescent`. A fresh delegation gets a fresh
 preparation. Do not reuse a workspace by matching its task label.
 
+An orchestrating parent may run identity, preparation and prepared inspection
+before recording its own start/launch grant. Carry that exact receipt and
+package identity across the grant and launch the native worker directly with
+the already-prepared workspace. Require the orchestrator's frozen workspace,
+receipt worktree and worker's observed Git root to agree. Do not re-enter
+`prepare --source` after the grant or request another native-created worktree.
+Recovery reuses the same attempt's receipt; a new attempt prepares afresh.
+
 ```sh
 python3 "$WORKSPACE_HELPER" inspect \
   --receipt "/actual/receipt.json" --phase prepared

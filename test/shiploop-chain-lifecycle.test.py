@@ -587,7 +587,20 @@ class PerStepChainTests(unittest.TestCase):
         self.done_inputs[step] = value
         return value
 
-    def prepare_and_done(self, step):
+    def run_deferred_managed_cleanup(self, step, output):
+        cleanup = output.get("cleanup")
+        if not isinstance(cleanup, dict) or cleanup.get("deferred") is not True:
+            return None
+        attempt = self.packets[step]["attempt"]
+        self.assertEqual(cleanup, {
+            "attempt": attempt,
+            "cleanup": None,
+            "pending": True,
+            "deferred": True,
+        })
+        return self.call("cleanup", {"attempt": attempt, "confirmed_stopped": True})
+
+    def prepare_and_done(self, step, *, close_deferred=True):
         value = self.prepared_input(step)
         integration = value["integration"]
         before = self.f.ledger_bytes()
@@ -596,11 +609,35 @@ class PerStepChainTests(unittest.TestCase):
         self.assertEqual(output["step"], step)
         self.assertEqual(output["attempt"], value["attempt"])
         self.assertEqual(self.head(), integration["candidate_commit"])
-        self.assertFalse(Path(self.packets[step]["context"]["workspace"]).exists())
+        deferred = isinstance(output.get("cleanup"), dict) and output["cleanup"].get("deferred") is True
+        if deferred and close_deferred:
+            cleaned = self.run_deferred_managed_cleanup(step, output)
+            self.assertIsNotNone(cleaned)
+            self.assertFalse(cleaned["pending"])
+        workspace = Path(self.packets[step]["context"]["workspace"])
+        if deferred and not close_deferred:
+            self.assertTrue(workspace.exists())
+        else:
+            self.assertFalse(workspace.exists())
         after = self.f.ledger_bytes()
         self.assertTrue(all(after.get(k) == v for k, v in before.items()))
         self.verify(self.f.target, expected_steps=self.accepted_steps())
         return output
+
+    def accept_managed_a_with_deferred_cleanup(self):
+        self.managed_bind(single=True)
+        attempt = self.claim("A")["A"]
+        packet = self.managed_start("A", attempt)
+        self.managed_context_check("A")
+        self.import_finished("A", self.managed_worker_result("A"))
+        settled = self.prepare_and_done("A", close_deferred=False)
+        self.assertEqual(settled["cleanup"], {
+            "attempt": attempt,
+            "cleanup": None,
+            "pending": True,
+            "deferred": True,
+        })
+        return attempt, packet
 
     def binding(self):
         return fixture.store.read_record(self.f.run / "chains" / self.f.action / "binding.md")
@@ -939,6 +976,11 @@ class PerStepChainTests(unittest.TestCase):
         self.assertEqual(claims[0]["max_steps"], 1)
         self.assertEqual(claims[0]["operation"], "claim")
         self.assertIn("every safe listed candidate", claims[0]["instruction"])
+        attempt = self.claim("A")["A"]
+        start = self.action_rows(self.call("next"), "start")[0]
+        self.assertEqual(start["attempt"], attempt)
+        self.assertIn("prepare-workspace", start["instruction"])
+        self.assertIn("Ask-Agent workspace when already prepared", start["required"])
 
     def test_ready_claim_precedes_unknown_native_reconciliation(self):
         self.bind(capacity=2)
@@ -998,6 +1040,10 @@ class PerStepChainTests(unittest.TestCase):
         self.bind(mode="serial")
         for step in ("A", "B", "C", "J"):
             attempt = self.claim(step)[step]
+            start = self.action_rows(self.call("next"), "start")[0]
+            self.assertIn("main context", start["instruction"])
+            self.assertNotIn("prepare-workspace", start["instruction"])
+            self.assertNotIn("Ask-Agent workspace when already prepared", start["required"])
             self.start(step, attempt, serial=True)
             self.assertEqual([row["attempt"] for row in self.action_rows(self.last_start_response, "execute")],
                              [attempt])
@@ -1102,6 +1148,14 @@ class PerStepChainTests(unittest.TestCase):
                          binding["ask_agent"]["files"]["scripts/ask_agent_workspace.py"]["path"])
 
         attempts = self.claim("A", "B")
+        start_actions = self.action_rows(self.call("next"), "start")
+        self.assertEqual({row["attempt"] for row in start_actions}, set(attempts.values()))
+        for start in start_actions:
+            self.assertIn("selected Ask-Agent helper", start["instruction"])
+            self.assertIn("do not supply workspace", start["instruction"])
+            self.assertIn("launch", start["instruction"])
+            self.assertNotIn("prepare-workspace", start["instruction"])
+            self.assertNotIn("Ask-Agent workspace when already prepared", start["required"])
         base = self.head()
         packet = self.managed_start("A", attempts["A"], base=base)
         b_packet = self.managed_start("B", attempts["B"], base=base)
@@ -1127,7 +1181,8 @@ class PerStepChainTests(unittest.TestCase):
         self.assertTrue(any(row["event"]["kind"] == "handoff_files_removed"
                             for row in self.bridge_events()))
         returned = next(row["event"]["data"] for row in self.bridge_events()
-                        if row["event"]["kind"] == "managed_returned_delivery")
+                        if row["event"]["kind"] == "managed_returned_delivery"
+                        and row["event"]["data"].get("attempt") == attempt)
         self.assertEqual(returned["intent"], {
             "attempt": attempt, "source_commit": result["commit"],
             "base_commit": packet["context"]["base_commit"],
@@ -1158,6 +1213,193 @@ class PerStepChainTests(unittest.TestCase):
         self.assertEqual(archived_handoff.read_bytes(), archived_handoff_bytes,
                          "parent archive remains the durable handoff after helper-owned cleanup")
         self.finish()
+
+    def test_managed_parallel_a_first_refills_c_before_b_finishes(self):
+        self.managed_bind(capacity=2)
+        attempts = self.claim("A", "B")
+        t0 = self.head()
+        a_packet = self.managed_start("A", attempts["A"], base=t0)
+        b_packet = self.managed_start("B", attempts["B"], base=t0)
+        self.assertEqual((a_packet["context"]["base_commit"], b_packet["context"]["base_commit"]),
+                         (t0, t0))
+        b = self.launch("B")
+        self.assertIsNone(b.poll())
+
+        self.managed_context_check("A")
+        self.import_finished("A", self.managed_worker_result("A"))
+        a_done = self.prepare_and_done("A", close_deferred=False)
+        a_workspace = Path(a_packet["context"]["workspace"])
+        a_integration = self.done_inputs["A"]["integration"]["candidate_commit"]
+        self.assertEqual(a_done["cleanup"], {
+            "attempt": attempts["A"], "cleanup": None, "pending": True, "deferred": True,
+        })
+        self.assertTrue(a_workspace.exists())
+        self.assertIn(attempts["A"], self.call("pending")["lifecycle"]["cleanup_pending"])
+        self.assertIsNone(b.poll(), "B must remain live when A releases C")
+        self.assert_claim_precedes_pending_attempt(a_done, "C", attempts["B"])
+
+        c_attempt = self.claim("C")["C"]
+        c_packet = self.managed_start("C", c_attempt, base=self.head())
+        self.assertEqual(c_packet["context"]["base_commit"], a_integration)
+        self.assertEqual([item["step"] for item in c_packet["dependencies"]], ["A"])
+        c = self.launch("C")
+        self.assertIsNone(b.poll(), "C must start before B finishes")
+        self.assertIsNone(c.poll())
+
+        self.collect("B", b)
+        self.prepare_and_done("B")
+        self.assertIsNone(c.poll(), "C must remain live while B is integrated")
+        self.collect("C", c)
+        c_done = self.prepare_and_done("C")
+        self.assertEqual([row["steps"] for row in self.action_rows(c_done, "claim")], [["J"]])
+        self.assertTrue(a_workspace.exists())
+        self.assertNotEqual(self.head(), a_integration,
+                            "B and C must advance T after A was accepted")
+
+        before_a_cleanup = self.head()
+        a_cleanup = self.call("cleanup", {"attempt": attempts["A"], "confirmed_stopped": True})
+        self.assertFalse(a_cleanup["pending"])
+        self.assertFalse(a_workspace.exists())
+        self.assertEqual(self.head(), before_a_cleanup,
+                         "closing an unchanged accepted A workspace must not move the target")
+
+        j_attempt = self.claim("J")["J"]
+        self.managed_start("J", j_attempt, base=self.head())
+        self.import_finished("J", self.managed_worker_result("J"))
+        self.prepare_and_done("J")
+        self.assert_contiguous_integrations((attempts["A"], attempts["B"], c_attempt, j_attempt))
+        self.verify(self.f.target, expected_steps=("A", "B", "C", "J"))
+        self.finish()
+
+    def test_managed_parallel_b_stale_t0_candidate_reprepares_at_t1(self):
+        self.managed_bind(capacity=2)
+        attempts = self.claim("A", "B")
+        t0 = self.head()
+        a_packet = self.managed_start("A", attempts["A"], base=t0)
+        b_packet = self.managed_start("B", attempts["B"], base=t0)
+        self.assertEqual((a_packet["context"]["base_commit"], b_packet["context"]["base_commit"]),
+                         (t0, t0))
+
+        self.managed_context_check("B")
+        self.import_finished("B", self.managed_worker_result("B"))
+        stale_b = self.prepared_input("B")
+        self.assertEqual(stale_b["integration"]["expected_target"], t0)
+
+        self.managed_context_check("A")
+        self.import_finished("A", self.managed_worker_result("A"))
+        self.prepare_and_done("A")
+        t1 = self.head()
+        self.assertNotEqual(t1, t0)
+
+        before_head = self.head()
+        before_child = self.f.child_state_path().read_bytes()
+        before_ledger = self.f.ledger_bytes()
+        refused = self.call("done", stale_b, ok=False)
+        self.assertTrue(any(word in refused.stderr.lower() for word in ("target", "stale", "head")),
+                        refused.stderr)
+        self.assertEqual(self.head(), before_head)
+        self.assertEqual(self.f.child_state_path().read_bytes(), before_child)
+        self.assertEqual(self.f.ledger_bytes(), before_ledger)
+        self.assertTrue(Path(b_packet["context"]["workspace"]).exists())
+
+        reprepared_b = self.prepared_input("B")
+        self.assertEqual(reprepared_b["integration"]["expected_target"], t1)
+        self.assertNotEqual(reprepared_b["integration"]["candidate_commit"],
+                            stale_b["integration"]["candidate_commit"])
+        self.verify(Path(b_packet["context"]["workspace"]), expected_steps=("A", "B"))
+        b_done = self.call("done", reprepared_b)
+        self.assertEqual(b_done["outcome"], "accepted")
+        b_cleanup = self.run_deferred_managed_cleanup("B", b_done)
+        self.assertIsNotNone(b_cleanup)
+        self.assertFalse(b_cleanup["pending"])
+
+        c_attempt = self.claim("C")["C"]
+        self.managed_start("C", c_attempt, base=self.head())
+        self.import_finished("C", self.managed_worker_result("C"))
+        self.prepare_and_done("C")
+        j_attempt = self.claim("J")["J"]
+        self.managed_start("J", j_attempt, base=self.head())
+        self.import_finished("J", self.managed_worker_result("J"))
+        self.prepare_and_done("J")
+        self.assert_contiguous_integrations((attempts["A"], attempts["B"], c_attempt, j_attempt))
+        self.verify(self.f.target, expected_steps=("A", "B", "C", "J"))
+        self.finish()
+
+    def test_managed_retried_attempt_fences_late_receipt_replay(self):
+        self.managed_bind(single=True)
+        old_attempt = self.claim("A")["A"]
+        old_packet = self.managed_start("A", old_attempt)
+        old_workspace = Path(old_packet["context"]["workspace"])
+
+        def remove_old_workspace():
+            if old_workspace.exists():
+                self.f.git(self.f.target, "worktree", "remove", "--force", str(old_workspace))
+
+        self.addCleanup(remove_old_workspace)
+        self.managed_context_check("A")
+        old_result = self.managed_worker_result("A")
+        old_request = {
+            "attempt": old_attempt,
+            "confirmed_stopped": True,
+            "handoff": {"path": old_result["handoff"], "sha256": old_result["sha256"]},
+        }
+        imported = self.import_finished("A", old_result)
+        before_duplicate = self.f.ledger_bytes()
+        duplicate = self.call("import-handoff", old_request)
+        self.assertEqual(duplicate["import"], imported["import"])
+        self.assertEqual(self.f.ledger_bytes(), before_duplicate)
+        old_positive = self.prepared_input("A")
+        receipt = fixture.chain._node(self.binding(), "receipt", {"attempt": old_attempt})
+        rejection_proof = self.f.write("managed-retried-old.json", {
+            "passed": False, "checks": ["fixture rejects the old receipt before retry"],
+        })
+        rejected = self.call("done", {
+            "attempt": old_attempt,
+            "confirmed_stopped": True,
+            "verification": {
+                "receipt_sha256": receipt["sha256"], "passed": False,
+                "reason": "Fixture retires the old managed attempt",
+                "evidence": {"path": str(rejection_proof), "sha256": fixture.digest(rejection_proof)},
+            },
+        })
+        self.assertEqual(rejected["outcome"], "rejected")
+        self.call("retry", {"attempt": old_attempt, "confirmed_stopped": True,
+                            "reason": "Replacement managed attempt is required"})
+
+        def assert_late_refusal(operation, value):
+            before_head = self.head()
+            before_child = self.f.child_state_path().read_bytes()
+            before_ledger = self.f.ledger_bytes()
+            before_worktrees = self.f.git(self.f.target, "worktree", "list", "--porcelain")
+            refused = self.call(operation, value, ok=False)
+            self.assertIn("stale or retried", refused.stderr.lower())
+            self.assertEqual(self.head(), before_head)
+            self.assertEqual(self.f.child_state_path().read_bytes(), before_child)
+            self.assertEqual(self.f.ledger_bytes(), before_ledger)
+            self.assertEqual(self.f.git(self.f.target, "worktree", "list", "--porcelain"), before_worktrees)
+
+        assert_late_refusal("import-handoff", old_request)
+        assert_late_refusal("done", old_positive)
+
+        replacement = self.claim("A")["A"]
+        self.assertNotEqual(replacement, old_attempt)
+        self.managed_start("A", replacement)
+        self.managed_context_check("A")
+        self.import_finished("A", self.managed_worker_result("A"))
+        self.prepare_and_done("A")
+        assert_late_refusal("import-handoff", old_request)
+        assert_late_refusal("done", old_positive)
+        self.assertTrue(old_workspace.exists(), "late receipts must not remove the retained old workspace")
+        pending = self.call("pending")
+        self.assertIn(old_attempt, pending["lifecycle"]["retained_workers"])
+        final_proof = self.f.write("managed-retried-final.json", {
+            "passed": True, "commit": self.head(), "checks": ["replacement A integrated"],
+        })
+        refused_finish = self.call("finish", {
+            "commit": self.head(), "confirmed_stopped": True,
+            "verification": {"path": str(final_proof), "sha256": fixture.digest(final_proof)},
+        }, ok=False)
+        self.assertIn("cleanup", refused_finish.stderr.lower())
 
     def test_managed_preparation_crash_replays_one_receipt_without_another_worktree(self):
         self.managed_bind(single=True)
@@ -1326,6 +1568,8 @@ class PerStepChainTests(unittest.TestCase):
         self.assertEqual(self.head(), before_head)
         self.assertTrue(workspace.exists())
         (workspace / "prepared-drift.txt").unlink()
+        remove_alternate_workspace()
+        self.assertFalse(alternate_workspace.exists())
 
         self.call("launched", {"attempt": attempt, "handle": {
             "host": "deterministic-process-fixture", "id": "A",
@@ -1392,10 +1636,27 @@ class PerStepChainTests(unittest.TestCase):
                 return retained
             return original_helper(binding, operation, *arguments)
 
-        with patch.object(fixture.chain, "_ask_agent_workspace", side_effect=retain_close):
+        with patch.object(fixture.chain, "_ask_agent_workspace", side_effect=retain_close) as managed_helper:
             settled = fixture.chain._per_step_done(self.f.run, self.binding(), value)
-        self.assertEqual(settled["outcome"], "accepted")
-        self.assertTrue(settled["cleanup"]["pending"])
+            self.assertEqual(settled["outcome"], "accepted")
+            self.assertEqual(settled["cleanup"], {
+                "attempt": attempt,
+                "cleanup": None,
+                "pending": True,
+                "deferred": True,
+            })
+            self.assertFalse(any(
+                len(call.args) > 1 and call.args[1] == "close"
+                for call in managed_helper.call_args_list
+            ), "managed done must defer helper close to the cleanup callback")
+            pending_close = fixture.chain._per_step_cleanup_attempt(
+                self.f.run, self.binding(), attempt, confirmed_stopped=True,
+            )
+            self.assertEqual(sum(
+                len(call.args) > 1 and call.args[1] == "close"
+                for call in managed_helper.call_args_list
+            ), 1)
+        self.assertTrue(pending_close["pending"])
         self.assertTrue(workspace.exists())
         self.assertEqual(self.head(), value["integration"]["candidate_commit"])
         pending = self.call("pending")
@@ -1424,6 +1685,109 @@ class PerStepChainTests(unittest.TestCase):
         kinds = [row["event"]["kind"] for row in self.bridge_events()]
         self.assertEqual(kinds.count("managed_close_inspection"), 1)
         self.assertEqual(kinds.count("cleanup_result"), 1)
+        self.finish()
+
+    def test_managed_cleanup_crash_before_inspection_retains_late_drift(self):
+        ignore = self.f.target / ".gitignore"
+        ignore.write_text("late-managed-ignored.txt\n")
+        self.f.git(self.f.target, "add", ".gitignore")
+        self.f.git(self.f.target, "commit", "-qm", "Ignore late managed fixture drift")
+        attempt, packet = self.accept_managed_a_with_deferred_cleanup()
+        workspace = Path(packet["context"]["workspace"])
+        integration = self.done_inputs["A"]["integration"]
+        original_append = fixture.chain._append
+
+        def crash_before_inspection_event(chain_dir, event_id, kind, data, **kwargs):
+            if kind == "managed_close_inspection":
+                raise OSError("fixture interruption before managed close inspection is recorded")
+            return original_append(chain_dir, event_id, kind, data, **kwargs)
+
+        with patch.object(fixture.chain, "_append", side_effect=crash_before_inspection_event):
+            with self.assertRaises(OSError):
+                fixture.chain._per_step_cleanup_attempt(
+                    self.f.run, self.binding(), attempt, confirmed_stopped=True,
+                )
+        kinds = [row["event"]["kind"] for row in self.bridge_events()]
+        self.assertNotIn("managed_close_inspection", kinds)
+        self.assertNotIn("cleanup_intent", kinds)
+        self.assertNotIn("cleanup_result", kinds)
+
+        untracked = workspace / "late-managed-untracked.txt"
+        ignored = workspace / "late-managed-ignored.txt"
+        committed = workspace / "late-managed-committed.txt"
+        untracked.write_text("retain untracked late worker change\n")
+        ignored.write_text("retain ignored late worker change\n")
+        committed.write_text("retain committed late worker change\n")
+        self.f.git(workspace, "add", committed.name)
+        self.f.git(workspace, "commit", "-qm", "Late managed fixture drift")
+        late_commit = self.f.git(workspace, "rev-parse", "HEAD")
+        self.assertNotEqual(late_commit, integration["source_commit"])
+        self.assertTrue(all(path.exists() for path in (untracked, ignored, committed)))
+
+        retained = self.call("cleanup", {"attempt": attempt, "confirmed_stopped": True})
+        self.assertTrue(retained["pending"])
+        self.assertTrue(retained["retained"])
+        self.assertIsNone(retained["cleanup"])
+        self.assertTrue(workspace.exists(), "managed cleanup must retain all unaccepted late worker changes")
+        self.assertTrue(all(path.exists() for path in (untracked, ignored, committed)))
+        self.assertIn(attempt, self.call("pending")["lifecycle"]["retained_workers"])
+        kinds = [row["event"]["kind"] for row in self.bridge_events()]
+        self.assertNotIn("managed_close_inspection", kinds)
+        self.assertNotIn("cleanup_intent", kinds)
+        self.assertNotIn("cleanup_result", kinds)
+
+        # This is a disposable worker fixture. Restore its exact accepted W,
+        # then prove normal close can recover without moving the integration target.
+        self.f.git(workspace, "reset", "--hard", integration["source_commit"])
+        untracked.unlink()
+        ignored.unlink()
+        before_recovery = self.head()
+        cleaned = self.call("cleanup", {"attempt": attempt, "confirmed_stopped": True})
+        self.assertFalse(cleaned["pending"])
+        self.assertFalse(workspace.exists())
+        self.assertEqual(self.head(), before_recovery)
+        self.finish()
+
+    def test_managed_cleanup_crash_after_inspection_retains_late_drift(self):
+        attempt, packet = self.accept_managed_a_with_deferred_cleanup()
+        workspace = Path(packet["context"]["workspace"])
+        original_append = fixture.chain._append
+
+        def crash_after_inspection_event(chain_dir, event_id, kind, data, **kwargs):
+            recorded = original_append(chain_dir, event_id, kind, data, **kwargs)
+            if kind == "managed_close_inspection":
+                raise OSError("fixture interruption after managed close inspection is recorded")
+            return recorded
+
+        with patch.object(fixture.chain, "_append", side_effect=crash_after_inspection_event):
+            with self.assertRaises(OSError):
+                fixture.chain._per_step_cleanup_attempt(
+                    self.f.run, self.binding(), attempt, confirmed_stopped=True,
+                )
+        kinds = [row["event"]["kind"] for row in self.bridge_events()]
+        self.assertEqual(kinds.count("managed_close_inspection"), 1)
+        self.assertNotIn("cleanup_intent", kinds)
+        self.assertNotIn("cleanup_result", kinds)
+
+        late = workspace / "late-managed-after-inspection.txt"
+        late.write_text("retain post-inspection worker change\n")
+        retained = self.call("cleanup", {"attempt": attempt, "confirmed_stopped": True})
+        self.assertTrue(retained["pending"])
+        self.assertTrue(retained["retained"])
+        self.assertIsNone(retained["cleanup"])
+        self.assertTrue(workspace.exists())
+        self.assertTrue(late.exists())
+        kinds = [row["event"]["kind"] for row in self.bridge_events()]
+        self.assertEqual(kinds.count("managed_close_inspection"), 1)
+        self.assertNotIn("cleanup_intent", kinds)
+        self.assertNotIn("cleanup_result", kinds)
+
+        late.unlink()
+        before_recovery = self.head()
+        cleaned = self.call("cleanup", {"attempt": attempt, "confirmed_stopped": True})
+        self.assertFalse(cleaned["pending"])
+        self.assertFalse(workspace.exists())
+        self.assertEqual(self.head(), before_recovery)
         self.finish()
 
     def test_managed_blocked_handoff_is_archived_and_retained_without_commit_delivery(self):

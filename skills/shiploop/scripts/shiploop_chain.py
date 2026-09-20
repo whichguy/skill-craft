@@ -2828,11 +2828,20 @@ def _per_step_navigation(root: Path, binding: Mapping[str, Any], result: Mapping
         if recovery == "start":
             if not block_start_or_claim and item.get("step") not in planning_blocked:
                 requirements = ["base_commit matching the current integrated target", "write_scope", "resources", "ready_evidence"]
-                if _binding_mode(binding) == "parallel":
+                if _managed_parallel_ask_agent_adapter(binding):
+                    instruction = ("Start this existing claim once; do not supply workspace. The selected Ask-Agent helper "
+                                   "prepares the workspace and receipt before start returns its launch grant. "
+                                   "Launch only from that fresh grant and keep the returned preparation receipt.")
+                elif _binding_mode(binding) == "parallel":
                     requirements.append("Ask-Agent workspace when already prepared")
+                    instruction = ("Start this existing claim once with the current bridge inputs. A parallel start "
+                                   "without workspace will return prepare-workspace; it is not a launch grant.")
+                else:
+                    instruction = ("Start this existing claim once with the current bridge inputs. The bridge prepares "
+                                   "the serial workspace and returns an execute grant for the main context.")
                 start_actions.append(_navigation_action(
                     "start", operation="start", attempt=attempt, required=tuple(requirements),
-                    instruction="Start this existing claim once with the current bridge inputs. A parallel start without workspace will return prepare-workspace; it is not a launch grant.",
+                    instruction=instruction,
                 ))
             continue
         if recovery == "reconcile":
@@ -4038,6 +4047,14 @@ def _managed_close_intent(binding: Mapping[str, Any], allocation: Mapping[str, A
     return dict(value), dict(post), acceptance
 
 
+def _require_managed_cleanup_candidate(allocation: Mapping[str, Any], integration: Mapping[str, str]) -> None:
+    """Do not turn newly observed, unintegrated worker state into acceptance."""
+    try:
+        _chain_git().inspect_integrated_worker(allocation["plan"], integration["candidate_commit"])
+    except ValueError as exc:
+        raise ChainError(str(exc)) from exc
+
+
 def _per_step_cleanup_managed(root: Path, binding: Mapping[str, Any], attempt: str, *,
                               allocation: Mapping[str, Any], integration: Mapping[str, str],
                               verification: Mapping[str, Any], rows: list[dict[str, Any]]) -> dict[str, Any]:
@@ -4055,9 +4072,11 @@ def _per_step_cleanup_managed(root: Path, binding: Mapping[str, Any], attempt: s
             binding, allocation, attempt=attempt, integration=integration, value=_event_data(prior_intent),
         )
     else:
+        _require_managed_cleanup_candidate(allocation, integration)
         inspection_event = _event(rows, "managed_close_inspection", attempt=attempt)
         if inspection_event is None:
             post = _managed_post_integration_inspection(binding, allocation, attempt=attempt)
+            _require_managed_cleanup_candidate(allocation, integration)
             inspection_intent = {
                 "attempt": attempt, "integration": dict(integration),
                 "receipt_sha256": post["receipt_sha256"], "discard": [],
@@ -4099,6 +4118,7 @@ def _per_step_cleanup_managed(root: Path, binding: Mapping[str, Any], attempt: s
             }),
             "artifacts": [], "discard": [],
         }
+        _require_managed_cleanup_candidate(allocation, integration)
         acceptance = _write_parent_immutable_json(
             str(_managed_acceptance_path(chain_dir, attempt, fingerprint)), acceptance_value,
             "managed Ask-Agent close acceptance",
@@ -4108,6 +4128,12 @@ def _per_step_cleanup_managed(root: Path, binding: Mapping[str, Any], attempt: s
             "confirmed_stopped": True, "post_integration": deepcopy(dict(post)), "acceptance": acceptance,
         }
         _append(chain_dir, _event_id("managed-cleanup-intent", intent), "cleanup_intent", intent)
+    # A prior close may have removed the directory before its bridge receipt
+    # was appended. The helper can reconcile that durable close. If the path
+    # still exists (including a replacement/symlink), recheck its bound identity
+    # and exact accepted content before authorizing any destructive operation.
+    if os.path.lexists(allocation["plan"]["path"]):
+        _require_managed_cleanup_candidate(allocation, integration)
     outcome = _ask_agent_workspace(
         binding, "close", "--receipt", str(post["receipt"]), "--acceptance", acceptance["path"],
     )
@@ -4158,10 +4184,16 @@ def _per_step_cleanup_attempt(root: Path, binding: Mapping[str, Any], attempt: s
                                      "cleanup integration")
     if _managed_parallel_ask_agent_adapter(binding) and isinstance(allocation.get("ask_agent_workspace"), Mapping):
         verification = _verification(integrated_data.get("verification"))
-        return _per_step_cleanup_managed(
-            root, binding, attempt, allocation=allocation, integration=integration,
-            verification=verification, rows=rows,
-        )
+        try:
+            return _per_step_cleanup_managed(
+                root, binding, attempt, allocation=allocation, integration=integration,
+                verification=verification, rows=rows,
+            )
+        except ChainError as exc:
+            intent = {"attempt": attempt, "allocation": allocation["plan"], "integration": integration,
+                      "confirmed_stopped": True}
+            _append_error(chain_dir, "cleanup", intent, exc)
+            return {"attempt": attempt, "cleanup": None, "pending": True, "retained": True, "error": str(exc)}
     intent = {"attempt": attempt, "allocation": allocation["plan"], "integration": integration,
               "confirmed_stopped": True}
     prior_intent = _event(rows, "cleanup_intent", attempt=attempt)
@@ -4420,7 +4452,17 @@ def _per_step_done(root: Path, binding: Mapping[str, Any], value: dict[str, Any]
     )
     cleanup: dict[str, Any] | None = None
     if outcome == "accepted":
-        cleanup = _per_step_cleanup_attempt(root, binding, attempt, confirmed_stopped=True)
+        if (_managed_parallel_ask_agent_adapter(binding)
+                and isinstance(allocation.get("ask_agent_workspace"), Mapping)):
+            # Release dependencies and return the current frontier immediately.
+            # The existing cleanup callback runs after the parent refills safe
+            # capacity; a slow/refused close cannot delay another ready launch.
+            closed = _event(_events(chain_dir), "cleanup_result", attempt=attempt)
+            cleanup = ({"attempt": attempt, "cleanup": _event_data(closed), "pending": False}
+                       if closed is not None else
+                       {"attempt": attempt, "cleanup": None, "pending": True, "deferred": True})
+        else:
+            cleanup = _per_step_cleanup_attempt(root, binding, attempt, confirmed_stopped=True)
     response = _next_response(root, binding)
     response.update({"outcome": outcome, "attempt": attempt, "step": step})
     if cleanup is not None:

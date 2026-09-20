@@ -119,7 +119,9 @@ class ShipLoopChainGitTests(unittest.TestCase):
         branch: str | None = None,
         run_id: str | None = None,
         attempt: str | None = None,
+        target: dict | None = None,
     ) -> tuple[dict, Path]:
+        allocation_target = target or self.initial
         root = (self.worktrees / name).resolve()
         worker_branch = branch or f"ask-agent/{uuid.uuid4()}"
         self.git(
@@ -129,19 +131,44 @@ class ShipLoopChainGitTests(unittest.TestCase):
             "-b",
             worker_branch,
             str(root),
-            self.initial["head"],
+            allocation_target["head"],
             cwd=self.primary,
         )
         plan = self.call(
             chain_git.adopt_workspace,
-            self.initial,
+            allocation_target,
             self.worktrees,
             run_id or str(uuid.uuid4()),
             attempt or str(uuid.uuid4()),
-            self.initial["head"],
+            allocation_target["head"],
             root,
         )
         return plan, root
+
+    def integrated_worker(self, name: str) -> tuple[dict, Path, str, str]:
+        target = self.call(chain_git.target_identity, self.initiating)
+        plan, root = self.adopted_plan(name=f"{name}-worker", target=target)
+        _, sibling_root = self.adopted_plan(name=f"{name}-sibling", target=target)
+        (root / ".gitignore").write_text("leftover.log\n", encoding="utf-8")
+        (root / f"{name}-worker.txt").write_text("worker\n", encoding="utf-8")
+        source = self.commit_worker(root, f"{name} worker contribution")
+        (sibling_root / f"{name}-sibling.txt").write_text("sibling\n", encoding="utf-8")
+        preparation_sibling = self.commit_worker(sibling_root, f"{name} sibling contribution")
+        self.call(chain_git.fast_forward, target, preparation_sibling)
+        advanced = self.call(chain_git.target_identity, self.initiating)
+        candidate = self.call(
+            chain_git.prepare_integration,
+            plan,
+            source,
+            advanced["head"],
+        )["candidate_commit"]
+        self.call(chain_git.fast_forward, advanced, candidate)
+        accepted = self.call(chain_git.target_identity, self.initiating)
+        _, later_root = self.adopted_plan(name=f"{name}-later-sibling", target=accepted)
+        (later_root / f"{name}-later.txt").write_text("later sibling\n", encoding="utf-8")
+        later = self.commit_worker(later_root, f"{name} later sibling contribution")
+        self.call(chain_git.fast_forward, accepted, later)
+        return plan, root, candidate, later
 
     def commit_worker(self, worker: Path, message: str) -> str:
         self.git("add", "-A", cwd=worker)
@@ -523,6 +550,58 @@ else:
 
         with self.assertRaisesRegex(chain_git.ChainGitError, "worker HEAD drifted"):
             self.call(chain_git.prepare_integration, plan, source, self.initial["head"])
+
+    def test_inspect_integrated_worker_accepts_exact_candidate_after_sibling_advance(self) -> None:
+        plan, root, candidate, later = self.integrated_worker("inspect-integrated-accepted")
+
+        proof = self.call(chain_git.inspect_integrated_worker, plan, candidate)
+
+        self.assertEqual(proof["commit"], candidate)
+        self.assertEqual(proof["identity"]["head"], candidate)
+        self.assertNotEqual(later, candidate)
+        self.git("merge-base", "--is-ancestor", candidate, later, cwd=self.initiating)
+        self.assertEqual(self.call(chain_git.target_identity, self.initiating)["head"], later)
+        self.assertEqual(self.git("rev-parse", "HEAD", cwd=root).stdout.strip(), candidate)
+
+    def test_inspect_integrated_worker_refuses_late_dirty_and_recreated_workers(self) -> None:
+        for change in ("late", "untracked", "staged", "tracked", "ignored", "recreated"):
+            with self.subTest(change=change):
+                plan, root, candidate, _ = self.integrated_worker(f"inspect-integrated-{change}")
+                target_head = self.call(chain_git.target_identity, self.initiating)["head"]
+                changed: Path | None = None
+                if change == "late":
+                    self.git("commit", "--allow-empty", "-qm", "late worker commit", cwd=root)
+                    self.assertEqual(
+                        self.git("rev-parse", "HEAD^{tree}", cwd=root).stdout.strip(),
+                        self.git("rev-parse", f"{candidate}^{{tree}}", cwd=root).stdout.strip(),
+                    )
+                elif change == "untracked":
+                    changed = root / "untracked.txt"
+                    changed.write_text("must stay\n", encoding="utf-8")
+                elif change == "staged":
+                    changed = root / "staged.txt"
+                    changed.write_text("must stay\n", encoding="utf-8")
+                    self.git("add", changed.name, cwd=root)
+                elif change == "tracked":
+                    changed = root / "baseline.txt"
+                    changed.write_text("must stay\n", encoding="utf-8")
+                elif change == "ignored":
+                    changed = root / "leftover.log"
+                    changed.write_text("must stay\n", encoding="utf-8")
+                    self.git("check-ignore", "-q", changed.name, cwd=root)
+                else:
+                    self.recreate_registered_worktree(root, plan["branch"])
+
+                worker_head = self.git("rev-parse", "HEAD", cwd=root).stdout.strip()
+                with self.assertRaises(chain_git.ChainGitError):
+                    self.call(chain_git.inspect_integrated_worker, plan, candidate)
+
+                self.assertEqual(self.call(chain_git.target_identity, self.initiating)["head"], target_head)
+                self.assertEqual(self.git("rev-parse", "HEAD", cwd=root).stdout.strip(), worker_head)
+                self.assertTrue(root.is_dir())
+                self.assert_registered_worktree(root)
+                if changed is not None:
+                    self.assertTrue(changed.exists())
 
     def test_adopted_worker_cleanup_refuses_leftovers_and_proves_absence(self) -> None:
         plan, root = self.adopted_plan(branch="ask-agent/arbitrary-worker-branch")
