@@ -6,19 +6,27 @@ flowchart LR
     B --> C[Grok follows the ShipLoop DAG]
     C --> D[Capture streams and durable results]
     D --> E[Check product and incremental preservation]
-    E --> F[Start the next feature in the same repo]
+    E --> F{Repair needed?}
+    F -- Yes --> G[Repair and Improve and publish]
+    G --> A
+    F -- No --> H[Select the next case]
+    H --> A
 ```
 
 This is an **opt-in live test harness for ShipLoop itself**. It launches the
 normal Grok CLI with one literal `/shiploop …` prompt, observes the process and
 the returned product, and records separate verdicts. It never completes a
 ShipLoop callback, supplies a generated plan, sends a repair prompt, or silently
-retries a failed request. The scenario catalog contains nine requests: create,
-add a feature, and refine a feature for tic-tac-toe, checkers, and Battleship.
-Full game cases exercise the configured Google Apps Script deployment MCP: each
+retries a failed request. The scenario catalog contains ten requests: nine GAS
+create/feature/refinement requests for tic-tac-toe, checkers and Battleship, plus
+one Salesforce checkers create in the authenticated default developer org.
+GAS game cases exercise the configured Google Apps Script deployment MCP: each
 create publishes a dedicated test application, each feature reuses that project,
 and the audit requires candidate-bound hosted browser evidence. Mock and
 stage-prefix smoke remain deliberately partial and cannot establish delivery.
+Each launch selects exactly one case. The audit operator evaluates it, completes
+any authorized repair/Improve/publication/retest cycle, then selects the next
+case. No suite invocation launches a multi-case batch.
 
 The primary result is the audit of ShipLoop's behavior. Use
 [WORKFLOW-REVIEW.md](WORKFLOW-REVIEW.md) and `workflow-review-template.json` to
@@ -89,7 +97,10 @@ Grok starts in an empty folder or unrelated repo. An explicit
 Include
 `output=/absolute/new-directory` if you want to choose the retained location.
 With no mode the skill runs mock checks, not a live campaign. A live invocation
-runs only the selected cases; it does not authorize automatic retries.
+runs one selected case per command; it does not by itself authorize retries.
+An explicit repair-and-continue campaign also authorizes the between-trial
+operator steps described below, with review and freshness checks before each
+new attempt.
 
 ### Shell one-shot from a fresh empty folder
 
@@ -275,7 +286,7 @@ specifies the exact CLI option and mode restrictions for every field.
 | `output` | If omitted, Grok chooses and reports a new external result directory. In review mode it selects an analyst directory; in `check`, an operator capture directory. Never reuse prior output. |
 | `repo` | Single create: omitted means a new external empty folder. Feature: required existing original product. Suite: automatically allocated unless exactly one selected case overrides it. Check: supplied existing directory, or an allocated empty preflight directory. |
 | `baseline` | Required canonical verified predecessor `result.json` for standalone/isolated features; forbidden for create. Full suites carry qualified predecessors forward. |
-| `only` | Suite-only selection; omitted means all cases. Example: `only=ttt-create only=checkers-create` or `only=["ttt-create","checkers-create"]`. |
+| `only` | Exactly one suite case, e.g. `only=ttt-create`. Required for multi-case suites; omitted is valid only for a one-case suite. Multiple selected cases are rejected before launch. |
 | `timeout` | 7200 seconds per single run; a suite uses each catalog case's budget (currently 7200) unless overridden. Positive finite seconds. |
 | `max-turns` | 1000 per single run; suite catalog values (currently 1000) unless overridden. Positive integer. |
 | `reasoning-effort` | `xhigh` requested for the builder; child reviewer effort still needs observation. |
@@ -284,7 +295,7 @@ specifies the exact CLI option and mode restrictions for every field.
 | `skill-root` | Separate installed ShipLoop package; if omitted in the skill, resolve the host-selected card. Passed to offline `check_suite.py` as well as live/check `run.py`; does not install/repoint the subject. |
 | `stop-after-stage` | Single-step partial run only; omit for full. Use the skill reference / `run --help` for supported prelude stages. Suites own their boundary. |
 | `artifact-root` | Optional repeated additional known workspace directories, outside trial output; normal product/sibling workspace scan remains. |
-| `verifier` | Optional JSON argv array for a real independent checker; required to qualify an unattended full chain. A qualifying full-game verifier binds real MCP stage/promotion receipts, source-to-deployment identity, and candidate-specific hosted browser evidence. No shell string or fabricated review. |
+| `verifier` | Optional JSON argv array for a real independent checker; a full result needs independent platform deployment, source-to-deployment identity and candidate-specific hosted browser evidence. GAS uses staging/promotion; Salesforce uses dev-org/deployment/component/Lightning proof. No shell string or fabricated review. |
 | `verifier-timeout` | 300 seconds for that checker, separate from the builder cap; positive finite value. |
 | `max-log-bytes` | 268435456 bytes (256 MiB) per captured stream/event file; positive integer. |
 | `max-event-line-chars` | 4194304 characters (4 Mi) per native event; positive integer. |
@@ -328,16 +339,17 @@ does not pass invented `--checkout`, `--python`, `--control-root`, `--resume`, o
 
 ### Full-chain verifier prerequisite
 
-For an unattended full create/feature chain, supply an actual independent
-checker that implements the receipt contract described below:
+For each full create/feature case, supply an actual independent checker that
+implements the receipt contract described below, or establish and grade its
+evidence before selecting the next case:
 
 ```text
-/shiploop-e2e-audit ttt-full model=grok-4.6 verifier=["/absolute/configured-independent-checker"]
+/shiploop-e2e-audit ttt-full only=ttt-create model=grok-4.6 verifier=["/absolute/configured-independent-checker"]
 ```
 
 Replace that placeholder with a configured checker; one is **not bundled as a
-universal app verifier**. Without it, `ttt-full` leaves the create unverified and
-blocks both dependent features. A selected single `ttt-create` still runs the
+universal app verifier**. Without it, the selected create remains unverified and
+cannot qualify either dependent feature. A selected single `ttt-create` still runs the
 full builder request, including its authorized dedicated-test deployment. After
 the builder exits, the audit operator must establish candidate-specific hosted
 verification from the real MCP and browser evidence or preserve `unverified`.
@@ -464,9 +476,9 @@ their paths in `suite-execution.json`.
 `--permission-mode` remains `default`. If your already-authorized unattended
 posture requires another supported mode, pass it explicitly; the skill must not
 silently choose `bypassPermissions`. The harness is not an OS sandbox.
-Each case has a two-hour model allowance; a three-case full chain may require
-three such allowances. Configure the auditor's shell/background job to survive
-that time **plus final capture/cleanup**. Let the runner enforce its timeout;
+Each case has a two-hour model allowance; a three-case full chain uses three
+separate invocations with a review checkpoint between them. Configure each
+shell/background job for its selected case **plus final capture/cleanup**. Let the runner enforce its timeout;
 an outer kill at exactly 7200 seconds can interrupt receipt finalization.
 
 The runner passes the same budget to Grok's native background wait. Check the
@@ -513,7 +525,7 @@ counts and the no-model limitation. For a live case, retain and explain:
 | `capture/stdout.log`, `capture/stderr.log`, `capture/events.jsonl` | Trace actual commands, failures, timing and capture gaps. |
 | `artifacts/`, `navigation.json`, `host-observations.json` | Reconcile accepted graph activities, Improve imports and return evidence. |
 | `product-before/`, `product-after/`, `change.json` | Inspect delivered files, actual test coverage and incremental preservation. |
-| `verification/` deployment/browser observations | Confirm real MCP staging and promotion receipts, `scriptId`/version/deployment/`/exec` identity, source-to-candidate linkage, and hosted interaction traces. |
+| `verification/` deployment/browser observations | Confirm platform-specific deployment and source linkage: GAS staging/promotion and `scriptId`/version/deployment/`/exec`, or Salesforce DX job/org/components/Lightning route; inspect hosted interaction traces. |
 | `audit/WORKFLOW-REVIEW.md`, `audit/workflow-review.json` | Auditor-authored findings, evidence, limitations and smallest next experiments. |
 
 The last row is **written by the audit skill**, not automatically by `run.py`.
@@ -609,7 +621,7 @@ case selections and budgets without calling a model:
 ```sh
 python3 "$HARNESS/run.py" suites
 python3 "$HARNESS/run.py" suite \
-  --suite launch-smoke --output /tmp/shiploop-launch-01 --model grok-4.6
+  --suite launch-smoke --only ttt-create --output /tmp/shiploop-launch-01 --model grok-4.6
 python3 "$HARNESS/run.py" suite \
   --suite launch-smoke --only checkers-create \
   --output /tmp/shiploop-checkers-01 --model grok-4.6
@@ -623,6 +635,7 @@ python3 "$HARNESS/run.py" suite \
 | `checkers-full` | Create, guidance, hint-toggle refinement | Full verified deployment, hosted behavior, and predecessor chain |
 | `battleship-full` | Create, status/history, history-filter refinement | Full verified deployment, hosted behavior, and predecessor chain |
 | `games-full` | All nine requests | Three independent deployed product chains |
+| `salesforce-checkers-full` | One Salesforce checkers create | Existing default dev org, real metadata deployment and authenticated Lightning behavior |
 
 Initial live observations and retained failed attempts are recorded in
 [SAMPLES-2026-09-17.md](SAMPLES-2026-09-17.md).
@@ -632,11 +645,14 @@ All suites default to a **two-hour (7200-second)** cap and a secondary cap of
 Historical runs retain their recorded 80-minute caps; compare future two-hour
 runs as a distinct budget condition.
 The manifest owns per-case time/turn caps; `--timeout` and `--max-turns` override
-them for a campaign. Caps are not expected durations. `--only` accepts a case
-ID or scenario step ID and may be repeated. A single feature can reuse its
-retained, verified predecessor with `--repo` and `--baseline`. A failed or
-unverified create blocks its dependent cases; all selected cases remain in
-`suite-result.json`, including blocked cases. Other independent families can run.
+them for a campaign. Caps are not expected durations. `--only` accepts exactly
+one case ID or scenario step ID per invocation. A multi-case selection is
+rejected before output creation, preflight or model launch. One-case suites may
+omit `--only`. A selected feature reuses its retained, verified predecessor with
+`--repo` and `--baseline`; a failed or unverified create cannot qualify that
+baseline. Review the finished or interrupted attempt before selecting another
+case, including a case from an independent family. Retain planned and unrun
+cases in the external campaign inventory rather than silently dropping them.
 
 Default suite products live in a separate, durable temporary parent with opaque
 repo names, outside the campaign's `--output` tree. `suite-execution.json` records
@@ -678,8 +694,8 @@ items and needs a separate explicit selection contract.
 **Implemented versus unproven:** the runner, capture/identity checks, scenario
 catalog, receipt validation, composite game-oracle framework, source-closure
 check, workflow-review validation, and fast fake-host tests are local apparatus.
-No passing apparatus test establishes nine live Grok passes, a universal browser
-adapter, or hosted Apps Script behavior. Independent UI verification still
+No passing apparatus test establishes ten live Grok passes, a universal browser
+adapter, or hosted Apps Script/Lightning behavior. Independent UI verification still
 requires a candidate-specific hosted browser observation with retained trace for
 the returned app.
 There is deliberately no assumed universal Apps Script emulator or mandated
@@ -832,6 +848,95 @@ description in `commands/shiploop.md`. Both are part of the package fingerprint.
 Keep the original baseline for the first campaign; investigate an observed
 routing failure before changing production prompts.
 
+## Salesforce default dev-org preflight
+
+`salesforce-checkers-full` contains only `salesforce-checkers-create`. It uses
+existing Salesforce DX authentication and leaves the created test app available
+for inspection; there is no automatic org/app deletion. Before launching, the
+operator must verify the default target matches the user's intended org. This
+read-only example retains only safe identity fields and developer-edition
+evidence. Supply the expected ID, instance URL and Lightning host from independently
+confirmed user context, not by accepting whatever the default returns. Run it from the intended
+empty product CWD so project-local Salesforce configuration cannot change the
+selection between the check and launch. Keep its output outside the product.
+
+```sh
+python3 - /absolute/new-target-preflight.json EXPECTED_ORG_ID https://EXPECTED.my.salesforce.com EXPECTED.lightning.force.com <<'PY'
+import datetime, json, subprocess, sys
+from pathlib import Path
+from urllib.parse import urlparse
+
+def sf(*args):
+    process = subprocess.run(['sf', *args, '--json'], capture_output=True,
+                             text=True, timeout=45)
+    if process.returncode:
+        raise SystemExit('Salesforce preflight failed; no model may launch')
+    return json.loads(process.stdout)['result']
+
+target = sf('org', 'display')
+expected_id, expected_url = sys.argv[2], sys.argv[3].rstrip('/')
+if (target.get('id'), str(target.get('instanceUrl', '')).rstrip('/')) != (expected_id, expected_url):
+    raise SystemExit('Default target differs from the intended org; stop')
+if target.get('connectedStatus') != 'Connected':
+    raise SystemExit('Default target is not connected; stop')
+instance_host = urlparse(target['instanceUrl']).hostname or ''
+if not instance_host.endswith('.my.salesforce.com'):
+    raise SystemExit('Confirm the Lightning host independently for this instance; stop')
+observed_lightning_host = instance_host[:-len('.my.salesforce.com')] + '.lightning.force.com'
+if observed_lightning_host != sys.argv[4]:
+    raise SystemExit('Lightning host differs from the intended My Domain; stop')
+org = sf('data', 'query', '--target-org', target['username'], '--query',
+         'SELECT Id, OrganizationType, IsSandbox FROM Organization LIMIT 1')['records'][0]
+if org.get('Id') != expected_id or org.get('OrganizationType') != 'Developer Edition':
+    raise SystemExit('Target is not the confirmed Developer Edition org; stop')
+receipt = {'schema': 'shiploop-e2e-salesforce-target-preflight/1',
+           'status': 'connected', 'org_type': 'developer',
+           'expected_org_id': expected_id, 'observed_org_id': target['id'],
+           'expected_instance_url': expected_url,
+           'observed_instance_url': target['instanceUrl'].rstrip('/'),
+           'expected_lightning_host': sys.argv[4],
+           'observed_lightning_host': observed_lightning_host,
+           'is_sandbox': org.get('IsSandbox'), 'product_cwd': str(Path.cwd().resolve()),
+           'checked_at': datetime.datetime.now(datetime.timezone.utc).isoformat()}
+with Path(sys.argv[1]).open('x') as output:
+    json.dump(receipt, output, indent=2)
+print('Confirmed intended developer org; sanitized receipt retained')
+PY
+```
+
+For standard My Domain instances, the Lightning host is derived from the
+observed instance hostname; this is an identity check, not a browser visit.
+The display response is parsed in memory because it can include an access token;
+never print the raw response or save it as an artifact. This example does not
+log in, set a default, refresh a package or deploy. Developer Edition can have
+`IsSandbox: false`; sandbox status alone does not establish the intended target.
+If `sf` or the configured Salesforce DX tools are unavailable, report the
+prerequisite instead of changing authentication or using another org.
+
+Launch only when requested, through the ordinary one-shot route:
+
+```text
+/shiploop-e2e-audit salesforce-checkers-full model=grok-4.6 repo=/absolute/empty-product salesforce-preflight=/absolute/new-target-preflight.json
+```
+
+The receipt must be checked within 15 minutes of launch and name the same
+explicit empty product directory in `product_cwd`. Both `run` and `suite` require
+`--salesforce-preflight` for this Salesforce step; a Salesforce suite also needs
+`--repo`. The runner rejects missing, malformed, stale or mismatched receipts
+before output creation or a model call, and pins the accepted sanitized receipt
+in the manifest. Post-run deployment proof must use that same receipt hash.
+It accepts only the documented safe fields; tokens and other
+extra fields must never be included. This validates an independently obtained
+preflight, not live Salesforce authentication. Keep the default-org configuration
+unchanged between the external check and launch.
+
+The full literal prompt is in `scenarios.json`. This call may build and deploy
+the dedicated test app. It does not imply independent product verification is
+already configured. Afterward use the Salesforce evidence contract in
+[CASES.md](CASES.md) and the normal `verify_suite.py`/`run.py grade` route below;
+without real candidate-bound deployment and authenticated UI evidence, keep the
+result unverified. No Salesforce browser automation is supplied by this harness.
+
 ## Independent verification and incremental feature runs
 
 The runner saves read-only `product-before/` and `product-after/` source copies
@@ -868,19 +973,22 @@ python3 "$HARNESS/run.py" grade \
 Receipts bind the exact trial, candidate, baseline, required check IDs, and
 nonempty evidence files by SHA-256. Receipt validation proves binding and
 completeness; it cannot authenticate a checker's claim merely because an
-artifact exists. For full games, use actual MCP staging/promotion receipts,
-source-to-deployment mapping, and executable hosted browser evidence for
+artifact exists. For full games, use actual platform deployment receipts
+(GAS staging/promotion or Salesforce DX), source-to-deployment mapping, and hosted browser evidence for
 behavior, plus an independent source/behavior review for lineage. Agent-authored
 tests are useful evidence but cannot replace the independent checks. Review the
 raw artifacts before treating a reported pass as credible.
 
 `verify_suite.py` is the common receipt assembler and **local** semantic verifier
-for all nine catalog steps. It chooses an explicitly supplied bounded driver by
+for the catalog. It chooses an explicitly supplied bounded driver by
 step ID or game family, replays retained source/baseline/candidate behavior,
-performs GAS entrypoint/resource-closure checks, and consumes a separately
+performs GAS entrypoint/resource-closure checks for GAS cases, and consumes a separately
 supplied independent review for scope, return, deployment, hosted behavior, and
 incremental-integration claims. It does not open, replay, or otherwise verify a
-published URL. It emits the existing hash-bound receipt schema.
+published URL. Salesforce uses the separate target/deployment/component/Lightning
+proof contract in [CASES.md](CASES.md), with the same checkers rule oracle and
+receipt binding. Neither platform has a universal hosted-browser driver bundled.
+It emits the existing hash-bound receipt schema.
 Use it through `run.py --verifier` so its own process capture and post-verifier
 candidate-digest check remain in effect:
 
@@ -923,13 +1031,15 @@ separate candidate-specific hosted observation in `--review`.
 An independent-review placeholder is also deliberately unverified. The actual
 record must bind the exact trial/candidate/baseline digests and materialized
 external evidence; it cannot be written into the product under review. For a
-full live case, it carries the typed `authorized-deployment` and
+full GAS case, it carries the typed `authorized-deployment` and
 `hosted-game-behavior` observations whose references lead to the raw MCP and
 browser artifacts. Those two observations, and the hosted browser trace, must
 agree on the candidate's `{script_id, version_number, deployment_id,
-web_app_url}` identity tuple.
+web_app_url}` identity tuple. Salesforce instead uses its three `salesforce-*`
+review-owned checks, target/deployment/source bindings and oracle observations
+defined in [CASES.md](CASES.md#salesforce-deployment-and-lightning-proof).
 
-Hosted `cases[].check_id` values must cover the cumulative cases returned by
+For GAS, hosted `cases[].check_id` values must cover the cumulative cases returned by
 `verify_suite._behavior_cases(family, step)`. A guidance case must replay the base
 game on the current deployed candidate as well as the new guidance behavior;
 the best-move refinement must replay base, guidance, and best-move cases. A
@@ -1138,10 +1248,37 @@ test/review evidence rather than inventing a count from navigator transitions.
 
 ## Use observations to improve ShipLoop
 
-Pilot `ttt-create → ttt-guidance → ttt-best-move` once, then inspect bottlenecks
-and incomplete evidence. Add the checkers and Battleship chains when capture
-and grading are credible. Keep harness, environment, protocol/agent, product,
-preservation, and verifier failures separate. No run is retried until it wins.
+Evaluate every case as it runs and immediately after it stops. Select one case,
+retain its streaming status, then inspect stdout, stderr, error/recovery events,
+actual tests, callback/return logic, Improve evidence and independent product
+verification. Write the workflow review before selecting another case. Keep
+harness, environment, protocol/agent, product, preservation and verifier failures
+separate. A recovered tool error needs explanation, not automatic success or
+failure. A terminal failure remains in the campaign accounting.
+
+For an authorized repair-and-continue campaign, prepare evidence-supported fixes
+in an isolated checkout. Do not alter an active trial's selected packages,
+observer or product. Wait until it and its owned work stop before publishing
+or refreshing. Run regressions and the selected Improve skill to completion,
+commit/merge/publish the changed packages using the existing marketplace entries,
+refresh the installed packages, then run the no-model freshness `check`. Only a
+ready receipt permits a fresh retest; the runner never performs these repairs
+or package updates itself. An unpublished or stale candidate stops continuation.
+
+Retest the affected case before advancing. Give every attempt a new output path
+and candidate identity. A create retest uses a new empty product repository and
+dedicated test application; a feature comparison uses an equivalent verified
+predecessor, not an already-mutated failed candidate. Keep the failed attempt,
+fix and Improve receipts, publication identity, freshness receipt, retest and
+next-case decision linked in the campaign report. Do not retry without a
+documented change or resolved prerequisite, and do not hide earlier failures.
+
+The nine-case GAS plan and the separate Salesforce case are catalogs, not
+instructions to launch everything in one process. `run.py suite --suite ttt-full
+--only ttt-create ...` returns after that one case. After its review and grade,
+the next invocation selects `ttt-guidance` with the same original `--repo` and
+the qualifying create's `--baseline`. The user can authorize a continuing
+campaign without removing these evaluation checkpoints.
 
 For a proposed ShipLoop change, retain the failing baseline, make one scoped
 change, and run fresh trials with the changed package digest. A fair feature
@@ -1173,8 +1310,11 @@ and explicit consistent budgets ([Terminal-Bench timeout guidance](https://www.t
 Infrastructure changes can affect observed performance, so attribute failures
 before adjusting ShipLoop ([Anthropic's infrastructure noise study](https://www.anthropic.com/engineering/infrastructure-noise)).
 
-Hosted delivery is required for each full game case: use the configured MCP to
+Hosted delivery is required for each full GAS case: use the configured MCP to
 provision or update its dedicated GAS test application, retain
 candidate-to-deployment identity, and verify the live consumer's behavior at the
 published `/exec` URL. Local HTML, stubbed GAS services, an HTTP 200, or a
-ShipLoop completion declaration cannot establish that result.
+ShipLoop completion declaration cannot establish that result. The Salesforce
+case instead requires an actual DX metadata deployment to the confirmed default
+dev org and authenticated Lightning interactions bound to that candidate; see
+[the Salesforce proof contract](CASES.md#salesforce-deployment-and-lightning-proof).

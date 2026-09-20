@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import argparse
 from collections import Counter
+from datetime import datetime, timedelta, timezone
 import hashlib
 import json
 import math
@@ -16,11 +17,12 @@ import os
 from pathlib import Path
 import shutil
 import signal
+import stat
 import subprocess
 import sys
 import tempfile
 import time
-from typing import Any
+from typing import Any, Mapping
 
 HERE = Path(__file__).resolve().parent
 # Kept separate so tests can exercise the observer guard against disposable
@@ -46,6 +48,7 @@ from grok_adapter import (  # noqa: E402
     summarize_events,
 )
 from recovery_isolation import assess_isolation  # noqa: E402
+from salesforce_proof import target_preflight_errors  # noqa: E402
 
 # These public stop keys remain the v2 names used by suites.json. A v3
 # navigator folds each prelude review into the accepted producer stage, so the
@@ -70,6 +73,19 @@ _PARTIAL_STAGE_ALIASES = {
 }
 _CONTROL_INPUT_OBSERVER_SCHEMA = 1
 _OBSERVER_LATE_GRADE_SCHEMA = 1
+_SALESFORCE_CREATE_STEP_ID = "salesforce-checkers-create"
+_SALESFORCE_PREFLIGHT_MAX_AGE_SECONDS = 15 * 60
+_SALESFORCE_PREFLIGHT_MAX_FUTURE_SECONDS = 60
+_SALESFORCE_PREFLIGHT_ALLOWED_KEYS = frozenset((
+    "schema", "status", "org_type", "expected_org_id", "observed_org_id",
+    "expected_instance_url", "observed_instance_url", "expected_lightning_host",
+    "observed_lightning_host", "is_sandbox", "checked_at", "product_cwd", "my_domain",
+))
+_SALESFORCE_PREFLIGHT_IDENTITY_KEYS = (
+    "schema", "status", "org_type", "expected_org_id", "observed_org_id",
+    "expected_instance_url", "observed_instance_url", "expected_lightning_host",
+    "observed_lightning_host", "is_sandbox", "my_domain",
+)
 
 
 def _partial_boundary(protocol_version: Any, requested_stage: str) -> tuple[str, tuple[str, ...]] | None:
@@ -712,6 +728,97 @@ def read_baseline(args: argparse.Namespace, step: dict, before: dict) -> dict | 
     return baseline
 
 
+def _parse_salesforce_checked_at(value: Any, *, now: datetime | None = None) -> str:
+    """Accept only a recent explicit UTC timestamp without retaining raw input."""
+    if not isinstance(value, str) or not value or value != value.strip() or "T" not in value:
+        raise ValueError("salesforce target preflight checked_at must be an explicit UTC timestamp")
+    normalized = value[:-1] + "+00:00" if value.endswith("Z") else value
+    try:
+        checked_at = datetime.fromisoformat(normalized)
+    except ValueError as exc:
+        raise ValueError("salesforce target preflight checked_at must be an explicit UTC timestamp") from exc
+    if checked_at.tzinfo is None or checked_at.utcoffset() != timedelta(0):
+        raise ValueError("salesforce target preflight checked_at must be UTC")
+    current = now or datetime.now(timezone.utc)
+    age_seconds = (current - checked_at.astimezone(timezone.utc)).total_seconds()
+    if age_seconds > _SALESFORCE_PREFLIGHT_MAX_AGE_SECONDS:
+        raise ValueError("salesforce target preflight is older than 15 minutes")
+    if age_seconds < -_SALESFORCE_PREFLIGHT_MAX_FUTURE_SECONDS:
+        raise ValueError("salesforce target preflight checked_at is more than 60 seconds in the future")
+    return value
+
+
+def validate_salesforce_preflight(
+    step: Mapping[str, Any], supplied_path: str | None, *, repo: Path | None,
+    output: Path, subject_root: Path,
+) -> dict[str, Any] | None:
+    """Read a pinned, sanitized Salesforce target receipt without host access.
+
+    This is deliberately a launch boundary, not a Salesforce integration. It
+    reads only one caller-supplied JSON file and returns fields safe to retain
+    in the observer manifest; unknown fields and all raw bytes stay out of
+    trial artifacts.
+    """
+    is_salesforce_create = step.get("id") == _SALESFORCE_CREATE_STEP_ID
+    if not is_salesforce_create:
+        if supplied_path is not None:
+            raise ValueError("--salesforce-preflight is only valid for salesforce-checkers-create")
+        return None
+    if not isinstance(supplied_path, str) or not supplied_path.strip():
+        raise ValueError("salesforce-checkers-create requires --salesforce-preflight")
+    if repo is None:
+        raise ValueError("salesforce-checkers-create requires an explicit --repo matching the target preflight")
+    requested = Path(supplied_path).expanduser()
+    try:
+        entry = requested.lstat()
+        if stat.S_ISLNK(entry.st_mode):
+            raise ValueError("salesforce target preflight must not be a symbolic link")
+        if not stat.S_ISREG(entry.st_mode):
+            raise ValueError("salesforce target preflight must be a regular file")
+        source = requested.resolve(strict=True)
+        if not source.is_file() or source.is_symlink():
+            raise ValueError("salesforce target preflight must be a regular file")
+    except FileNotFoundError as exc:
+        raise ValueError("salesforce target preflight file is unavailable") from exc
+    except (OSError, RuntimeError) as exc:
+        raise ValueError("salesforce target preflight file is unavailable") from exc
+    if _paths_overlap(source, repo) or _paths_overlap(source, output):
+        raise ValueError("salesforce target preflight must be external to the product and trial output")
+    if any(layout.within(source, protected) for protected in layout.protected_roots(subject_root)):
+        raise ValueError("salesforce target preflight must be external to harness inputs")
+    try:
+        raw = source.read_bytes()
+        receipt = json.loads(raw.decode("utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise ValueError("salesforce target preflight must be a readable JSON object") from exc
+    if not isinstance(receipt, dict):
+        raise ValueError("salesforce target preflight must be a JSON object")
+    if set(receipt) - _SALESFORCE_PREFLIGHT_ALLOWED_KEYS:
+        raise ValueError("salesforce target preflight contains unsupported fields")
+    if "is_sandbox" in receipt and receipt["is_sandbox"] is not None and not isinstance(receipt["is_sandbox"], bool):
+        raise ValueError("salesforce target preflight is_sandbox must be boolean or null")
+    errors = target_preflight_errors(receipt)
+    if errors:
+        raise ValueError("salesforce target preflight is invalid: " + ", ".join(errors))
+    checked_at = _parse_salesforce_checked_at(receipt.get("checked_at"))
+    product_cwd = receipt.get("product_cwd")
+    if not isinstance(product_cwd, str) or not product_cwd.strip():
+        raise ValueError("salesforce target preflight product_cwd must name the selected product directory")
+    try:
+        receipt_cwd = Path(product_cwd).expanduser().resolve()
+    except (OSError, RuntimeError) as exc:
+        raise ValueError("salesforce target preflight product_cwd is unavailable") from exc
+    if receipt_cwd != repo:
+        raise ValueError("salesforce target preflight product_cwd does not match --repo")
+    return {
+        "source_path": str(source),
+        "sha256": hashlib.sha256(raw).hexdigest(),
+        "identity": {key: receipt[key] for key in _SALESFORCE_PREFLIGHT_IDENTITY_KEYS if key in receipt},
+        "checked_at": checked_at,
+        "product_cwd": str(receipt_cwd),
+    }
+
+
 def run_trial(args: argparse.Namespace) -> int:
     step = find_step(args.step)
     stop_stage = getattr(args, "stop_after_stage", None)
@@ -719,6 +826,10 @@ def run_trial(args: argparse.Namespace) -> int:
     requested_output = Path(args.output).expanduser().absolute()
     repo = requested_repo.resolve()
     selected_subject = layout.resolve_skill_root(args.skill_root)
+    salesforce_preflight = validate_salesforce_preflight(
+        step, getattr(args, "salesforce_preflight", None), repo=repo,
+        output=requested_output.resolve(), subject_root=selected_subject,
+    )
     try:
         output = layout.validate_new_external_output(requested_output, subject_root=selected_subject)
     except ValueError as exc:
@@ -857,6 +968,8 @@ def run_trial(args: argparse.Namespace) -> int:
                     "selected_cli": str(selected_cli),
                     "baseline_result": str(Path(args.baseline).resolve()) if args.baseline else None,
                     "diagnostic_unverified_baseline": bool(args.diagnostic_unverified_baseline)}
+        if salesforce_preflight is not None:
+            manifest["salesforce_preflight"] = salesforce_preflight
         write_json(output / "manifest.json", manifest)
         if candidate_digest(source_snapshot(repo, git)) != candidate_digest(before):
             raise ValueError("product changed during preflight; no model was launched")
@@ -1280,11 +1393,19 @@ def run_suite(args: argparse.Namespace) -> int:
     from suites import resolve_suite
     suite = resolve_suite(args.suite, scenarios(), only_case_ids=args.only)
     cases = suite["cases"]
-    if (args.repo or args.baseline) and len(cases) != 1:
-        raise ValueError("--repo/--baseline require a single selected suite case (--only)")
+    if len(cases) > 1:
+        raise ValueError(
+            f"suite {suite['id']} resolves to {len(cases)} cases; use exactly one --only "
+            "case/step ID and audit its result before continuing"
+        )
     if args.baseline and not args.repo:
         raise ValueError("a selected feature baseline also requires its original --repo")
     selected_subject = layout.resolve_skill_root(args.skill_root)
+    caller_repo = _resolved_path(args.repo) if args.repo else None
+    validate_salesforce_preflight(
+        find_step(cases[0]["step_id"]), getattr(args, "salesforce_preflight", None), repo=caller_repo,
+        output=Path(args.output).expanduser().resolve(), subject_root=selected_subject,
+    )
     try:
         root = layout.validate_new_external_output(args.output, subject_root=selected_subject)
     except ValueError as exc:
@@ -1292,7 +1413,6 @@ def run_suite(args: argparse.Namespace) -> int:
             raise ValueError("suite --output must be a new directory") from exc
         raise
     campaign_root = root
-    caller_repo = _resolved_path(args.repo) if args.repo else None
     if caller_repo is not None and _paths_overlap(campaign_root, caller_repo):
         raise ValueError("caller --repo and suite campaign output must be separate, non-nested directories")
     if caller_repo is not None:
@@ -1381,15 +1501,17 @@ def main(argv: list[str] | None = None) -> int:
     run.add_argument("--permission-mode", default="default", choices=["default", "acceptEdits", "auto", "dontAsk", "bypassPermissions"])
     run.add_argument("--artifact-root", action="append", default=[])
     run.add_argument("--baseline")
+    run.add_argument("--salesforce-preflight", help="sanitized target receipt required only for salesforce-checkers-create")
     run.add_argument("--diagnostic-unverified-baseline", action="store_true")
     run.add_argument("--verifier", help="external independent checker as JSON argv; stdout must be receipt JSON")
     run.add_argument("--verifier-timeout", type=float, default=300)
-    suite = sub.add_parser("suite", help="run a named suite; each case launches a fresh Grok session")
+    suite = sub.add_parser("suite", help="run exactly one named suite case in a fresh Grok session")
     suite.add_argument("--suite", required=True)
     suite.add_argument("--output", required=True, help="new campaign directory for products and trials")
-    suite.add_argument("--only", action="append", help="select case/step ID; repeat for several cases")
+    suite.add_argument("--only", action="append", help="select exactly one case/step ID from a multi-case suite")
     suite.add_argument("--repo", help="original product repository for one selected case")
     suite.add_argument("--baseline", help="verified predecessor result for one selected feature case")
+    suite.add_argument("--salesforce-preflight", help="sanitized target receipt required only for salesforce-checkers-create")
     suite.add_argument("--model", required=True)
     suite.add_argument("--grok", default=shutil.which("grok") or str(Path.home() / ".local/bin/grok"))
     suite.add_argument("--git")

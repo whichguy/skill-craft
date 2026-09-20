@@ -360,6 +360,55 @@
       ]
     },
     {
+      "id": "salesforce-checkers",
+      "platform": "salesforce-lightning",
+      "oracle_family": "checkers",
+      "title": "Salesforce Lightning Checkers: isolated developer-org create trial",
+      "steps": [
+        {
+          "id": "salesforce-checkers-create",
+          "kind": "create",
+          "prompt": "/shiploop Create a Salesforce Lightning checkers app in this repository using the existing authenticated default developer org. Before making changes, verify the selected default org's identity and that it is an unambiguous developer org; stop if the org is missing, ambiguous, or is not a developer org. Implement standard two-player checkers with alternating diagonal moves, forced captures including multi-capture chains by the same piece, kings, a winner, and a new game. Deploy the actual candidate through the configured Salesforce DX capabilities, open its authenticated Lightning route, and interact with it to verify these behaviors. Retain the actual deployment ID, org ID, instance URL, deployed-component map, source-candidate mapping, and browser proof. Preserve existing org metadata and do not automatically delete or clean up existing apps or the org; do not create a scratch or replacement org, use a mock deployment, or copy credentials.",
+          "depends_on": null,
+          "requires_incremental_review": false,
+          "required_checks": [
+            "salesforce-authorized-deployment",
+            "salesforce-hosted-lightning-behavior",
+            "salesforce-source-candidate",
+            "run-returned-to-product",
+            "checkers-base-game"
+          ],
+          "checks": [
+            {
+              "id": "salesforce-authorized-deployment",
+              "description": "The configured Salesforce DX capability deploys this candidate to the independently preflighted default developer org. Its actual receipt binds the deployment job, org ID, instance URL, and retained component mapping to this candidate.",
+              "method": "Inspect pinned Salesforce DX target-preflight, deployment, and component-mapping artifacts. Model prose, a Google Apps Script receipt, a scratch or replacement org, or an unbound deployment cannot satisfy this check."
+            },
+            {
+              "id": "salesforce-hosted-lightning-behavior",
+              "description": "The requested game behavior is observed through authenticated browser interactions at the deployed candidate's Salesforce Lightning route.",
+              "method": "Retain a candidate-specific Lightning browser trace and screenshots bound to the actual org, deployment job, and route. A static server, source-only check, or unauthenticated page cannot satisfy this check."
+            },
+            {
+              "id": "salesforce-source-candidate",
+              "description": "The retained Salesforce component mapping identifies real candidate source files and hashes, including Lightning application components, deployed by the bound Salesforce DX job.",
+              "method": "Compare the pinned component map with the returned candidate repository and deployment receipt. Do not infer source identity from review prose alone."
+            },
+            {
+              "id": "run-returned-to-product",
+              "description": "The final product is present in the selected original repository with a current ShipLoop return or direct-run receipt.",
+              "method": "Compare the original repository identity and external workspace receipt before and after the run."
+            },
+            {
+              "id": "checkers-base-game",
+              "description": "Two players alternate legal diagonal moves; captures are forced when available; a multi-capture keeps the same piece active; promotion to kings, a winner, and a new game are observable.",
+              "method": "Drive representative controlled positions through the authenticated deployed Lightning app and retain the semantic browser trace."
+            }
+          ]
+        }
+      ]
+    },
+    {
       "id": "battleship",
       "title": "Battleship: bootstrap, status/history, and a privacy-preserving history-filter refinement",
       "steps": [

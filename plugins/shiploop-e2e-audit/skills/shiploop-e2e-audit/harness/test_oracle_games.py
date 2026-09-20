@@ -22,6 +22,7 @@ ALL_STEPS = (
     "checkers-create",
     "checkers-guidance",
     "checkers-hint-toggle",
+    "salesforce-checkers-create",
     "battleship-create",
     "battleship-status-history",
     "battleship-history-filter",
@@ -64,6 +65,13 @@ class GameOracleCasesTests(unittest.TestCase):
     def test_unknown_step_is_rejected(self) -> None:
         with self.assertRaises(ValueError):
             oracle.cases("connect-four-create")
+
+    def test_salesforce_create_alias_reuses_only_base_checkers_rules_with_its_own_step_id(self) -> None:
+        cases = oracle.cases("salesforce-checkers-create")
+        self.assertEqual(6, len(cases))
+        self.assertTrue(all(case["game"] == "checkers" for case in cases))
+        self.assertTrue(all(case["step_id"] == "salesforce-checkers-create" for case in cases))
+        self.assertTrue(all(case["level"] == "base" for case in cases))
 
     def test_known_good_synthetic_traces_cover_every_case(self) -> None:
         seen = set()

@@ -163,8 +163,8 @@
     },
     {
       "id": "games-full",
-      "title": "All deployed game chains",
-      "description": "Runs all nine deployed requests as three independent full product chains. Each create publishes a dedicated test app; each feature reuses its original repository and Apps Script project. It is the broad campaign after smoke evidence and independent hosted verifier coverage are credible.",
+      "title": "Google Apps Script game chains",
+      "description": "Contains the nine Google Apps Script requests as three independent full product chains. Each create publishes a dedicated test app; each feature reuses its original repository and Apps Script project. Salesforce evaluation is isolated in its own one-case suite.",
       "mode": "full",
       "cases": [
         {
@@ -256,6 +256,23 @@
           "depends_on": [
             "battleship-status-history"
           ],
+          "stop_after_stage": null,
+          "timeout_seconds": 7200,
+          "max_turns": 1000
+        }
+      ]
+    },
+    {
+      "id": "salesforce-checkers-full",
+      "title": "Salesforce Lightning Checkers developer-org trial",
+      "description": "Contains exactly one fresh Salesforce Lightning Checkers request against the existing authenticated default developer org. It is independent from the nine Google Apps Script games and requires target preflight, bound Salesforce DX deployment, candidate-source mapping, and authenticated Lightning browser evidence before it can pass.",
+      "mode": "full",
+      "cases": [
+        {
+          "id": "salesforce-checkers-create",
+          "step": "salesforce-checkers-create",
+          "product_key": "salesforce-checkers",
+          "depends_on": [],
           "stop_after_stage": null,
           "timeout_seconds": 7200,
           "max_turns": 1000

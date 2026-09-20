@@ -1,15 +1,16 @@
 # ShipLoop live E2E game cases
 
 `scenarios.json` is an executable-input manifest for a live-agent hosted-delivery
-experiment. It describes nine literal one-shot requests in three ordered product
-families. The manifest is not a hidden implementation specification for Grok.
+experiment. It describes nine literal GAS requests in three ordered product
+families and one independent Salesforce checkers create. The manifest is not a
+hidden implementation specification for Grok.
 The product repository contains only the application produced by earlier steps;
 the launcher, oracle, sanitized logs, and snapshots stay outside it.
 
 ## Run boundary
 
 Create one disposable product repository for each family: `tic-tac-toe`,
-`checkers`, and `battleship`. It starts as an empty folder or unborn Git repository with no
+`checkers`, `battleship`, and `salesforce-checkers`. It starts as an empty folder or unborn Git repository with no
 product source, test, evaluator, or instruction files supplied by the
 experiment. The harness records its initial identity before the first request.
 
@@ -19,13 +20,29 @@ from the manifest. The harness chooses the repository working directory and
 external trial output; it observes the ShipLoop workspace chosen by Grok rather
 than starting one itself. It must not append an oracle, a test plan,
 selector advice, a retry instruction, or a follow-up message to the user prompt.
-For a full live step, the literal prompt requires the builder to use the
+For a full GAS step, the literal prompt requires the builder to use the
 configured Google Apps Script deployment MCP. The create request creates,
 deploys, and publishes one dedicated test application; each later feature or
 refinement is a fresh request against the same product repository and Apps
 Script project. The observer captures the builder's real MCP and browser
 evidence; it does not append deployment instructions, issue its own repair or
 redeployment, or substitute a model/mock response.
+
+The separate Salesforce create uses the existing authenticated default developer
+org and configured Salesforce DX capabilities. It creates a dedicated Lightning
+checkers app, deploys actual metadata, and verifies the authenticated Lightning
+UI. It does not create an org or use GAS staging/promotion. Before launch, the
+operator independently verifies the default target against the user's intended
+org and retains its sanitized identity and developer-org evidence. Credentials
+are never prompt inputs or retained artifacts. A missing or mismatched target
+blocks launch.
+
+Run exactly one selected case per invocation and review its output while it runs
+and after it stops. A multi-case suite command without a single `--only` selection
+is rejected. Authorized ShipLoop repairs, Improve, publication, installation
+refresh and a fresh no-model check happen between retained attempts. Retest the
+affected case before continuing; keep failures and unrun cases in campaign
+accounting. See [the operator checkpoint](../SKILL.md#review-each-case-before-continuing).
 
 The first step in a family is a new-project run. Its product must return to the
 original repository before the next step may start. Each later step is a new
@@ -67,7 +84,7 @@ behavior check `unverified` until the independent verifier can reproduce the
 claim. Receipt validation checks bindings, not whether the author told the
 truth. Missing, malformed, contradictory, or stale evidence is fail-closed.
 
-For `authorized-deployment`, the verifier receipt must bind a real
+For GAS `authorized-deployment`, the verifier receipt must bind a real
 `shiploop-e2e-authorized-deployment-observation/1` record to the trial and
 candidate. It records `provider: "mcp-gas-deploy"`, `script_id`,
 `version_number`, `deployment_id`, `web_app_url`, `published: true`, a staged
@@ -110,7 +127,7 @@ files to the release without claiming whole-candidate byte equality.
 }
 ```
 
-For `hosted-game-behavior`, bind a real
+For GAS `hosted-game-behavior`, bind a real
 `shiploop-e2e-hosted-game-observation/1` record to the same trial, candidate,
 script, version, deployment, and web-app URL as `authorized-deployment`. Its
 browser trace repeats that exact `{script_id, version_number, deployment_id,
@@ -143,6 +160,80 @@ candidate-specific hosted browser route only when it can exercise the produced
 published web app without changing it. If no honest hosted route can be
 established, record the affected UI check as `unverified`; do not patch the
 product, invent a bridge, or call the result verified.
+
+### Salesforce deployment and Lightning proof
+
+The Salesforce case uses separate checks and schemas; GAS staging/promotion
+records cannot qualify them. The operator's sanitized preflight uses
+`shiploop-e2e-salesforce-target-preflight/1` with `status: "connected"`,
+`org_type: "developer"`, `observed_org_id`/`observed_instance_url`/
+`observed_lightning_host`, and independently supplied `expected_org_id`/
+`expected_instance_url`/`expected_lightning_host`. Expected and observed
+identities must match. For launch the receipt additionally requires a UTC
+`checked_at` within 15 minutes and `product_cwd` naming the explicit empty
+product directory. Pass it through `--salesforce-preflight`; the runner rejects
+it before launch if these checks fail. See [the read-only preflight recipe](README.md#salesforce-default-dev-org-preflight).
+Keep the target receipt outside the product and pin it alongside the actual
+deployment evidence. Its hash must match `manifest.json`
+`salesforce_preflight.sha256` from launch; substituting another valid target
+receipt after the run cannot qualify the deployment. A schema-valid record is not proof of its authenticity;
+inspect its origin and confirm it represents the user's intended default org.
+
+The normal independent review's `review_owned_checks` includes these rows:
+
+| Check | Required observation and evidence |
+| --- | --- |
+| `salesforce-authorized-deployment` | `shiploop-e2e-salesforce-deployment-observation/1`: trial/candidate, provider `salesforce-dx`, status `succeeded`, org ID, instance URL, deployment ID and Lightning host; references to pinned `target_preflight`, `raw_deployment_result`, `deployment_receipt` and `source_mapping`. |
+| `salesforce-source-candidate` | `shiploop-e2e-salesforce-source-candidate-mapping/1`: the same trial/candidate/org/instance/deployment, rationale and nonempty `components` with relative `path`, `sha256`, `kind`, `component_type` and `full_name`. Each file must match the returned candidate and a successful deployed metadata member; at least one component is a `lightning-app` or `lightning-web-component`. |
+| `salesforce-hosted-lightning-behavior` | `shiploop-e2e-salesforce-hosted-lightning-observation/1`: the same identities, `authenticated: true`, `lightning_route`, pinned `browser_trace`, and semantic cases with the required oracle actions, canonical per-action `observations`, expected/observed results, status and screenshots or equivalent trace evidence. |
+
+The raw Salesforce DX deploy result is the retained actual tool/CLI JSON,
+including `status: 0`, `result.id`, `result.status: "Succeeded"`,
+`result.checkOnly: false`, and successful `details.componentSuccesses` members
+matching every mapped component's type and full name. Failed components cannot
+qualify. Retain
+the invoked target and source selection with that result; the independent
+reviewer must correlate it to the confirmed org and deployed components. A
+normalized `shiploop-e2e-salesforce-dx-receipt/1` binds provider, success, `job_id`,
+org/instance/candidate and SHA-256 values for that raw result and source mapping.
+Do not manufacture the normalized record from a builder's completion claim.
+A check-only operation does not deploy components; it cannot qualify this case.
+The provider's deployment result contract is described in the
+[Salesforce Metadata API guide](https://resources.docs.salesforce.com/latest/latest/en-us/sfdc/pdf/api_meta.pdf)
+and the [Salesforce CLI result formatter](https://github.com/salesforcecli/plugin-deploy-retrieve/blob/main/src/formatters/deployResultFormatter.ts).
+
+The browser trace uses `shiploop-e2e-salesforce-lightning-browser-trace/1` and
+repeats the observation's trial/candidate/org/instance/deployment/route and
+authenticated state. The route must use the preflight's Lightning host and an
+actual `/lightning/n/...` or `/lightning/app/...` path. Host and job mismatches,
+missing pins, changed source files, unsuccessful deployments and absent hosted
+behavior leave the affected check unverified. The shared checkers oracle
+supplies the base rule cases and evaluates the canonical observations in both
+the hosted record and browser trace. Generic "interact" actions and assertion
+prose cannot replace those observations. The independent browser evidence must
+exercise the deployed app without installing product test hooks. A candidate
+whose UI cannot honestly expose the required actions stays unverified.
+
+Use a new external review/evidence directory and the existing receipt contract.
+With actual driver and review inputs configured, assemble the receipt from a
+finished trial without launching another model, then grade it:
+
+```sh
+SHIPLOOP_E2E_TRIAL=/absolute/salesforce-trial \
+SHIPLOOP_E2E_REPO=/absolute/returned-product \
+SHIPLOOP_E2E_EVIDENCE=/absolute/salesforce-trial/evidence \
+python3 "$HARNESS/verify_suite.py" --drivers /absolute/drivers.json \
+  --review /absolute/salesforce-review.json > /absolute/salesforce-verification.json
+python3 "$HARNESS/run.py" grade --trial /absolute/salesforce-trial \
+  --receipt /absolute/salesforce-verification.json
+```
+
+The driver and review paths described in the README are real operator-supplied inputs, not bundled
+Salesforce automation. The JSON formats and evidence pinning use the same
+independent review contract described in [README.md](README.md#independent-verification-and-incremental-feature-runs).
+Until actual deployment and authenticated browser observations exist, the result
+remains unverified. These offline validators do not connect to Salesforce,
+authenticate receipts, operate the browser, or create an app.
 
 ### Target-runtime compatibility is separate from the hosted release
 
@@ -183,7 +274,7 @@ that cannot make the requested behavior observable leaves the check unverified.
 
 ## Behavioral procedure
 
-For a create step, first establish a Google Apps Script-compatible artifact,
+For a GAS create step, first establish a Google Apps Script-compatible artifact,
 create and stage the dedicated test application through the configured MCP,
 promote the exact staged candidate, and retain the published `/exec` URL and
 receipt identities. Then use the semantic hosted mapping to exercise the public

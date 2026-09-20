@@ -22,7 +22,10 @@ class SuiteTests(unittest.TestCase):
 
     def test_list_exposes_named_bounds_without_copying_prompts(self) -> None:
         rows = suites.list_suites(self.families)
-        self.assertEqual(["launch-smoke", "planning-smoke", "ttt-full", "checkers-full", "battleship-full", "games-full"], [row["id"] for row in rows])
+        self.assertEqual(
+            ["launch-smoke", "planning-smoke", "ttt-full", "checkers-full", "battleship-full", "games-full", "salesforce-checkers-full"],
+            [row["id"] for row in rows],
+        )
         launch = rows[0]
         self.assertTrue(launch["partial"])
         self.assertEqual("partial-prefix", launch["completion_claim"])
@@ -90,8 +93,23 @@ class SuiteTests(unittest.TestCase):
         )
         self.assertTrue(full["selection"]["dependency_complete"])
 
+    def test_salesforce_checkers_is_an_independent_one_case_full_suite(self) -> None:
+        suite = suites.resolve_suite("salesforce-checkers-full", self.families)
+        self.assertFalse(suite["partial"])
+        self.assertEqual(["salesforce-checkers-create"], [case["step_id"] for case in suite["cases"]])
+        self.assertEqual("salesforce-checkers", suite["cases"][0]["product_key"])
+        self.assertTrue(suite["selection"]["dependency_complete"])
+
     def test_all_successors_require_platform_compatibility_and_family_suites(self) -> None:
         for family in self.families:
+            if family.get("platform") == "salesforce-lightning":
+                self.assertEqual("checkers", family["oracle_family"])
+                self.assertEqual(
+                    ["salesforce-authorized-deployment", "salesforce-hosted-lightning-behavior", "salesforce-source-candidate"],
+                    family["steps"][0]["required_checks"][:3],
+                )
+                self.assertNotIn("gas-compatible-local-artifact", family["steps"][0]["required_checks"])
+                continue
             for step in family["steps"]:
                 self.assertIn("gas-compatible-local-artifact", step["required_checks"])
         for family in ("checkers", "battleship"):
