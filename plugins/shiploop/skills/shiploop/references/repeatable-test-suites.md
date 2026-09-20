@@ -24,6 +24,9 @@ meet the required outcome; integrate them into the repository's suite rather
 than add a parallel stack by default. Verify current availability, supported
 versions/interfaces, and local or remote execution prerequisites. A tool name
 in documentation is not evidence that it is installed, accessible, or suitable.
+For an affected remote system or delivery route, apply
+[target-native test selection](#select-target-native-tests) before excluding its
+native checks; local file inventory alone cannot settle that decision.
 
 For browser behavior, consider available inspection/debugging tools, browser automation,
 or equivalent tools to inspect and test the actual end-browser surface. Choose
@@ -239,6 +242,39 @@ any mismatch in ordinary result evidence. Improve reviews that handshake and
 its test assets within the existing producer subcall. These are host reasoning
 obligations: accepted history supplies provenance, not proof of applicability,
 test execution or a machine-enforced candidate/evidence match.
+
+## Select target-native tests
+
+Use the existing discovery and environment notes to identify the affected
+execution boundaries and actual deployment/promotion test gates. Relevant server
+code, served client code, configuration, generated definitions and existing test
+assets may live behind an MCP/API rather than in the local repository. An exposed
+tool list describes access operations, not a complete inventory of that system.
+Use bounded supported reads of the selected system and authoritative definitions;
+retain source/target identity, revision when available, and observation limits.
+Do not inspect unrelated systems or assume every remote runtime has a test runner.
+
+In the existing test-strategy/case records, retain the native-suite decision and
+its discovery/environment evidence:
+
+- Select checks when affected behavior needs that runtime's evidence or the
+  actual release operation requires them, including existing remote code affected
+  by configuration or dependency changes. Reuse its supported tests/facilities.
+- Exclude a native suite only with evidence that neither the affected behavior
+  nor the actual release gate requires it. Unrelated code can exist without
+  requiring its suite; no code, runner or empty tests should be invented.
+- If applicability is unknown, retain the discovery gap and earliest dependent
+  owner. If required but unavailable, retain the named prerequisite and due phase
+  as blocked/unrun. Missing access, an empty local search or a successful MCP call
+  cannot justify N/A or prove a test passed.
+
+Use the existing [local/remote execution contract](#plan-local-and-remote-execution)
+for commands, definitions, registration, isolation, authority and results; no
+second inventory or row per language is required. At `implement` and `test-refine`,
+revalidate affected decisions against actual local and remote code/configuration,
+dependencies and test-definition changes. At `release-plan`, recheck the actual
+target, payload and operation's test gate. Update the existing cases and evidence
+when their basis changes; a prior exclusion is not permanent.
 
 ## Plan local and remote execution
 

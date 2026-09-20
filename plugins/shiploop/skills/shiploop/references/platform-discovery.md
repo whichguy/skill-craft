@@ -65,6 +65,14 @@ and real acceptance path. Keep the compact decision and source pointers in the s
 uncertain facts through the existing research convergence loop. Required
 unknowns remain unresolved rather than guessed.
 
+For an affected remote execution boundary, inspect relevant code/configuration
+and test assets through supported safe reads: server functions, served client
+code or native test definitions may exist only in the target. Establish the
+authoritative source and observation limits; absence from a local checkout or
+tool catalog does not establish remote absence. Carry these findings into
+[target-native test selection](repeatable-test-suites.md#select-target-native-tests)
+using existing discovery notes, rather than creating a second inventory.
+
 For each artifact, preserve a single writer from the surveyed interfaces.
 An unavailable required writer can be named in the inventory solely to bind a
 blocked declaration; its name is not evidence that it is installed or usable.

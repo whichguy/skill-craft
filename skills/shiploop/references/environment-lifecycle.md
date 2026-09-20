@@ -31,6 +31,11 @@ request. Establish:
 - Required approvals/access, data boundaries, baseline checks, fixtures, version
   compatibility, migration order, rollback/recovery, and cleanup ownership.
   Development must not silently share production data, credentials or callbacks.
+- The chosen deployment/promotion operation's required test suite, test level or
+  coverage gate, with its configuration/documentation basis and any unresolved
+  requirement. Keep this in the existing environment record and link it into
+  [target-native test selection](repeatable-test-suites.md#select-target-native-tests);
+  the target's name or a locally selected harness does not establish that gate.
 
 Use safe reads and the [early-access policy](research-loop.md#early-access-readiness)
 to surface concrete setup/auth needs promptly. Investigation and planning do not
