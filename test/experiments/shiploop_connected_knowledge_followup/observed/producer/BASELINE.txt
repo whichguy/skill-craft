@@ -1,0 +1,31 @@
+BASELINE RECEIPT
+scope: narrow1-test
+command: python3 -B test_fixture.py
+cwd: /Users/dadleet/tmp/shiploop-discovery-followup-20260920/sample/case/workspace
+attempts: 1
+adapter_called: false
+raw_log_dir: /tmp/shiploop-followup-baseline.6VxtEc
+stdout_log: /tmp/shiploop-followup-baseline.6VxtEc/stdout
+stderr_log: /tmp/shiploop-followup-baseline.6VxtEc/stderr
+exit_code: 0
+completion: test_case_id_edges (__main__.Baseline.test_case_id_edges) ... ok; Ran 1 test in 0.000s; OK
+raw_stdout: |
+  
+raw_stderr: |
+  test_case_id_edges (__main__.Baseline.test_case_id_edges) ... ok
+
+  ----------------------------------------------------------------------
+  Ran 1 test in 0.000s
+
+  OK
+pre_hashes:
+  README.md: 1e3b50e8e884c9f0caed646c97e012e256812ec76db16df041872eaf21dbf5f0
+  SHIPLOOP.md: aadb2b20eb944f500d300e9b909c8c9f403c1a7d8036cdc68dfa4ddf8b4111dd
+  src/app.py: a96a421c63b75e11e641aad1ec2036cb91a9e92b13792c4a50d60a889c44f6f6
+  test_fixture.py: e39d1560271d9e13884b63d3ae630e7a03dbb81e38cf687dca421e2e891887ef
+post_hashes:
+  README.md: 1e3b50e8e884c9f0caed646c97e012e256812ec76db16df041872eaf21dbf5f0
+  SHIPLOOP.md: aadb2b20eb944f500d300e9b909c8c9f403c1a7d8036cdc68dfa4ddf8b4111dd
+  src/app.py: a96a421c63b75e11e641aad1ec2036cb91a9e92b13792c4a50d60a889c44f6f6
+  test_fixture.py: e39d1560271d9e13884b63d3ae630e7a03dbb81e38cf687dca421e2e891887ef
+hash_guard: PASS; all four input_hashes unchanged pre/post and match manifest.json

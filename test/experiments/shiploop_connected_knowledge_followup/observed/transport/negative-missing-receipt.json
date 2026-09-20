@@ -1,0 +1,12 @@
+[
+  {
+    "action": "nav-4a684446ff0d4d38b83ea83e58400d9c",
+    "index": 3,
+    "kind": "reference",
+    "reason": "cannot read planning reference: [Errno 2] No such file or directory: '/Users/dadleet/tmp/shiploop-discovery-followup-20260920/sample/negative-case/receipts.jsonl'",
+    "required_for": [
+      "*"
+    ],
+    "text": "/Users/dadleet/tmp/shiploop-discovery-followup-20260920/sample/negative-case/receipts.jsonl"
+  }
+]

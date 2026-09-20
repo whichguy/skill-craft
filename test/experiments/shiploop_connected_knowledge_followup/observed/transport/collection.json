@@ -1,0 +1,343 @@
+{
+  "manifest": {
+    "artifacts": [
+      {
+        "classification": "current",
+        "path": "/Users/dadleet/tmp/shiploop-discovery-followup-20260920/sample/case/receipts.jsonl",
+        "producers": [
+          "nav-4a684446ff0d4d38b83ea83e58400d9c"
+        ],
+        "references": [
+          {
+            "action": "nav-4a684446ff0d4d38b83ea83e58400d9c",
+            "index": 3,
+            "text": "/Users/dadleet/tmp/shiploop-discovery-followup-20260920/sample/case/receipts.jsonl"
+          }
+        ],
+        "required_for": [
+          "*"
+        ],
+        "roles": [
+          "evidence-reference"
+        ],
+        "sha256": "72144a267979c7e0da9aeaffcff99dbf7e4fcc1b754ce555b8137c273ce6df18"
+      },
+      {
+        "classification": "current",
+        "path": "/Users/dadleet/tmp/shiploop-discovery-followup-20260920/sample/case/run/chains/nav-04257b452f9a4e00b80689b2cb560b3b/planning-brief.md",
+        "producers": [
+          "planning-context"
+        ],
+        "required_for": [
+          "*"
+        ],
+        "roles": [
+          "planning-brief"
+        ],
+        "sha256": "a8bc751f68daa4d60da094a3e69a488d5d016240ae1d468e18a6b7d94a3f9956"
+      },
+      {
+        "classification": "current",
+        "path": "/Users/dadleet/tmp/shiploop-discovery-followup-20260920/sample/case/run/chains/nav-04257b452f9a4e00b80689b2cb560b3b/planning-projection.json",
+        "producers": [
+          "planning-context"
+        ],
+        "required_for": [
+          "*"
+        ],
+        "roles": [
+          "planning-projection"
+        ],
+        "sha256": "86397d85d0bbe2ab656befb4c9ebb8f724343a6dc7d5107932e8d6a52d4b4b6c"
+      },
+      {
+        "classification": "current",
+        "path": "/Users/dadleet/tmp/shiploop-discovery-followup-20260920/sample/case/run/results/nav-043928e4de8f4ffda76a562693de857c.md",
+        "producers": [
+          "nav-043928e4de8f4ffda76a562693de857c"
+        ],
+        "required_for": [
+          "*"
+        ],
+        "roles": [
+          "accepted-result"
+        ],
+        "sha256": "089e0ee13c9bab597afbbfd31c3520b5e6b27fcd8b0363bf8ffc8b0e2bc003d2"
+      },
+      {
+        "classification": "current",
+        "path": "/Users/dadleet/tmp/shiploop-discovery-followup-20260920/sample/case/run/results/nav-048df7fd70e44198afd45c666fc964c6.md",
+        "producers": [
+          "nav-048df7fd70e44198afd45c666fc964c6"
+        ],
+        "required_for": [
+          "*"
+        ],
+        "roles": [
+          "accepted-result"
+        ],
+        "sha256": "925a11c96afda86673b3b1478623d4ba2068819298881789f5bf21a192aceb37"
+      },
+      {
+        "classification": "current",
+        "path": "/Users/dadleet/tmp/shiploop-discovery-followup-20260920/sample/case/run/results/nav-04e769ce38634fc29d94d688e6210160.md",
+        "producers": [
+          "nav-04e769ce38634fc29d94d688e6210160"
+        ],
+        "required_for": [
+          "*"
+        ],
+        "roles": [
+          "accepted-result"
+        ],
+        "sha256": "c519c25d147735a2f58e506309d2a28acb4d60a6980305c6c463afee753b5631"
+      },
+      {
+        "classification": "current",
+        "path": "/Users/dadleet/tmp/shiploop-discovery-followup-20260920/sample/case/run/results/nav-0bdafb5e70a842a98615b1a3b96b5f35.md",
+        "producers": [
+          "nav-0bdafb5e70a842a98615b1a3b96b5f35"
+        ],
+        "required_for": [
+          "*"
+        ],
+        "roles": [
+          "accepted-result"
+        ],
+        "sha256": "2219b54730d35eefb29da6e31ca2185980ef07f0bb9f7ace4ab230c6a8a6ffee"
+      },
+      {
+        "classification": "current",
+        "path": "/Users/dadleet/tmp/shiploop-discovery-followup-20260920/sample/case/run/results/nav-397ea97fe1c2485b883e23c9d8ddacd3.md",
+        "producers": [
+          "nav-397ea97fe1c2485b883e23c9d8ddacd3"
+        ],
+        "required_for": [
+          "*"
+        ],
+        "roles": [
+          "accepted-result"
+        ],
+        "sha256": "c2b97890557ab5cae46bfb5590fde2d9cdf898a36b1474ec32b9a6da5078f2d2"
+      },
+      {
+        "classification": "current",
+        "path": "/Users/dadleet/tmp/shiploop-discovery-followup-20260920/sample/case/run/results/nav-4a684446ff0d4d38b83ea83e58400d9c.md",
+        "producers": [
+          "nav-4a684446ff0d4d38b83ea83e58400d9c"
+        ],
+        "required_for": [
+          "*"
+        ],
+        "roles": [
+          "accepted-result"
+        ],
+        "sha256": "e7dd3782cc4abdecd01615b131740092e062111012c4055911eee74984bf90a5"
+      },
+      {
+        "classification": "current",
+        "path": "/Users/dadleet/tmp/shiploop-discovery-followup-20260920/sample/case/run/results/nav-4d6f43ea94ab4a7c90892f42c9cf1ce5.md",
+        "producers": [
+          "nav-4d6f43ea94ab4a7c90892f42c9cf1ce5"
+        ],
+        "required_for": [
+          "*"
+        ],
+        "roles": [
+          "accepted-result"
+        ],
+        "sha256": "595918c448f7222c721adb2a825dd4497f9dc1094803b05940dc89394fc0dd02"
+      },
+      {
+        "classification": "current",
+        "path": "/Users/dadleet/tmp/shiploop-discovery-followup-20260920/sample/case/run/results/nav-77e26d582ef441b8b6c94fbdb1e787f8.md",
+        "producers": [
+          "nav-77e26d582ef441b8b6c94fbdb1e787f8"
+        ],
+        "required_for": [
+          "*"
+        ],
+        "roles": [
+          "accepted-result"
+        ],
+        "sha256": "cd1eb3a620c8aacaee4259e98fda73e753b3c1fd535ce6c82a8c2b5dfe5f3ca9"
+      },
+      {
+        "classification": "current",
+        "path": "/Users/dadleet/tmp/shiploop-discovery-followup-20260920/sample/case/run/results/nav-94e13b9e84dc48528da23c3b42e44538.md",
+        "producers": [
+          "nav-94e13b9e84dc48528da23c3b42e44538"
+        ],
+        "required_for": [
+          "*"
+        ],
+        "roles": [
+          "accepted-result"
+        ],
+        "sha256": "3863f1cda98a908b79304d527071a624a3ac5f132c962aa0c1341e48b41cc68b"
+      },
+      {
+        "classification": "current",
+        "path": "/Users/dadleet/tmp/shiploop-discovery-followup-20260920/sample/case/run/results/nav-b28625b3170645f495cff22f96044a85.md",
+        "producers": [
+          "nav-b28625b3170645f495cff22f96044a85"
+        ],
+        "required_for": [
+          "*"
+        ],
+        "roles": [
+          "accepted-result"
+        ],
+        "sha256": "ef86f3970e9993ae7209674f121f2f37e0f4e7f1566364e5457625c6b213fcb3"
+      },
+      {
+        "classification": "current",
+        "path": "/Users/dadleet/tmp/shiploop-discovery-followup-20260920/sample/case/run/results/nav-bd94fdfcfdba4ba49c3ae1d08997e22f.md",
+        "producers": [
+          "nav-bd94fdfcfdba4ba49c3ae1d08997e22f"
+        ],
+        "required_for": [
+          "*"
+        ],
+        "roles": [
+          "accepted-result"
+        ],
+        "sha256": "640a3048ce9124a0e4b70988d3db8b3397f7e77436a6577d92fc713616d87bc9"
+      },
+      {
+        "classification": "current",
+        "path": "/Users/dadleet/tmp/shiploop-discovery-followup-20260920/sample/case/run/results/nav-e42f734cebca4fcb85fa6ac144c22130.md",
+        "producers": [
+          "nav-e42f734cebca4fcb85fa6ac144c22130"
+        ],
+        "required_for": [
+          "*"
+        ],
+        "roles": [
+          "accepted-result"
+        ],
+        "sha256": "59843f3e6266ee204435a177de33192f5a410cff8e604e42779e766cc70e4189"
+      },
+      {
+        "classification": "current",
+        "path": "/Users/dadleet/tmp/shiploop-discovery-followup-20260920/sample/case/run/results/nav-fd921f22c56845278a78d78fbaec3f36.md",
+        "producers": [
+          "nav-fd921f22c56845278a78d78fbaec3f36"
+        ],
+        "required_for": [
+          "*"
+        ],
+        "roles": [
+          "accepted-result"
+        ],
+        "sha256": "f30a4535d60008b60c438d2a35a05e928d8d25a0bd30e081375343c2c7185979"
+      },
+      {
+        "classification": "current",
+        "path": "/Users/dadleet/tmp/shiploop-discovery-followup-20260920/sample/case/workspace/BASELINE.txt",
+        "producers": [
+          "nav-4a684446ff0d4d38b83ea83e58400d9c"
+        ],
+        "references": [
+          {
+            "action": "nav-4a684446ff0d4d38b83ea83e58400d9c",
+            "index": 2,
+            "text": "/Users/dadleet/tmp/shiploop-discovery-followup-20260920/sample/case/workspace/BASELINE.txt"
+          }
+        ],
+        "required_for": [
+          "*"
+        ],
+        "roles": [
+          "evidence-reference"
+        ],
+        "sha256": "ad9a84c8e431c839fc630086e50d56026673153cfbc8ff501ff159add489f642"
+      },
+      {
+        "classification": "current",
+        "path": "/Users/dadleet/tmp/shiploop-discovery-followup-20260920/sample/case/workspace/DISCOVERY.md",
+        "producers": [
+          "nav-4a684446ff0d4d38b83ea83e58400d9c"
+        ],
+        "references": [
+          {
+            "action": "nav-4a684446ff0d4d38b83ea83e58400d9c",
+            "index": 0,
+            "text": "/Users/dadleet/tmp/shiploop-discovery-followup-20260920/sample/case/workspace/DISCOVERY.md#case-17-retry-discovery"
+          }
+        ],
+        "required_for": [
+          "*"
+        ],
+        "roles": [
+          "evidence-reference"
+        ],
+        "sha256": "fa6d99f5741d5ddbfdbea31dc51675627fab992b0ad9eccb29102f0a4bf90ff8"
+      },
+      {
+        "classification": "current",
+        "path": "/Users/dadleet/tmp/shiploop-discovery-followup-20260920/sample/case/workspace/SHIPLOOP.md",
+        "producers": [
+          "nav-4a684446ff0d4d38b83ea83e58400d9c"
+        ],
+        "references": [
+          {
+            "action": "nav-4a684446ff0d4d38b83ea83e58400d9c",
+            "index": 1,
+            "text": "/Users/dadleet/tmp/shiploop-discovery-followup-20260920/sample/case/workspace/SHIPLOOP.md#case-17-retry-discovery"
+          }
+        ],
+        "required_for": [
+          "*"
+        ],
+        "roles": [
+          "evidence-reference"
+        ],
+        "sha256": "9eb3519b85de564ceb8e05aab193f8ba1233f94380e8fb6cb68da0fd3cf12f6c"
+      }
+    ],
+    "briefing": {
+      "path": "/Users/dadleet/tmp/shiploop-discovery-followup-20260920/sample/case/run/chains/nav-04257b452f9a4e00b80689b2cb560b3b/planning-brief.md",
+      "sha256": "a8bc751f68daa4d60da094a3e69a488d5d016240ae1d468e18a6b7d94a3f9956"
+    },
+    "graph": {
+      "path": "/Users/dadleet/tmp/shiploop-discovery-followup-20260920/sample/case/graph.json",
+      "sha256": "6a2c55b015cf958085f89b9109538f85f31f3a22352726eb56047de4a5616990"
+    },
+    "reference_only": [
+      {
+        "action": "nav-4a684446ff0d4d38b83ea83e58400d9c",
+        "index": 4,
+        "kind": "url",
+        "required_for": [],
+        "text": "synthetic:intranet:adr-042-orion-review-gateway",
+        "value": "synthetic:intranet:adr-042-orion-review-gateway"
+      },
+      {
+        "action": "nav-4a684446ff0d4d38b83ea83e58400d9c",
+        "index": 5,
+        "kind": "url",
+        "required_for": [],
+        "text": "synthetic:private-git:orion-review-gateway-src-app@4f6c2d1e8a9b0c7d6e5f4a3b2c1d0e9f8a7b6c5d",
+        "value": "synthetic:private-git:orion-review-gateway-src-app@4f6c2d1e8a9b0c7d6e5f4a3b2c1d0e9f8a7b6c5d"
+      },
+      {
+        "action": "nav-4a684446ff0d4d38b83ea83e58400d9c",
+        "index": 6,
+        "kind": "url",
+        "required_for": [],
+        "text": "synthetic:slack:slack-orion-review-1842",
+        "value": "synthetic:slack:slack-orion-review-1842"
+      }
+    ],
+    "schema": "shiploop-planning-artifacts/v1",
+    "source": {
+      "action_id": "nav-04257b452f9a4e00b80689b2cb560b3b",
+      "revision": 26,
+      "run_id": "nav-d1ff1492fb104d548e998a58b3450edb",
+      "workitem": "W1"
+    },
+    "unresolved_refs": []
+  },
+  "missing_required": []
+}

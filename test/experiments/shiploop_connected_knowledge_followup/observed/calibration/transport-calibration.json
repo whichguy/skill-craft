@@ -1,0 +1,103 @@
+{
+  "accepted_result_unchanged": true,
+  "discovery_action": "nav-0aff161ff2554ac8bca8903292c5959c",
+  "limits": "Real apply/save/collect; all Improve and intervening stages synthetic. No full workflow claim.",
+  "missing_required": [
+    {
+      "action": "nav-0aff161ff2554ac8bca8903292c5959c",
+      "kind": "accepted-result",
+      "reason": "cannot read accepted result nav-0aff161ff2554ac8bca8903292c5959c: [Errno 2] No such file or directory: '/Users/dadleet/tmp/shiploop-discovery-followup-20260920/transport-calibration/case/run/results/nav-0aff161ff2554ac8bca8903292c5959c.md'",
+      "required_for": [
+        "*"
+      ]
+    },
+    {
+      "action": "nav-14d361fd0e3d4b81a01445675475c418",
+      "kind": "accepted-result",
+      "reason": "cannot read accepted result nav-14d361fd0e3d4b81a01445675475c418: [Errno 2] No such file or directory: '/Users/dadleet/tmp/shiploop-discovery-followup-20260920/transport-calibration/case/run/results/nav-14d361fd0e3d4b81a01445675475c418.md'",
+      "required_for": [
+        "*"
+      ]
+    },
+    {
+      "action": "nav-2a1e8b18b6c54144a10a700be3667002",
+      "kind": "accepted-result",
+      "reason": "cannot read accepted result nav-2a1e8b18b6c54144a10a700be3667002: [Errno 2] No such file or directory: '/Users/dadleet/tmp/shiploop-discovery-followup-20260920/transport-calibration/case/run/results/nav-2a1e8b18b6c54144a10a700be3667002.md'",
+      "required_for": [
+        "*"
+      ]
+    },
+    {
+      "action": "nav-4b84a78bb3af4f758d6377079bae5ca3",
+      "kind": "accepted-result",
+      "reason": "cannot read accepted result nav-4b84a78bb3af4f758d6377079bae5ca3: [Errno 2] No such file or directory: '/Users/dadleet/tmp/shiploop-discovery-followup-20260920/transport-calibration/case/run/results/nav-4b84a78bb3af4f758d6377079bae5ca3.md'",
+      "required_for": [
+        "*"
+      ]
+    },
+    {
+      "action": "nav-59ba3d9b848f4df794792b90f64dc05c",
+      "kind": "accepted-result",
+      "reason": "cannot read accepted result nav-59ba3d9b848f4df794792b90f64dc05c: [Errno 2] No such file or directory: '/Users/dadleet/tmp/shiploop-discovery-followup-20260920/transport-calibration/case/run/results/nav-59ba3d9b848f4df794792b90f64dc05c.md'",
+      "required_for": [
+        "*"
+      ]
+    },
+    {
+      "action": "nav-670d3de4f11146d69eb356f145fa0fda",
+      "kind": "accepted-result",
+      "reason": "cannot read accepted result nav-670d3de4f11146d69eb356f145fa0fda: [Errno 2] No such file or directory: '/Users/dadleet/tmp/shiploop-discovery-followup-20260920/transport-calibration/case/run/results/nav-670d3de4f11146d69eb356f145fa0fda.md'",
+      "required_for": [
+        "*"
+      ]
+    },
+    {
+      "action": "nav-90084293e3c149ec8a5c99fecf566234",
+      "kind": "accepted-result",
+      "reason": "cannot read accepted result nav-90084293e3c149ec8a5c99fecf566234: [Errno 2] No such file or directory: '/Users/dadleet/tmp/shiploop-discovery-followup-20260920/transport-calibration/case/run/results/nav-90084293e3c149ec8a5c99fecf566234.md'",
+      "required_for": [
+        "*"
+      ]
+    },
+    {
+      "action": "nav-a07d6f601e8d4c149bd25269c823cb53",
+      "kind": "accepted-result",
+      "reason": "cannot read accepted result nav-a07d6f601e8d4c149bd25269c823cb53: [Errno 2] No such file or directory: '/Users/dadleet/tmp/shiploop-discovery-followup-20260920/transport-calibration/case/run/results/nav-a07d6f601e8d4c149bd25269c823cb53.md'",
+      "required_for": [
+        "*"
+      ]
+    },
+    {
+      "action": "nav-af2dafb61d454d4b87c164c88c89e5dd",
+      "kind": "accepted-result",
+      "reason": "cannot read accepted result nav-af2dafb61d454d4b87c164c88c89e5dd: [Errno 2] No such file or directory: '/Users/dadleet/tmp/shiploop-discovery-followup-20260920/transport-calibration/case/run/results/nav-af2dafb61d454d4b87c164c88c89e5dd.md'",
+      "required_for": [
+        "*"
+      ]
+    },
+    {
+      "action": "nav-b3737d7232954268927a4cd0a4d7c6a8",
+      "kind": "accepted-result",
+      "reason": "cannot read accepted result nav-b3737d7232954268927a4cd0a4d7c6a8: [Errno 2] No such file or directory: '/Users/dadleet/tmp/shiploop-discovery-followup-20260920/transport-calibration/case/run/results/nav-b3737d7232954268927a4cd0a4d7c6a8.md'",
+      "required_for": [
+        "*"
+      ]
+    },
+    {
+      "action": "nav-d753029ffd074b629f24fdb740004677",
+      "kind": "accepted-result",
+      "reason": "cannot read accepted result nav-d753029ffd074b629f24fdb740004677: [Errno 2] No such file or directory: '/Users/dadleet/tmp/shiploop-discovery-followup-20260920/transport-calibration/case/run/results/nav-d753029ffd074b629f24fdb740004677.md'",
+      "required_for": [
+        "*"
+      ]
+    }
+  ],
+  "negative_missing_receipt_detected": true,
+  "producer_inputs_unchanged": true,
+  "required_artifacts": {
+    "/Users/dadleet/tmp/shiploop-discovery-followup-20260920/transport-calibration/case/receipts.jsonl": true,
+    "/Users/dadleet/tmp/shiploop-discovery-followup-20260920/transport-calibration/case/workspace/BASELINE.txt": true,
+    "/Users/dadleet/tmp/shiploop-discovery-followup-20260920/transport-calibration/case/workspace/DISCOVERY.md": true
+  },
+  "result_sha256": "6016ccdb7523d1673a50b44324c7b3f0a0fa92dd7299c6716f335a91334ab0dd"
+}

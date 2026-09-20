@@ -89,8 +89,8 @@ autonomous locator discovery, actual Improve campaigns, product implementation,
 live application behavior, live app end-to-end flows, or runtime parallelism.
 It also does not provide a causal timing result or a minimum planning-time target.
 
-The release ports the narrow change onto the `0.18.12` release base
-(`04c0c56e131bf1a12b115977da2bb06c30a57ece`),
+The release ports the narrow change onto the `0.18.13` release base
+(`5375cf378f673bf4a21a7b39dbd388aec3417c32`),
 preserving that base's newer source. Release-specific tests separately verify the
 port. This report does not claim that publication, marketplace synchronization,
 CI, merge, or push has succeeded; those actions require their own receipts.

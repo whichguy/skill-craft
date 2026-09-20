@@ -1,0 +1,15 @@
+{
+  "accepted_result_unchanged": true,
+  "discovery_action": "nav-934905d3e38d49529081d71ec2dc3777",
+  "limits": "Real apply/save/collect; all Improve and intervening stages synthetic. No full workflow claim.",
+  "missing_required": [],
+  "negative_missing_receipt_detected": true,
+  "producer_inputs_unchanged": true,
+  "required_artifacts": {
+    "/Users/dadleet/tmp/shiploop-discovery-followup-20260920/transport-calibration-fixed/case/receipts.jsonl": true,
+    "/Users/dadleet/tmp/shiploop-discovery-followup-20260920/transport-calibration-fixed/case/workspace/BASELINE.txt": true,
+    "/Users/dadleet/tmp/shiploop-discovery-followup-20260920/transport-calibration-fixed/case/workspace/DISCOVERY.md": true
+  },
+  "result_bytes_unchanged": true,
+  "result_sha256": "223d8f36579df71751270baf59fd15112dff784787d4fe2a1142aecd0fcda74d"
+}
