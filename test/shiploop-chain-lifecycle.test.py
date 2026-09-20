@@ -99,6 +99,13 @@ class PerStepChainTests(unittest.TestCase):
     def assert_navigation(self, operation, output):
         self.assertIn("navigation", output, operation + " must return script-owned navigation")
         navigation = output["navigation"]
+        binding = self.binding()
+        graph = binding["graph"]
+        self.assertIsInstance(graph, dict)
+        self.assertIsInstance(graph.get("steps"), list)
+        bound_steps = {item["id"] for item in graph["steps"]
+                       if isinstance(item, dict) and isinstance(item.get("id"), str)}
+        self.assertEqual(len(bound_steps), len(graph["steps"]))
         self.assertEqual(set(navigation), {"complete", "actions", "instruction", "next_argv"})
         self.assertIs(type(navigation["complete"]), bool)
         self.assertIsInstance(navigation["instruction"], str)
@@ -125,6 +132,13 @@ class PerStepChainTests(unittest.TestCase):
             if semantic in ATTEMPT_ACTIONS:
                 self.assertIsInstance(action.get("attempt"), str)
                 self.assertTrue(action["attempt"])
+            if "attempt" in action:
+                self.assertIsInstance(action.get("step"), str)
+                self.assertTrue(action["step"])
+                self.assertIn(action["step"], bound_steps)
+                self.assertEqual(action["step"], self.f.child_record(action["attempt"])["step"])
+            else:
+                self.assertNotIn("step", action)
             if "steps" in action:
                 self.assertEqual(semantic, "claim")
                 self.assertIsInstance(action["steps"], list)
@@ -139,7 +153,7 @@ class PerStepChainTests(unittest.TestCase):
             "outcome": output.get("outcome"),
             "complete": navigation["complete"],
             "actions": [{key: item[key] for key in
-                         ("action", "operation", "attempt", "steps", "max_steps", "disposition", "required")
+                         ("action", "operation", "step", "attempt", "steps", "max_steps", "disposition", "required")
                          if key in item} for item in navigation["actions"]],
             "next_argv": navigation["next_argv"],
         })
@@ -186,7 +200,7 @@ class PerStepChainTests(unittest.TestCase):
                 "top_level_complete": response.get("complete"),
                 "navigation_complete": navigation["complete"],
                 "actions": [{key: item[key] for key in
-                             ("action", "operation", "attempt", "steps", "max_steps", "disposition", "required")
+                             ("action", "operation", "step", "attempt", "steps", "max_steps", "disposition", "required")
                              if key in item} for item in navigation["actions"]],
                 "next_argv": navigation["next_argv"],
             })
@@ -364,6 +378,8 @@ if (p/'chain_report.py').exists():
         before = self.f.ledger_bytes()
         output = self.call("done", value)
         self.assertEqual(output["outcome"], "accepted")
+        self.assertEqual(output["step"], step)
+        self.assertEqual(output["attempt"], value["attempt"])
         self.assertEqual(self.head(), integration["candidate_commit"])
         self.assertFalse(Path(self.packets[step]["context"]["workspace"]).exists())
         after = self.f.ledger_bytes()
@@ -496,6 +512,7 @@ if (p/'chain_report.py').exists():
         # All predecessor workspaces are gone; imports and graph views remain usable.
         replay = self.call("done", self.done_inputs["A"])
         self.assertEqual(replay["outcome"], "accepted")
+        self.assertEqual((replay["step"], replay["attempt"]), ("A", claims["A"]))
         self.assertEqual(len(self.f.terminal_events(claims["A"])), 1)
         self.call("history")
         self.call("recover")
@@ -507,6 +524,43 @@ if (p/'chain_report.py').exists():
         self.assertEqual(claims[0]["steps"], ["A", "B"])
         self.assertEqual(claims[0]["max_steps"], 1)
         self.assertEqual(claims[0]["operation"], "claim")
+        self.assertIn("every safe listed candidate", claims[0]["instruction"])
+
+    def test_ready_claim_precedes_unknown_native_reconciliation(self):
+        self.bind(capacity=2)
+        claimed = self.call("claim", {"steps": ["A"]})
+        attempt = claimed["claims"][0]["attempt"]
+        claim_actions = claimed["navigation"]["actions"]
+        start_index = next(index for index, row in enumerate(claim_actions) if row["action"] == "start")
+        next_claim_index = next(index for index, row in enumerate(claim_actions) if row["action"] == "claim")
+        self.assertLess(start_index, next_claim_index,
+                        "an already-reserved start must precede a new ready claim")
+        self.start("A", attempt, record_launch=False)
+        start_actions = self.last_start_response["navigation"]["actions"]
+        launch_index = next(index for index, row in enumerate(start_actions) if row["action"] == "launch")
+        claim_index = next(index for index, row in enumerate(start_actions) if row["action"] == "claim")
+        self.assertLess(launch_index, claim_index,
+                        "an already-reserved start must precede a new ready claim")
+        next_response = self.call("next")
+        actions = next_response["navigation"]["actions"]
+        claim_index = next(index for index, row in enumerate(actions) if row["action"] == "claim")
+        reconcile_index = next(index for index, row in enumerate(actions) if row["action"] == "reconcile")
+        self.assertLess(claim_index, reconcile_index)
+        claim = actions[claim_index]
+        self.assertEqual(claim["steps"], ["B"])
+        self.assertEqual(claim["max_steps"], 1)
+
+    def test_ready_claim_precedes_preparation_and_verification(self):
+        self.bind(capacity=2)
+        self.start("A", self.claim("A")["A"])
+        self.collect("A", self.launch("A"))
+        preparing = self.call("next")["navigation"]["actions"]
+        self.assertEqual([row["action"] for row in preparing], ["claim", "prepare"])
+        self.assertEqual(preparing[0]["steps"], ["B"])
+        self.prepared_input("A")
+        verifying = self.call("next")["navigation"]["actions"]
+        self.assertEqual([row["action"] for row in verifying], ["claim", "verify"])
+        self.assertEqual(verifying[0]["steps"], ["B"])
 
     def test_navigation_paused_parent_grants_resume_only(self):
         self.bind()
@@ -709,6 +763,7 @@ if (p/'chain_report.py').exists():
         }
         rejected = self.call("done", rejected_input)
         self.assertEqual(rejected["outcome"], "rejected")
+        self.assertEqual((rejected["step"], rejected["attempt"]), ("B", attempts["B"]))
         self.assertEqual(self.head(), after_a)
         self.assertNotIn("J", self.call("next")["ready"])
         conflicting_proof = self.f.write("conflicting-terminal-b.json", {
@@ -887,7 +942,8 @@ if (p/'chain_report.py').exists():
         pending = self.call("pending")
         self.assertIn(attempt, json.dumps(pending))
         cleanup_route = self.call("next")
-        self.assertEqual([row["attempt"] for row in self.action_rows(cleanup_route, "cleanup")], [attempt])
+        self.assertEqual([(row["step"], row["attempt"])
+                          for row in self.action_rows(cleanup_route, "cleanup")], [("A", attempt)])
         self.assertFalse(any(row["action"] in {"finish", "start", "launch", "execute", "prepare", "verify"}
                              for row in cleanup_route["navigation"]["actions"]),
                          "an accepted cleanup retry cannot become a new execution or finish grant")

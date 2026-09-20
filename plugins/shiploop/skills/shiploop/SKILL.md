@@ -383,8 +383,15 @@ After creating initial steps, require their plan and execution graph to complete
 the selected actual Improve loop before execution. The normal `plan`/`step-plan`
 handoff owns that review; follow the linked guide for late graph creation or
 material revisions. Retain the completed review's graph identity and evidence.
-For a reviewed graph within the current v3 `implement` action, the main owner
-may explicitly bind [a parallel implementation chain](references/parallel-chain.md).
+For a reviewed graph within the current v3 `implement` action that has safe
+dependency-independent steps, the main owner uses [the parallel implementation
+chain](references/parallel-chain.md) by default when the selected Plan Dispatcher
+and Ask-Agent contracts are compatible and observed native slots are available.
+Record a concrete compatibility, capacity, resource, or
+readiness blocker when that route cannot start; choose serial execution only for
+an explicit user or host limit. Bind `--capacity` to the observed user/host
+native-slot limit for this run; the parallel default is not evidence that only
+two safe slots exist.
 Before binding, use the bridge's read-only `chain planning-inputs` view for that
 exact run, action, and reviewed graph. Resolve every current-required planning
 reference through its printed resolution contract, then bind the immutable
@@ -403,12 +410,16 @@ Use the selected Plan Dispatcher and Ask-Agent packages, external sibling
 `.work-trees` checkouts, and the bridge's claim/start/import/prepare/done/finish flow.
 For per-step chains, the script's `navigation` packet owns navigation. Perform
 its returned actions, submit the requested observations or verification through
-the named `operation`, then follow its exact `next_argv` to refresh. Never compute
-successors, select an unlisted step, infer a launch from a recovered packet, or
-finish from an empty ready list. `navigation.complete` marks chain completion;
-the legacy top-level `complete` describes graph acceptance only. Supply actual
-readiness, capacity and verification facts; if they prevent an offered action,
-retain that blocker rather than inventing a transition.
+the named `operation`, then follow its exact `next_argv` to refresh. For every
+claim action, claim and start every listed candidate that is actually ready and
+safe up to `max_steps`; do not leave a safe native slot idle. Defer only a candidate with a
+concrete recorded host-capacity, resource, readiness, or recovery blocker, then
+refresh after every returned event. Never compute successors, select an unlisted
+step, infer a launch from a recovered packet, or finish from an empty ready list.
+`navigation.complete` marks chain completion; the legacy top-level `complete`
+describes graph acceptance only. Supply actual readiness, capacity and
+verification facts; if they prevent an offered action, retain that blocker rather
+than inventing a transition.
 Ask-Agent creates each parallel worker worktree; the bridge verifies and adopts
 that workspace rather than creating another. New per-step chains require the
 selected Ask-Agent 0.4 contract. Each new worker starts from the invoking branch's

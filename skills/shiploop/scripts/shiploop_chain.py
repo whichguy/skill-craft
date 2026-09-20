@@ -65,7 +65,7 @@ _GIT_ENV_KEYS = frozenset({
 # scheduling, not a scoped worker packet.
 _WORKER_GUIDANCE_ROUTES = tuple(
     route for route in navigator_v3_prompts.STAGE_REFERENCES["implement"]
-    if route[0] != "Optional parallel-chain guide"
+    if route[0] != "Parallel-chain guide"
 )
 
 
@@ -2053,6 +2053,7 @@ def _per_step_navigation(root: Path, binding: Mapping[str, Any], result: Mapping
         if not isinstance(values, list) or not all(isinstance(item, str) and item for item in values):
             _fail("per-step navigation " + label + " state is invalid")
     recovery_actions: list[dict[str, Any]] = []
+    start_actions: list[dict[str, Any]] = []
     dispatch_actions: list[dict[str, Any]] = []
     claim_actions: list[dict[str, Any]] = []
     cleanup_actions: list[dict[str, Any]] = []
@@ -2098,20 +2099,20 @@ def _per_step_navigation(root: Path, binding: Mapping[str, Any], result: Mapping
     immediate_attempt = result.get("attempt") if isinstance(result.get("attempt"), str) else None
     immediate_action = result.get("action") if isinstance(result.get("action"), str) else None
     if operation == "start" and immediate_attempt is not None and immediate_action == "prepare-workspace":
-        dispatch_actions.append(_navigation_action(
+        start_actions.append(_navigation_action(
             "prepare-workspace", operation="start", attempt=immediate_attempt,
             required=("one fresh Ask-Agent sibling workspace at the reported base", "the exact existing start inputs plus workspace"),
             instruction="Ask-Agent must create the requested workspace, then resubmit this same start for bridge adoption. Do not launch work yet.",
         ))
     elif operation == "start" and immediate_attempt is not None and immediate_action in {"launch", "execute"}:
         if immediate_action == "launch":
-            dispatch_actions.append(_navigation_action(
+            start_actions.append(_navigation_action(
                 "launch", operation="launched", attempt=immediate_attempt,
                 required=("the fresh worker packet from this start response", "a confirmed native handle"),
                 instruction="Launch the worker once from this fresh start grant, then record its confirmed handle with launched. Do not grant another launch from packet or recovery.",
             ))
         else:
-            dispatch_actions.append(_navigation_action(
+            start_actions.append(_navigation_action(
                 "execute", operation="import-handoff", attempt=immediate_attempt,
                 required=("the fresh serial worker packet from this start response", "confirmed_stopped: true", "handoff.path", "handoff.sha256"),
                 instruction="Execute this fresh serial grant in the main context. After it stops and writes its handoff, import the handoff; do not create a native launch handle.",
@@ -2198,13 +2199,13 @@ def _per_step_navigation(root: Path, binding: Mapping[str, Any], result: Mapping
                 requirements = ["base_commit matching the current integrated target", "write_scope", "resources", "ready_evidence"]
                 if _binding_mode(binding) == "parallel":
                     requirements.append("Ask-Agent workspace when already prepared")
-                dispatch_actions.append(_navigation_action(
+                start_actions.append(_navigation_action(
                     "start", operation="start", attempt=attempt, required=tuple(requirements),
                     instruction="Start this existing claim once with the current bridge inputs. A parallel start without workspace will return prepare-workspace; it is not a launch grant.",
                 ))
             continue
         if recovery == "reconcile":
-            dispatch_actions.append(_navigation_action(
+            start_actions.append(_navigation_action(
                 "resume", operation="import-handoff", attempt=attempt,
                 required=("confirmed_stopped: true", "handoff.path", "handoff.sha256"),
                 instruction="Reconcile the recorded serial main-context work without another start. Once it is stopped and has a handoff, import it.",
@@ -2218,7 +2219,7 @@ def _per_step_navigation(root: Path, binding: Mapping[str, Any], result: Mapping
             ))
             continue
         if recovery == "resume":
-            dispatch_actions.append(_navigation_action(
+            start_actions.append(_navigation_action(
                 "resume", operation="import-handoff", attempt=attempt,
                 required=("confirmed_stopped: true", "handoff.path", "handoff.sha256"),
                 instruction="Resume only the recorded serial main-context attempt. After it stops and writes its handoff, import-handoff; do not start it again.",
@@ -2260,10 +2261,35 @@ def _per_step_navigation(root: Path, binding: Mapping[str, Any], result: Mapping
             claim_actions.append(_navigation_action(
                 "claim", operation="claim", steps=steps, max_steps=available,
                 required=("only these script-ready step IDs",),
-                instruction="Claim only a subset of these listed script-ready IDs, bounded by available capacity. Do not infer another DAG transition or claim a deferred step.",
+                instruction="Claim every safe listed candidate up to available capacity. Defer only a candidate with a concrete readiness, host-capacity, resource, or recovery blocker; do not infer another DAG transition or claim an ineligible step.",
             ))
 
-    actions = [*recovery_actions, *dispatch_actions, *claim_actions, *cleanup_actions, *collect_actions]
+    # Hard parent/integration/workspace recovery gates are emitted first.  Once
+    # they are clear, start already-reserved work and fill the current safe
+    # frontier before an unresolved active-worker observation can make the
+    # parent wait with native capacity idle.
+    actions = [*recovery_actions, *start_actions, *claim_actions, *dispatch_actions, *cleanup_actions, *collect_actions]
+    attempt_actions = [action for action in actions if "attempt" in action]
+    if attempt_actions:
+        # Navigation is only a projection, so the caller never supplies a step
+        # identity.  Read the selected dispatcher state once and bind every
+        # returned attempt to its authoritative graph step.
+        full = _child_full(binding)
+        graph = binding.get("graph")
+        if not isinstance(graph, Mapping) or not isinstance(graph.get("steps"), list):
+            _fail("per-step navigation binding graph is invalid")
+        bound_steps: set[str] = set()
+        for item in graph["steps"]:
+            step = item.get("id") if isinstance(item, Mapping) else None
+            if not isinstance(step, str) or not step or step in bound_steps:
+                _fail("per-step navigation binding graph has an invalid step")
+            bound_steps.add(step)
+        for action in attempt_actions:
+            attempt = _attempt(action["attempt"], "per-step navigation action attempt")
+            step = _step_for_attempt(full, attempt)["id"]
+            if step not in bound_steps:
+                _fail("per-step navigation attempt references a step outside the bound graph")
+            action["step"] = step
     only_collect = bool(actions) and all(action["action"] == "collect" for action in actions)
     return {
         "complete": False,
@@ -2271,7 +2297,7 @@ def _per_step_navigation(root: Path, binding: Mapping[str, Any], result: Mapping
         "instruction": (
             "No non-waiting bridge callback is currently granted. Await any native completion or host notification, not a particular listed worker, then refresh this view."
             if only_collect else
-            "Use a currently applicable listed action; do not wait for collection while a start, prepare, verification, claim, or cleanup action is available. Resolve recovery before any claim or start, then refresh this derived view after each callback."
+            "Resolve only parent/owner, unresolved-integration, or serial-workspace recovery before claim or start. Process already available returns promptly, then start existing claims and fill safe eligible capacity before waiting on an unresolved per-attempt observation. Refresh this derived view after each callback; an unknown native attempt remains reserved."
             if actions else
             "No bridge callback is currently granted. Preserve the durable state and refresh this view; do not infer execution."
         ),
@@ -3291,6 +3317,9 @@ def _per_step_integrate(root: Path, binding: Mapping[str, Any], attempt: str,
 def _per_step_done(root: Path, binding: Mapping[str, Any], value: dict[str, Any]) -> dict[str, Any]:
     attempt, verification, supplied_integration = _parse_per_step_done(value)
     record = _per_step_require_current_attempt(binding, attempt, "done", allow_terminal_replay=True)
+    step = record.get("step")
+    if not isinstance(step, str) or not step:
+        _fail("per-step done attempt has no authoritative step")
     chain_dir = _binding_dir(root, binding["action_id"])
     rows = _events(chain_dir)
     _per_step_require_terminal_replay(record, rows, attempt, verification)
@@ -3312,7 +3341,7 @@ def _per_step_done(root: Path, binding: Mapping[str, Any], value: dict[str, Any]
             root, binding, attempt, verification, integration=None, imported=None, prepared=None, rows=rows,
         )
         response = _next_response(root, binding)
-        response.update({"outcome": outcome, "attempt": attempt})
+        response.update({"outcome": outcome, "attempt": attempt, "step": step})
         return response
     prepared_event = _event(rows, "prepare_result", attempt=attempt)
     if prepared_event is None:
@@ -3340,7 +3369,7 @@ def _per_step_done(root: Path, binding: Mapping[str, Any], value: dict[str, Any]
     if outcome == "accepted":
         cleanup = _per_step_cleanup_attempt(root, binding, attempt, confirmed_stopped=True)
     response = _next_response(root, binding)
-    response.update({"outcome": outcome, "attempt": attempt})
+    response.update({"outcome": outcome, "attempt": attempt, "step": step})
     if cleanup is not None:
         response["cleanup"] = cleanup
     return response

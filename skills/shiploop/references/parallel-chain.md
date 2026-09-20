@@ -1,9 +1,14 @@
 # Parallel implementation chains
 
-Use this optional route in parallel or serial mode for a reviewed dependency graph **inside the current
-navigator-v3 `implement` action**. ShipLoop retains one parent action and its
-normal Improve/test sequence. The work-item queue remains ordered. Existing runs
-are unchanged unless their current implementation action is explicitly bound.
+For a reviewed dependency graph with dependency-independent implementation work
+**inside the current navigator-v3 `implement` action**, use this parallel route
+by default when selected compatible native capacity is available. The binding
+remains explicit, action-scoped, and recoverable. ShipLoop retains one parent
+action and its normal Improve/test sequence; the work-item queue remains
+ordered. Existing runs are unchanged unless their current implementation action
+is explicitly bound. Serial mode remains an explicit user or host-limit choice,
+and a concrete compatibility, readiness, or resource blocker retains the
+ordinary parent route.
 New chains use the per-step lifecycle in ShipLoop 0.18.0. Existing v1/v2 chain
 bindings retain their final-return behavior; `--lifecycle final-return` explicitly
 selects that legacy contract. Never switch a bound run in place. Ordinary
@@ -176,15 +181,34 @@ read-only inspection views, not execution instructions.
   steps being accepted can still require cleanup and final verification. The
   older top-level `complete` retains its graph-acceptance meaning.
 
-Follow only current action identities. A claim action lists script-computed
-dependency-ready candidates and the bound capacity available for claims. The
-parent supplies actual readiness and host/resource availability and may defer a
-candidate; it cannot add an unlisted step. Only the immediate fresh start grant
-authorizes launch or first serial execution. Recovered packets never grant a
-second launch. After accepted completion, use the newly returned frontier rather
-than inferring successors from a remembered plan.
+Follow only current action identities. Every returned action with an `attempt`
+also carries its authoritative `step`, derived from the selected dispatcher
+state and checked against this binding's frozen graph. Correlate an out-of-order
+native return or `done` result by the `(step, attempt)` pair. `step` is never
+caller-supplied callback authority: submit the exact attempt and required
+evidence, and let the bridge reject stale or mismatched state.
+
+A claim action lists script-computed dependency-ready candidates and the bound
+capacity available for claims. The
+parent supplies actual readiness and host/resource availability, then claims and
+starts every safe listed candidate up to that bound; it cannot add an unlisted
+step or leave a safe native slot idle. Defer only a candidate with a concrete
+recorded capacity, resource, readiness, or recovery blocker. Only the immediate
+fresh start grant authorizes launch or first serial execution. Recovered packets
+never grant a second launch. After every callback, use the newly returned
+frontier rather than inferring successors from a remembered plan.
+
+When binding parallel mode, set `--capacity` from the observed user or host
+native-slot limit for this run. The CLI default of `2` is a fallback, not proof
+that a larger safe capacity is unavailable. An independent branch can become
+ready after an initial serial prefix; select the reviewed parallel chain for that
+future capacity rather than requiring two initial roots.
 
 Do available dispatch or verification work before waiting for a running worker.
+Claim/start safe capacity before a potentially waiting reconciliation, preparation,
+verification, or collection action; process a result that is already available
+promptly, but do not let an unresolved observation idle an independent ready
+worker.
 When only collection remains, await any native completion or host notification;
 the list order is not a required completion order. A paused parent suppresses
 new claims and starts. A changed dispatcher owner blocks this binding's

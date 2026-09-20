@@ -110,7 +110,7 @@ STAGE_REFERENCES: dict[str, tuple[tuple[str, str], ...]] = {
     "step-plan": (
         ("Coding decision guide", "coding-guidance.md#select-guidance"),
         ("Git-history investigation guide", "project-knowledge.md#investigate-git-history-for-planning"),
-        ("Optional parallel-chain guide", "parallel-chain.md#parallel-implementation-chains"),
+        ("Parallel-chain guide", "parallel-chain.md#parallel-implementation-chains"),
         ("Repeatable test-suite guide", "repeatable-test-suites.md#select-or-revalidate-the-harness"),
         ("Repository-local skill guidance", "testing-and-documentation.md#reusable-product-skills"),
         ("Implementation constitution", "testing-and-documentation.md#implementation-constitution"),
@@ -137,7 +137,7 @@ STAGE_REFERENCES: dict[str, tuple[tuple[str, str], ...]] = {
     "implement": (
         ("Coding decision guide", "coding-guidance.md#select-guidance"),
         ("Target-native test selection", "repeatable-test-suites.md#select-target-native-tests"),
-        ("Optional parallel-chain guide", "parallel-chain.md#parallel-implementation-chains"),
+        ("Parallel-chain guide", "parallel-chain.md#parallel-implementation-chains"),
         ("Repeatable test-suite guide", "repeatable-test-suites.md#select-or-revalidate-the-harness"),
         ("Implementation constitution", "testing-and-documentation.md#implementation-constitution"),
     ),
@@ -603,12 +603,15 @@ completion and revalidation conditions. Identify the actual runtime/version,
 artifact and boundary; read only matching practice/platform sections. Link the
 accepted plan and selected sections in evidence_refs; do not copy every card or
 create boilerplate for inapplicable concerns. Planning does not authorize edits.
-For an explicitly selected parallel or serial chain, create its initial steps
-and graph here, with direct dependencies, readiness and completion criteria,
+For a plan with dependency-independent implementation steps, create and review
+its initial steps and graph here for the default parallel chain, even when an
+initial serial prefix will release those branches later. A serial chain remains
+an explicit user or host-limit selection. Give every graph direct dependencies,
+readiness and completion criteria,
 shared-resource exclusions and the integration node. Link the graph's exact path
 and content digest in existing plan notes/evidence_refs. This producer's mandatory
 actual Improve loop must review the created steps and graph before they are used
-for execution. Use the Optional parallel-chain guide for late creation or revision;
+for execution. Use the Parallel-chain guide for late creation or revision;
 planning never starts the dispatcher or expands this item's scope.
 Use the Repository-local skill guidance. Reopen the repo's current skill index or
 README/AGENTS links, even if earlier context reported no fit: a preceding item may
@@ -726,10 +729,16 @@ Use the Coding decision guide to reopen the accepted plan and only its relevant
 practice/platform sections. Check current code, versions and consumers before
 reuse or augmentation. Retain justified revisions in the linked note; a new
 prerequisite or authority boundary uses the existing correction route.
-For an explicitly selected parallel chain or serial chain, follow the Optional
-parallel-chain guide: bind this action's reviewed graph and recorded mode.
-Parallel mode uses native Ask-Agent; serial mode executes one ready step in the
-main context without spawning agents. Both use external sibling worktrees and
+For a reviewed graph with safe dependency-independent implementation steps, use
+the parallel-chain guide and bind this action to the default parallel
+mode when the selected Plan Dispatcher and Ask-Agent contracts are compatible
+and observed native slots are available. Record a concrete
+compatibility, capacity, resource, readiness, or recovery blocker if that route
+cannot start; use serial mode only for an explicit user or host limit. Parallel
+mode uses native Ask-Agent; serial mode executes one ready step in the main
+context without spawning agents. Bind parallel capacity to the observed
+user/host native-slot limit, not its fallback default; an independent branch may
+become ready after an initial serial prefix. Both use external sibling worktrees and
 the same verified acceptance transition. Ask-Agent creates parallel worker
 worktrees; orchestration verifies and adopts them, imports worker-local results,
 prepares and checks the combination, merges into the invoking branch, then
@@ -738,6 +747,11 @@ never repeat accepted work because removal failed. Keep observable combined stat
 accepted steps are done. Continue until every required step is accepted and the
 combined return is verified, or retain an explicit incomplete blocker. Finish
 before this action's normal completion callback and Improve checkpoint.
+On the initial frontier and every returned event, claim and start every listed
+candidate that is actually safe up to the packet's available capacity. Refresh
+immediately after each callback. Do not wait on a native reconciliation,
+preparation, verification, or collection while an independent safe worker can
+start; defer only a candidate with a concrete recorded blocker.
 """,
     "test-green": """\
 Run focused checks against the implemented candidate and establish meaningful

@@ -1105,12 +1105,14 @@ class ChainIntegrationTests(unittest.TestCase):
         self.assertEqual((self.run / "state.md").read_bytes(), original)
         self.assertFalse((self.run / "chains").exists())
 
-    def test_cold_implementation_packet_carries_optional_chain_route(self):
+    def test_cold_implementation_packet_requires_eligible_parallel_route(self):
         cold = store.read_record(self.run / "state.md")
         before = (self.run / "state.md").read_bytes()
         packet = nav.render(None, self.run, cold)
         self.assertIn(str(SCRIPTS.parent / "references/parallel-chain.md"), packet)
-        self.assertIn("explicitly selected parallel chain", packet)
+        self.assertIn("Parallel-chain guide", packet)
+        self.assertIn("default parallel", packet)
+        self.assertIn("observed native slots", packet)
         self.assertEqual((self.run / "state.md").read_bytes(), before)
 
 
