@@ -70,6 +70,7 @@ STAGE_REFERENCES: dict[str, tuple[tuple[str, str], ...]] = {
     ),
     "discovery": (
         ("Connected knowledge discovery", "project-knowledge.md#connected-knowledge-discovery"),
+        ("Discovery evidence handoff", "project-knowledge.md#discovery-evidence-handoff"),
         ("Discovery investigation guidance", "research-loop.md#plan-the-investigation"),
         ("Service discovery guidance", "service-discovery.md#select-scope"),
         ("Current-system baseline guide", "current-system-baseline.md#establish-or-refresh"),
@@ -80,6 +81,7 @@ STAGE_REFERENCES: dict[str, tuple[tuple[str, str], ...]] = {
     ),
     "research": (
         ("Connected knowledge discovery", "project-knowledge.md#connected-knowledge-discovery"),
+        ("Discovery evidence handoff", "project-knowledge.md#discovery-evidence-handoff"),
         ("Discovery investigation guidance", "research-loop.md#plan-the-investigation"),
         ("Service discovery guidance", "service-discovery.md#select-scope"),
         ("Current-system baseline guide", "current-system-baseline.md#evidence-and-authority"),
@@ -512,8 +514,10 @@ For retained application state, follow Service discovery guidance's Runtime stat
 placement section. Establish the current target and effective identity, then pass
 that resolved target to dependent remote reads. Distinguish discovery operator, deployed runtime and end
 user; explicitly retain any unknown relevant role or authority and its affected
-consumer. Before handoff, follow the project-knowledge discovery evidence
-handoff: ensure the index links to the exact decision-note section, then reopen
+consumer.
+
+Before handoff, use Discovery evidence handoff: ensure the index links to the exact
+decision-note section, then reopen
 that link and its actual observations or receipts as a fresh reader would.
 Retain explicit evidence_refs for the consumer, with scoped prerequisites and
 due revalidation.
@@ -534,7 +538,7 @@ Use Discovery investigation guidance to reuse or revise the current question
 frontier. Check its plan triggers first and again as evidence conflicts or
 dependencies emerge; retain any triggered plan and outcome. Use the direct path
 only when no trigger applies and direct investigation suffices. Verify the
-project-knowledge discovery evidence handoff before passing conclusions onward.
+Discovery evidence handoff before passing conclusions onward.
 Research consequential quality-target and feasibility unknowns from existing
 contracts and appropriate evidence; measured baselines do not choose user policy.
 Reopen the selected current-system baseline and resolve its consequential gaps.

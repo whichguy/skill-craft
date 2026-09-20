@@ -1,0 +1,114 @@
+{
+  "head": "04c0c56e131bf1a12b115977da2bb06c30a57ece",
+  "fingerprint": "16910395cf6145ce02f1ca56ad12e11d9a43ff85a3fe2ea915a85a9bb90e684c",
+  "logs": [
+    {
+      "command_log": "01-shiploop-v3-guidance.log",
+      "sha256": "f78926fd9d41ca95a7b85a8518f2508e35dac204a190a75e0cd61c5fb2fd6d9d",
+      "tail": [
+        "Synthetic host judgments test routing and blocking, not model quality. ... ok",
+        "test_ui_supersession_handoff_keeps_replacement_current_after_cold_recovery (__main__.V3GuidanceTests.test_ui_supersession_handoff_keeps_replacement_current_after_cold_recovery)",
+        "A reviewed plan can replace a UI premise without erasing its seed evidence. ... ok",
+        "test_v1_and_v2_packets_do_not_gain_the_v3_strategy_projection (__main__.V3GuidanceTests.test_v1_and_v2_packets_do_not_gain_the_v3_strategy_projection) ... ok",
+        "test_v3_cold_packets_keep_the_latest_done_root_test_strategy (__main__.V3GuidanceTests.test_v3_cold_packets_keep_the_latest_done_root_test_strategy)",
+        "Strategy locators survive later evidence without reading it into packets. ... ok",
+        "test_v3_improve_and_source_return_guidance_keep_the_existing_boundary (__main__.V3GuidanceTests.test_v3_improve_and_source_return_guidance_keep_the_existing_boundary) ... ok",
+        "",
+        "----------------------------------------------------------------------",
+        "Ran 33 tests in 1.155s",
+        "",
+        "OK"
+      ]
+    },
+    {
+      "command_log": "02-shiploop-reference-routing.log",
+      "sha256": "f67eb01e2626dce02c443df3bff79fc9f2607bcf6e27545cc3fcad14f0aa4468",
+      "tail": [
+        "test_every_prompt_stage_routes_to_existing_package_reference_heading (__main__.ReferenceRoutingTests.test_every_prompt_stage_routes_to_existing_package_reference_heading) ... ok",
+        "test_every_prompt_stage_routes_to_maintained_requirements_handoffs (__main__.ReferenceRoutingTests.test_every_prompt_stage_routes_to_maintained_requirements_handoffs) ... ok",
+        "test_maintained_requirements_guides_keep_package_local_links_when_relocated (__main__.ReferenceRoutingTests.test_maintained_requirements_guides_keep_package_local_links_when_relocated) ... ok",
+        "test_merge_and_coverage_are_the_only_activity_specific_routes (__main__.ReferenceRoutingTests.test_merge_and_coverage_are_the_only_activity_specific_routes) ... ok",
+        "test_new_activity_guides_have_resolvable_local_links (__main__.ReferenceRoutingTests.test_new_activity_guides_have_resolvable_local_links) ... ok",
+        "test_normative_markdown_graph_rejects_missing_links_and_keeps_explicit_aliases (__main__.ReferenceRoutingTests.test_normative_markdown_graph_rejects_missing_links_and_keeps_explicit_aliases) ... ok",
+        "test_safe_orientation_uses_real_optional_references_without_reading_state (__main__.ReferenceRoutingTests.test_safe_orientation_uses_real_optional_references_without_reading_state) ... ok",
+        "",
+        "----------------------------------------------------------------------",
+        "Ran 8 tests in 1.098s",
+        "",
+        "OK"
+      ]
+    },
+    {
+      "command_log": "03-shiploop-planning-context.log",
+      "sha256": "16c9690edccc4f5293bb64768b7c705da269ca5e0907eb7c8f17264364d88cca",
+      "tail": [
+        "test_current_missing_sources_are_visible_and_blocking (__main__.PlanningContextTests.test_current_missing_sources_are_visible_and_blocking) ... ok",
+        "test_discovery_decision_and_receipt_refs_require_explicit_relative_resolution (__main__.PlanningContextTests.test_discovery_decision_and_receipt_refs_require_explicit_relative_resolution)",
+        "This proves declared locator transport and recovery, never semantic review. ... ok",
+        "test_large_inventory_is_not_truncated (__main__.PlanningContextTests.test_large_inventory_is_not_truncated) ... ok",
+        "test_real_improve_archives_are_hashed_without_reading_the_child_workspace (__main__.PlanningContextTests.test_real_improve_archives_are_hashed_without_reading_the_child_workspace) ... ok",
+        "test_run_state_cannot_be_bound_as_a_file_dependency (__main__.PlanningContextTests.test_run_state_cannot_be_bound_as_a_file_dependency) ... ok",
+        "test_tampered_current_result_is_diagnosed_without_writing (__main__.PlanningContextTests.test_tampered_current_result_is_diagnosed_without_writing) ... ok",
+        "",
+        "----------------------------------------------------------------------",
+        "Ran 9 tests in 0.305s",
+        "",
+        "OK"
+      ]
+    },
+    {
+      "command_log": "04-run-all-smoke.log",
+      "sha256": "4a443492da219040cd2a62c169ae15489382c0dd4b4c985f9d4f2cf87c16cac0",
+      "tail": [
+        "Ran 9 tests in 1.871s",
+        "",
+        "OK",
+        "==> test/shiploop-graph-trace.test.py",
+        "......",
+        "----------------------------------------------------------------------",
+        "Ran 6 tests in 0.002s",
+        "",
+        "OK",
+        "shiploop.test.sh: PASS",
+        "OK  shiploop-smoke",
+        "run-all.sh: PASS (smoke hermetic group selection)"
+      ]
+    },
+    {
+      "command_log": "05-sync-plugin-views.log",
+      "sha256": "9e97e5de9876ad042f5690144399a9307d90aaa47aede0d7f6dab1e7729af7bf",
+      "tail": [
+        "skill-frontmatter-to-plugin-json: CHECK OK prompt-align",
+        "skill-frontmatter-to-plugin-json: CHECK OK prompt-audit",
+        "skill-frontmatter-to-plugin-json: CHECK OK prompt-migrate",
+        "skill-frontmatter-to-plugin-json: CHECK OK prompt-refine",
+        "skill-frontmatter-to-plugin-json: CHECK OK question-bench",
+        "skill-frontmatter-to-plugin-json: CHECK OK review-coverage",
+        "skill-frontmatter-to-plugin-json: CHECK OK review-fix-bench",
+        "skill-frontmatter-to-plugin-json: CHECK OK shiploop",
+        "skill-frontmatter-to-plugin-json: CHECK OK shiploop-e2e-audit",
+        "skill-frontmatter-to-plugin-json: CHECK OK skill-interop",
+        "skill-frontmatter-to-plugin-json: CHECK OK marketplaces (20 skills)",
+        "sync-plugin-views: CHECK OK"
+      ]
+    },
+    {
+      "command_log": "06-check-marketplace-packages.log",
+      "sha256": "4b1cc094a894996355d64fd1ce28749b681b101e7f9a305d10019d302f21f31a",
+      "tail": [
+        "OK plan-test: complete marketplace payload",
+        "OK prompt-align: complete marketplace payload",
+        "OK prompt-audit: complete marketplace payload",
+        "OK prompt-migrate: complete marketplace payload",
+        "OK prompt-refine: complete marketplace payload",
+        "OK question-bench: complete marketplace payload",
+        "OK review-coverage: complete marketplace payload",
+        "OK review-fix-bench: complete marketplace payload",
+        "OK shiploop: complete marketplace payload",
+        "OK shiploop-e2e-audit: complete marketplace payload",
+        "OK skill-interop: complete marketplace payload",
+        "marketplace-packages: 20/20 passed (offline payload validation only)"
+      ]
+    }
+  ]
+}
