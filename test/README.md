@@ -11,7 +11,8 @@ flowchart LR
     S --> P["PR and main CI"]
     C --> A["complete local aggregate"]
     F["full ShipLoop suite and action walk"] --> A
-    A --> M["manual full qualification"]
+    C --> M["optional full CI"]
+    F --> M
 ```
 
 ```sh
@@ -318,8 +319,10 @@ execution, or certification. A green hermetic aggregate has the same boundary.
 CI runs the `smoke` aggregate for pull requests and pushes to `main`; it ignores
 tag and feature-branch pushes. A manual dispatch accepts `tier=smoke` (the
 default) or `tier=full`. Full dispatch runs `core` and the three deterministic
-ShipLoop shards; use it for runtime, state, graph, or callback changes and for
-release qualification. Start it against the candidate branch with:
+ShipLoop shards. Select qualification by changed behavior and dependencies:
+runtime, state, graph, callback and recovery changes need their affected suites.
+Use full dispatch only when a concrete cross-subsystem risk cannot be covered by
+narrower checks, and record that reason. Start it against the candidate branch with:
 
 ```sh
 gh workflow run ci.yml --ref <candidate-branch> -f tier=full
@@ -327,10 +330,17 @@ gh workflow run ci.yml --ref <candidate-branch> -f tier=full
 
 Before treating that run as qualification evidence, check that its tested SHA
 and tree still match the final candidate. A manual full run is qualification
-evidence; it does not replace the required pull-request smoke check. Metadata-only
-changes may use smoke plus their affected checks. Do not repeat local full, PR
-full, and post-merge full runs for an identical tested tree; a new tree needs
-the checks appropriate to its changes.
+evidence; it does not replace the required pull-request smoke check. Delegate
+established-suite execution through **test-runner**, supplying exact source/run
+identity, commands, expected evidence, deadline and retry policy; the parent owns
+selection and diagnosis. Do not repeat local full, PR full, and post-merge full
+runs for an identical tested tree. Preserve the tested SHA/tree and select checks
+for changed bytes instead of invalidating unrelated evidence.
+
+`release-push.test.py` uses disposable Git repositories and a bare remote to
+prove that failed preconditions, changed candidates, dirty files and remote races
+cannot publish a divergent release through the guarded push command. These are
+publication-control tests; they do not establish GitHub branch-policy compliance.
 
 A newer run for the same pull request cancels the superseded run; main-push and
 manual runs use unique concurrency keys and are never cancelled by this policy.
@@ -383,6 +393,21 @@ installs the Skill Interop helper, exercises it after installation, then install
 runs and removes Review Coverage. No ambient provider credentials are inherited,
 no model call is made, and no personal plugin state should change. These checks
 prove local installed behavior only, not published-pin readiness or public review.
+
+`bash test/run-integration.sh marketplace-codex-ask-agent` exercises the complete
+local Ask Agent plugin in a disposable Codex profile. It compares every package
+file, verifies the selected card/helper identity, captures staged, unstaged and
+untracked inputs from a linked caller worktree, archives a report, closes and
+replays cleanup, and verifies that caller HEAD, index bytes and files survive
+unchanged. Helper calls retain the disposable profile while removing Git-context
+overrides that the workspace helper correctly rejects. The plugin is then removed
+and its installed inventory checked; cache deletion is not required.
+
+The core `marketplace-host-isolation` suite covers that same consumer flow with
+a fake Codex CLI that materializes a real package copy. It is hermetic coverage of
+the test apparatus and installed helper boundary. The opt-in target uses the real
+CLI; neither target invokes a model or proves native task return or published
+marketplace pins. Verify published pins separately at their immutable source SHA.
 
 ### Navigator protocol 3 and actual Improve
 

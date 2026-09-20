@@ -36,6 +36,7 @@ class ChainGitError(ValueError):
 
 __all__ = [
     "ChainGitError",
+    "adopt_managed_workspace",
     "adopt_workspace",
     "allocation_plan",
     "allocate",
@@ -697,9 +698,22 @@ def _normalized_plan(plan: Mapping[str, Any], *, allow_owned_allocation: bool) -
     candidate = _canonical_candidate(raw_path, label="allocation path")
     if os.fspath(raw_path) != os.fspath(candidate):
         _fail("allocation plan path is not canonical")
-    parent = _workspace_parent(os.fspath(raw_path.parent))
-    if candidate.parent != parent:
-        _fail("allocation plan path is not a direct child of its .work-trees parent")
+    managed_workspace = plan.get("managed_workspace", False)
+    if type(managed_workspace) is not bool:
+        _fail("managed workspace marker must be boolean")
+    if managed_workspace:
+        if lifecycle != _PER_STEP_LIFECYCLE:
+            _fail("only per-step plans can use a helper-managed workspace")
+        raw_parent = _absolute_path(plan.get("workspace_parent"), label="managed workspace parent")
+        parent = _workspace_parent(os.fspath(raw_parent))
+        if candidate == parent or not _inside(candidate, parent):
+            _fail("managed workspace path must remain below its explicit .work-trees parent")
+    else:
+        if "workspace_parent" in plan:
+            _fail("ordinary allocation plans cannot carry a managed workspace parent")
+        parent = _workspace_parent(os.fspath(raw_path.parent))
+        if candidate.parent != parent:
+            _fail("allocation plan path is not a direct child of its .work-trees parent")
     base = _exact_commit(Path(current["repo"]), plan["base_commit"], current["head"], label="base commit")
     branch = _branch_name(Path(current["repo"]), plan["branch"], label="allocation branch")
     if branch == target["branch"]:
@@ -753,6 +767,8 @@ def _normalized_plan(plan: Mapping[str, Any], *, allow_owned_allocation: bool) -
     }
     if lifecycle == _PER_STEP_LIFECYCLE:
         result.update({"lifecycle": lifecycle, "run_id": run, "attempt": retry})
+    if managed_workspace:
+        result.update({"managed_workspace": True, "workspace_parent": os.fspath(parent)})
     if worker is not None:
         result["worker"] = worker
     if worker_instance is not None:
@@ -804,6 +820,62 @@ def adopt_workspace(
         "run_id": run,
         "attempt": retry,
         "worker": dict(worker),
+    }
+    return bind_worker_instance(plan)
+
+
+def adopt_managed_workspace(
+    target: Mapping[str, Any],
+    workspace_parent: Path | str,
+    run_id: str,
+    attempt: str,
+    base_commit: str,
+    workspace: Path | str,
+) -> Dict[str, Any]:
+    """Bind one Ask-Agent-helper-owned worktree below the configured root.
+
+    Ask Agent 0.6 owns an attempt store and places each linked worktree below
+    it.  That differs from the direct-child layout owned by ShipLoop's legacy
+    allocator, so retain a distinct plan marker rather than weakening the
+    ordinary allocator's deterministic-path contract.
+    """
+    current = validate_target(target)
+    base = _exact_commit(Path(current["repo"]), base_commit, current["head"], label="base commit")
+    if base != current["head"]:
+        _fail("managed worker must start at the current target HEAD")
+    run = _uuid(run_id, label="run ID")
+    retry = _uuid(attempt, label="attempt")
+    parent = _workspace_parent(workspace_parent)
+    raw_path = _absolute_path(workspace, label="managed workspace")
+    _reject_symlink_redirection(raw_path, label="managed workspace")
+    if not os.path.lexists(raw_path) or raw_path.is_symlink() or not raw_path.is_dir():
+        _fail("managed workspace must be an existing non-symlink directory")
+    path = _canonical_candidate(raw_path, label="managed workspace")
+    if path == parent or not _inside(path, parent):
+        _fail("managed workspace must remain below the explicit workspace parent")
+    _assert_external_location(current, parent, path, owned_candidate=path)
+    worker = target_identity(path)
+    if worker["repo"] != os.fspath(path):
+        _fail("managed worker root does not match its workspace")
+    if worker["common_dir"] != current["common_dir"]:
+        _fail("managed worker does not share the target Git common directory")
+    if worker["git_dir"] == current["git_dir"]:
+        _fail("managed worker reuses the target private Git directory")
+    if worker["branch"] == current["branch"]:
+        _fail("managed worker must use a branch distinct from the target")
+    if worker["head"] != base:
+        _fail("managed worker HEAD does not match the declared base commit")
+    plan = {
+        "target": dict(current),
+        "path": os.fspath(path),
+        "branch": worker["branch"],
+        "base_commit": base,
+        "lifecycle": _PER_STEP_LIFECYCLE,
+        "run_id": run,
+        "attempt": retry,
+        "worker": dict(worker),
+        "managed_workspace": True,
+        "workspace_parent": os.fspath(parent),
     }
     return bind_worker_instance(plan)
 

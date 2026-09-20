@@ -7,6 +7,7 @@ Native Ask-Agent qualification uses experiments/shiploop_chain/native_pilot.py.
 """
 from __future__ import annotations
 
+import hashlib
 import importlib.util
 import json
 import os
@@ -248,6 +249,143 @@ class PerStepChainTests(unittest.TestCase):
         if capacity is not None:
             extra += ["--capacity", str(capacity)]
         return self.call("bind", ok=ok, extra=tuple(extra))
+
+    def use_managed_ask_agent(self):
+        """Select the real 0.6 package without changing the legacy fixture."""
+        shutil.rmtree(self.f.ask)
+        shutil.copytree(ROOT / "skills/ask-agent", self.f.ask)
+
+    def managed_bind(self, *, mode="parallel", capacity=None, single=False, ok=True):
+        self.use_managed_ask_agent()
+        return self.bind(mode=mode, capacity=capacity, single=single, ok=ok)
+
+    def managed_start(self, step, attempt, *, record_launch=True, base=None):
+        """Start a v0.6 parallel attempt through its helper-owned workspace."""
+        value = self.f.start_value(step, attempt, base=base or self.head())
+        value["write_scope"] = [CHAIN_MODULES[step]["path"]]
+        self.assertNotIn("workspace", value)
+        self.start_inputs[step] = json.loads(json.dumps(value))
+        output = self.call("start", value)
+        self.assertEqual(output["action"], "launch")
+        packet = output["packet"]
+        self.packets[step] = packet
+        packet_response = self.call("packet", {"attempt": attempt})
+        self.assertEqual(packet_response["packet"], packet,
+                         "managed cold recovery must preserve the one worker packet")
+        allocation = fixture.chain._per_step_allocation(self.bridge_events(), attempt)
+        self.assertEqual(allocation["adoption"], "ask-agent-managed-workspace")
+        managed = allocation["ask_agent_workspace"]
+        self.assertEqual(set(managed), {
+            "helper", "receipt", "receipt_sha256", "worktree", "branch", "baseline", "prepare", "prepared",
+        })
+        self.assertEqual(packet["context"]["workspace"], managed["worktree"])
+        self.assertEqual(packet["ask_agent_workspace"]["receipt"], managed["receipt"])
+        self.assertEqual(packet["ask_agent_workspace"]["worktree"], managed["worktree"])
+        self.assertEqual(packet["ask_agent_workspace"]["branch"], managed["branch"])
+        self.assertEqual(packet["ask_agent_workspace"]["delivery"], {
+            "mode": "commits", "commit_base": value["base_commit"],
+            "require_complete_linear_range": True,
+            "discard": [".shiploop-handoff/" + attempt],
+        })
+        if record_launch:
+            self.call("launched", {"attempt": attempt, "handle": {
+                "host": "deterministic-process-fixture", "id": step,
+            }})
+        return packet
+
+    def managed_context_check(self, step):
+        """Exercise the packet's public operation-directory check before work."""
+        packet = self.packets[step]
+        context = packet["ask_agent_workspace"]["check_context"]
+        self.assertEqual(context["cwd"], packet["context"]["workspace"])
+        environment = {
+            key: value for key, value in os.environ.items()
+            if not key.startswith("GIT_")
+        }
+        result = subprocess.run(context["argv"], cwd=context["cwd"], env=environment,
+                                text=True, capture_output=True, timeout=30)
+        self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+        checked = json.loads(result.stdout)
+        self.assertEqual(checked["status"], "verified")
+        self.assertEqual(checked["worktree"], context["cwd"])
+        return checked
+
+    def managed_worker_result(self, step, *, commits=1, manifest_commit=None):
+        """Make a real committed range plus the normal worker-local handoff."""
+        packet = self.packets[step]
+        workspace = Path(packet["context"]["workspace"])
+        module = CHAIN_MODULES[step]
+        path = workspace / module["path"]
+        git = ("git", "-c", "user.name=Chain Code Fixture", "-c",
+               "user.email=chain@example.invalid", "-C", str(workspace))
+        commits_created = []
+        if commits == 2:
+            path.write_text(module["source"] + "\n# intermediate worker commit\n")
+            staged = subprocess.run([*git, "add", module["path"]], text=True,
+                                    capture_output=True, timeout=30)
+            self.assertEqual(staged.returncode, 0, staged.stderr)
+            first = subprocess.run([*git, "commit", "-qm", "Stage " + step], text=True,
+                                   capture_output=True, timeout=30)
+            self.assertEqual(first.returncode, 0, first.stderr)
+            commits_created.append(subprocess.check_output([*git, "rev-parse", "HEAD"], text=True).strip())
+        path.write_text(module["source"])
+        staged = subprocess.run([*git, "add", module["path"]], text=True,
+                                capture_output=True, timeout=30)
+        self.assertEqual(staged.returncode, 0, staged.stderr)
+        committed = subprocess.run([*git, "commit", "-qm", "Implement " + step], text=True,
+                                   capture_output=True, timeout=30)
+        self.assertEqual(committed.returncode, 0, committed.stderr)
+        head = subprocess.check_output([*git, "rev-parse", "HEAD"], text=True).strip()
+        commits_created.append(head)
+        handoff = workspace / ".shiploop-handoff" / packet["attempt"] / "handoff.json"
+        handoff.parent.mkdir(parents=True, exist_ok=True)
+        checks = handoff.parent / "checks.json"
+        checks.write_text(json.dumps({
+            "passed": True, "cwd": str(workspace), "git_root": str(workspace),
+            "commit": head, "fixture_worker": True,
+        }) + "\n")
+        reported_commit = manifest_commit or head
+        manifest = {
+            "schema": "shiploop-chain-handoff/v1", "run_id": packet["run_id"],
+            "step": step, "attempt": packet["attempt"],
+            "base_commit": packet["context"]["base_commit"], "status": "SUCCEEDED",
+            "commit": reported_commit, "summary": "Generated and checked " + module["path"],
+            "files": [{"path": "checks.json", "sha256": hashlib.sha256(checks.read_bytes()).hexdigest()}],
+        }
+        handoff.write_text(json.dumps(manifest) + "\n")
+        result = {
+            "handoff": str(handoff), "sha256": hashlib.sha256(handoff.read_bytes()).hexdigest(),
+            "commit": head, "commits": commits_created, "phase": "completed",
+        }
+        self.source_commits[step] = head
+        return result
+
+    def managed_non_success_handoff(self, step, status):
+        """Return a stopped BLOCKED/FAILED worker without inventing a commit."""
+        self.assertIn(status, {"BLOCKED", "FAILED"})
+        packet = self.packets[step]
+        workspace = Path(packet["context"]["workspace"])
+        handoff = workspace / ".shiploop-handoff" / packet["attempt"] / "handoff.json"
+        handoff.parent.mkdir(parents=True, exist_ok=True)
+        detail = handoff.parent / "detail.json"
+        detail.write_text(json.dumps({"status": status, "stopped": True, "fixture_worker": True}) + "\n")
+        manifest = {
+            "schema": "shiploop-chain-handoff/v1", "run_id": packet["run_id"],
+            "step": step, "attempt": packet["attempt"],
+            "base_commit": packet["context"]["base_commit"], "status": status,
+            "commit": None, "summary": "Fixture " + status.lower() + " before code changes",
+            "files": [{"path": "detail.json", "sha256": hashlib.sha256(detail.read_bytes()).hexdigest()}],
+        }
+        handoff.write_text(json.dumps(manifest) + "\n")
+        return {
+            "handoff": str(handoff), "sha256": hashlib.sha256(handoff.read_bytes()).hexdigest(),
+            "commit": None, "phase": "completed",
+        }
+
+    def managed_collect(self, step, *, commits=1, manifest_commit=None):
+        self.managed_context_check(step)
+        result = self.managed_worker_result(step, commits=commits, manifest_commit=manifest_commit)
+        return self.import_finished(step, result), result
 
     def head(self):
         return self.f.git(self.f.target, "rev-parse", "HEAD")
@@ -937,17 +1075,434 @@ class PerStepChainTests(unittest.TestCase):
         self.complete_step("A")
         self.finish()
 
+    def test_managed_v06_freezes_selected_helper_delivers_complete_range_and_closes(self):
+        graph = json.loads(self.f.graph.read_text())
+        graph["steps"] = graph["steps"][:2]
+        self.f.graph.write_text(json.dumps(graph) + "\n")
+        self.managed_bind(capacity=2)
+        binding = self.binding()
+        self.assertEqual(binding["schema"], "shiploop-chain-binding/v5")
+        self.assertEqual(binding["ask_agent_contract"], {
+            "schema": "shiploop-chain-ask-agent-managed-worktree/v1",
+            "version": "0.6.1",
+            "capabilities": [
+                "helper-managed-worktree", "prepared-inspection", "returned-commit-delivery",
+                "fingerprint-bound-close",
+            ],
+        })
+        self.assertEqual(set(binding["ask_agent"]["files"]), {
+            "SKILL.md", "scripts/ask_agent_workspace.py", "references/git-integration.md",
+            "references/workspace-operations.md", "references/native-lifecycle.md",
+            "references/result-handoff.md",
+        })
+        identity = binding["ask_agent_identity"]
+        self.assertEqual(identity["method"], "helper-v1")
+        self.assertEqual(identity["logical_skill_card"], str(self.f.ask / "SKILL.md"))
+        self.assertEqual(identity["resolved_helper"],
+                         binding["ask_agent"]["files"]["scripts/ask_agent_workspace.py"]["path"])
+
+        attempts = self.claim("A", "B")
+        base = self.head()
+        packet = self.managed_start("A", attempts["A"], base=base)
+        b_packet = self.managed_start("B", attempts["B"], base=base)
+        self.assertEqual((packet["context"]["base_commit"], b_packet["context"]["base_commit"]),
+                         (base, base))
+        checked = self.managed_context_check("A")
+        self.assertEqual(checked["actual_cwd"], packet["context"]["workspace"])
+        self.assertEqual(self.managed_context_check("B")["actual_cwd"],
+                         b_packet["context"]["workspace"])
+
+        b_result = self.managed_worker_result("B")
+        self.import_finished("B", b_result)
+        b_accepted = self.prepare_and_done("B")
+
+        attempt = attempts["A"]
+        result = self.managed_worker_result("A", commits=2)
+        self.import_finished("A", result)
+        archived_handoff = Path(self.imports["A"]["archives"][0]["archived_path"])
+        archived_handoff_bytes = archived_handoff.read_bytes()
+        self.assertTrue(archived_handoff.is_file())
+        self.assertFalse(Path(result["handoff"]).exists(),
+                         "the parent import must remove the untracked handoff before W/T/I")
+        self.assertTrue(any(row["event"]["kind"] == "handoff_files_removed"
+                            for row in self.bridge_events()))
+        returned = next(row["event"]["data"] for row in self.bridge_events()
+                        if row["event"]["kind"] == "managed_returned_delivery")
+        self.assertEqual(returned["intent"], {
+            "attempt": attempt, "source_commit": result["commit"],
+            "base_commit": packet["context"]["base_commit"],
+            "receipt": packet["ask_agent_workspace"]["receipt"],
+            "receipt_sha256": packet["ask_agent_workspace"]["receipt_sha256"],
+            "workspace": packet["context"]["workspace"],
+            "discard": [".shiploop-handoff/" + attempt],
+        })
+        self.assertEqual(returned["delivery"]["commits"], result["commits"])
+        self.assertEqual(returned["delivery"]["source_commit"], result["commit"])
+        self.assertEqual(returned["delivery"]["workspace"], packet["context"]["workspace"])
+        self.assertIn("delivery", returned["delivery"]["evidence"])
+
+        accepted = self.prepare_and_done("A")
+        integration = self.done_inputs["A"]["integration"]
+        self.assertEqual(self.head(), integration["candidate_commit"])
+        self.assertNotEqual(integration["candidate_commit"], result["commit"])
+        parents = self.f.git(self.f.target, "show", "-s", "--format=%P", integration["candidate_commit"]).split()
+        self.assertEqual(len(parents), 2, "the worker range must be integrated through a distinct I merge")
+        self.assertEqual(set(parents), {
+            self.done_inputs["B"]["integration"]["candidate_commit"], result["commit"],
+        }, "A's I merge must retain both B's advanced target and A's returned worker range")
+        self.f.git(self.f.target, "merge-base", "--is-ancestor", b_result["commit"], integration["candidate_commit"])
+        self.f.git(self.f.target, "merge-base", "--is-ancestor", result["commit"], integration["candidate_commit"])
+        self.assertEqual(b_accepted["outcome"], "accepted")
+        self.assertEqual(accepted["outcome"], "accepted")
+        self.assertFalse(Path(packet["context"]["workspace"]).exists())
+        self.assertEqual(archived_handoff.read_bytes(), archived_handoff_bytes,
+                         "parent archive remains the durable handoff after helper-owned cleanup")
+        self.finish()
+
+    def test_managed_preparation_crash_replays_one_receipt_without_another_worktree(self):
+        self.managed_bind(single=True)
+        attempt = self.claim("A")["A"]
+        value = self.f.start_value("A", attempt, base=self.head())
+        value["write_scope"] = ["chain_add.py"]
+        original = fixture.chain._append
+
+        def crash_before_allocation(chain_dir, event_id, kind, data, **kwargs):
+            if kind == "allocation_intent":
+                raise OSError("fixture interruption after helper preparation")
+            return original(chain_dir, event_id, kind, data, **kwargs)
+
+        with patch.object(fixture.chain, "_append", side_effect=crash_before_allocation):
+            with self.assertRaises(OSError):
+                fixture.chain._per_step_start(self.f.run, self.binding(), value)
+        rows = self.bridge_events()
+        prepared = next(row["event"]["data"] for row in rows
+                        if row["event"]["kind"] == "managed_workspace_preparation_result")
+        workspace = Path(prepared["workspace"]["worktree"])
+        receipt = prepared["workspace"]["receipt"]
+        self.assertTrue(workspace.is_dir())
+        self.assertIsNone(fixture.chain._allocation(rows, attempt))
+        before_worktrees = self.f.git(self.f.target, "worktree", "list", "--porcelain")
+        self.assertEqual(before_worktrees.count("worktree "), 3)
+
+        output = self.call("start", value)
+        self.assertEqual(output["action"], "launch")
+        self.packets["A"] = output["packet"]
+        self.call("launched", {"attempt": attempt, "handle": {
+            "host": "deterministic-process-fixture", "id": "A",
+        }})
+        allocation = fixture.chain._per_step_allocation(self.bridge_events(), attempt)
+        self.assertEqual(allocation["ask_agent_workspace"]["receipt"], receipt)
+        self.assertEqual(allocation["plan"]["path"], str(workspace))
+        self.assertEqual(self.f.git(self.f.target, "worktree", "list", "--porcelain"), before_worktrees)
+        kinds = [row["event"]["kind"] for row in self.bridge_events()]
+        self.assertEqual(kinds.count("managed_workspace_preparation_intent"), 1)
+        self.assertEqual(kinds.count("managed_workspace_preparation_result"), 1)
+        self.assertEqual(kinds.count("allocation_intent"), 1)
+        self.assertEqual(kinds.count("allocation_result"), 1)
+
+        self.managed_context_check("A")
+        self.import_finished("A", self.managed_worker_result("A"))
+        self.prepare_and_done("A")
+        self.finish()
+
+    def test_managed_prepare_result_crash_recovers_one_receipt_without_second_prepare(self):
+        self.managed_bind(single=True)
+        attempt = self.claim("A")["A"]
+        value = self.f.start_value("A", attempt, base=self.head())
+        value["write_scope"] = ["chain_add.py"]
+        original = fixture.chain._append
+
+        def crash_before_preparation_receipt(chain_dir, event_id, kind, data, **kwargs):
+            if kind == "managed_workspace_preparation_result":
+                raise OSError("fixture interruption after helper created the workspace")
+            return original(chain_dir, event_id, kind, data, **kwargs)
+
+        with patch.object(fixture.chain, "_append", side_effect=crash_before_preparation_receipt):
+            with self.assertRaises(OSError):
+                fixture.chain._per_step_start(self.f.run, self.binding(), value)
+        rows = self.bridge_events()
+        self.assertTrue(any(row["event"]["kind"] == "managed_workspace_preparation_intent" for row in rows))
+        self.assertFalse(any(row["event"]["kind"] == "managed_workspace_preparation_result" for row in rows))
+        before_worktrees = self.f.git(self.f.target, "worktree", "list", "--porcelain")
+        paths = [Path(line.removeprefix("worktree ")) for line in before_worktrees.splitlines()
+                 if line.startswith("worktree ")]
+        created = [path for path in paths if path not in {self.f.primary, self.f.target}]
+        self.assertEqual(len(created), 1)
+
+        output = self.call("start", value)
+        self.assertEqual(output["action"], "launch")
+        self.packets["A"] = output["packet"]
+        self.call("launched", {"attempt": attempt, "handle": {
+            "host": "deterministic-process-fixture", "id": "A",
+        }})
+        allocation = fixture.chain._per_step_allocation(self.bridge_events(), attempt)
+        self.assertEqual(Path(allocation["plan"]["path"]), created[0])
+        self.assertEqual(self.f.git(self.f.target, "worktree", "list", "--porcelain"), before_worktrees)
+        kinds = [row["event"]["kind"] for row in self.bridge_events()]
+        self.assertEqual(kinds.count("managed_workspace_preparation_intent"), 1)
+        self.assertEqual(kinds.count("managed_workspace_preparation_result"), 1)
+
+        self.managed_context_check("A")
+        self.import_finished("A", self.managed_worker_result("A"))
+        self.prepare_and_done("A")
+        self.finish()
+
+    def test_managed_replay_refuses_tampered_receipts_and_prepared_drift_before_launch(self):
+        self.managed_bind(single=True)
+        attempt = self.claim("A")["A"]
+        packet = self.managed_start("A", attempt, record_launch=False)
+        value = self.start_inputs["A"]
+        workspace = Path(packet["context"]["workspace"])
+        before_head = self.head()
+        before_ledger = self.f.ledger_bytes()
+        original_events = fixture.chain._events
+
+        helper = Path(self.binding()["ask_agent"]["files"]["scripts/ask_agent_workspace.py"]["path"])
+        alternate_store = self.f.parent / "alternate-managed-store"
+        clean_env = {key: value for key, value in os.environ.items() if not key.startswith("GIT_")}
+        prepared_process = subprocess.run(
+            [sys.executable, str(helper), "prepare", "--source", str(self.f.primary),
+             "--store", str(alternate_store), "--label", "alternate-source", "--writers-quiescent"],
+            text=True, capture_output=True, timeout=30, env=clean_env,
+        )
+        self.assertEqual(prepared_process.returncode, 0, prepared_process.stderr + prepared_process.stdout)
+        alternate_prepare = json.loads(prepared_process.stdout)
+        alternate_inspect_process = subprocess.run(
+            [sys.executable, str(helper), "inspect", "--receipt", alternate_prepare["receipt"], "--phase", "prepared"],
+            text=True, capture_output=True, timeout=30, env=clean_env,
+        )
+        self.assertEqual(alternate_inspect_process.returncode, 0,
+                         alternate_inspect_process.stderr + alternate_inspect_process.stdout)
+        alternate_inspect = json.loads(alternate_inspect_process.stdout)
+        alternate_workspace = Path(alternate_prepare["worktree"])
+        before_worktrees = self.f.git(self.f.target, "worktree", "list", "--porcelain")
+
+        def remove_alternate_workspace():
+            if alternate_workspace.exists():
+                self.f.git(self.f.primary, "worktree", "remove", "--force", str(alternate_workspace))
+
+        self.addCleanup(remove_alternate_workspace)
+
+        def alternate_receipt(record):
+            frozen_helper = self.binding()["ask_agent"]["files"]["scripts/ask_agent_workspace.py"]
+            return {
+                "helper": dict(frozen_helper), "receipt": alternate_prepare["receipt"],
+                "receipt_sha256": fixture.digest(Path(alternate_prepare["receipt"])),
+                "worktree": alternate_prepare["worktree"], "branch": alternate_prepare["branch"],
+                "baseline": alternate_prepare["baseline"], "prepare": alternate_prepare,
+                "prepared": alternate_inspect,
+            }
+
+        mutations = {
+            "helper-mismatch": lambda record: record["helper"].update({"sha256": "0" * 64}),
+            "malformed-prepared": lambda record: record.update({"prepared": {"phase": "prepared"}}),
+            "prepared-worktree-splice": lambda record: record["prepared"].update({"worktree": str(self.f.primary)}),
+            "same-common-dir-alternate-source": lambda record: record.clear() or record.update(alternate_receipt(record)),
+        }
+
+        for label, mutate in mutations.items():
+            with self.subTest(label=label):
+                def tampered_events(*args, **kwargs):
+                    rows = json.loads(json.dumps(original_events(*args, **kwargs)))
+                    for row in rows:
+                        event = row.get("event", {})
+                        if event.get("kind") == "allocation_intent":
+                            mutate(event["data"]["ask_agent_workspace"])
+                    return rows
+
+                with patch.object(fixture.chain, "_events", side_effect=tampered_events):
+                    with self.assertRaises(fixture.chain.ChainError):
+                        fixture.chain._per_step_start(self.f.run, self.binding(), value)
+                self.assertEqual(self.head(), before_head)
+                self.assertEqual(self.f.ledger_bytes(), before_ledger)
+                self.assertEqual(self.f.git(self.f.target, "worktree", "list", "--porcelain"), before_worktrees)
+                self.assertTrue(workspace.exists())
+                self.assertEqual(self.f.child_record(attempt)["status"], "launching")
+
+        (workspace / "prepared-drift.txt").write_text("not part of the prepared baseline\n")
+        refused = self.call("start", value, ok=False)
+        self.assertTrue(any(word in refused.stderr.lower() for word in ("drift", "prepared", "receipt")),
+                        refused.stderr)
+        self.assertEqual(self.head(), before_head)
+        self.assertTrue(workspace.exists())
+        (workspace / "prepared-drift.txt").unlink()
+
+        self.call("launched", {"attempt": attempt, "handle": {
+            "host": "deterministic-process-fixture", "id": "A",
+        }})
+        self.managed_context_check("A")
+        self.import_finished("A", self.managed_worker_result("A"))
+        self.prepare_and_done("A")
+        self.finish()
+
+    def test_managed_returned_delivery_mismatch_refuses_before_target_mutation(self):
+        self.managed_bind(single=True)
+        attempt = self.claim("A")["A"]
+        packet = self.managed_start("A", attempt)
+        self.managed_context_check("A")
+        result = self.managed_worker_result("A", commits=2, manifest_commit=None)
+        # A handoff naming the first commit instead of the actual worker HEAD
+        # is a valid Git object but not the complete returned linear range.
+        handoff = Path(result["handoff"])
+        manifest = json.loads(handoff.read_text())
+        manifest["commit"] = result["commits"][0]
+        handoff.write_text(json.dumps(manifest) + "\n")
+        result["sha256"] = hashlib.sha256(handoff.read_bytes()).hexdigest()
+        before_head = self.head()
+        before_child = self.f.child_state_path().read_bytes()
+        refused = self.call("import-handoff", {"attempt": attempt, "confirmed_stopped": True,
+                                                "handoff": {"path": result["handoff"], "sha256": result["sha256"]}},
+                            ok=False)
+        self.assertIn("delivery", refused.stderr.lower())
+        self.assertEqual(self.head(), before_head)
+        self.assertEqual(self.f.child_state_path().read_bytes(), before_child)
+        self.assertTrue(Path(packet["context"]["workspace"]).exists())
+        self.assertFalse(any(row["event"]["kind"] == "managed_returned_delivery"
+                             for row in self.bridge_events()))
+
+        workspace = Path(packet["context"]["workspace"])
+
+        def remove_retained_workspace():
+            if workspace.exists():
+                self.f.git(self.f.target, "worktree", "remove", "--force", str(workspace))
+
+        self.addCleanup(remove_retained_workspace)
+
+    def test_managed_retained_close_stays_pending_then_recovers_after_close_crash_boundary(self):
+        self.managed_bind(single=True)
+        attempt = self.claim("A")["A"]
+        packet = self.managed_start("A", attempt)
+        workspace = Path(packet["context"]["workspace"])
+        helper = packet["ask_agent_workspace"]["executing_helper"]["path"]
+        clean_env = {key: value for key, value in os.environ.items() if not key.startswith("GIT_")}
+        probe = subprocess.run([sys.executable, helper, "close", "--receipt",
+                                packet["ask_agent_workspace"]["receipt"]],
+                               text=True, capture_output=True, timeout=30, env=clean_env)
+        self.assertEqual(probe.returncode, 0, probe.stderr + probe.stdout)
+        retained = json.loads(probe.stdout)
+        self.assertEqual((retained["status"], retained["removed"]), ("retained", False))
+
+        self.managed_context_check("A")
+        self.import_finished("A", self.managed_worker_result("A"))
+        value = self.prepared_input("A")
+        original_helper = fixture.chain._ask_agent_workspace
+
+        def retain_close(binding, operation, *arguments):
+            if operation == "close":
+                return retained
+            return original_helper(binding, operation, *arguments)
+
+        with patch.object(fixture.chain, "_ask_agent_workspace", side_effect=retain_close):
+            settled = fixture.chain._per_step_done(self.f.run, self.binding(), value)
+        self.assertEqual(settled["outcome"], "accepted")
+        self.assertTrue(settled["cleanup"]["pending"])
+        self.assertTrue(workspace.exists())
+        self.assertEqual(self.head(), value["integration"]["candidate_commit"])
+        pending = self.call("pending")
+        self.assertIn(attempt, pending["lifecycle"]["cleanup_pending"])
+        self.assertIn(attempt, pending["lifecycle"]["retained_workers"])
+
+        original_append = fixture.chain._append
+
+        def crash_after_helper_close(chain_dir, event_id, kind, data, **kwargs):
+            if kind == "cleanup_result":
+                raise OSError("fixture interruption after helper-owned worktree removal")
+            return original_append(chain_dir, event_id, kind, data, **kwargs)
+
+        with patch.object(fixture.chain, "_append", side_effect=crash_after_helper_close):
+            with self.assertRaises(OSError):
+                fixture.chain._per_step_cleanup_attempt(
+                    self.f.run, self.binding(), attempt, confirmed_stopped=True,
+                )
+        self.assertFalse(workspace.exists(), "the injected crash happens after the helper closes its worktree")
+
+        cleaned = self.call("cleanup", {"attempt": attempt, "confirmed_stopped": True})
+        self.assertFalse(cleaned["pending"])
+        close = cleaned["cleanup"]["close"]
+        self.assertEqual((close["status"], close["removed"], close["decision"]), ("closed", True, "integrated"))
+        self.assertFalse(workspace.exists())
+        kinds = [row["event"]["kind"] for row in self.bridge_events()]
+        self.assertEqual(kinds.count("managed_close_inspection"), 1)
+        self.assertEqual(kinds.count("cleanup_result"), 1)
+        self.finish()
+
+    def test_managed_blocked_handoff_is_archived_and_retained_without_commit_delivery(self):
+        self.managed_bind(single=True)
+        attempt = self.claim("A")["A"]
+        packet = self.managed_start("A", attempt)
+        self.managed_context_check("A")
+        stopped = self.managed_non_success_handoff("A", "BLOCKED")
+        imported = self.import_finished("A", stopped)
+        workspace = Path(packet["context"]["workspace"])
+        self.assertEqual(imported["import"]["status"], "BLOCKED")
+        self.assertIsNone(imported["import"]["commit"])
+        self.assertFalse(Path(stopped["handoff"]).exists())
+        self.assertTrue(Path(imported["import"]["archives"][0]["archived_path"]).is_file())
+        self.assertFalse(any(row["event"]["kind"] == "managed_returned_delivery"
+                             for row in self.bridge_events()))
+        receipt = fixture.chain._node(self.binding(), "receipt", {"attempt": attempt})
+        proof = self.f.write("managed-blocked.json", {"passed": False, "status": "BLOCKED"})
+        rejected = self.call("done", {"attempt": attempt, "confirmed_stopped": True,
+                                       "verification": {"receipt_sha256": receipt["sha256"], "passed": False,
+                                                        "reason": "Blocked fixture has no code contribution",
+                                                        "evidence": {"path": str(proof),
+                                                                     "sha256": fixture.digest(proof)}}})
+        self.assertEqual(rejected["outcome"], "rejected")
+        self.assertEqual(self.head(), self.f.initial)
+        self.assertTrue(workspace.exists(), "a rejected managed workspace stays retained for recovery")
+        self.assertIn(attempt, self.call("pending")["lifecycle"]["retained_workers"])
+        self.call("retry", {"attempt": attempt, "confirmed_stopped": True,
+                            "reason": "Blocked managed worker requires a replacement"})
+        superseded = self.call("cleanup", {"attempt": attempt, "confirmed_stopped": True,
+                                             "disposition": "superseded",
+                                             "reason": "Replacement will be handled separately"}, ok=False)
+        self.assertIn("retain the superseded Ask-Agent helper-managed workspace", superseded.stderr)
+        self.assertTrue(workspace.exists(), "managed superseded cleanup must preserve its helper receipt")
+
+        def remove_retained_workspace():
+            if workspace.exists():
+                self.f.git(self.f.target, "worktree", "remove", "--force", str(workspace))
+
+        self.addCleanup(remove_retained_workspace)
+
+    def test_managed_v060_uses_explicit_frozen_package_identity_fallback(self):
+        self.use_managed_ask_agent()
+        card = self.f.ask / "SKILL.md"
+        import re
+        card.write_text(re.sub(r"(?m)^version:.*$", "version: 0.6.0", card.read_text()))
+        self.bind(single=True)
+        identity = self.binding()["ask_agent_identity"]
+        self.assertEqual(identity["version"], "0.6.0")
+        self.assertEqual(identity["method"], "frozen-package-root-v1")
+        self.assertEqual(identity["resolved_helper"], str(self.f.ask / "scripts/ask_agent_workspace.py"))
+        self.assertEqual(self.f.git(self.f.primary, "worktree", "list", "--porcelain").count("worktree "), 2)
+
+    def test_managed_serial_keeps_chain_git_allocation_path(self):
+        self.managed_bind(mode="serial", single=True)
+        binding = self.binding()
+        self.assertEqual(binding["schema"], "shiploop-chain-binding/v5")
+        attempt = self.claim("A")["A"]
+        self.start("A", attempt, serial=True)
+        allocation = fixture.chain._per_step_allocation(self.bridge_events(), attempt)
+        self.assertEqual(allocation["adoption"], "serial-bridge")
+        self.assertNotIn("ask_agent_workspace", allocation)
+        self.assertNotIn("managed_workspace", allocation["plan"])
+        self.assertEqual(Path(allocation["plan"]["path"]).parent, self.f.parent)
+        self.complete_step("A")
+        self.finish()
+
     def test_unsupported_ask_agent_version_refused_before_any_worker(self):
         shutil.rmtree(self.f.ask)
         shutil.copytree(ROOT / "skills/ask-agent", self.f.ask)
-        # Current release fixture is 0.3.x; explicitly mutate only copied test data.
+        # Unknown future versions must not fall through to either reviewed adapter.
         card = self.f.ask / "SKILL.md"
         text = card.read_text()
         import re
-        card.write_text(re.sub(r"(?m)^version:.*$", "version: 0.3.1", text))
+        card.write_text(re.sub(r"(?m)^version:.*$", "version: 0.7.1", text))
         refused = self.bind(ok=False)
         self.assertIn("Ask-Agent", refused.stderr)
         self.assertIn("0.4", refused.stderr)
+        self.assertIn("0.6", refused.stderr)
         self.assertEqual(self.f.git(self.f.primary, "worktree", "list", "--porcelain").count("worktree "), 2)
 
     def test_stale_combined_candidate_refuses_merge_then_reprepares(self):

@@ -30,6 +30,7 @@ import shlex
 import shutil
 import stat
 import subprocess
+import sys
 import tempfile
 from typing import Any
 import uuid
@@ -40,6 +41,7 @@ import shiploop_store as store
 
 
 _BINDING_SCHEMA = "shiploop-chain-binding/v4"
+_MANAGED_BINDING_SCHEMA = "shiploop-chain-binding/v5"
 _V3_BINDING_SCHEMA = "shiploop-chain-binding/v3"
 _V2_BINDING_SCHEMA = "shiploop-chain-binding/v2"
 _LEGACY_BINDING_SCHEMA = "shiploop-chain-binding/v1"
@@ -47,12 +49,23 @@ _PLANNING_SCHEMA = "shiploop-planning-artifacts/v1"
 _CHAIN_MODES = frozenset({"parallel", "serial"})
 _LIFECYCLES = frozenset({"per-step", "final-return"})
 _PER_STEP_ASK_AGENT_CONTRACT = "shiploop-chain-ask-agent/v1"
+_MANAGED_PER_STEP_ASK_AGENT_CONTRACT = "shiploop-chain-ask-agent-managed-worktree/v1"
+_MANAGED_ASK_AGENT_IDENTITY_SCHEMA = "shiploop-chain-ask-agent-identity/v1"
+_MANAGED_ASK_AGENT_FILES = frozenset({
+    "SKILL.md",
+    "scripts/ask_agent_workspace.py",
+    "references/git-integration.md",
+    "references/workspace-operations.md",
+    "references/native-lifecycle.md",
+    "references/result-handoff.md",
+})
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
 _COMMIT = re.compile(r"^[0-9a-fA-F]{40,64}$")
 _ACTION = re.compile(r"^[A-Za-z][A-Za-z0-9_-]{0,159}$")
 _ATTEMPT = re.compile(r"^[A-Za-z0-9_-]{1,160}$")
 _EVENT_SAFE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$")
 _NODE_TIMEOUT_SECONDS = 30
+_ASK_AGENT_WORKSPACE_TIMEOUT_SECONDS = 30
 _GRAPH_VALIDATION_SCHEMA = "execution-graph/v1"
 _GIT_ENV_KEYS = frozenset({
     "GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE", "GIT_COMMON_DIR",
@@ -390,7 +403,7 @@ def _binding_mode(value: Mapping[str, Any]) -> str:
     schema = value.get("schema")
     if schema == _LEGACY_BINDING_SCHEMA:
         return "parallel"
-    if schema in {_V2_BINDING_SCHEMA, _V3_BINDING_SCHEMA, _BINDING_SCHEMA}:
+    if schema in {_V2_BINDING_SCHEMA, _V3_BINDING_SCHEMA, _BINDING_SCHEMA, _MANAGED_BINDING_SCHEMA}:
         mode = value.get("mode")
         if mode in _CHAIN_MODES:
             return str(mode)
@@ -403,7 +416,7 @@ def _binding_lifecycle(value: Mapping[str, Any]) -> str:
         return "final-return"
     if value.get("schema") == _V3_BINDING_SCHEMA and value.get("lifecycle") == "per-step":
         return "per-step"
-    if value.get("schema") == _BINDING_SCHEMA and value.get("lifecycle") in _LIFECYCLES:
+    if value.get("schema") in {_BINDING_SCHEMA, _MANAGED_BINDING_SCHEMA} and value.get("lifecycle") in _LIFECYCLES:
         return str(value["lifecycle"])
     _fail("chain binding has an unsupported lifecycle")
 
@@ -416,10 +429,12 @@ def _validate_binding(value: Any, *, expected_digest: str | None = None) -> dict
         "graph_source", "dispatcher", "ask_agent", "node", "target", "worktree_parent", "dispatcher_run",
     }
     schema = value.get("schema")
-    if schema == _BINDING_SCHEMA:
+    if schema in {_BINDING_SCHEMA, _MANAGED_BINDING_SCHEMA}:
         expected.update({"mode", "lifecycle", "planning_context"})
         if value.get("lifecycle") == "per-step":
             expected.add("ask_agent_contract")
+        if schema == _MANAGED_BINDING_SCHEMA:
+            expected.add("ask_agent_identity")
     elif schema == _V3_BINDING_SCHEMA:
         expected.update({"mode", "lifecycle", "ask_agent_contract"})
     elif schema == _V2_BINDING_SCHEMA:
@@ -447,16 +462,21 @@ def _validate_binding(value: Any, *, expected_digest: str | None = None) -> dict
     dispatcher_files = {
         "SKILL.md", "scripts/dispatch.js", "scripts/state.js", "references/protocol.md",
     }
-    if schema == _BINDING_SCHEMA:
+    if schema in {_BINDING_SCHEMA, _MANAGED_BINDING_SCHEMA}:
         dispatcher_files.add("scripts/planning-context.js")
         context = _exact_keys(value["planning_context"], {"path", "sha256", "source"}, "planning context")
         _file_binding({key: context[key] for key in ("path", "sha256")}, "planning context")
         if context["source"] != {"run_id": value["run_id"], "action_id": value["action_id"]}:
             _fail("planning context source does not match the bound run/action")
     _package_binding(value["dispatcher"], "dispatcher", dispatcher_files)
-    _package_binding(value["ask_agent"], "Ask-Agent", {"SKILL.md", "references/git-integration.md"})
+    ask_agent_files = ({"SKILL.md", "references/git-integration.md"}
+                       if schema != _MANAGED_BINDING_SCHEMA else _MANAGED_ASK_AGENT_FILES)
+    _package_binding(value["ask_agent"], "Ask-Agent", ask_agent_files)
     if _binding_lifecycle(value) == "per-step":
         _ask_agent_contract_binding(value["ask_agent_contract"])
+    if schema == _MANAGED_BINDING_SCHEMA:
+        _managed_ask_agent_identity_binding(value["ask_agent_identity"], value["ask_agent"],
+                                             value.get("ask_agent_contract"))
     _validate_identity(value["target"], "chain binding target")
     return value
 
@@ -483,18 +503,65 @@ def _package_binding(value: Any, label: str, required: set[str]) -> None:
 
 def _ask_agent_contract_binding(value: Any) -> dict[str, Any]:
     row = _exact_keys(value, {"schema", "version", "capabilities"}, "Ask-Agent contract")
-    if row["schema"] != _PER_STEP_ASK_AGENT_CONTRACT:
+    if row["schema"] == _PER_STEP_ASK_AGENT_CONTRACT:
+        if not isinstance(row["version"], str) or re.fullmatch(r"0\.4\.[0-9]+", row["version"]) is None:
+            _fail("Ask-Agent 0.4 contract requires a supported 0.4.x version")
+        expected = ["inline-assignment", "caller-prepared-worktree", "parent-integration-removal"]
+    elif row["schema"] == _MANAGED_PER_STEP_ASK_AGENT_CONTRACT:
+        if not isinstance(row["version"], str) or re.fullmatch(r"0\.6\.[0-9]+", row["version"]) is None:
+            _fail("Ask-Agent managed-worktree contract requires a supported 0.6.x version")
+        expected = ["helper-managed-worktree", "prepared-inspection", "returned-commit-delivery", "fingerprint-bound-close"]
+    else:
         _fail("Ask-Agent contract schema is unsupported")
-    if not isinstance(row["version"], str) or re.fullmatch(r"0\.4\.[0-9]+", row["version"]) is None:
-        _fail("Ask-Agent contract requires a supported 0.4.x version")
-    expected = ["inline-assignment", "caller-prepared-worktree", "parent-integration-removal"]
     if row["capabilities"] != expected:
         _fail("Ask-Agent contract capabilities are unsupported")
     return dict(row)
 
 
+def _managed_ask_agent_identity_binding(value: Any, package: Mapping[str, Any],
+                                         contract: Any) -> dict[str, Any]:
+    """Validate the selected-card/executing-helper identity frozen for v5."""
+    if not isinstance(contract, Mapping) or contract.get("schema") != _MANAGED_PER_STEP_ASK_AGENT_CONTRACT:
+        _fail("managed Ask-Agent identity requires the managed-worktree contract")
+    row = _exact_keys(value, {
+        "schema", "method", "logical_skill_card", "resolved_skill_card", "resolved_helper",
+        "version", "skill_card_sha256", "helper_sha256",
+    }, "managed Ask-Agent identity")
+    if row["schema"] != _MANAGED_ASK_AGENT_IDENTITY_SCHEMA:
+        _fail("managed Ask-Agent identity has an unsupported schema")
+    if row["method"] not in {"helper-v1", "frozen-package-root-v1"}:
+        _fail("managed Ask-Agent identity has an unsupported method")
+    logical = _is_absolute_text(row["logical_skill_card"], "managed Ask-Agent logical skill card")
+    resolved_card = _resolved_existing(_is_absolute_text(
+        row["resolved_skill_card"], "managed Ask-Agent resolved skill card"),
+        "managed Ask-Agent resolved skill card", directory=False)
+    resolved_helper = _resolved_existing(_is_absolute_text(
+        row["resolved_helper"], "managed Ask-Agent resolved helper"),
+        "managed Ask-Agent resolved helper", directory=False)
+    if resolved_card.name != "SKILL.md" or resolved_helper.name != "ask_agent_workspace.py":
+        _fail("managed Ask-Agent identity does not name its skill card and workspace helper")
+    if resolved_helper.parent != resolved_card.parent / "scripts":
+        _fail("managed Ask-Agent selected card and executing helper are not one package")
+    if str(resolved_card) != package["skill_card"]:
+        _fail("managed Ask-Agent identity conflicts with the frozen selected card")
+    helper = package["files"]["scripts/ask_agent_workspace.py"]
+    if str(resolved_helper) != helper["path"]:
+        _fail("managed Ask-Agent identity conflicts with the frozen executing helper")
+    if row["version"] != contract.get("version"):
+        _fail("managed Ask-Agent identity version conflicts with its selected contract")
+    if row["skill_card_sha256"] != package["files"]["SKILL.md"]["sha256"]:
+        _fail("managed Ask-Agent identity card digest conflicts with its frozen package")
+    if row["helper_sha256"] != helper["sha256"]:
+        _fail("managed Ask-Agent identity helper digest conflicts with its frozen package")
+    # Preserve the input path as a useful host-facing locator, but require it
+    # to resolve to the selected package rather than accepting a same-named card.
+    if _resolved_existing(logical, "managed Ask-Agent logical skill card", directory=False) != resolved_card:
+        _fail("managed Ask-Agent logical skill card does not resolve to its frozen package")
+    return dict(row)
+
+
 def _selected_ask_agent_contract(package: Mapping[str, Any]) -> dict[str, Any]:
-    """Select the explicit 0.4 adapter; version 0.3 never falls through here."""
+    """Select an explicit 0.4 or 0.6 adapter; unknown versions never fall through."""
     card = _read_regular(Path(package["files"]["SKILL.md"]["path"]), "selected Ask-Agent SKILL.md")
     reference = _read_regular(
         Path(package["files"]["references/git-integration.md"]["path"]),
@@ -502,22 +569,98 @@ def _selected_ask_agent_contract(package: Mapping[str, Any]) -> dict[str, Any]:
     )
     text = card.decode("utf-8", "strict")
     reference_text = reference.decode("utf-8", "strict")
-    match = re.search(r"^version:\s*(0\.4\.[0-9]+)\s*$", text, flags=re.MULTILINE)
-    if match is None:
-        _fail("per-step lifecycle requires an explicitly selected Ask-Agent 0.4.x package")
+    legacy = re.search(r"^version:\s*(0\.4\.[0-9]+)\s*$", text, flags=re.MULTILINE)
+    if legacy is not None:
+        required = (
+            "Do not create a prompt/context file as a transport step.",
+            "The parent owns integration and worktree removal.",
+            "Honor an existing caller-prepared worktree",
+            "Use Git/native worktree removal",
+        )
+        if required[0] not in text or required[1] not in text or any(marker not in reference_text for marker in required[2:]):
+            _fail("selected Ask-Agent 0.4 package does not declare the required per-step adapter contract")
+        return {
+            "schema": _PER_STEP_ASK_AGENT_CONTRACT,
+            "version": legacy.group(1),
+            "capabilities": ["inline-assignment", "caller-prepared-worktree", "parent-integration-removal"],
+        }
+    managed = re.search(r"^version:\s*(0\.6\.[0-9]+)\s*$", text, flags=re.MULTILINE)
+    if managed is None:
+        _fail("per-step lifecycle requires an explicitly selected Ask-Agent 0.4.x or 0.6.x package")
+    contract_text = " ".join((text + "\n" + reference_text).split())
     required = (
-        "Do not create a prompt/context file as a transport step.",
-        "The parent owns integration and worktree removal.",
-        "Honor an existing caller-prepared worktree",
-        "Use Git/native worktree removal",
+        "The bundled helper owns Git workspace preparation and eligible cleanup",
+        "call `prepare --source`",
+        "inspect --phase prepared --receipt",
+        "check-context --receipt",
+        "Archive reports and call `close`",
+        "commit delivery still requires a clean inherited snapshot",
     )
-    if required[0] not in text or required[1] not in text or any(marker not in reference_text for marker in required[2:]):
-        _fail("selected Ask-Agent 0.4 package does not declare the required per-step adapter contract")
+    if any(marker not in contract_text for marker in required):
+        _fail("selected Ask-Agent 0.6 package does not declare the required managed-worktree contract")
     return {
-        "schema": _PER_STEP_ASK_AGENT_CONTRACT,
-        "version": match.group(1),
-        "capabilities": ["inline-assignment", "caller-prepared-worktree", "parent-integration-removal"],
+        "schema": _MANAGED_PER_STEP_ASK_AGENT_CONTRACT,
+        "version": managed.group(1),
+        "capabilities": ["helper-managed-worktree", "prepared-inspection", "returned-commit-delivery", "fingerprint-bound-close"],
     }
+
+
+def _managed_ask_agent_identity(package: Mapping[str, Any], logical_skill_card: str,
+                                contract: Mapping[str, Any]) -> dict[str, Any]:
+    """Bind the host-selected card to the exact helper that ShipLoop executes.
+
+    Ask Agent 0.6.1 added its own identity command.  The initial 0.6.0
+    contract predates that command, so its frozen same-package closure remains
+    explicit instead of pretending the command exists.  Later 0.6 releases
+    must prove the stronger native identity before a run is created.
+    """
+    logical = _is_absolute_text(logical_skill_card, "Ask-Agent logical SKILL.md")
+    helper_record = package["files"].get("scripts/ask_agent_workspace.py")
+    if not isinstance(helper_record, Mapping):
+        _fail("managed Ask-Agent package lacks its workspace helper")
+    helper = _resolved_existing(Path(helper_record["path"]), "managed Ask-Agent helper", directory=False)
+    card = _resolved_existing(Path(package["skill_card"]), "managed Ask-Agent selected card", directory=False)
+    if card.name != "SKILL.md" or helper.parent != card.parent / "scripts":
+        _fail("managed Ask-Agent card and workspace helper are not one package")
+    if _resolved_existing(logical, "Ask-Agent logical SKILL.md", directory=False) != card:
+        _fail("Ask-Agent logical SKILL.md does not resolve to the selected package")
+    patch = int(str(contract["version"]).split(".")[2])
+    common = {
+        "schema": _MANAGED_ASK_AGENT_IDENTITY_SCHEMA,
+        "logical_skill_card": str(logical),
+        "resolved_skill_card": str(card),
+        "resolved_helper": str(helper),
+        "version": contract["version"],
+        "skill_card_sha256": package["files"]["SKILL.md"]["sha256"],
+        "helper_sha256": helper_record["sha256"],
+    }
+    if patch == 0:
+        return dict(common, method="frozen-package-root-v1")
+    try:
+        result = subprocess.run(
+            [sys.executable, str(helper), "identity", "--skill-card", str(logical)],
+            text=True, capture_output=True, timeout=_ASK_AGENT_WORKSPACE_TIMEOUT_SECONDS, check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        raise ChainError(f"cannot run managed Ask-Agent native identity: {exc}") from exc
+    try:
+        native = json.loads(result.stdout.strip())
+    except json.JSONDecodeError as exc:
+        detail = result.stderr.strip() or result.stdout.strip() or f"exit {result.returncode}"
+        raise ChainError(f"managed Ask-Agent native identity returned invalid JSON: {detail[:1600]}") from exc
+    if result.returncode != 0 or not isinstance(native, Mapping):
+        detail = native.get("error") if isinstance(native, Mapping) else result.stderr.strip()
+        _fail("managed Ask-Agent native identity failed: " + str(detail)[:1600])
+    expected_native = {
+        "status": "verified", "schema": "ask-agent.skill.identity.v1",
+        "skill_card": str(logical), "resolved_skill_card": str(card),
+        "resolved_helper": str(helper), "version": contract["version"],
+        "skill_card_sha256": package["files"]["SKILL.md"]["sha256"],
+        "helper_sha256": helper_record["sha256"],
+    }
+    if dict(native) != expected_native:
+        _fail("managed Ask-Agent native identity conflicts with the frozen card/helper package")
+    return dict(common, method="helper-v1")
 
 
 def _read_binding(root: Path, action_id: str, expected_digest: str) -> dict[str, Any]:
@@ -571,6 +714,169 @@ def _verify_frozen(binding: Mapping[str, Any]) -> None:
         data = _read_regular(Path(record["path"]), "bound " + label)
         if _sha256(data) != record["sha256"]:
             _fail(f"selected chain input drifted: {label}; mutations are refused")
+
+
+def _managed_ask_agent_adapter(binding: Mapping[str, Any]) -> bool:
+    """Return whether this binding froze Ask Agent's helper-managed contract."""
+    contract = binding.get("ask_agent_contract")
+    return (
+        _binding_lifecycle(binding) == "per-step"
+        and isinstance(contract, Mapping)
+        and contract.get("schema") == _MANAGED_PER_STEP_ASK_AGENT_CONTRACT
+    )
+
+
+def _managed_parallel_ask_agent_adapter(binding: Mapping[str, Any]) -> bool:
+    return _binding_mode(binding) == "parallel" and _managed_ask_agent_adapter(binding)
+
+
+def _ask_agent_workspace(binding: Mapping[str, Any], operation: str, *arguments: str) -> dict[str, Any]:
+    """Run the frozen Ask Agent helper through its public JSON CLI exactly once."""
+    if not _managed_ask_agent_adapter(binding):
+        _fail("selected Ask-Agent binding does not provide the managed workspace helper")
+    _verify_frozen(binding)
+    record = binding["ask_agent"]["files"].get("scripts/ask_agent_workspace.py")
+    if not isinstance(record, Mapping):
+        _fail("managed Ask-Agent binding lacks its frozen workspace helper")
+    helper = _resolved_existing(Path(record.get("path", "")), "bound Ask-Agent workspace helper", directory=False)
+    if _sha256(_read_regular(helper, "bound Ask-Agent workspace helper")) != record.get("sha256"):
+        _fail("bound Ask-Agent workspace helper drifted")
+    try:
+        result = subprocess.run(
+            [sys.executable, str(helper), operation, *arguments],
+            text=True,
+            capture_output=True,
+            timeout=_ASK_AGENT_WORKSPACE_TIMEOUT_SECONDS,
+            check=False,
+        )
+    except subprocess.TimeoutExpired as exc:
+        raise ChainError(f"bound Ask-Agent workspace helper {operation} timed out after "
+                         f"{_ASK_AGENT_WORKSPACE_TIMEOUT_SECONDS}s") from exc
+    except OSError as exc:
+        raise ChainError(f"cannot invoke bound Ask-Agent workspace helper {operation}: {exc}") from exc
+    stdout = result.stdout.strip()
+    stderr = result.stderr.strip()
+    try:
+        parsed = json.loads(stdout)
+    except json.JSONDecodeError as exc:
+        detail = stderr or stdout or f"exit {result.returncode}"
+        raise ChainError(f"bound Ask-Agent workspace helper {operation} returned invalid JSON: {detail[:1600]}") from exc
+    if not isinstance(parsed, dict):
+        _fail(f"bound Ask-Agent workspace helper {operation} returned a non-object response")
+    if result.returncode != 0:
+        detail = parsed.get("error") if isinstance(parsed.get("error"), str) else (stderr or stdout)
+        raise ChainError(f"bound Ask-Agent workspace helper {operation} failed: {detail[:1600]}")
+    if parsed.get("status") == "error":
+        _fail(f"bound Ask-Agent workspace helper {operation} returned an error response")
+    return parsed
+
+
+def _managed_handoff_discard(attempt: str) -> str:
+    return f".shiploop-handoff/{_attempt(attempt)}"
+
+
+def _managed_evidence_file(path_value: Any, label: str) -> dict[str, str]:
+    path = _is_absolute_text(path_value, label)
+    return _frozen_file(path, label)
+
+
+def _managed_workspace_store(binding: Mapping[str, Any], attempt: str) -> str:
+    """Derive one helper-owned store so an interrupted prepare is locatable."""
+    parent = _resolved_existing(Path(binding["worktree_parent"]), "managed workspace parent", directory=True)
+    return str(parent / "ask-agent" / _allocation_uuid(binding) / _allocation_uuid(binding, attempt))
+
+
+def _managed_workspace_record(binding: Mapping[str, Any], value: Any, *,
+                              expected_target: Mapping[str, str] | None = None,
+                              base_commit: str | None = None,
+                              store: str | None = None,
+                              inspect_live: bool = False) -> dict[str, Any]:
+    """Validate one helper receipt record before its worktree can be adopted.
+
+    Ledger JSON is durable evidence, not permission to point at any otherwise
+    valid receipt.  The record must remain tied to the helper frozen in this
+    binding and, on a replay, the frozen helper must still reproduce the exact
+    prepared inspection before a dispatcher launch is possible.
+    """
+    if not isinstance(value, Mapping):
+        _fail("managed per-step allocation lacks Ask-Agent workspace evidence")
+    if expected_target is None or base_commit is None or store is None:
+        _fail("managed per-step workspace evidence lacks its immutable target, base, or store")
+    record = value
+    required = {"helper", "receipt", "receipt_sha256", "worktree", "branch", "baseline", "prepare", "prepared"}
+    if set(record) != required:
+        _fail("managed per-step allocation has unsupported Ask-Agent workspace evidence")
+    _file_binding(record["helper"], "managed Ask-Agent helper")
+    expected_helper = binding["ask_agent"]["files"].get("scripts/ask_agent_workspace.py")
+    if not isinstance(expected_helper, Mapping) or dict(record["helper"]) != dict(expected_helper):
+        _fail("managed per-step allocation helper conflicts with the frozen Ask-Agent helper")
+    receipt = _resolved_existing(_is_absolute_text(record["receipt"], "managed Ask-Agent receipt"),
+                                 "managed Ask-Agent receipt", directory=False)
+    if str(receipt) != record["receipt"]:
+        _fail("managed Ask-Agent receipt path is not canonical")
+    if receipt.name != "receipt.json":
+        _fail("managed Ask-Agent receipt must name receipt.json")
+    if _sha256(_read_regular(receipt, "managed Ask-Agent receipt")) != _sha(record["receipt_sha256"], "managed Ask-Agent receipt_sha256"):
+        _fail("managed Ask-Agent receipt digest drifted")
+    worktree = _resolved_existing(_is_absolute_text(record["worktree"], "managed Ask-Agent worktree"),
+                                  "managed Ask-Agent worktree", directory=True)
+    baseline = _resolved_existing(_is_absolute_text(record["baseline"], "managed Ask-Agent baseline"),
+                                  "managed Ask-Agent baseline", directory=False)
+    if str(worktree) != record["worktree"] or str(baseline) != record["baseline"]:
+        _fail("managed Ask-Agent workspace or baseline path is not canonical")
+    if not isinstance(record["branch"], str) or not record["branch"]:
+        _fail("managed Ask-Agent branch is invalid")
+    receipt_value = _json_object(_read_regular(receipt, "managed Ask-Agent receipt"), "managed Ask-Agent receipt")
+    source = receipt_value.get("source")
+    if (not isinstance(source, Mapping) or set(source) != {"root", "common_dir", "head"}
+            or (receipt_value.get("worktree"), receipt_value.get("branch"), receipt_value.get("baseline"))
+            != (str(worktree), record["branch"], str(baseline))):
+        _fail("managed Ask-Agent receipt conflicts with its retained workspace record")
+    _validate_identity(expected_target, "managed Ask-Agent expected target")
+    base = _commit(base_commit, "managed Ask-Agent expected base commit")
+    if source != {
+        "root": expected_target["repo"], "common_dir": expected_target["common_dir"], "head": base,
+    }:
+        _fail("managed Ask-Agent receipt source conflicts with the immutable target/base")
+    if receipt_value.get("store") != store:
+        _fail("managed Ask-Agent receipt store conflicts with its preparation intent")
+    prepared = record["prepared"]
+    prepared_keys = {"status", "receipt", "worktree", "branch", "baseline", "phase", "fingerprint", "changed_paths", "contribution_paths"}
+    if not isinstance(prepared, Mapping) or set(prepared) != prepared_keys:
+        _fail("managed Ask-Agent prepared inspection has an unsupported schema")
+    if (prepared.get("status"), prepared.get("phase"), prepared.get("receipt"), prepared.get("worktree"),
+            prepared.get("branch"), prepared.get("baseline")) != (
+                "prepared", "prepared", str(receipt), str(worktree), record["branch"], str(baseline)):
+        _fail("managed Ask-Agent prepared inspection conflicts with its receipt")
+    _sha(prepared.get("fingerprint"), "managed Ask-Agent prepared fingerprint")
+    if prepared.get("changed_paths") != [] or prepared.get("contribution_paths") != []:
+        _fail("managed Ask-Agent prepared inspection is not an unchanged baseline")
+    prepare = record["prepare"]
+    fresh_prepare_keys = {"status", "receipt", "worktree", "branch", "baseline", "source", "attempt", "ignored_dependencies_omitted"}
+    reused_prepare_keys = prepared_keys | {"reused"}
+    if not isinstance(prepare, Mapping):
+        _fail("managed Ask-Agent prepare response has an unsupported schema")
+    if set(prepare) == fresh_prepare_keys:
+        if (prepare.get("status"), prepare.get("receipt"), prepare.get("worktree"), prepare.get("branch"),
+                prepare.get("baseline"), prepare.get("source"), prepare.get("attempt")) != (
+                    "prepared", str(receipt), str(worktree), record["branch"], str(baseline),
+                    source["root"], receipt_value.get("attempt_id")):
+            _fail("managed Ask-Agent prepare response conflicts with its immutable receipt")
+        if not isinstance(prepare.get("ignored_dependencies_omitted"), list) or any(
+                not isinstance(item, str) for item in prepare["ignored_dependencies_omitted"]):
+            _fail("managed Ask-Agent prepare response has invalid ignored dependency evidence")
+    elif set(prepare) == reused_prepare_keys:
+        if prepare.get("reused") is not True:
+            _fail("managed Ask-Agent recovered prepare response has an invalid reuse marker")
+        if {key: item for key, item in prepare.items() if key != "reused"} != dict(prepared):
+            _fail("managed Ask-Agent recovered prepare response conflicts with its prepared inspection")
+    else:
+        _fail("managed Ask-Agent prepare response has an unsupported schema")
+    if inspect_live:
+        current = _ask_agent_workspace(binding, "inspect", "--receipt", str(receipt), "--phase", "prepared")
+        if current != prepared:
+            _fail("managed Ask-Agent prepared inspection no longer matches the frozen helper receipt")
+    return dict(record)
 
 
 @contextmanager
@@ -1563,6 +1869,46 @@ def _per_step_worker_packet(root: Path, binding: Mapping[str, Any], packet: Mapp
             "policy": "The parent archives this handoff, prepares the current target with your contribution, verifies it, fast-forwards the invoking checkout, accepts the dispatcher result, then removes this worktree.",
         },
     }
+    if _managed_parallel_ask_agent_adapter(binding):
+        plan_target = allocation.get("plan", {}).get("target") if isinstance(allocation.get("plan"), Mapping) else None
+        managed = _managed_workspace_record(
+            binding, allocation.get("ask_agent_workspace"), expected_target=plan_target,
+            base_commit=allocation.get("base_commit"), store=_managed_workspace_store(binding, attempt),
+        )
+        helper = managed["helper"]
+        identity = binding.get("ask_agent_identity")
+        if not isinstance(identity, Mapping):
+            _fail("managed worker packet lacks frozen Ask-Agent package identity")
+        check_context_argv = [
+            sys.executable, helper["path"], "check-context", "--receipt", managed["receipt"],
+        ]
+        result["ask_agent_workspace"] = {
+            "receipt": managed["receipt"],
+            "receipt_sha256": managed["receipt_sha256"],
+            "baseline": managed["baseline"],
+            "worktree": managed["worktree"],
+            "branch": managed["branch"],
+            "prepared_inspection": deepcopy(managed["prepared"]),
+            "selected_package": deepcopy(dict(identity)),
+            "executing_helper": deepcopy(dict(helper)),
+            "check_context": {
+                "cwd": workspace,
+                "argv": check_context_argv,
+                "scope": "current helper process working directory and Git root; not native startup or sandbox proof",
+            },
+            "delivery": {
+                "mode": "commits",
+                "commit_base": allocation["base_commit"],
+                "require_complete_linear_range": True,
+                "discard": [_managed_handoff_discard(attempt)],
+            },
+        }
+        result["shiploop_chain"]["ask_agent_workspace"] = {
+            "receipt": managed["receipt"],
+            "worktree": managed["worktree"],
+            "branch": managed["branch"],
+            "delivery_mode": "commits",
+        }
     result["instructions"] = [
         "This inline assignment is the worker launch payload. Read its registered planning and dependency references as task material; do not create a saved prompt as assignment transport.",
         "Use only the assigned workspace and write scope. Keep the invoking target immutable; do not merge, fast-forward, settle, or report to the dispatcher.",
@@ -1573,6 +1919,13 @@ def _per_step_worker_packet(root: Path, binding: Mapping[str, Any], packet: Mapp
          if _binding_mode(binding) == "serial" else
          "After native completion, return the actual workspace, contribution commit, status, handoff path, and the parent integration/removal recommendation. Do not execute an external report command or delete the handoff."),
     ]
+    if _managed_parallel_ask_agent_adapter(binding):
+        result["instructions"].extend((
+            "This Ask-Agent 0.6 receipt owns the workspace. Launch the native task with this exact workspace as its operation directory; do not create, adopt, or switch to another worktree.",
+            "Before task work, run ask_agent_workspace.check_context.argv with its declared cwd and retain its JSON output. Stop on failure. It checks the helper process directory and Git root only; it does not prove native startup isolation.",
+            "For code changes, create a complete ordered linear commit range directly from base_commit. Do not use git add -A against inherited state. Leave the required worker-local handoff as the declared discard path and report every commit SHA in order, the receipt, package identity, and context-check result.",
+            "The parent will independently inspect the receipt in commits delivery mode, verify the exact range, integrate it, and ask the helper to close only after acceptance. Retain the worktree for any blocker or rejected result.",
+        ))
     _planning_worker_instructions(result)
     return result
 
@@ -1644,7 +1997,12 @@ def _per_step_lifecycle_status(binding: Mapping[str, Any], rows: list[dict[str, 
     actions.extend({
         "action": "cleanup", "attempt": attempt,
         "disposition": "superseded",
-        "instruction": "After a replacement is accepted and integrated, archive the retained failed result and remove only this clean superseded worker.",
+        "instruction": (
+            "Retain this helper-managed failed workspace and its receipt for explicit recovery; "
+            "this adapter has no accepted non-integrated close disposition."
+            if _managed_parallel_ask_agent_adapter(binding) else
+            "After a replacement is accepted and integrated, archive the retained failed result and remove only this clean superseded worker."
+        ),
     } for attempt in superseded_pending)
     return {
         "lifecycle": "per-step",
@@ -1656,6 +2014,250 @@ def _per_step_lifecycle_status(binding: Mapping[str, Any], rows: list[dict[str, 
         "retained_workers": retained,
         "actions": actions,
     }
+
+
+def _managed_workspace_prepare_record(
+    binding: Mapping[str, Any],
+    expected_target: Mapping[str, str],
+    base: str,
+    workspace_store: str,
+    prepared: Mapping[str, Any],
+    inspected: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Validate the public helper receipts before they become chain evidence."""
+    fresh_prepare_keys = {"status", "receipt", "worktree", "branch", "baseline", "source", "attempt", "ignored_dependencies_omitted"}
+    prepared_inspection_keys = {"status", "receipt", "worktree", "branch", "baseline", "phase", "fingerprint", "changed_paths", "contribution_paths"}
+    if not isinstance(prepared, Mapping) or prepared.get("status") != "prepared":
+        _fail("Ask-Agent prepare did not return a prepared workspace")
+    if set(prepared) == fresh_prepare_keys:
+        reused = False
+    elif set(prepared) == prepared_inspection_keys | {"reused"}:
+        reused = True
+        if prepared.get("reused") is not True:
+            _fail("Ask-Agent recovered prepare returned an invalid reuse marker")
+    else:
+        _fail("Ask-Agent prepare did not return a supported prepared workspace schema")
+    receipt = _is_absolute_text(prepared.get("receipt"), "Ask-Agent prepare receipt")
+    worktree = _is_absolute_text(prepared.get("worktree"), "Ask-Agent prepare worktree")
+    baseline = _is_absolute_text(prepared.get("baseline"), "Ask-Agent prepare baseline")
+    if receipt.name != "receipt.json":
+        _fail("Ask-Agent prepare receipt must name receipt.json")
+    if not isinstance(prepared.get("branch"), str) or not prepared["branch"]:
+        _fail("Ask-Agent prepare branch is invalid")
+    if reused:
+        if (prepared.get("phase"), prepared.get("changed_paths"), prepared.get("contribution_paths")) != (
+                "prepared", [], []):
+            _fail("Ask-Agent recovered prepare is not an unchanged prepared inspection")
+        _sha(prepared.get("fingerprint"), "Ask-Agent recovered prepare fingerprint")
+    elif prepared.get("source") != expected_target["repo"]:
+        _fail("Ask-Agent prepare source conflicts with the current integrated target")
+    receipt_value = _json_object(_read_regular(receipt, "Ask-Agent prepare receipt"), "Ask-Agent prepare receipt")
+    source = receipt_value.get("source")
+    if (not isinstance(source, Mapping) or set(source) != {"root", "common_dir", "head"}
+            or source.get("root") != expected_target["repo"]
+            or source.get("common_dir") != expected_target["common_dir"] or source.get("head") != base):
+        _fail("Ask-Agent prepare receipt does not bind the expected target and base")
+    if (receipt_value.get("worktree"), receipt_value.get("branch"), receipt_value.get("baseline")) != (
+            str(worktree), prepared["branch"], str(baseline)):
+        _fail("Ask-Agent prepare output conflicts with its immutable receipt")
+    if not reused:
+        if receipt_value.get("attempt_id") != prepared.get("attempt"):
+            _fail("Ask-Agent prepare output conflicts with its immutable receipt")
+        if not isinstance(prepared.get("ignored_dependencies_omitted"), list) or any(
+                not isinstance(item, str) for item in prepared["ignored_dependencies_omitted"]):
+            _fail("Ask-Agent prepare returned invalid ignored dependency evidence")
+    helper = binding["ask_agent"]["files"].get("scripts/ask_agent_workspace.py")
+    if not isinstance(helper, Mapping):
+        _fail("managed Ask-Agent binding lacks its helper record")
+    record = {
+        "helper": dict(helper),
+        "receipt": str(receipt),
+        "receipt_sha256": _sha256(_read_regular(receipt, "Ask-Agent prepare receipt")),
+        "worktree": str(worktree),
+        "branch": prepared["branch"],
+        "baseline": str(baseline),
+        "prepare": deepcopy(dict(prepared)),
+        "prepared": deepcopy(dict(inspected)),
+    }
+    _managed_workspace_record(
+        binding, record, expected_target=expected_target, base_commit=base,
+        store=workspace_store,
+    )
+    return record
+
+
+def _managed_preparation_receipts(store: str) -> list[str]:
+    """Find the one recoverable receipt in this attempt's dedicated helper store.
+
+    The helper chooses a random attempt ID, so ShipLoop never derives a receipt
+    name from the label.  It only inspects its own deterministic per-dispatch
+    store and refuses partial or multiple attempts instead of guessing.
+    """
+    root = Path(store)
+    if not os.path.lexists(root):
+        return []
+    try:
+        root_info = root.lstat()
+    except OSError as exc:
+        raise ChainError(f"cannot inspect managed Ask-Agent preparation store: {exc}") from exc
+    if stat.S_ISLNK(root_info.st_mode) or not stat.S_ISDIR(root_info.st_mode):
+        _fail("managed Ask-Agent preparation store is not a real directory")
+    attempts = root / "attempts"
+    if not os.path.lexists(attempts):
+        return []
+    try:
+        attempts_info = attempts.lstat()
+        children = sorted(attempts.iterdir(), key=lambda path: path.name)
+    except OSError as exc:
+        raise ChainError(f"cannot inspect managed Ask-Agent preparation attempts: {exc}") from exc
+    if stat.S_ISLNK(attempts_info.st_mode) or not stat.S_ISDIR(attempts_info.st_mode):
+        _fail("managed Ask-Agent preparation attempts is not a real directory")
+    receipts: list[str] = []
+    for candidate in children:
+        try:
+            details = candidate.lstat()
+        except OSError as exc:
+            raise ChainError(f"cannot inspect managed Ask-Agent preparation attempt: {exc}") from exc
+        if stat.S_ISLNK(details.st_mode) or not stat.S_ISDIR(details.st_mode):
+            _fail("managed Ask-Agent preparation store has an unsafe attempt entry")
+        receipt = candidate / "receipt.json"
+        if not os.path.lexists(receipt):
+            _fail("managed Ask-Agent preparation has a partial attempt without a receipt")
+        try:
+            receipt_info = receipt.lstat()
+        except OSError as exc:
+            raise ChainError(f"cannot inspect managed Ask-Agent preparation receipt: {exc}") from exc
+        if stat.S_ISLNK(receipt_info.st_mode) or not stat.S_ISREG(receipt_info.st_mode):
+            _fail("managed Ask-Agent preparation receipt is unsafe")
+        receipts.append(str(_resolved_existing(receipt, "managed Ask-Agent preparation receipt", directory=False)))
+    if len(receipts) > 1:
+        _fail("managed Ask-Agent preparation has multiple receipts; preserve all helper worktrees and reconcile manually")
+    return receipts
+
+
+def _per_step_prepare_managed_workspace(
+    root: Path,
+    binding: Mapping[str, Any],
+    chain_dir: Path,
+    rows: list[dict[str, Any]],
+    start: Mapping[str, Any],
+    expected_target: Mapping[str, str],
+    base: str,
+    required_commits: list[str],
+) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+    """Prepare/adopt exactly one helper-owned 0.6 workspace before dispatcher start."""
+    if start.get("workspace") is not None:
+        _fail("Ask-Agent 0.6 managed-worktree start must not supply a caller workspace")
+    helper_record = binding["ask_agent"]["files"].get("scripts/ask_agent_workspace.py")
+    if not isinstance(helper_record, Mapping):
+        _fail("managed Ask-Agent binding lacks its helper")
+    workspace_store = _managed_workspace_store(binding, start["attempt"])
+    intent = {
+        "attempt": start["attempt"],
+        "target": dict(expected_target),
+        "base_commit": base,
+        "helper": dict(helper_record),
+        "worktree_parent": binding["worktree_parent"], "store": workspace_store,
+        "write_scope": list(start["write_scope"]),
+        "resources": list(start["resources"]),
+        "ready_evidence": dict(start["ready_evidence"]),
+    }
+    result_event = _event(rows, "managed_workspace_preparation_result", attempt=start["attempt"])
+    if result_event is None:
+        prior = _event(rows, "managed_workspace_preparation_intent", attempt=start["attempt"])
+        if prior is None:
+            _append(chain_dir, _event_id("managed-workspace-prepare", intent),
+                    "managed_workspace_preparation_intent", intent)
+            rows = _events(chain_dir)
+        elif _event_data(prior) != intent:
+            _fail("managed workspace preparation replay conflicts with its durable target/base")
+        receipts = _managed_preparation_receipts(workspace_store)
+        if receipts:
+            # A process may have lost the helper's response after it created a
+            # receipt.  Reuse only that exact helper attempt; do not allocate a
+            # second worktree by matching a human-facing label.
+            prepared = _ask_agent_workspace(
+                binding, "prepare", "--source", expected_target["repo"], "--receipt", receipts[0],
+                "--writers-quiescent",
+            )
+        else:
+            if prior is not None:
+                retry = {
+                    "attempt": start["attempt"], "intent": intent, "store": workspace_store,
+                    "reason": "no helper receipt was created by the prior failed preparation",
+                }
+                prior_retry = _event(rows, "managed_workspace_preparation_retry", attempt=start["attempt"])
+                if prior_retry is None:
+                    _append(chain_dir, _event_id("managed-workspace-prepare-retry", retry),
+                            "managed_workspace_preparation_retry", retry)
+                elif _event_data(prior_retry) != retry:
+                    _fail("managed workspace preparation retry conflicts with its durable failure state")
+            try:
+                prepared = _ask_agent_workspace(
+                    binding,
+                    "prepare",
+                    "--source", expected_target["repo"],
+                    "--store", workspace_store,
+                    "--label", f"shiploop-{binding['run_id']}-{binding['action_id']}-{start['attempt']}",
+                    "--writers-quiescent",
+                )
+            except ChainError as exc:
+                failure = {
+                    "attempt": start["attempt"], "intent": intent, "store": workspace_store,
+                    "error": str(exc),
+                }
+                existing_failure = _event(rows, "managed_workspace_preparation_failure", attempt=start["attempt"])
+                if existing_failure is None or _event_data(existing_failure) != failure:
+                    _append(chain_dir, _event_id("managed-workspace-prepare-failure", failure),
+                            "managed_workspace_preparation_failure", failure)
+                raise
+        receipt = _is_absolute_text(prepared.get("receipt"), "Ask-Agent prepare receipt")
+        inspected = _ask_agent_workspace(binding, "inspect", "--receipt", str(receipt), "--phase", "prepared")
+        workspace = _managed_workspace_prepare_record(
+            binding, expected_target, base, workspace_store, prepared, inspected,
+        )
+        result = {"attempt": start["attempt"], "intent": intent, "workspace": workspace}
+        _append(chain_dir, _event_id("managed-workspace-prepared", result),
+                "managed_workspace_preparation_result", result)
+        rows = _events(chain_dir)
+    else:
+        result = _event_data(result_event)
+        if result.get("intent") != intent:
+            _fail("managed workspace preparation result conflicts with its durable intent")
+        workspace = _managed_workspace_record(
+            binding, result.get("workspace"), expected_target=expected_target, base_commit=base,
+            store=workspace_store, inspect_live=True,
+        )
+    helper = _chain_git()
+    try:
+        plan = helper.adopt_managed_workspace(
+            expected_target,
+            binding["worktree_parent"],
+            _allocation_uuid(binding),
+            _allocation_uuid(binding, start["attempt"]),
+            base,
+            workspace["worktree"],
+        )
+    except ValueError as exc:
+        raise ChainError(str(exc)) from exc
+    if not isinstance(plan, Mapping):
+        _fail("Git helper returned an invalid helper-managed workspace adoption")
+    plan = dict(plan)
+    if plan.get("path") != workspace["worktree"] or plan.get("branch") != workspace["branch"]:
+        _fail("Ask-Agent managed workspace adoption conflicts with its receipt")
+    allocation = {
+        "attempt": start["attempt"], "plan": plan, "base_commit": base,
+        "write_scope": list(start["write_scope"]), "resources": list(start["resources"]),
+        "ready_evidence": dict(start["ready_evidence"]), "required_commits": required_commits,
+        "adoption": "ask-agent-managed-workspace", "ask_agent_workspace": workspace,
+    }
+    prior_allocations = _per_step_allocation_records(rows)
+    for prior_attempt, prior in prior_allocations.items():
+        prior_plan = prior.get("plan") if isinstance(prior, Mapping) else None
+        if prior_attempt != start["attempt"] and isinstance(prior_plan, Mapping):
+            if prior_plan.get("path") == plan.get("path") or prior_plan.get("branch") == plan.get("branch"):
+                _fail("managed workspace or branch was already assigned to another attempt")
+    return allocation, rows
 
 
 def _per_step_start(root: Path, binding: Mapping[str, Any], value: dict[str, Any]) -> dict[str, Any]:
@@ -1688,7 +2290,14 @@ def _per_step_start(root: Path, binding: Mapping[str, Any], value: dict[str, Any
     if allocation is None:
         if record.get("status") != "claimed":
             _fail("per-step attempt has no durable adoption and is no longer safely startable")
-        if mode == "parallel" and start["workspace"] is None:
+        managed_parallel = _managed_parallel_ask_agent_adapter(binding)
+        if managed_parallel:
+            allocation, rows = _per_step_prepare_managed_workspace(
+                root, binding, chain_dir, rows, start, expected_target, base, required_commits,
+            )
+            plan = allocation["plan"]
+            identity = plan.get("worker") if isinstance(plan, Mapping) else None
+        elif mode == "parallel" and start["workspace"] is None:
             requested = {
                 "attempt": start["attempt"], "base_commit": base,
                 "target": dict(expected_target), "worktree_parent": binding["worktree_parent"],
@@ -1708,53 +2317,55 @@ def _per_step_start(root: Path, binding: Mapping[str, Any], value: dict[str, Any
                 "instruction": "Ask-Agent must prepare one fresh external sibling worktree at this exact base, then replay start with workspace. The bridge will adopt and verify it before any dispatcher launch.",
                 "shiploop_chain": _binding_summary(root, binding, _events(chain_dir)),
             }
-        try:
-            if mode == "parallel":
-                plan = helper.adopt_workspace(
-                    expected_target, binding["worktree_parent"], _allocation_uuid(binding),
-                    _allocation_uuid(binding, start["attempt"]), base, start["workspace"],
-                )
-                identity = plan.get("worker") if isinstance(plan, Mapping) else None
-            else:
-                creation_inputs = {
-                    "attempt": start["attempt"], "base_commit": base,
-                    "write_scope": start["write_scope"], "resources": start["resources"],
-                    "ready_evidence": start["ready_evidence"], "required_commits": required_commits,
-                    "adoption": "serial-bridge",
-                }
-                prior_creation = _event(rows, "serial_workspace_creation_intent", attempt=start["attempt"])
-                if prior_creation is None:
-                    plan = helper.allocation_plan(
+        else:
+            try:
+                if mode == "parallel":
+                    plan = helper.adopt_workspace(
                         expected_target, binding["worktree_parent"], _allocation_uuid(binding),
-                        _allocation_uuid(binding, start["attempt"]), base, lifecycle="per-step",
+                        _allocation_uuid(binding, start["attempt"]), base, start["workspace"],
                     )
-                    creation = dict(creation_inputs, plan=dict(plan))
-                    _append(chain_dir, _event_id("serial-workspace-create", creation),
-                            "serial_workspace_creation_intent", creation)
-                    rows = _events(chain_dir)
-                    identity = helper.allocate(plan)
+                    identity = plan.get("worker") if isinstance(plan, Mapping) else None
                 else:
-                    creation = _event_data(prior_creation)
-                    saved_plan = creation.get("plan") if isinstance(creation, Mapping) else None
-                    if (not isinstance(saved_plan, Mapping)
-                            or {key: value for key, value in creation.items() if key != "plan"} != creation_inputs):
-                        _fail("serial workspace creation replay conflicts with the recorded plan and start inputs")
-                    plan = dict(saved_plan)
-                    if (plan.get("lifecycle") != "per-step" or plan.get("base_commit") != base
-                            or plan.get("target") != expected_target):
-                        _fail("serial workspace creation has an invalid durable target plan")
-                    path = _is_absolute_text(plan.get("path"), "serial workspace creation plan.path")
-                    identity = helper.recover_allocation(plan) if os.path.lexists(path) else helper.allocate(plan)
-                plan = helper.bind_worker_instance(plan)
-        except ValueError as exc:
-            raise ChainError(str(exc)) from exc
+                    creation_inputs = {
+                        "attempt": start["attempt"], "base_commit": base,
+                        "write_scope": start["write_scope"], "resources": start["resources"],
+                        "ready_evidence": start["ready_evidence"], "required_commits": required_commits,
+                        "adoption": "serial-bridge",
+                    }
+                    prior_creation = _event(rows, "serial_workspace_creation_intent", attempt=start["attempt"])
+                    if prior_creation is None:
+                        plan = helper.allocation_plan(
+                            expected_target, binding["worktree_parent"], _allocation_uuid(binding),
+                            _allocation_uuid(binding, start["attempt"]), base, lifecycle="per-step",
+                        )
+                        creation = dict(creation_inputs, plan=dict(plan))
+                        _append(chain_dir, _event_id("serial-workspace-create", creation),
+                                "serial_workspace_creation_intent", creation)
+                        rows = _events(chain_dir)
+                        identity = helper.allocate(plan)
+                    else:
+                        creation = _event_data(prior_creation)
+                        saved_plan = creation.get("plan") if isinstance(creation, Mapping) else None
+                        if (not isinstance(saved_plan, Mapping)
+                                or {key: value for key, value in creation.items() if key != "plan"} != creation_inputs):
+                            _fail("serial workspace creation replay conflicts with the recorded plan and start inputs")
+                        plan = dict(saved_plan)
+                        if (plan.get("lifecycle") != "per-step" or plan.get("base_commit") != base
+                                or plan.get("target") != expected_target):
+                            _fail("serial workspace creation has an invalid durable target plan")
+                        path = _is_absolute_text(plan.get("path"), "serial workspace creation plan.path")
+                        identity = helper.recover_allocation(plan) if os.path.lexists(path) else helper.allocate(plan)
+                    plan = helper.bind_worker_instance(plan)
+            except ValueError as exc:
+                raise ChainError(str(exc)) from exc
         if not isinstance(plan, Mapping) or not isinstance(identity, Mapping):
             _fail("Git helper returned an invalid per-step workspace adoption")
         plan = dict(plan)
         if plan.get("base_commit") != base or plan.get("target", {}).get("head") != base:
             _fail("Git helper adopted a workspace at the wrong per-step base")
         workspace = plan.get("path")
-        if not isinstance(workspace, str) or (mode == "parallel" and workspace != start["workspace"]):
+        if (not isinstance(workspace, str)
+                or (mode == "parallel" and not managed_parallel and workspace != start["workspace"])):
             _fail("Git helper adopted an unexpected workspace")
         prior_allocations = _per_step_allocation_records(rows)
         for prior_attempt, prior in prior_allocations.items():
@@ -1762,18 +2373,20 @@ def _per_step_start(root: Path, binding: Mapping[str, Any], value: dict[str, Any
             if prior_attempt != start["attempt"] and isinstance(prior_plan, Mapping):
                 if prior_plan.get("path") == workspace or prior_plan.get("branch") == plan.get("branch"):
                     _fail("per-step workspace or branch was already assigned to another attempt")
-        allocation = {
-            "attempt": start["attempt"], "plan": plan, "base_commit": base,
-            "write_scope": start["write_scope"], "resources": start["resources"],
-            "ready_evidence": start["ready_evidence"], "required_commits": required_commits,
-            "adoption": "ask-agent" if mode == "parallel" else "serial-bridge",
-        }
+        if not managed_parallel:
+            allocation = {
+                "attempt": start["attempt"], "plan": plan, "base_commit": base,
+                "write_scope": start["write_scope"], "resources": start["resources"],
+                "ready_evidence": start["ready_evidence"], "required_commits": required_commits,
+                "adoption": "ask-agent" if mode == "parallel" else "serial-bridge",
+            }
         _append(chain_dir, _event_id("allocation-intent", allocation), "allocation_intent", allocation)
         allocation_result = {"attempt": start["attempt"], "identity": dict(identity), "plan": plan}
         _append(chain_dir, _event_id("allocation-result", allocation_result), "allocation_result", allocation_result)
         rows = _events(chain_dir)
     else:
         allocation = _per_step_allocation(rows, start["attempt"])
+        managed_parallel = _managed_parallel_ask_agent_adapter(binding)
         comparable = {
             "base_commit": base, "write_scope": start["write_scope"],
             "resources": start["resources"], "ready_evidence": start["ready_evidence"],
@@ -1784,14 +2397,32 @@ def _per_step_start(root: Path, binding: Mapping[str, Any], value: dict[str, Any
         workspace = plan.get("path") if isinstance(plan, Mapping) else None
         if not isinstance(workspace, str):
             _fail("per-step adoption plan has no workspace")
-        if mode == "parallel" and start["workspace"] is not None and start["workspace"] != workspace:
+        if managed_parallel and start["workspace"] is not None:
+            _fail("Ask-Agent 0.6 managed-worktree start must not supply a caller workspace")
+        if mode == "parallel" and not managed_parallel and start["workspace"] is not None and start["workspace"] != workspace:
             _fail("per-step start.workspace conflicts with the durable workspace adoption")
+        if managed_parallel:
+            record_workspace = _managed_workspace_record(
+                binding, allocation.get("ask_agent_workspace"), expected_target=plan.get("target"),
+                base_commit=allocation.get("base_commit"),
+                store=_managed_workspace_store(binding, start["attempt"]), inspect_live=True,
+            )
+            if record_workspace["worktree"] != workspace:
+                _fail("managed per-step allocation receipt conflicts with its workspace plan")
         result_event = _event(rows, "allocation_result", attempt=start["attempt"])
         if result_event is None:
             if record.get("status") != "claimed":
                 _fail("per-step adoption is unresolved after dispatcher start; preserve the workspace and recover it")
             try:
-                if mode == "parallel":
+                if managed_parallel:
+                    recovered = helper.adopt_managed_workspace(
+                        expected_target, binding["worktree_parent"], _allocation_uuid(binding),
+                        _allocation_uuid(binding, start["attempt"]), base, workspace,
+                    )
+                    identity = recovered.get("worker") if isinstance(recovered, Mapping) else None
+                    if recovered != plan:
+                        _fail("per-step adopted workspace no longer matches its durable plan")
+                elif mode == "parallel":
                     recovered = helper.adopt_workspace(
                         expected_target, binding["worktree_parent"], _allocation_uuid(binding),
                         _allocation_uuid(binding, start["attempt"]), base, workspace,
@@ -2718,6 +3349,150 @@ def _per_step_validate_import_receipt(receipt: Any, *, dispatcher_run_id: str, s
     return deepcopy(dict(receipt))
 
 
+def _managed_commit_range(workspace: str, base_commit: str, source_commit: str) -> list[str]:
+    """Return the complete ordered helper commit range; never infer just W."""
+    base = _commit(base_commit, "managed delivery base commit")
+    source = _commit(source_commit, "managed delivery source commit")
+    result = _git(workspace, "rev-list", "--reverse", f"{base}..{source}")
+    commits = [line.strip() for line in result.stdout.splitlines() if line.strip()]
+    if not commits or commits[-1] != source or any(_COMMIT.fullmatch(commit) is None for commit in commits):
+        _fail("managed delivery does not have a complete ordered base-to-worker commit range")
+    if len(set(commits)) != len(commits):
+        _fail("managed delivery commit range repeats a commit")
+    return commits
+
+
+def _managed_returned_delivery(binding: Mapping[str, Any], allocation: Mapping[str, Any], *,
+                               attempt: str, source_commit: str) -> dict[str, Any]:
+    """Get Ask Agent's commits receipt before ShipLoop treats W as integrable."""
+    plan = allocation.get("plan")
+    if not isinstance(plan, Mapping):
+        _fail("managed returned delivery lacks its Git allocation plan")
+    workspace = plan.get("path")
+    if not isinstance(workspace, str):
+        _fail("managed returned delivery lacks its worker workspace")
+    receipt = _managed_workspace_record(
+        binding, allocation.get("ask_agent_workspace"), expected_target=plan.get("target"),
+        base_commit=allocation.get("base_commit"), store=_managed_workspace_store(binding, attempt),
+    )
+    if receipt["worktree"] != workspace:
+        _fail("managed returned delivery receipt conflicts with its adopted workspace")
+    source = _commit(source_commit, "managed returned source commit")
+    base = _commit(allocation.get("base_commit"), "managed returned base commit")
+    commits = _managed_commit_range(workspace, base, source)
+    arguments = [
+        "--receipt", receipt["receipt"], "--phase", "returned",
+        "--discard", _managed_handoff_discard(attempt),
+        "--delivery-mode", "commits", "--commit-base", base,
+    ]
+    for commit in commits:
+        arguments.extend(("--commit", commit))
+    returned = _ask_agent_workspace(binding, "inspect", *arguments)
+    expected_keys = {
+        "status", "receipt", "worktree", "branch", "baseline", "phase", "fingerprint",
+        "changed_paths", "contribution_paths", "artifacts", "discard", "evidence", "delivery",
+        "delivery_evidence",
+    }
+    if not isinstance(returned, Mapping) or set(returned) != expected_keys:
+        _fail("Ask-Agent returned delivery inspection has an unsupported schema")
+    if (returned.get("status"), returned.get("phase"), returned.get("receipt"), returned.get("worktree"),
+            returned.get("branch"), returned.get("baseline"), returned.get("artifacts"), returned.get("discard")) != (
+                "returned", "returned", receipt["receipt"], workspace, receipt["branch"], receipt["baseline"],
+                [], [_managed_handoff_discard(attempt)]):
+        _fail("Ask-Agent returned delivery inspection conflicts with the allocated receipt")
+    _sha(returned.get("fingerprint"), "Ask-Agent returned delivery fingerprint")
+    if not isinstance(returned.get("changed_paths"), list) or not isinstance(returned.get("contribution_paths"), list):
+        _fail("Ask-Agent returned delivery inspection has invalid changed-path evidence")
+    delivery = returned.get("delivery")
+    delivery_keys = {"mode", "base", "commits", "commit_paths", "per_commit_paths", "residual_paths"}
+    if not isinstance(delivery, Mapping) or set(delivery) != delivery_keys:
+        _fail("Ask-Agent returned delivery has an unsupported commit schema")
+    if (delivery.get("mode"), delivery.get("base"), delivery.get("commits"),
+            delivery.get("commit_paths")) != ("commits", base, commits, returned["contribution_paths"]):
+        _fail("Ask-Agent returned delivery does not match the imported complete commit range")
+    if not isinstance(delivery.get("per_commit_paths"), list) or not isinstance(delivery.get("residual_paths"), list):
+        _fail("Ask-Agent returned delivery has invalid per-commit or residual evidence")
+    evidence = returned.get("evidence")
+    if not isinstance(evidence, Mapping) or set(evidence) != {"inspection", "contribution_patch", "delivery"}:
+        _fail("Ask-Agent returned delivery has incomplete immutable evidence")
+    if returned.get("delivery_evidence") != evidence["delivery"]:
+        _fail("Ask-Agent returned delivery evidence locator conflicts with its inspection")
+    frozen_evidence = {
+        key: _managed_evidence_file(value, "Ask-Agent returned " + key + " evidence")
+        for key, value in evidence.items()
+    }
+    return {
+        "attempt": attempt,
+        "source_commit": source,
+        "base_commit": base,
+        "receipt": receipt["receipt"],
+        "receipt_sha256": receipt["receipt_sha256"],
+        "workspace": workspace,
+        "branch": receipt["branch"],
+        "commits": commits,
+        "inspection": deepcopy(dict(returned)),
+        "evidence": frozen_evidence,
+    }
+
+
+def _validate_managed_returned_delivery(binding: Mapping[str, Any], allocation: Mapping[str, Any], value: Any,
+                                        *, attempt: str, source_commit: str) -> dict[str, Any]:
+    """Validate retained W delivery without re-inspecting its later I state."""
+    if not isinstance(value, Mapping):
+        _fail("managed returned delivery event is invalid")
+    required = {
+        "attempt", "source_commit", "base_commit", "receipt", "receipt_sha256", "workspace", "branch",
+        "commits", "inspection", "evidence",
+    }
+    if set(value) != required:
+        _fail("managed returned delivery event has an unsupported schema")
+    plan = allocation.get("plan")
+    if not isinstance(plan, Mapping) or not isinstance(plan.get("path"), str):
+        _fail("managed returned delivery lacks its adopted workspace")
+    receipt = _managed_workspace_record(
+        binding, allocation.get("ask_agent_workspace"), expected_target=plan.get("target"),
+        base_commit=allocation.get("base_commit"), store=_managed_workspace_store(binding, attempt),
+    )
+    source = _commit(source_commit, "managed returned source commit")
+    base = _commit(allocation.get("base_commit"), "managed returned base commit")
+    commits = _managed_commit_range(plan["path"], base, source)
+    if (value.get("attempt"), value.get("source_commit"), value.get("base_commit"), value.get("receipt"),
+            value.get("receipt_sha256"), value.get("workspace"), value.get("branch"), value.get("commits")) != (
+                attempt, source, base, receipt["receipt"], receipt["receipt_sha256"], plan["path"],
+                receipt["branch"], commits):
+        _fail("managed returned delivery conflicts with its immutable receipt, W, or complete commit range")
+    inspection = value.get("inspection")
+    expected_keys = {
+        "status", "receipt", "worktree", "branch", "baseline", "phase", "fingerprint",
+        "changed_paths", "contribution_paths", "artifacts", "discard", "evidence", "delivery",
+        "delivery_evidence",
+    }
+    if not isinstance(inspection, Mapping) or set(inspection) != expected_keys:
+        _fail("managed returned delivery inspection has an unsupported schema")
+    if (inspection.get("status"), inspection.get("phase"), inspection.get("receipt"), inspection.get("worktree"),
+            inspection.get("branch"), inspection.get("baseline"), inspection.get("artifacts"), inspection.get("discard")) != (
+                "returned", "returned", receipt["receipt"], plan["path"], receipt["branch"], receipt["baseline"],
+                [], [_managed_handoff_discard(attempt)]):
+        _fail("managed returned delivery inspection conflicts with its immutable receipt")
+    _sha(inspection.get("fingerprint"), "managed returned delivery fingerprint")
+    delivery = inspection.get("delivery")
+    if (not isinstance(delivery, Mapping) or delivery.get("mode") != "commits" or delivery.get("base") != base
+            or delivery.get("commits") != commits or delivery.get("commit_paths") != inspection.get("contribution_paths")):
+        _fail("managed returned delivery inspection does not prove the exact complete commit range")
+    evidence = value.get("evidence")
+    inspect_evidence = inspection.get("evidence")
+    if (not isinstance(evidence, Mapping) or set(evidence) != {"inspection", "contribution_patch", "delivery"}
+            or not isinstance(inspect_evidence, Mapping)
+            or inspect_evidence.get("delivery") != inspection.get("delivery_evidence")):
+        _fail("managed returned delivery has incomplete immutable evidence")
+    for key, bound in evidence.items():
+        verified = _managed_evidence_file(bound.get("path") if isinstance(bound, Mapping) else None,
+                                          "managed returned " + key + " evidence")
+        if dict(bound) != verified or inspect_evidence.get(key) != bound["path"]:
+            _fail("managed returned delivery immutable evidence drifted")
+    return dict(value)
+
+
 def _write_parent_immutable_json(path_text: Any, value: Mapping[str, Any], label: str) -> dict[str, str]:
     path = _is_absolute_text(path_text, label + " path")
     parent = _resolved_existing(path.parent, label + " parent", directory=True)
@@ -2818,6 +3593,8 @@ def _import_handoff(root: Path, binding: Mapping[str, Any], value: dict[str, Any
         return {
             "attempt": attempt, "import": deepcopy(imported),
             "receipt": deepcopy(existing["dispatcher_receipt"]),
+            **({"ask_agent_delivery": deepcopy(existing["ask_agent_delivery"])}
+               if "ask_agent_delivery" in existing else {}),
             "shiploop_chain": _binding_summary(root, binding, rows),
         }
     intent = _event(rows, "handoff_import_intent", attempt=attempt)
@@ -2879,6 +3656,34 @@ def _import_handoff(root: Path, binding: Mapping[str, Any], value: dict[str, Any
             base_commit=allocation["base_commit"], workspace=workspace, handoff=handoff,
         )
         imported = _validate_imported_archive(imported, "per-step imported handoff archive")
+    managed_delivery = None
+    if _managed_parallel_ask_agent_adapter(binding) and imported["status"] == "SUCCEEDED":
+        source = _commit(imported.get("commit"), "managed imported worker contribution commit")
+        workspace_record = _managed_workspace_record(
+            binding, allocation.get("ask_agent_workspace"), expected_target=allocation["plan"].get("target"),
+            base_commit=allocation.get("base_commit"), store=_managed_workspace_store(binding, attempt),
+        )
+        delivery_intent = {
+            "attempt": attempt, "source_commit": source, "base_commit": allocation["base_commit"],
+            "receipt": workspace_record["receipt"], "receipt_sha256": workspace_record["receipt_sha256"],
+            "workspace": workspace, "discard": [_managed_handoff_discard(attempt)],
+        }
+        delivery_event = _event(rows, "managed_returned_delivery", attempt=attempt)
+        if delivery_event is None:
+            managed_delivery = _managed_returned_delivery(
+                binding, allocation, attempt=attempt, source_commit=source,
+            )
+            stored_delivery = {"attempt": attempt, "intent": delivery_intent, "delivery": managed_delivery}
+            _append(chain_dir, _event_id("managed-returned-delivery", stored_delivery),
+                    "managed_returned_delivery", stored_delivery)
+            rows = _events(chain_dir)
+        else:
+            stored_delivery = _event_data(delivery_event)
+            if stored_delivery.get("intent") != delivery_intent:
+                _fail("managed returned delivery conflicts with its durable imported handoff")
+            managed_delivery = _validate_managed_returned_delivery(
+                binding, allocation, stored_delivery.get("delivery"), attempt=attempt, source_commit=source,
+            )
     reported_event = _event(rows, "handoff_reported", attempt=attempt)
     if reported_event is None:
         report_data = _per_step_parent_report(binding, rows, attempt, imported)
@@ -2904,9 +3709,12 @@ def _import_handoff(root: Path, binding: Mapping[str, Any], value: dict[str, Any
              "dispatcher_receipt": deepcopy(reported.get("report")),
              "parent_artifact": deepcopy(reported.get("artifact")),
              "parent_envelope": deepcopy(reported.get("envelope"))}
+    if managed_delivery is not None:
+        final["ask_agent_delivery"] = deepcopy(managed_delivery)
     _append(chain_dir, _event_id("handoff-import-result", final), "handoff_import_result", final)
     return {
         "attempt": attempt, "import": imported, "receipt": final["dispatcher_receipt"],
+        **({"ask_agent_delivery": managed_delivery} if managed_delivery is not None else {}),
         "shiploop_chain": _binding_summary(root, binding, _events(chain_dir)),
     }
 
@@ -2927,6 +3735,23 @@ def _per_step_prepare(root: Path, binding: Mapping[str, Any], value: dict[str, A
     imported = _validate_imported_archive(imported, "per-step prepared handoff archive")
     allocation = _per_step_allocation(rows, attempt)
     source = _commit(imported.get("commit"), "imported worker contribution commit")
+    if _managed_parallel_ask_agent_adapter(binding):
+        delivery_event = _event(rows, "managed_returned_delivery", attempt=attempt)
+        if delivery_event is None:
+            _fail("managed prepare requires a frozen Ask-Agent commits delivery inspection")
+        delivery_event_data = _event_data(delivery_event)
+        delivery_intent = delivery_event_data.get("intent")
+        if not isinstance(delivery_intent, Mapping) or (
+                delivery_intent.get("source_commit"), delivery_intent.get("base_commit"),
+                delivery_intent.get("workspace"), delivery_intent.get("discard")) != (
+                    source, allocation["base_commit"], allocation["plan"].get("path"),
+                    [_managed_handoff_discard(attempt)]):
+            _fail("managed commits delivery does not match the imported handoff and allocation")
+        delivery = _validate_managed_returned_delivery(
+            binding, allocation, delivery_event_data.get("delivery"), attempt=attempt, source_commit=source,
+        )
+        if delivery["commits"][-1] != source or delivery["base_commit"] != allocation["base_commit"]:
+            _fail("managed commits delivery does not end at the imported worker commit")
     expected_target = _per_step_expected_target(binding, rows)
     helper = _chain_git()
     try:
@@ -3088,6 +3913,224 @@ def _per_step_settle_child(root: Path, binding: Mapping[str, Any], attempt: str,
     return outcome, terminal
 
 
+def _managed_acceptance_path(chain_dir: Path, attempt: str, fingerprint: str) -> Path:
+    """Reserve a parent-owned immutable acceptance outside the removable worker."""
+    fingerprint = _sha(fingerprint, "managed close inspection fingerprint")
+    root = chain_dir / "ask-agent-acceptance"
+    attempt_dir = root / _attempt(attempt)
+    for directory, label in ((root, "managed acceptance root"), (attempt_dir, "managed acceptance attempt directory")):
+        try:
+            directory.mkdir(mode=0o700)
+        except FileExistsError:
+            pass
+        try:
+            details = directory.lstat()
+        except OSError as exc:
+            raise ChainError(f"cannot inspect {label}: {exc}") from exc
+        if stat.S_ISLNK(details.st_mode) or not stat.S_ISDIR(details.st_mode):
+            _fail(f"{label} must be a real directory")
+        try:
+            os.chmod(directory, 0o700)
+        except OSError:
+            pass
+    resolved_chain = _resolved_existing(chain_dir, "managed chain directory", directory=True)
+    resolved_attempt = _resolved_existing(attempt_dir, "managed acceptance attempt directory", directory=True)
+    if not _under(resolved_chain, resolved_attempt):
+        _fail("managed acceptance directory escaped the chain run")
+    return resolved_attempt / (fingerprint + ".json")
+
+
+def _managed_post_integration_inspection(binding: Mapping[str, Any], allocation: Mapping[str, Any], *,
+                                         attempt: str) -> dict[str, Any]:
+    """Freeze the no-delivery helper state that the subsequent close rechecks."""
+    plan = allocation.get("plan")
+    if not isinstance(plan, Mapping) or not isinstance(plan.get("path"), str):
+        _fail("managed close inspection lacks its adopted workspace")
+    workspace = plan["path"]
+    receipt = _managed_workspace_record(
+        binding, allocation.get("ask_agent_workspace"), expected_target=plan.get("target"),
+        base_commit=allocation.get("base_commit"), store=_managed_workspace_store(binding, attempt),
+    )
+    if receipt["worktree"] != workspace:
+        _fail("managed close inspection receipt conflicts with its adopted workspace")
+    returned = _ask_agent_workspace(
+        binding, "inspect", "--receipt", receipt["receipt"], "--phase", "returned",
+    )
+    expected_keys = {
+        "status", "receipt", "worktree", "branch", "baseline", "phase", "fingerprint",
+        "changed_paths", "contribution_paths", "artifacts", "discard", "evidence",
+    }
+    if not isinstance(returned, Mapping) or set(returned) != expected_keys:
+        _fail("Ask-Agent post-integration inspection has an unsupported schema")
+    if (returned.get("status"), returned.get("phase"), returned.get("receipt"), returned.get("worktree"),
+            returned.get("branch"), returned.get("baseline"), returned.get("artifacts"), returned.get("discard")) != (
+                "returned", "returned", receipt["receipt"], workspace, receipt["branch"], receipt["baseline"],
+                [], []):
+        _fail("Ask-Agent post-integration inspection conflicts with the accepted worker receipt")
+    _sha(returned.get("fingerprint"), "Ask-Agent post-integration fingerprint")
+    if not isinstance(returned.get("changed_paths"), list) or not isinstance(returned.get("contribution_paths"), list):
+        _fail("Ask-Agent post-integration inspection has invalid changed-path evidence")
+    evidence = returned.get("evidence")
+    if not isinstance(evidence, Mapping) or set(evidence) != {"inspection", "contribution_patch"}:
+        _fail("Ask-Agent post-integration inspection has incomplete immutable evidence")
+    return {
+        "attempt": attempt, "receipt": receipt["receipt"], "receipt_sha256": receipt["receipt_sha256"],
+        "workspace": workspace, "branch": receipt["branch"], "inspection": deepcopy(dict(returned)),
+        "evidence": {
+            key: _managed_evidence_file(value, "Ask-Agent post-integration " + key + " evidence")
+            for key, value in evidence.items()
+        },
+    }
+
+
+def _managed_close_intent(binding: Mapping[str, Any], allocation: Mapping[str, Any], *, attempt: str,
+                          integration: Mapping[str, str], value: Any) -> tuple[dict[str, Any], dict[str, Any], dict[str, str]]:
+    """Validate a write-ahead close intent without requiring its removed worker."""
+    if not isinstance(value, Mapping):
+        _fail("managed cleanup intent is invalid")
+    required = {"attempt", "allocation", "integration", "confirmed_stopped", "post_integration", "acceptance"}
+    if set(value) != required or value.get("attempt") != attempt or value.get("allocation") != allocation.get("plan"):
+        _fail("managed cleanup intent conflicts with its allocated worker")
+    if value.get("integration") != dict(integration) or value.get("confirmed_stopped") is not True:
+        _fail("managed cleanup intent conflicts with its accepted integration")
+    post = value.get("post_integration")
+    post_keys = {"attempt", "receipt", "receipt_sha256", "workspace", "branch", "inspection", "evidence"}
+    plan = allocation.get("plan")
+    if not isinstance(post, Mapping) or set(post) != post_keys or not isinstance(plan, Mapping):
+        _fail("managed cleanup intent has invalid post-integration evidence")
+    if (post.get("attempt"), post.get("workspace"), post.get("branch")) != (
+            attempt, plan.get("path"), plan.get("branch")):
+        _fail("managed cleanup post-integration evidence conflicts with its allocation")
+    receipt = _is_absolute_text(post.get("receipt"), "managed cleanup receipt")
+    if _sha256(_read_regular(receipt, "managed cleanup receipt")) != _sha(
+            post.get("receipt_sha256"), "managed cleanup receipt_sha256"):
+        _fail("managed cleanup receipt digest drifted")
+    inspection = post.get("inspection")
+    inspection_keys = {
+        "status", "receipt", "worktree", "branch", "baseline", "phase", "fingerprint",
+        "changed_paths", "contribution_paths", "artifacts", "discard", "evidence",
+    }
+    if (not isinstance(inspection, Mapping) or set(inspection) != inspection_keys
+            or (inspection.get("status"), inspection.get("phase"), inspection.get("receipt"),
+                inspection.get("worktree"), inspection.get("branch"), inspection.get("artifacts"),
+                inspection.get("discard")) != (
+                    "returned", "returned", str(receipt), plan.get("path"), plan.get("branch"), [], [])):
+        _fail("managed cleanup post-integration inspection is invalid")
+    fingerprint = _sha(inspection.get("fingerprint"), "managed cleanup inspection fingerprint")
+    evidence = post.get("evidence")
+    if not isinstance(evidence, Mapping) or set(evidence) != {"inspection", "contribution_patch"}:
+        _fail("managed cleanup post-integration evidence is incomplete")
+    for key, item in evidence.items():
+        if _verify_evidence(item, "managed cleanup " + key + " evidence") != item:
+            _fail("managed cleanup post-integration evidence drifted")
+    acceptance = _verify_evidence(value.get("acceptance"), "managed cleanup acceptance")
+    acceptance_value = _json_object(_read_regular(Path(acceptance["path"]), "managed cleanup acceptance"),
+                                    "managed cleanup acceptance")
+    acceptance_keys = {
+        "schema", "inspection_fingerprint", "decision", "workers_stopped", "completion_reference",
+        "acceptance_reference", "artifacts", "discard",
+    }
+    if (set(acceptance_value) != acceptance_keys or acceptance_value.get("schema") != "ask-agent.acceptance.v1"
+            or acceptance_value.get("inspection_fingerprint") != fingerprint
+            or acceptance_value.get("decision") != "integrated" or acceptance_value.get("workers_stopped") is not True
+            or acceptance_value.get("artifacts") != [] or acceptance_value.get("discard") != []):
+        _fail("managed cleanup acceptance conflicts with its post-integration inspection")
+    return dict(value), dict(post), acceptance
+
+
+def _per_step_cleanup_managed(root: Path, binding: Mapping[str, Any], attempt: str, *,
+                              allocation: Mapping[str, Any], integration: Mapping[str, str],
+                              verification: Mapping[str, Any], rows: list[dict[str, Any]]) -> dict[str, Any]:
+    """Let the receipt owner close only an accepted, integrated 0.6 workspace."""
+    chain_dir = _binding_dir(root, binding["action_id"])
+    current_target = _per_step_expected_target(binding, rows)
+    _require_ancestor(current_target["repo"], integration["candidate_commit"], current_target["head"],
+                      "accepted integration is absent from the current target")
+    prior = _event(rows, "cleanup_result", attempt=attempt)
+    if prior is not None:
+        return {"attempt": attempt, "cleanup": _event_data(prior), "pending": False}
+    prior_intent = _event(rows, "cleanup_intent", attempt=attempt)
+    if prior_intent is not None:
+        intent, post, acceptance = _managed_close_intent(
+            binding, allocation, attempt=attempt, integration=integration, value=_event_data(prior_intent),
+        )
+    else:
+        inspection_event = _event(rows, "managed_close_inspection", attempt=attempt)
+        if inspection_event is None:
+            post = _managed_post_integration_inspection(binding, allocation, attempt=attempt)
+            inspection_intent = {
+                "attempt": attempt, "integration": dict(integration),
+                "receipt_sha256": post["receipt_sha256"], "discard": [],
+            }
+            inspection_data = {"attempt": attempt, "intent": inspection_intent, "post_integration": post}
+            _append(chain_dir, _event_id("managed-close-inspection", inspection_data),
+                    "managed_close_inspection", inspection_data)
+            rows = _events(chain_dir)
+        else:
+            inspection_data = _event_data(inspection_event)
+            expected_intent = {
+                "attempt": attempt, "integration": dict(integration),
+                "receipt_sha256": _managed_workspace_record(
+                    binding, allocation.get("ask_agent_workspace"), expected_target=allocation["plan"].get("target"),
+                    base_commit=allocation.get("base_commit"), store=_managed_workspace_store(binding, attempt),
+                )["receipt_sha256"],
+                "discard": [],
+            }
+            if inspection_data.get("intent") != expected_intent:
+                _fail("managed close inspection conflicts with its accepted integration")
+            post = inspection_data.get("post_integration")
+            if not isinstance(post, Mapping):
+                _fail("managed close inspection lacks a helper result")
+        fingerprint = _sha(post.get("inspection", {}).get("fingerprint")
+                           if isinstance(post.get("inspection"), Mapping) else None,
+                           "managed close inspection fingerprint")
+        acceptance_value = {
+            "schema": "ask-agent.acceptance.v1",
+            "inspection_fingerprint": fingerprint,
+            "decision": "integrated",
+            "workers_stopped": True,
+            "completion_reference": (
+                f"ShipLoop dispatcher accepted attempt {attempt}; confirmed_stopped=true; "
+                f"verification receipt {verification['receipt_sha256']}"
+            ),
+            "acceptance_reference": _canonical_json({
+                "target": current_target, "integration": dict(integration),
+                "verification_evidence": verification["evidence"],
+            }),
+            "artifacts": [], "discard": [],
+        }
+        acceptance = _write_parent_immutable_json(
+            _managed_acceptance_path(chain_dir, attempt, fingerprint), acceptance_value,
+            "managed Ask-Agent close acceptance",
+        )
+        intent = {
+            "attempt": attempt, "allocation": allocation["plan"], "integration": dict(integration),
+            "confirmed_stopped": True, "post_integration": deepcopy(dict(post)), "acceptance": acceptance,
+        }
+        _append(chain_dir, _event_id("managed-cleanup-intent", intent), "cleanup_intent", intent)
+    outcome = _ask_agent_workspace(
+        binding, "close", "--receipt", str(post["receipt"]), "--acceptance", acceptance["path"],
+    )
+    if not isinstance(outcome, Mapping) or outcome.get("receipt") != post["receipt"]:
+        _fail("Ask-Agent close returned an invalid receipt outcome")
+    if outcome.get("status") == "retained":
+        if outcome.get("removed") is not False or not isinstance(outcome.get("reason"), str) or not outcome["reason"]:
+            _fail("Ask-Agent close returned an invalid retained outcome")
+        return {"attempt": attempt, "cleanup": {"intent": intent, "close": dict(outcome)},
+                "pending": True, "retained": True, "reason": outcome["reason"]}
+    fingerprint = _sha(post["inspection"]["fingerprint"], "managed close inspection fingerprint")
+    if (outcome.get("status"), outcome.get("schema"), outcome.get("removed"), outcome.get("decision"),
+            outcome.get("inspection_fingerprint"), outcome.get("worktree"), outcome.get("branch")) != (
+                "closed", "ask-agent.workspace.close.v1", True, "integrated", fingerprint,
+                post["workspace"], post["branch"]):
+        _fail("Ask-Agent close outcome conflicts with its accepted integration")
+    if outcome.get("archived_artifacts") != []:
+        _fail("Ask-Agent close unexpectedly archived unmanaged worker artifacts")
+    result = dict(intent, close=dict(outcome))
+    _append(chain_dir, _event_id("managed-cleanup-result", result), "cleanup_result", result)
+    return {"attempt": attempt, "cleanup": result, "pending": False}
+
+
 def _per_step_cleanup_attempt(root: Path, binding: Mapping[str, Any], attempt: str,
                               *, confirmed_stopped: bool) -> dict[str, Any]:
     if not confirmed_stopped:
@@ -3110,8 +4153,15 @@ def _per_step_cleanup_attempt(root: Path, binding: Mapping[str, Any], attempt: s
     if prior is not None:
         data = _event_data(prior)
         return {"attempt": attempt, "cleanup": data, "pending": False}
-    integration = _integration_proof(_event_data(integrated_event).get("integration"),
+    integrated_data = _event_data(integrated_event)
+    integration = _integration_proof(integrated_data.get("integration"),
                                      "cleanup integration")
+    if _managed_parallel_ask_agent_adapter(binding) and isinstance(allocation.get("ask_agent_workspace"), Mapping):
+        verification = _verification(integrated_data.get("verification"))
+        return _per_step_cleanup_managed(
+            root, binding, attempt, allocation=allocation, integration=integration,
+            verification=verification, rows=rows,
+        )
     intent = {"attempt": attempt, "allocation": allocation["plan"], "integration": integration,
               "confirmed_stopped": True}
     prior_intent = _event(rows, "cleanup_intent", attempt=attempt)
@@ -3155,6 +4205,9 @@ def _per_step_cleanup_superseded(root: Path, binding: Mapping[str, Any], attempt
     chain_dir = _binding_dir(root, binding["action_id"])
     rows = _events(chain_dir)
     allocation = _per_step_allocation(rows, attempt)
+    if _managed_parallel_ask_agent_adapter(binding) and isinstance(allocation.get("ask_agent_workspace"), Mapping):
+        _fail("retain the superseded Ask-Agent helper-managed workspace: this adapter has no accepted "
+              "non-integrated close disposition; preserve its receipt and results for explicit recovery")
     if _event(rows, "integration_result", attempt=attempt) is not None:
         _fail("superseded cleanup is only for an unintegrated worker")
     full = _child_full(binding)
@@ -3827,7 +4880,7 @@ def _bind(root: Path, state: dict[str, Any], args: argparse.Namespace) -> dict[s
     node = _node_path()
     if previous is None:
         _context_capability(dispatcher, node)
-    if previous is None or previous["schema"] == _BINDING_SCHEMA:
+    if previous is None or previous["schema"] in {_BINDING_SCHEMA, _MANAGED_BINDING_SCHEMA}:
         dispatcher = _package(args.dispatcher_skill, "dispatcher", (
             "SKILL.md", "scripts/dispatch.js", "scripts/state.js", "scripts/planning-context.js",
             "references/protocol.md",
@@ -3836,8 +4889,17 @@ def _bind(root: Path, state: dict[str, Any], args: argparse.Namespace) -> dict[s
         _preflight_graph(dispatcher, node, graph)
     ask_agent = _package(args.ask_agent_skill, "Ask-Agent", ("SKILL.md", "references/git-integration.md"))
     ask_agent_contract = None
+    ask_agent_identity = None
     if lifecycle == "per-step":
         ask_agent_contract = _selected_ask_agent_contract(ask_agent)
+        if ask_agent_contract["schema"] == _MANAGED_PER_STEP_ASK_AGENT_CONTRACT:
+            ask_agent = _package(args.ask_agent_skill, "Ask-Agent", tuple(sorted(_MANAGED_ASK_AGENT_FILES)))
+            # Re-read the frozen full package so contract text and helper
+            # binding are one selected package, not two adjacent paths.
+            ask_agent_contract = _selected_ask_agent_contract(ask_agent)
+            ask_agent_identity = _managed_ask_agent_identity(
+                ask_agent, args.ask_agent_skill, ask_agent_contract,
+            )
     target = _git_identity(Path(state["repo"]))
     worktree_parent = _is_absolute_text(args.worktree_parent, "--worktree-parent")
     parent_resolved = _resolved_existing(worktree_parent, "--worktree-parent", directory=True)
@@ -3852,7 +4914,12 @@ def _bind(root: Path, state: dict[str, Any], args: argparse.Namespace) -> dict[s
     chain_dir = _binding_dir(root, action_id)
     dispatcher_run = chain_dir / "dispatcher"
     candidate: dict[str, Any] = {
-        "schema": _BINDING_SCHEMA if previous is None else previous["schema"],
+        "schema": (
+            _MANAGED_BINDING_SCHEMA
+            if previous is None and ask_agent_contract is not None
+            and ask_agent_contract["schema"] == _MANAGED_PER_STEP_ASK_AGENT_CONTRACT
+            else (_BINDING_SCHEMA if previous is None else previous["schema"])
+        ),
         "run_id": state["run_id"],
         "action_id": action_id,
         "root": str(root),
@@ -3874,8 +4941,12 @@ def _bind(root: Path, state: dict[str, Any], args: argparse.Namespace) -> dict[s
         # reviewed adapter binding so all result integration remains v3.
         candidate["lifecycle"] = "per-step"
         candidate["ask_agent_contract"] = ask_agent_contract
+    if candidate["schema"] == _MANAGED_BINDING_SCHEMA:
+        if ask_agent_identity is None:
+            _fail("managed chain binding requires Ask-Agent card/helper identity evidence")
+        candidate["ask_agent_identity"] = ask_agent_identity
     extra_writes: dict[str, str] = {}
-    if candidate["schema"] == _BINDING_SCHEMA:
+    if candidate["schema"] in {_BINDING_SCHEMA, _MANAGED_BINDING_SCHEMA}:
         candidate["lifecycle"] = lifecycle
         if previous is not None:
             # A replay retains the original planning capture, even after cursor
