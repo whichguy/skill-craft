@@ -144,6 +144,11 @@ decisions and current evidence in the existing durable notes and knowledge index
 
 ### Scope, coverage, and frontier
 
+For terminology, background, requirements and prior decisions beyond the
+checkout, use [connected knowledge discovery](project-knowledge.md#connected-knowledge-discovery).
+Act on relevant available MCP/internal knowledge readers, not only public web
+search; an information source need not be part of the application's runtime.
+
 Start with the task's affected flows, not a fixed number of hops. Read the repo
 README and existing applicable AGENTS.md, architecture/design/environment notes,
 and local skills before rediscovering their subject. Record absence or stale

@@ -1,0 +1,163 @@
+{
+  "protected_workspace_files_unchanged": {
+    "README.md": true,
+    "src/app.py": true,
+    "test_fixture.py": true
+  },
+  "fixture_inputs_unchanged": true,
+  "frozen_source_files_unchanged": true,
+  "workspace_file_set_expected": true,
+  "invocations": [
+    [
+      "--help"
+    ],
+    [
+      "catalog",
+      "--help"
+    ],
+    [
+      "catalog"
+    ],
+    [
+      "search",
+      "--help"
+    ],
+    [
+      "search",
+      "--source",
+      "private-git",
+      "--query",
+      "Orion retry"
+    ],
+    [
+      "search",
+      "--source",
+      "intranet",
+      "--query",
+      "Orion retry"
+    ],
+    [
+      "search",
+      "--source",
+      "slack",
+      "--query",
+      "Orion retry"
+    ],
+    [
+      "fetch",
+      "--help"
+    ],
+    [
+      "fetch",
+      "--source",
+      "private-git",
+      "--id",
+      "orion-review-gateway-src-app"
+    ],
+    [
+      "fetch",
+      "--source",
+      "intranet",
+      "--id",
+      "adr-042-orion-review-gateway"
+    ],
+    [
+      "fetch",
+      "--source",
+      "slack",
+      "--id",
+      "slack-orion-review-1842"
+    ]
+  ],
+  "outcomes": [
+    {
+      "at": "2026-09-20T17:20:17.308555+00:00",
+      "command": "help",
+      "event": "outcome",
+      "exitCode": 0,
+      "fixture": "synthetic-orion-enterprise-discovery",
+      "outcome": "help_or_argument_error"
+    },
+    {
+      "at": "2026-09-20T17:20:22.433385+00:00",
+      "command": "catalog",
+      "event": "outcome",
+      "exitCode": 0,
+      "fixture": "synthetic-orion-enterprise-discovery",
+      "outcome": "help_or_argument_error"
+    },
+    {
+      "at": "2026-09-20T17:20:28.456817+00:00",
+      "command": "catalog",
+      "event": "outcome",
+      "exitCode": 0,
+      "fixture": "synthetic-orion-enterprise-discovery",
+      "outcome": "ok"
+    },
+    {
+      "at": "2026-09-20T17:20:34.297106+00:00",
+      "command": "search",
+      "event": "outcome",
+      "exitCode": 0,
+      "fixture": "synthetic-orion-enterprise-discovery",
+      "outcome": "help_or_argument_error"
+    },
+    {
+      "at": "2026-09-20T17:20:50.551106+00:00",
+      "command": "search",
+      "event": "outcome",
+      "exitCode": 0,
+      "fixture": "synthetic-orion-enterprise-discovery",
+      "outcome": "ok"
+    },
+    {
+      "at": "2026-09-20T17:20:50.593952+00:00",
+      "command": "search",
+      "event": "outcome",
+      "exitCode": 0,
+      "fixture": "synthetic-orion-enterprise-discovery",
+      "outcome": "ok"
+    },
+    {
+      "at": "2026-09-20T17:20:50.634350+00:00",
+      "command": "search",
+      "event": "outcome",
+      "exitCode": 0,
+      "fixture": "synthetic-orion-enterprise-discovery",
+      "outcome": "ok"
+    },
+    {
+      "at": "2026-09-20T17:20:56.986591+00:00",
+      "command": "fetch",
+      "event": "outcome",
+      "exitCode": 0,
+      "fixture": "synthetic-orion-enterprise-discovery",
+      "outcome": "help_or_argument_error"
+    },
+    {
+      "at": "2026-09-20T17:21:12.635394+00:00",
+      "command": "fetch",
+      "event": "outcome",
+      "exitCode": 0,
+      "fixture": "synthetic-orion-enterprise-discovery",
+      "outcome": "ok"
+    },
+    {
+      "at": "2026-09-20T17:21:12.677478+00:00",
+      "command": "fetch",
+      "event": "outcome",
+      "exitCode": 0,
+      "fixture": "synthetic-orion-enterprise-discovery",
+      "outcome": "ok"
+    },
+    {
+      "at": "2026-09-20T17:21:12.719198+00:00",
+      "command": "fetch",
+      "event": "outcome",
+      "exitCode": 0,
+      "fixture": "synthetic-orion-enterprise-discovery",
+      "outcome": "ok"
+    }
+  ],
+  "limits": "Local fixture receipts and files only; not a whole-host access watchdog or real connector validation."
+}
