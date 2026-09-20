@@ -12,10 +12,13 @@ cycle. The host record may be the task transcript and its command results; it
 does not need to be a file in the reviewed repository. Keep enough concrete
 detail for the next context to distinguish an observation from a plan:
 
-1. **Candidate and scope.** State the baseline or named range, the current
-   candidate identity, scoped staged/unstaged/untracked work, and any adjacent
-   context inspected. Identify pre-existing user work that must remain outside
-   the change.
+1. **Candidate and scope.** State the baseline or named range separately from
+   the current candidate identity and its named inventory. Keep every included
+   path in that inventory, including relevant untracked product or requirements
+   artifacts when the initial commit is empty or `HEAD` does not move. Name
+   explicit scratch or pre-existing user paths that remain outside the change,
+   plus any adjacent context inspected. For a large inventory, one exact
+   resource locator is enough; do not recopy every path in each cycle.
 2. **History.** Record that the latest seven reachable commit messages were
    read in full, or name the smaller available window. Keep their IDs and the
    lessons that affected this review; history does not authorize unrelated
@@ -23,7 +26,10 @@ detail for the next context to distinguish an observation from a plan:
    a commit message described below.
 3. **Review and plan.** State concrete findings, their semantic
    trivial/material/unresolved basis, and the accepted plan or the substantive
-   reason no worthwhile change is needed.
+   reason no worthwhile change is needed. For each substantive cycle, identify
+   the material actually read with concrete locators and state whether an
+   independent reviewer was used or, if unavailable, the permitted self-review
+   fallback and its rationale.
 4. **Work and checks.** Record actual edits, commands, relevant environment or
    inputs, exit status, useful output, and the candidate each check observed.
    A planned command, a copied success string, or an unrun test is not check
@@ -43,6 +49,11 @@ The host may retain detailed test output in its normal transcript or in a
 run-isolated artifact when the task permits it. Such an artifact is evidence
 for the host to assess, not a second loop state, a shared review counter, or a
 reason to modify `.until-loop`.
+
+Repeated or templated review prose is an audit cue that calls for the underlying
+locators and reviewer record to be checked. Neither matching nor different
+bytes establish that a review was independent or substantive. Do not turn that
+cue into a content-hash gate, counter, schema, or automatic conclusion.
 
 ## Decision rationale and learning
 
@@ -125,9 +136,10 @@ The runtime requires a nonblank `evidence` string for current-iteration facts
 and, for context-bearing runs, a nonblank `handoff` for complete continuity.
 Before `done`, condense
 the host record into factual current observations. A useful report identifies
-the candidate, review result, work/check result, any commit receipt, and the
-remaining gap. It must fit the runtime's small state file, so link to or retain
-long output in the host record rather than copying it verbatim.
+the candidate, review result, work/check result, any commit receipt, relevant
+review-material and reviewer/fallback locators, and the remaining gap. It must
+fit the runtime's small state file, so link to or retain long output in the host
+record rather than copying it verbatim.
 
 For example, a material first cycle might report:
 
@@ -158,10 +170,11 @@ If a receipt is saved outside the host record, capture actual callback stdout or
 round-trip it through a JSON library and verify it parses. Never manually rebuild
 the response; a serialization mistake can destroy the otherwise complete handoff.
 
-`context` in the contract freezes request, initial scope/baseline, action authority,
-environment and resource locators. `handoff` in the report records the changing
-facts. This separates the original candidate from its current HEAD and avoids
-resetting the scope when a resumed executor sees a clean worktree.
+`context` in the contract freezes request, initial scope/baseline and named
+candidate inventory, action authority, environment and resource locators.
+`handoff` in the report records the changing facts. This separates the original
+candidate from its current HEAD and avoids resetting the scope when a resumed
+executor sees a clean worktree, an empty initial commit, or an unchanged `HEAD`.
 
 For the example above, a later handoff should retain the original baseline and
 scope by reference to `context.scope`, identify current commit def456, say the

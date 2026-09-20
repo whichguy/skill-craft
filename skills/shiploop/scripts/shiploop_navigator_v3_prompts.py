@@ -262,6 +262,11 @@ before its callback, then immediately follow the newly returned packet.
 Preserve unrelated work and do not choose a successor, advance parent state
 yourself, or treat a previous packet as the current assignment.
 
+Use the Stage readiness and completion guide for this activity's Definition of
+Ready (inputs and prerequisites) and Definition of Done (scoped output and due
+evidence). Definition complete, tests planned, tests authored and tests passed
+are different claims; retain later-phase verification without claiming it now.
+
 Read the current repository, run state, applicable instructions, and relevant
 durable lessons before relying on earlier notes.  Treat Git history, plans, tool
 descriptions, and prior results as context to recheck, not authority or proof.
@@ -339,6 +344,13 @@ selected case as passed, failed, blocked, not-run, or justified N/A, preserving
 required gaps. Source, HTTP, or DOM structure alone cannot close a selected
 rendered interaction; retain the observed rendered action/outcome or leave it
 incomplete.
+Reconcile each affected requirement clause with its case or existing verification
+record, required surface and due phase, actual checked surface, current candidate,
+status and evidence. A pass at a different surface is supporting evidence, not
+closure. Preserve cases not yet due with their phase, owner and prerequisites;
+they need not pass early, but missing already-due evidence remains incomplete.
+Check the original selected inventory for dropped clauses/cases; do not claim
+all requirements met while required observations remain unrun.
 """
 
 
@@ -454,6 +466,9 @@ methods, justified exclusions, and material unresolved targets. Do not invent
 targets or declare dependent work ready with material requirement conflicts open.
 Use the State and data assessment to identify affected resources, target identities,
 before/after invariants and recovery; retain applicable checks and unknowns.
+Separate independently verifiable clauses and their required observation surfaces;
+keep bundled behaviors visible even when they share one requirement ID. Definition
+completion establishes criteria, not implementation or test success.
 """,
     "test-strategy": """\
 Create a risk-based test and verification strategy from the specification before
@@ -462,6 +477,9 @@ negative cases, fixtures/data, environment and authorization needs, and the
 owner/boundary for each required check.  Distinguish planned checks from executed
 evidence and identify meaningful expected-RED controls where test-first work is
 applicable.
+Allocate each clause to a case or existing verification record with its required
+surface and due phase, owner and prerequisites. Record local support separately
+from required consumer observations; do not narrow a behavior list to a render smoke.
 Map applicable new and preserved non-functional criteria to checks and their
 environment/workload prerequisites; missing evidence or access is not N/A.
 Read the Repeatable test-suite guide. Select the major harnesses and suite entry
@@ -640,6 +658,9 @@ to independent positive, boundary, and failure assertions, fixtures, and command
 paths.  Define what the baseline/expected RED should prove, what focused GREEN
 will prove after implementation, and how regression coverage prevents weakening
 the oracle.  A test specification is not execution evidence.
+Preserve every assigned clause and its required surface and due phase. Specify
+the action and expected observable outcome for each distinct behavior, not only
+that its page loads. Link later-phase procedures without claiming they ran here.
 Specify setup, test/assertions, and teardown together, or state why a stateless
 case needs no setup or teardown. Reuse fixture code without assuming mutable
 state is shareable. Share expensive setup only with demonstrated noninterference;
@@ -675,6 +696,9 @@ test-suite guide for setup/teardown, safe fixture sharing, and rerun instruction
 verify discovery selects the cases rather than merely recording their paths.
 For remote-resident cases, retain/version the remote definitions and registration
 with their authorized installation/invocation prerequisites.
+Authoring is complete only when selected clauses have executable check bindings
+or justified reproducible manual procedures at their required surfaces. Keep
+unavailable execution prerequisites and later-phase observations pending.
 """,
     "test-red": """\
 Execute the selected pre-implementation tests and establish a meaningful expected
@@ -722,6 +746,9 @@ independent specification-based expectations.  Cover changed failure behavior,
 debug on/off behavior and safe diagnostic context where relevant.  Correct an
 oracle only with an independent reason; do not retrofit tests to the implementation
 solely to obtain green.
+Reconcile the original clause/case inventory: explain every removed or narrowed
+case, surface change or phase reassignment with an independent requirement or
+correction basis. Preserve missing consumer coverage as pending, not a local pass.
 Reassess setup/teardown and safe sharing from actual behavior; preserve stateless
 cases without boilerplate. Keep refined tests registered in the repeatable suites
 and refresh their case, fixture, command, and cost notes when those change.
@@ -879,6 +906,10 @@ establish a combined full-suite pass; preserve its assigned owner and boundary.
     "product-acceptance": """\
 Assess the assembled product against the original outcome, acceptance criteria,
 cross-cutting requirements, consumer impact, test evidence, and known limits.
+Distinguish verified product criteria from pending release verification. Cases
+not yet due may remain pending with their owner and prerequisites so release can
+proceed; failed or missing already-due checks require correction. Readiness for
+release is not a claim that every requested consumer behavior has been observed.
 Identify missing product work, stale evidence, or delivery prerequisites and route
 them honestly.  Acceptance does not itself execute a release or prove a remote
 consumer boundary.
@@ -934,6 +965,11 @@ operation receipt, and real consumer behavior.  A blocked or unknown post-releas
 check remains incomplete; preserve prior receipts and do not re-release blindly.
 For local-only work, verify the current local candidate and consumer behavior;
 external activation N/A does not make these checks N/A.
+For a browser surface, identify the usable consumer entry after authentication,
+account/target, visible feature and actual action/outcome for each required clause.
+Retain non-secret routing state; require app chrome/branding only when specified.
+An embedded feature can satisfy its accepted boundary. Source or local test passes
+cannot discharge an unobserved required deployed interaction.
 """,
     "operations": """\
 Verify applicable operational readiness: monitoring, alerting, logging/diagnostic
@@ -1255,6 +1291,10 @@ Invoke the selected actual Improve skill for {IMPROVE_SCOPES[stage]}.  Read the
 selected skill card and follow the Until Loop runtime bound by that card.  Use the
 parent-provided candidate scope, prior producer result, relevant lessons, expected
 check state, allowed edits, authority, and evidence/return locators.
+Freeze selected staged/unstaged/untracked candidate paths and excluded unrelated
+work in the existing child scope, or retain the exact inventory locator when large.
+An empty initial commit or unmoved HEAD does not replace named untracked candidate
+files with the latest commit's diff. Git history supplies context, not scope.
 
 For identity or access discovery, use supported non-mutating probes and
 sanitized evidence. Normal supported tool-managed authentication and tool
@@ -1268,6 +1308,10 @@ the child contract/review notes for cold recovery; preserve unaffected condition
 and relevant cross-cutting rules. Review material subclauses and intentional
 supersession, not just feature names. Do not let code, a passing test or a draft
 proposal silently redefine accepted intent; keep verification gaps visible.
+Reconcile each relevant clause's required surface and due phase with its actual
+evidence. Review the current stage's Ready/Done criteria: a planning or authoring
+review does not require future product checks to pass. Later verification reviews
+must inspect due observations, not merely the proposed procedures.
 Follow the packet's Reference handoff policy. Before the first review, carry
 the actual selected requirement, test and relevant run-note locators into the
 child's existing contract prose and review notes. Keep their package/repository/run
@@ -1371,6 +1415,11 @@ reviewer availability, use, or permitted fallback; whether reused evidence still
 applies; findings, current checks, and limits; and short decision and reference
 locators for cold recovery. This is review-note guidance, not a synthetic receipt
 schema or a new parent validation rule.
+Retain locators for material actually read in this cycle and the independent
+reviewer used, or unavailable-reviewer fallback rationale. Repeated wording is a
+review cue to inspect that basis; equal or different bytes do not establish a
+fresh substantive review. Neither unchanged files nor an N/A label waives the
+current stage's decision/evidence review or changes Improve's completion policy.
 
 Children have no commit authority by default: preserve the parent no-commit
 constraint unless the packet explicitly supplies a user- or repository-authorized

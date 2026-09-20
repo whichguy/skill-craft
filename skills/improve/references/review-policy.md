@@ -10,11 +10,14 @@ authority. A consumer applies it only with an explicit owner binding.
 Before a consumer applies this policy, its owner must state:
 
 - the history window to inspect and how its contents inform the review;
-- the precise candidate scope, baseline, and treatment of adjacent context;
+- the precise candidate scope, baseline, and treatment of adjacent context,
+  including a named candidate inventory separate from history and any explicit
+  inclusion or exclusion of untracked artifacts;
 - the semantic classification rule for trivial, material, and uncertain
   findings;
 - the durable evidence locations and records that establish a completed
-  review;
+  review, including concrete review-material locators and the independent
+  reviewer or permitted fallback rationale for each substantive cycle;
 - the commit policy, including no-change handling and any explicit override;
 - the phase boundary and callback that receive each completed phase; and
 - the authority and conditions that may finalize the whole requested work.
@@ -37,7 +40,12 @@ For each distinct review cycle, preserve the following ordered obligations:
 
 1. **Review.** Inspect the current in-scope candidate, relevant affected
    consumers, prior review evidence, and the owner-provided history window.
-   Treat reviewer suggestions as findings to triage, not automatic edits.
+   Preserve a named candidate inventory separately from history: included
+   untracked paths remain in scope even if the initial commit is empty or
+   `HEAD` does not move, while explicit scratch or pre-existing user exclusions
+   remain outside it. Record concrete locators for material actually read and
+   the independent-reviewer use or permitted fallback rationale. Treat reviewer
+   suggestions as findings to triage, not automatic edits.
    Accept a suggestion only when current evidence shows a failure, violated
    requirement, or concrete in-scope benefit; record the basis for accepting
    or declining it. Investigate uncertain impact before classifying it.
@@ -58,9 +66,10 @@ For each distinct review cycle, preserve the following ordered obligations:
    or incomplete checks never advance the streak.
 5. **Record.** Retain evidence for the resulting candidate: scope and identity,
    findings and classification, plan or no-change reason, applied changes,
-   checks and results, learnings, any owner-required commit receipt, and
-   streak before and after. Material changes invalidate affected evidence and
-   require current evidence for the changed candidate.
+   checks and results, concrete review-material locators, reviewer or fallback
+   rationale, learnings, any owner-required commit receipt, and streak before
+   and after. Material changes invalidate affected evidence and require current
+   evidence for the changed candidate.
 6. **Assess.** Count a pass only after a fully completed, distinct review
    cycle with current evidence. A callback, retry, diagnostic step,
    verification run, repeated claim, or recovery action is not another review.
@@ -95,4 +104,8 @@ Use a fresh, read-only independent reviewer when available for a meaningful
 second pass. Give that reviewer the scope, current artifacts, evidence, and
 criteria without telling it that the desired result is trivial. Treat its
 observations through the same triage rule. If independent review is unavailable,
-disclose the self-review limitation in the record.
+disclose the self-review limitation and permitted fallback rationale in the
+record. Repeated or templated review text is an audit cue, not proof either way:
+matching or different bytes, hashes, or wording do not establish independent or
+substantive review. Review the actual locators and reviewer record instead. This
+policy adds no hash gate, counter, schema, or commit requirement.

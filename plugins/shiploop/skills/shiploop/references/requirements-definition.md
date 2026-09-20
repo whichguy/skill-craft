@@ -140,6 +140,31 @@ campaign.
 
 ## Carry the reconciled contract forward
 
+Definition is ready to begin when the original request, applicable source
+sections, intended consumer and material unknowns have been located. Definition
+is done for dependent work when affected intent is reconciled into independently
+verifiable clauses with observable outcomes and the required verification surface.
+Retain material unresolved criteria explicitly; completing their investigation
+does not make the affected definition or dependent implementation ready.
+Neither definition completion nor a proposed test proves the product works.
+
+Split a bundled requirement where its clauses need different observations; keep
+the existing requirement ID and useful subclause/case locators. For example,
+"open the deployed board and verify capture and winner detection" cannot be
+closed by observing the board alone plus local rules tests. Distinguish a
+required surface from an implementation choice: a local check may support a
+required deployed interaction without satisfying it. Do not invent browser,
+branding or deployment requirements for a local library or an embedded feature.
+
+Test planning adds each clause's case or other existing verification record,
+expected observation, required surface/target, due phase, owner and prerequisites
+to the existing [case record](testing-and-documentation.md#test-cases).
+Equivalent clauses may share a check when it actually observes them all; a
+justified N/A needs a requirement-based reason, not unavailable access. Keep
+actual status/evidence separate from these planned fields. Use the
+[stage readiness and completion map](testing-and-documentation.md#stage-readiness-and-completion)
+to distinguish definition done, tests authored, tests passed and delivery verified.
+
 Test strategy and global/step plans must map applicable new **and preserved**
 quality criteria to checks, prerequisites, and work-item requirement/test
 locators. Assigned Improve reviews challenge silent loss, unjustified changes,

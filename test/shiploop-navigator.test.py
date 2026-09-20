@@ -11,6 +11,7 @@ from __future__ import annotations
 
 from contextlib import ExitStack, redirect_stdout
 import copy
+import html
 from io import StringIO
 import json
 import os
@@ -2472,6 +2473,55 @@ class NavigatorTests(unittest.TestCase):
         )
         self.assertNotIn("Current stage guidance:", packet)
         self.assertNotIn("Call this when done:", packet)
+
+    def test_worktree_return_projection_escapes_reports_and_skips_direct_modes(self) -> None:
+        """Packets derive current return facts without adding navigator state."""
+        report_root = self.base / "run <unsafe>"
+        report_root.mkdir()
+        worktree = navigator.new_state(
+            str(self.repo), self.goal, protocol_version=2, worktree=True
+        )
+        before = copy.deepcopy(worktree)
+        receipt_path = report_root.parent / "return-receipt.md"
+
+        with patch(
+            "shiploop_workspace.completed_receipt_snapshot",
+            return_value={"status": "returned", "kind": "working-tree-return"},
+        ) as completed:
+            packet = navigator.render(None, report_root, worktree)
+            report = navigator._render_report(worktree, report_root)
+
+        self.assertEqual(worktree, before)
+        self.assertEqual(
+            completed.call_args_list,
+            [
+                ((report_root.parent, Path(worktree["repo"])), {}),
+                ((report_root.parent, Path(worktree["repo"])), {}),
+            ],
+        )
+        self.assertIn("Return receipt: " + str(receipt_path), packet)
+        self.assertIn(
+            "Current workspace return: currently verified "
+            "(status: returned; kind: working-tree-return).",
+            packet,
+        )
+        self.assertIn("Current workspace return: currently verified", report)
+        self.assertIn(html.escape(str(receipt_path)), report)
+        self.assertNotIn("run <unsafe>", report)
+
+        direct = navigator.new_state(str(self.repo), self.goal, protocol_version=2)
+        direct_before = copy.deepcopy(direct)
+        with patch(
+            "shiploop_workspace.completed_receipt_snapshot",
+            side_effect=AssertionError("direct rendering must not inspect a workspace"),
+        ) as completed:
+            direct_packet = navigator.render(None, report_root, direct)
+            direct_report = navigator._render_report(direct, report_root)
+
+        self.assertEqual(direct, direct_before)
+        completed.assert_not_called()
+        self.assertNotIn("Current workspace return:", direct_packet)
+        self.assertNotIn("Current workspace return:", direct_report)
 
 
 if __name__ == "__main__":

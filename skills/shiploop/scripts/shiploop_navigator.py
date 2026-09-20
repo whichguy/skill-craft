@@ -989,6 +989,79 @@ def _test_context_lines(state: Mapping[str, Any], root: Path) -> list[str]:
     return lines
 
 
+def _workspace_return_projection(
+    root: Path | None, state: Mapping[str, Any]
+) -> dict[str, str] | None:
+    """Read the guarded return only for a worktree packet or report.
+
+    This deliberately derives a live view from the workspace validator instead
+    of storing receipt fields in navigator state. A busy or stale workspace is
+    not a current verification result.
+    """
+    if state["execution_mode"] != "navigator-worktree":
+        return None
+    if root is None:
+        # Keep the historical one-argument report helper usable for callers
+        # that do not have a run locator. Real packet/report entrypoints pass it.
+        return None
+    workspace_root = Path(root).parent
+    receipt_path = workspace_root / "return-receipt.md"
+    # Keep this import local: the workspace adapter owns the non-mutating
+    # display check and imports navigator state only through its public caller.
+    try:
+        import shiploop_workspace as workspace
+    except ImportError:  # pragma: no cover - supports package-style local imports.
+        from . import shiploop_workspace as workspace  # type: ignore
+    try:
+        receipt = workspace.completed_receipt_snapshot(
+            workspace_root, Path(state["repo"])
+        )
+    except workspace.WorkspaceError:
+        receipt = None
+    if not isinstance(receipt, Mapping):
+        return {
+            "receipt": str(receipt_path),
+            "status": "not currently verified",
+            "kind": "",
+            "verified": "false",
+        }
+    status = receipt.get("status")
+    kind = receipt.get("kind")
+    if not isinstance(status, str) or not isinstance(kind, str):
+        return {
+            "receipt": str(receipt_path),
+            "status": "not currently verified",
+            "kind": "",
+            "verified": "false",
+        }
+    return {
+        "receipt": str(receipt_path),
+        "status": status,
+        "kind": kind,
+        "verified": "true",
+    }
+
+
+def _workspace_return_packet_lines(root: Path, state: Mapping[str, Any]) -> list[str]:
+    """Render a current guarded-return view without changing navigator state."""
+    projection = _workspace_return_projection(root, state)
+    if projection is None:
+        return []
+    lines = ["Return receipt: " + projection["receipt"]]
+    if projection["verified"] == "true":
+        lines.append(
+            "Current workspace return: currently verified "
+            "(status: " + projection["status"] + "; kind: " + projection["kind"] + ")."
+        )
+    else:
+        lines.append("Current workspace return: " + projection["status"] + ".")
+    lines.append(
+        "Historical host reports in accepted transitions do not establish current "
+        "workspace return status."
+    )
+    return lines
+
+
 def _progress_lines(state: Mapping[str, Any]) -> list[str]:
     """Project validated state into bounded status context, never execution proof.
 
@@ -1102,7 +1175,7 @@ def _progress_lines(state: Mapping[str, Any]) -> list[str]:
 
 
 def render(core: Any, root: Path, state: Mapping[str, Any]) -> str:
-    """Render a cold-start packet from navigator state without reading files."""
+    """Render a packet; worktree packets derive a read-only return projection."""
     validate(state)
     root = Path(root)
     prelude, inner, outer = graph(state)
@@ -1144,6 +1217,9 @@ def render(core: Any, root: Path, state: Mapping[str, Any]) -> str:
         + "#maintained-product-requirements",
         "Requirements definition guide: "
         + str(reference_dir / "requirements-definition.md"),
+        "Stage readiness and completion guide: "
+        + str(reference_dir / "testing-and-documentation.md")
+        + "#stage-readiness-and-completion",
         "Initial repository baseline guide: "
         + str(reference_dir / "execution-planning.md")
         + "#initial-repository-baseline",
@@ -1198,7 +1274,7 @@ def render(core: Any, root: Path, state: Mapping[str, Any]) -> str:
             + " (isolated worktree; not the original branch checkout)",
             "Workspace authority and original branch: " + str(workspace_root / "workspace.md"),
             "Return plan: " + str(workspace_root / "return-plan.md"),
-            "Return receipt: " + str(workspace_root / "return-receipt.md"),
+            *_workspace_return_packet_lines(root, state),
             "All product work happens in the execution checkout. Keep run state, "
             "results and reports outside it. Inner integrate assembles here, not "
             "back into the original branch. Read the workspace policy before return.",
@@ -1487,8 +1563,8 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
     return "\n".join(lines) + "\n"
 
 
-def _render_report(state: Mapping[str, Any]) -> str:
-    """Derive a small, escaped navigator report without reading any artifact."""
+def _render_report(state: Mapping[str, Any], root: Path | None = None) -> str:
+    """Derive a small escaped report with a live worktree-return projection."""
     validate(state)
     outcome = "complete" if state["status"] == "done" else "unfinished"
     title = "ShipLoop navigator report"
@@ -1545,11 +1621,28 @@ def _render_report(state: Mapping[str, Any]) -> str:
             "</tbody></table>",
         ]
     )
+    workspace_return = _workspace_return_projection(root, state)
+    workspace_section: list[str] = []
+    if workspace_return is not None:
+        if workspace_return["verified"] == "true":
+            current = (
+                "currently verified (status: " + workspace_return["status"]
+                + "; kind: " + workspace_return["kind"] + ")."
+            )
+        else:
+            current = workspace_return["status"] + "."
+        workspace_section = [
+            "<h2>Workspace return</h2>",
+            "<p>Return receipt: " + html.escape(workspace_return["receipt"]) + "</p>",
+            "<p>Current workspace return: " + html.escape(current) + "</p>",
+            "<p>Historical host reports in accepted transitions do not establish current "
+            "workspace return status.</p>",
+        ]
     delivery_section = consumer_delivery.html_section(state)
     report_tail = (
-        ["</tbody></table>", *progress_section, delivery_section, "</body></html>"]
+        ["</tbody></table>", *progress_section, *workspace_section, delivery_section, "</body></html>"]
         if state["navigator_protocol_version"] >= 2
-        else ["</tbody></table>", delivery_section, "</body></html>"]
+        else ["</tbody></table>", *workspace_section, delivery_section, "</body></html>"]
     )
     return "\n".join(
         [
@@ -1605,7 +1698,7 @@ def save(root: Path, state: Mapping[str, Any], extra_writes: Mapping[str, str] |
     if latest is not None:
         writes[latest[0]] = latest[1]
     if state["status"] in ("done", "halted"):
-        writes["report.html"] = _render_report(state)
+        writes["report.html"] = _render_report(state, Path(root))
     store.transaction(Path(root), writes)
 
 
@@ -1666,7 +1759,7 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
         print(render(core, root, state), end="")
         return 0
     if command == "report":
-        print(_render_report(state), end="")
+        print(_render_report(state, root), end="")
         return 0
     if command in ("improve-bind", "improve-complete"):
         import shiploop_standalone_improve as standalone

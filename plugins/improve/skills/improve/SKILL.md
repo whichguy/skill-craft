@@ -5,7 +5,7 @@ description: >-
   loop: use recent Git history, make warranted changes, run meaningful checks,
   and require two consecutive trivial-only review passes. Supports a read-only
   interpretation preview; not a one-off code review.
-version: 0.2.0-rc.3
+version: 0.2.0-rc.4
 license: MIT
 platforms:
   - linux
@@ -79,6 +79,13 @@ candidate scope, permitted paths, current producer result, relevant work-item
 `context`, evidence/reference locators, return route, and authority constraints;
 retain those as frozen child-contract constraints rather than inventing an
 alternate ShipLoop review protocol.
+
+Treat a parent-provided candidate inventory as scope separately from Git
+history. Retain every named included path, including relevant untracked product
+or requirements artifacts, when the initial commit is empty or `HEAD` does not
+move. Keep explicitly excluded scratch or pre-existing user paths outside that
+candidate. When the inventory is large, retain one exact inventory locator
+rather than recopying every path into each review record.
 
 The child `context.resources` must retain the parent latest-packet receipt
 location, the exact parent return instruction or callback locator, and the
@@ -161,14 +168,20 @@ original learnings with selective references to prior commits in one account.
   review and retain useful prior lessons in that review's host record. History
   is evidence of prior intent, not the current diff range, current truth, or
   permission to undo a change.
-- **Scope:** retain any named branch range, files, or baseline. Otherwise
-  freeze the initial Git HEAD and review the initial staged, unstaged, and
-  relevant untracked changes together with this run's later edits. If clean,
-  use the latest commit's change as a disclosed default unless context
-  establishes a more specific candidate. Inspect adjacent consumers only as
-  needed to assess the candidate. In an unborn repository, disclose that
-  history is absent; execution that requires commits remains incomplete until
-  that constraint is resolved.
+- **Scope:** retain any named branch range, candidate inventory/files, or
+  baseline. A named candidate inventory controls scope separately from Git
+  history: its included paths remain in scope, including relevant untracked
+  product or requirements artifacts when the initial commit is empty or `HEAD`
+  does not move; its explicit scratch or pre-existing-user exclusions remain
+  outside scope. When that inventory is long, retain one exact inventory
+  locator instead of recopying the whole list in every cycle. Otherwise freeze
+  the initial Git HEAD and review the initial staged, unstaged, and relevant
+  untracked changes together with this run's later edits. If no more specific
+  candidate is supplied and the worktree is clean, use the latest commit's
+  change as a disclosed default. Inspect adjacent consumers only as needed to
+  assess the candidate. In an unborn repository, disclose that history is
+  absent; execution that requires commits remains incomplete until that
+  constraint is resolved.
 - **Trivial classification:** classify impact semantically. Trivial work is
   non-semantic spelling, formatting, or explanatory polish with evidence that
   behavior is unchanged. A one-line bug fix, public-contract change,
@@ -177,7 +190,11 @@ original learnings with selective references to prior commits in one account.
 - **Evidence location:** retain each review in the host-visible task record:
   the candidate identity and ownership-aware scope, seven-message history read,
   findings, plan or no-change reason, actual changes, commands and results,
-  lessons, and commit receipt when required. Before `done`, summarize those
+  lessons, and commit receipt when required. For each substantive cycle, retain
+  concrete locators for material actually read and whether an independent
+  reviewer was used or, if unavailable, the permitted self-review fallback and
+  its rationale. Repeated templated wording is an audit cue only: neither equal
+  nor unequal bytes prove an independent review. Before `done`, summarize those
   observations truthfully in its concise `evidence` field and retain complete
   continuation facts in `handoff`, as described in
   [callback evidence](references/callback-evidence.md). New runs must not call
@@ -227,8 +244,12 @@ that shared project work.
 ## Continue after context loss
 
 Before `start`, freeze the actual initial HEAD/base or named range, the exact
-included files and staged/unstaged/untracked ownership boundaries in
-`context.scope`. A later commit or clean worktree does not select a new candidate.
+candidate inventory and staged/unstaged/untracked ownership boundaries in
+`context.scope`. Keep its named inclusions and exclusions distinct from the
+history window; an empty initial commit or unchanged `HEAD` does not select a
+new candidate. A later commit or clean worktree does not select a new candidate.
+For a long inventory, `context.scope` may cite an exact resource locator instead
+of repeating every path.
 Put the actual commit/no-commit, push/no-push and audit-commit rules in
 `context.authority`. Preserve these record sections and the full ordered cycle
 in the contract; reloading a changed card must not replace accepted user rules.

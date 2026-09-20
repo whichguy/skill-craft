@@ -21,3 +21,17 @@ mechanism for the source. Check asynchronous success, failure, stale results,
 and rendered states. JavaScript doubles do not establish Apex execution,
 permission behavior, governor use, or org behavior; exercise those boundaries
 in an identified disposable org when required.
+
+For a Lightning consumer, distinguish the org/instance identity from the
+feature's authenticated entry: an app, custom tab, component or other supported
+page. Use supported navigation (for example a generated `PageReference` URL)
+and verify the destination after redirects, with the intended user's role,
+visible feature and required interactions. Preserve a non-secret usable route
+in the handoff; an instance home alone is not the app link. A custom tab in an
+existing shell can be correct; verify a particular app/navigation identity when
+the accepted design requires it, without inventing an org-wide branding rule.
+Do not hard-code a Salesforce hostname as the universal consumer boundary.
+[Salesforce navigation](https://developer.salesforce.com/docs/platform/lwc/guide/use-navigate-basic.html)
+and [page types](https://developer.salesforce.com/docs/platform/lwc/guide/reference-page-reference-type.html)
+define the supported navigation contract. This supplements the generic
+[browser evidence guidance](../testing-and-documentation.md#lightweight-and-browser-checks).

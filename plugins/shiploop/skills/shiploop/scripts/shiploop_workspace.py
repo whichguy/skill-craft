@@ -16,7 +16,11 @@ The public functions are intentionally small:
 ``execute_return``
     Apply the approved delta or perform a safe fast-forward merge.
 ``assert_binding`` / ``completed_receipt``
-    Read-only guards for protocol start and terminal handoff.
+    Protocol-start and terminal-handoff guards. Their exclusive-lock path may
+    recover a crashed Markdown transaction before it evaluates the receipt.
+``completed_receipt_snapshot``
+    A non-mutating packet/report projection that accepts only an already-stable
+    workspace and receipt.
 """
 
 from __future__ import annotations
@@ -67,6 +71,7 @@ __all__ = [
     "WorkspaceError",
     "assert_binding",
     "completed_receipt",
+    "completed_receipt_snapshot",
     "execute_return",
     "plan_return",
     "prepare",
@@ -419,6 +424,170 @@ def _fingerprint_equal(left: Mapping[str, Any], right: Mapping[str, Any]) -> boo
     return dict(left) == dict(right)
 
 
+def _tree_entries(repo: Path, tree: str) -> Dict[str, Tuple[str, str]]:
+    """Read a tree without materializing a private index or object."""
+    if not isinstance(tree, str) or not _SHA.fullmatch(tree):
+        _fail("receipt has an invalid snapshot tree")
+    raw = _git_bytes(repo, "ls-tree", "-r", "-z", tree, readonly=True)
+    entries: Dict[str, Tuple[str, str]] = {}
+    for record in raw.split(b"\0"):
+        if not record:
+            continue
+        header, separator, raw_path = record.partition(b"\t")
+        fields = header.split()
+        if separator != b"\t" or len(fields) != 3:
+            _fail("Git returned an invalid snapshot tree entry")
+        try:
+            mode = fields[0].decode("ascii", "strict")
+            object_type = fields[1].decode("ascii", "strict")
+            object_id = fields[2].decode("ascii", "strict")
+        except UnicodeDecodeError as exc:
+            _fail(f"Git returned an invalid snapshot tree entry: {exc}")
+            raise AssertionError from exc
+        path = _safe_rel(
+            raw_path.decode("utf-8", "surrogateescape"), label="snapshot tree path"
+        )
+        if object_type != "blob" or not _SHA.fullmatch(object_id) or path in entries:
+            _fail("Git returned an invalid snapshot tree entry")
+        entries[path] = (mode, object_id)
+    return entries
+
+
+def _tree_matches_working_tree(repo: Path, tree: str) -> bool:
+    """Compare tracked working content to a recorded tree without an index write."""
+    result = _git(
+        repo,
+        "diff",
+        "--quiet",
+        "--no-ext-diff",
+        "--no-textconv",
+        tree,
+        "--",
+        readonly=True,
+    )
+    return result.returncode == 0
+
+
+def _filemode_enabled(repo: Path) -> bool:
+    """Return the effective mode-comparison policy used by Git snapshots."""
+    result = _git(repo, "config", "--bool", "core.filemode", readonly=True)
+    if result.returncode == 1 and not result.stderr:
+        # Git defaults to honoring executable bits when this setting is absent.
+        return True
+    if result.returncode:
+        _fail("cannot inspect Git core.filemode configuration")
+    value = result.stdout.strip().lower()
+    if value == b"true":
+        return True
+    if value == b"false":
+        return False
+    _fail("Git returned an invalid core.filemode value")
+    raise AssertionError
+
+
+def _working_path_object_id(
+    repo: Path, path: str, mode: str, *, filemode_enabled: bool
+) -> Optional[str]:
+    """Hash one untracked receipt path without asking Git to write the object."""
+    candidate = repo / path
+    try:
+        metadata = os.lstat(candidate)
+    except OSError:
+        return None
+    if mode == "120000":
+        if not stat.S_ISLNK(metadata.st_mode):
+            return None
+        try:
+            contents = os.readlink(candidate).encode("utf-8", "surrogateescape")
+        except OSError:
+            return None
+        result = _git(repo, "hash-object", "--stdin", input_bytes=contents, readonly=True)
+    elif mode in {"100644", "100755"}:
+        if not stat.S_ISREG(metadata.st_mode):
+            return None
+        actual_mode = "100755" if metadata.st_mode & stat.S_IXUSR else "100644"
+        if filemode_enabled and actual_mode != mode:
+            return None
+        if not filemode_enabled and mode != "100644":
+            return None
+        result = _git(
+            repo,
+            "hash-object",
+            f"--path={path}",
+            "--",
+            path,
+            readonly=True,
+        )
+    else:
+        return None
+    if result.returncode:
+        return None
+    value = result.stdout.decode("utf-8", "surrogateescape").strip()
+    return value if _SHA.fullmatch(value) else None
+
+
+def _fingerprint_matches_snapshot(
+    repo: Path,
+    expected: Mapping[str, Any],
+    extras: Sequence[str] = (),
+    *,
+    require_regular_untracked: bool = False,
+) -> bool:
+    """Match a recorded fingerprint through read-only Git and filesystem reads."""
+    try:
+        if not isinstance(expected, Mapping):
+            return False
+        normalized_extras = [_safe_rel(path, label="receipt extra path") for path in extras]
+        if normalized_extras != list(extras) or len(set(normalized_extras)) != len(normalized_extras):
+            return False
+        tracked_tree = expected.get("tracked_tree")
+        working_tree = expected.get("working_tree")
+        if not isinstance(tracked_tree, str) or not isinstance(working_tree, str):
+            return False
+        tracked_entries = _tree_entries(repo, tracked_tree)
+        working_entries = _tree_entries(repo, working_tree)
+        changed_paths = sorted(
+            path
+            for path in set(tracked_entries).union(working_entries)
+            if tracked_entries.get(path) != working_entries.get(path)
+        )
+        if changed_paths != normalized_extras:
+            return False
+        if any(path not in working_entries for path in normalized_extras):
+            return False
+        current = {
+            "head": _head(repo),
+            "branch": _branch(repo),
+            "index_sha256": _index_digest(repo),
+            "index_paths": _index_paths(repo),
+            "tracked_tree": tracked_tree,
+            "working_tree": working_tree,
+            "extra_paths": normalized_extras,
+            "untracked": _untracked(repo),
+        }
+        if require_regular_untracked and any(
+            row["kind"] != "file" for row in current["untracked"]
+        ):
+            return False
+        if not _fingerprint_equal(expected, current):
+            return False
+        if not _tree_matches_working_tree(repo, tracked_tree):
+            return False
+        filemode_enabled = _filemode_enabled(repo)
+        return all(
+            _working_path_object_id(
+                repo,
+                path,
+                working_entries[path][0],
+                filemode_enabled=filemode_enabled,
+            )
+            == working_entries[path][1]
+            for path in normalized_extras
+        )
+    except WorkspaceError:
+        return False
+
+
 def _workspace_root(repo: Path, requested: Path, common: Path) -> Tuple[Path, bool]:
     root = requested.absolute()
     _no_symlink_components(root.parent, label="workspace root parent")
@@ -507,6 +676,47 @@ def _workspace_lock(root: Path):
             pass
 
 
+@contextmanager
+def _workspace_snapshot_lock(root: Path):
+    """Acquire only an existing shared lock; never recover or create state."""
+    lock = root / ".workspace.lock"
+    if not hasattr(os, "O_NOFOLLOW"):
+        yield False
+        return
+    try:
+        descriptor = os.open(lock, os.O_RDONLY | os.O_NOFOLLOW)
+    except OSError:
+        yield False
+        return
+    try:
+        try:
+            import fcntl
+
+            metadata = os.fstat(descriptor)
+            if not stat.S_ISREG(metadata.st_mode) or metadata.st_nlink != 1:
+                yield False
+                return
+            fcntl.flock(descriptor, fcntl.LOCK_SH | fcntl.LOCK_NB)
+        except (AttributeError, ImportError, OSError):
+            yield False
+            return
+        try:
+            os.lstat(root / store.JOURNAL_NAME)
+        except FileNotFoundError:
+            yield True
+        except OSError:
+            yield False
+        else:
+            # Any journal, even a malformed or unsafe one, needs the regular
+            # recovery path before a display can make a current claim.
+            yield False
+    finally:
+        try:
+            os.close(descriptor)
+        except OSError:
+            pass
+
+
 def _locked_existing_root(function):
     """Wrap a public operation whose external workspace root already exists."""
     @wraps(function)
@@ -567,9 +777,8 @@ def _manifest(root: Path) -> Dict[str, Any]:
     return _validate_manifest(root, _record(root, MANIFEST, "workspace manifest"))
 
 
-@_locked_existing_root
-def assert_binding(root: Path, repo: Path) -> Dict[str, Any]:
-    """Read-only check that an execution worktree came from this root."""
+def _assert_binding(root: Path, repo: Path) -> Dict[str, Any]:
+    """Check a binding while the caller has already chosen its lock policy."""
     root = _resolved_directory(Path(root), label="workspace root")
     manifest = _manifest(root)
     source = _repo_root(Path(manifest["source_repo"]))
@@ -591,6 +800,12 @@ def assert_binding(root: Path, repo: Path) -> Dict[str, Any]:
     if _git(worktree, "cat-file", "-e", f"{manifest['baseline_commit']}^{{commit}}", readonly=True).returncode:
         _fail("workspace baseline commit is unavailable")
     return manifest
+
+
+@_locked_existing_root
+def assert_binding(root: Path, repo: Path) -> Dict[str, Any]:
+    """Read-only check that an execution worktree came from this root."""
+    return _assert_binding(root, repo)
 
 
 def _private_commit(repo: Path, tree: str, parent: str) -> str:
@@ -751,6 +966,33 @@ def _candidate(manifest: Mapping[str, Any], root: Path) -> Tuple[Dict[str, Any],
         changes.setdefault(path, "added")
     history = _history_paths(worktree, manifest["baseline_commit"])
     return fingerprint, changes, history
+
+
+def _candidate_matches_snapshot(manifest: Mapping[str, Any], receipt: Mapping[str, Any]) -> bool:
+    """Verify the candidate fingerprint without a temporary index or tree write."""
+    try:
+        worktree = _resolved_directory(
+            Path(manifest["worktree"]), label="workspace worktree"
+        )
+        _ensure_supported(worktree, reject_runtime=False)
+        if _branch(worktree) != manifest["branch"]:
+            return False
+        if _git(
+            worktree,
+            "merge-base",
+            "--is-ancestor",
+            manifest["baseline_commit"],
+            "HEAD",
+            readonly=True,
+        ).returncode:
+            return False
+        return _fingerprint_matches_snapshot(
+            worktree,
+            receipt.get("candidate_fingerprint", {}),
+            require_regular_untracked=True,
+        )
+    except (KeyError, TypeError, WorkspaceError):
+        return False
 
 
 def _plan_rows(
@@ -1087,6 +1329,48 @@ def _source_result_matches(
     return _fingerprint_equal(expected, current)
 
 
+def _source_result_matches_snapshot(source: Path, receipt: Mapping[str, Any]) -> bool:
+    """Verify a returned source through read-only receipt comparisons only."""
+    try:
+        _ensure_supported(source, reject_runtime=False)
+    except WorkspaceError:
+        return False
+    if (
+        receipt.get("schema") != RECEIPT_SCHEMA
+        or receipt.get("version") != VERSION
+        or receipt.get("kind")
+        not in {"working-tree-return", "fast-forward-merge", "no-change-return"}
+    ):
+        return False
+    expected = receipt.get("expected_source")
+    extras = receipt.get("source_extra_paths")
+    if (
+        not isinstance(expected, dict)
+        or not isinstance(extras, list)
+        or any(not isinstance(path, str) for path in extras)
+    ):
+        return False
+    if receipt.get("kind") == "fast-forward-merge":
+        try:
+            status = _git(
+                source,
+                "status",
+                "--porcelain=v1",
+                "--untracked-files=all",
+                readonly=True,
+            )
+            return (
+                _head(source) == expected.get("head")
+                and _branch(source) == expected.get("branch")
+                and _git_text(source, "rev-parse", "HEAD^{tree}") == expected.get("tree")
+                and status.returncode == 0
+                and not status.stdout
+            )
+        except WorkspaceError:
+            return False
+    return _fingerprint_matches_snapshot(source, expected, extras)
+
+
 def _write_receipt(root: Path, manifest: Dict[str, Any], receipt: Dict[str, Any]) -> None:
     _write(root, {MANIFEST: (manifest, "ShipLoop workspace"), RETURN_RECEIPT: (receipt, "ShipLoop return receipt")})
 
@@ -1214,7 +1498,7 @@ def execute_return(workspace_root: Path) -> Dict[str, Any]:
 
 @_locked_existing_root
 def completed_receipt(workspace_root: Path, repo: Path) -> Optional[Dict[str, Any]]:
-    """Read-only terminal gate for the execution worktree's completed return."""
+    """Recovery-capable terminal gate for the worktree's completed return."""
     root = _resolved_directory(Path(workspace_root), label="workspace root")
     manifest = _manifest(root)
     worktree = _resolved_directory(Path(manifest["worktree"]), label="workspace worktree")
@@ -1233,3 +1517,38 @@ def completed_receipt(workspace_root: Path, repo: Path) -> Optional[Dict[str, An
     if not _fingerprint_equal(receipt.get("candidate_fingerprint", {}), current_candidate):
         return None
     return receipt if _source_result_matches(source, root, receipt) else None
+
+
+def completed_receipt_snapshot(workspace_root: Path, repo: Path) -> Optional[Dict[str, Any]]:
+    """Return a current receipt only when display verification can stay read-only.
+
+    Unlike the terminal guard, this function never creates the workspace lock,
+    replays a Markdown transaction, creates an alternate Git index, or asks Git
+    to write a tree. A missing lock, pending transaction, or busy workspace is
+    deliberately an unverified display result.
+    """
+    try:
+        root = _resolved_directory(Path(workspace_root), label="workspace root")
+    except WorkspaceError:
+        return None
+    with _workspace_snapshot_lock(root) as locked:
+        if not locked:
+            return None
+        try:
+            manifest = _manifest(root)
+            worktree = _resolved_directory(
+                Path(manifest["worktree"]), label="workspace worktree"
+            )
+            _assert_binding(root, worktree)
+            receipt = _receipt(root)
+            if not receipt or receipt.get("status") != "returned":
+                return None
+            source = _repo_root(Path(manifest["source_repo"]))
+            supplied = _repo_root(Path(repo))
+            if supplied not in {source, worktree}:
+                return None
+            if not _candidate_matches_snapshot(manifest, receipt):
+                return None
+            return receipt if _source_result_matches_snapshot(source, receipt) else None
+        except (KeyError, TypeError, WorkspaceError):
+            return None
