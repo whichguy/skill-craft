@@ -21,8 +21,9 @@ mode; do not silently switch a requested commit handoff to another mode.
 
 Put a self-contained handoff in the final native return and keep it in the
 parent's response after collection. Do not make the caller discover paths or
-decode helper state. Resolve receipt/evidence fields inside Ask Agent; return
-ordinary Git paths, revisions, findings, and a concrete next action. An absolute
+decode helper state. Resolve receipt/evidence and selected-package identity
+fields inside Ask Agent; return ordinary Git paths, revisions, findings, and a
+concrete next action. An absolute
 patch path inside the helper's retained storage is usable directly; the caller
 need not understand that storage layout. Link internal evidence separately for
 audit or recovery. Do not expose private native handles when the host forbids it.
@@ -40,6 +41,7 @@ Use this shape, filling actual observed values and omitting inapplicable fields:
 
 ```text
 Task / outcome: <assignment>; <SUCCEEDED | BLOCKED | FAILED>; <what was achieved or the blocker>.
+Package identity: selected card <logical absolute SKILL.md>; resolved card <absolute path>; helper <absolute path>; Ask Agent <frontmatter version>; card SHA-256 <digest>; helper SHA-256 <digest>.
 Changes / checks: <worker-only changed files>; <checks actually run and their results or gaps>.
 Worktree: <absolute Git worktree root>; branch <actual name or detached HEAD>; <retained | removed>.
 Delivery: <patch | commits | report-only>; <absolute contribution patch and changed paths | ordered full contribution SHAs and clean base | no code changes>.
@@ -128,7 +130,8 @@ the outcome or blocker, the recommended next action and owner,
 the observed working directory and Git worktree root, and the handoff/index path
 covering the result files (or explicitly no files). Verify the actual workspace;
 do not merely echo the requested path. Identify multiple workspaces if used.
-State the delivery mode, receipt and baseline, integration target and owner,
+State the selected-package identity (logical card, resolved card/helper,
+frontmatter version, and card/helper SHA-256 values), delivery mode, receipt and baseline, integration target and owner,
 allowed-write boundary, and reports retained outside the worktree. For commit
 mode, state the exact contribution SHAs and every residual dirty or untracked
 deliverable; never use `git add -A` against inherited state. For patch mode,

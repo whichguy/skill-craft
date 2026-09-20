@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Prepare, inspect, and conservatively close Ask Agent Git workspaces.
+"""Verify, prepare, inspect, and conservatively close Ask Agent Git workspaces.
 
 This is deliberately a small, local Git/filesystem boundary.  It does not
 launch models, poll workers, schedule work, merge contributions, or decide
@@ -34,9 +34,16 @@ INSPECTION_SCHEMA = "ask-agent.workspace.inspection.v1"
 DELIVERY_SCHEMA = "ask-agent.workspace.delivery.v1"
 ACCEPTANCE_SCHEMA = "ask-agent.acceptance.v1"
 CONTEXT_SCHEMA = "ask-agent.workspace.context.v1"
+SKILL_IDENTITY_SCHEMA = "ask-agent.skill.identity.v1"
 VERSION = 1
 SHA256_RE = re.compile(r"[0-9a-f]{64}")
 GIT_SHA_RE = re.compile(r"[0-9a-f]{40,64}")
+SEMVER_RE = re.compile(
+    r"(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)"
+    r"(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?"
+    r"(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?"
+)
+MAX_SKILL_CARD_BYTES = 1024 * 1024
 PROTECTED_PARTS = frozenset({".git", ".ask-agent", ".worktrees"})
 GIT_CONTEXT_ENVIRONMENT = frozenset({
     "GIT_DIR", "GIT_WORK_TREE", "GIT_COMMON_DIR", "GIT_INDEX_FILE",
@@ -75,6 +82,94 @@ def _sha256_file(path: Path) -> str:
     except OSError as exc:
         _fail(f"cannot read {path}: {exc}")
     return digest.hexdigest()
+
+
+def _resolve_regular_file_allowing_symlink(path: Path, *, label: str) -> Path:
+    """Resolve a selected path while allowing its host-installed symlink chain."""
+    try:
+        resolved = path.resolve(strict=True)
+    except (OSError, RuntimeError) as exc:
+        _fail(f"cannot resolve {label}: {exc}")
+    try:
+        info = resolved.lstat()
+    except OSError as exc:
+        _fail(f"cannot inspect {label}: {exc}")
+    if not stat.S_ISREG(info.st_mode):
+        _fail(f"{label} must resolve to a regular file: {path}")
+    return resolved
+
+
+def _skill_card_version(card: Path) -> str:
+    """Read a constrained scalar version without evaluating YAML or imports."""
+    try:
+        size = card.stat().st_size
+    except OSError as exc:
+        _fail(f"cannot inspect selected skill card: {exc}")
+    if size > MAX_SKILL_CARD_BYTES:
+        _fail("selected skill card is too large to parse safely")
+    try:
+        raw = card.read_bytes()
+        text = raw.decode("utf-8")
+    except (OSError, UnicodeDecodeError) as exc:
+        _fail(f"cannot read selected skill card as UTF-8: {exc}")
+    if "\x00" in text:
+        _fail("selected skill card has invalid frontmatter")
+    lines = text.splitlines()
+    if not lines or lines[0] != "---":
+        _fail("selected skill card has no valid frontmatter")
+    try:
+        closing = next(index for index, line in enumerate(lines[1:], start=1) if line == "---")
+    except StopIteration:
+        _fail("selected skill card has unterminated frontmatter")
+    version_lines = [line for line in lines[1:closing] if line.startswith("version:")]
+    if len(version_lines) != 1:
+        _fail("selected skill card must declare exactly one top-level version")
+    value = version_lines[0][len("version:"):].strip()
+    if value.startswith(("\"", "'")):
+        quote = value[0]
+        closing_quote = value.find(quote, 1)
+        if closing_quote <= 1:
+            _fail("selected skill card has malformed version metadata")
+        trailing = value[closing_quote + 1:]
+        if trailing.strip() and not re.fullmatch(r"[ \t]+#.*", trailing):
+            _fail("selected skill card has malformed version metadata")
+        value = value[1:closing_quote]
+    else:
+        comment = re.search(r"[ \t]+#", value)
+        if comment is not None:
+            value = value[:comment.start()].rstrip()
+    if not SEMVER_RE.fullmatch(value):
+        _fail("selected skill card has malformed semantic version metadata")
+    return value
+
+
+def identity(*, skill_card: Path) -> dict[str, Any]:
+    """Prove that a host-selected card belongs to this executing helper package."""
+    if not skill_card.is_absolute():
+        _fail("selected skill card must be an absolute path")
+    if skill_card.name != "SKILL.md":
+        _fail("selected skill card must name SKILL.md")
+    resolved_card = _resolve_regular_file_allowing_symlink(skill_card, label="selected skill card")
+    resolved_helper = _resolve_regular_file_allowing_symlink(Path(__file__), label="executing workspace helper")
+    if resolved_helper.name != "ask_agent_workspace.py" or resolved_helper.parent.name != "scripts":
+        _fail("executing workspace helper is outside an Ask Agent package scripts directory")
+    helper_root = resolved_helper.parent.parent
+    package_card = _resolve_regular_file_allowing_symlink(
+        helper_root / "SKILL.md",
+        label="executing helper package skill card",
+    )
+    if resolved_card.parent != helper_root or resolved_card != package_card:
+        _fail("selected skill card does not resolve to the executing helper package")
+    return {
+        "status": "verified",
+        "schema": SKILL_IDENTITY_SCHEMA,
+        "skill_card": os.fspath(skill_card),
+        "resolved_skill_card": os.fspath(resolved_card),
+        "resolved_helper": os.fspath(resolved_helper),
+        "version": _skill_card_version(resolved_card),
+        "skill_card_sha256": _sha256_file(resolved_card),
+        "helper_sha256": _sha256_file(resolved_helper),
+    }
 
 
 def _is_under(path: Path, root: Path) -> bool:
@@ -1816,6 +1911,8 @@ class _ArgumentParser(argparse.ArgumentParser):
 def _parser() -> argparse.ArgumentParser:
     parser = _ArgumentParser(prog="ask_agent_workspace.py", description="Manage an Ask Agent Git worktree")
     commands = parser.add_subparsers(dest="command", required=True)
+    identity_parser = commands.add_parser("identity")
+    identity_parser.add_argument("--skill-card", required=True)
     prepare_parser = commands.add_parser("prepare")
     prepare_parser.add_argument("--source")
     prepare_parser.add_argument("--store")
@@ -1845,7 +1942,9 @@ def _emit(value: Mapping[str, Any]) -> None:
 def main(argv: Sequence[str] | None = None) -> int:
     try:
         parsed = _parser().parse_args(argv)
-        if parsed.command == "prepare":
+        if parsed.command == "identity":
+            result = identity(skill_card=Path(parsed.skill_card))
+        elif parsed.command == "prepare":
             result = prepare(
                 source=Path(parsed.source) if parsed.source else None,
                 store=Path(parsed.store) if parsed.store else None,

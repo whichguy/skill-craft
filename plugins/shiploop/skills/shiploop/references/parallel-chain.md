@@ -28,11 +28,15 @@ flowchart TD
 
 ## Bind the selected packages and reviewed graph
 
-Use the exact selected Plan Dispatcher and Ask-Agent 0.4.x adapter skill cards
-for every new per-step binding, including serial mode. This repository's
-`skills/ask-agent` 0.6.0 manages its own workspace and is not accepted by this
-existing 0.4.x caller-prepared-worktree adapter. Do not bypass the binding check
-or treat a newer version as compatible. ShipLoop does not install the selected packages,
+Use the exact selected Plan Dispatcher and Ask-Agent skill cards for every new
+per-step binding, including serial mode. Ask Agent 0.6.x selects the explicit
+helper-managed workspace adapter; 0.4.x retains the caller-prepared workspace
+adapter. Unknown versions are refused. A v5 binding freezes the 0.6 workspace
+helper and execution references as well as the selected card. It records the
+logical card path, resolved card/helper paths, version and hashes. Version 0.6.1
+uses the helper's native `identity` command; 0.6.0 uses an explicitly identified
+frozen-package-root check. Neither silently discovers another same-name install.
+Existing bindings retain their original contract. ShipLoop does not install the selected packages,
 search host skill directories or silently choose a substitute. Plan Dispatcher
 requires Node.js; ShipLoop uses its public helper for state operations, never a
 model subprocess launcher. The parent invokes Ask-Agent through the host's
@@ -257,12 +261,26 @@ where supported, retain the actual handle, and continue independent parent work.
 Follow the selected Ask-Agent waiting and result-collection guidance. A timeout,
 file appearance or elapsed lease does not establish completion.
 
-Ask-Agent owns creation of the worker branch/worktree. The bridge registers the
-actual workspace and exact starting revision, verifies sibling topology and
-exclusive ownership, and never creates a second parallel checkout. The starting
-revision is the invoking branch's latest recorded integrated HEAD. First-version
-chain execution requires a clean target; it does not silently stash or discard
-changes to emulate generic Ask-Agent's broader dirty-snapshot capability.
+In a 0.6 parallel binding, `start` calls the frozen Ask Agent workspace helper
+to prepare and inspect one worktree in a dedicated attempt store. It persists
+the preparation intent before that call and the receipt before granting launch.
+The launch packet contains the exact workspace, receipt, package identity, and
+`check-context` command the native worker must execute before work. Filesystem
+preparation is not native launch or completion evidence. The parent still uses
+the host's native delegation facility to run the worker asynchronously.
+
+The 0.4 parallel route retains its caller-prepared workspace adoption protocol.
+Serial mode retains ShipLoop's existing Git allocator for either selected skill
+version. All routes verify sibling topology, exclusive ownership and the
+invoking branch's latest recorded integrated HEAD. This chain requires a clean
+target; generic Ask Agent independently supports staged, unstaged and untracked
+caller snapshots. The chain does not silently stash or discard those changes.
+
+If interrupted after 0.6 helper preparation, replay reconciles exactly one
+receipt in that attempt's frozen store and rechecks its prepared baseline.
+An empty store can retry preparation; partial or multiple attempts require
+explicit recovery and preserve existing workspaces. A changed source, store,
+receipt, helper or prepared baseline blocks launch.
 New parallel and serial allocations also bind the filesystem identities of the
 workspace root and private Git directory. A cleanup request must preserve a
 replacement worktree even if Git reuses its path, branch and commit. Older
@@ -289,6 +307,11 @@ in an external immutable archive, authors the dispatcher artifact/envelope, and
 removes only preserved, unchanged, declared local temporary files. A link, path
 escape, unknown file, wrong identity or digest blocks import without discarding
 results. Only the parent invokes the dispatcher's external report API.
+For a successful 0.6 return, import first freezes the helper's `commits` delivery
+inspection for the complete ordered base-to-worker range. It must end at the
+handoff's exact worker commit. The parent then archives and removes the handoff
+files before Git integration needs a clean workspace. Failed or blocked reports
+are still imported with a null commit; they cannot be prepared or integrated.
 
 The main dispatcher collects the worker and its delegates, checks its evidence,
 then imports, prepares and independently checks the combined candidate.
@@ -437,13 +460,24 @@ integration code, not merely to gather Git branches. `finish` verifies the final
 result and confirms every owned worker worktree was removed.
 
 Ask-Agent leaves returned workspaces intact. The parent archives required
-results, confirms all worktree users/delegates stopped, and removes the exact
-registered worker with `git worktree remove`. Unknown edits/files, active Git
+results and confirms all worktree users/delegates stopped. For accepted 0.6
+parallel workers, the bridge obtains a new post-integration inspection and
+fingerprint-bound acceptance, then invokes the owning helper's `close` command.
+This inspection deliberately omits commit delivery: the worker now contains the
+combined integration commit, which can be a merge. The original worker delivery
+evidence remains immutable. A durable close intent allows retry after removal
+without creating a replacement workspace. A retained close stays cleanup-pending
+and never undoes accepted code. The 0.4 and serial paths retain the registered
+worker removal through ShipLoop's Git helper. Unknown edits/files, active Git
 operations or remaining consumers block removal. There is no automatic force,
 reset or recursive deletion. Retain branches as recovery references; deleting
 them is a separate decision. Accepted-but-unremoved attempts appear as cleanup
 work; `cleanup` retries removal without rerunning the step. Failed attempts stay
-visible and preserve their workspace during `retry`. After a replacement is
+visible and preserve their workspace during `retry`. The 0.6 adapter retains
+superseded helper-owned workspaces for explicit recovery because it has no
+accepted non-integrated close disposition; it does not bypass the receipt owner
+with direct Git removal or claim final cleanup is complete. On the 0.4 and serial
+routes, after a replacement is
 accepted and integrated, explicit `cleanup` with `disposition:"superseded"` and
 a reason retires the old clean worktree. It requires the old handoff archive,
 preserves the old branch commit, and never merges rejected code. Dirty or
