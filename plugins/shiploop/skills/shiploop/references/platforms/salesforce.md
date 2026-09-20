@@ -11,6 +11,12 @@ appropriate; `with sharing`, a visible control, or a passing mock alone does
 not establish CRUD/FLS enforcement. [Salesforce's secure Apex guidance](https://developer.salesforce.com/docs/platform/lwc/guide/apex-security.html)
 is the version-sensitive starting point.
 
+For org identity or access discovery, use supported non-mutating Salesforce
+CLI/API probes and approved sanitized preflight records. Builders and reviewers
+must not read local auth/session stores (including `.sfdx/*.json` and `.sf` auth
+files), decode them, or retain or report token-bearing contents. Tool
+configuration metadata without session material remains permitted.
+
 Design collection-based entry points. Inspect query/DML placement and
 transaction-wide consumption under realistic bulk input, including existing
 automation, ordering, duplicate handling, partial-success policy, and useful

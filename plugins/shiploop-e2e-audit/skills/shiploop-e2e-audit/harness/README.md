@@ -373,11 +373,13 @@ cannot qualify as the baseline for a feature case.
 
 Installing the **audit** skill does not replace installed `shiploop` or
 `improve`. The audit operator resolves the host-selected ShipLoop card and passes
-its package directory explicitly. The direct live Python CLI retains
-`~/.grok/skills/shiploop` as a convenience default for skill-directory installs;
-marketplace operators must use the actual selected path. In live/check,
-`--skill-root` asserts the package Grok must discover, not an override that
-makes Grok load it. The inspector fails if another skill shadows that selection.
+its package directory explicitly. Live/check also require exactly one real,
+user-invocable `improve` record from `grok inspect --json`; that record alone
+selects Improve. The direct live Python CLI retains `~/.grok/skills/shiploop` as
+a convenience default for skill-directory installs; marketplace operators must
+use the actual selected path. In live/check, `--skill-root` asserts the ShipLoop
+package Grok must discover, not an override that makes Grok load it or a way to
+select Improve. The inspector fails if another skill shadows either selection.
 
 Direct **offline** `check_suite.py` and `dag_replay.py` commands have a development
 default: an exact source-tree installation uses its `skills/shiploop` sibling;
@@ -388,21 +390,25 @@ operator always passes the actual host-selected subject explicitly, so its
 behavior does not depend on these convenience defaults.
 
 Before a consumer campaign, the operator prepares ShipLoop and Improve through
-the existing marketplace entry, then opens a fresh Grok session and records their
-selected paths. The evaluator does not install, publish, update or repoint them.
-`checkout` changes the harness source only; it cannot bypass subject freshness.
+the existing marketplace entries, then opens a fresh Grok session and records
+both selected paths. The evaluator does not install, publish, update or repoint
+them. `checkout` changes the harness source only; it cannot bypass subject
+freshness.
 
 ### Mandatory freshness gate before each evaluation
 
-`run.py check`, `run.py run`, and every live suite case compare three identities:
-the newest committed `skills/shiploop` and generated package on
-`whichguy/skill-craft` branch `main`, the immutable ShipLoop pin on
+`run.py check`, `run.py run`, and every one-case live suite preflight both
+selected skills: ShipLoop and Improve. For each, the gate compares three
+identities: the newest committed source skill and generated package on
+`whichguy/skill-craft` branch `main`, the immutable package pin on
 `whichguy/skill-craft-market` branch `main`, and the actual selected local skill.
 The gate reads fresh remote heads using temporary bare Git repositories. It
 compares file bytes and executable modes, including published plugin metadata;
-matching version labels alone are not proof. Unrelated source commits do not
-require republishing an unchanged package. Uncommitted developer edits are not
-treated as a release candidate by this consumer evaluation path.
+matching version labels alone are not proof. `--skill-root` applies only to
+ShipLoop; Improve must resolve from one real user-invocable `grok inspect`
+record. Unrelated source commits do not require republishing an unchanged
+package. Uncommitted developer edits are not treated as a release candidate by
+this consumer evaluation path.
 
 | Status | Meaning and effect |
 | --- | --- |
@@ -412,14 +418,20 @@ treated as a release candidate by this consumer evaluation path.
 | `freshness-unverified` | Network/Git/catalog/package verification failed; no builder launch. |
 
 A blocked trial exits 2, prints the reason, retains `freshness.json` and
-`result.json`, and marks its overall status `blocked-preflight`. `check` prints
-the receipt in its JSON and exits 2 when blocked, with `live_model_called: false`.
-There is no freshness bypass flag or silent local fallback. Preparation belongs
-outside the evaluator; after publication/update, rerun the same check.
+`result.json`, and marks its overall status `blocked-preflight`. `freshness.json`
+contains `skills.shiploop` and `skills.improve`, each with selected, source,
+published/catalog-pin identities and source-to-generated, source-to-published,
+and selected-to-published comparisons. `check` preserves its ShipLoop
+`selection` and compatible `package_sha256`, and adds `improve_selection` plus
+explicit `improve_package_sha256`; it exits 2 when blocked, with
+`live_model_called: false`. There is no freshness bypass flag or silent local
+fallback. Preparation belongs outside the evaluator; after publication/update,
+rerun the same check.
 
 Each receipt binds the remote commits observed at preflight time. Local discovery
-and bytes are checked again immediately before launch and after completion;
-upstream is not rechecked after the run. A release that appears during an
+and bytes for both selected skills are checked again immediately before launch
+and after completion; a changed Improve selection stops before any model launch.
+Upstream is not rechecked after the run. A release that appears during an
 evaluation does not retroactively change its candidate or verdict. These checks
 do not lock remote branches or packages against concurrent changes.
 
@@ -770,8 +782,14 @@ another known workspace location. Missing capture is unverified, never inferred.
 Live capture defaults to 256 MiB per stream/event file and 4 Mi characters per
 native event (`--max-log-bytes`, `--max-event-line-chars`). Grok can represent one
 tool result as both text and byte arrays, so ordinary source reads can exceed
-128 KiB. Exceeding either limit is still explicit truncation and fails grading;
-the harness never silently treats dropped evidence as complete.
+128 KiB. Direct `rawOutput.output`, `stdout`, `stderr`, and `bytes` arrays whose
+members are byte values are bounded-decoded, credential-sanitized, and re-encoded;
+benign arrays retain their values. Arrays outside `rawOutput` remain semantic JSON
+and are not decoded. `redacted_byte_arrays` records recognized transports changed
+by redaction. A malformed or oversized recognized transport increments
+`invalid_byte_arrays`, makes capture incomplete with explicit truncation, and fails
+grading. Exceeding either configured limit is also explicit truncation; the harness
+never silently treats dropped evidence as complete.
 
 ## Skill changes are selected again for every request
 
@@ -783,14 +801,16 @@ not require ShipLoop to launch another model or use `shiploop drive`.
 Each request starts a fresh OS process and session; neither `--continue` nor
 `--resume` is passed. Before launch and again after exit, `grok inspect --json`
 runs with the product as cwd. Its selected `shiploop` source must resolve to
-`--skill-root` (default `~/.grok/skills/shiploop`). The option is an **expected
-identity assertion**, not a Grok option, installation, profile edit, or override.
-A repo-local stale skill that shadows the expected one fails preflight.
-Two distinct installed ShipLoop cards also fail preflight, as does a reported
-collision or a qualified `invocableAs` route such as `user:shiploop`. The harness
-keeps the literal `/shiploop` scenario prompt; it does not silently rewrite it
-to select a different package. Resolve the install selection before starting a
-new audit, and keep any package used by an ongoing run stable.
+`--skill-root` (default `~/.grok/skills/shiploop`), while its selected `improve`
+source must come from exactly one real user-invocable Improve record. The option
+is a ShipLoop **expected identity assertion**, not a Grok option, installation,
+profile edit, or override; it cannot select Improve. A repo-local stale skill
+that shadows either expected selection fails preflight. Two distinct installed
+ShipLoop cards also fail preflight, as does a reported collision or a qualified
+`invocableAs` route such as `user:shiploop`. The harness keeps the literal
+`/shiploop` scenario prompt; it does not silently rewrite it to select a
+different package. Resolve the install selection before starting a new audit,
+and keep any package used by an ongoing run stable.
 
 The entire selected package is hashed, including prompt/reference/script files
 and resolved symlink dependencies. The manifest retains both logical and
@@ -1239,12 +1259,16 @@ causal feature comparison.
 Capture sanitizes common credential patterns before writing; it does not create
 a raw secret-bearing backup. Credential-shaped durable state/results/reports
 are rejected from the archive with a recorded reason rather than silently
-rewriting authoritative state. Truncation, invalid JSON, dropped bytes and capture
-errors are explicit. Stream timestamps represent observer receipt order, not an
-invented total ordering of concurrent child writes. Sampled state can miss rapid
-intermediate writes; accepted result records and native tool events supplement
-it. Improve's internal reviews are not separate DAG nodes: assess their real
-test/review evidence rather than inventing a count from navigator transitions.
+rewriting authoritative state. Result and per-stream metadata distinguish
+`redacted_byte_arrays` from `invalid_byte_arrays`; for recognized raw-output
+byte transports, only malformed or oversized values make capture incomplete.
+Truncation,
+invalid JSON, dropped bytes and capture errors are explicit. Stream timestamps
+represent observer receipt order, not an invented total ordering of concurrent
+child writes. Sampled state can miss rapid intermediate writes; accepted result
+records and native tool events supplement it. Improve's internal reviews are not
+separate DAG nodes: assess their real test/review evidence rather than inventing
+a count from navigator transitions.
 
 ## Use observations to improve ShipLoop
 

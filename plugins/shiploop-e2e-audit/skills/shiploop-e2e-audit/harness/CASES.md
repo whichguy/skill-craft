@@ -221,7 +221,7 @@ finished trial without launching another model, then grade it:
 ```sh
 SHIPLOOP_E2E_TRIAL=/absolute/salesforce-trial \
 SHIPLOOP_E2E_REPO=/absolute/returned-product \
-SHIPLOOP_E2E_EVIDENCE=/absolute/salesforce-trial/evidence \
+SHIPLOOP_E2E_EVIDENCE=/absolute/salesforce-trial/verification \
 python3 "$HARNESS/verify_suite.py" --drivers /absolute/drivers.json \
   --review /absolute/salesforce-review.json > /absolute/salesforce-verification.json
 python3 "$HARNESS/run.py" grade --trial /absolute/salesforce-trial \

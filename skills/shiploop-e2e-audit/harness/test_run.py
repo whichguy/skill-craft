@@ -20,12 +20,16 @@ FAKE_GROK = r'''
 import json, os, pathlib, subprocess, sys, uuid
 ROOT = pathlib.Path(__file__).parent
 SKILL = ROOT / "skill"
+IMPROVE = ROOT / "improve"
 args = sys.argv[1:]
 if args == ["--version"]:
     print("fake-grok integration fixture 1")
     sys.exit(0)
 if args == ["inspect", "--json"]:
-    print(json.dumps({"skills":[{"name":"shiploop","source":{"path":str(SKILL/"SKILL.md"),"type":"user"},"userInvocable":True}]}))
+    print(json.dumps({"skills":[
+        {"name":"shiploop","source":{"path":str(SKILL/"SKILL.md"),"type":"user"},"userInvocable":True},
+        {"name":"improve","source":{"path":str(IMPROVE/"SKILL.md"),"type":"user"},"userInvocable":True}
+    ]}))
     sys.exit(0)
 def option(name): return args[args.index(name)+1]
 repo=pathlib.Path(option("--cwd"))
@@ -101,6 +105,9 @@ class RunTests(unittest.TestCase):
         (self.skill / "scripts").mkdir(parents=True)
         (self.skill / "SKILL.md").write_text("fixture skill revision one")
         (self.skill / "scripts/shiploop").write_text("# nonexecuting fixture locator")
+        self.improve = self.root / "improve"
+        self.improve.mkdir()
+        (self.improve / "SKILL.md").write_text("fixture improve revision one")
         self.grok = self.root / "fake-grok"
         self.grok.write_text("#!" + sys.executable + "\n" + FAKE_GROK)
         self.grok.chmod(0o755)
@@ -365,7 +372,7 @@ class RunTests(unittest.TestCase):
     def test_freshness_failures_retain_receipt_without_launching_builder(self):
         for status in ("unpublished-source", "installed-stale", "freshness-unverified"):
             with self.subTest(status=status), patch.object(run, "capture_process") as capture:
-                receipt = {"ready": False, "status": status, "reason": "fixture " + status}
+                receipt = {"ready": False, "status": status, "reason": "improve fixture " + status}
                 self.freshness.return_value = receipt
                 code, output, result = self.invoke(name=status)
                 self.assertEqual(code, 2)
@@ -375,10 +382,11 @@ class RunTests(unittest.TestCase):
                 capture.assert_not_called()
                 self.assertFalse((self.root / "launches.jsonl").exists())
 
-    def test_check_reports_unpublished_source_and_nonzero_without_model(self):
+    def test_check_blocks_stale_improve_without_model(self):
         self.repo.mkdir(parents=True)
         self.freshness.return_value = {
-            "ready": False, "status": "unpublished-source", "reason": "same version, different bytes",
+            "ready": False, "status": "installed-stale",
+            "reason": "improve-selected-package-version-does-not-match-published-package",
         }
         stdout = io.StringIO()
         with patch("sys.stdout", stdout):
@@ -386,14 +394,17 @@ class RunTests(unittest.TestCase):
                              "--git", self.git, "--skill-root", str(self.skill)])
         checked = json.loads(stdout.getvalue())
         self.assertEqual(code, 2)
-        self.assertEqual(checked["freshness"]["status"], "unpublished-source")
+        self.assertEqual(checked["freshness"]["status"], "installed-stale")
+        self.assertEqual("shiploop", checked["selection"]["skill"])
+        self.assertEqual("improve", checked["improve_selection"]["skill"])
         self.assertFalse(checked["live_model_called"])
         self.assertFalse((self.root / "launches.jsonl").exists())
 
-    def test_single_case_suite_checks_freshness_without_launch_on_failure(self):
+    def test_single_case_suite_blocks_stale_improve_without_launch(self):
         output = self.root / "blocked-suite"
         self.freshness.return_value = {
-            "ready": False, "status": "unpublished-source", "reason": "fixture unpublished source",
+            "ready": False, "status": "installed-stale",
+            "reason": "improve-selected-package-does-not-match-published-package",
         }
         with patch.object(run, "capture_process") as capture:
             code = run.main(["suite", "--suite", "launch-smoke", "--only", "ttt-create-intake", "--output", str(output),
@@ -409,7 +420,14 @@ class RunTests(unittest.TestCase):
     def test_publication_is_checked_once_and_bound_before_launch(self):
         _code, output, _result = self.invoke(name="publication-once")
         self.freshness.assert_called_once()
-        self.assertEqual(run.read_json(output / "manifest.json")["preflight"]["freshness"]["status"], "ready")
+        preflight = run.read_json(output / "manifest.json")["preflight"]
+        self.assertEqual(preflight["freshness"]["status"], "ready")
+        self.assertEqual("shiploop", preflight["selection"]["skill"])
+        self.assertEqual("improve", preflight["improve_selection"]["skill"])
+        self.assertEqual({"shiploop", "improve"}, set(preflight["packages"]))
+        self.assertEqual({"shiploop", "improve"}, set(preflight["selections"]))
+        self.assertEqual(preflight["package"], preflight["packages"]["shiploop"])
+        self.assertEqual(preflight["improve_package"], preflight["packages"]["improve"])
         self.assertNotIn("freshness", run.read_json(output / "preflight-after.json"))
 
     def test_selected_skill_change_after_freshness_blocks_launch(self):
@@ -425,6 +443,21 @@ class RunTests(unittest.TestCase):
             code, _output, result = self.invoke(name="changed-after-freshness")
         self.assertEqual(code, 2)
         self.assertIn("selected ShipLoop changed after freshness check", result["error"])
+        capture.assert_not_called()
+
+    def test_selected_improve_change_after_freshness_blocks_launch(self):
+        original = run.capture_run_artifacts
+
+        def change_selected_improve(*args, **kwargs):
+            captured = original(*args, **kwargs)
+            (self.improve / "SKILL.md").write_text("changed after publication check")
+            return captured
+
+        with patch.object(run, "capture_run_artifacts", side_effect=change_selected_improve), \
+                patch.object(run, "capture_process") as capture:
+            code, _output, result = self.invoke(name="changed-improve-after-freshness")
+        self.assertEqual(code, 2)
+        self.assertIn("selected Improve changed after freshness check", result["error"])
         capture.assert_not_called()
 
     def test_optional_behavior_export_failure_preserves_original_trial_outcome(self):
