@@ -1,0 +1,618 @@
+==> scripts/sync-improve-managed.py
+Managed Improve controller copy verified: 68a5445e2fb16972b722cc468a49128dc5f606dff84df39a117ec94a8b43e781
+==> test/shiploop-no-model-launch.test.py
+....
+----------------------------------------------------------------------
+Ran 4 tests in 1.240s
+
+OK
+==> test/shiploop-navigator.test.py
+test_classic_remote_test_routes_keep_local_and_remote_evidence_distinct (__main__.NavigatorTests.test_classic_remote_test_routes_keep_local_and_remote_evidence_distinct)
+Keep strategy, execution, and Improve from collapsing remote work into local green. ... ok
+test_classic_test_prompts_consider_platform_testing_and_browser_tools (__main__.NavigatorTests.test_classic_test_prompts_consider_platform_testing_and_browser_tools)
+Legacy packets retain the global choice and INNER revalidation boundary. ... ok
+test_cold_next_recovers_implementation_quality_packet_without_state_mutation (__main__.NavigatorTests.test_cold_next_recovers_implementation_quality_packet_without_state_mutation)
+A cold host receives the pending implementation action and its obligations. ... ok
+test_cold_progress_snapshot_is_read_only_with_one_active_callback (__main__.NavigatorTests.test_cold_progress_snapshot_is_read_only_with_one_active_callback)
+A fresh CLI process recovers the same compact state context only. ... ok
+test_cold_step_plan_preserves_convention_sources_without_interpreting_them (__main__.NavigatorTests.test_cold_step_plan_preserves_convention_sources_without_interpreting_them)
+Cold recovery retains opaque convention sources without claiming agent judgment. ... ok
+test_cold_step_plan_routes_repeatable_suite_guidance_and_persists_case_harness_locators (__main__.NavigatorTests.test_cold_step_plan_routes_repeatable_suite_guidance_and_persists_case_harness_locators)
+Cold next preserves opaque rerun and remote-asset locators. ... ok
+test_default_v2_serializes_one_authority_per_entered_work_item (__main__.NavigatorTests.test_default_v2_serializes_one_authority_per_entered_work_item)
+The shared graph has one root cursor or one active item cursor, never both. ... ok
+test_discovery_and_planning_packets_bind_one_improve_campaign (__main__.NavigatorTests.test_discovery_and_planning_packets_bind_one_improve_campaign) ... ok
+test_dispatch_preserves_cold_context_reads_only_its_result_callback_and_escapes_report (__main__.NavigatorTests.test_dispatch_preserves_cold_context_reads_only_its_result_callback_and_escapes_report) ... ok
+test_dispatch_refuses_a_symlinked_result_callback_without_mutating_state (__main__.NavigatorTests.test_dispatch_refuses_a_symlinked_result_callback_without_mutating_state) ... ok
+test_implementation_quality_guidance_follows_two_work_items_without_state_expansion (__main__.NavigatorTests.test_implementation_quality_guidance_follows_two_work_items_without_state_expansion)
+Quality guidance belongs only in the selected rendered action packets. ... ok
+test_legacy_initial_baseline_guidance_reaches_cold_step_plan (__main__.NavigatorTests.test_legacy_initial_baseline_guidance_reaches_cold_step_plan)
+Legacy packets retain initial-baseline evidence without a new graph node. ... ok
+test_new_state_is_minimal_navigator_and_retains_cold_context (__main__.NavigatorTests.test_new_state_is_minimal_navigator_and_retains_cold_context) ... ok
+test_plan_and_carry_forward_manage_only_future_work_and_preserve_completion (__main__.NavigatorTests.test_plan_and_carry_forward_manage_only_future_work_and_preserve_completion) ... ok
+test_plan_improve_can_refresh_the_unstarted_queue (__main__.NavigatorTests.test_plan_improve_can_refresh_the_unstarted_queue) ... ok
+test_progress_report_escapes_status_context_without_persisting_it (__main__.NavigatorTests.test_progress_report_escapes_status_context_without_persisting_it)
+The HTML report reuses the derived view and retains no progress field. ... ok
+test_progress_snapshot_ignores_repeat_progress_and_marks_controls_truthfully (__main__.NavigatorTests.test_progress_snapshot_ignores_repeat_progress_and_marks_controls_truthfully)
+Assigned work, retry records, and stopped work remain distinct facts. ... ok
+test_progress_snapshot_tracks_done_stages_and_document_choice_for_both_protocols (__main__.NavigatorTests.test_progress_snapshot_tracks_done_stages_and_document_choice_for_both_protocols)
+The projection reports graph facts, including the optional branch. ... ok
+test_progress_snapshot_uses_the_revised_queue_and_bounds_large_queues (__main__.NavigatorTests.test_progress_snapshot_uses_the_revised_queue_and_bounds_large_queues)
+Only the current queue is shown, with bounded IDs, titles, and labels. ... ok
+test_public_cli_blocked_result_retains_generic_receipt_and_new_action (__main__.NavigatorTests.test_public_cli_blocked_result_retains_generic_receipt_and_new_action)
+An accepted blocker advances the receipt but keeps the same stage pending. ... ok
+test_public_cli_cold_environment_packets_use_shared_policy_and_generic_results (__main__.NavigatorTests.test_public_cli_cold_environment_packets_use_shared_policy_and_generic_results)
+The navigator links the one discovery policy without importing legacy state. ... ok
+test_public_cli_completes_two_work_items_from_cold_processes (__main__.NavigatorTests.test_public_cli_completes_two_work_items_from_cold_processes)
+Exercise CLI mode selection, callbacks and persistence end to end. ... ok
+test_public_cli_defaults_to_protocol_v3 (__main__.NavigatorTests.test_public_cli_defaults_to_protocol_v3) ... ok
+test_public_cli_pause_preserves_unaccepted_budget_draft_across_cold_resume (__main__.NavigatorTests.test_public_cli_pause_preserves_unaccepted_budget_draft_across_cold_resume)
+A budget checkpoint leaves the current navigator action unconsumed. ... ok
+test_public_cli_recovery_locator_reopens_relocated_package_from_unrelated_cwd (__main__.NavigatorTests.test_public_cli_recovery_locator_reopens_relocated_package_from_unrelated_cwd)
+A cold handoff returns the saved action without trusting old packets. ... ok
+test_rejects_forged_next_wrong_action_and_corrupt_navigator_state (__main__.NavigatorTests.test_rejects_forged_next_wrong_action_and_corrupt_navigator_state) ... ok
+test_repeat_block_pause_resume_and_halt_are_pure_control_paths (__main__.NavigatorTests.test_repeat_block_pause_resume_and_halt_are_pure_control_paths) ... ok
+test_replay_compares_semantic_results_and_rejects_conflicts_without_mutation (__main__.NavigatorTests.test_replay_compares_semantic_results_and_rejects_conflicts_without_mutation) ... ok
+test_requirements_definition_duties_stay_in_existing_v1_v2_stages (__main__.NavigatorTests.test_requirements_definition_duties_stay_in_existing_v1_v2_stages)
+The guide adds duties to the stable graph instead of adding state or nodes. ... ok
+test_results_are_opaque_and_navigation_never_inspects_git_or_evidence (__main__.NavigatorTests.test_results_are_opaque_and_navigation_never_inspects_git_or_evidence) ... ok
+test_save_is_transactional_recovers_after_fault_and_refuses_symlink_escape (__main__.NavigatorTests.test_save_is_transactional_recovers_after_fault_and_refuses_symlink_escape) ... ok
+test_two_work_walk_follows_the_declared_graph_without_project_work (__main__.NavigatorTests.test_two_work_walk_follows_the_declared_graph_without_project_work) ... ok
+test_v1_v2_cold_next_retains_requirements_definition_context_without_mutation (__main__.NavigatorTests.test_v1_v2_cold_next_retains_requirements_definition_context_without_mutation)
+A current spec packet keeps the guide, user request, and prior spec locator. ... ok
+test_v2_carry_forward_recovers_after_each_sorted_target_write (__main__.NavigatorTests.test_v2_carry_forward_recovers_after_each_sorted_target_write)
+Recover the actual receipt-before-state and after-state interruption seams. ... ok
+test_v2_cold_packet_uses_the_effective_item_cursor_and_owner (__main__.NavigatorTests.test_v2_cold_packet_uses_the_effective_item_cursor_and_owner)
+A cold `next` renders W1's action, not the root inner-loop container. ... ok
+test_v2_cold_verify_packet_keeps_the_selected_case_reminder (__main__.NavigatorTests.test_v2_cold_verify_packet_keeps_the_selected_case_reminder)
+Synthetic retained protocol-2 state keeps the reminder after recovery. ... ok
+test_v2_controls_keep_the_root_parked_and_the_item_action_isolated (__main__.NavigatorTests.test_v2_controls_keep_the_root_parked_and_the_item_action_isolated) ... ok
+test_v2_cross_item_replay_keeps_the_selected_next_instance_unchanged (__main__.NavigatorTests.test_v2_cross_item_replay_keeps_the_selected_next_instance_unchanged) ... ok
+test_v2_optional_skill_and_carry_forward_replace_only_future_queue (__main__.NavigatorTests.test_v2_optional_skill_and_carry_forward_replace_only_future_queue) ... ok
+test_v2_rejects_duplicate_or_future_serialized_cursor_authority (__main__.NavigatorTests.test_v2_rejects_duplicate_or_future_serialized_cursor_authority) ... ok
+test_worktree_return_projection_escapes_reports_and_skips_direct_modes (__main__.NavigatorTests.test_worktree_return_projection_escapes_reports_and_skips_direct_modes)
+Packets derive current return facts without adding navigator state. ... ok
+
+----------------------------------------------------------------------
+Ran 41 tests in 11.856s
+
+OK
+==> test/shiploop-navigator-v3.test.py
+test_cold_recovery_preserves_the_pending_child_binding_without_advancing (__main__.NavigatorV3Tests.test_cold_recovery_preserves_the_pending_child_binding_without_advancing) ... ok
+test_duplicate_or_conflicting_producer_callback_cannot_create_another_child (__main__.NavigatorV3Tests.test_duplicate_or_conflicting_producer_callback_cannot_create_another_child) ... ok
+test_every_v3_stage_waits_for_one_actual_improve_completion (__main__.NavigatorV3Tests.test_every_v3_stage_waits_for_one_actual_improve_completion) ... ok
+test_incomplete_child_and_blocked_producer_do_not_advance_parent (__main__.NavigatorV3Tests.test_incomplete_child_and_blocked_producer_do_not_advance_parent) ... ok
+test_malformed_bound_skill_fails_with_controlled_recovery_error (__main__.NavigatorV3Tests.test_malformed_bound_skill_fails_with_controlled_recovery_error) ... ok
+test_outer_replan_adds_corrective_work_without_rewinding_completed_work (__main__.NavigatorV3Tests.test_outer_replan_adds_corrective_work_without_rewinding_completed_work) ... ok
+test_skill_assess_rejects_legacy_skill_result_carriers_without_mutation (__main__.NavigatorV3Tests.test_skill_assess_rejects_legacy_skill_result_carriers_without_mutation)
+V3 retains reusable-skill evidence in its generic envelope only. ... ok
+test_v3_backchain_planning_guidance_is_scoped_to_selected_stages (__main__.NavigatorV3Tests.test_v3_backchain_planning_guidance_is_scoped_to_selected_stages)
+Producer and actual Improve prompts use the guide only for planning decisions. ... ok
+test_v3_bound_child_carries_requirement_and_test_locators_through_cold_recovery (__main__.NavigatorV3Tests.test_v3_bound_child_carries_requirement_and_test_locators_through_cold_recovery)
+Assert structural packet propagation, not that a model interpreted the sources. ... ok
+test_v3_cold_next_retains_requirements_definition_child_context (__main__.NavigatorV3Tests.test_v3_cold_next_retains_requirements_definition_child_context)
+A recovered Improve packet retains the guide and an existing-spec locator. ... ok
+test_v3_common_and_improve_prompts_preserve_requirements_review_cues (__main__.NavigatorV3Tests.test_v3_common_and_improve_prompts_preserve_requirements_review_cues)
+Keep concise review duties without inventing child state or counters. ... ok
+test_v3_current_and_cold_child_packets_retain_review_note_recovery_context (__main__.NavigatorV3Tests.test_v3_current_and_cold_child_packets_retain_review_note_recovery_context)
+A selected child retains receipt-reference duties before and after recovery. ... ok
+test_v3_declares_the_flat_sdlc_graph_independently (__main__.NavigatorV3Tests.test_v3_declares_the_flat_sdlc_graph_independently) ... ok
+test_v3_initial_baseline_guidance_survives_improve_and_cold_step_plan (__main__.NavigatorV3Tests.test_v3_initial_baseline_guidance_survives_improve_and_cold_step_plan)
+Initial-baseline evidence stays in ordinary records without new graph state. ... ok
+test_v3_native_backchain_operations_reach_only_the_assigned_packets (__main__.NavigatorV3Tests.test_v3_native_backchain_operations_reach_only_the_assigned_packets)
+Check emitted dispatch targets; live trials assess policy semantics. ... ok
+test_v3_packets_keep_runtime_and_selected_case_evidence_visible (__main__.NavigatorV3Tests.test_v3_packets_keep_runtime_and_selected_case_evidence_visible)
+Synthetic prompt traversal keeps runtime and real-boundary gaps explicit. ... ok
+test_v3_platform_testing_contract_routes_to_every_test_stage (__main__.NavigatorV3Tests.test_v3_platform_testing_contract_routes_to_every_test_stage)
+The global choice and each testing checkpoint retain the same guide route. ... ok
+test_v3_remote_test_routes_keep_local_and_remote_evidence_distinct (__main__.NavigatorV3Tests.test_v3_remote_test_routes_keep_local_and_remote_evidence_distinct)
+Route remote test assets without treating a local result as their evidence. ... ok
+test_v3_requirements_definition_duties_stay_in_existing_stages (__main__.NavigatorV3Tests.test_v3_requirements_definition_duties_stay_in_existing_stages)
+Existing discovery, research, and spec nodes cover the new guide duties. ... ok
+test_v3_requirements_policy_routes_through_unbound_and_bound_improve_recovery (__main__.NavigatorV3Tests.test_v3_requirements_policy_routes_through_unbound_and_bound_improve_recovery)
+Both child forms retain packet locators before and after cold recovery. ... ok
+test_v3_test_lifecycle_and_child_handoff_keep_repeatable_suite_boundaries (__main__.NavigatorV3Tests.test_v3_test_lifecycle_and_child_handoff_keep_repeatable_suite_boundaries)
+Check packet routing and boundaries, without claiming model compliance. ... ok
+test_v3_test_strategy_requires_repeatable_harness_revalidation_and_suite_tiers (__main__.NavigatorV3Tests.test_v3_test_strategy_requires_repeatable_harness_revalidation_and_suite_tiers)
+The global strategy chooses rerunnable coverage before item work starts. ... ok
+
+----------------------------------------------------------------------
+Ran 22 tests in 0.337s
+
+OK
+==> test/shiploop-self-improve.test.py
+test_callback_secret_symlink_block_and_retry_preserve_product_authority (__main__.ShipLoopSelfImproveTests.test_callback_secret_symlink_block_and_retry_preserve_product_authority) ... ok
+test_candidate_and_source_binding_callbacks_replay_after_transition (__main__.ShipLoopSelfImproveTests.test_candidate_and_source_binding_callbacks_replay_after_transition)
+A crash after an accepted transition replays the durable next packet. ... ok
+test_compatibility_protocols_and_nonterminal_runs_refuse_maintenance (__main__.ShipLoopSelfImproveTests.test_compatibility_protocols_and_nonterminal_runs_refuse_maintenance) ... ok
+test_config_and_v3_state_default_remain_backward_compatible (__main__.ShipLoopSelfImproveTests.test_config_and_v3_state_default_remain_backward_compatible) ... ok
+test_copied_package_uses_its_own_scripts_from_an_unrelated_cwd (__main__.ShipLoopSelfImproveTests.test_copied_package_uses_its_own_scripts_from_an_unrelated_cwd)
+Maintenance must not assume the source checkout is the loaded package. ... ok
+test_halted_run_requires_explicit_maintenance_and_stays_halted (__main__.ShipLoopSelfImproveTests.test_halted_run_requires_explicit_maintenance_and_stays_halted) ... ok
+test_init_persists_policy_and_omitted_retry_preserves_it (__main__.ShipLoopSelfImproveTests.test_init_persists_policy_and_omitted_retry_preserves_it) ... ok
+test_large_candidate_recovery_packet_stays_compact_and_durable (__main__.ShipLoopSelfImproveTests.test_large_candidate_recovery_packet_stays_compact_and_durable)
+Large accepted evidence belongs in the receipt, never the recovery packet. ... ok
+test_maintenance_preserves_a_real_workspace_return_receipt (__main__.ShipLoopSelfImproveTests.test_maintenance_preserves_a_real_workspace_return_receipt)
+A completed product workspace remains untouched by its sibling action. ... ok
+test_pr_binding_and_callback_identity_fail_closed (__main__.ShipLoopSelfImproveTests.test_pr_binding_and_callback_identity_fail_closed) ... ok
+test_pr_callback_refuses_a_clean_commit_with_an_unscoped_diff (__main__.ShipLoopSelfImproveTests.test_pr_callback_refuses_a_clean_commit_with_an_unscoped_diff) ... ok
+test_pr_candidate_uses_one_disposable_worktree_commit_and_host_receipt (__main__.ShipLoopSelfImproveTests.test_pr_candidate_uses_one_disposable_worktree_commit_and_host_receipt) ... ok
+test_pr_no_change_replay_and_blocked_retry_clear_only_maintenance_state (__main__.ShipLoopSelfImproveTests.test_pr_no_change_replay_and_blocked_retry_clear_only_maintenance_state) ... ok
+test_pr_source_policy_is_immutable_and_requires_all_values (__main__.ShipLoopSelfImproveTests.test_pr_source_policy_is_immutable_and_requires_all_values) ... ok
+test_remote_multiple_push_targets_and_later_identity_drift_refuse_callbacks (__main__.ShipLoopSelfImproveTests.test_remote_multiple_push_targets_and_later_identity_drift_refuse_callbacks)
+Every configured push target must remain the one bound repository. ... ok
+test_report_no_change_and_candidate_close_without_source_effects (__main__.ShipLoopSelfImproveTests.test_report_no_change_and_candidate_close_without_source_effects) ... ok
+test_terminal_recovery_prints_opt_in_hint_without_starting_maintenance (__main__.ShipLoopSelfImproveTests.test_terminal_recovery_prints_opt_in_hint_without_starting_maintenance) ... ok
+test_workspace_persists_policy_and_refuses_retry_changes (__main__.ShipLoopSelfImproveTests.test_workspace_persists_policy_and_refuses_retry_changes) ... ok
+
+----------------------------------------------------------------------
+Ran 18 tests in 20.699s
+
+OK
+==> test/shiploop-standalone-improve.test.py
+..............
+----------------------------------------------------------------------
+Ran 14 tests in 1.500s
+
+OK
+==> test/shiploop-actual-improve-cli.test.py
+........
+----------------------------------------------------------------------
+Ran 8 tests in 6.965s
+
+OK
+==> test/shiploop-packet-bounds.test.py
+.......
+----------------------------------------------------------------------
+Ran 7 tests in 0.077s
+
+OK
+==> test/shiploop-v3-guidance.test.py
+test_accepted_coding_plan_can_survive_later_test_decisions_without_new_fields (__main__.V3GuidanceTests.test_accepted_coding_plan_can_survive_later_test_decisions_without_new_fields)
+Exercise host-authored evidence handoff, not automatic model compliance. ... ok
+test_coding_guide_is_selective_in_cold_producer_and_improve_packets (__main__.V3GuidanceTests.test_coding_guide_is_selective_in_cold_producer_and_improve_packets)
+Route locators, not every card body; retain the same owner on recovery. ... ok
+test_coding_reference_links_survive_package_relocation (__main__.V3GuidanceTests.test_coding_reference_links_survive_package_relocation)
+A packaged selector and its cards must work outside this checkout. ... ok
+test_cold_lifecycle_packets_keep_clause_surface_and_due_phase (__main__.V3GuidanceTests.test_cold_lifecycle_packets_keep_clause_surface_and_due_phase)
+A compact requirement survives planning and due-stage reconciliation. ... ok
+test_cold_local_skill_routes_cover_early_and_late_decisions (__main__.V3GuidanceTests.test_cold_local_skill_routes_cover_early_and_late_decisions)
+Fresh producer and pending-child packets retain the local skill route. ... ok
+test_cold_packets_route_the_repeatable_test_suite_guide_to_each_testing_stage (__main__.V3GuidanceTests.test_cold_packets_route_the_repeatable_test_suite_guide_to_each_testing_stage)
+Persisted v3 states retain the direct guide route at testing checkpoints. ... ok
+test_cold_step_plan_keeps_compact_context_and_evidence_locators (__main__.V3GuidanceTests.test_cold_step_plan_keeps_compact_context_and_evidence_locators) ... ok
+test_current_item_test_decision_source_is_revised_and_item_scoped (__main__.V3GuidanceTests.test_current_item_test_decision_source_is_revised_and_item_scoped)
+Only the current item's latest accepted decision is retained in a packet. ... ok
+test_each_current_v3_packet_renders_its_selected_stage_references (__main__.V3GuidanceTests.test_each_current_v3_packet_renders_its_selected_stage_references) ... ok
+test_next_item_reopens_repo_index_without_inheriting_prior_skill_selection (__main__.V3GuidanceTests.test_next_item_reopens_repo_index_without_inheriting_prior_skill_selection)
+The generic item context keeps selections scoped to their owner. ... ok
+test_quality_guidance_keeps_planning_review_and_product_review_distinct (__main__.V3GuidanceTests.test_quality_guidance_keeps_planning_review_and_product_review_distinct) ... ok
+test_service_discovery_context_and_final_improve_handoff_are_item_scoped (__main__.V3GuidanceTests.test_service_discovery_context_and_final_improve_handoff_are_item_scoped)
+Carry final service decisions through one item without replaying them to the next. ... ok
+test_service_discovery_guide_sections_and_links_survive_package_relocation (__main__.V3GuidanceTests.test_service_discovery_guide_sections_and_links_survive_package_relocation)
+The direct guide stays portable with its stable section anchors. ... ok
+test_service_discovery_routes_survive_cold_producer_and_improve_packets (__main__.V3GuidanceTests.test_service_discovery_routes_survive_cold_producer_and_improve_packets)
+Current-stage routing survives recovery without replaying earlier guide refs. ... ok
+test_service_discovery_stage_routes_are_exact_and_selective (__main__.V3GuidanceTests.test_service_discovery_stage_routes_are_exact_and_selective)
+Keep the conditional guide's routes independent of the prompt catalog. ... ok
+test_stage_reference_catalog_is_complete_and_resolves (__main__.V3GuidanceTests.test_stage_reference_catalog_is_complete_and_resolves) ... ok
+test_v1_and_v2_packets_do_not_gain_the_v3_strategy_projection (__main__.V3GuidanceTests.test_v1_and_v2_packets_do_not_gain_the_v3_strategy_projection) ... ok
+test_v3_cold_packets_keep_the_latest_done_root_test_strategy (__main__.V3GuidanceTests.test_v3_cold_packets_keep_the_latest_done_root_test_strategy)
+Strategy locators survive later evidence without reading it into packets. ... ok
+test_v3_improve_and_source_return_guidance_keep_the_existing_boundary (__main__.V3GuidanceTests.test_v3_improve_and_source_return_guidance_keep_the_existing_boundary) ... ok
+
+----------------------------------------------------------------------
+Ran 19 tests in 0.690s
+
+OK
+==> test/shiploop-local-skills.test.py
+test_archived_outcomes_replay_from_relocated_copies (__main__.LocalSkillApparatusTests.test_archived_outcomes_replay_from_relocated_copies) ... ok
+test_compatibility_output_requires_exact_json_types (__main__.LocalSkillApparatusTests.test_compatibility_output_requires_exact_json_types) ... ok
+test_fresh_trial_preparation_keeps_local_skill_but_removes_previous_outputs (__main__.LocalSkillApparatusTests.test_fresh_trial_preparation_keeps_local_skill_but_removes_previous_outputs) ... ok
+test_index_and_local_reference_failures_are_rejected (__main__.LocalSkillApparatusTests.test_index_and_local_reference_failures_are_rejected) ... ok
+test_missing_malformed_and_wrong_decisions_are_rejected (__main__.LocalSkillApparatusTests.test_missing_malformed_and_wrong_decisions_are_rejected) ... ok
+test_relocated_authority_must_be_preserved_and_old_path_retired (__main__.LocalSkillApparatusTests.test_relocated_authority_must_be_preserved_and_old_path_retired) ... ok
+test_retained_contract_and_compatibility_output_are_independently_required (__main__.LocalSkillApparatusTests.test_retained_contract_and_compatibility_output_are_independently_required) ... ok
+test_reuse_and_noop_detect_changes_outside_skill_card (__main__.LocalSkillApparatusTests.test_reuse_and_noop_detect_changes_outside_skill_card) ... ok
+
+----------------------------------------------------------------------
+Ran 8 tests in 1.164s
+
+OK
+==> test/shiploop-full-runtime.test.py
+test_full_v3_runtime_composition_and_recovery_variants (__main__.FullRuntimeCompositionTests.test_full_v3_runtime_composition_and_recovery_variants)
+Exercise all stages, then a delayed contract correction and recovery. ... ok
+test_generated_payload_binds_its_own_selected_improve_runtime (__main__.FullRuntimeCompositionTests.test_generated_payload_binds_its_own_selected_improve_runtime)
+A copied generated payload must not fall back to an ambient skill path. ... ok
+test_v3_intake_host_observer_bridge (__main__.FullRuntimeCompositionTests.test_v3_intake_host_observer_bridge)
+Observe one real v3 intake prefix through synthetic host stream records. ... ok
+
+----------------------------------------------------------------------
+Ran 3 tests in 145.571s
+
+OK
+==> test/shiploop-navigator-dry-run.test.py
+.......
+----------------------------------------------------------------------
+Ran 7 tests in 1.016s
+
+OK
+==> test/shiploop-auth-readiness.test.py
+....
+----------------------------------------------------------------------
+Ran 4 tests in 22.170s
+
+OK
+==> test/shiploop-environment-lifecycle.test.py
+.....
+----------------------------------------------------------------------
+Ran 5 tests in 45.925s
+
+OK
+==> test/shiploop-cross-run.test.py
+...........
+----------------------------------------------------------------------
+Ran 11 tests in 10.039s
+
+OK
+==> test/shiploop-workspace.test.py
+test_clean_candidate_fast_forwards_when_every_path_is_kept (__main__.ShipLoopWorkspaceTests.test_clean_candidate_fast_forwards_when_every_path_is_kept) ... ok
+test_clean_fast_forward_refuses_to_overwrite_an_ignored_source_sentinel (__main__.ShipLoopWorkspaceTests.test_clean_fast_forward_refuses_to_overwrite_an_ignored_source_sentinel)
+`merge --ff-only` must not silently replace ignored untracked data. ... ok
+test_dirty_return_applies_only_new_delta_and_preserves_source_index (__main__.ShipLoopWorkspaceTests.test_dirty_return_applies_only_new_delta_and_preserves_source_index) ... ok
+test_dirty_return_preserves_binary_delete_rename_mode_and_symlink_changes (__main__.ShipLoopWorkspaceTests.test_dirty_return_preserves_binary_delete_rename_mode_and_symlink_changes) ... ok
+test_dirty_return_refuses_to_overwrite_an_ignored_source_sentinel (__main__.ShipLoopWorkspaceTests.test_dirty_return_refuses_to_overwrite_an_ignored_source_sentinel)
+The reviewed patch route has the same ignored-file safety boundary. ... ok
+test_execute_refuses_a_duplicate_return_plan_row_without_source_mutation (__main__.ShipLoopWorkspaceTests.test_execute_refuses_a_duplicate_return_plan_row_without_source_mutation) ... ok
+test_execute_refuses_stale_candidate_and_stale_plan_without_mutation (__main__.ShipLoopWorkspaceTests.test_execute_refuses_stale_candidate_and_stale_plan_without_mutation) ... ok
+test_explicit_v2_and_v1_direct_navigator_cold_recovery_remain_unchanged (__main__.ShipLoopWorkspaceTests.test_explicit_v2_and_v1_direct_navigator_cold_recovery_remain_unchanged) ... ok
+test_explicitly_omitted_output_never_returns_but_durable_documents_do (__main__.ShipLoopWorkspaceTests.test_explicitly_omitted_output_never_returns_but_durable_documents_do) ... ok
+test_failed_named_git_reads_never_be_interpreted_as_an_empty_delta (__main__.ShipLoopWorkspaceTests.test_failed_named_git_reads_never_be_interpreted_as_an_empty_delta)
+A nonzero empty read must block rather than erase history or changes. ... ok
+test_fresh_workspace_roots_isolate_identical_prompts (__main__.ShipLoopWorkspaceTests.test_fresh_workspace_roots_isolate_identical_prompts)
+Same text in a new root creates a new run and preserves the old cursor. ... ok
+test_no_product_delta_returns_an_explicit_no_change_receipt (__main__.ShipLoopWorkspaceTests.test_no_product_delta_returns_an_explicit_no_change_receipt)
+Empty reviewed output is not a fake merge, commit, or empty apply. ... ok
+test_prepare_accepts_an_empty_initial_commit_without_a_readme (__main__.ShipLoopWorkspaceTests.test_prepare_accepts_an_empty_initial_commit_without_a_readme)
+A new repository needs no bootstrap file before workspace capture. ... ok
+test_prepare_refuses_a_staged_runtime_deletion_without_repairing_user_work (__main__.ShipLoopWorkspaceTests.test_prepare_refuses_a_staged_runtime_deletion_without_repairing_user_work)
+A removed old run file is still an unsafe tracked baseline, not cleanup. ... ok
+test_prepare_rejects_a_transient_source_artifact_without_mutation (__main__.ShipLoopWorkspaceTests.test_prepare_rejects_a_transient_source_artifact_without_mutation) ... ok
+test_prepare_rejects_ephemeral_child_receipts_without_mutation (__main__.ShipLoopWorkspaceTests.test_prepare_rejects_ephemeral_child_receipts_without_mutation)
+Saved terminal packets are parent evidence, never product baseline input. ... ok
+test_prepare_rejects_until_loop_runtime_artifacts_without_mutation (__main__.ShipLoopWorkspaceTests.test_prepare_rejects_until_loop_runtime_artifacts_without_mutation)
+Actual Improve runtime state is evidence, never candidate product input. ... ok
+test_prepare_replays_selected_dirty_inputs_without_touching_source_index (__main__.ShipLoopWorkspaceTests.test_prepare_replays_selected_dirty_inputs_without_touching_source_index) ... ok
+test_prepare_sanitizes_ambient_git_redirection_and_disables_checkout_hooks (__main__.ShipLoopWorkspaceTests.test_prepare_sanitizes_ambient_git_redirection_and_disables_checkout_hooks)
+A caller environment or repository hook cannot redirect workspace capture. ... ok
+test_prepare_uses_actual_working_content_for_staged_new_edit_and_delete (__main__.ShipLoopWorkspaceTests.test_prepare_uses_actual_working_content_for_staged_new_edit_and_delete)
+The private baseline follows current files, not only the source index. ... ok
+test_public_return_is_refused_before_release_or_handoff_without_mutation (__main__.ShipLoopWorkspaceTests.test_public_return_is_refused_before_release_or_handoff_without_mutation) ... ok
+test_public_workspace_commands_start_plan_and_return (__main__.ShipLoopWorkspaceTests.test_public_workspace_commands_start_plan_and_return) ... ok
+test_receipt_snapshot_honors_disabled_filemode_for_executable_extras (__main__.ShipLoopWorkspaceTests.test_receipt_snapshot_honors_disabled_filemode_for_executable_extras)
+The display match follows Git mode policy for selected and returned files. ... ok
+test_receipt_snapshot_never_mutates_workspace_or_git_objects (__main__.ShipLoopWorkspaceTests.test_receipt_snapshot_never_mutates_workspace_or_git_objects)
+Display reads refuse uncertainty instead of creating locks or recovery writes. ... ok
+test_return_projection_stays_current_across_terminal_cold_and_report_packets (__main__.ShipLoopWorkspaceTests.test_return_projection_stays_current_across_terminal_cold_and_report_packets)
+A historical handoff summary cannot keep a drifted receipt current. ... ok
+test_return_receipt_is_idempotent_but_candidate_mutation_invalidates_handoff (__main__.ShipLoopWorkspaceTests.test_return_receipt_is_idempotent_but_candidate_mutation_invalidates_handoff) ... ok
+test_runtime_artifact_removed_before_the_baseline_does_not_block_or_reappear (__main__.ShipLoopWorkspaceTests.test_runtime_artifact_removed_before_the_baseline_does_not_block_or_reappear)
+Do not treat unrelated pre-baseline history as current candidate work. ... ok
+test_source_content_index_and_branch_drift_refuse_without_repairing_source (__main__.ShipLoopWorkspaceTests.test_source_content_index_and_branch_drift_refuse_without_repairing_source) ... ok
+test_tracked_or_historical_child_receipts_still_block_return (__main__.ShipLoopWorkspaceTests.test_tracked_or_historical_child_receipts_still_block_return) ... ok
+test_transient_candidate_and_transient_history_are_never_returnable (__main__.ShipLoopWorkspaceTests.test_transient_candidate_and_transient_history_are_never_returnable) ... ok
+test_untracked_child_evidence_is_retained_but_cannot_be_returned (__main__.ShipLoopWorkspaceTests.test_untracked_child_evidence_is_retained_but_cannot_be_returned) ... ok
+test_verified_return_allows_the_same_worktree_handoff_to_complete (__main__.ShipLoopWorkspaceTests.test_verified_return_allows_the_same_worktree_handoff_to_complete)
+The terminal guard rejects missing proof without making valid proof unusable. ... ok
+test_workspace_start_defaults_to_protocol_v3 (__main__.ShipLoopWorkspaceTests.test_workspace_start_defaults_to_protocol_v3) ... ok
+test_workspace_start_replay_is_idempotent_and_rejects_changed_scope_or_capture (__main__.ShipLoopWorkspaceTests.test_workspace_start_replay_is_idempotent_and_rejects_changed_scope_or_capture) ... ok
+test_worktree_navigator_cannot_complete_handoff_without_return_receipt (__main__.ShipLoopWorkspaceTests.test_worktree_navigator_cannot_complete_handoff_without_return_receipt) ... ok
+
+----------------------------------------------------------------------
+Ran 35 tests in 102.781s
+
+OK
+==> test/shiploop-consumer-delivery.test.py
+test_additive_check_and_outer_improve_refresh_preserve_required_work (__main__.ConsumerDeliveryTests.test_additive_check_and_outer_improve_refresh_preserve_required_work) ... ok
+test_contract_is_required_at_plan_improve_and_packet_rehydrates_anchor (__main__.ConsumerDeliveryTests.test_contract_is_required_at_plan_improve_and_packet_rehydrates_anchor) ... ok
+test_contract_rejects_a_second_activation_target (__main__.ConsumerDeliveryTests.test_contract_rejects_a_second_activation_target) ... ok
+test_fresh_run_accepts_new_repo_policy_without_copying_old_one_off_grant (__main__.ConsumerDeliveryTests.test_fresh_run_accepts_new_repo_policy_without_copying_old_one_off_grant) ... ok
+test_full_correction_binds_its_same_action_observations_without_a_host_anchor (__main__.ConsumerDeliveryTests.test_full_correction_binds_its_same_action_observations_without_a_host_anchor) ... ok
+test_late_negative_release_observations_replace_old_success_without_backtracking (__main__.ConsumerDeliveryTests.test_late_negative_release_observations_replace_old_success_without_backtracking) ... ok
+test_local_only_contract_keeps_required_behavior_from_being_skipped (__main__.ConsumerDeliveryTests.test_local_only_contract_keeps_required_behavior_from_being_skipped) ... ok
+test_malformed_enum_and_status_values_raise_navigator_errors_without_mutation (__main__.ConsumerDeliveryTests.test_malformed_enum_and_status_values_raise_navigator_errors_without_mutation) ... ok
+test_multiple_required_consumers_cannot_be_completed_by_one_behavior_check (__main__.ConsumerDeliveryTests.test_multiple_required_consumers_cannot_be_completed_by_one_behavior_check) ... ok
+test_not_required_contract_rejects_optional_activation_rows_for_any_authority_state (__main__.ConsumerDeliveryTests.test_not_required_contract_rejects_optional_activation_rows_for_any_authority_state) ... ok
+test_opt_in_marker_is_v2_only_and_unmarked_shapes_stay_unchanged (__main__.ConsumerDeliveryTests.test_opt_in_marker_is_v2_only_and_unmarked_shapes_stay_unchanged) ... ok
+test_packet_treats_delivery_records_as_data_and_links_their_receipts (__main__.ConsumerDeliveryTests.test_packet_treats_delivery_records_as_data_and_links_their_receipts) ... ok
+test_post_plan_behavior_correction_invalidates_behavior_and_sticks_replanning (__main__.ConsumerDeliveryTests.test_post_plan_behavior_correction_invalidates_behavior_and_sticks_replanning) ... ok
+test_post_plan_candidate_change_stays_blocked_after_resume (__main__.ConsumerDeliveryTests.test_post_plan_candidate_change_stays_blocked_after_resume) ... ok
+test_post_plan_handoff_correction_requires_a_new_planning_run (__main__.ConsumerDeliveryTests.test_post_plan_handoff_correction_requires_a_new_planning_run) ... ok
+test_repo_policy_requires_approval_ref_without_mutation (__main__.ConsumerDeliveryTests.test_repo_policy_requires_approval_ref_without_mutation) ... ok
+test_repo_policy_scope_must_match_contract_without_mutation (__main__.ConsumerDeliveryTests.test_repo_policy_scope_must_match_contract_without_mutation) ... ok
+test_required_phase_obligations_block_false_completion_and_preserve_effect (__main__.ConsumerDeliveryTests.test_required_phase_obligations_block_false_completion_and_preserve_effect) ... ok
+test_resolved_local_contract_cannot_drop_all_consumer_behavior_checks (__main__.ConsumerDeliveryTests.test_resolved_local_contract_cannot_drop_all_consumer_behavior_checks) ... ok
+test_scope_weakening_and_stale_observations_are_rejected_without_erasure (__main__.ConsumerDeliveryTests.test_scope_weakening_and_stale_observations_are_rejected_without_erasure) ... ok
+test_templates_are_stage_aware_and_use_script_selected_obligation_ids (__main__.ConsumerDeliveryTests.test_templates_are_stage_aware_and_use_script_selected_obligation_ids) ... ok
+test_terminal_validation_rejects_completed_history_with_failed_required_observation (__main__.ConsumerDeliveryTests.test_terminal_validation_rejects_completed_history_with_failed_required_observation) ... ok
+test_v3_bundled_browser_cases_stay_pending_until_their_due_phase (__main__.ConsumerDeliveryTests.test_v3_bundled_browser_cases_stay_pending_until_their_due_phase)
+Local support plus one UI case cannot discharge a bundled requirement. ... ok
+test_v3_contract_is_required_at_plan_after_its_actual_improve_handoff (__main__.ConsumerDeliveryTests.test_v3_contract_is_required_at_plan_after_its_actual_improve_handoff) ... ok
+test_v3_delivery_lifecycle_replans_then_completes_only_after_child_imports (__main__.ConsumerDeliveryTests.test_v3_delivery_lifecycle_replans_then_completes_only_after_child_imports)
+Exercise the default graph's delivery gates at their parent return edge. ... ok
+test_v3_late_negative_observations_are_retained_at_new_due_stages (__main__.ConsumerDeliveryTests.test_v3_late_negative_observations_are_retained_at_new_due_stages)
+New v3 outer stages may retain failures for obligations already due. ... ok
+test_v3_operations_contract_change_requires_replan_after_release_plan (__main__.ConsumerDeliveryTests.test_v3_operations_contract_change_requires_replan_after_release_plan)
+The later v3 operations stage cannot silently replace a planned contract. ... ok
+test_v3_repeat_and_resume_do_not_clear_post_plan_replan_requirement (__main__.ConsumerDeliveryTests.test_v3_repeat_and_resume_do_not_clear_post_plan_replan_requirement)
+Only an accepted v3 replan starts the corrective release-planning cycle. ... ok
+test_v3_replan_clears_post_plan_requirement_only_after_fresh_tests_and_plan (__main__.ConsumerDeliveryTests.test_v3_replan_clears_post_plan_requirement_only_after_fresh_tests_and_plan)
+A v3 corrective edge creates a new current-contract release-planning cycle. ... ok
+test_v3_replan_without_immediate_contract_change_starts_a_fresh_plan_cycle (__main__.ConsumerDeliveryTests.test_v3_replan_without_immediate_contract_change_starts_a_fresh_plan_cycle)
+A corrective v3 work item can change the candidate after its replan action. ... ok
+
+----------------------------------------------------------------------
+Ran 30 tests in 0.635s
+
+OK
+==> test/shiploop-consumer-delivery-cli.test.py
+......
+----------------------------------------------------------------------
+Ran 6 tests in 0.940s
+
+OK
+==> test/shiploop-delivery-prompts.test.py
+test_a_is_frozen_baseline_and_b_contains_delivery_candidate_wording (__main__.DeliveryPromptPilotTests.test_a_is_frozen_baseline_and_b_contains_delivery_candidate_wording) ... ok
+test_authority_cases_have_private_oracles_and_reproducible_packets (__main__.DeliveryPromptPilotTests.test_authority_cases_have_private_oracles_and_reproducible_packets) ... ok
+test_exploratory_b2_is_separate_and_targets_only_phase_order_cases (__main__.DeliveryPromptPilotTests.test_exploratory_b2_is_separate_and_targets_only_phase_order_cases) ... ok
+test_fixed_sentinel_scenarios_have_separate_oracles (__main__.DeliveryPromptPilotTests.test_fixed_sentinel_scenarios_have_separate_oracles) ... ok
+test_frozen_a_and_candidate_b_packets_cover_two_fresh_repetitions (__main__.DeliveryPromptPilotTests.test_frozen_a_and_candidate_b_packets_cover_two_fresh_repetitions) ... ok
+test_packet_preparation_can_make_a_declared_narrow_follow_up_set (__main__.DeliveryPromptPilotTests.test_packet_preparation_can_make_a_declared_narrow_follow_up_set) ... ok
+test_packet_preparation_is_local_deterministic_and_refuses_overwrite (__main__.DeliveryPromptPilotTests.test_packet_preparation_is_local_deterministic_and_refuses_overwrite) ... ok
+
+----------------------------------------------------------------------
+Ran 7 tests in 0.007s
+
+OK
+==> test/experiments/shiploop_delivery/fake_deployment.test.py
+test_current_artifact_does_not_replace_failed_visual_interaction (__main__.FakeDeploymentTests.test_current_artifact_does_not_replace_failed_visual_interaction) ... ok
+test_forbidden_operation_is_visible_and_does_not_change_target (__main__.FakeDeploymentTests.test_forbidden_operation_is_visible_and_does_not_change_target) ... ok
+test_stale_served_artifact_is_not_current_consumer_behavior (__main__.FakeDeploymentTests.test_stale_served_artifact_is_not_current_consumer_behavior) ... ok
+test_successful_update_with_login_preserves_effect_without_retry (__main__.FakeDeploymentTests.test_successful_update_with_login_preserves_effect_without_retry) ... ok
+test_unknown_operation_outcome_is_not_retried_by_the_fixture (__main__.FakeDeploymentTests.test_unknown_operation_outcome_is_not_retried_by_the_fixture) ... ok
+
+----------------------------------------------------------------------
+Ran 5 tests in 0.000s
+
+OK
+==> test/experiments/shiploop_delivery/browser_consumer/serve_fixture.test.py
+test_each_case_serves_its_distinct_artifact_on_loopback (__main__.LoopbackFixtureTests.test_each_case_serves_its_distinct_artifact_on_loopback) ... ok
+test_local_candidate_is_newer_than_stale_served_artifact (__main__.LoopbackFixtureTests.test_local_candidate_is_newer_than_stale_served_artifact) ... ok
+
+----------------------------------------------------------------------
+Ran 2 tests in 2.525s
+
+OK
+==> test/improve-managed.test.py
+test_child_replay_rejects_tampered_cursor_or_pass_counter (__main__.ManagedImproveCertificateTests.test_child_replay_rejects_tampered_cursor_or_pass_counter) ... ok
+test_controller_stays_pure_and_has_no_runtime_backend_import (__main__.ManagedImproveCertificateTests.test_controller_stays_pure_and_has_no_runtime_backend_import) ... ok
+test_execution_projection_is_allowed_but_cannot_change_phase (__main__.ManagedImproveCertificateTests.test_execution_projection_is_allowed_but_cannot_change_phase) ... ok
+test_terminal_certificate_binds_child_and_rejects_stale_or_tampered_forms (__main__.ManagedImproveCertificateTests.test_terminal_certificate_binds_child_and_rejects_stale_or_tampered_forms) ... ok
+test_commit_requires_complete_current_evidence_and_rejects_repeated_commit (__main__.ManagedImproveEvidenceTests.test_commit_requires_complete_current_evidence_and_rejects_repeated_commit) ... ok
+test_final_phase_requires_shaped_fresh_evidence_not_a_done_claim (__main__.ManagedImproveEvidenceTests.test_final_phase_requires_shaped_fresh_evidence_not_a_done_claim) ... ok
+test_incomplete_status_is_never_a_certificate (__main__.ManagedImproveEvidenceTests.test_incomplete_status_is_never_a_certificate) ... ok
+test_material_pass_resets_before_two_later_trivial_passes_converge (__main__.ManagedImproveEvidenceTests.test_material_pass_resets_before_two_later_trivial_passes_converge) ... ok
+test_missing_evidence_or_generic_done_cannot_advance (__main__.ManagedImproveEvidenceTests.test_missing_evidence_or_generic_done_cannot_advance) ... ok
+test_open_findings_after_verified_commit_keep_the_child_active (__main__.ManagedImproveEvidenceTests.test_open_findings_after_verified_commit_keep_the_child_active) ... ok
+test_pause_keeps_active_child_at_carry_forward_until_continue (__main__.ManagedImproveEvidenceTests.test_pause_keeps_active_child_at_carry_forward_until_continue) ... ok
+test_repair_resets_epoch_and_resume_restores_the_same_child_phase (__main__.ManagedImproveEvidenceTests.test_repair_resets_epoch_and_resume_restores_the_same_child_phase) ... ok
+test_required_reviewer_requires_performed_or_explicit_fallback (__main__.ManagedImproveEvidenceTests.test_required_reviewer_requires_performed_or_explicit_fallback) ... ok
+test_carry_forward_requires_explicit_continue_pause_or_repair (__main__.ManagedImproveRouteTests.test_carry_forward_requires_explicit_continue_pause_or_repair) ... ok
+test_commit_admits_final_only_after_two_completed_passes (__main__.ManagedImproveRouteTests.test_commit_admits_final_only_after_two_completed_passes) ... ok
+test_decide_preserves_shiploop_readiness_shape (__main__.ManagedImproveRouteTests.test_decide_preserves_shiploop_readiness_shape) ... ok
+test_final_phase_cannot_be_skipped_or_entered_without_ready_passes (__main__.ManagedImproveRouteTests.test_final_phase_cannot_be_skipped_or_entered_without_ready_passes) ... ok
+test_product_documentation_and_skill_decisions_are_explicit (__main__.ManagedImproveRouteTests.test_product_documentation_and_skill_decisions_are_explicit) ... ok
+test_product_plan_verification_does_not_start_nested_plan_convergence (__main__.ManagedImproveRouteTests.test_product_plan_verification_does_not_start_nested_plan_convergence) ... ok
+test_profile_routes_are_closed_and_separate (__main__.ManagedImproveRouteTests.test_profile_routes_are_closed_and_separate) ... ok
+test_step_plan_disposition_is_explicit_and_restarts_review (__main__.ManagedImproveRouteTests.test_step_plan_disposition_is_explicit_and_restarts_review) ... ok
+test_step_plan_repair_can_require_disposition_without_a_fake_review (__main__.ManagedImproveRouteTests.test_step_plan_repair_can_require_disposition_without_a_fake_review) ... ok
+
+----------------------------------------------------------------------
+Ran 22 tests in 0.070s
+
+OK
+==> test/shiploop-graph-driver.test.py
+.........
+----------------------------------------------------------------------
+Ran 9 tests in 1.102s
+
+OK
+==> test/shiploop-graph-trace.test.py
+......
+----------------------------------------------------------------------
+Ran 6 tests in 0.002s
+
+OK
+==> test/shiploop-store.test.py
+test_markdown_round_trip_and_no_raw_json_fallback (__main__.ShipLoopStoreTests.test_markdown_round_trip_and_no_raw_json_fallback) ... ok
+test_recover_rolls_forward_after_crash_following_first_target_write (__main__.ShipLoopStoreTests.test_recover_rolls_forward_after_crash_following_first_target_write) ... ok
+test_refuses_edits_to_its_own_journal (__main__.ShipLoopStoreTests.test_refuses_edits_to_its_own_journal) ... ok
+test_refuses_symlink_targets_and_parents_that_escape_root (__main__.ShipLoopStoreTests.test_refuses_symlink_targets_and_parents_that_escape_root) ... ok
+test_rejects_malformed_duplicate_or_ambiguous_payloads (__main__.ShipLoopStoreTests.test_rejects_malformed_duplicate_or_ambiguous_payloads) ... ok
+test_transaction_applies_sorted_writes_and_deletes (__main__.ShipLoopStoreTests.test_transaction_applies_sorted_writes_and_deletes) ... ok
+test_unsafe_manifest_has_no_partial_writes (__main__.ShipLoopStoreTests.test_unsafe_manifest_has_no_partial_writes) ... ok
+
+----------------------------------------------------------------------
+Ran 7 tests in 0.006s
+
+OK
+==> test/shiploop-evidence.test.py
+test_fingerprint_tracks_missing_modes_and_symlink_target_without_following (__main__.ShipLoopEvidenceTests.test_fingerprint_tracks_missing_modes_and_symlink_target_without_following) ... ok
+test_history_returns_full_bodies_and_honors_pagination (__main__.ShipLoopEvidenceTests.test_history_returns_full_bodies_and_honors_pagination) ... ok
+test_run_checks_rejects_timeout_and_content_change (__main__.ShipLoopEvidenceTests.test_run_checks_rejects_timeout_and_content_change) ... ok
+test_run_checks_writes_logs_and_validate_results_rejects_failed_missing_stale_and_mismatched (__main__.ShipLoopEvidenceTests.test_run_checks_writes_logs_and_validate_results_rejects_failed_missing_stale_and_mismatched) ... ok
+test_timeout_cancels_spawned_posix_child_without_writing_outside_fixture (__main__.ShipLoopEvidenceTests.test_timeout_cancels_spawned_posix_child_without_writing_outside_fixture) ... ok
+test_validate_commit_rejects_missing_sections_and_subjective_quality_claims (__main__.ShipLoopEvidenceTests.test_validate_commit_rejects_missing_sections_and_subjective_quality_claims) ... ok
+test_validate_commit_requires_new_head_structured_evidence_and_allows_empty_audit (__main__.ShipLoopEvidenceTests.test_validate_commit_requires_new_head_structured_evidence_and_allows_empty_audit) ... ok
+test_validate_manifest_requires_test_coverage_and_lint_or_noncode_reason (__main__.ShipLoopEvidenceTests.test_validate_manifest_requires_test_coverage_and_lint_or_noncode_reason) ... ok
+
+----------------------------------------------------------------------
+Ran 8 tests in 3.350s
+
+OK
+==> test/shiploop-file-safety.test.py
+test_ignore_aliases_block_without_changing_external_sentinel (__main__.ShipLoopFileSafetyTests.test_ignore_aliases_block_without_changing_external_sentinel) ... error: unsafe Git common-directory exclude path
+error: unsafe Git exclude file: /private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-file-safety-lgwz3n8a/hardlink/.git/info/exclude
+ok
+test_ignore_is_added_once_and_works_from_a_linked_worktree (__main__.ShipLoopFileSafetyTests.test_ignore_is_added_once_and_works_from_a_linked_worktree) ... ok
+test_ignore_reasserts_after_local_negation_and_blocks_product_negation (__main__.ShipLoopFileSafetyTests.test_ignore_reasserts_after_local_negation_and_blocks_product_negation) ... error: worktree ignore remains ineffective after updating .git/info/exclude; a higher-priority product rule may negate .worktrees/
+ok
+test_ignore_rejects_symlink_ancestor_and_nonregular_leaf (__main__.ShipLoopFileSafetyTests.test_ignore_rejects_symlink_ancestor_and_nonregular_leaf) ... error: unsafe Git common-directory exclude path
+error: unsafe Git exclude file: /private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-file-safety-8ihsx1ql/ignore-directory/.git/info/exclude
+ok
+test_ignore_validates_owned_metadata_before_check_ignore (__main__.ShipLoopFileSafetyTests.test_ignore_validates_owned_metadata_before_check_ignore) ... error: unsafe Git exclude file: /private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/shiploop-file-safety-t2_y0wox/ignore-order/.git/info/exclude
+ok
+test_log_aliases_and_symlink_ancestor_preserve_sentinels (__main__.ShipLoopFileSafetyTests.test_log_aliases_and_symlink_ancestor_preserve_sentinels) ... ok
+test_log_rejects_nonregular_leaf_and_allows_safe_retry_overwrite (__main__.ShipLoopFileSafetyTests.test_log_rejects_nonregular_leaf_and_allows_safe_retry_overwrite) ... ok
+test_run_checks_rejects_a_symlinked_evidence_ancestor_before_creation (__main__.ShipLoopFileSafetyTests.test_run_checks_rejects_a_symlinked_evidence_ancestor_before_creation) ... ok
+
+----------------------------------------------------------------------
+Ran 8 tests in 1.252s
+
+OK
+==> test/shiploop-prompt-integrity.test.py
+..........
+----------------------------------------------------------------------
+Ran 10 tests in 3.384s
+
+OK
+==> test/shiploop-literal-transport.test.py
+test_documented_entry_round_trips_literal_requests (__main__.LiteralTransportTests.test_documented_entry_round_trips_literal_requests) ... ok
+
+----------------------------------------------------------------------
+Ran 1 test in 0.888s
+
+OK
+==> test/shiploop-validators.test.py
+test_destination_route_source_must_be_a_survey_reference (__main__.DestinationIdentityTests.test_destination_route_source_must_be_a_survey_reference) ... ok
+test_exclusive_gaps_reject_competing_or_opposing_writer_routes (__main__.DestinationIdentityTests.test_exclusive_gaps_reject_competing_or_opposing_writer_routes) ... ok
+test_exclusive_gaps_require_refs_layout_and_routing_for_destination_writer (__main__.DestinationIdentityTests.test_exclusive_gaps_require_refs_layout_and_routing_for_destination_writer) ... ok
+test_exclusive_gaps_requires_explicit_empty_or_structured_exclusive_key (__main__.DestinationIdentityTests.test_exclusive_gaps_requires_explicit_empty_or_structured_exclusive_key) ... ok
+test_ui_craft_requires_its_reference_path (__main__.DestinationIdentityTests.test_ui_craft_requires_its_reference_path) ... ok
+test_unresolved_environment_handles_block_destination_planning (__main__.DestinationIdentityTests.test_unresolved_environment_handles_block_destination_planning) ... ok
+test_load_environment_accepts_canonical_machine (__main__.EnvironmentValidationTests.test_load_environment_accepts_canonical_machine) ... ok
+test_load_environment_refuses_unclosed_or_non_json_machine_fence (__main__.EnvironmentValidationTests.test_load_environment_refuses_unclosed_or_non_json_machine_fence) ... ok
+test_load_environment_requires_one_machine_heading_and_brief (__main__.EnvironmentValidationTests.test_load_environment_requires_one_machine_heading_and_brief) ... ok
+test_validate_machine_rejects_invalid_handle_and_initiation_contracts (__main__.EnvironmentValidationTests.test_validate_machine_rejects_invalid_handle_and_initiation_contracts) ... ok
+test_validate_machine_rejects_kind_augment_and_brownfield_reference_mismatch (__main__.EnvironmentValidationTests.test_validate_machine_rejects_kind_augment_and_brownfield_reference_mismatch) ... ok
+test_validate_machine_rejects_ui_craft_shape_mismatch (__main__.EnvironmentValidationTests.test_validate_machine_rejects_ui_craft_shape_mismatch) ... ok
+test_validate_machine_rejects_uninventoried_or_unsafe_exclusive_rows (__main__.EnvironmentValidationTests.test_validate_machine_rejects_uninventoried_or_unsafe_exclusive_rows) ... ok
+test_blocked_transition_is_the_intentional_drift_rebind_hatch (__main__.FrozenArtifactValidationTests.test_blocked_transition_is_the_intentional_drift_rebind_hatch) ... ok
+test_frozen_environment_drift_is_blocked (__main__.FrozenArtifactValidationTests.test_frozen_environment_drift_is_blocked) ... ok
+test_frozen_hashes_accept_unchanged_authoritative_files (__main__.FrozenArtifactValidationTests.test_frozen_hashes_accept_unchanged_authoritative_files) ... ok
+test_frozen_markdown_dag_drift_is_blocked (__main__.FrozenArtifactValidationTests.test_frozen_markdown_dag_drift_is_blocked) ... ok
+test_frozen_spec_drift_is_blocked (__main__.FrozenArtifactValidationTests.test_frozen_spec_drift_is_blocked) ... ok
+test_latest_round_commit_must_contain_the_current_ledger_blob (__main__.LedgerLandingValidationTests.test_latest_round_commit_must_contain_the_current_ledger_blob) ... ok
+test_plain_documented_committed_marker_matches_bold_grammar (__main__.LedgerLandingValidationTests.test_plain_documented_committed_marker_matches_bold_grammar) ... ok
+test_untracked_or_dirty_ledger_cannot_claim_landed_review_coverage (__main__.LedgerLandingValidationTests.test_untracked_or_dirty_ledger_cannot_claim_landed_review_coverage) ... ok
+test_dag_rejects_initial_state_claims_without_a_source (__main__.MarkdownDagValidationTests.test_dag_rejects_initial_state_claims_without_a_source) ... ok
+test_dag_rejects_unknown_dependencies_and_cycles (__main__.MarkdownDagValidationTests.test_dag_rejects_unknown_dependencies_and_cycles) ... ok
+test_dag_rejects_unresolved_work_before_implementation (__main__.MarkdownDagValidationTests.test_dag_rejects_unresolved_work_before_implementation) ... ok
+test_dag_rejects_unsafe_and_duplicate_step_ids (__main__.MarkdownDagValidationTests.test_dag_rejects_unsafe_and_duplicate_step_ids) ... ok
+test_dag_requires_goal_until_clause_and_each_declared_product (__main__.MarkdownDagValidationTests.test_dag_requires_goal_until_clause_and_each_declared_product) ... ok
+test_seed_dag_requires_tools_line_and_reference_citation (__main__.MarkdownDagValidationTests.test_seed_dag_requires_tools_line_and_reference_citation) ... ok
+test_seed_writer_prompt_protects_reserved_destination_paths (__main__.MarkdownDagValidationTests.test_seed_writer_prompt_protects_reserved_destination_paths) ... ok
+test_ui_dag_requires_a_design_seed (__main__.MarkdownDagValidationTests.test_ui_dag_requires_a_design_seed) ... ok
+test_ui_design_dependency_is_accepted (__main__.MarkdownDagValidationTests.test_ui_design_dependency_is_accepted) ... ok
+test_ui_design_seed_must_feed_another_seed (__main__.MarkdownDagValidationTests.test_ui_design_seed_must_feed_another_seed) ... ok
+test_valid_dag_is_loaded_from_markdown_authority_without_json_twin (__main__.MarkdownDagValidationTests.test_valid_dag_is_loaded_from_markdown_authority_without_json_twin) ... ok
+test_writer_prompt_requires_designated_use_and_every_dont_use_token (__main__.MarkdownDagValidationTests.test_writer_prompt_requires_designated_use_and_every_dont_use_token) ... ok
+test_only_a_hashed_bound_review_coverage_section_can_waive_outer_ledger (__main__.PlanWaiverValidationTests.test_only_a_hashed_bound_review_coverage_section_can_waive_outer_ledger) ... ok
+test_load_spec_requires_checkable_and_singleton_labels (__main__.SpecAndWrapperValidationTests.test_load_spec_requires_checkable_and_singleton_labels) ... ok
+test_load_spec_requires_question_for_uncheckable_work (__main__.SpecAndWrapperValidationTests.test_load_spec_requires_question_for_uncheckable_work) ... ok
+test_load_spec_uses_only_unquoted_unfenced_labels (__main__.SpecAndWrapperValidationTests.test_load_spec_uses_only_unquoted_unfenced_labels) ... ok
+test_wrapper_pair_rejects_duplicate_done_sentence (__main__.SpecAndWrapperValidationTests.test_wrapper_pair_rejects_duplicate_done_sentence) ... ok
+test_wrapper_pair_requires_one_matching_done_sentence (__main__.SpecAndWrapperValidationTests.test_wrapper_pair_requires_one_matching_done_sentence) ... ok
+
+----------------------------------------------------------------------
+Ran 39 tests in 1.319s
+
+OK
+==> test/shiploop-discovery.test.py
+...........................
+----------------------------------------------------------------------
+Ran 27 tests in 5.031s
+
+OK
+==> test/shiploop-capability-fixture.test.py
+test_case_layout_clears_ambient_receipts_until_explicitly_configured (__main__.CapabilityFixtureContractTests.test_case_layout_clears_ambient_receipts_until_explicitly_configured) ... ok
+test_create_case_rejects_nonempty_workspace (__main__.CapabilityFixtureContractTests.test_create_case_rejects_nonempty_workspace) ... ok
+test_grader_clears_ambient_receipt_paths_until_a_run_explicitly_sets_one (__main__.CapabilityFixtureContractTests.test_grader_clears_ambient_receipt_paths_until_a_run_explicitly_sets_one) ... ok
+test_http_calibration_detects_every_baked_mutant_and_the_test_gate_rejects_bad_reference (__main__.CapabilityFixtureContractTests.test_http_calibration_detects_every_baked_mutant_and_the_test_gate_rejects_bad_reference) ... ok
+test_malformed_actor_json_is_400_and_a_fresh_public_reader_sees_no_write (__main__.CapabilityFixtureContractTests.test_malformed_actor_json_is_400_and_a_fresh_public_reader_sees_no_write) ... ok
+test_normalization_precedes_auth_and_workspace_logs_redact_untrusted_values (__main__.CapabilityFixtureContractTests.test_normalization_precedes_auth_and_workspace_logs_redact_untrusted_values) ... ok
+test_reference_and_generated_metadata_are_explicitly_r2 (__main__.CapabilityFixtureContractTests.test_reference_and_generated_metadata_are_explicitly_r2) ... ok
+test_scope_denial_has_an_allowlisted_external_receipt_and_unchanged_persistence (__main__.CapabilityFixtureContractTests.test_scope_denial_has_an_allowlisted_external_receipt_and_unchanged_persistence) ... ok
+test_scored_http_stale_check_accepts_a_response_without_current_version_metadata (__main__.CapabilityFixtureContractTests.test_scored_http_stale_check_accepts_a_response_without_current_version_metadata) ... ok
+test_selector_calibration_is_diagnostic_not_evidence_grade (__main__.CapabilityFixtureContractTests.test_selector_calibration_is_diagnostic_not_evidence_grade) ... ok
+test_test_gate_rejects_partial_unknown_and_aliased_mutant_sources (__main__.CapabilityFixtureContractTests.test_test_gate_rejects_partial_unknown_and_aliased_mutant_sources) ... ok
+test_unavailable_configured_receipt_is_exposed_without_the_path (__main__.CapabilityFixtureContractTests.test_unavailable_configured_receipt_is_exposed_without_the_path) ... ok
+
+----------------------------------------------------------------------
+Ran 12 tests in 67.282s
+
+OK
+==> test/shiploop-capability-runtime.test.py
+test_authoritative_http_receipt_retains_actor_status_when_exec_is_wholly_redacted (__main__.CapabilityRuntimeTests.test_authoritative_http_receipt_retains_actor_status_when_exec_is_wholly_redacted) ... ok
+test_blind_accounting_keeps_note_report_and_cli_metadata_body_free (__main__.CapabilityRuntimeTests.test_blind_accounting_keeps_note_report_and_cli_metadata_body_free) ... ok
+test_event_redaction_preserves_safe_structure_and_usage_without_code_or_output_bodies (__main__.CapabilityRuntimeTests.test_event_redaction_preserves_safe_structure_and_usage_without_code_or_output_bodies) ... ok
+test_freeze_runtime_writes_versioned_snapshot_and_refuses_reuse (__main__.CapabilityRuntimeTests.test_freeze_runtime_writes_versioned_snapshot_and_refuses_reuse) ... ok
+test_frozen_entrypoints_do_not_create_bytecode_caches (__main__.CapabilityRuntimeTests.test_frozen_entrypoints_do_not_create_bytecode_caches) ... ok
+test_gateway_rejects_external_and_symlink_paths_and_receipt_target_inside_workspace (__main__.CapabilityRuntimeTests.test_gateway_rejects_external_and_symlink_paths_and_receipt_target_inside_workspace) ... ok
+test_new_capability_launches_request_xhigh_and_reject_stale_declarations (__main__.CapabilityRuntimeTests.test_new_capability_launches_request_xhigh_and_reject_stale_declarations) ... ok
+test_prepared_arm_rejects_rehashed_runtime_manifest (__main__.CapabilityRuntimeTests.test_prepared_arm_rejects_rehashed_runtime_manifest) ... ok
+test_runtime_snapshot_rejects_tampering_and_unsafe_tree_entries (__main__.CapabilityRuntimeTests.test_runtime_snapshot_rejects_tampering_and_unsafe_tree_entries) ... ok
+test_service_http_receipts_enforce_semantics_without_causal_inference (__main__.CapabilityRuntimeTests.test_service_http_receipts_enforce_semantics_without_causal_inference) ... ok
+test_state_backed_lifecycle_receipt_requires_persisted_expected_action (__main__.CapabilityRuntimeTests.test_state_backed_lifecycle_receipt_requires_persisted_expected_action) ... ok
+test_two_gateway_processes_share_one_budget_without_persisting_request_identifiers (__main__.CapabilityRuntimeTests.test_two_gateway_processes_share_one_budget_without_persisting_request_identifiers) ... ERROR
+
+======================================================================
+ERROR: test_two_gateway_processes_share_one_budget_without_persisting_request_identifiers (__main__.CapabilityRuntimeTests.test_two_gateway_processes_share_one_budget_without_persisting_request_identifiers)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/dadleet/src/skill-craft/test/shiploop-capability-runtime.test.py", line 156, in test_two_gateway_processes_share_one_budget_without_persisting_request_identifiers
+    first = list(pool.map(lambda pair: call(*pair), zip(processes, ("caller-id-101", "caller-id-202"))))
+  File "/opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/concurrent/futures/_base.py", line 645, in result_iterator
+    yield _result_or_cancel(fs.pop())
+          ~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/concurrent/futures/_base.py", line 312, in _result_or_cancel
+    return fut.result(timeout)
+           ~~~~~~~~~~^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/concurrent/futures/_base.py", line 454, in result
+    return self.__get_result()
+           ~~~~~~~~~~~~~~~~~^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/concurrent/futures/_base.py", line 396, in __get_result
+    raise self._exception
+  File "/opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/concurrent/futures/thread.py", line 86, in run
+    result = ctx.run(self.task)
+  File "/opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/concurrent/futures/thread.py", line 73, in run
+    return fn(*args, **kwargs)
+  File "/Users/dadleet/src/skill-craft/test/shiploop-capability-runtime.test.py", line 156, in <lambda>
+    first = list(pool.map(lambda pair: call(*pair), zip(processes, ("caller-id-101", "caller-id-202"))))
+                                       ~~~~^^^^^^^
+  File "/Users/dadleet/src/skill-craft/test/shiploop-capability-runtime.test.py", line 151, in call
+    response = json.loads(proc.stdout.readline())
+  File "/opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/__init__.py", line 352, in loads
+    return _default_decoder.decode(s)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 345, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 363, in raw_decode
+    raise JSONDecodeError("Expecting value", s, err.value) from None
+json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+
+----------------------------------------------------------------------
+Ran 12 tests in 0.698s
+
+FAILED (errors=1)

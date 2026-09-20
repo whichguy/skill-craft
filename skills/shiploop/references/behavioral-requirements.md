@@ -91,6 +91,11 @@ Revisit affected decisions during Improve and integration; reuse established
 decisions when their assumptions still hold. This is a proportional design
 assessment, not a requirement to add a server, queue, broker, or transport.
 
+For service-backed flows, select the relevant [service discovery sections](service-discovery.md#select-scope)
+to establish current remote state, cache freshness and authorization, asynchronous
+completion, and owned observability. Carry their accepted contracts and checks
+into this behavior model; a transport choice alone does not establish them.
+
 1. **Actors and direction:** identify the relevant people, services, devices,
    and external systems, their roles and trust boundaries. Trace who initiates,
    who receives, who responds or is notified, and the intended observable effect.

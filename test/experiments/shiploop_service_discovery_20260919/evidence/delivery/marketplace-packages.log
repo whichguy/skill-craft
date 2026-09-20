@@ -1,0 +1,21 @@
+OK architect: complete marketplace payload
+OK ask-agent: complete marketplace payload
+OK c-plan: complete marketplace payload
+OK compare-prompts: complete marketplace payload
+OK derive-questions: complete marketplace payload
+OK devloop: complete marketplace payload
+OK evidence-gates: complete marketplace payload
+OK improve: complete marketplace payload
+OK improve-system-prompt: complete marketplace payload
+OK plan-test: complete marketplace payload
+OK prompt-align: complete marketplace payload
+OK prompt-audit: complete marketplace payload
+OK prompt-migrate: complete marketplace payload
+OK prompt-refine: complete marketplace payload
+OK question-bench: complete marketplace payload
+OK review-coverage: complete marketplace payload
+OK review-fix-bench: complete marketplace payload
+OK shiploop: complete marketplace payload
+OK shiploop-e2e-audit: complete marketplace payload
+OK skill-interop: complete marketplace payload
+marketplace-packages: 20/20 passed (offline payload validation only)

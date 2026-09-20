@@ -1,0 +1,13 @@
+{
+  "selected_cases": {
+    "remote-discovery": "service_case_remote_refined",
+    "local-auth": "service_case_auth_refined",
+    "local-formatter": "service_case_formatter_refined"
+  },
+  "prepared_but_not_rerun": [
+    "cold-step-plan"
+  ],
+  "rubric_sha256": "693baf04e445a5dad27e52d52078b14f4d74e178f39dcfe16715c8798cbb96c9",
+  "source_hashes_match": true,
+  "source_preparation_manifest": "/Users/dadleet/tmp/shiploop-service-implementation-objq14h9/semantic-refined/manifest.json"
+}

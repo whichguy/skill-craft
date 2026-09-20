@@ -1,0 +1,16 @@
+{
+  "schema": {
+    "agent": "/root/remote_judge_schema",
+    "status": "completed",
+    "sha256": "5732572de4438aa1ef5013bf8ed88a4bc493f00a8ff7fefbddacbabc1f93ab47",
+    "blind_preference": "B",
+    "candidate_label": "B"
+  },
+  "async": {
+    "agent": "/root/remote_judge_async",
+    "status": "completed",
+    "sha256": "9a1fe0f79fec04ff3182041f301ff1c05b76621b543beab5df79c119fb342e49",
+    "blind_preference": "tie",
+    "candidate_label": "A"
+  }
+}

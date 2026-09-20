@@ -1,0 +1,17 @@
+{
+  "stage_sequences_unchanged": true,
+  "added_duty_characters": {
+    "discovery": 1203,
+    "research": 317,
+    "spec": 323,
+    "test-strategy": 314,
+    "plan": 472,
+    "step-plan": 402,
+    "implement": 324,
+    "document": 307,
+    "verify": 317,
+    "operations": 395,
+    "handoff": 317
+  },
+  "guide_not_inlined": true
+}

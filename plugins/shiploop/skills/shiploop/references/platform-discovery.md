@@ -58,6 +58,12 @@ Follow the relevant gateway's actors and contracts as described in
 Local and remote boundaries need the same evidence discipline; discovering a
 second gateway is not permission to invoke it or traverse unrelated accounts.
 
+Use [remote capabilities and state](service-discovery.md#remote-capabilities-and-state)
+to distinguish provisioning from runtime operations, metadata from record CRUD,
+and observed state from requested changes. Reconcile prior/local/remote/requested
+state before incremental changes; scoped authorized reads can resolve discovery
+questions without implying permission to mutate the target.
+
 Research the destination's language, metadata/schema, module boundaries,
 registration or bootstrap, generated/reserved files, syntax validation,
 applicable invocation or interaction contracts, deployment/package mechanics,

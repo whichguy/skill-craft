@@ -1,0 +1,52 @@
+[
+  {
+    "path": "skills/shiploop/SKILL.md",
+    "before_sha256": "4145be5619354055105c5f622593f0398de608dbc77d19b9eb99a77387519bec",
+    "after_sha256": "43e426d7a47ae8d60d4131f4fed5899a076c433f65b083521aaf92d4563965f7"
+  },
+  {
+    "path": "skills/shiploop/README.md",
+    "before_sha256": "b6d0ef332a9b59270e9c6c809be000a69ca443cb375759366858534a3bf39fd1",
+    "after_sha256": "08c8da252dfd7d0d0a80b2ebc874cec55a3e276f6c58e3acb79f595d6c14a0b7"
+  },
+  {
+    "path": "skills/shiploop/references/research-loop.md",
+    "before_sha256": "3c778894693569cbb37e590d011f53c2af678aba1e7cb1c9efdf42607e33ca6b",
+    "after_sha256": "d8d20dd7ecdfd34d987b0e50529c6521ee6e9fffd142434e129183f250b9fbea"
+  },
+  {
+    "path": "skills/shiploop/references/behavioral-requirements.md",
+    "before_sha256": "d54244700a30d4402ac8ae992cde5d6df1104363c3e92ef6b8d1ea1ecafa4bf1",
+    "after_sha256": "3a867f83c661bd8ce4d178621ac0c877ade6a9b5f86d50e5c106219d25d5b442"
+  },
+  {
+    "path": "skills/shiploop/references/platform-discovery.md",
+    "before_sha256": "396831ff45df6d095d8141a55055e924dc5486d841a08e7239b36303aa6a2ec9",
+    "after_sha256": "8a3e44452a4f36888f5c7fb35ab364777fdcb2d7bc4e68d55be255224ae65b6b"
+  },
+  {
+    "path": "skills/shiploop/references/coding-practices.md",
+    "before_sha256": "e6b14580995e18785a9e84bbac4dc34c77a534aee2f5a849e9e8d1c951fe8f76",
+    "after_sha256": "ef3e89964159a854065e2cda6aa4ae06842a6519289f81293f3fbc5fc0ef0ecf"
+  },
+  {
+    "path": "skills/shiploop/references/platforms/salesforce.md",
+    "before_sha256": "c6947b4ca084dfa958eb43c2e2419204219862f5d571af4be71d1137c491374d",
+    "after_sha256": "e3bd5355ec1d1089ee16b3f7294ec9aed77d9ff88714a2866b5d37cf437c2f77"
+  },
+  {
+    "path": "skills/shiploop/scripts/shiploop_navigator_v3_prompts.py",
+    "before_sha256": "40a0f6cd563691cf93c6688d2e0eded4bb18ddbac353b1cdcd6298ef81994d1f",
+    "after_sha256": "60cf4e49f9ab098daa9be0fce3c534a35653eb5fc77c2cbb90a190dec2891388"
+  },
+  {
+    "path": "test/shiploop-v3-guidance.test.py",
+    "before_sha256": "00ac7e3ade4008fa6879b43b62cc25375396baac1bc6f9eddd492c7c2a65740c",
+    "after_sha256": "025494d8da64fa4975d60593462c4b83e13234a01a8400713517d5f3adba66c9"
+  },
+  {
+    "path": "skills/shiploop/references/service-discovery.md",
+    "before_sha256": null,
+    "after_sha256": "63ab1e0bf489ae52e08a866e44acd62987592701c8b5416cdb944797c49debff"
+  }
+]

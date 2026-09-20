@@ -1,0 +1,22 @@
+{
+  "test/experiments/shiploop_capabilities/gateway.py": {
+    "current_sha256": "0cfca9c6ec33b4e9a9b871e6d78510d96bacc563e9517bc550abec826237ed65",
+    "in_HEAD": true,
+    "matches_HEAD": true
+  },
+  "test/experiments/shiploop_external_discovery/study.py": {
+    "current_sha256": "2ad452e9d790aed1f0ca73813b2a3c95bb2d63d6a1ea55e249af70bcc10b13bb",
+    "in_HEAD": false,
+    "matches_HEAD": null
+  },
+  "test/experiments/shiploop_discovery_decision_followup/study.py": {
+    "current_sha256": "1e75953214a1b8bf2d858cb0ae1de72e38f13b6d71bedec63aacc5d53b23f1df",
+    "in_HEAD": false,
+    "matches_HEAD": null
+  },
+  "test/experiments/shiploop_discovery_decision_followup/test_study.py": {
+    "current_sha256": "249ad91e0c7231d2ee5cd8fa8ab654da26f6d15671a4c22e5a04da5ef505b42d",
+    "in_HEAD": false,
+    "matches_HEAD": null
+  }
+}

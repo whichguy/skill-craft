@@ -1,0 +1,559 @@
+{
+  "scope": "Optional broader regression sweep across an evolving shared checkout, not a frozen final-source CI run. Affected final source separately passes 96 targeted checks.",
+  "recorded_at": "2026-09-20T04:55:18.123219+00:00",
+  "inventory_count": 90,
+  "completed_suites": 89,
+  "counts": {
+    "passed": 87,
+    "failed": 2,
+    "interrupted": 1
+  },
+  "stop_reason": "User questioned need for whole CI on a prompt enhancement. Final unrelated legacy action-walk suite intentionally interrupted; its raw nonzero exit is not classified as a new defect.",
+  "raw_summary_limit": "Continuation runner prints completed/failed for all subprocess exits; interrupted action-walk is separately classified here.",
+  "suites": [
+    {
+      "suite": "test/shiploop-no-model-launch.test.py",
+      "status": "passed",
+      "run": "initial",
+      "exit_evidence": "initial runner continued after successful suite"
+    },
+    {
+      "suite": "test/shiploop-navigator.test.py",
+      "status": "passed",
+      "run": "initial",
+      "exit_evidence": "initial runner continued after successful suite"
+    },
+    {
+      "suite": "test/shiploop-navigator-v3.test.py",
+      "status": "passed",
+      "run": "initial",
+      "exit_evidence": "initial runner continued after successful suite"
+    },
+    {
+      "suite": "test/shiploop-self-improve.test.py",
+      "status": "passed",
+      "run": "initial",
+      "exit_evidence": "initial runner continued after successful suite"
+    },
+    {
+      "suite": "test/shiploop-standalone-improve.test.py",
+      "status": "passed",
+      "run": "initial",
+      "exit_evidence": "initial runner continued after successful suite"
+    },
+    {
+      "suite": "test/shiploop-actual-improve-cli.test.py",
+      "status": "passed",
+      "run": "initial",
+      "exit_evidence": "initial runner continued after successful suite"
+    },
+    {
+      "suite": "test/shiploop-packet-bounds.test.py",
+      "status": "passed",
+      "run": "initial",
+      "exit_evidence": "initial runner continued after successful suite"
+    },
+    {
+      "suite": "test/shiploop-v3-guidance.test.py",
+      "status": "passed",
+      "run": "initial",
+      "exit_evidence": "initial runner continued after successful suite"
+    },
+    {
+      "suite": "test/shiploop-local-skills.test.py",
+      "status": "passed",
+      "run": "initial",
+      "exit_evidence": "initial runner continued after successful suite"
+    },
+    {
+      "suite": "test/shiploop-full-runtime.test.py",
+      "status": "passed",
+      "run": "initial",
+      "exit_evidence": "initial runner continued after successful suite"
+    },
+    {
+      "suite": "test/shiploop-navigator-dry-run.test.py",
+      "status": "passed",
+      "run": "initial",
+      "exit_evidence": "initial runner continued after successful suite"
+    },
+    {
+      "suite": "test/shiploop-auth-readiness.test.py",
+      "status": "passed",
+      "run": "initial",
+      "exit_evidence": "initial runner continued after successful suite"
+    },
+    {
+      "suite": "test/shiploop-environment-lifecycle.test.py",
+      "status": "passed",
+      "run": "initial",
+      "exit_evidence": "initial runner continued after successful suite"
+    },
+    {
+      "suite": "test/shiploop-cross-run.test.py",
+      "status": "passed",
+      "run": "initial",
+      "exit_evidence": "initial runner continued after successful suite"
+    },
+    {
+      "suite": "test/shiploop-workspace.test.py",
+      "status": "passed",
+      "run": "initial",
+      "exit_evidence": "initial runner continued after successful suite"
+    },
+    {
+      "suite": "test/shiploop-consumer-delivery.test.py",
+      "status": "passed",
+      "run": "initial",
+      "exit_evidence": "initial runner continued after successful suite"
+    },
+    {
+      "suite": "test/shiploop-consumer-delivery-cli.test.py",
+      "status": "passed",
+      "run": "initial",
+      "exit_evidence": "initial runner continued after successful suite"
+    },
+    {
+      "suite": "test/shiploop-delivery-prompts.test.py",
+      "status": "passed",
+      "run": "initial",
+      "exit_evidence": "initial runner continued after successful suite"
+    },
+    {
+      "suite": "test/experiments/shiploop_delivery/fake_deployment.test.py",
+      "status": "passed",
+      "run": "initial",
+      "exit_evidence": "initial runner continued after successful suite"
+    },
+    {
+      "suite": "test/experiments/shiploop_delivery/browser_consumer/serve_fixture.test.py",
+      "status": "passed",
+      "run": "initial",
+      "exit_evidence": "initial runner continued after successful suite"
+    },
+    {
+      "suite": "test/improve-managed.test.py",
+      "status": "passed",
+      "run": "initial",
+      "exit_evidence": "initial runner continued after successful suite"
+    },
+    {
+      "suite": "test/shiploop-graph-driver.test.py",
+      "status": "passed",
+      "run": "initial",
+      "exit_evidence": "initial runner continued after successful suite"
+    },
+    {
+      "suite": "test/shiploop-graph-trace.test.py",
+      "status": "passed",
+      "run": "initial",
+      "exit_evidence": "initial runner continued after successful suite"
+    },
+    {
+      "suite": "test/shiploop-store.test.py",
+      "status": "passed",
+      "run": "initial",
+      "exit_evidence": "initial runner continued after successful suite"
+    },
+    {
+      "suite": "test/shiploop-evidence.test.py",
+      "status": "passed",
+      "run": "initial",
+      "exit_evidence": "initial runner continued after successful suite"
+    },
+    {
+      "suite": "test/shiploop-file-safety.test.py",
+      "status": "passed",
+      "run": "initial",
+      "exit_evidence": "initial runner continued after successful suite"
+    },
+    {
+      "suite": "test/shiploop-prompt-integrity.test.py",
+      "status": "passed",
+      "run": "initial",
+      "exit_evidence": "initial runner continued after successful suite"
+    },
+    {
+      "suite": "test/shiploop-literal-transport.test.py",
+      "status": "passed",
+      "run": "initial",
+      "exit_evidence": "initial runner continued after successful suite"
+    },
+    {
+      "suite": "test/shiploop-validators.test.py",
+      "status": "passed",
+      "run": "initial",
+      "exit_evidence": "initial runner continued after successful suite"
+    },
+    {
+      "suite": "test/shiploop-discovery.test.py",
+      "status": "passed",
+      "run": "initial",
+      "exit_evidence": "initial runner continued after successful suite"
+    },
+    {
+      "suite": "test/shiploop-capability-fixture.test.py",
+      "status": "passed",
+      "run": "initial",
+      "exit_evidence": "initial runner continued after successful suite"
+    },
+    {
+      "suite": "test/shiploop-capability-runtime.test.py",
+      "status": "failed",
+      "run": "initial",
+      "exit_evidence": "initial runner stopped at this failure"
+    },
+    {
+      "suite": "test/shiploop-capability-async.test.cjs",
+      "status": "passed",
+      "exit": 0,
+      "run": "continuation"
+    },
+    {
+      "suite": "test/shiploop-generalized-discovery.test.py",
+      "status": "passed",
+      "exit": 0,
+      "run": "continuation"
+    },
+    {
+      "suite": "test/shiploop-probe-decisions.test.py",
+      "status": "passed",
+      "exit": 0,
+      "run": "continuation"
+    },
+    {
+      "suite": "test/shiploop-implicit-dependencies.test.py",
+      "status": "passed",
+      "exit": 0,
+      "run": "continuation"
+    },
+    {
+      "suite": "test/shiploop-external-discovery.test.py",
+      "status": "passed",
+      "exit": 0,
+      "run": "continuation"
+    },
+    {
+      "suite": "test/shiploop-discovery-decision-followup.test.py",
+      "status": "failed",
+      "exit": 1,
+      "run": "continuation"
+    },
+    {
+      "suite": "test/shiploop-repeatable-experiments.test.py",
+      "status": "passed",
+      "exit": 0,
+      "run": "continuation"
+    },
+    {
+      "suite": "test/shiploop-system-context.test.py",
+      "status": "passed",
+      "exit": 0,
+      "run": "continuation"
+    },
+    {
+      "suite": "test/shiploop-research-template.test.py",
+      "status": "passed",
+      "exit": 0,
+      "run": "continuation"
+    },
+    {
+      "suite": "test/shiploop-research-packet-protocol.test.py",
+      "status": "passed",
+      "exit": 0,
+      "run": "continuation"
+    },
+    {
+      "suite": "test/shiploop-question-resume.test.py",
+      "status": "passed",
+      "exit": 0,
+      "run": "continuation"
+    },
+    {
+      "suite": "test/shiploop-iteration-docs.test.py",
+      "status": "passed",
+      "exit": 0,
+      "run": "continuation"
+    },
+    {
+      "suite": "test/shiploop-iteration-docs-protocol.test.py",
+      "status": "passed",
+      "exit": 0,
+      "run": "continuation"
+    },
+    {
+      "suite": "test/shiploop-system-tests.test.py",
+      "status": "passed",
+      "exit": 0,
+      "run": "continuation"
+    },
+    {
+      "suite": "test/shiploop-system-tests-protocol.test.py",
+      "status": "passed",
+      "exit": 0,
+      "run": "continuation"
+    },
+    {
+      "suite": "test/shiploop-system-tests-report.test.py",
+      "status": "passed",
+      "exit": 0,
+      "run": "continuation"
+    },
+    {
+      "suite": "test/shiploop-history-policy.test.py",
+      "status": "passed",
+      "exit": 0,
+      "run": "continuation"
+    },
+    {
+      "suite": "test/shiploop-improve-policy.test.py",
+      "status": "passed",
+      "exit": 0,
+      "run": "continuation"
+    },
+    {
+      "suite": "test/shiploop-outer-work.test.py",
+      "status": "passed",
+      "exit": 0,
+      "run": "continuation"
+    },
+    {
+      "suite": "test/shiploop-outer-work-protocol.test.py",
+      "status": "passed",
+      "exit": 0,
+      "run": "continuation"
+    },
+    {
+      "suite": "test/shiploop-observations.test.py",
+      "status": "passed",
+      "exit": 0,
+      "run": "continuation"
+    },
+    {
+      "suite": "test/shiploop-observations-protocol.test.py",
+      "status": "passed",
+      "exit": 0,
+      "run": "continuation"
+    },
+    {
+      "suite": "test/shiploop-artifacts.test.py",
+      "status": "passed",
+      "exit": 0,
+      "run": "continuation"
+    },
+    {
+      "suite": "test/shiploop-artifact-consumers.test.py",
+      "status": "passed",
+      "exit": 0,
+      "run": "continuation"
+    },
+    {
+      "suite": "test/shiploop-privacy.test.py",
+      "status": "passed",
+      "exit": 0,
+      "run": "continuation"
+    },
+    {
+      "suite": "test/shiploop-revalidation.test.py",
+      "status": "passed",
+      "exit": 0,
+      "run": "continuation"
+    },
+    {
+      "suite": "test/shiploop-revalidation-context.test.py",
+      "status": "passed",
+      "exit": 0,
+      "run": "continuation"
+    },
+    {
+      "suite": "test/shiploop-risk.test.py",
+      "status": "passed",
+      "exit": 0,
+      "run": "continuation"
+    },
+    {
+      "suite": "test/shiploop-boundaries.test.py",
+      "status": "passed",
+      "exit": 0,
+      "run": "continuation"
+    },
+    {
+      "suite": "test/shiploop-objectives.test.py",
+      "status": "passed",
+      "exit": 0,
+      "run": "continuation"
+    },
+    {
+      "suite": "test/shiploop-contracts.test.py",
+      "status": "passed",
+      "exit": 0,
+      "run": "continuation"
+    },
+    {
+      "suite": "test/shiploop-contract-protocol.test.py",
+      "status": "passed",
+      "exit": 0,
+      "run": "continuation"
+    },
+    {
+      "suite": "test/shiploop-delivery.test.py",
+      "status": "passed",
+      "exit": 0,
+      "run": "continuation"
+    },
+    {
+      "suite": "test/shiploop-report.test.py",
+      "status": "passed",
+      "exit": 0,
+      "run": "continuation"
+    },
+    {
+      "suite": "test/shiploop-packets.test.py",
+      "status": "passed",
+      "exit": 0,
+      "run": "continuation"
+    },
+    {
+      "suite": "test/shiploop-orientation.test.py",
+      "status": "passed",
+      "exit": 0,
+      "run": "continuation"
+    },
+    {
+      "suite": "test/shiploop-loop-scope.test.py",
+      "status": "passed",
+      "exit": 0,
+      "run": "continuation"
+    },
+    {
+      "suite": "test/shiploop-orientation-context.test.py",
+      "status": "passed",
+      "exit": 0,
+      "run": "continuation"
+    },
+    {
+      "suite": "test/shiploop-orientation-integration.test.py",
+      "status": "passed",
+      "exit": 0,
+      "run": "continuation"
+    },
+    {
+      "suite": "test/shiploop-reference-routing.test.py",
+      "status": "passed",
+      "exit": 0,
+      "run": "continuation"
+    },
+    {
+      "suite": "test/shiploop-backchain-guidance.test.py",
+      "status": "passed",
+      "exit": 0,
+      "run": "continuation"
+    },
+    {
+      "suite": "test/shiploop-teachback.test.py",
+      "status": "passed",
+      "exit": 0,
+      "run": "continuation"
+    },
+    {
+      "suite": "test/shiploop-protocol.test.py",
+      "status": "passed",
+      "exit": 0,
+      "run": "continuation"
+    },
+    {
+      "suite": "test/shiploop-history-pages.test.py",
+      "status": "passed",
+      "exit": 0,
+      "run": "continuation"
+    },
+    {
+      "suite": "test/shiploop-merge-recovery.test.py",
+      "status": "passed",
+      "exit": 0,
+      "run": "continuation"
+    },
+    {
+      "suite": "test/shiploop-migration-prompt.test.py",
+      "status": "passed",
+      "exit": 0,
+      "run": "continuation"
+    },
+    {
+      "suite": "test/shiploop-knowledge.test.py",
+      "status": "passed",
+      "exit": 0,
+      "run": "continuation"
+    },
+    {
+      "suite": "test/shiploop-planning.test.py",
+      "status": "passed",
+      "exit": 0,
+      "run": "continuation"
+    },
+    {
+      "suite": "test/shiploop-until.test.py",
+      "status": "passed",
+      "exit": 0,
+      "run": "continuation"
+    },
+    {
+      "suite": "test/shiploop-step-planning.test.py",
+      "status": "passed",
+      "exit": 0,
+      "run": "continuation"
+    },
+    {
+      "suite": "test/shiploop-sdlc.test.py",
+      "status": "passed",
+      "exit": 0,
+      "run": "continuation"
+    },
+    {
+      "suite": "test/shiploop-improve-bridge.test.py",
+      "status": "passed",
+      "exit": 0,
+      "run": "continuation"
+    },
+    {
+      "suite": "test/shiploop-managed-contracts.test.py",
+      "status": "passed",
+      "exit": 0,
+      "run": "continuation"
+    },
+    {
+      "suite": "test/shiploop-invalidation.test.py",
+      "status": "passed",
+      "exit": 0,
+      "run": "continuation"
+    },
+    {
+      "suite": "test/shiploop-managed-invalidation.test.py",
+      "status": "passed",
+      "exit": 0,
+      "run": "continuation"
+    },
+    {
+      "suite": "test/shiploop-managed-package.test.py",
+      "status": "passed",
+      "exit": 0,
+      "run": "continuation"
+    },
+    {
+      "suite": "test/shiploop-managed-walk.test.py",
+      "status": "passed",
+      "exit": 0,
+      "run": "continuation"
+    },
+    {
+      "suite": "test/shiploop-action-walk.test.py",
+      "status": "interrupted",
+      "exit": -2,
+      "run": "continuation"
+    }
+  ],
+  "log_hashes": {
+    "broader-initial.log": "825e649eebd84aff8e37e990a02e2956dd23ef6a1e059d182813be86746b4f5f",
+    "broader-continuation.log": "a26317c2e7c77cce697d2d95c920558cf5d0243f96034fbb26101391481bf4e3"
+  }
+}

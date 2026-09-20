@@ -1,0 +1,5 @@
+skill-frontmatter-to-plugin-json: wrote plugins/shiploop host manifests and README.md
+sync-plugin-views: synced plugins/shiploop from skills/shiploop
+
+skill-frontmatter-to-plugin-json: CHECK OK shiploop
+sync-plugin-views: CHECK OK

@@ -1,4 +1,4 @@
-# ShipLoop navigator 0.18.7
+# ShipLoop navigator 0.18.8
 
 ShipLoop runs in the conversation that invoked it. That conversation follows
 the current action packets and performs the producer and Improve work; the
@@ -29,6 +29,7 @@ ShipLoop prompt.
 - [Skill entrypoint](SKILL.md)
 - [Isolated workspace and artifact return policy](references/workspace-lifecycle.md)
 - [Delivery-authority readiness](references/delivery-authority.md)
+- [README-led current-system baseline and planning handoff](references/current-system-baseline.md)
 - [Optional parallel or serial implementation chains](references/parallel-chain.md) — bind
   the selected Plan Dispatcher/Ask-Agent packages to one current implementation
   action. Every new per-step binding, including `--mode serial`, requires a
@@ -764,6 +765,16 @@ Improve campaigns run independently inside their assigned action and submit one
 completion each.
 
 ## Bounded recursive discovery
+
+The [service discovery guide](references/service-discovery.md#select-scope) maps
+affected UI/business flows to actual service capabilities and existing remote
+state. It covers zero-copy/cache choices, permission-aware invalidation, durable
+async cooperation, and reuse of owned observability for local or remote systems.
+Decisions, prerequisites, affected files and checks travel through maintained
+project notes, the existing knowledge index, and work-item context. The navigator
+routes readers to these notes; it does not prove their semantic correctness or
+remote access. [Salesforce](references/platforms/salesforce.md) is an example,
+not a required stack. Local/stateless work can record a short no-change outcome.
 
 Discovery follows task-relevant boundaries behind an MCP or other gateway and
 screens message passing, client connections, service authentication, design,
