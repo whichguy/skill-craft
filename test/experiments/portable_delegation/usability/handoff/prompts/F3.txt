@@ -1,0 +1,1 @@
+Use the ask-agent skill to ask a calculation agent to compute six times seven. Wait for the actual result. All filesystem writes are forbidden for this task; return a concise inline answer. Preserve preserve.txt.

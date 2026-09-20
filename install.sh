@@ -5,13 +5,13 @@ usage() {
   printf 'Usage: %s [flags]\n' "${0##*/}" >&2
   printf '\n' >&2
   printf 'Install skill package(s) into local skill homes.\n' >&2
-  printf 'Claude/Grok/Codex/Cursor: symlink. Hermes: materialized copy (default).\n' >&2
+  printf 'Claude/Grok/Codex/Cursor/OpenCode: symlink. Hermes: materialized copy (default).\n' >&2
   printf 'Optionally install thin agent cards (Claude + Grok only).\n' >&2
   printf '\n' >&2
   printf 'Flags:\n' >&2
   printf '  --help | -h\n' >&2
-  printf '  --claude-only | --grok-only | --codex-only | --hermes-only | --cursor-only\n' >&2
-  printf '  --all                 # all five hosts (Claude, Grok, Codex, Hermes, Cursor)\n' >&2
+  printf '  --claude-only | --grok-only | --codex-only | --hermes-only | --cursor-only | --opencode-only\n' >&2
+  printf '  --all                 # all six hosts (Claude, Grok, Codex, Hermes, Cursor, OpenCode)\n' >&2
   printf '  --skill NAME          # all (default) | any skills/<name> with SKILL.md\n' >&2
   printf '  --from DIR            # install only basename(DIR) from that path\n' >&2
   printf '                        # (must contain SKILL.md); exclusive with --skill\n' >&2
@@ -24,7 +24,7 @@ usage() {
   printf '  --uninstall           # remove only owned installs (symlink-owned or managed copy)\n' >&2
   printf '  --dry-run             # print actions only, no writes\n' >&2
   printf '\n' >&2
-  printf 'Default (no host flags): install ALL five hosts.\n' >&2
+  printf 'Default (no host flags): install ALL six hosts.\n' >&2
   printf 'Default (no --skill/--from): install every skills/<leaf> with SKILL.md.\n' >&2
   printf 'Default action: install. --status / --uninstall are exclusive with each other.\n' >&2
   printf '\n' >&2
@@ -33,11 +33,12 @@ usage() {
   printf '  Grok:    ~/.grok/skills/<dest>  (symlink)\n' >&2
   printf '  Codex:   ~/.codex/skills/<dest>  (symlink)\n' >&2
   printf '  Cursor:  ~/.cursor/skills/<dest>  (symlink; never ~/.cursor/skills-cursor)\n' >&2
+  printf '  OpenCode: ${XDG_CONFIG_HOME:-$HOME/.config}/opencode/skills/<dest>  (symlink)\n' >&2
   printf '  Hermes:  ~/.hermes/skills/software-development/<dest>  (copy)\n' >&2
   printf '           (container bind: /opt/data/skills/software-development/<dest>)\n' >&2
   printf '           Provenance: ~/.hermes/skills/software-development/.skill-craft/<dest>.json\n' >&2
   printf '  dest = leaf. Leaf devloop skips Hermes (engine owns software-development/devloop).\n' >&2
-  printf '  Leftover dest devloop-run is removed on Claude/Grok/Codex/Cursor.\n' >&2
+  printf '  Leftover dest devloop-run is removed on Claude/Grok/Codex/Cursor/OpenCode.\n' >&2
   printf '  Grok slash: skills/devloop/commands/devloop.md → ~/.grok/commands/devloop.md\n' >&2
   printf '\n' >&2
   printf 'Status outcomes: absent | symlink-owned | symlink-wrong | copy-owned |\n' >&2
@@ -52,7 +53,7 @@ usage() {
   printf 'Agent destinations (only with --agents; Claude + Grok):\n' >&2
   printf '  Claude:  ~/.claude/agents/<leaf>.md\n' >&2
   printf '  Grok:    ~/.grok/agents/<leaf>.md\n' >&2
-  printf '  Codex/Hermes: skipped (no agent install)\n' >&2
+  printf '  Codex/Cursor/OpenCode/Hermes: skipped (no agent install)\n' >&2
   printf '\n' >&2
   printf 'Sources: skills/<name> under this repo, or --from DIR.\n' >&2
   printf 'Foreign real directories are never overwritten or uninstalled.\n' >&2
@@ -113,6 +114,7 @@ install_grok=0
 install_codex=0
 install_hermes=0
 install_cursor=0
+install_opencode=0
 host_flag_set=0
 
 skill_mode="all" # all | named leaf | (unused when --from set)
@@ -168,12 +170,18 @@ while [[ $# -gt 0 ]]; do
       host_flag_set=1
       shift
       ;;
+    --opencode-only)
+      install_opencode=1
+      host_flag_set=1
+      shift
+      ;;
     --all)
       install_claude=1
       install_grok=1
       install_codex=1
       install_hermes=1
       install_cursor=1
+      install_opencode=1
       host_flag_set=1
       shift
       ;;
@@ -264,7 +272,14 @@ if [[ "$host_flag_set" -eq 0 ]]; then
   install_codex=1
   install_hermes=1
   install_cursor=1
+  install_opencode=1
 fi
+
+# OpenCode's documented global skills path uses the XDG config root. Keep this
+# as a function so HOME/XDG overrides are resolved at invocation time.
+opencode_skills_dir() {
+  printf '%s/opencode/skills\n' "${XDG_CONFIG_HOME:-$HOME/.config}"
+}
 
 # User-facing dest name is the source leaf. Leaf "devloop" skips Hermes
 # (engine owns software-development/devloop); leftover dest "devloop-run"
@@ -759,9 +774,9 @@ install_agent_one() {
   printf 'Installed (%s): %s -> %s\n' "$label" "$destination" "$source_file"
 }
 
-# Host default: Hermes=copy, others=symlink. --copy / --symlink overrides all hosts.
+# Host default: Hermes=copy, all other hosts=symlink. --copy / --symlink overrides all hosts.
 host_uses_copy() {
-  local host="$1" # claude|grok|codex|hermes|cursor
+  local host="$1" # claude|grok|codex|hermes|cursor|opencode
   if [[ "$force_mode" == "copy" ]]; then
     return 0
   fi
@@ -807,6 +822,9 @@ install_skill_to_hosts() {
   if [[ "$install_cursor" -eq 1 ]]; then
     install_host_skill cursor "Cursor" "$HOME/.cursor/skills" "$leaf" "$source_dir"
   fi
+  if [[ "$install_opencode" -eq 1 ]]; then
+    install_host_skill opencode "OpenCode" "$(opencode_skills_dir)" "$leaf" "$source_dir"
+  fi
   if [[ "$install_hermes" -eq 1 ]]; then
     # Peer layout under Hermes skillhub. Host ~/.hermes is typically bind-mounted
     # to /opt/data in the hermes container — abs-symlinks to host checkouts break.
@@ -824,7 +842,7 @@ install_agent_to_hosts() {
   local leaf="$1"
   local source_file="$repo_dir/agents/${leaf}.md"
 
-  # Agents: Claude + Grok only; skip Codex and Hermes.
+  # Agents: Claude + Grok only; skip Codex, Cursor, OpenCode, and Hermes.
   if [[ "$install_claude" -eq 1 ]]; then
     install_agent_one "Claude Code agent / $leaf" "$HOME/.claude/agents" "$leaf" "$source_file"
   fi
@@ -1141,6 +1159,9 @@ status_skill_to_hosts() {
   if [[ "$install_cursor" -eq 1 ]]; then
     status_host_skill cursor "Cursor" "$HOME/.cursor/skills" "$leaf" "$source_dir"
   fi
+  if [[ "$install_opencode" -eq 1 ]]; then
+    status_host_skill opencode "OpenCode" "$(opencode_skills_dir)" "$leaf" "$source_dir"
+  fi
   if [[ "$install_hermes" -eq 1 ]]; then
     if [[ "$leaf" == "devloop" ]]; then
       printf 'Skipped Hermes card status for leaf devloop (engine owns software-development/devloop)\n'
@@ -1176,6 +1197,9 @@ uninstall_skill_to_hosts() {
   fi
   if [[ "$install_cursor" -eq 1 ]]; then
     uninstall_host_skill cursor "Cursor" "$HOME/.cursor/skills" "$leaf" "$source_dir"
+  fi
+  if [[ "$install_opencode" -eq 1 ]]; then
+    uninstall_host_skill opencode "OpenCode" "$(opencode_skills_dir)" "$leaf" "$source_dir"
   fi
   if [[ "$install_hermes" -eq 1 ]]; then
     if [[ "$leaf" == "devloop" ]]; then

@@ -78,7 +78,7 @@ source links. Historical release worktrees are no longer selected by these
 leaf installs. Marketplace release catalogs and active-run evidence hashes are
 separate from this local source track and are not silently rewritten.
 
-Compatibility boundary: published Ask-Agent remains 0.3.1. The current ShipLoop
+Compatibility boundary at this plan's freeze: published Ask-Agent was 0.3.1. The ShipLoop
 per-step adapter requires 0.4.x and its declared workspace/ownership contract;
 the 0.4 test fixture is not a production install. The user's separate Ask-Agent
 workspace task is developing 0.5.0. Publishing these dispatcher changes does

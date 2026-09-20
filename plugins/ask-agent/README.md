@@ -12,7 +12,7 @@ Use the installed plugin skill: in Codex, ask for `$ask-agent:ask-agent`; in Cla
 
 ## Runtime and prerequisites
 
-This is a `prompt-only` skill for linux, macos. Consult the packaged card for its required tools, credentials, filesystem writes, network behavior, and recovery steps. When it invokes a bundled helper, resolve it from the loaded skill directory (for example, `skills/ask-agent/scripts/...`), never from the consumer project's current directory.
+This is a `mixed` skill for linux, macos. Consult the packaged card for its required tools, credentials, filesystem writes, network behavior, and recovery steps. When it invokes a bundled helper, resolve it from the loaded skill directory (for example, `skills/ask-agent/scripts/...`), never from the consumer project's current directory.
 
 ## Documentation
 

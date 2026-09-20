@@ -30,7 +30,9 @@ flowchart TD
 
 Use the exact selected Plan Dispatcher and Ask-Agent 0.4.x adapter skill cards
 for every new per-step binding, including serial mode. This repository's
-`skills/ask-agent` 0.3.1 is not that adapter. ShipLoop does not install them,
+`skills/ask-agent` 0.6.0 manages its own workspace and is not accepted by this
+existing 0.4.x caller-prepared-worktree adapter. Do not bypass the binding check
+or treat a newer version as compatible. ShipLoop does not install the selected packages,
 search host skill directories or silently choose a substitute. Plan Dispatcher
 requires Node.js; ShipLoop uses its public helper for state operations, never a
 model subprocess launcher. The parent invokes Ask-Agent through the host's

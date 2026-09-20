@@ -1,249 +1,160 @@
 ---
 name: ask-agent
 description: A delegation skill, not an agent type. Ask native agents to work in the background, continue useful work in the main conversation, and incorporate their results when they return. Use for "ask an agent", named agent roles, parallel delegation, or launch-and-notify work.
-version: 0.3.1
+version: 0.6.0
 license: MIT
 platforms:
   - linux
   - macos
 metadata:
   skill_craft:
-    kind: prompt-only
+    kind: mixed
 ---
 
 # Ask agent
 
-Common invocation: “Use the ask-agent skill to ask a reviewer to check
-estimate.md. Meanwhile, complete the budget. Incorporate the review when it returns.”
+Delegate through this session's native agents. The bundled helper owns Git
+workspace preparation and eligible cleanup; the native host owns execution and
+return; the parent owns acceptance and integration. `ask-agent` selects this
+skill, not an agent type. Do not implement another model launcher, SDK client,
+subprocess harness, scheduler, or file watcher to simulate native delegation.
 
-Delegate the user's task through this session's native agents. Do not do the
-delegated task yourself or create a script, subprocess launcher, nested harness
-CLI, SDK runner, or recurring schedule.
-The name `ask-agent` selects this skill; it is not a native worker type.
-Each invocation adds one or more jobs to the initiating conversation's pending
-work. The parent owns that collection, its status updates and the returned results.
+Default to a fresh background worker while the parent continues useful work.
+An explicit request to wait takes precedence. Each invocation adds to the
+initiating conversation's pending work; it does not replace earlier jobs.
 
-## Choose the available capability
+A request to change repository code includes bringing the verified contribution
+back into the designated caller/integration checkout by default. The parent
+performs that integration and validates the combined result before reporting the
+overall request SUCCEEDED. A successful worker return alone is not completion.
+If integration is blocked, report the overall blocker, worker outcome and retained
+locations explicitly. An explicit review-only or return-without-integration request
+overrides this default; do not turn ordinary delegation into an unrequested
+approval step. Follow the declared delivery mode and preserve caller dirty state.
 
-Use the tools and agent roles actually exposed in this session; the model name
-does not determine the tool interface. If native delegation is unavailable,
-report that limitation without simulating an agent.
+## Select the route before preparing
 
-Default to the broadest general-purpose native worker, with a descriptive role
-such as reviewer or costing agent expressed in its task. Do not select a
-restricted specialist merely because its name matches the assignment. Use an
-explicitly requested installed agent when available and disclose any relevant
-capability restriction. Include any role substitution in the final
-answer, even if it was already mentioned during dispatch. If the
-user requires an exact agent that is unavailable, report it rather than substituting.
-Inherit the host's model choice unless the user requests another supported model.
+Use the live native schema, not the model name or a presumed capital-`Task` API.
+Read the matching route in [Host capabilities](references/host-capabilities.md).
+Determine separately whether the host provides fresh context, native background
+execution, native startup directory binding, per-operation directory control,
+completion delivery, and cancellation. A supported launch does not establish
+all six. Report an unavailable required capability rather than silently changing
+to shared writes, synchronous work, an inherited context, or an external runner.
 
-Inherit the parent's available tools, skills, permissions and execution facilities
-where the harness supports that. Do not add tool allowlists/denylists, a read-only
-worker mode, model downgrades or other capability limits on your own. Task scope,
-write ownership, explicit user constraints and host permissions still apply;
-capability access is not authorization for unrelated actions. Workers may use
-further native agents and any other available facilities that help their task.
-Some harnesses filter child tools even for general-purpose workers. Disclose
-material differences instead of promising identical capabilities or copying
-parent history to obtain them. When useful and supported, a worker can request a
-parent-only operation through native messaging; the parent performs authorized
-work and returns its result. Otherwise report the missing capability.
+Choose the broadest general-purpose native worker. Express a descriptive role
+such as reviewer in its assignment; a role name alone is not a reason to choose
+a restricted specialist. Honor an explicitly requested available agent and
+disclose capability restrictions or role substitution, including in the final
+answer. If an exact required agent is unavailable, report it. Inherit the host's
+model choice unless the user requests another supported model.
 
-## Launch, continue, and handle completion
+Inherit tools, skills, permissions and execution facilities where the host
+supports it. Do not independently add tool restrictions, read-only modes,
+model downgrades, or fixed depth/concurrency/output limits. Scope and write
+ownership still apply. Some hosts filter child tools; disclose differences.
+A worker may request an authorized parent-only operation through native
+messaging when available, or use further native agents with the same workspace
+and handoff constraints. It must collect its delegates before returning.
 
-1. Give each worker its objective, relevant inputs, allowed actions and required
-   output in a self-contained prompt. Start a fresh context, without resuming
-   an old worker or copying unrelated conversation history. Explicitly select
-   no inherited parent history wherever the native schema exposes that choice.
-   If only inherited forks are available, report that fresh delegation is
-   unavailable instead of dispatching one. Normal host/project instructions
-   may still load; separate contexts do not isolate the filesystem.
-   Give workers separate write ownership when needed. Workers may use further
-   native delegation when useful and supported; carry the task's actual
-   constraints forward and collect those results before reporting completion.
-   For repository changes, read [Git integration](references/git-integration.md)
-   before dispatch and pass its relevant contract to the worker. Identify the
-   actual workspace, contribution, integration target and integrating owner.
-   The parent owns integration and acceptance by default; it may delegate their
-   execution. A completed worker does not imply its changes have been integrated.
-2. Launch in the background by default, using native asynchronous agents and
-   explicitly selecting background mode where exposed. Start independent workers
-   within host capacity before collecting them. Retain each native handle and
-   user-facing task label. Report RUNNING only after launch is confirmed.
-   Announce the confirmed launch with the assignment and what the parent will
-   do next. Add it to the parent's pending jobs without losing earlier jobs.
-   If the host cannot support background continuation, report that limitation;
-   do not silently block and call it background work.
-3. After native launch confirmation, continue the user's independent work in the
-   main conversation before waiting. Keep parent work out of the worker-launch
-   tool batch: receive the launch receipt first, then take a useful parent action.
-   Do not duplicate the delegated work or invent busywork. Report useful parent
-   results as they become ready; do not hold them for an unrelated worker.
-   If no independent work remains, acknowledge the running task and let the host
-   deliver its completion. Keep any required collection in the same live session.
-   Handle new user input delivered to this parent while workers continue.
-   Report the requested answer promptly and keep unrelated workers running.
-   A queued message is not an answered request; the harness controls when
-   queued or steering input reaches this conversation.
-4. Include the compact handoff instructions below in each worker's task; do not
-   assume a worker inherits this skill. Ask it to report its result and task status: SUCCEEDED if it achieved
-   the requested outcome, BLOCKED if required input is missing, or FAILED if it
-   encountered an error. A missing required value must not be guessed.
-5. Treat native completion notifications as incoming results in this conversation.
-   Acknowledge each return promptly with its task label and reported outcome;
-   distinguish a returned report from a verified/accepted result. Update the
-   pending jobs and keep the others running.
-   Incorporate the actual worker result when delivered; never predict it from the
-   task prompt. A report path is a reference to read, not an already verified
-   result. Use the compact handoff procedure before accepting a file-based result.
-   If a notification provides only status, retrieve that worker's
-   output with the native collection tool. Keep other unfinished tasks pending.
-   Use a native blocking wait/join only when the next action needs the result,
-   no independent work remains, or the caller needs the invocation kept open
-   until collection. Do not exit a headless invocation with required results
-   uncollected. Distinguish this explicit join from automatic notification.
-   A wait may return early; continue native collection until required workers finish.
-   Follow the waiting-status procedure below. Do not create custom timers,
-   schedules, shell sleeps, no-ops, polling loops, or output-file watchers to wait.
-   Follow the live tool schema and disclose rejected collection
-   calls and recovery. If native notification/collection is unavailable, report it.
-6. Return each completed task using these fields, in a table or compact list:
-   Task; Status; Result or blocker; Native agent type; Role substitution.
-   Derive the native type from the actual dispatch. For substitution, name the
-   requested descriptive role mapped to that type, or say none. Keep these fields
-   in the complete final response after late completion notifications too.
-   Treat "worker finished" and "task succeeded" separately. Say all work succeeded
-   only if every required task succeeded; otherwise identify the remaining work.
-   End with Collection notes: how results arrived (notification or native join),
-   any rejected collection request/recovery, and any still-running task.
-   Successful task results do not erase collection errors. Keep this synthesis
-   concise; link retained deliverables instead of reproducing detailed reports.
-   For code changes, also state integration status and the next action/owner.
+## Prepare, launch, continue, collect
 
-## Pending jobs and waiting status
+1. **Prepare through the skill.** Read [Workspace operations](references/workspace-operations.md)
+   and [Git integration](references/git-integration.md). Bind the helper from the
+   selected skill's absolute installation path. Coordinate source writers, then
+   call `prepare --source` with the actual caller checkout, including a linked worktree.
+   The helper creates and verifies a new workspace carrying staged, unstaged,
+   and non-ignored untracked inputs. The caller must not supply a worktree or
+   reproduce the Git recipe. Do not begin independent caller edits until the
+   snapshot returns. Keep the verified receipt and baseline in the pending job.
+   Immediately before dispatch, record `inspect --phase prepared --receipt ...`
+   for each receipt and stop if its inherited baseline has drifted. For a batch
+   sharing the same snapshot, prepare each separate receipt while writers remain
+   quiescent, verify every prepared state, then launch the batch.
+   Non-Git or unsupported state is a concrete limitation, not permission to use
+   an empty/default-branch checkout. An explicit ban on all filesystem writes
+   also prohibits setup; an ordinary review permits isolated setup and reports.
 
-Keep a lightweight parent-owned record in the existing task state: task label,
-native handle, assignment, last observed status/update, and result/report plus
-next action when available. Native handles control execution; this record is
-for coordination and recovery, not another scheduler. Refresh it from actual
-native events/collection. Do not infer progress from elapsed time or file existence.
+2. **Give a fresh worker a complete assignment.** Put the objective, relevant
+   inputs, allowed actions, expected output and the filled
+   [delivery clause](references/git-integration.md#reusable-fresh-worker-launch-clause)
+   directly in the native launch prompt. Do not create a prompt transport file.
+   Choose `patch`, `commits`, or `report-only` before launch. Read
+   [Result handoff](references/result-handoff.md) for the report and return
+   contract. Omit resume handles and explicitly exclude inherited conversation
+   history where supported; if only inherited forks exist, report the limitation.
+   Normal host/project instructions may still load.
 
-While the parent is only waiting, give a concise status about every two minutes
-unless the harness is already providing equivalent visible progress. Summarize
-all pending jobs together, what is known, and what is being awaited. Say that no
-new detail is available when that is the truth; do not invent percentages or
-interrupt useful worker execution to demand a progress report. Launches, returns,
-blockers and user requests deserve prompt updates without waiting for that interval.
+3. **Bind and verify the workspace.** Use native launch cwd when exposed;
+   otherwise follow the host's explicit operation-directory recipe. Do not add
+   another native-created worktree after the helper has prepared one. Require
+   the worker to run `check-context --receipt ...` from its assigned operation
+   directory before task work and to stop on failure. This checks real process
+   cwd and Git root; reading a receipt or using `git -C` does not set shell cwd.
+   Set directory scope on every subsequent command and absolute paths for file
+   tools. Disclose operation-only binding; it is not native startup binding or
+   operating-system isolation. Follow the target's project instructions.
 
-Prefer native wait/collection with an observation timeout that lets the parent
-provide these updates. A timeout ends that observation wait, not the worker's
-execution; keep collecting afterward. If the host instead exposes a native
-current-session wakeup facility, it may be used solely for the requested waiting
-status: supply a status-check prompt, use the requested cadence, and clear owned
-pending wakeups when no jobs remain where supported. A wakeup is not worker
-completion and never substitutes for collecting actual results. Do not create
-external automations, custom timer scripts or one timer per worker.
+4. **Launch and continue.** Immediately before every launch/retry/follow-up
+   turn, publish its task label, assignment and current completed/pending state.
+   A batch notice may name multiple tasks. Select native background mode where
+   exposed; confirm launch before reporting RUNNING. Retain the native handle,
+   receipt, delivery mode and route. Start independent workers within host
+   capacity before collection. After launch confirmation, take useful parent
+   action in a separate step; do not duplicate the delegated work or invent
+   busywork. Handle new user input while other tasks remain pending.
 
-When the host cannot return control periodically or wake this live parent,
-explain that interval updates are unavailable; keep launch/return updates and
-native collection. Timing is approximate and subject to host delivery. Do not
-promise notifications after session exit or fabricate periodicity with busywork.
-Respect a user request to change the cadence or stay quiet. Keep pending state
-and unresolved handoffs available when the parent must recover its context.
+5. **Receive native results.** Read [Native lifecycle](references/native-lifecycle.md)
+   before waiting. Keep any required collection in the same live parent session.
+   A headless process must not exit with required results uncollected. Use native
+   notification or wait/join; distinguish them in reporting. A later resume is
+   recovery, not automatic delivery. Immediately announce every return, including
+   failures, before unrelated work or dispatch, and update the pending jobs.
+   Fetch actual output if the notification provides only status. A worker's
+   success label or an existing result file is not independent verification.
 
-## Compact result handoff
+6. **Accept and preserve.** Read the returned handoff and required artifacts.
+   Inspect the workspace with its declared delivery mode, verify and integrate
+   the worker-only contribution: an ordinary code-change request authorizes this
+   integration. If the caller explicitly requests code returned unmerged, or
+   code integration is blocked, return the ready-to-use handoff and retain the
+   worktree. Report-only work requires consumption of its results. Archive reports
+   and call `close` only when
+   the worker/delegates/consumers are stopped and acceptance is complete. The
+   acceptance and close are per receipt; one worker's return or accepted result
+   does not establish another worker's completion or acceptance. The
+   helper retains work without valid acceptance. Keep blocked or cancelled work
+   and give its next action. Use retained artifact paths after cleanup.
 
-Prefer compact handoffs without imposing fixed word, line, duration, concurrency
-or delegation-depth limits. Let the task and the native harness determine how
-much work, evidence and output are needed. Explicit user constraints still apply.
+## Result and continuation contract
 
-For substantial results, give the worker a unique absolute report path in a
-temporary directory that both worker and parent can access. Authorize writing
-only that report when the underlying task is otherwise read-only. Do not assume
-a local path is shared across hosts, sandboxes or worktrees. If file handoff is
-unavailable or writing is forbidden, disclose that boundary and use an available
-native artifact or a concise inline result. Tiny answers may stay inline.
+Workers finish normally with their task label, assignment reminder,
+SUCCEEDED/BLOCKED/FAILED, result or blocker, observed workspace, receipt,
+delivery mode, context-check output or tool locator, handoff/report paths, and
+next action/owner. They leave their
+worktree intact. Return enough detail to be useful; put bulky evidence in reports.
+Do not guess missing values or bury workspace and lifecycle information only in
+a report the parent may not open.
 
-Tell the worker to put its findings and supporting evidence in the report.
-Begin with a self-contained handoff summary: the assignment and requested
-outcome, what was completed, status, key totals or blocker, artifact locations,
-and the recommended next action and responsible owner. Include the relevant
-current state, checks and unresolved decisions so the parent can reincorporate
-the result without remembering the launch conversation. For repository work,
-include the Git receipt described in the integration reference. Locate detailed
-evidence with headings below the summary; do not copy conversation history.
-Finish writing before returning. Prefer a concise final native response with
-the task label and a brief assignment reminder, SUCCEEDED/BLOCKED/FAILED,
-the outcome or blocker, the recommended next action and owner,
-the report path (or explicitly no report), and whether the report is temporary.
-When there is no report, include the state and artifact/revision references
-needed for that next action inline; say integration is not applicable when so.
-Return enough detail to make the result useful; keep bulky evidence in the
-report by default instead of duplicating it in parent-directed messages.
-Finish normally so the harness delivers this receipt; do not create a separate
-notifier or delete the report.
-If the required report cannot be written, report that handoff failure honestly.
+Return the self-contained [caller handoff](references/result-handoff.md#caller-facing-handoff)
+inline in both the worker return and the parent's final response. It names the
+actual worktree and branch, outcome and checks, exact patch or ordered commit
+SHAs, target checkout, integration state, and concrete integration/retention
+directive. The caller must be able to review or integrate using that response
+without opening a helper receipt, baseline JSON, or internal state directory.
+Internal evidence may be linked separately; it is not the integration interface.
 
-After native completion or collection, check the assigned report is available.
-Start with the summary, then read as much supporting evidence as the next
-decision requires. Prefer selective reads and concise verification outputs to
-avoid loading irrelevant detail; a full report read is appropriate when needed.
-Use native follow-up for clarification when useful, and disclose any remaining
-verification limit. Do not treat the worker's success label as verification.
-Treat its next-action recommendation as a proposal: check it against current
-instructions, workspace state and other contributions before acting. Preserve
-pending actions and their artifact/revision references in the parent's existing
-task record or retained handoff when they must survive context loss. Do not
-delete the only record needed to finish integration or other outstanding work.
-If a required report is missing, unreadable or inconsistent, report the collection
-problem and use native
-follow-up/collection where available; do not invent its contents or silently
-replace it with a large inline dump. File existence is not a completion signal:
-keep using native notifications/collection, never file polling.
+The parent's final result also includes, for each task: Task; Status; Result or
+blocker; Native agent type; Role substitution; actual workspace; retained
+references; integration/retention/removal state and next owner. Derive the type
+from actual dispatch. Distinguish worker completion, verified success and
+integration. End with collection notes: notification or join, rejected calls
+and recovery, and any remaining pending work. Keep this complete after late
+returns too; internal handles stay private when the host requires it.
 
-The parent owns cleanup. Delete only its assigned temporary reports, after the
-worker has stopped and all required use/verification is complete. Keep a report
-needed for unresolved work, another consumer or recovery; disclose that retention.
-Preserve durable deliverables and user files. A deleted temporary path is not a
-usable final reference. Deleting a file does not remove text already read into
-the conversation, so selective reading is essential.
-
-An explicit request to wait overrides the background default: collect the required
-results before the requested response, using native foreground or wait facilities.
-Do not promise survival across session exit/restart or notifications outside the
-current conversation. If the host cannot retain/retrieve work after returning
-control, disclose that boundary rather than promising a later callback.
-Keep internal handles private when the host requires it. On a cancellation
-request or deadline, use native cancellation. Report CANCELLED only when the
-current execution is confirmed stopped; otherwise report that stopping is
-unconfirmed. Cancellation stops the current task; the host may retain the
-worker context. Do not resume that context for a fresh delegation.
-
-Host hints; follow the live schema when it differs:
-
-- Claude Code: Agent with run_in_background=true when exposed; use native task
-  completion notifications. Choose a type that creates a fresh task, not the
-  native fork type that inherits parent history. Where agents always run in
-  the background,
-  omit unavailable mode arguments. In an interactive session retained between
-  turns, return an ordinary interim response to hand control back. In headless
-  mode, keep the invocation open through native notification/collection.
-  Prefer native collection/notifications. If the live schema offers ScheduleWakeup
-  for requested waiting-status updates, use a real status-check prompt and the
-  requested interval; a promptless or arbitrary long-delay call is not collection.
-  Fresh background workers may have a host-filtered tool set; do not promise
-  full tool parity or switch to an inherited fork to conceal that difference.
-- Grok: spawn_subagent with background=true; omit resume_from. In a headless
-  invocation that requires the result, report useful parent work first, then call
-  get_command_or_subagent_output with the pending task_ids and a positive timeout_ms
-  before ending the parent response. An idle completion notice can enter history
-  without a completed parent follow-up; forwarded child text is not parent collection.
-  Incorporate the retrieved result and report that collection used a native join.
-- Codex: native asynchronous spawn; choose no inherited history where exposed,
-  such as fork_turns="none". Continue parent work before native wait/completion collection.
-- OpenCode: native task with background=true where exposed. For a fresh worker,
-  omit task_id entirely; it is a resume handle, not a task label. Never invent
-  that handle; retain the ID returned by the actual native launch. Keep the
-  parent session alive for completion. Native background availability and
-  session lifetime depend on the installed host; report unsupported modes.
+Honor caller-supplied continuation instructions. Carry the exact continuation
+and helper receipt in the worker's final native response without executing the
+parent's continuation in the worker. When a timed return is explicitly requested,
+use the separately available **prompt-timer** skill, resolved from the host's
+selected skill context. Ordinary delegation does not require that skill or a
+timer. Do not promise notification after the current parent session exits.

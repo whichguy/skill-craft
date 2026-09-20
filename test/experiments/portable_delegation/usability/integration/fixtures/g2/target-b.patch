@@ -1,0 +1,12 @@
+diff --git a/app/policy.py b/app/policy.py
+index ee437de..9fe3499 100644
+--- a/app/policy.py
++++ b/app/policy.py
+@@ -1,6 +1,6 @@
+ REQUIRED_APPROVERS = 3
+-MAX_NOTIFY_ATTEMPTS = 2
++MAX_NOTIFY_ATTEMPTS = 3
+ RETRY_DELAY_SECONDS = 5
+ 
+ 
+ def retry_budget_ok():
