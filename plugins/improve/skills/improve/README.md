@@ -104,6 +104,26 @@ An active, blocked, or stopped child result does not invoke a parent callback.
 | What if a review changes nothing? | Keep an honest host record. Do not manufacture an edit or empty commit unless an explicit audit-commit-every-iteration request authorizes the identified no-change audit commit. |
 | When is it complete? | The exit condition, current relevant checks, and every other requested condition are satisfied, with two distinct consecutive qualifying trivial/no-change reviews and no unresolved material finding. |
 
+### Influences, decisions, and new learnings
+
+Each verbose iteration record explains what shaped its consequential decisions
+and what was learned. Connect the specific behavior, guarantee, limitation, or
+argument in an influential technique, system, style, reference, or library to
+the resulting choice. Where components interact, explain the ordering, ownership,
+state, or failure boundary that made the interaction matter. Record meaningful
+adaptations and rejected approaches, evidence, limits, and conditions for
+revisiting the choice. A list of technologies or a generic claim that a source
+was useful does not preserve that reasoning.
+
+Weave genuinely influential prior commits into that account with their resolved
+full IDs, subjects, and the particular lesson used. Follow older references only
+when needed for a relevant decision; never inherit their citation lists. Keep
+the complete reading inventory in review evidence. Original learnings deserve
+the same detail when no prior commit helped, and later corroboration must not be
+presented as the original cause of a decision. Preserve the existing commit
+sections and no-commit/no-change rules; this adds no runtime state or reference
+quota. See the required [decision rationale and learning guidance](references/callback-evidence.md#decision-rationale-and-learning).
+
 The reusable obligations are in [review-policy.md](references/review-policy.md).
 [callback-evidence.md](references/callback-evidence.md) explains the new
 host-record and handoff boundary. [evidence-capture.md](references/evidence-capture.md)

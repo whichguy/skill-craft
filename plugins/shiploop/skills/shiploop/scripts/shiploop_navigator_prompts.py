@@ -559,6 +559,9 @@ Create a dependency-aware implementation plan by reverse-walking each required
 outcome: required behavior, prerequisites, suppliers, affected consumers, and
 verification. Use Backchain-style reasoning to expose missing inputs or cycles.
 Read the current discovery context assessment and referenced persistent decisions.
+Apply "Investigate Git history for planning" in the packet's Cross-run knowledge
+policy when prior rationale matters; continue relevant history as needed and
+carry only findings that shape this plan, with their source and revalidation limit.
 Plan the requested delta against verified existing behavior: retain what still
 applies, change what this request requires, and resolve material conflicts.
 Carry the relevant document paths into plan notes and work-item context; do not
@@ -634,6 +637,9 @@ the bounded candidate, prerequisites, affected code and consumers, intended
 behavior, independent expected outcomes, test cases, fixtures, documentation,
 skill/reuse questions, and checks. Resolve or block missing inputs before code;
 this is planning, not permission to skip directly to unverified edits.
+Apply "Investigate Git history for planning" in the packet's Cross-run knowledge
+policy when this item's decisions need prior rationale; revalidate any reused lesson
+and retain the specific planning consequence and useful source locator.
 Revalidate platform/library testing systems and available browser tools for the
 changed surfaces; reuse supported choices or record a justified revision. Turn
 useful inspection findings into retained tests or explicit manual procedures.

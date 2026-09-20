@@ -91,6 +91,7 @@ STAGE_REFERENCES: dict[str, tuple[tuple[str, str], ...]] = {
     ),
     "plan": (
         ("Dependency-planning guidance", "backchain-planning.md#dependency-audit"),
+        ("Git-history investigation guide", "project-knowledge.md#investigate-git-history-for-planning"),
         ("Decision carry-forward guidance", "project-knowledge.md#carry-context-into-the-new-plan"),
         ("State and data assessment", "requirements-definition.md#state-and-data-change-assessment"),
         ("Initial-plan reconciliation", "requirements-definition.md#initial-plan-reconciliation"),
@@ -107,6 +108,7 @@ STAGE_REFERENCES: dict[str, tuple[tuple[str, str], ...]] = {
     ),
     "step-plan": (
         ("Coding decision guide", "coding-guidance.md#select-guidance"),
+        ("Git-history investigation guide", "project-knowledge.md#investigate-git-history-for-planning"),
         ("Optional parallel-chain guide", "parallel-chain.md#parallel-implementation-chains"),
         ("Repeatable test-suite guide", "repeatable-test-suites.md#select-or-revalidate-the-harness"),
         ("Repository-local skill guidance", "testing-and-documentation.md#reusable-product-skills"),

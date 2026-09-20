@@ -5,7 +5,7 @@ description: >-
   loop: use recent Git history, make warranted changes, run meaningful checks,
   and require two consecutive trivial-only review passes. Supports a read-only
   interpretation preview; not a one-off code review.
-version: 0.2.0-rc.2
+version: 0.2.0-rc.3
 license: MIT
 platforms:
   - linux
@@ -150,6 +150,11 @@ from availability or a desire to finish.
 
 ## Standalone owner binding
 
+For every standalone cycle, read and apply the
+[decision rationale and learning guidance](references/callback-evidence.md#decision-rationale-and-learning)
+while reviewing, planning, and recording. It combines detailed influences and
+original learnings with selective references to prior commits in one account.
+
 - **History window:** at the start of every active callback, read the last
   seven reachable Git commit messages in full (IDs, subjects, and bodies), or
   all available messages if fewer exist. Re-read the window for every distinct
@@ -183,7 +188,10 @@ from availability or a desire to finish.
 - **Commit policy:** after required checks pass, commit authorized scoped files
   changed by a completed iteration with the required learning-oriented record.
   Its body must include Review, Plan, Changes, Validation, Key learnings, and
-  Remaining work, including the classification and resulting streak. A
+  Remaining work, including the classification and resulting streak. Explain
+  the consequential influences, how they shaped decisions, and what was newly
+  learned within those sections. Cite prior commits when they materially
+  informed a decision; explain original learnings fully when none did. A
   no-change review gets an honest host record, not a manufactured edit or empty
   commit. An explicit audit-commit-every-iteration request requires one
   authorized audit record commit for every completed review; a no-change review

@@ -98,6 +98,9 @@ source/test locators in the existing plan and affected work-item context.
    implementation, interfaces, call sites, tests, configuration, and docs that
    a step would affect. Git explains prior decisions; it does not replace an
    inspection of the current tree or current environment.
+   Apply [question-driven history investigation](../project-knowledge.md#investigate-git-history-for-planning)
+   when prior rationale matters; follow useful links until the decision is
+   supported or the consequential gap is explicit, then carry only useful findings.
    Consume the observed
    [initial repository baseline](../execution-planning.md#initial-repository-baseline),
    retaining its command, starting content, outcome and evidence locator. Do not
