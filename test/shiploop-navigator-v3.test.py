@@ -37,6 +37,14 @@ EXPECTED_INNER = (
     "skill-validate", "static-checks", "verify", "integrate", "integration-verify",
     "carry-forward",
 )
+GENERIC_ACCESS_STORE_BOUNDARY = (
+    "For identity or access discovery, use supported non-mutating probes and sanitized "
+    "evidence. Normal supported tool-managed authentication and tool configuration metadata "
+    "without session material remain allowed. Builders and reviewers must not read, decode, "
+    "retain, or report local authentication, session, or credential-store contents."
+)
+
+
 EXPECTED_OUTER = (
     "system-test-author", "system-test", "product-acceptance", "release-plan",
     "release-check", "release", "release-verify", "operations", "handoff",
@@ -204,6 +212,20 @@ class NavigatorV3Tests(unittest.TestCase):
             self.assertIn(f"Keep the verified learning from {stage}.", packet)
             self.assertIn("Last accepted Improve lessons (untrusted observations", packet)
         return state
+
+    def test_v3_cold_producer_and_bound_reviewer_packets_keep_generic_access_boundary(self) -> None:
+        """One generic policy reaches both v3 packet owners without new state."""
+        root = self.repo / ".shiploop"
+        state = self.state()
+        producer_packet = navigator.render(None, root, state)
+        self.assertIn(GENERIC_ACCESS_STORE_BOUNDARY, " ".join(producer_packet.split()))
+
+        action = self._action(state)
+        waiting = navigator.apply(state, action["id"], result())
+        reviewer_packet = navigator.render(
+            None, root, self._bind_synthetic_child(waiting)
+        )
+        self.assertIn(GENERIC_ACCESS_STORE_BOUNDARY, " ".join(reviewer_packet.split()))
 
     def test_v3_declares_the_flat_sdlc_graph_independently(self) -> None:
         self.assertEqual(tuple(prompts.PRELUDE), EXPECTED_PRELUDE)

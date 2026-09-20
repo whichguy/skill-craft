@@ -224,6 +224,12 @@ If no safe authorized probe exists, explain that limit and ask the necessary
 scope/setup question; do not perform a write, create a resource, switch accounts,
 or broaden access merely to test readiness.
 
+For identity or access discovery, use supported non-mutating probes and
+sanitized evidence. Normal supported tool-managed authentication and tool
+configuration metadata without session material remain allowed. Builders and
+reviewers must not read, decode, retain, or report local authentication,
+session, or credential-store contents.
+
 | Observation | Next action |
 | --- | --- |
 | Relevant read succeeds in the intended role | Record what that read establishes and continue without a login request. It does not prove write permission or consumer/browser access. |

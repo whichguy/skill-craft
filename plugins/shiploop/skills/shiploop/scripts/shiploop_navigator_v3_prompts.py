@@ -270,6 +270,12 @@ claims.  Keep scope, target authority, artifact identity, operation effects, and
 consumer behavior distinct.  A missing prerequisite, permission, access, or
 trustworthy check is unresolved or blocked; it is not a successful N/A.
 
+For identity or access discovery, use supported non-mutating probes and
+sanitized evidence. Normal supported tool-managed authentication and tool
+configuration metadata without session material remain allowed. Builders and
+reviewers must not read, decode, retain, or report local authentication,
+session, or credential-store contents.
+
 Requested runtime / entry point / material dependency: preserve each original
 user requirement, and distinguish it from a verified contract, observed practice,
 or assumption in the existing notes/results. Record local-test-route evidence
@@ -1249,6 +1255,12 @@ Invoke the selected actual Improve skill for {IMPROVE_SCOPES[stage]}.  Read the
 selected skill card and follow the Until Loop runtime bound by that card.  Use the
 parent-provided candidate scope, prior producer result, relevant lessons, expected
 check state, allowed edits, authority, and evidence/return locators.
+
+For identity or access discovery, use supported non-mutating probes and
+sanitized evidence. Normal supported tool-managed authentication and tool
+configuration metadata without session material remain allowed. Builders and
+reviewers must not read, decode, retain, or report local authentication,
+session, or credential-store contents.
 
 Follow the packet's Maintained requirements policy for the candidate's applicable
 accepted product requirements. Read and retain requirement and test locators in
