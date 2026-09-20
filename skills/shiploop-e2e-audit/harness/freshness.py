@@ -26,9 +26,6 @@ _OBJECT_ID = re.compile(r"[0-9a-f]{40,64}\Z")
 _CATALOG_COMMIT_ID = re.compile(r"[0-9a-f]{40}\Z")
 _IGNORED_NAMES = frozenset({".git", "__pycache__"})
 _REGULAR_MODES = frozenset({"100644", "100755"})
-_SOURCE_SKILL = "skills/shiploop"
-_PLUGIN_ROOT = "plugins/shiploop"
-_PLUGIN_SKILL = "skills/shiploop"
 _CATALOG_PATH = ".claude-plugin/marketplace.json"
 
 
@@ -38,6 +35,21 @@ class Authority:
 
     url: str
     ref: str
+
+
+@dataclass(frozen=True)
+class FreshnessTarget:
+    """One fixed selected skill whose published package must be current."""
+
+    name: str
+    source_skill: str
+    plugin_root: str
+    plugin_skill: str
+
+
+_SHIPLOOP = FreshnessTarget("shiploop", "skills/shiploop", "plugins/shiploop", "skills/shiploop")
+_IMPROVE = FreshnessTarget("improve", "skills/improve", "plugins/improve", "skills/improve")
+_FRESHNESS_TARGETS = (_SHIPLOOP, _IMPROVE)
 
 
 # These are module constants rather than evaluator options.  A live evaluation
@@ -121,14 +133,9 @@ def _tree_summary(tree: Tree) -> dict[str, Any]:
     }
 
 
-def _empty_receipt() -> dict[str, Any]:
+def _empty_skill_receipt(target: FreshnessTarget) -> dict[str, Any]:
     return {
-        "schema": SCHEMA,
-        "ready": False,
-        "status": "freshness-unverified",
-        "reason": "freshness-check-did-not-complete",
-        "checked_at": _now(),
-        "model_calls": 0,
+        "name": target.name,
         "source": {
             "authority": {"url": SOURCE_AUTHORITY.url, "ref": SOURCE_AUTHORITY.ref},
             "head": None,
@@ -151,6 +158,18 @@ def _empty_receipt() -> dict[str, Any]:
             "source_to_published": "not-run",
             "selected_to_published": "not-run",
         },
+    }
+
+
+def _empty_receipt() -> dict[str, Any]:
+    return {
+        "schema": SCHEMA,
+        "ready": False,
+        "status": "freshness-unverified",
+        "reason": "freshness-check-did-not-complete",
+        "checked_at": _now(),
+        "model_calls": 0,
+        "skills": {target.name: _empty_skill_receipt(target) for target in _FRESHNESS_TARGETS},
     }
 
 
@@ -366,37 +385,37 @@ def _skill_version(data: bytes, code: str) -> str:
     raise FreshnessProblem(code)
 
 
-def _plugin_metadata(tree: Tree, code: str) -> tuple[str, str]:
+def _plugin_metadata(tree: Tree, target: FreshnessTarget, code: str) -> tuple[str, str]:
     metadata = _json_object(tree.data(".claude-plugin/plugin.json"), code)
     name, version = metadata.get("name"), metadata.get("version")
-    if name != "shiploop" or not isinstance(version, str) or not version:
+    if name != target.name or not isinstance(version, str) or not version:
         raise FreshnessProblem(code)
     return name, version
 
 
-def _catalog_pin(tree: Tree, source_authority: Authority) -> tuple[str, str]:
+def _catalog_pin(tree: Tree, source_authority: Authority, target: FreshnessTarget) -> tuple[str, str]:
     catalog = _json_object(tree.data("marketplace.json"), "catalog-is-invalid")
     plugins = catalog.get("plugins")
     if not isinstance(plugins, list):
         raise FreshnessProblem("catalog-is-invalid")
-    rows = [row for row in plugins if isinstance(row, Mapping) and row.get("name") == "shiploop"]
+    rows = [row for row in plugins if isinstance(row, Mapping) and row.get("name") == target.name]
     if len(rows) != 1:
-        raise FreshnessProblem("catalog-shiploop-entry-is-missing-or-duplicate")
+        raise FreshnessProblem(f"catalog-{target.name}-entry-is-missing-or-duplicate")
     row = rows[0]
     version, source = row.get("version"), row.get("source")
     if not isinstance(version, str) or not version or not isinstance(source, Mapping):
-        raise FreshnessProblem("catalog-shiploop-entry-is-invalid")
+        raise FreshnessProblem(f"catalog-{target.name}-entry-is-invalid")
     if (
         source.get("source") != "git-subdir"
         or source.get("url") != source_authority.url
-        or source.get("path") != _PLUGIN_ROOT
+        or source.get("path") != target.plugin_root
     ):
-        raise FreshnessProblem("catalog-shiploop-entry-is-invalid")
+        raise FreshnessProblem(f"catalog-{target.name}-entry-is-invalid")
     ref, pinned = source.get("ref"), source.get("sha")
     if ref is not None and (not isinstance(ref, str) or not ref):
-        raise FreshnessProblem("catalog-shiploop-entry-is-invalid")
+        raise FreshnessProblem(f"catalog-{target.name}-entry-is-invalid")
     if not isinstance(pinned, str) or not _CATALOG_COMMIT_ID.fullmatch(pinned):
-        raise FreshnessProblem("catalog-shiploop-pin-is-invalid")
+        raise FreshnessProblem(f"catalog-{target.name}-pin-is-invalid")
     return pinned, version
 
 
@@ -487,25 +506,123 @@ def _fail(receipt: dict[str, Any], status: str, reason: str) -> dict[str, Any]:
     return receipt
 
 
-def inspect_freshness(package: Mapping[str, Any], git: str, env: Mapping[str, str] | None = None) -> dict[str, Any]:
-    """Return a receipt proving freshness or a fail-closed reason to stop.
+def _target_reason(target: FreshnessTarget, reason: str) -> str:
+    """Keep legacy ShipLoop codes while identifying an Improve failure."""
+    if target.name == "shiploop" or f"-{target.name}-" in reason:
+        return reason
+    return f"{target.name}-{reason}"
 
-    This is intentionally a read-only, no-model preflight.  Its authority is
-    fixed by module constants; callers cannot opt into an ambient source tree
-    or silently continue if catalog, source, or installed bytes cannot be
-    compared.
+
+def _inspect_target(
+    target: FreshnessTarget,
+    package: Mapping[str, Any],
+    receipt: dict[str, Any],
+    git: str,
+    source_bare: Path,
+    catalog_bare: Path,
+    source_head: str,
+    catalog_head: str,
+    env: Mapping[str, str],
+) -> tuple[str, str]:
+    skill_receipt = receipt["skills"][target.name]
+    selected, selected_root = _local_tree(package)
+    selected_version = _skill_version(selected.data("SKILL.md"), "selected-package-version-is-invalid")
+    skill_receipt["selected"] = {**_tree_summary(selected), "root": selected_root, "version": selected_version}
+
+    source_skill = _git_tree(git, source_bare, source_head, target.source_skill, env)
+    source_plugin = _git_tree(git, source_bare, source_head, target.plugin_root, env)
+    source_generated = source_plugin.subtree(target.plugin_skill)
+    source_name, source_plugin_version = _plugin_metadata(
+        source_plugin, target, "source-plugin-metadata-is-invalid",
+    )
+    source_skill_version = _skill_version(source_skill.data("SKILL.md"), "source-skill-version-is-invalid")
+    source_generated_version = _skill_version(
+        source_generated.data("SKILL.md"), "source-generated-skill-version-is-invalid",
+    )
+    skill_receipt["source"].update({
+        "skill": _tree_summary(source_skill),
+        "plugin": _tree_summary(source_plugin),
+        "version": source_skill_version,
+    })
+
+    catalog_tree = _git_tree(git, catalog_bare, catalog_head, _CATALOG_PATH.rsplit("/", 1)[0], env)
+    pinned, catalog_version = _catalog_pin(catalog_tree, SOURCE_AUTHORITY, target)
+    skill_receipt["published"]["catalog"] = {
+        "path": _CATALOG_PATH,
+        "version": catalog_version,
+        "source_url": SOURCE_AUTHORITY.url,
+        "source_path": target.plugin_root,
+        "pin_sha": pinned,
+    }
+
+    _fetch_commit(git, source_bare, SOURCE_AUTHORITY, pinned, env, "published-pin")
+    published_plugin = _git_tree(git, source_bare, pinned, target.plugin_root, env)
+    published_skill = published_plugin.subtree(target.plugin_skill)
+    published_name, published_plugin_version = _plugin_metadata(
+        published_plugin, target, "published-plugin-metadata-is-invalid",
+    )
+    published_skill_version = _skill_version(
+        published_skill.data("SKILL.md"), "published-skill-version-is-invalid",
+    )
+    skill_receipt["published"].update({
+        "pin": {"sha": pinned},
+        "plugin": _tree_summary(published_plugin),
+        "skill": _tree_summary(published_skill),
+        "version": published_skill_version,
+    })
+
+    if source_name != target.name or published_name != target.name:
+        raise FreshnessProblem("plugin-name-is-invalid")
+    if len({source_skill_version, source_generated_version, source_plugin_version}) != 1:
+        return "unpublished-source", "source-package-version-is-inconsistent"
+    if len({catalog_version, published_skill_version, published_plugin_version}) != 1:
+        return "freshness-unverified", "catalog-version-does-not-match-published-package"
+
+    if not _same(source_skill, source_generated):
+        skill_receipt["comparisons"]["source_to_generated"] = "different"
+        return "unpublished-source", "source-and-generated-package-differ"
+    skill_receipt["comparisons"]["source_to_generated"] = "matched"
+
+    if not _same(source_plugin, published_plugin):
+        skill_receipt["comparisons"]["source_to_published"] = "different"
+        return "unpublished-source", "source-plugin-is-not-published"
+    skill_receipt["comparisons"]["source_to_published"] = "matched"
+
+    if selected_version != published_skill_version:
+        skill_receipt["comparisons"]["selected_to_published"] = "different"
+        return "installed-stale", "selected-package-version-does-not-match-published-package"
+    if not _same(selected, published_skill):
+        skill_receipt["comparisons"]["selected_to_published"] = "different"
+        return "installed-stale", "selected-package-does-not-match-published-package"
+    skill_receipt["comparisons"]["selected_to_published"] = "matched"
+    return "ready", "selected-package-matches-current-publication"
+
+
+def inspect_freshness(packages: Mapping[str, Mapping[str, Any]], git: str,
+                      env: Mapping[str, str] | None = None) -> dict[str, Any]:
+    """Return a receipt proving both selected packages are current or stop.
+
+    This is intentionally a read-only, no-model preflight. Its fixed ShipLoop
+    and Improve authorities cannot be redirected through evaluator options.
     """
     receipt = _empty_receipt()
+    current_target: FreshnessTarget | None = None
     try:
-        command_env = _environment(env)
-        selected, selected_root = _local_tree(package)
-        selected_version = _skill_version(selected.data("SKILL.md"), "selected-package-version-is-invalid")
-        receipt["selected"] = {**_tree_summary(selected), "root": selected_root, "version": selected_version}
+        if not isinstance(packages, Mapping):
+            raise FreshnessProblem("selected-packages-manifest-is-invalid")
+        selected_packages = {
+            target.name: packages[target.name]
+            for target in _FRESHNESS_TARGETS
+        }
+        if not all(isinstance(package, Mapping) for package in selected_packages.values()):
+            raise FreshnessProblem("selected-packages-manifest-is-invalid")
 
+        command_env = _environment(env)
         source_head = _remote_head(git, SOURCE_AUTHORITY, command_env)
         catalog_head = _remote_head(git, CATALOG_AUTHORITY, command_env)
-        receipt["source"]["head"] = source_head
-        receipt["published"]["head"] = catalog_head
+        for target in _FRESHNESS_TARGETS:
+            receipt["skills"][target.name]["source"]["head"] = source_head
+            receipt["skills"][target.name]["published"]["head"] = catalog_head
 
         with tempfile.TemporaryDirectory(prefix="shiploop-e2e-freshness-") as temporary:
             root = Path(temporary)
@@ -515,75 +632,22 @@ def inspect_freshness(package: Mapping[str, Any], git: str, env: Mapping[str, st
             _initialize_bare(git, catalog_bare, command_env)
             _fetch_commit(git, source_bare, SOURCE_AUTHORITY, source_head, command_env, "source-head")
             _fetch_commit(git, catalog_bare, CATALOG_AUTHORITY, catalog_head, command_env, "catalog-head")
-
-            source_skill = _git_tree(git, source_bare, source_head, _SOURCE_SKILL, command_env)
-            source_plugin = _git_tree(git, source_bare, source_head, _PLUGIN_ROOT, command_env)
-            source_generated = source_plugin.subtree(_PLUGIN_SKILL)
-            source_name, source_plugin_version = _plugin_metadata(source_plugin, "source-plugin-metadata-is-invalid")
-            source_skill_version = _skill_version(source_skill.data("SKILL.md"), "source-skill-version-is-invalid")
-            source_generated_version = _skill_version(
-                source_generated.data("SKILL.md"), "source-generated-skill-version-is-invalid",
-            )
-            receipt["source"].update({
-                "skill": _tree_summary(source_skill),
-                "plugin": _tree_summary(source_plugin),
-                "version": source_skill_version,
-            })
-
-            catalog_tree = _git_tree(git, catalog_bare, catalog_head, _CATALOG_PATH.rsplit("/", 1)[0], command_env)
-            pinned, catalog_version = _catalog_pin(catalog_tree, SOURCE_AUTHORITY)
-            receipt["published"]["catalog"] = {
-                "path": _CATALOG_PATH,
-                "version": catalog_version,
-                "source_url": SOURCE_AUTHORITY.url,
-                "source_path": _PLUGIN_ROOT,
-                "pin_sha": pinned,
-            }
-
-            _fetch_commit(git, source_bare, SOURCE_AUTHORITY, pinned, command_env, "published-pin")
-            published_plugin = _git_tree(git, source_bare, pinned, _PLUGIN_ROOT, command_env)
-            published_skill = published_plugin.subtree(_PLUGIN_SKILL)
-            published_name, published_plugin_version = _plugin_metadata(
-                published_plugin, "published-plugin-metadata-is-invalid",
-            )
-            published_skill_version = _skill_version(
-                published_skill.data("SKILL.md"), "published-skill-version-is-invalid",
-            )
-            receipt["published"].update({
-                "pin": {"sha": pinned},
-                "plugin": _tree_summary(published_plugin),
-                "skill": _tree_summary(published_skill),
-                "version": published_skill_version,
-            })
-
-        if source_name != "shiploop" or published_name != "shiploop":
-            raise FreshnessProblem("plugin-name-is-invalid")
-        if len({source_skill_version, source_generated_version, source_plugin_version}) != 1:
-            return _fail(receipt, "unpublished-source", "source-package-version-is-inconsistent")
-        if len({catalog_version, published_skill_version, published_plugin_version}) != 1:
-            return _fail(receipt, "freshness-unverified", "catalog-version-does-not-match-published-package")
-
-        if not _same(source_skill, source_generated):
-            receipt["comparisons"]["source_to_generated"] = "different"
-            return _fail(receipt, "unpublished-source", "source-and-generated-package-differ")
-        receipt["comparisons"]["source_to_generated"] = "matched"
-
-        if not _same(source_plugin, published_plugin):
-            receipt["comparisons"]["source_to_published"] = "different"
-            return _fail(receipt, "unpublished-source", "source-plugin-is-not-published")
-        receipt["comparisons"]["source_to_published"] = "matched"
-
-        if selected_version != published_skill_version:
-            receipt["comparisons"]["selected_to_published"] = "different"
-            return _fail(receipt, "installed-stale", "selected-package-version-does-not-match-published-package")
-        if not _same(selected, published_skill):
-            receipt["comparisons"]["selected_to_published"] = "different"
-            return _fail(receipt, "installed-stale", "selected-package-does-not-match-published-package")
-        receipt["comparisons"]["selected_to_published"] = "matched"
-        return _fail(receipt, "ready", "selected-package-matches-current-publication") | {"ready": True}
+            for target in _FRESHNESS_TARGETS:
+                current_target = target
+                status, reason = _inspect_target(
+                    target, selected_packages[target.name], receipt, git, source_bare,
+                    catalog_bare, source_head, catalog_head, command_env,
+                )
+                if status != "ready":
+                    return _fail(receipt, status, _target_reason(target, reason))
+        return _fail(receipt, "ready", "selected-skill-packages-match-current-publication") | {"ready": True}
     except FreshnessProblem as exc:
-        return _fail(receipt, "freshness-unverified", exc.code)
+        reason = _target_reason(current_target, exc.code) if current_target is not None else exc.code
+        return _fail(receipt, "freshness-unverified", reason)
     except (OSError, TypeError, ValueError, KeyError):
         # Keep accidental implementation/parser errors fail-closed as well,
         # without serializing a raw exception that could include local paths.
-        return _fail(receipt, "freshness-unverified", "freshness-check-failed")
+        reason = "freshness-check-failed"
+        if current_target is not None:
+            reason = _target_reason(current_target, reason)
+        return _fail(receipt, "freshness-unverified", reason)

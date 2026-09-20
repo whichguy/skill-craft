@@ -177,7 +177,7 @@
     },
     {
       "name": "shiploop",
-      "version": "0.18.2",
+      "version": "0.18.3",
       "description": "Markdown-authoritative delivery harness. Start or resume once, follow the script's current action packet, and submit its exact completion call until the script reports completion with an HTML achievement report. Use when the user says shiploop, ship the project, or requests a durable delivery loop.",
       "category": "software-development",
       "source": {
@@ -187,7 +187,7 @@
     },
     {
       "name": "shiploop-e2e-audit",
-      "version": "0.2.2",
+      "version": "0.2.3",
       "description": "Run the ShipLoop test harness and audit its retained graph, review, test, product and incremental-change evidence. Use for ShipLoop mock checks, live one-shot E2E smoke/full campaigns, or review of existing trial output. Full Google Apps Script and Salesforce game cases require an authorized test deployment and hosted behavior evidence. Includes its harness for source and marketplace installs; tests a separately selected ShipLoop.",
       "category": "productivity",
       "source": {

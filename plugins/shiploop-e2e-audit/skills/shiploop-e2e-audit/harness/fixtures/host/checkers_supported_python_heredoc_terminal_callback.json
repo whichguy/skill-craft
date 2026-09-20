@@ -32,7 +32,7 @@
   },
   "id": "checkers-supported-python-heredoc-terminal-callback",
   "observer": {
-    "grok_adapter_sha256": "32130e8da2bd8c4dfaf6b9bbe160c50c117653c6b910f65edda548b94b3cba33",
+    "grok_adapter_sha256": "62bced88980a1f95fcce4e973086afd46a4120ba937eed5410c30e69c0858e78",
     "source_edit_policy": "parser-source-mismatch-invalidates-attribution",
     "previous_grok_adapter_sha256": "3571fc09cb2ba76a939c345272a2e08402086041f8274cbc4b8d2350266e415e",
     "revalidation": "Launch selection rejects ambiguous literal ShipLoop routes while accepting normal omitted-alias records; all five golden attribution expectations independently replayed unchanged. Original capture provenance and events are unchanged.",

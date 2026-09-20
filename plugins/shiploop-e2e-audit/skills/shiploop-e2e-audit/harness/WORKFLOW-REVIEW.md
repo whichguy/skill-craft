@@ -27,16 +27,24 @@ retain the original result and explain why the interpretation changed.
    spec, plan, implementation, deployment, hosted verification, and handoff.
    Find scope drift, assumptions that became facts, missing dependencies, or
    local adapters that conceal target-runtime incompatibility. For a full game
-   case, inspect the configured MCP staging and guarded promotion receipts,
-   `scriptId`, version/deployment identities, published `/exec` URL, and
-   candidate-to-release linkage. A local fixture, `/dev` URL, model mock, or
-   model prose cannot satisfy hosted delivery.
+   case, inspect the platform-specific candidate-to-release and hosted evidence
+   defined in [CASES.md](CASES.md). For GAS, inspect the configured MCP staging
+   and guarded promotion receipts, `scriptId`, version/deployment identities,
+   published `/exec` URL, and candidate-to-release linkage. For Salesforce,
+   inspect the pinned target preflight, raw Salesforce DX deployment result,
+   candidate-to-deployed metadata mapping, and authenticated Lightning route
+   and behavior trace. A local fixture, GAS `/dev` URL, model mock, or model
+   prose cannot satisfy hosted delivery.
 4. Reconcile every selected test with what ran. Check expected versus observed
    results, current-candidate identity, evidence paths, and all blocked/unrun/N/A
-   cases. For `authorized-deployment` and `hosted-game-behavior`, inspect the
-   candidate-bound observation, raw MCP receipts, and browser trace rather than
-   accepting only a receipt schema pass. A later independent pass cannot
-   retroactively justify an earlier ShipLoop completion that lacked the evidence.
+   cases. For GAS `authorized-deployment` and `hosted-game-behavior`, inspect
+   the candidate-bound observation, raw MCP receipts, and browser trace rather
+   than accepting only a receipt schema pass. For Salesforce
+   `salesforce-authorized-deployment`, `salesforce-source-candidate`, and
+   `salesforce-hosted-lightning-behavior`, inspect the candidate-bound
+   observation, raw DX deployment result, source mapping, and authenticated
+   Lightning trace. A later independent pass cannot retroactively justify an
+   earlier ShipLoop completion that lacked the evidence.
 5. Inspect substantive Improve notes: current candidate, findings and material
    changes, check refresh, distinct qualifying reviews, independent reviewer
    availability/scope or fallback limitation. Do not infer review quality from

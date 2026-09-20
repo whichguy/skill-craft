@@ -41,6 +41,7 @@ from grading import validate_receipt, write_template  # noqa: E402
 from freshness import inspect_freshness  # noqa: E402
 from grok_adapter import (  # noqa: E402
     DEFAULT_REASONING_EFFORT,
+    IMPROVE_SKILL_NAME,
     build_argv,
     inspect_selection,
     observe_control_input_references,
@@ -642,17 +643,22 @@ def _refresh_late_grade_observer_identity(output: Path, result: dict, manifest: 
 def preflight(args: argparse.Namespace, repo: Path, env: dict, *,
               git: str | None = None, verify_freshness: bool = True) -> dict:
     expected = layout.resolve_skill_root(args.skill_root)
-    package = package_manifest(expected)
-    selection = inspect_selection(args.grok, repo, expected, env)
+    shiploop_package = package_manifest(expected)
+    shiploop_selection = inspect_selection(args.grok, repo, expected, env)
+    improve_selection = inspect_selection(args.grok, repo, env=env, skill_name=IMPROVE_SKILL_NAME)
+    improve_package = package_manifest(Path(improve_selection["source"]["realpath"]).parent)
+    packages = {"shiploop": shiploop_package, "improve": improve_package}
     version = subprocess.run([args.grok, "--version"], cwd=repo, env=env,
                              capture_output=True, text=True, timeout=30)
     if version.returncode != 0:
         raise ValueError("Grok --version failed")
-    checked = {"package": package, "selection": selection,
+    checked = {"package": shiploop_package, "selection": shiploop_selection,
+               "improve_package": improve_package, "improve_selection": improve_selection,
+               "packages": packages, "selections": {"shiploop": shiploop_selection, "improve": improve_selection},
                "grok_version": version.stdout.strip(), "model_requested": args.model,
                "python": sys.version.split()[0]}
     if verify_freshness:
-        checked["freshness"] = inspect_freshness(package, git or resolve_git(args.git), env)
+        checked["freshness"] = inspect_freshness(packages, git or resolve_git(args.git), env)
     return checked
 
 
@@ -930,7 +936,7 @@ def run_trial(args: argparse.Namespace) -> int:
             result["observer_stable"] = False
             result["statuses"]["observer"] = "source-changed-before-launch"
             raise ValueError("observer-source-changed before model launch; no model was launched")
-        result["package_snapshot"] = freeze_package(info["package"], output / "package-inputs")
+        result["package_snapshot"] = freeze_package(info["packages"]["shiploop"], output / "package-inputs")
         prompt = step["prompt"]
         (output / "prompt.txt").write_text(prompt, encoding="utf-8")
         selected_cli = selected_subject / "scripts" / "shiploop"
@@ -1004,8 +1010,12 @@ def run_trial(args: argparse.Namespace) -> int:
         # bound to the preflight receipt; an upstream release during a trial
         # must not retroactively invalidate the selected candidate.
         launch_selection = preflight(args, repo, env, verify_freshness=False)
-        if launch_selection["package"]["aggregate_sha256"] != info["package"]["aggregate_sha256"]:
+        if (launch_selection["packages"]["shiploop"]["aggregate_sha256"]
+                != info["packages"]["shiploop"]["aggregate_sha256"]):
             raise ValueError("selected ShipLoop changed after freshness check; no model was launched")
+        if (launch_selection["packages"]["improve"]["aggregate_sha256"]
+                != info["packages"]["improve"]["aggregate_sha256"]):
+            raise ValueError("selected Improve changed after freshness check; no model was launched")
         _, observer_at_launch = record_observer_phase("before_model_launch")
         if not observer_at_launch:
             result["observer_stable"] = False
@@ -1029,8 +1039,15 @@ def run_trial(args: argparse.Namespace) -> int:
         write_json(output / "change.json", result["change"])
         refreshed = preflight(args, repo, env, verify_freshness=False)
         write_json(output / "preflight-after.json", refreshed)
-        stable = info["package"]["aggregate_sha256"] == refreshed["package"]["aggregate_sha256"]
-        result["skill_digest"] = info["package"]["aggregate_sha256"]
+        stable = all(
+            info["packages"][name]["aggregate_sha256"] == refreshed["packages"][name]["aggregate_sha256"]
+            for name in ("shiploop", "improve")
+        )
+        result["skill_digest"] = info["packages"]["shiploop"]["aggregate_sha256"]
+        result["skill_digests"] = {
+            name: info["packages"][name]["aggregate_sha256"]
+            for name in ("shiploop", "improve")
+        }
         result["skill_stable"] = stable
         events = summarize_events(output / "capture" / "events.jsonl", selected_cli)
         write_json(output / "host-observations.json", events)
@@ -1545,8 +1562,12 @@ def main(argv: list[str] | None = None) -> int:
             env["PATH"] = str(Path(git).parent) + os.pathsep + env.get("PATH", "")
             env["GIT_TERMINAL_PROMPT"] = "0"
             checked = preflight(args, Path(args.repo).expanduser().resolve(), env, git=git)
-            print(json.dumps({"selection": checked["selection"], "package_sha256": checked["package"]["aggregate_sha256"],
-                              "package_files": len(checked["package"]["files"]), "grok_version": checked["grok_version"],
+            print(json.dumps({"selection": checked["selection"], "improve_selection": checked["improve_selection"],
+                              "package_sha256": checked["packages"]["shiploop"]["aggregate_sha256"],
+                              "package_files": len(checked["packages"]["shiploop"]["files"]),
+                              "improve_package_sha256": checked["packages"]["improve"]["aggregate_sha256"],
+                              "improve_package_files": len(checked["packages"]["improve"]["files"]),
+                              "grok_version": checked["grok_version"],
                               "git": git, "model": checked["model_requested"], "live_model_called": False,
                               "freshness": checked["freshness"]}, indent=2))
             return 0 if checked["freshness"]["ready"] else 2

@@ -15,6 +15,7 @@ if str(HERE) not in sys.path:
 
 from grok_adapter import (  # noqa: E402
     GrokAdapterError,
+    IMPROVE_SKILL_NAME,
     build_argv,
     inspect_selection,
     observe_control_input_references,
@@ -37,6 +38,10 @@ class GrokAdapterTests(unittest.TestCase):
         self.marketplace_skill = self.root / "marketplace-shiploop" / "SKILL.md"
         self.marketplace_skill.parent.mkdir()
         self.marketplace_skill.write_text("---\nname: shiploop\n---\n", encoding="utf-8")
+        self.improve_root = self.root / "improve"
+        self.improve_root.mkdir()
+        self.improve_skill = self.improve_root / "SKILL.md"
+        self.improve_skill.write_text("---\nname: improve\n---\n", encoding="utf-8")
         self.prompt = self.root / "prompt.txt"
         self.prompt.write_text("/shiploop create a game\n", encoding="utf-8")
 
@@ -51,6 +56,18 @@ class GrokAdapterTests(unittest.TestCase):
             "pathlib.Path(os.environ['CAPTURE']).write_text(json.dumps({'argv': sys.argv[1:], 'cwd': os.getcwd()}))\n"
             "if os.environ.get('INVALID') == '1':\n"
             "    print(json.dumps({'unrelated': {'credential': 'not-returned'}}))\n"
+            "elif os.environ.get('DUPLICATE_IMPROVE') == '1':\n"
+            "    print(json.dumps({'skills': [{'name': 'improve', 'source': {'path': os.environ['IMPROVE']}, 'userInvocable': True}, {'name': 'improve', 'source': {'path': os.environ['IMPROVE']}, 'userInvocable': True}]}))\n"
+            "elif os.environ.get('MISSING_IMPROVE') == '1':\n"
+            "    print(json.dumps({'skills': [{'name': 'shiploop', 'source': {'path': os.environ['SKILL']}, 'userInvocable': True}]}))\n"
+            "elif os.environ.get('MISSING_SOURCE_IMPROVE') == '1':\n"
+            "    print(json.dumps({'skills': [{'name': 'improve', 'source': {'path': os.environ['IMPROVE']}, 'userInvocable': True}, {'name': 'improve', 'userInvocable': True}]}))\n"
+            "elif os.environ.get('SCALAR_SOURCE_IMPROVE') == '1':\n"
+            "    print(json.dumps({'skills': [{'name': 'improve', 'source': {'path': os.environ['IMPROVE']}, 'userInvocable': True}, {'name': 'improve', 'source': 'not-an-object', 'userInvocable': True}]}))\n"
+            "elif os.environ.get('MALFORMED_IMPROVE') == '1':\n"
+            "    print(json.dumps({'skills': [{'name': 'improve', 'source': {'path': '/not/selected'}, 'userInvocable': True}]}))\n"
+            "elif os.environ.get('EXPLICIT_IMPROVE') == '1':\n"
+            "    print(json.dumps({'skills': [{'name': 'improve', 'source': {'path': os.environ['IMPROVE']}, 'userInvocable': True, 'invocableAs': 'improve'}]}))\n"
             "elif os.environ.get('DUPLICATE') == '1':\n"
             "    print(json.dumps({'skills': [{'name': 'shiploop', 'source': {'path': os.environ['SKILL']}, 'userInvocable': True}, {'name': 'shiploop', 'source': {'path': os.environ['SKILL']}, 'userInvocable': True}]}))\n"
             "elif os.environ.get('COLLISION') == '1':\n"
@@ -58,7 +75,7 @@ class GrokAdapterTests(unittest.TestCase):
             "elif os.environ.get('MULTIPLE_SOURCES') == '1':\n"
             "    print(json.dumps({'skills': [{'name': 'shiploop', 'source': {'path': os.environ['SKILL'], 'type': 'user'}, 'userInvocable': True}, {'name': 'shiploop', 'source': {'path': os.environ['MARKETPLACE_SKILL'], 'type': 'marketplace'}, 'userInvocable': True}]}))\n"
             "else:\n"
-            "    print(json.dumps({'unrelated': {'credential': 'not-returned'}, 'nested': [{'name': 'shiploop', 'description': 'selected', 'source': {'path': os.environ['SKILL'], 'type': 'user'}, 'userInvocable': True}], 'agents': [{'name': 'shiploop', 'source': {'path': '/agent-card.md'}, 'userInvocable': None}], 'skills': [{'name': 'shiploop', 'source': {'path': '/not/selected'}, 'userInvocable': True}]}))\n",
+            "    print(json.dumps({'unrelated': {'credential': 'not-returned'}, 'nested': [{'name': 'shiploop', 'description': 'selected', 'source': {'path': os.environ['SKILL'], 'type': 'user'}, 'userInvocable': True}], 'agents': [{'name': 'shiploop', 'source': {'path': '/agent-card.md'}, 'userInvocable': None}], 'skills': [{'name': 'shiploop', 'source': {'path': '/not/selected'}, 'userInvocable': True}, {'name': 'improve', 'description': 'selected', 'source': {'path': os.environ['IMPROVE'], 'type': 'user'}, 'userInvocable': True}]}))\n",
             encoding="utf-8",
         )
         fake.chmod(fake.stat().st_mode | stat.S_IXUSR)
@@ -70,6 +87,7 @@ class GrokAdapterTests(unittest.TestCase):
             "CAPTURE": str(capture),
             "SKILL": str(self.skill),
             "MARKETPLACE_SKILL": str(self.marketplace_skill),
+            "IMPROVE": str(self.improve_skill),
             **extra,
         }
 
@@ -98,6 +116,43 @@ class GrokAdapterTests(unittest.TestCase):
                 self.skill,
                 self._inspect_env(capture, DUPLICATE="1"),
             )
+
+    def test_inspect_selection_discovers_exactly_one_selected_improve_root(self) -> None:
+        capture = self.root / "inspect-capture.json"
+        selection = inspect_selection(
+            str(self._fake_grok()), self.repo, env=self._inspect_env(capture),
+            skill_name=IMPROVE_SKILL_NAME,
+        )
+
+        self.assertEqual("improve", selection["skill"])
+        self.assertEqual(str(self.improve_skill.resolve()), selection["source"]["realpath"])
+        self.assertIsNone(selection["expected"]["path"])
+
+    def test_inspect_selection_accepts_explicit_improve_route(self) -> None:
+        capture = self.root / "inspect-capture.json"
+        selection = inspect_selection(
+            str(self._fake_grok()), self.repo,
+            env=self._inspect_env(capture, EXPLICIT_IMPROVE="1"),
+            skill_name=IMPROVE_SKILL_NAME,
+        )
+
+        self.assertEqual("improve", selection["source"]["invocable_as"])
+
+    def test_inspect_selection_rejects_missing_duplicate_or_malformed_improve(self) -> None:
+        capture = self.root / "inspect-capture.json"
+        for flag, expected in (
+            ("MISSING_IMPROVE", "exactly one matching"),
+            ("DUPLICATE_IMPROVE", "exactly one matching"),
+            ("MALFORMED_IMPROVE", "malformed"),
+            ("MISSING_SOURCE_IMPROVE", "malformed"),
+            ("SCALAR_SOURCE_IMPROVE", "malformed"),
+        ):
+            with self.subTest(flag=flag), self.assertRaisesRegex(GrokAdapterError, expected):
+                inspect_selection(
+                    str(self._fake_grok()), self.repo,
+                    env=self._inspect_env(capture, **{flag: "1"}),
+                    skill_name=IMPROVE_SKILL_NAME,
+                )
 
     def test_inspect_selection_rejects_exact_user_marketplace_collision(self) -> None:
         capture = self.root / "inspect-capture.json"

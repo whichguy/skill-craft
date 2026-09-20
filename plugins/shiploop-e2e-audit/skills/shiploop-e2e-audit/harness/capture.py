@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import codecs
 import datetime as dt
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -39,8 +40,28 @@ _FIELD_NAME = (
 )
 _FIELD_PREFIX = re.compile(
     rf"(?i)(?<![A-Za-z0-9_-])(?:[\"'](?:{_FIELD_NAME})[\"']|(?:{_FIELD_NAME}))"
-    r"\s*[:=]\s*(?P<quote>[\"']?)"
+    r"\s*[:=]\s*(?:(?P<quote>[\"'])|(?![\"'])(?=\S))"
 )
+_ESCAPED_FIELD_PREFIX = re.compile(
+    rf'(?i)(?<![A-Za-z0-9_-])(?P<escape>\\+)"(?:{_FIELD_NAME})(?P=escape)"'
+    r'\s*[:=]\s*(?P<quote>(?P=escape)")'
+)
+_FIELD_KEY_PREFIX = re.compile(
+    rf"(?i)(?<![A-Za-z0-9_-])(?P<key>[\"'](?:{_FIELD_NAME})[\"']|"
+    rf"(?<![\"'])(?:{_FIELD_NAME})(?![A-Za-z0-9_-]))"
+)
+_ESCAPED_FIELD_KEY_PREFIX = re.compile(
+    rf'(?i)(?<![A-Za-z0-9_-])(?P<key>(?P<escape>\\+)"(?:{_FIELD_NAME})(?P=escape)")'
+)
+_BYTE_ARRAY_FIELD_NAME = r"output|stdout|stderr|bytes"
+_BYTE_ARRAY_PREFIX = re.compile(
+    rf"(?i)(?<![A-Za-z0-9_-])[\"'](?:{_BYTE_ARRAY_FIELD_NAME})[\"']\s*:\s*\["
+)
+_ESCAPED_BYTE_ARRAY_PREFIX = re.compile(
+    rf'(?i)(?<![A-Za-z0-9_-])(?P<escape>\\+)"(?:{_BYTE_ARRAY_FIELD_NAME})(?P=escape)"'
+    r'\s*:\s*\['
+)
+_RAW_OUTPUT_PREFIX = re.compile(r'(?i)(?<!\\)"rawOutput"\s*:\s*\{')
 _FIELD_NAMES = frozenset(
     {
         "api-key",
@@ -49,23 +70,29 @@ _FIELD_NAMES = frozenset(
         "secret",
         "secret-key",
         "secret_key",
+        "secretkey",
         "password",
         "passwd",
         "token",
         "access-token",
         "access_token",
+        "accesstoken",
         "refresh-token",
         "refresh_token",
+        "refreshtoken",
         "client-secret",
         "client_secret",
+        "clientsecret",
         "private-key",
         "private_key",
+        "privatekey",
         "auth",
         "authorization",
         "credential",
         "key",
     }
 )
+_ARRAY_FIELD_NAMES = _FIELD_NAMES | frozenset({"output", "stdout", "stderr", "bytes"})
 _BEARER_PREFIX = re.compile(r"(?i)\bbearer[ \t]+")
 _RAW_TOKEN_PREFIX = re.compile(r"(?i)(?<![A-Za-z0-9_])(?:sk|xai)[_-]")
 _SECRET_DELIMITERS = frozenset(" \t\r\n,;\"'`<>()[]{}&#")
@@ -104,10 +131,36 @@ class _StreamingSanitizer:
     it arrives until a safe delimiter closes the token.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, *, decode_byte_arrays: bool = True) -> None:
+        self._decode_byte_arrays = decode_byte_arrays
         self._pending = ""
+        self._previous_emitted_char: str | None = None
+        self._field_phase: str | None = None
+        self._field_escape_width = 0
+        self._field_value_backslashes = 0
         self._secret_quote: str | None = None
         self._secret_escape = False
+        self._encoded_quote_width = 0
+        self._encoded_backslashes = 0
+        self._byte_array_depth = 0
+        self._byte_array_quote: str | None = None
+        self._byte_array_escape = False
+        self._byte_array_token = ""
+        self._byte_array_token_overflow = False
+        self._byte_array_decoder: codecs.IncrementalDecoder | None = None
+        self._byte_array_sanitizer: _StreamingSanitizer | None = None
+        self._byte_array_text_buffer = ""
+        self._byte_array_input_hash: Any | None = None
+        self._byte_array_output_hash: Any | None = None
+        self._byte_array_input_bytes = 0
+        self._byte_array_output_bytes = 0
+        self._byte_array_has_output = False
+        self._byte_array_invalid = False
+        self._raw_output_depth = 0
+        self._raw_output_quote: str | None = None
+        self._raw_output_escape = False
+        self.redacted_byte_arrays = 0
+        self.invalid_byte_arrays = 0
 
     def feed(self, text: str) -> str:
         if not text:
@@ -115,40 +168,76 @@ class _StreamingSanitizer:
         self._pending += text
         output: list[str] = []
         while self._pending:
+            if self._byte_array_depth:
+                self._consume_byte_array(output)
+                continue
+            if self._field_phase == "separator":
+                self._consume_field_separator(output)
+                continue
+            if self._field_phase == "value":
+                self._consume_field_value(output)
+                continue
             if self._secret_quote is not None:
                 self._consume_secret(output)
                 continue
             match, kind = self._next_prefix()
             if match is None:
+                match, kind = self._next_field_key()
+            if match is None:
                 line_end = self._safe_complete_line_end()
                 if line_end:
-                    output.append(self._pending[:line_end])
+                    self._emit(output, self._pending[:line_end])
                     self._pending = self._pending[line_end:]
                     continue
                 safe_length = max(0, len(self._pending) - _NORMAL_HOLD_CHARS)
                 if safe_length:
-                    output.append(self._pending[:safe_length])
+                    self._emit(output, self._pending[:safe_length])
                     self._pending = self._pending[safe_length:]
                 break
-            output.append(self._pending[: match.start()])
+            self._emit(output, self._pending[: match.start()])
             prefix = match.group(0)
-            if kind == "raw_token":
-                output.append(_REDACTED)
+            if kind == "raw_output":
+                self._emit(output, prefix)
+                self._raw_output_depth = 1
+                self._raw_output_quote = None
+                self._raw_output_escape = False
+            elif kind == "byte_array":
+                self._emit(output, prefix)
+                self._start_byte_array()
+            elif kind == "raw_token":
+                self._emit(output, _REDACTED)
                 self._secret_quote = ""
+            elif kind in {"field_key", "escaped_field_key"}:
+                self._emit(output, prefix)
+                self._field_phase = "separator"
+                self._field_escape_width = len(match.groupdict().get("escape") or "")
             else:
-                output.append(prefix)
-                output.append(_REDACTED)
-                self._secret_quote = match.groupdict().get("quote") or ""
+                self._emit(output, prefix)
+                self._emit(output, _REDACTED)
+                quote = match.groupdict().get("quote") or ""
+                self._secret_quote = quote[-1:] if quote else ""
+                self._encoded_quote_width = len(quote) - 1 if kind == "escaped_field" else 0
             self._secret_escape = False
+            self._encoded_backslashes = 0
             self._pending = self._pending[match.end() :]
         return "".join(output)
 
     def finish(self) -> str:
         """Flush a normal tail; an unfinished credential remains redacted."""
+        if self._byte_array_depth:
+            output: list[str] = []
+            self._byte_array_invalid = True
+            self._finish_byte_array(output)
+            self._pending = ""
+            return "".join(output)
+        if self._field_phase is not None:
+            self._clear_field_state()
         if self._secret_quote is not None:
             self._pending = ""
             self._secret_quote = None
             self._secret_escape = False
+            self._encoded_quote_width = 0
+            self._encoded_backslashes = 0
             return ""
         output = self._pending
         self._pending = ""
@@ -157,16 +246,162 @@ class _StreamingSanitizer:
     def _next_prefix(self) -> tuple[re.Match[str] | None, str | None]:
         candidates: list[tuple[re.Match[str], str]] = []
         for pattern, kind in (
+            (_ESCAPED_FIELD_PREFIX, "escaped_field"),
             (_FIELD_PREFIX, "field"),
             (_BEARER_PREFIX, "bearer"),
             (_RAW_TOKEN_PREFIX, "raw_token"),
         ):
             match = pattern.search(self._pending)
-            if match is not None:
+            if match is not None and not self._continues_emitted_prefix(match, kind):
+                candidates.append((match, kind))
+        if self._decode_byte_arrays and self._raw_output_depth:
+            raw_output_end = self._raw_output_end()
+            for pattern in (_ESCAPED_BYTE_ARRAY_PREFIX, _BYTE_ARRAY_PREFIX):
+                match = pattern.search(self._pending)
+                if (
+                    match is not None
+                    and not self._continues_emitted_prefix(match, "byte_array")
+                    and (raw_output_end is None or match.start() < raw_output_end)
+                ):
+                    candidates.append((match, "byte_array"))
+        else:
+            match = _RAW_OUTPUT_PREFIX.search(self._pending)
+            if match is not None and not self._continues_emitted_prefix(match, "raw_output"):
+                candidates.append((match, "raw_output"))
+        if not candidates:
+            return None, None
+        return min(candidates, key=lambda item: (item[0].start(), item[0].end()))
+
+    def _next_field_key(self) -> tuple[re.Match[str] | None, str | None]:
+        candidates: list[tuple[re.Match[str], str]] = []
+        for pattern, kind in (
+            (_ESCAPED_FIELD_KEY_PREFIX, "escaped_field_key"),
+            (_FIELD_KEY_PREFIX, "field_key"),
+        ):
+            match = pattern.search(self._pending)
+            if match is not None and not self._continues_emitted_prefix(match, kind):
                 candidates.append((match, kind))
         if not candidates:
             return None, None
         return min(candidates, key=lambda item: (item[0].start(), item[0].end()))
+
+    def _continues_emitted_prefix(self, match: re.Match[str], kind: str) -> bool:
+        """Apply a matcher's left-boundary rule across a normal-buffer flush."""
+        previous = self._previous_emitted_char
+        if match.start() or previous is None:
+            return False
+        if kind in {"field", "escaped_field", "field_key", "escaped_field_key", "byte_array"}:
+            return previous.isascii() and (previous.isalnum() or previous in "_-")
+        if kind == "raw_token":
+            return previous.isascii() and (previous.isalnum() or previous == "_")
+        if kind == "bearer":
+            return previous == "_" or previous.isalnum()
+        return kind == "raw_output" and previous == "\\"
+
+    def _consume_field_separator(self, output: list[str]) -> None:
+        for index, character in enumerate(self._pending):
+            if character.isspace():
+                self._emit(output, character)
+                continue
+            if character in ":=":
+                self._emit(output, character)
+                self._field_phase = "value"
+                self._pending = self._pending[index + 1 :]
+                return
+            self._clear_field_state()
+            self._pending = self._pending[index:]
+            return
+        self._pending = ""
+
+    def _consume_field_value(self, output: list[str]) -> None:
+        for index, character in enumerate(self._pending):
+            if character.isspace() and not self._field_value_backslashes:
+                self._emit(output, character)
+                continue
+            if self._field_escape_width:
+                if character == "\\" and self._field_value_backslashes < self._field_escape_width:
+                    self._field_value_backslashes += 1
+                    continue
+                if character == '"' and self._field_value_backslashes == self._field_escape_width:
+                    self._emit(output, "\\" * self._field_escape_width + character)
+                    self._emit(output, _REDACTED)
+                    self._secret_quote = character
+                    self._encoded_quote_width = self._field_escape_width
+                else:
+                    self._emit(output, _REDACTED)
+                    self._secret_quote = ""
+                self._clear_field_state()
+                self._pending = self._pending[index + 1 :]
+                return
+            if character in {"\"", "'"}:
+                self._emit(output, character)
+                self._emit(output, _REDACTED)
+                self._secret_quote = character
+            else:
+                self._emit(output, _REDACTED)
+                self._secret_quote = ""
+            self._clear_field_state()
+            self._pending = self._pending[index + 1 :]
+            return
+        self._pending = ""
+
+    def _clear_field_state(self) -> None:
+        self._field_phase = None
+        self._field_escape_width = 0
+        self._field_value_backslashes = 0
+
+    def _emit(self, output: list[str], text: str) -> None:
+        if not text:
+            return
+        output.append(text)
+        self._previous_emitted_char = text[-1]
+        self._observe_raw_output(text)
+
+    def _observe_raw_output(self, text: str) -> None:
+        if not self._raw_output_depth:
+            return
+        for character in text:
+            if self._raw_output_quote is not None:
+                if self._raw_output_escape:
+                    self._raw_output_escape = False
+                elif character == "\\":
+                    self._raw_output_escape = True
+                elif character == self._raw_output_quote:
+                    self._raw_output_quote = None
+                continue
+            if character == '"':
+                self._raw_output_quote = character
+            elif character == "{":
+                self._raw_output_depth += 1
+            elif character == "}":
+                self._raw_output_depth -= 1
+                if not self._raw_output_depth:
+                    self._raw_output_quote = None
+                    self._raw_output_escape = False
+                    return
+
+    def _raw_output_end(self) -> int | None:
+        depth = self._raw_output_depth
+        quote = self._raw_output_quote
+        escaped = self._raw_output_escape
+        for index, character in enumerate(self._pending):
+            if quote is not None:
+                if escaped:
+                    escaped = False
+                elif character == "\\":
+                    escaped = True
+                elif character == quote:
+                    quote = None
+                continue
+            if character == '"':
+                quote = character
+            elif character == "{":
+                depth += 1
+            elif character == "}":
+                depth -= 1
+                if depth == 0:
+                    return index
+        return None
 
     def _safe_complete_line_end(self) -> int:
         """Return the first flushable newline boundary in normal mode.
@@ -183,15 +418,17 @@ class _StreamingSanitizer:
         if not self._unfinished_field_name(self._pending[:newline]):
             return newline + 1
         continuation = self._pending[newline + 1 :]
-        if continuation and not continuation.isspace():
-            return newline + 1
+        if continuation:
+            next_character = continuation.lstrip()[:1]
+            if next_character not in {"", ":", "="}:
+                return newline + 1
         return 0
 
     @staticmethod
     def _unfinished_field_name(line: str) -> bool:
         candidate = line.rstrip(" \t\r")
         if candidate.endswith(("'", '\"')):
-            candidate = candidate[:-1]
+            candidate = candidate[:-1].rstrip("\\")
         match = re.search(
             r"(?i)(?<![A-Za-z0-9_-])(?:[\"'])?(?P<name>[A-Za-z_-]+)$",
             candidate,
@@ -199,11 +436,14 @@ class _StreamingSanitizer:
         if match is None:
             return False
         fragment = match.group("name").casefold()
-        return any(name.startswith(fragment) for name in _FIELD_NAMES)
+        return any(name.startswith(fragment) for name in _ARRAY_FIELD_NAMES)
 
     def _consume_secret(self, output: list[str]) -> None:
         quote = self._secret_quote
         if quote:
+            if self._encoded_quote_width:
+                self._consume_escaped_secret(output, quote)
+                return
             index = 0
             while index < len(self._pending):
                 character = self._pending[index]
@@ -212,7 +452,7 @@ class _StreamingSanitizer:
                 elif character == "\\":
                     self._secret_escape = True
                 elif character == quote:
-                    output.append(character)
+                    self._emit(output, character)
                     self._pending = self._pending[index + 1 :]
                     self._secret_quote = None
                     self._secret_escape = False
@@ -229,13 +469,160 @@ class _StreamingSanitizer:
                 # itself stays discarded, but retain the escape marker so the
                 # surrounding event remains valid JSON across pipe reads.
                 if character in {"\"", "'"} and escaped:
-                    output.append("\\")
-                output.append(character)
+                    self._emit(output, "\\")
+                self._emit(output, character)
                 self._pending = self._pending[index + 1 :]
                 self._secret_quote = None
                 self._secret_escape = False
                 return
         self._pending = ""
+
+    def _consume_escaped_secret(self, output: list[str], quote: str) -> None:
+        """Discard an escaped JSON value until its matching encoded quote."""
+        width = self._encoded_quote_width
+        for index, character in enumerate(self._pending):
+            if character == "\\":
+                self._encoded_backslashes += 1
+                continue
+            if character == quote:
+                quotient, remainder = divmod(self._encoded_backslashes + 1, width + 1)
+                if remainder == 0 and quotient % 2:
+                    self._emit(output, "\\" * self._encoded_backslashes)
+                    self._emit(output, character)
+                    self._pending = self._pending[index + 1 :]
+                    self._secret_quote = None
+                    self._secret_escape = False
+                    self._encoded_quote_width = 0
+                    self._encoded_backslashes = 0
+                    return
+            self._encoded_backslashes = 0
+        self._pending = ""
+
+    def _start_byte_array(self) -> None:
+        self._byte_array_depth = 1
+        self._byte_array_quote = None
+        self._byte_array_escape = False
+        self._byte_array_token = ""
+        self._byte_array_token_overflow = False
+        self._byte_array_decoder = codecs.getincrementaldecoder("utf-8")(errors="surrogateescape")
+        self._byte_array_sanitizer = _StreamingSanitizer(decode_byte_arrays=False)
+        self._byte_array_text_buffer = ""
+        self._byte_array_input_hash = hashlib.sha256()
+        self._byte_array_output_hash = hashlib.sha256()
+        self._byte_array_input_bytes = 0
+        self._byte_array_output_bytes = 0
+        self._byte_array_has_output = False
+        self._byte_array_invalid = False
+
+    def _consume_byte_array(self, output: list[str]) -> None:
+        """Decode, sanitize, and re-encode a bounded rawOutput byte transport."""
+        for index, character in enumerate(self._pending):
+            if self._byte_array_quote is not None:
+                if self._byte_array_escape:
+                    self._byte_array_escape = False
+                elif character == "\\":
+                    self._byte_array_escape = True
+                elif character == self._byte_array_quote:
+                    self._byte_array_quote = None
+                continue
+            if character in {"\"", "'"}:
+                self._byte_array_quote = character
+                self._byte_array_invalid = True
+            elif character == "[":
+                self._byte_array_depth += 1
+                self._byte_array_invalid = True
+            elif character == "]":
+                self._flush_byte_array_token(output)
+                self._byte_array_depth -= 1
+                if self._byte_array_depth == 0:
+                    self._finish_byte_array(output)
+                    self._emit(output, "]")
+                    self._pending = self._pending[index + 1 :]
+                    return
+            elif character.isdigit():
+                if len(self._byte_array_token) < 3 and not self._byte_array_token_overflow:
+                    self._byte_array_token += character
+                else:
+                    self._byte_array_token_overflow = True
+                    self._byte_array_invalid = True
+            elif character in " \t\r\n,":
+                self._flush_byte_array_token(output)
+            else:
+                self._byte_array_invalid = True
+        self._pending = ""
+
+    def _flush_byte_array_token(self, output: list[str]) -> None:
+        if self._byte_array_token_overflow:
+            self._byte_array_token = ""
+            self._byte_array_token_overflow = False
+            return
+        if not self._byte_array_token:
+            return
+        value = int(self._byte_array_token)
+        self._byte_array_token = ""
+        if value > 255:
+            self._byte_array_invalid = True
+            return
+        raw = bytes((value,))
+        assert self._byte_array_decoder is not None
+        assert self._byte_array_input_hash is not None
+        self._byte_array_input_hash.update(raw)
+        self._byte_array_input_bytes += 1
+        self._sanitize_byte_array_text(output, self._byte_array_decoder.decode(raw, final=False))
+
+    def _sanitize_byte_array_text(self, output: list[str], text: str) -> None:
+        if not text:
+            return
+        assert self._byte_array_sanitizer is not None
+        self._byte_array_text_buffer += text
+        if len(self._byte_array_text_buffer) >= _NORMAL_HOLD_CHARS:
+            self._emit_byte_array_text(
+                output, self._byte_array_sanitizer.feed(self._byte_array_text_buffer),
+            )
+            self._byte_array_text_buffer = ""
+
+    def _emit_byte_array_text(self, output: list[str], text: str) -> None:
+        if not text:
+            return
+        assert self._byte_array_output_hash is not None
+        encoded = text.encode("utf-8", errors="surrogateescape")
+        self._byte_array_output_hash.update(encoded)
+        self._byte_array_output_bytes += len(encoded)
+        for value in encoded:
+            if self._byte_array_has_output:
+                self._emit(output, ",")
+            self._emit(output, str(value))
+            self._byte_array_has_output = True
+
+    def _finish_byte_array(self, output: list[str]) -> None:
+        assert self._byte_array_decoder is not None
+        assert self._byte_array_sanitizer is not None
+        assert self._byte_array_input_hash is not None
+        assert self._byte_array_output_hash is not None
+        self._sanitize_byte_array_text(output, self._byte_array_decoder.decode(b"", final=True))
+        if self._byte_array_text_buffer:
+            self._emit_byte_array_text(
+                output, self._byte_array_sanitizer.feed(self._byte_array_text_buffer),
+            )
+            self._byte_array_text_buffer = ""
+        self._emit_byte_array_text(output, self._byte_array_sanitizer.finish())
+        if self._byte_array_invalid:
+            self.invalid_byte_arrays += 1
+        elif (
+            self._byte_array_input_bytes != self._byte_array_output_bytes
+            or self._byte_array_input_hash.digest() != self._byte_array_output_hash.digest()
+        ):
+            self.redacted_byte_arrays += 1
+        self._byte_array_depth = 0
+        self._byte_array_quote = None
+        self._byte_array_escape = False
+        self._byte_array_token = ""
+        self._byte_array_token_overflow = False
+        self._byte_array_decoder = None
+        self._byte_array_sanitizer = None
+        self._byte_array_text_buffer = ""
+        self._byte_array_input_hash = None
+        self._byte_array_output_hash = None
 
 
 def _sanitize_text(value: str) -> str:
@@ -346,6 +733,8 @@ class _StreamCapture:
                 "invalid_json_lines": self.invalid_json_lines,
                 "line_truncations": self.line_truncations,
                 "line_dropped_characters": self.line_dropped_characters,
+                "redacted_byte_arrays": self.sanitizer.redacted_byte_arrays,
+                "invalid_byte_arrays": self.sanitizer.invalid_byte_arrays,
             }
 
     def _consume_safe(self, safe: str) -> None:
@@ -704,6 +1093,8 @@ def capture_process(
         duration_seconds = round(time.monotonic() - started_monotonic, 6)
         streams = {"stdout": stdout_stream.snapshot(), "stderr": stderr_stream.snapshot()}
         events = stdout_stream.events
+        redacted_byte_arrays = sum(row["redacted_byte_arrays"] for row in streams.values())
+        invalid_byte_arrays = sum(row["invalid_byte_arrays"] for row in streams.values())
         result: dict[str, Any] = {
             "argv": [_sanitize_text(item) for item in argv],
             "cwd": str(cwd_path),
@@ -730,11 +1121,17 @@ def capture_process(
                 "written_bytes": events.written_bytes,
                 "dropped_bytes": events.dropped_bytes,
                 "truncated": events.truncated,
+                "redacted_byte_arrays": redacted_byte_arrays,
+                "invalid_byte_arrays": invalid_byte_arrays,
             },
+            "redacted_byte_arrays": redacted_byte_arrays,
+            "invalid_byte_arrays": invalid_byte_arrays,
         }
         result["invalid_json_count"] = sum(row["invalid_json_lines"] for row in streams.values())
         result["truncated"] = bool(
-            events.truncated or any(row["truncated"] or row["line_truncations"] for row in streams.values())
+            invalid_byte_arrays
+            or events.truncated
+            or any(row["truncated"] or row["line_truncations"] for row in streams.values())
         )
         result["dropped_bytes"] = events.dropped_bytes + sum(row["dropped_bytes"] for row in streams.values())
         result["group_termination"] = group_termination

@@ -163,6 +163,442 @@ os.write(1, b'\\xa9\\"}\\n')
         self.assertNotIn("supersecret", persisted)
         self.assertIn('"api_key"\n: "[redacted]"}', persisted)
 
+    def test_supported_field_spellings_split_across_newline_remain_redacted(self) -> None:
+        names = (
+            "api-key", "api_key", "apikey",
+            "secret", "secret-key", "secret_key", "secretkey",
+            "password", "passwd", "token",
+            "access-token", "access_token", "accessToken",
+            "refresh-token", "refresh_token", "refreshToken",
+            "client-secret", "client_secret", "clientSecret",
+            "private-key", "private_key", "privateKey",
+            "auth", "authorization", "credential", "key",
+        )
+        for name in names:
+            with self.subTest(name=name):
+                value = f"synthetic-{name}"
+                sanitizer = capture._StreamingSanitizer()
+                persisted = (
+                    sanitizer.feed("{" + json.dumps(name) + "\n")
+                    + sanitizer.feed(f': {json.dumps(value)}}}\n')
+                    + sanitizer.finish()
+                )
+                self.assertNotIn(value, persisted)
+                self.assertEqual(json.loads(persisted), {name: "[redacted]"})
+
+    def test_multiline_field_colon_and_leading_space_value_remain_redacted(self) -> None:
+        value = " synthetic-multiline-access"
+        source = '{"pad":"' + "x" * 300 + '","access-token"\n:\n' + json.dumps(value) + "}"
+        expected = {"pad": "x" * 300, "access-token": "[redacted]"}
+
+        for split in range(len(source) + 1):
+            with self.subTest(split=split):
+                sanitizer = capture._StreamingSanitizer()
+                persisted = (
+                    sanitizer.feed(source[:split])
+                    + sanitizer.feed(source[split:])
+                    + sanitizer.finish()
+                )
+                self.assertNotIn(value, persisted)
+                self.assertEqual(json.loads(persisted), expected)
+
+    def test_field_state_handles_long_whitespace_and_escaped_serialization(self) -> None:
+        value = " synthetic-spaced-value"
+        before_separator = " " * 1_000 + "\n\t"
+        before_value = "\t\n" + " " * 1_000
+        source = '{"accessToken"' + before_separator + ":" + before_value + json.dumps(value) + "}"
+        expected = {"accessToken": "[redacted]"}
+        colon = source.index(":")
+
+        for chunks in (
+            [source[index : index + 257] for index in range(0, len(source), 257)],
+            [source[: colon + 1], source[colon + 1 :]],
+        ):
+            sanitizer = capture._StreamingSanitizer()
+            persisted = "".join(sanitizer.feed(chunk) for chunk in chunks) + sanitizer.finish()
+            self.assertNotIn(value, persisted)
+            self.assertEqual(json.loads(persisted), expected)
+
+        inner = '{"accessToken"' + " " * 300 + ": " + json.dumps(value) + "}"
+        escaped_source = json.dumps({"content": inner})
+        sanitizer = capture._StreamingSanitizer()
+        escaped_persisted = "".join(
+            sanitizer.feed(escaped_source[index : index + 257])
+            for index in range(0, len(escaped_source), 257)
+        ) + sanitizer.finish()
+        self.assertNotIn(value, escaped_persisted)
+        self.assertEqual(
+            json.loads(escaped_persisted),
+            {"content": '{"accessToken"' + " " * 300 + ': "[redacted]"}'},
+        )
+
+        prose = '"token"' + before_separator + "ordinary prose"
+        sanitizer = capture._StreamingSanitizer()
+        persisted_prose = "".join(
+            sanitizer.feed(prose[index : index + 257])
+            for index in range(0, len(prose), 257)
+        ) + sanitizer.finish()
+        self.assertEqual(persisted_prose, prose)
+
+    def test_field_state_redacts_value_forms_at_every_serialization_depth(self) -> None:
+        values = (
+            ("empty", ""),
+            ("backslash", r"\synthetic-backslash"),
+            ("escaped_quote", 'synthetic " quote'),
+            ("newline", "synthetic\nnewline"),
+        )
+        expected_inner = {"nonsecret": "preserved", "accessToken": "[redacted]"}
+        for name, value in values:
+            for depth in range(3):
+                inner = (
+                    '{"nonsecret":"preserved","accessToken"'
+                    + " " * 300
+                    + ": "
+                    + json.dumps(value)
+                    + "}"
+                )
+                source = inner
+                for _ in range(depth):
+                    source = json.dumps({"content": source})
+                sanitizer = capture._StreamingSanitizer()
+                persisted = "".join(sanitizer.feed(character) for character in source) + sanitizer.finish()
+                with self.subTest(value=name, depth=depth):
+                    if value:
+                        self.assertNotIn(value, persisted)
+                    payload: object = json.loads(persisted)
+                    for _ in range(depth):
+                        self.assertIsInstance(payload, dict)
+                        payload = json.loads(payload["content"])
+                    self.assertEqual(payload, expected_inner)
+
+    def test_normal_flush_preserves_left_boundaries_for_tokens_and_fields(self) -> None:
+        def after_flush(prefix: str, suffix: str, split: int) -> str:
+            sanitizer = capture._StreamingSanitizer()
+            output: list[str] = []
+            sanitizer._emit(output, prefix)
+            return (
+                "".join(output)
+                + sanitizer.feed(suffix[:split])
+                + sanitizer.feed(suffix[split:])
+                + sanitizer.finish()
+            )
+
+        for prefix_length in (256, 257, 16 * 1024):
+            command_prefix = "a" * (prefix_length + 1)
+            for command in ("sk-codex", "sk-astra"):
+                prefix = '{"available_commands":["' + command_prefix
+                suffix = command + '"]}'
+                source = prefix + suffix
+                for split in range(len(suffix) + 1):
+                    with self.subTest(prefix_length=prefix_length, command=command, split=split):
+                        self.assertEqual(after_flush(prefix, suffix, split), source)
+            prefix = command_prefix
+            suffix = 'accessToken: "ordinary-value"'
+            for split in range(len(suffix) + 1):
+                with self.subTest(prefix_length=prefix_length, field_split=split):
+                    self.assertEqual(after_flush(prefix, suffix, split), prefix + suffix)
+
+        sanitizer = capture._StreamingSanitizer()
+        self.assertEqual(sanitizer.feed("sk-synthetic") + sanitizer.finish(), "[redacted]")
+
+    def test_escaped_json_credential_fields_are_redacted_at_every_chunk_boundary(self) -> None:
+        source = json.dumps({
+            "content": '{"accessToken":"synthetic-access", "refreshToken":"synthetic-refresh"}',
+        })
+        expected = {
+            "content": '{"accessToken":"[redacted]", "refreshToken":"[redacted]"}',
+        }
+
+        for split in range(len(source) + 1):
+            with self.subTest(split=split):
+                sanitizer = capture._StreamingSanitizer()
+                persisted = (
+                    sanitizer.feed(source[:split])
+                    + sanitizer.feed(source[split:])
+                    + sanitizer.finish()
+                )
+                self.assertNotIn("synthetic-access", persisted)
+                self.assertNotIn("synthetic-refresh", persisted)
+                self.assertEqual(json.loads(persisted), expected)
+
+    def test_escaped_json_fields_cover_every_supported_credential_key(self) -> None:
+        names = sorted(capture._FIELD_NAMES | {
+            "accessToken",
+            "refreshToken",
+            "apiKey",
+            "clientSecret",
+            "privateKey",
+            "ACCESS_TOKEN",
+            "Refresh-Token",
+        })
+        source = json.dumps({
+            "content": json.dumps({name: f"synthetic-{index}" for index, name in enumerate(names)}),
+        })
+        expected = {name: "[redacted]" for name in names}
+
+        sanitizer = capture._StreamingSanitizer()
+        persisted = "".join(
+            sanitizer.feed(source[index : index + 1]) for index in range(len(source))
+        ) + sanitizer.finish()
+        for index in range(len(names)):
+            self.assertNotIn(f"synthetic-{index}", persisted)
+        self.assertEqual(json.loads(json.loads(persisted)["content"]), expected)
+
+    def test_quoted_field_value_split_after_colon_and_space_remains_redacted(self) -> None:
+        source = json.dumps({
+            "accessToken": "synthetic-access",
+            "refreshToken": "synthetic-refresh",
+        })
+        quote = source.index('"', source.index(":") + 1)
+
+        for split in (quote, quote + 1):
+            with self.subTest(split=split):
+                sanitizer = capture._StreamingSanitizer()
+                persisted = (
+                    sanitizer.feed(source[:split])
+                    + sanitizer.feed(source[split:])
+                    + sanitizer.finish()
+                )
+                self.assertNotIn("synthetic-access", persisted)
+                self.assertNotIn("synthetic-refresh", persisted)
+                self.assertEqual(
+                    json.loads(persisted),
+                    {"accessToken": "[redacted]", "refreshToken": "[redacted]"},
+                )
+
+    def test_quoted_credential_values_with_leading_spaces_remain_redacted(self) -> None:
+        value = {
+            "accessToken": " synthetic-leading-access",
+            "refreshToken": " synthetic-leading-refresh",
+        }
+        expected = {name: "[redacted]" for name in value}
+        sources = (
+            (json.dumps(value), expected),
+            (
+                json.dumps({"rawOutput": {"output": list(json.dumps(value).encode("utf-8"))}}),
+                {"rawOutput": {"output": list(json.dumps(expected).encode("utf-8"))}},
+            ),
+        )
+        for source, expected_payload in sources:
+            for split in range(len(source) + 1):
+                with self.subTest(byte_transport="rawOutput" in source, split=split):
+                    sanitizer = capture._StreamingSanitizer()
+                    persisted = (
+                        sanitizer.feed(source[:split])
+                        + sanitizer.feed(source[split:])
+                        + sanitizer.finish()
+                    )
+                    self.assertNotIn(value["accessToken"], persisted)
+                    self.assertNotIn(value["refreshToken"], persisted)
+                    self.assertEqual(json.loads(persisted), expected_payload)
+
+    def test_nested_escaped_json_credential_fields_are_redacted_at_every_chunk_boundary(self) -> None:
+        nested = json.dumps({
+            "output_for_prompt": json.dumps({
+                "accessToken": "synthetic-access",
+                "refreshToken": "synthetic-refresh",
+            }),
+        })
+        source = json.dumps({"content": nested})
+        expected = {
+            "output_for_prompt": json.dumps({
+                "accessToken": "[redacted]",
+                "refreshToken": "[redacted]",
+            }),
+        }
+
+        for split in range(len(source) + 1):
+            with self.subTest(split=split):
+                sanitizer = capture._StreamingSanitizer()
+                persisted = (
+                    sanitizer.feed(source[:split])
+                    + sanitizer.feed(source[split:])
+                    + sanitizer.finish()
+                )
+                self.assertNotIn("synthetic-access", persisted)
+                self.assertNotIn("synthetic-refresh", persisted)
+                content = json.loads(persisted)["content"]
+                self.assertEqual(json.loads(content), expected)
+
+    def test_escaped_json_credential_values_can_contain_escapes_and_newlines(self) -> None:
+        source = json.dumps({
+            "content": (
+                '{"accessToken":"synthetic-access\\nwith an \\"escaped\\" quote", '
+                '"refreshToken":"synthetic-refresh\\nsecond line"}'
+            ),
+        })
+        expected = {
+            "content": '{"accessToken":"[redacted]", "refreshToken":"[redacted]"}',
+        }
+
+        sanitizer = capture._StreamingSanitizer()
+        persisted = "".join(
+            sanitizer.feed(source[index : index + 1]) for index in range(len(source))
+        ) + sanitizer.finish()
+        self.assertNotIn("synthetic-access", persisted)
+        self.assertNotIn("synthetic-refresh", persisted)
+        self.assertEqual(json.loads(persisted), expected)
+
+    def test_grok_byte_array_transports_are_removed_before_persistence(self) -> None:
+        embedded = json.dumps({
+            "accessToken": "synthetic-access",
+            "refreshToken": "synthetic-refresh",
+        })
+        encoded = list(embedded.encode("utf-8"))
+        file_content = json.dumps({"content": embedded, "output": [79, 75]})
+        source = json.dumps(
+            {
+                "type": "tool_call_update",
+                "rawOutput": {
+                    "content": embedded,
+                    "output": encoded,
+                    "stdout": [79, 75],
+                    "stderr": [1, 2],
+                    "exitCode": 0,
+                },
+                "FileContent": file_content,
+            },
+            indent=2,
+        )
+        expected_embedded = {
+            "accessToken": "[redacted]",
+            "refreshToken": "[redacted]",
+        }
+        expected_encoded = list(json.dumps(expected_embedded).encode("utf-8"))
+
+        sanitizer = capture._StreamingSanitizer()
+        persisted = "".join(
+            sanitizer.feed(source[index : index + 1]) for index in range(len(source))
+        ) + sanitizer.finish()
+        payload = json.loads(persisted)
+        self.assertNotIn("synthetic-access", persisted)
+        self.assertNotIn("synthetic-refresh", persisted)
+        self.assertEqual(json.loads(payload["rawOutput"]["content"]), expected_embedded)
+        self.assertEqual(payload["rawOutput"]["output"], expected_encoded)
+        self.assertEqual(payload["rawOutput"]["stdout"], [79, 75])
+        self.assertEqual(payload["rawOutput"]["stderr"], [1, 2])
+        self.assertEqual(payload["rawOutput"]["exitCode"], 0)
+        nested = json.loads(payload["FileContent"])
+        self.assertEqual(json.loads(nested["content"]), expected_embedded)
+        self.assertEqual(nested["output"], [79, 75])
+
+    def test_unclosed_grok_byte_array_is_discarded_without_retaining_its_values(self) -> None:
+        encoded = list(b'{"accessToken":"synthetic-access"}')
+        source = '{"rawOutput": {"output": ' + json.dumps(encoded)[:-1]
+        sanitizer = capture._StreamingSanitizer()
+        persisted = "".join(
+            sanitizer.feed(source[index : index + 1]) for index in range(len(source))
+        ) + sanitizer.finish()
+        self.assertNotIn(json.dumps(encoded), persisted)
+        self.assertNotIn("synthetic-access", persisted)
+
+    def test_arrays_outside_raw_output_are_preserved(self) -> None:
+        source = json.dumps({
+            "type": "future.event",
+            "rawOutput": {"stdout": [79, 75]},
+            "output": [1, 2],
+            "metrics": {"stdout": [3, 4], "stderr": [5, 6], "bytes": [7, 8]},
+        })
+        sanitizer = capture._StreamingSanitizer()
+        persisted = sanitizer.feed(source) + sanitizer.finish()
+        self.assertEqual(json.loads(persisted), json.loads(source))
+
+    def test_raw_output_byte_array_preserves_multibyte_and_non_utf8_values(self) -> None:
+        raw = "café".encode("utf-8") + b"\xff"
+        source = json.dumps({"rawOutput": {"stdout": list(raw)}})
+        sanitizer = capture._StreamingSanitizer()
+        persisted = "".join(
+            sanitizer.feed(source[index : index + 1]) for index in range(len(source))
+        ) + sanitizer.finish()
+        self.assertEqual(json.loads(persisted)["rawOutput"]["stdout"], list(raw))
+
+    def test_invalid_raw_output_byte_array_marks_capture_incomplete(self) -> None:
+        source = json.dumps({"rawOutput": {"output": [9999]}})
+        code = f"import sys; sys.stdout.write({source!r} + '\\n'); sys.stdout.flush()"
+
+        with tempfile.TemporaryDirectory() as temporary:
+            result, output = self.capture_code(Path(temporary), code)
+            payload = self.events(output)[0]["payload"]
+
+        self.assertEqual(result["exit_code"], 0)
+        self.assertTrue(result["truncated"])
+        self.assertEqual(result["invalid_byte_arrays"], 1)
+        self.assertEqual(payload, {"rawOutput": {"output": []}})
+
+    def test_capture_process_redacts_escaped_json_credentials_from_byte_chunks(self) -> None:
+        embedded = '{"accessToken":"synthetic-access", "refreshToken":"synthetic-refresh"}'
+        encoded = list(embedded.encode("utf-8"))
+        source = json.dumps({
+            "type": "tool_call_update",
+            "rawOutput": {"content": embedded, "output": encoded, "exitCode": 0},
+            "FileContent": embedded,
+        })
+        split = source.index("synthetic-access") + len("synthetic-access") // 2
+        chunks = (source[:split].encode("utf-8"), (source[split:] + "\n").encode("utf-8"))
+        code = f"""import os, time
+chunks = {chunks!r}
+os.write(1, chunks[0])
+time.sleep(0.02)
+os.write(1, chunks[1])
+"""
+
+        with tempfile.TemporaryDirectory() as temporary:
+            result, output = self.capture_code(Path(temporary), code)
+            persisted = "\n".join(
+                [
+                    (output / "stdout.log").read_text(encoding="utf-8"),
+                    (output / "events.jsonl").read_text(encoding="utf-8"),
+                    json.dumps(result, ensure_ascii=False),
+                ]
+            )
+            events = self.events(output)
+
+        self.assertEqual(result["exit_code"], 0)
+        self.assertEqual(result["invalid_json_count"], 0)
+        self.assertFalse(result["truncated"])
+        self.assertEqual(result["redacted_byte_arrays"], 1)
+        self.assertEqual(result["streams"]["stdout"]["redacted_byte_arrays"], 1)
+        self.assertNotIn("synthetic-access", persisted)
+        self.assertNotIn("synthetic-refresh", persisted)
+        self.assertEqual(
+            events[0]["payload"],
+            {
+                "type": "tool_call_update",
+                "rawOutput": {
+                    "content": '{"accessToken":"[redacted]", "refreshToken":"[redacted]"}',
+                    "output": list(
+                        b'{"accessToken":"[redacted]", "refreshToken":"[redacted]"}'
+                    ),
+                    "exitCode": 0,
+                },
+                "FileContent": '{"accessToken":"[redacted]", "refreshToken":"[redacted]"}',
+            },
+        )
+
+    def test_line_limit_cannot_retain_a_grok_byte_array_prefix(self) -> None:
+        embedded = '{"accessToken":"synthetic-access", "refreshToken":"synthetic-refresh"}'
+        encoded = list(embedded.encode("utf-8"))
+        source = json.dumps({
+            "type": "tool_call_update",
+            "rawOutput": {"output": encoded, "exitCode": 0},
+            "FileContent": embedded,
+            "after": "x" * 512,
+        })
+        code = f"import sys; sys.stdout.write({source!r} + '\\n'); sys.stdout.flush()"
+        line_limit = source.index('"FileContent"')
+
+        with tempfile.TemporaryDirectory() as temporary:
+            result, output = self.capture_code(
+                Path(temporary), code, max_event_line_chars=line_limit,
+            )
+            event = self.events(output)[0]
+            stdout = (output / "stdout.log").read_text(encoding="utf-8")
+
+        self.assertEqual(result["exit_code"], 0)
+        self.assertTrue(event["line_truncated"])
+        self.assertNotIn(json.dumps(encoded), event["line"])
+        self.assertNotIn(json.dumps(encoded), stdout)
+
     def test_raw_token_redaction_preserves_escaped_quote_across_chunk_boundaries(self) -> None:
         value = 'See "https://github.com/xai-org/example" then continue.'
         source = json.dumps(
