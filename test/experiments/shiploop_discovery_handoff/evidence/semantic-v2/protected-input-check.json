@@ -1,0 +1,13 @@
+{
+  "local": {
+    "protected_inputs_match": true,
+    "packet_matches": true,
+    "note_words": 480
+  },
+  "multi": {
+    "protected_inputs_match": true,
+    "packet_matches": true,
+    "note_words": 615
+  },
+  "snapshot_matches": true
+}

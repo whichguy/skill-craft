@@ -1,0 +1,15 @@
+{
+  "command": "python3 -B test/shiploop-v3-guidance.test.py",
+  "cwd": "/Users/dadleet/src/skill-craft-discovery-handoff",
+  "elapsed_sec": 1.6765689849853516,
+  "exit_code": 0,
+  "finished_epoch": 1789921741.785234,
+  "index": 3,
+  "result": "PASS",
+  "started_epoch": 1789921740.108665,
+  "stderr_bytes": 6994,
+  "stderr_path": "/Users/dadleet/tmp/shiploop-discovery-implementation-20260920/candidate-checks/command-03.stderr.log",
+  "stdout_bytes": 0,
+  "stdout_path": "/Users/dadleet/tmp/shiploop-discovery-implementation-20260920/candidate-checks/command-03.stdout.log",
+  "timed_out": false
+}

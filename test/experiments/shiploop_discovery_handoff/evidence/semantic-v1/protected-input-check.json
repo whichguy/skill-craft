@@ -1,0 +1,15 @@
+{
+  "local": {
+    "protected_inputs_match": true,
+    "packet_matches": true,
+    "note_words": 409
+  },
+  "multi": {
+    "protected_inputs_match": true,
+    "packet_matches": true,
+    "note_words": 626
+  },
+  "snapshot_matches": true,
+  "cold_stage": "plan",
+  "navigator": "/Users/dadleet/tmp/shiploop-discovery-implementation-20260920/semantic-v1/source-snapshot/skills/shiploop/scripts/shiploop_navigator.py"
+}

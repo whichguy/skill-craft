@@ -1,0 +1,40 @@
+root=/Users/dadleet/src/skill-craft-discovery-handoff
+head=98c72b65bdd3bae624bb4939497a58d0fdd25621
+status_begin
+ M .grok-plugin/marketplace.json
+ M README.md
+ M plugins/shiploop/.claude-plugin/plugin.json
+ M plugins/shiploop/.codex-plugin/plugin.json
+ M plugins/shiploop/.cursor-plugin/plugin.json
+ M plugins/shiploop/skills/shiploop/SKILL.md
+ M plugins/shiploop/skills/shiploop/references/project-knowledge.md
+ M plugins/shiploop/skills/shiploop/references/research-loop.md
+ M plugins/shiploop/skills/shiploop/references/service-discovery.md
+ M plugins/shiploop/skills/shiploop/scripts/shiploop_navigator_v3_prompts.py
+ M skills/shiploop/SKILL.md
+ M skills/shiploop/references/project-knowledge.md
+ M skills/shiploop/references/research-loop.md
+ M skills/shiploop/references/service-discovery.md
+ M skills/shiploop/scripts/shiploop_navigator_v3_prompts.py
+ M test/shiploop-planning-context.test.py
+ M test/shiploop-v3-guidance.test.py
+?? docs/shiploop-discovery-handoff-2026-09-20.md
+?? test/experiments/shiploop_discovery_handoff/README.md
+?? test/experiments/shiploop_discovery_handoff/SEMANTIC-PROTOCOL.md
+?? test/experiments/shiploop_discovery_handoff/apparatus/prepare.py
+?? test/experiments/shiploop_discovery_handoff/apparatus/prepare_cold.py
+?? test/experiments/shiploop_discovery_handoff/apparatus/probe.py
+status_end
+raw_path_count=3243
+non_file_raw_paths=["test/experiments/shiploop_e2e"]
+count=3242
+fingerprint=9a255033007e335edd751fb20fb62acddc74a9e3cc6e1b06942d0096665cad37
+expected_count=3242
+expected_fingerprint=9a255033007e335edd751fb20fb62acddc74a9e3cc6e1b06942d0096665cad37
+manifest_count=3242
+missing_count=0
+missing=[]
+extra_count=0
+extra=[]
+mismatch_count=0
+mismatch=[]

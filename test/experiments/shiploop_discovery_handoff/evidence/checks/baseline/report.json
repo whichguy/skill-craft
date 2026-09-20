@@ -1,0 +1,57 @@
+{
+  "report_status": "PASS",
+  "source_dir": "/Users/dadleet/src/skill-craft-discovery-handoff",
+  "docs": "test/README.md",
+  "source_identity": {
+    "pre_head": "98c72b65bdd3bae624bb4939497a58d0fdd25621",
+    "post_head": "98c72b65bdd3bae624bb4939497a58d0fdd25621",
+    "head_unchanged": true,
+    "pre_tracked_content_sha256": "bc528ffcd1c71a8845a2533adb0c278d3771e79f2c273201090d037f1089b1cd",
+    "post_tracked_content_sha256": "bc528ffcd1c71a8845a2533adb0c278d3771e79f2c273201090d037f1089b1cd",
+    "tracked_content_unchanged": true,
+    "pre_status_path": "/Users/dadleet/tmp/shiploop-discovery-implementation-20260920/baseline/pre.status.short",
+    "post_status_path": "/Users/dadleet/tmp/shiploop-discovery-implementation-20260920/baseline/post.status.short",
+    "status_unchanged": true,
+    "head_diff_path": "/Users/dadleet/tmp/shiploop-discovery-implementation-20260920/baseline/head.diff",
+    "status_diff_path": "/Users/dadleet/tmp/shiploop-discovery-implementation-20260920/baseline/status.diff"
+  },
+  "declared_generated_exclusions": [
+    "**/__pycache__/**",
+    "**/*.pyc"
+  ],
+  "checks": [
+    {
+      "index": 1,
+      "command": "python3 -B test/shiploop-research-template.test.py",
+      "exit": 0,
+      "elapsed_ms": 154,
+      "stdout_path": "/Users/dadleet/tmp/shiploop-discovery-implementation-20260920/baseline/01-shiploop-research-template.stdout.log",
+      "stderr_path": "/Users/dadleet/tmp/shiploop-discovery-implementation-20260920/baseline/01-shiploop-research-template.stderr.log"
+    },
+    {
+      "index": 2,
+      "command": "python3 -B test/shiploop-reference-routing.test.py",
+      "exit": 0,
+      "elapsed_ms": 1284,
+      "stdout_path": "/Users/dadleet/tmp/shiploop-discovery-implementation-20260920/baseline/02-shiploop-reference-routing.stdout.log",
+      "stderr_path": "/Users/dadleet/tmp/shiploop-discovery-implementation-20260920/baseline/02-shiploop-reference-routing.stderr.log"
+    },
+    {
+      "index": 3,
+      "command": "python3 -B test/shiploop-v3-guidance.test.py",
+      "exit": 0,
+      "elapsed_ms": 1294,
+      "stdout_path": "/Users/dadleet/tmp/shiploop-discovery-implementation-20260920/baseline/03-shiploop-v3-guidance.stdout.log",
+      "stderr_path": "/Users/dadleet/tmp/shiploop-discovery-implementation-20260920/baseline/03-shiploop-v3-guidance.stderr.log"
+    },
+    {
+      "index": 4,
+      "command": "bash test/run-all.sh --group smoke",
+      "exit": 0,
+      "elapsed_ms": 112691,
+      "stdout_path": "/Users/dadleet/tmp/shiploop-discovery-implementation-20260920/baseline/04-run-all-smoke.stdout.log",
+      "stderr_path": "/Users/dadleet/tmp/shiploop-discovery-implementation-20260920/baseline/04-run-all-smoke.stderr.log"
+    }
+  ],
+  "raw_logs_dir": "/Users/dadleet/tmp/shiploop-discovery-implementation-20260920/baseline"
+}

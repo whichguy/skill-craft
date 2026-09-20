@@ -1,0 +1,23 @@
+# Discovery baseline
+
+Command (cwd: `/Users/dadleet/tmp/shiploop-discovery-implementation-20260920/semantic-v1/cases/multi/workspace`):
+
+```sh
+python3 -B -m unittest discover -v
+```
+
+Checked content: unchanged fixture workspace before discovery proposals.
+Target: local Python fixture only; remote observations were not exercised.
+
+Output:
+
+```text
+test_binding_name (test_fixture.Baseline.test_binding_name) ... ok
+
+----------------------------------------------------------------------
+Ran 1 test in 0.000s
+
+OK
+```
+
+Result: passed (1 test). Coverage limit: this verifies only the CRM runtime alias; it does not verify CRM access, document-worker identity, remote invocation, authorization, persistence, or completion behavior.

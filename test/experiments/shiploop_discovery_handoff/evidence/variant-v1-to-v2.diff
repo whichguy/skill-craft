@@ -1,0 +1,38 @@
+--- semantic-v1/references/research-loop.md
++++ semantic-v2/references/research-loop.md
+@@ -213,2 +213,4 @@
+-decisions still at risk. If direct inspection and the relevant checks can settle
+-them, **omit an investigation-plan section and field table**; one sentence in the
++decisions still at risk. First check the plan triggers below; revisit them when
++new evidence creates a material conflict or dependency. If none applies and
++direct inspection and the relevant checks can settle the decisions,
++**omit an investigation-plan section and field table**; one sentence in the
+@@ -220,2 +222,4 @@
+-conflicting sources, expensive probes, or likely interruption, put a compact
+-investigation plan in the existing discovery/research note. For this branch only,
++materially conflicting sources, expensive probes, or likely interruption, put a
++compact investigation plan in the existing discovery/research note before further
++dependent probes. Keep its outcome/stop record even when the investigation is
++short; a retrospective list of gaps does not replace the plan. For this branch only,
+--- semantic-v1/references/project-knowledge.md
++++ semantic-v2/references/project-knowledge.md
+@@ -110,2 +110,3 @@
+-and follow its links as a fresh reader would. Each retained consequential decision
+-needs an exact note section, supporting observation/receipt locator, status
++and follow its links as a fresh reader would. Link each retained consequential
++decision from the index to its exact note section; a summary copied into the index
++does not replace that link. The note needs a supporting observation/receipt locator, status
+--- semantic-v1/scripts/shiploop_navigator_v3_prompts.py
++++ semantic-v2/scripts/shiploop_navigator_v3_prompts.py
+@@ -470,3 +470,4 @@
+-Use Discovery investigation guidance after the baseline: take its direct path
+-when inspection suffices; write a bounded plan in the existing note only when
+-the detailed guide's plan trigger applies.
++Use Discovery investigation guidance after the baseline: check its plan triggers
++first and again when evidence conflicts or dependencies emerge. When one applies,
++retain the bounded plan and its outcome in the existing note; otherwise take the
++direct path when inspection suffices.
+@@ -496 +497,2 @@
+-handoff: reopen index and decision links to their actual observations or receipts.
++handoff: ensure the index links to the exact decision-note section, then reopen
++that link and its actual observations or receipts as a fresh reader would.

@@ -207,6 +207,40 @@ Trace the requested actor interactions before choosing transports or shared
 state; retain the decision and its evidence in the existing notes for spec,
 global planning, step planning, and affected Improve reviews to consume.
 
+### Plan the investigation
+
+After the initial repository baseline, choose investigation depth from the
+decisions still at risk. First check the plan triggers below; revisit them when
+new evidence creates a material conflict or dependency. If none applies and
+direct inspection and the relevant checks can settle the decisions,
+**omit an investigation-plan section and field table**; one sentence in the
+existing note explaining the direct path is enough. A remote boundary alone does
+not require a separate plan, and a simple deployed component can still need a
+[runtime state decision](service-discovery.md#runtime-state-placement).
+
+When evidence gathering has consequential dependencies, independent owners,
+materially conflicting sources, expensive probes, or likely interruption, put a
+compact investigation plan in the existing discovery/research note before further
+dependent probes. Keep its outcome/stop record even when the investigation is
+short; a retrospective list of gaps does not replace the plan. For this branch only,
+name the question and affected decision, evidence already known, next evidence
+route, prerequisites, owner, permitted effects, time/attempt bound, and sufficient
+observation or stop condition. Reuse the current action's
+[shared research allowance](#budget-stopping-and-convergence); delegation does not
+multiply it. Split only investigations whose inputs and effects are independent.
+When a read needs a target or identity from an earlier observation, obtain that
+observation first. Revise the question frontier as evidence arrives, preserving
+dated findings and why a decision changed rather than silently rewriting history.
+
+End with the selected decision or unresolved question, its evidence and earliest
+affected consumer. An unknown contract needs research; an owner or access
+decision stays open; a known selected setup requirement can become prerequisite
+work before its consumer. Leave independent investigation eligible within the
+current action. Follow [decision boundaries](#decision-boundaries) and verify the
+[discovery evidence handoff](project-knowledge.md#discovery-evidence-handoff).
+This is organization within the existing action, not another stage, scheduler,
+state file, callback or Improve campaign.
+
 ### Early access readiness
 
 Notify early; block only work that needs the missing access. Start once a system,

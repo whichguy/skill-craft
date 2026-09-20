@@ -70,6 +70,7 @@ SERVICE_DISCOVERY_GUIDANCE_LABEL = "Service discovery guidance"
 SERVICE_DISCOVERY_ANCHORS = (
     "select-scope",
     "remote-capabilities-and-state",
+    "runtime-state-placement",
     "cache-and-authorization",
     "asynchronous-cooperation",
     "observability-coverage",
@@ -97,6 +98,11 @@ SERVICE_DISCOVERY_ROUTES = {
     )
     for stage, anchor in SERVICE_DISCOVERY_STAGE_ANCHORS.items()
 }
+
+DISCOVERY_INVESTIGATION_GUIDANCE_LABEL = "Discovery investigation guidance"
+DISCOVERY_INVESTIGATION_GUIDE = "research-loop.md"
+DISCOVERY_INVESTIGATION_ANCHOR = "plan-the-investigation"
+DISCOVERY_INVESTIGATION_STAGES = ("discovery", "research")
 
 CURRENT_SYSTEM_BASELINE_GUIDE = "current-system-baseline.md"
 CURRENT_SYSTEM_BASELINE_GUIDANCE_LABEL = "Current-system baseline guide"
@@ -1680,6 +1686,65 @@ class V3GuidanceTests(unittest.TestCase):
         self.assertIn("returning to the original source branch triggers CI, deployment", discovery)
         self.assertIn("source-return trigger", prepare)
         self.assertIn("do not return early, deploy, or bypass the final-handoff return guard", prepare)
+
+    def test_discovery_investigation_route_recovers_from_relocated_package(self) -> None:
+        """Relocated packets transport the selected locator; they do not prove model use."""
+        expected = [(
+            DISCOVERY_INVESTIGATION_GUIDANCE_LABEL,
+            DISCOVERY_INVESTIGATION_GUIDE + "#" + DISCOVERY_INVESTIGATION_ANCHOR,
+        )]
+        for stage in prompts.STAGES:
+            with self.subTest(stage=stage):
+                entries = [
+                    (label, locator)
+                    for label, locator in prompts.STAGE_REFERENCES[stage]
+                    if label == DISCOVERY_INVESTIGATION_GUIDANCE_LABEL
+                ]
+                self.assertEqual(entries, expected if stage in DISCOVERY_INVESTIGATION_STAGES else [])
+        relocated = (self.repo / "copied-package" / "references").resolve()
+        shutil.copytree(REFERENCES, relocated)
+        copied_guide = relocated / DISCOVERY_INVESTIGATION_GUIDE
+        headings = {
+            heading_anchor(match.group(2))
+            for match in re.finditer(
+                r"(?m)^(#{1,6})\s+(.+?)\s*$", copied_guide.read_text(encoding="utf-8")
+            )
+        }
+        self.assertIn(DISCOVERY_INVESTIGATION_ANCHOR, headings)
+        core = type("RelocatedCore", (), {"PACKAGE_ROOT": relocated.parent})()
+        relocated_route = (
+            DISCOVERY_INVESTIGATION_GUIDANCE_LABEL
+            + ": "
+            + str(relocated / (DISCOVERY_INVESTIGATION_GUIDE + "#" + DISCOVERY_INVESTIGATION_ANCHOR))
+        )
+        state = self.state()
+        observed: list[str] = []
+
+        while navigator.current_stage(state) != "spec":
+            stage = navigator.current_stage(state)
+            if stage not in DISCOVERY_INVESTIGATION_STAGES:
+                state, _action_id = self.complete_stage(state)
+                continue
+
+            navigator.save(self.run, state)
+            before = (self.run / "state.md").read_bytes()
+            recovered = store.read_record(self.run / "state.md")
+            packet = navigator.render(core, self.run, recovered)
+            self.assertEqual((self.run / "state.md").read_bytes(), before)
+            self.assertEqual(packet.count(relocated_route), 1, packet)
+            self.assertNotIn(str(REFERENCES), packet)
+
+            action = dict(navigator.current_action(recovered))
+            waiting = navigator.apply(recovered, action["id"], result(stage))
+            navigator.save(self.run, waiting)
+            pending = store.read_record(self.run / "state.md")
+            pending_packet = navigator.render(core, self.run, pending)
+            self.assertEqual(pending_packet.count(relocated_route), 1, pending_packet)
+            self.assertNotIn(str(REFERENCES), pending_packet)
+            state = navigator.finish_improve(pending, action["id"], receipt(stage))
+            observed.append(stage)
+
+        self.assertEqual(tuple(observed), DISCOVERY_INVESTIGATION_STAGES)
 
     def test_service_discovery_stage_routes_are_exact_and_selective(self) -> None:
         """Keep the conditional guide's routes independent of the prompt catalog."""

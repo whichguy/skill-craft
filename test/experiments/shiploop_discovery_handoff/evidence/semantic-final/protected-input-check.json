@@ -1,0 +1,14 @@
+{
+  "multi": {
+    "protected_inputs_match": true,
+    "packet_matches": true,
+    "note_words": 711
+  },
+  "snapshot_matches": true,
+  "executed_cases": [
+    "multi"
+  ],
+  "unexecuted_cases": [
+    "local"
+  ]
+}

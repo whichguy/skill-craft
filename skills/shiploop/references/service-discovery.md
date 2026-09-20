@@ -27,6 +27,9 @@ telemetry because this guide exists.
 Select only the cache, query, schema, asynchronous, and observability questions
 that can change the requested design. This is not a one-size-fits-all
 middle-tier blueprint.
+When the behavior relies on retained state, use
+[runtime state placement](#runtime-state-placement), even for a single stateless
+compute component; this does not require a separate investigation plan.
 For a selected unresolved contract, retain the safe interim behavior, affected
 dependents, and smallest confirming observation or conditional change. Naming a
 gap alone is not an actionable handoff; unrelated ready work need not wait.
@@ -72,6 +75,65 @@ or persistent connector installation. If inspection cannot answer a material
 question, define a bounded experiment with its allowed effects, target,
 identity, expected observation, cleanup, and decision consequence as described
 by [research experiments](research-loop.md#run-bounded-discriminating-experiments).
+
+## Runtime state placement
+
+Discover the state home from the **deployed runtime** and required lifetime when
+behavior must survive requests, restarts, deployments, or the developer going
+offline. Stateless compute can use durable remote state. ShipLoop's Markdown
+holds development evidence and decisions, not the application's database. Local
+workspace files, MCP process memory or a developer session do not establish an
+independent remote persistence mechanism.
+
+For each consequential state category, record a compact decision in the existing
+design/environment note: purpose and authoritative owner; runtime/tenant scope;
+lifetime and sensitivity; native facility and reuse choice; runtime read/write
+identity and route; key/schema and migration needs; concurrency/recovery limits;
+and verification. Select only relevant categories: business records,
+schema/configuration, operation/idempotency records, derived cache,
+credentials/session state and audit evidence. They need not share a store. Use
+platform identity/secret facilities for credential custody; ordinary objects,
+files, caches or logs are not secret stores merely because they are available.
+Retain non-secret bindings and lifecycle owners, never credential values.
+
+Inspect native facilities using the selected MCP/API/CLI's supported reads before
+proposing storage. Obtain the current target and effective identity before reads
+that depend on them. Follow inventory pages relevant to the decision, or record
+the incomplete coverage; finding one schema does not prove the inventory complete.
+A denied read cannot establish absence. Prefer reuse, compatible configuration
+or extension; justify a new facility with an unmet requirement. Native storage
+still needs the relevant capacity, query, latency, durability, retention/deletion,
+recovery and migration guarantees. No retained state means no new state store.
+
+Distinguish discovery/provisioning operator, deployed application/worker and end
+user. Explicitly mark an unknown relevant role or permission, its affected
+consumer and due check; omission is not evidence of authority. Scope each
+permission observation to **principal, target, operation and
+as-of time**, retaining the observed result and its limits. If a response lists
+several identities without attributing a permission, record that ambiguity;
+do not assign it to the worker. A connector login or metadata read does not prove
+unattended runtime writes. Establish the runtime's own access/renewal/failure path
+and its ability to operate without the local agent or workstation.
+
+Check the actual consistency boundary when state is shared: conditional writes,
+uniqueness, version checks, transaction/lock scope and concurrent writers. A file
+store is not automatically transactional; a one-process or one-script lock does
+not protect external writers. Use the [cache](#cache-and-authorization) and
+[asynchronous](#asynchronous-cooperation) contracts for eviction, unknown outcomes,
+retries and recovery rather than introducing another coordination mechanism.
+For cooperating systems, assign authority per entity or fact and an owner for
+the cross-system operation/recovery. Retain identifier mappings and reconciliation
+or compensation needs; do not assume a cross-system transaction. Two native
+stores may own different facts; replicas need an allowed writer and rebuild source.
+
+Resolve unknown lifetime, ownership or capability before selecting dependent
+design. Only an established requirement for a selected facility becomes setup
+work before its first consumer; missing authority remains an access/owner gap.
+Carry the decision, exact evidence and revalidation conditions through the
+[development handoff](#development-handoff). Where consequential, acceptance
+includes restart without the workstation, concurrency, duplicates, credential or
+permission changes and partial failure. Synthetic checks can discriminate designs;
+they cannot certify the remote target.
 
 ## Cache and authorization
 
@@ -194,7 +256,10 @@ not a remembered chat transcript or arbitrary whole documents. Retain their
 locators in the accepted result's existing `evidence_refs`; where an INNER work
 item needs them, put a compact locator and decision/revalidation summary in that
 item's existing `context`. The Navigator transports these host-authored
-locators; it does not read, enforce, or replay all referenced decisions. No new
+locators; the selected chain collector can bind declared file content, but neither
+establishes its factual freshness or semantic sufficiency. Verify the
+[discovery evidence handoff](project-knowledge.md#discovery-evidence-handoff),
+including explicit file references for the selected transport. No new
 result field, runtime projection, ledger, or stage is required.
 
 Discovery/research establishes observed facts and decisions; specification makes

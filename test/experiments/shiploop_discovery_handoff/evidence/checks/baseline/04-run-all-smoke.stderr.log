@@ -1,0 +1,221 @@
+...................
+----------------------------------------------------------------------
+Ran 19 tests in 3.892s
+
+OK
+.....
+----------------------------------------------------------------------
+Ran 5 tests in 0.246s
+
+OK
+test_cli_output_cannot_pollute_participant_checkout (__main__.W1HarnessTests.test_cli_output_cannot_pollute_participant_checkout) ... ok
+test_complete_requires_actual_reports_and_parent_after_returns (__main__.W1HarnessTests.test_complete_requires_actual_reports_and_parent_after_returns) ... ok
+test_completion_rejects_archive_after_final_and_changed_report (__main__.W1HarnessTests.test_completion_rejects_archive_after_final_and_changed_report) ... ok
+test_completion_rejects_missing_returns_and_pending_parent (__main__.W1HarnessTests.test_completion_rejects_missing_returns_and_pending_parent) ... ok
+test_completion_rejects_nonpricing_index_flag_changes (__main__.W1HarnessTests.test_completion_rejects_nonpricing_index_flag_changes) ... ok
+test_completion_rejects_replaced_git_identity (__main__.W1HarnessTests.test_completion_rejects_replaced_git_identity) ... ok
+test_completion_requires_distinct_index_and_detail_reports (__main__.W1HarnessTests.test_completion_requires_distinct_index_and_detail_reports) ... ok
+test_completion_uses_event_order_when_timestamps_are_partially_missing (__main__.W1HarnessTests.test_completion_uses_event_order_when_timestamps_are_partially_missing) ... ok
+test_duplicate_or_failed_parent_final_cannot_complete (__main__.W1HarnessTests.test_duplicate_or_failed_parent_final_cannot_complete) ... ok
+test_event_order_breaks_equal_timestamp_ties (__main__.W1HarnessTests.test_event_order_breaks_equal_timestamp_ties) ... ok
+test_finish_stop_with_pending_worker_is_incomplete (__main__.W1HarnessTests.test_finish_stop_with_pending_worker_is_incomplete) ... ok
+test_ignored_source_artifact_is_still_a_preservation_failure (__main__.W1HarnessTests.test_ignored_source_artifact_is_still_a_preservation_failure) ... ok
+test_missing_worker_or_inbox_is_incomplete (__main__.W1HarnessTests.test_missing_worker_or_inbox_is_incomplete) ... ok
+test_nonpricing_index_change_and_foreign_baseline_fail (__main__.W1HarnessTests.test_nonpricing_index_change_and_foreign_baseline_fail) ... ok
+test_preflight_rejects_baseline_drift (__main__.W1HarnessTests.test_preflight_rejects_baseline_drift) ... ok
+test_preflight_rejects_wrong_baseline_schema_or_checkout (__main__.W1HarnessTests.test_preflight_rejects_wrong_baseline_schema_or_checkout) ... ok
+test_preflight_rejects_wrong_cwd_and_hash_drift (__main__.W1HarnessTests.test_preflight_rejects_wrong_cwd_and_hash_drift) ... ok
+test_preflight_requires_frozen_git_reference (__main__.W1HarnessTests.test_preflight_requires_frozen_git_reference) ... ok
+test_prepare_has_dirty_layers_and_no_worker_worktrees (__main__.W1HarnessTests.test_prepare_has_dirty_layers_and_no_worker_worktrees) ... ok
+test_pricing_commit_allowed_but_branch_switch_rejected (__main__.W1HarnessTests.test_pricing_commit_allowed_but_branch_switch_rejected) ... ok
+test_projection_cannot_overwrite_database_or_prior_evidence (__main__.W1HarnessTests.test_projection_cannot_overwrite_database_or_prior_evidence) ... ok
+test_public_opencode_excludes_private_payloads_and_reasoning (__main__.W1HarnessTests.test_public_opencode_excludes_private_payloads_and_reasoning) ... ok
+test_public_opencode_handles_uri_characters_without_creating_another_database (__main__.W1HarnessTests.test_public_opencode_handles_uri_characters_without_creating_another_database) ... ok
+test_public_opencode_projects_installed_json_backed_shape_without_raw_data (__main__.W1HarnessTests.test_public_opencode_projects_installed_json_backed_shape_without_raw_data) ... ok
+test_public_opencode_rejects_output_inside_inbox (__main__.W1HarnessTests.test_public_opencode_rejects_output_inside_inbox) ... ok
+test_public_projection_unknown_schema_cannot_pass_on_ids (__main__.W1HarnessTests.test_public_projection_unknown_schema_cannot_pass_on_ids) ... ok
+test_public_task_metadata_stays_with_each_call (__main__.W1HarnessTests.test_public_task_metadata_stays_with_each_call) ... ok
+test_removal_before_archival_is_failed_and_report_symlink_escape_is_rejected (__main__.W1HarnessTests.test_removal_before_archival_is_failed_and_report_symlink_escape_is_rejected) ... ok
+test_report_changed_file_cannot_traverse_outside_reports (__main__.W1HarnessTests.test_report_changed_file_cannot_traverse_outside_reports) ... ok
+test_snapshot_does_not_refresh_source_index_bytes (__main__.W1HarnessTests.test_snapshot_does_not_refresh_source_index_bytes) ... ok
+test_supported_launch_shapes_and_conflicting_argv (__main__.W1HarnessTests.test_supported_launch_shapes_and_conflicting_argv) ... ok
+test_unexpected_source_artifact_fails (__main__.W1HarnessTests.test_unexpected_source_artifact_fails) ... ok
+test_unrelated_code_edit_fails_and_removal_before_consumption_is_detected (__main__.W1HarnessTests.test_unrelated_code_edit_fails_and_removal_before_consumption_is_detected) ... ok
+test_vanished_worktree_still_registered_is_not_removed (__main__.W1HarnessTests.test_vanished_worktree_still_registered_is_not_removed) ... ok
+
+----------------------------------------------------------------------
+Ran 34 tests in 21.660s
+
+OK
+...........................
+----------------------------------------------------------------------
+Ran 27 tests in 0.404s
+
+OK
+..
+----------------------------------------------------------------------
+Ran 2 tests in 0.000s
+
+OK
+test_audit_copied_package_accepts_explicit_source_checkout (__main__.InstalledSkillInvocationTest.test_audit_copied_package_accepts_explicit_source_checkout) ... ok
+test_audit_copied_package_binds_without_checkout_from_unrelated_cwd (__main__.InstalledSkillInvocationTest.test_audit_copied_package_binds_without_checkout_from_unrelated_cwd) ... ok
+test_audit_mock_runs_from_read_only_marketplace_copies_without_clone (__main__.InstalledSkillInvocationTest.test_audit_mock_runs_from_read_only_marketplace_copies_without_clone) ... ok
+test_audit_mock_uses_isolated_installed_subject_default (__main__.InstalledSkillInvocationTest.test_audit_mock_uses_isolated_installed_subject_default) ... ok
+test_card_contracts_bind_selected_loaded_skill (__main__.InstalledSkillInvocationTest.test_card_contracts_bind_selected_loaded_skill) ... ok
+test_evidence_gates_self_check_from_read_only_copy (__main__.InstalledSkillInvocationTest.test_evidence_gates_self_check_from_read_only_copy) ... ok
+test_improve_bound_adapter_ignores_ambient_runtime (__main__.InstalledSkillInvocationTest.test_improve_bound_adapter_ignores_ambient_runtime) ... ok
+test_improve_ephemeral_runtime_from_read_only_installed_copy (__main__.InstalledSkillInvocationTest.test_improve_ephemeral_runtime_from_read_only_installed_copy) ... ok
+test_review_campaign_dependency_is_not_silently_invented (__main__.InstalledSkillInvocationTest.test_review_campaign_dependency_is_not_silently_invented) ... ok
+test_review_coverage_cli_from_read_only_copy (__main__.InstalledSkillInvocationTest.test_review_coverage_cli_from_read_only_copy) ... ok
+test_shiploop_graph_and_recovery_from_read_only_copy (__main__.InstalledSkillInvocationTest.test_shiploop_graph_and_recovery_from_read_only_copy) ... ok
+test_skill_interop_facade_routes_from_read_only_copy (__main__.InstalledSkillInvocationTest.test_skill_interop_facade_routes_from_read_only_copy) ... ok
+
+----------------------------------------------------------------------
+Ran 12 tests in 7.489s
+
+OK
+test_architect_and_plan_test_use_capabilities_not_author_agents (__main__.PromptMarketplaceContractTests.test_architect_and_plan_test_use_capabilities_not_author_agents) ... ok
+test_benchmark_models_are_host_valid_and_trials_remain_independent (__main__.PromptMarketplaceContractTests.test_benchmark_models_are_host_valid_and_trials_remain_independent) ... ok
+test_improve_system_prompt_requires_explicit_product_configuration (__main__.PromptMarketplaceContractTests.test_improve_system_prompt_requires_explicit_product_configuration) ... ok
+test_owned_prompt_leaves_have_canonical_cards (__main__.PromptMarketplaceContractTests.test_owned_prompt_leaves_have_canonical_cards) ... ok
+test_prompt_suite_resolves_siblings_and_detects_target_tests (__main__.PromptMarketplaceContractTests.test_prompt_suite_resolves_siblings_and_detects_target_tests) ... ok
+test_question_bench_uses_bundled_rubric_and_generic_independent_evaluator (__main__.PromptMarketplaceContractTests.test_question_bench_uses_bundled_rubric_and_generic_independent_evaluator) ... ok
+test_review_fix_bench_requires_explicit_external_runner_inputs (__main__.PromptMarketplaceContractTests.test_review_fix_bench_requires_explicit_external_runner_inputs) ... ok
+
+----------------------------------------------------------------------
+Ran 7 tests in 0.002s
+
+OK
+Usage: install.sh [flags]
+
+Install skill package(s) into local skill homes.
+Claude/Grok/Codex/Cursor: symlink. Hermes: materialized copy (default).
+Optionally install thin agent cards (Claude + Grok only).
+
+Flags:
+  --help | -h
+  --claude-only | --grok-only | --codex-only | --hermes-only | --cursor-only
+  --all                 # all five hosts (Claude, Grok, Codex, Hermes, Cursor)
+  --skill NAME          # all (default) | any skills/<name> with SKILL.md
+  --from DIR            # install only basename(DIR) from that path
+                        # (must contain SKILL.md); exclusive with --skill
+  --agents              # also symlink agents/<leaf>.md for Claude/Grok
+  --relink | --force    # replace wrong/dangling skill or agent symlinks
+                        # (never clobbers a real file/directory)
+  --copy                # force copy mode for all hosts (Hermes default)
+  --symlink             # force symlink mode for all hosts (overrides Hermes copy)
+  --status              # report install state (no writes); outcomes per host
+  --uninstall           # remove only owned installs (symlink-owned or managed copy)
+  --dry-run             # print actions only, no writes
+
+Default (no host flags): install ALL five hosts.
+Default (no --skill/--from): install every skills/<leaf> with SKILL.md.
+Default action: install. --status / --uninstall are exclusive with each other.
+
+Skill destinations (per skill leaf):
+  Claude:  ~/.claude/skills/<dest>  (symlink)
+  Grok:    ~/.grok/skills/<dest>  (symlink)
+  Codex:   ~/.codex/skills/<dest>  (symlink)
+  Cursor:  ~/.cursor/skills/<dest>  (symlink; never ~/.cursor/skills-cursor)
+  Hermes:  ~/.hermes/skills/software-development/<dest>  (copy)
+           (container bind: /opt/data/skills/software-development/<dest>)
+           Provenance: ~/.hermes/skills/software-development/.skill-craft/<dest>.json
+  dest = leaf. Leaf devloop skips Hermes (engine owns software-development/devloop).
+  Leftover dest devloop-run is removed on Claude/Grok/Codex/Cursor.
+  Grok slash: skills/devloop/commands/devloop.md → ~/.grok/commands/devloop.md
+
+Status outcomes: absent | symlink-owned | symlink-wrong | copy-owned |
+  copy-owned-stale | foreign | foreign-file
+When Claude plugin inventory is available, --status also reports plugin-track
+and warns on double-install only when a matching plugin is confirmed enabled.
+Plugin state is confirmed-enabled only for literal JSON enabled:true; otherwise
+it is cached-state-unknown or disabled.
+Override inventory path: CLAUDE_INSTALLED_PLUGINS_JSON (default
+~/.claude/plugins/installed_plugins.json). Set empty to skip plugin probe.
+
+Agent destinations (only with --agents; Claude + Grok):
+  Claude:  ~/.claude/agents/<leaf>.md
+  Grok:    ~/.grok/agents/<leaf>.md
+  Codex/Hermes: skipped (no agent install)
+
+Sources: skills/<name> under this repo, or --from DIR.
+Foreign real directories are never overwritten or uninstalled.
+With --relink, only wrong or dangling symlinks are replaced.
+Hermes managed copies are refreshed on re-run; foreign trees are skipped.
+
+Exit codes:
+  0  success (all requested actions completed without refusal)
+  2  needs human / binding incomplete (reserved; engines)
+  3  foreign-refused (install/uninstall hit unowned path)
+  4  absent (uninstall: nothing owned present)
+  8  drift-blocked (reserved for drift-aware uninstall)
+  64 usage / flag error
+......
+----------------------------------------------------------------------
+Ran 6 tests in 2.005s
+
+OK
+test_cold_recovery_preserves_the_pending_child_binding_without_advancing (__main__.NavigatorV3Tests.test_cold_recovery_preserves_the_pending_child_binding_without_advancing) ... ok
+test_duplicate_or_conflicting_producer_callback_cannot_create_another_child (__main__.NavigatorV3Tests.test_duplicate_or_conflicting_producer_callback_cannot_create_another_child) ... ok
+test_every_v3_stage_waits_for_one_actual_improve_completion (__main__.NavigatorV3Tests.test_every_v3_stage_waits_for_one_actual_improve_completion) ... ok
+test_incomplete_child_and_blocked_producer_do_not_advance_parent (__main__.NavigatorV3Tests.test_incomplete_child_and_blocked_producer_do_not_advance_parent) ... ok
+test_malformed_bound_skill_fails_with_controlled_recovery_error (__main__.NavigatorV3Tests.test_malformed_bound_skill_fails_with_controlled_recovery_error) ... ok
+test_outer_replan_adds_corrective_work_without_rewinding_completed_work (__main__.NavigatorV3Tests.test_outer_replan_adds_corrective_work_without_rewinding_completed_work) ... ok
+test_skill_assess_rejects_legacy_skill_result_carriers_without_mutation (__main__.NavigatorV3Tests.test_skill_assess_rejects_legacy_skill_result_carriers_without_mutation)
+V3 retains reusable-skill evidence in its generic envelope only. ... ok
+test_v3_backchain_planning_guidance_is_scoped_to_selected_stages (__main__.NavigatorV3Tests.test_v3_backchain_planning_guidance_is_scoped_to_selected_stages)
+Producer and actual Improve prompts use the guide only for planning decisions. ... ok
+test_v3_bound_child_carries_requirement_and_test_locators_through_cold_recovery (__main__.NavigatorV3Tests.test_v3_bound_child_carries_requirement_and_test_locators_through_cold_recovery)
+Assert structural packet propagation, not that a model interpreted the sources. ... ok
+test_v3_cold_next_retains_requirements_definition_child_context (__main__.NavigatorV3Tests.test_v3_cold_next_retains_requirements_definition_child_context)
+A recovered Improve packet retains the guide and an existing-spec locator. ... ok
+test_v3_cold_producer_and_bound_reviewer_packets_keep_generic_access_boundary (__main__.NavigatorV3Tests.test_v3_cold_producer_and_bound_reviewer_packets_keep_generic_access_boundary)
+One generic policy reaches both v3 packet owners without new state. ... ok
+test_v3_common_and_improve_prompts_preserve_requirements_review_cues (__main__.NavigatorV3Tests.test_v3_common_and_improve_prompts_preserve_requirements_review_cues)
+Keep concise review duties without inventing child state or counters. ... ok
+test_v3_current_and_cold_child_packets_retain_review_note_recovery_context (__main__.NavigatorV3Tests.test_v3_current_and_cold_child_packets_retain_review_note_recovery_context)
+A selected child retains receipt-reference duties before and after recovery. ... ok
+test_v3_declares_the_flat_sdlc_graph_independently (__main__.NavigatorV3Tests.test_v3_declares_the_flat_sdlc_graph_independently) ... ok
+test_v3_initial_baseline_guidance_survives_improve_and_cold_step_plan (__main__.NavigatorV3Tests.test_v3_initial_baseline_guidance_survives_improve_and_cold_step_plan)
+Initial-baseline evidence stays in ordinary records without new graph state. ... ok
+test_v3_native_backchain_operations_reuse_selected_until_loop_subcall (__main__.NavigatorV3Tests.test_v3_native_backchain_operations_reuse_selected_until_loop_subcall)
+Backchain owns dependency work; Until Loop owns its runtime and terminal. ... ok
+test_v3_packets_keep_runtime_and_selected_case_evidence_visible (__main__.NavigatorV3Tests.test_v3_packets_keep_runtime_and_selected_case_evidence_visible)
+Synthetic prompt traversal keeps runtime and real-boundary gaps explicit. ... ok
+test_v3_platform_testing_contract_routes_to_every_test_stage (__main__.NavigatorV3Tests.test_v3_platform_testing_contract_routes_to_every_test_stage)
+The global choice and each testing checkpoint retain the same guide route. ... ok
+test_v3_remote_test_routes_keep_local_and_remote_evidence_distinct (__main__.NavigatorV3Tests.test_v3_remote_test_routes_keep_local_and_remote_evidence_distinct)
+Route remote test assets without treating a local result as their evidence. ... ok
+test_v3_requirements_definition_duties_stay_in_existing_stages (__main__.NavigatorV3Tests.test_v3_requirements_definition_duties_stay_in_existing_stages)
+Existing discovery, research, and spec nodes cover the new guide duties. ... ok
+test_v3_requirements_policy_routes_through_unbound_and_bound_improve_recovery (__main__.NavigatorV3Tests.test_v3_requirements_policy_routes_through_unbound_and_bound_improve_recovery)
+Both child forms retain packet locators before and after cold recovery. ... ok
+test_v3_test_lifecycle_and_child_handoff_keep_repeatable_suite_boundaries (__main__.NavigatorV3Tests.test_v3_test_lifecycle_and_child_handoff_keep_repeatable_suite_boundaries)
+Check packet routing and boundaries, without claiming model compliance. ... ok
+test_v3_test_strategy_requires_repeatable_harness_revalidation_and_suite_tiers (__main__.NavigatorV3Tests.test_v3_test_strategy_requires_repeatable_harness_revalidation_and_suite_tiers)
+The global strategy chooses rerunnable coverage before item work starts. ... ok
+
+----------------------------------------------------------------------
+Ran 23 tests in 0.776s
+
+OK
+.......
+----------------------------------------------------------------------
+Ran 7 tests in 0.127s
+
+OK
+.......
+----------------------------------------------------------------------
+Ran 7 tests in 1.351s
+
+OK
+.........
+----------------------------------------------------------------------
+Ran 9 tests in 2.121s
+
+OK
+......
+----------------------------------------------------------------------
+Ran 6 tests in 0.002s
+
+OK

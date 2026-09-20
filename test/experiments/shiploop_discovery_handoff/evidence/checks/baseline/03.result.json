@@ -1,0 +1,1 @@
+{"index":3,"command":"python3 -B test/shiploop-v3-guidance.test.py","exit":0,"elapsed_ms":1294,"stdout":"03-shiploop-v3-guidance.stdout.log","stderr":"03-shiploop-v3-guidance.stderr.log"}

@@ -1,0 +1,13 @@
+test_damaged_packets_and_supporting_responses_remain_non_advancing (__main__.ReferenceRoutingTests.test_damaged_packets_and_supporting_responses_remain_non_advancing) ... ok
+test_every_prompt_stage_routes_to_existing_package_reference_heading (__main__.ReferenceRoutingTests.test_every_prompt_stage_routes_to_existing_package_reference_heading) ... ok
+test_every_prompt_stage_routes_to_maintained_requirements_handoffs (__main__.ReferenceRoutingTests.test_every_prompt_stage_routes_to_maintained_requirements_handoffs) ... ok
+test_maintained_requirements_guides_keep_package_local_links_when_relocated (__main__.ReferenceRoutingTests.test_maintained_requirements_guides_keep_package_local_links_when_relocated) ... ok
+test_merge_and_coverage_are_the_only_activity_specific_routes (__main__.ReferenceRoutingTests.test_merge_and_coverage_are_the_only_activity_specific_routes) ... ok
+test_new_activity_guides_have_resolvable_local_links (__main__.ReferenceRoutingTests.test_new_activity_guides_have_resolvable_local_links) ... ok
+test_normative_markdown_graph_rejects_missing_links_and_keeps_explicit_aliases (__main__.ReferenceRoutingTests.test_normative_markdown_graph_rejects_missing_links_and_keeps_explicit_aliases) ... ok
+test_safe_orientation_uses_real_optional_references_without_reading_state (__main__.ReferenceRoutingTests.test_safe_orientation_uses_real_optional_references_without_reading_state) ... ok
+
+----------------------------------------------------------------------
+Ran 8 tests in 1.146s
+
+OK

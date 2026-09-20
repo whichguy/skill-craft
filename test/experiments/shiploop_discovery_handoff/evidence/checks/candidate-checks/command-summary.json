@@ -1,0 +1,71 @@
+{
+  "commands": [
+    {
+      "command": "python3 -B test/shiploop-research-template.test.py",
+      "cwd": "/Users/dadleet/src/skill-craft-discovery-handoff",
+      "elapsed_sec": 0.16028976440429688,
+      "exit_code": 0,
+      "finished_epoch": 1789921738.785308,
+      "index": 1,
+      "result": "PASS",
+      "started_epoch": 1789921738.6250181,
+      "stderr_bytes": 105,
+      "stderr_path": "/Users/dadleet/tmp/shiploop-discovery-implementation-20260920/candidate-checks/command-01.stderr.log",
+      "stdout_bytes": 0,
+      "stdout_path": "/Users/dadleet/tmp/shiploop-discovery-implementation-20260920/candidate-checks/command-01.stdout.log",
+      "timed_out": false
+    },
+    {
+      "command": "python3 -B test/shiploop-reference-routing.test.py",
+      "cwd": "/Users/dadleet/src/skill-craft-discovery-handoff",
+      "elapsed_sec": 1.322610855102539,
+      "exit_code": 0,
+      "finished_epoch": 1789921740.108265,
+      "index": 2,
+      "result": "PASS",
+      "started_epoch": 1789921738.785654,
+      "stderr_bytes": 1512,
+      "stderr_path": "/Users/dadleet/tmp/shiploop-discovery-implementation-20260920/candidate-checks/command-02.stderr.log",
+      "stdout_bytes": 0,
+      "stdout_path": "/Users/dadleet/tmp/shiploop-discovery-implementation-20260920/candidate-checks/command-02.stdout.log",
+      "timed_out": false
+    },
+    {
+      "command": "python3 -B test/shiploop-v3-guidance.test.py",
+      "cwd": "/Users/dadleet/src/skill-craft-discovery-handoff",
+      "elapsed_sec": 1.6765689849853516,
+      "exit_code": 0,
+      "finished_epoch": 1789921741.785234,
+      "index": 3,
+      "result": "PASS",
+      "started_epoch": 1789921740.108665,
+      "stderr_bytes": 6994,
+      "stderr_path": "/Users/dadleet/tmp/shiploop-discovery-implementation-20260920/candidate-checks/command-03.stderr.log",
+      "stdout_bytes": 0,
+      "stdout_path": "/Users/dadleet/tmp/shiploop-discovery-implementation-20260920/candidate-checks/command-03.stdout.log",
+      "timed_out": false
+    },
+    {
+      "command": "python3 -B test/shiploop-planning-context.test.py",
+      "cwd": "/Users/dadleet/src/skill-craft-discovery-handoff",
+      "elapsed_sec": 0.41278600692749023,
+      "exit_code": 1,
+      "finished_epoch": 1789921742.210301,
+      "index": 4,
+      "result": "FAIL",
+      "started_epoch": 1789921741.797515,
+      "stderr_bytes": 3002,
+      "stderr_path": "/Users/dadleet/tmp/shiploop-discovery-implementation-20260920/candidate-checks/command-04.stderr.log",
+      "stdout_bytes": 0,
+      "stdout_path": "/Users/dadleet/tmp/shiploop-discovery-implementation-20260920/candidate-checks/command-04.stdout.log",
+      "timed_out": false
+    }
+  ],
+  "completed_count": 4,
+  "deadline_sec": 900,
+  "pending_count": 4,
+  "per_command_timeout_sec": 600,
+  "retry_policy": "none",
+  "root": "/Users/dadleet/src/skill-craft-discovery-handoff",
+  "stopped_on_failure": true
+}
