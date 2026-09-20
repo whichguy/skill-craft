@@ -1,0 +1,21 @@
+{
+  "reviewer": "service_semantic_review (independent read-only agent)",
+  "case_criteria": {
+    "remote-discovery": [
+      "pass",
+      "pass",
+      "partial",
+      "partial",
+      "pass",
+      "pass"
+    ]
+  },
+  "findings": [
+    "Safe cache policy enforcement, separated authorities, observability reuse and concrete file/check handoff passed.",
+    "Schema path omitted explicit additive preservation of unrelated remote fields despite treating partial metadata as unknown and requiring read-back.",
+    "Processor/recovery owner now explicitly absent, but acceptance-versus-completion boundary not explicitly recorded as required/unknown.",
+    "Diagram inferred a panel-to-read-service connection without a fixture call site; it should have been marked conceptual."
+  ],
+  "root_adjudication": "Retain explicit user-required preservation and async cues; do not claim this last single sample proves improvement or complete first-pass discovery. No further prompt tuning is justified by chasing every omission in a tiny unpaired sample. The existing guide states the obligations and normal Improve must review the actual decision note, not merely its locator.",
+  "scope": "Final planned bounded exercise; cold step plan, local auth and local control have earlier passes; no live-account or complete workflow-model guarantee."
+}

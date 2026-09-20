@@ -766,6 +766,16 @@ completion each.
 
 ## Bounded recursive discovery
 
+The [service discovery guide](references/service-discovery.md#select-scope) maps
+affected UI/business flows to actual service capabilities and existing remote
+state. It covers zero-copy/cache choices, permission-aware invalidation, durable
+async cooperation, and reuse of owned observability for local or remote systems.
+Decisions, prerequisites, affected files and checks travel through maintained
+project notes, the existing knowledge index, and work-item context. The navigator
+routes readers to these notes; it does not prove their semantic correctness or
+remote access. [Salesforce](references/platforms/salesforce.md) is an example,
+not a required stack. Local/stateless work can record a short no-change outcome.
+
 Discovery follows task-relevant boundaries behind an MCP or other gateway and
 screens message passing, client connections, service authentication, design,
 client-side libraries, storage, caching, and security. Existing platform

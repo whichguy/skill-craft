@@ -1,0 +1,29 @@
+{
+  "evidence_type": "coordinator attestation summarizing actual exec tool outputs; not raw log",
+  "repo_head": "7e4199c57a06cf9689780401c4f03f36887d9d66",
+  "checkout": "dirty shared current worktree",
+  "cwd": "/Users/dadleet/src/skill-craft/skills/shiploop",
+  "runtime_observed_at_receipt": "3.14.7 (main, Aug  5 2026, 10:29:49) [Clang 21.0.0 (clang-2100.1.1.101)]",
+  "actual_tool_refs": [
+    "exec_command chunk a3d254 session 60062",
+    "write_stdin chunk 51aa9e exit 0"
+  ],
+  "checks": [
+    {
+      "command": "python3 -B /Users/dadleet/src/skill-craft/test/shiploop-discovery.test.py",
+      "tests": 27,
+      "result": "OK"
+    },
+    {
+      "command": "python3 -B /Users/dadleet/src/skill-craft/test/shiploop-research-template.test.py",
+      "tests": 7,
+      "result": "OK"
+    },
+    {
+      "command": "python3 -B /Users/dadleet/src/skill-craft/test/shiploop-reference-routing.test.py",
+      "tests": 8,
+      "result": "OK"
+    }
+  ],
+  "limitations": "Initial scoped baseline only. No full suite, actual service, proposed prompt behavior, or live application verification."
+}

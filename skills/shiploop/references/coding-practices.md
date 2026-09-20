@@ -109,6 +109,11 @@ tests rather than real sends.
 
 ## Logging and debugging
 
+Start from the discovered [observability coverage](service-discovery.md#observability-coverage):
+reuse authoritative event owners, existing loggers and sinks, then close only
+evidenced owned gaps. Include successful and failed logins where authentication
+is in scope; recording an event does not automatically make it an incident.
+
 Follow existing controls and structured conventions. Retain a bounded operation
 identity, consequential decision, state transition, and failure cause while
 excluding secrets and unnecessary personal data. Distinguish operational logs,

@@ -1,0 +1,37 @@
+test_accepted_coding_plan_can_survive_later_test_decisions_without_new_fields (__main__.V3GuidanceTests.test_accepted_coding_plan_can_survive_later_test_decisions_without_new_fields)
+Exercise host-authored evidence handoff, not automatic model compliance. ... ok
+test_coding_guide_is_selective_in_cold_producer_and_improve_packets (__main__.V3GuidanceTests.test_coding_guide_is_selective_in_cold_producer_and_improve_packets)
+Route locators, not every card body; retain the same owner on recovery. ... ok
+test_coding_reference_links_survive_package_relocation (__main__.V3GuidanceTests.test_coding_reference_links_survive_package_relocation)
+A packaged selector and its cards must work outside this checkout. ... ok
+test_cold_lifecycle_packets_keep_clause_surface_and_due_phase (__main__.V3GuidanceTests.test_cold_lifecycle_packets_keep_clause_surface_and_due_phase)
+A compact requirement survives planning and due-stage reconciliation. ... ok
+test_cold_local_skill_routes_cover_early_and_late_decisions (__main__.V3GuidanceTests.test_cold_local_skill_routes_cover_early_and_late_decisions)
+Fresh producer and pending-child packets retain the local skill route. ... ok
+test_cold_packets_route_the_repeatable_test_suite_guide_to_each_testing_stage (__main__.V3GuidanceTests.test_cold_packets_route_the_repeatable_test_suite_guide_to_each_testing_stage)
+Persisted v3 states retain the direct guide route at testing checkpoints. ... ok
+test_cold_step_plan_keeps_compact_context_and_evidence_locators (__main__.V3GuidanceTests.test_cold_step_plan_keeps_compact_context_and_evidence_locators) ... ok
+test_current_item_test_decision_source_is_revised_and_item_scoped (__main__.V3GuidanceTests.test_current_item_test_decision_source_is_revised_and_item_scoped)
+Only the current item's latest accepted decision is retained in a packet. ... ok
+test_each_current_v3_packet_renders_its_selected_stage_references (__main__.V3GuidanceTests.test_each_current_v3_packet_renders_its_selected_stage_references) ... ok
+test_next_item_reopens_repo_index_without_inheriting_prior_skill_selection (__main__.V3GuidanceTests.test_next_item_reopens_repo_index_without_inheriting_prior_skill_selection)
+The generic item context keeps selections scoped to their owner. ... ok
+test_quality_guidance_keeps_planning_review_and_product_review_distinct (__main__.V3GuidanceTests.test_quality_guidance_keeps_planning_review_and_product_review_distinct) ... ok
+test_service_discovery_context_and_final_improve_handoff_are_item_scoped (__main__.V3GuidanceTests.test_service_discovery_context_and_final_improve_handoff_are_item_scoped)
+Carry final service decisions through one item without replaying them to the next. ... ok
+test_service_discovery_guide_sections_and_links_survive_package_relocation (__main__.V3GuidanceTests.test_service_discovery_guide_sections_and_links_survive_package_relocation)
+The direct guide stays portable with its stable section anchors. ... ok
+test_service_discovery_routes_survive_cold_producer_and_improve_packets (__main__.V3GuidanceTests.test_service_discovery_routes_survive_cold_producer_and_improve_packets)
+Current-stage routing survives recovery without replaying earlier guide refs. ... ok
+test_service_discovery_stage_routes_are_exact_and_selective (__main__.V3GuidanceTests.test_service_discovery_stage_routes_are_exact_and_selective)
+Keep the conditional guide's routes independent of the prompt catalog. ... ok
+test_stage_reference_catalog_is_complete_and_resolves (__main__.V3GuidanceTests.test_stage_reference_catalog_is_complete_and_resolves) ... ok
+test_v1_and_v2_packets_do_not_gain_the_v3_strategy_projection (__main__.V3GuidanceTests.test_v1_and_v2_packets_do_not_gain_the_v3_strategy_projection) ... ok
+test_v3_cold_packets_keep_the_latest_done_root_test_strategy (__main__.V3GuidanceTests.test_v3_cold_packets_keep_the_latest_done_root_test_strategy)
+Strategy locators survive later evidence without reading it into packets. ... ok
+test_v3_improve_and_source_return_guidance_keep_the_existing_boundary (__main__.V3GuidanceTests.test_v3_improve_and_source_return_guidance_keep_the_existing_boundary) ... ok
+
+----------------------------------------------------------------------
+Ran 19 tests in 0.770s
+
+OK

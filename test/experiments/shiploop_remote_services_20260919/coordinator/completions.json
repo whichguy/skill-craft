@@ -1,0 +1,34 @@
+{
+  "recorded_at_utc": "2026-09-20T03:29:13.588810+00:00",
+  "inputs_verified": true,
+  "reports": {
+    "01": {
+      "agent": "/root/remote_pilot_01",
+      "status": "completed",
+      "evidence": "Actual native agent final completion received by coordinator",
+      "sha256": "b2a32b0d347320387894b05c1135b3a00ad90d93696029a89db4d68302521c5b",
+      "words_whitespace": 1040
+    },
+    "02": {
+      "agent": "/root/remote_pilot_02",
+      "status": "completed",
+      "evidence": "Actual native agent final completion received by coordinator",
+      "sha256": "544d3cb8034f43ad5d72d480872bef5db9342655624a8772ccd20c0fae5f866c",
+      "words_whitespace": 940
+    },
+    "03": {
+      "agent": "/root/remote_pilot_03",
+      "status": "completed",
+      "evidence": "Actual native agent final completion received by coordinator",
+      "sha256": "04287cff4e182bfe62a64d61e0359a9d1220c27d1aed75cd1ed5ab04ac5c7aa9",
+      "words_whitespace": 1042
+    },
+    "04": {
+      "agent": "/root/remote_pilot_04",
+      "status": "completed",
+      "evidence": "Actual native agent final completion received by coordinator",
+      "sha256": "e7544b6e31c11411b39c0c97a9ddd16ced160a26afb2f0857d7b727b05cf0249",
+      "words_whitespace": 983
+    }
+  }
+}

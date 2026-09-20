@@ -69,6 +69,7 @@ STAGE_REFERENCES: dict[str, tuple[tuple[str, str], ...]] = {
         ("Delivery authority guidance", "delivery-authority.md#ask-at-the-first-concrete-boundary"),
     ),
     "discovery": (
+        ("Service discovery guidance", "service-discovery.md#select-scope"),
         ("Current-system baseline guide", "current-system-baseline.md#establish-or-refresh"),
         ("Persistent project-context guidance", "project-knowledge.md#discover-persistent-context-before-planning"),
         ("Repository-local skill guidance", "testing-and-documentation.md#reusable-product-skills"),
@@ -76,17 +77,20 @@ STAGE_REFERENCES: dict[str, tuple[tuple[str, str], ...]] = {
         ("UI planning ownership when applicable", "behavioral-requirements.md#allocate-ui-decisions-to-their-planning-owner"),
     ),
     "research": (
+        ("Service discovery guidance", "service-discovery.md#select-scope"),
         ("Current-system baseline guide", "current-system-baseline.md#evidence-and-authority"),
         ("Bounded research guidance", "research-loop.md#recursive-discovery-and-experiments"),
         ("Reuse-before-build guidance", "research-loop.md#reuse-before-a-new-mechanism"),
     ),
     "spec": (
+        ("Service discovery guidance", "service-discovery.md#verification"),
         ("Current-system baseline guide", "current-system-baseline.md#planning-and-review-handoff"),
         ("Behavior-model guidance", "behavioral-requirements.md#behavior-model"),
         ("Behavior traceability guidance", "behavioral-requirements.md#traceability-and-review"),
         ("State and data assessment", "requirements-definition.md#state-and-data-change-assessment"),
     ),
     "test-strategy": (
+        ("Service discovery guidance", "service-discovery.md#verification"),
         ("Current-system baseline guide", "current-system-baseline.md#planning-and-review-handoff"),
         ("Repeatable test-suite guide", "repeatable-test-suites.md#select-or-revalidate-the-harness"),
         ("Target-native test selection", "repeatable-test-suites.md#select-target-native-tests"),
@@ -95,6 +99,7 @@ STAGE_REFERENCES: dict[str, tuple[tuple[str, str], ...]] = {
         ("State and data assessment", "requirements-definition.md#state-and-data-change-assessment"),
     ),
     "plan": (
+        ("Service discovery guidance", "service-discovery.md#development-handoff"),
         ("Current-system baseline guide", "current-system-baseline.md#planning-and-review-handoff"),
         ("Dependency-planning guidance", "backchain-planning.md#dependency-audit"),
         ("Git-history investigation guide", "project-knowledge.md#investigate-git-history-for-planning"),
@@ -113,6 +118,7 @@ STAGE_REFERENCES: dict[str, tuple[tuple[str, str], ...]] = {
         ("Decision carry-forward guidance", "project-knowledge.md#carry-context-into-the-new-plan"),
     ),
     "step-plan": (
+        ("Service discovery guidance", "service-discovery.md#development-handoff"),
         ("Current-system baseline guide", "current-system-baseline.md#planning-and-review-handoff"),
         ("Coding decision guide", "coding-guidance.md#select-guidance"),
         ("Git-history investigation guide", "project-knowledge.md#investigate-git-history-for-planning"),
@@ -141,6 +147,7 @@ STAGE_REFERENCES: dict[str, tuple[tuple[str, str], ...]] = {
         ("Test-case planning guidance", "testing-and-documentation.md#test-cases"),
     ),
     "implement": (
+        ("Service discovery guidance", "service-discovery.md#development-handoff"),
         ("Coding decision guide", "coding-guidance.md#select-guidance"),
         ("Target-native test selection", "repeatable-test-suites.md#select-target-native-tests"),
         ("Optional parallel-chain guide", "parallel-chain.md#parallel-implementation-chains"),
@@ -161,6 +168,7 @@ STAGE_REFERENCES: dict[str, tuple[tuple[str, str], ...]] = {
         ("Real-boundary test guidance", "testing-and-documentation.md#layers-and-real-boundaries"),
     ),
     "document": (
+        ("Service discovery guidance", "service-discovery.md#development-handoff"),
         ("Current-system baseline guide", "current-system-baseline.md#retain-across-runs"),
         ("Documentation guidance", "testing-and-documentation.md#documentation"),
         ("Documentation and reuse guidance", "testing-and-documentation.md#iteration-documentation-and-reuse"),
@@ -176,6 +184,7 @@ STAGE_REFERENCES: dict[str, tuple[tuple[str, str], ...]] = {
         ("Iteration and verification guidance", "testing-and-documentation.md#iteration"),
     ),
     "verify": (
+        ("Service discovery guidance", "service-discovery.md#verification"),
         ("Coding decision guide", "coding-guidance.md#select-guidance"),
         ("Repeatable test-suite guide", "repeatable-test-suites.md#select-or-revalidate-the-harness"),
         ("Test-case planning guidance", "testing-and-documentation.md#test-cases"),
@@ -230,9 +239,11 @@ STAGE_REFERENCES: dict[str, tuple[tuple[str, str], ...]] = {
         ("Consumer delivery evidence guidance", "consumer-delivery.md#evidence-and-limits"),
     ),
     "operations": (
+        ("Service discovery guidance", "service-discovery.md#observability-coverage"),
         ("Deployment and handoff guidance", "testing-and-documentation.md#deployment-and-handoff"),
     ),
     "handoff": (
+        ("Service discovery guidance", "service-discovery.md#development-handoff"),
         ("Current-system baseline guide", "current-system-baseline.md#retain-across-runs"),
         ("Deployment and handoff guidance", "testing-and-documentation.md#deployment-and-handoff"),
         ("Workspace return guidance", "workspace-lifecycle.md#inner-assembly-and-final-return"),
@@ -461,6 +472,21 @@ its as-of identity, coverage/conflicts, exact source locators and durable home i
 a run note or retrievable immutable revision; include the selected baseline in
 evidence_refs. A missing ShipLoop index does not mean a new system. Keep incoming
 changes separate and leave consequential gaps unready for dependent work.
+Use Service discovery guidance to assess owned observability for affected local
+or remote flows, reusing existing event owners and sinks. When service boundaries
+matter, trace consumer needs through business services to actual MCP/API/runtime
+capabilities, identities and current schema/state. Safe scoped authorized reads
+may resolve gaps; unavailable or partial observations are not absence. Select
+relevant cache/invalidation and async questions without inventing infrastructure.
+For unproven access or caching, state the safe interim policy-enforced read route
+or denial; privileged direct access is not a safe fallback. For a selected schema
+or projection delta, name preserved state and the reconciliation/read-back check.
+Turn unknown ownership or coverage into a scoped probe and conditional file/test
+change; gate only the work that actually depends on the missing evidence.
+If a selected flow depends on asynchronous work, identify or record as unknown
+its processor/recovery owner and durable acceptance-versus-completion boundary;
+a status poller alone does not establish them. Gate that dependent flow only.
+Index retained decisions and evidence in existing project knowledge for planning.
 """,
     "research": """\
 Resolve material unknowns with repository, primary-interface, or otherwise
@@ -474,6 +500,10 @@ contracts and appropriate evidence; measured baselines do not choose user policy
 Reopen the selected current-system baseline and resolve its consequential gaps.
 Retain the prior as-of account and record corrections/new evidence separately;
 observations or synthetic fixtures cannot choose approved product intent.
+For affected service choices, use Service discovery guidance to resolve current
+state, zero-copy/cache tradeoffs, permission-aware invalidation, async recovery,
+and observability gaps with discriminating evidence. Reuse native facilities;
+retain unknowns and their actual dependent work in the indexed decision note.
 """,
     "spec": """\
 Define the required behavior, boundaries, acceptance criteria, nonfunctional
@@ -496,6 +526,10 @@ completion establishes criteria, not implementation or test success.
 Read the selected prior current-system baseline as well as accepted requirements.
 Define the incoming delta with concrete preserved/changed behavior and retain
 both source-section locators and evidence limits for planning and Improve.
+For selected service boundaries, specify current authority, freshness versus
+revocation, incremental state preservation, async completion/recovery, and owned
+event coverage. Use Service discovery guidance to make these contracts verifiable;
+mark inapplicable concerns briefly instead of adding services to fill a template.
 """,
     "test-strategy": """\
 Create a risk-based test and verification strategy from the specification before
@@ -534,6 +568,10 @@ checks, using ordinary evidence_refs and planned work-item context.
 Use the selected prior baseline and incoming-spec sections to plan checks for
 new and preserved behavior. Unknown existing semantics need discovery before
 asserting a preservation target; old passing evidence is not a current pass.
+Use Service discovery guidance for affected cache authorization/invalidation,
+remote reconciliation, async recovery and observability checks. Map each relevant
+contract to independent outcomes and its real observation boundary; fixture
+results do not prove live permissions, event delivery or operator log access.
 """,
     "plan": """\
 Create a dependency-aware delivery plan from desired outcomes back to required
@@ -595,6 +633,12 @@ Reopen the selected current-system baseline and incoming change spec. Demonstrat
 use through before/after decisions and preservation checks. Carry their exact
 sections, gaps and revalidation conditions in evidence_refs and affected item
 context; plan durable documentation work when recovery exists only in run notes.
+Reopen the Repository knowledge index and current service decision sections.
+Use Service discovery guidance to map accepted choices to affected schema/config,
+query/cache, worker/status, business/UI, logging, tests and operator files only as
+needed. Order their actual prerequisites and checks. Retain exact current note
+locators and revalidation conditions in evidence_refs and item context; earlier
+stage references are not automatically replayed in every later packet.
 """,
     "prepare": """\
 Prepare or verify the approved development/test environment and prerequisites.
@@ -690,6 +734,11 @@ setup, test-definition/invocation, result retrieval and teardown route.
 Reopen this item's selected prior-baseline and incoming-spec sections from context.
 Revalidate scope/freshness, retain preserved behavior and checks, and surface any
 missing consequential source before dependent implementation.
+For affected service work, reopen the indexed current contract and item-specific
+sections from Service discovery guidance. Reconcile changed remote/local state,
+authority, cache invalidation, async recovery and owned logging before dependent
+edits; retain file roles, revalidation conditions and checks in the accepted plan.
+A superseded note or prior successful probe cannot replace current evidence.
 """,
     "test-spec": """\
 Specify executable tests before production edits when applicable.  Map the item
@@ -771,6 +820,10 @@ never repeat accepted work because removal failed. Keep observable combined stat
 accepted steps are done. Continue until every required step is accepted and the
 combined return is verified, or retain an explicit incomplete blocker. Finish
 before this action's normal completion callback and Improve checkpoint.
+For service changes, apply the accepted current contract and relevant Service
+discovery guidance. Revalidate target state and authority before effects; preserve
+unrelated remote fields and existing operational owners. Unresolved cache access
+or async completion semantics require their recorded safe fallback or correction.
 """,
     "test-green": """\
 Run focused checks against the implemented candidate and establish meaningful
@@ -821,6 +874,10 @@ README/index links to the authoritative home without duplicating its contract.
 Use the Current-system baseline guide to retain recovered observations and
 accepted deltas in durable product docs, preserving their distinct evidence status
 and the prior as-of baseline. Update README/index links to the selected homes.
+Maintain the indexed service decision note with accepted contracts, affected
+files, check evidence, operational owners and revalidation triggers. Follow Service
+discovery guidance to keep current and superseded choices distinguishable; do not
+leave the only usable handoff inside transient results or chat.
 """,
     "skill-assess": """\
 Assess whether an existing skill, helper, MCP capability, library pattern, or
@@ -870,6 +927,10 @@ Reconcile tests, static checks, documentation, error behavior, diagnostics,
 dependencies, and known limitations.  Refresh checks affected by material changes
 and retain failures or blocked boundaries honestly.  This is work-item acceptance,
 not an assertion that integration or release has happened.
+Use Service discovery guidance for the item's selected service and observability
+contracts. Verify the due outcomes, including safe fallback and failure cases;
+separate local simulation from required remote readback, permission enforcement,
+completion and event retrieval. Keep later-phase checks explicitly pending.
 """,
     "integrate": """\
 Perform only authorized Git/worktree integration for the candidate.  Inspect
@@ -1031,6 +1092,11 @@ access, recovery ownership, support documentation, cleanup, and revalidation
 needs.  Record a justified N/A only after assessing the actual operational
 boundary.  Do not represent a plan or configuration file as evidence the service
 is observed and supported in operation.
+Reopen the Repository knowledge index and current observability coverage note.
+Use Service discovery guidance to check authoritative event owners, existing
+sinks and operator retrieval, including successful/failed logins where applicable.
+Close only evidenced owned gaps; do not duplicate provider logs or treat every
+failure as an incident. Preserve required audit failure and recovery policy.
 """,
     "handoff": """\
 Prepare an honest final handoff with source, test, integration, release, consumer,
@@ -1041,6 +1107,10 @@ conversational summary into completion evidence.
 Verify that current system knowledge, accepted changes and unresolved limits
 survive outside transient run notes. Preserve the prior baseline's as-of account
 and verify durable README/index links from the returned project documentation home.
+Use Service discovery guidance to retain current service decisions, source and
+check locators, ownership, unresolved boundaries and revalidation conditions in
+indexed project documents. Verify those locators are usable by a fresh reader;
+work-item context and earlier result references alone are not a durable index.
 """,
 }
 

@@ -65,6 +65,39 @@ CODING_GUIDE_STAGES = ("step-plan", "implement", "verify")
 CODING_GUIDE_ROUTE = (
     "Coding decision guide: " + str(REFERENCES / "coding-guidance.md#select-guidance")
 )
+SERVICE_DISCOVERY_GUIDE = "service-discovery.md"
+SERVICE_DISCOVERY_GUIDANCE_LABEL = "Service discovery guidance"
+SERVICE_DISCOVERY_ANCHORS = (
+    "select-scope",
+    "remote-capabilities-and-state",
+    "cache-and-authorization",
+    "asynchronous-cooperation",
+    "observability-coverage",
+    "development-handoff",
+    "verification",
+)
+SERVICE_DISCOVERY_STAGE_ANCHORS = {
+    "discovery": "select-scope",
+    "research": "select-scope",
+    "spec": "verification",
+    "test-strategy": "verification",
+    "plan": "development-handoff",
+    "step-plan": "development-handoff",
+    "implement": "development-handoff",
+    "document": "development-handoff",
+    "verify": "verification",
+    "operations": "observability-coverage",
+    "handoff": "development-handoff",
+}
+SERVICE_DISCOVERY_ROUTES = {
+    stage: (
+        SERVICE_DISCOVERY_GUIDANCE_LABEL
+        + ": "
+        + str(REFERENCES / (SERVICE_DISCOVERY_GUIDE + "#" + anchor))
+    )
+    for stage, anchor in SERVICE_DISCOVERY_STAGE_ANCHORS.items()
+}
+
 CURRENT_SYSTEM_BASELINE_GUIDE = "current-system-baseline.md"
 CURRENT_SYSTEM_BASELINE_GUIDANCE_LABEL = "Current-system baseline guide"
 CURRENT_SYSTEM_BASELINE_ANCHORS = (
@@ -1647,6 +1680,210 @@ class V3GuidanceTests(unittest.TestCase):
         self.assertIn("returning to the original source branch triggers CI, deployment", discovery)
         self.assertIn("source-return trigger", prepare)
         self.assertIn("do not return early, deploy, or bypass the final-handoff return guard", prepare)
+
+    def test_service_discovery_stage_routes_are_exact_and_selective(self) -> None:
+        """Keep the conditional guide's routes independent of the prompt catalog."""
+        observed: list[str] = []
+        for stage in prompts.STAGES:
+            with self.subTest(stage=stage):
+                entries = [
+                    (label, locator)
+                    for label, locator in prompts.STAGE_REFERENCES[stage]
+                    if label == SERVICE_DISCOVERY_GUIDANCE_LABEL
+                ]
+                anchor = SERVICE_DISCOVERY_STAGE_ANCHORS.get(stage)
+                if anchor is None:
+                    self.assertEqual(entries, [])
+                else:
+                    self.assertEqual(
+                        entries,
+                        [(SERVICE_DISCOVERY_GUIDANCE_LABEL, SERVICE_DISCOVERY_GUIDE + "#" + anchor)],
+                    )
+                    observed.append(stage)
+        self.assertEqual(tuple(observed), tuple(SERVICE_DISCOVERY_STAGE_ANCHORS))
+
+
+    def test_service_discovery_routes_survive_cold_producer_and_improve_packets(self) -> None:
+        """Current-stage routing survives recovery without replaying earlier guide refs."""
+        index = self.repo / "SHIPLOOP.md"
+        index.write_text("# Fixture decision index\n", encoding="utf-8")
+        index_route = "Repository knowledge index (host-authored, if present): " + str(index)
+        routes = tuple(dict.fromkeys(SERVICE_DISCOVERY_ROUTES.values()))
+        observed: list[str] = []
+        state = self.state()
+
+        def assert_packet(stage: str, packet: str) -> None:
+            expected = SERVICE_DISCOVERY_ROUTES.get(stage)
+            self.assertEqual(packet.count(index_route), 1, packet)
+            for route in routes:
+                with self.subTest(stage=stage, route=route):
+                    self.assertEqual(packet.count(route), int(route == expected), packet)
+
+        while state["status"] != "done":
+            stage = navigator.current_stage(state)
+            producer, producer_packet = self.cold_packet(state)
+            self.assertEqual(navigator.current_stage(producer), stage)
+            assert_packet(stage, producer_packet)
+
+            if stage in SERVICE_DISCOVERY_ROUTES:
+                action = dict(navigator.current_action(producer))
+                waiting = navigator.apply(producer, action["id"], result(stage))
+                pending, pending_packet = self.cold_packet(waiting)
+                self.assertIsNotNone(pending["active_improve"])
+                self.assertEqual(navigator.current_stage(pending), stage)
+                assert_packet(stage, pending_packet)
+                observed.append(stage)
+
+            extra: dict[str, object] = {}
+            if stage == "plan":
+                extra["work_items"] = [{"id": "W1", "title": "Synthetic item"}]
+            state, _action_id = self.complete_stage(state, **extra)
+
+        self.assertEqual(tuple(observed), tuple(SERVICE_DISCOVERY_STAGE_ANCHORS))
+
+
+    def test_service_discovery_guide_sections_and_links_survive_package_relocation(self) -> None:
+        """The direct guide stays portable with its stable section anchors."""
+        guide = REFERENCES / SERVICE_DISCOVERY_GUIDE
+        self.assertTrue(guide.is_file(), guide)
+        if not guide.is_file():
+            return
+        body = guide.read_text(encoding="utf-8")
+        headings = {
+            heading_anchor(match.group(2))
+            for match in re.finditer(r"(?m)^(#{1,6})\s+(.+?)\s*$", body)
+        }
+        for anchor in SERVICE_DISCOVERY_ANCHORS:
+            with self.subTest(anchor=anchor):
+                self.assertIn(anchor, headings)
+
+        relocated = (self.repo / "copied-package" / "references").resolve()
+        shutil.copytree(REFERENCES, relocated)
+        copied_guide = relocated / SERVICE_DISCOVERY_GUIDE
+        copied_body = copied_guide.read_text(encoding="utf-8")
+        self.assertNotIn("/Users/", copied_body)
+        for link in re.findall(r"\[[^\]]+\]\(([^)]+)\)", copied_body):
+            if link.startswith(("https://", "http://")):
+                continue
+            with self.subTest(link=link):
+                path, _, anchor = link.partition("#")
+                destination = (copied_guide.parent / path).resolve() if path else copied_guide
+                self.assertTrue(destination.is_relative_to(relocated), link)
+                self.assertTrue(destination.is_file(), link)
+                if anchor:
+                    destination_headings = {
+                        heading_anchor(match.group(2))
+                        for match in re.finditer(
+                            r"(?m)^(#{1,6})\s+(.+?)\s*$",
+                            destination.read_text(encoding="utf-8"),
+                        )
+                    }
+                    self.assertIn(anchor, destination_headings)
+
+
+    def test_service_discovery_context_and_final_improve_handoff_are_item_scoped(self) -> None:
+        """Carry final service decisions through one item without replaying them to the next."""
+        index = self.repo / "SHIPLOOP.md"
+        decision = self.repo / "docs" / "decisions" / "customer-review.md"
+        decision.parent.mkdir(parents=True)
+        index.write_text(
+            "# Fixture decision index\n\n## Customer review\n\n"
+            "- [Accepted remote-service decision](docs/decisions/customer-review.md#accepted)\n",
+            encoding="utf-8",
+        )
+        decision.write_text("# Customer review\n\n## Accepted\n", encoding="utf-8")
+        index_ref = str(index) + "#customer-review"
+        final_plan_ref = str(decision) + "#accepted"
+        final_step_ref = str(decision) + "#implementation-handoff"
+        plan_seed_ref = "untrusted://shared-cache-seed"
+        step_seed_ref = "untrusted://draft-service-handoff"
+        seed_context = "W1 seed: share customer cache before verifying authorization."
+        final_context = (
+            "W1 remote service: reopen " + index_ref + " and " + final_plan_ref
+            + "; preserve the remote schema delta, gate each cached read on current "
+            "authorization, use durable record rereads after asynchronous work, and reuse "
+            "the existing audit owner unless coverage is insufficient."
+        )
+        local_context = (
+            "W2 local change: reopen " + index_ref
+            + " and reassess its own scope; no customer-service decision carries over."
+        )
+        index_route = "Repository knowledge index (host-authored, if present): " + str(index)
+        state = self.state()
+
+        while navigator.current_stage(state) != "plan":
+            state, _action_id = self.complete_stage(state)
+        final_plan = result(
+            "plan",
+            evidence_refs=[final_plan_ref],
+            work_items=[
+                {"id": "W1", "title": "Harden customer service", "context": final_context},
+                {"id": "W2", "title": "Make local title change", "context": local_context},
+            ],
+        )
+        state, plan_action = self.complete_stage_with_final(
+            state,
+            final_plan,
+            evidence_refs=[plan_seed_ref],
+            work_items=[{"id": "W1", "title": "Seed plan", "context": seed_context}],
+        )
+        state = self.save_reload(state)
+        self.assertEqual(state["accepted"][plan_action]["evidence_refs"], [final_plan_ref])
+        self.assertEqual(state["work_items"][0]["context"], final_context)
+        self.assertNotIn(plan_seed_ref, state["accepted"][plan_action]["evidence_refs"])
+        self.assertNotEqual(state["work_items"][0]["context"], seed_context)
+
+        while navigator.current_stage(state) != "step-plan":
+            state, _action_id = self.complete_stage(state)
+            state = self.save_reload(state)
+        first_item, first_packet = self.cold_packet(state)
+        self.assertEqual(navigator._current_work_item(first_item), "W1")
+        self.assertEqual(first_packet.count(index_route), 1, first_packet)
+        self.assertEqual(first_packet.count(SERVICE_DISCOVERY_ROUTES["step-plan"]), 1, first_packet)
+        self.assertIn("Work item context: " + final_context, first_packet)
+        self.assertIn(final_plan_ref, first_packet)
+        self.assertNotIn(seed_context, first_packet)
+        self.assertNotIn(plan_seed_ref, first_packet)
+
+        final_step = result(
+            "step-plan",
+            summary="Improve retained the final service handoff.",
+            evidence_refs=[final_step_ref],
+        )
+        state, step_action = self.complete_stage_with_final(
+            first_item,
+            final_step,
+            evidence_refs=[step_seed_ref],
+        )
+        state, test_spec_packet = self.cold_packet(state)
+        self.assertEqual(navigator.current_stage(state), "test-spec")
+        self.assertEqual(state["accepted"][step_action]["evidence_refs"], [final_step_ref])
+        self.assertIn("Work item context: " + final_context, test_spec_packet)
+        self.assertIn(
+            "Current item test-decision source action: " + step_action,
+            test_spec_packet,
+        )
+        self.assertIn(final_step_ref, test_spec_packet)
+        self.assertNotIn(step_seed_ref, test_spec_packet)
+        self.assertNotIn(plan_seed_ref, test_spec_packet)
+
+        while not (
+            navigator.current_stage(state) == "step-plan"
+            and navigator._current_work_item(state) == "W2"
+        ):
+            state, _action_id = self.complete_stage(state)
+            state = self.save_reload(state)
+        second_item, second_packet = self.cold_packet(state)
+        self.assertEqual(navigator._current_work_item(second_item), "W2")
+        self.assertEqual(second_packet.count(index_route), 1, second_packet)
+        self.assertEqual(second_packet.count(SERVICE_DISCOVERY_ROUTES["step-plan"]), 1, second_packet)
+        self.assertIn("Work item context: " + local_context, second_packet)
+        self.assertNotIn(final_context, second_packet)
+        self.assertNotIn(final_plan_ref, second_packet)
+        self.assertNotIn(final_step_ref, second_packet)
+        self.assertNotIn(step_seed_ref, second_packet)
+
+
 
 
 if __name__ == "__main__":

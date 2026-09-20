@@ -1,0 +1,26 @@
+[
+  {
+    "suite": "shiploop-v3-guidance",
+    "exit": 0
+  },
+  {
+    "suite": "shiploop-packet-bounds",
+    "exit": 0
+  },
+  {
+    "suite": "shiploop-navigator-v3",
+    "exit": 0
+  },
+  {
+    "suite": "shiploop-discovery",
+    "exit": 0
+  },
+  {
+    "suite": "shiploop-reference-routing",
+    "exit": 0
+  },
+  {
+    "suite": "shiploop-prompt-integrity",
+    "exit": 0
+  }
+]

@@ -1,0 +1,40 @@
+{
+  "reviewer": "service_semantic_review (independent read-only agent)",
+  "case_criteria": {
+    "remote-discovery": [
+      "pass",
+      "partial",
+      "partial",
+      "partial",
+      "pass",
+      "pass"
+    ],
+    "cold-step-plan": [
+      "pass",
+      "pass",
+      "pass",
+      "pass",
+      "pass",
+      "pass"
+    ],
+    "local-auth": [
+      "pass",
+      "pass",
+      "pass",
+      "partial"
+    ],
+    "local-formatter": [
+      "pass",
+      "pass",
+      "pass"
+    ]
+  },
+  "findings": [
+    "Remote discovery omitted explicit policy-enforcing interim bypass/deny; do not interpret query-only key alone as proof of cross-user exposure when cache instance scope is unknown.",
+    "Remote discovery omitted explicit preservation, additive reconciliation and readback handoff.",
+    "Remote async processing/recovery owner and acceptance/completion remain unmapped; do not invent new dispatcher infrastructure merely to fill this gap.",
+    "Local auth recognized missing success call but omitted a conditional emitter/test change once ownership is resolved."
+  ],
+  "limits": "Host-reported baseline and source reading; no independent filesystem read trace. Offline planning only, no live authority or full ShipLoop model workflow.",
+  "root_adjudication": "No product changes/exposure occurred in the read-only exercises. Partial means missing explicit downstream decision, not an observed security breach."
+}

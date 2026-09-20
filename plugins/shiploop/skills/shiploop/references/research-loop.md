@@ -136,6 +136,12 @@ method during environment investigation, inner-loop development, outer-loop
 delivery, and test expansion when a consequential unknown arises; reuse existing
 evidence instead of requiring a fresh investigation at every checkpoint.
 
+Use [service discovery](service-discovery.md#select-scope) when affected flows
+raise schema/state, query, caching, or asynchronous service choices behind an
+MCP/API or local boundary. Assess existing owned observability for local systems
+too; reuse event owners and sinks before adding coverage. Keep only relevant
+decisions and current evidence in the existing durable notes and knowledge index.
+
 ### Scope, coverage, and frontier
 
 Start with the task's affected flows, not a fixed number of hops. Read the repo

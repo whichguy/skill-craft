@@ -1,0 +1,27 @@
+{
+  "source_hashes_match_at_launch": true,
+  "cases": {
+    "cold-step-plan": {
+      "agent": "service_case_cold",
+      "launch": "/Users/dadleet/tmp/shiploop-service-implementation-objq14h9/semantic/cases/cold-step-plan/participant/LAUNCH.md",
+      "packet_sha256": "31360c24c9d799d086df29d58a9011c43ab61e16e14ff2112a9058b4c5d273d2"
+    },
+    "local-auth": {
+      "agent": "service_case_auth",
+      "launch": "/Users/dadleet/tmp/shiploop-service-implementation-objq14h9/semantic/cases/local-auth/participant/LAUNCH.md",
+      "packet_sha256": "4113b82c0918107c80ac74022551fe6cf4d7ea075887bfff9b6fed1cd0bf28df"
+    },
+    "local-formatter": {
+      "agent": "service_case_formatter",
+      "launch": "/Users/dadleet/tmp/shiploop-service-implementation-objq14h9/semantic/cases/local-formatter/participant/LAUNCH.md",
+      "packet_sha256": "7583fb04143a3ab8a55ffae415ae72914fe1a49104a9299b9d6e7e1d13f51309"
+    },
+    "remote-discovery": {
+      "agent": "service_case_remote",
+      "launch": "/Users/dadleet/tmp/shiploop-service-implementation-objq14h9/semantic/cases/remote-discovery/participant/LAUNCH.md",
+      "packet_sha256": "c5ebecd05dd1385016d7f0f52d4d40ef20461b9ce349866b1faeb97156a874ef"
+    }
+  },
+  "rubric_sha256": "693baf04e445a5dad27e52d52078b14f4d74e178f39dcfe16715c8798cbb96c9",
+  "fixture_generator_sha256": "a7d6902320a18d0af4882115e0fc12b1d73cc09120fe58a1772444a97f832c2b"
+}

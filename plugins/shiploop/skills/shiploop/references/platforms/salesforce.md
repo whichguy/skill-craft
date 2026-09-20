@@ -22,6 +22,33 @@ and rendered states. JavaScript doubles do not establish Apex execution,
 permission behavior, governor use, or org behavior; exercise those boundaries
 in an identified disposable org when required.
 
+## Service discovery
+
+When Salesforce is an affected service boundary, apply the conditional
+[service discovery guide](../service-discovery.md). Record the observed selected
+tool or supported route, current org/role evidence, and the separate authority
+needed for metadata/schema, configuration, and record CRUD. An MCP inventory or
+developer deployment identity does not establish the runtime caller's access.
+For incremental work, reconcile prior accepted intent, current local source or
+metadata definition, observed org state, and the requested delta; preserve
+unrelated fields and automation. A safe authorized metadata/state read is
+discovery evidence, not authority to mutate the org.
+
+For each runtime read, record sharing, object CRUD, and field-level security
+(FLS) separately. `with sharing` alone does not establish CRUD/FLS enforcement.
+If caching is selected, identify its actual native owner and refresh mechanism:
+do not attach generic invalidation plumbing to Apex wire results or Lightning
+Data Service without verifying the selected source's supported refresh path.
+For an asynchronous metadata deployment or background operation, an accepted
+request/ID is not final status; retain the terminal status and authorized
+read-back.
+
+Example: before adding `ReviewStatus__c`, inspect the selected object's current
+metadata and preserve an observed `Consent__c` field and automation. Plan an
+additive change, keep remote records authoritative through the current runtime
+adapter, leave a cache conditional on authorization/invalidation evidence, and
+verify the final metadata/status read-back for the intended role.
+
 Apply [target-native test selection](../repeatable-test-suites.md#select-target-native-tests)
 to the affected repo/org metadata and actual deployment route. LWC Jest checks
 components locally; Apex tests execute in the org; browser checks observe the

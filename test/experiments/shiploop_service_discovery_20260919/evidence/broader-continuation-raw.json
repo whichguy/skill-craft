@@ -1,0 +1,234 @@
+[
+  {
+    "suite": "test/shiploop-capability-async.test.cjs",
+    "exit": 0
+  },
+  {
+    "suite": "test/shiploop-generalized-discovery.test.py",
+    "exit": 0
+  },
+  {
+    "suite": "test/shiploop-probe-decisions.test.py",
+    "exit": 0
+  },
+  {
+    "suite": "test/shiploop-implicit-dependencies.test.py",
+    "exit": 0
+  },
+  {
+    "suite": "test/shiploop-external-discovery.test.py",
+    "exit": 0
+  },
+  {
+    "suite": "test/shiploop-discovery-decision-followup.test.py",
+    "exit": 1
+  },
+  {
+    "suite": "test/shiploop-repeatable-experiments.test.py",
+    "exit": 0
+  },
+  {
+    "suite": "test/shiploop-system-context.test.py",
+    "exit": 0
+  },
+  {
+    "suite": "test/shiploop-research-template.test.py",
+    "exit": 0
+  },
+  {
+    "suite": "test/shiploop-research-packet-protocol.test.py",
+    "exit": 0
+  },
+  {
+    "suite": "test/shiploop-question-resume.test.py",
+    "exit": 0
+  },
+  {
+    "suite": "test/shiploop-iteration-docs.test.py",
+    "exit": 0
+  },
+  {
+    "suite": "test/shiploop-iteration-docs-protocol.test.py",
+    "exit": 0
+  },
+  {
+    "suite": "test/shiploop-system-tests.test.py",
+    "exit": 0
+  },
+  {
+    "suite": "test/shiploop-system-tests-protocol.test.py",
+    "exit": 0
+  },
+  {
+    "suite": "test/shiploop-system-tests-report.test.py",
+    "exit": 0
+  },
+  {
+    "suite": "test/shiploop-history-policy.test.py",
+    "exit": 0
+  },
+  {
+    "suite": "test/shiploop-improve-policy.test.py",
+    "exit": 0
+  },
+  {
+    "suite": "test/shiploop-outer-work.test.py",
+    "exit": 0
+  },
+  {
+    "suite": "test/shiploop-outer-work-protocol.test.py",
+    "exit": 0
+  },
+  {
+    "suite": "test/shiploop-observations.test.py",
+    "exit": 0
+  },
+  {
+    "suite": "test/shiploop-observations-protocol.test.py",
+    "exit": 0
+  },
+  {
+    "suite": "test/shiploop-artifacts.test.py",
+    "exit": 0
+  },
+  {
+    "suite": "test/shiploop-artifact-consumers.test.py",
+    "exit": 0
+  },
+  {
+    "suite": "test/shiploop-privacy.test.py",
+    "exit": 0
+  },
+  {
+    "suite": "test/shiploop-revalidation.test.py",
+    "exit": 0
+  },
+  {
+    "suite": "test/shiploop-revalidation-context.test.py",
+    "exit": 0
+  },
+  {
+    "suite": "test/shiploop-risk.test.py",
+    "exit": 0
+  },
+  {
+    "suite": "test/shiploop-boundaries.test.py",
+    "exit": 0
+  },
+  {
+    "suite": "test/shiploop-objectives.test.py",
+    "exit": 0
+  },
+  {
+    "suite": "test/shiploop-contracts.test.py",
+    "exit": 0
+  },
+  {
+    "suite": "test/shiploop-contract-protocol.test.py",
+    "exit": 0
+  },
+  {
+    "suite": "test/shiploop-delivery.test.py",
+    "exit": 0
+  },
+  {
+    "suite": "test/shiploop-report.test.py",
+    "exit": 0
+  },
+  {
+    "suite": "test/shiploop-packets.test.py",
+    "exit": 0
+  },
+  {
+    "suite": "test/shiploop-orientation.test.py",
+    "exit": 0
+  },
+  {
+    "suite": "test/shiploop-loop-scope.test.py",
+    "exit": 0
+  },
+  {
+    "suite": "test/shiploop-orientation-context.test.py",
+    "exit": 0
+  },
+  {
+    "suite": "test/shiploop-orientation-integration.test.py",
+    "exit": 0
+  },
+  {
+    "suite": "test/shiploop-reference-routing.test.py",
+    "exit": 0
+  },
+  {
+    "suite": "test/shiploop-backchain-guidance.test.py",
+    "exit": 0
+  },
+  {
+    "suite": "test/shiploop-teachback.test.py",
+    "exit": 0
+  },
+  {
+    "suite": "test/shiploop-protocol.test.py",
+    "exit": 0
+  },
+  {
+    "suite": "test/shiploop-history-pages.test.py",
+    "exit": 0
+  },
+  {
+    "suite": "test/shiploop-merge-recovery.test.py",
+    "exit": 0
+  },
+  {
+    "suite": "test/shiploop-migration-prompt.test.py",
+    "exit": 0
+  },
+  {
+    "suite": "test/shiploop-knowledge.test.py",
+    "exit": 0
+  },
+  {
+    "suite": "test/shiploop-planning.test.py",
+    "exit": 0
+  },
+  {
+    "suite": "test/shiploop-until.test.py",
+    "exit": 0
+  },
+  {
+    "suite": "test/shiploop-step-planning.test.py",
+    "exit": 0
+  },
+  {
+    "suite": "test/shiploop-sdlc.test.py",
+    "exit": 0
+  },
+  {
+    "suite": "test/shiploop-improve-bridge.test.py",
+    "exit": 0
+  },
+  {
+    "suite": "test/shiploop-managed-contracts.test.py",
+    "exit": 0
+  },
+  {
+    "suite": "test/shiploop-invalidation.test.py",
+    "exit": 0
+  },
+  {
+    "suite": "test/shiploop-managed-invalidation.test.py",
+    "exit": 0
+  },
+  {
+    "suite": "test/shiploop-managed-package.test.py",
+    "exit": 0
+  },
+  {
+    "suite": "test/shiploop-managed-walk.test.py",
+    "exit": 0
+  },
+  {
+    "suite": "test/shiploop-action-walk.test.py",
+    "exit": -2
+  }
+]

@@ -1,0 +1,311 @@
+test_service_discovery_stage_routes_are_exact_and_selective (__main__.V3GuidanceTests.test_service_discovery_stage_routes_are_exact_and_selective)
+Keep the conditional guide's routes independent of the prompt catalog. ... 
+  test_service_discovery_stage_routes_are_exact_and_selective (__main__.V3GuidanceTests.test_service_discovery_stage_routes_are_exact_and_selective) (stage='discovery')
+Keep the conditional guide's routes independent of the prompt catalog. ... FAIL
+  test_service_discovery_stage_routes_are_exact_and_selective (__main__.V3GuidanceTests.test_service_discovery_stage_routes_are_exact_and_selective) (stage='research')
+Keep the conditional guide's routes independent of the prompt catalog. ... FAIL
+  test_service_discovery_stage_routes_are_exact_and_selective (__main__.V3GuidanceTests.test_service_discovery_stage_routes_are_exact_and_selective) (stage='spec')
+Keep the conditional guide's routes independent of the prompt catalog. ... FAIL
+  test_service_discovery_stage_routes_are_exact_and_selective (__main__.V3GuidanceTests.test_service_discovery_stage_routes_are_exact_and_selective) (stage='test-strategy')
+Keep the conditional guide's routes independent of the prompt catalog. ... FAIL
+  test_service_discovery_stage_routes_are_exact_and_selective (__main__.V3GuidanceTests.test_service_discovery_stage_routes_are_exact_and_selective) (stage='plan')
+Keep the conditional guide's routes independent of the prompt catalog. ... FAIL
+  test_service_discovery_stage_routes_are_exact_and_selective (__main__.V3GuidanceTests.test_service_discovery_stage_routes_are_exact_and_selective) (stage='step-plan')
+Keep the conditional guide's routes independent of the prompt catalog. ... FAIL
+  test_service_discovery_stage_routes_are_exact_and_selective (__main__.V3GuidanceTests.test_service_discovery_stage_routes_are_exact_and_selective) (stage='implement')
+Keep the conditional guide's routes independent of the prompt catalog. ... FAIL
+  test_service_discovery_stage_routes_are_exact_and_selective (__main__.V3GuidanceTests.test_service_discovery_stage_routes_are_exact_and_selective) (stage='document')
+Keep the conditional guide's routes independent of the prompt catalog. ... FAIL
+  test_service_discovery_stage_routes_are_exact_and_selective (__main__.V3GuidanceTests.test_service_discovery_stage_routes_are_exact_and_selective) (stage='verify')
+Keep the conditional guide's routes independent of the prompt catalog. ... FAIL
+  test_service_discovery_stage_routes_are_exact_and_selective (__main__.V3GuidanceTests.test_service_discovery_stage_routes_are_exact_and_selective) (stage='operations')
+Keep the conditional guide's routes independent of the prompt catalog. ... FAIL
+  test_service_discovery_stage_routes_are_exact_and_selective (__main__.V3GuidanceTests.test_service_discovery_stage_routes_are_exact_and_selective) (stage='handoff')
+Keep the conditional guide's routes independent of the prompt catalog. ... FAIL
+test_service_discovery_stage_routes_are_exact_and_selective (__main__.V3GuidanceTests.test_service_discovery_stage_routes_are_exact_and_selective)
+Keep the conditional guide's routes independent of the prompt catalog. ... FAIL
+
+======================================================================
+FAIL: test_service_discovery_stage_routes_are_exact_and_selective (__main__.V3GuidanceTests.test_service_discovery_stage_routes_are_exact_and_selective) (stage='discovery')
+Keep the conditional guide's routes independent of the prompt catalog.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/dadleet/src/skill-craft/test/shiploop-v3-guidance.test.py", line 207, in test_service_discovery_stage_routes_are_exact_and_selective
+    self.assertEqual(
+    ~~~~~~~~~~~~~~~~^
+        entries,
+        ^^^^^^^^
+        [(SERVICE_DISCOVERY_GUIDANCE_LABEL, SERVICE_DISCOVERY_GUIDE + "#" + anchor)],
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+AssertionError: Lists differ: [] != [('Service discovery guidance', 'service-discovery.md#select-scope')]
+
+Second list contains 1 additional elements.
+First extra element 0:
+('Service discovery guidance', 'service-discovery.md#select-scope')
+
+- []
++ [('Service discovery guidance', 'service-discovery.md#select-scope')]
+
+======================================================================
+FAIL: test_service_discovery_stage_routes_are_exact_and_selective (__main__.V3GuidanceTests.test_service_discovery_stage_routes_are_exact_and_selective) (stage='research')
+Keep the conditional guide's routes independent of the prompt catalog.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/dadleet/src/skill-craft/test/shiploop-v3-guidance.test.py", line 207, in test_service_discovery_stage_routes_are_exact_and_selective
+    self.assertEqual(
+    ~~~~~~~~~~~~~~~~^
+        entries,
+        ^^^^^^^^
+        [(SERVICE_DISCOVERY_GUIDANCE_LABEL, SERVICE_DISCOVERY_GUIDE + "#" + anchor)],
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+AssertionError: Lists differ: [] != [('Service discovery guidance', 'service-discovery.md#select-scope')]
+
+Second list contains 1 additional elements.
+First extra element 0:
+('Service discovery guidance', 'service-discovery.md#select-scope')
+
+- []
++ [('Service discovery guidance', 'service-discovery.md#select-scope')]
+
+======================================================================
+FAIL: test_service_discovery_stage_routes_are_exact_and_selective (__main__.V3GuidanceTests.test_service_discovery_stage_routes_are_exact_and_selective) (stage='spec')
+Keep the conditional guide's routes independent of the prompt catalog.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/dadleet/src/skill-craft/test/shiploop-v3-guidance.test.py", line 207, in test_service_discovery_stage_routes_are_exact_and_selective
+    self.assertEqual(
+    ~~~~~~~~~~~~~~~~^
+        entries,
+        ^^^^^^^^
+        [(SERVICE_DISCOVERY_GUIDANCE_LABEL, SERVICE_DISCOVERY_GUIDE + "#" + anchor)],
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+AssertionError: Lists differ: [] != [('Service discovery guidance', 'service-discovery.md#verification')]
+
+Second list contains 1 additional elements.
+First extra element 0:
+('Service discovery guidance', 'service-discovery.md#verification')
+
+- []
++ [('Service discovery guidance', 'service-discovery.md#verification')]
+
+======================================================================
+FAIL: test_service_discovery_stage_routes_are_exact_and_selective (__main__.V3GuidanceTests.test_service_discovery_stage_routes_are_exact_and_selective) (stage='test-strategy')
+Keep the conditional guide's routes independent of the prompt catalog.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/dadleet/src/skill-craft/test/shiploop-v3-guidance.test.py", line 207, in test_service_discovery_stage_routes_are_exact_and_selective
+    self.assertEqual(
+    ~~~~~~~~~~~~~~~~^
+        entries,
+        ^^^^^^^^
+        [(SERVICE_DISCOVERY_GUIDANCE_LABEL, SERVICE_DISCOVERY_GUIDE + "#" + anchor)],
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+AssertionError: Lists differ: [] != [('Service discovery guidance', 'service-discovery.md#verification')]
+
+Second list contains 1 additional elements.
+First extra element 0:
+('Service discovery guidance', 'service-discovery.md#verification')
+
+- []
++ [('Service discovery guidance', 'service-discovery.md#verification')]
+
+======================================================================
+FAIL: test_service_discovery_stage_routes_are_exact_and_selective (__main__.V3GuidanceTests.test_service_discovery_stage_routes_are_exact_and_selective) (stage='plan')
+Keep the conditional guide's routes independent of the prompt catalog.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/dadleet/src/skill-craft/test/shiploop-v3-guidance.test.py", line 207, in test_service_discovery_stage_routes_are_exact_and_selective
+    self.assertEqual(
+    ~~~~~~~~~~~~~~~~^
+        entries,
+        ^^^^^^^^
+        [(SERVICE_DISCOVERY_GUIDANCE_LABEL, SERVICE_DISCOVERY_GUIDE + "#" + anchor)],
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+AssertionError: Lists differ: [] != [('Service discovery guidance', 'service-discovery.md#development-handoff')]
+
+Second list contains 1 additional elements.
+First extra element 0:
+('Service discovery guidance', 'service-discovery.md#development-handoff')
+
+- []
++ [('Service discovery guidance', 'service-discovery.md#development-handoff')]
+
+======================================================================
+FAIL: test_service_discovery_stage_routes_are_exact_and_selective (__main__.V3GuidanceTests.test_service_discovery_stage_routes_are_exact_and_selective) (stage='step-plan')
+Keep the conditional guide's routes independent of the prompt catalog.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/dadleet/src/skill-craft/test/shiploop-v3-guidance.test.py", line 207, in test_service_discovery_stage_routes_are_exact_and_selective
+    self.assertEqual(
+    ~~~~~~~~~~~~~~~~^
+        entries,
+        ^^^^^^^^
+        [(SERVICE_DISCOVERY_GUIDANCE_LABEL, SERVICE_DISCOVERY_GUIDE + "#" + anchor)],
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+AssertionError: Lists differ: [] != [('Service discovery guidance', 'service-discovery.md#development-handoff')]
+
+Second list contains 1 additional elements.
+First extra element 0:
+('Service discovery guidance', 'service-discovery.md#development-handoff')
+
+- []
++ [('Service discovery guidance', 'service-discovery.md#development-handoff')]
+
+======================================================================
+FAIL: test_service_discovery_stage_routes_are_exact_and_selective (__main__.V3GuidanceTests.test_service_discovery_stage_routes_are_exact_and_selective) (stage='implement')
+Keep the conditional guide's routes independent of the prompt catalog.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/dadleet/src/skill-craft/test/shiploop-v3-guidance.test.py", line 207, in test_service_discovery_stage_routes_are_exact_and_selective
+    self.assertEqual(
+    ~~~~~~~~~~~~~~~~^
+        entries,
+        ^^^^^^^^
+        [(SERVICE_DISCOVERY_GUIDANCE_LABEL, SERVICE_DISCOVERY_GUIDE + "#" + anchor)],
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+AssertionError: Lists differ: [] != [('Service discovery guidance', 'service-discovery.md#development-handoff')]
+
+Second list contains 1 additional elements.
+First extra element 0:
+('Service discovery guidance', 'service-discovery.md#development-handoff')
+
+- []
++ [('Service discovery guidance', 'service-discovery.md#development-handoff')]
+
+======================================================================
+FAIL: test_service_discovery_stage_routes_are_exact_and_selective (__main__.V3GuidanceTests.test_service_discovery_stage_routes_are_exact_and_selective) (stage='document')
+Keep the conditional guide's routes independent of the prompt catalog.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/dadleet/src/skill-craft/test/shiploop-v3-guidance.test.py", line 207, in test_service_discovery_stage_routes_are_exact_and_selective
+    self.assertEqual(
+    ~~~~~~~~~~~~~~~~^
+        entries,
+        ^^^^^^^^
+        [(SERVICE_DISCOVERY_GUIDANCE_LABEL, SERVICE_DISCOVERY_GUIDE + "#" + anchor)],
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+AssertionError: Lists differ: [] != [('Service discovery guidance', 'service-discovery.md#development-handoff')]
+
+Second list contains 1 additional elements.
+First extra element 0:
+('Service discovery guidance', 'service-discovery.md#development-handoff')
+
+- []
++ [('Service discovery guidance', 'service-discovery.md#development-handoff')]
+
+======================================================================
+FAIL: test_service_discovery_stage_routes_are_exact_and_selective (__main__.V3GuidanceTests.test_service_discovery_stage_routes_are_exact_and_selective) (stage='verify')
+Keep the conditional guide's routes independent of the prompt catalog.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/dadleet/src/skill-craft/test/shiploop-v3-guidance.test.py", line 207, in test_service_discovery_stage_routes_are_exact_and_selective
+    self.assertEqual(
+    ~~~~~~~~~~~~~~~~^
+        entries,
+        ^^^^^^^^
+        [(SERVICE_DISCOVERY_GUIDANCE_LABEL, SERVICE_DISCOVERY_GUIDE + "#" + anchor)],
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+AssertionError: Lists differ: [] != [('Service discovery guidance', 'service-discovery.md#verification')]
+
+Second list contains 1 additional elements.
+First extra element 0:
+('Service discovery guidance', 'service-discovery.md#verification')
+
+- []
++ [('Service discovery guidance', 'service-discovery.md#verification')]
+
+======================================================================
+FAIL: test_service_discovery_stage_routes_are_exact_and_selective (__main__.V3GuidanceTests.test_service_discovery_stage_routes_are_exact_and_selective) (stage='operations')
+Keep the conditional guide's routes independent of the prompt catalog.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/dadleet/src/skill-craft/test/shiploop-v3-guidance.test.py", line 207, in test_service_discovery_stage_routes_are_exact_and_selective
+    self.assertEqual(
+    ~~~~~~~~~~~~~~~~^
+        entries,
+        ^^^^^^^^
+        [(SERVICE_DISCOVERY_GUIDANCE_LABEL, SERVICE_DISCOVERY_GUIDE + "#" + anchor)],
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+AssertionError: Lists differ: [] != [('Service discovery guidance', 'service-discovery.md#observability-coverage')]
+
+Second list contains 1 additional elements.
+First extra element 0:
+('Service discovery guidance', 'service-discovery.md#observability-coverage')
+
+- []
++ [('Service discovery guidance', 'service-discovery.md#observability-coverage')]
+
+======================================================================
+FAIL: test_service_discovery_stage_routes_are_exact_and_selective (__main__.V3GuidanceTests.test_service_discovery_stage_routes_are_exact_and_selective) (stage='handoff')
+Keep the conditional guide's routes independent of the prompt catalog.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/dadleet/src/skill-craft/test/shiploop-v3-guidance.test.py", line 207, in test_service_discovery_stage_routes_are_exact_and_selective
+    self.assertEqual(
+    ~~~~~~~~~~~~~~~~^
+        entries,
+        ^^^^^^^^
+        [(SERVICE_DISCOVERY_GUIDANCE_LABEL, SERVICE_DISCOVERY_GUIDE + "#" + anchor)],
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+AssertionError: Lists differ: [] != [('Service discovery guidance', 'service-discovery.md#development-handoff')]
+
+Second list contains 1 additional elements.
+First extra element 0:
+('Service discovery guidance', 'service-discovery.md#development-handoff')
+
+- []
++ [('Service discovery guidance', 'service-discovery.md#development-handoff')]
+
+======================================================================
+FAIL: test_service_discovery_stage_routes_are_exact_and_selective (__main__.V3GuidanceTests.test_service_discovery_stage_routes_are_exact_and_selective)
+Keep the conditional guide's routes independent of the prompt catalog.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/dadleet/src/skill-craft/test/shiploop-v3-guidance.test.py", line 212, in test_service_discovery_stage_routes_are_exact_and_selective
+    self.assertEqual(tuple(observed), tuple(SERVICE_DISCOVERY_STAGE_ANCHORS))
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Tuples differ: () != ('discovery', 'research', 'spec', 'test-st[84 chars]off')
+
+Second tuple contains 11 additional elements.
+First extra element 0:
+'discovery'
+
+- ()
++ ('discovery',
++  'research',
++  'spec',
++  'test-strategy',
++  'plan',
++  'step-plan',
++  'implement',
++  'document',
++  'verify',
++  'operations',
++  'handoff')
+
+----------------------------------------------------------------------
+Ran 1 test in 0.002s
+
+FAILED (failures=12)

@@ -1,0 +1,38 @@
+{
+  "plugins/shiploop/skills/shiploop/README.md": {
+    "before": "b6d0ef332a9b59270e9c6c809be000a69ca443cb375759366858534a3bf39fd1",
+    "after": "a1ccf4e5e92d55f26ff1c3ad701e765596d5b992740e8c4bd26273630aa4080a"
+  },
+  "plugins/shiploop/skills/shiploop/SKILL.md": {
+    "before": "4145be5619354055105c5f622593f0398de608dbc77d19b9eb99a77387519bec",
+    "after": "7371483de1b431e70a9ef4c226f0a34c98c0105d4906af31779d75e0b9f345ce"
+  },
+  "plugins/shiploop/skills/shiploop/references/behavioral-requirements.md": {
+    "before": "d54244700a30d4402ac8ae992cde5d6df1104363c3e92ef6b8d1ea1ecafa4bf1",
+    "after": "3a867f83c661bd8ce4d178621ac0c877ade6a9b5f86d50e5c106219d25d5b442"
+  },
+  "plugins/shiploop/skills/shiploop/references/coding-practices.md": {
+    "before": "e6b14580995e18785a9e84bbac4dc34c77a534aee2f5a849e9e8d1c951fe8f76",
+    "after": "ef3e89964159a854065e2cda6aa4ae06842a6519289f81293f3fbc5fc0ef0ecf"
+  },
+  "plugins/shiploop/skills/shiploop/references/platform-discovery.md": {
+    "before": "396831ff45df6d095d8141a55055e924dc5486d841a08e7239b36303aa6a2ec9",
+    "after": "8a3e44452a4f36888f5c7fb35ab364777fdcb2d7bc4e68d55be255224ae65b6b"
+  },
+  "plugins/shiploop/skills/shiploop/references/platforms/salesforce.md": {
+    "before": "c6947b4ca084dfa958eb43c2e2419204219862f5d571af4be71d1137c491374d",
+    "after": "e3bd5355ec1d1089ee16b3f7294ec9aed77d9ff88714a2866b5d37cf437c2f77"
+  },
+  "plugins/shiploop/skills/shiploop/references/research-loop.md": {
+    "before": "3c778894693569cbb37e590d011f53c2af678aba1e7cb1c9efdf42607e33ca6b",
+    "after": "d8d20dd7ecdfd34d987b0e50529c6521ee6e9fffd142434e129183f250b9fbea"
+  },
+  "plugins/shiploop/skills/shiploop/references/service-discovery.md": {
+    "before": null,
+    "after": "cc19f40a7acd8068146a741ed6165f7f3d8908994feda9e6968f4ea52640cbf0"
+  },
+  "plugins/shiploop/skills/shiploop/scripts/shiploop_navigator_v3_prompts.py": {
+    "before": "40a0f6cd563691cf93c6688d2e0eded4bb18ddbac353b1cdcd6298ef81994d1f",
+    "after": "bfc7e65367865e99515e3a9c0e035268e46865d4da494367bc0838852f90d7d6"
+  }
+}

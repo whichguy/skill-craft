@@ -5,7 +5,7 @@ description: >-
   script's current action packet, and submit its exact completion call until
   the script reports completion with an HTML achievement report. Use when the
   user says shiploop, ship the project, or requests a durable delivery loop.
-version: 0.18.8
+version: 0.18.9
 allowed-tools: all
 license: MIT
 platforms:
@@ -109,6 +109,11 @@ For item planning, coding and verification, use the
 accepted plan and load only applicable engineering practices and UI, Apps Script,
 Salesforce, Python or Bash cards. Retain decision and check locators through the
 existing result/review notes; the guide does not change stage order or edit authority.
+During discovery and planning, use [service discovery](references/service-discovery.md#select-scope)
+to assess owned observability for local or remote flows and, when relevant, follow
+MCP/API boundaries into schema, query, cache and asynchronous service needs.
+Retain current decisions and affected file/check locators in indexed project
+notes and item context; load only the applicable sections.
 
 For new work in an existing Git repository, use the isolated entry below. First
 inspect the branch/status and applicable repository instructions. The script

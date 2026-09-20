@@ -1,0 +1,32 @@
+[
+  {
+    "suite": "shiploop-navigator",
+    "exit": 0,
+    "log": "/Users/dadleet/tmp/shiploop-service-implementation-objq14h9/shiploop-navigator-green.log"
+  },
+  {
+    "suite": "shiploop-navigator-v3",
+    "exit": 0,
+    "log": "/Users/dadleet/tmp/shiploop-service-implementation-objq14h9/shiploop-navigator-v3-green.log"
+  },
+  {
+    "suite": "shiploop-discovery",
+    "exit": 0,
+    "log": "/Users/dadleet/tmp/shiploop-service-implementation-objq14h9/shiploop-discovery-green.log"
+  },
+  {
+    "suite": "shiploop-research-template",
+    "exit": 0,
+    "log": "/Users/dadleet/tmp/shiploop-service-implementation-objq14h9/shiploop-research-template-green.log"
+  },
+  {
+    "suite": "shiploop-reference-routing",
+    "exit": 0,
+    "log": "/Users/dadleet/tmp/shiploop-service-implementation-objq14h9/shiploop-reference-routing-green.log"
+  },
+  {
+    "suite": "shiploop-prompt-integrity",
+    "exit": 0,
+    "log": "/Users/dadleet/tmp/shiploop-service-implementation-objq14h9/shiploop-prompt-integrity-green.log"
+  }
+]

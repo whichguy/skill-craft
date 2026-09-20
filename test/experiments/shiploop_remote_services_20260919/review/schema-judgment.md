@@ -1,0 +1,25 @@
+# Schema-blind judgment
+
+## Decision: B, narrowly
+
+B is the stronger report because it states the required runtime fail-closed behavior when current authority cannot be established: “return no customer data.” That closes a security-critical gap left implicit in A. A has the more disciplined implementation ordering, so B should retain A's explicit prerequisite gate before any schema deployment.
+
+| Rubric criterion | Report A | Report B | Evidence and judgment |
+| --- | --- | --- | --- |
+| 1. Development MCP versus app runtime | **Supported** | **Supported** | A limits the successful `describe_objects` observation and maps `CustomerService` to the REST adapter plus an undocumented enforcement point. B says the MCP is “a discovery/deployment tool only” and names the runtime route. Both keep schema/deployment authority, runtime data access, and per-user authorization distinct and unproven where the facts are unproven. |
+| 2. Remote authority and copies/cache | **Supported** | **Supported** | Both preserve remote `Customer__c`/`RiskRequest__c` authority and reject a replica. A treats the feed as a conditional freshness accelerator and postpones sizing to measurements; B makes latency/quota measurements feasibility inputs and confines panel state to page memory. Neither treats a cache as automatic proof of a needed architecture. |
+| 3. Freshness versus authorization | **Partial** | **Supported** | A correctly requires a current authorization decision before cache or remote response, scopes cache identity, handles account switching, and invalidates late fills. It does not explicitly say what happens if the authority check is unavailable or indeterminate. B adds the essential rule: if current access cannot be established, disclose no customer data. |
+| 4. Races, schema/data/permission change, and read-after-write | **Partial** | **Partial** | Both cover a slow pre-invalidation fill, permission changes without record edits, and feed gaps/stale-fill investigation. Neither defines schema-specific event-gap recovery and late-fill behavior, nor a post-deploy metadata/consumer read-back that establishes read-after-write consistency. A deployment-status receipt and B status read-back prove job completion, not that the new schema is currently observable by the relevant consumer. |
+| 5. Durable asynchronous assessment | **Partial** | **Partial** | A defines acceptance as a durable request commit and explicitly associates later reads with authorization; B explicitly calls for reload/polling after reopen and atomic claim/version work. Both treat notifications as non-durable hints and cover restart/retry. Neither explicitly requires a result transition conditional on the current lease/revision, so a stale worker completion is not conclusively rejected; current authorization for result reads also needs an explicit acceptance check. |
+| 6. Reconcile intended delta safely | **Supported** | **Supported** | Both preserve remote `Consent__c` and its independent automation, use an additive `ReviewStatus__c` delta, and recheck metadata/target/authority around the write. A is especially clear that local XML is only a compatibility artifact; B is especially clear that revalidation occurs immediately before an authorized remote write. |
+| 7. Handoff, gates, evidence, and independent checks | **Supported** | **Partial** | A orders repository/baseline mapping, closure of authorization/schema/cache/lifecycle probes, then metadata and implementation; it names decision/evidence roles and concrete acceptance checks. B gives excellent proposed file roles, tests, receipts, and a revocation-gate stop condition, but its ordered handoff permits schema deployment in step 2 without explicitly making the other declared schema/feed/request-lifecycle probes completed prerequisites. Tighten that gate before execution. |
+| 8. Independent local control | **Supported** | **Supported** | Both correctly limit the formatter-capitalization edit to its local file and existing baseline/targeted unit-test work, with no remote-service prerequisite. |
+
+## Material limitations and required refinements
+
+- Neither report proves remote behavior; both correctly frame their statements as a synthetic design.
+- Add a schema-specific convergence probe: cover dropped/reordered schema events, late metadata reads/fills, and an explicit post-deploy metadata plus consumer-path read-back before relying on `ReviewStatus__c`.
+- Require a compare-and-set or equivalent lease/revision condition when a worker writes an assessment result, and independently test current authorization on subsequent result reads.
+- If using A, add an explicit fail-closed authority-outage rule. If using B, make completion of the declared schema/cache/risk probes an explicit pre-deployment gate, matching A's stronger ordering.
+
+Recommendation: continue a focused pilot using B's security boundary and file-level handoff, with the two shared async/schema refinements and A's pre-write discovery gates incorporated first.

@@ -1,0 +1,32 @@
+{
+  "reviewer": "service_semantic_review (independent read-only agent)",
+  "case_criteria": {
+    "remote-discovery": [
+      "pass",
+      "pass",
+      "pass",
+      "partial",
+      "pass",
+      "pass"
+    ],
+    "local-auth": [
+      "pass",
+      "pass",
+      "pass",
+      "pass"
+    ],
+    "local-formatter": [
+      "pass",
+      "pass",
+      "pass"
+    ]
+  },
+  "prepared_not_rerun": [
+    "cold-step-plan"
+  ],
+  "residuals": [
+    "Remote: polling appropriately retained only for status-derived semantics, but actual processing/recovery owner and durable acceptance/completion gap not explicitly retained. Final conditional discovery cue added; one last fresh remote exercise selected.",
+    "Formatter: nonblocking evidence attribution error: README only names baseline/coverage; normalization is established by test and implementation. Raw report preserved."
+  ],
+  "limits": "Participant report evidence for baseline/source reads, no independent read trace or live account. Final production cue changed after this pass; see final evidence."
+}

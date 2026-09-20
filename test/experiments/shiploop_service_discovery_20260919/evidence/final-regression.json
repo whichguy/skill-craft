@@ -1,0 +1,47 @@
+{
+  "total_tests": 93,
+  "suites": [
+    {
+      "suite": "shiploop-v3-guidance",
+      "exit": 0,
+      "tests": 19,
+      "log": "shiploop-v3-guidance-final.log",
+      "sha256": "b094cf8b1347f83a7eb5968f3f557b9c65b2d197ba75fbeb6287a438006ef78c"
+    },
+    {
+      "suite": "shiploop-packet-bounds",
+      "exit": 0,
+      "tests": 7,
+      "log": "shiploop-packet-bounds-final.log",
+      "sha256": "4ea6a23283999b31c4f3838ba3013f17c1ab5ed1d9e7bdbec2117604bd9283ba"
+    },
+    {
+      "suite": "shiploop-navigator-v3",
+      "exit": 0,
+      "tests": 22,
+      "log": "shiploop-navigator-v3-final.log",
+      "sha256": "ab02d2911b775776ac9ea6bcc10474438dd3ffcc8b6d1e7cdb4cf45a4e19a08b"
+    },
+    {
+      "suite": "shiploop-discovery",
+      "exit": 0,
+      "tests": 27,
+      "log": "shiploop-discovery-final.log",
+      "sha256": "8b28ad449606e30b31f2c2b5e8cd726c241ec8b3458a71a17c0b781214d01f9a"
+    },
+    {
+      "suite": "shiploop-reference-routing",
+      "exit": 0,
+      "tests": 8,
+      "log": "shiploop-reference-routing-final.log",
+      "sha256": "6dab1142df7af815e067009b70a39e1f6aadfc8e4e24f9a43851877ff2211dc2"
+    },
+    {
+      "suite": "shiploop-prompt-integrity",
+      "exit": 0,
+      "tests": 10,
+      "log": "shiploop-prompt-integrity-final.log",
+      "sha256": "5682c3996a8328f329e606c6cab94974b7c46abe1ed2564073986e1318f4ce84"
+    }
+  ]
+}

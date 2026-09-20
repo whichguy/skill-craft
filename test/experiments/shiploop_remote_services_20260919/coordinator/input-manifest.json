@@ -1,0 +1,18 @@
+{
+  "frozen/case-schema.md": "0d062e48237b1b05660b94e369c94bfe20366d2be83dc5131e64dd41e548b005",
+  "frozen/candidate.md": "792d7c643f4b8825dc608947ab801466f5122292486d21ebf730929eaa49fa9a",
+  "frozen/baseline.md": "71cd62a7291698eed4f7bf46c610d77c44b665281f390cb6d49bd949ac230fe1",
+  "frozen/case-async.md": "0317e1da1f406786af7b78847a9ad24dfc1e938f2cc01cc1444cf76fb8ee3904",
+  "frozen/source-provenance.json": "dd00be9369a1b2bb9a5e46323ad2a2ac2dabcec5546cfdc6f0507fce7ba67b7a",
+  "frozen/stage-prompts.json": "aef180cb996648e03033fe9a5607c58e146e85c9d6d4bad16c4a78123db11742",
+  "frozen/candidate-cue.md": "3cce19a7710c5b4470afa8733d8b7c869d3bd23e8d42ffc701fca758e5af4458",
+  "frozen/PROTOCOL.md": "44eb8fd9122bd3667c108d9a5a1b8b1d61900629610ccb5168b7455408af7164",
+  "arms/03/input.md": "4ce94236abc60550ae0f72bcea0b57acb3eb2f11f30a5ba1bda79fb043ab13e9",
+  "arms/04/input.md": "9f1689fc4d8a01d408d28367461ded18986e88270b444edbba0888b206d87b10",
+  "arms/02/input.md": "f9cb62820e9abe3bb723bcb12f4c06e722a77e3b03e4f59330a6e03cf8d499c8",
+  "arms/01/input.md": "82b5d7fd9ac8dab60d84854d4dd86a8bf6b642fbbff1670477d133633af54a47",
+  "arms/03/launch.md": "8da808c02ce16fe0e27a1828e0f333570851645df35c336e08b258895742d057",
+  "arms/04/launch.md": "117f96ab1e04eb667546504faadce286da307f078da84626a3b91d9a0b70020f",
+  "arms/02/launch.md": "6f3be3f699efa18e84005b6b862b5cdf5ace9fd9f833b4defd8506cc8f845282",
+  "arms/01/launch.md": "2655f1db8104e53a63df2c43dda2d34bf22e43757762afe5d798e101e6c88098"
+}
