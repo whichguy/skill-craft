@@ -29,6 +29,12 @@ and legacy runs; do not bypass that rule by manually editing state. Default adop
 implied. The initial run and its effective contracts are stored in the same
 authoritative Markdown ledger, not a second delivery-state file.
 
+Requests to deploy a candidate and open/interact with its real consumer surface
+are suitable pilot cases. Select the flag deliberately **before** new-run
+initialization; reading this guide later cannot enable it for an unmarked run.
+Evaluate the requested outcome, not keywords in examples or documentation. This
+guidance does not default-enable the pilot or grant any external-write authority.
+
 ## What to establish
 
 Determine the intended consumer and required behavior from the original request,
@@ -107,6 +113,17 @@ and boolean `required`. The kind determines its phase:
 | `effect` | `release` | The authorized operation succeeded, or is evidenced already satisfied. |
 | `identity` | `release` | The actual target/artifact matches the intended candidate. |
 | `behavior` | `release-verify` | The required consumer behavior was actually observed. |
+
+Derive required behavior obligations from the accepted clauses and existing
+[case records](testing-and-documentation.md#test-cases). Link their requirement,
+case and observation locators through ordinary evidence references. Preserve
+distinct required behaviors even when one requirement ID bundles them; a page
+render alone cannot discharge requested interaction cases. Keep local support
+as pre-update evidence. For browser observations, record the non-secret usable
+entry, visible feature, account/role and actual action/outcome using the
+[browser guidance](testing-and-documentation.md#lightweight-and-browser-checks).
+Do not invent a separate identity schema or require custom chrome for an embedded
+feature. These are host review duties; the validator does not read those proofs.
 
 Every resolved contract needs at least one required behavior obligation, including
 source-only/no-activation work: the consumer boundary may be local, but it still

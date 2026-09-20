@@ -226,6 +226,44 @@ retains that full required set. It does not claim precise impact analysis or
 support silently discarding obsolete commands. Changes to those contracts
 require explicit corrective planning and compatible executable evidence.
 
+## Stage readiness and completion
+
+For navigator v3, apply only the current stage's row below. **Definition of Ready**
+means its required inputs, authority and prerequisites are available. **Definition
+of Done** means its scoped output and due evidence exist. These are host duties
+inside the existing graph, not new result fields or mechanical semantic gates.
+Use existing requirement sections, case records and result/evidence locators;
+do not copy this table into every work item or create a second acceptance ledger.
+
+| Existing stages | Ready inputs | Done for this activity |
+| --- | --- | --- |
+| intake, discovery, research | Request, applicable sources and scoped investigation | Consumer intent, baseline observations, constraints and material unknowns retained; an investigated failure is not product readiness |
+| spec | Reconciled sources and decision basis | Independently verifiable clauses and required surfaces defined; unresolved criteria remain prerequisites |
+| test-strategy, plan | Defined criteria and initial baseline | Cases/verification methods allocated by surface, target, owner and due phase; prerequisites ordered before consumers |
+| prepare, select-work, step-plan | Authorized preparation or selected item with supplier evidence | Actual prerequisites and bounded item Ready/Done criteria revalidated; relevant clause/case locators retained |
+| test-spec | Assigned clauses and accepted strategy | Inputs, independent expected observations, required surfaces, fixtures and execution phases specified |
+| baseline, test-red | Starting candidate and applicable checks | Actual baseline or meaningful expected failure observed and classified; missing coverage/setup failure is not a passing product check |
+| test-author, system-test-author | Independent cases and permitted test scope | Executable checks or justified reproducible manual procedures supplied, discoverable and bound to clauses; authoring does not claim execution |
+| implement | Ready item, independent expectations and edit authority | Scoped candidate supplied; accepted criteria are preserved |
+| test-green, regression, static-checks | Current candidate and selected checks | Actual results recorded only for the behavior/surface those checks observe |
+| test-refine | Original cases plus implementation evidence | Retained, added, removed or narrowed cases reconciled with an independent basis; required coverage cannot disappear |
+| document, skill-assess, skill-validate | Current artifacts and relevant documentation/reuse criteria | Documentation and selected skill checks or justified N/A recorded; neither substitutes for product verification |
+| verify, integration-verify, system-test | Candidate at the assigned boundary and cases due there | Due clauses reconciled to current observations; invalidated checks rerun and later-phase cases explicitly retained |
+| integrate, carry-forward | Reviewed item and assembly/next-consumer requirements | Assembly and remaining obligations retained with owner, phase and locators; assembly is not deployment |
+| product-acceptance | Original outcome and whole-product evidence | All due criteria may establish pre-release readiness; distinguish corrective or blocked work from release-only behaviors that remain pending and are not yet observed |
+| release-plan, release-check | Current candidate, authority and pending delivery cases | Release route and readiness established with post-release checks and recovery; no implied external operation |
+| release | Current authorized operation and target | Actual effect and candidate/target identity recorded separately from behavior |
+| release-verify | Actual release and applicable consumer prerequisites | Required post-release consumer observations recorded or left incomplete |
+| operations, handoff | Current results and applicable operational/return duties | Due evidence reconciled, remaining limits retained, applicable consumer entry identified, current workspace return taken from its verified receipt |
+
+Completion is phase-specific. A post-release case that is **not yet due** stays
+pending through pre-release acceptance; that alone does not block reaching the
+release that supplies its prerequisite. A required case already due but failed,
+blocked or not run prevents declaring that boundary complete. Retain corrective
+work through the existing repeat/blocked/replan routes. Do not postpone an
+already-due check simply to advance. For an enabled delivery contract, preserve
+its fixed obligation phases and correction rules; this guidance does not move them.
+
 ## Test cases
 
 Use the selected [maintained product requirements](project-knowledge.md#maintained-product-requirements),
@@ -261,8 +299,18 @@ for equivalent boundaries:
 | Preconditions and input | Initial state, fixtures, role, relevant configuration, and stimulus/action. |
 | Expected outcome | Observable result, state change or absence of side effects; explicit error behavior and justified tolerance/time bound where relevant. Never just “works.” |
 | Scope, surface, and environment | Unit/integration/end-to-end scope, mock/fake strategy, and separately selected browser/service/API view; target environment alias, real versus simulated dependencies, readiness requirements. |
+| Due phase and owner | The existing activity that must obtain this observation, its owner and prerequisites. Separate pre-release checks from post-release consumer verification. |
 | Executable reference | Planned or actual test path/symbol/selector and check-manifest ID, or a reproducible manual procedure when automation is genuinely unavailable. |
 | Observation | Separately record actual outcome, passed/failed/blocked/not-run status, checked revision/build, and evidence reference. Expected is not actual. |
+
+Keep each affected, independently verifiable requirement clause linked to this
+record or another existing verification record. Preserve its **required** surface
+and due phase separately from the surface actually checked. A supporting unit
+pass cannot close a required deployed interaction. At test refinement and
+acceptance, reconcile the original selected inventory with current records;
+explain every removal, narrowing or reassignment with its independent requirement
+or correction basis. Retain unresolved coverage instead of silently dropping it.
+Use a compact table or equivalent existing notes, not mandatory extra files.
 
 Cover relevant success, invalid input, boundary/empty cases, permission failures,
 dependency failure, and regressions. Assess timing, retry/idempotency, concurrency,
@@ -337,6 +385,15 @@ handling; redact/minimize diagnostic artifacts and never commit browser auth sta
 
 Record the selected tool/surface, target and non-secret user role, expected versus
 observed behavior, evidence location and limits in the existing test plan/results.
+For a browser consumer, distinguish the account/tenant/instance from the usable
+entry route after authentication and redirects. Retain a non-secret URL/path or
+supported navigation locator, visible feature identity, and the rendered action
+and outcome for each required behavior. A service home or login page alone is
+not the feature entry. An embedded feature can be valid: require particular app
+chrome, navigation or branding only when the accepted criteria require it.
+Redact session tokens while retaining non-secret routing state needed to identify
+the feature; origin and pathname alone may not identify an SPA route. Confirm
+the supplied entry reaches the intended feature through the supported user route.
 Relate a browser observation to the intended target and current candidate/version
 where observable; disclose any missing identity link rather than claiming that
 an interaction with an older or different deployment verifies the new artifact.
@@ -805,6 +862,13 @@ artifacts before verification; run-only observations go in the packet's inbox,
 not into the product tree after checks (which would stale the evidence).
 
 ## Deployment and handoff
+
+For navigator v3, use the [stage completion map](#stage-readiness-and-completion).
+`product-acceptance` precedes `release`: it reconciles due product checks and
+explicit pending post-release cases. `release-verify` obtains the latter's actual
+observations; `handoff` reconciles the final evidence. The compatibility guidance
+below about outer quality and DAG publication applies to those named older
+routes, not an instruction to move v3's final release before product acceptance.
 
 At outer quality, reassess the selected browser/service/API views against the
 whole product, not only the final step. Match the manifest to every exact

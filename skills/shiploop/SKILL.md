@@ -5,7 +5,7 @@ description: >-
   script's current action packet, and submit its exact completion call until
   the script reports completion with an HTML achievement report. Use when the
   user says shiploop, ship the project, or requests a durable delivery loop.
-version: 0.18.4
+version: 0.18.5
 allowed-tools: all
 license: MIT
 platforms:
@@ -91,6 +91,11 @@ During discovery, research, and spec, apply
 specs, reconcile current explicit instructions with their applicable conditions,
 and define verifiable non-functional requirements. Preserve unaffected intent
 and retain material unknowns; carry the resulting criteria into plans and checks.
+Use the [stage readiness and completion map](references/testing-and-documentation.md#stage-readiness-and-completion)
+to distinguish definition done, tests planned/authored, due verification and final
+delivery. Preserve each affected clause's required surface and due phase in the
+existing requirement/case records; a supporting local pass cannot close a
+required deployed interaction.
 Use [reference handoffs and destinations](references/project-knowledge.md#reference-handoffs-and-destinations)
 to keep the selected product sections and test locators correlated across plans,
 results and Improve's own contract, without confusing package, repository and run files.
@@ -170,8 +175,11 @@ For a run left by an older controller, follow **Recovery from older supervised
 runs** below before executing any recovered packet.
 
 For a new run explicitly piloting consumer-delivery declaration checks, add
-`--delivery-contract` to `workspace start` (or direct `init`). Read [consumer delivery](references/consumer-delivery.md)
-for its result contract, source-only cases, and recovery boundaries. The option
+`--delivery-contract` to `workspace start` (or direct `init`). Read
+[consumer delivery](references/consumer-delivery.md) before starting a
+deploy-and-interact pilot so its declared behavior obligations are enabled from
+initialization. That reference defines the result contract, source-only cases,
+and recovery boundaries. The option
 does not grant publication authority or retrofit an existing run. Use the
 packet's generated assessment template; the script supplies its binding.
 

@@ -436,7 +436,7 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         self.assertEqual(self.state["navigator_protocol_version"], 3)
         self.assertEqual(self.bound["skill"]["runtime_cli"], str(EPHEMERAL.resolve()))
         self.assertEqual(self.bound["skill"]["runtime_version"], "0.4.0-rc.2")
-        self.assertEqual(self.bound["skill"]["skill_version"], "0.2.0-rc.3")
+        self.assertEqual(self.bound["skill"]["skill_version"], "0.2.0-rc.4")
         parent_packet = self.invoke(CLI, "next", "--run-dir", self.run).stdout
         for text in (self.bound["contract_marker"], "Bound Until Loop CLI locator: " + str(EPHEMERAL.resolve()),
                      "Child latest packet receipt: " + str(bridge.receipt_path(self.bound)), "no-commit",
@@ -489,6 +489,109 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         store.write_record(completion, dict(receipt, summary="Conflicting callback"))
         self.invoke(CLI, "improve-complete", "--run-dir", self.run, "--action", self.action, "--result", completion, status=2)
         self.assertEqual(after, (self.run / "state.md").read_bytes())
+
+    def test_empty_initial_commit_retains_selected_untracked_scope_through_child_recovery(self):
+        """Exercise immutable transport; synthetic reports do not prove review conduct."""
+        def git(*args):
+            result = subprocess.run(
+                ["git", "-C", str(self.repo), *args], text=True, capture_output=True,
+                timeout=30, env=self.environment,
+            )
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            return result.stdout.strip()
+
+        git("init", "-q")
+        git("config", "user.email", "fixture@example.invalid")
+        git("config", "user.name", "Fixture")
+        git("config", "commit.gpgsign", "false")
+        git("config", "core.hooksPath", "/dev/null")
+        git("commit", "--allow-empty", "-qm", "empty initial scope baseline")
+        initial_head = git("rev-parse", "HEAD")
+        self.assertEqual(git("show", "--format=", "--name-only", "HEAD"), "")
+
+        product = self.repo / "product/checkers.py"
+        requirements = self.repo / "docs/requirements.md"
+        scratch = self.repo / "scratch/notes.md"
+        for path, body in (
+            (product, "def move_piece():\n    return 'ok'\n"),
+            (requirements, "# Requirements\n\n- A player can move a piece.\n"),
+            (scratch, "Unrelated working note.\n"),
+        ):
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(body, encoding="utf-8")
+        status_before_child = git("status", "--porcelain=v1", "--untracked-files=all")
+        for path in (product, requirements, scratch):
+            self.assertIn("?? " + str(path.relative_to(self.repo)), status_before_child)
+        index_before = (self.repo / ".git/index").read_bytes()
+
+        base_context = self.child_context()
+        selected_resources = [
+            {"purpose": "selected untracked product candidate", "locator": str(product)},
+            {"purpose": "selected untracked requirements", "locator": str(requirements)},
+        ]
+        manual_context = {
+            "request": (
+                "Synthetic empty-history candidate-scope fixture.\n"
+                + self.bound["contract_marker"]
+                + "\nDo exactly one review cycle per returned callback."
+            ),
+            "scope": (
+                "Frozen candidate inventory at " + initial_head + ": include "
+                + str(product) + " and " + str(requirements) + "; exclude "
+                + str(scratch) + ". The empty initial commit and unchanged HEAD "
+                + "do not replace this candidate."
+            ),
+            "authority": "ShipLoop v3 no-commit authority: do not commit, merge, push, or broaden scope.",
+            "environment": "Use the current fixture workspace and declared Python/Git commands only.",
+            "resources": base_context["resources"] + selected_resources,
+        }
+        self.assertNotIn(str(scratch), [resource["locator"] for resource in manual_context["resources"]])
+        self.assertIn(str(scratch), manual_context["scope"])
+        contract = self.child_contract()
+        contract["context"] = manual_context
+
+        start_raw, first = self.invoke_argv(
+            [sys.executable, "-B", str(EPHEMERAL), "start", "--directory", str(self.base)], contract
+        )
+        self.assertEqual(first["status"], "active")
+        self.save_packet(start_raw)
+        state_file = Path(first["state_file"])
+        before_cold_next = state_file.read_bytes()
+        cold_raw, cold = self.invoke_argv(first["next_argv"])
+        self.assertEqual(start_raw.stdout, cold_raw.stdout)
+        self.assertEqual(before_cold_next, state_file.read_bytes())
+        self.assertEqual(cold["context"], manual_context)
+        self.assertEqual(cold["context"]["resources"][-2:], selected_resources)
+        self.save_packet(cold_raw)
+
+        _raw, second = self.done_ephemeral(
+            cold, self.child_report("non-trivial", "unsatisfied", "allowed", "synthetic fixture finding")
+        )
+        _raw, third = self.done_ephemeral(
+            second, self.child_report("trivial", "unsatisfied", "allowed", "synthetic first review")
+        )
+        terminal_raw, terminal = self.done_ephemeral(
+            third, self.child_report("trivial", "satisfied", "allowed", "synthetic second review")
+        )
+        self.assertEqual(terminal["status"], "complete")
+        self.assertEqual(terminal["context"], manual_context)
+
+        completion, _receipt = self.completion_receipt()
+        self.invoke(CLI, "improve-complete", "--run-dir", self.run, "--action", self.action, "--result", completion)
+        archive = self.run / "improve" / self.action / "terminal.json"
+        archived = json.loads(archive.read_text(encoding="utf-8"))
+        self.assertEqual(archive.read_bytes(), terminal_raw.stdout)
+        self.assertEqual(archived["context"], manual_context)
+        self.assertEqual(store.read_record(self.run / "state.md")["improve_results"][self.action]["runtime_phase"], "complete")
+
+        self.assertEqual(git("rev-parse", "HEAD"), initial_head)
+        self.assertEqual((self.repo / ".git/index").read_bytes(), index_before)
+        status_after_child = git("status", "--porcelain=v1", "--untracked-files=all")
+        for path in (product, requirements, scratch):
+            self.assertIn("?? " + str(path.relative_to(self.repo)), status_after_child)
+        self.assertEqual(product.read_text(encoding="utf-8"), "def move_piece():\n    return 'ok'\n")
+        self.assertEqual(requirements.read_text(encoding="utf-8"), "# Requirements\n\n- A player can move a piece.\n")
+        self.assertEqual(scratch.read_text(encoding="utf-8"), "Unrelated working note.\n")
 
     def test_skill_assess_local_skill_bundle_survives_actual_child_cold_recovery(self):
         """A host-authored child contract retains concrete local-skill locators.

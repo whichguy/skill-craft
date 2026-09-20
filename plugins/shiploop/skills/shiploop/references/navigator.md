@@ -36,6 +36,14 @@ Improve child before a success edge can release that output. A meaningful RED is
 successful evidence for its test-control step; it never authorizes production
 edits before `implement`. A blocked Improve child leaves its parent incomplete.
 
+Apply the [stage readiness and completion map](testing-and-documentation.md#stage-readiness-and-completion)
+to the current artifact. Definition fixes criteria; test planning allocates
+surface/phase and prerequisites; test authoring supplies checks; verification
+records actual outcomes. `product-acceptance` assesses due pre-release evidence
+and retains pending release verification. `release-verify` observes the required
+post-release consumer behavior. Carry the same clause/case locators through
+Improve and recovery; these duties add neither graph nodes nor semantic counters.
+
 Sections describing v1/v2, managed, and legacy execution are compatibility
 references. Their `*-improve` graph nodes, embedded policy campaigns, and
 protocol-2 defaults do not apply to v3. Shared recovery, domain duties and

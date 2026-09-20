@@ -177,6 +177,18 @@ manifest baseline. External actors must not edit the source during the guarded
 operation; repository tools cannot lock out arbitrary editors. Preserve partial
 operation evidence on unexpected failures and inspect actual effects before retry.
 
+Every worktree packet and final report names `return-receipt.md` and asks the
+read-only `completed_receipt_snapshot` display validator for a current result.
+A matching receipt shows its actual `returned` status and return kind; a missing,
+stale, invalid, busy, or recovery-pending result is **not currently verified**.
+This is a live view of the source and candidate, not a field copied into navigator
+state or a new return operation. The terminal `completed_receipt` guard retains
+its crash-transaction recovery behavior; the display validator requires an
+already-stable workspace and does not add a write, change the graph, or parse an
+accepted summary.
+Accepted transition summaries remain historical host reports and cannot make a
+stale receipt current again.
+
 This is a local Git safety boundary, not a sandbox/security boundary or a
 guarantee that an LLM categorized every file correctly. The existing Improve
 campaign must challenge that categorization and the tests' adequacy.

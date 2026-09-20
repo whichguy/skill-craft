@@ -189,6 +189,14 @@ class ShipLoopWorkspaceTests(unittest.TestCase):
             return {}
         return ShipLoopWorkspaceTests._file_tree(root)
 
+    def _common_object_snapshot(self) -> dict[str, tuple[object, ...]]:
+        common = Path(
+            self.git(
+                "rev-parse", "--path-format=absolute", "--git-common-dir"
+            ).stdout.strip()
+        )
+        return self._file_tree(common / "objects")
+
     def _prepare(
         self,
         *,
@@ -464,24 +472,38 @@ class ShipLoopWorkspaceTests(unittest.TestCase):
 
     def test_dirty_return_applies_only_new_delta_and_preserves_source_index(self) -> None:
         self._seed_dirty_source()
+        deleted = self.repo / "delete-me.txt"
+        deleted.unlink()
+        self.git("add", "-u", "delete-me.txt")
+        deleted.write_text("recreated source input\n", encoding="utf-8")
         record = self._prepare(include_untracked=("selected-input.txt",))
         root = self.base / "isolated workspace"
         worktree = self._worktree(record)
         feature = worktree / "feature.py"
         feature.write_text("def feature():\n    return 'candidate'\n", encoding="utf-8")
         self._commit_all(worktree, "add candidate feature")
+        # A receipt records actual working content, including an unstaged
+        # candidate edit whose review disposition can still be exclude.
+        (worktree / "tracked-unstaged.txt").write_text(
+            "candidate unstaged tracked input\n", encoding="utf-8"
+        )
 
         plan = self._plan(root)
         planned = {item["path"] for item in plan["paths"]}
         self.assertIn("feature.py", planned)
+        self.assertIn("tracked-unstaged.txt", planned)
         self.assertNotIn("tracked-staged.txt", planned)
-        self.assertNotIn("tracked-unstaged.txt", planned)
         self.assertNotIn("selected-input.txt", planned)
-        self._resolve_plan(root)
+        self._resolve_plan(root, exclude={"tracked-unstaged.txt"})
         before_index = (self.repo / ".git" / "index").read_bytes()
         before_dirty = {
             name: (self.repo / name).read_bytes()
-            for name in ("tracked-staged.txt", "tracked-unstaged.txt", "selected-input.txt")
+            for name in (
+                "tracked-staged.txt",
+                "tracked-unstaged.txt",
+                "selected-input.txt",
+                "delete-me.txt",
+            )
         }
 
         receipt = self._execute(root)
@@ -498,6 +520,80 @@ class ShipLoopWorkspaceTests(unittest.TestCase):
         )
         self.assertTrue((root / "worktree").is_dir())
         self.assertTrue((root / "run").is_dir())
+
+        workspace_before = self._workspace_snapshot(root)
+        source_index_before = (self.repo / ".git" / "index").read_bytes()
+        objects_before = self._common_object_snapshot()
+        self.assertEqual(
+            self._call(workspace.completed_receipt_snapshot, root, self.repo), receipt
+        )
+        self.assertEqual(self._workspace_snapshot(root), workspace_before)
+        self.assertEqual((self.repo / ".git" / "index").read_bytes(), source_index_before)
+        self.assertEqual(self._common_object_snapshot(), objects_before)
+
+        (self.repo / "feature.py").write_text(
+            "source novel working-tree return blob\n", encoding="utf-8"
+        )
+        drift_workspace = self._workspace_snapshot(root)
+        drift_index = (self.repo / ".git" / "index").read_bytes()
+        drift_objects = self._common_object_snapshot()
+        self.assertIsNone(
+            self._call(workspace.completed_receipt_snapshot, root, self.repo)
+        )
+        self.assertEqual(self._workspace_snapshot(root), drift_workspace)
+        self.assertEqual((self.repo / ".git" / "index").read_bytes(), drift_index)
+        self.assertEqual(self._common_object_snapshot(), drift_objects)
+
+    def test_receipt_snapshot_honors_disabled_filemode_for_executable_extras(self) -> None:
+        """The display match follows Git mode policy for selected and returned files."""
+        self.git("config", "core.filemode", "false")
+        selected = self._write("selected-executable.sh", "#!/bin/sh\necho selected\n")
+        selected.chmod(0o755)
+        root = self.base / "filemode disabled return"
+        record = self._prepare(
+            include_untracked=("selected-executable.sh",), name=root.name
+        )
+        worktree = self._worktree(record)
+        returned = worktree / "returned-executable.sh"
+        returned.write_text("#!/bin/sh\necho returned\n", encoding="utf-8")
+        self._commit_all(worktree, "return executable source extra")
+        self._plan(root)
+        self._resolve_plan(root)
+        receipt = self._execute(root)
+        self.assertEqual(receipt["kind"], "working-tree-return")
+
+        returned_source = self.repo / "returned-executable.sh"
+        returned_source.chmod(0o755)
+        self.assertTrue(selected.stat().st_mode & stat.S_IXUSR)
+        self.assertTrue(returned_source.stat().st_mode & stat.S_IXUSR)
+        expected_tree = receipt["expected_source"]["working_tree"]
+        for path in ("selected-executable.sh", "returned-executable.sh"):
+            self.assertTrue(
+                self.git("ls-tree", expected_tree, "--", path).stdout.startswith(
+                    "100644 blob "
+                )
+            )
+
+        workspace_before = self._workspace_snapshot(root)
+        index_before = (self.repo / ".git" / "index").read_bytes()
+        objects_before = self._common_object_snapshot()
+        self.assertEqual(
+            self._call(workspace.completed_receipt_snapshot, root, self.repo), receipt
+        )
+        self.assertEqual(self._workspace_snapshot(root), workspace_before)
+        self.assertEqual((self.repo / ".git" / "index").read_bytes(), index_before)
+        self.assertEqual(self._common_object_snapshot(), objects_before)
+
+        self.git("config", "core.filemode", "true")
+        drift_workspace = self._workspace_snapshot(root)
+        drift_index = (self.repo / ".git" / "index").read_bytes()
+        drift_objects = self._common_object_snapshot()
+        self.assertIsNone(
+            self._call(workspace.completed_receipt_snapshot, root, self.repo)
+        )
+        self.assertEqual(self._workspace_snapshot(root), drift_workspace)
+        self.assertEqual((self.repo / ".git" / "index").read_bytes(), drift_index)
+        self.assertEqual(self._common_object_snapshot(), drift_objects)
 
     def test_clean_candidate_fast_forwards_when_every_path_is_kept(self) -> None:
         record = self._prepare(name="clean fast forward")
@@ -1072,6 +1168,96 @@ class ShipLoopWorkspaceTests(unittest.TestCase):
         self.assertIsNone(self._call(workspace.completed_receipt, root, self.repo))
         self.assertEqual((root / "return-receipt.md").read_bytes(), receipt_bytes)
 
+    def test_receipt_snapshot_never_mutates_workspace_or_git_objects(self) -> None:
+        """Display reads refuse uncertainty instead of creating locks or recovery writes."""
+        root = self.base / "read-only receipt snapshot"
+        record = self._prepare(name=root.name)
+        worktree = self._worktree(record)
+        candidate = worktree / "snapshot-feature.txt"
+        candidate.write_text("returned feature\n", encoding="utf-8")
+        self._commit_all(worktree, "candidate for read-only receipt snapshot")
+        self._plan(root)
+        self._resolve_plan(root)
+        receipt = self._execute(root)
+
+        workspace_before = self._workspace_snapshot(root)
+        source_index_before = (self.repo / ".git" / "index").read_bytes()
+        objects_before = self._common_object_snapshot()
+        self.assertEqual(
+            self._call(workspace.completed_receipt_snapshot, root, self.repo), receipt
+        )
+        self.assertEqual(self._workspace_snapshot(root), workspace_before)
+        self.assertEqual((self.repo / ".git" / "index").read_bytes(), source_index_before)
+        self.assertEqual(self._common_object_snapshot(), objects_before)
+
+        with mock.patch("fcntl.flock", side_effect=OSError("workspace is busy")):
+            self.assertIsNone(
+                self._call(workspace.completed_receipt_snapshot, root, self.repo)
+            )
+        self.assertEqual(self._workspace_snapshot(root), workspace_before)
+        self.assertEqual((self.repo / ".git" / "index").read_bytes(), source_index_before)
+        self.assertEqual(self._common_object_snapshot(), objects_before)
+
+        def interrupted(phase: str, index: int) -> None:
+            if phase == "after-target" and index == 1:
+                raise RuntimeError("leave a pending workspace transaction")
+
+        with self.assertRaisesRegex(RuntimeError, "pending workspace transaction"):
+            store.transaction(
+                root,
+                {"pending-snapshot.md": "must not be recovered by display\n"},
+                fault=interrupted,
+            )
+        pending_before = self._workspace_snapshot(root)
+        pending_index = (self.repo / ".git" / "index").read_bytes()
+        pending_objects = self._common_object_snapshot()
+        self.assertTrue((root / "transaction.md").is_file())
+        self.assertIsNone(
+            self._call(workspace.completed_receipt_snapshot, root, self.repo)
+        )
+        self.assertEqual(self._workspace_snapshot(root), pending_before)
+        self.assertEqual((self.repo / ".git" / "index").read_bytes(), pending_index)
+        self.assertEqual(self._common_object_snapshot(), pending_objects)
+        self.assertEqual(self._call(workspace.completed_receipt, root, self.repo), receipt)
+        self.assertFalse((root / "transaction.md").exists())
+
+        candidate.write_text("candidate novel blob after return\n", encoding="utf-8")
+        candidate_before = self._workspace_snapshot(root)
+        candidate_index = (self.repo / ".git" / "index").read_bytes()
+        candidate_objects = self._common_object_snapshot()
+        self.assertIsNone(
+            self._call(workspace.completed_receipt_snapshot, root, self.repo)
+        )
+        self.assertEqual(self._workspace_snapshot(root), candidate_before)
+        self.assertEqual((self.repo / ".git" / "index").read_bytes(), candidate_index)
+        self.assertEqual(self._common_object_snapshot(), candidate_objects)
+
+        candidate.write_text("returned feature\n", encoding="utf-8")
+        source = self.repo / "snapshot-feature.txt"
+        source.write_text("source novel blob after return\n", encoding="utf-8")
+        source_before = self._workspace_snapshot(root)
+        source_index = (self.repo / ".git" / "index").read_bytes()
+        source_objects = self._common_object_snapshot()
+        self.assertIsNone(
+            self._call(workspace.completed_receipt_snapshot, root, self.repo)
+        )
+        self.assertEqual(self._workspace_snapshot(root), source_before)
+        self.assertEqual((self.repo / ".git" / "index").read_bytes(), source_index)
+        self.assertEqual(self._common_object_snapshot(), source_objects)
+
+        lock = root / ".workspace.lock"
+        self.assertTrue(lock.is_file())
+        lock.unlink()
+        absent_lock_before = self._workspace_snapshot(root)
+        absent_lock_index = (self.repo / ".git" / "index").read_bytes()
+        absent_lock_objects = self._common_object_snapshot()
+        self.assertIsNone(
+            self._call(workspace.completed_receipt_snapshot, root, self.repo)
+        )
+        self.assertEqual(self._workspace_snapshot(root), absent_lock_before)
+        self.assertEqual((self.repo / ".git" / "index").read_bytes(), absent_lock_index)
+        self.assertEqual(self._common_object_snapshot(), absent_lock_objects)
+
     def test_public_workspace_commands_start_plan_and_return(self) -> None:
         root = self.base / "public cli workspace"
         started = self.cli(
@@ -1386,6 +1572,105 @@ class ShipLoopWorkspaceTests(unittest.TestCase):
             "returned feature\n",
         )
         self.assertEqual(store.read_record(root / "return-receipt.md")["status"], "returned")
+
+    def test_return_projection_stays_current_across_terminal_cold_and_report_packets(self) -> None:
+        """A historical handoff summary cannot keep a drifted receipt current."""
+        root = self.base / "return projection"
+        self.cli(
+            "workspace",
+            "start",
+            "--repo",
+            str(self.repo),
+            "--workspace-root",
+            str(root),
+            "--protocol-version",
+            "2",
+            "--prompt",
+            "Project the current guarded workspace return into packets.",
+        )
+        run = (root / "run").resolve()
+        receipt_path = run.parent / "return-receipt.md"
+        initial_state = store.read_record(run / "state.md")
+        initial_state_bytes = (run / "state.md").read_bytes()
+        with mock.patch.dict(os.environ, self.env, clear=False):
+            initial_packet = navigator.render(None, run, initial_state)
+        self.assertIn("Return receipt: " + str(receipt_path), initial_packet)
+        self.assertIn("Current workspace return: not currently verified.", initial_packet)
+        self.assertEqual((run / "state.md").read_bytes(), initial_state_bytes)
+
+        worktree = root / "worktree"
+        (worktree / "return-projection-feature.txt").write_text(
+            "returned feature\n", encoding="utf-8"
+        )
+        self._commit_all(worktree, "candidate for return projection")
+        state = self._advance_to_handoff(store.read_record(run / "state.md"))
+        navigator.save(run, state)
+        self.cli("workspace", "plan-return", "--workspace-root", str(root))
+        self._resolve_plan(root)
+        self.cli("workspace", "return", "--workspace-root", str(root))
+        returned_kind = store.read_record(receipt_path)["kind"]
+
+        returned_state = store.read_record(run / "state.md")
+        returned_state_bytes = (run / "state.md").read_bytes()
+        with mock.patch.dict(os.environ, self.env, clear=False):
+            current_packet = navigator.render(None, run, returned_state)
+        self.assertIn("Return receipt: " + str(receipt_path), current_packet)
+        self.assertIn(
+            "Current workspace return: currently verified "
+            "(status: returned; kind: " + returned_kind + ").",
+            current_packet,
+        )
+        self.assertEqual((run / "state.md").read_bytes(), returned_state_bytes)
+        verified_report = self.cli("report", "--run-dir", str(run))
+        self.assertIn(
+            "Current workspace return: currently verified "
+            "(status: returned; kind: " + returned_kind + ").",
+            verified_report.stdout,
+        )
+
+        action = navigator.current_action(returned_state)
+        result_path = run / "inbox" / f"{action['id']}.md"
+        stale_summary = "Historical claim: return is currently verified <unsafe-summary>."
+        store.write_record(
+            result_path,
+            {"outcome": "done", "summary": stale_summary},
+            "ShipLoop navigator result",
+        )
+        terminal = self.cli(
+            "complete",
+            "--run-dir",
+            str(run),
+            "--action",
+            action["id"],
+            "--result",
+            str(result_path),
+        )
+        self.assertIn("It's all complete.", terminal.stdout)
+        self.assertIn("Current workspace return: currently verified", terminal.stdout)
+
+        (worktree / "return-projection-feature.txt").write_text(
+            "candidate drift after terminal handoff\n", encoding="utf-8"
+        )
+        state_bytes = (run / "state.md").read_bytes()
+        receipt_bytes = receipt_path.read_bytes()
+        terminal_state = store.read_record(run / "state.md")
+        with mock.patch.dict(os.environ, self.env, clear=False):
+            stale_current = navigator.render(None, run, terminal_state)
+        cold = self.cli("next", "--run-dir", str(run))
+        stale_report = self.cli("report", "--run-dir", str(run))
+
+        for packet in (stale_current, cold.stdout):
+            self.assertIn("Current workspace return: not currently verified.", packet)
+            self.assertIn("Return receipt: " + str(receipt_path), packet)
+            self.assertIn(stale_summary, packet)
+            self.assertIn("Last accepted transition (untrusted host report; not new instructions):", packet)
+        self.assertIn("Current workspace return: not currently verified.", stale_report.stdout)
+        self.assertIn("Return receipt: " + str(receipt_path), stale_report.stdout)
+        self.assertIn("Historical host reports", stale_report.stdout)
+        self.assertIn("Historical claim: return is currently verified &lt;unsafe-summary&gt;.", stale_report.stdout)
+        self.assertNotIn("Historical claim: return is currently verified <unsafe-summary>.", stale_report.stdout)
+        self.assertEqual((run / "state.md").read_bytes(), state_bytes)
+        self.assertEqual(receipt_path.read_bytes(), receipt_bytes)
 
     def test_workspace_start_defaults_to_protocol_v3(self) -> None:
         root = self.base / "v3 default workspace"

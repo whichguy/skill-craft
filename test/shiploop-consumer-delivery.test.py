@@ -202,7 +202,7 @@ class ConsumerDeliveryTests(unittest.TestCase):
         self.assertEqual(waiting["active_improve"]["stage"], stage)
         return navigator.finish_improve(waiting, action["id"], self.v3_receipt(stage))
 
-    def v3_to_system_test_author(self) -> dict:
+    def v3_to_system_test_author(self, value: dict | None = None) -> dict:
         """Build one v3 work item through its inner cycle without bypassing Improve."""
         state = navigator.new_state(
             str(self.repo),
@@ -216,7 +216,7 @@ class ConsumerDeliveryTests(unittest.TestCase):
             state,
             "plan",
             work_items=[{"id": "W1", "title": "Initial delivery item"}],
-            delivery_assessment={"kind": "contract", "contract": contract()},
+            delivery_assessment={"kind": "contract", "contract": value or contract()},
         )
         for stage in (
             "prepare", "select-work", "step-plan", "test-spec", "baseline",
@@ -494,6 +494,56 @@ class ConsumerDeliveryTests(unittest.TestCase):
         self.assertEqual(set(consumer_delivery.project(state)["observations"]), {
             "pre-drag", "update-effect", "update-identity", "visual-drag",
         })
+
+    def test_v3_bundled_browser_cases_stay_pending_until_their_due_phase(self) -> None:
+        """Local support plus one UI case cannot discharge a bundled requirement.
+
+        Synthetic observations test declaration coverage, not browser adequacy.
+        Pre-release acceptance must remain reachable before consumer verification.
+        """
+        value = contract()
+        value["behavior"] = "R-4: drag and winner detection in the deployed UI"
+        value["obligations"].append({
+            **value["obligations"][-1], "id": "visual-winner",
+            "expected": "R-4 winner is observed after the final move in the deployed UI",
+        })
+        state = self.v3_to_system_test_author(value)
+        state = self.advance_v3(state, "system-test-author")
+        state = self.advance_v3(
+            state, "system-test", delivery_assessment=self.observation(state, "pre-drag")
+        )
+        state = self.advance_v3(
+            state, "product-acceptance",
+            summary="Local checks passed; drag and winner consumer cases pending release verification.",
+        )
+        self.assertEqual(set(consumer_delivery.project(state)["observations"]), {"pre-drag"})
+        for stage in ("release-plan", "release-check"):
+            state = self.advance_v3(state, stage)
+        state = self.advance_v3(
+            state, "release", delivery_assessment=self.observation(state, "update-effect", "update-identity")
+        )
+        action = navigator.current_action(state)
+        partial = self.observation(state, "visual-drag")
+        partial["observations"] += self.observation(state, "visual-winner", status="unrun")["observations"]
+        waiting = navigator.apply(state, action["id"], self.result(
+            summary="All R-4 behavior met; winner covered by local tests.",
+            delivery_assessment=partial,
+        ))
+        before = copy.deepcopy(waiting)
+        with self.assertRaisesRegex(navigator.NavigatorError, "release-verify behavior obligations"):
+            navigator.finish_improve(waiting, action["id"], self.v3_receipt("release-verify"))
+        self.assertEqual(waiting, before)
+        # Fix the missing declaration through this same child import, not a new release.
+        state = navigator.finish_improve(
+            waiting, action["id"], self.v3_receipt("release-verify"),
+            final_result=self.result(delivery_assessment=self.observation(
+                state, "visual-drag", "visual-winner"
+            )),
+        )
+        state = self.advance_v3(state, "operations")
+        state = self.advance_v3(state, "handoff")
+        self.assertEqual(state["status"], "done")
+        self.assertEqual(sum(row["stage"] == "release" for row in state["history"]), 1)
 
     def test_v3_late_negative_observations_are_retained_at_new_due_stages(self) -> None:
         """New v3 outer stages may retain failures for obligations already due."""

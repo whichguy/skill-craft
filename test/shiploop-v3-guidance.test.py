@@ -180,6 +180,61 @@ class V3GuidanceTests(unittest.TestCase):
                     }
                     self.assertIn(anchor, headings, locator)
 
+    def test_cold_lifecycle_packets_keep_clause_surface_and_due_phase(self) -> None:
+        """A compact requirement survives planning and due-stage reconciliation.
+
+        This tests supplied guidance and recovery, not whether a host obeys it.
+        The expected stages/clauses are declared here independently of routing.
+        """
+        duties = {
+            "spec": "independently verifiable clauses",
+            "test-strategy": "required surface and due phase",
+            "test-spec": "every assigned clause",
+            "test-author": "Authoring is complete",
+            "test-refine": "removed or narrowed case",
+            "product-acceptance": "pending release verification",
+            "release-verify": "usable consumer entry",
+        }
+        reconciles = {"verify", "integration-verify", "system-test",
+                      "product-acceptance", "release-verify", "handoff"}
+        locator = str(REFERENCES / "testing-and-documentation.md#stage-readiness-and-completion")
+        state = self.state()
+        clause = "docs/requirements.md#capture: observe capture in the deployed UI; due release-verify"
+        visited = set()
+        while state["status"] != "done":
+            stage = navigator.current_stage(state)
+            recovered, packet = self.cold_packet(state)
+            with self.subTest(stage=stage):
+                self.assertIn(locator, packet)
+                self.assertIn("Definition of Ready", normalized(packet))
+                self.assertIn("Definition of Done", normalized(packet))
+                if stage in duties:
+                    self.assertIn(duties[stage], normalized(packet))
+                if stage in reconciles:
+                    self.assertIn("required surface and due phase", normalized(packet))
+                    self.assertIn("supporting evidence", normalized(packet))
+                    self.assertIn("not yet due", normalized(packet))
+                if navigator._current_work_item(recovered) is not None:
+                    self.assertIn(clause, packet)
+            extra = {}
+            if stage == "plan":
+                extra["work_items"] = [{"id": "W1", "title": "Capture behavior", "context": clause}]
+            state, _ = self.complete_stage(state, **extra)
+            visited.add(stage)
+        self.assertEqual(len(visited), 34)
+
+    def test_quality_guidance_keeps_planning_review_and_product_review_distinct(self) -> None:
+        for stage in ("spec", "test-spec", "baseline", "release-verify"):
+            with self.subTest(stage=stage):
+                text = normalized(prompts.improve_prompt(stage))
+                self.assertIn("selected staged/unstaged/untracked candidate paths", text)
+                self.assertIn("required surface and due phase", text)
+                self.assertIn("Repeated wording is a review cue", text)
+                self.assertIn("does not require future product checks to pass", text)
+        # Inspection of an untracked candidate must not grant edit authority.
+        baseline = normalized(prompts.improve_prompt("baseline"))
+        self.assertIn("may not edit product source, tests", baseline)
+
     def test_each_current_v3_packet_renders_its_selected_stage_references(self) -> None:
         state = self.state()
         while state["status"] != "done":
