@@ -687,6 +687,28 @@ query/cache, worker/status, business/UI, logging, tests and operator files only 
 needed. Order their actual prerequisites and checks. Retain exact current note
 locators and revalidation conditions in evidence_refs and item context; earlier
 stage references are not automatically replayed in every later packet.
+Before finalizing work-item IDs, check the draft once for coherent implementation
+increments. Split deliverables when they need different prerequisites, expose a
+useful intermediate contract/artifact, or can be implemented and checked
+independently. Merge fragments that share prerequisites and an implementation
+boundary without yielding a useful independently checkable state. No minimum
+task count, planning-time quota, or mandatory scaffolding item is needed.
+Keep preservation and negative requirements as checks on affected work unless
+they require their own change. The inner loop already plans, tests, documents,
+reviews and integrates each item; do not duplicate these stages as work items.
+Keep genuinely cross-item or later-environment checks at their required boundary.
+For each dependency, name the supplier and the concrete output/state the consumer
+needs. Distinguish authoring an artifact from applying it in a running environment;
+a runtime integration check may need both while independent code authoring does
+not. Shared topic, list order or a shared file alone is not a causal dependency.
+Record independent branches and file/resource conflicts separately in ordinary
+plan notes; isolated workspaces alone do not establish safe parallel execution.
+ShipLoop executes the ordered queue one item at a time. Put actual prerequisites
+before consumers and carry their readiness checks in each item's existing context.
+Return the complete ordered `work_items` array using only `id`, `title` and optional
+`context`, and link the plan note in `evidence_refs`. Cover every approved outcome,
+including required independent work with no downstream consumer. A plan note
+alone does not populate the execution queue. A small change may use one item.
 """,
     "prepare": """\
 Prepare or verify the approved development/test environment and prerequisites.
@@ -705,10 +727,11 @@ tests before dependent feature edits. Do not replace it with an easier route or
 describe the blocked baseline as passed.
 """,
     "select-work": """\
-Select the next ready work item from the script-owned queue.  Confirm its
+Revalidate the current script-selected work item in queue order. Confirm its
 dependencies, scope, owner, relevant lessons, expected outcomes, and prerequisites
-are current.  If no item is ready, return the concrete missing producer or
-correction need; do not invent a new queue transition. Reopen the item's compact
+are current. The script does not choose among dependency-ready items. If this
+item lacks a prerequisite, return blocked with the concrete missing producer or
+correction need; do not skip it or advance to carry-forward to repair the queue. Reopen the item's compact
 `context` and relevant plan/evidence locators, then revalidate their stated
 conditions before relying on an earlier convention or environment decision.
 """,
@@ -1009,6 +1032,11 @@ delivery, and route a concrete integration failure to correction rather than
 claiming that individual passing components establish the combination.
 """,
     "carry-forward": """\
+Read the full ordered queue before revising future work. Preserve every
+still-required pending outcome, including unrelated work with no consumer.
+Explain removals, merges or supersession against approved scope in the linked
+plan note. A completed prerequisite invalidated by new evidence needs corrective
+work and revalidation before its consumer; do not rewrite past completion evidence.
 Record reusable learning, unresolved dependencies, newly discovered risks,
 future work, system-test obligations, release prerequisites, and ownership.  Keep
 current completed evidence separate from future plans.  Update appropriate project
