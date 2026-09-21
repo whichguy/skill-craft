@@ -9,6 +9,40 @@ Neither prompt contains a copied Improve algorithm or a second review counter.
 from __future__ import annotations
 
 
+SERIAL_INNER_CONTEXT = """\
+Clear and then execute the prompt.
+
+For an implement producer, select the chain route before choosing a context route.
+While executing that producer, its bound mode and executor take precedence: parallel
+chains retain their capacity and bypass this serial context boundary; serial
+chains execute in the main context without spawning workers. Do not wrap a chain
+in an extra worker. Both modes recover the existing attempt, never rerun start.
+Serial chains may use only the callable-reset or manual-handoff route below.
+Chain precedence ends at producer completion. Improve follows its own selected
+context and ownership policy even when the historical chain binding remains.
+For other serial INNER assignments where delegation is permitted, begin
+in a fresh context. Retain the
+CLI, repository, run-directory locators and exact Recovery command below in
+durable host handoff material. Prefer a native fresh worker with no inherited
+conversation, the required tools, and a return route to the live parent. Give it
+this packet, selected skill locators and necessary durable references in the
+existing workspace. Run one assignment worker at a time; the parent waits for
+its result, verifies it and alone submits the ShipLoop callback. Keep one writer;
+collect or confirm an existing owner stopped before replacement. Once fresh for
+this assignment, do not clear again or delegate it again when this prefix repeats.
+Use a same-conversation clear only if the host exposes an actual callable reset
+and continuation route; then recover this same run. Printing `/clear` in a packet
+does not invoke it. If neither route is usable, use the printed pause command and
+give the user a durable handoff: clear through the host or open a fresh context,
+run the Recovery command, then follow the printed Resume command. Do not claim
+a clear or execute the pending assignment before that boundary is satisfied.
+For Improve, retain its selected delegation/ownership policy and apply this
+boundary once for the whole invocation, not between its
+review iterations; recover an existing child and collect its owner before any
+replacement. ShipLoop emits this instruction; the host performs the context clear.
+"""
+
+
 PRELUDE = (
     "intake",
     "discovery",

@@ -721,6 +721,7 @@ class ChainIntegrationTests(unittest.TestCase):
             self.assertNotIn(self.target, workspace.parents)
             self.assertEqual(workspace.parent, self.parent)
         self.parent_complete(ok=True)
+        self.assert_context_boundary_preserves_chain_mode("serial", after_producer=True)
 
     def test_legacy_serial_helper_refuses_fresh_context_bind_before_writes(self):
         initial_state = (self.run / "state.md").read_bytes()
@@ -729,6 +730,40 @@ class ChainIntegrationTests(unittest.TestCase):
         self.assertIn("does not support planning_context", refused.stderr)
         self.assertEqual((self.run / "state.md").read_bytes(), initial_state)
         self.assertFalse((self.run / "chains").exists())
+
+    def assert_context_boundary_preserves_chain_mode(self, mode, *, after_producer=False):
+        state_path = self.run / "state.md"
+        binding_path = self.run / "chains" / self.action / "binding.md"
+        before = (state_path.read_bytes(), binding_path.read_bytes())
+        self.assertEqual(store.read_record(binding_path)["mode"], mode)
+        state = store.read_record(state_path)
+        if after_producer:
+            self.assertEqual(state["active_improve"]["action_id"], self.action)
+            self.assertIn(self.action, state["chain_bindings"])
+        else:
+            self.assertIsNone(state.get("active_improve"))
+        fresh = nav.render(None, self.run, state)
+        cold = subprocess.run(
+            [sys.executable, "-B", str(CLI), "next", "--run-dir", str(self.run)],
+            cwd=self.primary, text=True, capture_output=True,
+        )
+        self.assertEqual(cold.returncode, 0, cold.stderr)
+        rule = (
+            "parallel chains retain their capacity and bypass this serial context boundary"
+            if mode == "parallel" else
+            "serial chains execute in the main context without spawning workers"
+        )
+        for packet in (fresh, cold.stdout):
+            normalized = " ".join(packet.split())
+            self.assertIn(rule, normalized)
+            self.assertIn("Both modes recover the existing attempt, never rerun start.", normalized)
+            self.assertIn("Chain recovery:", packet)
+            if after_producer:
+                self.assertIn("Current action: Improve the completed implement result.", packet)
+                self.assertIn("Chain precedence ends at producer completion. Improve follows its own selected "
+                              "context and ownership policy even when the historical chain binding remains.",
+                              normalized)
+        self.assertEqual((state_path.read_bytes(), binding_path.read_bytes()), before)
 
     def test_current_binding_defaults_to_parallel(self):
         self.bind(capacity=None)
@@ -742,6 +777,7 @@ class ChainIntegrationTests(unittest.TestCase):
         recovered = self.call("recover")
         self.assertEqual(recovered["shiploop_chain"]["mode"], "parallel")
         self.assert_completion(recovered, [], ["A", "B", "C", "J"])
+        self.assert_context_boundary_preserves_chain_mode("parallel")
 
     def test_serial_mode_capacity_and_native_launch_are_guarded(self):
         initial_state = (self.run / "state.md").read_bytes()
@@ -795,6 +831,7 @@ class ChainIntegrationTests(unittest.TestCase):
         self.assertEqual(self.child_state_path().read_bytes(), before_state)
         self.assertEqual(self.ledger_bytes(), after_replay_ledger)
         self.assertIsNone(self.child_record(a)["handle"])
+        self.assert_context_boundary_preserves_chain_mode("serial")
 
     def test_serial_done_alias_reconciles_once_and_preserves_terminal_history(self):
         self.select_dispatcher(SERIAL_FIXTURE)
@@ -1021,6 +1058,7 @@ class ChainIntegrationTests(unittest.TestCase):
     def test_improve_done_can_refine_returned_candidate_then_advance(self):
         self.complete_single_chain()
         self.parent_complete(ok=True)
+        self.assert_context_boundary_preserves_chain_mode("parallel", after_producer=True)
         (self.target / "A.txt").write_text("A\nImproved\n")
         self.import_synthetic_improve("done")
         state = store.read_record(self.run / "state.md")

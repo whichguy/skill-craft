@@ -128,6 +128,28 @@ transition is historical context and does not replace the current action.
 
 ## Recover one existing run
 
+Active v3 INNER packets begin with **Clear and then execute the prompt.** This
+is the serial execution instruction for each producer and its Improve handoff.
+For an `implement` producer, select the chain route first. During that producer,
+its bound mode and executor take precedence: parallel chains keep their capacity and bypass this boundary;
+explicit serial chains execute in the main context without spawning workers.
+Do not wrap a chain in another worker. Both modes recover the existing attempt
+rather than rerunning `start`. Serial chains use only a callable reset or the
+manual handoff below; the [chain mode contract](parallel-chain.md#serial-execution-in-the-main-context)
+remains authoritative. Chain precedence ends at producer completion. Improve follows
+its own selected context and ownership policy even when the historical chain binding
+remains. For other serial work where delegation is permitted,
+save the recovery locators and prefer one native fresh worker at a time, without
+inherited conversation. It needs the assignment's tools, the existing workspace
+and a return route to the live parent. The parent supplies the current packet,
+selected skill locators and necessary durable references, waits, verifies its
+return and alone submits the ShipLoop callback. Keep one candidate writer and
+collect or confirm an existing owner stopped before replacement. Apply the
+boundary once per assignment; an already-fresh worker does not clear or delegate
+again because the packet repeats. An Improve invocation retains context between
+its internal review iterations. Paused, blocked, halted and completed packets
+do not carry this execution prefix.
+
 Every navigator packet includes absolute CLI, repository, and run-directory
 locators. It also prints `Recovery command:` followed by an exact shell-quoted
 `next` command. Copy those locators and that command to host-owned durable
@@ -141,6 +163,29 @@ The owner of the run submits the action-bound callback and consumes the packet
 it returns. A delegated worker may do bounded work under that packet, but does
 not initialize another ShipLoop run or advance its parent's graph. The selected
 Improve owner follows its separately bound Until Loop runtime.
+
+### Packet-only context boundary
+
+A returned packet can instruct the host agent to use an available native tool;
+it cannot execute a host command by printing its name. Claude documents both
+[sequential subagents](https://code.claude.com/docs/en/sub-agents#chain-subagents)
+and [fresh context without parent history for non-fork subagents](https://code.claude.com/docs/en/sub-agents#what-loads-at-startup).
+Where the assignment permits delegation, use a non-fork worker, such as a fresh
+general-purpose agent, through the live tool schema. Select an equivalent
+no-history mode on another host only when its
+actual schema supports it. Wait for collection before advancing the serial run.
+This keeps the worker's intermediate history out of the parent; it does not
+erase the parent's conversation or guarantee lower total tokens. An inherited
+conversation fork does not satisfy the boundary.
+
+If execution must remain in the same conversation, use a context clear only
+when a real callable reset and continuation route are exposed. `/clear` embedded
+in tool output is text, not that operation. When neither route is usable, use
+the existing pause command and display the saved operator handoff. The user
+clears through the host or opens a fresh context, runs the exact Recovery
+command, then follows the printed Resume command. Recovery with `next` only
+reads state and does not unpause. Keep the action pending until this boundary is
+satisfied; never simulate a reset or shell-launch another model.
 
 Packets keep long request/context fields, prior evidence lists and producer
 results compact. An excerpt identifies the exact field in `state.md`; read the

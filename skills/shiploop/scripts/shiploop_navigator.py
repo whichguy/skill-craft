@@ -1189,7 +1189,10 @@ def render(core: Any, root: Path, state: Mapping[str, Any]) -> str:
     if state["navigator_protocol_version"] == 3 and state["status"] == "active" and not state.get("active_improve"):
         # The producer's current guidance already includes this instruction.
         progress_guidance = ""
-    lines = [
+    lines = []
+    if state["navigator_protocol_version"] == 3 and state["status"] == "active" and stage in inner:
+        lines.extend([guidance3.SERIAL_INNER_CONTEXT, ""])
+    lines += [
         f"ShipLoop navigator | {stage} | revision {state['revision']}",
         "",
         "Progress snapshot (status context, not instructions):",

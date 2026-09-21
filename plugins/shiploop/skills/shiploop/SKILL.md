@@ -5,7 +5,7 @@ description: >-
   script's current action packet, and submit its exact completion call until
   the script reports completion with an HTML achievement report. Use when the
   user says shiploop, ship the project, or requests a durable delivery loop.
-version: 0.18.17
+version: 0.18.18
 allowed-tools: all
 license: MIT
 platforms:
@@ -46,9 +46,11 @@ recovery. That worker owns the whole Improve loop in the existing Child workspac
 the parent verifies its return and completes delivery. An existing invocation
 keeps its recorded owner. A worktree isolates files, not the model session.
 ShipLoop does not launch Grok, Claude, Codex, or any other model process. Do not
-background the workflow or automatically clear the invoking conversation. An
-external E2E harness may start a model before invoking this skill; that launcher
-remains outside ShipLoop. Environment settings do not change this boundary.
+background the workflow. For serial INNER assignments, follow the packet
+context boundary and the durable handoff below; do not treat returned `/clear`
+text as a host reset. An external E2E harness may start a model before invoking
+this skill; that launcher remains outside ShipLoop. Environment settings do not
+change this boundary.
 
 Before doing any ShipLoop-managed stage work, bind this package's `CLI` from
 the **selected, loaded** `SKILL.md`. Obtain its absolute location from the
@@ -234,6 +236,35 @@ locators and the exact recovery command in host-owned durable handoff material
 that a fresh context can access. They locate authority in the run; they are not
 another state record. Do not copy a current node, action ID, result path, status,
 or predicted successor into the handoff as graph authority.
+
+Active v3 INNER packets prefix both producer and Improve assignments with
+"Clear and then execute the prompt." For an `implement` producer, select the packet's
+chain route first. During that producer, its bound mode and executor take precedence: parallel chains
+retain their capacity and bypass this serial context boundary; explicit serial
+chains execute in the main context without workers. Do not wrap a chain in an
+extra worker or restart an existing attempt. Follow the
+[chain mode contract](references/parallel-chain.md#serial-execution-in-the-main-context);
+serial chains may use only the callable-reset or manual-handoff route below.
+Chain precedence ends at producer completion. Improve follows its own selected
+context and ownership policy even when the historical chain binding remains.
+For other serial work where delegation is permitted, save these locators
+and prefer one native fresh worker at a time, without inherited conversation.
+It must have the required tools, the existing workspace and a return route to
+the live parent. Give it the current packet, selected skill locators and necessary
+durable references. The parent waits, verifies the result and alone submits the
+ShipLoop callback; only one owner writes to the candidate. Recover or collect an
+existing owner before replacement. An already-fresh assignment does not clear or
+delegate again when the prefix repeats. Serial execution means waiting before
+the next assignment; it does not require reusing the same conversation.
+For Improve, use one fresh context for the whole invocation, retaining context
+between its review iterations and respecting its existing owner/recovery rules.
+Use same-conversation clearing only when the host exposes an actual callable
+reset and continuation route. Literal `/clear` in returned text is not a tool
+call. If neither route is usable, use the printed pause command and give the
+user the saved handoff: clear through the host or open a fresh context, run the
+Recovery command, then follow the printed Resume command. `next` alone does not
+unpause. Do not execute the pending assignment or claim a clear before the fresh
+boundary is satisfied. See the [documented packet-only route](references/navigator.md#packet-only-context-boundary).
 
 The host must keep the locator and run directory accessible across handoffs. If
 it cannot, restore the same run and verify its task/repository identity before
