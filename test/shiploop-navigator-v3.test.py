@@ -263,6 +263,58 @@ class NavigatorV3Tests(unittest.TestCase):
         self.assertTrue(all(prompts.prompt(stage).strip() for stage in EXPECTED_STAGES))
         self.assertTrue(all(prompts.improve_prompt(stage).strip() for stage in EXPECTED_STAGES))
 
+    def test_serial_inner_context_prefix_covers_each_item_and_owner(self) -> None:
+        state = self.state()
+        root = self.repo / ".shiploop"
+        prefix = "Clear and then execute the prompt.\n"
+        observed = []
+        while state["status"] != "done":
+            stage = navigator.current_stage(state)
+            action = self._action(state)
+            extra = {}
+            if stage == "plan":
+                extra["work_items"] = [
+                    {"id": "W1", "title": "First item"},
+                    {"id": "W2", "title": "Second item"},
+                ]
+            waiting = navigator.apply(state, action["id"], result(**extra))
+            for owner, current in (("producer", state), ("improve", waiting)):
+                with self.subTest(stage=stage, owner=owner, item=state["work_index"]):
+                    packet = navigator.render(None, root, current)
+                    self.assertEqual(packet.startswith(prefix), stage in EXPECTED_INNER)
+                    if stage in EXPECTED_INNER:
+                        observed.append((stage, owner))
+                        self.assertEqual(packet.count(prefix), 1)
+                        self.assertIn("Recovery command:\n", packet)
+                        self.assertIn("do not clear again", packet)
+                        self.assertIn("not between its\nreview iterations", packet)
+                        self.assertIn("host performs the context clear", packet)
+            state = self._complete_improve(waiting, action, stage)
+        self.assertEqual(len(observed), 2 * 2 * len(EXPECTED_INNER))
+        self.assertFalse(navigator.render(None, root, state).startswith(prefix))
+
+    def test_serial_inner_context_prefix_survives_recovery_but_not_stop_states(self) -> None:
+        root = Path(self.temp.name) / "serial-context-recovery"
+        root.mkdir()
+        state = self._planned_queue([{"id": "W1", "title": "One item"}])
+        state = self._produce(state, "prepare")
+        self.assertEqual(navigator.current_stage(state), "select-work")
+        action = self._action(state)
+        waiting = self._bind_synthetic_child(navigator.apply(state, action["id"], result()))
+        prefix = "Clear and then execute the prompt.\n"
+        for current in (state, waiting):
+            navigator.save(root, current)
+            self.assertTrue(self._cold_next(root).startswith(prefix))
+            for command in ("pause", "halt"):
+                stopped = navigator.control(current, command, "Synthetic stop")
+                self.assertNotIn(prefix, navigator.render(None, root, stopped))
+        blocked_child = navigator.apply(state, action["id"], result(outcome="blocked"))
+        blocked = self._complete_improve(blocked_child, action, "select-work")
+        self.assertEqual(blocked["status"], "blocked")
+        self.assertNotIn(prefix, navigator.render(None, root, blocked))
+        resumed = navigator.control(blocked, "resume")
+        self.assertTrue(navigator.render(None, root, resumed).startswith(prefix))
+
     def test_every_v3_stage_waits_for_one_actual_improve_completion(self) -> None:
         state = self.state()
         observed: list[str] = []

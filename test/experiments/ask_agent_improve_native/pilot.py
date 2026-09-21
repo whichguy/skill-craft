@@ -17,6 +17,9 @@ parser.add_argument('--package', type=Path, required=True)
 parser.add_argument('--case', type=Path, required=True)
 args = parser.parse_args()
 package, case = args.package.resolve(), args.case.resolve()
+pilot_checkout = Path(__file__).resolve().parents[3]
+if case.is_relative_to(package) or case.is_relative_to(pilot_checkout):
+    parser.error('--case must be outside the package and pilot source checkout')
 scripts = package / 'skills/shiploop/scripts'
 sys.path.insert(0, str(scripts))
 import shiploop_navigator as nav

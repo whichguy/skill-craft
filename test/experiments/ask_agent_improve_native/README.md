@@ -10,6 +10,10 @@ navigation is synthetic setup, explicitly not an executed full ShipLoop run.
 The product has a bounded totals defect and four established tests. The caller
 has staged and unstaged content in the same file plus an untracked input.
 
+The case directory must be outside both the selected package and the pilot's
+source checkout. The CLI rejects either location before setup or imports so raw
+receipts, local paths, and native lifecycle evidence stay outside source control.
+
 From the ongoing native parent:
 
 1. Read the selected Ask Agent, ShipLoop context and Improve cards. Freeze the

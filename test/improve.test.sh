@@ -170,6 +170,7 @@ pass relocated_v2_preview_is_read_only
 run_python - "$bundle" "$package" <<'PY'
 import hashlib
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -180,6 +181,11 @@ adapter = (root / "runtime/until-loop/ADAPTER.md").read_text(encoding="utf-8")
 # Relocation must preserve the selected package version, not pin a prior release.
 source_card = (Path(sys.argv[2]) / "SKILL.md").read_text(encoding="utf-8")
 assert card == source_card, "relocation changed the selected skill card"
+source_version = re.search(r"(?m)^version: (\S+)$", source_card.split("---", 2)[1])
+assert source_version is not None, "selected Improve card requires a declared version"
+card_version = re.search(r"(?m)^version: (\S+)$", card.split("---", 2)[1])
+assert card_version is not None, "relocated Improve card requires a declared version"
+assert card_version.group(1) == source_version.group(1)
 assert "runtime/until-loop/scripts/until_loop_ephemeral.py" in card
 assert "version: 0.4.0-rc.2" in adapter
 assert manifest["format"] == "skill-craft-until-loop-runtime-provenance/v1"
