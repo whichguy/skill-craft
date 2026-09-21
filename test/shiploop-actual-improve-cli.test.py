@@ -335,6 +335,42 @@ class ImproveCliFixture(unittest.TestCase):
 
 
 class EphemeralImproveCliTests(ImproveCliFixture):
+    def test_consumer_owned_context_keeps_edits_and_parent_pending_until_import(self):
+        """Actual CLI boundary; review judgments are synthetic, not native proof."""
+        before = (self.run / "state.md").read_bytes()
+        guide = ROOT / "skills/shiploop/references/improve-context.md"
+        packet = self.invoke(CLI, "next", "--run-dir", self.run).stdout
+        self.assertTrue(guide.is_file())
+        self.assertIn("Improve context ownership: " + str(guide), packet)
+        self.assertIn("ask-agent/consumer-owned-workspace/v1", packet)
+        self.assertIn("Workspace route: consumer-owned; delivery mode: in-place", packet)
+        self.assertIn("execution_role: improve-executor; delegation_owner: parent", packet)
+        self.assertIn("Native owner record: " + str(bridge.receipt_path(self.bound).with_name("host-owner.md")), packet)
+        self.assertIn("Parent-only return:", packet)
+        self.assertIn("Child workspace: " + str(self.repo), packet)
+        self.assertIn("explicit no-commit authority", packet)
+
+        # The candidate is already the worker's workspace. Native completion
+        # is simulated here only to test the real parent/import boundary.
+        updated = self.product_contract.read_text(encoding="utf-8") + "\nRetained candidate improvement.\n"
+        self.product_contract.write_text(updated, encoding="utf-8")
+        terminal_raw, terminal = self.finish_ephemeral()
+        completion, _receipt = self.completion_receipt()
+        self.assertEqual(terminal["status"], "complete")
+        self.assertEqual((self.run / "state.md").read_bytes(), before)
+        cold = self.invoke(CLI, "next", "--run-dir", self.run).stdout
+        self.assertIn("Current action: Improve the completed intake result.", cold)
+        self.assertIn("Native owner record: " + str(bridge.receipt_path(self.bound).with_name("host-owner.md")), cold)
+        self.assertEqual((self.run / "state.md").read_bytes(), before)
+        self.assertEqual(self.product_contract.read_text(encoding="utf-8"), updated)
+        self.invoke(CLI, "improve-complete", "--run-dir", self.run,
+                    "--action", self.action, "--result", completion)
+        after = store.read_record(self.run / "state.md")
+        self.assertIsNone(after["active_improve"])
+        self.assertEqual(navigator.current_stage(after), "discovery")
+        self.assertEqual(self.product_contract.read_text(encoding="utf-8"), updated)
+        self.assertEqual(self.packet_path.read_bytes(), terminal_raw.stdout)
+
     def test_planning_improve_packet_carries_graph_identity_through_real_child_callbacks(self):
         """Synthetic predecessors reach both planning stages; child callbacks are real."""
         for stage, expected_stage in (("plan", "prepare"), ("step-plan", "test-spec")):
@@ -437,7 +473,12 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         self.assertEqual(self.state["navigator_protocol_version"], 3)
         self.assertEqual(self.bound["skill"]["runtime_cli"], str(EPHEMERAL.resolve()))
         self.assertEqual(self.bound["skill"]["runtime_version"], "0.4.0-rc.2")
-        self.assertEqual(self.bound["skill"]["skill_version"], "0.2.0-rc.4")
+        selected_frontmatter = CARD.read_text(encoding="utf-8").split("---", 2)[1]
+        selected_version = next(
+            line.partition(":")[2].strip().strip("\"'")
+            for line in selected_frontmatter.splitlines() if line.startswith("version:")
+        )
+        self.assertEqual(self.bound["skill"]["skill_version"], selected_version)
         parent_packet = self.invoke(CLI, "next", "--run-dir", self.run).stdout
         for text in (self.bound["contract_marker"], "Bound Until Loop CLI locator: " + str(EPHEMERAL.resolve()),
                      "Child latest packet receipt: " + str(bridge.receipt_path(self.bound)), "no-commit",

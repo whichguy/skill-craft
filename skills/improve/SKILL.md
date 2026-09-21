@@ -5,7 +5,7 @@ description: >-
   loop: use recent Git history, make warranted changes, run meaningful checks,
   and require two consecutive trivial-only review passes. Supports a read-only
   interpretation preview; not a one-off code review.
-version: 0.2.0-rc.4
+version: 0.2.0-rc.5
 license: MIT
 platforms:
   - linux
@@ -110,6 +110,24 @@ callback. Follow the child packet or report its incomplete state through the
 recorded recovery route. Only after a successful `complete` child response is
 saved exactly at the printed host receipt path may the host use the exact parent
 return route.
+
+For a native assignment marked `execution_role: improve-executor` and
+`delegation_owner: parent`, execute this entire bound loop in the exact Child
+workspace. The parent selects the Ask Agent route; this card does not dispatch
+itself. Do not delegate the whole invocation again, create another worktree, or
+execute a ShipLoop callback or workspace return. Scoped independent reviewers
+and test workers remain available with only one candidate writer. Retain the
+explicit no-commit override and the parent-owned `host-owner.md` locator in the
+frozen context. Read that record for orientation; only the parent appends owner,
+acceptance and delivery events. Save the exact child packets and completion
+evidence, finish all writes and collect delegates, then return their absolute
+locators, changed paths, actual checks, stopped status, and the unchanged parent
+continuation. Only the parent verifies and executes that continuation. Edits
+remain in the bound candidate; native completion is not caller delivery.
+
+This executor assignment applies only to the explicit ShipLoop v3 whole-skill
+subcall. Standalone dispatch, other owner-managed entrypoints, and active legacy
+invocations retain their existing ownership and commit policies.
 
 ## Other owner-managed consumer entrypoint
 

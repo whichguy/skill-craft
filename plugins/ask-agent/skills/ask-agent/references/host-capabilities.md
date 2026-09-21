@@ -4,12 +4,36 @@ Read the current host's section before preparing or launching. The live tool
 schema is authoritative: model names and `Task` capitalization do not identify
 capabilities. These are native-tool recipes, not a runtime launcher API.
 
+## Consumer-owned workspace: Codex pilot
+
+For an explicitly selected `workspace_route: consumer-owned`, read
+[Consumer-owned workspace](consumer-owned-workspace.md) in full. The host must
+provide the consumer's required fresh native context, operation-directory control,
+Git-root verification, collection, and stop evidence. If any required capability
+is unavailable, leave the action pending; do not substitute inherited context,
+the helper-managed default, a host-created worktree, or an external launcher.
+
+The host-specific success evidence below is for the helper-managed route unless
+it expressly qualifies this complete consumer route. It may inform a live schema
+check, but does not establish the ShipLoop-bound Improve composition. The only
+currently documented consumer binding is a Codex native pilot. Bounded native
+fixtures exercised a complete fresh Improve owner, guarded return into a dirty
+caller, actual interruption and recovery of the same child invocation, and refusal
+of incomplete contracts, unknown/running owners, caller drift, and stale review
+evidence. The fixtures synthesized earlier ShipLoop stages; they establish the
+bound child and delivery boundary, not an executed full ShipLoop product workflow.
+They do not establish a filesystem sandbox, token or latency savings, automatic
+return after the parent ends, or behavior on other hosts. Keep per-run evidence
+and check the live capabilities for the actual invocation. Do not infer support
+on Claude, Grok, Cursor, OpenCode, or another host from this Codex pilot or older
+managed-route evidence.
+
 ## Choose one workspace owner and a binding mode
 
-The skill helper prepares the current caller snapshot. Native tools launch and
-return the worker. After preparation, do not request a second host-created
-worktree: it may select a different branch, omit dirty inputs, and acquire a
-second cleanup owner.
+**Helper-managed default only.** The skill helper prepares the current caller
+snapshot. Native tools launch and return the worker. After preparation, do not
+request a second host-created worktree: it may select a different branch, omit
+dirty inputs, and acquire a second cleanup owner.
 
 | Binding mode | When to use | What is established |
 | --- | --- | --- |
@@ -45,6 +69,10 @@ with native cwd and join. Keep checking the live schema on other versions.
 [Official subagent guide](https://docs.x.ai/build/features/subagents).
 
 ## Codex
+
+**Helper-managed evidence only.** The operation-directory details below can be
+checked live for a consumer-owned pilot, but they do not themselves qualify its
+fresh-context, owner-record, recovery, or final-delivery contract.
 
 Use native asynchronous spawn and `fork_turns="none"` where exposed. Do not
 substitute an inherited fork for a fresh task. If spawn has no cwd field, give

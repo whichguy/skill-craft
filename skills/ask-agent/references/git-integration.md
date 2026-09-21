@@ -1,11 +1,20 @@
 # Git integration for delegated work
 
-Apply the workspace and removal contract to every Ask Agent invocation in a
-repository, including research and review. Apply synchronization and integration
-to code contributions. Use the project's existing integration workflow; these
-instructions add ownership and evidence, not an agent launcher or scheduler.
+**Helper-managed default only.** Apply this workspace and removal contract to
+Ask Agent's helper-managed repository delegations, including research and
+review. Apply synchronization and integration to code contributions. Use the
+project's existing integration workflow; these instructions add ownership and
+evidence, not an agent launcher or scheduler.
+
+The explicit consumer-owned route has `delivery_mode: in-place`, no helper
+receipt, and no patch/commit/report-only transfer. Read
+[Consumer-owned workspace](consumer-owned-workspace.md) instead; do not apply
+this reference's preparation, delivery enum, or removal procedures to a selected
+consumer candidate.
 
 ## Agree on the contribution before dispatch
+
+**Helper-managed default only.**
 
 The parent names the repository and actual worker workspace, the requested
 outcome and write ownership, the starting revision, the intended integration
@@ -21,10 +30,11 @@ already within the assignment.
 
 ## Choose one delivery mode
 
-Every fresh native worker assignment declares exactly one delivery mode. This
-is a task-launch contract, not a global system-prompt change. A native return
-brings back a result message and references; it does not transfer worktree
-files or integrate a change by itself.
+**Helper-managed default only.** Every fresh helper-managed native worker
+assignment declares exactly one delivery mode. This is a task-launch contract,
+not a global system-prompt change. A native return brings back a result message
+and references; it does not transfer worktree files or integrate a change by
+itself.
 
 - **`patch`** is the default for code work. The parent obtains the helper's
   immutable, baseline-relative contribution patch after the worker returns and
@@ -62,9 +72,9 @@ and verified private baseline, not a prompt-only change to the mode.
 
 ## Reusable fresh-worker launch clause
 
-Fill this concise clause into every fresh native worker prompt after `prepare`.
-Use real absolute values and task-specific allowed writes; do not leave braces
-in a dispatched task.
+**Helper-managed default only.** Fill this concise clause into every fresh native
+worker prompt after `prepare`. Use real absolute values and task-specific allowed
+writes; do not leave braces in a dispatched task.
 
 ```text
 You are a fresh worker. Work only in {worktree}.
@@ -86,6 +96,8 @@ Returning a message does not integrate or transfer files. Leave this worktree in
 ```
 
 ## Prepare an isolated copy of the current state
+
+**Helper-managed default only.**
 
 Call the bundled helper's `prepare` operation as described in
 [Workspace operations](workspace-operations.md). The helper creates a uniquely
@@ -148,6 +160,8 @@ repository policy for commits, merge/rebase/cherry-pick, pushes and publication.
 
 ## Refresh and prepare the worker contribution
 
+**Helper-managed default only.**
+
 Before handing back isolated code changes, check the latest designated target.
 For an explicitly pinned assignment, report target movement without changing
 the pinned input. Otherwise refresh within the assigned integration policy.
@@ -177,6 +191,8 @@ a fresh worker the self-contained repair handoff. No shell agent relauncher is
 needed. A new assignment still follows the skill's fresh-context rule.
 
 ## Return enough state to resume integration
+
+**Helper-managed default only.**
 
 Put a concise reminder and recommendation in the final native receipt, with the
 detailed state in the report. Use the self-contained
@@ -219,6 +235,8 @@ do not impose a fixed receipt length or require a report when writes are forbidd
 
 ## Accept the combined result
 
+**Helper-managed default only.**
+
 The parent reads the handoff and verifies the contribution and current target.
 If the target has moved since the worker's check, reassess against its new exact
 revision before acceptance; prior compatibility evidence is stale. The parent
@@ -240,6 +258,8 @@ branches and other recovery material while integration or decisions remain
 outstanding.
 
 ## Parent-owned worktree removal
+
+**Helper-managed default only.**
 
 The parent decides eligibility; the bundled helper performs approved preservation
 and removal through `close`. Its default without acceptance is retention. See

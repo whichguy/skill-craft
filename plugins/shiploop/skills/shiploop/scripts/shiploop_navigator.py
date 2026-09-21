@@ -1529,13 +1529,18 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
         packet_path = standalone_improve.receipt_path(child)
         evidence_root = packet_path.parent / "reviews"
         runtime_lines = [
+            "Improve context ownership: " + str(Path(__file__).resolve().parent.parent / "references" / "improve-context.md"),
+            "For a genuinely new invocation, prefer one fresh native worker for the entire Improve loop with exclusive write ownership in the exact Child workspace. Read the context-ownership reference before launch or recovery. Resolve the host-selected Ask Agent and require its ask-agent/consumer-owned-workspace/v1 capability; never use its default extra-worktree route for this bound child.",
+            "Workspace route: consumer-owned; delivery mode: in-place. Native assignment: execution_role: improve-executor; delegation_owner: parent. Freeze the exact candidate scope, selected packages, explicit no-commit authority, evidence paths and parent continuation before dispatch. Existing invocations keep their recorded owner; unknown ownership blocks replacement.",
+            "Native owner record: " + str(packet_path.with_name("host-owner.md")),
+            "Parent-only return: the worker saves child packets and completion evidence, then returns their locators without executing ShipLoop callbacks or workspace return. The parent collects and verifies the result before executing the exact return route below. Worker completion alone never advances this action.",
             "Child runtime authority: the unique temporary state_file returned by the selected runtime. ShipLoop does not write or count child state.",
             "Child latest packet receipt: " + str(packet_path),
             "Save exact, complete raw JSON stdout from each successful start, next and done call to that receipt using a JSON-aware runner or safe file capture. Never reconstruct, summarize, or truncate the packet. This receipt preserves the callback handle and terminal evidence; it is not a second runtime state machine.",
             "For a genuinely new child, read the selected skills and start once. If this child has already started, read its saved receipt: for active status use its exact next_argv once to recover, then follow the returned instruction; for complete status import its retained receipt without starting or reviewing again. For stopped status keep the parent incomplete. If an existing child's receipt or temporary state is unavailable, report incomplete; never infer completion or silently create a replacement.",
             "Include this parent identity as a separate line in frozen context.request:",
             child["contract_marker"],
-            "Freeze the original request, step result and execution/exit/repeat conditions, permitted paths, expected check state, explicit no-commit authority and relevant environment in the child's context. Include context.resources locators for this latest-packet receipt, parent state.md, completion evidence path and exact parent return instructions below. The child terminal packet must be sufficient to locate and perform the parent return after context loss.",
+            "Freeze the original request, step result and execution/exit/repeat conditions, permitted paths, expected check state, explicit no-commit authority and relevant environment in the child's context. Include context.resources locators for this latest-packet receipt, native owner record (parent coordination data), parent state.md, completion evidence path and exact parent return instructions below. The child terminal packet must be sufficient to locate and perform the parent return after context loss.",
             "Execute the child's work instruction exactly once per action, then call its exact done_argv with a truthful trivial/non-trivial/unresolved classification, condition assessments, evidence and replacement handoff. Follow the returned instruction; do not advance the parent during active work or compress several reviews into one callback.",
             "Completion deletes the child's temporary state. Preserve the complete terminal packet at the receipt above before calling improve-complete. If terminal output is lost, stop incomplete; a missing state file is not completion evidence.",
         ]
@@ -1552,7 +1557,7 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
     return_lines = []
     if state["execution_mode"] == "navigator-worktree" and child["stage"] == "handoff":
         return_lines = [
-            "After the final child finishes and its completion evidence is written above, review the final return plan and perform the authorized workspace return before importing this child. The return command validates the completed child and refuses unfinished Improve work. This once-only return happens after all candidate edits/reviews; preserve a prior receipt and never replay a changed candidate over it.",
+            "Parent only: after the final child finishes and its completion evidence is written above, review the final return plan and perform the authorized workspace return before importing this child. The return command validates the completed child and refuses unfinished Improve work. This once-only return happens after all candidate edits/reviews; preserve a prior receipt and never replay a changed candidate over it.",
             shlex.join(["python3", _command(core), "workspace", "plan-return",
                         "--workspace-root", str(root.parent)]),
             shlex.join(["python3", _command(core), "workspace", "return",
@@ -1578,7 +1583,7 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
                     "Actual Improve completion evidence").rstrip(),
         "If Improve changed the producer's decisions, include final_result with the revised generic step result, preserving outcomes and authority. This can correct plan work_items or document choices without using the draft values. Preserve existing registered evidence_refs and add every planning file produced or revised during this pass. Retain key planning decisions, constraints and acceptance expectations as reference statements with source locators. The step definition remains the execution prompt; do not substitute the original user request or a second consolidated directive.",
         *return_lines,
-        "Return only after the bound runtime reports successful completion:",
+        "Parent-only callback; execute only after collecting and verifying successful bound runtime completion:",
         _callback(core, root, "improve-complete", action=action_id, result=str(result_path)),
         "If incomplete, retain the child, its packet receipt and review notes; do not call complete on the producer again or advance the graph.",
         "Pause parent without losing child: " + _callback(core, root, "pause", reason="reason"),

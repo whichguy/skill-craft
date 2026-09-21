@@ -418,6 +418,13 @@ exercise the real bundled Until Loop runtime and parent import/recovery boundary
 Their review judgments are fixtures; they do not prove a live model followed
 Improve. The implementation validation report records separate live skill trials.
 
+The consumer-owned regression also checks that real child completion leaves the
+parent pending and the candidate edits in place until parent import. Its
+judgments remain synthetic. The opt-in
+[`ask_agent_improve_native` fixture](experiments/ask_agent_improve_native/README.md)
+requires an actual fresh worker, real reviews/checks, native stop/collection and
+guarded final caller delivery; it does not launch models from a shell.
+
 ## Ask Agent live handoff experiments
 
 The managed-workspace helper and delivery contract have focused hermetic suites:

@@ -1,7 +1,7 @@
 ---
 name: ask-agent
 description: A delegation skill, not an agent type. Ask native agents to work in the background, continue useful work in the main conversation, and incorporate their results when they return. Use for "ask an agent", named agent roles, parallel delegation, or launch-and-notify work.
-version: 0.6.1
+version: 0.7.0
 license: MIT
 platforms:
   - linux
@@ -9,6 +9,8 @@ platforms:
 metadata:
   skill_craft:
     kind: mixed
+    capabilities:
+      - ask-agent/consumer-owned-workspace/v1
 ---
 
 # Ask agent
@@ -19,20 +21,54 @@ return; the parent owns acceptance and integration. `ask-agent` selects this
 skill, not an agent type. Do not implement another model launcher, SDK client,
 subprocess harness, scheduler, or file watcher to simulate native delegation.
 
+The helper-managed workspace route is the default for delegation. Historical
+experimental cards are test fixtures, not alternative supported workflows. A
+consumer-owned workspace is an explicit invoking-consumer contract, never an
+automatic interpretation of an existing worktree, a speed request, or a request
+for fresh context.
+
 Default to a fresh background worker while the parent continues useful work.
 An explicit request to wait takes precedence. Each invocation adds to the
 initiating conversation's pending work; it does not replace earlier jobs.
 
-A request to change repository code includes bringing the verified contribution
-back into the designated caller/integration checkout by default. The parent
-performs that integration and validates the combined result before reporting the
-overall request SUCCEEDED. A successful worker return alone is not completion.
-If integration is blocked, report the overall blocker, worker outcome and retained
-locations explicitly. An explicit review-only or return-without-integration request
-overrides this default; do not turn ordinary delegation into an unrequested
+A helper-managed request to change repository code includes bringing the verified
+contribution back into the designated caller/integration checkout by default. The
+parent performs that integration and validates the combined result before reporting
+the overall request SUCCEEDED. A consumer-owned route instead has in-place parent
+acceptance followed by its consumer's separately owned final caller delivery. A
+successful worker return alone is not completion. If integration or final delivery
+is blocked, report the overall blocker, worker outcome and retained locations
+explicitly. An explicit review-only or return-without-integration request overrides
+the helper-managed default; do not turn ordinary delegation into an unrequested
 approval step. Follow the declared delivery mode and preserve caller dirty state.
 
 ## Select the route before preparing
+
+This card declares `ask-agent/consumer-owned-workspace/v1`. Select exactly one
+route before any helper preparation or native dispatch:
+
+- **Helper-managed** is the default. It uses the existing helper-created
+  snapshot, one of `patch`, `commits`, or `report-only`, and the procedures below.
+- **Consumer-owned** requires an invoking consumer to explicitly set
+  `workspace_route: consumer-owned` and `delivery_mode: in-place`, and to supply
+  the complete workspace/ownership contract in
+  [Consumer-owned workspace](references/consumer-owned-workspace.md). Its worker
+  writes in the consumer's already-bound candidate; helper delivery modes do not
+  apply.
+
+An ordinary invocation that does not select consumer-owned uses the
+helper-managed default. A consumer that explicitly requests consumer-owned but
+lacks this card capability or any required contract field stays pending with its
+available locators. Do not silently switch that incomplete consumer request to
+the helper-managed route, shared writes, an inherited context, or a second
+worktree.
+
+The currently declared consumer binding is ShipLoop navigator-v3's whole-skill
+Improve child. It supplies one fresh executor for the complete bound Improve
+invocation; standalone Improve dispatch remains unchanged. This is a Codex native
+pilot with evidence from bounded native fixtures. Earlier helper-managed host
+evidence does not qualify this composition on Codex, Claude, Grok, or another
+host.
 
 Use the live native schema, not the model name or a presumed capital-`Task` API.
 Read the matching route in [Host capabilities](references/host-capabilities.md).
@@ -57,7 +93,11 @@ A worker may request an authorized parent-only operation through native
 messaging when available, or use further native agents with the same workspace
 and handoff constraints. It must collect its delegates before returning.
 
-## Prepare, launch, continue, collect
+## Helper-managed default: prepare, launch, continue, collect
+
+The six steps in this section apply only to the helper-managed default. They do
+not apply to a selected consumer-owned workspace; use its complete route
+reference instead.
 
 1. **Prepare through the skill.** Read [Workspace operations](references/workspace-operations.md)
    and [Git integration](references/git-integration.md). Obtain the host-selected,
@@ -134,7 +174,9 @@ and handoff constraints. It must collect its delegates before returning.
    helper retains work without valid acceptance. Keep blocked or cancelled work
    and give its next action. Use retained artifact paths after cleanup.
 
-## Result and continuation contract
+## Result and continuation by route
+
+### Helper-managed default
 
 Workers finish normally with their task label, assignment reminder,
 SUCCEEDED/BLOCKED/FAILED, result or blocker, observed workspace, receipt,
@@ -167,3 +209,13 @@ parent's continuation in the worker. When a timed return is explicitly requested
 use the separately available **prompt-timer** skill, resolved from the host's
 selected skill context. Ordinary delegation does not require that skill or a
 timer. Do not promise notification after the current parent session exits.
+
+### Consumer-owned workspace
+
+Use the in-place handoff in
+[Consumer-owned workspace](references/consumer-owned-workspace.md). It carries
+the consumer's binding, candidate and evidence instead of a helper receipt,
+patch, commit range, or helper close outcome. The parent verifies the returned
+edits and evidence, records acceptance, and then lets the consumer perform its
+separate final-delivery continuation. The worker never executes that continuation
+or consumer cleanup.

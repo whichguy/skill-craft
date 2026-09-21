@@ -1,15 +1,24 @@
 # Workspace operations
 
-Use the packaged Git helper for every repository delegation. It creates and
-verifies the worktree; native host tools still launch and collect the worker.
-Prerequisites are Git and Python 3. Do not install tools during delegation.
-An explicit prohibition on filesystem writes also prohibits workspace setup.
-In that case do not prepare or dispatch a repository worker; explain that the
-requested isolation requires creating a worktree, branch and receipt. An
-ordinary code-review request permits isolated setup and reports while leaving
-the reviewed inputs unchanged.
+**Helper-managed default only.** Use the packaged Git helper for helper-managed
+repository delegation. It creates and verifies the worktree; native host tools
+still launch and collect the worker. Prerequisites are Git and Python 3. Do not
+install tools during delegation. An explicit prohibition on filesystem writes
+also prohibits workspace setup. In that case do not prepare or dispatch a
+repository worker; explain that the requested isolation requires creating a
+worktree, branch and receipt. An ordinary code-review request permits isolated
+setup and reports while leaving the reviewed inputs unchanged.
+
+For a selected consumer-owned workspace, read
+[Consumer-owned workspace](consumer-owned-workspace.md). It never uses this
+reference's `prepare`, `inspect`, `check-context`, or `close` operations and
+never receives a helper receipt. `identity --skill-card` is the sole helper
+operation it may use, only as a read-only package identity check.
 
 ## Bind and verify the selected package
+
+**Helper-managed default only, except for the read-only identity check noted
+above.**
 
 Obtain the absolute logical path of the selected, loaded `SKILL.md` from the
 host's skill context. Its parent is `SKILL_ROOT`. Bind this again in every
@@ -34,11 +43,17 @@ worker and repeat them in the worker and parent self-contained handoffs. The
 command verifies a caller-supplied selection; it does not discover which skill
 the host chose.
 
+For consumer-owned selection, this same `identity --skill-card` output is
+package identity only. It does not create or validate a consumer workspace,
+receipt, delivery mode, or ownership record.
+
 The paths below are placeholders. Substitute actual receipt values. Keep prompts
 in native launch arguments; the helper's JSON files are Git/acceptance evidence,
 not a prompt transport or another job queue.
 
 ## Prepare before dispatch
+
+**Helper-managed default only.**
 
 Coordinate active writers of the source checkout for the capture window after a
 successful package identity check. The
@@ -83,6 +98,10 @@ worktree project instructions and the host's actual permissions.
 
 ## Check the worker's operation context
 
+**Helper-managed default only.** A consumer-owned worker verifies its explicit
+per-operation cwd and Git root against the consumer contract instead; it does
+not call `check-context` with an invented or consumer receipt.
+
 Before task work, run this from the worker's actual assigned command directory:
 
 ```sh
@@ -106,6 +125,8 @@ nonzero check stops task writes; do not replace it with a reported path or with
 
 ## Snapshot limits
 
+**Helper-managed default only.**
+
 Preparation preserves the caller's staged and unstaged layers and non-ignored
 untracked entries. Required ignored/generated inputs need an explicit task
 decision; the helper does not promise installed dependencies or copy them
@@ -119,6 +140,8 @@ review rather than treating an empty patch as no contribution.
 
 ## Inspect after the worker returns
 
+**Helper-managed default only.**
+
 Collect native completion first. `inspect --phase returned` allows legitimate
 worker changes and reports a complete workspace `fingerprint` and the paths
 changed against inherited content. Declare result and disposable scratch paths
@@ -126,7 +149,7 @@ explicitly, for example:
 
 ```sh
 python3 "$WORKSPACE_HELPER" inspect \
-  --receipt "/actual/receipt.json" --phase returned \
+  --receipt "/actual/receipt.json" --phase returned --delivery-mode patch \
   --artifact "reports/handoff.md" --artifact "reports/checks.md"
 ```
 
@@ -135,11 +158,14 @@ worker's contribution under the existing Git integration policy; a raw whole-
 branch diff may include the caller's pre-existing edits. Reports/scratch are not
 code contribution. Revalidate after target movement or further worker edits.
 
-Declare the mode selected in the fresh-worker launch clause during returned
-inspection. Omitting it preserves the ordinary inspection result for backward
-compatibility, but passing commit arguments without `--delivery-mode commits`
-is rejected. Mode evidence is immutable and stored beside the inspection under
-the helper-owned attempt directory, never in the removable worktree.
+For a worker handoff, declare the delivery mode selected in the fresh-worker
+launch clause: `patch`, `commits`, or `report-only`. This is the supported
+delivery workflow. Mode evidence is immutable and stored beside the inspection
+under the helper-owned attempt directory, never in the removable worktree.
+
+Inspection without a delivery mode is a state snapshot for integration and
+cleanup rechecks. It supplies no mode-specific delivery evidence and does not
+replace the worker handoff. Commit arguments require `--delivery-mode commits`.
 
 For the default patch handoff, use the returned immutable patch rather than a
 whole-worker-branch diff:
@@ -193,6 +219,9 @@ none is an inherited repository input. It does not authorize removal; use the
 separate parent acceptance and `close` step after reports are consumed.
 
 ## Close after acceptance
+
+**Helper-managed default only.** A consumer-owned workspace stays with its
+consumer; Ask Agent does not call `close` or remove it.
 
 Calling `close --receipt /actual/receipt.json` without acceptance retains work.
 The parent may create an acceptance JSON file after reading the handoff,

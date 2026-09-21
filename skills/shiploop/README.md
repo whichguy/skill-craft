@@ -1,9 +1,13 @@
-# ShipLoop navigator 0.18.16
+# ShipLoop navigator 0.18.17
 
-ShipLoop runs in the conversation that invoked it. That conversation follows
-the current action packets and performs the producer and Improve work; the
-scripts manage durable state and callbacks. An isolated worktree does not create
-a separate model session. Shell model-CLI launching belongs only to the external
+ShipLoop's invoking conversation owns navigation, acceptance and delivery. For
+a new v3 ephemeral Improve invocation, the selected Ask Agent can delegate one
+fresh native worker using the explicit consumer-owned workspace route. The
+worker executes the entire loop in the already-bound candidate; the parent
+collects and verifies it, then performs the guarded final return when required.
+Read [Improve context ownership](references/improve-context.md) for capability,
+exclusive writer, interruption and retention rules. A worktree alone does not
+create a separate model session. Shell model-CLI launching belongs only to the external
 E2E harness, not normal ShipLoop CLI operation. Optional bound implementation
 chains may still use a selected compatible Ask-Agent adapter through host-native
 delegation. The former `drive` command and model transports are removed.
