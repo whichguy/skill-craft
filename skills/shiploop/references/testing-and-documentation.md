@@ -364,12 +364,50 @@ unnecessary frameworks, persistent integrations and redundant probes.
 
 For every destination-test plan, explicitly consider whether a browser is needed.
 Use an available authorized browser surface (Chrome DevTools, browser automation,
-or equivalent) when the requirement concerns rendered UI, JavaScript, navigation,
+or equivalent) when the requirement concerns browser-rendered UI, page JavaScript, navigation,
 drag/drop, accessibility, or session/SSO/MFA/other browser-specific authentication
 that a raw request does not establish. Do not require a failed curl attempt first
 when the needed observation is clearly browser-only. An API-only check does not
 need a browser merely because a web interface also exists. These tools can be
 complementary: cheap protocol checks plus the smallest necessary real UI journey.
+
+Make that choice during planning, before implementation. In the existing case
+record, name the available runner or manual procedure, why its observation is
+sufficient, and any setup/session/fixture prerequisites. Carry the selection
+into the step plan and validation; tool availability alone is not coverage.
+The tool names below are examples, not a requirement to try or install every
+candidate. Use the host-supported browser connection and control route; a tool
+name does not authorize a different transport or access to a personal profile.
+For native desktop/mobile UI, select the corresponding supported UI test surface
+rather than inventing a browser requirement.
+
+| Observation needed | Candidate method | Evidence boundary |
+| --- | --- | --- |
+| HTTP status, headers, response contract or service behavior | `curl` or the repository's HTTP/API client | Does not establish rendered UI or page JavaScript behavior. |
+| Rendered elements, layout, console errors or browser network activity | Chrome DevTools or equivalent browser inspection | Record the action and observed result; inspection alone is not an automated regression test. |
+| Repeatable user interactions and visible state transitions | Playwright or equivalent available browser automation | Assert the expected user-visible outcome after the action, not merely that a click completed. |
+
+For browser-based UI acceptance, plan the actual browser sequence: starting state,
+user action, expected visible result and applicable viewport, keyboard/focus or accessibility
+conditions. For example, a form-validation case submits an invalid value and
+checks the displayed error and preserved input; a successful page request alone
+does not establish that behavior. Prefer stable role/label locators and bounded
+condition-based assertions over brittle DOM paths or fixed sleeps. Retain a
+screenshot or trace when it supports the criterion; a screenshot alone cannot
+prove interaction or timing. Use the existing fixture/cleanup and suite-placement
+guidance in [repeatable test suites](repeatable-test-suites.md).
+
+Record the relevant browser/version, headed or headless mode, viewport and other
+conditions that affect the criterion. Select supported-browser coverage from
+requirements and risk; one observed configuration does not prove others. Verify
+session readiness in the chosen runner: an interactive signed-in tab does not
+establish access in an isolated automation context or CI. Record mocked,
+intercepted or offline dependencies; a rendered result from those fixtures does
+not close a required live integration check.
+When visual comparison is selected, use a reviewed baseline and controlled
+rendering conditions; do not mask or disable the behavior under test to obtain
+a match. Keep keyboard/accessibility checks tied to their own criteria rather
+than infer them from a screenshot or successful role-based locator.
 
 If curl reaches a redirect/login or gives an ambiguous access failure, preserve
 what was observed and inspect the relevant authorized browser route before
@@ -407,7 +445,9 @@ write data still need suitable authorization, fixtures and cleanup.
 The boundary is supported by the [curl FAQ](https://curl.se/docs/faq.html)
 (curl does not execute page JavaScript), [DevTools network inspection](https://developer.chrome.com/docs/devtools/network/reference/)
 and [Playwright's authentication guidance](https://playwright.dev/docs/auth)
-(browser auth state is sensitive). These are examples, not required dependencies.
+(browser auth state is sensitive). [Playwright's testing practices](https://playwright.dev/docs/best-practices)
+support user-visible assertions, stable locators and isolated tests. These are
+examples, not required dependencies.
 
 ### Security, fuzzing, and ongoing maintenance
 
