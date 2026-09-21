@@ -730,6 +730,29 @@ class ChainIntegrationTests(unittest.TestCase):
         self.assertEqual((self.run / "state.md").read_bytes(), initial_state)
         self.assertFalse((self.run / "chains").exists())
 
+    def assert_context_boundary_preserves_chain_mode(self, mode):
+        state_path = self.run / "state.md"
+        binding_path = self.run / "chains" / self.action / "binding.md"
+        before = (state_path.read_bytes(), binding_path.read_bytes())
+        self.assertEqual(store.read_record(binding_path)["mode"], mode)
+        fresh = nav.render(None, self.run, store.read_record(state_path))
+        cold = subprocess.run(
+            [sys.executable, "-B", str(CLI), "next", "--run-dir", str(self.run)],
+            cwd=self.primary, text=True, capture_output=True,
+        )
+        self.assertEqual(cold.returncode, 0, cold.stderr)
+        rule = (
+            "parallel chains retain their capacity and bypass this serial context boundary"
+            if mode == "parallel" else
+            "serial chains execute in the main context without spawning workers"
+        )
+        for packet in (fresh, cold.stdout):
+            normalized = " ".join(packet.split())
+            self.assertIn(rule, normalized)
+            self.assertIn("Both modes recover the existing attempt, never rerun start.", normalized)
+            self.assertIn("Chain recovery:", packet)
+        self.assertEqual((state_path.read_bytes(), binding_path.read_bytes()), before)
+
     def test_current_binding_defaults_to_parallel(self):
         self.bind(capacity=None)
         binding_path = self.run / "chains" / self.action / "binding.md"
@@ -742,6 +765,7 @@ class ChainIntegrationTests(unittest.TestCase):
         recovered = self.call("recover")
         self.assertEqual(recovered["shiploop_chain"]["mode"], "parallel")
         self.assert_completion(recovered, [], ["A", "B", "C", "J"])
+        self.assert_context_boundary_preserves_chain_mode("parallel")
 
     def test_serial_mode_capacity_and_native_launch_are_guarded(self):
         initial_state = (self.run / "state.md").read_bytes()
@@ -795,6 +819,7 @@ class ChainIntegrationTests(unittest.TestCase):
         self.assertEqual(self.child_state_path().read_bytes(), before_state)
         self.assertEqual(self.ledger_bytes(), after_replay_ledger)
         self.assertIsNone(self.child_record(a)["handle"])
+        self.assert_context_boundary_preserves_chain_mode("serial")
 
     def test_serial_done_alias_reconciles_once_and_preserves_terminal_history(self):
         self.select_dispatcher(SERIAL_FIXTURE)

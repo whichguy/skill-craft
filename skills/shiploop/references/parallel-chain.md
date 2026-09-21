@@ -356,6 +356,17 @@ cleanup and finish. Refuse the old owner before creating or removing a worktree.
 
 ## Serial execution in the main context
 
+The bound mode and recorded executor take precedence over the navigator's generic
+fresh-worker guidance. Parallel chains retain their capacity and have no serial
+reset wrapper. Serial chains do not spawn a fresh worker. If fresh context is
+required, use only a real callable host reset with a recovery route, or the
+[pause and operator handoff](navigator.md#packet-only-context-boundary).
+Preserve the parent Recovery command and printed Chain recovery command; settle
+or stop step-owned activity before clearing. Recover the same binding and
+attempt, then follow its returned resume/reconcile action. Do not rebind, change
+mode/executor or rerun `start` to obtain another execution grant. Printed `/clear`
+text does not perform the host operation.
+
 Bind a new chain with `--mode serial`; omit `--capacity` or set it to `1`.
 `--mode parallel` is the default and retains native Ask-Agent execution. The
 mode is frozen for that chain; do not switch an existing active chain in place.

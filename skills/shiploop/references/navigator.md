@@ -130,7 +130,14 @@ transition is historical context and does not replace the current action.
 
 Active v3 INNER packets begin with **Clear and then execute the prompt.** This
 is the serial execution instruction for each producer and its Improve handoff.
-Save the recovery locators and prefer one native fresh worker at a time, without
+For `implement`, select the chain route first. A bound chain's mode and executor
+take precedence: parallel chains keep their capacity and bypass this boundary;
+explicit serial chains execute in the main context without spawning workers.
+Do not wrap a chain in another worker. Both modes recover the existing attempt
+rather than rerunning `start`. Serial chains use only a callable reset or the
+manual handoff below; the [chain mode contract](parallel-chain.md#serial-execution-in-the-main-context)
+remains authoritative. For unbound serial work where delegation is permitted,
+save the recovery locators and prefer one native fresh worker at a time, without
 inherited conversation. It needs the assignment's tools, the existing workspace
 and a return route to the live parent. The parent supplies the current packet,
 selected skill locators and necessary durable references, waits, verifies its
@@ -161,8 +168,9 @@ A returned packet can instruct the host agent to use an available native tool;
 it cannot execute a host command by printing its name. Claude documents both
 [sequential subagents](https://code.claude.com/docs/en/sub-agents#chain-subagents)
 and [fresh context without parent history for non-fork subagents](https://code.claude.com/docs/en/sub-agents#what-loads-at-startup).
-Use a non-fork worker, such as a fresh general-purpose agent, through the live
-tool schema. Select an equivalent no-history mode on another host only when its
+Where the assignment permits delegation, use a non-fork worker, such as a fresh
+general-purpose agent, through the live tool schema. Select an equivalent
+no-history mode on another host only when its
 actual schema supports it. Wait for collection before advancing the serial run.
 This keeps the worker's intermediate history out of the parent; it does not
 erase the parent's conversation or guarantee lower total tokens. An inherited

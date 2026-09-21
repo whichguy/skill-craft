@@ -8,6 +8,12 @@ is one native fresh assignment worker at a time, without inherited conversation,
 when the live host exposes the required tools and a return route to the parent.
 The parent verifies the result and alone submits the ShipLoop callback.
 
+Bound implementation chains retain their existing mode and executor. Parallel
+chains keep their capacity and bypass this serial boundary. Explicit serial
+chains run in the main context without agents, so only callable reset or manual
+handoff applies there. Do not wrap a chain in another worker or restart an
+existing attempt. Choose the implementation-chain route before delegation.
+
 ```mermaid
 flowchart LR
     P[Returned packet] --> W[One fresh worker]
@@ -86,3 +92,6 @@ savings, full ShipLoop, installed-package, or cross-host evidence. Regression
 tests cover prefix selection across INNER stages/items and producer/Improve
 owners, recovery, and exclusion of stopped states. They do not prove a native
 host performed a reset. No model launcher, state schema, or scheduler was added.
+Bound-chain fixtures additionally check that fresh and cold navigator packets
+preserve parallel capacity guidance and serial main-context ownership without
+changing the binding or restarting an attempt.

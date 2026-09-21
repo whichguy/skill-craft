@@ -238,7 +238,14 @@ another state record. Do not copy a current node, action ID, result path, status
 or predicted successor into the handoff as graph authority.
 
 Active v3 INNER packets prefix both producer and Improve assignments with
-"Clear and then execute the prompt." For serial execution, save these locators
+"Clear and then execute the prompt." For `implement`, select the packet's chain
+route first. A bound chain's mode and executor take precedence: parallel chains
+retain their capacity and bypass this serial context boundary; explicit serial
+chains execute in the main context without workers. Do not wrap a chain in an
+extra worker or restart an existing attempt. Follow the
+[chain mode contract](references/parallel-chain.md#serial-execution-in-the-main-context);
+serial chains may use only the callable-reset or manual-handoff route below.
+For unbound serial work where delegation is permitted, save these locators
 and prefer one native fresh worker at a time, without inherited conversation.
 It must have the required tools, the existing workspace and a return route to
 the live parent. Give it the current packet, selected skill locators and necessary
