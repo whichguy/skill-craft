@@ -1,47 +1,51 @@
 # Native Ask-Agent chain pilot
 
 `native_pilot.py` is a retained, opt-in qualification apparatus for the
-per-step ShipLoop chain bridge. It creates a disposable real-Git fixture,
-fixture-emulates caller-prepared workspaces with ordinary Git, and drives the
-public `shiploop chain` lifecycle. It never launches a model or an agent CLI.
+per-step ShipLoop chain bridge. It creates a disposable real-Git fixture and
+drives the public `shiploop chain` managed-workspace lifecycle. The selected
+Ask-Agent helper prepares worker worktrees and issues their receipts; the pilot
+does not allocate or supply caller-prepared worktrees. It never launches a model or an agent CLI.
 A native host must launch fresh workers and retain its
 own launch/completion trace.
 
-The pilot uses the frozen Ask-Agent 0.4 fixture and Plan Dispatcher v3 fixture.
-It preflights the selected Dispatcher `capabilities` response before creating a
-pilot directory; the required `planning_context` capability preserves the
-immutable planning references that ShipLoop attaches to each worker packet.
-It is not evidence that Ask-Agent 0.4 is generally qualified until a real
-native run has retained both the host trace and the final evidence described
-below.
+The pilot defaults to the source Ask-Agent package and the frozen Plan Dispatcher
+v3 fixture. It requires Ask-Agent 0.6.0 or newer with the compatible machine
+capability declaration and exact helper identity. It also preflights the selected
+Dispatcher's `capabilities` before creating a pilot directory; its required
+`planning_context` capability preserves the immutable planning references in
+worker packets. An older or incompatible package is not a fallback.
 
-The fixture workspace setup models the caller-worktree contract but does not
-prove that the native host followed Ask-Agent's prompt-driven worktree-creation
-instructions. A passing native run qualifies bridge adoption of the exact
-fixture-prepared workspace, real native worker execution, per-step integration,
-and cleanup under this fixture.
+A passing native run can provide evidence of helper preparation, native execution
+in the exact receipted workspace, per-step integration, and helper-owned cleanup
+under this fixture. Updating the pilot or passing its offline tests does not
+establish those live results. Retained older caller-worktree runs describe their own
+historical flow and do not qualify this managed flow.
 
 ## Lifecycle
 
 ```mermaid
 flowchart LR
-  P[Fixture Git emulates caller W preparation] --> S[Bridge adopts W]
+  P[Selected helper prepares workspace and receipt] --> S[Native worker uses exact receipt]
   S --> H[Worker commits and writes handoff]
   H --> I[Parent imports to archive]
   I --> G[Prepare candidate I]
   G --> D[Done fast-forwards target]
-  D --> C[Accept then remove W]
+  D --> R[Accept and refill ready capacity]
+  R --> C[Helper closes accepted workspaces]
 ```
 
-The caller-side fixture preparation creates the exact sibling workspace `W`
-with ordinary Git and records it under `workspaces/`. It emulates the Ask-Agent
-caller-worktree contract; it is not evidence of prompt-driven Ask-Agent
-workspace creation. The bridge only adopts that exact workspace. After native
-completion, the parent copies the worker-local handoff into its durable archive, creates the Dispatcher control
+The bridge invokes the selected Ask-Agent helper during `start` and returns the
+exact workspace `W`, preparation receipt, baseline and package identity. The
+pilot records that same receipt/workspace pair under `workspaces/`. Native workers
+must run the supplied `check-context` command before work; they do not run another
+preparation or request native worktree isolation. After native completion, the
+parent copies the worker-local handoff into its durable archive, creates the Dispatcher control
 receipt, removes the worker-local handoff files, merges the current target into
 the stopped worker workspace to form candidate `I`, independently verifies
 that candidate, fast-forwards the invoking feature branch, settles the
-Dispatcher attempt, then removes `W`.
+Dispatcher attempt, and returns the ready frontier. Workspaces remain until the
+pilot's `finish` drains their deferred helper cleanup after all graph work has
+been accepted. This leaves successor dispatch ahead of cleanup.
 
 The worker result is only its commit and declared handoff files. The immutable
 Dispatcher receipt, parent report artifact, and report envelope are
@@ -59,7 +63,7 @@ SOURCE_ROOT="$(git rev-parse --show-toplevel)"
 PILOT_DIR=/private/tmp/shiploop-native-chain-pilot-$(uuidgen | tr '[:upper:]' '[:lower:]')
 PILOT="$SOURCE_ROOT/test/experiments/shiploop_chain/native_pilot.py"
 DISPATCHER_SKILL="$SOURCE_ROOT/test/fixtures/plan-dispatcher-v3/SKILL.md"
-ASK_AGENT_SKILL="$SOURCE_ROOT/test/fixtures/ask-agent-v04/SKILL.md"
+ASK_AGENT_SKILL="$SOURCE_ROOT/skills/ask-agent/SKILL.md"
 
 python3 -B "$PILOT" prepare \
   --pilot-dir "$PILOT_DIR" \
@@ -69,7 +73,7 @@ python3 -B "$PILOT" prepare \
   --capacity 2
 ```
 
-The generated `context.json` freezes the selected cards, oracle, graph,
+The generated `context.json` freezes the selected packages, oracle, graph,
 fixture paths, navigator run, and action. The fixture has four code-producing
 steps:
 
@@ -87,13 +91,11 @@ feature branch.
 
 ## Start and launch workers
 
-Claim A and B together, then prepare and launch both through the native host.
-The driver records a fixture-emulated caller workspace before `start`; this
-ordinary Git fixture action models the Ask-Agent caller-worktree path and is
-explicitly marked as fixture emulation. It does not establish that the native
-host created the workspace by following Ask-Agent instructions. ShipLoop
-receives that workspace in `start` and must adopt it rather than allocate
-another worktree.
+Claim A and B together, then start and launch both through the native host.
+Each `start` lets the bridge prepare one helper-owned workspace, inspect its
+prepared baseline, and freeze the returned receipt. The driver supplies no
+workspace for adoption. Use that exact returned workspace as the native cwd;
+do not prepare another worktree or ask the host to allocate one.
 
 ```sh
 python3 -B "$PILOT" claim --pilot-dir "$PILOT_DIR" --steps A B
@@ -104,7 +106,10 @@ python3 -B "$PILOT" start --pilot-dir "$PILOT_DIR" --step B --attempt '<B_ATTEMP
 
 A response with `"action": "launch"` includes
 `inline_native_assignment`. Give that exact text directly to a fresh native
-worker. It embeds the complete returned worker packet as verbatim inline JSON:
+worker. Its packet includes `context.workspace` and `ask_agent_workspace` with
+the receipt, receipt digest, baseline, prepared inspection, selected package,
+executing helper and `check_context` command. It embeds the complete returned
+worker packet as verbatim inline JSON:
 the packet's task, definition of ready, definition of done, planning context,
 and guidance instructions remain the authority for the work. The surrounding
 fixture text only supplies the external oracle and handoff mechanics. A retained
@@ -193,13 +198,15 @@ one proof with `source_commit`, `expected_target`, `candidate_commit`, and
 `workspace`. The pilot runs the independent oracle against that exact
 candidate. `done` binds its verification to the Dispatcher parent-report
 receipt and the exact proof, fast-forwards the invoking target, accepts the
-attempt, and requires a completed cleanup receipt. It then proves `W` is
-gone from disk and Git registration while the external archives remain readable.
+attempt, and returns deferred cleanup as `{pending:true,deferred:true}`.
+The accepted workspace still exists; this does not make its accepted work
+available for execution again. The final cleanup audit proves `W` is gone from
+disk and Git registration while the external archives remain readable.
 
 After A is accepted, claim/start/launch C before B is accepted. Complete B and
 C with the same three parent operations, one parent command at a time. Start J
 only after B and C are accepted. J writes `toy/composed.py`; it does not
-manually merge branches or supplier commits because its adopted base already
+manually merge branches or supplier commits because its prepared base already
 contains the accepted code.
 
 The pilot records that A/B handles were registered before either Dispatcher
@@ -214,7 +221,10 @@ python3 -B "$PILOT" finish --pilot-dir "$PILOT_DIR"
 python3 -B "$PILOT" show --pilot-dir "$PILOT_DIR"
 ```
 
-`finish` reruns code, target, primary-worktree, cleanup, and archive checks.
+`finish` first requires all graph work accepted, with no ready or active work.
+It drains accepted workspaces through the bridge's receipt-bound `cleanup`,
+then reruns code, target, primary-worktree, cleanup, and archive checks. A late
+workspace change or unsupported cleanup retains the workspace and blocks finish.
 A repeat invocation validates the original immutable finish proof, reruns those
 independent checks, replays the public `finish` call with the same proof, and
 creates a missing local result receipt only if a prior process stopped after the
@@ -228,8 +238,9 @@ command records, and append-only `events.jsonl`. The optional
 `finish` audit from a fresh process. Treat that trace, the final code behavior,
 the integrated target, and worktree cleanup as separate evidence; a green
 deterministic lifecycle test or a worker's prose alone does not qualify this
-fixture's bridge adoption and native execution result. Neither proves
-prompt-driven Ask-Agent workspace creation.
+fixture's managed preparation and native execution result. The host trace is
+still required to prove native execution and collection; helper receipts alone
+do not establish either.
 
 Grok's raw stdout mixes parent and worker tool events without ownership labels.
 The wrapper binds a fresh `--session-id` and retains that root session's
@@ -244,7 +255,7 @@ The wrapper also writes `host-events.jsonl`, which records local receipt time
 and monotonic order for each raw host line, and `native-trace-evaluation.json`.
 The latter is a fail-closed observer: every
 A/B/C/J record must have one background `spawn_subagent` receipt with the exact
-retained Grok UUID and fixture-prepared workspace, followed by a completed,
+retained Grok UUID and helper-managed workspace, followed by a completed,
 zero-exit `get_command_or_subagent_output` result for that same UUID before
 `import-handoff`. It rejects malformed or truncated host JSON, prose-only or
 forged handles, a cancelled host terminal event, direct parent workspace code
@@ -299,8 +310,10 @@ wrapper retains `$RUN_DIR/host.ndjson`, `host.stderr`, `prepare.json`, and
 `native-trace-evaluation.json`; it
 passes the worker assignment inline to the native host and
 does not turn a saved packet or prompt file into worker transport.
-`result.json` records `coverage.workspace_creation: "fixture_emulation"` and
-marks prompt-driven Ask-Agent workspace creation as not qualified.
+`result.json` describes managed helper preparation, per-step integration,
+deferred cleanup and the required host trace separately. A successful wrapper
+exit is evidence for this retained experiment, not qualification of every host
+or installed package.
 
 The wrapper opts into the pilot's `prepare --hold-step B` scheduling control.
 B writes and checks real code, then waits before handoff until C's successful
@@ -314,8 +327,9 @@ the worker and preserves evidence; the gate never fabricates native timestamps.
 ## Offline adapter verification
 
 The focused adapter test creates its own disposable Git fixture and exercises
-the public `prepare` → `claim` → `start` → cold `packet` path with the pinned
-Dispatcher v3 package. It verifies exact inline packet transport, v2 preflight
+the public `prepare` → `claim` → `start` → cold `packet` path with the frozen
+Dispatcher v3 package and actual selected managed Ask-Agent helper. It verifies
+receipt/workspace identity, exact inline packet transport, incompatible preflight
 rejection before a pilot directory is created, non-launch start replay, and the
 opt-in refill barrier's identity, release, and timeout behavior. It
 does not launch a model, Grok, or a native worker:

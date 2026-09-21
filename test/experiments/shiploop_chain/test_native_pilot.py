@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""Hermetic public-CLI checks for the native ShipLoop chain pilot adapter.
+"""Hermetic public-CLI checks for the managed native ShipLoop chain pilot.
 
-The fixture creates disposable Git worktrees and invokes the public ShipLoop
-chain commands.  It deliberately never launches a model or a host-native agent.
+The fixture invokes the public ShipLoop chain commands against the current
+Ask-Agent helper package. It deliberately never launches a model or a
+host-native agent.
 """
 from __future__ import annotations
 
@@ -18,11 +19,27 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[3]
 PILOT = ROOT / "test" / "experiments" / "shiploop_chain" / "native_pilot.py"
-ASK_AGENT = ROOT / "test" / "fixtures" / "ask-agent-v04" / "SKILL.md"
+ASK_AGENT = ROOT / "skills" / "ask-agent" / "SKILL.md"
 DISPATCHER_V2 = ROOT / "test" / "fixtures" / "plan-dispatcher-v2" / "SKILL.md"
 DISPATCHER_V3 = ROOT / "test" / "fixtures" / "plan-dispatcher-v3" / "SKILL.md"
+
+
+def skill_card_version(card: Path) -> str:
+    for line in card.read_text(encoding="utf-8").splitlines():
+        if line.startswith("version: "):
+            return line.removeprefix("version: ").strip()
+    raise AssertionError(f"{card} has no version front-matter")
+
+
+ASK_AGENT_VERSION = skill_card_version(ASK_AGENT)
 PACKET_MARKER = "Complete authoritative worker packet (verbatim JSON):\n```json\n"
-PACKET_END = "\n```\n\nWork only in the exclusively fixture-prepared caller workspace"
+PACKET_END = "\n```\n\nWork only in the selected Ask-Agent helper-managed workspace"
+WORKER_SOURCES = {
+    "A": "def add(left: int, right: int) -> int:\n    return left + right\n",
+    "B": "def normalize(text: str) -> str:\n    return ' '.join(text.lower().split())\n",
+    "C": "def aggregate(values: list[int]) -> int:\n    return sum(values)\n",
+    "J": "def composed_output(values: list[int]) -> str:\n    return f'result {sum(values)}'\n",
+}
 sys.path.insert(0, str(ROOT / "skills" / "shiploop" / "scripts"))
 import shiploop_navigator as navigator  # noqa: E402
 import shiploop_store as store  # noqa: E402
@@ -46,13 +63,13 @@ class NativePilotTests(unittest.TestCase):
         self.assertIsInstance(value, dict)
         return value
 
-    def prepare(self, dispatcher: Path = DISPATCHER_V3, *, ok: bool = True,
+    def prepare(self, dispatcher: Path = DISPATCHER_V3, ask_agent: Path = ASK_AGENT, *, ok: bool = True,
                 pilot_dir: Path | None = None, hold_step: str | None = None,
                 hold_timeout_seconds: int | None = None) -> dict:
         destination = self.pilot_dir if pilot_dir is None else pilot_dir
         args = [
             "prepare", "--pilot-dir", str(destination), "--source-root", str(ROOT),
-            "--dispatcher-skill", str(dispatcher), "--ask-agent-skill", str(ASK_AGENT), "--capacity", "2",
+            "--dispatcher-skill", str(dispatcher), "--ask-agent-skill", str(ask_agent), "--capacity", "2",
         ]
         if hold_step is not None:
             args.extend(["--hold-step", hold_step])
@@ -97,40 +114,42 @@ class NativePilotTests(unittest.TestCase):
         return result.stdout.strip()
 
     def accept_a(self, started: dict, attempt: str) -> dict:
+        return self.complete_started_step("A", started, attempt)
+
+    def complete_started_step(self, step: str, started: dict, attempt: str) -> dict:
         workspace = Path(started["workspace"])
-        workspace_record = json.loads(Path(started["caller_workspace_record"]).read_text(encoding="utf-8"))
+        workspace_record = json.loads(Path(started["ask_agent_workspace_record"]).read_text(encoding="utf-8"))
         packet = json.loads(Path(started["packet"]).read_text(encoding="utf-8"))
-        (workspace / "toy" / "add.py").write_text(
-            "def add(left: int, right: int) -> int:\n    return left + right\n", encoding="utf-8",
-        )
-        self.git(workspace, "add", "toy/add.py")
-        self.git(workspace, "commit", "-m", "fixture native A contribution")
+        path = workspace / "toy" / {"A": "add.py", "B": "format.py", "C": "aggregate.py", "J": "composed.py"}[step]
+        path.write_text(WORKER_SOURCES[step], encoding="utf-8")
+        self.git(workspace, "add", str(path.relative_to(workspace)))
+        self.git(workspace, "commit", "-m", f"fixture native {step} contribution")
         commit = self.git(workspace, "rev-parse", "HEAD")
         handoff = workspace / ".shiploop-handoff" / attempt / "handoff.json"
         handoff.parent.mkdir(parents=True)
         result_path = handoff.parent / "result.json"
         worker_result = {
-            "schema": "shiploop-native-pilot-worker-result/v2", "step": "A", "attempt": attempt,
+            "schema": "shiploop-native-pilot-worker-result/v3", "step": step, "attempt": attempt,
             "workspace": str(workspace), "base_commit": workspace_record["base_commit"], "commit": commit,
-            "cwd": str(workspace), "git_root": str(workspace), "checks": ["add(-4, 1) == -3"],
-            "summary": "Fixture-native A handoff for C launch barrier coverage.",
+            "cwd": str(workspace), "git_root": str(workspace), "checks": [f"fixture {step} code behavior"],
+            "summary": f"Fixture-native {step} handoff for managed cleanup coverage.",
         }
         result_path.write_text(json.dumps(worker_result, sort_keys=True) + "\n", encoding="utf-8")
         manifest = {
-            "schema": "shiploop-chain-handoff/v1", "run_id": packet["run_id"], "step": "A", "attempt": attempt,
+            "schema": "shiploop-chain-handoff/v1", "run_id": packet["run_id"], "step": step, "attempt": attempt,
             "base_commit": workspace_record["base_commit"], "status": "SUCCEEDED", "commit": commit,
-            "summary": "Fixture-native A contribution.",
+            "summary": f"Fixture-native {step} contribution.",
             "files": [{"path": "result.json", "sha256": hashlib.sha256(result_path.read_bytes()).hexdigest()}],
         }
         handoff.write_text(json.dumps(manifest, sort_keys=True) + "\n", encoding="utf-8")
-        self.call("import-handoff", "--pilot-dir", str(self.pilot_dir), "--step", "A", "--attempt", attempt,
+        self.call("import-handoff", "--pilot-dir", str(self.pilot_dir), "--step", step, "--attempt", attempt,
                   "--handoff-manifest", str(handoff), "--confirmed-stopped")
-        self.call("prepare-integration", "--pilot-dir", str(self.pilot_dir), "--step", "A", "--attempt", attempt,
+        self.call("prepare-integration", "--pilot-dir", str(self.pilot_dir), "--step", step, "--attempt", attempt,
                   "--confirmed-stopped")
-        return self.call("done", "--pilot-dir", str(self.pilot_dir), "--step", "A", "--attempt", attempt,
+        return self.call("done", "--pilot-dir", str(self.pilot_dir), "--step", step, "--attempt", attempt,
                          "--confirmed-stopped")
 
-    def test_prepare_v3_transports_the_complete_packet_and_guidance_inline(self) -> None:
+    def test_prepare_v3_freezes_the_managed_helper_packet_and_guidance_inline(self) -> None:
         prepared = self.prepare()
         preflight = prepared["dispatcher_preflight"]
         self.assertEqual(
@@ -142,8 +161,20 @@ class NativePilotTests(unittest.TestCase):
             "execution-graph/v1",
         )
         self.assertEqual(Path(preflight["helper"]), DISPATCHER_V3.parent / "scripts" / "dispatch.js")
+        ask_preflight = prepared["ask_agent_preflight"]
+        self.assertEqual(ask_preflight["capabilities"]["schema"], "shiploop-chain-ask-agent-managed-worktree/v1")
+        self.assertEqual(ask_preflight["capabilities"]["version"], ASK_AGENT_VERSION)
+        self.assertTrue({
+            "helper-managed-worktree", "prepared-inspection", "returned-commit-delivery",
+            "fingerprint-bound-close",
+        }.issubset(set(ask_preflight["capabilities"]["capabilities"])))
+        self.assertEqual(Path(ask_preflight["helper"]), ASK_AGENT.parent / "scripts" / "ask_agent_workspace.py")
+        self.assertEqual(ask_preflight["identity"]["status"], "verified")
+        self.assertEqual(ask_preflight["identity"]["version"], ASK_AGENT_VERSION)
         context = json.loads((self.pilot_dir / "context.json").read_text())
+        self.assertEqual(context["schema"], "shiploop-native-chain-pilot/v3")
         self.assertEqual(context["dispatcher_preflight"], preflight)
+        self.assertEqual(context["ask_agent_preflight"], ask_preflight)
         self.assertTrue((self.pilot_dir / "run" / "chains" / prepared["action"] / "binding.md").is_file())
         synthetic = json.loads((self.pilot_dir / "evidence" / "synthetic-prerequisites.json").read_text())
         self.assertTrue(synthetic["synthetic"])
@@ -163,12 +194,15 @@ class NativePilotTests(unittest.TestCase):
         self.assertEqual(started["action"], "launch")
         assignment = started["inline_native_assignment"]
         packet = json.loads(Path(started["packet"]).read_text())
+        workspace_record = json.loads(Path(started["ask_agent_workspace_record"]).read_text())
 
         self.assertEqual(self.inline_packet(assignment), json.dumps(
             packet, sort_keys=True, ensure_ascii=False, indent=2,
         ) + "\n")
         self.assertIn("sole execution assignment", assignment)
         self.assertIn("only oracle and handoff mechanics", assignment)
+        self.assertIn("helper-managed workspace", assignment)
+        self.assertIn("Do not create, adopt, replace, or remove a worktree.", assignment)
         self.assertNotIn("Implement: ", assignment)
         self.assertNotIn("wait-hold", assignment)
         self.assertFalse((self.pilot_dir / "holds").exists())
@@ -176,17 +210,42 @@ class NativePilotTests(unittest.TestCase):
         self.assertTrue(packet["reference_material"])
         for instruction in packet["instructions"]:
             self.assertIn(instruction, assignment)
+        self.assertNotIn("caller_workspace_record", started)
+        self.assertEqual(workspace_record["schema"], "shiploop-native-pilot-managed-workspace/v1")
+        self.assertEqual(workspace_record["workspace"], packet["context"]["workspace"])
+        self.assertEqual(workspace_record["receipt"], packet["ask_agent_workspace"]["receipt"])
+        self.assertEqual(workspace_record["receipt_sha256"], packet["ask_agent_workspace"]["receipt_sha256"])
+        self.assertEqual(started["ask_agent_workspace"], packet["ask_agent_workspace"])
+        self.assertTrue(Path(workspace_record["receipt"]).is_file())
+        self.assertTrue(Path(workspace_record["workspace"]).is_dir())
+        self.assertEqual(
+            packet["ask_agent_workspace"]["selected_package"]["helper_sha256"],
+            ask_preflight["identity"]["helper_sha256"],
+        )
 
         original_packet = Path(started["packet"]).read_bytes()
         recovered = self.packet_a(attempt)
         self.assertNotIn("inline_native_assignment", recovered)
         self.assertIn("never authorizes a fresh native launch", recovered["next"])
         self.assertEqual(Path(recovered["packet"]).read_bytes(), original_packet)
+        self.assertEqual(recovered["ask_agent_workspace_record"], started["ask_agent_workspace_record"])
 
     def test_v2_is_rejected_by_preflight_before_a_pilot_directory_exists(self) -> None:
         refused = self.prepare(DISPATCHER_V2, ok=False)
         self.assertIn("does not support planning_context", refused["stderr"])
         self.assertIn("no pilot was created", refused["stderr"])
+        self.assertFalse(self.pilot_dir.exists())
+
+    def test_v04_has_no_execution_path_and_is_rejected_before_a_pilot_directory_exists(self) -> None:
+        legacy = self.base / "legacy-ask-agent"
+        shutil.copytree(ASK_AGENT.parent, legacy)
+        card = legacy / "SKILL.md"
+        card_text = card.read_text(encoding="utf-8")
+        self.assertIn(f"version: {ASK_AGENT_VERSION}", card_text)
+        card.write_text(card_text.replace(f"version: {ASK_AGENT_VERSION}", "version: 0.4.0", 1),
+                        encoding="utf-8")
+        refused = self.prepare(ask_agent=card, ok=False)
+        self.assertIn("requires version 0.6.0+", refused["stderr"])
         self.assertFalse(self.pilot_dir.exists())
 
     def test_context_only_dispatcher_is_rejected_before_a_pilot_directory_exists(self) -> None:
@@ -219,6 +278,40 @@ class NativePilotTests(unittest.TestCase):
         self.assertNotIn("inline_native_assignment", replay)
         self.assertIn("does not authorize a fresh native launch", replay["next"])
         self.assertEqual(Path(replay["packet"]).read_bytes(), original_packet)
+
+    def test_finish_drains_deferred_helper_cleanup_after_eager_refill(self) -> None:
+        self.prepare()
+        attempts = self.claim("A", "B")
+        started_a = self.start("A", attempts["A"])
+        started_b = self.start("B", attempts["B"])
+        self.launch("A", attempts["A"])
+        self.launch("B", attempts["B"])
+
+        accepted_a = self.complete_started_step("A", started_a, attempts["A"])
+        self.assertTrue(accepted_a["cleanup_pending"])
+        c_attempt = self.claim("C")["C"]
+        started_c = self.start("C", c_attempt)
+        self.launch("C", c_attempt)
+
+        accepted_b = self.complete_started_step("B", started_b, attempts["B"])
+        accepted_c = self.complete_started_step("C", started_c, c_attempt)
+        self.assertTrue(accepted_b["cleanup_pending"])
+        self.assertTrue(accepted_c["cleanup_pending"])
+
+        j_attempt = self.claim("J")["J"]
+        started_j = self.start("J", j_attempt)
+        self.launch("J", j_attempt)
+        accepted_j = self.complete_started_step("J", started_j, j_attempt)
+        self.assertTrue(accepted_j["cleanup_pending"])
+
+        finished = self.call("finish", "--pilot-dir", str(self.pilot_dir))
+        self.assertTrue(finished["complete"])
+        self.assertTrue(finished["trace"]["zero_owned_worktrees"])
+        self.assertTrue(finished["trace"]["deferred_cleanup_after_safe_refill"])
+        self.assertEqual(finished["trace"]["deferred_cleanup_attempts"], ["A", "B", "C", "J"])
+        for started in (started_a, started_b, started_c, started_j):
+            self.assertFalse(Path(started["workspace"]).exists())
+        self.assertTrue((self.pilot_dir / "results" / "finish.json").is_file())
 
     def test_opt_in_b_hold_is_disclosed_and_only_b_receives_the_wait_assignment(self) -> None:
         prepared = self.prepare(hold_step="B", hold_timeout_seconds=7)
@@ -288,6 +381,7 @@ class NativePilotTests(unittest.TestCase):
         self.addCleanup(lambda: waiter.terminate() if waiter.poll() is None else None)
         accepted_a = self.accept_a(started_a, attempts["A"])
         self.assertIn("C", accepted_a["ready"])
+        self.assertTrue(accepted_a["cleanup_pending"])
         self.assertIsNone(waiter.poll(), "B wait-hold returned before C was launched")
 
         c_attempt = self.claim("C")["C"]

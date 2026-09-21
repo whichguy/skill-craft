@@ -39,6 +39,9 @@ _PASSIVE_UPDATES = {
     "subagent_finished",
     "user_message_chunk",
     "turn_completed",
+    "task_backgrounded",
+    "background_tasks",
+    "task_completed",
 }
 
 
@@ -117,6 +120,8 @@ def _tool_update(update: dict[str, Any], number: int) -> dict[str, Any]:
     event: dict[str, Any] = {"type": "tool_call_update", "toolCallId": call_id, "status": update.get("status")}
     if "rawOutput" in update:
         event["rawOutput"] = update["rawOutput"]
+    if "content" in update:
+        event["content"] = update["content"]
     return event
 
 

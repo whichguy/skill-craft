@@ -217,16 +217,17 @@ def _text_values(value: Any) -> list[str]:
 
 
 def _spawn_identifier(raw_output: Any) -> str | None:
+    identifiers: set[str] = set()
     if isinstance(raw_output, dict):
         for key in ("subagent_id", "subagentId", "task_id", "taskId", "id"):
             value = raw_output.get(key)
             if isinstance(value, str) and UUID_RE.fullmatch(value):
-                return value.lower()
+                identifiers.add(value.lower())
     for text in _text_values(raw_output):
-        match = UUID_IN_TEXT_RE.search(text)
-        if match and UUID_RE.fullmatch(match.group(1)):
-            return match.group(1).lower()
-    return None
+        for match in UUID_IN_TEXT_RE.finditer(text):
+            if UUID_RE.fullmatch(match.group(1)):
+                identifiers.add(match.group(1).lower())
+    return next(iter(identifiers)) if len(identifiers) == 1 else None
 
 
 def _rows(raw_output: Any) -> list[dict[str, Any]]:
@@ -478,8 +479,79 @@ def _safe_driver_command(command: Any, manifest: dict[str, Any]) -> tuple[bool, 
     return True, action, ""
 
 
-def _successful_driver_terminal(call: dict[str, Any]) -> tuple[dict[str, Any] | None, str | None]:
-    """Return the final successful Bash receipt, or a precise rejection reason.
+def _spawn_was_not_executed(call: dict[str, Any]) -> bool:
+    """Recognize only the host's explicit pre-execution denial, never a lost ID."""
+    terminal = [update for update in call["updates"]
+                if str(update["status"] or "").lower() not in NONTERMINAL_TASK_STATUSES]
+    if not terminal or any(update["output"] is not None for update in call["updates"]):
+        return False
+    for update in terminal:
+        content = update.get("content")
+        if (str(update["status"] or "").lower() != "failed" or not isinstance(content, list)
+                or len(content) != 1 or not isinstance(content[0], dict)
+                or content[0].get("type") != "content"):
+            return False
+        text = content[0].get("content")
+        if (not isinstance(text, dict) or text.get("type") != "text"
+                or not isinstance(text.get("text"), str)
+                or re.fullmatch(
+                    re.escape("Tool `spawn_subagent` was not executed: Auto mode blocked this action (")
+                    + r"[^\r\n]+" + re.escape(")")
+                    + re.escape(". Take a safer approach that stays within what the user asked for; "
+                                "do not retry this exact action or attempt to work around the denial. "
+                                "If no safer alternative exists, ask the user how to proceed."),
+                    text["text"],
+                ) is None):
+            return False
+    return True
+
+
+def _background_driver_terminal(call: dict[str, Any], started: dict[str, Any],
+                                calls: dict[str, dict[str, Any]]) -> tuple[dict[str, Any] | None, str | None]:
+    """Bind a background Bash ticket to its later requested typed collection."""
+    ticket = started["output"]
+    task_id = ticket.get("task_id")
+    command = call["input"]["command"]
+    if (not isinstance(task_id, str) or not task_id or ticket.get("task_type") != "bash"
+            or ticket.get("status") != "running" or ticket.get("command") != command):
+        return None, "background ticket does not bind the exact Bash command"
+    owners = {other["id"] for other in calls.values() for update in other["updates"]
+              if isinstance(update["output"], dict)
+              and update["output"].get("type") == "BackgroundTaskStarted"
+              and update["output"].get("task_id") == task_id}
+    if owners != {call["id"]}:
+        return None, "background task has ambiguous command ownership"
+    receipts = []
+    for collection in calls.values():
+        requested = collection["input"].get("task_ids", collection["input"].get("taskIds"))
+        if (collection["tool"] != "get_command_or_subagent_output"
+                or not isinstance(requested, list) or task_id not in requested
+                or collection["index"] <= started["index"]):
+            continue
+        for update in collection["updates"]:
+            output = update["output"]
+            if (str(update["status"] or "").lower() != "completed" or not isinstance(output, dict)
+                    or output.get("type") not in {"TaskOutput", "TaskOutput.MultiResult"}):
+                continue
+            for row in _rows(output):
+                if row.get("task_id") != task_id:
+                    continue
+                if row.get("command") != command:
+                    return None, "background collection command differs from its ticket"
+                if row.get("status") in {"pending", "running", "queued"}:
+                    continue
+                if (row.get("status") != "completed" or type(row.get("exit_code")) is not int
+                        or row["exit_code"] != 0 or row.get("signal") is not None
+                        or row.get("timed_out", False) is not False):
+                    return None, "background command has a non-success terminal collection"
+                receipts.append(update)
+    if not receipts:
+        return None, "background command has no requested completed typed collection"
+    return min(receipts, key=lambda item: item["index"]), None
+
+
+def _successful_driver_terminal(call: dict[str, Any], calls: dict[str, dict[str, Any]]) -> tuple[dict[str, Any] | None, str | None]:
+    """Return a successful foreground or collected background command receipt.
 
     A ``tool_call_update`` status is only transport state.  The lifecycle
     commands change the pilot, so their captured terminal result must also
@@ -493,6 +565,8 @@ def _successful_driver_terminal(call: dict[str, Any]) -> tuple[dict[str, Any] | 
     result = terminal[-1]["output"]
     if not isinstance(result, dict):
         return None, "terminal result is absent"
+    if result.get("type") == "BackgroundTaskStarted":
+        return _background_driver_terminal(call, terminal[-1], calls)
     if result.get("type") != "Bash":
         return None, "terminal result is not a Bash result"
     if result.get("command") != call["input"]["command"]:
@@ -593,7 +667,7 @@ def evaluate_events(events: list[dict[str, Any]], manifest: dict[str, Any]) -> d
         if call is None:
             fail("stream", f"tool update {call_id} arrived before its tool call")
             continue
-        call["updates"].append({"index": index, "status": event.get("status"), "output": event.get("rawOutput")})
+        call["updates"].append({"index": index, "status": event.get("status"), "output": event.get("rawOutput"), "content": event.get("content")})
     if parent_end is None:
         fail("host_end", "host trace has no terminal end_turn event")
     else:
@@ -603,7 +677,7 @@ def evaluate_events(events: list[dict[str, Any]], manifest: dict[str, Any]) -> d
     for step, records in driver_calls.items():
         for call in records:
             action = call["driver_action"]
-            terminal, issue = _successful_driver_terminal(call)
+            terminal, issue = _successful_driver_terminal(call, calls)
             if terminal is None:
                 fail("driver_receipt", f"{step} {action} {issue}")
                 continue
@@ -616,7 +690,7 @@ def evaluate_events(events: list[dict[str, Any]], manifest: dict[str, Any]) -> d
     finish_calls: list[int] = []
     for call in global_driver_calls:
         action = call["driver_action"]
-        terminal, issue = _successful_driver_terminal(call)
+        terminal, issue = _successful_driver_terminal(call, calls)
         if terminal is None:
             fail("driver_receipt", f"{action} {issue}")
             continue
@@ -650,6 +724,13 @@ def evaluate_events(events: list[dict[str, Any]], manifest: dict[str, Any]) -> d
             fail("dispatch", f"native spawn {call['id']} has an unbound workspace")
             continue
         step = matching[0]
+        if _spawn_was_not_executed(call):
+            passed("rejected_dispatch", f"{step} host explicitly rejected a call before execution; no launch credited")
+            continue
+        if any(str(update["status"] or "").lower() not in NONTERMINAL_TASK_STATUSES | {"completed"}
+               for update in call["updates"]):
+            fail("dispatch", f"native spawn for {step} has an unexplained terminal failure")
+            continue
         if step in workers:
             fail("dispatch", f"native spawn is duplicated for {step}")
             continue
@@ -669,8 +750,7 @@ def evaluate_events(events: list[dict[str, Any]], manifest: dict[str, Any]) -> d
             fail("dispatch", f"native spawn for {step} is not bound to its inline worker assignment")
         completed = [update for update in call["updates"] if str(update["status"] or "").lower() == "completed"]
         identifiers = {_spawn_identifier(update["output"]) for update in completed}
-        identifiers.discard(None)
-        if len(identifiers) != 1:
+        if None in identifiers or len(identifiers) != 1:
             fail("dispatch", f"native spawn for {step} has no unique typed subagent_id receipt")
             continue
         identifier = identifiers.pop()

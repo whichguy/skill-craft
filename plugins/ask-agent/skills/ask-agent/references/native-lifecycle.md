@@ -5,12 +5,20 @@ this reference governs the parent conversation, not a new scheduler.
 
 
 Keep a lightweight parent-owned record in the existing task state: task label,
-native handle, assignment, last observed status/update, and result/report plus
-next action when available. Track each invocation's actual worktree, inherited
-baseline and retained-file/merge/removal state separately, even when labels
-repeat. Native handles control execution; this record is
+native handle, workspace receipt, assignment, last observed status/update,
+and result/report plus next action when available. Track each invocation's actual
+worktree, inherited baseline and retained-file/merge/removal state separately,
+even when labels repeat. Native handles control execution; this record is
 for coordination and recovery, not another scheduler. Refresh it from actual
 native events/collection. Do not infer progress from elapsed time or file existence.
+
+If a host lookup reports `TaskNotFound` or another unavailable handle, append its
+timestamp/error with the original task, attempt/invocation identity, handle, and workspace receipt to that
+existing parent-pending record. Say `native status unavailable; cannot attest
+stopped`. Preserve that attempt, its reservation and workspace. Do not infer
+completion from files, relaunch, retry, import or close it until its original
+native identity, completion and stoppage are established. Continue other safe
+ready work within remaining capacity.
 
 While the parent is only waiting, give a concise status about every two minutes
 unless the harness is already providing equivalent visible progress. Summarize

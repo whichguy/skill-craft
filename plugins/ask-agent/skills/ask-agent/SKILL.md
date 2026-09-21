@@ -1,7 +1,7 @@
 ---
 name: ask-agent
 description: A delegation skill, not an agent type. Ask native agents to work in the background, continue useful work in the main conversation, and incorporate their results when they return. Use for "ask an agent", named agent roles, parallel delegation, or launch-and-notify work.
-version: 0.6.1
+version: 0.6.2
 license: MIT
 platforms:
   - linux
@@ -18,6 +18,9 @@ workspace preparation and eligible cleanup; the native host owns execution and
 return; the parent owns acceptance and integration. `ask-agent` selects this
 skill, not an agent type. Do not implement another model launcher, SDK client,
 subprocess harness, scheduler, or file watcher to simulate native delegation.
+
+Use this managed-workspace workflow for delegation. Historical experimental
+cards are test fixtures, not alternative supported workflows.
 
 Default to a fresh background worker while the parent continues useful work.
 An explicit request to wait takes precedence. Each invocation adds to the
@@ -79,6 +82,12 @@ and handoff constraints. It must collect its delegates before returning.
    Non-Git or unsupported state is a concrete limitation, not permission to use
    an empty/default-branch checkout. An explicit ban on all filesystem writes
    also prohibits setup; an ordinary review permits isolated setup and reports.
+
+   Orchestrated Git work requires this managed 0.6+ flow. The parent checks the
+   selected helper's `capabilities --skill-card` response and `identity` before
+   preparation; an older caller-worktree contract or an unsupported newer helper
+   is not a fallback. Serial orchestration uses the same workspace helper while
+   executing the bounded task in the main context instead of launching a worker.
 
    A coordinating Dispatcher or ShipLoop parent may perform this preparation
    before freezing its execution context. Continue that same attempt with the

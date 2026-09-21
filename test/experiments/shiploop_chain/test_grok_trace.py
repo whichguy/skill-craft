@@ -69,6 +69,8 @@ def root_updates(events: list[dict], manifest: dict) -> list[dict]:
             }
             if "rawOutput" in event:
                 update["rawOutput"] = event["rawOutput"]
+            if "content" in event:
+                update["content"] = event["content"]
             records.append(record(update))
             call = calls.get(call_id)
             if (call and call["toolName"] == "spawn_subagent" and event.get("status") == "completed"):
@@ -134,6 +136,74 @@ class GrokRootTraceTests(unittest.TestCase):
             detail["handle"] for detail in self.manifest["steps"].values()
         })
         self.assertTrue(result["root_terminal"]["complete"])
+
+    def background_notices(self) -> list[dict]:
+        handle = self.manifest["steps"]["A"]["handle"]
+        # Success-looking host notifications remain passive, including nested
+        # task details. Only typed native tool receipts may establish evidence.
+        details = {"task_id": handle, "status": "completed", "exit_code": 0,
+                   "started_at": 1, "completed_at": 100}
+        return [record({"sessionUpdate": kind, **details, "tasks": [details]},
+                       method="_x.ai/session/update")
+                for kind in ("task_backgrounded", "background_tasks", "task_completed")]
+
+    def test_background_task_notices_are_passive(self) -> None:
+        original_events, original_bindings = normalize_root_updates(
+            self.updates_path, ROOT, self.manifest)
+        write_jsonl(self.updates_path, self.updates + self.background_notices())
+        events, bindings = normalize_root_updates(self.updates_path, ROOT, self.manifest)
+        self.assertEqual(events, original_events + [{"type": "message"}] * 3)
+        self.assertEqual(bindings, original_bindings)
+        self.assertTrue(self.evaluate()["passed"])
+
+    def test_background_notices_cannot_replace_native_evidence(self) -> None:
+        notices = self.background_notices()
+        with self.subTest("collection"):
+            records = [item for item in self.updates
+                       if item["params"]["update"].get("toolCallId") != "collect-1"]
+            write_jsonl(self.updates_path, records + notices)
+            result = self.evaluate()
+            self.assertFalse(result["passed"])
+            self.assertTrue(any("collection" in error for error in result["errors"]), result["errors"])
+        with self.subTest("spawn-binding"):
+            handle = self.manifest["steps"]["A"]["handle"]
+            records = [item for item in self.updates
+                       if not (item["params"]["update"]["sessionUpdate"] == "subagent_spawned"
+                               and item["params"]["update"]["subagent_id"] == handle)]
+            write_jsonl(self.updates_path, records + notices)
+            with self.assertRaisesRegex(TraceError, "lacks host subagent_spawned bindings"):
+                self.evaluate()
+        with self.subTest("root-terminal"):
+            write_jsonl(self.updates_path, self.updates + notices)
+            self.write_host(unlabelled=True)
+            with self.assertRaisesRegex(TraceError, "root-labelled end_turn"):
+                self.evaluate()
+
+    def test_unknown_task_update_remains_rejected(self) -> None:
+        write_jsonl(self.updates_path, self.updates + [record({"sessionUpdate": "task_unknown"})])
+        with self.assertRaisesRegex(TraceError, "unsupported sessionUpdate"):
+            self.evaluate()
+
+    def test_interleaved_spawn_bindings_and_explicit_host_denials_keep_identity(self) -> None:
+        case = _TRACE_TEST.NativeHostTraceTests("runTest")
+        case.manifest = self.manifest
+        events = _TRACE_TEST.valid_events(self.manifest)
+        index = next(i for i, e in enumerate(events) if e.get("toolCallId") == "spawn-A")
+        events[index:index] = case.rejected_spawns()
+        records = root_updates(events, self.manifest)
+        # Grok emits both child bindings after A's result and before B's result.
+        # Attribution must use identities, never the nearest spawn tool update.
+        b_binding = next(r for r in records if r["params"]["update"]["sessionUpdate"] == "subagent_spawned"
+                         and r["params"]["update"]["subagent_id"] == self.manifest["steps"]["B"]["handle"])
+        records.remove(b_binding)
+        index = next(i for i, r in enumerate(records)
+                     if r["params"]["update"].get("toolCallId") == "spawn-B"
+                     and r["params"]["update"]["sessionUpdate"] == "tool_call_update")
+        records.insert(index, b_binding)
+        write_jsonl(self.updates_path, records)
+        result = self.evaluate()
+        self.assertTrue(result["passed"], result["errors"])
+        self.assertEqual(sum(c["name"] == "rejected_dispatch" for c in result["checks"]), 2)
 
     def test_rejects_foreign_session_record(self) -> None:
         records = copy.deepcopy(self.updates)

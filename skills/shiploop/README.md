@@ -32,33 +32,30 @@ ShipLoop prompt.
 - [README-led current-system baseline and planning handoff](references/current-system-baseline.md)
 - [Optional parallel or serial implementation chains](references/parallel-chain.md) — bind
   the selected Plan Dispatcher/Ask-Agent packages to one current implementation
-  action. Every new per-step binding, including `--mode serial`, requires a
-  selected compatible Plan Dispatcher and Ask-Agent package. Parallel workers
-  use Ask Agent 0.6.x's managed-worktree adapter or the legacy 0.4.x
-  caller-prepared adapter; frozen legacy bindings retain their original contract.
-  Serial execution keeps ShipLoop's own allocation path. The Dispatcher must
-  advertise `planning_context: "shiploop-planning-artifacts/v1"` and
-  `graph_validation: "execution-graph/v1"`; [the chain preflight](references/parallel-chain.md#planning-artifact-handoff)
-  rejects an invalid graph before binding, leaving the parent unchanged for a
-  corrected retry. Use external sibling worktrees and append-only timestamped
-  events, then require verified integration before the usual Improve/test sequence.
-  Initial steps and their graph must first complete the planning Improve loop;
-  a later-created or materially revised graph needs review before binding.
-  `chain bind --mode serial` walks the same dependency graph in the main context,
-  one ready step at a time. It prepares a sibling Git worktree and records a
-  main-context executor without a native handle; it does not invoke Ask-Agent.
-  Default parallel mode uses native Ask-Agent 0.4, which creates its own worker
-  worktrees for verified adoption.
-  The parent imports worker-local results, prepares and tests the combination,
-  merges each accepted contribution into the invoking branch, and removes the
-  worker checkout. Accepted is the sole stored done state; the `completion` view lists
-  done/not-done, and `chain done` uses the same verified settlement as `settle`.
-  Read-only `chain history` shows timestamped audit events; `chain pending`
-  shows unfinished steps, unmet dependencies and available capacity.
-  Both modes continue through all required steps, verified integration and
-  completed worktree cleanup. A removal failure is cleanup work, not permission
-  to execute an accepted step again. Existing bound v1/v2 chains retain their
-  older single final-return lifecycle.
+  action. New chains use the per-step managed-workspace flow only. Ask-Agent
+  must be version 0.6 or newer and declare the supported capability contract;
+  its helper identity and selected package bytes are frozen for the run. There
+  is no 0.4 caller-worktree fallback or new `final-return` lifecycle.
+  The Dispatcher must advertise `planning_context: "shiploop-planning-artifacts/v1"`
+  and `graph_validation: "execution-graph/v1"`; [chain preflight](references/parallel-chain.md#planning-artifact-handoff)
+  rejects invalid graphs before binding. Initial steps and their graph must
+  complete the planning Improve loop; later material revisions require review.
+  Both execution modes prepare through the selected Ask-Agent workspace helper.
+  Parallel mode grants native launches. `chain bind --mode serial` executes one
+  ready step in the main context, with a managed preparation receipt and no
+  native handle. Neither mode adopts an arbitrary caller-created worktree.
+  The parent imports worker results, verifies the current combined candidate,
+  integrates and accepts the exact attempt, then refills safe ready capacity
+  before helper-owned cleanup. Accepted is the sole stored done state; the
+  derived `completion` view lists done/not-done. `chain done` and `settle` use
+  the same verified transition. Read-only `chain history` and `chain pending`
+  expose timestamped evidence, unfinished steps, dependencies and capacity.
+  Final completion requires all contributions integrated and cleanup resolved.
+  Superseded managed attempts remain an explicit retained-workspace blocker;
+  their unsuccessful work is not silently discarded. Pre-v6 bindings remain
+  inspectable evidence and are not resumed as execution routes or silently
+  migrated. Binding schema v6 records this capability proof and lifecycle;
+  its number is independent of the selected Ask-Agent package version.
 
 The planning-artifact handoff published at `c33a103` and its bounded native
 Codex Ask-Agent `A/B → C` pilot were verified; see the [Native Ask-Agent

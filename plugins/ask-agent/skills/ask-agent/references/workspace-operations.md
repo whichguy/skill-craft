@@ -34,6 +34,39 @@ worker and repeat them in the worker and parent self-contained handoffs. The
 command verifies a caller-supplied selection; it does not discover which skill
 the host chose.
 
+## Machine capability contract
+
+A machine coordinator that needs to confirm this selected package's managed
+worktree interface may use the same absolute card binding before it records any
+workspace state:
+
+```sh
+python3 "$WORKSPACE_HELPER" capabilities --skill-card "$SKILL_CARD"
+```
+
+`capabilities` first runs the same package proof as `identity`; an outside,
+relative, missing, malformed, or mismatched card fails. On success it writes no
+state, workspace, receipt, branch, or result and emits exactly this object,
+with `version` copied from the verified selected card:
+
+```json
+{
+  "schema": "shiploop-chain-ask-agent-managed-worktree/v1",
+  "version": "verified selected card version",
+  "capabilities": [
+    "helper-managed-worktree",
+    "prepared-inspection",
+    "returned-commit-delivery",
+    "fingerprint-bound-close"
+  ]
+}
+```
+
+This is a machine declaration of the packaged helper interface. This Markdown
+reference remains the behavioral instruction for preparation, inspection,
+delivery, acceptance, and close. The declaration does not grant retirement,
+new discard authority, integration authority, or any other cleanup policy.
+
 The paths below are placeholders. Substitute actual receipt values. Keep prompts
 in native launch arguments; the helper's JSON files are Git/acceptance evidence,
 not a prompt transport or another job queue.
@@ -134,7 +167,7 @@ explicitly, for example:
 
 ```sh
 python3 "$WORKSPACE_HELPER" inspect \
-  --receipt "/actual/receipt.json" --phase returned \
+  --receipt "/actual/receipt.json" --phase returned --delivery-mode patch \
   --artifact "reports/handoff.md" --artifact "reports/checks.md"
 ```
 
@@ -143,11 +176,14 @@ worker's contribution under the existing Git integration policy; a raw whole-
 branch diff may include the caller's pre-existing edits. Reports/scratch are not
 code contribution. Revalidate after target movement or further worker edits.
 
-Declare the mode selected in the fresh-worker launch clause during returned
-inspection. Omitting it preserves the ordinary inspection result for backward
-compatibility, but passing commit arguments without `--delivery-mode commits`
-is rejected. Mode evidence is immutable and stored beside the inspection under
-the helper-owned attempt directory, never in the removable worktree.
+For a worker handoff, declare the delivery mode selected in the fresh-worker
+launch clause: `patch`, `commits`, or `report-only`. This is the supported
+delivery workflow. Mode evidence is immutable and stored beside the inspection
+under the helper-owned attempt directory, never in the removable worktree.
+
+Inspection without a delivery mode is a state snapshot for integration and
+cleanup rechecks. It supplies no mode-specific delivery evidence and does not
+replace the worker handoff. Commit arguments require `--delivery-mode commits`.
 
 For the default patch handoff, use the returned immutable patch rather than a
 whole-worker-branch diff:

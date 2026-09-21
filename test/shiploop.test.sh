@@ -29,6 +29,7 @@ suites=(
   test/shiploop-chain.test.py \
   test/shiploop-chain-handoff.test.py \
   test/shiploop-chain-lifecycle.test.py \
+  test/shiploop-chain-async.test.py \
   test/shiploop-planning-context.test.py \
   test/shiploop-chain-planning-context.test.py \
   test/experiments/shiploop_chain/test_trace.py \
@@ -164,6 +165,7 @@ selected() {
       test/shiploop-navigator-v3.test.py|\
       test/shiploop-packet-bounds.test.py|\
       test/shiploop-navigator-dry-run.test.py|\
+      test/shiploop-chain-async.test.py|\
       test/shiploop-graph-driver.test.py|\
       test/shiploop-graph-trace.test.py) ;;
       *) return 1 ;;

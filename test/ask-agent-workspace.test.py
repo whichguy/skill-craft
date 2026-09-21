@@ -466,6 +466,23 @@ raise SystemExit(module.main(sys.argv[2:]))
         }
 
     @staticmethod
+    def _filesystem_manifest(directory: Path) -> dict[str, tuple[str, str]]:
+        """Capture local files, links, and directories without their read-time metadata."""
+        manifest: dict[str, tuple[str, str]] = {}
+        for path in sorted(directory.rglob("*")):
+            relative = path.relative_to(directory).as_posix()
+            mode = oct(path.lstat().st_mode)
+            if path.is_symlink():
+                manifest[relative] = ("symlink", f"{mode}:{os.readlink(path)}")
+            elif path.is_file():
+                manifest[relative] = ("file", f"{mode}:{hashlib.sha256(path.read_bytes()).hexdigest()}")
+            elif path.is_dir():
+                manifest[relative] = ("directory", mode)
+            else:
+                manifest[relative] = ("other", mode)
+        return manifest
+
+    @staticmethod
     def _is_within(path: Path, parent: Path) -> bool:
         try:
             path.relative_to(parent)
@@ -1423,6 +1440,97 @@ raise SystemExit(module.main(sys.argv[2:]))
                 self.assertNotEqual(result.returncode, 0, identity)
                 self.assertEqual(identity.get("status"), "error", identity)
                 self.assertIn(message, str(identity.get("error", "")).lower(), identity)
+
+    def test_capabilities_reports_verified_versions_without_filesystem_writes(self) -> None:
+        source_card = ROOT / "skills" / "ask-agent" / "SKILL.md"
+        current_version = next(
+            line.split(":", 1)[1].strip()
+            for line in source_card.read_text(encoding="utf-8").splitlines()
+            if line.startswith("version:")
+        )
+        newer_version = f"{int(current_version.split('.', 1)[0]) + 1}.0.0"
+
+        for label, version in (
+            ("supported-0.6", "0.6.0"),
+            ("current", current_version),
+            ("newer", newer_version),
+        ):
+            with self.subTest(version=version):
+                installed_skill = self.root / f"capabilities-{label}"
+                shutil.copytree(ROOT / "skills" / "ask-agent", installed_skill)
+                selected_card = installed_skill / "SKILL.md"
+                if version != current_version:
+                    selected_card.write_text(
+                        source_card.read_text(encoding="utf-8").replace(
+                            f"version: {current_version}",
+                            f"version: {version}",
+                            1,
+                        ),
+                        encoding="utf-8",
+                    )
+                state_home = self.root / f"capabilities-{label}-state"
+                home = self.root / f"capabilities-{label}-home"
+                before = self._filesystem_manifest(self.root)
+
+                result, payload = self._cli(
+                    "capabilities",
+                    "--skill-card",
+                    str(selected_card),
+                    helper=installed_skill / "scripts" / "ask_agent_workspace.py",
+                    isolated_python=True,
+                    environment_overrides={
+                        "XDG_STATE_HOME": str(state_home),
+                        "HOME": str(home),
+                    },
+                )
+
+                self.assertEqual(result.returncode, 0, f"capabilities failed: {payload}\nstderr: {result.stderr}")
+                self.assertEqual(
+                    payload,
+                    {
+                        "schema": "shiploop-chain-ask-agent-managed-worktree/v1",
+                        "version": version,
+                        "capabilities": [
+                            "helper-managed-worktree",
+                            "prepared-inspection",
+                            "returned-commit-delivery",
+                            "fingerprint-bound-close",
+                        ],
+                    },
+                )
+                self.assertFalse(state_home.exists(), payload)
+                self.assertFalse(home.exists(), payload)
+                self.assertEqual(self._filesystem_manifest(self.root), before)
+
+    def test_capabilities_rejects_outside_and_mismatched_cards(self) -> None:
+        executing_skill = self.root / "capabilities-executing-package"
+        other_skill = self.root / "capabilities-other-package"
+        shutil.copytree(ROOT / "skills" / "ask-agent", executing_skill)
+        shutil.copytree(ROOT / "skills" / "ask-agent", other_skill)
+        outside_directory = self.root / "capabilities-outside-card"
+        outside_directory.mkdir()
+        outside_card = outside_directory / "SKILL.md"
+        outside_card.write_text(
+            "---\nname: ask-agent\nversion: 0.6.0\n---\n# Outside card\n",
+            encoding="utf-8",
+        )
+        helper = executing_skill / "scripts" / "ask_agent_workspace.py"
+
+        for name, selected_card in (
+            ("outside", outside_card),
+            ("mismatched package", other_skill / "SKILL.md"),
+        ):
+            with self.subTest(name=name):
+                result, payload = self._cli(
+                    "capabilities",
+                    "--skill-card",
+                    str(selected_card),
+                    helper=helper,
+                    isolated_python=True,
+                )
+                self.assertNotEqual(result.returncode, 0, payload)
+                self.assertEqual(payload.get("status"), "error", payload)
+                self.assertIn("executing helper package", str(payload.get("error", "")).lower(), payload)
 
 
 if __name__ == "__main__":

@@ -35,6 +35,13 @@ DELIVERY_SCHEMA = "ask-agent.workspace.delivery.v1"
 ACCEPTANCE_SCHEMA = "ask-agent.acceptance.v1"
 CONTEXT_SCHEMA = "ask-agent.workspace.context.v1"
 SKILL_IDENTITY_SCHEMA = "ask-agent.skill.identity.v1"
+MANAGED_WORKTREE_CAPABILITIES_SCHEMA = "shiploop-chain-ask-agent-managed-worktree/v1"
+MANAGED_WORKTREE_CAPABILITIES = (
+    "helper-managed-worktree",
+    "prepared-inspection",
+    "returned-commit-delivery",
+    "fingerprint-bound-close",
+)
 VERSION = 1
 SHA256_RE = re.compile(r"[0-9a-f]{64}")
 GIT_SHA_RE = re.compile(r"[0-9a-f]{40,64}")
@@ -169,6 +176,16 @@ def identity(*, skill_card: Path) -> dict[str, Any]:
         "version": _skill_card_version(resolved_card),
         "skill_card_sha256": _sha256_file(resolved_card),
         "helper_sha256": _sha256_file(resolved_helper),
+    }
+
+
+def capabilities(*, skill_card: Path) -> dict[str, Any]:
+    """Declare the verified helper interface without creating workspace state."""
+    verified_identity = identity(skill_card=skill_card)
+    return {
+        "schema": MANAGED_WORKTREE_CAPABILITIES_SCHEMA,
+        "version": verified_identity["version"],
+        "capabilities": list(MANAGED_WORKTREE_CAPABILITIES),
     }
 
 
@@ -1913,6 +1930,8 @@ def _parser() -> argparse.ArgumentParser:
     commands = parser.add_subparsers(dest="command", required=True)
     identity_parser = commands.add_parser("identity")
     identity_parser.add_argument("--skill-card", required=True)
+    capabilities_parser = commands.add_parser("capabilities")
+    capabilities_parser.add_argument("--skill-card", required=True)
     prepare_parser = commands.add_parser("prepare")
     prepare_parser.add_argument("--source")
     prepare_parser.add_argument("--store")
@@ -1944,6 +1963,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         parsed = _parser().parse_args(argv)
         if parsed.command == "identity":
             result = identity(skill_card=Path(parsed.skill_card))
+        elif parsed.command == "capabilities":
+            result = capabilities(skill_card=Path(parsed.skill_card))
         elif parsed.command == "prepare":
             result = prepare(
                 source=Path(parsed.source) if parsed.source else None,

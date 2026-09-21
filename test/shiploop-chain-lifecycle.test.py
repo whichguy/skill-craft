@@ -12,6 +12,7 @@ import importlib.util
 import json
 import os
 from pathlib import Path
+import re
 import selectors
 import shutil
 import subprocess
@@ -24,7 +25,10 @@ spec = importlib.util.spec_from_file_location("legacy_chain_fixture", ROOT / "te
 fixture = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(fixture)
 WORKER = ROOT / "test/fixtures/chain-code-worker.py"
-ASK = ROOT / "test/fixtures/ask-agent-v04"
+# Fresh deterministic bindings exercise the installed managed Ask-Agent package.
+# The 0.4 fixture remains available only for explicit rejection coverage.
+ASK = ROOT / "skills/ask-agent"
+LEGACY_ASK = ROOT / "test/fixtures/ask-agent-v04"
 
 NAVIGATION_OPERATIONS = frozenset({
     "bind", "next", "recover", "claim", "start", "launched", "import-handoff",
@@ -83,9 +87,8 @@ class PerStepChainTests(unittest.TestCase):
         self.f.setUp()
         self.addCleanup(self.f.doCleanups)
         self.f.select_dispatcher(fixture.SERIAL_FIXTURE)
-        self.f.assert_fixture(ASK)
-        shutil.rmtree(self.f.ask)
-        shutil.copytree(ASK, self.f.ask)
+        self.assertTrue((ASK / "SKILL.md").is_file())
+        self.assertTrue((ASK / "scripts/ask_agent_workspace.py").is_file())
         self.processes = []
         self.addCleanup(self.stop_processes)
         self.packets = {}
@@ -244,32 +247,48 @@ class PerStepChainTests(unittest.TestCase):
         extra = [
             "--graph", str(self.f.graph), "--dispatcher-skill", str(self.f.dispatcher / "SKILL.md"),
             "--ask-agent-skill", str(self.f.ask / "SKILL.md"), "--worktree-parent", str(self.f.parent),
-            "--mode", mode,
+            "--mode", mode, "--lifecycle", "per-step",
         ]
         if capacity is not None:
             extra += ["--capacity", str(capacity)]
         return self.call("bind", ok=ok, extra=tuple(extra))
 
     def use_managed_ask_agent(self):
-        """Select the real 0.6 package without changing the legacy fixture."""
+        """Restore the real managed package after an explicit negative fixture."""
         shutil.rmtree(self.f.ask)
         shutil.copytree(ROOT / "skills/ask-agent", self.f.ask)
+
+    def use_legacy_ask_agent(self):
+        """Select 0.4 only to prove fresh managed binding refuses it."""
+        shutil.rmtree(self.f.ask)
+        shutil.copytree(LEGACY_ASK, self.f.ask)
+
+    def managed_capabilities(self):
+        helper = self.f.ask / "scripts/ask_agent_workspace.py"
+        result = subprocess.run(
+            [sys.executable, "-B", str(helper), "capabilities", "--skill-card", str(self.f.ask / "SKILL.md")],
+            text=True, capture_output=True, timeout=30,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+        return json.loads(result.stdout)
 
     def managed_bind(self, *, mode="parallel", capacity=None, single=False, ok=True):
         self.use_managed_ask_agent()
         return self.bind(mode=mode, capacity=capacity, single=single, ok=ok)
 
-    def managed_start(self, step, attempt, *, record_launch=True, base=None):
-        """Start a v0.6 parallel attempt through its helper-owned workspace."""
+    def managed_start(self, step, attempt, *, serial=False, record_launch=True, base=None):
+        """Start a managed attempt; serial work remains helper-owned but has no handle."""
         value = self.f.start_value(step, attempt, base=base or self.head())
         value["write_scope"] = [CHAIN_MODULES[step]["path"]]
         self.assertNotIn("workspace", value)
         self.start_inputs[step] = json.loads(json.dumps(value))
         output = self.call("start", value)
-        self.assertEqual(output["action"], "launch")
+        self.assertEqual(output["action"], "execute" if serial else "launch")
         packet = output["packet"]
         self.packets[step] = packet
         packet_response = self.call("packet", {"attempt": attempt})
+        self.last_start_response = output
+        self.last_packet_response = packet_response
         self.assertEqual(packet_response["packet"], packet,
                          "managed cold recovery must preserve the one worker packet")
         allocation = fixture.chain._per_step_allocation(self.bridge_events(), attempt)
@@ -287,7 +306,13 @@ class PerStepChainTests(unittest.TestCase):
             "require_complete_linear_range": True,
             "discard": [".shiploop-handoff/" + attempt],
         })
-        if record_launch:
+        record = self.f.child_record(attempt)
+        if serial:
+            self.assertIsNone(record["handle"])
+            self.assertEqual(record["executor"], packet["executor"])
+            self.assertEqual(packet["executor"]["kind"], "main-context")
+            self.assertNotIn("native_handle", packet)
+        elif record_launch:
             self.call("launched", {"attempt": attempt, "handle": {
                 "host": "deterministic-process-fixture", "id": step,
             }})
@@ -395,40 +420,15 @@ class PerStepChainTests(unittest.TestCase):
         self.last_claim_response = output
         return {claim["step"]: claim["attempt"] for claim in output["claims"]}
 
-    def start(self, step, attempt, *, serial=False, record_launch=True):
-        base = self.head()
-        value = self.f.start_value(step, attempt, base=base)
-        value["write_scope"] = [CHAIN_MODULES[step]["path"]]
-        if not serial:
-            # Emulates Ask-Agent's ordinary worktree preparation with real Git.
-            # The bridge must adopt this workspace, not create another.
-            before = self.f.git(self.f.target, "worktree", "list", "--porcelain")
-            requested = self.call("start", value)
-            self.assertEqual(requested["action"], "prepare-workspace")
-            self.assertEqual(self.f.git(self.f.target, "worktree", "list", "--porcelain"), before)
-            workspace = self.f.parent / ("ask-agent-" + attempt)
-            self.f.git(self.f.target, "worktree", "add", "-q", "-b", "ask-agent/" + attempt,
-                       str(workspace), base)
-            value["workspace"] = str(workspace)
-        self.start_inputs[step] = json.loads(json.dumps(value))
-        output = self.call("start", value)
-        self.assertEqual(output["action"], "execute" if serial else "launch")
-        self.last_start_response = output
-        packet = output["packet"]
-        self.packets[step] = packet
-        packet_response = self.call("packet", {"attempt": attempt})
-        self.last_packet_response = packet_response
-        recovered = packet_response["packet"]
-        self.assertEqual(recovered, packet, "cold recovery must preserve the worker-only assignment")
-        self.assertEqual(packet["context"]["base_commit"], base)
+    def start(self, step, attempt, *, serial=False, record_launch=True, base=None):
+        """All fresh deterministic starts use the managed helper, never a workspace input."""
+        packet = self.managed_start(step, attempt, serial=serial,
+                                    record_launch=record_launch, base=base)
+        self.assertEqual(self.last_packet_response["packet"], packet,
+                         "cold recovery must preserve the helper-owned worker packet")
+        self.assertEqual(packet["context"]["base_commit"], base or self.head())
         for external in ("outputs", "report_argv", "report_envelope"):
             self.assertNotIn(external, packet)
-        if not serial:
-            self.assertEqual(Path(packet["context"]["workspace"]), workspace)
-            if record_launch:
-                self.call("launched", {"attempt": attempt, "handle": {
-                    "host": "deterministic-process-fixture", "id": step,
-                }})
         return packet
 
     def read_json_line(self, process):
@@ -773,6 +773,7 @@ class PerStepChainTests(unittest.TestCase):
         attempts = self.claim("A", "B")
         self.start("A", attempts["A"])
         self.start("B", attempts["B"])
+        old_worker = Path(self.packets["B"]["context"]["workspace"])
         a = self.launch("A")
         b = self.launch("B")
 
@@ -849,6 +850,9 @@ class PerStepChainTests(unittest.TestCase):
                          ("accepted", "B", replacement))
         self.verify(self.f.target, expected_steps=("A", "B", "C"))
         self.assertIn("J", replacement_done["ready"])
+        replacement_cleanup = self.run_deferred_managed_cleanup("B", replacement_done)
+        self.assertIsNotNone(replacement_cleanup)
+        self.assertFalse(replacement_cleanup["pending"])
 
         assert_rejected_without_mutation(old_positive, "stale or retried")
         self.assertIn("J", self.call("next")["ready"])
@@ -856,14 +860,27 @@ class PerStepChainTests(unittest.TestCase):
                                       cwd=self.f.target, capture_output=True, timeout=15)
         self.assertNotEqual(old_ancestry.returncode, 0)
 
-        self.call("cleanup", {"attempt": attempts["B"], "confirmed_stopped": True,
-                                "disposition": "superseded",
-                                "reason": "Replacement B was accepted and integrated"})
+        retained = self.call("cleanup", {"attempt": attempts["B"], "confirmed_stopped": True,
+                                          "disposition": "superseded",
+                                          "reason": "Replacement B was accepted and integrated"}, ok=False)
+        self.assertRegex(retained.stderr.lower(), r"retain|managed|superseded")
+        self.assertTrue(old_worker.exists())
         j_attempt = self.claim("J")["J"]
         self.start("J", j_attempt)
         self.complete_step("J")
         self.assert_contiguous_integrations((attempts["A"], c_attempt, replacement, j_attempt))
-        self.finish()
+        proof = self.f.write("late-retried-b-finish.json", {"passed": True, "commit": self.head()})
+        blocked = self.call("finish", {
+            "commit": self.head(), "confirmed_stopped": True,
+            "verification": {"path": str(proof), "sha256": fixture.digest(proof)},
+        }, ok=False)
+        self.assertRegex(blocked.stderr.lower(), r"retain|cleanup|unfinished|managed")
+
+        def remove_retained_workspace():
+            if old_worker.exists():
+                self.f.git(self.f.target, "worktree", "remove", "--force", str(old_worker))
+
+        self.addCleanup(remove_retained_workspace)
 
     def test_parallel_code_fanout_eager_dependent_join_merges_and_removes_all_workers(self):
         trace = []
@@ -887,8 +904,9 @@ class PerStepChainTests(unittest.TestCase):
         self.assertEqual([row["attempt"] for row in self.action_rows(self.last_start_response, "launch")],
                          [claims["B"]])
         before_replayed_start = self.f.git(self.f.target, "worktree", "list", "--porcelain")
-        replayed_start = self.call("start", self.start_inputs["B"], ok=False)
-        self.assertNotEqual(replayed_start.returncode, 0)
+        replayed_start = self.call("start", self.start_inputs["B"])
+        self.assertEqual(replayed_start["action"], "reconcile")
+        self.assertEqual(replayed_start["packet"], self.packets["B"])
         self.assertEqual(self.f.git(self.f.target, "worktree", "list", "--porcelain"), before_replayed_start)
         recovered = self.call("recover")
         self.assertFalse(self.action_rows(recovered, "launch"),
@@ -952,7 +970,9 @@ class PerStepChainTests(unittest.TestCase):
         self.assertTrue(j_done["complete"], "top-level completion remains the child graph compatibility view")
         self.assertFalse(j_done["navigation"]["complete"],
                          "the parent return remains blocked until the durable finish receipt")
-        self.assertEqual([row["action"] for row in j_done["navigation"]["actions"]], ["finish"])
+        self.assertEqual([row["action"] for row in j_done["navigation"]["actions"]], ["cleanup"])
+        ready_to_finish = self.call("next")
+        self.assertEqual([row["action"] for row in ready_to_finish["navigation"]["actions"]], ["finish"])
         finished = self.finish()
         trace.append(("finish", finished))
         self.assertTrue(finished["navigation"]["complete"])
@@ -979,8 +999,9 @@ class PerStepChainTests(unittest.TestCase):
         attempt = self.claim("A")["A"]
         start = self.action_rows(self.call("next"), "start")[0]
         self.assertEqual(start["attempt"], attempt)
-        self.assertIn("prepare-workspace", start["instruction"])
-        self.assertIn("Ask-Agent workspace when already prepared", start["required"])
+        self.assertIn("selected Ask-Agent helper", start["instruction"])
+        self.assertIn("do not supply a workspace", start["instruction"])
+        self.assertNotIn("prepare-workspace", start["instruction"])
 
     def test_ready_claim_precedes_unknown_native_reconciliation(self):
         self.bind(capacity=2)
@@ -1041,101 +1062,69 @@ class PerStepChainTests(unittest.TestCase):
         for step in ("A", "B", "C", "J"):
             attempt = self.claim(step)[step]
             start = self.action_rows(self.call("next"), "start")[0]
-            self.assertIn("main context", start["instruction"])
-            self.assertNotIn("prepare-workspace", start["instruction"])
-            self.assertNotIn("Ask-Agent workspace when already prepared", start["required"])
+            self.assertIn("main-context", start["instruction"])
+            self.assertIn("Ask-Agent", start["instruction"])
             self.start(step, attempt, serial=True)
-            self.assertEqual([row["attempt"] for row in self.action_rows(self.last_start_response, "execute")],
-                             [attempt])
-            self.assertFalse(self.action_rows(self.last_start_response, "launch"),
-                             "serial navigation must not offer a native launch callback")
-            plan = fixture.chain._per_step_allocation(self.bridge_events(), attempt)["plan"]
-            self.assertIn("worker_instance", plan)
+            allocation = fixture.chain._per_step_allocation(self.bridge_events(), attempt)
+            self.assertEqual(allocation["adoption"], "ask-agent-managed-workspace")
+            self.assertIn("ask_agent_workspace", allocation)
+            self.assertEqual(allocation["plan"]["path"], self.packets[step]["context"]["workspace"])
             self.complete_step(step)
             self.assertIsNone(self.f.child_record(attempt).get("handle"))
         self.finish()
 
-    def test_serial_creation_intent_recovers_exact_workspace_after_allocation_crash(self):
+    def test_serial_managed_preparation_crash_recovers_exact_helper_workspace(self):
         self.bind(mode="serial", single=True)
         attempt = self.claim("A")["A"]
         value = self.f.start_value("A", attempt, base=self.head())
         value["write_scope"] = ["chain_add.py"]
         original = fixture.chain._append
-        helper = fixture.chain._chain_git()
 
-        # The creation intent must survive an interruption before Git changes
-        # anything.  Its exact replay may allocate the still-absent path.
-        with patch.object(helper, "allocate", side_effect=OSError("fixture interruption before Git allocation")):
+        def crash_before_allocation_receipt(chain_dir, event_id, kind, data, **kwargs):
+            if kind == "managed_workspace_preparation_result":
+                raise OSError("fixture interruption after helper workspace preparation")
+            return original(chain_dir, event_id, kind, data, **kwargs)
+
+        with patch.object(fixture.chain, "_append", side_effect=crash_before_allocation_receipt):
             with self.assertRaises(OSError):
                 fixture.chain._per_step_start(self.f.run, self.binding(), value)
         events = self.bridge_events()
-        creation = next(row["event"]["data"] for row in events
-                        if row["event"]["kind"] == "serial_workspace_creation_intent")
-        self.assertIsNone(fixture.chain._allocation(events, attempt))
-        workspace = Path(creation["plan"]["path"])
-        self.assertFalse(workspace.exists())
-        self.assertEqual(self.call("pending")["lifecycle"]["serial_creation_pending"], [attempt])
-
-        conflicting = json.loads(json.dumps(value))
-        conflicting["resources"] = ["different"]
-        refused = self.call("start", conflicting, ok=False)
-        self.assertIn("creation replay", refused.stderr)
-        self.assertFalse(workspace.exists())
-
-        def crash_before_allocation_receipt(chain_dir, event_id, kind, data, **kwargs):
-            if kind == "allocation_intent":
-                raise OSError("fixture interruption after serial worktree allocation")
-            return original(chain_dir, event_id, kind, data, **kwargs)
-
-        # The persisted intent has no path yet, so its first replay allocates;
-        # it must not mistake an absent path for an allocated recovery.
-        with patch.object(helper, "recover_allocation", side_effect=AssertionError("initial allocation must not recover")):
-            with patch.object(fixture.chain, "_append", side_effect=crash_before_allocation_receipt):
-                with self.assertRaises(OSError):
-                    fixture.chain._per_step_start(self.f.run, self.binding(), value)
-        events = self.bridge_events()
-        self.assertIsNone(fixture.chain._allocation(events, attempt))
-        self.assertTrue(workspace.exists())
-        before_worktrees = self.f.git(self.f.target, "worktree", "list", "--porcelain")
-        pending = self.call("pending")
-        self.assertEqual(pending["lifecycle"]["serial_creation_pending"], [attempt])
-        self.assertTrue(any(item.get("action") == "recover-workspace" and item.get("attempt") == attempt
-                            for item in self.call("next")["actions"]))
-        retry = self.call("retry", {"attempt": attempt, "confirmed_stopped": True,
-                                    "reason": "Do not orphan an unrecorded workspace"}, ok=False)
-        self.assertIn("serial workspace creation", retry.stderr)
+        prepared = [row["event"]["data"] for row in events
+                    if row["event"]["kind"] == "managed_workspace_preparation_intent"]
+        self.assertEqual(len(prepared), 1)
+        self.assertFalse(any(row["event"]["kind"] == "managed_workspace_preparation_result"
+                             for row in events))
         self.assertEqual(self.f.child_record(attempt)["status"], "claimed")
-        refused = self.call("start", conflicting, ok=False)
-        self.assertIn("creation replay", refused.stderr)
-        self.assertEqual(self.f.git(self.f.target, "worktree", "list", "--porcelain"), before_worktrees)
 
         output = self.call("start", value)
         self.assertEqual(output["action"], "execute")
         self.packets["A"] = output["packet"]
-        self.assertEqual(self.f.git(self.f.target, "worktree", "list", "--porcelain"), before_worktrees)
         allocation = fixture.chain._per_step_allocation(self.bridge_events(), attempt)
-        self.assertEqual(allocation["plan"]["path"], str(workspace))
-        self.assertIn("worker_instance", allocation["plan"])
+        self.assertEqual(allocation["adoption"], "ask-agent-managed-workspace")
+        workspace = Path(allocation["plan"]["path"])
+        self.assertTrue(workspace.exists())
+        self.assertEqual(allocation["plan"]["path"], output["packet"]["context"]["workspace"])
         kinds = [row["event"]["kind"] for row in self.bridge_events()]
-        self.assertLess(kinds.index("serial_workspace_creation_intent"), kinds.index("allocation_intent"))
+        self.assertEqual(kinds.count("managed_workspace_preparation_intent"), 1)
+        self.assertEqual(kinds.count("managed_workspace_preparation_result"), 1)
         self.complete_step("A")
         self.finish()
 
-    def test_managed_v06_freezes_selected_helper_delivers_complete_range_and_closes(self):
+    def test_managed_capability_contract_freezes_selected_helper_delivers_complete_range_and_closes(self):
         graph = json.loads(self.f.graph.read_text())
         graph["steps"] = graph["steps"][:2]
         self.f.graph.write_text(json.dumps(graph) + "\n")
         self.managed_bind(capacity=2)
         binding = self.binding()
-        self.assertEqual(binding["schema"], "shiploop-chain-binding/v5")
-        self.assertEqual(binding["ask_agent_contract"], {
-            "schema": "shiploop-chain-ask-agent-managed-worktree/v1",
-            "version": "0.6.1",
-            "capabilities": [
-                "helper-managed-worktree", "prepared-inspection", "returned-commit-delivery",
-                "fingerprint-bound-close",
-            ],
-        })
+        declared = self.managed_capabilities()
+        self.assertEqual(binding["schema"], "shiploop-chain-binding/v6")
+        self.assertEqual(set(declared), {"schema", "version", "capabilities"})
+        self.assertEqual(declared["schema"], "shiploop-chain-ask-agent-managed-worktree/v1")
+        self.assertEqual(binding["ask_agent_contract"], declared)
+        self.assertTrue({
+            "helper-managed-worktree", "prepared-inspection", "returned-commit-delivery",
+            "fingerprint-bound-close",
+        } <= set(declared["capabilities"]))
         self.assertEqual(set(binding["ask_agent"]["files"]), {
             "SKILL.md", "scripts/ask_agent_workspace.py", "references/git-integration.md",
             "references/workspace-operations.md", "references/native-lifecycle.md",
@@ -1152,7 +1141,7 @@ class PerStepChainTests(unittest.TestCase):
         self.assertEqual({row["attempt"] for row in start_actions}, set(attempts.values()))
         for start in start_actions:
             self.assertIn("selected Ask-Agent helper", start["instruction"])
-            self.assertIn("do not supply workspace", start["instruction"])
+            self.assertIn("do not supply a workspace", start["instruction"])
             self.assertIn("launch", start["instruction"])
             self.assertNotIn("prepare-workspace", start["instruction"])
             self.assertNotIn("Ask-Agent workspace when already prepared", start["required"])
@@ -1852,7 +1841,7 @@ class PerStepChainTests(unittest.TestCase):
 
         self.addCleanup(remove_retained_workspace)
 
-    def test_managed_v060_uses_explicit_frozen_package_identity_fallback(self):
+    def test_current_managed_helper_accepts_060_when_it_declares_capabilities_and_identity(self):
         self.use_managed_ask_agent()
         card = self.f.ask / "SKILL.md"
         import re
@@ -1860,37 +1849,219 @@ class PerStepChainTests(unittest.TestCase):
         self.bind(single=True)
         identity = self.binding()["ask_agent_identity"]
         self.assertEqual(identity["version"], "0.6.0")
-        self.assertEqual(identity["method"], "frozen-package-root-v1")
+        self.assertEqual(identity["method"], "helper-v1")
         self.assertEqual(identity["resolved_helper"], str(self.f.ask / "scripts/ask_agent_workspace.py"))
+        self.assertEqual(self.binding()["ask_agent_contract"], self.managed_capabilities())
         self.assertEqual(self.f.git(self.f.primary, "worktree", "list", "--porcelain").count("worktree "), 2)
 
-    def test_managed_serial_keeps_chain_git_allocation_path(self):
+    def test_managed_serial_uses_helper_workspace_and_main_context_without_handle(self):
         self.managed_bind(mode="serial", single=True)
         binding = self.binding()
-        self.assertEqual(binding["schema"], "shiploop-chain-binding/v5")
+        self.assertEqual(binding["schema"], "shiploop-chain-binding/v6")
         attempt = self.claim("A")["A"]
-        self.start("A", attempt, serial=True)
+        packet = self.start("A", attempt, serial=True)
         allocation = fixture.chain._per_step_allocation(self.bridge_events(), attempt)
-        self.assertEqual(allocation["adoption"], "serial-bridge")
-        self.assertNotIn("ask_agent_workspace", allocation)
-        self.assertNotIn("managed_workspace", allocation["plan"])
-        self.assertEqual(Path(allocation["plan"]["path"]).parent, self.f.parent)
+        self.assertEqual(allocation["adoption"], "ask-agent-managed-workspace")
+        self.assertEqual(allocation["plan"]["path"], packet["context"]["workspace"])
+        self.assertEqual(packet["ask_agent_workspace"]["worktree"], packet["context"]["workspace"])
+        self.assertIsNone(self.f.child_record(attempt)["handle"])
+        self.assertEqual(packet["executor"]["kind"], "main-context")
         self.complete_step("A")
+        events = [row["event"] for row in self.bridge_events()]
+        self.assertTrue(any(row["kind"] == "managed_returned_delivery"
+                            and row["data"].get("attempt") == attempt for row in events))
+        self.assertTrue(any(row["kind"] == "managed_close_inspection"
+                            and row["data"].get("attempt") == attempt for row in events))
+        self.assertFalse(any(row["kind"].startswith("launched_") for row in events))
         self.finish()
 
-    def test_unsupported_ask_agent_version_refused_before_any_worker(self):
-        shutil.rmtree(self.f.ask)
-        shutil.copytree(ROOT / "skills/ask-agent", self.f.ask)
-        # Unknown future versions must not fall through to either reviewed adapter.
+    def test_future_managed_version_and_reformatted_prose_bind_through_capabilities(self):
+        self.use_managed_ask_agent()
         card = self.f.ask / "SKILL.md"
+        helper = self.f.ask / "scripts/ask_agent_workspace.py"
+        original_phrase = "The bundled helper owns Git\nworkspace preparation and eligible cleanup;"
         text = card.read_text()
-        import re
-        card.write_text(re.sub(r"(?m)^version:.*$", "version: 0.7.1", text))
-        refused = self.bind(ok=False)
-        self.assertIn("Ask-Agent", refused.stderr)
-        self.assertIn("0.4", refused.stderr)
-        self.assertIn("0.6", refused.stderr)
+        self.assertIn(original_phrase, text)
+        reformatted = re.sub(r"(?m)^version:.*$", "version: 1.2.3", text).replace(
+            original_phrase,
+            "This helper prepares its workspace\n\nand closes eligible accepted work;",
+            1,
+        )
+        self.assertNotEqual(reformatted, text)
+        card.write_text(reformatted)
+        helper_text = helper.read_text()
+        original_capabilities = '        "capabilities": list(MANAGED_WORKTREE_CAPABILITIES),'
+        self.assertIn(original_capabilities, helper_text)
+        helper.write_text(helper_text.replace(
+            original_capabilities,
+            '        "capabilities": list(reversed(MANAGED_WORKTREE_CAPABILITIES)) + ["future-managed-capability"],',
+            1,
+        ))
+        bound = self.bind(single=True)
+        self.assertEqual(bound["shiploop_chain"]["lifecycle"], "per-step")
+        declared = self.managed_capabilities()
+        self.assertEqual(declared["version"], "1.2.3")
+        self.assertEqual(declared["capabilities"], [
+            "fingerprint-bound-close", "returned-commit-delivery", "prepared-inspection",
+            "helper-managed-worktree", "future-managed-capability",
+        ])
+        self.assertEqual(self.binding()["ask_agent_contract"], declared)
         self.assertEqual(self.f.git(self.f.primary, "worktree", "list", "--porcelain").count("worktree "), 2)
+
+    def test_old_04_and_final_return_fresh_bindings_refuse_before_effects(self):
+        self.use_legacy_ask_agent()
+        before_run = self.f.run_bytes()
+        before_head = self.head()
+        before_worktrees = self.f.git(self.f.primary, "worktree", "list", "--porcelain")
+        old = self.bind(ok=False)
+        # The historical card lacks the current managed package layout and
+        # is rejected before a helper can execute.
+        self.assertIn("cannot resolve ask-agent references/native-lifecycle.md", old.stderr.lower())
+        self.assertEqual(self.f.run_bytes(), before_run)
+        self.assertEqual(self.head(), before_head)
+        self.assertEqual(self.f.git(self.f.primary, "worktree", "list", "--porcelain"), before_worktrees)
+        self.assertFalse((self.f.run / "chains").exists())
+
+        # A complete package with an old version must also fail the numeric
+        # floor, even when its capability endpoint exists.
+        self.use_managed_ask_agent()
+        card = self.f.ask / "SKILL.md"
+        card.write_text(re.sub(r"(?m)^version:.*$", "version: 0.4.9", card.read_text()))
+        old_version = self.bind(ok=False)
+        self.assertIn("requires Ask-Agent 0.6.0 or newer", old_version.stderr)
+        self.assertEqual(self.f.run_bytes(), before_run)
+        self.assertEqual(self.head(), before_head)
+        self.assertEqual(self.f.git(self.f.primary, "worktree", "list", "--porcelain"), before_worktrees)
+        self.assertFalse((self.f.run / "chains").exists())
+
+        self.use_managed_ask_agent()
+        before_run = self.f.run_bytes()
+        final_return = self.f.call("bind", ok=False, extra=(
+            "--graph", str(self.f.graph), "--dispatcher-skill", str(self.f.dispatcher / "SKILL.md"),
+            "--ask-agent-skill", str(self.f.ask / "SKILL.md"), "--worktree-parent", str(self.f.parent),
+            "--mode", "parallel", "--lifecycle", "final-return",
+        ))
+        self.assertRegex(final_return.stderr.lower(), r"managed|per-step|final-return")
+        self.assertEqual(self.f.run_bytes(), before_run)
+        self.assertEqual(self.head(), before_head)
+        self.assertEqual(self.f.git(self.f.primary, "worktree", "list", "--porcelain"), before_worktrees)
+        self.assertFalse((self.f.run / "chains").exists())
+
+    def test_unknown_or_missing_managed_capability_and_identity_refuse_before_effects(self):
+        self.use_managed_ask_agent()
+        helper = self.f.ask / "scripts/ask_agent_workspace.py"
+        before_run = self.f.run_bytes()
+        before_head = self.head()
+        before_worktrees = self.f.git(self.f.primary, "worktree", "list", "--porcelain")
+        helper.write_text(helper.read_text().replace(
+            'MANAGED_WORKTREE_CAPABILITIES_SCHEMA = "shiploop-chain-ask-agent-managed-worktree/v1"',
+            'MANAGED_WORKTREE_CAPABILITIES_SCHEMA = "unknown-managed-contract/v9"', 1,
+        ))
+        unknown = self.bind(ok=False)
+        self.assertRegex(unknown.stderr.lower(), r"contract|capabilit|managed")
+        self.assertEqual(self.f.run_bytes(), before_run)
+        self.assertEqual(self.head(), before_head)
+        self.assertEqual(self.f.git(self.f.primary, "worktree", "list", "--porcelain"), before_worktrees)
+        self.assertFalse((self.f.run / "chains").exists())
+
+        self.use_managed_ask_agent()
+        helper = self.f.ask / "scripts/ask_agent_workspace.py"
+        helper.write_text(helper.read_text().replace(
+            'capabilities_parser = commands.add_parser("capabilities")',
+            'capabilities_parser = commands.add_parser("legacy-capabilities")', 1,
+        ))
+        missing_capabilities = self.bind(ok=False)
+        self.assertRegex(missing_capabilities.stderr.lower(), r"capabilit|managed")
+        self.assertEqual(self.f.run_bytes(), before_run)
+        self.assertEqual(self.head(), before_head)
+        self.assertEqual(self.f.git(self.f.primary, "worktree", "list", "--porcelain"), before_worktrees)
+        self.assertFalse((self.f.run / "chains").exists())
+
+        self.use_managed_ask_agent()
+        card = self.f.ask / "SKILL.md"
+        card.write_text(re.sub(r"(?m)^version:.*$", "version: 0.6.0", card.read_text()))
+        helper = self.f.ask / "scripts/ask_agent_workspace.py"
+        helper.write_text(helper.read_text().replace(
+            'identity_parser = commands.add_parser("identity")',
+            'identity_parser = commands.add_parser("legacy-identity")', 1,
+        ))
+        missing_identity = self.bind(ok=False)
+        self.assertRegex(missing_identity.stderr.lower(), r"identity|managed|capabilit")
+        self.assertEqual(self.f.run_bytes(), before_run)
+        self.assertEqual(self.head(), before_head)
+        self.assertEqual(self.f.git(self.f.primary, "worktree", "list", "--porcelain"), before_worktrees)
+        self.assertFalse((self.f.run / "chains").exists())
+
+    def test_retired_v5_binding_with_removed_package_is_inspection_only(self):
+        """Historic bindings survive host-skill rotation but cannot resume execution."""
+        self.managed_bind(single=True)
+        binding_path = self.f.run / "chains" / self.f.action / "binding.md"
+        binding = fixture.store.read_record(binding_path)
+        self.assertEqual(binding["schema"], "shiploop-chain-binding/v6")
+        binding["schema"] = "shiploop-chain-binding/v5"
+        # A retired view must never execute the frozen node or resolve an
+        # installed helper.  Both paths are deliberately unavailable here.
+        binding["node"] = str(self.f.base / "retired-node-must-not-run")
+        raw = fixture.store.dumps(binding, "ShipLoop chain binding")
+        state = fixture.store.read_record(self.f.run / "state.md")
+        state["chain_bindings"] = dict(state["chain_bindings"])
+        state["chain_bindings"][self.f.action] = hashlib.sha256(raw.encode("utf-8")).hexdigest()
+        state["revision"] += 1
+        fixture.nav.save(self.f.run, state, {
+            str(binding_path.relative_to(self.f.run)): raw,
+        })
+        shutil.rmtree(self.f.ask)
+
+        before_run = self.f.run_bytes()
+        before_head = self.head()
+        before_worktrees = self.f.git(self.f.primary, "worktree", "list", "--porcelain")
+        history = self.f.call("history")
+        pending = self.f.call("pending")
+        self.assertEqual(history["retired_flow"]["binding_schema"], "shiploop-chain-binding/v5")
+        self.assertEqual(pending["retired_flow"], history["retired_flow"])
+        self.assertIsNone(pending["pending"])
+        self.assertEqual(pending["pending_reason"], "retired flow state was not queried")
+        self.assertEqual(self.f.run_bytes(), before_run)
+
+        for operation in ("next", "recover"):
+            projection = self.f.call(operation)
+            self.assertEqual(projection["retired_flow"], history["retired_flow"])
+            self.assertEqual(self.f.run_bytes(), before_run)
+
+        bind = self.f.call("bind", ok=False, extra=(
+            "--graph", str(self.f.graph), "--dispatcher-skill", str(self.f.dispatcher / "SKILL.md"),
+            "--ask-agent-skill", str(self.f.ask / "SKILL.md"), "--worktree-parent", str(self.f.parent),
+            "--mode", "parallel", "--lifecycle", "per-step",
+        ))
+        self.assertRegex(bind.stderr.lower(), r"retired|managed|inspection")
+        self.assertEqual(self.f.run_bytes(), before_run)
+        self.assertEqual(self.head(), before_head)
+        self.assertEqual(self.f.git(self.f.primary, "worktree", "list", "--porcelain"), before_worktrees)
+
+        attempt = "retired-attempt"
+        proof = self.f.write("retired-v5-finish.json", {"passed": True, "commit": before_head})
+        handoff = self.f.write("retired-v5-handoff.json", {"retired": True})
+        for operation, value in (
+            ("claim", {"steps": ["A"]}),
+            ("start", self.f.start_value("A", attempt)),
+            ("launched", {"attempt": attempt, "handle": {"host": "fixture", "id": "retired"}}),
+            ("observe", {"attempt": attempt, "occurred_at": "2026-09-20T00:00:00Z"}),
+            ("import-handoff", {"attempt": attempt, "confirmed_stopped": True,
+                                "handoff": {"path": str(handoff), "sha256": fixture.digest(handoff)}}),
+            ("prepare", {"attempt": attempt, "confirmed_stopped": True}),
+            ("settle", {"attempt": attempt, "confirmed_stopped": True}),
+            ("done", {"attempt": attempt, "confirmed_stopped": True}),
+            ("retry", {"attempt": attempt, "confirmed_stopped": True, "reason": "retired fixture"}),
+            ("packet", {"attempt": attempt}),
+            ("cleanup", {"attempt": attempt, "confirmed_stopped": True}),
+            ("finish", {"commit": before_head, "confirmed_stopped": True,
+                        "verification": {"path": str(proof), "sha256": fixture.digest(proof)}}),
+        ):
+            refused = self.f.call(operation, value, ok=False)
+            self.assertRegex(refused.stderr.lower(), r"retired|managed|inspection")
+            self.assertEqual(self.f.run_bytes(), before_run)
+            self.assertEqual(self.head(), before_head)
+            self.assertEqual(self.f.git(self.f.primary, "worktree", "list", "--porcelain"), before_worktrees)
 
     def test_stale_combined_candidate_refuses_merge_then_reprepares(self):
         self.bind()
@@ -1957,6 +2128,9 @@ class PerStepChainTests(unittest.TestCase):
         accepted_a = self.call("done", a_value)
         self.assertEqual(accepted_a["outcome"], "accepted")
         self.assertEqual(self.head(), a_value["integration"]["candidate_commit"])
+        a_cleanup = self.run_deferred_managed_cleanup("A", accepted_a)
+        self.assertIsNotNone(a_cleanup)
+        self.assertFalse(a_cleanup["pending"])
         self.assertFalse(a_worker.exists())
         self.verify(self.f.target, expected_steps=("A",))
         after_a = self.head()
@@ -2026,15 +2200,29 @@ class PerStepChainTests(unittest.TestCase):
 
         self.start("B", self.claim("B")["B"])
         self.complete_step("B")
-        self.call("cleanup", {"attempt": attempts["B"], "confirmed_stopped": True,
-                                "disposition": "superseded",
-                                "reason": "Replacement independently accepted and integrated"})
-        self.assertFalse(b_worker.exists())
+        retained = self.call("cleanup", {"attempt": attempts["B"], "confirmed_stopped": True,
+                                          "disposition": "superseded",
+                                          "reason": "Replacement independently accepted and integrated"}, ok=False)
+        self.assertRegex(retained.stderr.lower(), r"retain|managed|superseded")
+        self.assertTrue(b_worker.exists())
         self.start("C", self.claim("C")["C"])
         self.complete_step("C")
         self.start("J", self.claim("J")["J"])
         self.complete_step("J")
-        self.finish()
+        proof = self.f.write("semantic-conflict-retained-finish.json", {
+            "passed": True, "commit": self.head(),
+        })
+        blocked = self.call("finish", {
+            "commit": self.head(), "confirmed_stopped": True,
+            "verification": {"path": str(proof), "sha256": fixture.digest(proof)},
+        }, ok=False)
+        self.assertRegex(blocked.stderr.lower(), r"retain|cleanup|unfinished|managed")
+
+        def remove_retained_workspace():
+            if b_worker.exists():
+                self.f.git(self.f.target, "worktree", "remove", "--force", str(b_worker))
+
+        self.addCleanup(remove_retained_workspace)
 
     def test_public_owner_takeover_refuses_prepared_candidate_before_integration(self):
         self.bind(single=True)
@@ -2251,7 +2439,10 @@ class PerStepChainTests(unittest.TestCase):
                 fixture.chain._settle(self.f.run, self.binding(), value)
         self.assertEqual(self.head(), value["integration"]["candidate_commit"])
         self.assertNotEqual(self.f.child_record(attempt)["status"], "accepted")
-        self.call("done", value)
+        recovered = self.call("done", value)
+        cleaned = self.run_deferred_managed_cleanup("A", recovered)
+        self.assertIsNotNone(cleaned)
+        self.assertFalse(cleaned["pending"])
         self.assertEqual(len(self.f.terminal_events(attempt)), 1)
         self.assertFalse(Path(self.packets["A"]["context"]["workspace"]).exists())
         self.finish()
@@ -2305,6 +2496,9 @@ class PerStepChainTests(unittest.TestCase):
         self.assertEqual(self.f.child_state_path().read_bytes(), child_before_replay)
         self.assertEqual(self.f.ledger_bytes(), ledger_before_replay)
         self.assertEqual(len(self.f.terminal_events(attempts["A"])), 1)
+        a_cleanup = self.run_deferred_managed_cleanup("A", replay)
+        self.assertIsNotNone(a_cleanup)
+        self.assertFalse(a_cleanup["pending"])
 
         stale = self.call("done", b_value, ok=False)
         self.assertTrue(any(word in stale.stderr.lower() for word in ("target", "stale", "head")), stale.stderr)
@@ -2317,7 +2511,7 @@ class PerStepChainTests(unittest.TestCase):
         self.complete_step("J")
         self.finish()
 
-    def test_rejected_retry_can_retire_old_workspace_without_merging_bad_code(self):
+    def test_rejected_retry_retains_managed_workspace_without_merging_bad_code(self):
         self.bind(single=True)
         old_attempt = self.claim("A")["A"]
         old_packet = self.start("A", old_attempt)
@@ -2352,42 +2546,45 @@ class PerStepChainTests(unittest.TestCase):
         self.call("cleanup", cleanup, ok=False)
         self.call("retry", {"attempt": old_attempt, "confirmed_stopped": True,
                             "reason": "Correct independently observed arithmetic failure"})
-        self.call("cleanup", cleanup, ok=False)
         self.start("A", self.claim("A")["A"])
         self.complete_step("A")
-        # Even a superseded attempt must retain unpreserved local work.
+        # Managed helpers have no non-integrated close receipt. The old worker
+        # remains retained even after its replacement is accepted, rather than
+        # letting ShipLoop use the retired caller-worktree cleanup path.
         (old_workspace / "unpreserved.txt").write_text("retain me\n")
         refusal = self.call("cleanup", cleanup, ok=False)
+        self.assertRegex(refusal.stderr.lower(), r"retain|managed|superseded")
         self.assertTrue(old_workspace.exists(), refusal.stderr)
         (old_workspace / "unpreserved.txt").unlink()
-        append = fixture.chain._append
-        def crash_after_retirement(chain_dir, event_id, kind, data, **kwargs):
-            if kind == "superseded_cleanup_result":
-                raise OSError("fixture interruption after superseded removal")
-            return append(chain_dir, event_id, kind, data, **kwargs)
-        with patch.object(fixture.chain, "_append", side_effect=crash_after_retirement):
-            with self.assertRaises((OSError, ValueError)):
-                fixture.chain._per_step_cleanup_superseded(
-                    self.f.run, self.binding(), old_attempt, cleanup["reason"])
-        self.assertFalse(old_workspace.exists())
-        self.call("cleanup", cleanup)
         self.assertEqual(old_archive.read_bytes(), old_archive_bytes)
-        self.assertEqual(self.f.git(self.f.target, "rev-parse", "ask-agent/" + old_attempt), rejected_commit)
+        self.assertEqual(self.f.git(self.f.target, "rev-parse", old_packet["ask_agent_workspace"]["branch"]),
+                         rejected_commit)
         self.assertNotEqual(subprocess.run(["git", "merge-base", "--is-ancestor", rejected_commit, self.head()],
             cwd=self.f.target, capture_output=True).returncode, 0)
-        self.call("cleanup", cleanup)  # Idempotent retirement, never acceptance.
         self.assertEqual(self.f.child_record(old_attempt)["status"], "retried")
-        self.finish()
+        proof = self.f.write("retained-superseded-final.json", {"passed": True, "commit": self.head()})
+        blocked_finish = self.call("finish", {
+            "commit": self.head(), "confirmed_stopped": True,
+            "verification": {"path": str(proof), "sha256": fixture.digest(proof)},
+        }, ok=False)
+        self.assertRegex(blocked_finish.stderr.lower(), r"retain|cleanup|unfinished|managed")
 
-    def test_serial_rejected_retry_retires_old_workspace_without_merging_bad_code(self):
+        def remove_retained_workspace():
+            if old_workspace.exists():
+                self.f.git(self.f.target, "worktree", "remove", "--force", str(old_workspace))
+
+        self.addCleanup(remove_retained_workspace)
+
+    def test_serial_rejected_retry_shares_managed_retention_boundary(self):
         self.bind(mode="serial", single=True)
         old_attempt = self.claim("A")["A"]
         old_packet = self.start("A", old_attempt, serial=True)
         old_workspace = Path(old_packet["context"]["workspace"])
         self.collect("A", self.launch("A"))
         old_commit = self.source_commits["A"]
-        old_plan = fixture.chain._per_step_allocation(self.bridge_events(), old_attempt)["plan"]
-        self.assertNotIn("worker", old_plan)
+        old_allocation = fixture.chain._per_step_allocation(self.bridge_events(), old_attempt)
+        self.assertEqual(old_allocation["adoption"], "ask-agent-managed-workspace")
+        self.assertEqual(old_packet["executor"]["kind"], "main-context")
         receipt = fixture.chain._node(self.binding(), "receipt", {"attempt": old_attempt})
         proof = self.f.write("serial-retired-rejection.json", {"passed": False,
                             "checks": ["fixture rejection before retry"]})
@@ -2403,15 +2600,20 @@ class PerStepChainTests(unittest.TestCase):
         self.start("A", replacement, serial=True)
         self.complete_step("A")
         self.assertTrue(old_workspace.exists())
-        retired = self.call("cleanup", {"attempt": old_attempt, "confirmed_stopped": True,
-                                         "disposition": "superseded",
-                                         "reason": "Replacement independently accepted and integrated"})
-        self.assertFalse(old_workspace.exists())
-        self.assertFalse(retired["pending"])
-        self.assertEqual(self.f.git(self.f.target, "rev-parse", old_plan["branch"]), old_commit)
+        retained = self.call("cleanup", {"attempt": old_attempt, "confirmed_stopped": True,
+                                          "disposition": "superseded",
+                                          "reason": "Replacement independently accepted and integrated"}, ok=False)
+        self.assertRegex(retained.stderr.lower(), r"retain|managed|superseded")
+        self.assertTrue(old_workspace.exists())
+        self.assertEqual(self.f.git(self.f.target, "rev-parse", old_packet["ask_agent_workspace"]["branch"]), old_commit)
         self.assertNotEqual(subprocess.run(["git", "merge-base", "--is-ancestor", old_commit, self.head()],
             cwd=self.f.target, capture_output=True).returncode, 0)
-        self.finish()
+
+        def remove_retained_workspace():
+            if old_workspace.exists():
+                self.f.git(self.f.target, "worktree", "remove", "--force", str(old_workspace))
+
+        self.addCleanup(remove_retained_workspace)
 
     def test_positive_done_requires_workspace_in_independent_evidence_before_mutation(self):
         self.bind(single=True)
@@ -2455,6 +2657,9 @@ class PerStepChainTests(unittest.TestCase):
         proof_path.write_bytes(original)
         accepted = self.call("done", correct)
         self.assertEqual(accepted["outcome"], "accepted")
+        cleaned = self.run_deferred_managed_cleanup("A", accepted)
+        self.assertIsNotNone(cleaned)
+        self.assertFalse(cleaned["pending"])
         self.assertFalse(workspace.exists())
 
     def test_import_handoff_recovers_after_report_and_delete_receipt_crashes(self):
@@ -2564,7 +2769,10 @@ class PerStepChainTests(unittest.TestCase):
             with self.assertRaises((OSError, ValueError)):
                 fixture.chain._settle(self.f.run, self.binding(), value)
         self.assertEqual(self.f.child_record(attempt)["status"], "accepted")
-        self.call("done", value)
+        recovered = self.call("done", value)
+        cleaned = self.run_deferred_managed_cleanup("A", recovered)
+        self.assertIsNotNone(cleaned)
+        self.assertFalse(cleaned["pending"])
         self.assertEqual(len(self.f.terminal_events(attempt)), 1)
         self.finish()
 
@@ -2579,11 +2787,19 @@ class PerStepChainTests(unittest.TestCase):
             if kind == "cleanup_result":
                 raise OSError("fixture interruption after worktree removal")
             return original(chain_dir, event_id, kind, data, **kwargs)
+
+        accepted = self.call("done", value)
+        self.assertEqual(accepted["outcome"], "accepted")
+        workspace = Path(self.packets["A"]["context"]["workspace"])
+        self.assertTrue(workspace.exists())
         with patch.object(fixture.chain, "_append", side_effect=crash_before_cleanup_receipt):
             with self.assertRaises((OSError, ValueError)):
-                fixture.chain._settle(self.f.run, self.binding(), value)
-        self.assertFalse(Path(self.packets["A"]["context"]["workspace"]).exists())
-        self.call("cleanup", {"attempt": attempt, "confirmed_stopped": True})
+                fixture.chain._per_step_cleanup_attempt(
+                    self.f.run, self.binding(), attempt, confirmed_stopped=True,
+                )
+        self.assertFalse(workspace.exists())
+        cleaned = self.call("cleanup", {"attempt": attempt, "confirmed_stopped": True})
+        self.assertFalse(cleaned["pending"])
         self.assertEqual(len(self.f.terminal_events(attempt)), 1)
         self.finish()
 
