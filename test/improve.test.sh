@@ -167,9 +167,10 @@ if find "$bundle" \( -name __pycache__ -o -name '*.pyc' \) -print -quit | grep -
 fi
 pass relocated_v2_preview_is_read_only
 
-run_python - "$bundle" <<'PY'
+run_python - "$bundle" "$package" <<'PY'
 import hashlib
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -177,7 +178,10 @@ root = Path(sys.argv[1])
 manifest = json.loads((root / "runtime/until-loop/PROVENANCE.json").read_text(encoding="utf-8"))
 card = (root / "SKILL.md").read_text(encoding="utf-8")
 adapter = (root / "runtime/until-loop/ADAPTER.md").read_text(encoding="utf-8")
-assert "version: 0.2.0-rc.4" in card
+source_card = (Path(sys.argv[2]) / "SKILL.md").read_text(encoding="utf-8")
+source_version = re.search(r"(?m)^version: (\S+)$", source_card.split("---", 2)[1])
+assert source_version is not None, "selected Improve card requires a declared version"
+assert re.search(r"(?m)^version: (\S+)$", card.split("---", 2)[1]).group(1) == source_version.group(1)
 assert "runtime/until-loop/scripts/until_loop_ephemeral.py" in card
 assert "version: 0.4.0-rc.2" in adapter
 assert manifest["format"] == "skill-craft-until-loop-runtime-provenance/v1"
