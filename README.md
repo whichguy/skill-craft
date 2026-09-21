@@ -67,10 +67,11 @@ Operator guides: [ShipLoop](skills/shiploop/README.md),
 [Improve and release-candidate limits](skills/improve/README.md), and
 [completed ShipLoop proposals](docs/shiploop-proposal-closeout.md).
 
-**External compatibility:** New per-step ShipLoop chains require a selected compatible
-Plan Dispatcher and Ask Agent package. Ask Agent 0.6.x uses the managed-worktree
-adapter for parallel workers; existing 0.4.x bindings keep the caller-prepared
-adapter. Serial execution retains ShipLoop's allocation path. Follow
+**External compatibility:** Per-step ShipLoop chains require a selected compatible
+Plan Dispatcher and Ask-Agent 0.6.0 or newer with the required helper capabilities.
+Both parallel and serial modes use the current managed-worktree lifecycle and
+v6 binding. Earlier bindings are diagnostic evidence only; their retired execution
+callbacks cannot resume work. Follow
 [the chain binding requirements](skills/shiploop/references/parallel-chain.md#bind-the-selected-packages-and-reviewed-graph).
 
 **External (not in this monorepo):** [lennox-s40](https://github.com/whichguy/lennox-s40) — thermostat skill; install from that clone. Catalog pin remains in skill-craft-market.
