@@ -54,14 +54,18 @@ is unknown, inspect `claude plugin list --json` for the host's current state.
 | Grok | `whichguy/skill-craft` | `.grok-plugin/marketplace.json` | Source skill packages |
 | Cursor | `whichguy/skill-craft` | `.cursor-plugin/marketplace.json` | Source skill packages |
 | Claude Code | `whichguy/skill-craft-market` | `.claude-plugin/marketplace.json` | Source packages plus external pins |
-| Codex | `whichguy/skill-craft-market` | Same Claude-compatible index | Same pinned entries |
+| Codex | `whichguy/skill-craft-market` | Same Claude-compatible index | Same published package selections |
 
 The source repo owns Grok/Cursor adapters because those indexes can point directly
 at its existing plugin directories. The sibling repo stays catalog-only and
-preserves per-package release pins. Backchain is private and requires repository
+uses rolling `main` for Ask Agent, ShipLoop, Improve and Backchain, with no
+commit pin for those four entries. Other entries retain per-package pins. Each
+validation freezes the resolved SHA for its checks and evidence. Package versions
+still advance on every release for host cache/update detection; users refresh the
+marketplace and installed plugin through the host. Backchain is private and requires repository
 access; Lennox S40 and the standalone Until Loop skill are maintained separately.
 Improve remains owned here and includes its own compatible runtime; the standalone
-Until Loop entry does not replace Improve's source or pin.
+Until Loop entry does not replace Improve's selected source.
 
 ### Grok
 
@@ -113,7 +117,7 @@ manifests: the host adds the prefix when it loads the plugin. Do not put
 | Plugin skill in Claude | `/shiploop:shiploop` | Select the installed plugin's skill |
 | Skill-dir skill in Codex | `$shiploop` | Select the separately side-loaded skill |
 
-For example, `codex plugin add shiploop@skill-craft-market` installs the pinned
+For example, `codex plugin add shiploop@skill-craft-market` installs the selected
 `plugins/shiploop` package. In a fresh task, the host exposes its
 `skills/shiploop/SKILL.md` as `shiploop:shiploop`. Use `$shiploop:shiploop` to
 request that copy. If a side-loaded `shiploop` also exists, a bare `$shiploop`
@@ -210,7 +214,7 @@ Commit and publish the source adapters and catalog repairs before giving remote
 install instructions to other people. Validate pins with the sibling catalog's
 CI; its private Backchain source needs `MARKETPLACE_READ_TOKEN` with read access.
 The full [release checklist](skill-release-checklist.md) preserves package versions
-and immutable pins. Catalog generation and local validation do not establish
+and each entry's rolling or pinned selection. Catalog generation and local validation do not establish
 that changes are published or that every script can execute on every host.
 
 ## Runtime limits

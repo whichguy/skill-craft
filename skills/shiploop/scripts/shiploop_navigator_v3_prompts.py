@@ -36,10 +36,27 @@ does not invoke it. If neither route is usable, use the printed pause command an
 give the user a durable handoff: clear through the host or open a fresh context,
 run the Recovery command, then follow the printed Resume command. Do not claim
 a clear or execute the pending assignment before that boundary is satisfied.
-For Improve, retain its selected delegation/ownership policy and apply this
-boundary once for the whole invocation, not between its
-review iterations; recover an existing child and collect its owner before any
-replacement. ShipLoop emits this instruction; the host performs the context clear.
+ShipLoop emits this instruction; the host performs the context clear.
+"""
+
+
+IMPROVE_INNER_CONTEXT = """\
+Keep the invoking parent alive and follow Improve's selected context ownership.
+
+Chain precedence ends at producer completion, even when the historical chain
+binding remains. The fresh-context boundary belongs to the whole Improve
+executor invocation, not the invoking parent and not individual review iterations.
+Prefer the selected fresh native executor route; the parent retains collection,
+verification and the exact parent-only continuation. Do not clear, replace or
+wrap the live parent to satisfy the executor's freshness requirement. A generic
+parent reset or manual handoff is not that fresh executor boundary.
+Recover an existing child from its receipt and ownership record; collect or
+confirm its owner stopped before any replacement. Once fresh for this invocation,
+do not clear again or delegate the whole invocation again. If the selected route
+is unavailable, use same-context execution only when its ownership policy allows
+it and separate context was not explicitly required; otherwise keep this action
+pending and report the missing capability. Retain the exact Recovery command
+and child receipt locators for interruption recovery.
 """
 
 

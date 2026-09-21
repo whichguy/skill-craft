@@ -815,14 +815,17 @@ class ChainIntegrationTests(unittest.TestCase):
         )
         for packet in (fresh, cold.stdout):
             normalized = " ".join(packet.split())
-            self.assertIn(rule, normalized)
-            self.assertIn("Both modes recover the existing attempt, never rerun start.", normalized)
             self.assertIn("Chain recovery:", packet)
             if after_producer:
                 self.assertIn("Current action: Improve the completed implement result.", packet)
-                self.assertIn("Chain precedence ends at producer completion. Improve follows its own selected "
-                              "context and ownership policy even when the historical chain binding remains.",
-                              normalized)
+                self.assertIn("Keep the invoking parent alive", packet)
+                self.assertIn("Chain precedence ends at producer completion", normalized)
+                self.assertIn("Do not clear, replace or wrap the live parent", normalized)
+                self.assertNotIn("Clear and then execute the prompt.", packet)
+                self.assertNotIn(rule, normalized)
+            else:
+                self.assertIn(rule, normalized)
+                self.assertIn("Both modes recover the existing attempt, never rerun start.", normalized)
         self.assertEqual((state_path.read_bytes(), binding_path.read_bytes()), before)
 
     def test_current_binding_defaults_to_parallel(self):

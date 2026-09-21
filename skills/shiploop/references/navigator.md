@@ -128,8 +128,8 @@ transition is historical context and does not replace the current action.
 
 ## Recover one existing run
 
-Active v3 INNER packets begin with **Clear and then execute the prompt.** This
-is the serial execution instruction for each producer and its Improve handoff.
+Active v3 INNER producer packets begin with **Clear and then execute the prompt.**
+This is the serial execution instruction for the producer only.
 For an `implement` producer, select the chain route first. During that producer,
 its bound mode and executor take precedence: parallel chains keep their capacity and bypass this boundary;
 explicit serial chains execute in the main context without spawning workers.
@@ -146,9 +146,19 @@ selected skill locators and necessary durable references, waits, verifies its
 return and alone submits the ShipLoop callback. Keep one candidate writer and
 collect or confirm an existing owner stopped before replacement. Apply the
 boundary once per assignment; an already-fresh worker does not clear or delegate
-again because the packet repeats. An Improve invocation retains context between
-its internal review iterations. Paused, blocked, halted and completed packets
+again because the packet repeats. Paused, blocked, halted and completed packets
 do not carry this execution prefix.
+
+Active INNER Improve packets instead begin with **Keep the invoking parent alive
+and follow Improve's selected context ownership.** The fresh-context boundary
+belongs to the whole Improve executor invocation, not its invoking parent or
+individual review iterations. The parent retains collection, verification and
+its exact continuation. A parent reset or manual handoff does not satisfy that
+executor boundary. Follow [Improve context ownership](improve-context.md), recover
+the existing child and establish its owner's stopped status before replacement.
+If required fresh execution is unavailable, keep the action pending; same-context
+execution is allowed only when the selected policy permits it and separate
+context was not explicitly required.
 
 Every navigator packet includes absolute CLI, repository, and run-directory
 locators. It also prints `Recovery command:` followed by an exact shell-quoted

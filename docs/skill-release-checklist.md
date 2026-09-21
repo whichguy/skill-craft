@@ -39,22 +39,19 @@ Before publishing a changed skill package, freeze the candidate bytes:
    For an authorized direct fast-forward publication, use the guarded push below
    so a failed precondition cannot be followed accidentally by a separate push.
    Protected-branch reviews, checks and merge-queue requirements still apply.
-4. **Market pin:** only root skill-craft-market `.claude-plugin/marketplace.json` (no second catalog under `faces/`):
-   - `source.path` = `plugins/<skill>` (not bare `skills/`)
-   - `source.sha` = the full 40-character commit SHA containing the package
-   - `source.ref` = the new tag (optional reachability label; the SHA fixes package bytes)
-   - Catalog repair fallback: if the current package is already published on `main`
-     but untagged, use `source.ref: "main"` plus a full `source.sha`. Verify that
-     commit is reachable from `main` and check the manifest at the SHA; do not
-     represent it as a tagged release.
-   - `version` = SKILL.md / `plugin.json` version field (must match at that SHA)
-   - Advance **this leaf only** when its content/version changes — **no bulk retarget** of content-identical pins
+4. **Market selection:** only root skill-craft-market `.claude-plugin/marketplace.json` (no second catalog under `faces/`):
+   - `source.path` = `plugins/<skill>` (not bare `skills/`); Backchain uses its standalone package root.
+   - Ask Agent, ShipLoop, Improve and Backchain follow the latest published `main` with `source.ref: "main"` and no `source.sha`. Validate the resolved commit once and retain that exact SHA in release evidence; a floating entry is not an immutable pin.
+   - Other entries retain their full 40-character `source.sha` and optional tag/ref reachability label. Do not retarget unrelated leaves.
+   - `version` must match the selected package's SKILL.md / `plugin.json` at the resolved commit. Bump each changed package on every release: hosts may cache by this version, so following `main` does not promise refresh for an unversioned intermediate commit.
+   - Refresh the marketplace and installed plugin through the host before claiming local activation. Publication alone does not update an existing host session.
 5. **Verify the catalog** from skill-craft-market: validate shape with
    `python3 scripts/check-catalog.py --skill-craft-root /absolute/source/checkout`
    and verify every changed release payload with
    `python3 scripts/check-release-payload.py --base <previous-catalog-commit>`.
-   The release-diff gate reads complete packaged trees at immutable SHAs for
-   changed native pins; it does not silently upgrade unchanged legacy pins.
+   The release-diff gate reads complete packaged trees at each changed entry's
+   exact pinned or once-resolved SHA; it does not silently upgrade unchanged
+   legacy pins.
    Run affected verifier tests when changing verifier code, and collect required
    catalog CI for the exact candidate. Reuse its unchanged-tree evidence instead
    of repeating the same unit bank locally and after merge.

@@ -281,14 +281,23 @@ class NavigatorV3Tests(unittest.TestCase):
             for owner, current in (("producer", state), ("improve", waiting)):
                 with self.subTest(stage=stage, owner=owner, item=state["work_index"]):
                     packet = navigator.render(None, root, current)
-                    self.assertEqual(packet.startswith(prefix), stage in EXPECTED_INNER)
+                    expected_prefix = (prompts.IMPROVE_INNER_CONTEXT if owner == "improve"
+                                       else prompts.SERIAL_INNER_CONTEXT)
+                    self.assertEqual(packet.startswith(expected_prefix), stage in EXPECTED_INNER)
                     if stage in EXPECTED_INNER:
                         observed.append((stage, owner))
-                        self.assertEqual(packet.count(prefix), 1)
+                        self.assertEqual(packet.count(expected_prefix), 1)
                         self.assertIn("Recovery command:\n", packet)
                         self.assertIn("do not clear again", packet)
-                        self.assertIn("not between its\nreview iterations", packet)
-                        self.assertIn("host performs the context clear", packet)
+                        if owner == "improve":
+                            self.assertNotIn(prefix, packet)
+                            self.assertIn("Keep the invoking parent alive", packet)
+                            self.assertIn("not individual review iterations", packet)
+                            self.assertIn("Do not clear, replace or", packet)
+                            self.assertNotIn("If neither route is usable", packet)
+                            self.assertNotIn("host performs the context clear", packet)
+                        else:
+                            self.assertIn("host performs the context clear", packet)
             state = self._complete_improve(waiting, action, stage)
         self.assertEqual(len(observed), 2 * 2 * len(EXPECTED_INNER))
         self.assertFalse(navigator.render(None, root, state).startswith(prefix))
@@ -304,10 +313,12 @@ class NavigatorV3Tests(unittest.TestCase):
         prefix = "Clear and then execute the prompt.\n"
         for current in (state, waiting):
             navigator.save(root, current)
-            self.assertTrue(self._cold_next(root).startswith(prefix))
+            expected_prefix = (prompts.IMPROVE_INNER_CONTEXT if current.get("active_improve")
+                               else prompts.SERIAL_INNER_CONTEXT)
+            self.assertTrue(self._cold_next(root).startswith(expected_prefix))
             for command in ("pause", "halt"):
                 stopped = navigator.control(current, command, "Synthetic stop")
-                self.assertNotIn(prefix, navigator.render(None, root, stopped))
+                self.assertNotIn(expected_prefix, navigator.render(None, root, stopped))
         blocked_child = navigator.apply(state, action["id"], result(outcome="blocked"))
         blocked = self._complete_improve(blocked_child, action, "select-work")
         self.assertEqual(blocked["status"], "blocked")

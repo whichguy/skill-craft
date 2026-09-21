@@ -1191,7 +1191,9 @@ def render(core: Any, root: Path, state: Mapping[str, Any]) -> str:
         progress_guidance = ""
     lines = []
     if state["navigator_protocol_version"] == 3 and state["status"] == "active" and stage in inner:
-        lines.extend([guidance3.SERIAL_INNER_CONTEXT, ""])
+        context_guidance = (guidance3.IMPROVE_INNER_CONTEXT if state.get("active_improve")
+                            else guidance3.SERIAL_INNER_CONTEXT)
+        lines.extend([context_guidance, ""])
     lines += [
         f"ShipLoop navigator | {stage} | revision {state['revision']}",
         "",
