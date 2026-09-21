@@ -3,6 +3,12 @@
 Read before launching background work. The host owns execution and completion;
 this reference governs the parent conversation, not a new scheduler.
 
+This lifecycle is shared by the helper-managed default and the selected
+consumer-owned route. The latter adds its consumer-specific workspace, owner
+record, recovery, acceptance, and cleanup contract in
+[Consumer-owned workspace](consumer-owned-workspace.md); it does not use helper
+receipts as native lifecycle evidence.
+
 
 Keep a lightweight parent-owned record in the existing task state: task label,
 native handle, assignment, last observed status/update, and result/report plus
@@ -11,6 +17,13 @@ baseline and retained-file/merge/removal state separately, even when labels
 repeat. Native handles control execution; this record is
 for coordination and recovery, not another scheduler. Refresh it from actual
 native events/collection. Do not infer progress from elapsed time or file existence.
+
+For consumer-owned work, the consumer's `host-owner.md` is that durable
+parent-owned coordination record. Append launch intent before dispatch, then
+handles, delegate and stop/collection evidence as known; only the parent writes
+it. An interrupted launch remains possibly launched until native evidence resolves
+ownership, so it blocks a replacement writer. Read the complete consumer route
+before recovery; do not reinterpret a missing record as proof that no worker ran.
 
 While the parent is only waiting, give a concise status about every two minutes
 unless the harness is already providing equivalent visible progress. Summarize
