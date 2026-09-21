@@ -2,6 +2,7 @@
 """Focused offline checks for the native-host trace evaluator."""
 from __future__ import annotations
 
+import copy
 import importlib.util
 import json
 from pathlib import Path
@@ -290,6 +291,157 @@ class NativeHostTraceTests(unittest.TestCase):
         events[-1:-1] = repeated
         result = self.evaluate(events)
         self.assertTrue(result["passed"], result["errors"])
+
+    def background_driver(self, events: list[dict], call_id: str = "driver-finish-all") -> tuple[dict, list[dict]]:
+        call = next(item for item in events if item.get("toolCallId") == call_id and item["type"] == "tool_call")
+        index = next(i for i, item in enumerate(events)
+                     if item.get("toolCallId") == call_id and item["type"] == "tool_call_update")
+        task = "background-" + call_id
+        receipt = {"type": "BackgroundTaskStarted", "task_id": task, "task_type": "bash",
+                   "status": "running", "command": call["rawInput"]["command"]}
+        events[index]["rawOutput"] = receipt
+        completion = [
+            tool_call("collect-" + task, "get_command_or_subagent_output", {"task_ids": [task]}),
+            tool_update("collect-" + task, "completed", {"type": "TaskOutput", "Result": {
+                "task_id": task, "command": receipt["command"], "status": "completed", "exit_code": 0,
+                "output": "{}", "truncated": False}}),
+        ]
+        events[index + 1:index + 1] = completion
+        return receipt, completion
+
+    def test_background_driver_uses_exact_typed_collection(self) -> None:
+        for call_id in ("driver-finish-all", "driver-start-A"):
+            with self.subTest(call_id=call_id):
+                events = valid_events(self.manifest)
+                self.background_driver(events, call_id)
+                result = self.evaluate(events)
+                self.assertTrue(result["passed"], result["errors"])
+
+    def test_background_driver_rejects_missing_misattributed_or_failed_receipt(self) -> None:
+        for mutation in ("missing", "wrong-request", "wrong-row", "wrong-command", "nonzero",
+                         "boolean-exit", "failed", "signal", "timed-out", "wrong-start-command",
+                         "wrong-task-type", "duplicate-owner", "contradictory-completion"):
+            with self.subTest(mutation=mutation):
+                events = valid_events(self.manifest)
+                receipt, completion = self.background_driver(events)
+                row = completion[1]["rawOutput"]["Result"]
+                if mutation == "missing": events = [e for e in events if e not in completion]
+                elif mutation == "wrong-request": completion[0]["rawInput"]["task_ids"] = ["another-task"]
+                elif mutation == "wrong-row": row["task_id"] = "another-task"
+                elif mutation == "wrong-command": row["command"] += " --help"
+                elif mutation == "nonzero": row["exit_code"] = 1
+                elif mutation == "boolean-exit": row["exit_code"] = False
+                elif mutation == "failed": row["status"] = "failed"
+                elif mutation == "signal": row["signal"] = "SIGTERM"
+                elif mutation == "timed-out": row["timed_out"] = True
+                elif mutation == "wrong-start-command": receipt["command"] += " --help"
+                elif mutation == "wrong-task-type": receipt["task_type"] = "subagent"
+                elif mutation == "duplicate-owner":
+                    duplicate = driver(self.manifest, "finish")
+                    for item in duplicate: item["toolCallId"] = "second-finish"
+                    duplicate[1]["rawOutput"] = dict(receipt)
+                    index = events.index(completion[0])
+                    events[index:index] = duplicate
+                else:
+                    repeated = copy.deepcopy(completion)
+                    for item in repeated: item["toolCallId"] += "-conflict"
+                    repeated[1]["rawOutput"]["Result"]["exit_code"] = 1
+                    events[-1:-1] = repeated
+                result = self.evaluate(events)
+                self.assertFalse(result["passed"], mutation)
+                self.assertTrue(any("driver_receipt" in error for error in result["errors"]), result["errors"])
+
+    def test_background_start_must_finish_before_native_spawn(self) -> None:
+        events = valid_events(self.manifest)
+        _, completion = self.background_driver(events, "driver-start-A")
+        events = [event for event in events if event not in completion]
+        after_spawn = next(i for i, event in enumerate(events)
+                           if event.get("toolCallId") == "spawn-B" and event["type"] == "tool_call_update") + 1
+        events[after_spawn:after_spawn] = completion
+        result = self.evaluate(events)
+        self.assertFalse(result["passed"])
+        self.assertIn("start success does not precede native dispatch", "\n".join(result["errors"]))
+
+    def rejected_spawns(self) -> list[dict]:
+        rejected = []
+        for step in ("A", "B"):
+            pair = spawn(self.manifest, step)
+            for item in pair: item["toolCallId"] += "-blocked"
+            pair[1]["status"] = "failed"
+            pair[1].pop("rawOutput")
+            pair[1]["content"] = [{"type": "content", "content": {"type": "text", "text":
+                "Tool `spawn_subagent` was not executed: Auto mode blocked this action (opaque payload). "
+                "Take a safer approach that stays within what the user asked for; do not retry this exact action "
+                "or attempt to work around the denial. If no safer alternative exists, ask the user how to proceed."}}]
+            rejected.extend(pair)
+        return rejected
+
+    def test_explicit_unexecuted_spawn_denials_do_not_count_as_launches(self) -> None:
+        events = valid_events(self.manifest)
+        index = next(i for i, e in enumerate(events) if e.get("toolCallId") == "spawn-A")
+        events[index:index] = self.rejected_spawns()
+        result = self.evaluate(events)
+        self.assertTrue(result["passed"], result["errors"])
+        self.assertEqual(sum(c["name"] == "rejected_dispatch" for c in result["checks"]), 2)
+        events = [e for e in events if e.get("toolCallId") not in {"spawn-A", "spawn-B"}]
+        result = self.evaluate(events)
+        self.assertFalse(result["passed"])
+        self.assertIn("missing typed native dispatch for A", "\n".join(result["errors"]))
+
+    def test_failed_or_ambiguous_spawn_cannot_be_silently_discarded(self) -> None:
+        for mutation in ("unknown-failure", "completed-without-id", "failed-with-id", "pending-only",
+                         "prefix-only", "trailing-text", "multiline-reason", "wrong-tool"):
+            with self.subTest(mutation=mutation):
+                events = valid_events(self.manifest)
+                rejected = self.rejected_spawns()[:2]
+                failed = rejected[1]
+                if mutation == "unknown-failure": failed["content"] = []
+                elif mutation == "completed-without-id": failed["status"] = "completed"
+                elif mutation == "pending-only": failed["status"] = "running"
+                elif mutation == "prefix-only": failed["content"][0]["content"]["text"] = "Tool `spawn_subagent` was not executed: Auto mode blocked this action ("
+                elif mutation == "trailing-text": failed["content"][0]["content"]["text"] += " But the worker may be alive."
+                elif mutation == "multiline-reason": failed["content"][0]["content"]["text"] = failed["content"][0]["content"]["text"].replace("opaque payload", "opaque\npayload")
+                elif mutation == "wrong-tool": failed["content"][0]["content"]["text"] = failed["content"][0]["content"]["text"].replace("spawn_subagent", "write")
+                else: failed["rawOutput"] = {"subagent_id": self.manifest["steps"]["A"]["handle"]}
+                index = next(i for i, e in enumerate(events) if e.get("toolCallId") == "spawn-A")
+                events[index:index] = rejected
+                result = self.evaluate(events)
+                self.assertFalse(result["passed"], mutation)
+                self.assertTrue(any("dispatch" in error for error in result["errors"]), result["errors"])
+
+    def test_spawn_receipt_cannot_select_first_of_conflicting_identifiers(self) -> None:
+        for variant in ("fields", "text"):
+            with self.subTest(variant=variant):
+                events = valid_events(self.manifest)
+                update = next(e for e in events if e.get("toolCallId") == "spawn-A" and e["type"] == "tool_call_update")
+                a, b = (self.manifest["steps"][step]["handle"] for step in ("A", "B"))
+                if variant == "fields":
+                    update["rawOutput"] = {"subagent_id": a, "task_id": b}
+                else:
+                    update["rawOutput"] = {"type": "Text", "text": f"subagent_id: {a}\nsubagent_id: {b}"}
+                result = self.evaluate(events)
+                self.assertFalse(result["passed"])
+                self.assertIn("no unique typed subagent_id receipt", "\n".join(result["errors"]))
+
+    def test_spawn_terminal_replays_require_consistent_evidence(self) -> None:
+        events = valid_events(self.manifest)
+        index = next(i for i, e in enumerate(events) if e.get("toolCallId") == "spawn-A" and e["type"] == "tool_call_update")
+        events.insert(index + 1, copy.deepcopy(events[index]))
+        self.assertTrue(self.evaluate(events)["passed"])
+        for mutation in ("failed-before", "failed-after", "cancelled-after", "completed-no-id", "completed-conflicting-id"):
+            with self.subTest(mutation=mutation):
+                events = valid_events(self.manifest)
+                index = next(i for i, e in enumerate(events) if e.get("toolCallId") == "spawn-A" and e["type"] == "tool_call_update")
+                duplicate = copy.deepcopy(events[index])
+                if mutation.startswith("failed") or mutation == "cancelled-after":
+                    duplicate["status"] = "cancelled" if mutation == "cancelled-after" else "failed"
+                    duplicate.pop("rawOutput")
+                elif mutation == "completed-no-id": duplicate["rawOutput"] = {"type": "Text", "text": "no handle"}
+                else: duplicate["rawOutput"] = {"subagent_id": self.manifest["steps"]["B"]["handle"]}
+                events.insert(index if mutation == "failed-before" else index + 1, duplicate)
+                result = self.evaluate(events)
+                self.assertFalse(result["passed"], mutation)
+                self.assertTrue(any("dispatch" in error for error in result["errors"]), result["errors"])
 
     def test_accepts_typed_four_worker_graph_with_overlap(self) -> None:
         result = self.evaluate(valid_events(self.manifest))

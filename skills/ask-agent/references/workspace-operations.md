@@ -47,6 +47,39 @@ For consumer-owned selection, this same `identity --skill-card` output is
 package identity only. It does not create or validate a consumer workspace,
 receipt, delivery mode, or ownership record.
 
+## Machine capability contract
+
+A machine coordinator that needs to confirm this selected package's managed
+worktree interface may use the same absolute card binding before it records any
+workspace state:
+
+```sh
+python3 "$WORKSPACE_HELPER" capabilities --skill-card "$SKILL_CARD"
+```
+
+`capabilities` first runs the same package proof as `identity`; an outside,
+relative, missing, malformed, or mismatched card fails. On success it writes no
+state, workspace, receipt, branch, or result and emits exactly this object,
+with `version` copied from the verified selected card:
+
+```json
+{
+  "schema": "shiploop-chain-ask-agent-managed-worktree/v1",
+  "version": "verified selected card version",
+  "capabilities": [
+    "helper-managed-worktree",
+    "prepared-inspection",
+    "returned-commit-delivery",
+    "fingerprint-bound-close"
+  ]
+}
+```
+
+This is a machine declaration of the packaged helper interface. This Markdown
+reference remains the behavioral instruction for preparation, inspection,
+delivery, acceptance, and close. The declaration does not grant retirement,
+new discard authority, integration authority, or any other cleanup policy.
+
 The paths below are placeholders. Substitute actual receipt values. Keep prompts
 in native launch arguments; the helper's JSON files are Git/acceptance evidence,
 not a prompt transport or another job queue.
@@ -78,6 +111,14 @@ receipt path. Do not launch on a nonzero exit or unsuccessful preparation.
 A same-attempt delivery retry can validate its existing preparation with
 `prepare --receipt /actual/receipt.json --writers-quiescent`. A fresh delegation gets a fresh
 preparation. Do not reuse a workspace by matching its task label.
+
+An orchestrating parent may run identity, preparation and prepared inspection
+before recording its own start/launch grant. Carry that exact receipt and
+package identity across the grant and launch the native worker directly with
+the already-prepared workspace. Require the orchestrator's frozen workspace,
+receipt worktree and worker's observed Git root to agree. Do not re-enter
+`prepare --source` after the grant or request another native-created worktree.
+Recovery reuses the same attempt's receipt; a new attempt prepares afresh.
 
 ```sh
 python3 "$WORKSPACE_HELPER" inspect \

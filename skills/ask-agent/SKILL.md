@@ -120,6 +120,20 @@ reference instead.
    an empty/default-branch checkout. An explicit ban on all filesystem writes
    also prohibits setup; an ordinary review permits isolated setup and reports.
 
+   Orchestrated Git work requires this managed 0.6+ flow. The parent checks the
+   selected helper's `capabilities --skill-card` response and `identity` before
+   preparation; an older caller-worktree contract or an unsupported newer helper
+   is not a fallback. Serial orchestration uses the same workspace helper while
+   executing the bounded task in the main context instead of launching a worker.
+
+   A coordinating Dispatcher or ShipLoop parent may perform this preparation
+   before freezing its execution context. Continue that same attempt with the
+   selected package identity and verified receipt it already recorded; compare
+   the receipt's worktree with the frozen context workspace. Do not run a second
+   fresh preparation when the parent grants native launch. This is continuation
+   of this skill's preparation, not adoption of an arbitrary caller-created
+   worktree. A different attempt requires a fresh receipt.
+
 2. **Give a fresh worker a complete assignment.** Put the objective, relevant
    inputs, allowed actions, expected output, recorded package identity (logical
    card, resolved card/helper, version, and card/helper SHA-256 values), and the filled
@@ -173,6 +187,9 @@ reference instead.
    does not establish another worker's completion or acceptance. The
    helper retains work without valid acceptance. Keep blocked or cancelled work
    and give its next action. Use retained artifact paths after cleanup.
+   Under a dependency dispatcher, settle the verified attempt and refill safe
+   ready capacity before cleanup; retain this receipt as cleanup-pending until
+   its owning helper confirms close. A cleanup refusal does not undo acceptance.
 
 ## Result and continuation by route
 

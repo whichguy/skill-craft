@@ -5,7 +5,7 @@ description: >-
   script's current action packet, and submit its exact completion call until
   the script reports completion with an HTML achievement report. Use when the
   user says shiploop, ship the project, or requests a durable delivery loop.
-version: 0.18.16
+version: 0.18.17
 allowed-tools: all
 license: MIT
 platforms:
@@ -438,12 +438,14 @@ step, infer a launch from a recovered packet, or finish from an empty ready list
 describes graph acceptance only. Supply actual readiness, capacity and
 verification facts; if they prevent an offered action, retain that blocker rather
 than inventing a transition.
-Ask-Agent creates each parallel worker worktree; the bridge verifies and adopts
-that workspace rather than creating another. New per-step chains require the
-selected Ask-Agent 0.4 contract. Each new worker starts from the invoking branch's
-current integrated HEAD. Workers keep results inside their checkout; the parent
-imports and archives them, prepares and checks the combination, merges it into
-the invoking checkout, accepts the step, then removes the worker worktree.
+Every new chain requires Ask-Agent 0.6 or newer with the declared managed-workspace
+capabilities and matching helper identity. Both parallel and serial preparation
+use that selected helper; caller-prepared worktrees and the 0.4 flow are not
+supported. Each step starts from the invoking branch's current integrated HEAD.
+The parent imports and archives worker-local results, prepares and checks the
+combination, merges it into the invoking checkout and accepts the exact attempt.
+It refills safe ready capacity before asking the receipt owner to close accepted
+workspaces. A higher package version alone does not establish compatibility.
 Choose `chain bind --mode serial` to execute one dependency-ready step at a time
 in the main context with no agent dispatch; default parallel mode uses native
 Ask-Agent. Serial start atomically records local ownership before issuing an
@@ -471,7 +473,11 @@ work nor repairs state. Both take `--run-dir` and `--action` without an input fi
 Keep combined main-conversation status from actual execution observations and
 dispatcher state; progress reports never accept work or release dependencies.
 This does not parallelize whole work-item lifecycles or migrate existing runs.
-Existing v1/v2 chain bindings retain final-return semantics. A cleanup failure
+Bindings created before binding schema v6 remain diagnostic evidence, not
+execution routes. This includes earlier managed 0.6 bindings that lack the new
+capability proof; binding schema and Ask-Agent version are separate identifiers.
+Preserve their workspaces and start a newly reviewed managed chain rather than
+rebinding them. A cleanup failure
 leaves the step accepted and must be resolved without executing its work again.
 Final completion requires all contributions integrated and owned worker cleanup
 complete. Keep dirty targets, conflicts and unknown files as explicit blockers.

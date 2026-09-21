@@ -1,5 +1,5 @@
 {
-  "purpose": "Frozen Ask-Agent 0.4 contract fixture for chain adapter tests; not a released package or native execution proof",
+  "purpose": "Frozen retired Ask-Agent 0.4 fixture for rejection and historical inspection tests only; never a supported execution package or native execution proof",
   "source": "Selected working Ask-Agent contribution in skill-craft, inspected 2026-09-19",
   "version": "0.4.0",
   "files_sha256": {

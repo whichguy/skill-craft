@@ -10,6 +10,7 @@ from __future__ import annotations
 import hashlib
 import importlib.util
 import json
+import os
 from pathlib import Path
 import re
 import selectors
@@ -23,8 +24,14 @@ from unittest.mock import patch
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS = ROOT / "skills" / "shiploop" / "scripts"
 CLI = SCRIPTS / "shiploop"
-ASK = ROOT / "test" / "fixtures" / "ask-agent-v04"
 WORKER = ROOT / "test" / "fixtures" / "chain-planning-context-worker.py"
+MANAGED_WORKTREE_SCHEMA = "shiploop-chain-ask-agent-managed-worktree/v1"
+MANAGED_WORKTREE_CAPABILITIES = [
+    "helper-managed-worktree",
+    "prepared-inspection",
+    "returned-commit-delivery",
+    "fingerprint-bound-close",
+]
 GUIDANCE_ROUTES = {
     "Coding decision guide": "coding-guidance.md#select-guidance",
     "Repeatable test-suite guide": "repeatable-test-suites.md#select-or-revalidate-the-harness",
@@ -52,9 +59,6 @@ class PlanningContextChainTests(unittest.TestCase):
         self.addCleanup(test.doCleanups)
         test.setUp()
         test.select_dispatcher(fixture.CONTEXT_FIXTURE)
-        test.assert_fixture(ASK)
-        shutil.rmtree(test.ask)
-        shutil.copytree(ASK, test.ask)
         return test
 
     def stop_context_worker(self, process: subprocess.Popen[str]) -> None:
@@ -80,6 +84,63 @@ class PlanningContextChainTests(unittest.TestCase):
         if capacity is not None:
             extra += ["--capacity", str(capacity)]
         return test.call("bind", ok=ok, extra=tuple(extra))
+
+    def managed_identity(self, test) -> dict:
+        card = test.ask / "SKILL.md"
+        helper = test.ask / "scripts" / "ask_agent_workspace.py"
+        version = re.search(r"(?m)^version:\s*([0-9]+\.[0-9]+\.[0-9]+)\s*$", card.read_text())
+        self.assertIsNotNone(version)
+        result = subprocess.run(
+            [sys.executable, "-B", str(helper), "identity", "--skill-card", str(card)],
+            text=True, capture_output=True, timeout=30,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+        identity = json.loads(result.stdout)
+        self.assertEqual(identity, {
+            "status": "verified",
+            "schema": "ask-agent.skill.identity.v1",
+            "skill_card": str(card),
+            "resolved_skill_card": str(card.resolve()),
+            "resolved_helper": str(helper.resolve()),
+            "version": version.group(1),
+            "skill_card_sha256": digest(card.resolve()),
+            "helper_sha256": digest(helper.resolve()),
+        })
+        return identity
+
+    def managed_capabilities(self, test) -> dict:
+        card = test.ask / "SKILL.md"
+        helper = test.ask / "scripts" / "ask_agent_workspace.py"
+        identity = self.managed_identity(test)
+        result = subprocess.run(
+            [sys.executable, "-B", str(helper), "capabilities", "--skill-card", str(card)],
+            text=True, capture_output=True, timeout=30,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+        declared = json.loads(result.stdout)
+        self.assertEqual(declared, {
+            "schema": MANAGED_WORKTREE_SCHEMA,
+            "version": identity["version"],
+            "capabilities": MANAGED_WORKTREE_CAPABILITIES,
+        })
+        return declared
+
+    def assert_managed_binding(self, test, binding: dict) -> None:
+        identity = self.managed_identity(test)
+        self.assertEqual(binding["schema"], "shiploop-chain-binding/v6")
+        self.assertEqual(binding["lifecycle"], "per-step")
+        self.assertEqual(binding["ask_agent_contract"], self.managed_capabilities(test))
+        self.assertEqual(binding["ask_agent_identity"], {
+            "schema": "shiploop-chain-ask-agent-identity/v1",
+            "method": "helper-v1",
+            "logical_skill_card": identity["skill_card"],
+            "resolved_skill_card": identity["resolved_skill_card"],
+            "resolved_helper": identity["resolved_helper"],
+            "version": identity["version"],
+            "skill_card_sha256": identity["skill_card_sha256"],
+            "helper_sha256": identity["helper_sha256"],
+        })
+        self.assertIn("scripts/ask_agent_workspace.py", binding["ask_agent"]["files"])
 
     def planning_inputs(self, test):
         command = [
@@ -169,19 +230,55 @@ class PlanningContextChainTests(unittest.TestCase):
         response = test.call("claim", {"steps": list(steps)})
         return {row["step"]: row["attempt"] for row in response["claims"]}
 
+    def assert_managed_workspace(self, test, packet: dict, value: dict, *, serial: bool) -> None:
+        attempt = packet["attempt"]
+        self.assertNotIn("workspace", value)
+        rows = fixture.chain._events(test.run / "chains" / test.action)
+        allocation = fixture.chain._per_step_allocation(rows, attempt)
+        self.assertEqual(allocation["adoption"], "ask-agent-managed-workspace")
+        managed = allocation["ask_agent_workspace"]
+        self.assertEqual(packet["context"]["workspace"], managed["worktree"])
+        self.assertEqual(packet["ask_agent_workspace"]["receipt"], managed["receipt"])
+        self.assertEqual(packet["ask_agent_workspace"]["worktree"], managed["worktree"])
+        self.assertEqual(packet["ask_agent_workspace"]["branch"], managed["branch"])
+        self.assertEqual(packet["ask_agent_workspace"]["delivery"], {
+            "mode": "commits",
+            "commit_base": value["base_commit"],
+            "require_complete_linear_range": True,
+            "discard": [".shiploop-handoff/" + attempt],
+        })
+        workspace = Path(packet["context"]["workspace"])
+        self.assertTrue(workspace.is_dir())
+        self.assertTrue(workspace.is_relative_to(test.parent / "ask-agent"))
+        if serial:
+            record = test.child_record(attempt)
+            self.assertIsNone(record["handle"])
+            self.assertEqual(record["executor"], packet["executor"])
+            self.assertEqual(packet["executor"]["kind"], "main-context")
+            self.assertNotIn("native_handle", packet)
+
+    def check_managed_context(self, packet: dict) -> dict:
+        context = packet["ask_agent_workspace"]["check_context"]
+        self.assertEqual(context["cwd"], packet["context"]["workspace"])
+        environment = {key: value for key, value in os.environ.items() if not key.startswith("GIT_")}
+        result = subprocess.run(
+            context["argv"], cwd=context["cwd"], env=environment,
+            text=True, capture_output=True, timeout=30,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+        checked = json.loads(result.stdout)
+        self.assertEqual(checked["status"], "verified")
+        self.assertEqual(checked["worktree"], context["cwd"])
+        return checked
+
     def start_parallel(self, test, step: str, attempt: str, write_scope: list[str]):
         value = test.start_value(step, attempt, base=test.git(test.target, "rev-parse", "HEAD"))
         value["write_scope"] = write_scope
-        requested = test.call("start", value)
-        self.assertEqual(requested["action"], "prepare-workspace")
-        workspace = test.parent / ("ask-agent-" + attempt)
-        test.git(test.target, "worktree", "add", "-q", "-b", "ask-agent/" + attempt,
-                 str(workspace), value["base_commit"])
-        value["workspace"] = str(workspace)
         output = test.call("start", value)
         self.assertEqual(output["action"], "launch")
         packet = output["packet"]
         test.packets[step] = packet
+        self.assert_managed_workspace(test, packet, value, serial=False)
         test.call("launched", {"attempt": attempt, "handle": {
             "host": "planning-context-fixture", "id": step,
         }})
@@ -192,8 +289,10 @@ class PlanningContextChainTests(unittest.TestCase):
         value["write_scope"] = write_scope
         output = test.call("start", value)
         self.assertEqual(output["action"], "execute")
-        test.packets[step] = output["packet"]
-        return output["packet"]
+        packet = output["packet"]
+        test.packets[step] = packet
+        self.assert_managed_workspace(test, packet, value, serial=True)
+        return packet
 
     def read_json_line(self, process: subprocess.Popen[str]) -> dict:
         assert process.stdout is not None and process.stderr is not None
@@ -207,6 +306,7 @@ class PlanningContextChainTests(unittest.TestCase):
 
     def launch_context_worker(self, test, step: str):
         packet = test.packets[step]
+        self.check_managed_context(packet)
         assignment = {
             "step": step,
             "run_id": packet["run_id"],
@@ -318,11 +418,17 @@ class PlanningContextChainTests(unittest.TestCase):
             nested.doCleanups()
 
     def collect(self, test, step: str, result: dict):
-        return test.call("import-handoff", {
+        imported = test.call("import-handoff", {
             "attempt": test.packets[step]["attempt"],
             "confirmed_stopped": True,
             "handoff": {"path": result["handoff"], "sha256": result["sha256"]},
         })
+        delivery = imported["ask_agent_delivery"]
+        self.assertEqual(delivery["attempt"], test.packets[step]["attempt"])
+        self.assertEqual(delivery["source_commit"], result["commit"])
+        self.assertEqual(delivery["workspace"], test.packets[step]["context"]["workspace"])
+        self.assertEqual(delivery["commits"][-1], result["commit"])
+        return imported
 
     def verify_context_code(self, workspace: Path, step: str) -> None:
         checks = {
@@ -336,9 +442,10 @@ class PlanningContextChainTests(unittest.TestCase):
 
     def prepare_and_accept(self, test, step: str):
         attempt = test.packets[step]["attempt"]
+        workspace = Path(test.packets[step]["context"]["workspace"])
         prepared = test.call("prepare", {"attempt": attempt, "confirmed_stopped": True})
         integration = prepared["integration"]
-        self.verify_context_code(Path(test.packets[step]["context"]["workspace"]), step)
+        self.verify_context_code(workspace, step)
         binding, _context, _manifest = self.binding_and_manifest(test)
         receipt = fixture.chain._node(binding, "receipt", {"attempt": attempt})
         proof = test.write("context-verified-" + step + ".json", {
@@ -360,7 +467,17 @@ class PlanningContextChainTests(unittest.TestCase):
         accepted = test.call("done", value)
         self.assertEqual(accepted["outcome"], "accepted")
         self.assertEqual(test.git(test.target, "rev-parse", "HEAD"), integration["candidate_commit"])
-        self.assertFalse(Path(test.packets[step]["context"]["workspace"]).exists())
+        self.assertEqual(accepted["cleanup"], {
+            "attempt": attempt,
+            "cleanup": None,
+            "pending": True,
+            "deferred": True,
+        })
+        self.assertTrue(workspace.exists())
+        cleaned = test.call("cleanup", {"attempt": attempt, "confirmed_stopped": True})
+        self.assertFalse(cleaned["pending"])
+        self.assertEqual(cleaned["cleanup"]["close"]["status"], "closed")
+        self.assertFalse(workspace.exists())
         return accepted
 
     def test_readonly_inventory_and_bind_freeze_consolidated_planning_material(self) -> None:
@@ -382,7 +499,7 @@ class PlanningContextChainTests(unittest.TestCase):
 
         bound = self.bind(self.f)
         binding, context, manifest = self.binding_and_manifest(self.f)
-        self.assertEqual(binding["schema"], "shiploop-chain-binding/v4")
+        self.assert_managed_binding(self.f, binding)
         self.assertEqual(bound["planning_context"], context)
         self.assertEqual(manifest["schema"], "shiploop-planning-artifacts/v1")
         self.assertEqual(manifest["source"]["run_id"], self.f.state["run_id"])
@@ -517,31 +634,25 @@ class PlanningContextChainTests(unittest.TestCase):
             self.assertEqual(cold, packet)
             self.assert_worker_guidance(cold, selected)
 
-    def test_current_final_return_guidance_survives_parallel_and_serial_recovery(self) -> None:
+    def test_fresh_final_return_binding_is_refused_before_writes(self) -> None:
         for mode in ("parallel", "serial"):
             with self.subTest(mode=mode):
                 test = self.new_fixture()
-                self.bind(test, mode=mode, capacity=1, lifecycle="final-return")
-                claimed = test.call("claim", {"steps": ["A"]})
-                # Parallel claim previews are readiness data, not launch
-                # payloads. The serial claim path decorates its own previews.
-                if mode == "serial":
-                    for packet in claimed.get("packets", []):
-                        self.assert_worker_guidance(packet)
-                attempt = claimed["claims"][0]["attempt"]
-                started = test.start("A", attempt) if mode == "parallel" else test.serial_start("A", attempt)
-                packet = started["packet"]
-                self.assertIn("planning_context", packet)
-                self.assert_worker_guidance(packet)
-                cold = test.call("packet", {"attempt": attempt})["packet"]
-                self.assert_worker_guidance(cold)
-                for key in ("task", "definition_of_ready", "definition_of_done", "planning_context"):
-                    self.assertEqual(cold[key], packet[key])
+                before = test.run_bytes()
+                head = test.git(test.target, "rev-parse", "HEAD")
+                worktrees = test.git(test.primary, "worktree", "list", "--porcelain")
+                refused = self.bind(test, mode=mode, capacity=1, lifecycle="final-return", ok=False)
+                self.assertRegex(refused.stderr.lower(), r"managed|per-step|final-return")
+                self.assertEqual(test.run_bytes(), before)
+                self.assertEqual(test.git(test.target, "rev-parse", "HEAD"), head)
+                self.assertEqual(test.git(test.primary, "worktree", "list", "--porcelain"), worktrees)
+                self.assertFalse((test.run / "chains").exists())
 
     def test_consumer_fixture_stops_before_edits_when_guidance_is_unavailable(self) -> None:
         self.bind(self.f, mode="serial", capacity=1)
         attempt = self.claim(self.f, "A")["A"]
         packet = self.start_serial(self.f, "A", attempt, ["context_alpha.py"])
+        self.check_managed_context(packet)
         self.assert_worker_guidance(packet)
         prefix = "Coding decision guide: "
         packet["instructions"] = [
@@ -843,7 +954,7 @@ class PlanningContextChainTests(unittest.TestCase):
                 self.assertIn("import", refused.stderr.lower())
                 self.assertEqual(blocked.run_bytes(), before)
 
-    def test_old_helper_refusal_and_existing_v1_binding_recovery(self) -> None:
+    def test_legacy_dispatcher_refusal_and_existing_v1_binding_is_readonly(self) -> None:
         context_only = self.new_fixture()
         context_helper = context_only.dispatcher / "scripts" / "dispatch.js"
         context_helper.write_text(context_helper.read_text().replace(
@@ -864,7 +975,7 @@ class PlanningContextChainTests(unittest.TestCase):
             "--mode", "parallel", "--lifecycle", "per-step",
         )
         refused = old.call("bind", ok=False, extra=extra)
-        self.assertIn("does not support planning_context", refused.stderr)
+        self.assertIn("cannot resolve dispatcher scripts/planning-context.js", refused.stderr)
         self.assertEqual(old.run_bytes(), before)
         self.assertFalse((old.run / "chains").exists())
 
@@ -912,17 +1023,16 @@ class PlanningContextChainTests(unittest.TestCase):
         fixture.nav.save(legacy.run, state, {
             str((chain_dir / "binding.md").relative_to(legacy.run)): raw,
         })
-        recovered = legacy.call("recover")
-        self.assertNotIn("planning_context", recovered)
-        self.assertEqual(recovered["ready"], ["A", "B"])
-        self.assertEqual(recovered["shiploop_chain"]["lifecycle"], "final-return")
-        attempt = self.claim(legacy, "A")["A"]
-        packet = legacy.start("A", attempt)["packet"]
-        self.assertNotIn("planning_context", packet)
-        self.assert_worker_guidance(packet)
-        cold = legacy.call("packet", {"attempt": attempt})["packet"]
-        self.assert_worker_guidance(cold)
-        self.assertEqual(cold["task"], packet["task"])
+        before = legacy.run_bytes()
+        head = legacy.git(legacy.target, "rev-parse", "HEAD")
+        worktrees = legacy.git(legacy.primary, "worktree", "list", "--porcelain")
+        history = legacy.call("history")
+        pending = legacy.call("pending")
+        self.assertIsInstance(history, dict)
+        self.assertIsInstance(pending, dict)
+        self.assertEqual(legacy.run_bytes(), before)
+        self.assertEqual(legacy.git(legacy.target, "rev-parse", "HEAD"), head)
+        self.assertEqual(legacy.git(legacy.primary, "worktree", "list", "--porcelain"), worktrees)
 
 
 if __name__ == "__main__":

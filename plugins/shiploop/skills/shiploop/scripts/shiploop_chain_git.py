@@ -1252,6 +1252,21 @@ def _require_worker_instance_for_cleanup(plan: Mapping[str, Any]) -> None:
         )
 
 
+def inspect_integrated_worker(plan: Mapping[str, Any], integrated_commit: str) -> Dict[str, Any]:
+    """Prove that closing this worker would remove only the accepted candidate.
+
+    An integration attestation cannot authorize a newer worker HEAD or extra
+    files, even if a managed helper can archive or force-remove those files.
+    The target may have advanced through another accepted contribution.
+    """
+    normalized = _per_step_plan(plan)
+    _require_worker_instance_for_cleanup(normalized)
+    _target, integrated = _integrated_target(normalized, integrated_commit)
+    proof = inspect_contribution(normalized, integrated)
+    _assert_no_ignored_paths(Path(proof["identity"]["repo"]))
+    return proof
+
+
 def inspect_removed(plan: Mapping[str, Any], integrated_commit: str) -> Dict[str, Any]:
     """Prove an already-recorded cleanup left no reusable worker allocation."""
     normalized = _per_step_plan(plan)

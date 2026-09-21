@@ -30,8 +30,8 @@ bash test/shiploop.test.sh --shard 1/3 --list
 
 The default is `--group all`. `core` covers packaging, installation, and
 contract-fixture tests without an installed host. `smoke` runs that full core
-group plus six selected ShipLoop suites: `no-model-launch`, `navigator-v3`,
-`packet-bounds`, `navigator-dry-run`, `graph-driver`, and `graph-trace`.
+group plus seven selected ShipLoop suites: `no-model-launch`, `navigator-v3`,
+`packet-bounds`, `navigator-dry-run`, `chain-async`, `graph-driver`, and `graph-trace`.
 It is a fast partial signal, not a replacement for the full suite. `shiploop`
 runs the complete ShipLoop suite and exactly one action walk. `all` is the
 stable complete hermetic aggregate of `core` and `shiploop`. The legacy direct
@@ -46,7 +46,7 @@ It is not part of the aggregate; the `shiploop` group owns the action walk once.
 `test/shiploop.test.sh` owns one ordered ShipLoop inventory. Its no-argument
 form remains the complete serial runner. `--list` prints only the selected
 inventory and does not run synchronization or a test. `--smoke` selects the
-same six suites listed above from that canonical inventory; `--smoke --list` is
+same seven suites listed above from that canonical inventory; `--smoke --list` is
 the fastest way to inspect the subset. `--smoke` and `--shard` are mutually
 exclusive. `--shard 1/3`, `2/3`, or `3/3` selects every third suite from the
 same order, so the three inventories are disjoint and contain the action walk
@@ -76,6 +76,33 @@ fixtures, not native/model agents. `shiploop-chain-handoff.test.py` covers local
 result preservation and hostile-path/replay controls. Both are in the full
 ShipLoop inventory. Use the [native pilot](experiments/shiploop_chain/README.md)
 for separate qualification with actual Ask-Agent contexts and completion events.
+
+New execution cases use the source Ask-Agent 0.6+ managed helper with real sibling
+worktrees and immutable receipts. They exercise both return orders, stale combined
+verification after target movement, successor launch before accepted-worker
+cleanup, replay/retry fencing, and cleanup recovery with late worker changes.
+Serial execution uses that same preparation and cleanup contract in the main
+context, without a native handle. Retired 0.4 and final-return fixtures are only
+used to check rejection or read-only historical inspection. Capability and
+identity checks establish compatibility; package version and Markdown wording
+alone do not.
+Managed `done` returns acceptance and ready actions first; the parent then uses
+the existing cleanup callback. `shiploop-chain-git.test.py` separately checks that
+an integrated-worker inspection rejects a newer HEAD, dirty or ignored files, and
+replacement worktree identities without removing them. Each case owns and tears
+down its disposable repositories; these are full-suite members, not live-host
+notification evidence.
+
+`python3 -B test/shiploop-chain-async.test.py` adds concurrent public-CLI
+callbacks to those real-Git fixtures: competing completions, duplicate import,
+acceptance and cleanup, wrong-attempt results, and callbacks invoked from a
+different working directory. Each case owns its repositories, worker processes,
+callback processes and pipe barriers; teardown stops remaining children before
+removing fixture directories. It verifies the initiating linked checkout, source
+commit ancestry, immutable event history, and both filesystem and Git worktree
+cleanup. The suite belongs to **smoke and full/sharded** inventories, so routine
+PR CI exercises this boundary. Native host completion delivery remains a separate
+opt-in qualification. See the [asynchronous test plan](../docs/async-orchestrator-test-plan-2026-09-20.md).
 
 Planning-material transport has two focused suites:
 

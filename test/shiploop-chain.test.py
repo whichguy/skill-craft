@@ -159,6 +159,7 @@ class ChainIntegrationTests(unittest.TestCase):
             for name, deps in (("A", []), ("B", []), ("C", ["A"]), ("J", ["B", "C"]))
         ]})
         self.packets = {}
+        self.import_inputs = {}
         self.commits = {}
         self.counter = 0
 
@@ -256,7 +257,7 @@ class ChainIntegrationTests(unittest.TestCase):
     def bind(self, capacity=2, *, mode=None, ok=True):
         extra = ["--graph", str(self.graph), "--dispatcher-skill", str(self.dispatcher / "SKILL.md"),
                  "--ask-agent-skill", str(self.ask / "SKILL.md"), "--worktree-parent", str(self.parent),
-                 "--lifecycle", "final-return"]
+                 "--lifecycle", "per-step"]
         if mode is not None:
             extra += ["--mode", mode]
         if capacity is not None:
@@ -268,75 +269,135 @@ class ChainIntegrationTests(unittest.TestCase):
         return {c["step"]: c["attempt"] for c in output["claims"]}
 
     def start_value(self, step, attempt, base=None, resources=None, integration=False):
+        del integration
         ready = self.write(f"ready-{attempt}.json", {"ready": True, "synthetic": True})
-        value = {"attempt": attempt, "base_commit": base or self.initial,
-                 "write_scope": ["A.txt", "B.txt", "C.txt"] if integration else [step + ".txt"],
+        value = {"attempt": attempt, "base_commit": base or self.git(self.target, "rev-parse", "HEAD"),
+                 "write_scope": [step + ".txt"],
                  "resources": resources or [], "ready_evidence": {"path": str(ready), "sha256": digest(ready)}}
-        if integration:
-            value["integration"] = True
         return value
 
     def start(self, step, attempt, base=None, resources=None, integration=False):
         value = self.start_value(step, attempt, base, resources, integration)
+        self.assertNotIn("workspace", value)
         output = self.call("start", value)
         self.assertEqual(output["action"], "launch")
         self.packets[step] = output["packet"]
+        self.assertEqual(output["packet"]["ask_agent_workspace"]["worktree"],
+                         output["packet"]["context"]["workspace"])
         self.call("launched", {"attempt": attempt, "handle": {"host": "synthetic", "id": step}})
         return output
 
     def serial_start(self, step, attempt, base=None, resources=None, integration=False):
         value = self.start_value(step, attempt, base, resources, integration)
+        self.assertNotIn("workspace", value)
         output = self.call("start", value)
         self.assertEqual(output["action"], "execute")
         self.packets[step] = output["packet"]
+        self.assertEqual(output["packet"]["ask_agent_workspace"]["worktree"],
+                         output["packet"]["context"]["workspace"])
+        self.assertEqual(output["packet"]["executor"]["kind"], "main-context")
         return output
 
     def contribute(self, step, *, integration=False):
         packet = self.packets[step]
         repo = Path(packet["context"]["workspace"])
+        # Each managed worker starts from the already-integrated target head.
+        # The old final-return join worker merged siblings itself; the managed
+        # per-step path carries those accepted commits in this inherited base.
         if integration:
-            for dependency in ("B", "C"):
-                self.git(repo, "merge", "--no-ff", "-m", "Integrate " + dependency, self.commits[dependency])
             for expected in ("A", "B", "C"):
                 self.assertEqual((repo / (expected + ".txt")).read_text(), expected + "\n")
-        else:
-            (repo / (step + ".txt")).write_text(step + "\n")
-            self.git(repo, "add", step + ".txt")
-            self.git(repo, "commit", "-qm", "Implement " + step)
-        commit = self.git(repo, "rev-parse", "HEAD")
-        self.commits[step] = commit
-        artifact = Path(packet["outputs"]["artifact"])
-        artifact.write_text(json.dumps({"commit": commit, "checks": ["fixture contents verified"], "synthetic_native": True}) + "\n")
-        envelope = dict(packet["report_envelope"])
-        envelope["status"] = "SUCCEEDED"
-        envelope["evidence"] = {"path": str(artifact), "sha256": digest(artifact)}
-        Path(packet["outputs"]["envelope"]).write_text(json.dumps(envelope) + "\n")
-        p = subprocess.run(packet["report_argv"], text=True, capture_output=True, timeout=30)
-        self.assertEqual(p.returncode, 0, p.stderr)
-        receipt = json.loads(p.stdout)
-        proof = self.write(f"verified-{step}.json", {"commit": commit, "passed": True,
-             "native_stopped": "synthetic fixture attestation", "checks": ["file contents and ancestry"]})
-        return {"attempt": packet["attempt"], "confirmed_stopped": True,
-                "verification": {"receipt_sha256": receipt["sha256"], "passed": True,
-                  "reason": "Independent fixture checks", "evidence": {"path": str(proof), "sha256": digest(proof)}}}
+        (repo / (step + ".txt")).write_text(step + "\n")
+        self.git(repo, "add", step + ".txt")
+        self.git(repo, "commit", "-qm", "Implement " + step)
+        source_commit = self.git(repo, "rev-parse", "HEAD")
+        handoff_root = repo / ".shiploop-handoff" / packet["attempt"]
+        handoff_root.mkdir(parents=True, exist_ok=True)
+        checks = handoff_root / "checks.json"
+        checks.write_text(json.dumps({
+            "passed": True, "cwd": str(repo), "git_root": str(repo), "commit": source_commit,
+            "synthetic_managed_worker": True,
+        }) + "\n")
+        handoff = handoff_root / "handoff.json"
+        handoff.write_text(json.dumps({
+            "schema": "shiploop-chain-handoff/v1", "run_id": packet["run_id"],
+            "step": step, "attempt": packet["attempt"],
+            "base_commit": packet["context"]["base_commit"], "status": "SUCCEEDED",
+            "commit": source_commit, "summary": "Managed fixture implemented " + step,
+            "files": [{"path": "checks.json", "sha256": digest(checks)}],
+        }) + "\n")
+        import_value = {
+            "attempt": packet["attempt"], "confirmed_stopped": True,
+            "handoff": {"path": str(handoff), "sha256": digest(handoff)},
+        }
+        self.import_inputs[step] = json.loads(json.dumps(import_value))
+        imported = self.call("import-handoff", import_value)
+        self.assertEqual(imported["import"]["status"], "SUCCEEDED")
+        prepared = self.call("prepare", {"attempt": packet["attempt"], "confirmed_stopped": True})
+        integration_proof = prepared["integration"]
+        self.commits[step] = integration_proof["candidate_commit"]
+        binding = store.read_record(self.run / "chains" / self.action / "binding.md")
+        receipt = chain._node(binding, "receipt", {"attempt": packet["attempt"]})
+        proof = self.write(f"verified-{step}.json", {
+            "commit": integration_proof["candidate_commit"], "passed": True,
+            "integration": integration_proof,
+            "checks": ["managed handoff, inherited source ancestry, and candidate integration"],
+        })
+        return {
+            "attempt": packet["attempt"], "confirmed_stopped": True,
+            "integration": integration_proof,
+            "verification": {
+                "receipt_sha256": receipt["sha256"], "passed": True,
+                "reason": "Independent fixture checks",
+                "evidence": {"path": str(proof), "sha256": digest(proof)},
+            },
+        }
 
     def reject_contribution(self, step, status):
         self.assertIn(status, {"FAILED", "BLOCKED"})
         packet = self.packets[step]
-        artifact = Path(packet["outputs"]["artifact"])
-        artifact.write_text(json.dumps({"status": status, "checks": ["synthetic failure fixture"]}) + "\n")
-        envelope = dict(packet["report_envelope"])
-        envelope["status"] = status
-        envelope["evidence"] = {"path": str(artifact), "sha256": digest(artifact)}
-        Path(packet["outputs"]["envelope"]).write_text(json.dumps(envelope) + "\n")
-        report = subprocess.run(packet["report_argv"], text=True, capture_output=True, timeout=30)
-        self.assertEqual(report.returncode, 0, report.stderr)
-        receipt = json.loads(report.stdout)
+        repo = Path(packet["context"]["workspace"])
+        handoff_root = repo / ".shiploop-handoff" / packet["attempt"]
+        handoff_root.mkdir(parents=True, exist_ok=True)
+        detail = handoff_root / "detail.json"
+        detail.write_text(json.dumps({"status": status, "stopped": True, "synthetic_managed_worker": True}) + "\n")
+        handoff = handoff_root / "handoff.json"
+        handoff.write_text(json.dumps({
+            "schema": "shiploop-chain-handoff/v1", "run_id": packet["run_id"],
+            "step": step, "attempt": packet["attempt"],
+            "base_commit": packet["context"]["base_commit"], "status": status, "commit": None,
+            "summary": "Managed fixture " + status.lower(),
+            "files": [{"path": "detail.json", "sha256": digest(detail)}],
+        }) + "\n")
+        imported = self.call("import-handoff", {
+            "attempt": packet["attempt"], "confirmed_stopped": True,
+            "handoff": {"path": str(handoff), "sha256": digest(handoff)},
+        })
+        self.assertEqual(imported["import"]["status"], status)
+        binding = store.read_record(self.run / "chains" / self.action / "binding.md")
+        receipt = chain._node(binding, "receipt", {"attempt": packet["attempt"]})
         proof = self.write(f"rejected-{step}-{status}.json", {"passed": False, "status": status})
-        return {"attempt": packet["attempt"], "confirmed_stopped": True,
-                "verification": {"receipt_sha256": receipt["sha256"], "passed": False,
-                  "reason": "Synthetic " + status.lower(),
-                  "evidence": {"path": str(proof), "sha256": digest(proof)}}}
+        return {
+            "attempt": packet["attempt"], "confirmed_stopped": True,
+            "verification": {
+                "receipt_sha256": receipt["sha256"], "passed": False,
+                "reason": "Synthetic " + status.lower(),
+                "evidence": {"path": str(proof), "sha256": digest(proof)},
+            },
+        }
+
+    def cleanup_accepted_workers(self):
+        """Close every accepted managed workspace before final chain return."""
+        for packet in tuple(self.packets.values()):
+            attempt = packet["attempt"]
+            record = self.child_record(attempt)
+            if record.get("status") != "accepted":
+                continue
+            workspace = Path(packet["context"]["workspace"])
+            if workspace.exists():
+                cleaned = self.call("cleanup", {"attempt": attempt, "confirmed_stopped": True})
+                self.assertFalse(cleaned["pending"])
+            self.assertFalse(workspace.exists())
 
     def parent_complete(self, outcome="done", *, ok=False):
         p = self.run / "inbox" / (self.action + ".md")
@@ -353,6 +414,7 @@ class ChainIntegrationTests(unittest.TestCase):
         a = self.claim(["A"])["A"]
         self.start("A", a)
         self.call("settle", self.contribute("A"))
+        self.cleanup_accepted_workers()
         proof = self.write("combined.json", {"passed": True, "commit": self.commits["A"]})
         value = {"commit": self.commits["A"], "confirmed_stopped": True,
                  "verification": {"path": str(proof), "sha256": digest(proof)}}
@@ -489,7 +551,7 @@ class ChainIntegrationTests(unittest.TestCase):
         self.assertEqual([row["id"] for row in pending["pending"]], ["B", "C", "J"])
         self.assertEqual(pending["ready"], ["C"])
         self.assert_completion(pending, ["A"], ["B", "C", "J"])
-        self.start("B", attempts["B"])
+        self.start("B", attempts["B"], base=self.git(self.target, "rev-parse", "HEAD"))
         self.call("done", self.reject_contribution("B", "BLOCKED"))
         pending = self.call("pending")
         self.assertEqual(pending["pending"][0]["status"], "rejected")
@@ -661,14 +723,13 @@ class ChainIntegrationTests(unittest.TestCase):
             CLI, "improve-complete", "--run-dir", self.run, "--action", self.action,
             "--result", fixture.completion_path)
 
-    def test_serial_v2_full_diamond_executes_in_main_context_before_finish(self):
+    def test_serial_managed_full_diamond_executes_in_main_context_before_finish(self):
         self.select_dispatcher(SERIAL_FIXTURE)
         bound = self.bind(capacity=None, mode="serial")
         self.assert_completion(bound, [], ["A", "B", "C", "J"])
         binding = store.read_record(self.run / "chains" / self.action / "binding.md")
         self.assertEqual(binding["mode"], "serial")
         self.assertEqual(binding["capacity"], 1)
-        target_before_finish = self.git(self.target, "rev-parse", "HEAD")
         accepted = []
 
         for step in ("A", "B", "C", "J"):
@@ -678,12 +739,10 @@ class ChainIntegrationTests(unittest.TestCase):
             self.assertEqual(before["ready"][0], step)
             attempt = self.claim([step])[step]
             self.assertLessEqual(len(self.call("next")["active"]), 1)
-            if step == "C":
-                started = self.serial_start(step, attempt, base=self.commits["A"])
-            elif step == "J":
-                started = self.serial_start(step, attempt, integration=True)
-            else:
-                started = self.serial_start(step, attempt)
+            started = self.serial_start(
+                step, attempt, base=self.git(self.target, "rev-parse", "HEAD"),
+                integration=step == "J",
+            )
             record = self.child_record(attempt)
             self.assertEqual(record["status"], "running")
             self.assertIsNone(record["handle"])
@@ -699,7 +758,7 @@ class ChainIntegrationTests(unittest.TestCase):
             self.assertEqual(settled["outcome"], "accepted")
             self.assert_completion(settled, accepted, [name for name in ("A", "B", "C", "J")
                                                         if name not in accepted])
-            self.assertEqual(self.git(self.target, "rev-parse", "HEAD"), target_before_finish)
+            self.assertEqual(self.git(self.target, "rev-parse", "HEAD"), self.commits[step])
 
         self.assertTrue(self.call("next")["complete"])
         self.parent_complete()  # All child acceptance still cannot complete the navigator action.
@@ -713,20 +772,21 @@ class ChainIntegrationTests(unittest.TestCase):
         proof = self.write("serial-combined.json", {"passed": True, "commit": self.commits["J"]})
         finish = {"commit": self.commits["J"], "confirmed_stopped": True,
                   "verification": {"path": str(proof), "sha256": digest(proof)}}
+        self.cleanup_accepted_workers()
         self.call("finish", finish)
         self.assertEqual(self.git(self.target, "rev-parse", "HEAD"), self.commits["J"])
         self.assertEqual(self.git(self.primary, "rev-parse", "HEAD"), self.initial)
         for packet in self.packets.values():
             workspace = Path(packet["context"]["workspace"]).resolve()
             self.assertNotIn(self.target, workspace.parents)
-            self.assertEqual(workspace.parent, self.parent)
+            self.assertTrue(workspace.is_relative_to(self.parent.resolve()))
         self.parent_complete(ok=True)
 
     def test_legacy_serial_helper_refuses_fresh_context_bind_before_writes(self):
         initial_state = (self.run / "state.md").read_bytes()
         self.select_dispatcher(LEGACY_SERIAL_FIXTURE)
         refused = self.bind(capacity=None, mode="serial", ok=False)
-        self.assertIn("does not support planning_context", refused.stderr)
+        self.assertIn("planning-context.js", refused.stderr)
         self.assertEqual((self.run / "state.md").read_bytes(), initial_state)
         self.assertFalse((self.run / "chains").exists())
 
@@ -734,7 +794,7 @@ class ChainIntegrationTests(unittest.TestCase):
         self.bind(capacity=None)
         binding_path = self.run / "chains" / self.action / "binding.md"
         binding = store.read_record(binding_path)
-        self.assertEqual(binding["schema"], "shiploop-chain-binding/v4")
+        self.assertEqual(binding["schema"], "shiploop-chain-binding/v6")
         self.assertEqual(binding["mode"], "parallel")
         self.assertEqual(binding["capacity"], 2)
         self.assertIn("planning_context", binding)
@@ -885,7 +945,6 @@ class ChainIntegrationTests(unittest.TestCase):
         self.start("B", claims["B"])
         self.assertEqual(len(self.call("next")["active"]), 2)
         verification = self.contribute("A")
-        observed = self.call("observe", {"attempt": claims["A"], "occurred_at": "2026-09-18T12:00:00Z"})
         self.assertNotIn("C", self.call("next")["ready"])
         self.call("settle", verification)
         now = self.call("next")
@@ -897,7 +956,7 @@ class ChainIntegrationTests(unittest.TestCase):
         self.call("settle", self.contribute("C"))
         self.call("settle", self.contribute("B"))
         j = self.claim(["J"])["J"]
-        self.start("J", j, integration=True)
+        self.start("J", j, self.git(self.target, "rev-parse", "HEAD"), integration=True)
         self.call("settle", self.contribute("J", integration=True))
         self.assertTrue(self.call("next")["complete"])
         self.parent_complete()  # Child graph completion alone is insufficient.
@@ -905,6 +964,7 @@ class ChainIntegrationTests(unittest.TestCase):
                            "checks": ["A, B and C contents and exact commit ancestry"]})
         finish = {"commit": self.commits["J"], "confirmed_stopped": True,
                   "verification": {"path": str(proof), "sha256": digest(proof)}}
+        self.cleanup_accepted_workers()
         self.call("finish", finish)
         self.call("finish", finish)
         self.assertEqual(self.git(self.target, "rev-parse", "HEAD"), self.commits["J"])
@@ -912,7 +972,7 @@ class ChainIntegrationTests(unittest.TestCase):
         for step, packet in self.packets.items():
             path = Path(packet["context"]["workspace"]).resolve()
             self.assertNotIn(self.target, path.parents)
-            self.assertEqual(path.parent, self.parent)
+            self.assertTrue(path.is_relative_to(self.parent.resolve()))
         self.parent_complete(ok=True)
         state = store.read_record(self.run / "state.md")
         self.assertEqual(nav.current_stage(state), "implement")
@@ -936,8 +996,11 @@ class ChainIntegrationTests(unittest.TestCase):
         packet = self.packets["A"]
         retry = {"attempt": a, "base_commit": self.initial, "write_scope": ["A.txt"],
                  "resources": [], "ready_evidence": packet["context"]["ready_evidence"]}
+        before_worktrees = self.git(self.target, "worktree", "list", "--porcelain")
         output = self.call("start", retry)
-        self.assertNotEqual(output["action"], "launch")
+        self.assertEqual(output["action"], "reconcile")
+        self.assertEqual(output["packet"], packet)
+        self.assertEqual(self.git(self.target, "worktree", "list", "--porcelain"), before_worktrees)
         self.assertEqual(self.call("recover")["active"][0]["attempt"], a)
 
     def test_settlement_requires_native_stoppage_attestation(self):
@@ -968,17 +1031,30 @@ class ChainIntegrationTests(unittest.TestCase):
         self.call("start", {"attempt": c, "base_commit": self.initial, "write_scope": ["C.txt"],
              "resources": [], "ready_evidence": {"path": str(ready), "sha256": digest(ready)}}, ok=False)
 
-    def test_report_observation_does_not_rewrite_prior_event_files(self):
+    def test_import_handoff_replay_does_not_rewrite_prior_event_files(self):
         self.bind()
         a = self.claim(["A"])["A"]
         self.start("A", a)
         self.contribute("A")
         events = self.run / "chains" / self.action / "events"
         before = {p.name: p.read_bytes() for p in events.glob("*.md")}
-        self.call("observe", {"attempt": a, "occurred_at": "2020-01-01T00:00:00Z"})
+        replayed = self.call("import-handoff", self.import_inputs["A"])
+        self.assertEqual((replayed["attempt"], replayed["import"]["status"]), (a, "SUCCEEDED"))
         for name, content in before.items():
             self.assertEqual((events / name).read_bytes(), content)
         self.assertNotIn("C", self.call("next")["ready"])
+
+    def test_observe_is_rejected_without_rewriting_prior_event_files(self):
+        self.bind()
+        a = self.claim(["A"])["A"]
+        self.start("A", a)
+        self.contribute("A")
+        before_events = self.ledger_bytes()
+        before_child = self.child_state_path().read_bytes()
+        refused = self.call("observe", {"attempt": a, "occurred_at": "2020-01-01T00:00:00Z"}, ok=False)
+        self.assertIn("import-handoff", refused.stderr)
+        self.assertEqual(self.ledger_bytes(), before_events)
+        self.assertEqual(self.child_state_path().read_bytes(), before_child)
 
     def test_non_implementation_binding_is_rejected(self):
         state = nav.new_state(str(self.target), "Still intake", protocol_version=3)
@@ -986,7 +1062,7 @@ class ChainIntegrationTests(unittest.TestCase):
         self.action = nav.current_action(state)["id"]
         p = self.call("bind", ok=False, extra=("--graph", str(self.graph),
             "--dispatcher-skill", str(self.dispatcher / "SKILL.md"), "--ask-agent-skill", str(self.ask / "SKILL.md"),
-            "--worktree-parent", str(self.parent), "--lifecycle", "final-return"))
+            "--worktree-parent", str(self.parent), "--lifecycle", "per-step"))
         self.assertFalse((self.run / "chains").exists())
 
     def test_unfinished_chain_blocks_halt_and_improve_import_but_can_pause(self):
@@ -1060,25 +1136,25 @@ class ChainIntegrationTests(unittest.TestCase):
         self.assertNotIn("C", state["ready"])
         self.assertTrue(any(row["attempt"] == a for row in state["active"]))
 
-    def test_failed_and_wrong_commit_finish_proof_then_post_return_crash(self):
+    def test_failed_and_wrong_commit_finish_proof_preserves_accepted_target(self):
         self.graph = self.write("graph.json", {"steps": [{"id": "A", "deps": [],
             "contract": {"task": "Implement A", "ready": [], "done": ["A verified"]}}]})
         self.bind()
         a = self.claim(["A"])["A"]
         self.start("A", a)
         self.call("settle", self.contribute("A"))
+        accepted_target = self.git(self.target, "rev-parse", "HEAD")
+        self.assertEqual(accepted_target, self.commits["A"])
         for contents in ({"passed": False, "commit": self.commits["A"]},
                          {"passed": True, "commit": self.initial}, {}):
             proof = self.write("failed-combined.json", contents)
             self.call("finish", {"commit": self.commits["A"], "confirmed_stopped": True,
                 "verification": {"path": str(proof), "sha256": digest(proof)}}, ok=False)
-            self.assertEqual(self.git(self.target, "rev-parse", "HEAD"), self.initial)
+            self.assertEqual(self.git(self.target, "rev-parse", "HEAD"), accepted_target)
         proof = self.write("combined.json", {"passed": True, "commit": self.commits["A"]})
         value = {"commit": self.commits["A"], "confirmed_stopped": True,
                  "verification": {"path": str(proof), "sha256": digest(proof)}}
-        self.crash_after("finish", value, boundary="git")
-        self.assertEqual(self.git(self.target, "rev-parse", "HEAD"), self.commits["A"])
-        self.parent_complete()  # Git effect alone is not a reconciled finish receipt.
+        self.cleanup_accepted_workers()
         self.call("finish", value)
         self.parent_complete(ok=True)
 
@@ -1090,9 +1166,34 @@ class ChainIntegrationTests(unittest.TestCase):
         b = {"attempt": claims["B"], "base_commit": self.initial, "write_scope": ["B.txt"],
              "resources": ["mcp:shared-database"],
              "ready_evidence": {"path": str(ready), "sha256": digest(ready)}}
-        self.call("start", b, ok=False)
+
+        before_worktrees = self.git(self.target, "worktree", "list", "--porcelain")
+        before_ledger = self.ledger_bytes()
+
+        def assert_b_remains_unallocated():
+            self.assertEqual(self.git(self.target, "worktree", "list", "--porcelain"), before_worktrees)
+            self.assertEqual(self.ledger_bytes(), before_ledger)
+            self.assertEqual(self.child_record(claims["B"])["status"], "claimed")
+            self.assertIsNone(chain._allocation(
+                chain._events(self.run / "chains" / self.action), claims["B"],
+            ))
+
+        for resources, error in ((["mcp:duplicate", "mcp:duplicate"], r"duplicate"),
+                                 (["   "], r"resource|nonempty")):
+            invalid = json.loads(json.dumps(b))
+            invalid["resources"] = resources
+            refused = self.call("start", invalid, ok=False)
+            self.assertRegex(refused.stderr.lower(), error)
+            assert_b_remains_unallocated()
+
+        refused = self.call("start", b, ok=False)
+        self.assertIn("resource", refused.stderr.lower())
+        assert_b_remains_unallocated()
         self.call("settle", self.contribute("A"))
-        self.assertEqual(self.call("start", b)["action"], "launch")
+        b["base_commit"] = self.git(self.target, "rev-parse", "HEAD")
+        started = self.call("start", b)
+        self.assertEqual(started["action"], "launch")
+        self.assertEqual(started["packet"]["context"]["base_commit"], b["base_commit"])
 
     def test_bad_worktree_parent_is_rejected_before_durable_binding(self):
         original = (self.run / "state.md").read_bytes()
@@ -1101,7 +1202,7 @@ class ChainIntegrationTests(unittest.TestCase):
         self.call("bind", ok=False, extra=("--graph", str(self.graph),
             "--dispatcher-skill", str(self.dispatcher / "SKILL.md"),
             "--ask-agent-skill", str(self.ask / "SKILL.md"), "--worktree-parent", str(invalid),
-            "--lifecycle", "final-return"))
+            "--lifecycle", "per-step"))
         self.assertEqual((self.run / "state.md").read_bytes(), original)
         self.assertFalse((self.run / "chains").exists())
 
@@ -1114,6 +1215,47 @@ class ChainIntegrationTests(unittest.TestCase):
         self.assertIn("default parallel", packet)
         self.assertIn("observed native slots", packet)
         self.assertEqual((self.run / "state.md").read_bytes(), before)
+
+
+class PacketReplayIdentityTests(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory(prefix="shiploop-packet-replay-")
+        self.addCleanup(self.temp.cleanup)
+        self.chain_dir = Path(self.temp.name)
+        self.packet = {"attempt": "A-1", "native_handle": None,
+                       "payload": {"ordinal": 1, "ready": False}}
+        self.saved = chain._per_step_record_internal_packet(
+            self.chain_dir, [], "A-1", self.packet)
+        self.rows = chain_ledger.read_events(self.chain_dir / "events")
+        self.before = self.ledger_bytes()
+
+    def ledger_bytes(self):
+        return {p.name: p.read_bytes() for p in (self.chain_dir / "events").glob("*.md")}
+
+    def test_native_handle_replay_preserves_json_type(self):
+        for observed, recorded in ((0, False), (False, 0), (1, True), (True, 1)):
+            with self.subTest(observed=observed, recorded=recorded):
+                packet = {**self.packet, "native_handle": observed}
+                with self.assertRaisesRegex(chain.ChainError, "native handle conflicts"):
+                    chain._per_step_record_internal_packet(
+                        self.chain_dir, self.rows, "A-1", packet, native_handle=recorded)
+                exact = chain._per_step_record_internal_packet(
+                    self.chain_dir, self.rows, "A-1", packet, native_handle=observed)
+                self.assertEqual(exact, self.saved)
+                self.assertEqual(self.ledger_bytes(), self.before)
+
+    def test_replayed_assignment_preserves_nested_json_types(self):
+        for key, changed in (("ordinal", True), ("ready", 0)):
+            with self.subTest(key=key):
+                packet = {**self.packet, "payload": {**self.packet["payload"], key: changed}}
+                with self.assertRaisesRegex(chain.ChainError, "packet drifted"):
+                    chain._per_step_record_internal_packet(
+                        self.chain_dir, self.rows, "A-1", packet)
+                self.assertEqual(self.ledger_bytes(), self.before)
+        exact = chain._per_step_record_internal_packet(
+            self.chain_dir, self.rows, "A-1", self.packet)
+        self.assertEqual(exact, self.saved)
+        self.assertEqual(self.ledger_bytes(), self.before)
 
 
 if __name__ == "__main__":

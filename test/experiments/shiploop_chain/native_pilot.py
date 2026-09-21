@@ -1,14 +1,17 @@
 #!/usr/bin/env python3
-"""Manual, native-agent-only pilot for per-step Ask-Agent chain integration.
+"""Manual, native-agent-only pilot for managed Ask-Agent chain integration.
 
-This is deliberately an experiment apparatus, not a worker launcher.  It
-creates a real Git fixture and fixture-emulates caller-prepared sibling
-worktrees with ordinary Git, asks the public chain bridge to adopt those exact
-workspaces, and retains every parent receipt outside the worktrees.  It does
-not prove that a host followed Ask-Agent's prompt-driven worktree-creation
-instructions. A parent conversation must use its native delegation facility,
-retain the real handle, collect the result, and attest that the worker stopped
-before importing, preparing, or accepting it.
+This experiment creates a disposable real-Git fixture and drives the public
+per-step bridge against the selected current Ask-Agent package.  The selected
+helper, not the caller or this pilot, prepares each workspace and returns its
+immutable receipt before a fresh native launch grant exists.  The pilot saves
+that exact receipt/workspace pair and retains parent evidence outside the
+removable worktree.  It never launches a model or native host itself.
+
+A native parent conversation must use its host delegation facility, retain
+the actual native handle and collection trace, and attest that the worker
+stopped before import, integration, acceptance, or cleanup.  A hermetic pilot
+self-test cannot establish that a live host created, ran, or stopped a worker.
 """
 from __future__ import annotations
 
@@ -43,6 +46,13 @@ TEST_HOLD_ARMED_SCHEMA = "shiploop-native-pilot-refill-hold-armed/v1"
 TEST_HOLD_RELEASE_SCHEMA = "shiploop-native-pilot-refill-hold-release/v1"
 TEST_HOLD_DEFAULT_TIMEOUT_SECONDS = 1800
 TEST_HOLD_POLL_SECONDS = 0.05
+ASK_AGENT_MANAGED_SCHEMA = "shiploop-chain-ask-agent-managed-worktree/v1"
+ASK_AGENT_MANAGED_CAPABILITIES = frozenset({
+    "helper-managed-worktree",
+    "prepared-inspection",
+    "returned-commit-delivery",
+    "fingerprint-bound-close",
+})
 
 STEPS: dict[str, dict[str, Any]] = {
     "A": {
@@ -281,9 +291,10 @@ def pilot_root(value: str) -> Path:
 
 def read_context(root: Path) -> dict[str, Any]:
     context = json_object(root / "context.json", "pilot context")
-    required = {"schema", "pilot_dir", "selected", "fixture", "run", "graph", "oracle"}
-    if not required <= set(context):
-        fail("pilot context is incomplete")
+    required = {"schema", "pilot_dir", "selected", "fixture", "run", "graph", "oracle",
+                "dispatcher_preflight", "ask_agent_preflight"}
+    if not required <= set(context) or context.get("schema") != "shiploop-native-chain-pilot/v3":
+        fail("pilot context is not a managed Ask-Agent v3 pilot; preserve historical pilot output separately")
     if context["pilot_dir"] != str(root):
         fail("pilot context belongs to a different directory")
     run = context.get("run")
@@ -596,6 +607,82 @@ def selected_dispatcher_preflight(dispatcher_card: Path) -> dict[str, Any]:
     }
 
 
+def _managed_ask_agent_version(value: Any, label: str) -> tuple[int, int, int]:
+    if not isinstance(value, str):
+        fail(f"{label} has no semantic version")
+    match = re.fullmatch(r"(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(?:[-+].*)?", value)
+    if match is None:
+        fail(f"{label} has an invalid semantic version")
+    return tuple(int(part) for part in match.groups())
+
+
+def selected_ask_agent_preflight(ask_card: Path) -> dict[str, Any]:
+    """Freeze a selected managed helper before creating the disposable pilot."""
+    helper = ask_card.parent / "scripts" / "ask_agent_workspace.py"
+    if not helper.is_file() or helper.is_symlink():
+        fail(f"selected Ask-Agent workspace helper must be a regular file: {helper}")
+
+    def invoke(operation: str) -> dict[str, Any]:
+        try:
+            result = subprocess.run(
+                [sys.executable, str(helper), operation, "--skill-card", str(ask_card)],
+                text=True,
+                capture_output=True,
+                timeout=30,
+                check=False,
+            )
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            fail(f"selected Ask-Agent {operation} preflight could not run: {exc}")
+        try:
+            response = json.loads(result.stdout) if result.returncode == 0 else {}
+        except json.JSONDecodeError:
+            response = {}
+        if not isinstance(response, dict):
+            response = {}
+        if result.returncode:
+            detail = (result.stderr or result.stdout).strip()
+            suffix = "" if not detail else ": " + detail[:400]
+            fail(f"selected Ask-Agent {operation} preflight failed" + suffix)
+        return response
+
+    capabilities = invoke("capabilities")
+    if set(capabilities) != {"schema", "version", "capabilities"}:
+        fail("selected Ask-Agent capabilities has an unsupported response shape")
+    version = _managed_ask_agent_version(capabilities.get("version"), "selected Ask-Agent capabilities")
+    declared = capabilities.get("capabilities")
+    if (capabilities.get("schema") != ASK_AGENT_MANAGED_SCHEMA
+            or not isinstance(declared, list)
+            or not all(isinstance(item, str) and item for item in declared)
+            or len(set(declared)) != len(declared)
+            or not ASK_AGENT_MANAGED_CAPABILITIES.issubset(set(declared))):
+        fail("selected Ask-Agent does not declare the required managed-worktree capabilities")
+    if version < (0, 6, 0):
+        fail("selected Ask-Agent requires version 0.6.0+ managed-worktree capabilities")
+
+    identity = invoke("identity")
+    identity_required = {
+        "status", "schema", "skill_card", "resolved_skill_card", "resolved_helper", "version",
+        "skill_card_sha256", "helper_sha256",
+    }
+    if (set(identity) != identity_required
+            or identity.get("status") != "verified"
+            or identity.get("schema") != "ask-agent.skill.identity.v1"
+            or identity.get("version") != capabilities["version"]
+            or identity.get("skill_card") != str(ask_card)
+            or identity.get("resolved_skill_card") != str(ask_card.resolve())
+            or identity.get("resolved_helper") != str(helper.resolve())
+            or identity.get("skill_card_sha256") != sha256_file(ask_card)
+            or identity.get("helper_sha256") != sha256_file(helper)
+            or any(re.fullmatch(r"[0-9a-f]{64}", identity.get(key, "")) is None
+                   for key in ("skill_card_sha256", "helper_sha256"))):
+        fail("selected Ask-Agent identity does not prove the managed helper package")
+    return {
+        "helper": str(helper.resolve()),
+        "capabilities": capabilities,
+        "identity": identity,
+    }
+
+
 def prepare(args: argparse.Namespace) -> dict[str, Any]:
     source_root = absolute_path(args.source_root, "--source-root", exists=True)
     cli = source_root / "skills" / "shiploop" / "scripts" / "shiploop"
@@ -607,10 +694,12 @@ def prepare(args: argparse.Namespace) -> dict[str, Any]:
                         (dispatcher_card.parent / "scripts" / "dispatch.js", "dispatcher helper"),
                         (dispatcher_card.parent / "scripts" / "state.js", "dispatcher state helper"),
                         (dispatcher_card.parent / "references" / "protocol.md", "dispatcher protocol"),
+                        (ask_card.parent / "scripts" / "ask_agent_workspace.py", "Ask-Agent workspace helper"),
                         (ask_card.parent / "references" / "git-integration.md", "Ask-Agent Git contract")):
         if not path.is_file() or path.is_symlink():
             fail(f"{label} must be a regular file: {path}")
     dispatcher_info = selected_dispatcher_preflight(dispatcher_card)
+    ask_agent_info = selected_ask_agent_preflight(ask_card)
     requested = Path(args.pilot_dir).expanduser()
     if not requested.is_absolute():
         fail("--pilot-dir must be an absolute path")
@@ -622,7 +711,7 @@ def prepare(args: argparse.Namespace) -> dict[str, Any]:
     pilot.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
     pilot.mkdir(mode=0o700)
     for name in ("commands", "inputs", "packets", "evidence", "verification", "accepted", "handles", "results",
-                 "oracle", "workspaces", "imports", "prepared"):
+                 "oracle", "workspaces", "imports", "prepared", "cleanup"):
         (pilot / name).mkdir(mode=0o700)
 
     primary = pilot / "fixture" / "primary"
@@ -691,7 +780,7 @@ def prepare(args: argparse.Namespace) -> dict[str, Any]:
         }
 
     context = {
-        "schema": "shiploop-native-chain-pilot/v2",
+        "schema": "shiploop-native-chain-pilot/v3",
         "pilot_dir": str(pilot),
         "created_at": utc_now(),
         "selected": {
@@ -713,6 +802,7 @@ def prepare(args: argparse.Namespace) -> dict[str, Any]:
         "graph": {"path": str(graph_path), "sha256": sha256_file(graph_path)},
         "oracle": {"path": str(oracle_path), "sha256": sha256_file(oracle_path)},
         "dispatcher_preflight": dispatcher_info,
+        "ask_agent_preflight": ask_agent_info,
     }
     if hold is not None:
         context["test_only_hold"] = hold
@@ -723,6 +813,7 @@ def prepare(args: argparse.Namespace) -> dict[str, Any]:
         "--graph", str(graph_path), "--dispatcher-skill", str(dispatcher_card),
         "--ask-agent-skill", str(ask_card), "--worktree-parent", str(worktree_parent),
         "--lifecycle", "per-step",
+        "--mode", "parallel",
         "--capacity", str(args.capacity),
     ])
     write_new_json(pilot / "results" / "prepare.json", {"bound": bound, "at": utc_now()}, "prepare result")
@@ -733,7 +824,8 @@ def prepare(args: argparse.Namespace) -> dict[str, Any]:
         "primary_main": str(primary), "initiating_feature": str(feature),
         "worktree_parent": str(worktree_parent), "selected": context["selected"],
         "graph": context["graph"], "oracle": context["oracle"],
-        "dispatcher_preflight": dispatcher_info, "ready": bound.get("ready", []),
+        "dispatcher_preflight": dispatcher_info, "ask_agent_preflight": ask_agent_info,
+        "ready": bound.get("ready", []),
         "next": "Use claim, then start. A start response with action=launch is the only native-dispatch grant.",
     }
     if hold is not None:
@@ -802,16 +894,6 @@ def _registered_worktrees(root: Path, target: Path) -> set[Path]:
     return paths
 
 
-def _workspace_branch(context: dict[str, Any], step: str, attempt: str) -> str:
-    seed = "\x00".join((context["run"]["run_id"], step, attempt)).encode("utf-8")
-    return "shiploop/native-pilot/" + hashlib.sha256(seed).hexdigest()[:24]
-
-
-def _workspace_leaf(context: dict[str, Any], step: str, attempt: str) -> str:
-    seed = "\x00".join((context["run"]["run_id"], step, attempt)).encode("utf-8")
-    return f"ask-agent-{step.lower()}-{hashlib.sha256(seed).hexdigest()[:16]}"
-
-
 def _target_head(root: Path, context: dict[str, Any], label: str) -> str:
     feature = Path(context["fixture"]["initiating_feature"])
     assert_clean(root, feature, label)
@@ -831,46 +913,117 @@ def _require_dependency_base(root: Path, context: dict[str, Any], step: str, bas
             fail(f"current target base for {step} excludes accepted supplier {supplier}")
 
 
-def host_prepare_workspace(root: Path, context: dict[str, Any], step: str, attempt: str) -> dict[str, Any]:
-    """Fixture-emulate caller workspace creation; do not claim host Ask-Agent creation."""
+def managed_workspace_from_packet(root: Path, context: dict[str, Any], step: str, attempt: str,
+                                  packet: dict[str, Any], base_commit: str) -> dict[str, Any]:
+    """Validate the one helper-owned workspace returned by a fresh start grant."""
+    packet_context = packet.get("context")
+    managed = packet.get("ask_agent_workspace")
+    required = {
+        "receipt", "receipt_sha256", "baseline", "worktree", "branch", "prepared_inspection",
+        "selected_package", "executing_helper", "check_context", "delivery",
+    }
+    if not isinstance(packet_context, dict) or not isinstance(managed, dict) or not required <= set(managed):
+        fail("fresh managed start packet has no complete ask_agent_workspace receipt")
+    worker = absolute_path(str(managed["worktree"]), "managed Ask-Agent worktree", exists=True)
+    if not worker.is_dir() or worker.is_symlink():
+        fail("managed Ask-Agent worktree is not a real directory")
+    if packet.get("step") != step or packet.get("attempt") != attempt:
+        fail("fresh managed start packet has a different step or attempt")
+    if packet_context.get("workspace") != str(worker) or packet_workspace(packet) != str(worker):
+        fail("fresh managed start packet disagrees with the helper-owned worktree")
+    if packet_context.get("base_commit") != base_commit:
+        fail("fresh managed start packet has a different managed workspace base")
+    receipt = absolute_path(str(managed["receipt"]), "managed Ask-Agent receipt", exists=True)
+    baseline = absolute_path(str(managed["baseline"]), "managed Ask-Agent baseline", exists=True)
+    receipt_sha256 = managed.get("receipt_sha256")
+    if not isinstance(receipt_sha256, str) or re.fullmatch(r"[0-9a-f]{64}", receipt_sha256) is None:
+        fail("fresh managed start packet has an invalid helper receipt digest")
+    if sha256_file(receipt) != receipt_sha256:
+        fail("fresh managed start packet helper receipt digest changed")
+    if not isinstance(managed.get("branch"), str) or not managed["branch"]:
+        fail("fresh managed start packet has an invalid helper branch")
+    prepared = managed["prepared_inspection"]
+    if (not isinstance(prepared, dict)
+            or prepared.get("status") != "prepared"
+            or prepared.get("phase") != "prepared"
+            or prepared.get("receipt") != str(receipt)
+            or prepared.get("worktree") != str(worker)
+            or prepared.get("branch") != managed["branch"]
+            or prepared.get("baseline") != str(baseline)):
+        fail("fresh managed start packet has no matching prepared helper inspection")
+    preflight = context.get("ask_agent_preflight")
+    if not isinstance(preflight, dict) or not isinstance(preflight.get("identity"), dict):
+        fail("pilot context has no frozen Ask-Agent helper identity")
+    selected = managed["selected_package"]
+    helper = managed["executing_helper"]
+    identity = preflight["identity"]
+    if (not isinstance(selected, dict) or not isinstance(helper, dict)
+            or any(selected.get(key) != identity.get(key) for key in (
+                "resolved_skill_card", "resolved_helper", "version", "skill_card_sha256", "helper_sha256",
+            ))
+            or helper.get("path") != identity.get("resolved_helper")
+            or helper.get("sha256") != identity.get("helper_sha256")):
+        fail("fresh managed start packet does not retain the frozen Ask-Agent package identity")
+    check_context = managed["check_context"]
+    expected_check_context = [sys.executable, helper["path"], "check-context", "--receipt", str(receipt)]
+    if (not isinstance(check_context, dict) or check_context.get("cwd") != str(worker)
+            or check_context.get("argv") != expected_check_context):
+        fail("fresh managed start packet has no helper context-check command")
+    delivery = managed["delivery"]
+    if (not isinstance(delivery, dict) or delivery.get("mode") != "commits"
+            or delivery.get("commit_base") != base_commit
+            or delivery.get("require_complete_linear_range") is not True
+            or delivery.get("discard") != [f"{HANDOFF_DIRECTORY}/{attempt}"]):
+        fail("fresh managed start packet has an unsupported returned-commit delivery contract")
+    parent = Path(context["fixture"]["worktree_parent"])
+    feature = Path(context["fixture"]["initiating_feature"])
+    if not under(parent, worker) or worker.resolve() not in _registered_worktrees(root, feature):
+        fail("selected Ask-Agent helper did not return a registered managed fixture worktree")
+    if git_text(root, worker, f"{step}-managed-prepared-head", "rev-parse", "HEAD") != base_commit:
+        fail("managed helper worktree does not start at the current target HEAD")
+    assert_clean(root, worker, f"{step} helper-managed worker")
+    return {
+        "receipt": str(receipt), "receipt_sha256": receipt_sha256, "baseline": str(baseline),
+        "workspace": str(worker), "branch": managed["branch"], "base_commit": base_commit,
+        "prepared_inspection": managed["prepared_inspection"], "selected_package": selected,
+        "executing_helper": helper, "check_context": check_context, "delivery": delivery,
+    }
+
+
+def save_managed_workspace(root: Path, context: dict[str, Any], step: str, attempt: str,
+                           managed: dict[str, Any]) -> dict[str, Any]:
+    """Persist the returned receipt/worktree identity without allocating another worktree."""
     record_path = workspace_record_path(root, step, attempt)
     feature = Path(context["fixture"]["initiating_feature"])
-    parent = Path(context["fixture"]["worktree_parent"])
-    if record_path.exists():
-        record = json_object(record_path, "caller-prepared workspace record")
-        required = {"schema", "step", "attempt", "workspace", "branch", "base_commit", "target", "prepared_by"}
-        if not required <= set(record) or record.get("step") != step or record.get("attempt") != attempt:
-            fail("caller-prepared workspace record does not match this step/attempt")
-        return record
-    base = _target_head(root, context, f"{step}-caller-target")
-    _require_dependency_base(root, context, step, base)
-    workspace = parent / _workspace_leaf(context, step, attempt)
-    branch = _workspace_branch(context, step, attempt)
-    if workspace.exists() or workspace.is_symlink() or workspace in _registered_worktrees(root, feature):
-        fail("refusing to replace an existing caller-prepared Ask-Agent workspace")
-    git(root, feature, f"{step}-ask-agent-workspace", "worktree", "add", "-b", branch, str(workspace), base)
-    if workspace.resolve() not in _registered_worktrees(root, feature):
-        fail("host preparation did not create a registered worker worktree")
-    if git_text(root, workspace, f"{step}-prepared-head", "rev-parse", "HEAD") != base:
-        fail("caller-prepared worker does not start at the current target HEAD")
-    assert_clean(root, workspace, f"{step} caller-prepared worker")
     record = {
-        "schema": "shiploop-native-pilot-caller-workspace/v1",
+        "schema": "shiploop-native-pilot-managed-workspace/v1",
         "step": step,
         "attempt": attempt,
-        "workspace": str(workspace.resolve()),
-        "branch": branch,
-        "base_commit": base,
-        "target": {"path": str(feature), "head": base},
-        "prepared_by": "Fixture emulation via ordinary Git; models Ask-Agent's caller-worktree contract but does not prove prompt-driven Ask-Agent creation or ShipLoop allocation",
-        "workspace_creation": "fixture_emulation",
-        "recorded_at": utc_now(),
+        "workspace": managed["workspace"],
+        "branch": managed["branch"],
+        "base_commit": managed["base_commit"],
+        "target": {"path": str(feature), "head": managed["base_commit"]},
+        "receipt": managed["receipt"],
+        "receipt_sha256": managed["receipt_sha256"],
+        "baseline": managed["baseline"],
+        "prepared_inspection": managed["prepared_inspection"],
+        "selected_package": managed["selected_package"],
+        "executing_helper": managed["executing_helper"],
+        "check_context": managed["check_context"],
+        "delivery": managed["delivery"],
     }
-    write_new_json(record_path, record, "caller-prepared workspace record")
-    append_event(root, {"kind": "ask-agent-workspace-prepared", "at": utc_now(), "step": step,
-                        "attempt": attempt, "record": str(record_path), "workspace": record["workspace"],
-                        "base_commit": base, "workspace_creation": "fixture_emulation",
-                        "prompt_driven_ask_agent_creation": False})
+    if record_path.exists():
+        existing = json_object(record_path, "managed Ask-Agent workspace record")
+        if existing != record:
+            fail("managed Ask-Agent workspace receipt/worktree differs from the saved start grant")
+        return existing
+    write_new_json(record_path, record, "managed Ask-Agent workspace record")
+    append_event(root, {
+        "kind": "ask-agent-managed-workspace-received", "at": utc_now(), "step": step,
+        "attempt": attempt, "record": str(record_path), "workspace": record["workspace"],
+        "receipt": record["receipt"], "base_commit": record["base_commit"],
+        "prepared_by": "selected Ask-Agent helper receipt",
+    })
     return record
 
 
@@ -878,7 +1031,7 @@ def packet_workspace(packet: dict[str, Any]) -> str:
     context = packet.get("context")
     value = context.get("workspace") if isinstance(context, dict) else packet.get("workspace")
     if not isinstance(value, str) or not value:
-        fail("bridge packet has no adopted workspace")
+        fail("bridge packet has no helper-managed workspace")
     return value
 
 
@@ -903,9 +1056,9 @@ def get_packet(root: Path, step: str, attempt: str) -> dict[str, Any]:
 def ready_evidence(root: Path, context: dict[str, Any], step: str, attempt: str, base_commit: str) -> dict[str, str]:
     path = root / "evidence" / f"ready-{step}-{attempt}.json"
     value = {
-        "schema": "shiploop-native-pilot-ready/v2", "step": step, "attempt": attempt,
+        "schema": "shiploop-native-pilot-ready/v3", "step": step, "attempt": attempt,
         "base_commit": base_commit, "graph": context["graph"], "oracle": context["oracle"],
-        "statement": "The immutable oracle, fixture-emulated caller workspace, and accepted dependency code are available; native execution remains unstarted. This does not prove prompt-driven Ask-Agent workspace creation.",
+        "statement": "The immutable oracle and accepted dependency code are available. The selected Ask-Agent helper must prepare and receipt the managed workspace before native execution can start; native execution remains unstarted.",
     }
     write_same_or_new_json(path, value, "ready evidence")
     return {"path": str(path), "sha256": sha256_file(path)}
@@ -918,7 +1071,7 @@ def inline_assignment(root: Path, context: dict[str, Any], step: str, attempt: s
     if packet.get("step") != step or packet.get("attempt") != attempt:
         fail("worker packet does not match the requested step/attempt")
     if Path(packet_workspace(packet)).resolve() != worker.resolve():
-        fail("worker packet does not name the fixture-prepared workspace")
+        fail("worker packet does not name the helper-managed workspace")
     if not isinstance(packet.get("task"), str) or not packet["task"].strip():
         fail("worker packet has no task authority")
     if not isinstance(packet.get("definition_of_ready"), list) or not isinstance(packet.get("definition_of_done"), list):
@@ -948,7 +1101,7 @@ def inline_assignment(root: Path, context: dict[str, Any], step: str, attempt: s
         "files": [{"path": "result.json", "sha256": "SHA-256 of result.json bytes"}],
     }
     result_example = {
-        "schema": "shiploop-native-pilot-worker-result/v2",
+        "schema": "shiploop-native-pilot-worker-result/v3",
         "step": step,
         "attempt": attempt,
         "workspace": str(worker),
@@ -960,6 +1113,7 @@ def inline_assignment(root: Path, context: dict[str, Any], step: str, attempt: s
         "summary": "Self-contained handoff summary and next action for parent integration.",
     }
     no_join = "Do not manually merge branches or supplier commits; they are already in your exact base." if step == "J" else "Do not merge, rebase, or change the integration target."
+    check_context = workspace["check_context"]
     packet_json = json_bytes(packet).decode("utf-8")
     header = (
         f"You are the fresh native Ask-Agent worker for ShipLoop step {step}, attempt {attempt}.\n\n"
@@ -988,8 +1142,12 @@ def inline_assignment(root: Path, context: dict[str, Any], step: str, attempt: s
         )
     footer = (
         "```\n\n"
-        f"Work only in the exclusively fixture-prepared caller workspace `{worker}`. Its exact base is\n"
-        f"`{workspace['base_commit']}`. Record your observed cwd and Git root; they must equal this workspace.\n"
+        f"Work only in the selected Ask-Agent helper-managed workspace `{worker}`. ShipLoop received the\n"
+        f"same immutable helper receipt `{workspace['receipt']}` before issuing this fresh launch grant. Its\n"
+        f"exact base is `{workspace['base_commit']}`. Do not create, adopt, replace, or remove a worktree.\n"
+        "Before task work, run this exact helper context check from that workspace and retain its JSON result:\n"
+        f"{json.dumps(check_context['argv'])}\n"
+        "Record your observed cwd and Git root; they must equal this managed workspace.\n"
         f"Direct supplier commits already present in the base: {dependencies}\n"
         f"{no_join}\n\n"
         "Before writing handoff files, commit the owned code, make the worktree clean, and run the external oracle:\n"
@@ -1003,7 +1161,8 @@ def inline_assignment(root: Path, context: dict[str, Any], step: str, attempt: s
         "call ShipLoop, merge into the invoking checkout, select successors, delete the worktree, or create a prompt\n"
         "file as a transport step. Leave this workspace and its handoff intact. Return normally through the native\n"
         "host with SUCCEEDED/BLOCKED/FAILED, the actual workspace/Git root, exact commit, handoff path, checks, and\n"
-        "the parent-owned next action. The parent will import, integrate, accept, archive, and remove it.\n"
+        "the parent-owned next action. The parent will import, integrate, accept, archive, and after safe refill\n"
+        "request eligible cleanup from the receipt-owning helper.\n"
     )
     return header + packet_json + footer
 
@@ -1026,14 +1185,14 @@ def start(args: argparse.Namespace) -> dict[str, Any]:
     context = read_context(root)
     step, attempt = valid_step(args.step), valid_attempt(args.attempt)
     spec = STEPS[step]
-    workspace = host_prepare_workspace(root, context, step, attempt)
+    base = _target_head(root, context, f"{step}-start-target")
+    _require_dependency_base(root, context, step, base)
     payload: dict[str, Any] = {
         "attempt": attempt,
-        "workspace": workspace["workspace"],
-        "base_commit": workspace["base_commit"],
+        "base_commit": base,
         "write_scope": spec["write_scope"],
         "resources": spec["resources"],
-        "ready_evidence": ready_evidence(root, context, step, attempt, workspace["base_commit"]),
+        "ready_evidence": ready_evidence(root, context, step, attempt, base),
     }
     result = bridge(context, "start", payload=payload)
     packet = result.get("packet")
@@ -1041,17 +1200,31 @@ def start(args: argparse.Namespace) -> dict[str, Any]:
         fail("public chain start did not return a worker packet")
     if packet.get("step") != step or packet.get("attempt") != attempt:
         fail("public chain start returned a packet for a different step/attempt")
-    if Path(packet_workspace(packet)).resolve() != Path(workspace["workspace"]).resolve():
-        fail("bridge packet did not adopt the exact fixture-emulated caller workspace")
+    action = result.get("action")
+    if action == "launch":
+        managed = managed_workspace_from_packet(root, context, step, attempt, packet, base)
+        workspace = save_managed_workspace(root, context, step, attempt, managed)
+    elif action == "reconcile":
+        workspace = json_object(workspace_record_path(root, step, attempt), "saved managed Ask-Agent workspace record")
+        if (workspace.get("schema") != "shiploop-native-pilot-managed-workspace/v1"
+                or workspace.get("step") != step or workspace.get("attempt") != attempt
+                or packet_workspace(packet) != workspace.get("workspace")
+                or not isinstance(packet.get("ask_agent_workspace"), dict)
+                or packet["ask_agent_workspace"].get("receipt") != workspace.get("receipt")
+                or packet["ask_agent_workspace"].get("receipt_sha256") != workspace.get("receipt_sha256")):
+            fail("recovered worker packet differs from the saved managed helper receipt/workspace")
+    else:
+        fail("public chain start did not return a fresh native launch or reconciled managed attempt")
     saved = packet_path(root, step, attempt)
     write_same_or_new_json(saved, packet, "worker packet")
-    action = result.get("action")
     append_event(root, {"kind": "start", "at": utc_now(), "step": step, "attempt": attempt,
                         "action": action, "packet": str(saved), "workspace": workspace["workspace"],
-                        "base_commit": workspace["base_commit"], "note": "The harness did not launch a native worker."})
+                        "receipt": workspace["receipt"], "base_commit": workspace["base_commit"],
+                        "note": "The harness did not launch a native worker."})
     response = {
         "step": step, "attempt": attempt, "action": action, "packet": str(saved),
-        "workspace": workspace["workspace"], "caller_workspace_record": str(workspace_record_path(root, step, attempt)),
+        "workspace": workspace["workspace"], "ask_agent_workspace_record": str(workspace_record_path(root, step, attempt)),
+        "ask_agent_workspace": packet["ask_agent_workspace"],
         "required_commits": packet.get("shiploop_chain", {}).get("required_commits", _dependency_commits(root, step)),
         "handoff_manifest": str(handoff_path(Path(workspace["workspace"]), attempt)),
     }
@@ -1104,7 +1277,7 @@ def launched(args: argparse.Namespace) -> dict[str, Any]:
                  "handle": handle, "source": str(handle_path), "recorded_at": utc_now()}
         write_new_json(saved, value, "native handle record")
         append_event(root, {"kind": "native-launch-recorded", "at": utc_now(), "step": step, "attempt": attempt,
-                            "handle_record": str(saved), "note": "Caller supplied handle; this is not a liveness assertion."})
+                            "handle_record": str(saved), "note": "Host supplied handle; this is not a liveness assertion."})
     hold = test_hold(root, context)
     released = None if hold is None else release_test_hold(root, hold, step, attempt, saved, result)
     response = {"step": step, "attempt": attempt, "handle_record": str(saved), "status": result.get("status"),
@@ -1181,14 +1354,14 @@ def _worker_result(root: Path, workspace: dict[str, Any], step: str, attempt: st
         fail("handoff result.json digest does not match its manifest")
     result = json_object(result_path, "worker handoff result")
     required = {"schema", "step", "attempt", "workspace", "base_commit", "commit", "cwd", "git_root", "checks", "summary"}
-    if not required <= set(result) or result.get("schema") != "shiploop-native-pilot-worker-result/v2":
+    if not required <= set(result) or result.get("schema") != "shiploop-native-pilot-worker-result/v3":
         fail("worker handoff result has an unsupported schema")
     expected_workspace = workspace["workspace"]
     for key, expected in (("step", step), ("attempt", attempt), ("workspace", expected_workspace),
                           ("base_commit", workspace["base_commit"]), ("commit", manifest["commit"]),
                           ("cwd", expected_workspace), ("git_root", expected_workspace)):
         if result.get(key) != expected:
-            fail(f"worker handoff result {key} does not match its caller-prepared workspace")
+            fail(f"worker handoff result {key} does not match its helper-managed workspace")
     if not isinstance(result.get("checks"), list) or not result["checks"]:
         fail("worker handoff result has no actual checks")
     if not isinstance(result.get("summary"), str) or not result["summary"].strip():
@@ -1198,7 +1371,10 @@ def _worker_result(root: Path, workspace: dict[str, Any], step: str, attempt: st
 
 def inspect_handoff(root: Path, context: dict[str, Any], step: str, attempt: str,
                     manifest_path: Path) -> dict[str, Any]:
-    workspace = json_object(workspace_record_path(root, step, attempt), "caller-prepared workspace record")
+    workspace = json_object(workspace_record_path(root, step, attempt), "managed Ask-Agent workspace record")
+    if (workspace.get("schema") != "shiploop-native-pilot-managed-workspace/v1"
+            or workspace.get("step") != step or workspace.get("attempt") != attempt):
+        fail("managed Ask-Agent workspace record does not match this stopped worker")
     worker = Path(workspace["workspace"])
     expected_manifest = handoff_path(worker, attempt)
     if manifest_path.resolve() != expected_manifest.resolve():
@@ -1354,7 +1530,7 @@ def import_handoff(args: argparse.Namespace) -> dict[str, Any]:
     result = bridge(context, "import-handoff", payload=payload)
     archives = imported_archive_refs(result, Path(inspected["workspace"]["workspace"]))
     record = {
-        "schema": "shiploop-native-pilot-import/v2", "step": step, "attempt": attempt,
+        "schema": "shiploop-native-pilot-import/v3", "step": step, "attempt": attempt,
         "native_handle_record": str(handle_record), "intent": str(intent_path), "inspected": inspected, "bridge": result,
         "handoff_receipt_sha256": handoff_receipt_sha(result),
         "dispatcher_receipt_sha256": dispatcher_receipt_sha(result),
@@ -1406,7 +1582,7 @@ def prepare_integration(args: argparse.Namespace) -> dict[str, Any]:
         fail("prepare worker identity does not equal the imported original worker contribution")
     workspace = Path(integration["workspace"])
     if workspace.resolve() != Path(source["workspace"]["workspace"]).resolve():
-        fail("prepared integration workspace differs from the original adopted worker workspace")
+        fail("prepared integration workspace differs from the original helper-managed worker workspace")
     if git_text(root, workspace, step + "-candidate-head", "rev-parse", "HEAD") != integration["candidate_commit"]:
         fail("prepared candidate is not the exact current stopped worker HEAD")
     if handoff_path(workspace, attempt).exists():
@@ -1415,7 +1591,7 @@ def prepare_integration(args: argparse.Namespace) -> dict[str, Any]:
     candidate_oracle = run_oracle(root, context, step, str(workspace), integration["candidate_commit"],
                                   source["suppliers"])
     record = {
-        "schema": "shiploop-native-pilot-prepared/v2", "step": step, "attempt": attempt,
+        "schema": "shiploop-native-pilot-prepared/v3", "step": step, "attempt": attempt,
         "import": str(import_record_path(root, step, attempt)), "bridge": result,
         "integration": integration,
         "candidate_oracle": candidate_oracle, "prepared_at": utc_now(),
@@ -1425,7 +1601,7 @@ def prepare_integration(args: argparse.Namespace) -> dict[str, Any]:
                         "record": str(record_path), "source_commit": source["source_commit"],
                         "target_commit": integration["expected_target"], "candidate_commit": integration["candidate_commit"]})
     return {"step": step, "attempt": attempt, "prepared": str(record_path), "integration": integration,
-            "next": "Call done; it must fast-forward the invoking branch, accept this exact prepared proof, and remove the worker worktree."}
+            "next": "Call done; it must fast-forward the invoking branch and accept this exact prepared proof. Managed cleanup can remain deferred until the safe frontier is refilled."}
 
 
 def _assert_archives_retained(record: dict[str, Any]) -> None:
@@ -1445,9 +1621,70 @@ def _assert_workspace_removed(root: Path, context: dict[str, Any], workspace: di
     path = Path(workspace["workspace"])
     feature = Path(context["fixture"]["initiating_feature"])
     if path.exists() or os.path.lexists(path):
-        fail("done did not remove the accepted worker worktree")
+        fail("accepted helper-managed worker worktree was not removed")
     if path.resolve(strict=False) in _registered_worktrees(root, feature):
-        fail("done left the removed worker registered with Git")
+        fail("accepted helper-managed worker remains registered with Git")
+
+
+def cleanup_record_path(root: Path, step: str, attempt: str) -> Path:
+    return root / "cleanup" / f"{step}-{attempt}.json"
+
+
+def _drain_deferred_cleanup(root: Path, context: dict[str, Any]) -> list[str]:
+    """Close accepted helper-owned worktrees only after every graph step is accepted.
+
+    The host owns native stop evidence. Every accepted pilot record was created
+    only after its parent supplied confirmed-stopped; this final drain only
+    retries the helper-owned cleanup callback after the graph has no more safe
+    work to refill.
+    """
+    next_view = bridge(context, "next")
+    if next_view.get("ready") or next_view.get("active"):
+        fail("finish cannot drain deferred cleanup before safe available work is refilled")
+    drained: list[str] = []
+    for step in STEPS:
+        accepted = acceptance(root, step)
+        cleanup = accepted.get("cleanup")
+        if not isinstance(cleanup, dict) or type(cleanup.get("pending")) is not bool:
+            fail("accepted contribution has no valid managed cleanup state")
+        workspace = accepted.get("workspace")
+        if not isinstance(workspace, dict):
+            fail("accepted contribution has no managed workspace record")
+        record_path = cleanup_record_path(root, step, accepted["attempt"])
+        if cleanup["pending"] is False:
+            _assert_workspace_removed(root, context, workspace)
+            continue
+        if record_path.exists():
+            record = json_object(record_path, "deferred managed cleanup record")
+            if (record.get("schema") != "shiploop-native-pilot-deferred-cleanup/v1"
+                    or record.get("step") != step or record.get("attempt") != accepted["attempt"]
+                    or not isinstance(record.get("result"), dict)
+                    or record["result"].get("pending") is not False):
+                fail("retained deferred managed cleanup record conflicts with the accepted attempt")
+            _assert_workspace_removed(root, context, workspace)
+            drained.append(step)
+            continue
+        result = bridge(context, "cleanup", payload={
+            "attempt": accepted["attempt"], "confirmed_stopped": True,
+        })
+        if not isinstance(result, dict) or result.get("attempt") != accepted["attempt"]:
+            fail("deferred managed cleanup returned a different attempt")
+        if result.get("pending") is not False:
+            fail("deferred managed cleanup remains retained; preserve the receipt and resolve it before finish")
+        _assert_workspace_removed(root, context, workspace)
+        record = {
+            "schema": "shiploop-native-pilot-deferred-cleanup/v1",
+            "step": step,
+            "attempt": accepted["attempt"],
+            "workspace": workspace["workspace"],
+            "result": result,
+            "drained_at": utc_now(),
+        }
+        write_new_json(record_path, record, "deferred managed cleanup record")
+        append_event(root, {"kind": "deferred-cleanup-drained", "at": utc_now(), "step": step,
+                            "attempt": accepted["attempt"], "record": str(record_path)})
+        drained.append(step)
+    return drained
 
 
 def done(args: argparse.Namespace) -> dict[str, Any]:
@@ -1471,7 +1708,7 @@ def done(args: argparse.Namespace) -> dict[str, Any]:
     target_before = integration["expected_target"]
     evidence_path = root / "verification" / f"{step}-{attempt}-candidate.json"
     evidence = {
-        "schema": "shiploop-native-pilot-candidate-verification/v2", "passed": True,
+        "schema": "shiploop-native-pilot-candidate-verification/v3", "passed": True,
         "step": step, "attempt": attempt, "commit": integration["candidate_commit"],
         "source_commit": imported["inspected"]["source_commit"], "target_before": target_before,
         "prepared": str(prepared_record_path(root, step, attempt)),
@@ -1492,16 +1729,17 @@ def done(args: argparse.Namespace) -> dict[str, Any]:
     if result.get("outcome") != "accepted":
         fail("done did not return an accepted dispatcher outcome")
     cleanup = result.get("cleanup")
-    if not isinstance(cleanup, dict) or cleanup.get("pending") is not False:
-        fail("done accepted the contribution without a completed worker cleanup receipt")
+    if not isinstance(cleanup, dict) or type(cleanup.get("pending")) is not bool:
+        fail("done accepted the contribution without a valid managed cleanup state")
     target_after = _target_head(root, context, step + " target after done")
     if target_after != integration["candidate_commit"]:
         fail("done did not advance the invoking target to the exact prepared candidate")
     workspace = imported["inspected"]["workspace"]
-    _assert_workspace_removed(root, context, workspace)
+    if cleanup["pending"] is False:
+        _assert_workspace_removed(root, context, workspace)
     _assert_archives_retained(imported)
     record = {
-        "schema": "shiploop-native-pilot-accepted/v2", "step": step, "attempt": attempt,
+        "schema": "shiploop-native-pilot-accepted/v3", "step": step, "attempt": attempt,
         "source_commit": imported["inspected"]["source_commit"], "candidate_commit": target_after,
         "target_before": target_before, "target_after": target_after,
         "workspace": workspace, "verification": str(evidence_path), "integration": integration,
@@ -1515,7 +1753,10 @@ def done(args: argparse.Namespace) -> dict[str, Any]:
     return {"step": step, "attempt": attempt, "source_commit": record["source_commit"],
             "candidate_commit": target_after, "accepted": str(accepted_path),
             "ready": result.get("ready", []), "active": result.get("active", []), "complete": result.get("complete"),
-            "next": "Use show, then claim newly ready work. The deleted worker path is not a downstream input."}
+            "cleanup_pending": cleanup["pending"],
+            "next": ("Use show, then claim and start newly ready work before deferred helper cleanup."
+                     if cleanup["pending"] else
+                     "Use show, then claim newly ready work. The removed worker path is not a downstream input.")}
 
 
 def _events(root: Path) -> list[dict[str, Any]]:
@@ -1541,7 +1782,7 @@ def _event_index(events: list[dict[str, Any]], kind: str, step: str) -> int:
     return hits[0]
 
 
-def _assert_timeline(root: Path, context: dict[str, Any]) -> dict[str, Any]:
+def _assert_timeline(root: Path, context: dict[str, Any], *, require_cleanup: bool = True) -> dict[str, Any]:
     events = _events(root)
     launched = {step: _event_index(events, "native-launch-recorded", step) for step in ("A", "B", "C", "J")}
     started = {step: _event_index(events, "start", step) for step in ("A", "B", "C", "J")}
@@ -1575,9 +1816,16 @@ def _assert_timeline(root: Path, context: dict[str, Any]) -> dict[str, Any]:
     primary = Path(context["fixture"]["primary_main"])
     if git_text(root, primary, "timeline-main-head", "rev-parse", "HEAD") != context["fixture"]["main_head"]:
         fail("primary checkout changed during per-step integration")
+    deferred_cleanup: list[str] = []
     for step in STEPS:
         accepted = acceptance(root, step)
-        _assert_workspace_removed(root, context, accepted["workspace"])
+        cleanup = accepted.get("cleanup")
+        if not isinstance(cleanup, dict) or type(cleanup.get("pending")) is not bool:
+            fail("accepted contribution has no valid managed cleanup state")
+        if require_cleanup:
+            _assert_workspace_removed(root, context, accepted["workspace"])
+        elif cleanup["pending"] is True:
+            deferred_cleanup.append(step)
         for archive in accepted["archives"]:
             if sha256_file(Path(archive["path"])) != archive["sha256"]:
                 fail("accepted archive did not remain readable after cleanup")
@@ -1586,7 +1834,8 @@ def _assert_timeline(root: Path, context: dict[str, Any]) -> dict[str, Any]:
             "j_after_b_c_dispatcher_done": True,
             "native_overlap_requires_host_trace": True,
             "target_trace": target_trace, "final_target": final_head,
-            "primary_unchanged": True, "zero_owned_worktrees": True, "archives_retained": True}
+            "primary_unchanged": True, "zero_owned_worktrees": not deferred_cleanup,
+            "deferred_cleanup": deferred_cleanup, "archives_retained": True}
 
 
 def show(args: argparse.Namespace) -> dict[str, Any]:
@@ -1609,6 +1858,7 @@ def show(args: argparse.Namespace) -> dict[str, Any]:
         "retained": {"context": str(root / "context.json"), "commands": str(root / "commands"),
                      "events": str(root / "events.jsonl"), "packets": str(root / "packets"),
                      "imports": str(root / "imports"), "prepared": str(root / "prepared"),
+                     "cleanup": str(root / "cleanup"),
                      "verification": str(root / "verification")},
     }
     append_event(root, {"kind": "show", "at": utc_now(), "complete": next_view.get("complete")})
@@ -1623,7 +1873,7 @@ def _finish_evidence(root: Path, context: dict[str, Any], trace: dict[str, Any],
     if path.exists():
         value = json_object(path, "finish verification evidence")
         required = {"schema", "passed", "commit", "accepted", "oracle", "trace", "target", "main", "verified_at"}
-        if set(value) != required or value.get("schema") != "shiploop-native-pilot-finish-verification/v2":
+        if set(value) != required or value.get("schema") != "shiploop-native-pilot-finish-verification/v3":
             fail("retained finish verification has an unsupported schema")
         if value.get("passed") is not True or value.get("commit") != target_head or value.get("accepted") != accepted:
             fail("retained finish verification does not bind the current accepted contributions")
@@ -1641,7 +1891,7 @@ def _finish_evidence(root: Path, context: dict[str, Any], trace: dict[str, Any],
     final_oracle = run_oracle(root, context, "J", str(feature), target_head,
                               [accepted_b["source_commit"], accepted_c["source_commit"]])
     evidence = {
-        "schema": "shiploop-native-pilot-finish-verification/v2", "passed": True, "commit": target_head,
+        "schema": "shiploop-native-pilot-finish-verification/v3", "passed": True, "commit": target_head,
         "accepted": accepted, "oracle": final_oracle, "trace": trace,
         "target": {"path": str(feature), "head": target_head},
         "main": {"path": str(primary), "head": context["fixture"]["main_head"]}, "verified_at": utc_now(),
@@ -1662,7 +1912,7 @@ def _validate_current_finish_state(root: Path, context: dict[str, Any], trace: d
         fail("primary checkout changed during independent final verification")
     # `trace` was just derived by _assert_timeline, which checks removed
     # worktrees and retained external archives. Retain the parameter so this
-    # boundary cannot be weakened without an explicit caller change.
+    # boundary cannot be weakened without an explicit implementation change.
     if trace.get("zero_owned_worktrees") is not True or trace.get("archives_retained") is not True:
         fail("final lifecycle trace lacks cleanup or archive proof")
 
@@ -1676,7 +1926,7 @@ def _write_finish_result_once(root: Path, result: dict[str, Any], target_head: s
             fail("retained finish result conflicts with the replayed final state")
         return path
     value = {
-        "schema": "shiploop-native-pilot-finish-result/v2",
+        "schema": "shiploop-native-pilot-finish-result/v3",
         "finish": result,
         "target_after": target_head,
         "trace": trace,
@@ -1698,7 +1948,12 @@ def _append_finished_once(root: Path, target_head: str, feature: Path) -> None:
 def finish(args: argparse.Namespace) -> dict[str, Any]:
     root = pilot_root(args.pilot_dir)
     context = read_context(root)
-    trace = _assert_timeline(root, context)
+    _assert_timeline(root, context, require_cleanup=False)
+    _drain_deferred_cleanup(root, context)
+    trace = _assert_timeline(root, context, require_cleanup=True)
+    drained = sorted(path.stem.split("-", 1)[0] for path in (root / "cleanup").glob("*.json"))
+    trace["deferred_cleanup_after_safe_refill"] = bool(drained)
+    trace["deferred_cleanup_attempts"] = drained
     accepted_j = acceptance(root, "J")
     primary = Path(context["fixture"]["primary_main"])
     feature = Path(context["fixture"]["initiating_feature"])
@@ -1732,10 +1987,16 @@ def packet(args: argparse.Namespace) -> dict[str, Any]:
     if not isinstance(current, dict) or current.get("step") != step:
         fail("public chain packet did not return the requested step")
     write_same_or_new_json(packet_path(root, step, attempt), current, "recovered worker packet")
-    workspace = json_object(workspace_record_path(root, step, attempt), "caller-prepared workspace record")
-    if Path(packet_workspace(current)).resolve() != Path(workspace["workspace"]).resolve():
-        fail("recovered worker packet did not retain the fixture-prepared workspace")
+    workspace = json_object(workspace_record_path(root, step, attempt), "managed Ask-Agent workspace record")
+    managed = current.get("ask_agent_workspace")
+    if (workspace.get("schema") != "shiploop-native-pilot-managed-workspace/v1"
+            or not isinstance(managed, dict)
+            or packet_workspace(current) != workspace.get("workspace")
+            or managed.get("receipt") != workspace.get("receipt")
+            or managed.get("receipt_sha256") != workspace.get("receipt_sha256")):
+        fail("recovered worker packet did not retain the helper-managed receipt/workspace")
     return {"packet": str(packet_path(root, step, attempt)), "workspace": packet_workspace(current),
+            "ask_agent_workspace_record": str(workspace_record_path(root, step, attempt)),
             "handoff_manifest": str(handoff_path(Path(workspace["workspace"]), attempt)),
             "required_commits": current.get("shiploop_chain", {}).get("required_commits", _dependency_commits(root, step)),
             "next": "Recovered packet is audit and recovery evidence only; it never authorizes a fresh native launch."}

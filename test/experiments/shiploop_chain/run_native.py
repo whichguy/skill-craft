@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-"""Opt-in one-command Grok qualification; no launcher enters the skill package.
+"""Opt-in one-command Grok evidence capture for the managed native pilot.
 
-The host creates real native agents. This outer experiment retains the host
-trace and independently reruns final verification. Its caller workspaces are
-fixture-emulated with ordinary Git before host execution, so it does not prove
-prompt-driven Ask-Agent worktree creation. It never supplies a fake agent or
-treats model prose as a passing Git/code result.
+The selected Ask-Agent helper creates and receipts worktrees. The host creates
+real native agents. This wrapper retains the host trace and reruns the pilot's
+final verification, including deferred helper cleanup after the safe frontier
+has been refilled. It never supplies a fake agent or treats model prose as a
+passing Git/code result. A retained run is evidence for review, not a general
+live-host qualification.
 """
 from __future__ import annotations
 
@@ -76,7 +77,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, help="new directory; retained on both success and failure")
     parser.add_argument("--grok", default="grok")
-    parser.add_argument("--ask-agent-skill", type=Path, default=ROOT / "test/fixtures/ask-agent-v04/SKILL.md")
+    parser.add_argument("--ask-agent-skill", type=Path, default=ROOT / "skills/ask-agent/SKILL.md")
     parser.add_argument("--dispatcher-skill", type=Path, default=ROOT / "test/fixtures/plan-dispatcher-v3/SKILL.md")
     parser.add_argument("--timeout", type=int, default=1800)
     args = parser.parse_args()
@@ -100,9 +101,11 @@ def main():
         "output": str(output),
         "native_trace_review_required": True,
         "coverage": {
-            "workspace_creation": "fixture_emulation",
-            "prompt_driven_ask_agent_workspace_creation": "not_qualified",
-            "bridge_adoption_native_execution_merge_cleanup": "qualified_only_if_all_gates_pass",
+            "workspace_preparation": "selected Ask-Agent helper receipt, frozen at prepare",
+            "caller_workspace_adoption": "not_used",
+            "native_host_execution": "host-owned trace required; wrapper output is not a general live-host qualification",
+            "per_step_integration": "independent fixture evidence required",
+            "deferred_cleanup": "pilot finish retries accepted helper cleanup only after the safe frontier is exhausted",
             "overlap_control": "B waits after code verification until C launch is registered",
             "simultaneous_code_writing": "not_qualified",
         },
@@ -116,20 +119,21 @@ def main():
         (output / "prepare.json").write_text(json.dumps(prepared, indent=2) + "\n")
         context = json.loads((pilot_dir / "context.json").read_text())
         feature = Path(context["fixture"]["initiating_feature"])
-        prompt = f"""Execute this bounded native Ask-Agent chain qualification to completion.
+        prompt = f"""Execute this bounded native Ask-Agent chain evidence capture to completion.
 Read the selected Ask-Agent skill {args.ask_agent_skill.resolve()} and its Git reference,
 and the driver reference {PILOT.with_name('README.md')}. Use their current contracts.
 The initial ShipLoop navigation/review setup is explicitly synthetic; all code work,
 native agent execution, independent checks, merges and cleanup must be real.
-Operate only in the disposable fixture {pilot_dir} and its registered worktrees.
+Operate only in the disposable fixture {pilot_dir} and helper-managed worktrees.
 Do not change the skill source, oracle, graph, frozen contract or test driver.
 Do not push, install anything, or access credentials. No model/agent subprocesses:
 use this Grok session's native fresh agent tools for workers, with no inherited
-conversation and normal available tools. The fixture's start helper has already
-prepared each caller workspace with ordinary Git to emulate the Ask-Agent
-caller-worktree contract. Do not create or prepare worker worktrees yourself;
-begin by using the exact workspace supplied by start. ShipLoop only adopts that
-workspace. This run does not qualify prompt-driven Ask-Agent workspace creation.
+conversation and normal available tools. Each `start` call invokes the selected
+Ask-Agent helper first and returns one immutable `ask_agent_workspace` receipt,
+worktree, package identity, prepared inspection, and fresh launch grant. Do not
+create, prepare, adopt, replace, or remove a worker worktree yourself. Use only
+the exact helper-managed workspace returned by that fresh start response, and
+retain the same receipt/workspace pair in the pilot records.
 
 Driver prefix: {sys.executable} -B {PILOT}
 Every driver operation needs --pilot-dir {pilot_dir}. Execute parent driver calls
@@ -160,8 +164,10 @@ not simultaneous code-writing or CPU execution.
 After A completes, import-handoff with --handoff-manifest WORKER_PATH and
 --confirmed-stopped, then prepare-integration --confirmed-stopped, then done
 --confirmed-stopped. These commands archive results, independently verify the
-combination, merge into the invoking feature branch, accept and remove the worker.
-Claim/start/dispatch C immediately after A acceptance, before settling B. Continue
+combination, merge into the invoking feature branch, and accept the contribution.
+Managed helper cleanup may be deferred after acceptance. Claim/start/dispatch C
+immediately after A acceptance, before settling B and before asking cleanup to
+remove A. Continue
 B and C using the same collection/import/preparation/done path, one parent command
 at a time. J is meaningful code generation using B and C; start it only after both
 are accepted. Never ask a worker to merge into the invoking branch or delete its
@@ -169,14 +175,17 @@ worktree. Use normal native completion and collect all worker activity before
 confirmed-stopped. Preserve failed work and report a real blocker; do not fake a pass.
 
 Run show at meaningful transitions so observable parent status is saved. Complete
-J and then run finish. Success requires all four source contributions in the
-invoking feature, actual composed-code checks passing, the primary unchanged,
-all agent worktrees removed, and required evidence archived. Return the finish
-receipt path and any concrete limitations. Do not stop after planning.
+J and then run finish. `finish` drains deferred helper cleanup only after every
+safe graph step has been accepted and no ready or active work remains. Success
+requires all four source contributions in the invoking feature, actual
+composed-code checks passing, the primary unchanged, helper worktrees removed,
+and required evidence archived. Return the finish receipt path and concrete
+limitations. A completed fixture trace remains evidence for review, not a
+general live-host qualification. Do not stop after planning.
 """
         record["command"] = [executable, "--cwd", str(feature), "--session-id", record["root_session_id"],
                              "--permission-mode", "auto",
-                             "--output-format", "streaming-json", "--max-turns", "100", "-p", "<inline qualification prompt>"]
+                             "--output-format", "streaming-json", "--max-turns", "100", "-p", "<inline evidence-capture prompt>"]
         record["prompt"] = prompt  # Diagnostic copy, never used as prompt-file transport.
         host_trace = output / "host.ndjson"
         host_events = output / "host-events.jsonl"
@@ -229,6 +238,13 @@ receipt path and any concrete limitations. Do not stop after planning.
         audited = json_command([sys.executable, "-B", str(PILOT), "finish", "--pilot-dir", str(pilot_dir)])
         if audited.get("complete") is not True:
             raise RuntimeError("independent final verification did not establish completion")
+        audit_trace = audited.get("trace")
+        if not isinstance(audit_trace, dict) or audit_trace.get("zero_owned_worktrees") is not True:
+            raise RuntimeError("wrapper finish did not complete helper-owned deferred cleanup")
+        record["finish_cleanup"] = {
+            "deferred_cleanup_after_safe_refill": audit_trace.get("deferred_cleanup_after_safe_refill"),
+            "deferred_cleanup_attempts": audit_trace.get("deferred_cleanup_attempts"),
+        }
         if not root_updates.is_file():
             raise RuntimeError("bound Grok root-session transcript is unavailable")
         trace_result = evaluate_grok_trace(host_trace, root_updates, record["root_session_id"], pilot_dir)
