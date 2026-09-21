@@ -12,13 +12,15 @@ from __future__ import annotations
 SERIAL_INNER_CONTEXT = """\
 Clear and then execute the prompt.
 
-For implement, select the packet's chain route before choosing a context route.
-A bound implementation chain's mode and executor take precedence: parallel
+For an implement producer, select the chain route before choosing a context route.
+While executing that producer, its bound mode and executor take precedence: parallel
 chains retain their capacity and bypass this serial context boundary; serial
 chains execute in the main context without spawning workers. Do not wrap a chain
 in an extra worker. Both modes recover the existing attempt, never rerun start.
 Serial chains may use only the callable-reset or manual-handoff route below.
-For an unbound serial INNER assignment where delegation is permitted, begin
+Chain precedence ends at producer completion. Improve follows its own selected
+context and ownership policy even when the historical chain binding remains.
+For other serial INNER assignments where delegation is permitted, begin
 in a fresh context. Retain the
 CLI, repository, run-directory locators and exact Recovery command below in
 durable host handoff material. Prefer a native fresh worker with no inherited

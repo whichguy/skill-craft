@@ -356,8 +356,10 @@ cleanup and finish. Refuse the old owner before creating or removing a worktree.
 
 ## Serial execution in the main context
 
-The bound mode and recorded executor take precedence over the navigator's generic
-fresh-worker guidance. Parallel chains retain their capacity and have no serial
+During the implementation producer, the bound mode and recorded executor take
+precedence over the navigator's generic fresh-worker guidance. This precedence
+ends at producer completion: Improve follows its own selected context and ownership
+policy even when the historical chain binding remains. Parallel chains retain their capacity and have no serial
 reset wrapper. Serial chains do not spawn a fresh worker. If fresh context is
 required, use only a real callable host reset with a recovery route, or the
 [pause and operator handoff](navigator.md#packet-only-context-boundary).

@@ -130,13 +130,15 @@ transition is historical context and does not replace the current action.
 
 Active v3 INNER packets begin with **Clear and then execute the prompt.** This
 is the serial execution instruction for each producer and its Improve handoff.
-For `implement`, select the chain route first. A bound chain's mode and executor
-take precedence: parallel chains keep their capacity and bypass this boundary;
+For an `implement` producer, select the chain route first. During that producer,
+its bound mode and executor take precedence: parallel chains keep their capacity and bypass this boundary;
 explicit serial chains execute in the main context without spawning workers.
 Do not wrap a chain in another worker. Both modes recover the existing attempt
 rather than rerunning `start`. Serial chains use only a callable reset or the
 manual handoff below; the [chain mode contract](parallel-chain.md#serial-execution-in-the-main-context)
-remains authoritative. For unbound serial work where delegation is permitted,
+remains authoritative. Chain precedence ends at producer completion. Improve follows
+its own selected context and ownership policy even when the historical chain binding
+remains. For other serial work where delegation is permitted,
 save the recovery locators and prefer one native fresh worker at a time, without
 inherited conversation. It needs the assignment's tools, the existing workspace
 and a return route to the live parent. The parent supplies the current packet,

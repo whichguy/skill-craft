@@ -94,4 +94,6 @@ owners, recovery, and exclusion of stopped states. They do not prove a native
 host performed a reset. No model launcher, state schema, or scheduler was added.
 Bound-chain fixtures additionally check that fresh and cold navigator packets
 preserve parallel capacity guidance and serial main-context ownership without
-changing the binding or restarting an attempt.
+changing the binding or restarting an attempt. Completed serial and parallel
+chain fixtures also check that Improve uses its own context and ownership policy
+while retaining the historical chain binding.
