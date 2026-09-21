@@ -28,8 +28,10 @@ For an affected remote system or delivery route, apply
 [target-native test selection](#select-target-native-tests) before excluding its
 native checks; local file inventory alone cannot settle that decision.
 
-For browser behavior, consider available inspection/debugging tools, browser automation,
-or equivalent tools to inspect and test the actual end-browser surface. Choose
+For browser behavior, consider Chrome DevTools or equivalent available inspection
+tools, and Playwright or equivalent browser automation, to inspect and test the
+actual end-browser surface. Pair these with `curl` or existing HTTP/API checks
+when both protocol and rendered behavior matter. Choose
 the tool by the observation needed, such as rendered DOM/CSS, console errors,
 network behavior, interaction, or performance. Apply the existing
 [lightweight and browser checks](testing-and-documentation.md#lightweight-and-browser-checks)

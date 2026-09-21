@@ -631,6 +631,32 @@ class V3GuidanceTests(unittest.TestCase):
 
         self.assertEqual(tuple(observed), RELEASE_OPERATION_STAGES)
 
+    def test_consumer_testing_guide_survives_cold_producer_and_improve_handoffs(self) -> None:
+        """The browser evidence policy remains reachable; no live browser is tested."""
+        route = (
+            "Consumer testing guide: "
+            + str(REFERENCES / "testing-and-documentation.md#lightweight-and-browser-checks")
+        )
+        state = self.state()
+        observed: list[str] = []
+        while state["status"] != "done":
+            stage = navigator.current_stage(state)
+            recovered, packet = self.cold_packet(state)
+            with self.subTest(stage=stage, boundary="producer"):
+                self.assertEqual(packet.count(route), 1)
+            action = dict(navigator.current_action(recovered))
+            extra: dict[str, object] = {}
+            if stage == "plan":
+                extra["work_items"] = [{"id": "W1", "title": "Synthetic browser case"}]
+            waiting = navigator.apply(recovered, action["id"], result(stage, **extra))
+            pending, packet = self.cold_packet(waiting)
+            with self.subTest(stage=stage, boundary="Improve"):
+                self.assertEqual(packet.count(route), 1)
+                self.assertIn("Current action: Improve the completed " + stage, packet)
+            state = navigator.finish_improve(pending, action["id"], receipt(stage))
+            observed.append(stage)
+        self.assertEqual(tuple(observed), prompts.STAGES)
+
     def test_cold_local_skill_routes_cover_early_and_late_decisions(self) -> None:
         """Fresh producer and pending-child packets retain the local skill route.
 

@@ -594,6 +594,11 @@ and the actual deployment gate to evidence-backed suite selections or exclusions
 Consider supported platform/library testing systems and available browser tools
 by required capability rather than product name. Record their roles, fit,
 availability and prerequisites; distinguish inspection from retained assertions.
+Where relevant, consider curl or an existing HTTP/API client, Chrome DevTools or
+equivalent inspection, and Playwright or equivalent browser automation; these are
+capability examples, not a mandatory tool checklist. For browser-based UI criteria,
+plan browser actions and expected visible outcomes; HTTP success alone does not
+validate them. Apply the Consumer testing guide and retain access gaps.
 Link the durable strategy note in ordinary evidence_refs, with the selection
 rationale, fixture lifecycle, suite entry points and revalidation conditions.
 Retain exact focused, smoke, and full-suite commands, inclusion rules, expected
