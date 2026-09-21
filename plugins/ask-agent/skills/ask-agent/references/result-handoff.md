@@ -7,7 +7,8 @@ Prefer compact handoffs without imposing fixed word, line, duration, concurrency
 or delegation-depth limits. Let the task and the native harness determine how
 much work, evidence and output are needed. Explicit user constraints still apply.
 
-Every fresh native worker assignment includes the filled delivery clause from
+Every **helper-managed** fresh native worker assignment includes the filled
+delivery clause from
 [Git integration](git-integration.md#reusable-fresh-worker-launch-clause).
 Do not imply that files follow a returned message automatically. In `patch`
 mode the parent receives and verifies the helper's baseline-relative patch; in
@@ -17,7 +18,20 @@ integrates the accepted patch or commits and archives required reports before
 calling `close`. A dirty inherited caller snapshot requires the declared patch
 mode; do not silently switch a requested commit handoff to another mode.
 
+## Consumer-owned workspace handoff
+
+For `workspace_route: consumer-owned` and `delivery_mode: in-place`, use the
+complete [Consumer-owned workspace](consumer-owned-workspace.md) contract. Its
+worker returns candidate identity, binding, scoped edits and evidence, terminal
+receipt, review/check results, dirty-state preservation, stopped-owner evidence,
+and the unchanged parent continuation. It never returns a helper receipt,
+baseline-relative patch, commit-range delivery proof, or helper close result.
+The parent verifies and records in-place acceptance; the consumer separately owns
+final delivery to its original caller and any cleanup.
+
 ## Caller-facing handoff
+
+**Helper-managed default only.**
 
 Put a self-contained handoff in the final native return and keep it in the
 parent's response after collection. Do not make the caller discover paths or
@@ -97,6 +111,9 @@ integration and combined validation.
 
 ## Reports and native return
 
+**Helper-managed default only.** Consumer-owned workers retain evidence in the
+consumer candidate and follow their separate in-place return contract.
+
 Use each worker's designated Git worktree for its in-progress work and result
 files. Fresh attempts/retries and nested workers get distinct worktrees based
 on their caller's current state; never reuse a path just because task labels
@@ -168,18 +185,17 @@ follow-up/collection where available; do not invent its contents or silently
 replace it with a large inline dump. File existence is not a completion signal:
 keep using native notifications/collection, never file polling.
 
-The parent owns integration and the decision to remove a worktree; the bundled
-helper performs preservation and eligible removal. Wait until the worker and any
-delegates using it have stopped and all required use/verification is complete.
-For code changes, integrate and validate the intended contribution before
-removal; for report-only work, finish consuming the results first. Retain blocked,
-unaccepted or still-needed work and state the next action. Preserve required
-deliverables, user files, dispatcher inbox/ledger/history and recovery records
-outside the worktree before removing it. Inspect the returned workspace, approve
-the explicit artifact/discard list and acceptance receipt, then call `close` as
-described in Workspace operations. Missing acceptance retains the workspace.
-The integration reference defines the ownership and Git removal checks.
-Record integration/removal or retention in the parent
-task state. A deleted worktree path is not a usable final reference. Deleting a
-file does not remove text already read into
-the conversation, so selective reading is essential.
+**Helper-managed default only.** The parent owns integration and the decision to
+remove a worktree; the bundled helper performs preservation and eligible removal.
+Wait until the worker and any delegates using it have stopped and all required
+use/verification is complete. For code changes, integrate and validate the
+intended contribution before removal; for report-only work, finish consuming the
+results first. Retain blocked, unaccepted or still-needed work and state the next
+action. Preserve required deliverables, user files, dispatcher inbox/ledger/history
+and recovery records outside the worktree before removing it. Inspect the returned
+workspace, approve the explicit artifact/discard list and acceptance receipt, then
+call `close` as described in Workspace operations. Missing acceptance retains the
+workspace. The integration reference defines the ownership and Git removal checks.
+Record integration/removal or retention in the parent task state. A deleted
+worktree path is not a usable final reference. Deleting a file does not remove text
+already read into the conversation, so selective reading is essential.
