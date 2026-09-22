@@ -25,9 +25,10 @@ SCRIPTS = ROOT / "skills" / "shiploop" / "scripts"
 CLI = SCRIPTS / "shiploop"
 GIT = shutil.which("git")
 RETURN_POLICY = (
-    "fast-forward only for a clean source and committed clean candidate when every "
-    "reviewed path is kept; otherwise apply only the reviewed working-tree delta "
-    "without a merge or commit"
+    "fast-forward only for a clean source and committed candidate with no tracked "
+    "changes, when every history path is kept and its only untracked files are "
+    "reviewed excluded .shiploop-improve evidence; otherwise apply only the "
+    "reviewed working-tree delta without a merge or commit"
 )
 if str(SCRIPTS) not in sys.path:
     sys.path.insert(0, str(SCRIPTS))
@@ -495,6 +496,7 @@ class ShipLoopWorkspaceTests(unittest.TestCase):
         self.assertNotIn("tracked-staged.txt", planned)
         self.assertNotIn("selected-input.txt", planned)
         self._resolve_plan(root, exclude={"tracked-unstaged.txt"})
+        before_head = self.git("rev-parse", "HEAD").stdout.strip()
         before_index = (self.repo / ".git" / "index").read_bytes()
         before_dirty = {
             name: (self.repo / name).read_bytes()
@@ -509,6 +511,7 @@ class ShipLoopWorkspaceTests(unittest.TestCase):
         receipt = self._execute(root)
 
         self.assertEqual(receipt["kind"], "working-tree-return")
+        self.assertEqual(self.git("rev-parse", "HEAD").stdout.strip(), before_head)
         self.assertEqual((self.repo / "feature.py").read_text(encoding="utf-8"), feature.read_text(encoding="utf-8"))
         self.assertEqual((self.repo / ".git" / "index").read_bytes(), before_index)
         self.assertEqual(
@@ -615,6 +618,27 @@ class ShipLoopWorkspaceTests(unittest.TestCase):
         self.assertEqual(self.git("status", "--porcelain").stdout, "")
         self.assertTrue((root / "worktree").is_dir())
         self.assertTrue((root / "run").is_dir())
+
+    def test_ordinary_untracked_output_prevents_committed_candidate_fast_forward(self) -> None:
+        root = self.base / "ordinary untracked output"
+        worktree = self._worktree(self._prepare(name=root.name))
+        (worktree / "product-output.txt").write_text("reviewed product\n", encoding="utf-8")
+        self.git("add", "product-output.txt", cwd=worktree)
+        self.git("commit", "-qm", "commit reviewed product", cwd=worktree)
+        (worktree / "worker.log").write_text("private scratch\n", encoding="utf-8")
+        self._plan(root)
+        self._resolve_plan(root, exclude={"worker.log"})
+        before_head = self.git("rev-parse", "HEAD").stdout.strip()
+        before_index = (self.repo / ".git" / "index").read_bytes()
+
+        receipt = self._execute(root)
+
+        self.assertEqual(receipt["kind"], "working-tree-return")
+        self.assertEqual(self.git("rev-parse", "HEAD").stdout.strip(), before_head)
+        self.assertEqual((self.repo / ".git" / "index").read_bytes(), before_index)
+        self.assertEqual((self.repo / "product-output.txt").read_text(), "reviewed product\n")
+        self.assertFalse((self.repo / "worker.log").exists())
+        self.assertTrue((worktree / "worker.log").is_file())
 
     def test_clean_fast_forward_refuses_to_overwrite_an_ignored_source_sentinel(self) -> None:
         """`merge --ff-only` must not silently replace ignored untracked data."""
@@ -797,34 +821,47 @@ class ShipLoopWorkspaceTests(unittest.TestCase):
             self.assertEqual(os.readlink(returned), "target.txt")
         self.assertEqual((self.repo / ".git" / "index").read_bytes(), source_index)
 
-    def test_untracked_child_evidence_is_retained_but_cannot_be_returned(self) -> None:
-        root = self.base / "retained child evidence"
-        worktree = self._worktree(self._prepare(name=root.name))
-        child_receipt = worktree / ".shiploop-improve" / "run" / "action" / "packet.json"
-        child_receipt.parent.mkdir(parents=True)
-        child_receipt.write_text('{"status":"complete"}\n', encoding="utf-8")
-        review = child_receipt.parent / "reviews" / "review-one.md"
-        review.parent.mkdir()
-        review.write_text("retained child review evidence\n", encoding="utf-8")
-        (worktree / "product-output.txt").write_text("reviewed product\n", encoding="utf-8")
-        plan = self._plan(root)
-        for row in plan["paths"]:
-            row["disposition"] = "keep"
-        store.write_record(root / "return-plan.md", plan)
-        before = self._source_snapshot()
-        with self.assertRaises(workspace.WorkspaceError):
-            self._call(workspace.execute_return, root)
-        self._assert_source_unchanged(before)
+    def test_retained_child_evidence_keeps_uncommitted_and_committed_returns_distinct(self) -> None:
+        for committed in (True, False):
+            with self.subTest(committed=committed):
+                root = self.base / ("retained committed child evidence" if committed else "retained child evidence")
+                worktree = self._worktree(self._prepare(name=root.name))
+                child_receipt = worktree / ".shiploop-improve" / "run" / "action" / "packet.json"
+                child_receipt.parent.mkdir(parents=True)
+                child_receipt.write_text('{"status":"complete"}\n', encoding="utf-8")
+                review = child_receipt.parent / "reviews" / "review-one.md"
+                review.parent.mkdir()
+                review.write_text("retained child review evidence\n", encoding="utf-8")
+                product = "committed-product-output.txt" if committed else "product-output.txt"
+                (worktree / product).write_text("reviewed product\n", encoding="utf-8")
+                candidate = None
+                if committed:
+                    self.git("add", product, cwd=worktree)
+                    self.git("commit", "-qm", "commit reviewed product", cwd=worktree)
+                    candidate = self.git("rev-parse", "HEAD", cwd=worktree).stdout.strip()
+                plan = self._plan(root)
+                for row in plan["paths"]:
+                    row["disposition"] = "keep"
+                store.write_record(root / "return-plan.md", plan)
+                before = self._source_snapshot()
+                with self.assertRaises(workspace.WorkspaceError):
+                    self._call(workspace.execute_return, root)
+                self._assert_source_unchanged(before)
 
-        for row in plan["paths"]:
-            if row["path"].startswith(".shiploop-improve/"):
-                row["disposition"] = "exclude"
-        store.write_record(root / "return-plan.md", plan)
-        self._execute(root)
-        self.assertEqual((self.repo / "product-output.txt").read_text(), "reviewed product\n")
-        self.assertFalse((self.repo / ".shiploop-improve").exists())
-        self.assertTrue(child_receipt.is_file())
-        self.assertTrue(review.is_file())
+                for row in plan["paths"]:
+                    if row["path"].startswith(".shiploop-improve/"):
+                        row["disposition"] = "exclude"
+                store.write_record(root / "return-plan.md", plan)
+                receipt = self._execute(root)
+                self.assertEqual(
+                    receipt["kind"], "fast-forward-merge" if committed else "working-tree-return"
+                )
+                if candidate is not None:
+                    self.assertEqual(self.git("rev-parse", "HEAD").stdout.strip(), candidate)
+                self.assertEqual((self.repo / product).read_text(), "reviewed product\n")
+                self.assertFalse((self.repo / ".shiploop-improve").exists())
+                self.assertTrue(child_receipt.is_file())
+                self.assertTrue(review.is_file())
 
     def test_tracked_or_historical_child_receipts_still_block_return(self) -> None:
         for kind in ("staged", "committed", "deleted-in-history"):

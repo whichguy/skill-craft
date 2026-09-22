@@ -1,4 +1,4 @@
-# ShipLoop navigator 0.18.19
+# ShipLoop navigator 0.18.20
 
 ShipLoop's invoking conversation owns navigation, acceptance and delivery. For
 a new v3 ephemeral Improve invocation, the selected Ask Agent can delegate one
@@ -135,8 +135,10 @@ instructs the owner to use `improve-bind --action ... --skill-card ...`. The
 packet is authoritative for argument values and recovery. It then supplies one
 actual Improve handoff; a recorded child is resumed through its own state, and
 `improve-complete` imports matching successful completion evidence once. New
-children inherit a no-commit constraint unless an explicit user or repository
-policy authorizes an exception. ShipLoop's `state.md` remains SDLC-state authority;
+children commit verified scoped improvements in their bound worktree under
+the selected Improve policy, unless an explicit user or repository no-commit
+override applies. The parent verifies the commit evidence and owns integration;
+a worker commit alone does not prove caller delivery. ShipLoop's `state.md` remains SDLC-state authority;
 the selected Until Loop runtime remains child-execution authority.
 
 ### Current Improve and Until Loop binding
@@ -174,7 +176,7 @@ blocks return. Generate the return plan after the terminal packet is saved:
 earlier active-packet bytes would make that plan stale.
 
 The child freezes the exact parent binding line in `context.request`, scope,
-no-commit authority, environment, and resource locators for the original request,
+commit policy, environment, and resource locators for the original request,
 parent state, latest packet and return instructions. Every `done` report provides
 a replacement `handoff`. Thus a compacted host can read the latest full packet,
 recover an active child through its exact `next_argv`, execute the returned work,

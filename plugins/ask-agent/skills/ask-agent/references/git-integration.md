@@ -62,13 +62,28 @@ An ordinary code-change assignment includes automatic integration into that
 target, followed by combined validation. The caller need not separately ask to
 bring the result back. Explicit review-only or return-unmerged instructions take
 precedence. Preserve dirty caller state: patch integration can legitimately remain
-uncommitted, and a worker's success or commit does not imply a target commit.
-Do not squash a whole branch containing inherited caller changes. A single target
-commit is eligible only under the existing commit/history policy and after
-verifying a clean compatible target; integrate only the verified contribution
-range. This helper's commit delivery still requires a clean inherited snapshot;
-committed delivery on dirty inherited state requires a separately implemented
-and verified private baseline, not a prompt-only change to the mode.
+uncommitted, and a worker's success or private commit does not imply a target
+commit. A delegated skill may require an authorized scoped private checkpoint in
+its isolated worktree while delivery remains `patch` (for example, Improve). If
+a selected new path must be staged first, use `git add -- <selected path>` only
+for that path, then use `git commit --only -m "..." -- <explicit selected
+paths>`. Never use `git add -A`: `--only` prevents unrelated inherited index
+entries from entering the checkpoint. When a selected path overlaps dirty caller
+content, that private commit naturally includes the inherited context. Record its
+full SHA as `checkpointSHA` provenance only, separate from the helper's
+contribution patch. Do not pass it to patch-mode `inspect` or cherry-pick/merge
+it into the caller. Patch workers without that task-specific requirement follow
+their own commit policy.
+
+For dirty patch delivery, the parent rechecks the baseline-relative patch and
+the current target, then uses plain `git apply --check --binary <patch>` followed
+by plain `git apply --binary <patch>`; do not add `--index`. This preserves the
+caller's HEAD and index while applying only the worker delta. Do not squash a
+whole branch containing inherited caller changes. A single target commit is
+eligible only under the existing commit/history policy and after verifying a
+clean compatible target; integrate only the verified contribution range. The
+existing `commits` delivery route still requires a clean inherited snapshot and
+its verified exact range.
 
 ## Reusable fresh-worker launch clause
 
@@ -83,15 +98,15 @@ Binding mode: {native cwd | explicit operations}. Shell rule for this host: {fil
 Delivery mode: {patch | commits | report-only}.
 Integration target: {target at exact revision}; integration owner: {parent or named owner}.
 Allowed writes: {named contribution paths and allowed report/scratch paths}.
-Preserve inherited state. Do not edit outside this worktree and do not use git add -A.
+Preserve inherited state. Do not edit outside this worktree or use git add -A. Add a selected new path narrowly with git add -- <path> only when necessary.
 Write required reports under {report paths}; they must be retained before cleanup.
 
-For patch: leave the worker-only change in place and return its result paths.
+For patch: leave the worker-only change in place and return its result paths. If a delegated skill requires an authorized private checkpoint, commit only the explicit selected paths with git commit --only -m "..." -- <paths> after any narrow add for selected new paths. Return its full checkpointSHA as provenance only, separately from the patch; do not pass it to patch inspect or cherry-pick/merge it into the caller.
 For commits: commit only the named worker contribution, return every exact full contribution SHA in order, and list every residual staged, unstaged, or untracked deliverable.
 For report-only: do not change repository inputs; return findings and report paths only.
 
-Finish all writes/reports, then run the packaged helper inspect --phase returned with this receipt, declared delivery mode, named --artifact report paths, and required commit arguments for commits mode. Use its actual delivery values in the inline return; do not rewrite an inspected report merely to insert the generated patch path. The parent rechecks inspection after native completion. If inspection fails, return the blocker and retained worktree, not guessed delivery values.
-Return the caller-facing handoff from Result handoff inline: task outcome/checks; absolute worktree and branch; delivery mode with exact patch path or ordered full SHAs; absolute target checkout and last checked HEAD; integration state; direct report paths; and a concrete next action for the integrating owner. Resolve helper state yourself; the caller must not need receipt/baseline JSON to use the result. For patch delivery, identify the worker-only patch against inherited contents, not a whole-branch merge. Do not invent paths or report readiness without inspection.
+Finish all writes/reports, then run the packaged helper inspect --phase returned with this receipt, declared delivery mode, named --artifact report paths, and required commit arguments only for commits mode. Patch inspection has no --commit-base or --commit arguments even when a checkpointSHA exists. Use its actual delivery values in the inline return; do not rewrite an inspected report merely to insert the generated patch path. The parent rechecks inspection after native completion. If inspection fails, return the blocker and retained worktree, not guessed delivery values.
+Return the caller-facing handoff from Result handoff inline: task outcome/checks; absolute worktree and branch; delivery mode with exact patch path and any checkpointSHA marked provenance-only, or ordered full contribution SHAs; absolute target checkout and last checked HEAD; integration state; direct report paths; and a concrete next action for the integrating owner. Resolve helper state yourself; the caller must not need receipt/baseline JSON to use the result. For patch delivery, identify the worker-only patch against inherited contents, not a whole-branch merge. Do not invent paths or report readiness without inspection.
 Returning a message does not integrate or transfer files. Leave this worktree intact. An ordinary code-change request authorizes the parent to verify, integrate and validate the contribution automatically. Explicit return-unmerged instructions or a concrete integration blocker require a retained code handoff instead. Review-only tasks require report consumption, not code integration. After integration/report consumption, the parent archives reports and decides whether close is eligible.
 ```
 
@@ -218,8 +233,9 @@ A code handoff should identify:
   with retention reasons and the parent merge/removal reminder. Keep dispatcher
   receipts/history and deliverables distinct from disposable scratch/evidence.
 - Delivery mode and its helper evidence: baseline-relative patch and paths for
-  `patch`; exact full SHAs, verified base, committed paths and residual paths
-  for `commits`; or explicit no-code-integration and retained report paths for
+  `patch`, plus any private `checkpointSHA` explicitly marked provenance-only;
+  exact full SHAs, verified base, committed paths and residual paths for
+  `commits`; or explicit no-code-integration and retained report paths for
   `report-only`.
 
 For example: “Assigned: add CSV export. Implementation complete; integration
@@ -247,8 +263,9 @@ actual result; if it races, re-evaluate instead of overwriting newer work.
 
 Integrate the intended contribution using project policy. Inspect what the
 commit range or patch includes against the inherited-state baseline; exclude
-duplicated caller edits, private baseline commits, unrelated changes, scratch
-reports and runtime artifacts rather than copying an entire worktree. Check the resulting
+duplicated caller edits, private baseline or checkpoint commits, unrelated
+changes, scratch reports and runtime artifacts rather than copying an entire
+worktree. Check the resulting
 shared behavior: a clean textual merge does not prove semantic compatibility.
 Delegate localized repairs as useful, then review and revalidate affected scope.
 

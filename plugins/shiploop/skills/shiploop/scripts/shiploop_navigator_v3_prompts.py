@@ -1699,13 +1699,18 @@ review cue to inspect that basis; equal or different bytes do not establish a
 fresh substantive review. Neither unchanged files nor an N/A label waives the
 current stage's decision/evidence review or changes Improve's completion policy.
 
-Children have no commit authority by default: preserve the parent no-commit
-constraint unless the packet explicitly supplies a user- or repository-authorized
-exception.  Keep Until Loop state and child evidence out of product commits and
-integration returns.  Refresh affected checks after child edits.  For a RED-stage
-handoff, do not make production edits merely to turn the expected RED green.  For
-release/verification handoffs, reconcile an uncertain external outcome rather
-than replaying it.
+For a genuinely new child, after the meaningful checks required by the current
+scope, commit only authorized changed product or requirements files. Never
+commit runtime evidence or inherited unrelated staged work, and do not create
+an empty commit unless an explicit audit-every-iteration rule authorizes it.
+An explicit user- or repository-authorized no-commit instruction overrides this
+default. An already frozen child contract keeps its recorded authority on
+recovery. Record the exact scoped contribution SHA in the handoff, or the
+authorized no-commit/no-change reason. Keep Until Loop state and child evidence
+out of product commits and integration returns. Refresh affected checks after
+child edits. For a RED-stage handoff, do not make production edits merely to
+turn the expected RED green. For release/verification handoffs, reconcile an
+uncertain external outcome rather than replaying it.
 """
 
 

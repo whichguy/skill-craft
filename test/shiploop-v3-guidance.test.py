@@ -1713,9 +1713,19 @@ class V3GuidanceTests(unittest.TestCase):
         card = IMPROVE_CARD.read_text(encoding="utf-8")
         self.assertIn("## ShipLoop v3 whole-skill subcall", card)
         self.assertIn("standalone whole-skill subcall", card)
-        self.assertIn("default no-commit constraint overrides", card)
         self.assertIn("`managed-improve`", card)
         self.assertIn("Do not use `managed_controller.py`", card)
+
+        improve = normalized(prompts.improve_prompt("implement"))
+        for clause in (
+            "commit only authorized changed product or requirements files",
+            "Never commit runtime evidence or inherited unrelated staged work",
+            "do not create an empty commit unless an explicit audit-every-iteration rule authorizes it",
+            "explicit user- or repository-authorized no-commit instruction overrides this default",
+            "already frozen child contract keeps its recorded authority on recovery",
+            "exact scoped contribution SHA in the handoff",
+        ):
+            self.assertIn(clause, improve)
 
         discovery = normalized(prompts.prompt("discovery"))
         prepare = normalized(prompts.prompt("prepare"))

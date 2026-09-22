@@ -12,7 +12,7 @@ import subprocess
 import sys
 
 parser = argparse.ArgumentParser()
-parser.add_argument('operation', choices=['setup', 'finalize', 'snapshot'])
+parser.add_argument('operation', choices=['setup', 'finalize', 'snapshot', 'verify-delivery'])
 parser.add_argument('--package', type=Path, required=True)
 parser.add_argument('--case', type=Path, required=True)
 args = parser.parse_args()
@@ -54,12 +54,71 @@ def git(label, *argv):
 def digest(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
+def scoped_delivery_manifest(info):
+    rows = []
+    for name in info['scope']:
+        caller_path, candidate_path = source / name, candidate / name
+        caller_digest = digest(caller_path) if caller_path.is_file() and not caller_path.is_symlink() else None
+        candidate_digest = digest(candidate_path) if candidate_path.is_file() and not candidate_path.is_symlink() else None
+        rows.append({'path': name, 'caller_sha256': caller_digest,
+            'candidate_sha256': candidate_digest,
+            'result': 'match' if caller_digest and caller_digest == candidate_digest else 'mismatch'})
+    return {'scoped_delivery': 'PASS' if all(row['result'] == 'match' for row in rows) else 'FAIL',
+        'delivery_paths': rows}
+
+def persist_scoped_delivery(manifest):
+    record = {'git_delivery': 'INCOMPLETE', 'workspace_return': 'completed',
+        'parent_import': 'not-run' if manifest['scoped_delivery'] == 'PASS' else 'blocked',
+        'parent_advancement': 'incomplete' if manifest['scoped_delivery'] == 'PASS' else 'blocked',
+        'record_phase': 'after-workspace-return-before-parent-import',
+        'scoped_delivery_basis': 'per-path caller/candidate digests only; not semantic or caller-test proof',
+        **manifest}
+    (case / 'scoped-delivery.json').write_text(json.dumps(record, indent=2)+'\n')
+    return record
+
+def require_scoped_delivery(info):
+    manifest = scoped_delivery_manifest(info)
+    persist_scoped_delivery(manifest)
+    mismatches = [row['path'] for row in manifest['delivery_paths'] if row['result'] != 'match']
+    if mismatches:
+        raise AssertionError('Scoped delivery mismatch: '+', '.join(mismatches))
+    return manifest
+
 def snapshot():
     return {'head': git('snapshot-head', 'rev-parse', 'HEAD').decode().strip(),
         'index': digest(source / '.git/index'),
         'cached_diff': git('snapshot-index-diff', 'diff', '--cached', '--binary').decode(),
         'preserved_files': {name: digest(source / name) for name in ['user-intent.txt', 'loose-note.txt']},
         'calculator': digest(source / 'calculator.py')}
+
+def verify_worker_commits(info, terminal):
+    """Qualify new committed pilots without rewriting older frozen experiments."""
+    if info.get('commit_policy') != 'scoped-required':
+        return {'status': 'not-required-by-frozen-fixture'}
+    def candidate_git(label, *argv):
+        return command(['git', *argv], candidate, label).decode().strip()
+    baseline = info['candidate_initial_head']
+    head = candidate_git('worker-head', 'rev-parse', 'HEAD')
+    candidate_git('worker-ancestor', 'merge-base', '--is-ancestor', baseline, head)
+    commits = candidate_git('worker-commits', 'rev-list', '--reverse', baseline+'..'+head).splitlines()
+    assert commits, 'Required worker commit is missing'
+    handoff = terminal.get('last_report', {}).get('handoff', '')
+    assert all(sha in handoff for sha in commits), 'Terminal handoff lacks exact worker commit provenance'
+    records = []
+    for sha in commits:
+        paths = candidate_git('worker-paths-'+sha, 'diff-tree', '--no-commit-id', '--name-only', '-r', sha).splitlines()
+        assert paths and set(paths) <= set(info['scope']), 'Worker commit includes empty or out-of-scope change'
+        body = candidate_git('worker-message-'+sha, 'show', '-s', '--format=%B', sha)
+        sections = ['Review', 'Plan', 'Changes', 'Validation', 'Key learnings', 'Remaining work']
+        assert all(section.lower() in body.lower() for section in sections), 'Missing learning-oriented commit sections'
+        records.append({'sha': sha, 'paths': paths})
+    dirty = candidate_git('worker-uncommitted-scope', 'status', '--porcelain', '--untracked-files=all', '--', *info['scope'])
+    assert not dirty, 'Scoped worker changes remain uncommitted'
+    evidence = {'status': 'PASS', 'baseline': baseline, 'head': head, 'commits': records,
+        'caller_history_integration': False, 'delivery_mode': 'working-tree-return',
+        'basis': 'Actual Git ancestry, commit paths/messages and scoped worktree status; native execution is separately attested'}
+    (case / 'worker-commits.json').write_text(json.dumps(evidence, indent=2)+'\n')
+    return evidence
 
 if args.operation == 'setup':
     case.mkdir(parents=True, exist_ok=False)
@@ -79,6 +138,13 @@ if args.operation == 'setup':
     git('git-stage-dirty', 'add', 'user-intent.txt')
     (source / 'user-intent.txt').write_text('staged user intent\nadditional unstaged intent\n')
     (source / 'loose-note.txt').write_text('untracked caller note must survive exactly\n')
+    caller_markers = ['# staged caller context: preserve this note',
+                      '# unstaged caller context: preserve this note too']
+    with (source / 'calculator.py').open('a') as handle:
+        handle.write(caller_markers[0]+'\n')
+    git('git-stage-scoped-dirty', 'add', 'calculator.py')
+    with (source / 'calculator.py').open('a') as handle:
+        handle.write(caller_markers[1]+'\n')
     (case / 'caller-before.json').write_text(json.dumps(snapshot(), indent=2)+'\n')
     card = package / 'skills/improve/SKILL.md'
     ship('workspace-start', 'workspace', 'start', '--repo', source,
@@ -104,6 +170,9 @@ if args.operation == 'setup':
         'receipt': str(receipt), 'owner_record': str(receipt.with_name('host-owner.md')),
         'completion': str(run / 'inbox' / (action + '-improve.md')),
         'scope': ['calculator.py', 'test_calculator.py'],
+        'commit_policy': 'scoped-required',
+        'caller_scope_markers': {'calculator.py': caller_markers},
+        'candidate_initial_head': command(['git', 'rev-parse', 'HEAD'], candidate, 'candidate-baseline').decode().strip(),
         'excluded': ['user-intent.txt', 'loose-note.txt'],
         'check': ['python3', '-B', '-m', 'unittest', '-v', 'test_calculator.py'],
         'parent_import': [sys.executable, '-B', str(cli), 'improve-complete', '--run-dir', str(run), '--action', action,
@@ -114,6 +183,12 @@ if args.operation == 'setup':
     print(json.dumps(info, indent=2))
 elif args.operation == 'snapshot':
     print(json.dumps(snapshot(), indent=2))
+elif args.operation == 'verify-delivery':
+    manifest = scoped_delivery_manifest(json.loads((case / 'pilot.json').read_text()))
+    print(json.dumps(manifest, indent=2))
+    if manifest['scoped_delivery'] != 'PASS':
+        raise SystemExit('Scoped delivery mismatch: '+', '.join(
+            row['path'] for row in manifest['delivery_paths'] if row['result'] != 'match'))
 else:
     info = json.loads((case / 'pilot.json').read_text())
     collected = json.loads((case / 'parent-collected.json').read_text())
@@ -124,6 +199,7 @@ else:
     terminal = json.loads(Path(info['receipt']).read_text())
     assert terminal['status'] == 'complete'
     assert digest(run / 'state.md') == (case / 'parent-before.sha256').read_text().strip()
+    worker_commits = verify_worker_commits(info, terminal)
     ship('plan-return', 'workspace', 'plan-return', '--workspace-root', workspace)
     plan_path = workspace / 'return-plan.md'
     plan = store.read_record(plan_path)
@@ -136,17 +212,24 @@ else:
             raise AssertionError('Unexpected candidate change: '+row['path'])
     store.write_record(plan_path, plan)
     ship('workspace-return', 'workspace', 'return', '--workspace-root', workspace)
+    scoped_delivery = require_scoped_delivery(info)
     command(info['parent_import'], case, 'parent-import')
     after, before = snapshot(), json.loads((case / 'caller-before.json').read_text())
     assert all(after[key] == before[key] for key in ['head', 'index', 'cached_diff', 'preserved_files'])
     assert after['calculator'] != before['calculator']
-    assert digest(source / 'calculator.py') == digest(candidate / 'calculator.py')
+    for name, markers in info.get('caller_scope_markers', {}).items():
+        for marker in markers:
+            assert (source / name).read_text().count(marker) == 1, 'Inherited scoped caller content changed'
     assert not (source / '.shiploop-improve').exists()
     assert store.read_record(run / 'state.md')['status'] == 'done'
     (case / 'caller-after.json').write_text(json.dumps(after, indent=2)+'\n')
     (case / 'delivery.json').write_text(json.dumps({'git_delivery': 'PASS', 'caller': str(source),
         'candidate': str(candidate), 'dirty_inputs_and_index_preserved': True,
+        'scoped_delivery_basis': 'per-path caller/candidate digests only; not semantic or caller-test proof',
+        'scoped_delivery_record': str(case / 'scoped-delivery.json'),
         'parent_status': 'done', 'synthetic_predecessor_setup': True,
+        'worker_commits': worker_commits,
         'native_lifecycle': 'parent-attested; not independently verified by this fixture',
-        'owner_record': str(owner_record), 'owner_record_sha256_at_acceptance': collected['owner_record_sha256']}, indent=2)+'\n')
-    print('Git delivery PASS: exact candidate repair delivered; caller HEAD/index and inherited dirty inputs preserved. Native evidence is separately parent-attested.')
+        'owner_record': str(owner_record), 'owner_record_sha256_at_acceptance': collected['owner_record_sha256'],
+        **scoped_delivery}, indent=2)+'\n')
+    print('Git delivery PASS: all scoped candidate paths delivered; caller HEAD/index and inherited dirty inputs preserved. Native evidence is separately parent-attested.')

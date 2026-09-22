@@ -22,6 +22,15 @@ CLI = ROOT / "skills/shiploop/scripts/shiploop"
 CARD = ROOT / "skills/improve/SKILL.md"
 EPHEMERAL = ROOT / "skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py"
 LEGACY_UNTIL = ROOT / "skills/improve/runtime/until-loop/scripts/until-loop"
+DEFAULT_COMMIT_AUTHORITY = (
+    "After the meaningful checks required by the current scope, commit only authorized "
+    "changed product or requirements files. Never commit runtime evidence or inherited "
+    "unrelated staged work, and do not create an empty commit unless an explicit "
+    "audit-every-iteration rule authorizes it."
+)
+EXPLICIT_NO_COMMIT_AUTHORITY = (
+    "Explicit user no-commit authority: do not commit, merge, push, or broaden scope."
+)
 
 
 class ImproveCliFixture(unittest.TestCase):
@@ -182,7 +191,7 @@ class ImproveCliFixture(unittest.TestCase):
             "request": "Synthetic ShipLoop v3 Improve composition fixture.\n" + self.bound["contract_marker"]
                        + "\nDo exactly one review cycle per returned callback.",
             "scope": "Review only this frozen ShipLoop action and its producer evidence.",
-            "authority": "ShipLoop v3 no-commit authority: do not commit, merge, push, or broaden scope.",
+            "authority": DEFAULT_COMMIT_AUTHORITY,
             "environment": "Use the current fixture workspace and declared Python/Git commands only.",
             "resources": resources,
         }
@@ -348,7 +357,9 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         self.assertIn("Native owner record: " + str(bridge.receipt_path(self.bound).with_name("host-owner.md")), packet)
         self.assertIn("Parent-only return:", packet)
         self.assertIn("Child workspace: " + str(self.repo), packet)
-        self.assertIn("explicit no-commit authority", packet)
+        self.assertIn("commit only authorized changed product or requirements files", packet)
+        self.assertIn("exact scoped contribution SHA", packet)
+        self.assertIn("frozen child contract keeps its recorded authority", packet)
 
         # The candidate is already the worker's workspace. Native completion
         # is simulated here only to test the real parent/import boundary.
@@ -370,6 +381,40 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         self.assertEqual(navigator.current_stage(after), "discovery")
         self.assertEqual(self.product_contract.read_text(encoding="utf-8"), updated)
         self.assertEqual(self.packet_path.read_bytes(), terminal_raw.stdout)
+
+    def test_renderer_preserves_an_explicit_user_no_commit_override(self):
+        user_no_commit = "Explicit user no-commit instruction: do not commit this candidate."
+        state = navigator.new_state(
+            str(self.repo),
+            user_no_commit,
+            protocol_version=3,
+            improve_skill=str(CARD),
+        )
+        action = navigator.current_action(state)["id"]
+        waiting = navigator.apply(
+            state,
+            action,
+            {"outcome": "done", "summary": "Synthetic pending Improve result."},
+        )
+        child = waiting["active_improve"]
+        self.assertIsNotNone(child)
+        waiting["active_improve"] = bridge.binding(
+            waiting,
+            action,
+            navigator.current_stage(waiting),
+            child["seed_result"],
+            bridge.resolve_skill(str(CARD)),
+        )
+        navigator.validate(waiting)
+
+        packet = navigator.render(None, self.run, waiting)
+
+        self.assertIn(user_no_commit, packet)
+        self.assertIn(
+            "explicit user- or repository-authorized no-commit instruction overrides this default",
+            packet,
+        )
+        self.assertIn("exact scoped contribution SHA", packet)
 
     def test_planning_improve_packet_carries_graph_identity_through_real_child_callbacks(self):
         """Synthetic predecessors reach both planning stages; child callbacks are real."""
@@ -481,7 +526,8 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         self.assertEqual(self.bound["skill"]["skill_version"], selected_version)
         parent_packet = self.invoke(CLI, "next", "--run-dir", self.run).stdout
         for text in (self.bound["contract_marker"], "Bound Until Loop CLI locator: " + str(EPHEMERAL.resolve()),
-                     "Child latest packet receipt: " + str(bridge.receipt_path(self.bound)), "no-commit",
+                     "Child latest packet receipt: " + str(bridge.receipt_path(self.bound)),
+                     "commit only authorized changed product or requirements files",
                      "Save exact, complete raw JSON stdout", "Completion deletes the child's temporary state"):
             self.assertIn(text, parent_packet)
 
@@ -583,7 +629,7 @@ class EphemeralImproveCliTests(ImproveCliFixture):
                 + str(scratch) + ". The empty initial commit and unchanged HEAD "
                 + "do not replace this candidate."
             ),
-            "authority": "ShipLoop v3 no-commit authority: do not commit, merge, push, or broaden scope.",
+            "authority": EXPLICIT_NO_COMMIT_AUTHORITY,
             "environment": "Use the current fixture workspace and declared Python/Git commands only.",
             "resources": base_context["resources"] + selected_resources,
         }
@@ -751,7 +797,7 @@ class EphemeralImproveCliTests(ImproveCliFixture):
                 + self.bound["contract_marker"]
             ),
             "scope": "Review only the frozen skill-assess evidence bundle and its retained locators.",
-            "authority": "ShipLoop v3 no-commit authority: do not commit, merge, push, or broaden scope.",
+            "authority": EXPLICIT_NO_COMMIT_AUTHORITY,
             "environment": "Use the current fixture workspace and declared Python/Git commands only.",
             "resources": base_context["resources"][:6] + [
                 {"purpose": "repository local skill index", "locator": local_skill_refs[0]},

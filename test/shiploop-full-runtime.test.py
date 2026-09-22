@@ -28,6 +28,12 @@ SOURCE_IMPROVE = ROOT / "skills" / "improve"
 GENERATED_SHIPLOOP = ROOT / "plugins" / "shiploop" / "skills" / "shiploop"
 GENERATED_IMPROVE = ROOT / "plugins" / "improve" / "skills" / "improve"
 E2E_ROOT = ROOT / "test" / "experiments" / "shiploop_e2e"
+DEFAULT_COMMIT_AUTHORITY = (
+    "After the meaningful checks required by the current scope, commit only authorized "
+    "changed product or requirements files. Never commit runtime evidence or inherited "
+    "unrelated staged work, and do not create an empty commit unless an explicit "
+    "audit-every-iteration rule authorizes it."
+)
 
 if str(E2E_ROOT) not in sys.path:
     sys.path.insert(0, str(E2E_ROOT))
@@ -429,7 +435,7 @@ class FullRuntimeCompositionTests(unittest.TestCase):
                 + (marker if marker is not None else binding["contract_marker"])
                 ),
                 "scope": f"Only the frozen ShipLoop {context['stage']} action {context['action']}.",
-                "authority": "ShipLoop v3 no-commit authority: do not commit, merge, push, or broaden scope.",
+                "authority": DEFAULT_COMMIT_AUTHORITY,
                 "environment": "Synthetic Python fixture; use only the copied selected package and workspace.",
                 "resources": [
                     {"purpose": "selected Improve card", "locator": binding["skill"]["skill_card"]},
@@ -550,7 +556,7 @@ class FullRuntimeCompositionTests(unittest.TestCase):
             context["binding"]["contract_marker"],
         )
         self.assertIn(context["stage"], packet["context"]["scope"])
-        self.assertIn("no-commit", packet["context"]["authority"])
+        self.assertEqual(packet["context"]["authority"], DEFAULT_COMMIT_AUTHORITY)
         resources = {row["purpose"]: row["locator"] for row in packet["context"]["resources"]}
         self.assertEqual(resources["parent completion input"], str(context["completion_path"]))
         self.assertEqual(resources["exact parent routes"], str(context["route_path"]))

@@ -5,7 +5,7 @@ description: >-
   loop: use recent Git history, make warranted changes, run meaningful checks,
   and require two consecutive trivial-only review passes. Supports a read-only
   interpretation preview; not a one-off code review.
-version: 0.2.0-rc.5
+version: 0.2.0-rc.6
 license: MIT
 platforms:
   - linux
@@ -95,10 +95,13 @@ required receipt path and then return through the parent route. Do not infer a
 different route from a durable `.until-loop` directory or from a remembered
 parent state.
 
-The v3 default no-commit constraint overrides the standalone binding's ordinary
-commit policy: retain review records and validation evidence, but do not commit,
-merge, push, or broaden the parent scope unless the packet supplies an explicit
-user- or repository-authorized exception. Improve owns its review iterations and
+The v3 child follows the standalone binding's ordinary commit policy: after
+required checks pass, commit authorized scoped changes in the bound candidate
+worktree and retain the commit SHA in its handoff. Stage only intended paths;
+never include runtime receipts or unrelated inherited staging. An explicit
+user- or repository-authorized no-commit override, including a frozen override
+from an existing invocation, remains binding. Commit authority does not grant
+merge, push, parent callback, or broader scope authority. Improve owns its review iterations and
 temporary Until Loop handle; ShipLoop keeps the parent graph action pending and
 imports accepted child evidence once. Reopen only relevant parent locators for
 cold recovery, and retain concise current decision/revalidation locators in the
@@ -117,11 +120,12 @@ workspace. The parent selects the Ask Agent route; this card does not dispatch
 itself. Do not delegate the whole invocation again, create another worktree, or
 execute a ShipLoop callback or workspace return. Scoped independent reviewers
 and test workers remain available with only one candidate writer. Retain the
-explicit no-commit override and the parent-owned `host-owner.md` locator in the
+commit policy, including any explicit no-commit override, and the parent-owned `host-owner.md` locator in the
 frozen context. Read that record for orientation; only the parent appends owner,
 acceptance and delivery events. Save the exact child packets and completion
 evidence, finish all writes and collect delegates, then return their absolute
-locators, changed paths, actual checks, stopped status, and the unchanged parent
+locators, changed paths, actual checks, scoped commit SHAs (or the explicit
+no-commit/no-change reason), stopped status, and the unchanged parent
 continuation. Only the parent verifies and executes that continuation. Edits
 remain in the bound candidate; native completion is not caller delivery.
 
@@ -232,7 +236,12 @@ original learnings with selective references to prior commits in one account.
   authorized audit record commit for every completed review; a no-change review
   uses an identified empty audit commit with no unrelated staged content. An
   explicit no-commit request preserves the host record without committing.
-  Never reset the user's index or absorb unrelated staged or unstaged work.
+  Use a scoped commit such as `git commit --only -- <authorized paths>` so
+  unrelated inherited staging is excluded; narrowly add selected new paths
+  first when required. Never reset the user's index or absorb unrelated work.
+  In a dirty snapshot, a selected file may include inherited caller hunks: its
+  private checkpoint SHA is not a pure contribution range. Deliver only the
+  baseline-relative delta through the parent's declared return route.
 - **One callback is one full cycle:** for every active packet, complete one
   ordered review cycle before the exact `done_argv`: read the history and
   candidate, plan worthwhile authorized work, implement it when warranted, run
@@ -268,6 +277,12 @@ history window; an empty initial commit or unchanged `HEAD` does not select a
 new candidate. A later commit or clean worktree does not select a new candidate.
 For a long inventory, `context.scope` may cite an exact resource locator instead
 of repeating every path.
+Before `start`, reconcile every required output locator with the frozen scope
+and authority. Preserve any exact output path explicitly authorized by the
+invoking assignment, including a completion record outside the product candidate,
+as a narrow write exception. Naming a resource alone does not grant write access;
+writing a completion record does not authorize callbacks, integration, or delivery.
+
 Put the actual commit/no-commit, push/no-push and audit-commit rules in
 `context.authority`. Preserve these record sections and the full ordered cycle
 in the contract; reloading a changed card must not replace accepted user rules.
@@ -276,6 +291,35 @@ required evidence/output locations in `context.resources` with resolved
 locators. Record environment-specific Git/Python paths and actual check commands
 in `context.environment` when needed. The canonical request goes in
 `context.request`.
+
+Retain any parent-supplied **Current learnings** inline in `context.request`
+alongside the canonical request and any required binding marker. For a direct
+invocation, distill relevant learnings already in the current context before
+`start`. Use them to inform the first review and plan, checking candidate-dependent
+claims against current artifacts and evidence. Keep facts, decisions and
+unverified assumptions distinct; inherited learnings do not establish a completed
+review, a passing check, or broader authority. Carry still-relevant learnings
+and any corrections into the normal `handoff` below.
+
+Before each `done`, compare the replacement handoff with `context.request` and
+the prior `last_report.handoff`. Keep still-applicable corrections, unresolved
+hypotheses, and execution pitfalls explicit inline, with evidence locators for
+supporting detail. A pointer to a past review does not replace the essential
+lesson. If a prior item no longer applies, note that briefly rather than silently
+dropping it; put that explanation in the handoff itself. Cross-check any restated
+scope or authority against the immutable context: neither add permissions nor
+turn authorized scoped work into a prohibition.
+
+Use compact Markdown inside the existing `context.request` and `handoff` strings;
+the runtime packet and callback envelope remain JSON. Organize a replacement
+handoff under **State and remaining work**, **Current learnings**, and **Evidence**.
+In Current learnings, use short labeled bullets for facts/corrections, decisions,
+hypotheses, and execution pitfalls. Reconcile each prior learning explicitly:
+retain its essential meaning, or include a **Retired** bullet explaining why it
+no longer applies. Include expired one-off instructions in that reconciliation.
+Omit empty categories. Refer to immutable scope and authority rather than
+reconstructing a competing permissions list. Use normal JSON serialization for
+the Markdown strings; do not add fields or send bare Markdown as the callback.
 
 Every `done` report must include a complete compact `handoff`: current candidate
 HEAD and scoped edits, all still-relevant changes and decisions, actual check

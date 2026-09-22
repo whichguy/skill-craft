@@ -1032,9 +1032,10 @@ def _reject_added_path_collisions(
 
 
 RETURN_POLICY = (
-    "fast-forward only for a clean source and committed clean candidate when every "
-    "reviewed path is kept; otherwise apply only the reviewed working-tree delta "
-    "without a merge or commit"
+    "fast-forward only for a clean source and committed candidate with no tracked "
+    "changes, when every history path is kept and its only untracked files are "
+    "reviewed excluded .shiploop-improve evidence; otherwise apply only the "
+    "reviewed working-tree delta without a merge or commit"
 )
 
 
@@ -1424,7 +1425,18 @@ def execute_return(workspace_root: Path) -> Dict[str, Any]:
     expected_source: Dict[str, Any]
     extras: List[str]
 
-    clean_candidate = not _git_bytes(worktree, "status", "--porcelain=v1", "--untracked-files=all")
+    # A final Improve packet must remain untracked in the worker until the
+    # parent imports it.  It does not make a committed product candidate dirty
+    # for a fast-forward, but arbitrary untracked output still does.
+    clean_tracked_candidate = not _git_bytes(
+        worktree, "status", "--porcelain=v1", "--untracked-files=no"
+    )
+    only_retained_child_evidence = all(
+        retained_child_evidence(row)
+        for row in rows
+        if row["path"] in untracked_paths
+    )
+    clean_candidate = clean_tracked_candidate and only_retained_child_evidence
     all_history_kept = all(row["disposition"] == "keep" for row in rows if row["in_history"])
     has_new_commits = _head(worktree) != manifest["baseline_commit"]
     if not patch and not (manifest["start_clean"] and clean_candidate and all_history_kept and has_new_commits):

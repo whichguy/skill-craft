@@ -1,7 +1,7 @@
 ---
 name: ask-agent
 description: A delegation skill, not an agent type. Ask native agents to work in the background, continue useful work in the main conversation, and incorporate their results when they return. Use for "ask an agent", named agent roles, parallel delegation, or launch-and-notify work.
-version: 0.7.1
+version: 0.7.2
 license: MIT
 platforms:
   - linux
@@ -92,6 +92,31 @@ ownership still apply. Some hosts filter child tools; disclose differences.
 A worker may request an authorized parent-only operation through native
 messaging when available, or use further native agents with the same workspace
 and handoff constraints. It must collect its delegates before returning.
+
+## Carry current learnings inline
+
+Before either route launches a fresh worker, the invoking parent distills the
+task-relevant learnings from its current conversation and applicable skill
+guidance into a compact **Current learnings** block in the native assignment.
+Treat it as a current-state brief: what is known, what has already changed, and
+what should be improved or investigated next. The worker reads this orientation
+before invoking a delegated skill such as Improve; suggested improvements remain
+candidates to assess rather than findings or authorization by themselves.
+Use a Markdown heading and short labeled bullets for facts or corrections,
+decisions and rationale, hypotheses, and execution pitfalls. Omit empty
+categories; keep facts and hypotheses visibly distinct.
+Include useful findings, decisions and their rationale, relevant check results
+with evidence locators, execution pitfalls that affect the next worker, and
+unresolved assumptions or questions. Distinguish observed facts from hypotheses;
+if there are no relevant learnings, say so.
+Keep the essential meaning inline, with locators for supporting detail. Do not
+require the user to prepare a document, copy the whole conversation, or create
+a prompt transport file.
+
+The worker uses these learnings as starting context and rechecks claims that
+depend on the current candidate. They do not expand scope or authority or count
+as completed reviews or current validation. Carry still-relevant or corrected
+learnings through the task's existing context and return handoff.
 
 ## Helper-managed default: prepare, launch, continue, collect
 
