@@ -11,6 +11,9 @@ suites=(
   test/shiploop-no-model-launch.test.py \
   test/shiploop-navigator.test.py \
   test/shiploop-navigator-v3.test.py \
+  test/shiploop-navigator-v4.test.py \
+  test/shiploop-stopped-improve.test.py \
+  test/shiploop-v4-consumers.test.py \
   test/shiploop-standalone-improve.test.py \
   test/shiploop-actual-improve-cli.test.py \
   test/shiploop-packet-bounds.test.py \
@@ -163,6 +166,9 @@ selected() {
     case "${suites[$index]}" in
       test/shiploop-no-model-launch.test.py|\
       test/shiploop-navigator-v3.test.py|\
+      test/shiploop-navigator-v4.test.py|\
+      test/shiploop-stopped-improve.test.py|\
+      test/shiploop-v4-consumers.test.py|\
       test/shiploop-packet-bounds.test.py|\
       test/shiploop-navigator-dry-run.test.py|\
       test/shiploop-chain-async.test.py|\

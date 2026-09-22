@@ -311,3 +311,12 @@ claim to enforce those semantic facts. A native output with invalid identity is
 unchanged/rejected/unresolved; no digest is invented. A revised plan starts with
 structural status unknown and empty `parallel_groups` until its exact output digest and
 structural check are independently recorded.
+
+## V4 experiment-informed planning
+
+In the [v4 pilot](planning-experiments.md), the provisional delivery plan exposes
+assumptions to its existing Plan Improve owner. That child may run bounded
+experiments and revise the candidate or return an upstream-reconciliation need.
+Native Backchain remains plan-only; do not launch another Backchain/Until loop
+inside Plan Improve. Bind the accepted graph to the dispatcher only after the
+renewed planning suffix and preparation complete.

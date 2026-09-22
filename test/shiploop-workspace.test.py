@@ -806,6 +806,10 @@ class ShipLoopWorkspaceTests(unittest.TestCase):
         review = child_receipt.parent / "reviews" / "review-one.md"
         review.parent.mkdir()
         review.write_text("retained child review evidence\n", encoding="utf-8")
+        notebook = worktree / ".shiploop-improve" / "run" / "planning-investigation.md"
+        notebook.write_text("Remaining allowance and experiment observations\n", encoding="utf-8")
+        prototype = child_receipt.parent / "probe.py"
+        prototype.write_text("# Disposable experiment; never product code\n", encoding="utf-8")
         (worktree / "product-output.txt").write_text("reviewed product\n", encoding="utf-8")
         plan = self._plan(root)
         for row in plan["paths"]:
@@ -825,6 +829,8 @@ class ShipLoopWorkspaceTests(unittest.TestCase):
         self.assertFalse((self.repo / ".shiploop-improve").exists())
         self.assertTrue(child_receipt.is_file())
         self.assertTrue(review.is_file())
+        self.assertTrue(notebook.is_file())
+        self.assertTrue(prototype.is_file())
 
     def test_tracked_or_historical_child_receipts_still_block_return(self) -> None:
         for kind in ("staged", "committed", "deleted-in-history"):

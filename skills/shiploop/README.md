@@ -1,4 +1,4 @@
-# ShipLoop navigator 0.18.19
+# ShipLoop navigator 0.19.0
 
 ShipLoop's invoking conversation owns navigation, acceptance and delivery. For
 a new v3 ephemeral Improve invocation, the selected Ask Agent can delegate one
@@ -27,6 +27,12 @@ its selected card and owns its own iterations, evidence, and convergence. The
 script imports one accepted child result before choosing the next producer; it
 does not recreate Improve's review logic, phases, counters, or policy in a
 ShipLoop prompt.
+
+An explicit new-run v4 pilot adds experiment-informed Plan Improve and a guarded
+return to the earliest invalidated planning stage. Use `workspace start
+--protocol-version 4`, or `init --navigator-version 4`; v3 remains the default.
+Read [experiments during planning](references/planning-experiments.md) for effects,
+evidence, budget limitations and recovery. No separate experiment loop is added.
 
 - [Navigator guide and flat SDLC diagram](references/navigator.md)
 - [Graph dry-run commands and examples](references/graph-dry-run.md)
