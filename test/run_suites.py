@@ -224,14 +224,17 @@ def runtime_versions(root: Path) -> dict[str, str | None]:
     }
 
 
-def _terminate_process_group(process: subprocess.Popen[str]) -> None:
+def _terminate_process_group(process: subprocess.Popen[str]) -> str | None:
     """Terminate a timed-out process and its descendants on supported hosts."""
 
+    warnings = []
     if os.name == "posix":
         try:
             os.killpg(process.pid, signal.SIGTERM)
         except ProcessLookupError:
             pass
+        except PermissionError as exc:
+            warnings.append(f"TERM: {exc}")
         try:
             process.wait(timeout=1)
         except subprocess.TimeoutExpired:
@@ -243,9 +246,14 @@ def _terminate_process_group(process: subprocess.Popen[str]) -> None:
             os.killpg(process.pid, signal.SIGKILL)
         except ProcessLookupError:
             pass
+        except PermissionError as exc:
+            # Darwin can return EPERM once an orphaned group has disappeared.
+            # Retain the diagnostic; the timeout still fails and draining stays bounded.
+            warnings.append(f"KILL: {exc}")
     else:
         if process.poll() is None:
             process.kill()
+    return "; ".join(warnings) or None
 
 
 def run_process(argv: Sequence[str], *, cwd: Path, timeout_seconds: float) -> ProcessOutcome:
@@ -265,7 +273,8 @@ def run_process(argv: Sequence[str], *, cwd: Path, timeout_seconds: float) -> Pr
     try:
         stdout, stderr = process.communicate(timeout=timeout_seconds)
     except subprocess.TimeoutExpired:
-        _terminate_process_group(process)
+        cleanup_warning = _terminate_process_group(process)
+        cleanup_detail = f"; cleanup: {cleanup_warning}" if cleanup_warning else ""
         try:
             stdout, stderr = process.communicate(timeout=5)
         except subprocess.TimeoutExpired as drain:
@@ -274,18 +283,22 @@ def run_process(argv: Sequence[str], *, cwd: Path, timeout_seconds: float) -> Pr
             # to report the bounded failure, and the pipe handles are closed.
             stdout = drain.output or ""
             stderr = drain.stderr or ""
+            if isinstance(stdout, bytes):
+                stdout = stdout.decode("utf-8", errors="replace")
+            if isinstance(stderr, bytes):
+                stderr = stderr.decode("utf-8", errors="replace")
             for stream in (process.stdout, process.stderr):
                 if stream is not None:
                     stream.close()
             return ProcessOutcome(
                 status="timed_out", returncode=process.returncode,
                 duration_seconds=time.monotonic() - started, stdout=stdout, stderr=stderr,
-                error=f"timed out after {timeout_seconds:g} seconds; output drain timed out",
+                error=f"timed out after {timeout_seconds:g} seconds; output drain timed out{cleanup_detail}",
             )
         return ProcessOutcome(
             status="timed_out", returncode=process.returncode,
             duration_seconds=time.monotonic() - started, stdout=stdout, stderr=stderr,
-            error=f"timed out after {timeout_seconds:g} seconds",
+            error=f"timed out after {timeout_seconds:g} seconds{cleanup_detail}",
         )
     return ProcessOutcome(
         status="passed" if process.returncode == 0 else "failed",
