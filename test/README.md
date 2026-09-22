@@ -1,59 +1,130 @@
 # Test runners
 
-`bash test/run-all.sh` is the complete local hermetic aggregate. It needs no
-network, installed host skill, live engine, credential, or environment-specific
-test target. The group interface is deliberately small:
+Use `bash test/run-all.sh --group smoke` for partial feedback and
+`bash test/run-all.sh` for complete hermetic regression. Local runs and GitHub CI
+use the same [suite catalog](suite_catalog.py). A pass means the selected checks
+passed; offline fixtures do not establish live model or host behavior.
+
+| Selection | Command | Scope |
+|---|---|---|
+| Focused | `python3 -B test/<name>.test.py` | One module; useful while changing its contract |
+| Smoke | `bash test/run-all.sh --group smoke` | Core plus ten selected ShipLoop boundary suites |
+| Ask-Agent component | `bash test/run-all.sh --group ask-agent` | Supported helper tests and ShipLoop consumers |
+| Composition component | `bash test/run-all.sh --group shiploop-composition` | Chain and Improve integration boundaries |
+| Full hermetic | `bash test/run-all.sh` | Core, all ShipLoop suites, source E2E apparatus and historical experiments |
+| Current dependency | `bash test/run-integration.sh current-dispatcher --help` | Explicit external Dispatcher checkout; offline compatibility |
+| Installed or live | `bash test/run-integration.sh --help` | Selected real host, engine, installed package or credentials; opt-in |
 
 ```mermaid
-flowchart LR
-    C["core hermetic fixtures"] --> S["smoke aggregate"]
-    G["six ShipLoop graph and boundary suites"] --> S
-    S --> P["PR and main CI"]
-    C --> A["complete local aggregate"]
-    F["full ShipLoop suite and action walk"] --> A
-    C --> M["optional full CI"]
-    F --> M
+flowchart TD
+    Change[Change under test] --> Local[Focused or component checks locally]
+    Local --> PR[Pull request]
+    PR --> Docs{Only allowlisted documents?}
+    Docs -->|Yes| Smoke[Smoke: partial feedback]
+    Docs -->|No or uncertain| Full[Full hermetic regression]
+    Full --> Merge[Merge after candidate passes]
+    Smoke --> Merge
+    Merge --> Main[Main: full hermetic regression]
+    External[Current dependency or live boundary] --> Explicit[Separate explicit qualification]
 ```
 
+CI runs full regression for code, skill prompts, generated packages, tests,
+scripts, workflow changes and unclassified paths. Only root/test README files
+and Markdown/CSV documents under `docs/` qualify for automatic PR smoke. Renames
+consider both paths; an unavailable diff selects full. Every `main` push selects
+full. Manual dispatch still offers `smoke` or `full`. The `hermetic` aggregate
+requires both the planner and all selected jobs to succeed; its summary states
+the tier and tested SHA. Server-side merge protection is a separate repository
+setting; this workflow does not enable it.
+
+CI uses `ubuntu-latest`, latest stable Python 3 and latest stable Node, resolving
+fresh versions through setup actions. Receipts record the versions actually used.
+Historical Dispatcher/Until fixtures remain fixed test inputs for old state and
+recovery contracts; they do not determine which current tool version to install.
+
+## Inventory, union and evidence
+
 ```sh
-bash test/run-all.sh
-bash test/run-all.sh --group smoke
-bash test/run-all.sh --group core
-bash test/run-all.sh --group shiploop
-bash test/run-all.sh --group all
 bash test/run-all.sh --list
-bash test/shiploop.test.sh --list
-bash test/shiploop.test.sh --smoke
+bash test/run-all.sh --group ask-agent --group shiploop-composition --list
+bash test/run-all.sh --group smoke --output /tmp/skill-craft-smoke-unique
 bash test/shiploop.test.sh --smoke --list
 bash test/shiploop.test.sh --shard 1/3 --list
 ```
 
-The default is `--group all`. `core` covers packaging, installation, and
-contract-fixture tests without an installed host. `smoke` runs that full core
-group plus ten selected ShipLoop suites: `no-model-launch`, `navigator-v3`,
+Repeated groups form a union: shared entries run once, in catalog order.
+`--list` and help execute no suites or synchronization. Root listing prints one
+row per constituent entry, with family, ID and command; the ShipLoop wrapper
+prints only paths. `core`, `shiploop`, `e2e-apparatus`, and `experiments` can also
+run separately. The three `shiploop-1`/`2`/`3` groups partition ShipLoop using
+checked-in duration estimates and a deterministic fallback. They are scheduling
+slices of the same full inventory, not additional coverage.
+
+The ten ShipLoop smoke suites are `no-model-launch`, `navigator-v3`,
 `navigator-v4`, `stopped-improve`, `v4-consumers`, `packet-bounds`,
 `navigator-dry-run`, `chain-async`, `graph-driver`, and `graph-trace`.
-It is a fast partial signal, not a replacement for the full suite. `shiploop`
-runs the complete ShipLoop suite and exactly one action walk. `all` is the
-stable complete hermetic aggregate of `core` and `shiploop`. The legacy direct
-command remains available for compatibility:
+The historical U18/W1 Ask-Agent worktree harness belongs to full-only
+`experiments`; supported Ask-Agent workspace, delivery and managed-harness
+checks remain in core. The legacy `shiploop-walk-journal.test.sh` wrapper is
+available directly but excluded from the aggregate, which owns one action walk.
+
+An optional `--output` directory must be new and outside the checkout. It retains
+source identity, runtime versions, selected/completed suites, outcomes, durations
+and per-suite logs. The runner continues remaining selected suites after a
+failure and returns failure overall. CI uploads these artifacts even on failure,
+checks generated-plugin parity in core/smoke, and rejects source drift or new
+checkout artifacts except Python bytecode under `__pycache__`. Running the local
+suite alone does not perform these additional CI parity and checkout checks.
+
+Full regression runs the source E2E apparatus with `check_suite.py --suite all`
+once. Its named diagnostic groups intentionally overlap; do not concatenate them
+to claim full coverage. The copied-package mock in core remains separate because
+it checks relocation and package binding. The apparatus uses synthetic evidence
+and portable recorded source fixtures, with no model calls. The recorded GAS
+products carry provenance and run everywhere; missing fixtures fail instead of
+skipping a required regression case.
+
+## Fixture ownership and intentional overlap
+
+| Boundary | Why its tests remain separate |
+|---|---|
+| Ask-Agent workspace / delivery / managed harness | Helper preservation, caller integration and synthetic host-event validation have different assertions |
+| ShipLoop chain / lifecycle / async / planning context | Binding, worker lifecycle, concurrent callbacks and planning provenance fail in different ways |
+| Navigator / action walk / full runtime | Synthetic state transitions, protocol traversal and copied-package public CLI execution are distinct checks |
+| Improve standalone / actual CLI / stopped completion | Direct import, process transport and incomplete-settlement rejection need independent evidence |
+
+Reusable chain, lifecycle, planning-context and consumer-contract setup lives in
+`test/shiploop_*_support.py` modules. Chain and navigator consumers import these
+helpers directly; the dedicated actual-Improve-CLI fixture adapter remains in its
+integration test. Each case still owns its disposable repositories and cleanup; expensive
+setup is not shared across cases whose mutations could interfere. Pure convergence
+predicates belong in the cheap contract suite. The audit found fixture coupling,
+not accidental nested execution of whole suites; assertions were retained.
+
+## Qualify the current Dispatcher
+
+The default hermetic suites intentionally use recorded compatibility fixtures.
+For an external checkout of the current Dispatcher, use its explicit card:
 
 ```sh
-bash test/shiploop-walk-journal.test.sh
+bash test/run-integration.sh current-dispatcher \
+  --dispatcher-skill /absolute/plan-orchestrator/skills/plan-dispatcher/SKILL.md \
+  --output /tmp/dispatcher-qualification-unique
 ```
 
-It is not part of the aggregate; the `shiploop` group owns the action walk once.
+Both skill-craft and the selected dependency must be clean Git checkouts. Select
+a freshly resolved upstream commit for the dependency. The command records
+that commit and package identity and runs the offline native-pilot composition
+checks against it. It requires a new output directory outside both repositories;
+missing inputs and package drift fail. It does not fetch an upstream revision or
+launch a native/model agent, so the caller must select the current revision and
+retain how it was resolved.
 
-`test/shiploop.test.sh` owns one ordered ShipLoop inventory. Its no-argument
-form remains the complete serial runner. `--list` prints only the selected
-inventory and does not run synchronization or a test. `--smoke` selects the
-same ten suites listed above from that canonical inventory; `--smoke --list` is
-the fastest way to inspect the subset. `--smoke` and `--shard` are mutually
-exclusive. `--shard 1/3`, `2/3`, or `3/3` selects every third suite from the
-same order, so the three inventories are disjoint and contain the action walk
-once in total. Full CI calls those shards through `shiploop-1`, `shiploop-2`,
-and `shiploop-3`; they are scheduling aliases and are intentionally excluded
-from `--group all`, which still runs the full serial ShipLoop runner exactly once.
+The upstream `whichguy/plan-orchestrator` repository is private. This repository's
+credential-free GitHub jobs therefore retain frozen hermetic fixtures; current
+Dispatcher qualification is a separate local release check until an authorized
+CI credential is available. This is an explicit coverage boundary, not a skipped
+green CI job.
 
 `python3 test/shiploop-probe-decisions.test.py` checks the separate decision-driven
 probe corpus and its thin frozen-study adapter without launching a model. It
@@ -483,7 +554,7 @@ qualification responsibilities; synthetic events do not validate those APIs.
 The [W1 worktree fixture](experiments/portable_delegation/usability/worktree-handoff/README.md)
 now has a test-only operator helper for repeatable setup, launch preflight,
 public evidence projection and completion checks. Its offline regression suite
-runs in the `core` hermetic group, or directly:
+runs in the full-only `experiments` hermetic group, or directly:
 
 ```sh
 PYTHONDONTWRITEBYTECODE=1 python3 test/ask-agent-worktree-harness.test.py

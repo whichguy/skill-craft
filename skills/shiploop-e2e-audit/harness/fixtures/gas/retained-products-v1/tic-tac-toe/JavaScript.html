@@ -1,0 +1,146 @@
+<script>
+/**
+ * TicTacToe — hot-seat 3×3 rules (single source for HtmlService + Node tests).
+ * create() -> {board[9], current, phase, message}
+ * play(game, index) mutates game; {ok, reason?} reason: occupied|terminal|out_of_range
+ * Illegal play leaves board/current/phase; sets message. newGame(game) resets in place.
+ * legalMoves(game) -> number[] of empty 0..8 while phase==='playing'; else [].
+ * cellClass(game, index) -> 'legal' iff index is in legalMoves; else ''. No throw on non-0..8 index.
+ * badgeClass(game, player) -> 'active' iff playing and player===current; else ''. Unknown player -> ''.
+ */
+(function (global) {
+  var WIN_LINES = [
+    [0, 1, 2], [3, 4, 5], [6, 7, 8],
+    [0, 3, 6], [1, 4, 7], [2, 5, 8],
+    [0, 4, 8], [2, 4, 6]
+  ];
+  var MSG = {
+    turnX: 'X to move',
+    turnO: 'O to move',
+    winX: 'X wins',
+    winO: 'O wins',
+    draw: 'Draw',
+    occupied: 'Square occupied',
+    terminal: 'Game over',
+    invalid: 'Invalid square'
+  };
+
+  function create() {
+    return {
+      board: ['', '', '', '', '', '', '', '', ''],
+      current: 'X',
+      phase: 'playing',
+      message: MSG.turnX
+    };
+  }
+
+  function winner(board) {
+    for (var i = 0; i < WIN_LINES.length; i++) {
+      var a = WIN_LINES[i][0];
+      var b = WIN_LINES[i][1];
+      var c = WIN_LINES[i][2];
+      var mark = board[a];
+      if (mark && mark === board[b] && mark === board[c]) {
+        return mark;
+      }
+    }
+    return '';
+  }
+
+  function isFull(board) {
+    for (var i = 0; i < 9; i++) {
+      if (board[i] === '') {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  function reject(game, reason, message) {
+    game.message = message;
+    return { ok: false, reason: reason };
+  }
+
+  function play(game, index) {
+    if (game.phase !== 'playing') {
+      return reject(game, 'terminal', MSG.terminal);
+    }
+    if (typeof index !== 'number' || !isFinite(index) || Math.floor(index) !== index || index < 0 || index > 8) {
+      return reject(game, 'out_of_range', MSG.invalid);
+    }
+    if (game.board[index] !== '') {
+      return reject(game, 'occupied', MSG.occupied);
+    }
+    game.board[index] = game.current;
+    var w = winner(game.board);
+    if (w) {
+      game.phase = 'won';
+      game.message = w === 'X' ? MSG.winX : MSG.winO;
+      return { ok: true };
+    }
+    if (isFull(game.board)) {
+      game.phase = 'draw';
+      game.message = MSG.draw;
+      return { ok: true };
+    }
+    game.current = game.current === 'X' ? 'O' : 'X';
+    game.message = game.current === 'X' ? MSG.turnX : MSG.turnO;
+    return { ok: true };
+  }
+
+  function newGame(game) {
+    var fresh = create();
+    game.board = fresh.board;
+    game.current = fresh.current;
+    game.phase = fresh.phase;
+    game.message = fresh.message;
+    return game;
+  }
+
+  function legalMoves(game) {
+    var moves = [];
+    if (game.phase !== 'playing') {
+      return moves;
+    }
+    for (var i = 0; i < 9; i++) {
+      if (game.board[i] === '') {
+        moves.push(i);
+      }
+    }
+    return moves;
+  }
+
+  function cellClass(game, index) {
+    if (typeof index !== 'number' || !isFinite(index) || Math.floor(index) !== index) {
+      return '';
+    }
+    var moves = legalMoves(game);
+    for (var i = 0; i < moves.length; i++) {
+      if (moves[i] === index) {
+        return 'legal';
+      }
+    }
+    return '';
+  }
+
+  function badgeClass(game, player) {
+    if (game.phase !== 'playing') {
+      return '';
+    }
+    if (player !== 'X' && player !== 'O') {
+      return '';
+    }
+    return player === game.current ? 'active' : '';
+  }
+
+  global.TicTacToe = {
+    create: create,
+    play: play,
+    newGame: newGame,
+    legalMoves: legalMoves,
+    cellClass: cellClass,
+    badgeClass: badgeClass,
+    WIN_LINES: WIN_LINES
+  };
+})(typeof globalThis !== 'undefined' ? globalThis : this);
+</script>

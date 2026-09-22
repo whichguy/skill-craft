@@ -1,5 +1,5 @@
 name: ci
-run-name: CI ${{ inputs.tier || 'smoke' }}
+run-name: CI ${{ github.event_name }} ${{ inputs.tier }}
 
 on:
   push:
@@ -8,14 +8,12 @@ on:
   workflow_dispatch:
     inputs:
       tier:
-        description: Smoke for routine feedback; full for broad cross-subsystem checks
+        description: Smoke is partial; full qualifies the complete hermetic inventory
         type: choice
         required: true
         default: smoke
         options: [smoke, full]
 
-# A PR revision supersedes its earlier CI run. Main and manual runs each use a
-# unique run ID, so this policy never cancels those required checks.
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.run_id }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
@@ -24,44 +22,84 @@ permissions:
   contents: read
 
 jobs:
+  plan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      tier: ${{ steps.select.outputs.tier }}
+      groups: ${{ steps.select.outputs.groups }}
+      source_sha: ${{ steps.select.outputs.source_sha }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.x'
+          check-latest: true
+      - name: Select qualification tier
+        id: select
+        env:
+          REQUESTED_TIER: ${{ inputs.tier }}
+          EXPECTED_SHA: ${{ github.sha }}
+        run: python3 -B test/ci_policy.py plan --expected-sha "$EXPECTED_SHA"
+
   checks:
-    name: ${{ matrix.group }}
-    runs-on: ubuntu-24.04
+    name: ${{ needs.plan.outputs.tier }} / ${{ matrix.group }}
+    needs: plan
+    runs-on: ubuntu-latest
     timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
-        group: ${{ fromJSON(github.event_name == 'workflow_dispatch' && inputs.tier == 'full' && '["core","shiploop-1","shiploop-2","shiploop-3"]' || '["smoke"]') }}
+        group: ${{ fromJSON(needs.plan.outputs.groups) }}
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.plan.outputs.source_sha }}
       - uses: actions/setup-python@v7
         with:
-          python-version: '3.12'
+          python-version: '3.x'
+          check-latest: true
       - uses: actions/setup-node@v7
         with:
-          node-version: '22'
+          node-version: 'latest'
+          check-latest: true
           package-manager-cache: false
       - name: Hermetic group
-        run: bash test/run-all.sh --group "${{ matrix.group }}"
+        env:
+          TEST_GROUP: ${{ matrix.group }}
+        run: bash test/run-all.sh --group "$TEST_GROUP" --output "$RUNNER_TEMP/hermetic-$TEST_GROUP"
       - name: Plugin views in sync
         if: ${{ always() && (matrix.group == 'core' || matrix.group == 'smoke') }}
         run: bash scripts/sync-plugin-views.sh --check
-      - name: Tracked checkout unchanged
+      - name: Checkout unchanged
         if: ${{ always() }}
-        shell: bash -e -o pipefail {0}
-        run: |
-          git diff --exit-code
-          git diff --cached --exit-code
+        env:
+          EXPECTED_SHA: ${{ needs.plan.outputs.source_sha }}
+        run: python3 -B test/ci_policy.py guard --expected-sha "$EXPECTED_SHA"
+      - name: Retain suite evidence
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: hermetic-${{ matrix.group }}
+          path: ${{ runner.temp }}/hermetic-${{ matrix.group }}
+          if-no-files-found: error
 
-  # Preserve the required-check name for the selected tier. Smoke is partial;
-  # Full regression is available for broad cross-subsystem qualification.
+  # Keep the established aggregate name; the plan/summary states its actual tier.
   hermetic:
     if: ${{ always() }}
-    needs: checks
-    runs-on: ubuntu-24.04
+    needs: [plan, checks]
+    runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
       - name: Require all selected hermetic groups
         env:
+          PLAN_RESULT: ${{ needs.plan.result }}
           CHECKS_RESULT: ${{ needs.checks.result }}
-        run: test "$CHECKS_RESULT" = success
+          TIER: ${{ needs.plan.outputs.tier }}
+          SOURCE_SHA: ${{ needs.plan.outputs.source_sha }}
+        run: |
+          test "$PLAN_RESULT" = success || exit 1
+          test "$CHECKS_RESULT" = success || exit 1
+          printf 'CI %s passed for `%s`.\n' "$TIER" "$SOURCE_SHA" >> "$GITHUB_STEP_SUMMARY"

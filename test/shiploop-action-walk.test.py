@@ -2651,14 +2651,6 @@ class ShipLoopActionWalkTests(ShipLoopActionWalkFixture):
         self.assertEqual(self.git("rev-parse", "HEAD", cwd=worktree), late_head)
         self.assertEqual(source.read_text(encoding="utf-8"), changed_source)
 
-    def test_twelve_material_cycles_do_not_converge(self):
-        receipt = {
-            "improve_cycles": [
-                {"outcome": "material", "primary_commit": f"c{i}"} for i in range(12)
-            ]
-        }
-        self.assertFalse(CORE.improve_two_clean(receipt))
-
     def test_fixture_markdown_lint_rejects_malformed_or_trailing_whitespace(self):
         candidate = self.records / "candidate.md"
         store.write_record(candidate, {"summary": "A valid immutable candidate."}, title="Candidate")

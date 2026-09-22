@@ -491,6 +491,14 @@ class ImproveUntilIntegrationTests(unittest.TestCase):
         ]
         self.assertFalse(CORE.improve_two_clean({"improve_cycles": reset_by_repair}))
 
+    def test_twelve_material_cycles_do_not_converge(self) -> None:
+        receipt = {
+            "improve_cycles": [
+                primary_cycle(number, outcome="material") for number in range(1, 13)
+            ]
+        }
+        self.assertFalse(CORE.improve_two_clean(receipt))
+
 
 if __name__ == "__main__":
     unittest.main()

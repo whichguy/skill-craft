@@ -7,6 +7,7 @@ host-native agent.
 """
 from __future__ import annotations
 
+import argparse
 import hashlib
 import json
 from pathlib import Path
@@ -25,6 +26,7 @@ PILOT = ROOT / "test" / "experiments" / "shiploop_chain" / "native_pilot.py"
 ASK_AGENT = ROOT / "skills" / "ask-agent" / "SKILL.md"
 DISPATCHER_V2 = ROOT / "test" / "fixtures" / "plan-dispatcher-v2" / "SKILL.md"
 DISPATCHER_V3 = ROOT / "test" / "fixtures" / "plan-dispatcher-v3" / "SKILL.md"
+DEFAULT_DISPATCHER = DISPATCHER_V3
 
 
 def skill_card_version(card: Path) -> str:
@@ -47,6 +49,27 @@ sys.path.insert(0, str(ROOT / "skills" / "shiploop" / "scripts"))
 import shiploop_navigator as navigator  # noqa: E402
 import shiploop_store as store  # noqa: E402
 
+
+def default_dispatcher() -> Path:
+    """Return the V3 fixture unless this test module was explicitly invoked with a card."""
+    return DEFAULT_DISPATCHER
+
+
+def dispatcher_from_cli(argv: list[str]) -> tuple[Path, list[str]]:
+    """Consume only the qualification selector before handing remaining flags to unittest."""
+    parser = argparse.ArgumentParser(add_help=False, allow_abbrev=False)
+    parser.add_argument("--dispatcher-skill")
+    args, remaining = parser.parse_known_args(argv)
+    if args.dispatcher_skill is None:
+        return DISPATCHER_V3, remaining
+    selected = Path(args.dispatcher_skill)
+    if not selected.is_absolute():
+        raise ValueError("--dispatcher-skill must be an absolute path")
+    if selected.name != "SKILL.md" or selected.is_symlink() or not selected.is_file():
+        raise ValueError("--dispatcher-skill must name an existing regular SKILL.md")
+    return selected.resolve(), remaining
+
+
 class NativePilotTests(unittest.TestCase):
     def setUp(self) -> None:
         self.temp = tempfile.TemporaryDirectory(prefix="shiploop-native-pilot-test-")
@@ -67,13 +90,14 @@ class NativePilotTests(unittest.TestCase):
         self.assertIsInstance(value, dict)
         return value
 
-    def prepare(self, dispatcher: Path = DISPATCHER_V3, ask_agent: Path = ASK_AGENT, *, ok: bool = True,
+    def prepare(self, dispatcher: Path | None = None, ask_agent: Path = ASK_AGENT, *, ok: bool = True,
                 pilot_dir: Path | None = None, hold_step: str | None = None,
                 hold_timeout_seconds: int | None = None) -> dict:
         destination = self.pilot_dir if pilot_dir is None else pilot_dir
+        selected_dispatcher = default_dispatcher() if dispatcher is None else dispatcher
         args = [
             "prepare", "--pilot-dir", str(destination), "--source-root", str(ROOT),
-            "--dispatcher-skill", str(dispatcher), "--ask-agent-skill", str(ask_agent), "--capacity", "2",
+            "--dispatcher-skill", str(selected_dispatcher), "--ask-agent-skill", str(ask_agent), "--capacity", "2",
         ]
         if hold_step is not None:
             args.extend(["--hold-step", hold_step])
@@ -182,7 +206,7 @@ class NativePilotTests(unittest.TestCase):
                         packet["context"]["base_commit"],
                     )
 
-    def test_prepare_v3_freezes_the_managed_helper_packet_and_guidance_inline(self) -> None:
+    def test_prepare_freezes_the_selected_dispatcher_and_managed_helper_packet(self) -> None:
         prepared = self.prepare()
         preflight = prepared["dispatcher_preflight"]
         self.assertEqual(
@@ -193,7 +217,8 @@ class NativePilotTests(unittest.TestCase):
             preflight["capabilities"]["graph_validation"],
             "execution-graph/v1",
         )
-        self.assertEqual(Path(preflight["helper"]), DISPATCHER_V3.parent / "scripts" / "dispatch.js")
+        selected_dispatcher = default_dispatcher().resolve()
+        self.assertEqual(Path(preflight["helper"]), selected_dispatcher.parent / "scripts" / "dispatch.js")
         ask_preflight = prepared["ask_agent_preflight"]
         self.assertEqual(ask_preflight["capabilities"]["schema"], "shiploop-chain-ask-agent-managed-worktree/v1")
         self.assertEqual(ask_preflight["capabilities"]["version"], ASK_AGENT_VERSION)
@@ -206,6 +231,7 @@ class NativePilotTests(unittest.TestCase):
         self.assertEqual(ask_preflight["identity"]["version"], ASK_AGENT_VERSION)
         context = json.loads((self.pilot_dir / "context.json").read_text())
         self.assertEqual(context["schema"], "shiploop-native-chain-pilot/v3")
+        self.assertEqual(Path(context["selected"]["dispatcher_skill"]), selected_dispatcher)
         self.assertEqual(context["dispatcher_preflight"], preflight)
         self.assertEqual(context["ask_agent_preflight"], ask_preflight)
         self.assertTrue((self.pilot_dir / "run" / "chains" / prepared["action"] / "binding.md").is_file())
@@ -274,6 +300,20 @@ class NativePilotTests(unittest.TestCase):
         self.assertIn("never authorizes a fresh native launch", recovered["next"])
         self.assertEqual(Path(recovered["packet"]).read_bytes(), original_packet)
         self.assertEqual(recovered["ask_agent_workspace_record"], started["ask_agent_workspace_record"])
+
+    def test_cli_dispatcher_selector_is_explicit_and_preserves_unittest_arguments(self) -> None:
+        selected_package = self.base / "selected-dispatcher"
+        shutil.copytree(DISPATCHER_V3.parent, selected_package)
+        selected_card = selected_package / "SKILL.md"
+
+        selected, remaining = dispatcher_from_cli([
+            "--dispatcher-skill", str(selected_card), "-k", "selected_dispatcher",
+        ])
+        self.assertEqual(selected, selected_card.resolve())
+        self.assertEqual(remaining, ["-k", "selected_dispatcher"])
+        default, default_remaining = dispatcher_from_cli(["-k", "selected_dispatcher"])
+        self.assertEqual(default, DISPATCHER_V3)
+        self.assertEqual(default_remaining, ["-k", "selected_dispatcher"])
 
     def test_v2_is_rejected_by_preflight_before_a_pilot_directory_exists(self) -> None:
         refused = self.prepare(DISPATCHER_V2, ok=False)
@@ -467,4 +507,9 @@ class NativePilotTests(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    unittest.main()
+    try:
+        DEFAULT_DISPATCHER, unittest_argv = dispatcher_from_cli(sys.argv[1:])
+    except ValueError as exc:
+        print(f"test_native_pilot: {exc}", file=sys.stderr)
+        raise SystemExit(2) from exc
+    unittest.main(argv=[sys.argv[0], *unittest_argv])

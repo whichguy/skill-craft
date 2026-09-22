@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor
 import fcntl
-import importlib.util
 import json
 import os
 from pathlib import Path
@@ -12,16 +11,15 @@ import subprocess
 import sys
 import unittest
 
+import shiploop_chain_lifecycle_support as lifecycle
+import shiploop_chain_support as fixture
+
 ROOT = Path(__file__).resolve().parents[1]
-spec = importlib.util.spec_from_file_location("async_lifecycle_fixture", ROOT / "test/shiploop-chain-lifecycle.test.py")
-lifecycle = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(lifecycle)
-fixture = lifecycle.fixture
 
 
 class AsyncCallbackTests(unittest.TestCase):
     def setUp(self):
-        self.life = lifecycle.PerStepChainTests("runTest")
+        self.life = lifecycle.PerStepChainFixture("runTest")
         self.life.setUp()
         self.addCleanup(self.life.doCleanups)
         self.f = self.life.f

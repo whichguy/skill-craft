@@ -8,7 +8,6 @@ qualification.
 from __future__ import annotations
 
 import hashlib
-import importlib.util
 import json
 import os
 from pathlib import Path
@@ -38,16 +37,8 @@ GUIDANCE_ROUTES = {
     "Implementation constitution": "testing-and-documentation.md#implementation-constitution",
 }
 
-_fixture_spec = importlib.util.spec_from_file_location(
-    "planning_context_chain_fixture", ROOT / "test" / "shiploop-chain.test.py"
-)
-fixture = importlib.util.module_from_spec(_fixture_spec)
-assert _fixture_spec.loader is not None
-_fixture_spec.loader.exec_module(fixture)
-
-
-def digest(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+from shiploop_chain_support import digest
+import shiploop_chain_support as fixture
 
 
 class PlanningContextChainTests(unittest.TestCase):
@@ -55,7 +46,7 @@ class PlanningContextChainTests(unittest.TestCase):
         self.f = self.new_fixture()
 
     def new_fixture(self):
-        test = fixture.ChainIntegrationTests(methodName="runTest")
+        test = fixture.ChainFixture(methodName="runTest")
         self.addCleanup(test.doCleanups)
         test.setUp()
         test.select_dispatcher(fixture.CONTEXT_FIXTURE)
@@ -399,7 +390,7 @@ class PlanningContextChainTests(unittest.TestCase):
 
     def test_partial_nested_fixture_setup_runs_registered_cleanup(self) -> None:
         observed = {}
-        original_setup = fixture.ChainIntegrationTests.setUp
+        original_setup = fixture.ChainFixture.setUp
 
         def partial_setup(test) -> None:
             original_setup(test)
@@ -409,7 +400,7 @@ class PlanningContextChainTests(unittest.TestCase):
 
         class PartialFixtureSetup(PlanningContextChainTests):
             def setUp(inner) -> None:
-                with patch.object(fixture.ChainIntegrationTests, "setUp", partial_setup):
+                with patch.object(fixture.ChainFixture, "setUp", partial_setup):
                     super().setUp()
 
             def runTest(inner) -> None:

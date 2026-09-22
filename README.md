@@ -55,7 +55,7 @@ Use **skill-craft** for portable skill packages and their plugin distribution. U
 | [review-coverage](skills/review-coverage/SKILL.md) | 0.2.7 | Add a post-ship improve-to-exhaustion directive to a plan, or run that directive after implementation. Invoke like any skill: /review-coverage, "review-coverage on this plan",… |
 | [review-fix-bench](skills/review-fix-bench/SKILL.md) | 0.1.2 | Compare two code-review prompt versions against supplied fixture ground truth using an explicitly configured external benchmark runner. Reports an F1-based verdict only when the… |
 | [shiploop](skills/shiploop/SKILL.md) | 0.19.3 | Markdown-authoritative delivery harness. Start or resume once, follow the script's current action packet, and submit its exact completion call until the script reports completion… |
-| [shiploop-e2e-audit](skills/shiploop-e2e-audit/SKILL.md) | 0.2.3 | Run the ShipLoop test harness and audit its retained graph, review, test, product and incremental-change evidence. Use for ShipLoop mock checks, live one-shot E2E smoke/full… |
+| [shiploop-e2e-audit](skills/shiploop-e2e-audit/SKILL.md) | 0.2.4 | Run the ShipLoop test harness and audit its retained graph, review, test, product and incremental-change evidence. Use for ShipLoop mock checks, live one-shot E2E smoke/full… |
 | [skill-interop](skills/skill-interop/SKILL.md) | 0.2.3 | Use when authoring or reviewing a portable multi-host agent skill (Grok, Claude Code, Codex, Hermes): scaffold a prompt-only skill, make a skill host-agnostic, create skill… |
 
 <!-- skill-craft:inventory:end -->
@@ -180,19 +180,20 @@ skills/<name>/
 ## Tests
 
 ```sh
-bash test/run-all.sh                   # complete local hermetic aggregate; no installed AI host
-bash test/run-all.sh --group smoke     # core plus six ShipLoop graph/boundary checks
-bash test/run-all.sh --group core      # packaging, installer and contract checks
-bash test/run-all.sh --group shiploop  # complete ShipLoop suite, including one action walk
-bash test/shiploop.test.sh --smoke     # only the selected ShipLoop smoke subset
-bash test/run-all.sh --list            # inspect the exact suite inventory
+bash test/run-all.sh                                  # full hermetic regression
+bash test/run-all.sh --group smoke                    # partial core + ShipLoop feedback
+bash test/run-all.sh --group ask-agent                # helper and consumer boundaries
+bash test/run-all.sh --group shiploop-composition     # cross-skill integration
+bash test/run-all.sh --group ask-agent --group shiploop-composition --list
 ```
 
-`smoke` is the routine CI tier for pull requests and `main` pushes. It is deliberately
-partial: it covers the core package checks and the selected ShipLoop graph, callback,
-packet, and no-model-launch checks, but it is not full-regression evidence. The
-no-argument local command remains the complete aggregate. See
-[test/README.md](test/README.md) for selection, qualification, and live-E2E boundaries.
+Local and GitHub runs share one explicit catalog. Code PRs and every `main` push
+run full regression; allowlisted documentation-only PRs run smoke. Full includes
+the source E2E apparatus and historical experiments, with balanced ShipLoop
+shards. CI uses latest stable runtimes and retains source/version/result receipts.
+Component unions execute shared entries once. See [test/README.md](test/README.md)
+for the exact policy, cleanup rules, current-Dispatcher qualification and the
+separate installed/native/live evidence boundaries.
 
 Hermes is an optional integration, not a prerequisite for repository CI.
 Mocked host-binding tests remain in the hermetic suite; tests needing real engines,

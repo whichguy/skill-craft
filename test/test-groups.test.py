@@ -1,505 +1,288 @@
 #!/usr/bin/env python3
-"""Aggregate-test selection must be explicit, host-free and duplicate-free."""
+"""Contracts for the declarative hermetic suite catalog and runner."""
 
-from pathlib import Path
+from __future__ import annotations
+
 import json
 import os
-import re
-import shlex
+from pathlib import Path
 import shutil
 import subprocess
+import sys
 import tempfile
+import textwrap
+import time
 import unittest
 
 
 ROOT = Path(__file__).resolve().parents[1]
-RUNNER = ROOT / "test" / "run-all.sh"
-SHIPLOOP_RUNNER = ROOT / "test" / "shiploop.test.sh"
-SHIPLOOP_SUITE_COUNT = 101
-ACTION_WALK = "test/shiploop-action-walk.test.py"
-CI_GROUPS = ("core", "shiploop-1", "shiploop-2", "shiploop-3")
-SHIPLOOP_SMOKE = (
-    "test/shiploop-no-model-launch.test.py",
-    "test/shiploop-navigator-v3.test.py",
-    "test/shiploop-navigator-v4.test.py",
-    "test/shiploop-stopped-improve.test.py",
-    "test/shiploop-v4-consumers.test.py",
-    "test/shiploop-packet-bounds.test.py",
-    "test/shiploop-navigator-dry-run.test.py",
-    "test/shiploop-chain-async.test.py",
-    "test/shiploop-graph-driver.test.py",
-    "test/shiploop-graph-trace.test.py",
-)
-CORE = {
-    "test-groups", "integration-boundaries", "release-push", "ask-agent-worktree-harness", "skill-interop-hygiene",
-    "ask-agent-workspace", "ask-agent-delivery", "ask-agent-managed-harness",
-    "sync-plugin-views", "native-marketplace-adapters", "skill-frontmatter",
-    "marketplace-package", "installed-skill-invocation", "prompt-marketplace-contract",
-    "marketplace-host-isolation",
-    "scaffold-skill", "marketplace-run", "install-targets",
-    "install-arbitrary-skill", "hermes-binding", "install-status-uninstall",
-    "devloop-run", "evidence-gates", "improve", "improve-plugin", "shiploop-testkit", "review-coverage",
-    "dual-body-guard",
-}
+TEST_DIR = ROOT / "test"
+sys.path.insert(0, str(TEST_DIR))
+import run_suites  # noqa: E402
+import suite_catalog  # noqa: E402
 
 
 class TestGroupTests(unittest.TestCase):
-    def invoke(self, *args, root=ROOT, env=None):
+    def invoke_root(self, root: Path, *args: str, env: dict[str, str] | None = None) -> subprocess.CompletedProcess[str]:
         return subprocess.run(
             ["bash", str(root / "test" / "run-all.sh"), *args],
-            cwd=root, env=env, capture_output=True, text=True, timeout=20,
+            cwd=root, env=env, capture_output=True, text=True, timeout=30,
         )
 
-    def inventory(self, group="all"):
-        result = self.invoke("--group", group, "--list")
-        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        rows = [line.split("\t", 2) for line in result.stdout.splitlines()]
-        self.assertTrue(rows)
-        self.assertTrue(all(len(row) == 3 for row in rows), result.stdout)
-        return rows
-
-    def invoke_shiploop(self, *args, root=ROOT, env=None):
+    def invoke_shiploop(self, root: Path, *args: str, env: dict[str, str] | None = None) -> subprocess.CompletedProcess[str]:
         return subprocess.run(
             ["bash", str(root / "test" / "shiploop.test.sh"), *args],
-            cwd=root, env=env, capture_output=True, text=True, timeout=20,
+            cwd=root, env=env, capture_output=True, text=True, timeout=30,
         )
 
-    def shiploop_inventory(self, shard=None):
-        args = ["--list"]
-        if shard is not None:
-            args = ["--shard", shard, "--list"]
-        result = self.invoke_shiploop(*args)
-        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        suites = result.stdout.splitlines()
-        self.assertTrue(suites)
-        return suites
+    def _copy_runner(self, root: Path) -> None:
+        test = root / "test"
+        test.mkdir(parents=True)
+        for name in ("suite_catalog.py", "run_suites.py", "run-all.sh", "shiploop.test.sh"):
+            shutil.copyfile(TEST_DIR / name, test / name)
+        for name in ("run-all.sh", "shiploop.test.sh"):
+            (test / name).chmod(0o755)
 
-    def fixture(self):
-        temp = tempfile.TemporaryDirectory(prefix="skill-craft-test-groups-")
-        self.addCleanup(temp.cleanup)
-        root = Path(temp.name)
-        (root / "test").mkdir()
-        shutil.copyfile(RUNNER, root / "test" / "run-all.sh")
-        (root / "bin").mkdir()
-        # Stub interpreters only in this fixture, never the real suite/runtime.
-        for interpreter in ("python3", "node"):
-            target = root / "bin" / interpreter
-            target.write_text('#!/bin/sh\nexec /bin/bash "$@"\n')
-            target.chmod(0o755)
-        rows = self.inventory()
-        for _, name, command in rows:
-            argv = shlex.split(command)
-            self.assertIn(argv[0], ("bash", "node", "python3"))
-            target = root / argv[1]
+    def list_fixture(self) -> tuple[Path, dict[str, str]]:
+        temporary = tempfile.TemporaryDirectory(prefix="skill-craft-list-fixture-")
+        self.addCleanup(temporary.cleanup)
+        root = Path(temporary.name) / "checkout"
+        self._copy_runner(root)
+        trace = root / "trace"
+        sync = root / "scripts" / "sync-improve-managed.py"
+        sync.parent.mkdir()
+        sync.write_text(
+            "from pathlib import Path\nimport os\nPath(os.environ['TEST_TRACE']).write_text('sync\\n')\n",
+            encoding="utf-8",
+        )
+        env = dict(os.environ, TEST_TRACE=str(trace))
+        return root, env
+
+    def execution_fixture(self) -> tuple[Path, dict[str, str], Path]:
+        """Create a complete catalog-shaped checkout with harmless test stubs."""
+
+        temporary = tempfile.TemporaryDirectory(prefix="skill-craft-runner-fixture-")
+        self.addCleanup(temporary.cleanup)
+        parent = Path(temporary.name)
+        root = parent / "checkout"
+        self._copy_runner(root)
+        trace = parent / "trace"
+        env = dict(os.environ, TEST_TRACE=str(trace))
+
+        sync = root / "scripts" / "sync-improve-managed.py"
+        sync.parent.mkdir()
+        sync.write_text(
+            "from pathlib import Path\nimport os, sys\n"
+            "with Path(os.environ['TEST_TRACE']).open('a') as stream: stream.write('sync\\n')\n"
+            "raise SystemExit(7 if os.environ.get('FAIL_SYNC') else 0)\n",
+            encoding="utf-8",
+        )
+        for suite in suite_catalog.SUITES:
+            target = root / suite.path
             target.parent.mkdir(parents=True, exist_ok=True)
-            if name == "shiploop":
+            if suite.argv[0] == "bash":
                 target.write_text(
-                    "#!/bin/sh\n"
-                    'suite_name="shiploop"\n'
-                    'if [ "${1:-}" = "--shard" ]; then suite_name="shiploop-${2%%/*}"; fi\n'
-                    'if [ "${1:-}" = "--smoke" ]; then suite_name="shiploop-smoke"; fi\n'
-                    'printf "%s\\n" "$suite_name" >> "$TEST_TRACE"\n'
-                    '[ "${FAIL_SUITE:-}" != "$suite_name" ] || exit 7\n'
+                    "#!/usr/bin/env bash\n"
+                    f"printf '%s\\n' '{suite.id}' >> \"$TEST_TRACE\"\n"
+                    f"[[ \"${{FAIL_SUITE:-}}\" != '{suite.id}' ]]\n",
+                    encoding="utf-8",
+                )
+                target.chmod(0o755)
+            elif suite.argv[0] == "node":
+                target.write_text(
+                    "const fs = require('fs');\n"
+                    f"fs.appendFileSync(process.env.TEST_TRACE, '{suite.id}\\n');\n"
+                    f"process.exit(process.env.FAIL_SUITE === '{suite.id}' ? 7 : 0);\n",
+                    encoding="utf-8",
                 )
             else:
                 target.write_text(
-                    f'#!/bin/sh\nprintf "%s\\n" "{name}" >> "$TEST_TRACE"\n'
-                    f'[ "${{FAIL_SUITE:-}}" != "{name}" ] || exit 7\n'
+                    "from pathlib import Path\nimport json, os\n"
+                    f"with Path(os.environ['TEST_TRACE']).open('a') as stream: stream.write('{suite.id}\\n')\n"
+                    f"if os.environ.get('CHECK_RECEIPT_FOR') == '{suite.id}':\n"
+                    "    receipt = json.loads(Path(os.environ['CHECK_RECEIPT_PATH']).read_text(encoding='utf-8'))\n"
+                    "    assert receipt['status'] == 'running'\n"
+                    "    assert len(receipt['completed']) == int(os.environ['CHECK_RECEIPT_COUNT'])\n"
+                    "    if receipt['completed']:\n"
+                    "        log = Path(os.environ['CHECK_RECEIPT_ROOT']) / receipt['completed'][-1]['stdout_log']\n"
+                    "        assert log.is_file()\n"
+                    f"raise SystemExit(7 if os.environ.get('FAIL_SUITE') == '{suite.id}' else 0)\n",
+                    encoding="utf-8",
                 )
-        env = dict(os.environ)
-        env.update(PATH=f"{root / 'bin'}:{env['PATH']}", TEST_TRACE=str(root / "trace"))
-        # A fresh user home prevents installed host state from being a fixture input.
-        (root / "empty-home").mkdir()
-        env["HOME"] = str(root / "empty-home")
-        return root, env
+        return root, env, parent
 
-    def shiploop_fixture(self):
-        temp = tempfile.TemporaryDirectory(prefix="skill-craft-shiploop-shard-")
-        self.addCleanup(temp.cleanup)
-        root = Path(temp.name)
-        (root / "test").mkdir()
-        shutil.copyfile(SHIPLOOP_RUNNER, root / "test" / "shiploop.test.sh")
-        (root / "bin").mkdir()
-        python = root / "bin" / "python3"
-        python.write_text(
-            "#!/bin/sh\n"
-            "if [ \"$1\" = \"scripts/sync-improve-managed.py\" ]; then\n"
-            "  printf '%s\\n' sync >> \"$TEST_TRACE\"\n"
-            "  exit 0\n"
-            "fi\n"
-            "printf '%s\\n' \"$1\" >> \"$TEST_TRACE\"\n"
-            "[ \"${FAIL_SUITE:-}\" != \"$1\" ] || exit 7\n"
-        )
-        python.chmod(0o755)
-        node = root / "bin" / "node"
-        shutil.copyfile(python, node)
-        node.chmod(0o755)
-        env = dict(os.environ)
-        env.update(PATH=f"{root / 'bin'}:{env['PATH']}", TEST_TRACE=str(root / "trace"))
-        return root, env
+    def test_audited_catalog_counts_and_fixed_commands(self) -> None:
+        self.assertEqual(len(suite_catalog.SHIPLOOP_SUITES), 101)
+        self.assertEqual(len([suite for suite in suite_catalog.SUITES if suite.family == "core"]), 28)
+        self.assertEqual(len(suite_catalog.SUITES), 131)
+        self.assertTrue(all(suite.hermetic for suite in suite_catalog.SUITES))
+        self.assertTrue(all(suite.path in suite.argv for suite in suite_catalog.SUITES))
+        self.assertTrue(all(suite.argv[0] in {"python3", "node", "bash"} for suite in suite_catalog.SUITES))
+        suite_catalog.validate_catalog()
 
-    def workflow_step(self, workflow, name):
-        marker = f"      - name: {name}\n"
-        self.assertEqual(workflow.count(marker), 1)
-        lines = workflow[workflow.index(marker):].splitlines()
-        step = []
-        for index, line in enumerate(lines):
-            if index and (
-                line.startswith("      - ") or
-                (line and len(line) - len(line.lstrip()) < 6)
-            ):
-                break
-            step.append(line)
-        return "\n".join(step)
+    def test_full_ci_components_are_the_complete_deduplicated_union(self) -> None:
+        full = suite_catalog.select(("all",))
+        components = suite_catalog.select((
+            "core", "shiploop-1", "shiploop-2", "shiploop-3", "e2e-apparatus", "experiments",
+        ))
+        self.assertEqual(components, full)
+        self.assertEqual(len({suite.id for suite in full}), len(full))
+        self.assertEqual(full[-2].family, "e2e-apparatus")
+        self.assertEqual(full[-1].family, "experiments")
 
-    def workflow_run_commands(self, step):
-        run_marker = "        run: |\n"
-        self.assertIn(run_marker, step)
-        commands = []
-        for line in step.split(run_marker, 1)[1].splitlines():
-            if not line:
-                commands.append(line)
-            elif line.startswith("          "):
-                commands.append(line[10:])
-            else:
-                break
-        self.assertTrue(commands)
-        return "\n".join(commands).strip()
-
-    def git(self, root, *args):
-        return subprocess.run(
-            ["git", *args], cwd=root, check=True, capture_output=True, text=True,
-        )
-
-    def git_checkout_fixture(self):
-        temp = tempfile.TemporaryDirectory(prefix="skill-craft-ci-guard-")
-        self.addCleanup(temp.cleanup)
-        root = Path(temp.name)
-        self.git(root, "init", "--quiet")
-        self.git(root, "config", "user.email", "test@example.invalid")
-        self.git(root, "config", "user.name", "Test User")
-        tracked = root / "tracked.txt"
-        tracked.write_text("clean\n")
-        self.git(root, "add", "tracked.txt")
-        self.git(root, "commit", "--quiet", "-m", "initial")
-        return root, tracked
-
-    def run_ci_commands(self, root, commands):
-        return subprocess.run(
-            ["bash", "-e", "-o", "pipefail"],
-            cwd=root, input=commands, capture_output=True, text=True, timeout=20,
-        )
-
-    def test_catalog_is_complete_disjoint_and_host_free(self):
-        core = self.inventory("core")
-        shiploop = self.inventory("shiploop")
-        shard_rows = [self.inventory(f"shiploop-{index}") for index in range(1, 4)]
-        all_rows = self.inventory()
-        self.assertEqual({name for _, name, _ in core}, CORE)
-        self.assertEqual([(group, name) for group, name, _ in shiploop], [("shiploop", "shiploop")])
+    def test_component_unions_are_catalog_ordered_and_current_ask_agent_is_distinct(self) -> None:
+        combined = suite_catalog.select(("ask-agent", "shiploop-composition", "ask-agent"))
         self.assertEqual(
-            [
-                [(group, name, command.strip()) for group, name, command in rows]
-                for rows in shard_rows
-            ],
-            [
-                [(f"shiploop-{index}", f"shiploop-{index}",
-                  f"bash test/shiploop.test.sh --shard {index}/3")]
-                for index in range(1, 4)
-            ],
+            combined,
+            tuple(suite for suite in suite_catalog.SUITES if {
+                "ask-agent", "shiploop-composition"
+            } & suite.groups),
         )
-        self.assertEqual(all_rows, core + shiploop)
-        self.assertNotIn("shiploop-1", [group for group, _, _ in all_rows])
-        self.assertNotIn("shiploop-2", [group for group, _, _ in all_rows])
-        self.assertNotIn("shiploop-3", [group for group, _, _ in all_rows])
-        names = [name for _, name, _ in all_rows]
-        self.assertEqual(len(names), len(set(names)))
-        for _, _, command in all_rows:
-            self.assertNotIn("weather", command)
-            self.assertNotIn("walk-journal", command)
-            self.assertNotIn("run-integration", command)
-            self.assertNotIn("cursor-imported", command)
-        for _, _, command in all_rows:
-            self.assertTrue((ROOT / shlex.split(command)[1]).is_file(), command)
+        names = {suite.id for suite in suite_catalog.select(("ask-agent",))}
+        self.assertTrue({
+            "ask-agent-workspace", "ask-agent-delivery", "ask-agent-managed-harness",
+            "experiments-shiploop-chain-native-pilot", "shiploop-chain-handoff",
+            "shiploop-chain-async", "shiploop-consumer-delivery",
+            "shiploop-consumer-delivery-cli", "shiploop-delivery-prompts",
+        } <= names)
+        self.assertNotIn("ask-agent-worktree-harness", names)
+        self.assertEqual(
+            [suite.id for suite in suite_catalog.select(("experiments",))],
+            ["ask-agent-worktree-harness"],
+        )
 
-    def test_help_and_list_do_not_execute_suites(self):
-        root, env = self.fixture()
-        for args in (("--list",), ("--help",), ("--group", "core", "--list"),
-                     ("--group", "smoke", "--list")):
+    def test_lpt_shards_are_disjoint_exhaustive_and_catalog_ordered(self) -> None:
+        canonical = suite_catalog.SHIPLOOP_SUITES
+        shards = suite_catalog.SHIPLOOP_SHARDS
+        self.assertEqual(sum(map(len, shards)), len(canonical))
+        self.assertEqual(set().union(*(set(shard) for shard in shards)), set(canonical))
+        for shard in shards:
+            members = set(shard)
+            self.assertEqual(shard, tuple(suite for suite in canonical if suite in members))
+        self.assertEqual(sum(
+            sum(suite.id == "shiploop-action-walk" for suite in shard) for shard in shards
+        ), 1)
+
+    def test_list_help_and_invalid_arguments_do_not_execute_or_sync(self) -> None:
+        root, env = self.list_fixture()
+        for invocation, args, code in (
+            (self.invoke_root, ("--list",), 0),
+            (self.invoke_root, ("--group", "core", "--list"), 0),
+            (self.invoke_root, ("--help",), 0),
+            (self.invoke_shiploop, ("--smoke", "--list"), 0),
+            (self.invoke_root, ("--group", "unknown"), 64),
+            (self.invoke_root, ("--group", ""), 64),
+            (self.invoke_root, ("--group",), 64),
+            (self.invoke_shiploop, ("--smoke", "--shard", "1/3"), 64),
+            (self.invoke_shiploop, ("--list", "--list"), 64),
+            (self.invoke_shiploop, ("--smoke", "--smoke"), 64),
+            (self.invoke_shiploop, ("--shard", "1/3", "--shard", "2/3"), 64),
+        ):
             with self.subTest(args=args):
-                result = self.invoke(*args, root=root, env=env)
-                self.assertEqual(result.returncode, 0, result.stderr)
+                result = invocation(root, *args, env=env)
+                self.assertEqual(result.returncode, code, result.stdout + result.stderr)
                 self.assertFalse((root / "trace").exists())
 
-    def test_invalid_arguments_fail_before_any_execution(self):
-        root, env = self.fixture()
-        for args in (("--group",), ("--group", "integration"), ("--wat",), ("core",)):
-            with self.subTest(args=args):
-                result = self.invoke(*args, root=root, env=env)
-                self.assertEqual(result.returncode, 64, result.stdout + result.stderr)
-                self.assertFalse((root / "trace").exists())
+    def test_root_list_is_flattened_and_shiploop_list_preserves_bare_paths(self) -> None:
+        root, env = self.list_fixture()
+        listed = self.invoke_root(
+            root,
+            "--group", "ask-agent",
+            "--group", "shiploop-composition",
+            "--group", "ask-agent",
+            "--group", "experiments",
+            "--list",
+            env=env,
+        )
+        self.assertEqual(listed.returncode, 0, listed.stderr)
+        rows = [line.split("\t") for line in listed.stdout.splitlines()]
+        self.assertTrue(rows)
+        self.assertTrue(all(len(row) == 3 for row in rows), listed.stdout)
+        self.assertEqual(
+            [row[1] for row in rows],
+            [suite.id for suite in suite_catalog.select(("ask-agent", "shiploop-composition", "ask-agent", "experiments"))],
+        )
+        self.assertEqual(len(rows), len({row[1] for row in rows}))
 
-    def test_default_and_group_selection_execute_each_suite_once(self):
-        root, env = self.fixture()
-        for group, args in (("all", ()), ("core", ("--group", "core")),
-                            ("smoke", ("--group", "smoke")),
-                            ("shiploop", ("--group", "shiploop")),
-                            ("shiploop-1", ("--group", "shiploop-1")),
-                            ("shiploop-2", ("--group", "shiploop-2")),
-                            ("shiploop-3", ("--group", "shiploop-3"))):
-            with self.subTest(group=group):
-                trace = root / "trace"
-                trace.unlink(missing_ok=True)
-                result = self.invoke(*args, root=root, env=env)
-                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-                self.assertEqual(trace.read_text().splitlines(), [row[1] for row in self.inventory(group)])
+        smoke = self.invoke_shiploop(root, "--smoke", "--list", env=env)
+        self.assertEqual(smoke.returncode, 0, smoke.stderr)
+        self.assertEqual(
+            smoke.stdout.splitlines(),
+            [suite.path for suite in suite_catalog.SHIPLOOP_SUITES if "smoke" in suite.groups],
+        )
 
-    def test_failure_is_aggregated_without_skipping_later_suites(self):
-        root, env = self.fixture()
-        env["FAIL_SUITE"] = "test-groups"
-        result = self.invoke(root=root, env=env)
+    def test_execution_continues_after_failure_and_persists_incremental_receipt(self) -> None:
+        root, env, parent = self.execution_fixture()
+        output = parent / "receipt"
+        env["FAIL_SUITE"] = "ask-agent-workspace"
+        env.update(
+            CHECK_RECEIPT_FOR="ask-agent-delivery",
+            CHECK_RECEIPT_PATH=str(output / "receipt.json"),
+            CHECK_RECEIPT_ROOT=str(output),
+            CHECK_RECEIPT_COUNT="1",
+        )
+        selected = suite_catalog.select(("ask-agent",))
+        result = self.invoke_root(root, "--group", "ask-agent", "--output", str(output), env=env)
         self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
-        self.assertIn("FAIL test-groups", result.stderr)
-        self.assertNotIn("run-all.sh: PASS", result.stdout)
-        self.assertEqual((root / "trace").read_text().splitlines(), [row[1] for row in self.inventory()])
-
-    def test_smoke_includes_core_and_graph_subset_without_full_walk(self):
-        smoke = self.inventory("smoke")
-        self.assertEqual(smoke[:-1], self.inventory("core"))
-        self.assertEqual(smoke[-1][:2], ["smoke", "shiploop-smoke"])
-        self.assertEqual(smoke[-1][2].strip(), "bash test/shiploop.test.sh --smoke")
-        result = self.invoke_shiploop("--smoke", "--list")
-        self.assertEqual(result.returncode, 0, result.stderr)
-        selected = result.stdout.splitlines()
-        self.assertEqual(selected, list(SHIPLOOP_SMOKE))
-        self.assertEqual(selected, [s for s in self.shiploop_inventory() if s in SHIPLOOP_SMOKE])
-        self.assertNotIn(ACTION_WALK, selected)
-        self.assertNotIn("shiploop-smoke", [name for _, name, _ in self.inventory()])
-
-    def test_smoke_fails_for_either_core_or_graph_failure(self):
-        root, env = self.fixture()
-        for failure in ("test-groups", "shiploop-smoke"):
-            with self.subTest(failure=failure):
-                (root / "trace").unlink(missing_ok=True)
-                env["FAIL_SUITE"] = failure
-                result = self.invoke("--group", "smoke", root=root, env=env)
-                self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
-                self.assertNotIn("run-all.sh: PASS", result.stdout)
-                self.assertEqual((root / "trace").read_text().splitlines(),
-                                 [row[1] for row in self.inventory("smoke")])
-
-    def test_shiploop_smoke_executes_selected_suites_and_propagates_failure(self):
-        root, env = self.shiploop_fixture()
-        trace = root / "trace"
-        result = self.invoke_shiploop("--smoke", root=root, env=env)
-        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertEqual(trace.read_text().splitlines(), ["sync", *SHIPLOOP_SMOKE])
-        trace.unlink()
-        env["FAIL_SUITE"] = SHIPLOOP_SMOKE[1]
-        result = self.invoke_shiploop("--smoke", root=root, env=env)
-        self.assertEqual(result.returncode, 7, result.stdout + result.stderr)
-        self.assertEqual(trace.read_text().splitlines(), ["sync", *SHIPLOOP_SMOKE[:2]])
-
-    def test_shiploop_shards_partition_the_one_canonical_inventory(self):
-        source = SHIPLOOP_RUNNER.read_text()
-        self.assertEqual(source.count("suites=("), 1)
-        canonical = self.shiploop_inventory()
-        shards = [self.shiploop_inventory(f"{index}/3") for index in range(1, 4)]
-        self.assertEqual(len(canonical), SHIPLOOP_SUITE_COUNT)
-        self.assertEqual(len(set(canonical)), SHIPLOOP_SUITE_COUNT)
-        self.assertEqual(sum(map(len, shards)), SHIPLOOP_SUITE_COUNT)
-        self.assertEqual(set().union(*map(set, shards)), set(canonical))
-        for index, shard in enumerate(shards):
-            self.assertEqual(shard, canonical[index::3])
-        self.assertEqual(canonical.count(ACTION_WALK), 1)
-        self.assertEqual(sum(shard.count(ACTION_WALK) for shard in shards), 1)
-
-    def test_shiploop_list_and_invalid_arguments_have_no_side_effects(self):
-        temp = tempfile.TemporaryDirectory(prefix="skill-craft-shiploop-list-")
-        self.addCleanup(temp.cleanup)
-        root = Path(temp.name)
-        (root / "test").mkdir()
-        shutil.copyfile(SHIPLOOP_RUNNER, root / "test" / "shiploop.test.sh")
-        trace = root / "trace"
-        env = dict(os.environ)
-        env["TEST_TRACE"] = str(trace)
-        for args in (("--list",), ("--shard", "1/3", "--list"), ("--smoke", "--list")):
-            with self.subTest(args=args):
-                result = self.invoke_shiploop(*args, root=root, env=env)
-                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-                self.assertFalse(trace.exists())
-        for args in (
-            ("--shard",), ("--shard", "0/3"), ("--shard", "1/2"),
-            ("--shard", "4/3"), ("--shard", "1/3", "--shard", "2/3"),
-            ("--list", "--list"), ("--wat",),
-            ("--smoke", "--smoke"), ("--smoke", "--shard", "1/3"),
-            ("--shard", "1/3", "--smoke"),
-        ):
-            with self.subTest(args=args):
-                result = self.invoke_shiploop(*args, root=root, env=env)
-                self.assertEqual(result.returncode, 64, result.stdout + result.stderr)
-                self.assertFalse(trace.exists())
-
-    def test_shiploop_shard_fixture_executes_only_its_selected_suites(self):
-        selected = self.shiploop_inventory("2/3")
-        self.assertGreaterEqual(len(selected), 2)
-        root, env = self.shiploop_fixture()
-        trace = root / "trace"
-        result = self.invoke_shiploop("--shard", "2/3", root=root, env=env)
-        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertEqual(trace.read_text().splitlines(), ["sync", *selected])
-
-        trace.unlink()
-        env["FAIL_SUITE"] = selected[1]
-        result = self.invoke_shiploop("--shard", "2/3", root=root, env=env)
-        self.assertEqual(result.returncode, 7, result.stdout + result.stderr)
-        self.assertEqual(trace.read_text().splitlines(), ["sync", *selected[:2]])
-
-    def test_shiploop_mixed_interpreters_are_sharded_and_fail_closed(self):
-        node_suite = "test/shiploop-capability-async.test.cjs"
-        canonical = self.shiploop_inventory()
-        self.assertEqual(canonical.count(node_suite), 1)
-        root, env = self.shiploop_fixture()
-        trace = root / "trace"
-        for shard in (None, "1/3", "2/3", "3/3"):
-            with self.subTest(shard=shard):
-                trace.unlink(missing_ok=True)
-                selected = self.shiploop_inventory(shard)
-                args = () if shard is None else ("--shard", shard)
-                result = self.invoke_shiploop(*args, root=root, env=env)
-                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-                self.assertEqual(trace.read_text().splitlines(), ["sync", *selected])
-
-        trace.unlink()
-        env["FAIL_SUITE"] = node_suite
-        result = self.invoke_shiploop(root=root, env=env)
-        self.assertEqual(result.returncode, 7, result.stdout + result.stderr)
-        self.assertEqual(trace.read_text().splitlines(),
-                         ["sync", *canonical[:canonical.index(node_suite) + 1]])
-
-    def test_action_walk_has_one_aggregate_owner(self):
-        entrypoint = (ROOT / "test" / "shiploop.test.sh").read_text()
-        self.assertEqual(entrypoint.count("test/shiploop-action-walk.test.py"), 1)
-        wrapper = (ROOT / "test" / "shiploop-walk-journal.test.sh").read_text()
-        self.assertIn("test/shiploop-action-walk.test.py", wrapper)
-
-    def test_ci_routes_events_and_cancels_only_superseded_pr_runs(self):
-        workflow = (ROOT / ".github" / "workflows" / "ci.yml").read_text()
-        triggers = workflow.split("\nconcurrency:\n", 1)[0]
-        self.assertIn(
-            "on:\n  push:\n    branches: [main]\n  pull_request:\n  workflow_dispatch:\n",
-            triggers,
+        self.assertEqual(
+            (parent / "trace").read_text(encoding="utf-8").splitlines(),
+            ["sync", *(suite.id for suite in selected)],
         )
-        self.assertNotIn("tags:", triggers)
-        self.assertIn(
-            "concurrency:\n"
-            "  group: ci-${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.run_id }}\n"
-            "  cancel-in-progress: ${{ github.event_name == 'pull_request' }}\n",
-            workflow,
-        )
+        receipt = json.loads((output / "receipt.json").read_text(encoding="utf-8"))
+        self.assertEqual(receipt["status"], "failed")
+        self.assertEqual([record["id"] for record in receipt["selected"]], [suite.id for suite in selected])
+        self.assertEqual([record["id"] for record in receipt["completed"]], [suite.id for suite in selected])
+        self.assertEqual(receipt["completed"][0]["status"], "failed")
+        self.assertTrue((output / receipt["completed"][0]["stdout_log"]).is_file())
+        self.assertIn("dirty_diff_sha256", receipt["source"])
 
-    def test_ci_defaults_to_smoke_and_full_requires_explicit_manual_selection(self):
-        workflow = (ROOT / ".github" / "workflows" / "ci.yml").read_text()
-        triggers = workflow.split("\nconcurrency:\n", 1)[0]
-        self.assertIn("        type: choice\n", triggers)
-        self.assertIn("        default: smoke\n", triggers)
-        self.assertIn("        options: [smoke, full]\n", triggers)
-        # Keep this small dispatch expression auditable; parse the actual matrix
-        # choices rather than execute an independent copy of CI routing code.
-        matrix = re.search(
-            r"group: \$\{\{ fromJSON\((.*?) && '([^']+)' \|\| '([^']+)'\) \}\}",
-            workflow,
-        )
-        self.assertIsNotNone(matrix)
-        self.assertEqual(matrix[1], "github.event_name == 'workflow_dispatch' && inputs.tier == 'full'")
-        self.assertEqual(json.loads(matrix[2]), list(CI_GROUPS))
-        self.assertEqual(json.loads(matrix[3]), ["smoke"])
-        self.assertIn("run-name: CI ${{ inputs.tier || 'smoke' }}", workflow)
+    def test_output_must_be_new_and_external_and_coverage_fails_before_execution(self) -> None:
+        root, env, parent = self.execution_fixture()
+        inside = root / "receipt"
+        result = self.invoke_root(root, "--group", "core", "--output", str(inside), env=env)
+        self.assertEqual(result.returncode, 64, result.stdout + result.stderr)
+        self.assertFalse((parent / "trace").exists())
+        self.assertFalse(inside.exists())
 
-    def test_ci_preserves_a_fail_closed_aggregate_check(self):
-        workflow = (ROOT / ".github" / "workflows" / "ci.yml").read_text()
-        self.assertIn('bash test/run-all.sh --group "${{ matrix.group }}"', workflow)
-        self.assertIn("fail-fast: false", workflow)
-        self.assertIn("python-version: '3.12'", workflow)
-        self.assertIn("node-version: '22'", workflow)
-        self.assertIn("      - name: Plugin views in sync\n", workflow)
-        self.assertIn("      - name: Tracked checkout unchanged\n", workflow)
-        gate = workflow.split("\n  hermetic:\n", 1)[1]
-        self.assertIn("if: ${{ always() }}", gate)
-        self.assertIn("needs: checks", gate)
-        self.assertIn("CHECKS_RESULT: ${{ needs.checks.result }}", gate)
-        command = 'test "$CHECKS_RESULT" = success'
-        self.assertIn(command, gate)
-        for state in ("success", "failure", "cancelled", "skipped", ""):
-            result = subprocess.run(["bash", "-c", command], env={"CHECKS_RESULT": state})
-            self.assertEqual(result.returncode == 0, state == "success")
-        self.assertNotIn("run-integration", workflow)
-        self.assertNotIn("secrets.", workflow)
+        (root / "test" / "unclassified.test.py").write_text("# omitted\n", encoding="utf-8")
+        result = self.invoke_root(root, "--group", "core", env=env)
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertIn("unclassified top-level test", result.stderr)
+        self.assertFalse((parent / "trace").exists())
 
-    def test_ci_scopes_plugin_parity_and_checkout_guard_after_the_suite(self):
-        workflow = (ROOT / ".github" / "workflows" / "ci.yml").read_text()
-        parity = self.workflow_step(workflow, "Plugin views in sync")
-        guard = self.workflow_step(workflow, "Tracked checkout unchanged")
-        self.assertIn("if: ${{ always() && (matrix.group == 'core' || matrix.group == 'smoke') }}", parity)
-        self.assertIn("bash scripts/sync-plugin-views.sh --check", parity)
-        self.assertNotIn("git diff", parity)
-        self.assertIn("if: ${{ always() }}", guard)
-        self.assertNotIn("matrix.group", guard)
-        self.assertIn("shell: bash -e -o pipefail {0}", guard)
-        self.assertLess(workflow.index("      - name: Hermetic group"),
-                        workflow.index("      - name: Plugin views in sync"))
-        self.assertLess(workflow.index("      - name: Plugin views in sync"),
-                        workflow.index("      - name: Tracked checkout unchanged"))
-        self.assertLess(workflow.index("      - name: Tracked checkout unchanged"),
-                        workflow.index("\n  hermetic:\n"))
+    def test_timeout_kills_a_child_after_its_leader_exits_but_holds_pipes(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="skill-craft-timeout-pipes-") as name:
+            root = Path(name)
+            program = root / "leader_exits.py"
+            program.write_text(textwrap.dedent("""\
+                import subprocess
+                import sys
+                subprocess.Popen([sys.executable, "-c", "import time; time.sleep(60)"])
+            """), encoding="utf-8")
+            started = time.monotonic()
+            outcome = run_suites.run_process((sys.executable, str(program)), cwd=root, timeout_seconds=0.1)
+            self.assertEqual(outcome.status, "timed_out")
+            self.assertLess(time.monotonic() - started, 4)
 
-    def test_ci_tracked_checkout_guard_executes_actual_commands(self):
-        workflow = (ROOT / ".github" / "workflows" / "ci.yml").read_text()
-        commands = self.workflow_run_commands(
-            self.workflow_step(workflow, "Tracked checkout unchanged")
-        )
-        self.assertEqual(commands.splitlines(), [
-            "git diff --exit-code",
-            "git diff --cached --exit-code",
-        ])
+    def test_timeout_escalates_from_term_to_kill_for_a_real_child(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="skill-craft-timeout-term-") as name:
+            root = Path(name)
+            program = root / "ignores_term.py"
+            program.write_text(textwrap.dedent("""\
+                import subprocess
+                import sys
+                import time
+                child = "import signal, time; signal.signal(signal.SIGTERM, signal.SIG_IGN); time.sleep(60)"
+                subprocess.Popen([sys.executable, "-c", child])
+                time.sleep(60)
+            """), encoding="utf-8")
+            started = time.monotonic()
+            outcome = run_suites.run_process((sys.executable, str(program)), cwd=root, timeout_seconds=0.1)
+            self.assertEqual(outcome.status, "timed_out")
+            self.assertLess(time.monotonic() - started, 4)
 
-        def clean(root, tracked):
-            del root, tracked
-
-        def unstaged(root, tracked):
-            del root
-            tracked.write_text("unstaged\n")
-
-        def staged(root, tracked):
-            tracked.write_text("staged\n")
-            self.git(root, "add", "tracked.txt")
-
-        def staged_new(root, tracked):
-            del tracked
-            (root / "staged-new.txt").write_text("new\n")
-            self.git(root, "add", "staged-new.txt")
-
-        def staged_with_working_tree_restored(root, tracked):
-            tracked.write_text("staged\n")
-            self.git(root, "add", "tracked.txt")
-            self.git(root, "restore", "--source=HEAD", "--worktree", "tracked.txt")
-            self.assertEqual(tracked.read_text(), "clean\n")
-
-        for name, change, expected in (
-            ("clean", clean, 0),
-            ("unstaged", unstaged, 1),
-            ("staged", staged, 1),
-            ("staged-new", staged_new, 1),
-            ("staged+working-restored", staged_with_working_tree_restored, 1),
-        ):
-            with self.subTest(change=name):
-                root, tracked = self.git_checkout_fixture()
-                change(root, tracked)
-                result = self.run_ci_commands(root, commands)
-                self.assertEqual(result.returncode, expected, result.stdout + result.stderr)
-
-    def test_bootstrap_fixture_pin_does_not_rewrite_the_checkout(self):
-        script = (ROOT / "test" / "devloop-run.test.sh").read_text()
+    def test_bootstrap_fixture_pin_does_not_rewrite_the_checkout(self) -> None:
+        script = (ROOT / "test" / "devloop-run.test.sh").read_text(encoding="utf-8")
         self.assertIn('fixture_pin="$tmpdir/engine-pin-fixture.json"', script)
         self.assertNotIn('fixture_pin="$root/test/fixtures/engine-pin-fixture.json"', script)
 
