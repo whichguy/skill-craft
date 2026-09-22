@@ -14,8 +14,9 @@ import gas_artifact  # noqa: E402
 
 
 FIXTURES = HERE / "fixtures" / "gas"
-RETAINED_TTT = Path("/Users/dadleet/tmp/shiploop-e2e-20260917-ttt-full-80m/products/tic-tac-toe")
-RETAINED_CHECKERS = Path("/Users/dadleet/tmp/shiploop-e2e-20260917-checkers-full-80m/products/checkers")
+RETAINED_PRODUCTS = FIXTURES / "retained-products-v1"
+RETAINED_TTT = RETAINED_PRODUCTS / "tic-tac-toe"
+RETAINED_CHECKERS = RETAINED_PRODUCTS / "checkers"
 
 
 def issue_codes(result: dict) -> set[str]:
@@ -123,8 +124,7 @@ class GasArtifactTests(unittest.TestCase):
         self.assertEqual(missing["status"], "unverified")
         self.assertIn("entrypoint-not-found", issue_codes(missing))
 
-    @unittest.skipUnless(RETAINED_TTT.is_dir() and RETAINED_CHECKERS.is_dir(), "retained live E2E products unavailable")
-    def test_retained_tictactoe_passes_and_checkers_fails_the_actual_served_entrypoint(self) -> None:
+    def test_recorded_tictactoe_passes_and_checkers_fails_the_actual_served_entrypoint(self) -> None:
         ttt = gas_artifact.inspect_artifact(RETAINED_TTT)
         checkers = gas_artifact.inspect_artifact(RETAINED_CHECKERS)
         self.assertEqual(ttt["status"], "pass")

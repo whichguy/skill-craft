@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <base target="_top">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Checkers</title>
+  <style>
+    :root {
+      --ink: #1b1410;
+      --paper: #f4ead7;
+      --dark: #5c3a21;
+      --light: #e4c9a0;
+      --black-piece: #1c1c1c;
+      --white-piece: #f3efe6;
+      --accent: #c45c26;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Palatino Linotype", Palatino, "Book Antiqua", serif;
+      background: radial-gradient(circle at top, #3d2a1c, #1b1410 70%);
+      color: var(--paper);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 1.25rem;
+    }
+    h1 { margin: 0 0 0.35rem; font-weight: 600; letter-spacing: 0.06em; }
+    .status { min-height: 1.4em; margin-bottom: 0.75rem; color: #f0d9b5; }
+    .board {
+      display: grid;
+      grid-template-columns: repeat(8, 3.25rem);
+      grid-template-rows: repeat(8, 3.25rem);
+      border: 8px solid #2a1b12;
+      box-shadow: 0 18px 40px rgba(0,0,0,0.45);
+    }
+    .sq { display: flex; align-items: center; justify-content: center; }
+    .sq.light { background: var(--light); }
+    .sq.dark { background: var(--dark); cursor: pointer; }
+    .sq.sel { outline: 3px solid #f2c14e; outline-offset: -3px; }
+    .sq.dest { box-shadow: inset 0 0 0 4px #8fd18f; }
+    .piece {
+      width: 2.35rem;
+      height: 2.35rem;
+      border-radius: 50%;
+      border: 3px solid rgba(255,255,255,0.25);
+    }
+    .piece.black { background: radial-gradient(circle at 30% 30%, #444, var(--black-piece)); }
+    .piece.white { background: radial-gradient(circle at 30% 30%, #fff, var(--white-piece)); border-color: #b9a48a; }
+    .piece.king::after {
+      content: "♔";
+      display: block;
+      text-align: center;
+      line-height: 1.9rem;
+      color: #f2c14e;
+      font-size: 1.1rem;
+    }
+    .piece.white.king::after { color: var(--accent); }
+    button {
+      margin-top: 1rem;
+      background: var(--accent);
+      color: #fff8ee;
+      border: 0;
+      padding: 0.55rem 1.2rem;
+      font: inherit;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+    p.hint { max-width: 28rem; text-align: center; opacity: 0.8; font-size: 0.95rem; }
+  </style>
+</head>
+<body>
+  <h1>Checkers</h1>
+  <div id="status" class="status"></div>
+  <div id="board" class="board" role="grid" aria-label="Checkers board"></div>
+  <button type="button" id="new-game">New Game</button>
+  <p class="hint">Two players, one board. Dark moves first. Captures are required; a jumping piece must keep jumping.</p>
+  <script src="engine.js"></script>
+  <script>
+    (function () {
+      var selected = null;
+      var statusEl = document.getElementById("status");
+      var boardEl = document.getElementById("board");
+
+      function label(state) {
+        if (state.status === "won") return (state.winner === "black" ? "Black" : "White") + " wins.";
+        var turn = state.turn === "black" ? "Black" : "White";
+        if (state.activeSquare) return turn + " must continue capturing.";
+        return turn + " to move.";
+      }
+
+      function destSet(state) {
+        var set = {};
+        if (!selected) return set;
+        Checkers.legalMoves(selected).forEach(function (m) {
+          set[m.to.r + "," + m.to.c] = true;
+        });
+        return set;
+      }
+
+      function render(error) {
+        var state = Checkers.getState();
+        statusEl.textContent = error ? error : label(state);
+        var dest = destSet(state);
+        boardEl.innerHTML = "";
+        var r, c, sq, p;
+        for (r = 0; r < 8; r++) {
+          for (c = 0; c < 8; c++) {
+            sq = document.createElement("button");
+            sq.type = "button";
+            sq.className = "sq " + ((r + c) % 2 === 1 ? "dark" : "light");
+            sq.dataset.r = String(r);
+            sq.dataset.c = String(c);
+            if (selected && selected.r === r && selected.c === c) sq.classList.add("sel");
+            if (dest[r + "," + c]) sq.classList.add("dest");
+            p = state.board[r][c];
+            if (p) {
+              var el = document.createElement("span");
+              el.className = "piece " + p.color + (p.king ? " king" : "");
+              sq.appendChild(el);
+            }
+            sq.addEventListener("click", onClick);
+            boardEl.appendChild(sq);
+          }
+        }
+      }
+
+      function onClick(ev) {
+        var r = Number(ev.currentTarget.dataset.r);
+        var c = Number(ev.currentTarget.dataset.c);
+        var state = Checkers.getState();
+        if (state.status !== "playing") return render();
+        if (!Checkers.playable(r, c)) return render("Use the dark squares.");
+        var dest = destSet(state);
+        if (selected && dest[r + "," + c]) {
+          var res = Checkers.applyMove(selected, { r: r, c: c });
+          selected = res.state.activeSquare;
+          return render(res.ok ? "" : res.error);
+        }
+        var p = state.board[r][c];
+        if (p && p.color === state.turn) {
+          if (state.activeSquare && (state.activeSquare.r !== r || state.activeSquare.c !== c)) {
+            return render("Continue with the same piece.");
+          }
+          selected = { r: r, c: c };
+          return render();
+        }
+        selected = null;
+        render("Select one of your pieces, then a destination.");
+      }
+
+      document.getElementById("new-game").addEventListener("click", function () {
+        Checkers.newGame();
+        selected = null;
+        render();
+      });
+
+      Checkers.newGame();
+      render();
+    })();
+  </script>
+</body>
+</html>

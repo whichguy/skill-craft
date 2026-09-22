@@ -79,8 +79,10 @@ suite alone does not perform these additional CI parity and checkout checks.
 Full regression runs the source E2E apparatus with `check_suite.py --suite all`
 once. Its named diagnostic groups intentionally overlap; do not concatenate them
 to claim full coverage. The copied-package mock in core remains separate because
-it checks relocation and package binding. Both use synthetic evidence, with no
-model calls.
+it checks relocation and package binding. The apparatus uses synthetic evidence
+and portable recorded source fixtures, with no model calls. The recorded GAS
+products carry provenance and run everywhere; missing fixtures fail instead of
+skipping a required regression case.
 
 ## Fixture ownership and intentional overlap
 
