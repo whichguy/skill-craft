@@ -105,6 +105,14 @@ host-accounted Markdown guidance, not a new runtime budget counter.
   binding used `/tmp`. Parent state was preserved. The fix compares the bound
   workspace using the bridge's canonical identity; a different workspace still
   fails. The frozen failed attempt remains part of the experiment evidence.
+- Full Linux CI exposed a separate interpreter-alias defect in the existing
+  native-chain pilot harness. It compared the helper's Python path spelling
+  with the parent's `sys.executable`, even though the bridge used a frozen,
+  resolved interpreter. A real CLI regression through a symlinked virtual
+  environment reproduced the same failure locally before repair. The harness
+  now compares canonical identities with the frozen interpreter while retaining
+  exact helper arguments and the original emitted command. The regression also
+  exercises rejection of a different executable or altered receipt argument.
 
 The initial stopped-bridge test runner also used the wrong working directory;
 no tests ran in that attempt. Its corrected invocation passed all seven tests
@@ -133,7 +141,7 @@ state bytes were unchanged. This proves copied-package invocation, not host
 catalog activation. Both Mermaid flow diagrams were rendered and visually
 inspected for readable labels and correct branches.
 
-The complete catalog now has passing coverage: **28 core suites and 101
+The complete local catalog has passing coverage: **28 core suites and 101
 ShipLoop suites**, including all 13 action-walk scenarios. The broad run used
 the unchanged `836a1d9` source and fingerprint recorded above. Shards 2 and 3
 passed. Core initially failed its stale suite-count/smoke-list expectations;
@@ -153,8 +161,21 @@ Raw regression logs are retained in
 `/tmp/shiploop-qualification-20260922-193012/`,
 `/tmp/shiploop-planning-experiments-shard1-remaining-POmx7Z/`, and
 `/tmp/shiploop-planning-experiments-20260922-fixture-checks-202009/`.
-The final test/documentation snapshot has fingerprint
+That local qualification's test/documentation snapshot has fingerprint
 `13ec6d8197dda5cf888260ce723897248e1c46fa8c521d3dfeb462c7c15aaf16`;
-the fingerprint excludes the report itself. The pull request records the
-separate Linux smoke CI and merge outcome:
+the fingerprint excludes the report itself.
+
+The subsequent [full Linux CI run](https://github.com/whichguy/skill-craft/actions/runs/35683097772)
+found the interpreter-alias issue in shard 2, which the original macOS invocation
+had not exposed. Its failure is retained separately from the local passes. The
+new regression's failing pre-repair log is at
+`/tmp/shiploop-native-pilot-alias.OInkHZ/test-native-pilot.log`. After repair, all
+10 native-pilot tests and 62 trace tests passed, with unchanged pre/post source
+fingerprint `ca146cfa0a3475fd7da9974483f5038063e3ee4139bd72f3c9158c26ae4aaada`.
+Their logs are at
+`/tmp/shiploop-native-pilot-20260922-20260922T035318Z-20489/`.
+This repair changes the experiment harness and its tests; the ShipLoop source
+and generated-package trees are unchanged from the native component
+qualification. The pull request
+records smoke CI, full CI, subsequent verification and the merge outcome:
 [#17](https://github.com/whichguy/skill-craft/pull/17).

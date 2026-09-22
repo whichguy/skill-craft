@@ -15,6 +15,9 @@ import subprocess
 import sys
 import tempfile
 import unittest
+import venv
+
+import native_pilot as pilot
 
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -50,10 +53,11 @@ class NativePilotTests(unittest.TestCase):
         self.addCleanup(self.temp.cleanup)
         self.base = Path(self.temp.name).resolve()
         self.pilot_dir = self.base / "pilot"
+        self.python_executable = sys.executable
 
     def call(self, *args: str, ok: bool = True) -> dict:
         completed = subprocess.run(
-            [sys.executable, "-B", str(PILOT), *args], text=True, capture_output=True, timeout=45,
+            [self.python_executable, "-B", str(PILOT), *args], text=True, capture_output=True, timeout=45,
         )
         if not ok:
             self.assertNotEqual(completed.returncode, 0, completed.stdout)
@@ -148,6 +152,35 @@ class NativePilotTests(unittest.TestCase):
                   "--confirmed-stopped")
         return self.call("done", "--pilot-dir", str(self.pilot_dir), "--step", step, "--attempt", attempt,
                          "--confirmed-stopped")
+
+    def test_managed_start_accepts_interpreter_alias_and_rejects_other_commands(self) -> None:
+        environment = self.base / "python environment"
+        venv.EnvBuilder(with_pip=False, symlinks=True).create(environment)
+        self.python_executable = str(environment / "bin" / "python")
+        self.prepare()
+        context = json.loads((self.pilot_dir / "context.json").read_text())
+        self.assertNotEqual(self.python_executable, context["selected"]["python"])
+        self.assertEqual(Path(self.python_executable).resolve(), Path(context["selected"]["python"]))
+        attempt = self.claim_a()
+        started = self.start_a(attempt)
+        packet = json.loads(Path(started["packet"]).read_text())
+        command = packet["ask_agent_workspace"]["check_context"]["argv"]
+        self.assertNotEqual(command[0], self.python_executable)
+        self.assertEqual(Path(command[0]).resolve(), Path(context["selected"]["python"]))
+
+        # The complete real helper packet must still reject a different executable
+        # or altered command arguments after accepting an alias of the frozen one.
+        other = self.base / "different-python"
+        other.write_text("different executable fixture\n")
+        for replacement in ([str(other), *command[1:]], [*command[:-1], "wrong-receipt"]):
+            with self.subTest(argv=replacement):
+                changed = json.loads(json.dumps(packet))
+                changed["ask_agent_workspace"]["check_context"]["argv"] = replacement
+                with self.assertRaisesRegex(pilot.PilotError, "helper context-check command"):
+                    pilot.managed_workspace_from_packet(
+                        self.pilot_dir, context, "A", attempt, changed,
+                        packet["context"]["base_commit"],
+                    )
 
     def test_prepare_v3_freezes_the_managed_helper_packet_and_guidance_inline(self) -> None:
         prepared = self.prepare()
