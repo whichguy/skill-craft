@@ -9,7 +9,9 @@
     {
       "bundled_path": "ADAPTER.md",
       "upstream_path": "SKILL.md",
-      "sha256": "609959649f69f3ee5408bedbd6331806799495a8f59418e8d097c3d9f3c08028"
+      "sha256": "5a3fd63b13b75b1af71576d29586489f427a5e5a2d762313c79f04f2b7c094bb",
+      "upstream_sha256": "609959649f69f3ee5408bedbd6331806799495a8f59418e8d097c3d9f3c08028",
+      "adaptation_reason": "Clarify owner-bound user authority updates versus changed immutable loop conditions; the runtime Python script remains unchanged."
     },
     {
       "bundled_path": "LICENSE",

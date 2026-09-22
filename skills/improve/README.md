@@ -85,15 +85,18 @@ reconstructed honestly.
 |---|---|---|
 | New standalone Improve request | runtime/until-loop/scripts/until_loop_ephemeral.py through runtime/until-loop/ADAPTER.md | One private temporary file per run; no .until-loop state or collector. |
 | Explicit durable v1/v2 continuation | [legacy-standalone.md](references/legacy-standalone.md) and retained runtime/until-loop/scripts/until-loop | Preserve the selected durable state, adapter, collector, and checked record. Never migrate it into a callback run. |
-| ShipLoop v3 whole-skill subcall | The new standalone callback binding with the exact ShipLoop marker in context.request | Preserve parent scope, commit policy, receipt, and return-route locators. Save only a successful complete child response at the printed host receipt path before the parent return route. |
+| ShipLoop v3/v4 whole-skill subcall | The new standalone callback binding with the exact ShipLoop marker in context.request | Preserve parent scope, commit policy, receipt, and return-route locators. Save exact child responses; only complete permits the normal parent return. A stopped child permits only an explicitly printed v4 parent reconciliation route. |
 | ShipLoop managed subrun | [managed-consumer.md](references/managed-consumer.md) and scripts/managed_controller.py | ShipLoop owns the parent graph and Improve's managed controller owns its named child phases. |
 
-For a ShipLoop v3 whole-skill subcall, commit verified scoped changes in the
+For a ShipLoop v3/v4 whole-skill subcall, commit verified scoped changes in the
 bound worktree under the standalone policy, unless an explicit frozen no-commit
 override applies. Report the commit SHA separately from caller delivery; the
 parent owns integration. A child keeps the parent latest-packet receipt location
 and exact parent return instruction or callback locator in context.resources.
-An active, blocked, or stopped child result does not invoke a parent callback.
+An active or blocked child result does not invoke a parent callback. For a stopped
+child, only the parent may use an explicitly printed v4 reconciliation callback
+after collecting or confirming the worker stopped; this is not successful
+completion. A worker never executes parent callbacks.
 
 ## Review contract
 
@@ -161,7 +164,11 @@ scripts/until_loop_ephemeral.py is byte-identical to upstream, with SHA-256
 [runtime/until-loop/PROVENANCE.json](runtime/until-loop/PROVENANCE.json)
 records the upstream commit, version, source paths, and SHA-256 values for the
 new default runtime, retained v1/v2 scripts, and the small package-local legacy
-reference adaptations required by the renamed ADAPTER.md layout. The old durable
+reference adaptations required by the renamed ADAPTER.md layout. The bundled
+ADAPTER.md also clarifies owner-bound user updates versus changes to immutable
+loop conditions; its provenance entry retains both upstream and bundled hashes
+and the adaptation reason. The runtime Python script remains byte-identical.
+The old durable
 scripts, adapters, and collector remain only for explicit legacy calls; they are
 not fallback behavior for a new request.
 

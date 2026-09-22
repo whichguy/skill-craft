@@ -1,11 +1,18 @@
 # Improve context ownership
 
-Use this host-owned boundary for a bound navigator-v3 Improve child using the
-ephemeral Until Loop runtime. Keep the invoking parent as ShipLoop's control
-channel; prefer one fresh native worker for the **whole Improve invocation**.
-Do not create a worker for each review iteration. The worker retains useful
-within-loop context; the parent receives a compact return and durable locators.
-This reduces parent-context growth, not necessarily total tokens or latency.
+Use this host-owned boundary for a bound navigator-v3 or navigator-v4 Improve
+child using the ephemeral Until Loop runtime. Direct legacy navigator-v1/v2
+Improve nodes retain their recorded direct adapter and do not gain this parked
+parent/child route. In v3/v4, one valid producer submission parks the invoking
+parent and binds the child for the **whole Improve invocation**. The child owns
+its reviews, applicable experiments, and shared investigation allowance; do not
+create a worker for each review iteration. The parent remains ShipLoop's control
+channel and alone may run verified `improve-complete` after collecting terminal
+evidence and confirming the worker and delegates stopped. A parent pause retains
+the child; an unfinished child route is not proof that its native owner stopped.
+The worker retains useful within-loop context while the parent receives a compact
+return and durable locators. This reduces parent-context growth, not necessarily
+total tokens or latency.
 
 For a new delegated invocation, resolve the host-selected Ask Agent card and
 require its declared `ask-agent/consumer-owned-workspace/v1` capability. Read
@@ -169,6 +176,14 @@ retain, correct or retire learnings across iterations. For v4 planning this
 opening supplies the compact planning summary; keep full packets and verbose
 logs behind their existing locators rather than copying them into child context.
 
+For the initial v4 Plan Improve child, retain the packet's experiment objective
+and exit criteria, applicable original constraints, current source/action
+locators, and decision consequences in that compact context. Keep essential
+findings and rationale inline; locators cannot replace critical reasoning.
+Identify valid producer evidence, unresolved outcomes, remaining allowance,
+pending cleanup, and the exact terminal condition for the parent return.
+These are existing contract and handoff contents, not a new result schema.
+
 ## Complete assignment and return
 
 Carry Ask Agent's approval/decline decision record into the existing child
@@ -243,12 +258,18 @@ the terminal JSON receipt, and two callbacks do not replace two real reviews.
 
 ## Parent acceptance and recovery
 
-Collect the actual native return. After the worker and its delegates stop,
-verify the candidate edits, current checks and exact successful terminal receipt
-against this action. Check that newer user instructions and parent state still
-allow acceptance. Missing, active, blocked or stopped evidence leaves the parent
-incomplete. Resolve conflicting scope or stale checks before acceptance; changes
-after convergence require fresh review evidence, not an unchanged old receipt.
+Collect the actual native return. Only the parent may run `improve-complete`, and
+only after the worker and its delegates stop and it verifies the candidate edits,
+current checks, and exact successful terminal receipt against this action. Check
+that newer user instructions and parent state still allow acceptance. Missing,
+active, blocked or stopped evidence leaves the parent incomplete; a paused parent
+still retains its child and an unfinished child route does not prove its owner
+stopped. The only settlement exception is the packet-issued `stopped`
+reconciliation route for the selected v4 initial Plan Improve child using the
+bundled ephemeral runtime; it still requires confirmed owner evidence and the
+parent's `improve-reconcile`, never `improve-complete`. Resolve conflicting scope
+or stale checks before acceptance; changes after convergence require fresh review
+evidence, not an unchanged old receipt.
 Append the actual acceptance outcome, candidate/check/diff evidence, and any
 later caller-delivery outcome to `host-owner.md`; retain earlier launch and stop
 events. This record is not authorization to bypass the runtime's importer.
@@ -282,7 +303,7 @@ its first owner. Do not label a recovered binding new because its files are abse
 Once sole ownership is established, recover the same parent with `next` and the
 same child from its saved packet. For an active child use its exact `next_argv`;
 for a complete child validate and import without rerunning Improve. Missing
-ephemeral state or a lost terminal packet is incomplete, never success or
+active-child ephemeral state or a lost terminal packet is incomplete, never success or
 permission to start over. A resumed host may recover the same invocation in a
 fresh worker only after the old owner is confirmed stopped or never launched. No
 automatic return is promised after the parent session ends.

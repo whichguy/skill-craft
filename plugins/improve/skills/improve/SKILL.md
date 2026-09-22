@@ -5,7 +5,7 @@ description: >-
   loop: use recent Git history, make warranted changes, run meaningful checks,
   and require two consecutive trivial-only review passes. Supports a read-only
   interpretation preview; not a one-off code review.
-version: 0.2.0-rc.7
+version: 0.2.0-rc.8
 license: MIT
 platforms:
   - linux
@@ -84,9 +84,9 @@ Do not replace `RUNTIME_SCRIPT` with an ambient Until Loop installation or call
 or a repository prerequisite is missing, report that condition rather than
 silently changing runtimes.
 
-## ShipLoop v3 whole-skill subcall
+## ShipLoop v3/v4 whole-skill subcall
 
-When a ShipLoop v3 packet names a selected actual Improve card and prints a
+When a ShipLoop v3 or v4 packet names a selected actual Improve card and prints a
 `ShipLoop standalone Improve binding: <binding-id>` marker, this is a
 **standalone whole-skill subcall**. Read and run this card's standalone owner
 binding with this card's bound Until Loop runtime. Preserve the exact binding
@@ -111,7 +111,7 @@ required receipt path and then return through the parent route. Do not infer a
 different route from a durable `.until-loop` directory or from a remembered
 parent state.
 
-The v3 child follows the standalone binding's ordinary commit policy: after
+The v3/v4 child follows the standalone binding's ordinary commit policy: after
 required checks pass, commit authorized scoped changes in the bound candidate
 worktree and retain the commit SHA in its handoff. Stage only intended paths;
 never include runtime receipts or unrelated inherited staging. An explicit
@@ -122,13 +122,17 @@ temporary Until Loop handle; ShipLoop keeps the parent graph action pending and
 imports accepted child evidence once. Reopen only relevant parent locators for
 cold recovery, and retain concise current decision/revalidation locators in the
 child handoff. Do not use `managed_controller.py`, a `managed-improve` callback,
-or an ambient Until Loop runtime for this v3 route.
+or an ambient Until Loop runtime for this v3/v4 route.
 
-For an `active`, `blocked`, or `stopped` child response, do not call a parent
-callback. Follow the child packet or report its incomplete state through the
-recorded recovery route. Only after a successful `complete` child response is
-saved exactly at the printed host receipt path may the host use the exact parent
-return route.
+For an `active` or `blocked` child response, do not call a parent callback.
+Follow the child packet or report its incomplete state through the recorded
+recovery route. For `stopped`, preserve the exact terminal packet and evidence
+and return their locators. Only when a ShipLoop v4 packet explicitly prints its
+parent-only stopped-child reconciliation callback may the parent, after
+collecting or confirming the worker stopped, use that exact callback. The worker
+never executes it; no other stopped child advances the parent. After a successful
+`complete` response is saved exactly at the printed host receipt path, the parent
+may use its exact normal return route.
 
 For a native assignment marked `execution_role: improve-executor` and
 `delegation_owner: parent`, execute this entire bound loop in the exact Child
@@ -146,13 +150,13 @@ no-commit/no-change reason), stopped status, and the unchanged parent
 continuation. Only the parent verifies and executes that continuation. Edits
 remain in the bound candidate; native completion is not caller delivery.
 
-This executor assignment applies only to the explicit ShipLoop v3 whole-skill
+This executor assignment applies only to the explicit ShipLoop v3/v4 whole-skill
 subcall. Standalone dispatch, other owner-managed entrypoints, and active legacy
 invocations retain their existing ownership and commit policies.
 
 ## Other owner-managed consumer entrypoint
 
-An owner-managed consumer other than the explicit ShipLoop v3 whole-skill
+An owner-managed consumer other than the explicit ShipLoop v3/v4 whole-skill
 subcall above must read [the shared review policy](references/review-policy.md)
 and that owner's explicit binding in full. It must not run this standalone card
 or this card's Until Loop adapter. The other owner supplies its own history
@@ -165,7 +169,7 @@ phase/callback, and finalization authority.
 separate consumer of the same shared policy. It applies only when a ShipLoop
 run has selected the versioned managed Improve protocol and printed a
 `managed-improve` packet. It does not replace the standalone owner binding
-for a v3 whole-skill subcall above or change an existing ShipLoop run that lacks
+for a v3/v4 whole-skill subcall above or change an existing ShipLoop run that lacks
 that protocol marker.
 
 Read the managed-consumer binding and the parent-supplied child packet in full.
@@ -310,8 +314,15 @@ pending request as consent. These are binding decisions, not optional learning
 suggestions; the opening may summarize their practical implications.
 For a later source-bound parent update, honor the latest applicable user
 instruction and retain the decision, receipt and effect in the existing handoff.
+The parent confirms that the update is covered by the frozen work, exit/repeat
+conditions and review gate, and coordinates any newly authorized write paths.
+Preserve the user's selected automatic-approval mode. This owner coordination
+does not require the user to reapprove already authorized actions.
 Keep the launch context immutable and continue the same runtime; reconcile it
-with received later decisions on recovery. An unresolved conflict or unknown
+with received later decisions on recovery. If those loop conditions must change,
+return the conflict through the parent's supported route; do not independently
+replace the child or carry a qualifying streak across changed criteria.
+An unresolved conflict or unknown
 delivery/effect blocks the affected operation, not unrelated authorized work.
 Name the selected Improve card, bound Until Loop card, review policy and any
 required evidence/output locations in `context.resources` with resolved
@@ -393,7 +404,7 @@ approval/decline implications that affect subsequent work; do not discard them
 as orchestration detail. Keep essential conclusions inline and link to supporting
 detail; use the space needed to make the result useful without copying the whole
 iteration log. Preserve the exact terminal receipt separately. For the ShipLoop
-v3 subcall, populate the existing completion record's `summary` with the outcome
+v3/v4 subcall, populate the existing completion record's `summary` with the outcome
 and key changes, and `lessons` with the learning synthesis. Do not add runtime
 fields, reopen a completed loop, or issue another callback to format this report.
 A blocked, stopped or interrupted run returns the same useful account labeled

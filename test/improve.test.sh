@@ -205,6 +205,11 @@ assert hashlib.sha256(script.read_bytes()).hexdigest() == entries[
 assert hashlib.sha256((root / "runtime/until-loop/ADAPTER.md").read_bytes()).hexdigest() == entries[
     "ADAPTER.md"
 ]["sha256"]
+assert entries["ADAPTER.md"]["upstream_sha256"] == (
+    "609959649f69f3ee5408bedbd6331806799495a8f59418e8d097c3d9f3c08028"
+)
+assert entries["ADAPTER.md"]["adaptation_reason"].strip()
+assert entries["ADAPTER.md"]["sha256"] != entries["ADAPTER.md"]["upstream_sha256"]
 PY
 pass ephemeral_runtime_provenance_matches_v0_4_0_rc_2
 

@@ -1,6 +1,6 @@
 {
   "name": "shiploop",
-  "version": "0.19.1",
+  "version": "0.19.2",
   "description": "Markdown-authoritative delivery harness. Start or resume once, follow the script's current action packet, and submit its exact completion call until the script reports completion with an HTML achievement report. Use when the user says shiploop, ship the project, or requests a durable delivery loop.",
   "author": {
     "name": "whichguy",
