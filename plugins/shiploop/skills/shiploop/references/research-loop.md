@@ -508,9 +508,21 @@ engine.
 Navigator packets select this adapter with the shared recursive-discovery
 section above. Apply the same eight-area screen, consequential recursion,
 authorized acquisition, experiments, reuse decisions, evidence fidelity, and
-shared allowance. This adapter supplies the current protocol's record and owner
-binding; the other detailed result-schema and child-phase sections in this guide
-describe managed/legacy compatibility runs.
+shared allowance in every version. This adapter supplies the current protocol's
+record and owner binding; it does not replace the shared research evidence
+guidance with a navigator-specific one.
+
+Direct legacy navigator v1/v2 Improve nodes own their own review/plan/apply/check
+campaign and ordinary generic result/callback. Do not retrofit a parked
+parent/child relationship onto those persisted runs. In navigator v3/v4, one
+valid generic producer submission instead parks the parent and binds one Improve
+child. That producer checkpoint remains valid: it records the current source
+view and its evidence, but does not claim that the child has completed its
+reviews or that a tested condition holds. The bound child owns its review work,
+applicable experiments, and the investigation's shared allowance. The parent
+alone owns ShipLoop callbacks, including verified `improve-complete` after it
+collects the terminal child evidence and confirms the actual worker and its
+delegates have stopped.
 
 For navigator, keep findings in a durable run note, such as
 `notes/<actionID>.md`, and include its locator in the current generic result's
@@ -536,20 +548,39 @@ describe compatibility enforcement; navigator does not freeze those artifacts
 or require their certificates. The host must preserve the actual scope and
 decisions and disclose changes without claiming script-enforced checks.
 
-`discovery`, `research`, and `research-improve` use this policy for affected
-environment flows. At `product-improve` and `outer-improve`, use it when a
-consequential newly encountered boundary or conflicting evidence requires more
-investigation. Do not restart settled research just because a later node reads
-this guide. The same investigation's allowance follows its notes across nodes
-and context resets; entering an Improve action never refills it.
+For direct legacy v1/v2 nodes, `discovery`, `research`, and `research-improve`
+use this policy for affected environment flows. At `product-improve` and
+`outer-improve`, use it when a consequential newly encountered boundary or
+conflicting evidence requires more investigation. Do not restart settled research
+just because a later node reads this guide. The same investigation's allowance
+follows its notes across nodes and context resets; entering an Improve action
+never refills it. A direct v1/v2 Improve node owns its entire
+review/plan/apply/check/record/assess campaign and its ordinary callback.
 
-An Improve node owns its entire review/plan/apply/check/record/assess campaign.
-Perform those cycles internally under the navigator binding and preserve their
-learnings. Do not submit a callback for each compatibility child phase. Required
-unresolved questions prevent a host declaration of convergence; navigator
-validates the result envelope, not the truth or completeness of those findings.
+For a corresponding bound v3/v4 child, apply the same policy to the producer
+stage that bound it. The parked parent does not repeat those duties or receive a
+second investigation allowance: the child owns the review/plan/apply/check/
+record/assess campaign and its shared allowance. Perform those cycles internally
+under the child binding and preserve their learnings. Do not submit a callback for
+each child phase. In a bound invocation, a parent `pause` retains the child
+binding; an unfinished, blocked, or runtime-`stopped` child route does not prove
+that its native owner has stopped or release it for replacement. Collect or
+confirm that owner before the parent accepts, completes, reconciles, or reassigns
+the invocation. Required unresolved questions prevent a host declaration of
+convergence; navigator validates the result envelope, not the truth or
+completeness of those findings.
 
-Use the closing reserve with the current packet's protocol:
+Only navigator v4's initial `plan` Improve child, selected for the bundled
+ephemeral runtime before preparation or dispatch, may use the packet-issued
+`stopped` reconciliation route. Direct v1/v2 nodes use their recorded direct
+route; v3 children and later v4 children use their recorded child-incomplete,
+pause, or parent-completion route. A generic producer checkpoint remains valid
+in every case; a generic label such as “experiment completed” alone cannot
+establish the observation, consumer readiness, or completion of the bound child.
+
+### Direct v1/v2 reserve checkpoint
+
+Use the closing reserve with the direct v1/v2 packet protocol:
 
 - If the action's duties are complete, submit its valid generic result and pause
   the returned action when the investigation allowance is exhausted.
@@ -563,6 +594,19 @@ Use the closing reserve with the current packet's protocol:
   blocker report and allocates a **new action ID at the same stage**; it is not a
   same-action draft checkpoint or a successful advance. Follow its returned
   blocked/resume packet. Never mark an unfinished campaign `done` just to save it.
+
+### Bound v3/v4 reserve checkpoint
+
+The single valid generic producer submission that created a bound v3/v4 child
+remains the parent checkpoint. While that child is active or unfinished, do not
+submit another generic producer result to checkpoint the same work. The child
+owns its incomplete checkpoint in its existing packet, receipt, and printed inbox
+path; retain an unaccepted draft there when the duties cannot finish honestly.
+The parent `pause` keeps that child binding and its remaining allowance intact.
+Resume the same parent and child from their printed packets, then let the parent
+import verified terminal evidence once. Do not use a child route, an incomplete
+draft, or review/check references alone as a substitute for a terminal
+`final_result`.
 
 ## Decision boundaries
 
@@ -750,8 +794,17 @@ adequacy, source interpretation and live-source truth still require judgment.
 ## Plan-triggered experiments in navigator v4
 
 The opt-in [planning experiment guide](planning-experiments.md) applies this
-evidence and allowance policy to assumptions exposed by a provisional plan.
-Plan Improve owns the experiment work through its existing Until Loop. A finding
-that invalidates earlier research, requirements or testing returns through the
-packet-issued pre-dispatch reconciliation path. The same investigation notebook
-and host-accounted allowance follow that suffix; a new action is not a refill.
+shared evidence and allowance policy to assumptions exposed by a provisional
+plan. Only v4's initial bound Plan Improve child may run this planning-specific
+path. It may validly choose zero experiments. A valid confirmation that leaves
+the plan unchanged still exports its decision-note evidence through the existing
+`final_result.evidence_refs`, which the parent verifies and imports through
+`improve-complete`; an inconclusive result remains unresolved.
+
+A finding that invalidates earlier research, requirements or testing uses that
+selected child's packet-issued pre-dispatch reconciliation route. On return to
+plan, the returned action's current source/action view is authoritative for
+currentness only. Reports remain evidence, not user authority; the full current
+work-item queue must be revalidated before preparation. The same investigation
+notebook and host-accounted allowance follow that suffix; a new action is not a
+refill.

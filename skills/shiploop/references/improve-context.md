@@ -1,11 +1,18 @@
 # Improve context ownership
 
-Use this host-owned boundary for a bound navigator-v3 Improve child using the
-ephemeral Until Loop runtime. Keep the invoking parent as ShipLoop's control
-channel; prefer one fresh native worker for the **whole Improve invocation**.
-Do not create a worker for each review iteration. The worker retains useful
-within-loop context; the parent receives a compact return and durable locators.
-This reduces parent-context growth, not necessarily total tokens or latency.
+Use this host-owned boundary for a bound navigator-v3 or navigator-v4 Improve
+child using the ephemeral Until Loop runtime. Direct legacy navigator-v1/v2
+Improve nodes retain their recorded direct adapter and do not gain this parked
+parent/child route. In v3/v4, one valid producer submission parks the invoking
+parent and binds the child for the **whole Improve invocation**. The child owns
+its reviews, applicable experiments, and shared investigation allowance; do not
+create a worker for each review iteration. The parent remains ShipLoop's control
+channel and alone may run verified `improve-complete` after collecting terminal
+evidence and confirming the worker and delegates stopped. A parent pause retains
+the child; an unfinished child route is not proof that its native owner stopped.
+The worker retains useful within-loop context while the parent receives a compact
+return and durable locators. This reduces parent-context growth, not necessarily
+total tokens or latency.
 
 For a new delegated invocation, resolve the host-selected Ask Agent card and
 require its declared `ask-agent/consumer-owned-workspace/v1` capability. Read
@@ -97,10 +104,27 @@ return itself.
 
 Before invoking Ask Agent, the parent prepares its **Current learnings** from
 the current conversation and applicable skill guidance using Ask Agent's inline
-handoff rule. Pass that block directly alongside the bound packet in the native
-assignment as starting context for Improve's first review and plan. Preserve
-the essential findings and rationale inline even when supporting details have
-locators; the fresh worker cannot recover them from the parent conversation.
+handoff rule. Pass that block directly alongside the bound packet in a compact,
+self-contained handoff. Preserve relevant original-request constraints rather
+than replacing them with a summary: the fresh worker cannot recover them from
+the parent conversation. Keep essential findings and rationale inline even when
+supporting details have locators; source locators cannot replace critical
+reasoning.
+
+The compact handoff states:
+
+- **Objective:** the current source/action identities, candidate decision, and
+  original scope, authority, acceptance, and exclusion constraints that still
+  govern the child.
+- **Exit:** the required review/check evidence, unresolved or blocked outcomes,
+  and the terminal receipt condition that lets the parent decide whether it may
+  call the parent-only callback.
+- **Evidence:** the valid producer checkpoint, current learnings, notebook and
+  source/evidence locators, expected checks, and any prior observation needed to
+  assess the objective without copying large logs or the entire conversation.
+
+This is compact continuity context, not a new result schema or a grant to loosen
+the frozen child contract.
 
 Give the worker the complete current bound packet, this reference, and the
 relevant original request/decision locators. Read full values at any excerpt
@@ -145,12 +169,18 @@ the terminal JSON receipt, and two callbacks do not replace two real reviews.
 
 ## Parent acceptance and recovery
 
-Collect the actual native return. After the worker and its delegates stop,
-verify the candidate edits, current checks and exact successful terminal receipt
-against this action. Check that newer user instructions and parent state still
-allow acceptance. Missing, active, blocked or stopped evidence leaves the parent
-incomplete. Resolve conflicting scope or stale checks before acceptance; changes
-after convergence require fresh review evidence, not an unchanged old receipt.
+Collect the actual native return. Only the parent may run `improve-complete`, and
+only after the worker and its delegates stop and it verifies the candidate edits,
+current checks, and exact successful terminal receipt against this action. Check
+that newer user instructions and parent state still allow acceptance. Missing,
+active, blocked or stopped evidence leaves the parent incomplete; a paused parent
+still retains its child and an unfinished child route does not prove its owner
+stopped. The only settlement exception is the packet-issued `stopped`
+reconciliation route for the selected v4 initial Plan Improve child using the
+bundled ephemeral runtime; it still requires confirmed owner evidence and the
+parent's `improve-reconcile`, never `improve-complete`. Resolve conflicting scope
+or stale checks before acceptance; changes after convergence require fresh review
+evidence, not an unchanged old receipt.
 Append the actual acceptance outcome, candidate/check/diff evidence, and any
 later caller-delivery outcome to `host-owner.md`; retain earlier launch and stop
 events. This record is not authorization to bypass the runtime's importer.

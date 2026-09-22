@@ -1,7 +1,7 @@
-# ShipLoop navigator 0.19.0
+# ShipLoop navigator 0.19.1
 
 ShipLoop's invoking conversation owns navigation, acceptance and delivery. For
-a new v3 ephemeral Improve invocation, the selected Ask Agent can delegate one
+a new v3/v4 ephemeral Improve invocation, the selected Ask Agent can delegate one
 fresh native worker using the explicit consumer-owned workspace route. The
 worker executes the entire loop in the already-bound candidate; the parent
 collects and verifies it, then performs the guarded final return when required.

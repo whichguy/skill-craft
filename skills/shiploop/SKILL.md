@@ -5,7 +5,7 @@ description: >-
   script's current action packet, and submit its exact completion call until
   the script reports completion with an HTML achievement report. Use when the
   user says shiploop, ship the project, or requests a durable delivery loop.
-version: 0.19.0
+version: 0.19.1
 allowed-tools: all
 license: MIT
 platforms:
@@ -48,7 +48,7 @@ silently migrate. This pilot does not replace graphs after dispatch.
 ## Start or resume
 
 Keep ShipLoop's control channel in the conversation that invoked this skill.
-The parent reads packets and submits parent callbacks. For a new bound v3
+The parent reads packets and submits parent callbacks. For a new bound v3/v4
 ephemeral Improve invocation, prefer one fresh native worker through the selected
 Ask Agent's explicit consumer-owned workspace route. Follow
 [Improve context ownership](references/improve-context.md) before dispatch or

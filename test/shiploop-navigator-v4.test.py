@@ -85,15 +85,26 @@ class NavigatorV4Tests(unittest.TestCase):
 
     def bound_plan_child(self, state: dict) -> tuple[dict, str, dict]:
         self.assertEqual(navigator.current_stage(state), "plan")
+        return self.bound_current_child(state)
+
+    def bound_current_child(self, state: dict) -> tuple[dict, str, dict]:
+        stage = navigator.current_stage(state)
         action = navigator.current_action(state)["id"]
-        waiting = navigator.apply(state, action, self.result("plan"))
+        waiting = navigator.apply(state, action, self.result(stage))
         binding = bridge.binding(
-            waiting, action, "plan", waiting["active_improve"]["seed_result"], self.skill,
+            waiting, action, stage, waiting["active_improve"]["seed_result"], self.skill,
         )
         waiting = copy.deepcopy(waiting)
         waiting["active_improve"] = binding
         navigator.validate(waiting)
         return waiting, action, binding
+
+    def cold_bound_packet(self, state: dict, root: Path) -> tuple[dict, str, dict, str]:
+        """Persist a bound child before reading its recovery packet."""
+        waiting, action, binding = self.bound_current_child(state)
+        navigator.save(root, waiting)
+        cold = store.read_record(root / "state.md")
+        return cold, action, binding, navigator.render(None, root, cold)
 
     def stopped_packet(self, binding: dict) -> str:
         contract = {
@@ -380,6 +391,95 @@ class NavigatorV4Tests(unittest.TestCase):
         self.assertEqual(set(legacy["history"][0]), {
             "stage", "outcome", "summary", "workitem", "action",
         })
+
+    def test_cold_v4_initial_plan_packet_declares_bounded_experiment_contract(self) -> None:
+        state = self.at_plan()
+        cold, action, binding, packet = self.cold_bound_packet(state, self.run)
+        scratch = (
+            Path(binding["workspace"]) / ".shiploop-improve" / ".experiments"
+            / cold["run_id"] / action
+        )
+        packet_lower = packet.lower()
+
+        self.assertEqual(navigator.current_stage(cold), "plan")
+        self.assertIn("Planning experiment objective:", packet)
+        self.assertIn("Planning experiment exit:", packet)
+        self.assertIn("zero experiments", packet_lower)
+        self.assertIn("sufficient evidence", packet_lower)
+        self.assertIn("inconclusive", packet_lower)
+        self.assertIn("remains unresolved", packet_lower)
+        self.assertIn("existing qualifying reviews", packet_lower)
+        self.assertIn("nested loop", packet_lower)
+        self.assertIn("Planning scratch directory: " + str(scratch), packet)
+        self.assertIn("frozen scope", packet_lower)
+        self.assertIn("product integration", packet_lower)
+        self.assertIn("decisions or decision-relevant evidence", packet_lower)
+        self.assertIn("final_result", packet)
+        self.assertIn("complete ordered work_items", packet)
+        self.assertEqual(packet.count("Planning experiments guide:"), 1)
+        self.assertEqual(packet.count("Planning investigation notebook:"), 1)
+        self.assertIn("only this v4 initial plan child may use the printed parent-only improve-reconcile route after worker collection", packet)
+
+    def test_planning_scratch_cannot_alias_runtime_action_directory(self) -> None:
+        state = self.at_plan()
+        state["action"]["id"] = "experiments"
+        cold, action, binding, packet = self.cold_bound_packet(state, self.run)
+        scratch_line = next(line for line in packet.splitlines()
+                            if line.startswith("Planning scratch directory: "))
+        scratch = Path(scratch_line.split(": ", 1)[1])
+        runtime_root = bridge.receipt_path(binding).parent
+        self.assertEqual(action, "experiments")
+        self.assertEqual(scratch, self.repo / ".shiploop-improve" / ".experiments"
+                         / cold["run_id"] / action)
+        self.assertNotIn(runtime_root, scratch.parents)
+        self.assertNotIn(scratch, runtime_root.parents)
+        self.assertNotEqual(scratch, runtime_root)
+
+    def test_v4_experiment_contract_is_limited_to_the_initial_plan_child(self) -> None:
+        legacy_root = self.temp_root / "v3-plan"
+        legacy_root.mkdir()
+        _legacy, _action, _binding, legacy_packet = self.cold_bound_packet(
+            self.at_plan(protocol_version=3), legacy_root,
+        )
+
+        other_v4 = self.state()
+        while navigator.current_stage(other_v4) != "research":
+            other_v4 = self.complete_synthetic(other_v4)
+        other_root = self.temp_root / "v4-research"
+        other_root.mkdir()
+        _other, _action, _binding, other_packet = self.cold_bound_packet(other_v4, other_root)
+
+        for packet in (legacy_packet, other_packet):
+            self.assertNotIn("Planning experiment objective:", packet)
+            self.assertNotIn("Planning experiment exit:", packet)
+            self.assertNotIn("Planning scratch directory:", packet)
+            self.assertNotIn("improve-reconcile", packet)
+
+    def test_cold_reconciled_v4_plan_packet_lists_current_sources_and_revalidates_queue(self) -> None:
+        waiting, action, _receipt, path, _evidence, _binding = self.real_stopped_plan()
+        old_sources = revision.current_actions(waiting)
+        settled = self.cli_reconcile(action, path)
+        self.assertEqual(settled.returncode, 0, settled.stdout + settled.stderr)
+        state = store.read_record(self.run / "state.md")
+        while navigator.current_stage(state) != "plan":
+            state = self.complete_synthetic(state)
+        navigator.save(self.run, state)
+        cold = store.read_record(self.run / "state.md")
+        current = revision.current_actions(cold)
+        packet = navigator.render(None, self.run, cold)
+
+        self.assertEqual(navigator.current_stage(cold), "plan")
+        for stage in ("intake", "discovery", "research", "spec", "test-strategy"):
+            self.assertIn(current[(None, stage)], packet)
+        self.assertIn("Current planning sources:", packet)
+        self.assertIn("revalidate the current work-item queue", packet.lower())
+        sources = packet.split("Current planning sources:", 1)[1].split(
+            "Planning experiments guide:", 1,
+        )[0]
+        for stage in ("research", "spec", "test-strategy"):
+            self.assertNotIn(old_sources[(None, stage)], sources)
+            self.assertIn(str(self.run / "results" / (current[(None, stage)] + ".md")), sources)
+        self.assertIn(str(self.run / "improve" / action / "receipt.md"), sources)
 
     def test_v3_active_plan_rejects_reconcile_and_keeps_persisted_packet_readable(self) -> None:
         state = self.at_plan(protocol_version=3)

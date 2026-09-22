@@ -1711,7 +1711,10 @@ class V3GuidanceTests(unittest.TestCase):
 
     def test_v3_improve_and_source_return_guidance_keep_the_existing_boundary(self) -> None:
         card = IMPROVE_CARD.read_text(encoding="utf-8")
-        self.assertIn("## ShipLoop v3 whole-skill subcall", card)
+        self.assertIn("## ShipLoop v3/v4 whole-skill subcall", card)
+        self.assertIn("When a ShipLoop v3 or v4 packet", card)
+        self.assertIn("parent-only stopped-child reconciliation callback", normalized(card))
+        self.assertIn("no other stopped child advances the parent", normalized(card))
         self.assertIn("standalone whole-skill subcall", card)
         self.assertIn("`managed-improve`", card)
         self.assertIn("Do not use `managed_controller.py`", card)
