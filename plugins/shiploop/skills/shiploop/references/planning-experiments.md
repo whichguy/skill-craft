@@ -7,8 +7,9 @@ retrofitting this guide onto an active older run.
 
 Lifecycle and owner rules remain in the
 [navigator execution mode adapter](research-loop.md#navigator-execution-mode-adapter).
-This guide applies only to v4's initial bound Plan Improve child after its one
-valid producer submission has parked the parent. Plan Improve screens the
+This planning-specific duty applies only to v4's initial bound Plan Improve
+child using the selected ephemeral runtime, after its one valid producer
+submission has parked the parent. Plan Improve screens the
 provisional plan for consequential uncertainty and may conduct a worthwhile
 experiment only when it could materially change a plan/consumer decision or
 establish whether that consumer may proceed. Early research still answers
@@ -87,6 +88,12 @@ or runtime-control edits. Preserve sanitized observations before cleanup. The
 child may revise the candidate plan; it may not promote prototypes, repair the
 baseline, acquire persistent infrastructure, or broaden authority merely to
 finish planning.
+
+A newly printed scratch path does not widen an existing child's frozen scope.
+If the user later explicitly changes authority, follow the source-bound parent
+update route in [Improve context ownership](improve-context.md): retain the
+decision and receipt/effect in the existing handoff and continue the same runtime.
+Do not rewrite launch context or replace a child merely to change its scope.
 
 Use [research's shared evidence and allowance guidance](research-loop.md#budget-stopping-and-convergence):
 by default at most 15 active minutes, 64 observable host actions, two capability

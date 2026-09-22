@@ -164,7 +164,11 @@ scripts/until_loop_ephemeral.py is byte-identical to upstream, with SHA-256
 [runtime/until-loop/PROVENANCE.json](runtime/until-loop/PROVENANCE.json)
 records the upstream commit, version, source paths, and SHA-256 values for the
 new default runtime, retained v1/v2 scripts, and the small package-local legacy
-reference adaptations required by the renamed ADAPTER.md layout. The old durable
+reference adaptations required by the renamed ADAPTER.md layout. The bundled
+ADAPTER.md also clarifies owner-bound user updates versus changes to immutable
+loop conditions; its provenance entry retains both upstream and bundled hashes
+and the adaptation reason. The runtime Python script remains byte-identical.
+The old durable
 scripts, adapters, and collector remain only for explicit legacy calls; they are
 not fallback behavior for a new request.
 

@@ -314,8 +314,15 @@ pending request as consent. These are binding decisions, not optional learning
 suggestions; the opening may summarize their practical implications.
 For a later source-bound parent update, honor the latest applicable user
 instruction and retain the decision, receipt and effect in the existing handoff.
+The parent confirms that the update is covered by the frozen work, exit/repeat
+conditions and review gate, and coordinates any newly authorized write paths.
+Preserve the user's selected automatic-approval mode. This owner coordination
+does not require the user to reapprove already authorized actions.
 Keep the launch context immutable and continue the same runtime; reconcile it
-with received later decisions on recovery. An unresolved conflict or unknown
+with received later decisions on recovery. If those loop conditions must change,
+return the conflict through the parent's supported route; do not independently
+replace the child or carry a qualifying streak across changed criteria.
+An unresolved conflict or unknown
 delivery/effect blocks the affected operation, not unrelated authorized work.
 Name the selected Improve card, bound Until Loop card, review policy and any
 required evidence/output locations in `context.resources` with resolved

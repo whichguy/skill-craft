@@ -25,15 +25,18 @@ metadata:
 # ShipLoop
 
 The script returns one effective SDLC prompt and maintains durable Markdown
-navigation state. Navigator protocol 3 issues a producer step, then parks that
+navigation state. Default protocol 3 and explicitly selected protocol 4 issue a
+producer step, then park that
 same parent action while the selected actual Improve skill runs its own bound
 Until Loop cycle. `state.md` owns SDLC traversal; the Improve child owns its
 iterations and runtime state. The host follows one current owner at a time.
 
-For new runs since 0.12.0, this v3 contract overrides retained v1/v2, managed, and
-legacy descriptions below. Those descriptions apply only when a saved packet or
-an explicit compatibility mode identifies that version. Do not translate their
-embedded-policy Improve guidance into a v3 action.
+For default-v3 and explicitly selected v4 runs, the applicable current protocol
+contract overrides retained v1/v2, managed, and legacy descriptions below. Those
+descriptions apply only when a saved packet or an explicit compatibility mode
+identifies that version. Do not translate their embedded-policy Improve guidance
+into a current v3/v4 action. V4 keeps the same parked parent/child ownership and
+adds only its packet-issued planning experiment and reconciliation behavior.
 
 ## Opt-in experiment-informed planning
 
@@ -48,6 +51,9 @@ silently migrate. This pilot does not replace graphs after dispatch.
 ## Start or resume
 
 Keep ShipLoop's control channel in the conversation that invoked this skill.
+Carry the user's selected automatic-approval mode and existing task authority
+through planning and child handoffs. Use that mode for already authorized work;
+do not add approval questions at each phase, experiment, review, or child launch.
 The parent reads packets and submits parent callbacks. For a new bound v3/v4
 ephemeral Improve invocation, prefer one fresh native worker through the selected
 Ask Agent's explicit consumer-owned workspace route. Follow

@@ -1818,7 +1818,11 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
             "For a genuinely new child, freeze the exact candidate, this scratch directory, notebook "
             "and evidence paths under existing user/repository authority before start. Scratch writes "
             "are allowed only within that frozen scope for the bounded probe. A printed path grants "
-            "no additional authority; an existing child retains its frozen scope on recovery.",
+            "no additional authority; an existing child retains its frozen scope on recovery. "
+            "For explicit later user decisions, follow the source-bound parent update route in "
+            "Improve context ownership and retain receipt/effect in the existing handoff. Keep "
+            "launch context immutable and continue the same child; never replace it merely to "
+            "change scope.",
             "Freeze the experiment objective in child work and its exit criteria in exit_condition. "
             "Carry the applicable original requirements, current planning source locators, findings "
             "and their decision consequences into the compact child context and return handoff.",

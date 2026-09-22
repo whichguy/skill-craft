@@ -17,7 +17,10 @@ flowchart TD
     E -->|Yes| X[Run probe and evaluate evidence]
     X --> C{Premise invalidated?}
     C -->|Plan only| I
-    C -->|Upstream| R
+    C -->|Upstream| T[Reconcile earliest affected stage]
+    T -->|Discovery| D
+    T -->|Research| R
+    T -->|Requirements or checks| S
     X -->|Inconclusive| U[Retain gap and remain incomplete]
     E -->|No and readiness satisfied| A[Finish qualifying reviews and prepare]
 ```

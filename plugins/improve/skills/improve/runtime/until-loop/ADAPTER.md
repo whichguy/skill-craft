@@ -159,10 +159,26 @@ action. Keep conditions out of the executable body so one callback never conceal
 multiple private improvement iterations.
 
 On user corrections, compare old and new clauses and retain unaffected
-constraints. The current contract is immutable: stop the old run as cancelled,
-then initialize the revised authorized contract only when execution is requested.
-Do not carry a clean-review streak across changed criteria. If higher-priority
-instructions forbid a cleanup write, report the remaining file instead.
+constraints. For a direct invocation whose frozen work, exit/repeat conditions,
+or review gate must change, stop the old run as cancelled, then initialize the
+revised authorized contract only when execution is requested. Never carry a
+clean-review streak across changed criteria.
+
+For an owner-bound invocation, first follow the consumer's update and recovery
+contract; the child must not independently cancel and replace its owner's run.
+The owner classifies a source-bound user update before dependent work continues.
+When the owner confirms the updated authority or candidate scope is still covered
+by the frozen work, exit/repeat conditions and review gate, retain the actual user
+decision, source, receipt and effect in the existing handoff and continue the same
+runtime. Keep launch context immutable as the original record. A handoff or owner
+note records authority; it cannot invent permission. Coordinate any newly
+authorized write paths with the owner before using them. Report material work or
+unresolved conditions truthfully in the next full-cycle callback so the runtime
+resets its normal streak; an authority update is not itself a qualifying review.
+If the frozen work or conditions must change, keep the invocation incomplete and
+return the conflict to the owner for its supported transition, without fabricating
+a restart, callback or successful completion. If higher-priority instructions
+forbid a cleanup write, report the remaining file instead.
 
 Give concise progress explaining the actual next action, findings or blocker;
 read packets internally unless raw output is requested. Final reporting states

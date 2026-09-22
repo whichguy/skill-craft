@@ -597,16 +597,21 @@ Use the closing reserve with the direct v1/v2 packet protocol:
 
 ### Bound v3/v4 reserve checkpoint
 
-The single valid generic producer submission that created a bound v3/v4 child
-remains the parent checkpoint. While that child is active or unfinished, do not
-submit another generic producer result to checkpoint the same work. The child
-owns its incomplete checkpoint in its existing packet, receipt, and printed inbox
-path; retain an unaccepted draft there when the duties cannot finish honestly.
-The parent `pause` keeps that child binding and its remaining allowance intact.
-Resume the same parent and child from their printed packets, then let the parent
-import verified terminal evidence once. Do not use a child route, an incomplete
-draft, or review/check references alone as a substitute for a terminal
-`final_result`.
+Before producer submission, unfinished duties may remain an unaccepted draft at
+the parent's printed inbox path while the parent pauses. A valid producer result,
+including a substantiated blocked attempt, parks that action for its bound Improve
+child; it does not by itself import child completion or advance the graph.
+
+After binding, that single producer submission remains the parent checkpoint.
+Do not submit another generic producer result to checkpoint unfinished child work.
+Follow the child's actual runtime callback and handoff protocol, save its complete
+raw packet at the printed receipt, and retain findings, remaining allowance and
+cleanup in the notebook. The parent `pause` retains the same child and allowance.
+Recover from those packets; only the parent imports verified terminal evidence.
+An incomplete draft or review/check references alone cannot substitute for the
+terminal runtime packet. `final_result` is an optional generic producer-result
+revision for successor-relevant decisions or evidence, never the child terminal
+packet or a completion requirement for every review.
 
 ## Decision boundaries
 

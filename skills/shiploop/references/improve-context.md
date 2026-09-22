@@ -303,7 +303,7 @@ its first owner. Do not label a recovered binding new because its files are abse
 Once sole ownership is established, recover the same parent with `next` and the
 same child from its saved packet. For an active child use its exact `next_argv`;
 for a complete child validate and import without rerunning Improve. Missing
-ephemeral state or a lost terminal packet is incomplete, never success or
+active-child ephemeral state or a lost terminal packet is incomplete, never success or
 permission to start over. A resumed host may recover the same invocation in a
 fresh worker only after the old owner is confirmed stopped or never launched. No
 automatic return is promised after the parent session ends.
