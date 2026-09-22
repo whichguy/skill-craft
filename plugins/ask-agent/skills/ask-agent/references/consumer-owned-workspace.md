@@ -56,14 +56,16 @@ binding.
 
 For this route, never call the helper's `prepare`, `inspect`, `check-context`,
 or `close` on the consumer candidate. Do not create a worktree or branch, replay
-a snapshot, make a patch or commit handoff, cherry-pick, or perform a second
-transfer. The `patch`, `commits`, and `report-only` enum and its helper evidence
+a snapshot, make a helper patch/commit transfer, cherry-pick, or perform a
+second transfer. This does not prohibit commits required by the consumer inside
+its bound candidate; report those SHAs as evidence for parent acceptance. The `patch`, `commits`, and `report-only` enum and its helper evidence
 belong only to the helper-managed default.
 
 Launch a fresh general-purpose native executor when the host supports the
 consumer's requirement. Do not replace it with inherited conversation context,
 a shell-launched model, an external scheduler, or a new runtime schema. The
-consumer supplies these literal assignment markers:
+consumer includes the parent's [inline current learnings](../SKILL.md#carry-current-learnings-inline)
+in that fresh assignment and supplies these literal assignment markers:
 
 ```text
 workspace_route: consumer-owned

@@ -333,7 +333,7 @@ retain the recovery locators and resume the same run when execution resumes.
    [Improve context ownership](references/improve-context.md): Ask Agent delegates
    one fresh executor with consumer-owned workspace and in-place delivery;
    only the parent accepts its result and executes the return. Use the packet's selected skill,
-   candidate scope, authority/no-commit constraints, expected check state, and
+   candidate scope, commit policy and other authority constraints, expected check state, and
    return route. Test creation/refinement checkpoints include the tests, fixtures,
    repeatability and suite wiring in that actual Improve review. Do not paste or
    imitate Improve's algorithm in ShipLoop, create

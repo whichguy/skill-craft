@@ -261,6 +261,97 @@ class AskAgentDeliveryTests(unittest.TestCase):
         self.assertEqual(after["raw_index"], before["raw_index"])
         self.assertEqual(after["cached"], before["cached"])
 
+    def test_patch_delivery_keeps_private_checkpoint_separate_from_dirty_caller_handoff(self) -> None:
+        for overlaps_product_file in (False, True):
+            with self.subTest(overlaps_product_file=overlaps_product_file):
+                suffix = "overlap" if overlaps_product_file else "unrelated"
+                self.source = self.root / f"source-private-checkpoint-{suffix}"
+                self.store = self.root / f"workspace-store-private-checkpoint-{suffix}"
+                self._init_source()
+
+                (self.source / "inherited.txt").write_text("caller staged unrelated input\n", encoding="utf-8")
+                self._git(self.source, "add", "inherited.txt")
+                (self.source / "inherited.txt").write_text(
+                    "caller staged unrelated input\ncaller unstaged unrelated input\n",
+                    encoding="utf-8",
+                )
+                (self.source / "caller-note.txt").write_text("caller untracked input\n", encoding="utf-8")
+                if overlaps_product_file:
+                    (self.source / "app.txt").write_text(
+                        "base application\ncaller staged scoped context\n",
+                        encoding="utf-8",
+                    )
+                    self._git(self.source, "add", "app.txt")
+                    (self.source / "app.txt").write_text(
+                        "base application\ncaller staged scoped context\ncaller unstaged scoped context\n",
+                        encoding="utf-8",
+                    )
+
+                before = self._source_snapshot()
+                self.assertIn(b"+caller staged unrelated input", before["cached"])
+                self.assertIn(b"+caller unstaged unrelated input", before["working"])
+                if overlaps_product_file:
+                    self.assertIn(b"+caller staged scoped context", before["cached"])
+                    self.assertIn(b"+caller unstaged scoped context", before["working"])
+                protected_inputs = {
+                    "inherited.txt": "caller staged unrelated input\ncaller unstaged unrelated input\n",
+                    "caller-note.txt": "caller untracked input\n",
+                    "stable.txt": "stable input\n",
+                }
+                prepared = self._prepare(f"private checkpoint {suffix}")
+                worker = Path(prepared["worktree"])
+                inherited_app = (worker / "app.txt").read_text(encoding="utf-8")
+                worker_app = inherited_app.replace(
+                    "base application\n",
+                    "base application\nworker scoped fix\n",
+                    1,
+                )
+                (worker / "app.txt").write_text(worker_app, encoding="utf-8")
+                self._git(
+                    worker,
+                    "commit",
+                    "--only",
+                    "-q",
+                    "-m",
+                    "Improve private scoped checkpoint",
+                    "--",
+                    "app.txt",
+                )
+                checkpoint = self._git(worker, "rev-parse", "HEAD").stdout.strip()
+                self.assertEqual(
+                    self._git(worker, "show", "--format=", "--name-only", checkpoint).stdout.splitlines(),
+                    ["app.txt"],
+                )
+                self.assertEqual(self._source_snapshot(), before)
+
+                inspected = self._inspect(prepared, mode="patch")
+                self.assertEqual(inspected["delivery"]["mode"], "patch")
+                self.assertEqual(inspected["contribution_paths"], ["app.txt"])
+                self.assertNotIn("commits", inspected["delivery"])
+                self.assertNotIn(checkpoint, json.dumps(inspected["delivery"], sort_keys=True))
+                patch = Path(inspected["delivery"]["contribution_patch"])
+                patch_text = patch.read_text(encoding="utf-8")
+                self.assertIn("+worker scoped fix\n", patch_text)
+                self.assertNotIn("inherited.txt", patch_text)
+                self.assertNotIn("+caller staged unrelated input\n", patch_text)
+                self.assertNotIn("-caller staged unrelated input\n", patch_text)
+                if overlaps_product_file:
+                    self.assertNotIn("+caller staged scoped context\n", patch_text)
+                    self.assertNotIn("-caller staged scoped context\n", patch_text)
+                    self.assertNotIn("+caller unstaged scoped context\n", patch_text)
+                    self.assertNotIn("-caller unstaged scoped context\n", patch_text)
+
+                self._git(self.source, "apply", "--check", "--binary", str(patch))
+                self._git(self.source, "apply", "--binary", str(patch))
+
+                self.assertEqual((self.source / "app.txt").read_text(encoding="utf-8"), worker_app)
+                for path, expected in protected_inputs.items():
+                    self.assertEqual((self.source / path).read_text(encoding="utf-8"), expected)
+                after = self._source_snapshot()
+                self.assertEqual(after["head"], before["head"])
+                self.assertEqual(after["raw_index"], before["raw_index"])
+                self.assertEqual(after["cached"], before["cached"])
+
     def test_commit_delivery_accepts_exact_clean_range_and_applies_cherry_pick(self) -> None:
         prepared = self._prepare("clean commits")
         worker = Path(prepared["worktree"])

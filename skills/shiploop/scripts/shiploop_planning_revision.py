@@ -259,6 +259,7 @@ def _regular_file(root: Path, relative: str, label: str) -> bytes:
     nofollow = getattr(os, "O_NOFOLLOW", 0)
     _need(nofollow != 0, "safe no-follow archive reads are unavailable")
     directory = getattr(os, "O_DIRECTORY", 0)
+    nonblock = getattr(os, "O_NONBLOCK", 0)
     descriptors: list[int] = []
     try:
         try:
@@ -270,7 +271,7 @@ def _regular_file(root: Path, relative: str, label: str) -> bytes:
         _need(stat.S_ISDIR(root_metadata.st_mode), "planning run root must be a real directory")
         for index, part in enumerate(path.parts):
             final = index == len(path.parts) - 1
-            flags = os.O_RDONLY | nofollow | (0 if final else directory)
+            flags = os.O_RDONLY | nofollow | (nonblock if final else directory)
             try:
                 opened = os.open(part, flags, dir_fd=current)
             except OSError as exc:

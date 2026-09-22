@@ -10,7 +10,7 @@ The change is more than another experiment-selection sentence, but smaller than 
 
 ## Baseline basis
 
-Implementation starts from clean tracked source `f14103d20e2219cd14f652f91dbc1725908464f2` in the isolated `codex/planning-experiments` worktree. The initial assessment also inspected unrelated working changes in the original checkout; those remain outside this change. The fresh baseline passed smoke plus navigator, standalone Improve, planning-context and chain-context suites before implementation.
+Implementation starts from clean tracked source `f14103d20e2219cd14f652f91dbc1725908464f2` in the isolated `codex/planning-experiments` worktree. The initial assessment also inspected unrelated working changes in the original checkout; those remain outside this change. The fresh baseline passed smoke plus navigator, standalone Improve, planning-context and chain-context suites before implementation. Before final qualification, the candidate integrates `c2d4fc1` from current main, preserving its learning-handoff and scoped-commit rules.
 
 - The current prelude is intake, discovery, research, spec, test-strategy, plan, prepare. [V3 prelude](https://github.com/whichguy/skill-craft/blob/f14103d20e2219cd14f652f91dbc1725908464f2/skills/shiploop/scripts/shiploop_navigator_v3_prompts.py#L63)
 - Plan remains a draft until its actual Improve handoff completes. The child may supply a revised final result before the queue is accepted. [Plan producer](https://github.com/whichguy/skill-craft/blob/f14103d20e2219cd14f652f91dbc1725908464f2/skills/shiploop/scripts/shiploop_navigator_v3_prompts.py#L704), [Improve result import](https://github.com/whichguy/skill-craft/blob/f14103d20e2219cd14f652f91dbc1725908464f2/skills/shiploop/scripts/shiploop_navigator.py#L823)

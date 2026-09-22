@@ -61,8 +61,9 @@ parent/child boundary.
 
 Use the exact **Child workspace** printed by the bound packet. Supply Ask Agent
 with this consumer's workspace, Git root, binding marker, frozen scope/base,
-selected Improve/runtime, checks, explicit no-commit override, evidence/owner
-locators, parent-only continuation and cleanup owner. Its consumer-owned route
+selected Improve/runtime, checks, explicit user/repository authority including
+any no-commit override, evidence/owner locators, parent-only continuation and
+cleanup owner. Its consumer-owned route
 does not call helper `prepare`, `inspect`, `check-context` or `close` for this
 workspace, invent a helper receipt, or perform a second patch/commit transfer.
 Read-only package `identity` remains available. This boundary isolates
@@ -81,9 +82,25 @@ Use native launch cwd only if exposed. Otherwise require the Child workspace as
 the operation directory on **every** shell call, and absolute paths for file
 tools. Before task work, verify actual process cwd and Git root against the
 packet; report a mismatch instead of operating in the inherited parent cwd.
-Retain all existing no-commit, edit-scope and delivery-authority constraints.
+For a genuinely new child, after the meaningful checks required by its scope,
+commit only authorized changed product or requirements files. Never commit
+runtime evidence or inherited unrelated staged work, and do not create an empty
+commit unless an explicit audit-every-iteration rule authorizes it. An explicit
+user- or repository-authorized no-commit instruction overrides this default.
+An already frozen child contract keeps its recorded authority on recovery.
+Record the exact scoped contribution SHA in the handoff, or the authorized
+no-commit/no-change reason. The parent validates that handoff and performs the
+existing guarded workspace return; the worker does not execute a callback or
+return itself.
 
 ## Fresh assignment and compact return
+
+Before invoking Ask Agent, the parent prepares its **Current learnings** from
+the current conversation and applicable skill guidance using Ask Agent's inline
+handoff rule. Pass that block directly alongside the bound packet in the native
+assignment as starting context for Improve's first review and plan. Preserve
+the essential findings and rationale inline even when supporting details have
+locators; the fresh worker cannot recover them from the parent conversation.
 
 Give the worker the complete current bound packet, this reference, and the
 relevant original request/decision locators. Read full values at any excerpt
@@ -117,7 +134,8 @@ At return, preserve edits and all evidence in place. Include:
 - Confirmation that candidate writes and delegates have stopped, no parent
   callback or workspace return was executed, and which paths changed.
 - Canonical candidate/target and Git root, initial/final HEAD, scoped diff or
-  changed-content locators, actual contribution SHAs or explicit no-commit reason,
+  changed-content locators, exact scoped contribution SHA or authorized
+  no-commit/no-change reason,
   inherited dirty-state preservation, and next owner/retention action. Distinguish
   the bound candidate from the original caller; no helper delivery receipt exists
   for this in-place route.

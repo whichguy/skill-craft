@@ -844,7 +844,7 @@ in the existing plan and review notes. The rules below and the
    and a discriminating failure, including conflicting signals when relevant.
 6. **One convergence owner.** A v3 standalone Improve child uses the selected
    Improve card and its bound Until Loop for review, plan, apply, check and
-   two-trivial assessment within the parent-supplied scope/no-commit constraint.
+   two-trivial assessment within the parent-supplied scope and commit policy.
    A versioned managed Improve child retains its managed binding for the same
    ownership boundary. ShipLoop owns its parent action, DAG and certificate
    import. Do not wrap either child's per-iteration plan in another converging

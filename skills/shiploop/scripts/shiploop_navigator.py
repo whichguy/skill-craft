@@ -1728,21 +1728,18 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
     result_path = root / "inbox" / (action_id + "-improve.md")
     ephemeral = Path(skill["runtime_cli"]).name == "until_loop_ephemeral.py"
     planning_reconcile = (state["navigator_protocol_version"] == 4
-                          and child["stage"] == "plan")
+                          and child["stage"] == "plan" and ephemeral)
     planning_notebook = (Path(state["repo"]) / ".shiploop-improve" / state["run_id"]
                          / "planning-investigation.md")
-    child_continuity = (
-        "For this v4 planning Improve child, retain a compact planning summary plus locators for "
-        "the planning experiments guide, investigation notebook, latest packet, owner record, "
-        "parent state and completion evidence. Keep the full parent packet, prompts and verbose "
-        "logs behind those locators; do not duplicate them in the child context."
-        if planning_reconcile else
-        "Freeze the original request, step result and execution/exit/repeat conditions, permitted "
-        "paths, expected check state, explicit no-commit authority and relevant environment in the "
-        "child's context. Include context.resources locators for this latest-packet receipt, native "
-        "owner record (parent coordination data), parent state.md, completion evidence path and exact "
-        "parent return instructions below. The child terminal packet must be sufficient to locate and "
-        "perform the parent return after context loss."
+    commit_guidance = (
+        "For a genuinely new child, after the meaningful checks required by the current "
+        "scope, commit only authorized changed product or requirements files. Never commit "
+        "runtime evidence or inherited unrelated staged work, and do not create an empty "
+        "commit unless an explicit audit-every-iteration rule authorizes it. An explicit "
+        "user- or repository-authorized no-commit instruction overrides this default. An "
+        "already frozen child contract keeps its recorded authority on recovery. Record the "
+        "exact scoped contribution SHA in the child handoff, or the authorized "
+        "no-commit/no-change reason."
     )
     if ephemeral:
         import shiploop_standalone_improve as standalone_improve
@@ -1752,7 +1749,7 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
         runtime_lines = [
             "Improve context ownership: " + str(Path(__file__).resolve().parent.parent / "references" / "improve-context.md"),
             "For a genuinely new invocation, prefer one fresh native worker for the entire Improve loop with exclusive write ownership in the exact Child workspace. Read the context-ownership reference before launch or recovery. Resolve the host-selected Ask Agent and require its ask-agent/consumer-owned-workspace/v1 capability; never use its default extra-worktree route for this bound child.",
-            "Workspace route: consumer-owned; delivery mode: in-place. Native assignment: execution_role: improve-executor; delegation_owner: parent. Freeze the exact candidate scope, selected packages, explicit no-commit authority, evidence paths and parent continuation before dispatch. Existing invocations keep their recorded owner; unknown ownership blocks replacement.",
+            "Workspace route: consumer-owned; delivery mode: in-place. Native assignment: execution_role: improve-executor; delegation_owner: parent. Freeze the exact candidate scope, selected packages, explicit user/repository authority including any no-commit override, evidence paths and parent continuation before dispatch. Existing invocations keep their recorded owner and frozen authority; unknown ownership blocks replacement.",
             "Native owner record: " + str(packet_path.with_name("host-owner.md")),
             "Parent-only return: the worker saves child packets and completion evidence, then returns their locators without executing ShipLoop callbacks or workspace return. The parent collects and verifies the result before executing the exact return route below. Worker completion alone never advances this action.",
             "Child runtime authority: the unique temporary state_file returned by the selected runtime. ShipLoop does not write or count child state.",
@@ -1761,7 +1758,20 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
             "For a genuinely new child, read the selected skills and start once. If this child has already started, read its saved receipt: for active status use its exact next_argv once to recover, then follow the returned instruction; for complete status import its retained receipt without starting or reviewing again. For stopped status keep the parent incomplete. If an existing child's receipt or temporary state is unavailable, report incomplete; never infer completion or silently create a replacement.",
             "Include this parent identity as a separate line in frozen context.request:",
             child["contract_marker"],
-            child_continuity,
+            *(
+                [
+                    "Freeze the original request, step result and execution/exit/repeat conditions, permitted paths, expected check state, authority and relevant environment in the child's context.",
+                    "For this v4 planning Improve child, retain a compact planning summary plus locators for "
+                    "the planning experiments guide, investigation notebook, latest packet, owner record, "
+                    "parent state and completion evidence. Keep the full parent packet, prompts and verbose "
+                    "logs behind those locators; do not duplicate them in the child context.",
+                    commit_guidance,
+                ] if planning_reconcile else [
+                    "Freeze the original request, step result and execution/exit/repeat conditions, permitted paths, expected check state, authority and relevant environment in the child's context.",
+                    commit_guidance,
+                    "Include context.resources locators for this latest-packet receipt, native owner record (parent coordination data), parent state.md, completion evidence path and exact parent return instructions below. The child terminal packet must be sufficient to locate and perform the parent return after context loss.",
+                ]
+            ),
             "Execute the child's work instruction exactly once per action, then call its exact done_argv with a truthful trivial/non-trivial/unresolved classification, condition assessments, evidence and replacement handoff. Follow the returned instruction; do not advance the parent during active work or compress several reviews into one callback.",
             "Completion deletes the child's temporary state. Preserve the complete terminal packet at the receipt above before calling improve-complete. If terminal output is lost, stop incomplete; a missing state file is not completion evidence.",
         ]
@@ -1772,7 +1782,9 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
             "Child review notebook: " + str(Path(child["workspace"]) / ".until-loop" / "working.md"),
             "Include this parent identity as a separate line in the child contract original_request:",
             child["contract_marker"],
-            child_continuity,
+            "Keep the original request, this step result, relevant work-item context, permitted paths, expected check state and authority in the child contract.",
+            commit_guidance,
+            "Parent integration retains the run's merge/push policy.",
             "Inspect the existing child using its bound adapter. Continue a matching active run; resume a paused child only when its recorded condition permits; import a matching completed child without rerunning it. For a genuinely new step, the adapter may restart only a settled previous run whose evidence was retained. Never replace an unrelated active run or bypass recovery.",
         ]
     reconcile_lines: list[str] = []

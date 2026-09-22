@@ -13,6 +13,7 @@ from collections.abc import Mapping
 from datetime import datetime
 import hashlib
 import json
+import os
 from pathlib import Path
 import re
 import stat
@@ -44,6 +45,7 @@ _RECONCILE_RESULT_FIELDS = {
 }
 _RECONCILE_RECEIPT_FIELDS = {"summary", "target", "evidence_refs"}
 _RECEIPT_TITLE = "ShipLoop standalone Improve receipt"
+_MAX_ARCHIVE_BYTES = 4 * 1024 * 1024
 
 
 class PlanningRevisionError(ValueError):
@@ -243,25 +245,71 @@ def validate(state: Mapping[str, Any]) -> None:
 
 
 def _regular_file(root: Path, relative: str, label: str) -> bytes:
-    _need(not root.is_symlink() and root.is_dir(), "planning run root must be a real directory")
+    """Read one immutable archive through no-follow directory descriptors.
+
+    The archive paths are state-derived, but a later filesystem substitution
+    must still fail closed rather than turn a validated lstat into a different
+    file read.  The descriptor remains bound to the originally opened inode,
+    and its final identity is checked again after the bounded read.
+    """
     path = Path(relative)
     _need(not path.is_absolute() and bool(path.parts), f"unsafe {label} path")
-    current = root
-    for part in path.parts:
-        _need(part not in ("", ".", ".."), f"unsafe {label} path")
-        current = current / part
+    _need(all(part not in ("", ".", "..") for part in path.parts),
+          f"unsafe {label} path")
+    nofollow = getattr(os, "O_NOFOLLOW", 0)
+    _need(nofollow != 0, "safe no-follow archive reads are unavailable")
+    directory = getattr(os, "O_DIRECTORY", 0)
+    nonblock = getattr(os, "O_NONBLOCK", 0)
+    descriptors: list[int] = []
+    try:
         try:
-            metadata = current.lstat()
+            current = os.open(root, os.O_RDONLY | directory | nofollow)
         except OSError as exc:
             raise PlanningRevisionError(f"{label} is unavailable") from exc
-        _need(not stat.S_ISLNK(metadata.st_mode), f"{label} cannot be a symlink")
-    metadata = current.lstat()
-    _need(stat.S_ISREG(metadata.st_mode) and metadata.st_nlink == 1,
-          f"{label} must be a regular single-link file")
-    try:
-        return current.read_bytes()
+        descriptors.append(current)
+        root_metadata = os.fstat(current)
+        _need(stat.S_ISDIR(root_metadata.st_mode), "planning run root must be a real directory")
+        for index, part in enumerate(path.parts):
+            final = index == len(path.parts) - 1
+            flags = os.O_RDONLY | nofollow | (nonblock if final else directory)
+            try:
+                opened = os.open(part, flags, dir_fd=current)
+            except OSError as exc:
+                raise PlanningRevisionError(f"{label} is unavailable") from exc
+            descriptors.append(opened)
+            metadata = os.fstat(opened)
+            if not final:
+                _need(stat.S_ISDIR(metadata.st_mode), f"{label} path component is not a directory")
+                current = opened
+                continue
+            _need(stat.S_ISREG(metadata.st_mode) and metadata.st_nlink == 1,
+                  f"{label} must be a regular single-link file")
+            identity = (metadata.st_dev, metadata.st_ino)
+            chunks: list[bytes] = []
+            size = 0
+            while True:
+                try:
+                    chunk = os.read(opened, min(64 * 1024, _MAX_ARCHIVE_BYTES + 1 - size))
+                except OSError as exc:
+                    raise PlanningRevisionError(f"cannot read {label}") from exc
+                if not chunk:
+                    break
+                chunks.append(chunk)
+                size += len(chunk)
+                _need(size <= _MAX_ARCHIVE_BYTES, f"{label} exceeds {_MAX_ARCHIVE_BYTES} bytes")
+            final_metadata = os.fstat(opened)
+            _need(stat.S_ISREG(final_metadata.st_mode) and final_metadata.st_nlink == 1
+                  and (final_metadata.st_dev, final_metadata.st_ino) == identity,
+                  f"{label} changed while it was read")
+            return b"".join(chunks)
     except OSError as exc:
-        raise PlanningRevisionError(f"cannot read {label}") from exc
+        raise PlanningRevisionError(f"{label} is unavailable") from exc
+    finally:
+        for descriptor in reversed(descriptors):
+            try:
+                os.close(descriptor)
+            except OSError:
+                pass
 
 
 def validate_archives(

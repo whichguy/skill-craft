@@ -17,6 +17,10 @@ mode the parent receives and verifies the helper's baseline-relative patch; in
 integrates the accepted patch or commits and archives required reports before
 calling `close`. A dirty inherited caller snapshot requires the declared patch
 mode; do not silently switch a requested commit handoff to another mode.
+A patch worker may also return a skill-required private `checkpointSHA`, but it
+is provenance only: it remains separate from the contribution patch, is not an
+argument to patch-mode `inspect`, and is never cherry-picked or merged into the
+caller.
 
 ## Consumer-owned workspace handoff
 
@@ -58,7 +62,7 @@ Task / outcome: <assignment>; <SUCCEEDED | BLOCKED | FAILED>; <what was achieved
 Package identity: selected card <logical absolute SKILL.md>; resolved card <absolute path>; helper <absolute path>; Ask Agent <frontmatter version>; card SHA-256 <digest>; helper SHA-256 <digest>.
 Changes / checks: <worker-only changed files>; <checks actually run and their results or gaps>.
 Worktree: <absolute Git worktree root>; branch <actual name or detached HEAD>; <retained | removed>.
-Delivery: <patch | commits | report-only>; <absolute contribution patch and changed paths | ordered full contribution SHAs and clean base | no code changes>.
+Delivery: <patch | commits | report-only>; <absolute contribution patch and changed paths, plus optional provenance-only checkpointSHA | ordered full contribution SHAs and clean base | no code changes>.
 Target: <absolute caller/integration checkout>; <branch or detached HEAD>; last checked HEAD <full SHA>.
 Integration: <pending by request | ready against the checked target | blocked | integrated | not applicable>; <resulting commit or uncommitted target changes, plus actual validation>.
 Results: <absolute usable report/artifact paths and their purpose; retained location if moved>.
@@ -76,13 +80,17 @@ git -C "/actual/target checkout" apply --binary "/actual/contribution.patch"
 ```
 
 The second command is conditional on the first succeeding and the caller choosing
-to integrate. Recheck the target's branch/HEAD and staged, unstaged and untracked
+to integrate. These are intentionally plain `git apply` commands: do not use
+`--index`. Recheck the target's branch/HEAD and staged, unstaged and untracked
 state before applying; a moved or concurrently edited target needs reassessment.
 The patch is relative to the inherited working contents, which may include dirty
 caller changes, **not just the named source commit**. Say this explicitly when
 the baseline was dirty. Apply only to the intended compatible checkout, preserve
 its index, and run the named validation afterward. Do not prescribe a whole-branch
 merge, `git diff HEAD`, or copying the whole worktree to transfer uncommitted work.
+If a skill required a private checkpoint, list its full `checkpointSHA` separately
+and label it provenance only. It is not a patch inspection argument or delivery
+commit, and the caller must not cherry-pick or merge it.
 If applicability fails, retain the worktree and report the conflict/reconciliation
 action; do not silently stash, reset, force-apply, or claim readiness.
 
@@ -152,8 +160,9 @@ frontmatter version, and card/helper SHA-256 values), delivery mode, receipt and
 allowed-write boundary, and reports retained outside the worktree. For commit
 mode, state the exact contribution SHAs and every residual dirty or untracked
 deliverable; never use `git add -A` against inherited state. For patch mode,
-state the returned baseline-relative patch and its paths. For report-only mode,
-state that code integration is not applicable.
+state the returned baseline-relative patch and its paths, plus any private
+`checkpointSHA` marked provenance only. For report-only mode, state that code
+integration is not applicable.
 Include a parent lifecycle recommendation: integrate the declared patch or verified
 commit range according to its delivery mode, then remove the worktree when eligible;
 remove it after report-only use; or retain it for the named blocker/consumer/action.

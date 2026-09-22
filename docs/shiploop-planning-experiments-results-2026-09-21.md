@@ -55,6 +55,12 @@ the preregistered overhead gate. A default switch would require two distinct,
 replicated decision improvements and comparable cost evidence; those claims
 remain unproven.
 
+After the frozen native trials began, `main` advanced to `c2d4fc1` with Improve
+learning-handoff and scoped-commit policy changes. Integration preserves those
+changes, including frozen child authority. The trials use their recorded source
+snapshots and explicit no-commit scope; final hermetic and installed-consumer
+checks cover the merged implementation.
+
 The importer checks a stopped runtime packet and local evidence identities. The
 parent must collect or cancel the actual native worker first; packet contents do
 not independently authenticate worker death. Investigation allowances remain
