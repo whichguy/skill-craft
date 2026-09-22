@@ -1105,7 +1105,7 @@ def inline_assignment(root: Path, context: dict[str, Any], step: str, attempt: s
         "base_commit": workspace["base_commit"],
         "status": "SUCCEEDED",
         "commit": "REPLACE_WITH_EXACT_CLEAN_WORKER_HEAD",
-        "summary": "State what changed, checks run, and remaining integration decision.",
+        "summary": "State what changed, material discoveries, decision rationale, checks and their limits, unresolved uncertainty, and next action/owner; explicitly say if there are no new findings.",
         "files": [{"path": "result.json", "sha256": "SHA-256 of result.json bytes"}],
     }
     result_example = {
@@ -1118,13 +1118,18 @@ def inline_assignment(root: Path, context: dict[str, Any], step: str, attempt: s
         "cwd": str(worker),
         "git_root": str(worker),
         "checks": ["actual command and observed result"],
-        "summary": "Self-contained handoff summary and next action for parent integration.",
+        "summary": "Self-contained findings, rationale, evidence, uncertainty, and next action/owner for parent integration.",
     }
     no_join = "Do not manually merge branches or supplier commits; they are already in your exact base." if step == "J" else "Do not merge, rebase, or change the integration target."
     check_context = workspace["check_context"]
     packet_json = json_bytes(packet).decode("utf-8")
     header = (
         f"You are the fresh native Ask-Agent worker for ShipLoop step {step}, attempt {attempt}.\n\n"
+        "## Current learnings\n\n- Verified facts: This is a disposable native-pilot repository. "
+        "Planning prerequisites are synthetic fixture inputs; they do not establish live planning quality. "
+        "The selected helper has already prepared the exact workspace in the packet. "
+        "Supplier commits listed in the packet are already in its base. "
+        "\n- Unresolved: Native completion, return delivery, and parent acceptance remain to be observed.\n\n"
         "The complete actual worker packet follows as verbatim JSON. Its task, definition_of_ready, and\n"
         "definition_of_done are the sole execution assignment. Follow its instructions, including the\n"
         "planning and guidance locators, before scoped work. The fixture overlay after the packet supplies\n"
@@ -1242,8 +1247,16 @@ def start(args: argparse.Namespace) -> dict[str, Any]:
         response["inline_native_assignment"] = inline_assignment(root, context, step, attempt, packet, workspace)
         if armed is not None:
             response["test_only_hold"] = armed
-        response["next"] = ("Only action=launch authorizes a real native launch. Give inline_native_assignment "
-                            "to that worker, then record its actual host handle after launch confirmation.")
+        response["next"] = ("Only action=launch authorizes a real native launch. Use inline_native_assignment for "
+                            "a fresh worker through the selected Ask Agent launch contract without inherited history "
+                            "where supported. Preserve available host capabilities within existing task authorization. "
+                            "Carry applicable approvals, declines, pending and revoked decisions with their scope, "
+                            "conditions and actual source through the existing authority contract, separate from advisory learnings; "
+                            "pending decisions grant no authority. Extend its formatted "
+                            "Current learnings block with relevant parent learnings beyond the verified fixture "
+                            "facts (or explicitly none); keep the embedded worker packet unchanged. "
+                            "Retain that effective assignment in the existing parent record or retained handoff, durably outside the worker workspace, then record the actual "
+                            "host handle after launch confirmation.")
     else:
         response["next"] = ("This dispatcher response does not authorize a fresh native launch. Preserve and "
                             "reconcile the existing attempt through its retained host handle/status; packet is "

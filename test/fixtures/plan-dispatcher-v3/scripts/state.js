@@ -841,6 +841,110 @@ function refreshBlockedStates(state) {
   return changed;
 }
 
+function progressFromState(state, snapshot, observedReports) {
+  const completed = [];
+  const active = [];
+  const awaitingVerification = [];
+  const pending = [];
+  const blocked = [];
+  const failed = [];
+  const planningIssues = snapshot.planning_context_check
+    ? snapshot.planning_context_check.issues
+    : [];
+
+  for (const step of state.graph.steps) {
+    const stepState = state.steps[step.id];
+    const record = stepState.current_attempt === null
+      ? null
+      : state.attempts[stepState.current_attempt];
+    const observedReport = record === null
+      ? null
+      : observedReports.get(record.attempt) ?? null;
+    const unmetDependencies = step.deps.filter((dependency) =>
+      state.steps[dependency].status !== 'accepted'
+    );
+    const blockedDependencies = step.deps.filter((dependency) => {
+      const dependencyState = state.steps[dependency].status;
+      return dependencyState === 'blocked' || dependencyState === 'rejected';
+    });
+    const applicablePlanningIssues = planningIssues
+      .filter((issue) => issue.required_for.includes('*') || issue.required_for.includes(step.id))
+      .map((issue) => cloneJson(issue));
+    const row = {
+      step: step.id,
+      task: step.contract?.task ?? null,
+      state: observedReport === null ? stepState.status : 'receipt',
+      unmet_dependencies: unmetDependencies,
+      reason: '',
+    };
+    if (record !== null) {
+      row.attempt = record.attempt;
+    }
+    if (applicablePlanningIssues.length > 0) {
+      row.planning_issues = applicablePlanningIssues;
+    }
+
+    if (stepState.status === 'accepted') {
+      row.reason = 'accepted by parent settlement';
+      completed.push(row);
+    } else if (stepState.status === 'rejected') {
+      row.reason = record.rejection_reason;
+      failed.push(row);
+    } else if (observedReport !== null) {
+      row.reported_status = observedReport.envelope.status;
+      row.reason = hasOwn(record, 'executor')
+        ? 'published main-context report awaits parent verification of task-owned completion'
+        : record.handle === null
+          ? 'published report awaits parent verification and does not prove native completion; reconciliation is required'
+          : 'published report awaits parent verification and does not prove native completion';
+      awaitingVerification.push(row);
+    } else if (stepState.status === 'blocked' || blockedDependencies.length > 0) {
+      row.reason = 'blocked by a rejected or blocked direct dependency';
+      row.blocked_dependencies = blockedDependencies;
+      blocked.push(row);
+    } else if ((stepState.status === 'pending' || stepState.status === 'claimed') &&
+               applicablePlanningIssues.length > 0) {
+      row.reason = 'required planning context is unavailable before start';
+      blocked.push(row);
+    } else if (stepState.status === 'claimed') {
+      row.reason = 'claimed but not started';
+      active.push(row);
+    } else if (stepState.status === 'launching') {
+      row.reason = 'launch intent is recorded but launch is unconfirmed';
+      active.push(row);
+    } else if (stepState.status === 'running') {
+      row.reason = 'recorded execution identity has no fresh liveness guarantee';
+      active.push(row);
+    } else {
+      row.dependency_ready = unmetDependencies.length === 0;
+      row.reason = row.dependency_ready
+        ? 'dependencies are accepted; no claim has been recorded'
+        : 'waiting for direct dependencies to be accepted';
+      pending.push(row);
+    }
+  }
+
+  const total = state.graph.steps.length;
+  return {
+    completed,
+    active,
+    awaiting_verification: awaitingVerification,
+    pending,
+    blocked,
+    failed,
+    counts: {
+      total,
+      remaining: total - completed.length,
+      completed: completed.length,
+      active: active.length,
+      awaiting_verification: awaitingVerification.length,
+      pending: pending.length,
+      blocked: blocked.length,
+      failed: failed.length,
+    },
+  };
+}
+
 function assertAllowedObject(value, allowed, required, label) {
   requireObject(value, label);
   assertSafeObjectKeys(value, label);
@@ -1121,6 +1225,7 @@ function snapshotFromState(dir, state) {
   const ready = [];
   const active = [];
   const accepted = [];
+  const observedReports = new Map();
 
   for (const step of state.graph.steps) {
     const stepState = state.steps[step.id];
@@ -1140,6 +1245,7 @@ function snapshotFromState(dir, state) {
           const pendingReceipt = readInbox(dir, record.attempt, true);
           if (pendingReceipt && receiptMatchesRecord(pendingReceipt, state, record)) {
             displayedStatus = 'receipt';
+            observedReports.set(record.attempt, pendingReceipt);
           }
         }
         const recovery = displayedStatus === 'receipt' && record.handle === null
@@ -1172,6 +1278,7 @@ function snapshotFromState(dir, state) {
       )
     );
   }
+  snapshot.progress = progressFromState(state, snapshot, observedReports);
   return snapshot;
 }
 

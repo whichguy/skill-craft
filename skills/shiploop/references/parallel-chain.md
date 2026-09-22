@@ -1,7 +1,7 @@
 # Parallel implementation chains
 
 For a reviewed dependency graph with dependency-independent implementation work
-**inside the current navigator-v3 `implement` action**, use this parallel route
+**inside the current navigator-v3/v4 `implement` action**, use this parallel route
 by default when selected compatible native capacity is available. The binding
 remains explicit, action-scoped, and recoverable. ShipLoop retains one parent
 action and its normal Improve/test sequence; the work-item queue remains
@@ -162,8 +162,12 @@ bridge adds package-local locators for the [coding decision guide](coding-guidan
 [repeatable test suites](repeatable-test-suites.md#select-or-revalidate-the-harness),
 and [implementation constitution](testing-and-documentation.md#implementation-constitution)
 to parallel, serial, and recovered worker packets. Read only applicable practice
-and platform cards within the assigned contract. Retain decisions, check evidence,
-and unresolved questions in the existing handoff or result files.
+and platform cards within the assigned contract. Return material discoveries, decision
+rationale, actual checks and their limits, and unresolved uncertainty in the existing
+manifest summary; use declared files for supporting detail. Identify the next
+action/owner, and explicitly say when there are no new findings. Apply relevant
+planning facts within the task; report a conflicting premise and its evidence
+before affected work without changing the graph.
 
 These are current-package references, not hash-frozen planning artifacts. The
 worker must be able to read them from its own execution environment; a missing
@@ -261,9 +265,21 @@ requested exact candidate, and the checks actually performed. The dispatcher
 must establish that those checks passed; a matching hash alone does not do so.
 
 Only a **fresh `start` response with `action: launch`** permits native launch.
-Give Ask-Agent the complete packet, selected Git integration contract, ownership
-and return target. Use a fresh background context with no inherited conversation
-where supported, retain the actual handle, and continue independent parent work.
+Use the selected Ask Agent launch contract with the complete returned packet
+unchanged, selected Git integration contract, ownership and return target.
+Preserve available host capabilities within existing task authorization. Carry
+applicable approvals, declines, pending and revoked decisions with their scope,
+conditions and actual source through the existing authority contract, separately
+from advisory learnings; pending decisions grant no authority.
+Add a compact **Current learnings** block
+with relevant parent discoveries, decisions and rationale, constraints, and open
+questions; distinguish facts from hypotheses, or explicitly state none. Keep
+essential facts inline and references for supporting detail. Use a fresh background
+context with no inherited conversation where supported. Retain the effective
+assignment in the existing parent record or retained handoff, durably outside the
+worker workspace, alongside the attempt and actual handle,
+and continue independent parent work. Recovery packets preserve the frozen task;
+they neither reconstruct unrecorded conversational learnings nor authorize relaunch.
 Follow the selected Ask-Agent waiting and result-collection guidance. A timeout,
 file appearance or elapsed lease does not establish completion.
 
@@ -412,39 +428,31 @@ python3 "$CLI" chain bind --run-dir "$RUN_DIR" --action "$ACTION" \
 python3 "$CLI" chain next --run-dir "$RUN_DIR" --action "$ACTION"
 ```
 
-The same main context performs this loop:
+The same main conversation follows the current `navigation.actions` and exact
+`next_argv`, including claim, execute/resume, import, prepare, verify, cleanup,
+and finish when offered. The raw `ready` list describes graph eligibility; it
+is not a second scheduling authority. A fresh serial start records the
+main-context executor and grants `execute` once. Recovery continues the recorded
+attempt and workspace without a native launch or a second execution grant.
 
-1. Read `next`. Choose one readiness- and resource-eligible step from `ready`;
-   roots become eligible first. A dependent waits until every direct supplier is
-   accepted. Graph order is a stable tie-breaker, not an extra dependency.
-2. Claim that step and call `start` with its exact inputs. A fresh serial start
-   atomically records the main-context executor and returns `action: execute`,
-   not a native launch grant. No separate launch confirmation is needed.
-   Replayed starts return reconciliation, never a second execution grant.
-   Serial creation records its intended workspace before Git creates it. If
-   interrupted before adoption, resume only that recorded clean baseline and
-   matching start inputs; preserve an ambiguous allocation rather than creating
-   another worker or silently abandoning it.
-3. Execute in the returned sibling worktree using explicit working directories.
-   Do not spawn agents or move work into the initiating checkout. Keep readiness,
-   scope, supplier ancestry and resource constraints. Update the main conversation
-   from the work actually performed.
-4. Write the worker-local handoff, then use parent `import-handoff` and `prepare`.
-   Perform a separate verification phase against the definition of done and
-   record actual checks. This is evidence verification by the main context;
-   it does not claim an independent reviewer agent. Confirm all step-owned
-   commands have stopped, then call `done`/`settle` with the bound integration and verification.
-   It merges, accepts and removes the step worktree in that order.
-   `confirmed_stopped` refers to that step's activity, not the main conversation.
-   Invoke parent integration/cleanup commands from the invoking checkout or an
-   external directory, not from a worker directory that will be removed.
-5. Re-read `next` and continue immediately with remaining eligible work. Do not
-   end successfully after one step or merely because `ready` is empty. An active
-   attempt requires continuation/reconciliation; a blocker requires resolution
-   or an explicit incomplete handoff. Do not busy-loop on an unchanged blocker.
-6. After every required step is accepted, verify the combined candidate and call
-   `finish` to audit the current invoking checkout and completed cleanup. Continue ShipLoop's
-   normal completion callback and subsequent Improve/test stages.
+During the bounded task phase, use explicit command working directories in the
+returned sibling worktree and obey the packet's readiness, scope, and resource
+constraints. Write its self-contained handoff before returning to the parent
+phase. `confirmed_stopped` means all step-owned commands have finished; the main
+conversation remains active. The parent reads the imported summary and archived
+evidence, retains relevant findings for recovery and later assignments, and
+performs the returned verification action against the exact prepared candidate.
+This is a distinct checking phase in the same context, not evidence of a separate
+reviewer agent.
+
+`done` integrates and accepts the verified contribution; worktree removal is a
+separate returned `cleanup` action. Perform integration and cleanup from the
+invoking checkout or an external directory. Follow the script's priority for
+eligible work and cleanup, then its `finish` action after combined verification
+and required cleanup. Only `navigation.complete` ends the chain; graph acceptance
+or an empty `ready` list does not. Continue ShipLoop's enclosing callback and
+subsequent stages. Preserve unresolved work and follow its returned recovery
+action; do not busy-loop on an unchanged blocker.
 
 Serial steps still use separate sibling worktrees. They are never created inside
 the initiating worktree, and a dependency's accepted commit must be present in

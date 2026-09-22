@@ -110,6 +110,9 @@ commit = subprocess.check_output([*git, "rev-parse", "HEAD"], text=True).strip()
 handoff = workspace / ".shiploop-handoff" / assignment["attempt"] / "handoff.json"
 handoff.parent.mkdir(parents=True, exist_ok=True)
 checks = handoff.parent / "checks.json"
+finding = "Observed " + name + " passes its frozen planning-contract check."
+rationale = "Used the immutable source contract so dependent steps receive the agreed interface."
+uncertainty = "Only the declared fixture check ran; live service behavior is unverified."
 checks.write_text(json.dumps({
     "passed": True,
     "check": check,
@@ -117,6 +120,9 @@ checks.write_text(json.dumps({
     "commit": commit,
     "planning_context_fixture": True,
     "guidance_references": guidance_references,
+    "finding": finding,
+    "rationale": rationale,
+    "uncertainty": uncertainty,
 }) + "\n")
 manifest = {
     "schema": "shiploop-chain-handoff/v1",
@@ -126,7 +132,7 @@ manifest = {
     "base_commit": assignment["base_commit"],
     "status": "SUCCEEDED",
     "commit": commit,
-    "summary": "Generated and checked " + name + " from planning context",
+    "summary": finding + " " + rationale + " " + uncertainty + " Parent: inspect checks.json and verify integration.",
     "files": [{"path": "checks.json", "sha256": sha256(checks)}],
 }
 handoff.write_text(json.dumps(manifest) + "\n")

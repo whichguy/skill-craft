@@ -190,6 +190,15 @@ class PlanningContextChainTests(unittest.TestCase):
         self.assertIn("step contract defines your execution prompt", instructions)
         self.assertIn("key planning reference statements", instructions)
         self.assertIn("do not replace the step definition", instructions)
+        self.assertIn("material discoveries", instructions)
+        self.assertIn("decision rationale", instructions)
+        self.assertIn("unresolved uncertainty", instructions)
+        self.assertIn("summary", instructions)
+        self.assertIn("declared files", instructions)
+        self.assertIn("before affected work", instructions)
+        self.assertIn("no new findings", instructions)
+        self.assertNotIn("launch the native task", instructions)
+        self.assertNotIn("worker launch payload", instructions)
         # Context is passed as immutable references, rather than copying the
         # large planning body into each worker packet.
         self.assertNotIn("Use sibling worker worktrees", json.dumps(packet))
@@ -417,7 +426,7 @@ class PlanningContextChainTests(unittest.TestCase):
         finally:
             nested.doCleanups()
 
-    def collect(self, test, step: str, result: dict):
+    def collect(self, test, step: str, result: dict, *, expect_prepare: bool = True):
         imported = test.call("import-handoff", {
             "attempt": test.packets[step]["attempt"],
             "confirmed_stopped": True,
@@ -428,7 +437,31 @@ class PlanningContextChainTests(unittest.TestCase):
         self.assertEqual(delivery["source_commit"], result["commit"])
         self.assertEqual(delivery["workspace"], test.packets[step]["context"]["workspace"])
         self.assertEqual(delivery["commits"][-1], result["commit"])
+        archived = imported["import"]
+        summary = json.loads(Path(archived["handoff"]["archived_path"]).read_text())["summary"]
+        self.assertEqual(summary, archived["summary"])
+        self.assertIn("Parent: inspect checks.json", summary)
+        actions = imported["navigation"]["actions"]
+        if expect_prepare:
+            prepare = next(action for action in actions if action["action"] == "prepare")
+            self.assertIn("retain material findings", prepare["instruction"])
+        else:
+            self.assertFalse(any(action["action"] == "prepare" for action in actions))
+            self.assertTrue(any(action["action"] == "inspect-planning-context" for action in actions))
         return imported
+
+    def assert_supplier_findings_survive_cleanup(self, test, packet):
+        self.assertEqual({row["step"] for row in packet["dependencies"]}, {"A", "B"})
+        for supplier in packet["dependencies"]:
+            self.assertFalse(Path(test.packets[supplier["step"]]["context"]["workspace"]).exists())
+            archived_manifest = json.loads(Path(supplier["handoff"]["archived_path"]).read_text())
+            archive = next(row for row in supplier["archives"] if row["path"] == "checks.json")
+            evidence = json.loads(Path(archive["archived_path"]).read_text())
+            self.assertEqual(digest(Path(archive["archived_path"])), archive["sha256"])
+            for key in ("finding", "rationale", "uncertainty"):
+                self.assertIn(evidence[key], archived_manifest["summary"])
+        cold = test.call("packet", {"attempt": packet["attempt"]})["packet"]
+        self.assertEqual(cold["dependencies"], packet["dependencies"])
 
     def verify_context_code(self, workspace: Path, step: str) -> None:
         checks = {
@@ -444,6 +477,8 @@ class PlanningContextChainTests(unittest.TestCase):
         attempt = test.packets[step]["attempt"]
         workspace = Path(test.packets[step]["context"]["workspace"])
         prepared = test.call("prepare", {"attempt": attempt, "confirmed_stopped": True})
+        verify = next(action for action in prepared["navigation"]["actions"] if action["action"] == "verify")
+        self.assertIn("Read the imported summary", verify["instruction"])
         integration = prepared["integration"]
         self.verify_context_code(workspace, step)
         binding, _context, _manifest = self.binding_and_manifest(test)
@@ -597,6 +632,23 @@ class PlanningContextChainTests(unittest.TestCase):
         self.bind(self.f)
         self.assertEqual(preflight["graph_sha256"], self.f.child_state()["graph_sha256"])
 
+    def test_fresh_launch_requires_current_learnings_before_native_dispatch(self) -> None:
+        self.bind(self.f, mode="parallel", capacity=1)
+        attempt = self.claim(self.f, "A")["A"]
+        output = self.f.call("start", self.f.start_value("A", attempt))
+        launch = next(action for action in output["navigation"]["actions"]
+                      if action["action"] == "launch")
+        instruction = launch["instruction"].lower()
+        for phrase in ("current learnings", "unchanged", "fresh context", "parent record",
+                       "durably outside the worker workspace", "markdown heading", "labeled bullets",
+                       "selected ask agent launch contract", "host capabilities", "existing task authorization",
+                       "approvals", "declines", "pending", "revoked", "scope", "conditions", "actual source",
+                       "separate from advisory learnings", "authority contract"):
+            self.assertIn(phrase, instruction)
+        cold = self.f.call("packet", {"attempt": attempt})
+        self.assertEqual(cold["packet"], output["packet"])
+        self.assertFalse(any(action["action"] == "launch" for action in cold["navigation"]["actions"]))
+
     def test_parallel_and_serial_cold_packets_keep_the_same_consolidated_context(self) -> None:
         self.bind(self.f, mode="parallel", capacity=2)
         binding, context, manifest = self.binding_and_manifest(self.f)
@@ -709,6 +761,7 @@ class PlanningContextChainTests(unittest.TestCase):
         attempt_c = self.claim(self.f, "C")["C"]
         packet_c = self.start_parallel(self.f, "C", attempt_c, ["context_join.py"])
         self.assert_packet_context(self.f, packet_c, context, manifest)
+        self.assert_supplier_findings_survive_cleanup(self.f, packet_c)
         result_c = self.finish_context_worker(self.launch_context_worker(self.f, "C"))
         self.collect(self.f, "C", result_c)
         self.prepare_and_accept(self.f, "C")
@@ -750,6 +803,8 @@ class PlanningContextChainTests(unittest.TestCase):
             self.assert_packet_context(self.f, packet, context, manifest)
             self.assertEqual(packet["executor"]["kind"], "main-context")
             self.assertNotIn("native_handle", packet)
+            if step == "C":
+                self.assert_supplier_findings_survive_cleanup(self.f, packet)
             result = self.finish_context_worker(self.launch_context_worker(self.f, step))
             self.collect(self.f, step, result)
             self.prepare_and_accept(self.f, step)
@@ -795,7 +850,7 @@ class PlanningContextChainTests(unittest.TestCase):
         # integration gate. It must remain usable even when a required source
         # disappears after the worker has stopped.
         self.f.planning_contract.unlink()
-        self.collect(self.f, "A", result)
+        self.collect(self.f, "A", result, expect_prepare=False)
         prepare_refusal = self.f.call(
             "prepare", {"attempt": attempts["A"], "confirmed_stopped": True}, ok=False
         )

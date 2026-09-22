@@ -226,6 +226,18 @@ class NativePilotTests(unittest.TestCase):
         started = self.start_a(attempt)
         self.assertEqual(started["action"], "launch")
         assignment = started["inline_native_assignment"]
+        self.assertIn("## Current learnings\n\n- Verified facts:", assignment)
+        self.assertIn("\n- Unresolved:", assignment)
+        self.assertIn("Planning prerequisites are synthetic fixture inputs", assignment)
+        self.assertIn("Current learnings", started["next"])
+        self.assertIn("Extend its formatted", started["next"])
+        self.assertIn("keep the embedded worker packet unchanged", started["next"])
+        self.assertIn("existing parent record", started["next"])
+        self.assertIn("durably outside the worker workspace", started["next"])
+        for phrase in ("selected Ask Agent launch contract", "host capabilities", "existing task authorization",
+                       "approvals", "declines", "pending", "revoked", "scope", "conditions", "actual source",
+                       "separate from advisory learnings", "authority contract"):
+            self.assertIn(phrase, started["next"])
         packet = json.loads(Path(started["packet"]).read_text())
         workspace_record = json.loads(Path(started["ask_agent_workspace_record"]).read_text())
 

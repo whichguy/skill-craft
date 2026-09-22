@@ -189,6 +189,13 @@ class V4ConsumersTests(unittest.TestCase):
         self.assertEqual(classes[self.f.actions['spec'][-1]], 'current')
         self.assertTrue(any(reconciled in row['producers'] for row in result['manifest']['artifacts']))
         chain._require_bindable(self.f.state, nav.current_action(self.f.state)['id'])
+        # The supported v4 implement boundary must be advertised by the skill
+        # and selected chain guide, including after planning reconciliation.
+        self.assertEqual(self.f.state['navigator_protocol_version'], 4)
+        card = (ROOT / 'skills/shiploop/SKILL.md').read_text()
+        guide = (ROOT / 'skills/shiploop/references/parallel-chain.md').read_text()
+        self.assertIn('current v3/v4 `implement` action', card)
+        self.assertIn('current navigator-v3/v4 `implement` action', guide)
 
     def test_missing_reconciliation_archive_blocks_context_and_chain_recovery(self):
         self.to_plan()

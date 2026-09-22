@@ -5,7 +5,7 @@ description: >-
   script's current action packet, and submit its exact completion call until
   the script reports completion with an HTML achievement report. Use when the
   user says shiploop, ship the project, or requests a durable delivery loop.
-version: 0.19.2
+version: 0.19.3
 allowed-tools: all
 license: MIT
 platforms:
@@ -253,7 +253,7 @@ that a fresh context can access. They locate authority in the run; they are not
 another state record. Do not copy a current node, action ID, result path, status,
 or predicted successor into the handoff as graph authority.
 
-Active v3 INNER packets prefix both producer and Improve assignments with
+Active v3/v4 INNER packets prefix both producer and Improve assignments with
 "Clear and then execute the prompt." For an `implement` producer, select the packet's
 chain route first. During that producer, its bound mode and executor take precedence: parallel chains
 retain their capacity and bypass this serial context boundary; explicit serial
@@ -307,7 +307,7 @@ retain the recovery locators and resume the same run when execution resumes.
 1. The owning agent reads the original goal, repository, current work item,
    relevant durable notes and the stage's instructions. The packet identifies
    one effective node, its owner, and exactly one completion callback. During
-   v3 INNER work, the parent exposes exactly one active owner: the producer or
+   v3/v4 INNER work, the parent exposes exactly one active owner: the producer or
    its bound Improve child. Give a worker only
    that one current packet and the relevant scoped context. A delegated worker does not
    initialize another ShipLoop run, advance the parent graph, or submit the parent's
@@ -434,7 +434,7 @@ ordering, recovery and completion examples. Planning includes backward
 prerequisite review; the host must place producers before consumers in the
 ordered work queue.
 
-After v3 accepts `carry-forward` and imports its bound Improve completion, the
+After v3/v4 accepts `carry-forward` and imports its bound Improve completion, the
 locked state transaction marks the completed item, retains its evidence, and
 either creates the next item's `select-work` action or returns ownership to
 `system-test-author`. Root status and queue remain global. A `repeat` replaces
@@ -448,7 +448,7 @@ After creating initial steps, require their plan and execution graph to complete
 the selected actual Improve loop before execution. The normal `plan`/`step-plan`
 handoff owns that review; follow the linked guide for late graph creation or
 material revisions. Retain the completed review's graph identity and evidence.
-For a reviewed graph within the current v3 `implement` action that has safe
+For a reviewed graph within the current v3/v4 `implement` action that has safe
 dependency-independent steps, the main owner uses [the parallel implementation
 chain](references/parallel-chain.md) by default when the selected Plan Dispatcher
 and Ask-Agent contracts are compatible and observed native slots are available.
@@ -468,9 +468,19 @@ step `contract.task`, `contract.ready`, and `contract.done` remain the worker's
 sole assignment. The reviewed graph stays unchanged; the manifest is a separate
 input reference for Plan Orchestrator and every worker packet.
 Use the complete worker packet, including its engineering-guidance locators.
-Pass it inline to Ask-Agent for parallel execution; execute it in the main context
-for serial mode. Each worker selects applicable coding, platform, and test guidance
-within its contract and retains decisions and checks in its existing handoff.
+For parallel execution, follow the returned launch action: pass the packet
+unchanged through the selected Ask Agent launch contract to a fresh context with
+a compact Current learnings block. Preserve available host capabilities within
+existing task authorization. Carry applicable approvals, declines, pending and
+revoked decisions with scope, conditions and actual source through its existing
+authority contract, separately from advisory learnings. Retain the effective
+assignment in the existing parent record or retained handoff, durably outside the
+worker workspace. For serial
+mode, execute it in the current main conversation. Each bounded executor applies
+relevant planning and engineering guidance, returns discoveries, rationale, checks
+and uncertainty through the existing summary and declared files, and reports
+conflicting premises before affected work. The parent reads and retains those
+findings for verification, recovery and later assignments.
 Use the selected Plan Dispatcher and Ask-Agent packages, external sibling
 `.work-trees` checkouts, and the bridge's claim/start/import/prepare/done/finish flow.
 For per-step chains, the script's `navigation` packet owns navigation. Perform
