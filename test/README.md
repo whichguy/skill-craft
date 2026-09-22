@@ -30,8 +30,9 @@ bash test/shiploop.test.sh --shard 1/3 --list
 
 The default is `--group all`. `core` covers packaging, installation, and
 contract-fixture tests without an installed host. `smoke` runs that full core
-group plus seven selected ShipLoop suites: `no-model-launch`, `navigator-v3`,
-`packet-bounds`, `navigator-dry-run`, `chain-async`, `graph-driver`, and `graph-trace`.
+group plus ten selected ShipLoop suites: `no-model-launch`, `navigator-v3`,
+`navigator-v4`, `stopped-improve`, `v4-consumers`, `packet-bounds`,
+`navigator-dry-run`, `chain-async`, `graph-driver`, and `graph-trace`.
 It is a fast partial signal, not a replacement for the full suite. `shiploop`
 runs the complete ShipLoop suite and exactly one action walk. `all` is the
 stable complete hermetic aggregate of `core` and `shiploop`. The legacy direct
@@ -46,7 +47,7 @@ It is not part of the aggregate; the `shiploop` group owns the action walk once.
 `test/shiploop.test.sh` owns one ordered ShipLoop inventory. Its no-argument
 form remains the complete serial runner. `--list` prints only the selected
 inventory and does not run synchronization or a test. `--smoke` selects the
-same seven suites listed above from that canonical inventory; `--smoke --list` is
+same ten suites listed above from that canonical inventory; `--smoke --list` is
 the fastest way to inspect the subset. `--smoke` and `--shard` are mutually
 exclusive. `--shard 1/3`, `2/3`, or `3/3` selects every third suite from the
 same order, so the three inventories are disjoint and contain the action walk

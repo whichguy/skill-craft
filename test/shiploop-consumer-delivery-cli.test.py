@@ -64,7 +64,7 @@ class ConsumerDeliveryCliTests(unittest.TestCase):
             with self.subTest(mode=mode):
                 result = self.init("--delivery-contract", "--execution-mode", mode)
                 self.assertNotEqual(result.returncode, 0)
-                self.assertIn("requires navigator protocol 2 or 3", result.stderr)
+                self.assertIn("requires navigator protocol 2, 3, or 4", result.stderr)
                 self.assertFalse(self.run.exists())
 
     def test_marked_init_without_flag_cannot_remove_recorded_mode(self):
