@@ -74,6 +74,7 @@ def _parser(*, shiploop_entrypoint: bool = False) -> UsageParser:
         "selected/completed receipt and per-suite logs."
     )
     parser = UsageParser(
+        prog="bash test/shiploop.test.sh" if shiploop_entrypoint else "bash test/run-all.sh",
         description=description,
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=epilog,
@@ -103,6 +104,9 @@ def parse_args(argv: Sequence[str] | None = None) -> tuple[argparse.Namespace, t
         parser.error("--output cannot be used with --list")
 
     if args.shiploop_entrypoint:
+        for option in ("--list", "--smoke", "--shard"):
+            if sum(value.split("=", 1)[0] == option for value in raw_argv) > 1:
+                parser.error(f"{option} may be specified only once")
         if args.group:
             parser.error("--group is not accepted by test/shiploop.test.sh")
         if args.smoke and args.shard:

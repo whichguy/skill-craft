@@ -97,8 +97,15 @@ class TestGroupTests(unittest.TestCase):
                 )
             else:
                 target.write_text(
-                    "from pathlib import Path\nimport os\n"
+                    "from pathlib import Path\nimport json, os\n"
                     f"with Path(os.environ['TEST_TRACE']).open('a') as stream: stream.write('{suite.id}\\n')\n"
+                    f"if os.environ.get('CHECK_RECEIPT_FOR') == '{suite.id}':\n"
+                    "    receipt = json.loads(Path(os.environ['CHECK_RECEIPT_PATH']).read_text(encoding='utf-8'))\n"
+                    "    assert receipt['status'] == 'running'\n"
+                    "    assert len(receipt['completed']) == int(os.environ['CHECK_RECEIPT_COUNT'])\n"
+                    "    if receipt['completed']:\n"
+                    "        log = Path(os.environ['CHECK_RECEIPT_ROOT']) / receipt['completed'][-1]['stdout_log']\n"
+                    "        assert log.is_file()\n"
                     f"raise SystemExit(7 if os.environ.get('FAIL_SUITE') == '{suite.id}' else 0)\n",
                     encoding="utf-8",
                 )
@@ -164,8 +171,12 @@ class TestGroupTests(unittest.TestCase):
             (self.invoke_root, ("--help",), 0),
             (self.invoke_shiploop, ("--smoke", "--list"), 0),
             (self.invoke_root, ("--group", "unknown"), 64),
+            (self.invoke_root, ("--group", ""), 64),
             (self.invoke_root, ("--group",), 64),
             (self.invoke_shiploop, ("--smoke", "--shard", "1/3"), 64),
+            (self.invoke_shiploop, ("--list", "--list"), 64),
+            (self.invoke_shiploop, ("--smoke", "--smoke"), 64),
+            (self.invoke_shiploop, ("--shard", "1/3", "--shard", "2/3"), 64),
         ):
             with self.subTest(args=args):
                 result = invocation(root, *args, env=env)
@@ -174,12 +185,24 @@ class TestGroupTests(unittest.TestCase):
 
     def test_root_list_is_flattened_and_shiploop_list_preserves_bare_paths(self) -> None:
         root, env = self.list_fixture()
-        listed = self.invoke_root(root, "--group", "ask-agent", "--group", "experiments", "--list", env=env)
+        listed = self.invoke_root(
+            root,
+            "--group", "ask-agent",
+            "--group", "shiploop-composition",
+            "--group", "ask-agent",
+            "--group", "experiments",
+            "--list",
+            env=env,
+        )
         self.assertEqual(listed.returncode, 0, listed.stderr)
         rows = [line.split("\t") for line in listed.stdout.splitlines()]
         self.assertTrue(rows)
         self.assertTrue(all(len(row) == 3 for row in rows), listed.stdout)
-        self.assertEqual([row[1] for row in rows], [suite.id for suite in suite_catalog.select(("ask-agent", "experiments"))])
+        self.assertEqual(
+            [row[1] for row in rows],
+            [suite.id for suite in suite_catalog.select(("ask-agent", "shiploop-composition", "ask-agent", "experiments"))],
+        )
+        self.assertEqual(len(rows), len({row[1] for row in rows}))
 
         smoke = self.invoke_shiploop(root, "--smoke", "--list", env=env)
         self.assertEqual(smoke.returncode, 0, smoke.stderr)
@@ -192,6 +215,12 @@ class TestGroupTests(unittest.TestCase):
         root, env, parent = self.execution_fixture()
         output = parent / "receipt"
         env["FAIL_SUITE"] = "ask-agent-workspace"
+        env.update(
+            CHECK_RECEIPT_FOR="ask-agent-delivery",
+            CHECK_RECEIPT_PATH=str(output / "receipt.json"),
+            CHECK_RECEIPT_ROOT=str(output),
+            CHECK_RECEIPT_COUNT="1",
+        )
         selected = suite_catalog.select(("ask-agent",))
         result = self.invoke_root(root, "--group", "ask-agent", "--output", str(output), env=env)
         self.assertEqual(result.returncode, 1, result.stdout + result.stderr)

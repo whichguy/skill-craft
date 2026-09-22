@@ -258,6 +258,56 @@ class IntegrationBoundaryTests(unittest.TestCase):
         with self.assertRaisesRegex(current_dispatcher.QualificationError, "changed during qualification"):
             current_dispatcher.assert_unchanged("selected dispatcher package", before, after)
 
+    def test_current_dispatcher_retains_pass_and_failure_receipts_for_selected_package(self) -> None:
+        external, card = self.external_dispatcher_checkout()
+        source = self.fixture / "qualification-source"
+        helper = source / "test/current_dispatcher.py"
+        helper.parent.mkdir(parents=True)
+        shutil.copyfile(ROOT / "test/current_dispatcher.py", helper)
+        # Exercise the wrapper's real Git/CLI/log/receipt path cheaply. The real
+        # native-pilot composition has its own suite and current-package check.
+        pilot = source / "test/experiments/shiploop_chain/test_native_pilot.py"
+        pilot.parent.mkdir(parents=True)
+        pilot.write_text(
+            "import argparse, os\nfrom pathlib import Path\n"
+            "p=argparse.ArgumentParser(); p.add_argument('--dispatcher-skill', required=True)\n"
+            "a=p.parse_args(); assert Path(a.dispatcher_skill).is_file()\n"
+            "print(a.dispatcher_skill)\n"
+            "raise SystemExit(int(os.environ.get('QUALIFICATION_FIXTURE_EXIT', '0')))\n"
+        )
+        self.git(source, "init", "-q", "-b", "main")
+        self.git(source, "config", "user.name", "Qualification Fixture")
+        self.git(source, "config", "user.email", "qualification@example.invalid")
+        self.git(source, "add", ".")
+        self.git(source, "commit", "-qm", "source fixture")
+        self.git(source, "remote", "add", "origin", "https://example.invalid/skill-craft.git")
+        source_head, external_head = self.git(source, "rev-parse", "HEAD"), self.git(external, "rev-parse", "HEAD")
+        for child_exit in (0, 7):
+            with self.subTest(child_exit=child_exit):
+                output = self.fixture / f"qualification-{child_exit}"
+                result = invoke(
+                    [sys.executable, "-B", str(helper), "--dispatcher-skill", str(card), "--output", str(output)],
+                    self.environment(QUALIFICATION_FIXTURE_EXIT=str(child_exit)),
+                )
+                self.assertEqual(result.returncode, 0 if child_exit == 0 else 2, result.stderr)
+                receipt = json.loads((output / "receipt.json").read_text())
+                self.assertEqual(receipt["passed"], child_exit == 0)
+                selected = receipt["selected_dispatcher"]
+                self.assertEqual(Path(selected["skill_card"]), card.resolve())
+                self.assertEqual(selected["repository"]["exact_head"], external_head)
+                self.assertEqual(selected["package_hashes"]["before"], selected["package_hashes"]["after"])
+                identity = receipt["skill_craft_source_identity"]
+                self.assertEqual(identity["before"], identity["after"])
+                self.assertEqual(identity["before"]["exact_head"], source_head)
+                actual = receipt["actual_run"]
+                self.assertEqual(actual["exit_code"], child_exit)
+                self.assertEqual(actual["argv"][-2:], ["--dispatcher-skill", str(card.resolve())])
+                self.assertIn(str(card.resolve()), Path(actual["stdout"]["path"]).read_text())
+                self.assertEqual(receipt["execution"]["model_calls"], 0)
+                self.assertEqual(receipt["execution"]["native_agent_launches"], 0)
+                self.assertEqual(self.git(source, "status", "--porcelain"), "")
+                self.assertEqual(self.git(external, "status", "--porcelain"), "")
+
     def test_current_dispatcher_timeout_kills_a_term_ignoring_descendant(self) -> None:
         child = self.fixture / "term-ignoring-child.py"
         leader = self.fixture / "leader.py"
