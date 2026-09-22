@@ -32,6 +32,16 @@ access to the exact Child workspace and selected skills, the tools needed by
 the assignment, and a native result collection route. Use a general-purpose
 worker and inherit model settings unless the user selected otherwise. A
 restricted reviewer that cannot apply fixes is not an equivalent executor.
+Give Improve the capabilities of a regular in-context coding agent: available
+tools, MCP interactions, skills, research, code/test/documentation/configuration
+changes, checks, commits, and deployments or other external operations already
+authorized for this task and stage. Delegation adds no read-only mode, tool
+allowlist, model downgrade, or fixed investigation, output, or iteration limit.
+Carry existing authorization forward; do not ask again merely because the work
+moved to a fresh context. If the host filters a needed capability, disclose the
+specific gap and coordinate the authorized operation through the parent.
+The parent-only ShipLoop control callbacks and workspace return below are
+ownership boundaries, not a blanket prohibition on deployment or tool use.
 If required review/test delegation is unavailable inside that worker, have the
 parent coordinate it serially through native messages, or use only an explicitly
 permitted fallback. Never count an unavailable required review or check as done.
@@ -90,7 +100,8 @@ the operation directory on **every** shell call, and absolute paths for file
 tools. Before task work, verify actual process cwd and Git root against the
 packet; report a mismatch instead of operating in the inherited parent cwd.
 For a genuinely new child, after the meaningful checks required by its scope,
-commit only authorized changed product or requirements files. Never commit
+commit authorized scoped changed files, including tests, documentation,
+configuration and skills when in scope. Never commit
 runtime evidence or inherited unrelated staged work, and do not create an empty
 commit unless an explicit audit-every-iteration rule authorizes it. An explicit
 user- or repository-authorized no-commit instruction overrides this default.
@@ -100,31 +111,86 @@ no-commit/no-change reason. The parent validates that handoff and performs the
 existing guarded workspace return; the worker does not execute a callback or
 return itself.
 
-## Fresh assignment and compact return
+## Prepare the context-first assignment
 
-Before invoking Ask Agent, the parent prepares its **Current learnings** from
-the current conversation and applicable skill guidance using Ask Agent's inline
-handoff rule. Pass that block directly alongside the bound packet in a compact,
-self-contained handoff. Preserve relevant original-request constraints rather
-than replacing them with a summary: the fresh worker cannot recover them from
-the parent conversation. Keep essential findings and rationale inline even when
-supporting details have locators; source locators cannot replace critical
-reasoning.
+Before invoking Ask Agent, the parent writes the opening **Current context and
+desired improvements** section from its current understanding of the task,
+repository and exact candidate worktree. Include **Current learnings** inside
+that section using Ask Agent's inline handoff rule. Put this completed opening
+first in the native worker prompt, before the skill invocation, route markers
+and orchestration details. The navigator supplies instructions and locators;
+it cannot synthesize facts from the parent's conversation. The parent must
+fill the opening with the actual context, not forward an empty template.
 
-The compact handoff states:
+Explain what the candidate is meant to achieve, what already changed, what
+appears to need improvement and why, and what remains uncertain. Bring forward
+material user corrections, repository conventions and design decisions with
+their rationale, observed failures/checks with revision or content identity,
+and worktree-specific pitfalls or inherited work to preserve. Read relevant
+accepted results/run notes and any required excerpt locators before summarizing.
+Distinguish facts, hypotheses and suggested next work. Retain material unresolved
+findings and failed attempts; they can be more useful than successful lessons.
+If context is unavailable on recovery, name that gap instead of inventing it.
 
-- **Objective:** the current source/action identities, candidate decision, and
-  original scope, authority, acceptance, and exclusion constraints that still
-  govern the child.
-- **Exit:** the required review/check evidence, unresolved or blocked outcomes,
-  and the terminal receipt condition that lets the parent decide whether it may
-  call the parent-only callback.
-- **Evidence:** the valid producer checkpoint, current learnings, notebook and
-  source/evidence locators, expected checks, and any prior observation needed to
-  assess the objective without copying large logs or the entire conversation.
+Use this order, filling values from the current task:
 
-This is compact continuity context, not a new result schema or a grant to loosen
-the frozen child contract.
+```markdown
+## Current context and desired improvements
+<The intended outcome, present candidate state, and the parent's assessment of
+what would improve it and why. Name the relevant repository/worktree.>
+
+### Current learnings
+- Facts/corrections: <observations and supporting locators>
+- Decisions: <accepted choices, approval/decline implications and their reasons>
+- Hypotheses: <unverified concerns to investigate, not assumed defects>
+- Execution pitfalls: <relevant failed attempts, tool or worktree constraints>
+
+## Execute Improve
+Read and invoke <selected absolute Improve SKILL.md> in this worker, using its
+bound runtime. Use the context above as a starting point for your own review.
+Investigate and implement worthwhile improvements within the task's scope and
+authority, using the normal tools, MCP interactions and skills available to you.
+Run meaningful checks, commit authorized changed files after those checks, and
+continue the selected skill's loop to its normal completion condition.
+Return its cumulative summary of key implemented changes and what was learned.
+
+## Workspace, authority, and return
+<The complete bound assignment described below, including exact ownership,
+candidate scope, scoped approvals/declines/pending decisions with conditions and
+sources, resources and parent-only continuation.>
+```
+
+Omit empty learning categories, or state when none are known. Preserve essential
+meaning inline with locators for supporting detail; there is no word or bullet
+quota. Be concise by removing repetition, not consequential context. The opening
+is orientation, not a second authority contract or an exhaustive review checklist.
+Improve may reject a suggestion, investigate beyond the supplied hypotheses,
+choose a better approach and make substantial warranted changes. Derive edit
+scope from the actual task and explicit boundaries; do not invent a narrower
+allowlist merely from the currently changed files. Explicit candidate exclusions
+and an already frozen scope remain binding.
+
+Retain this opening once at the start of the child's existing `context.request`,
+alongside the canonical request and binding marker. Use the existing handoff to
+retain, correct or retire learnings across iterations. For v4 planning this
+opening supplies the compact planning summary; keep full packets and verbose
+logs behind their existing locators rather than copying them into child context.
+
+For the initial v4 Plan Improve child, retain the packet's experiment objective
+and exit criteria, applicable original constraints, current source/action
+locators, and decision consequences in that compact context. Keep essential
+findings and rationale inline; locators cannot replace critical reasoning.
+Identify valid producer evidence, unresolved outcomes, remaining allowance,
+pending cleanup, and the exact terminal condition for the parent return.
+These are existing contract and handoff contents, not a new result schema.
+
+## Complete assignment and return
+
+Carry Ask Agent's approval/decline decision record into the existing child
+`context.authority` before start. Summarize its practical implications in the
+opening without reducing a binding decline to a review suggestion. Existing
+approvals remain usable under their conditions; pending approval is not consent.
+Keep action/target boundaries and parent-only ownership explicit.
 
 Give the worker the complete current bound packet, this reference, and the
 relevant original request/decision locators. Read full values at any excerpt
@@ -143,14 +209,37 @@ Do not ask the worker to read the entire parent conversation or run another
 ShipLoop instance. It may start the bound Until Loop once for a genuinely new
 child; resume an existing child using its saved receipt, never by replacement.
 
-The worker follows the actual Improve card and its bound runtime, saves each
+When a relevant main-context decision changes, the parent appends its source,
+action/target, conditions and forwarding status to `host-owner.md`, then forwards
+the update through the native channel to the current worker. The worker honors
+the latest applicable user instruction and records receipt, its effect and any
+already-performed action in the existing review notes and replacement handoff.
+The launch context stays immutable; do not rewrite it or restart the runtime to
+carry a new approval or decline. On recovery, reconcile the launch authority with
+these later source-bound decisions before dependent work resumes. If delivery or
+an external outcome is unknown, resolve it before further dependent effects or
+acceptance; a parent log entry alone does not prove the worker received it.
+For a revocation, obtain worker acknowledgement before treating it as applied;
+use native interruption if needed while receipt is unknown. Record a possibly
+started operation as possibly performed and reconcile its actual outcome.
+The owner record remains coordination evidence, never callback authority. A
+decision arriving after completion cannot retroactively change the saved receipt.
+
+The worker invokes the actual Improve card inside its native context, follows
+that card and its bound runtime, saves each
 exact raw packet, and completes its review cycles. It must not recursively
 delegate the whole Improve invocation. Scoped independent review remains
 available where supported without allowing concurrent candidate writers.
 At return, preserve edits and all evidence in place. Include:
 
-- Completed or incomplete outcome and material changes, remaining blockers and
-  relevant lessons; distinguish actual checks from claims.
+- Improve's cumulative completion summary inline: key implemented changes and
+  why they matter, what was learned or corrected across the run, actual
+  validation and remaining work; distinguish actual checks from claims. Only
+  for a successful terminal `complete` child, put the outcome and key changes
+  in the existing completion record's `summary`, and the learning synthesis in
+  `lessons`. An incomplete child returns a partial summary in its native return
+  and retained handoff/evidence, following the existing recovery route without
+  claiming or submitting successful completion.
 - Observed workspace, binding marker, exact latest packet receipt and completion
   evidence paths, final qualifying review/check locators and any revised producer
   result. Include the unchanged parent return instruction as a locator for the
@@ -192,6 +281,11 @@ For other stages it imports once using the exact parent callback, then follows
 the returned packet. Do not report delivery to the caller just because the
 worker finished: a failed return retains the candidate and is still incomplete.
 Do not clean up the execution worktree on native completion.
+
+Carry the accepted changes and learning synthesis into the parent-facing result
+and subsequent relevant context. Reconcile the reported integration/deployment
+state with the parent's actual return outcome; do not substitute receipt paths
+for the substantive summary or report candidate completion as caller delivery.
 
 After interruption, recover the parent with its saved `next` command, read the
 reprinted child receipt locator, then derive and read its sibling `host-owner.md`

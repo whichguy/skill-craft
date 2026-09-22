@@ -1833,7 +1833,8 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
         )
     commit_guidance = (
         "For a genuinely new child, after the meaningful checks required by the current "
-        "scope, commit only authorized changed product or requirements files. Never commit "
+        "scope, commit authorized scoped changed files, including tests, documentation, "
+        "configuration and skills when in scope. Never commit "
         "runtime evidence or inherited unrelated staged work, and do not create an empty "
         "commit unless an explicit audit-every-iteration rule authorizes it. An explicit "
         "user- or repository-authorized no-commit instruction overrides this default. An "
@@ -1848,9 +1849,12 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
         evidence_root = packet_path.parent / "reviews"
         runtime_lines = [
             "Improve context ownership: " + str(Path(__file__).resolve().parent.parent / "references" / "improve-context.md"),
+            "Parent assignment preparation: before invoking Ask Agent, compose the native prompt in the order defined by the context-ownership reference: 'Current context and desired improvements' first, with inline 'Current learnings'; 'Execute Improve' second, explicitly invoking the selected Improve card inside the worker; workspace, authority and return details follow. Fill the opening from the current conversation, repository/worktree observations and relevant accepted results. The navigator cannot supply conversation-only learnings. Retain that opening once at the start of child context.request; preserve material hypotheses and failed attempts with their evidence status.",
             "For a genuinely new invocation, prefer one fresh native worker for the entire Improve loop with exclusive write ownership in the exact Child workspace. Read the context-ownership reference before launch or recovery. Resolve the host-selected Ask Agent and require its ask-agent/consumer-owned-workspace/v1 capability; never use its default extra-worktree route for this bound child.",
+            "Use a normal execution-capable coding agent with the available tools, MCP interactions and skills, including deployments and other operations already authorized for this task and stage. Delegation adds no capability or review-depth restriction; disclose actual host gaps. Parent suggestions guide independent investigation, not an exhaustive checklist. The selected Improve skill owns review, warranted changes, checks, scoped commits and continuation to its completion condition.",
             "Workspace route: consumer-owned; delivery mode: in-place. Native assignment: execution_role: improve-executor; delegation_owner: parent. Freeze the exact candidate scope, selected packages, explicit user/repository authority including any no-commit override, evidence paths and parent continuation before dispatch. Existing invocations keep their recorded owner and frozen authority; unknown ownership blocks replacement.",
             "Native owner record: " + str(packet_path.with_name("host-owner.md")),
+            "Carry current approvals, declines and pending decisions into child context.authority with action/target, conditions and authorization source; summarize their implications in the opening. Do not ask again for an applicable approval or treat a decline as optional advice. Forward later user decisions through the native channel and record receipt/effect in host-owner.md and the worker handoff; keep launch context immutable and continue the same child.",
             "Parent-only return: the worker saves child packets and completion evidence, then returns their locators without executing ShipLoop callbacks or workspace return. The parent collects and verifies the result before executing the exact return route below. Worker completion alone never advances this action.",
             "Child runtime authority: the unique temporary state_file returned by the selected runtime. ShipLoop does not write or count child state.",
             "Child latest packet receipt: " + str(packet_path),
@@ -1868,7 +1872,7 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
             *(
                 [
                     "Freeze the original request, step result and execution/exit/repeat conditions, permitted paths, expected check state, authority and relevant environment in the child's context.",
-                    "For this v4 planning Improve child, retain a compact planning summary plus locators for "
+                    "For this v4 planning Improve child, use the context-first opening as the compact planning summary plus locators for "
                     "the planning experiments guide, investigation notebook, latest packet, owner record, "
                     "parent state and completion evidence. Keep the full parent packet, prompts and verbose "
                     "logs behind those locators; do not duplicate them in the child context.",
@@ -1937,7 +1941,7 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
         *runtime_lines,
         guidance3.improve_prompt(child["stage"]),
         exclusion,
-        "The prior result and relevant accepted Improve lessons are in state.md improve_results and improve/<parent-action>/ receipts. Carry forward only relevant verified lessons; keep blocked-attempt notes in the child notebook.",
+        "The prior result and relevant accepted Improve lessons are in state.md improve_results and improve/<parent-action>/ receipts. Carry forward relevant verified conclusions and material unresolved findings, hypotheses, failed attempts and pitfalls, clearly labeled with evidence status. Preserve essential meaning in the context opening and later handoffs; keep detailed blocked-attempt notes in the child notebook.",
         "On completion, provide two distinct final qualifying review records and current check evidence as absolute local file references. A plan/RED disposition is checked against its own criteria, not future product success. Capture separate durable review files beneath Child workspace if the notebook contains both reviews.",
         "Receipt review_refs and check_refs must be absolute regular single-link non-symlink files under Child workspace above; the importer rejects sibling run/inbox/control paths outside that root. For example: "
         + str(evidence_root / "review-one.md"),

@@ -1721,7 +1721,7 @@ class V3GuidanceTests(unittest.TestCase):
 
         improve = normalized(prompts.improve_prompt("implement"))
         for clause in (
-            "commit only authorized changed product or requirements files",
+            "commit authorized scoped changed files",
             "Never commit runtime evidence or inherited unrelated staged work",
             "do not create an empty commit unless an explicit audit-every-iteration rule authorizes it",
             "explicit user- or repository-authorized no-commit instruction overrides this default",
@@ -1735,6 +1735,28 @@ class V3GuidanceTests(unittest.TestCase):
         self.assertIn("returning to the original source branch triggers CI, deployment", discovery)
         self.assertIn("source-return trigger", prepare)
         self.assertIn("do not return early, deploy, or bypass the final-handoff return guard", prepare)
+
+    def test_improve_retains_coding_and_release_capabilities_with_stage_authority(self) -> None:
+        for stage in prompts.STAGES:
+            with self.subTest(stage=stage):
+                improve = normalized(prompts.improve_prompt(stage))
+                self.assertIn("Use normal coding-agent capabilities", improve)
+                self.assertIn("MCP interactions, skills and authorized deployments", improve)
+                self.assertIn("tests, documentation, configuration and skills when in scope", improve)
+                self.assertIn("independently investigate worthwhile improvements", improve)
+                self.assertNotIn("changed product or requirements files", improve)
+        for stage in RELEASE_OPERATION_STAGES:
+            with self.subTest(release=stage):
+                improve = normalized(prompts.improve_prompt(stage))
+                self.assertIn("operations already authorized for the current task and stage", improve)
+                self.assertIn("Reconcile uncertain or partial outcomes before retrying", improve)
+                self.assertIn("operation remains authorized under the release guidance", improve)
+                self.assertIn("Do not repeat unchanged release effects merely to advance the review streak", improve)
+                self.assertNotIn("Improve does not initiate or replay release effects", improve)
+        planning = normalized(prompts.improve_prompt("plan"))
+        self.assertIn("These restrictions belong to that Backchain child", planning)
+        discovery = normalized(prompts.improve_prompt("discovery"))
+        self.assertIn("may not edit product source", discovery)
 
     def test_discovery_investigation_route_recovers_from_relocated_package(self) -> None:
         """Relocated packets transport the selected locator; they do not prove model use."""

@@ -1411,8 +1411,10 @@ retries, or claim completion from an intermediate candidate. A structural plan, 
 or experiment that merely ran is not execution evidence or a passed experiment.
 Material findings remain visible and cannot clear ordinary Improve.
 
-The Until Loop child is plan-only: it may change the candidate plan and permitted planning
-companions, but may not commit, push, merge, execute the project, or broaden scope.
+The Until Loop child is plan-only when invoked by Backchain for dependency analysis:
+it may change the candidate plan and permitted planning companions, but may not
+commit, push, merge, execute the project, or broaden scope. These restrictions
+belong to that Backchain child, not the separate Improve executor's authority.
 """
     if improve_owner:
         return selection + """\
@@ -1532,8 +1534,13 @@ structural validation or a Backchain result alone does not complete this handoff
         release_guard = """\
 Read and retain Release operation guidance and the current operation/evidence
 locators. Review this stage's plan, readiness checks, or observed outcome within
-its authority; Improve does not initiate or replay release effects for convergence.
-Reconcile uncertain or partial outcomes without inventing provider guarantees.
+its authority. Improve may perform deployments, MCP interactions and other release
+operations already authorized for the current task and stage, with their required
+checks. Do not repeat unchanged release effects merely to advance the review streak.
+Reconcile uncertain or partial outcomes before retrying, without inventing provider guarantees.
+Retry only when the reconciled state warrants it and the operation remains
+authorized under the release guidance; retain the prior operation/receipt identity
+and follow the provider's supported retry or idempotency procedure.
 Material candidate changes require corrective planning and affected revalidation.
 External release N/A still requires applicable local candidate and consumer checks.
 """
@@ -1564,6 +1571,12 @@ Invoke the selected actual Improve skill for {IMPROVE_SCOPES[stage]}.  Read the
 selected skill card and follow the Until Loop runtime bound by that card.  Use the
 parent-provided candidate scope, prior producer result, relevant lessons, expected
 check state, allowed edits, authority, and evidence/return locators.
+Use normal coding-agent capabilities, including available tools, MCP interactions,
+skills and authorized deployments. The context header is a starting assessment:
+independently investigate worthwhile improvements and choose the approach needed
+within the actual task and stage authority. Delegation adds no read-only or
+artificial review-depth restriction. Stage-specific limits below remain specific
+to their assigned work; they are not universal restrictions on Improve.
 Freeze selected staged/unstaged/untracked candidate paths and excluded unrelated
 work in the existing child scope, or retain the exact inventory locator when large.
 An empty initial commit or unmoved HEAD does not replace named untracked candidate
@@ -1700,7 +1713,8 @@ fresh substantive review. Neither unchanged files nor an N/A label waives the
 current stage's decision/evidence review or changes Improve's completion policy.
 
 For a genuinely new child, after the meaningful checks required by the current
-scope, commit only authorized changed product or requirements files. Never
+scope, commit authorized scoped changed files, including tests, documentation,
+configuration and skills when in scope. Never
 commit runtime evidence or inherited unrelated staged work, and do not create
 an empty commit unless an explicit audit-every-iteration rule authorizes it.
 An explicit user- or repository-authorized no-commit instruction overrides this

@@ -5,7 +5,7 @@ description: >-
   loop: use recent Git history, make warranted changes, run meaningful checks,
   and require two consecutive trivial-only review passes. Supports a read-only
   interpretation preview; not a one-off code review.
-version: 0.2.0-rc.7
+version: 0.2.0-rc.8
 license: MIT
 platforms:
   - linux
@@ -27,6 +27,22 @@ Read the shared policy in full before interpreting or executing this skill. It
 defines the reusable review-cycle obligations. The sections below supply this
 standalone consumer's binding, preview behavior, callback evidence, and legacy
 continuation boundary.
+
+Improve is an execution-capable coding agent, not an audit-only role. Within the
+selected entrypoint's task, phase and authority, use the available tools, MCP
+interactions and skills to investigate, produce or revise code, tests, documents
+and configuration, and perform authorized deployments or other operations.
+Running in a delegated context adds no capability restriction. Carry existing
+authorization forward and disclose actual host capability gaps. Parent-only
+control callbacks remain with their owner.
+
+Use your judgment to find worthwhile improvements, including consequential
+issues the initiating context did not anticipate. Suggested fixes are starting
+points, not an exhaustive checklist or a ceiling on review depth or change size.
+Choose the investigation and implementation needed for the candidate; preserve
+the actual scope and accepted requirements. Complete meaningful checks, commit
+authorized changed files according to the binding, and continue after material
+changes until the selected loop's completion condition is met.
 
 For the standalone entrypoint, this package bundles its Until Loop runtime at
 [runtime/until-loop/ADAPTER.md](runtime/until-loop/ADAPTER.md). Resolve symlinks
@@ -127,7 +143,8 @@ and test workers remain available with only one candidate writer. Retain the
 commit policy, including any explicit no-commit override, and the parent-owned `host-owner.md` locator in the
 frozen context. Read that record for orientation; only the parent appends owner,
 acceptance and delivery events. Save the exact child packets and completion
-evidence, finish all writes and collect delegates, then return their absolute
+evidence, finish all writes and collect delegates, then return the cumulative
+[completion summary](#completion-summary) inline with their absolute
 locators, changed paths, actual checks, scoped commit SHAs (or the explicit
 no-commit/no-change reason), stopped status, and the unchanged parent
 continuation. Only the parent verifies and executes that continuation. Edits
@@ -290,16 +307,30 @@ writing a completion record does not authorize callbacks, integration, or delive
 Put the actual commit/no-commit, push/no-push and audit-commit rules in
 `context.authority`. Preserve these record sections and the full ordered cycle
 in the contract; reloading a changed card must not replace accepted user rules.
+Include inherited approvals, declines and pending decisions with the affected
+action or approach, target/scope, conditions and authorization source. Act on
+applicable approvals without asking again, honor declines, and never treat a
+pending request as consent. These are binding decisions, not optional learning
+suggestions; the opening may summarize their practical implications.
+For a later source-bound parent update, honor the latest applicable user
+instruction and retain the decision, receipt and effect in the existing handoff.
+Keep the launch context immutable and continue the same runtime; reconcile it
+with received later decisions on recovery. An unresolved conflict or unknown
+delivery/effect blocks the affected operation, not unrelated authorized work.
 Name the selected Improve card, bound Until Loop card, review policy and any
 required evidence/output locations in `context.resources` with resolved
 locators. Record environment-specific Git/Python paths and actual check commands
 in `context.environment` when needed. The canonical request goes in
 `context.request`.
 
-Retain any parent-supplied **Current learnings** inline in `context.request`
-alongside the canonical request and any required binding marker. For a direct
-invocation, distill relevant learnings already in the current context before
-`start`. Use them to inform the first review and plan, checking candidate-dependent
+Retain the parent-supplied **Current context and desired improvements** opening,
+including **Current learnings**, once at the start of `context.request`, alongside
+the canonical request and any required binding marker. Existing assignments that
+supply only Current learnings keep that content; do not fabricate a missing brief.
+For a direct invocation, distill the current understanding and relevant learnings
+already in context before `start`. Include material unresolved hypotheses and
+failed attempts as well as verified conclusions. Use them to inform the first
+review and plan, checking candidate-dependent
 claims against current artifacts and evidence. Keep facts, decisions and
 unverified assumptions distinct; inherited learnings do not establish a completed
 review, a passing check, or broader authority. Carry still-relevant learnings
@@ -340,6 +371,38 @@ run already made a commit; do not blindly repeat fixes, commits or callbacks.
 If required context or evidence cannot be recovered, report the gap as
 unresolved and stop incomplete when it prevents useful authorized progress.
 
+## Completion summary
+
+Include preparing a cumulative summary in the standalone execution contract.
+Before each `done`, retain the key implemented changes and still-relevant lessons
+from the whole run in the existing `handoff`; the last two no-change reviews must
+not reduce that account to “nothing changed.” After the runtime returns
+`complete`, return a self-contained summary to the caller, inline in the native
+return when delegated:
+
+- **Key implemented changes:** what changed, why it matters, and the relevant
+  paths and commit receipts. Distinguish this run's contributions from inherited
+  work; say explicitly if no change was warranted.
+- **What was learned:** consequential discoveries, corrected assumptions and
+  useful failed approaches, with their evidence and applicability limits.
+  Distinguish newly learned facts from inherited lessons that were confirmed,
+  corrected or retired; keep unresolved hypotheses labeled.
+- **Validation and remaining work:** actual checks and review outcome, unresolved
+  issues, and the observed commit, integration and deployment state. Name any
+  next owner or action without claiming a parent-owned return already happened.
+
+Synthesize from the final handoff and retained evidence across all cycles, not
+only the last review. Retain material parent corrections and current
+approval/decline implications that affect subsequent work; do not discard them
+as orchestration detail. Keep essential conclusions inline and link to supporting
+detail; use the space needed to make the result useful without copying the whole
+iteration log. Preserve the exact terminal receipt separately. For the ShipLoop
+v3/v4 subcall, populate the existing completion record's `summary` with the outcome
+and key changes, and `lessons` with the learning synthesis. Do not add runtime
+fields, reopen a completed loop, or issue another callback to format this report.
+A blocked, stopped or interrupted run returns the same useful account labeled
+partial, with its blocker or recovery action; it is not completion.
+
 ## Preview before execution when requested
 
 “Dry run,” “preview,” “show how you interpret this,” and “do not execute” select
@@ -374,7 +437,14 @@ contract, including conditional commit overrides and negative constraints. The
 execution condition must contain the complete ordered review cycle; the exit
 condition must include current evidence plus two consecutive qualifying reviews;
 and the continuation condition must retain useful authorized work and incomplete
-stops. Then follow the latest returned packet exactly. Execute its full work
+stops. Before start, check that required exit outcomes can be achieved during
+execution. If the task requires an authorized deployment or other external
+operation, include its result and verification in the exit assessment and
+perform it at the appropriate authorized point within the loop. Do not invent a
+rule deferring an exit prerequisite until after completion, or replay an
+unchanged effect merely for another review. Preserve the actual approval's
+conditions and timing instead of adding new approval or review prerequisites.
+Then follow the latest returned packet exactly. Execute its full work
 before calling `done`; consume the whole result and execute the next returned
 instruction while it is active. Do not add a nested plan-convergence loop or
 invent a successor, counter, or terminal decision.
