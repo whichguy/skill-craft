@@ -486,8 +486,12 @@ class V3GuidanceTests(unittest.TestCase):
                 text = normalized(prompts.improve_prompt(stage))
                 self.assertIn("selected staged/unstaged/untracked candidate paths", text)
                 self.assertIn("required surface and due phase", text)
-                self.assertIn("Repeated wording is a review cue", text)
+                self.assertIn("Follow the selected Improve card's review, commit and completion policies", text)
                 self.assertIn("does not require future product checks to pass", text)
+        self.assertIn(
+            "Repeated templated wording is an audit cue only",
+            normalized(IMPROVE_CARD.read_text()),
+        )
         # Inspection of an untracked candidate must not grant edit authority.
         baseline = normalized(prompts.improve_prompt("baseline"))
         self.assertIn("may not edit product source, tests", baseline)
@@ -1719,14 +1723,16 @@ class V3GuidanceTests(unittest.TestCase):
         self.assertIn("`managed-improve`", card)
         self.assertIn("Do not use `managed_controller.py`", card)
 
-        improve = normalized(prompts.improve_prompt("implement"))
+        # Commit policy is owned by the selected Improve card, not repeated
+        # in every stage's handoff. Native experiments test execution of it.
+        improve = normalized(card)
         for clause in (
-            "commit authorized scoped changed files",
-            "Never commit runtime evidence or inherited unrelated staged work",
-            "do not create an empty commit unless an explicit audit-every-iteration rule authorizes it",
-            "explicit user- or repository-authorized no-commit instruction overrides this default",
-            "already frozen child contract keeps its recorded authority on recovery",
-            "exact scoped contribution SHA in the handoff",
+            "commit authorized scoped changes in the bound candidate worktree",
+            "never include runtime receipts or unrelated inherited staging",
+            "no-change review gets an honest host record",
+            "explicit no-commit request",
+            "from an existing invocation, remains binding",
+            "retain the commit SHA in its handoff",
         ):
             self.assertIn(clause, improve)
 
@@ -1737,13 +1743,15 @@ class V3GuidanceTests(unittest.TestCase):
         self.assertIn("do not return early, deploy, or bypass the final-handoff return guard", prepare)
 
     def test_improve_retains_coding_and_release_capabilities_with_stage_authority(self) -> None:
+        card = normalized(IMPROVE_CARD.read_text(encoding="utf-8"))
+        self.assertIn("execution-capable coding agent", card)
+        self.assertIn("tools, MCP interactions and skills", card)
+        self.assertIn("perform authorized deployments", card)
+        self.assertIn("consequential issues the initiating context did not anticipate", card)
         for stage in prompts.STAGES:
             with self.subTest(stage=stage):
                 improve = normalized(prompts.improve_prompt(stage))
-                self.assertIn("Use normal coding-agent capabilities", improve)
-                self.assertIn("MCP interactions, skills and authorized deployments", improve)
-                self.assertIn("tests, documentation, configuration and skills when in scope", improve)
-                self.assertIn("independently investigate worthwhile improvements", improve)
+                self.assertIn("Invoke the selected actual Improve skill", improve)
                 self.assertNotIn("changed product or requirements files", improve)
         for stage in RELEASE_OPERATION_STAGES:
             with self.subTest(release=stage):

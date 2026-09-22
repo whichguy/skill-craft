@@ -1571,12 +1571,8 @@ Invoke the selected actual Improve skill for {IMPROVE_SCOPES[stage]}.  Read the
 selected skill card and follow the Until Loop runtime bound by that card.  Use the
 parent-provided candidate scope, prior producer result, relevant lessons, expected
 check state, allowed edits, authority, and evidence/return locators.
-Use normal coding-agent capabilities, including available tools, MCP interactions,
-skills and authorized deployments. The context header is a starting assessment:
-independently investigate worthwhile improvements and choose the approach needed
-within the actual task and stage authority. Delegation adds no read-only or
-artificial review-depth restriction. Stage-specific limits below remain specific
-to their assigned work; they are not universal restrictions on Improve.
+The selected Improve card supplies execution capabilities and the review loop.
+The stage requirements below qualify this candidate and its authority.
 Freeze selected staged/unstaged/untracked candidate paths and excluded unrelated
 work in the existing child scope, or retain the exact inventory locator when large.
 An empty initial commit or unmoved HEAD does not replace named untracked candidate
@@ -1693,38 +1689,12 @@ supported interfaces and readiness limits. Preserve their durable locators for
 later tests; verify an owned new/changed facility before its dependent checks
 without treating facility readiness as a passing product test.
 
-Improve owns its own review iterations, evidence notebook, continuation, and
-completion judgment.  Do not replace it with an inline review algorithm, copied
-policy, ShipLoop review counter, child phase graph, or guessed runtime command.
-The parent action remains pending while the child is active or blocked.  Resume a
-recorded child through its authoritative state; do not initialize a replacement.
-On accepted child completion, use the packet's parent return route to import the
-bound evidence and lessons once.  Do not advance the SDLC graph yourself.
-
-Ordinary child review notes retain candidate and scope identity; independent
-reviewer availability, use, or permitted fallback; whether reused evidence still
-applies; findings, current checks, and limits; and short decision and reference
-locators for cold recovery. This is review-note guidance, not a synthetic receipt
-schema or a new parent validation rule.
-Retain locators for material actually read in this cycle and the independent
-reviewer used, or unavailable-reviewer fallback rationale. Repeated wording is a
-review cue to inspect that basis; equal or different bytes do not establish a
-fresh substantive review. Neither unchanged files nor an N/A label waives the
-current stage's decision/evidence review or changes Improve's completion policy.
-
-For a genuinely new child, after the meaningful checks required by the current
-scope, commit authorized scoped changed files, including tests, documentation,
-configuration and skills when in scope. Never
-commit runtime evidence or inherited unrelated staged work, and do not create
-an empty commit unless an explicit audit-every-iteration rule authorizes it.
-An explicit user- or repository-authorized no-commit instruction overrides this
-default. An already frozen child contract keeps its recorded authority on
-recovery. Record the exact scoped contribution SHA in the handoff, or the
-authorized no-commit/no-change reason. Keep Until Loop state and child evidence
-out of product commits and integration returns. Refresh affected checks after
-child edits. For a RED-stage handoff, do not make production edits merely to
-turn the expected RED green. For release/verification handoffs, reconcile an
-uncertain external outcome rather than replaying it.
+Follow the selected Improve card's review, commit and completion policies under
+this binding's authority; preserve explicit task overrides and an existing child's
+frozen contract. The parent owns acceptance, callbacks and workspace return.
+For a RED-stage handoff, do not make production edits merely to turn the expected
+RED green. For release/verification handoffs, reconcile an uncertain external
+outcome rather than replaying it.
 """
 
 

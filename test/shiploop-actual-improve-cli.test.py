@@ -353,15 +353,19 @@ class EphemeralImproveCliTests(ImproveCliFixture):
                     "## Workspace, authority, and return"]
         offsets = [body.index(heading) for heading in headings]
         self.assertEqual(offsets, sorted(offsets))
+        self.assertIn("Run /improve using <selected absolute Improve SKILL.md>.", body)
+        for relative in ("skills/ask-agent/SKILL.md",
+                         "skills/ask-agent/references/consumer-owned-workspace.md"):
+            self.assertIn("Run /improve using <selected absolute Improve SKILL.md>",
+                          (ROOT / relative).read_text(encoding="utf-8"))
 
         before = (self.run / "state.md").read_bytes()
         for _ in range(2):
             packet = self.invoke(CLI, "next", "--run-dir", self.run).stdout
             self.assertIn("Parent assignment preparation:", packet)
-            self.assertIn("'Current context and desired improvements' first", packet)
-            self.assertIn("'Execute Improve' second", packet)
+            self.assertIn("Run /improve", packet)
             self.assertIn("navigator cannot supply conversation-only learnings", packet)
-            self.assertIn("deployments and other operations already authorized", packet)
+            self.assertIn("Selected Improve skill: " + str(CARD.resolve()), packet)
             self.assertIn("material unresolved findings, hypotheses, failed attempts", packet)
             self.assertIn("Parent-only return:", packet)
             self.assertIn("approvals, declines and pending decisions into child context.authority", packet)
@@ -429,9 +433,7 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         self.assertIn("Native owner record: " + str(bridge.receipt_path(self.bound).with_name("host-owner.md")), packet)
         self.assertIn("Parent-only return:", packet)
         self.assertIn("Child workspace: " + str(self.repo), packet)
-        self.assertIn("commit authorized scoped changed files", packet)
-        self.assertIn("exact scoped contribution SHA", packet)
-        self.assertIn("frozen child contract keeps its recorded authority", packet)
+        self.assertIn("Commit policy:", packet)
 
         # The candidate is already the worker's workspace. Native completion
         # is simulated here only to test the real parent/import boundary.
@@ -483,10 +485,14 @@ class EphemeralImproveCliTests(ImproveCliFixture):
 
         self.assertIn(user_no_commit, packet)
         self.assertIn(
-            "explicit user- or repository-authorized no-commit instruction overrides this default",
+            "selected Improve card's scoped-commit policy with the task's explicit overrides",
             packet,
         )
-        self.assertIn("exact scoped contribution SHA", packet)
+        self.assertIn("Selected Improve skill: " + str(CARD.resolve()), packet)
+        self.assertIn(
+            "user- or repository-authorized no-commit override, including a frozen override",
+            CARD.read_text(encoding="utf-8"),
+        )
 
     def test_planning_improve_packet_carries_graph_identity_through_real_child_callbacks(self):
         """Synthetic predecessors reach both planning stages; child callbacks are real."""
@@ -600,9 +606,22 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         parent_packet = self.invoke(CLI, "next", "--run-dir", self.run).stdout
         for text in (self.bound["contract_marker"], "Bound Until Loop CLI locator: " + str(EPHEMERAL.resolve()),
                      "Child latest packet receipt: " + str(bridge.receipt_path(self.bound)),
-                     "commit authorized scoped changed files",
+                     "Commit policy:",
                      "Save exact, complete raw JSON stdout", "Completion deletes the child's temporary state"):
             self.assertIn(text, parent_packet)
+
+        # Selected inputs are real before launch. Receipt/evidence paths are
+        # outputs at this point, and must not become dispatch prerequisites.
+        # This checks transport/lifecycle; native fixtures qualify model use.
+        for label, key in (("Selected Improve skill", "skill_card"),
+                           ("Bound Until Loop card", "runtime_card"),
+                           ("Bound Until Loop CLI locator", "runtime_cli")):
+            locator = Path(self.bound["skill"][key])
+            self.assertTrue(locator.is_absolute())
+            self.assertTrue(locator.is_file(), key)
+            self.assertIn(label + ": " + str(locator), parent_packet)
+        self.assertFalse(bridge.receipt_path(self.bound).exists())
+        self.assertFalse((self.run / "inbox" / (self.action + "-improve.md")).exists())
 
         start_raw, first = self.start_ephemeral_child()
         state_file = Path(first["state_file"])

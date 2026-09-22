@@ -1,7 +1,7 @@
 ---
 name: ask-agent
 description: A delegation skill, not an agent type. Ask native agents to work in the background, continue useful work in the main conversation, and incorporate their results when they return. Use for "ask an agent", named agent roles, parallel delegation, or launch-and-notify work.
-version: 0.7.3
+version: 0.7.4
 license: MIT
 platforms:
   - linux
@@ -106,9 +106,13 @@ what should be improved or investigated next. The worker reads this orientation
 before invoking a delegated skill such as Improve; suggested improvements remain
 candidates to assess rather than findings or authorization by themselves.
 For Improve, make **Current context and desired improvements** the first section
-of the native prompt, with **Current learnings** nested within it. Then explicitly
-ask the worker to read and invoke the selected Improve card in its own context,
-followed by the route's complete workspace, authority and return contract.
+of the native prompt, with **Current learnings** nested within it. Follow it with
+`Run /improve using <selected absolute Improve SKILL.md>` once in that worker's
+own context. The selected card and its bound runtime own the Improve algorithm.
+Then give the route's concise, complete workspace, authority, evidence and
+parent-return binding. Keep essential context and actual decisions inline, with
+locators for supporting detail; do not require the worker to copy or read a whole
+parent packet or consumer reference merely to dispatch.
 Give enough repository/worktree context and rationale for independent judgment;
 compact does not mean a fixed length limit or an exhaustive list of allowed ideas.
 Use a Markdown heading and short labeled bullets for facts or corrections,

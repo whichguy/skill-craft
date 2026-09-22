@@ -4,8 +4,10 @@ Use this complete route only when an invoking consumer deliberately delegates
 inside its already-bound candidate workspace. It is separate from Ask Agent's
 helper-managed default: `workspace_route: consumer-owned` pairs only with
 `delivery_mode: in-place`, never with `patch`, `commits`, or `report-only`.
-Read this reference in full before route selection, launch, recovery, acceptance,
-or cleanup.
+The parent uses this reference for route selection, launch, recovery, acceptance
+and cleanup. A worker receives the route's complete concise binding; do not
+require it to copy or read this whole reference or a whole parent packet merely
+to begin its assigned Improve invocation.
 
 The currently declared consumer binding is ShipLoop navigator-v3's bound,
 whole-skill Improve child. Its worker receives `execution_role: improve-executor`
@@ -32,14 +34,23 @@ provide all of the following before a native launch:
   or explicit no-commit authority.
 - The current task's scoped approvals, declines and pending decisions with their
   conditions and authorization sources, using the card's decision handoff rule.
-- The selected Ask Agent, Improve, and runtime identities; a fresh native-context
+- The selected absolute Ask Agent and Improve cards, their selected runtime
+  identities; a fresh native-context
   requirement; the executor role, delegation owner, one-candidate-writer rule,
   and delegate ownership/collection requirements.
-- Required reviews/checks, the evidence root, the exact child terminal-receipt
-  and completion-evidence locators, and the durable `host-owner.md` locator.
+- The current stage's required reviews/checks, the evidence root, the exact
+  child terminal-receipt and completion-evidence locators, and the durable
+  `host-owner.md` locator.
 - The exact parent-only acceptance and continuation instruction, including the
   consumer's later original-caller delivery boundary; the final-delivery owner;
   and the consumer-owned cleanup owner.
+
+Keep the essential meaning of these inputs inline, with locators for supporting
+detail. For an existing input locator, verify that it exists and identifies the
+intended candidate and content before relying on it. An output destination such
+as a child packet or completion receipt before first start need not yet exist and
+must not be fabricated. On recovery, the saved child receipt is a required input:
+verify it and its sibling `host-owner.md` before work resumes.
 
 An ordinary Ask Agent request that does not select this route uses the
 helper-managed default. If a consumer explicitly selects this route but its
@@ -67,10 +78,14 @@ Launch a fresh general-purpose native executor when the host supports the
 consumer's requirement. Do not replace it with inherited conversation context,
 a shell-launched model, an external scheduler, or a new runtime schema. The
 consumer leads that fresh assignment with the parent's current context and
-[inline current learnings](../SKILL.md#carry-current-learnings-inline), then asks
-the worker to invoke the selected Improve skill. It preserves the task's normal
-tool, MCP, skill and authorized deployment capabilities and supplies these literal
-assignment markers after that opening:
+[inline current learnings](../SKILL.md#carry-current-learnings-inline), then says
+`Run /improve using <selected absolute Improve SKILL.md>` once in the worker's
+own context. The selected Improve card owns the review-loop algorithm; the
+assignment supplies the concise complete candidate, authority, evidence and
+parent-return binding without duplicating that algorithm or requiring a whole
+parent packet or this reference. It preserves the task's normal tool, MCP, skill
+and authorized deployment capabilities and supplies these literal assignment
+markers after that opening:
 
 ```text
 workspace_route: consumer-owned
@@ -95,11 +110,11 @@ worker-reported path is not enough.
 
 ## Parent-owned launch and recovery record
 
-The consumer derives `host-owner.md` beside its child `packet.json` in the same
-action directory. It is a durable, append-only parent coordination record, not a
-new scheduler, runtime state schema, or terminal success receipt. Only the
-parent writes it; the worker may read it for orientation but cannot use it to
-select or execute a parent transition.
+The consumer derives `host-owner.md` beside the expected child `packet.json`
+location in the same action directory. It is a durable, append-only parent
+coordination record, not a new scheduler, runtime state schema, or terminal
+success receipt. Only the parent writes it; the worker may read it for
+orientation but cannot use it to select or execute a parent transition.
 
 Before native dispatch, the parent appends a launch-intent entry with the route,
 consumer and selected-package identities, binding marker, canonical candidate
@@ -117,9 +132,10 @@ For a later user decision, append its source, scope/target, conditions and nativ
 forwarding/receipt status here, and send it to the existing worker. This record
 preserves decision provenance; it does not authorize a parent transition.
 
-On recovery, read the child receipt and its sibling `host-owner.md` before any
-new assignment. An intent, a partial record, a missing handle, an uncollected
-return, a running owner, or unknown delegate status blocks replacement,
+On recovery, read the required saved child receipt and its sibling
+`host-owner.md` before any new assignment. An intent, a partial record, a
+missing handle, an uncollected return, a running owner, or unknown delegate
+status blocks replacement,
 acceptance, and cleanup. Collect the old worker or obtain host evidence that it
 never launched or has stopped before another writer can start. An absent record
 on recovery is unknown ownership, not proof that nothing launched. Preserve all

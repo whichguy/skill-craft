@@ -1,4 +1,4 @@
-# ShipLoop navigator 0.19.3
+# ShipLoop navigator 0.19.4
 
 ShipLoop's invoking conversation owns navigation, acceptance and delivery. For
 a new v3/v4 ephemeral Improve invocation, the selected Ask Agent can delegate one

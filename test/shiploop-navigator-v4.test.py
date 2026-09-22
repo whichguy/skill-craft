@@ -382,7 +382,9 @@ class NavigatorV4Tests(unittest.TestCase):
         self.assertIn("collect or confirm the recorded native worker owner", improve)
         self.assertIn("do not duplicate the full parent packet", improve)
         self.assertIn("use the context-first opening as the compact planning summary", improve)
-        self.assertIn("'Current context and desired improvements' first", improve)
+        context_pos = improve.index("fill 'Current context and desired improvements'")
+        invoke_pos = improve.index("Then say 'Run /improve'")
+        self.assertLess(context_pos, invoke_pos)
         self.assertIn("improve-reconcile", improve)
 
         legacy = navigator.new_state(str(self.repo), "Keep v3 stable.", protocol_version=3)

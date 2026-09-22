@@ -1077,15 +1077,16 @@ class NavigatorV3Tests(unittest.TestCase):
                     self.assertIn(
                         "sibling run/inbox/control paths outside that root", normalized_packet
                     )
-                    for detail in (
-                        "Ordinary child review notes retain candidate and scope identity",
-                        "independent reviewer availability, use, or permitted fallback",
-                        "whether reused evidence still applies",
-                        "findings, current checks, and limits",
-                        "short decision and reference locators for cold recovery",
-                        "not a synthetic receipt schema or a new parent validation rule",
-                    ):
-                        self.assertIn(detail, normalized_packet)
+                    # Review-note policy belongs to the selected Improve card;
+                    # the parent retains its binding and receipt constraints.
+                    self.assertIn(
+                        "Selected Improve skill: " + waiting["active_improve"]["skill"]["skill_card"],
+                        normalized_packet,
+                    )
+                    self.assertIn(
+                        "Follow the selected Improve card's review, commit and completion policies",
+                        normalized_packet,
+                    )
 
     def test_outer_replan_adds_corrective_work_without_rewinding_completed_work(self) -> None:
         state = self._to_outer(self.state())
