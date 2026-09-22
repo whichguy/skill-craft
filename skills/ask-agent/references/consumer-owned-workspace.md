@@ -30,9 +30,11 @@ provide all of the following before a native launch:
 - The inherited staged, unstaged, and untracked inventory to preserve; the
   current candidate/target relationship; and any actual contribution SHA policy
   or explicit no-commit authority.
+- The current task's scoped approvals, declines and pending decisions with their
+  conditions and authorization sources, using the card's decision handoff rule.
 - The selected Ask Agent, Improve, and runtime identities; a fresh native-context
   requirement; the executor role, delegation owner, one-candidate-writer rule,
-  and delegate limits.
+  and delegate ownership/collection requirements.
 - Required reviews/checks, the evidence root, the exact child terminal-receipt
   and completion-evidence locators, and the durable `host-owner.md` locator.
 - The exact parent-only acceptance and continuation instruction, including the
@@ -64,8 +66,11 @@ belong only to the helper-managed default.
 Launch a fresh general-purpose native executor when the host supports the
 consumer's requirement. Do not replace it with inherited conversation context,
 a shell-launched model, an external scheduler, or a new runtime schema. The
-consumer includes the parent's [inline current learnings](../SKILL.md#carry-current-learnings-inline)
-in that fresh assignment and supplies these literal assignment markers:
+consumer leads that fresh assignment with the parent's current context and
+[inline current learnings](../SKILL.md#carry-current-learnings-inline), then asks
+the worker to invoke the selected Improve skill. It preserves the task's normal
+tool, MCP, skill and authorized deployment capabilities and supplies these literal
+assignment markers after that opening:
 
 ```text
 workspace_route: consumer-owned
@@ -108,6 +113,9 @@ host-exposed delegate identity, collection evidence, and confirmed stop evidence
 without replacing earlier events. The parent later appends acceptance and caller
 delivery outcomes with locators to bulky evidence. Native handles stay private
 where the host requires it.
+For a later user decision, append its source, scope/target, conditions and native
+forwarding/receipt status here, and send it to the existing worker. This record
+preserves decision provenance; it does not authorize a parent transition.
 
 On recovery, read the child receipt and its sibling `host-owner.md` before any
 new assignment. An intent, a partial record, a missing handle, an uncollected
@@ -124,6 +132,10 @@ compact native return names the task outcome or blocker, observed workspace and
 Git root, binding marker, changed paths and scoped diff/evidence locators, and
 the exact child terminal receipt/completion-evidence paths. It also includes:
 
+- Improve's cumulative key implemented changes and lessons learned inline,
+  with actual validation and remaining work. Preserve this substantive summary
+  in the parent's result after acceptance, updating delivery state to match the
+  parent's observed outcome.
 - Initial and final HEAD; inherited staged, unstaged, and untracked inventory
   with the preservation result; actual contribution SHAs or the explicit
   no-commit reason.

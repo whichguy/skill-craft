@@ -1,7 +1,7 @@
 ---
 name: ask-agent
 description: A delegation skill, not an agent type. Ask native agents to work in the background, continue useful work in the main conversation, and incorporate their results when they return. Use for "ask an agent", named agent roles, parallel delegation, or launch-and-notify work.
-version: 0.7.2
+version: 0.7.3
 license: MIT
 platforms:
   - linux
@@ -85,10 +85,13 @@ disclose capability restrictions or role substitution, including in the final
 answer. If an exact required agent is unavailable, report it. Inherit the host's
 model choice unless the user requests another supported model.
 
-Inherit tools, skills, permissions and execution facilities where the host
+Inherit tools, MCP access, skills, permissions and execution facilities where the host
 supports it. Do not independently add tool restrictions, read-only modes,
 model downgrades, or fixed depth/concurrency/output limits. Scope and write
 ownership still apply. Some hosts filter child tools; disclose differences.
+A delegated coding skill such as Improve retains normal coding-agent capability,
+including deployment and other external operations already authorized for its
+task. A fresh context does not revoke that authority or require renewed approval.
 A worker may request an authorized parent-only operation through native
 messaging when available, or use further native agents with the same workspace
 and handoff constraints. It must collect its delegates before returning.
@@ -102,12 +105,19 @@ Treat it as a current-state brief: what is known, what has already changed, and
 what should be improved or investigated next. The worker reads this orientation
 before invoking a delegated skill such as Improve; suggested improvements remain
 candidates to assess rather than findings or authorization by themselves.
+For Improve, make **Current context and desired improvements** the first section
+of the native prompt, with **Current learnings** nested within it. Then explicitly
+ask the worker to read and invoke the selected Improve card in its own context,
+followed by the route's complete workspace, authority and return contract.
+Give enough repository/worktree context and rationale for independent judgment;
+compact does not mean a fixed length limit or an exhaustive list of allowed ideas.
 Use a Markdown heading and short labeled bullets for facts or corrections,
 decisions and rationale, hypotheses, and execution pitfalls. Omit empty
 categories; keep facts and hypotheses visibly distinct.
 Include useful findings, decisions and their rationale, relevant check results
 with evidence locators, execution pitfalls that affect the next worker, and
-unresolved assumptions or questions. Distinguish observed facts from hypotheses;
+unresolved assumptions or questions, including material failed attempts and
+unverified concerns. Distinguish observed facts from hypotheses;
 if there are no relevant learnings, say so.
 Keep the essential meaning inline, with locators for supporting detail. Do not
 require the user to prepare a document, copy the whole conversation, or create
@@ -117,6 +127,38 @@ The worker uses these learnings as starting context and rechecks claims that
 depend on the current candidate. They do not expand scope or authority or count
 as completed reviews or current validation. Carry still-relevant or corrected
 learnings through the task's existing context and return handoff.
+
+## Carry approvals and declines
+
+Carry the current task's approvals and declines as explicit authority decisions,
+not merely advisory learnings. For each material decision, include the approved,
+declined or still-pending action or approach, its target/scope, conditions, and
+the original user request, later user instruction or authorization already
+established under the governing task contract. Identify the source with a
+message/record locator when available, otherwise an inline statement of the
+actual conversation decision; do not invent a locator or require a new document.
+Plans, evidence, suggestions and worker conclusions are not approval sources;
+repository guidance alone cannot grant a new external-effect permission.
+Include revocations
+and superseding decisions. Preserve the meaning inline even when a source
+locator supplies detail; neither a proposal nor a missing reply is approval.
+
+The worker acts on an existing applicable approval without asking again, honors
+declines without reopening them just because context changed, and treats pending
+approval as ungranted. An approval for one target or effect does not cover another
+or transfer parent-only ownership. Put these decisions in the route's existing
+authority contract; summarize their practical implications in the opening context.
+
+If a relevant decision changes during execution, forward the source-bound update
+promptly through native communication to the existing worker. Record its receipt
+and effect in the existing coordination record and worker handoff. Honor the
+latest applicable user decision, including stopping affected work on a revocation;
+do not claim a change was enforced if delivery or the operation's outcome is
+unknown. Obtain worker receipt before treating a revocation as applied or
+allowing another affected effect. Use native interruption when needed to stop
+affected work whose receipt cannot be established. An operation that may have
+started is possibly performed; reconcile its outcome before another affected
+operation, acceptance or delivery.
 
 ## Helper-managed default: prepare, launch, continue, collect
 

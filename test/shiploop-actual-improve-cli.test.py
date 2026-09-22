@@ -23,8 +23,8 @@ CARD = ROOT / "skills/improve/SKILL.md"
 EPHEMERAL = ROOT / "skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py"
 LEGACY_UNTIL = ROOT / "skills/improve/runtime/until-loop/scripts/until-loop"
 DEFAULT_COMMIT_AUTHORITY = (
-    "After the meaningful checks required by the current scope, commit only authorized "
-    "changed product or requirements files. Never commit runtime evidence or inherited "
+    "After the meaningful checks required by the current scope, commit authorized "
+    "scoped changed files, including tests, documentation, configuration and skills when in scope. Never commit runtime evidence or inherited "
     "unrelated staged work, and do not create an empty commit unless an explicit "
     "audit-every-iteration rule authorizes it."
 )
@@ -344,6 +344,78 @@ class ImproveCliFixture(unittest.TestCase):
 
 
 class EphemeralImproveCliTests(ImproveCliFixture):
+    def test_context_first_assignment_and_learning_header_survive_recovery(self):
+        """Prompt obligations and real transport; semantic use is tested separately."""
+        guide = ROOT / "skills/shiploop/references/improve-context.md"
+        body = guide.read_text(encoding="utf-8")
+        headings = ["## Current context and desired improvements",
+                    "### Current learnings", "## Execute Improve",
+                    "## Workspace, authority, and return"]
+        offsets = [body.index(heading) for heading in headings]
+        self.assertEqual(offsets, sorted(offsets))
+
+        before = (self.run / "state.md").read_bytes()
+        for _ in range(2):
+            packet = self.invoke(CLI, "next", "--run-dir", self.run).stdout
+            self.assertIn("Parent assignment preparation:", packet)
+            self.assertIn("'Current context and desired improvements' first", packet)
+            self.assertIn("'Execute Improve' second", packet)
+            self.assertIn("navigator cannot supply conversation-only learnings", packet)
+            self.assertIn("deployments and other operations already authorized", packet)
+            self.assertIn("material unresolved findings, hypotheses, failed attempts", packet)
+            self.assertIn("Parent-only return:", packet)
+            self.assertIn("approvals, declines and pending decisions into child context.authority", packet)
+            self.assertIn("keep launch context immutable and continue the same child", packet)
+        self.assertEqual((self.run / "state.md").read_bytes(), before)
+
+        header = (
+            "## Current context and desired improvements\n"
+            "Improve this candidate's recovery behavior; preserve the accepted format.\n"
+            "### Current learnings\n"
+            "- Facts/corrections: caller work is staged; preserve its ownership.\n"
+            "- Decisions: retain the format for existing consumers.\n"
+            "- Hypotheses: cold recovery might drop context; not yet established.\n"
+            "- Execution pitfalls: an earlier check used the wrong worktree.\n"
+        )
+        context = self.child_context()
+        context["request"] = header + "\n" + context["request"]
+        decisions = (
+            "Approved: local preview at fixture target after checks; source: user launch instruction. "
+            "Declined: production publication; source: user launch instruction. "
+            "Pending: adding a service dependency; no approval received."
+        )
+        context["authority"] += "\n" + decisions
+        self.child_context = lambda: context
+        _raw, active = self.start_ephemeral_child()
+        _raw, cold = self.invoke_argv(active["next_argv"])
+        self.assertTrue(cold["context"]["request"].startswith(header))
+        self.assertEqual(cold["context"]["request"].count(headings[0]), 1)
+        self.assertEqual(cold["context"], context)
+        self.assertIn(decisions, cold["context"]["authority"])
+        report = self.child_report("unresolved", "unknown", "blocked", "transport fixture ends")
+        learnings = (
+            "## Current learnings\n"
+            "- Facts/corrections: preserve caller-owned staging.\n"
+            "- Decisions: retain the format for existing consumers.\n"
+            "- Hypotheses: semantic context loss remains untested by this transport fixture.\n"
+            "- Execution pitfalls: the earlier wrong-worktree check is not current validation.\n"
+        )
+        report["handoff"] = "## State and remaining work\nTransport fixture stopped.\n" + learnings + "\n## Evidence\n" + report["handoff"]
+        delta = (
+            "Simulated later decision supplied by this transport fixture, not native delivery proof: local preview approval "
+            "revoked before publication; do not publish. Production remains declined "
+            "and service dependency approval remains pending. No publication performed."
+        )
+        report["handoff"] += "\n" + delta
+        _raw, stopped = self.done_ephemeral(cold, report)
+        self.assertEqual(stopped["status"], "stopped")
+        self.assertEqual(stopped["context"]["request"], context["request"])
+        self.assertIn(learnings, stopped["last_report"]["handoff"])
+        self.assertEqual(stopped["context"]["authority"], context["authority"])
+        self.assertIn(delta, stopped["last_report"]["handoff"])
+        self.assertNotIn(headings[0], stopped["last_report"]["handoff"])
+        self.assertEqual((self.run / "state.md").read_bytes(), before)
+
     def test_consumer_owned_context_keeps_edits_and_parent_pending_until_import(self):
         """Actual CLI boundary; review judgments are synthetic, not native proof."""
         before = (self.run / "state.md").read_bytes()
@@ -357,7 +429,7 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         self.assertIn("Native owner record: " + str(bridge.receipt_path(self.bound).with_name("host-owner.md")), packet)
         self.assertIn("Parent-only return:", packet)
         self.assertIn("Child workspace: " + str(self.repo), packet)
-        self.assertIn("commit only authorized changed product or requirements files", packet)
+        self.assertIn("commit authorized scoped changed files", packet)
         self.assertIn("exact scoped contribution SHA", packet)
         self.assertIn("frozen child contract keeps its recorded authority", packet)
 
@@ -515,6 +587,7 @@ class EphemeralImproveCliTests(ImproveCliFixture):
                 self.assertIn("mode when the selected Plan Dispatcher and Ask-Agent contracts are compatible", cold)
 
     def test_default_ephemeral_callbacks_preserve_context_then_import_once(self):
+        """Cumulative report transport, not proof of model review or summarization."""
         self.assertEqual(self.state["navigator_protocol_version"], 3)
         self.assertEqual(self.bound["skill"]["runtime_cli"], str(EPHEMERAL.resolve()))
         self.assertEqual(self.bound["skill"]["runtime_version"], "0.4.0-rc.2")
@@ -527,7 +600,7 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         parent_packet = self.invoke(CLI, "next", "--run-dir", self.run).stdout
         for text in (self.bound["contract_marker"], "Bound Until Loop CLI locator: " + str(EPHEMERAL.resolve()),
                      "Child latest packet receipt: " + str(bridge.receipt_path(self.bound)),
-                     "commit only authorized changed product or requirements files",
+                     "commit authorized scoped changed files",
                      "Save exact, complete raw JSON stdout", "Completion deletes the child's temporary state"):
             self.assertIn(text, parent_packet)
 
@@ -543,12 +616,25 @@ class EphemeralImproveCliTests(ImproveCliFixture):
             for value in self.parent_evidence_refs])
         self.save_packet(cold_raw)
 
-        _raw, second = self.done_ephemeral(cold, self.child_report("non-trivial", "unsatisfied", "allowed", "material finding"))
+        changes = "Synthetic change: preserve every selected report row, including the final row."
+        lessons = (
+            "Synthetic learning: a matching count alone does not prove row contents. "
+            "Retired assumption: dropping the final row was intentional. "
+            "Unresolved hypothesis: large iterables may need separate performance evidence."
+        )
+        cumulative = "\n## Key implemented changes\n" + changes + "\n## Current learnings\n" + lessons
+        material_report = self.child_report("non-trivial", "unsatisfied", "allowed", "material finding")
+        material_report["handoff"] += cumulative
+        _raw, second = self.done_ephemeral(cold, material_report)
         self.assertEqual(second["progress"]["trivial_streak"], 0)
-        _raw, third = self.done_ephemeral(second, self.child_report("trivial", "unsatisfied", "allowed", "first qualifying review"))
+        first_review = self.child_report("trivial", "unsatisfied", "allowed", "first qualifying review")
+        first_review["handoff"] = second["last_report"]["handoff"]
+        _raw, third = self.done_ephemeral(second, first_review)
         self.assertEqual(third["progress"]["trivial_streak"], 1)
         self.assertIn(json.dumps(self._parent_import_argv()), third["last_report"]["handoff"])
-        terminal_raw, terminal = self.done_ephemeral(third, self.child_report("trivial", "satisfied", "allowed", "second qualifying review"))
+        final_review = self.child_report("trivial", "satisfied", "allowed", "second qualifying review")
+        final_review["handoff"] = third["last_report"]["handoff"]
+        terminal_raw, terminal = self.done_ephemeral(third, final_review)
         self.assertEqual(terminal["status"], "complete")
         self.assertEqual(terminal["progress"], {"action_number": 3, "trivial_streak": 2, "required_trivial_reviews": 2})
         self.assertFalse(state_file.exists())
@@ -556,9 +642,12 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         self.assertEqual(terminal["context"], self.child_context())
         self.assertIn(str(self.parent_route_path), terminal["last_report"]["handoff"])
         self.assertIn(json.dumps(self._workspace_return_argv()), terminal["last_report"]["handoff"])
+        self.assertIn(cumulative, terminal["last_report"]["handoff"])
         self.assertFalse((self.repo / ".until-loop").exists())
 
         completion, receipt = self.completion_receipt()
+        receipt.update(summary="Synthetic completed run. " + changes, lessons=lessons)
+        store.write_record(completion, receipt)
         before = (self.run / "state.md").read_bytes()
         self.invoke(CLI, "improve-complete", "--run-dir", self.run, "--action", self.action, "--result", completion)
         after = (self.run / "state.md").read_bytes()
@@ -568,8 +657,11 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         self.assertIsNone(state["active_improve"])
         self.assertEqual(record["runtime_phase"], "complete")
         self.assertEqual(record["seed_result"]["evidence_refs"], self.parent_evidence_refs)
+        self.assertEqual(record["receipt"]["summary"], receipt["summary"])
+        self.assertEqual(record["receipt"]["lessons"], lessons)
         archive = self.run / "improve" / self.action / "terminal.json"
         self.assertEqual(archive.read_bytes(), terminal_raw.stdout)
+        self.assertIn(cumulative, json.loads(archive.read_text())["last_report"]["handoff"])
         self.assertEqual(record["identities"]["terminal_packet_sha256"], hashlib.sha256(terminal_raw.stdout).hexdigest())
         self.assertNotEqual(before, after)
         self.invoke(CLI, "improve-complete", "--run-dir", self.run, "--action", self.action, "--result", completion)
