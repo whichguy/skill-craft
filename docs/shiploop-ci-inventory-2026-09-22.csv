@@ -1,0 +1,130 @@
+id,family,smoke,full,shard,command
+test-groups,core,yes,yes,core,python3 test/test-groups.test.py
+integration-boundaries,core,yes,yes,core,python3 test/integration-boundaries.test.py
+release-push,core,yes,yes,core,python3 test/release-push.test.py
+ask-agent-worktree-harness,core,yes,yes,core,python3 test/ask-agent-worktree-harness.test.py
+ask-agent-workspace,core,yes,yes,core,python3 test/ask-agent-workspace.test.py
+ask-agent-delivery,core,yes,yes,core,python3 test/ask-agent-delivery.test.py
+ask-agent-managed-harness,core,yes,yes,core,python3 test/ask-agent-managed-harness.test.py
+skill-interop-hygiene,core,yes,yes,core,bash test/skill-interop-hygiene.test.sh
+sync-plugin-views,core,yes,yes,core,bash test/sync-plugin-views.test.sh
+native-marketplace-adapters,core,yes,yes,core,bash test/native-marketplace-adapters.test.sh
+marketplace-package,core,yes,yes,core,python3 test/marketplace-package.test.py
+marketplace-host-isolation,core,yes,yes,core,python3 test/marketplace-host-isolation.test.py
+installed-skill-invocation,core,yes,yes,core,python3 test/installed-skill-invocation.test.py
+prompt-marketplace-contract,core,yes,yes,core,python3 test/prompt-marketplace-contract.test.py
+skill-frontmatter,core,yes,yes,core,node test/skill-frontmatter.test.js
+scaffold-skill,core,yes,yes,core,bash test/scaffold-skill.test.sh
+marketplace-run,core,yes,yes,core,bash test/marketplace-run.test.sh
+install-targets,core,yes,yes,core,bash test/install-targets.test.sh
+install-arbitrary-skill,core,yes,yes,core,bash test/install-arbitrary-skill.test.sh
+hermes-binding,core,yes,yes,core,bash test/hermes-binding.test.sh
+install-status-uninstall,core,yes,yes,core,bash test/install-status-uninstall.test.sh
+devloop-run,core,yes,yes,core,bash test/devloop-run.test.sh
+evidence-gates,core,yes,yes,core,bash test/evidence-gates.test.sh
+improve,core,yes,yes,core,bash test/improve.test.sh
+improve-plugin,core,yes,yes,core,python3 test/improve-plugin.test.py
+shiploop-testkit,core,yes,yes,core,bash test/shiploop-testkit.test.sh
+review-coverage,core,yes,yes,core,bash test/review-coverage.test.sh
+dual-body-guard,core,yes,yes,core,bash test/dual-body-guard.test.sh
+test/shiploop-no-model-launch.test.py,shiploop,yes,yes,shiploop-1,python3 -B test/shiploop-no-model-launch.test.py
+test/shiploop-navigator.test.py,shiploop,no,yes,shiploop-2,python3 -B test/shiploop-navigator.test.py
+test/shiploop-navigator-v3.test.py,shiploop,yes,yes,shiploop-3,python3 -B test/shiploop-navigator-v3.test.py
+test/shiploop-navigator-v4.test.py,shiploop,yes,yes,shiploop-1,python3 -B test/shiploop-navigator-v4.test.py
+test/shiploop-stopped-improve.test.py,shiploop,yes,yes,shiploop-2,python3 -B test/shiploop-stopped-improve.test.py
+test/shiploop-v4-consumers.test.py,shiploop,yes,yes,shiploop-3,python3 -B test/shiploop-v4-consumers.test.py
+test/shiploop-standalone-improve.test.py,shiploop,no,yes,shiploop-1,python3 -B test/shiploop-standalone-improve.test.py
+test/shiploop-actual-improve-cli.test.py,shiploop,no,yes,shiploop-2,python3 -B test/shiploop-actual-improve-cli.test.py
+test/shiploop-packet-bounds.test.py,shiploop,yes,yes,shiploop-3,python3 -B test/shiploop-packet-bounds.test.py
+test/shiploop-v3-guidance.test.py,shiploop,no,yes,shiploop-1,python3 -B test/shiploop-v3-guidance.test.py
+test/shiploop-local-skills.test.py,shiploop,no,yes,shiploop-2,python3 -B test/shiploop-local-skills.test.py
+test/experiments/shiploop_ui_allocation/test_evidence.py,shiploop,no,yes,shiploop-3,python3 -B test/experiments/shiploop_ui_allocation/test_evidence.py
+test/shiploop-full-runtime.test.py,shiploop,no,yes,shiploop-1,python3 -B test/shiploop-full-runtime.test.py
+test/shiploop-navigator-dry-run.test.py,shiploop,yes,yes,shiploop-2,python3 -B test/shiploop-navigator-dry-run.test.py
+test/shiploop-auth-readiness.test.py,shiploop,no,yes,shiploop-3,python3 -B test/shiploop-auth-readiness.test.py
+test/shiploop-environment-lifecycle.test.py,shiploop,no,yes,shiploop-1,python3 -B test/shiploop-environment-lifecycle.test.py
+test/shiploop-cross-run.test.py,shiploop,no,yes,shiploop-2,python3 -B test/shiploop-cross-run.test.py
+test/shiploop-workspace.test.py,shiploop,no,yes,shiploop-3,python3 -B test/shiploop-workspace.test.py
+test/shiploop-chain-ledger.test.py,shiploop,no,yes,shiploop-1,python3 -B test/shiploop-chain-ledger.test.py
+test/shiploop-chain-git.test.py,shiploop,no,yes,shiploop-2,python3 -B test/shiploop-chain-git.test.py
+test/shiploop-chain.test.py,shiploop,no,yes,shiploop-3,python3 -B test/shiploop-chain.test.py
+test/shiploop-chain-handoff.test.py,shiploop,no,yes,shiploop-1,python3 -B test/shiploop-chain-handoff.test.py
+test/shiploop-chain-lifecycle.test.py,shiploop,no,yes,shiploop-2,python3 -B test/shiploop-chain-lifecycle.test.py
+test/shiploop-chain-async.test.py,shiploop,yes,yes,shiploop-3,python3 -B test/shiploop-chain-async.test.py
+test/shiploop-planning-context.test.py,shiploop,no,yes,shiploop-1,python3 -B test/shiploop-planning-context.test.py
+test/shiploop-chain-planning-context.test.py,shiploop,no,yes,shiploop-2,python3 -B test/shiploop-chain-planning-context.test.py
+test/experiments/shiploop_chain/test_trace.py,shiploop,no,yes,shiploop-3,python3 -B test/experiments/shiploop_chain/test_trace.py
+test/experiments/shiploop_chain/test_grok_trace.py,shiploop,no,yes,shiploop-1,python3 -B test/experiments/shiploop_chain/test_grok_trace.py
+test/experiments/shiploop_chain/test_native_pilot.py,shiploop,no,yes,shiploop-2,python3 -B test/experiments/shiploop_chain/test_native_pilot.py
+test/shiploop-consumer-delivery.test.py,shiploop,no,yes,shiploop-3,python3 -B test/shiploop-consumer-delivery.test.py
+test/shiploop-consumer-delivery-cli.test.py,shiploop,no,yes,shiploop-1,python3 -B test/shiploop-consumer-delivery-cli.test.py
+test/shiploop-delivery-prompts.test.py,shiploop,no,yes,shiploop-2,python3 -B test/shiploop-delivery-prompts.test.py
+test/experiments/shiploop_delivery/fake_deployment.test.py,shiploop,no,yes,shiploop-3,python3 -B test/experiments/shiploop_delivery/fake_deployment.test.py
+test/experiments/shiploop_delivery/browser_consumer/serve_fixture.test.py,shiploop,no,yes,shiploop-1,python3 -B test/experiments/shiploop_delivery/browser_consumer/serve_fixture.test.py
+test/improve-managed.test.py,shiploop,no,yes,shiploop-2,python3 -B test/improve-managed.test.py
+test/shiploop-graph-driver.test.py,shiploop,yes,yes,shiploop-3,python3 -B test/shiploop-graph-driver.test.py
+test/shiploop-graph-trace.test.py,shiploop,yes,yes,shiploop-1,python3 -B test/shiploop-graph-trace.test.py
+test/shiploop-store.test.py,shiploop,no,yes,shiploop-2,python3 -B test/shiploop-store.test.py
+test/shiploop-evidence.test.py,shiploop,no,yes,shiploop-3,python3 -B test/shiploop-evidence.test.py
+test/shiploop-file-safety.test.py,shiploop,no,yes,shiploop-1,python3 -B test/shiploop-file-safety.test.py
+test/shiploop-prompt-integrity.test.py,shiploop,no,yes,shiploop-2,python3 -B test/shiploop-prompt-integrity.test.py
+test/shiploop-literal-transport.test.py,shiploop,no,yes,shiploop-3,python3 -B test/shiploop-literal-transport.test.py
+test/shiploop-validators.test.py,shiploop,no,yes,shiploop-1,python3 -B test/shiploop-validators.test.py
+test/shiploop-discovery.test.py,shiploop,no,yes,shiploop-2,python3 -B test/shiploop-discovery.test.py
+test/shiploop-capability-fixture.test.py,shiploop,no,yes,shiploop-3,python3 -B test/shiploop-capability-fixture.test.py
+test/shiploop-capability-runtime.test.py,shiploop,no,yes,shiploop-1,python3 -B test/shiploop-capability-runtime.test.py
+test/shiploop-generalized-discovery.test.py,shiploop,no,yes,shiploop-2,python3 -B test/shiploop-generalized-discovery.test.py
+test/shiploop-probe-decisions.test.py,shiploop,no,yes,shiploop-3,python3 -B test/shiploop-probe-decisions.test.py
+test/shiploop-capability-async.test.cjs,shiploop,no,yes,shiploop-1,node test/shiploop-capability-async.test.cjs
+test/shiploop-repeatable-experiments.test.py,shiploop,no,yes,shiploop-2,python3 -B test/shiploop-repeatable-experiments.test.py
+test/shiploop-system-context.test.py,shiploop,no,yes,shiploop-3,python3 -B test/shiploop-system-context.test.py
+test/shiploop-research-template.test.py,shiploop,no,yes,shiploop-1,python3 -B test/shiploop-research-template.test.py
+test/shiploop-research-packet-protocol.test.py,shiploop,no,yes,shiploop-2,python3 -B test/shiploop-research-packet-protocol.test.py
+test/shiploop-question-resume.test.py,shiploop,no,yes,shiploop-3,python3 -B test/shiploop-question-resume.test.py
+test/shiploop-iteration-docs.test.py,shiploop,no,yes,shiploop-1,python3 -B test/shiploop-iteration-docs.test.py
+test/shiploop-iteration-docs-protocol.test.py,shiploop,no,yes,shiploop-2,python3 -B test/shiploop-iteration-docs-protocol.test.py
+test/shiploop-system-tests.test.py,shiploop,no,yes,shiploop-3,python3 -B test/shiploop-system-tests.test.py
+test/shiploop-system-tests-protocol.test.py,shiploop,no,yes,shiploop-1,python3 -B test/shiploop-system-tests-protocol.test.py
+test/shiploop-system-tests-report.test.py,shiploop,no,yes,shiploop-2,python3 -B test/shiploop-system-tests-report.test.py
+test/shiploop-history-policy.test.py,shiploop,no,yes,shiploop-3,python3 -B test/shiploop-history-policy.test.py
+test/shiploop-improve-policy.test.py,shiploop,no,yes,shiploop-1,python3 -B test/shiploop-improve-policy.test.py
+test/shiploop-outer-work.test.py,shiploop,no,yes,shiploop-2,python3 -B test/shiploop-outer-work.test.py
+test/shiploop-outer-work-protocol.test.py,shiploop,no,yes,shiploop-3,python3 -B test/shiploop-outer-work-protocol.test.py
+test/shiploop-observations.test.py,shiploop,no,yes,shiploop-1,python3 -B test/shiploop-observations.test.py
+test/shiploop-observations-protocol.test.py,shiploop,no,yes,shiploop-2,python3 -B test/shiploop-observations-protocol.test.py
+test/shiploop-artifacts.test.py,shiploop,no,yes,shiploop-3,python3 -B test/shiploop-artifacts.test.py
+test/shiploop-artifact-consumers.test.py,shiploop,no,yes,shiploop-1,python3 -B test/shiploop-artifact-consumers.test.py
+test/shiploop-privacy.test.py,shiploop,no,yes,shiploop-2,python3 -B test/shiploop-privacy.test.py
+test/shiploop-revalidation.test.py,shiploop,no,yes,shiploop-3,python3 -B test/shiploop-revalidation.test.py
+test/shiploop-revalidation-context.test.py,shiploop,no,yes,shiploop-1,python3 -B test/shiploop-revalidation-context.test.py
+test/shiploop-risk.test.py,shiploop,no,yes,shiploop-2,python3 -B test/shiploop-risk.test.py
+test/shiploop-boundaries.test.py,shiploop,no,yes,shiploop-3,python3 -B test/shiploop-boundaries.test.py
+test/shiploop-objectives.test.py,shiploop,no,yes,shiploop-1,python3 -B test/shiploop-objectives.test.py
+test/shiploop-contracts.test.py,shiploop,no,yes,shiploop-2,python3 -B test/shiploop-contracts.test.py
+test/shiploop-contract-protocol.test.py,shiploop,no,yes,shiploop-3,python3 -B test/shiploop-contract-protocol.test.py
+test/shiploop-delivery.test.py,shiploop,no,yes,shiploop-1,python3 -B test/shiploop-delivery.test.py
+test/shiploop-report.test.py,shiploop,no,yes,shiploop-2,python3 -B test/shiploop-report.test.py
+test/shiploop-packets.test.py,shiploop,no,yes,shiploop-3,python3 -B test/shiploop-packets.test.py
+test/shiploop-orientation.test.py,shiploop,no,yes,shiploop-1,python3 -B test/shiploop-orientation.test.py
+test/shiploop-loop-scope.test.py,shiploop,no,yes,shiploop-2,python3 -B test/shiploop-loop-scope.test.py
+test/shiploop-orientation-context.test.py,shiploop,no,yes,shiploop-3,python3 -B test/shiploop-orientation-context.test.py
+test/shiploop-orientation-integration.test.py,shiploop,no,yes,shiploop-1,python3 -B test/shiploop-orientation-integration.test.py
+test/shiploop-reference-routing.test.py,shiploop,no,yes,shiploop-2,python3 -B test/shiploop-reference-routing.test.py
+test/shiploop-backchain-guidance.test.py,shiploop,no,yes,shiploop-3,python3 -B test/shiploop-backchain-guidance.test.py
+test/shiploop-teachback.test.py,shiploop,no,yes,shiploop-1,python3 -B test/shiploop-teachback.test.py
+test/shiploop-protocol.test.py,shiploop,no,yes,shiploop-2,python3 -B test/shiploop-protocol.test.py
+test/shiploop-history-pages.test.py,shiploop,no,yes,shiploop-3,python3 -B test/shiploop-history-pages.test.py
+test/shiploop-merge-recovery.test.py,shiploop,no,yes,shiploop-1,python3 -B test/shiploop-merge-recovery.test.py
+test/shiploop-migration-prompt.test.py,shiploop,no,yes,shiploop-2,python3 -B test/shiploop-migration-prompt.test.py
+test/shiploop-knowledge.test.py,shiploop,no,yes,shiploop-3,python3 -B test/shiploop-knowledge.test.py
+test/shiploop-planning.test.py,shiploop,no,yes,shiploop-1,python3 -B test/shiploop-planning.test.py
+test/shiploop-until.test.py,shiploop,no,yes,shiploop-2,python3 -B test/shiploop-until.test.py
+test/shiploop-step-planning.test.py,shiploop,no,yes,shiploop-3,python3 -B test/shiploop-step-planning.test.py
+test/shiploop-sdlc.test.py,shiploop,no,yes,shiploop-1,python3 -B test/shiploop-sdlc.test.py
+test/shiploop-improve-bridge.test.py,shiploop,no,yes,shiploop-2,python3 -B test/shiploop-improve-bridge.test.py
+test/shiploop-managed-contracts.test.py,shiploop,no,yes,shiploop-3,python3 -B test/shiploop-managed-contracts.test.py
+test/shiploop-invalidation.test.py,shiploop,no,yes,shiploop-1,python3 -B test/shiploop-invalidation.test.py
+test/shiploop-managed-invalidation.test.py,shiploop,no,yes,shiploop-2,python3 -B test/shiploop-managed-invalidation.test.py
+test/shiploop-managed-package.test.py,shiploop,no,yes,shiploop-3,python3 -B test/shiploop-managed-package.test.py
+test/shiploop-managed-walk.test.py,shiploop,no,yes,shiploop-1,python3 -B test/shiploop-managed-walk.test.py
+test/shiploop-action-walk.test.py,shiploop,no,yes,shiploop-2,python3 -B test/shiploop-action-walk.test.py

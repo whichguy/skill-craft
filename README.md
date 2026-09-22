@@ -180,19 +180,20 @@ skills/<name>/
 ## Tests
 
 ```sh
-bash test/run-all.sh                   # complete local hermetic aggregate; no installed AI host
-bash test/run-all.sh --group smoke     # core plus six ShipLoop graph/boundary checks
-bash test/run-all.sh --group core      # packaging, installer and contract checks
-bash test/run-all.sh --group shiploop  # complete ShipLoop suite, including one action walk
-bash test/shiploop.test.sh --smoke     # only the selected ShipLoop smoke subset
-bash test/run-all.sh --list            # inspect the exact suite inventory
+bash test/run-all.sh                                  # full hermetic regression
+bash test/run-all.sh --group smoke                    # partial core + ShipLoop feedback
+bash test/run-all.sh --group ask-agent                # helper and consumer boundaries
+bash test/run-all.sh --group shiploop-composition     # cross-skill integration
+bash test/run-all.sh --group ask-agent --group shiploop-composition --list
 ```
 
-`smoke` is the routine CI tier for pull requests and `main` pushes. It is deliberately
-partial: it covers the core package checks and the selected ShipLoop graph, callback,
-packet, and no-model-launch checks, but it is not full-regression evidence. The
-no-argument local command remains the complete aggregate. See
-[test/README.md](test/README.md) for selection, qualification, and live-E2E boundaries.
+Local and GitHub runs share one explicit catalog. Code PRs and every `main` push
+run full regression; allowlisted documentation-only PRs run smoke. Full includes
+the source E2E apparatus and historical experiments, with balanced ShipLoop
+shards. CI uses latest stable runtimes and retains source/version/result receipts.
+Component unions execute shared entries once. See [test/README.md](test/README.md)
+for the exact policy, cleanup rules, current-Dispatcher qualification and the
+separate installed/native/live evidence boundaries.
 
 Hermes is an optional integration, not a prerequisite for repository CI.
 Mocked host-binding tests remain in the hermetic suite; tests needing real engines,

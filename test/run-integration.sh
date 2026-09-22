@@ -19,9 +19,15 @@ Optional commands (never part of default CI):
   marketplace-grok    Install local candidate plugins in a disposable Grok profile.
   marketplace-codex   Install local candidate plugins in a disposable Codex profile.
   marketplace-codex-ask-agent  Exercise installed Ask Agent in a disposable Codex profile.
+  current-dispatcher --dispatcher-skill /absolute/SKILL.md --output /new/absolute/dir
+                    Qualify the offline native-pilot composition against a
+                    clean, explicitly selected current Dispatcher checkout.
 
 weather-* requires DEVLOOP_HOME and DEVLOOP_WEATHER_REPO. weather-live is the
 only command that can enter the live weather path; it sets the mode itself.
+current-dispatcher is local-only: it neither fetches a dependency nor launches
+a model or native agent. Its output directory must be new and outside both
+source checkouts.
 EOF
 }
 
@@ -62,6 +68,10 @@ case "${1:-list}" in
   marketplace-codex-ask-agent)
     [[ "$#" == "1" ]] || { usage >&2; exit 64; }
     exec python3 "$root/test/marketplace-host-smoke.py" --host codex --ask-agent
+    ;;
+  current-dispatcher)
+    shift
+    exec python3 -B "$root/test/current_dispatcher.py" "$@"
     ;;
   *)
     printf 'run-integration: unknown command %q\n' "$1" >&2

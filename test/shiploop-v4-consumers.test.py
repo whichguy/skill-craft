@@ -6,7 +6,6 @@ bundled ephemeral runtime and importer; this is not a model-behavior test.
 """
 from __future__ import annotations
 import copy
-import importlib.util
 import json
 from pathlib import Path
 import subprocess
@@ -25,20 +24,15 @@ import shiploop_chain as chain
 import shiploop_navigator_dry_run as dry_run
 
 
-def load_fixture(name, path):
-    spec = importlib.util.spec_from_file_location(name, ROOT / path)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
-
-
-context_fixture = load_fixture('v4_context_fixture', 'test/shiploop-planning-context.test.py')
-delivery_fixture = load_fixture('v4_delivery_fixture', 'test/shiploop-consumer-delivery.test.py')
-
+from shiploop_consumer_delivery_support import (
+    contract as delivery_contract,
+    local_contract as local_delivery_contract,
+)
+from shiploop_planning_context_support import PlanningContextFixture
 
 class V4ConsumersTests(unittest.TestCase):
     def setUp(self):
-        self.f = context_fixture.PlanningContextTests('runTest')
+        self.f = PlanningContextFixture('runTest')
         self.f.setUp()
         self.addCleanup(self.f.doCleanups)
         self.f.state = nav.new_state(str(self.f.repo.resolve()), 'Reconcile planning sources', protocol_version=4)
@@ -244,7 +238,7 @@ class V4ConsumersTests(unittest.TestCase):
         self.f.to_implement()
         collected = context.collect(self.f.run.resolve(), self.f.state, self.f.graph, self.f.graph_source)
         self.assertFalse(collected['missing_required'], collected['missing_required'])
-        self.assertEqual(context_fixture.PlanningContextTests.artifact(collected['manifest'], note)['required_for'], ['*'])
+        self.assertEqual(PlanningContextFixture.artifact(collected['manifest'], note)['required_for'], ['*'])
         self.assertFalse(any(
             row['path'] == str(undeclared.resolve()) for row in collected['manifest']['artifacts']
         ))
@@ -265,7 +259,7 @@ class V4ConsumersTests(unittest.TestCase):
     def test_stale_delivery_contract_keeps_authority_lineage_but_cannot_unlock_plan(self):
         # Consumer projection accepts compact synthetic histories; it must use
         # the same invalidation projection without erasing correction authority.
-        contract = delivery_fixture.contract()
+        contract = delivery_contract()
         state = {'navigator_protocol_version': 4, 'delivery_contract_version': 1,
                  'history': [
                      {'action': 'spec-old', 'stage': 'spec', 'outcome': 'done', 'workitem': None},
@@ -280,7 +274,7 @@ class V4ConsumersTests(unittest.TestCase):
         self.assertIsNotNone(projected['replan_required'])
         with self.assertRaisesRegex(delivery.ConsumerDeliveryError, 'superseded'):
             delivery.validate_transition(state, 'plan-new', 'plan', {'outcome': 'done', 'summary': 'No correction'})
-        weakened = delivery_fixture.local_contract()
+        weakened = local_delivery_contract()
         with self.assertRaisesRegex(delivery.ConsumerDeliveryError, 'user-approved'):
             delivery.validate_transition(state, 'plan-new', 'plan', {
                 'outcome': 'done', 'summary': 'Unauthorized weakening',

@@ -8,13 +8,18 @@ import os
 from pathlib import Path
 import shutil
 import subprocess
+import sys
 import tempfile
+import time
 import unittest
+
+import current_dispatcher
 
 
 ROOT = Path(__file__).resolve().parents[1]
 WEATHER = ROOT / "test" / "devloop-gas-weather-native.test.sh"
 RUNNER = ROOT / "test" / "run-integration.sh"
+DISPATCHER_V3 = ROOT / "test" / "fixtures" / "plan-dispatcher-v3" / "SKILL.md"
 
 
 def invoke(argv: list[str], env: dict[str, str]) -> subprocess.CompletedProcess[str]:
@@ -55,6 +60,26 @@ class IntegrationBoundaryTests(unittest.TestCase):
         (self.engine / "engine-capabilities.json").write_text(
             json.dumps({"transports": ["grok"]})
         )
+
+    def git(self, checkout: Path, *args: str) -> str:
+        result = subprocess.run(
+            ["git", "-C", str(checkout), *args], text=True, capture_output=True, timeout=30,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+        return result.stdout.strip()
+
+    def external_dispatcher_checkout(self) -> tuple[Path, Path]:
+        checkout = self.fixture / "dispatcher-checkout"
+        package = checkout / "skills" / "plan-dispatcher"
+        shutil.copytree(DISPATCHER_V3.parent, package)
+        checkout.mkdir(exist_ok=True)
+        self.git(checkout, "init", "-q", "-b", "main")
+        self.git(checkout, "config", "user.name", "Integration Boundary")
+        self.git(checkout, "config", "user.email", "integration-boundary@example.invalid")
+        self.git(checkout, "add", ".")
+        self.git(checkout, "commit", "-qm", "clean dispatcher fixture")
+        self.git(checkout, "remote", "add", "origin", "https://example.invalid/plan-orchestrator.git")
+        return checkout, package / "SKILL.md"
 
     def assert_preflight_preserves_sentinels(self, result: subprocess.CompletedProcess[str]) -> None:
         self.assertEqual(2, result.returncode, result.stdout + result.stderr)
@@ -117,6 +142,12 @@ class IntegrationBoundaryTests(unittest.TestCase):
             self.assertEqual(0, result.returncode, result.stdout + result.stderr)
             self.assertIn("weather-offline", result.stdout)
             self.assertIn("cursor-imports", result.stdout)
+            self.assertIn("current-dispatcher", result.stdout)
+
+        current_help = invoke(["bash", str(RUNNER), "current-dispatcher", "--help"], empty_env)
+        self.assertEqual(0, current_help.returncode, current_help.stdout + current_help.stderr)
+        self.assertIn("--dispatcher-skill", current_help.stdout)
+        self.assertIn("--output", current_help.stdout)
 
         result = invoke(["bash", str(RUNNER), "not-a-command"], empty_env)
         self.assertEqual(64, result.returncode)
@@ -176,6 +207,92 @@ class IntegrationBoundaryTests(unittest.TestCase):
         self.assertIn(f"repo={self.repo}", result.stdout)
         self.assertIn(f"engine={self.engine}", result.stdout)
         self.assertTrue((self.repo / "tests" / "test_weather_contract.py").is_file())
+
+    def test_current_dispatcher_rejects_nonabsolute_or_missing_selection_before_output(self) -> None:
+        cases = (
+            ("relative/SKILL.md", "--dispatcher-skill must be an absolute path"),
+            (str(self.fixture / "missing" / "SKILL.md"), "must be an existing regular file"),
+        )
+        for index, (dispatcher, expected) in enumerate(cases):
+            with self.subTest(dispatcher=dispatcher):
+                output = self.fixture / f"current-dispatcher-output-{index}"
+                result = invoke(
+                    ["bash", str(RUNNER), "current-dispatcher", "--dispatcher-skill", dispatcher,
+                     "--output", str(output)],
+                    self.environment(),
+                )
+                self.assertEqual(2, result.returncode, result.stdout + result.stderr)
+                self.assertIn(expected, result.stderr)
+                self.assertFalse(output.exists())
+
+    def test_current_dispatcher_requires_a_clean_external_checkout_and_external_output(self) -> None:
+        checkout, card = self.external_dispatcher_checkout()
+        (checkout / "operator-note.txt").write_text("dirty fixture\n", encoding="utf-8")
+        output = self.fixture / "dirty-dispatcher-output"
+        result = invoke(
+            ["bash", str(RUNNER), "current-dispatcher", "--dispatcher-skill", str(card),
+             "--output", str(output)],
+            self.environment(),
+        )
+        self.assertEqual(2, result.returncode, result.stdout + result.stderr)
+        self.assertIn("must be clean", result.stderr)
+        self.assertFalse(output.exists())
+
+        (checkout / "operator-note.txt").unlink()
+        result = invoke(
+            ["bash", str(RUNNER), "current-dispatcher", "--dispatcher-skill", str(card),
+             "--output", str(checkout / "receipt")],
+            self.environment(),
+        )
+        self.assertEqual(2, result.returncode, result.stdout + result.stderr)
+        self.assertIn("outside the selected dispatcher checkout", result.stderr)
+        self.assertFalse((checkout / "receipt").exists())
+
+    def test_current_dispatcher_package_hashes_detect_drift(self) -> None:
+        package = self.fixture / "dispatcher-package"
+        shutil.copytree(DISPATCHER_V3.parent, package)
+        card = package / "SKILL.md"
+        before = current_dispatcher.package_hashes(card)
+        card.write_text(card.read_text(encoding="utf-8") + "\n<!-- changed -->\n", encoding="utf-8")
+        after = current_dispatcher.package_hashes(card)
+        with self.assertRaisesRegex(current_dispatcher.QualificationError, "changed during qualification"):
+            current_dispatcher.assert_unchanged("selected dispatcher package", before, after)
+
+    def test_current_dispatcher_timeout_kills_a_term_ignoring_descendant(self) -> None:
+        child = self.fixture / "term-ignoring-child.py"
+        leader = self.fixture / "leader.py"
+        marker = self.fixture / "child-pid"
+        child.write_text(
+            "import os, signal, sys, time\n"
+            "signal.signal(signal.SIGTERM, signal.SIG_IGN)\n"
+            "open(sys.argv[1], 'w', encoding='utf-8').write(str(os.getpid()))\n"
+            "while True: time.sleep(1)\n",
+            encoding="utf-8",
+        )
+        leader.write_text(
+            "import subprocess, sys, time\n"
+            "child = subprocess.Popen([sys.executable, sys.argv[1], sys.argv[2]])\n"
+            "while not __import__('pathlib').Path(sys.argv[2]).exists(): time.sleep(.01)\n"
+            "while True: time.sleep(1)\n",
+            encoding="utf-8",
+        )
+        exit_code, timed_out, _, _ = current_dispatcher.run_with_process_group(
+            [sys.executable, str(leader), str(child), str(marker)], self.environment(), timeout_seconds=0.2,
+        )
+        self.assertEqual(124, exit_code)
+        self.assertTrue(timed_out)
+        child_pid = int(marker.read_text(encoding="utf-8"))
+        deadline = time.monotonic() + 2
+        while True:
+            inspected = subprocess.run(
+                ["ps", "-o", "stat=", "-p", str(child_pid)], text=True, capture_output=True, check=False,
+            )
+            state = inspected.stdout.strip()
+            if inspected.returncode != 0 or not state or state.startswith("Z"):
+                break
+            if time.monotonic() >= deadline:
+                self.fail("term-ignoring descendant survived process-group cleanup")
+            time.sleep(0.02)
 
 
 if __name__ == "__main__":

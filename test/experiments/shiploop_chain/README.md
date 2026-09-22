@@ -53,6 +53,17 @@ parent-controlled control records; workers do not write them. The target
 advances after every accepted step. `finish` audits that already-integrated
 target; it does not perform a final worker-to-target merge.
 
+## Offline current-package qualification
+
+The ordinary `test_native_pilot.py` regression uses the frozen V3 Dispatcher
+fixture. To qualify an external current package, use the explicit
+[`current-dispatcher` command](../../README.md#qualify-the-current-dispatcher).
+It requires clean source/dependency checkouts and records the chosen commit,
+package hashes, logs and result outside both checkouts. It exercises offline
+composition only; the native launch procedure below supplies different evidence.
+An ambient installed skill or environment variable cannot replace the default
+hermetic fixture.
+
 ## Prepare
 
 Use a fresh absolute directory outside the source checkout.
