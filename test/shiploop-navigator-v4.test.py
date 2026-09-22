@@ -39,8 +39,9 @@ class NavigatorV4Tests(unittest.TestCase):
     def setUp(self) -> None:
         self.temp = tempfile.TemporaryDirectory(prefix="shiploop-navigator-v4-")
         self.addCleanup(self.temp.cleanup)
-        self.repo = Path(self.temp.name) / "project"
-        self.run = Path(self.temp.name) / "run"
+        self.temp_root = Path(self.temp.name).resolve()
+        self.repo = self.temp_root / "project"
+        self.run = self.temp_root / "run"
         self.repo.mkdir()
         self.run.mkdir()
         self.skill = bridge.resolve_skill(str(ROOT / "skills" / "improve" / "SKILL.md"))
@@ -297,6 +298,34 @@ class NavigatorV4Tests(unittest.TestCase):
         self.assertNotIn((None, "plan"), current)
         self.assertIn((None, "intake"), current)
 
+    def test_reconcile_matches_the_bound_workspace_by_canonical_identity(self) -> None:
+        alias = self.temp_root / "project-alias"
+        alias.symlink_to(self.repo, target_is_directory=True)
+        state = navigator.new_state(
+            str(alias), "Reconcile a plan through a workspace alias.", protocol_version=4,
+        )
+        while navigator.current_stage(state) != "plan":
+            state = self.complete_synthetic(state)
+        waiting, action, child = self.bound_plan_child(state)
+        receipt = {
+            "summary": "The aliased planning premise requires reconciliation.",
+            "target": "research",
+            "evidence_refs": [str(self.repo / "alias-evidence.md")],
+        }
+        record = self.synthetic_stopped_record(child, action, receipt)
+        record["workspace"] = str(self.repo.resolve())
+
+        other = self.temp_root / "other-workspace"
+        other.mkdir()
+        mismatched = copy.deepcopy(record)
+        mismatched["workspace"] = str(other)
+        with self.assertRaisesRegex(navigator.NavigatorError, "does not match"):
+            navigator.reconcile(waiting, action, mismatched, receipt)
+
+        updated = navigator.reconcile(waiting, action, record, receipt)
+        self.assertEqual(updated["improve_results"][action]["workspace"], str(self.repo.resolve()))
+        self.assertEqual(navigator.current_stage(updated), "research")
+
     def test_reconcile_is_rejected_by_normal_success_paths_and_after_prepare(self) -> None:
         state = self.at_plan()
         action = navigator.current_action(state)["id"]
@@ -392,7 +421,10 @@ class NavigatorV4Tests(unittest.TestCase):
             return descriptor
 
         with mock.patch.object(revision.os, "open", side_effect=open_then_substitute):
-            with self.assertRaisesRegex(revision.PlanningRevisionError, "changed while it was read"):
+            with self.assertRaisesRegex(
+                revision.PlanningRevisionError,
+                "changed while it was read|must be a regular single-link file",
+            ):
                 revision._regular_file(self.run, "improve/action/receipt.md", "test archive")
 
     def test_cli_defaults_to_v3_and_accepts_explicit_v4(self) -> None:
@@ -400,7 +432,7 @@ class NavigatorV4Tests(unittest.TestCase):
         self.assertEqual(navigator.MAX_SUPPORTED_PROTOCOL_VERSION, 4)
 
         def initialize(name: str, version: int | None) -> dict:
-            run = Path(self.temp.name) / name
+            run = self.temp_root / name
             argv = [
                 sys.executable, "-B", str(SCRIPTS / "shiploop"), "init",
                 "--repo", str(self.repo), "--run-dir", str(run),

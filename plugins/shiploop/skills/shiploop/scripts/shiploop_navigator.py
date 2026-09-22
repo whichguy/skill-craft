@@ -924,6 +924,23 @@ def _reconcile_receipt(value: Any) -> dict[str, Any]:
     }
 
 
+def _canonical_workspace_identity(value: Any) -> str | None:
+    """Resolve one bound workspace as the standalone bridge does."""
+    if not isinstance(value, str) or not value:
+        return None
+    path = Path(value)
+    if not path.is_absolute():
+        return None
+    try:
+        resolved = path.resolve(strict=True)
+        metadata = resolved.lstat()
+    except (OSError, RuntimeError):
+        return None
+    if not stat.S_ISDIR(metadata.st_mode) or stat.S_ISLNK(metadata.st_mode):
+        return None
+    return str(resolved)
+
+
 def _reconciliation_permitted(state: Mapping[str, Any], action_id: str) -> Mapping[str, Any]:
     _need(state["navigator_protocol_version"] == 4,
           "improve-reconcile requires navigator protocol 4")
@@ -982,10 +999,14 @@ def reconcile(
 
     child = _reconciliation_permitted(state, action_id)
     returned = dict(record) if isinstance(record, Mapping) else None
+    returned_workspace = _canonical_workspace_identity(
+        returned.get("workspace") if returned is not None else None
+    )
+    child_workspace = _canonical_workspace_identity(child.get("workspace"))
     _need(returned is not None and returned.get("binding_id") == child["binding_id"]
           and returned.get("action_id") == action_id
           and returned.get("stage") == "plan"
-          and returned.get("workspace") == child["workspace"]
+          and returned_workspace is not None and returned_workspace == child_workspace
           and returned.get("skill") == child["skill"]
           and returned.get("seed_result") == child["seed_result"]
           and returned.get("runtime_phase") == "stopped"

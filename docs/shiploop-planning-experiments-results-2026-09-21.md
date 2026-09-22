@@ -15,19 +15,21 @@ describes the bounded experiment cycle, ownership, and recovery behavior.
 The preregistered [pilot protocol and reproducible probes](../test/experiments/shiploop_planning_experiments/README.md)
 separate two questions: whether explicit experiment guidance improves decisions,
 and whether ShipLoop can safely incorporate findings that invalidate earlier
-planning artifacts. The baseline already found both planted mistakes. That does
+planning artifacts. Both arms found the same two planted mistakes, and the independent grader found
+no candidate-only consequential improvement. That does
 not justify changing the default on planning-quality grounds.
 
-| Case | Required observation or decision | Baseline observation |
+| Case | Required observation or decision | Baseline and candidate observation |
 | --- | --- | --- |
-| A: shared seeded SQLite state | Independent worker processes must see the coordinator's rows. | Separate `:memory:` databases did not share rows; a named file did. Research and plan need correction. |
+| A: shared seeded SQLite state | Independent worker processes must see the coordinator's rows. | Separate `:memory:` databases did not share rows. Research and plan need correction. The baseline also ran a named-file positive control. |
 | B: no-overwrite publication | Existing destination bytes must survive a failed publication attempt. | `Path.rename` returned successfully while replacing destination bytes. Test strategy and plan need correction. |
 | C: sufficient supplied evidence | Reuse current same-target evidence without a redundant probe. | No target execution; reused the supplied fixture. |
 | D: target unavailable | Keep the premise unresolved. | No target execution; incomplete outcome. |
 
-A and B used actual native model work, local probes, and the selected Improve/
+Both arms used one actual probe per A/B case, zero new probes for C, and no
+target execution for D. A and B used actual native model work, local probes, and the selected Improve/
 Until callbacks. Their prior ShipLoop stages used explicitly synthetic receipts
-to reach the component under examination. Both baseline children returned actual
+to reach the component under examination. All four A/B children returned actual
 `stopped` packets with non-trivial, unsatisfied, cancelled reports; neither
 claimed successful convergence. C and D are decision controls using fixture
 inputs, not independent live-system measurements.
@@ -80,12 +82,21 @@ host-accounted Markdown guidance, not a new runtime budget counter.
   and archives one snapshot, with a regression test.
 - Review required preserving the exported default protocol policy and binding
   archive checks to the opened file rather than a preceding path check.
+- The first native candidate parent callback found a real path-alias mismatch:
+  the bridge canonicalized the workspace to `/private/tmp`, while a valid saved
+  binding used `/tmp`. Parent state was preserved. The fix compares the bound
+  workspace using the bridge's canonical identity; a different workspace still
+  fails. The frozen failed attempt remains part of the experiment evidence.
 
 The initial stopped-bridge test runner also used the wrong working directory;
 no tests ran in that attempt. Its corrected invocation passed all seven tests
 against an unchanged source fingerprint. A later integrated-check dispatch was
 cancelled before execution when its source fingerprint changed. Neither setup
-attempt is counted as test evidence.
+attempt is counted as test evidence. The first focused navigator-v4 suite then
+reported seven passes and two failures: one fixture supplied an alias rather
+than its printed receipt path, and the race fixture expected a later rejection
+message instead of the earlier valid single-link rejection. Those fixture
+issues are distinct from the native trial's workspace-comparison defect.
 
 ## Verification and release
 
