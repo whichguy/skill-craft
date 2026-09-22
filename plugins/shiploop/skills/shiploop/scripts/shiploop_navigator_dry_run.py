@@ -74,7 +74,7 @@ def activity_v3(*, two=False):
 
 
 def scenarios(protocol_version=2):
-    if protocol_version == 3:
+    if protocol_version in (3, 4):
         return {
             'delivery': {'steps': activity_v3()},
             'two-work-items': {'steps': activity_v3(two=True)},
@@ -119,7 +119,7 @@ def scenarios(protocol_version=2):
 
 def _owner(state):
     """Name the serialized cursor owner without creating another cursor schema."""
-    if state.get('navigator_protocol_version') in (2, 3) and state.get('stage') == 'inner-loop':
+    if state.get('navigator_protocol_version') in (2, 3, 4) and state.get('stage') == 'inner-loop':
         return state['work_items'][state['work_index']]['id']
     return 'root'
 
@@ -146,7 +146,7 @@ def run_scenario(name, scenario, *, protocol_version=2):
             '/simulation-only/repo',
             'Inspect the SDLC graph with synthetic declarations.',
             protocol_version=protocol_version,
-            **({'improve_skill': ''} if protocol_version == 3 else {}),
+            **({'improve_skill': ''} if protocol_version in (3, 4) else {}),
         )
         for index, step in enumerate(rows, 1):
             if not isinstance(step, dict) or not {'at', 'expect'} <= set(step):
@@ -204,7 +204,7 @@ def add_arguments(parser):
     selected.add_argument('--scenario', choices=('all', *scenarios()), default='all')
     selected.add_argument('--script', help='JSON activity with explicit expected stages and synthetic result declarations')
     parser.add_argument('--format', choices=('summary', 'json', 'markdown'), default='summary')
-    parser.add_argument('--protocol-version', choices=(2, 3), type=int, default=3,
+    parser.add_argument('--protocol-version', choices=(2, 3, 4), type=int, default=3,
                         help='navigator protocol to simulate; default follows public navigator v3')
     parser.add_argument('--list', action='store_true')
 

@@ -38,6 +38,7 @@ import uuid
 import shiploop_navigator as navigator
 import shiploop_navigator_v3_prompts as navigator_v3_prompts
 import shiploop_store as store
+import shiploop_planning_revision as planning_revision
 
 
 _BINDING_SCHEMA = "shiploop-chain-binding/v4"
@@ -282,6 +283,7 @@ def _load_state(root: Path) -> dict[str, Any]:
         _fail("authoritative ShipLoop state.md must contain an object")
     try:
         navigator.validate(value)
+        planning_revision.validate_archives(value, root)
     except ValueError as exc:
         raise ChainError(f"invalid navigator state: {exc}") from exc
     return value
@@ -298,12 +300,12 @@ def _current_action(state: Mapping[str, Any]) -> tuple[str, str]:
 
 def _require_bindable(state: Mapping[str, Any], action_id: str) -> None:
     current, stage = _current_action(state)
-    if state.get("navigator_protocol_version") != 3:
-        _fail("ShipLoop chain requires a navigator-v3 run")
+    if state.get("navigator_protocol_version") not in (3, 4):
+        _fail("ShipLoop chain requires a navigator-v3 or navigator-v4 run")
     if state.get("status") != "active":
         _fail("ShipLoop chain bind requires an active navigator")
     if current != action_id or stage != "implement":
-        _fail("ShipLoop chain binds only the current navigator-v3 implement action")
+        _fail("ShipLoop chain binds only the current navigator implement action")
     if state.get("active_improve") is not None:
         _fail("ShipLoop chain cannot bind while the current implement action has active Improve")
 

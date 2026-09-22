@@ -21,6 +21,7 @@ from urllib.parse import unquote, urlsplit
 
 import shiploop_navigator as navigator
 import shiploop_store as store
+import shiploop_planning_revision as planning_revision
 
 
 SCHEMA = "shiploop-planning-artifacts/v1"
@@ -237,10 +238,7 @@ def _current_workitem(state: Mapping[str, Any]) -> str:
 
 def _entry_classifications(state: Mapping[str, Any], current_workitem: str) -> dict[str, str]:
     """Separate active planning from other-item and superseded history entries."""
-    latest_done: dict[tuple[str | None, str], str] = {}
-    for entry in state["history"]:
-        if entry["stage"] in _PLANNING_STAGES and entry["outcome"] == "done":
-            latest_done[(entry["workitem"], entry["stage"])] = entry["action"]
+    latest_done = planning_revision.current_actions(state)
 
     output: dict[str, str] = {}
     for entry in state["history"]:
@@ -431,7 +429,7 @@ def _briefing(
     lines = [
         "# Planning reference statements",
         "",
-        "This is deterministic reference material from accepted navigator-v3 planning output.",
+        "This is deterministic reference material from accepted navigator planning output.",
         "The assigned graph step contract is the sole task prompt. These reference statements do not redefine or expand it.",
         "It contains planner-authored material only; it does not carry runtime cursor or worker status.",
         "",
@@ -641,8 +639,9 @@ def _real_improve_record(record: Any, binding_id: str) -> bool:
 def _stored_improve_record(record: Mapping[str, Any]) -> dict[str, Any]:
     """Navigator-only import additions are not present in the archived receipt."""
     output = dict(record)
-    output.pop("seed_result", None)
-    output.pop("submission", None)
+    if record.get("runtime_phase") != "stopped":
+        output.pop("seed_result", None)
+        output.pop("submission", None)
     return output
 
 
@@ -800,17 +799,18 @@ def collect(
     run_root = _absolute_root(root)
     try:
         navigator.validate(state)
+        planning_revision.validate_archives(state, run_root)
     except ValueError as exc:
         _fail("invalid navigator state: " + str(exc))
-    if state.get("navigator_protocol_version") != 3:
-        _fail("planning context requires navigator-v3 state")
+    if state.get("navigator_protocol_version") not in (3, 4):
+        _fail("planning context requires navigator-v3 or navigator-v4 state")
     try:
         action = navigator.current_action(state)
         stage = navigator.current_stage(state)
     except ValueError as exc:
         _fail("cannot resolve current navigator action: " + str(exc))
     if stage != "implement":
-        _fail("planning context binds only the current navigator-v3 implement action")
+        _fail("planning context binds only the current navigator implement action")
     action_id = action["id"]
     current_workitem = _current_workitem(state)
     graph_ids = _graph_step_ids(graph)
@@ -837,7 +837,7 @@ def collect(
         required_for = _default_required_for(classification)
         relative = "results/" + accepted_action + ".md"
         expected = {
-            "navigator_protocol_version": 3,
+            "navigator_protocol_version": state["navigator_protocol_version"],
             "run_id": state["run_id"],
             "action": accepted_action,
             "stage": entry["stage"],

@@ -7,6 +7,14 @@ persists SDLC traversal. Improve follows the Until Loop runtime bound by its
 selected card and owns review iterations, child state, and convergence. The
 script imports one matching child result before it selects another producer.
 
+A fresh opt-in protocol 4 run uses the same stage graph and adds
+[experiment-informed planning](planning-experiments.md). Its initial Plan Improve
+child can return a stopped, evidenced upstream-reconciliation need. The parent
+archives it through `improve-reconcile`, records a non-success result, and reruns
+the fixed suffix from discovery, research, spec, or test strategy. This is the
+only added pre-dispatch edge; successful Improve import keeps its normal gate.
+V1–V3 saved states keep their existing shapes and behavior.
+
 ```mermaid
 flowchart LR
   P[Current producer prompt] --> R[Producer result]

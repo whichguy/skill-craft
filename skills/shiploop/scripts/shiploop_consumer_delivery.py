@@ -14,6 +14,7 @@ import html
 import re
 from typing import Any
 
+import shiploop_planning_revision as planning_revision
 
 DELIVERY_CONTRACT_VERSION = 1
 _ANCHOR = re.compile(r"^[A-Za-z][A-Za-z0-9_-]{0,159}$")
@@ -93,7 +94,7 @@ def _need(condition: bool, message: str) -> None:
 
 
 def _replan_message(protocol_version: Any) -> str:
-    if protocol_version == 3:
+    if protocol_version in (3, 4):
         return (
             "The required delivery contract changed after release planning and requires replanning through "
             "the accepted outer replan edge, followed by fresh system-test and release-plan "
@@ -437,6 +438,14 @@ def _blank_projection(enabled: bool) -> dict[str, Any]:
     }
 
 
+def _superseded_planning_anchor(state: Mapping[str, Any], anchor: str | None) -> bool:
+    if state.get("navigator_protocol_version") != 4 or anchor is None:
+        return False
+    entry = next((row for row in state["history"] if row["action"] == anchor), None)
+    return (entry is not None and entry["stage"] in planning_revision.PLANNING_STAGES
+            and anchor not in planning_revision.current_actions(state).values())
+
+
 def project(state: Mapping[str, Any]) -> dict[str, Any]:
     """Rehydrate the effective contract from accepted results only.
 
@@ -453,7 +462,7 @@ def project(state: Mapping[str, Any]) -> dict[str, Any]:
     protocol_version = state.get("navigator_protocol_version")
     post_plan_mutation_stages = (
         _V3_POST_RELEASE_PLAN_MUTATION_STAGES
-        if protocol_version == 3 else _LEGACY_POST_RELEASE_PLAN_MUTATION_STAGES
+        if protocol_version in (3, 4) else _LEGACY_POST_RELEASE_PLAN_MUTATION_STAGES
     )
     release_plan_completed = False
     post_plan_replan_pending = False
@@ -480,7 +489,7 @@ def project(state: Mapping[str, Any]) -> dict[str, Any]:
                     material_change = _material_post_plan_change(
                         previous, assessment["contract"]
                     )
-                    if (protocol_version == 3 and post_plan_replan_pending
+                    if (protocol_version in (3, 4) and post_plan_replan_pending
                             and material_change):
                         fresh_system_test_after_replan = False
                     if (release_plan_completed
@@ -508,7 +517,7 @@ def project(state: Mapping[str, Any]) -> dict[str, Any]:
                     action=entry["action"],
                     stage=entry["stage"],
                 )
-        if protocol_version == 3 and entry["outcome"] == "replan":
+        if protocol_version in (3, 4) and entry["outcome"] == "replan":
             # Every accepted v3 edge starts a corrective inner cycle, so a prior
             # release plan cannot cover a candidate changed by that later work.
             release_plan_completed = False
@@ -518,15 +527,24 @@ def project(state: Mapping[str, Any]) -> dict[str, Any]:
                 # system-test and release-plan evidence for the current contract.
                 post_plan_replan_pending = True
                 fresh_system_test_after_replan = False
-        if (protocol_version == 3 and post_plan_replan_pending
+        if (protocol_version in (3, 4) and post_plan_replan_pending
                 and entry["stage"] == "system-test" and entry["outcome"] == "done"):
             fresh_system_test_after_replan = True
         if entry["stage"] == "release-plan" and entry["outcome"] == "done":
-            if (protocol_version == 3 and post_plan_replan_pending
+            if (protocol_version in (3, 4) and post_plan_replan_pending
                     and fresh_system_test_after_replan):
                 projection["replan_required"] = None
                 post_plan_replan_pending = False
             release_plan_completed = True
+    if protocol_version == 4 and projection["anchor"] is not None:
+        # Retain the full correction lineage so a reconciliation cannot erase
+        # user-authority requirements. A superseded anchor is useful only as
+        # the source of a correction; it cannot authorize the new plan.
+        if _superseded_planning_anchor(state, projection["anchor"]):
+            projection["replan_required"] = (
+                "Planning reconciliation superseded this delivery contract. Retain its anchor "
+                "for an explicit correction and accept a fresh contract before the new plan."
+            )
     return projection
 
 
@@ -593,11 +611,13 @@ def validate_transition(
     if result["outcome"] != "done":
         return projection
     required_contract_stage = (
-        "plan" if state.get("navigator_protocol_version") == 3 else "plan-improve"
+        "plan" if state.get("navigator_protocol_version") in (3, 4) else "plan-improve"
     )
     if stage == required_contract_stage:
         _need(projection["contract"] is not None,
               f"delivery contract is required before successful {required_contract_stage}")
+        if state.get("navigator_protocol_version") == 4:
+            _need(projection["replan_required"] is None, projection["replan_required"])
     elif stage == "system-test":
         _need(not _pending(projection, phase="system-test"),
               "required pre-update obligations are not current")
@@ -716,7 +736,7 @@ def packet_lines(state: Mapping[str, Any]) -> list[str]:
     ]
     contract = projection["contract"]
     if contract is None:
-        required_stage = "plan" if state.get("navigator_protocol_version") == 3 else "plan-improve"
+        required_stage = "plan" if state.get("navigator_protocol_version") in (3, 4) else "plan-improve"
         lines.extend(
             [
                 "Delivery contract: none accepted yet.",
@@ -772,7 +792,13 @@ def packet_lines(state: Mapping[str, Any]) -> list[str]:
         )
     if projection["replan_required"] is not None:
         lines.append("Delivery replanning required: " + projection["replan_required"])
-        if state.get("navigator_protocol_version") == 3:
+        if _superseded_planning_anchor(state, projection["anchor"]):
+            lines.append(
+                "During the renewed planning suffix, submit a fresh contract that explicitly "
+                "supersedes this historical anchor and preserves applicable user authority. "
+                "The earlier contract cannot authorize preparation."
+            )
+        elif state.get("navigator_protocol_version") in (3, 4):
             lines.append(
                 "Use the accepted outer replan edge with new corrective work_items; if that edge already "
                 "returned this run to inner work, complete the fresh system-test and release-plan cycle for "
@@ -789,7 +815,7 @@ def packet_lines(state: Mapping[str, Any]) -> list[str]:
             "Delivery recovery required: earlier required observations are no longer current: "
             + ", ".join(_packet_text(row["id"]) for row in late_rows) + "."
         )
-        if state.get("navigator_protocol_version") == 3:
+        if state.get("navigator_protocol_version") in (3, 4):
             lines.append(
                 "This action cannot positively repair an earlier phase. Use the accepted outer replan edge "
                 "with corrective work_items; do not repeat or resume this action as a substitute for the "

@@ -965,9 +965,17 @@ def managed_workspace_from_packet(root: Path, context: dict[str, Any], step: str
             or helper.get("sha256") != identity.get("helper_sha256")):
         fail("fresh managed start packet does not retain the frozen Ask-Agent package identity")
     check_context = managed["check_context"]
-    expected_check_context = [sys.executable, helper["path"], "check-context", "--receipt", str(receipt)]
+    check_argv = check_context.get("argv") if isinstance(check_context, dict) else None
+    expected_arguments = [helper["path"], "check-context", "--receipt", str(receipt)]
     if (not isinstance(check_context, dict) or check_context.get("cwd") != str(worker)
-            or check_context.get("argv") != expected_check_context):
+            or not isinstance(check_argv, list) or len(check_argv) != 5
+            or not isinstance(check_argv[0], str) or check_argv[1:] != expected_arguments):
+        fail("fresh managed start packet has no helper context-check command")
+    # The bridge uses the frozen interpreter; Python may report another symlink
+    # spelling. Bind its canonical identity while retaining the exact emitted argv.
+    if absolute_path(check_argv[0], "helper Python", exists=True) != absolute_path(
+        context["selected"]["python"], "frozen pilot Python", exists=True,
+    ):
         fail("fresh managed start packet has no helper context-check command")
     delivery = managed["delivery"]
     if (not isinstance(delivery, dict) or delivery.get("mode") != "commits"

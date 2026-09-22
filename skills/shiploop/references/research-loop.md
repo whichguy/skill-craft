@@ -746,3 +746,12 @@ shows important limits without external feedback. These motivate evidence-backed
 iteration, not a guarantee of completeness or this exact two-pass threshold.
 The threshold is ShipLoop's explicit operational stopping rule; semantic
 adequacy, source interpretation and live-source truth still require judgment.
+
+## Plan-triggered experiments in navigator v4
+
+The opt-in [planning experiment guide](planning-experiments.md) applies this
+evidence and allowance policy to assumptions exposed by a provisional plan.
+Plan Improve owns the experiment work through its existing Until Loop. A finding
+that invalidates earlier research, requirements or testing returns through the
+packet-issued pre-dispatch reconciliation path. The same investigation notebook
+and host-accounted allowance follow that suffix; a new action is not a refill.

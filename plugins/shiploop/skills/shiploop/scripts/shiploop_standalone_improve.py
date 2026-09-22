@@ -39,6 +39,8 @@ _RESOURCE_FIELDS = {"purpose", "locator"}
 _REPORT_FIELDS = {
     "classification", "exit_assessment", "continuation_assessment", "evidence", "handoff",
 }
+_INCOMPLETE_RECEIPT_FIELDS = {"summary", "target", "evidence_refs"}
+_RECONCILIATION_TARGETS = {"discovery", "research", "spec", "test-strategy"}
 _TERMINAL_PACKET_FIELDS = {
     "status", "state_file", "workspace", "work", "conditions", "progress", "context",
     "context_limit", "status_semantics", "last_report", "instruction", "next_argv",
@@ -51,6 +53,7 @@ __all__ = [
     "complete",
     "receipt_path",
     "resolve_skill",
+    "settle_incomplete",
 ]
 
 
@@ -479,6 +482,12 @@ def _local_reference(workspace: Path, locator: str, value: Any, label: str) -> s
     return str(file_path.relative_to(workspace))
 
 
+def _absolute_local_reference(workspace: Path, locator: str, value: Any, label: str) -> str:
+    _need(isinstance(value, str) and value.strip(), f"{label} must be a local path")
+    _need(Path(value).is_absolute(), f"{label} must be an absolute local path")
+    return _local_reference(workspace, locator, value, label)
+
+
 def _receipt(receipt: Mapping[str, Any], workspace: Path, locator: str) -> dict[str, Any]:
     _need(isinstance(receipt, Mapping), "Improve receipt must be an object")
     allowed = {"summary", "review_refs", "check_refs", "lessons", "final_result"}
@@ -503,6 +512,29 @@ def _receipt(receipt: Mapping[str, Any], workspace: Path, locator: str) -> dict[
     if "final_result" in receipt:
         copied["final_result"] = _copy(receipt["final_result"], "receipt final result")
     return copied
+
+
+def _incomplete_receipt(receipt: Mapping[str, Any], workspace: Path, locator: str) -> dict[str, Any]:
+    """Normalize a non-success reconciliation submission without success fields."""
+    _need(isinstance(receipt, Mapping) and set(receipt) == _INCOMPLETE_RECEIPT_FIELDS,
+          "incomplete Improve receipt has unsupported or missing fields")
+    target = receipt.get("target")
+    _need(isinstance(target, str) and target in _RECONCILIATION_TARGETS,
+          "incomplete Improve receipt target is invalid")
+    raw_references = receipt.get("evidence_refs")
+    _need(isinstance(raw_references, list) and bool(raw_references),
+          "incomplete Improve receipt requires at least one evidence reference")
+    references = [
+        _absolute_local_reference(workspace, locator, value, "incomplete Improve evidence reference")
+        for value in raw_references
+    ]
+    _need(len(set(references)) == len(references),
+          "incomplete Improve evidence references must be distinct")
+    return {
+        "summary": _text(receipt.get("summary"), "incomplete Improve receipt summary"),
+        "target": target,
+        "evidence_refs": references,
+    }
 
 
 def _last_result_path(run_dir: Path, state: Mapping[str, Any]) -> Path | None:
@@ -544,6 +576,27 @@ def _evidence_archives(workspace: Path, action: str, receipt: Mapping[str, Any])
             "sha256": _digest(raw),
         })
     return writes, entries
+
+
+def _incomplete_evidence_snapshot(
+    workspace: Path, action: str, receipt: Mapping[str, Any],
+) -> tuple[dict[str, str], list[dict[str, str]], dict[str, str]]:
+    """Capture each declared incomplete evidence file once for archive and identity."""
+    writes: dict[str, str] = {}
+    entries: list[dict[str, str]] = []
+    identities: dict[str, str] = {}
+    for index, reference in enumerate(receipt["evidence_refs"], start=1):
+        raw = _read_workspace(workspace, Path(reference), "incomplete Improve receipt evidence")
+        archive_path = f"improve/{action}/evidence/{index:02d}-{Path(reference).name}"
+        digest = _digest(raw)
+        writes[archive_path] = _utf8(raw, "incomplete Improve receipt evidence")
+        identities[reference] = digest
+        entries.append({
+            "source": reference,
+            "archive": archive_path,
+            "sha256": digest,
+        })
+    return writes, entries, identities
 
 
 def _runtime_digest(value: Any) -> str:
@@ -626,6 +679,44 @@ def _ephemeral_report(value: Any) -> dict[str, str]:
     }
 
 
+def _ephemeral_stopped_report(value: Any) -> dict[str, str]:
+    """Validate a stopped report without changing success-import validation."""
+    _need(isinstance(value, Mapping) and set(value) == _REPORT_FIELDS,
+          "Until Loop stopped last_report has an invalid schema")
+    classification = value.get("classification")
+    exit_assessment = value.get("exit_assessment")
+    continuation = value.get("continuation_assessment")
+    _need(isinstance(classification, str) and classification in {"trivial", "non-trivial", "unresolved"},
+          "Until Loop stopped report classification is invalid")
+    _need(isinstance(exit_assessment, str) and exit_assessment in {"satisfied", "unsatisfied", "unknown"},
+          "Until Loop stopped report exit assessment is invalid")
+    _need(isinstance(continuation, str) and continuation in {"allowed", "blocked", "cancelled"},
+          "Until Loop stopped report continuation assessment is invalid")
+    return {
+        "classification": classification,
+        "exit_assessment": exit_assessment,
+        "continuation_assessment": continuation,
+        "evidence": _text(value.get("evidence"), "Until Loop stopped report evidence"),
+        "handoff": _text(value.get("handoff"), "Until Loop stopped report handoff"),
+    }
+
+
+def _terminal_state_absent(value: Any) -> str:
+    """Require a terminal ephemeral state path to be absent without trusting it."""
+    state_file = _text(value, "Until Loop terminal state_file")
+    path = Path(state_file)
+    _need(path.is_absolute(), "Until Loop terminal state_file must be absolute")
+    try:
+        path.lstat()
+    except FileNotFoundError:
+        return state_file
+    except (OSError, RuntimeError) as exc:
+        raise StandaloneImproveError(
+            "Until Loop terminal state_file cannot be checked for absence"
+        ) from exc
+    raise StandaloneImproveError("Until Loop terminal state_file remains present")
+
+
 def _ephemeral_terminal_packet(
     packet: Mapping[str, Any], *, workspace: Path, binding_id: str,
 ) -> tuple[dict[str, Any], dict[str, Any], dict[str, str]]:
@@ -682,6 +773,57 @@ def _ephemeral_terminal_packet(
     return _copy(dict(packet), "Until Loop terminal packet"), context, report
 
 
+def _ephemeral_stopped_packet(
+    packet: Mapping[str, Any], *, workspace: Path, binding_id: str,
+) -> tuple[dict[str, Any], dict[str, Any], dict[str, str]]:
+    """Validate the exact stopped packet saved by the bound ephemeral runtime."""
+    _need(isinstance(packet, Mapping) and set(packet) == _TERMINAL_PACKET_FIELDS,
+          "Until Loop stopped packet has an unsupported schema")
+    _need(packet.get("status") == "stopped", "Until Loop stopped packet is not stopped")
+    _terminal_state_absent(packet.get("state_file"))
+    packet_workspace = _workspace(packet.get("workspace"), "Until Loop stopped workspace")
+    _need(packet_workspace == workspace, "Until Loop stopped packet is bound to another workspace")
+    _text(packet.get("work"), "Until Loop stopped work")
+    conditions = packet.get("conditions")
+    _need(isinstance(conditions, Mapping) and set(conditions) == {"exit", "repeat"},
+          "Until Loop stopped conditions have an invalid schema")
+    _text(conditions.get("exit"), "Until Loop stopped exit condition")
+    _text(conditions.get("repeat"), "Until Loop stopped repeat condition")
+    progress = packet.get("progress")
+    _need(isinstance(progress, Mapping) and set(progress) == {
+        "action_number", "trivial_streak", "required_trivial_reviews",
+    }, "Until Loop stopped progress has an invalid schema")
+    action_number = _integer(progress.get("action_number"), "Until Loop stopped action number", minimum=1)
+    trivial_streak = _integer(progress.get("trivial_streak"), "Until Loop stopped trivial streak")
+    _integer(progress.get("required_trivial_reviews"), "Until Loop stopped required trivial reviews")
+    _need(trivial_streak <= action_number,
+          "Until Loop stopped progress has an incoherent trivial streak")
+    _need(packet.get("context_limit") is None,
+          "Until Loop stopped packet lacks immutable continuity context")
+    context = _ephemeral_context(packet.get("context"))
+    _need(_marked_request_binding_id(context["request"], "Until Loop stopped context") == binding_id,
+          "Until Loop stopped context is not bound to this ShipLoop action")
+    semantics = packet.get("status_semantics")
+    _need(isinstance(semantics, Mapping) and set(semantics) == {
+        "active", "complete", "stopped", "error",
+    }, "Until Loop stopped status semantics have an invalid schema")
+    for status, description in semantics.items():
+        _text(status, "Until Loop stopped status semantics key")
+        _text(description, "Until Loop stopped status semantics value")
+    report = _ephemeral_stopped_report(packet.get("last_report"))
+    _need(report["classification"] in {"non-trivial", "unresolved"},
+          "Until Loop stopped report is not incomplete")
+    _need(report["exit_assessment"] in {"unsatisfied", "unknown"},
+          "Until Loop stopped report has an invalid exit assessment")
+    _need(report["continuation_assessment"] == "cancelled",
+          "Until Loop stopped report was not cancelled")
+    _text(packet.get("instruction"), "Until Loop stopped instruction")
+    _need(packet.get("next_argv") is None and packet.get("done_argv") is None
+          and packet.get("report_schema") is None,
+          "Until Loop stopped packet still exposes a callback")
+    return _copy(dict(packet), "Until Loop stopped packet"), context, report
+
+
 def _complete_ephemeral(
     binding: Mapping[str, Any], receipt: Mapping[str, Any], *, action: str,
     binding_id: str, workspace: Path, workspace_value: str, resolved: Mapping[str, str],
@@ -727,6 +869,57 @@ def _complete_ephemeral(
             "and current declared local evidence. It does not prove the packet was issued by the "
             "runtime, review or check claims, candidate scope, semantic Improve convergence, or "
             "future freshness; those remain the selected Improve skill and parent action's responsibility."
+        ),
+    }
+    archive[f"{prefix}/receipt.md"] = store.dumps(record, "ShipLoop standalone Improve receipt")
+    return record, archive
+
+
+def _settle_incomplete_ephemeral(
+    binding: Mapping[str, Any], receipt: Mapping[str, Any], *, action: str,
+    binding_id: str, workspace: Path, workspace_value: str, resolved: Mapping[str, str],
+) -> tuple[dict[str, Any], dict[str, str]]:
+    """Import one host-preserved stopped packet for an incomplete plan reconciliation."""
+    packet_relative = _receipt_relative(binding_id, action)
+    packet_raw = _read_workspace(workspace, packet_relative, "Until Loop stopped packet")
+    packet, context, report = _ephemeral_stopped_packet(
+        _json(packet_raw, "Until Loop stopped packet"), workspace=workspace, binding_id=binding_id,
+    )
+    checked_receipt = _incomplete_receipt(receipt, workspace, workspace_value)
+    submission = _copy(dict(receipt), "incomplete Improve receipt submission")
+    prefix = f"improve/{action}"
+    archive: dict[str, str] = {
+        f"{prefix}/terminal.json": _utf8(packet_raw, "Until Loop stopped packet"),
+    }
+    evidence_writes, evidence_entries, evidence_digests = _incomplete_evidence_snapshot(
+        workspace, action, checked_receipt,
+    )
+    archive.update(evidence_writes)
+    record = {
+        "version": VERSION,
+        "binding_id": binding_id,
+        "workspace": str(workspace),
+        "action_id": action,
+        "stage": binding["stage"],
+        "seed_result": _copy(binding["seed_result"], "pending result"),
+        "skill": dict(resolved),
+        "runtime_phase": "stopped",
+        "identities": {
+            "terminal_packet_sha256": _digest(packet_raw),
+            "context_sha256": _runtime_digest(context),
+            "last_report_sha256": _runtime_digest(report),
+            "evidence_sha256": evidence_digests,
+        },
+        "evidence": evidence_entries,
+        "submission": submission,
+        "receipt": checked_receipt,
+        "stale_check_note": (
+            "This import records a host-preserved structurally valid stopped Until Loop packet, "
+            "the observed absence of the packet-reported state_file path, and current declared "
+            "local evidence. That missing path does not authenticate the selected worker's death. "
+            "This import does not prove the packet was issued by the runtime, establish review "
+            "claims, candidate scope, semantic Improve convergence, or future freshness. "
+            "The parent must collect or cancel the actual worker before this settlement."
         ),
     }
     archive[f"{prefix}/receipt.md"] = store.dumps(record, "ShipLoop standalone Improve receipt")
@@ -811,6 +1004,29 @@ def complete(binding: Mapping[str, Any], receipt: Mapping[str, Any]) -> tuple[di
             workspace_value=workspace_value, resolved=resolved,
         )
     return _complete_v2(
+        binding, receipt, action=action, binding_id=binding_id, workspace=workspace,
+        workspace_value=workspace_value, resolved=resolved,
+    )
+
+
+def settle_incomplete(
+    binding: Mapping[str, Any], receipt: Mapping[str, Any],
+) -> tuple[dict[str, Any], dict[str, str]]:
+    """Archive a stopped selected ephemeral plan child without importing success.
+
+    The caller must first collect or cancel the actual child worker. A preserved
+    packet can establish only the stopped runtime declaration and the observed
+    absence of its private state file; it cannot authenticate worker death.
+    """
+    action, binding_id, workspace, workspace_value = _binding_identity(binding)
+    skill = binding["skill"]
+    resolved = resolve_skill(_text(skill.get("skill_card"), "bound skill card"))
+    _need(resolved == dict(skill), "bound Improve runtime differs from selected card")
+    _need(Path(resolved["runtime_cli"]).name == _EPHEMERAL_CLI,
+          "stopped settlement is unsupported for durable legacy Until Loop runs")
+    _need(binding.get("stage") == "plan",
+          "stopped settlement is only available for the bound plan Improve child")
+    return _settle_incomplete_ephemeral(
         binding, receipt, action=action, binding_id=binding_id, workspace=workspace,
         workspace_value=workspace_value, resolved=resolved,
     )

@@ -15,12 +15,15 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 RUNNER = ROOT / "test" / "run-all.sh"
 SHIPLOOP_RUNNER = ROOT / "test" / "shiploop.test.sh"
-SHIPLOOP_SUITE_COUNT = 98
+SHIPLOOP_SUITE_COUNT = 101
 ACTION_WALK = "test/shiploop-action-walk.test.py"
 CI_GROUPS = ("core", "shiploop-1", "shiploop-2", "shiploop-3")
 SHIPLOOP_SMOKE = (
     "test/shiploop-no-model-launch.test.py",
     "test/shiploop-navigator-v3.test.py",
+    "test/shiploop-navigator-v4.test.py",
+    "test/shiploop-stopped-improve.test.py",
+    "test/shiploop-v4-consumers.test.py",
     "test/shiploop-packet-bounds.test.py",
     "test/shiploop-navigator-dry-run.test.py",
     "test/shiploop-chain-async.test.py",

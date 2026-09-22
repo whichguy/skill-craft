@@ -5,7 +5,7 @@ description: >-
   script's current action packet, and submit its exact completion call until
   the script reports completion with an HTML achievement report. Use when the
   user says shiploop, ship the project, or requests a durable delivery loop.
-version: 0.18.20
+version: 0.19.0
 allowed-tools: all
 license: MIT
 platforms:
@@ -34,6 +34,16 @@ For new runs since 0.12.0, this v3 contract overrides retained v1/v2, managed, a
 legacy descriptions below. Those descriptions apply only when a saved packet or
 an explicit compatibility mode identifies that version. Do not translate their
 embedded-policy Improve guidance into a v3 action.
+
+## Opt-in experiment-informed planning
+
+For a fresh run, `workspace start --protocol-version 4` (or `init
+--navigator-version 4`) enables [experiments during planning](references/planning-experiments.md).
+The existing Plan Improve child investigates consequential assumptions. When a
+finding invalidates an upstream premise, the parent can settle its stopped child
+and rerun the affected planning suffix before preparation. Follow only the
+packet-issued reconciliation callback. V3 remains the default; saved runs never
+silently migrate. This pilot does not replace graphs after dispatch.
 
 ## Start or resume
 
