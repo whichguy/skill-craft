@@ -53,7 +53,7 @@ VERSION = 1
 # derivation version, so a helper whose fix changes how evidence is derived
 # never reuses a copy an earlier version produced (0.7.4 and earlier wrote
 # `inspections/<fingerprint>` directly).  Bump this when derivation changes.
-EVIDENCE_DERIVATION = "v3"
+EVIDENCE_DERIVATION = "v4"
 SHA256_RE = re.compile(r"[0-9a-f]{64}")
 GIT_SHA_RE = re.compile(r"[0-9a-f]{40,64}")
 SEMVER_RE = re.compile(
@@ -1513,11 +1513,13 @@ def _make_delta_patch(
         # The ceiling stops repository discovery at the staging directory, so
         # a repository that happens to enclose the store contributes no
         # configuration or attributes to the patch.  Without an index, a
-        # global core.autocrlf would turn CRLF into LF on both sides.
+        # global core.autocrlf or a global or system `text`/`eol` attribute
+        # would turn CRLF into LF on both sides, so neither is read.
         diff = _git(
-            staging, "-c", "core.autocrlf=false", "diff", "--no-index", *PATCH_DIFF_FLAGS, "--no-renames", "--no-prefix",
+            staging, "-c", "core.autocrlf=false", "-c", f"core.attributesFile={os.devnull}",
+            "diff", "--no-index", *PATCH_DIFF_FLAGS, "--no-renames", "--no-prefix",
             "--", "a", "b", check=False,
-            extra_environment={"GIT_CEILING_DIRECTORIES": os.fspath(inspection_root)},
+            extra_environment={"GIT_CEILING_DIRECTORIES": os.fspath(inspection_root), "GIT_ATTR_NOSYSTEM": "1"},
         )
         if diff.returncode not in {0, 1}:
             detail = diff.stderr.decode("utf-8", "replace").strip().splitlines()

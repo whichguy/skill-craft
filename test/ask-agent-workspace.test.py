@@ -1790,7 +1790,7 @@ raise SystemExit(module.main(sys.argv[2:]))
         self._write_returned_result(Path(prepared["worktree"]), report=False, scratch=False)
         first = self._inspect_mode(receipt, "patch")
         patch = Path(first["delivery"]["contribution_patch"])
-        self.assertEqual((patch.parent.parent.parent.name, patch.parent.parent.name), ("inspections", "v3"))
+        self.assertEqual((patch.parent.parent.parent.name, patch.parent.parent.name), ("inspections", "v4"))
         # Simulate a pre-0.7.5 record under the same fingerprint: a corrupted
         # patch in the unversioned directory, and no current-derivation record.
         legacy = receipt.parent / "inspections" / first["fingerprint"]
@@ -1798,7 +1798,7 @@ raise SystemExit(module.main(sys.argv[2:]))
         (legacy / "contribution.patch").write_bytes(b"legacy corrupted patch\n")
         (legacy / "inspection.json").write_text("{}", encoding="utf-8")
         shutil.rmtree(patch.parent)
-        shutil.rmtree(receipt.parent / "delivery-evidence" / "v3")
+        shutil.rmtree(receipt.parent / "delivery-evidence" / "v4")
         again = self._inspect_mode(receipt, "patch")
         rebuilt = Path(again["delivery"]["contribution_patch"])
         self.assertEqual(again["fingerprint"], first["fingerprint"])
@@ -1992,7 +1992,7 @@ raise SystemExit(module.main(sys.argv[2:]))
         result, payload = self._cli_with_injection(injection, *arguments)
         self.assertEqual(result.returncode, 2, payload)
         self.assertIn("injected inspection copy failure", payload["error"])
-        inspections = receipt.parent / "inspections" / "v3"
+        inspections = receipt.parent / "inspections" / "v4"
         self.assertEqual([item.name for item in inspections.iterdir()], [], "no partial record may persist")
 
         inspected = self._inspect_mode(receipt, "patch")
@@ -2261,6 +2261,38 @@ raise SystemExit(module.main(sys.argv[2:]))
         self.assertEqual(result.returncode, 2, payload)
         self.assertIn("Git timed out after 1s during worktree add", payload["error"])
         self.assertFalse(lock.exists(), "Git got no SIGTERM to remove its lock before the kill")
+
+    def test_contribution_patch_keeps_crlf_under_global_text_attributes(self) -> None:
+        # The same missing-index conversion reached through attributes: from
+        # core.attributesFile, or from the default XDG attributes file.
+        for label in ("attributesfile", "xdg"):
+            with self.subTest(source=label):
+                home = self.root / f"attributes-home-{label}"
+                (home / ".config" / "git").mkdir(parents=True)
+                if label == "xdg":
+                    (home / ".config" / "git" / "attributes").write_text("* text=auto\n", encoding="utf-8")
+                else:
+                    (home / "attributes").write_text("* text=auto\n", encoding="utf-8")
+                    (home / ".gitconfig").write_text(f"[core]\n\tattributesFile = {home / 'attributes'}\n", encoding="utf-8")
+                environment = {"HOME": str(home), "XDG_CONFIG_HOME": str(home / ".config")}
+                self.helper_environment = environment
+                name = f"legacy-{label}.cs"
+                (self.source / name).write_bytes(b"class A {\r\n  int x = 1;\r\n  int y = 2;\r\n}\r\n")
+                self._run(self.source, "-c", "core.autocrlf=false", "add", name)
+                self._run(self.source, "commit", "-q", "-m", f"CRLF source file {label}")
+                prepared = self._prepare(label=f"attributes {label}")
+                worktree = Path(prepared["worktree"])
+                edited = b"class A {\r\n  int x = 1;\r\n  int y = 3;\r\n}\r\n"
+                added = b"@echo off\r\necho hi\r\n"
+                (worktree / name).write_bytes(edited)
+                (worktree / f"run-{label}.bat").write_bytes(added)
+                inspected = self._inspect_mode(Path(prepared["receipt"]), "patch")
+                with mock.patch.dict(os.environ, environment):
+                    self._apply_to_source(Path(inspected["delivery"]["contribution_patch"]))
+                self.assertEqual((self.source / name).read_bytes(), edited)
+                self.assertEqual((self.source / f"run-{label}.bat").read_bytes(), added)
+                self._run(self.source, "add", "-A")
+                self._run(self.source, "-c", "core.autocrlf=false", "commit", "-q", "-m", f"integrated {label}")
 
     def test_contribution_patch_keeps_crlf_under_a_global_autocrlf(self) -> None:
         # The contribution diff runs outside any repository, so Git's index-based
