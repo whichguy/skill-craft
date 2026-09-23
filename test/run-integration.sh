@@ -19,6 +19,15 @@ Optional commands (never part of default CI):
   marketplace-grok    Install local candidate plugins in a disposable Grok profile.
   marketplace-codex   Install local candidate plugins in a disposable Codex profile.
   marketplace-codex-ask-agent  Exercise installed Ask Agent in a disposable Codex profile.
+  marketplace-bundle-claude|marketplace-bundle-grok|marketplace-bundle-codex BUNDLE
+                    Install one plugin bundle view in a disposable profile and
+                    verify every member skill (release gate for bundles).
+  vendored-bundle-lag BUNDLE /path/to/upstream-checkout
+                    Dry-run the vendored bundle against the checkout's fetched
+                    origin/main (never writes). Only exit 0 means in sync:
+                    1 lag a refresh would apply; 2 invalid upstream or
+                    description/membership drift; 3 lint refusal; 4 lag the
+                    release policy refuses; 5 wrong provenance record.
   current-dispatcher --dispatcher-skill /absolute/SKILL.md --output /new/absolute/dir
                     Qualify the offline native-pilot composition against a
                     clean, explicitly selected current Dispatcher checkout.
@@ -68,6 +77,14 @@ case "${1:-list}" in
   marketplace-codex-ask-agent)
     [[ "$#" == "1" ]] || { usage >&2; exit 64; }
     exec python3 "$root/test/marketplace-host-smoke.py" --host codex --ask-agent
+    ;;
+  marketplace-bundle-claude|marketplace-bundle-grok|marketplace-bundle-codex)
+    [[ "$#" == "2" ]] || { usage >&2; exit 64; }
+    exec python3 "$root/test/marketplace-host-smoke.py" --host "${1#marketplace-bundle-}" --bundle "$2"
+    ;;
+  vendored-bundle-lag)
+    [[ "$#" == "3" ]] || { usage >&2; exit 64; }
+    exec python3 "$root/scripts/sync-vendored-bundles.py" --bundle "$2" --from "$3"
     ;;
   current-dispatcher)
     shift

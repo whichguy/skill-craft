@@ -9,7 +9,8 @@ Architecture: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 - **`skills/<leaf>/`** — skill source of truth (`SKILL.md`, optional `prompts/`, `scripts/`, `references/`)
 - **`agents/<leaf>.md`** — thin agent cards that point at the skill (Claude/Grok only)
 - **`install.sh`** — multi-host skill-dir install (symlink Claude/Grok/Codex/Cursor/OpenCode; **copy** Hermes)
-- **`plugins/<leaf>/`** — generated shared plugin packages; never edit skill bodies here
+- **`bundles/<plugin>/`** — vendored multi-skill plugin sources (`bundle.json` + `PROVENANCE.json`); refresh only with `scripts/sync-vendored-bundles.py`, never hand-edit; `install.sh` never installs them
+- **`plugins/<leaf>/`** — generated shared plugin packages (also `plugins/<plugin>/` for a bundle); never edit skill bodies here
 - **`.grok-plugin/marketplace.json`**, **`.cursor-plugin/marketplace.json`** — generated same-repository catalogs
 - **`test/`** — hermetic checks for skills and install
 

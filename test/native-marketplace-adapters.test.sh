@@ -28,7 +28,7 @@ expect_failure() {
   rc=$?
   set -e
   [[ "$rc" -ne 0 ]] || fail "$label should fail: $out"
-  printf '%s\n' "$out" | grep -Fq "$needle" \
+  printf '%s\n' "$out" | grep -Fq -- "$needle" \
     || fail "$label did not report '$needle': $out"
 }
 
@@ -54,8 +54,38 @@ node --check scripts/skill-frontmatter-to-plugin-json.js \
   || fail "generator syntax check"
 bash scripts/sync-plugin-views.sh --check || fail "baseline adapter check"
 
-# The adapters expose every actual source skill and nothing inferred from
-# empty/stale directories.
+# Generator command line: each misuse fails with its own message and writes
+# nothing; an unknown option is refused rather than silently dropped.
+gen="scripts/skill-frontmatter-to-plugin-json.js"
+generated_digest() {
+  (find plugins .cursor-plugin .grok-plugin README.md -type f | LC_ALL=C sort | xargs shasum) 2>/dev/null
+}
+generated_digest > "$tmp/generated-before-cli"
+expect_failure "unknown option on a leaf" "unknown option --bogus" node "$gen" c-plan --check --bogus
+expect_failure "unknown option on a bundle" "unknown option --bogus" node "$gen" --bundle backchain --bogus
+expect_failure "--bundle without a value" "--bundle requires a plugin name" node "$gen" --bundle
+expect_failure "--bundle followed by a flag" "--bundle requires a plugin name" node "$gen" --bundle --check
+expect_failure "--members alone" "--members requires --bundle" node "$gen" --members
+expect_failure "--members on a leaf" "--members requires --bundle" node "$gen" c-plan --members
+expect_failure "--bundle with a leaf" "--bundle does not take a leaf" \
+  node "$gen" --bundle backchain c-plan --check
+expect_failure "--marketplaces with a bundle" "--marketplaces does not take a leaf or bundle" \
+  node "$gen" --marketplaces --bundle backchain --check
+expect_failure "--marketplaces with a leaf" "--marketplaces does not take a leaf or bundle" \
+  node "$gen" --marketplaces c-plan --check
+expect_failure "--write with --check" "mutually exclusive" node "$gen" c-plan --write --check
+expect_failure "undeclared bundle" "no bundles/zz-no-such-bundle/bundle.json" \
+  node "$gen" --bundle zz-no-such-bundle --check
+expect_failure "two leaves" "missing leaf" node "$gen" c-plan skill-interop --check
+node "$gen" c-plan --check >/dev/null || fail "leaf --check must still pass"
+node "$gen" --marketplaces --check >/dev/null || fail "--marketplaces --check must still pass"
+node "$gen" --bundle backchain --check >/dev/null || fail "--bundle --check must pass"
+[[ "$(node "$gen" --bundle backchain --members)" == $'skill backchain\nskill plan-dispatcher\nagent backchain' ]] \
+  || fail "--bundle --members must list the primary first, then members and agents"
+generated_digest | cmp -s - "$tmp/generated-before-cli" || fail "generator command-line refusals changed generated files"
+
+# The adapters expose every actual source skill and plugin bundle, and
+# nothing inferred from empty/stale directories.
 node - <<'NODE' || exit 1
 const fs = require("fs");
 const leaves = fs
@@ -66,12 +96,20 @@ const leaves = fs
 if (leaves.length === 0) {
   throw new Error("expected at least one source skill");
 }
+const bundles = fs
+  .readdirSync("bundles", { withFileTypes: true })
+  .filter((entry) => entry.isDirectory() && fs.existsSync(`bundles/${entry.name}/bundle.json`))
+  .map((entry) => JSON.parse(fs.readFileSync(`bundles/${entry.name}/bundle.json`, "utf8")));
+if (bundles.length === 0) {
+  throw new Error("expected at least one plugin bundle");
+}
+const published = [...leaves, ...bundles.map((bundle) => bundle.name)].sort();
 const cursor = JSON.parse(fs.readFileSync(".cursor-plugin/marketplace.json", "utf8"));
 const grok = JSON.parse(fs.readFileSync(".grok-plugin/marketplace.json", "utf8"));
 for (const [host, catalog] of [["Cursor", cursor], ["Grok", grok]]) {
   const names = catalog.plugins.map((plugin) => plugin.name);
-  if (JSON.stringify(names) !== JSON.stringify(leaves)) {
-    throw new Error(`${host} catalog leaf set is not exact`);
+  if (JSON.stringify(names) !== JSON.stringify(published)) {
+    throw new Error(`${host} catalog set is not exactly the leaves plus bundles`);
   }
 }
 for (const plugin of cursor.plugins) {
@@ -143,6 +181,57 @@ for (const leaf of leaves) {
   visit(`${root}/skills`);
   if (JSON.stringify(cards.sort()) !== JSON.stringify([`${root}/skills/${leaf}/SKILL.md`])) {
     throw new Error(`unexpected public skill cards for ${leaf}: ${cards.join(", ")}`);
+  }
+}
+// A bundle is one plugin with several qualified member skills.
+for (const bundle of bundles) {
+  const name = bundle.name;
+  const root = `plugins/${name}`;
+  const members = [name, ...bundle.skills.filter((member) => member !== name)];
+  const claude = JSON.parse(fs.readFileSync(`${root}/.claude-plugin/plugin.json`, "utf8"));
+  const codex = JSON.parse(fs.readFileSync(`${root}/.codex-plugin/plugin.json`, "utf8"));
+  for (const key of ["name", "version", "description", "author", "repository", "license"]) {
+    if (JSON.stringify(codex[key]) !== JSON.stringify(claude[key])) {
+      throw new Error(`Codex identity drift for bundle ${name}: ${key}`);
+    }
+  }
+  if (claude.description !== bundle.description || "skills" in claude) {
+    throw new Error(`bundle ${name} Claude manifest must carry the declared description and no skills key`);
+  }
+  if (claude.repository !== "https://github.com/whichguy/skill-craft" || claude.homepage !== claude.repository) {
+    throw new Error(`bundle ${name} must point at the public skill-craft repository`);
+  }
+  if (codex.skills !== "./skills/") {
+    throw new Error(`Codex skill path invalid for bundle ${name}`);
+  }
+  const expectedPrompts = members.slice(0, 3).map((member) => `Use $${name}:${member} for this task.`);
+  if (JSON.stringify(codex.interface?.defaultPrompt) !== JSON.stringify(expectedPrompts)) {
+    throw new Error(`bundle ${name} Codex prompts must name each member, primary first`);
+  }
+  const readme = fs.readFileSync(`${root}/README.md`, "utf8");
+  for (const member of members) {
+    if (!readme.includes(`\`$${name}:${member}\``) || !readme.includes(`\`/${name}:${member}\``)) {
+      throw new Error(`bundle ${name} README must document qualified invocations for ${member}`);
+    }
+    if (readme.includes(`\`$${member}\``)) {
+      throw new Error(`bundle ${name} README must not claim bare invocation for ${member}`);
+    }
+  }
+  if (!readme.includes("install.sh") || !readme.includes("## Provenance")) {
+    throw new Error(`bundle ${name} README must state install.sh scope and provenance`);
+  }
+  const cards = [];
+  const visit = (dir) => {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = `${dir}/${entry.name}`;
+      if (entry.isDirectory()) visit(full);
+      else if (entry.isFile() && entry.name === "SKILL.md") cards.push(full);
+    }
+  };
+  visit(`${root}/skills`);
+  const expectedCards = members.map((member) => `${root}/skills/${member}/SKILL.md`).sort();
+  if (JSON.stringify(cards.sort()) !== JSON.stringify(expectedCards)) {
+    throw new Error(`bundle ${name} public cards must equal its declared members: ${cards.join(", ")}`);
   }
 }
 NODE
@@ -272,9 +361,15 @@ grep -q 'catalog-fixture' README.md && fail "removed leaf remains in README inve
 
 # An empty/incomplete checkout must not turn stale catalogs into a green check
 # or overwrite a previously good inventory/catalog with an empty release.
+# A present bundle must not turn an empty skills/ into a partial write.
+[[ -f bundles/backchain/bundle.json ]] || fail "empty-source case needs a bundle present"
+plugins_digest() { (find plugins -type f | LC_ALL=C sort | xargs shasum) 2>/dev/null; }
 cp README.md "$tmp/readme-before-empty"
 cp .cursor-plugin/marketplace.json "$tmp/cursor-before-empty"
 cp .grok-plugin/marketplace.json "$tmp/grok-before-empty"
+# Remove one member from the view so a partial rematerialization is visible.
+rm -rf plugins/backchain/skills/plan-dispatcher
+plugins_digest > "$tmp/plugins-before-empty"
 mv skills "$tmp/held-skills"
 mkdir skills
 expect_failure "empty full check" "no source skills" bash scripts/sync-plugin-views.sh --check
@@ -284,8 +379,11 @@ expect_failure "empty direct generation" "no source skills" \
 cmp -s README.md "$tmp/readme-before-empty" || fail "empty source changed README"
 cmp -s .cursor-plugin/marketplace.json "$tmp/cursor-before-empty" || fail "empty source changed Cursor index"
 cmp -s .grok-plugin/marketplace.json "$tmp/grok-before-empty" || fail "empty source changed Grok index"
+plugins_digest | cmp -s - "$tmp/plugins-before-empty" || fail "empty source with a bundle changed plugins/"
+[[ ! -e plugins/backchain/skills/plan-dispatcher ]] || fail "empty source with a bundle rematerialized a bundle view"
 rmdir skills
 mv "$tmp/held-skills" skills
+bash scripts/sync-plugin-views.sh >/dev/null || fail "restore bundle view after empty-source case"
 
 # Empty stale directories are ignored, but a package with contents and no
 # source SKILL.md is still an orphan.

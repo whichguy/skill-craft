@@ -88,8 +88,10 @@ printf '%s\n' "$out" | grep -q 'Codex' || fail "I1 stdout missing Codex install 
 printf '%s\n' "$out" | grep -q 'Hermes' || fail "I1 stdout missing Hermes install line"
 printf '%s\n' "$out" | grep -q 'Cursor' || fail "I1 stdout missing Cursor install line"
 printf '%s\n' "$out" | grep -q 'OpenCode' || fail "I1 stdout missing OpenCode install line"
-# Must NOT install product leaves that are not in this monorepo
+# Must NOT install product leaves that are not in this monorepo, including
+# vendored plugin-bundle members (bundles/backchain is marketplace-only).
 assert_no_hosts "backchain"
+assert_no_hosts "plan-dispatcher"
 
 # ---------------------------------------------------------------------------
 # I2: Idempotent re-run → "already installed"
@@ -307,8 +309,136 @@ fresh_home i19
 out19="$("$install_sh" --all --skill skill-interop 2>&1)" || fail "I19 failed: $out19"
 assert_all_hosts "skill-interop" "$source_interop"
 
-# --help exits 0
-"$install_sh" --help >/dev/null
+# ---------------------------------------------------------------------------
+# I20: vendored plugin bundles are never installed: not by default, not as
+# agents, and not by name (bundles/ is invisible to skills/ enumeration).
+# ---------------------------------------------------------------------------
+[[ -f "$root/bundles/backchain/bundle.json" ]] || fail "I20 expects the vendored backchain bundle"
+fresh_home i20
+out20="$("$install_sh" --agents 2>&1)" || fail "I20 default --agents install failed: $out20"
+assert_no_hosts "backchain"
+assert_no_hosts "plan-dispatcher"
+assert_absent "$HOME/.claude/agents/backchain.md"
+assert_absent "$HOME/.grok/agents/backchain.md"
+for member in backchain plan-dispatcher; do
+  set +e
+  out20n="$("$install_sh" --skill "$member" 2>&1)"
+  rc20n=$?
+  set -e
+  [[ "$rc20n" -eq 1 ]] || fail "I20 --skill $member should exit 1 (got $rc20n): $out20n"
+  printf '%s\n' "$out20n" | grep -q 'missing SKILL.md' || fail "I20 --skill $member message: $out20n"
+done
+
+# ---------------------------------------------------------------------------
+# I21: --from refuses vendored bundle members and generated plugin views
+# (exit 64, every action, no writes) so --relink cannot repoint a canonical
+# link at a marketplace copy; the guard is structural, so it also covers
+# another skill-craft checkout, and it reads the manifest repository, so it
+# covers copies in host plugin caches.
+# ---------------------------------------------------------------------------
+expect_from_refused() {
+  local label="$1"
+  shift
+  local out rc
+  set +e
+  out="$("$install_sh" "$@" 2>&1)"
+  rc=$?
+  set -e
+  [[ "$rc" -eq 64 ]] || fail "$label should exit 64 (got $rc): $out"
+  printf '%s\n' "$out" | grep -q 'marketplace-only' || fail "$label refusal message: $out"
+}
+fresh_home i21
+expect_from_refused "I21 bundle member" --from "$root/bundles/backchain/skills/backchain"
+expect_from_refused "I21 bundle view member" --from "$root/plugins/backchain/skills/plan-dispatcher"
+expect_from_refused "I21 leaf plugin view" --from "$root/plugins/skill-interop/skills/skill-interop"
+expect_from_refused "I21 bundle status" --status --from "$root/bundles/backchain/skills/backchain"
+expect_from_refused "I21 bundle uninstall" --uninstall --from "$root/bundles/backchain/skills/backchain"
+assert_no_hosts "backchain"
+assert_no_hosts "plan-dispatcher"
+assert_no_hosts "skill-interop"
+[[ ! -d "$HOME/.hermes" ]] || fail "I21 refusal must not create a Hermes copy"
+canonical="$tmpdir/canonical/skills/backchain"
+mkdir -p "$canonical" "$HOME/.claude/skills"
+printf -- '---\nname: backchain\n---\n' >"$canonical/SKILL.md"
+ln -s "$canonical" "$HOME/.claude/skills/backchain"
+expect_from_refused "I21 relink over canonical link" --claude-only --relink \
+  --from "$root/bundles/backchain/skills/backchain"
+expect_from_refused "I21 relink from view" --claude-only --relink \
+  --from "$root/plugins/backchain/skills/backchain"
+assert_symlink "$HOME/.claude/skills/backchain" "$canonical"
+
+other="$tmpdir/other-checkout"
+mkdir -p "$other/bundles/zz/skills/zz" "$other/scripts" "$other/plugins/yy/skills/yy" "$other/plugins/yy/.claude-plugin"
+printf '{}\n' >"$other/bundles/zz/bundle.json"
+printf -- '---\nname: zz\n---\n' >"$other/bundles/zz/skills/zz/SKILL.md"
+printf '#!/usr/bin/env bash\n' >"$other/scripts/sync-plugin-views.sh"
+printf '{}\n' >"$other/plugins/yy/.claude-plugin/plugin.json"
+printf -- '---\nname: yy\n---\n' >"$other/plugins/yy/skills/yy/SKILL.md"
+expect_from_refused "I21 other checkout bundle" --claude-only --from "$other/bundles/zz/skills/zz"
+expect_from_refused "I21 other checkout view" --claude-only --from "$other/plugins/yy/skills/yy"
+assert_absent "$HOME/.claude/skills/zz"
+assert_absent "$HOME/.claude/skills/yy"
+
+# A copy of a generated view outside any checkout (a host plugin cache or a
+# git-subdir clone) is recognized by its manifest's repository, not its path:
+# --relink must not repoint a canonical link at it, dry run or not.
+repo_const="$(sed -n 's/^skill_craft_repository="\(.*\)"$/\1/p' "$install_sh")"
+[[ -n "$repo_const" ]] || fail "I21 install.sh must declare skill_craft_repository"
+grep -Fq "const REPOSITORY = \"$repo_const\";" "$root/scripts/skill-frontmatter-to-plugin-json.js" \
+  || fail "I21 install.sh skill_craft_repository must equal the generator REPOSITORY"
+cache_root="$HOME/.claude/plugins/cache/skill-craft-market"
+mkdir -p "$cache_root/backchain" "$cache_root/skill-interop"
+cp -R "$root/plugins/backchain" "$cache_root/backchain/0.3.7"
+cp -R "$root/plugins/skill-interop" "$cache_root/skill-interop/0.2.3"
+canonical_pd="$tmpdir/canonical/skills/plan-dispatcher"
+mkdir -p "$canonical_pd"
+printf -- '---\nname: plan-dispatcher\n---\n' >"$canonical_pd/SKILL.md"
+ln -s "$canonical_pd" "$HOME/.claude/skills/plan-dispatcher"
+expect_from_refused "I21 cached bundle copy relink dry run" --claude-only --relink --dry-run \
+  --from "$cache_root/backchain/0.3.7/skills/plan-dispatcher"
+expect_from_refused "I21 cached bundle copy relink" --claude-only --relink \
+  --from "$cache_root/backchain/0.3.7/skills/plan-dispatcher"
+expect_from_refused "I21 cached leaf view copy" --claude-only \
+  --from "$cache_root/skill-interop/0.2.3/skills/skill-interop"
+# One host's manifest is enough (a Codex cache need not keep the others).
+rm -rf "$cache_root/backchain/0.3.7/.claude-plugin" "$cache_root/backchain/0.3.7/.cursor-plugin"
+expect_from_refused "I21 Codex-only cached copy" --claude-only --relink \
+  --from "$cache_root/backchain/0.3.7/skills/backchain"
+# The repository may be spelled as a .git URL or an npm-style object.
+spelled="$tmpdir/spelled-copy"
+mkdir -p "$spelled/.cursor-plugin" "$spelled/skills/spelled-leaf"
+printf '{"repository":{"type":"git","url":"%s.git/"}}\n' "$repo_const" >"$spelled/.cursor-plugin/plugin.json"
+printf -- '---\nname: spelled-leaf\n---\n' >"$spelled/skills/spelled-leaf/SKILL.md"
+expect_from_refused "I21 repository spelling" --claude-only --from "$spelled/skills/spelled-leaf"
+assert_absent "$HOME/.claude/skills/spelled-leaf"
+assert_symlink "$HOME/.claude/skills/plan-dispatcher" "$canonical_pd"
+assert_symlink "$HOME/.claude/skills/backchain" "$canonical"
+assert_absent "$HOME/.claude/skills/skill-interop"
+
+# A plugin repository that is not a generated view stays installable (for
+# example a canonical source whose root carries its own .claude-plugin).
+external="$tmpdir/plugin-source-repo"
+mkdir -p "$external/.claude-plugin" "$external/skills/external-leaf"
+printf '{}\n' >"$external/.claude-plugin/plugin.json"
+printf -- '---\nname: external-leaf\n---\n' >"$external/skills/external-leaf/SKILL.md"
+external="$(cd "$external" && pwd -P)"
+out21e="$("$install_sh" --claude-only --from "$external/skills/external-leaf" 2>&1)" \
+  || fail "I21 canonical plugin-repository source must install: $out21e"
+assert_symlink "$HOME/.claude/skills/external-leaf" "$external/skills/external-leaf"
+# The canonical upstream names its own repository, so it stays installable.
+upstream="$tmpdir/plan-orchestrator"
+mkdir -p "$upstream/.claude-plugin" "$upstream/skills/upstream-leaf"
+printf '{"name":"backchain","repository":"https://github.com/whichguy/plan-orchestrator"}\n' \
+  >"$upstream/.claude-plugin/plugin.json"
+printf -- '---\nname: upstream-leaf\n---\n' >"$upstream/skills/upstream-leaf/SKILL.md"
+upstream="$(cd "$upstream" && pwd -P)"
+out21u="$("$install_sh" --claude-only --from "$upstream/skills/upstream-leaf" 2>&1)" \
+  || fail "I21 canonical upstream source must install: $out21u"
+assert_symlink "$HOME/.claude/skills/upstream-leaf" "$upstream/skills/upstream-leaf"
+
+# --help exits 0 and names the marketplace-only sources
+help_text="$("$install_sh" --help 2>&1)"
+printf '%s\n' "$help_text" | grep -q 'marketplace-only' || fail "--help must state bundles are marketplace-only"
 
 # Invalid flag → exit 64
 set +e
@@ -317,4 +447,4 @@ rc=$?
 set -e
 [[ "$rc" -eq 64 ]] || fail "invalid flag should exit 64 (got $rc)"
 
-printf 'install-targets.test.sh: PASS I1–I19 (skill-craft install, 6 hosts, identity dest, flags, dry-run, skip-if-exists, --relink, --agents)\n'
+printf 'install-targets.test.sh: PASS I1–I21 (skill-craft install, 6 hosts, identity dest, flags, dry-run, skip-if-exists, --relink, --agents, marketplace-only sources)\n'

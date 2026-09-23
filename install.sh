@@ -56,6 +56,9 @@ usage() {
   printf '  Codex/Cursor/OpenCode/Hermes: skipped (no agent install)\n' >&2
   printf '\n' >&2
   printf 'Sources: skills/<name> under this repo, or --from DIR.\n' >&2
+  printf 'Plugin bundles (bundles/<plugin>) and generated plugin views (plugins/<name>)\n' >&2
+  printf 'are marketplace-only: never installed here, and refused as --from sources (exit 64),\n' >&2
+  printf 'as is any copy whose plugin manifest names the skill-craft repository (host caches).\n' >&2
   printf 'Foreign real directories are never overwritten or uninstalled.\n' >&2
   printf 'With --relink, only wrong or dangling symlinks are replaced.\n' >&2
   printf 'Hermes managed copies are refreshed on re-run; foreign trees are skipped.\n' >&2
@@ -107,6 +110,10 @@ list_repo_skills() {
 }
 
 repo_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+# The repository every generated plugin manifest names. Must equal REPOSITORY
+# in scripts/skill-frontmatter-to-plugin-json.js (pinned by
+# test/install-targets.test.sh I21).
+skill_craft_repository="https://github.com/whichguy/skill-craft"
 
 # Host flags: 0 = unset by user, 1 = selected. When none selected, enable all.
 install_claude=0
@@ -1210,6 +1217,85 @@ uninstall_skill_to_hosts() {
   fi
 }
 
+# True when a package's host manifest (Claude, Codex or Cursor plugin.json)
+# names skill-craft's repository: only a generated plugin view does, wherever
+# it was copied (a host plugin cache or a git-subdir clone). A manifest that is
+# absent or unreadable is not that signature, so a foreign package stays
+# installable; canonical upstream sources name their own repository.
+package_names_skill_craft_repository() {
+  local package="$1"
+  [[ -f "$package/.claude-plugin/plugin.json" || -f "$package/.codex-plugin/plugin.json" \
+     || -f "$package/.cursor-plugin/plugin.json" ]] || return 1
+  python3 - "$package" "$skill_craft_repository" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+package, wanted = Path(sys.argv[1]), sys.argv[2]
+
+
+def normalized(value):
+    if isinstance(value, dict):
+        value = value.get("url")
+    if not isinstance(value, str):
+        return None
+    value = value.strip().rstrip("/")
+    if value.endswith(".git"):
+        value = value[:-4]
+    return value.lower()
+
+
+for host in (".claude-plugin", ".codex-plugin", ".cursor-plugin"):
+    try:
+        data = json.loads((package / host / "plugin.json").read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, ValueError):
+        continue
+    if isinstance(data, dict) and normalized(data.get("repository")) == normalized(wanted):
+        sys.exit(0)
+sys.exit(1)
+PY
+}
+
+# Vendored bundle members and generated plugin views duplicate a canonical
+# skill (bundles/<plugin>) or a skills/<leaf> source (plugins/<name>). Refuse
+# them as --from sources for every action: paths in this checkout or in any
+# other skill-craft checkout, and any copy whose host manifest names
+# skill-craft's repository (host plugin caches, git-subdir clones). So a
+# --relink cannot repoint a canonical link at a marketplace copy that still
+# carries its generated manifests. Structure and manifests, not skill names,
+# decide.
+marketplace_only_source_reason() {
+  local source="$1"
+  case "$source/" in
+    "$repo_dir/bundles/"*)
+      printf 'vendored bundle members are marketplace-only; install from the canonical source'
+      return 0
+      ;;
+    "$repo_dir/plugins/"*)
+      printf 'generated plugin views are marketplace-only; install skills/<leaf> or the canonical source'
+      return 0
+      ;;
+  esac
+  local skills_dir package
+  skills_dir="$(dirname "$source")"
+  package="$(dirname "$skills_dir")"
+  [[ "$(basename "$skills_dir")" == "skills" ]] || return 1
+  if [[ -f "$package/bundle.json" ]]; then
+    printf 'vendored bundle members are marketplace-only; install from the canonical source'
+    return 0
+  fi
+  if [[ "$(basename "$(dirname "$package")")" == "plugins" && -f "$package/.claude-plugin/plugin.json" \
+        && -f "$(dirname "$(dirname "$package")")/scripts/sync-plugin-views.sh" ]]; then
+    printf 'generated plugin views are marketplace-only; install skills/<leaf> or the canonical source'
+    return 0
+  fi
+  if package_names_skill_craft_repository "$package"; then
+    printf 'copies of generated plugin views (host plugin caches) are marketplace-only; install skills/<leaf> or the canonical source'
+    return 0
+  fi
+  return 1
+}
+
 # Collect leaves to install as "leaf|source_dir" pairs.
 declare -a install_pairs=()
 
@@ -1220,6 +1306,10 @@ if [[ "$from_flag_set" -eq 1 ]]; then
     exit 1
   fi
   skill_from="$(cd "$skill_from" && pwd -P)"
+  if refusal="$(marketplace_only_source_reason "$skill_from")"; then
+    printf 'Refusing --from %s: %s\n' "$skill_from" "$refusal" >&2
+    exit 64
+  fi
   leaf="$(basename "$skill_from")"
   if ! is_safe_skill_name "$leaf" || [[ "$leaf" == "all" || "$leaf" == "both" ]]; then
     printf 'Invalid skill leaf from --from path basename: %s\n' "$leaf" >&2

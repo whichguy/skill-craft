@@ -143,6 +143,14 @@ class IntegrationBoundaryTests(unittest.TestCase):
             self.assertIn("weather-offline", result.stdout)
             self.assertIn("cursor-imports", result.stdout)
             self.assertIn("current-dispatcher", result.stdout)
+            self.assertIn("vendored-bundle-lag", result.stdout)
+            # A lagging upstream can exit 1, 2, 3 or 4; only 0 is "in sync".
+            self.assertIn("Only exit 0 means in sync", result.stdout)
+            self.assertIn("marketplace-bundle-claude", result.stdout)
+
+        for argv in (["vendored-bundle-lag", "backchain"], ["marketplace-bundle-codex"]):
+            result = invoke(["bash", str(RUNNER), *argv], empty_env)
+            self.assertEqual(64, result.returncode, result.stdout + result.stderr)
 
         current_help = invoke(["bash", str(RUNNER), "current-dispatcher", "--help"], empty_env)
         self.assertEqual(0, current_help.returncode, current_help.stdout + current_help.stderr)

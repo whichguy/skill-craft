@@ -1,0 +1,7 @@
+# Vendored plugin bundles are byte-exact copies of upstream files, verified by
+# sha256 in bundles/<plugin>/PROVENANCE.json (scripts/sync-vendored-bundles.py).
+# Some upstream Markdown depends on trailing spaces. Never convert line endings
+# or flag whitespace in the sources or in their generated plugin views; the
+# sync check requires one plugins/<plugin> line per bundle.
+bundles/** -text -whitespace
+plugins/backchain/** -text -whitespace

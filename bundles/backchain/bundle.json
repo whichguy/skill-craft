@@ -1,0 +1,12 @@
+{
+  "format": "skill-craft-plugin-bundle/v1",
+  "name": "backchain",
+  "description": "Plan Orchestrator portable skills: Backchain builds and repeatedly reviews evidence-backed dependency plans; Plan Dispatcher coordinates their execution with native agents. Existing backchain skill and plugin identities remain stable.",
+  "skills": [
+    "backchain",
+    "plan-dispatcher"
+  ],
+  "agents": [
+    "backchain"
+  ]
+}
