@@ -3,6 +3,10 @@
 
 This is an offline payload gate, not proof of host/model execution. Host-specific
 validators and installed-consumer tests remain separate release requirements.
+
+A package generated from a plugin bundle (bundles/<plugin>/bundle.json) may
+carry exactly its declared member skills; the member list is read from that
+declaration under --root, including for an explicitly named package path.
 """
 from __future__ import annotations
 
@@ -40,6 +44,8 @@ NATIVE_SCRIPT_ENTRYPOINTS: dict[str, dict[str, str]] = {
     "ask-agent": {"scripts/ask_agent_workspace.py": "python3"},
     "devloop": {"scripts/devloop-run": "bash"},
     "evidence-gates": {"scripts/evidence-gates": "python3"},
+    # Keyed by skill name: plan-dispatcher ships as a backchain bundle member.
+    "plan-dispatcher": {"scripts/dispatch.js": "node"},
     "improve": {
         "runtime/until-loop/scripts/until_loop_ephemeral.py": "python3",
         "runtime/until-loop/scripts/until-loop": "python3",
@@ -67,6 +73,41 @@ def frontmatter(text: str) -> dict[str, str]:
         match[1]: match[2].strip().strip("\"'")
         for match in re.finditer(r"^([A-Za-z][A-Za-z0-9_-]*):[ \t]*([^\n]*)$", body, re.M)
     }
+
+
+def metadata_child(text: str, key: str) -> str | None:
+    """Read a direct child of the top-level metadata: block (e.g. metadata.version)."""
+    if not text.startswith("---\n") or "\n---\n" not in text[4:]:
+        return None
+    lines = text[4:text.index("\n---\n", 4)].splitlines()
+    try:
+        start = next(index for index, line in enumerate(lines) if re.fullmatch(r"metadata:\s*", line))
+    except StopIteration:
+        return None
+    indent = None
+    for line in lines[start + 1:]:
+        if not line.strip():
+            continue
+        lead = len(line) - len(line.lstrip(" \t"))
+        if lead == 0:
+            break
+        indent = lead if indent is None else indent
+        match = re.fullmatch(rf"[ \t]+{re.escape(key)}:[ \t]*(.+?)[ \t]*", line)
+        if lead == indent and match:
+            return match[1].strip("\"'")
+    return None
+
+
+def bundle_members(root: Path, name: str) -> list[str] | None:
+    """Declared member skills for a bundle-generated package, primary first."""
+    declaration = root / "bundles" / name / "bundle.json"
+    if not declaration.is_file():
+        return None
+    data = json.loads(declaration.read_text(encoding="utf-8"))
+    skills = data.get("skills") if isinstance(data, dict) else None
+    if not isinstance(skills, list) or name not in skills or not all(isinstance(item, str) for item in skills):
+        raise ValueError(f"{declaration}: skills must list the primary member {name}")
+    return [name, *(member for member in skills if member != name)]
 
 
 def confined(root: Path, value: str) -> bool:
@@ -180,8 +221,33 @@ def validate_codex_interface(codex: dict, errors: list[str]) -> None:
         errors.append("Codex interface defaultPrompt must contain one to three short strings")
 
 
-def validate_package(package: Path) -> list[str]:
-    """Return all actionable errors, including malformed/unreadable payloads."""
+def validate_bundle_member(package: Path, member: str, license_name: object, errors: list[str]) -> None:
+    """A non-primary bundle member: own identity, shared license, semver version."""
+    card = package / "skills" / member / "SKILL.md"
+    try:
+        body = card.read_text(encoding="utf-8")
+    except (OSError, UnicodeError) as exc:
+        errors.append(f"missing/unreadable skills/{member}/SKILL.md: {exc}")
+        return
+    fields = frontmatter(body)
+    if fields.get("name") != member:
+        errors.append(f"skills/{member}/SKILL.md name must equal its directory")
+    if fields.get("license") != license_name:
+        errors.append(f"skills/{member}/SKILL.md license must match the plugin manifest")
+    version = fields.get("version") or metadata_child(body, "version")
+    if not version or not SEMVER.fullmatch(version):
+        errors.append(f"skills/{member}/SKILL.md needs a semantic version or metadata.version")
+    kind = re.search(r"^\s+kind:\s*(\S+)\s*$", body.split("\n---\n", 1)[0], re.M)
+    if kind and kind[1] in ("script-backed", "mixed"):
+        validate_script_entrypoints(member, card.parent, kind[1], errors)
+
+
+def validate_package(package: Path, members: list[str] | None = None) -> list[str]:
+    """Return all actionable errors, including malformed/unreadable payloads.
+
+    ``members`` lists a bundle package's declared skills (primary first); a
+    plain leaf package carries exactly its own skill.
+    """
     errors: list[str] = []
     name = package.name
     if not package.is_dir() or package.is_symlink():
@@ -261,13 +327,20 @@ def validate_package(package: Path) -> list[str]:
     except (OSError, UnicodeError) as exc:
         errors.append(f"missing/unreadable skills/{name}/SKILL.md: {exc}")
 
+    declared = members or [name]
+    if declared[0] != name:
+        errors.append("bundle members must start with the primary skill named like the package")
+    for member in declared[1:]:
+        validate_bundle_member(package, member, base.get("license"), errors)
+    allowed_cards = {package / "skills" / member / "SKILL.md" for member in declared}
+
     # Never follow links in a distributed payload. Generated trees should have
     # already materialized internal links; a dangling link is also a failure.
     for item in package.rglob("*"):
         relative = item.relative_to(package).as_posix()
         if not item.is_file():
             continue
-        if item.name == "SKILL.md" and item != expected:
+        if item.name == "SKILL.md" and item not in allowed_cards:
             errors.append(f"additional public SKILL.md in payload: {relative}")
         if item.suffix == ".py" or (item.parent.name == "scripts" and not item.suffix):
             try:
@@ -293,10 +366,16 @@ def main() -> int:
         if not leaves:
             print("FAIL no source skills found", file=sys.stderr)
             return 1
-        packages = [args.root / "plugins" / leaf for leaf in leaves]
+        bundles = sorted(path.parent.name for path in (args.root / "bundles").glob("*/bundle.json"))
+        packages = [args.root / "plugins" / name for name in sorted(leaves + bundles)]
     failed = 0
     for package in packages:
-        errors = validate_package(package)
+        try:
+            members = bundle_members(args.root, package.name)
+        except (OSError, UnicodeError, ValueError) as exc:
+            errors = [f"invalid bundle declaration: {exc}"]
+        else:
+            errors = validate_package(package, members)
         if errors:
             failed += 1
             for error in errors:

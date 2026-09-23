@@ -2,6 +2,8 @@
 
 **Host-neutral portable skills monorepo.** Skills live under `skills/<leaf>/` and install into
 Grok, Claude Code, Cursor, Codex, and Hermes skill directories via `install.sh`.
+Plugin bundles under `bundles/<plugin>/` (Backchain) are vendored, provenance-verified
+copies published only as marketplace plugins; `install.sh` never installs them.
 
 For setup and marketplace distribution across hosts, start with
 [docs/distribution.md](docs/distribution.md).
@@ -57,6 +59,12 @@ Use **skill-craft** for portable skill packages and their plugin distribution. U
 | [shiploop](skills/shiploop/SKILL.md) | 0.19.7 | Markdown-authoritative delivery harness. Start or resume once, follow the script's current action packet, and submit its exact completion call until the script reports completion… |
 | [shiploop-e2e-audit](skills/shiploop-e2e-audit/SKILL.md) | 0.2.4 | Run the ShipLoop test harness and audit its retained graph, review, test, product and incremental-change evidence. Use for ShipLoop mock checks, live one-shot E2E smoke/full… |
 | [skill-interop](skills/skill-interop/SKILL.md) | 0.2.3 | Use when authoring or reviewing a portable multi-host agent skill (Grok, Claude Code, Codex, Hermes): scaffold a prompt-only skill, make a skill host-agnostic, create skill… |
+
+**1 plugin bundle.** Marketplace-only: `install.sh` never installs bundle members. Generated from `bundles/<plugin>/bundle.json` and member frontmatter by `scripts/sync-plugin-views.sh`.
+
+| Plugin | Version | Skills | Purpose |
+|--------|---------|--------|---------|
+| [backchain](bundles/backchain/bundle.json) | 0.3.9 | backchain, plan-dispatcher | Plan Orchestrator portable skills: Backchain builds and repeatedly reviews evidence-backed dependency plans; Plan Dispatcher coordinates their execution with native agents.… |
 
 <!-- skill-craft:inventory:end -->
 
@@ -161,7 +169,8 @@ See the skill-craft-market README for per-host faces.
 
 This repo also contains generated native catalogs at `.grok-plugin/marketplace.json`
 and `.cursor-plugin/marketplace.json`. Both reference the same generated `plugins/<leaf>`
-packages in this checkout. They do not include the sibling catalog's external packages.
+packages in this checkout, plus each plugin bundle (`plugins/backchain`). They do not
+include the sibling catalog's external packages.
 Use a full plugin sync to regenerate the catalogs. See
 [distribution instructions](docs/distribution.md) for local use, updates, and publication.
 
@@ -230,3 +239,12 @@ leaf script is not view drift. Bare `--check` still fails if some other
 plugin view's content is dirty.
 
 `skill-craft-market` pins `path: "plugins/skill-interop"`, not the bare skill leaf.
+
+A **plugin bundle** is one plugin with several skills. `bundles/backchain/` holds
+a verbatim copy of the private Backchain repository's `backchain` and
+`plan-dispatcher` skills and agent card, recorded with sha256 hashes in
+`PROVENANCE.json`. Sync verifies those bytes before generating `plugins/backchain/`
+(skills invoked as `backchain:backchain` and `backchain:plan-dispatcher`). Never
+hand-edit a bundle; refresh it from a published upstream release with
+`scripts/sync-vendored-bundles.py` (see the
+[release checklist](docs/skill-release-checklist.md#vendored-bundle-refresh)).

@@ -5,6 +5,9 @@ Before publishing a changed skill package, freeze the candidate bytes:
 1. **Version the changed leaf first**, including packaging-only changes. Do not
    change its version or package bytes after final verification without rerunning
    affected checks. Preserve unrelated work in shared checkouts.
+   A vendored plugin bundle (`bundles/<plugin>/`, for example Backchain) is
+   versioned upstream, never here: refresh it with the steps in
+   [Vendored bundle refresh](#vendored-bundle-refresh) instead of editing its bytes.
 2. **Plugin views and native catalogs in sync:** `bash scripts/sync-plugin-views.sh`, then
    `bash scripts/sync-plugin-views.sh --check`. Full sync also regenerates the Grok/Cursor
    catalogs and README inventory. Commit generated metadata with the package change.
@@ -40,7 +43,7 @@ Before publishing a changed skill package, freeze the candidate bytes:
    so a failed precondition cannot be followed accidentally by a separate push.
    Protected-branch reviews, checks and merge-queue requirements still apply.
 4. **Market selection:** only root skill-craft-market `.claude-plugin/marketplace.json` (no second catalog under `faces/`):
-   - `source.path` = `plugins/<skill>` (not bare `skills/`); Backchain uses its standalone package root.
+   - `source.path` = `plugins/<skill>` (not bare `skills/`), including the vendored bundle `plugins/backchain`.
    - Ask Agent, ShipLoop, Improve and Backchain follow the latest published `main` with `source.ref: "main"` and no `source.sha`. Validate the resolved commit once and retain that exact SHA in release evidence; a floating entry is not an immutable pin.
    - Other entries retain their full 40-character `source.sha` and optional tag/ref reachability label. Do not retarget unrelated leaves.
    - `version` must match the selected package's SKILL.md / `plugin.json` at the resolved commit. Bump each changed package on every release: hosts may cache by this version, so following `main` does not promise refresh for an unversioned intermediate commit.
@@ -57,8 +60,10 @@ Before publishing a changed skill package, freeze the candidate bytes:
    of repeating the same unit bank locally and after merge.
    `python3 scripts/check-pins.py --full-payload` remains available for a complete
    catalog audit or changed shared verification rules; an individual pin update need
-   not requalify every unchanged payload. Private sources require an existing
-   `GH_TOKEN` with read access. The default pin check without `--full-payload`
+   not requalify every unchanged payload. Once the catalog selects
+   `plugins/backchain` from skill-craft, no entry needs private repository access;
+   an optional `GH_TOKEN` only raises GitHub's anonymous API rate limit for a
+   full local run. The default pin check without `--full-payload`
    explicitly reports that complete payload readiness was not checked.
 6. **Push market** and operators run `claude plugin marketplace update skill-craft-market`
    or `codex plugin marketplace upgrade skill-craft-market` for a Git-backed catalog.
@@ -71,6 +76,55 @@ Before publishing a changed skill package, freeze the candidate bytes:
    create a public marketplace listing.
 
 Pin lag after ship is a bug: marketplace install must not serve pre-ship wording.
+
+## Vendored bundle refresh
+
+Backchain's development source (`whichguy/plan-orchestrator`, formerly
+`whichguy/backchain`) stays private. skill-craft publishes a hash-verified copy
+of its `skills/backchain`, `skills/plan-dispatcher` and `agents/backchain.md`
+as `bundles/backchain/`, generated into `plugins/backchain/`. CI proves only
+that the bundle matches its own `PROVENANCE.json` and passes the publication
+lint; it cannot see the private upstream. Refresh it deliberately:
+
+1. **Upstream release first.** The upstream commit must be published on its
+   `origin/main`, and the upstream `.claude-plugin/plugin.json` version must
+   increase whenever any vendored byte changes (hosts use it as the update
+   signal). The refresh refuses otherwise (exit 4). Its description must equal
+   `bundles/backchain/bundle.json`; change bundle.json only in a reviewed edit.
+2. **Fresh canonical checkout.** Apply the local checkout policy: clean `main`,
+   `git fetch origin`, `git merge --ff-only origin/main`.
+3. **Dry run and review.** `python3 scripts/sync-vendored-bundles.py --bundle backchain --from ../backchain`
+   prints the upstream commit, version and changed paths. Read the actual diff:
+   everything vendored becomes permanently public. The lint (home paths,
+   email addresses, credential shapes, private IPs, hidden characters, and the
+   operator's user name and git user.name) is heuristic and cannot recognize
+   internal names or private context.
+4. **Apply.** Rerun with `--write`, then `bash scripts/sync-plugin-views.sh` and
+   `bash scripts/sync-plugin-views.sh --check`.
+5. **Verify.** `python3 test/vendored-bundles.test.py`, the core group, and the
+   release gate for a multi-skill package on each host you ship to:
+   `bash test/run-integration.sh marketplace-bundle-claude backchain` (also
+   `-codex` and `-grok`). Record host versions.
+6. **Lag check (optional, local).** `bash test/run-integration.sh vendored-bundle-lag backchain ../backchain`
+   dry-runs a refresh against the checkout's fetched `origin/main` and never
+   writes. Only exit 0 means the snapshot is current; every other exit means
+   it is not shown current, and stderr says why:
+   - 0: in sync.
+   - 1: lag that a `--write` refresh would apply (payload or version differs),
+     or a local bundle that fails its own verification.
+   - 2: upstream unavailable or invalid, including drift that needs a
+     deliberate edit (the upstream description no longer equals `bundle.json`,
+     or a declared member is missing upstream).
+   - 3: new upstream content fails the publication lint.
+   - 4: lag the release policy refuses (bytes changed without an upstream
+     version increase, a lower version, or a commit not on `origin/main`).
+   - 5: `PROVENANCE.json` no longer matches its recorded upstream commit.
+   - 64: usage error.
+
+`install.sh` never installs bundle members: the canonical skill-directory links
+keep pointing at the private checkout, and `--from` refuses `bundles/` and
+generated `plugins/` paths plus copies whose plugin manifest names the
+skill-craft repository, such as host plugin caches (exit 64).
 
 ## Guarded publication
 

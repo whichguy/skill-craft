@@ -51,8 +51,8 @@ is unknown, inspect `claude plugin list --json` for the host's current state.
 
 | Host | Repository to distribute | Index | Packages |
 |------|--------------------------|-------|----------|
-| Grok | `whichguy/skill-craft` | `.grok-plugin/marketplace.json` | Source skill packages |
-| Cursor | `whichguy/skill-craft` | `.cursor-plugin/marketplace.json` | Source skill packages |
+| Grok | `whichguy/skill-craft` | `.grok-plugin/marketplace.json` | Source skill packages and plugin bundles |
+| Cursor | `whichguy/skill-craft` | `.cursor-plugin/marketplace.json` | Source skill packages and plugin bundles |
 | Claude Code | `whichguy/skill-craft-market` | `.claude-plugin/marketplace.json` | Source packages plus external pins |
 | Codex | `whichguy/skill-craft-market` | Same Claude-compatible index | Same published package selections |
 
@@ -62,8 +62,21 @@ uses rolling `main` for Ask Agent, ShipLoop, Improve and Backchain, with no
 commit pin for those four entries. Other entries retain per-package pins. Each
 validation freezes the resolved SHA for its checks and evidence. Package versions
 still advance on every release for host cache/update detection; users refresh the
-marketplace and installed plugin through the host. Backchain is private and requires repository
-access; Lennox S40 and the standalone Until Loop skill are maintained separately.
+marketplace and installed plugin through the host. Lennox S40 and the standalone
+Until Loop skill are maintained separately.
+
+Backchain's development repository stays private. skill-craft publishes a
+hash-verified copy of its two skills (`backchain`, `plan-dispatcher`) and agent
+card as the plugin bundle `bundles/backchain`, generated into
+`plugins/backchain`, so it installs anonymously like any other skill-craft
+package: `$backchain:backchain` / `/backchain:backchain` and
+`$backchain:plan-dispatcher` / `/backchain:plan-dispatcher`. `install.sh` never
+installs bundle members. Keep one track per host: the skill-directory links to
+the canonical checkout or the plugin, not both. Adding the bundle to the Grok and
+Cursor indexes is a new install channel for those hosts. The sibling catalog
+selects `plugins/backchain` in a coordinated change after the source is
+published; refresh steps are in the
+[release checklist](skill-release-checklist.md#vendored-bundle-refresh).
 Improve remains owned here and includes its own compatible runtime; the standalone
 Until Loop entry does not replace Improve's selected source.
 
@@ -201,7 +214,11 @@ Optional real-host checks (installed CLIs required):
 bash test/run-integration.sh marketplace-claude
 bash test/run-integration.sh marketplace-grok
 bash test/run-integration.sh marketplace-codex
+bash test/run-integration.sh marketplace-bundle-claude backchain   # also -grok, -codex
 ```
+
+The bundle targets install one multi-skill plugin view in a disposable profile
+and require every declared member card to materialize once with identical bytes.
 
 These create disposable host profiles and local catalogs, install Skill Interop,
 invoke its installed marketplace helper, install Review Coverage, run its bundled
@@ -212,7 +229,8 @@ review remain separate manual checks.
 
 Commit and publish the source adapters and catalog repairs before giving remote
 install instructions to other people. Validate pins with the sibling catalog's
-CI; its private Backchain source needs `MARKETPLACE_READ_TOKEN` with read access.
+CI. Once it selects the vendored `plugins/backchain`, every catalog source is
+public and validation needs no `MARKETPLACE_READ_TOKEN`.
 The full [release checklist](skill-release-checklist.md) preserves package versions
 and each entry's rolling or pinned selection. Catalog generation and local validation do not establish
 that changes are published or that every script can execute on every host.

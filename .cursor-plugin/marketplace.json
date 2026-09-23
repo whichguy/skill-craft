@@ -18,6 +18,11 @@
       "description": "A delegation skill, not an agent type. Ask native agents to work in the background, continue useful work in the main conversation, and incorporate their results when they return. Use for \"ask an agent\", named agent roles, parallel delegation, or launch-and-notify work."
     },
     {
+      "name": "backchain",
+      "source": "./plugins/backchain",
+      "description": "Plan Orchestrator portable skills: Backchain builds and repeatedly reviews evidence-backed dependency plans; Plan Dispatcher coordinates their execution with native agents. Existing backchain skill and plugin identities remain stable."
+    },
+    {
       "name": "c-plan",
       "source": "./plugins/c-plan",
       "description": "Resolve ambiguous user prompts by choosing whether to answer now, answer with assumptions, ask 1–2 high-value clarification questions, replan, or stop. Use when the best response depends on hidden intent, audience, scope, constraints, risk, output format, or desired depth."

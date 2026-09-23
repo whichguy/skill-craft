@@ -1,0 +1,142 @@
+[
+  {
+    "id": "implicit-sessions-migration",
+    "query": "Move sessions from opaque Redis tokens to signed database-backed sessions. Existing tokens must keep working during rollout; update API middleware, persistence, revocation, and cleanup after the compatibility window.",
+    "should_trigger": true,
+    "category": "implicit-dependency",
+    "rationale": "The migration has compatibility, ordering, and cleanup preconditions across several components even though the user does not explicitly request a plan."
+  },
+  {
+    "id": "implicit-webhook-idempotency",
+    "query": "Add tenant-scoped webhook delivery across the API, queue, worker, retry store, and replay endpoint. Duplicate deliveries must remain harmless during retries and during a rolling deploy.",
+    "should_trigger": true,
+    "category": "implicit-dependency",
+    "rationale": "Cross-component delivery and rollout safety require explicit supplier and ordering relationships."
+  },
+  {
+    "id": "implicit-billing-provider-cutover",
+    "query": "Migrate billing from Provider A to Provider B with dual writes, reconciliation, feature-flagged cutover, rollback, and eventual removal of the old adapter.",
+    "should_trigger": true,
+    "category": "implicit-dependency",
+    "rationale": "Dual writes, reconciliation, cutover, rollback, and cleanup form an ordering-sensitive migration."
+  },
+  {
+    "id": "implicit-policy-authorization",
+    "query": "Replace role checks with policy-based authorization across the schema, backend cache, API, and client while preserving old-role compatibility during deployment.",
+    "should_trigger": true,
+    "category": "implicit-dependency",
+    "rationale": "The compatibility bridge and multi-surface rollout create hidden preconditions and safe execution waves."
+  },
+  {
+    "id": "implicit-offline-editing",
+    "query": "Add offline editing to the mobile client: local persistence, queued mutations, conflict resolution, server versioning, and user-visible recovery when reconciliation fails.",
+    "should_trigger": true,
+    "category": "implicit-dependency",
+    "rationale": "Local and server capabilities must be supplied in a coherent order before recovery behavior is achievable."
+  },
+  {
+    "id": "implicit-external-cab",
+    "query": "Ship billing-v2 after external CAB approval. Repository code can prepare the release, but it cannot manufacture the approval, and deployment must remain blocked until approval is issued.",
+    "should_trigger": true,
+    "category": "implicit-dependency",
+    "rationale": "The externally controlled prerequisite must remain unresolved and attached to the gated deployment."
+  },
+  {
+    "id": "explicit-rollout-dag",
+    "query": "Turn the auth-service rollout into a dependency DAG showing what blocks schema migration, compatibility reads, dual writes, backfill, cutover, rollback readiness, and old-column removal.",
+    "should_trigger": true,
+    "category": "explicit-planning",
+    "rationale": "The user explicitly requests the dependency-graph output Backchain produces."
+  },
+  {
+    "id": "explicit-incomplete-plan",
+    "query": "This migration plan jumps from adding the new events table straight to deleting the old queue. Elaborate it backward from safe cutover, add missing preconditions, and return scheduler-ready execution waves.",
+    "should_trigger": true,
+    "category": "explicit-planning",
+    "rationale": "The request explicitly asks for backward elaboration of an incomplete plan and scheduler-ready waves."
+  },
+  {
+    "id": "coexistence-devloop",
+    "query": "Use Devloop to implement cross-service checkout idempotency, covering schema migration, API idempotency keys, worker retries, reconciliation, and staged rollout. First establish what can run in parallel and what blocks cutover.",
+    "should_trigger": true,
+    "category": "coexistence",
+    "rationale": "Execution can remain owned by Devloop while Backchain supplies the requested dependency order."
+  },
+  {
+    "id": "coexistence-plan-review",
+    "query": "Review this draft data-migration plan for missing preconditions, then convert the accepted result into a scheduler-ready graph across schema, API, worker, and rollout tasks.",
+    "should_trigger": true,
+    "category": "coexistence",
+    "rationale": "Plan review and Backchain have distinct jobs; the final dependency graph still requires Backchain."
+  },
+  {
+    "id": "bounded-csv-parser",
+    "query": "Fix the CSV parser so quoted fields containing commas parse correctly and add regression coverage for quoted and ordinary rows.",
+    "should_trigger": false,
+    "category": "bounded-edit",
+    "rationale": "This is a localized implementation plus direct regression coverage; it remains an outcome-quality sentinel when explicitly invoked, not an automatic trigger requirement."
+  },
+  {
+    "id": "bounded-readme-dry-run",
+    "query": "Clarify in README.md that --dry-run prints intended changes without writing files. Runtime behavior must not change.",
+    "should_trigger": false,
+    "category": "bounded-edit",
+    "rationale": "A documentation-only edit has no cross-component precondition or rollout ordering."
+  },
+  {
+    "id": "bounded-null-guard",
+    "query": "Add a null guard in formatUserName and a regression test for a missing middle name.",
+    "should_trigger": false,
+    "category": "bounded-edit",
+    "rationale": "One source edit and its direct test do not benefit from a dependency DAG."
+  },
+  {
+    "id": "bounded-cli-rename",
+    "query": "Rename the CLI flag --colour to --color in its parser, help text, and direct tests. Keep --colour as an alias.",
+    "should_trigger": false,
+    "category": "bounded-edit",
+    "rationale": "The compatibility alias is a small, bounded change rather than a multi-stage migration."
+  },
+  {
+    "id": "bounded-accessible-label",
+    "query": "Change the Save button's accessible label to Save changes and update its snapshot.",
+    "should_trigger": false,
+    "category": "bounded-edit",
+    "rationale": "A UI string and direct snapshot update are a one-step implementation task."
+  },
+  {
+    "id": "bounded-dependency-bump",
+    "query": "Bump minimist to the patched release, regenerate the lockfile, and run the existing test command.",
+    "should_trigger": false,
+    "category": "bounded-edit",
+    "rationale": "The requested package update already supplies a direct, conventional sequence without hidden planning dependencies."
+  },
+  {
+    "id": "adjacent-debugging",
+    "query": "Diagnose why webhook retries occasionally duplicate charges. Collect evidence and report the root cause; do not change code or create an implementation plan.",
+    "should_trigger": false,
+    "category": "adjacent-workflow",
+    "rationale": "The user requests evidence-first diagnosis and explicitly excludes implementation planning."
+  },
+  {
+    "id": "adjacent-code-review",
+    "query": "Review PR #418 for correctness, security, and regressions. Do not edit the branch or turn findings into an implementation plan.",
+    "should_trigger": false,
+    "category": "adjacent-workflow",
+    "rationale": "A read-only code review should not be displaced by dependency planning."
+  },
+  {
+    "id": "adjacent-next-best-questions",
+    "query": "Before anyone plans the OAuth migration, rank the next-best unanswered questions and explain what evidence would resolve each one.",
+    "should_trigger": false,
+    "category": "adjacent-workflow",
+    "rationale": "The request is for uncertainty reduction before planning, which belongs to the next-best-questions workflow."
+  },
+  {
+    "id": "adjacent-execute-approved-plan",
+    "query": "The migration plan is approved and frozen. Execute its listed tasks with subagents now, preserve the order exactly, and do not re-plan it.",
+    "should_trigger": false,
+    "category": "adjacent-workflow",
+    "rationale": "The user requests execution of an existing plan and explicitly forbids replanning."
+  }
+]

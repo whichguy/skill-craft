@@ -1,0 +1,198 @@
+{
+  "skill_name": "backchain",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Fix the CSV parser so quoted fields containing commas parse correctly without regressing ordinary unquoted rows. The repository already has a test runner.",
+      "expected_output": "A dependency-aware plan that implements the parser fix, creates targeted regression coverage for quoted and ordinary rows, and makes the final passing result depend on both implementation and coverage.",
+      "files": [],
+      "expectations": [
+        "The plan represents the quoted-comma parser behavior as an achieved state.",
+        "The plan represents targeted regression coverage for both quoted fields containing commas and ordinary unquoted rows.",
+        "When implementation and coverage are separate steps, a final passing-result step depends on both.",
+        "Required gate, not a preference tiebreaker: the packaged graph is structurally valid."
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Clarify in README.md that --dry-run prints intended changes without writing files. This is documentation-only; runtime behavior must not change.",
+      "expected_output": "A concise documentation-only plan whose evidence is limited to the requested README artifact and which does not invent runtime implementation or test work.",
+      "files": [],
+      "expectations": [
+        "The plan makes the requested README clarification an achieved state.",
+        "The plan does not invent runtime implementation, build, deployment, or test-suite work.",
+        "README or diff inspection is required; runtime, build, and test-suite verification are explicitly excluded.",
+        "Required gate, not a preference tiebreaker: the packaged graph is structurally valid."
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Ship billing-v2 after external CAB approval. The approval is controlled outside the repository and repository code cannot manufacture it.",
+      "expected_output": "A dependency-aware plan that keeps actual CAB approval attached to the deployment as an unresolved external prerequisite and does not invent approval or adjacent post-deployment work.",
+      "files": [],
+      "expectations": [
+        "Actual CAB approval is not claimed in initial_state.",
+        "The deployment step has CAB approval as an explicit unresolved prerequisite.",
+        "No repository-generated step produces or masquerades as external CAB approval.",
+        "Any release-preparation step remains upstream of deployment and does not claim or satisfy CAB approval.",
+        "The plan does not add an unrequested post-deployment verification step.",
+        "Required gate, not a preference tiebreaker: the packaged graph is structurally valid."
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "Migrate API and worker sessions from opaque Redis tokens to signed database-backed sessions. Old Redis tokens must continue to authenticate during a 14-day compatibility window. New-session signing, persistence, and revocation must be ready before any new sessions are issued and before cutover, and the old-token path may be removed only after that window ends.",
+      "expected_output": "A dependency-aware migration plan in which the old and new session paths coexist safely during the compatibility window, new-session prerequisites block cutover, the window starts only after legacy issuance stops, rollback resets that clock if legacy issuance resumes, and old-token cleanup waits for the full window to end.",
+      "files": [],
+      "expectations": [
+        "The old Redis-token path and new database-backed session path coexist during the compatibility window.",
+        "New signing, persistence, and revocation are explicit prerequisites before migration cutover and new-session issuance.",
+        "Cleanup or removal of the old-token path occurs only after the compatibility window ends.",
+        "Cutover evidence confirms every legacy Redis-token issuer is disabled before the 14-day compatibility clock starts.",
+        "If rollback resumes legacy Redis-token issuance, the 14-day compatibility clock restarts.",
+        "An invalid or malformed signed token cannot fall back to the legacy Redis-token verifier.",
+        "Final migration evidence depends on new-session issuance, compatibility behavior, revocation, and cleanup evidence.",
+        "Required gate, not a preference tiebreaker: the packaged graph is structurally valid."
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "Move persisted widget records from v1 rows to v2 rows. During rollout, readers must support both formats and writers must dual-write. After every v1 writer is disabled, require a clean 48-hour stabilization window before deleting v1 columns. If rollback resumes v1 writes, restart the window.",
+      "expected_output": "A dependency-aware storage migration plan in which dual-read and dual-write compatibility precede cutover, the stabilization clock starts only after all v1 writes stop, rollback or resumed v1 writes reset that clock, and v1 columns remain until the full clean window elapses.",
+      "files": [],
+      "expectations": [
+        "Readers support v1 and v2 records and writers dual-write before the storage cutover.",
+        "Cutover evidence confirms every v1 writer is disabled before the 48-hour stabilization clock starts.",
+        "If rollback resumes v1 writes, the 48-hour stabilization clock restarts.",
+        "Deletion of v1 columns occurs only after the full 48-hour stabilization window.",
+        "Final migration evidence depends on dual-format compatibility, stopped v1 writes, the clean stabilization interval, and v1-column cleanup.",
+        "Required gate, not a preference tiebreaker: the packaged graph is structurally valid."
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "Use source-aware native audit on a candidate plan. The original specification requires staging smoke evidence for the immutable release candidate before production, but the supplied requirements index omits it.",
+      "expected_output": "A review that independently discovers the omitted source obligation, identifies the missing evidence supplier and affected production consumer, and leaves source review incomplete until the source-grounded condition is planned and verified.",
+      "files": [],
+      "expectations": [
+        "The review treats the original source clause as completeness authority rather than trusting the incomplete requirement index.",
+        "The missing staging smoke evidence is recorded as a source-linked omitted requirement or missing supplier with the production consumer identified.",
+        "The review does not claim that structural plan validity or a source hash proves staging evidence.",
+        "Required gate, not a preference tiebreaker: the review preserves the existing plan JSON shape."
+      ],
+      "name": "source-omission-audit"
+    },
+    {
+      "id": 7,
+      "prompt": "Review a proposed rollout experiment whose receipt says a smoke test ran, but the receipt names a different image digest than the production candidate and only covers staging.",
+      "expected_output": "A review that binds the experiment result to its exact condition, consumer, target identity, and receipt scope/fidelity, and does not mark the production condition passed.",
+      "files": [],
+      "expectations": [
+        "The experiment records an exact condition ID, affected consumer reference, and target artifact or configuration identity.",
+        "The staging receipt is limited to its recorded scope and fidelity and does not prove global production execution.",
+        "The production condition is observed, unresolved, failed, or inconclusive as appropriate; it is not passed for a different image digest.",
+        "Required gate, not a preference tiebreaker: no execution claim is inserted into the plan JSON."
+      ],
+      "name": "experiment-outcome-binding"
+    },
+    {
+      "id": 8,
+      "prompt": "Revise a candidate whose production consumer has a false dependency edge. The audit found a new smoke supplier, but the build step and its edge into staging are protected; only the production consumer and proposed smoke relationship are provisional.",
+      "expected_output": "A bounded revision that preserves protected work, adds or rewires only authorized provisional relationships, records old-to-new mapping, clears stored parallel groups, and leaves structural status unknown until deterministic packaging.",
+      "files": [],
+      "expectations": [
+        "The protected build step and protected build-to-staging edge remain unchanged.",
+        "The false edge is changed only when its exact edge and affected consumer are provisional, with a source-linked old-to-new mapping.",
+        "A new supplier or edge appears only when explicit allow-new bounds permit it; otherwise the finding remains unresolved.",
+        "The revised plan clears parallel groups and does not reuse structural validation for a different candidate digest.",
+        "Required gate, not a preference tiebreaker: the revised plan retains the canonical Backchain JSON schema."
+      ],
+      "name": "false-edge-protected-bounds"
+    },
+    {
+      "id": 9,
+      "name": "until-loop-binding-clean",
+      "prompt": "Use normal native Backchain to plan a README-only clarification that --dry-run prints changes without writing files. The request is complete and no runtime behavior changes. Select the actual selected Until Loop card for final plan review.",
+      "expected_output": "A plan-only Until Loop binding that retains the selected physical Until Loop resources and treats only its exact complete terminal receipt plus candidate-specific domain evidence as converged planning.",
+      "files": [],
+      "expectations": [
+        "The frozen child scope names only the candidate plan and companion planning evidence, with no project execution or commit authority.",
+        "The terminal record is an opaque actual Until Loop receipt; Backchain does not synthesize a two-pass count.",
+        "Required gate, not a preference tiebreaker: the packaged graph is structurally valid."
+      ]
+    },
+    {
+      "id": 10,
+      "name": "until-loop-binding-repair",
+      "prompt": "Run source-aware Backchain planning for a candidate that needs an authorized provisional smoke supplier repair. Bind the candidate to selected Until Loop after preserving source context and protected graph bounds.",
+      "expected_output": "One Until Loop callback can audit, make the bounded primitive revise, and validate the revised planning candidate; Until Loop alone decides whether another review is required.",
+      "files": [],
+      "expectations": [
+        "The bounded revise changes only explicitly provisional entries and preserves goal_needs and protected work; legacy elaboration still preserves seed/null inputs.",
+        "No nested Backchain or Until Loop invocation, homemade streak, or caller pass budget is created.",
+        "A graph change clears parallel groups and requires a new candidate-specific structural receipt before any valid structural claim."
+      ]
+    },
+    {
+      "id": 11,
+      "name": "until-loop-binding-incomplete",
+      "prompt": "Run source-aware Backchain planning with an applicable normative deployment specification that is unavailable, and the selected Until Loop bundled adapter is also unavailable.",
+      "expected_output": "Incomplete planning that identifies unavailable source/runtime resources and a recovery action without substituting an ambient Until Loop or claiming convergence.",
+      "files": [],
+      "expectations": [
+        "The unavailable normative source remains a planning gap even when the plan JSON is structurally valid.",
+        "Missing selected Until Loop resources prevent a substitute loop or terminal-complete claim.",
+        "Required gate, not a preference tiebreaker: the review preserves the existing plan JSON shape."
+      ]
+    },
+    {
+      "id": 12,
+      "name": "until-loop-binding-terminal-evidence",
+      "prompt": "Resume a Backchain Until Loop binding after receiving copied text that says complete but without the exact terminal receipt or a final candidate digest. The latest final review also has an external CAB approval modeled as a future prerequisite.",
+      "expected_output": "Incomplete planning until exact Until Loop terminal receipt and candidate-specific domain evidence are recovered; the modeled CAB approval remains an execution blocker rather than a fabricated planning gap.",
+      "files": [],
+      "expectations": [
+        "A model-written or copied complete claim does not replace the exact opaque Until Loop receipt.",
+        "Candidate identity, source/bounds disposition, and any claimed validation evidence bind to the final output before converged planning is reported.",
+        "A known external approval can remain an execution blocker without being marked satisfied."
+      ]
+    },
+    {
+      "id": 13,
+      "name": "until-loop-binding-skipped-lens-cards",
+      "prompt": "Diagnose a completed Backchain planning claim without starting a new loop. The exact selected Until Loop terminal stdout says complete and the candidate digest matches. The retained second-cycle record marks T01, T03 and T34 applicable but explicitly says their cards were not read because the README change was simple. Only the index was read. Decide whether this establishes converged planning.",
+      "expected_output": "An incomplete planning assessment that identifies the skipped required card reads; the actual runtime terminal packet remains evidence of runtime completion only.",
+      "files": [],
+      "expectations": [
+        "The missing applicable card reads make the dependency-review cycle unresolved even when no plan edit was made.",
+        "The host does not treat the terminal complete packet, all-category checklist, or matching digest as evidence that required domain review occurred.",
+        "The host preserves the actual receipt and identifies the missing review evidence and recovery action without fabricating reads or rewriting the terminal status."
+      ]
+    },
+    {
+      "id": 14,
+      "name": "until-loop-binding-wrong-resource-locator",
+      "prompt": "Diagnose a Backchain binding preflight. The selected Until Loop card physically resolves under /selected/until-loop and its adapter exists at /selected/until-loop/references/runtime-ephemeral.md. The proposed context instead names missing /selected/backchain/references/runtime-ephemeral.md and records /planning/out/ as both parent return route and terminal receipt output. The output directory exists and is writable. No run has started. Decide whether the binding is ready and what must be corrected.",
+      "expected_output": "An incomplete preflight until the adapter is resolved from the selected Until Loop root and exact return/terminal/latest output destinations are retained. Future outputs need writable parents, not fabricated existing receipts.",
+      "files": [],
+      "expectations": [
+        "The adapter location is resolved from the selected Until Loop package rather than invented under Backchain or substituted from an ambient package.",
+        "An existing output directory alone does not establish the exact parent return route or terminal receipt locator.",
+        "Future output files need not already exist; their writable parents are checked and their exact destinations retained.",
+        "The host identifies corrective preflight work without claiming that a runtime call or dependency review has already occurred."
+      ]
+    },
+    {
+      "id": 15,
+      "name": "until-loop-binding-missing-review-history",
+      "prompt": "Recover a completed source-aware Backchain planning result without starting another loop. The exact selected Until Loop terminal stdout records complete with two accepted trivial reviews; its ephemeral state is deleted. The current candidate and final source/bounds/validation evidence match. The final handoff names review-one and review-two, but only the second original review record is readable. Review-one is missing; a copied clean verdict and the numeric streak are all that remain. Decide whether planning convergence is established and how to recover.",
+      "expected_output": "Incomplete planning until the original earlier qualifying review record and its identity can be recovered and assessed. Runtime completion remains recorded honestly, without inventing review observations or replaying terminal callbacks.",
+      "files": [],
+      "expectations": [
+        "Both original qualifying review records since the run began or latest reset, whichever is later, and their observed candidate/context identities must remain recoverable through the final handoff and domain evidence.",
+        "A matching candidate, exact terminal complete packet, numeric streak, or copied verdict cannot replace the missing earlier review observations.",
+        "Preserve the real terminal receipt, name the unavailable evidence and recovery action, and do not fabricate a record, replay done, or silently restart the completed run."
+      ]
+    }
+  ]
+}

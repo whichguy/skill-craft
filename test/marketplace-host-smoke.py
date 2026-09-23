@@ -3,6 +3,8 @@
 
 Tests the current local package bytes, not their published Git catalog pins.
 Run with --host claude|grok|codex. The personal host profiles are never used.
+--bundle NAME installs one multi-skill bundle view (plugins/NAME) and checks
+that every declared member card is materialized once with identical bytes.
 """
 from __future__ import annotations
 
@@ -506,16 +508,86 @@ def run_ask_agent_consumer(
         }
 
 
+def run_bundle_smoke(host: str, binary: str, bundle: str) -> dict:
+    """Install one bundle view locally and verify every member skill tree."""
+    resolved = shutil.which(binary)
+    if not resolved:
+        raise RuntimeError(f"{host} CLI unavailable: {binary}")
+    declaration = json.loads((ROOT / "bundles" / bundle / "bundle.json").read_text(encoding="utf-8"))
+    members = [bundle, *(name for name in declaration["skills"] if name != bundle)]
+    receipts = []
+    with tempfile.TemporaryDirectory(prefix=f"skill-craft-{host}-bundle-") as temporary:
+        scratch = Path(temporary)
+        home = scratch / "consumer home"
+        project = scratch / "unrelated project"
+        market = scratch / "local marketplace"
+        for directory in (home, project, market, home / ".codex", home / ".claude", home / ".grok"):
+            directory.mkdir(parents=True)
+        parent = dict(os.environ)
+        env = isolated_environment(parent, home)
+        shutil.copytree(ROOT / "plugins" / bundle, market / "plugins" / bundle,
+                        ignore=shutil.ignore_patterns("__pycache__", "*.pyc", ".DS_Store"))
+        if host == "grok":
+            entry = {"name": bundle, "source": {"type": "local", "path": f"./plugins/{bundle}"}}
+        elif host == "codex":
+            entry = {"name": bundle, "source": {"source": "local", "path": f"./plugins/{bundle}"},
+                     "policy": {"installation": "AVAILABLE", "authentication": "ON_INSTALL"},
+                     "category": "Productivity"}
+        else:
+            entry = {"name": bundle, "source": f"./plugins/{bundle}"}
+        catalog_name = "skill-craft-bundle-smoke"
+        catalog = {"name": catalog_name, "plugins": [entry]}
+        if host == "claude":
+            catalog["owner"] = {"name": "Skill Craft local test"}
+        manifest_dir = market / ({"grok": ".grok-plugin", "claude": ".claude-plugin", "codex": ".agents/plugins"}[host])
+        manifest_dir.mkdir(parents=True)
+        (manifest_dir / "marketplace.json").write_text(json.dumps(catalog), encoding="utf-8")
+
+        def call(argv):
+            result = subprocess.run(argv, cwd=project, env=env, text=True,
+                                    stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=120)
+            receipts.append({"argv": argv, "exit": result.returncode,
+                             "stdout": redact(result.stdout, parent), "stderr": redact(result.stderr, parent)})
+            if result.returncode:
+                raise RuntimeError(redact(f"command failed ({result.returncode}): {argv}\n{result.stdout}\n{result.stderr}", parent))
+            return result.stdout
+
+        version = call([resolved, "--version"]).strip()
+        call([resolved, "plugin", "marketplace", "add", str(market)])
+        plugin_id = bundle if host == "grok" else f"{bundle}@{catalog_name}"
+        install = [resolved, "plugin", "add" if host == "codex" else "install", plugin_id]
+        if host == "grok":
+            install.append("--trust")
+        call(install)
+        verified = {}
+        for member in members:
+            card = installed_skill_card(home, host, member)
+            expected = market / "plugins" / bundle / "skills" / member
+            if package_tree_digests(card.parent) != package_tree_digests(expected):
+                raise RuntimeError(f"installed member tree differs from the bundle view: {member}")
+            verified[member] = digest(card)
+        return {"host": host, "version": version, "status": "passed", "bundle": bundle,
+                "members": verified,
+                "scope": "local catalog install of one bundle view; every member card materialized once with identical bytes; no model workflow or published-pin proof",
+                "commands": receipts}
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--host", required=True, choices=("claude", "grok", "codex"))
     parser.add_argument("--bin", help="explicit host CLI executable")
     parser.add_argument("--ask-agent", action="store_true", help="run the installed Ask Agent consumer probe (codex only)")
+    parser.add_argument("--bundle", help="install bundles/<NAME>'s plugin view and verify every member skill")
     args = parser.parse_args()
+    if args.ask_agent and args.bundle:
+        parser.error("--ask-agent and --bundle are exclusive")
     try:
-        run = run_ask_agent_consumer if args.ask_agent else run_smoke
-        receipt = run(args.host, args.bin or args.host)
-    except (OSError, ValueError, RuntimeError, subprocess.TimeoutExpired) as exc:
+        if args.bundle:
+            receipt = run_bundle_smoke(args.host, args.bin or args.host, args.bundle)
+        else:
+            run = run_ask_agent_consumer if args.ask_agent else run_smoke
+            receipt = run(args.host, args.bin or args.host)
+    except (OSError, ValueError, KeyError, RuntimeError, subprocess.TimeoutExpired) as exc:
         print(json.dumps({"host": args.host, "status": "failed", "error": str(exc)}, indent=2))
         return 1
     print(json.dumps(receipt, indent=2))

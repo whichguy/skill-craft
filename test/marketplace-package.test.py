@@ -4,6 +4,8 @@ import importlib.util
 import json
 from pathlib import Path
 import shutil
+import subprocess
+import sys
 import tempfile
 import unittest
 from unittest import mock
@@ -228,6 +230,108 @@ class PackageTests(unittest.TestCase):
         for name in leaves:
             with self.subTest(package=name):
                 self.assertEqual([], CHECK.validate_package(ROOT / "plugins" / name))
+        bundles = sorted(path.parent.name for path in (ROOT / "bundles").glob("*/bundle.json"))
+        self.assertIn("backchain", bundles)
+        for name in bundles:
+            with self.subTest(bundle=name):
+                members = CHECK.bundle_members(ROOT, name)
+                self.assertEqual([], CHECK.validate_package(ROOT / "plugins" / name, members))
+
+    def test_explicit_bundle_package_path_reads_its_declaration(self):
+        # The documented single-package usage must not mistake a declared
+        # member card for an additional public skill.
+        result = subprocess.run(
+            [sys.executable, "-B", str(ROOT / "scripts/check-marketplace-packages.py"), str(ROOT / "plugins/backchain")],
+            capture_output=True, text=True, check=False,
+        )
+        self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+        self.assertIn("OK backchain", result.stdout)
+        self.assertEqual(["backchain", "plan-dispatcher"], CHECK.bundle_members(ROOT, "backchain"))
+
+    def test_default_run_covers_every_leaf_and_bundle(self):
+        # The documented release gate is the no-argument run; it must
+        # enumerate bundles as well as leaves, not only validate them when
+        # a caller names them.
+        leaves = sorted(path.parent.name for path in (ROOT / "skills").glob("*/SKILL.md"))
+        bundles = sorted(path.parent.name for path in (ROOT / "bundles").glob("*/bundle.json"))
+        self.assertIn("backchain", bundles)
+        result = subprocess.run(
+            [sys.executable, "-B", str(ROOT / "scripts/check-marketplace-packages.py")],
+            capture_output=True, text=True, check=False,
+        )
+        self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+        for name in leaves + bundles:
+            self.assertIn(f"OK {name}: complete marketplace payload", result.stdout)
+        total = len(leaves) + len(bundles)
+        self.assertIn(f"marketplace-packages: {total}/{total} passed", result.stdout)
+
+    def test_invalid_bundle_declaration_fails_the_default_run(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / "skills/leaf").mkdir(parents=True)
+            (root / "skills/leaf/SKILL.md").write_text("---\nname: leaf\n---\n")
+            cases = {"broken": "{not json", "noprimary": json.dumps({"skills": ["other"]})}
+            for name, text in cases.items():
+                (root / "bundles" / name).mkdir(parents=True)
+                (root / "bundles" / name / "bundle.json").write_text(text)
+            result = subprocess.run(
+                [sys.executable, "-B", str(ROOT / "scripts/check-marketplace-packages.py"), "--root", str(root)],
+                capture_output=True, text=True, check=False,
+            )
+        self.assertEqual(1, result.returncode, result.stdout + result.stderr)
+        for name in cases:
+            self.assertIn(f"FAIL {name}: invalid bundle declaration", result.stderr)
+        self.assertIn("skills must list the primary member noprimary", result.stderr)
+        self.assertIn("marketplace-packages: 0/3 passed", result.stdout)
+
+    def test_plan_dispatcher_declares_its_node_entrypoint(self):
+        self.assertEqual({"scripts/dispatch.js": "node"}, CHECK.NATIVE_SCRIPT_ENTRYPOINTS["plan-dispatcher"])
+
+    def add_member(self, name="helper", body=None):
+        member = self.package / "skills" / name
+        member.mkdir(parents=True)
+        member.joinpath("SKILL.md").write_text(body or (
+            f"---\nname: {name}\nlicense: MIT\nmetadata:\n  version: 0.4.0\n"
+            "  skill_craft:\n    kind: prompt-only\n---\n\n# Helper\n"
+        ))
+        return member
+
+    def test_bundle_with_declared_member_passes(self):
+        self.add_member()
+        self.assertEqual([], CHECK.validate_package(self.package, ["sample", "helper"]))
+
+    def test_undeclared_member_card_fails(self):
+        self.add_member()
+        self.assertTrue(any("additional public SKILL.md" in error for error in CHECK.validate_package(self.package)))
+        self.add_member("extra")
+        errors = CHECK.validate_package(self.package, ["sample", "helper"])
+        self.assertTrue(any("skills/extra/SKILL.md" in error for error in errors), errors)
+
+    def test_bundle_member_identity_version_and_license(self):
+        cases = {
+            "name must equal its directory": "---\nname: other\nlicense: MIT\nversion: 1.0.0\n---\n",
+            "semantic version": "---\nname: helper\nlicense: MIT\nmetadata:\n  version: latest\n---\n",
+            "license must match": "---\nname: helper\nlicense: Apache-2.0\nversion: 1.0.0\n---\n",
+        }
+        for needle, body in cases.items():
+            with self.subTest(case=needle):
+                shutil.rmtree(self.package / "skills/helper", ignore_errors=True)
+                self.add_member(body=body)
+                errors = CHECK.validate_package(self.package, ["sample", "helper"])
+                self.assertTrue(any(needle in error for error in errors), errors)
+
+    def test_script_backed_bundle_member_needs_an_entrypoint(self):
+        self.add_member(body=(
+            "---\nname: helper\nlicense: MIT\nmetadata:\n  version: 0.4.0\n"
+            "  skill_craft:\n    kind: script-backed\n---\n"
+        ))
+        errors = CHECK.validate_package(self.package, ["sample", "helper"])
+        self.assertTrue(any("runnable bundled script" in error for error in errors), errors)
+
+    def test_bundle_members_must_start_with_the_primary(self):
+        self.add_member()
+        errors = CHECK.validate_package(self.package, ["helper", "sample"])
+        self.assertTrue(any("primary" in error for error in errors), errors)
 
 
 if __name__ == "__main__":
