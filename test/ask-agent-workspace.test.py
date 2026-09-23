@@ -31,6 +31,13 @@ class AskAgentWorkspaceCliTests(unittest.TestCase):
     def setUp(self) -> None:
         self.tmp = tempfile.TemporaryDirectory(prefix="ask-agent-workspace-test-")
         self.root = Path(self.tmp.name)
+        # The developer's global Git configuration and attributes (for example
+        # core.autocrlf or `* text=auto`) must not reach the fixtures.
+        home = self.root / "test-home"
+        (home / ".config").mkdir(parents=True)
+        isolated = mock.patch.dict(os.environ, {"HOME": str(home), "XDG_CONFIG_HOME": str(home / ".config")})
+        isolated.start()
+        self.addCleanup(isolated.stop)
         self.primary = self.root / "primary"
         self.source = self.root / "linked-caller"
         self.store = self.root / "workspace-store"
@@ -1602,7 +1609,7 @@ raise SystemExit(module.main(sys.argv[2:]))
         text = (HELPER.parents[1] / "references" / "result-handoff.md").read_text(encoding="utf-8")
         block = text.split("```sh\n", 1)[1].split("```", 1)[0]
         commands = [shlex.split(line) for line in block.splitlines() if line.startswith("git -C ")]
-        self.assertEqual([command[3] for command in commands], ["apply", "apply"], block)
+        self.assertEqual([command[3:6] for command in commands], [["-c", "core.autocrlf=false", "apply"]] * 2, block)
         return commands
 
     def _apply_to_source(self, patch: Path) -> None:
@@ -2262,6 +2269,67 @@ raise SystemExit(module.main(sys.argv[2:]))
         self.assertIn("Git timed out after 1s during worktree add", payload["error"])
         self.assertFalse(lock.exists(), "Git got no SIGTERM to remove its lock before the kill")
 
+    def _mixed_endings(self) -> bytes:
+        return b"".join(b"crlf line %d\r\n" % n for n in range(5)) + b"".join(b"lf line %d\n" % n for n in range(30))
+
+    def test_documented_apply_keeps_line_endings_under_caller_autocrlf(self) -> None:
+        # The patch carries raw bytes; the documented apply must read the
+        # target raw too, or core.autocrlf renormalizes lines the worker kept.
+        for setting in ("input", "true"):
+            with self.subTest(autocrlf=setting):
+                home = self.root / f"autocrlf-{setting}-home"
+                (home / ".config").mkdir(parents=True)
+                (home / ".gitconfig").write_text(f"[core]\n\tautocrlf = {setting}\n", encoding="utf-8")
+                environment = {"HOME": str(home), "XDG_CONFIG_HOME": str(home / ".config")}
+                self.helper_environment = environment
+                mixed, logo = f"mixed-{setting}.txt", f"logo-{setting}.txt"
+                (self.source / mixed).write_bytes(self._mixed_endings())
+                (self.source / logo).write_bytes(b"logo line one\nlogo line two\n")
+                self._run(self.source, "-c", "core.autocrlf=false", "add", mixed, logo)
+                self._run(self.source, "commit", "-q", "-m", f"line-ending fixtures {setting}")
+                # Check every tracked file out again the way this caller sees it.
+                for tracked in self._run(self.source, "ls-files", "-z").stdout.split("\0"):
+                    if tracked:
+                        (self.source / tracked).unlink()
+                with mock.patch.dict(os.environ, environment):
+                    self._run(self.source, "checkout", "--", ".")
+                prepared = self._prepare(label=f"apply autocrlf {setting}")
+                worktree = Path(prepared["worktree"])
+                edited = self._mixed_endings().replace(b"lf line 25\n", b"lf line 25 edited\n")
+                binary = b"\x00\x01binary logo\xff\n"
+                (worktree / mixed).write_bytes(edited)
+                (worktree / logo).write_bytes(binary)
+                inspected = self._inspect_mode(Path(prepared["receipt"]), "patch")
+                with mock.patch.dict(os.environ, environment):
+                    self._apply_to_source(Path(inspected["delivery"]["contribution_patch"]))
+                self.assertEqual((self.source / mixed).read_bytes(), edited)
+                self.assertEqual((self.source / logo).read_bytes(), binary)
+                self._run(self.source, "-c", "core.autocrlf=false", "add", "-A")
+                self._run(self.source, "commit", "-q", "-m", f"integrated {setting}")
+
+    def test_patch_delivery_refuses_mixed_line_endings_under_text_attributes(self) -> None:
+        (self.source / "mixed.txt").write_bytes(self._mixed_endings())
+        self._run(self.source, "add", "mixed.txt")
+        self._run(self.source, "commit", "-q", "-m", "mixed line endings")
+        (self.source / ".gitattributes").write_text("* text=auto\n", encoding="utf-8")
+        self._run(self.source, "add", ".gitattributes")
+        self._run(self.source, "commit", "-q", "-m", "normalize text")
+        prepared = self._prepare(label="mixed text")
+        worktree = Path(prepared["worktree"])
+        (worktree / "mixed.txt").write_bytes(self._mixed_endings().replace(b"lf line 25\n", b"lf line 25 edited\n"))
+        arguments = ("inspect", "--receipt", str(Path(prepared["receipt"]).resolve()), "--phase", "returned",
+                     "--delivery-mode", "patch")
+        result, payload = self._cli(*arguments)
+        self.assertEqual(result.returncode, 2, payload)
+        self.assertIn("mixes CRLF and LF line endings", payload["error"])
+        self.assertIn("mixed.txt", payload["error"])
+        # A file with uniform endings under the same attribute still delivers.
+        control = self._prepare(label="uniform text")
+        (Path(control["worktree"]) / "app.py").write_text("base application\nworker edit\n", encoding="utf-8")
+        delivered = self._inspect_mode(Path(control["receipt"]), "patch")
+        self._apply_to_source(Path(delivered["delivery"]["contribution_patch"]))
+        self.assertEqual((self.source / "app.py").read_bytes(), b"base application\nworker edit\n")
+
     def test_contribution_patch_keeps_crlf_under_global_text_attributes(self) -> None:
         # The same missing-index conversion reached through attributes: from
         # core.attributesFile, or from the default XDG attributes file.
@@ -2291,8 +2359,8 @@ raise SystemExit(module.main(sys.argv[2:]))
                     self._apply_to_source(Path(inspected["delivery"]["contribution_patch"]))
                 self.assertEqual((self.source / name).read_bytes(), edited)
                 self.assertEqual((self.source / f"run-{label}.bat").read_bytes(), added)
-                self._run(self.source, "add", "-A")
-                self._run(self.source, "-c", "core.autocrlf=false", "commit", "-q", "-m", f"integrated {label}")
+                self._run(self.source, "-c", "core.autocrlf=false", "-c", f"core.attributesFile={os.devnull}", "add", "-A")
+                self._run(self.source, "commit", "-q", "-m", f"integrated {label}")
 
     def test_contribution_patch_keeps_crlf_under_a_global_autocrlf(self) -> None:
         # The contribution diff runs outside any repository, so Git's index-based

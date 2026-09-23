@@ -253,8 +253,11 @@ and applies it according to repository policy. This is the mode for a dirty
 caller snapshot. Patch delivery refuses a contribution path that Git
 converts on write, through a non-UTF-8 `working-tree-encoding` or a `filter`
 attribute in either the worker's or the caller's attributes: `git apply`
-would convert those bytes again and still succeed. Use `commits` delivery or
-integrate such files by hand.
+would convert those bytes again and still succeed. It also refuses a
+contribution path whose `text` or `eol` attribute (in either view) makes
+`git apply` renormalize line endings when the caller's file mixes CRLF and LF
+lines: apply would rewrite endings on lines the worker never changed. Use
+`commits` delivery or integrate such files by hand.
 
 For a clean-snapshot commit handoff, pass the exact source HEAD from the receipt
 and every full worker contribution SHA in linear order:

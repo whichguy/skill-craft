@@ -689,6 +689,38 @@ def _paths_with_attribute(repo: Path, paths: Sequence[str], attribute: str) -> l
     ]
 
 
+def _line_ending_converted_paths(repo: Path, paths: Sequence[str]) -> list[str]:
+    """Return the paths whose `text` or `eol` attribute makes Git convert line endings."""
+    if not paths:
+        return []
+    payload = b"".join(os.fsencode(path) + b"\0" for path in paths)
+    raw = _git(repo, "check-attr", "-z", "text", "eol", "--stdin", input_bytes=payload).stdout
+    parts = raw.split(b"\0")
+    if parts and parts[-1] == b"":
+        parts.pop()
+    if len(parts) % 3:
+        _fail("Git returned malformed text/eol attributes")
+    values: dict[bytes, dict[bytes, bytes]] = {}
+    for index in range(0, len(parts), 3):
+        values.setdefault(parts[index], {})[parts[index + 1]] = parts[index + 2]
+    return [
+        os.fsdecode(path) for path, found in values.items()
+        if found.get(b"text", b"unspecified") != b"unset"
+        and (found.get(b"text", b"unspecified") != b"unspecified" or found.get(b"eol", b"unspecified") != b"unspecified")
+    ]
+
+
+def _has_mixed_line_endings(path: Path) -> bool:
+    """True for a regular text file that has both CRLF and lone LF line endings."""
+    if path.is_symlink() or not path.is_file():
+        return False
+    data = path.read_bytes()
+    if b"\0" in data[:8000]:
+        return False
+    crlf = data.count(b"\r\n")
+    return 0 < crlf < data.count(b"\n")
+
+
 def _is_utf8_name(value: bytes) -> bool:
     """Git treats these working-tree-encoding values as UTF-8 and converts nothing."""
     return value.lower().replace(b"-", b"") == b"utf8"
@@ -1644,6 +1676,23 @@ def _delivery_proof(
             _fail(
                 "patch delivery cannot carry content that Git converts on write (working-tree-encoding "
                 "or filter), because git apply would convert it again: " + ", ".join(sorted(converted))
+                + "; use commits delivery or integrate these files by hand"
+            )
+        # A hunk whose old lines carry no CRLF makes `git apply` renormalize
+        # the whole target file when text/eol conversion applies, so a file
+        # mixing CRLF and LF would lose endings on lines the worker never
+        # touched.  (The documented commands pin core.autocrlf=false.)
+        renormalized: set[str] = set()
+        for view in (worktree, source):
+            renormalized.update(
+                path for path in _line_ending_converted_paths(view, contribution_paths)
+                if _has_mixed_line_endings(source / path)
+            )
+        if renormalized:
+            _fail(
+                "patch delivery cannot carry changes to a file that mixes CRLF and LF line endings when its "
+                "text or eol attribute makes git apply renormalize it (apply would rewrite endings the worker "
+                "did not change): " + ", ".join(sorted(renormalized))
                 + "; use commits delivery or integrate these files by hand"
             )
         delivery = {
